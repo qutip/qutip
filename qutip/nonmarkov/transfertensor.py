@@ -46,9 +46,9 @@ method (TTM), introduced in [1].
 import numpy as np
 
 
-from qutip import (Options, spre, vector_to_operator, operator_to_vector,
-                   ket2dm, isket, expect_rho_vec)
+from qutip import Options, spre, vector_to_operator, operator_to_vector
 from qutip.solver import Result
+from qutip.core import data as _data
 
 
 class TTMSolverOptions:
@@ -135,8 +135,8 @@ def ttmsolve(dynmaps, rho0, times, e_ops=[], learningtimes=None, tensors=None,
 
     diff = None
 
-    if isket(rho0):
-        rho0 = ket2dm(rho0)
+    if rho0.isket:
+        rho0 = rho0.proj()
 
     output = Result()
     e_sops_data = []
@@ -193,11 +193,14 @@ def ttmsolve(dynmaps, rho0, times, e_ops=[], learningtimes=None, tensors=None,
             if expt_callback:
                 # use callback method
                 e_ops(times[i], states[i])
+        rdata = _data.column_stack_csr(r.data)
         for m in range(n_expt_op):
             if output.expect[m].dtype == complex:
-                output.expect[m][i] = expect_rho_vec(e_sops_data[m], r, 0)
+                output.expect[m][i] = _data.expect_super_csr(e_sops_data[m],
+                                                             rdata)
             else:
-                output.expect[m][i] = expect_rho_vec(e_sops_data[m], r, 1)
+                output.expect[m][i] = _data.expect_super_csr(e_sops_data[m],
+                                                             rdata).real
 
     output.solver = "ttmsolve"
     output.times = times

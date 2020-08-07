@@ -51,6 +51,8 @@ cdef class _Indexer:
                 dim = self.dimensions[ord]
                 if dim < 0:
                     raise ValueError("found negative dimension: " + str(dim))
+                elif dim == 0:
+                    raise ValueError("found zero dimension")
                 new_dimensions[i] = dim
         finally:
             mem.PyMem_Free(tmp)
@@ -75,6 +77,7 @@ cdef class _Indexer:
         cdef idxint out=0, dim
         for i in range(self.ndims - 1, -1, -1):
             dim = self.dimensions[i]
+            # Dimensions cannot be zero due to the check in __init__.
             out += self.cumprod[i] * (idx % dim)
             idx //= dim
             if idx == 0:
@@ -263,7 +266,7 @@ cpdef CSR dimensions_csr(CSR matrix, object dimensions, object order):
     cdef _Indexer index = _Indexer(np.asarray(dimensions, dtype=idxint_dtype),
                                    np.asarray(order, dtype=idxint_dtype))
     cdef idxint[:] permutation
-    if matrix.shape[0] == 1 and matrix.shape[1] == 1:
+    if matrix.shape[0] == 1 and matrix.shape[1] == 1 or csr.nnz(matrix) == 0:
         return matrix.copy()
     if matrix.shape[0] == 1:
         return _dimensions_csr_columns(matrix, index)

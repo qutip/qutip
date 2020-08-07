@@ -49,6 +49,7 @@ from .core.cy.openmp.utilities import check_use_openmp
 from .sesolve import sesolve
 from .ui.progressbar import BaseProgressBar, TextProgressBar
 
+
 # -----------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
 # any collapse operators were given.
@@ -208,8 +209,8 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
     # be empty, i.e., e_ops = []
     # TODO: e_ops for superoperator
     if rho0.issuper and not e_ops == []:
-        raise TypeError("Must have e_ops = [] when initial condition rho0 is" +
-                " a superoperator.")
+        raise TypeError("Must have e_ops = [] when initial condition rho0 is"
+                        " a superoperator.")
 
     if options is None:
         options = Options()
@@ -510,19 +511,26 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
 
         if opt.store_states:
             # TODO: fix dispatch creation.
-            matrix = _data.column_unstack_dense(cdata, size, inplace=True)
-            output.states.append(Qobj(matrix.as_ndarray(),
+            # We always use a gated check and in-place stacking and unstacking
+            # because then we don't have to copy any data, regardless of the
+            # order we do things in.
+            if cdata.shape[0] != size:
+                cdata = _data.column_unstack_dense(cdata, size, inplace=True)
+            output.states.append(Qobj(cdata.as_ndarray(),
                                       dims=dims, type=rho0.type, copy=False))
 
         if expt_callback:
             # use callback method
-            matrix = _data.column_unstack_dense(cdata, size, inplace=True)
-            output.expect.append(e_ops(t, Qobj(matrix.as_ndarray(),
+            if cdata.shape[0] != size:
+                cdata = _data.column_unstack_dense(cdata, size, inplace=True)
+            output.expect.append(e_ops(t, Qobj(cdata.as_ndarray(),
                                                dims=dims, type=rho0.type,
                                                copy=False)))
 
         for m in range(n_expt_op):
             # TODO: sort out dispatch.
+            if cdata.shape[1] == size:
+                cdata = _data.column_stack_dense(cdata, inplace=True)
             val = _data.expect_super_csr_dense(e_ops_data[m], cdata)
             if e_ops[m].isherm:
                 val = val.real

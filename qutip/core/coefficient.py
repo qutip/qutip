@@ -17,7 +17,7 @@ from .cy.coefficient import (InterpolateCoefficient, InterCoefficient,
                              ShiftCoefficient)
 from setuptools import setup, Extension
 from Cython.Build import cythonize
-from warnings import warn, Warning
+from warnings import warn
 
 
 class StringParsingWarning(Warning):
@@ -190,6 +190,7 @@ class CompilationOptions:
                  no_types=None,
                  recompile=None,
                  compiler_flags=None,
+                 link_flags=None,
                  extra_import=None):
         if use_cython is not None:
             self.use_cython = use_cython
@@ -256,12 +257,13 @@ def coeff_from_str(base, args, args_ctypes, compile_opt, _debug=False):
     - Verify if already compiled and compile if not
     """
     # First, a sanity check before thinking of compiling
-    try:
-        env = {"t": 0}
-        env.update(args)
-        exec(base, str_env, env)
-    except Exception as err:
-        raise Exception("Invalid string coefficient") from err
+    if not compile_opt.extra_import:
+        try:
+            env = {"t": 0}
+            env.update(args)
+            exec(base, str_env, env)
+        except Exception as err:
+            raise Exception("Invalid string coefficient") from err
     # Do we even compile?
     if not qset.use_cython or not compile_opt.use_cython:
         return str_as_func(base, args)
@@ -355,7 +357,6 @@ parsed_code = "{}"
 @cython.auto_pickle(True)
 cdef class StrCoefficient(Coefficient):
     cdef:
-        int dummy
         str codeString
 {}{}
 
@@ -390,10 +391,11 @@ def compile_code(code, file_name, parsed, compile_opt):
         sys.argv = ["setup.py", "build_ext", "--inplace"]
         coeff_file = Extension(file_name,
                                sources=[full_file_name + ".pyx"],
-                               extra_compile_args=compile_opt.compiler_flags,
-                               extra_link_args=compile_opt.link_flags,
+                               extra_compile_args=compile_opt.compiler_flags.split(),
+                               extra_link_args=compile_opt.link_flags.split(),
+                               include_dirs=[np.get_include()],
                                language='c++')
-        setup(ext_modules = cythonize(coeff_file))
+        setup(ext_modules = cythonize(coeff_file, force=compile_opt.recompile))
         libfile = glob.glob(file_name + "*")[0]
         os.rename(libfile, os.path.join(root, libfile))
     except Exception as e:
@@ -424,7 +426,7 @@ def fromstr(base):
 
 
 typeCodes = [
-    ("Data", "_datal"),
+    ("Data", "_datalayer"),
     ("complex", "_cpl"),
     ("double", "_dbl"),
     ("int", "_int"),
@@ -564,7 +566,7 @@ def parse(code, args, compile_opt):
 
 
 def use_hinted_type(var_tuple, ncode, args_ctypes):
-    name, key, type_ = *var_tuple
+    name, key, type_ = var_tuple
     if key in args_ctypes:
         code = code.replace(cte, cte[0] + name, 1)
 
@@ -579,21 +581,22 @@ def try_parse(code, args, args_ctypes, compile_opt):
         variables = [(f, s, "object") for f, s, _ in variables]
         constants = [(f, s, "object") for f, s, _ in constants]
     variables_manually_typed = []
-    for name, key, type_ in variables:
+    for i, (name, key, type_) in enumerate(variables):
         if key in args_ctypes:
-            new_name = "self._" + args_ctypes[key]
-            ncode = ncode.replace(name, new_name, 1)
-            variables_manually_typed.append(new_name, key, args_ctypes[key])
+            new_name = "self._custom_" + args_ctypes[key] + str(i)
+            ncode = ncode.replace(name, new_name)
+            variables_manually_typed.append((new_name, key, args_ctypes[key]))
         else:
-            variables_manually_typed.append(name, key, type_)
+            variables_manually_typed.append((name, key, type_))
     variables = variables_manually_typed
-    if test_parsed(ncode, variables, constants, args):
-        return ncode, variables, constants, False
+    if (compile_opt.extra_import or
+        test_parsed(ncode, variables, constants, args)):
+            return ncode, variables, constants, False
     else:
         warn("Could not find c types", StringParsingWarning)
         remaped_variable = []
         for _, name, ctype in variables:
-            remaped_variable.append(("self." + name, name, ctype))
+            remaped_variable.append(("self." + name, name, "object"))
         return code, remaped_variable, [], True
 
 

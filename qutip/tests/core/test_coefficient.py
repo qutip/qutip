@@ -55,7 +55,7 @@ f_asarraylog = f(tlistlog, args)
 
 def coeff_generator(style, func):
     """Make a Coefficient"""
-    if func = "f":
+    if func == "f":
         base = f
     else:
         base = g
@@ -73,11 +73,11 @@ def coeff_generator(style, func):
     if style == "string" and func == "g":
         return qtcoeff.coefficient( "cos(w * t * pi)", args=args)
     if style == "steparray":
-        qtcoeff.coefficient(base(tlist, args), tlist=tlist,
-                            _stepInterpolation=True)
+        return qtcoeff.coefficient(base(tlist, args), tlist=tlist,
+                                   _stepInterpolation=True)
     if style == "steparraylog":
-        qtcoeff.coefficient(base(tlistlog, args), tlist=tlistlog,
-                            _stepInterpolation=True)
+        return qtcoeff.coefficient(base(tlistlog, args), tlist=tlistlog,
+                                   _stepInterpolation=True)
 
 
 @pytest.mark.parametrize(['base', 'kwargs', 'tol'], [
@@ -97,10 +97,12 @@ def coeff_generator(style, func):
                  1e-10, id="string")
 ])
 def test_CoeffCreationCall(base, kwargs, tol):
+    qtcoeff.CompilationOptions.recompile = True
     t = np.random.rand() * 0.9 + 0.05
     val = np.exp(1j * t * np.pi)
     coeff = qtcoeff.coefficient(base, **kwargs)
     assert np.allclose(coeff(t), val, rtol=tol)
+    qtcoeff.CompilationOptions.recompile = False
 
 
 @pytest.mark.parametrize(['base', 'kwargs', 'tol'], [
@@ -130,8 +132,8 @@ def test_CoeffUnitaryTransform(style):
     coeff = coeff_generator(style, "f")
     t = np.random.rand() * 0.7 + 0.05
     dt = np.random.rand() * 0.2
-    val = np.exp(1j * t * np.pi)
-    val_dt = np.exp(1j * (t+dt) * np.pi)
+    val = coeff(t)
+    val_dt = coeff(t+dt)
     assert np.allclose(qtcoeff.norm(coeff)(t), np.abs(val)**2)
     assert np.allclose(qtcoeff.conj(coeff)(t), np.conj(val))
     assert np.allclose(qtcoeff.shift(coeff, dt)(t), val_dt)
@@ -156,11 +158,11 @@ def test_CoeffUnitaryTransform(style):
     pytest.param("steparraylog", id="steparraylog")
 ])
 def test_CoeffOperation(style_left, style_right):
-    coeff_left = coeff_generator(style, "f")
-    coeff_right = coeff_generator(style, "g")
+    coeff_left = coeff_generator(style_left, "f")
+    coeff_right = coeff_generator(style_right, "g")
     t = np.random.rand() * 0.9 + 0.05
-    val_l = np.exp(1j * t * np.pi)
-    val_r = np.cos(1j * t * np.pi)
+    val_l = coeff_left(t)
+    val_r = coeff_right(t)
     coeff_sum = coeff_left + coeff_right
     assert np.allclose(coeff_sum(t), val_l + val_r)
     coeff_prod = coeff_left * coeff_right
@@ -210,24 +212,28 @@ def test_CoeffOptions():
                  lambda t: t + 1, id="branch")
 ])
 def test_CoeffParsingStressTest(codestring, args, reference):
+    qtcoeff.CompilationOptions.recompile = True
     t = np.random.rand() * 0.9 + 0.05
     coeff = qtcoeff.coefficient(codestring, args=args)
     assert np.allclose(coeff(t), reference(t))
+    qtcoeff.CompilationOptions.recompile = False
 
 
 @pytest.mark.requires_cython
 @pytest.mark.filterwarnings("error")
 def test_manual_typing():
-    coeff = qtcoeff.coefficient("my_list[0] + my_dict['a']",
-                                args={"my_list":[1], "my_dict":{'a':2}},
+    qtcoeff.CompilationOptions.recompile = True
+    coeff = qtcoeff.coefficient("my_list[0] + my_dict[5]",
+                                args={"my_list":[1], "my_dict":{5:2}},
                                 args_ctypes={"my_list":"list",
                                              "my_dict":"dict"})
     assert coeff(0) == 3
+    qtcoeff.CompilationOptions.recompile = False
 
 
 @pytest.mark.requires_cython
 def test_advance_use():
-    opt = qtcoeff.CompilationOptions(extra_import="""
+    opt = qtcoeff.CompilationOptions(recompile=True, extra_import="""
 from qutip import basis
 from qutip.core.data cimport CSR
 from qutip.core.data.expect cimport expect_csr
@@ -237,7 +243,7 @@ from qutip.core.data.expect cimport expect_csr
                                 args={"op":csr},
                                 args_ctypes={"op":"CSR"},
                                 compile_opt=opt)
-    assert coeff(0) == 14
+    assert coeff(0) == 5.
 
 
 @pytest.mark.requires_cython

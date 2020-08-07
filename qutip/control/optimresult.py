@@ -59,7 +59,7 @@ class OptimResult(object):
 
     initial_fid_err : float
         fidelity error before optimisation starting
-        
+
     fid_err : float
         final fidelity error that was achieved
 
@@ -79,7 +79,7 @@ class OptimResult(object):
 
     max_iter_exceeded : boolean
         True if the iteration limit was reached
-        
+
     max_fid_func_exceeded : boolean
         True if the fidelity function call limit was reached
 
@@ -104,10 +104,10 @@ class OptimResult(object):
 
     evo_full_initial : Qobj
         The evolution operator from t=0 to t=T based on the initial amps
-        
+
     stats : Stats
         Object contaning the stats for the run (if any collected)
-        
+
     optimizer : Optimizer
         Instance of the Optimizer used to generate the result
     """

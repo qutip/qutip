@@ -366,7 +366,7 @@ def scattering_probability(H, psi0, n_emissions, c_ops, tlist,
         # wg_indices_list = list(set_partition(indices, W))
         for wg_indices in partition:
             projector = temporal_basis_vector(wg_indices, T)
-            amplitude = (projector.dag() * phi_n).full().item()
+            amplitude = projector.dag() * phi_n
             probs[emit_indices] += np.real(amplitude.conjugate() * amplitude)
 
     # Iteratively integrate to obtain single value

@@ -1,4 +1,5 @@
 #cython: language_level=3
+#cython: boundscheck=False, wraparound=False
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
@@ -31,58 +32,49 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-import numpy as np
-cimport numpy as cnp
-cimport cython
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def cy_pad_csr(object A, int row_scale, int col_scale, int insertrow=0, int insertcol=0):
-    cdef int nrowin = A.shape[0]
-    cdef int ncolin = A.shape[1]
-    cdef int nnz = A.indptr[nrowin]
-    cdef int nrowout = nrowin*row_scale
-    cdef int ncolout = ncolin*col_scale
-    cdef size_t kk
-    cdef int temp, temp2
-    cdef int[::1] ind = A.indices
-    cdef int[::1] ptr_in = A.indptr
-    cdef cnp.ndarray[int, ndim=1, mode='c'] ptr_out = np.zeros(nrowout+1,dtype=np.int32)
+from libc.string cimport memcpy, memset
+from qutip.core.data cimport idxint, CSR, csr
 
-    A._shape = (nrowout, ncolout)
+def pad_csr(CSR matrix, idxint row_scale, idxint col_scale,
+            idxint insertrow=0, idxint insertcol=0):
+    cdef idxint n_rows_in = matrix.shape[0]
+    cdef idxint n_cols_in = matrix.shape[1]
+    cdef idxint n_rows_out = n_rows_in * row_scale
+    cdef idxint n_cols_out = n_cols_in * col_scale
+    cdef idxint temp, ptr
+    cdef size_t nnz = csr.nnz(matrix)
+    cdef CSR out = csr.empty(n_rows_out, n_cols_out, nnz)
+
+    memcpy(out.data, matrix.data, nnz * sizeof(double complex))
     if insertcol == 0:
-        pass
+        memcpy(out.col_index, matrix.col_index, nnz * sizeof(idxint))
     elif insertcol > 0 and insertcol < col_scale:
-        temp = insertcol*ncolin
-        for kk in range(nnz):
-            ind[kk] += temp
+        temp = insertcol * n_cols_in
+        for ptr in range(nnz):
+            out.col_index[ptr] = matrix.col_index[ptr] + temp
     else:
         raise ValueError("insertcol must be >= 0 and < col_scale")
 
-
     if insertrow == 0:
-        temp = ptr_in[nrowin]
-        for kk in range(nrowin):
-            ptr_out[kk] = ptr_in[kk]
-        for kk in range(nrowin, nrowout+1):
-            ptr_out[kk] = temp
+        memcpy(out.row_index, matrix.row_index, n_rows_in * sizeof(idxint))
+        temp = matrix.row_index[n_rows_in]
+        for ptr in range(n_rows_in, n_rows_out + 1):
+            out.row_index[ptr] = temp
 
-    elif insertrow == row_scale-1:
-        temp = (row_scale - 1) * nrowin
-        for kk in range(temp, nrowout+1):
-            ptr_out[kk] = ptr_in[kk-temp]
+    elif insertrow == row_scale - 1:
+        temp = insertrow * n_rows_in
+        memset(out.row_index, 0, temp * sizeof(idxint))
+        memcpy(out.row_index + temp, matrix.row_index,
+               (n_rows_out + 1 - temp) * sizeof(idxint))
 
     elif insertrow > 0 and insertrow < row_scale - 1:
-        temp = insertrow*nrowin
-        for kk in range(temp, temp+nrowin):
-            ptr_out[kk] = ptr_in[kk-temp]
-        temp = kk+1
-        temp2 = ptr_in[nrowin]
-        for kk in range(temp, nrowout+1):
-            ptr_out[kk] = temp2
+        temp = insertrow * n_rows_in
+        memset(out.row_index, 0, temp * sizeof(idxint))
+        memcpy(out.row_index + temp, matrix.row_index, n_rows_in * sizeof(idxint))
+        for ptr in range(temp + n_rows_in, n_rows_out + 1):
+            out.row_index[ptr] = nnz
     else:
         raise ValueError("insertrow must be >= 0 and < row_scale")
 
-    A.indptr = ptr_out
-
-    return A
+    return out

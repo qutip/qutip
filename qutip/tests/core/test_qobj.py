@@ -959,3 +959,43 @@ def test_unit():
     psi.unit(inplace=True)
     assert psi == psi2
     np.testing.assert_allclose(np.linalg.norm(psi.full()), 1.0)
+
+
+@pytest.mark.parametrize('inplace', [True, False], ids=['inplace', 'new'])
+@pytest.mark.parametrize(['expanded', 'contracted'], [
+    pytest.param([[1, 2, 2], [1, 2, 2]], [[2, 2], [2, 2]], id='op'),
+    pytest.param([[2, 1, 1], [2, 1, 1]], [[2], [2]], id='op'),
+    pytest.param([[5, 5], [5, 5]], [[5, 5], [5, 5]], id='op,unchanged'),
+    pytest.param([[5], [5]], [[5], [5]], id='op,unchanged'),
+    pytest.param([[5, 1, 3, 1], [5, 2, 3, 1]], [[5, 1, 3], [5, 2, 3]],
+                 id='mixed'),
+    pytest.param([[2, 1, 2], [2, 2, 2]], [[2, 1, 2], [2, 2, 2]],
+                 id='mixed,unchanged'),
+    pytest.param([[2, 2, 2], [1, 2, 2]], [[2, 2, 2], [1, 2, 2]],
+                 id='mixed,unchanged'),
+    pytest.param([[2, 2, 1], [1, 1, 1]], [[2, 2], [1, 1]], id='ket'),
+    pytest.param([[1, 2, 1], [1, 1, 1]], [[2], [1]], id='ket'),
+    pytest.param([[2, 3, 4], [1, 1, 1]], [[2, 3, 4], [1, 1, 1]],
+                 id='ket,unchanged'),
+    pytest.param([[1, 1, 1], [2, 2, 1]], [[1, 1], [2, 2]], id='bra'),
+    pytest.param([[1, 1, 1], [1, 2, 1]], [[1], [2]], id='bra'),
+    pytest.param([[1, 1, 1], [2, 3, 4]], [[1, 1, 1], [2, 3, 4]],
+                 id='bra,unchanged'),
+    pytest.param([[[2, 1, 1], [2, 1, 1]], [1]], [[[2], [2]], [1]],
+                 id='operket'),
+    pytest.param([[1], [[2, 1, 1], [2, 1, 1]]], [[1], [[2], [2]]],
+                 id='operbra'),
+])
+def test_contract(expanded, contracted, inplace):
+    shape = (np.prod(contracted[0]), np.prod(contracted[1]))
+    data = np.random.rand(*shape) + 1j*np.random.rand(*shape)
+    qobj = qutip.Qobj(data, dims=expanded)
+    assert qobj.dims == expanded
+    out = qobj.contract(inplace=inplace)
+    if inplace:
+        assert out is qobj
+    else:
+        assert out is not qobj
+    assert out.dims == contracted
+    assert out.shape == qobj.shape
+    assert np.all(out.full() == qobj.full())

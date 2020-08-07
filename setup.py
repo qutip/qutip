@@ -61,14 +61,12 @@ VERSION = '%d.%d.%db1' % (MAJOR, MINOR, MICRO)
 REQUIRES = ['numpy (>=1.12)', 'scipy (>=1.0)', 'cython (>=0.29.20)']
 EXTRAS_REQUIRE = {'graphics': ['matplotlib(>=1.2.1)']}
 INSTALL_REQUIRES = ['numpy>=1.12', 'scipy>=1.0', 'cython>=0.29.20']
-PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy',
-            'qutip/qip', 'qutip/qip/device', 'qutip/qip/operations',
-            'qutip/qip/compiler',
+PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/qip', 'qutip/qip/device',
+            'qutip/qip/operations', 'qutip/qip/compiler',
             'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov',
-            'qutip/_mkl', 'qutip/legacy',
-            'qutip/tests', 'qutip/tests/core', 'qutip/tests/core/data',
-            'qutip/core', 'qutip/core/cy', 'qutip/core/data/',
-            'qutip/core/cy/openmp', 'qutip/cy/openmp']
+            'qutip/_mkl', 'qutip/tests', 'qutip/tests/core',
+            'qutip/tests/core/data', 'qutip/core', 'qutip/core/cy',
+            'qutip/core/data/', 'qutip/core/cy/openmp', 'qutip/cy/openmp']
 PACKAGE_DATA = {
     'qutip': ['configspec.ini'],
     'qutip/tests': ['*.ini'],

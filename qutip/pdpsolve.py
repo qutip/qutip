@@ -33,28 +33,22 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
-import scipy.sparse as sp
-from scipy.linalg.blas import get_blas_funcs
-try:
-    norm = get_blas_funcs("znrm2", dtype=np.float64)
-except:
-    from scipy.linalg import norm
-
 from numpy.random import RandomState
 
 from . import (
-    Qobj, isket, ket2dm, expect, spre, spost, stack_columns, unstack_columns,
-    liouvillian, lindblad_dissipator,
+    Qobj, expect, spre, spost, stack_columns, unstack_columns, liouvillian,
 )
-from .core.expect import expect_rho_vec
-from .core.cy.spmatfuncs import cy_expect_psi_csr, spmv, cy_expect_rho_vec
-from .solver import Result, Options, _solver_safety_check
+from .core import data as _data
+from .core.data.norm import l2_dense as norm
+from .solver import Result, Options
 from .parallel import serial_map
 from .ui.progressbar import TextProgressBar
 from .settings import debug
 
+
 class StochasticSolverOptions:
-    """Class of options for stochastic (piecewse deterministic process) PDP
+    """
+    Class of options for stochastic (piecewse deterministic process) PDP
     solvers such as :func:`qutip.pdpsolve.ssepdpsolve`,
     :func:`qutip.pdpsolve.smepdpsolve`.
     Options can be specified either as arguments to the constructor::
@@ -187,7 +181,6 @@ class StochasticSolverOptions:
 
     progress_bar : :class:`qutip.ui.BaseProgressBar`
         Optional progress bar class instance.
-
     """
     def __init__(self, H=None, state0=None, times=None, c_ops=[], sc_ops=[],
                  e_ops=[], m_ops=None, args=None, ntraj=1, nsubsteps=1,
@@ -208,18 +201,12 @@ class StochasticSolverOptions:
         self.d1 = d1
         self.d2 = d2
         self.d2_len = d2_len
-        self.dW_factors = dW_factors# if dW_factors else np.ones(d2_len)
+        self.dW_factors = dW_factors  # if dW_factors else np.ones(d2_len)
         self.state0 = state0
         self.times = times
         self.c_ops = c_ops
         self.sc_ops = sc_ops
         self.e_ops = e_ops
-
-        #if m_ops is None:
-        #    self.m_ops = [[c for _ in range(d2_len)] for c in sc_ops]
-        #else:
-        #    self.m_ops = m_ops
-
         self.m_ops = m_ops
 
         self.ntraj = ntraj
@@ -247,7 +234,7 @@ class StochasticSolverOptions:
 
         self.map_kwargs = map_kwargs if map_kwargs is not None else {}
 
-        #Does any operator depend on time?
+        # Does any operator depend on time?
         self.td = False
         if not isinstance(H, Qobj):
             self.td = True
@@ -257,6 +244,7 @@ class StochasticSolverOptions:
         for ops in sc_ops:
             if not isinstance(ops, Qobj):
                 self.td = True
+
 
 def main_ssepdpsolve(H, psi0, times, c_ops, e_ops, **kwargs):
     """
@@ -294,11 +282,7 @@ def main_ssepdpsolve(H, psi0, times, c_ops, e_ops, **kwargs):
     output: :class:`qutip.solver.Result`
 
         An instance of the class :class:`qutip.solver.Result`.
-
     """
-    if debug:
-        logger.debug(inspect.stack()[0][3])
-
     if isinstance(e_ops, dict):
         e_ops_dict = e_ops
         e_ops = [e for e in e_ops.values()]
@@ -314,6 +298,7 @@ def main_ssepdpsolve(H, psi0, times, c_ops, e_ops, **kwargs):
         res.expect = {e: res.expect[n]
                       for n, e in enumerate(e_ops_dict.keys())}
     return res
+
 
 def main_smepdpsolve(H, rho0, times, c_ops, e_ops, **kwargs):
     """
@@ -356,11 +341,7 @@ def main_smepdpsolve(H, rho0, times, c_ops, e_ops, **kwargs):
     output: :class:`qutip.solver.Result`
 
         An instance of the class :class:`qutip.solver.Result`.
-
     """
-    if debug:
-        logger.debug(inspect.stack()[0][3])
-
     if isinstance(e_ops, dict):
         e_ops_dict = e_ops
         e_ops = [e for e in e_ops.values()]
@@ -385,9 +366,6 @@ def _ssepdpsolve_generic(sso, options, progress_bar):
     """
     For internal use. See ssepdpsolve.
     """
-    if debug:
-        logger.debug(inspect.stack()[0][3])
-
     N_store = len(sso.times)
     N_substeps = sso.nsubsteps
     dt = (sso.times[1] - sso.times[0]) / N_substeps
@@ -409,7 +387,7 @@ def _ssepdpsolve_generic(sso, options, progress_bar):
     progress_bar.start(sso.ntraj)
     for n in range(sso.ntraj):
         progress_bar.update(n)
-        psi_t = sso.state0.full().ravel()
+        psi_t = _data.dense.fast_from_numpy(sso.state0.full().ravel())
 
         states_list, jump_times, jump_op_idx = \
             _ssepdpsolve_single_trajectory(data, Heff, dt, sso.times,
@@ -444,13 +422,14 @@ def _ssepdpsolve_generic(sso, options, progress_bar):
 
     return data
 
+
 def _ssepdpsolve_single_trajectory(data, Heff, dt, times, N_store, N_substeps, psi_t, dims, c_ops, e_ops):
     """
     Internal function. See ssepdpsolve.
     """
     states_list = []
 
-    phi_t = np.copy(psi_t)
+    phi_t = psi_t.copy()
 
     prng = RandomState()  # todo: seed it
     r_jump, r_op = prng.rand(2)
@@ -462,25 +441,27 @@ def _ssepdpsolve_single_trajectory(data, Heff, dt, times, N_store, N_substeps, p
 
         if e_ops:
             for e_idx, e in enumerate(e_ops):
-                s = cy_expect_psi_csr(
-                    e.data.data, e.data.indices, e.data.indptr, psi_t, 0)
+                s = _data.expect_csr_dense(e, psi_t)
                 data.expect[e_idx, t_idx] += s
                 data.ss[e_idx, t_idx] += s ** 2
         else:
-            states_list.append(Qobj(psi_t, dims=dims))
+            states_list.append(Qobj(psi_t.to_array(), dims=dims))
 
         for j in range(N_substeps):
 
             if norm(phi_t) ** 2 < r_jump:
                 # jump occurs
-                p = np.array([norm(c.data * psi_t) ** 2 for c in c_ops])
+                p = np.array([
+                    norm(_data.matmul_csr_dense_dense(c.data, psi_t)) ** 2
+                    for c in c_ops
+                ])
                 p = np.cumsum(p / np.sum(p))
                 n = np.where(p >= r_op)[0][0]
 
                 # apply jump
-                psi_t = c_ops[n].data * psi_t
+                psi_t = _data.matmul_csr_dense_dense(c_ops[n].data, psi_t)
                 psi_t /= norm(psi_t)
-                phi_t = np.copy(psi_t)
+                phi_t = psi_t.copy()
 
                 # store info about jump
                 jump_times.append(times[t_idx] + dt * j)
@@ -490,11 +471,14 @@ def _ssepdpsolve_single_trajectory(data, Heff, dt, times, N_store, N_substeps, p
                 r_jump, r_op = prng.rand(2)
 
             # deterministic evolution wihtout correction for norm decay
-            dphi_t = (-1.0j * dt) * (Heff.data * phi_t)
+            dphi_t = (-1j*dt) * _data.matmul_csr_dense_dense(Heff.data, phi_t)
 
             # deterministic evolution with correction for norm decay
-            dpsi_t = (-1.0j * dt) * (Heff.data * psi_t)
-            A = 0.5 * np.sum([norm(c.data * psi_t) ** 2 for c in c_ops])
+            dpsi_t = (-1j*dt) * _data.matmul_csr_dense_dense(Heff.data, psi_t)
+            A = 0.5 * np.sum([
+                norm(_data.matmul_csr_dense_dense(c.data, psi_t)) ** 2
+                for c in c_ops
+            ])
             dpsi_t += dt * A * psi_t
 
             # increment wavefunctions
@@ -515,9 +499,6 @@ def _smepdpsolve_generic(sso, options, progress_bar):
     """
     For internal use. See smepdpsolve.
     """
-    if debug:
-        logger.debug(inspect.stack()[0][3])
-
     N_store = len(sso.times)
     N_substeps = sso.nsubsteps
     dt = (sso.times[1] - sso.times[0]) / N_substeps
@@ -538,7 +519,8 @@ def _smepdpsolve_generic(sso, options, progress_bar):
 
     for n in range(sso.ntraj):
         progress_bar.update(n)
-        rho_t = stack_columns(sso.rho0.full()).ravel()
+        rho_t = _data.dense.fast_from_numpy(sso.rho0.full())
+        rho_t = _data.column_stack_dense(rho_t)
 
         states_list, jump_times, jump_op_idx = \
             _smepdpsolve_single_trajectory(data, L, dt, sso.times,
@@ -587,7 +569,8 @@ def _smepdpsolve_single_trajectory(data, L, dt, times, N_store, N_substeps, rho_
 
         if e_ops:
             for e_idx, e in enumerate(e_ops):
-                data.expect[e_idx, t_idx] += expect_rho_vec(e, rho_t)
+                data.expect[e_idx, t_idx] +=\
+                    _data.expect_super_csr_dense(e, rho_t)
         else:
             states_list.append(Qobj(unstack_columns(rho_t), dims=dims))
 
@@ -612,10 +595,10 @@ def _smepdpsolve_single_trajectory(data, L, dt, times, N_store, N_substeps, rho_
                 r_jump, r_op = prng.rand(2)
 
             # deterministic evolution wihtout correction for norm decay
-            dsigma_t = spmv(L.data, sigma_t) * dt
+            dsigma_t = _data.matmul_csr_dense_dense(L.data, sigma_t) * dt
 
             # deterministic evolution with correction for norm decay
-            drho_t = spmv(L.data, rho_t) * dt
+            drho_t = _data.matmul_csr_dense_dense(L.data, rho_t) * dt
 
             rho_t += drho_t
 

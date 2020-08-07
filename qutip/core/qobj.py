@@ -572,7 +572,7 @@ class Qobj:
         if self.issuper:
             if other.isket:
                 other = other.proj()
-            return vector_to_operator(self * operator_to_vector(other))
+            return vector_to_operator(self @ operator_to_vector(other))
         return self.__matmul__(other)
 
     def __getstate__(self):
@@ -1031,6 +1031,57 @@ class Qobj:
                     dims=dims,
                     type='oper',
                     copy=False)
+
+    def contract(self, inplace=False):
+        """
+        Contract subspaces of the tensor structure which are 1D.  Not defined
+        on superoperators.  If all dimensions are scalar, a Qobj of dimension
+        [[1], [1]] is returned, i.e. _multiple_ scalar dimensions are
+        contracted, but one is left.
+
+        Parameters
+        ----------
+        inplace: bool, optional
+            If True, modify the dimensions in place.  If False, return a copied
+            object.
+
+        Returns
+        -------
+        out: :class:`.Qobj`
+            Quantum object with dimensions contracted.  Will be `self` if
+            :param:`inplace` is True.
+        """
+        if self.isket:
+            sub = [x for x in self.dims[0] if x > 1] or [1]
+            dims = [sub, [1]*len(sub)]
+        elif self.isbra:
+            sub = [x for x in self.dims[1] if x > 1] or [1]
+            dims = [[1]*len(sub), sub]
+        elif self.isoper or self.isoperket or self.isoperbra:
+            if self.isoper:
+                oper_dims = self.dims
+            elif self.isoperket:
+                oper_dims = self.dims[0]
+            else:
+                oper_dims = self.dims[1]
+            if len(oper_dims[0]) != len(oper_dims[1]):
+                raise ValueError("cannot parse Qobj dimensions: "
+                                 + repr(self.dims))
+            dims_ = [
+                (x, y) for x, y in zip(oper_dims[0], oper_dims[1])
+                if x > 1 or y > 1
+            ] or [(1, 1)]
+            dims = [[x for x, _ in dims_], [y for _, y in dims_]]
+            if self.isoperket:
+                dims = [dims, [1]]
+            elif self.isoperbra:
+                dims = [[1], dims]
+        else:
+            raise TypeError("not defined for superoperators")
+        if inplace:
+            self.dims = dims
+            return self
+        return Qobj(self.data.copy(), dims=dims, type=self.type, copy=False)
 
     def permute(self, order):
         """

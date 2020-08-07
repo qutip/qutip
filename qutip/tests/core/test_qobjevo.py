@@ -38,7 +38,6 @@ from numpy.testing import (assert_equal, assert_, assert_almost_equal,
 from functools import partial
 from types import FunctionType, BuiltinFunctionType
 from qutip import Cubic_Spline
-from qutip.core.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, spmv)
 
 from qutip.core import data as _data
 
@@ -247,14 +246,14 @@ def test_QobjEvo_copy():
     t = np.random.random()
     td_obj_copy = td_obj_1.copy()
     #Check that the copy is independent
-    assert_equal(td_obj_1 is td_obj_copy, False)
+    assert td_obj_1 is not td_obj_copy
     #Check that the copy has the same data
-    assert_equal(td_obj_1(t) == td_obj_copy(t), True)
+    assert td_obj_1(t) == td_obj_copy(t)
     td_obj_copy = QobjEvo(td_obj_1)
     #Check that the copy is independent
-    assert_equal(td_obj_1 is td_obj_copy, False)
+    assert td_obj_1 is not td_obj_copy
     #Check that the copy has the same data
-    assert_equal(td_obj_1(t) == td_obj_copy(t), True)
+    assert td_obj_1(t) == td_obj_copy(t)
 
 
 @pytest.mark.skipif(True, reason="Now returning Coefficient, to adapt/remove")
@@ -267,23 +266,20 @@ def test_QobjEvo_to_list():
     td_obj_2 = QobjEvo(td_as_list_2, args=args, tlist=np.linspace(0,1,100))
     td_as_list_back = (td_obj_1 + td_obj_2).to_list()
 
-    all_match = True
     for part in td_as_list_back:
         if isinstance(part, Qobj):
-            all_match = all_match and td_as_list_1[0] + td_as_list_2[0] == part
+            assert td_as_list_1[0] + td_as_list_2[0] == part
         elif isinstance(part[1], (FunctionType, BuiltinFunctionType, partial)):
-            all_match = all_match and td_as_list_2[1][1] == part[1]
-            all_match = all_match and td_as_list_2[1][0] == part[0]
+            assert td_as_list_2[1][1] == part[1]
+            assert td_as_list_2[1][0] == part[0]
         elif isinstance(part[1], str):
-            all_match = all_match and td_as_list_1[1][1] == part[1]
-            all_match = all_match and td_as_list_1[1][0] == part[0]
+            assert td_as_list_1[1][1] == part[1]
+            assert td_as_list_1[1][0] == part[0]
         elif isinstance(part[1], np.ndarray):
-            all_match = all_match and (td_as_list_1[2][1] == part[1]).all()
-            all_match = all_match and td_as_list_1[2][0] == part[0]
+            assert (td_as_list_1[2][1] == part[1]).all()
+            assert td_as_list_1[2][0] == part[0]
         else:
-            all_match = False
-    # Check that the list get the object back
-    assert_equal(all_match, True)
+            assert False
 
 
 def test_QobjEvo_math_arithmetic():
@@ -491,14 +487,15 @@ def test_QobjEvo_expect_psi():
     "QobjEvo expect psi"
     N = 5
     t = np.random.rand()+1
-    vec = np.arange(N)*.5+.5j
+    vec = _data.dense.fast_from_numpy(np.arange(N)*.5 + .5j)
     cqobjevos, base_qobjs = _rand_cqobjevo(N)
+    _expect = _data.expect_csr_dense
 
     for op in cqobjevos:
         Qo1 = op(t)
-        assert_allclose(cy_expect_psi(Qo1.data.as_scipy(), vec, 0), op.expect(t, vec, 0))
+        assert abs(_expect(Qo1.data, vec) - op.expect(t, vec)) < 1e-10
         op.compile()
-        assert_allclose(cy_expect_psi(Qo1.data.as_scipy(), vec, 0), op.expect(t, vec, 0))
+        assert abs(_expect(Qo1.data, vec) - op.expect(t, vec)) < 1e-10
 
 
 @pytest.mark.slow
@@ -506,48 +503,40 @@ def test_QobjEvo_expect_psi_full(compile_kwargs):
     "QobjEvo expect psi"
     N = 5
     t = np.random.rand()+1
-    vec = np.arange(N)*.5+.5j
+    vec = _data.dense.fast_from_numpy(np.arange(N)*.5 + .5j)
     cqobjevos, _ = _rand_cqobjevo(N)
     for op in cqobjevos:
         Qo1 = op(t)
         op.compile(**compile_kwargs)
-        assert_allclose(cy_expect_psi(Qo1.data.as_scipy(), vec, 0),
-                        op.expect(t, vec, 0))
+        assert abs(_data.expect_csr_dense(Qo1.data, vec)
+                   - op.expect(t, vec)) < 1e-10
 
 
 def test_QobjEvo_expect_rho():
     "QobjEvo expect rho"
     N = 5
     t = np.random.rand()+1
-    vec = np.random.rand(N*N)+1 + 1j*np.random.rand(N*N)
-    # TODO: use unstack_columns with a proper data-layer type
-    #mat = unstack_columns(vec)
-    mat = vec.T.reshape(N, N)
-    qobj = Qobj(mat)
-    cqobjevos, base_qobjs = _rand_cqobjevo(N)
+    vec = _data.dense.fast_from_numpy(np.random.rand(N*N)
+                                      + 1
+                                      + 1j*np.random.rand(N*N))
+    mat = _data.column_unstack_dense(vec, N)
+    qobj = Qobj(mat.to_array())
+    _expect = _data.expect_super_csr_dense
+    cqobjevos, _ = _rand_cqobjevo(N)
 
     for op_ in cqobjevos:
         op = liouvillian(op_)
         Qo1 = op(t)
-        assert_allclose(cy_expect_rho_vec(Qo1.data.as_scipy(), vec, 0),
-                        op.expect(t, vec, 0), atol=1e-14)
-        assert_allclose(cy_expect_rho_vec(Qo1.data.as_scipy(), vec, 0),
-                        op.expect(t, mat, 0), atol=1e-14)
-        assert_allclose(cy_expect_rho_vec(Qo1.data.as_scipy(), vec, 0),
-                        op.expect(t, qobj, 0), atol=1e-14)
-
+        assert abs(_expect(Qo1.data, vec) - op.expect(t, vec, 0)) < 1e-14
+        assert abs(_expect(Qo1.data, vec) - op.expect(t, mat, 0)) < 1e-14
+        assert abs(_expect(Qo1.data, vec) - op.expect(t, qobj, 0)) < 1e-14
         op.compile()
-        assert_allclose(cy_expect_rho_vec(Qo1.data.as_scipy(), vec, 0),
-                        op.expect(t, vec, 0), atol=1e-14)
-        assert_allclose(cy_expect_rho_vec(Qo1.data.as_scipy(), vec, 0),
-                        op.expect(t, mat, 0), atol=1e-14)
-        assert_allclose(cy_expect_rho_vec(Qo1.data.as_scipy(), vec, 0),
-                        op.expect(t, qobj, 0), atol=1e-14)
+        assert abs(_expect(Qo1.data, vec) - op.expect(t, vec, 0)) < 1e-14
+        assert abs(_expect(Qo1.data, vec) - op.expect(t, mat, 0)) < 1e-14
+        assert abs(_expect(Qo1.data, vec) - op.expect(t, qobj, 0)) < 1e-14
 
     tlist = np.linspace(0,1,300)
     args = {"w1": 1, "w2": 2, "w3": 3}
-    data1 = np.random.random((3, 3))
-    data2 = np.random.random((3, 3))
     td_obj_sa = QobjEvo(_random_QobjEvo((3,3), [0,3,2], tlist=tlist),
                        args=args, tlist=tlist)
     td_obj_m = QobjEvo(_random_QobjEvo((3,3), [1,2,3], tlist=tlist),
@@ -555,12 +544,12 @@ def test_QobjEvo_expect_rho():
     t = np.random.random()
     td_obj_sa = td_obj_sa.apply(spre)
     td_obj_m = td_obj_m.apply(spre)
-    rho = np.arange(3*3)*0.25+.25j
+    rho = _data.dense.fast_from_numpy(np.arange(3*3)*0.25+.25j)
     td_obj_sac = td_obj_sa.copy()
     td_obj_sac.compile()
     v1 = td_obj_sa.expect(t, rho, 0)
     v2 = td_obj_sac.expect(t, rho, 0)
-    v3 = cy_expect_rho_vec(td_obj_sa(t, data=True).as_scipy(), rho, 0)
+    v3 = _expect(td_obj_sa(t, data=True), rho)
     # check not compiled rhs const
     assert_allclose(v1, v3, rtol=1e-6)
     # check compiled rhs
@@ -570,7 +559,7 @@ def test_QobjEvo_expect_rho():
     td_obj_mc.compile()
     v1 = td_obj_m.expect(t, rho, 1)
     v2 = td_obj_mc.expect(t, rho, 1)
-    v3 = cy_expect_rho_vec(td_obj_m(t, data=True).as_scipy(), rho, 1)
+    v3 = _expect(td_obj_m(t, data=True), rho).real
     # check not compiled rhs func
     assert_allclose(v1, v3, rtol=1e-6)
     # check compiled rhs func
@@ -582,65 +571,52 @@ def test_QobjEvo_expect_rho_full():
     "QobjEvo expect rho"
     N = 5
     t = np.random.rand()+1
-    vec = np.random.rand(N*N)+1 + 1j*np.random.rand(N*N)
-    # TODO: use unstack_columns with a proper data-layer type.
-    #mat = unstack_columns(vec)
-    mat = vec.T.reshape(N, N)
-    qobj = Qobj(mat)
+    vec = _data.dense.fast_from_numpy(np.random.rand(N*N)
+                                      + 1
+                                      + 1j*np.random.rand(N*N))
+    mat = _data.column_unstack_dense(vec, N)
+    qobj = Qobj(mat.to_array())
+    _expect = _data.expect_super_csr_dense
     cqobjevos, base_qobjs = _rand_cqobjevo(N)
 
     for op_ in cqobjevos:
         op = liouvillian(op_)
         Qo1 = op(t)
         op.compile(dense=1)
-        assert_allclose(cy_expect_rho_vec(Qo1.data.as_scipy(), vec, 0),
-                        op.expect(t, vec, 0), atol=1e-14)
-        assert_allclose(cy_expect_rho_vec(Qo1.data.as_scipy(), vec, 0),
-                        op.expect(t, mat, 0), atol=1e-14)
-        assert_allclose(cy_expect_rho_vec(Qo1.data.as_scipy(), vec, 0),
-                        op.expect(t, qobj, 0), atol=1e-14)
+        assert abs(_expect(Qo1.data, vec) - op.expect(t, vec, 0)) < 1e-14
+        assert abs(_expect(Qo1.data, vec) - op.expect(t, mat, 0)) < 1e-14
+        assert abs(_expect(Qo1.data, vec) - op.expect(t, qobj, 0)) < 1e-14
         op.compiled = ""
         op.compile(matched=1)
-        assert_allclose(cy_expect_rho_vec(Qo1.data.as_scipy(), vec, 0),
-                        op.expect(t,vec,0), atol=1e-14)
-        assert_allclose(cy_expect_rho_vec(Qo1.data.as_scipy(), vec, 0),
-                        op.expect(t,mat,0), atol=1e-14)
-        assert_allclose(cy_expect_rho_vec(Qo1.data.as_scipy(), vec, 0),
-                        op.expect(t,qobj,0), atol=1e-14)
+        assert abs(_expect(Qo1.data, vec) - op.expect(t, vec, 0)) < 1e-14
+        assert abs(_expect(Qo1.data, vec) - op.expect(t, mat, 0)) < 1e-14
+        assert abs(_expect(Qo1.data, vec) - op.expect(t, qobj, 0)) < 1e-14
         op.compiled = ""
         op.compile(omp=2)
-        assert_allclose(cy_expect_rho_vec(Qo1.data.as_scipy(), vec, 0),
-                        op.expect(t,vec,0), atol=1e-14)
-        assert_allclose(cy_expect_rho_vec(Qo1.data.as_scipy(), vec, 0),
-                        op.expect(t,mat,0), atol=1e-14)
-        assert_allclose(cy_expect_rho_vec(Qo1.data.as_scipy(), vec, 0),
-                        op.expect(t,qobj,0), atol=1e-14)
+        assert abs(_expect(Qo1.data, vec) - op.expect(t, vec, 0)) < 1e-14
+        assert abs(_expect(Qo1.data, vec) - op.expect(t, mat, 0)) < 1e-14
+        assert abs(_expect(Qo1.data, vec) - op.expect(t, qobj, 0)) < 1e-14
         op.compiled = ""
         op.compile(matched=1,omp=2)
-        assert_allclose(cy_expect_rho_vec(Qo1.data.as_scipy(), vec, 0),
-                        op.expect(t,vec,0), atol=1e-14)
-        assert_allclose(cy_expect_rho_vec(Qo1.data.as_scipy(), vec, 0),
-                        op.expect(t,mat,0), atol=1e-14)
-        assert_allclose(cy_expect_rho_vec(Qo1.data.as_scipy(), vec, 0),
-                        op.expect(t,qobj,0), atol=1e-14)
+        assert abs(_expect(Qo1.data, vec) - op.expect(t, vec, 0)) < 1e-14
+        assert abs(_expect(Qo1.data, vec) - op.expect(t, mat, 0)) < 1e-14
+        assert abs(_expect(Qo1.data, vec) - op.expect(t, qobj, 0)) < 1e-14
 
     tlist = np.linspace(0,1,300)
     args={"w1":1, "w2":2, "w3":3}
-    data1 = np.random.random((3,3))
-    data2 = np.random.random((3,3))
     td_obj_sa = QobjEvo(_random_QobjEvo((3,3), [0,3,2], tlist=tlist),
-                       args=args, tlist=tlist)
+                        args=args, tlist=tlist)
     td_obj_m = QobjEvo(_random_QobjEvo((3,3), [1,2,3], tlist=tlist),
                        args=args, tlist=tlist)
     t = np.random.random()
     td_obj_sa = td_obj_sa.apply(spre)
     td_obj_m = td_obj_m.apply(spre)
-    rho = np.arange(3*3)*0.25+.25j
+    rho = _data.dense.fast_from_numpy(np.arange(3*3)*0.25+.25j)
     td_obj_sac = td_obj_sa.copy()
     td_obj_sac.compile()
     v1 = td_obj_sa.expect(t, rho, 0)
     v2 = td_obj_sac.expect(t, rho, 0)
-    v3 = cy_expect_rho_vec(td_obj_sa(t, data=True).as_scipy(), rho, 0)
+    v3 = _expect(td_obj_sa(t, data=True), rho)
     # check not compiled rhs const
     assert_allclose(v1, v3, rtol=1e-6)
     # check compiled rhs
@@ -650,7 +626,7 @@ def test_QobjEvo_expect_rho_full():
     td_obj_mc.compile()
     v1 = td_obj_m.expect(t, rho, 1)
     v2 = td_obj_mc.expect(t, rho, 1)
-    v3 = cy_expect_rho_vec(td_obj_m(t, data=True).as_scipy(), rho, 1)
+    v3 = _expect(td_obj_m(t, data=True), rho).real
     # check not compiled rhs func
     assert_allclose(v1, v3, rtol=1e-6)
     # check compiled rhs func

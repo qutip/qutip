@@ -33,8 +33,8 @@ cpdef CSR reshape_csr(CSR matrix, idxint n_rows_out, idxint n_cols_out):
     matrix.sort_indices()
     with nogil:
         # Since the indices are now sorted, the data arrays will be identical.
-        memcpy(&out.data[0], &matrix.data[0], nnz*sizeof(double complex))
-        memset(&out.row_index[0], 0, (n_rows_out + 1) * sizeof(idxint))
+        memcpy(out.data, matrix.data, nnz*sizeof(double complex))
+        memset(out.row_index, 0, (n_rows_out + 1) * sizeof(idxint))
         for row_in in range(n_rows_in):
             for ptr in range(matrix.row_index[row_in], matrix.row_index[row_in+1]):
                 loc = cur + matrix.col_index[ptr]
@@ -45,7 +45,7 @@ cpdef CSR reshape_csr(CSR matrix, idxint n_rows_out, idxint n_cols_out):
                 out.row_index[res.quot + 1] += 1
                 out.col_index[ptr] = res.rem
             cur += n_cols_in
-        for row_out in range(n_rows_out + 1):
+        for row_out in range(n_rows_out):
             out.row_index[row_out + 1] += out.row_index[row_out]
     return out
 
@@ -97,6 +97,8 @@ cpdef Dense column_stack_dense(Dense matrix, bint inplace=False):
 cdef void _column_unstack_check_shape(Data matrix, idxint rows) except *:
     if matrix.shape[1] != 1:
         raise ValueError("input is not a single column")
+    if rows < 1:
+        raise ValueError("rows must be a positive integer")
     if matrix.shape[0] % rows:
         raise ValueError("number of rows does not divide into the shape")
 

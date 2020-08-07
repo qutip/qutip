@@ -38,7 +38,6 @@ import functools
 import numbers
 import os
 import re
-import sys
 from types import FunctionType, BuiltinFunctionType
 
 import numpy as np
@@ -46,17 +45,10 @@ import scipy
 from scipy.interpolate import CubicSpline, interp1d
 
 from .qobj import Qobj
-from .cy.spmatfuncs import (
-    cy_expect_rho_vec, cy_expect_psi, spmv,
-)
 from .cy.cqobjevo import CQobjEvo
 from .coefficient import coefficient
 from .superoperator import stack_columns, unstack_columns
 from .. import settings as qset
-if qset.has_openmp:
-    from .cy.openmp.cqobjevo_omp import (
-        CQobjCteOmp, CQobjEvoTdOmp, CQobjEvoTdMatchedOmp,
-    )
 
 from . import data as _data
 
@@ -364,10 +356,6 @@ class QobjEvo:
                 e_op_num = int(key[10:])
                 self.dynamics_args += [(key, "expect", e_op_num)]
 
-            if isinstance(self.args[key], StateArgs):
-                self.dynamics_args += [(key, *self.args[key]())]
-                self.args[key] = 0.
-
     def _check_old_with_state(self):
         # Todo: remove, add deprecationwarning in 4.6.0
         pass
@@ -411,7 +399,7 @@ class QobjEvo:
 
     def _dynamics_args_update(self, t, state: _data.Data):
         for name, what, e_op in self.dynamics_args:
-            self.args[name] = _dynamic_argument(t, self.cte, state, what, e_op)
+            self.args[name] = dynamic_argument(t, self.cte, state, what, e_op)
 
     @property
     def num_obj(self):
@@ -528,6 +516,7 @@ class QobjEvo:
             res.cte = other * res.cte
             for op in res.ops:
                 op.qobj = other * op.qobj
+            res.compile()
             return res
         else:
             res *= other
@@ -574,6 +563,7 @@ class QobjEvo:
         else:
             raise TypeError("QobjEvo can only be multiplied"
                             " with QobjEvo, Qobj or numbers")
+        self.compile()
         return self
 
     def __div__(self, other):
@@ -587,6 +577,7 @@ class QobjEvo:
         if not isinstance(other, numbers.Number):
             raise TypeError('Incompatible object for division')
         self *= 1 / complex(other)
+        self.compile()
         return self
 
     def __truediv__(self, other):
@@ -597,6 +588,7 @@ class QobjEvo:
         res.cte = -res.cte
         for op in res.ops:
             op.qobj = -op.qobj
+        res.compile()
         return res
 
     # Transformations
@@ -605,6 +597,7 @@ class QobjEvo:
         res.cte = res.cte.trans()
         for op in res.ops:
             op.qobj = op.qobj.trans()
+        res.compile()
         return res
 
     def conj(self):
@@ -612,6 +605,7 @@ class QobjEvo:
         res.cte = res.cte.conj()
         res.ops = [EvoElement(op.qobj.conj(), op.coeff.conj())
                    for op in self.ops]
+        res.compile()
         return res
 
     def dag(self):
@@ -619,6 +613,7 @@ class QobjEvo:
         res.cte = res.cte.dag()
         res.ops = [EvoElement(op.qobj.dag(), op.coeff.conj())
                    for op in self.ops]
+        res.compile()
         return res
 
     def _cdc(self):
@@ -631,6 +626,7 @@ class QobjEvo:
             res.cte = res.cte.dag() * res.cte
             res.ops = [EvoElement(op.qobj.dag() * op.qobj, op.coeff._cdc())
                        for op in self.ops]
+        res.compile()
         return res
 
     def _shift(self):
@@ -861,7 +857,7 @@ def _dynamic_argument_raise(op, state):
     )
 
 
-def _dynamic_argument(t, op, state, what, e_op):
+def dynamic_argument(t, op, state, what, e_op):
     # Input `state` is either ndarray or data type (_not_ Qobj).  First unify
     # to a data-layer type, then build the object we're asked for.  In the
     # future, "vec" and "matrix" should be data-layer types themselves, not

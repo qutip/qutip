@@ -44,8 +44,6 @@ cdef class CQobjEvo:
     cdef str superrep
     cdef bint _issuper
     cdef size_t n_ops
-    cdef size_t dynamic_arguments
-
 
     cdef CSR constant
     cdef list ops

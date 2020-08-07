@@ -134,9 +134,9 @@ try:
               ("(%s), requiring %s." %
                (Cython.__version__, _cython_requirement)))
     # Setup pyximport
-    from .cy import pyxbuilder as pbldr
-    pbldr.install(setup_args={'include_dirs': [numpy.get_include()]})
-    del pbldr
+    #from .cy import pyxbuilder as pbldr
+    #pbldr.install(setup_args={'include_dirs': [numpy.get_include()]})
+    #del pbldr
 except Exception as e:
     pass
 else:
