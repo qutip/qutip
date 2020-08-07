@@ -44,10 +44,10 @@ import scipy.fftpack as ft
 import scipy.linalg as la
 from scipy.special import genlaguerre, binom, sph_harm, factorial
 
-from . import Qobj, isket, isoper, ket2dm, jmat
+from . import Qobj, jmat
+from .core import data as _data
 from .parallel import parfor
 from .utilities import clebsch
-from .core.cy.sparse_utils import _csr_get_diag
 
 
 def wigner_transform(psi, j, fullparity, steps, slicearray):
@@ -96,8 +96,8 @@ def wigner_transform(psi, j, fullparity, steps, slicearray):
     if not (psi.type == 'ket' or psi.type == 'operator' or psi.type == 'bra'):
         raise TypeError('Input state is not a valid operator.')
 
-    if psi.type == 'ket' or psi.type == 'bra':
-        rho = ket2dm(psi)
+    if psi.isket or psi.isbra:
+        rho = psi.proj()
     else:
         rho = psi
 
@@ -122,8 +122,9 @@ def wigner_transform(psi, j, fullparity, steps, slicearray):
         pari = _parity(sun, j)
     for t in range(steps):
         for p in range(steps):
-            wigner[t, p] = np.real(np.trace(rho.data @ _kernelsu2(
-                theta[:, t], phi[:, p], N, j, pari, fullparity)))
+            kernel = _kernelsu2(theta[:, t], phi[:, p], N, j, pari, fullparity)
+            kernel = _data.dense.fast_from_numpy(kernel)
+            wigner[t, p] = _data.expect_csr_dense(rho.data, kernel).real
     return wigner
 
 
@@ -264,8 +265,8 @@ def wigner(psi, xvec, yvec, method='clenshaw', g=sqrt(2),
     if method == 'fft':
         return _wigner_fourier(psi, xvec, g)
 
-    if psi.type == 'ket' or psi.type == 'bra':
-        rho = ket2dm(psi)
+    if psi.isket or psi.isbra:
+        rho = psi.proj()
     else:
         rho = psi
 
@@ -490,7 +491,7 @@ def _wigner_clenshaw(rho, xvec, yvec, g=sqrt(2), sparse=False):
 
     B = np.abs(A2)
     B *= B
-    w0 = (2*rho.data[0,-1])*np.ones_like(A2)
+    w0 = (2*rho[0, -1])*np.ones_like(A2)
     L = M-1
     #calculation of \sum_{L} c_L (2x)^L / sqrt(L!)
     #using Horner's method
@@ -501,10 +502,11 @@ def _wigner_clenshaw(rho, xvec, yvec, g=sqrt(2), sparse=False):
             #here c_L = _wig_laguerre_val(L, B, np.diag(rho, L))
             w0 = _wig_laguerre_val(L, B, np.diag(rho, L)) + w0 * A2 * (L+1)**-0.5
     else:
+        # TODO: fix dispatch.
+        _rho = rho.data.as_scipy()
         while L > 0:
             L -= 1
-            diag = _csr_get_diag(rho.data.data,rho.data.indices,
-                                rho.data.indptr,L)
+            diag = _rho.diagonal(L)
             if L != 0:
                 diag *= 2
             #here c_L = _wig_laguerre_val(L, B, np.diag(rho, L))
@@ -577,14 +579,14 @@ def qfunc(state, xvec, yvec, g=sqrt(2)):
     X, Y = meshgrid(xvec, yvec)
     amat = 0.5 * g * (X + Y * 1j)
 
-    if not (isoper(state) or isket(state)):
+    if not (state.isoper or state.isket):
         raise TypeError('Invalid state operand to qfunc.')
 
     qmat = zeros(size(amat))
 
-    if isket(state):
+    if state.isket:
         qmat = _qfunc_pure(state, amat)
-    elif isoper(state):
+    elif state.isoper:
         d, v = la.eig(state.full())
         # d[i]   = eigenvalue i
         # v[:,i] = eigenvector i
@@ -643,11 +645,8 @@ def spin_q_function(rho, theta, phi):
 
     """
 
-    if rho.type == 'bra':
-        rho = rho.dag()
-
-    if rho.type == 'ket':
-        rho = ket2dm(rho)
+    if rho.isket or rho.isbra:
+        rho = rho.proj()
 
     J = rho.shape[0]
     j = (J - 1) / 2
@@ -705,12 +704,8 @@ def spin_wigner(rho, theta, phi):
     Experimental.
 
     """
-
-    if rho.type == 'bra':
-        rho = rho.dag()
-
-    if rho.type == 'ket':
-        rho = ket2dm(rho)
+    if rho.isket or rho.isbra:
+        rho = rho.proj()
 
     J = rho.shape[0]
     j = (J - 1) / 2
