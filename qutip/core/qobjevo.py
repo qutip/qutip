@@ -1523,13 +1523,13 @@ class QobjEvo:
         _dict_ = self.__dict__.copy()
         # TODO: get rid of the separate CQobjEvo for OpenMP or make it
         # pickleable.  The new (regular) CQobjEvo is pickleable itself.
-        if "omp" in self.compiled:
+        if self.compiled and "omp" in self.compiled:
             del _dict_['compiled_qobjevo']
         return _dict_
 
     def __setstate__(self, state):
         self.__dict__ = state
-        if "omp" in self.compiled:
+        if self.compiled and "omp" in self.compiled:
             mat_type, _, td = self.compiled.split()
             if mat_type == "csr":
                 if td == "cte":
