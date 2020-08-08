@@ -41,7 +41,6 @@ import scipy.integrate
 from scipy.linalg import norm as la_norm
 from . import Qobj, QobjEvo
 from .core import data as _data
-from .core.cy.openmp.utilities import check_use_openmp
 from .solver import Result, Options, solver_safe, SolverSystem
 from .ui.progressbar import BaseProgressBar, TextProgressBar
 
@@ -142,8 +141,6 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
     if args is None:
         args = {}
 
-    check_use_openmp(options)
-
     if isinstance(H, SolverSystem):
         ss = H
     elif isinstance(H, (list, Qobj, QobjEvo)):
@@ -178,8 +175,7 @@ def _sesolve_QobjEvo(H, tlist, args, opt):
     H_td = -1.0j * QobjEvo(H, args, tlist=tlist)
     if opt.rhs_with_state:
         H_td._check_old_with_state()
-    nthread = opt.openmp_threads if opt.use_openmp else 0
-    H_td.compile(omp=nthread)
+    H_td.compile()
 
     ss = SolverSystem()
     ss.H = H_td

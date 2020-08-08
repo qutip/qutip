@@ -53,7 +53,7 @@ fortran = False
 mkl_lib = None
 # Flag if mkl_lib is found
 has_mkl = False
-# Has OPENMP
+# TODO: sort out proper OpenMP detection and usage.
 has_openmp = False
 # debug mode for development
 debug = False
@@ -69,11 +69,6 @@ log_handler = 'default'
 # Allow for a colorblind mode that uses different colormaps
 # and plotting options by default.
 colorblind_safe = False
-# Sets the threshold for matrix NNZ where OPENMP
-# turns on. This is automatically calculated and 
-# put in the qutiprc file.  This value is here in case
-# that failts
-openmp_thresh = 10000
 # Note that since logging depends on settings,
 # if we want to do any logging here, it must be manually
 # configured, rather than through _logging.get_logger().

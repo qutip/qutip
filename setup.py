@@ -197,16 +197,6 @@ cy_exts = {
     ],
 }
 
-# Cython extensions for OpenMP
-cy_exts_omp = {
-    'core.cy.openmp': [
-        'parfuncs',
-    ],
-    'cy.openmp': [
-        'br_omp',
-    ],
-}
-
 # Extra link args
 _link_flags = []
 
@@ -243,36 +233,16 @@ for package, files in cy_exts.items():
                                      language='c++'))
 
 
-# Add optional ext modules here
-if "--with-openmp" in sys.argv:
-    sys.argv.remove("--with-openmp")
-    if (sys.platform == 'win32'
-            and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35):
-        omp_flags = ['/openmp']
-        omp_args = []
-    else:
-        omp_flags = ['-fopenmp']
-        omp_args = omp_flags
-    _cflags = _compiler_flags + omp_flags
-    _lflags = _link_flags + omp_args
-    for package, files in cy_exts_omp.items():
-        for file in files:
-            _module = 'qutip' + ('.' + package if package else '') + '.' + file
-            _file = os.path.join('qutip', *package.split("."),  file + '.pyx')
-            _sources = [_file, 'qutip/core/cy/openmp/src/zspmv_openmp.cpp']
-            EXT_MODULES.append(Extension(_module,
-                                         sources=_sources,
-                                         include_dirs=_include,
-                                         extra_compile_args=_cflags,
-                                         extra_link_args=_lflags,
-                                         language='c++'))
-
-
 # Remove -Wstrict-prototypes from cflags
 import distutils.sysconfig
 cfg_vars = distutils.sysconfig.get_config_vars()
 if "CFLAGS" in cfg_vars:
     cfg_vars["CFLAGS"] = cfg_vars["CFLAGS"].replace("-Wstrict-prototypes", "")
+
+
+# TODO: reinstate proper OpenMP handling.
+if '--with-openmp' in sys.argv:
+    sys.argv.remove('--with-openmp')
 
 
 # Setup commands go here

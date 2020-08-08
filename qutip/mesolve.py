@@ -45,7 +45,6 @@ from . import (
 )
 from .core import data as _data
 from .solver import Options, Result, solver_safe, SolverSystem
-from .core.cy.openmp.utilities import check_use_openmp
 from .sesolve import sesolve
 from .ui.progressbar import BaseProgressBar, TextProgressBar
 
@@ -226,8 +225,6 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
     if args is None:
         args = {}
 
-    check_use_openmp(options)
-
     use_mesolve = (
         (c_ops and len(c_ops) > 0)
         or (not rho0.isket)
@@ -295,8 +292,7 @@ def _mesolve_QobjEvo(H, c_ops, tlist, args, opt):
     if opt.rhs_with_state:
         L_td._check_old_with_state()
 
-    nthread = opt.openmp_threads if opt.use_openmp else 0
-    L_td.compile(omp=nthread)
+    L_td.compile()
 
     ss = SolverSystem()
     ss.H = L_td
