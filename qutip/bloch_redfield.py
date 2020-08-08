@@ -494,9 +494,7 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
             spline_count=spline_count, coupled_ops=coupled_ops,
             coupled_lengths=coupled_lengths, coupled_spectra=coupled_spectra,
             config=config, sparse=False, use_secular=use_secular,
-            sec_cutoff=sec_cutoff, args=args, use_openmp=options.use_openmp,
-            omp_thresh=qset.openmp_thresh if qset.has_openmp else None,
-            omp_threads=options.num_cpus, atol=tol)
+            sec_cutoff=sec_cutoff, args=args)
 
         cgen.generate(config.tdname + ".pyx")
         code = compile('from ' + config.tdname + ' import cy_td_ode_rhs',

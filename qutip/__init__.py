@@ -90,6 +90,14 @@ del top_path
 
 
 # -----------------------------------------------------------------------------
+
+import platform
+from .utilities import _blas_info
+settings.eigh_unsafe = (_blas_info() == "OPENBLAS"
+                        and platform.system() == 'Darwin')
+
+
+# -----------------------------------------------------------------------------
 # setup the cython environment
 #
 _cython_requirement = "0.21.0"

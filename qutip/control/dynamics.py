@@ -63,6 +63,7 @@ import scipy.sparse as sp
 # QuTiP
 from qutip import Qobj
 from qutip.core import data as _data
+from qutip.core.data.eigen import eigh
 import qutip.settings as settings
 # QuTiP control modules
 import qutip.control.errors as errors
@@ -1572,7 +1573,7 @@ class DynamicsUnitary(Dynamics):
         else:
             H = self._dyn_gen[k]
             # returns row vector of eigenvals, columns with the eigenvecs
-            eig_val, eig_vec = np.linalg.eigh(H)
+            eig_val, eig_vec = eigh(H)
 
         # assuming H is an nxn matrix, find n
         n = self.get_drift_dim()

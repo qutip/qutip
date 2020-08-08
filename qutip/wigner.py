@@ -46,6 +46,7 @@ from scipy.special import genlaguerre, binom, sph_harm, factorial
 
 from . import Qobj, jmat
 from .core import data as _data
+from .core.data.eigen import eigh
 from .parallel import parfor
 from .utilities import clebsch
 
@@ -411,7 +412,7 @@ def _wigner_fourier(psi, xvec, g=np.sqrt(2)):
     if psi.type == 'ket':
         return _psi_wigner_fft(psi.full(), xvec, g)
     elif psi.type == 'oper':
-        eig_vals, eig_vecs = la.eigh(psi.full())
+        eig_vals, eig_vecs = eigh(psi.full())
         W = 0
         for ii in range(psi.shape[0]):
             W1, yvec = _psi_wigner_fft(

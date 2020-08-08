@@ -46,8 +46,8 @@ except:
 
 try:
     import numpy as np
-except:
-    np = None
+except ImportError as e:
+    raise ImportError("numpy is required at installation") from e
 
 from Cython.Build import cythonize
 from Cython.Distutils import build_ext
@@ -66,7 +66,7 @@ PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/qip', 'qutip/qip/device',
             'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov',
             'qutip/_mkl', 'qutip/tests', 'qutip/tests/core',
             'qutip/tests/core/data', 'qutip/core', 'qutip/core/cy',
-            'qutip/core/data/', 'qutip/core/cy/openmp', 'qutip/cy/openmp']
+            'qutip/core/data/', 'qutip/core/cy/openmp']
 PACKAGE_DATA = {
     'qutip': ['configspec.ini'],
     'qutip/tests': ['*.ini'],
@@ -76,6 +76,7 @@ PACKAGE_DATA = {
     'qutip/core/cy/openmp': ['*.pxd', '*.pyx'],
     'qutip/core/cy/openmp/src': ['*.hpp', '*.cpp'],
     'qutip/cy': ['*.pxd', '*.pyx'],
+    'qutip/tests/qasm_files': ['*.qasm'],
     'qutip/control': ['*.pyx'],
 }
 # If we're missing numpy, exclude import directories until we can
