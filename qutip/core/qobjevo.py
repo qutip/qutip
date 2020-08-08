@@ -57,11 +57,6 @@ from .cy.cqobjevo_factor import (
 )
 
 from .. import settings as qset
-if qset.has_openmp:
-    from .cy.openmp.cqobjevo_omp import (
-        CQobjCteOmp, CQobjEvoTdOmp, CQobjEvoTdMatchedOmp,
-    )
-
 from . import data as _data
 
 try:
@@ -396,13 +391,12 @@ class QobjEvo:
     compress():
         Merge ops which are based on the same quantum object and coeff type.
 
-    compile(code=False, matched=False, dense=False, omp=0):
+    compile(code=False, matched=False, dense=False):
         Create the associated cython object for faster usage.
         code: return the code generated for compilation of the strings.
         matched: the compiled object use sparse matrix with matching indices.
                     (experimental, no real advantage)
         dense: the compiled object use dense matrix.
-        omp: (int) number of thread: the compiled object use spmvpy_openmp.
 
     __call__(t, data=False, state=None, args={}):
         Return the Qobj at time t.
@@ -454,7 +448,6 @@ class QobjEvo:
         self.compiled_qobjevo = None
         self.coeff_get = None
         self.type = "none"
-        self.omp = 0
         self.coeff_files = []
         self.use_cython = use_cython[0]
 
@@ -1357,54 +1350,29 @@ class QobjEvo:
         else:
             return out
 
-    def compile(self, code=False, matched=False, dense=False, omp=0):
+    def compile(self, code=False, matched=False, dense=False):
         self.tidyup()
         Code = None
         if self.compiled:
             return
         for _, _, op in self.dynamics_args:
             if isinstance(op, QobjEvo):
-                op.compile(code, matched, dense, omp)
-        if not qset.has_openmp:
-            omp = 0
-        if omp:
-            nnz = [_data.csr.nnz(self.cte.data)]
-            for part in self.ops:
-                nnz += [_data.csr.nnz(part.qobj.data)]
-            if all(qset.openmp_thresh < nz for nz in nnz):
-                omp = 0
-
+                op.compile(code, matched, dense)
         if self.const:
             if dense:
                 self.compiled_qobjevo = CQobjEvo()
                 self.compiled = "dense single cte"
-            elif omp:
-                self.compiled_qobjevo = CQobjCteOmp()
-                self.compiled = "csr omp cte"
-                self.compiled_qobjevo.set_threads(omp)
-                self.omp = omp
             else:
                 self.compiled_qobjevo = CQobjEvo()
                 self.compiled = "csr single cte"
             self.compiled_qobjevo.set_data(self.cte)
         else:
             if matched:
-                if omp:
-                    self.compiled_qobjevo = CQobjEvoTdMatchedOmp()
-                    self.compiled = "matched omp "
-                    self.compiled_qobjevo.set_threads(omp)
-                    self.omp = omp
-                else:
-                    self.compiled_qobjevo = CQobjEvo()
-                    self.compiled = "matched single "
+                self.compiled_qobjevo = CQobjEvo()
+                self.compiled = "matched single "
             elif dense:
                 self.compiled_qobjevo = CQobjEvo()
                 self.compiled = "dense single "
-            elif omp:
-                self.compiled_qobjevo = CQobjEvoTdOmp()
-                self.compiled = "csr omp "
-                self.compiled_qobjevo.set_threads(omp)
-                self.omp = omp
             else:
                 self.compiled_qobjevo = CQobjEvo()
                 self.compiled = "csr single "
@@ -1518,33 +1486,6 @@ class QobjEvo:
 
     def _get_coeff(self, t):
         return [part.get_coeff(t, self.args) for part in self.ops]
-
-    def __getstate__(self):
-        _dict_ = self.__dict__.copy()
-        # TODO: get rid of the separate CQobjEvo for OpenMP or make it
-        # pickleable.  The new (regular) CQobjEvo is pickleable itself.
-        if self.compiled and "omp" in self.compiled:
-            del _dict_['compiled_qobjevo']
-        return _dict_
-
-    def __setstate__(self, state):
-        self.__dict__ = state
-        if self.compiled and "omp" in self.compiled:
-            mat_type, _, td = self.compiled.split()
-            if mat_type == "csr":
-                if td == "cte":
-                    self.compiled_qobjevo = CQobjCteOmp()
-                    self.compiled_qobjevo.set_data(self.cte)
-                    self.compiled_qobjevo.set_threads(self.omp)
-                else:
-                    self.compiled_qobjevo = CQobjEvoTdOmp()
-                    self.compiled_qobjevo.set_data(self.cte, self.ops)
-                    self.compiled_qobjevo.set_threads(self.omp)
-            elif mat_type == "matched":
-                self.compiled_qobjevo = \
-                    CQobjEvoTdMatchedOmp.__new__(CQobjEvoTdMatchedOmp)
-                self.compiled_qobjevo.set_threads(self.omp)
-                self.compiled_qobjevo.__setstate__(state[1])
 
 
 def _dynamic_argument_raise(op, state):

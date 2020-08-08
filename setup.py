@@ -201,9 +201,6 @@ cy_exts = {
 cy_exts_omp = {
     'core.cy.openmp': [
         'parfuncs',
-        'benchmark',
-        'omp_sparse_utils',
-        'cqobjevo_omp',
     ],
     'cy.openmp': [
         'br_omp',
