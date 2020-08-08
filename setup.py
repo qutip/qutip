@@ -72,11 +72,10 @@ PACKAGE_DATA = {
     'qutip/tests': ['*.ini'],
     'qutip/core/data': ['*.pxd', '*.pyx'],
     'qutip/core/cy': ['*.pxd', '*.pyx'],
+    'qutip/core/cy/src': ['*.hpp', '*.cpp'],
     'qutip/core/cy/openmp': ['*.pxd', '*.pyx'],
     'qutip/core/cy/openmp/src': ['*.hpp', '*.cpp'],
     'qutip/cy': ['*.pxd', '*.pyx'],
-    'qutip/cy/openmp': ['*.pxd', '*.pyx'],
-    'qutip/cy/src': ['*.cpp', '*.hpp'],
     'qutip/control': ['*.pyx'],
 }
 # If we're missing numpy, exclude import directories until we can
