@@ -112,8 +112,10 @@ def _assert_qobj_almost_eq(obj1, obj2, tol=1e-10):
     assert _data.csr.nnz(diff_data) == 0
 
 
-@pytest.mark.parametrize('use_cython', [True, False],
-                         ids=['cython', 'no cython'])
+@pytest.mark.parametrize('use_cython', [
+    pytest.param(True, marks=[pytest.mark.requires_cython], id="cython"),
+    pytest.param(False, id="no cython"),
+])
 def test_QobjEvo_call(use_cython):
     "QobjEvo call"
     N = 5
