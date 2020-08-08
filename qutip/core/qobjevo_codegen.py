@@ -167,7 +167,6 @@ np.import_array()
 cdef extern from "numpy/arrayobject.h" nogil:
     void PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
     void PyArray_ENABLEFLAGS(np.ndarray arr, int flags)
-from qutip.core.cy.spmatfuncs cimport spmvpy
 from qutip.core.cy.inter cimport _spline_complex_t_second, _spline_complex_cte_second
 from qutip.core.cy.inter cimport _spline_float_t_second, _spline_float_cte_second
 from qutip.core.cy.inter cimport _step_float_cte, _step_complex_cte
