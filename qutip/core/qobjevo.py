@@ -49,15 +49,12 @@ from .cy.cqobjevo import CQobjEvo
 from .coefficient import coefficient, CompilationOptions
 from .superoperator import stack_columns, unstack_columns
 from .. import settings as qset
-
 from . import data as _data
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # object for each time dependent element of the QobjEvo
 # qobj : the Qobj of element ([*Qobj*, f])
-# get_coeff : a callable that take (t, args) and return the coeff at that t
 # coeff : The coeff as a string, array or function as provided by the user.
-# type : flag for the type of coeff
 class EvoElement:
     def __init__(self, qobj, coeff):
         self.qobj = qobj
@@ -222,9 +219,6 @@ class QobjEvo:
     compress():
         Merge ops which are based on the same quantum object and coeff type.
 
-    compile():
-        Create the associated cython object for faster usage.
-
     __call__(t, data=False, state=None, args={}):
         Return the Qobj at time t.
         *Faster after compilation
@@ -283,11 +277,7 @@ class QobjEvo:
             self.cte = Q_object
             self.const = True
         else:
-            try:
-                use_step_func = self.args["_step_func_coeff"]
-            except KeyError:
-                use_step_func = 0
-
+            use_step_func = self.args.get("_step_func_coeff", 0)
             for op in Q_object:
                 if isinstance(op, Qobj):
                     if self.cte is None:
@@ -666,8 +656,6 @@ class QobjEvo:
             if len(_set) == 1:
                 new_ops.append(self.ops[_set[0]])
             else:
-                # Would be nice but need to defined addition with 0 (int)
-                # new_coeff = sum(self.ops[i].coeff for i in _set)
                 new_coeff = self.ops[_set[0]].coeff
                 for i in _set[1:]:
                     new_coeff += self.ops[i].coeff
@@ -806,22 +794,11 @@ class QobjEvo:
         else:
             return out
 
-    def compile(self, code=False, matched=False, dense=False, omp=0):
+    def compile(self, code=False, matched=False, dense=False):
         self.tidyup()
         self.compiled_qobjevo = CQobjEvo(self.cte, self.ops)
         self.compiled_qobjevo.set_dyn_args(self.dynamics_args,
                                            self.args, self.cte)
-
-    def _get_coeff(self, t):
-        # TODO: remove once no longer used elsewhere
-        return [part.coeff(t) for part in self.ops]
-
-    def coeff_get(self, t):
-        # TODO: remove once no longer used elsewhere
-        out = []
-        for part in self.ops:
-            out.append(part.coeff(t))
-        return out
 
 
 def _dynamic_argument_raise(op, state):

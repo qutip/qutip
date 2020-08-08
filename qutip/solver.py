@@ -194,8 +194,6 @@ class Options():
         correlation calculations when using mcsolve.
     ntraj : int {500}
         Number of trajectories in stochastic solvers.
-    openmp_threads : int
-        Number of OPENMP threads to use. Default is number of cpu cores.
     rhs_reuse : bool {False,True}
         Reuse Hamiltonian data.
     rhs_with_state : bool {False,True}
@@ -213,10 +211,6 @@ class Options():
         result class, even if expectation values operators are given. If no
         expectation are provided, then states are stored by default and this
         option has no effect.
-    use_openmp : bool {True, False}
-        Use OPENMP for sparse matrix vector multiplication. Default
-        None means auto check.
-
     """
 
     def __init__(self, atol=1e-8, rtol=1e-6, method='adams', order=12,
@@ -227,7 +221,7 @@ class Options():
                  rhs_with_state=False, store_final_state=False,
                  store_states=False, steady_state_average=False,
                  seeds=None,
-                 normalize_output=True, use_openmp=None, openmp_threads=None):
+                 normalize_output=True,):
         # Absolute tolerance (default = 1e-8)
         self.atol = atol
         # Relative tolerance (default = 1e-6)
@@ -275,11 +269,6 @@ class Options():
         # Max. number of steps taken to find wavefunction norm to within
         # norm_tol (mcsolve only)
         self.norm_steps = norm_steps
-        # Number of threads for openmp
-        if openmp_threads is None:
-            self.openmp_threads = qset.num_cpus
-        else:
-            self.openmp_threads = openmp_threads
         # store final state?
         self.store_final_state = store_final_state
         # store states even if expectation operators are given?
@@ -289,8 +278,6 @@ class Options():
         # Normalize output of solvers
         # (turned off for batch unitary propagator mode)
         self.normalize_output = normalize_output
-        # Use OPENMP for sparse matrix vector multiplication
-        self.use_openmp = use_openmp
 
     def __str__(self):
         if self.seeds is None:

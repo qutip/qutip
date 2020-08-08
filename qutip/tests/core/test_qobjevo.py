@@ -45,8 +45,6 @@ from qutip.core import data as _data
 @pytest.fixture(params=[
     pytest.param({'dense': 1}, id="dense"),
     pytest.param({'matched': 1}, id="matched"),
-    pytest.param({'omp': 2}, id="omp"),
-    pytest.param({'matched': 1, 'omp': 2}, id="matched,omp"),
 ])
 def compile_kwargs(request):
     return request.param
@@ -112,8 +110,10 @@ def _assert_qobj_almost_eq(obj1, obj2, tol=1e-10):
     assert _data.csr.nnz(diff_data) == 0
 
 
-@pytest.mark.parametrize('use_cython', [True, False],
-                         ids=['cython', 'no cython'])
+@pytest.mark.parametrize('use_cython', [
+    pytest.param(True, marks=[pytest.mark.requires_cython], id="cython"),
+    pytest.param(False, id="no cython"),
+])
 def test_QobjEvo_call(use_cython):
     "QobjEvo call"
     N = 5
@@ -592,15 +592,6 @@ def test_QobjEvo_expect_rho_full():
         assert abs(_expect(Qo1.data, vec) - op.expect(t, mat, 0)) < 1e-14
         assert abs(_expect(Qo1.data, vec) - op.expect(t, qobj, 0)) < 1e-14
         op.compiled = ""
-        op.compile(omp=2)
-        assert abs(_expect(Qo1.data, vec) - op.expect(t, vec, 0)) < 1e-14
-        assert abs(_expect(Qo1.data, vec) - op.expect(t, mat, 0)) < 1e-14
-        assert abs(_expect(Qo1.data, vec) - op.expect(t, qobj, 0)) < 1e-14
-        op.compiled = ""
-        op.compile(matched=1,omp=2)
-        assert abs(_expect(Qo1.data, vec) - op.expect(t, vec, 0)) < 1e-14
-        assert abs(_expect(Qo1.data, vec) - op.expect(t, mat, 0)) < 1e-14
-        assert abs(_expect(Qo1.data, vec) - op.expect(t, qobj, 0)) < 1e-14
 
     tlist = np.linspace(0,1,300)
     args={"w1":1, "w2":2, "w3":3}

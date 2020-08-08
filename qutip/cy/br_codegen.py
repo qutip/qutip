@@ -352,19 +352,10 @@ class BR_Codegen(object):
                     td_str = "interp(t, %s, %s, spline%s)" % (S.a, S.b, self.spline)
                 else:
                     td_str = "zinterp(t, %s, %s, spline%s)" % (S.a, S.b, self.spline)
-                if self.use_openmp:
-
-                    br_str += ["cop_super_mult_openmp(C{0}, evecs, eig_vec, {1}, out, nrows, {2}, {3}, {4})".format(kk,
-                                            td_str, self.omp_thresh, self.omp_threads, self.atol)]
-                else:
-                    br_str += ["cop_super_mult(C{0}, evecs, eig_vec, {1}, out, nrows, {2})".format(kk, td_str, self.atol)]
+                br_str += ["cop_super_mult(C{0}, evecs, eig_vec, {1}, out, nrows, {2})".format(kk, td_str, self.atol)]
                 self.spline += 1
             else:
-                if self.use_openmp:
-                    br_str += ["cop_super_mult_openmp(C{0}, evecs, eig_vec, {1}, out, nrows, {2}, {3}, {4})".format(kk,
-                                            self.c_td_terms[kk], self.omp_thresh, self.omp_threads, self.atol)]
-                else:
-                    br_str += ["cop_super_mult(C{0}, evecs, eig_vec, {1}, out, nrows, {2})".format(kk, self.c_td_terms[kk], self.atol)]
+                br_str += ["cop_super_mult(C{0}, evecs, eig_vec, {1}, out, nrows, {2})".format(kk, self.c_td_terms[kk], self.atol)]
 
         if self.a_terms != 0:
             #Calculate skew and dw_min terms
@@ -376,11 +367,7 @@ class BR_Codegen(object):
         coupled_val = 0
         while kk < self.a_terms:
             if kk not in self.coupled_ops:
-                if self.use_openmp:
-                    br_str += ["br_term_mult_openmp(t, A{0}, evecs, skew, dw_min, spectral{0}, eig_vec, out, nrows, {1}, {2}, {3}, {4}, {5})".format(kk,
-                                        self.use_secular, self.sec_cutoff, self.omp_thresh, self.omp_threads, self.atol)]
-                else:
-                    br_str += ["br_term_mult(t, A{0}, evecs, skew, dw_min, spectral{0}, eig_vec, out, nrows, {1}, {2}, {3})".format(kk, self.use_secular, self.sec_cutoff, self.atol)]
+                br_str += ["br_term_mult(t, A{0}, evecs, skew, dw_min, spectral{0}, eig_vec, out, nrows, {1}, {2}, {3})".format(kk, self.use_secular, self.sec_cutoff, self.atol)]
                 kk += 1
             else:
                 br_str += ['cdef complex[::1, :] Ac{0} = farray_alloc(nrows)'.format(kk)]
@@ -397,11 +384,7 @@ class BR_Codegen(object):
                     else:
                         raise Exception('Invalid time-dependence fot a_op.')
 
-                if self.use_openmp:
-                    br_str += ["br_term_mult_openmp(t, Ac{0}, evecs, skew, dw_min, spectral{0}, eig_vec, out, nrows, {1}, {2}, {3}, {4}, {5})".format(kk,
-                                        self.use_secular, self.sec_cutoff, self.omp_thresh, self.omp_threads, self.atol)]
-                else:
-                    br_str += ["br_term_mult(t, Ac{0}, evecs, skew, dw_min, spectral{0}, eig_vec, out, nrows, {1}, {2}, {3})".format(kk, self.use_secular, self.sec_cutoff, self.atol)]
+                br_str += ["br_term_mult(t, Ac{0}, evecs, skew, dw_min, spectral{0}, eig_vec, out, nrows, {1}, {2}, {3})".format(kk, self.use_secular, self.sec_cutoff, self.atol)]
 
                 br_str += ["PyDataMem_FREE(&Ac{0}[0,0])".format(kk)]
                 kk += self.coupled_lengths[coupled_val]
@@ -426,10 +409,7 @@ class BR_Codegen(object):
 
 
 def cython_preamble(use_omp=False):
-    if use_omp:
-        call_str = "from qutip.cy.openmp.br_omp cimport (cop_super_mult_openmp, br_term_mult_openmp)"
-    else:
-        call_str = "from qutip.cy.brtools cimport (cop_super_mult, br_term_mult)"
+    call_str = "from qutip.cy.brtools cimport (cop_super_mult, br_term_mult)"
     """
     Returns list of code segments for Cython preamble.
     """

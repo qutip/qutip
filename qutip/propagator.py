@@ -38,18 +38,16 @@ import numbers
 import types
 
 import numpy as np
-import scipy.linalg as la
 import scipy.sparse as sp
 
 from . import (
-    Qobj, tensor, qeye, unstack_columns, stack_columns, vector_to_operator,
-    operator_to_vector, basis, projection
+    Qobj, tensor, qeye, unstack_columns, stack_columns, basis, projection,
 )
 from .core import data as _data
 from .rhs_generate import rhs_clear, _td_format_check
 from .mesolve import mesolve
 from .sesolve import sesolve
-from .solver import Options, _solver_safety_check, config
+from .solver import Options, _solver_safety_check
 from .parallel import parallel_map, _default_kwargs
 from .ui.progressbar import BaseProgressBar, TextProgressBar
 
@@ -182,7 +180,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                 for k, state in enumerate(output.states):
                     out = unstack_columns(state.data, (N, N)).to_array()
                     out /= np.linalg.norm(out, axis=1)
-                    u[k] = _data.create(out.T)
+                    u[k] = _data.create(out)
             else:
                 raise Exception('Invalid unitary mode.')
 

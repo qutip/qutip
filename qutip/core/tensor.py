@@ -90,6 +90,7 @@ shape = [4, 4], type = oper, isHerm = True
             "In tensor products of superroperators,",
             " all must have the same representation"
         ]))
+    type = args[0].type
     isherm = args[0]._isherm
     isunitary = args[0]._isunitary
     out_data = args[0].data
@@ -101,8 +102,11 @@ shape = [4, 4], type = oper, isHerm = True
         # both _aren't_, then output still can be.
         isherm = (isherm and arg._isherm) or None
         isunitary = (isunitary and arg._isunitary) or None
+        if arg.type != type:
+            type = None
     return Qobj(out_data,
                 dims=[dims_l, dims_r],
+                type=type,
                 isherm=isherm,
                 isunitary=isunitary,
                 superrep=args[0].superrep,

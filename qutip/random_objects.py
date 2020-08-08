@@ -370,7 +370,7 @@ def rand_ket_haar(N=2, dims=None, seed=None):
     else:
         dims = [[N], [1]]
     U = rand_unitary_haar(N, seed=seed, dims=[dims[0], dims[0]])
-    return U @ basis(N, 0)
+    return U @ basis(dims[0], [0]*len(dims[0]))
 
 
 def rand_dm(N, density=0.75, pure=False, dims=None, seed=None):
@@ -608,8 +608,7 @@ def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None, seed=None):
 
     # Precompute X X⁺, as we'll need it in two different places.
     XXdag = np.dot(X, X.T.conj())
-
-    dims = [[[N], [N]], [[N], [N]]]
+    tmp_dims = [[[N], [N]], [[N], [N]]]
 
     if enforce_tp:
         # We do the partial trace over the first index by using dense reshape
@@ -630,9 +629,9 @@ def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None, seed=None):
         # marking the dimensions as that of a type=super (that is,
         # with left and right compound indices, each representing
         # left and right indices on the underlying Hilbert space).
-        D = Qobj(np.dot(Z, np.dot(XXdag, Z)), dims=dims, type='super')
+        D = Qobj(np.dot(Z, np.dot(XXdag, Z)), dims=tmp_dims, type='super')
     else:
-        D = N * Qobj(XXdag / np.trace(XXdag), dims=dims, type='super')
+        D = N * Qobj(XXdag / np.trace(XXdag), dims=tmp_dims, type='super')
 
     # Since [BCSZ08] gives a row-stacking Choi matrix, but QuTiP
     # expects a column-stacking Choi matrix, we must permute the indices.
@@ -640,6 +639,7 @@ def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None, seed=None):
 
     # Mark that we've made a Choi matrix.
     D.superrep = 'choi'
+    D.dims = dims
 
     return to_super(D)
 

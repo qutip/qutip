@@ -129,12 +129,6 @@ cdef class CQobjEvo:
             self.coefficients[i] = coeff._call(t)
         return
 
-    # TODO: get rid of this (only used in stochastic.pyx)
-    cdef void _mul_vec(self, double t, double complex *vec, double complex *out) except *:
-        cdef Dense vec_ = dense.wrap(vec, self.shape[1], 1)
-        cdef Dense out_ = dense.wrap(out, self.shape[1], 1)
-        self.matmul(t, vec_, out_)
-
     cpdef Dense matmul(self, double t, Dense matrix, Dense out=None):
         cdef size_t i
         self.dyn_args(t, matrix) # TODO: move Out

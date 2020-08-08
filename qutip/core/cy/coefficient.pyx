@@ -16,7 +16,7 @@ cimport numpy as cnp
 cimport cython
 
 cdef class Coefficient:
-    cdef complex _call(self, double t) except *:
+    cdef double complex _call(self, double t) except *:
         return 0j
 
     cpdef void arguments(self, dict args) except *:

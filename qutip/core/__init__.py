@@ -1,5 +1,4 @@
 from .interpolate import *
-from .sparse import *
 from .qobj import *
 from .qobjevo import *
 from .expect import *

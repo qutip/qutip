@@ -269,7 +269,7 @@ cdef Dense wrap(double complex *data, base.idxint rows, base.idxint cols, bint f
     cdef Dense out = Dense.__new__(Dense)
     out.data = data
     out._deallocate = False
-    out.fortran = fortran
+    out.fortran = fortran or cols == 1 or rows == 1
     out.shape = (rows, cols)
     return out
 

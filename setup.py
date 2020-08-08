@@ -72,11 +72,10 @@ PACKAGE_DATA = {
     'qutip/tests': ['*.ini'],
     'qutip/core/data': ['*.pxd', '*.pyx'],
     'qutip/core/cy': ['*.pxd', '*.pyx'],
+    'qutip/core/cy/src': ['*.hpp', '*.cpp'],
     'qutip/core/cy/openmp': ['*.pxd', '*.pyx'],
     'qutip/core/cy/openmp/src': ['*.hpp', '*.cpp'],
     'qutip/cy': ['*.pxd', '*.pyx'],
-    'qutip/cy/openmp': ['*.pxd', '*.pyx'],
-    'qutip/cy/src': ['*.cpp', '*.hpp'],
     'qutip/control': ['*.pyx'],
 }
 # If we're missing numpy, exclude import directories until we can
@@ -154,7 +153,6 @@ cy_exts = {
         'br_tensor',
         'brtools',
         'brtools_checks',
-        'checks',
         'heom',
         'mcsolve',
         'piqs',
@@ -186,37 +184,15 @@ cy_exts = {
     'core.cy': [
         'coefficient',
         'cqobjevo',
-        'graph_utils',
         'inter',
         'interpolate',
         'math',
-        'parameters',
-        'ptrace',
-        'sparse_pyobjects',
-        'sparse_routines',
-        'sparse_utils',
-        'spconvert',
-        'spmatfuncs',
-        'spmath',
     ],
     'control': [
         'cy_grape',
     ],
     '': [
         '_steadystate',
-    ],
-}
-
-# Cython extensions for OpenMP
-cy_exts_omp = {
-    'core.cy.openmp': [
-        'parfuncs',
-        'benchmark',
-        'omp_sparse_utils',
-        'cqobjevo_omp',
-    ],
-    'cy.openmp': [
-        'br_omp',
     ],
 }
 
@@ -256,36 +232,16 @@ for package, files in cy_exts.items():
                                      language='c++'))
 
 
-# Add optional ext modules here
-if "--with-openmp" in sys.argv:
-    sys.argv.remove("--with-openmp")
-    if (sys.platform == 'win32'
-            and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35):
-        omp_flags = ['/openmp']
-        omp_args = []
-    else:
-        omp_flags = ['-fopenmp']
-        omp_args = omp_flags
-    _cflags = _compiler_flags + omp_flags
-    _lflags = _link_flags + omp_args
-    for package, files in cy_exts_omp.items():
-        for file in files:
-            _module = 'qutip' + ('.' + package if package else '') + '.' + file
-            _file = os.path.join('qutip', *package.split("."),  file + '.pyx')
-            _sources = [_file, 'qutip/core/cy/openmp/src/zspmv_openmp.cpp']
-            EXT_MODULES.append(Extension(_module,
-                                         sources=_sources,
-                                         include_dirs=_include,
-                                         extra_compile_args=_cflags,
-                                         extra_link_args=_lflags,
-                                         language='c++'))
-
-
 # Remove -Wstrict-prototypes from cflags
 import distutils.sysconfig
 cfg_vars = distutils.sysconfig.get_config_vars()
 if "CFLAGS" in cfg_vars:
     cfg_vars["CFLAGS"] = cfg_vars["CFLAGS"].replace("-Wstrict-prototypes", "")
+
+
+# TODO: reinstate proper OpenMP handling.
+if '--with-openmp' in sys.argv:
+    sys.argv.remove('--with-openmp')
 
 
 # Setup commands go here

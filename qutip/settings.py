@@ -55,7 +55,7 @@ fortran = False
 mkl_lib = None
 # Flag if mkl_lib is found
 has_mkl = False
-# Has OPENMP
+# TODO: sort out proper OpenMP detection and usage.
 has_openmp = False
 # debug mode for development
 debug = False

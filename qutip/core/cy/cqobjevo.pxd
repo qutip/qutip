@@ -58,6 +58,5 @@ cdef class CQobjEvo:
     cdef object op
     cpdef dyn_args(self, double t, Data matrix)
 
-    cdef void _mul_vec(self, double t, double complex *vec, double complex *out) except *
     cpdef Dense matmul(self, double t, Dense matrix, Dense out=*)
     cpdef double complex expect(self, double t, Data matrix) except *
