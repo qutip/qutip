@@ -38,11 +38,11 @@ from qutip.core.data.base cimport idxint
 from qutip.core.data cimport CSR, Dense, Data
 
 cdef class CQobjEvo:
-    cdef readonly (idxint, idxint) _shape
+    cdef readonly (idxint, idxint) shape
     cdef object dims
     cdef str type
     cdef str superrep
-    cdef bint _issuper
+    cdef bint issuper
     cdef size_t n_ops
 
     cdef CSR constant

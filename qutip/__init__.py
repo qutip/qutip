@@ -246,6 +246,7 @@ from .about import *
 from .cite import *
 
 # Remove -Wstrict-prototypes from cflags
+import setuptools
 import distutils.sysconfig
 cfg_vars = distutils.sysconfig.get_config_vars()
 if "CFLAGS" in cfg_vars:

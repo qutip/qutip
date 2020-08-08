@@ -8,6 +8,7 @@ import hashlib
 import glob
 import importlib
 import shutil
+import numbers
 from .. import settings as qset
 from .data import Data
 from .interpolate import Cubic_Spline
@@ -17,7 +18,10 @@ from .cy.coefficient import (InterpolateCoefficient, InterCoefficient,
                              ConjCoefficient, NormCoefficient,
                              ShiftCoefficient)
 from setuptools import setup, Extension
-from Cython.Build import cythonize
+try:
+    from Cython.Build import cythonize
+except ImportError:
+    pass
 from warnings import warn
 
 
@@ -158,7 +162,7 @@ class CompilationOptions:
     try:
         import cython
         use_cython = True
-    except:
+    except ImportError:
         use_cython = False
     # In compiled Coefficient, are int kept as int?
     # None indicate to look for list subscription
@@ -249,7 +253,7 @@ str_env = {
     "spe": scipy.special}
 
 
-def coeff_from_str(base, args, args_ctypes, compile_opt, _debug=False):
+def coeff_from_str(base, args, args_ctypes, compile_opt):
     """
     Entry point for string based coefficients
     - Test if the string is valid
@@ -271,19 +275,13 @@ def coeff_from_str(base, args, args_ctypes, compile_opt, _debug=False):
     # Parsing tries to make the code in common pattern
     parsed, variables, constants, raw = try_parse(base, args,
                                                   args_ctypes, compile_opt)
-    if _debug:
-        print(parsed, variables, constants)
     # Once parsed, the code should be unique enough to get a filename
     hash_ = hashlib.sha256(bytes(parsed, encoding='utf8'))
     file_name = "qtcoeff_" + hash_.hexdigest()[:30]
-    if _debug:
-        print(file_name)
     # See if it already exist, if not write and cythonize it
     coeff = try_import(file_name, parsed)
     if coeff is None or compile_opt.recompile:
         code = make_cy_code(parsed, variables, constants, raw, compile_opt)
-        if _debug:
-            print(code)
         coeff = compile_code(code, file_name, parsed, compile_opt)
     keys = [key for _, key, _ in variables]
     const = [fromstr(val) for _, val, _ in constants]
@@ -444,13 +442,13 @@ def compileType(value):
     4.5 -> 'double'..."""
     if isinstance(value, Data):
         ctype = 0
-    elif isinstance(value, (complex, np.complex128)):
+    elif isinstance(value, numbers.Complex):
         ctype = 1
-    elif isinstance(value, (float, np.float32, np.float64)):
+    elif isinstance(value, numbers.Real):
         ctype = 2
-    elif np.isscalar(value):
+    elif isinstance(value, numbers.Integral):
         ctype = 3
-    elif isinstance(value, (str)):
+    elif isinstance(value, str):
         ctype = 4
     else:
         ctype = 5
@@ -616,6 +614,5 @@ def test_parsed(code, variables, constants, args):
     try:
         exec(code, str_env, loc_env)
     except Exception as e:
-        print("failed", e)
         return False
     return True

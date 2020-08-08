@@ -198,17 +198,8 @@ cdef class SumCoefficient(Coefficient):
         self.first.arguments(args)
         self.second.arguments(args)
 
-    @cython.initializedcheck(False)
     cdef complex _call(self, double t) except *:
         return self.first._call(t) + self.second._call(t)
-
-    """
-    def __setstate__(self, state):
-        self.first.__setstate__(state[0])
-        self.second.__setstate__(state[1])
-
-    def __getstate__(self):
-        return (self.first.__getstate__(), self.second.__getstate__())"""
 
     def optstr(self):
         str1 = self.first.optstr()
@@ -231,16 +222,8 @@ cdef class MulCoefficient(Coefficient):
         self.first.arguments(args)
         self.second.arguments(args)
 
-    @cython.initializedcheck(False)
     cdef complex _call(self, double t) except *:
         return self.first._call(t) * self.second._call(t)
-
-    """def __setstate__(self, state):
-        self.first.__setstate__(state[0])
-        self.second.__setstate__(state[1])
-
-    def __getstate__(self):
-        return (self.first.__getstate__(), self.second.__getstate__())"""
 
     def optstr(self):
         str1 = self.first.optstr()
@@ -260,15 +243,8 @@ cdef class ConjCoefficient(Coefficient):
     cpdef void arguments(self, dict args) except *:
         self.base.arguments(args)
 
-    @cython.initializedcheck(False)
     cdef complex _call(self, double t) except *:
         return conj(self.base._call(t))
-
-    """def __setstate__(self, state):
-        self.base.__setstate__(state)
-
-    def __getstate__(self):
-        return self.base.__getstate__()"""
 
     def optstr(self):
         str1 = self.base.optstr()
@@ -287,15 +263,8 @@ cdef class NormCoefficient(Coefficient):
     cpdef void arguments(self, dict args) except *:
         self.base.arguments(args)
 
-    @cython.initializedcheck(False)
     cdef complex _call(self, double t) except *:
         return norm(self.base._call(t))
-
-    """def __setstate__(self, state):
-        self.base.__setstate__(state)
-
-    def __getstate__(self):
-        return self.base.__getstate__()"""
 
     def optstr(self):
         str1 = self.base.optstr()
@@ -317,15 +286,8 @@ cdef class ShiftCoefficient(Coefficient):
         self._t0 = args["_t0"]
         self.base.arguments(args)
 
-    @cython.initializedcheck(False)
     cdef complex _call(self, double t) except *:
         return self.base._call(t + self._t0)
-
-    """def __setstate__(self, state):
-        self.base.__setstate__(state)
-
-    def __getstate__(self):
-        return self.base.__getstate__()"""
 
     def optstr(self):
         from re import sub

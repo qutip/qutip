@@ -81,10 +81,10 @@ cdef class CQobjEvo:
         cdef size_t i
         if not isinstance(constant, Qobj):
             raise TypeError("inputs must be Qobj")
-        self._shape = constant.shape
+        self.shape = constant.shape
         self.dims = constant.dims
         self.type = constant.type
-        self._issuper = constant.issuper
+        self.issuper = constant.issuper
         self.constant = constant.data
         self.n_ops = 0 if ops is None else len(ops)
         self.ops = [None] * self.n_ops
@@ -95,7 +95,7 @@ cdef class CQobjEvo:
             vary = ops[i]
             qobj = vary.qobj
             if (
-                qobj.shape != self._shape
+                qobj.shape != self.shape
                 or qobj.type != self.type
                 or qobj.dims != self.dims
             ):
@@ -131,8 +131,8 @@ cdef class CQobjEvo:
 
     # TODO: get rid of this (only used in stochastic.pyx)
     cdef void _mul_vec(self, double t, double complex *vec, double complex *out) except *:
-        cdef Dense vec_ = dense.wrap(vec, self._shape[1], 1)
-        cdef Dense out_ = dense.wrap(out, self._shape[1], 1)
+        cdef Dense vec_ = dense.wrap(vec, self.shape[1], 1)
+        cdef Dense out_ = dense.wrap(out, self.shape[1], 1)
         self.matmul(t, vec_, out_)
 
     cpdef Dense matmul(self, double t, Dense matrix, Dense out=None):
@@ -156,7 +156,7 @@ cdef class CQobjEvo:
         then expectation is `trace(self @ matrix)`.
         """
         # TODO: remove shim once we have dispatching
-        if self._issuper:
+        if self.issuper:
             matrix = (column_stack_csr(matrix) if isinstance(matrix, CSR)
                       else column_stack_dense(matrix, inplace=True))
             _expect = expect_super_csr if isinstance(matrix, CSR) else expect_super_csr_dense
