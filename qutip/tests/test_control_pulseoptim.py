@@ -254,7 +254,7 @@ class TestOptimization:
         dynamics = result.optimizer.dynamics
         assert dynamics.dump is not None, "Dynamics dump not created"
         # Use the dump to check unitarity of all propagators and evo_ops
-        dynamics.unitarity_tol = 1e-14
+        dynamics.unitarity_tol = 1e-13 # 1e-14 for eigh but 1e-13 for eig.
         for item, description in [('prop', 'propagators'),
                                   ('fwd_evo', 'forward evolution operators'),
                                   ('onto_evo', 'onto evolution operators')]:

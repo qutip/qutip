@@ -1,8 +1,45 @@
 import numpy as np
 import scipy.linalg
 import scipy.sparse as sp
+from qutip.settings import eigh_unsafe
 
 __all__ = ['eigs_csr']
+
+if eigh_unsafe:
+    def _orthogonalize(vec, other):
+        cross = np.sum(np.conj(other) * vec)
+        vec -= cross * other
+        norm = np.sum(np.conj(vec) * vec)**0.5
+        vec /= norm
+
+    def eigh(mat, eigvals=None):
+        val, vec = scipy.linalg.eig(mat)
+        val = np.real(val)
+        idx = np.argsort(val)
+        val = val[idx]
+        vec = vec[:, idx]
+        if eigvals:
+            val = val[eigvals[0]:eigvals[1]+1]
+            vec = vec[:, eigvals[0]:eigvals[1]+1]
+        same_eigv = 0
+        for i in range(1, len(val)):
+            if abs(val[i] - val[i-1]) < 1e-12:
+                same_eigv += 1
+                for j in range(same_eigv):
+                    _orthogonalize(vec[:, i], vec[:, i-j-1])
+            else:
+                same_eigv = 0
+        return val, vec
+
+    def eigvalsh(a, eigvals=None):
+        val = scipy.linalg.eigvals(a)
+        val = np.sort(np.real(val))
+        if eigvals:
+            return val[eigvals[0]:eigvals[1]+1]
+        return val
+else:
+    eigh = scipy.linalg.eigh
+    eigvalsh = scipy.linalg.eigvalsh
 
 
 def _dense_eigs(data, isherm, vecs, N, eigvals, num_large, num_small):
@@ -15,10 +52,10 @@ def _dense_eigs(data, isherm, vecs, N, eigvals, num_large, num_small):
         kwargs['eigvals'] = ([0, num_small-1] if num_small
                              else [N-num_large, N-1])
     if vecs:
-        driver = scipy.linalg.eigh if isherm else scipy.linalg.eig
+        driver = eigh if isherm else scipy.linalg.eig
         evals, evecs = driver(data, **kwargs)
     else:
-        driver = scipy.linalg.eigvalsh if isherm else scipy.linalg.eigvals
+        driver = eigvalsh if isherm else scipy.linalg.eigvals
         evals = driver(data, **kwargs)
         evecs = None
 

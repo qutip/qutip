@@ -1756,7 +1756,7 @@ cdef class SMESolver(StochasticSolver):
             for j in range(i, self.num_ops):
                 c_op.matmul(t, _dense_wrap(b[j,:]), _dense_wrap(Lb[i,j,:]))
                 trAb[i,j] = self.expect(Lb[i,j,:])
-                _axpy(-trAp[j], b[i,:], Lb[i,j,:])
+                _axpy(-trAp[i], b[j,:], Lb[i,j,:])
                 _axpy(-trAb[i,j], rho, Lb[i,j,:])
 
         # L0b La LLb

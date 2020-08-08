@@ -57,6 +57,8 @@ has_mkl = False
 has_openmp = False
 # debug mode for development
 debug = False
+# Running on mac with openblas make eigh unsafe
+eigh_unsafe = False
 # are we in IPython? Note that this cannot be
 # set by the RC file.
 ipython = False

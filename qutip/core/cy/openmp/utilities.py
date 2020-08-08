@@ -38,6 +38,8 @@ def check_use_openmp(options):
     """
     Check to see if OPENMP should be used in dynamic solvers.
     """
+    # TODO: sort this out.
+    return False
     force_omp = False
     if qset.has_openmp:
         if options.use_openmp is None:
