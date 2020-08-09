@@ -9,6 +9,7 @@ import glob
 import importlib
 import shutil
 import numbers
+from collections import defaultdict
 from .. import settings as qset
 from .data import Data
 from .interpolate import Cubic_Spline
@@ -16,13 +17,16 @@ from .cy.coefficient import (InterpolateCoefficient, InterCoefficient,
                              StepCoefficient, FunctionCoefficient,
                              SumCoefficient, MulCoefficient,
                              ConjCoefficient, NormCoefficient,
-                             ShiftCoefficient)
+                             ShiftCoefficient, Coefficient)
 from setuptools import setup, Extension
 try:
     from Cython.Build import cythonize
 except ImportError:
     pass
 from warnings import warn
+
+
+__all__ = ["coefficient", "CompilationOptions"]
 
 
 class StringParsingWarning(Warning):
@@ -67,6 +71,9 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
         tlist = np.logspace(-5,0,100)
         H = QobjEvo(np.exp(-1j*tlist), tlist=tlist)
     """
+    if isinstance(base, Coefficient):
+        return base
+
     if isinstance(base, Cubic_Spline):
         return InterpolateCoefficient(base)
 
@@ -427,31 +434,31 @@ def fromstr(base):
     return ls["out"]
 
 
-typeCodes = [
-    ("Data", "_datalayer"),
-    ("complex", "_cpl"),
-    ("double", "_dbl"),
-    ("int", "_int"),
-    ("str", "_str"),
-    ("object", "_obj")
-]
+typeCodes = {
+    "Data": "_datalayer",
+    "complex": "_cpl",
+    "double": "_dbl",
+    "int": "_int",
+    "str": "_str",
+    "object": "_obj"
+}
 
 
 def compileType(value):
     """Obtain the index of typeCodes that correspond to the value
     4.5 -> 'double'..."""
     if isinstance(value, Data):
-        ctype = 0
-    elif isinstance(value, numbers.Complex):
-        ctype = 1
-    elif isinstance(value, numbers.Real):
-        ctype = 2
+        ctype = "Data"
     elif isinstance(value, numbers.Integral):
-        ctype = 3
+        ctype = "int"
+    elif isinstance(value, numbers.Real):
+        ctype = "double"
+    elif isinstance(value, numbers.Complex):
+        ctype = "complex"
     elif isinstance(value, str):
-        ctype = 4
+        ctype = "str"
     else:
-        ctype = 5
+        ctype = "object"
     return ctype
 
 
@@ -469,10 +476,10 @@ def fix_type(ctype, accept_int, accept_float):
     """int and double could be complex to limit the number of compiled object.
     change the types is we choose not to support all.
     """
-    if ctype == 3 and not accept_int:
-        ctype = 2
-    if ctype == 2 and not accept_float:
-        ctype = 1
+    if ctype == "int" and not accept_int:
+        ctype = "double"
+    if ctype == "double" and not accept_float:
+        ctype = "complex"
     return ctype
 
 
@@ -528,7 +535,7 @@ def parse(code, args, compile_opt):
     new_code = []
     ordered_constants = []
     variables = []
-    typeCounts = [0,0,0,0,0,0,0]
+    typeCounts = defaultdict(lambda: 0)
     accept_int = compile_opt.accept_int
     accept_float = compile_opt.accept_float
     if accept_int is None:
@@ -548,18 +555,18 @@ def parse(code, args, compile_opt):
             else:
                 ctype = compileType(args[word])
                 ctype = fix_type(ctype, accept_int, accept_float)
-                var_name = ("self._arg" + typeCodes[ctype][1] +
+                var_name = ("self._arg" + typeCodes[ctype] +
                             str(typeCounts[ctype]))
                 typeCounts[ctype] += 1
-                variables.append((var_name, word, typeCodes[ctype][0]))
+                variables.append((var_name, word, ctype))
             new_code.append(var_name)
         elif word in constants_names:
             name, val, ctype = constants[int(word[9:-1])]
             ctype = fix_type(ctype, accept_int, accept_float)
-            cte_name = "self._cte" + typeCodes[ctype][1] +\
+            cte_name = "self._cte" + typeCodes[ctype] +\
                        str(len(ordered_constants))
             new_code.append(cte_name)
-            ordered_constants.append((cte_name, val, typeCodes[ctype][0]))
+            ordered_constants.append((cte_name, val, ctype))
         else:
             # Hopefully a buildin or known object
             new_code.append(word)

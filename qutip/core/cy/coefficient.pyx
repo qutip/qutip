@@ -208,6 +208,9 @@ cdef class SumCoefficient(Coefficient):
             return "({})+({})".format(str1, str2)
         return ""
 
+    def copy(self):
+        return SumCoefficient(self.first.copy(), self.second.copy())
+
 
 @cython.auto_pickle(True)
 cdef class MulCoefficient(Coefficient):
@@ -232,6 +235,9 @@ cdef class MulCoefficient(Coefficient):
             return "({})*({})".format(str1, str2)
         return ""
 
+    def copy(self):
+        return MulCoefficient(self.first.copy(), self.second.copy())
+
 
 @cython.auto_pickle(True)
 cdef class ConjCoefficient(Coefficient):
@@ -252,6 +258,9 @@ cdef class ConjCoefficient(Coefficient):
             return "conj({})".format(str1)
         return ""
 
+    def copy(self):
+        return ConjCoefficient(self.base.copy())
+
 
 @cython.auto_pickle(True)
 cdef class NormCoefficient(Coefficient):
@@ -271,6 +280,9 @@ cdef class NormCoefficient(Coefficient):
         if str1:
             return "norm({})".format(str1)
         return ""
+
+    def copy(self):
+        return NormCoefficient(self.base.copy())
 
 
 @cython.auto_pickle(True)
@@ -296,3 +308,6 @@ cdef class ShiftCoefficient(Coefficient):
             return sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",
                        "(t+_t0)", " " + str1 + " ")
         return ""
+
+    def copy(self):
+        return ShiftCoefficient(self.base.copy(), self._t0)

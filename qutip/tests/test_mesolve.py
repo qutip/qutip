@@ -329,6 +329,7 @@ class TestMESolverConstDecay:
 
         def sqrt_kappa(t, args):
             return np.sqrt(kappa)
+
         c_op_list = [[a, sqrt_kappa]]
         tlist = np.linspace(0, 10, 100)
         medata = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a])
@@ -778,7 +779,6 @@ class TestMESolveStepFuncCoeff:
         qu = QobjEvo([[sigmax(), self.python_coeff]],
                      tlist=tlist, args={"_step_func_coeff": 1})
         result = mesolve(qu, rho0=rho0, tlist=tlist)
-        assert(qu.type == "func")
         assert_allclose(
             fidelity(result.states[-1], sigmax()*rho0), 1, rtol=1.e-7)
 
@@ -792,7 +792,6 @@ class TestMESolveStepFuncCoeff:
         qu = QobjEvo([[sigmax(), npcoeff]],
                      tlist=tlist, args={"_step_func_coeff": 1})
         result = mesolve(qu, rho0=rho0, tlist=tlist)
-        assert(qu.type == "array")
         assert_allclose(
             fidelity(result.states[-1], sigmax()*rho0), 1, rtol=1.e-7)
 
@@ -806,7 +805,6 @@ class TestMESolveStepFuncCoeff:
         qu = QobjEvo([[sigmax(), npcoeff]],
                      tlist=tlist, args={"_step_func_coeff": 1})
         result = mesolve(qu, rho0=rho0, tlist=tlist)
-        assert(qu.type == "array")
         assert_allclose(
             fidelity(result.states[-1], sigmax()*rho0), 1, rtol=1.e-7)
 
@@ -842,7 +840,6 @@ class TestMESolveStepFuncCoeff:
              [sigmax(), self.python_coeff], [sigmax(), strcoeff]],
             tlist=tlist, args={"_step_func_coeff": 1})
         result = mesolve(qu, rho0=rho0, tlist=tlist)
-        assert(qu.type == "mixed_callable")
         assert_allclose(
             fidelity(result.states[-1], sigmax()*rho0), 1, rtol=1.e-7)
 

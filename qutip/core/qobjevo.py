@@ -165,7 +165,7 @@ class QobjEvo:
     dynamics_args : list
         arguments that change during evolution
 
-    compiled_qobjevo : cy_qobj (CQobjCte or CQobjEvoTd)
+    compiled_qobjevo : cQobjEvo
         Cython version of the QobjEvo
 
     dummy_cte : bool
@@ -266,6 +266,7 @@ class QobjEvo:
         self.cte = None
         self.compiled_qobjevo = None
         self.ops = []
+        self._tlist = tlist
 
         if isinstance(Q_object, list) and len(Q_object) == 2:
             if isinstance(Q_object[0], Qobj) and not isinstance(Q_object[1],
@@ -347,6 +348,18 @@ class QobjEvo:
                 e_op_num = int(key[10:])
                 self.dynamics_args += [(key, "expect", e_op_num)]
                 self.args[key] = 0
+
+    @property
+    def tlist(self):
+        from warnings import warn
+        warn("tlist is to be removed from QobjEvo", DeprecationWarning)
+        return self._tlist
+
+    @tlist.setter
+    def tlist(self, new):
+        from warnings import warn
+        warn("tlist is to be removed from QobjEvo", DeprecationWarning)
+        self._tlist = new
 
     def _check_old_with_state(self):
         # Todo: remove, add deprecationwarning in 4.6.0

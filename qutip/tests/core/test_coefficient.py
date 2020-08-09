@@ -34,7 +34,8 @@ import pytest
 import pickle
 import qutip as qt
 import numpy as np
-import qutip.core.coefficient as qtcoeff
+from qutip.core.coefficient import (coefficient, norm, conj, shift,
+                                    reduce, CompilationOptions)
 
 
 def f(t, args):
@@ -61,22 +62,22 @@ def coeff_generator(style, func):
         base = g
 
     if style == "func":
-        return qtcoeff.coefficient(base, args=args)
+        return coefficient(base, args=args)
     if style == "array":
-        return qtcoeff.coefficient(base(tlist, args), tlist=tlist)
+        return coefficient(base(tlist, args), tlist=tlist)
     if style == "arraylog":
-        return qtcoeff.coefficient(base(tlistlog, args), tlist=tlistlog)
+        return coefficient(base(tlistlog, args), tlist=tlistlog)
     if style == "spline":
-        return qtcoeff.coefficient(qt.Cubic_Spline(0, 1, base(tlist, args)))
+        return coefficient(qt.Cubic_Spline(0, 1, base(tlist, args)))
     if style == "string" and func == "f":
-        return qtcoeff.coefficient( "exp(w * t * pi)", args=args)
+        return coefficient( "exp(w * t * pi)", args=args)
     if style == "string" and func == "g":
-        return qtcoeff.coefficient( "cos(w * t * pi)", args=args)
+        return coefficient( "cos(w * t * pi)", args=args)
     if style == "steparray":
-        return qtcoeff.coefficient(base(tlist, args), tlist=tlist,
+        return coefficient(base(tlist, args), tlist=tlist,
                                    _stepInterpolation=True)
     if style == "steparraylog":
-        return qtcoeff.coefficient(base(tlistlog, args), tlist=tlistlog,
+        return coefficient(base(tlistlog, args), tlist=tlistlog,
                                    _stepInterpolation=True)
 
 
@@ -97,12 +98,12 @@ def coeff_generator(style, func):
                  1e-10, id="string")
 ])
 def test_CoeffCreationCall(base, kwargs, tol):
-    qtcoeff.CompilationOptions.recompile = True
+    CompilationOptions.recompile = True
     t = np.random.rand() * 0.9 + 0.05
     val = np.exp(1j * t * np.pi)
-    coeff = qtcoeff.coefficient(base, **kwargs)
+    coeff = coefficient(base, **kwargs)
     assert np.allclose(coeff(t), val, rtol=tol)
-    qtcoeff.CompilationOptions.recompile = False
+    CompilationOptions.recompile = False
 
 
 @pytest.mark.parametrize(['base', 'kwargs', 'tol'], [
@@ -115,7 +116,7 @@ def test_CoeffCallArgs(base, kwargs, tol):
     t = np.random.rand() * 0.9 + 0.05
     w = np.random.rand() + 0.5j
     val = np.exp(w * t * np.pi)
-    coeff = qtcoeff.coefficient(f, **kwargs)
+    coeff = coefficient(f, **kwargs)
     assert np.allclose(coeff(t, {"w":w}), val, rtol=tol)
 
 
@@ -134,9 +135,9 @@ def test_CoeffUnitaryTransform(style):
     dt = np.random.rand() * 0.2
     val = coeff(t)
     val_dt = coeff(t+dt)
-    assert np.allclose(qtcoeff.norm(coeff)(t), np.abs(val)**2)
-    assert np.allclose(qtcoeff.conj(coeff)(t), np.conj(val))
-    assert np.allclose(qtcoeff.shift(coeff, dt)(t), val_dt)
+    assert np.allclose(norm(coeff)(t), np.abs(val)**2)
+    assert np.allclose(conj(coeff)(t), np.conj(val))
+    assert np.allclose(shift(coeff, dt)(t), val_dt)
 
 
 @pytest.mark.parametrize(['style_left'], [
@@ -171,9 +172,9 @@ def test_CoeffOperation(style_left, style_right):
 
 @pytest.mark.requires_cython
 def test_CoeffReuse():
-    coeff1 = qtcoeff.coefficient("cos(w * t * pi)", args={'w':3.})
-    coeff2 = qtcoeff.coefficient("cos(w2*t * pi)", args={'w2':1.2})
-    coeff3 = qtcoeff.coefficient("cos(  my_var * t*pi)", args={'my_var':-1.2})
+    coeff1 = coefficient("cos(w * t * pi)", args={'w':3.})
+    coeff2 = coefficient("cos(w2*t * pi)", args={'w2':1.2})
+    coeff3 = coefficient("cos(  my_var * t*pi)", args={'my_var':-1.2})
     assert isinstance(coeff2, coeff1.__class__)
     assert isinstance(coeff3, coeff1.__class__)
 
@@ -184,11 +185,11 @@ def test_CoeffOptions():
     t = np.random.rand() * 0.9 + 0.05
     base = "1 + 1. + 1j"
     options = []
-    options.append(qtcoeff.CompilationOptions(accept_int=True))
-    options.append(qtcoeff.CompilationOptions(accept_float=False))
-    options.append(qtcoeff.CompilationOptions(no_types=True))
-    options.append(qtcoeff.CompilationOptions(use_cython=False))
-    coeffs = [qtcoeff.coefficient(base, compile_opt=opt) for opt in options]
+    options.append(CompilationOptions(accept_int=True))
+    options.append(CompilationOptions(accept_float=False))
+    options.append(CompilationOptions(no_types=True))
+    options.append(CompilationOptions(use_cython=False))
+    coeffs = [coefficient(base, compile_opt=opt) for opt in options]
     for coeff1, coeff2 in combinations(coeffs, 2):
         assert not isinstance(coeff1, coeff2.__class__)
 
@@ -212,34 +213,34 @@ def test_CoeffOptions():
                  lambda t: t + 1, id="branch")
 ])
 def test_CoeffParsingStressTest(codestring, args, reference):
-    qtcoeff.CompilationOptions.recompile = True
+    CompilationOptions.recompile = True
     t = np.random.rand() * 0.9 + 0.05
-    coeff = qtcoeff.coefficient(codestring, args=args)
+    coeff = coefficient(codestring, args=args)
     assert np.allclose(coeff(t), reference(t))
-    qtcoeff.CompilationOptions.recompile = False
+    CompilationOptions.recompile = False
 
 
 @pytest.mark.requires_cython
 @pytest.mark.filterwarnings("error")
 def test_manual_typing():
-    qtcoeff.CompilationOptions.recompile = True
-    coeff = qtcoeff.coefficient("my_list[0] + my_dict[5]",
+    CompilationOptions.recompile = True
+    coeff = coefficient("my_list[0] + my_dict[5]",
                                 args={"my_list":[1], "my_dict":{5:2}},
                                 args_ctypes={"my_list":"list",
                                              "my_dict":"dict"})
     assert coeff(0) == 3
-    qtcoeff.CompilationOptions.recompile = False
+    CompilationOptions.recompile = False
 
 
 @pytest.mark.requires_cython
 def test_advance_use():
-    opt = qtcoeff.CompilationOptions(recompile=True, extra_import="""
+    opt = CompilationOptions(recompile=True, extra_import="""
 from qutip import basis
 from qutip.core.data cimport CSR
 from qutip.core.data.expect cimport expect_csr
 """)
     csr = qt.num(3).data
-    coeff = qtcoeff.coefficient("expect_csr(op, op)",
+    coeff = coefficient("expect_csr(op, op)",
                                 args={"op":csr},
                                 args_ctypes={"op":"CSR"},
                                 compile_opt=opt)
@@ -249,9 +250,9 @@ from qutip.core.data.expect cimport expect_csr
 @pytest.mark.requires_cython
 def test_CoeffReduce():
     t = np.random.rand() * 0.9 + 0.05
-    coeff = qtcoeff.coefficient("exp(w * t * pi)", args={'w':1.0j})
-    apad = coeff + qtcoeff.conj(coeff)
-    reduced = qtcoeff.reduce(apad, {'w':1.0j})
+    coeff = coefficient("exp(w * t * pi)", args={'w':1.0j})
+    apad = coeff + conj(coeff)
+    reduced = reduce(apad, {'w':1.0j})
     assert np.allclose(apad(t), reduced(t))
 
 
@@ -268,7 +269,7 @@ def _mul(coeff):
 
 
 def _shift(coeff):
-    return qtcoeff.shift(coeff, 0.05)
+    return shift(coeff, 0.05)
 
 
 @pytest.mark.parametrize(['style'], [
@@ -284,8 +285,8 @@ def _shift(coeff):
     pytest.param(_pass, id="single"),
     pytest.param(_add, id="sum"),
     pytest.param(_mul, id="prod"),
-    pytest.param(qtcoeff.norm, id="norm"),
-    pytest.param(qtcoeff.conj, id="conj"),
+    pytest.param(norm, id="norm"),
+    pytest.param(conj, id="conj"),
     pytest.param(_shift, id="shift"),
 ])
 def test_Coeffpickle(style, transform):
@@ -310,8 +311,8 @@ def test_Coeffpickle(style, transform):
     pytest.param(_pass, id="single"),
     pytest.param(_add, id="sum"),
     pytest.param(_mul, id="prod"),
-    pytest.param(qtcoeff.norm, id="norm"),
-    pytest.param(qtcoeff.conj, id="conj"),
+    pytest.param(norm, id="norm"),
+    pytest.param(conj, id="conj"),
     pytest.param(_shift, id="shift"),
 ])
 def test_Coeffcopy(style, transform):
