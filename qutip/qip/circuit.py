@@ -1770,11 +1770,20 @@ class Result:
             self.states = states
             self.probabilities = probabilities
 
+<<<<<<< HEAD
     def get_states(self):
 <<<<<<< HEAD
 =======
+=======
+    def get_states(self, index=None):
+>>>>>>> small changes
         """
         Return list of output states.
+
+        Parameters
+        ----------
+        index: int
+            Indicates index of output to be returned.
 
         Returns
         ----------
@@ -1782,11 +1791,17 @@ class Result:
             List of output kets or density matrices.
         """
 
+<<<<<<< HEAD
 >>>>>>> added run_statistics to Simulator
         if isinstance(self.states, list):
             return self.states
         else:
             return self.states[0]
+=======
+        if index is not None:
+            return self.states[index]
+        return self.states
+>>>>>>> small changes
 
     def get_results(self, index=None):
 <<<<<<< HEAD
@@ -1798,7 +1813,7 @@ class Result:
         Parameters
         ----------
         index: int
-            Indicates i-th output, probability pair to be returned.
+            Indicates index of output, probability pair to be returned.
 
         Returns
         -------
@@ -2143,7 +2158,6 @@ class ExactSimulator:
             apply_gate = all([self.cbits[i] for i
                               in operation.classical_controls])
             if apply_gate or self.mode == "density_matrix_simulator":
-                print("here")
                 if self.precompute_unitary:
 <<<<<<< HEAD
                     U = expand_operator(U, self.qc.N, operation.get_inds(self.qc.N))
