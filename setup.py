@@ -36,7 +36,6 @@ import sys
 try:
     from setuptools import setup, Extension
     EXTRA_KWARGS = {
-        'setup_require': ['pytest-runner'],
         'tests_require': ['pytest']
     }
 except:
