@@ -17,7 +17,8 @@ from .cy.coefficient import (InterpolateCoefficient, InterCoefficient,
                              StepCoefficient, FunctionCoefficient,
                              SumCoefficient, MulCoefficient,
                              ConjCoefficient, NormCoefficient,
-                             ShiftCoefficient, Coefficient)
+                             ShiftCoefficient, StrFunctionCoefficient,
+                             Coefficient)
 from setuptools import setup, Extension
 try:
     from Cython.Build import cythonize
@@ -278,7 +279,7 @@ def coeff_from_str(base, args, args_ctypes, compile_opt):
             raise Exception("Invalid string coefficient") from err
     # Do we even compile?
     if not qset.use_cython or not compile_opt.use_cython:
-        return str_as_func(base, args)
+        return StrFunctionCoefficient(base, args)
     # Parsing tries to make the code in common pattern
     parsed, variables, constants, raw = try_parse(base, args,
                                                   args_ctypes, compile_opt)
@@ -293,17 +294,6 @@ def coeff_from_str(base, args, args_ctypes, compile_opt):
     keys = [key for _, key, _ in variables]
     const = [fromstr(val) for _, val, _ in constants]
     return coeff(base, keys, const, args)
-
-
-def str_as_func(base, args):
-    """ If cython is not used, make a function from the string and make a
-    function coefficient"""
-    code = """
-def coeff(t, args):
-    return {}""".format(base)
-    lc = {}
-    exec(code, str_env, lc)
-    return FunctionCoefficient(lc["coeff"], args)
 
 
 def try_import(file_name, parsed_in):

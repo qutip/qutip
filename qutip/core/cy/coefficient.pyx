@@ -11,6 +11,7 @@ from .inter cimport (_spline_complex_cte_second,
                              _step_complex_t, _step_complex_cte)
 from .interpolate cimport (interp, zinterp)
 import pickle
+import scipy
 import numpy as np
 cimport numpy as cnp
 cimport cython
@@ -68,6 +69,71 @@ cdef class FunctionCoefficient(Coefficient):
 
     def copy(self):
         return FunctionCoefficient(self.func, self.args.copy())
+
+
+def proj(x):
+    if np.isfinite(x):
+        return (x)
+    else:
+        return np.inf + 0j * np.imag(x)
+
+
+@cython.auto_pickle(True)
+cdef class StrFunctionCoefficient(Coefficient):
+    cdef object func
+    cdef str base
+
+    str_env = {
+        "sin": np.sin,
+        "cos": np.cos,
+        "tan": np.tan,
+        "asin": np.arcsin,
+        "acos": np.arccos,
+        "atan": np.arctan,
+        "pi": np.pi,
+        "sinh": np.sinh,
+        "cosh": np.cosh,
+        "tanh": np.tanh,
+        "asinh": np.arcsinh,
+        "acosh": np.arccosh,
+        "atanh": np.arctanh,
+        "exp": np.exp,
+        "log": np.log,
+        "log10": np.log10,
+        "erf": scipy.special.erf,
+        "zerf": scipy.special.erf,
+        "sqrt": np.sqrt,
+        "real": np.real,
+        "imag": np.imag,
+        "conj": np.conj,
+        "abs": np.abs,
+        "norm": lambda x: np.abs(x)**2,
+        "arg": np.angle,
+        "proj": proj,
+        "np": np,
+        "spe": scipy.special}
+
+    def __init__(self, base, args):
+        code = """
+def coeff(t, args):
+{}
+    return {}""".format(
+            "\n".join(["    {} = args['{}']".format(key, key) for key in args]),
+            base)
+        lc = {}
+        exec(code, self.str_env, lc)
+        self.base = base
+        self.func = lc["coeff"]
+        self.args = args
+
+    cdef complex _call(self, double t) except *:
+        return self.func(t, self.args)
+
+    def copy(self):
+        return StrFunctionCoefficient(self.base, self.args.copy())
+
+    def __reduce__(self):
+        return (StrFunctionCoefficient, (self.base, self.args))
 
 
 cdef class InterpolateCoefficient(Coefficient):
