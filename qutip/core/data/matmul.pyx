@@ -23,9 +23,15 @@ cnp.import_array()
 cdef extern from *:
     void *PyMem_Calloc(size_t n, size_t elsize)
 
-cdef extern from "../cy/src/zspmv.hpp" nogil:
-    void zspmvpy(double complex *data, int *ind, int *ptr, double complex *vec,
-                 double complex a, double complex *out, int nrows)
+# This function is templated over integral types on import to allow `idxint` to
+# be any signed integer (though likely things will only work for >=32-bit).  To
+# change integral types, you only need to change the `idxint` definitions in
+# `core.data.base` at compile-time.
+cdef extern from "src/matmul_csr_vector.hpp" nogil:
+    void _matmul_csr_vector[T](
+        double complex *data, T *col_index, T *row_index,
+        double complex *vec, double complex scale, double complex *out,
+        T nrows)
 
 
 cdef void _check_shape(Data left, Data right, Data out=None) nogil except *:
@@ -183,24 +189,16 @@ cpdef Dense matmul_csr_dense_dense(CSR left, Dense right, Dense out=None,
             out = out.reorder()
         else:
             right = right.reorder()
-    cdef size_t row, ptr, idx_r, idx_out, nrows=left.shape[0], ncols=right.shape[1]
+    cdef idxint row, ptr, idx_r, idx_out, nrows=left.shape[0], ncols=right.shape[1]
     cdef double complex val
-    cdef double complex *data_ptr
-    cdef int *col_ptr
-    cdef int *row_ptr
     if right.fortran:
-        # TODO: the cast <int *> is NOT SAFE as base.idxint is _not_ guaranteed
-        # to match the size of `int`.  Must be changed.
-        data_ptr = &left.data[0]
-        col_ptr = <int *> &left.col_index[0]
-        row_ptr = <int *> &left.row_index[0]
         idx_r = idx_out = 0
         for _ in range(ncols):
-            zspmvpy(data_ptr, col_ptr, row_ptr,
-                    right.data + idx_r,
-                    scale,
-                    out.data + idx_out,
-                    nrows)
+            _matmul_csr_vector(left.data, left.col_index, left.row_index,
+                               right.data + idx_r,
+                               scale,
+                               out.data + idx_out,
+                               nrows)
             idx_out += nrows
             idx_r += right.shape[0]
     else:
