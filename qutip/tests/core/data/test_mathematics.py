@@ -121,8 +121,8 @@ def cases_csr(shape):
         return lambda: data.csr.zeros(shape[0], shape[1])
     return [
         pytest.param(factory(0.001, True), id="sparse"),
-        pytest.param(factory(0.8, True), id="dense,sorted"),
-        pytest.param(factory(0.8, False), id="dense,unsorted"),
+        pytest.param(factory(0.8, True), id="filled,sorted"),
+        pytest.param(factory(0.8, False), id="filled,unsorted"),
         pytest.param(zero_factory(), id="zero"),
     ]
 
@@ -132,7 +132,12 @@ def cases_dense(shape):
     Return a list of generators of the different special cases for Dense
     matrices of a given shape.
     """
-    return [pytest.param(lambda: conftest.random_dense(shape))]
+    def factory(fortran):
+        return lambda: conftest.random_dense(shape, fortran)
+    return [
+        pytest.param(factory(False), id="C"),
+        pytest.param(factory(True), id="Fortran"),
+    ]
 
 
 # Factory methods for generating the cases, mapping type to the function.
@@ -144,7 +149,7 @@ _ALL_CASES = {
 }
 _RANDOM = {
     CSR: lambda shape: [lambda: conftest.random_csr(shape, 0.5, True)],
-    Dense: lambda shape: [lambda: conftest.random_dense(shape)],
+    Dense: lambda shape: [lambda: conftest.random_dense(shape, False)],
 }
 
 
@@ -640,7 +645,8 @@ class TestInnerOp(TernaryOpMixin):
             args = (op, types, [(self._scalar,) * 3], out_type)
             cases.extend(cases_type_shape_product(_RANDOM, *args))
         metafunc.parametrize(parameters, cases)
-        metafunc.parametrize('scalar_is_ket', [True, False], ids=["ket", "bra"])
+        metafunc.parametrize('scalar_is_ket',
+                             [True, False], ids=["ket", "bra"])
 
     def test_scalar_is_ket(self, op, data_l, data_m, data_r, out_type,
                            scalar_is_ket):
@@ -678,6 +684,8 @@ class TestMatmul(BinaryOpMixin):
     bad_shapes = shapes_binary_bad_matmul()
     specialisations = [
         pytest.param(data.matmul_csr, CSR, CSR, CSR),
+        pytest.param(data.matmul_csr_dense_dense, CSR, Dense, Dense),
+        pytest.param(data.matmul_dense, Dense, Dense, Dense),
     ]
 
 
@@ -687,6 +695,7 @@ class TestMul(UnaryScalarOpMixin):
 
     specialisations = [
         pytest.param(data.mul_csr, CSR, CSR),
+        pytest.param(data.mul_dense, Dense, Dense),
     ]
 
 
@@ -696,6 +705,7 @@ class TestNeg(UnaryOpMixin):
 
     specialisations = [
         pytest.param(data.neg_csr, CSR, CSR),
+        pytest.param(data.neg_dense, Dense, Dense),
     ]
 
 
@@ -723,6 +733,7 @@ class TestSub(BinaryOpMixin):
     bad_shapes = shapes_binary_bad_identical()
     specialisations = [
         pytest.param(data.sub_csr, CSR, CSR, CSR),
+        pytest.param(data.sub_dense, Dense, Dense, Dense),
     ]
 
 

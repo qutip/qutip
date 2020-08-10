@@ -8,6 +8,7 @@ import qutip.settings
 
 from qutip.core.data.base cimport idxint
 from qutip.core.data.csr cimport CSR
+from qutip.core.data cimport csr
 
 cdef extern from *:
     # Not defined in cpython.mem for some reason, but is in pymem.h.
@@ -55,6 +56,7 @@ cpdef bint isherm_csr(CSR matrix, double tol=qutip.settings.atol):
     cdef idxint *out_row_index = <idxint *>PyMem_Calloc(nrows + 1, sizeof(idxint))
     if out_row_index == NULL:
         raise MemoryError
+    matrix.sort_indices()
     try:
         for row in range(nrows):
             for ptr in range(matrix.row_index[row], matrix.row_index[row + 1]):
@@ -77,3 +79,15 @@ cpdef bint isherm_csr(CSR matrix, double tol=qutip.settings.atol):
         return True
     finally:
         mem.PyMem_Free(out_row_index)
+
+
+cpdef bint isdiag_csr(CSR matrix) nogil:
+    cdef size_t row, ptr_start, ptr_end=matrix.row_index[0]
+    for row in range(matrix.shape[0]):
+        ptr_start, ptr_end = ptr_end, matrix.row_index[row + 1]
+        if ptr_end - ptr_start > 1:
+            return False
+        if ptr_end - ptr_start == 1:
+            if matrix.col_index[ptr_start] != row:
+                return False
+    return True

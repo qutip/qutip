@@ -36,7 +36,7 @@ __all__ = ['entropy_vn', 'entropy_linear', 'entropy_mutual', 'negativity',
 
 from numpy import e, real, sort, sqrt
 from numpy.lib.scimath import log, log2
-from . import ptrace, ket2dm, tensor, sigmay, sp_eigs, partial_transpose
+from . import ptrace, ket2dm, tensor, sigmay, partial_transpose
 
 
 def entropy_vn(rho, base=e, sparse=False):
@@ -66,7 +66,7 @@ def entropy_vn(rho, base=e, sparse=False):
     """
     if rho.type == 'ket' or rho.type == 'bra':
         rho = ket2dm(rho)
-    vals = sp_eigs(rho.data, rho.isherm, vecs=False, sparse=sparse)
+    vals = rho.eigenenergies(sparse=sparse)
     nzvals = vals[vals != 0]
     if base == 2:
         logvals = log2(nzvals)
@@ -243,7 +243,7 @@ def _entropy_relative(rho, sigma, base=e, sparse=False):
     if rho.type != 'oper' or sigma.type != 'oper':
         raise TypeError("Inputs must be density matrices..")
     # sigma terms
-    svals = sp_eigs(sigma.data, sigma.isherm, vecs=False, sparse=sparse)
+    svals = sigma.eigenenergies(sparse=sparse)
     snzvals = svals[svals != 0]
     if base == 2:
         slogvals = log2(snzvals)
@@ -252,7 +252,7 @@ def _entropy_relative(rho, sigma, base=e, sparse=False):
     else:
         raise ValueError("Base must be 2 or e.")
     # rho terms
-    rvals = sp_eigs(rho.data, rho.isherm, vecs=False, sparse=sparse)
+    rvals = rho.eigenenergies(sparse=sparse)
     rnzvals = rvals[rvals != 0]
     # calculate tr(rho*log sigma)
     rel_trace = float(real(sum(rnzvals * slogvals)))

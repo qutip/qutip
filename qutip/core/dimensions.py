@@ -34,12 +34,13 @@
 Internal use module for manipulating dims specifications.
 """
 
-__all__ = [] # Everything should be explicitly imported, not made available
-             # by default.
+# Everything should be explicitly imported, not made available by default.
+__all__ = []
 
 import numpy as np
 from operator import getitem
 from functools import partial
+
 
 def is_scalar(dims):
     """
@@ -48,11 +49,13 @@ def is_scalar(dims):
     """
     return np.prod(flatten(dims)) == 1
 
+
 def is_vector(dims):
     return (
         isinstance(dims, list) and
         isinstance(dims[0], (int, np.integer))
     )
+
 
 def is_vectorized_oper(dims):
     return (
@@ -80,16 +83,13 @@ def type_from_dims(dims, enforce_square=False):
         return 'oper'
 
     elif (
-            is_vectorized_oper(dims[0]) and
-            (
-                (
-                    dims[0] == dims[1] and
-                    dims[0][0] == dims[1][0]
-                ) or not enforce_square
-            )
+        is_vectorized_oper(dims[0])
+        and (
+            not enforce_square
+            or (dims[0] == dims[1] and dims[0][0] == dims[1][0])
+        )
     ):
         return 'super'
-
     return 'other'
 
 
@@ -134,7 +134,7 @@ def deep_remove(l, *what):
             if to_remove in l:
                 l.remove(to_remove)
             else:
-                l = list(map(lambda elem: deep_remove(elem, to_remove), l))
+                l = [deep_remove(elem, to_remove) for elem in l]
     return l
 
 
@@ -177,6 +177,7 @@ def _enumerate_flat(l, idx=0):
             acc.append(labels)
         return acc, idx
 
+
 def _collapse_composite_index(dims):
     """
     Given the dimensions specification for a composite index
@@ -187,6 +188,7 @@ def _collapse_composite_index(dims):
     """
     return [np.prod(dims)]
 
+
 def _collapse_dims_to_level(dims, level=1):
     """
     Recursively collapses all indices in a dimensions specification
@@ -195,9 +197,9 @@ def _collapse_dims_to_level(dims, level=1):
     """
     if level == 0:
         return _collapse_composite_index(dims)
-    else:
-        return [_collapse_dims_to_level(index, level=level - 1) for index in dims]
-    
+    return [_collapse_dims_to_level(index, level=level - 1) for index in dims]
+
+
 def collapse_dims_oper(dims):
     """
     Given the dimensions specifications for a ket-, bra- or oper-type
@@ -220,6 +222,7 @@ def collapse_dims_oper(dims):
         such that ``len(collapsed_dims[0]) == len(collapsed_dims[1]) == 1``.
     """
     return _collapse_dims_to_level(dims, 1)
+
 
 def collapse_dims_super(dims):
     """
@@ -244,6 +247,7 @@ def collapse_dims_super(dims):
         in ``range(2)``.
     """
     return _collapse_dims_to_level(dims, 2)
+
 
 def enumerate_flat(l):
     """Labels the indices at which scalars occur in a flattened list.
@@ -295,8 +299,6 @@ def dims_to_tensor_perm(dims):
     # Qobj.type, but that works fine for our purposes here.
     dims_type = type_from_dims(dims, enforce_square=False)
     perm = enumerate_flat(dims)
-
-    # If type is oper, ket or bra, we don't need to do anything.
     if dims_type in ('oper', 'ket', 'bra'):
         return flatten(perm)
 
@@ -312,18 +314,15 @@ def dims_to_tensor_perm(dims):
     # enumerate_flat then transforming the result to swap
     # input and output indices of vectorized matrices, then flattening
     # the result. We'll then rebuild indices using this permutation.
-
-
     if dims_type in ('operator-ket', 'super'):
         # Swap the input and output spaces of the right part of
         # perm.
         perm[1] = list(reversed(perm[1]))
-
     if dims_type in ('operator-bra', 'super'):
         # Ditto, but for the left indices.
         perm[0] = list(reversed(perm[0]))
-
     return flatten(perm)
+
 
 def dims_to_tensor_shape(dims):
     """
@@ -343,10 +342,8 @@ def dims_to_tensor_shape(dims):
     tensor_shape : tuple
         NumPy shape of the corresponding tensor.
     """
-
     perm = dims_to_tensor_perm(dims)
     dims = flatten(dims)
-
     return tuple(map(partial(getitem, dims), perm))
 
 
@@ -377,6 +374,5 @@ def dims_idxs_to_tensor_idxs(dims, indices):
         Container of the same structure as indices containing
         the tensor indices for each element of indices.
     """
-
     perm = dims_to_tensor_perm(dims)
     return deep_map(partial(getitem, perm), indices)

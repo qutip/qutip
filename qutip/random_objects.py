@@ -45,16 +45,17 @@ __all__ = [
     'rand_dm_hs', 'rand_super_bcsz', 'rand_stochastic', 'rand_super'
 ]
 
-from numpy import arcsin, sqrt, pi
-from scipy.linalg import sqrtm
+import numbers
+
 import numpy as np
-import numpy.linalg as la
+import scipy.linalg
 import scipy.sparse as sp
-from . import Qobj, create, destroy, jmat, basis
-from . import superop_reps as sr
+
+from . import Qobj, create, destroy, jmat, basis, to_super
+from .core import data as _data
 
 
-UNITS = np.array([1, 1j])
+_UNITS = np.array([1, 1j])
 
 
 def rand_jacobi_rotation(A, seed=None):
@@ -72,27 +73,27 @@ def rand_jacobi_rotation(A, seed=None):
     """
     if seed is not None:
         np.random.seed(seed=seed)
-    if A.shape[0]!=A.shape[1]:
+    if A.shape[0] != A.shape[1]:
         raise Exception('Input matrix must be square.')
     n = A.shape[0]
     angle = 2*np.random.random()*np.pi
-    a = 1.0/np.sqrt(2)*np.exp(-1j*angle)
-    b = 1.0/np.sqrt(2)*np.exp(1j*angle)
-    i = np.int(np.floor(np.random.random()*n))
+    a = np.sqrt(0.5) * np.exp(-1j*angle)
+    b = np.conj(a)
+    i = np.int(np.floor(np.random.random() * n))
     j = i
-    while (i == j):
-        j = np.int(np.floor(np.random.random()*n))
-    data = np.hstack((np.array([a,-b,a,b], dtype=complex),
-                      np.ones(n-2, dtype=complex)))
-    diag = np.delete(np.arange(n), [i,j])
-    rows = np.hstack(([i,i,j,j], diag))
-    cols = np.hstack(([i,j,i,j], diag))
-    R = sp.coo_matrix((data,(rows,cols)), shape=[n,n], dtype=complex).tocsr()
-    A = R*A*R.conj().transpose()
-    return A
+    while i == j:
+        j = np.int(np.floor(np.random.random() * n))
+    data = np.hstack((np.array([a, -b, a, b], dtype=complex),
+                      np.ones(n - 2, dtype=complex)))
+    diag = np.delete(np.arange(n), [i, j])
+    rows = np.hstack(([i, i, j, j], diag))
+    cols = np.hstack(([i, j, i, j], diag))
+    R = sp.coo_matrix((data, (rows, cols)), shape=(n, n), dtype=complex)
+    R = _data.create(R.tocsr())
+    return R @ A @ R.adjoint()
 
-def randnz(shape, norm=1 / np.sqrt(2), seed=None):
-    # This function is intended for internal use.
+
+def _randnz(shape, norm=np.sqrt(0.5), seed=None):
     """
     Returns an array of standard normal complex random variates.
     The Ginibre ensemble corresponds to setting ``norm = 1`` [Mis12]_.
@@ -105,11 +106,12 @@ def randnz(shape, norm=1 / np.sqrt(2), seed=None):
         Scale of the returned random variates, or 'ginibre' to draw
         from the Ginibre ensemble.
     """
+    # This function is intended for internal use.
     if seed is not None:
         np.random.seed(seed=seed)
     if norm == 'ginibre':
         norm = 1
-    return np.sum(np.random.randn(*(shape + (2,))) * UNITS, axis=-1) * norm
+    return np.sum(np.random.randn(*(shape + (2,))) * _UNITS, axis=-1) * norm
 
 
 def rand_herm(N, density=0.75, dims=None, pos_def=False, seed=None):
@@ -150,17 +152,18 @@ def rand_herm(N, density=0.75, dims=None, pos_def=False, seed=None):
     """
     if seed is not None:
         np.random.seed(seed=seed)
-    if isinstance(N, (np.ndarray,list)):
-        M = sp.diags(N,0, dtype=complex, format='csr')
+    if isinstance(N, (np.ndarray, list)):
+        M = _data.create(sp.diags(N, 0, dtype=complex, format='csr'))
         N = len(N)
         if dims:
             _check_dims(dims, N, N)
         nvals = max([N**2 * density, 1])
         M = rand_jacobi_rotation(M)
-        while M.nnz < 0.95 * nvals:
+        while _data.csr.nnz(M) < 0.95 * nvals:
             M = rand_jacobi_rotation(M)
         M.sort_indices()
-    elif isinstance(N, (int, np.int32, np.int64)):
+    elif isinstance(N, numbers.Integral):
+        N = int(N)
         if dims:
             _check_dims(dims, N, N)
         if density < 0.5:
@@ -169,10 +172,7 @@ def rand_herm(N, density=0.75, dims=None, pos_def=False, seed=None):
             M = _rand_herm_dense(N, density, pos_def)
     else:
         raise TypeError('Input N must be an integer or array_like.')
-    if dims:
-        return Qobj(M, dims=dims)
-    else:
-        return Qobj(M)
+    return Qobj(M, dims=dims or [[N]]*2, type='oper', isherm=True, copy=False)
 
 
 def _rand_herm_sparse(N, density, pos_def):
@@ -192,7 +192,7 @@ def _rand_herm_sparse(N, density, pos_def):
     if pos_def:
         M.setdiag(np.abs(M.diagonal())+np.sqrt(2)*N)
     M.sort_indices()
-    return M
+    return _data.create(M)
 
 
 def _rand_herm_dense(N, density, pos_def):
@@ -210,9 +210,8 @@ def _rand_herm_dense(N, density, pos_def):
         M[col, row] = 0
         M[row, col] = 0
     if pos_def:
-        as_vec = M.ravel()
-        M[::N+1] = (np.abs(M.diagonal())+np.sqrt(2)*N)
-    return M
+        M[::N+1] = np.abs(M.diagonal()) + np.sqrt(2)*N
+    return _data.create(M)
 
 
 def rand_unitary(N, density=0.75, dims=None, seed=None):
@@ -241,10 +240,12 @@ def rand_unitary(N, density=0.75, dims=None, seed=None):
         _check_dims(dims, N, N)
     U = (-1.0j * rand_herm(N, density, seed=seed)).expm()
     U.data.sort_indices()
-    if dims:
-        return Qobj(U, dims=dims, shape=[N, N])
-    else:
-        return Qobj(U)
+    return Qobj(U,
+                dims=dims or [[N], [N]],
+                type='oper',
+                isherm=False,
+                isunitary=True,
+                copy=False)
 
 
 def rand_unitary_haar(N=2, dims=None, seed=None):
@@ -273,10 +274,10 @@ def rand_unitary_haar(N=2, dims=None, seed=None):
 
     # Mez01 STEP 1: Generate an N × N matrix Z of complex standard
     #               normal random variates.
-    Z = randnz((N, N), seed=seed)
+    Z = _randnz((N, N), seed=seed)
 
     # Mez01 STEP 2: Find a QR decomposition Z = Q · R.
-    Q, R = la.qr(Z)
+    Q, R = scipy.linalg.qr(Z)
 
     # Mez01 STEP 3: Create a diagonal matrix Lambda by rescaling
     #               the diagonal elements of R.
@@ -294,9 +295,7 @@ def rand_unitary_haar(N=2, dims=None, seed=None):
     #       As NumPy arrays, Q has shape (N, N) and
     #       Lambda has shape (N, ), such that the broadcasting
     #       represents precisely Q_ij λ_j.
-    U = Qobj(Q * Lambda)
-    U.dims = dims
-    return U
+    return Qobj(Q * Lambda, dims=dims, type='oper', isunitary=True, copy=False)
 
 
 def rand_ket(N=0, density=1, dims=None, seed=None):
@@ -324,21 +323,24 @@ def rand_ket(N=0, density=1, dims=None, seed=None):
     if N and dims:
         _check_dims(dims, N, 1)
     elif dims:
-        N = prod(dims[0])
+        N = np.prod(dims[0])
         _check_dims(dims, N, 1)
     else:
-        dims = [[N],[1]]
-    X = sp.rand(N, 1, density, format='csr')
+        dims = [[N], [1]]
+    X = scipy.sparse.rand(N, 1, density, format='csr')
     while X.nnz == 0:
         # ensure that the ket is not all zeros.
-        X = sp.rand(N, 1, density+1/N, format='csr')
+        X = scipy.sparse.rand(N, 1, density+1/N, format='csr')
     X.data = X.data - 0.5
     Y = X.copy()
     Y.data = 1.0j * (np.random.random(len(X.data)) - 0.5)
-    X = X + Y
-    X.sort_indices()
-    X = Qobj(X)
-    return Qobj(X / X.norm(), dims=dims)
+    X = _data.csr.CSR(X + Y)
+    return Qobj(X / _data.norm.l2_csr(X),
+                dims=dims,
+                copy=False,
+                type='ket',
+                isherm=False,
+                isunitary=False)
 
 
 def rand_ket_haar(N=2, dims=None, seed=None):
@@ -363,13 +365,12 @@ def rand_ket_haar(N=2, dims=None, seed=None):
     if N and dims:
         _check_dims(dims, N, 1)
     elif dims:
-        N = prod(dims[0])
+        N = np.prod(dims[0])
         _check_dims(dims, N, 1)
     else:
-        dims = [[N],[1]]
-    psi = rand_unitary_haar(N, seed=seed) * basis(N, 0)
-    psi.dims = dims
-    return psi
+        dims = [[N], [1]]
+    U = rand_unitary_haar(N, seed=seed, dims=[dims[0], dims[0]])
+    return U @ basis(dims[0], [0]*len(dims[0]))
 
 
 def rand_dm(N, density=0.75, pure=False, dims=None, seed=None):
@@ -401,42 +402,40 @@ def rand_dm(N, density=0.75, pure=False, dims=None, seed=None):
         if np.abs(np.sum(N)-1.0) > 1e-15:
             raise ValueError('Eigenvalues of a density matrix '
                              'must sum to one.')
-        H = sp.diags(N, 0, dtype=complex, format='csr')
+        H = _data.create(sp.diags(N, 0, dtype=complex, format='csr'))
         N = len(N)
         if dims:
             _check_dims(dims, N, N)
         nvals = N**2*density
         H = rand_jacobi_rotation(H, seed=seed)
-        while H.nnz < 0.95*nvals:
+        while _data.csr.nnz(H) < 0.95*nvals:
             H = rand_jacobi_rotation(H)
         H.sort_indices()
-    elif isinstance(N, (int, np.int32, np.int64)):
+    elif isinstance(N, numbers.Integral):
+        N = int(N)
         if dims:
             _check_dims(dims, N, N)
         if pure:
-            dm_density = sqrt(density)
+            dm_density = np.sqrt(density)
             psi = rand_ket(N, dm_density)
-            H = psi * psi.dag()
-            H.data.sort_indices()
+            H = psi.proj().data
         else:
-            non_zero = 0
+            trace = 0
             tries = 0
-            while non_zero == 0 and tries < 10:
+            while trace == 0 and tries < 10:
                 H = rand_herm(N, density, seed=seed)
-                H = H.dag() * H
-                non_zero = H.tr()
+                H = H.dag() @ H
+                trace = H.tr()
                 tries += 1
             if tries >= 10:
                 raise ValueError(
                     "Requested density is too low to generate density matrix.")
-            H = H / H.tr()
-            H.data.sort_indices()
+            H = H.data
+            H.sort_indices()
+            H /= trace
     else:
         raise TypeError('Input N must be an integer or array_like.')
-    if dims:
-        return Qobj(H, dims=dims)
-    else:
-        return Qobj(H)
+    return Qobj(H, dims=dims, type='oper', isherm=True, copy=False)
 
 
 def rand_dm_ginibre(N=2, rank=None, dims=None, seed=None):
@@ -470,11 +469,11 @@ def rand_dm_ginibre(N=2, rank=None, dims=None, seed=None):
     if rank > N:
         raise ValueError("Rank cannot exceed dimension.")
 
-    X = randnz((N, rank), norm='ginibre', seed=seed)
+    X = _randnz((N, rank), norm='ginibre', seed=seed)
     rho = np.dot(X, X.T.conj())
     rho /= np.trace(rho)
 
-    return Qobj(rho, dims=dims)
+    return Qobj(rho, dims=dims, type='oper', isherm=True, copy=False)
 
 
 def rand_dm_hs(N=2, dims=None, seed=None):
@@ -527,13 +526,13 @@ def rand_kraus_map(N, dims=None, seed=None):
         _check_dims(dims, N, N)
 
     # Random unitary (Stinespring Dilation)
-    big_unitary = rand_unitary(N ** 3, seed=seed).data.todense()
+    big_unitary = rand_unitary(N ** 3, seed=seed).full()
     orthog_cols = np.array(big_unitary[:, :N])
     oper_list = np.reshape(orthog_cols, (N ** 2, N, N))
-    return list(map(lambda x: Qobj(inpt=x, dims=dims), oper_list))
+    return [Qobj(x, dims=dims, type='oper', copy=False) for x in oper_list]
 
 
-def rand_super(N=5, dims=None, seed=None):
+def rand_super(N, dims=None, seed=None):
     """
     Returns a randomly drawn superoperator acting on operators acting on
     N dimensions.
@@ -550,7 +549,7 @@ def rand_super(N=5, dims=None, seed=None):
         # TODO: check!
         pass
     else:
-        dims = [[[N],[N]], [[N],[N]]]
+        dims = [[[N], [N]], [[N], [N]]]
     H = rand_herm(N, seed=seed)
     S = propagator(H, np.random.rand(), [
         create(N), destroy(N), jmat(float(N - 1) / 2.0, 'z')
@@ -592,7 +591,7 @@ def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None, seed=None):
         # TODO: check!
         pass
     else:
-        dims = [[[N],[N]], [[N],[N]]]
+        dims = [[[N], [N]], [[N], [N]]]
 
     if rank is None:
         rank = N**2
@@ -605,10 +604,11 @@ def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None, seed=None):
 
     # We start with a Ginibre uniform matrix X of the appropriate rank,
     # and use it to construct a positive semidefinite matrix X X⁺.
-    X = randnz((N**2, rank), norm='ginibre', seed=seed)
+    X = _randnz((N**2, rank), norm='ginibre', seed=seed)
 
     # Precompute X X⁺, as we'll need it in two different places.
     XXdag = np.dot(X, X.T.conj())
+    tmp_dims = [[[N], [N]], [[N], [N]]]
 
     if enforce_tp:
         # We do the partial trace over the first index by using dense reshape
@@ -622,34 +622,26 @@ def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None, seed=None):
         # matrices directly, as this is important in statistics.
         Z = np.kron(
             np.eye(N),
-            sqrtm(la.inv(Y))
+            scipy.linalg.sqrtm(scipy.linalg.inv(Y))
         )
 
         # Finally, we dot everything together and pack it into a Qobj,
         # marking the dimensions as that of a type=super (that is,
         # with left and right compound indices, each representing
         # left and right indices on the underlying Hilbert space).
-        D = Qobj(np.dot(Z, np.dot(XXdag, Z)))
+        D = Qobj(np.dot(Z, np.dot(XXdag, Z)), dims=tmp_dims, type='super')
     else:
-        D = N * Qobj(XXdag / np.trace(XXdag))
-
-    D.dims = [
-        # Left dims
-        [[N], [N]],
-        # Right dims
-        [[N], [N]]
-    ]
+        D = N * Qobj(XXdag / np.trace(XXdag), dims=tmp_dims, type='super')
 
     # Since [BCSZ08] gives a row-stacking Choi matrix, but QuTiP
     # expects a column-stacking Choi matrix, we must permute the indices.
     D = D.permute([[1], [0]])
 
-    D.dims = dims
-
     # Mark that we've made a Choi matrix.
     D.superrep = 'choi'
+    D.dims = dims
 
-    return sr.to_super(D)
+    return to_super(D)
 
 
 def rand_stochastic(N, density=0.75, kind='left', dims=None, seed=None):
@@ -684,18 +676,18 @@ def rand_stochastic(N, density=0.75, kind='left', dims=None, seed=None):
     col_idx = np.hstack([np.random.permutation(N),
                          np.random.choice(N, num_elems-N)])
     M = sp.coo_matrix((data, (row_idx, col_idx)),
-                      dtype=float, shape=(N,N)).tocsr()
+                      dtype=np.complex128, shape=(N, N)).tocsr()
     M = 0.5 * (M + M.conj().transpose())
-    num_rows = M.indptr.shape[0]-1
+    num_rows = M.indptr.shape[0] - 1
     for row in range(num_rows):
         row_start = M.indptr[row]
         row_end = M.indptr[row+1]
         row_sum = np.sum(M.data[row_start:row_end])
         M.data[row_start:row_end] /= row_sum
-    if kind=='left':
+    if kind == 'left':
         M = M.transpose()
     if dims:
-        return Qobj(M, dims=dims, shape=[N, N])
+        return Qobj(M, dims=dims)
     else:
         return Qobj(M)
 
@@ -713,4 +705,4 @@ def _check_dims(dims, N1, N2):
 
 # TRAILING IMPORTS
 # qutip.propagator depends on rand_dm, so we need to put this import last.
-from qutip.propagator import propagator
+from qutip.solve.propagator import propagator

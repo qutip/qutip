@@ -189,9 +189,3 @@ def in_temporary_directory():
         # than outside to prevent the case of the directory failing to be
         # removed because it is 'busy'.
         os.chdir(previous_dir)
-
-
-@pytest.fixture
-def tmpfile():
-    with tempfile.NamedTemporaryFile() as file:
-        yield file

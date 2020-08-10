@@ -43,20 +43,15 @@ __all__ = ['fidelity', 'tracedist', 'bures_dist', 'bures_angle',
 import numpy as np
 from scipy import linalg as la
 import scipy.sparse as sp
-from .sparse import sp_eigs
-from .superop_reps import (
-    to_kraus, to_stinespring, to_choi, _super_to_superpauli, to_super
-)
+from .data import eigs_csr
+from .superop_reps import to_kraus, to_choi, _to_superpauli, to_super
 from .superoperator import operator_to_vector, vector_to_operator
 from .operators import qeye
 from .semidefinite import dnorm_problem
-from .. import settings
-from .. import logging_utils as logging
-logger = logging.get_logger()
 
 try:
     import cvxpy
-except:
+except ImportError:
     cvxpy = None
 
 
@@ -117,10 +112,8 @@ def process_fidelity(U1, U2, normalize=True):
     """
     Calculate the process fidelity given two process operators.
     """
-    if normalize:
-        return (U1 * U2).tr() / (U1.tr() * U2.tr())
-    else:
-        return (U1 * U2).tr()
+    out = (U1 * U2).tr()
+    return out / (U1.tr() * U2.tr()) if normalize else out
 
 
 def average_gate_fidelity(oper, target=None):
@@ -142,19 +135,19 @@ def average_gate_fidelity(oper, target=None):
         Fidelity pseudo-metric between A and the identity superoperator,
         or between A and the target superunitary.
     """
-    kraus_form = to_kraus(oper)
-    d = kraus_form[0].shape[0]
+    kraus = to_kraus(oper)
+    d = kraus[0].shape[0]
 
-    if kraus_form[0].shape[1] != d:
+    if kraus[0].shape[1] != d:
         return TypeError("Average gate fidelity only implemented for square "
                          "superoperators.")
 
     if target is None:
-        return (d + np.sum([np.abs(A_k.tr())**2
-                        for A_k in kraus_form])) / (d**2 + d)
-    else:
-        return (d + np.sum([np.abs((A_k * target.dag()).tr())**2
-                        for A_k in kraus_form])) / (d**2 + d)
+        return (d + np.sum([np.abs(A_k.tr())**2 for A_k in kraus])) / (d*d + d)
+    return (
+        (d + np.sum([np.abs((A_k*target.dag()).tr())**2 for A_k in kraus]))
+        / (d*d + d)
+    )
 
 
 def tracedist(A, B, sparse=False, tol=0):
@@ -190,13 +183,11 @@ def tracedist(A, B, sparse=False, tol=0):
         A = A.proj()
     if B.isket or B.isbra:
         B = B.proj()
-
     if A.dims != B.dims:
         raise TypeError("A and B do not have same dimensions.")
-
     diff = A - B
     diff = diff.dag() * diff
-    vals = sp_eigs(diff.data, diff.isherm, vecs=False, sparse=sparse, tol=tol)
+    vals = eigs_csr(diff.data, diff.isherm, vecs=False, sparse=sparse, tol=tol)
     return float(np.real(0.5 * np.sum(np.sqrt(np.abs(vals)))))
 
 
@@ -225,10 +216,8 @@ def hilbert_dist(A, B):
         A = A.proj()
     if B.isket or B.isbra:
         B = B.proj()
-
     if A.dims != B.dims:
         raise TypeError('A and B do not have same dimensions.')
-
     return ((A - B)**2).tr()
 
 
@@ -255,11 +244,9 @@ def bures_dist(A, B):
         A = A.proj()
     if B.isket or B.isbra:
         B = B.proj()
-
     if A.dims != B.dims:
         raise TypeError('A and B do not have same dimensions.')
-
-    dist = np.sqrt(2.0 * (1.0 - fidelity(A, B)))
+    dist = np.sqrt(2 * (1 - fidelity(A, B)))
     return dist
 
 
@@ -285,10 +272,8 @@ def bures_angle(A, B):
         A = A.proj()
     if B.isket or B.isbra:
         B = B.proj()
-
     if A.dims != B.dims:
         raise TypeError('A and B do not have same dimensions.')
-
     return np.arccos(fidelity(A, B))
 
 
@@ -329,24 +314,16 @@ def hellinger_dist(A, B, sparse=False, tol=0):
     """
     if A.dims != B.dims:
         raise TypeError("A and B do not have same dimensions.")
+    sqrtA = A.proj() if A.isket or A.isbra else A.sqrtm(sparse=sparse, tol=tol)
+    sqrtB = B.proj() if B.isket or B.isbra else B.sqrtm(sparse=sparse, tol=tol)
+    product = sqrtA*sqrtB
 
-    if A.isket or A.isbra:
-        sqrtmA = A.proj()
-    else:
-        sqrtmA = A.sqrtm(sparse=sparse, tol=tol)
-    if B.isket or B.isbra:
-        sqrtmB = B.proj()
-    else:
-        sqrtmB = B.sqrtm(sparse=sparse, tol=tol)
-
-    product = sqrtmA*sqrtmB
-
-    eigs = sp_eigs(product.data,
-                   isherm=product.isherm, vecs=False, sparse=sparse, tol=tol)
-    #np.maximum() is to avoid nan appearing sometimes due to numerical
-    #instabilities causing np.sum(eigs) slightly (~1e-8) larger than 1
-    #when hellinger_dist(A, B) is called for A=B
-    return np.sqrt(2.0 * np.maximum(0., (1.0 - np.real(np.sum(eigs)))))
+    eigs = eigs_csr(product.data,
+                    isherm=product.isherm, vecs=False, sparse=sparse, tol=tol)
+    # np.maximum() is to avoid nan appearing sometimes due to numerical
+    # instabilities causing np.sum(eigs) slightly (~1e-8) larger than 1 when
+    # hellinger_dist(A, B) is called for A=B
+    return np.sqrt(2.0 * np.maximum(0, 1 - np.real(np.sum(eigs))))
 
 
 def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
@@ -403,15 +380,15 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
     #     || A B⁺ - I ||_♢ = max_{i, j} | \lambda_i(A B⁺) - \lambda_j(A B⁺) |,
     # where \lambda_i(U) is the ith eigenvalue of U.
 
+    # There's a lot of conditions to check for this path.  Only check if they
+    # aren't superoperators.  The difference of unitaries optimization is
+    # currently only implemented for d == 2. Much of the code below is more
+    # general, though, in anticipation of generalizing the optimization.
     if (
-        # There's a lot of conditions to check for this path.
-        not force_solve and B is not None and
-        # Only check if they aren't superoperators.
-        A.type == "oper" and B.type == "oper" and
-        # The difference of unitaries optimization is currently
-        # only implemented for d == 2. Much of the code below is more general,
-        # though, in anticipation of generalizing the optimization.
-        A.shape[0] == 2
+        not force_solve
+        and B is not None
+        and A.isoper and B.isoper
+        and A.shape[0] == 2
     ):
         # Make an identity the same size as A and B to
         # compare against.
@@ -438,7 +415,7 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
 
     # Force the input superoperator to be a Choi matrix.
     J = to_choi(A)
-    
+
     if B is not None:
         J -= to_choi(B)
 
@@ -447,7 +424,7 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
     # of the dual map of Lambda. We can evaluate that norm much more
     # easily if Lambda is completely positive, since then the largest
     # eigenvalue is the same as the largest singular value.
-    
+
     if not force_solve and J.iscp:
         S_dual = to_super(J.dual_chan())
         vec_eye = operator_to_vector(qeye(S_dual.dims[1][1]))
@@ -455,27 +432,27 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
         # The 2-norm was not implemented for sparse matrices as of the time
         # of this writing. Thus, we must yet again go dense.
         return la.norm(op.data.todense(), 2)
-    
+
     # If we're still here, we need to actually solve the problem.
 
     # Assume square...
     dim = np.prod(J.dims[0][0])
-    
+
     # The constraints only depend on the dimension, so
     # we can cache them efficiently.
-    problem, Jr, Ji, X, rho0, rho1 = dnorm_problem(dim)
-    
+    problem, Jr, Ji, *_ = dnorm_problem(dim)
+
     # Load the parameters with the Choi matrix passed in.
     J_dat = J.data
-    
-    Jr.value = sp.csr_matrix((J_dat.data.real, J_dat.indices, J_dat.indptr), 
+
+    Jr.value = sp.csr_matrix((J_dat.data.real, J_dat.indices, J_dat.indptr),
                              shape=J_dat.shape)
-   
+
     Ji.value = sp.csr_matrix((J_dat.data.imag, J_dat.indices, J_dat.indptr),
                              shape=J_dat.shape)
     # Finally, set up and run the problem.
     problem.solve(solver=solver, verbose=verbose)
-    
+
     return problem.value
 
 
@@ -494,6 +471,5 @@ def unitarity(oper):
     u : float
         Unitarity of ``oper``.
     """
-    Eu = _super_to_superpauli(oper).full()[1:, 1:]
-    #return np.real(np.trace(np.dot(Eu, Eu.conj().T))) / len(Eu)
+    Eu = _to_superpauli(oper).full()[1:, 1:]
     return np.linalg.norm(Eu, 'fro')**2 / len(Eu)

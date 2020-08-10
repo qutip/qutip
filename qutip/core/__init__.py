@@ -1,5 +1,4 @@
 from .interpolate import *
-from .sparse import *
 from .qobj import *
 from .qobjevo import *
 from .expect import *
@@ -9,6 +8,4 @@ from .operators import *
 from .metrics import *
 from .superoperator import *
 from .superop_reps import *
-from .eseries import *
-from .graph import *
 from .subsystem_apply import *

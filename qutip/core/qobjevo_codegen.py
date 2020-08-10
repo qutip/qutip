@@ -167,7 +167,6 @@ np.import_array()
 cdef extern from "numpy/arrayobject.h" nogil:
     void PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
     void PyArray_ENABLEFLAGS(np.ndarray arr, int flags)
-from qutip.core.cy.spmatfuncs cimport spmvpy
 from qutip.core.cy.inter cimport _spline_complex_t_second, _spline_complex_cte_second
 from qutip.core.cy.inter cimport _spline_float_t_second, _spline_float_cte_second
 from qutip.core.cy.inter cimport _step_float_cte, _step_complex_cte
@@ -189,7 +188,7 @@ cdef double pi = 3.14159265358979323
             compile_list.append(op.coeff)
 
         elif op.type == "array":
-            spline, dt_cte = _prep_cubic_spline(op[2], tlist)
+            spline, dt_cte = _prep_cubic_spline(op.coeff, tlist)
             t_str = "_tlist"
             y_str = "_array_" + str(N_np)
             s_str = "_spline_" + str(N_np)
@@ -240,7 +239,7 @@ cdef double pi = 3.14159265358979323
 
         elif op.type == "spline":
             y_str = "_array_" + str(N_np)
-            if op[1].is_complex:
+            if op.get_coeff.is_complex:
                 string = "zinterp(t, _CSstart, _CSend, " + y_str + ")"
             else:
                 string = "interp(t, _CSstart, _CSend, " + y_str + ")"
@@ -267,11 +266,11 @@ cdef double pi = 3.14159265358979323
                 isinstance(value[0], (complex, np.complex128)):
             code += "    cdef complex[::1] " + name + "\n"
         elif isinstance(value, (complex, np.complex128)):
-            code += "    cdef complex " + name + "\n"
+            code += "    cdef public complex " + name + "\n"
         elif np.isscalar(value):
-            code += "    cdef double " + name + "\n"
+            code += "    cdef public double " + name + "\n"
         else:
-            code += "    cdef object " + name + "\n"
+            code += "    cdef public object " + name + "\n"
 
     code += "\n"
     if normal_args:
@@ -336,7 +335,7 @@ code_python_pre = """
 import numpy as np
 import scipy.special as spe
 import scipy
-from qutip.core.qobjevo import _UnitedFuncCaller
+from qutip.core.qobjevo import _UnitedFuncCaller, _dynamic_argument
 
 def proj(x):
     if np.isfinite(x):
@@ -375,6 +374,7 @@ class _UnitedStrCaller(_UnitedFuncCaller):
         self.funclist = funclist
         self.args = args
         self.dynamics_args = dynamics_args
+        self.issuper = cte.issuper
         self.dims = cte.dims
         self.shape = cte.shape
 
@@ -383,25 +383,8 @@ class _UnitedStrCaller(_UnitedFuncCaller):
         self.dynamics_args = dynamics_args
 
     def dyn_args(self, t, state, shape):
-        # 1d array are to F ordered
-        mat = state.reshape(shape, order="F")
-        for name, what, op in self.dynamics_args:
-            if what == "vec":
-                self.args[name] = state
-            elif what == "mat":
-                self.args[name] = mat
-            elif what == "Qobj":
-                if self.shape[1] == shape[1]:  # oper
-                    self.args[name] = Qobj(mat, dims=self.dims)
-                elif shape[1] == 1:
-                    self.args[name] = Qobj(mat, dims=[self.dims[1],[1]])
-                else:  # rho
-                    self.args[name] = Qobj(mat, dims=self.dims[1])
-            elif what == "expect":  # ket
-                if shape[1] == op.cte.shape[1]: # same shape as object
-                    self.args[name] = op.mul_mat(t, mat).trace()
-                else:
-                    self.args[name] = op.expect(t, state)
+        for name, what, e_op in self.dynamics_args:
+            self.args[name] = _dynamic_argument(t, self, state, what, e_op)
 
     def __call__(self, t, args={}):
         if args:

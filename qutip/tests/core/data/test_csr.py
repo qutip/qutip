@@ -17,8 +17,8 @@ _dtype_uint = ['uint32']
 # Set up some fixtures for automatic parametrisation.
 
 @pytest.fixture(params=[
-    pytest.param((1, 5), id='ket'),
-    pytest.param((5, 1), id='bra'),
+    pytest.param((1, 5), id='bra'),
+    pytest.param((5, 1), id='ket'),
     pytest.param((5, 5), id='square'),
     pytest.param((2, 4), id='wide'),
     pytest.param((4, 2), id='tall'),
@@ -197,6 +197,14 @@ class TestClassMethods:
         assert isinstance(data_csr.as_scipy(), scipy.sparse.csr_matrix)
         assert (data_csr.as_scipy() - scipy_csr).nnz == 0
 
+    def test_as_scipy_of_uninitialised_is_empty(self, shape, density):
+        nnz = int(shape[0] * shape[1] * density) or 1
+        base = csr.empty(shape[0], shape[1], nnz)
+        sci = base.as_scipy()
+        assert sci.nnz == 0
+        assert len(sci.data) == 0
+        assert len(sci.indices) == 0
+
     def test_to_array_is_correct_result(self, data_csr):
         test_array = data_csr.to_array()
         assert isinstance(test_array, np.ndarray)
@@ -204,13 +212,31 @@ class TestClassMethods:
         # mathematics, so they should be _identical_.
         assert np.all(test_array == data_csr.as_scipy().toarray())
 
+    def test_sorted_indices(self, data_csr):
+        # Some matrices _cannot_ be unsorted (e.g. if they have only one entry
+        # per row), so we add in this additional assertion message just to help
+        # out.
+        message = (
+            "Sort on {}sorted indices failed."
+            .format("" if data_csr.as_scipy().has_sorted_indices else "un")
+        )
+        # We test on a copy because scipy attempts to cache
+        # `has_sorted_indices`, but since it's a view, it has no idea what
+        # we've done to the indices behind the scenes and typically would not
+        # notice the change.  The copy will return a difference scipy matrix,
+        # so the cache will not be built.
+        copy = data_csr.copy()
+        copy.sort_indices()
+        assert copy.as_scipy().has_sorted_indices, message
+
 
 class TestFactoryMethods:
     def test_empty(self, shape, density):
         nnz = int(shape[0] * shape[1] * density) or 1
         base = csr.empty(shape[0], shape[1], nnz)
-        sci = base.as_scipy()
+        sci = base.as_scipy(full=True)
         assert isinstance(base, data.CSR)
+        assert isinstance(sci, scipy.sparse.csr_matrix)
         assert base.shape == shape
         assert sci.data.shape == (nnz,)
         assert sci.indices.shape == (nnz,)
@@ -243,19 +269,3 @@ class TestFactoryMethods:
         assert base.shape == (dimension, dimension)
         assert sci.nnz == dimension
         assert (sci - scipy_test).nnz == 0
-
-
-def test_sorted_indices(data_csr):
-    # Some matrices _cannot_ be unsorted (e.g. if they have only one entry per
-    # row), so we add in this additional assertion message just to help out.
-    message = (
-        "Sort on {}sorted indices failed."
-        .format("" if data_csr.as_scipy().has_sorted_indices else "un")
-    )
-    # We test on a copy because scipy attempts to cache `has_sorted_indices`,
-    # but since it's a view, it has no idea what we've done to the indices
-    # behind the scenes and typically would not notice the change.  The copy
-    # will return a difference scipy matrix, so the cache will not be built.
-    copy = data_csr.copy()
-    csr.sort_indices(copy)
-    assert copy.as_scipy().has_sorted_indices, message

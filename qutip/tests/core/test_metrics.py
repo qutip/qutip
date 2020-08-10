@@ -46,7 +46,7 @@ from numpy.testing import (
 )
 from numpy.random import rand
 
-from qutip.propagator import propagator
+from qutip.solve.propagator import propagator
 from qutip.random_objects import (
     rand_herm, rand_dm, rand_unitary, rand_ket, rand_super_bcsz,
     rand_ket_haar, rand_dm_ginibre, rand_unitary_haar
@@ -201,7 +201,7 @@ def test_fidelity_overlap():
 
         assert_almost_equal(
             fidelity(psi, phi),
-            np.abs((psi.dag() * phi)[0, 0])
+            np.abs(psi.dag() * phi)
         )
 
 def test_tracedist1():
@@ -365,13 +365,13 @@ def test_unitarity_known():
     def case(q_oper, known_unitarity):
         assert_almost_equal(unitarity(q_oper), known_unitarity)
 
-    yield case, to_super(sigmax()), 1.0
-    yield case, sum(map(
+    case(to_super(sigmax()), 1.0)
+    case(sum(map(
         to_super, [qeye(2), sigmax(), sigmay(), sigmaz()]
-    )) / 4, 0.0
-    yield case, sum(map(
+    )) / 4, 0.0)
+    case(sum(map(
         to_super, [qeye(2), sigmax()]
-    )) / 2, 1 / 3.0
+    )) / 2, 1 / 3.0)
 
 def test_unitarity_bounded(nq=3, n_cases=10):
     """
@@ -381,7 +381,7 @@ def test_unitarity_bounded(nq=3, n_cases=10):
         assert_(0.0 <= unitarity(q_oper) <= 1.0)
 
     for _ in range(n_cases):
-        yield case, rand_super_bcsz(2**nq)
+        case(rand_super_bcsz(2**nq))
 
 
 @dnorm_test

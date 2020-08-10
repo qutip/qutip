@@ -43,17 +43,16 @@ __all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
            'enr_identity', 'charge', 'tunneling']
 
 import numbers
-import numpy as np
-import scipy
-import scipy.sparse as sp
-from .qobj import Qobj
-from .fastsparse import fast_csr_matrix, fast_identity
-from .tensor import flatten
 
-#
-# Spin operators
-#
-def jmat(j, *args):
+import numpy as np
+import scipy.sparse
+
+from . import data as _data
+from .qobj import Qobj
+from .dimensions import flatten
+
+
+def jmat(j, which=None):
     """Higher-order spin operators:
 
     Parameters
@@ -61,13 +60,13 @@ def jmat(j, *args):
     j : float
         Spin of operator
 
-    args : str
+    which : str
         Which operator to return 'x','y','z','+','-'.
         If no args given, then output is ['x','y','z']
 
     Returns
     -------
-    jmat : qobj / ndarray
+    jmat : Qobj or tuple of Qobj
         ``qobj`` for requested spin operator(s).
 
 
@@ -99,26 +98,31 @@ shape = [3, 3], type = oper, isHerm = True
     If no 'args' input, then returns array of ['x','y','z'] operators.
 
     """
-    if (np.fix(2 * j) != 2 * j) or (j < 0):
-        raise TypeError('j must be a non-negative integer or half-integer')
+    if int(2 * j) != 2 * j or j < 0:
+        raise ValueError('j must be a non-negative integer or half-integer')
 
-    if not args:
+    if not which:
         return jmat(j, 'x'), jmat(j, 'y'), jmat(j, 'z')
 
-    if args[0] == '+':
-        A = _jplus(j)
-    elif args[0] == '-':
-        A = _jplus(j).getH()
-    elif args[0] == 'x':
-        A = 0.5 * (_jplus(j) + _jplus(j).getH())
-    elif args[0] == 'y':
-        A = -0.5 * 1j * (_jplus(j) - _jplus(j).getH())
-    elif args[0] == 'z':
-        A = _jz(j)
-    else:
-        raise TypeError('Invalid type')
-
-    return Qobj(A)
+    dims = [[int(2*j + 1)]]*2
+    if which == '+':
+        return Qobj(_jplus(j), dims=dims, type='oper',
+                    isherm=False, isunitary=False, copy=False)
+    if which == '-':
+        return Qobj(_jplus(j).adjoint(), dims=dims, type='oper',
+                    isherm=False, isunitary=False, copy=False)
+    if which == 'x':
+        A = 0.5 * _jplus(j)
+        return Qobj(A + A.adjoint(), dims=dims, type='oper',
+                    isherm=True, isunitary=False, copy=False)
+    if which == 'y':
+        A = -0.5j * _jplus(j)
+        return Qobj(A + A.adjoint(), dims=dims, type='oper',
+                    isherm=True, isunitary=False, copy=False)
+    if which == 'z':
+        return Qobj(_jz(j), dims=dims, type='oper',
+                    isherm=True, isunitary=False, copy=False)
+    raise ValueError('invalid spin operator: ' + which)
 
 
 def _jplus(j):
@@ -127,32 +131,32 @@ def _jplus(j):
     operator.
     """
     m = np.arange(j, -j - 1, -1, dtype=complex)
-    data = (np.sqrt(j * (j + 1.0) - (m + 1.0) * m))[1:]
+    data = np.sqrt(j * (j + 1) - m * (m + 1))[1:]
     N = m.shape[0]
     ind = np.arange(1, N, dtype=np.int32)
-    ptr = np.array(list(range(N-1))+[N-1]*2, dtype=np.int32)
+    ptr = np.arange(N + 1, dtype=np.int32)
     ptr[-1] = N-1
-    return fast_csr_matrix((data,ind,ptr), shape=(N,N))
+    return _data.csr.CSR((data, ind, ptr), shape=(N, N))
 
 
 def _jz(j):
     """
     Internal functions for generating the data representing the J-z operator.
     """
-    N = int(2*j+1)
-    data = np.array([j-k for k in range(N) if (j-k)!=0], dtype=complex)
+    N = int(2*j + 1)
+    data = np.array([j-k for k in range(N) if j != k], dtype=complex)
     # Even shaped matrix
-    if (N % 2 == 0):
+    if N % 2 == 0:
         ind = np.arange(N, dtype=np.int32)
-        ptr = np.arange(N+1,dtype=np.int32)
-        ptr[-1] = N
+        ptr = np.arange(N+1, dtype=np.int32)
     # Odd shaped matrix
     else:
         j = int(j)
-        ind = np.array(list(range(j))+list(range(j+1,N)), dtype=np.int32)
-        ptr = np.array(list(range(j+1))+list(range(j,N)), dtype=np.int32)
-        ptr[-1] = N-1
-    return fast_csr_matrix((data,ind,ptr), shape=(N,N))
+        ind = np.concatenate((np.arange(j, dtype=np.int32),
+                              np.arange(j + 1, N, dtype=np.int32)))
+        ptr = np.concatenate((np.arange(j + 1, dtype=np.int32),
+                              np.arange(j, N, dtype=np.int32)))
+    return _data.csr.CSR((data, ind, ptr), shape=(N, N))
 
 
 #
@@ -260,9 +264,18 @@ def spin_J_set(j):
     return jmat(j)
 
 
+# Pauli spin-1/2 operators.
 #
-# Pauli spin 1/2 operators:
-#
+# These are so common in quantum information that we want them to be
+# near-instantaneous to initialise, so we cache them at package import, and
+# just return copies when someone requests one.
+_SIGMAP = jmat(0.5, '+')
+_SIGMAM = jmat(0.5, '-')
+_SIGMAX = 2 * jmat(0.5, 'x')
+_SIGMAY = 2 * jmat(0.5, 'y')
+_SIGMAZ = 2 * jmat(0.5, 'z')
+
+
 def sigmap():
     """Creation operator for Pauli spins.
 
@@ -276,7 +289,7 @@ shape = [2, 2], type = oper, isHerm = False
      [ 0.  0.]]
 
     """
-    return jmat(1 / 2., '+')
+    return _SIGMAP.copy()
 
 
 def sigmam():
@@ -292,7 +305,7 @@ shape = [2, 2], type = oper, isHerm = False
      [ 1.  0.]]
 
     """
-    return jmat(1 / 2., '-')
+    return _SIGMAM.copy()
 
 
 def sigmax():
@@ -308,7 +321,7 @@ shape = [2, 2], type = oper, isHerm = False
      [ 1.  0.]]
 
     """
-    return 2.0 * jmat(1.0 / 2, 'x')
+    return _SIGMAX.copy()
 
 
 def sigmay():
@@ -324,7 +337,7 @@ shape = [2, 2], type = oper, isHerm = True
      [ 0.+1.j  0.+0.j]]
 
     """
-    return 2.0 * jmat(1.0 / 2, 'y')
+    return _SIGMAY.copy()
 
 
 def sigmaz():
@@ -340,15 +353,12 @@ shape = [2, 2], type = oper, isHerm = True
      [ 0. -1.]]
 
     """
-    return 2.0 * jmat(1.0 / 2, 'z')
+    return _SIGMAZ.copy()
 
 
-#
-# DESTROY returns annihilation operator for N dimensional Hilbert space
-# out = destroy(N), N is integer value &  N>0
-#
 def destroy(N, offset=0):
-    '''Destruction (lowering) operator.
+    """
+    Destruction (lowering) operator.
 
     Parameters
     ----------
@@ -367,30 +377,30 @@ def destroy(N, offset=0):
     Examples
     --------
     >>> destroy(4)
-    Quantum object: dims = [[4], [4]], \
-shape = [4, 4], type = oper, isHerm = False
+    Quantum object: dims=[[4], [4]], shape=(4, 4), type='oper', isherm=False
     Qobj data =
     [[ 0.00000000+0.j  1.00000000+0.j  0.00000000+0.j  0.00000000+0.j]
      [ 0.00000000+0.j  0.00000000+0.j  1.41421356+0.j  0.00000000+0.j]
      [ 0.00000000+0.j  0.00000000+0.j  0.00000000+0.j  1.73205081+0.j]
      [ 0.00000000+0.j  0.00000000+0.j  0.00000000+0.j  0.00000000+0.j]]
-
-    '''
+    """
     if not isinstance(N, (int, np.integer)):  # raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
     data = np.sqrt(np.arange(offset+1, N+offset, dtype=complex))
-    ind = np.arange(1,N, dtype=np.int32)
+    ind = np.arange(1, N, dtype=np.int32)
     ptr = np.arange(N+1, dtype=np.int32)
     ptr[-1] = N-1
-    return Qobj(fast_csr_matrix((data,ind,ptr),shape=(N,N)), isherm=False)
+    return Qobj(_data.csr.CSR((data, ind, ptr), shape=(N, N)),
+                dims=[[N], [N]],
+                type='oper',
+                isherm=False,
+                isunitary=False,
+                copy=False)
 
 
-#
-# create returns creation operator for N dimensional Hilbert space
-# out = create(N), N is integer value &  N>0
-#
 def create(N, offset=0):
-    '''Creation (raising) operator.
+    """
+    Creation (raising) operator.
 
     Parameters
     ----------
@@ -409,19 +419,14 @@ def create(N, offset=0):
     Examples
     --------
     >>> create(4)
-    Quantum object: dims = [[4], [4]], \
-shape = [4, 4], type = oper, isHerm = False
+    Quantum object: dims=[[4], [4]], shape=(4, 4), type='oper', isherm=False
     Qobj data =
     [[ 0.00000000+0.j  0.00000000+0.j  0.00000000+0.j  0.00000000+0.j]
      [ 1.00000000+0.j  0.00000000+0.j  0.00000000+0.j  0.00000000+0.j]
      [ 0.00000000+0.j  1.41421356+0.j  0.00000000+0.j  0.00000000+0.j]
      [ 0.00000000+0.j  0.00000000+0.j  1.73205081+0.j  0.00000000+0.j]]
-
-    '''
-    if not isinstance(N, (int, np.integer)):  # raise error if N not integer
-        raise ValueError("Hilbert space dimension must be integer value")
-    qo = destroy(N, offset=offset)  # create operator using destroy function
-    return qo.dag()
+    """
+    return destroy(N, offset=offset).dag()
 
 
 def _implicit_tensor_dimensions(dimensions):
@@ -473,14 +478,11 @@ def qzero(dimensions):
     """
     size, dimensions = _implicit_tensor_dimensions(dimensions)
     # A sparse matrix with no data is equal to a zero matrix.
-    return Qobj(fast_csr_matrix(shape=(size, size), dtype=complex),
-                dims=dimensions, isherm=True)
+    type_ = 'super' if isinstance(dimensions[0][0], list) else 'oper'
+    return Qobj(_data.csr.zeros(size, size), dims=dimensions, type=type_,
+                isherm=True, isunitary=False, copy=False)
 
 
-#
-# QEYE returns identity operator for a Hilbert space with dimensions dims.
-# a = qeye(N), N is integer or list of integers & all elements >= 0
-#
 def qeye(dimensions):
     """
     Identity operator.
@@ -518,27 +520,13 @@ isherm = True
 
     """
     size, dimensions = _implicit_tensor_dimensions(dimensions)
-    return Qobj(fast_identity(size),
-                dims=dimensions, isherm=True, isunitary=True)
+    type_ = 'super' if isinstance(dimensions[0][0], list) else 'oper'
+    return Qobj(_data.csr.identity(size), dims=dimensions, type=type_,
+                isherm=True, isunitary=True, copy=False)
 
 
-def identity(dims):
-    """Identity operator. Alternative name to :func:`qeye`.
-
-    Parameters
-    ----------
-    dimensions : (int) or (list of int) or (list of list of int)
-        Dimension of Hilbert space. If provided as a list of ints, then the
-        dimension is the product over this list, but the ``dims`` property of
-        the new Qobj are set to this list.  This can produce either `oper` or
-        `super` depending on the passed `dimensions`.
-
-    Returns
-    -------
-    oper : qobj
-        Identity operator Qobj.
-    """
-    return qeye(dims)
+# Name alias.
+identity = qeye
 
 
 def position(N, offset=0):
@@ -560,7 +548,7 @@ def position(N, offset=0):
         Position operator as Qobj.
     """
     a = destroy(N, offset=offset)
-    return 1.0 / np.sqrt(2.0) * (a + a.dag())
+    return np.sqrt(0.5) * (a + a.dag())
 
 
 def momentum(N, offset=0):
@@ -582,11 +570,12 @@ def momentum(N, offset=0):
         Momentum operator as Qobj.
     """
     a = destroy(N, offset=offset)
-    return -1j / np.sqrt(2.0) * (a - a.dag())
+    return -1j * np.sqrt(0.5) * (a - a.dag())
 
 
 def num(N, offset=0):
-    """Quantum object for number operator.
+    """
+    Quantum object for number operator.
 
     Parameters
     ----------
@@ -605,32 +594,33 @@ def num(N, offset=0):
     Examples
     --------
     >>> num(4)
-    Quantum object: dims = [[4], [4]], \
-shape = [4, 4], type = oper, isHerm = True
+    Quantum object: dims=[[4], [4]], shape=(4, 4), type='oper', isherm=True
     Qobj data =
     [[0 0 0 0]
      [0 1 0 0]
      [0 0 2 0]
      [0 0 0 3]]
-
     """
     if offset == 0:
-        data = np.arange(1,N, dtype=complex)
-        ind = np.arange(1,N, dtype=np.int32)
-        ptr = np.array([0]+list(range(0,N)), dtype=np.int32)
-        ptr[-1] = N-1
+        data = np.arange(1, N, dtype=complex)
+        ind = np.arange(1, N, dtype=np.int32)
+        ptr = np.arange(-1, N, dtype=np.int32)
+        ptr[0] = 0
     else:
         data = np.arange(offset, offset + N, dtype=complex)
         ind = np.arange(N, dtype=np.int32)
-        ptr = np.arange(N+1,dtype=np.int32)
-        ptr[-1] = N
+        ptr = np.arange(N+1, dtype=np.int32)
 
-    return Qobj(fast_csr_matrix((data,ind,ptr), shape=(N,N)), isherm=True)
+    return Qobj(_data.CSR((data, ind, ptr), shape=(N, N)),
+                dims=[[N], [N]],
+                type='oper',
+                isherm=True,
+                isunitary=False,
+                copy=False)
 
 
 def squeeze(N, z, offset=0):
-    """Single-mode Squeezing operator.
-
+    """Single-mode squeezing operator.
 
     Parameters
     ----------
@@ -662,8 +652,8 @@ shape = [4, 4], type = oper, isHerm = False
      [ 0.00000000+0.j -0.30142443+0.j  0.00000000+0.j  0.95349007+0.j]]
 
     """
-    a = destroy(N, offset=offset)
-    op = (1 / 2.0) * np.conj(z) * (a ** 2) - (1 / 2.0) * z * (a.dag()) ** 2
+    asq = destroy(N, offset=offset) ** 2
+    op = 0.5*np.conj(z)*asq - 0.5*z*asq.dag()
     return op.expm()
 
 
@@ -692,7 +682,7 @@ def squeezing(a1, a2, z):
         Squeezing operator.
 
     """
-    b = 0.5 * (np.conj(z) * (a1 * a2) - z * (a1.dag() * a2.dag()))
+    b = 0.5 * (np.conj(z)*(a1 @ a2) - z*(a1.dag() @ a2.dag()))
     return b.expm()
 
 
@@ -729,8 +719,7 @@ shape = [4, 4], type = oper, isHerm = False
 
     """
     a = destroy(N, offset=offset)
-    D = (alpha * a.dag() - np.conj(alpha) * a).expm()
-    return D
+    return (alpha * a.dag() - np.conj(alpha) * a).expm()
 
 
 def commutator(A, B, kind="normal"):
@@ -739,10 +728,10 @@ def commutator(A, B, kind="normal"):
     two operators A and B.
     """
     if kind == 'normal':
-        return A * B - B * A
+        return A @ B - B @ A
 
     elif kind == 'anti':
-        return A * B + B * A
+        return A @ B + B @ A
 
     else:
         raise TypeError("Unknown commutator kind '%s'" % kind)
@@ -812,12 +801,9 @@ shape = [4, 4], type = oper, isherm = False
      [ 0.          0.          0.          0.        ]]
 
     """
-    data = sp.diags(diagonals, offsets, shape, format='csr', dtype=complex)
-    if not dims:
-        dims = [[], []]
-    if not shape:
-        shape = []
-    return Qobj(data, dims, list(shape))
+    data = scipy.sparse.diags(diagonals, offsets, shape,
+                              format='csr', dtype=np.complex128)
+    return Qobj(data, dims=dims, type='oper', copy=False)
 
 
 def phase(N, phi0=0):
@@ -841,12 +827,12 @@ def phase(N, phi0=0):
     The Pegg-Barnett phase operator is Hermitian on a truncated Hilbert space.
 
     """
-    phim = phi0 + (2.0 * np.pi * np.arange(N)) / N  # discrete phase angles
-    n = np.arange(N).reshape((N, 1))
-    states = np.array([np.sqrt(kk) / np.sqrt(N) * np.exp(1.0j * n * kk)
+    phim = phi0 + (2 * np.pi * np.arange(N)) / N  # discrete phase angles
+    n = np.arange(N)[:, np.newaxis]
+    states = np.array([np.sqrt(kk) / np.sqrt(N) * np.exp(1j * n * kk)
                        for kk in phim])
-    ops = np.array([np.outer(st, st.conj()) for st in states])
-    return Qobj(np.sum(ops, axis=0))
+    ops = np.sum([np.outer(st, st.conj()) for st in states], axis=0)
+    return Qobj(ops, dims=[[N], [N]], type='oper', copy=False)
 
 
 def enr_destroy(dims, excitations):
@@ -892,10 +878,10 @@ def enr_destroy(dims, excitations):
     """
     from .states import enr_state_dictionaries
 
-    nstates, state2idx, idx2state = enr_state_dictionaries(dims, excitations)
+    nstates, _, idx2state = enr_state_dictionaries(dims, excitations)
 
-    a_ops = [sp.lil_matrix((nstates, nstates), dtype=np.complex)
-             for _ in range(len(dims))]
+    a_ops = [scipy.sparse.lil_matrix((nstates, nstates), dtype=np.complex128)
+             for _ in dims]
 
     for n1, state1 in idx2state.items():
         for n2, state2 in idx2state.items():
@@ -903,7 +889,7 @@ def enr_destroy(dims, excitations):
                 s1 = [s for idx2, s in enumerate(state1) if idx != idx2]
                 s2 = [s for idx2, s in enumerate(state2) if idx != idx2]
                 if (state1[idx] == state2[idx] - 1) and (s1 == s2):
-                    a_ops[idx][n1, n2] = np.sqrt(state2[idx])
+                    a[n1, n2] = np.sqrt(state2[idx])
 
     return [Qobj(a, dims=[dims, dims]) for a in a_ops]
 
@@ -937,12 +923,15 @@ def enr_identity(dims, excitations):
     from .states import enr_state_dictionaries
 
     nstates, _, _ = enr_state_dictionaries(dims, excitations)
-    data = sp.eye(nstates, nstates, dtype=np.complex)
-    return Qobj(data, dims=[dims, dims])
+    return Qobj(_data.csr.identity(nstates),
+                dims=[dims, dims],
+                type='oper',
+                isherm=True,
+                isunitary=True,
+                copy=False)
 
 
-
-def charge(Nmax, Nmin=None, frac = 1):
+def charge(Nmax, Nmin=None, frac=1):
     """
     Generate the diagonal charge operator over charge states
     from Nmin to Nmax.
@@ -970,16 +959,13 @@ def charge(Nmax, Nmin=None, frac = 1):
     """
     if Nmin is None:
         Nmin = -Nmax
-    diag = np.arange(Nmin, Nmax+1, dtype=float)
-    if frac != 1:
-        diag *= frac
-    C = sp.diags(diag, 0, format='csr', dtype=complex)
+    diag = frac * np.arange(Nmin, Nmax+1, dtype=float)
+    C = scipy.sparse.diags(diag, 0, format='csr', dtype=complex)
     return Qobj(C, isherm=True)
 
 
-
 def tunneling(N, m=1):
-    """
+    r"""
     Tunneling operator with elements of the form
     :math:`\sum |N><N+m| + |N+m><N|`.
 
@@ -1000,13 +986,6 @@ def tunneling(N, m=1):
     .. versionadded:: 3.2
 
     """
-    diags = [np.ones(N-m,dtype=int),np.ones(N-m,dtype=int)]
-    T = sp.diags(diags,[m,-m],format='csr', dtype=complex)
+    diags = [np.ones(N-m, dtype=int), np.ones(N-m, dtype=int)]
+    T = scipy.sparse.diags(diags, [m, -m], format='csr', dtype=np.complex128)
     return Qobj(T, isherm=True)
-
-
-
-# Break circular dependencies by a trailing import.
-# Note that we use a relative import here to deal with that
-# qutip.tensor is the *function* tensor, not the module.
-from .tensor import tensor

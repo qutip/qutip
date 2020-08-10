@@ -319,7 +319,7 @@ class TestIntegration:
             [0, 0, 1, (1+1j)/_r2, _r2, 0, 1, (1-1j)/_r2],
             [(1+1j)/_r2, 1, 0, 0, (1-1j)/_r2, 1, 0, _r2],
             [1, (1-1j)/_r2, 0, 0, 1, (1+1j)/_r2, _r2, 0]])
-        np.testing.assert_allclose(hamiltonian, expected_hamiltonian,
+        np.testing.assert_allclose(hamiltonian.full(), expected_hamiltonian,
                                    atol=1e-12)
 
         test_k, test_energies = lattice.get_dispersion()
@@ -331,7 +331,8 @@ class TestIntegration:
                                    atol=1e-12)
 
         for value, state in lattice.bloch_wave_functions():
-            np.testing.assert_allclose(hamiltonian*state, value*state,
+            np.testing.assert_allclose((hamiltonian*state).full(),
+                                       (value*state).full(),
                                        atol=1e-12)
 
         test_bulk_system = zip(test_energies.T,

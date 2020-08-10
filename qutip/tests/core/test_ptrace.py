@@ -30,149 +30,126 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-from numpy.testing import assert_
-from qutip import *
-from qutip.legacy.ptrace import _ptrace as _pt
 
-def test_ptrace_rand():
+import numpy as np
+import pytest
+
+import qutip
+
+
+def expected(qobj, sel):
+    if qobj.isbra or qobj.isket:
+        qobj = qobj.proj()
+    sel = sorted(sel)
+    dims = [[x for i, x in enumerate(qobj.dims[0]) if i in sel]]*2
+    new_shape = (np.prod(dims[0]),) * 2
+    out = qobj.full()
+    before, after = 1, qobj.shape[0]
+    for i, dim in enumerate(qobj.dims[0]):
+        after //= dim
+        if i in sel:
+            before = before * dim
+            continue
+        tmp_dims = (before, dim, after) * 2
+        out = np.einsum('aibcid->abcd', out.reshape(tmp_dims))
+    return qutip.Qobj(out.reshape(new_shape), dims=dims)
+
+
+def test_ptrace_rand_sparse():
     'ptrace : randomized tests, sparse'
-    for k in range(5):
-        A = tensor(rand_ket(5), rand_ket(2), rand_ket(3))
-        B = A.ptrace([1,2], True)
-        bdat,bd,bs = _pt(A, [1,2])
-        C = Qobj(bdat,dims=bd)
-        assert_(B==C)
+    for _ in range(5):
+        A = qutip.tensor(
+            qutip.rand_ket(5), qutip.rand_ket(2), qutip.rand_ket(3),
+        )
+        for sel in ([2, 1], [0, 2], [0, 1]):
+            assert A.ptrace(sel) == expected(A, sel)
 
-        B = A.ptrace([0,2], True)
-        bdat,bd,bs = _pt(A, [0,2])
-        C = Qobj(bdat,dims=bd)
-        assert_(B==C)
+        A = qutip.tensor(
+            qutip.rand_dm(2), qutip.thermal_dm(10, 1), qutip.rand_unitary(3),
+        )
+        for sel in ([1, 2], [0, 2], [0, 1]):
+            assert A.ptrace(sel) == expected(A, sel)
 
-        B = A.ptrace([0,1], True)
-        bdat,bd,bs = _pt(A, [0,1])
-        C = Qobj(bdat,dims=bd)
-        assert_(B==C)
+        A = qutip.tensor(
+            qutip.rand_ket(2), qutip.rand_ket(2), qutip.rand_ket(2),
+            qutip.rand_ket(2), qutip.rand_ket(2), qutip.rand_ket(2),
+        )
+        for sel in ([3, 2], [0, 2], [0, 1]):
+            assert A.ptrace(sel) == expected(A, sel)
 
-    for k in range(5):
-        A = tensor(rand_dm(2), thermal_dm(10,1), rand_unitary(3))
-        B = A.ptrace([1,2], True)
-        bdat,bd,bs = _pt(A, [1,2])
-        C = Qobj(bdat,dims=bd)
-        assert_(B==C)
-
-        B = A.ptrace([0,2], True)
-        bdat,bd,bs = _pt(A, [0,2])
-        C = Qobj(bdat,dims=bd)
-        assert_(B==C)
-
-        B = A.ptrace([0,1], True)
-        bdat,bd,bs = _pt(A, [0,1])
-        C = Qobj(bdat,dims=bd)
-        assert_(B==C)
-
-    for k in range(5):
-        A = tensor(rand_ket(2),rand_ket(2),rand_ket(2),
-                    rand_ket(2),rand_ket(2),rand_ket(2))
-        B = A.ptrace([3,2], True)
-        bdat,bd,bs = _pt(A, [3,2])
-        C = Qobj(bdat,dims=bd)
-        assert_(B==C)
-
-        B = A.ptrace([0,2], True)
-        bdat,bd,bs = _pt(A, [0,2])
-        C = Qobj(bdat,dims=bd)
-        assert_(B==C)
-
-        B = A.ptrace([0,1], True)
-        bdat,bd,bs = _pt(A, [0,1])
-        C = Qobj(bdat,dims=bd)
-        assert_(B==C)
-
-    for k in range(5):
-        A = rand_dm(64,0.5,dims=[[4,4,4],[4,4,4]])
-        B = A.ptrace([0], True)
-        bdat,bd,bs = _pt(A, [0])
-        C = Qobj(bdat,dims=bd)
-        assert_(B==C)
-
-        B = A.ptrace([1], True)
-        bdat,bd,bs = _pt(A, [1])
-        C = Qobj(bdat,dims=bd)
-        assert_(B==C)
-
-        B = A.ptrace([0,2], True)
-        bdat,bd,bs = _pt(A, [0,2])
-        C = Qobj(bdat,dims=bd)
-        assert_(B==C)
+        A = qutip.rand_dm(64, 0.5, dims=[[4, 4, 4], [4, 4, 4]])
+        for sel in ([0], [1], [0, 2]):
+            assert A.ptrace(sel) == expected(A, sel)
 
 
-def test_ptrace_rand():
+@pytest.mark.skip(reason="dense data layer not yet implemented")
+def test_ptrace_rand_dense():
     'ptrace : randomized tests, dense'
     for k in range(5):
         A = tensor(rand_ket(5), rand_ket(2), rand_ket(3))
-        B = A.ptrace([1,2], False)
-        bdat,bd,bs = _pt(A, [1,2])
-        C = Qobj(bdat,dims=bd)
-        assert_(B==C)
+        B = A.ptrace([1, 2], False)
+        bdat, bd, _ = _pt(A, [1, 2])
+        C = Qobj(bdat, dims=bd)
+        assert B == C
 
-        B = A.ptrace([0,2], False)
-        bdat,bd,bs = _pt(A, [0,2])
-        C = Qobj(bdat,dims=bd)
-        assert_(B==C)
+        B = A.ptrace([0, 2], False)
+        bdat, bd, _ = _pt(A, [0, 2])
+        C = Qobj(bdat, dims=bd)
+        assert B == C
 
-        B = A.ptrace([0,1], False)
-        bdat,bd,bs = _pt(A, [0,1])
-        C = Qobj(bdat,dims=bd)
-        assert_(B==C)
-
-    for k in range(5):
-        A = tensor(rand_dm(2), thermal_dm(10,1), rand_unitary(3))
-        B = A.ptrace([1,2], False)
-        bdat,bd,bs = _pt(A, [1,2])
-        C = Qobj(bdat,dims=bd)
-        assert_(B==C)
-
-        B = A.ptrace([0,2], False)
-        bdat,bd,bs = _pt(A, [0,2])
-        C = Qobj(bdat,dims=bd)
-        assert_(B==C)
-
-        B = A.ptrace([0,1], False)
-        bdat,bd,bs = _pt(A, [0,1])
-        C = Qobj(bdat,dims=bd)
-        assert_(B==C)
+        B = A.ptrace([0, 1], False)
+        bdat, bd, _ = _pt(A, [0, 1])
+        C = Qobj(bdat, dims=bd)
+        assert B == C
 
     for k in range(5):
-        A = tensor(rand_ket(2),rand_ket(2),rand_ket(2),
-                    rand_ket(2),rand_ket(2),rand_ket(2))
-        B = A.ptrace([3,2], False)
-        bdat,bd,bs = _pt(A, [3,2])
-        C = Qobj(bdat,dims=bd)
-        assert_(B==C)
+        A = tensor(rand_dm(2), thermal_dm(10, 1), rand_unitary(3))
+        B = A.ptrace([1, 2], False)
+        bdat, bd, _ = _pt(A, [1, 2])
+        C = Qobj(bdat, dims=bd)
+        assert B == C
 
-        B = A.ptrace([0,2], False)
-        bdat,bd,bs = _pt(A, [0,2])
-        C = Qobj(bdat,dims=bd)
-        assert_(B==C)
+        B = A.ptrace([0, 2], False)
+        bdat, bd, _ = _pt(A, [0, 2])
+        C = Qobj(bdat, dims=bd)
+        assert B == C
 
-        B = A.ptrace([0,1], False)
-        bdat,bd,bs = _pt(A, [0,1])
-        C = Qobj(bdat,dims=bd)
-        assert_(B==C)
+        B = A.ptrace([0, 1], False)
+        bdat, bd, _ = _pt(A, [0, 1])
+        C = Qobj(bdat, dims=bd)
+        assert B == C
 
     for k in range(5):
-        A = rand_dm(64,0.5,dims=[[4,4,4],[4,4,4]])
+        A = tensor(rand_ket(2), rand_ket(2), rand_ket(2),
+                   rand_ket(2), rand_ket(2), rand_ket(2))
+        B = A.ptrace([3, 2], False)
+        bdat, bd, _ = _pt(A, [3, 2])
+        C = Qobj(bdat, dims=bd)
+        assert B == C
+
+        B = A.ptrace([0, 2], False)
+        bdat, bd, _ = _pt(A, [0, 2])
+        C = Qobj(bdat, dims=bd)
+        assert B == C
+
+        B = A.ptrace([0, 1], False)
+        bdat, bd, _ = _pt(A, [0, 1])
+        C = Qobj(bdat, dims=bd)
+        assert B == C
+
+    for k in range(5):
+        A = rand_dm(64, 0.5, dims=[[4, 4, 4], [4, 4, 4]])
         B = A.ptrace([0], False)
-        bdat,bd,bs = _pt(A, [0])
-        C = Qobj(bdat,dims=bd)
-        assert_(B==C)
+        bdat, bd, _ = _pt(A, [0])
+        C = Qobj(bdat, dims=bd)
+        assert B == C
 
         B = A.ptrace([1], False)
-        bdat,bd,bs = _pt(A, [1])
-        C = Qobj(bdat,dims=bd)
-        assert_(B==C)
+        bdat, bd, _ = _pt(A, [1])
+        C = Qobj(bdat, dims=bd)
+        assert B == C
 
-        B = A.ptrace([0,2], False)
-        bdat,bd,bs = _pt(A, [0,2])
-        C = Qobj(bdat,dims=bd)
-        assert_(B==C)
+        B = A.ptrace([0, 2], False)
+        bdat, bd, _ = _pt(A, [0, 2])
+        C = Qobj(bdat, dims=bd)
+        assert B == C

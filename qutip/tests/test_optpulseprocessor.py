@@ -43,7 +43,7 @@ from qutip.qip.qubits import qubit_states
 from qutip import (
     Qobj, fidelity, sigmax, sigmay, sigmaz, identity, destroy, tensor, basis,
 )
-from qutip.solver import Options
+from qutip.solve import Options
 from qutip.qip.operations.gates import cnot, gate_sequence_product, hadamard_transform
 from qutip.random_objects import rand_ket
 
@@ -79,7 +79,8 @@ class TestOptPulseProcessor:
         assert_(
             len(test.pulses) == 1,
             msg="Method of remove_pulse could be wrong.")
-        assert_allclose(test.drift.drift_hamiltonians[0].qobj, H_d)
+        assert_allclose(test.drift.drift_hamiltonians[0].qobj.full(),
+                        H_d.full())
         assert_(
             sigmay() in test.ctrls,
             msg="Method of remove_pulse could be wrong.")

@@ -698,7 +698,7 @@ class Processor(object):
         elif solver == "mcsolve":
             solver = mcsolve
 
-        evo_result = mesolve(
+        evo_result = solver(
             H=noisy_qobjevo, rho0=init_state,
             tlist=noisy_qobjevo.tlist, **kwargs)
         return evo_result

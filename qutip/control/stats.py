@@ -180,19 +180,19 @@ class Stats(object):
         try:
             self.mean_num_ctrl_amp_updates_per_iter = \
                 self.num_ctrl_amp_updates / float(self.num_iter)
-        except:
+        except Exception:
             self.mean_num_ctrl_amp_updates_per_iter = np.NaN
 
         try:
             self.mean_num_timeslot_changes_per_update = \
                 self.num_timeslot_changes / float(self.num_ctrl_amp_updates)
-        except:
+        except Exception:
             self.mean_num_timeslot_changes_per_update = np.NaN
 
         try:
             self.mean_num_ctrl_amp_changes_per_update = \
                 self.num_ctrl_amp_changes / float(self.num_ctrl_amp_updates)
-        except:
+        except Exception:
             self.mean_num_ctrl_amp_changes_per_update = np.NaN
 
     def _format_datetime(self, t, tot=0.0):

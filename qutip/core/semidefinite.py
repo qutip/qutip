@@ -35,50 +35,44 @@
 This module implements internal-use functions for semidefinite programming.
 """
 
-# Python Standard Library
-from functools import wraps
-from collections import namedtuple
+import collections
+import functools
 
-# NumPy/SciPy
 import numpy as np
 
 # Conditionally import CVXPY
 try:
     import cvxpy
-except:
+except ImportError:
     cvxpy = None
-
-Complex = namedtuple('Complex', ['re', 'im'])
 
 from .tensor import tensor_swap
 from .operators import qeye
-
 from ..logging_utils import get_logger
 logger = get_logger()
+
+Complex = collections.namedtuple('Complex', ['re', 'im'])
+
 
 def complex_var(rows=1, cols=1, name=None):
     return Complex(
         re=cvxpy.Variable((rows, cols), name=(name + "_re") if name else None),
-        im=cvxpy.Variable((rows, cols), name=(name + "_im") if name else None)
+        im=cvxpy.Variable((rows, cols), name=(name + "_im") if name else None),
     )
 
 
 def herm(*Xs):
-    return sum([
-        [X.re == X.re.T, X.im == -X.im.T]
-        for X in Xs
-    ], [])
+    return sum([[X.re == X.re.T, X.im == -X.im.T] for X in Xs], [])
 
 
 def pos_noherm(*Xs):
-    constraints =[
+    return [
         cvxpy.bmat([
             [X.re, -X.im],
             [X.im, X.re]
         ]) >> 0
         for X in Xs
     ]
-    return constraints
 
 
 def pos(*Xs):
@@ -95,8 +89,7 @@ def dens(*rhos):
 def _arr_to_complex(A):
     if np.iscomplex(A).any():
         return Complex(re=A.real, im=A.imag)
-    else:
-        return Complex(re=A, im=np.zeros_like(A))
+    return Complex(re=A, im=np.zeros_like(A))
 
 
 def kron(A, B):
@@ -110,13 +103,15 @@ def kron(A, B):
         im=(cvxpy.kron(A.im, B.re) + cvxpy.kron(A.re, B.im)),
     )
 
+
 def conj(W, A):
     U, V = W.re, W.im
     A, B = A.re, A.im
     return Complex(
-        re=(U * A * U.T - U * B * V.T - V * A * V.T - V * B * U.T),
-        im=(U * A * V.T + U * B * U.T + V * A * U.T - V * B * V.T)
+        re=(U*A*U.T - U*B*V.T - V*A*V.T - V*B*U.T),
+        im=(U*A*V.T + U*B*U.T + V*A*U.T - V*B*V.T)
     )
+
 
 def bmat(B):
     return Complex(
@@ -132,7 +127,7 @@ def dag(X):
 def memoize(fn):
     cache = {}
 
-    @wraps(fn)
+    @functools.wraps(fn)
     def memoized(*args):
         if args in cache:
             return cache[args]
@@ -149,6 +144,7 @@ def qudit_swap(dim):
     # We should likely generalize this and include it in qip.gates.
     W = qeye([dim, dim])
     return tensor_swap(W, (0, 1))
+
 
 @memoize
 def dnorm_problem(dim):
@@ -182,7 +178,7 @@ def dnorm_problem(dim):
     ])
     constraints += [Y >> 0]
 
-    logger.debug("Using {} constraints.".format(len(constraints)))
+    logger.debug("Using %d constraints.", len(constraints))
 
     Jr = cvxpy.Parameter((dim**2, dim**2))
     Ji = cvxpy.Parameter((dim**2, dim**2))
@@ -193,6 +189,4 @@ def dnorm_problem(dim):
     ))
 
     problem = cvxpy.Problem(objective, constraints)
-
     return problem, Jr, Ji, X, rho0, rho1
-

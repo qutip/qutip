@@ -16,7 +16,7 @@ as well as in the classroom.
 DOCLINES = __doc__.split('\n')
 
 CLASSIFIERS = """\
-Development Status :: 4 - Beta
+Development Status :: 2 - Pre-Alpha
 Intended Audience :: Science/Research
 License :: OSI Approved :: BSD License
 Programming Language :: Python
@@ -36,7 +36,6 @@ import sys
 try:
     from setuptools import setup, Extension
     EXTRA_KWARGS = {
-        'setup_require': ['pytest-runner'],
         'tests_require': ['pytest']
     }
 except:
@@ -46,39 +45,39 @@ except:
 
 try:
     import numpy as np
-except:
-    np = None
+except ImportError as e:
+    raise ImportError("numpy is required at installation") from e
 
 from Cython.Build import cythonize
 from Cython.Distutils import build_ext
 
 # all information about QuTiP goes here
-MAJOR = 4
-MINOR = 6
+MAJOR = 5
+MINOR = 0
 MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
-REQUIRES = ['numpy (>=1.12)', 'scipy (>=1.0)', 'cython (>=0.21)']
-EXTRAS_REQUIRE = {'graphics':['matplotlib(>=1.2.1)']}
-INSTALL_REQUIRES = ['numpy>=1.12', 'scipy>=1.0', 'cython>=0.21']
-PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy',
-            'qutip/qip', 'qutip/qip/device', 'qutip/qip/operations',
-            'qutip/qip/compiler',
-            'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov',
-            'qutip/_mkl', 'qutip/legacy',
-            'qutip/tests', 'qutip/tests/core', 'qutip/tests/core/data',
-            'qutip/core', 'qutip/core/cy', 'qutip/core/data/',
-            'qutip/core/cy/openmp', 'qutip/cy/openmp']
+REQUIRES = ['numpy (>=1.12)', 'scipy (>=1.0)', 'cython (>=0.29.20)']
+EXTRAS_REQUIRE = {'graphics': ['matplotlib(>=1.2.1)']}
+INSTALL_REQUIRES = ['numpy>=1.12', 'scipy>=1.0', 'cython>=0.29.20']
+PACKAGES = ['qutip', 'qutip/ui', 'qutip/qip', 'qutip/qip/device',
+            'qutip/qip/operations', 'qutip/qip/compiler',
+            'qutip/qip/algorithms', 'qutip/control',
+            'qutip/solve', 'qutip/solve/nonmarkov',
+            'qutip/_mkl', 'qutip/tests', 'qutip/tests/core',
+            'qutip/tests/core/data', 'qutip/core', 'qutip/core/cy',
+            'qutip/core/data/', 'qutip/core/cy/openmp']
 PACKAGE_DATA = {
     'qutip': ['configspec.ini'],
     'qutip/tests': ['*.ini'],
     'qutip/core/data': ['*.pxd', '*.pyx'],
     'qutip/core/cy': ['*.pxd', '*.pyx'],
+    'qutip/core/cy/src': ['*.hpp', '*.cpp'],
     'qutip/core/cy/openmp': ['*.pxd', '*.pyx'],
     'qutip/core/cy/openmp/src': ['*.hpp', '*.cpp'],
-    'qutip/cy': ['*.pxd', '*.pyx'],
-    'qutip/cy/openmp': ['*.pxd', '*.pyx'],
-    'qutip/cy/src': ['*.cpp', '*.hpp'],
+    'qutip/solve': ['*.pxd', '*.pyx'],
+    'qutip/solve/nonmarkov': ['*.pxd', '*.pyx'],
+    'qutip/tests/qasm_files': ['*.qasm'],
     'qutip/control': ['*.pyx'],
 }
 # If we're missing numpy, exclude import directories until we can
@@ -152,64 +151,50 @@ write_version_py()
 # Cython extensions to be compiled.  The key is the relative package name, the
 # value is a list of the Cython modules in that package.
 cy_exts = {
-    '.cy': [
-        'br_tensor',
-        'brtools',
-        'brtools_checks',
-        'checks',
-        'heom',
-        'mcsolve',
-        'piqs',
-        'stochastic',
-    ],
-    '.core.data': [
+    'core.data': [
         'add',
         'adjoint',
         'base',
         'csr',
         'dense',
         'dispatch',
+        'expect',
         'inner',
         'kron',
         'matmul',
         'mul',
+        'norm',
+        'permute',
+        'pow',
         'project',
         'properties',
+        'ptrace',
         'reshape',
         'sub',
+        'tidyup',
         'trace',
     ],
-    '.core.cy': [
+    'core.cy': [
         'cqobjevo',
         'cqobjevo_factor',
-        'graph_utils',
         'inter',
         'interpolate',
         'math',
-        'parameters',
-        'ptrace',
-        'sparse_pyobjects',
-        'sparse_routines',
-        'sparse_utils',
-        'spconvert',
-        'spmatfuncs',
-        'spmath',
     ],
-    '.control': [
+    'control': [
         'cy_grape',
     ],
-}
-
-# Cython extensions for OpenMP
-cy_exts_omp = {
-    '.core.cy.openmp': [
-        'parfuncs',
-        'benchmark',
-        'omp_sparse_utils',
-        'cqobjevo_omp',
+    'solve': [
+        '_brtensor',
+        '_brtools',
+        '_brtools_checks',
+        '_mcsolve',
+        '_piqs',
+        '_steadystate',
+        '_stochastic',
     ],
-    '.cy.openmp': [
-        'br_omp',
+    'solve.nonmarkov': [
+        '_heom',
     ],
 }
 
@@ -235,12 +220,12 @@ _include = [
     np.get_include(),
 ]
 
-# Add Cython files from qutip/cy
+# Add Cython files from qutip
 for package, files in cy_exts.items():
     for file in files:
-        _module = 'qutip' + package + '.' + file
-        _file = 'qutip' + package.replace(".", "/") + '/' + file + '.pyx'
-        _sources = [_file, 'qutip/core/cy/src/zspmv.cpp']
+        _module = 'qutip' + ('.' + package if package else '') + '.' + file
+        _file = os.path.join('qutip', *package.split("."), file + '.pyx')
+        _sources = [_file, 'qutip/core/data/src/matmul_csr_vector.cpp']
         EXT_MODULES.append(Extension(_module,
                                      sources=_sources,
                                      include_dirs=_include,
@@ -249,36 +234,16 @@ for package, files in cy_exts.items():
                                      language='c++'))
 
 
-# Add optional ext modules here
-if "--with-openmp" in sys.argv:
-    sys.argv.remove("--with-openmp")
-    if (sys.platform == 'win32'
-            and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35):
-        omp_flags = ['/openmp']
-        omp_args = []
-    else:
-        omp_flags = ['-fopenmp']
-        omp_args = omp_flags
-    _cflags = _compiler_flags + omp_flags
-    _lflags = _link_flags + omp_args
-    for package, files in cy_exts_omp.items():
-        for file in files:
-            _module = 'qutip' + package + '.' + file
-            _file = 'qutip' + package.replace(".", "/") + '/' + file + '.pyx'
-            _sources = [_file, 'qutip/core/cy/openmp/src/zspmv_openmp.cpp']
-            EXT_MODULES.append(Extension(_module,
-                                         sources=_sources,
-                                         include_dirs=_include,
-                                         extra_compile_args=_cflags,
-                                         extra_link_args=_lflags,
-                                         language='c++'))
-
-
 # Remove -Wstrict-prototypes from cflags
 import distutils.sysconfig
 cfg_vars = distutils.sysconfig.get_config_vars()
 if "CFLAGS" in cfg_vars:
     cfg_vars["CFLAGS"] = cfg_vars["CFLAGS"].replace("-Wstrict-prototypes", "")
+
+
+# TODO: reinstate proper OpenMP handling.
+if '--with-openmp' in sys.argv:
+    sys.argv.remove('--with-openmp')
 
 
 # Setup commands go here

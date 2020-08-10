@@ -34,14 +34,14 @@
 
 __all__ = ['Lattice1d', 'cell_structures']
 
-from scipy.sparse import (csr_matrix)
-from . import (Qobj, tensor, basis, qeye, isherm, sigmax, sigmay, sigmaz)
+from scipy.sparse import csr_matrix
+from . import Qobj, tensor, basis, qeye, sigmax, sigmay, sigmaz
 
 import numpy as np
 
 try:
     import matplotlib.pyplot as plt
-except:
+except ImportError:
     pass
 
 
@@ -376,8 +376,8 @@ class Lattice1d():
                 raise Exception("Hamiltonian_of_cell does not have a shape \
                             consistent with cell_num_site and cell_site_dof.")
             self._H_intra = Qobj(Hamiltonian_of_cell, dims=dim_ih, type='oper')
-        is_real = np.isreal(self._H_intra).all()
-        if not isherm(self._H_intra):
+        is_real = np.isreal(self._H_intra.full()).all()
+        if not self._H_intra.isherm:
             raise Exception("Hamiltonian_of_cell is required to be Hermitian.")
 
         nSb = self._H_intra.shape
@@ -396,7 +396,7 @@ class Lattice1d():
                 else:    # inter_hop[i] has the right shape, now confirmed,
                     inter_hop[i] = Qobj(inter_hop[i], dims=dim_ih)
                     inter_hop_sum = inter_hop_sum + inter_hop[i]
-                    is_real = is_real and np.isreal(inter_hop[i]).all()
+                    is_real = is_real and np.isreal(inter_hop[i].full()).all()
             self._H_inter_list = inter_hop    # The user input list was correct
             # we store it in _H_inter_list
             self._H_inter = Qobj(inter_hop_sum, dims=dim_ih, type='oper')
@@ -410,7 +410,7 @@ class Lattice1d():
                 inter_hop = Qobj(inter_hop, dims=dim_ih, type='oper')
             self._H_inter_list = [inter_hop]
             self._H_inter = inter_hop
-            is_real = is_real and np.isreal(inter_hop).all()
+            is_real = is_real and np.isreal(inter_hop.full()).all()
 
         elif inter_hop is None:      # inter_hop is the default None)
             # So, we set self._H_inter_list from cell_num_site and
@@ -477,12 +477,12 @@ class Lattice1d():
         if self.period_bnd_cond_x == 1 and self.num_cell > 2:
             Tdag[0][self.num_cell-1] = 1
             T[self.num_cell-1][0] = 1
-        T = Qobj(T)
-        Tdag = Qobj(Tdag)
+        T = Qobj(T, type='oper')
+        Tdag = Qobj(Tdag, type='oper')
         Hamil = tensor(D, self._H_intra) + tensor(
                 T, self._H_inter) + tensor(Tdag, self._H_inter.dag())
         dim_H = [self.lattice_tensor_config, self.lattice_tensor_config]
-        return Qobj(Hamil, dims=dim_H)
+        return Qobj(Hamil, dims=dim_H, type='oper')
 
     def basis(self, cell, site, dof_ind):
         """
@@ -539,8 +539,7 @@ class Lattice1d():
                 basis(self.num_cell, cell), basis(self.cell_num_site, site),
                 doft)
         ltc = self.lattice_tensor_config
-        vec_i = Qobj(vec_i, dims=[ltc, [1 for i, j in enumerate(ltc)]])
-        return vec_i
+        return Qobj(vec_i, dims=[ltc, [1]*len(ltc)], type='ket')
 
     def distribute_operator(self, op):
         """
@@ -589,7 +588,7 @@ class Lattice1d():
         R = np.kron(range(0, self.num_cell), np.ones(nx*ne))
         xs = np.diagflat(R)
         dim_H = [self.lattice_tensor_config, self.lattice_tensor_config]
-        return Qobj(xs, dims=dim_H)
+        return Qobj(xs, dims=dim_H, type='oper')
 
     def k(self):
         """
@@ -613,7 +612,7 @@ class Lattice1d():
                     # shifting the eigenvalues
                 else:
                     kop[row, col] = 1/(np.exp(2j * np.pi * (row - col)/L) - 1)
-        qkop = Qobj(kop)
+        qkop = Qobj(kop, type='oper')
         [kD, kV] = qkop.eigenstates()
         kop_P = np.zeros((L, L), dtype=complex)
         for eno in range(L):
@@ -622,13 +621,13 @@ class Lattice1d():
             else:
                 vl = kD[eno]
             vk = kV[eno]
-            kop_P = kop_P + vl * vk * vk.dag()
+            kop_P = kop_P + (vl * vk.proj()).full()
         kop = 2 * np.pi / L * kop_P
         nx = self.cell_num_site
         ne = self._length_for_site
         k = np.kron(kop, np.eye(nx*ne))
         dim_H = [self.lattice_tensor_config, self.lattice_tensor_config]
-        return Qobj(k, dims=dim_H)
+        return Qobj(k, dims=dim_H, type='oper')
 
     def operator_at_cells(self, op, cells):
         """
@@ -687,7 +686,7 @@ class Lattice1d():
         m = nx_units*ny_units*nS
         op_H = csr_matrix((data, (row_ind, col_ind)), [m, m], dtype=np.complex)
         dim_op = [self.lattice_tensor_config, self.lattice_tensor_config]
-        return Qobj(op_H, dims=dim_op)
+        return Qobj(op_H, dims=dim_op, type='oper')
 
     def operator_between_cells(self, op, row_cell, col_cell):
         """
@@ -735,9 +734,9 @@ class Lattice1d():
 
         T = np.zeros((self.num_cell, self.num_cell), dtype=complex)
         T[row_cell, col_cell] = 1
-        op_H = np.kron(T, op)
+        op_H = np.kron(T, op.full())
         dim_op = [self.lattice_tensor_config, self.lattice_tensor_config]
-        return Qobj(op_H, dims=dim_op)
+        return Qobj(op_H, dims=dim_op, type='oper')
 
     def plot_dispersion(self):
         """
@@ -819,8 +818,7 @@ class Lattice1d():
                 kr_dotted = np.dot(k_cos, r_cos)
                 H_int = self._H_inter_list[m]*np.exp(kr_dotted*1j)[0]
                 H_ka = H_ka + H_int + H_int.dag()
-            H_k = csr_matrix(H_ka)
-            qH_k = Qobj(H_k)
+            qH_k = Qobj(H_ka.data, type='oper')
             (vals, veks) = qH_k.eigenstates()
             val_kns[:, ks] = vals[:]
         return (knxA, val_kns)
@@ -851,7 +849,7 @@ class Lattice1d():
         if self.period_bnd_cond_x == 0:
             raise Exception("The lattice is not periodic.")
         (knxA, qH_ks, val_kns, vec_kns, vec_xs) = self._k_space_calculations()
-        dtype = [('eigen_value', '<f16'), ('eigen_vector', Qobj)]
+        dtype = [('eigen_value', np.longdouble), ('eigen_vector', Qobj)]
         values = list()
         for i in range(self.num_cell):
             for j in range(self._length_of_unit_cell):
@@ -972,16 +970,15 @@ class Lattice1d():
                 kr_dotted = np.dot(k_cos, r_cos)
                 H_int = self._H_inter_list[m]*np.exp(kr_dotted*1j)[0]
                 H_ka = H_ka + H_int + H_int.dag()
-            H_k = csr_matrix(H_ka)
-            qH_k = Qobj(H_k, dims=dim_hk)
+            qH_k = Qobj(H_ka.data, dims=dim_hk, type='oper')
             qH_ks[ks] = qH_k
             (vals, veks) = qH_k.eigenstates()
-            plane_waves = np.kron(np.exp(-1j * (kx * range(self.num_cell))),
+            plane_waves = np.kron(np.exp(-1j * (kx*np.arange(self.num_cell))),
                                   np.ones(self._length_of_unit_cell))
 
             for eig_no in range(self._length_of_unit_cell):
                 unit_cell_periodic = np.kron(
-                    np.ones(self.num_cell), veks[eig_no].dag())
+                    np.ones(self.num_cell), veks[eig_no].dag().full())
                 vec_x = np.multiply(plane_waves, unit_cell_periodic)
 
                 dim_H = [list(np.ones(len(self.lattice_tensor_config),
@@ -990,7 +987,7 @@ class Lattice1d():
                     if np.count_nonzero(vec_x) > 0:
                         vec_x = np.real(vec_x)
 
-                length_vec_x = np.sqrt((Qobj(vec_x) * Qobj(vec_x).dag())[0][0])
+                length_vec_x = np.sqrt(Qobj(vec_x).overlap(Qobj(vec_x)))
                 vec_x = vec_x / length_vec_x
                 vec_x = Qobj(vec_x, dims=dim_H)
                 vec_xs[ks*self._length_of_unit_cell+eig_no] = vec_x.dag()
@@ -999,7 +996,6 @@ class Lattice1d():
                 v0 = np.squeeze(veks[i].full(), axis=1)
                 vec_kns[ks, i, :] = v0
             val_kns[:, ks] = vals[:]
-
         return (knxA, qH_ks, val_kns, vec_kns, vec_xs)
 
     def winding_number(self):
@@ -1057,8 +1053,7 @@ class Lattice1d():
                 kr_dotted = np.dot(k_cos, r_cos)
                 H_int = self._H_inter_list[m]*np.exp(kr_dotted*1j)[0]
                 H_ka = H_ka + H_int + H_int.dag()
-            H_k = csr_matrix(H_ka)
-            qH_k = Qobj(H_k)
+            qH_k = Qobj(H_ka.data, type='oper')
             mx_k[ks] = 0.5*(qH_k*sigmax()).tr()
             my_k[ks] = 0.5*(qH_k*sigmay()).tr()
 
@@ -1118,7 +1113,7 @@ class Lattice1d():
                                 j0*self._length_for_site+j]
                 dim_site = list(np.delete(self.cell_tensor_config, [0], None))
                 dims_site = [dim_site, dim_site]
-                Hcell[i0][j0] = Qobj(Qin, dims=dims_site)
+                Hcell[i0][j0] = Qobj(Qin, dims=dims_site, type='oper')
 
         fig = plt.figure(figsize=[CNS*2, CNS*2.5])
         ax = fig.add_subplot(111, aspect='equal')
@@ -1199,7 +1194,8 @@ class Lattice1d():
         """
         dim_I = [self.cell_tensor_config, self.cell_tensor_config]
         H_inter = Qobj(np.zeros((self._length_of_unit_cell,
-                                 self._length_of_unit_cell)), dims=dim_I)
+                                 self._length_of_unit_cell)),
+                       dims=dim_I, type='oper')
         for no, inter_hop_no in enumerate(self._H_inter_list):
             H_inter = H_inter + inter_hop_no
 
@@ -1218,7 +1214,7 @@ class Lattice1d():
                                 j0*self._length_for_site+j]
                 dim_site = list(np.delete(self.cell_tensor_config, [0], None))
                 dims_site = [dim_site, dim_site]
-                Hcell[i0][j0] = Qobj(Qin, dims=dims_site)
+                Hcell[i0][j0] = Qobj(Qin, dims=dims_site, type='oper')
 
         j0 = 0
         i0 = csn-1
@@ -1308,4 +1304,4 @@ class Lattice1d():
         plt.close()
         dim_site = list(np.delete(self.cell_tensor_config, [0], None))
         dims_site = [dim_site, dim_site]
-        return Qobj(inter_T, dims=dims_site)
+        return Qobj(inter_T, dims=dims_site, type='oper')
