@@ -16,7 +16,7 @@ as well as in the classroom.
 DOCLINES = __doc__.split('\n')
 
 CLASSIFIERS = """\
-Development Status :: 4 - Beta
+Development Status :: 2 - Pre-Alpha
 Intended Audience :: Science/Research
 License :: OSI Approved :: BSD License
 Programming Language :: Python
@@ -52,8 +52,8 @@ from Cython.Build import cythonize
 from Cython.Distutils import build_ext
 
 # all information about QuTiP goes here
-MAJOR = 4
-MINOR = 6
+MAJOR = 5
+MINOR = 0
 MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
