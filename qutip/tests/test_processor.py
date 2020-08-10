@@ -41,7 +41,7 @@ from qutip import (
 )
 from qutip.qip.device.processor import Processor
 from qutip.qip.operations.gates import hadamard_transform
-from qutip.solver import Options
+from qutip.solve import Options
 from qutip.random_objects import rand_ket, rand_dm
 from qutip.qip.noise import (
     DecoherenceNoise, RandomNoise, ControlAmpNoise)

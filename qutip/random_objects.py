@@ -705,4 +705,4 @@ def _check_dims(dims, N1, N2):
 
 # TRAILING IMPORTS
 # qutip.propagator depends on rand_dm, so we need to put this import last.
-from qutip.propagator import propagator
+from qutip.solve.propagator import propagator

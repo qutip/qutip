@@ -108,10 +108,10 @@ try:
               ("(%s), requiring %s." %
                (Cython.__version__, _cython_requirement)))
     # Setup pyximport
-    from .cy import pyxbuilder as pbldr
+    from . import _pyxbuilder as pbldr
     pbldr.install(setup_args={'include_dirs': [numpy.get_include()]})
     del pbldr
-except Exception as e:
+except Exception:
     pass
 else:
     del Cython
@@ -163,6 +163,7 @@ else:
 #
 
 from .core import *
+from .solve import *
 
 # graphics
 from .bloch import *
@@ -181,24 +182,6 @@ from .partial_transpose import *
 from .continuous_variables import *
 from .distributions import *
 from .three_level_atom import *
-
-# evolution
-from .solver import *
-from .rhs_generate import *
-from .mesolve import *
-from .sesolve import *
-from .mcsolve import *
-from .stochastic import *
-from .propagator import *
-from .floquet import *
-from .bloch_redfield import *
-from .cy.br_tensor import bloch_redfield_tensor
-from .steadystate import *
-from .correlation import *
-from .countstat import *
-from .rcsolve import *
-from .nonmarkov import *
-from .scattering import *
 
 # lattice models
 from .lattice import *

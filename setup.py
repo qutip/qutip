@@ -61,9 +61,10 @@ VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 REQUIRES = ['numpy (>=1.12)', 'scipy (>=1.0)', 'cython (>=0.29.20)']
 EXTRAS_REQUIRE = {'graphics': ['matplotlib(>=1.2.1)']}
 INSTALL_REQUIRES = ['numpy>=1.12', 'scipy>=1.0', 'cython>=0.29.20']
-PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/qip', 'qutip/qip/device',
+PACKAGES = ['qutip', 'qutip/ui', 'qutip/qip', 'qutip/qip/device',
             'qutip/qip/operations', 'qutip/qip/compiler',
-            'qutip/qip/algorithms', 'qutip/control', 'qutip/nonmarkov',
+            'qutip/qip/algorithms', 'qutip/control',
+            'qutip/solve', 'qutip/solve/nonmarkov',
             'qutip/_mkl', 'qutip/tests', 'qutip/tests/core',
             'qutip/tests/core/data', 'qutip/core', 'qutip/core/cy',
             'qutip/core/data/', 'qutip/core/cy/openmp']
@@ -75,7 +76,8 @@ PACKAGE_DATA = {
     'qutip/core/cy/src': ['*.hpp', '*.cpp'],
     'qutip/core/cy/openmp': ['*.pxd', '*.pyx'],
     'qutip/core/cy/openmp/src': ['*.hpp', '*.cpp'],
-    'qutip/cy': ['*.pxd', '*.pyx'],
+    'qutip/solve': ['*.pxd', '*.pyx'],
+    'qutip/solve/nonmarkov': ['*.pxd', '*.pyx'],
     'qutip/tests/qasm_files': ['*.qasm'],
     'qutip/control': ['*.pyx'],
 }
@@ -150,15 +152,6 @@ write_version_py()
 # Cython extensions to be compiled.  The key is the relative package name, the
 # value is a list of the Cython modules in that package.
 cy_exts = {
-    'cy': [
-        'br_tensor',
-        'brtools',
-        'brtools_checks',
-        'heom',
-        'mcsolve',
-        'piqs',
-        'stochastic',
-    ],
     'core.data': [
         'add',
         'adjoint',
@@ -192,8 +185,17 @@ cy_exts = {
     'control': [
         'cy_grape',
     ],
-    '': [
+    'solve': [
+        '_brtensor',
+        '_brtools',
+        '_brtools_checks',
+        '_mcsolve',
+        '_piqs',
         '_steadystate',
+        '_stochastic',
+    ],
+    'solve.nonmarkov': [
+        '_heom',
     ],
 }
 
@@ -219,7 +221,7 @@ _include = [
     np.get_include(),
 ]
 
-# Add Cython files from qutip/cy
+# Add Cython files from qutip
 for package, files in cy_exts.items():
     for file in files:
         _module = 'qutip' + ('.' + package if package else '') + '.' + file
