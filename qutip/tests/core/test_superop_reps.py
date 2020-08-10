@@ -50,7 +50,7 @@ from qutip import (
 )
 from qutip.qip.operations.gates import swap
 
-tol = 1e-9
+tol = 1e-8
 
 
 def assert_kraus_equivalence(a, b, tol=tol):
