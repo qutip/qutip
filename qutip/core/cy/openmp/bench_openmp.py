@@ -1,7 +1,7 @@
 import numpy as np
 import qutip.settings as qset
-from .benchmark import _spmvpy, _spmvpy_openmp
 from timeit import default_timer as timer
+
 
 def _min_timer(function, *args, **kwargs):
     min_time = 1e6
@@ -20,7 +20,7 @@ def system_bench(func, dims):
     nnz_old = 0
     for N in dims:
         L = func(N).data
-        vec = rand_ket(L.shape[0],0.25).full().ravel()
+        vec = rand_ket(L.shape[0], 0.25).full().ravel()
         nnz = L.nnz
         out = np.zeros_like(vec)
         ser = _min_timer(_spmvpy, L.data, L.indices, L.indptr, vec, 1, out)
@@ -41,7 +41,7 @@ def system_bench(func, dims):
 def calculate_openmp_thresh():
     if qset.num_cpus == 1:
         return qset.openmp_thresh
-    jc_dims = np.unique(np.logspace(0.45, 1.78, 20,dtype=int))
+    jc_dims = np.unique(np.logspace(0.45, 1.78, 20, dtype=int))
     jc_result = system_bench(_jc_liouvillian, jc_dims)
 
     opto_dims = np.unique(np.logspace(0.4, 1.33, 12, dtype=int))
@@ -50,8 +50,8 @@ def calculate_openmp_thresh():
     spin_dims = np.unique(np.logspace(0.45, 1.17, 10, dtype=int))
     spin_result = system_bench(_spin_hamiltonian, spin_dims)
 
-  # Double result to be conservative
-    thresh = 2*int(max([jc_result,opto_result,spin_result]))
+    # Double result to be conservative
+    thresh = 2*int(max([jc_result, opto_result, spin_result]))
     if thresh < 0:
         thresh = np.iinfo(np.int32).max
     return thresh
@@ -59,21 +59,18 @@ def calculate_openmp_thresh():
 
 def _jc_liouvillian(N):
     from qutip.core import tensor, destroy, qeye, liouvillian
-    wc = 1.0  * 2 * np.pi  # cavity frequency
-    wa = 1.0  * 2 * np.pi  # atom frequency
-    g  = 0.05 * 2 * np.pi  # coupling strength
-    kappa = 0.005          # cavity dissipation rate
-    gamma = 0.05           # atom dissipation rate
+    wc = 2*np.pi * 1.0   # cavity frequency
+    wa = 2*np.pi * 1.0   # atom frequency
+    g = 2*np.pi * 0.05   # coupling strength
+    kappa = 0.005        # cavity dissipation rate
+    gamma = 0.05         # atom dissipation rate
     n_th_a = 1           # temperature in frequency units
     use_rwa = 0
     # operators
-    a  = tensor(destroy(N), qeye(2))
+    a = tensor(destroy(N), qeye(2))
     sm = tensor(qeye(N), destroy(2))
     # Hamiltonian
-    if use_rwa:
-        H = wc * a.dag() * a + wa * sm.dag() * sm + g * (a.dag() * sm + a * sm.dag())
-    else:
-        H = wc * a.dag() * a + wa * sm.dag() * sm + g * (a.dag() + a) * (sm + sm.dag())
+    H = wc*a.dag()*a + wa*sm.dag()*sm + g*(a.dag()*sm + a*sm.dag())
     c_op_list = []
 
     rate = kappa * (1 + n_th_a)
@@ -110,22 +107,19 @@ def _opto_liouvillian(N):
     cc = np.sqrt(kappa)*a
     cm = np.sqrt(gamma*(1.0 + n_th))*b
     cp = np.sqrt(gamma*n_th)*b.dag()
-    c_ops = [cc,cm,cp]
-
+    c_ops = [cc, cm, cp]
     return liouvillian(H, c_ops)
 
+
 def _spin_hamiltonian(N):
-    from qutip.core import (
-        tensor, destroy, qeye, liouvillian, qeye, sigmax, sigmay, sigmaz,
-    )
+    from qutip.core import tensor, qeye, sigmax, sigmay, sigmaz
     # array of spin energy splittings and coupling strengths. here we use
     # uniform parameters, but in general we don't have too
-    h  = 1.0 * 2 * np.pi * np.ones(N)
-    Jz = 0.1 * 2 * np.pi * np.ones(N)
-    Jx = 0.1 * 2 * np.pi * np.ones(N)
-    Jy = 0.1 * 2 * np.pi * np.ones(N)
+    h = 2*np.pi * 1.0 * np.ones(N)
+    Jz = 2*np.pi * 0.1 * np.ones(N)
+    Jx = 2*np.pi * 0.1 * np.ones(N)
+    Jy = 2*np.pi * 0.1 * np.ones(N)
     # dephasing rate
-    gamma = 0.01 * np.ones(N)
 
     si = qeye(2)
     sx = sigmax()
@@ -137,16 +131,11 @@ def _spin_hamiltonian(N):
     sz_list = []
 
     for n in range(N):
-        op_list = []
-        for m in range(N):
-            op_list.append(si)
-
+        op_list = [si] * N
         op_list[n] = sx
         sx_list.append(tensor(op_list))
-
         op_list[n] = sy
         sy_list.append(tensor(op_list))
-
         op_list[n] = sz
         sz_list.append(tensor(op_list))
 

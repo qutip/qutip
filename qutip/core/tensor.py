@@ -39,18 +39,15 @@ __all__ = [
 ]
 
 import numpy as np
-import scipy.sparse as sp
 from .qobj import Qobj
-from .permute import reshuffle
-from .superoperator import operator_to_vector
+from .superoperator import operator_to_vector, reshuffle
 from .dimensions import (
-    flatten, enumerate_flat, unflatten, deep_remove,
-    dims_to_tensor_shape, dims_idxs_to_tensor_idxs
+    flatten, enumerate_flat, unflatten, deep_remove, dims_to_tensor_shape,
+    dims_idxs_to_tensor_idxs
 )
-from .cy.spmath import zcsr_kron
+from . import data as _data
 
-import qutip.settings
-import qutip.core.superop_reps  # Avoid circular dependency here.
+import qutip.core.superop_reps
 
 
 def tensor(*args):
@@ -77,58 +74,49 @@ shape = [4, 4], type = oper, isHerm = True
      [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j]
      [ 1.+0.j  0.+0.j  0.+0.j  0.+0.j]]
     """
-
     if not args:
         raise TypeError("Requires at least one input argument")
-
-    if len(args) == 1 and isinstance(args[0], (list, np.ndarray)):
-        # this is the case when tensor is called on the form:
-        # tensor([q1, q2, q3, ...])
-        qlist = args[0]
-
-    elif len(args) == 1 and isinstance(args[0], Qobj):
-        # tensor is called with a single Qobj as an argument, do nothing
-        return args[0]
-
-    else:
-        # this is the case when tensor is called on the form:
-        # tensor(q1, q2, q3, ...)
-        qlist = args
-
-    if not all([isinstance(q, Qobj) for q in qlist]):
-        # raise error if one of the inputs is not a quantum object
-        raise TypeError("One of inputs is not a quantum object")
-
-    out = Qobj()
-
-    if qlist[0].issuper:
-        out.superrep = qlist[0].superrep
-        if not all([q.superrep == out.superrep for q in qlist]):
-            raise TypeError("In tensor products of superroperators, all must" +
-                            "have the same representation")
-
-    out.isherm = True
-    for n, q in enumerate(qlist):
-        if n == 0:
-            out.data = q.data
-            out.dims = q.dims
-        else:
-            out.data  = zcsr_kron(out.data, q.data)
-            
-            out.dims = [out.dims[0] + q.dims[0], out.dims[1] + q.dims[1]]
-
-        out.isherm = out.isherm and q.isherm
-
-    if not out.isherm:
-        out._isherm = None
-
-    return out.tidyup() if qutip.settings.auto_tidyup else out
+    if len(args) == 1 and isinstance(args[0], Qobj):
+        return args[0].copy()
+    if len(args) == 1:
+        try:
+            args = tuple(args[0])
+        except TypeError:
+            raise TypeError("requires Qobj operands") from None
+    if not all(isinstance(q, Qobj) for q in args):
+        raise TypeError("requires Qobj operands")
+    if not all(q.superrep == args[0].superrep for q in args[1:]):
+        raise TypeError("".join([
+            "In tensor products of superroperators,",
+            " all must have the same representation"
+        ]))
+    type = args[0].type
+    isherm = args[0]._isherm
+    isunitary = args[0]._isunitary
+    out_data = args[0].data
+    dims_l = [d for arg in args for d in arg.dims[0]]
+    dims_r = [d for arg in args for d in arg.dims[1]]
+    for arg in args[1:]:
+        out_data = _data.kron_csr(out_data, arg.data)
+        # If both _are_ Hermitian and/or unitary, then so is the output, but if
+        # both _aren't_, then output still can be.
+        isherm = (isherm and arg._isherm) or None
+        isunitary = (isunitary and arg._isunitary) or None
+        if arg.type != type:
+            type = None
+    return Qobj(out_data,
+                dims=[dims_l, dims_r],
+                type=type,
+                isherm=isherm,
+                isunitary=isunitary,
+                superrep=args[0].superrep,
+                copy=False)
 
 
 def super_tensor(*args):
-    """Calculates the tensor product of input superoperators, by tensoring
-    together the underlying Hilbert spaces on which each vectorized operator
-    acts.
+    """
+    Calculate the tensor product of input superoperators, by tensoring together
+    the underlying Hilbert spaces on which each vectorized operator acts.
 
     Parameters
     ----------
@@ -139,7 +127,6 @@ def super_tensor(*args):
     -------
     obj : qobj
         A composite quantum object.
-
     """
     if isinstance(args[0], list):
         args = args[0]
@@ -162,8 +149,7 @@ def super_tensor(*args):
         out = reshuffle(shuffled_tensor)
         out.superrep = args[0].superrep
         return out
-
-    elif all(arg.isoperket for arg in args):
+    if all(arg.isoperket for arg in args):
 
         # Reshuffle the superoperators.
         shuffled_ops = list(map(reshuffle, args))
@@ -175,14 +161,12 @@ def super_tensor(*args):
         out = reshuffle(shuffled_tensor)
         return out
 
-    elif all(arg.isoperbra for arg in args):
+    if all(arg.isoperbra for arg in args):
         return super_tensor(*(arg.dag() for arg in args)).dag()
-
-    else:
-        raise TypeError(
-            "All arguments must be the same type, "
-            "either super, operator-ket or operator-bra."
-        )
+    raise TypeError(
+        "All arguments must be the same type, "
+        "either super, operator-ket or operator-bra."
+    )
 
 
 def _isoperlike(q):
@@ -219,40 +203,23 @@ def composite(*args):
     # or something ket-like (isket or isoperket). Bra-like we'll deal with
     # by turning things into ket-likes and back.
     if all(map(_isoperlike, args)):
-        # OK, we have oper/supers.
         if any(arg.issuper for arg in args):
-            # Note that to_super does nothing to things
-            # that are already type=super, while it will
-            # promote unitaries to superunitaries.
+            # to_super will promote 'oper' and leave 'super' untouched
             return super_tensor(*map(qutip.core.superop_reps.to_super, args))
-
-        else:
-            # Everything's just an oper, so ordinary tensor products work.
-            return tensor(*args)
-
-    elif all(map(_isketlike, args)):
-        # Ket-likes.
+        return tensor(*args)
+    if all(map(_isketlike, args)):
         if any(arg.isoperket for arg in args):
-            # We have a vectorized operator, we we may need to promote
-            # something.
             return super_tensor(*(
-                arg if arg.isoperket
-                else operator_to_vector(arg.proj())
+                arg if arg.isoperket else operator_to_vector(arg.proj())
                 for arg in args
             ))
-
-        else:
-            # Everything's ordinary, so we can use the tensor product here.
-            return tensor(*args)
-
-    elif all(map(_isbralike, args)):
+        return tensor(*args)
+    if all(map(_isbralike, args)):
         # Turn into ket-likes and recurse.
         return composite(*(arg.dag() for arg in args)).dag()
-
-    else:
-        raise TypeError("Unsupported Qobj types [{}].".format(
-            ", ".join(arg.type for arg in args)
-        ))
+    raise TypeError("Unsupported Qobj types [{}].".format(
+        ", ".join(arg.type for arg in args)
+    ))
 
 
 def _tensor_contract_single(arr, i, j):
@@ -262,8 +229,8 @@ def _tensor_contract_single(arr, i, j):
     if arr.shape[i] != arr.shape[j]:
         raise ValueError("Cannot contract over indices of different length.")
     idxs = np.arange(arr.shape[i])
-    sl = tuple(slice(None, None, None)
-               if idx not in (i, j) else idxs for idx in range(arr.ndim))
+    sl = tuple(slice(None, None, None) if idx not in (i, j) else idxs
+               for idx in range(arr.ndim))
     contract_at = i if j == i + 1 else 0
     return np.sum(arr[sl], axis=contract_at)
 
@@ -276,10 +243,11 @@ def _tensor_contract_dense(arr, *pairs):
     """
     axis_idxs = list(range(arr.ndim))
     for pair in pairs:
-        # axis_idxs.index effectively evaluates the mapping from
-        # original index labels to the labels after contraction.
+        # axis_idxs.index effectively evaluates the mapping from original index
+        # labels to the labels after contraction.
         arr = _tensor_contract_single(arr, *map(axis_idxs.index, pair))
-        list(map(axis_idxs.remove, pair))
+        axis_idxs.remove(pair[0])
+        axis_idxs.remove(pair[1])
     return arr
 
 
@@ -304,12 +272,9 @@ def tensor_swap(q_oper, *pairs):
     """
     dims = q_oper.dims
     tensor_pairs = dims_idxs_to_tensor_idxs(dims, pairs)
-
-    data = q_oper.data.toarray()
-
+    data = q_oper.full()
     # Reshape into tensor indices
     data = data.reshape(dims_to_tensor_shape(dims))
-
     # Now permute the dims list so we know how to get back.
     flat_dims = flatten(dims)
     perm = list(range(len(flat_dims)))
@@ -318,14 +283,11 @@ def tensor_swap(q_oper, *pairs):
     for i, j in tensor_pairs:
         perm[i], perm[j] = perm[j], perm[i]
     dims = unflatten(flat_dims, enumerate_flat(dims))
-
     # Next, permute the actual indices of the dense tensor.
     data = data.transpose(perm)
-
     # Reshape back, using the left and right of dims.
     data = data.reshape(list(map(np.prod, dims)))
-
-    return Qobj(inpt=data, dims=dims, superrep=q_oper.superrep)
+    return Qobj(data, dims=dims, superrep=q_oper.superrep, copy=False)
 
 
 def tensor_contract(qobj, *pairs):
@@ -355,7 +317,7 @@ def tensor_contract(qobj, *pairs):
     tensor_dims = dims_to_tensor_shape(dims)
 
     # Convert to dense first, since sparse won't support the reshaping we need.
-    qtens = qobj.data.toarray()
+    qtens = qobj.data.to_array()
 
     # Reshape by the flattened dims.
     qtens = qtens.reshape(tensor_dims)
@@ -363,7 +325,8 @@ def tensor_contract(qobj, *pairs):
     # Contract out the indices from the flattened object.
     # Note that we need to feed pairs through dims_idxs_to_tensor_idxs
     # to ensure that we are contracting the right indices.
-    qtens = _tensor_contract_dense(qtens, *dims_idxs_to_tensor_idxs(dims, pairs))
+    qtens = _tensor_contract_dense(qtens,
+                                   *dims_idxs_to_tensor_idxs(dims, pairs))
 
     # Remove the contracted indexes from dims so we know how to
     # reshape back.
@@ -382,4 +345,4 @@ def tensor_contract(qobj, *pairs):
     qmtx = qtens.reshape((l_mtx_dims, r_mtx_dims))
 
     # Return back as a qobj.
-    return Qobj(qmtx, dims=contracted_dims, superrep=qobj.superrep)
+    return Qobj(qmtx, dims=contracted_dims, superrep=qobj.superrep, copy=False)

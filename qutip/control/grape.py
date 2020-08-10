@@ -68,10 +68,8 @@ class GRAPEResult:
     U_f : Qobj
         The final unitary transformation that is realized by the evolution
         of the system with the GRAPE generated pulse sequences.
-    
     """
     def __init__(self, u=None, H_t=None, U_f=None):
-
         self.u = u
         self.H_t = H_t
         self.U_f = U_f
@@ -96,48 +94,35 @@ def plot_grape_control_fields(times, u, labels, uniform_axes=False):
 
     uniform_axes : bool
         Whether or not to plot all pulse sequences using the same y-axis scale.
-    
     """
     import matplotlib.pyplot as plt
-
     R, J, M = u.shape
-
     fig, axes = plt.subplots(J, 1, figsize=(8, 2 * J), squeeze=False)
-
     y_max = abs(u).max()
-
     for r in range(R):
         for j in range(J):
-
             if r == R - 1:
                 lw, lc, alpha = 2.0, 'k', 1.0
-
                 axes[j, 0].set_ylabel(labels[j], fontsize=18)
                 axes[j, 0].set_xlabel(r'$t$', fontsize=18)
                 axes[j, 0].set_xlim(0, times[-1])
-
             else:
                 lw, lc, alpha = 0.5, 'b', 0.25
-
             axes[j, 0].step(times, u[r, j, :], lw=lw, color=lc, alpha=alpha)
-
             if uniform_axes:
                 axes[j, 0].set_ylim(-y_max, y_max)
-
     fig.tight_layout()
-
     return fig, axes
 
 
 def _overlap(A, B):
     return (A.dag() * B).tr() / A.shape[0]
-    # return cy_overlap(A.data, B.data)
 
 
 def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
                   u_limits=None, interp_kind='linear', use_interp=False,
                   alpha=None, beta=None, phase_sensitive=True,
-                  progress_bar=BaseProgressBar()):
+                  progress_bar=None):
     """
     Calculate control pulses for the Hamiltonian operators in H_ops so that the
     unitary U is realized.
@@ -170,9 +155,8 @@ def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
         Instance of GRAPEResult, which contains the control pulses calculated
         with GRAPE, a time-dependent Hamiltonian that is defined by the
         control pulses, as well as the resulting propagator.
-    
     """
-
+    progress_bar = progress_bar or BaseProgressBar()
     if eps is None:
         eps = 0.1 * (2 * np.pi) / (times[-1])
 
@@ -212,8 +196,8 @@ def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
                         for j in range(J)]
 
             def _H_t(t, args=None):
-                return H0 + sum([float(ip_funcs[j](t)) * H_ops[j]
-                                 for j in range(J)])
+                return H0 + sum(float(ip_funcs[j](t)) * H_ops[j]
+                                for j in range(J))
 
             U_list = [(-1j * _H_t(times[idx]) * dt).expm()
                       for idx in range(M-1)]
@@ -230,10 +214,8 @@ def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
         U_f = 1
         U_b = 1
         for n in range(M - 1):
-
             U_f = U_list[n] * U_f
             U_f_list.append(U_f)
-
             U_b_list.insert(0, U_b)
             U_b = U_list[M - 2 - n].dag() * U_b
 
@@ -284,7 +266,7 @@ def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
 def cy_grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
                      u_limits=None, interp_kind='linear', use_interp=False,
                      alpha=None, beta=None, phase_sensitive=True,
-                     progress_bar=BaseProgressBar()):
+                     progress_bar=None):
     """
     Calculate control pulses for the Hamitonian operators in H_ops so that the
     unitary U is realized.
@@ -317,8 +299,8 @@ def cy_grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
         Instance of GRAPEResult, which contains the control pulses calculated
         with GRAPE, a time-dependent Hamiltonian that is defined by the
         control pulses, as well as the resulting propagator.
-    
     """
+    progress_bar = progress_bar or BaseProgressBar()
 
     if eps is None:
         eps = 0.1 * (2 * np.pi) / (times[-1])
@@ -423,7 +405,7 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
                            u_limits=None, interp_kind='linear',
                            use_interp=False, alpha=None, beta=None,
                            phase_sensitive=False, overlap_terminate=1.0,
-                           progress_bar=BaseProgressBar()):
+                           progress_bar=None):
     """
     Calculate control pulses for the Hamiltonian operators in H_ops so that
     the unitary U is realized.
@@ -456,8 +438,8 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
         Instance of GRAPEResult, which contains the control pulses calculated
         with GRAPE, a time-dependent Hamiltonian that is defined by the
         control pulses, as well as the resulting propagator.
-    
     """
+    progress_bar = progress_bar or BaseProgressBar()
 
     if eps is None:
         eps = 0.1 * (2 * np.pi) / (times[-1])
@@ -497,9 +479,9 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
         warnings.warn("Causion: Using experimental feature time-penalty")
 
     if phase_sensitive:
-        _fidelity_function = lambda x: x
+        def _fidelity_function(x): return x
     else:
-        _fidelity_function = lambda x: abs(x) ** 2
+        def _fidelity_function(x): return abs(x)**2
 
     best_k = 1
     _r = 0
@@ -587,7 +569,7 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
 
             u[r + 1, j, -1, :] = u[r + 1, j, -2, :]
 
-        logger.debug("Time 3: %fs" % (time.time() - _t0))
+        logger.debug("Time 3: %fs", time.time() - _t0)
         _t0 = time.time()
 
         for k, eps_val in enumerate(eps_vec):
@@ -603,7 +585,7 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
                                                           U.data)).real
 
         best_k = np.argmax(_k_overlap)
-        logger.debug("k_overlap: ", _k_overlap, best_k)
+        logger.debug("k_overlap: %s, %e", repr(_k_overlap), best_k)
 
         if _prev_overlap > _k_overlap[best_k]:
             logger.debug("Regression, stepping back with smaller eps.")
@@ -627,7 +609,7 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
                 logger.info("Reached target fidelity, terminating.")
                 break
 
-        logger.debug("Time 4: %fs" % (time.time() - _t0))
+        logger.debug("Time 4: %fs", time.time() - _t0)
         _t0 = time.time()
 
     if use_interp:

@@ -40,15 +40,18 @@ __all__ = ['basis', 'qutrit_basis', 'coherent', 'coherent_dm', 'fock_dm',
            'ghz_state', 'enr_state_dictionaries', 'enr_fock',
            'enr_thermal_dm']
 
+import itertools
 import numbers
+import warnings
+
 import numpy as np
-from numpy import arange, conj, prod
 import scipy.sparse as sp
 
+from . import data as _data
 from .qobj import Qobj
-from .operators import destroy, jmat
+from .operators import jmat, displace
 from .tensor import tensor
-from .fastsparse import fast_csr_matrix
+
 
 def _promote_to_zero_list(arg, length):
     """
@@ -145,11 +148,18 @@ def basis(dimensions, n=None, offset=None):
     for m, dimension in zip(reversed(ns), reversed(dimensions)):
         location += m*size
         size *= dimension
-    data = np.array([1], dtype=complex)
-    ind = np.array([0], dtype=np.int32)
-    ptr = np.array([0]*(location+1) + [1]*(size-location), dtype=np.int32)
-    return Qobj(fast_csr_matrix((data, ind, ptr), shape=(size, 1)),
-                dims=[dimensions, [1]*n_dimensions], isherm=False)
+    data = _data.csr.empty(size, 1, 1)
+    sci = data.as_scipy(full=True)
+    sci.data[0] = 1
+    sci.indices[0] = 0
+    sci.indptr[:location+1] = 0
+    sci.indptr[location+1:] = 1
+    return Qobj(data,
+                dims=[dimensions, [1]*n_dimensions],
+                type='ket',
+                isherm=False,
+                isunitary=False,
+                copy=False)
 
 
 def qutrit_basis():
@@ -162,6 +172,9 @@ def qutrit_basis():
 
     """
     return np.array([basis(3, 0), basis(3, 1), basis(3, 2)], dtype=object)
+
+
+_COHERENT_METHODS = ('operator', 'analytic')
 
 
 def coherent(N, alpha, offset=0, method='operator'):
@@ -215,28 +228,24 @@ def coherent(N, alpha, offset=0, method='operator'):
 
     """
     if method == "operator" and offset == 0:
-
-        x = basis(N, 0)
-        a = destroy(N)
-        D = (alpha * a.dag() - conj(alpha) * a).expm()
-        return D * x
-
+        return displace(N, alpha) * basis(N, 0)
     elif method == "analytic" or offset > 0:
-
         sqrtn = np.sqrt(np.arange(offset, offset+N, dtype=complex))
-        sqrtn[0] = 1 # Get rid of divide by zero warning
-        data = alpha/sqrtn
+        sqrtn[0] = 1  # Get rid of divide by zero warning
+        data = alpha / sqrtn
         if offset == 0:
             data[0] = np.exp(-abs(alpha)**2 / 2.0)
         else:
-            s = np.prod(np.sqrt(np.arange(1, offset + 1))) # sqrt factorial
-            data[0] = np.exp(-abs(alpha)**2 / 2.0) * alpha**(offset) / s
-        np.cumprod(data, out=sqrtn) # Reuse sqrtn array
-        return Qobj(sqrtn)
-
-    else:
-        raise TypeError(
-            "The method option can only take values 'operator' or 'analytic'")
+            s = np.prod(np.sqrt(np.arange(1, offset + 1)))  # sqrt factorial
+            data[0] = np.exp(-abs(alpha)**2 * 0.5) * alpha**offset / s
+        np.cumprod(data, out=sqrtn)  # Reuse sqrtn array
+        return Qobj(sqrtn,
+                    dims=[[N], [1]],
+                    type='ket',
+                    copy=False)
+    raise TypeError(
+        "The method option can only take values in " + repr(_COHERENT_METHODS)
+    )
 
 
 def coherent_dm(N, alpha, offset=0, method='operator'):
@@ -288,17 +297,7 @@ shape = [3, 3], type = oper, isHerm = True
     but would in that case give more accurate coefficients.
 
     """
-    if method == "operator":
-        psi = coherent(N, alpha, offset=offset)
-        return psi * psi.dag()
-
-    elif method == "analytic":
-        psi = coherent(N, alpha, offset=offset, method='analytic')
-        return psi * psi.dag()
-
-    else:
-        raise TypeError(
-            "The method option can only take values 'operator' or 'analytic'")
+    return coherent(N, alpha, offset=offset, method=method).proj()
 
 
 def fock_dm(dimensions, n=None, offset=None):
@@ -338,9 +337,7 @@ shape = [3, 3], type = oper, isHerm = True
       [ 0.+0.j  0.+0.j  0.+0.j]]
 
     """
-    psi = basis(dimensions, n, offset=offset)
-
-    return psi * psi.dag()
+    return basis(dimensions, n, offset=offset).proj()
 
 
 def fock(dimensions, n=None, offset=None):
@@ -439,7 +436,7 @@ shape = [5, 5], type = oper, isHerm = True
     if n == 0:
         return fock_dm(N, 0)
     else:
-        i = arange(N)
+        i = np.arange(N)
         if method == 'operator':
             beta = np.log(1.0 / n + 1.0)
             diags = np.exp(-beta * i)
@@ -452,8 +449,9 @@ shape = [5, 5], type = oper, isHerm = True
                             0, N, N, format='csr')
         else:
             raise ValueError(
-                "'method' keyword argument must be 'operator' or 'analytic'")
-    return Qobj(rm)
+                "'method' keyword argument must be 'operator' or 'analytic'"
+            )
+    return Qobj(rm, dims=[[N], [N]], type='oper', isherm=True, copy=False)
 
 
 def maximally_mixed_dm(N):
@@ -471,17 +469,16 @@ def maximally_mixed_dm(N):
     dm : qobj
         Thermal state density matrix.
     """
-    if (not isinstance(N, (int, np.int64))) or N <= 0:
+    if not isinstance(N, numbers.Integral) or N <= 0:
         raise ValueError("N must be integer N > 0")
-
-    dm = sp.spdiags(np.ones(N, dtype=complex)/float(N), 0, N, N, format='csr')
-
-    return Qobj(dm, isherm=True)
+    return Qobj(_data.csr.identity(N, scale=1/N), dims=[[N], [N]], type='oper',
+                isherm=True, isunitary=(N == 1), copy=False)
 
 
 def ket2dm(Q):
-    """Takes input ket or bra vector and returns density matrix
-    formed by outer product.
+    """
+    Takes input ket or bra vector and returns density matrix formed by outer
+    product.  This is completely identical to calling `Q.proj()`.
 
     Parameters
     ----------
@@ -505,18 +502,11 @@ shape = [3, 3], type = oper, isHerm = True
      [ 0.+0.j  0.+0.j  1.+0.j]]
 
     """
-    if Q.type == 'ket':
-        out = Q * Q.dag()
-    elif Q.type == 'bra':
-        out = Q.dag() * Q
-    else:
-        raise TypeError("Input is not a ket or bra vector.")
-    return Qobj(out)
+    if Q.isket or Q.isbra:
+        return Q.proj()
+    raise TypeError("input is not a ket or bra vector.")
 
 
-#
-# projection operator
-#
 def projection(N, n, m, offset=None):
     """The projection operator that projects state :math:`|m>` on state :math:`|n>`.
 
@@ -538,18 +528,13 @@ def projection(N, n, m, offset=None):
          Requested projection operator.
 
     """
-    ket1 = basis(N, n, offset=offset)
-    ket2 = basis(N, m, offset=offset)
-
-    return ket1 * ket2.dag()
+    return basis(N, n, offset=offset) @ basis(N, m, offset=offset).dag()
 
 
-#
-# composite qubit states
-#
 def qstate(string):
-    """Creates a tensor product for a set of qubits in either
-    the 'up' :math:`|0>` or 'down' :math:`|1>` state.
+    """
+    Creates a tensor product for a set of qubits in either the 'up' :math:`|0>`
+    or 'down' :math:`|1>` state.
 
     Parameters
     ----------
@@ -579,43 +564,32 @@ def qstate(string):
      [ 1.]
      [ 0.]
      [ 0.]]
-
     """
     n = len(string)
     if n != (string.count('u') + string.count('d')):
         raise TypeError('String input to QSTATE must consist ' +
                         'of "u" and "d" elements only')
-    else:
-        up = basis(2, 1)
-        dn = basis(2, 0)
-    lst = []
-    for k in range(n):
-        if string[k] == 'u':
-            lst.append(up)
-        else:
-            lst.append(dn)
-    return tensor(lst)
+    return basis([2]*n, [1 if x == 'u' else 0 for x in string])
 
 
 #
 # different qubit notation dictionary
 #
-_qubit_dict = {'g': 0,  # ground state
-               'e': 1,  # excited state
-               'u': 0,  # spin up
-               'd': 1,  # spin down
-               'H': 0,  # horizontal polarization
-               'V': 1}  # vertical polarization
+_qubit_dict = {
+    'g': 0,  # ground state
+    'e': 1,  # excited state
+    'u': 0,  # spin up
+    'd': 1,  # spin down
+    'H': 0,  # horizontal polarization
+    'V': 1,  # vertical polarization
+}
 
 
 def _character_to_qudit(x):
     """
     Converts a character representing a one-particle state into int.
     """
-    if x in _qubit_dict:
-        return _qubit_dict[x]
-    else:
-        return int(x)
+    return _qubit_dict[x] if x in _qubit_dict else int(x)
 
 
 def ket(seq, dim=2):
@@ -692,10 +666,9 @@ def ket(seq, dim=2):
      [ 0.]
      [ 0.]]
     """
-    if isinstance(dim, int):
-        dim = [dim] * len(seq)
-    return tensor([basis(dim[i], _character_to_qudit(x))
-                   for i, x in enumerate(seq)])
+    ns = [_character_to_qudit(x) for x in seq]
+    dim = [dim]*len(ns) if isinstance(dim, numbers.Integral) else dim
+    return basis(dim, ns)
 
 
 def bra(seq, dim=2):
@@ -749,10 +722,7 @@ def bra(seq, dim=2):
     return ket(seq, dim=dim).dag()
 
 
-#
-# quantum state number helper functions
-#
-def state_number_enumerate(dims, excitations=None, state=None, idx=0):
+def state_number_enumerate(dims, excitations=None):
     """
     An iterator that enumerate all the state number arrays (quantum numbers on
     the form [n1, n2, n3, ...]) for a system with dimensions given by dims.
@@ -771,15 +741,9 @@ def state_number_enumerate(dims, excitations=None, state=None, idx=0):
     dims : list or array
         The quantum state dimensions array, as it would appear in a Qobj.
 
-    state : list
-        Current state in the iteration. Used internally.
-
     excitations : integer (None)
         Restrict state space to states with excitation numbers below or
         equal to this value.
-
-    idx : integer
-        Current index in the iteration. Used internally.
 
     Returns
     -------
@@ -788,22 +752,9 @@ def state_number_enumerate(dims, excitations=None, state=None, idx=0):
         iterations, using standard state enumeration *by definition*.
 
     """
-
-    if state is None:
-        state = np.zeros(len(dims), dtype=int)
-
-    if excitations and sum(state[0:idx]) > excitations:
-        pass
-    elif idx == len(dims):
-        if excitations is None:
-            yield np.array(state)
-        else:
-            yield tuple(state)
-    else:
-        for n in range(dims[idx]):
-            state[idx] = n
-            for s in state_number_enumerate(dims, excitations, state, idx + 1):
-                yield s
+    return (x
+            for x in itertools.product(*[range(d) for d in dims])
+            if excitations is None or sum(x) <= excitations)
 
 
 def state_number_index(dims, state):
@@ -831,8 +782,7 @@ def state_number_index(dims, state):
         ordering.
 
     """
-    return int(
-        sum([state[i] * prod(dims[i + 1:]) for i, d in enumerate(dims)]))
+    return int(np.dot(state, np.cumprod([1] + dims[:0:-1])[::-1]))
 
 
 def state_index_number(dims, index):
@@ -861,13 +811,10 @@ def state_index_number(dims, index):
 
     """
     state = np.empty_like(dims)
-
     D = np.concatenate([np.flipud(np.cumprod(np.flipud(dims[1:]))), [1]])
-
     for n in range(len(dims)):
         state[n] = index / D[n]
         index -= state[n] * D[n]
-
     return list(state)
 
 
@@ -906,12 +853,13 @@ shape = [8, 1], type = ket
 
 
     """
-    return tensor([fock(dims[i], s) for i, s in enumerate(state)])
+    warnings.warn("basis() is a drop-in replacement for this",
+                  DeprecationWarning)
+    return basis(dims, state)
 
 
-#
 # Excitation-number restricted (enr) states
-#
+
 def enr_state_dictionaries(dims, excitations):
     """
     Return the number of states, and lookup-dictionaries for translating
@@ -975,17 +923,18 @@ def enr_fock(dims, excitations, state):
         restricted state space defined by `dims` and `exciations`.
 
     """
-    nstates, state2idx, idx2state = enr_state_dictionaries(dims, excitations)
-
+    nstates, state2idx, _ = enr_state_dictionaries(dims, excitations)
     data = sp.lil_matrix((nstates, 1), dtype=np.complex)
-
     try:
         data[state2idx[tuple(state)], 0] = 1
-    except:
-        raise ValueError("The state tuple %s is not in the restricted "
-                         "state space" % str(tuple(state)))
-
-    return Qobj(data, dims=[dims, [1]*len(dims)])
+    except KeyError:
+        msg = (
+            "state tuple " + str(tuple(state))
+            + " is not in the restricted state space."
+        )
+        raise ValueError(msg) from None
+    return Qobj(data.tocsr(),
+                dims=[dims, [1]*len(dims)], type='ket', copy=False)
 
 
 def enr_thermal_dm(dims, excitations, n):
@@ -1017,8 +966,7 @@ def enr_thermal_dm(dims, excitations, n):
     dm : Qobj
         Thermal state density matrix.
     """
-    nstates, state2idx, idx2state = enr_state_dictionaries(dims, excitations)
-
+    nstates, _, idx2state = enr_state_dictionaries(dims, excitations)
     if not isinstance(n, (list, np.ndarray)):
         n = np.ones(len(dims)) * n
     else:
@@ -1028,8 +976,7 @@ def enr_thermal_dm(dims, excitations, n):
              for idx, state in idx2state.items()]
     diags /= np.sum(diags)
     data = sp.spdiags(diags, 0, nstates, nstates, format='csr')
-
-    return Qobj(data, dims=[dims, dims])
+    return Qobj(data, dims=[dims, dims], type='oper', isherm=True, copy=False)
 
 
 def phase_basis(N, m, phi0=0):
@@ -1057,15 +1004,14 @@ def phase_basis(N, m, phi0=0):
 
     """
     phim = phi0 + (2.0 * np.pi * m) / N
-    n = np.arange(N).reshape((N, 1))
-    data = 1.0 / np.sqrt(N) * np.exp(1.0j * n * phim)
-    return Qobj(data)
+    n = np.arange(N)[:, np.newaxis]
+    data = np.exp(1.0j * n * phim) / np.sqrt(N)
+    return Qobj(data, dims=[[N], [1]], type='ket', copy=False)
 
 
 def zero_ket(N, dims=None):
     """
-    Creates the zero ket vector with shape Nx1 and
-    dimensions `dims`.
+    Creates the zero ket vector with shape Nx1 and dimensions `dims`.
 
     Parameters
     ----------
@@ -1081,7 +1027,7 @@ def zero_ket(N, dims=None):
         Zero ket on given Hilbert space.
 
     """
-    return Qobj(sp.csr_matrix((N, 1), dtype=complex), dims=dims)
+    return Qobj(_data.csr.zeros(N, 1), dims=dims, type='ket', copy=False)
 
 
 def spin_state(j, m, type='ket'):
@@ -1105,7 +1051,7 @@ def spin_state(j, m, type='ket'):
         Qobj quantum object for spin state
 
     """
-    J = 2 * j + 1
+    J = 2*j + 1
 
     if type == 'ket':
         return basis(int(J), int(j - m))
@@ -1114,7 +1060,7 @@ def spin_state(j, m, type='ket'):
     elif type == 'dm':
         return fock_dm(int(J), int(j - m))
     else:
-        raise ValueError("invalid value keyword argument 'type'")
+        raise ValueError(f"invalid value keyword argument type='{type}'")
 
 
 def spin_coherent(j, theta, phi, type='ket'):
@@ -1151,8 +1097,15 @@ def spin_coherent(j, theta, phi, type='ket'):
         return psi.dag()
     elif type == 'dm':
         return ket2dm(psi)
-    else:
-        raise ValueError("invalid value keyword argument 'type'")
+    raise ValueError("invalid value keyword argument 'type'")
+
+
+_BELL_STATES = {
+    '00': np.sqrt(0.5) * (basis([2, 2], [0, 0]) + basis([2, 2], [1, 1])),
+    '01': np.sqrt(0.5) * (basis([2, 2], [0, 0]) - basis([2, 2], [1, 1])),
+    '10': np.sqrt(0.5) * (basis([2, 2], [0, 1]) + basis([2, 2], [1, 0])),
+    '11': np.sqrt(0.5) * (basis([2, 2], [0, 1]) - basis([2, 2], [1, 0])),
+}
 
 
 def bell_state(state='00'):
@@ -1170,20 +1123,7 @@ def bell_state(state='00'):
         Bell state
 
     """
-    if state == '00':
-        Bell_state = tensor(
-            basis(2), basis(2))+tensor(basis(2, 1), basis(2, 1))
-    elif state == '01':
-        Bell_state = tensor(
-            basis(2), basis(2))-tensor(basis(2, 1), basis(2, 1))
-    elif state == '10':
-        Bell_state = tensor(
-            basis(2), basis(2, 1))+tensor(basis(2, 1), basis(2))
-    elif state == '11':
-        Bell_state = tensor(
-            basis(2), basis(2, 1))-tensor(basis(2, 1), basis(2))
-
-    return Bell_state.unit()
+    return _BELL_STATES[state].copy()
 
 
 def singlet_state():
@@ -1206,30 +1146,27 @@ def singlet_state():
 def triplet_states():
     """
     Returns the two particle triplet-states:
-
-        |T>= |1>|1>
-           = 1 / sqrt(2)*[|0>|1>-|1>|0>]
-           = |0>|0>
+        |T> = |1>|1>
+            = 1 / sqrt(2)*[|0>|1> + |1>|0>]
+            = |0>|0>
     that is identical to the fourth bell state.
 
     Returns
     -------
     trip_states : list
         2 particle triplet states
-
     """
-    trip_states = []
-    trip_states.append(tensor(basis(2, 1), basis(2, 1)))
-    trip_states.append(
-       (tensor(basis(2), basis(2, 1)) + tensor(basis(2, 1), basis(2))).unit()
-    )
-    trip_states.append(tensor(basis(2), basis(2)))
-    return trip_states
+    return [
+        basis([2, 2], [1, 1]),
+        np.sqrt(0.5) * (basis([2, 2], [0, 1]) + basis([2, 2], [1, 0])),
+        basis([2, 2], [0, 0]),
+    ]
 
 
 def w_state(N=3):
     """
     Returns the N-qubit W-state.
+        [ |100..0> + |010..0> + |001..0> + ... |000..1> ] / sqrt(n)
 
     Parameters
     ----------
@@ -1240,20 +1177,19 @@ def w_state(N=3):
     -------
     W : qobj
         N-qubit W-state
-
     """
     inds = np.zeros(N, dtype=int)
     inds[0] = 1
-    state = tensor([basis(2, x) for x in inds])
+    state = basis([2]*N, list(inds))
     for kk in range(1, N):
-        perm_inds = np.roll(inds, kk)
-        state += tensor([basis(2, x) for x in perm_inds])
-    return state.unit()
+        state += basis([2]*N, list(np.roll(inds, kk)))
+    return np.sqrt(1 / N) * state
 
 
 def ghz_state(N=3):
     """
-    Returns the N-qubit GHZ-state.
+    Returns the N-qubit GHZ-state
+        [ |00...00> + |11...11> ] / sqrt(2)
 
     Parameters
     ----------
@@ -1264,8 +1200,5 @@ def ghz_state(N=3):
     -------
     G : qobj
         N-qubit GHZ-state
-
     """
-    state = (tensor([basis(2) for k in range(N)]) +
-             tensor([basis(2, 1) for k in range(N)]))
-    return state/np.sqrt(2)
+    return np.sqrt(0.5) * (basis([2]*N, [0]*N) + basis([2]*N, [1]*N))

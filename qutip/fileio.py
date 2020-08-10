@@ -37,7 +37,7 @@ import pickle
 import numpy as np
 import sys
 from .core import Qobj
-from .solver import Result
+from .solve import Result
 
 
 

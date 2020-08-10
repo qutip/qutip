@@ -303,7 +303,7 @@ class DispersiveCavityQED(ModelProcessor):
         psi_proj = tensor(
             [basis(self.num_levels, 0)] +
             [identity(2) for n in range(self.N)])
-        return psi_proj.dag() * U * psi_proj
+        return (psi_proj.dag() * U * psi_proj).contract(inplace=True)
 
     def load_circuit(self, qc):
         """

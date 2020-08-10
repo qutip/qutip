@@ -98,7 +98,7 @@ _stage_linux_38_openblas: &stage_linux_38_openblas
 
 _stage_linux_omp: &stage_linux_omp
   <<: *stage_generic_linux
-  name: "Python 3.7 OpenMP, mkl"
+  name: "Python 3.7 OpenMP, mkl, scipy<1.5"
   dist: xenial
   python: 3.7
   install:
@@ -110,7 +110,7 @@ _stage_linux_omp: &stage_linux_omp
     - conda info -a
     - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
     - source activate test-environment
-    - conda install mkl blas=*=mkl numpy scipy pytest pytest-cov cython coveralls
+    - conda install mkl blas=*=mkl numpy 'scipy<1.5' pytest pytest-cov cython coveralls
     - python setup.py install --with-openmp
   after_success:
     - coveralls
