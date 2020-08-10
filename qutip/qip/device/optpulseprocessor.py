@@ -38,7 +38,7 @@ import numpy as np
 
 from qutip import Qobj, identity, tensor
 import qutip.control.pulseoptim as cpo
-from qutip.mesolve import mesolve
+from qutip.solve.mesolve import mesolve
 from qutip.qip.circuit import QubitCircuit
 from qutip.qip.device.processor import Processor
 from qutip.qip.operations.gates import gate_sequence_product
