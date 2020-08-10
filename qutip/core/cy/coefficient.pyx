@@ -147,6 +147,11 @@ cdef class InterCoefficient(Coefficient):
         self.coeff_arr = state[4]
         self.second_derr = state[5]
 
+    @property
+    def array(self):
+        # Fro QIP tests
+        return np.array(self.coeff_arr)
+
 
 def MakeInterCoefficient(*state):
     obj = InterCoefficient.__new__(InterCoefficient)
@@ -179,6 +184,11 @@ cdef class StepCoefficient(Coefficient):
     def __reduce__(self):
         return (MakeStepCoefficient,
             (np.array(self.coeff_arr), np.array(self.tlist)))
+
+    @property
+    def array(self):
+        # Fro QIP tests
+        return np.array(self.coeff_arr)
 
 
 def MakeStepCoefficient(coeff_arr, tlist):

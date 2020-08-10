@@ -409,6 +409,7 @@ class QobjEvo:
         new.dynamics_args = self.dynamics_args.copy()
         new.dummy_cte = self.dummy_cte
         new.compiled_qobjevo = None
+        new._tlist = self._tlist
 
         for op in self.ops:
             new.ops.append(EvoElement(op.qobj.copy(), op.coeff.copy()))
@@ -423,6 +424,7 @@ class QobjEvo:
         self.dummy_cte = other.dummy_cte
         self.compiled_qobjevo = None
         self.ops = []
+        self._tlist = other._tlist
 
         for op in other.ops:
             self.ops.append(EvoElement(op.qobj.copy(), op.coeff.copy()))
