@@ -8,13 +8,6 @@
 Manipulating States and Operators
 *************************************
 
-.. ipython::
-   :suppress:
-
-   In [1]: from qutip import *
-
-   In [1]: import numpy as np
-
 .. _states-intro:
 
 Introduction
@@ -30,146 +23,330 @@ State Vectors (kets or bras)
 
 Here we begin by creating a Fock :func:`qutip.states.basis` vacuum state vector :math:`\left|0\right>` with in a Hilbert space with 5 number states, from 0 to 4:
 
-.. ipython::
+.. testcode:: [states]
 
-   In [1]: vac = basis(5, 0)
+    vac = basis(5, 0)
 
-   In [2]: vac
+    print(vac)
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
+    Qobj data =
+    [[1.]
+     [0.]
+     [0.]
+     [0.]
+     [0.]]
+
+
 
 
 and then create a lowering operator :math:`\left(\hat{a}\right)` corresponding to 5 number states using the :func:`qutip.operators.destroy` function:
 
-.. ipython::
+.. testcode:: [states]
 
-   In [1]: a = destroy(5)
+    a = destroy(5)
 
-   In [2]: a
+    print(a)
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[5], [5]], shape = (5, 5), type = oper, isherm = False
+    Qobj data =
+    [[0.         1.         0.         0.         0.        ]
+     [0.         0.         1.41421356 0.         0.        ]
+     [0.         0.         0.         1.73205081 0.        ]
+     [0.         0.         0.         0.         2.        ]
+     [0.         0.         0.         0.         0.        ]]
 
 
 Now lets apply the destruction operator to our vacuum state ``vac``,
 
 
-.. ipython::
+.. testcode:: [states]
 
-   In [1]: a * vac
+    print(a * vac)
 
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
+    Qobj data =
+    [[0.]
+     [0.]
+     [0.]
+     [0.]
+     [0.]]
 
 We see that, as expected, the vacuum is transformed to the zero vector.  A more interesting example comes from using the adjoint of the lowering operator, the raising operator :math:`\hat{a}^\dagger`:
 
-.. ipython::
+.. testcode:: [states]
 
-   In [1]: a.dag() * vac
+    print(a.dag() * vac)
 
+.. testoutput:: [states]
+ :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
+    Qobj data =
+    [[0.]
+    [1.]
+    [0.]
+    [0.]
+    [0.]]
 
 The raising operator has in indeed raised the state `vec` from the vacuum to the :math:`\left| 1\right>` state.  Instead of using the dagger ``Qobj.dag()`` method to raise the state, we could have also used the built in :func:`qutip.operators.create` function to make a raising operator:
 
-.. ipython::
+.. testcode:: [states]
 
-   In [1]: c = create(5)
+    c = create(5)
 
-   In [2]: c * vac
+    print(c * vac)
 
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
+    Qobj data =
+    [[0.]
+     [1.]
+     [0.]
+     [0.]
+     [0.]]
 
 which does the same thing.  We can raise the vacuum state more than once by successively apply the raising operator:
 
-.. ipython::
+.. testcode:: [states]
 
-   In [1]: c * c * vac
+    print(c * c * vac)
 
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
+    Qobj data =
+    [[0.        ]
+     [0.        ]
+     [1.41421356]
+     [0.        ]
+     [0.        ]]
 
 or just taking the square of the raising operator :math:`\left(\hat{a}^\dagger\right)^{2}`:
 
-.. ipython::
+.. testcode:: [states]
 
-   In [1]: c ** 2 * vac
+    print(c ** 2 * vac)
 
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
+    Qobj data =
+    [[0.        ]
+     [0.        ]
+     [1.41421356]
+     [0.        ]
+     [0.        ]]
 
 Applying the raising operator twice gives the expected :math:`\sqrt{n + 1}` dependence.  We can use the product of :math:`c * a` to also apply the number operator to the state vector ``vac``:
 
-.. ipython::
+.. testcode:: [states]
 
-   In [1]: c * a * vac
+    print(c * a * vac)
 
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
+    Qobj data =
+    [[0.]
+     [0.]
+     [0.]
+     [0.]
+     [0.]]
 
 or on the :math:`\left| 1\right>` state:
 
-.. ipython::
+.. testcode:: [states]
 
-   In [1]: c * a * (c * vac)
+    print(c * a * (c * vac))
 
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
+    Qobj data =
+    [[0.]
+     [1.]
+     [0.]
+     [0.]
+     [0.]]
 
 or the :math:`\left| 2\right>` state:
 
-.. ipython::
+.. testcode:: [states]
 
-   In [1]: c * a * (c**2 * vac)
+    print(c * a * (c**2 * vac))
 
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
+    Qobj data =
+    [[0.        ]
+     [0.        ]
+     [2.82842712]
+     [0.        ]
+     [0.        ]]
 
 Notice how in this last example, application of the number operator does not give the expected value :math:`n=2`, but rather :math:`2\sqrt{2}`.  This is because this last state is not normalized to unity as :math:`c\left| n\right> = \sqrt{n+1}\left| n+1\right>`.  Therefore, we should normalize our vector first:
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: c * a * (c**2 * vac).unit()
+    print(c * a * (c**2 * vac).unit())
 
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
+    Qobj data =
+    [[0.]
+     [0.]
+     [2.]
+     [0.]
+     [0.]]
 
 Since we are giving a demonstration of using states and operators, we have done a lot more work than we should have.  For example, we do not need to operate on the vacuum state to generate a higher number Fock state.  Instead we can use the :func:`qutip.states.basis` (or :func:`qutip.states.fock`) function to directly obtain the required state:
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: ket = basis(5, 2)
+    ket = basis(5, 2)
 
-    In [2]: print(ket)
+    print(ket)
 
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
+    Qobj data =
+    [[0.]
+     [0.]
+     [1.]
+     [0.]
+     [0.]]
 
 Notice how it is automatically normalized.  We can also use the built in :func:`qutip.operators.num` operator:
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: n = num(5)
+    n = num(5)
 
-    In [2]: print(n)
+    print(n)
 
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[5], [5]], shape = (5, 5), type = oper, isherm = True
+    Qobj data =
+    [[0. 0. 0. 0. 0.]
+     [0. 1. 0. 0. 0.]
+     [0. 0. 2. 0. 0.]
+     [0. 0. 0. 3. 0.]
+     [0. 0. 0. 0. 4.]]
 
 Therefore, instead of ``c * a * (c ** 2 * vac).unit()`` we have:
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: n * ket
+    print(n * ket)
 
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
+    Qobj data =
+    [[0.]
+     [0.]
+     [2.]
+     [0.]
+     [0.]]
 
 We can also create superpositions of states:
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: ket = (basis(5, 0) + basis(5, 1)).unit()
+    ket = (basis(5, 0) + basis(5, 1)).unit()
 
-    In [2]: print(ket)
+    print(ket)
 
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
+    Qobj data =
+    [[0.70710678]
+     [0.70710678]
+     [0.        ]
+     [0.        ]
+     [0.        ]]
 
 where we have used the :func:`qutip.Qobj.unit` method to again normalize the state. Operating with the number function again:
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: n * ket
+    print(n * ket)
 
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
+    Qobj data =
+    [[0.        ]
+     [0.70710678]
+     [0.        ]
+     [0.        ]
+     [0.        ]]
 
 We can also create coherent states and squeezed states by applying the :func:`qutip.operators.displace` and :func:`qutip.operators.squeeze` functions to the vacuum state:
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: vac = basis(5, 0)
+    vac = basis(5, 0)
 
-    In [2]: d = displace(5, 1j)
+    d = displace(5, 1j)
 
-    In [3]: s = squeeze(5, 0.25 + 0.25j)
+    s = squeeze(5, np.complex(0.25, 0.25))
 
-    In [4]: d * vac
+    print(d * vac)
 
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
 
-.. ipython::
+    Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
+    Qobj data =
+    [[ 0.60655682+0.j        ]
+     [ 0.        +0.60628133j]
+     [-0.4303874 +0.j        ]
+     [ 0.        -0.24104351j]
+     [ 0.14552147+0.j        ]]
 
-    In [1]: d * s * vac
+.. testcode:: [states]
 
+    print(d * s * vac)
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
+    Qobj data =
+    [[ 0.65893786+0.08139381j]
+     [ 0.10779462+0.51579735j]
+     [-0.37567217-0.01326853j]
+     [-0.02688063-0.23828775j]
+     [ 0.26352814+0.11512178j]]
 
 Of course, displacing the vacuum gives a coherent state, which can also be generated using the built in :func:`qutip.states.coherent` function.
 
@@ -183,81 +360,130 @@ One of the main purpose of QuTiP is to explore the dynamics of **open** quantum 
 
 The simplest density matrix is created by forming the outer-product :math:`\left|\psi\right>\left<\psi\right|` of a ket vector:
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: ket = basis(5, 2)
+    ket = basis(5, 2)
 
-    In [2]: ket * ket.dag()
+    print(ket * ket.dag())
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[5], [5]], shape = (5, 5), type = oper, isherm = True
+    Qobj data =
+    [[0. 0. 0. 0. 0.]
+     [0. 0. 0. 0. 0.]
+     [0. 0. 1. 0. 0.]
+     [0. 0. 0. 0. 0.]
+     [0. 0. 0. 0. 0.]]
 
 A similar task can also be accomplished via the :func:`qutip.states.fock_dm` or :func:`qutip.states.ket2dm` functions:
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: fock_dm(5, 2)
+    print(fock_dm(5, 2))
 
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
 
-.. ipython::
+    Quantum object: dims = [[5], [5]], shape = (5, 5), type = oper, isherm = True
+    Qobj data =
+    [[0. 0. 0. 0. 0.]
+     [0. 0. 0. 0. 0.]
+     [0. 0. 1. 0. 0.]
+     [0. 0. 0. 0. 0.]
+     [0. 0. 0. 0. 0.]]
 
-    In [1]: ket2dm(ket)
+.. testcode:: [states]
 
+    print(ket2dm(ket))
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[5], [5]], shape = (5, 5), type = oper, isherm = True
+    Qobj data =
+    [[0. 0. 0. 0. 0.]
+     [0. 0. 0. 0. 0.]
+     [0. 0. 1. 0. 0.]
+     [0. 0. 0. 0. 0.]
+     [0. 0. 0. 0. 0.]]
 
 If we want to create a density matrix with equal classical probability of being found in the :math:`\left|2\right>` or :math:`\left|4\right>` number states we can do the following:
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: 0.5 * ket2dm(basis(5, 4)) + 0.5 * ket2dm(basis(5, 2))
+    print(0.5 * ket2dm(basis(5, 4)) + 0.5 * ket2dm(basis(5, 2)))
 
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[5], [5]], shape = (5, 5), type = oper, isherm = True
+    Qobj data =
+    [[0.  0.  0.  0.  0. ]
+     [0.  0.  0.  0.  0. ]
+     [0.  0.  0.5 0.  0. ]
+     [0.  0.  0.  0.  0. ]
+     [0.  0.  0.  0.  0.5]]
 
 or use ``0.5 * fock_dm(5, 2) + 0.5 * fock_dm(5, 4)``. There are also several other built-in functions for creating predefined density matrices, for example :func:`qutip.states.coherent_dm` and :func:`qutip.states.thermal_dm` which create coherent state and thermal state density matrices, respectively.
 
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: coherent_dm(5, 1.25)
+    print(coherent_dm(5, 1.25))
 
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
 
-.. ipython::
+    Quantum object: dims = [[5], [5]], shape = (5, 5), type = oper, isherm = True
+    Qobj data =
+    [[0.20980701 0.26141096 0.23509686 0.15572585 0.13390765]
+     [0.26141096 0.32570738 0.29292109 0.19402805 0.16684347]
+     [0.23509686 0.29292109 0.26343512 0.17449684 0.1500487 ]
+     [0.15572585 0.19402805 0.17449684 0.11558499 0.09939079]
+     [0.13390765 0.16684347 0.1500487  0.09939079 0.0854655 ]]
 
-    In [1]: thermal_dm(5, 1.25)
+.. testcode:: [states]
 
+    print(thermal_dm(5, 1.25))
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[5], [5]], shape = (5, 5), type = oper, isherm = True
+    Qobj data =
+    [[0.46927974 0.         0.         0.         0.        ]
+     [0.         0.26071096 0.         0.         0.        ]
+     [0.         0.         0.14483942 0.         0.        ]
+     [0.         0.         0.         0.08046635 0.        ]
+     [0.         0.         0.         0.         0.04470353]]
 
 QuTiP also provides a set of distance metrics for determining how close two density matrix distributions are to each other. Included are the trace distance :func:`qutip.metrics.tracedist`, fidelity :func:`qutip.metrics.fidelity`, Hilbert-Schmidt distance :func:`qutip.metrics.hilbert_dist`, Bures distance :func:`qutip.metrics.bures_dist`, Bures angle :func:`qutip.metrics.bures_angle`, and quantum Hellinger distance :func:`qutip.metrics.hellinger_dist`.
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: x = coherent_dm(5, 1.25)
+    x = coherent_dm(5, 1.25)
 
-    In [2]: y = coherent_dm(5, 1.25j)  # <-- note the 'j'
+    y = coherent_dm(5, np.complex(0, 1.25))  # <-- note the 'j'
 
-    In [3]: z = thermal_dm(5, 0.125)
+    z = thermal_dm(5, 0.125)
 
-    In [4]: fidelity(x, x)
+    np.testing.assert_almost_equal(fidelity(x, x), 1)
 
-    In [5]: tracedist(y, y)
-    
-    In [6]: hellinger_dist(y, y)
+    np.testing.assert_almost_equal(hellinger_dist(x, y), 1.3819080728932833)
 
 We also know that for two pure states, the trace distance (T) and the fidelity (F) are related by :math:`T = \sqrt{1 - F^{2}}`, while the quantum Hellinger distance (QHE) between two pure states :math:`\left|\psi\right>` and :math:`\left|\phi\right>` is given by :math:`QHE = \sqrt{2 - 2\left|\left<\psi | \phi\right>\right|^2}`.
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: tracedist(y, x)
-
-.. ipython::
-
-    In [1]: np.sqrt(1 - fidelity(y, x) ** 2)
-
+    np.testing.assert_almost_equal(tracedist(y, x), np.sqrt(1 - fidelity(y, x) ** 2))
 
 For a pure state and a mixed state, :math:`1 - F^{2} \le T` which can also be verified:
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: 1 - fidelity(x, z) ** 2
-
-.. ipython::
-
-    In [1]: tracedist(x, z)
-
+    assert 1 - fidelity(x, z) ** 2 < tracedist(x, z)
 
 .. _states-qubit:
 
@@ -267,59 +493,138 @@ Qubit (two-level) systems
 Having spent a fair amount of time on basis states that represent harmonic oscillator states, we now move on to qubit, or two-level quantum systems (for example a spin-1/2). To create a state vector corresponding to a qubit system, we use the same :func:`qutip.states.basis`, or :func:`qutip.states.fock`, function with only two levels:
 
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: spin = basis(2, 0)
+    spin = basis(2, 0)
 
 Now at this point one may ask how this state is different than that of a harmonic oscillator in the vacuum state truncated to two energy levels?
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: vac = basis(2, 0)
+    vac = basis(2, 0)
 
 At this stage, there is no difference.  This should not be surprising as we called the exact same function twice.  The difference between the two comes from the action of the spin operators :func:`qutip.operators.sigmax`, :func:`qutip.operators.sigmay`, :func:`qutip.operators.sigmaz`, :func:`qutip.operators.sigmap`, and :func:`qutip.operators.sigmam` on these two-level states.  For example, if ``vac`` corresponds to the vacuum state of a harmonic oscillator, then, as we have already seen, we can use the raising operator to get the :math:`\left|1\right>` state:
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: vac
+    print(vac)
 
-.. ipython::
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
 
-    In [1]: c = create(2)
+    Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
+    Qobj data =
+    [[1.]
+     [0.]]
 
-    In [2]: c * vac
+.. testcode:: [states]
 
+    c = create(2)
+
+    print(c * vac)
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
+    Qobj data =
+    [[0.]
+     [1.]]
 
 For a spin system, the operator analogous to the raising operator is the sigma-plus operator :func:`qutip.operators.sigmap`.  Operating on the ``spin`` state gives:
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: spin
+    print(spin)
 
-    In [2]: sigmap() * spin
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
+    Qobj data =
+    [[1.]
+     [0.]]
+
+.. testcode:: [states]
+
+    print(sigmap() * spin)
+
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
+    Qobj data =
+    [[0.]
+     [0.]]
 
 Now we see the difference!  The :func:`qutip.operators.sigmap` operator acting on the ``spin`` state returns the zero vector.  Why is this?  To see what happened, let us use the :func:`qutip.operators.sigmaz` operator:
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: sigmaz()
+    print(sigmaz())
 
-    In [2]: sigmaz() * spin
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
 
-    In [3]: spin2 = basis(2, 1)
+    Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = True
+    Qobj data =
+    [[ 1.  0.]
+     [ 0. -1.]]
 
-    In [4]: spin2
+.. testcode:: [states]
 
-    In [5]: sigmaz() * spin2
+    print(sigmaz() * spin)
 
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
+    Qobj data =
+    [[1.]
+     [0.]]
+
+.. testcode:: [states]
+
+    spin2 = basis(2, 1)
+
+    print(spin2)
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
+    Qobj data =
+    [[0.]
+     [1.]]
+
+.. testcode:: [states]
+
+    print(sigmaz() * spin2)
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+  Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
+  Qobj data =
+  [[ 0.]
+   [-1.]]
 
 The answer is now apparent.  Since the QuTiP :func:`qutip.operators.sigmaz` function uses the standard z-basis representation of the sigma-z spin operator, the ``spin`` state corresponds to the :math:`\left|\uparrow\right>` state of a two-level spin system while ``spin2`` gives the :math:`\left|\downarrow\right>` state.  Therefore, in our previous example ``sigmap() * spin``, we raised the qubit state out of the truncated two-level Hilbert space resulting in the zero state.
 
 While at first glance this convention might seem somewhat odd, it is in fact quite handy. For one, the spin operators remain in the conventional form. Second, when the spin system is in the :math:`\left|\uparrow\right>` state:
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: sigmaz() * spin
+    print(sigmaz() * spin)
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+  Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
+  Qobj data =
+  [[1.]
+   [0.]]
 
 the non-zero component is the zeroth-element of the underlying matrix (remember that python uses c-indexing, and matrices start with the zeroth element).  The :math:`\left|\downarrow\right>` state therefore has a non-zero entry in the first index position. This corresponds nicely with the quantum information definitions of qubit states, where the excited :math:`\left|\uparrow\right>` state is label as :math:`\left|0\right>`, and the :math:`\left|\downarrow\right>` state by :math:`\left|1\right>`.
 
@@ -332,80 +637,86 @@ Expectation values
 
 Some of the most important information about quantum systems comes from calculating the expectation value of operators, both Hermitian and non-Hermitian, as the state or density matrix of the system varies in time.  Therefore, in this section we demonstrate the use of the :func:`qutip.expect` function.  To begin:
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: vac = basis(5, 0)
+    vac = basis(5, 0)
 
-    In [2]: one = basis(5, 1)
+    one = basis(5, 1)
 
-    In [3]: c = create(5)
+    c = create(5)
 
-    In [4]: N = num(5)
+    N = num(5)
 
-    In [5]: expect(N, vac)
+    np.testing.assert_almost_equal(expect(N, vac), 0)
 
-    In [6]: expect(N, one)
+    np.testing.assert_almost_equal(expect(N, one), 1)
 
+    coh = coherent_dm(5, 1.0j)
 
-.. ipython::
+    np.testing.assert_almost_equal(expect(N, coh), 0.9970555745806597)
 
-    In [1]: coh = coherent_dm(5, 1.0j)
+    cat = (basis(5, 4) + 1.0j * basis(5, 3)).unit()
 
-    In [2]: expect(N, coh)
+    np.testing.assert_almost_equal(expect(c, cat), 0.9999999999999998j)
 
-.. ipython::
-
-    In [1]: cat = (basis(5, 4) + 1.0j * basis(5, 3)).unit()
-
-    In [2]: expect(c, cat)
 
 The :func:`qutip.expect` function also accepts lists or arrays of state vectors or density matrices for the second input:
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: states = [(c**k * vac).unit() for k in range(5)]  # must normalize
+    states = [(c**k * vac).unit() for k in range(5)]  # must normalize
 
-    In [2]: expect(N, states)
+    print(expect(N, states))
 
-.. ipython::
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
 
-    In [1]: cat_list = [(basis(5, 4) + x * basis(5, 3)).unit() for x in [0, 1.0j, -1.0, -1.0j]]
+    [0. 1. 2. 3. 4.]
 
-    In [2]: expect(c, cat_list)
+.. testcode:: [states]
+
+    cat_list = [(basis(5, 4) + x * basis(5, 3)).unit() for x in [0, 1.0j, -1.0, -1.0j]]
+
+    print(expect(c, cat_list))
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    [ 0.+0.j  0.+1.j -1.+0.j  0.-1.j]
 
 Notice how in this last example, all of the return values are complex numbers.  This is because the :func:`qutip.expect` function looks to see whether the operator is Hermitian or not.  If the operator is Hermitian, than the output will always be real.  In the case of non-Hermitian operators, the return values may be complex.  Therefore, the :func:`qutip.expect` function will return an array of complex values for non-Hermitian operators when the input is a list/array of states or density matrices.
 
 Of course, the :func:`qutip.expect` function works for spin states and operators:
 
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: up = basis(2, 0)
+    up = basis(2, 0)
 
-    In [2]: down = basis(2, 1)
+    down = basis(2, 1)
 
-    In [3]: expect(sigmaz(), up)
+    np.testing.assert_almost_equal(expect(sigmaz(), up), 1)
 
-    In [4]: expect(sigmaz(), down)
+    np.testing.assert_almost_equal(expect(sigmaz(), down), -1)
 
 
 as well as the composite objects discussed in the next section :ref:`tensor`:
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: spin1 = basis(2, 0)
+    spin1 = basis(2, 0)
 
-    In [2]: spin2 = basis(2, 1)
+    spin2 = basis(2, 1)
 
-    In [3]: two_spins = tensor(spin1, spin2)
+    two_spins = tensor(spin1, spin2)
 
-    In [4]: sz1 = tensor(sigmaz(), qeye(2))
+    sz1 = tensor(sigmaz(), qeye(2))
 
-    In [5]: sz2 = tensor(qeye(2), sigmaz())
+    sz2 = tensor(qeye(2), sigmaz())
 
-    In [6]: expect(sz1, two_spins)
+    np.testing.assert_almost_equal(expect(sz1, two_spins), 1)
 
-    In [7]: expect(sz2, two_spins)
+    np.testing.assert_almost_equal(expect(sz2, two_spins), -1)
 
 .. _states-super:
 
@@ -424,21 +735,43 @@ This isomorphism is implemented in QuTiP by the
 :obj:`~qutip.superoperator.operator_to_vector` and
 :obj:`~qutip.superoperator.vector_to_operator` functions:
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: psi = basis(2, 0)
+    psi = basis(2, 0)
 
-    In [2]: rho = ket2dm(psi)
+    rho = ket2dm(psi)
 
-    In [3]: rho
+    print(rho)
 
-    In [4]: vec_rho = operator_to_vector(rho)
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
 
-    In [5]: vec_rho
+    Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = True
+    Qobj data =
+    [[1. 0.]
+     [0. 0.]]
 
-    In [6]: rho2 = vector_to_operator(vec_rho)
+.. testcode:: [states]
 
-    In [7]: (rho - rho2).norm()
+    vec_rho = operator_to_vector(rho)
+
+    print(vec_rho)
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+  Quantum object: dims = [[[2], [2]], [1]], shape = (4, 1), type = operator-ket
+  Qobj data =
+  [[1.]
+   [0.]
+   [0.]
+   [0.]]
+
+.. testcode:: [states]
+
+    rho2 = vector_to_operator(vec_rho)
+
+    np.testing.assert_almost_equal((rho - rho2).norm(), 0)
 
 The :attr:`~qutip.Qobj.type` attribute indicates whether a quantum object is
 a vector corresponding to an operator (``operator-ket``), or its Hermitian
@@ -447,15 +780,34 @@ conjugate (``operator-bra``).
 Note that QuTiP uses the *column-stacking* convention for the isomorphism
 between :math:`\mathcal{L}(\mathcal{H})` and :math:`\mathcal{H} \otimes \mathcal{H}`:
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: import numpy as np
+    A = Qobj(np.arange(4).reshape((2, 2)))
 
-    In [2]: A = Qobj(np.arange(4).reshape((2, 2)))
+    print(A)
 
-    In [3]: A
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
 
-    In [4]: operator_to_vector(A)
+    Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = False
+    Qobj data =
+    [[0. 1.]
+     [2. 3.]]
+
+.. testcode:: [states]
+
+    print(operator_to_vector(A))
+
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[[2], [2]], [1]], shape = (4, 1), type = operator-ket
+    Qobj data =
+    [[0.]
+     [2.]
+     [1.]
+     [3.]]
 
 Since :math:`\mathcal{H} \otimes \mathcal{H}` is a vector space, linear maps
 on this space can be represented as matrices, often called *superoperators*.
@@ -463,51 +815,76 @@ Using the :obj:`~qutip.Qobj`, the :obj:`~qutip.superoperator.spre` and :obj:`~qu
 corresponding to left- and right-multiplication respectively can be quickly
 constructed.
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: X = sigmax()
+    X = sigmax()
 
-    In [2]: S = spre(X) * spost(X.dag()) # Represents conjugation by X.
+    S = spre(X) * spost(X.dag()) # Represents conjugation by X.
 
 Note that this is done automatically by the :obj:`~qutip.superop_reps.to_super` function when given
 ``type='oper'`` input.
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: S2 = to_super(X)
+    S2 = to_super(X)
 
-    In [2]: (S - S2).norm()
+    np.testing.assert_almost_equal((S - S2).norm(), 0)
 
 Quantum objects representing superoperators are denoted by ``type='super'``:
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: S
+  print(S)
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+  Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = (4, 4), type = super, isherm = True
+  Qobj data =
+  [[0. 0. 0. 1.]
+   [0. 0. 1. 0.]
+   [0. 1. 0. 0.]
+   [1. 0. 0. 0.]]
 
 Information about superoperators, such as whether they represent completely
 positive maps, is exposed through the :attr:`~qutip.Qobj.iscp`, :attr:`~qutip.Qobj.istp`
 and :attr:`~qutip.Qobj.iscptp` attributes:
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: S.iscp, S.istp, S.iscptp
+    print(S.iscp, S.istp, S.iscptp)
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    True True True
 
 In addition, dynamical generators on this extended space, often called
 *Liouvillian superoperators*, can be created using the :func:`~qutip.superoperator.liouvillian` function. Each of these takes a Hamilonian along with
 a list of collapse operators, and returns a ``type="super"`` object that can
 be exponentiated to find the superoperator for that evolution.
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: H = 10 * sigmaz()
+    H = 10 * sigmaz()
 
-    In [2]: c1 = destroy(2)
+    c1 = destroy(2)
 
-    In [3]: L = liouvillian(H, [c1])
+    L = liouvillian(H, [c1])
 
-    In [4]: L
+    print(L)
 
-    In [5]: S = (12 * L).expm()
+    S = (12 * L).expm()
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = (4, 4), type = super, isherm = False
+    Qobj data =
+    [[ 0.  +0.j  0.  +0.j  0.  +0.j  1.  +0.j]
+     [ 0.  +0.j -0.5+20.j  0.  +0.j  0.  +0.j]
+     [ 0.  +0.j  0.  +0.j -0.5-20.j  0.  +0.j]
+     [ 0.  +0.j  0.  +0.j  0.  +0.j -1.  +0.j]]
 
 For qubits, a particularly useful way to visualize superoperators is to plot them in the Pauli basis,
 such that :math:`S_{\mu,\nu} = \langle\!\langle \sigma_{\mu} | S[\sigma_{\nu}] \rangle\!\rangle`. Because
@@ -549,33 +926,87 @@ convention,
 In QuTiP, :math:`J(\Lambda)` can be found by calling the :func:`~qutip.superop_reps.to_choi`
 function on a ``type="super"`` :ref:`Qobj`.
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: X = sigmax()
+    X = sigmax()
 
-    In [2]: S = sprepost(X, X)
+    S = sprepost(X, X)
 
-    In [3]: J = to_choi(S)
+    J = to_choi(S)
 
-    In [4]: print(J)
+    print(J)
 
-    In [5]: print(to_choi(spre(qeye(2))))
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = (4, 4), type = super, isherm = True, superrep = choi
+    Qobj data =
+    [[0. 0. 0. 0.]
+     [0. 1. 1. 0.]
+     [0. 1. 1. 0.]
+     [0. 0. 0. 0.]]
+
+.. testcode:: [states]
+
+    print(to_choi(spre(qeye(2))))
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+  Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = (4, 4), type = super, isherm = True, superrep = choi
+  Qobj data =
+  [[1. 0. 0. 1.]
+   [0. 0. 0. 0.]
+   [0. 0. 0. 0.]
+   [1. 0. 0. 1.]]
 
 If a :ref:`Qobj` instance is already in the Choi :attr:`~Qobj.superrep`, then calling :func:`~qutip.superop_reps.to_choi`
 does nothing:
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: print(to_choi(J))
+    print(to_choi(J))
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = (4, 4), type = super, isherm = True, superrep = choi
+    Qobj data =
+    [[0. 0. 0. 0.]
+     [0. 1. 1. 0.]
+     [0. 1. 1. 0.]
+     [0. 0. 0. 0.]]
 
 To get back to the superoperator representation, simply use the :func:`~qutip.superop_reps.to_super` function.
 As with :func:`~qutip.superop_reps.to_choi`, :func:`~qutip.superop_reps.to_super` is idempotent:
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: print(to_super(J) - S)
+    print(to_super(J) - S)
 
-    In [2]: print(to_super(S))
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = (4, 4), type = super, isherm = True
+    Qobj data =
+    [[0. 0. 0. 0.]
+     [0. 0. 0. 0.]
+     [0. 0. 0. 0.]
+     [0. 0. 0. 0.]]
+
+.. testcode:: [states]
+
+    print(to_super(S))
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = (4, 4), type = super, isherm = True
+    Qobj data =
+    [[0. 0. 0. 1.]
+     [0. 0. 1. 0.]
+     [0. 1. 0. 0.]
+     [1. 0. 0. 0.]]
 
 We can quickly obtain another useful representation from the Choi matrix by taking its eigendecomposition.
 In particular, let :math:`\{A_i\}` be a set of operators such that
@@ -599,39 +1030,150 @@ we have that
 The Kraus representation of a hermicity-preserving map can be found in QuTiP
 using the :func:`~qutip.superop_reps.to_kraus` function.
 
-.. ipython::
-    :suppress:
+.. testcode:: [states]
 
-    In [1]: del sum # np.sum overwrote sum and caused a bug.
+    del sum # np.sum overwrote sum and caused a bug.
 
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: I, X, Y, Z = qeye(2), sigmax(), sigmay(), sigmaz()
+    I, X, Y, Z = qeye(2), sigmax(), sigmay(), sigmaz()
 
-    In [2]: S = sum([sprepost(P, P) for P in (I, X, Y, Z)]) / 4
-       ...: print(S)
+.. testcode:: [states]
 
-    In [3]: J = to_choi(S)
-       ...: print(J)
+    S = sum([sprepost(P, P) for P in (I, X, Y, Z)]) / 4
+    print(S)
 
-    In [4]: print(J.eigenstates()[1])
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
 
-    In [5]: K = to_kraus(S)
-       ...: print(K)
+    Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = (4, 4), type = super, isherm = True
+    Qobj data =
+    [[0.5 0.  0.  0.5]
+     [0.  0.  0.  0. ]
+     [0.  0.  0.  0. ]
+     [0.5 0.  0.  0.5]]
+
+.. testcode:: [states]
+
+    J = to_choi(S)
+    print(J)
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = (4, 4), type = super, isherm = True, superrep = choi
+    Qobj data =
+    [[0.5 0.  0.  0. ]
+     [0.  0.5 0.  0. ]
+     [0.  0.  0.5 0. ]
+     [0.  0.  0.  0.5]]
+
+.. testcode:: [states]
+
+    print(J.eigenstates()[1])
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    [Quantum object: dims = [[[2], [2]], [1, 1]], shape = (4, 1), type = operator-ket
+    Qobj data =
+    [[1.]
+     [0.]
+     [0.]
+     [0.]]
+     Quantum object: dims = [[[2], [2]], [1, 1]], shape = (4, 1), type = operator-ket
+    Qobj data =
+    [[0.]
+     [1.]
+     [0.]
+     [0.]]
+     Quantum object: dims = [[[2], [2]], [1, 1]], shape = (4, 1), type = operator-ket
+    Qobj data =
+    [[0.]
+     [0.]
+     [1.]
+     [0.]]
+     Quantum object: dims = [[[2], [2]], [1, 1]], shape = (4, 1), type = operator-ket
+    Qobj data =
+    [[0.]
+     [0.]
+     [0.]
+     [1.]]]
+
+.. testcode:: [states]
+
+    K = to_kraus(S)
+    print(K)
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    [Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = True
+    Qobj data =
+    [[0.70710678 0.        ]
+     [0.         0.        ]], Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = False
+    Qobj data =
+    [[0.         0.        ]
+     [0.70710678 0.        ]], Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = False
+    Qobj data =
+    [[0.         0.70710678]
+     [0.         0.        ]], Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = True
+    Qobj data =
+    [[0.         0.        ]
+     [0.         0.70710678]]]
 
 As with the other representation conversion functions, :func:`~qutip.superop_reps.to_kraus`
 checks the :attr:`~Qobj.superrep` attribute of its input, and chooses an appropriate
 conversion method. Thus, in the above example, we can also call :func:`~qutip.superop_reps.to_kraus`
 on ``J``.
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: KJ = to_kraus(J)
-       ...: print(KJ)
+    KJ = to_kraus(J)
+    print(KJ)
 
-    In [2]: for A, AJ in zip(K, KJ):
-       ...:     print(A - AJ)
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    [Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = True
+    Qobj data =
+    [[0.70710678 0.        ]
+     [0.         0.        ]], Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = False
+    Qobj data =
+    [[0.         0.        ]
+     [0.70710678 0.        ]], Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = False
+    Qobj data =
+    [[0.         0.70710678]
+     [0.         0.        ]], Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = True
+    Qobj data =
+    [[0.         0.        ]
+     [0.         0.70710678]]]
+
+.. testcode:: [states]
+
+    for A, AJ in zip(K, KJ):
+      print(A - AJ)
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = True
+    Qobj data =
+    [[0. 0.]
+     [0. 0.]]
+    Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = True
+    Qobj data =
+    [[0. 0.]
+     [0. 0.]]
+    Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = True
+    Qobj data =
+    [[0. 0.]
+     [0. 0.]]
+    Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = True
+    Qobj data =
+    [[0. 0.]
+     [0. 0.]]
 
 The Stinespring representation is closely related to the Kraus representation,
 and consists of a pair of operators :math:`A` and :math:`B` such that for
@@ -646,28 +1188,72 @@ index in the Kraus summation. Conversion to Stinespring
 is handled by the :func:`~qutip.superop_reps.to_stinespring`
 function.
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: a = create(2).dag()
+    a = create(2).dag()
 
-    In [2]: S_ad = sprepost(a * a.dag(), a * a.dag()) + sprepost(a, a.dag())
-       ...: S = 0.9 * sprepost(I, I) + 0.1 * S_ad
-       ...: print(S)
+    S_ad = sprepost(a * a.dag(), a * a.dag()) + sprepost(a, a.dag())
+    S = 0.9 * sprepost(I, I) + 0.1 * S_ad
 
-    In [3]: A, B = to_stinespring(S)
-       ...: print(A)
-       ...: print(B)
+    print(S)
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = (4, 4), type = super, isherm = False
+    Qobj data =
+    [[1.  0.  0.  0.1]
+     [0.  0.9 0.  0. ]
+     [0.  0.  0.9 0. ]
+     [0.  0.  0.  0.9]]
+
+.. testcode:: [states]
+
+    A, B = to_stinespring(S)
+    print(A)
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[2, 3], [2]], shape = (6, 2), type = oper, isherm = False
+    Qobj data =
+    [[-0.98845443  0.        ]
+     [ 0.          0.31622777]
+     [ 0.15151842  0.        ]
+     [ 0.         -0.93506452]
+     [ 0.          0.        ]
+     [ 0.         -0.16016975]]
+
+.. testcode:: [states]
+
+    print(B)
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[2, 3], [2]], shape = (6, 2), type = oper, isherm = False
+    Qobj data =
+    [[-0.98845443  0.        ]
+     [ 0.          0.31622777]
+     [ 0.15151842  0.        ]
+     [ 0.         -0.93506452]
+     [ 0.          0.        ]
+     [ 0.         -0.16016975]]
 
 Notice that a new index has been added, such that :math:`A` and :math:`B`
 have dimensions ``[[2, 3], [2]]``, with the length-3 index representing the
 fact that the Choi matrix is rank-3 (alternatively, that the map has three
 Kraus operators).
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: to_kraus(S)
+    to_kraus(S)
+    print(to_choi(S).eigenenergies())
 
-    In [2]: print(to_choi(S).eigenenergies())
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    [0.         0.04861218 0.1        1.85138782]
 
 Finally, the last superoperator representation supported by QuTiP is
 the :math:`\chi`-matrix representation,
@@ -682,20 +1268,36 @@ basis :math:`B_\alpha = \sigma_\alpha / \sqrt{2}`. Conversion to the
 :math:`\chi` formalism is handled by the :func:`~qutip.superop_reps.to_chi`
 function.
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: chi = to_chi(S)
-       ...: print(chi)
+    chi = to_chi(S)
+    print(chi)
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = (4, 4), type = super, isherm = True, superrep = chi
+    Qobj data =
+    [[3.7+0.j  0. +0.j  0. +0.j  0.1+0.j ]
+     [0. +0.j  0.1+0.j  0. +0.1j 0. +0.j ]
+     [0. +0.j  0. -0.1j 0.1+0.j  0. +0.j ]
+     [0.1+0.j  0. +0.j  0. +0.j  0.1+0.j ]]
+
 
 One convenient property of the :math:`\chi` matrix is that the average
 gate fidelity with the identity map can be read off directly from
 the :math:`\chi_{00}` element:
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: print(average_gate_fidelity(S))
+    np.testing.assert_almost_equal(average_gate_fidelity(S), 0.9499999999999998)
 
-    In [2]: print(chi[0, 0] / 4)
+    print(chi[0, 0] / 4)
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    (0.925+0j)
 
 Here, the factor of 4 comes from the dimension of the underlying
 Hilbert space :math:`\mathcal{H}`. As with the superoperator
@@ -719,12 +1321,16 @@ transpose map :math:`\Lambda(\rho) = \rho^{\mathrm{T}}` is a positive map. We ru
 problems, however, if we tensor :math:`\Lambda` with the identity to get a partial
 transpose map.
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: rho = ket2dm(bell_state())
+    rho = ket2dm(bell_state())
+    rho_out = partial_transpose(rho, [0, 1])
+    print(rho_out.eigenenergies())
 
-    In [2]: rho_out = partial_transpose(rho, [0, 1])
-       ...: print(rho_out.eigenenergies())
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+    [-0.5  0.5  0.5  0.5]
 
 Notice that even though we started with a positive map, we got an operator out
 with negative eigenvalues. Complete positivity addresses this by requiring that
@@ -737,14 +1343,17 @@ the Choi matrix of the transpose map by acting it on half of an entangled
 pair. We simply need to manually set the ``dims`` and ``superrep`` attributes to reflect the
 structure of the underlying Hilbert space and the chosen representation.
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: J = rho_out
+    J = rho_out
+    J.dims = [[[2], [2]], [[2], [2]]]
+    J.superrep = 'choi'
+    print(J.iscp)
 
-    In [2]: J.dims = [[[2], [2]], [[2], [2]]]
-       ...: J.superrep = 'choi'
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
 
-    In [3]: print(J.iscp)
+  False
 
 This confirms that the transpose map is not completely positive. On the other hand,
 the transpose map does satisfy a weaker condition, namely that it is hermicity preserving.
@@ -754,24 +1363,36 @@ That is, :math:`\Lambda(\rho) = (\Lambda(\rho))^\dagger` for all :math:`\rho` su
 = (\rho^*)^{\mathrm{T}}`, though, such that :math:`\Lambda(\rho) = \Lambda(\rho^\dagger) = \rho^*`.
 We can confirm this by checking the :attr:`~Qobj.ishp` attribute:
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: print(J.ishp)
+    print(J.ishp)
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+  True
 
 Next, we note that the transpose map does preserve the trace of its inputs, such that
 :math:`\operatorname{Tr}(\Lambda[\rho]) = \operatorname{Tr}(\rho)` for all :math:`\rho`.
 This can be confirmed by the :attr:`~Qobj.istp` attribute:
 
-.. ipython::
+.. testcode:: [states]
 
-    In [1]: print(J.istp)
+    print(J.istp)
+
+.. testoutput:: [states]
+  :options: +NORMALIZE_WHITESPACE
+
+  False
 
 Finally, a map is called a quantum channel if it always maps valid states to valid
 states. Formally, a map is a channel if it is both completely positive and trace preserving.
 Thus, QuTiP provides a single attribute to quickly check that this is true.
 
-.. ipython::
+.. doctest:: [states]
 
-    In [1]: print(J.iscptp)
+    >>> print(J.iscptp)
+    False
 
-    In [2]: print(to_super(qeye(2)).iscptp)
+    >>> print(to_super(qeye(2)).iscptp)
+    True

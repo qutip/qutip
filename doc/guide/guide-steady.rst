@@ -1,4 +1,4 @@
-.. QuTiP 
+.. QuTiP
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
 .. _steady:
@@ -8,15 +8,6 @@ Solving for Steady-State Solutions
 *************************************
 
 .. important:: Updated in QuTiP 3.2.
-
-.. ipython::
-   :suppress:
-   
-   In [1]: import numpy as np
-   
-   In [1]: from pylab import *
-   
-   In [1]: from qutip import *
 
 .. _steady-intro:
 
@@ -31,9 +22,9 @@ For time-independent open quantum systems with decay rates larger than the corre
 Although the requirement for time-independence seems quite resitrictive, one can often employ a transformation to the interaction picture that yields a time-independent Hamiltonian.  For many these systems, solving for the asymptotic density matrix :math:`\hat{\rho}_{ss}` can be achieved using direct or iterative solution methods faster than using master equation or Monte Carlo simulations.  Although the steady state equation has a simple mathematical form, the properties of the Liouvillian operator are such that the solutions to this equation are anything but straightforward to find.
 
 Steady State solvers in QuTiP
-============================= 
+=============================
 
-In QuTiP, the steady-state solution for a system Hamiltonian or Liouvillian is given by :func:`qutip.steadystate.steadystate`.  This function implements a number of different methods for finding the steady state, each with their own pros and cons, where the method used can be chosen using the ``method`` keyword argument. 
+In QuTiP, the steady-state solution for a system Hamiltonian or Liouvillian is given by :func:`qutip.steadystate.steadystate`.  This function implements a number of different methods for finding the steady state, each with their own pros and cons, where the method used can be chosen using the ``method`` keyword argument.
 
 .. cssclass:: table-striped
 
@@ -84,10 +75,10 @@ Solving for the steady state solution to the Lindblad master equation for a gene
 where ``H`` is a quantum object representing the system Hamiltonian, and ``c_ops`` is a list of quantum objects for the system collapse operators. The output, labeled as ``rho_ss``, is the steady-state solution for the systems.  If no other keywords are passed to the solver, the default 'direct' method is used, generating a solution that is exact to machine precision at the expense of a large memory requirement.  The large amount of memory need for the direct LU decomposition method stems from the large bandwidth of the system Liouvillian and the correspondingly large fill-in (extra nonzero elements) generated in the LU factors.  This fill-in can be reduced by using bandwidth minimization algorithms such as those discussed in :ref:`steady-args`.  However, in most cases, the default fill-in reducing algorithm is nearly optimal.  Additional parameters may be used by calling the steady-state solver as:
 
 .. code-block:: python
-   
+
    rho_ss = steadystate(H, c_ops, method='power', use_rcm=True)
 
-where ``method='power'`` indicates that we are using the inverse-power solution method, and ``use_rcm=True`` turns on a bandwidth minimization routine.  
+where ``method='power'`` indicates that we are using the inverse-power solution method, and ``use_rcm=True`` turns on a bandwidth minimization routine.
 
 
 Although it is not obvious, the ``'direct'``, ``eigen``, and ``'power'`` methods all use an LU decomposition internally and thus suffer from a large memory overhead.  In contrast, iterative methods such as the ``'iterative-gmres'``, ``'iterative-lgmres'``, and ``'iterative-bicgstab'`` methods do not factor the matrix and thus take less memory than these previous methods and allowing, in principle, for extremely large system sizes. The downside is that these methods can take much longer than the direct method as the condition number of the Liouvillian matrix is large, indicating that these iterative methods require a large number of iterations for convergence.  To overcome this, one can use a preconditioner :math:`M` that solves for an approximate inverse for the (modified) Liouvillian, thus better conditioning the problem, leading to faster convergence.  The use of a preconditioner can actually make these iterative methods faster than the other solution methods.  The problem with precondioning is that it is only well defined for Hermitian matrices.  Since the Liouvillian is non-Hermitian, the ability to find a good preconditioner is not guaranteed.  And moreover, if a preconditioner is found, it is not guaranteed to have a good condition number. QuTiP can make use of an incomplete LU preconditioner when using the iterative ``'gmres'``, ``'lgmres'``, and ``'bicgstab'`` solvers by setting ``use_precond=True``. The preconditioner optionally makes use of a combination of symmetric and anti-symmetric matrix permutations that attempt to improve the preconditioning process.  These features are discussed in the :ref:`steady-args` section.  Even with these state-of-the-art permutations, the generation of a successful preconditoner for non-symmetric matrices is currently a trial-and-error process due to the lack of mathematical work done in this area.  It is always recommended to begin with the direct solver with no additional arguments before selecting a different method.
@@ -96,7 +87,7 @@ Finding the steady-state solution is not limited to the Lindblad form of the mas
 
 >>> rho_ss = steadystate(L)
 
-where ``L`` is the Louvillian.  All of the additional arguments can also be used in this case. 
+where ``L`` is the Louvillian.  All of the additional arguments can also be used in this case.
 
 
 .. _steady-args:
@@ -111,7 +102,7 @@ The following additional solver arguments are available for the steady-state sol
 .. list-table::
    :widths: 10 30 60
    :header-rows: 1
-   
+
    * - Keyword
      - Options (default listed first)
      - Description
@@ -170,5 +161,3 @@ A simple example of a system that reaches a steady state is a harmonic oscillato
 
 .. plot:: guide/scripts/ex_steady.py
    :include-source:
-
-

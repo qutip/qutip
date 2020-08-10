@@ -9,15 +9,6 @@ Permutational Invariance
 
 .. _master-unitary:
 
-.. ipython::
-   :suppress:
-
-   In [1]: from qutip import *
-
-   In [1]: import numpy as np
-
-   In [1]: from qutip.piqs import *
-
 Permutational Invariant Quantum Solver (PIQS)
 ====================
 The *Permutational Invariant Quantum Solver (PIQS)* is a QuTiP module that allows to study the dynamics of an open quantum system consisting of an ensemble of identical qubits that can dissipate through local and collective baths according to a Lindblad master equation.

@@ -7,12 +7,11 @@
 Measurement of Quantum Objects
 ******************************
 
-.. ipython::
-   :suppress:
+.. testsetup:: [measurement]
 
-   In [1]: from qutip import basis, sigmax, sigmaz
+   from qutip import basis, sigmax, sigmaz
 
-   In [1]: from qutip.measurement import measure, measurement_statistics
+   from qutip.measurement import measure, measurement_statistics
 
 
 .. _measurement-intro:
@@ -37,11 +36,11 @@ Performing a basic measurement
 First we need to select some states to measure. For now, let us create an *up*
 state and a *down* state:
 
-.. ipython::
+.. testcode:: [measurement]
 
-   In [1]: up = basis(2, 0)
+   up = basis(2, 0)
 
-   In [1]: down = basis(2, 1)
+   down = basis(2, 1)
 
 which represent spin-1/2 particles with their spin pointing either up or down
 along the z-axis.
@@ -51,11 +50,11 @@ we could select :func:`~qutip.sigmaz` which measures the z-component of the
 spin of a spin-1/2 particle, or :func:`~qutip.sigmax` which measures the
 x-component:
 
-.. ipython::
+.. testcode:: [measurement]
 
-   In [1]: spin_z = sigmaz()
+   spin_z = sigmaz()
 
-   In [1]: spin_x = sigmax()
+   spin_x = sigmax()
 
 How do we know what these operators measure? The answer lies in the measurement
 procedure itself:
@@ -69,7 +68,7 @@ procedure itself:
 * The value returned by the measurement is the eigenvalue corresponding to the
   chosen eigenvector.
 
-.. note::
+.. note:: [measurement]
 
    How to interpret this "random choosing" is the famous
    "quantum measurement problem".
@@ -83,11 +82,12 @@ left or right, so it measures the component of the spin along the x-axis.
 When we measure our `up` and `down` states using the operator `spin_z`, we
 always obtain:
 
-.. ipython::
+.. testcode:: [measurement]
+  :skipif: True
 
-   In [1]: measure(spin_z, up) == (1.0, -up)
+   measure(spin_z, up) == (1.0, -up)
 
-   In [1]: measure(spin_z, down) == (-1.0, -down)
+   measure(spin_z, down) == (-1.0, -down)
 
 because `up` is the eigenvector of `spin_z` with eigenvalue `1.0` and `down`
 is the eigenvector with eigenvalue `-1.0`. The minus signs are just an
@@ -105,9 +105,9 @@ i.e. an eigenvector of the operator (e.g. `up`).
 Now let us consider what happens if we measure the x-component of the spin
 of `up`:
 
-.. ipython::
+.. testcode:: [measurement]
 
-   In [1]: measure(spin_x, up)
+   measure(up, spin_x)
 
 The `up` state is not an eigenvector of `spin_x`. `spin_x` has two eigenvectors
 which we will call `left` and `right`. The `up` state has equal components in
@@ -116,11 +116,11 @@ the direction of these two vectors, so measurement will select each of them
 
 These `left` and `right` states are:
 
-.. ipython::
+.. testcode:: [measurement]
 
-   In [1]: left = (up - down).unit()
+   left = (up - down).unit()
 
-   In [1]: right = (up + down).unit()
+   right = (up + down).unit()
 
 When `left` is chosen, the result of the measurement will be `(-1.0, -left)`.
 
@@ -144,14 +144,18 @@ a large number of measurements?
 One way would be to repeat the measurement many times -- and this is what
 happens in many quantum experiments. In QuTiP one could simulate this using:
 
-.. ipython::
+.. testcode:: [measurement]
+  :skipif: True
 
-   In [1]: results = {1.0: 0, -1.0: 0}  # 1 and -1 are the possible outcomes
-      ...: for _ in range(1000):
-      ...:     value, new_state = measure(spin_x, up)
-      ...:     results[value] += 1
-      ...: results
-   Out[1]: {1.0: 498, -1.0: 502}
+   results = {1.0: 0, -1.0: 0}  # 1 and -1 are the possible outcomes
+   for _ in range(1000):
+      value, new_state = measure(up, spin_x)
+      results[value] += 1
+   print(results)
+
+.. testoutput:: [measurement]
+  :skipif: True
+  {1.0: 498, -1.0: 502}
 
 which measures the x-component of the spin of the `up` state `1000` times and
 stores the results in a dictionary. Afterwards we expect to have seen the
@@ -164,17 +168,26 @@ physical system, we would have to perform the measurement many many times,
 but in QuTiP we can peak at the state itself and determine the probability
 distribution of the outcomes exactly in a single line:
 
-.. ipython::
+.. doctest:: [measurement]
+  :skipif: True
 
-   In [1]: eigenvalues, eigenstates, probabilities = measurement_statistics(spin_x, up)
+   >>> eigenvalues, eigenstates, probabilities = measurement_statistics(up, spin_x)
 
-   In [1]: eigenvalues
-   Out[1]: array([-1., -1.])
+   >>> eigenvalues
+   array([-1., -1.])
 
-   In [1]: eigenstates
+   >>> eigenstates
+      array([Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
+      Qobj data =
+      [[-0.70710678]
+       [ 0.70710678]],
+             Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
+      Qobj data =
+      [[0.70710678]
+       [0.70710678]]], dtype=object)
 
-   In [1]: probabilities
-   Out[1]: [0.5000000000000001, 0.5000000000000001]
+   >>> probabilities
+   [0.5000000000000001, 0.5000000000000001]
 
 The :func:`~qutip.measurement.measure` function returns three values:
 

@@ -16,18 +16,14 @@ First things first
 
 To load the qutip modules, we must first call the import statement:
 
-.. ipython::
-
-    In [1]: from qutip import *
-
 
 that will load all of the user available functions. Often, we also need to import the NumPy and Matplotlib libraries with:
 
-.. ipython::
+.. code-block:: Python
 
-   In [1]: import numpy as np
+   import numpy as np
 
-   In [2]: import matplotlib.pyplot as plt
+   import matplotlib.pyplot as plt
 
 Note that, in the rest of the documentation, functions are written using `qutip.module.function()` notation which links to the corresponding function in the QuTiP API: :ref:`functions`. However, in calling `import *`, we have already loaded all of the QuTiP modules. Therefore, we will only need the function name and not the complete path when calling the function from the interpreter prompt, Python script, or Jupyter notebook.
 
@@ -45,9 +41,17 @@ The key difference between classical and quantum mechanics lies in the use of op
 
 To begin, let us create a blank ``Qobj``:
 
-.. ipython::
+.. testcode:: [basics]
 
-    In [1]: Qobj()
+    print(Qobj())
+
+.. testoutput:: [basics]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[1], [1]], shape = (1, 1), type = bra
+    Qobj data =
+    [[0.]]
+
 
 where we see the blank ``Qobj`` object with dimensions, shape, and data. Here the data corresponds to a 1x1-dimensional matrix consisting of a single zero entry.
 
@@ -55,18 +59,48 @@ where we see the blank ``Qobj`` object with dimensions, shape, and data. Here th
 
 We can create a ``Qobj`` with a user defined data set by passing a list or array of data into the ``Qobj``:
 
-.. ipython::
+.. testcode:: [basics]
 
-    In [1]: Qobj([[1],[2],[3],[4],[5]])
+    print(Qobj([[1],[2],[3],[4],[5]]))
 
-    In [2]: x = np.array([[1, 2, 3, 4, 5]])
+.. testoutput:: [basics]
+  :options: +NORMALIZE_WHITESPACE
 
-    In [3]: Qobj(x)
+    Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
+    Qobj data =
+    [[1.]
+    [2.]
+    [3.]
+    [4.]
+    [5.]]
 
-    In [4]: r = np.random.rand(4, 4)
+.. testcode:: [basics]
 
-    In [5]: Qobj(r)
+    x = np.array([[1, 2, 3, 4, 5]])
+    print(Qobj(x))
 
+.. testoutput:: [basics]
+  :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[1], [5]], shape = (1, 5), type = bra
+    Qobj data =
+    [[1. 2. 3. 4. 5.]]
+
+.. testcode:: [basics]
+  :options: +NORMALIZE_WHITESPACE
+    :skipif: True
+    r = np.random.rand(4, 4)
+    print(Qobj(r))
+
+.. testoutput:: [basics]
+  :options: +SKIP
+
+    Quantum object: dims = [[4], [4]], shape = (4, 4), type = oper, isherm = False
+    Qobj data =
+    [[0.80891494 0.80278898 0.33983968 0.04215302]
+     [0.98991331 0.22610373 0.70347075 0.42928218]
+     [0.60515625 0.09007662 0.63876191 0.94787943]
+     [0.19734676 0.97222882 0.68423903 0.3205153 ]]
 
 Notice how both the dims and shape change according to the input data.  Although dims and shape appear to have the same function, the difference will become quite clear in the section on :ref:`tensor products and partial traces <tensor>`.
 
@@ -162,17 +196,50 @@ and operators:
 
 As an example, we give the output for a few of these functions:
 
-.. ipython::
+.. doctest:: [basics]
+  :options: +NORMALIZE_WHITESPACE
 
-   In [1]: basis(5,3)
+   >>> basis(5,3)
+   Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
+   Qobj data =
+   [[0.]
+    [0.]
+    [0.]
+    [1.]
+    [0.]]
 
-   In [2]: coherent(5,0.5-0.5j)
+   >>> coherent(5,0.5-0.5j)
+   Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
+   Qobj data =
+   [[ 0.7788017 +0.j        ]
+    [ 0.38939142-0.38939142j]
+    [ 0.        -0.27545895j]
+    [-0.07898617-0.07898617j]
+    [-0.04314271+0.j        ]]
 
-   In [3]: destroy(4)
+   >>> destroy(4)
+   Quantum object: dims = [[4], [4]], shape = (4, 4), type = oper, isherm = False
+   Qobj data =
+   [[0.         1.         0.         0.        ]
+    [0.         0.         1.41421356 0.        ]
+    [0.         0.         0.         1.73205081]
+    [0.         0.         0.         0.        ]]
 
-   In [4]: sigmaz()
+   >>> sigmaz()
+   Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = True
+   Qobj data =
+   [[ 1.  0.]
+    [ 0. -1.]]
 
-   In [5]: jmat(5/2.0,'+')
+   >>> jmat(5/2.0,'+')
+   Quantum object: dims = [[6], [6]], shape = (6, 6), type = oper, isherm = False
+   Qobj data =
+   [[0.         2.23606798 0.         0.         0.         0.        ]
+    [0.         0.         2.82842712 0.         0.         0.        ]
+    [0.         0.         0.         3.         0.         0.        ]
+    [0.         0.         0.         0.         2.82842712 0.        ]
+    [0.         0.         0.         0.         0.         2.23606798]
+    [0.         0.         0.         0.         0.         0.        ]]
 
 .. _basics-qobj-props:
 
@@ -181,13 +248,16 @@ Qobj attributes
 
 We have seen that a quantum object has several internal attributes, such as data, dims, and shape.  These can be accessed in the following way:
 
-.. ipython::
+.. doctest:: [basics]
+  :options: +NORMALIZE_WHITESPACE
 
-   In [1]: q = destroy(4)
+   >>> q = destroy(4)
 
-   In [2]: q.dims
+   >>> q.dims
+   [[4], [4]]
 
-   In [3]: q.shape
+   >>> q.shape
+   (4, 4)
 
 In general, the attributes (properties) of a ``Qobj`` object (or any Python class) can be retrieved using the `Q.attribute` notation.  In addition to the attributes shown with the ``print`` function, the ``Qobj`` class also has the following:
 
@@ -220,13 +290,19 @@ In general, the attributes (properties) of a ``Qobj`` object (or any Python clas
 
 For the destruction operator above:
 
-.. ipython::
+.. doctest:: [basics]
+  :options: +NORMALIZE_WHITESPACE
 
-    In [1]: q.type
+    >>> q.type
+    'oper'
 
-    In [2]: q.isherm
+    >>> q.isherm
+    False
 
-    In [3]: q.data
+    >>> q.data
+    <4x4 sparse matrix of type '<class 'numpy.complex128'>'
+	   with 3 stored elements in Compressed Sparse Row format>
+
 
 
 The data attribute returns a message stating that the data is a sparse matrix. All ``Qobj`` instances store their data as a sparse matrix to save memory. To access the underlying dense matrix one needs to use the :func:`qutip.Qobj.full` function as described below.
@@ -238,27 +314,61 @@ Qobj Math
 
 The rules for mathematical operations on ``Qobj`` instances are similar to standard matrix arithmetic:
 
-.. ipython::
+.. doctest:: [basics]
+  :options: +NORMALIZE_WHITESPACE
 
-    In [1]: q = destroy(4)
+    >>> q = destroy(4)
 
-    In [2]: x = sigmax()
+    >>> x = sigmax()
 
-    In [3]: q + 5
+    >>> q + 5
+    Quantum object: dims = [[4], [4]], shape = (4, 4), type = oper, isherm = False
+    Qobj data =
+    [[5.         1.         0.         0.        ]
+     [0.         5.         1.41421356 0.        ]
+     [0.         0.         5.         1.73205081]
+     [0.         0.         0.         5.        ]]
 
-    In [4]: x * x
+    >>> x * x
+    Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = True
+    Qobj data =
+    [[1. 0.]
+     [0. 1.]]
 
-    In [5]: q ** 3
+    >>> q ** 3
+    Quantum object: dims = [[4], [4]], shape = (4, 4), type = oper, isherm = False
+    Qobj data =
+    [[0.         0.         0.         2.44948974]
+     [0.         0.         0.         0.        ]
+     [0.         0.         0.         0.        ]
+     [0.         0.         0.         0.        ]]
 
-    In [6]: x / np.sqrt(2)
+    >>> x / np.sqrt(2)
+    Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = True
+    Qobj data =
+    [[0.         0.70710678]
+     [0.70710678 0.        ]]
 
 
 Of course, like matrices, multiplying two objects of incompatible shape throws an error:
 
-.. ipython::
-    :okexcept:
+.. doctest:: [basics]
+  :options: +SKIP
 
-    In [1]: q * x
+    >>> print(q * x)
+    ------------------------------------------------------------------
+    TypeError                        Traceback (most recent call last)
+    <ipython-input-33-0b599f41213e> in <module>
+    ----> 1 print(q * x)
+
+    ~/Documents/qutip_dev/qutip/qutip/qobj.py in __mul__(self, other)
+        553
+        554             else:
+    --> 555                 raise TypeError("Incompatible Qobj shapes")
+        556
+        557         elif isinstance(other, np.ndarray):
+
+    TypeError: Incompatible Qobj shapes
 
 
 In addition, the logic operators is equal `==` and is not equal `!=` are also supported.
@@ -339,22 +449,76 @@ Like attributes, the quantum object class has defined functions (methods) that o
 |                 |                               | vector Q/Q.norm().                     |
 +-----------------+-------------------------------+----------------------------------------+
 
-.. ipython::
+.. doctest:: [basics]
+  :options: +NORMALIZE_WHITESPACE
 
-    In [1]: basis(5, 3)
+    >>> basis(5, 3)
+    Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
+    Qobj data =
+    [[0.]
+     [0.]
+     [0.]
+     [1.]
+     [0.]]
 
-    In [2]: basis(5, 3).dag()
+    >>> basis(5, 3).dag()
+    Quantum object: dims = [[1], [5]], shape = (1, 5), type = bra
+    Qobj data =
+    [[0. 0. 0. 1. 0.]]
 
-    In [3]: coherent_dm(5, 1)
+    >>> coherent_dm(5, 1)
+    Quantum object: dims = [[5], [5]], shape = (5, 5), type = oper, isherm = True
+    Qobj data =
+    [[0.36791117 0.36774407 0.26105441 0.14620658 0.08826704]
+     [0.36774407 0.36757705 0.26093584 0.14614018 0.08822695]
+     [0.26105441 0.26093584 0.18523331 0.10374209 0.06263061]
+     [0.14620658 0.14614018 0.10374209 0.05810197 0.035077  ]
+     [0.08826704 0.08822695 0.06263061 0.035077   0.0211765 ]]
 
-    In [4]: coherent_dm(5, 1).diag()
+    >>> coherent_dm(5, 1).diag()
+    array([0.36791117, 0.36757705, 0.18523331, 0.05810197, 0.0211765 ])
 
-    In [5]: coherent_dm(5, 1).full()
+    >>> coherent_dm(5, 1).full()
+    array([[0.36791117+0.j, 0.36774407+0.j, 0.26105441+0.j, 0.14620658+0.j,
+            0.08826704+0.j],
+           [0.36774407+0.j, 0.36757705+0.j, 0.26093584+0.j, 0.14614018+0.j,
+            0.08822695+0.j],
+           [0.26105441+0.j, 0.26093584+0.j, 0.18523331+0.j, 0.10374209+0.j,
+            0.06263061+0.j],
+           [0.14620658+0.j, 0.14614018+0.j, 0.10374209+0.j, 0.05810197+0.j,
+            0.035077  +0.j],
+           [0.08826704+0.j, 0.08822695+0.j, 0.06263061+0.j, 0.035077  +0.j,
+            0.0211765 +0.j]])
 
-    In [6]: coherent_dm(5, 1).norm()
+    >>> coherent_dm(5, 1).norm()
+    1.0000000175063126
 
-    In [7]: coherent_dm(5, 1).sqrtm()
+    >>> coherent_dm(5, 1).sqrtm()
+    Quantum object: dims = [[5], [5]], shape = (5, 5), type = oper, isherm = False
+    Qobj data =
+    [[0.36791117+3.66778589e-09j 0.36774407-2.13388761e-09j
+      0.26105441-1.51480558e-09j 0.14620658-8.48384618e-10j
+      0.08826704-5.12182118e-10j]
+     [0.36774407-2.13388761e-09j 0.36757705+2.41479965e-09j
+      0.26093584-1.11446422e-09j 0.14614018+8.98971115e-10j
+      0.08822695+6.40705133e-10j]
+     [0.26105441-1.51480558e-09j 0.26093584-1.11446422e-09j
+      0.18523331+4.02032413e-09j 0.10374209-3.39161017e-10j
+      0.06263061-3.71421368e-10j]
+     [0.14620658-8.48384618e-10j 0.14614018+8.98971115e-10j
+      0.10374209-3.39161017e-10j 0.05810197+3.36300708e-10j
+      0.035077  +2.36883273e-10j]
+     [0.08826704-5.12182118e-10j 0.08822695+6.40705133e-10j
+      0.06263061-3.71421368e-10j 0.035077  +2.36883273e-10j
+      0.0211765 +1.71630348e-10j]]
 
-    In [8]: coherent_dm(5, 1).tr()
+    >>> coherent_dm(5, 1).tr()
+    1.0
 
-    In [9]: (basis(4, 2) + basis(4, 1)).unit()
+    >>> (basis(4, 2) + basis(4, 1)).unit()
+    Quantum object: dims = [[4], [1]], shape = (4, 1), type = ket
+    Qobj data =
+    [[0.        ]
+     [0.70710678]
+     [0.70710678]
+     [0.        ]]

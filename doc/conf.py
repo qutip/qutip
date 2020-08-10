@@ -30,8 +30,6 @@ needs_sphinx = '1.8.3'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.mathjax',
-              'IPython.sphinxext.ipython_console_highlighting',
-              'IPython.sphinxext.ipython_directive',
               'matplotlib.sphinxext.plot_directive',
               'sphinx.ext.autodoc',
               'sphinx.ext.todo',
@@ -42,8 +40,8 @@ extensions = ['sphinx.ext.mathjax',
               'sphinx.ext.viewcode',
               'sphinx.ext.ifconfig',
               'sphinx.ext.napoleon',
-              'sphinx_gallery.gen_gallery'
-              ]
+              'sphinx_gallery.gen_gallery',
+              'nb2plots']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['templates']
@@ -51,8 +49,6 @@ templates_path = ['templates']
 # This is needed for ipython @savefig
 # Otherwise it just puts the png in the root dir
 savefig_dir = '_images'
-ipython_savefig_dir = '_images'
-ipython_strict_fail = False
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
@@ -264,6 +260,9 @@ texinfo_documents = [
      'Miscellaneous'),
 ]
 
+
+
+
 # Documents to append as an appendix to all manuals.
 #texinfo_appendices = []
 
@@ -288,26 +287,39 @@ extlinks = {
 # does exactly what IPythonDirective does, or does syntax highlighting only,
 # depending on the hosting OS.
 
+os_nt = False
+if os.name == "nt":
+    os_nt = True
+
+doctest_global_setup ='''
+from pylab import *
+from qutip import *
+import numpy as np
+import os
+import warnings
+warnings.filterwarnings("ignore")
+os_nt = {}
+'''.format(os_nt)
+
+
+
+'''
 def setup(app):
-    import os
-    from IPython.sphinxext.ipython_directive import IPythonDirective
 
-    if os.name == "nt":
         from sphinx.directives.code import CodeBlock
-
         class IPythonCodeBlock(CodeBlock):
             required_arguments = 0
-
             @property
             def arguments(self):
                 return ['ipython']
             @arguments.setter
             def arguments(self, newval):
                 pass
-        app.add_directive('ipython-posix', IPythonCodeBlock)
+        app.add_directive('nbplot-posix', IPythonCodeBlock)
 
     else:
-        app.add_directive('ipython-posix', IPythonDirective)
+        app.add_directive('nbplot-posix', NBPlotDirective)
+'''
 
 # The other workaround we need is that IPython's sphinxext depends on
 # pickeshare 0.5 (latest being 0.6), which in turn calls path.path

@@ -1,4 +1,4 @@
-.. QuTiP 
+.. QuTiP
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
 .. _apidoc:
@@ -12,7 +12,6 @@ complete list of QuTiP's public classes and functions.
 
 .. toctree::
    :maxdepth: 3
-  
+
    classes.rst 
    functions.rst
-

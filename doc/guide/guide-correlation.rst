@@ -7,14 +7,14 @@
 Two-time correlation functions
 ******************************
 
-.. ipython::
-   :suppress:
+.. nbplot::
+   :include-source: False
 
-   In [1]: from qutip import *
+   from qutip import *
 
-   In [1]: import numpy as np
+   import numpy as np
 
-   In [1]: from pylab import *
+   from pylab import *
 
 
 With the QuTiP time-evolution functions (for example :func:`qutip.mesolve` and :func:`qutip.mcsolve`), a state vector or density matrix can be evolved from an initial state at :math:`t_0` to an arbitrary time :math:`t`, :math:`\rho(t)=V(t, t_0)\left\{\rho(t_0)\right\}`, where :math:`V(t, t_0)` is the propagator defined by the equation of motion. The resulting density matrix can then be used to evaluate the expectation values of arbitrary combinations of *same-time* operators.
@@ -64,34 +64,33 @@ Steadystate correlation function
 
 The following code demonstrates how to calculate the :math:`\left<x(t)x(0)\right>` correlation for a leaky cavity with three different relaxation rates.
 
-.. ipython::
+.. nbplot::
 
-   In [1]: times = np.linspace(0,10.0,200)
+   times = np.linspace(0,10.0,200)
 
-   In [1]: a = destroy(10)
+   a = destroy(10)
 
-   In [1]: x = a.dag() + a
+   x = a.dag() + a
 
-   In [1]: H = a.dag() * a
+   H = a.dag() * a
 
-   In [1]: corr1 = correlation_2op_1t(H, None, times, [np.sqrt(0.5) * a], x, x)
+   corr1 = correlation_2op_1t(H, None, times, [np.sqrt(0.5) * a], x, x)
 
-   In [1]: corr2 = correlation_2op_1t(H, None, times, [np.sqrt(1.0) * a], x, x)
+   corr2 = correlation_2op_1t(H, None, times, [np.sqrt(1.0) * a], x, x)
 
-   In [1]: corr3 = correlation_2op_1t(H, None, times, [np.sqrt(2.0) * a], x, x)
+   corr3 = correlation_2op_1t(H, None, times, [np.sqrt(2.0) * a], x, x)
 
-   In [1]: figure()
+   figure()
 
-   In [1]: plot(times, np.real(corr1), times, np.real(corr2), times, np.real(corr3))
+   plot(times, np.real(corr1), times, np.real(corr2), times, np.real(corr3))
 
-   In [1]: legend(['0.5','1.0','2.0'])
+   legend(['0.5','1.0','2.0'])
 
-   In [1]: xlabel(r'Time $t$')
+   xlabel(r'Time $t$')
 
-   In [1]: ylabel(r'Correlation $\left<x(t)x(0)\right>$')
+   ylabel(r'Correlation $\left<x(t)x(0)\right>$')
 
-   @savefig guide-correlation1.png width=5.0in align=center
-   In [1]: show()
+   show()
 
 
 Emission spectrum

@@ -1,4 +1,4 @@
-.. QuTiP 
+.. QuTiP
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
 .. _qip:
@@ -18,7 +18,7 @@ Quantum Circuit
 The most common model for quantum computing is the quantum circuit model. In QuTiP, we use :class:`qutip.qip.QubitCircuit` to represent a quantum circuit. Each quantum gate is saved as a class object :class:`qutip.qip.operations.Gate` with information such as gate name, target qubits and arguments. To get the matrix representation of each gate, we can call the class method :meth:`qutip.qip.QubitCircuit.propagators()`. Carrying out the matrices product, one gets the matrix representation of the whole evolution. This process is demonstrated in the following example.
 
 .. code-block:: python
-   
+
    >>> from qutip.qip.circuit import QubitCircuit, Gate
    >>> from qutip.qip.operations import gate_sequence_product
    >>> qc = QubitCircuit(N=2)
@@ -53,7 +53,7 @@ Gate name                           Description
 "CRY"                 Controlled rotation around y axis
 "CRZ"                 Controlled rotation around z axis
 "CPHASE"              Controlled phase gate
-"CNOT"                Controlled NOT gate 
+"CNOT"                Controlled NOT gate
 "CSIGN"               Same as CPHASE
 "BERKELEY"            Berkeley gate
 "SWAPalpha"           SWAPalpha gate
@@ -74,7 +74,7 @@ In addition to these pre-defined gates, QuTiP also allows the user to define the
 
    Available from QuTiP 4.4
 
-.. code-block:: 
+.. code-block::
 
       >>> from qutip.qip.circuit import Gate
       >>> from qutip.qip.operations import rx
@@ -172,7 +172,7 @@ The above example shows the framework and the most essential part of the simulat
 
 | Processor
 | ├── ModelProcessor
-| │   ├── DispersivecQED
+| │   ├── DispersiveCavityQED
 | │   └── SpinChain
 | └── OptPulseProcessor
 
@@ -181,7 +181,7 @@ gates is defined in the processor as well as the pulse implementing them in this
 
 Despite this difference, the logic behind all processors is the same:
 
-* One defines a processor by a list of available Hamiltonians and, as explained later, hardware-dependent noise. In the model bases processor, the Hamiltonians are predefined and one only need to give the device parameters like frequency and interaction strength. 
+* One defines a processor by a list of available Hamiltonians and, as explained later, hardware-dependent noise. In the model bases processor, the Hamiltonians are predefined and one only need to give the device parameters like frequency and interaction strength.
 
 * The control pulse coefficients and time slices are either specified by the user or calculated by the method :meth:`qutip.qip.device.Processor.load_circuit()`, which takes a :class:`qutip.qip.QubitCircuit` and find the control pulse for this evolution.
 
@@ -194,10 +194,10 @@ SpinChain
 
 :class:`qutip.qip.device.LinearSpinChain` and :class:`qutip.qip.device.CircularSpinChain` are quantum computing models base on the spin chain realization. The control Hamiltonians are :math:`\sigma_x`, :math:`\sigma_z` and :math:`\sigma_x \sigma_x + \sigma_y \sigma_y`. This processor will first decompose the gate into the universal gate set with ISWAP and SQRTISWAP as two-qubit gates, resolve them into quantum gates of adjacent qubits and then calculate the pulse coefficients.
 
-DispersivecQED
---------------
+DispersiveCavityQED
+-------------------
 
-Same as above, :class:`qutip.qip.device.DispersivecQED` is a simulator based on Cavity Quantum Electrodynamics. The workflow is similar to the one for the spin chain, except that the component systems are a multi-level cavity and a qubits system. The control Hamiltonians are the single-qubit rotation together with the qubits-cavity interaction :math:`a^{\dagger} \sigma^{-} + a \sigma^{+}`. The device parameters including the cavity frequency, qubits frequency, detuning and interaction strength etc.
+Same as above, :class:`qutip.qip.device.DispersiveCavityQED` is a simulator based on Cavity Quantum Electrodynamics. The workflow is similar to the one for the spin chain, except that the component systems are a multi-level cavity and a qubits system. The control Hamiltonians are the single-qubit rotation together with the qubits-cavity interaction :math:`a^{\dagger} \sigma^{-} + a \sigma^{+}`. The device parameters including the cavity frequency, qubits frequency, detuning and interaction strength etc.
 
 OptPulseProcessor
 -----------------
@@ -281,7 +281,7 @@ This section helps you understand the workflow inside the simulator.
 The figure above shows how the noise is processed in ``processor``. The noise is defined separately in a class object. When called, it takes parameters and the unitary noiseless :class:`qutip.QobjEvo` from the processor, generates the noisy version and sends the noisy :class:`qutip.QobjEvo` together with the collapse operators to the processor.
 
 When calculating the evolution, the processor first creates its own :class:`qutip.QobjEvo` of the noiseless evolution.
-It will then find all the noise objects saved in the attributes :attr:`qutip.qip.device.Processor.noise` and call the corresponding methods to get the :class:`qutip.QobjEvo` and a list of collapse operators representing the noise. (For collapse operators, we don't want to add all the constant collapse into one time-independent operator, so we use a list). 
+It will then find all the noise objects saved in the attributes :attr:`qutip.qip.device.Processor.noise` and call the corresponding methods to get the :class:`qutip.QobjEvo` and a list of collapse operators representing the noise. (For collapse operators, we don't want to add all the constant collapse into one time-independent operator, so we use a list).
 The processor then combines its own :class:`qutip.QobjEvo` with those from the noise object and give them to the solver. The figure below shows how the noiseless part and the noisy part are combined.
 
 .. image:: /figures/qip/processor-noise.png

@@ -9,14 +9,14 @@ Lindblad Master Equation Solver
 
 .. _master-unitary:
 
-.. ipython::
-   :suppress:
+.. nbplot:: [dynamics_master]
+   :include-source: False
 
-   In [1]: from qutip import *
+   from qutip import *
 
-   In [1]: import numpy as np
+   import numpy as np
 
-   In [1]: from pylab import *
+   from pylab import *
 
 Unitary evolution
 ====================
@@ -39,63 +39,81 @@ The Schrödinger equation, which governs the time-evolution of closed quantum sy
 
 For example, the time evolution of a quantum spin-1/2 system with tunneling rate 0.1 that initially is in the up state is calculated, and the  expectation values of the :math:`\sigma_z` operator evaluated, with the following code
 
-.. ipython::
+.. nbplot:: [dynamics_master]
 
-    In [1]: H = 2 * np.pi * 0.1 * sigmax()
+    H = 2 * np.pi * 0.1 * sigmax()
 
-    In [1]: psi0 = basis(2, 0)
+    psi0 = basis(2, 0)
 
-    In [1]: times = np.linspace(0.0, 10.0, 20)
+    times = np.linspace(0.0, 10.0, 20)
 
-    In [1]: result = sesolve(H, psi0, times, [sigmaz()])
+    result = sesolve(H, psi0, times, [sigmaz()])
 
 
 The brackets in the fourth argument is an empty list of collapse operators, since we consider unitary evolution in this example. See the next section for examples on how dissipation is included by defining a list of collapse operators.
 
 The function returns an instance of :class:`qutip.solver.Result`, as described in the previous section :ref:`solver_result`. The attribute ``expect`` in ``result`` is a list of expectation values for the operators that are included in the list in the fifth argument. Adding operators to this list results in a larger output list returned by the function (one array of numbers, corresponding to the times in times, for each operator)
 
-.. ipython::
+.. nbplot:: [dynamics_master]
+  :options: +NORMALIZE_WHITESPACE
 
-    In [1]: result = sesolve(H, psi0, times, [sigmaz(), sigmay()])
+    >>> result = sesolve(H, psi0, times, [sigmaz(), sigmay()])
 
-    In [1]: result.expect
+    >>> result.expect
+    [array([ 1.        ,  0.78914057,  0.24548559, -0.40169513, -0.8794735 ,
+        -0.98636142, -0.67728219, -0.08258023,  0.54694721,  0.94581685,
+         0.94581769,  0.54694945, -0.08257765, -0.67728015, -0.98636097,
+        -0.87947476, -0.40169736,  0.24548326,  0.78913896,  1.        ]),
+     array([ 0.00000000e+00, -6.14212640e-01, -9.69400240e-01, -9.15773457e-01,
+            -4.75947849e-01,  1.64593874e-01,  7.35723339e-01,  9.96584419e-01,
+             8.37167094e-01,  3.24700624e-01, -3.24698160e-01, -8.37165632e-01,
+            -9.96584633e-01, -7.35725221e-01, -1.64596567e-01,  4.75945525e-01,
+             9.15772479e-01,  9.69400830e-01,  6.14214701e-01,  2.77159958e-06])]
+​
 
 The resulting list of expectation values can easily be visualized using matplotlib's plotting functions:
 
-.. ipython::
+.. nbplot:: [dynamics_master]
 
-    In [1]: H = 2 * np.pi * 0.1 * sigmax()
+    H = 2 * np.pi * 0.1 * sigmax()
 
-    In [1]: psi0 = basis(2, 0)
+    psi0 = basis(2, 0)
 
-    In [1]: times = np.linspace(0.0, 10.0, 100)
+    times = np.linspace(0.0, 10.0, 100)
 
-    In [1]: result = sesolve(H, psi0, times, [sigmaz(), sigmay()])
+    result = sesolve(H, psi0, times, [sigmaz(), sigmay()])
 
-    In [1]: fig, ax = subplots()
+    fig, ax = subplots()
 
-    In [1]: ax.plot(result.times, result.expect[0]);
+    ax.plot(result.times, result.expect[0]);
 
-    In [1]: ax.plot(result.times, result.expect[1]);
+    ax.plot(result.times, result.expect[1]);
 
-    In [1]: ax.set_xlabel('Time');
+    ax.set_xlabel('Time');
 
-    In [1]: ax.set_ylabel('Expectation values');
+    ax.set_ylabel('Expectation values');
 
-    In [1]: ax.legend(("Sigma-Z", "Sigma-Y"));
+    ax.legend(("Sigma-Z", "Sigma-Y"));
 
-	@savefig guide-dynamics-qubit.png width=5.0in align=center
-    In [1]: show()
+    show()
 
 If an empty list of operators is passed as fifth parameter, the :func:`qutip.mesolve` function returns a :class:`qutip.solver.Result` instance that contains a list of state vectors for the times specified in ``times``
 
-.. ipython::
+.. nbplot:: [dynamics_master]
+  :options: +NORMALIZE_WHITESPACE
 
-    In [1]: times = [0.0, 1.0]
+    >>> times = [0.0, 1.0]
 
-    In [1]: result = mesolve(H, psi0, times, [], [])
+    >>> result = mesolve(H, psi0, times, [], [])
 
-    In [1]: result.states
+    >>> result.states
+    [Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
+     Qobj data =
+     [[1.]
+      [0.]], Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
+     Qobj data =
+     [[0.80901699+0.j        ]
+      [0.        -0.58778526j]]]
 
 .. _master-nonunitary:
 
@@ -174,26 +192,25 @@ spin to its environment), by adding ``np.sqrt(0.05) * sigmax()`` to
 the previously empty list in the fourth parameter to the :func:`qutip.mesolve` function:
 
 
-.. ipython::
+.. nbplot:: [dynamics_master]
 
-    In [1]: times = np.linspace(0.0, 10.0, 100)
+    times = np.linspace(0.0, 10.0, 100)
 
-    In [1]: result = mesolve(H, psi0, times, [np.sqrt(0.05) * sigmax()], [sigmaz(), sigmay()])
+    result = mesolve(H, psi0, times, [np.sqrt(0.05) * sigmax()], [sigmaz(), sigmay()])
 
-    In [1]: fig, ax = subplots()
+    fig, ax = subplots()
 
-    In [1]: ax.plot(times, result.expect[0]);
+    ax.plot(times, result.expect[0]);
 
-    In [1]: ax.plot(times, result.expect[1]);
+    ax.plot(times, result.expect[1]);
 
-    In [1]: ax.set_xlabel('Time');
+    ax.set_xlabel('Time');
 
-    In [1]: ax.set_ylabel('Expectation values');
+    ax.set_ylabel('Expectation values');
 
-    In [1]: ax.legend(("Sigma-Z", "Sigma-Y"));
+    ax.legend(("Sigma-Z", "Sigma-Y"));
 
-	@savefig guide-qubit-dynamics-dissip.png width=5.0in align=center
-    In [1]: show()
+    show()
 
 
 Here, 0.05 is the rate and the operator :math:`\sigma_x` (:func:`qutip.operators.sigmax`) describes the dissipation
@@ -201,32 +218,31 @@ process.
 
 Now a slightly more complex example: Consider a two-level atom coupled to a leaky single-mode cavity through a dipole-type interaction, which supports a coherent exchange of quanta between the two systems. If the atom initially is in its groundstate and the cavity in a 5-photon Fock state, the dynamics is calculated with the lines following code
 
-.. ipython::
+.. nbplot:: [dynamics_master]
 
-    In [1]: times = np.linspace(0.0, 10.0, 200)
+    times = np.linspace(0.0, 10.0, 200)
 
-    In [1]: psi0 = tensor(fock(2,0), fock(10, 5))
+    psi0 = tensor(fock(2,0), fock(10, 5))
 
-    In [1]: a  = tensor(qeye(2), destroy(10))
+    a  = tensor(qeye(2), destroy(10))
 
-    In [1]: sm = tensor(destroy(2), qeye(10))
+    sm = tensor(destroy(2), qeye(10))
 
-    In [1]: H = 2 * np.pi * a.dag() * a + 2 * np.pi * sm.dag() * sm + \
-       ...: 2 * np.pi * 0.25 * (sm * a.dag() + sm.dag() * a)
+    H = 2 * np.pi * a.dag() * a + 2 * np.pi * sm.dag() * sm +
+        2 * np.pi * 0.25 * (sm * a.dag() + sm.dag() * a)
 
-    In [1]: result = mesolve(H, psi0, times, [np.sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
+    result = mesolve(H, psi0, times, [np.sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
 
-    In [1]: figure()
+    figure()
 
-    In [1]: plot(times, result.expect[0])
+    plot(times, result.expect[0])
 
-    In [1]: plot(times, result.expect[1])
+    plot(times, result.expect[1])
 
-    In [1]: xlabel('Time')
+    xlabel('Time')
 
-    In [1]: ylabel('Expectation values')
+    ylabel('Expectation values')
 
-    In [1]: legend(("cavity photon number", "atom excitation probability"))
+    legend(("cavity photon number", "atom excitation probability"))
 
-    @savefig guide-dynamics-jc.png width=5.0in align=center
-    In [1]: show()
+    show()

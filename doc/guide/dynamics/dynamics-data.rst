@@ -1,4 +1,4 @@
-.. QuTiP 
+.. QuTiP
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
 .. _solver_result:
@@ -52,7 +52,9 @@ Accessing Result Data
 
 To understand how to access the data in a Result object we will use an example as a guide, although we do not worry about the simulation details at this stage.  Like all solvers, the Monte Carlo solver used in this example returns an Result object, here called simply ``result``.  To see what is contained inside ``result`` we can use the print function:
 
->>> print(result)
+.. code-block:: python
+
+    >>> print(result) # doctest: +SKIP
     Result object with mcsolve data.
     ---------------------------------
     expect = True
@@ -62,17 +64,24 @@ The first line tells us that this data object was generated from the Monte Carlo
 
 Now we have all the information needed to analyze the simulation results. To access the data for the two expectation values one can do::
 
-    >>> expt0 = result.expect[0]
-    >>> expt1 = result.expect[1]
+
+.. code-block::
+
+    expt0 = result.expect[0]
+    expt1 = result.expect[1]
 
 Recall that Python uses C-style indexing that begins with zero (i.e., [0] => 1st collapse operator data). Together with the array of times at which these expectation values are calculated::
 
-    >>> times = result.times
+.. code-block::
+
+    >>> times = result.times # doctest: +SKIP
 
 we can plot the resulting expectation values::
 
-    >>> plot(times, expt0, times, expt1)
-    >>> show()
+.. code-block::
+
+    plot(times, expt0, times, expt1)
+    show() # doctest: +SKIP
 
 
 State vectors, or density matrices, as well as ``col_times`` and ``col_which``, are accessed in a similar manner, although typically one does not need an index (i.e [0]) since there is only one list for each of these components.  The one exception to this rule is if you choose to output state vectors from the Monte Carlo solver, in which case there are ``ntraj`` number of state vector arrays.
@@ -83,20 +92,21 @@ Saving and Loading Result Objects
 ==================================
 
 The main advantage in using the Result class as a data storage object comes from the simplicity in which simulation data can be stored and later retrieved. The :func:`qutip.fileio.qsave` and :func:`qutip.fileio.qload` functions are designed for this task.  To begin, let us save the ``data`` object from the previous section into a file called "cavity+qubit-data" in the current working directory by calling:
+.. code-block::
 
->>> qsave(result, 'cavity+qubit-data')
+qsave(result, 'cavity+qubit-data') # doctest: +SKIP
 
 All of the data results are then stored in a single file of the same name with a ".qu" extension.  Therefore, everything needed to later this data is stored in a single file.  Loading the file is just as easy as saving:
-
->>> stored_result = qload('cavity+qubit-data')
-    Loaded Result object:
-    Result object with mcsolve data.
-    ---------------------------------
-    expect = True
-    num_expect = 2, num_collapse = 2, ntraj = 500
+.. code-block:: python
+      >>> stored_result = qload('cavity+qubit-data') # doctest: +SKIP
+      Loaded Result object:
+      Result object with mcsolve data.
+      ---------------------------------
+      expect = True
+      num_expect = 2, num_collapse = 2, ntraj = 500
 
 where ``stored_result`` is the new name of the Result object.  We can then extract the data and plot in the same manner as before::
-
+.. code-block::
 	expt0 = stored_result.expect[0]
 	expt1 = stored_result.expect[1]
 	times = stored_result.times
