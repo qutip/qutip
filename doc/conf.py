@@ -247,6 +247,21 @@ man_pages = [
     (master_doc, 'qutip', project, [author], 1)
 ]
 
+# -- Doctest Setup ---------------------------------------
+
+os_nt = False
+if os.name == "nt":
+    os_nt = True
+
+doctest_global_setup = '''
+from pylab import *
+from qutip import *
+import numpy as np
+import os
+import warnings
+warnings.filterwarnings("ignore")
+os_nt = {}
+'''.format(os_nt)
 
 # -- Options for Texinfo output -------------------------------------------
 
@@ -287,41 +302,7 @@ extlinks = {
 # does exactly what IPythonDirective does, or does syntax highlighting only,
 # depending on the hosting OS.
 
-os_nt = False
-if os.name == "nt":
-    os_nt = True
-
-doctest_global_setup ='''
-from pylab import *
-from qutip import *
-import numpy as np
-import os
-import warnings
-warnings.filterwarnings("ignore")
-os_nt = {}
-'''.format(os_nt)
-
-
-
-'''
-def setup(app):
-
-        from sphinx.directives.code import CodeBlock
-        class IPythonCodeBlock(CodeBlock):
-            required_arguments = 0
-            @property
-            def arguments(self):
-                return ['ipython']
-            @arguments.setter
-            def arguments(self, newval):
-                pass
-        app.add_directive('nbplot-posix', IPythonCodeBlock)
-
-    else:
-        app.add_directive('nbplot-posix', NBPlotDirective)
-'''
-
-# The other workaround we need is that IPython's sphinxext depends on
+# The other workaround we need is that ipython's sphinxext depends on
 # pickeshare 0.5 (latest being 0.6), which in turn calls path.path
 # instead of path.Path. This results in an entire sea of DeprecationWarnings.
 # Since Sphinx overrides warnings filters during the parsing stage, we can't

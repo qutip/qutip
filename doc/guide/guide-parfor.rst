@@ -128,16 +128,26 @@ Note that the keyword arguments can be anything you like, but the keyword values
 
 The :func:`qutip.parallel.parallel_map` function also supports progressbar, using the keyword argument `progress_bar` which can be set to `True` or to an instance of :class:`qutip.ui.progressbar.BaseProgressBar`. There is a function called :func:`qutip.parallel.serial_map` that works as a non-parallel drop-in replacement for :func:`qutip.parallel.parallel_map`, which allows easy switching between serial and parallel computation.
 
-.. testdoc::
-  :options: +SKIP
+.. doctest::
+  :options: +SKIP, +NORMALIZE_WHITESPACE
 
-   import time
+   >>> import time
 
-   def func(x): time.sleep(1)
+   >>> def func(x): time.sleep(1)
 
-   result = parallel_map(func, range(50), progress_bar=True)
+   >>> result = parallel_map(func, range(50), progress_bar=True)
 
-   print(result)
+   10.0%. Run time:   3.10s. Est. time left: 00:00:00:27
+   20.0%. Run time:   5.11s. Est. time left: 00:00:00:20
+   30.0%. Run time:   8.11s. Est. time left: 00:00:00:18
+   40.0%. Run time:  10.15s. Est. time left: 00:00:00:15
+   50.0%. Run time:  13.15s. Est. time left: 00:00:00:13
+   60.0%. Run time:  15.15s. Est. time left: 00:00:00:10
+   70.0%. Run time:  18.15s. Est. time left: 00:00:00:07
+   80.0%. Run time:  20.15s. Est. time left: 00:00:00:05
+   90.0%. Run time:  23.15s. Est. time left: 00:00:00:02
+   100.0%. Run time:  25.15s. Est. time left: 00:00:00:00
+   Total run time:  28.91s
 
 Parallel processing is useful for repeated tasks such as generating plots corresponding to the dynamical evolution of your system, or simultaneously simulating different parameter configurations.
 

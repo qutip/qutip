@@ -102,8 +102,7 @@ To illustrate the use of the Monte Carlo evolution of quantum systems in QuTiP, 
     ylabel('Expectation values')
 
     legend(("cavity photon number", "atom excitation probability"))
-    
-.. nbplot::
+
     show()
 
 .. guide-dynamics-mc1:

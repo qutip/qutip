@@ -87,13 +87,13 @@ We can create a ``Qobj`` with a user defined data set by passing a list or array
     [[1. 2. 3. 4. 5.]]
 
 .. testcode:: [basics]
-  :options: +NORMALIZE_WHITESPACE
-    :skipif: True
+  :skipif: True
+
     r = np.random.rand(4, 4)
     print(Qobj(r))
 
 .. testoutput:: [basics]
-  :options: +SKIP
+  :skipif: True
 
     Quantum object: dims = [[4], [4]], shape = (4, 4), type = oper, isherm = False
     Qobj data =

@@ -9,14 +9,14 @@ Lindblad Master Equation Solver
 
 .. _master-unitary:
 
-.. nbplot:: [dynamics_master]
+.. nbplot::
    :include-source: False
 
-   from qutip import *
+   >>> from qutip import *
 
-   import numpy as np
+   >>> import numpy as np
 
-   from pylab import *
+   >>> from pylab import *
 
 Unitary evolution
 ====================
@@ -39,27 +39,22 @@ The Schrödinger equation, which governs the time-evolution of closed quantum sy
 
 For example, the time evolution of a quantum spin-1/2 system with tunneling rate 0.1 that initially is in the up state is calculated, and the  expectation values of the :math:`\sigma_z` operator evaluated, with the following code
 
-.. nbplot:: [dynamics_master]
+.. nbplot::
 
-    H = 2 * np.pi * 0.1 * sigmax()
-
-    psi0 = basis(2, 0)
-
-    times = np.linspace(0.0, 10.0, 20)
-
-    result = sesolve(H, psi0, times, [sigmaz()])
+    >>> H = 2 * np.pi * 0.1 * sigmax()
+    >>> psi0 = basis(2, 0)
+    >>> times = np.linspace(0.0, 10.0, 20)
+    >>> result = sesolve(H, psi0, times, [sigmaz()])
 
 
 The brackets in the fourth argument is an empty list of collapse operators, since we consider unitary evolution in this example. See the next section for examples on how dissipation is included by defining a list of collapse operators.
 
 The function returns an instance of :class:`qutip.solver.Result`, as described in the previous section :ref:`solver_result`. The attribute ``expect`` in ``result`` is a list of expectation values for the operators that are included in the list in the fifth argument. Adding operators to this list results in a larger output list returned by the function (one array of numbers, corresponding to the times in times, for each operator)
 
-.. nbplot:: [dynamics_master]
-  :options: +NORMALIZE_WHITESPACE
+.. nbplot::
 
     >>> result = sesolve(H, psi0, times, [sigmaz(), sigmay()])
-
-    >>> result.expect
+    >>> result.expect # doctest: +NORMALIZE_WHITESPACE
     [array([ 1.        ,  0.78914057,  0.24548559, -0.40169513, -0.8794735 ,
         -0.98636142, -0.67728219, -0.08258023,  0.54694721,  0.94581685,
          0.94581769,  0.54694945, -0.08257765, -0.67728015, -0.98636097,
@@ -73,40 +68,27 @@ The function returns an instance of :class:`qutip.solver.Result`, as described i
 
 The resulting list of expectation values can easily be visualized using matplotlib's plotting functions:
 
-.. nbplot:: [dynamics_master]
+.. nbplot::
 
-    H = 2 * np.pi * 0.1 * sigmax()
-
-    psi0 = basis(2, 0)
-
-    times = np.linspace(0.0, 10.0, 100)
-
-    result = sesolve(H, psi0, times, [sigmaz(), sigmay()])
-
-    fig, ax = subplots()
-
-    ax.plot(result.times, result.expect[0]);
-
-    ax.plot(result.times, result.expect[1]);
-
-    ax.set_xlabel('Time');
-
-    ax.set_ylabel('Expectation values');
-
-    ax.legend(("Sigma-Z", "Sigma-Y"));
-
-    show()
+    >>> H = 2 * np.pi * 0.1 * sigmax()
+    >>> psi0 = basis(2, 0)
+    >>> times = np.linspace(0.0, 10.0, 100)
+    >>> result = sesolve(H, psi0, times, [sigmaz(), sigmay()])
+    >>> fig, ax = subplots()
+    >>> ax.plot(result.times, result.expect[0]) # doctest: +SKIP
+    >>> ax.plot(result.times, result.expect[1]) # doctest: +SKIP
+    >>> ax.set_xlabel('Time') # doctest: +SKIP
+    >>> ax.set_ylabel('Expectation values') # doctest: +SKIP
+    >>> ax.legend(("Sigma-Z", "Sigma-Y")) # doctest: +SKIP
+    >>> show() # doctest: +SKIP 
 
 If an empty list of operators is passed as fifth parameter, the :func:`qutip.mesolve` function returns a :class:`qutip.solver.Result` instance that contains a list of state vectors for the times specified in ``times``
 
-.. nbplot:: [dynamics_master]
-  :options: +NORMALIZE_WHITESPACE
+.. nbplot::
 
     >>> times = [0.0, 1.0]
-
     >>> result = mesolve(H, psi0, times, [], [])
-
-    >>> result.states
+    >>> result.states # doctest: +NORMALIZE_WHITESPACE
     [Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
      Qobj data =
      [[1.]
@@ -192,7 +174,7 @@ spin to its environment), by adding ``np.sqrt(0.05) * sigmax()`` to
 the previously empty list in the fourth parameter to the :func:`qutip.mesolve` function:
 
 
-.. nbplot:: [dynamics_master]
+.. nbplot::
 
     times = np.linspace(0.0, 10.0, 100)
 
@@ -218,7 +200,7 @@ process.
 
 Now a slightly more complex example: Consider a two-level atom coupled to a leaky single-mode cavity through a dipole-type interaction, which supports a coherent exchange of quanta between the two systems. If the atom initially is in its groundstate and the cavity in a 5-photon Fock state, the dynamics is calculated with the lines following code
 
-.. nbplot:: [dynamics_master]
+.. nbplot::
 
     times = np.linspace(0.0, 10.0, 200)
 
@@ -228,8 +210,7 @@ Now a slightly more complex example: Consider a two-level atom coupled to a leak
 
     sm = tensor(destroy(2), qeye(10))
 
-    H = 2 * np.pi * a.dag() * a + 2 * np.pi * sm.dag() * sm +
-        2 * np.pi * 0.25 * (sm * a.dag() + sm.dag() * a)
+    H = 2 * np.pi * a.dag() * a + 2 * np.pi * sm.dag() * sm + 2 * np.pi * 0.25 * (sm * a.dag() + sm.dag() * a)
 
     result = mesolve(H, psi0, times, [np.sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
 

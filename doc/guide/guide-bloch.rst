@@ -11,13 +11,13 @@ Plotting on the Bloch Sphere
     Updated in QuTiP version 3.0.
 
 .. nbplot::
-  :include-source: False
+    :include-source: False
 
-   from qutip import *
+    from qutip import *
 
-   from scipy import *
+    from scipy import *
 
-   import numpy as np
+    import numpy as np
 
 
 .. _bloch-intro:
@@ -40,13 +40,12 @@ In QuTiP, creating a Bloch sphere is accomplished by calling either:
 
 which will load an instance of the :class:`qutip.Bloch` class, or using::
 
- >>> b3d = Bloch3d()
+ >>> b3d = Bloch3d() # doctest: +SKIP
 
 that loads the :class:`qutip.Bloch3d` version.  Before getting into the details of these objects, we can simply plot the blank Bloch sphere associated with these instances via:
 
-.. ipython::
+.. nbplot::
 
-    @savefig bloch-empty.png width=3.5in align=center
     b.show()
 
 or
@@ -96,41 +95,38 @@ In addition to the show() command, the Bloch class has the following functions:
 
 As an example, we can add a single data point:
 
-.. ipython::
+.. nbplot::
 
     pnt = [1/np.sqrt(3),1/np.sqrt(3),1/np.sqrt(3)]
 
     b.add_points(pnt)
 
-    @savefig bloch-1pnt.png width=3.5in align=center
     b.show()
 
 and then a single vector:
 
-.. ipython::
+.. nbplot::
 
     vec = [0,1,0]
 
     b.add_vectors(vec)
 
-    @savefig bloch-1pnt+1vec.png width=3.5in align=center
     b.show()
 
 
 and then add another vector corresponding to the :math:`\left|\rm up \right>` state:
 
-.. ipython::
+.. nbplot::
 
     up = basis(2,0)
 
     b.add_states(up)
 
-    @savefig bloch-1pnt+1vec+1state.png width=3.5in align=center
     b.show()
 
 Notice that when we add more than a single vector (or data point), a different color will automatically be applied to the later data set (mod 4).  In total, the code for constructing our Bloch sphere with one vector, one state, and a single data point is:
 
-.. ipython::
+.. nbplot::
 
     b = Bloch()
 
@@ -146,7 +142,6 @@ Notice that when we add more than a single vector (or data point), a different c
 
     b.add_states(up)
 
-    @savefig bloch-pnt-vec-state.png width=3.5in align=center
     b.show()
 
 where we have removed the extra ``show()`` commands.  Replacing ``b=Bloch()`` with ``b=Bloch3d()`` in the above code generates the following 3D Bloch sphere.
@@ -160,17 +155,16 @@ where we have removed the extra ``show()`` commands.  Replacing ``b=Bloch()`` wi
 
 We can also plot multiple points, vectors, and states at the same time by passing list or arrays instead of individual elements.  Before giving an example, we can use the `clear()` command to remove the current data from our Bloch sphere instead of creating a new instance:
 
-.. ipython::
+.. nbplot::
 
     b.clear()
 
-    @savefig bloch-clear.png width=3.5in align=center
     b.show()
 
 
 Now on the same Bloch sphere, we can plot the three states associated with the x, y, and z directions:
 
-.. ipython::
+.. nbplot::
 
     x = (basis(2,0)+(1+0j)*basis(2,1)).unit()
 
@@ -180,12 +174,11 @@ Now on the same Bloch sphere, we can plot the three states associated with the x
 
     b.add_states([x,y,z])
 
-    @savefig bloch-xyz-states.png width=3.5in align=center
     b.show()
 
 a similar method works for adding vectors:
 
-.. ipython::
+.. nbplot::
 
     b.clear()
 
@@ -193,18 +186,17 @@ a similar method works for adding vectors:
 
     b.add_vectors(vec)
 
-    @savefig bloch-xyz-vecs.png width=3.5in align=center
     b.show()
 
 Adding multiple points to the Bloch sphere works slightly differently than adding multiple states or vectors.  For example, lets add a set of 20 points around the equator (after calling `clear()`):
 
-.. ipython::
+.. nbplot::
 
 
     b.clear()
 
 
-.. ipython::
+.. nbplot::
 
     xp = [np.cos(th) for th in np.linspace(0, 2*pi, 20)]
 
@@ -216,12 +208,11 @@ Adding multiple points to the Bloch sphere works slightly differently than addin
 
     b.add_points(pnts)
 
-    @savefig bloch-20pnts.png width=3.5in align=center
     b.show()
 
 Notice that, in contrast to states or vectors, each point remains the same color as the initial point.  This is because adding multiple data points using the add_points function is interpreted, by default, to correspond to a single data point (single qubit state) plotted at different times.  This is very useful when visualizing the dynamics of a qubit.  An example of this is given in the example .  If we want to plot additional qubit states we can call additional `add_points` functions:
 
-.. ipython::
+.. nbplot::
 
     xz = np.zeros(20)
 
@@ -231,19 +222,18 @@ Notice that, in contrast to states or vectors, each point remains the same color
 
     b.add_points([xz, yz, zz])
 
-    @savefig bloch-40pnts.png width=3.5in align=center
     b.show()
 
 The color and shape of the data points is varied automatically by the Bloch class.  Notice how the color and point markers change for each set of data.  Again, we have had to call ``add_points`` twice because adding more than one set of multiple data points is *not* supported by the ``add_points`` function.
 
 What if we want to vary the color of our points.  We can tell the :class:`qutip.Bloch` class to vary the color of each point according to the colors listed in the ``b.point_color`` list (see :ref:`bloch-config` below).  Again after ``clear()``:
 
-.. ipython::
+.. nbplot::
 
 
     b.clear()
 
-.. ipython::
+.. nbplot::
 
     xp = [np.cos(th) for th in np.linspace(0, 2*pi, 20)]
 
@@ -255,13 +245,12 @@ What if we want to vary the color of our points.  We can tell the :class:`qutip.
 
     b.add_points(pnts,'m') # <-- add a 'm' string to signify 'multi' colored points
 
-    @savefig bloch-multipnts.png width=3.5in align=center
     b.show()
 
 
 Now, the data points cycle through a variety of predefined colors.  Now lets add another set of points, but this time we want the set to be a single color, representing say a qubit going from the :math:`\left|\rm up\right>` state to the :math:`\left|\rm down\right>` state in the y-z plane:
 
-.. ipython::
+.. nbplot::
 
     xz = np.zeros(20)
 
@@ -271,7 +260,6 @@ Now, the data points cycle through a variety of predefined colors.  Now lets add
 
     b.add_points([xz, yz, zz]) # no 'm'
 
-    @savefig bloch-mpnts+pts.png width=3.5in align=center
     b.show()
 
 Again, the same plot can be generated using the :class:`qutip.Bloch3d` class by replacing ``Bloch`` with ``Bloch3d``:
@@ -424,11 +412,41 @@ correspondence to those of the ``Bloch`` class due to the different underlying r
 
 These properties can also be accessed via the print command:
 
-.. ipython::
+.. doctest::
 
-    b = Bloch()
+    >>> b = Bloch()
 
-    print(b)
+    >>> print(b) # doctest: +NORMALIZE_WHITESPACE
+    Bloch data:
+    -----------
+    Number of points:  0
+    Number of vectors: 0
+    <BLANKLINE>
+    Bloch sphere properties:
+    ------------------------
+    font_color:      black
+    font_size:       20
+    frame_alpha:     0.2
+    frame_color:     gray
+    frame_width:     1
+    point_color:     ['b', 'r', 'g', '#CC6600']
+    point_marker:    ['o', 's', 'd', '^']
+    point_size:      [25, 32, 35, 45]
+    sphere_alpha:    0.2
+    sphere_color:    #FFDDDD
+    figsize:         [5, 5]
+    vector_color:    ['g', '#CC6600', 'b', 'r']
+    vector_width:    3
+    vector_style:    -|>
+    vector_mutation: 20
+    view:            [-60, 30]
+    xlabel:          ['$x$', '']
+    xlpos:           [1.2, -1.2]
+    ylabel:          ['$y$', '']
+    ylpos:           [1.2, -1.2]
+    zlabel:          ['$\\left|0\\right>$', '$\\left|1\\right>$']
+    zlpos:           [1.2, -1.2]
+    <BLANKLINE>
 
 .. _bloch-animate:
 

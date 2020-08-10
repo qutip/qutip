@@ -12,6 +12,7 @@ Bloch-Redfield master equation
 
    from qutip import *
    import numpy as np
+   import matplotlib.pyplot as plt
 
 .. _bloch-redfield-intro:
 
@@ -167,6 +168,23 @@ To simplify the numerical implementation we assume that :math:`A_\alpha` are Her
 Bloch-Redfield master equation in QuTiP
 =======================================
 
+.. nbplot::
+    :include-source: False
+
+    delta = 0.2 * 2*np.pi
+    eps0 = 1.0 * 2*np.pi
+    gamma1 = 0.5
+
+    H = - delta/2.0 * sigmax() - eps0/2.0 * sigmaz()
+
+    def ohmic_spectrum(w):
+      if w == 0.0: # dephasing inducing noise
+        return gamma1
+      else: # relaxation inducing noise
+        return gamma1 / 2 * (w / (2 * np.pi)) * (w > 0.0)
+
+    R, ekets = bloch_redfield_tensor(H, [[sigmax(), ohmic_spectrum]])
+
 In QuTiP, the Bloch-Redfield tensor Eq. :eq:`br-tensor` can be calculated using the function :func:`qutip.bloch_redfield.bloch_redfield_tensor`. It takes two mandatory arguments: The system Hamiltonian :math:`H`, a nested list of operator  :math:`A_\alpha`, spectral density functions :math:`S_\alpha(\omega)` pairs that characterize the coupling between system and bath. The spectral density functions are Python callback functions that takes the (angular) frequency as a single argument.
 
 To illustrate how to calculate the Bloch-Redfield tensor, let's consider a two-level atom
@@ -176,26 +194,8 @@ To illustrate how to calculate the Bloch-Redfield tensor, let's consider a two-l
 
     H = -\frac{1}{2}\Delta\sigma_x - \frac{1}{2}\epsilon_0\sigma_z
 
-that couples to an Ohmic bath through the :math:`\sigma_x` operator. The corresponding Bloch-Redfield tensor can be calculated in QuTiP using the following code
 
-.. nbplot::
-
-    delta = 0.2 * 2*np.pi
-    eps0 = 1.0 * 2*np.pi
-    gamma1 = 0.5
-
-    H = - delta/2.0 * sigmax() - eps0/2.0 * sigmaz()
-
-    def ohmic_spectrum(w):
-       ...:     if w == 0.0: # dephasing inducing noise
-       ...:         return gamma1
-       ...:     else: # relaxation inducing noise
-       ...:         return gamma1 / 2 * (w / (2 * np.pi)) * (w > 0.0)
-       ...:
-
-    R, ekets = bloch_redfield_tensor(H, [[sigmax(), ohmic_spectrum]])
-
-.. doctest:: [dynamics-br]
+.. testcode:: [dynamics-br]
 
     delta = 0.2 * 2*np.pi
     eps0 = 1.0 * 2*np.pi
@@ -204,16 +204,13 @@ that couples to an Ohmic bath through the :math:`\sigma_x` operator. The corresp
     H = - delta/2.0 * sigmax() - eps0/2.0 * sigmaz()
 
     def ohmic_spectrum(w):
-       ...:     if w == 0.0: # dephasing inducing noise
-       ...:         return gamma1
-       ...:     else: # relaxation inducing noise
-       ...:         return gamma1 / 2 * (w / (2 * np.pi)) * (w > 0.0)
-       ...:
+      if w == 0.0: # dephasing inducing noise
+        return gamma1
+      else: # relaxation inducing noise
+        return gamma1 / 2 * (w / (2 * np.pi)) * (w > 0.0)
+
 
     R, ekets = bloch_redfield_tensor(H, [[sigmax(), ohmic_spectrum]])
-
-
-.. testdoc:: [dynamics-br]
 
     print(R)
 
@@ -236,8 +233,6 @@ The evolution of a wavefunction or density matrix, according to the Bloch-Redfie
 
 .. nbplot::
 
-    import matplotlib.pyplot as plt
-
     tlist = np.linspace(0, 15.0, 1000)
 
     psi0 = rand_ket(2)
@@ -255,8 +250,6 @@ The evolution of a wavefunction or density matrix, according to the Bloch-Redfie
     sphere.add_vectors(np.array([delta, 0, eps0]) / np.sqrt(delta ** 2 + eps0 ** 2))
 
     sphere.make_sphere()
-
-    plt.show()
 
 The two steps of calculating the Bloch-Redfield tensor and evolving according to the corresponding master equation can be combined into one by using the function :func:`qutip.bloch_redfield.brmesolve`, which takes same arguments as :func:`qutip.mesolve` and :func:`qutip.mcsolve`, save for the additional nested list of operator-spectrum pairs that is called ``a_ops``.
 
