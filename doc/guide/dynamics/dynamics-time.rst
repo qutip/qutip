@@ -154,13 +154,18 @@ In this case, the return value dependents only on time.  However, when specifyin
 
 .. nbplot::
 
-    H = [H0,[H1,H1_coeff]]
+    H = [H0,[H1, H1_coeff]]
 
     output = mesolve(H, psi0, t, c_ops, [ada, sigma_UU, sigma_GG])
 
 We can call the Monte Carlo solver in the exact same way (if using the default ``ntraj=500``):
 
-.. nbplot::
+
+..
+  Hacky fix because nbplot has complicated conditional code execution
+
+.. doctest::
+    :skipif: True
 
     output = mcsolve(H, psi0, t, c_ops, [ada, sigma_UU, sigma_GG])
 
@@ -202,9 +207,9 @@ or equivalently,
 .. nbplot::
 
     def H1_coeff(t, args):
-       ...:     A = args['A']
-       ...:     sig = args['sigma']
-       ...:     return A * np.exp(-(t / sig) ** 2)
+          A = args['A']
+          sig = args['sigma']
+          return A * np.exp(-(t / sig) ** 2)
 
 where args is a Python dictionary of ``key: value`` pairs ``args = {'A': a, 'sigma': b}`` where ``a`` and ``b`` are the two parameters for the amplitude and width, respectively.  Of course, we can always hardcode the values in the dictionary as well ``args = {'A': 9, 'sigma': 5}``, but there is much more flexibility by using variables in ``args``.  To let the solvers know that we have a set of args to pass we append the ``args`` to the end of the solver input:
 

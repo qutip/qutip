@@ -10,7 +10,7 @@ Permutational Invariance
 .. _master-unitary:
 
 Permutational Invariant Quantum Solver (PIQS)
-====================
+=============================================
 The *Permutational Invariant Quantum Solver (PIQS)* is a QuTiP module that allows to study the dynamics of an open quantum system consisting of an ensemble of identical qubits that can dissipate through local and collective baths according to a Lindblad master equation.
 
 The Liouvillian of an ensemble of :math:`N` qubits, or two-level systems (TLSs), :math:`\mathcal{D}_{TLS}(\rho)`, can be built using only polynomial – instead of exponential – resources.

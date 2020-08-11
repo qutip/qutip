@@ -263,6 +263,7 @@ warnings.filterwarnings("ignore")
 os_nt = {}
 '''.format(os_nt)
 
+nbplot_working_directory = "./"
 # -- Options for Texinfo output -------------------------------------------
 
 # Grouping the document tree into Texinfo files. List of tuples

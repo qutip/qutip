@@ -13,6 +13,8 @@
 
     import numpy as np
 
+    from pylab import *
+
 **********************************
 Saving QuTiP Objects and Data Sets
 **********************************

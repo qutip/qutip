@@ -8,7 +8,6 @@ Setting Options for the Dynamics Solvers
 *********************************************
 
 .. testsetup:: [dynamics_options]
-   :include-source: False
 
    from qutip import Options
 
@@ -133,7 +132,7 @@ Note that the order in which you input the options does not matter.  Using eithe
 
 .. testcode:: [dynamics_options]
 
-    print(options)
+  print(options)
 
 .. testoutput:: [dynamics_options]
   :options: +NORMALIZE_WHITESPACE
