@@ -34,7 +34,6 @@
 
 cimport numpy as cnp
 
-from qutip.core.cy.cqobjevo_factor cimport CoeffFunc
 from qutip.core.data.base cimport idxint
 from qutip.core.data cimport CSR, Dense, Data
 
@@ -45,18 +44,19 @@ cdef class CQobjEvo:
     cdef str superrep
     cdef bint issuper
     cdef size_t n_ops
-    cdef size_t dynamic_arguments
 
     cdef CSR constant
     cdef list ops
+    cdef list coeff
     cdef object coefficients
 
-    cdef object factor_func
-    cdef CoeffFunc factor_cobj
-    cdef bint factor_use_cobj
-
     cdef void _factor(self, double t) except *
-    cdef void _factor_dynamic(self, double t, Data state) except *
+
+    cdef bint has_dynamic_args
+    cdef list dynamic_arguments
+    cdef dict args
+    cdef object op
+    cpdef dyn_args(self, double t, Data matrix)
 
     cpdef Dense matmul(self, double t, Dense matrix, Dense out=*)
     cpdef double complex expect(self, double t, Data matrix) except *

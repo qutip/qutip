@@ -35,7 +35,7 @@ class TestNoise:
         noisy_qu, c_ops = decnoise.get_noisy_dynamics(2).get_noisy_qobjevo(dims=2)
         assert_allclose(c_ops[0].ops[0].qobj.full(),
                         tensor(qeye(2), sigmaz()).full())
-        assert_allclose(c_ops[0].ops[0].coeff, coeff)
+        assert_allclose(c_ops[0].ops[0].coeff.array, coeff)
         assert_allclose(c_ops[0].tlist, tlist)
 
         # Time-indenpendent and all qubits
@@ -51,7 +51,7 @@ class TestNoise:
         noisy_qu, c_ops = decnoise.get_noisy_dynamics(2).get_noisy_qobjevo(dims=2)
         assert_allclose(c_ops[0].ops[0].qobj.full(),
                         tensor(sigmax(), qeye(2)).full())
-        assert_allclose(c_ops[0].ops[0].coeff, coeff*2)
+        assert_allclose(c_ops[0].ops[0].coeff.array, coeff*2)
         assert_allclose(c_ops[0].tlist, tlist)
         assert_allclose(c_ops[1].ops[0].qobj.full(),
                         tensor(qeye(2), sigmax()).full())
