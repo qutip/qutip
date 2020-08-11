@@ -16,7 +16,7 @@ Build requirements
 * ipython
 
 In a conda environment use:
-    
+
     $ conda install sphinx numpydoc sphinx_rtd_theme sphinx-gallery ipython
 
 2017-03-28: Successful building using:
@@ -27,8 +27,8 @@ In a conda environment use:
 
 Build
 -----
-2017-01-07: 
-Thanks to some bug in ipython/ipython#8733 to do with the `ipython_savefig_dir` conf option, 
+2017-01-07:
+Thanks to some bug in ipython/ipython#8733 to do with the `ipython_savefig_dir` conf option,
 then note that this build directory structure must exist already:
 
     _build/html/_images
@@ -37,7 +37,7 @@ then note that this build directory structure must exist already:
 To build the documentation on Linux or OS X run:
 
     $ make html latexpdf
-    
+
 Building Documentation On Windows
 ---------------------------------
 

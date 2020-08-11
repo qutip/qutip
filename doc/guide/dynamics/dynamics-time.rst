@@ -234,7 +234,6 @@ The string-based time-dependent format works in a similar manner as the previous
 Like the previous method, the string-based format uses a list pair format ``[Op, str]`` where ``str`` is now a string representing the time-dependent coefficient.  For our first example, this string would be ``'9 * exp(-(t / 5.) ** 2)'``.  The Hamiltonian in this format would take the form:
 
 .. nbplot::
-   :suppress:
 
    ustate = basis(3, 0)
 
@@ -285,7 +284,7 @@ Like the previous method, the string-based format uses a list pair format ``[Op,
 
 .. nbplot::
 
-   H = [H0, [H1, '9 * exp(-(t / 5) ** 2)']]
+    H = [H0, [H1, '9 * exp(-(t / 5) ** 2)']]
 
 Notice that this is a valid Hamiltonian for the string-based format as ``exp`` is included in the above list of suitable functions. Calling the solvers is the same as before:
 
@@ -341,8 +340,6 @@ To turn these data points into a function we call the QuTiP :class:`qutip.interp
 
 
 .. nbplot::
-
-    plt.clf()
 
     S = Cubic_Spline(t[0], t[-1], noisy_data)
 

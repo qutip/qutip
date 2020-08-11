@@ -30,7 +30,7 @@ Here we begin by creating a Fock :func:`qutip.states.basis` vacuum state vector 
     print(vac)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
     Qobj data =
@@ -52,7 +52,7 @@ and then create a lowering operator :math:`\left(\hat{a}\right)` corresponding t
     print(a)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[5], [5]], shape = (5, 5), type = oper, isherm = False
     Qobj data =
@@ -71,7 +71,7 @@ Now lets apply the destruction operator to our vacuum state ``vac``,
     print(a * vac)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
     Qobj data =
@@ -88,7 +88,7 @@ We see that, as expected, the vacuum is transformed to the zero vector.  A more 
     print(a.dag() * vac)
 
 .. testoutput:: [states]
- :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
     Qobj data =
@@ -107,7 +107,7 @@ The raising operator has in indeed raised the state `vec` from the vacuum to the
     print(c * vac)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
     Qobj data =
@@ -124,7 +124,7 @@ which does the same thing.  We can raise the vacuum state more than once by succ
     print(c * c * vac)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
     Qobj data =
@@ -141,7 +141,7 @@ or just taking the square of the raising operator :math:`\left(\hat{a}^\dagger\r
     print(c ** 2 * vac)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
     Qobj data =
@@ -158,7 +158,7 @@ Applying the raising operator twice gives the expected :math:`\sqrt{n + 1}` depe
     print(c * a * vac)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
     Qobj data =
@@ -175,7 +175,7 @@ or on the :math:`\left| 1\right>` state:
     print(c * a * (c * vac))
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
     Qobj data =
@@ -192,7 +192,7 @@ or the :math:`\left| 2\right>` state:
     print(c * a * (c**2 * vac))
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
     Qobj data =
@@ -209,7 +209,7 @@ Notice how in this last example, application of the number operator does not giv
     print(c * a * (c**2 * vac).unit())
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
     Qobj data =
@@ -228,7 +228,7 @@ Since we are giving a demonstration of using states and operators, we have done 
     print(ket)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
     Qobj data =
@@ -247,7 +247,7 @@ Notice how it is automatically normalized.  We can also use the built in :func:`
     print(n)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[5], [5]], shape = (5, 5), type = oper, isherm = True
     Qobj data =
@@ -264,7 +264,7 @@ Therefore, instead of ``c * a * (c ** 2 * vac).unit()`` we have:
     print(n * ket)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
     Qobj data =
@@ -283,7 +283,7 @@ We can also create superpositions of states:
     print(ket)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
     Qobj data =
@@ -300,7 +300,7 @@ where we have used the :func:`qutip.Qobj.unit` method to again normalize the sta
     print(n * ket)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
     Qobj data =
@@ -323,7 +323,7 @@ We can also create coherent states and squeezed states by applying the :func:`qu
     print(d * vac)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
     Qobj data =
@@ -338,7 +338,7 @@ We can also create coherent states and squeezed states by applying the :func:`qu
     print(d * s * vac)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
     Qobj data =
@@ -367,7 +367,7 @@ The simplest density matrix is created by forming the outer-product :math:`\left
     print(ket * ket.dag())
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[5], [5]], shape = (5, 5), type = oper, isherm = True
     Qobj data =
@@ -384,7 +384,7 @@ A similar task can also be accomplished via the :func:`qutip.states.fock_dm` or 
     print(fock_dm(5, 2))
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[5], [5]], shape = (5, 5), type = oper, isherm = True
     Qobj data =
@@ -399,7 +399,7 @@ A similar task can also be accomplished via the :func:`qutip.states.fock_dm` or 
     print(ket2dm(ket))
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[5], [5]], shape = (5, 5), type = oper, isherm = True
     Qobj data =
@@ -416,7 +416,7 @@ If we want to create a density matrix with equal classical probability of being 
     print(0.5 * ket2dm(basis(5, 4)) + 0.5 * ket2dm(basis(5, 2)))
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[5], [5]], shape = (5, 5), type = oper, isherm = True
     Qobj data =
@@ -434,7 +434,7 @@ or use ``0.5 * fock_dm(5, 2) + 0.5 * fock_dm(5, 4)``. There are also several oth
     print(coherent_dm(5, 1.25))
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[5], [5]], shape = (5, 5), type = oper, isherm = True
     Qobj data =
@@ -449,7 +449,7 @@ or use ``0.5 * fock_dm(5, 2) + 0.5 * fock_dm(5, 4)``. There are also several oth
     print(thermal_dm(5, 1.25))
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[5], [5]], shape = (5, 5), type = oper, isherm = True
     Qobj data =
@@ -510,7 +510,7 @@ At this stage, there is no difference.  This should not be surprising as we call
     print(vac)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
     Qobj data =
@@ -524,7 +524,7 @@ At this stage, there is no difference.  This should not be surprising as we call
     print(c * vac)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
     Qobj data =
@@ -538,7 +538,7 @@ For a spin system, the operator analogous to the raising operator is the sigma-p
     print(spin)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
     Qobj data =
@@ -551,7 +551,7 @@ For a spin system, the operator analogous to the raising operator is the sigma-p
 
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
     Qobj data =
@@ -565,7 +565,7 @@ Now we see the difference!  The :func:`qutip.operators.sigmap` operator acting o
     print(sigmaz())
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = True
     Qobj data =
@@ -577,7 +577,7 @@ Now we see the difference!  The :func:`qutip.operators.sigmap` operator acting o
     print(sigmaz() * spin)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
     Qobj data =
@@ -591,7 +591,7 @@ Now we see the difference!  The :func:`qutip.operators.sigmap` operator acting o
     print(spin2)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
     Qobj data =
@@ -669,7 +669,7 @@ The :func:`qutip.expect` function also accepts lists or arrays of state vectors 
     print(expect(N, states))
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     [0. 1. 2. 3. 4.]
 
@@ -680,7 +680,7 @@ The :func:`qutip.expect` function also accepts lists or arrays of state vectors 
     print(expect(c, cat_list))
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     [ 0.+0.j  0.+1.j -1.+0.j  0.-1.j]
 
@@ -744,7 +744,7 @@ This isomorphism is implemented in QuTiP by the
     print(rho)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = True
     Qobj data =
@@ -787,7 +787,7 @@ between :math:`\mathcal{L}(\mathcal{H})` and :math:`\mathcal{H} \otimes \mathcal
     print(A)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = False
     Qobj data =
@@ -800,7 +800,7 @@ between :math:`\mathcal{L}(\mathcal{H})` and :math:`\mathcal{H} \otimes \mathcal
 
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[[2], [2]], [1]], shape = (4, 1), type = operator-ket
     Qobj data =
@@ -855,7 +855,7 @@ and :attr:`~qutip.Qobj.iscptp` attributes:
     print(S.iscp, S.istp, S.iscptp)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     True True True
 
@@ -877,7 +877,7 @@ be exponentiated to find the superoperator for that evolution.
     S = (12 * L).expm()
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = (4, 4), type = super, isherm = False
     Qobj data =
@@ -937,7 +937,7 @@ function on a ``type="super"`` :ref:`Qobj`.
     print(J)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = (4, 4), type = super, isherm = True, superrep = choi
     Qobj data =
@@ -948,7 +948,7 @@ function on a ``type="super"`` :ref:`Qobj`.
 
 .. testcode:: [states]
 
-    print(to_choi(spre(qeye(2))))
+  print(to_choi(spre(qeye(2))))
 
 .. testoutput:: [states]
   :options: +NORMALIZE_WHITESPACE
@@ -968,7 +968,7 @@ does nothing:
     print(to_choi(J))
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = (4, 4), type = super, isherm = True, superrep = choi
     Qobj data =
@@ -985,7 +985,7 @@ As with :func:`~qutip.superop_reps.to_choi`, :func:`~qutip.superop_reps.to_super
     print(to_super(J) - S)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = (4, 4), type = super, isherm = True
     Qobj data =
@@ -999,7 +999,7 @@ As with :func:`~qutip.superop_reps.to_choi`, :func:`~qutip.superop_reps.to_super
     print(to_super(S))
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = (4, 4), type = super, isherm = True
     Qobj data =
@@ -1045,7 +1045,7 @@ using the :func:`~qutip.superop_reps.to_kraus` function.
     print(S)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = (4, 4), type = super, isherm = True
     Qobj data =
@@ -1060,7 +1060,7 @@ using the :func:`~qutip.superop_reps.to_kraus` function.
     print(J)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = (4, 4), type = super, isherm = True, superrep = choi
     Qobj data =
@@ -1074,7 +1074,7 @@ using the :func:`~qutip.superop_reps.to_kraus` function.
     print(J.eigenstates()[1])
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     [Quantum object: dims = [[[2], [2]], [1, 1]], shape = (4, 1), type = operator-ket
     Qobj data =
@@ -1107,7 +1107,7 @@ using the :func:`~qutip.superop_reps.to_kraus` function.
     print(K)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     [Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = True
     Qobj data =
@@ -1134,7 +1134,7 @@ on ``J``.
     print(KJ)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     [Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = True
     Qobj data =
@@ -1156,7 +1156,7 @@ on ``J``.
       print(A - AJ)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = True
     Qobj data =
@@ -1198,7 +1198,7 @@ function.
     print(S)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = (4, 4), type = super, isherm = False
     Qobj data =
@@ -1213,7 +1213,7 @@ function.
     print(A)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[2, 3], [2]], shape = (6, 2), type = oper, isherm = False
     Qobj data =
@@ -1229,7 +1229,7 @@ function.
     print(B)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[2, 3], [2]], shape = (6, 2), type = oper, isherm = False
     Qobj data =
@@ -1251,7 +1251,7 @@ Kraus operators).
     print(to_choi(S).eigenenergies())
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     [0.         0.04861218 0.1        1.85138782]
 
@@ -1274,7 +1274,7 @@ function.
     print(chi)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = (4, 4), type = super, isherm = True, superrep = chi
     Qobj data =
@@ -1295,7 +1295,7 @@ the :math:`\chi_{00}` element:
     print(chi[0, 0] / 4)
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     (0.925+0j)
 
@@ -1328,7 +1328,7 @@ transpose map.
     print(rho_out.eigenenergies())
 
 .. testoutput:: [states]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     [-0.5  0.5  0.5  0.5]
 

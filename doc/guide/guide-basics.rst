@@ -16,6 +16,9 @@ First things first
 
 To load the qutip modules, we must first call the import statement:
 
+.. code-block:: Python
+
+   from qutip import * 
 
 that will load all of the user available functions. Often, we also need to import the NumPy and Matplotlib libraries with:
 

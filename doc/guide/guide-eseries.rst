@@ -43,7 +43,6 @@ To add more terms to an :class:`qutip.eseries` object we simply add objects usin
 .. nbplot::
 
    >>> omega=1.0
-
    >>> es2 = (eseries(0.5 * sigmax(), 1j * omega) +  eseries(0.5 * sigmax(), -1j * omega))
 
 The :class:`qutip.eseries` in this example represents the operator :math:`0.5 \sigma_x e^{i\omega t} + 0.5 \sigma_x e^{-i\omega t}`, which is the exponential series representation of :math:`\sigma_x \cos(\omega t)`. Alternatively, we can also specify a list of amplitudes and rates when the :class:`qutip.eseries` is created:
@@ -88,9 +87,7 @@ or for a list of times ``[0.0, 1.0 * pi, 2.0 * pi]``:
 
 .. nbplot::
   >>> times = [0.0, 1.0 * np.pi, 2.0 * np.pi] # doctest: +NORMALIZE_WHITESPACE
-
-   # equivalent to es2.value(times)
-  >>> esval(es2, times)  # doctest: +NORMALIZE_WHITESPACE
+  >>> esval(es2, times) # equivalent to es2.value(times) # doctest: +NORMALIZE_WHITESPACE
   array([Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = True
   Qobj data =
   [[0. 1.]
@@ -110,11 +107,8 @@ To calculate the expectation value of an time-dependent operator represented by 
 .. nbplot::
 
   >>> es3 = (eseries([0.5*sigmaz(), 0.5*sigmaz()], [1j, -1j]) + eseries([-0.5j*sigmax(), 0.5j*sigmax()], [1j, -1j]))
-
   >>> rho = fock_dm(2, 1)
-
   >>> es3_expect = expect(rho, es3)
-
   >>> es3_expect # doctest: +NORMALIZE_WHITESPACE
   ESERIES object: 2 terms
   Hilbert space dimensions: [[1, 1]]
@@ -122,7 +116,6 @@ To calculate the expectation value of an time-dependent operator represented by 
   (-0.5+0j)
   Exponent #1 = 1j
   (-0.5+0j)
-
   >>> es3_expect.value([0.0, pi/2]) # doctest: +NORMALIZE_WHITESPACE
   array([-1.000000e+00, -6.123234e-17])
 
@@ -142,11 +135,8 @@ As an example, consider a spin-1/2 with a Hamiltonian pointing in the :math:`\si
 .. nbplot::
 
    >>> psi0 = basis(2,1)
-
    >>> H = sigmaz()
-
    >>> L = liouvillian(H, [np.sqrt(1.0) * destroy(2)])
-
    >>> es = ode2es(L, psi0)
 
 The :func:`qutip.essolve.ode2es` function diagonalizes the Liouvillian :math:`L` and creates an exponential series with the correct eigenfrequencies and amplitudes for the initial state :math:`\psi_0` (`psi0`).
@@ -199,15 +189,8 @@ The result `es_expect` is now an exponential series with c-numbers as amplitudes
 .. nbplot::
 
     >>> times = linspace(0.0, 10.0, 100)
-
     >>> sz_expect = es_expect.value(times)
-
     >>> plot(times, sz_expect, lw=2) # doctest: +SKIP
-
     >>> xlabel("Time", fontsize=16) # doctest: +SKIP
-
     >>> ylabel("Expectation value of sigma-z", fontsize=16) # doctest: +SKIP
-
     >>> title("The expectation value of the $\sigma_{z}$ operator", fontsize=16) # doctest: +SKIP
-
-    >>> show() # doctest: +SKIP

@@ -3,6 +3,16 @@
 
 .. _saving:
 
+
+.. nbplot::
+    :include-source: False
+
+    from qutip import *
+
+    from scipy import *
+
+    import numpy as np
+
 **********************************
 Saving QuTiP Objects and Data Sets
 **********************************
@@ -135,7 +145,6 @@ A common use for the :func:`qutip.fileio.file_data_store` function is to store t
 In this case we didn't really need to store both the real and imaginary parts, so instead we could use the `numtype="real"` option:
 
 .. doctest:: [saving]
-  :options: +NORMALIZE_WHITESPACE
 
     >>> file_data_store('expect.dat', output_data.T, numtype="real")
 

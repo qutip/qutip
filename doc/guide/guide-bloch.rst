@@ -19,6 +19,8 @@ Plotting on the Bloch Sphere
 
     import numpy as np
 
+    import matplotlib.pyplot as plt
+
 
 .. _bloch-intro:
 
@@ -46,7 +48,7 @@ that loads the :class:`qutip.Bloch3d` version.  Before getting into the details 
 
 .. nbplot::
 
-    b.show()
+    b.make_sphere()
 
 or
 
@@ -101,17 +103,19 @@ As an example, we can add a single data point:
 
     b.add_points(pnt)
 
-    b.show()
+    b.render()
 
 and then a single vector:
 
 .. nbplot::
 
+    b.fig.clf()
+
     vec = [0,1,0]
 
     b.add_vectors(vec)
 
-    b.show()
+    b.render()
 
 
 and then add another vector corresponding to the :math:`\left|\rm up \right>` state:
@@ -122,7 +126,7 @@ and then add another vector corresponding to the :math:`\left|\rm up \right>` st
 
     b.add_states(up)
 
-    b.show()
+    b.render()
 
 Notice that when we add more than a single vector (or data point), a different color will automatically be applied to the later data set (mod 4).  In total, the code for constructing our Bloch sphere with one vector, one state, and a single data point is:
 
@@ -142,7 +146,7 @@ Notice that when we add more than a single vector (or data point), a different c
 
     b.add_states(up)
 
-    b.show()
+    b.render()
 
 where we have removed the extra ``show()`` commands.  Replacing ``b=Bloch()`` with ``b=Bloch3d()`` in the above code generates the following 3D Bloch sphere.
 
@@ -159,7 +163,7 @@ We can also plot multiple points, vectors, and states at the same time by passin
 
     b.clear()
 
-    b.show()
+    b.render()
 
 
 Now on the same Bloch sphere, we can plot the three states associated with the x, y, and z directions:
@@ -174,7 +178,7 @@ Now on the same Bloch sphere, we can plot the three states associated with the x
 
     b.add_states([x,y,z])
 
-    b.show()
+    b.render()
 
 a similar method works for adding vectors:
 
@@ -186,17 +190,13 @@ a similar method works for adding vectors:
 
     b.add_vectors(vec)
 
-    b.show()
+    b.render()
 
 Adding multiple points to the Bloch sphere works slightly differently than adding multiple states or vectors.  For example, lets add a set of 20 points around the equator (after calling `clear()`):
 
 .. nbplot::
 
-
     b.clear()
-
-
-.. nbplot::
 
     xp = [np.cos(th) for th in np.linspace(0, 2*pi, 20)]
 
@@ -208,7 +208,7 @@ Adding multiple points to the Bloch sphere works slightly differently than addin
 
     b.add_points(pnts)
 
-    b.show()
+    b.render()
 
 Notice that, in contrast to states or vectors, each point remains the same color as the initial point.  This is because adding multiple data points using the add_points function is interpreted, by default, to correspond to a single data point (single qubit state) plotted at different times.  This is very useful when visualizing the dynamics of a qubit.  An example of this is given in the example .  If we want to plot additional qubit states we can call additional `add_points` functions:
 
@@ -222,7 +222,7 @@ Notice that, in contrast to states or vectors, each point remains the same color
 
     b.add_points([xz, yz, zz])
 
-    b.show()
+    b.render()
 
 The color and shape of the data points is varied automatically by the Bloch class.  Notice how the color and point markers change for each set of data.  Again, we have had to call ``add_points`` twice because adding more than one set of multiple data points is *not* supported by the ``add_points`` function.
 
@@ -230,10 +230,7 @@ What if we want to vary the color of our points.  We can tell the :class:`qutip.
 
 .. nbplot::
 
-
     b.clear()
-
-.. nbplot::
 
     xp = [np.cos(th) for th in np.linspace(0, 2*pi, 20)]
 
@@ -245,7 +242,7 @@ What if we want to vary the color of our points.  We can tell the :class:`qutip.
 
     b.add_points(pnts,'m') # <-- add a 'm' string to signify 'multi' colored points
 
-    b.show()
+    b.render()
 
 
 Now, the data points cycle through a variety of predefined colors.  Now lets add another set of points, but this time we want the set to be a single color, representing say a qubit going from the :math:`\left|\rm up\right>` state to the :math:`\left|\rm down\right>` state in the y-z plane:
@@ -260,7 +257,7 @@ Now, the data points cycle through a variety of predefined colors.  Now lets add
 
     b.add_points([xz, yz, zz]) # no 'm'
 
-    b.show()
+    b.render()
 
 Again, the same plot can be generated using the :class:`qutip.Bloch3d` class by replacing ``Bloch`` with ``Bloch3d``:
 

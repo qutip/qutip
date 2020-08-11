@@ -73,14 +73,14 @@ To access the data for the two expectation values one can do:
   expt0 = result.expect[0]
   expt1 = result.expect[1]
 
-Recall that Python uses C-style indexing that begins with zero (i.e., [0] => 1st collapse operator data). Together with the array of times at which these expectation values are calculated::
+Recall that Python uses C-style indexing that begins with zero (i.e., [0] => 1st collapse operator data). Together with the array of times at which these expectation values are calculated:
 
 .. testcode::
   :skipif: True
 
-  times = result.times # doctest: +SKIP
+  times = result.times
 
-we can plot the resulting expectation values::
+we can plot the resulting expectation values:
 
 .. testcode::
   :skipif: True
@@ -108,7 +108,6 @@ All of the data results are then stored in a single file of the same name with a
 .. doctest::
   :options: +SKIP
 
-
   >>> stored_result = qload('cavity+qubit-data')
   Loaded Result object:
   Result object with mcsolve data.
@@ -116,15 +115,15 @@ All of the data results are then stored in a single file of the same name with a
   expect = True
   num_expect = 2, num_collapse = 2, ntraj = 500
 
-where ``stored_result`` is the new name of the Result object.  We can then extract the data and plot in the same manner as before::
+where ``stored_result`` is the new name of the Result object.  We can then extract the data and plot in the same manner as before:
 
 .. testcode::
-  :skipif: True
+    :skipif: True
 
-	expt0 = stored_result.expect[0]
-	expt1 = stored_result.expect[1]
-	times = stored_result.times
-	plot(times, expt0, times, expt1)
-	show()
+    expt0 = stored_result.expect[0]
+    expt1 = stored_result.expect[1]
+    times = stored_result.times
+    plot(times, expt0, times, expt1)
+    show()
 
 Also see :ref:`saving` for more information on saving quantum objects, as well as arrays for use in other programs.

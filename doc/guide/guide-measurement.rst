@@ -155,6 +155,7 @@ happens in many quantum experiments. In QuTiP one could simulate this using:
 
 .. testoutput:: [measurement]
   :skipif: True
+  
   {1.0: 498, -1.0: 502}
 
 which measures the x-component of the spin of the `up` state `1000` times and
