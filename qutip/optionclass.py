@@ -1,6 +1,6 @@
 import qutip.settings as qset
 
-def optionclass(name):
+def optionclass(name, parent=qset):
     """Make the class an Options object of Qutip and register the object
     default as qutip.settings."name".
 
@@ -43,23 +43,22 @@ def optionclass(name):
         # Called as
         # @QtOptionClass(name)
         # class Options:
-        return _QtOptionMaker(name)
+        return _QtOptionMaker(name, parent)
     else:
         # Called as
         # @QtOptionClass
         # class Options:
-        return _QtOptionMaker(name.__name__)(name)
+        return _QtOptionMaker(name.__name__, parent)(name)
 
 
 class _QtOptionMaker:
-    def __init__(self, name):
+    def __init__(self, name, parent):
         self.name = name
+        self.parent = parent
 
     def __call__(self, cls):
         if hasattr(cls, "_isDefault"):
             # Already a QtOptionClass
-            if self.name not in __self:
-                self._make_default(cls)
             return
 
         # attributes that to be saved
@@ -69,7 +68,7 @@ class _QtOptionMaker:
         cls._repr_keys = [key for key in cls.__dict__
                           if self._valid(cls, key, _repr=True)]
         # Name in settings and in files
-        cls._name = self.name
+        cls._name = self.name.split(".")[-1]
         # Name when printing
         cls._fullname = ".".join([cls.__module__, cls.__name__])
         # Is this instance the default for the other.
@@ -101,6 +100,7 @@ def __init__(self, file='', *,
         cls.reset = _qoc_reset
         cls.save = _qoc_save
         cls.load = _qoc_load
+        cls.sections = []
         return cls
 
     @staticmethod
@@ -126,9 +126,9 @@ def __init__(self, file='', *,
             default.__dict__[key] = cls.__dict__[key]
         default._isDefault = True
         default._fullname = "qutip.settings." + self.name
-        setattr(qset, self.name, default)
+        setattr(self.parents, self.name, default)
+        self.parents.sections.append(default)
         cls._defaultInstance = default
-        qrc.sections.append((self.name, default))
 
 
 def _qoc_repr_(self):

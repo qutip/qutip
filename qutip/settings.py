@@ -35,3 +35,20 @@ This module contains settings for the QuTiP graphics, multiprocessing, and
 tidyup functionality, etc.
 """
 from __future__ import absolute_import
+
+
+__all = []
+
+def save(file="qutiprc"):
+    for section in __all:
+        section.save(file)
+
+
+def load(file="qutiprc"):
+    for section in __all:
+        section.load(file)
+
+
+def reset(file="qutiprc"):
+    for section in __all:
+        section.reset(file)
