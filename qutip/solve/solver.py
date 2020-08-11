@@ -143,7 +143,7 @@ class ExpectOps:
 
 
 @optionclass("solver")
-class Options:
+class SolverOptions:
     """
     Class of options for evolution solvers such as :func:`qutip.mesolve` and
     :func:`qutip.mcsolve`. Options can be specified either as arguments to the
@@ -160,7 +160,7 @@ class Options:
 
     The default can be changed by::
 
-        qutip.settings.options.order = 10
+        qutip.settings.options['order'] = 10
 
     Attributes
     ----------
@@ -198,82 +198,88 @@ class Options:
         expectation are provided, then states are stored by default and this
         option has no effect.
     """
-    # Absolute tolerance (default = 1e-8)
-    atol = 1e-8
-    # Relative tolerance (default = 1e-6)
-    rtol = 1e-6
-    # Integration method (default = 'adams', for stiff 'bdf')
-    method = 'adams'
-    # Maximum order used by integrator (<=12 for 'adams', <=5 for 'bdf')
-    order = 12
-    # Max. number of internal steps/call
-    nsteps = 1000
-    # Size of initial step (0 = determined by solver)
-    first_step = 0
-    # Max step size (0 = determined by solver)
-    max_step = 0
-    # Minimal step size (0 = determined by solver)
-    min_step = 0
-    # Average expectation values over trajectories (default = True)
-    average_expect = True
-    # average expectation values
-    average_states = False
-    # tidyup Hamiltonian before calculation (default = True)
-    tidy = True
-    # Number of trajectories (default = 500)
-    ntraj = 500
-    gui = False
-    # store final state?
-    store_final_state = False
-    # store states even if expectation operators are given?
-    store_states = False
-    # average mcsolver density matricies assuming steady state evolution
-    steady_state_average = False
-    # Normalize output of solvers
-    # (turned off for batch unitary propagator mode)
-    normalize_output = True
+    options = {
+        # Absolute tolerance (default = 1e-8)
+        "atol": 1e-8,
+        # Relative tolerance (default = 1e-6)
+        "rtol": 1e-6,
+        # Integration method (default = 'adams', for stiff 'bdf')
+        "method": 'adams',
+        # Maximum order used by integrator (<=12 for 'adams', <=5 for 'bdf')
+        "order": 12,
+        # Max. number of internal steps/call
+        "nsteps": 1000,
+        # Size of initial step (0 = determined by solver)
+        "first_step": 0,
+        # Max step size (0 = determined by solver)
+        "max_step": 0,
+        # Minimal step size (0 = determined by solver)
+        "min_step": 0,
+        # Average expectation values over trajectories (default = True)
+        "average_expect": True,
+        # average expectation values
+        "average_states": False,
+        # tidyup Hamiltonian before calculation (default = True)
+        "tidy": True,
+        # Number of trajectories (default = 500)
+        "ntraj": 500,
+        "gui": False,
+        # store final state?
+        "store_final_state": False,
+        # store states even if expectation operators are given?
+        "store_states": False,
+        # average mcsolver density matricies assuming steady state evolution
+        "steady_state_average": False,
+        # Normalize output of solvers
+        # (turned off for batch unitary propagator mode)
+        "normalize_output": True
+    }
 
 
-#@optionclass("montecarlo")
-#class Options:
+@optionclass("montecarlo", SolverOptions)
+class McOptions:
     """
     Class of options for evolution solvers such as :func:`qutip.mesolve` and
     :func:`qutip.mcsolve`. Options can be specified either as arguments to the
     constructor::
 
-        opts = Options(norm_tol=10, ...)
+        opts = Options(norm_tol=1e-3, ...)
 
     or by changing the class attributes after creation::
 
         opts = Options()
-        opts.norm_tol = 10
+        opts.['norm_tol'] = 1e-3
 
     Returns options class to be used as options in evolution solvers.
 
     The default can be changed by::
 
-        qutip.settings.options.montecarlo.norm_tol = 10
+        qutip.settings.options.montecarlo['norm_tol'] = 1e-3
 
     Attributes
     ----------
-    norm_tol : float
+    norm_tol : float {1e-4}
         Tolerance used when finding wavefunction norm in mcsolve.
-    norm_steps : int
+    norm_t_tol : float {1e-6}
+        Tolerance used when finding wavefunction time in mcsolve.
+    norm_steps : int {5}
         Max. number of steps used to find wavefunction norm to within norm_tol
         in mcsolve.
     mc_corr_eps : float {1e-10}
         Arbitrarily small value for eliminating any divide-by-zero errors in
         correlation calculations when using mcsolve.
     """
-    # Tolerance for wavefunction norm (mcsolve only)
-    norm_tol = 1e-3
-    # Tolerance for collapse time precision (mcsolve only)
-    norm_t_tol = 1e-6
-    # Max. number of steps taken to find wavefunction norm to within
-    # norm_tol (mcsolve only)
-    norm_steps = 5
-    # small value in mc solver for computing correlations
-    mc_corr_eps = 1e-10
+    options = {
+        # Tolerance for wavefunction norm (mcsolve only)
+        "norm_tol": 1e-4,
+        # Tolerance for collapse time precision (mcsolve only)
+        "norm_t_tol": 1e-6,
+        # Max. number of steps taken to find wavefunction norm to within
+        # norm_tol (mcsolve only)
+        "norm_steps": 5,
+        # small value in mc solver for computing correlations
+        "mc_corr_eps": 1e-10,
+    }
 
 
 class Result():

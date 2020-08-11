@@ -15,10 +15,9 @@ def optionclass(name, parent=qset):
         __repr__():
             Make a clean print of all attribute and properties.
     and the attributes:
-        _all
-        _repr_keys
         _name
         _fullname
+        _types
         _isDefault
         _defaultInstance
 
@@ -26,13 +25,13 @@ def optionclass(name, parent=qset):
 
     Usage:
         ``
-        @QtOptionClass(name)
+        @optionclass(name)
         class Options:
             ...
         ``
     or
         ``
-        @QtOptionClass
+        @optionclass
         class Options
             ...
         ``
@@ -61,102 +60,120 @@ class _QtOptionMaker:
             # Already a QtOptionClass
             return
 
-        # attributes that to be saved
-        cls._all = [key for key in cls.__dict__
-                    if self._valid(cls, key)]
-        # attributes to print
-        cls._repr_keys = [key for key in cls.__dict__
-                          if self._valid(cls, key, _repr=True)]
+        cls.childs = []
+        if not hasattr(cls, read_only_options):
+            cls.read_only_options = {}
+        cls._types = {key: type(val) for key, val in cls.options.items()}
         # Name in settings and in files
-        cls._name = self.name.split(".")[-1]
+        cls._name = self.name
         # Name when printing
-        cls._fullname = ".".join([cls.__module__, cls.__name__])
+        cls._fullname = ".".join([self.parent._fullname, cls.__name__])
         # Is this instance the default for the other.
         cls._isDefault = False
         # Build the default instance
         # Do it before setting __init__ since it use this default
         self._make_default(cls)
 
-        # add methods
-        # __init__ is dynamically build to get a meaningfusl signature
-        _all_set = [key for key in cls.__dict__
-                    if self._valid(cls, key, _set=True)]
-        attributes_kw = ",\n             ".join(["{}=None".format(var)
-                        for var in _all_set])
-        attributes_set = "".join(["\n    self.{0} = {0} if {0} is not None "
-                         "else self._defaultInstance.{0}".format(var)
-                         for var in _all_set])
-        code = f"""
-def __init__(self, file='', *,
-             {attributes_kw}):
-    {attributes_set}
-    if file:
-        self.load(file)
-"""
-        ns = {}
-        exec(code, globals(), ns)
-        cls.__init__ = ns["__init__"]
-        cls.__repr__ = _qoc_repr_
+        cls.__init__ = _make_init(cls.options)
+        cls.__repr__ = _qoc_repr
+        cls.__getitem__ = _qoc_getitem
+        cls.__setitem__ = _qoc_setitem
         cls.reset = _qoc_reset
         cls.save = _qoc_save
         cls.load = _qoc_load
-        cls.sections = []
+        cls._all_childs = _qoc_all_childs
+
         return cls
 
-    @staticmethod
-    def _valid(cls, key, _repr=False, _set=False):
-        # Can it be saved, printed, initialed?
-        import qutip.configrc as qrc
-        if key.startswith("_"):
-            return False
-        data = getattr(cls, key)
-        if _repr and isinstance(data, property):
-            # Print all properties
-            return True
-        if _set and isinstance(data, property) and data.fset is not None:
-            # Properties with a setter can be set in __init__
-            return True
-        # Only these types can be saved
-        return type(data) in qrc.getter
-
     def _make_default(self, cls):
-        import qutip.configrc as qrc
         default = cls()
-        for key in cls._all:
-            default.__dict__[key] = cls.__dict__[key]
+        default.options = cls.options.copy()
         default._isDefault = True
-        default._fullname = "qutip.settings." + self.name
-        setattr(self.parents, self.name, default)
-        self.parents.sections.append(default)
+        default.childs = []
+        self.parent._defaultInstance.childs.append(default)
+        setattr(self.parent._defaultInstance, self.name, default)
         cls._defaultInstance = default
 
 
-def _qoc_repr_(self):
+def _make_init(all_set):
+    attributes_kw = ",\n             ".join(["{}=None".format(key)
+                    for key in all_set])
+    attributes_set = "".join(["    if {0} is not None:\n"
+                              "        self.options['{0}'] = {0}\n".format(key)
+                     for key in all_set])
+    code = f"""
+def __init__(self, file='', *,
+             {attributes_kw}):
+    self.options = self._defaultInstance.options.copy()
+{attributes_set}
+    if file:
+        self.load(file)
+"""
+    ns = {}
+    exec(code, globals(), ns)
+    return ns["__init__"]
+
+
+def _qoc_repr(self, _recursive=False):
     out = self._fullname + ":\n"
-    longest = max(len(key) for key in self._repr_keys)
-    for key in self._repr_keys:
-        out += "{:{width}} : {}\n".format(key, getattr(self, key),
+    longest = max(len(key) for key in self.options)
+    longest = max((max(len(key) for key in self.read_only_options), longest))
+    for key, val in self.options.items():
+        out += "{:{width}} : {}\n".format(key, val,
                                           width=longest)
+    for key, val in self.read_only_options.items():
+        out += "{:{width}} : {}\n".format(key, val,
+                                          width=longest)
+    if _recursive:
+        out += "".join([child.__repr__(_recursive) for child in childs])
     return out
 
 
-def _qoc_reset(self):
+def _qoc_reset(self, _recursive=False):
     """Reset instance to the default value or the default to Qutip's default"""
     if self._isDefault:
-        [setattr(self, key, getattr(self.__class__, key))
-         for key in self._all]
+        self.options = cls.options.copy()
+        if _recursive:
+            for child in childs:
+                child.reset()
     else:
-        [setattr(self, key, getattr(self._defaultInstance, key))
-         for key in self._all]
+        self.options = self._defaultInstance.options.copy()
 
 
-def _qoc_save(self, file="qutiprc"):
+def _qoc_all_childs(self):
+    optcls = [self]
+    for child in childs:
+         optcls += child._all_childs()
+    return optcls
+
+
+def _qoc_save(self, file="qutiprc", _recursive=False):
     """Save to desired file. 'qutiprc' if not specified"""
     import qutip.configrc as qrc
-    qrc.write_rc_object(file, self._name, self)
+    if _recursive:
+        optcls = self._all_childs()
+    else:
+        optcls = [self]
+    qrc.write_rc_object(file, optcls)
 
 
-def _qoc_load(self, file="qutiprc"):
+def _qoc_load(self, file="qutiprc", _recursive=False):
     """Load from desired file. 'qutiprc' if not specified"""
     import qutip.configrc as qrc
-    qrc.load_rc_object(file, self._name, self)
+    if _recursive:
+        optcls = self._all_childs()
+    else:
+        optcls = [self]
+    qrc.load_rc_object(file, optcls)
+
+
+def _qoc_getitem(self, key):
+    if key in self.read_only_options:
+        return self.read_only_options[key]
+    return self.options[key]
+
+
+def _qoc_setitem(self, key, value):
+    if key in self.read_only_options:
+        raise KeyError("Read-only value")
+    self.options[key] = value

@@ -35,20 +35,34 @@ This module contains settings for the QuTiP graphics, multiprocessing, and
 tidyup functionality, etc.
 """
 from __future__ import absolute_import
+import qutip.configrc as qrc
 
 
-__all = []
+class Settings:
+    def __init__(self):
+        self._isDefault = True
+        self.childs = []
 
-def save(file="qutiprc"):
-    for section in __all:
-        section.save(file)
+    def _all_childs(self):
+        optcls = []
+        for child in childs:
+             optcls += child._all_childs()
+        return optcls
+
+    def reset(self):
+        for child in self.childs:
+            child.reset(True)
+
+    def save(self, file="qutiprc"):
+        optcls = self._all_childs()
+        qrc.write_rc_object(file, optcls)
+
+    def load(self, file="qutiprc"):
+        optcls = self._all_childs()
+        qrc.load_rc_object(file, optcls)
+
+    def __repr__(self):
+        return "\n".join(child.__repr__(True) for child in self.childs)
 
 
-def load(file="qutiprc"):
-    for section in __all:
-        section.load(file)
-
-
-def reset(file="qutiprc"):
-    for section in __all:
-        section.reset(file)
+settings = Settings()
