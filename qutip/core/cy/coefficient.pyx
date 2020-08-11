@@ -1,20 +1,20 @@
 #cython: language_level=3
-cdef extern from "<complex>" namespace "std" nogil:
-    double complex cos(double complex x)
-    double complex conj(double complex x)
-    double         norm(double complex x)
-    double complex exp(double complex x)
-
 from .inter import _prep_cubic_spline
 from .inter cimport (_spline_complex_cte_second,
-                             _spline_complex_t_second,
-                             _step_complex_t, _step_complex_cte)
-from .interpolate cimport (interp, zinterp)
+                     _spline_complex_t_second,
+                     _step_complex_t, _step_complex_cte)
+from .interpolate cimport interp, zinterp
 import pickle
 import scipy
 import numpy as np
 cimport numpy as cnp
 cimport cython
+
+cdef extern from "<complex>" namespace "std" nogil:
+    double complex cos(double complex x)
+    double complex conj(double complex x)
+    double         norm(double complex x)
+    double complex exp(double complex x)
 
 cdef class Coefficient:
     cdef double complex _call(self, double t) except *:
@@ -78,7 +78,6 @@ def proj(x):
         return np.inf + 0j * np.imag(x)
 
 
-@cython.auto_pickle(True)
 cdef class StrFunctionCoefficient(Coefficient):
     cdef object func
     cdef str base
@@ -154,7 +153,9 @@ cdef class InterpolateCoefficient(Coefficient):
 
     def __reduce__(self):
         return (MakeInterpolateCoefficient,
-            (self.lower_bound, self.higher_bound, np.array(self.spline_data)))
+                (self.lower_bound,
+                 self.higher_bound,
+                 np.array(self.spline_data)))
 
     def _setstate_(self, state):
         self.lower_bound = state[0]
@@ -201,9 +202,10 @@ cdef class InterCoefficient(Coefficient):
         return coeff
 
     def __reduce__(self):
-        return MakeInterCoefficient, (self.n_t, self.cte, self.dt,
-            np.array(self.tlist), np.array(self.coeff_arr),
-            np.array(self.second_derr))
+        return (MakeInterCoefficient,
+                (self.n_t, self.cte, self.dt,
+                 np.array(self.tlist), np.array(self.coeff_arr),
+                 np.array(self.second_derr)))
 
     def _setstate_(self, state):
         self.n_t = state[0]
@@ -249,7 +251,7 @@ cdef class StepCoefficient(Coefficient):
 
     def __reduce__(self):
         return (MakeStepCoefficient,
-            (np.array(self.coeff_arr), np.array(self.tlist)))
+                (np.array(self.coeff_arr), np.array(self.tlist)))
 
     @property
     def array(self):

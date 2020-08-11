@@ -46,11 +46,11 @@ def g(t, args):
     return np.cos(args["w"] * t * np.pi)
 
 
-args = {"w":1j}
-tlist = np.linspace(0,1,101)
+args = {"w": 1j}
+tlist = np.linspace(0, 1, 101)
 f_asarray = f(tlist, args)
 g_asarray = g(tlist, args)
-tlistlog = np.logspace(-2,0,501)
+tlistlog = np.logspace(-2, 0, 501)
 f_asarraylog = f(tlistlog, args)
 
 
@@ -70,31 +70,31 @@ def coeff_generator(style, func):
     if style == "spline":
         return coefficient(qt.Cubic_Spline(0, 1, base(tlist, args)))
     if style == "string" and func == "f":
-        return coefficient( "exp(w * t * pi)", args=args)
+        return coefficient("exp(w * t * pi)", args=args)
     if style == "string" and func == "g":
-        return coefficient( "cos(w * t * pi)", args=args)
+        return coefficient("cos(w * t * pi)", args=args)
     if style == "steparray":
         return coefficient(base(tlist, args), tlist=tlist,
-                                   _stepInterpolation=True)
+                           _stepInterpolation=True)
     if style == "steparraylog":
         return coefficient(base(tlistlog, args), tlist=tlistlog,
-                                   _stepInterpolation=True)
+                           _stepInterpolation=True)
 
 
 @pytest.mark.parametrize(['base', 'kwargs', 'tol'], [
-    pytest.param(f, {'args':args},
+    pytest.param(f, {'args': args},
                  1e-10, id="func"),
-    pytest.param(f_asarray, {'tlist':tlist},
+    pytest.param(f_asarray, {'tlist': tlist},
                  1e-6,  id="array"),
-    pytest.param(f_asarray, {'tlist':tlist, '_stepInterpolation':True},
+    pytest.param(f_asarray, {'tlist': tlist, '_stepInterpolation': True},
                  1e-1, id="step_array"),
-    pytest.param(f_asarraylog, {'tlist':tlistlog},
+    pytest.param(f_asarraylog, {'tlist': tlistlog},
                  1e-6, id="nonlinear_array"),
-    pytest.param(f_asarraylog, {'tlist':tlistlog, '_stepInterpolation':True},
+    pytest.param(f_asarraylog, {'tlist': tlistlog, '_stepInterpolation': True},
                  1e-1, id="nonlinear_step_array"),
     pytest.param(qt.Cubic_Spline(0, 1, f_asarray), {},
                  1e-6, id="Cubic_Spline"),
-    pytest.param("exp(w * t * pi)", {'args':args},
+    pytest.param("exp(w * t * pi)", {'args': args},
                  1e-10, id="string")
 ])
 def test_CoeffCreationCall(base, kwargs, tol):
@@ -107,9 +107,9 @@ def test_CoeffCreationCall(base, kwargs, tol):
 
 
 @pytest.mark.parametrize(['base', 'kwargs', 'tol'], [
-    pytest.param(f, {'args':args},
+    pytest.param(f, {'args': args},
                  1e-10, id="func"),
-    pytest.param("exp(w * t * pi)", {'args':args},
+    pytest.param("exp(w * t * pi)", {'args': args},
                  1e-10, id="string")
 ])
 def test_CoeffCallArgs(base, kwargs, tol):
@@ -117,7 +117,7 @@ def test_CoeffCallArgs(base, kwargs, tol):
     w = np.random.rand() + 0.5j
     val = np.exp(w * t * np.pi)
     coeff = coefficient(f, **kwargs)
-    assert np.allclose(coeff(t, {"w":w}), val, rtol=tol)
+    assert np.allclose(coeff(t, {"w": w}), val, rtol=tol)
 
 
 @pytest.mark.parametrize(['style'], [
@@ -172,9 +172,9 @@ def test_CoeffOperation(style_left, style_right):
 
 @pytest.mark.requires_cython
 def test_CoeffReuse():
-    coeff1 = coefficient("cos(w * t * pi)", args={'w':3.})
-    coeff2 = coefficient("cos(w2*t * pi)", args={'w2':1.2})
-    coeff3 = coefficient("cos(  my_var * t*pi)", args={'my_var':-1.2})
+    coeff1 = coefficient("cos(w * t * pi)", args={'w': 3.})
+    coeff2 = coefficient("cos(w2*t * pi)", args={'w2': 1.2})
+    coeff3 = coefficient("cos(  my_var * t*pi)", args={'my_var': -1.2})
     assert isinstance(coeff2, coeff1.__class__)
     assert isinstance(coeff3, coeff1.__class__)
 
@@ -197,17 +197,17 @@ def test_CoeffOptions():
 @pytest.mark.requires_cython
 @pytest.mark.parametrize(['codestring', 'args', 'reference'], [
     pytest.param("cos(2*t)*cos(t*w1) + sin(w1*w2/2*t)*sin(t*w2)"
-                 "- abs(exp(w1*w2*pi*0.25j)) ", {"w1":2,"w2":2},
+                 "- abs(exp(w1*w2*pi*0.25j)) ", {"w1": 2, "w2": 2},
                  lambda t: 0, id="long"),
     pytest.param("t*0.5 * (2) + 5j * -0.2j", {},
                  lambda t: t + 1, id="lots_of_ctes"),
-    pytest.param("cos(t*vec[1])", {'vec':np.ones(2)},
+    pytest.param("cos(t*vec[1])", {'vec': np.ones(2)},
                  lambda t: np.cos(t), id="real_array_subscript"),
-    pytest.param("cos(t*vec[0])", {'vec':np.zeros(2)*1j},
+    pytest.param("cos(t*vec[0])", {'vec': np.zeros(2)*1j},
                  lambda t: 1, id="cplx_array_subscript"),
-    pytest.param("cos(t*dictionary['key'])", {'dictionary':{'key':1}},
+    pytest.param("cos(t*dictionary['key'])", {'dictionary': {'key': 1}},
                  lambda t: np.cos(t), id="dictargs"),
-    pytest.param("cos(t*a); print(a)", {'a':1},
+    pytest.param("cos(t*a); print(a)", {'a': 1},
                  lambda t: np.cos(t), id="print"),
     pytest.param("t + (0 if not 'something' else 1)", {},
                  lambda t: t + 1, id="branch")
@@ -225,9 +225,8 @@ def test_CoeffParsingStressTest(codestring, args, reference):
 def test_manual_typing():
     CompilationOptions.recompile = True
     coeff = coefficient("my_list[0] + my_dict[5]",
-                                args={"my_list":[1], "my_dict":{5:2}},
-                                args_ctypes={"my_list":"list",
-                                             "my_dict":"dict"})
+                        args={"my_list": [1], "my_dict": {5: 2}},
+                        args_ctypes={"my_list": "list", "my_dict": "dict"})
     assert coeff(0) == 3
     CompilationOptions.recompile = False
 
@@ -241,18 +240,18 @@ from qutip.core.data.expect cimport expect_csr
 """)
     csr = qt.num(3).data
     coeff = coefficient("expect_csr(op, op)",
-                                args={"op":csr},
-                                args_ctypes={"op":"CSR"},
-                                compile_opt=opt)
+                        args={"op": csr},
+                        args_ctypes={"op": "CSR"},
+                        compile_opt=opt)
     assert coeff(0) == 5.
 
 
 @pytest.mark.requires_cython
 def test_CoeffReduce():
     t = np.random.rand() * 0.9 + 0.05
-    coeff = coefficient("exp(w * t * pi)", args={'w':1.0j})
+    coeff = coefficient("exp(w * t * pi)", args={'w': 1.0j})
     apad = coeff + conj(coeff)
-    reduced = reduce(apad, {'w':1.0j})
+    reduced = reduce(apad, {'w': 1.0j})
     assert np.allclose(apad(t), reduced(t))
 
 

@@ -82,7 +82,8 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
         if len(base.shape) != 1:
             raise ValueError("The array to interpolate must be a 1D array")
         if base.shape != tlist.shape:
-            raise ValueError("tlist must be the same len as the array to interpolate")
+            raise ValueError("tlist must be the same len "
+                             "as the array to interpolate")
         base = base.astype(np.complex128)
         tlist = tlist.astype(np.float64)
         if not _stepInterpolation:
@@ -100,6 +101,7 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
         return FunctionCoefficient(base, args)
     else:
         raise ValueError("coefficient format not understood")
+
 
 def norm(coeff):
     """ return a Coefficient with is the norm: |c|^2.
@@ -371,27 +373,26 @@ cdef class StrCoefficient(Coefficient):
     def optstr(self):
         return self.codeString
 """.format(compile_opt.extra_import, code, cdef_cte, cdef_var,
-           init_cte, init_var, args_var, call_var, code
-          )
+           init_cte, init_var, args_var, call_var, code)
     return code
 
 
-def compile_code(code, file_name, parsed, compile_opt):
+def compile_code(code, file_name, parsed, c_opt):
     root = qset.tmproot
     full_file_name = os.path.join(root, file_name)
     file_ = open(full_file_name + ".pyx", "w")
     file_.writelines(code)
     file_.close()
     oldargs = sys.argv
-    try :
+    try:
         sys.argv = ["setup.py", "build_ext", "--inplace"]
         coeff_file = Extension(file_name,
                                sources=[full_file_name + ".pyx"],
-                               extra_compile_args=compile_opt.compiler_flags.split(),
-                               extra_link_args=compile_opt.link_flags.split(),
+                               extra_compile_args=c_opt.compiler_flags.split(),
+                               extra_link_args=c_opt.link_flags.split(),
                                include_dirs=[np.get_include()],
                                language='c++')
-        setup(ext_modules = cythonize(coeff_file, force=compile_opt.recompile))
+        setup(ext_modules=cythonize(coeff_file, force=c_opt.recompile))
     except Exception as e:
         raise Exception("Could not compile") from e
     try:
@@ -420,7 +421,7 @@ def compile_code(code, file_name, parsed, compile_opt):
 def fromstr(base):
     """Read a varibles in a string"""
     ls = {}
-    exec("out = "+ base, {}, ls)
+    exec("out = " + base, {}, ls)
     return ls["out"]
 
 
@@ -495,7 +496,7 @@ def extract_cte_pattern(code, constants, pattern):
     for cte in const_strs:
         name = " _cte_temp{}_ ".format(len(constants))
         code = code.replace(cte, cte[0] + name, 1)
-        constants.append(( name[1:-1], cte[1:], find_type_from_str(cte[1:]) ))
+        constants.append((name[1:-1], cte[1:], find_type_from_str(cte[1:])))
     return code
 
 
@@ -607,7 +608,7 @@ def test_parsed(code, variables, constants, args):
         pass
     [setattr(DummySelf, cte[0][5:], fromstr(cte[1])) for cte in constants]
     [setattr(DummySelf, var[0][5:], args[var[1]]) for var in variables]
-    loc_env = {"t":0, 'self':DummySelf}
+    loc_env = {"t": 0, 'self': DummySelf}
     try:
         exec(code, str_env, loc_env)
     except Exception as e:
