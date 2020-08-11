@@ -53,6 +53,8 @@ from qutip.core.data.expect import (
 )
 from qutip.core.data.matmul cimport matmul_csr_dense_dense
 from qutip.core.data.reshape cimport column_stack_csr, column_stack_dense
+from qutip.core.cy.coefficient cimport Coefficient
+
 
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
@@ -74,18 +76,8 @@ cdef class CQobjEvo:
       coefficients are given, they are used instead and the underlying
       coefficient-getting functions are not called.  If `data` is True, then
       the data-layer object is returned instead of a full Qobj.
-
-    set_data(cte, [ops])
-      Build the object from data from QobjEvo
-
-    set_factor(self, func=None, obj=None)
-      Set the coefficient function from QobjEvo
     """
-    def __init__(self):
-        self.n_ops = 0
-        self.ops = []
-
-    def set_data(self, constant, ops=None):
+    def __init__(self, constant, ops=None):
         cdef size_t i
         if not isinstance(constant, Qobj):
             raise TypeError("inputs must be Qobj")
@@ -98,6 +90,7 @@ cdef class CQobjEvo:
         self.ops = [None] * self.n_ops
         self.coefficients = cnp.PyArray_EMPTY(1, [self.n_ops],
                                               cnp.NPY_COMPLEX128, False)
+        self.coeff = [None] * self.n_ops
         for i in range(self.n_ops):
             vary = ops[i]
             qobj = vary.qobj
@@ -108,11 +101,7 @@ cdef class CQobjEvo:
             ):
                 raise ValueError("not all inputs have the same structure")
             self.ops[i] = qobj.data
-
-    def set_factor(self, func=None, obj=None):
-        self.factor_func = func
-        self.factor_cobj = obj
-        self.factor_use_cobj = func is None and obj is not None
+            self.coeff[i] = vary.coeff
 
     def call(self, double t, object coefficients=None, bint data=False):
         cdef CSR out = self.constant.copy()
@@ -125,7 +114,6 @@ cdef class CQobjEvo:
                 "got " + str(len(coefficients)) + " coefficients,"
                 + " but expected " + str(self.n_ops)
             )
-        self._factor(t)
         for i in range(len(self.ops)):
             out = add_csr(out, self.ops[i], scale=coefficients[i])
         if data:
@@ -135,34 +123,16 @@ cdef class CQobjEvo:
 
     cdef void _factor(self, double t) except *:
         cdef size_t i
-        cdef double complex *coeff_ptr
-        if not self.n_ops:
-            return
-        if self.factor_use_cobj:
-            coeff_ptr = <double complex *> cnp.PyArray_GETPTR1(self.coefficients, 0)
-            self.factor_cobj._call_core(t, coeff_ptr)
-        else:
-            coeff = self.factor_func(t)
-            PyErr_CheckSignals()
-            for i in range(self.n_ops):
-                self.coefficients[i] = coeff[i]
+        cdef Coefficient coeff
+        for i in range(self.n_ops):
+            coeff = <Coefficient> self.coeff[i]
+            self.coefficients[i] = coeff._call(t)
         return
-
-    cdef void _factor_dynamic(self, double t, Data state) except *:
-        # TODO: why are `dynamic` arguments here when they're purely the
-        # concern of the solvers?
-        self._factor(t)
-        if not self.dynamic_arguments:
-            return
-        if self.factor_use_cobj:
-            self.factor_cobj._dyn_args(t, state)
-        else:
-            # TODO: remove useless `shape` parameter
-            self.factor_func.dyn_args(t, state.to_array(), (self.shape[1], 1))
 
     cpdef Dense matmul(self, double t, Dense matrix, Dense out=None):
         cdef size_t i
-        self._factor_dynamic(t, matrix)
+        self.dyn_args(t, matrix) # TODO: move Out
+        self._factor(t)
         if out is None:
             out = matmul_csr_dense_dense(self.constant, matrix)
         else:
@@ -186,7 +156,8 @@ cdef class CQobjEvo:
             _expect = expect_super_csr if isinstance(matrix, CSR) else expect_super_csr_dense
         else:
             _expect = expect_csr if isinstance(matrix, CSR) else expect_csr_dense
-        self._factor_dynamic(t, matrix)
+        self.dyn_args(t, matrix) # TODO: move Out
+        self._factor(t)
         # end shim
         cdef size_t i
         cdef double complex out
@@ -195,5 +166,22 @@ cdef class CQobjEvo:
             out += self.coefficients[i] * _expect(self.ops[i], matrix)
         return out
 
-    def has_dyn_args(self, int dyn_args):
+    def set_dyn_args(self, object dyn_args, dict args, object op):
+        # Move elsewhere and op should be a dimensions object when available
+        self.args = args
+        self.op = op
         self.dynamic_arguments = dyn_args
+        self.has_dynamic_args = bool(self.dynamic_arguments)
+
+    cpdef dyn_args(self, double t, Data matrix):
+        from ..qobjevo import dynamic_argument
+        cdef Coefficient coeff
+        if not self.has_dynamic_args:
+            return
+        else:
+            for name, what, e_op in self.dynamic_arguments:
+                self.args[name] = dynamic_argument(t, self.op, matrix,
+                                                   what, e_op)
+            for i in range(self.n_ops):
+                coeff = <Coefficient> self.coeff[i]
+                coeff.arguments(self.args)

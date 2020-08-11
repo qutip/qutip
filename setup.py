@@ -56,7 +56,7 @@ MAJOR = 5
 MINOR = 0
 MICRO = 0
 ISRELEASED = False
-VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
+VERSION = '%d.%d.%db1' % (MAJOR, MINOR, MICRO)
 REQUIRES = ['numpy (>=1.12)', 'scipy (>=1.0)', 'cython (>=0.29.20)']
 EXTRAS_REQUIRE = {'graphics': ['matplotlib(>=1.2.1)']}
 INSTALL_REQUIRES = ['numpy>=1.12', 'scipy>=1.0', 'cython>=0.29.20']
@@ -175,8 +175,8 @@ cy_exts = {
         'trace',
     ],
     'core.cy': [
+        'coefficient',
         'cqobjevo',
-        'cqobjevo_factor',
         'inter',
         'interpolate',
         'math',

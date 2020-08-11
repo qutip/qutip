@@ -102,11 +102,11 @@ cdef class CyMcOde:
             self.col_args = 1
             self.collapses_args = ss.args[ss.col_args]
             if ss.type == "QobjEvo":
-                ss.H_td.coeff_get.get_args()[ss.col_args] = self.collapses_args
+                ss.H_td.arguments(ss.args)
                 for c in ss.td_c_ops:
-                    c.coeff_get.get_args()[ss.col_args] = self.collapses_args
+                    c.arguments(ss.args)
                 for c in ss.td_n_ops:
-                    c.coeff_get.get_args()[ss.col_args] = self.collapses_args
+                    c.arguments(ss.args)
         else:
             self.col_args = 0
 
