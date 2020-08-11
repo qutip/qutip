@@ -51,7 +51,7 @@ from .. import (
 from .sesolve import sesolve
 from ._rhs_generate import rhs_clear
 from .steadystate import steadystate
-from .solver import Options
+from .solver import SolverOptions
 from .propagator import propagator
 from .solver import Result, _solver_safety_check
 from ..utilities import n_thermal
@@ -212,8 +212,7 @@ def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args=None):
 
     f_modes_table_t = [[] for t in tlist_period]
 
-    opt = Options()
-    opt.rhs_reuse = True
+    opt = SolverOptions()
     rhs_clear()
 
     for n, f_mode in enumerate(f_modes_0):
@@ -765,11 +764,11 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
     """
 
     if options is None:
-        opt = Options()
+        opt = SolverOptions()
     else:
         opt = options
 
-    if opt.tidy:
+    if opt['tidy']:
         R.tidyup()
 
     #
@@ -829,8 +828,8 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
     initial_vector = stack_columns(rho0.full())
     r = scipy.integrate.ode(_wrap_matmul)
     r.set_f_params(R.data)
-    r.set_integrator('zvode', method=opt.method, order=opt.order,
-                     atol=opt.atol, rtol=opt.rtol, max_step=opt.max_step)
+    r.set_integrator('zvode', method=opt['method'], order=opt['order'],
+                     atol=opt['atol'], rtol=opt['rtol'], max_step=opt['max_step'])
     r.set_initial_value(initial_vector, tlist[0])
 
     #

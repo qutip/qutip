@@ -113,10 +113,10 @@ def parfor(func, *args, **kwargs):
     else:
         task_func = _task_wrapper
 
-    if kw['num_cpus'] > qset.num_cpus:
-        print("Requested number of CPUs (%s) " % kw['num_cpus'] +
-              "is larger than physical number (%s)." % qset.num_cpus)
-        print("Reduce 'num_cpus' for greater performance.")
+    # if kw['num_cpus'] > qset.num_cpus:
+    #    print("Requested number of CPUs (%s) " % kw['num_cpus'] +
+    #          "is larger than physical number (%s)." % qset.num_cpus)
+    #    print("Reduce 'num_cpus' for greater performance.")
 
     pool = Pool(processes=kw['num_cpus'])
     args = [list(arg) for arg in args]
@@ -267,5 +267,5 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
 
 
 def _default_kwargs():
-    settings = {'num_cpus': qset.num_cpus}
+    settings = {} # {'num_cpus': qset.num_cpus}
     return settings

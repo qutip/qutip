@@ -60,7 +60,7 @@ logger = qutip.logging_utils.get_logger()
 logger.setLevel('DEBUG')
 
 # Load MKL spsolve if avaiable
-if settings.has_mkl:
+if settings.install['has_mkl']:
     from qutip._mkl.spsolve import (mkl_splu, mkl_spsolve)
 
 
@@ -329,7 +329,7 @@ def steadystate(A, c_op_list=[], method='direct', solver=None, **kwargs):
     """
     if solver is None:
         solver = 'scipy'
-        if settings.has_mkl:
+        if settings.install['has_mkl']:
             if method in ['direct', 'power']:
                 solver = 'mkl'
     elif solver == 'mkl' and \
@@ -421,7 +421,7 @@ def _steadystate_LU_liouvillian(L, ss_args, has_mkl=0):
                          (np.zeros(n), [nn * (n+1) for nn in range(n)])),
                         shape=(n*n, n*n))
 
-    if settings.debug:
+    if settings.install['debug']:
         old_band = _bandwidth(L)
         old_pro = _profile(L)
         logger.debug('Orig. NNZ: %i', L.nnz)
@@ -429,7 +429,7 @@ def _steadystate_LU_liouvillian(L, ss_args, has_mkl=0):
             logger.debug('Original bandwidth: %i', old_band)
 
     if ss_args['use_wbm']:
-        if settings.debug:
+        if settings.install['debug']:
             logger.debug('Calculating Weighted Bipartite Matching ordering...')
         _wbm_start = time.time()
         perm = _weighted_bipartite_matching(L)
@@ -437,12 +437,12 @@ def _steadystate_LU_liouvillian(L, ss_args, has_mkl=0):
         L = _permute(L, perm, None)
         ss_args['info']['perm'].append('wbm')
         ss_args['info']['wbm_time'] = _wbm_end-_wbm_start
-        if settings.debug:
+        if settings.install['debug']:
             wbm_band = _bandwidth(L)
             logger.debug('WBM bandwidth: %i' % wbm_band)
 
     if ss_args['use_rcm']:
-        if settings.debug:
+        if settings.install['debug']:
             logger.debug('Calculating Reverse Cuthill-Mckee ordering...')
         _rcm_start = time.time()
         perm2 = scipy.sparse.csgraph.reverse_cuthill_mckee(L)
@@ -451,7 +451,7 @@ def _steadystate_LU_liouvillian(L, ss_args, has_mkl=0):
         L = _permute(L, perm2, perm2)
         ss_args['info']['perm'].append('rcm')
         ss_args['info']['rcm_time'] = _rcm_end-_rcm_start
-        if settings.debug:
+        if settings.install['debug']:
             rcm_band = _bandwidth(L)
             rcm_pro = _profile(L)
             logger.debug('RCM bandwidth: %i' % rcm_band)
@@ -467,7 +467,7 @@ def _steadystate_direct_sparse(L, ss_args):
     """
     Direct solver that uses scipy sparse matrices
     """
-    if settings.debug:
+    if settings.install['debug']:
         logger.debug('Starting direct LU solver.')
 
     dims = L.dims[0]
@@ -504,13 +504,13 @@ def _steadystate_direct_sparse(L, ss_args):
         v = lu.solve(b)
         _direct_end = time.time()
         ss_args['info']['solution_time'] = _direct_end - _direct_start
-        if (settings.debug or ss_args['return_info']) and _scipy_check:
+        if (settings.install['debug'] or ss_args['return_info']) and _scipy_check:
             L_nnz = lu.L.nnz
             U_nnz = lu.U.nnz
             ss_args['info']['l_nnz'] = L_nnz
             ss_args['info']['u_nnz'] = U_nnz
             ss_args['info']['lu_fill_factor'] = (L_nnz + U_nnz)/L.nnz
-            if settings.debug:
+            if settings.install['debug']:
                 logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz, U_nnz))
                 logger.debug('Fill factor: %f' % ((L_nnz + U_nnz)/orig_nnz))
 
@@ -549,7 +549,7 @@ def _steadystate_direct_dense(L, ss_args):
     Direct solver that use numpy dense matrices. Suitable for
     small system, with a few states.
     """
-    if settings.debug:
+    if settings.install['debug']:
         logger.debug('Starting direct dense solver.')
 
     dims = L.dims[0]
@@ -578,7 +578,7 @@ def _steadystate_eigen(L, ss_args):
     of the Liouvillian using ARPACK.
     """
     ss_args['info'].pop('weight', None)
-    if settings.debug:
+    if settings.install['debug']:
         logger.debug('Starting Eigen solver.')
 
     dims = L.dims[0]
@@ -586,13 +586,13 @@ def _steadystate_eigen(L, ss_args):
 
     if ss_args['use_rcm']:
         ss_args['info']['perm'].append('rcm')
-        if settings.debug:
+        if settings.install['debug']:
             old_band = _bandwidth(L)
             logger.debug('Original bandwidth: %i', old_band)
         perm = scipy.sparse.csgraph.reverse_cuthill_mckee(L)
         rev_perm = np.argsort(perm)
         L = _permute(L, perm, perm)
-        if settings.debug:
+        if settings.install['debug']:
             rcm_band = _bandwidth(L)
             logger.debug('RCM bandwidth: %i', rcm_band)
             logger.debug('Bandwidth reduction factor: %f', old_band/rcm_band)
@@ -622,7 +622,7 @@ def _iterative_precondition(A, n, ss_args):
     Internal function for preconditioning the steadystate problem for use
     with iterative solvers.
     """
-    if settings.debug:
+    if settings.install['debug']:
         logger.debug('Starting preconditioner.')
     _precond_start = time.time()
     try:
@@ -642,8 +642,8 @@ def _iterative_precondition(A, n, ss_args):
         ss_args['info']['ILU_MILU'] = ss_args['ILU_MILU']
         ss_args['info']['precond_time'] = _precond_end-_precond_start
 
-        if settings.debug or ss_args['return_info']:
-            if settings.debug:
+        if settings.install['debug'] or ss_args['return_info']:
+            if settings.install['debug']:
                 logger.debug('Preconditioning succeeded.')
                 logger.debug('Precond. time: %f' %
                              (_precond_end - _precond_start))
@@ -657,7 +657,7 @@ def _iterative_precondition(A, n, ss_args):
                 e = np.ones(n ** 2, dtype=int)
                 condest = la.norm(M*e, np.inf)
                 ss_args['info']['ilu_condest'] = condest
-                if settings.debug:
+                if settings.install['debug']:
                     logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz, U_nnz))
                     logger.debug('Fill factor: %f' % ((L_nnz+U_nnz)/A.nnz))
                     logger.debug('iLU condest: %f' % condest)
@@ -680,7 +680,7 @@ def _steadystate_iterative(L, ss_args):
         ss_iters['iter'] += 1
         return
 
-    if settings.debug:
+    if settings.install['debug']:
         logger.debug('Starting %s solver.' % ss_args['method'])
 
     dims = L.dims[0]
@@ -762,7 +762,7 @@ def _steadystate_iterative(L, ss_args):
     if ss_args['return_info']:
         ss_args['info']['residual_norm'] = scipy.linalg.norm(b - L*v, np.inf)
 
-    if settings.debug:
+    if settings.install['debug']:
         logger.debug('Number of Iterations: %i', ss_iters['iter'])
         logger.debug('Iteration. time: %f', (_iter_end - _iter_start))
 
@@ -797,7 +797,7 @@ def _steadystate_svd_dense(L, ss_args):
     ss_args['info'].pop('weight', None)
     atol = 1e-12
     rtol = 1e-12
-    if settings.debug:
+    if settings.install['debug']:
         logger.debug('Starting SVD solver.')
     _svd_start = time.time()
     u, s, vh = svd(L.full(), full_matrices=False)
@@ -835,14 +835,14 @@ def _steadystate_power_liouvillian(L, ss_args, has_mkl=0):
         kind = 'csr'
     else:
         kind = 'csc'
-    if settings.debug:
+    if settings.install['debug']:
         old_band = _bandwidth(L.as_scipy())
         old_pro = _profile(L.as_scipy())
         logger.debug('Original bandwidth: %i', old_band)
         logger.debug('Original profile: %i', old_pro)
 
     if ss_args['use_wbm']:
-        if settings.debug:
+        if settings.install['debug']:
             logger.debug('Calculating Weighted Bipartite Matching ordering...')
         _wbm_start = time.time()
         perm2 = _weighted_bipartite_matching(L.as_scipy())
@@ -850,14 +850,14 @@ def _steadystate_power_liouvillian(L, ss_args, has_mkl=0):
         L = _data.permute_csr(L, perm, np.arange(n, dtype=np.int32))
         ss_args['info']['perm'].append('wbm')
         ss_args['info']['wbm_time'] = _wbm_end-_wbm_start
-        if settings.debug:
+        if settings.install['debug']:
             wbm_band = _bandwidth(L.as_scipy())
             wbm_pro = _profile(L.as_scipy())
             logger.debug('WBM bandwidth: %i', wbm_band)
             logger.debug('WBM profile: %i', wbm_pro)
 
     if ss_args['use_rcm']:
-        if settings.debug:
+        if settings.install['debug']:
             logger.debug('Calculating Reverse Cuthill-Mckee ordering...')
         ss_args['info']['perm'].append('rcm')
         _rcm_start = time.time()
@@ -866,7 +866,7 @@ def _steadystate_power_liouvillian(L, ss_args, has_mkl=0):
         ss_args['info']['rcm_time'] = _rcm_end-_rcm_start
         rev_perm = np.argsort(perm2)
         L = _data.permute_csr(L, perm2, perm2, kind)
-        if settings.debug:
+        if settings.install['debug']:
             new_band = _bandwidth(L.as_scipy())
             new_pro = _profile(L.as_scipy())
             logger.debug('RCM bandwidth: %i', new_band)
@@ -885,7 +885,7 @@ def _steadystate_power(L, ss_args):
     Inverse power method for steady state solving.
     """
     ss_args['info'].pop('weight', None)
-    if settings.debug:
+    if settings.install['debug']:
         logger.debug('Starting iterative inverse-power method solver.')
     tol = ss_args['tol']
     mtol = ss_args['mtol']
@@ -945,7 +945,7 @@ def _steadystate_power(L, ss_args):
                       diag_pivot_thresh=ss_args['diag_pivot_thresh'],
                       options=dict(ILU_MILU=ss_args['ILU_MILU']))
 
-            if settings.debug and _scipy_check:
+            if settings.install['debug'] and _scipy_check:
                 L_nnz = lu.L.nnz
                 U_nnz = lu.U.nnz
                 logger.debug('L NNZ: %i ; U NNZ: %i', L_nnz, U_nnz)
@@ -998,7 +998,7 @@ def _steadystate_power(L, ss_args):
     ss_args['info']['iterations'] = it
     if ss_args['return_info']:
         ss_args['info']['residual_norm'] = scipy.linalg.norm(L*v, np.inf)
-    if settings.debug:
+    if settings.install['debug']:
         logger.debug('Number of iterations: %i', it)
 
     if ss_args['use_rcm']:
@@ -1213,7 +1213,7 @@ def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
             A.sort_indices()
 
     if pseudo_args['method'] == 'splu':
-        if settings.has_mkl:
+        if settings.install['has_mkl']:
             L.data.sort_indices()
             A = L.data.as_scipy()
             LIQ = mkl_spsolve(A, Q.to_array())

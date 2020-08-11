@@ -1815,7 +1815,7 @@ class Pim(object):
         Solve the ODE for the evolution of diagonal states and Hamiltonians.
         """
         if options is None:
-            options = Options()
+            options = SolverOptions()
         output = Result()
         output.solver = "pisolve"
         output.times = tlist

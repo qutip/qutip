@@ -106,7 +106,7 @@ class BR_Codegen(object):
         self.level = 0  # indent level
         self.config = config
         if atol is None:
-            self.atol = qset.atol
+            self.atol = qset.core['atol']
         else:
             self.atol = atol
 

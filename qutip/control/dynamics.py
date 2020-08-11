@@ -1658,7 +1658,7 @@ class DynamicsUnitary(Dynamics):
                     herm = H.isherm
                 else:
                     diff = np.abs(H.T.conj() - H)
-                    herm = np.all(diff < settings.atol)
+                    herm = np.all(diff < settings.core['atol'])
                 eigval_unit = self._is_unitary(self._prop_eigen[k])
                 eigvec_unit = self._is_unitary(self._dyn_gen_eigenvectors[k])
                 if self._dyn_gen_eigenvectors_adj is not None:

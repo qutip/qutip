@@ -236,7 +236,7 @@ class SolverOptions:
     }
 
 
-@optionclass("montecarlo", SolverOptions)
+@optionclass("mcsolve", SolverOptions)
 class McOptions:
     """
     Class of options for evolution solvers such as :func:`qutip.mesolve` and

@@ -73,7 +73,7 @@ def test_pure_dephasing_model(renorm, bnd_cut_approx, stats, tol):
     Q = qutip.sigmaz()
     initial_state = 0.5*qutip.Qobj(np.ones((2, 2)))
     projector = qutip.basis(2, 0) * qutip.basis(2, 1).dag()
-    options = qutip.Options(nsteps=15_000, store_states=True)
+    options = qutip.SolverOptions(nsteps=15_000, store_states=True)
     hsolver = HSolverDL(H_sys, Q, coupling_strength, temperature,
                         20, 2, cut_frequency,
                         renorm=renorm, bnd_cut_approx=bnd_cut_approx,

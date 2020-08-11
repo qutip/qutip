@@ -71,7 +71,7 @@ except:
 
 
 # Disable dnorm tests if MKL is present (see Issue #484).
-if qutip.settings.has_mkl:
+if qutip.settings.install['has_mkl']:
     dnorm_test = unittest.skipIf(True,
                                  "Known failure; CVXPY/MKL incompatibility.")
 else:

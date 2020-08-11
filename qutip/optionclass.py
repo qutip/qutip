@@ -1,4 +1,4 @@
-import qutip.settings as qset
+import .settings as qset
 
 def optionclass(name, parent=qset):
     """Make the class an Options object of Qutip and register the object
@@ -108,6 +108,8 @@ def __init__(self, file='', *,
 {attributes_set}
     if file:
         self.load(file)
+    for child in self._defaultInstance.childs:
+        setattr(self, child._name, child.__class__())
 """
     ns = {}
     exec(code, globals(), ns)

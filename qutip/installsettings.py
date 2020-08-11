@@ -44,7 +44,9 @@ class InstallSettings:
         "_logger": _logger,
         # Location of the saved string coefficients
         # Make sure it is in the "sys.path" if changing.
-        "tmproot": tmproot
+        "tmproot": tmproot,
+        # Running on mac with openblas make eigh unsafe
+        "eigh_unsafe": False
     }
 
     read_only_options = {

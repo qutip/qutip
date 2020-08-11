@@ -80,7 +80,7 @@ def test_dense_operator_to_eigbasis(operator):
         _eigenvalues = np.empty((dimension,), dtype=np.float64)
         basis_zheevr = _test_zheevr(H.full('F'), _eigenvalues)
         calculated = _test_dense_to_eigbasis(operator.full('F'), basis_zheevr,
-                                             dimension, qutip.settings.atol)
+                                             dimension, qutip.settings.core['atol'])
         np.testing.assert_allclose(target, calculated, atol=1e-12)
 
 
@@ -151,7 +151,7 @@ def test_cop_super_mult():
         calculated = np.zeros_like(target)
         _eigenvalues = np.empty((dimension,), dtype=np.float64)
         _cop_super_mult(a.full('F'), _test_zheevr(H.full('F'), _eigenvalues),
-                        vec, 1, calculated, dimension, qutip.settings.atol)
+                        vec, 1, calculated, dimension, qutip.settings.core['atol'])
         np.testing.assert_allclose(target, calculated, atol=1e-12)
 
 

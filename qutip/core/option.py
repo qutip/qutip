@@ -1,5 +1,7 @@
 from .optionclass import optionclass
 
+__all__ = ["CoreOption"]
+
 @optionclass("core")
 class CoreOption:
     """

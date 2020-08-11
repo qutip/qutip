@@ -39,8 +39,8 @@ def system_bench(func, dims):
 
 
 def calculate_openmp_thresh():
-    if qset.num_cpus == 1:
-        return qset.openmp_thresh
+    # if qset.num_cpus == 1:
+    #    return qset.openmp_thresh
     jc_dims = np.unique(np.logspace(0.45, 1.78, 20, dtype=int))
     jc_result = system_bench(_jc_liouvillian, jc_dims)
 

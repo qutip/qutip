@@ -48,7 +48,7 @@ import numpy as np
 
 from qutip import spre, vector_to_operator, operator_to_vector
 from qutip.core import data as _data
-from ..solver import Result, Options
+from ..solver import Result, SolverOptions
 
 
 class TTMSolverOptions:
@@ -80,13 +80,13 @@ class TTMSolverOptions:
                  thres=0.0, options=None):
 
         if options is None:
-            options = Options()
+            options = SolverOptions()
 
         self.dynmaps = dynmaps
         self.times = times
         self.learningtimes = learningtimes
         self.thres = thres
-        self.store_states = options.store_states
+        self.store_states = options['store_states']
 
 
 def ttmsolve(dynmaps, rho0, times, e_ops=[], learningtimes=None, tensors=None,

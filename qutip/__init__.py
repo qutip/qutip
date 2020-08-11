@@ -43,9 +43,9 @@ from .utilities import _version2int
 # Check if we're in IPython.
 try:
     __IPYTHON__
-    settings.ipython = True
+    settings.install.read_only_options['ipython'] = True
 except:
-    settings.ipython = False
+    settings.install.read_only_options['ipython'] = False
 
 # -----------------------------------------------------------------------------
 # Check for minimum requirements of dependencies, give the user a warning
@@ -93,8 +93,8 @@ del top_path
 
 import platform
 from .utilities import _blas_info
-settings.eigh_unsafe = (_blas_info() == "OPENBLAS"
-                        and platform.system() == 'Darwin')
+settings.install['eigh_unsafe'] = (_blas_info() == "OPENBLAS"
+                                   and platform.system() == 'Darwin')
 
 
 # -----------------------------------------------------------------------------
@@ -122,6 +122,7 @@ else:
 #
 import multiprocessing
 
+"""
 # Check if environ flag for qutip processes is set
 if 'QUTIP_NUM_PROCESSES' in os.environ:
     settings.num_cpus = int(os.environ['QUTIP_NUM_PROCESSES'])
@@ -139,6 +140,7 @@ if settings.num_cpus == 0:
             settings.num_cpus = multiprocessing.cpu_count()
         except:
             settings.num_cpus = 1
+"""
 
 
 # Find MKL library if it exists

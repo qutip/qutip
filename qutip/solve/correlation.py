@@ -51,7 +51,7 @@ from .mesolve import mesolve
 from .mcsolve import mcsolve
 from ._rhs_generate import rhs_clear, td_wrap_array_str
 from ._utilities import cython_build_cleanup
-from .solver import Options, config
+from .solver import SolverOptions, config
 from .steadystate import steadystate
 from ..settings import debug
 
@@ -67,7 +67,7 @@ if debug:
 
 def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
                        solver="me", reverse=False, args={},
-                       options=Options(ntraj=[20, 100])):
+                       options=SolverOptions(ntraj=[20, 100])):
     """
     Calculate the two-operator two-time correlation function:
     :math:`\\left<A(t+\\tau)B(t)\\right>`
@@ -101,7 +101,7 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
     solver : str {'me', 'mc', 'es'}
         choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
         `es` for exponential series).
-    options : Options
+    options : SolverOptions
         Solver options class. `ntraj` is taken as a two-element list because
         the `mc` correlator calls `mcsolve()` recursively; by default,
         `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
@@ -134,7 +134,7 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
 
 def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
                        solver="me", reverse=False, args={},
-                       options=Options(ntraj=[20, 100])):
+                       options=SolverOptions(ntraj=[20, 100])):
     """
     Calculate the two-operator two-time correlation function:
     :math:`\\left<A(t+\\tau)B(t)\\right>`
@@ -172,7 +172,7 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
     solver : str
         choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
         `es` for exponential series).
-    options : Options
+    options : SolverOptions
         solver options class. `ntraj` is taken as a two-element list because
         the `mc` correlator calls `mcsolve()` recursively; by default,
         `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
@@ -211,7 +211,7 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
 
 def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
                        solver="me", args={},
-                       options=Options(ntraj=[20, 100])):
+                       options=SolverOptions(ntraj=[20, 100])):
     """
     Calculate the three-operator two-time correlation function:
     :math:`\\left<A(t)B(t+\\tau)C(t)\\right>`
@@ -270,7 +270,7 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
 
 def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                        solver="me", args={},
-                       options=Options(ntraj=[20, 100])):
+                       options=SolverOptions(ntraj=[20, 100])):
     """
     Calculate the three-operator two-time correlation function:
     :math:`\\left<A(t)B(t+\\tau)C(t)\\right>`
@@ -310,7 +310,7 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     solver : str
         choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
         `es` for exponential series).
-    options : Options
+    options : SolverOptions
         solver options class. `ntraj` is taken as a two-element list because
         the `mc` correlator calls `mcsolve()` recursively; by default,
         `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
@@ -342,7 +342,7 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 # high level correlation
 
 def coherence_function_g1(H, state0, taulist, c_ops, a_op, solver="me",
-                          args={}, options=Options(ntraj=[20, 100])):
+                          args={}, options=SolverOptions(ntraj=[20, 100])):
     """
     Calculate the normalized first-order quantum coherence function:
 
@@ -377,7 +377,7 @@ def coherence_function_g1(H, state0, taulist, c_ops, a_op, solver="me",
     solver : str
         choice of solver (`me` for master-equation and
         `es` for exponential series).
-    options : Options
+    options : SolverOptions
         solver options class. `ntraj` is taken as a two-element list because
         the `mc` correlator calls `mcsolve()` recursively; by default,
         `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
@@ -405,7 +405,7 @@ def coherence_function_g1(H, state0, taulist, c_ops, a_op, solver="me",
 
 
 def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me", args={},
-                          options=Options(ntraj=[20, 100])):
+                          options=SolverOptions(ntraj=[20, 100])):
     """
     Calculate the normalized second-order quantum coherence function:
 
@@ -442,7 +442,7 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me", args={},
     solver : str
         choice of solver (`me` for master-equation and
         `es` for exponential series).
-    options : Options
+    options : SolverOptions
         solver options class. `ntraj` is taken as a two-element list because
         the `mc` correlator calls `mcsolve()` recursively; by default,
         `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
@@ -567,7 +567,7 @@ def spectrum_correlation_fft(tlist, y, inverse=False):
 # master 2t correlation solver
 
 def _correlation_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
-                    solver="me", args={}, options=Options()):
+                    solver="me", args={}, options=SolverOptions()):
     """
     Internal function for calling solvers in order to calculate the
     three-operator two-time correlation function:
@@ -610,7 +610,7 @@ def _correlation_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 # master equation solvers
 
 def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
-                       args={}, options=Options()):
+                       args={}, options=SolverOptions()):
     """
     Internal function for calculating the three-operator two-time
     correlation function:
@@ -646,9 +646,6 @@ def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
             H_shifted, c_op * rho * a_op, taulist, c_ops_shifted,
             [b_op], args=_args, options=options
         ).expect[0]
-
-        if t_idx == 1:
-            options.rhs_reuse = True
 
     if config.tdname:
         cython_build_cleanup(config.tdname)
@@ -738,7 +735,7 @@ def _spectrum_es(H, wlist, c_ops, a_op, b_op):
 # Monte Carlo solvers
 
 def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
-                       args={}, options=Options()):
+                       args={}, options=SolverOptions()):
     """
     Internal function for calculating the three-operator two-time
     correlation function:
@@ -762,7 +759,7 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
     psi_t_mat = mcsolve(
         H, psi0, tlist, c_ops, [],
-        args=args, ntraj=options.ntraj[0], options=options, progress_bar=None
+        args=args, ntraj=options['ntraj'][0], options=options, progress_bar=None
     ).states
 
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
@@ -777,24 +774,24 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
         if not isinstance(H, Qobj):
             _args["_t0"] = tlist[t_idx]
 
-        for trial_idx in range(options.ntraj[0]):
+        for trial_idx in range(options['ntraj'][0]):
             if isinstance(a_op, Qobj) and isinstance(c_op, Qobj):
                 if a_op.dag() == c_op:
                     # A shortcut here, requires only 1/4 the trials
-                    chi_0 = (options.mc_corr_eps + c_op) * \
+                    chi_0 = (options.mcsolve['mc_corr_eps'] + c_op) * \
                         psi_t_mat[trial_idx, t_idx]
 
                     # evolve these states and calculate expectation value of B
                     c_tau = chi_0.norm()**2 * mcsolve(
                         H_shifted, chi_0/chi_0.norm(), taulist, c_ops_shifted,
                         [b_op],
-                        args=_args, ntraj=options.ntraj[1], options=options,
+                        args=_args, ntraj=options['ntraj'][1], options=options,
                         progress_bar=None
                     ).expect[0]
 
                     # final correlation vector computed by combining the
                     # averages
-                    corr_mat[t_idx, :] += c_tau/options.ntraj[1]
+                    corr_mat[t_idx, :] += c_tau/options['ntraj'][1]
             else:
                 # otherwise, need four trial wavefunctions
                 # (Ad+C)*psi_t, (Ad+iC)*psi_t, (Ad-C)*psi_t, (Ad-iC)*psi_t
@@ -805,7 +802,7 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                     # if this is not correct, the over-loaded addition
                     # operation will raise errors
                     a_op_dag = a_op
-                chi_0 = [(options.mc_corr_eps + a_op_dag +
+                chi_0 = [(options.mcsolve['mc_corr_eps'] + a_op_dag +
                           np.exp(1j*x*np.pi/2)*c_op) *
                          psi_t_mat[trial_idx, t_idx]
                          for x in range(4)]
@@ -815,7 +812,7 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                     chi.norm()**2 * mcsolve(
                         H_shifted, chi/chi.norm(), taulist, c_ops_shifted,
                         [b_op],
-                        args=_args, ntraj=options.ntraj[1], options=options,
+                        args=_args, ntraj=options['ntraj'][1], options=options,
                         progress_bar=None
                     ).expect[0]
                     for chi in chi_0
@@ -823,14 +820,11 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
                 # final correlation vector computed by combining the averages
                 corr_mat_add = np.asarray(
-                    1.0 / (4*options.ntraj[0]) *
+                    1.0 / (4*options['ntraj'][0]) *
                     (c_tau[0] - c_tau[2] - 1j*c_tau[1] + 1j*c_tau[3]),
                     dtype=corr_mat.dtype
                 )
                 corr_mat[t_idx, :] += corr_mat_add
-
-        if t_idx == 1:
-            options.rhs_reuse = True
 
     if config.tdname:
         cython_build_cleanup(config.tdname)

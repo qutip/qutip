@@ -125,7 +125,7 @@ def _tidyup(method):
     @functools.wraps(method)
     def out(*args, **kwargs):
         out = method(*args, **kwargs)
-        if isinstance(out, Qobj) and settings.auto_tidyup:
+        if isinstance(out, Qobj) and settings.core['auto_tidyup']:
             out.tidyup()
         return out
     return out
@@ -150,7 +150,7 @@ def _require_equal_type(method):
                          type=self.type,
                          superrep=self.superrep,
                          isherm=(scale.imag == 0),
-                         isunitary=(abs(abs(scale) - 1) < settings.atol),
+                         isunitary=(abs(abs(scale) - 1) < settings.core['atol']),
                          copy=False)
         if not isinstance(other, Qobj):
             try:
@@ -508,7 +508,7 @@ class Qobj:
         if not isinstance(other, Qobj) or self.dims != other.dims:
             return False
         diff = _data.sub_csr(self._data, other._data)
-        return np.all(np.abs(diff.as_scipy().data) < settings.atol)
+        return np.all(np.abs(diff.as_scipy().data) < settings.core['atol'])
 
     @_tidyup
     def __pow__(self, n, m=None):  # calculates powers of Qobj
@@ -787,7 +787,7 @@ class Qobj:
             otherwise ``complex`` values are returned.
         """
         out = self.data.as_scipy().diagonal()
-        if np.any(np.imag(out) > settings.atol) or not self.isherm:
+        if np.any(np.imag(out) > settings.core['atol']) or not self.isherm:
             return out
         else:
             return np.real(out)
@@ -992,7 +992,7 @@ class Qobj:
         if inplace:
             self.data /= norm
             self._isherm = self._isherm if norm.imag == 0 else None
-            self._isunitary = (self._isunitary if abs(norm) - 1 < settings.atol
+            self._isunitary = (self._isunitary if abs(norm) - 1 < settings.core['atol']
                                else None)
             out = self
         else:
@@ -1175,7 +1175,7 @@ class Qobj:
         oper : :class:`qutip.Qobj`
             Quantum object with small elements removed.
         """
-        atol = atol or settings.auto_tidyup_atol
+        atol = atol or settings.core['auto_tidyup_atol']
         self.data = _data.tidyup_csr(self.data, atol)
         return self
 
@@ -1520,7 +1520,7 @@ class Qobj:
                                           sparse=sparse, eigvals=evals,
                                           tol=tol, maxiter=maxiter)
         if safe:
-            tol = tol or settings.atol
+            tol = tol or settings.core['atol']
             if (grndval[1]-grndval[0]) <= 10*tol:
                 print("WARNING: Ground state may be degenerate. "
                         "Use Q.eigenstates()")
@@ -1573,7 +1573,7 @@ class Qobj:
         # normal, or is normal, but has complex eigenvalues.  In either case,
         # it makes no sense to then demand that the eigenvalues be
         # non-negative.
-        return J.isherm and np.all(J.eigenenergies() >= -settings.atol)
+        return J.isherm and np.all(J.eigenenergies() >= -settings.core['atol'])
 
     @property
     def istp(self):
@@ -1600,7 +1600,7 @@ class Qobj:
         # Tr_1(J(Phi)) = identity_2.
         tr_oper = qobj.ptrace([0])
         return np.allclose(tr_oper.full(), np.eye(tr_oper.shape[0]),
-                           atol=settings.atol)
+                           atol=settings.core['atol'])
 
     @property
     def iscptp(self):
@@ -1629,7 +1629,7 @@ class Qobj:
             return False
         iden = _data.csr.identity(self.shape[0])
         cmp = self._data @ self._data.adjoint()
-        return np.all(np.abs((cmp - iden).as_scipy().data) < settings.atol)
+        return np.all(np.abs((cmp - iden).as_scipy().data) < settings.core['atol'])
 
     @property
     def isunitary(self):
