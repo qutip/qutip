@@ -143,7 +143,7 @@ def _qoc_repr(self, _recursive=False):
 def _qoc_reset(self, _recursive=False):
     """Reset instance to the default value or the default to Qutip's default"""
     if self._isDefault:
-        self.options = cls.options.copy()
+        self.options = self.__class__.options.copy()
         if _recursive:
             for child in self.childs:
                 child.reset()
