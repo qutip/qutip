@@ -44,13 +44,13 @@ getter = [bool, int, float, complex, str]
 def _get_str(value):
     if type(value) in getter:
         return str(value)
-    return pickle.dumps(value)
+    return pickle.dumps(value).hex()
 
 
-def _get_reader(datatype, config):
+def _get_reader(datatype):
     if datatype in getter:
         return datatype
-    return pickle.loads
+    return lambda x: pickle.loads(bytes.fromhex(x))
 
 
 def _full_path(rc_file):
@@ -100,7 +100,7 @@ def generate_qutiprc(rc_file="qutiprc"):
 
     with open(qutip_rc_file, 'w') as cfgfile:
         config = ConfigParser()
-        config["qutip"]
+        config["qutip"] = {}
         config.write(cfgfile)
 
 

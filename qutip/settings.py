@@ -47,7 +47,7 @@ class Settings:
 
     def _all_childs(self):
         optcls = []
-        for child in childs:
+        for child in self.childs:
              optcls += child._all_childs()
         return optcls
 
