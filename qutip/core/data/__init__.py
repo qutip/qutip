@@ -1,5 +1,4 @@
 from . import dense, csr
-
 from .dense import Dense
 from .csr import CSR
 from .base import Data
@@ -24,6 +23,21 @@ from .trace import *
 
 # For operations with mulitple versions, we just import the module.
 from . import norm, permute
+
+
+# Set up the data conversions that are known by us.  All types covered by
+# conversions will be made available for use in the dispatcher functions.  We
+# set them up after all of the functions have been defined to avoid circular
+# dependencies; we don't want any of the submodules to depend on `to` or
+# `dispatch`.
+
+from .convert import _to
+to = _to([
+    (Dense, CSR, dense.from_csr, 1),
+    (CSR, Dense, csr.from_dense, 1),
+])
+
+from .dispatch import Dispatcher
 
 
 # This is completely temporary - it will actually get replaced by a proper

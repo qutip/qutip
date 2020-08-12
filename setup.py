@@ -155,6 +155,7 @@ cy_exts = {
         'add',
         'adjoint',
         'base',
+        'convert',
         'csr',
         'dense',
         'dispatch',
