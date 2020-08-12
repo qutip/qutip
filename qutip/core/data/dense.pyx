@@ -11,7 +11,7 @@ cimport numpy as cnp
 from scipy.linalg cimport cython_blas as blas
 
 from .base import EfficiencyWarning
-from qutip.core.data cimport base
+from qutip.core.data cimport base, CSR
 from qutip.core.data.add cimport add_dense
 from qutip.core.data.adjoint cimport adjoint_dense, transpose_dense, conj_dense
 from qutip.core.data.mul cimport mul_dense, neg_dense
@@ -318,4 +318,24 @@ cpdef Dense identity(base.idxint dimension, double complex scale=1,
     cdef Dense out = zeros(dimension, dimension, fortran=fortran)
     for row in range(dimension):
         out.data[row*dimension + row] = scale
+    return out
+
+
+cpdef Dense from_csr(CSR matrix, bint fortran=True):
+    cdef Dense out = Dense.__new__(Dense)
+    out.shape = matrix.shape
+    out.data = (
+        <double complex *>
+        PyDataMem_NEW_ZEROED(out.shape[0]*out.shape[1], sizeof(double complex))
+    )
+    out.fortran = fortran
+    out._deallocate = True
+    cdef size_t row, ptr_in, ptr_out, row_stride, col_stride
+    row_stride = 1 if fortran else out.shape[1]
+    col_stride = out.shape[0] if fortran else 1
+    ptr_out = 0
+    for row in range(out.shape[0]):
+        for ptr_in in range(matrix.row_index[row], matrix.row_index[row + 1]):
+            out.data[ptr_out + matrix.col_index[ptr_in]*col_stride] = matrix.data[ptr_in]
+        ptr_out += row_stride
     return out
