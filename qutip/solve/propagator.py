@@ -102,7 +102,8 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         Instance representing the propagator :math:`U(t)`.
 
     """
-    num_cpus = kwargs.get('num_cpus', _default_kwargs()['num_cpus'])
+    # TODO: correct for proper ammout
+    num_cpus = kwargs.get('num_cpus', 1)
 
     if progress_bar is None:
         progress_bar = BaseProgressBar()

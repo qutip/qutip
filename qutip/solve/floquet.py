@@ -885,7 +885,7 @@ def _wrap_matmul(t, state, operator):
 #
 #
 def fmmesolve(H, rho0, tlist, c_ops=[], e_ops=[], spectra_cb=[], T=None,
-              args={}, options=Options(), floquet_basis=True, kmax=5,
+              args={}, options=SolverOptions(), floquet_basis=True, kmax=5,
               _safe_mode=True):
     """
     Solve the dynamics for the system using the Floquet-Markov master equation.

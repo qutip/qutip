@@ -42,7 +42,7 @@ from functools import partial
 import os
 import sys
 import signal
-import qutip.settings as qset
+from qutip.settings import settings as qset
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 
 
@@ -267,5 +267,6 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
 
 
 def _default_kwargs():
-    settings = {} # {'num_cpus': qset.num_cpus}
+
+    settings = {'num_cpus': multiprocessing.cpu_count()}
     return settings

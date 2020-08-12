@@ -35,7 +35,7 @@ import scipy.sparse as sp
 import ctypes
 from ctypes import POINTER,c_int,c_char,c_double, byref
 from numpy import ctypeslib
-import qutip.settings as qset
+from qutip.settings import settings as qset
 zcsrgemv = qset.install['mkl_lib'].mkl_cspblas_zcsrgemv
 
 def mkl_spmv(A, x):

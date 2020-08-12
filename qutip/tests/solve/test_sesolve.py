@@ -41,7 +41,7 @@ from qutip import (
     sigmax, sigmay, sigmaz, qeye, basis, expect, num, destroy, create,
     Cubic_Spline, sesolve,
 )
-from qutip.solve import Options
+from qutip.solve import SolverOptions
 
 os.environ['QUTIP_GRAPHICS'] = "NO"
 

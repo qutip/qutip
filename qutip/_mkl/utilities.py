@@ -34,7 +34,7 @@
 import numpy as np
 import os, sys
 from qutip.utilities import _blas_info
-import qutip.settings as qset
+from qutip.settings import settings as qset
 from ctypes import cdll
 
 

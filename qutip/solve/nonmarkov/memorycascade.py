@@ -85,7 +85,7 @@ class MemoryCascade:
         Run integrator in parallel if True. Only implemented for 'propagator'
         as the integrator method.
 
-    options : :class:`qutip.solver.Options`
+    options : :class:`qutip.solver.SolverOptions`
         Generic solver options.
     """
 
@@ -415,7 +415,7 @@ def _generator(k, H, L1, L2, S=None, c_ops_markov=None):
 
 
 def _integrate(L, E0, ti, tf, integrator='propagator', parallel=False,
-        opt=qt.Options()):
+        opt=qt.SolverOptions()):
     """
     Basic ode integrator
     """

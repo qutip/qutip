@@ -34,7 +34,7 @@ import numpy as np
 from numpy.testing import assert_equal, assert_, run_module_suite
 import unittest
 from qutip import *
-import qutip.settings as qset
+from qutip.settings import settings as qset
 # if qset.has_openmp:
 #    from qutip.core.cy.openmp.benchmark import _spmvpy, _spmvpy_openmp
 

@@ -287,8 +287,8 @@ def _mesolve_QobjEvo(H, c_ops, tlist, args, opt):
             op_td = lindblad_dissipator(op_td)
         L_td += op_td
 
-    if opt.rhs_with_state:
-        L_td._check_old_with_state()
+    # if opt.rhs_with_state:
+    #    L_td._check_old_with_state()
 
     L_td.compile()
 
@@ -374,7 +374,7 @@ def _mesolve_func_td(L_func, c_op_list, rho0, tlist, args, opt):
     else:
         c_ops_ = []
 
-    if opt.rhs_with_state:
+    if False: # opt.rhs_with_state:
         state0 = rho0.full().ravel("F")
         obj = L_func(0., state0, args)
         if not issuper(obj):

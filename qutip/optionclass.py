@@ -1,6 +1,7 @@
-import .settings as qset
+from qutip.settings import settings
 
-def optionclass(name, parent=qset):
+
+def optionclass(name, parent=settings):
     """Make the class an Options object of Qutip and register the object
     default as qutip.settings."name".
 
@@ -61,13 +62,13 @@ class _QtOptionMaker:
             return
 
         cls.childs = []
-        if not hasattr(cls, read_only_options):
+        if not hasattr(cls, "read_only_options"):
             cls.read_only_options = {}
         cls._types = {key: type(val) for key, val in cls.options.items()}
         # Name in settings and in files
         cls._name = self.name
         # Name when printing
-        cls._fullname = ".".join([self.parent._fullname, cls.__name__])
+        cls._fullname = ".".join([self.parent._fullname, self.name])
         # Is this instance the default for the other.
         cls._isDefault = False
         # Build the default instance
@@ -119,15 +120,23 @@ def __init__(self, file='', *,
 def _qoc_repr(self, _recursive=False):
     out = self._fullname + ":\n"
     longest = max(len(key) for key in self.options)
-    longest = max((max(len(key) for key in self.read_only_options), longest))
+    if self.read_only_options:
+        longest_readonly = max(len(key) for key in self.read_only_options)
+        longest = max((longest, longest_readonly))
     for key, val in self.options.items():
-        out += "{:{width}} : {}\n".format(key, val,
-                                          width=longest)
+        if isinstance(val, str):
+            out += "{:{width}} : '{}'\n".format(key, val,
+                                                width=longest)
+        else:
+            out += "{:{width}} : {}\n".format(key, val,
+                                              width=longest)
     for key, val in self.read_only_options.items():
         out += "{:{width}} : {}\n".format(key, val,
                                           width=longest)
+    out += "\n"
     if _recursive:
-        out += "".join([child.__repr__(_recursive) for child in childs])
+         out += "".join([child.__repr__(_recursive)
+                         for child in self.childs])
     return out
 
 
@@ -136,7 +145,7 @@ def _qoc_reset(self, _recursive=False):
     if self._isDefault:
         self.options = cls.options.copy()
         if _recursive:
-            for child in childs:
+            for child in self.childs:
                 child.reset()
     else:
         self.options = self._defaultInstance.options.copy()
@@ -144,7 +153,7 @@ def _qoc_reset(self, _recursive=False):
 
 def _qoc_all_childs(self):
     optcls = [self]
-    for child in childs:
+    for child in self.childs:
          optcls += child._all_childs()
     return optcls
 

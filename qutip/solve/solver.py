@@ -32,7 +32,7 @@
 ###############################################################################
 from __future__ import print_function
 
-__all__ = ['Options', 'Odeoptions', 'Odedata', 'ExpectOps']
+__all__ = ['SolverOptions', 'ExpectOps']
 
 import os
 import sys
@@ -43,7 +43,7 @@ from collections import OrderedDict
 from types import FunctionType, BuiltinFunctionType
 
 from .. import __version__, Qobj, QobjEvo
-from .optionclass import optionclass
+from ..optionclass import optionclass
 from ..core import data as _data
 
 solver_safe = {}
@@ -149,11 +149,11 @@ class SolverOptions:
     :func:`qutip.mcsolve`. Options can be specified either as arguments to the
     constructor::
 
-        opts = Options(order=10, ...)
+        opts = SolverOptions(order=10, ...)
 
     or by changing the class attributes after creation::
 
-        opts = Options()
+        opts = SolverOptions()
         opts.order = 10
 
     Returns options class to be used as options in evolution solvers.
@@ -243,11 +243,11 @@ class McOptions:
     :func:`qutip.mcsolve`. Options can be specified either as arguments to the
     constructor::
 
-        opts = Options(norm_tol=1e-3, ...)
+        opts = SolverOptions(norm_tol=1e-3, ...)
 
     or by changing the class attributes after creation::
 
-        opts = Options()
+        opts = SolverOptions()
         opts.['norm_tol'] = 1e-3
 
     Returns options class to be used as options in evolution solvers.
@@ -957,5 +957,5 @@ def _structure_check(Hdims, Htype, state):
 config = SolverConfiguration()
 
 # for backwards compatibility
-Odeoptions = Options
-Odedata = Result
+# Odeoptions = Options
+# Odedata = Result

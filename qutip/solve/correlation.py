@@ -53,7 +53,8 @@ from ._rhs_generate import rhs_clear, td_wrap_array_str
 from ._utilities import cython_build_cleanup
 from .solver import SolverOptions, config
 from .steadystate import steadystate
-from ..settings import debug
+from ..settings import settings 
+debug = settings.install['debug']
 
 if debug:
     import inspect

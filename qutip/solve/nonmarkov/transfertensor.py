@@ -72,7 +72,7 @@ class TTMSolverOptions:
         Threshold for halting. Halts if  :math:`||T_{n}-T_{n-1}||` is below
         treshold.
 
-    options : :class:`qutip.solver.Options`
+    options : :class:`qutip.solver.SolverOptions`
         Generic solver options.
     """
 

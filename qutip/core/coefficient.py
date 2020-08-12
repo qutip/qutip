@@ -359,7 +359,7 @@ cdef class StrCoefficient(Coefficient):
 
 
 def compile_code(code, file_name, parsed, c_opt):
-    root = qset['tmproot']
+    root = qset.install['tmproot']
     full_file_name = os.path.join(root, file_name)
     file_ = open(full_file_name + ".pyx", "w")
     file_.writelines(code)
@@ -369,11 +369,11 @@ def compile_code(code, file_name, parsed, c_opt):
         sys.argv = ["setup.py", "build_ext", "--inplace"]
         coeff_file = Extension(file_name,
                                sources=[full_file_name + ".pyx"],
-                               extra_compile_args=c_opt.compiler_flags.split(),
-                               extra_link_args=c_opt.link_flags.split(),
+                               extra_compile_args=c_opt['compiler_flags'].split(),
+                               extra_link_args=c_opt['link_flags'].split(),
                                include_dirs=[np.get_include()],
                                language='c++')
-        setup(ext_modules=cythonize(coeff_file, force=c_opt.recompile))
+        setup(ext_modules=cythonize(coeff_file, force=c_opt['recompile']))
     except Exception as e:
         raise Exception("Could not compile") from e
     try:

@@ -2,7 +2,8 @@ from .optionclass import optionclass
 import sys
 import os
 import logging
-
+import platform
+from .utilities import _blas_info
 
 @optionclass("install")
 class InstallSettings:
@@ -26,6 +27,16 @@ class InstallSettings:
     if tmproot not in sys.path:
         sys.path.insert(0, tmproot)
 
+    # -----------------------------------------------------------------------------
+    # Check if we're in IPython.
+    try:
+        _ipython = True
+    except:
+        _ipython = False
+
+    _eigh_unsafe = (_blas_info() == "OPENBLAS"
+                    and platform.system() == 'Darwin')
+
     options = {
         # debug mode for development
         "debug": False,
@@ -46,7 +57,7 @@ class InstallSettings:
         # Make sure it is in the "sys.path" if changing.
         "tmproot": tmproot,
         # Running on mac with openblas make eigh unsafe
-        "eigh_unsafe": False
+        "eigh_unsafe": _eigh_unsafe
     }
 
     read_only_options = {
@@ -56,5 +67,5 @@ class InstallSettings:
         "has_mkl": False,
         # are we in IPython? Note that this cannot be
         # set by the RC file.
-        "ipython": False
+        "ipython": _ipython
     }

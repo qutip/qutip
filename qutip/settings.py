@@ -42,6 +42,8 @@ class Settings:
     def __init__(self):
         self._isDefault = True
         self.childs = []
+        self._fullname = "qutip.settings"
+        self._defaultInstance = self
 
     def _all_childs(self):
         optcls = []
@@ -62,7 +64,7 @@ class Settings:
         qrc.load_rc_object(file, optcls)
 
     def __repr__(self):
-        return "\n".join(child.__repr__(True) for child in self.childs)
+        return "".join(child.__repr__(True) for child in self.childs)
 
 
 settings = Settings()

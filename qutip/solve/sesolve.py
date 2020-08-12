@@ -129,6 +129,7 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
 
     if options is None:
         options = SolverOptions()
+    """
     if options.rhs_reuse and not isinstance(H, SolverSystem):
         # TODO: deprecate when going to class based solver.
         if "sesolve" in solver_safe:
@@ -137,6 +138,7 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
         else:
             pass
             # raise Exception("Could not find the Hamiltonian to reuse.")
+    """
 
     if args is None:
         args = {}

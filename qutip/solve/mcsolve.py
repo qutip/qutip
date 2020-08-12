@@ -155,7 +155,7 @@ def mcsolve(H, psi0, tlist, c_ops=None, e_ops=None, ntraj=0,
 
         It is possible to reuse the random number seeds from a previous run
         of the mcsolver by passing the output Result object seeds via the
-        Options class, i.e. Options(seeds=prev_result.seeds).
+        Options class, i.e. SolverOptions(seeds=prev_result.seeds).
     """
     args = args or {}
     map_kwargs = map_kwargs or {}
@@ -605,7 +605,7 @@ class _MC():
 
         # Run at end of mc_alg function
         # -----------------------------
-        if opt.steady_state_average:
+        if opt['steady_state_average']:
             ss_out /= float(len(tlist))
 
         return (states_out, ss_out, e_ops, collapses)
@@ -620,9 +620,10 @@ class _MC():
         # initialize ODE solver for RHS
         ODE.set_integrator('zvode', method="adams")
         ODE._integrator = qutip_zvode(
-            method=opt.method, order=opt.order, atol=opt.atol,
-            rtol=opt.rtol, nsteps=opt.nsteps, first_step=opt.first_step,
-            min_step=opt.min_step, max_step=opt.max_step)
+            method=opt['method'], order=opt['order'], atol=opt['atol'],
+            rtol=opt['rtol'], nsteps=opt['nsteps'],
+            first_step=opt['first_step'],
+            min_step=opt['min_step'], max_step=opt['max_step'])
         return ODE
 
     # --------------------------------------------------------------------------
@@ -688,10 +689,10 @@ class _MC():
         states_out, ss_out, collapses = cymc.run_ode(self.initial_vector, tlist,
                                                      e_ops, prng)
 
-        if opt.steady_state_average:
+        if opt['steady_state_average']:
             ss_out = ss.U @ ss_out @ ss.Ud
         states_out = np.inner(ss.U, states_out).T
-        if opt.steady_state_average:
+        if opt['steady_state_average']:
             ss_out /= float(len(tlist))
         return (states_out, ss_out, e_ops, collapses)
 

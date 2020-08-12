@@ -1,4 +1,4 @@
-from .optionclass import optionclass
+from ..optionclass import optionclass
 
 __all__ = ["CoreOption"]
 

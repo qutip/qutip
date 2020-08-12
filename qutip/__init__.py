@@ -35,17 +35,10 @@ import os
 import sys
 import warnings
 
-from . import settings, version
+from .settings import settings
+from . import version
 from .version import version as __version__
 from .utilities import _version2int
-
-# -----------------------------------------------------------------------------
-# Check if we're in IPython.
-try:
-    __IPYTHON__
-    settings.install.read_only_options['ipython'] = True
-except:
-    settings.install.read_only_options['ipython'] = False
 
 # -----------------------------------------------------------------------------
 # Check for minimum requirements of dependencies, give the user a warning
@@ -88,13 +81,6 @@ else:
 
 del top_path
 
-
-# -----------------------------------------------------------------------------
-
-import platform
-from .utilities import _blas_info
-settings.install['eigh_unsafe'] = (_blas_info() == "OPENBLAS"
-                                   and platform.system() == 'Darwin')
 
 
 # -----------------------------------------------------------------------------
@@ -160,6 +146,7 @@ else:
     del matplotlib
 
 
+from .installsettings import *
 # -----------------------------------------------------------------------------
 # Load modules
 #
@@ -215,14 +202,10 @@ if "CFLAGS" in cfg_vars:
 # Load user configuration if present: override defaults.
 #
 from . import configrc
-has_rc, rc_file = configrc.has_qutip_rc()
-
-
-# Load the config file
-if has_rc:
-    configrc.load_rc_config(rc_file)
+if configrc.has_qutip_rc():
+    settings.load()
 
 # -----------------------------------------------------------------------------
 # Clean name space
 #
-del os, sys, numpy, scipy, multiprocessing, distutils
+del os, sys, numpy, scipy, multiprocessing, distutils, configrc, warnings

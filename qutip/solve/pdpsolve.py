@@ -40,10 +40,11 @@ from .. import (
 )
 from ..core import data as _data
 from ..core.data.norm import l2_dense as norm
-from .solver import Result, Options
+from .solver import Result, SolverOptions
 from ..parallel import serial_map
 from ..ui.progressbar import TextProgressBar
-from ..settings import debug
+from ..settings import settings
+debug = settings.install['debug']
 
 
 class StochasticSolverOptions:

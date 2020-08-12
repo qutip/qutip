@@ -50,7 +50,7 @@ from .. import (
     sigmaz, basis, qeye,
 )
 from .mesolve import mesolve
-from .solver import Options
+from .solver import SolverOptions
 
 
 def rcsolve(Hsys, psi0, tlist, e_ops, Q, wc, alpha, N, w_th, sparse=False,

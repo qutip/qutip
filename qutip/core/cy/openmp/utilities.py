@@ -31,7 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import os
-import qutip.settings as qset
+from qutip.settings import settings as qset
 
 
 def check_use_openmp(options):

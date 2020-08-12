@@ -33,7 +33,7 @@
 ###############################################################################
 import warnings
 import numpy as np
-import qutip.settings as qset
+from qutip.settings import settings as qset
 from qutip.core import Qobj
 
 import sys

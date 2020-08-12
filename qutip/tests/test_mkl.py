@@ -37,7 +37,7 @@ import scipy.linalg as la
 from numpy.testing import (assert_, run_module_suite, assert_array_almost_equal)
 import unittest
 from qutip import *
-import qutip.settings as qset
+from qutip.settings import settings as qset
 if qset.install['has_mkl']:
     from qutip._mkl.spsolve import (mkl_splu, mkl_spsolve)
 
