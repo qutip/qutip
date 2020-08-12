@@ -130,6 +130,7 @@ if settings.num_cpus == 0:
 
 
 # Find MKL library if it exists
+from .installsettings import *
 from . import _mkl
 
 
@@ -146,7 +147,7 @@ else:
     del matplotlib
 
 
-from .installsettings import *
+
 # -----------------------------------------------------------------------------
 # Load modules
 #
