@@ -162,8 +162,8 @@ class SolverOptions:
 
         qutip.settings.options['order'] = 10
 
-    Attributes
-    ----------
+    Options
+    -------
 
     atol : float {1e-8}
         Absolute tolerance.
@@ -256,8 +256,9 @@ class McOptions:
 
         qutip.settings.options.montecarlo['norm_tol'] = 1e-3
 
-    Attributes
-    ----------
+    Options
+    -------
+
     norm_tol : float {1e-4}
         Tolerance used when finding wavefunction norm in mcsolve.
     norm_t_tol : float {1e-6}

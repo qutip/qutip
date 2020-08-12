@@ -7,6 +7,50 @@ from .utilities import _blas_info
 
 @optionclass("install")
 class InstallSettings:
+    """
+    Qutip's settings
+
+    Options
+    -------
+    debug: False
+        debug mode for development
+
+    log_handler: str
+        define whether log handler should be
+        - default: switch based on IPython detection
+        - stream: set up non-propagating StreamHandler
+        - basic: call basicConfig
+        - null: leave logging to the user
+
+    colorblind_safe: False
+        Allow for a colorblind mode that uses different colormaps
+        and plotting options by default.
+
+    tmproot: str
+        Location of the saved string coefficients
+        Make sure it is in the "sys.path" if changing.
+
+    _logger: Logger
+        Logger
+        *readonly*
+
+    eigh_unsafe: bool
+        Running on mac with openblas make eigh unsafe
+        *readonly*
+
+    mkl_lib: str
+        location of the mkl library
+        *readonly*
+
+    has_mkl: bool
+        Flag if mkl_lib is found
+        *readonly*
+
+    ipython: bool
+        Are we in IPython?
+        *readonly*
+
+    """
     try:
         _logger = logging.getLogger(__name__)
         _logger.addHandler(logging.NullHandler())
@@ -27,7 +71,7 @@ class InstallSettings:
     if tmproot not in sys.path:
         sys.path.insert(0, tmproot)
 
-    # -----------------------------------------------------------------------------
+    # ------------------------------------------------------------------------
     # Check if we're in IPython.
     try:
         _ipython = True
@@ -49,23 +93,22 @@ class InstallSettings:
         # Allow for a colorblind mode that uses different colormaps
         # and plotting options by default.
         "colorblind_safe": False,
+        # Location of the saved string coefficients
+        # Make sure it is in the "sys.path" if changing.
+        "tmproot": tmproot
+    }
+
+    read_only_options = {
+        # location of the mkl library
+        "mkl_lib": None,
+        # Flag if mkl_lib is found
+        "has_mkl": False,
+        # are we in IPython?
+        "ipython": _ipython,
         # Note that since logging depends on settings,
         # if we want to do any logging here, it must be manually
         # configured, rather than through _logging.get_logger().
         "_logger": _logger,
-        # Location of the saved string coefficients
-        # Make sure it is in the "sys.path" if changing.
-        "tmproot": tmproot,
         # Running on mac with openblas make eigh unsafe
         "eigh_unsafe": _eigh_unsafe
-    }
-
-    read_only_options = {
-        # number of cpus (set at qutip import)
-        "mkl_lib": None,
-        # Flag if mkl_lib is found
-        "has_mkl": False,
-        # are we in IPython? Note that this cannot be
-        # set by the RC file.
-        "ipython": _ipython
     }

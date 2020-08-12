@@ -5,10 +5,13 @@ __all__ = ["CoreOption"]
 @optionclass("core")
 class CoreOption:
     """
-    Setting for the Qobj.
+    Setting used by the Qobj.
 
-    Attributes
-    ----------
+    Value can be changed in qutip.settings.core
+
+    Options
+    -------
+
     auto_tidyup : bool
         use auto tidyup
 

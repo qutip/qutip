@@ -251,7 +251,7 @@ cdef class CyMcOde:
         if ii > self.norm_steps:
             raise Exception("Norm tolerance not reached. " +
                             "Increase accuracy of ODE solver or " +
-                            "SolverOptions.mcsolve.norm_steps.")
+                            "SolverOptions.mcsolve['norm_steps'].")
 
     @cython.cdivision(True)
     @cython.boundscheck(False)
@@ -463,4 +463,4 @@ cdef class CyMcOdeDiag(CyMcOde):
         if ii > self.norm_steps:
             raise Exception("Norm tolerance not reached. " +
                             "Increase accuracy of ODE solver or " +
-                            "SolverOptions.mcsolve.norm_steps.")
+                            "SolverOptions.mcsolve['norm_steps'].")

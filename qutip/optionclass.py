@@ -2,41 +2,59 @@ from qutip.settings import settings
 
 
 def optionclass(name, parent=settings):
-    """Make the class an Options object of Qutip and register the object
-    default as qutip.settings."name".
+    """
+    Use as a decorator to register the option class to `qutip.settings`.
+    The default will be in added to qutip.setting.[parent].name.
 
-    Add the methods:
-        __init__:
-            Allow to create from data in files or from default with attributes
+    The options class should contain an `options` dictionary containing the
+    option and their default value. Readonly settings can be defined in
+    `read_only_options` dict.
+
+    ```
+    >>> import qutip
+    >>> @qutip.optionclass("myopt", parent=qutip.settings.solver)
+    >>> class MyOpt():
+    >>>     options = {"opt1": True}
+    >>>     read_only_options = {"hidden": 1}
+
+    >>> qutip.settings.solver.myopt['opt1'] = False
+    >>> qutip.settings.solver.myopt['hidden']
+    1
+
+    >>> qutip.settings.solver.myopt['hidden'] = 2
+    KeyError: "'hidden': Read-only value"
+
+    >>> print(qutip.settings.solver.myopt)
+    qutip.settings.solver.myopt:
+    opt1   : False
+    hidden : 1
+
+    print(MyOpt(opt1=2))
+    qutip.settings.solver.myopt:
+    opt1   : 2
+    hidden : 1
+    ```
+
+    It add the methods:
+        __init__(file=None, *, option=None... )
+            Allow to create from data in files or from defaults with attributes
             overwritten by keywords.
-            Properties with setter can also be set as kwargs.
-        save(file), load(file), reset():
-            Save, load, reset will affect all attributes that can be saved
-            as defined in qutip.configrc.getter.
         __repr__():
-            Make a clean print of all attribute and properties.
-    and the attributes:
-        _name
-        _fullname
-        _types
-        _isDefault
-        _defaultInstance
+            Make a clean print for all 'options' and 'read_only_options'.
+        __getitem__(), __setitem__():
+            Pass through to 'self.options' and 'self.read_only_options'.
+            Option in 'self.read_only_options' can not be set.
+        save(file='qutiprc'):
+            Save the object in a file. 'qutiprc' file is loaded as default when
+            loading qutip.
+        load(file):
+            Overwrite with options previously saved.
+            Loaded options will have the same type as the default from one of:
+                (bool, int, float, complex, str, object)
+        reset():
+            If used on an instance, reset to the default in qutip.settings.
+            If used from qutip.settings..., go back to qutip's defaults.
 
-    * Any attribute starting with "_" are excluded.
-
-    Usage:
-        ``
-        @optionclass(name)
-        class Options:
-            ...
-        ``
-    or
-        ``
-        @optionclass
-        class Options
-            ...
-        ``
-    * default name is `Options.__name__`
     """
     # The real work is in _QtOptionMaker
     if isinstance(name, str):
@@ -52,6 +70,9 @@ def optionclass(name, parent=settings):
 
 
 class _QtOptionMaker:
+    """
+    Apply the `optionclass` decorator.
+    """
     def __init__(self, name, parent):
         self.name = name
         self.parent = parent
@@ -61,9 +82,9 @@ class _QtOptionMaker:
             # Already a QtOptionClass
             return
 
-        cls.childs = []
         if not hasattr(cls, "read_only_options"):
             cls.read_only_options = {}
+        # type to used when loading from file.
         cls._types = {key: type(val) for key, val in cls.options.items()}
         # Name in settings and in files
         cls._name = self.name
@@ -71,27 +92,32 @@ class _QtOptionMaker:
         cls._fullname = ".".join([self.parent._fullname, self.name])
         # Is this instance the default for the other.
         cls._isDefault = False
+        # Childs in the settings tree
+        cls._childs = []
         # Build the default instance
         # Do it before setting __init__ since it use this default
         self._make_default(cls)
 
         cls.__init__ = _make_init(cls.options)
-        cls.__repr__ = _qoc_repr
-        cls.__getitem__ = _qoc_getitem
-        cls.__setitem__ = _qoc_setitem
-        cls.reset = _qoc_reset
-        cls.save = _qoc_save
-        cls.load = _qoc_load
-        cls._all_childs = _qoc_all_childs
+        cls.__repr__ = _repr
+        cls.__getitem__ = _getitem
+        cls.__setitem__ = _setitem
+        cls.reset = _reset
+        cls.save = _save
+        cls.load = _load
+        cls._all_childs = _all_childs
 
         return cls
 
     def _make_default(self, cls):
+        """ Create the default and add it to the parent.
+        """
         default = cls()
         default.options = cls.options.copy()
         default._isDefault = True
-        default.childs = []
-        self.parent._defaultInstance.childs.append(default)
+        default._childs = []
+        # The parent has the child twice: attribute and in a list.
+        self.parent._defaultInstance._childs.append(default)
         setattr(self.parent._defaultInstance, self.name, default)
         cls._defaultInstance = default
 
@@ -104,20 +130,22 @@ def _make_init(all_set):
                      for key in all_set])
     code = f"""
 def __init__(self, file='', *,
-             {attributes_kw}):
+             {attributes_kw},
+             **kwargs):
     self.options = self._defaultInstance.options.copy()
 {attributes_set}
     if file:
         self.load(file)
-    for child in self._defaultInstance.childs:
-        setattr(self, child._name, child.__class__())
+    for child in self._defaultInstance._childs:
+        self.child.append(child.__class__(file, **kwargs))
+        setattr(self, child._name, self.child[-1])
 """
     ns = {}
     exec(code, globals(), ns)
     return ns["__init__"]
 
 
-def _qoc_repr(self, _recursive=False):
+def _repr(self, _recursive=False):
     out = self._fullname + ":\n"
     longest = max(len(key) for key in self.options)
     if self.read_only_options:
@@ -136,29 +164,29 @@ def _qoc_repr(self, _recursive=False):
     out += "\n"
     if _recursive:
          out += "".join([child.__repr__(_recursive)
-                         for child in self.childs])
+                         for child in self._childs])
     return out
 
 
-def _qoc_reset(self, _recursive=False):
+def _reset(self, _recursive=False):
     """Reset instance to the default value or the default to Qutip's default"""
     if self._isDefault:
         self.options = self.__class__.options.copy()
         if _recursive:
-            for child in self.childs:
+            for child in self._childs:
                 child.reset()
     else:
         self.options = self._defaultInstance.options.copy()
 
 
-def _qoc_all_childs(self):
+def _all_childs(self):
     optcls = [self]
-    for child in self.childs:
+    for child in self._childs:
          optcls += child._all_childs()
     return optcls
 
 
-def _qoc_save(self, file="qutiprc", _recursive=False):
+def _save(self, file="qutiprc", _recursive=False):
     """Save to desired file. 'qutiprc' if not specified"""
     import qutip.configrc as qrc
     if _recursive:
@@ -168,7 +196,7 @@ def _qoc_save(self, file="qutiprc", _recursive=False):
     qrc.write_rc_object(file, optcls)
 
 
-def _qoc_load(self, file="qutiprc", _recursive=False):
+def _load(self, file="qutiprc", _recursive=False):
     """Load from desired file. 'qutiprc' if not specified"""
     import qutip.configrc as qrc
     if _recursive:
@@ -178,13 +206,15 @@ def _qoc_load(self, file="qutiprc", _recursive=False):
     qrc.load_rc_object(file, optcls)
 
 
-def _qoc_getitem(self, key):
+def _getitem(self, key):
+    # Let the dict catch the KeyError
     if key in self.read_only_options:
         return self.read_only_options[key]
     return self.options[key]
 
 
-def _qoc_setitem(self, key, value):
+def _setitem(self, key, value):
+    # Let the dict catch the KeyError
     if key in self.read_only_options:
-        raise KeyError("Read-only value")
+        raise KeyError(f"'{key}': Read-only value")
     self.options[key] = value
