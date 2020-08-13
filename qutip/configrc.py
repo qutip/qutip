@@ -48,6 +48,8 @@ def _get_str(value):
 
 
 def _get_reader(datatype):
+    if datatype is bool:
+        return lambda bool_str: bool_str == "True"
     if datatype in getter:
         return datatype
     return lambda x: pickle.loads(bytes.fromhex(x))
