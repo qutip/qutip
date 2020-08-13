@@ -1,0 +1,192 @@
+.. QuTiP
+   Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
+
+.. _user_guide.rst:
+
+*********************
+Making the User Guide
+*********************
+
+
+The user guide provides an overview of QuTiP's functionality.
+The guide is composed of individual reStructuredText (**.rst**)
+files which each get rendered as a webpage.
+Each page typically tackles one area of functionality.
+To learn more about how to write **.rst** files,
+it is useful to follow the `sphinx guide <https://www.sphinx-doc.org/en/master/usage/index.html>`_.
+
+The documentation build also utilizes a number of
+`Sphinx Extensions <https://www.sphinx-doc.org/en/master/usage/extensions/index.html>`_
+including but not limited to
+`doctest <https://www.sphinx-doc.org/en/master/usage/extensions/doctest.html>`_,
+`autodoc <https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html>`_,
+`sphinx gallery <https://sphinx-gallery.github.io/stable/index.html>`_ and
+`nb2plots <http://matthew-brett.github.io/nb2plots/nbplots.html#module-nb2plots.nbplots>`_.
+Additional extensions can be configured in the `conf.py <https://github.com/qutip/qutip-doc/blob/master/conf.py>`_ file.
+
+
+
+
+
+Tests can also be run on examples in the documentation using the doctest extension
+and plots are generated using the **plot** or **nbplot** directive. For more specific
+guidelines on how to incorporate code examples into the guide, refer to (insert reference).
+
+
+.. _directives.rst:
+
+Directives
+==========
+
+There are three Sphinx directives that can be used to write code examples
+in the user guide:
+
+- `Doctest <https://www.sphinx-doc.org/en/master/usage/extensions/doctest.html>`_
+- `NBPlot <https://matthew-brett.github.io/nb2plots/nbplots.html>`_
+- `Plot <https://matplotlib.org/3.1.1/devel/plot_directive.html>`_ (Matplotlib)
+
+For a more comprehensive account of the usage of each directive, please refer to
+their individual pages. Here we outline some general guidelines on how to these
+directives while making a user guide.
+
+Doctest
+*******
+
+
+The doctest directive enables tests on interactive code examples. The simplest way
+to do this is by specifying a prompt along with it's respective output:
+::
+    .. doctest::
+
+        >>> a = 2
+        >>> a
+        2
+
+This is rendered in the documentation as follows:
+
+.. doctest::
+
+    >>> a = 2
+    >>> a
+    2
+
+
+While specifying code examples under the **.. doctest::** directive,
+either all statements must be specified by the **>>>** prompt or without it. For
+every prompt, any potential corresponding output must be specified immediately
+after it.
+
+A different way to specify code examples (and test them) is using the associated
+**.. testcode::** directive which is effectively a code block:
+::
+    .. testcode::
+
+        a = 2
+        print(a)
+
+followed by  it's results. The result can be specified with the
+**.. testoutput::** block:
+::
+    .. testoutput::
+
+        2
+
+The advantage of the **testcode** directive is that it is a lot simpler to
+specify and amenable to copying the code to clipboard. Usually, tests are
+more easily specified with this directive as the input and output are
+specified in different blocks. The rendering is neater too.
+
+.. testcode::
+
+    a = 2
+    print(a)
+
+.. testoutput::
+
+    2
+
+A few notes on using the doctest extension:
+
+- By default, each **testcode** and **doctest** block is run in a fresh namespace.
+  To share a common namespace, we can specify a common group across the blocks
+  (within a single **.rst** file). For example,
+  ::
+        .. doctest:: [group_name]
+
+          >>> a = 2
+
+        can be followed by some explanation followed by another code block
+        sharing the same namespace
+
+        .. doctest:: [group_name]
+
+          >>> print(a)
+          2
+
+
+- To only print the code blocks (or the output), use the option **+SKIP** to
+  specify the block without the code being tested when running **make doctest**.
+
+- To check the result of a **Qobj** output, it is useful to make sure that
+  spacing irregularities between the expected and actual output are ignored.
+  For that, we can use the option **+NORMALIZE_WHITESPACE**.
+
+NBPlot
+*******
+
+Since the doctest directive cannot render matplotlib figures, we need to use
+either Matplotlib's `Plot <https://matplotlib.org/3.1.1/devel/plot_directive.html>`_
+or `NBPlot <https://matthew-brett.github.io/nb2plots/nbplots.html>`_ directive when
+rendering to **latex** or **html**.
+
+NBPlot is recommended since it defaults to using the same namespace across
+blocks in the same file. The associated package `nb2plots <https://matthew-brett.github.io/nb2plots/index.html>`_
+can also be used to convert a notebook into the **.rst** format by using the command:
+::
+    nb2plots notebook.ipynb > with_plots.rst
+
+Furthermore, the nbplot directive can be used in the doctest format. In this case,
+when running doctests (which is enabled by specifying all statements with the
+**>>>** prompts), tests also include those specified under the nbplot directive.
+
+**Example:**
+::
+
+    First we specify some data:
+
+    .. nbplot::
+
+    >>> import numpy as np
+    >>> x = np.linspace(0, 2 * np.pi, 1000)
+    >>> x[:10]
+    array([ 0.        ,  0.00628947,  0.01257895,  0.01886842,  0.0251579 ,
+            0.03144737,  0.03773685,  0.04402632,  0.0503158 ,  0.05660527])
+
+
+    .. nbplot::
+
+    >>> import matplotlib.pyplot as plt
+    >>> plt.plot(x, np.sin(x))
+    [...]
+
+**Render:**
+
+
+.. nbplot::
+
+    >>> import numpy as np
+    >>> x = np.linspace(0, 2 * np.pi, 1000)
+    >>> x[:10]
+    array([ 0.        ,  0.00628947,  0.01257895,  0.01886842,  0.0251579 ,
+            0.03144737,  0.03773685,  0.04402632,  0.0503158 ,  0.05660527])
+    >>> import matplotlib.pyplot as plt
+    >>> plt.plot(x, np.sin(x))
+    [...]
+
+
+NBPlot cannot be used in conjunction with Doctest because they do not
+share the same namespace when used in the same file.
+Since NBPlot can also be used in doctest mode, in
+the case where code examples require both testing and rendering figures, it is
+easier to use the NBPlot directive. To learn more about each directive, it is useful
+to refer to their individual pages.

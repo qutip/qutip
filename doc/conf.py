@@ -263,7 +263,12 @@ warnings.filterwarnings("ignore")
 os_nt = {}
 '''.format(os_nt)
 
+# -- Options for nbplot directive ---------------------------------------
+
+# hacky fix for ensuring nbplot code runs in the same directory (root) as doctest code.
+
 nbplot_working_directory = "./"
+
 # -- Options for Texinfo output -------------------------------------------
 
 # Grouping the document tree into Texinfo files. List of tuples
@@ -316,6 +321,7 @@ extlinks = {
 
 # configuration declares the location of the examples directory for
 # Sphinx Gallery
+
 sphinx_gallery_conf = {
      'examples_dirs': 'gallery',   # path to your example scripts
      'gallery_dirs': 'gallery/qutip_examples',  # save generated examples
