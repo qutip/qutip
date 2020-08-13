@@ -7,14 +7,14 @@
 Floquet Formalism
 *****************
 
-.. nbplot::
-   :include-source: False
 
-   >>> from qutip import *
+.. plot::
+      :context: reset
 
-   >>> import numpy as np
-
-   >>> from pylab import *
+      >>> from pylab import *
+      >>> from scipy import *
+      >>> from qutip import *
+      >>> import numpy as np
 
 .. _floquet-intro:
 
@@ -104,7 +104,8 @@ Consider for example the case of a strongly driven two-level atom, described by 
 
 In QuTiP we can define this Hamiltonian as follows:
 
-.. nbplot::
+.. plot::
+   :context: reset
 
    >>> delta = 0.2 * 2*np.pi
    >>> eps0 = 1.0 * 2*np.pi
@@ -117,7 +118,8 @@ In QuTiP we can define this Hamiltonian as follows:
 
 The :math:`t=0` Floquet modes corresponding to the Hamiltonian :eq:`eq_driven_qubit` can then be calculated using the :func:`qutip.floquet.floquet_modes` function, which returns lists containing the Floquet modes and the quasienergies
 
-.. nbplot::
+.. plot::
+   :context:
 
    >>> T = 2*pi / omega
    >>> f_modes_0, f_energies = floquet_modes(H, T, args)
@@ -135,7 +137,8 @@ The :math:`t=0` Floquet modes corresponding to the Hamiltonian :eq:`eq_driven_qu
 
 For some problems interesting observations can be draw from the quasienergy levels alone. Consider for example the quasienergies for the driven two-level system introduced above as a function of the driving amplitude, calculated and plotted in the following example. For certain driving amplitudes the quasienergy levels cross. Since the the quasienergies can be associated with the time-scale of the long-term dynamics due that the driving, degenerate quasienergies indicates a "freezing" of the dynamics (sometimes known as coherent destruction of tunneling).
 
-.. nbplot::
+.. plot::
+   :context:
 
    >>> delta = 0.2 * 2*np.pi
    >>> eps0  = 0.0 * 2*np.pi
@@ -161,7 +164,8 @@ For some problems interesting observations can be draw from the quasienergy leve
 
 Given the Floquet modes at :math:`t=0`, we obtain the Floquet mode at some later time :math:`t` using the function :func:`qutip.floquet.floquet_mode_t`:
 
-.. nbplot::
+.. plot::
+   :context: close-figs
 
    >>> f_modes_t = floquet_modes_t(f_modes_0, f_energies, 2.5, H, T, args)
    >>> f_modes_t # doctest: +SKIP
@@ -176,7 +180,8 @@ Given the Floquet modes at :math:`t=0`, we obtain the Floquet mode at some later
 
 The purpose of calculating the Floquet modes is to find the wavefunction solution to the original problem :eq:`eq_driven_qubit` given some initial state :math:`\left|\psi_0\right>`. To do that, we first need to decompose the initial state in the Floquet states, using the function :func:`qutip.floquet.floquet_state_decomposition`
 
-.. nbplot::
+.. plot::
+   :context:
 
    >>> psi0 = rand_ket(2)
    >>> f_coeff = floquet_state_decomposition(f_modes_0, f_energies, psi0)
@@ -186,7 +191,8 @@ The purpose of calculating the Floquet modes is to find the wavefunction solutio
 
 and given this decomposition of the initial state in the Floquet states we can easily evaluate the wavefunction that is the solution to :eq:`eq_driven_qubit` at an arbitrary time :math:`t` using the function :func:`qutip.floquet.floquet_wavefunction_t`
 
-.. nbplot::
+.. plot::
+   :context:
 
    >>> t = 10 * np.random.rand()
    >>> psi_t = floquet_wavefunction_t(f_modes_0, f_energies, f_coeff, t, H, T, args)

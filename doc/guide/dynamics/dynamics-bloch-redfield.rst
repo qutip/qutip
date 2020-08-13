@@ -7,12 +7,14 @@
 Bloch-Redfield master equation
 ******************************
 
-.. nbplot::
-   :include-source: False
 
-   from qutip import *
-   import numpy as np
-   import matplotlib.pyplot as plt
+.. plot::
+      :context: reset
+
+      import pylab as plt
+      from scipy import *
+      from qutip import *
+      import numpy as np
 
 .. _bloch-redfield-intro:
 
@@ -168,22 +170,7 @@ To simplify the numerical implementation we assume that :math:`A_\alpha` are Her
 Bloch-Redfield master equation in QuTiP
 =======================================
 
-.. nbplot::
-    :include-source: False
 
-    delta = 0.2 * 2*np.pi
-    eps0 = 1.0 * 2*np.pi
-    gamma1 = 0.5
-
-    H = - delta/2.0 * sigmax() - eps0/2.0 * sigmaz()
-
-    def ohmic_spectrum(w):
-      if w == 0.0: # dephasing inducing noise
-        return gamma1
-      else: # relaxation inducing noise
-        return gamma1 / 2 * (w / (2 * np.pi)) * (w > 0.0)
-
-    R, ekets = bloch_redfield_tensor(H, [[sigmax(), ohmic_spectrum]])
 
 In QuTiP, the Bloch-Redfield tensor Eq. :eq:`br-tensor` can be calculated using the function :func:`qutip.bloch_redfield.bloch_redfield_tensor`. It takes two mandatory arguments: The system Hamiltonian :math:`H`, a nested list of operator  :math:`A_\alpha`, spectral density functions :math:`S_\alpha(\omega)` pairs that characterize the coupling between system and bath. The spectral density functions are Python callback functions that takes the (angular) frequency as a single argument.
 
@@ -229,9 +216,28 @@ To illustrate how to calculate the Bloch-Redfield tensor, let's consider a two-l
 
 Note that it is also possible to add Lindblad dissipation superoperators in the Bloch-Refield tensor by passing the operators via the ``c_ops`` keyword argument like you would in the :func:`qutip.mesolve` or :func:`qutip.mcsolve` functions. For convenience, the function :func:`qutip.bloch_redfield.bloch_redfield_tensor` also returns a list of eigenkets `ekets`, since they are calculated in the process of calculating the Bloch-Redfield tensor `R`, and the `ekets` are usually needed again later when transforming operators between the computational basis and the eigenbasis.
 
+
+.. plot::
+    :context:
+
+    delta = 0.2 * 2*np.pi
+    eps0 = 1.0 * 2*np.pi
+    gamma1 = 0.5
+
+    H = - delta/2.0 * sigmax() - eps0/2.0 * sigmaz()
+
+    def ohmic_spectrum(w):
+      if w == 0.0: # dephasing inducing noise
+        return gamma1
+      else: # relaxation inducing noise
+        return gamma1 / 2 * (w / (2 * np.pi)) * (w > 0.0)
+
+    R, ekets = bloch_redfield_tensor(H, [[sigmax(), ohmic_spectrum]])
+
 The evolution of a wavefunction or density matrix, according to the Bloch-Redfield master equation :eq:`br-final`, can be calculated using the QuTiP function :func:`qutip.bloch_redfield.bloch_redfield_solve`. It takes five mandatory arguments: the Bloch-Redfield tensor ``R``, the list of eigenkets ``ekets``, the initial state ``psi0`` (as a ket or density matrix), a list of times ``tlist`` for which to evaluate the expectation values, and a list of operators ``e_ops`` for which to evaluate the expectation values at each time step defined by `tlist`. For example, to evaluate the expectation values of the :math:`\sigma_x`, :math:`\sigma_y`, and :math:`\sigma_z` operators for the example above, we can use the following code:
 
-.. nbplot::
+.. plot::
+    :context:
 
     tlist = np.linspace(0, 15.0, 1000)
 
@@ -253,7 +259,8 @@ The evolution of a wavefunction or density matrix, according to the Bloch-Redfie
 
 The two steps of calculating the Bloch-Redfield tensor and evolving according to the corresponding master equation can be combined into one by using the function :func:`qutip.bloch_redfield.brmesolve`, which takes same arguments as :func:`qutip.mesolve` and :func:`qutip.mcsolve`, save for the additional nested list of operator-spectrum pairs that is called ``a_ops``.
 
-.. nbplot::
+.. plot::
+    :context: close-figs
 
     output = brmesolve(H, psi0, tlist, a_ops=[[sigmax(),ohmic_spectrum]], e_ops=e_ops)
 
@@ -283,7 +290,8 @@ As we have already discussed, the Bloch-Redfield master equation requires transf
 The time-dependent Bloch-Redfield solver in QuTiP relies on the efficient numerical computations afforded by the string-based time-dependent format, and Cython compilation.  As such, all the time-dependent terms, and noise power spectra must be expressed in the string format.  To begin, lets consider the previous example, but formatted to call the time-dependent solver:
 
 
-.. nbplot::
+.. plot::
+    :context:
 
     ohmic = "{gamma1} / 2.0 * (w / (2 * pi)) * (w > 0.0)".format(gamma1=gamma1)
 
@@ -296,7 +304,8 @@ Although the problem itself is time-independent, the use of a string as the nois
 For actual time-dependent Hamiltonians, the Hamiltonian itself can be passed into the solver like any other string-based Hamiltonian, as thus we will not discuss this topic further.  Instead, here the focus is on time-dependent bath coupling terms.  To this end, suppose that we have a dissipative harmonic oscillator, where the white-noise dissipation rate decreases exponentially with time :math:`\kappa(t) = \kappa(0)\exp(-t)`.  In the Lindblad or monte-carlo solvers, this could be implemented as a time-dependent collapse operator list ``c_ops = [[a, 'sqrt(kappa*exp(-t))']]``.  In the Bloch-Redfield solver, the bath coupling terms must be Hermitian.  As such, in this example, our coupling operator is the position operator ``a+a.dag()``.  In addition, we do not need the ``sqrt`` operation that occurs in the ``c_ops`` definition.  The complete example, and comparison to the analytic expression is:
 
 
-.. nbplot::
+.. plot::
+    :context: close-figs
 
     N = 10  # number of basis states to consider
 
@@ -327,14 +336,16 @@ For actual time-dependent Hamiltonians, the Hamiltonian itself can be passed int
 
 In many cases, the bath-coupling operators can take the form :math:`A = f(t)a + f(t)^* a^{+}`.  In this case, the above format for inputting the ``a_ops`` is not sufficient. Instead, one must construct a nested-list of tuples to specify this time-dependence.  For example consider a white-noise bath that is coupled to an operator of the form ``exp(1j*t)*a + exp(-1j*t)* a.dag()``.  In this example, the ``a_ops`` list would be:
 
-.. nbplot::
+.. plot::
+    :context: close-figs
 
     a_ops = [ [ (a, a.dag()), ('{0} * (w >= 0)'.format(kappa), 'exp(1j*t)', 'exp(-1j*t)') ] ]
 
 
 where the first tuple element ``(a, a.dag())`` tells the solver which operators make up the full Hermitian coupling operator.  The second tuple ``('{0} * (w >= 0)'.format(kappa), 'exp(1j*t)', 'exp(-1j*t)')``, gives the noise power spectrum, and time-dependence of each operator.  Note that the noise spectrum must always come first in this second tuple. A full example is:
 
-.. nbplot::
+.. plot::
+    :context:
 
     N = 10
 

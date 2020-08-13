@@ -172,7 +172,8 @@ when running doctests (which is enabled by specifying all statements with the
 **Render:**
 
 
-.. nbplot::
+.. plot::
+    :context:
 
     >>> import numpy as np
     >>> x = np.linspace(0, 2 * np.pi, 1000)

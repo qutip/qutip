@@ -3,18 +3,6 @@
 
 .. _saving:
 
-
-.. nbplot::
-    :include-source: False
-
-    from qutip import *
-
-    from scipy import *
-
-    import numpy as np
-
-    from pylab import *
-
 **********************************
 Saving QuTiP Objects and Data Sets
 **********************************
@@ -168,7 +156,8 @@ and if we prefer scientific notation we can request that using the `numformat="e
 
 Loading data previously stored using :func:`qutip.fileio.file_data_store` (or some other software) is a even easier. Regardless of which deliminator was used, if data was stored as complex or real numbers, if it is in decimal or exponential form, the data can be loaded using the :func:`qutip.fileio.file_data_read`, which only takes the filename as mandatory argument.
 
-.. nbplot::
+.. plot::
+    :context: reset
 
     input_data = file_data_read('expect.dat')
 

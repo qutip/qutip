@@ -10,19 +10,15 @@ Plotting on the Bloch Sphere
 .. important::
     Updated in QuTiP version 3.0.
 
-.. nbplot::
-    :include-source: False
-
-    from qutip import *
-
-    from scipy import *
-
-    import numpy as np
-
-    import matplotlib.pyplot as plt
-
-
 .. _bloch-intro:
+
+.. plot::
+      :context: reset
+
+      from pylab import *
+      from scipy import *
+      from qutip import *
+      import numpy as np
 
 Introduction
 ============
@@ -36,7 +32,8 @@ The Bloch and Bloch3d Classes
 
 In QuTiP, creating a Bloch sphere is accomplished by calling either:
 
-.. nbplot::
+.. plot::
+    :context:
 
     b = Bloch()
 
@@ -46,7 +43,8 @@ which will load an instance of the :class:`qutip.Bloch` class, or using::
 
 that loads the :class:`qutip.Bloch3d` version.  Before getting into the details of these objects, we can simply plot the blank Bloch sphere associated with these instances via:
 
-.. nbplot::
+.. plot::
+    :context:
 
     b.make_sphere()
 
@@ -97,7 +95,8 @@ In addition to the show() command, the Bloch class has the following functions:
 
 As an example, we can add a single data point:
 
-.. nbplot::
+.. plot::
+    :context: close-figs
 
     pnt = [1/np.sqrt(3),1/np.sqrt(3),1/np.sqrt(3)]
 
@@ -107,7 +106,8 @@ As an example, we can add a single data point:
 
 and then a single vector:
 
-.. nbplot::
+.. plot::
+    :context: close-figs
 
     b.fig.clf()
 
@@ -120,7 +120,8 @@ and then a single vector:
 
 and then add another vector corresponding to the :math:`\left|\rm up \right>` state:
 
-.. nbplot::
+.. plot::
+    :context: close-figs
 
     up = basis(2,0)
 
@@ -130,7 +131,8 @@ and then add another vector corresponding to the :math:`\left|\rm up \right>` st
 
 Notice that when we add more than a single vector (or data point), a different color will automatically be applied to the later data set (mod 4).  In total, the code for constructing our Bloch sphere with one vector, one state, and a single data point is:
 
-.. nbplot::
+.. plot::
+    :context: close-figs
 
     b = Bloch()
 
@@ -159,7 +161,8 @@ where we have removed the extra ``show()`` commands.  Replacing ``b=Bloch()`` wi
 
 We can also plot multiple points, vectors, and states at the same time by passing list or arrays instead of individual elements.  Before giving an example, we can use the `clear()` command to remove the current data from our Bloch sphere instead of creating a new instance:
 
-.. nbplot::
+.. plot::
+    :context: close-figs
 
     b.clear()
 
@@ -168,7 +171,8 @@ We can also plot multiple points, vectors, and states at the same time by passin
 
 Now on the same Bloch sphere, we can plot the three states associated with the x, y, and z directions:
 
-.. nbplot::
+.. plot::
+    :context: close-figs
 
     x = (basis(2,0)+(1+0j)*basis(2,1)).unit()
 
@@ -182,7 +186,8 @@ Now on the same Bloch sphere, we can plot the three states associated with the x
 
 a similar method works for adding vectors:
 
-.. nbplot::
+.. plot::
+    :context: close-figs
 
     b.clear()
 
@@ -194,7 +199,8 @@ a similar method works for adding vectors:
 
 Adding multiple points to the Bloch sphere works slightly differently than adding multiple states or vectors.  For example, lets add a set of 20 points around the equator (after calling `clear()`):
 
-.. nbplot::
+.. plot::
+    :context: close-figs
 
     b.clear()
 
@@ -212,7 +218,8 @@ Adding multiple points to the Bloch sphere works slightly differently than addin
 
 Notice that, in contrast to states or vectors, each point remains the same color as the initial point.  This is because adding multiple data points using the add_points function is interpreted, by default, to correspond to a single data point (single qubit state) plotted at different times.  This is very useful when visualizing the dynamics of a qubit.  An example of this is given in the example .  If we want to plot additional qubit states we can call additional `add_points` functions:
 
-.. nbplot::
+.. plot::
+    :context: close-figs
 
     xz = np.zeros(20)
 
@@ -228,7 +235,8 @@ The color and shape of the data points is varied automatically by the Bloch clas
 
 What if we want to vary the color of our points.  We can tell the :class:`qutip.Bloch` class to vary the color of each point according to the colors listed in the ``b.point_color`` list (see :ref:`bloch-config` below).  Again after ``clear()``:
 
-.. nbplot::
+.. plot::
+    :context: close-figs
 
     b.clear()
 
@@ -247,7 +255,8 @@ What if we want to vary the color of our points.  We can tell the :class:`qutip.
 
 Now, the data points cycle through a variety of predefined colors.  Now lets add another set of points, but this time we want the set to be a single color, representing say a qubit going from the :math:`\left|\rm up\right>` state to the :math:`\left|\rm down\right>` state in the y-z plane:
 
-.. nbplot::
+.. plot::
+    :context: close-figs
 
     xz = np.zeros(20)
 

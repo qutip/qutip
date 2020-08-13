@@ -7,7 +7,7 @@
 Solving Problems with Time-dependent Hamiltonians
 *************************************************
 
-.. nbplot::
+.. plot::
    :include-source: False
 
    import numpy as np
@@ -95,7 +95,8 @@ Here we have demonstrated that the ordering of time-dependent and time-independe
 
 As an example, we will look at an example that has a time-dependent Hamiltonian of the form :math:`H=H_{0}-f(t)H_{1}` where :math:`f(t)` is the time-dependent driving strength given as :math:`f(t)=A\exp\left[-\left( t/\sigma \right)^{2}\right]`.  The follow code sets up the problem
 
-.. nbplot::
+.. plot::
+    :context:
 
     ustate = basis(3, 0)
 
@@ -145,14 +146,16 @@ As an example, we will look at an example that has a time-dependent Hamiltonian 
 
 Given that we have a single time-dependent Hamiltonian term, and constant collapse terms, we need to specify a single Python function for the coefficient :math:`f(t)`.  In this case, one can simply do
 
-.. nbplot::
+.. plot::
+    :context:
 
     def H1_coeff(t, args):
         return 9 * np.exp(-(t / 5.) ** 2)
 
 In this case, the return value dependents only on time.  However, when specifying Python functions for coefficients, **the function must have (t,args) as the input variables, in that order**.  Having specified our coefficient function, we can now specify the Hamiltonian in list format and call the solver (in this case :func:`qutip.mesolve`)
 
-.. nbplot::
+.. plot::
+    :context:
 
     H = [H0,[H1, H1_coeff]]
 
@@ -162,7 +165,7 @@ We can call the Monte Carlo solver in the exact same way (if using the default `
 
 
 ..
-  Hacky fix because nbplot has complicated conditional code execution
+  Hacky fix because plot has complicated conditional code execution
 
 .. doctest::
     :skipif: True
@@ -171,7 +174,8 @@ We can call the Monte Carlo solver in the exact same way (if using the default `
 
 The output from the master equation solver is identical to that shown in the examples, the Monte Carlo however will be noticeably off, suggesting we should increase the number of trajectories for this example.  In addition, we can also consider the decay of a simple Harmonic oscillator with time-varying decay rate
 
-.. nbplot::
+.. plot::
+    :context:
 
     kappa = 0.5
 
@@ -197,14 +201,16 @@ Using the args variable
 ------------------------
 In the previous example we hardcoded all of the variables, driving amplitude :math:`A` and width :math:`\sigma`, with their numerical values.  This is fine for problems that are specialized, or that we only want to run once.  However, in many cases, we would like to change the parameters of the problem in only one location (usually at the top of the script), and not have to worry about manually changing the values on each run.  QuTiP allows you to accomplish this using the keyword ``args`` as an input to the solvers.  For instance, instead of explicitly writing 9 for the amplitude and 5 for the width of the gaussian driving term, we can make us of the args variable
 
-.. nbplot::
+.. plot::
+    :context:
 
     def H1_coeff(t, args):
         return args['A'] * np.exp(-(t/args['sigma'])**2)
 
 or equivalently,
 
-.. nbplot::
+.. plot::
+    :context:
 
     def H1_coeff(t, args):
           A = args['A']
@@ -213,13 +219,15 @@ or equivalently,
 
 where args is a Python dictionary of ``key: value`` pairs ``args = {'A': a, 'sigma': b}`` where ``a`` and ``b`` are the two parameters for the amplitude and width, respectively.  Of course, we can always hardcode the values in the dictionary as well ``args = {'A': 9, 'sigma': 5}``, but there is much more flexibility by using variables in ``args``.  To let the solvers know that we have a set of args to pass we append the ``args`` to the end of the solver input:
 
-.. nbplot::
+.. plot::
+    :context:
 
    output = mesolve(H, psi0, times, c_ops, [a.dag() * a], args={'A': 9, 'sigma': 5})
 
 or to keep things looking pretty
 
-.. nbplot::
+.. plot::
+    :context:
 
     args = {'A': 9, 'sigma': 5}
 
@@ -238,7 +246,8 @@ The string-based time-dependent format works in a similar manner as the previous
 
 Like the previous method, the string-based format uses a list pair format ``[Op, str]`` where ``str`` is now a string representing the time-dependent coefficient.  For our first example, this string would be ``'9 * exp(-(t / 5.) ** 2)'``.  The Hamiltonian in this format would take the form:
 
-.. nbplot::
+.. plot::
+   :context:
 
    ustate = basis(3, 0)
 
@@ -287,19 +296,22 @@ Like the previous method, the string-based format uses a list pair format ``[Op,
    H1 = (sigma_ue.dag() + sigma_ue)  # time-dependent term
 
 
-.. nbplot::
+.. plot::
+    :context:
 
     H = [H0, [H1, '9 * exp(-(t / 5) ** 2)']]
 
 Notice that this is a valid Hamiltonian for the string-based format as ``exp`` is included in the above list of suitable functions. Calling the solvers is the same as before:
 
-.. nbplot::
+.. plot::
+   :context:
 
    output = mesolve(H, psi0, t, c_ops, [a.dag() * a])
 
 We can also use the ``args`` variable in the same manner as before, however we must rewrite our string term to read: ``'A * exp(-(t / sig) ** 2)'``
 
-.. nbplot::
+.. plot::
+    :context:
 
     H = [H0, [H1, 'A * exp(-(t / sig) ** 2)']]
 
@@ -322,7 +334,8 @@ Modeling Non-Analytic and/or Experimental Time-Dependent Parameters using Interp
 
 Sometimes it is necessary to model a system where the time-dependent parameters are non-analytic functions, or are derived from experimental data (i.e. a collection of data points).  In these situations, one can use interpolating functions as an approximate functional form for input into a time-dependent solver.  QuTiP includes it own custom cubic spline interpolation class :class:`qutip.interpolate.Cubic_Spline` to provide this functionality.  To see how this works, lets first generate some noisy data:
 
-.. nbplot::
+.. plot::
+    :context:
 
     t = np.linspace(-15, 15, 100)
 
@@ -344,7 +357,8 @@ Sometimes it is necessary to model a system where the time-dependent parameters 
 To turn these data points into a function we call the QuTiP :class:`qutip.interpolate.Cubic_Spline` class using the first and last domain time points, ``t[0]`` and ``t[-1]``, respectively, as well as the entire array of data points:
 
 
-.. nbplot::
+.. plot::
+    :context: close-figs
 
     S = Cubic_Spline(t[0], t[-1], noisy_data)
 
@@ -418,7 +432,8 @@ Reusing Time-Dependent Hamiltonian Data
 
 When repeatedly simulating a system where only the time-dependent variables, or initial state change, it is possible to reuse the Hamiltonian data stored in QuTiP and there by avoid spending time needlessly preparing the Hamiltonian and collapse terms for simulation.  To turn on the the reuse features, we must pass a :class:`qutip.Options` object with the ``rhs_reuse`` flag turned on.  Instructions on setting flags are found in :ref:`Options`.  For example, we can do
 
-.. nbplot::
+.. plot::
+    :context:
 
     H = [H0, [H1, 'A * exp(-(t / sig) ** 2)']]
 
@@ -446,7 +461,8 @@ In this section we discuss running string-based time-dependent problems using th
 
 To set up the problem, we run the following code:
 
-.. nbplot::
+.. plot::
+   :context:
 
    delta = 0.1  * 2 * np.pi  # qubit sigma_x coefficient
 
@@ -482,7 +498,8 @@ Hamiltonian :math:`H = -\frac{1}{2}\Delta\sigma_x -\frac{1}{2}\epsilon\sigma_z- 
 We must now tell the :func:`qutip.mesolve` function, that is called by :func:`qutip.propagator` to reuse a
 pre-generated Hamiltonian constructed using the :func:`qutip.rhs_generate` command:
 
-.. nbplot::
+.. plot::
+   :context:
 
    opts = Options(rhs_reuse=True)
 

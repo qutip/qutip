@@ -267,8 +267,18 @@ os_nt = {}
 
 # hacky fix for ensuring nbplot code runs in the same directory (root) as doctest code.
 
-nbplot_working_directory = "./"
+plot_working_directory = "./"
+plot_pre_code = """
+from pylab import *
+from scipy import *
+from qutip import *
+import numpy as np
+import matplotlib.pyplot as plt
+plt.close("all")
+"""
 
+
+plot_include_source=True
 # -- Options for Texinfo output -------------------------------------------
 
 # Grouping the document tree into Texinfo files. List of tuples

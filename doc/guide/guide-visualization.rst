@@ -3,22 +3,24 @@ QuTiP
 
 .. _visual:
 
-*********************************************
-Visualization of quantum states and processes
-*********************************************
 
-.. nbplot::
+.. plot::
    :include-source: False
-
-
-   from qutip import *
 
    import numpy as np
 
-   import matplotlib.pyplot as plt
+   from qutip import *
+
+   import pylab as plt
+
+   from warnings import warn
 
    plt.close("all")
 
+
+*********************************************
+Visualization of quantum states and processes
+*********************************************
 
 Visualization is often an important complement to a simulation of a quantum
 mechanical system. The first method of visualization that come to mind might be
@@ -53,7 +55,8 @@ for a few possible oscillator states with on average occupation of two photons.
 
 First we generate the density matrices for the coherent, thermal and fock states.
 
-.. nbplot::
+.. plot::
+    :context: reset
 
     N = 20
 
@@ -66,7 +69,8 @@ First we generate the density matrices for the coherent, thermal and fock states
 
 Next, we plot histograms of the diagonals of the density matrices:
 
-.. nbplot::
+.. plot::
+    :context:
 
     fig, axes = plt.subplots(1, 3, figsize=(12,3))
 
@@ -99,7 +103,8 @@ One frequently need to visualize the Fock-distribution in the way described
 above, so QuTiP provides a convenience function for doing this, see
 :func:`qutip.visualization.plot_fock_distribution`, and the following example:
 
-.. nbplot::
+.. plot::
+    :context: close-figs
 
     fig, axes = plt.subplots(1, 3, figsize=(12,3))
 
@@ -140,7 +145,8 @@ input, together with arrays that define the ranges of the phase-space
 coordinates (in the x-y plane). In the following example the Wigner functions
 are calculated and plotted for the same three states as in the previous section.
 
-.. nbplot::
+.. plot::
+    :context: close-figs
 
     xvec = np.linspace(-5,5,200)
 
@@ -182,12 +188,8 @@ are thus hidden.  To fix this dilemma, QuTiP includes a nonlinear colormap funct
 that colors all negative values differently than positive or zero values.  Below is a demonstration of how to use
 this function in your Wigner figures:
 
-.. nbplot::
-   :include-source: False
-
-   plt.clf()
-
-.. nbplot::
+.. plot::
+    :context: close-figs
 
     import matplotlib as mpl
 
@@ -238,7 +240,8 @@ where :math:`\left|\alpha\right>` is a coherent state and
 a state ket or density matrix using the function :func:`qutip.wigner.qfunc`, as
 demonstrated below.
 
-.. nbplot::
+.. plot::
+    :context: close-figs
 
     Q_coherent = qfunc(rho_coherent, xvec, xvec)
 
@@ -285,7 +288,8 @@ for details).
 For example, to illustrate the use of :func:`qutip.visualization.matrix_histogram`,
 let's visualize of the Jaynes-Cummings Hamiltonian:
 
-.. nbplot::
+.. plot::
+    :context: close-figs
 
     N = 5
 
@@ -316,7 +320,8 @@ let's visualize of the Jaynes-Cummings Hamiltonian:
 Similarly, we can use the function :func:`qutip.visualization.hinton`, which is
 used below to visualize the corresponding steadystate density matrix:
 
-.. nbplot::
+.. plot::
+    :context: close-figs
 
     rho_ss = steadystate(H, [np.sqrt(0.1) * a, np.sqrt(0.4) * b.dag()])
 

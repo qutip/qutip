@@ -9,14 +9,14 @@ Stochastic Solver
 
 .. _stochastic-intro:
 
-.. nbplot::
-   :include-source: False
 
-   from qutip import *
+.. plot::
+      :context: reset
 
-   import numpy as np
-
-   from pylab import *
+      from pylab import *
+      from scipy import *
+      from qutip import *
+      import numpy as np
 
 Homodyne detection
 ==================
@@ -59,7 +59,8 @@ Here :math:`\delta \omega` is a Wiener increment.
 
 In QuTiP, this is available with the function :func:`ssesolve`.
 
-.. nbplot::
+.. plot::
+    :context:
 
     times = np.linspace(0.0, 10.0, 201)
 

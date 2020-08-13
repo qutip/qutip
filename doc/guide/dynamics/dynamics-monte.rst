@@ -7,16 +7,15 @@
 Monte Carlo Solver
 *******************************************
 
+.. plot::
+      :context:
+
+      from pylab import *
+      from scipy import *
+      from qutip import *
+      import numpy as np
+
 .. _monte-intro:
-
-.. nbplot::
-   :include-source: False
-
-   from qutip import *
-
-   import numpy as np
-
-   from pylab import *
 
 Introduction
 =============
@@ -77,32 +76,21 @@ function for master-equation evolution, except that the initial state must be a 
 
 To illustrate the use of the Monte Carlo evolution of quantum systems in QuTiP, let's again consider the case of a two-level atom coupled to a leaky cavity. The only differences to the master-equation treatment is that in this case we invoke the :func:`qutip.mcsolve` function instead of :func:`qutip.mesolve`
 
-.. nbplot::
+.. plot::
+    :context:
 
     times = np.linspace(0.0, 10.0, 200)
-
     psi0 = tensor(fock(2, 0), fock(10, 5))
-
     a  = tensor(qeye(2), destroy(10))
-
     sm = tensor(destroy(2), qeye(10))
-
     H = 2 * np.pi * a.dag() * a + 2 * np.pi * sm.dag() * sm + 2 * np.pi * 0.25 * (sm * a.dag() + sm.dag() * a)
-
     data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm])
-
     figure()
-
     plot(times, data.expect[0], times, data.expect[1])
-
     title('Monte Carlo time evolution')
-
     xlabel('Time')
-
     ylabel('Expectation values')
-
     legend(("cavity photon number", "atom excitation probability"))
-
     show()
 
 .. guide-dynamics-mc1:
@@ -119,25 +107,29 @@ Changing the Number of Trajectories
 
 As mentioned earlier, by default, the ``mcsolve`` function runs 500 trajectories.  This value was chosen because it gives good accuracy, Monte Carlo errors scale as :math:`1/n` where :math:`n` is the number of trajectories, and simultaneously does not take an excessive amount of time to run.  However, like many other options in QuTiP you are free to change the number of trajectories to fit your needs.  If we want to run 1000 trajectories in the above example, we can simply modify the call to ``mcsolve`` like:
 
-.. nbplot::
+.. plot::
+    :context: close-figs
 
     data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm], ntraj=1000)
 
 where we have added the keyword argument ``ntraj=1000`` at the end of the inputs.  Now, the Monte Carlo solver will calculate expectation values for both operators, ``a.dag() * a, sm.dag() * sm`` averaging over 1000 trajectories.  Sometimes one is also interested in seeing how the Monte Carlo trajectories converge to the master equation solution by calculating expectation values over a range of trajectory numbers.  If, for example, we want to average over 1, 10, 100, and 1000 trajectories, then we can input this into the solver using:
 
-.. nbplot::
+.. plot::
+    :context:
 
     ntraj = [1, 10, 100, 1000]
 
 Keep in mind that the input list must be in ascending order since the total number of trajectories run by ``mcsolve`` will be calculated using the last element of ``ntraj``.  In this case, we need to use an extra index when getting the expectation values from the :class:`qutip.solver.Result` object returned by ``mcsolve``.  In the above example using:
 
-.. nbplot::
+.. plot::
+    :context:
 
     data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm], ntraj=[1, 10, 100, 1000])
 
 we can extract the relevant expectation values using:
 
-.. nbplot::
+.. plot::
+    :context:
 
     expt1 = data.expect[0]
 
@@ -161,13 +153,15 @@ In order to solve a given simulation as fast as possible, the solvers in QuTiP t
 
 To turn on the "reuse" functionality we must set the ``rhs_reuse=True`` flag in the :func:`qutip.solver.Options`:
 
-.. nbplot::
+.. plot::
+    :context:
 
     options = Options(rhs_reuse=True)
 
 A full account of this feature is given in :ref:`options`.  Using the previous example, we will calculate the dynamics for two different initial states, with the Hamiltonian data being reused on the second call
 
-.. nbplot::
+.. plot::
+    :context:
 
     times = np.linspace(0.0, 10.0, 200)
 
