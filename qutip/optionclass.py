@@ -137,8 +137,8 @@ def __init__(self, file='', *,
     if file:
         self.load(file)
     for child in self._defaultInstance._childs:
-        self.child.append(child.__class__(file, **kwargs))
-        setattr(self, child._name, self.child[-1])
+        self._childs.append(child.__class__(file, **kwargs))
+        setattr(self, child._name, self._childs[-1])
 """
     ns = {}
     exec(code, globals(), ns)
