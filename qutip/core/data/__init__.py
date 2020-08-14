@@ -1,3 +1,5 @@
+# First-class type imports
+
 from . import dense, csr
 from .dense import Dense
 from .csr import CSR
@@ -20,19 +22,15 @@ from .reshape import *
 from .sub import *
 from .tidyup import *
 from .trace import *
-
-# For operations with mulitple versions, we just import the module.
+# For operations with mulitple related versions, we just import the module.
 from . import norm, permute
 
 
 # Set up the data conversions that are known by us.  All types covered by
-# conversions will be made available for use in the dispatcher functions.  We
-# set them up after all of the functions have been defined to avoid circular
-# dependencies; we don't want any of the submodules to depend on `to` or
-# `dispatch`.
+# conversions will be made available for use in the dispatcher functions.
 
-from .convert import _to
-to = _to([
+from .convert import to, create
+to.add_conversions([
     (Dense, CSR, dense.from_csr, 1),
     (CSR, Dense, csr.from_dense, 1),
 ])
@@ -40,22 +38,3 @@ to = _to([
 from .dispatch import Dispatcher
 
 
-# This is completely temporary - it will actually get replaced by a proper
-# dispatcher in its own module, but for now I'm just trying to get CSR working
-# within Qobj, and this is the fastest way to stub out this creation.
-
-def create(arg, shape=None):
-    import numpy as np
-    import scipy.sparse
-
-    if isinstance(arg, CSR):
-        return arg.copy()
-    if scipy.sparse.issparse(arg):
-        return CSR(arg.tocsr(), shape=shape)
-    # Promote 1D lists and arguments to kets, not bras by default.
-    arr = np.array(arg, dtype=np.complex128)
-    if arr.ndim == 1:
-        arr = arr[:, np.newaxis]
-    if arr.ndim != 2:
-        raise TypeError("input has incorrect dimensions: " + str(arr.shape))
-    return csr.from_dense(dense.fast_from_numpy(arr))

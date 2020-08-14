@@ -260,26 +260,54 @@ cdef class _to:
         if not isinstance(arg, tuple) or not arg or len(arg) > 2:
             raise KeyError(arg)
         to_t = arg[0]
-        if to_t not in self._dtypes:
+        if to_t not in self.dtypes:
             raise TypeError("to_type is not known: " + str(to_t))
         if len(arg) == 1:
             converters = {
-                from_t: self._convert[to_t, from_t] for from_t in self._dtypes
+                from_t: self._convert[to_t, from_t] for from_t in self.dtypes
             }
             return _partial_converter(converters, to_t)
         from_t = arg[1]
-        if from_t not in self._dtypes:
+        if from_t not in self.dtypes:
             raise TypeError("from_type is not known: " + str(from_t))
         return self._convert[to_t, from_t]
 
     def __call__(self, to_type, data):
         if not isinstance(to_type, type):
             raise TypeError(repr(to_type) + " is not a type object")
-        if to_type not in self._dtypes:
+        if to_type not in self.dtypes:
             raise ValueError("unknown output type: " + to_type.__name__)
         from_type = type(data)
-        if from_type not in self._dtypes:
+        if from_type not in self.dtypes:
             raise TypeError("unknown input type: " + from_type.__name__)
         if to_type == from_type:
             return data
         return self._convert[to_type, from_type](data)
+
+
+cdef class _create:
+    def __init__(self):
+        pass
+
+    def add_creators(self, creators):
+        pass
+
+    def __call__(self, arg, shape=None):
+        from qutip.core.data import CSR, csr, dense
+        import numpy as np
+        import scipy.sparse
+        if isinstance(arg, CSR):
+            return arg.copy()
+        if scipy.sparse.issparse(arg):
+            return CSR(arg.tocsr(), shape=shape)
+        # Promote 1D lists and arguments to kets, not bras by default.
+        arr = np.array(arg, dtype=np.complex128)
+        if arr.ndim == 1:
+            arr = arr[:, np.newaxis]
+        if arr.ndim != 2:
+            raise TypeError("input has incorrect dimensions: " + str(arr.shape))
+        return csr.from_dense(dense.fast_from_numpy(arr))
+
+
+to = _to()
+create = _create()
