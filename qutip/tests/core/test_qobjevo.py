@@ -380,6 +380,26 @@ class TestQobjevo:
                                          lambda O1, O2: liouvillian(O1, [O2])],
                              ids=['lindblad', 'lindblad_chi',
                                   'sprepost', 'liouvillian'])
+    def test_superoperator_qobj(self, form, superop):
+        t = self._rand_t()
+        obj1 = self.qobjevos[form]
+        obj1_t = self.qobjevos[form](t)
+        qobj = rand_herm(self.N)
+
+        as_qevo = superop(obj1, qobj)(t)
+        as_qobj = superop(obj1_t, qobj)
+        _assert_qobj_almost_eq(as_qevo, as_qobj)
+
+        as_qevo = superop(qobj, obj1)(t)
+        as_qobj = superop(qobj, obj1_t)
+        _assert_qobj_almost_eq(as_qevo, as_qobj)
+
+    @pytest.mark.parametrize('superop', [lindblad_dissipator,
+                                         partial(lindblad_dissipator, chi=0.5),
+                                         sprepost,
+                                         lambda O1, O2: liouvillian(O1, [O2])],
+                             ids=['lindblad', 'lindblad_chi',
+                                  'sprepost', 'liouvillian'])
     def test_superoperator(self, form, extra_form, superop):
         t = self._rand_t()
         obj1 = self.qobjevos[form]

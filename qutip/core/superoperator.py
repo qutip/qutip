@@ -126,12 +126,12 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
     L = None
     if isinstance(H, QobjEvo):
         td = True
-
         if H.cte.isoper:
             L = -1.0j * (spre(H) - spost(H))
         else:
             L = H
         data = L.cte.data
+        L.cte *= 0
 
     elif isinstance(H, Qobj):
         if H.isoper:
@@ -147,7 +147,9 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
     for idx, c_op in enumerate(c_ops):
         if isinstance(c_op, QobjEvo):
             td = True
-            if chi:
+            if c_op.const:
+                c_ = c_op.cte
+            elif chi:
                 td_c_ops.append(lindblad_dissipator(c_op, chi=chi[idx]))
                 continue
             else:
@@ -182,12 +184,17 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
                         copy=False)
     else:
         if not L:
-            return QobjEvo(Qobj(data,
-                                dims=sop_dims,
-                                type='super',
-                                superrep='super',
-                                copy=False))
-        L.cte.data = data
+            L = QobjEvo(Qobj(data,
+                             dims=sop_dims,
+                             type='super',
+                             superrep='super',
+                             copy=False))
+        else:
+            L += Qobj(data,
+                      dims=sop_dims,
+                      type='super',
+                      superrep='super',
+                      copy=False)
         for c_op in td_c_ops:
             L += c_op
         return L
