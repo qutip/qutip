@@ -37,7 +37,7 @@ from numpy.testing import assert_equal, assert_
 
 from qutip import (
     Qobj, identity, sigmax, to_super, to_choi, rand_super_bcsz,
-    tensor_contract, tensor_swap,
+    tensor_contract, tensor_swap, num, QobjEvo, destroy, tensor
 )
 
 
@@ -130,3 +130,24 @@ def test_tensor_swap_other():
         # matrix.
         J = to_choi(S)
         case_tensor_swap(S, [(1, 2)], [[[dim], [dim]], [[dim], [dim]]], J)
+
+
+def test_tensor_qobjevo():
+    N = 5
+    t = 1.5
+    left = QobjEvo([num(N),[destroy(N),"t"]])
+    right = QobjEvo([identity(2),[sigmax(),"t"]])
+    assert tensor(left, right)(t) == tensor(left(t), right(t))
+    assert tensor(left, sigmax())(t) == tensor(left(t), sigmax())
+    assert tensor(num(N), right)(t) == tensor(num(N), right(t))
+
+
+def test_tensor_and():
+    N = 5
+    t = 1.5
+    sx = sigmax()
+    evo = QobjEvo([num(N),[destroy(N),"t"]])
+    assert tensor([sx, sx, sx])(t) == sx & sx & sx
+    assert tensor(evo, sx)(t) == (evo & sx)(t)
+    assert tensor(sx, evo)(t) == (sx & evo)(t)
+    assert tensor(evo, evo)(t) == (evo & evo)(t)

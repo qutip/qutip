@@ -27,7 +27,7 @@ except ImportError:
 from warnings import warn
 
 
-__all__ = ["coefficient", "CompilationOptions"]
+__all__ = ["coefficient", "CompilationOptions", "Coefficient"]
 
 
 class StringParsingWarning(Warning):

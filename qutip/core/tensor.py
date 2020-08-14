@@ -39,7 +39,10 @@ __all__ = [
 ]
 
 import numpy as np
+from functools import partial
+from .operators import qeye
 from .qobj import Qobj
+from .qobjevo import QobjEvo
 from .superoperator import operator_to_vector, reshuffle
 from .dimensions import (
     flatten, enumerate_flat, unflatten, deep_remove, dims_to_tensor_shape,
@@ -76,15 +79,29 @@ shape = [4, 4], type = oper, isHerm = True
     """
     if not args:
         raise TypeError("Requires at least one input argument")
-    if len(args) == 1 and isinstance(args[0], Qobj):
+    if len(args) == 1 and isinstance(args[0], (Qobj, QobjEvo)):
         return args[0].copy()
     if len(args) == 1:
         try:
             args = tuple(args[0])
         except TypeError:
-            raise TypeError("requires Qobj operands") from None
-    if not all(isinstance(q, Qobj) for q in args):
-        raise TypeError("requires Qobj operands")
+            raise TypeError("requires Qobj or QobjEvo operands") from None
+    if not all(isinstance(q, (Qobj, QobjEvo)) for q in args):
+        raise TypeError("requires Qobj or QobjEvo operands")
+    if any(isinstance(q, QobjEvo) for q in args):
+        if len(args) >= 3:
+            return tensor(args[0], tensor(args[1:]))
+        left = args[0]
+        right = args[1]
+        if isinstance(left, Qobj):
+            return right.apply(partial(tensor, left))
+        if isinstance(right, Qobj):
+            return left.apply(tensor, right)
+        id_like_left = qeye(left.dims[0])
+        id_like_right = qeye(right.dims[0])
+        left = left.apply(tensor, id_like_right)
+        right = right.apply(partial(tensor, id_like_left))
+        return left * right
     if not all(q.superrep == args[0].superrep for q in args[1:]):
         raise TypeError("".join([
             "In tensor products of superroperators,",

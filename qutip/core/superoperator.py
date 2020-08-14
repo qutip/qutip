@@ -127,14 +127,12 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
     if isinstance(H, QobjEvo):
         td = True
 
-        def H2L(H):
-            if H.isoper:
-                return -1.0j * (spre(H) - spost(H))
-            else:
-                return H
-
-        L = H.apply(H2L)
+        if H.cte.isoper:
+            L = -1.0j * (spre(H) - spost(H))
+        else:
+            L = H
         data = L.cte.data
+
     elif isinstance(H, Qobj):
         if H.isoper:
             data = -1j * _data.kron_csr(spI, H.data)
@@ -149,9 +147,7 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
     for idx, c_op in enumerate(c_ops):
         if isinstance(c_op, QobjEvo):
             td = True
-            if c_op.const:
-                c_ = c_op.cte
-            elif chi:
+            if chi:
                 td_c_ops.append(lindblad_dissipator(c_op, chi=chi[idx]))
                 continue
             else:

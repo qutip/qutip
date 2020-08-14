@@ -635,14 +635,8 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     sso.ce_ops = [QobjEvo(spre(op)) for op in sso.e_ops]
     sso.cm_ops = [QobjEvo(spre(op)) for op in sso.m_ops]
 
-    sso.LH.compile()
-    [op.compile() for op in sso.sops]
-    [op.compile() for op in sso.cm_ops]
-    [op.compile() for op in sso.ce_ops]
-
     if sso.solver_code in [103, 153]:
         sso.imp = 1 - sso.LH * 0.5
-        sso.imp.compile()
 
     sso.solver_obj = SMESolver
     sso.solver_name = "smesolve_" + sso.solver
@@ -763,11 +757,6 @@ def ssesolve(H, psi0, times, sc_ops=[], e_ops=[],
     sso.ce_ops = [QobjEvo(op) for op in sso.e_ops]
     sso.cm_ops = [QobjEvo(op) for op in sso.m_ops]
 
-    sso.LH.compile()
-    [[op.compile() for op in ops] for ops in sso.sops]
-    [op.compile() for op in sso.cm_ops]
-    [op.compile() for op in sso.ce_ops]
-
     sso.solver_obj = SSESolver
     sso.solver_name = "ssesolve_" + sso.solver
 
@@ -839,17 +828,6 @@ def _positive_map(sso, e_ops_dict):
     sso.cm_ops = [QobjEvo(spre(op)) for op in sso.m_ops]
     sso.preLH = spre(LH)
     sso.postLH = spost(LH.dag())
-
-    sso.preLH.compile()
-    sso.postLH.compile()
-    sso.pp.compile()
-    [op.compile() for op in sso.sops]
-    [op.compile() for op in sso.preops]
-    [op.compile() for op in sso.postops]
-    [op.compile() for op in sso.preops2]
-    [op.compile() for op in sso.postops2]
-    [op.compile() for op in sso.cm_ops]
-    [op.compile() for op in sso.ce_ops]
 
     sso.solver_obj = PmSMESolver
     sso.solver_name = "smesolve_" + sso.solver
@@ -943,11 +921,6 @@ def photocurrent_mesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     sso.ce_ops = [QobjEvo(spre(op)) for op in sso.e_ops]
     sso.cm_ops = [QobjEvo(spre(op)) for op in sso.m_ops]
 
-    sso.LH.compile()
-    [[op.compile() for op in ops] for ops in sso.sops]
-    [op.compile() for op in sso.cm_ops]
-    [op.compile() for op in sso.ce_ops]
-
     res = _sesolve_generic(sso, sso.options, sso.progress_bar)
     res.num_collapse = [np.count_nonzero(noise) for noise in res.noise]
 
@@ -1026,11 +999,6 @@ def photocurrent_sesolve(H, psi0, times, sc_ops=[], e_ops=[],
         sso.LH -= ops[0]._cdc()*0.5*sso.dt
     sso.ce_ops = [QobjEvo(op) for op in sso.e_ops]
     sso.cm_ops = [QobjEvo(op) for op in sso.m_ops]
-
-    sso.LH.compile()
-    [[op.compile() for op in ops] for ops in sso.sops]
-    [op.compile() for op in sso.cm_ops]
-    [op.compile() for op in sso.ce_ops]
 
     res = _sesolve_generic(sso, sso.options, sso.progress_bar)
     res.num_collapse = [np.count_nonzero(noise) for noise in res.noise]
@@ -1165,7 +1133,6 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
                              "m_ops to store measurement.")
         sso.m_ops = m_ops
         sso.cm_ops = [QobjEvo(op) for op in sso.m_ops]
-        [op.compile() for op in sso.cm_ops]
         if sso.dW_factors is None:
             sso.dW_factors = [1.] * len(sso.m_ops)
         elif len(sso.dW_factors) == 1:
@@ -1178,7 +1145,6 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
         sso.dW_factors = [1.] * len_d2
     sso.sops = [None] * len_d2
     sso.ce_ops = [QobjEvo(op) for op in sso.e_ops]
-    [op.compile() for op in sso.ce_ops]
 
     sso.solver_obj = GenericSSolver
     sso.solver_name = "general_stochastic_solver_" + sso.solver

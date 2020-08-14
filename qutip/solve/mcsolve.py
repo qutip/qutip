@@ -280,8 +280,6 @@ class _MC():
         for c in c_ops:
             cevo = QobjEvo(c, args, tlist=tlist)
             cdc = cevo._cdc()
-            cevo.compile()
-            cdc.compile()
             ss.td_c_ops.append(cevo)
             ss.td_n_ops.append(cdc)
 
@@ -291,7 +289,6 @@ class _MC():
             H_td += -0.5 * c
         if options.rhs_with_state:
             H_td._check_old_with_state()
-        H_td.compile()
         ss.H_td = H_td
         ss.makefunc = _qobjevo_set
         ss.type = "QobjEvo"
@@ -656,8 +653,6 @@ class _MC():
             c_diag = Qobj(Ud @ c.full() @ U, dims=c.dims)
             cevo = QobjEvo(c_diag)
             cdc = cevo._cdc()
-            cevo.compile()
-            cdc.compile()
             ss.td_c_ops.append(cevo)
             ss.td_n_ops.append(cdc)
 

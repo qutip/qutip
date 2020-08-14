@@ -26,6 +26,7 @@ qutip/__config__.py
 rhs*.pyx
 
 qutip/cy/*.c
+qutip/core/*.h
 *.cpp
 *.dat
 
@@ -34,4 +35,3 @@ qutip/cy/*.c
 benchmark/benchmark_data.js
 *-tasks.txt
 *compiled_coeff*
-

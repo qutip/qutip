@@ -175,7 +175,6 @@ def _sesolve_QobjEvo(H, tlist, args, opt):
     H_td = -1.0j * QobjEvo(H, args, tlist=tlist)
     if opt.rhs_with_state:
         H_td._check_old_with_state()
-    H_td.compile()
 
     ss = SolverSystem()
     ss.H = H_td

@@ -9,6 +9,7 @@ import scipy
 import numpy as np
 cimport numpy as cnp
 cimport cython
+import qutip
 
 cdef extern from "<complex>" namespace "std" nogil:
     double complex cos(double complex x)
@@ -33,15 +34,19 @@ cdef class Coefficient:
     def optstr(self):
         return ""
 
-    def __add__(self, other):
-        if not isinstance(other, Coefficient):
-            return NotImplemented
-        return SumCoefficient(self, other)
+    def __add__(left, right):
+        if isinstance(left, Coefficient) and isinstance(right, Coefficient):
+            return SumCoefficient(left, right)
+        return NotImplemented
 
-    def __mul__(self, other):
-        if not isinstance(other, Coefficient):
-            return NotImplemented
-        return MulCoefficient(self, other)
+    def __mul__(left, right):
+        if isinstance(left, Coefficient) and isinstance(right, Coefficient):
+            return MulCoefficient(left, right)
+        if isinstance(left, qutip.Qobj):
+            return qutip.QobjEvo([left, right])
+        if isinstance(right, qutip.Qobj):
+            return qutip.QobjEvo([right, left])
+        return NotImplemented
 
     def copy(self):
         return pickle.loads(pickle.dumps(self))
