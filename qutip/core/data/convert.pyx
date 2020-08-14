@@ -140,17 +140,18 @@ cdef class _to:
     single callable is required and is more efficient than `functools.partial`.
     """
 
-    cdef set _dtypes
+    cdef readonly set dtypes
+    cdef readonly list dispatchers
     cdef dict _direct_convert
     cdef dict _convert
     cdef readonly dict weight
 
-    def __init__(self, converters):
-        self._dtypes = set()
+    def __init__(self):
         self._direct_convert = {}
         self._convert = {}
+        self.dtypes = set()
         self.weight = {}
-        self.add_conversions(converters)
+        self.dispatchers = []
 
     def add_conversions(self, converters):
         """
@@ -211,13 +212,13 @@ cdef class _to:
                 raise TypeError(repr(from_type) + " is not a type object")
             if not isinstance(weight, numbers.Real) or weight <= 0:
                 raise TypeError("weight " + repr(weight) + " is not valid")
-            self._dtypes.add(from_type)
-            self._dtypes.add(to_type)
+            self.dtypes.add(from_type)
+            self.dtypes.add(to_type)
             self._direct_convert[(to_type, from_type)] = (converter, weight)
         # Two-way mapping to convert between the type of a dtype and an integer
         # enumeration value for it.
         order, index = [], {}
-        for i, dtype in enumerate(self._dtypes):
+        for i, dtype in enumerate(self.dtypes):
             order.append(dtype)
             index[dtype] = i
         # Treat the conversion problem as a shortest-path graph problem.  We
@@ -251,6 +252,8 @@ cdef class _to:
                 self.weight[(to_t, from_t)] = len(convert)
                 self._convert[(to_t, from_t)] =\
                     _converter(convert[::-1], to_t, from_t)
+        for dispatcher in self.dispatchers:
+            dispatcher.rebuild_lookup()
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

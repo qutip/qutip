@@ -2,43 +2,17 @@
 
 import functools
 import inspect
+import itertools
 import warnings
 
+from .convert import to as _to
+
 cimport cython
+from libc cimport math
 from libcpp cimport bool
 
-__all__ = ['dispatch']
 
-_MAX_INDENT = 999
-
-def _trim_docstring(docstring):
-    # Code taken near-verbatim from PEP 257.
-    if not docstring:
-        return ''
-    # Convert tabs to spaces (following the normal Python rules) and split into
-    # a list of lines:
-    lines = docstring.expandtabs().splitlines()
-    # Determine minimum indentation (first line doesn't count):
-    indent = _MAX_INDENT
-    for line in lines[1:]:
-        stripped = line.lstrip()
-        if stripped:
-            indent = min(indent, len(line) - len(stripped))
-    # Remove indentation (first line is special):
-    trimmed = [lines[0].strip()]
-    if indent < _MAX_INDENT:
-        for line in lines[1:]:
-            trimmed.append(line[indent:].rstrip())
-    # Strip off trailing and leading blank lines:
-    while trimmed and not trimmed[-1]:
-        trimmed.pop()
-    while trimmed and not trimmed[0]:
-        trimmed.pop(0)
-    # Return a single string:
-    return '\n'.join(trimmed)
-
-
-cdef class _Bind:
+cdef class _bind:
     """
     Cythonised implementation of inspect.Signature.bind, supporting faster
     binding and handling of default arguments.  On construction, the signature
@@ -46,7 +20,9 @@ cdef class _Bind:
     positional or keyword slots, using positional wherever possible, and their
     defaults are stored.
     """
-
+    # Instance of inpsect.Signature representing the function.
+    cdef object signature
+    cdef object inputs
     # Mapping of (str: int), where str is the name of any argument which may be
     # specified by a keyword, and int is its location in `self._pos` if
     # available, or -1 if it is keyword-only.
@@ -64,9 +40,9 @@ cdef class _Bind:
     # Default values (or inspect.Parameter.empty) for every parameter which
     # _must_ be passed as a keyword argument.
     cdef dict _kw
-    # Mapping of {name: index into the input tuple} for each input which must
+    # Mapping of (name, index into the input tuple) for each input which must
     # be specified as a keyword argument
-    cdef dict _kw_inputs
+    cdef list _kw_inputs
     # Names of the keyword arguments which have default values.
     cdef set _default_kw_names
     # Respectively, numbers of positional parameters, keyword-only parameters
@@ -79,17 +55,18 @@ cdef class _Bind:
     cdef Py_ssize_t _n_pos_no_default, _n_kw_default
 
 
-    def __init__(self, function, tuple inputs):
-        signature = inspect.signature(function)
+    def __init__(self, signature, tuple inputs):
         for arg in inputs:
             if arg not in signature.parameters:
                 raise AttributeError("No argument matches '{}'.".format(arg))
+        self.signature = signature
+        self.inputs = inputs
         self._locations = {}
         self._pos = []
         self._pos_inputs_input = []
         self._pos_inputs_pos = []
         self._kw = {}
-        self._kw_inputs = {}
+        self._kw_inputs = []
         self._default_kw_names = set()
         self._n_pos_no_default = 0
         # signature.parameters is ordered for all Python versions.
@@ -104,7 +81,7 @@ cdef class _Bind:
                 if parameter.default is not parameter.empty:
                     self._default_kw_names.add(name)
                 if name in inputs:
-                    self._kw_inputs[name] = inputs.index(name)
+                    self._kw_inputs.append((name, inputs.index(name)))
             else:
                 self._pos.append(parameter.default)
                 if kind != parameter.POSITIONAL_ONLY:
@@ -146,7 +123,6 @@ cdef class _Bind:
         # sentinel values).
         cdef list out_pos = self._pos.copy()
         cdef dict out_kw = self._kw.copy()
-        cdef list out_inputs = [None]*self.n_inputs
         got_pos = self.n_args - self._n_pos_no_default
         got_kw = self._n_kw_default
         # Positional arguments unambiguously fill the first positional slots.
@@ -183,45 +159,107 @@ cdef class _Bind:
             raise TypeError("Too few positional arguments passed.")
         if got_kw < self.n_kwargs:
             raise TypeError("Not all keyword arguments were filled.")
+        return out_pos, out_kw
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef list dispatch_types(self, args, kwargs):
+        cdef list dispatch = [None] * self.n_inputs
+        cdef str kw
+        cdef Py_ssize_t location, i
         for location in range(self._n_pos_inputs):
-            out_inputs[self._pos_inputs_input[location]]\
-                = out_pos[self._pos_inputs_pos[location]]
-        # We're unlikely to dispatch on any keyword-only items.  Use faster
-        # integer comparison to skip the call to dict.items() if so.
-        if self._n_kw_inputs != 0:
-            for kw, location in self._kw_inputs.items():
-                out_inputs[location] = out_kw[kw]
-        return out_inputs, out_pos, out_kw
+            dispatch[self._pos_inputs_input[location]]\
+                = type(args[self._pos_inputs_pos[location]])
+        for i in range(self._n_kw_inputs):
+            kw, location = self._kw_inputs[i]
+            dispatch[location] = type(kwargs[kw])
+        return dispatch
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef tuple convert_types(self, list args, dict kwargs, tuple converters):
+        cdef str kw
+        cdef Py_ssize_t location, i
+        for location in range(self._n_pos_inputs):
+            args[location] = converters[location](args[location])
+        for i in range(self._n_kw_inputs):
+            kw, location = self._kw_inputs[i]
+            kwargs[kw] = converters[location](kwargs[kw])
+        return args, kwargs
+
+
+cdef double _conversion_weight(tuple froms, tuple tos, dict weight_map) except -1:
+    cdef double out = 0.0
+    cdef Py_ssize_t i, n=len(froms)
+    if len(tos) != n:
+        raise ValueError(
+            "number of arguments not equal: " + str(n) + " and " + str(len(tos))
+        )
+    for i in range(n):
+        out += weight_map[tos[i], froms[i]]
+    return out
+
+
+cdef class _constructed_specialisation:
+    cdef _bind _parameters
+    cdef bint _output
+    cdef object _call
+    cdef Py_ssize_t _n_dispatch
+    cdef tuple _types
+    cdef tuple _converters
+    cdef readonly str __doc__
+    cdef readonly str __name__
+    cdef readonly str __module__
+    cdef readonly object __signature__
+    cdef readonly str __text_signature__
+
+    def __init__(self, base, Dispatcher dispatcher, types, converters, out):
+        self.__doc__ = inspect.getdoc(dispatcher)
+        self.__name__ = (
+            dispatcher.__name__
+            + "_"
+            + "_".join([x.__name__ for x in types])
+        )
+        self.__module__ = dispatcher.__module__
+        self.__signature__ = dispatcher.__signature__
+        self.__text_signature__ = dispatcher.__text_signature__
+        self._parameters = dispatcher._parameters
+        self._output = out
+        self._call = base
+        self._n_dispatch = len(types)
+        self._types = types
+        self._converters = converters
+
+    cdef object prebound(self, list args, dict kwargs):
+        self._parameters.convert_types(args, kwargs, self._converters)
+        out = self._call(*args, **kwargs)
+        if self._output:
+            out = self._converters[self._n_dispatch - 1](out)
+        return out
+
+    def __call__(self, *args, **kwargs):
+        cdef list args_
+        cdef dict kwargs_
+        args_, kwargs_ = self._parameters.bind(args, kwargs)
+        return self.prebound(args_, kwargs_)
 
 
 cdef class Dispatcher:
-    """
-    A multiple-dispatch function which performs runtime-dispatch over some of
-    its arguments.
-    """
+    cdef _bind _parameters
+    cdef bint _output
+    cdef dict _specialisations
+    cdef Py_ssize_t _n_dispatch
+    cdef readonly dict _lookup
+    cdef set _dtypes
+    cdef bint _pass_on_out
+    cdef public str __doc__
+    cdef public str __name__
+    cdef public str __module__
+    cdef public object __signature__
+    cdef public str __text_signature__
 
-    cdef readonly object generic
-    cdef _Bind _parameters
-    cdef tuple inputs
-    cdef dict lookup
-    cdef dict __dict__
-
-    # The docstring to __init__ is also used for `dispatch`.
-    def __init__(self, function, inputs=()):
-        """
-        Parameters
-        ----------
-        function: callable
-            The base case to be called if a suitable specialised method is not
-            found.  The function must not take a `*args` or `**kwargs`
-            parameter.
-
-        inputs: str | iterable of str
-            The names of the parameters which should be used for the multiple
-            dispatch.
-        """
-        self.generic = function
-        functools.update_wrapper(self, function)
+    def __init__(self, signature_source, inputs, bint out=False,
+                 str name=None, str module=None):
         if isinstance(inputs, str):
             inputs = (inputs,)
         inputs = tuple(inputs)
@@ -230,76 +268,106 @@ cdef class Dispatcher:
                 "No parameters to dispatch on."
                 " Maybe you meant to specify 'inputs'?"
             )
-        self._parameters = _Bind(function, inputs)
-        self.lookup = {}
-
-    def register(self, types):
-        """
-        Use as a decorator to register a specialised function for the given
-        tuple of types.  Only the types of the `input` parameters should be
-        passed.
-
-        The registered function must have exactly the same signature as the
-        base case.
-        """
-        if isinstance(types, type):
-            types = (types,)
-        key = tuple(types)
-        if key in self.lookup:
-            signature = (
-                self.generic.__name__ + "("
-                + ", ".join(type.__name__ for type in types)
-                + ")"
-            )
-            warnings.warn("Overriding previously defined specialisation {}."
-                          .format(signature))
-
-        def _register(function):
-            self.lookup[key] = function
-            return function
-        return _register
-
-    cdef object _get(self, list inputs, bool as_types=False):
-        if as_types:
-            key = tuple(inputs)
+        if isinstance(signature_source, inspect.Signature):
+            self.__signature__ = signature_source
         else:
-            # Use a list not a generating expression because Cython compiles it
-            # to faster code.
-            key = tuple([x.__class__ for x in inputs])
-        return self.lookup.get(key, self.generic)
+            self.__signature__ = inspect.signature(signature_source)
+        self._parameters = _bind(self.__signature__, inputs)
+        self.__name__ = name or 'dispatcher'
+        self.__text_signature__ = self.__name__ + str(self.__signature__)
+        self.__module__ = module
+        self._output = out
+        self._specialisations = {}
+        self._lookup = {}
+        self._n_dispatch = self._parameters.n_inputs + self._output
+        self._pass_on_out = 'out' in self.__signature__.parameters
+        # Add ourselves to the list of dispatchers to be updated.
+        _to.dispatchers.append(self)
 
-    def get(self, inputs):
-        """
-        Get the Python callable that would be called for the given input types.
-        """
-        if isinstance(inputs, type):
-            inputs = [inputs]
-        if not all(isinstance(x, type) for x in inputs):
-            raise TypeError("'inputs' should be an iterable of types.")
-        return self._get(list(inputs), as_types=True)
+    def add_specialisations(self, specialisations, _defer=False):
+        for arg in specialisations:
+            arg = tuple(arg)
+            if len(arg) != self._n_dispatch + 1:
+                raise ValueError(
+                    "specialisation " + str(arg)
+                    + " has wrong number of parameters: needed types for "
+                    + str(self._parameters.inputs)
+                    + (", an output type" if self._output else "")
+                    + " and a callable"
+                )
+            for i in range(self._n_dispatch):
+                if (not _defer) and arg[i] not in _to.dtypes:
+                    raise ValueError(str(arg[i]) + " is not a known data type")
+            if not callable(arg[self._n_dispatch]):
+                raise TypeError(str(arg[-1]) + " is not callable")
+            self._specialisations[arg[:-1]] = arg[-1]
+        if not _defer:
+            self.rebuild_lookup()
 
-    def __call__(self, *args, **kwargs):
-        cdef list inputs, args_
+    def rebuild_lookup(self):
+        cdef double weight, cur
+        cdef tuple types, out_types
+        cdef object function
+        cdef type chosen_out_type
+        if not self._specialisations:
+            return
+        self._dtypes = _to.dtypes.copy()
+        # The complexity of building the table here is very poor, but it's a
+        # cost we pay very infrequently, and until it's proved to be a
+        # bottle-neck in real code, we stick with the simple algorithm.
+        for in_types in itertools.product(self._dtypes, repeat=self._n_dispatch):
+            weight = math.INFINITY
+            types = None
+            function = None
+            for out_types, out_function in self._specialisations.items():
+                cur = _conversion_weight(in_types, out_types, _to.weight)
+                if cur < weight:
+                    weight = cur
+                    types = out_types
+                    function = out_function
+            if self._output:
+                converters = tuple(
+                    [_to[pair] for pair in zip(types[:-1], in_types[:-1])]
+                    + [_to[in_types[-1], types[-1]]]
+                )
+            else:
+                converters = tuple(_to[pair] for pair in zip(types, in_types))
+            self._lookup[in_types] =\
+                _constructed_specialisation(function, self, in_types,
+                                            converters, self._output)
+        # Now build the lookup table in the case that we dispatch on the output
+        # type as well, but the user has called us without specifying it.
+        # TODO: option to control default output type choice if unspecified?
+        if self._output:
+            for in_types in itertools.product(self._dtypes, repeat=self._n_dispatch-1):
+                weight = math.INFINITY
+                types = None
+                function = None
+                for out_types, out_function in self._specialisations.items():
+                    cur = _conversion_weight(in_types, out_types[:-1], _to.weight)
+                    if cur < weight:
+                        weight = cur
+                        types = out_types
+                        function = out_function
+                converters = tuple(_to[pair] for pair in zip(types, in_types))
+                self._lookup[in_types] =\
+                    _constructed_specialisation(function, self, in_types, converters, False)
+
+    def __getitem__(self, types):
+        return self._lookup[types]
+
+    def __call__(self, *args, out=None, **kwargs):
+        cdef list args_, dispatch
         cdef dict kwargs_
-        inputs, args_, kwargs_ = self._parameters.bind(args, kwargs)
-        return self._get(inputs)(*args_, **kwargs_)
-
-
-@cython.binding(True)
-def dispatch(function=None, **kwargs):
-    # Called as a function, or as a decorator with no arguments.
-    if function is not None:
-        return Dispatcher(function, **kwargs)
-
-    # Standard decorator usage with arguments.
-    def decorator(function):
-        return Dispatcher(function, **kwargs)
-    return decorator
-dispatch.__doc__ = (
-    _trim_docstring("""\
-    Use as either a decorator or a standard function to create a function which
-    dispatches over certain specified arguments.
-    """)
-    + "\n\n"
-    + _trim_docstring(Dispatcher.__init__.__doc__)
-)
+        if self._pass_on_out:
+            kwargs['out'] = out
+        if not (self._pass_on_out or self._output) and out is not None:
+            raise TypeError("unknown argument 'out'")
+        args_, kwargs_ = self._parameters.bind(args, kwargs)
+        dispatch = self._parameters.dispatch_types(args_, kwargs_)
+        if self._output and out is not None:
+            if self._pass_on_out:
+                out = type(out)
+            dispatch.append(out)
+        cdef _constructed_specialisation function = self._lookup[tuple(dispatch)]
+        return function.prebound(args_, kwargs_)
