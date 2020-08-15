@@ -8,7 +8,7 @@ An Overview of the Eseries Class
 **********************************
 
 .. plot::
-      :context: reset
+      :include-source: False
 
       >>> from pylab import *
       >>> from scipy import *
@@ -52,21 +52,21 @@ The :class:`qutip.eseries` in this example represents the operator :math:`0.5 \s
 We can inspect the structure of an :class:`qutip.eseries` object by printing it to the standard output console:
 
 .. plot::
-   :context:
+    :context:
 
-  >>> es2 # doctest: +NORMALIZE_WHITESPACE
-  ESERIES object: 2 terms
-  Hilbert space dimensions: [[2], [2]]
-  Exponent #0 = -1j
-  Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = True
-  Qobj data =
-  [[0.  0.5]
-   [0.5 0. ]]
-  Exponent #1 = 1j
-  Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = True
-  Qobj data =
-  [[0.  0.5]
-   [0.5 0. ]]
+    >>> es2 # doctest: +NORMALIZE_WHITESPACE
+    ESERIES object: 2 terms
+    Hilbert space dimensions: [[2], [2]]
+    Exponent #0 = -1j
+    Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = True
+    Qobj data =
+    [[0.  0.5]
+     [0.5 0. ]]
+    Exponent #1 = 1j
+    Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = True
+    Qobj data =
+    [[0.  0.5]
+     [0.5 0. ]]
 
 
 and we can evaluate it at time `t` by using the :func:`qutip.eseries.esval` function:

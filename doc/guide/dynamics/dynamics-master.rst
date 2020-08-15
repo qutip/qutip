@@ -9,7 +9,7 @@ Lindblad Master Equation Solver
 
 
 .. plot::
-      :context:
+      :include-source: False
 
       >>> from pylab import *
       >>> from scipy import *
@@ -184,12 +184,12 @@ the previously empty list in the fourth parameter to the :func:`qutip.mesolve` f
     >>> times = np.linspace(0.0, 10.0, 100)
     >>> result = mesolve(H, psi0, times, [np.sqrt(0.05) * sigmax()], [sigmaz(), sigmay()])
     >>> fig, ax = subplots()
-    >>> ax.plot(times, result.expect[0]);
-    >>> ax.plot(times, result.expect[1]);
-    >>> ax.set_xlabel('Time');
-    >>> ax.set_ylabel('Expectation values');
-    >>> ax.legend(("Sigma-Z", "Sigma-Y"));
-    >>> show()
+    >>> ax.plot(times, result.expect[0]) # doctest: +SKIP
+    >>> ax.plot(times, result.expect[1]) # doctest: +SKIP
+    >>> ax.set_xlabel('Time') # doctest: +SKIP
+    >>> ax.set_ylabel('Expectation values') # doctest: +SKIP
+    >>> ax.legend(("Sigma-Z", "Sigma-Y"))  # doctest: +SKIP
+    >>> show() # doctest: +SKIP
 
 
 Here, 0.05 is the rate and the operator :math:`\sigma_x` (:func:`qutip.operators.sigmax`) describes the dissipation
@@ -198,7 +198,7 @@ process.
 Now a slightly more complex example: Consider a two-level atom coupled to a leaky single-mode cavity through a dipole-type interaction, which supports a coherent exchange of quanta between the two systems. If the atom initially is in its groundstate and the cavity in a 5-photon Fock state, the dynamics is calculated with the lines following code
 
 .. plot::
-    :context:
+    :context: close-figs
 
     >>> times = np.linspace(0.0, 10.0, 200)
     >>> psi0 = tensor(fock(2,0), fock(10, 5))
@@ -206,10 +206,10 @@ Now a slightly more complex example: Consider a two-level atom coupled to a leak
     >>> sm = tensor(destroy(2), qeye(10))
     >>> H = 2 * np.pi * a.dag() * a + 2 * np.pi * sm.dag() * sm + 2 * np.pi * 0.25 * (sm * a.dag() + sm.dag() * a)
     >>> result = mesolve(H, psi0, times, [np.sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
-    >>> figure()
-    >>> plot(times, result.expect[0])
-    >>> plot(times, result.expect[1])
-    >>> xlabel('Time')
-    >>> ylabel('Expectation values')
-    >>> legend(("cavity photon number", "atom excitation probability"))
-    >>> show()
+    >>> figure() # doctest: +SKIP
+    >>> plot(times, result.expect[0]) # doctest: +SKIP
+    >>> plot(times, result.expect[1]) # doctest: +SKIP
+    >>> xlabel('Time') # doctest: +SKIP
+    >>> ylabel('Expectation values') # doctest: +SKIP
+    >>> legend(("cavity photon number", "atom excitation probability")) # doctest: +SKIP
+    >>> show() # doctest: +SKIP

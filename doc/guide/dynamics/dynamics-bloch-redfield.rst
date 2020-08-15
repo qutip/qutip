@@ -9,7 +9,7 @@ Bloch-Redfield master equation
 
 
 .. plot::
-      :context: reset
+      :include-source: False
 
       import pylab as plt
       from scipy import *

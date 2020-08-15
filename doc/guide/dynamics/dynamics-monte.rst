@@ -8,7 +8,7 @@ Monte Carlo Solver
 *******************************************
 
 .. plot::
-      :context:
+      :include-source: False
 
       from pylab import *
       from scipy import *

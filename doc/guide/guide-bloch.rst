@@ -13,7 +13,7 @@ Plotting on the Bloch Sphere
 .. _bloch-intro:
 
 .. plot::
-      :context: reset
+      :include-source: False
 
       from pylab import *
       from scipy import *

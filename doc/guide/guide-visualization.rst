@@ -391,32 +391,41 @@ Implementation in QuTiP
 
 In QuTiP, the procedure described above is implemented in the function :func:`qutip.tomography.qpt`, which returns the :math:`\chi` matrix given a density matrix propagator. To illustrate how to use this function, let's consider the :math:`i`-SWAP gate for two qubits. In QuTiP the function :func:`qutip.qip.operations.iswap` generates the unitary transformation for the state kets:
 
-`U_psi = iswap()`
+
+.. plot::
+    :context: close-figs
+
+    from qutip.qip.operations import iswap
+
+    U_psi = iswap()
 
 To be able to use this unitary transformation matrix as input to the function :func:`qutip.tomography.qpt`, we first need to convert it to a transformation matrix for the corresponding density matrix:
 
+.. plot::
+    :context:
 
-`U_rho = spre(U_psi) * spost(U_psi.dag())`
+    U_rho = spre(U_psi) * spost(U_psi.dag())
 
 
 Next, we construct a list of operators that define the basis :math:`\{B_i\}` in the form of a list of operators for each composite system. At the same time, we also construct a list of corresponding labels that will be used when plotting the :math:`\chi` matrix.
 
+.. plot::
+    :context:
 
-
-`op_basis = [[qeye(2), sigmax(), sigmay(), sigmaz()]] * 2`
-
-`op_label = [["i", "x", "y", "z"]] * 2`
+    op_basis = [[qeye(2), sigmax(), sigmay(), sigmaz()]] * 2
+    op_label = [["i", "x", "y", "z"]] * 2
 
 
 We are now ready to compute :math:`\chi` using :func:`qutip.tomography.qpt`, and to plot it using :func:`qutip.tomography.qpt_plot_combined`.
 
+.. plot::
+    :context:
 
-`chi = qpt(U_rho, op_basis)`
+    chi = qpt(U_rho, op_basis)
 
-`fig = qpt_plot_combined(chi, op_label, r'$i$SWAP')`
+    fig = qpt_plot_combined(chi, op_label, r'$i$SWAP')
 
-`@savefig visualization-chi-iswap.png width=5.0in align=center`
-`plt.show()`
+    plt.show()
 
 
 

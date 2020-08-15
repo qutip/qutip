@@ -9,7 +9,7 @@ Floquet Formalism
 
 
 .. plot::
-      :context: reset
+      :include-source: False
 
       >>> from pylab import *
       >>> from scipy import *

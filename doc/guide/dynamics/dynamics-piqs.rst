@@ -1,13 +1,13 @@
 .. QuTiP
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
-.. _master:
+.. _master-piqs:
 
 *********************************
 Permutational Invariance
 *********************************
 
-.. _master-unitary:
+.. _master-unitary-piqs:
 
 Permutational Invariant Quantum Solver (PIQS)
 =============================================

@@ -222,7 +222,7 @@ where args is a Python dictionary of ``key: value`` pairs ``args = {'A': a, 'sig
 .. plot::
     :context:
 
-   output = mesolve(H, psi0, times, c_ops, [a.dag() * a], args={'A': 9, 'sigma': 5})
+    output = mesolve(H, psi0, times, c_ops, [a.dag() * a], args={'A': 9, 'sigma': 5})
 
 or to keep things looking pretty
 
@@ -433,7 +433,7 @@ Reusing Time-Dependent Hamiltonian Data
 When repeatedly simulating a system where only the time-dependent variables, or initial state change, it is possible to reuse the Hamiltonian data stored in QuTiP and there by avoid spending time needlessly preparing the Hamiltonian and collapse terms for simulation.  To turn on the the reuse features, we must pass a :class:`qutip.Options` object with the ``rhs_reuse`` flag turned on.  Instructions on setting flags are found in :ref:`Options`.  For example, we can do
 
 .. plot::
-    :context:
+    :context: close-figs
 
     H = [H0, [H1, 'A * exp(-(t / sig) ** 2)']]
 

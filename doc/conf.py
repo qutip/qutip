@@ -40,8 +40,7 @@ extensions = ['sphinx.ext.mathjax',
               'sphinx.ext.viewcode',
               'sphinx.ext.ifconfig',
               'sphinx.ext.napoleon',
-              'sphinx_gallery.gen_gallery',
-              'nb2plots']
+              'sphinx_gallery.gen_gallery']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['templates']
@@ -263,9 +262,7 @@ warnings.filterwarnings("ignore")
 os_nt = {}
 '''.format(os_nt)
 
-# -- Options for nbplot directive ---------------------------------------
-
-# hacky fix for ensuring nbplot code runs in the same directory (root) as doctest code.
+# -- Options for plot directive ---------------------------------------
 
 plot_working_directory = "./"
 plot_pre_code = """
@@ -276,9 +273,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 plt.close("all")
 """
+plot_include_source = True
 
-
-plot_include_source=True
 # -- Options for Texinfo output -------------------------------------------
 
 # Grouping the document tree into Texinfo files. List of tuples
