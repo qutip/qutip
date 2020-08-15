@@ -64,7 +64,8 @@ This is rendered in the documentation as follows:
 While specifying code examples under the **.. doctest::** directive,
 either all statements must be specified by the **>>>** prompt or without it. For
 every prompt, any potential corresponding output must be specified immediately
-after it.
+after it. This directive is ideally used when there are a number of examples that
+need to be checked in quick succession.
 
 A different way to specify code examples (and test them) is using the associated
 **.. testcode::** directive which is effectively a code block:
@@ -86,10 +87,16 @@ specify and amenable to copying the code to clipboard. Usually, tests are
 more easily specified with this directive as the input and output are
 specified in different blocks. The rendering is neater too.
 
+.. note::
+    The **doctest** and **testcode** directives should not be assumed to
+    have the same namespace.
+
 .. testcode::
 
     a = 2
     print(a)
+
+**Output:**
 
 .. testoutput::
 
@@ -186,8 +193,6 @@ A few notes on using the plot directive:
 - When the **context** argument is specified with the **close-figs** option
   as **:context: reset**, the namespace is reset to a new one and all figures are
   erased.
-
-
 
 
 The Plot directive cannot be used in conjunction with Doctest because they do not

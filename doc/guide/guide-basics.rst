@@ -18,7 +18,7 @@ To load the qutip modules, we must first call the import statement:
 
 .. code-block:: Python
 
-   from qutip import * 
+   from qutip import *
 
 that will load all of the user available functions. Often, we also need to import the NumPy and Matplotlib libraries with:
 
@@ -48,8 +48,10 @@ To begin, let us create a blank ``Qobj``:
 
     print(Qobj())
 
+**Output**:
+
 .. testoutput:: [basics]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[1], [1]], shape = (1, 1), type = bra
     Qobj data =
@@ -66,8 +68,10 @@ We can create a ``Qobj`` with a user defined data set by passing a list or array
 
     print(Qobj([[1],[2],[3],[4],[5]]))
 
+**Output**:
+
 .. testoutput:: [basics]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
     Qobj data =
@@ -82,28 +86,36 @@ We can create a ``Qobj`` with a user defined data set by passing a list or array
     x = np.array([[1, 2, 3, 4, 5]])
     print(Qobj(x))
 
+**Output**:
+
 .. testoutput:: [basics]
-  :options: +NORMALIZE_WHITESPACE
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[1], [5]], shape = (1, 5), type = bra
     Qobj data =
     [[1. 2. 3. 4. 5.]]
 
 .. testcode:: [basics]
-  :skipif: True
+    :hide:
+
+    np.random.seed(42)
+
+.. testcode:: [basics]
 
     r = np.random.rand(4, 4)
     print(Qobj(r))
 
+**Output**:
+
 .. testoutput:: [basics]
-  :skipif: True
+    :options: +NORMALIZE_WHITESPACE
 
     Quantum object: dims = [[4], [4]], shape = (4, 4), type = oper, isherm = False
     Qobj data =
-    [[0.80891494 0.80278898 0.33983968 0.04215302]
-     [0.98991331 0.22610373 0.70347075 0.42928218]
-     [0.60515625 0.09007662 0.63876191 0.94787943]
-     [0.19734676 0.97222882 0.68423903 0.3205153 ]]
+    [[0.37454012 0.95071431 0.73199394 0.59865848]
+     [0.15601864 0.15599452 0.05808361 0.86617615]
+     [0.60111501 0.70807258 0.02058449 0.96990985]
+     [0.83244264 0.21233911 0.18182497 0.18340451]]
 
 Notice how both the dims and shape change according to the input data.  Although dims and shape appear to have the same function, the difference will become quite clear in the section on :ref:`tensor products and partial traces <tensor>`.
 

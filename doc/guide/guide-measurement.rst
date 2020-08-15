@@ -81,13 +81,16 @@ left or right, so it measures the component of the spin along the x-axis.
 
 When we measure our `up` and `down` states using the operator `spin_z`, we
 always obtain:
+.. testdoc:: [measurement]
+    :hide:
+
+    np.random.seed(42)
 
 .. testcode:: [measurement]
-  :skipif: True
 
-   measure(spin_z, up) == (1.0, -up)
+   measure(up, spin_z) == (1.0, up)
 
-   measure(spin_z, down) == (-1.0, -down)
+   measure(down, spin_z) == (-1.0, down)
 
 because `up` is the eigenvector of `spin_z` with eigenvalue `1.0` and `down`
 is the eigenvector with eigenvalue `-1.0`. The minus signs are just an
@@ -145,18 +148,23 @@ One way would be to repeat the measurement many times -- and this is what
 happens in many quantum experiments. In QuTiP one could simulate this using:
 
 .. testcode:: [measurement]
-  :skipif: True
+    :hide:
+
+    np.random.seed(42)
+
+.. testcode:: [measurement]
 
    results = {1.0: 0, -1.0: 0}  # 1 and -1 are the possible outcomes
    for _ in range(1000):
       value, new_state = measure(up, spin_x)
-      results[value] += 1
+      results[round(value)] += 1
    print(results)
 
+**Output**:
+
 .. testoutput:: [measurement]
-  :skipif: True
-  
-  {1.0: 498, -1.0: 502}
+
+   {1.0: 497, -1.0: 503}
 
 which measures the x-component of the spin of the `up` state `1000` times and
 stores the results in a dictionary. Afterwards we expect to have seen the
@@ -168,27 +176,30 @@ But what if we want to know the distribution of results precisely? In a
 physical system, we would have to perform the measurement many many times,
 but in QuTiP we can peak at the state itself and determine the probability
 distribution of the outcomes exactly in a single line:
+.. doctest:: [measurement]
+    :hide:
+
+   >>> np.random.seed(42)
 
 .. doctest:: [measurement]
-  :skipif: True
 
    >>> eigenvalues, eigenstates, probabilities = measurement_statistics(up, spin_x)
 
-   >>> eigenvalues
-   array([-1., -1.])
+   >>> eigenvalues # doctest: +NORMALIZE_WHITESPACE
+   array([-1., 1.])
 
-   >>> eigenstates
-      array([Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
-      Qobj data =
-      [[-0.70710678]
-       [ 0.70710678]],
-             Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
-      Qobj data =
-      [[0.70710678]
-       [0.70710678]]], dtype=object)
+   >>> eigenstates # doctest: +NORMALIZE_WHITESPACE
+   array([Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
+   Qobj data =
+   [[ 0.70710678]
+    [-0.70710678]],
+          Quantum object: dims = [[2], [1]], shape = (2, 1), type = ket
+   Qobj data =
+   [[0.70710678]
+    [0.70710678]]], dtype=object)
 
-   >>> probabilities
-   [0.5000000000000001, 0.5000000000000001]
+   >>> probabilities  # doctest: +NORMALIZE_WHITESPACE
+   [0.5000000000000001, 0.4999999999999999]
 
 The :func:`~qutip.measurement.measure` function returns three values:
 

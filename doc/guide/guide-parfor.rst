@@ -129,7 +129,7 @@ Note that the keyword arguments can be anything you like, but the keyword values
 The :func:`qutip.parallel.parallel_map` function also supports progressbar, using the keyword argument `progress_bar` which can be set to `True` or to an instance of :class:`qutip.ui.progressbar.BaseProgressBar`. There is a function called :func:`qutip.parallel.serial_map` that works as a non-parallel drop-in replacement for :func:`qutip.parallel.parallel_map`, which allows easy switching between serial and parallel computation.
 
 .. doctest::
-  :options: +SKIP, +NORMALIZE_WHITESPACE
+  :options: +SKIP
 
    >>> import time
 
