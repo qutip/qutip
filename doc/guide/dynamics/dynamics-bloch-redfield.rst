@@ -201,6 +201,8 @@ To illustrate how to calculate the Bloch-Redfield tensor, let's consider a two-l
 
     print(R)
 
+**Output**:
+
 .. testoutput:: [dynamics-br]
 
     Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = (4, 4), type = super, isherm = False
@@ -219,6 +221,7 @@ Note that it is also possible to add Lindblad dissipation superoperators in the 
 
 .. plot::
     :context:
+    :include-source: False
 
     delta = 0.2 * 2*np.pi
     eps0 = 1.0 * 2*np.pi

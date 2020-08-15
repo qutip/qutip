@@ -29,6 +29,8 @@ Here we begin by creating a Fock :func:`qutip.states.basis` vacuum state vector 
 
     print(vac)
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -51,6 +53,8 @@ and then create a lowering operator :math:`\left(\hat{a}\right)` corresponding t
 
     print(a)
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -70,6 +74,8 @@ Now lets apply the destruction operator to our vacuum state ``vac``,
 
     print(a * vac)
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -86,6 +92,8 @@ We see that, as expected, the vacuum is transformed to the zero vector.  A more 
 .. testcode:: [states]
 
     print(a.dag() * vac)
+
+**Output**:
 
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
@@ -106,6 +114,8 @@ The raising operator has in indeed raised the state `vec` from the vacuum to the
 
     print(c * vac)
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -122,6 +132,8 @@ which does the same thing.  We can raise the vacuum state more than once by succ
 .. testcode:: [states]
 
     print(c * c * vac)
+
+**Output**:
 
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
@@ -140,6 +152,8 @@ or just taking the square of the raising operator :math:`\left(\hat{a}^\dagger\r
 
     print(c ** 2 * vac)
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -156,6 +170,8 @@ Applying the raising operator twice gives the expected :math:`\sqrt{n + 1}` depe
 .. testcode:: [states]
 
     print(c * a * vac)
+
+**Output**:
 
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
@@ -174,6 +190,8 @@ or on the :math:`\left| 1\right>` state:
 
     print(c * a * (c * vac))
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -191,6 +209,8 @@ or the :math:`\left| 2\right>` state:
 
     print(c * a * (c**2 * vac))
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -207,6 +227,8 @@ Notice how in this last example, application of the number operator does not giv
 .. testcode:: [states]
 
     print(c * a * (c**2 * vac).unit())
+
+**Output**:
 
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
@@ -227,6 +249,8 @@ Since we are giving a demonstration of using states and operators, we have done 
 
     print(ket)
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -246,6 +270,8 @@ Notice how it is automatically normalized.  We can also use the built in :func:`
 
     print(n)
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -262,6 +288,8 @@ Therefore, instead of ``c * a * (c ** 2 * vac).unit()`` we have:
 .. testcode:: [states]
 
     print(n * ket)
+
+**Output**:
 
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
@@ -282,6 +310,8 @@ We can also create superpositions of states:
 
     print(ket)
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -298,6 +328,8 @@ where we have used the :func:`qutip.Qobj.unit` method to again normalize the sta
 .. testcode:: [states]
 
     print(n * ket)
+
+**Output**:
 
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
@@ -322,6 +354,8 @@ We can also create coherent states and squeezed states by applying the :func:`qu
 
     print(d * vac)
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -336,6 +370,8 @@ We can also create coherent states and squeezed states by applying the :func:`qu
 .. testcode:: [states]
 
     print(d * s * vac)
+
+**Output**:
 
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
@@ -366,6 +402,8 @@ The simplest density matrix is created by forming the outer-product :math:`\left
 
     print(ket * ket.dag())
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -383,6 +421,8 @@ A similar task can also be accomplished via the :func:`qutip.states.fock_dm` or 
 
     print(fock_dm(5, 2))
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -397,6 +437,8 @@ A similar task can also be accomplished via the :func:`qutip.states.fock_dm` or 
 .. testcode:: [states]
 
     print(ket2dm(ket))
+
+**Output**:
 
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
@@ -414,6 +456,8 @@ If we want to create a density matrix with equal classical probability of being 
 .. testcode:: [states]
 
     print(0.5 * ket2dm(basis(5, 4)) + 0.5 * ket2dm(basis(5, 2)))
+
+**Output**:
 
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
@@ -433,6 +477,8 @@ or use ``0.5 * fock_dm(5, 2) + 0.5 * fock_dm(5, 4)``. There are also several oth
 
     print(coherent_dm(5, 1.25))
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -447,6 +493,8 @@ or use ``0.5 * fock_dm(5, 2) + 0.5 * fock_dm(5, 4)``. There are also several oth
 .. testcode:: [states]
 
     print(thermal_dm(5, 1.25))
+
+**Output**:
 
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
@@ -509,6 +557,8 @@ At this stage, there is no difference.  This should not be surprising as we call
 
     print(vac)
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -522,6 +572,8 @@ At this stage, there is no difference.  This should not be surprising as we call
     c = create(2)
 
     print(c * vac)
+
+**Output**:
 
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
@@ -537,6 +589,8 @@ For a spin system, the operator analogous to the raising operator is the sigma-p
 
     print(spin)
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -549,6 +603,7 @@ For a spin system, the operator analogous to the raising operator is the sigma-p
 
     print(sigmap() * spin)
 
+**Output**:
 
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
@@ -564,6 +619,8 @@ Now we see the difference!  The :func:`qutip.operators.sigmap` operator acting o
 
     print(sigmaz())
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -575,6 +632,8 @@ Now we see the difference!  The :func:`qutip.operators.sigmap` operator acting o
 .. testcode:: [states]
 
     print(sigmaz() * spin)
+
+**Output**:
 
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
@@ -590,6 +649,8 @@ Now we see the difference!  The :func:`qutip.operators.sigmap` operator acting o
 
     print(spin2)
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -601,6 +662,8 @@ Now we see the difference!  The :func:`qutip.operators.sigmap` operator acting o
 .. testcode:: [states]
 
     print(sigmaz() * spin2)
+
+**Output**:
 
 .. testoutput:: [states]
   :options: +NORMALIZE_WHITESPACE
@@ -617,6 +680,8 @@ While at first glance this convention might seem somewhat odd, it is in fact qui
 .. testcode:: [states]
 
     print(sigmaz() * spin)
+
+**Output**:
 
 .. testoutput:: [states]
   :options: +NORMALIZE_WHITESPACE
@@ -668,6 +733,8 @@ The :func:`qutip.expect` function also accepts lists or arrays of state vectors 
 
     print(expect(N, states))
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -678,6 +745,8 @@ The :func:`qutip.expect` function also accepts lists or arrays of state vectors 
     cat_list = [(basis(5, 4) + x * basis(5, 3)).unit() for x in [0, 1.0j, -1.0, -1.0j]]
 
     print(expect(c, cat_list))
+
+**Output**:
 
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
@@ -743,6 +812,8 @@ This isomorphism is implemented in QuTiP by the
 
     print(rho)
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -756,6 +827,8 @@ This isomorphism is implemented in QuTiP by the
     vec_rho = operator_to_vector(rho)
 
     print(vec_rho)
+
+**Output**:
 
 .. testoutput:: [states]
   :options: +NORMALIZE_WHITESPACE
@@ -786,6 +859,8 @@ between :math:`\mathcal{L}(\mathcal{H})` and :math:`\mathcal{H} \otimes \mathcal
 
     print(A)
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -798,6 +873,7 @@ between :math:`\mathcal{L}(\mathcal{H})` and :math:`\mathcal{H} \otimes \mathcal
 
     print(operator_to_vector(A))
 
+**Output**:
 
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
@@ -836,6 +912,8 @@ Quantum objects representing superoperators are denoted by ``type='super'``:
 
   print(S)
 
+**Output**:
+
 .. testoutput:: [states]
   :options: +NORMALIZE_WHITESPACE
 
@@ -853,6 +931,8 @@ and :attr:`~qutip.Qobj.iscptp` attributes:
 .. testcode:: [states]
 
     print(S.iscp, S.istp, S.iscptp)
+
+**Output**:
 
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
@@ -875,6 +955,8 @@ be exponentiated to find the superoperator for that evolution.
     print(L)
 
     S = (12 * L).expm()
+
+**Output**:
 
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
@@ -936,6 +1018,8 @@ function on a ``type="super"`` :ref:`Qobj`.
 
     print(J)
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -949,6 +1033,8 @@ function on a ``type="super"`` :ref:`Qobj`.
 .. testcode:: [states]
 
   print(to_choi(spre(qeye(2))))
+
+**Output**:
 
 .. testoutput:: [states]
   :options: +NORMALIZE_WHITESPACE
@@ -967,6 +1053,8 @@ does nothing:
 
     print(to_choi(J))
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -984,6 +1072,8 @@ As with :func:`~qutip.superop_reps.to_choi`, :func:`~qutip.superop_reps.to_super
 
     print(to_super(J) - S)
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -997,6 +1087,8 @@ As with :func:`~qutip.superop_reps.to_choi`, :func:`~qutip.superop_reps.to_super
 .. testcode:: [states]
 
     print(to_super(S))
+
+**Output**:
 
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
@@ -1044,6 +1136,8 @@ using the :func:`~qutip.superop_reps.to_kraus` function.
     S = sum([sprepost(P, P) for P in (I, X, Y, Z)]) / 4
     print(S)
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -1059,6 +1153,8 @@ using the :func:`~qutip.superop_reps.to_kraus` function.
     J = to_choi(S)
     print(J)
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -1072,6 +1168,8 @@ using the :func:`~qutip.superop_reps.to_kraus` function.
 .. testcode:: [states]
 
     print(J.eigenstates()[1])
+
+**Output**:
 
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
@@ -1106,6 +1204,8 @@ using the :func:`~qutip.superop_reps.to_kraus` function.
     K = to_kraus(S)
     print(K)
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -1133,6 +1233,8 @@ on ``J``.
     KJ = to_kraus(J)
     print(KJ)
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -1154,6 +1256,8 @@ on ``J``.
 
     for A, AJ in zip(K, KJ):
       print(A - AJ)
+
+**Output**:
 
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
@@ -1197,6 +1301,8 @@ function.
 
     print(S)
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -1211,6 +1317,8 @@ function.
 
     A, B = to_stinespring(S)
     print(A)
+
+**Output**:
 
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
@@ -1227,6 +1335,8 @@ function.
 .. testcode:: [states]
 
     print(B)
+
+**Output**:
 
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
@@ -1249,6 +1359,8 @@ Kraus operators).
 
     to_kraus(S)
     print(to_choi(S).eigenenergies())
+
+**Output**:
 
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
@@ -1273,6 +1385,8 @@ function.
     chi = to_chi(S)
     print(chi)
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -1293,6 +1407,8 @@ the :math:`\chi_{00}` element:
     np.testing.assert_almost_equal(average_gate_fidelity(S), 0.9499999999999998)
 
     print(chi[0, 0] / 4)
+
+**Output**:
 
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
@@ -1327,6 +1443,8 @@ transpose map.
     rho_out = partial_transpose(rho, [0, 1])
     print(rho_out.eigenenergies())
 
+**Output**:
+
 .. testoutput:: [states]
     :options: +NORMALIZE_WHITESPACE
 
@@ -1350,6 +1468,8 @@ structure of the underlying Hilbert space and the chosen representation.
     J.superrep = 'choi'
     print(J.iscp)
 
+**Output**:
+
 .. testoutput:: [states]
   :options: +NORMALIZE_WHITESPACE
 
@@ -1367,6 +1487,8 @@ We can confirm this by checking the :attr:`~Qobj.ishp` attribute:
 
     print(J.ishp)
 
+**Output**:
+
 .. testoutput:: [states]
   :options: +NORMALIZE_WHITESPACE
 
@@ -1379,6 +1501,8 @@ This can be confirmed by the :attr:`~Qobj.istp` attribute:
 .. testcode:: [states]
 
     print(J.istp)
+
+**Output**:
 
 .. testoutput:: [states]
   :options: +NORMALIZE_WHITESPACE

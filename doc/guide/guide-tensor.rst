@@ -31,6 +31,8 @@ For example, the state vector describing two qubits in their ground states is fo
 
     print(tensor(basis(2, 0), basis(2, 0)))
 
+**Output**:
+
 .. testoutput:: [tensor]
     :options: +NORMALIZE_WHITESPACE
 
@@ -47,6 +49,8 @@ or equivalently using the ``list`` format:
 
     print(tensor([basis(2, 0), basis(2, 0)]))
 
+**Output**:
+
 .. testoutput:: [tensor]
     :options: +NORMALIZE_WHITESPACE
 
@@ -62,6 +66,8 @@ This is straightforward to generalize to more qubits by adding more component st
 .. testcode:: [tensor]
 
     print(tensor((basis(2, 0) + basis(2, 1)).unit(), (basis(2, 0) + basis(2, 1)).unit(), basis(2, 0)))
+
+**Output**:
 
 .. testoutput:: [tensor]
     :options: +NORMALIZE_WHITESPACE
@@ -86,6 +92,8 @@ To construct operators that act on an extended Hilbert space of a combined syste
 
     print(tensor(sigmax(), sigmax()))
 
+**Output**:
+
 .. testoutput:: [tensor]
     :options: +NORMALIZE_WHITESPACE
 
@@ -101,6 +109,8 @@ To create operators in a combined Hilbert space that only act only on a single c
 .. testcode:: [tensor]
 
     print(tensor(sigmaz(), identity(2)))
+
+**Output**:
 
 .. testoutput:: [tensor]
     :options: +NORMALIZE_WHITESPACE
@@ -133,6 +143,8 @@ First, let's consider a system of two coupled qubits. Assume that both qubit has
 
     print(H)
 
+**Output**:
+
 .. testoutput:: [tensor]
     :options: +NORMALIZE_WHITESPACE
 
@@ -155,6 +167,8 @@ The two-qubit example is easily generalized to three coupled qubits:
     H = (tensor(sigmaz(), identity(2), identity(2)) + tensor(identity(2), sigmaz(), identity(2)) + tensor(identity(2), identity(2), sigmaz()) + 0.5 * tensor(sigmax(), sigmax(), identity(2)) + 0.25 * tensor(identity(2), sigmax(), sigmax()))
 
     print(H)
+
+**Output**:
 
 .. testoutput:: [tensor]
     :options: +NORMALIZE_WHITESPACE
@@ -197,6 +211,8 @@ The simplest possible quantum mechanical description for light-matter interactio
     H = 0.5 * omega_a * sz + omega_c * a.dag() * a + g * (a.dag() * sm + a * sm.dag())
 
     print(H)
+
+**Output**:
 
 .. testoutput:: [tensor]
     :options: +NORMALIZE_WHITESPACE

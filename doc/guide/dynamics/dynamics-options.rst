@@ -25,6 +25,8 @@ the properties and default values of this class can be view via the `print` func
 
    print(options)
 
+**Output**:
+
 .. testoutput:: [dynamics_options]
   :options: +NORMALIZE_WHITESPACE
 
@@ -133,6 +135,8 @@ Note that the order in which you input the options does not matter.  Using eithe
 .. testcode:: [dynamics_options]
 
   print(options)
+
+**Output**:
 
 .. testoutput:: [dynamics_options]
   :options: +NORMALIZE_WHITESPACE
