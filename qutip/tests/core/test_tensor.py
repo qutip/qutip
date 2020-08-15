@@ -147,7 +147,7 @@ def test_tensor_and():
     t = 1.5
     sx = sigmax()
     evo = QobjEvo([num(N),[destroy(N),"t"]])
-    assert tensor([sx, sx, sx])(t) == sx & sx & sx
+    assert tensor([sx, sx, sx]) == sx & sx & sx
     assert tensor(evo, sx)(t) == (evo & sx)(t)
     assert tensor(sx, evo)(t) == (sx & evo)(t)
     assert tensor(evo, evo)(t) == (evo & evo)(t)
