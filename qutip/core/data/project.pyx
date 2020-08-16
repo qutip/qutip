@@ -84,3 +84,32 @@ cpdef CSR project_csr(CSR state):
         _project_bra_csr(state, out)
         return out
     raise TypeError("state must be a ket or a bra.")
+
+
+from .dispatch import Dispatcher as _Dispatcher
+import inspect as _inspect
+
+project = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('state', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    ]),
+    name='project',
+    module=__name__,
+    inputs=('state',),
+    out=True,
+)
+project.__doc__ =\
+    """
+    Get the projector of a state with itself.  Mathematically, if passed an
+    object `|a>` or `<a|`, then return the matrix `|a><a|`.
+
+    Arguments
+    ---------
+    state : Data
+        The input state bra- or ket-like vector.
+    """
+project.add_specialisations([
+    (CSR, CSR, project_csr),
+], _defer=True)
+
+del _inspect, _Dispatcher

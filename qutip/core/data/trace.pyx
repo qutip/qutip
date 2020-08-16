@@ -32,3 +32,25 @@ cpdef double complex trace_dense(Dense matrix) nogil except *:
         trace += matrix.data[ptr]
         ptr += stride
     return trace
+
+
+from .dispatch import Dispatcher as _Dispatcher
+import inspect as _inspect
+
+trace = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    ]),
+    name='trace',
+    module=__name__,
+    inputs=('matrix',),
+    out=False,
+)
+trace.__doc__ =\
+    """Compute the trace (sum of digaonal elements) of a square matrix."""
+trace.add_specialisations([
+    (CSR, trace_csr),
+    (Dense, trace_dense),
+], _defer=True)
+
+del _inspect, _Dispatcher

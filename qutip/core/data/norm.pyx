@@ -81,13 +81,132 @@ cpdef double l2_csr(CSR matrix) nogil except -1:
         raise ValueError("L2 norm is only defined on vectors")
     return frobenius_csr(matrix)
 
+cpdef double one_dense(Dense matrix) nogil:
+    cdef size_t ptr, col, row, col_stride, row_stride
+    cdef double out=0, cur
+    col_stride = matrix.shape[0] if matrix.fortran else 1
+    row_stride = 1 if matrix.fortran else matrix.shape[1]
+    for col in range(matrix.shape[1]):
+        ptr = col * col_stride
+        cur = 0
+        for row in range(matrix.shape[0]):
+            cur += abs(matrix.data[ptr])
+            ptr += row_stride
+        out = cur if cur > out else out
+    return out
+
+cpdef double max_dense(Dense matrix) nogil:
+    cdef size_t ptr
+    cdef double total=0, cur
+    for ptr in range(matrix.shape[0] * matrix.shape[1]):
+        # The positive square root is monotonic over positive reals, so we can
+        # find the maximum value by considering the abs squared (which doesn't
+        # require a sqrt) rather than the abs(which does), and then perform
+        # only a single sqrt at the end.
+        cur = abssq(matrix.data[ptr])
+        total = cur if cur > total else total
+    return math.sqrt(total)
+
 cpdef double frobenius_dense(Dense matrix) nogil:
     cdef int n = matrix.shape[0] * matrix.shape[1]
     cdef int inc = 1
     return blas.dznrm2(&n, matrix.data, &inc)
 
-
 cpdef double l2_dense(Dense matrix) nogil except -1:
     if matrix.shape[0] != 1 and matrix.shape[1] != 1:
         raise ValueError("L2 norm is only defined on vectors")
     return frobenius_dense(matrix)
+
+
+from .dispatch import Dispatcher as _Dispatcher
+import inspect as _inspect
+
+l2 = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('vector', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    ]),
+    name='l2',
+    module=__name__,
+    inputs=('vector',),
+)
+l2.__doc__ =\
+    """
+    Compute the L2 (Euclidean) norm of a bra or ket vector.  This is equal to
+        sqrt(|v[0]|**2 + |v[1]|**2 + ...)
+    This is only defined for vectors, but see `norm.frobenius` for the similar
+    norm defined on all matrices.
+    """
+l2.add_specialisations([
+    (Dense, l2_dense),
+    (CSR, l2_csr),
+], _defer=True)
+
+_norm_signature = _inspect.Signature([
+    _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+])
+
+frobenius = _Dispatcher(_norm_signature, name='frobenius', module=__name__, inputs=('matrix',))
+frobenius.__doc__ =\
+    """
+    Compute the Frobenius (Hilbert-Schmidt) norm of a matrix.  This is defined
+    as the
+        sqrt(sum_i sum_j |matrix[i, j]|**2)
+    and is similar to an extension of the vector L2 norm to all matrices.
+    """
+frobenius.add_specialisations([
+    (Dense, frobenius_dense),
+    (CSR, frobenius_csr),
+], _defer=True)
+
+max = _Dispatcher(_norm_signature, name='max', module=__name__, inputs=('matrix',))
+max.__doc__ =\
+    """
+    Compute the max norm of a matrix.  This is the largest absolute value of an
+    entry in the matrix, or mathematically
+        max_{i,j} |matrix[i, j]|
+    """
+max.add_specialisations([
+    (Dense, max_dense),
+    (CSR, max_csr),
+], _defer=True)
+
+one = _Dispatcher(_norm_signature, name='one', module=__name__, inputs=('matrix',))
+one.__doc__ =\
+    """
+    Compute the one-norm (L1--L1) norm of a matrix.  This is the value of the
+    largest L1 norm of a column in the matrix, where the L1 norm of a vector is
+    the sum of the absolute values.
+    """
+one.add_specialisations([
+    (Dense, one_dense),
+    (CSR, one_csr),
+], _defer=True)
+
+
+# TODO: sort out how the trace norm is handled with regards to the `sparse`
+# keyword argument and add a Dense method.
+
+trace = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('sparse', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                           default=False),
+        _inspect.Parameter('tol', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                           default=0),
+        _inspect.Parameter('maxiter', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                           default=None),
+    ]),
+    inputs=('matrix',),
+    name='trace',
+    module=__name__,
+    out=False,
+)
+trace.__doc__ =\
+    """
+    Compute the trace-norm of a matrix.  This is the sum of the singular values
+    of the matrix, or equivalently
+        Tr(sqrt(A @ A.adjoint()))
+    """
+trace.add_specialisations([
+    (CSR, trace_csr),
+], _defer=True)

@@ -273,3 +273,46 @@ cpdef Dense matmul_dense(Dense left, Dense right, Dense out=None, double complex
     blas.zgemm(&transa, &transb, &m, &n, &k, &scale, a, &lda, b, &ldb,
                &out_scale, out.data, &m)
     return out
+
+
+from .dispatch import Dispatcher as _Dispatcher
+import inspect as _inspect
+
+# At the time of putting in the dispatchers, the idea of an "out" parameter
+# isn't really supported in the model; since `out` would be potentially
+# modified in-place, it couldn't safely go through a conversion process.  For
+# the dispatched operation, then, we omit the `scale` and `out` parameters, and
+# only dispatch on the operation `a @ b`.  If the `out` and `scale` parameters
+# are needed, the library will have to manually do any relevant conversions,
+# and then call a direct specialisation (which are exported to the `data`
+# namespace).
+
+matmul = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    ]),
+    name='matmul',
+    module=__name__,
+    inputs=('left', 'right'),
+    out=True,
+)
+matmul.__doc__ =\
+    """
+    Compute the matrix multiplication of two matrices.
+
+    Arguments
+    ---------
+    left : Data
+        The left operand as either a bra or a ket matrix.
+
+    right : Data
+        The right operand as a ket matrix.
+    """
+matmul.add_specialisations([
+    (CSR, CSR, CSR, matmul_csr),
+    (CSR, Dense, Dense, matmul_csr_dense_dense),
+    (Dense, Dense, Dense, matmul_dense),
+], _defer=True)
+
+del _inspect, _Dispatcher

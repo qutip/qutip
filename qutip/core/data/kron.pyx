@@ -52,3 +52,28 @@ cpdef CSR kron_csr(CSR left, CSR right):
                     ptr_start_out += dist_r
                     ptr_end_out += dist_r
     return out
+
+
+from .dispatch import Dispatcher as _Dispatcher
+import inspect as _inspect
+
+kron = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    ]),
+    name='kron',
+    module=__name__,
+    inputs=('left', 'right'),
+    out=True,
+)
+kron.__doc__ =\
+    """
+    Compute the Kronecker product of two matrices.  This is used to represent
+    quantum tensor products of vector spaces.
+    """
+kron.add_specialisations([
+    (CSR, CSR, CSR, kron_csr),
+], _defer=True)
+
+del _inspect, _Dispatcher

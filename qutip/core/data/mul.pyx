@@ -41,3 +41,42 @@ cpdef Dense neg_dense(Dense matrix):
         for ptr in range(matrix.shape[0]*matrix.shape[1]):
             out.data[ptr] = -matrix.data[ptr]
     return out
+
+
+from .dispatch import Dispatcher as _Dispatcher
+import inspect as _inspect
+
+mul = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('value', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    ]),
+    name='mul',
+    module=__name__,
+    inputs=('matrix',),
+    out=True,
+)
+mul.__doc__ =\
+    """Multiply a matrix element-wise by a scalar."""
+mul.add_specialisations([
+    (CSR, CSR, mul_csr),
+    (Dense, Dense, mul_dense),
+], _defer=True)
+
+neg = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    ]),
+    name='neg',
+    module=__name__,
+    inputs=('matrix',),
+    out=True,
+)
+neg.__doc__ =\
+    """Unary element-wise negation of a matrix."""
+neg.add_specialisations([
+    (CSR, CSR, neg_csr),
+    (Dense, Dense, neg_dense),
+], _defer=True)
+
+del _inspect, _Dispatcher

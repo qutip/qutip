@@ -196,3 +196,54 @@ cpdef CSR sub_csr(CSR left, CSR right):
 
 cpdef Dense sub_dense(Dense left, Dense right):
     return add_dense(left, right, -1)
+
+
+from .dispatch import Dispatcher as _Dispatcher
+import inspect as _inspect
+
+add = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('scale', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                           default=1),
+    ]),
+    name='add',
+    module=__name__,
+    inputs=('left', 'right'),
+    out=True,
+)
+add.__doc__ =\
+    """
+    Perform the operation
+        left + scale*right
+    where `left` and `right` are matrices, and `scale` is an optional complex
+    scalar.
+    """
+add.add_specialisations([
+    (Dense, Dense, Dense, add_dense),
+    (CSR, CSR, CSR, add_csr),
+], _defer=True)
+
+sub = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    ]),
+    name='sub',
+    module=__name__,
+    inputs=('left', 'right'),
+    out=True,
+)
+sub.__doc__ =\
+    """
+    Perform the operation
+        left - right
+    where `left` and `right` are matrices.
+    """
+sub.add_specialisations([
+    (Dense, Dense, Dense, sub_dense),
+    (CSR, CSR, CSR, sub_csr),
+], _defer=True)
+
+del _inspect, _Dispatcher
