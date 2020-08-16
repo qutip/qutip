@@ -50,7 +50,7 @@ cpdef bint isherm_csr(CSR matrix, double tol=-1):
     actually allocating and creating a new matrix, we just check whether the
     output would match the input matrix.
     """
-    tol = tol if tol < 0 else qutip.settings.atol
+    tol = tol if tol >= 0 else qutip.settings.atol
     cdef size_t row, col, ptr, ptr_t, nrows=matrix.shape[0]
     if matrix.shape[0] != matrix.shape[1]:
         return False
