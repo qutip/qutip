@@ -236,8 +236,10 @@ cdef double _conversion_weight(tuple froms, tuple tos, dict weight_map) except -
 cdef class _constructed_specialisation:
     """
     Callable object providing the specialisation of a data-layer operation for
-    a particular set of types.  This may or may not involve conversion of the
-    input types and the output to match a known specialisation.
+    a particular set of types (`self.types`).  This may or may not involve
+    conversion of the input types and the output to match a known
+    specialisation; if it has no conversions, `self.direct` will be `True`,
+    otherwise it will be `False`.
 
     See `self.__signature__` or `self.__text_signature__` for the call
     signature of this object.
@@ -248,16 +250,20 @@ cdef class _constructed_specialisation:
     cdef Py_ssize_t _n_dispatch
     cdef readonly tuple types
     cdef tuple _converters
+    cdef str _short_name
     cdef public str __doc__
     cdef public str __name__
     cdef public str __module__
     cdef public object __signature__
     cdef readonly str __text_signature__
+    cdef readonly bint direct
 
-    def __init__(self, base, Dispatcher dispatcher, types, converters, out):
+    def __init__(self, base, Dispatcher dispatcher, types, converters, out,
+                 direct):
         self.__doc__ = inspect.getdoc(dispatcher)
+        self._short_name = dispatcher.__name__
         self.__name__ = (
-            dispatcher.__name__
+            self._short_name
             + "_"
             + "_".join([x.__name__ for x in types])
         )
@@ -269,6 +275,7 @@ cdef class _constructed_specialisation:
         self._call = base
         self._n_dispatch = len(types)
         self.types = types
+        self.direct = direct
         self._converters = converters
 
     cdef object prebound(self, list args, dict kwargs):
@@ -290,8 +297,12 @@ cdef class _constructed_specialisation:
         return self.prebound(args_, kwargs_)
 
     def __repr__(self):
+        if len(self.types) == 1:
+            spec = self.types[0].__name__
+        else:
+            spec = "(" + ", ".join(x.__name__ for x in self.types) + ")"
         return "".join([
-            "<specialisation ", str(self.types), " of ", self.dispatcher.__name__, ">"
+            "<specialisation ", spec, " of ", self._short_name, ">"
         ])
 
 
@@ -503,7 +514,8 @@ cdef class Dispatcher:
                 converters = tuple(_to[pair] for pair in zip(types, in_types))
             self._lookup[in_types] =\
                 _constructed_specialisation(function, self, in_types,
-                                            converters, self.output)
+                                            converters, self.output,
+                                            weight == 0)
         # Now build the lookup table in the case that we dispatch on the output
         # type as well, but the user has called us without specifying it.
         # TODO: option to control default output type choice if unspecified?
@@ -520,7 +532,10 @@ cdef class Dispatcher:
                         function = out_function
                 converters = tuple(_to[pair] for pair in zip(types, in_types))
                 self._lookup[in_types] =\
-                    _constructed_specialisation(function, self, in_types, converters, False)
+                    _constructed_specialisation(function, self,
+                                                in_types + (types[-1],),
+                                                converters, False,
+                                                weight == 0)
 
     def __getitem__(self, types):
         """
@@ -537,7 +552,6 @@ cdef class Dispatcher:
 
     def __repr__(self):
         return "<dispatcher: " + self.__text_signature__ + ">"
-
 
     def __call__(self, *args, out=None, **kwargs):
         cdef list args_, dispatch
