@@ -301,8 +301,9 @@ cdef class _constructed_specialisation:
             spec = self.types[0].__name__
         else:
             spec = "(" + ", ".join(x.__name__ for x in self.types) + ")"
+        direct = ("" if self.direct else "in") + "direct"
         return "".join([
-            "<specialisation ", spec, " of ", self._short_name, ">"
+            "<", direct, " specialisation ", spec, " of ", self._short_name, ">"
         ])
 
 
