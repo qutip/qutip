@@ -21,11 +21,10 @@ from scipy.sparse.data import _data_matrix as scipy_data_matrix
 from scipy.linalg cimport cython_blas as blas
 
 from qutip.core.data cimport base, Dense
-from qutip.core.data.add cimport add_csr
+from qutip.core.data.add cimport add_csr, sub_csr
 from qutip.core.data.adjoint cimport adjoint_csr, transpose_csr, conj_csr
 from qutip.core.data.mul cimport mul_csr, neg_csr
 from qutip.core.data.matmul cimport matmul_csr
-from qutip.core.data.sub cimport sub_csr
 from qutip.core.data.trace cimport trace_csr
 
 cnp.import_array()

@@ -190,3 +190,9 @@ cpdef Dense add_dense(Dense left, Dense right, double complex scale=1):
         for idx in range(dim2):
             blas.zaxpy(&dim1, &scale, right.data + idx, &dim2, out.data + idx*dim1, &_ONE)
     return out
+
+cpdef CSR sub_csr(CSR left, CSR right):
+    return add_csr(left, right, -1)
+
+cpdef Dense sub_dense(Dense left, Dense right):
+    return add_dense(left, right, -1)

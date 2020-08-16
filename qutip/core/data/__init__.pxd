@@ -11,4 +11,3 @@ from qutip.core.data.adjoint cimport *
 from qutip.core.data.kron cimport *
 from qutip.core.data.matmul cimport *
 from qutip.core.data.mul cimport *
-from qutip.core.data.sub cimport *

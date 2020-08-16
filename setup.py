@@ -171,7 +171,6 @@ cy_exts = {
         'properties',
         'ptrace',
         'reshape',
-        'sub',
         'tidyup',
         'trace',
     ],

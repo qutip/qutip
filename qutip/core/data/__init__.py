@@ -19,7 +19,6 @@ from .project import *
 from .properties import *
 from .ptrace import *
 from .reshape import *
-from .sub import *
 from .tidyup import *
 from .trace import *
 # For operations with mulitple related versions, we just import the module.
