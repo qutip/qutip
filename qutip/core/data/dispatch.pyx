@@ -104,12 +104,19 @@ cdef class _bind:
     @cython.wraparound(False)
     cdef tuple bind(self, tuple args, dict kwargs):
         """
-        Cython reimplementation of inspect.Signature.bind which also finds the
-        required dispatch parameters at the same time.  We can use the
-        assumption that instances of this class are immutable to pre-compute
-        various portions of the lookup code, and ensure that the majority of
-        operations are done by in-bounds integer indexing into pre-constructed
-        lists rather than string lookups in dicts.
+        Cython reimplementation of inspect.Signature.bind for binding the
+        collected `*args` and `**kwargs` of a generic call to a specific
+        signature, checking that everything matches.
+
+        The output is a parsed tuple (args, kwargs), where `args` is a list and
+        `kwargs` is a dict, however all arguments which _can_ be passed
+        positionally will be moved from `kwargs` into `args` for the output.
+        The resultant `args` and `kwargs` can be unpacked into the underlying
+        function call safely.  Default values are not filled in by this method.
+
+        This is necessary to allow a generic `Dispatcher` class to work with
+        all type signatures.  The result of this function can be fed to
+        `_bind.convert_types` and `_bind.dispatch_types`.
         """
         cdef Py_ssize_t location, got_pos=0, got_kw=0
         cdef Py_ssize_t n_passed_args = len(args)
@@ -135,26 +142,28 @@ cdef class _bind:
         else:
             got_pos += n_passed_args
         # Everything else has been passed by keyword, but it may be allowed to
-        # be passed positionally, which is the case we prefer.
+        # be passed positionally, which is the case we prefer.  dict.items() is
+        # (relatively) expensive, so we use a boolean test for the fast path.
         cdef str kw
         cdef Py_ssize_t arg
-        for kw, arg in kwargs.items():
-            try:
-                location = self._locations[kw]
-            except KeyError:
-                raise TypeError("Unknown argument '{}'.".format(kw)) from None
-            # _locations[kw] = -1 if kw is keyword-only, otherwise the
-            # corresponding positional location.
-            if location >= 0:
-                if location < n_passed_args:
-                    raise TypeError("Multiple values for '{}'".format(kw))
-                out_pos[location] = arg
-                if location < self._n_pos_no_default:
-                    got_pos += 1
-            else:
-                out_kw[kw] = arg
-                if kw not in self._default_kw_names:
-                    got_kw += 1
+        if kwargs:
+            for kw, arg in kwargs.items():
+                try:
+                    location = self._locations[kw]
+                except KeyError:
+                    raise TypeError("Unknown argument '{}'.".format(kw)) from None
+                # _locations[kw] = -1 if kw is keyword-only, otherwise the
+                # corresponding positional location.
+                if location >= 0:
+                    if location < n_passed_args:
+                        raise TypeError("Multiple values for '{}'".format(kw))
+                    out_pos[location] = arg
+                    if location < self._n_pos_no_default:
+                        got_pos += 1
+                else:
+                    out_kw[kw] = arg
+                    if kw not in self._default_kw_names:
+                        got_kw += 1
         if got_pos < self.n_args:
             raise TypeError("Too few positional arguments passed.")
         if got_kw < self.n_kwargs:
@@ -163,7 +172,14 @@ cdef class _bind:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef list dispatch_types(self, args, kwargs):
+    cdef list dispatch_types(self, list args, dict kwargs):
+        """
+        Get a list of the types which the dispatch should operate over, given
+        the output of `_bind.bind`.  The return value is a list of the _input_
+        types to be dispatched on, in order that they were specified at
+        `Dispatcher` creation.  The output type is not returned as part of this
+        list, because there is no way for `_bind` to know it.
+        """
         cdef list dispatch = [None] * self.n_inputs
         cdef str kw
         cdef Py_ssize_t location, i
@@ -178,6 +194,17 @@ cdef class _bind:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef tuple convert_types(self, list args, dict kwargs, tuple converters):
+        """
+        Apply the type converters `converters` to the parsed arguments `args`
+        and `kwargs`.
+
+        If there are `n` inputs which are dispatched on, `converters` should be
+        a tuple whose first `n` elements are converters (such as those obtained
+        from `data.to[to_type, from_type]`) to the desired types.
+
+        `args` and `kwargs` should be the output of `_bind.bind`; the function
+        will likely fail if called on unparsed arguments.
+        """
         cdef str kw
         cdef Py_ssize_t location, i
         for location in range(self._n_pos_inputs):
@@ -189,6 +216,12 @@ cdef class _bind:
 
 
 cdef double _conversion_weight(tuple froms, tuple tos, dict weight_map) except -1:
+    """
+    Find the total weight of conversion if the types in `froms` are converted
+    element-wise to the types in `tos`.  `weight_map` is a mapping of
+    `(to_type, from_type): real`; it should almost certainly be
+    `data.to.weight`.
+    """
     cdef double out = 0.0
     cdef Py_ssize_t i, n=len(froms)
     if len(tos) != n:
@@ -201,16 +234,24 @@ cdef double _conversion_weight(tuple froms, tuple tos, dict weight_map) except -
 
 
 cdef class _constructed_specialisation:
+    """
+    Callable object providing the specialisation of a data-layer operation for
+    a particular set of types.  This may or may not involve conversion of the
+    input types and the output to match a known specialisation.
+
+    See `self.__signature__` or `self.__text_signature__` for the call
+    signature of this object.
+    """
     cdef _bind _parameters
     cdef bint _output
     cdef object _call
     cdef Py_ssize_t _n_dispatch
-    cdef tuple _types
+    cdef readonly tuple types
     cdef tuple _converters
-    cdef readonly str __doc__
-    cdef readonly str __name__
-    cdef readonly str __module__
-    cdef readonly object __signature__
+    cdef public str __doc__
+    cdef public str __name__
+    cdef public str __module__
+    cdef public object __signature__
     cdef readonly str __text_signature__
 
     def __init__(self, base, Dispatcher dispatcher, types, converters, out):
@@ -227,10 +268,15 @@ cdef class _constructed_specialisation:
         self._output = out
         self._call = base
         self._n_dispatch = len(types)
-        self._types = types
+        self.types = types
         self._converters = converters
 
     cdef object prebound(self, list args, dict kwargs):
+        """
+        Call this specialisation with pre-parsed arguments and keyword
+        arguments.  `args` and `kwargs` must be the output of the relevant
+        `_bind.bind` method for this function.
+        """
         self._parameters.convert_types(args, kwargs, self._converters)
         out = self._call(*args, **kwargs)
         if self._output:
@@ -243,23 +289,82 @@ cdef class _constructed_specialisation:
         args_, kwargs_ = self._parameters.bind(args, kwargs)
         return self.prebound(args_, kwargs_)
 
+    def __repr__(self):
+        return "".join([
+            "<specialisation ", str(self.types), " of ", self.dispatcher.__name__, ">"
+        ])
+
 
 cdef class Dispatcher:
+    """
+    Dispatcher for a data-layer operation.  This object can be called with the
+    signature shown in `self.__signature__` or `self.__text_signature__`, where
+    the arguments listed in `self.inputs` can be any data-layer types (i.e.
+    ones that have valid conversions in `data.to`).
+
+    You can define additional specialisations for this dispatcher by calling
+    its `add_specialisations` method.  New data types must be added to
+    `data.to` before they can be added as specialisations to a dispatcher.
+
+    You can get a callable object representing a single set of dispatcher types
+    by using the key-lookup syntax
+        Dispatcher[type1, type2, ...]
+    where `type1`, `type2`, etc are the dispatched arguments (with the output
+    type on the end, if this is a dispatcher over the output type.
+    """
     cdef _bind _parameters
-    cdef bint _output
-    cdef dict _specialisations
+    cdef readonly dict _specialisations
     cdef Py_ssize_t _n_dispatch
     cdef readonly dict _lookup
     cdef set _dtypes
     cdef bint _pass_on_out
+    cdef readonly tuple inputs
+    cdef readonly bint output
     cdef public str __doc__
     cdef public str __name__
     cdef public str __module__
     cdef public object __signature__
-    cdef public str __text_signature__
+    cdef readonly str __text_signature__
 
     def __init__(self, signature_source, inputs, bint out=False,
                  str name=None, str module=None):
+        """
+        Create a new data layer dispatching operator.
+
+        Arguments
+        ---------
+        signature_source : callable or inspect.Signature
+            An object from which the call signature of operation can be
+            determined.  You can pass any callable defined in Python space, and
+            the signature will be extracted.  Note that the callable will not
+            be added as a specialisation by this; you will still have to call
+            `add_specialisations`.
+
+            If you cannot provide a callable with an extractable signature
+            (e.g. Cython extension methods), you can instead directly provide
+            an instance of `inspect.Signature`, which will be used instead.
+
+        inputs : iterable of str
+            The parameters which should be dispatched over.  These can be
+            positional or keyword arguments, but must feature in the signature
+            provided.
+
+        out : bool, optional (False)
+            Whether to dispatch on the output of the function.  Defaults to
+            `False`.
+
+        name : str, optional
+            If given, the `__name__` parameter of the dispatcher is set to
+            this.  If not given and `signature_source` is _not_ an instance of
+            `inspect.Signature`, then we will attempt to read `__name__` from
+            there instead.
+
+        module : str, optional
+            If given, the `__module__` parameter of the dispatcher is set to
+            this.  If not given and `signature_source` is _not_ an instance of
+            `inspect.Signature`, then we will attempt to read `__module__` from
+            there instead.
+        """
         if isinstance(inputs, str):
             inputs = (inputs,)
         inputs = tuple(inputs)
@@ -268,23 +373,80 @@ cdef class Dispatcher:
                 "No parameters to dispatch on."
                 " Maybe you meant to specify 'inputs'?"
             )
+        self.inputs = inputs
         if isinstance(signature_source, inspect.Signature):
             self.__signature__ = signature_source
         else:
             self.__signature__ = inspect.signature(signature_source)
         self._parameters = _bind(self.__signature__, inputs)
-        self.__name__ = name or 'dispatcher'
+        if name is not None:
+            self.__name__ = name
+        elif not isinstance(signature_source, inspect.Signature):
+            self.__name__ = signature_source.__name__
+        else:
+            self.__name__ = 'dispatcher'
+        if module is not None:
+            self.__module__ = module
+        elif not isinstance(signature_source, inspect.Signature):
+            self.__module__ = signature_source.__module__
         self.__text_signature__ = self.__name__ + str(self.__signature__)
-        self.__module__ = module
-        self._output = out
+        self.output = out
         self._specialisations = {}
         self._lookup = {}
-        self._n_dispatch = self._parameters.n_inputs + self._output
+        self._n_dispatch = self._parameters.n_inputs + self.output
         self._pass_on_out = 'out' in self.__signature__.parameters
         # Add ourselves to the list of dispatchers to be updated.
         _to.dispatchers.append(self)
 
     def add_specialisations(self, specialisations, _defer=False):
+        """
+        Add specialisations for particular combinations of data types to this
+        operation.  The data types must already be known in `data.to` before
+        you try to provide them here.  All data types defined in `data.to` will
+        automatically work with this dispatcher, but will involve inefficient
+        conversions to and from other types unless you define a closer
+        specialisation using this method.
+
+        The lookup table will automatically be rebuilt after this method is
+        called.  Specialisations defined more than once will use the most
+        recent version; you can use this to override currently known
+        specialisations if desired.
+
+        Arguments
+        ---------
+        specialisations : iterable of tuples
+            An iterable where each element specifies a new specialisation for
+            this operation.  Each element of the iterable should be a tuple,
+            whose items are the types (instances of `type`) which this
+            specialisation takes in each of the slots defined by
+            `Dispatcher.inputs`, and the output type if this is a dispatcher
+            over output types.  The last element should be the callable itself.
+
+            The callable must have exactly the same signature as
+            `Dispatcher.__signature__`; it is not enough that it takes all the
+            same keyword arguments, but they must come in the same order as
+            well (this is a speed optimisation for the dispatching operation).
+
+            For example, if this is a dispatcher with the signature
+                add(left, right, scale=1)
+            which also dispatches over its output, and we have specialisations
+                add_1(left: CSR, right: Dense, scale=1) -> Dense
+                add_2(left: Dense, right: CSC, scale=1) -> CSR
+            then to add this, `specialisations` should look like
+                [
+                    (CSR, Dense, Dense, add_1),
+                    (Dense, CSC, CSR, add_2),
+                ]
+            Type annotations present in the specialisation objects are ignored.
+
+        _defer : bool, optional (False)
+            Only intended for internal library use during initialisation. If
+            `True`, then the input types are not checked, and the full lookup
+            table is not built until a manual call to
+            `Dispatcher.rebuild_lookup()` is made.  If you are getting errors,
+            remember that you should add the data type conversions to `data.to`
+            before you try to add specialisations.
+        """
         for arg in specialisations:
             arg = tuple(arg)
             if len(arg) != self._n_dispatch + 1:
@@ -292,7 +454,7 @@ cdef class Dispatcher:
                     "specialisation " + str(arg)
                     + " has wrong number of parameters: needed types for "
                     + str(self._parameters.inputs)
-                    + (", an output type" if self._output else "")
+                    + (", an output type" if self.output else "")
                     + " and a callable"
                 )
             for i in range(self._n_dispatch):
@@ -305,10 +467,17 @@ cdef class Dispatcher:
             self.rebuild_lookup()
 
     def rebuild_lookup(self):
+        """
+        Manually trigger a rebuild of the lookup table for this dispatcher.
+        This is called automatically when new data types are added to
+        `data.to`, or when specialisations are added to this object with
+        `Dispatcher.add_specialisations`.
+
+        You most likely do not need to call this function yourself.
+        """
         cdef double weight, cur
         cdef tuple types, out_types
         cdef object function
-        cdef type chosen_out_type
         if not self._specialisations:
             return
         self._dtypes = _to.dtypes.copy()
@@ -325,7 +494,7 @@ cdef class Dispatcher:
                     weight = cur
                     types = out_types
                     function = out_function
-            if self._output:
+            if self.output:
                 converters = tuple(
                     [_to[pair] for pair in zip(types[:-1], in_types[:-1])]
                     + [_to[in_types[-1], types[-1]]]
@@ -334,11 +503,11 @@ cdef class Dispatcher:
                 converters = tuple(_to[pair] for pair in zip(types, in_types))
             self._lookup[in_types] =\
                 _constructed_specialisation(function, self, in_types,
-                                            converters, self._output)
+                                            converters, self.output)
         # Now build the lookup table in the case that we dispatch on the output
         # type as well, but the user has called us without specifying it.
         # TODO: option to control default output type choice if unspecified?
-        if self._output:
+        if self.output:
             for in_types in itertools.product(self._dtypes, repeat=self._n_dispatch-1):
                 weight = math.INFINITY
                 types = None
@@ -354,20 +523,36 @@ cdef class Dispatcher:
                     _constructed_specialisation(function, self, in_types, converters, False)
 
     def __getitem__(self, types):
-        return self._lookup[types]
+        """
+        Get the particular specialisation for the given types.  The output is a
+        callable object which requires that the dispatched arguments match
+        those specified in `types`.
+        """
+        try:
+            return self._lookup[types]
+        except KeyError:
+            raise TypeError("specialisation not known for types: " + str(types)) from None
+
+    def __repr__(self):
+        return "<dispatcher: " + self.__text_signature__ + ">"
+
 
     def __call__(self, *args, out=None, **kwargs):
         cdef list args_, dispatch
         cdef dict kwargs_
         if self._pass_on_out:
             kwargs['out'] = out
-        if not (self._pass_on_out or self._output) and out is not None:
+        if not (self._pass_on_out or self.output) and out is not None:
             raise TypeError("unknown argument 'out'")
         args_, kwargs_ = self._parameters.bind(args, kwargs)
         dispatch = self._parameters.dispatch_types(args_, kwargs_)
-        if self._output and out is not None:
+        if self.output and out is not None:
             if self._pass_on_out:
                 out = type(out)
             dispatch.append(out)
-        cdef _constructed_specialisation function = self._lookup[tuple(dispatch)]
+        cdef _constructed_specialisation function
+        try:
+            function = self._lookup[tuple(dispatch)]
+        except KeyError:
+            raise TypeError("unknown types to dispatch on: " + str(dispatch)) from None
         return function.prebound(args_, kwargs_)
