@@ -35,7 +35,3 @@ to.add_conversions([
 ])
 
 from .dispatch import Dispatcher
-
-
-for dispatcher in to.dispatchers:
-    dispatcher.rebuild_lookup()
