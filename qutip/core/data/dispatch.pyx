@@ -402,6 +402,8 @@ cdef class Dispatcher:
         elif not isinstance(signature_source, inspect.Signature):
             self.__module__ = signature_source.__module__
         self.__text_signature__ = self.__name__ + str(self.__signature__)
+        if not isinstance(signature_source, inspect.Signature):
+            self.__doc__ = inspect.getdoc(signature_source)
         self.output = out
         self._specialisations = {}
         self._lookup = {}
