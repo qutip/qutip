@@ -528,6 +528,8 @@ cdef class Dispatcher:
         callable object which requires that the dispatched arguments match
         those specified in `types`.
         """
+        if isinstance(types, type):
+            types = (types,)
         try:
             return self._lookup[types]
         except KeyError:
