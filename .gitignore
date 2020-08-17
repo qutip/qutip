@@ -26,7 +26,6 @@ qutip/__config__.py
 rhs*.pyx
 
 qutip/cy/*.c
-qutip/core/data/base.h
 *.cpp
 *.dat
 qutip/core/*.h

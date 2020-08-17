@@ -176,6 +176,7 @@ def _sesolve_QobjEvo(H, tlist, args, opt):
     """
     H_td = -1.0j * QobjEvo(H, args, tlist=tlist)
 
+    ss = SolverSystem()
     ss.H = H_td
     ss.makefunc = _qobjevo_set
     solver_safe["sesolve"] = ss
