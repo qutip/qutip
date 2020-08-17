@@ -4,7 +4,8 @@
 import numpy as np
 cimport numpy as cnp
 
-from qutip.core.data.base cimport idxint, idxint_dtype
+from qutip.core.data.base cimport idxint
+from qutip.core.data.base import idxint_dtype
 
 cnp.import_array()
 

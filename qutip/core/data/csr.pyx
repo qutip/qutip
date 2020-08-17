@@ -26,6 +26,7 @@ from qutip.core.data.adjoint cimport adjoint_csr, transpose_csr, conj_csr
 from qutip.core.data.mul cimport mul_csr, neg_csr
 from qutip.core.data.matmul cimport matmul_csr
 from qutip.core.data.trace cimport trace_csr
+from .base import idxint_dtype
 
 cnp.import_array()
 
@@ -99,8 +100,8 @@ cdef class CSR(base.Data):
         if len(arg) != 3:
             raise ValueError("arg must be a (data, col_index, row_index) tuple")
         data = np.array(arg[0], dtype=np.complex128, copy=copy, order='C')
-        col_index = np.array(arg[1], dtype=base.idxint_dtype, copy=copy, order='C')
-        row_index = np.array(arg[2], dtype=base.idxint_dtype, copy=copy, order='C')
+        col_index = np.array(arg[1], dtype=idxint_dtype, copy=copy, order='C')
+        row_index = np.array(arg[2], dtype=idxint_dtype, copy=copy, order='C')
         # This flag must be set at the same time as data, col_index and
         # row_index are assigned.  These assignments cannot raise an exception
         # in user code due to the above three lines, but further code may.

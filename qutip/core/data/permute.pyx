@@ -13,9 +13,11 @@ from cpython cimport mem
 import numpy as np
 cimport numpy as cnp
 
-from qutip.core.data.base cimport idxint, idxint_dtype, idxint_DTYPE
+from qutip.core.data.base cimport idxint, idxint_DTYPE
 from qutip.core.data cimport csr
 from qutip.core.data.csr cimport CSR
+
+from qutip.core.data.base import idxint_dtype
 
 cnp.import_array()
 
