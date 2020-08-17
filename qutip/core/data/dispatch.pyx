@@ -11,6 +11,7 @@ cimport cython
 from libc cimport math
 from libcpp cimport bool
 
+__all__ = ['Dispatcher']
 
 cdef class _bind:
     """

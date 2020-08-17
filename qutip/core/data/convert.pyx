@@ -21,6 +21,8 @@ from scipy.sparse import dok_matrix, csgraph
 
 cimport cython
 
+__all__ = ['to', 'create']
+
 
 def _raise_if_unconnected(dtype_list, weights):
     unconnected = {}

@@ -5,6 +5,10 @@ from .dense import Dense
 from .csr import CSR
 from .properties import isdiag_csr
 
+__all__ = [
+    'expm', 'expm_csr', 'expm_csr_dense',
+]
+
 
 def expm_csr(matrix: CSR) -> CSR:
     if matrix.shape[0] != matrix.shape[1]:

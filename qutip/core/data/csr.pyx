@@ -35,11 +35,9 @@ cdef extern from *:
     void *PyDataMem_NEW(size_t size)
     void PyDataMem_FREE(void *ptr)
 
-# `Sorter` is not exported to Python space, since it's only meant to be used
-# internally within C.
-__all__ = [
-    'CSR', 'nnz', 'copy_structure', 'sorted', 'empty', 'identity', 'zeros',
-]
+# Very little should be exported on star-import, because most stuff will have
+# naming collisions with other type modules.
+__all__ = ['CSR']
 
 cdef int _ONE = 1
 

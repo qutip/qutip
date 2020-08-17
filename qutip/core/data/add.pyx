@@ -19,6 +19,11 @@ cdef extern from *:
     void *PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
     void PyDataMem_FREE(void *ptr)
 
+__all__ = [
+    'add', 'add_csr', 'add_dense',
+    'sub', 'sub_csr', 'sub_dense',
+]
+
 cdef int _ONE=1
 
 cdef void _check_shape(Data left, Data right) nogil except *:

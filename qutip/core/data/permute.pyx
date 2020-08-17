@@ -24,6 +24,9 @@ cnp.import_array()
 cdef extern from *:
     void *PyMem_Calloc(size_t n, size_t elsize)
 
+# This module is meant to be used with dot-access (e.g. `permute.dimensions`).
+__all__ = []
+
 
 cdef class _Indexer:
     cdef size_t ndims, size

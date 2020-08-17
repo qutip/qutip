@@ -14,6 +14,10 @@ cdef extern from *:
     # Not defined in cpython.mem for some reason, but is in pymem.h.
     void *PyMem_Calloc(size_t nelem, size_t elsize)
 
+__all__ = [
+    'isherm', 'isherm_csr',
+    'isdiag', 'isdiag_csr',
+]
 
 cdef inline bint _conj_feq(double complex a, double complex b, double tol) nogil:
     """Check whether a == conj(b) up to an absolute tolerance."""

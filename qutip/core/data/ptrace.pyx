@@ -12,6 +12,10 @@ from qutip.core.data cimport csr
 
 cnp.import_array()
 
+__all__ = [
+    'ptrace_csr', 'ptrace_dense',
+]
+
 
 cdef cnp.ndarray[int, ndim=1, mode='c'] _list2ind(int[:,::1] ilist, int[::1] dims):
     """!

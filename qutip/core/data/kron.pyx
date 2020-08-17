@@ -7,6 +7,11 @@ from qutip.core.data.base cimport idxint
 from qutip.core.data.csr cimport CSR
 from qutip.core.data cimport csr
 
+__all__ = [
+    'kron', 'kron_csr',
+]
+
+
 @cython.overflowcheck(True)
 cdef cython.numeric _mul_checked(cython.numeric a, cython.numeric b):
     return a * b

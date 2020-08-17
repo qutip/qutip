@@ -3,6 +3,10 @@
 import numpy as np
 cimport numpy as cnp
 
+__all__ = [
+    'idxint_dtype', 'Data', 'EfficiencyWarning',
+]
+
 idxint_dtype = np.int32
 idxint_DTYPE = cnp.NPY_INT32
 

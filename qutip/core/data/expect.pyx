@@ -14,6 +14,11 @@ cdef extern from "<complex>" namespace "std" nogil:
 from qutip.core.data.base cimport idxint, Data
 from qutip.core.data cimport csr, CSR, Dense
 
+__all__ = [
+    'expect', 'expect_csr', 'expect_csr_dense',
+    'expect_super', 'expect_super_csr', 'expect_super_csr_dense',
+]
+
 cdef void _check_shape_ket(Data op, Data state) nogil except *:
     if op.shape[1] != state.shape[0] or state.shape[1] != 1:
         raise ValueError("incorrect input shapes "

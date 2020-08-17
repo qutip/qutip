@@ -10,6 +10,10 @@ from qutip.core.data.csr cimport CSR
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
 
+__all__ = [
+    'project', 'project_csr',
+]
+
 
 cdef void _project_ket_csr(CSR ket, CSR out) nogil:
     """

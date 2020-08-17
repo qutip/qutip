@@ -3,6 +3,12 @@
 
 from qutip.core.data cimport idxint, csr, CSR, dense, Dense
 
+__all__ = [
+    'mul', 'mul_csr', 'mul_dense',
+    'neg', 'neg_csr', 'neg_dense',
+]
+
+
 cpdef CSR mul_csr(CSR matrix, double complex value):
     """Multiply this CSR `matrix` by a complex scalar `value`."""
     if value == 0:

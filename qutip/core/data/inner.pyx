@@ -8,6 +8,12 @@ from qutip.core.data.base cimport idxint, Data
 from qutip.core.data cimport csr
 from qutip.core.data.csr cimport CSR
 
+__all__ = [
+    'inner', 'inner_csr',
+    'inner_op', 'inner_op_csr',
+]
+
+
 cdef void _check_shape_inner(Data left, Data right) nogil except *:
     if (
         (left.shape[0] != 1 and left.shape[1] != 1)

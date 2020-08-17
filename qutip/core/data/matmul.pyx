@@ -33,6 +33,10 @@ cdef extern from "src/matmul_csr_vector.hpp" nogil:
         double complex *vec, double complex scale, double complex *out,
         T nrows)
 
+__all__ = [
+    'matmul', 'matmul_csr', 'matmul_dense', 'matmul_csr_dense_dense',
+]
+
 
 cdef void _check_shape(Data left, Data right, Data out=None) nogil except *:
     if left.shape[1] != right.shape[0]:

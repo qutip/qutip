@@ -11,6 +11,13 @@ import warnings
 from qutip.core.data.base cimport idxint
 from qutip.core.data cimport csr, dense, CSR, Dense, Data
 
+__all__ = [
+    'reshape', 'reshape_csr', 'reshape_dense',
+    'column_stack', 'column_stack_csr', 'column_stack_dense',
+    'column_unstack', 'column_unstack_csr', 'column_unstack_dense',
+]
+
+
 cdef void _reshape_check_input(Data matrix, idxint n_rows_out, idxint n_cols_out) except *:
     if n_rows_out * n_cols_out != matrix.shape[0] * matrix.shape[1]:
         message = "".join([

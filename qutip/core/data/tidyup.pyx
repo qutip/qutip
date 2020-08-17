@@ -12,6 +12,11 @@ cdef extern from "<complex>" namespace "std" nogil:
     # abs is templated such that Cython treats std::abs as complex->complex
     double abs(double complex x)
 
+__all__ = [
+    'tidyup', 'tidyup_csr',
+]
+
+
 cpdef CSR tidyup_csr(CSR matrix, double tol, bint inplace=True):
     cdef bint re, im
     cdef size_t row, ptr, ptr_start, ptr_end=0, nnz_new, nnz_orig

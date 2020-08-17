@@ -7,6 +7,11 @@ from qutip.core.data cimport csr
 from qutip.core.data.csr cimport CSR
 from qutip.core.data.matmul cimport matmul_csr
 
+__all__ = [
+    'pow', 'pow_csr',
+]
+
+
 @cython.nonecheck(False)
 @cython.cdivision(True)
 cpdef CSR pow_csr(CSR matrix, unsigned long long n):

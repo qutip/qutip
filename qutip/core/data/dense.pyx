@@ -30,6 +30,13 @@ cdef extern from *:
     void PyDataMem_FREE(void *ptr)
 
 
+# Creation functions like 'identity' and 'from_csr' aren't exported in __all__
+# to avoid naming clashes with other type modules.
+__all__ = [
+    'Dense', 'OrderEfficiencyWarning',
+]
+
+
 class OrderEfficiencyWarning(EfficiencyWarning):
     pass
 

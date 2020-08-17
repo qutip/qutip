@@ -10,8 +10,15 @@ from qutip.core.data.csr cimport CSR
 from qutip.core.data.dense cimport Dense
 from qutip.core.data cimport csr, dense
 
+# Import std::conj as `_conj` to avoid clashing with our 'conj' dispatcher.
 cdef extern from "<complex>" namespace "std" nogil:
     double complex _conj "conj"(double complex x)
+
+__all__ = [
+    'adjoint', 'adjoint_csr', 'adjoint_dense',
+    'conj', 'conj_csr', 'conj_dense',
+    'transpose', 'transpose_csr', 'transpose_dense',
+]
 
 
 cpdef CSR transpose_csr(CSR matrix):

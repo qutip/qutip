@@ -5,6 +5,11 @@ cimport cython
 
 from qutip.core.data cimport Data, CSR, Dense
 
+__all__ = [
+    'trace', 'trace_csr', 'trace_dense',
+]
+
+
 cdef void _check_shape(Data matrix) nogil except *:
     if matrix.shape[0] != matrix.shape[1]:
         raise ValueError("".join([
