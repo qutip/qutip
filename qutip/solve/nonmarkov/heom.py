@@ -48,7 +48,7 @@ from qutip import (
     Qobj, qeye, enr_state_dictionaries, liouvillian, spre, spost, sprepost,
 )
 from qutip.core import data as _data
-from ..solver import Options, Result, Stats
+from ..solver import SolverOptions, Result, Stats
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 from ._heom import pad_csr
 
@@ -107,7 +107,7 @@ class HEOMSolver(object):
     boltzmann : float
         Boltzmann's constant
 
-    options : :class:`qutip.solver.Options`
+    options : :class:`qutip.solver.SolverOptions`
         Generic solver options.
         If set to None the default options will be used
 
@@ -166,7 +166,7 @@ class HEOMSolver(object):
 
         Parameters
         ----------
-        options : :class:`qutip.solver.Options`
+        options : :class:`qutip.solver.SolverOptions`
             Generic solver options.
             If set to None the default options will be used
 
@@ -193,7 +193,7 @@ class HEOMSolver(object):
             self.planck = planck
         if boltzmann:
             self.boltzmann = boltzmann
-        if isinstance(options, Options):
+        if isinstance(options, SolverOptions):
             self.options = options
         if isinstance(progress_bar, BaseProgressBar):
             self.progress_bar = progress_bar
@@ -247,7 +247,7 @@ class HSolverDL(HEOMSolver):
 
         self.reset()
 
-        self.options = Options() if options is None else options
+        self.options = SolverOptions() if options is None else options
 
         self.progress_bar = False
         if progress_bar is None:
@@ -429,10 +429,13 @@ class HSolverDL(HEOMSolver):
         r = scipy.integrate.ode(_ode_rhs)
 
         r.set_f_params(L_helems)
-        r.set_integrator('zvode', method=options.method, order=options.order,
-                         atol=options.atol, rtol=options.rtol,
-                         nsteps=options.nsteps, first_step=options.first_step,
-                         min_step=options.min_step, max_step=options.max_step)
+        r.set_integrator('zvode', method=options['method'],
+                         order=options['order'],
+                         atol=options['atol'], rtol=options['rtol'],
+                         nsteps=options['nsteps'],
+                         first_step=options['first_step'],
+                         min_step=options['min_step'],
+                         max_step=options['max_step'])
 
         if stats:
             time_now = timeit.default_timer()

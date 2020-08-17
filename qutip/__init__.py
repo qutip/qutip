@@ -35,17 +35,10 @@ import os
 import sys
 import warnings
 
-from . import settings, version
+from .settings import settings
+from . import version
 from .version import version as __version__
 from .utilities import _version2int
-
-# -----------------------------------------------------------------------------
-# Check if we're in IPython.
-try:
-    __IPYTHON__
-    settings.ipython = True
-except:
-    settings.ipython = False
 
 # -----------------------------------------------------------------------------
 # Check for minimum requirements of dependencies, give the user a warning
@@ -89,13 +82,6 @@ else:
 del top_path
 
 
-# -----------------------------------------------------------------------------
-
-import platform
-from .utilities import _blas_info
-settings.eigh_unsafe = (_blas_info() == "OPENBLAS"
-                        and platform.system() == 'Darwin')
-
 
 # -----------------------------------------------------------------------------
 # setup the cython environment
@@ -122,6 +108,7 @@ else:
 #
 import multiprocessing
 
+"""
 # Check if environ flag for qutip processes is set
 if 'QUTIP_NUM_PROCESSES' in os.environ:
     settings.num_cpus = int(os.environ['QUTIP_NUM_PROCESSES'])
@@ -139,9 +126,11 @@ if settings.num_cpus == 0:
             settings.num_cpus = multiprocessing.cpu_count()
         except:
             settings.num_cpus = 1
+"""
 
 
 # Find MKL library if it exists
+from .installsettings import *
 from . import _mkl
 
 
@@ -156,6 +145,7 @@ except:
     warnings.warn("matplotlib not found: Graphics will not work.")
 else:
     del matplotlib
+
 
 
 # -----------------------------------------------------------------------------
@@ -213,14 +203,10 @@ if "CFLAGS" in cfg_vars:
 # Load user configuration if present: override defaults.
 #
 from . import configrc
-has_rc, rc_file = configrc.has_qutip_rc()
-
-
-# Load the config file
-if has_rc:
-    configrc.load_rc_config(rc_file)
+if configrc.has_qutip_rc():
+    settings.load()
 
 # -----------------------------------------------------------------------------
 # Clean name space
 #
-del os, sys, numpy, scipy, multiprocessing, distutils
+del os, sys, numpy, scipy, multiprocessing, distutils, configrc, warnings

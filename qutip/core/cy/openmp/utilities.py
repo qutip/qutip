@@ -31,7 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import os
-import qutip.settings as qset
+from qutip.settings import settings as qset
 
 
 def check_use_openmp(options):
@@ -40,6 +40,7 @@ def check_use_openmp(options):
     """
     # TODO: sort this out.
     return False
+    """
     force_omp = False
     if qset.has_openmp:
         if options.use_openmp is None:
@@ -53,4 +54,4 @@ def check_use_openmp(options):
         force_omp = False
     # Disable OPENMP in parallel mode unless explicitly set.
     if not force_omp and os.environ['QUTIP_IN_PARALLEL'] == 'TRUE':
-        options.use_openmp = False
+        options.use_openmp = False"""

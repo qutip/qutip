@@ -43,7 +43,7 @@ from qutip.qip.qubits import qubit_states
 from qutip import (
     Qobj, fidelity, sigmax, sigmay, sigmaz, identity, destroy, tensor, basis,
 )
-from qutip.solve import Options
+from qutip.solve import SolverOptions
 from qutip.qip.operations.gates import cnot, gate_sequence_product, hadamard_transform
 from qutip.random_objects import rand_ket
 
@@ -118,7 +118,7 @@ class TestOptPulseProcessor:
         rho0 = qubit_states(3, [1, 1, 1])
         rho1 = qubit_states(3, [1, 1, 0])
         result = test.run_state(
-            rho0, options=Options(store_states=True))
+            rho0, options=SolverOptions(store_states=True))
         assert_(fidelity(result.states[-1], rho1) > 1-1.0e-6)
 
         # # test save and read coeffs

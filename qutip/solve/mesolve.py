@@ -44,7 +44,7 @@ from .. import (
     lindblad_dissipator, ket2dm,
 )
 from ..core import data as _data
-from .solver import Options, Result, solver_safe, SolverSystem
+from .solver import SolverOptions, Result, solver_safe, SolverSystem
 from .sesolve import sesolve
 from ..ui.progressbar import BaseProgressBar, TextProgressBar
 
@@ -164,7 +164,7 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
         dictionary of parameters for time-dependent Hamiltonians and
         collapse operators.
 
-    options : None / :class:`qutip.Options`
+    options : None / :class:`qutip.SolverOptions`
         with options for the solver.
 
     progress_bar : None / BaseProgressBar
@@ -212,8 +212,8 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
                         " a superoperator.")
 
     if options is None:
-        options = Options()
-    if options.rhs_reuse and not isinstance(H, SolverSystem):
+        options = SolverOptions()
+    if False and not isinstance(H, SolverSystem):
         # TODO: deprecate when going to class based solver.
         if "mesolve" in solver_safe:
             # print(" ")
@@ -233,11 +233,9 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
         or (isinstance(H, list) and isinstance(H[0], Qobj) and H[0].issuper)
         or (not isinstance(H, (Qobj, QobjEvo))
             and callable(H)
-            and not options.rhs_with_state
             and H(0., args).issuper)
         or (not isinstance(H, (Qobj, QobjEvo))
-            and callable(H)
-            and options.rhs_with_state)
+            and callable(H))
     )
 
     if not use_mesolve:
@@ -289,8 +287,8 @@ def _mesolve_QobjEvo(H, c_ops, tlist, args, opt):
             op_td = lindblad_dissipator(op_td)
         L_td += op_td
 
-    if opt.rhs_with_state:
-        L_td._check_old_with_state()
+    # if opt.rhs_with_state:
+    #    L_td._check_old_with_state()
 
     L_td.compile()
 
@@ -376,7 +374,7 @@ def _mesolve_func_td(L_func, c_op_list, rho0, tlist, args, opt):
     else:
         c_ops_ = []
 
-    if opt.rhs_with_state:
+    if False: # opt.rhs_with_state:
         state0 = rho0.full().ravel("F")
         obj = L_func(0., state0, args)
         if not issuper(obj):
@@ -450,10 +448,10 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
     initial_vector = rho0.full().ravel('F')
 
     r = scipy.integrate.ode(func)
-    r.set_integrator('zvode', method=opt.method, order=opt.order,
-                     atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
-                     first_step=opt.first_step, min_step=opt.min_step,
-                     max_step=opt.max_step)
+    r.set_integrator('zvode', method=opt['method'], order=opt['order'],
+                     atol=opt['atol'], rtol=opt['rtol'], nsteps=opt['nsteps'],
+                     first_step=opt['first_step'], min_step=opt['min_step'],
+                     max_step=opt['max_step'])
     if ode_args:
         r.set_f_params(*ode_args)
     r.set_initial_value(initial_vector, tlist[0])
@@ -470,7 +468,7 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
         output.num_expect = n_expt_op
         if n_expt_op == 0:
             # fall back on storing states
-            opt.store_states = True
+            opt['store_states'] = True
         else:
             for op in e_ops:
                 e_ops_data.append(spre(op).data)
@@ -480,7 +478,7 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
     else:
         raise TypeError("Expectation parameter must be a list or a function")
 
-    if opt.store_states:
+    if opt['store_states']:
         output.states = []
 
     def get_curr_state_data(r):
@@ -502,10 +500,10 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
                             "the allowed number of substeps by increasing "
                             "the nsteps parameter in the Options class.")
 
-        if opt.store_states or expt_callback or n_expt_op:
+        if opt['store_states'] or expt_callback or n_expt_op:
             cdata = get_curr_state_data(r)
 
-        if opt.store_states:
+        if opt['store_states']:
             # TODO: fix dispatch creation.
             # We always use a gated check and in-place stacking and unstacking
             # because then we don't have to copy any data, regardless of the
@@ -537,7 +535,7 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
 
     progress_bar.finished()
 
-    if opt.store_final_state:
+    if opt['store_final_state']:
         # TODO: fix.
         cdata = get_curr_state_data(r)
         matrix = _data.column_unstack_dense(cdata, size, inplace=True)

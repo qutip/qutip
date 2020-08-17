@@ -4,7 +4,7 @@
 cimport cython
 from cpython cimport mem
 
-import qutip.settings
+from qutip.settings import settings
 
 from qutip.core.data.base cimport idxint
 from qutip.core.data.csr cimport CSR
@@ -26,7 +26,7 @@ cdef inline bint _conj_feq(double complex a, double complex b, double tol) nogil
     return re*re + im*im < tol*tol
 
 
-cpdef bint isherm_csr(CSR matrix, double tol=qutip.settings.atol):
+cpdef bint isherm_csr(CSR matrix, double tol=settings.core['atol']):
     """
     Determine whether an input CSR matrix is Hermitian up to a given
     floating-point tolerance.
@@ -37,7 +37,7 @@ cpdef bint isherm_csr(CSR matrix, double tol=qutip.settings.atol):
         Input matrix to test
     tol : double, optional
         Absolute tolerance value to use.  Defaults to
-        :obj:`qutip.settings.atol`.
+        :obj:`settings.core['atol']`.
 
     Returns
     -------

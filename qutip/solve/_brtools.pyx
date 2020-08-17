@@ -49,7 +49,8 @@ from qutip.core.data cimport CSR, csr, Dense, dense, idxint
 from qutip.core.data.add cimport add_csr
 from qutip.core.data.kron cimport kron_csr
 from qutip.core.data.matmul cimport matmul_csr, matmul_csr_dense_dense
-from qutip.settings import eigh_unsafe
+from qutip import settings
+eigh_unsafe = settings.install["eigh_unsafe"]
 
 cnp.import_array()
 

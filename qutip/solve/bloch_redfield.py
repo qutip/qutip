@@ -49,7 +49,7 @@ from ..ui.progressbar import BaseProgressBar, TextProgressBar
 from .br_codegen import BR_Codegen
 from ._brtensor import bloch_redfield_tensor
 from ._rhs_generate import td_format_check
-from .solver import Options, Result, config, _solver_safety_check
+from .solver import SolverOptions, Result, config, _solver_safety_check
 from ._utilities import cython_build_cleanup
 
 
@@ -58,7 +58,8 @@ from ._utilities import cython_build_cleanup
 #
 def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
               args={}, use_secular=True, sec_cutoff=0.1,
-              tol=qset.atol,
+              # Shouldn't this be solver.atol?
+              tol=qset.core['atol'],
               spectra_cb=None, options=None,
               progress_bar=None, _safe_mode=True, verbose=False):
     """
@@ -145,7 +146,7 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
     spectra_cb : list
         DEPRECIATED. Do not use.
 
-    options : :class:`qutip.solver.Options`
+    options : :class:`qutip.solver.SolverOptions`
         Options for the solver.
 
     progress_bar : BaseProgressBar
@@ -198,14 +199,14 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         progress_bar = TextProgressBar()
 
     if options is None:
-        options = Options()
+        options = SolverOptions()
 
-    if (not options.rhs_reuse) or (not config.tdfunc):
-        # reset config collapse and time-dependence flags to default values
-        config.reset()
+    #if (not options.rhs_reuse) or (not config.tdfunc):
+    #    # reset config collapse and time-dependence flags to default values
+    #    config.reset()
 
     # check if should use OPENMP
-    check_use_openmp(options)
+    #check_use_openmp(options)
 
     if n_str == 0:
 
@@ -274,7 +275,7 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None,
     e_ops : list of :class:`qutip.qobj` / callback function
         List of operators for which to evaluate expectation values.
 
-    options : :class:`qutip.Qdeoptions`
+    options : :class:`qutip.SolverOptions`
         Options for the ODE solver.
 
     Returns
@@ -288,9 +289,9 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None,
     """
 
     if options is None:
-        options = Options()
+        options = SolverOptions()
 
-    if options.tidy:
+    if options['tidy']:
         R.tidyup()
 
     if progress_bar is None:
@@ -331,10 +332,12 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None,
     initial_vector = stack_columns(rho_eb).to_array()[:, 0]
     r = scipy.integrate.ode(_ode_rhs)
     r.set_f_params(R.data)
-    r.set_integrator('zvode', method=options.method, order=options.order,
-                     atol=options.atol, rtol=options.rtol,
-                     nsteps=options.nsteps, first_step=options.first_step,
-                     min_step=options.min_step, max_step=options.max_step)
+    r.set_integrator('zvode', method=options['method'], order=options['order'],
+                     atol=options['atol'], rtol=options['rtol'],
+                     nsteps=options['nsteps'],
+                     first_step=options['first_step'],
+                     min_step=options['min_step'],
+                     max_step=options['max_step'])
     r.set_initial_value(initial_vector, tlist[0])
 
     #
@@ -366,7 +369,7 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None,
 
 
 def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
-                  use_secular=True, sec_cutoff=0.1, tol=qset.atol,
+                  use_secular=True, sec_cutoff=0.1, tol=qset.core['atol'],
                   options=None, progress_bar=None, _safe_mode=True,
                   verbose=False, _prep_time=0):
 
@@ -480,11 +483,8 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
     #
     # generate and compile new cython code if necessary
     #
-    if not options.rhs_reuse or config.tdfunc is None:
-        if options.rhs_filename is None:
-            config.tdname = "rhs" + str(os.getpid()) + str(config.cgen_num)
-        else:
-            config.tdname = options.rhs_filename
+    if True:
+        config.tdname = "rhs" + str(os.getpid()) + str(config.cgen_num)
         if verbose:
             _st = time.time()
         cgen = BR_Codegen(
@@ -508,10 +508,13 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
     _ode = scipy.integrate.ode(config.tdfunc)
     code = compile('_ode.set_f_params(' + parameter_string + ')',
                    '<string>', 'exec')
-    _ode.set_integrator('zvode', method=options.method, order=options.order,
-                        atol=options.atol, rtol=options.rtol,
-                        nsteps=options.nsteps, first_step=options.first_step,
-                        min_step=options.min_step, max_step=options.max_step)
+    _ode.set_integrator('zvode', method=options['method'],
+                        order=options['order'],
+                        atol=options['atol'], rtol=options['rtol'],
+                        nsteps=options['nsteps'],
+                        first_step=options['first_step'],
+                        min_step=options['min_step'],
+                        max_step=options['max_step'])
     _ode.set_initial_value(initial_vector, tlist[0])
     exec(code, locals())
 
@@ -525,7 +528,7 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
     output.solver = "brmesolve"
     output.times = tlist
 
-    if options.store_states:
+    if options['store_states']:
         output.states = []
 
     if isinstance(e_ops, types.FunctionType):
@@ -539,7 +542,7 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
         if n_expt_op == 0:
             # fall back on storing states
             output.states = []
-            options.store_states = True
+            options['store_states'] = True
         else:
             output.expect = []
             output.num_expect = n_expt_op
@@ -573,12 +576,12 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
                             "the nsteps parameter in the Options class.")
 
         rho_data = _data.dense.fast_from_numpy(_ode.y)
-        if options.store_states or expt_callback:
+        if options['store_states'] or expt_callback:
             # TODO: fix dispatch.
             rho_data = _data.column_unstack_dense(rho_data, rho.shape[0])
             rho = Qobj(rho_data.to_array(), dims=rho.dims, isherm=True)
 
-            if options.store_states:
+            if options['store_states']:
                 output.states.append(rho)
 
             if expt_callback:
@@ -601,10 +604,10 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
     if type(progress_bar)==BaseProgressBar and verbose:
         print('BR runtime:', time.time()-_run_time)
 
-    if (not options.rhs_reuse) and (config.tdname is not None):
+    if (True) and (config.tdname is not None):
         cython_build_cleanup(config.tdname)
 
-    if options.store_final_state:
+    if options['store_final_state']:
         rho.data = dense2D_to_fastcsr_fmode(unstack_columns(_ode.y), rho.shape[0], rho.shape[1])
         output.final_state = Qobj(rho, dims=rho0.dims, isherm=True)
 

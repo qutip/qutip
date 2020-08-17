@@ -35,8 +35,8 @@ import scipy.sparse as sp
 import ctypes
 from ctypes import POINTER,c_int,c_char,c_double, byref
 from numpy import ctypeslib
-import qutip.settings as qset
-zcsrgemv = qset.mkl_lib.mkl_cspblas_zcsrgemv
+from qutip.settings import settings as qset
+zcsrgemv = qset.install['mkl_lib'].mkl_cspblas_zcsrgemv
 
 def mkl_spmv(A, x):
      """
@@ -56,9 +56,9 @@ def mkl_spmv(A, x):
         y = np.empty((m,1),dtype=np.complex,order='C')
      else:
         raise Exception('Input vector must be 1D row or 2D column vector')
-     
+
      np_x = x.ctypes.data_as(ctypeslib.ndpointer(np.complex128, ndim=1, flags='C'))
      np_y = y.ctypes.data_as(ctypeslib.ndpointer(np.complex128, ndim=1, flags='C'))
      # now call MKL. This returns the answer in np_y, which points to y
-     zcsrgemv(byref(c_char(bytes(b'N'))), byref(c_int(m)), data ,indptr, indices, np_x, np_y ) 
+     zcsrgemv(byref(c_char(bytes(b'N'))), byref(c_int(m)), data ,indptr, indices, np_x, np_y )
      return y

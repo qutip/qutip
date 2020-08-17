@@ -35,79 +35,55 @@ This module contains settings for the QuTiP graphics, multiprocessing, and
 tidyup functionality, etc.
 """
 from __future__ import absolute_import
-import sys
-import os
-# use auto tidyup
-auto_tidyup = True
-# use auto tidyup dims on multiplication
-auto_tidyup_dims = True
-# detect hermiticity
-auto_herm = True
-# general absolute tolerance
-atol = 1e-12
-# use auto tidyup absolute tolerance
-auto_tidyup_atol = 1e-12
-# number of cpus (set at qutip import)
-num_cpus = 0
-# flag indicating if fortran module is installed
-fortran = False
-# path to the MKL library
-mkl_lib = None
-# Flag if mkl_lib is found
-has_mkl = False
-# TODO: sort out proper OpenMP detection and usage.
-has_openmp = False
-# debug mode for development
-debug = False
-# Running on mac with openblas make eigh unsafe
-eigh_unsafe = False
-# are we in IPython? Note that this cannot be
-# set by the RC file.
-ipython = False
-# define whether log handler should be
-#   - default: switch based on IPython detection
-#   - stream: set up non-propagating StreamHandler
-#   - basic: call basicConfig
-#   - null: leave logging to the user
-log_handler = 'default'
-# Allow for a colorblind mode that uses different colormaps
-# and plotting options by default.
-colorblind_safe = False
-# Sets the threshold for matrix NNZ where OPENMP
-# turns on. This is automatically calculated and
-# put in the qutiprc file.  This value is here in case
-# that failts
-openmp_thresh = 10000
-# folder for files created at runtime by QobjEvo for string coefficients.
-# Would be better if set in qutiprc
-try:
-    qutip_conf_dir = os.path.join(os.path.expanduser("~"), '.qutip')
-    if not os.path.exists(qutip_conf_dir):
-        os.mkdir(qutip_conf_dir)
-    tmproot = os.path.join(qutip_conf_dir, 'coeffs')
-    if not os.path.exists(tmproot):
-        os.mkdir(tmproot)
-    assert os.access(tmproot, os.W_OK)
-    del qutip_conf_dir
-except Exception:
-    tmproot = "."
-if tmproot not in sys.path:
-    sys.path.insert(0, tmproot)
-del sys
-del os
-# use cython for compiling string coefficient.
-try:
-    import cython
-    use_cython = True
-except:
-    use_cython = False
-# Note that since logging depends on settings,
-# if we want to do any logging here, it must be manually
-# configured, rather than through _logging.get_logger().
-try:
-    import logging
-    _logger = logging.getLogger(__name__)
-    _logger.addHandler(logging.NullHandler())
-    del logging  # Don't leak names!
-except:
-    _logger = None
+import qutip.configrc as qrc
+
+
+class Settings:
+    """
+    Qutip default settings and options.
+    `print(qutip.settings)` to list all available options.
+    `help(qutip.settings.solver)` will explain the use of each options
+        in `solver`.
+
+    """
+    def __init__(self):
+        self._isDefault = True
+        self._childs = []
+        self._fullname = "qutip.settings"
+        self._defaultInstance = self
+
+    def _all_childs(self):
+        optcls = []
+        for child in self._childs:
+             optcls += child._all_childs()
+        return optcls
+
+    def reset(self):
+        """
+        Reset all options to qutip's defaults.
+        """
+        for child in self._childs:
+            child.reset(True)
+
+    def save(self, file="qutiprc"):
+        """
+        Save the default in a file in '$HOME/.qutip/'.
+        Use full path to same elsewhere.
+        The file 'qutiprc' is loaded when importing qutip.
+        """
+        optcls = self._all_childs()
+        qrc.write_rc_object(file, optcls)
+
+    def load(self, file="qutiprc"):
+        """
+        Load the default in a file in '$HOME/.qutip/'.
+        Use full path to same elsewhere.
+        """
+        optcls = self._all_childs()
+        qrc.load_rc_object(file, optcls)
+
+    def __repr__(self):
+        return "".join(child.__repr__(True) for child in self._childs)
+
+
+settings = Settings()

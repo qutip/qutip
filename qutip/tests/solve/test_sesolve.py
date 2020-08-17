@@ -41,7 +41,7 @@ from qutip import (
     sigmax, sigmay, sigmaz, qeye, basis, expect, num, destroy, create,
     Cubic_Spline, sesolve,
 )
-from qutip.solve import Options
+from qutip.solve import SolverOptions
 
 os.environ['QUTIP_GRAPHICS'] = "NO"
 
@@ -247,7 +247,7 @@ class TestSESolve:
         Compare integrated evolution of unitary operator with state evo
         """
         U0 = qeye(2)
-        options = Options(store_states=True, normalize_output=normalize)
+        options = SolverOptions(store_states=True, normalize_output=normalize)
         out_s = sesolve(H, psi0, tlist, [sigmax(), sigmay(), sigmaz()],
                         options=options,args=td_args)
         xs, ys, zs = out_s.expect[0], out_s.expect[1], out_s.expect[2]
