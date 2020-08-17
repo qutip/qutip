@@ -173,10 +173,6 @@ from .continuous_variables import *
 from .distributions import *
 from .three_level_atom import *
 
-# lattice models
-from .lattice import *
-from .topology import *
-
 ########################################################################
 # This section exists only for the deprecation warning of qip importation.
 # It can be deleted for a major release.
