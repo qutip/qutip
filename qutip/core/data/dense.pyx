@@ -327,7 +327,7 @@ cpdef Dense identity(base.idxint dimension, double complex scale=1,
     return out
 
 
-cpdef Dense from_csr(CSR matrix, bint fortran=True):
+cpdef Dense from_csr(CSR matrix, bint fortran=False):
     cdef Dense out = Dense.__new__(Dense)
     out.shape = matrix.shape
     out.data = (
