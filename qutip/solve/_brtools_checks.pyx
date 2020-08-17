@@ -34,7 +34,7 @@
 import numpy as np
 cimport numpy as np
 cimport cython
-import qutip.settings as qset
+from qutip.settings import settings as qset
 from qutip.solve._brtools cimport (
     ZHEEVR, diag_liou_mult, dense_to_eigbasis, vec_to_eigbasis,
     vec_to_fockbasis, cop_super_mult, br_term_mult, skew_and_dwmin,

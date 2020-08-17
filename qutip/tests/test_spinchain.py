@@ -35,7 +35,7 @@ import numpy as np
 from numpy.testing import assert_, run_module_suite, assert_allclose
 
 from qutip import (
-    fidelity, sigmax, sigmaz, rand_ket, Options,
+    fidelity, sigmax, sigmaz, rand_ket, SolverOptions,
 )
 from qutip.qip.operations.gates import gate_sequence_product
 from qutip.qip.circuit import QubitCircuit
@@ -221,7 +221,7 @@ class TestSpinChain:
         rho1 = gate_sequence_product([init_state] + qc.propagators())
         result = test.run_state(
             init_state=init_state, analytical=False,
-            options=Options(store_final_state=True)).final_state
+            options=SolverOptions(store_final_state=True)).final_state
         assert_allclose(
             fidelity(result, rho1), 1., rtol=1e-6,
             err_msg="Numerical run_state fails in CircularSpinChain")
@@ -235,7 +235,7 @@ class TestSpinChain:
         rho1 = gate_sequence_product([init_state] + qc.propagators())
         result = test.run_state(
             init_state=init_state, analytical=False,
-            options=Options(store_final_state=True)).final_state
+            options=SolverOptions(store_final_state=True)).final_state
         assert_allclose(
             fidelity(result, rho1), 1., rtol=1e-6,
             err_msg="Numerical run_state fails in LinearSpinChain")

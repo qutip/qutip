@@ -40,10 +40,11 @@ from .. import (
 )
 from ..core import data as _data
 from ..core.data.norm import l2_dense as norm
-from .solver import Result, Options
+from .solver import Result, SolverOptions
 from ..parallel import serial_map
 from ..ui.progressbar import TextProgressBar
-from ..settings import debug
+from ..settings import settings
+debug = settings.install['debug']
 
 
 class StochasticSolverOptions:
@@ -170,7 +171,7 @@ class StochasticSolverOptions:
     normalize : bool (default True)
         Whether or not to normalize the wave function during the evolution.
 
-    options : :class:`qutip.solver.Options`
+    options : :class:`qutip.solver.SolverOptions`
         Generic solver options.
 
     map_func: function
@@ -192,7 +193,7 @@ class StochasticSolverOptions:
                  map_kwargs=None):
 
         if options is None:
-            options = Options()
+            options = SolverOptions()
 
         if progress_bar is None:
             progress_bar = TextProgressBar()
@@ -219,7 +220,7 @@ class StochasticSolverOptions:
         self.options = options
         self.progress_bar = progress_bar
         self.store_measurement = store_measurement
-        self.store_states = options.store_states
+        self.store_states = options['store_states']
         self.noise = noise
         self.args = args
         self.normalize = normalize
@@ -402,7 +403,7 @@ def _ssepdpsolve_generic(sso, options, progress_bar):
     progress_bar.finished()
 
     # average density matrices
-    if options.average_states and np.any(data.states):
+    if options['average_states'] and np.any(data.states):
         data.states = [sum([data.states[m][n] for m in range(nt)]).unit()
                        for n in range(len(data.times))]
 
@@ -535,7 +536,7 @@ def _smepdpsolve_generic(sso, options, progress_bar):
     progress_bar.finished()
 
     # average density matrices
-    if options.average_states and np.any(data.states):
+    if options['average_states'] and np.any(data.states):
         data.states = [sum([data.states[m][n] for m in range(nt)]).unit()
                        for n in range(len(data.times))]
 

@@ -40,7 +40,7 @@ from __future__ import absolute_import
 import inspect
 import logging
 
-import qutip.settings
+from qutip import settings
 
 # EXPORTS
 NOTSET = logging.NOTSET
@@ -94,11 +94,11 @@ def get_logger(name=None):
 
     logger = logging.getLogger(name)
 
-    policy = qutip.settings.log_handler
+    policy = settings.install['log_handler']
 
     if policy == 'default':
         # Let's try to see if we're in IPython mode.
-        policy = 'basic' if qutip.settings.ipython else 'stream'
+        policy = 'basic' if settings.install['ipython'] else 'stream'
 
     metalogger.debug("Creating logger for {} with policy {}.".format(
         name, policy
@@ -109,7 +109,7 @@ def get_logger(name=None):
         # This is nice for working with IPython, since
         # it will use its own handlers instead of our StreamHandler
         # below.
-        if qutip.settings.debug:
+        if settings.install['debug']:
             logging.basicConfig(level=logging.DEBUG)
         else:
             logging.basicConfig()
@@ -133,7 +133,7 @@ def get_logger(name=None):
         # for capturing to logfiles.
         logger.addHandler(logging.NullHandler())
 
-    if qutip.settings.debug:
+    if settings.install['debug']:
         logger.setLevel(logging.DEBUG)
     else:
         logger.setLevel(logging.WARN)

@@ -45,7 +45,7 @@ from ..core import data as _data
 from ..parallel import parallel_map, serial_map
 from ._mcsolve import CyMcOde, CyMcOdeDiag
 from .sesolve import sesolve
-from .solver import Options, Result, ExpectOps, solver_safe, SolverSystem
+from .solver import SolverOptions, Result, ExpectOps, solver_safe, SolverSystem
 from ..ui.progressbar import TextProgressBar, BaseProgressBar
 
 
@@ -132,7 +132,7 @@ def mcsolve(H, psi0, tlist, c_ops=None, e_ops=None, ntraj=0,
     args : dict
         Arguments for time-dependent Hamiltonian and collapse operator terms.
 
-    options : Options
+    options : SolverOptions
         Instance of ODE solver options.
 
     progress_bar: BaseProgressBar
@@ -155,17 +155,17 @@ def mcsolve(H, psi0, tlist, c_ops=None, e_ops=None, ntraj=0,
 
         It is possible to reuse the random number seeds from a previous run
         of the mcsolver by passing the output Result object seeds via the
-        Options class, i.e. Options(seeds=prev_result.seeds).
+        Options class, i.e. SolverOptions(seeds=prev_result.seeds).
     """
     args = args or {}
     map_kwargs = map_kwargs or {}
     c_ops = [c_ops] if isinstance(c_ops, (Qobj, QobjEvo)) else (c_ops or [])
     e_ops = [e_ops] if isinstance(e_ops, (Qobj, QobjEvo)) else (e_ops or [])
-    options = options if options is not None else Options()
-    if options.rhs_reuse and not isinstance(H, SolverSystem):
+    options = options if options is not None else SolverOptions()
+    if False and not isinstance(H, SolverSystem):
         # TODO: deprecate when going to class based solver.
         H = solver_safe.get("mcsolve", H)
-    ntraj = ntraj or options.ntraj
+    ntraj = ntraj or options['ntraj']
     try:
         num_traj = int(ntraj)
     except TypeError:
@@ -175,7 +175,7 @@ def mcsolve(H, psi0, tlist, c_ops=None, e_ops=None, ntraj=0,
     if not psi0.isket:
         raise ValueError("Initial state must be a state vector.")
 
-    if len(c_ops) == 0 and not options.rhs_reuse:
+    if len(c_ops) == 0:
         warnings.warn("No c_ops, using sesolve")
         return sesolve(H, psi0, tlist, e_ops=e_ops, args=args,
                        options=options, progress_bar=progress_bar,
@@ -192,9 +192,6 @@ def mcsolve(H, psi0, tlist, c_ops=None, e_ops=None, ntraj=0,
     mc.reset(tlist[0], psi0)
 
     mc.set_e_ops(e_ops)
-
-    if options.seeds is not None:
-        mc.seed(num_traj, options.seeds)
 
     if _safe_mode:
         mc.run_test()
@@ -216,7 +213,7 @@ class _MC():
     """
     def __init__(self, options=None):
         if options is None:
-            options = Options()
+            options = SolverOptions()
         self.options = options
         self.ss = None
         self.tlist = None
@@ -287,8 +284,6 @@ class _MC():
         H_td *= -1j
         for c in ss.td_n_ops:
             H_td += -0.5 * c
-        if options.rhs_with_state:
-            H_td._check_old_with_state()
         ss.H_td = H_td
         ss.makefunc = _qobjevo_set
         ss.type = "QobjEvo"
@@ -309,7 +304,7 @@ class _MC():
             self.e_ops = ExpectOps(e_ops)
 
         if not self.e_ops:
-            self.options.store_states = True
+            self.options['store_states'] = True
 
     def run_test(self):
         try:
@@ -366,7 +361,7 @@ class _MC():
             self.reset()
 
         if self.ran:
-            if options.store_states and self._psi_out[0].shape[0] == 1:
+            if options['store_states'] and self._psi_out[0].shape[0] == 1:
                 self.reset()
             else:
                 # if not reset here, add trajectories
@@ -374,9 +369,9 @@ class _MC():
                 return
 
         if not num_traj:
-            num_traj = options.ntraj
+            num_traj = options['ntraj']
 
-        if options.num_cpus == 1 or num_traj == 1:
+        if num_traj == 1:
             map_func = serial_map
 
         if len(self.seeds) != num_traj:
@@ -388,8 +383,8 @@ class _MC():
             progress_bar = TextProgressBar()
 
         # set arguments for input to monte carlo
-        map_kwargs_ = {'progress_bar': progress_bar,
-                       'num_cpus': options.num_cpus}
+        map_kwargs_ = {'progress_bar': progress_bar}
+        #               'num_cpus': options.num_cpus}
         map_kwargs_.update(map_kwargs)
         map_kwargs = map_kwargs_
 
@@ -550,20 +545,20 @@ class _MC():
         options = self.options
         output.options = options
 
-        if options.steady_state_average:
+        if options['steady_state_average']:
             output.states = self.steady_state
-        elif options.average_states and options.store_states:
+        elif options['average_states'] and options['store_states']:
             output.states = self.states
-        elif options.store_states:
+        elif options['store_states']:
             output.states = self.runs_states
 
-        if options.store_final_state:
-            if options.average_states:
+        if options['store_final_state']:
+            if options['average_states']:
                 output.final_state = self.final_state
             else:
                 output.final_state = self.runs_final_states
 
-        if options.average_expect:
+        if options['average_expect']:
             output.expect = [self.expect_traj_avg(n) for n in ntraj]
             if len(output.expect) == 1:
                 output.expect = output.expect[0]
@@ -607,7 +602,7 @@ class _MC():
 
         # Run at end of mc_alg function
         # -----------------------------
-        if opt.steady_state_average:
+        if opt['steady_state_average']:
             ss_out /= float(len(tlist))
 
         return (states_out, ss_out, e_ops, collapses)
@@ -622,9 +617,10 @@ class _MC():
         # initialize ODE solver for RHS
         ODE.set_integrator('zvode', method="adams")
         ODE._integrator = qutip_zvode(
-            method=opt.method, order=opt.order, atol=opt.atol,
-            rtol=opt.rtol, nsteps=opt.nsteps, first_step=opt.first_step,
-            min_step=opt.min_step, max_step=opt.max_step)
+            method=opt['method'], order=opt['order'], atol=opt['atol'],
+            rtol=opt['rtol'], nsteps=opt['nsteps'],
+            first_step=opt['first_step'],
+            min_step=opt['min_step'], max_step=opt['max_step'])
         return ODE
 
     # --------------------------------------------------------------------------
@@ -688,10 +684,10 @@ class _MC():
         states_out, ss_out, collapses = cymc.run_ode(self.initial_vector, tlist,
                                                      e_ops, prng)
 
-        if opt.steady_state_average:
+        if opt['steady_state_average']:
             ss_out = ss.U @ ss_out @ ss.Ud
         states_out = np.inner(ss.U, states_out).T
-        if opt.steady_state_average:
+        if opt['steady_state_average']:
             ss_out /= float(len(tlist))
         return (states_out, ss_out, e_ops, collapses)
 

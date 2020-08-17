@@ -43,7 +43,7 @@ from ._stochastic import (
     SSESolver, SMESolver, PcSSESolver, PcSMESolver, PmSMESolver,
     GenericSSolver, Solvers
 )
-from .solver import Result, Options, _solver_safety_check
+from .solver import Result, SolverOptions, _solver_safety_check
 from ..parallel import serial_map
 from ..ui.progressbar import TextProgressBar
 
@@ -268,9 +268,9 @@ class StochasticSolverOptions:
         Whether or not to normalize the wave function during the evolution.
         Normalizing density matrices introduce numerical errors.
 
-    options : :class:`qutip.solver.Options`
-        Generic solver options. Only options.average_states and
-        options.store_states are used.
+    options : :class:`qutip.solver.SolverOptions`
+        Generic solver options. Only options['average_states'] and
+        options['store_states'] are used.
 
     map_func: function
         A map function or managing the calls to single-trajactory solvers.
@@ -313,7 +313,7 @@ class StochasticSolverOptions:
                  args={}, options=None, noiseDepth=20):
 
         if options is None:
-            options = Options()
+            options = SolverOptions()
 
         if progress_bar is None:
             progress_bar = TextProgressBar()
@@ -369,7 +369,7 @@ class StochasticSolverOptions:
         self.m_ops = m_ops
         self.store_measurement = store_measurement
         self.store_all_expect = store_all_expect
-        self.store_states = options.store_states
+        self.store_states = options['store_states']
         self.dW_factors = dW_factors
 
         # Solver
@@ -1288,7 +1288,7 @@ def _sesolve_generic(sso, options, progress_bar):
     # store individual trajectory states
     res.traj_states = res.states
     res.avg_states = None
-    if options.average_states and options.store_states:
+    if options['average_states'] and options['store_states']:
         avg_states_list = []
         for n in range(len(res.times)):
             tslot_states = [res.states[mm][n].data for mm in range(nt)]

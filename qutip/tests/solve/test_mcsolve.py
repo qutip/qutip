@@ -70,7 +70,7 @@ class StatesAndExpectOutputCase:
             np.testing.assert_allclose(test, expected_part, rtol=tol)
 
     def test_states_and_expect(self, hamiltonian, args, c_ops, expected, tol):
-        options = qutip.Options(average_states=True, store_states=True)
+        options = qutip.SolverOptions(average_states=True, store_states=True)
         result = qutip.mcsolve(hamiltonian, self.state, self.times, args=args,
                                c_ops=c_ops, e_ops=self.e_ops, ntraj=self.ntraj,
                                options=options)
@@ -113,7 +113,7 @@ class TestNoCollapse(StatesAndExpectOutputCase):
     # test cases, this is just testing the single-output behaviour.
 
     def test_states_only(self, hamiltonian, args, c_ops, expected, tol):
-        options = qutip.Options(average_states=True, store_states=True)
+        options = qutip.SolverOptions(average_states=True, store_states=True)
         result = qutip.mcsolve(hamiltonian, self.state, self.times, args=args,
                                c_ops=c_ops, e_ops=[], ntraj=self.ntraj,
                                options=options)
@@ -195,8 +195,9 @@ def test_stored_collapse_operators_and_times():
 
 
 @pytest.mark.parametrize('options', [
-    pytest.param(qutip.Options(average_expect=True), id="average_expect=True"),
-    pytest.param(qutip.Options(average_states=False),
+    pytest.param(qutip.SolverOptions(average_expect=True),
+                 id="average_expect=True"),
+    pytest.param(qutip.SolverOptions(average_states=False),
                  id="average_states=False"),
 ])
 def test_expectation_dtype(options):
@@ -239,7 +240,7 @@ class TestSeeds:
         args = (self.H, self.state, self.times)
         kwargs = {'c_ops': self.c_ops, 'ntraj': self.ntraj}
         first = qutip.mcsolve(*args, **kwargs)
-        options = qutip.Options(seeds=first.seeds)
+        options = qutip.SolverOptions(seeds=first.seeds)
         second = qutip.mcsolve(*args, options=options, **kwargs)
         for first_t, second_t in zip(first.col_times, second.col_times):
             np.testing.assert_equal(first_t, second_t)

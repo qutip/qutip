@@ -29,6 +29,7 @@ qutip/cy/*.c
 qutip/core/data/base.h
 *.cpp
 *.dat
+qutip/core/*.h
 
 *.qo
 

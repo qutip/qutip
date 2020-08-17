@@ -46,7 +46,7 @@ import numpy as np
 from itertools import product, combinations_with_replacement
 from ..core import basis, tensor, zero_ket, Qobj
 from .propagator import propagator
-from .solver import Options
+from .solver import SolverOptions
 
 __all__ = ['temporal_basis_vector',
            'temporal_scattered_state',
@@ -66,7 +66,7 @@ class Evolver:
         specified, an effective Hamiltonian is constructed from H and c_ops.
     times : list-like
         List of times to evaluate propagators over.
-    options : :class: qutip.Options
+    options : :class: qutip.SolverOptionss
         Solver options to use when computing propagators.
 
     Attributes
@@ -83,7 +83,7 @@ class Evolver:
         self.H = H
         self.tlist = tlist
         if options is None:
-            self.options = Options(nsteps=10000, normalize_output=False)
+            self.options = SolverOptions(nsteps=10000, normalize_output=False)
         else:
             self.options = options
         # Make a blank nested dictionary to store propagators

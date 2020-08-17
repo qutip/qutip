@@ -11,6 +11,7 @@ import shutil
 import numbers
 from collections import defaultdict
 from .. import settings as qset
+from ..optionclass import optionclass
 from .data import Data
 from .interpolate import Cubic_Spline
 from .cy.coefficient import (InterpolateCoefficient, InterCoefficient,
@@ -136,6 +137,7 @@ def reduce(coeff, args):
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%      Everything under this is for string compilation      %%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@optionclass("compile", qset.core)
 class CompilationOptions:
     """
     Options for compilation.
@@ -166,63 +168,42 @@ class CompilationOptions:
         "from scipy.linalg import det"
         "from qutip.core.data import CSR"
     """
-    # TODO: use the Options decorator when merged and put in Core options (v5)
-
-    # use cython for compiling string coefficient.
     try:
         import cython
-        use_cython = True
+        _use_cython = True
     except ImportError:
-        use_cython = False
-    # In compiled Coefficient, are int kept as int?
-    # None indicate to look for list subscription
-    accept_int = None
-    # In compiled Coefficient, are float considered as complex?
-    accept_float = True
-    # In compiled Coefficient, is static typing used?
-    # Result is faster, but can cause errors if subscription
-    # (a[1], b["a"]) if used.
-    no_types = False
-    # Skip saved previously compiled files and force compilation
-    recompile = False
-    # Compilation flags and link flags to pass to the compiler
-    link_flags = ""
-    compiler_flags = ""
-    if (sys.platform == 'win32' and os.environ.get('MSYSTEM') is None):
-        compiler_flags = '/w /Ox'
-    elif sys.platform == 'darwin':
-        compiler_flags = '-w -O3 -funroll-loops -mmacosx-version-min=10.9'
-        link_flags += '-mmacosx-version-min=10.9'
-    else:
-        compiler_flags = '-w -O3 -funroll-loops'
-    # Extra_header
-    extra_import = ""
+        _use_cython = False
 
-    def __init__(self,
-                 use_cython=None,
-                 accept_int=None,
-                 accept_float=None,
-                 no_types=None,
-                 recompile=None,
-                 compiler_flags=None,
-                 link_flags=None,
-                 extra_import=None):
-        if use_cython is not None:
-            self.use_cython = use_cython
-        if accept_int is not None:
-            self.accept_int = accept_int
-        if accept_float is not None:
-            self.accept_float = accept_float
-        if no_types is not None:
-            self.no_types = no_types
-        if recompile is not None:
-            self.recompile = recompile
-        if compiler_flags is not None:
-            self.compiler_flags = compiler_flags
-        if link_flags is not None:
-            self.link_flags = link_flags
-        if extra_import is not None:
-            self.extra_import = extra_import
+    _link_flags = ""
+    _compiler_flags = ""
+    if (sys.platform == 'win32'):
+        _compiler_flags = ''
+    elif sys.platform == 'darwin':
+        _compiler_flags = '-w -O3 -funroll-loops -mmacosx-version-min=10.9'
+        _link_flags += '-mmacosx-version-min=10.9'
+    else:
+        _compiler_flags = '-w -O3 -funroll-loops'
+
+    options = {
+        # use cython for compiling string coefficient
+        "use_cython" : _use_cython,
+        # In compiled Coefficient, are int kept as int?
+        # None indicate to look for list subscription
+        "accept_int": None,
+        # In compiled Coefficient, are float considered as complex?
+        "accept_float": True,
+        # In compiled Coefficient, is static typing used?
+        # Result is faster, but can cause errors if subscription
+        # (a[1], b["a"]) if used.
+        "no_types": False,
+        # Skip saved previously compiled files and force compilation
+        "recompile": False,
+        # Compilation flags and link flags to pass to the compiler
+        "compiler_flags": _compiler_flags,
+        "link_flags": _link_flags,
+        # Extra_header
+        "extra_import": ""
+    }
 
 
 def proj(x):
@@ -272,7 +253,7 @@ def coeff_from_str(base, args, args_ctypes, compile_opt):
     - Verify if already compiled and compile if not
     """
     # First, a sanity check before thinking of compiling
-    if not compile_opt.extra_import:
+    if not compile_opt['extra_import']:
         try:
             env = {"t": 0}
             env.update(args)
@@ -280,7 +261,7 @@ def coeff_from_str(base, args, args_ctypes, compile_opt):
         except Exception as err:
             raise Exception("Invalid string coefficient") from err
     # Do we even compile?
-    if not qset.use_cython or not compile_opt.use_cython:
+    if not compile_opt['use_cython']:
         return StrFunctionCoefficient(base, args)
     # Parsing tries to make the code in common pattern
     parsed, variables, constants, raw = try_parse(base, args,
@@ -290,7 +271,7 @@ def coeff_from_str(base, args, args_ctypes, compile_opt):
     file_name = "qtcoeff_" + hash_.hexdigest()[:30]
     # See if it already exist, if not write and cythonize it
     coeff = try_import(file_name, parsed)
-    if coeff is None or compile_opt.recompile:
+    if coeff is None or compile_opt['recompile']:
         code = make_cy_code(parsed, variables, constants, raw, compile_opt)
         coeff = compile_code(code, file_name, parsed, compile_opt)
     keys = [key for _, key, _ in variables]
@@ -372,13 +353,13 @@ cdef class StrCoefficient(Coefficient):
 
     def optstr(self):
         return self.codeString
-""".format(compile_opt.extra_import, code, cdef_cte, cdef_var,
+""".format(compile_opt['extra_import'], code, cdef_cte, cdef_var,
            init_cte, init_var, args_var, call_var, code)
     return code
 
 
 def compile_code(code, file_name, parsed, c_opt):
-    root = qset.tmproot
+    root = qset.install['tmproot']
     full_file_name = os.path.join(root, file_name)
     file_ = open(full_file_name + ".pyx", "w")
     file_.writelines(code)
@@ -388,11 +369,11 @@ def compile_code(code, file_name, parsed, c_opt):
         sys.argv = ["setup.py", "build_ext", "--inplace"]
         coeff_file = Extension(file_name,
                                sources=[full_file_name + ".pyx"],
-                               extra_compile_args=c_opt.compiler_flags.split(),
-                               extra_link_args=c_opt.link_flags.split(),
+                               extra_compile_args=c_opt['compiler_flags'].split(),
+                               extra_link_args=c_opt['link_flags'].split(),
                                include_dirs=[np.get_include()],
                                language='c++')
-        setup(ext_modules=cythonize(coeff_file, force=c_opt.recompile))
+        setup(ext_modules=cythonize(coeff_file, force=c_opt['recompile']))
     except Exception as e:
         raise Exception("Could not compile") from e
     try:
@@ -527,8 +508,8 @@ def parse(code, args, compile_opt):
     ordered_constants = []
     variables = []
     typeCounts = defaultdict(lambda: 0)
-    accept_int = compile_opt.accept_int
-    accept_float = compile_opt.accept_float
+    accept_int = compile_opt['accept_int']
+    accept_float = compile_opt['accept_float']
     if accept_int is None:
         # If there is a subscript: a[b] int are always accepted to be safe
         # with TypeError
@@ -576,7 +557,7 @@ def try_parse(code, args, args_ctypes, compile_opt):
     Try to parse and verify that the result is still usable.
     """
     ncode, variables, constants = parse(code, args, compile_opt)
-    if compile_opt.no_types:
+    if compile_opt['no_types']:
         # Fallback to all object
         variables = [(f, s, "object") for f, s, _ in variables]
         constants = [(f, s, "object") for f, s, _ in constants]
@@ -589,7 +570,7 @@ def try_parse(code, args, args_ctypes, compile_opt):
         else:
             variables_manually_typed.append((name, key, type_))
     variables = variables_manually_typed
-    if (compile_opt.extra_import or
+    if (compile_opt['extra_import'] or
         test_parsed(ncode, variables, constants, args)):
             return ncode, variables, constants, False
     else:
