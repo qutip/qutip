@@ -31,7 +31,7 @@ from . import norm, permute
 from .convert import to, create
 to.add_conversions([
     (Dense, CSR, dense.from_csr, 1),
-    (CSR, Dense, csr.from_dense, 1),
+    (CSR, Dense, csr.from_dense, 1.4),
 ])
 
 from .dispatch import Dispatcher
