@@ -1008,6 +1008,8 @@ class Qobj:
         ----------
         sel : int/list
             An ``int`` or ``list`` of components to keep after partial trace.
+            The selected subspaces will _not_ be reordered, no matter order
+            they are supplied to `ptrace`.
 
         Returns
         -------
@@ -1024,11 +1026,16 @@ class Qobj:
                     "selection must be an integer or list of integers"
                 ) from None
             sel = [sel]
-        data, dims = _data.ptrace_csr(self, sel)
+        data = self.data
+        if self.isket or self.isbra:
+            data = _data.project(self.data)
+        dims = self.dims[1] if self.isbra else self.dims[0]
+        new_data = _data.ptrace(data, dims, sel)
+        new_dims = [[dims[x] for x in sel]] * 2
         # TODO: how is the partial trace of a superoperator defined?  Why is it
         # of type 'oper' not 'super'?
-        return Qobj(data,
-                    dims=dims,
+        return Qobj(new_data,
+                    dims=new_dims,
                     type='oper',
                     copy=False)
 

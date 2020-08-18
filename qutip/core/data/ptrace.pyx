@@ -1,53 +1,52 @@
 #cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False, cdivision=True
 
+import numbers
+
 import numpy as np
-import scipy.sparse
 
 cimport numpy as cnp
 
-from qutip.core.data.dense cimport Dense
-from qutip.core.data.csr cimport CSR
-from qutip.core.data cimport csr
+from qutip.core.data cimport csr, dense, idxint, CSR, Dense, Data
+from qutip.core.data.base import idxint_dtype
 
 cnp.import_array()
 
 __all__ = [
-    'ptrace_csr', 'ptrace_dense',
+    'ptrace', 'ptrace_csr', 'ptrace_dense', 'ptrace_csr_dense',
 ]
 
+cdef void _check_shape(Data matrix) except *:
+    if matrix.shape[0] != matrix.shape[1]:
+        raise ValueError("ptrace is only defined for square density matrices")
 
-cdef cnp.ndarray[int, ndim=1, mode='c'] _list2ind(int[:,::1] ilist, int[::1] dims):
-    """!
-    Private function returning indicies
+
+cdef idxint _populate_tensor_table(dims, sel, idxint[:, ::1] tensor_table) except -1:
     """
-    cdef size_t kk, ll
-    cdef int[::1] fact = np.ones(dims.shape[0],dtype=np.int32)
-    for kk in range(dims.shape[0]):
-        for ll in range(kk+1,dims.shape[0]):
-            fact[kk] *= dims[ll]
-    # If we make ilist a csr_matrix, then this is just spmv then sort
-    return np.sort(np.dot(ilist, fact), 0)
-
-
-cdef cnp.ndarray[int, ndim=2, mode='c'] _select(int[::1] sel, int[::1] dims, int M):
+    Populate the helper structure `tensor_table`.  Returns the size (number of
+    rows and number of columns) of the matrix which will be output.
     """
-    Private function finding selected components
-    """
-    cdef size_t ii, jj, kk
-    cdef int _sel, _prd
-    cdef cnp.ndarray[int, ndim=2, mode='c'] ilist = np.zeros((M, dims.shape[0]), dtype=np.int32)
-    for jj in range(sel.shape[0]):
-        _sel =  sel[jj]
-        _prd = 1
-        for kk in range(jj+1,sel.shape[0]):
-            _prd *= dims[sel[kk]]
-        for ii in range(M):
-            ilist[ii, _sel] = (ii / _prd) % dims[_sel]
-    return ilist
+    cdef size_t ii
+    cdef idxint[::1] _dims = np.asarray(dims, dtype=idxint_dtype).ravel()
+    cdef size_t num_dims = _dims.shape[0]
+    cdef idxint factor_tensor=1, factor_keep=1, factor_trace=1
+    cdef idxint[::1] _sel = np.asarray(sel, dtype=idxint_dtype)
+    for ii in range(_sel.shape[0]):
+        if _sel[ii] < 0 or _sel[ii] >= num_dims:
+            raise TypeError("Invalid selection index in ptrace.")
+    for ii in range(num_dims - 1,-1,-1):
+        tensor_table[ii, 0] = factor_tensor
+        factor_tensor *= _dims[ii]
+        if _in(ii, _sel):
+            tensor_table[ii, 1] = factor_keep
+            factor_keep *= _dims[ii]
+        else:
+            tensor_table[ii, 2]  = factor_trace
+            factor_trace *= _dims[ii]
+    return factor_keep
 
 
-cdef bint _in(int val, int[::1] vec):
+cdef bint _in(idxint val, idxint[::1] vec):
     cdef int ii
     for ii in range(vec.shape[0]):
         if val == vec[ii]:
@@ -55,121 +54,138 @@ cdef bint _in(int val, int[::1] vec):
     return False
 
 
-cdef void _i2_k_t(int N,
-                 int[:, ::1] tensor_table,
-                 int[::1] out):
+cdef inline void _i2_k_t(idxint N, idxint[:, ::1] tensor_table, idxint out[2]):
     # indices determining function for ptrace
-    cdef int ii, t1, t2
-    out[0] = 0
-    out[1] = 0
-    for ii in range(tensor_table.shape[1]):
-        t1 = tensor_table[0, ii]
+    cdef size_t ii
+    cdef idxint t1, t2
+    out[0] = out[1] = 0
+    for ii in range(tensor_table.shape[0]):
+        t1 = tensor_table[ii, 0]
         t2 = N / t1
         N = N % t1
-        out[0] += tensor_table[1, ii] * t2
-        out[1] += tensor_table[2, ii] * t2
+        out[0] += tensor_table[ii, 1] * t2
+        out[1] += tensor_table[ii, 2] * t2
 
 
-cpdef ptrace_csr(object rho, sel):
-    cdef int[::1] _sel
-    cdef size_t ii
-    cdef size_t factor_keep = 1, factor_trace = 1, factor_tensor = 1
-    cdef cnp.ndarray[int, ndim=1, mode='c'] drho = np.asarray(rho.dims[0], dtype=np.int32).ravel()
-    cdef int num_dims = drho.shape[0]
-    cdef int[:, ::1] tensor_table = np.zeros((3, num_dims), dtype=np.int32)
-
-    if isinstance(sel, int):
-        _sel = np.array([sel], dtype=np.int32)
-    else:
-        _sel = np.asarray(sel, dtype=np.int32)
-
-    for ii in range(_sel.shape[0]):
-        if _sel[ii] < 0 or _sel[ii] >= num_dims:
-            raise TypeError("Invalid selection index in ptrace.")
-
-    if np.prod(rho.shape[1]) == 1:
-        rho = rho.proj()
-
-    for ii in range(num_dims-1,-1,-1):
-        tensor_table[0, ii] = factor_tensor
-        factor_tensor *= drho[ii]
-        if _in(ii, _sel):
-            tensor_table[1, ii] = factor_keep
-            factor_keep *= drho[ii]
-        else:
-            tensor_table[2, ii] = factor_trace
-            factor_trace *= drho[ii]
-
-    dims_kept0 = drho.take(_sel).tolist()
-    rho1_dims = [dims_kept0, dims_kept0]
-
-    # TODO: actually dispatch properly
-    return _ptrace_csr_sparse(rho.data, tensor_table, factor_keep), rho1_dims
-    # Try to evaluate how sparse the result will be.
-    #if factor_keep*factor_keep > csr.nnz(rho.data):
-    #    return _ptrace_csr_sparse(rho.data, tensor_table, factor_keep), rho1_dims
-    #return _ptrace_csr_dense(rho.data.to_array(), tensor_table, factor_keep), rho1_dims
-
-
-cdef CSR _ptrace_csr_sparse(CSR rho, int[:, ::1] tensor_table, int num_sel_dims):
-    cdef size_t p=0, nnz=csr.nnz(rho), row, ptr
-    cdef int[::1] pos_c = np.empty(2, dtype=np.int32)
-    cdef int[::1] pos_r = np.empty(2, dtype=np.int32)
+cpdef CSR ptrace_csr(CSR matrix, object dims, object sel):
+    _check_shape(matrix)
+    if isinstance(dims, numbers.Number):
+        dims = [dims]
+    if isinstance(sel, numbers.Number):
+        sel = [sel]
+    dims = np.asarray(dims, dtype=idxint_dtype).ravel()
+    cdef idxint[:, ::1] tensor_table = np.zeros((dims.shape[0], 3), dtype=idxint_dtype)
+    cdef idxint size
+    size = _populate_tensor_table(dims, sel, tensor_table)
+    cdef size_t p=0, nnz=csr.nnz(matrix), row, ptr
+    cdef idxint pos_c[2]
+    cdef idxint pos_r[2]
     cdef cnp.ndarray[double complex, ndim=1, mode='c'] new_data = np.zeros(nnz, dtype=complex)
-    cdef cnp.ndarray[int, ndim=1, mode='c'] new_col = np.zeros(nnz, dtype=np.int32)
-    cdef cnp.ndarray[int, ndim=1, mode='c'] new_row = np.zeros(nnz, dtype=np.int32)
-    for row in range(rho.shape[0]):
-        for ptr in range(rho.row_index[row], rho.row_index[row + 1]):
-            _i2_k_t(rho.col_index[ptr], tensor_table, pos_c)
+    cdef cnp.ndarray[idxint, ndim=1, mode='c'] new_col = np.zeros(nnz, dtype=idxint_dtype)
+    cdef cnp.ndarray[idxint, ndim=1, mode='c'] new_row = np.zeros(nnz, dtype=idxint_dtype)
+    for row in range(matrix.shape[0]):
+        for ptr in range(matrix.row_index[row], matrix.row_index[row + 1]):
+            _i2_k_t(matrix.col_index[ptr], tensor_table, pos_c)
             _i2_k_t(row, tensor_table, pos_r)
             if pos_c[1] == pos_r[1]:
-                new_data[p] = rho.data[ptr]
+                new_data[p] = matrix.data[ptr]
                 new_row[p] = pos_r[0]
                 new_col[p] = pos_c[0]
                 p += 1
-    return CSR(scipy.sparse.coo_matrix((new_data, [new_row, new_col]),
-                                       shape=(num_sel_dims,num_sel_dims)).tocsr())
+    return csr.from_coo_pointers(&new_row[0], &new_col[0], &new_data[0],
+                                 size, size, p)
 
 
-cdef CSR _ptrace_csr_dense(rho, int[:, ::1] tensor_table, int num_sel_dims):
-    cdef int ii, jj, nrow=rho.shape[0]
-    cdef int[::1] pos_c = np.empty(2, dtype=np.int32)
-    cdef int[::1] pos_r = np.empty(2, dtype=np.int32)
-    cdef cnp.ndarray[complex, ndim=1, mode='c'] data = rho.data
-    cdef cnp.ndarray[int, ndim=1, mode='c'] ptr = rho.indptr
-    cdef cnp.ndarray[int, ndim=1, mode='c'] ind = rho.indices
-    cdef complex[:, ::1] data_mat = np.zeros((num_sel_dims, num_sel_dims),
-                                          dtype=complex)
-    for ii in range(nrow):
-        for jj in range(ptr[ii], ptr[ii+1]):
-            _i2_k_t(ind[jj], tensor_table, pos_c)
+cpdef Dense ptrace_csr_dense(CSR matrix, object dims, object sel):
+    _check_shape(matrix)
+    if isinstance(dims, numbers.Number):
+        dims = [dims]
+    if isinstance(sel, numbers.Number):
+        sel = [sel]
+    dims = np.asarray(dims, dtype=idxint_dtype).ravel()
+    cdef idxint[:, ::1] tensor_table = np.zeros((dims.shape[0], 3), dtype=idxint_dtype)
+    cdef idxint size
+    size = _populate_tensor_table(dims, sel, tensor_table)
+    cdef size_t ii, jj
+    cdef idxint pos_c[2]
+    cdef idxint pos_r[2]
+    cdef Dense out = dense.zeros(size, size, fortran=False)
+    for ii in range(matrix.shape[0]):
+        for jj in range(matrix.row_index[ii], matrix.row_index[ii+1]):
+            _i2_k_t(matrix.col_index[jj], tensor_table, pos_c)
             _i2_k_t(ii, tensor_table, pos_r)
             if pos_c[1] == pos_r[1]:
-                data_mat[pos_r[0], pos_c[0]] += data[jj]
-    return CSR(scipy.sparse.csr_matrix(data_mat))
+                out.data[pos_r[0]*size + pos_c[0]] += matrix.data[jj]
+    return out
 
 
-cpdef ptrace_dense(Q, sel):
-    rd = np.asarray(Q.dims[0], dtype=np.int32).ravel()
+cpdef Dense ptrace_dense(Dense matrix, object dims, object sel):
+    _check_shape(matrix)
+    rd = np.asarray(dims, dtype=idxint_dtype).ravel()
     nd = rd.shape[0]
     sel = [sel] if isinstance(sel, int) else list(np.sort(sel))
     dkeep = rd[sel].tolist()
     qtrace = list(set(np.arange(nd)) - set(sel))
     dtrace = rd[qtrace].tolist()
     rd = list(rd)
-    if Q.type == 'ket':
-        vmat = (Q.full()
-                .reshape(rd)
-                .transpose(sel + qtrace)
-                .reshape([np.prod(dkeep), np.prod(dtrace)]))
-        rhomat = vmat.dot(vmat.conj().T)
-    else:
-        rhomat = np.trace(Q.full()
-                          .reshape(rd + rd)
-                          .transpose(qtrace + [nd + q for q in qtrace] +
-                                     sel + [nd + q for q in sel])
-                          .reshape([np.prod(dtrace),
-                                    np.prod(dtrace),
-                                    np.prod(dkeep),
-                                    np.prod(dkeep)]))
-    return Dense(rhomat), [dkeep, dkeep]
+    rhomat = np.trace(matrix.as_ndarray()
+                      .reshape(rd + rd)
+                      .transpose(qtrace + [nd + q for q in qtrace] +
+                                 sel + [nd + q for q in sel])
+                      .reshape([np.prod(dtrace),
+                                np.prod(dtrace),
+                                np.prod(dkeep),
+                                np.prod(dkeep)]))
+    return dense.fast_from_numpy(rhomat)
+
+
+from .dispatch import Dispatcher as _Dispatcher
+import inspect as _inspect
+
+ptrace = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('dims', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('sel', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    ]),
+    name='ptrace',
+    module=__name__,
+    inputs=('matrix',),
+    out=True,
+)
+ptrace.__doc__ =\
+    """
+    Compute the partial trace of this matrix, leaving the subspaces whose
+    indices are in `sel`.  This is only defined for square density matrices,
+    and always returns a density matrix.
+
+    The order of the indices in `sel` do not matter; the output matrix will
+    always have the selected subspaces in the same order that they are in the
+    input matrix.
+
+    For example, if the input is the matrix backing a `Qobj` with
+    `dims = [[2, 3, 4], [2, 3, 4]]`, then the output of
+        ptrace(data, [2, 3, 4], [0, 2])
+    will be a matrix with effective dimensions `[[2, 4], [2, 4]]`.
+
+    Arguments
+    ---------
+    matrix : Data
+        The density matrix to be partially traced.
+
+    dims : array_like of integer
+        The dimensions of the subspaces.  This is most likely a 1D list, and
+        since this is only defined on square matrices, there is no need to pass
+        before the left and right sides.  Typically the input matrix will be
+        taken from a `Qobj`, and then this parameter will be `Qobj.dims[0]`.
+
+    sel : integer or array_like of integer
+        The indices of the subspaces which should be _kept_.
+    """
+ptrace.add_specialisations([
+    (CSR, CSR, ptrace_csr),
+    (CSR, Dense, ptrace_csr_dense),
+    (Dense, Dense, ptrace_dense),
+], _defer=True)
+
+del _inspect, _Dispatcher
