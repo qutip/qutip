@@ -21,6 +21,18 @@ cdef class CSR(base.Data):
     cpdef CSR conj(CSR self)
     cpdef CSR transpose(CSR self)
 
+
+cdef class Accumulator:
+    cdef double complex *values
+    cdef size_t *modified
+    cdef base.idxint *nonzero
+    cdef size_t _cur_row
+    cdef size_t nnz, size
+    cdef void scatter(Accumulator self, double complex value, base.idxint position)
+    cdef base.idxint gather(Accumulator self, double complex *values, base.idxint *indices)
+    cdef void reset(Accumulator self)
+
+
 # Internal structure for sorting pairs of elements.  Not actually meant to be
 # used in external code.
 cdef struct _data_col:
@@ -37,6 +49,7 @@ cdef class Sorter:
                    double complex *dest_data, base.idxint *dest_cols,
                    double complex *src_data, base.idxint *src_cols,
                    size_t size) nogil
+
 
 cpdef CSR fast_from_scipy(object sci)
 cpdef CSR copy_structure(CSR matrix)
