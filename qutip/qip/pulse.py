@@ -199,27 +199,27 @@ class Pulse():
     --------
     Create a pulse that is turned off
 
-    >>> Pulse(sigmaz(), 0)
-    >>> Pulse(sigmaz(), 0, None, None)
+    >>> Pulse(sigmaz(), 0) # doctest: +SKIP
+    >>> Pulse(sigmaz(), 0, None, None) # doctest: +SKIP
 
     Create a time dependent pulse
 
-    >>> tlist = np.array([0., 1., 2., 4.])
-    >>> coeff = np.array([0.5, 1.2, 0.8])
-    >>> spline_kind = "step_func"
-    >>> Pulse(sigmaz(), 0, tlist=tlist, coeff=coeff, spline_kind="step_func")
+    >>> tlist = np.array([0., 1., 2., 4.]) # doctest: +SKIP
+    >>> coeff = np.array([0.5, 1.2, 0.8]) # doctest: +SKIP
+    >>> spline_kind = "step_func" # doctest: +SKIP
+    >>> Pulse(sigmaz(), 0, tlist=tlist, coeff=coeff, spline_kind="step_func") # doctest: +SKIP
 
     Create a time independent pulse
 
-    >>> Pulse(sigmaz(), 0, coeff=True)
+    >>> Pulse(sigmaz(), 0, coeff=True) # doctest: +SKIP
 
     Create a constant pulse with time range
 
-    >>> Pulse(sigmaz(), 0, tlist=tlist, coeff=True)
+    >>> Pulse(sigmaz(), 0, tlist=tlist, coeff=True) # doctest: +SKIP
 
     Create an dummy Pulse (H=0)
 
-    >>> Pulse(None, None)
+    >>> Pulse(None, None) # doctest: +SKIP
 
     """
     def __init__(self, qobj, targets, tlist=None, coeff=None,
