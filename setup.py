@@ -65,7 +65,8 @@ PACKAGES = ['qutip', 'qutip/ui', 'qutip/qip', 'qutip/qip/device',
             'qutip/qip/algorithms', 'qutip/control',
             'qutip/solve', 'qutip/solve/nonmarkov',
             'qutip/_mkl', 'qutip/tests', 'qutip/tests/core',
-            'qutip/tests/core/data', 'qutip/core', 'qutip/core/cy',
+            'qutip/tests/core/data', 'qutip/tests/solve',
+            'qutip/core', 'qutip/core/cy',
             'qutip/core/data/', 'qutip/core/cy/openmp']
 PACKAGE_DATA = {
     'qutip': ['configspec.ini'],
