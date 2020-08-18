@@ -50,7 +50,7 @@ from .. import (
     sigmaz, basis, qeye,
 )
 from .mesolve import mesolve
-from .solver import Options
+from .solver import SolverOptions
 
 
 def rcsolve(Hsys, psi0, tlist, e_ops, Q, wc, alpha, N, w_th, sparse=False,
@@ -82,7 +82,7 @@ def rcsolve(Hsys, psi0, tlist, e_ops, Q, wc, alpha, N, w_th, sparse=False,
         Temperature.
     sparse: Boolean
         Optional argument to call the sparse eigenstates solver if needed.
-    options : :class:`qutip.Options`
+    options : :class:`qutip.SolverOptions`
         With options for the solver.
 
     Returns
@@ -91,7 +91,7 @@ def rcsolve(Hsys, psi0, tlist, e_ops, Q, wc, alpha, N, w_th, sparse=False,
         System evolution.
     """
     if options is None:
-        options = Options()
+        options = SolverOptions()
 
     dot_energy, dot_state = Hsys.eigenstates(sparse=sparse)
     deltaE = dot_energy[1] - dot_energy[0]

@@ -48,7 +48,6 @@ from .qobj import Qobj
 from .cy.cqobjevo import CQobjEvo
 from .coefficient import coefficient, CompilationOptions
 from .superoperator import stack_columns, unstack_columns
-from .. import settings as qset
 from . import data as _data
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

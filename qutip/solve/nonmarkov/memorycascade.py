@@ -78,14 +78,14 @@ class MemoryCascade:
         Can be a single operator or a list of operators.
 
     integrator : str {'propagator', 'mesolve'}
-        Integrator method to use. Defaults to 'propagator' which tends to be 
+        Integrator method to use. Defaults to 'propagator' which tends to be
         faster for long times (i.e., large Hilbert space).
 
     parallel : bool
         Run integrator in parallel if True. Only implemented for 'propagator'
         as the integrator method.
 
-    options : :class:`qutip.solver.Options`
+    options : :class:`qutip.solver.SolverOptions`
         Generic solver options.
     """
 
@@ -93,7 +93,7 @@ class MemoryCascade:
                  integrator='propagator', parallel=False, options=None):
 
         if options is None:
-            self.options = qt.Options()
+            self.options = qt.SolverOptions()
         else:
             self.options = options
 
@@ -122,7 +122,7 @@ class MemoryCascade:
         self.Id = qt.qeye(H_S.shape[0])
         self.Id.dims = self.sysdims
         self.Id = qt.sprepost(self.Id, self.Id)
-        self.store_states = self.options.store_states
+        self.store_states = self.options['store_states']
         self.integrator = integrator
         self.parallel = parallel
 
@@ -158,7 +158,7 @@ class MemoryCascade:
             G2, null = _generator(k-1, self.H_S, self.L1, self.L2,
                                   self.S_matrix, self.c_ops_markov)
             G2 = qt.composite(G2, self.Id)
-            E = _integrate(G2, E, s, tau, integrator=self.integrator, 
+            E = _integrate(G2, E, s, tau, integrator=self.integrator,
                     parallel=self.parallel, opt=self.options)
         E.dims = E0.dims
         if not notrace:
@@ -415,7 +415,7 @@ def _generator(k, H, L1, L2, S=None, c_ops_markov=None):
 
 
 def _integrate(L, E0, ti, tf, integrator='propagator', parallel=False,
-        opt=qt.Options()):
+        opt=qt.SolverOptions()):
     """
     Basic ode integrator
     """

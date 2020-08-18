@@ -47,7 +47,7 @@ from ..core import data as _data
 from ._rhs_generate import rhs_clear, td_format_check
 from .mesolve import mesolve
 from .sesolve import sesolve
-from .solver import Options, _solver_safety_check
+from .solver import SolverOptions, _solver_safety_check
 from ..parallel import parallel_map, _default_kwargs
 from ..ui.progressbar import BaseProgressBar, TextProgressBar
 
@@ -80,7 +80,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         Parameters to callback functions for time-dependent Hamiltonians and
         collapse operators.
 
-    options : :class:`qutip.Options`
+    options : :class:`qutip.SolverOptions`
         with options for the ODE solver.
 
     unitary_mode = str ('batch', 'single')
@@ -102,7 +102,8 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         Instance representing the propagator :math:`U(t)`.
 
     """
-    num_cpus = kwargs.get('num_cpus', _default_kwargs()['num_cpus'])
+    # TODO: correct for proper ammout
+    num_cpus = kwargs.get('num_cpus', 1)
 
     if progress_bar is None:
         progress_bar = BaseProgressBar()
@@ -110,7 +111,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         progress_bar = TextProgressBar()
 
     if options is None:
-        options = Options(rhs_reuse=True)
+        options = SolverOptions()
         rhs_clear()
 
     if isinstance(t, numbers.Real):
@@ -173,7 +174,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                             H2.append(tensor(qeye(N), Hk))
                 else:
                     H2 = tensor(qeye(N), H)
-                options.normalize_output = False
+                options['normalize_output'] = False
                 output = sesolve(H2, psi0, tlist, [],
                                  args=args, options=options,
                                  _safe_mode=False)

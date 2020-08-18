@@ -1,7 +1,8 @@
 import numpy as np
 import scipy.linalg
 import scipy.sparse as sp
-from qutip.settings import eigh_unsafe
+from qutip.settings import settings
+eigh_unsafe = settings.install["eigh_unsafe"]
 
 __all__ = ['eigs_csr']
 

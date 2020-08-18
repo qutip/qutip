@@ -41,7 +41,7 @@ import scipy.integrate
 from scipy.linalg import norm as la_norm
 from .. import Qobj, QobjEvo
 from ..core import data as _data
-from .solver import Result, Options, solver_safe, SolverSystem
+from .solver import Result, SolverOptions, solver_safe, SolverSystem
 from ..ui.progressbar import BaseProgressBar, TextProgressBar
 
 
@@ -87,7 +87,7 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
     args : None / *dictionary*
         dictionary of parameters for time-dependent Hamiltonians
 
-    options : None / :class:`qutip.Qdeoptions`
+    options : None / :class:`qutip.SolverOptions`
         with options for the ODE solver.
 
     progress_bar : None / BaseProgressBar
@@ -128,7 +128,8 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
                         " or a unitary as initial operator.")
 
     if options is None:
-        options = Options()
+        options = SolverOptions()
+    """
     if options.rhs_reuse and not isinstance(H, SolverSystem):
         # TODO: deprecate when going to class based solver.
         if "sesolve" in solver_safe:
@@ -137,6 +138,7 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
         else:
             pass
             # raise Exception("Could not find the Hamiltonian to reuse.")
+    """
 
     if args is None:
         args = {}
@@ -173,8 +175,6 @@ def _sesolve_QobjEvo(H, tlist, args, opt):
     Prepare the system for the solver, H can be an QobjEvo.
     """
     H_td = -1.0j * QobjEvo(H, args, tlist=tlist)
-    if opt.rhs_with_state:
-        H_td._check_old_with_state()
     H_td.compile()
 
     ss = SolverSystem()
@@ -226,7 +226,7 @@ def _Hfunc_set(HS, psi, args, e_ops, opt):
     """
     From the system, get the ode function and args
     """
-    return _sesolve_rhs_func, (HS.H, args, psi.isunitary, opt.rhs_with_state)
+    return _sesolve_rhs_func, (HS.H, args, psi.isunitary, False)
 
 
 # -----------------------------------------------------------------------------
@@ -272,10 +272,10 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
         oper_evo = False
 
     r = scipy.integrate.ode(func)
-    r.set_integrator('zvode', method=opt.method, order=opt.order,
-                     atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
-                     first_step=opt.first_step, min_step=opt.min_step,
-                     max_step=opt.max_step)
+    r.set_integrator('zvode', method=opt['method'], order=opt['order'],
+                     atol=opt['atol'], rtol=opt['rtol'], nsteps=opt['nsteps'],
+                     first_step=opt['first_step'], min_step=opt['min_step'],
+                     max_step=opt['max_step'])
     if ode_args:
         r.set_f_params(*ode_args)
     r.set_initial_value(initial_vector, tlist[0])
@@ -292,7 +292,7 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
         output.num_expect = n_expt_op
         if n_expt_op == 0:
             # fallback on storing states
-            opt.store_states = True
+            opt['store_states'] = True
         else:
             for op in e_ops:
                 if op.isherm:
@@ -308,7 +308,7 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
     else:
         raise TypeError("Expectation parameter must be a list or a function")
 
-    if opt.store_states:
+    if opt['store_states']:
         output.states = []
 
     if oper_evo:
@@ -333,14 +333,14 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
                             "the nsteps parameter in the Options class.")
         # get the current state / oper data if needed
         if (
-            opt.store_states
-            or opt.normalize_output
+            opt['store_states']
+            or opt['normalize_output']
             or n_expt_op > 0
             or expt_callback
         ):
             cdata = get_curr_state_data(r)
 
-        if opt.normalize_output:
+        if opt['normalize_output']:
             # normalize per column
             if oper_evo:
                 cdata_nd = cdata.as_ndarray()
@@ -357,7 +357,7 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
                 else:
                     r._y = cdata.as_ndarray()
 
-        if opt.store_states:
+        if opt['store_states']:
             # TODO: fix Qobj creation
             output.states.append(Qobj(cdata.as_ndarray(),
                                       dims=dims, type=psi0.type))
@@ -380,9 +380,9 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
 
     progress_bar.finished()
 
-    if opt.store_final_state:
+    if opt['store_final_state']:
         cdata = get_curr_state_data(r)
-        if opt.normalize_output:
+        if opt['normalize_output']:
             cdata_nd = cdata.as_ndarray()
             cdata_nd /= la_norm(cdata_nd, axis=0)
         output.final_state = Qobj(cdata.as_ndarray(), dims=dims)

@@ -32,7 +32,7 @@
 ###############################################################################
 import os
 import numpy as np
-import qutip.settings as qset
+from qutip.settings import settings as qset
 from qutip.core.interpolate import Cubic_Spline
 _cython_path = os.path.dirname(os.path.abspath(__file__)).replace("\\", "/")
 _math_header = """\
@@ -106,7 +106,7 @@ class BR_Codegen(object):
         self.level = 0  # indent level
         self.config = config
         if atol is None:
-            self.atol = qset.atol
+            self.atol = qset.core['atol']
         else:
             self.atol = atol
 

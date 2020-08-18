@@ -56,7 +56,7 @@ from .. import (
     sigmax, sigmay, sigmaz, sigmap, sigmam,
 )
 from ..entropy import entropy_vn
-from .solver import Options, Result
+from .solver import SolverOptions, Result
 from ._piqs import Dicke as _Dicke
 from ._piqs import (
     jmm1_dictionary,
@@ -535,7 +535,7 @@ class Dicke(object):
         tlist: ndarray
             A 1D numpy array of list of timesteps to integrate
 
-        options : :class:`qutip.solver.Options`
+        options : :class:`qutip.solver.SolverOptions`
             The options for the solver.
 
         Returns
@@ -1815,7 +1815,7 @@ class Pim(object):
         Solve the ODE for the evolution of diagonal states and Hamiltonians.
         """
         if options is None:
-            options = Options()
+            options = SolverOptions()
         output = Result()
         output.solver = "pisolve"
         output.times = tlist

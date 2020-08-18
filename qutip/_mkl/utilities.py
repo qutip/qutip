@@ -34,15 +34,15 @@
 import numpy as np
 import os, sys
 from qutip.utilities import _blas_info
-import qutip.settings as qset
+from qutip.settings import settings as qset
 from ctypes import cdll
 
 
 def _set_mkl():
     """
-    Finds the MKL runtime library for the 
+    Finds the MKL runtime library for the
     Anaconda and Intel Python distributions.
-    
+
     """
     if _blas_info() == 'INTEL MKL':
         plat = sys.platform
@@ -58,28 +58,30 @@ def _set_mkl():
             lib = '/libmkl_rt.so'
         else:
             raise Exception('Unknown platfrom.')
-        
+
         if plat in ['darwin','linux2', 'linux']:
             lib_dir = '/lib'
         else:
             lib_dir = '\Library\\bin'
-        
+
         # Try in default Anaconda location first
         try:
-            qset.mkl_lib = cdll.LoadLibrary(python_dir+lib_dir+lib)
-            qset.has_mkl = True
+            qset.install.read_only_options['mkl_lib'] = \
+                cdll.LoadLibrary(python_dir+lib_dir+lib)
+            qset.install.read_only_options['has_mkl'] = True
         except:
             pass
-        
+
         # Look in Intel Python distro location
-        if not qset.has_mkl:
+        if not qset.install['has_mkl']:
             if plat in ['darwin','linux2', 'linux']:
                 lib_dir = '/ext/lib'
             else:
                 lib_dir = '\ext\\lib'
             try:
-                qset.mkl_lib = cdll.LoadLibrary(python_dir+lib_dir+lib)
-                qset.has_mkl = True
+                qset.install.read_only_options['mkl_lib'] = \
+                    cdll.LoadLibrary(python_dir+lib_dir+lib)
+                qset.install.read_only_options['has_mkl'] = True
             except:
                 pass
     else:
@@ -88,4 +90,4 @@ def _set_mkl():
 
 if __name__ == "__main__":
     _set_mkl()
-    print(qset.has_mkl)
+    print(qset.install['has_mkl'])

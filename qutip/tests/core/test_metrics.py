@@ -58,7 +58,7 @@ from qutip import (
 from qutip.core.metrics import *
 from qutip.qip.operations.gates import hadamard_transform, swap
 
-import qutip.settings
+from qutip.settings import settings
 
 import platform
 import unittest
@@ -71,7 +71,7 @@ except:
 
 
 # Disable dnorm tests if MKL is present (see Issue #484).
-if qutip.settings.has_mkl:
+if settings.install['has_mkl']:
     dnorm_test = unittest.skipIf(True,
                                  "Known failure; CVXPY/MKL incompatibility.")
 else:

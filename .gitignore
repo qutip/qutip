@@ -28,10 +28,10 @@ rhs*.pyx
 qutip/cy/*.c
 *.cpp
 *.dat
+qutip/core/*.h
 
 *.qo
 
 benchmark/benchmark_data.js
 *-tasks.txt
 *compiled_coeff*
-

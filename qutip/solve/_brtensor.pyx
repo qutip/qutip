@@ -33,7 +33,7 @@
 ###############################################################################
 import warnings
 import numpy as np
-import qutip.settings as qset
+from qutip.settings import settings as qset
 from qutip.core import Qobj
 
 import sys
@@ -114,7 +114,7 @@ cpdef CSR _br_term(complex[::1,:] A, complex[::1,:] evecs, double[:,::1] skew,
 def bloch_redfield_tensor(object H, list a_ops, spectra_cb=None,
                  list c_ops=[], bool use_secular=True,
                  double sec_cutoff=0.1,
-                 double atol = qset.atol):
+                 double atol = qset.core['atol']):
     """
     Calculates the time-independent Bloch-Redfield tensor for a system given
     a set of operators and corresponding spectral functions that describes the
@@ -144,7 +144,7 @@ def bloch_redfield_tensor(object H, list a_ops, spectra_cb=None,
     sec_cutoff : float {0.1}
         Threshold for secular approximation.
 
-    tol : float {qutip.settings.atol}
+    tol : float {qutip.settings.core['atol']}
        Threshold for removing small parameters.
 
     Returns

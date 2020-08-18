@@ -4,7 +4,7 @@
 cimport cython
 from cpython cimport mem
 
-import qutip.settings
+from qutip.settings import settings
 
 from qutip.core.data.base cimport idxint
 from qutip.core.data.csr cimport CSR
@@ -41,7 +41,7 @@ cpdef bint isherm_csr(CSR matrix, double tol=-1):
         Input matrix to test
     tol : double, optional
         Absolute tolerance value to use.  Defaults to
-        :obj:`qutip.settings.atol`.
+        :obj:`settings.core['atol']`.
 
     Returns
     -------
@@ -54,7 +54,7 @@ cpdef bint isherm_csr(CSR matrix, double tol=-1):
     actually allocating and creating a new matrix, we just check whether the
     output would match the input matrix.
     """
-    tol = tol if tol >= 0 else qutip.settings.atol
+    tol = tol if tol >= 0 else settings.core["atol"]
     cdef size_t row, col, ptr, ptr_t, nrows=matrix.shape[0]
     if matrix.shape[0] != matrix.shape[1]:
         return False

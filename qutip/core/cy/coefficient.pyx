@@ -36,24 +36,24 @@ cdef class Coefficient:
     def __add__(self, other):
         if not isinstance(other, Coefficient):
             return NotImplemented
-        return SumCoefficient(self, other)
+        return SumCoefficient(self.copy(), other.copy())
 
     def __mul__(self, other):
         if not isinstance(other, Coefficient):
             return NotImplemented
-        return MulCoefficient(self, other)
+        return MulCoefficient(self.copy(), other.copy())
 
     def copy(self):
         return pickle.loads(pickle.dumps(self))
 
     def conj(self):
-        return ConjCoefficient(self)
+        return ConjCoefficient(self.copy())
 
     def _cdc(self):
-        return NormCoefficient(self)
+        return NormCoefficient(self.copy())
 
     def _shift(self):
-        return ShiftCoefficient(self, 0)
+        return ShiftCoefficient(self.copy(), 0)
 
 
 @cython.auto_pickle(True)
@@ -138,11 +138,13 @@ def coeff(t, args):
 cdef class InterpolateCoefficient(Coefficient):
     cdef double lower_bound, higher_bound
     cdef complex[::1] spline_data
+    cdef object spline
 
     def __init__(self, splineObj):
         self.lower_bound = splineObj.a
         self.higher_bound = splineObj.b
         self.spline_data = splineObj.coeffs.astype(np.complex128)
+        self.spline = splineObj
 
     @cython.initializedcheck(False)
     cdef complex _call(self, double t) except *:
@@ -152,21 +154,7 @@ cdef class InterpolateCoefficient(Coefficient):
                        self.spline_data)
 
     def __reduce__(self):
-        return (MakeInterpolateCoefficient,
-                (self.lower_bound,
-                 self.higher_bound,
-                 np.array(self.spline_data)))
-
-    def _setstate_(self, state):
-        self.lower_bound = state[0]
-        self.higher_bound = state[1]
-        self.spline_data = state[2]
-
-
-def MakeInterpolateCoefficient(*state):
-    obj = InterpolateCoefficient.__new__(InterpolateCoefficient)
-    obj._setstate_(state)
-    return obj
+        return InterpolateCoefficient, (self.spline,)
 
 
 cdef class InterCoefficient(Coefficient):
@@ -174,12 +162,19 @@ cdef class InterCoefficient(Coefficient):
     cdef double dt
     cdef double[::1] tlist
     cdef complex[::1] coeff_arr, second_derr
+    cdef object tlist_np, coeff_np, second_np
 
-    def __init__(self, cnp.ndarray[complex, ndim=1] coeff_arr,
-                 cnp.ndarray[double, ndim=1] tlist):
-        self.second_derr, self.cte = _prep_cubic_spline(coeff_arr, tlist)
+    def __init__(self, coeff_arr, tlist, second=None, cte=None):
+        self.tlist_np = tlist
         self.tlist = tlist
+        self.coeff_np = coeff_arr
         self.coeff_arr = coeff_arr
+        if second is None:
+            self.second_np, self.cte = _prep_cubic_spline(coeff_arr, tlist)
+        else:
+            self.second_np = second
+            self.cte = cte
+        self.second_derr = self.second_np
         self.dt = tlist[1] - tlist[0]
         self.n_t = len(tlist)
 
@@ -202,29 +197,13 @@ cdef class InterCoefficient(Coefficient):
         return coeff
 
     def __reduce__(self):
-        return (MakeInterCoefficient,
-                (self.n_t, self.cte, self.dt,
-                 np.array(self.tlist), np.array(self.coeff_arr),
-                 np.array(self.second_derr)))
-
-    def _setstate_(self, state):
-        self.n_t = state[0]
-        self.cte = state[1]
-        self.dt = state[2]
-        self.tlist = state[3]
-        self.coeff_arr = state[4]
-        self.second_derr = state[5]
+        return (InterCoefficient,
+                (self.coeff_np, self.tlist_np, self.second_np, self.cte))
 
     @property
     def array(self):
         # Fro QIP tests
-        return np.array(self.coeff_arr)
-
-
-def MakeInterCoefficient(*state):
-    obj = InterCoefficient.__new__(InterCoefficient)
-    obj._setstate_(state)
-    return obj
+        return self.coeff_np
 
 
 cdef class StepCoefficient(Coefficient):
@@ -232,11 +211,17 @@ cdef class StepCoefficient(Coefficient):
     cdef double dt
     cdef double[::1] tlist
     cdef complex[::1] coeff_arr
+    cdef object tlist_np, coeff_np
 
-    def __init__(self, complex[::1] coeff_arr, double[::1] tlist):
-        self.cte = np.allclose(np.diff(tlist), tlist[1]-tlist[0])
-        self.tlist = tlist
-        self.coeff_arr = coeff_arr.copy()
+    def __init__(self, coeff_arr, tlist, cte=None):
+        self.tlist_np = tlist
+        self.tlist = self.tlist_np
+        self.coeff_np = coeff_arr
+        self.coeff_arr = self.coeff_np
+        if cte is None:
+            self.cte = np.allclose(np.diff(tlist), tlist[1]-tlist[0])
+        else:
+            self.cte = cte
         self.dt = tlist[1] - tlist[0]
         self.n_t = len(tlist)
 
@@ -250,17 +235,12 @@ cdef class StepCoefficient(Coefficient):
         return coeff
 
     def __reduce__(self):
-        return (MakeStepCoefficient,
-                (np.array(self.coeff_arr), np.array(self.tlist)))
+        return (StepCoefficient, (self.coeff_np, self.tlist_np, self.cte))
 
     @property
     def array(self):
         # Fro QIP tests
         return np.array(self.coeff_arr)
-
-
-def MakeStepCoefficient(coeff_arr, tlist):
-    return StepCoefficient(coeff_arr, tlist)
 
 
 @cython.auto_pickle(True)

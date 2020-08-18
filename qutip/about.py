@@ -41,8 +41,9 @@ import platform
 import numpy
 import scipy
 import inspect
+import qutip
 from qutip.utilities import _blas_info
-import qutip.settings
+from qutip import settings
 from qutip.hardware_info import hardware_info
 
 
@@ -82,8 +83,8 @@ def about():
     print("Python Version:     %d.%d.%d" % sys.version_info[0:3])
     print("Number of CPUs:     %s" % hardware_info()['cpus'])
     print("BLAS Info:          %s" % _blas_info())
-    print("OPENMP Installed:   %s" % str(qutip.settings.has_openmp))
-    print("INTEL MKL Ext:      %s" % str(qutip.settings.has_mkl))
+    # print("OPENMP Installed:   %s" % str(qutip.settings.has_openmp))
+    print("INTEL MKL Ext:      %s" % str(settings.install['has_mkl']))
     print("Platform Info:      %s (%s)" % (platform.system(),
                                            platform.machine()))
     qutip_install_path = os.path.dirname(inspect.getsourcefile(qutip))
