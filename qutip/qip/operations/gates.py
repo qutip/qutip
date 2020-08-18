@@ -289,7 +289,7 @@ def snot(N=None, target=0):
 
     Examples
     --------
-    >>> snot()
+    >>> snot() # doctest: +SKIP
     Quantum object: dims = [[2], [2]], \
 shape = [2, 2], type = oper, isHerm = True
     Qobj data =
@@ -319,7 +319,7 @@ def phasegate(theta, N=None, target=0):
 
     Examples
     --------
-    >>> phasegate(pi/4)
+    >>> phasegate(pi/4) # doctest: +SKIP
     Quantum object: dims = [[2], [2]], \
 shape = [2, 2], type = oper, isHerm = False
     Qobj data =
@@ -453,7 +453,7 @@ def cnot(N=None, control=0, target=1):
 
     Examples
     --------
-    >>> cnot()
+    >>> cnot() # doctest: +SKIP
     Quantum object: dims = [[2, 2], [2, 2]], \
 shape = [4, 4], type = oper, isHerm = True
     Qobj data =
@@ -486,7 +486,7 @@ def csign(N=None, control=0, target=1):
 
     Examples
     --------
-    >>> csign()
+    >>> csign() # doctest: +SKIP
     Quantum object: dims = [[2, 2], [2, 2]], \
 shape = [4, 4], type = oper, isHerm = True
     Qobj data =
@@ -519,7 +519,7 @@ def berkeley(N=None, targets=[0, 1]):
 
     Examples
     --------
-    >>> berkeley()
+    >>> berkeley() # doctest: +SKIP
     Quantum object: dims = [[2, 2], [2, 2]], \
 shape = [4, 4], type = oper, isHerm = True
     Qobj data =
@@ -554,7 +554,7 @@ def swapalpha(alpha, N=None, targets=[0, 1]):
 
     Examples
     --------
-    >>> swapalpha(alpha)
+    >>> swapalpha(alpha) # doctest: +SKIP
     Quantum object: dims = [[2, 2], [2, 2]], \
 shape = [4, 4], type = oper, isHerm = True
     Qobj data =
@@ -588,7 +588,7 @@ def swap(N=None, targets=[0, 1]):
 
     Examples
     --------
-    >>> swap()
+    >>> swap() # doctest: +SKIP
     Quantum object: dims = [[2, 2], [2, 2]], \
 shape = [4, 4], type = oper, isHerm = True
     Qobj data =
@@ -620,7 +620,7 @@ def iswap(N=None, targets=[0, 1]):
 
     Examples
     --------
-    >>> iswap()
+    >>> iswap() # doctest: +SKIP
     Quantum object: dims = [[2, 2], [2, 2]], \
 shape = [4, 4], type = oper, isHerm = False
     Qobj data =
@@ -672,7 +672,7 @@ def sqrtiswap(N=None, targets=[0, 1]):
 
     Examples
     --------
-    >>> sqrtiswap()
+    >>> sqrtiswap() # doctest: +SKIP
     Quantum object: dims = [[2, 2], [2, 2]], \
 shape = [4, 4], type = oper, isHerm = False
     Qobj data =
@@ -744,7 +744,7 @@ def fredkin(N=None, control=0, targets=[1, 2]):
 
     Examples
     --------
-    >>> fredkin()
+    >>> fredkin() # doctest: +SKIP
     Quantum object: dims = [[2, 2, 2], [2, 2, 2]], \
 shape = [8, 8], type = oper, isHerm = True
     Qobj data =
@@ -785,7 +785,7 @@ def toffoli(N=None, controls=[0, 1], target=2):
 
     Examples
     --------
-    >>> toffoli()
+    >>> toffoli() # doctest: +SKIP
     Quantum object: dims = [[2, 2, 2], [2, 2, 2]], \
                     shape = [8, 8], type = oper, isHerm = True
     Qobj data =
@@ -886,7 +886,7 @@ def globalphase(theta, N=1):
 
     Examples
     --------
-    >>> phasegate(pi/4)
+    >>> phasegate(pi/4) # doctest: +SKIP
     Quantum object: dims = [[2], [2]], \
 shape = [2, 2], type = oper, isHerm = False
     Qobj data =

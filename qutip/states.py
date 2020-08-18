@@ -100,7 +100,7 @@ def basis(dimensions, n=None, offset=None):
 
     Examples
     --------
-    >>> basis(5,2)
+    >>> basis(5,2) # doctest: +SKIP
     Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
     Qobj data =
     [[ 0.+0.j]
@@ -108,7 +108,7 @@ def basis(dimensions, n=None, offset=None):
      [ 1.+0.j]
      [ 0.+0.j]
      [ 0.+0.j]]
-    >>> basis([2,2,2], [0,1,0])
+    >>> basis([2,2,2], [0,1,0]) # doctest: +SKIP
     Quantum object: dims = [[2, 2, 2], [1, 1, 1]], shape = (8, 1), type = ket
     Qobj data =
     [[0.]
@@ -194,7 +194,7 @@ def coherent(N, alpha, offset=0, method='operator'):
 
     Examples
     --------
-    >>> coherent(5,0.25j)
+    >>> coherent(5,0.25j) # doctest: +SKIP
     Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
     Qobj data =
     [[  9.69233235e-01+0.j        ]
@@ -268,7 +268,7 @@ def coherent_dm(N, alpha, offset=0, method='operator'):
 
     Examples
     --------
-    >>> coherent_dm(3,0.25j)
+    >>> coherent_dm(3,0.25j) # doctest: +SKIP
     Quantum object: dims = [[3], [3]], \
 shape = [3, 3], type = oper, isHerm = True
     Qobj data =
@@ -331,7 +331,7 @@ def fock_dm(dimensions, n=None, offset=None):
 
     Examples
     --------
-     >>> fock_dm(3,1)
+     >>> fock_dm(3,1) # doctest: +SKIP
      Quantum object: dims = [[3], [3]], \
 shape = [3, 3], type = oper, isHerm = True
      Qobj data =
@@ -373,7 +373,7 @@ def fock(dimensions, n=None, offset=None):
 
     Examples
     --------
-    >>> fock(4,3)
+    >>> fock(4,3) # doctest: +SKIP
     Quantum object: dims = [[4], [1]], shape = [4, 1], type = ket
     Qobj data =
     [[ 0.+0.j]
@@ -407,7 +407,7 @@ def thermal_dm(N, n, method='operator'):
 
     Examples
     --------
-    >>> thermal_dm(5, 1)
+    >>> thermal_dm(5, 1) # doctest: +SKIP
     Quantum object: dims = [[5], [5]], \
 shape = [5, 5], type = oper, isHerm = True
     Qobj data =
@@ -418,7 +418,7 @@ shape = [5, 5], type = oper, isHerm = True
      [ 0.          0.          0.          0.          0.03225806]]
 
 
-    >>> thermal_dm(5, 1, 'analytic')
+    >>> thermal_dm(5, 1, 'analytic') # doctest: +SKIP
     Quantum object: dims = [[5], [5]], \
 shape = [5, 5], type = oper, isHerm = True
     Qobj data =
@@ -498,7 +498,7 @@ def ket2dm(Q):
     Examples
     --------
     >>> x=basis(3,2)
-    >>> ket2dm(x)
+    >>> ket2dm(x) # doctest: +SKIP
     Quantum object: dims = [[3], [3]], \
 shape = [3, 3], type = oper, isHerm = True
     Qobj data =
@@ -570,7 +570,7 @@ def qstate(string):
 
     Examples
     --------
-    >>> qstate('udu')
+    >>> qstate('udu') # doctest: +SKIP
     Quantum object: dims = [[2, 2, 2], [1, 1, 1]], shape = [8, 1], type = ket
     Qobj data =
     [[ 0.]
@@ -647,7 +647,7 @@ def ket(seq, dim=2):
 
     Examples
     --------
-    >>> ket("10")
+    >>> ket("10") # doctest: +SKIP
     Quantum object: dims = [[2, 2], [1, 1]], shape = [4, 1], type = ket
     Qobj data =
     [[ 0.]
@@ -655,7 +655,7 @@ def ket(seq, dim=2):
      [ 1.]
      [ 0.]]
 
-    >>> ket("Hue")
+    >>> ket("Hue") # doctest: +SKIP
     Quantum object: dims = [[2, 2, 2], [1, 1, 1]], shape = [8, 1], type = ket
     Qobj data =
     [[ 0.]
@@ -667,7 +667,7 @@ def ket(seq, dim=2):
      [ 0.]
      [ 0.]]
 
-    >>> ket("12", 3)
+    >>> ket("12", 3) # doctest: +SKIP
     Quantum object: dims = [[3, 3], [1, 1]], shape = [9, 1], type = ket
     Qobj data =
     [[ 0.]
@@ -680,7 +680,7 @@ def ket(seq, dim=2):
      [ 0.]
      [ 0.]]
 
-    >>> ket("31", [5, 2])
+    >>> ket("31", [5, 2]) # doctest: +SKIP
     Quantum object: dims = [[5, 2], [1, 1]], shape = [10, 1], type = ket
     Qobj data =
     [[ 0.]
@@ -727,23 +727,23 @@ def bra(seq, dim=2):
 
     Examples
     --------
-    >>> bra("10")
+    >>> bra("10") # doctest: +SKIP
     Quantum object: dims = [[1, 1], [2, 2]], shape = [1, 4], type = bra
     Qobj data =
     [[ 0.  0.  1.  0.]]
 
-    >>> bra("Hue")
+    >>> bra("Hue") # doctest: +SKIP
     Quantum object: dims = [[1, 1, 1], [2, 2, 2]], shape = [1, 8], type = bra
     Qobj data =
     [[ 0.  1.  0.  0.  0.  0.  0.  0.]]
 
-    >>> bra("12", 3)
+    >>> bra("12", 3) # doctest: +SKIP
     Quantum object: dims = [[1, 1], [3, 3]], shape = [1, 9], type = bra
     Qobj data =
     [[ 0.  0.  0.  0.  0.  1.  0.  0.  0.]]
 
 
-    >>> bra("31", [5, 2])
+    >>> bra("31", [5, 2]) # doctest: +SKIP
     Quantum object: dims = [[1, 1], [5, 2]], shape = [1, 10], type = bra
     Qobj data =
     [[ 0.  0.  0.  0.  0.  0.  0.  1.  0.  0.]]
@@ -761,8 +761,8 @@ def state_number_enumerate(dims, excitations=None, state=None, idx=0):
 
     Example:
 
-        >>> for state in state_number_enumerate([2,2]):
-        >>>     print(state)
+        >>> for state in state_number_enumerate([2,2]): # doctest: +SKIP
+        >>>     print(state) # doctest: +SKIP
         [ 0  0 ]
         [ 0  1 ]
         [ 1  0 ]
@@ -880,7 +880,7 @@ def state_number_qobj(dims, state):
 
     Example:
 
-        >>> state_number_qobj([2, 2, 2], [1, 0, 1])
+        >>> state_number_qobj([2, 2, 2], [1, 0, 1]) # doctest: +SKIP
         Quantum object: dims = [[2, 2, 2], [1, 1, 1]], \
 shape = [8, 1], type = ket
         Qobj data =

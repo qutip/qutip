@@ -916,10 +916,11 @@ def fmmesolve(H, rho0, tlist, c_ops=[], e_ops=[], spectra_cb=[], T=None,
         the Hamiltonian written in units of 2pi GHz, and the
         temperature is given in K, use the following conversion
 
-        >>> temperature = 25e-3 # unit K
-        >>> h = 6.626e-34
-        >>> kB = 1.38e-23
-        >>> args['w_th'] = temperature * (kB / h) * 2 * pi * 1e-9
+        >>> temperature = 25e-3 # unit K # doctest: +SKIP
+        >>> h = 6.626e-34 # doctest: +SKIP
+        >>> kB = 1.38e-23 # doctest: +SKIP
+        >>> args['w_th'] = temperature * (kB / h) * 2 * pi * 1e-9 \
+            #doctest: +SKIP
 
     options : :class:`qutip.solver`
         options for the ODE solver.

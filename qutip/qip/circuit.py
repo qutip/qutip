@@ -394,7 +394,7 @@ class QubitCircuit:
     ...     mat = np.array([[1.,   0],
     ...                     [0., 1.j]])
     ...     return Qobj(mat, dims=[[2], [2]])
-    >>> qubit_circuit.QubitCircuit(2, user_gates={"T":user_gate})
+    >>> qubit_circuit = QubitCircuit(2, user_gates={"T":user_gate})
     >>> qubit_circuit.add_gate("T", targets=[0])
     """
 
