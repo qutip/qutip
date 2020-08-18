@@ -74,7 +74,7 @@ and we can evaluate it at time `t` by using the :func:`qutip.eseries.esval` func
 .. plot::
   :context:
 
-  # equivalent to es2.value(0.0)
+  >>> # equivalent to es2.value(0.0)
   >>> esval(es2, 0.0)  # doctest: +NORMALIZE_WHITESPACE
   Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = True
   Qobj data =
