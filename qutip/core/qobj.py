@@ -392,6 +392,46 @@ class Qobj:
             raise TypeError('Qobj data must be a data-layer format.')
         self._data = data
 
+    def to(self, data_type):
+        """
+        Convert the underlying data store of this `Qobj` into a different
+        storage representation.
+
+        The different storage representations available are the "data-layer
+        types" which are known to `qutip.data.to`.  By default, these are
+        `qutip.data.Dense` and `qutip.data.CSR`, which respectively construct a
+        dense matrix store and a compressed sparse row one.  Certain algorithms
+        and operations may be faster or more accurate when using a more
+        appropriate data store.
+
+        If the data store is already in the format requested, the function
+        returns `self`.  Otherwise, it returns a copy of itself with the data
+        store in the new type.
+
+        Arguments
+        ---------
+        data_type : type
+            The data-layer type that the data of this `Qobj` should be
+            converted to.
+
+        Returns
+        -------
+        Qobj
+            A new `Qobj` if a type conversion took place with the data stored
+            in the requested format, or `self` if not.
+        """
+        if data_type not in _data.to.dtypes:
+            raise ValueError("Unknown conversion type: " + str(data_type))
+        if type(self.data) is data_type:
+            return self
+        return Qobj(_data.to(data_type, self._data),
+                    dims=self.dims,
+                    type=self.type,
+                    superrep=self.superrep,
+                    isherm=self._isherm,
+                    isunitary=self._isunitary,
+                    copy=False)
+
     @_tidyup
     @_require_equal_type
     def __add__(self, other):
