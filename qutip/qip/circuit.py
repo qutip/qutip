@@ -1748,8 +1748,6 @@ class QubitCircuit:
 class Result:
 
     def __init__(self, states, probabilities):
-<<<<<<< HEAD
-=======
         """
         Store result of ExactSimulator.
 
@@ -1762,32 +1760,16 @@ class Result:
             List of probabilities of obtaining each output state.
         """
 
-<<<<<<< HEAD
->>>>>>> added run_statistics to Simulator
         if isinstance(states, Qobj):
-=======
-        if isinstance(states, Qobj) or states is None:
->>>>>>> bug fixes
             self.states = [states]
             self.probabilities = [probabilities]
         else:
             self.states = states
             self.probabilities = probabilities
 
-<<<<<<< HEAD
     def get_states(self):
-<<<<<<< HEAD
-=======
-=======
-    def get_states(self, index=None):
->>>>>>> small changes
         """
         Return list of output states.
-
-        Parameters
-        ----------
-        index: int
-            Indicates index of output to be returned.
 
         Returns
         ----------
@@ -1795,29 +1777,19 @@ class Result:
             List of output kets or density matrices.
         """
 
-<<<<<<< HEAD
->>>>>>> added run_statistics to Simulator
         if isinstance(self.states, list):
             return self.states
         else:
             return self.states[0]
-=======
-        if index is not None:
-            return self.states[index]
-        return self.states
->>>>>>> small changes
 
     def get_results(self, index=None):
-<<<<<<< HEAD
-        if index:
-=======
         """
         Return list of output states and corresponding probabilities
 
         Parameters
         ----------
         index: int
-            Indicates index of output, probability pair to be returned.
+            Indicates i-th output, probability pair to be returned.
 
         Returns
         -------
@@ -1830,17 +1802,10 @@ class Result:
         """
 
         if index is not None:
->>>>>>> added run_statistics to Simulator
             return self.states[index], self.probabilities[index]
         return self.states, self.probabilities
 
 
-<<<<<<< HEAD
-class Simulator:
-
-    def __init__(self, qc, state, cbits=None, U_list=None, measure_results=None,
-                 mode="state_vector_simulator", precompute_unitary=False):
-=======
 class ExactSimulator:
 
     def __init__(self, qc, state, cbits=None, U_list=None, measure_results=None,
@@ -1879,7 +1844,6 @@ class ExactSimulator:
             gate unitaries. Possibly a faster method in the case of large number
             of repeat runs with different state inputs.
         """
->>>>>>> added run_statistics to Simulator
 
         self.qc = qc
         self.mode = mode
@@ -1896,14 +1860,6 @@ class ExactSimulator:
         self.inds_list = []
 
         if precompute_unitary:
-<<<<<<< HEAD
-            self.process_ops()
-        else:
-            self.add_ops()
-        self.reset(state, cbits, measure_results)
-
-    def add_ops(self):
-=======
             self._process_ops_precompute()
         else:
             self._process_ops()
@@ -1916,7 +1872,6 @@ class ExactSimulator:
         them in self.ops (as unitaries) for further computation.
         '''
 
->>>>>>> added run_statistics to Simulator
         U_list_index = 0
 
         for operation in self.qc.gates:
@@ -1929,16 +1884,12 @@ class ExactSimulator:
                     self.ops.append(self.U_list[U_list_index])
                 U_list_index += 1
 
-<<<<<<< HEAD
-    def process_ops(self):
-=======
     def _process_ops_precompute(self):
         '''
         Process list of gates (including measurements), aggregate
         gate unitaries (by multiplying) and store them in self.ops
         for further computation.
         '''
->>>>>>> added run_statistics to Simulator
 
         prev_index = 0
         U_list_index = 0
@@ -1952,11 +1903,7 @@ class ExactSimulator:
         for operation in self.qc.gates:
             if isinstance(operation, Measurement):
                 if U_list_index > prev_index:
-<<<<<<< HEAD
-                    self.ops.append(self.compute_unitary(
-=======
                     self.ops.append(self._compute_unitary(
->>>>>>> added run_statistics to Simulator
                                     self.U_list[prev_index:U_list_index],
                                     self.inds_list[prev_index:U_list_index]))
                     prev_index = U_list_index
@@ -1966,11 +1913,7 @@ class ExactSimulator:
                 if operation.classical_controls:
                     if U_list_index > prev_index:
                         self.ops.append(
-<<<<<<< HEAD
-                            self.compute_unitary(
-=======
                             self._compute_unitary(
->>>>>>> added run_statistics to Simulator
                                     self.U_list[prev_index:U_list_index],
                                     self.inds_list[prev_index:U_list_index]))
                         prev_index = U_list_index
@@ -1981,19 +1924,12 @@ class ExactSimulator:
                     U_list_index += 1
 
         if U_list_index > prev_index:
-<<<<<<< HEAD
-            self.ops.append(self.compute_unitary(
-=======
             self.ops.append(self._compute_unitary(
->>>>>>> added run_statistics to Simulator
                             self.U_list[prev_index:U_list_index],
                             self.inds_list[prev_index:U_list_index]))
             prev_index = U_list_index + 1
             U_list_index = prev_index
 
-<<<<<<< HEAD
-    def reset(self, state, cbits, measure_results):
-=======
     def initialize_run(self, state, cbits=None, measure_results=None):
         '''
         Reset Simulator state variables to start a new run.
@@ -2015,7 +1951,6 @@ class ExactSimulator:
             set to the tuple of bits (sequentially) instead of being
             chosen at random.
         '''
->>>>>>> added run_statistics to Simulator
 
         if cbits and len(cbits) == self.qc.num_cbits:
             self.cbits = cbits
@@ -2025,23 +1960,16 @@ class ExactSimulator:
         if state.shape[0] != 2 ** self.qc.N:
             raise ValueError("dimension of state is incorrect")
 
-<<<<<<< HEAD
-        self.state = state
-=======
         if self.mode == "density_matrix_simulator" and state.isket:
             self.state = ket2dm(state)
         else:
             self.state = state
 
->>>>>>> added run_statistics to Simulator
         self.probability = 1
         self.op_index = 0
         self.measure_results = measure_results
         self.measure_ind = 0
 
-<<<<<<< HEAD
-    def compute_unitary(self, U_list, inds_list):
-=======
     def _compute_unitary(self, U_list, inds_list):
         '''
         Compute unitary corresponding to a product of unitaries in U_list
@@ -2061,7 +1989,6 @@ class ExactSimulator:
             resultant unitary
         '''
 
->>>>>>> added run_statistics to Simulator
         U_overall, overall_inds = gate_sequence_product(U_list,
                                                         inds_list=inds_list,
                                                         expand=True)
@@ -2073,9 +2000,6 @@ class ExactSimulator:
         return U_overall
 
     def run(self, state, cbits=None, measure_results=None):
-<<<<<<< HEAD
-        self.reset(state, cbits, measure_results=None)
-=======
         '''
         Calculate the result of one instance of circuit run.
 
@@ -2098,15 +2022,10 @@ class ExactSimulator:
         '''
 
         self.initialize_run(state, cbits, measure_results)
->>>>>>> added run_statistics to Simulator
         for _ in range(len(self.ops)):
-            if self.step() is None:
-                break
+            self.step()
         return Result(self.state, self.probability)
 
-<<<<<<< HEAD
-    def step(self):
-=======
     def run_statistics(self, state, cbits=None):
         '''
         This is the circuit run function for num_runs run, must be called after
@@ -2136,9 +2055,7 @@ class ExactSimulator:
                                 self.qc.gates)))
 
         for results in product("01", repeat=num_measurements):
-            input_state = deepcopy(state)
-            inp_cbits = deepcopy(cbits)
-            final_state, probability = self.run(input_state, cbits=inp_cbits,
+            final_state, probability = self.run(state, cbits=cbits,
                                                 measure_results=results).get_results(0)
             states.append(final_state)
             probabilities.append(probability)
@@ -2155,7 +2072,6 @@ class ExactSimulator:
         state : ket or oper
             state after one evolution step.
         '''
->>>>>>> added run_statistics to Simulator
 
         op = self.ops[self.op_index]
         if isinstance(op, Measurement):
@@ -2164,14 +2080,10 @@ class ExactSimulator:
             operation, U = op
             apply_gate = all([self.cbits[i] for i
                               in operation.classical_controls])
-            if apply_gate or self.mode == "density_matrix_simulator":
+            if apply_gate:
                 if self.precompute_unitary:
-<<<<<<< HEAD
-                    U = expand_operator(U, self.qc.N, operation.get_inds(self.qc.N))
-=======
                     U = expand_operator(U, self.qc.N,
                                         operation.get_inds(self.qc.N))
->>>>>>> added run_statistics to Simulator
                 self._evolve_state(U)
         else:
             self._evolve_state(op)
@@ -2180,8 +2092,6 @@ class ExactSimulator:
         return self.state
 
     def _evolve_state(self, U):
-<<<<<<< HEAD
-=======
         '''
         Applies unitary to state.
 
@@ -2191,30 +2101,11 @@ class ExactSimulator:
             unitary to be applied.
         '''
 
->>>>>>> added run_statistics to Simulator
         if self.mode == "state_vector_simulator":
             self._evolve_ket(U)
         elif self.mode == "density_matrix_simulator":
             self._evolve_dm(U)
         else:
-<<<<<<< HEAD
-            raise NotImplementedError("mode {} is not available.".format(self.mode))
-
-    def _evolve_ket(self, U):
-        self.state = U * self.state
-
-    def _evolve_dm(self, U):
-        self.state = U * self.state * U.dag()
-
-    def _apply_measurement(self, operation):
-        states, probabilities = operation.measurement_comp_basis(self.state)
-        if self.measure_results:
-            i = int(self.measure_results[self.measure_ind])
-            self.measure_ind += 1
-        else:
-            i = np.random.choice([0, 1],
-                                 p=[probabilities[0], 1 - probabilities[0]])
-=======
             raise NotImplementedError(
                 "mode {} is not available.".format(self.mode))
 
@@ -2261,20 +2152,13 @@ class ExactSimulator:
             else:
                 i = np.random.choice([0, 1],
                                      p=[probabilities[0], 1 - probabilities[0]])
->>>>>>> added run_statistics to Simulator
             self.probability *= probabilities[i]
             self.state = states[i]
             if operation.classical_store is not None:
                 self.cbits[operation.classical_store] = i
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
 
-=======
->>>>>>> added density matrix test
         elif self.mode == "density_matrix_simulator":
             self.state = sum(p * s for s, p in zip(states, probabilities))
         else:
             raise NotImplementedError(
                 "mode {} is not available.".format(self.mode))
->>>>>>> added run_statistics to Simulator
