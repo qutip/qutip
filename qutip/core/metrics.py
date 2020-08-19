@@ -43,7 +43,6 @@ __all__ = ['fidelity', 'tracedist', 'bures_dist', 'bures_angle',
 import numpy as np
 from scipy import linalg as la
 import scipy.sparse as sp
-from .data import eigs_csr
 from .superop_reps import to_kraus, to_choi, _to_superpauli, to_super
 from .superoperator import operator_to_vector, vector_to_operator
 from .operators import qeye
@@ -187,7 +186,7 @@ def tracedist(A, B, sparse=False, tol=0):
         raise TypeError("A and B do not have same dimensions.")
     diff = A - B
     diff = diff.dag() * diff
-    vals = eigs_csr(diff.data, diff.isherm, vecs=False, sparse=sparse, tol=tol)
+    vals = diff.eigenenergies(sparse=sparse, tol=tol)
     return float(np.real(0.5 * np.sum(np.sqrt(np.abs(vals)))))
 
 
@@ -318,8 +317,7 @@ def hellinger_dist(A, B, sparse=False, tol=0):
     sqrtB = B.proj() if B.isket or B.isbra else B.sqrtm(sparse=sparse, tol=tol)
     product = sqrtA*sqrtB
 
-    eigs = eigs_csr(product.data,
-                    isherm=product.isherm, vecs=False, sparse=sparse, tol=tol)
+    eigs = product.eigenenergies(sparse=sparse, tol=tol)
     # np.maximum() is to avoid nan appearing sometimes due to numerical
     # instabilities causing np.sum(eigs) slightly (~1e-8) larger than 1 when
     # hellinger_dist(A, B) is called for A=B

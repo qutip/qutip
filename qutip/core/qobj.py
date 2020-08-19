@@ -150,7 +150,7 @@ def _require_equal_type(method):
                          type=self.type,
                          superrep=self.superrep,
                          isherm=(scale.imag == 0),
-                         isunitary=(abs(abs(scale) - 1) < settings.core['atol']),
+                         isunitary=(abs(abs(scale)-1) < settings.core['atol']),
                          copy=False)
         if not isinstance(other, Qobj):
             try:
@@ -916,9 +916,14 @@ class Qobj:
         """
         if self.dims[0] != self.dims[1]:
             raise TypeError('sqrt only valid on square matrices')
-        evals, evecs = _data.eigs_csr(self.data, self.isherm,
-                                      sparse=sparse, tol=tol,
-                                      maxiter=maxiter)
+        # TODO: consider another way of handling the dispatch here.
+        if sparse:
+            evals, evecs = _data.eigs_csr(_data.to(_data.CSR, self.data),
+                                          isherm=self._isherm,
+                                          tol=tol, maxiter=maxiter)
+        else:
+            evals, evecs = _data.eigs_dense(_data.to(_data.Dense, self.data),
+                                            isherm=self._isherm)
         evecs = np.hstack(evecs)
         numevals = len(evals)
         dV = scipy.sparse.spdiags(np.sqrt(evals, dtype=complex), 0,
@@ -999,9 +1004,10 @@ class Qobj:
         if self.data.shape[0] != self.data.shape[1]:
             raise TypeError('Invalid operand for matrix inverse')
         if sparse:
-            inv_mat = scipy.sparse.linalg.inv(self.data.as_scipy().tocsc())
+            _sci = _data.to(_data.CSR, self.data).as_scipy().tocsc()
+            inv_mat = scipy.sparse.linalg.inv(_sci)
         else:
-            inv_mat = np.linalg.inv(self.full())
+            inv_mat = np.linalg.inv(self.data.to_array())
         return Qobj(inv_mat,
                     dims=[self.dims[1], self.dims[0]],
                     type=self.type,
@@ -1032,7 +1038,8 @@ class Qobj:
         if inplace:
             self.data /= norm
             self._isherm = self._isherm if norm.imag == 0 else None
-            self._isunitary = (self._isunitary if abs(norm) - 1 < settings.core['atol']
+            self._isunitary = (self._isunitary
+                               if abs(norm) - 1 < settings.core['atol']
                                else None)
             out = self
         else:
@@ -1478,9 +1485,16 @@ class Qobj:
         Use sparse only if memory requirements demand it.
 
         """
-        evals, evecs = _data.eigs_csr(self.data, self.isherm, sparse=sparse,
-                                      sort=sort, eigvals=eigvals, tol=tol,
-                                      maxiter=maxiter)
+        # TODO: consider another way of handling the dispatch here.
+        if sparse:
+            evals, evecs = _data.eigs_csr(_data.to(_data.CSR, self.data),
+                                          isherm=self._isherm,
+                                          sort=sort, eigvals=eigvals, tol=tol,
+                                          maxiter=maxiter)
+        else:
+            evals, evecs = _data.eigs_dense(_data.to(_data.Dense, self.data),
+                                            isherm=self._isherm,
+                                            sort=sort, eigvals=eigvals)
         new_dims = [self.dims[0], [1] * len(self.dims[0])]
         ekets = np.array([Qobj(vec, dims=new_dims, copy=False)
                           for vec in evecs],
@@ -1526,9 +1540,16 @@ class Qobj:
         Use sparse only if memory requirements demand it.
 
         """
-        return _data.eigs_csr(self.data, self.isherm, vecs=False,
-                              sparse=sparse, sort=sort, eigvals=eigvals,
-                              tol=tol, maxiter=maxiter)
+        # TODO: consider another way of handling the dispatch here.
+        if sparse:
+            return _data.eigs_csr(_data.to(_data.CSR, self.data),
+                                  vecs=False,
+                                  isherm=self._isherm,
+                                  sort=sort, eigvals=eigvals,
+                                  tol=tol, maxiter=maxiter)
+        return _data.eigs_dense(_data.to(_data.Dense, self.data),
+                                vecs=False,
+                                isherm=self._isherm, sort=sort, eigvals=eigvals)
 
     def groundstate(self, sparse=False, tol=0, maxiter=100000, safe=True):
         """Ground state Eigenvalue and Eigenvector.
@@ -1559,22 +1580,26 @@ class Qobj:
         The sparse eigensolver is much slower than the dense version.
         Use sparse only if memory requirements demand it.
         """
-        if safe:
-            evals = 2
+        eigvals = 2 if safe else 1
+        # TODO: consider another way of handling the dispatch here.
+        if sparse:
+            evals, evecs = _data.eigs_csr(_data.to(_data.CSR, self.data),
+                                          isherm=self._isherm,
+                                          eigvals=eigvals, tol=tol,
+                                          maxiter=maxiter)
         else:
-            evals = 1
-        grndval, grndvec = _data.eigs_csr(self.data, self.isherm,
-                                          sparse=sparse, eigvals=evals,
-                                          tol=tol, maxiter=maxiter)
+            evals, evecs = _data.eigs_dense(_data.to(_data.Dense, self.data),
+                                            isherm=self._isherm,
+                                            eigvals=eigvals)
         if safe:
             tol = tol or settings.core['atol']
-            if (grndval[1]-grndval[0]) <= 10*tol:
+            if (evals[1]-evals[0]) <= 10*tol:
                 print("WARNING: Ground state may be degenerate. "
                         "Use Q.eigenstates()")
         new_dims = [self.dims[0], [1] * len(self.dims[0])]
-        grndvec = Qobj(grndvec[0], dims=new_dims)
+        grndvec = Qobj(evecs[0], dims=new_dims)
         grndvec = grndvec / grndvec.norm()
-        return grndval[0], grndvec
+        return evals[0], grndvec
 
     def dnorm(self, B=None):
         """Calculates the diamond norm, or the diamond distance to another

@@ -1,12 +1,18 @@
 import numpy as np
 import scipy.linalg
 import scipy.sparse as sp
+
+from .dense import Dense
+from .csr import CSR
+from .properties import isherm as _isherm
 from qutip.settings import settings
-eigh_unsafe = settings.install["eigh_unsafe"]
 
-__all__ = ['eigs_csr']
+__all__ = [
+    'eigs', 'eigs_csr', 'eigs_dense',
+]
 
-if eigh_unsafe:
+
+if settings.install["eigh_unsafe"]:
     def _orthogonalize(vec, other):
         cross = np.sum(np.conj(other) * vec)
         vec -= cross * other
@@ -43,11 +49,12 @@ else:
     eigvalsh = scipy.linalg.eigvalsh
 
 
-def _dense_eigs(data, isherm, vecs, N, eigvals, num_large, num_small):
+def _eigs_dense(data, isherm, vecs, eigvals, num_large, num_small):
     """
     Internal functions for computing eigenvalues and eigenstates for a dense
     matrix.
     """
+    N = data.shape[0]
     kwargs = {}
     if eigvals != 0 and isherm:
         kwargs['eigvals'] = ([0, num_small-1] if num_small
@@ -82,12 +89,12 @@ def _dense_eigs(data, isherm, vecs, N, eigvals, num_large, num_small):
     return np.array(evals), evecs
 
 
-def _sp_eigs(data, isherm, vecs, N, eigvals, num_large, num_small, tol,
-             maxiter):
+def _eigs_csr(data, isherm, vecs, eigvals, num_large, num_small, tol, maxiter):
     """
     Internal functions for computing eigenvalues and eigenstates for a sparse
     matrix.
     """
+    N = data.shape[0]
     big_vals = np.array([])
     small_vals = np.array([])
     evecs = None
@@ -169,37 +176,12 @@ def _sp_eigs(data, isherm, vecs, N, eigvals, num_large, num_small, tol,
     return np.array(evals), (np.array(evecs) if evecs is not None else None)
 
 
-def eigs_csr(data, isherm, vecs=True, sparse=False, sort='low',
-             eigvals=0, tol=0, maxiter=100000):
-    """Returns Eigenvalues and Eigenvectors for a sparse matrix.
-    Uses dense eigen-solver unless user sets sparse=True.
-
-    Parameters
-    ----------
-    data : csr_matrix
-        Input matrix
-    isherm : bool
-        Indicate whether the matrix is hermitian or not
-    vecs : bool {True , False}
-        Flag for requesting eigenvectors
-    sparse : bool {False , True}
-        Flag to use sparse solver
-    sort : str {'low' , 'high}
-        Return lowest or highest eigenvals/vecs
-    eigvals : int
-        Number of eigenvals/vecs to return.  Default = 0 (return all)
-    tol : float
-        Tolerance for sparse eigensolver.  Default = 0 (Machine precision)
-    maxiter : int
-        Max. number of iterations used by sparse sigensolver.
-
-    Returns
-    -------
-    Array of eigenvalues and (by default) array of corresponding Eigenvectors.
-
-    """
+def _eigs_check_shape(data):
     if data.shape[0] != data.shape[1]:
         raise TypeError("Can only diagonalize square matrices")
+
+
+def _eigs_fix_eigvals(data, eigvals, sort):
     N = data.shape[0]
     if eigvals == N:
         eigvals = 0
@@ -214,18 +196,109 @@ def eigs_csr(data, isherm, vecs=True, sparse=False, sort='low',
         num_small += N % 2
     else:  # if user wants only a few eigen vals/vecs
         num_small, num_large = (eigvals, 0) if sort == 'low' else (0, eigvals)
+    return eigvals, num_large, num_small
 
-    # Dispatch to sparse/dense solvers
-    if sparse:
-        evals, evecs = _sp_eigs(data.as_scipy(), isherm, vecs, N, eigvals,
-                                num_large, num_small, tol, maxiter)
-    else:
-        evals, evecs = _dense_eigs(data.to_array(), isherm, vecs, N, eigvals,
-                                   num_large, num_small)
 
-    if sort == 'high':  # flip arrays to largest values first
+def eigs_csr(data, isherm=None, vecs=True, sort='low', eigvals=0,
+             tol=0, maxiter=100000):
+    """
+    Return eigenvalues and eigenvectors for a CSR matrix.  This specialisation
+    may take some extra keyword arguments in addition to the full documentation
+    specified in :func:`.eigs`.
+
+    This method is typically slower and less accurate than the dense eigenvalue
+    solver; you probably want that, unless memory concerns deem it impossible.
+
+    Extra keyword arguments
+    -----------------------
+    tol : float (0)
+        Tolerance for sparse eigensolver.  Sufficiently small tolerances (such
+        as 0) cause the solver to use machine precision.
+    maxiter : int (100_000)
+        Max number of iterations used by sparse eigensolver.
+    """
+    if not isinstance(data, CSR):
+        raise TypeError("expected data in CSR format but got "
+                        + str(type(data)))
+    _eigs_check_shape(data)
+    eigvals, num_large, num_small = _eigs_fix_eigvals(data, eigvals, sort)
+    isherm = isherm if isherm is not None else _isherm(data)
+    evals, evecs = _eigs_csr(data.as_scipy(), isherm, vecs, eigvals,
+                             num_large, num_small, tol, maxiter)
+    if sort == 'high':
+        # Flip arrays around.
         if vecs:
             evecs = np.flipud(evecs)
         evals = np.flipud(evals)
-
     return (evals, evecs) if vecs else evals
+
+
+def eigs_dense(data, isherm=None, vecs=True, sort='low', eigvals=0):
+    """
+    Return eigenvalues and eigenvectors for a Dense matrix.  Takes no special
+    keyword arguments; see the primary documentation in :func:`.eigs`.
+    """
+    if not isinstance(data, Dense):
+        raise TypeError("expected data in Dense format but got "
+                        + str(type(data)))
+    _eigs_check_shape(data)
+    eigvals, num_large, num_small = _eigs_fix_eigvals(data, eigvals, sort)
+    isherm = isherm if isherm is not None else _isherm(data)
+    evals, evecs = _eigs_dense(data.as_ndarray(), isherm, vecs, eigvals,
+                               num_large, num_small)
+    if sort == 'high':
+        # Flip arrays around.
+        if vecs:
+            evecs = np.flipud(evecs)
+        evals = np.flipud(evals)
+    return (evals, evecs) if vecs else evals
+
+
+from .dispatch import Dispatcher as _Dispatcher
+
+# We use eigs_dense as the signature source, since in this case it has the
+# complete signature that we allow, so we don't need to manually set it.
+eigs = _Dispatcher(eigs_dense, name='eigs', inputs=('data',), out=False)
+eigs.__doc__ =\
+    """
+    Return eigenvalues and (optionally) eigenvectors for a data-layer object.
+
+    Some particular specialisations of this function may take additional
+    keyword arguments (such as the CSR solver).  See their particular
+    docstrings for details on those.
+
+    Parameters
+    ----------
+    data : Data
+        Input matrix
+    isherm : bool, optional
+        Indicate whether the matrix is Hermitian or not.  There are special
+        Hermitian eigenvalue and -vector solvers for this case, which will take
+        care of orthonormalisation and ensuring better accuracy.  If this is
+        not specified either way, it will be calculated from the data.
+    vecs : bool, optional (True)
+        Whether the eigenvectors should be returned as well.
+    sort : {'low', 'high'}, optional
+        Sort the output of the eigenvalues and -vectors ordered by the relevant
+        size of the real part of the eigenvalue.  If not all of the eigenvalues
+        are requested, this influences which eigenvalues will be found.
+    eigvals : int, optional
+        Number of eigenvalues and -vectors to return.  If `0`, then returns
+        all.
+
+    Returns
+    -------
+    eigenvalues : np.ndarray
+        The requested eigenvalues, sorted in the expected order.  The dtype is
+        `np.complex128`, unless `isherm=True`, in which case it will be
+        `np.float64`.
+    eigenvectors : 2D np.ndarray
+        Only if `vecs=True`.  An array of the eigenvectors corresponding to the
+        order of the eigenvalues.
+    """
+eigs.add_specialisations([
+    (CSR, eigs_csr),
+    (Dense, eigs_dense),
+], _defer=True)
+
+del _Dispatcher

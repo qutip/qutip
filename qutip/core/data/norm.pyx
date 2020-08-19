@@ -7,12 +7,12 @@ from cpython cimport mem
 
 from scipy.linalg cimport cython_blas as blas
 
-from qutip.core.data cimport csr, dense, CSR, Dense
+from qutip.core.data cimport CSR, Dense, csr, dense
 
 from qutip.core.data.adjoint cimport adjoint_csr, adjoint_dense
 from qutip.core.data.matmul cimport matmul_csr
 
-from qutip.core.data import eigs_csr
+from qutip.core.data import eigs_csr, eigs_dense
 
 cdef extern from *:
     # Not included in Cython for some reason?
@@ -48,8 +48,11 @@ cpdef double trace_csr(CSR matrix, sparse=False, tol=0, maxiter=None) except -1:
     # there's no point attempting to release the GIL.
     cdef CSR op = matmul_csr(matrix, adjoint_csr(matrix))
     cdef size_t i
-    cdef double [::1] eigs = eigs_csr(op, isherm=True, vecs=False,
-                                      sparse=sparse, tol=tol, maxiter=maxiter)
+    cdef double [::1] eigs
+    if sparse:
+        eigs = eigs_csr(op, isherm=True, vecs=False, tol=tol, maxiter=maxiter)
+    else:
+        eigs = eigs_dense(dense.from_csr(op), isherm=True, vecs=False)
     cdef double total = 0
     for i in range(matrix.shape[0]):
         # The abs is technically not part of the definition, but since all
