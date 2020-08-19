@@ -3,6 +3,7 @@
 cimport numpy as cnp
 
 from . cimport base
+from .csr cimport CSR
 
 cdef class Dense(base.Data):
     cdef double complex *data
@@ -26,3 +27,4 @@ cpdef Dense empty_like(Dense other, int fortran=*)
 cpdef Dense zeros(base.idxint rows, base.idxint cols, bint fortran=*)
 cpdef Dense identity(base.idxint dimension, double complex scale=*,
                      bint fortran=*)
+cpdef Dense from_csr(CSR matrix, bint fortran=*)
