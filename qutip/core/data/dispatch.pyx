@@ -146,7 +146,7 @@ cdef class _bind:
         # be passed positionally, which is the case we prefer.  dict.items() is
         # (relatively) expensive, so we use a boolean test for the fast path.
         cdef str kw
-        cdef Py_ssize_t arg
+        cdef object arg
         if kwargs:
             for kw, arg in kwargs.items():
                 try:
