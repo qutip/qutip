@@ -4,21 +4,21 @@
 .. _qip_processor:
 
 Processor for QIP simulation
-===================================
+============================
 
 .. note::
 
    Available from QuTiP 4.5
 
-In addition to direct matrix product, QuTiP also offers another approach to QIP simulation. Based on the open system solver, :class:`qutip.qip.device.Processor` in the :mod:`qutip.qip` module simulates quantum circuits at the level of driving Hamiltonians. One can consider the processor as a simulator of a quantum device, on which the quantum circuit is to be implemented. Like a real quantum device, the processor is determined by a list of Hamiltonians, i.e. the control pulses driving the evolution. Given the intensity of the control pulses and the corresponding time slices for each pulse, the evolution can be calculated using the solver. A control pulse is characterized by :class:`qutip.qip.pulse.Pulse`, consisting of the control Hamiltonian, the targets qubit, the pulse coefficients and the time sequence. We can either use the coefficients as a step function or with cubic spline. For step function, ``tlist`` specifies the start and the end of each pulse and thus is one element longer the ``coeffs``. One example of defining the control pulse coefficients and the time array is as follows:
+Based on the open system solver, :class:`qutip.qip.device.Processor` in the :mod:`qutip.qip` module simulates quantum circuits at the level of driving Hamiltonians. One can consider the processor as a simulator of a quantum device, on which the quantum circuit is to be implemented. Like a real quantum device, the processor is determined by a list of Hamiltonians, i.e. the control pulses driving the evolution. Given the intensity of the control pulses and the corresponding time slices for each pulse, the evolution can be calculated using the solver. A control pulse is characterized by :class:`qutip.qip.pulse.Pulse`, consisting of the control Hamiltonian, the targets qubit, the pulse coefficients and the time sequence. We can either use the coefficients as a step function or with cubic spline. For step function, ``tlist`` specifies the start and the end of each pulse and thus is one element longer the ``coeffs``. One example of defining the control pulse coefficients and the time array is as follows:
 
-.. code-block:: python
+.. testcode::
 
-   >>> from qutip.qip.device import Processor
-   >>> proc = Processor(2)
-   >>> proc.add_control(sigmaz(), cyclic_permutation=True)  # sigmaz for all qubits
-   >>> proc.pulses[0].coeffs = np.array([[1.0, 1.5, 2.0], [1.8, 1.3, 0.8]])
-   >>> proc.pulses[0].tlist = np.array([0.1, 0.2, 0.4, 0.5])
+   from qutip.qip.device import Processor
+   proc = Processor(2)
+   proc.add_control(sigmaz(), cyclic_permutation=True)  # sigmaz for all qubits
+   proc.pulses[0].coeffs = np.array([[1.0, 1.5, 2.0], [1.8, 1.3, 0.8]])
+   proc.pulses[0].tlist = np.array([0.1, 0.2, 0.4, 0.5])
 
 .. note::
 
@@ -65,44 +65,48 @@ The :class:`qutip.qip.device.OptPulseProcessor` uses the function in :func:`quti
 
 To let it find the optimal pulses, we need to give the parameters for :func:`qutip.control.pulseoptim.optimize_pulse_unitary` as keyword arguments to :meth:`qutip.qip.device.OptPulseProcessor.load_circuit`. Usually the minimal requirements are the evolution time ``evo_time`` and the number of time slices ``num_tslots`` for each gate. Other parameters can also be given in the keyword arguments. For available choices, see :func:`qutip.control.pulseoptim.optimize_pulse_unitary`. It is also possible to specify different parameters for different gates, as shown in the following example:
 
-.. code-block:: python
+.. testcode::
 
-      >>> from qutip.qip.device import OptPulseProcessor
-      >>> from qutip.operators import sigmaz, sigmax, sigmay
-      >>> from qutip.tensor import tensor
-      >>>
-      >>> # Same parameter for all the gates
-      ... qc = QubitCircuit(N=1)
-      >>> qc.add_gate("SNOT", 0)
-      >>>
-      >>> num_tslots = 10
-      >>> evo_time = 10
-      >>> processor = OptPulseProcessor(N=1, drift=sigmaz())
-      >>> processor.add_control(sigmax())
-      >>> # num_tslots and evo_time are two keyword arguments
-      ... tlist, coeffs = processor.load_circuit(
-      ... qc, num_tslots=num_tslots, evo_time=evo_time)
-      >>>
-      >>> # Different parameters for different gates
-      ... qc = QubitCircuit(N=2)
-      >>> qc.add_gate("SNOT", 0)
-      >>> qc.add_gate("SWAP", targets=[0, 1])
-      >>> qc.add_gate('CNOT', controls=1, targets=[0])
-      >>>
-      >>> processor = OptPulseProcessor(N=2, drift=tensor([sigmaz()]*2))
-      >>> processor.add_control(sigmax(), cyclic_permutation=True)
-      >>> processor.add_control(sigmay(), cyclic_permutation=True)
-      >>> processor.add_control(tensor([sigmay(), sigmay()]))
-      >>> setting_args = {"SNOT": {"num_tslots": 10, "evo_time": 1},
-      ...                 "SWAP": {"num_tslots": 30, "evo_time": 3},
-      ...                 "CNOT": {"num_tslots": 30, "evo_time": 3}}
-      >>> tlist, coeffs = processor.load_circuit(
-      ... qc, setting_args=setting_args, merge_gates=False)
+      from qutip.qip.device import OptPulseProcessor
+      from qutip.operators import sigmaz, sigmax, sigmay
+      from qutip.tensor import tensor
+
+      # Same parameter for all the gates
+      qc = QubitCircuit(N=1)
+      qc.add_gate("SNOT", 0)
+
+      num_tslots = 10
+      evo_time = 10
+      processor = OptPulseProcessor(N=1, drift=sigmaz())
+      processor.add_control(sigmax())
+      # num_tslots and evo_time are two keyword arguments
+      tlist, coeffs = processor.load_circuit(
+      qc, num_tslots=num_tslots, evo_time=evo_time)
+
+      # Different parameters for different gates
+      qc = QubitCircuit(N=2)
+      qc.add_gate("SNOT", 0)
+      qc.add_gate("SWAP", targets=[0, 1])
+      qc.add_gate('CNOT', controls=1, targets=[0])
+
+      processor = OptPulseProcessor(N=2, drift=tensor([sigmaz()]*2))
+      processor.add_control(sigmax(), cyclic_permutation=True)
+      processor.add_control(sigmay(), cyclic_permutation=True)
+      processor.add_control(tensor([sigmay(), sigmay()]))
+
+      setting_args = {"SNOT": {"num_tslots": 10, "evo_time": 1},
+                      "SWAP": {"num_tslots": 30, "evo_time": 3},
+                      "CNOT": {"num_tslots": 30, "evo_time": 3}}
+
+      tlist, coeffs = processor.load_circuit(
+                      qc, setting_args=setting_args, merge_gates=False)
 
 Noise Simulation
 ================
 
-In the common way of QIP simulation, where evolution is carried out by gate matrix product, the noise is usually simulated with bit flipping and sign flipping errors. The typical approaches are either applying bit/sign flipping gate probabilistically or applying Kraus operators representing different noisy channels (e.g. amplitude damping, dephasing) after each unitary gate evolution. In the case of single qubit, they have the same effect and the parameters in the Kraus operators are exactly the probability of a flipping error happens during the gate operation time.
+In the common way of QIP simulation, where evolution is carried out by gate matrix product, the noise is usually simulated with bit flipping and sign flipping errors.
+The typical approaches are either applying bit/sign flipping gate probabilistically
+or applying Kraus operators representing different noisy channels (e.g. amplitude damping, dephasing) after each unitary gate evolution. In the case of single qubit, they have the same effect and the parameters in the Kraus operators are exactly the probability of a flipping error happens during the gate operation time.
 
 Since the processor simulates the state evolution at the level of the driving Hamiltonian, there is no way to apply an error operator to the continuous time evolution. Instead, the error is added to the driving Hamiltonian list (coherent control error) or the collapse operators (decoherent error) contributing to the evolution. Mathematically, this is no different from adding error channel probabilistically (it is actually how :func:`qutip.mcsolve` works internally). The collapse operator for single-qubit amplitude damping and dephasing are exactly the destroying operator and the sign-flipping operator. One just needs to choose the correct coefficients for them to simulate the noise, e.g. the relaxation time T1 and dephasing time T2. Because it is based on the open system evolution instead of abstract operators, this simulation is closer to the physical implementation and requires less pre-analysis of the system.
 
