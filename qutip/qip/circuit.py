@@ -1762,8 +1762,12 @@ class Result:
             List of probabilities of obtaining each output state.
         """
 
+<<<<<<< HEAD
 >>>>>>> added run_statistics to Simulator
         if isinstance(states, Qobj):
+=======
+        if isinstance(states, Qobj) or states is None:
+>>>>>>> bug fixes
             self.states = [states]
             self.probabilities = [probabilities]
         else:
@@ -2096,7 +2100,8 @@ class ExactSimulator:
         self.initialize_run(state, cbits, measure_results)
 >>>>>>> added run_statistics to Simulator
         for _ in range(len(self.ops)):
-            self.step()
+            if self.step() is None:
+                break
         return Result(self.state, self.probability)
 
 <<<<<<< HEAD
@@ -2131,7 +2136,9 @@ class ExactSimulator:
                                 self.qc.gates)))
 
         for results in product("01", repeat=num_measurements):
-            final_state, probability = self.run(state, cbits=cbits,
+            input_state = deepcopy(state)
+            inp_cbits = deepcopy(cbits)
+            final_state, probability = self.run(input_state, cbits=inp_cbits,
                                                 measure_results=results).get_results(0)
             states.append(final_state)
             probabilities.append(probability)
@@ -2266,7 +2273,6 @@ class ExactSimulator:
 =======
 >>>>>>> added density matrix test
         elif self.mode == "density_matrix_simulator":
-            print("measuring")
             self.state = sum(p * s for s, p in zip(states, probabilities))
         else:
             raise NotImplementedError(
