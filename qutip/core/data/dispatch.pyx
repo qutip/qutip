@@ -330,7 +330,7 @@ cdef class Dispatcher:
     cdef Py_ssize_t _n_dispatch
     cdef readonly dict _lookup
     cdef set _dtypes
-    cdef bint _pass_on_out
+    cdef bint _pass_on_dtype
     cdef readonly tuple inputs
     cdef readonly bint output
     cdef public str __doc__
@@ -409,7 +409,7 @@ cdef class Dispatcher:
         self._specialisations = {}
         self._lookup = {}
         self._n_dispatch = self._parameters.n_inputs + self.output
-        self._pass_on_out = 'out' in self.__signature__.parameters
+        self._pass_on_dtype = 'dtype' in self.__signature__.parameters
         # Add ourselves to the list of dispatchers to be updated.
         _to.dispatchers.append(self)
 
@@ -557,19 +557,17 @@ cdef class Dispatcher:
     def __repr__(self):
         return "<dispatcher: " + self.__text_signature__ + ">"
 
-    def __call__(self, *args, out=None, **kwargs):
+    def __call__(self, *args, dtype=None, **kwargs):
         cdef list args_, dispatch
         cdef dict kwargs_
-        if self._pass_on_out:
-            kwargs['out'] = out
-        if not (self._pass_on_out or self.output) and out is not None:
-            raise TypeError("unknown argument 'out'")
+        if self._pass_on_dtype:
+            kwargs['dtype'] = dtype
+        if not (self._pass_on_dtype or self.output) and dtype is not None:
+            raise TypeError("unknown argument 'dtype'")
         args_, kwargs_ = self._parameters.bind(args, kwargs)
         dispatch = self._parameters.dispatch_types(args_, kwargs_)
-        if self.output and out is not None:
-            if self._pass_on_out:
-                out = type(out)
-            dispatch.append(out)
+        if self.output and dtype is not None:
+            dispatch.append(dtype)
         cdef _constructed_specialisation function
         try:
             function = self._lookup[tuple(dispatch)]
