@@ -7,6 +7,7 @@ from .base import Data
 
 from .add import *
 from .adjoint import *
+from .constant import *
 from .eigen import *
 from .expect import *
 from .expm import *
