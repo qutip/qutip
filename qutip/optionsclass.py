@@ -1,9 +1,9 @@
 from qutip.settings import settings
 
 
-def optionclass(name, parent=settings):
+def optionsclass(name, parent=settings):
     """
-    Use as a decorator to register the option class to `qutip.settings`.
+    Use as a decorator to register the options class to `qutip.settings`.
     The default will be in added to qutip.setting.[parent].name.
 
     The options class should contain an `options` dictionary containing the
@@ -12,7 +12,7 @@ def optionclass(name, parent=settings):
 
     ```
     >>> import qutip
-    >>> @qutip.optionclass("myopt", parent=qutip.settings.solver)
+    >>> @qutip.optionsclass("myopt", parent=qutip.settings.solver)
     >>> class MyOpt():
     >>>     options = {"opt1": True}
     >>>     read_only_options = {"hidden": 1}
@@ -56,22 +56,22 @@ def optionclass(name, parent=settings):
             If used from qutip.settings..., go back to qutip's defaults.
 
     """
-    # The real work is in _QtOptionMaker
+    # The real work is in _QtOptionsMaker
     if isinstance(name, str):
         # Called as
-        # @QtOptionClass(name)
+        # @QtOptionsClass(name)
         # class Options:
-        return _QtOptionMaker(name, parent)
+        return _QtOptionsMaker(name, parent)
     else:
         # Called as
-        # @QtOptionClass
+        # @QtOptionsClass
         # class Options:
-        return _QtOptionMaker(name.__name__, parent)(name)
+        return _QtOptionsMaker(name.__name__, parent)(name)
 
 
-class _QtOptionMaker:
+class _QtOptionsMaker:
     """
-    Apply the `optionclass` decorator.
+    Apply the `optionsclass` decorator.
     """
     def __init__(self, name, parent):
         self.name = name
@@ -79,7 +79,7 @@ class _QtOptionMaker:
 
     def __call__(self, cls):
         if hasattr(cls, "_isDefault"):
-            # Already a QtOptionClass
+            # Already a QtOptionsClass
             return
 
         if not hasattr(cls, "read_only_options"):
@@ -92,8 +92,8 @@ class _QtOptionMaker:
         cls._fullname = ".".join([self.parent._fullname, self.name])
         # Is this instance the default for the other.
         cls._isDefault = False
-        # Childs in the settings tree
-        cls._childs = []
+        # Children in the settings tree
+        cls._children = []
         # Build the default instance
         # Do it before setting __init__ since it use this default
         self._make_default(cls)
@@ -105,7 +105,7 @@ class _QtOptionMaker:
         cls.reset = _reset
         cls.save = _save
         cls.load = _load
-        cls._all_childs = _all_childs
+        cls._all_children = _all_children
 
         return cls
 
@@ -115,9 +115,9 @@ class _QtOptionMaker:
         default = cls()
         default.options = cls.options.copy()
         default._isDefault = True
-        default._childs = []
+        default._children = []
         # The parent has the child twice: attribute and in a list.
-        self.parent._defaultInstance._childs.append(default)
+        self.parent._defaultInstance._children.append(default)
         setattr(self.parent._defaultInstance, self.name, default)
         cls._defaultInstance = default
 
@@ -136,9 +136,9 @@ def __init__(self, file='', *,
 {attributes_set}
     if file:
         self.load(file)
-    for child in self._defaultInstance._childs:
-        self._childs.append(child.__class__(file, **kwargs))
-        setattr(self, child._name, self._childs[-1])
+    for child in self._defaultInstance._children:
+        self._children.append(child.__class__(file, **kwargs))
+        setattr(self, child._name, self._children[-1])
 """
     ns = {}
     exec(code, globals(), ns)
@@ -164,7 +164,7 @@ def _repr(self, _recursive=False):
     out += "\n"
     if _recursive:
          out += "".join([child.__repr__(_recursive)
-                         for child in self._childs])
+                         for child in self._children])
     return out
 
 
@@ -173,16 +173,16 @@ def _reset(self, _recursive=False):
     if self._isDefault:
         self.options = self.__class__.options.copy()
         if _recursive:
-            for child in self._childs:
+            for child in self._children:
                 child.reset()
     else:
         self.options = self._defaultInstance.options.copy()
 
 
-def _all_childs(self):
+def _all_children(self):
     optcls = [self]
-    for child in self._childs:
-         optcls += child._all_childs()
+    for child in self._children:
+         optcls += child._all_children()
     return optcls
 
 
@@ -190,7 +190,7 @@ def _save(self, file="qutiprc", _recursive=False):
     """Save to desired file. 'qutiprc' if not specified"""
     import qutip.configrc as qrc
     if _recursive:
-        optcls = self._all_childs()
+        optcls = self._all_children()
     else:
         optcls = [self]
     qrc.write_rc_object(file, optcls)
@@ -200,7 +200,7 @@ def _load(self, file="qutiprc", _recursive=False):
     """Load from desired file. 'qutiprc' if not specified"""
     import qutip.configrc as qrc
     if _recursive:
-        optcls = self._all_childs()
+        optcls = self._all_children()
     else:
         optcls = [self]
     qrc.load_rc_object(file, optcls)

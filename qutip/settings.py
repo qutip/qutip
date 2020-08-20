@@ -48,21 +48,21 @@ class Settings:
     """
     def __init__(self):
         self._isDefault = True
-        self._childs = []
+        self._children = []
         self._fullname = "qutip.settings"
         self._defaultInstance = self
 
-    def _all_childs(self):
+    def _all_children(self):
         optcls = []
-        for child in self._childs:
-             optcls += child._all_childs()
+        for child in self._children:
+            optcls += child._all_children()
         return optcls
 
     def reset(self):
         """
         Reset all options to qutip's defaults.
         """
-        for child in self._childs:
+        for child in self._children:
             child.reset(True)
 
     def save(self, file="qutiprc"):
@@ -71,7 +71,7 @@ class Settings:
         Use full path to same elsewhere.
         The file 'qutiprc' is loaded when importing qutip.
         """
-        optcls = self._all_childs()
+        optcls = self._all_children()
         qrc.write_rc_object(file, optcls)
 
     def load(self, file="qutiprc"):
@@ -79,11 +79,11 @@ class Settings:
         Load the default in a file in '$HOME/.qutip/'.
         Use full path to same elsewhere.
         """
-        optcls = self._all_childs()
+        optcls = self._all_children()
         qrc.load_rc_object(file, optcls)
 
     def __repr__(self):
-        return "".join(child.__repr__(True) for child in self._childs)
+        return "".join(child.__repr__(True) for child in self._children)
 
 
 settings = Settings()

@@ -191,7 +191,7 @@ def has_rc_object(rc_file, name):
 
 def write_rc_object(rc_file, objs):
     """
-    Writes all keys and values corresponding to one optionclass to a
+    Writes all keys and values corresponding to one optionsclass to a
     qutiprc file.
 
     Parameters
@@ -200,8 +200,8 @@ def write_rc_object(rc_file, objs):
         String specifying file location.
     section : str
         Tags for the saved data.
-    objs : list of optionclass
-        Object to save. Must be decorated with `optionclass`.
+    objs : list of optionsclass
+        Object to save. Must be decorated with `optionsclass`.
     """
     generate_qutiprc(rc_file)
     config = ConfigParser()
@@ -223,7 +223,7 @@ def load_rc_object(rc_file, objs):
     ----------
     rc_file : str
         String specifying file location.
-    obj : list of optionclass
+    obj : list of optionsclass
         Object to overwrite.
     """
     config = ConfigParser()

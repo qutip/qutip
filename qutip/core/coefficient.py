@@ -11,7 +11,7 @@ import shutil
 import numbers
 from collections import defaultdict
 from .. import settings as qset
-from ..optionclass import optionclass
+from ..optionsclass import optionsclass
 from .data import Data
 from .interpolate import Cubic_Spline
 from .cy.coefficient import (InterpolateCoefficient, InterCoefficient,
@@ -137,7 +137,7 @@ def reduce(coeff, args):
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%      Everything under this is for string compilation      %%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-@optionclass("compile", qset.core)
+@optionsclass("compile", qset.core)
 class CompilationOptions:
     """
     Options for compilation.
@@ -176,7 +176,7 @@ class CompilationOptions:
 
     _link_flags = ""
     _compiler_flags = ""
-    if (sys.platform == 'win32'):
+    if sys.platform == 'win32':
         _compiler_flags = ''
     elif sys.platform == 'darwin':
         _compiler_flags = '-w -O3 -funroll-loops -mmacosx-version-min=10.9'
@@ -186,7 +186,7 @@ class CompilationOptions:
 
     options = {
         # use cython for compiling string coefficient
-        "use_cython" : _use_cython,
+        "use_cython": _use_cython,
         # In compiled Coefficient, are int kept as int?
         # None indicate to look for list subscription
         "accept_int": None,
