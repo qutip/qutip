@@ -1760,12 +1760,15 @@ class Result:
             List of probabilities of obtaining each output state.
         """
 
-        if isinstance(states, Qobj):
+        print(states)
+        print(probabilities)
+
+        if isinstance(states, Qobj) or states is None:
             self.states = [states]
             self.probabilities = [probabilities]
         else:
-            self.states = states
-            self.probabilities = probabilities
+            self.states = filter(lambda x: x is not None, states)
+            self.probabilities = filter(lambda x: x != 0, probabilities)
 
     def get_states(self):
         """
@@ -2023,7 +2026,8 @@ class ExactSimulator:
 
         self.initialize_run(state, cbits, measure_results)
         for _ in range(len(self.ops)):
-            self.step()
+            if self.step() is None:
+                break
         return Result(self.state, self.probability)
 
     def run_statistics(self, state, cbits=None):
@@ -2158,6 +2162,8 @@ class ExactSimulator:
                 self.cbits[operation.classical_store] = i
 
         elif self.mode == "density_matrix_simulator":
+            states = filter(states, lambda x: x is not None)
+            probabilities = filter(probabilities, lambda x: x != 0)
             self.state = sum(p * s for s, p in zip(states, probabilities))
         else:
             raise NotImplementedError(
