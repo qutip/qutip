@@ -381,10 +381,10 @@ cdef class Dispatcher:
         if isinstance(inputs, str):
             inputs = (inputs,)
         inputs = tuple(inputs)
-        if inputs == ():
+        if inputs == () and out is False:
             warnings.warn(
                 "No parameters to dispatch on."
-                " Maybe you meant to specify 'inputs'?"
+                " Maybe you meant to specify 'inputs' or 'out'?"
             )
         self.inputs = inputs
         if isinstance(signature_source, inspect.Signature):
