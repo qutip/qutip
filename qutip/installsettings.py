@@ -1,14 +1,14 @@
-from .optionclass import optionclass
+from .optionsclass import optionsclass
 import sys
 import os
 import logging
 import platform
 from .utilities import _blas_info
 
-@optionclass("install")
+@optionsclass("install")
 class InstallSettings:
     """
-    Qutip's settings
+    QuTiP's settings
 
     Options
     -------
@@ -74,8 +74,9 @@ class InstallSettings:
     # ------------------------------------------------------------------------
     # Check if we're in IPython.
     try:
+        __IPYTHON__
         _ipython = True
-    except:
+    except NameError:
         _ipython = False
 
     _eigh_unsafe = (_blas_info() == "OPENBLAS"

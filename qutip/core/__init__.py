@@ -1,4 +1,4 @@
-from .option import *
+from .options import *
 from .coefficient import *
 from .interpolate import *
 from .qobj import *

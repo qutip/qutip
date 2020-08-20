@@ -43,7 +43,7 @@ from collections import OrderedDict
 from types import FunctionType, BuiltinFunctionType
 
 from .. import __version__, Qobj, QobjEvo
-from ..optionclass import optionclass
+from ..optionsclass import optionsclass
 from ..core import data as _data
 
 solver_safe = {}
@@ -142,7 +142,7 @@ class ExpectOps:
         return bool(self.e_num)
 
 
-@optionclass("solver")
+@optionsclass("solver")
 class SolverOptions:
     """
     Class of options for evolution solvers such as :func:`qutip.mesolve` and
@@ -160,7 +160,7 @@ class SolverOptions:
 
     The default can be changed by::
 
-        qutip.settings.options['order'] = 10
+        qutip.settings.solver['order'] = 10
 
     Options
     -------
@@ -236,7 +236,7 @@ class SolverOptions:
     }
 
 
-@optionclass("mcsolve", SolverOptions)
+@optionsclass("mcsolve", SolverOptions)
 class McOptions:
     """
     Class of options for evolution solvers such as :func:`qutip.mesolve` and

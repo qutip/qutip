@@ -1,17 +1,14 @@
-from ..optionclass import optionclass
+from ..optionsclass import optionsclass
 
-__all__ = ["CoreOption"]
+__all__ = ["CoreOptions"]
 
-@optionclass("core")
-class CoreOption:
+@optionsclass("core")
+class CoreOptions:
     """
-    Setting used by the Qobj.
-
-    Value can be changed in qutip.settings.core
+    Settings used by the Qobj.  Values can be changed in qutip.settings.core.
 
     Options
     -------
-
     auto_tidyup : bool
         use auto tidyup
 
