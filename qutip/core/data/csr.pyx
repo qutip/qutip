@@ -418,8 +418,8 @@ cdef class Accumulator:
             position = self.nonzero[i]
             value = self.values[position]
             if value != 0:
-                values[i] = value
-                indices[i] = position
+                values[nnz] = value
+                indices[nnz] = position
                 nnz += 1
         return nnz
 
