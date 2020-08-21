@@ -1054,13 +1054,35 @@ class Qobj:
         return out
 
     @_tidyup
-    def ptrace(self, sel):
+    def ptrace(self, sel, dtype=None):
         """
-        Partial trace of the quantum object.
+        Take the partial trace of the quantum object leaving the selected
+        subspaces.  In other words, trace out all subspaces which are _not_
+        passed.
+
+        This is typically a function which acts on operators; bras and kets
+        will be promoted to density matrices before the operation takes place
+        since the partial trace is inherently undefined on pure states.
+
+        For operators which are currently being represented as states in the
+        superoperator formalism (i.e. the object has type `operator-ket` or
+        `operator-bra`), the partial trace is applied as if the operator were
+        in the conventional form.  This means that for any operator `x`,
+            operator_to_vector(x).ptrace(0) == operator_to_vector(x.ptrace(0))
+        and similar for `operator-bra`.
+
+        The story is different for full superoperators.  In the formalism that
+        QuTiP uses, if an operator has dimensions (`dims`) of
+        `[[2, 3], [2, 3]]` then it can be represented as a state on a Hilbert
+        space of dimensions `[2, 3, 2, 3]`, and a superoperator would be an
+        operator which acts on this joint space.  This function performs the
+        partial trace on superoperators by letting the selected components
+        refer to elements of the _joint space_, and then returns a regular
+        operator (of type `oper`).
 
         Parameters
         ----------
-        sel : int/list
+        sel : int or iterable of int
             An ``int`` or ``list`` of components to keep after partial trace.
             The selected subspaces will _not_ be reordered, no matter order
             they are supplied to `ptrace`.
@@ -1071,7 +1093,6 @@ class Qobj:
             Quantum object representing partial trace with selected components
             remaining.
         """
-        # TODO: reorganise ptrace functions into proper data layer bits.
         try:
             sel = sorted(sel)
         except TypeError:
@@ -1080,18 +1101,29 @@ class Qobj:
                     "selection must be an integer or list of integers"
                 ) from None
             sel = [sel]
-        data = self.data
-        if self.isket or self.isbra:
+        if self.isoperket:
+            dims = self.dims[0]
+            data = vector_to_operator(self).data
+        elif self.isoperbra:
+            dims = self.dims[1]
+            data = vector_to_operator(self.dag()).data
+        elif self.issuper or self.isoper:
+            dims = self.dims
+            data = self.data
+        else:
+            dims = [self.dims[0] if self.isket else self.dims[1]] * 2
             data = _data.project(self.data)
-        dims = self.dims[1] if self.isbra else self.dims[0]
-        new_data = _data.ptrace(data, dims, sel)
+        if dims[0] != dims[1]:
+            raise ValueError("partial trace is not defined on non-square maps")
+        dims = flatten(dims[0])
+        new_data = _data.ptrace(data, dims, sel, dtype=dtype)
         new_dims = [[dims[x] for x in sel]] * 2
-        # TODO: how is the partial trace of a superoperator defined?  Why is it
-        # of type 'oper' not 'super'?
-        return Qobj(new_data,
-                    dims=new_dims,
-                    type='oper',
-                    copy=False)
+        out = Qobj(new_data, dims=new_dims, type='oper', copy=False)
+        if self.isoperket:
+            return operator_to_vector(out)
+        if self.isoperbra:
+            return operator_to_vector(out).dag()
+        return out
 
     def contract(self, inplace=False):
         """
