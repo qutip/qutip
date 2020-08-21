@@ -1709,6 +1709,8 @@ class Qobj:
                         copy=False)
         # We use the condition from John Watrous' lecture notes,
         # Tr_1(J(Phi)) = identity_2.
+        # See: https://cs.uwaterloo.ca/~watrous/LectureNotes.html,
+        # Theory of Quantum Information (Fall 2011), theorem 5.4.
         tr_oper = qobj.ptrace([0])
         return np.allclose(tr_oper.full(), np.eye(tr_oper.shape[0]),
                            atol=settings.core['atol'])
