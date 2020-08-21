@@ -19,11 +19,10 @@ __all__ = [
 
 cpdef CSR tidyup_csr(CSR matrix, double tol, bint inplace=True):
     cdef bint re, im
-    cdef size_t row, ptr, ptr_start, ptr_end=0, nnz_new, nnz_orig
+    cdef size_t row, ptr, ptr_start, ptr_end=0, nnz
     cdef double complex value
     cdef CSR out = matrix if inplace else matrix.copy()
-    nnz_new = 0
-    nnz_orig = csr.nnz(matrix)
+    nnz = 0
     out.row_index[0] = 0
     for row in range(matrix.shape[0]):
         ptr_start, ptr_end = ptr_end, matrix.row_index[row + 1]
@@ -37,12 +36,10 @@ cpdef CSR tidyup_csr(CSR matrix, double tol, bint inplace=True):
                 im = True
                 value.imag = 0
             if not (re & im):
-                out.data[nnz_new] = value
-                out.col_index[nnz_new] = matrix.col_index[ptr]
-                nnz_new += 1
-        out.row_index[row + 1] = nnz_new
-    if nnz_new == nnz_orig:
-        return out
+                out.data[nnz] = value
+                out.col_index[nnz] = matrix.col_index[ptr]
+                nnz += 1
+        out.row_index[row + 1] = nnz
     return out
 
 
