@@ -761,14 +761,14 @@ cdef CSR from_coo_pointers(
     # some zeros of duplicates).  Remember we also need to shift the row_index
     # array back to what it was before as well.
     cdef Accumulator accumulator = Accumulator(n_cols)
-    ptr_in = 0
+    ptr_out = 0
     ptr_prev = 0
     for row in range(n_rows):
-        for ptr_out in range(ptr_prev, out.row_index[row]):
-            accumulator.scatter(data_tmp[ptr_out], cols_tmp[ptr_out])
+        for ptr_in in range(ptr_prev, out.row_index[row]):
+            accumulator.scatter(data_tmp[ptr_in], cols_tmp[ptr_in])
         ptr_prev = out.row_index[row]
-        out.row_index[row] = ptr_in
-        ptr_in += accumulator.gather(out.data + ptr_in, out.col_index + ptr_in)
+        out.row_index[row] = ptr_out
+        ptr_out += accumulator.gather(out.data + ptr_out, out.col_index + ptr_out)
         accumulator.reset()
-    out.row_index[n_rows] = ptr_in
+    out.row_index[n_rows] = ptr_out
     return out
