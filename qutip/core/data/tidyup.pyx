@@ -5,15 +5,14 @@ from libc.math cimport fabs
 
 cimport numpy as cnp
 
-from qutip.core.data cimport csr
-from qutip.core.data.csr cimport CSR
+from qutip.core.data cimport csr, dense, CSR, Dense
 
 cdef extern from "<complex>" namespace "std" nogil:
     # abs is templated such that Cython treats std::abs as complex->complex
     double abs(double complex x)
 
 __all__ = [
-    'tidyup', 'tidyup_csr',
+    'tidyup', 'tidyup_csr', 'tidyup_dense',
 ]
 
 
@@ -40,6 +39,19 @@ cpdef CSR tidyup_csr(CSR matrix, double tol, bint inplace=True):
                 out.col_index[nnz] = matrix.col_index[ptr]
                 nnz += 1
         out.row_index[row + 1] = nnz
+    return out
+
+
+cpdef Dense tidyup_dense(Dense matrix, double tol, bint inplace=True):
+    cdef Dense out = matrix if inplace else matrix.copy()
+    cdef double complex value
+    cdef size_t ptr
+    for ptr in range(matrix.shape[0] * matrix.shape[1]):
+        value = matrix.data[ptr]
+        if fabs(value.real) < tol:
+            matrix.data[ptr].real = 0
+        if fabs(value.imag) < tol:
+            matrix.data[ptr].imag = 0
     return out
 
 
@@ -88,6 +100,7 @@ tidyup.__doc__ =\
     """
 tidyup.add_specialisations([
     (CSR, tidyup_csr),
+    (Dense, tidyup_dense),
 ], _defer=True)
 
 del _inspect, _Dispatcher
