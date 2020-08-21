@@ -84,7 +84,7 @@ cdef idxint _matmul_csr_estimate_nnz(CSR left, CSR right):
     return nnz
 
 
-cpdef CSR matmul_csr(CSR left, CSR right, CSR out=None, double complex scale=1.0):
+cpdef CSR matmul_csr(CSR left, CSR right, double complex scale=1, CSR out=None):
     """
     Multiply two CSR matrices together to produce another CSR.  If `out` is
     specified, it must be pre-allocated with enough space to hold the output
@@ -165,8 +165,8 @@ cpdef CSR matmul_csr(CSR left, CSR right, CSR out=None, double complex scale=1.0
     return out
 
 
-cpdef Dense matmul_csr_dense_dense(CSR left, Dense right, Dense out=None,
-                                   double complex scale=1.0):
+cpdef Dense matmul_csr_dense_dense(CSR left, Dense right,
+                                   double complex scale=1, Dense out=None):
     """
     Perform the operation
         ``out := scale * (left @ right) + out``
@@ -221,7 +221,7 @@ cpdef Dense matmul_csr_dense_dense(CSR left, Dense right, Dense out=None,
     return tmp
 
 
-cpdef Dense matmul_dense(Dense left, Dense right, Dense out=None, double complex scale=1):
+cpdef Dense matmul_dense(Dense left, Dense right, double complex scale=1, Dense out=None):
     """
     Perform the operation
         ``out := scale * (left @ right) + out``
@@ -295,6 +295,8 @@ matmul = _Dispatcher(
     _inspect.Signature([
         _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
         _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('scale', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                           default=1),
     ]),
     name='matmul',
     module=__name__,
@@ -303,7 +305,10 @@ matmul = _Dispatcher(
 )
 matmul.__doc__ =\
     """
-    Compute the matrix multiplication of two matrices.
+    Compute the matrix multiplication of two matrices, with the operation
+        scale * (left @ right)
+    where `scale` is (optionally) a scalar, and `left` and `right` are
+    matrices.
 
     Arguments
     ---------
@@ -312,6 +317,9 @@ matmul.__doc__ =\
 
     right : Data
         The right operand as a ket matrix.
+
+    scale : complex, optional
+        The scalar to multiply the output by.
     """
 matmul.add_specialisations([
     (CSR, CSR, CSR, matmul_csr),
