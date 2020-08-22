@@ -39,7 +39,6 @@ from .. import (
     Qobj, expect, spre, spost, stack_columns, unstack_columns, liouvillian,
 )
 from ..core import data as _data
-from ..core.data.norm import l2_dense as norm
 from .solver import Result, SolverOptions
 from ..parallel import serial_map
 from ..ui.progressbar import TextProgressBar
@@ -442,7 +441,7 @@ def _ssepdpsolve_single_trajectory(data, Heff, dt, times, N_store, N_substeps, p
 
         if e_ops:
             for e_idx, e in enumerate(e_ops):
-                s = _data.expect_csr_dense(e, psi_t)
+                s = _data.expect(e, psi_t)
                 data.expect[e_idx, t_idx] += s
                 data.ss[e_idx, t_idx] += s ** 2
         else:
@@ -450,18 +449,18 @@ def _ssepdpsolve_single_trajectory(data, Heff, dt, times, N_store, N_substeps, p
 
         for j in range(N_substeps):
 
-            if norm(phi_t) ** 2 < r_jump:
+            if _data.norm.l2(phi_t) ** 2 < r_jump:
                 # jump occurs
                 p = np.array([
-                    norm(_data.matmul_csr_dense_dense(c.data, psi_t)) ** 2
+                    _data.norm.l2(_data.matmul(c.data, psi_t)) ** 2
                     for c in c_ops
                 ])
                 p = np.cumsum(p / np.sum(p))
                 n = np.where(p >= r_op)[0][0]
 
                 # apply jump
-                psi_t = _data.matmul_csr_dense_dense(c_ops[n].data, psi_t)
-                psi_t /= norm(psi_t)
+                psi_t = _data.matmul(c_ops[n].data, psi_t)
+                psi_t /= _data.norm.l2(psi_t)
                 phi_t = psi_t.copy()
 
                 # store info about jump
@@ -472,23 +471,23 @@ def _ssepdpsolve_single_trajectory(data, Heff, dt, times, N_store, N_substeps, p
                 r_jump, r_op = prng.rand(2)
 
             # deterministic evolution wihtout correction for norm decay
-            dphi_t = (-1j*dt) * _data.matmul_csr_dense_dense(Heff.data, phi_t)
+            dphi_t = (-1j*dt) * _data.matmul(Heff.data, phi_t)
 
             # deterministic evolution with correction for norm decay
-            dpsi_t = (-1j*dt) * _data.matmul_csr_dense_dense(Heff.data, psi_t)
+            dpsi_t = (-1j*dt) * _data.matmul(Heff.data, psi_t)
             A = 0.5 * np.sum([
-                norm(_data.matmul_csr_dense_dense(c.data, psi_t)) ** 2
+                _data.norm.l2(_data.matmul(c.data, psi_t)) ** 2
                 for c in c_ops
             ])
-            dpsi_t += dt * A * psi_t
+            dpsi_t = _data.add(dpsi_t, psi_t, scale=dt*A)
 
             # increment wavefunctions
-            phi_t += dphi_t
-            psi_t += dpsi_t
+            phi_t = _data.add(phi_t, dphi_t)
+            psi_t = _data.add(psi_t, dpsi_t)
 
             # ensure that normalized wavefunction remains normalized
             # this allows larger time step than otherwise would be possible
-            psi_t /= norm(psi_t)
+            psi_t = _data.mul(psi_t, 1/_data.norm.l2(psi_t))
 
     return states_list, jump_times, jump_op_idx
 
@@ -571,7 +570,7 @@ def _smepdpsolve_single_trajectory(data, L, dt, times, N_store, N_substeps, rho_
         if e_ops:
             for e_idx, e in enumerate(e_ops):
                 data.expect[e_idx, t_idx] +=\
-                    _data.expect_super_csr_dense(e, rho_t)
+                    _data.expect_super(e, rho_t)
         else:
             states_list.append(Qobj(unstack_columns(rho_t), dims=dims))
 
@@ -596,15 +595,13 @@ def _smepdpsolve_single_trajectory(data, L, dt, times, N_store, N_substeps, rho_
                 r_jump, r_op = prng.rand(2)
 
             # deterministic evolution wihtout correction for norm decay
-            dsigma_t = _data.matmul_csr_dense_dense(L.data, sigma_t) * dt
+            dsigma_t = _data.matmul(L.data, sigma_t) * dt
 
             # deterministic evolution with correction for norm decay
-            drho_t = _data.matmul_csr_dense_dense(L.data, rho_t) * dt
-
-            rho_t += drho_t
+            drho_t = _data.matmul(L.data, rho_t) * dt
 
             # increment density matrices
-            sigma_t += dsigma_t
-            rho_t += drho_t
+            sigma_t = _data.add(sigma_t, dsigma_t)
+            rho_t = _data.add(rho_t, drho_t)
 
     return states_list, jump_times, jump_op_idx

@@ -238,9 +238,9 @@ def _sesolve_rhs_func(t, y, H_func, args, oper, with_state):
     y = _data.dense.fast_from_numpy(y)
     if oper:
         ym = _data.column_unstack_dense(y, H.shape[1], inplace=True)
-        out = _data.matmul_csr_dense_dense(H, ym, scale=-1j)
+        out = _data.matmul(H, ym, scale=-1j)
         return _data.column_stack_dense(out, inplace=True).as_ndarray()
-    return _data.matmul_csr_dense_dense(H, y, scale=-1j).as_ndarray()
+    return _data.matmul(H, y, scale=-1j, dtype=_data.Dense).as_ndarray()
 
 
 # -----------------------------------------------------------------------------
@@ -348,7 +348,7 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
                 initial = _data.column_stack_dense(cdata, inplace=False)
                 r.set_initial_value(initial.as_ndarray(), r.t)
             else:
-                norm = _data.norm.l2_dense(cdata)
+                norm = _data.norm.l2(cdata)
                 if abs(norm - 1) > 1e-12:
                     # only reset the solver if state changed
                     cdata /= norm
@@ -357,19 +357,16 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
                     r._y = cdata.as_ndarray()
 
         if opt['store_states']:
-            # TODO: fix Qobj creation
-            output.states.append(Qobj(cdata.as_ndarray(),
+            output.states.append(Qobj(cdata,
                                       dims=dims, type=psi0.type))
 
         if expt_callback:
             # use callback method
-            # TODO: fix Qobj creation
-            output.expect.append(e_ops(t, Qobj(cdata.as_ndarray(),
+            output.expect.append(e_ops(t, Qobj(cdata,
                                                dims=dims, type=psi0.type)))
 
-        # TODO: fix dispatch
         for m in range(n_expt_op):
-            val = _data.expect_csr_dense(e_ops_data[m], cdata)
+            val = _data.expect(e_ops_data[m], cdata)
             if e_ops[m].isherm:
                 val = val.real
             output.expect[m][t_idx] = val
@@ -384,6 +381,6 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
         if opt['normalize_output']:
             cdata_nd = cdata.as_ndarray()
             cdata_nd /= la_norm(cdata_nd, axis=0)
-        output.final_state = Qobj(cdata.as_ndarray(), dims=dims)
+        output.final_state = Qobj(cdata, dims=dims)
 
     return output

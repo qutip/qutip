@@ -153,7 +153,7 @@ def rand_herm(N, density=0.75, dims=None, pos_def=False, seed=None):
     if seed is not None:
         np.random.seed(seed=seed)
     if isinstance(N, (np.ndarray, list)):
-        M = _data.create(sp.diags(N, 0, dtype=complex, format='csr'))
+        M = _data.CSR(sp.diags(N, 0, dtype=complex, format='csr'))
         N = len(N)
         if dims:
             _check_dims(dims, N, N)
@@ -239,7 +239,6 @@ def rand_unitary(N, density=0.75, dims=None, seed=None):
     if dims:
         _check_dims(dims, N, N)
     U = (-1.0j * rand_herm(N, density, seed=seed)).expm()
-    U.data.sort_indices()
     return Qobj(U,
                 dims=dims or [[N], [N]],
                 type='oper',
@@ -335,7 +334,7 @@ def rand_ket(N=0, density=1, dims=None, seed=None):
     Y = X.copy()
     Y.data = 1.0j * (np.random.random(len(X.data)) - 0.5)
     X = _data.csr.CSR(X + Y)
-    return Qobj(X / _data.norm.l2_csr(X),
+    return Qobj(X / _data.norm.l2(X),
                 dims=dims,
                 copy=False,
                 type='ket',

@@ -193,14 +193,13 @@ def ttmsolve(dynmaps, rho0, times, e_ops=[], learningtimes=None, tensors=None,
             if expt_callback:
                 # use callback method
                 e_ops(times[i], states[i])
-        rdata = _data.column_stack_csr(r.data)
+        rdata = _data.column_stack(r.data)
         for m in range(n_expt_op):
             if output.expect[m].dtype == complex:
-                output.expect[m][i] = _data.expect_super_csr(e_sops_data[m],
-                                                             rdata)
+                output.expect[m][i] = _data.expect_super(e_sops_data[m], rdata)
             else:
-                output.expect[m][i] = _data.expect_super_csr(e_sops_data[m],
-                                                             rdata).real
+                output.expect[m][i] =\
+                    _data.expect_super(e_sops_data[m], rdata).real
 
     output.solver = "ttmsolve"
     output.times = times

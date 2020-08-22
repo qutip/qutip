@@ -98,7 +98,7 @@ def _single_qobj_expect(oper, state):
             + str(oper.dims[1]) + " and " + str(state.dims[0])
         )
         raise ValueError(msg)
-    out = _data.expect_csr(oper.data, state.data)
+    out = _data.expect(oper.data, state.data)
     return out.real if oper.isherm and (state.isket or state.isherm) else out
 
 

@@ -125,7 +125,7 @@ def wigner_transform(psi, j, fullparity, steps, slicearray):
         for p in range(steps):
             kernel = _kernelsu2(theta[:, t], phi[:, p], N, j, pari, fullparity)
             kernel = _data.dense.fast_from_numpy(kernel)
-            wigner[t, p] = _data.expect_csr_dense(rho.data, kernel).real
+            wigner[t, p] = _data.expect(rho.data, kernel).real
     return wigner
 
 
@@ -504,7 +504,7 @@ def _wigner_clenshaw(rho, xvec, yvec, g=sqrt(2), sparse=False):
             w0 = _wig_laguerre_val(L, B, np.diag(rho, L)) + w0 * A2 * (L+1)**-0.5
     else:
         # TODO: fix dispatch.
-        _rho = rho.data.as_scipy()
+        _rho = _data.to(_data.CSR, rho.data).as_scipy()
         while L > 0:
             L -= 1
             diag = _rho.diagonal(L)

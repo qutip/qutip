@@ -284,8 +284,8 @@ def propagator_steadystate(U):
     shifted_vals = np.abs(evals - 1.0)
     ev_idx = np.argmin(shifted_vals)
     rho_data = unstack_columns(estates[ev_idx].data)
-    rho_data *= 0.5 / _data.trace_csr(rho_data)
-    return Qobj(rho_data + rho_data.adjoint(),
+    rho_data = _data.mul(rho_data, 0.5 / _data.trace(rho_data))
+    return Qobj(_data.add(rho_data, _data.adjoint(rho_data)),
                 dims=U.dims[0],
                 type='oper',
                 isherm=True,

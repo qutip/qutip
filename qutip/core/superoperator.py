@@ -120,7 +120,7 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
     sop_dims = [[op_dims[0], op_dims[0]], [op_dims[1], op_dims[1]]]
     sop_shape = [np.prod(op_dims), np.prod(op_dims)]
 
-    spI = _data.csr.identity(op_shape[0])
+    spI = _data.identity(op_shape[0])
 
     td = False
     L = None
@@ -135,13 +135,13 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
 
     elif isinstance(H, Qobj):
         if H.isoper:
-            data = -1j * _data.kron_csr(spI, H.data)
-            data = _data.add_csr(data, _data.kron_csr(H.data.transpose(), spI),
-                                 scale=1j)
+            data = -1j * _data.kron(spI, H.data)
+            data = _data.add(data, _data.kron(H.data.transpose(), spI),
+                             scale=1j)
         else:
             data = H.data
     else:
-        data = _data.csr.zeros(*sop_shape)
+        data = _data.zeros(*sop_shape)
 
     td_c_ops = []
     for idx, c_op in enumerate(c_ops):
@@ -164,12 +164,12 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
             cd = c_.data.adjoint()
             c = c_.data
             if chi:
-                data += np.exp(1j*chi[idx]) * _data.kron_csr(c.conj(), c)
+                data += np.exp(1j*chi[idx]) * _data.kron(c.conj(), c)
             else:
-                data += _data.kron_csr(c.conj(), c)
+                data += _data.kron(c.conj(), c)
             cdc = cd @ c
-            data -= _data.kron_csr(0.5*spI, cdc)
-            data -= _data.kron_csr(cdc.transpose(), 0.5*spI)
+            data -= _data.kron(0.5*spI, cdc)
+            data -= _data.kron(cdc.transpose(), 0.5*spI)
 
     if data_only and not td:
         return data
@@ -276,12 +276,9 @@ def stack_columns(matrix):
         raise TypeError(
             "input " + repr(type(matrix)) + " is not data-layer type"
         )
-    # TODO: proper dispatch.
     if isinstance(matrix, np.ndarray):
         return matrix.ravel('F')[:, None]
-    if isinstance(matrix, _data.CSR):
-        return _data.column_stack_csr(matrix)
-    return _data.column_stack_dense(matrix)
+    return _data.column_stack(matrix)
 
 
 def unstack_columns(vector, shape=None):
@@ -308,12 +305,9 @@ def unstack_columns(vector, shape=None):
                 "input cannot be made square, but no specific shape given"
             )
         shape = (n, n)
-    # TODO: proper dispatch.
     if isinstance(vector, np.ndarray):
         return vector.reshape(shape, order='F')
-    if isinstance(vector, _data.CSR):
-        return _data.column_unstack_csr(vector, shape[0])
-    return _data.column_unstack_dense(vector, shape[0])
+    return _data.column_unstack(vector, shape[0])
 
 
 def unstacked_index(size, index):
@@ -349,8 +343,8 @@ def spost(A):
     """
     if not A.isoper:
         raise TypeError('Input is not a quantum operator')
-    data = _data.kron_csr(A.data.transpose(),
-                          _data.csr.identity(A.shape[0]))
+    data = _data.kron(A.data.transpose(),
+                      _data.identity(A.shape[0], dtype=type(A.data)))
     return Qobj(data,
                 dims=[A.dims, A.dims],
                 type='super',
@@ -375,8 +369,7 @@ def spre(A):
     """
     if not A.isoper:
         raise TypeError('Input is not a quantum operator')
-    data = _data.kron_csr(_data.csr.identity(A.shape[0]),
-                          A.data)
+    data = _data.kron(_data.identity(A.shape[0], dtype=type(A.data)), A.data)
     return Qobj(data,
                 dims=[A.dims, A.dims],
                 type='super',
@@ -417,7 +410,7 @@ def sprepost(A, B):
              _drop_projected_dims(B.dims[1])],
             [_drop_projected_dims(A.dims[1]),
              _drop_projected_dims(B.dims[0])]]
-    return Qobj(_data.kron_csr(B.data.transpose(), A.data),
+    return Qobj(_data.kron(B.data.transpose(), A.data),
                 dims=dims,
                 type='super',
                 superrep='super',
