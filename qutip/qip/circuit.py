@@ -1536,6 +1536,8 @@ class QubitCircuit:
                 self.U_list.append(snot())
             elif gate.name == "PHASEGATE":
                 self.U_list.append(phasegate(gate.arg_value))
+            elif gate.name == "QASMU":
+                self.U_list.append(qasmu_gate(gate.arg_value))
             elif gate.name == "CRX":
                 self.U_list.append(controlled_gate(rx(gate.arg_value)))
             elif gate.name == "CRY":
@@ -1568,19 +1570,24 @@ class QubitCircuit:
                 self.U_list.append(globalphase(gate.arg_value, n))
             elif gate.name in self.user_gates:
                 if gate.controls is not None:
-                    raise ValueError(
-                        "A user defined gate {} takes only  "
-                        "`targets` variable.".format(gate.name))
-                func = self.user_gates[gate.name]
-                para_num = len(inspect.getfullargspec(func)[0])
-                if para_num == 0:
-                    oper = func()
-                elif para_num == 1:
-                    oper = func(gate.arg_value)
+                    raise ValueError("A user defined gate {} takes only  "
+                                     "`targets` variable.".format(gate.name))
+                func_or_oper = self.user_gates[gate.name]
+                if inspect.isfunction(func_or_oper):
+                    func = func_or_oper
+                    para_num = len(inspect.getfullargspec(func)[0])
+                    if para_num == 0:
+                        oper = func()
+                    elif para_num == 1:
+                        oper = func(gate.arg_value)
+                    else:
+                        raise ValueError(
+                                "gate function takes at most one parameters.")
+                elif isinstance(func_or_oper, Qobj):
+                    oper = func_or_oper
                 else:
-                    raise ValueError(
-                        "gate function takes at most one parameters.")
-                self.U_list.append(expand_operator(oper))
+                    raise ValueError("gate is neither function nor operator")
+                self.U_list.append(oper)
             else:
                 raise NotImplementedError(
                     "{} gate is an unknown gate.".format(gate.name))
@@ -1747,7 +1754,7 @@ class QubitCircuit:
 
 class Result:
 
-    def __init__(self, states, probabilities):
+    def __init__(self, states, probabilities, cbits=None):
         """
         Store result of ExactSimulator.
 
@@ -1760,15 +1767,17 @@ class Result:
             List of probabilities of obtaining each output state.
         """
 
-        print(states)
-        print(probabilities)
-
         if isinstance(states, Qobj) or states is None:
             self.states = [states]
             self.probabilities = [probabilities]
+            if cbits:
+                self.cbits = [cbits]
         else:
-            self.states = filter(lambda x: x is not None, states)
-            self.probabilities = filter(lambda x: x != 0, probabilities)
+            inds = list(filter(lambda x: states[x] is not None, range(len(states))))
+            self.states = [states[i] for i in inds]
+            self.probabilities = [probabilities[i] for i in inds]
+            if cbits:
+                self.cbits = [cbits[i] for i in inds]
 
     def get_states(self):
         """
@@ -1808,13 +1817,36 @@ class Result:
             return self.states[index], self.probabilities[index]
         return self.states, self.probabilities
 
+    def get_cbits(self, index=None):
+        """
+        Return list of output states and corresponding probabilities
+
+        Parameters
+        ----------
+        index: int
+            Indicates i-th output, probability pair to be returned.
+
+        Returns
+        -------
+        states: Qobj or list of Qobj
+            Possible output states.
+
+        probabilities: float or list of float
+            Probabilities associated with each output state.
+
+        """
+
+        if index is not None:
+            return self.cbits[index]
+        return self.cbits
+
 
 class ExactSimulator:
 
-    def __init__(self, qc, state, cbits=None, U_list=None, measure_results=None,
+    def __init__(self, qc, state=None, cbits=None, U_list=None, measure_results=None,
                  mode="state_vector_simulator", precompute_unitary=False):
         """
-        Store result of ExactSimulator.
+        Simulate state evolution for Quantum Circuits.
 
         Parameters
         ----------
@@ -1933,7 +1965,7 @@ class ExactSimulator:
             prev_index = U_list_index + 1
             U_list_index = prev_index
 
-    def initialize_run(self, state, cbits=None, measure_results=None):
+    def initialize_run(self, state=None, cbits=None, measure_results=None):
         '''
         Reset Simulator state variables to start a new run.
 
@@ -1957,16 +1989,20 @@ class ExactSimulator:
 
         if cbits and len(cbits) == self.qc.num_cbits:
             self.cbits = cbits
-        else:
+        elif self.qc.num_cbits > 0:
             self.cbits = [0] * self.qc.num_cbits
-
-        if state.shape[0] != 2 ** self.qc.N:
-            raise ValueError("dimension of state is incorrect")
-
-        if self.mode == "density_matrix_simulator" and state.isket:
-            self.state = ket2dm(state)
         else:
-            self.state = state
+            self.cbits = None
+
+        self.state = None
+
+        if state is not None:
+            if state.shape[0] != 2 ** self.qc.N:
+                raise ValueError("dimension of state is incorrect")
+            if self.mode == "density_matrix_simulator" and state.isket:
+                self.state = ket2dm(state)
+            else:
+                self.state = state
 
         self.probability = 1
         self.op_index = 0
@@ -2028,7 +2064,7 @@ class ExactSimulator:
         for _ in range(len(self.ops)):
             if self.step() is None:
                 break
-        return Result(self.state, self.probability)
+        return Result(self.state, self.probability, self.cbits)
 
     def run_statistics(self, state, cbits=None):
         '''
@@ -2053,6 +2089,7 @@ class ExactSimulator:
 
         probabilities = []
         states = []
+        cbits_results = []
 
         num_measurements = len(list(filter(
                                 lambda x: isinstance(x, Measurement),
@@ -2063,8 +2100,9 @@ class ExactSimulator:
                                                 measure_results=results).get_results(0)
             states.append(final_state)
             probabilities.append(probability)
+            cbits_results.append(self.cbits)
 
-        return Result(states, probabilities)
+        return Result(states, probabilities, cbits_results)
 
     def step(self):
         '''
@@ -2154,16 +2192,16 @@ class ExactSimulator:
                 i = int(self.measure_results[self.measure_ind])
                 self.measure_ind += 1
             else:
-                i = np.random.choice([0, 1],
-                                     p=[probabilities[0], 1 - probabilities[0]])
+                probabilities = [p/sum(probabilities) for p in probabilities]
+                i = np.random.choice([0, 1], p=probabilities)
             self.probability *= probabilities[i]
             self.state = states[i]
             if operation.classical_store is not None:
                 self.cbits[operation.classical_store] = i
 
         elif self.mode == "density_matrix_simulator":
-            states = filter(states, lambda x: x is not None)
-            probabilities = filter(probabilities, lambda x: x != 0)
+            states = list(filter(lambda x: x is not None, states))
+            probabilities = list(filter(lambda x: x != 0, probabilities))
             self.state = sum(p * s for s, p in zip(states, probabilities))
         else:
             raise NotImplementedError(

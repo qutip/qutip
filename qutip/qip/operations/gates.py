@@ -930,6 +930,7 @@ def hadamard_transform(N=1):
 
     return Qobj(data, dims=[[2] * N, [2] * N])
 
+
 def _flatten(l):
     return [item for sublist in l for item in sublist]
 
@@ -961,6 +962,7 @@ def mult_sublists(tensor_list, overall_inds, U, inds):
     overall_inds_revised: list of list of int
         List of qubit indices corresponding to each gate in tensor_list_revised.
     """
+
     tensor_sublist = []
     inds_sublist = []
 
@@ -1024,6 +1026,8 @@ def _gate_sequence_product(U_list, ind_list, expand_N=None):
 
     if not expand_N:
         expand_N = len(set(chain(*ind_list)))
+        sorted_inds = sorted(set(_flatten(ind_list)))
+        ind_list = [[sorted_inds.index(ind) for ind in inds] for inds in ind_list]
 
     U_overall = 1
     overall_inds = []
@@ -1034,16 +1038,18 @@ def _gate_sequence_product(U_list, ind_list, expand_N=None):
             #if len(tensor_list) > 1:
             U_overall = tensor(tensor_list)
             overall_inds = _flatten(overall_inds)
+
             U_left, rem_inds = _gate_sequence_product(U_list[i:],
-                                                      ind_list[i:],
-                                                      expand_N)
+                                                      ind_list[i:])
             U_left = expand_operator(U_left, expand_N, rem_inds)
-            return U_left * U_overall, overall_inds
+            return U_left * U_overall, [sorted_inds[ind] for ind in overall_inds]
+
         if U_overall == 1:
             U_overall = U_overall * U
             overall_inds = [ind_list[0]]
             tensor_list = [U_overall]
             continue
+
         elif len(set(_flatten(overall_inds)).intersection(set(inds))) > 0:
             tensor_list, overall_inds = mult_sublists(tensor_list,
                                                       overall_inds,
@@ -1053,7 +1059,8 @@ def _gate_sequence_product(U_list, ind_list, expand_N=None):
             overall_inds.append(inds)
             tensor_list.append(U)
 
-    return U_overall, _flatten(overall_inds)
+    U_overall = tensor(tensor_list)
+    return U_overall, [sorted_inds[ind] for ind in _flatten(overall_inds)]
 
 
 def _gate_sequence_product_expanded(U_list, left_to_right=True):
