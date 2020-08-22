@@ -931,8 +931,12 @@ def hadamard_transform(N=1):
     return Qobj(data, dims=[[2] * N, [2] * N])
 
 
-def _flatten(l):
-    return [item for sublist in l for item in sublist]
+def _flatten(lst):
+    """
+    Helper to flatten lists.
+    """
+
+    return [item for sublist in lst for item in sublist]
 
 
 def mult_sublists(tensor_list, overall_inds, U, inds):
@@ -1033,9 +1037,7 @@ def _gate_sequence_product(U_list, ind_list, expand_N=None):
     overall_inds = []
 
     for i, (U, inds) in enumerate(zip(U_list, ind_list)):
-        #if len(_flatten(overall_inds)) == expand_N:
         if len(overall_inds) == 1 and len(overall_inds[0]) == expand_N:
-            #if len(tensor_list) > 1:
             U_overall = tensor(tensor_list)
             overall_inds = _flatten(overall_inds)
 

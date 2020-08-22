@@ -1117,7 +1117,8 @@ class QubitCircuit:
             raise TypeError("State is not ket or dm.")
         return sim.run(state, cbits)
 
-    def run_statistics(self, state, U_list=None, cbits=None, precompute_unitary=False):
+    def run_statistics(self, state, U_list=None,
+                       cbits=None, precompute_unitary=False):
         '''
         This is the circuit run function for num_runs run, must be called after
         adding all the gates and measurements on the circuit and returns the
@@ -1773,7 +1774,8 @@ class Result:
             if cbits:
                 self.cbits = [cbits]
         else:
-            inds = list(filter(lambda x: states[x] is not None, range(len(states))))
+            inds = list(filter(lambda x: states[x] is not None,
+                               range(len(states))))
             self.states = [states[i] for i in inds]
             self.probabilities = [probabilities[i] for i in inds]
             if cbits:
@@ -1839,7 +1841,8 @@ class Result:
 
 class ExactSimulator:
 
-    def __init__(self, qc, state=None, cbits=None, U_list=None, measure_results=None,
+    def __init__(self, qc, state=None, cbits=None,
+                 U_list=None, measure_results=None,
                  mode="state_vector_simulator", precompute_unitary=False):
         """
         Simulate state evolution for Quantum Circuits.
@@ -2092,8 +2095,10 @@ class ExactSimulator:
                                 self.qc.gates)))
 
         for results in product("01", repeat=num_measurements):
-            final_state, probability = self.run(state, cbits=cbits,
-                                                measure_results=results).get_results(0)
+            final_state, probability = self.run(
+                                        state,
+                                        cbits=cbits,
+                                        measure_results=results).get_results(0)
             states.append(final_state)
             probabilities.append(probability)
             cbits_results.append(self.cbits)
