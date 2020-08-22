@@ -1819,7 +1819,7 @@ class Result:
 
     def get_cbits(self, index=None):
         """
-        Return list of output states and corresponding probabilities
+        Return list of classical bit outputs corresponding to the results.
 
         Parameters
         ----------
@@ -1828,12 +1828,8 @@ class Result:
 
         Returns
         -------
-        states: Qobj or list of Qobj
-            Possible output states.
-
-        probabilities: float or list of float
-            Probabilities associated with each output state.
-
+        cbits: list of list of int
+            list of classical bit outputs
         """
 
         if index is not None:

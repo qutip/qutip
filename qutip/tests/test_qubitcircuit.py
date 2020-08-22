@@ -34,13 +34,15 @@
 
 import pytest
 import numpy as np
+from pathlib import Path
+
 from qutip.qip.operations import gates
 from qutip.operators import identity
 from qutip.qip.circuit import (
     QubitCircuit, ExactSimulator, Gate, Measurement, _ctrl_gates,
     _single_qubit_gates, _swap_like, _toffoli_like, _fredkin_like, _para_gates)
 from qutip import (tensor, Qobj, ptrace, rand_ket, fock_dm, basis,
-                   rand_dm, bell_state)
+                   rand_dm, bell_state, ket2dm)
 from qutip.qip.qasm import read_qasm
 from qutip.qip.operations.gates import gate_sequence_product
 
@@ -99,9 +101,9 @@ def _simulators_sv(qc):
 
 def _simulators_dm(qc):
 
-    sim_sv_precompute = ExactSimulator(qc, mode="density_matrix_simulator",
+    sim_dm_precompute = ExactSimulator(qc, mode="density_matrix_simulator",
                                        precompute_unitary=True)
-    sim_sv = ExactSimulator(qc, mode="density_matrix_simulator")
+    sim_dm = ExactSimulator(qc, mode="density_matrix_simulator")
 
     return [sim_dm_precompute, sim_dm]
 
@@ -565,7 +567,7 @@ class TestQubitCircuit:
                 else:
                     assert simulator.cbits[0] != simulator.cbits[1]
 
-    def test_gate_product():
+    def test_gate_product(self):
 
         filename = "qft.qasm"
         filepath = Path(__file__).parent / 'qasm_files' / filename
@@ -590,7 +592,7 @@ class TestQubitCircuit:
 
         np.testing.assert_allclose(U_1, U_2)
 
-    def test_wstate():
+    def test_wstate(self):
 
         filename = "w-state.qasm"
         filepath = Path(__file__).parent / 'qasm_files' / filename
