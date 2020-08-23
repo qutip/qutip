@@ -2030,7 +2030,7 @@ class ExactSimulator:
         U_overall, overall_inds = gate_sequence_product(U_list,
                                                         inds_list=inds_list,
                                                         expand=True)
-        # TODO: fix when this is the case!
+
         if len(overall_inds) != self.qc.N:
             U_overall = expand_operator(U_overall,
                                         N=self.qc.N,
