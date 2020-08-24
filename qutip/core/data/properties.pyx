@@ -14,6 +14,10 @@ cdef extern from *:
     # Not defined in cpython.mem for some reason, but is in pymem.h.
     void *PyMem_Calloc(size_t nelem, size_t elsize)
 
+__all__ = [
+    'isherm', 'isherm_csr',
+    'isdiag', 'isdiag_csr',
+]
 
 cdef inline bint _conj_feq(double complex a, double complex b, double tol) nogil:
     """Check whether a == conj(b) up to an absolute tolerance."""
@@ -26,7 +30,7 @@ cdef inline bint _conj_feq(double complex a, double complex b, double tol) nogil
     return re*re + im*im < tol*tol
 
 
-cpdef bint isherm_csr(CSR matrix, double tol=settings.core['atol']):
+cpdef bint isherm_csr(CSR matrix, double tol=-1):
     """
     Determine whether an input CSR matrix is Hermitian up to a given
     floating-point tolerance.
@@ -50,6 +54,7 @@ cpdef bint isherm_csr(CSR matrix, double tol=settings.core['atol']):
     actually allocating and creating a new matrix, we just check whether the
     output would match the input matrix.
     """
+    tol = tol if tol >= 0 else settings.core["atol"]
     cdef size_t row, col, ptr, ptr_t, nrows=matrix.shape[0]
     if matrix.shape[0] != matrix.shape[1]:
         return False
@@ -91,3 +96,64 @@ cpdef bint isdiag_csr(CSR matrix) nogil:
             if matrix.col_index[ptr_start] != row:
                 return False
     return True
+
+
+from .dispatch import Dispatcher as _Dispatcher
+import inspect as _inspect
+
+isherm = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('tol', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                           default=-1),
+    ]),
+    name='isherm',
+    module=__name__,
+    inputs=('matrix',),
+    out=False,
+)
+isherm.__doc__ =\
+    """
+    Check if the matrix is Hermitian up to a optional element-wise absolute
+    tolerance.  If the tolerance given is less than zero, the global settings
+    value `qutip.settings.atol` will be used instead.
+
+    Only square matrices can possibly be Hermitian.
+
+    Arguments
+    ---------
+    matrix : Data
+        The matrix to test for Hermicity.
+
+    tol : real, optional
+        If given, the absolute tolerance used to compare two values for
+        equality.  If not given, or given and negative, the value of
+        `qutip.settings.atol` is used instead.
+    """
+isherm.add_specialisations([
+    (CSR, isherm_csr),
+], _defer=True)
+
+isdiag = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    ]),
+    name='isdiag',
+    module=__name__,
+    inputs=('matrix',),
+    out=False,
+)
+isdiag.__doc__ =\
+    """
+    Check if the matrix is diagonal.  The matrix need not be square to test.
+
+    Arguments
+    ---------
+    matrix : Data
+        The matrix to test for diagonality.
+    """
+isdiag.add_specialisations([
+    (CSR, isdiag_csr),
+], _defer=True)
+
+del _inspect, _Dispatcher

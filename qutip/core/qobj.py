@@ -150,7 +150,7 @@ def _require_equal_type(method):
                          type=self.type,
                          superrep=self.superrep,
                          isherm=(scale.imag == 0),
-                         isunitary=(abs(abs(scale) - 1) < settings.core['atol']),
+                         isunitary=(abs(abs(scale)-1) < settings.core['atol']),
                          copy=False)
         if not isinstance(other, Qobj):
             try:
@@ -391,6 +391,46 @@ class Qobj:
         if not isinstance(data, _data.Data):
             raise TypeError('Qobj data must be a data-layer format.')
         self._data = data
+
+    def to(self, data_type):
+        """
+        Convert the underlying data store of this `Qobj` into a different
+        storage representation.
+
+        The different storage representations available are the "data-layer
+        types" which are known to `qutip.data.to`.  By default, these are
+        `qutip.data.Dense` and `qutip.data.CSR`, which respectively construct a
+        dense matrix store and a compressed sparse row one.  Certain algorithms
+        and operations may be faster or more accurate when using a more
+        appropriate data store.
+
+        If the data store is already in the format requested, the function
+        returns `self`.  Otherwise, it returns a copy of itself with the data
+        store in the new type.
+
+        Arguments
+        ---------
+        data_type : type
+            The data-layer type that the data of this `Qobj` should be
+            converted to.
+
+        Returns
+        -------
+        Qobj
+            A new `Qobj` if a type conversion took place with the data stored
+            in the requested format, or `self` if not.
+        """
+        if data_type not in _data.to.dtypes:
+            raise ValueError("Unknown conversion type: " + str(data_type))
+        if type(self.data) is data_type:
+            return self
+        return Qobj(_data.to(data_type, self._data),
+                    dims=self.dims,
+                    type=self.type,
+                    superrep=self.superrep,
+                    isherm=self._isherm,
+                    isunitary=self._isunitary,
+                    copy=False)
 
     @_tidyup
     @_require_equal_type
@@ -876,9 +916,14 @@ class Qobj:
         """
         if self.dims[0] != self.dims[1]:
             raise TypeError('sqrt only valid on square matrices')
-        evals, evecs = _data.eigs_csr(self.data, self.isherm,
-                                      sparse=sparse, tol=tol,
-                                      maxiter=maxiter)
+        # TODO: consider another way of handling the dispatch here.
+        if sparse:
+            evals, evecs = _data.eigs_csr(_data.to(_data.CSR, self.data),
+                                          isherm=self._isherm,
+                                          tol=tol, maxiter=maxiter)
+        else:
+            evals, evecs = _data.eigs_dense(_data.to(_data.Dense, self.data),
+                                            isherm=self._isherm)
         evecs = np.hstack(evecs)
         numevals = len(evals)
         dV = scipy.sparse.spdiags(np.sqrt(evals, dtype=complex), 0,
@@ -959,9 +1004,10 @@ class Qobj:
         if self.data.shape[0] != self.data.shape[1]:
             raise TypeError('Invalid operand for matrix inverse')
         if sparse:
-            inv_mat = scipy.sparse.linalg.inv(self.data.as_scipy().tocsc())
+            _sci = _data.to(_data.CSR, self.data).as_scipy().tocsc()
+            inv_mat = scipy.sparse.linalg.inv(_sci)
         else:
-            inv_mat = np.linalg.inv(self.full())
+            inv_mat = np.linalg.inv(self.data.to_array())
         return Qobj(inv_mat,
                     dims=[self.dims[1], self.dims[0]],
                     type=self.type,
@@ -992,7 +1038,8 @@ class Qobj:
         if inplace:
             self.data /= norm
             self._isherm = self._isherm if norm.imag == 0 else None
-            self._isunitary = (self._isunitary if abs(norm) - 1 < settings.core['atol']
+            self._isunitary = (self._isunitary
+                               if abs(norm) - 1 < settings.core['atol']
                                else None)
             out = self
         else:
@@ -1008,6 +1055,8 @@ class Qobj:
         ----------
         sel : int/list
             An ``int`` or ``list`` of components to keep after partial trace.
+            The selected subspaces will _not_ be reordered, no matter order
+            they are supplied to `ptrace`.
 
         Returns
         -------
@@ -1024,11 +1073,16 @@ class Qobj:
                     "selection must be an integer or list of integers"
                 ) from None
             sel = [sel]
-        data, dims = _data.ptrace_csr(self, sel)
+        data = self.data
+        if self.isket or self.isbra:
+            data = _data.project(self.data)
+        dims = self.dims[1] if self.isbra else self.dims[0]
+        new_data = _data.ptrace(data, dims, sel)
+        new_dims = [[dims[x] for x in sel]] * 2
         # TODO: how is the partial trace of a superoperator defined?  Why is it
         # of type 'oper' not 'super'?
-        return Qobj(data,
-                    dims=dims,
+        return Qobj(new_data,
+                    dims=new_dims,
                     type='oper',
                     copy=False)
 
@@ -1431,9 +1485,16 @@ class Qobj:
         Use sparse only if memory requirements demand it.
 
         """
-        evals, evecs = _data.eigs_csr(self.data, self.isherm, sparse=sparse,
-                                      sort=sort, eigvals=eigvals, tol=tol,
-                                      maxiter=maxiter)
+        # TODO: consider another way of handling the dispatch here.
+        if sparse:
+            evals, evecs = _data.eigs_csr(_data.to(_data.CSR, self.data),
+                                          isherm=self._isherm,
+                                          sort=sort, eigvals=eigvals, tol=tol,
+                                          maxiter=maxiter)
+        else:
+            evals, evecs = _data.eigs_dense(_data.to(_data.Dense, self.data),
+                                            isherm=self._isherm,
+                                            sort=sort, eigvals=eigvals)
         new_dims = [self.dims[0], [1] * len(self.dims[0])]
         ekets = np.array([Qobj(vec, dims=new_dims, copy=False)
                           for vec in evecs],
@@ -1479,9 +1540,16 @@ class Qobj:
         Use sparse only if memory requirements demand it.
 
         """
-        return _data.eigs_csr(self.data, self.isherm, vecs=False,
-                              sparse=sparse, sort=sort, eigvals=eigvals,
-                              tol=tol, maxiter=maxiter)
+        # TODO: consider another way of handling the dispatch here.
+        if sparse:
+            return _data.eigs_csr(_data.to(_data.CSR, self.data),
+                                  vecs=False,
+                                  isherm=self._isherm,
+                                  sort=sort, eigvals=eigvals,
+                                  tol=tol, maxiter=maxiter)
+        return _data.eigs_dense(_data.to(_data.Dense, self.data),
+                                vecs=False,
+                                isherm=self._isherm, sort=sort, eigvals=eigvals)
 
     def groundstate(self, sparse=False, tol=0, maxiter=100000, safe=True):
         """Ground state Eigenvalue and Eigenvector.
@@ -1512,22 +1580,26 @@ class Qobj:
         The sparse eigensolver is much slower than the dense version.
         Use sparse only if memory requirements demand it.
         """
-        if safe:
-            evals = 2
+        eigvals = 2 if safe else 1
+        # TODO: consider another way of handling the dispatch here.
+        if sparse:
+            evals, evecs = _data.eigs_csr(_data.to(_data.CSR, self.data),
+                                          isherm=self._isherm,
+                                          eigvals=eigvals, tol=tol,
+                                          maxiter=maxiter)
         else:
-            evals = 1
-        grndval, grndvec = _data.eigs_csr(self.data, self.isherm,
-                                          sparse=sparse, eigvals=evals,
-                                          tol=tol, maxiter=maxiter)
+            evals, evecs = _data.eigs_dense(_data.to(_data.Dense, self.data),
+                                            isherm=self._isherm,
+                                            eigvals=eigvals)
         if safe:
             tol = tol or settings.core['atol']
-            if (grndval[1]-grndval[0]) <= 10*tol:
+            if (evals[1]-evals[0]) <= 10*tol:
                 print("WARNING: Ground state may be degenerate. "
                         "Use Q.eigenstates()")
         new_dims = [self.dims[0], [1] * len(self.dims[0])]
-        grndvec = Qobj(grndvec[0], dims=new_dims)
+        grndvec = Qobj(evecs[0], dims=new_dims)
         grndvec = grndvec / grndvec.norm()
-        return grndval[0], grndvec
+        return evals[0], grndvec
 
     def dnorm(self, B=None):
         """Calculates the diamond norm, or the diamond distance to another

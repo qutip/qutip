@@ -1566,8 +1566,8 @@ class DynamicsUnitary(Dynamics):
             H = self._dyn_gen[k]
             # Returns eigenvalues as array (row)
             # and eigenvectors as a list of separate 2D kets
-            eig_val, eig_vec = _data.eigs_csr(H.data, H.isherm,
-                                              sparse=self.sparse_eigen_decomp)
+            _type = _data.CSR if self.sparse_eigen_decomp else _data.Dense
+            eig_val, eig_vec = _data.eigs(_data.to(_type, H.data))
             eig_vec = np.hstack(eig_vec)
 
         else:

@@ -11,6 +11,13 @@ import warnings
 from qutip.core.data.base cimport idxint
 from qutip.core.data cimport csr, dense, CSR, Dense, Data
 
+__all__ = [
+    'reshape', 'reshape_csr', 'reshape_dense',
+    'column_stack', 'column_stack_csr', 'column_stack_dense',
+    'column_unstack', 'column_unstack_csr', 'column_unstack_dense',
+]
+
+
 cdef void _reshape_check_input(Data matrix, idxint n_rows_out, idxint n_cols_out) except *:
     if n_rows_out * n_cols_out != matrix.shape[0] * matrix.shape[1]:
         message = "".join([
@@ -119,3 +126,122 @@ cpdef Dense column_unstack_dense(Dense matrix, idxint rows, bint inplace=False):
     out = dense.empty(rows, cols, fortran=True)
     memcpy(out.data, matrix.data, rows*cols * sizeof(double complex))
     return out
+
+
+from .dispatch import Dispatcher as _Dispatcher
+import inspect as _inspect
+
+reshape = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('n_rows_out', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('n_cols_out', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    ]),
+    name='inspect',
+    module=__name__,
+    inputs=('matrix',),
+    out=True,
+)
+reshape.__doc__ =\
+    """
+    Reshape the input matrix.  The values of `n_rows_out` and `n_cols_out` must
+    match the current total number of elements of the matrix.
+
+    Arguments
+    ---------
+    matrix : Data
+        The input matrix to reshape.
+
+    n_rows_out, n_cols_out : integer
+        The number of rows and columns in the output matrix.
+    """
+reshape.add_specialisations([
+    (CSR, CSR, reshape_csr),
+    (Dense, Dense, reshape_dense),
+], _defer=True)
+
+
+# Similar to the `out` parameter of `matmul`, we don't include `inplace` in the
+# signature of `column_stack` because the dispatcher logic currently doesn't
+# support the idea of an input parameter also being the output.
+
+column_stack = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    ]),
+    name='column_stack',
+    module=__name__,
+    inputs=('matrix',),
+    out=True,
+)
+column_stack.__doc__ =\
+    """
+    Stack the columns of a matrix so it becomes a ket-like vector.  For
+    example, the matrix
+        [[0, 1, 2],
+         [3, 4, 5],
+         [6, 7, 8]]
+    would be transformed to
+        [[0],
+         [3],
+         [6],
+         [1],
+         ...
+         [5],
+         [8]]
+    This is used for transforming between operator and operator-ket
+    representations in the super-operator formalism.
+
+    The inverse of this operation is `column_unstack`.
+
+    Arguments
+    ---------
+    matrix : Data
+        The matrix to stack the columns of.
+    """
+column_stack.add_specialisations([
+    (CSR, CSR, column_stack_csr),
+    (Dense, Dense, column_stack_dense),
+], _defer=True)
+
+column_unstack = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('rows', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    ]),
+    name='column_unstack',
+    module=__name__,
+    inputs=('matrix',),
+    out=True,
+)
+column_unstack.__doc__ =\
+    """
+    Unstack the columns of a ket-like vector so it becomes a matrix with `rows`
+    number of rows.  For example, the matrix
+        [[0],
+         [1],
+         [2],
+         [3]]
+    would be unstacked with `rows = 2` to
+        [[0, 2],
+         [1, 3]]
+    This is used for transforming between the operator-ket and operator
+    representations in the super-operator formalism.
+
+    The inverse of this operation is `column_stack`.
+
+    Arguments
+    ---------
+    matrix : Data
+        The matrix to unstack the columns of.
+
+    rows : integer
+        The number of rows there should be in the output matrix.  This must
+        divide into the total number of elements in the input.
+    """
+column_unstack.add_specialisations([
+    (CSR, CSR, column_unstack_csr),
+    (Dense, Dense, column_unstack_dense),
+], _defer=True)
+
+del _inspect, _Dispatcher

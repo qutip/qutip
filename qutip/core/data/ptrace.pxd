@@ -1,4 +1,7 @@
 #cython: language_level=3
 
-cpdef ptrace_csr(object rho, object sel)
-cpdef ptrace_dense(object rho, object sel)
+from qutip.core.data cimport CSR, Dense
+
+cpdef CSR ptrace_csr(CSR matrix, object dims, object sel)
+cpdef Dense ptrace_dense(Dense matrix, object dims, object sel)
+cpdef Dense ptrace_csr_dense(CSR matrix, object dims, object sel)

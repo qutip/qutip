@@ -19,6 +19,11 @@ cdef extern from *:
     void *PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
     void PyDataMem_FREE(void *ptr)
 
+__all__ = [
+    'add', 'add_csr', 'add_dense',
+    'sub', 'sub_csr', 'sub_dense',
+]
+
 cdef int _ONE=1
 
 cdef void _check_shape(Data left, Data right) nogil except *:
@@ -190,3 +195,60 @@ cpdef Dense add_dense(Dense left, Dense right, double complex scale=1):
         for idx in range(dim2):
             blas.zaxpy(&dim1, &scale, right.data + idx, &dim2, out.data + idx*dim1, &_ONE)
     return out
+
+cpdef CSR sub_csr(CSR left, CSR right):
+    return add_csr(left, right, -1)
+
+cpdef Dense sub_dense(Dense left, Dense right):
+    return add_dense(left, right, -1)
+
+
+from .dispatch import Dispatcher as _Dispatcher
+import inspect as _inspect
+
+add = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('scale', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                           default=1),
+    ]),
+    name='add',
+    module=__name__,
+    inputs=('left', 'right'),
+    out=True,
+)
+add.__doc__ =\
+    """
+    Perform the operation
+        left + scale*right
+    where `left` and `right` are matrices, and `scale` is an optional complex
+    scalar.
+    """
+add.add_specialisations([
+    (Dense, Dense, Dense, add_dense),
+    (CSR, CSR, CSR, add_csr),
+], _defer=True)
+
+sub = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    ]),
+    name='sub',
+    module=__name__,
+    inputs=('left', 'right'),
+    out=True,
+)
+sub.__doc__ =\
+    """
+    Perform the operation
+        left - right
+    where `left` and `right` are matrices.
+    """
+sub.add_specialisations([
+    (Dense, Dense, Dense, sub_dense),
+    (CSR, CSR, CSR, sub_csr),
+], _defer=True)
+
+del _inspect, _Dispatcher

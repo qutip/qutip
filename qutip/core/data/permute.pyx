@@ -13,14 +13,19 @@ from cpython cimport mem
 import numpy as np
 cimport numpy as cnp
 
-from qutip.core.data.base cimport idxint, idxint_dtype, idxint_DTYPE
+from qutip.core.data.base cimport idxint, idxint_DTYPE
 from qutip.core.data cimport csr
 from qutip.core.data.csr cimport CSR
+
+from qutip.core.data.base import idxint_dtype
 
 cnp.import_array()
 
 cdef extern from *:
     void *PyMem_Calloc(size_t n, size_t elsize)
+
+# This module is meant to be used with dot-access (e.g. `permute.dimensions`).
+__all__ = []
 
 
 cdef class _Indexer:
@@ -123,23 +128,6 @@ cdef bint _check_indices(size_t size, idxint[:] order) except True:
     finally:
         mem.PyMem_Free(test)
 
-cdef void _permute_csr_sparse(CSR out, CSR matrix, _Indexer index) nogil:
-    cdef size_t row, i, ptr_in, ptr_out, diff, max_cols=0
-    memset(&out.row_index[0], 0, out.shape[0] * sizeof(idxint))
-    for row in range(matrix.shape[0]):
-        diff = matrix.row_index[row + 1] - matrix.row_index[row]
-        if diff:
-            out.row_index[index.single(row) + 1] = diff
-            max_cols = diff if diff > max_cols else max_cols
-    for row in range(out.shape[0]):
-        out.row_index[row + 1] += out.row_index[row]
-    for row in range(matrix.shape[0]):
-        ptr_in = matrix.row_index[row]
-        diff = matrix.row_index[row + 1] - ptr_in
-        if diff == 0:
-            continue
-        ptr_out = out.row_index[index.single(row)]
-
 cdef CSR _indices_csr_rowonly(CSR matrix, idxint[:] rows):
     cdef size_t n_rows=matrix.shape[0]
     _check_indices(n_rows, rows)
@@ -191,7 +179,7 @@ cdef CSR _indices_csr_full(CSR matrix, idxint[:] rows, idxint[:] cols):
     mem.PyMem_Free(new_cols)
     return out
 
-cpdef CSR indices_csr(CSR matrix, object row_perm, object col_perm):
+cpdef CSR indices_csr(CSR matrix, object row_perm=None, object col_perm=None):
     if row_perm is None and col_perm is None:
         return matrix.copy()
     if col_perm is None:
@@ -278,3 +266,91 @@ cpdef CSR dimensions_csr(CSR matrix, object dimensions, object order):
         permutation = index.all()
         return _indices_csr_full(matrix, permutation, permutation)
     return _dimensions_csr_sparse(matrix, index)
+
+
+from .dispatch import Dispatcher as _Dispatcher
+import inspect as _inspect
+
+dimensions = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('dimensions', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('order', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    ]),
+    name='dimensions',
+    module=__name__,
+    inputs=('matrix',),
+    out=True,
+)
+dimensions.__doc__ =\
+    """
+    Reorder the tensor-product structure of a matrix, assuming that the
+    underlying structure is defined by `dimensions`.  For a separable system,
+    this function produces a matrix which is equivalent to having performed
+    `kron` in a different order on the separable parts.
+
+    For example if `a`, `b` and `c` are matrices with sizes 2, 3 and 4
+    respectively, then
+        kron(kron(c, a), b) == permute.dimensions(kron(kron(a, b), c),
+                                                  [2, 3, 4],
+                                                  [1, 2, 0])
+    In other words, the inputs to `kron` are reordered so that input `n` moves
+    to position `order[n]`.
+
+    Arguments
+    ---------
+    matrix : Data
+        Input matrix to reorder.  This can either be a square matrix
+        representing an operator, or a bra- or ket-like vector.
+
+    dimensions : 1D array_like of integers
+        The tensor-product structure of the space the matrix lives on.  This
+        will typically be one of the two elements of `Qobj.dims` (e.g. for a
+        ket, it will be `Qobj.dims[0]`).
+
+    order : 1D array_like of integers
+        The new order of the tensor-product elements.  This should be a 1D list
+        with the integers from `0` to `N - 1` inclusive, if there are `N`
+        elements in the tensor product.
+    """
+dimensions.add_specialisations([
+    (CSR, CSR, dimensions_csr),
+], _defer=True)
+
+indices = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('row_perm', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                           default=None),
+        _inspect.Parameter('col_perm', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                           default=None),
+    ]),
+    name='indices',
+    module=__name__,
+    inputs=('matrix',),
+    out=True,
+)
+indices.__doc__ =\
+    """
+    Permute the rows and columns of a matrix according to a row and column
+    permutation.  This is a "dumb" operation with regards to the representation
+    of quantum states; if you want to "reorder" the tensor-product structure of
+    a system, you want `permute.dimensions` instead.
+
+    Arguments
+    ---------
+    matrix : Data
+        The input matrix.
+
+    row_perm, col_perm : 1D array_like of integer, optional
+        The new order that the rows or columns should be shuffled into.  If the
+        input matrix is `N x M`, then `row_perm` would be an array containing
+        all the integers from `0` to `N - 1` inclusive in some new order.  Row
+        `n` in the input will be at row `row_perm[n]` in the output, and
+        similar for the column permutation.
+    """
+indices.add_specialisations([
+    (CSR, CSR, indices_csr),
+], _defer=True)
+
+del _inspect, _Dispatcher

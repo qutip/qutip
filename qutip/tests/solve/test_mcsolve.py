@@ -236,6 +236,7 @@ class TestSeeds:
         np.sqrt(2*dampings[2]) * qutip.tensor(qutip.qeye(sizes[:2]), a[2]),
     ]
 
+    @pytest.mark.xfail(reason="current limitation of SolverOptions")
     def test_seeds_can_be_reused(self):
         args = (self.H, self.state, self.times)
         kwargs = {'c_ops': self.c_ops, 'ntraj': self.ntraj}

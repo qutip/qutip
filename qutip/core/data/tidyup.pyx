@@ -12,6 +12,11 @@ cdef extern from "<complex>" namespace "std" nogil:
     # abs is templated such that Cython treats std::abs as complex->complex
     double abs(double complex x)
 
+__all__ = [
+    'tidyup', 'tidyup_csr',
+]
+
+
 cpdef CSR tidyup_csr(CSR matrix, double tol, bint inplace=True):
     cdef bint re, im
     cdef size_t row, ptr, ptr_start, ptr_end=0, nnz_new, nnz_orig
@@ -39,3 +44,53 @@ cpdef CSR tidyup_csr(CSR matrix, double tol, bint inplace=True):
     if nnz_new == nnz_orig:
         return out
     return out
+
+
+from .dispatch import Dispatcher as _Dispatcher
+import inspect as _inspect
+
+# In this case, to support the `inplace` argument, we do not support
+# dispatching on the output.
+
+tidyup = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('tol', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('inplace', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                           default=True),
+    ]),
+    name='tidyup',
+    module=__name__,
+    inputs=('matrix',),
+    out=False,
+)
+tidyup.__doc__ =\
+    """
+    Tidy up the input matrix by truncating small values to zero.  The real and
+    imaginary parts are treated individually, so (for example) the number
+        1e-18 + 2j
+    would be truncated with a tolerance of `1e-15` to just
+        2j
+
+    By default, this operation is in-place.  The output type will always match
+    the input type; no dispatching takes place on the output.
+
+    Arguments
+    ---------
+    matrix : Data
+        The matrix to tidy up.
+
+    tol : real
+        The absolute tolerance to use to determine whether a real or imaginary
+        part should be truncated to zero.
+
+    inplace : bool, optional (True)
+        Whether to do the operation in-place.  The output matrix will always be
+        returned, even if this argument is `True`; it will just be the same
+        Python object as was input.
+    """
+tidyup.add_specialisations([
+    (CSR, tidyup_csr),
+], _defer=True)
+
+del _inspect, _Dispatcher

@@ -5,7 +5,6 @@ cimport numpy as cnp
 
 # If you change the typedef, change the objects in base.pyx too!
 ctypedef cnp.npy_int32 idxint
-cdef public object idxint_dtype
 cdef int idxint_DTYPE
 
 cdef class Data:

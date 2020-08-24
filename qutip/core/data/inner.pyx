@@ -8,6 +8,12 @@ from qutip.core.data.base cimport idxint, Data
 from qutip.core.data cimport csr
 from qutip.core.data.csr cimport CSR
 
+__all__ = [
+    'inner', 'inner_csr',
+    'inner_op', 'inner_op_csr',
+]
+
+
 cdef void _check_shape_inner(Data left, Data right) nogil except *:
     if (
         (left.shape[0] != 1 and left.shape[1] != 1)
@@ -136,3 +142,99 @@ cpdef double complex inner_op_csr(CSR left, CSR op, CSR right,
     if left.shape[0] == 1:
         return _inner_op_csr_bra_ket(left, op, right)
     return _inner_op_csr_ket_ket(left, op, right)
+
+
+from .dispatch import Dispatcher as _Dispatcher
+import inspect as _inspect
+
+inner = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('scalar_is_ket', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                           default=False),
+    ]),
+    name='inner',
+    module=__name__,
+    inputs=('left', 'right'),
+    out=False,
+)
+inner.__doc__ =\
+    """
+    Compute the complex inner product <left|right>.  Return the complex value.
+
+    The shape of `left` is used to determine if it has been supplied as a ket
+    or a bra.  The result of this function will be identical if passed `left`
+    or `adjoint(left)`.
+
+    The parameter `scalar_is_ket` is only intended for the case where `left`
+    and `right` are both of shape (1, 1).  In this case, `left` will be assumed
+    to be a ket unless `scalar_is_ket` is False.  This parameter is ignored at
+    all other times.
+
+    Arguments
+    ---------
+    left : Data
+        The left operand as either a bra or a ket matrix.
+
+    right : Data
+        The right operand as a ket matrix.
+
+    scalar_is_ket : bool, optional (False)
+        If `False`, then `left` is assumed to be a bra if it is
+        one-dimensional.  If `True`, then it is assumed to be a ket.  This
+        parameter is ignored if `left` and `right` are not one-dimensional.
+    """
+inner.add_specialisations([
+    (CSR, CSR, inner_csr),
+], _defer=True)
+
+inner_op = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('op', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('scalar_is_ket', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                           default=False),
+    ]),
+    name='inner_op',
+    module=__name__,
+    inputs=('left', 'op', 'right'),
+    out=False,
+)
+inner_op.__doc__ =\
+    """
+    Compute the complex inner product <left|op|right>.  Return the complex
+    value.  This operation is also known as taking a matrix element.
+
+    The shape of `left` is used to determine if it has been supplied as a ket
+    or a bra.  The result of this function will be identical if passed `left`
+    or `adjoint(left)`.
+
+    The parameter `scalar_is_ket` is only intended for the case where `left`
+    and `right` are both of shape (1, 1).  In this case, `left` will be assumed
+    to be a ket unless `scalar_is_ket` is False.  This parameter is ignored at
+    all other times.
+
+    Arguments
+    ---------
+    left : Data
+        The left operand as either a bra or a ket matrix.
+
+    op : Data
+        The operator of which to take the matrix element.  Must have dimensions
+        which match `left` and `right`.
+
+    right : Data
+        The right operand as a ket matrix.
+
+    scalar_is_ket : bool, optional (False)
+        If `False`, then `left` is assumed to be a bra if it is
+        one-dimensional.  If `True`, then it is assumed to be a ket.  This
+        parameter is ignored if `left` and `right` are not one-dimensional.
+    """
+inner_op.add_specialisations([
+    (CSR, CSR, CSR, inner_op_csr),
+], _defer=True)
+
+del _inspect, _Dispatcher

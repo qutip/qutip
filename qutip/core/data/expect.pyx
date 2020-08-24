@@ -14,6 +14,11 @@ cdef extern from "<complex>" namespace "std" nogil:
 from qutip.core.data.base cimport idxint, Data
 from qutip.core.data cimport csr, CSR, Dense
 
+__all__ = [
+    'expect', 'expect_csr', 'expect_csr_dense',
+    'expect_super', 'expect_super_csr', 'expect_super_csr_dense',
+]
+
 cdef void _check_shape_ket(Data op, Data state) nogil except *:
     if op.shape[1] != state.shape[0] or state.shape[1] != 1:
         raise ValueError("incorrect input shapes "
@@ -163,3 +168,55 @@ cpdef double complex expect_super_csr_dense(CSR op, Dense state) nogil except *:
             out += op.data[ptr] * state.data[op.col_index[ptr]]
         row += n + 1
     return out
+
+
+from .dispatch import Dispatcher as _Dispatcher
+import inspect as _inspect
+
+expect = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('op', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('state', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    ]),
+    name='expect',
+    module=__name__,
+    inputs=('op', 'state'),
+    out=False,
+)
+expect.__doc__ =\
+    """
+    Get the expectation value of the operator `op` over the state `state`.  The
+    state can be either a ket or a density matrix.  Returns a complex number.
+
+    The expectation of a state is defined as the operation:
+        state.adjoint() @ op @ state
+    and of a density matrix:
+        tr(op @ state)
+    """
+expect.add_specialisations([
+    (CSR, CSR, expect_csr),
+    (CSR, Dense, expect_csr_dense),
+], _defer=True)
+
+expect_super = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('op', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('state', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    ]),
+    name='expect_super',
+    module=__name__,
+    inputs=('op', 'state'),
+    out=False,
+)
+expect_super.__doc__ =\
+    """
+    Perform the operation `tr(op @ state)` where `op` is supplied as a
+    superoperator, and `state` is a column-stacked operator.  Returns a complex
+    number.
+    """
+expect_super.add_specialisations([
+    (CSR, CSR, expect_super_csr),
+    (CSR, Dense, expect_super_csr_dense),
+], _defer=True)
+
+del _inspect, _Dispatcher
