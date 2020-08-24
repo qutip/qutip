@@ -1,3 +1,10 @@
 [run]
-include = */qutip/*
-omit = */tests/*
+source = qutip
+omit =
+    # QuTiP test files
+    */qutip/tests/*
+
+[report]
+exclude_lines =
+    # Skip Python wrappers which help load in C extension modules.
+    __bootstrap__()
