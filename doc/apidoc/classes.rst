@@ -141,6 +141,12 @@ Quantum information processing
 .. autoclass:: qutip.qip.QubitCircuit
     :members:
 
+.. autoclass:: qutip.qip.Result
+    :members:
+
+.. autoclass:: qutip.qip.ExactSimulator
+    :members:
+
 .. autoclass:: qutip.qip.device.Processor
     :members:
 

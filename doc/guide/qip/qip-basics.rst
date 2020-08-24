@@ -10,21 +10,32 @@ Quantum Information Processing
 Introduction
 ============
 
-The Quantum Information Processing (QIP) module aims at providing basic tools for quantum computing simulation both for simple quantum algorithm design and for experimental realization. It offers two different approaches, one with :class:`qutip.qip.QubitCircuit` calculating unitary evolution under quantum gates by matrix product, another called :class:`qutip.qip.device.Processor` using open system solver in QuTiP to simulate noisy quantum device.
+The Quantum Information Processing (QIP) module aims at providing basic tools for quantum computing simulation both for simple quantum algorithm design and for experimental realization. It offers two different approaches, one with :class:`~qutip.qip.QubitCircuit` calculating unitary evolution under quantum gates by matrix product, another called :class:`qutip.qip.device.Processor` using open system solver in QuTiP to simulate noisy quantum device.
 
 .. _quantum_circuits:
 
 Quantum Circuit
 ===============
 
-The most common model for quantum computing is the quantum circuit model. In QuTiP, we use :class:`qutip.qip.QubitCircuit` to represent a quantum circuit. Each quantum gate is saved as a class object :class:`qutip.qip.operations.Gate` with information such as gate name, target qubits and arguments.
-To get the matrix representation of each gate, we can call the class method :meth:`qutip.qip.QubitCircuit.propagators()`. Carrying out the matrices product, one gets the matrix representation of the whole evolution. This process is demonstrated in the following example.
+The most common model for quantum computing is the quantum circuit model.
+In QuTiP, we use :class:`~qutip.qip.QubitCircuit` to represent a quantum circuit.
+The circuit is characterized by registers and gates:
 
-We can also carry out measurements on individual qubits (both in the middle and at the end of the circuit). Each measurement is saved as a class object :class:`qutip.qip.Measurement` with parameters such as target, the target qubit on which the measurement will be carried out and classical_store, the index of the classical register on which stores the result of the measurement.
+- **Registers**: The argument N specifies the number of qubit registers in the circuit
+  and the argument num_cbits (optional) specifies the number of classical bits available for measurement
+  and control.
 
-Finally, once we have constructed the circuit, we can use the
-`qutip.qip.QubitCircuit.run()` function to carry out one run of the circuit from start to finish which will return the final state.
-Moreover, we can run the circuit multiple times and obtain the various resulting states along with their respective observed frequencies.
+- **Gates**: Each quantum gate is saved as a class object :class:`qutip.qip.Gate`
+  with information such as gate name, target qubits and arguments.
+  Gates can also be controlled on a classical bit by specifying the register number
+  with the argument classical_controls.
+
+- **Measurements**: We can also carry out measurements on individual qubits (both in the middle and at the end of the circuit).
+  Each measurement is saved as a class object :class:`~qutip.qip.Measurement` with parameters such as target,
+  the target qubit on which the measurement will be carried out and classical_store,
+  the index of the classical register which stores the result of the measurement.
+
+A circuit with the various gates and registers available is demonstrated below:
 
 .. testcode::
 
@@ -35,9 +46,9 @@ Moreover, we can run the circuit multiple times and obtain the various resulting
   swap_gate = Gate(name="SWAP", targets=[0, 1])
 
   qc.add_gate(swap_gate)
-  qc.add_measurement("M0", targets=[1], classical_store=0)
+  qc.add_measurement("M0", targets=[1], classical_store=0) # measurement gate
   qc.add_gate("CNOT", controls=0, targets=1)
-  qc.add_gate("X", targets=0, classical_controls=[0])
+  qc.add_gate("X", targets=0, classical_controls=[0]) # classically controlled gate
   qc.add_gate(swap_gate)
 
   print(qc.gates)
@@ -45,14 +56,19 @@ Moreover, we can run the circuit multiple times and obtain the various resulting
 **Output**:
 
 .. testoutput::
+  :options: +NORMALIZE_WHITESPACE
 
-  [Gate(SWAP, targets=[0, 1], controls=None, classical controls=None, control_value=None), Measurement(M0, target=[1], classical_store=0), Gate(CNOT, targets=[1], controls=[0], classical controls=None, control_value=None), Gate(X, targets=[0], controls=None, classical controls=[0], control_value=None), Gate(SWAP, targets=[0, 1], controls=None, classical controls=None, control_value=None)]
+  [Gate(SWAP, targets=[0, 1], controls=None, classical controls=None, control_value=None),
+   Measurement(M0, target=[1], classical_store=0),
+   Gate(CNOT, targets=[1], controls=[0], classical controls=None, control_value=None),
+   Gate(X, targets=[0], controls=None, classical controls=[0], control_value=None),
+   Gate(SWAP, targets=[0, 1], controls=None, classical controls=None, control_value=None)]
 
 Unitaries
 =========
 
 There are a few useful functions associated with the circuit object. For example,
-the `qutip.qip.QubitCircuit.propagators()` method returns a list of the unitaries associated
+the :func:`qutip.qip.QubitCircuit.propagators()` method returns a list of the unitaries associated
 with the sequence of gates in the circuit. By default, the unitaries are expanded to the
 full dimension of the circuit:
 
@@ -163,7 +179,9 @@ Gate name                           Description
 "GLOBALPHASE"         Global phase
 ====================  ========================================
 
-For some of the gates listed above, :class:`qutip.qip.QubitCircuit` also has a primitive :meth:`qutip.qip.QubitCircuit.resolve_gates()` method that decomposes them into elementary gate sets such as CNOT or SWAP with single-qubit gates. However, this method is not fully optimized. It is very likely that the depth of the circuit can be further reduced by merging quantum gates. It is required that the gate resolution be carried out before the measurements to the circuit are added.
+For some of the gates listed above, :class:`~qutip.qip.QubitCircuit` also has a primitive :func:`~qutip.qip.QubitCircuit.resolve_gates()` method that decomposes them into elementary gate sets such as CNOT or SWAP with single-qubit gates. However, this method is not fully optimized. It is very likely that the depth of the circuit can be further reduced by merging quantum gates. It is required that the gate resolution be carried out before the measurements to the circuit are added.
+
+**Custom Gates**
 
 In addition to these pre-defined gates, QuTiP also allows the user to define their own gate. The following example shows how to define a customized gate.
 
@@ -210,13 +228,18 @@ In addition to these pre-defined gates, QuTiP also allows the user to define the
 **Output**:
 
 .. testoutput::
+  :options: +NORMALIZE_WHITESPACE
 
-      Quantum object: dims = [[2, 2], [2, 2]], shape = (4, 4), type = oper, isherm = False
-      Qobj data =
-      [[1.    +0.j     0.    +0.j     0.    +0.j     0.    +0.j    ]
-      [0.    +0.j     1.    +0.j     0.    +0.j     0.    +0.j    ]
-      [0.    +0.j     0.    +0.j     0.7071+0.j     0.    -0.7071j]
-      [0.    +0.j     0.    +0.j     0.    -0.7071j 0.7071+0.j    ]]
+  Quantum object: dims = [[2, 2], [2, 2]], shape = (4, 4), type = oper, isherm = False
+  Qobj data =
+  [[1.        +0.j         0.        +0.j         0.        +0.j
+    0.        +0.j        ]
+   [0.        +0.j         1.        +0.j         0.        +0.j
+    0.        +0.j        ]
+   [0.        +0.j         0.        +0.j         0.70710678+0.j
+    0.        -0.70710678j]
+   [0.        +0.j         0.        +0.j         0.        -0.70710678j
+    0.70710678+0.j        ]]
 
 .. testcode::
 
@@ -225,13 +248,20 @@ In addition to these pre-defined gates, QuTiP also allows the user to define the
 **Output**:
 
 .. testoutput::
+  :options: +NORMALIZE_WHITESPACE
 
-      Quantum object: dims = [[2, 2], [2, 2]], shape = (4, 4), type = oper, isherm = False
-      Qobj data =
-      [[1.    +0.j     0.    +0.j     0.    +0.j     0.    +0.j    ]
-      [0.    +0.j     0.7071+0.j     0.    +0.j     0.    -0.7071j]
-      [0.    +0.j     0.    +0.j     1.    +0.j     0.    +0.j    ]
-      [0.    +0.j     0.    -0.7071j 0.    +0.j     0.7071+0.j    ]]
+
+  Quantum object: dims = [[2, 2], [2, 2]], shape = (4, 4), type = oper, isherm = False
+  Qobj data =
+  [[1.        +0.j         0.        +0.j         0.        +0.j
+    0.        +0.j        ]
+   [0.        +0.j         0.70710678+0.j         0.        +0.j
+    0.        -0.70710678j]
+   [0.        +0.j         0.        +0.j         1.        +0.j
+    0.        +0.j        ]
+   [0.        +0.j         0.        -0.70710678j 0.        +0.j
+    0.70710678+0.j        ]]
+
 
 .. testcode::
 
@@ -240,13 +270,14 @@ In addition to these pre-defined gates, QuTiP also allows the user to define the
 **Output**:
 
 .. testoutput::
+  :options: +NORMALIZE_WHITESPACE
 
-      Quantum object: dims = [[2, 2], [2, 2]], shape = (4, 4), type = oper, isherm = False
-      Qobj data =
-      [[1.+0.j 0.+0.j 0.+0.j 0.+0.j]
-      [0.+0.j 0.+1.j 0.+0.j 0.+0.j]
-      [0.+0.j 0.+0.j 1.+0.j 0.+0.j]
-      [0.+0.j 0.+0.j 0.+0.j 0.+1.j]]
+  Quantum object: dims = [[2, 2], [2, 2]], shape = (4, 4), type = oper, isherm = False
+  Qobj data =
+  [[1.+0.j 0.+0.j 0.+0.j 0.+0.j]
+   [0.+0.j 0.+1.j 0.+0.j 0.+0.j]
+   [0.+0.j 0.+0.j 1.+0.j 0.+0.j]
+   [0.+0.j 0.+0.j 0.+0.j 0.+1.j]]
 
 .. _quantum_circuit_plots:
 
@@ -280,7 +311,7 @@ There are two different ways to simulate the action of quantum circuits using Qu
 
 - The first method utilizes unitary application through matrix products on the input states.
   This method simulates circuits exactly in a deterministic manner. This is achieved through
-  :class:`qutip.qip.circuit.ExactSimulator`. A short guide to exact simulation can be
+  :class:`qutip.qip.ExactSimulator`. A short guide to exact simulation can be
   found at :ref:`qip_simulator`. The teleportation notebook is also useful as an example.
 
 - A different method of circuit simulation employs driving Hamiltonians with the ability to
