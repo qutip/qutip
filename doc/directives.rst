@@ -29,7 +29,7 @@ Additional extensions can be configured in the `conf.py <https://github.com/quti
 Directives
 ==========
 
-There are three Sphinx directives that can be used to write code examples
+There are two Sphinx directives that can be used to write code examples
 in the user guide:
 
 - `Doctest <https://www.sphinx-doc.org/en/master/usage/extensions/doctest.html>`_
