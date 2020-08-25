@@ -37,6 +37,7 @@ from numpy.testing import assert_allclose
 from functools import partial
 from types import FunctionType, BuiltinFunctionType
 from qutip import Cubic_Spline
+from qutip.core.cy.cqobjevo import CQobjEvo
 
 from qutip.core import data as _data
 
@@ -171,54 +172,51 @@ class TestQobjevo:
     def _rand_t(self):
         return np.random.rand() * 0.9 + 0.05
 
-    def test_creation(self, form):
-        if form == "cte":
-            obj = QobjEvo(self.cte_qobj)
-        elif form == "func":
-            obj = QobjEvo([self.cte_qobj,
-                           [self.cplx_qobj, self.cplx_coeff.func]],
-                          args=self.args)
-        elif form == "string":
-            obj = QobjEvo([self.cte_qobj,
-                           [self.cplx_qobj, self.cplx_coeff.string]],
-                          args=self.args)
-        elif form == "spline":
-            obj = QobjEvo([[self.cplx_qobj,
-                            self.cplx_coeff.spline(self.tlist, self.args)],
-                           self.cte_qobj])
-        elif form == "array":
-            obj = QobjEvo([self.cte_qobj,
-                           [self.cplx_qobj,
-                            self.cplx_coeff.array(self.tlist, self.args)]],
-                          tlist=self.tlist)
-        elif form == "array_log":
-            obj = QobjEvo([self.cte_qobj,
-                           [self.cplx_qobj,
-                            self.cplx_coeff.array(self.tlistlog, self.args)]],
-                          tlist=self.tlistlog)
-        elif form == "with_args":
-            obj = QobjEvo([self.cte_qobj,
-                           [self.cplx_qobj, self.cplx_coeff.func],
-                           [self.real_qobj, self.real_coeff.string]],
-                          args=self.args)
-        elif form == "no_args":
-            obj = QobjEvo([self.cte_qobj,
-                           [self.cplx_qobj, self.cplx_coeff.spline(self.tlist,
-                                                                   self.args)],
-                           [self.real_qobj, self.real_coeff.array(self.tlist,
-                                                                  self.args)]],
-                          tlist=self.tlist)
-        elif form == "mixed_tlist":
-            coeff_1 = coefficient(self.cplx_coeff.array(self.tlist,
-                                                        self.args),
-                                  tlist=self.tlist)
-            coeff_2 = coefficient(self.real_coeff.array(self.tlistlog,
-                                                        self.args),
-                                  tlist=self.tlistlog)
-            obj = QobjEvo([self.cte_qobj,
-                           [self.cplx_qobj, coeff_1],
-                           [self.real_qobj, coeff_2]])
+    @pytest.mark.parametrize('tlist', [tlist], ids=['test1'])
+    def test_param(self, tlist):
+        assert tlist is self.tlist
+
+
+    @pytest.mark.parametrize(['form', 'base', 'kwargs'],
+        [pytest.param('cte', cte_qobj, {}, id='cte'),
+         pytest.param('func', [cte_qobj,
+                               [cplx_qobj, cplx_coeff.func]],
+                      {'args':args}, id='func'),
+         pytest.param('string', [cte_qobj,
+                                 [cplx_qobj, cplx_coeff.string]],
+                      {'args':args}, id='string'),
+         pytest.param('spline', [[cplx_qobj, cplx_coeff.spline(tlist, args)],
+                                 cte_qobj],
+                      {}, id='spline'),
+         pytest.param('array', [cte_qobj,
+                                [cplx_qobj, cplx_coeff.array(tlist, args)]],
+                      {'tlist':tlist}, id='array'),
+         pytest.param('array_log', [cte_qobj,
+                                [cplx_qobj, cplx_coeff.array(tlistlog, args)]],
+                      {'tlist':tlistlog}, id='array_log'),
+         pytest.param('with_args', [cte_qobj,
+                                    [cplx_qobj, cplx_coeff.func],
+                                    [real_qobj, real_coeff.string]],
+                      {'args':args}, id='with_args'),
+         pytest.param('no_args', [cte_qobj,
+                                  [cplx_qobj, cplx_coeff.spline(tlist, args)],
+                                  [real_qobj, real_coeff.array(tlist, args)]],
+                      {'tlist':tlist}, id='no_args'),
+         pytest.param('mixed_tlist', [cte_qobj,
+                        [cplx_qobj, coefficient(
+                                        cplx_coeff.array(tlist, args),
+                                        tlist=tlist
+                                    )],
+                        [real_qobj, coefficient(
+                                        real_coeff.array(tlistlog, args),
+                                        tlist=tlistlog
+                                    )]],
+                      {}, id='mixed_tlist'),
+    ])
+    def test_creation(self, form, base, kwargs):
+        obj = QobjEvo(base, **kwargs)
         self.qobjevos[form] = obj
+        assert isinstance(obj.compiled_qobjevo, CQobjEvo)
 
     def test_call(self, form):
         t = self._rand_t()
@@ -562,7 +560,7 @@ def test_QobjEvo_with_state():
     assert_allclose(td_data.mul(t, vec), (q_at_t * vec).full()[:, 0],
                     atol=1e-14)
     # Check that the with_state call compiled
-    assert_allclose(td_data.mul(t, vec), (q_at_t * vec).full()[:, 0], 
+    assert_allclose(td_data.mul(t, vec), (q_at_t * vec).full()[:, 0],
                     atol=1e-14)
 
     td_data = QobjEvo([q1, [q2, "state_vec[0] * cos(w*expect_op_0*t)"]],
