@@ -362,7 +362,7 @@ def steadystate(A, c_op_list=[], method='direct', solver=None, **kwargs):
 
     # Set weight parameter to max abs val in L if not set explicitly
     if 'weight' not in kwargs.keys():
-        ss_args['weight'] = np.abs(_data.norm.max_csr(A.data))
+        ss_args['weight'] = np.abs(_data.norm.max(A.data))
         ss_args['info']['weight'] = ss_args['weight']
 
     if ss_args['method'] == 'direct':
@@ -411,7 +411,7 @@ def _steadystate_LU_liouvillian(L, ss_args, has_mkl=0):
     perm2 = None
     rev_perm = None
     n = int(np.sqrt(L.shape[0]))
-    L = L.data.as_scipy()
+    L = _data.to(_data.CSR, L.data).as_scipy()
     if has_mkl:
         constructor = scipy.sparse.csr_matrix
     else:
@@ -504,7 +504,7 @@ def _steadystate_direct_sparse(L, ss_args):
         v = lu.solve(b)
         _direct_end = time.time()
         ss_args['info']['solution_time'] = _direct_end - _direct_start
-        if (settings.install['debug'] or ss_args['return_info']) and _scipy_check:
+        if (settings.install['debug'] or ss_args['return_info']):
             L_nnz = lu.L.nnz
             U_nnz = lu.U.nnz
             ss_args['info']['l_nnz'] = L_nnz
@@ -537,7 +537,7 @@ def _steadystate_direct_sparse(L, ss_args):
         v = v[np.ix_(rev_perm,)]
 
     data = unstack_columns(_data.create(v), (n, n))
-    data = 0.5 * (data + data.adjoint())
+    data = _data.mul(_data.add(data, _data.adjoint(data)), 0.5)
     if ss_args['return_info']:
         return Qobj(data, dims=dims, isherm=True), ss_args['info']
     else:
@@ -582,7 +582,7 @@ def _steadystate_eigen(L, ss_args):
         logger.debug('Starting Eigen solver.')
 
     dims = L.dims[0]
-    L = L.data.as_scipy()
+    L = _data.to(_data.CSR, L.data).as_scipy()
 
     if ss_args['use_rcm']:
         ss_args['info']['perm'].append('rcm')
@@ -605,11 +605,9 @@ def _steadystate_eigen(L, ss_args):
         ss_args['info']['residual_norm'] = scipy.linalg.norm(L*eigvec, np.inf)
     if ss_args['use_rcm']:
         eigvec = eigvec[np.ix_(rev_perm,)]
-    _temp = unstack_columns(_data.dense.fast_from_numpy(eigvec))
-    # TODO: fix dispatch.
-    data = _data.csr.from_dense(_temp)
-    data *= 0.5
-    data += data.adjoint()
+    size = int(np.sqrt(eigvec.size))
+    data = _data.column_unstack(_data.dense.fast_from_numpy(eigvec), size)
+    data = _data.mul(_data.add(data, _data.adjoint(data)), 0.5)
     out = Qobj(data, dims=dims, type='oper', isherm=True, copy=False)
     if ss_args['return_info']:
         return out/out.tr(), ss_args['info']
@@ -648,19 +646,18 @@ def _iterative_precondition(A, n, ss_args):
                 logger.debug('Precond. time: %f' %
                              (_precond_end - _precond_start))
 
-            if _scipy_check:
-                L_nnz = P.L.nnz
-                U_nnz = P.U.nnz
-                ss_args['info']['l_nnz'] = L_nnz
-                ss_args['info']['u_nnz'] = U_nnz
-                ss_args['info']['ilu_fill_factor'] = (L_nnz+U_nnz)/A.nnz
-                e = np.ones(n ** 2, dtype=int)
-                condest = la.norm(M*e, np.inf)
-                ss_args['info']['ilu_condest'] = condest
-                if settings.install['debug']:
-                    logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz, U_nnz))
-                    logger.debug('Fill factor: %f' % ((L_nnz+U_nnz)/A.nnz))
-                    logger.debug('iLU condest: %f' % condest)
+            L_nnz = P.L.nnz
+            U_nnz = P.U.nnz
+            ss_args['info']['l_nnz'] = L_nnz
+            ss_args['info']['u_nnz'] = U_nnz
+            ss_args['info']['ilu_fill_factor'] = (L_nnz+U_nnz)/A.nnz
+            e = np.ones(n ** 2, dtype=int)
+            condest = scipy.linalg.norm(M*e, np.inf)
+            ss_args['info']['ilu_condest'] = condest
+            if settings.install['debug']:
+                logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz, U_nnz))
+                logger.debug('Fill factor: %f' % ((L_nnz+U_nnz)/A.nnz))
+                logger.debug('iLU condest: %f' % condest)
 
     except:
         raise Exception("Failed to build preconditioner. Try increasing " +
@@ -683,8 +680,8 @@ def _steadystate_iterative(L, ss_args):
     if settings.install['debug']:
         logger.debug('Starting %s solver.' % ss_args['method'])
 
-    dims = L.dims[0]
     n = int(np.sqrt(L.shape[0]))
+    dims = L.dims[0]
     b = np.zeros(n ** 2)
     b[0] = ss_args['weight']
 
@@ -779,10 +776,9 @@ def _steadystate_iterative(L, ss_args):
     if ss_args['use_rcm']:
         v = v[np.ix_(rev_perm,)]
 
-    data = unstack_columns(_data.dense.fast_from_numpy(v))
-    data = 0.5 * (data + data.adjoint())
-    # TODO: fix dispatch
-    data = _data.create(data.to_array())
+    size = int(np.sqrt(v.size))
+    data = _data.column_unstack(_data.dense.fast_from_numpy(v), size)
+    data = _data.mul(_data.add(data, _data.adjoint(data)), 0.5)
     if ss_args['return_info']:
         return Qobj(data, dims=dims, isherm=True), ss_args['info']
     else:
@@ -800,7 +796,7 @@ def _steadystate_svd_dense(L, ss_args):
     if settings.install['debug']:
         logger.debug('Starting SVD solver.')
     _svd_start = time.time()
-    u, s, vh = svd(L.full(), full_matrices=False)
+    u, s, vh = np.linalg.svd(L.full(), full_matrices=False)
     tol = max(atol, rtol * s[0])
     nnz = (s >= tol).sum()
     ns = vh[nnz:].conj().T
@@ -830,7 +826,7 @@ def _steadystate_power_liouvillian(L, ss_args, has_mkl=0):
     perm2 = None
     rev_perm = None
     n = L.shape[0]
-    L = L.data - _data.csr.identity(n, 1e-15)
+    L = _data.to(_data.CSR, L.data) - _data.identity(n, 1e-15, dtype=_data.CSR)
     if ss_args['solver'] == 'mkl':
         kind = 'csr'
     else:
@@ -847,7 +843,7 @@ def _steadystate_power_liouvillian(L, ss_args, has_mkl=0):
         _wbm_start = time.time()
         perm2 = _weighted_bipartite_matching(L.as_scipy())
         _wbm_end = time.time()
-        L = _data.permute_csr(L, perm, np.arange(n, dtype=np.int32))
+        L = _data.permute.indices_csr(L, perm, np.arange(n, dtype=np.int32))
         ss_args['info']['perm'].append('wbm')
         ss_args['info']['wbm_time'] = _wbm_end-_wbm_start
         if settings.install['debug']:
@@ -865,7 +861,7 @@ def _steadystate_power_liouvillian(L, ss_args, has_mkl=0):
         _rcm_end = time.time()
         ss_args['info']['rcm_time'] = _rcm_end-_rcm_start
         rev_perm = np.argsort(perm2)
-        L = _data.permute_csr(L, perm2, perm2, kind)
+        L = _data.permute.indices_csr(L, perm2, perm2, kind)
         if settings.install['debug']:
             new_band = _bandwidth(L.as_scipy())
             new_pro = _profile(L.as_scipy())
@@ -945,7 +941,7 @@ def _steadystate_power(L, ss_args):
                       diag_pivot_thresh=ss_args['diag_pivot_thresh'],
                       options=dict(ILU_MILU=ss_args['ILU_MILU']))
 
-            if settings.install['debug'] and _scipy_check:
+            if settings.install['debug']:
                 L_nnz = lu.L.nnz
                 U_nnz = lu.U.nnz
                 logger.debug('L NNZ: %i ; U NNZ: %i', L_nnz, U_nnz)
@@ -1012,7 +1008,8 @@ def _steadystate_power(L, ss_args):
         data = data / scipy.linalg.norm(v)
 
     data = unstack_columns(_data.create(data))
-    rhoss = Qobj(0.5 * (data + data.adjoint()),
+    data = _data.mul(_data.add(data, _data.adjoint(data)), 0.5)
+    rhoss = Qobj(data,
                  dims=rhoss_dims,
                  isherm=True,
                  copy=False)
@@ -1109,7 +1106,7 @@ def build_preconditioner(A, c_op_list=[], **kwargs):
     L = _steadystate_setup(A, c_op_list)
     # Set weight parameter to max abs val in L if not set explicitly
     if 'weight' not in kwargs.keys():
-        ss_args['weight'] = np.abs(_data.norm.max_csr(L.data))
+        ss_args['weight'] = np.abs(_data.norm.max(L.data))
         ss_args['info']['weight'] = ss_args['weight']
 
     n = int(np.sqrt(L.shape[0]))
@@ -1165,12 +1162,12 @@ def _pseudo_inverse_dense(L, rhoss, w=None, **pseudo_args):
 
     elif pseudo_args['method'] == 'scipy':
         # return Qobj(la.pinv(L.full()), dims=L.dims)
-        return Qobj(np.dot(Q, np.dot(la.pinv(L.full()), Q)),
+        return Qobj(np.dot(Q, np.dot(scipy.linalg.pinv(L.full()), Q)),
                     dims=L.dims)
 
     elif pseudo_args['method'] == 'scipy2':
         # return Qobj(la.pinv2(L.full()), dims=L.dims)
-        return Qobj(np.dot(Q, np.dot(la.pinv2(L.full()), Q)),
+        return Qobj(np.dot(Q, np.dot(scipy.linalg.pinv2(L.full()), Q)),
                     dims=L.dims)
 
     else:
@@ -1184,6 +1181,7 @@ def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
     sparse matrix methods. See pseudo_inverse for details.
     """
 
+    L = L.to(_data.CSR)
     N = np.prod(L.dims[0][0])
 
     rhoss_vec = operator_to_vector(rhoss)
@@ -1191,7 +1189,7 @@ def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
     tr_op = tensor([identity(n) for n in L.dims[0][0]])
     tr_op_vec = operator_to_vector(tr_op)
 
-    P = _data.kron_csr(rhoss_vec.data, tr_op_vec.data.transpose())
+    P = _data.kron(rhoss_vec.data, tr_op_vec.data.transpose(), dtype=_data.CSR)
     I = _data.csr.identity(N * N)
     Q = I - P
 
@@ -1205,8 +1203,8 @@ def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
 
     if pseudo_args['use_rcm']:
         perm = scipy.sparse.csgraph.reverse_cuthill_mckee(L.data.as_scipy())
-        A = _data.permute.indices_csr(L.data, perm, perm)
-        Q = _data.permute.indices_csr(Q, perm, perm)
+        A = _data.permute.indices(L.data, perm, perm, dtype=_data.CSR)
+        Q = _data.permute.indices(Q, perm, perm, dtype=_data.CSR)
     else:
         if pseudo_args['solver'] == 'scipy':
             A = L.data.as_scipy().tocsc()
@@ -1237,12 +1235,11 @@ def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
     else:
         raise ValueError("unsupported method '%s'" % pseudo_args['method'])
 
-    # TODO: fix dispatch.
-    R = Q @ _data.create(LIQ)
+    R = _data.matmul(Q, _data.create(LIQ))
 
     if pseudo_args['use_rcm']:
         rev_perm = np.argsort(perm)
-        R = _data.permute.indices_csr(R, rev_perm, rev_perm)
+        R = _data.permute.indices(R, rev_perm, rev_perm)
 
     return Qobj(R, dims=L.dims)
 

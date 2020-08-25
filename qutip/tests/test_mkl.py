@@ -37,6 +37,7 @@ import scipy.linalg as la
 from numpy.testing import (assert_, run_module_suite, assert_array_almost_equal)
 import unittest
 from qutip import *
+from qutip.core import data as _data
 from qutip.settings import settings as qset
 if qset.install['has_mkl']:
     from qutip._mkl.spsolve import (mkl_splu, mkl_spsolve)
@@ -66,7 +67,7 @@ def test_mklspsolve2():
     A = rand_herm(10)
     x = rand_ket(10).full()
     b = A.full() @ x
-    y = mkl_spsolve(A.data.as_scipy(), b)
+    y = mkl_spsolve(_data.to(_data.CSR, A.data).as_scipy(), b)
     assert_array_almost_equal(x, y)
 
 
@@ -209,7 +210,7 @@ def test_mkl_spsolve9():
     """
     MKL spsolve : Hermitian (complex) solver
     """
-    A = rand_herm(np.arange(1, 11)).data.as_scipy()
+    A = _data.to(_data.CSR, rand_herm(np.arange(1, 11)).data).as_scipy()
     x = np.ones(10, dtype=complex)
     b = A.dot(x)
     y = mkl_spsolve(A, b, hermitian=1)
@@ -221,7 +222,7 @@ def test_mkl_spsolve10():
     """
     MKL spsolve : Hermitian (real) solver
     """
-    A = rand_herm(np.arange(1, 11)).data.as_scipy()
+    A = _data.to(_data.CSR, rand_herm(np.arange(1, 11)).data).as_scipy()
     A = sp.csr_matrix((np.real(A.data), A.indices, A.indptr), dtype=float)
     x = np.ones(10, dtype=float)
     b = A.dot(x)

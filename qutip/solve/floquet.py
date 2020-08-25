@@ -48,6 +48,7 @@ from types import FunctionType
 from .. import (
     Qobj, unstacked_index, stack_columns, unstack_columns, projection, expect,
 )
+from ..core import data as _data
 from .sesolve import sesolve
 from ._rhs_generate import rhs_clear
 from .steadystate import steadystate
@@ -876,9 +877,8 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
 
 
 def _wrap_matmul(t, state, operator):
-    out = _data.matmul_csr_dense_dense(operator,
-                                       _data.dense.fast_from_numpy(state))
-    return out.as_ndarray()
+    return _data.matmul(operator, _data.dense.fast_from_numpy(state),
+                        dtype=_data.Dense).as_ndarray()
 
 # -----------------------------------------------------------------------------
 # Solve the Floquet-Markov master equation

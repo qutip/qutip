@@ -7,8 +7,7 @@ from cpython cimport mem
 from qutip.settings import settings
 
 from qutip.core.data.base cimport idxint
-from qutip.core.data.csr cimport CSR
-from qutip.core.data cimport csr
+from qutip.core.data cimport csr, dense, CSR, Dense
 
 cdef extern from *:
     # Not defined in cpython.mem for some reason, but is in pymem.h.
@@ -17,6 +16,7 @@ cdef extern from *:
 __all__ = [
     'isherm', 'isherm_csr',
     'isdiag', 'isdiag_csr',
+    'iszero', 'iszero_csr', 'iszero_dense',
 ]
 
 cdef inline bint _conj_feq(double complex a, double complex b, double tol) nogil:
@@ -28,6 +28,9 @@ cdef inline bint _conj_feq(double complex a, double complex b, double tol) nogil
     # the floating point result is strictly not greater than the true value.
     # Save the cycles: don't sqrt.
     return re*re + im*im < tol*tol
+
+cdef inline double _abssq(double complex x) nogil:
+    return x.real*x.real + x.imag*x.imag
 
 
 cpdef bint isherm_csr(CSR matrix, double tol=-1):
@@ -98,6 +101,29 @@ cpdef bint isdiag_csr(CSR matrix) nogil:
     return True
 
 
+cpdef bint iszero_csr(CSR matrix, double tol=-1) nogil:
+    cdef size_t ptr
+    if tol < 0:
+        with gil:
+            tol = settings.core["atol"]
+    tolsq = tol*tol
+    for ptr in range(csr.nnz(matrix)):
+        if _abssq(matrix.data[ptr]) > tolsq:
+            return False
+    return True
+
+cpdef bint iszero_dense(Dense matrix, double tol=-1) nogil:
+    cdef size_t ptr
+    if tol < 0:
+        with gil:
+            tol = settings.core["atol"]
+    tolsq = tol*tol
+    for ptr in range(matrix.shape[0]*matrix.shape[1]):
+        if _abssq(matrix.data[ptr]) > tolsq:
+            return False
+    return True
+
+
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
 
@@ -154,6 +180,40 @@ isdiag.__doc__ =\
     """
 isdiag.add_specialisations([
     (CSR, isdiag_csr),
+], _defer=True)
+
+iszero = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('tol', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                           default=-1),
+    ]),
+    name='iszero',
+    module=__name__,
+    inputs=('matrix',),
+    out=False,
+)
+iszero.__doc__ =\
+    """
+    Test if this matrix is the zero matrix, up to a certain absolute tolerance.
+
+    Arguments
+    ---------
+    matrix : Data
+        The matrix to test.
+    tol : real, optional
+        The absolute tolerance to use when comparing to zero.  If not given, or
+        less than 0, use the core setting `atol`.
+
+    Returns
+    -------
+    bool
+        Whether the matrix is equivalent to 0 under the given absolute
+        tolerance.
+    """
+iszero.add_specialisations([
+    (CSR, iszero_csr),
+    (Dense, iszero_dense),
 ], _defer=True)
 
 del _inspect, _Dispatcher

@@ -5,25 +5,23 @@ from libc.math cimport fabs
 
 cimport numpy as cnp
 
-from qutip.core.data cimport csr
-from qutip.core.data.csr cimport CSR
+from qutip.core.data cimport csr, dense, CSR, Dense
 
 cdef extern from "<complex>" namespace "std" nogil:
     # abs is templated such that Cython treats std::abs as complex->complex
     double abs(double complex x)
 
 __all__ = [
-    'tidyup', 'tidyup_csr',
+    'tidyup', 'tidyup_csr', 'tidyup_dense',
 ]
 
 
 cpdef CSR tidyup_csr(CSR matrix, double tol, bint inplace=True):
     cdef bint re, im
-    cdef size_t row, ptr, ptr_start, ptr_end=0, nnz_new, nnz_orig
+    cdef size_t row, ptr, ptr_start, ptr_end=0, nnz
     cdef double complex value
     cdef CSR out = matrix if inplace else matrix.copy()
-    nnz_new = 0
-    nnz_orig = csr.nnz(matrix)
+    nnz = 0
     out.row_index[0] = 0
     for row in range(matrix.shape[0]):
         ptr_start, ptr_end = ptr_end, matrix.row_index[row + 1]
@@ -37,12 +35,23 @@ cpdef CSR tidyup_csr(CSR matrix, double tol, bint inplace=True):
                 im = True
                 value.imag = 0
             if not (re & im):
-                out.data[nnz_new] = value
-                out.col_index[nnz_new] = matrix.col_index[ptr]
-                nnz_new += 1
-        out.row_index[row + 1] = nnz_new
-    if nnz_new == nnz_orig:
-        return out
+                out.data[nnz] = value
+                out.col_index[nnz] = matrix.col_index[ptr]
+                nnz += 1
+        out.row_index[row + 1] = nnz
+    return out
+
+
+cpdef Dense tidyup_dense(Dense matrix, double tol, bint inplace=True):
+    cdef Dense out = matrix if inplace else matrix.copy()
+    cdef double complex value
+    cdef size_t ptr
+    for ptr in range(matrix.shape[0] * matrix.shape[1]):
+        value = matrix.data[ptr]
+        if fabs(value.real) < tol:
+            matrix.data[ptr].real = 0
+        if fabs(value.imag) < tol:
+            matrix.data[ptr].imag = 0
     return out
 
 
@@ -91,6 +100,7 @@ tidyup.__doc__ =\
     """
 tidyup.add_specialisations([
     (CSR, tidyup_csr),
+    (Dense, tidyup_dense),
 ], _defer=True)
 
 del _inspect, _Dispatcher

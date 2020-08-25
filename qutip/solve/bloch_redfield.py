@@ -243,7 +243,7 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
 
 def _ode_rhs(t, state, oper):
     state = _data.dense.fast_from_numpy(state)
-    return _data.matmul_csr_dense_dense(oper, state).as_ndarray()[:, 0]
+    return _data.matmul(oper, state, dtype=_data.Dense).as_ndarray()[:, 0]
 
 
 # -----------------------------------------------------------------------------
@@ -350,9 +350,8 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None,
         if not r.successful():
             break
 
-        # TODO: fix with better creation
         rho_eb = unstack_columns(_data.dense.fast_from_numpy(r.y), rho0.shape)
-        rho_eb = Qobj(rho_eb.as_ndarray(), dims=rho0.dims)
+        rho_eb = Qobj(rho_eb, dims=rho0.dims)
 
         # calculate all the expectation values, or output rho_eb if no
         # expectation value operators are given
@@ -577,9 +576,8 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
 
         rho_data = _data.dense.fast_from_numpy(_ode.y)
         if options['store_states'] or expt_callback:
-            # TODO: fix dispatch.
             rho_data = _data.column_unstack_dense(rho_data, rho.shape[0])
-            rho = Qobj(rho_data.to_array(), dims=rho.dims, isherm=True)
+            rho = Qobj(rho_data, dims=rho.dims, isherm=True)
 
             if options['store_states']:
                 output.states.append(rho)
@@ -591,10 +589,10 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
         for m in range(n_expt_op):
             if output.expect[m].dtype == complex:
                 output.expect[m][t_idx] =\
-                    _data.expect_super_csr_dense(e_sops_data[m], rho_data)
+                    _data.expect_super(e_sops_data[m], rho_data)
             else:
                 output.expect[m][t_idx] =\
-                    _data.expect_super_csr_dense(e_sops_data[m], rho_data).real
+                    _data.expect_super(e_sops_data[m], rho_data).real
 
         if t_idx < n_tsteps - 1:
             _ode.integrate(_ode.t + dt[t_idx])

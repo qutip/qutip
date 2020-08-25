@@ -114,7 +114,7 @@ shape = [4, 4], type = oper, isHerm = True
     dims_l = [d for arg in args for d in arg.dims[0]]
     dims_r = [d for arg in args for d in arg.dims[1]]
     for arg in args[1:]:
-        out_data = _data.kron_csr(out_data, arg.data)
+        out_data = _data.kron(out_data, arg.data)
         # If both _are_ Hermitian and/or unitary, then so is the output, but if
         # both _aren't_, then output still can be.
         isherm = (isherm and arg._isherm) or None

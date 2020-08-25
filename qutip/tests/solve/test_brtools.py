@@ -40,6 +40,7 @@ from qutip.solve._brtools_checks import (
     _test_vec_to_eigbasis, _test_eigvec_to_fockbasis, _test_vector_roundtrip,
     _cop_super_mult, _test_br_term_mult
 )
+from qutip.core import data as _data
 import platform
 
 
@@ -133,7 +134,7 @@ def test_diag_liou_mult():
         L = qutip.liouvillian(H.transform(evecs))
         coefficients = np.ones((dimension*dimension,), dtype=np.complex128)
         calculated = np.zeros_like(coefficients)
-        target = L.data.as_scipy().dot(coefficients)
+        target = _data.to(_data.CSR, L.data).as_scipy().dot(coefficients)
         _test_diag_liou_mult(evals, coefficients, calculated, dimension)
         np.testing.assert_allclose(target, calculated, atol=1e-12)
 
@@ -147,7 +148,7 @@ def test_cop_super_mult():
         a = qutip.destroy(dimension)
         L = qutip.liouvillian(None, [a.transform(basis)])
         vec = np.ones((dimension*dimension,), dtype=np.complex128)
-        target = L.data.as_scipy().dot(vec)
+        target = _data.to(_data.CSR, L.data).as_scipy().dot(vec)
         calculated = np.zeros_like(target)
         _eigenvalues = np.empty((dimension,), dtype=np.float64)
         _cop_super_mult(a.full('F'), _test_zheevr(H.full('F'), _eigenvalues),
@@ -173,7 +174,8 @@ def test_br_term_mult(secular):
         vec = np.ones((dimension*dimension,), dtype=np.complex128)
         br_tensor, _ = qutip.bloch_redfield_tensor(H, a_ops,
                                                    use_secular=secular)
-        target = (br_tensor - L_diagonal).data.as_scipy().dot(vec)
+        _op = br_tensor - L_diagonal
+        target = _data.to(_data.CSR, _op.data).as_scipy().dot(vec)
         calculated = np.zeros_like(target)
         _test_br_term_mult(time, operator.full('F'), evecs, evals, vec,
                            calculated, secular, 0.1, atol)

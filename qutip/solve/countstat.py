@@ -43,8 +43,6 @@ from ..core import (
     sprepost, spre, operator_to_vector, identity, tensor,
 )
 from ..core import data as _data
-from ..core.data import matmul_csr_dense_dense as matmul
-from ..core.data import expect_super_csr_dense as expect
 from .steadystate import pseudo_inverse, steadystate
 from .. import settings
 
@@ -94,14 +92,13 @@ def countstat_current(L, c_ops=None, rhoss=None, J_ops=None):
             raise ValueError("c_ops must be given if rhoss is not")
         rhoss = steadystate(L, c_ops)
 
-    rhoss_vec = _data.dense.fast_from_numpy(rhoss.full())
-    rhoss_vec = _data.column_stack_dense(rhoss_vec)
+    rhoss_vec = _data.column_stack(rhoss.data.copy())
 
     N = len(J_ops)
     I = np.zeros(N)
 
     for i, Ji in enumerate(J_ops):
-        I[i] = expect(Ji.data, rhoss_vec).real
+        I[i] = _data.expect_super(Ji.data, rhoss_vec).real
 
     return I
 
@@ -181,8 +178,7 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
     S = np.zeros((N, N, len(wlist)))
 
     if sparse == False:
-        rhoss_vec = _data.dense.fast_from_numpy(rhoss.full())
-        rhoss_vec = _data.column_stack_dense(rhoss_vec)
+        rhoss_vec = _data.column_stack(rhoss.data.copy())
         for k, w in enumerate(wlist):
             R = pseudo_inverse(L, rhoss=rhoss, w=w,
                                sparse=sparse, method=method).data
@@ -191,9 +187,13 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
                 for j, Jj in enumerate(J_ops):
                     Jj = Jj.data
                     if i == j:
-                        I[i] = expect(Ji, rhoss_vec).real
+                        I[i] = _data.expect_super(Ji, rhoss_vec).real
                         S[i, j, k] = I[i]
-                    S[i, j, k] -= expect(Ji@R@Jj + Jj@R@Ji, rhoss_vec).real
+                    op = _data.add(
+                        _data.matmul(_data.matmul(Ji, R), Jj),
+                        _data.matmul(_data.matmul(Jj, R), Ji),
+                    )
+                    S[i, j, k] -= _data.expect_super(op, rhoss_vec).real
     else:
         if method == "direct":
             N = np.prod(L.dims[0][0])
@@ -203,8 +203,8 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
             tr_op = tensor([identity(n) for n in L.dims[0][0]])
             tr_op_vec = operator_to_vector(tr_op)
 
-            Pop = _data.kron_csr(rhoss_vec.data, tr_op_vec.data.transpose())
-            Iop = _data.csr.identity(N*N)
+            Pop = _data.kron(rhoss_vec.data, tr_op_vec.data.transpose())
+            Iop = _data.identity(N*N)
             Q = Iop - Pop
 
             for k, w in enumerate(wlist):
@@ -218,17 +218,17 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
                     L_temp = 1e-15j*spre(tr_op) + L
 
                 if not settings.install['has_mkl']:
-                    A = L_temp.data.as_scipy().tocsc()
+                    A = _data.to(_data.CSR, L_temp.data).as_scipy().tocsc()
                 else:
-                    A = L_temp.data.as_scipy()
+                    A = _data.to(_data.CSR, L_temp.data).as_scipy()
                     A.sort_indices()
 
-                rhoss_vec = _data.dense.fast_from_numpy(rhoss.full())
-                rhoss_vec = _data.column_stack_dense(rhoss_vec)
+                rhoss_vec = _data.column_stack(rhoss.data.copy())
 
                 for j, Jj in enumerate(J_ops):
                     Jj = Jj.data
-                    Qj = matmul(Q, matmul(Jj, rhoss_vec)).as_ndarray()
+                    Qj = _data.matmul(Q, _data.matmul(Jj, rhoss_vec),
+                                      dtype=_data.Dense).as_ndarray()
                     try:
                         if settings.install['has_mkl']:
                             X_rho_vec_j = mkl_spsolve(A, Qj)
@@ -241,7 +241,8 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
                     X_rho_vec_j = _data.dense.fast_from_numpy(X_rho_vec_j)
                     for i, Ji in enumerate(J_ops):
                         Ji = Ji.data
-                        Qi = matmul(Q, matmul(Ji, rhoss_vec)).as_ndarray()
+                        Qi = _data.matmul(Q, _data.matmul(Ji, rhoss_vec),
+                                          dtype=_data.Dense).as_ndarray()
                         try:
                             if settings.install['has_mkl']:
                                 X_rho_vec_i = mkl_spsolve(A, Qi)
@@ -253,16 +254,17 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
                         except:
                             X_rho_vec_i = sp.linalg.lsqr(A, Qi)[0]
                         if i == j:
-                            I[i] = expect(Ji, rhoss_vec).real
+                            I[i] = _data.expect_super(Ji, rhoss_vec).real
                             S[j, i, k] = I[i]
 
                         X_rho_vec_i = _data.dense.fast_from_numpy(X_rho_vec_i)
-                        S[j, i, k] -= (expect(Jj @ Q, X_rho_vec_i)
-                                       + expect(Ji @ Q, X_rho_vec_j)).real
+                        S[j, i, k] -= (
+                            _data.expect_super(Jj @ Q, X_rho_vec_i)
+                            + _data.expect_super(Ji @ Q, X_rho_vec_j)
+                        ).real
 
         else:
-            rhoss_vec = _data.dense.fast_from_numpy(rhoss.full())
-            rhoss_vec = _data.column_stack_dense(rhoss_vec)
+            rhoss_vec = _data.column_stack(rhoss.data.copy())
             for k, w in enumerate(wlist):
 
                 R = pseudo_inverse(L, rhoss=rhoss, w=w, sparse=sparse,
@@ -273,7 +275,11 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
                     for j, Jj in enumerate(J_ops):
                         Jj = Jj.data
                         if i == j:
-                            I[i] = expect(Ji, rhoss_vec).real
+                            I[i] = _data.expect_super(Ji, rhoss_vec).real
                             S[i, j, k] = I[i]
-                        S[i, j, k] -= expect(Ji@R@Jj + Jj@R@Ji, rhoss_vec).real
+                        op = _data.add(
+                            _data.matmul(_data.matmul(Ji, R), Jj),
+                            _data.matmul(_data.matmul(Jj, R), Ji),
+                        )
+                        S[i, j, k] -= _data.expect_super(op, rhoss_vec).real
     return I, S

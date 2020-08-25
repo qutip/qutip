@@ -136,10 +136,10 @@ cdef class CQobjEvo:
         if out is None:
             out = matmul_csr_dense_dense(self.constant, matrix)
         else:
-            matmul_csr_dense_dense(self.constant, matrix, out=out)
+            matmul_csr_dense_dense(self.constant, matrix, scale=1, out=out)
         for i in range(self.n_ops):
-            matmul_csr_dense_dense(self.ops[i], matrix, out=out,
-                                   scale=self.coefficients[i])
+            matmul_csr_dense_dense(self.ops[i], matrix,
+                                   scale=self.coefficients[i], out=out)
         return out
 
     cpdef double complex expect(self, double t, Data matrix) except *:

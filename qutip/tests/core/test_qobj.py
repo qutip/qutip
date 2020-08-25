@@ -458,7 +458,7 @@ def test_QobjExpmExplicitlySparse():
     "qutip.Qobj expm (sparse)"
     data = _random_not_singular(15)
     A = qutip.Qobj(data)
-    B = A.expm(method='sparse')
+    B = A.expm(dtype=qutip.data.CSR)
     np.testing.assert_allclose(B.full(), scipy.linalg.expm(data), atol=1e-10)
 
 

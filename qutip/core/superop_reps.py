@@ -59,7 +59,13 @@ from .operators import identity, sigmax, sigmay, sigmaz
 from .states import basis
 
 
-_SINGLE_QUBIT_PAULI_BASIS = (identity(2), sigmax(), sigmay(), sigmaz())
+# TODO: revisit when creation routines have dispatching.
+_SINGLE_QUBIT_PAULI_BASIS = (
+    identity(2).to(_data.CSR),
+    sigmax().to(_data.CSR),
+    sigmay().to(_data.CSR),
+    sigmaz().to(_data.CSR),
+)
 
 
 def _superpauli_basis(nq=1):
@@ -77,7 +83,7 @@ def _superpauli_basis(nq=1):
         basis = paulis[0].data
         for pauli in paulis[1:]:
             basis = _data.kron_csr(basis, pauli.data)
-        basis_ket_sci = stack_columns(basis).transpose().as_scipy()
+        basis_ket_sci = _data.column_stack_csr(basis).transpose().as_scipy()
         sci.data[ptr : ptr+ptr_inc] = basis_ket_sci.data
         sci.indices[ptr : ptr+ptr_inc] = basis_ket_sci.indices
         sci.indptr[i] = ptr
@@ -329,13 +335,13 @@ def _choi_to_stinespring(q_oper, threshold=1e-10):
     out_left, out_right = out_dims
     in_left, in_right = in_dims
 
-    A = Qobj(_data.csr.zeros(dK * dL, dL),
+    A = Qobj(_data.zeros(dK * dL, dL),
              dims=[out_left + [dK], out_right + [1]],
              type='oper',
              isherm=True,
              isunitary=False,
              copy=False)
-    B = Qobj(_data.csr.zeros(dK * dR, dR),
+    B = Qobj(_data.zeros(dK * dR, dR),
              dims=[in_left + [dK], in_right + [1]],
              type='oper',
              isherm=True,

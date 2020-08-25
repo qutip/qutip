@@ -216,22 +216,25 @@ cdef class _bind:
         return args, kwargs
 
 
-cdef double _conversion_weight(tuple froms, tuple tos, dict weight_map) except -1:
+cdef double _conversion_weight(tuple froms, tuple tos, dict weight_map, bint out) except -1:
     """
     Find the total weight of conversion if the types in `froms` are converted
     element-wise to the types in `tos`.  `weight_map` is a mapping of
     `(to_type, from_type): real`; it should almost certainly be
     `data.to.weight`.
     """
-    cdef double out = 0.0
+    cdef double weight = 0.0
     cdef Py_ssize_t i, n=len(froms)
     if len(tos) != n:
         raise ValueError(
             "number of arguments not equal: " + str(n) + " and " + str(len(tos))
         )
+    if out:
+        n = n - 1
+        weight += weight_map[froms[n], tos[n]]
     for i in range(n):
-        out += weight_map[tos[i], froms[i]]
-    return out
+        weight += weight_map[tos[i], froms[i]]
+    return weight
 
 
 cdef class _constructed_specialisation:
@@ -381,10 +384,10 @@ cdef class Dispatcher:
         if isinstance(inputs, str):
             inputs = (inputs,)
         inputs = tuple(inputs)
-        if inputs == ():
+        if inputs == () and out is False:
             warnings.warn(
                 "No parameters to dispatch on."
-                " Maybe you meant to specify 'inputs'?"
+                " Maybe you meant to specify 'inputs' or 'out'?"
             )
         self.inputs = inputs
         if isinstance(signature_source, inspect.Signature):
@@ -504,7 +507,8 @@ cdef class Dispatcher:
             types = None
             function = None
             for out_types, out_function in self._specialisations.items():
-                cur = _conversion_weight(in_types, out_types, _to.weight)
+                cur = _conversion_weight(in_types, out_types, _to.weight,
+                                         out=self.output)
                 if cur < weight:
                     weight = cur
                     types = out_types
@@ -529,7 +533,8 @@ cdef class Dispatcher:
                 types = None
                 function = None
                 for out_types, out_function in self._specialisations.items():
-                    cur = _conversion_weight(in_types, out_types[:-1], _to.weight)
+                    cur = _conversion_weight(in_types, out_types[:-1],
+                                             _to.weight, out=False)
                     if cur < weight:
                         weight = cur
                         types = out_types

@@ -74,7 +74,7 @@ def _cplx(t, args):
     pytest.param("array_log", id="array_log"),
     pytest.param("with_args", id="with_args"),
     pytest.param("no_args", id="no_args"),
-    pytest.param("mixed_tlist", id="mixed_tlist")
+    pytest.param("mixed_tlist", id="mixed_tlist"),
 ])
 def form(request):
     return request.param
@@ -83,7 +83,7 @@ def form(request):
 @pytest.fixture(params=[
     pytest.param("func", id="func"),
     pytest.param("string", id="string"),
-    pytest.param("with_args", id="with_args")
+    pytest.param("with_args", id="with_args"),
 ])
 def args_form(request):
     return request.param
@@ -98,7 +98,7 @@ def args_form(request):
     pytest.param("array_log", id="array_log"),
     pytest.param("with_args", id="with_args"),
     pytest.param("no_args", id="no_args"),
-    pytest.param("mixed_tlist", id="mixed_tlist")
+    pytest.param("mixed_tlist", id="mixed_tlist"),
 ])
 def extra_form(request):
     return request.param
@@ -111,8 +111,7 @@ def _assert_qobjevo_equivalent(obj1, obj2, tol=1e-8):
 
 
 def _assert_qobj_almost_eq(obj1, obj2, tol=1e-10):
-    diff_data = (obj1 - obj2).tidyup(tol).data
-    assert _data.csr.nnz(diff_data) == 0
+    assert _data.iszero((obj1 - obj2).data, tol)
 
 
 def _assert_qobjevo_different(obj1, obj2):
@@ -175,7 +174,6 @@ class TestQobjevo:
     @pytest.mark.parametrize('tlist', [tlist], ids=['test1'])
     def test_param(self, tlist):
         assert tlist is self.tlist
-
 
     @pytest.mark.parametrize(['form', 'base', 'kwargs'],
         [pytest.param('cte', cte_qobj, {}, id='cte'),
@@ -446,9 +444,9 @@ class TestQobjevo:
         N = self.N
         vec = _data.dense.fast_from_numpy(np.arange(N)*.5 + .5j)
         op = self.qobjevos[form]
-        _expect = _data.expect_csr_dense
         Qo1 = op(t)
-        assert_allclose(_expect(Qo1.data, vec), op.expect(t, vec), atol=1e-14)
+        assert_allclose(_data.expect(Qo1.data, vec), op.expect(t, vec),
+                        atol=1e-14)
 
     def test_expect_rho(self, form):
         "QobjEvo expect rho"
@@ -458,16 +456,14 @@ class TestQobjevo:
                                           + 1j * np.random.rand(N*N))
         mat = _data.column_unstack_dense(vec, N)
         qobj = Qobj(mat.to_array())
-        _expect = _data.expect_super_csr_dense
-
         op = liouvillian(self.qobjevos[form])
         Qo1 = op(t)
-        assert_allclose(_expect(Qo1.data, vec), op.expect(t, vec, 0),
-                        atol=1e-14)
-        assert_allclose(_expect(Qo1.data, vec), op.expect(t, mat, 0),
-                        atol=1e-14)
-        assert_allclose(_expect(Qo1.data, vec), op.expect(t, qobj, 0),
-                        atol=1e-14)
+        assert abs(_data.expect_super(Qo1.data, vec)
+                   - op.expect(t, vec, 0)) < 1e-14
+        assert abs(_data.expect_super(Qo1.data, vec)
+                   - op.expect(t, mat, 0)) < 1e-14
+        assert abs(_data.expect_super(Qo1.data, vec)
+                   - op.expect(t, qobj, 0)) < 1e-14
 
     def test_compress(self):
         "QobjEvo compress"

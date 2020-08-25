@@ -456,7 +456,7 @@ cdef void cop_super_mult(complex[::1,:] cop, complex[::1,:] evecs,
     cdef Dense vec_d = dense.wrap(vec, nrows*nrows, 1, fortran=True)
     cdef Dense out_d = dense.wrap(out, nrows*nrows, 1, fortran=True)
     # out = kron(cd, c) @ vec
-    matmul_csr_dense_dense(kron_csr(c.conj(), c), vec_d, out=out_d)
+    matmul_csr_dense_dense(kron_csr(c.conj(), c), vec_d, scale=1, out=out_d)
     cdef CSR iden = csr.identity(nrows)
     cdef CSR cdc = matmul_csr(c.adjoint(), c)
     # out += -0.5 * (kron(eye, cdc) @ vec)
@@ -538,5 +538,5 @@ cdef void br_term_mult(double t, complex[::1,:] A, complex[::1,:] evecs,
     cdef CSR matrix = csr.from_coo_pointers(
         coo_rows.data(), coo_cols.data(), coo_data.data(),
         nrows*nrows, nrows*nrows, coo_rows.size())
-    matmul_csr_dense_dense(matrix, dense.wrap(vec, nrows*nrows, 1),
+    matmul_csr_dense_dense(matrix, dense.wrap(vec, nrows*nrows, 1), scale=1,
                            out=dense.wrap(out, nrows*nrows, 1))

@@ -78,3 +78,25 @@ def pad_csr(CSR matrix, idxint row_scale, idxint col_scale,
         raise ValueError("insertrow must be >= 0 and < row_scale")
 
     return out
+
+
+from qutip.core.data import Dispatcher
+import inspect as _inspect
+
+pad = Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('rowscale', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('colscale', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('insertrow', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('insertcol', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    ]),
+    name='pad',
+    module=__name__,
+    inputs=('matrix',),
+    out=True)
+pad.add_specialisations([
+    (CSR, CSR, pad_csr),
+])
+
+del Dispatcher, _inspect

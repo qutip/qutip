@@ -50,12 +50,12 @@ from qutip import (
 from qutip.core import data as _data
 from ..solver import SolverOptions, Result, Stats
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
-from ._heom import pad_csr
+from ._heom import pad
 
 
 def _ode_rhs(t, state, operator):
     state = _data.dense.fast_from_numpy(state)
-    return _data.matmul_csr_dense_dense(operator, state).as_ndarray()[:, 0]
+    return _data.matmul(operator, state, dtype=_data.Dense).as_ndarray()[:, 0]
 
 
 class HEOMSolver(object):
@@ -328,7 +328,7 @@ class HSolverDL(HEOMSolver):
         # Turns out to be the same as nstates from state_number_enumerate
         N_he, he2idx, idx2he = enr_state_dictionaries([N_c + 1]*N_m, N_c)
 
-        unit_helems = _data.csr.identity(N_he)
+        unit_helems = _data.identity(N_he)
         if self.bnd_cut_approx:
             # the Tanimura boundary cut off operator
             if stats:
@@ -339,9 +339,9 @@ class HSolverDL(HEOMSolver):
             for k in range(N_m):
                 approx_factr -= (c[k] / nu[k])
             L_bnd = -approx_factr*op.data
-            L_helems = _data.kron_csr(unit_helems, L_bnd)
+            L_helems = _data.kron(unit_helems, L_bnd)
         else:
-            L_helems = _data.csr.zeros(N_he*sup_dim, N_he*sup_dim)
+            L_helems = _data.zeros(N_he*sup_dim, N_he*sup_dim)
 
         # Build the hierarchy element interaction matrix
         if stats:
@@ -363,8 +363,8 @@ class HSolverDL(HEOMSolver):
             for k in range(N_m):
                 sum_n_m_freq += he_state[k]*nu[k]
 
-            L_he = pad_csr(-sum_n_m_freq*unit_sup, N_he, N_he, he_idx, he_idx)
-            L_helems += L_he
+            L_he = pad(-sum_n_m_freq*unit_sup, N_he, N_he, he_idx, he_idx)
+            L_helems = _data.add(L_helems, L_he)
 
             # Add the neighour interations
             he_state_neigh = copy(he_state)
@@ -383,8 +383,8 @@ class HSolverDL(HEOMSolver):
                     else:
                         op *= -1j*n_k
 
-                    L_he = pad_csr(op, N_he, N_he, he_idx, he_idx_neigh)
-                    L_helems += L_he
+                    L_he = pad(op, N_he, N_he, he_idx, he_idx_neigh)
+                    L_helems = _data.add(L_helems, L_he)
                     N_he_interact += 1
 
                     he_state_neigh[k] = n_k
@@ -400,8 +400,8 @@ class HSolverDL(HEOMSolver):
                     else:
                         op = -1j * commQ
 
-                    L_he = pad_csr(op, N_he, N_he, he_idx, he_idx_neigh)
-                    L_helems += L_he
+                    L_he = pad(op, N_he, N_he, he_idx, he_idx_neigh)
+                    L_helems = _data.add(L_helems, L_he)
                     N_he_interact += 1
 
                     he_state_neigh[k] = n_k
@@ -417,8 +417,8 @@ class HSolverDL(HEOMSolver):
         if stats:
             start_louvillian = timeit.default_timer()
 
-        H_he = _data.kron_csr(unit_helems, liouvillian(H_sys).data)
-        L_helems += H_he
+        H_he = _data.kron(unit_helems, liouvillian(H_sys).data)
+        L_helems = _data.add(L_helems, H_he)
 
         if stats:
             stats.add_timing('Liouvillian contruct',

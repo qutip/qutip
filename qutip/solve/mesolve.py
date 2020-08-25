@@ -409,7 +409,7 @@ def _Lfunc_set(HS, rho0, args, e_ops, opt):
 def _ode_rho_func_td(t, y, L_func, args):
     L = L_func(t, y, args)
     data = _data.dense.fast_from_numpy(y)
-    return _data.matmul_csr_dense_dense(L, data).as_ndarray()
+    return _data.matmul(L, data, dtype=_data.Dense).as_ndarray()
 
 
 def _ode_super_func_td(t, y, L_func, args):
@@ -417,7 +417,7 @@ def _ode_super_func_td(t, y, L_func, args):
     data = _data.column_unstack_dense(_data.dense.fast_from_numpy(y),
                                       L.shape[1],
                                       inplace=True)
-    matmul = _data.matmul_csr_dense_dense(L, data)
+    matmul = _data.matmul(L, data, dtype=_data.Dense)
     return _data.column_stack_dense(matmul, inplace=True).as_ndarray()
 
 # -----------------------------------------------------------------------------
@@ -481,8 +481,6 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
 
     def get_curr_state_data(r):
         return _data.dense.fast_from_numpy(r.y)
-        return _data.column_unstack_dense(_data.dense.fast_from_numpy(r.y),
-                                          size, inplace=True)
 
     #
     # start evolution
@@ -502,28 +500,25 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
             cdata = get_curr_state_data(r)
 
         if opt['store_states']:
-            # TODO: fix dispatch creation.
-            # We always use a gated check and in-place stacking and unstacking
-            # because then we don't have to copy any data, regardless of the
-            # order we do things in.
+            # Unstacking with a copying operation keeps us safe if a later call
+            # unstacks the columns again.
             if cdata.shape[0] != size:
-                cdata = _data.column_unstack_dense(cdata, size, inplace=True)
-            output.states.append(Qobj(cdata.as_ndarray(),
+                cdata = _data.column_unstack_dense(cdata, size, inplace=False)
+            output.states.append(Qobj(cdata,
                                       dims=dims, type=rho0.type, copy=False))
 
         if expt_callback:
             # use callback method
             if cdata.shape[0] != size:
-                cdata = _data.column_unstack_dense(cdata, size, inplace=True)
-            output.expect.append(e_ops(t, Qobj(cdata.as_ndarray(),
+                cdata = _data.column_unstack_dense(cdata, size, inplace=False)
+            output.expect.append(e_ops(t, Qobj(cdata,
                                                dims=dims, type=rho0.type,
                                                copy=False)))
 
         for m in range(n_expt_op):
-            # TODO: sort out dispatch.
             if cdata.shape[1] == size:
-                cdata = _data.column_stack_dense(cdata, inplace=True)
-            val = _data.expect_super_csr_dense(e_ops_data[m], cdata)
+                cdata = _data.column_stack_dense(cdata, inplace=False)
+            val = _data.expect_super(e_ops_data[m], cdata)
             if e_ops[m].isherm:
                 val = val.real
             output.expect[m][t_idx] = val
@@ -534,10 +529,9 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
     progress_bar.finished()
 
     if opt['store_final_state']:
-        # TODO: fix.
         cdata = get_curr_state_data(r)
-        matrix = _data.column_unstack_dense(cdata, size, inplace=True)
-        output.final_state = Qobj(matrix.as_ndarray(),
+        matrix = _data.column_unstack_dense(cdata, size)
+        output.final_state = Qobj(matrix,
                                   dims=dims, type=rho0.type, isherm=True,
                                   copy=False)
 
