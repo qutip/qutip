@@ -175,7 +175,6 @@ def _sesolve_QobjEvo(H, tlist, args, opt):
     Prepare the system for the solver, H can be an QobjEvo.
     """
     H_td = -1.0j * QobjEvo(H, args, tlist=tlist)
-    H_td.compile()
 
     ss = SolverSystem()
     ss.H = H_td

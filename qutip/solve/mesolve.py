@@ -290,8 +290,6 @@ def _mesolve_QobjEvo(H, c_ops, tlist, args, opt):
     # if opt.rhs_with_state:
     #    L_td._check_old_with_state()
 
-    L_td.compile()
-
     ss = SolverSystem()
     ss.H = L_td
     ss.makefunc = _qobjevo_set

@@ -684,7 +684,6 @@ def _correlation_es_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op):
     solES_t = QobjEvo([[rho, _exponential_term(w)]
                        for rho, w in zip(*_diagonal_evolution(L, rho0))])
     rho_t = c_op * solES_t * a_op
-    rho_t.compile()
     # evaluate the correlation function
     for i, t in enumerate(tlist):
         states, rates = _diagonal_evolution(L, rho_t(t))

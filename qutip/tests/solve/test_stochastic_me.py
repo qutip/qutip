@@ -258,9 +258,7 @@ def test_general_stochastic():
     e_ops = [a.dag() * a, a + a.dag(), (-1j)*(a - a.dag())]
 
     L = liouvillian(QobjEvo([[a.dag() * a,f]], args={"a":2}), c_ops = sc_ops)
-    L.compile()
     sc_opsM = [QobjEvo(spre(op) + spost(op.dag())) for op in sc_ops]
-    [op.compile() for op in sc_opsM]
     e_opsM = [spre(op) for op in e_ops]
 
     def d1(t, vec):

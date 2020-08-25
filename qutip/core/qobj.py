@@ -183,7 +183,7 @@ def _latex_real(x):
         base, exp = "{:.3e}".format(x).split('e')
         return base + r"\times10^{{ {:d} }}".format(int(exp))
     if abs(x - int(x)) < 0.001:
-        return "{:d}".format(x)
+        return "{:d}".format(round(x))
     return "{:.3f}".format(x)
 
 
@@ -653,6 +653,13 @@ class Qobj:
                            for row in rows)
         data += r'\end{array}\right)\end{equation*}'
         return self._str_header() + data
+
+    def __and__(self, other):
+        """
+        Syntax shortcut for tensor:
+        A & B ==> tensor(A, B)
+        """
+        return tensor(self, other)
 
     def dag(self):
         """Get the Hermitian adjoint of the quantum object."""
@@ -1752,5 +1759,5 @@ def ptrace(Q, sel):
 # We do a few imports here to avoid circular dependencies.
 from qutip.core.superop_reps import to_choi
 from qutip.core.superoperator import vector_to_operator, operator_to_vector
-from qutip.core.tensor import tensor_swap
+from qutip.core.tensor import tensor_swap, tensor
 from qutip.core import metrics as mts

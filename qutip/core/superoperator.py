@@ -126,15 +126,13 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
     L = None
     if isinstance(H, QobjEvo):
         td = True
-
-        def H2L(H):
-            if H.isoper:
-                return -1.0j * (spre(H) - spost(H))
-            else:
-                return H
-
-        L = H.apply(H2L)
+        if H.cte.isoper:
+            L = -1.0j * (spre(H) - spost(H))
+        else:
+            L = H
         data = L.cte.data
+        L.cte *= 0
+
     elif isinstance(H, Qobj):
         if H.isoper:
             data = -1j * _data.kron_csr(spI, H.data)
@@ -186,12 +184,17 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
                         copy=False)
     else:
         if not L:
-            return QobjEvo(Qobj(data,
-                                dims=sop_dims,
-                                type='super',
-                                superrep='super',
-                                copy=False))
-        L.cte.data = data
+            L = QobjEvo(Qobj(data,
+                             dims=sop_dims,
+                             type='super',
+                             superrep='super',
+                             copy=False))
+        else:
+            L += Qobj(data,
+                      dims=sop_dims,
+                      type='super',
+                      superrep='super',
+                      copy=False)
         for c_op in td_c_ops:
             L += c_op
         return L

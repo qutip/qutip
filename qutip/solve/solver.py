@@ -82,7 +82,6 @@ class ExpectOps:
             else:
                 self.e_ops_qoevo = np.array([QobjEvo(spre(e)) for e in e_ops],
                                             dtype=object)
-            [op.compile() for op in self.e_ops_qoevo]
         elif callable(e_ops):
             self.isfunc = True
             self.e_num = 1

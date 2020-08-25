@@ -44,9 +44,11 @@ import numpy as np
 import scipy
 from scipy.interpolate import CubicSpline, interp1d
 
+import qutip
 from .qobj import Qobj
 from .cy.cqobjevo import CQobjEvo
 from .coefficient import coefficient, CompilationOptions
+from .cy.coefficient import Coefficient
 from .superoperator import stack_columns, unstack_columns
 from . import data as _data
 
@@ -220,22 +222,14 @@ class QobjEvo:
 
     __call__(t, data=False, state=None, args={}):
         Return the Qobj at time t.
-        *Faster after compilation
 
-    mul_mat(t, mat):
+    mul(t, mat):
         Product of this at t time with the dense matrix mat.
-        *Faster after compilation
-
-    mul_vec(t, psi):
-        Apply the quantum object (if operator, no check) to psi.
-        More generaly, return the product of the object at t with psi.
-        *Faster after compilation
 
     expect(t, psi, herm=False):
         Calculates the expectation value for the quantum object (if operator,
             no check) and state psi.
         Return only the real part if herm.
-        *Faster after compilation
 
     to_list():
         Return the time-dependent quantum object as a list
@@ -319,7 +313,7 @@ class QobjEvo:
         if state0 is not None:
             self._dynamics_args_update(0., state0)
 
-        self.compile()
+        self._compile()
 
     def _args_checks(self):
         statedims = [self.cte.dims[1], [1]]
@@ -347,6 +341,14 @@ class QobjEvo:
                 e_op_num = int(key[10:])
                 self.dynamics_args += [(key, "expect", e_op_num)]
                 self.args[key] = 0
+
+    @property
+    def shape(self):
+        return self.cte.shape
+
+    @property
+    def dims(self):
+        return self.cte.dims
 
     @property
     def tlist(self):
@@ -412,7 +414,7 @@ class QobjEvo:
 
         for op in self.ops:
             new.ops.append(EvoElement(op.qobj.copy(), op.coeff.copy()))
-        new.compile()
+        new._compile()
         return new
 
     def _inplace_copy(self, other):
@@ -427,9 +429,12 @@ class QobjEvo:
 
         for op in other.ops:
             self.ops.append(EvoElement(op.qobj.copy(), op.coeff.copy()))
-        self.compile()
+        self._compile()
 
     def arguments(self, new_args):
+        """
+        Update args.
+        """
         if not isinstance(new_args, dict):
             raise TypeError("The new args must be in a dict")
         self.args.update(new_args)
@@ -438,6 +443,10 @@ class QobjEvo:
         return
 
     def solver_set_args(self, new_args, state: _data.Data, e_ops):
+        """
+        Update args.
+        """
+        # TODO: remove when moving out dynamic_argument
         if not isinstance(state, _data.Data):
             raise TypeError("state should be a data-layer object")
         self.dynamics_args = []
@@ -450,7 +459,7 @@ class QobjEvo:
         self._dynamics_args_update(0., state)
         for op in self.ops:
             op.coeff.arguments(self.args)
-        self.compile()
+        self._compile()
 
     def to_list(self):
         list_qobj = []
@@ -486,7 +495,7 @@ class QobjEvo:
         else:
             self.cte += other
             self.dummy_cte = False
-        self.compile()
+        self._compile()
         return self
 
     def __sub__(self, other):
@@ -503,6 +512,28 @@ class QobjEvo:
         self += (-other)
         return self
 
+    def __matmul__(self, other):
+        res = self.copy()
+        res *= other
+        return res
+
+    def __rmatmul__(self, other):
+        res = self.copy()
+        if isinstance(other, Qobj):
+            res.cte = other @ res.cte
+            for op in res.ops:
+                op.qobj = other @ op.qobj
+            res._compile()
+            return res
+        else:
+            res *= other
+            return res
+
+    def __imatmul__(self, other):
+        res = self.copy()
+        res *= other
+        return res
+
     def __mul__(self, other):
         res = self.copy()
         res *= other
@@ -514,7 +545,7 @@ class QobjEvo:
             res.cte = other * res.cte
             for op in res.ops:
                 op.qobj = other * op.qobj
-            res.compile()
+            res._compile()
             return res
         else:
             res *= other
@@ -525,6 +556,13 @@ class QobjEvo:
             self.cte *= other
             for op in self.ops:
                 op.qobj *= other
+        elif isinstance(other, Coefficient):
+            for op in self.ops:
+                op.coeff = op.coeff * other
+            if not self.dummy_cte:
+                self.ops.append(EvoElement(self.cte, other))
+                self.cte *= 0
+                self.dummy_cte = True
         elif isinstance(other, QobjEvo):
             if other.const:
                 self.cte *= other.cte
@@ -561,7 +599,7 @@ class QobjEvo:
         else:
             raise TypeError("QobjEvo can only be multiplied"
                             " with QobjEvo, Qobj or numbers")
-        self.compile()
+        self._compile()
         return self
 
     def __div__(self, other):
@@ -575,7 +613,7 @@ class QobjEvo:
         if not isinstance(other, numbers.Number):
             raise TypeError('Incompatible object for division')
         self *= 1 / complex(other)
-        self.compile()
+        self._compile()
         return self
 
     def __truediv__(self, other):
@@ -586,32 +624,45 @@ class QobjEvo:
         res.cte = -res.cte
         for op in res.ops:
             op.qobj = -op.qobj
-        res.compile()
+        res._compile()
         return res
+
+    def __and__(self, other):
+        """
+        Syntax shortcut for tensor:
+        A & B ==> tensor(A, B)
+        """
+        return qutip.tensor(self, other)
 
     # Transformations
     def trans(self):
+        """ Transpose of the quantum object
+        """
         res = self.copy()
         res.cte = res.cte.trans()
         for op in res.ops:
             op.qobj = op.qobj.trans()
-        res.compile()
+        res._compile()
         return res
 
     def conj(self):
+        """ Conjugate of the quantum object
+        """
         res = self.copy()
         res.cte = res.cte.conj()
         res.ops = [EvoElement(op.qobj.conj(), op.coeff.conj())
                    for op in self.ops]
-        res.compile()
+        res._compile()
         return res
 
     def dag(self):
+        """ Hermitian adjoint of the quantum object
+        """
         res = self.copy()
         res.cte = res.cte.dag()
         res.ops = [EvoElement(op.qobj.dag(), op.coeff.conj())
                    for op in self.ops]
-        res.compile()
+        res._compile()
         return res
 
     def _cdc(self):
@@ -624,13 +675,13 @@ class QobjEvo:
             res.cte = res.cte.dag() * res.cte
             res.ops = [EvoElement(op.qobj.dag() * op.qobj, op.coeff._cdc())
                        for op in self.ops]
-        res.compile()
+        res._compile()
         return res
 
     def _shift(self):
         self.args.update({"_t0": 0})
         self.ops = [EvoElement(op.qobj, op.coeff._shift()) for op in self.ops]
-        self.compile()
+        self._compile()
         return self
 
     # Unitary function of Qobj
@@ -664,7 +715,6 @@ class QobjEvo:
         return sets, fsets
 
     def _compress_merge_qobj(self, sets):
-        callable_flags = ["func", "spline"]
         new_ops = []
         for _set in sets:
             if len(_set) == 1:
@@ -692,6 +742,9 @@ class QobjEvo:
         self.ops = new_ops
 
     def compress(self):
+        """
+        Find redundant contribution and merge them
+        """
         self.tidyup()
         sets, fsets = self._compress_make_set()
         N_sets = len(sets)
@@ -714,9 +767,12 @@ class QobjEvo:
             self._compress_merge_qobj(sets)
         elif N_fsets < num_ops:
             self._compress_merge_func(fsets)
-        self.compile()
+        self._compile()
 
     def permute(self, order):
+        """
+        Permute tensor subspaces of the quantum object
+        """
         res = self.copy()
         res.cte = res.cte.permute(order)
         for op in res.ops:
@@ -725,6 +781,9 @@ class QobjEvo:
 
     # function to apply custom transformations
     def apply(self, function, *args, **kw_args):
+        """
+        Apply function to each Qobj contribution.
+        """
         res = self.copy()
         cte_res = function(res.cte, *args, **kw_args)
         if not isinstance(cte_res, Qobj):
@@ -732,10 +791,14 @@ class QobjEvo:
         res.cte = cte_res
         for op in res.ops:
             op.qobj = function(op.qobj, *args, **kw_args)
-        res.compile()
+        res._compile()
         return res
 
     def expect(self, t, state, herm=0):
+        """
+        Expectation value of the operator quantum object at time t
+        for the given state.
+        """
         if not isinstance(t, numbers.Real):
             raise TypeError("time needs to be a real scalar")
         if isinstance(state, Qobj):
@@ -756,6 +819,13 @@ class QobjEvo:
         return exp.real if herm else exp
 
     def mul_vec(self, t, vec):
+        """
+        Product of the operator quantum object at time t
+        with the given vector state.
+        """
+        # TODO: mostly used in test to compare with the cqobjevo version.
+        # __mul__ sufficient? remove?
+        # Still used in mcsolve, remove later
         was_Qobj = False
         if not isinstance(t, (int, float)):
             raise TypeError("the time need to be a real scalar")
@@ -768,7 +838,7 @@ class QobjEvo:
         elif isinstance(vec, np.ndarray):
             if vec.ndim != 1:
                 raise Exception("The vector must be 1d")
-            # TODO: do this properly.
+
             vec = _data.Dense(vec[:, None])
         else:
             raise TypeError("The vector must be an array or Qobj")
@@ -782,8 +852,13 @@ class QobjEvo:
         else:
             return out
 
-    def mul_mat(self, t, mat):
+    def mul(self, t, mat):
+        """
+        Product of the operator quantum object at time t
+        with the given matrix state.
+        """
         was_Qobj = False
+        was_vec = False
         if not isinstance(t, (int, float)):
             raise TypeError("the time need to be a real scalar")
         if isinstance(mat, Qobj):
@@ -793,9 +868,14 @@ class QobjEvo:
             dims = mat.dims
             mat = _data.dense.fast_from_numpy(mat.full())
         elif isinstance(mat, np.ndarray):
-            if mat.ndim != 2:
-                raise Exception("The matrice must be 2d")
-            mat = _data.Dense(mat)
+            if mat.ndim == 1:
+                # TODO: do this properly.
+                mat = _data.Dense(mat[:, None])
+                was_vec = True
+            elif mat.ndim == 2:
+                mat = _data.Dense(mat)
+            else:
+                raise Exception("The matrice must be 1d or 2d")
         else:
             raise TypeError("The vector must be an array or Qobj")
         if mat.shape[0] != self.cte.shape[1]:
@@ -805,10 +885,12 @@ class QobjEvo:
 
         if was_Qobj:
             return Qobj(out, dims=dims)
+        elif was_vec:
+            return out[:, 0]
         else:
             return out
 
-    def compile(self, code=False, matched=False, dense=False):
+    def _compile(self, code=False, matched=False, dense=False):
         self.tidyup()
         self.compiled_qobjevo = CQobjEvo(self.cte, self.ops)
         self.compiled_qobjevo.set_dyn_args(self.dynamics_args,
