@@ -38,7 +38,6 @@ script:
 
 _mac_generic_setup: &mac_generic_setup
   os: osx
-  osx_image: xcode10
   language: generic
   install:
     - conda install nomkl blas=*=openblas numpy scipy matplotlib cython pytest
@@ -82,10 +81,12 @@ jobs:
       - python setup.py install
       - conda uninstall cython
 
-    - name: "macOS 10.13, Python 3.7: XCode 10"
+    - name: "macOS, Python 3.7: XCode 11"
+      osx_image: xcode11
       env: _CONDA_SUFFIX="MacOSX-x86_64" _PYTHON_VERSION="3.7"
       <<: *mac_generic_setup
 
-    - name: "macOS 10.13, Python 3.8: XCode 10"
+    - name: "macOS, Python 3.8: XCode 12"
+      osx_image: xcode12
       env: _CONDA_SUFFIX="MacOSX-x86_64" _PYTHON_VERSION="3.8"
       <<: *mac_generic_setup
