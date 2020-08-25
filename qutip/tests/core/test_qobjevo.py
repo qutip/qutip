@@ -33,8 +33,7 @@
 import pytest
 from qutip import *
 import numpy as np
-from numpy.testing import (assert_equal, assert_, assert_almost_equal,
-                           run_module_suite, assert_allclose)
+from numpy.testing import assert_allclose
 from functools import partial
 from types import FunctionType, BuiltinFunctionType
 from qutip import Cubic_Spline
@@ -364,7 +363,7 @@ class TestQobjevo:
         obj.tidyup(atol=1e-8)
         t = self._rand_t()
         # check that the Qobj are cleaned
-        assert_equal(np.max(obj(t).full()), 0.)
+        assert_allclose(obj(t).full(), 0, atol=1e-14)
 
     def test_QobjEvo_pickle(self, form):
         "QobjEvo pickle"
@@ -374,12 +373,12 @@ class TestQobjevo:
         recreated = pickle.loads(pickled)
         _assert_qobjevo_equivalent(recreated, self.qobjevos[form])
 
-    @pytest.mark.parametrize('superop', [lindblad_dissipator,
-                                         partial(lindblad_dissipator, chi=0.5),
-                                         sprepost,
-                                         lambda O1, O2: liouvillian(O1, [O2])],
-                             ids=['lindblad', 'lindblad_chi',
-                                  'sprepost', 'liouvillian'])
+    @pytest.mark.parametrize('superop', [
+        pytest.param(lindblad_dissipator, id='lindblad'),
+        pytest.param(partial(lindblad_dissipator, chi=0.5), id='lindblad_chi'),
+        pytest.param(sprepost, id='sprepost'),
+        pytest.param(lambda O1, O2: liouvillian(O1, [O2]), id='liouvillian')
+    ])
     def test_superoperator_qobj(self, form, superop):
         t = self._rand_t()
         obj1 = self.qobjevos[form]
@@ -394,12 +393,12 @@ class TestQobjevo:
         as_qobj = superop(qobj, obj1_t)
         _assert_qobj_almost_eq(as_qevo, as_qobj)
 
-    @pytest.mark.parametrize('superop', [lindblad_dissipator,
-                                         partial(lindblad_dissipator, chi=0.5),
-                                         sprepost,
-                                         lambda O1, O2: liouvillian(O1, [O2])],
-                             ids=['lindblad', 'lindblad_chi',
-                                  'sprepost', 'liouvillian'])
+    @pytest.mark.parametrize('superop', [
+        pytest.param(lindblad_dissipator, id='lindblad'),
+        pytest.param(partial(lindblad_dissipator, chi=0.5), id='lindblad_chi'),
+        pytest.param(sprepost, id='sprepost'),
+        pytest.param(lambda O1, O2: liouvillian(O1, [O2]), id='liouvillian')
+    ])
     def test_superoperator(self, form, extra_form, superop):
         t = self._rand_t()
         obj1 = self.qobjevos[form]
@@ -425,13 +424,12 @@ class TestQobjevo:
         _assert_qobjevo_equivalent(transposed, obj.trans())
 
     def test_mul_vec(self, form):
-        "QobjEvo mul_vec"
+        "QobjEvo mul_numpy"
         t = self._rand_t()
         N = self.N
         vec = np.arange(N)*.5+.5j
         op = self.qobjevos[form]
-        assert np.allclose(op(t).full() @ vec,
-                           op.mul_vec(t, vec))
+        assert_allclose(op(t).full() @ vec, op.mul(t, vec), atol=1e-14)
 
     def test_mul_mat(self, form):
         "QobjEvo mul_mat"
@@ -441,8 +439,8 @@ class TestQobjevo:
         matF = np.asfortranarray(mat)
         op = self.qobjevos[form]
         Qo1 = op(t)
-        assert np.allclose(Qo1.full() @ mat, op.mul_mat(t, mat))
-        assert np.allclose(Qo1.full() @ matF, op.mul_mat(t, matF))
+        assert_allclose(Qo1.full() @ mat, op.mul(t, mat), atol=1e-14)
+        assert_allclose(Qo1.full() @ matF, op.mul(t, matF), atol=1e-14)
 
     def test_expect_psi(self, form):
         "QobjEvo expect psi"
@@ -452,7 +450,7 @@ class TestQobjevo:
         op = self.qobjevos[form]
         _expect = _data.expect_csr_dense
         Qo1 = op(t)
-        assert np.allclose(_expect(Qo1.data, vec), op.expect(t, vec))
+        assert_allclose(_expect(Qo1.data, vec), op.expect(t, vec), atol=1e-14)
 
     def test_expect_rho(self, form):
         "QobjEvo expect rho"
@@ -466,9 +464,12 @@ class TestQobjevo:
 
         op = liouvillian(self.qobjevos[form])
         Qo1 = op(t)
-        assert np.allclose(_expect(Qo1.data, vec), op.expect(t, vec, 0))
-        assert np.allclose(_expect(Qo1.data, vec), op.expect(t, mat, 0))
-        assert np.allclose(_expect(Qo1.data, vec), op.expect(t, qobj, 0))
+        assert_allclose(_expect(Qo1.data, vec), op.expect(t, vec, 0),
+                        atol=1e-14)
+        assert_allclose(_expect(Qo1.data, vec), op.expect(t, mat, 0),
+                        atol=1e-14)
+        assert_allclose(_expect(Qo1.data, vec), op.expect(t, qobj, 0),
+                        atol=1e-14)
 
     def test_compress(self):
         "QobjEvo compress"
@@ -558,17 +559,21 @@ def test_QobjEvo_with_state():
     td_data = QobjEvo([q1, [q2, coeff_state]], args=args, e_ops=[2*qeye(N)])
     q_at_t = q1 + np.mean(vec) * args["w"] * expect(2*qeye(N), Qobj(vec.T)) * q2
     # Check that the with_state call
-    assert_allclose(td_data.mul_vec(t, vec), (q_at_t * vec).full()[:, 0])
+    assert_allclose(td_data.mul(t, vec), (q_at_t * vec).full()[:, 0],
+                    atol=1e-14)
     # Check that the with_state call compiled
-    assert_allclose(td_data.mul_vec(t, vec), (q_at_t * vec).full()[:, 0])
+    assert_allclose(td_data.mul(t, vec), (q_at_t * vec).full()[:, 0], 
+                    atol=1e-14)
 
     td_data = QobjEvo([q1, [q2, "state_vec[0] * cos(w*expect_op_0*t)"]],
                       args=args, e_ops=[2*qeye(N)])
     data_at_t = q1 + q2*vec[0]*np.cos(10 * t * expect(qeye(N), Qobj(vec.T)))
     # Check that the with_state call for str format
-    assert_allclose(td_data.mul_vec(t, vec), (data_at_t * vec).full()[:, 0])
+    assert_allclose(td_data.mul(t, vec), (data_at_t * vec).full()[:, 0],
+                    atol=1e-14)
     # Check that the with_state call for str format and compiled
-    assert_allclose(td_data.mul_vec(t, vec), (data_at_t * vec).full()[:, 0])
+    assert_allclose(td_data.mul(t, vec), (data_at_t * vec).full()[:, 0],
+                    atol=1e-14)
 
     args = {"state_mat": None, "state_vec": None, "state_qobj": None}
     mat = np.arange(N*N).reshape((N, N))
@@ -588,4 +593,4 @@ def test_QobjEvo_with_state():
         return 1
 
     td_data = QobjEvo([q1, check_dyn_args], args=args)
-    td_data.mul_mat(0, mat)
+    td_data.mul(0, mat)

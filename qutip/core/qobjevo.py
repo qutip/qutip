@@ -222,22 +222,14 @@ class QobjEvo:
 
     __call__(t, data=False, state=None, args={}):
         Return the Qobj at time t.
-        *Faster after compilation
 
-    mul_mat(t, mat):
+    mul(t, mat):
         Product of this at t time with the dense matrix mat.
-        *Faster after compilation
-
-    mul_vec(t, psi):
-        Apply the quantum object (if operator, no check) to psi.
-        More generaly, return the product of the object at t with psi.
-        *Faster after compilation
 
     expect(t, psi, herm=False):
         Calculates the expectation value for the quantum object (if operator,
             no check) and state psi.
         Return only the real part if herm.
-        *Faster after compilation
 
     to_list():
         Return the time-dependent quantum object as a list
@@ -833,6 +825,7 @@ class QobjEvo:
         """
         # TODO: mostly used in test to compare with the cqobjevo version.
         # __mul__ sufficient? remove?
+        # Still used in mcsolve, remove later
         was_Qobj = False
         if not isinstance(t, (int, float)):
             raise TypeError("the time need to be a real scalar")
@@ -845,7 +838,7 @@ class QobjEvo:
         elif isinstance(vec, np.ndarray):
             if vec.ndim != 1:
                 raise Exception("The vector must be 1d")
-            # TODO: do this properly.
+
             vec = _data.Dense(vec[:, None])
         else:
             raise TypeError("The vector must be an array or Qobj")
@@ -859,14 +852,13 @@ class QobjEvo:
         else:
             return out
 
-    def mul_mat(self, t, mat):
+    def mul(self, t, mat):
         """
         Product of the operator quantum object at time t
         with the given matrix state.
         """
-        # TODO: mostly used in test to compare with the cqobjevo version.
-        # __mul__ sufficient? remove? merge with mul_vec to mul_numpy?
         was_Qobj = False
+        was_vec = False
         if not isinstance(t, (int, float)):
             raise TypeError("the time need to be a real scalar")
         if isinstance(mat, Qobj):
@@ -876,9 +868,14 @@ class QobjEvo:
             dims = mat.dims
             mat = _data.dense.fast_from_numpy(mat.full())
         elif isinstance(mat, np.ndarray):
-            if mat.ndim != 2:
-                raise Exception("The matrice must be 2d")
-            mat = _data.Dense(mat)
+            if mat.ndim == 1:
+                # TODO: do this properly.
+                mat = _data.Dense(mat[:, None])
+                was_vec = True
+            elif mat.ndim == 2:
+                mat = _data.Dense(mat)
+            else:
+                raise Exception("The matrice must be 1d or 2d")
         else:
             raise TypeError("The vector must be an array or Qobj")
         if mat.shape[0] != self.cte.shape[1]:
@@ -888,6 +885,8 @@ class QobjEvo:
 
         if was_Qobj:
             return Qobj(out, dims=dims)
+        elif was_vec:
+            return out[:, 0]
         else:
             return out
 
