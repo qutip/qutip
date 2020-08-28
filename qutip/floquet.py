@@ -60,7 +60,8 @@ from qutip.cy.spmatfuncs import cy_ode_rhs
 from qutip.expect import expect
 from qutip.utilities import n_thermal
 
-def floquet_modes(H, T, args=None, sort=False, U=None):
+
+def floquet_modes(H, T, args=None, sort=False, U=None, options=None):
     """
     Calculate the initial Floquet modes Phi_alpha(0) for a driven system with
     period T.
@@ -99,7 +100,7 @@ def floquet_modes(H, T, args=None, sort=False, U=None):
 
     if U is None:
         # get the unitary propagator
-        U = propagator(H, T, [], args)
+        U = propagator(H, T, [], args, options)
 
     # find the eigenstates for the propagator
     evals, evecs = la.eig(U.full())
@@ -127,7 +128,9 @@ def floquet_modes(H, T, args=None, sort=False, U=None):
 
     return kets_order, e_quasi[order]
 
-def floquet_modes_t(f_modes_0, f_energies, t, H, T, args=None):
+
+def floquet_modes_t(f_modes_0, f_energies, t, H, T, args=None,
+                    options=None):
     """
     Calculate the Floquet modes at times tlist Phi_alpha(tlist) propagting the
     initial Floquet modes Phi_alpha(0)
@@ -167,7 +170,7 @@ def floquet_modes_t(f_modes_0, f_energies, t, H, T, args=None):
 
     # get the unitary propagator from 0 to t
     if t > 0.0:
-        U = propagator(H, t, [], args)
+        U = propagator(H, t, [], args, options=options)
 
         for n in np.arange(len(f_modes_0)):
             f_modes_t.append(U * f_modes_0[n] * exp(1j * f_energies[n] * t))
@@ -176,7 +179,9 @@ def floquet_modes_t(f_modes_0, f_energies, t, H, T, args=None):
 
     return f_modes_t
 
-def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args=None):
+
+def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args=None,
+                        options=Options()):
     """
     Pre-calculate the Floquet modes for a range of times spanning the floquet
     period. Can later be used as a table to look up the floquet modes for
@@ -216,7 +221,7 @@ def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args=None):
 
     f_modes_table_t = [[] for t in tlist_period]
 
-    opt = Options()
+    opt = options
     opt.rhs_reuse = True
     rhs_clear()
 
@@ -227,6 +232,7 @@ def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args=None):
                 f_state_t * exp(1j * f_energies[n] * tlist_period[t_idx]))
 
     return f_modes_table_t
+
 
 def floquet_modes_t_lookup(f_modes_table_t, t, T):
     """
@@ -269,6 +275,7 @@ def floquet_modes_t_lookup(f_modes_table_t, t, T):
 
     return f_modes_table_t[t_idx]
 
+
 def floquet_states(f_modes_t, f_energies, t):
     """
     Evaluate the floquet states at time t given the Floquet modes at that time.
@@ -297,7 +304,9 @@ def floquet_states(f_modes_t, f_energies, t):
     return [(f_modes_t[i] * exp(-1j * f_energies[i] * t))
             for i in np.arange(len(f_energies))]
 
-def floquet_states_t(f_modes_0, f_energies, t, H, T, args=None):
+
+def floquet_states_t(f_modes_0, f_energies, t, H, T, args=None,
+                     options=None):
     """
     Evaluate the floquet states at time t given the initial Floquet modes.
 
@@ -331,9 +340,11 @@ def floquet_states_t(f_modes_0, f_energies, t, H, T, args=None):
 
     """
 
-    f_modes_t = floquet_modes_t(f_modes_0, f_energies, t, H, T, args)
+    f_modes_t = floquet_modes_t(f_modes_0, f_energies, t, H, T, args,
+                                options=options)
     return [(f_modes_t[i] * exp(-1j * f_energies[i] * t))
             for i in np.arange(len(f_energies))]
+
 
 def floquet_wavefunction(f_modes_t, f_energies, f_coeff, t):
     """
@@ -366,7 +377,9 @@ def floquet_wavefunction(f_modes_t, f_energies, f_coeff, t):
     return sum([f_modes_t[i] * exp(-1j * f_energies[i] * t) * f_coeff[i]
                 for i in np.arange(len(f_energies))])
 
-def floquet_wavefunction_t(f_modes_0, f_energies, f_coeff, t, H, T, args=None):
+
+def floquet_wavefunction_t(f_modes_0, f_energies, f_coeff, t, H, T, args=None,
+                           options=None):
     """
     Evaluate the wavefunction for a time t using the Floquet state
     decompositon, given the initial Floquet modes.
@@ -404,9 +417,11 @@ def floquet_wavefunction_t(f_modes_0, f_energies, f_coeff, t, H, T, args=None):
 
     """
 
-    f_states_t = floquet_states_t(f_modes_0, f_energies, t, H, T, args)
+    f_states_t = floquet_states_t(f_modes_0, f_energies, t, H, T, args,
+                                  options=options)
     return sum([f_states_t[i] * f_coeff[i]
                 for i in np.arange(len(f_energies))])
+
 
 def floquet_state_decomposition(f_states, f_energies, psi):
     """
@@ -437,7 +452,9 @@ def floquet_state_decomposition(f_states, f_energies, psi):
     return [(f_states[i].dag() * psi).data[:1, :1][0, 0]
             for i in np.arange(len(f_energies))]
 
-def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100):
+
+def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100,
+             options=None):
     """
     Solve the Schrodinger equation using the Floquet formalism.
 
@@ -483,7 +500,7 @@ def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100):
         T = tlist[-1]
 
     # find the floquet modes for the time-dependent hamiltonian
-    f_modes_0, f_energies = floquet_modes(H, T, args)
+    f_modes_0, f_energies = floquet_modes(H, T, args, options=options)
 
     # calculate the wavefunctions using the from the floquet modes
     f_modes_table_t = floquet_modes_table(f_modes_0, f_energies,
@@ -536,6 +553,7 @@ def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100):
                     output.expect[e_idx][t_idx] = expect(e, psi_t)
 
     return output
+
 
 def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
                                   args, J_cb, w_th, kmax=5,
@@ -640,6 +658,7 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
 
     return Delta, X, Gamma, A
 
+
 def floquet_collapse_operators(A):
     """
     Construct collapse operators corresponding to the Floquet-Markov
@@ -666,6 +685,7 @@ def floquet_collapse_operators(A):
                 c_ops.append(sqrt(A[a, b]) * projection(N, a, b))
 
     return c_ops
+
 
 def floquet_master_equation_tensor(Alist, f_energies):
     """
@@ -732,6 +752,7 @@ def floquet_master_equation_tensor(Alist, f_energies):
 
     return Qobj(Rdata_lil, [[N, N], [N, N]], [N*N, N*N])
 
+
 def floquet_master_equation_steadystate(H, A):
     """
     Returns the steadystate density matrix (in the floquet basis!) for the
@@ -740,6 +761,7 @@ def floquet_master_equation_steadystate(H, A):
     c_ops = floquet_collapse_operators(A)
     rho_ss = steadystate(H, c_ops)
     return rho_ss
+
 
 def floquet_basis_transform(f_modes, f_energies, rho0):
     """
@@ -752,6 +774,8 @@ def floquet_basis_transform(f_modes, f_energies, rho0):
 # Floquet-Markov master equation
 #
 #
+
+
 def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
                            options=None, floquet_basis=True):
     """
@@ -909,9 +933,11 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
 # Solve the Floquet-Markov master equation
 #
 #
+
+
 def fmmesolve(H, rho0, tlist, c_ops=[], e_ops=[], spectra_cb=[], T=None,
               args={}, options=Options(), floquet_basis=True, kmax=5,
-              _safe_mode=True):
+              _safe_mode=True, options_propagator=None):
     """
     Solve the dynamics for the system using the Floquet-Markov master equation.
 
@@ -985,7 +1011,8 @@ def fmmesolve(H, rho0, tlist, c_ops=[], e_ops=[], spectra_cb=[], T=None,
         # add white noise callbacks if absent
         spectra_cb = [lambda w: 1.0] * len(c_ops)
 
-    f_modes_0, f_energies = floquet_modes(H, T, args)
+    f_modes_0, f_energies = floquet_modes(H, T, args,
+                                          options=options_propagator)
 
     f_modes_table_t = floquet_modes_table(f_modes_0, f_energies,
                                           np.linspace(0, T, 500 + 1),
