@@ -729,18 +729,19 @@ def floquet_master_equation_tensor(Alist, f_energies):
     # NB: Works only for 1 rate matrix.
     ###
 
-    A = Alist[0]
     R = np.zeros((N, N, N, N))
-    Asum = np.sum(A, axis=1)
+    AsumList = [np.sum(A, axis=1) for A in Alist]
 
-    for i in range(N):
-        R[i, i, i, i] -= -A[i, i]+Asum[i]
-    for i in range(N):
-        for j in range(i+1, N):
-            R[i, i, j, j] += A[j, i]
-            R[j, j, i, i] += A[i, j]
-            R[i, j, i, j] += -(1/2)*(Asum[i]+Asum[j])
-            R[j, i, j, i] += R[i, j, i, j]
+    for k in range(len(Alist)):
+        dR = np.zeros((N, N, N, N))
+        for i in range(N):
+            dR[i, i, i, i] -= -Alist[k][i, i]+AsumList[k][i]
+            for j in range(i+1, N):
+                dR[i, i, j, j] += Alist[k][j, i]
+                dR[j, j, i, i] += Alist[k][i, j]
+                dR[i, j, i, j] += -(1/2)*(AsumList[k][i]+AsumList[k][j])
+                dR[j, i, j, i] += dR[i, j, i, j]
+        R += dR
 
     R_temp = np.zeros((N*N, N, N))
     for i in range(N):
