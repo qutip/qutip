@@ -726,7 +726,6 @@ def floquet_master_equation_tensor(Alist, f_energies):
     ###
     # Here there were transposition errors because the paper used in
     # the documentation has typos.
-    # NB: Works only for 1 rate matrix.
     ###
 
     R = np.zeros((N, N, N, N))
