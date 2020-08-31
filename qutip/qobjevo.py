@@ -110,35 +110,6 @@ str_env = {
     "spe": scipy.special}
 
 
-class _file_list:
-    """
-    Contain temp a list .pyx to clean
-    """
-    def __init__(self):
-        self.files = []
-
-    def add(self, file_):
-        self.files += [file_ + ".pyx"]
-
-    def clean(self):
-        to_del = []
-        for i, file_ in enumerate(self.files):
-            try:
-                os.remove(file_)
-                to_del.append(i)
-            except Exception:
-                if not os.path.isfile(file_):
-                    to_del.append(i)
-
-        for i in to_del[::-1]:
-            del self.files[i]
-
-    def __del__(self):
-        self.clean()
-
-coeff_files = _file_list()
-
-
 class _StrWrapper:
     def __init__(self, code):
         self.code = "_out = " + code
@@ -444,8 +415,14 @@ class QobjEvo:
         Return the time-dependent quantum object as a list
     """
 
-    def __init__(self, Q_object=[], args={}, copy=True,
-                 tlist=None, state0=None, e_ops=[]):
+    def __init__(self, Q_object=None, args=None, copy=True,
+                 tlist=None, state0=None, e_ops=None):
+        if e_ops is None:
+            e_ops = []
+        if args is None:
+            args = {}
+        if Q_object is None:
+            Q_object = []
         if isinstance(Q_object, QobjEvo):
             if copy:
                 self._inplace_copy(Q_object)
@@ -646,12 +623,14 @@ class QobjEvo:
 
     def __del__(self):
         for file_ in self.coeff_files:
-            try:
-                os.remove(file_)
-            except:
-                pass
+            # Using os module to manipulate filesystem is not thread-safe,
+            # seems fine at the moment though. For the same reason,
+            # do not ignore exceptions here.
+            os.remove(file_)
 
-    def __call__(self, t, data=False, state=None, args={}):
+    def __call__(self, t, data=False, state=None, args=None):
+        if args is None:
+            args = {}
         try:
             t = float(t)
         except Exception as e:
@@ -1524,7 +1503,6 @@ class QobjEvo:
                         get_coeff, file_ = _compile_str_single(
                                                                 part.coeff,
                                                                 self.args)
-                        coeff_files.add(file_)
                         self.coeff_files.append(file_)
                         funclist.append(get_coeff)
                     else:
@@ -1542,7 +1520,6 @@ class QobjEvo:
                                                         self.args,
                                                         self.dynamics_args,
                                                         self.tlist)
-                coeff_files.add(file_)
                 self.coeff_files.append(file_)
                 self.coeff_get = _UnitedStrCaller(funclist, self.args,
                                                   self.dynamics_args,
@@ -1557,7 +1534,6 @@ class QobjEvo:
                                                         self.args,
                                                         self.dynamics_args,
                                                         self.tlist)
-                    coeff_files.add(file_)
                     self.coeff_files.append(file_)
                     self.compiled_qobjevo.set_factor(obj=self.coeff_get)
                     self.compiled += "cyfactor"
@@ -1568,7 +1544,6 @@ class QobjEvo:
                                                         self.args,
                                                         self.dynamics_args,
                                                         self.tlist)
-                    coeff_files.add(file_)
                     self.coeff_files.append(file_)
                     funclist = [part.get_coeff for part in self.ops]
                     self.coeff_get = _UnitedStrCaller(funclist, self.args,
@@ -1608,7 +1583,6 @@ class QobjEvo:
             else:
                 pass
 
-            coeff_files.clean()
             if code:
                 return Code
 

@@ -487,7 +487,7 @@ def test_driven_cavity_power_gmres():
     c_ops = [np.sqrt(Gamma) * a]
     M = build_preconditioner(H, c_ops, method='power')
     rho_ss = steadystate(H, c_ops, method='power-gmres', M=M, mtol=1e-1,
-                         use_precond=1)
+                         use_precond=1, maxiter=10000)
     rho_ss_analytic = coherent_dm(N, -1.0j * (Omega)/(Gamma/2))
     assert_((rho_ss - rho_ss_analytic).norm() < 1e-4)
 

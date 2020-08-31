@@ -193,7 +193,7 @@ def serial_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
     return results
 
 
-def parallel_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
+def parallel_map(task, values, task_args=tuple(), task_kwargs=None, **kwargs):
     """
     Parallel execution of a mapping of `values` to the function `task`. This
     is functionally equivalent to::
@@ -222,6 +222,8 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
         each value in ``values``.
 
     """
+    if task_kwargs is None:
+        task_kwargs = dict()
     os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
     kw = _default_kwargs()
     if 'num_cpus' in kwargs:
