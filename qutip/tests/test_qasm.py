@@ -107,7 +107,10 @@ def test_qasm_teleportation():
     state = tensor(rand_ket(2), basis(2, 0), basis(2, 0))
     _, initial_probabilities = initial_measurement.measurement_comp_basis(state)
 
-    states, probabilities = teleportation.run_statistics(state).get_results()
+    teleportation_results = teleportation.run_statistics(state)
+
+    states = teleportation_results.get_final_states()
+    probabilities = teleportation_results.get_probabilities()
 
     for i, state in enumerate(states):
         final = state

@@ -66,7 +66,8 @@ except ImportError:
     def DisplaySVG(data, *args, **kwargs):
         return data
 
-__all__ = ['Gate', 'QubitCircuit', 'Measurement', 'Result', 'ExactSimulator']
+__all__ = ['Gate', 'QubitCircuit', 'Measurement',
+           'CircuitResult', 'CircuitSimulator']
 
 _single_qubit_gates = ["RX", "RY", "RZ", "SNOT", "SQRTNOT", "PHASEGATE",
                        "X", "Y", "Z", "S", "T", "QASMU"]
@@ -1105,50 +1106,86 @@ class QubitCircuit:
 
     def run(self, state, cbits=None, U_list=None,
             measure_results=None, precompute_unitary=False):
+        '''
+        Calculate the result of one instance of circuit run.
+
+        Parameters
+        ----------
+        state : ket or oper
+                state vector or density matrix input.
+        cbits : List of ints, optional
+                initialization of the classical bits.
+        U_list: list of Qobj, optional
+            list of predefined unitaries corresponding to circuit.
+        measure_results : tuple of ints, optional
+            optional specification of each measurement result to enable
+            post-selection. If specified, the measurement results are
+            set to the tuple of bits (sequentially) instead of being
+            chosen at random.
+        precompute_unitary: Boolean, optional
+            Specify if computation is done by pre-computing and aggregating
+            gate unitaries. Possibly a faster method in the case of large number
+            of repeat runs with different state inputs.
+
+        Returns
+        -------
+        final_state : Qobj
+                output state of the circuit run.
+        '''
+
         if state.isket:
-            sim = ExactSimulator(self, state, cbits, U_list, measure_results,
-                                 "state_vector_simulator",
-                                 precompute_unitary)
+            sim = CircuitSimulator(self, state, cbits, U_list, measure_results,
+                                   "state_vector_simulator",
+                                   precompute_unitary)
         elif state.isoper:
-            sim = ExactSimulator(self, state, cbits, U_list, measure_results,
-                                 "density_matrix_simulator",
-                                 precompute_unitary)
+            sim = CircuitSimulator(self, state, cbits, U_list, measure_results,
+                                   "density_matrix_simulator",
+                                   precompute_unitary)
         else:
-            raise TypeError("State is not ket or dm.")
-        return sim.run(state, cbits)
+            raise TypeError("State is not a ket or a density matrix.")
+        return sim.run(state, cbits).get_final_states(0)
 
     def run_statistics(self, state, U_list=None,
                        cbits=None, precompute_unitary=False):
         '''
-        This is the circuit run function for num_runs run, must be called after
-        adding all the gates and measurements on the circuit and returns the
-        probability with which each output state is observed.
+        Calculate all the possible outputs of a circuit
+        (varied by measurement gates).
 
         Parameters
         ----------
-        state : ket
-                state to be observed on specified by density matrix.
+        state : ket or oper
+                state vector or density matrix input.
         cbits : List of ints, optional
                 initialization of the classical bits.
+        U_list: list of Qobj, optional
+            list of predefined unitaries corresponding to circuit.
+        measure_results : tuple of ints, optional
+            optional specification of each measurement result to enable
+            post-selection. If specified, the measurement results are
+            set to the tuple of bits (sequentially) instead of being
+            chosen at random.
+        precompute_unitary: Boolean, optional
+            Specify if computation is done by pre-computing and aggregating
+            gate unitaries. Possibly a faster method in the case of large number
+            of repeat runs with different state inputs.
 
         Returns
         -------
-        states : List of kets
-                returns a list of possible circuit states output by run.
-        state_probs : List of floats
-                returns probabilities of getting above output states.
+        result: CircuitResult
+            Return a CircuitResult object containing
+            output states and and their probabilities.
         '''
 
         if state.isket:
-            sim = ExactSimulator(self, state, cbits, U_list,
-                                 mode="state_vector_simulator",
-                                 precompute_unitary=precompute_unitary)
+            sim = CircuitSimulator(self, state, cbits, U_list,
+                                   mode="state_vector_simulator",
+                                   precompute_unitary=precompute_unitary)
         elif state.isoper:
-            sim = ExactSimulator(self, state, cbits, U_list,
-                                 mode="density_matrix_simulator",
-                                 precompute_unitary=precompute_unitary)
+            sim = CircuitSimulator(self, state, cbits, U_list,
+                                   mode="density_matrix_simulator",
+                                   precompute_unitary=precompute_unitary)
         else:
-            raise TypeError("State is not ket or dm.")
+            raise TypeError("State is not a ket or a density matrix.")
         return sim.run_statistics(state, cbits)
 
     def resolve_gates(self, basis=["CNOT", "RX", "RY", "RZ"]):
@@ -1753,71 +1790,74 @@ class QubitCircuit:
             op._to_qasm(qasm_out)
 
 
-class Result:
+class CircuitResult:
 
-    def __init__(self, states, probabilities, cbits=None):
+    def __init__(self, final_states, probabilities, cbits=None):
         """
-        Store result of ExactSimulator.
+        Store result of CircuitSimulator.
 
         Parameters
         ----------
-        states: list of Qobj.
+        final_states: list of Qobj.
             List of output kets or density matrices.
 
         probabilities: list of float.
             List of probabilities of obtaining each output state.
+
+        cbits: list of list of int, optional
+            List of cbits for each output.
         """
 
-        if isinstance(states, Qobj) or states is None:
-            self.states = [states]
+        if isinstance(final_states, Qobj) or final_states is None:
+            self.final_states = [final_states]
             self.probabilities = [probabilities]
             if cbits:
                 self.cbits = [cbits]
         else:
-            inds = list(filter(lambda x: states[x] is not None,
-                               range(len(states))))
-            self.states = [states[i] for i in inds]
+            inds = list(filter(lambda x: final_states[x] is not None,
+                               range(len(final_states))))
+            self.final_states = [final_states[i] for i in inds]
             self.probabilities = [probabilities[i] for i in inds]
             if cbits:
                 self.cbits = [cbits[i] for i in inds]
 
-    def get_states(self):
+    def get_final_states(self, index=None):
         """
         Return list of output states.
-
-        Returns
-        ----------
-        states: list of Qobj.
-            List of output kets or density matrices.
-        """
-
-        if isinstance(self.states, list):
-            return self.states
-        else:
-            return self.states[0]
-
-    def get_results(self, index=None):
-        """
-        Return list of output states and corresponding probabilities
 
         Parameters
         ----------
         index: int
-            Indicates i-th output, probability pair to be returned.
+            Indicates i-th state to be returned.
 
         Returns
-        -------
-        states: Qobj or list of Qobj
-            Possible output states.
-
-        probabilities: float or list of float
-            Probabilities associated with each output state.
-
+        ----------
+        final_states: Qobj or list of Qobj.
+            List of output kets or density matrices.
         """
 
         if index is not None:
-            return self.states[index], self.probabilities[index]
-        return self.states, self.probabilities
+            return self.final_states[index]
+        return self.final_states
+
+    def get_probabilities(self, index=None):
+        """
+        Return list of probabilities corresponding to the output states.
+
+        Parameters
+        ----------
+        index: int
+            Indicates i-th probability to be returned.
+
+        Returns
+        -------
+        probabilities: float or list of float
+            Probabilities associated with each output state.
+        """
+
+        if index is not None:
+            return self.probabilities[index]
+        return self.probabilities
 
     def get_cbits(self, index=None):
         """
@@ -1830,7 +1870,7 @@ class Result:
 
         Returns
         -------
-        cbits: list of list of int
+        cbits: list of int or list of list of int
             list of classical bit outputs
         """
 
@@ -1839,7 +1879,7 @@ class Result:
         return self.cbits
 
 
-class ExactSimulator:
+class CircuitSimulator:
 
     def __init__(self, qc, state=None, cbits=None,
                  U_list=None, measure_results=None,
@@ -1898,7 +1938,7 @@ class ExactSimulator:
         else:
             self._process_ops()
 
-        self.initialize_run(state, cbits, measure_results)
+        self.initialize(state, cbits, measure_results)
 
     def _process_ops(self):
         '''
@@ -1964,7 +2004,7 @@ class ExactSimulator:
             prev_index = U_list_index + 1
             U_list_index = prev_index
 
-    def initialize_run(self, state=None, cbits=None, measure_results=None):
+    def initialize(self, state=None, cbits=None, measure_results=None):
         '''
         Reset Simulator state variables to start a new run.
 
@@ -2055,21 +2095,21 @@ class ExactSimulator:
 
         Returns
         -------
-        result : Result
-            returns the Result object containing output information.
+        result: CircuitResult
+            Return a CircuitResult object containing
+            output state and probability.
         '''
 
-        self.initialize_run(state, cbits, measure_results)
+        self.initialize(state, cbits, measure_results)
         for _ in range(len(self.ops)):
             if self.step() is None:
                 break
-        return Result(self.state, self.probability, self.cbits)
+        return CircuitResult(self.state, self.probability, self.cbits)
 
     def run_statistics(self, state, cbits=None):
         '''
-        This is the circuit run function for num_runs run, must be called after
-        adding all the gates and measurements on the circuit and returns the
-        probability with which each output state is observed.
+        Calculate all the possible outputs of a circuit
+        (varied by measurement gates).
 
         Parameters
         ----------
@@ -2080,10 +2120,9 @@ class ExactSimulator:
 
         Returns
         -------
-        states : List of kets
-                returns a list of possible circuit states output by run.
-        state_probs : List of floats
-                returns probabilities of getting above output states.
+        result: CircuitResult
+            Return a CircuitResult object containing
+            output states and and their probabilities.
         '''
 
         probabilities = []
@@ -2095,15 +2134,14 @@ class ExactSimulator:
                                 self.qc.gates)))
 
         for results in product("01", repeat=num_measurements):
-            final_state, probability = self.run(
-                                        state,
-                                        cbits=cbits,
-                                        measure_results=results).get_results(0)
+            run_result = self.run(state, cbits=cbits, measure_results=results)
+            final_state = run_result.get_final_states(0)
+            probability = run_result.get_probabilities(0)
             states.append(final_state)
             probabilities.append(probability)
             cbits_results.append(self.cbits)
 
-        return Result(states, probabilities, cbits_results)
+        return CircuitResult(states, probabilities, cbits_results)
 
     def step(self):
         '''

@@ -939,7 +939,7 @@ def _flatten(lst):
     return [item for sublist in lst for item in sublist]
 
 
-def mult_sublists(tensor_list, overall_inds, U, inds):
+def _mult_sublists(tensor_list, overall_inds, U, inds):
     """
     Calculate the revised indices and tensor list by multiplying a new unitary
     U applied to inds.
@@ -1003,7 +1003,7 @@ def mult_sublists(tensor_list, overall_inds, U, inds):
     return tensor_list_revised, overall_inds_revised
 
 
-def _gate_sequence_product(U_list, ind_list, expand_N=None):
+def _gate_sequence_product(U_list, ind_list):
     """
     Calculate the overall unitary matrix for a given list of unitary operations
     that are still of original dimension.
@@ -1016,9 +1016,6 @@ def _gate_sequence_product(U_list, ind_list, expand_N=None):
     ind_list : list of list of int
         List of qubit indices corresponding to each gate in tensor_list.
 
-    expand_N : int, optional
-        Total number of qubits.
-
     Returns
     -------
     U_overall : qobj
@@ -1028,22 +1025,21 @@ def _gate_sequence_product(U_list, ind_list, expand_N=None):
         List of qubit indices on which U_overall applies.
     """
 
-    if not expand_N:
-        expand_N = len(set(chain(*ind_list)))
-        sorted_inds = sorted(set(_flatten(ind_list)))
-        ind_list = [[sorted_inds.index(ind) for ind in inds] for inds in ind_list]
+    num_qubits = len(set(chain(*ind_list)))
+    sorted_inds = sorted(set(_flatten(ind_list)))
+    ind_list = [[sorted_inds.index(ind) for ind in inds] for inds in ind_list]
 
     U_overall = 1
     overall_inds = []
 
     for i, (U, inds) in enumerate(zip(U_list, ind_list)):
-        if len(overall_inds) == 1 and len(overall_inds[0]) == expand_N:
+        if len(overall_inds) == 1 and len(overall_inds[0]) == num_qubits:
             U_overall = tensor(tensor_list)
             overall_inds = _flatten(overall_inds)
 
             U_left, rem_inds = _gate_sequence_product(U_list[i:],
                                                       ind_list[i:])
-            U_left = expand_operator(U_left, expand_N, rem_inds)
+            U_left = expand_operator(U_left, num_qubits, rem_inds)
             return U_left * U_overall, [sorted_inds[ind] for ind in overall_inds]
 
         if U_overall == 1:
@@ -1053,7 +1049,7 @@ def _gate_sequence_product(U_list, ind_list, expand_N=None):
             continue
 
         elif len(set(_flatten(overall_inds)).intersection(set(inds))) > 0:
-            tensor_list, overall_inds = mult_sublists(tensor_list,
+            tensor_list, overall_inds = _mult_sublists(tensor_list,
                                                       overall_inds,
                                                       U, inds)
         else:
@@ -1065,7 +1061,7 @@ def _gate_sequence_product(U_list, ind_list, expand_N=None):
     return U_overall, [sorted_inds[ind] for ind in _flatten(overall_inds)]
 
 
-def _gate_sequence_product_expanded(U_list, left_to_right=True):
+def _gate_sequence_product_with_expansion(U_list, left_to_right=True):
     """
     Calculate the overall unitary matrix for a given list of unitary operations.
 
@@ -1111,7 +1107,7 @@ def gate_sequence_product(U_list, left_to_right=True,
         to which each unitary is applied.
 
     expand: Boolean, optional
-        Check if list of unitaries to be expanded to full dimension.
+        Check if the list of unitaries need to be expanded to full dimension.
 
     Returns
     -------
@@ -1125,7 +1121,7 @@ def gate_sequence_product(U_list, left_to_right=True,
     if expand:
         return _gate_sequence_product(U_list, inds_list)
     else:
-        return _gate_sequence_product_expanded(U_list, left_to_right)
+        return _gate_sequence_product_with_expansion(U_list, left_to_right)
 
 
 def _powers(op, N):

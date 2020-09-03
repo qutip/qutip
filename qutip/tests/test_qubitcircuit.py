@@ -39,7 +39,7 @@ from pathlib import Path
 from qutip.qip.operations import gates
 from qutip.operators import identity
 from qutip.qip.circuit import (
-    QubitCircuit, ExactSimulator, Gate, Measurement, _ctrl_gates,
+    QubitCircuit, CircuitSimulator, Gate, Measurement, _ctrl_gates,
     _single_qubit_gates, _swap_like, _toffoli_like, _fredkin_like, _para_gates)
 from qutip import (tensor, Qobj, ptrace, rand_ket, fock_dm, basis,
                    rand_dm, bell_state, ket2dm)
@@ -92,18 +92,18 @@ def _measurement_circuit():
 
 def _simulators_sv(qc):
 
-    sim_sv_precompute = ExactSimulator(qc, mode="state_vector_simulator",
-                                       precompute_unitary=True)
-    sim_sv = ExactSimulator(qc, mode="state_vector_simulator")
+    sim_sv_precompute = CircuitSimulator(qc, mode="state_vector_simulator",
+                                         precompute_unitary=True)
+    sim_sv = CircuitSimulator(qc, mode="state_vector_simulator")
 
     return [sim_sv_precompute, sim_sv]
 
 
 def _simulators_dm(qc):
 
-    sim_dm_precompute = ExactSimulator(qc, mode="density_matrix_simulator",
-                                       precompute_unitary=True)
-    sim_dm = ExactSimulator(qc, mode="density_matrix_simulator")
+    sim_dm_precompute = CircuitSimulator(qc, mode="density_matrix_simulator",
+                                         precompute_unitary=True)
+    sim_dm = CircuitSimulator(qc, mode="density_matrix_simulator")
 
     return [sim_dm_precompute, sim_dm]
 
@@ -512,7 +512,11 @@ class TestQubitCircuit:
         initial_measurement = Measurement("start", targets=[0])
         _, initial_probabilities = initial_measurement.measurement_comp_basis(state)
 
-        state_final, probability = teleportation.run(state).get_results(0)
+        teleportation_sim = CircuitSimulator(teleportation)
+
+        teleportation_sim_results = teleportation_sim.run(state)
+        state_final = teleportation_sim_results.get_final_states(0)
+        probability = teleportation_sim_results.get_probabilities(0)
 
         final_measurement = Measurement("start", targets=[2])
         _, final_probabilities = final_measurement.measurement_comp_basis(state_final)
@@ -531,7 +535,9 @@ class TestQubitCircuit:
         original_state = tensor(rand_ket(2), basis(2, 0), basis(2, 0))
         _, initial_probabilities = initial_measurement.measurement_comp_basis(original_state)
 
-        states, probabilities = teleportation.run_statistics(original_state).get_results()
+        teleportation_results = teleportation.run_statistics(original_state)
+        states = teleportation_results.get_final_states()
+        probabilities = teleportation_results.get_probabilities()
 
         for i, state in enumerate(states):
             state_final = state
@@ -546,7 +552,7 @@ class TestQubitCircuit:
 
         teleportation2 = _teleportation_circuit2()
 
-        final_state, _ = teleportation2.run(dm_state).get_results(0)
+        final_state = teleportation2.run(dm_state)
         _, probs1 = final_measurement.measurement_comp_basis(final_state)
         _, probs2 = final_measurement.measurement_comp_basis(mixed_state)
 
@@ -614,7 +620,7 @@ class TestQubitCircuit:
 
         for simulator in simulators:
             result = simulator.run_statistics(state)
-            final_states = result.get_states()
+            final_states = result.get_final_states()
             result_cbits = result.get_cbits()
 
             for i, final_state in enumerate(final_states):
