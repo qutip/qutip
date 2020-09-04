@@ -965,6 +965,33 @@ def _mult_sublists(tensor_list, overall_inds, U, inds):
 
     overall_inds_revised: list of list of int
         List of qubit indices corresponding to each gate in tensor_list_revised.
+
+    Examples
+    --------
+
+    First, we get some imports out of the way,
+
+    >>> from qutip.qip.operations.gates import _mult_sublists
+    >>> from qutip.qip.operations.gates import x_gate, y_gate, toffoli, z_gate
+
+    Suppose we have a unitary list of already processed gates,
+    X, Y, Z applied on qubit indices 0, 1, 2 respectively and
+    encounter a new TOFFOLI gate on qubit indices (0, 1, 3).
+
+    >>> tensor_list = [x_gate(), y_gate(), z_gate()]
+    >>> overall_inds = [[0], [1], [2]]
+    >>> U = toffoli()
+    >>> U_inds = [0, 1, 3]
+
+    Then, we can use _mult_sublists to produce a new list of unitaries by
+    multiplying TOFFOLI (and expanding) only on the qubit indices involving
+    TOFFOLI gate (and any multiplied gates).
+
+    >>> U_list, overall_inds = _mult_sublists(tensor_list, overall_inds, U, U_inds)
+    >>> np.testing.assert_allclose(U_list[0]) == z_gate())
+    >>> toffoli_xy = toffoli() * tensor(x_gate(), y_gate(), identity(2))
+    >>> np.testing.assert_allclose(U_list[1]), toffoli_xy)
+    >>> overall_inds = [[2], [0, 1, 3]]
     """
 
     tensor_sublist = []
@@ -1003,6 +1030,20 @@ def _mult_sublists(tensor_list, overall_inds, U, inds):
     return tensor_list_revised, overall_inds_revised
 
 
+def _expand_overall(tensor_list, overall_inds):
+    """
+    Tensor unitaries in tensor list and then use expand_operator to rearrange
+    them appropriately according to the indices in overall_inds.
+    """
+
+    U_overall = tensor(tensor_list)
+    overall_inds = _flatten(overall_inds)
+    U_overall = expand_operator(U_overall,
+                                len(overall_inds), overall_inds)
+    overall_inds = sorted(overall_inds)
+    return U_overall, overall_inds
+
+
 def _gate_sequence_product(U_list, ind_list):
     """
     Calculate the overall unitary matrix for a given list of unitary operations
@@ -1023,6 +1064,26 @@ def _gate_sequence_product(U_list, ind_list):
 
     overall_inds : list of int
         List of qubit indices on which U_overall applies.
+
+    Examples
+    --------
+
+    First, we get some imports out of the way,
+
+    >>> from qutip.qip.operations.gates import _gate_sequence_product
+    >>> from qutip.qip.operations.gates import x_gate, y_gate, toffoli, z_gate
+
+    Suppose we have a circuit with gates X, Y, Z, TOFFOLI
+    applied on qubit indices 0, 1, 2 and [0, 1, 3] respectively.
+
+    >>> tensor_lst = [x_gate(), y_gate(), z_gate(), toffoli()]
+    >>> overall_inds = [[0], [1], [2], [0, 1, 3]]
+
+    Then, we can use _gate_sequence_product to produce a single unitary
+    obtained by multiplying unitaries in the list using heuristic methods
+    to reduce the size of matrices being multiplied.
+
+    >>> U_list, overall_inds = _gate_sequence_product(tensor_lst, overall_inds)
     """
 
     num_qubits = len(set(chain(*ind_list)))
@@ -1033,32 +1094,40 @@ def _gate_sequence_product(U_list, ind_list):
     overall_inds = []
 
     for i, (U, inds) in enumerate(zip(U_list, ind_list)):
-        if len(overall_inds) == 1 and len(overall_inds[0]) == num_qubits:
-            U_overall = tensor(tensor_list)
-            overall_inds = _flatten(overall_inds)
 
+        # when the tensor_list covers the full dimension of the circuit, we
+        # expand the tensor_list to a unitary and call _gate_sequence_product
+        # recursively on the rest of the U_list.
+        if len(overall_inds) == 1 and len(overall_inds[0]) == num_qubits:
+            U_overall, overall_inds = _expand_overall(tensor_list, overall_inds)
             U_left, rem_inds = _gate_sequence_product(U_list[i:],
                                                       ind_list[i:])
             U_left = expand_operator(U_left, num_qubits, rem_inds)
             return U_left * U_overall, [sorted_inds[ind] for ind in overall_inds]
 
+        # special case for first unitary in the list
         if U_overall == 1:
             U_overall = U_overall * U
             overall_inds = [ind_list[0]]
             tensor_list = [U_overall]
             continue
 
+        # case where the next unitary interacts on some subset of qubits
+        # with the unitaries already in tensor_list.
         elif len(set(_flatten(overall_inds)).intersection(set(inds))) > 0:
             tensor_list, overall_inds = _mult_sublists(tensor_list,
-                                                      overall_inds,
-                                                      U, inds)
+                                                       overall_inds,
+                                                       U, inds)
+
+        # case where the next unitary does not interact with any unitary in
+        # tensor_list
         else:
-            # only need to expand stuff !
             overall_inds.append(inds)
             tensor_list.append(U)
 
-    U_overall = tensor(tensor_list)
-    return U_overall, [sorted_inds[ind] for ind in _flatten(overall_inds)]
+    U_overall, overall_inds = _expand_overall(tensor_list, overall_inds)
+    print(overall_inds)
+    return U_overall, [sorted_inds[ind] for ind in overall_inds]
 
 
 def _gate_sequence_product_with_expansion(U_list, left_to_right=True):

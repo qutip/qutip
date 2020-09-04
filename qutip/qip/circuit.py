@@ -1907,10 +1907,17 @@ class CircuitSimulator:
             set to the tuple of bits (sequentially) instead of being
             chosen at random.
 
-        mode: Boolean, optional
+        mode: string, optional
             Specify if input state (and therefore computation) is in
-            state-vector mode or in density matrix mode. If in density matrix
-            mode and given a state vector input, the output must be assumed to
+            state-vector mode or in density matrix mode.
+            In state_vector_simulator mode, the input must be a ket
+            and with each measurement, one of the collapsed
+            states is the new state (when using run()).
+            In density_matrix_simulator mode, the input can be a ket or a
+            density matrix and after measurement, the new state is the
+            mixed ensemble state obtained after the measurement.
+            If in density_matrix_simulator mode and given
+            a state vector input, the output must be assumed to
             be a density matrix.
 
         precompute_unitary: Boolean, optional
@@ -1962,7 +1969,18 @@ class CircuitSimulator:
         '''
         Process list of gates (including measurements), aggregate
         gate unitaries (by multiplying) and store them in self.ops
-        for further computation.
+        for further computation. The gate multiplication is carried out
+        only for groups of matrices in between classically controlled gates
+        and measurement gates.
+
+        Examples
+        --------
+
+        If we have a circuit that looks like:
+
+        ----|X|-----|Y|----|M0|-----|X|----
+
+        then self.ops = [YX, M0, X]
         '''
 
         prev_index = 0
