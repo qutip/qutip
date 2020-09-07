@@ -1126,7 +1126,7 @@ def _gate_sequence_product(U_list, ind_list):
             tensor_list.append(U)
 
     U_overall, overall_inds = _expand_overall(tensor_list, overall_inds)
-    print(overall_inds)
+
     return U_overall, [sorted_inds[ind] for ind in overall_inds]
 
 
