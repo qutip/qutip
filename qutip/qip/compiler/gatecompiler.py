@@ -145,8 +145,6 @@ class GateCompiler(object):
         tlist = [[[0.]] for tmp in range(self.num_ops)]
         coeffs = [[] for tmp in range(self.num_ops)]
         for ind in time_ordered_pos:
-            if ind == 3:
-                print("here")
             instruction = instruction_list[ind]
             start_time = scheduled_start_time[ind]
             for pulse_ind, coeff in instruction.pulse_coeffs:
