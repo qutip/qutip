@@ -156,11 +156,12 @@ circuit2.add_gate("SQRTISWAP", targets=[0, 2])  # supported only by SpinChain
     pytest.param(circuit2, LinearSpinChain, {}, id = "LinearSpinChain"),
     pytest.param(circuit2, CircularSpinChain, {}, id = "CircularSpinChain"),
 ])
-def test_numerical_circuit(circuit, device_class, kwargs):
+@pytest.mark.parametrize(("schedule_mode"), ["ASAP", "ALAP", None])
+def test_numerical_circuit(circuit, device_class, kwargs, schedule_mode):
     num_qubits = circuit.N
     with warnings.catch_warnings(record=True):
         device = device_class(circuit.N, **kwargs)
-    device.load_circuit(circuit)
+    device.load_circuit(circuit, schedule_mode=schedule_mode)
 
     state = qutip.rand_ket(2**num_qubits)
     state.dims = [[2]*num_qubits, [1]*num_qubits]
