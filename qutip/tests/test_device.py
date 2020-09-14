@@ -146,9 +146,16 @@ circuit.add_gate("CNOT", targets=[0], controls=[2])
 circuit.add_gate("Z", targets=[1])
 circuit.add_gate("X", targets=[1])
 
+from copy import deepcopy
+circuit2 = deepcopy(circuit)
+circuit2.add_gate("SQRTISWAP", targets=[0, 2])  # supported only by SpinChain
 
-@pytest.mark.parametrize(("circuit"), [pytest.param(circuit)])
-@pytest.mark.parametrize(("device_class", "kwargs"), device_lists)
+
+@pytest.mark.parametrize(("circuit", "device_class", "kwargs"), [
+    pytest.param(circuit, DispersiveCavityQED, {"g":0.1}, id = "DispersiveCavityQED"),
+    pytest.param(circuit2, LinearSpinChain, {}, id = "LinearSpinChain"),
+    pytest.param(circuit2, CircularSpinChain, {}, id = "CircularSpinChain"),
+])
 def test_numerical_circuit(circuit, device_class, kwargs):
     num_qubits = circuit.N
     with warnings.catch_warnings(record=True):
