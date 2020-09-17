@@ -30,7 +30,10 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+import warnings
+
 import numpy as np
+
 from qutip.operators import sigmax, sigmay, sigmaz, identity
 from qutip.tensor import tensor
 from qutip.qip.circuit import QubitCircuit
@@ -578,7 +581,10 @@ class CircularSpinChain(SpinChain):
     """
     def __init__(self, N, correct_global_phase=True,
                  sx=0.25, sz=1.0, sxsy=0.1, t1=None, t2=None):
-
+        if N <= 1:
+            raise ValueError(
+                "Circuit spin chain must have at least 2 qubits. "
+                "The number of qubits is increased to 2.")
         super(CircularSpinChain, self).__init__(
             N, correct_global_phase=correct_global_phase,
             sx=sx, sz=sz, sxsy=sxsy, t1=t1, t2=t2)
