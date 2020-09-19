@@ -244,14 +244,17 @@ cdef class _to:
         for i, from_t in enumerate(order):
             for j, to_t in enumerate(order):
                 convert = []
+                weight = 0
                 cur_t = to_t
                 pred_i = predecessors[i, j]
                 while pred_i >= 0:
                     pred_t = order[pred_i]
-                    convert.append(self._direct_convert[(cur_t, pred_t)][0])
+                    _convert, _weight = self._direct_convert[(cur_t, pred_t)]
+                    convert.append(_convert)
+                    weight += _weight
                     cur_t = pred_t
                     pred_i = predecessors[i, pred_i]
-                self.weight[(to_t, from_t)] = len(convert)
+                self.weight[(to_t, from_t)] = weight
                 self._convert[(to_t, from_t)] =\
                     _converter(convert[::-1], to_t, from_t)
         for dispatcher in self.dispatchers:
