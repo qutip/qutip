@@ -9,7 +9,9 @@ from scipy.linalg cimport cython_blas as blas
 
 from qutip.core.data.base cimport idxint, Data
 from qutip.core.data.dense cimport Dense
-from qutip.core.data.csr cimport CSR, Accumulator
+from qutip.core.data.csr cimport (
+    CSR, Accumulator, acc_alloc, acc_free, acc_scatter, acc_gather, acc_reset,
+)
 from qutip.core.data cimport csr, dense
 
 cnp.import_array()
@@ -35,7 +37,7 @@ cdef void _check_shape(Data left, Data right) nogil except *:
             + str(right.shape)
         )
 
-cdef idxint _add_csr(CSR a, CSR b, CSR c):
+cdef idxint _add_csr(Accumulator *acc, CSR a, CSR b, CSR c) nogil:
     """
     Perform the operation
         c := a + b
@@ -45,19 +47,18 @@ cdef idxint _add_csr(CSR a, CSR b, CSR c):
     Return the true value of nnz(c).
     """
     cdef idxint row, ptr, nnz=0
-    cdef Accumulator accumulator = Accumulator(a.shape[1])
     c.row_index[0] = nnz
     for row in range(a.shape[0]):
         for ptr in range(a.row_index[row], a.row_index[row + 1]):
-            accumulator.scatter(a.data[ptr], a.col_index[ptr])
+            acc_scatter(acc, a.data[ptr], a.col_index[ptr])
         for ptr in range(b.row_index[row], b.row_index[row + 1]):
-            accumulator.scatter(b.data[ptr], b.col_index[ptr])
-        nnz += accumulator.gather(c.data + nnz, c.col_index + nnz)
-        accumulator.reset()
+            acc_scatter(acc, b.data[ptr], b.col_index[ptr])
+        nnz += acc_gather(acc, c.data + nnz, c.col_index + nnz)
+        acc_reset(acc)
         c.row_index[row + 1] = nnz
     return nnz
 
-cdef idxint _add_csr_scale(CSR a, CSR b, CSR c, double complex scale):
+cdef idxint _add_csr_scale(Accumulator *acc, CSR a, CSR b, CSR c, double complex scale) nogil:
     """
     Perform the operation
         c := a + scale*b
@@ -67,15 +68,14 @@ cdef idxint _add_csr_scale(CSR a, CSR b, CSR c, double complex scale):
     Return the true value of nnz(c).
     """
     cdef idxint row, ptr, nnz=0
-    cdef Accumulator accumulator = Accumulator(a.shape[1])
     c.row_index[0] = nnz
     for row in range(a.shape[0]):
         for ptr in range(a.row_index[row], a.row_index[row + 1]):
-            accumulator.scatter(a.data[ptr], a.col_index[ptr])
+            acc_scatter(acc, a.data[ptr], a.col_index[ptr])
         for ptr in range(b.row_index[row], b.row_index[row + 1]):
-            accumulator.scatter(scale * b.data[ptr], b.col_index[ptr])
-        nnz += accumulator.gather(c.data + nnz, c.col_index + nnz)
-        accumulator.reset()
+            acc_scatter(acc, scale * b.data[ptr], b.col_index[ptr])
+        nnz += acc_gather(acc, c.data + nnz, c.col_index + nnz)
+        acc_reset(acc)
         c.row_index[row + 1] = nnz
     return nnz
 
@@ -107,6 +107,7 @@ cpdef CSR add_csr(CSR left, CSR right, double complex scale=1):
     cdef idxint worst_nnz = left_nnz + right_nnz
     cdef idxint i
     cdef CSR out
+    cdef Accumulator acc
     # Fast paths for zero matrices.
     if right_nnz == 0 or scale == 0:
         return left.copy()
@@ -119,10 +120,12 @@ cpdef CSR add_csr(CSR left, CSR right, double complex scale=1):
         return out
     # Main path.
     out = csr.empty(left.shape[0], left.shape[1], worst_nnz)
+    acc = acc_alloc(left.shape[1])
     if scale == 1:
-        _add_csr(left, right, out)
+        _add_csr(&acc, left, right, out)
     else:
-        _add_csr_scale(left, right, out, scale)
+        _add_csr_scale(&acc, left, right, out, scale)
+    acc_free(&acc)
     return out
 
 cdef Dense _add_dense_eq_order(Dense left, Dense right, double complex scale):
