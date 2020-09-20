@@ -9,7 +9,7 @@ from scipy.linalg cimport cython_blas as blas
 
 from qutip.core.data.base cimport idxint, Data
 from qutip.core.data.dense cimport Dense
-from qutip.core.data.csr cimport CSR
+from qutip.core.data.csr cimport CSR, Accumulator
 from qutip.core.data cimport csr, dense
 
 cnp.import_array()
@@ -35,7 +35,7 @@ cdef void _check_shape(Data left, Data right) nogil except *:
             + str(right.shape)
         )
 
-cdef idxint _add_csr(CSR a, CSR b, CSR c) nogil:
+cdef idxint _add_csr(CSR a, CSR b, CSR c):
     """
     Perform the operation
         c := a + b
@@ -44,43 +44,20 @@ cdef idxint _add_csr(CSR a, CSR b, CSR c) nogil:
 
     Return the true value of nnz(c).
     """
-    cdef:
-        idxint nrows=c.shape[0], ncols=c.shape[1]
-        idxint row, col_a, col_b
-        double complex tmp
-        # These all refer to "pointers" into the col_index or data arrays.
-        idxint ptr_a, ptr_b, ptr_c=0, max_ptr_a, max_ptr_b
-    c.row_index[0] = 0
-    for row in range(nrows):
-        ptr_a = a.row_index[row]
-        ptr_b = b.row_index[row]
-        max_ptr_a = a.row_index[row+1]
-        max_ptr_b = b.row_index[row+1]
-        while ptr_a < max_ptr_a or ptr_b < max_ptr_b:
-            col_a = a.col_index[ptr_a] if ptr_a < max_ptr_a else ncols + 1
-            col_b = b.col_index[ptr_b] if ptr_b < max_ptr_b else ncols + 1
-            if col_a < col_b:
-                c.data[ptr_c] = a.data[ptr_a]
-                c.col_index[ptr_c] = col_a
-                ptr_a += 1
-                ptr_c += 1
-            elif col_b < col_a:
-                c.data[ptr_c] = b.data[ptr_b]
-                c.col_index[ptr_c] = col_b
-                ptr_b += 1
-                ptr_c += 1
-            else:  # equal
-                tmp = a.data[ptr_a] + b.data[ptr_b]
-                if tmp != 0:
-                    c.data[ptr_c] = tmp
-                    c.col_index[ptr_c] = col_a
-                    ptr_c += 1
-                ptr_a += 1
-                ptr_b += 1
-        c.row_index[row+1] = ptr_c
-    return ptr_c
+    cdef idxint row, ptr, nnz=0
+    cdef Accumulator accumulator = Accumulator(a.shape[1])
+    c.row_index[0] = nnz
+    for row in range(a.shape[0]):
+        for ptr in range(a.row_index[row], a.row_index[row + 1]):
+            accumulator.scatter(a.data[ptr], a.col_index[ptr])
+        for ptr in range(b.row_index[row], b.row_index[row + 1]):
+            accumulator.scatter(b.data[ptr], b.col_index[ptr])
+        nnz += accumulator.gather(c.data + nnz, c.col_index + nnz)
+        accumulator.reset()
+        c.row_index[row + 1] = nnz
+    return nnz
 
-cdef idxint _add_csr_scale(CSR a, CSR b, CSR c, double complex scale) nogil:
+cdef idxint _add_csr_scale(CSR a, CSR b, CSR c, double complex scale):
     """
     Perform the operation
         c := a + scale*b
@@ -89,42 +66,18 @@ cdef idxint _add_csr_scale(CSR a, CSR b, CSR c, double complex scale) nogil:
 
     Return the true value of nnz(c).
     """
-    cdef:
-        idxint nrows=c.shape[0], ncols=c.shape[1]
-        idxint row, col_a, col_b
-        double complex tmp
-        # These all refer to "pointers" into the col_index or data arrays.
-        idxint ptr_a, ptr_b, ptr_c=0, max_ptr_a, max_ptr_b
-    c.row_index[0] = 0
-    for row in range(nrows):
-        ptr_a = a.row_index[row]
-        ptr_b = b.row_index[row]
-        max_ptr_a = a.row_index[row+1]
-        max_ptr_b = b.row_index[row+1]
-        while ptr_a < max_ptr_a or ptr_b < max_ptr_b:
-            col_a = a.col_index[ptr_a] if ptr_a < max_ptr_a else ncols + 1
-            col_b = b.col_index[ptr_b] if ptr_b < max_ptr_b else ncols + 1
-            if col_a < col_b:
-                c.data[ptr_c] = a.data[ptr_a]
-                c.col_index[ptr_c] = col_a
-                ptr_a += 1
-                ptr_c += 1
-            elif col_b < col_a:
-                c.data[ptr_c] = scale * b.data[ptr_b]
-                c.col_index[ptr_c] = col_b
-                ptr_b += 1
-                ptr_c += 1
-            else:  # equal
-                tmp = a.data[ptr_a] + scale*b.data[ptr_b]
-                if tmp != 0:
-                    c.data[ptr_c] = tmp
-                    c.col_index[ptr_c] = col_a
-                    ptr_c += 1
-                ptr_a += 1
-                ptr_b += 1
-        c.row_index[row+1] = ptr_c
-    return ptr_c
-
+    cdef idxint row, ptr, nnz=0
+    cdef Accumulator accumulator = Accumulator(a.shape[1])
+    c.row_index[0] = nnz
+    for row in range(a.shape[0]):
+        for ptr in range(a.row_index[row], a.row_index[row + 1]):
+            accumulator.scatter(a.data[ptr], a.col_index[ptr])
+        for ptr in range(b.row_index[row], b.row_index[row + 1]):
+            accumulator.scatter(scale * b.data[ptr], b.col_index[ptr])
+        nnz += accumulator.gather(c.data + nnz, c.col_index + nnz)
+        accumulator.reset()
+        c.row_index[row + 1] = nnz
+    return nnz
 
 cpdef CSR add_csr(CSR left, CSR right, double complex scale=1):
     """
@@ -166,14 +119,11 @@ cpdef CSR add_csr(CSR left, CSR right, double complex scale=1):
         return out
     # Main path.
     out = csr.empty(left.shape[0], left.shape[1], worst_nnz)
-    left.sort_indices()
-    right.sort_indices()
     if scale == 1:
         _add_csr(left, right, out)
     else:
         _add_csr_scale(left, right, out, scale)
     return out
-
 
 cdef Dense _add_dense_eq_order(Dense left, Dense right, double complex scale):
     cdef Dense out = left.copy()
