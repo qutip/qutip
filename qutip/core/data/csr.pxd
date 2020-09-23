@@ -41,8 +41,8 @@ cdef struct Accumulator:
     double complex *values
     size_t *modified
     base.idxint *nonzero
-    size_t _cur_row
-    size_t nnz, size
+    size_t _cur_row, nnz, size
+    bint _sorted
 
 cdef inline Accumulator acc_alloc(size_t size):
     """
@@ -62,6 +62,7 @@ cdef inline Accumulator acc_alloc(size_t size):
     # as a sentinel in `modified` to tell if there's a value in the current
     # column.
     acc._cur_row = 1
+    acc._sorted = True
     return acc
 
 cdef inline void acc_scatter(Accumulator *acc, double complex value, base.idxint position) nogil:
@@ -79,6 +80,7 @@ cdef inline void acc_scatter(Accumulator *acc, double complex value, base.idxint
         acc.values[position] = value
         acc.modified[position] = acc._cur_row
         acc.nonzero[acc.nnz] = position
+        acc._sorted &= acc.nnz == 0 or acc.nonzero[acc.nnz - 1] < position
         acc.nnz += 1
 
 cdef inline base.idxint acc_gather(Accumulator *acc, double complex *values, base.idxint *indices) nogil:
@@ -95,7 +97,9 @@ cdef inline base.idxint acc_gather(Accumulator *acc, double complex *values, bas
     """
     cdef size_t i, nnz=0, position
     cdef double complex value
-    sort(acc.nonzero, acc.nonzero + acc.nnz)
+    if not acc._sorted:
+        sort(acc.nonzero, acc.nonzero + acc.nnz)
+        acc._sorted = True
     for i in range(acc.nnz):
         position = acc.nonzero[i]
         value = acc.values[position]
@@ -112,6 +116,7 @@ cdef inline void acc_reset(Accumulator *acc) nogil:
     # whether a value was set in this current row (and if not, `scatter`
     # resets it when it's used), while `nnz`
     acc.nnz = 0
+    acc._sorted = True
     acc._cur_row += 1
 
 cdef inline void acc_free(Accumulator *acc):

@@ -46,13 +46,33 @@ cdef idxint _add_csr(Accumulator *acc, CSR a, CSR b, CSR c) nogil:
 
     Return the true value of nnz(c).
     """
-    cdef idxint row, ptr, nnz=0
+    cdef idxint row, ptr_a, ptr_b, ptr_a_max, ptr_b_max, nnz=0, col_a, col_b
+    cdef idxint ncols = a.shape[1]
     c.row_index[0] = nnz
+    ptr_a_max = ptr_b_max = 0
     for row in range(a.shape[0]):
-        for ptr in range(a.row_index[row], a.row_index[row + 1]):
-            acc_scatter(acc, a.data[ptr], a.col_index[ptr])
-        for ptr in range(b.row_index[row], b.row_index[row + 1]):
-            acc_scatter(acc, b.data[ptr], b.col_index[ptr])
+        ptr_a = ptr_a_max
+        ptr_a_max = a.row_index[row + 1]
+        ptr_b = ptr_b_max
+        ptr_b_max = b.row_index[row + 1]
+        col_a = a.col_index[ptr_a] if ptr_a < ptr_a_max else ncols + 1
+        col_b = b.col_index[ptr_b] if ptr_b < ptr_b_max else ncols + 1
+        # We use this method of going through the row to give the Accumulator
+        # the best chance of receiving the scatters in a sorted order.  We
+        # could also safely iterate through a completely then b, which would be
+        # more cache efficient, but would quite often require a sort within the
+        # gather, making the algorithimic complexity worse.
+        while ptr_a < ptr_a_max or ptr_b < ptr_b_max:
+            if col_a < col_b:
+                acc_scatter(acc, a.data[ptr_a], col_a)
+                ptr_a += 1
+                col_a = a.col_index[ptr_a] if ptr_a < ptr_a_max else ncols + 1
+            else:
+                acc_scatter(acc, b.data[ptr_b], col_b)
+                ptr_b += 1
+                col_b = b.col_index[ptr_b] if ptr_b < ptr_b_max else ncols + 1
+            # There's no need to test col_a == col_b because the Accumulator
+            # already tests that in all scatters anyway.
         nnz += acc_gather(acc, c.data + nnz, c.col_index + nnz)
         acc_reset(acc)
         c.row_index[row + 1] = nnz
@@ -67,13 +87,26 @@ cdef idxint _add_csr_scale(Accumulator *acc, CSR a, CSR b, CSR c, double complex
 
     Return the true value of nnz(c).
     """
-    cdef idxint row, ptr, nnz=0
+    cdef idxint row, ptr_a, ptr_b, ptr_a_max, ptr_b_max, nnz=0, col_a, col_b
+    cdef idxint ncols = a.shape[1]
     c.row_index[0] = nnz
+    ptr_a_max = ptr_b_max = 0
     for row in range(a.shape[0]):
-        for ptr in range(a.row_index[row], a.row_index[row + 1]):
-            acc_scatter(acc, a.data[ptr], a.col_index[ptr])
-        for ptr in range(b.row_index[row], b.row_index[row + 1]):
-            acc_scatter(acc, scale * b.data[ptr], b.col_index[ptr])
+        ptr_a = ptr_a_max
+        ptr_a_max = a.row_index[row + 1]
+        ptr_b = ptr_b_max
+        ptr_b_max = b.row_index[row + 1]
+        col_a = a.col_index[ptr_a] if ptr_a < ptr_a_max else ncols + 1
+        col_b = b.col_index[ptr_b] if ptr_b < ptr_b_max else ncols + 1
+        while ptr_a < ptr_a_max or ptr_b < ptr_b_max:
+            if col_a < col_b:
+                acc_scatter(acc, a.data[ptr_a], col_a)
+                ptr_a += 1
+                col_a = a.col_index[ptr_a] if ptr_a < ptr_a_max else ncols + 1
+            else:
+                acc_scatter(acc, scale * b.data[ptr_b], col_b)
+                ptr_b += 1
+                col_b = b.col_index[ptr_b] if ptr_b < ptr_b_max else ncols + 1
         nnz += acc_gather(acc, c.data + nnz, c.col_index + nnz)
         acc_reset(acc)
         c.row_index[row + 1] = nnz
