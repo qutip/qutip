@@ -553,12 +553,29 @@ cdef void _zcsr_adjoint_core(double complex * data, int * ind, int * ptr,
     out.indptr[0] = 0
 
 
+cdef inline bint _conj_feq(double complex a, double complex b, double tolsq) nogil:
+    """
+    Test floating-point approximate equality of one complex number with the
+    complex conjugate of the other, up to a certain absolute tolerance
+    (provided squared to reduce FLOPS required).  Since the square is
+    monotonic and we're comparing values close to 0, we're safe from numerical
+    precision issues, and avoiding the square root is a big speedup.
+    """
+    cdef double re = a.real - b.real
+    cdef double im = a.imag + b.imag
+    return re*re + im*im < tolsq
+
+cdef inline bint _feq_zero(double complex a, double tolsq) nogil:
+    """Test complex floating-point approximate equality to zero."""
+    return a.real*a.real + a.imag*a.imag < tolsq
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def zcsr_isherm(object A not None, double tol = qset.atol):
     """
-    Determines if a given input sparse CSR matrix is Hermitian
-    to within a specified floating-point tolerance.
+    Determines if a given input sparse CSR matrix is Hermitian to within a
+    specified floating-point tolerance.
 
     Parameters
     ----------
@@ -569,61 +586,114 @@ def zcsr_isherm(object A not None, double tol = qset.atol):
 
     Returns
     -------
-    isherm : int
-        One if matrix is Hermitian, zero otherwise.
+    isherm : bool
+        True if matrix is Hermitian, False otherwise.
 
     Notes
     -----
-    This implimentation is esentially an adjoint calulation
-    where the data and indices are not stored, but checked
-    elementwise to see if they match those of the input matrix.
-    Thus we do not need to build the actual adjoint.  Here we
-    only need a temp array of output indptr.
+    This implementation is esentially an adjoint calulation where the data and
+    indices are not stored, but checked elementwise to see if they match those
+    of the input matrix.  Thus we do not need to build the actual adjoint.
+    Here we only need a temp array of output indptr.
     """
     cdef complex[::1] data = A.data
-    cdef int[::1] ind = A.indices
-    cdef int[::1] ptr = A.indptr
+    cdef int[::1] col_index = A.indices
+    cdef int[::1] row_index = A.indptr
     cdef int nrows = A.shape[0]
     cdef int ncols = A.shape[1]
-
-    cdef int k, nxt, isherm = 1
-    cdef size_t ii, jj
-    cdef complex tmp, tmp2
+    cdef double tolsq=tol*tol
+    cdef int col, nxt
+    cdef size_t row, ptr
 
     if nrows != ncols:
-        return 0
+        return False
 
-    cdef int * out_ptr = <int *>PyDataMem_NEW_ZEROED(ncols+1, sizeof(int))
+    cdef int *out_row_index = <int *>PyDataMem_NEW_ZEROED(ncols+1, sizeof(int))
+    if not out_row_index:
+        raise MemoryError
+    try:
+        for row in range(nrows):
+            for ptr in range(row_index[row], row_index[row + 1]):
+                out_row_index[col_index[ptr] + 1] += 1
+        for row in range(nrows):
+            out_row_index[row + 1] += out_row_index[row]
+            if out_row_index[row + 1] != row_index[row + 1]:
+                # Structures are not the same, but it could still be Hermitian
+                # if any value is less than the tolerance.  That is the
+                # worst-case scenario, so we sacrifice its speed in favour of
+                # returning faster for the more common failure cases.
+                for ptr in range(row_index[nrows]):
+                    if _feq_zero(data[ptr], tolsq):
+                        return _zcsr_isherm_full(data, col_index, row_index, nrows, tolsq)
+                return False
+        for row in range(nrows):
+            for ptr in range(row_index[row], row_index[row + 1]):
+                col = col_index[ptr]
+                nxt = out_row_index[col]
+                out_row_index[col] += 1
+                # We tested the structure already, so we can guarantee that
+                # these two elements correspond.
+                if not _conj_feq(data[ptr], data[nxt], tolsq):
+                    return False
+        return True
+    finally:
+        PyDataMem_FREE(out_row_index)
 
-    for ii in range(nrows):
-        for jj in range(ptr[ii], ptr[ii+1]):
-            k = ind[jj] + 1
-            out_ptr[k] += 1
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef bint _zcsr_isherm_full(
+    double complex [::1] data, int [::1] col_index, int [::1] row_index,
+    int size, double tolsq,
+) except 2:
+    """
+    Full, structural test for Hermicity of a matrix.  We assume that the input
+    matrix has already had its shape tested (must be square).
 
-    for ii in range(nrows):
-        out_ptr[ii+1] += out_ptr[ii]
+    This test is only necessary when there is at least one value which is less
+    than the tolerance, and needed to be compared to an implicit zero.  In
+    general it is less efficient than the other test, and allocates more
+    memory.
+    """
+    cdef CSR_Matrix transpose
+    cdef size_t row, ptr_a, ptr_b, col_a, col_b
+    cdef int nnz = row_index[size]
+    # We can't reuse the calculated `indptr` array from the previous function,
+    # because that is modified in-place during execution.
+    init_CSR(&transpose, nnz, size)
+    _zcsr_trans_core(&data[0], &col_index[0], &row_index[0], &transpose, size, size)
+    try:
+        for row in range(size):
+            ptr_a, ptr_a_end = row_index[row], row_index[row + 1]
+            ptr_b, ptr_b_end = transpose.indptr[row], transpose.indptr[row + 1]
+            while ptr_a < ptr_a_end and ptr_b < ptr_b_end:
+                # Doing this on every loop actually involves a few more
+                # de-references than are strictly necessary, but just
+                # simplifies the logic checking for the end of the row.
+                col_a = col_index[ptr_a]
+                col_b = transpose.indices[ptr_b]
+                if col_a == col_b:
+                    if not _conj_feq(data[ptr_a], transpose.data[ptr_b], tolsq):
+                        return False
+                    ptr_a += 1
+                    ptr_b += 1
+                elif col_a < col_b:
+                    if not _feq_zero(data[ptr_a], tolsq):
+                        return False
+                    ptr_a += 1
+                else:
+                    if not _feq_zero(transpose.data[ptr_b], tolsq):
+                        return False
+                    ptr_b += 1
+            for ptr_a in range(ptr_a, ptr_a_end):
+                if not _feq_zero(data[ptr_a], tolsq):
+                    return False
+            for ptr_b in range(ptr_b, ptr_b_end):
+                if not _feq_zero(transpose.data[ptr_b], tolsq):
+                    return False
+        return True
+    finally:
+        free_CSR(&transpose)
 
-    for ii in range(nrows):
-        for jj in range(ptr[ii], ptr[ii+1]):
-            k = ind[jj]
-            nxt = out_ptr[k]
-            out_ptr[k] += 1
-            #structure test
-            if ind[nxt] != ii:
-                isherm = 0
-                break
-            tmp = conj(data[jj])
-            tmp2 = data[nxt]
-            #data test
-            if abs(tmp-tmp2) > tol:
-                isherm = 0
-                break
-        else:
-            continue
-        break
-
-    PyDataMem_FREE(out_ptr)
-    return isherm
 
 @cython.overflowcheck(True)
 cdef _safe_multiply(int A, int B):
