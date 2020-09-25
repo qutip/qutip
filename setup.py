@@ -59,7 +59,7 @@ MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 REQUIRES = ['numpy (>=1.12)', 'scipy (>=1.0)', 'cython (>=0.21)']
-EXTRAS_REQUIRE = {'graphics':['matplotlib(>=1.2.1)']}
+EXTRAS_REQUIRE = {'graphics': ['matplotlib(>=1.2.1)']}
 INSTALL_REQUIRES = ['numpy>=1.12', 'scipy>=1.0', 'cython>=0.21']
 PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/cy/src',
             'qutip/qip', 'qutip/qip/device', 'qutip/qip/operations',
@@ -104,9 +104,10 @@ def git_short_hash():
     except:
         git_str = ""
     else:
-        if git_str == '+': #fixes setuptools PEP issues with versioning
+        if git_str == '+':  # fixes setuptools PEP issues with versioning
             git_str = ''
     return git_str
+
 
 FULLVERSION = VERSION
 if not ISRELEASED:
@@ -134,6 +135,7 @@ release = %(isrelease)s
     finally:
         a.close()
 
+
 local_path = os.path.dirname(os.path.abspath(sys.argv[0]))
 os.chdir(local_path)
 sys.path.insert(0, local_path)
@@ -157,9 +159,11 @@ _link_flags = []
 
 # If on Win and Python version >= 3.5 and not in MSYS2
 # (i.e. Visual studio compile)
-if (sys.platform == 'win32'
+if (
+    sys.platform == 'win32'
     and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35
-    and os.environ.get('MSYSTEM') is None):
+    and os.environ.get('MSYSTEM') is None
+):
     _compiler_flags = ['/w', '/Ox']
 # Everything else
 else:
@@ -170,8 +174,7 @@ else:
         _link_flags.append('-mmacosx-version-min=10.9')
 
 
-
-EXT_MODULES =[]
+EXT_MODULES = []
 # Add Cython files from qutip/cy
 for ext in cy_exts:
     _mod = Extension('qutip.cy.' + ext,
@@ -256,35 +259,36 @@ if "CFLAGS" in cfg_vars:
 
 
 # Setup commands go here
-setup(name = NAME,
-      version = FULLVERSION,
-      packages = PACKAGES,
-      include_package_data=True,
-      include_dirs = INCLUDE_DIRS,
-      # headers = HEADERS,
-      ext_modules = cythonize(EXT_MODULES),
-      cmdclass = {'build_ext': build_ext},
-      author = AUTHOR,
-      author_email = AUTHOR_EMAIL,
-      license = LICENSE,
-      description = DESCRIPTION,
-      long_description = LONG_DESCRIPTION,
-      keywords = KEYWORDS,
-      url = URL,
-      classifiers = CLASSIFIERS,
-      platforms = PLATFORMS,
-      requires = REQUIRES,
-      extras_require = EXTRAS_REQUIRE,
-      package_data = PACKAGE_DATA,
-      zip_safe = False,
-      install_requires=INSTALL_REQUIRES,
-      **EXTRA_KWARGS
+setup(
+    name=NAME,
+    version=FULLVERSION,
+    packages=PACKAGES,
+    include_package_data=True,
+    include_dirs=INCLUDE_DIRS,
+    ext_modules=cythonize(EXT_MODULES),
+    cmdclass={'build_ext': build_ext},
+    author=AUTHOR,
+    author_email=AUTHOR_EMAIL,
+    license=LICENSE,
+    description=DESCRIPTION,
+    long_description=LONG_DESCRIPTION,
+    keywords=KEYWORDS,
+    url=URL,
+    classifiers=CLASSIFIERS,
+    platforms=PLATFORMS,
+    requires=REQUIRES,
+    extras_require=EXTRAS_REQUIRE,
+    package_data=PACKAGE_DATA,
+    zip_safe=False,
+    install_requires=INSTALL_REQUIRES,
+    **EXTRA_KWARGS,
 )
-_cite = """\
+
+print("""\
 ==============================================================================
 Installation complete
 Please cite QuTiP in your publication.
 ==============================================================================
 For your convenience a bibtex reference can be easily generated using
-`qutip.cite()`"""
-print(_cite)
+`qutip.cite()`\
+""")
