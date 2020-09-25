@@ -1,5 +1,11 @@
 #cython: language_level=3
 
+from cpython cimport mem
+from libcpp.algorithm cimport sort
+
+cdef extern from *:
+    void *PyMem_Calloc(size_t n, size_t elsize)
+
 import numpy as np
 cimport numpy as cnp
 
@@ -22,15 +28,101 @@ cdef class CSR(base.Data):
     cpdef CSR transpose(CSR self)
 
 
-cdef class Accumulator:
-    cdef double complex *values
-    cdef size_t *modified
-    cdef base.idxint *nonzero
-    cdef size_t _cur_row
-    cdef size_t nnz, size
-    cdef void scatter(Accumulator self, double complex value, base.idxint position)
-    cdef base.idxint gather(Accumulator self, double complex *values, base.idxint *indices)
-    cdef void reset(Accumulator self)
+cdef struct Accumulator:
+    # Provides the scatter/gather accumulator pattern for populating CSR/CSC
+    # matrices row-by-row (or column-by-column for CSC) where entries may need
+    # to be accumulated (summed) from several locations which may not be
+    # sorted.
+    #
+    # See usage in `csr.from_coo_pointers` and `add_csr`; generally, add values
+    # to the accumulator for this row by calling `scatter`, then fill the row
+    # in the output by calling `gather`.  Prepare the accumulator to receive
+    # the next row by calling `reset`.
+    double complex *values
+    size_t *modified
+    base.idxint *nonzero
+    size_t _cur_row, nnz, size
+    bint _sorted
+
+cdef inline Accumulator acc_alloc(size_t size):
+    """
+    Initialise this accumulator.  `size` should be the number of columns in the
+    matrix (for CSR) or the number of rows (for CSC).
+    """
+    cdef Accumulator acc
+    acc.values = <double complex *> mem.PyMem_Malloc(size * sizeof(double complex))
+    acc.modified = <size_t *> PyMem_Calloc(size, sizeof(size_t))
+    acc.nonzero = <base.idxint *> mem.PyMem_Malloc(size * sizeof(base.idxint))
+    if acc.values == NULL or acc.modified == NULL or acc.nonzero == NULL:
+        raise MemoryError
+    acc.size = size
+    acc.nnz = 0
+    # The value of _cur_row doesn't actually need to match the true row in
+    # the output, it just needs to be a unique number so that we can use it
+    # as a sentinel in `modified` to tell if there's a value in the current
+    # column.
+    acc._cur_row = 1
+    acc._sorted = True
+    return acc
+
+cdef inline void acc_scatter(Accumulator *acc, double complex value, base.idxint position) nogil:
+    """
+    Add a value to the accumulator for this row, in column `position`.  The
+    value is added on to any value already scattered into this position.
+    """
+    # We have to branch on modified[position] anyway (to know whether to add an
+    # entry in nonzero), so we _actually_ reset `values` here.  This has the
+    # potential to save operations too, if the same column is never touched
+    # again.
+    if acc.modified[position] == acc._cur_row:
+        acc.values[position] += value
+    else:
+        acc.values[position] = value
+        acc.modified[position] = acc._cur_row
+        acc.nonzero[acc.nnz] = position
+        acc._sorted &= acc.nnz == 0 or acc.nonzero[acc.nnz - 1] < position
+        acc.nnz += 1
+
+cdef inline base.idxint acc_gather(Accumulator *acc, double complex *values, base.idxint *indices) nogil:
+    """
+    Copy all the accumulated values into this row into the output pointers.
+    This will always output its values in sorted order.  The pointers should
+    point to the first free space for data to be copied into.  This method will
+    copy in _at most_ `self.nnz` elements into the pointers, but may copy in
+    slightly fewer if some of them are now (explicit) zeros.  `self.nnz` is
+    updated after each `self.scatter()` operation, and is reset by
+    `self.reset()`.
+
+    Return the actual number of elements copied in.
+    """
+    cdef size_t i, nnz=0, position
+    cdef double complex value
+    if not acc._sorted:
+        sort(acc.nonzero, acc.nonzero + acc.nnz)
+        acc._sorted = True
+    for i in range(acc.nnz):
+        position = acc.nonzero[i]
+        value = acc.values[position]
+        if value != 0:
+            values[nnz] = value
+            indices[nnz] = position
+            nnz += 1
+    return nnz
+
+cdef inline void acc_reset(Accumulator *acc) nogil:
+    """Prepare the accumulator to accept the next row of input."""
+    # We actually don't need to do anything to reset other than to change
+    # our sentinel values; the sentinel `_cur_row` makes it easy to detect
+    # whether a value was set in this current row (and if not, `scatter`
+    # resets it when it's used), while `nnz`
+    acc.nnz = 0
+    acc._sorted = True
+    acc._cur_row += 1
+
+cdef inline void acc_free(Accumulator *acc):
+    mem.PyMem_Free(acc.values)
+    mem.PyMem_Free(acc.modified)
+    mem.PyMem_Free(acc.nonzero)
 
 
 # Internal structure for sorting pairs of elements.  Not actually meant to be

@@ -31,7 +31,6 @@ from .base import idxint_dtype
 cnp.import_array()
 
 cdef extern from *:
-    void *PyMem_Calloc(size_t n, size_t elsize)
     void PyArray_ENABLEFLAGS(cnp.ndarray arr, int flags)
     void *PyDataMem_NEW(size_t size)
     void PyDataMem_FREE(void *ptr)
@@ -352,94 +351,6 @@ cpdef inline base.idxint nnz(CSR matrix) nogil:
     return matrix.row_index[matrix.shape[0]]
 
 
-cdef class Accumulator:
-    """
-    Provides the scatter/gather accumulator pattern for populating CSR/CSC
-    matrices row-by-row (or column-by-column for CSC) where entries may need to
-    be accumulated (summed) from several locations which may not be sorted.
-
-    See usage in `csr.from_coo_pointers` and `add_csr`; generally, add values
-    to the accumulator for this row by calling `scatter`, then fill the row in
-    the output by calling `gather`.  Prepare the accumulator to receive the
-    next row by calling `reset`.
-    """
-
-    def __cinit__(self, size_t size):
-        """
-        Initialise this accumulator.  `size` should be the number of columns in
-        the matrix (for CSR) or the number of rows (for CSC).
-        """
-        self.values = <double complex *> mem.PyMem_Malloc(size * sizeof(double complex))
-        self.modified = <size_t *> PyMem_Calloc(size, sizeof(size_t))
-        self.nonzero = <base.idxint *> mem.PyMem_Malloc(size * sizeof(base.idxint))
-        if self.values == NULL or self.modified == NULL or self.nonzero == NULL:
-            raise MemoryError
-        self.size = size
-        self.nnz = 0
-        # The value of _cur_row doesn't actually need to match the true row in
-        # the output, it just needs to be a unique number so that we can use it
-        # as a sentinel in `modified` to tell if there's a value in the current
-        # column.
-        self._cur_row = 1
-
-    cdef void scatter(self, double complex value, base.idxint position):
-        """
-        Add a value to the accumulator for this row, in column `position`.  The
-        value is added on to any value already scattered into this position.
-        """
-        # We have to branch on modified[position] anyway (to know whether to
-        # add an entry in nonzero), so we _actually_ reset `values` here.  This
-        # has the potential to save operations too, if the same column is never
-        # touched again.
-        if self.modified[position] == self._cur_row:
-            self.values[position] += value
-        else:
-            self.values[position] = value
-            self.modified[position] = self._cur_row
-            self.nonzero[self.nnz] = position
-            self.nnz += 1
-
-    cdef base.idxint gather(self, double complex *values, base.idxint *indices):
-        """
-        Copy all the accumulated values into this row into the output pointers.
-        This will always output its values in sorted order.  The pointers
-        should point to the first free space for data to be copied into.  This
-        method will copy in _at most_ `self.nnz` elements into the pointers,
-        but may copy in slightly fewer if some of them are now (explicit)
-        zeros.  `self.nnz` is updated after each `self.scatter()` operation,
-        and is reset by `self.reset()`.
-
-        Return the actual number of elements copied in.
-        """
-        cdef size_t i, nnz=0, position
-        cdef double complex value
-        sort(self.nonzero, self.nonzero + self.nnz)
-        for i in range(self.nnz):
-            position = self.nonzero[i]
-            value = self.values[position]
-            if value != 0:
-                values[nnz] = value
-                indices[nnz] = position
-                nnz += 1
-        return nnz
-
-    cdef void reset(self):
-        """
-        Prepare the accumulator to accept the next row of input.
-        """
-        # We actually don't need to do anything to reset other than to change
-        # our sentinel values; the sentinel `_cur_row` makes it easy to detect
-        # whether a value was set in this current row (and if not, `scatter`
-        # resets it when it's used), while `nnz`
-        self.nnz = 0
-        self._cur_row += 1
-
-    def __dealloc__(self):
-        mem.PyMem_Free(self.values)
-        mem.PyMem_Free(self.modified)
-        mem.PyMem_Free(self.nonzero)
-
-
 cdef bool _sorter_cmp_ptr(base.idxint *i, base.idxint *j) nogil:
     return i[0] < j[0]
 
@@ -731,6 +642,7 @@ cdef CSR from_coo_pointers(
 ):
     # Note that COO pointers may not be sorted in row-major order, and that
     # they may contain duplicate entries which should be implicitly summed.
+    cdef Accumulator acc = acc_alloc(n_cols)
     cdef CSR out = empty(n_rows, n_cols, nnz)
     cdef double complex *data_tmp
     cdef base.idxint *cols_tmp
@@ -740,35 +652,38 @@ cdef CSR from_coo_pointers(
     cols_tmp = <base.idxint *> mem.PyMem_Malloc(nnz * sizeof(base.idxint))
     if data_tmp == NULL or cols_tmp == NULL:
         raise MemoryError
-    memset(out.row_index, 0, (n_rows + 1) * sizeof(base.idxint))
-    for ptr_in in range(nnz):
-        out.row_index[rows[ptr_in] + 1] += 1
-    for ptr_out in range(n_rows):
-        out.row_index[ptr_out + 1] += out.row_index[ptr_out]
-    # out.row_index is currently in the normal output form, but we're
-    # temporarily going to modify it to keep track of how many values we've
-    # placed in each row as we iterate through.  At every state,
-    # out.row_index[row] will contain a pointer to the next location that an
-    # element should be placed in this row.
-    for ptr_in in range(nnz):
-        row = rows[ptr_in]
-        ptr_out = out.row_index[row]
-        cols_tmp[ptr_out] = cols[ptr_in]
-        data_tmp[ptr_out] = data[ptr_in]
-        out.row_index[row] += 1
-    # Apply the scatter/gather pattern to find the actual number of non-zero
-    # elements we're writing into each row (since there's a sum, there may be
-    # some zeros of duplicates).  Remember we also need to shift the row_index
-    # array back to what it was before as well.
-    cdef Accumulator accumulator = Accumulator(n_cols)
-    ptr_out = 0
-    ptr_prev = 0
-    for row in range(n_rows):
-        for ptr_in in range(ptr_prev, out.row_index[row]):
-            accumulator.scatter(data_tmp[ptr_in], cols_tmp[ptr_in])
-        ptr_prev = out.row_index[row]
-        out.row_index[row] = ptr_out
-        ptr_out += accumulator.gather(out.data + ptr_out, out.col_index + ptr_out)
-        accumulator.reset()
-    out.row_index[n_rows] = ptr_out
+    with nogil:
+        memset(out.row_index, 0, (n_rows + 1) * sizeof(base.idxint))
+        for ptr_in in range(nnz):
+            out.row_index[rows[ptr_in] + 1] += 1
+        for ptr_out in range(n_rows):
+            out.row_index[ptr_out + 1] += out.row_index[ptr_out]
+        # out.row_index is currently in the normal output form, but we're
+        # temporarily going to modify it to keep track of how many values we've
+        # placed in each row as we iterate through.  At every state,
+        # out.row_index[row] will contain a pointer to the next location that
+        # an element should be placed in this row.
+        for ptr_in in range(nnz):
+            row = rows[ptr_in]
+            ptr_out = out.row_index[row]
+            cols_tmp[ptr_out] = cols[ptr_in]
+            data_tmp[ptr_out] = data[ptr_in]
+            out.row_index[row] += 1
+        # Apply the scatter/gather pattern to find the actual number of
+        # non-zero elements we're writing into each row (since there's a sum,
+        # there may be some zeros of duplicates).  Remember we also need to
+        # shift the row_index array back to what it was before as well.
+        ptr_out = 0
+        ptr_prev = 0
+        for row in range(n_rows):
+            for ptr_in in range(ptr_prev, out.row_index[row]):
+                acc_scatter(&acc, data_tmp[ptr_in], cols_tmp[ptr_in])
+            ptr_prev = out.row_index[row]
+            out.row_index[row] = ptr_out
+            ptr_out += acc_gather(&acc, out.data + ptr_out, out.col_index + ptr_out)
+            acc_reset(&acc)
+        out.row_index[n_rows] = ptr_out
+    mem.PyMem_Free(data_tmp)
+    mem.PyMem_Free(cols_tmp)
+    acc_free(&acc)
     return out
