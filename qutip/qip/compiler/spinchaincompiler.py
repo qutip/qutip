@@ -54,7 +54,7 @@ class SpinChainCompiler(GateCompiler):
         such as laser frequency, detuning etc.
 
     setup: string
-        "linear" or "circular" for two sub-calsses.
+        "linear" or "circular" for two sub-classes.
 
     global_phase: bool
         Record of the global phase change and will be returned.
@@ -79,7 +79,7 @@ class SpinChainCompiler(GateCompiler):
         It saves the decomposition scheme for each gate.
 
     setup: string
-        "linear" or "circular" for two sub-calsses.
+        "linear" or "circular" for two sub-classes.
 
     global_phase: bool
         Record of the global phase change and will be returned.

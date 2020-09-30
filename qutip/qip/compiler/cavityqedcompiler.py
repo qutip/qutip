@@ -58,7 +58,7 @@ class CavityQEDCompiler(GateCompiler):
         eps and delta for each qubit.
 
     Delta: list of float
-        The detuning with repect to w0 calculated
+        The detuning with respect to w0 calculated
         from wq and w0 for each qubit.
 
     global_phase: bool

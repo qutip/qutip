@@ -204,7 +204,7 @@ class SpinChain(ModelProcessor):
             Takes the quantum circuit to be implemented.
 
         setup: string
-            "linear" or "circular" for two sub-calsses.
+            "linear" or "circular" for two sub-classes.
 
         Returns
         -------
