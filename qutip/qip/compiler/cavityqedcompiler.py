@@ -79,18 +79,18 @@ class CavityQEDCompiler(GateCompiler):
     num_ops: int
         Number of control Hamiltonians in the processor.
 
-    gate_decomps: dict
+    gate_compiler: dict
         The Python dictionary in the form of {gate_name: decompose_function}.
         It saves the decomposition scheme for each gate.
     """
     def __init__(self, N, params, global_phase, num_ops):
         super(CavityQEDCompiler, self).__init__(
             N=N, params=params, num_ops=num_ops)
-        self.gate_decomps = {"ISWAP": self.iswap_dec,
-                             "SQRTISWAP": self.sqrtiswap_dec,
-                             "RZ": self.rz_dec,
-                             "RX": self.rx_dec,
-                             "GLOBALPHASE": self.globalphase_dec
+        self.gate_compiler = {"ISWAP": self.iswap_compiler,
+                             "SQRTISWAP": self.sqrtiswap_compiler,
+                             "RZ": self.rz_compiler,
+                             "RX": self.rx_compiler,
+                             "GLOBALPHASE": self.globalphase_compiler
                              }
         self._sx_ind = list(range(0, N))
         self._sz_ind = list(range(N, 2*N))
@@ -103,7 +103,7 @@ class CavityQEDCompiler(GateCompiler):
         tlist, coeffs = super(CavityQEDCompiler, self).compile(gates, schedule_mode=schedule_mode)
         return tlist, coeffs, self.global_phase
 
-    def rz_dec(self, gate):
+    def rz_compiler(self, gate):
         """
         Compiler for the RZ gate
         """
@@ -115,7 +115,7 @@ class CavityQEDCompiler(GateCompiler):
         pulse_coeffs = [(pulse_ind, coeff)]
         return [_PulseInstruction(gate, tlist, pulse_coeffs)]
 
-    def rx_dec(self, gate):
+    def rx_compiler(self, gate):
         """
         Compiler for the RX gate
         """
@@ -127,13 +127,13 @@ class CavityQEDCompiler(GateCompiler):
         pulse_coeffs = [(pulse_ind, coeff)]
         return [_PulseInstruction(gate, tlist, pulse_coeffs)]
 
-    def sqrtiswap_dec(self, gate):
+    def sqrtiswap_compiler(self, gate):
         """
         Compiler for the SQRTISWAP gate
 
         Notes
         -----
-        This version of sqrtiswap_dec has very low fidelity, please use
+        This version of sqrtiswap_compiler has very low fidelity, please use
         iswap
         """
         # FIXME This decomposition has poor behaviour
@@ -159,16 +159,16 @@ class CavityQEDCompiler(GateCompiler):
 
         # corrections
         gate1 = Gate("RZ", [q1], None, arg_value=-np.pi/4) 
-        compiled_gate1 = self.rz_dec(gate1)
+        compiled_gate1 = self.rz_compiler(gate1)
         instruction_list += compiled_gate1
         gate2 = Gate("RZ", [q2], None, arg_value=-np.pi/4)
-        compiled_gate2 = self.rz_dec(gate2)
+        compiled_gate2 = self.rz_compiler(gate2)
         instruction_list += compiled_gate2
         gate3 = Gate("GLOBALPHASE", None, None, arg_value=-np.pi/4)
-        self.globalphase_dec(gate3)
+        self.globalphase_compiler(gate3)
         return instruction_list
 
-    def iswap_dec(self, gate):
+    def iswap_compiler(self, gate):
         """
         Compiler for the ISWAP gate
         """
@@ -194,16 +194,16 @@ class CavityQEDCompiler(GateCompiler):
 
         # corrections
         gate1 = Gate("RZ", [q1], None, arg_value=-np.pi/2.)
-        compiled_gate1 = self.rz_dec(gate1)
+        compiled_gate1 = self.rz_compiler(gate1)
         instruction_list += compiled_gate1
         gate2 = Gate("RZ", [q2], None, arg_value=-np.pi/2)
-        compiled_gate2 = self.rz_dec(gate2)
+        compiled_gate2 = self.rz_compiler(gate2)
         instruction_list += compiled_gate2
         gate3 = Gate("GLOBALPHASE", None, None, arg_value=-np.pi/2)
-        self.globalphase_dec(gate3)
+        self.globalphase_compiler(gate3)
         return instruction_list
 
-    def globalphase_dec(self, gate):
+    def globalphase_compiler(self, gate):
         """
         Compiler for the GLOBALPHASE gate
         """

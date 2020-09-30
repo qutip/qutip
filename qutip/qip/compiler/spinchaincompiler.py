@@ -74,7 +74,7 @@ class SpinChainCompiler(GateCompiler):
     num_ops: int
         Number of control Hamiltonians in the processor.
 
-    gate_decomps: dict
+    gate_compiler: dict
         The Python dictionary in the form of {gate_name: decompose_function}.
         It saves the decomposition scheme for each gate.
 
@@ -87,11 +87,11 @@ class SpinChainCompiler(GateCompiler):
     def __init__(self, N, params, setup, global_phase, num_ops):
         super(SpinChainCompiler, self).__init__(
             N=N, params=params, num_ops=num_ops)
-        self.gate_decomps = {"ISWAP": self.iswap_dec,
-                             "SQRTISWAP": self.sqrtiswap_dec,
-                             "RZ": self.rz_dec,
-                             "RX": self.rx_dec,
-                             "GLOBALPHASE": self.globalphase_dec
+        self.gate_compiler = {"ISWAP": self.iswap_compiler,
+                             "SQRTISWAP": self.sqrtiswap_compiler,
+                             "RZ": self.rz_compiler,
+                             "RX": self.rx_compiler,
+                             "GLOBALPHASE": self.globalphase_compiler
                              }
         self.N = N
         self._sx_ind = list(range(0, N))
@@ -106,7 +106,7 @@ class SpinChainCompiler(GateCompiler):
         tlist, coeffs = super(SpinChainCompiler, self).compile(gates, schedule_mode=schedule_mode)
         return tlist, coeffs, self.global_phase
 
-    def rz_dec(self, gate):
+    def rz_compiler(self, gate):
         """
         Compiler for the RZ gate
         """
@@ -118,7 +118,7 @@ class SpinChainCompiler(GateCompiler):
         pulse_coeffs = [(pulse_ind, coeff)]
         return [_PulseInstruction(gate, tlist, pulse_coeffs)]
 
-    def rx_dec(self, gate):
+    def rx_compiler(self, gate):
         """
         Compiler for the RX gate
         """
@@ -130,7 +130,7 @@ class SpinChainCompiler(GateCompiler):
         pulse_coeffs = [(pulse_ind, coeff)]
         return [_PulseInstruction(gate, tlist, pulse_coeffs)]
 
-    def iswap_dec(self, gate):
+    def iswap_compiler(self, gate):
         """
         Compiler for the ISWAP gate
         """
@@ -146,7 +146,7 @@ class SpinChainCompiler(GateCompiler):
         pulse_coeffs = [(pulse_ind, coeff)]
         return [_PulseInstruction(gate, tlist, pulse_coeffs)]
 
-    def sqrtiswap_dec(self, gate):
+    def sqrtiswap_compiler(self, gate):
         """
         Compiler for the SQRTISWAP gate
         """
@@ -162,7 +162,7 @@ class SpinChainCompiler(GateCompiler):
         pulse_coeffs = [(pulse_ind, coeff)]
         return [_PulseInstruction(gate, tlist, pulse_coeffs)]
 
-    def globalphase_dec(self, gate):
+    def globalphase_compiler(self, gate):
         """
         Compiler for the GLOBALPHASE gate
         """
