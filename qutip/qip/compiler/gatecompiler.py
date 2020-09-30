@@ -79,12 +79,12 @@ class GateCompiler(object):
     num_ops: int
         Number of control Hamiltonians in the processor.
 
-    gate_decomps: dict
+    gate_compiler: dict
         The Python dictionary in the form of {gate_name: decompose_function}.
         It saves the decomposition scheme for each gate.
     """
     def __init__(self, N, params, num_ops):
-        self.gate_decomps = {}
+        self.gate_compiler = {}
         self.N = N
         self.params = params
         self.num_ops = num_ops
@@ -98,7 +98,7 @@ class GateCompiler(object):
         ----------
         gates: list
             A list of elementary gates that can be implemented in this
-            model. The gate names have to be in `gate_decomps`.
+            model. The gate names have to be in `gate_compiler`.
 
         Returns
         -------
@@ -115,9 +115,9 @@ class GateCompiler(object):
         """
         instruction_list = []
         for gate in gates:
-            if gate.name not in self.gate_decomps:
+            if gate.name not in self.gate_compiler:
                 raise ValueError("Unsupported gate %s" % gate.name)
-            compilered_gate = self.gate_decomps[gate.name](gate)
+            compilered_gate = self.gate_compiler[gate.name](gate)
             if compilered_gate is None:
                 continue  # neglecting global phase gate
             instruction_list += compilered_gate
