@@ -30,14 +30,21 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+
+
 import pytest
 import numpy as np
+from pathlib import Path
+
 from qutip.qip.operations import gates
 from qutip.operators import identity
 from qutip.qip.circuit import (
-    QubitCircuit, Gate, Measurement, _ctrl_gates, _single_qubit_gates,
-    _swap_like, _toffoli_like, _fredkin_like, _para_gates)
-from qutip import tensor, Qobj, ptrace, rand_ket, fock_dm, basis, rand_dm
+    QubitCircuit, CircuitSimulator, Gate, Measurement, _ctrl_gates,
+    _single_qubit_gates, _swap_like, _toffoli_like, _fredkin_like, _para_gates)
+from qutip import (tensor, Qobj, ptrace, rand_ket, fock_dm, basis,
+                   rand_dm, bell_state, ket2dm)
+from qutip.qip.qasm import read_qasm
+from qutip.qip.operations.gates import gate_sequence_product
 
 
 def _op_dist(A, B):
@@ -46,7 +53,7 @@ def _op_dist(A, B):
 
 def _teleportation_circuit():
     teleportation = QubitCircuit(3, num_cbits=2,
-                                input_states=["q0", "0", "0", "c0", "c1"])
+                                 input_states=["q0", "0", "0", "c0", "c1"])
 
     teleportation.add_gate("SNOT", targets=[1])
     teleportation.add_gate("CNOT", targets=[2], controls=[1])
@@ -58,6 +65,47 @@ def _teleportation_circuit():
     teleportation.add_gate("Z", targets=[2], classical_controls=[1])
 
     return teleportation
+
+
+def _teleportation_circuit2():
+    teleportation = QubitCircuit(3, num_cbits=2,
+                                 input_states=["q0", "0", "0", "c0", "c1"])
+
+    teleportation.add_gate("SNOT", targets=[1])
+    teleportation.add_gate("CNOT", targets=[2], controls=[1])
+    teleportation.add_gate("CNOT", targets=[1], controls=[0])
+    teleportation.add_gate("SNOT", targets=[0])
+    teleportation.add_gate("CNOT", targets=[2], controls=[1])
+    teleportation.add_gate("CZ", targets=[2], controls=[0])
+
+    return teleportation
+
+
+def _measurement_circuit():
+    qc = QubitCircuit(2, num_cbits=2)
+
+    qc.add_measurement("M0", targets=[0], classical_store=0)
+    qc.add_measurement("M1", targets=[1], classical_store=1)
+
+    return qc
+
+
+def _simulators_sv(qc):
+
+    sim_sv_precompute = CircuitSimulator(qc, mode="state_vector_simulator",
+                                         precompute_unitary=True)
+    sim_sv = CircuitSimulator(qc, mode="state_vector_simulator")
+
+    return [sim_sv_precompute, sim_sv]
+
+
+def _simulators_dm(qc):
+
+    sim_dm_precompute = CircuitSimulator(qc, mode="density_matrix_simulator",
+                                         precompute_unitary=True)
+    sim_dm = CircuitSimulator(qc, mode="density_matrix_simulator")
+
+    return [sim_dm_precompute, sim_dm]
 
 
 class TestQubitCircuit:
@@ -464,7 +512,11 @@ class TestQubitCircuit:
         initial_measurement = Measurement("start", targets=[0])
         _, initial_probabilities = initial_measurement.measurement_comp_basis(state)
 
-        state_final, probability = teleportation.run(state)
+        teleportation_sim = CircuitSimulator(teleportation)
+
+        teleportation_sim_results = teleportation_sim.run(state)
+        state_final = teleportation_sim_results.get_final_states(0)
+        probability = teleportation_sim_results.get_probabilities(0)
 
         final_measurement = Measurement("start", targets=[2])
         _, final_probabilities = final_measurement.measurement_comp_basis(state_final)
@@ -480,18 +532,101 @@ class TestQubitCircuit:
         final_measurement = Measurement("start", targets=[2])
         initial_measurement = Measurement("start", targets=[0])
 
-        state = tensor(rand_ket(2), basis(2, 0), basis(2, 0))
-        _, initial_probabilities = initial_measurement.measurement_comp_basis(state)
+        original_state = tensor(rand_ket(2), basis(2, 0), basis(2, 0))
+        _, initial_probabilities = initial_measurement.measurement_comp_basis(original_state)
 
-        states, probabilites = teleportation.run_statistics(state)
+        teleportation_results = teleportation.run_statistics(original_state)
+        states = teleportation_results.get_final_states()
+        probabilities = teleportation_results.get_probabilities()
 
         for i, state in enumerate(states):
             state_final = state
-            prob = probabilites[i]
+            prob = probabilities[i]
             _, final_probabilities = final_measurement.measurement_comp_basis(state_final)
             np.testing.assert_allclose(initial_probabilities,
-                                        final_probabilities)
+                                       final_probabilities)
             assert prob == pytest.approx(0.25, abs=1e-7)
+
+        mixed_state = sum(p * ket2dm(s) for p, s in zip(probabilities, states))
+        dm_state = ket2dm(original_state)
+
+        teleportation2 = _teleportation_circuit2()
+
+        final_state = teleportation2.run(dm_state)
+        _, probs1 = final_measurement.measurement_comp_basis(final_state)
+        _, probs2 = final_measurement.measurement_comp_basis(mixed_state)
+
+        np.testing.assert_allclose(probs1, probs2)
+
+    def test_measurement_circuit(self):
+
+        qc = _measurement_circuit()
+        simulators = _simulators_sv(qc)
+        labels = ["00", "01", "10", "11"]
+
+        for label in labels:
+            state = bell_state(label)
+            for i, simulator in enumerate(simulators):
+                simulator.run(state)
+                if label[0] == "0":
+                    assert simulator.cbits[0] == simulator.cbits[1]
+                else:
+                    assert simulator.cbits[0] != simulator.cbits[1]
+
+    def test_gate_product(self):
+
+        filename = "qft.qasm"
+        filepath = Path(__file__).parent / 'qasm_files' / filename
+        qc = read_qasm(filepath)
+
+        U_list_expanded = qc.propagators()
+        U_list = qc.propagators(expand=False)
+
+        inds_list = []
+
+        for gate in qc.gates:
+            if isinstance(gate, Measurement):
+                continue
+            else:
+                inds_list.append(gate.get_inds(qc.N))
+
+        U_1, _ = gate_sequence_product(U_list,
+                                       inds_list=inds_list,
+                                       expand=True)
+        U_2 = gate_sequence_product(U_list_expanded, left_to_right=True,
+                                    expand=False)
+
+        np.testing.assert_allclose(U_1, U_2)
+
+    def test_wstate(self):
+
+        filename = "w-state.qasm"
+        filepath = Path(__file__).parent / 'qasm_files' / filename
+        qc = read_qasm(filepath)
+
+        rand_state = rand_ket(2)
+        wstate = (tensor(basis(2, 0), basis(2, 0), basis(2, 1))
+                  + tensor(basis(2, 0), basis(2, 1), basis(2, 0))
+                  + tensor(basis(2, 1), basis(2, 0), basis(2, 0))).unit()
+
+        state = tensor(tensor(basis(2, 0), basis(2, 0), basis(2, 0)),
+                       rand_state)
+
+        fourth = Measurement("test_rand", targets=[3])
+
+        _, probs_initial = fourth.measurement_comp_basis(state)
+
+        simulators = _simulators_sv(qc)
+
+        for simulator in simulators:
+            result = simulator.run_statistics(state)
+            final_states = result.get_final_states()
+            result_cbits = result.get_cbits()
+
+            for i, final_state in enumerate(final_states):
+                _, probs_final = fourth.measurement_comp_basis(final_state)
+                np.testing.assert_allclose(probs_initial, probs_final)
+                assert sum(result_cbits[i]) == 1
 
 
 if __name__ == "__main__":

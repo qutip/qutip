@@ -49,8 +49,8 @@ from qutip.qip.operations.gates import (rx, ry, rz, sqrtnot, snot, phasegate,
                                         csign, berkeley, swapalpha, swap, iswap,
                                         sqrtswap, sqrtiswap, fredkin,
                                         toffoli, controlled_gate, globalphase,
-                                        expand_operator)
-from qutip import tensor, basis, identity, fidelity
+                                        expand_operator, gate_sequence_product)
+from qutip import tensor, basis, identity, fidelity, ket2dm
 from qutip.qobj import Qobj
 from qutip.measurement import measurement_statistics
 
@@ -66,7 +66,8 @@ except ImportError:
     def DisplaySVG(data, *args, **kwargs):
         return data
 
-__all__ = ['Gate', 'QubitCircuit', 'Measurement']
+__all__ = ['Gate', 'QubitCircuit', 'Measurement',
+           'CircuitResult', 'CircuitSimulator']
 
 _single_qubit_gates = ["RX", "RY", "RZ", "SNOT", "SQRTNOT", "PHASEGATE",
                        "X", "Y", "Z", "S", "T", "QASMU"]
@@ -181,6 +182,14 @@ class Gate:
 
         self.arg_value = arg_value
         self.arg_label = arg_label
+
+    def get_inds(self, N=None):
+        if self.controls:
+            return self.controls + self.targets
+        if self.targets:
+            return self.targets
+        else:
+            return list(range(N))
 
     def __str__(self):
         str_name = (("Gate(%s, targets=%s, controls=%s,"
@@ -1095,126 +1104,89 @@ class QubitCircuit:
             else:
                 qc_temp.gates.append(gate)
 
-    def run(self, state, cbits=None, U_list=None, measure_results=()):
+    def run(self, state, cbits=None, U_list=None,
+            measure_results=None, precompute_unitary=False):
         '''
-        This is the primary circuit run function for 1 run, must be called
-        after adding all the gates and measurements on the circuit and returns
-        the resultant state after evolution.
+        Calculate the result of one instance of circuit run.
 
         Parameters
         ----------
-        state : ket
-                state to be observed on specified by density matrix.
-        cbits : List of ints, optional
-                initialization of the classical bits
-        U_list : List of unitaries, optional
-                optional parameter to pass in the propagator list
-        measure_results : tuple of ints, optional
-                optional specification of each measurement result to enable
-                post-selection. If specified, the measurement results are
-                set to the tuple of bits (sequentially) instead of being
-                chosen at random.
-
-        Returns
-        -------
-        state : returns the ket of the output state after running the circuit.
-        '''
-
-        if cbits and len(cbits) == self.num_cbits:
-            self.cbits = cbits
-        else:
-            self.cbits = [0] * self.num_cbits
-
-        if state.shape[0] != 2 ** self.N:
-            return ValueError("dimension of state is incorrect")
-
-        if U_list:
-            self.U_list = U_list
-        else:
-            self.U_list = self.propagators()
-
-        ulistindex = 0
-        probability = 1
-        measure_ind = 0
-
-        for operation in self.gates:
-
-            if isinstance(operation, Measurement):
-
-                states, probabilities = operation.measurement_comp_basis(state)
-                if measure_results:
-                    i = int(measure_results[measure_ind])
-                    measure_ind += 1
-                else:
-                    i = np.random.choice([0, 1], p=probabilities)
-                probability *= probabilities[i]
-                state = states[i]
-                if operation.classical_store is not None:
-                    self.cbits[operation.classical_store] = i
-
-            else:
-
-                if (operation.classical_controls):
-                    if operation.control_value is None:
-                        apply_gate = all([self.cbits[i] for i
-                                         in operation.classical_controls])
-                    else:
-                        bitstring = "".join([str(
-                                        self.cbits[i]) for i
-                                        in operation.classical_controls[::-1]])
-                        register_value = int(bitstring, 2)
-                        apply_gate = (register_value == operation.control_value)
-                    if apply_gate:
-                        state = self.U_list[ulistindex] * state
-                        ulistindex += 1
-                    else:
-                        ulistindex += 1
-                        continue
-                else:
-                    state = self.U_list[ulistindex] * state
-                    ulistindex += 1
-
-        return state, probability
-
-    def run_statistics(self, state, cbits=None):
-        '''
-        This is the circuit run function for num_runs run, must be called after
-        adding all the gates and measurements on the circuit and returns the
-        probability with which each output state is observed.
-
-        Parameters
-        ----------
-        state : ket
-                state to be observed on specified by density matrix.
+        state : ket or oper
+                state vector or density matrix input.
         cbits : List of ints, optional
                 initialization of the classical bits.
+        U_list: list of Qobj, optional
+            list of predefined unitaries corresponding to circuit.
+        measure_results : tuple of ints, optional
+            optional specification of each measurement result to enable
+            post-selection. If specified, the measurement results are
+            set to the tuple of bits (sequentially) instead of being
+            chosen at random.
+        precompute_unitary: Boolean, optional
+            Specify if computation is done by pre-computing and aggregating
+            gate unitaries. Possibly a faster method in the case of large number
+            of repeat runs with different state inputs.
 
         Returns
         -------
-        states : List of kets
-                returns a list of possible circuit states output by run.
-        state_probs : List of floats
-                returns probabilities of getting above output states.
+        final_state : Qobj
+                output state of the circuit run.
         '''
 
-        state_probs = []
-        states = []
+        if state.isket:
+            sim = CircuitSimulator(self, state, cbits, U_list, measure_results,
+                                   "state_vector_simulator",
+                                   precompute_unitary)
+        elif state.isoper:
+            sim = CircuitSimulator(self, state, cbits, U_list, measure_results,
+                                   "density_matrix_simulator",
+                                   precompute_unitary)
+        else:
+            raise TypeError("State is not a ket or a density matrix.")
+        return sim.run(state, cbits).get_final_states(0)
 
-        U_list = self.propagators()
+    def run_statistics(self, state, U_list=None,
+                       cbits=None, precompute_unitary=False):
+        '''
+        Calculate all the possible outputs of a circuit
+        (varied by measurement gates).
 
-        num_measurements = len(list(filter(
-                                lambda x: isinstance(x, Measurement),
-                                self.gates)))
+        Parameters
+        ----------
+        state : ket or oper
+                state vector or density matrix input.
+        cbits : List of ints, optional
+                initialization of the classical bits.
+        U_list: list of Qobj, optional
+            list of predefined unitaries corresponding to circuit.
+        measure_results : tuple of ints, optional
+            optional specification of each measurement result to enable
+            post-selection. If specified, the measurement results are
+            set to the tuple of bits (sequentially) instead of being
+            chosen at random.
+        precompute_unitary: Boolean, optional
+            Specify if computation is done by pre-computing and aggregating
+            gate unitaries. Possibly a faster method in the case of large number
+            of repeat runs with different state inputs.
 
-        for measure_results in product("01", repeat=num_measurements):
-            found = 0
-            final_state, probability = self.run(
-                                            state, cbits=cbits, U_list=U_list,
-                                            measure_results=measure_results)
-            states.append(final_state)
-            state_probs.append(probability)
+        Returns
+        -------
+        result: CircuitResult
+            Return a CircuitResult object containing
+            output states and and their probabilities.
+        '''
 
-        return states, state_probs
+        if state.isket:
+            sim = CircuitSimulator(self, state, cbits, U_list,
+                                   mode="state_vector_simulator",
+                                   precompute_unitary=precompute_unitary)
+        elif state.isoper:
+            sim = CircuitSimulator(self, state, cbits, U_list,
+                                   mode="density_matrix_simulator",
+                                   precompute_unitary=precompute_unitary)
+        else:
+            raise TypeError("State is not a ket or a density matrix.")
+        return sim.run_statistics(state, cbits)
 
     def resolve_gates(self, basis=["CNOT", "RX", "RY", "RZ"]):
         """
@@ -1429,17 +1401,19 @@ class QubitCircuit:
 
         return temp
 
-    def propagators(self):
+    def propagators(self, expand=True):
         """
         Propagator matrix calculator for N qubits returning the individual
         steps as unitary matrices operating from left to right.
-
         Returns
         -------
         U_list : list
             Return list of unitary matrices for the qubit circuit.
-
         """
+
+        if not expand:
+            return self.propagators_no_expand()
+
         self.U_list = []
 
         gates = filter(lambda x: isinstance(x, Gate), self.gates)
@@ -1552,6 +1526,110 @@ class QubitCircuit:
                     raise ValueError("gate is neither function nor operator")
                 self.U_list.append(expand_operator(
                     oper, N=self.N, targets=gate.targets, dims=self.dims))
+            else:
+                raise NotImplementedError(
+                    "{} gate is an unknown gate.".format(gate.name))
+
+        return self.U_list
+
+    def propagators_no_expand(self):
+        """
+        Propagator matrix calculator for N qubits returning the individual
+        steps as unitary matrices operating from left to right.
+
+        Returns
+        -------
+        U_list : list
+            Return list of unitary matrices for the qubit circuit.
+
+        """
+        self.U_list = []
+
+        gates = filter(lambda x: isinstance(x, Gate), self.gates)
+
+        for gate in gates:
+            if gate.name == "RX":
+                self.U_list.append(rx(gate.arg_value))
+            elif gate.name == "RY":
+                self.U_list.append(ry(gate.arg_value))
+            elif gate.name == "RZ":
+                self.U_list.append(rz(gate.arg_value))
+            elif gate.name == "X":
+                self.U_list.append(x_gate())
+            elif gate.name == "Y":
+                self.U_list.append(y_gate())
+            elif gate.name == "CY":
+                self.U_list.append(cy_gate())
+            elif gate.name == "Z":
+                self.U_list.append(z_gate())
+            elif gate.name == "CZ":
+                self.U_list.append(cz_gate())
+            elif gate.name == "T":
+                self.U_list.append(t_gate())
+            elif gate.name == "CT":
+                self.U_list.append(ct_gate())
+            elif gate.name == "S":
+                self.U_list.append(s_gate())
+            elif gate.name == "CS":
+                self.U_list.append(cs_gate())
+            elif gate.name == "SQRTNOT":
+                self.U_list.append(sqrtnot())
+            elif gate.name == "SNOT":
+                self.U_list.append(snot())
+            elif gate.name == "PHASEGATE":
+                self.U_list.append(phasegate(gate.arg_value))
+            elif gate.name == "QASMU":
+                self.U_list.append(qasmu_gate(gate.arg_value))
+            elif gate.name == "CRX":
+                self.U_list.append(controlled_gate(rx(gate.arg_value)))
+            elif gate.name == "CRY":
+                self.U_list.append(controlled_gate(ry(gate.arg_value)))
+            elif gate.name == "CRZ":
+                self.U_list.append(controlled_gate(rz(gate.arg_value)))
+            elif gate.name == "CPHASE":
+                self.U_list.append(cphase(gate.arg_value))
+            elif gate.name == "CNOT":
+                self.U_list.append(cnot())
+            elif gate.name == "CSIGN":
+                self.U_list.append(csign())
+            elif gate.name == "BERKELEY":
+                self.U_list.append(berkeley())
+            elif gate.name == "SWAPalpha":
+                self.U_list.append(swapalpha(gate.arg_value))
+            elif gate.name == "SWAP":
+                self.U_list.append(swap())
+            elif gate.name == "ISWAP":
+                self.U_list.append(iswap())
+            elif gate.name == "SQRTSWAP":
+                self.U_list.append(sqrtswap())
+            elif gate.name == "SQRTISWAP":
+                self.U_list.append(sqrtiswap())
+            elif gate.name == "FREDKIN":
+                self.U_list.append(fredkin())
+            elif gate.name == "TOFFOLI":
+                self.U_list.append(toffoli())
+            elif gate.name == "GLOBALPHASE":
+                self.U_list.append(globalphase(gate.arg_value, n))
+            elif gate.name in self.user_gates:
+                if gate.controls is not None:
+                    raise ValueError("A user defined gate {} takes only  "
+                                     "`targets` variable.".format(gate.name))
+                func_or_oper = self.user_gates[gate.name]
+                if inspect.isfunction(func_or_oper):
+                    func = func_or_oper
+                    para_num = len(inspect.getfullargspec(func)[0])
+                    if para_num == 0:
+                        oper = func()
+                    elif para_num == 1:
+                        oper = func(gate.arg_value)
+                    else:
+                        raise ValueError(
+                                "gate function takes at most one parameters.")
+                elif isinstance(func_or_oper, Qobj):
+                    oper = func_or_oper
+                else:
+                    raise ValueError("gate is neither function nor operator")
+                self.U_list.append(oper)
             else:
                 raise NotImplementedError(
                     "{} gate is an unknown gate.".format(gate.name))
@@ -1714,3 +1792,478 @@ class QubitCircuit:
 
         for op in self.gates:
             op._to_qasm(qasm_out)
+
+
+class CircuitResult:
+
+    def __init__(self, final_states, probabilities, cbits=None):
+        """
+        Store result of CircuitSimulator.
+
+        Parameters
+        ----------
+        final_states: list of Qobj.
+            List of output kets or density matrices.
+
+        probabilities: list of float.
+            List of probabilities of obtaining each output state.
+
+        cbits: list of list of int, optional
+            List of cbits for each output.
+        """
+
+        if isinstance(final_states, Qobj) or final_states is None:
+            self.final_states = [final_states]
+            self.probabilities = [probabilities]
+            if cbits:
+                self.cbits = [cbits]
+        else:
+            inds = list(filter(lambda x: final_states[x] is not None,
+                               range(len(final_states))))
+            self.final_states = [final_states[i] for i in inds]
+            self.probabilities = [probabilities[i] for i in inds]
+            if cbits:
+                self.cbits = [cbits[i] for i in inds]
+
+    def get_final_states(self, index=None):
+        """
+        Return list of output states.
+
+        Parameters
+        ----------
+        index: int
+            Indicates i-th state to be returned.
+
+        Returns
+        ----------
+        final_states: Qobj or list of Qobj.
+            List of output kets or density matrices.
+        """
+
+        if index is not None:
+            return self.final_states[index]
+        return self.final_states
+
+    def get_probabilities(self, index=None):
+        """
+        Return list of probabilities corresponding to the output states.
+
+        Parameters
+        ----------
+        index: int
+            Indicates i-th probability to be returned.
+
+        Returns
+        -------
+        probabilities: float or list of float
+            Probabilities associated with each output state.
+        """
+
+        if index is not None:
+            return self.probabilities[index]
+        return self.probabilities
+
+    def get_cbits(self, index=None):
+        """
+        Return list of classical bit outputs corresponding to the results.
+
+        Parameters
+        ----------
+        index: int
+            Indicates i-th output, probability pair to be returned.
+
+        Returns
+        -------
+        cbits: list of int or list of list of int
+            list of classical bit outputs
+        """
+
+        if index is not None:
+            return self.cbits[index]
+        return self.cbits
+
+
+class CircuitSimulator:
+
+    def __init__(self, qc, state=None, cbits=None,
+                 U_list=None, measure_results=None,
+                 mode="state_vector_simulator", precompute_unitary=False):
+        """
+        Simulate state evolution for Quantum Circuits.
+
+        Parameters
+        ----------
+        qc: :class:`.QubitCircuit`
+            Quantum Circuit to be simulated.
+
+        state: ket or oper
+            ket or density matrix
+
+        cbits: list of int, optional
+            initial value of classical bits
+
+        U_list: list of Qobj, optional
+            list of predefined unitaries corresponding to circuit.
+
+        measure_results : tuple of ints, optional
+            optional specification of each measurement result to enable
+            post-selection. If specified, the measurement results are
+            set to the tuple of bits (sequentially) instead of being
+            chosen at random.
+
+        mode: string, optional
+            Specify if input state (and therefore computation) is in
+            state-vector mode or in density matrix mode.
+            In state_vector_simulator mode, the input must be a ket
+            and with each measurement, one of the collapsed
+            states is the new state (when using run()).
+            In density_matrix_simulator mode, the input can be a ket or a
+            density matrix and after measurement, the new state is the
+            mixed ensemble state obtained after the measurement.
+            If in density_matrix_simulator mode and given
+            a state vector input, the output must be assumed to
+            be a density matrix.
+
+        precompute_unitary: Boolean, optional
+            Specify if computation is done by pre-computing and aggregating
+            gate unitaries. Possibly a faster method in the case of large number
+            of repeat runs with different state inputs.
+        """
+
+        self.qc = qc
+        self.mode = mode
+        self.precompute_unitary = precompute_unitary
+
+        if U_list:
+            self.U_list = U_list
+        elif precompute_unitary:
+            self.U_list = qc.propagators(expand=False)
+        else:
+            self.U_list = qc.propagators()
+
+        self.ops = []
+        self.inds_list = []
+
+        if precompute_unitary:
+            self._process_ops_precompute()
+        else:
+            self._process_ops()
+
+        self.initialize(state, cbits, measure_results)
+
+    def _process_ops(self):
+        '''
+        Process list of gates (including measurements), and stores
+        them in self.ops (as unitaries) for further computation.
+        '''
+
+        U_list_index = 0
+
+        for operation in self.qc.gates:
+            if isinstance(operation, Measurement):
+                self.ops.append(operation)
+            elif isinstance(operation, Gate):
+                if operation.classical_controls:
+                    self.ops.append((operation, self.U_list[U_list_index]))
+                else:
+                    self.ops.append(self.U_list[U_list_index])
+                U_list_index += 1
+
+    def _process_ops_precompute(self):
+        '''
+        Process list of gates (including measurements), aggregate
+        gate unitaries (by multiplying) and store them in self.ops
+        for further computation. The gate multiplication is carried out
+        only for groups of matrices in between classically controlled gates
+        and measurement gates.
+
+        Examples
+        --------
+
+        If we have a circuit that looks like:
+
+        ----|X|-----|Y|----|M0|-----|X|----
+
+        then self.ops = [YX, M0, X]
+        '''
+
+        prev_index = 0
+        U_list_index = 0
+
+        for gate in self.qc.gates:
+            if isinstance(gate, Measurement):
+                continue
+            else:
+                self.inds_list.append(gate.get_inds(self.qc.N))
+
+        for operation in self.qc.gates:
+            if isinstance(operation, Measurement):
+                if U_list_index > prev_index:
+                    self.ops.append(self._compute_unitary(
+                                    self.U_list[prev_index:U_list_index],
+                                    self.inds_list[prev_index:U_list_index]))
+                    prev_index = U_list_index
+                self.ops.append(operation)
+
+            elif isinstance(operation, Gate):
+                if operation.classical_controls:
+                    if U_list_index > prev_index:
+                        self.ops.append(
+                            self._compute_unitary(
+                                    self.U_list[prev_index:U_list_index],
+                                    self.inds_list[prev_index:U_list_index]))
+                        prev_index = U_list_index
+                    self.ops.append((operation, self.U_list[prev_index]))
+                    prev_index += 1
+                    U_list_index += 1
+                else:
+                    U_list_index += 1
+
+        if U_list_index > prev_index:
+            self.ops.append(self._compute_unitary(
+                            self.U_list[prev_index:U_list_index],
+                            self.inds_list[prev_index:U_list_index]))
+            prev_index = U_list_index + 1
+            U_list_index = prev_index
+
+    def initialize(self, state=None, cbits=None, measure_results=None):
+        '''
+        Reset Simulator state variables to start a new run.
+
+        Parameters
+        ----------
+        state: ket or oper
+            ket or density matrix
+
+        cbits: list of int, optional
+            initial value of classical bits
+
+        U_list: list of Qobj, optional
+            list of predefined unitaries corresponding to circuit.
+
+        measure_results : tuple of ints, optional
+            optional specification of each measurement result to enable
+            post-selection. If specified, the measurement results are
+            set to the tuple of bits (sequentially) instead of being
+            chosen at random.
+        '''
+
+        if cbits and len(cbits) == self.qc.num_cbits:
+            self.cbits = cbits
+        elif self.qc.num_cbits > 0:
+            self.cbits = [0] * self.qc.num_cbits
+        else:
+            self.cbits = None
+
+        self.state = None
+
+        if state is not None:
+            if state.shape[0] != 2 ** self.qc.N:
+                raise ValueError("dimension of state is incorrect")
+            if self.mode == "density_matrix_simulator" and state.isket:
+                self.state = ket2dm(state)
+            else:
+                self.state = state
+
+        self.probability = 1
+        self.op_index = 0
+        self.measure_results = measure_results
+        self.measure_ind = 0
+
+    def _compute_unitary(self, U_list, inds_list):
+        '''
+        Compute unitary corresponding to a product of unitaries in U_list
+        and expand it to size of circuit.
+
+        Parameters
+        ----------
+        U_list: list of Qobj
+            list of predefined unitaries.
+
+        inds_list: list of list of int
+            list of qubit indices corresponding to each unitary in U_list
+
+        Returns
+        -------
+        U: Qobj
+            resultant unitary
+        '''
+
+        U_overall, overall_inds = gate_sequence_product(U_list,
+                                                        inds_list=inds_list,
+                                                        expand=True)
+
+        if len(overall_inds) != self.qc.N:
+            U_overall = expand_operator(U_overall,
+                                        N=self.qc.N,
+                                        targets=overall_inds)
+        return U_overall
+
+    def run(self, state, cbits=None, measure_results=None):
+        '''
+        Calculate the result of one instance of circuit run.
+
+        Parameters
+        ----------
+        state : ket or oper
+                state vector or density matrix input.
+        cbits : List of ints, optional
+                initialization of the classical bits.
+        measure_results : tuple of ints, optional
+                optional specification of each measurement result to enable
+                post-selection. If specified, the measurement results are
+                set to the tuple of bits (sequentially) instead of being
+                chosen at random.
+
+        Returns
+        -------
+        result: CircuitResult
+            Return a CircuitResult object containing
+            output state and probability.
+        '''
+
+        self.initialize(state, cbits, measure_results)
+        for _ in range(len(self.ops)):
+            if self.step() is None:
+                break
+        return CircuitResult(self.state, self.probability, self.cbits)
+
+    def run_statistics(self, state, cbits=None):
+        '''
+        Calculate all the possible outputs of a circuit
+        (varied by measurement gates).
+
+        Parameters
+        ----------
+        state : ket
+                state to be observed on specified by density matrix.
+        cbits : List of ints, optional
+                initialization of the classical bits.
+
+        Returns
+        -------
+        result: CircuitResult
+            Return a CircuitResult object containing
+            output states and and their probabilities.
+        '''
+
+        probabilities = []
+        states = []
+        cbits_results = []
+
+        num_measurements = len(list(filter(
+                                lambda x: isinstance(x, Measurement),
+                                self.qc.gates)))
+
+        for results in product("01", repeat=num_measurements):
+            run_result = self.run(state, cbits=cbits, measure_results=results)
+            final_state = run_result.get_final_states(0)
+            probability = run_result.get_probabilities(0)
+            states.append(final_state)
+            probabilities.append(probability)
+            cbits_results.append(self.cbits)
+
+        return CircuitResult(states, probabilities, cbits_results)
+
+    def step(self):
+        '''
+        Return state after one step of circuit evolution
+        (gate or measurement).
+
+        Returns
+        -------
+        state : ket or oper
+            state after one evolution step.
+        '''
+
+        op = self.ops[self.op_index]
+        if isinstance(op, Measurement):
+            self._apply_measurement(op)
+        elif isinstance(op, tuple):
+            operation, U = op
+            apply_gate = all([self.cbits[i] for i
+                              in operation.classical_controls])
+            if apply_gate:
+                if self.precompute_unitary:
+                    U = expand_operator(U, self.qc.N,
+                                        operation.get_inds(self.qc.N))
+                self._evolve_state(U)
+        else:
+            self._evolve_state(op)
+
+        self.op_index += 1
+        return self.state
+
+    def _evolve_state(self, U):
+        '''
+        Applies unitary to state.
+
+        Parameters
+        ----------
+        U: Qobj
+            unitary to be applied.
+        '''
+
+        if self.mode == "state_vector_simulator":
+            self._evolve_ket(U)
+        elif self.mode == "density_matrix_simulator":
+            self._evolve_dm(U)
+        else:
+            raise NotImplementedError(
+                "mode {} is not available.".format(self.mode))
+
+    def _evolve_ket(self, U):
+        '''
+        Applies unitary to ket state.
+
+        Parameters
+        ----------
+        U: Qobj
+            unitary to be applied.
+        '''
+
+        self.state = U * self.state
+
+    def _evolve_dm(self, U):
+        '''
+        Applies unitary to density matrix state.
+
+        Parameters
+        ----------
+        U: Qobj
+            unitary to be applied.
+        '''
+
+        self.state = U * self.state * U.dag()
+
+    def _apply_measurement(self, operation):
+        '''
+        Applies measurement gate specified by operation to current state.
+
+        Parameters
+        ----------
+        operation: :class:`.Measurement`
+            Measurement gate in a circuit object.
+        '''
+
+        states, probabilities = operation.measurement_comp_basis(self.state)
+
+        if self.mode == "state_vector_simulator":
+            if self.measure_results:
+                i = int(self.measure_results[self.measure_ind])
+                self.measure_ind += 1
+            else:
+                probabilities = [p/sum(probabilities) for p in probabilities]
+                i = np.random.choice([0, 1], p=probabilities)
+            self.probability *= probabilities[i]
+            self.state = states[i]
+            if operation.classical_store is not None:
+                self.cbits[operation.classical_store] = i
+
+        elif self.mode == "density_matrix_simulator":
+            states = list(filter(lambda x: x is not None, states))
+            probabilities = list(filter(lambda x: x != 0, probabilities))
+            self.state = sum(p * s for s, p in zip(states, probabilities))
+        else:
+            raise NotImplementedError(
+                "mode {} is not available.".format(self.mode))
