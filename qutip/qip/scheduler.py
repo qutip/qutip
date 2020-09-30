@@ -68,7 +68,7 @@ class Instruction():
             self.controls = sorted(controls)
         else:
             self.controls = []
-        self.used_qubits = set(self.controls + self.targets)
+        self.used_qubits = set(self.controls).union(set(self.targets))
         self.duration = duration
 
 

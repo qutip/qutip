@@ -37,6 +37,7 @@ from qutip.qip.circuit import QubitCircuit
 from qutip.qip.scheduler import Instruction, Scheduler
 from qutip.qip.operations.gates import gate_sequence_product
 from qutip import process_fidelity, qeye, tracedist
+from qutip.qip.circuit import Gate
 
 
 def _circuit1():
@@ -68,9 +69,8 @@ def _circuit2():
     circuit2.add_gate("CNOT", 1, 7)
     return circuit2
 
-def _circuit3():
-    circuit3 = QubitCircuit(4)
-    instruction_list1 = [
+def _instructions1():
+    instruction_list = [
         Instruction("SNOT", [0], duration=1),
         Instruction("SNOT", [1], duration=1),
         Instruction("CNOT", [2], [3], duration=2),
@@ -80,19 +80,14 @@ def _circuit3():
         Instruction("CNOT", [1], [3], duration=2),
         Instruction("CNOT", [1], [3], duration=2)
     ]
-    circuit3.gates = instruction_list1
-    return circuit3
+    return instruction_list
 
 
 @pytest.mark.parametrize(
     "circuit, method, expected_length, random_shuffle, gates_schedule",
     [
         pytest.param(deepcopy(_circuit1()), "ASAP", 4, False, False, id="circuit1 ASAP)"),
-        pytest.param(deepcopy(_circuit1()), "ALAP", 4, False, False, id="circuit1 ALAP)"),
-        pytest.param(deepcopy(_circuit3()), "ASAP", 7, False, False, id="circuit1 pulse ASAP)"),
-        pytest.param(deepcopy(_circuit3()), "ALAP", 7, False, False, id="circuit1 pulse ALAP)"),
-        pytest.param(deepcopy(_circuit3()), "ASAP", 4, False, True, id="circuit1 gate ASAP)"),  # treat instructions as gates
-        pytest.param(deepcopy(_circuit3()), "ALAP", 4, False, True, id="circuit1 gate ALAP)"),  # treat instructions as gates
+        pytest.param(deepcopy(_circuit1()), "ALAP", 4, False, False, id="circuit1 ALAP)")
     ])
 def test_scheduling_gates1(
         circuit, method, expected_length, random_shuffle, gates_schedule):
@@ -156,6 +151,36 @@ def test_scheduling_gates2(
     [
         pytest.param(deepcopy(_circuit2()), "ALAP", 5, False, False, id="circuit2 ALAP no shuffle")
     ])
+def test_scheduling_gates3(
+        circuit, method, expected_length, random_shuffle, gates_schedule):
+    if random_shuffle:
+        repeat_num = 5
+    else:
+        repeat_num = 0
+    result0 = gate_sequence_product(circuit.propagators())
+
+    # run the scheduler
+    scheduler = Scheduler(method)
+    gate_cycle_indices = scheduler.schedule(
+        circuit, gates_schedule=gates_schedule, repeat_num=repeat_num)
+
+    # check if the scheduled length is expected
+    assert(max(gate_cycle_indices) == expected_length)
+    scheduled_gate = [[] for i in range(max(gate_cycle_indices)+1)]
+
+    # check if the scheduled circuit is correct
+    for i, cycles in enumerate(gate_cycle_indices):
+        scheduled_gate[cycles].append(circuit.gates[i])
+    circuit.gates = sum(scheduled_gate, [])
+    result1 = gate_sequence_product(circuit.propagators())
+    assert(tracedist(result0*result1.dag(), qeye(result0.dims[0])) < 1.0e-7)
+
+
+@pytest.mark.parametrize(
+    "circuit, method, expected_length, random_shuffle, gates_schedule",
+    [
+        pytest.param(deepcopy(_circuit2()), "ALAP", 4, True, False, id="circuit2 ALAP shuffle"),  # with random shuffling
+    ])
 def test_scheduling_gates4(
         circuit, method, expected_length, random_shuffle, gates_schedule):
     if random_shuffle:
@@ -180,13 +205,22 @@ def test_scheduling_gates4(
     result1 = gate_sequence_product(circuit.propagators())
     assert(tracedist(result0*result1.dag(), qeye(result0.dims[0])) < 1.0e-7)
 
+
 @pytest.mark.parametrize(
-    "circuit, method, expected_length, random_shuffle, gates_schedule",
+    "instructions, method, expected_length, random_shuffle, gates_schedule",
     [
-        pytest.param(deepcopy(_circuit2()), "ALAP", 4, True, False, id="circuit2 ALAP shuffle"),  # with random shuffling
+        pytest.param(deepcopy(_instructions1()), "ASAP", 7, False, False, id="circuit1 pulse ASAP)"),
+        pytest.param(deepcopy(_instructions1()), "ALAP", 7, False, False, id="circuit1 pulse ALAP)"),
     ])
-def test_scheduling_gates5(
-        circuit, method, expected_length, random_shuffle, gates_schedule):
+def test_scheduling_pulse(
+        instructions, method, expected_length, random_shuffle, gates_schedule):
+    circuit = QubitCircuit(4)
+    for instruction in instructions:
+        circuit.add_gate(
+            Gate(instruction.name,
+            instruction.targets,
+            instruction.controls))
+
     if random_shuffle:
         repeat_num = 5
     else:
@@ -196,7 +230,7 @@ def test_scheduling_gates5(
     # run the scheduler
     scheduler = Scheduler(method)
     gate_cycle_indices = scheduler.schedule(
-        circuit, gates_schedule=gates_schedule, repeat_num=repeat_num)
+        instructions, gates_schedule=gates_schedule, repeat_num=repeat_num)
 
     # check if the scheduled length is expected
     assert(max(gate_cycle_indices) == expected_length)
