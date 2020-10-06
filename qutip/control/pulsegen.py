@@ -71,12 +71,18 @@ def create_pulse_gen(pulse_type='RND', dyn=None, pulse_params=None):
         LIN - Linear, i.e. contant gradient over the time
         ZERO - special case of the LIN pulse, where the gradient is 0
 
-    These are the periodic options
+    These are the periodic options:
 
         SINE - Sine wave
         SQUARE - Square wave
         SAW - Saw tooth wave
         TRIANGLE - Triangular wave
+
+    This is the custom pulse option:
+
+        CUSTOM - Custom pulse. Requires the additional "init_custom_pulse" 
+            parameter given in pulse_params. init_custom_pulse is an array
+            of size (num_tslots x num_ctrls).
 
     If a Dynamics object is passed in then this is used in instantiate
     the PulseGen, meaning that some timeslot and amplitude properties
