@@ -45,8 +45,8 @@ size num_tslots. Each class produces a differ type of pulse.
 See the class and gen_pulse function descriptions for details
 """
 
-import qutip.control.errors as errors
 import qutip.control.dynamics as dynamics
+import qutip.control.errors as errors
 import numpy as np
 
 import qutip.logging_utils as logging
@@ -59,20 +59,20 @@ def create_pulse_gen(pulse_type='RND', dyn=None, pulse_params=None):
     The pulse generators each produce a different type of pulse,
     see the gen_pulse function description for details.
     These are the random pulse options:
-
+        
         RND - Independent random value in each timeslot
         RNDFOURIER - Fourier series with random coefficients
         RNDWAVES - Summation of random waves
         RNDWALK1 - Random change in amplitude each timeslot
         RNDWALK2 - Random change in amp gradient each timeslot
-
+    
     These are the other non-periodic options:
-
+        
         LIN - Linear, i.e. contant gradient over the time
         ZERO - special case of the LIN pulse, where the gradient is 0
-
+    
     These are the periodic options:
-
+        
         SINE - Sine wave
         SQUARE - Square wave
         SAW - Saw tooth wave
@@ -1008,7 +1008,8 @@ class PulseGenCustom(PulseGen):
             self.call_index = 0
 
         if ((self.init_custom_pulse.shape[0] != self.tau.shape[0]) or
-                (self.call_index not in range(self.init_custom_pulse.shape[1]))):
+                (self.call_index not in 
+                 range(self.init_custom_pulse.shape[1]))):
             raise ValueError("The initial custom pulse array should be of "
                              "size (num_tslots x num_ctrls).")
 
@@ -1017,6 +1018,7 @@ class PulseGenCustom(PulseGen):
 
         pulse = self.init_custom_pulse[:, self.call_index]
         self.call_index += 1
+
         return self._apply_bounds_and_offset(pulse)
 
 
