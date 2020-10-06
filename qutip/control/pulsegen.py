@@ -53,7 +53,7 @@ logger = logging.get_logger()
 import qutip.control.dynamics as dynamics
 import qutip.control.errors as errors
 
-def create_pulse_gen(pulse_type='RND', dyn=None, pulse_params=None):
+def create_pulse_gen(pulse_type='RND', dyn=None, pulse_params=None, pulse_custom=None):
     """
     Create and return a pulse generator object matching the given type.
     The pulse generators each produce a different type of pulse,
@@ -112,6 +112,8 @@ def create_pulse_gen(pulse_type='RND', dyn=None, pulse_params=None):
         return PulseGenCrabFourier(dyn, params=pulse_params)
     elif pulse_type == 'GAUSSIAN_EDGE':  
         return PulseGenGaussianEdge(dyn, params=pulse_params)
+    elif pulse_type == 'CUSTOM':
+        return PulseGenCustom(dyn, params=pulse_params)
     else:
         raise ValueError("No option for pulse_type '{}'".format(pulse_type))
 
@@ -955,6 +957,46 @@ class PulseGenGaussianEdge(PulseGen):
         pulse = 1.0 - np.exp(-t**2/Td) - np.exp(-(t-T)**2/Td)
         pulse = pulse*self.scaling
 
+        return self._apply_bounds_and_offset(pulse)
+
+
+class PulseGenCustom(PulseGen):
+    """
+    Generates a custom pulse
+
+    Attributes
+    ----------
+    init_custom_pulse : array
+        Array of size (num_tslots x num_ctrls) which contains the initial
+        amplitudes of each control hamiltonian for every time slot.
+    """
+
+    def reset(self):
+        """
+        reset attributes to default values
+        """
+        PulseGen.reset(self)
+        self.init_custom_pulse = None
+        self.call_index = 0
+        self.apply_params()
+
+    def gen_pulse(self):
+        """
+        Generates the input custom pulse of the specified index
+        """
+        if not hasattr(self, 'call_index'):
+            self.call_index = 0
+        
+        if ((self.init_custom_pulse.shape[0] != self.tau.shape[0]) or 
+            (self.call_index not in range(self.init_custom_pulse.shape[1]))):
+            raise ValueError("The initial custom pulse array should be of "
+                    "size (num_tslots x num_ctrls).")
+
+        if not self._pulse_initialised:
+            self.init_pulse()
+
+        pulse = self.init_custom_pulse[:, self.call_index]
+        self.call_index += 1
         return self._apply_bounds_and_offset(pulse)
 
 
