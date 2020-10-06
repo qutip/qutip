@@ -465,7 +465,7 @@ def optimize_pulse(
     dyn.init_timeslots()
     # Generate initial pulses for each control
     init_amps = np.zeros([dyn.num_tslots, dyn.num_ctrls])
-
+    
     if alg == 'CRAB':
         for j in range(dyn.num_ctrls):
             pgen = optim.pulse_generator[j]
@@ -475,7 +475,7 @@ def optimize_pulse(
         pgen = optim.pulse_generator
         for j in range(dyn.num_ctrls):
             init_amps[:, j] = pgen.gen_pulse()
-    
+        
     # Initialise the starting amplitudes
     dyn.initialize_controls(init_amps)
     
@@ -821,8 +821,8 @@ def optimize_pulse_unitary(
             optim_method=optim_method, method_params=method_params,
             dyn_type='UNIT', dyn_params=dyn_params,
             prop_params=prop_params, fid_params=fid_params,
-            pulse_scaling=pulse_scaling, pulse_offset=pulse_offset,
-            init_pulse_type=init_pulse_type, init_pulse_params=init_pulse_params,
+        init_pulse_type=init_pulse_type, init_pulse_params=init_pulse_params,
+        pulse_scaling=pulse_scaling, pulse_offset=pulse_offset,
             ramping_pulse_type=ramping_pulse_type, 
             ramping_pulse_params=ramping_pulse_params,
             log_level=log_level, out_file_ext=out_file_ext,
