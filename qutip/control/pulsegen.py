@@ -112,6 +112,8 @@ def create_pulse_gen(pulse_type='RND', dyn=None, pulse_params=None):
         return PulseGenCrabFourier(dyn, params=pulse_params)
     elif pulse_type == 'GAUSSIAN_EDGE':  
         return PulseGenGaussianEdge(dyn, params=pulse_params)
+    elif pulse_type == 'CUSTOM':
+        return PulseGenCustom(dyn, params=pulse_params)
     else:
         raise ValueError("No option for pulse_type '{}'".format(pulse_type))
 
@@ -242,9 +244,9 @@ class PulseGen(object):
         """
         logger.setLevel(lvl)
         
-    def gen_pulse(self):
+    def gen_pulse(self, ctrl_index=None):
         """
-        returns the pulse as an array of vales for each timeslot
+        returns the pulse as an array of values for each timeslot
         Must be implemented by subclass
         """
         # must be implemented by subclass
@@ -267,50 +269,102 @@ class PulseGen(object):
                 
         self._pulse_initialised = True
 
-        if not self.lbound is None:
+        if (isinstance(self.lbound, np.ndarray) or
+                isinstance(self.ubound, np.ndarray)):
+            if self.lbound.shape != self.ubound.shape:
+                raise ValueError("lbound and ubound should have the same shape")
+                
+        if isinstance(self.lbound, float):
             if np.isinf(self.lbound):
                 self.lbound = None
-        if not self.ubound is None:
+        elif isinstance(self.lbound, np.ndarray):
+            if (self.lbound==None).any():
+                raise ValueError("Use np.inf instead of None in bound arrays")
+
+        if isinstance(self.ubound, float):
             if np.isinf(self.ubound):
                 self.ubound = None
-        
-        if not self.ubound is None and not self.lbound is None:
+        elif isinstance(self.ubound, np.ndarray):
+            if (self.ubound==None).any():
+                raise ValueError("Use np.inf instead of None in bound arrays")
+
+        if (isinstance(self.lbound, float) and 
+                isinstance(self.ubound, float)):
             if self.ubound < self.lbound:
                 raise ValueError("ubound cannot be less the lbound")
+        elif (isinstance(self.lbound, float) and
+                isinstance(self.ubound, float)):
+            if (self.ubound<self.lbound).any():
+                raise ValueError("ubound cannot be less the lbound")
 
-    def _apply_bounds_and_offset(self, pulse):
+    def _apply_bounds_and_offset(self, pulse, ctrl_index = None):
         """
         Ensure that the randomly generated pulse fits within the bounds
         (after applying the offset)
         Assumes that pulses passed are centered around zero (on average)
+        ctrl_index is the index of the control for which the pulse is computed
         """
         if self.lbound is None and self.ubound is None:
             return pulse + self.offset
 
-        max_amp = max(pulse)
-        min_amp = min(pulse)
-        if ((self.ubound is None or max_amp + self.offset <= self.ubound) and
-            (self.lbound is None or min_amp + self.offset >= self.lbound)):
-            return pulse + self.offset
+        if (isinstance(self.lbound, np.ndarray) and
+                isinstance(self.ubound, np.ndarray)):
+            if ctrl_index not in range(self.lbound.shape[1]):
+                raise ValueError('NDArray bounds should be of \
+                    size (n_tslots x n_ctrls).')
+            offset_pulse = pulse + self.offset
+            lbound = self.lbound[:, ctrl_index]
+            ubound = self.ubound[:, ctrl_index]
+            if ((lbound <= offset_pulse).all() and
+                    (ubound >= offset_pulse).all()):
+                return offset_pulse
+            max_lbound = np.max(lbound)
+            min_ubound = np.min(ubound)
+            max_amp = np.max(pulse)
+            min_amp = np.min(pulse)
+            # One of the bounds is inf, so shift the pulse
+            if max_lbound == -np.inf:
+                return pulse + min_ubound - max_amp
+            if min_ubound == np.inf:
+                return pulse + max_lbound - min_amp
 
-        # Some shifting / scaling is required.
-        if self.ubound is None or self.lbound is None:
-            # One of the bounds is inf, so just shift the pulse
-            if self.lbound is None:
-                # max_amp + offset must exceed the ubound
-                return pulse + self.ubound - max_amp
-            else:
-                # min_amp + offset must exceed the lbound
-                return pulse + self.lbound - min_amp
-        else:
-            bound_range = self.ubound - self.lbound
+            # Fit the pulse into the tightest bounds, if possible
+            bound_range = min_ubound - max_lbound
             amp_range = max_amp - min_amp
-            if max_amp - min_amp > bound_range:
-                # pulse range is too high, it must be scaled
-                pulse = pulse * bound_range / amp_range
+            if bound_range > 0:
+                if amp_range > bound_range:
+                    # pulse range is too high, it must be scaled
+                    pulse = pulse * bound_range / amp_range
 
-            # otherwise the pulse should fit anyway
-            return pulse + self.lbound - min(pulse)
+                return pulse + max_lbound - min(pulse)
+            # the bounds are too tight
+            else:
+                raise ValueError('The initial pulse does not fit in the bounds')
+        else:
+            max_amp = max(pulse)
+            min_amp = min(pulse)
+            if ((self.ubound is None or max_amp + self.offset <= self.ubound) and
+                (self.lbound is None or min_amp + self.offset >= self.lbound)):
+                return pulse + self.offset
+
+            # Some shifting / scaling is required.
+            if self.ubound is None or self.lbound is None:
+                # One of the bounds is inf, so just shift the pulse
+                if self.lbound is None:
+                    # max_amp + offset must exceed the ubound
+                    return pulse + self.ubound - max_amp
+                else:
+                    # min_amp + offset must exceed the lbound
+                    return pulse + self.lbound - min_amp
+            else:
+                bound_range = self.ubound - self.lbound
+                amp_range = max_amp - min_amp
+                if amp_range > bound_range:
+                    # pulse range is too high, it must be scaled
+                    pulse = pulse * bound_range / amp_range
+
+                # otherwise the pulse should fit anyway
+                return pulse + self.lbound - min(pulse)
 
     def _apply_ramping_pulse(self, pulse, ramping_pulse=None):
         if ramping_pulse is None:
@@ -324,14 +378,14 @@ class PulseGenZero(PulseGen):
     """
     Generates a flat pulse
     """
-    def gen_pulse(self):
+    def gen_pulse(self, ctrl_index=None):
         """
         Generate a pulse with the same value in every timeslot.
         The value will be zero, unless the offset is not zero,
         in which case it will be the offset
         """
         pulse = np.zeros(self.num_tslots)
-        return self._apply_bounds_and_offset(pulse)
+        return self._apply_bounds_and_offset(pulse, ctrl_index=ctrl_index)
 
 
 class PulseGenRandom(PulseGen):
@@ -343,7 +397,7 @@ class PulseGenRandom(PulseGen):
         self.random = True
         self.apply_params()
 
-    def gen_pulse(self):
+    def gen_pulse(self, ctrl_index=None):
         """
         Generate a pulse of random values between 1 and -1
         Values are scaled using the scaling property
@@ -352,7 +406,7 @@ class PulseGenRandom(PulseGen):
         """
         pulse = (2*np.random.random(self.num_tslots) - 1) * self.scaling
 
-        return self._apply_bounds_and_offset(pulse)
+        return self._apply_bounds_and_offset(pulse, ctrl_index=ctrl_index)
 
 
 class PulseGenRndFourier(PulseGen):
@@ -387,7 +441,7 @@ class PulseGenRndFourier(PulseGen):
             self.min_wavelen = 0.1
         self.apply_params()
 
-    def gen_pulse(self, min_wavelen=None):
+    def gen_pulse(self, ctrl_index=None, min_wavelen=None):
         """
         Generate a random pulse based on a Fourier series with a minimum
         wavelength
@@ -423,7 +477,7 @@ class PulseGenRndFourier(PulseGen):
             curr_wave = amp*np.sin(2*np.pi*t/wavelen + phase_off)
             sum_wave += curr_wave
 
-        return self._apply_bounds_and_offset(sum_wave)
+        return self._apply_bounds_and_offset(sum_wave, ctrl_index=ctrl_index)
 
 
 class PulseGenRndWaves(PulseGen):
@@ -472,7 +526,7 @@ class PulseGenRndWaves(PulseGen):
             self.max_wavelen = 10.0
         self.apply_params()
 
-    def gen_pulse(self, num_comp_waves=None,
+    def gen_pulse(self, ctrl_index=None, num_comp_waves=None,
                   min_wavelen=None, max_wavelen=None):
         """
         Generate a random pulse by summing sine waves with random freq,
@@ -514,7 +568,7 @@ class PulseGenRndWaves(PulseGen):
             curr_wave = amp*np.sin(2*np.pi*t/wavelen + phase_off)
             sum_wave += curr_wave
 
-        return self._apply_bounds_and_offset(sum_wave)
+        return self._apply_bounds_and_offset(sum_wave, ctrl_index=ctrl_index)
 
 
 class PulseGenRndWalk1(PulseGen):
@@ -542,7 +596,7 @@ class PulseGenRndWalk1(PulseGen):
         self.max_d_amp = 0.1
         self.apply_params()
 
-    def gen_pulse(self, max_d_amp=None):
+    def gen_pulse(self, ctrl_index=None, max_d_amp=None):
         """
         Generate a pulse by changing the amplitude a random amount between
         -max_d_amp and +max_d_amp at each timeslot. The walk will start at
@@ -561,7 +615,7 @@ class PulseGenRndWalk1(PulseGen):
             walk[k] = amp
             amp += (np.random.rand()*2 - 1)*max_d_amp
 
-        return self._apply_bounds_and_offset(walk)
+        return self._apply_bounds_and_offset(walk, ctrl_index=ctrl_index)
 
 
 class PulseGenRndWalk2(PulseGen):
@@ -590,7 +644,7 @@ class PulseGenRndWalk2(PulseGen):
         self.max_d2_amp = 0.01
         self.apply_params()
 
-    def gen_pulse(self, init_grad_range=None, max_d2_amp=None):
+    def gen_pulse(self, ctrl_index=None, init_grad_range=None, max_d2_amp=None):
         """
         Generate a pulse by changing the amplitude gradient a random amount
         between -max_d2_amp and +max_d2_amp at each timeslot.
@@ -616,7 +670,7 @@ class PulseGenRndWalk2(PulseGen):
             amp += grad
             # print("grad {}".format(grad))
 
-        return self._apply_bounds_and_offset(walk)
+        return self._apply_bounds_and_offset(walk, ctrl_index=ctrl_index)
 
 
 class PulseGenLinear(PulseGen):
@@ -663,7 +717,7 @@ class PulseGenLinear(PulseGen):
             self.gradient = float(self.end_val - self.start_val) / \
                 (self.pulse_time - self.tau[-1])
 
-    def gen_pulse(self, gradient=None, start_val=None, end_val=None):
+    def gen_pulse(self, ctrl_index=None, gradient=None, start_val=None, end_val=None):
         """
         Generate a linear pulse using either the gradient and start value
         or using the end point to calulate the gradient
@@ -685,7 +739,7 @@ class PulseGenLinear(PulseGen):
             pulse[k] = self.scaling*y
             t = t + self.tau[k]
 
-        return self._apply_bounds_and_offset(pulse)
+        return self._apply_bounds_and_offset(pulse, ctrl_index=ctrl_index)
 
 
 class PulseGenPeriodic(PulseGen):
@@ -756,7 +810,7 @@ class PulseGenSine(PulseGenPeriodic):
     """
     Generates sine wave pulses
     """
-    def gen_pulse(self, num_waves=None, wavelen=None,
+    def gen_pulse(self, ctrl_index=None, num_waves=None, wavelen=None,
                   freq=None, start_phase=None):
         """
         Generate a sine wave pulse
@@ -779,14 +833,14 @@ class PulseGenSine(PulseGenPeriodic):
             phase = 2*np.pi*self.freq*t + self.start_phase
             pulse[k] = self.scaling*np.sin(phase)
             t = t + self.tau[k]
-        return self._apply_bounds_and_offset(pulse)
+        return self._apply_bounds_and_offset(pulse, ctrl_index=ctrl_index)
 
 
 class PulseGenSquare(PulseGenPeriodic):
     """
     Generates square wave pulses
     """
-    def gen_pulse(self, num_waves=None, wavelen=None,
+    def gen_pulse(self, ctrl_index=None, num_waves=None, wavelen=None,
                   freq=None, start_phase=None):
         """
         Generate a square wave pulse
@@ -810,14 +864,14 @@ class PulseGenSquare(PulseGenPeriodic):
             y = 4*np.floor(x) - 2*np.floor(2*x) + 1
             pulse[k] = self.scaling*y
             t = t + self.tau[k]
-        return self._apply_bounds_and_offset(pulse)
+        return self._apply_bounds_and_offset(pulse, ctrl_index=ctrl_index)
 
 
 class PulseGenSaw(PulseGenPeriodic):
     """
     Generates saw tooth wave pulses
     """
-    def gen_pulse(self, num_waves=None, wavelen=None,
+    def gen_pulse(self, ctrl_index=None, num_waves=None, wavelen=None,
                   freq=None, start_phase=None):
         """
         Generate a saw tooth wave pulse
@@ -841,14 +895,14 @@ class PulseGenSaw(PulseGenPeriodic):
             y = 2*(x - np.floor(0.5 + x))
             pulse[k] = self.scaling*y
             t = t + self.tau[k]
-        return self._apply_bounds_and_offset(pulse)
+        return self._apply_bounds_and_offset(pulse, ctrl_index=ctrl_index)
 
 
 class PulseGenTriangle(PulseGenPeriodic):
     """
     Generates triangular wave pulses
     """
-    def gen_pulse(self, num_waves=None, wavelen=None,
+    def gen_pulse(self, ctrl_index=None, num_waves=None, wavelen=None,
                   freq=None, start_phase=None):
         """
         Generate a sine wave pulse
@@ -873,7 +927,7 @@ class PulseGenTriangle(PulseGenPeriodic):
             pulse[k] = self.scaling*y
             t = t + self.tau[k]
 
-        return self._apply_bounds_and_offset(pulse)
+        return self._apply_bounds_and_offset(pulse, ctrl_index=ctrl_index)
         
 class PulseGenGaussian(PulseGen):
     """
@@ -889,7 +943,7 @@ class PulseGenGaussian(PulseGen):
         self.variance = 0.5*self.pulse_time
         self.apply_params()
         
-    def gen_pulse(self, mean=None, variance=None):
+    def gen_pulse(self, ctrl_index=None, mean=None, variance=None):
         """
         Generate a pulse with Gaussian shape. The peak is centre around the
         mean and the variance determines the breadth
@@ -912,7 +966,7 @@ class PulseGenGaussian(PulseGen):
         T = self.pulse_time
 
         pulse = self.scaling*np.exp(-(t-Tm)**2/(2*Tv))
-        return self._apply_bounds_and_offset(pulse)
+        return self._apply_bounds_and_offset(pulse, ctrl_index=ctrl_index)
 
 class PulseGenGaussianEdge(PulseGen):
     """
@@ -937,7 +991,7 @@ class PulseGenGaussianEdge(PulseGen):
         self.decay_time = self.pulse_time / 10.0
         self.apply_params()
 
-    def gen_pulse(self, decay_time=None):
+    def gen_pulse(self, ctrl_index=None, decay_time=None):
         """
         Generate a pulse that starts and ends at zero and 1.0 in between
         then apply scaling and offset
@@ -955,7 +1009,42 @@ class PulseGenGaussianEdge(PulseGen):
         pulse = 1.0 - np.exp(-t**2/Td) - np.exp(-(t-T)**2/Td)
         pulse = pulse*self.scaling
 
-        return self._apply_bounds_and_offset(pulse)
+        return self._apply_bounds_and_offset(pulse, ctrl_index=ctrl_index)
+
+
+class PulseGenCustom(PulseGen):
+    """
+    Generates a custom pulse
+
+    Attributes
+    ----------
+    init_custom_pulse : array
+        Array of size (num_tslots x num_ctrls) which contains the initial
+        amplitudes of each control hamiltonian for every time slot.
+    """
+
+    def reset(self):
+        """
+        reset attributes to default values
+        """
+        PulseGen.reset(self)
+        self.init_custom_pulse = None
+        self.apply_params()
+
+    def gen_pulse(self, ctrl_index=None):
+        """
+        Generates the input custom pulse of the specified index
+        """
+        if ((self.init_custom_pulse.shape[0] != self.tau.shape[0]) or 
+            (ctrl_index not in range(self.init_custom_pulse.shape[1]))):
+            raise ValueError("The initial custom pulse array should be of "
+                    "size (num_tslots x num_ctrls).")
+
+        if not self._pulse_initialised:
+            self.init_pulse()
+
+        pulse = self.init_custom_pulse[:, ctrl_index]
+        return self._apply_bounds_and_offset(pulse, ctrl_index=ctrl_index)
 
 
 ### The following are pulse generators for the CRAB algorithm ###
@@ -1247,7 +1336,7 @@ class PulseGenCrabFourier(PulseGenCrab):
         if self.randomize_freqs:
             self.freqs += np.random.random(self.num_coeffs) - 0.5
         
-    def gen_pulse(self, coeffs=None):
+    def gen_pulse(self, ctrl_index=None, coeffs=None):
         """
         Generate a pulse using the Fourier basis with the freqs and
         coeffs attributes.

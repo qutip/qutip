@@ -179,15 +179,17 @@ class Optimizer(object):
         to calculate approximate gradients
         Note it is set True automatically when the alg is CRAB
 
-    amp_lbound : float or list of floats
+    amp_lbound : float or list of floats or ndarray of floats
         lower boundaries for the control amplitudes
         Can be a scalar value applied to all controls
         or a list of bounds for each control
+        or an ndarray of bounds for each control at each time slot
 
-    amp_ubound : float or list of floats
+    amp_ubound : float or list of floats or ndarray of floats
         upper boundaries for the control amplitudes
         Can be a scalar value applied to all controls
         or a list of bounds for each control
+        or an ndarray of bounds for each control at each time slot
 
     bounds : List of floats
         Bounds for the parameters.
@@ -504,11 +506,16 @@ class Optimizer(object):
         self.bounds = []
         for t in range(dyn.num_tslots):
             for c in range(n_ctrls):
-                if isinstance(self.amp_lbound, list):
+                if isinstance(self.amp_lbound, np.ndarray):
+                    lb = self.amp_lbound[t,c]
+                elif isinstance(self.amp_lbound, list):
                     lb = self.amp_lbound[c]
                 else:
                     lb = self.amp_lbound
-                if isinstance(self.amp_ubound, list):
+                    
+                if isinstance(self.amp_ubound, np.ndarray):
+                    ub = self.amp_ubound[t,c]  
+                elif isinstance(self.amp_ubound, list):
                     ub = self.amp_ubound[c]
                 else:
                     ub = self.amp_ubound
