@@ -484,12 +484,18 @@ class Scheduler():
             If the input `circuit` is a `QubitCircuit`,
             it will be assigned to `True` automatically.
             Otherwise, the default is `False`.
-        return_cycles_list:
+        return_cycles_list: bool, optional
             If `True`, the method returns the `cycles_list`,
             e.g. [{0, 2}, {1, 3}],
             which means that the first cycle contains gates0 and gates2
             while the second cycle contains gates1 and gates3.
             It is only usefull for gates schedule.
+        random_shuffle: bool, optional
+            If the commuting gates are randomly scuffled to explore
+            larger search space.
+        repeat_num: int, optional
+            Repeat the scheduling several times and use the best result.
+            Used together with ``random_shuffle=Ture``.
 
         Returns
         -------
