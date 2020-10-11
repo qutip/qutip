@@ -30,6 +30,8 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+from copy import deepcopy
+
 import numpy as np
 
 from qutip.operators import sigmax, sigmay, sigmaz
@@ -131,19 +133,27 @@ class SpinChain(ModelProcessor):
         N: int
             The number of qubits in the system.
         """
+        self.pulse_dict = {}
+        index = 0
         # sx_ops
         for m in range(N):
             self.pulses.append(
                 Pulse(sigmax(), m, spline_kind=self.spline_kind))
+            self.pulse_dict["sx" + str(m)] = index
+            index += 1
         # sz_ops
         for m in range(N):
             self.pulses.append(
                 Pulse(sigmaz(), m, spline_kind=self.spline_kind))
+            self.pulse_dict["sz" + str(m)] = index
+            index += 1
         # sxsy_ops
         operator = tensor([sigmax(), sigmax()]) + tensor([sigmay(), sigmay()])
         for n in range(N - 1):
             self.pulses.append(
                 Pulse(operator, [n, n+1], spline_kind=self.spline_kind))
+            self.pulse_dict["g" + str(n)] = index
+            index += 1
 
     def set_up_params(self, sx, sz):
         """
@@ -217,10 +227,9 @@ class SpinChain(ModelProcessor):
             one Hamiltonian.
         """
         gates = self.optimize_circuit(qc).gates
-
         compiler = compiler_kind(
             self.N, self._params, setup=setup,
-            global_phase=0., num_ops=len(self.ctrls))
+            global_phase=0., pulse_dict=deepcopy(self.pulse_dict))
         tlist, self.coeffs, self.global_phase = compiler.compile(gates, schedule_mode=schedule_mode)
         self.set_all_tlist(tlist)
         return tlist, self.coeffs
@@ -596,6 +605,7 @@ class CircularSpinChain(SpinChain):
         operator = tensor([sigmax(), sigmax()]) + tensor([sigmay(), sigmay()])
         self.pulses.append(
             Pulse(operator, [N-1, 0], spline_kind=self.spline_kind))
+        self.pulse_dict["g" + str(N-1)] = len(self.pulses) - 1
 
     def set_up_params(self, sx, sz, sxsy):
         # Doc same as in the parent class

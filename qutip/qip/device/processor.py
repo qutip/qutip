@@ -220,6 +220,23 @@ class Processor(object):
         else:
             self.pulses.append(
                 Pulse(qobj, targets, spline_kind=self.spline_kind, label=label))
+    
+    def find_pulse(self, pulse_name):
+        if isinstance(pulse_name, str):
+            try:
+                return self.pulses[self.pulse_dict[pulse_name]]
+            except (AttributeError, KeyError):
+                raise KeyError(
+                    "Pulse name {} undefined. "
+                    "Please define it in the attribute "
+                    "`pulse_dict`.".format(pulse_name))
+        elif isinstance(pulse_name, int):
+            return self.pulses[pulse_name]
+        else:
+            raise TypeError(
+                "pulse_name is either a string or an integer, not "
+                "{}".format(type(pulse_name))
+                )
 
     @property
     def ctrls(self):

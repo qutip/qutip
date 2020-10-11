@@ -65,7 +65,7 @@ class GateCompiler(object):
         such as laser frequency, detuning etc.
 
     num_ops: int
-        Number of control Hamiltonians in the processor.
+        Dictionary of pulse indices.
 
     Attributes
     ----------
@@ -76,18 +76,18 @@ class GateCompiler(object):
         A Python dictionary contains the name and the value of the parameters,
         such as laser frequency, detuning etc.
 
-    num_ops: int
-        Number of control Hamiltonians in the processor.
+    pulse_dict: int
+        Dictionary of pulse indices.
 
     gate_compiler: dict
         The Python dictionary in the form of {gate_name: decompose_function}.
         It saves the decomposition scheme for each gate.
     """
-    def __init__(self, N, params, num_ops):
+    def __init__(self, N, params, pulse_dict):
         self.gate_compiler = {}
         self.N = N
         self.params = params
-        self.num_ops = num_ops
+        self.pulse_dict = pulse_dict
 
     def compile(self, gates, schedule_mode=None):
         """
@@ -113,6 +113,7 @@ class GateCompiler(object):
         global_phase: bool
             Recorded change of global phase.
         """
+        num_ops = len(self.pulse_dict)
         instruction_list = []
         for gate in gates:
             if gate.name not in self.gate_compiler:
@@ -126,10 +127,11 @@ class GateCompiler(object):
         if schedule_mode is None or not schedule_mode:
             max_step_num = sum([instruction.step_num for instruction in instruction_list])
             tlist = np.zeros(max_step_num + 1)  # always start form 0
-            coeffs = np.zeros((self.num_ops, max_step_num))
+            coeffs = np.zeros((num_ops, max_step_num))
             last_time_step = 0
             for instruction in instruction_list:
-                for pulse_ind, coeff in instruction.pulse_coeffs:
+                for pulse_name, coeff in instruction.pulse_coeffs:
+                    pulse_ind = self.pulse_dict[pulse_name]
                     tlist[last_time_step + 1: last_time_step + instruction.step_num + 1] = instruction.tlist + tlist[last_time_step]
                     coeffs[pulse_ind, last_time_step: last_time_step + instruction.step_num] = coeff
                 last_time_step += instruction.step_num
@@ -142,18 +144,19 @@ class GateCompiler(object):
         scheduled_start_time = scheduler.schedule(instruction_list)
         time_ordered_pos = np.argsort(scheduled_start_time)
 
-        tlist = [[[0.]] for tmp in range(self.num_ops)]
-        coeffs = [[] for tmp in range(self.num_ops)]
+        tlist = [[[0.]] for tmp in range(num_ops)]
+        coeffs = [[] for tmp in range(num_ops)]
         for ind in time_ordered_pos:
             instruction = instruction_list[ind]
             start_time = scheduled_start_time[ind]
-            for pulse_ind, coeff in instruction.pulse_coeffs:
+            for pulse_name, coeff in instruction.pulse_coeffs:
+                pulse_ind = self.pulse_dict[pulse_name]
                 if np.abs(start_time - tlist[pulse_ind][-1]) > instruction.tlist * 1.0e-6:
                     tlist[pulse_ind].append([start_time])
                     coeffs[pulse_ind].append([0.])
                 tlist[pulse_ind].append(instruction.tlist + start_time)
                 coeffs[pulse_ind].append(coeff)
-        for i in range(self.num_ops):
+        for i in range(num_ops):
             if not coeffs[i]:
                 tlist[i] = None
                 coeffs[i] = None

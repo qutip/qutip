@@ -64,8 +64,8 @@ class CavityQEDCompiler(GateCompiler):
     global_phase: bool
         Record of the global phase change and will be returned.
 
-    num_ops: int
-        Number of Hamiltonians in the processor.
+    pulse_dict: int
+        Dictionary of pulse indices.
 
     Attributes
     ----------
@@ -76,25 +76,22 @@ class CavityQEDCompiler(GateCompiler):
         A Python dictionary contains the name and the value of the parameters,
         such as laser frequency, detuning etc.
 
-    num_ops: int
-        Number of control Hamiltonians in the processor.
+    pulse_dict: int
+        Dictionary of pulse indices.
 
     gate_compiler: dict
         The Python dictionary in the form of {gate_name: decompose_function}.
         It saves the decomposition scheme for each gate.
     """
-    def __init__(self, N, params, global_phase, num_ops):
+    def __init__(self, N, params, global_phase, pulse_dict):
         super(CavityQEDCompiler, self).__init__(
-            N=N, params=params, num_ops=num_ops)
+            N=N, params=params, pulse_dict=pulse_dict)
         self.gate_compiler = {"ISWAP": self.iswap_compiler,
                              "SQRTISWAP": self.sqrtiswap_compiler,
                              "RZ": self.rz_compiler,
                              "RX": self.rx_compiler,
                              "GLOBALPHASE": self.globalphase_compiler
                              }
-        self._sx_ind = list(range(0, N))
-        self._sz_ind = list(range(N, 2*N))
-        self._g_ind = list(range(2*N, 3*N))
         self.wq = np.sqrt(self.params["eps"]**2 + self.params["delta"]**2)
         self.Delta = self.wq - self.params["w0"]
         self.global_phase = global_phase
@@ -108,11 +105,10 @@ class CavityQEDCompiler(GateCompiler):
         Compiler for the RZ gate
         """
         targets = gate.targets
-        pulse_ind = self._sz_ind[targets[0]]
         g = self.params["sz"][targets[0]]
         coeff = np.array([np.sign(gate.arg_value) * g])
         tlist = np.array([abs(gate.arg_value) / (2 * g)])
-        pulse_coeffs = [(pulse_ind, coeff)]
+        pulse_coeffs = [("sz" + str(targets[0]), coeff)]
         return [_PulseInstruction(gate, tlist, pulse_coeffs)]
 
     def rx_compiler(self, gate):
@@ -120,11 +116,10 @@ class CavityQEDCompiler(GateCompiler):
         Compiler for the RX gate
         """
         targets = gate.targets
-        pulse_ind = self._sx_ind[targets[0]]
         g = self.params["sx"][targets[0]]
         coeff = np.array([np.sign(gate.arg_value) * g])
         tlist = np.array([abs(gate.arg_value) / (2 * g)])
-        pulse_coeffs = [(pulse_ind, coeff)]
+        pulse_coeffs = [("sx" + str(targets[0]), coeff)]
         return [_PulseInstruction(gate, tlist, pulse_coeffs)]
 
     def sqrtiswap_compiler(self, gate):
@@ -139,18 +134,18 @@ class CavityQEDCompiler(GateCompiler):
         # FIXME This decomposition has poor behaviour
         q1, q2 = gate.targets
         pulse_coeffs = []
-        pulse_ind = self._sz_ind[q1]
+        pulse_name = "sz" + str(q1)
         coeff = np.array([self.wq[q1] - self.params["w0"]])
-        pulse_coeffs += [(pulse_ind, coeff)]
-        pulse_ind = self._sz_ind[q2]
+        pulse_coeffs += [(pulse_name, coeff)]
+        pulse_name = "sz" + str(q1)
         coeff = np.array([self.wq[q2] - self.params["w0"]])
-        pulse_coeffs += [(pulse_ind, coeff)]
-        pulse_ind = self._g_ind[q1]
+        pulse_coeffs += [(pulse_name, coeff)]
+        pulse_name = "g" + str(q1)
         coeff = np.array([self.params["g"][q1]])
-        pulse_coeffs += [(pulse_ind, coeff)]
-        pulse_ind = self._g_ind[q2]
+        pulse_coeffs += [(pulse_name, coeff)]
+        pulse_name = "g" + str(q2)
         coeff = np.array([self.params["g"][q2]])
-        pulse_coeffs += [(pulse_ind, coeff)]
+        pulse_coeffs += [(pulse_name, coeff)]
 
         J = self.params["g"][q1] * self.params["g"][q2] * (
             1 / self.Delta[q1] + 1 / self.Delta[q2]) / 2
@@ -174,18 +169,18 @@ class CavityQEDCompiler(GateCompiler):
         """
         q1, q2 = gate.targets
         pulse_coeffs = []
-        pulse_ind = self._sz_ind[q1]
+        pulse_name = "sz" + str(q1)
         coeff = np.array([self.wq[q1] - self.params["w0"]])
-        pulse_coeffs += [(pulse_ind, coeff)]
-        pulse_ind = self._sz_ind[q2]
+        pulse_coeffs += [(pulse_name, coeff)]
+        pulse_name = "sz" + str(q2)
         coeff = np.array([self.wq[q2] - self.params["w0"]])
-        pulse_coeffs += [(pulse_ind, coeff)]
-        pulse_ind = self._g_ind[q1]
+        pulse_coeffs += [(pulse_name, coeff)]
+        pulse_name = "g" + str(q1)
         coeff = np.array([self.params["g"][q1]])
-        pulse_coeffs += [(pulse_ind, coeff)]
-        pulse_ind = self._g_ind[q2]
+        pulse_coeffs += [(pulse_name, coeff)]
+        pulse_name = "g" + str(q2)
         coeff = np.array([self.params["g"][q2]])
-        pulse_coeffs += [(pulse_ind, coeff)]
+        pulse_coeffs += [(pulse_name, coeff)]
 
         J = self.params["g"][q1] * self.params["g"][q2] * (
             1 / self.Delta[q1] + 1 / self.Delta[q2]) / 2
