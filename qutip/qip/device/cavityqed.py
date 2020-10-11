@@ -31,6 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import warnings
+from copy import deepcopy
 
 import numpy as np
 
@@ -158,13 +159,19 @@ class DispersiveCavityQED(ModelProcessor):
         N: int
             The number of qubits in the system.
         """
+        self.pulse_dict = {}
+        index = 0
         # single qubit terms
         for m in range(N):
             self.pulses.append(
                 Pulse(sigmax(), [m+1], spline_kind=self.spline_kind))
+            self.pulse_dict["sx" + str(m)] = index
+            index += 1
         for m in range(N):
             self.pulses.append(
                 Pulse(sigmaz(), [m+1], spline_kind=self.spline_kind))
+            self.pulse_dict["sz" + str(m)] = index
+            index += 1
         # coupling terms
         a = tensor(
             [destroy(self.num_levels)] +
@@ -176,7 +183,9 @@ class DispersiveCavityQED(ModelProcessor):
             self.pulses.append(
                 Pulse(a.dag() * sm + a * sm.dag(),
                       list(range(N+1)), spline_kind=self.spline_kind))
-
+            self.pulse_dict["g" + str(n)] = index
+            index += 1
+    
     def set_up_params(
             self, N, num_levels, deltamax,
             epsmax, w0, wq, eps, delta, g):
@@ -331,7 +340,7 @@ class DispersiveCavityQED(ModelProcessor):
         gates = self.optimize_circuit(qc).gates
         compiler = compiler_kind(
             self.N, self._params,
-            global_phase=0., num_ops=len(self.ctrls))
+            global_phase=0., pulse_dict=deepcopy(self.pulse_dict))
         tlist, self.coeffs, self.global_phase = compiler.compile(gates, schedule_mode=schedule_mode)
         self.set_all_tlist(tlist)
         return tlist, self.coeffs

@@ -59,8 +59,8 @@ class SpinChainCompiler(GateCompiler):
     global_phase: bool
         Record of the global phase change and will be returned.
 
-    num_ops: int
-        Number of Hamiltonians in the processor.
+    pulse_dict: dict
+        Dictionary of pulse indices.
 
     Attributes
     ----------
@@ -71,8 +71,8 @@ class SpinChainCompiler(GateCompiler):
         A Python dictionary contains the name and the value of the parameters,
         such as laser frequency, detuning etc.
 
-    num_ops: int
-        Number of control Hamiltonians in the processor.
+    pulse_dict: dict
+        Dictionary of pulse indices.
 
     gate_compiler: dict
         The Python dictionary in the form of {gate_name: decompose_function}.
@@ -84,9 +84,9 @@ class SpinChainCompiler(GateCompiler):
     global_phase: bool
         Record of the global phase change and will be returned.
     """
-    def __init__(self, N, params, setup, global_phase, num_ops):
+    def __init__(self, N, params, setup, global_phase, pulse_dict):
         super(SpinChainCompiler, self).__init__(
-            N=N, params=params, num_ops=num_ops)
+            N=N, params=params, pulse_dict=pulse_dict)
         self.gate_compiler = {"ISWAP": self.iswap_compiler,
                              "SQRTISWAP": self.sqrtiswap_compiler,
                              "RZ": self.rz_compiler,
@@ -94,12 +94,6 @@ class SpinChainCompiler(GateCompiler):
                              "GLOBALPHASE": self.globalphase_compiler
                              }
         self.N = N
-        self._sx_ind = list(range(0, N))
-        self._sz_ind = list(range(N, 2*N))
-        if setup == "circular":
-            self._sxsy_ind = list(range(2*N, 3*N))
-        elif setup == "linear":
-            self._sxsy_ind = list(range(2*N, 3*N-1))
         self.global_phase = global_phase
 
     def compile(self, gates, schedule_mode=None):
@@ -111,11 +105,10 @@ class SpinChainCompiler(GateCompiler):
         Compiler for the RZ gate
         """
         targets = gate.targets
-        pulse_ind = self._sz_ind[targets[0]]
         g = self.params["sz"][targets[0]]
         coeff = np.array([np.sign(gate.arg_value) * g])
         tlist = np.array([abs(gate.arg_value) / (2 * g)])
-        pulse_coeffs = [(pulse_ind, coeff)]
+        pulse_coeffs = [("sz" + str(targets[0]), coeff)]
         return [_PulseInstruction(gate, tlist, pulse_coeffs)]
 
     def rx_compiler(self, gate):
@@ -123,11 +116,10 @@ class SpinChainCompiler(GateCompiler):
         Compiler for the RX gate
         """
         targets = gate.targets
-        pulse_ind = self._sx_ind[targets[0]]
         g = self.params["sx"][targets[0]]
         coeff = np.array([np.sign(gate.arg_value) * g])
         tlist = np.array([abs(gate.arg_value) / (2 * g)])
-        pulse_coeffs = [(pulse_ind, coeff)]
+        pulse_coeffs = [("sx" + str(targets[0]), coeff)]
         return [_PulseInstruction(gate, tlist, pulse_coeffs)]
 
     def iswap_compiler(self, gate):
@@ -136,14 +128,14 @@ class SpinChainCompiler(GateCompiler):
         """
         targets = gate.targets
         q1, q2 = min(targets), max(targets)
-        if self.N != 2 and q1 == 0 and q2 == self.N - 1:
-            pulse_ind = self._sxsy_ind[q2]
-        else:
-            pulse_ind = self._sxsy_ind[q1]
         g = self.params["sxsy"][q1]
         coeff = np.array([-g])
         tlist = np.array([np.pi / (4 * g)])
-        pulse_coeffs = [(pulse_ind, coeff)]
+        if self.N != 2 and q1 == 0 and q2 == self.N - 1:
+            pulse_name = "g" + str(q2)
+        else:
+            pulse_name = "g" + str(q1)
+        pulse_coeffs = [(pulse_name, coeff)]
         return [_PulseInstruction(gate, tlist, pulse_coeffs)]
 
     def sqrtiswap_compiler(self, gate):
@@ -152,14 +144,14 @@ class SpinChainCompiler(GateCompiler):
         """
         targets = gate.targets
         q1, q2 = min(targets), max(targets)
-        if self.N != 2 and q1 == 0 and q2 == self.N - 1:
-            pulse_ind = self._sxsy_ind[q2]
-        else:
-            pulse_ind = self._sxsy_ind[q1]
         g = self.params["sxsy"][q1]
         coeff = np.array([-g])
         tlist = np.array([np.pi / (8 * g)])
-        pulse_coeffs = [(pulse_ind, coeff)]
+        if self.N != 2 and q1 == 0 and q2 == self.N - 1:
+            pulse_name = "g" + str(q2)
+        else:
+            pulse_name = "g" + str(q1)
+        pulse_coeffs = [(pulse_name, coeff)]
         return [_PulseInstruction(gate, tlist, pulse_coeffs)]
 
     def globalphase_compiler(self, gate):
