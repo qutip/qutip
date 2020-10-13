@@ -141,7 +141,7 @@ class DispersiveCavityQED(ModelProcessor):
         self.correct_global_phase = correct_global_phase
         self.spline_kind = "step_func"
         self.num_levels = num_levels
-        self._params = {}
+        self.params = {}
         self.set_up_params(
             N=N, num_levels=num_levels, deltamax=deltamax,
             epsmax=epsmax, w0=w0, wq=wq, eps=eps,
@@ -226,17 +226,17 @@ class DispersiveCavityQED(ModelProcessor):
         All parameters will be multiplied by 2*pi for simplicity
         """
         sx_para = 2 * np.pi * self.to_array(deltamax, N)
-        self._params["sx"] = sx_para
+        self.params["sx"] = sx_para
         sz_para = 2 * np.pi * self.to_array(epsmax, N)
-        self._params["sz"] = sz_para
+        self.params["sz"] = sz_para
         w0 = 2 * np.pi * w0
-        self._params["w0"] = w0
+        self.params["w0"] = w0
         eps = 2 * np.pi * self.to_array(eps, N)
-        self._params["eps"] = eps
+        self.params["eps"] = eps
         delta = 2 * np.pi * self.to_array(delta, N)
-        self._params["delta"] = delta
+        self.params["delta"] = delta
         g = 2 * np.pi * self.to_array(g, N)
-        self._params["g"] = g
+        self.params["g"] = g
 
         # computed
         self.wq = np.sqrt(eps**2 + delta**2)
@@ -339,7 +339,7 @@ class DispersiveCavityQED(ModelProcessor):
         """
         gates = self.optimize_circuit(qc).gates
         compiler = compiler_kind(
-            self.N, self._params,
+            self.N, self.params,
             global_phase=0., pulse_dict=deepcopy(self.pulse_dict))
         tlist, self.coeffs, self.global_phase = compiler.compile(gates, schedule_mode=schedule_mode)
         self.set_all_tlist(tlist)

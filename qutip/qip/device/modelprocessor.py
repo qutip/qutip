@@ -90,7 +90,7 @@ class ModelProcessor(Processor):
         super(ModelProcessor, self).__init__(N, t1=t1, t2=t2)
         self.correct_global_phase = correct_global_phase
         self.global_phase = 0.
-        self._params = {}
+        self.params = {}
 
     def to_array(self, params, N):
         """
@@ -111,14 +111,6 @@ class ModelProcessor(Processor):
         All parameters will be multiplied by 2*pi for simplicity
         """
         raise NotImplementedError("Parameters should be defined in subclass.")
-
-    @property
-    def params(self):
-        return self._params
-
-    @params.setter
-    def params(self, par):
-        self.set_up_params(**par)
 
     def run_state(self, init_state=None, analytical=False, qc=None,
                   states=None, **kwargs):
@@ -209,3 +201,6 @@ class ModelProcessor(Processor):
             t_start += t_idx_len
 
         return t, u, self.get_operators_labels()
+
+    def eliminate_auxillary_modes(self, U):
+        return U
