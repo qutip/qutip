@@ -33,7 +33,7 @@
 import numpy as np
 
 from qutip.qip.circuit import QubitCircuit, Gate
-from qutip.qip.compiler.gatecompiler import GateCompiler, _PulseInstruction
+from qutip.qip.compiler.gatecompiler import GateCompiler, Instruction
 
 
 __all__ = ['SpinChainCompiler']
@@ -84,7 +84,7 @@ class SpinChainCompiler(GateCompiler):
     global_phase: bool
         Record of the global phase change and will be returned.
     """
-    def __init__(self, N, params, setup, global_phase, pulse_dict):
+    def __init__(self, N, params, pulse_dict, setup="linear", global_phase=0.):
         super(SpinChainCompiler, self).__init__(
             N=N, params=params, pulse_dict=pulse_dict)
         self.gate_compiler = {"ISWAP": self.iswap_compiler,
@@ -93,7 +93,6 @@ class SpinChainCompiler(GateCompiler):
                              "RX": self.rx_compiler,
                              "GLOBALPHASE": self.globalphase_compiler
                              }
-        self.N = N
         self.global_phase = global_phase
 
     def compile(self, gates, schedule_mode=None):
@@ -108,8 +107,8 @@ class SpinChainCompiler(GateCompiler):
         g = self.params["sz"][targets[0]]
         coeff = np.array([np.sign(gate.arg_value) * g])
         tlist = np.array([abs(gate.arg_value) / (2 * g)])
-        pulse_coeffs = [("sz" + str(targets[0]), coeff)]
-        return [_PulseInstruction(gate, tlist, pulse_coeffs)]
+        pulse_info = [("sz" + str(targets[0]), coeff)]
+        return [Instruction(gate, tlist, pulse_info)]
 
     def rx_compiler(self, gate):
         """
@@ -119,8 +118,8 @@ class SpinChainCompiler(GateCompiler):
         g = self.params["sx"][targets[0]]
         coeff = np.array([np.sign(gate.arg_value) * g])
         tlist = np.array([abs(gate.arg_value) / (2 * g)])
-        pulse_coeffs = [("sx" + str(targets[0]), coeff)]
-        return [_PulseInstruction(gate, tlist, pulse_coeffs)]
+        pulse_info = [("sx" + str(targets[0]), coeff)]
+        return [Instruction(gate, tlist, pulse_info)]
 
     def iswap_compiler(self, gate):
         """
@@ -135,8 +134,8 @@ class SpinChainCompiler(GateCompiler):
             pulse_name = "g" + str(q2)
         else:
             pulse_name = "g" + str(q1)
-        pulse_coeffs = [(pulse_name, coeff)]
-        return [_PulseInstruction(gate, tlist, pulse_coeffs)]
+        pulse_info = [(pulse_name, coeff)]
+        return [Instruction(gate, tlist, pulse_info)]
 
     def sqrtiswap_compiler(self, gate):
         """
@@ -151,8 +150,8 @@ class SpinChainCompiler(GateCompiler):
             pulse_name = "g" + str(q2)
         else:
             pulse_name = "g" + str(q1)
-        pulse_coeffs = [(pulse_name, coeff)]
-        return [_PulseInstruction(gate, tlist, pulse_coeffs)]
+        pulse_info = [(pulse_name, coeff)]
+        return [Instruction(gate, tlist, pulse_info)]
 
     def globalphase_compiler(self, gate):
         """

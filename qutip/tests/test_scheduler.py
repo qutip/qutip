@@ -34,7 +34,7 @@ import pytest
 from copy import deepcopy
 
 from qutip.qip.circuit import QubitCircuit
-from qutip.qip.scheduler import Instruction, Scheduler
+from qutip.qip.compiler import Instruction, Scheduler
 from qutip.qip.operations.gates import gate_sequence_product
 from qutip import process_fidelity, qeye, tracedist
 from qutip.qip.circuit import Gate
@@ -70,16 +70,23 @@ def _circuit2():
     return circuit2
 
 def _instructions1():
-    instruction_list = [
-        Instruction("SNOT", [0], duration=1),
-        Instruction("SNOT", [1], duration=1),
-        Instruction("CNOT", [2], [3], duration=2),
-        Instruction("CNOT", [1], [2], duration=2),
-        Instruction("CNOT", [1], [0], duration=2),
-        Instruction("SNOT", [3], duration=1),
-        Instruction("CNOT", [1], [3], duration=2),
-        Instruction("CNOT", [1], [3], duration=2)
-    ]
+    circuit3 = QubitCircuit(6)
+    circuit3.add_gate("SNOT", 0)
+    circuit3.add_gate("SNOT", 1)
+    circuit3.add_gate("CNOT", 2, 3)
+    circuit3.add_gate("CNOT", 1, 2)
+    circuit3.add_gate("CNOT", 1, 0)
+    circuit3.add_gate("SNOT", 3)
+    circuit3.add_gate("CNOT", 1, 3)
+    circuit3.add_gate("CNOT", 1, 3)
+
+    instruction_list = []
+    for gate in circuit3.gates:
+        if gate.name == "SNOT":
+            instruction_list.append(Instruction(gate, duration=1))
+        else:
+            instruction_list.append(Instruction(gate, duration=2))
+
     return instruction_list
 
 
