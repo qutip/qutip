@@ -35,47 +35,8 @@ from copy import deepcopy
 from functools import cmp_to_key
 from random import shuffle
 
-from qutip.qip.circuit import QubitCircuit, Gate
-
-
-class Instruction():
-    """
-    The instruction that implements a quantum gate.
-
-    Parameters
-    ----------
-    name: str
-        Name of the gate.
-    targets: list, optional
-        The target qubits.
-    controls: list, optional
-        The control qubits.
-    duration: list, optional
-        The execution time needed for the instruction.
-
-    Attributes
-    ----------
-    used_qubits: set
-        Union of the control and target qubits.
-    """
-    def __init__(self, name, targets=None, controls=None, duration=1):
-        if isinstance(name, Gate):
-            gate = name
-            self.name = gate.name
-            self.targets = gate.targets
-            self.controls = gate.controls
-        else:
-            self.name = name
-            self.targets = targets
-            self.controls = controls
-        if self.targets is not None:
-            self.targets.sort()
-        if self.controls is None:
-            self.used_qubits = set(self.targets)
-        else:
-            self.controls.sort()
-            self.used_qubits = set(self.controls).union(set(self.targets))
-        self.duration = duration
+from ..circuit import QubitCircuit, Gate
+from .instruction import Instruction
 
 
 class InstructionsGraph():
@@ -111,12 +72,7 @@ class InstructionsGraph():
         self.nodes = []
         for instruction in instructions:
             if isinstance(instruction, Gate):
-                self.nodes.append(
-                    Instruction(
-                        instruction.name,
-                        instruction.targets,
-                        instruction.controls)
-                        )
+                self.nodes.append(Instruction(instruction))
             else:
                 self.nodes.append(instruction)
         for node in self.nodes:

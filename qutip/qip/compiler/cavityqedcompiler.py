@@ -33,7 +33,7 @@
 import numpy as np
 
 from qutip.qip.circuit import QubitCircuit, Gate
-from qutip.qip.compiler.gatecompiler import GateCompiler, _PulseInstruction
+from qutip.qip.compiler.gatecompiler import GateCompiler, Instruction
 
 
 __all__ = ['CavityQEDCompiler']
@@ -108,8 +108,8 @@ class CavityQEDCompiler(GateCompiler):
         g = self.params["sz"][targets[0]]
         coeff = np.array([np.sign(gate.arg_value) * g])
         tlist = np.array([abs(gate.arg_value) / (2 * g)])
-        pulse_coeffs = [("sz" + str(targets[0]), coeff)]
-        return [_PulseInstruction(gate, tlist, pulse_coeffs)]
+        pulse_info = [("sz" + str(targets[0]), coeff)]
+        return [Instruction(gate, tlist, pulse_info)]
 
     def rx_compiler(self, gate):
         """
@@ -119,8 +119,8 @@ class CavityQEDCompiler(GateCompiler):
         g = self.params["sx"][targets[0]]
         coeff = np.array([np.sign(gate.arg_value) * g])
         tlist = np.array([abs(gate.arg_value) / (2 * g)])
-        pulse_coeffs = [("sx" + str(targets[0]), coeff)]
-        return [_PulseInstruction(gate, tlist, pulse_coeffs)]
+        pulse_info = [("sx" + str(targets[0]), coeff)]
+        return [Instruction(gate, tlist, pulse_info)]
 
     def sqrtiswap_compiler(self, gate):
         """
@@ -133,24 +133,24 @@ class CavityQEDCompiler(GateCompiler):
         """
         # FIXME This decomposition has poor behaviour
         q1, q2 = gate.targets
-        pulse_coeffs = []
+        pulse_info = []
         pulse_name = "sz" + str(q1)
         coeff = np.array([self.wq[q1] - self.params["w0"]])
-        pulse_coeffs += [(pulse_name, coeff)]
+        pulse_info += [(pulse_name, coeff)]
         pulse_name = "sz" + str(q1)
         coeff = np.array([self.wq[q2] - self.params["w0"]])
-        pulse_coeffs += [(pulse_name, coeff)]
+        pulse_info += [(pulse_name, coeff)]
         pulse_name = "g" + str(q1)
         coeff = np.array([self.params["g"][q1]])
-        pulse_coeffs += [(pulse_name, coeff)]
+        pulse_info += [(pulse_name, coeff)]
         pulse_name = "g" + str(q2)
         coeff = np.array([self.params["g"][q2]])
-        pulse_coeffs += [(pulse_name, coeff)]
+        pulse_info += [(pulse_name, coeff)]
 
         J = self.params["g"][q1] * self.params["g"][q2] * (
             1 / self.Delta[q1] + 1 / self.Delta[q2]) / 2
         tlist = np.array([(4 * np.pi / abs(J)) / 8])
-        instruction_list = [_PulseInstruction(gate, tlist, pulse_coeffs)]
+        instruction_list = [Instruction(gate, tlist, pulse_info)]
 
         # corrections
         gate1 = Gate("RZ", [q1], None, arg_value=-np.pi/4) 
@@ -168,24 +168,24 @@ class CavityQEDCompiler(GateCompiler):
         Compiler for the ISWAP gate
         """
         q1, q2 = gate.targets
-        pulse_coeffs = []
+        pulse_info = []
         pulse_name = "sz" + str(q1)
         coeff = np.array([self.wq[q1] - self.params["w0"]])
-        pulse_coeffs += [(pulse_name, coeff)]
+        pulse_info += [(pulse_name, coeff)]
         pulse_name = "sz" + str(q2)
         coeff = np.array([self.wq[q2] - self.params["w0"]])
-        pulse_coeffs += [(pulse_name, coeff)]
+        pulse_info += [(pulse_name, coeff)]
         pulse_name = "g" + str(q1)
         coeff = np.array([self.params["g"][q1]])
-        pulse_coeffs += [(pulse_name, coeff)]
+        pulse_info += [(pulse_name, coeff)]
         pulse_name = "g" + str(q2)
         coeff = np.array([self.params["g"][q2]])
-        pulse_coeffs += [(pulse_name, coeff)]
+        pulse_info += [(pulse_name, coeff)]
 
         J = self.params["g"][q1] * self.params["g"][q2] * (
             1 / self.Delta[q1] + 1 / self.Delta[q2]) / 2
         tlist = np.array([(4 * np.pi / abs(J)) / 4])
-        instruction_list = [_PulseInstruction(gate, tlist, pulse_coeffs)]
+        instruction_list = [Instruction(gate, tlist, pulse_info)]
 
         # corrections
         gate1 = Gate("RZ", [q1], None, arg_value=-np.pi/2.)

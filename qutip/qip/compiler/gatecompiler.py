@@ -31,23 +31,12 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
-from ..scheduler import Instruction, Scheduler
+from .instruction import Instruction
+from .scheduler import Scheduler
+from ..circuit import QubitCircuit, Gate
 
 
 __all__ = ['GateCompiler']
-
-
-class _PulseInstruction(Instruction):
-    def __init__(self, gate, tlist, pulse_coeffs):
-        super(_PulseInstruction, self).__init__(
-            gate)
-        self.pulse_coeffs = pulse_coeffs
-        self.tlist = tlist
-        self.duration = tlist[-1]
-    
-    @property
-    def step_num(self):
-        return len(self.tlist)
 
 
 class GateCompiler(object):
@@ -88,17 +77,22 @@ class GateCompiler(object):
         self.N = N
         self.params = params
         self.pulse_dict = pulse_dict
+        self.gate_compiler = {}
 
-    def compile(self, gates, schedule_mode=None):
+    def compile(self, circuit, schedule_mode=None):
         """
         Compile the the elementary gates
         into control pulse sequence.
 
         Parameters
         ----------
-        gates: list
+        circuit: :class:`QubitCircuit` or list of :class:`gate`
             A list of elementary gates that can be implemented in this
             model. The gate names have to be in `gate_compiler`.
+        
+        schedule_mode: str
+            "ASAP" for "as soon as possible" or
+            "ALAP" for "as late as possible"
 
         Returns
         -------
@@ -113,6 +107,10 @@ class GateCompiler(object):
         global_phase: bool
             Recorded change of global phase.
         """
+        if isinstance(circuit, QubitCircuit):
+            gates = circuit.gates
+        else:
+            gates = circuit
         num_ops = len(self.pulse_dict)
         instruction_list = []
         for gate in gates:
@@ -130,7 +128,7 @@ class GateCompiler(object):
             coeffs = np.zeros((num_ops, max_step_num))
             last_time_step = 0
             for instruction in instruction_list:
-                for pulse_name, coeff in instruction.pulse_coeffs:
+                for pulse_name, coeff in instruction.pulse_info:
                     pulse_ind = self.pulse_dict[pulse_name]
                     tlist[last_time_step + 1: last_time_step + instruction.step_num + 1] = instruction.tlist + tlist[last_time_step]
                     coeffs[pulse_ind, last_time_step: last_time_step + instruction.step_num] = coeff
@@ -149,7 +147,7 @@ class GateCompiler(object):
         for ind in time_ordered_pos:
             instruction = instruction_list[ind]
             start_time = scheduled_start_time[ind]
-            for pulse_name, coeff in instruction.pulse_coeffs:
+            for pulse_name, coeff in instruction.pulse_info:
                 pulse_ind = self.pulse_dict[pulse_name]
                 if np.abs(start_time - tlist[pulse_ind][-1]) > instruction.tlist * 1.0e-6:
                     tlist[pulse_ind].append([start_time])

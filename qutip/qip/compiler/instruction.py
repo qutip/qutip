@@ -31,8 +31,60 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-from .instruction import Instruction
-from .scheduler import Scheduler
-from .gatecompiler import GateCompiler
-from .cavityqedcompiler import CavityQEDCompiler
-from .spinchaincompiler import SpinChainCompiler
+
+__all__ = ['Instruction']
+
+
+class Instruction():
+    """
+    The instruction that implements a quantum gate.
+
+    Parameters
+    ----------
+    name: str
+        Name of the gate.
+    targets: list, optional
+        The target qubits.
+    controls: list, optional
+        The control qubits.
+    duration: list, optional
+        The execution time needed for the instruction.
+
+    Attributes
+    ----------
+    used_qubits: set
+        Union of the control and target qubits.
+    """
+    def __init__(
+            self, gate, tlist=None,
+            pulse_info=(), duration=1):
+        self.gate = gate
+        if self.targets is not None:
+            self.targets.sort()
+        if self.controls is None:
+            self.used_qubits = set(self.targets)
+        else:
+            self.controls.sort()
+            self.used_qubits = set(self.controls).union(set(self.targets))
+        self.tlist = tlist
+        if tlist is not None:
+            self.duration = tlist[-1]
+        else:
+            self.duration = duration
+        self.pulse_info = pulse_info
+
+    @property
+    def name(self):
+        return self.gate.name
+
+    @property
+    def targets(self):
+        return self.gate.targets
+
+    @property
+    def controls(self):
+        return self.gate.controls
+
+    @property
+    def step_num(self):
+        return len(self.tlist)
