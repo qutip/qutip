@@ -77,7 +77,13 @@ class GateCompiler(object):
         self.N = N
         self.params = params
         self.pulse_dict = pulse_dict
-        self.gate_compiler = {}
+        self.gate_compiler = {"GLOBALPHASE": self.globalphase_compiler}
+
+    def globalphase_compiler(self, gate):
+        """
+        Compiler for the GLOBALPHASE gate
+        """
+        pass
 
     def compile(self, circuit, schedule_mode=None):
         """
@@ -103,9 +109,6 @@ class GateCompiler(object):
             A 2d NumPy array of the shape ``(len(ctrls), len(tlist))``. Each
             row corresponds to the control pulse sequence for
             one Hamiltonian.
-
-        global_phase: bool
-            Recorded change of global phase.
         """
         if isinstance(circuit, QubitCircuit):
             gates = circuit.gates
@@ -149,7 +152,7 @@ class GateCompiler(object):
             start_time = scheduled_start_time[ind]
             for pulse_name, coeff in instruction.pulse_info:
                 pulse_ind = self.pulse_dict[pulse_name]
-                if np.abs(start_time - tlist[pulse_ind][-1]) > instruction.tlist * 1.0e-6:
+                if np.abs(start_time - tlist[pulse_ind][-1]) > instruction.tlist[-1] * 1.0e-6:
                     tlist[pulse_ind].append([start_time])
                     coeffs[pulse_ind].append([0.])
                 tlist[pulse_ind].append(instruction.tlist + start_time)

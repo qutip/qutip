@@ -87,17 +87,13 @@ class SpinChainCompiler(GateCompiler):
     def __init__(self, N, params, pulse_dict, setup="linear", global_phase=0.):
         super(SpinChainCompiler, self).__init__(
             N=N, params=params, pulse_dict=pulse_dict)
-        self.gate_compiler = {"ISWAP": self.iswap_compiler,
+        self.gate_compiler.update({"ISWAP": self.iswap_compiler,
                              "SQRTISWAP": self.sqrtiswap_compiler,
                              "RZ": self.rz_compiler,
                              "RX": self.rx_compiler,
                              "GLOBALPHASE": self.globalphase_compiler
-                             }
+                             })
         self.global_phase = global_phase
-
-    def compile(self, gates, schedule_mode=None):
-        tlist, coeffs = super(SpinChainCompiler, self).compile(gates, schedule_mode=schedule_mode)
-        return tlist, coeffs, self.global_phase
 
     def rz_compiler(self, gate):
         """
