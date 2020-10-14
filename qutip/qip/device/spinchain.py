@@ -202,8 +202,7 @@ class SpinChain(ModelProcessor):
         return self.coeffs[2*self.N:]
 
     def load_circuit(
-            self, qc, setup, schedule_mode="ASAP",
-            compiler_kind=SpinChainCompiler):
+            self, qc, setup, schedule_mode="ASAP", compiler=None):
         """
         Decompose a :class:`qutip.QubitCircuit` in to the control
         amplitude generating the corresponding evolution.
@@ -227,10 +226,13 @@ class SpinChain(ModelProcessor):
             one Hamiltonian.
         """
         gates = self.optimize_circuit(qc).gates
-        compiler = compiler_kind(
-            self.N, self._params, setup=setup,
-            global_phase=0., pulse_dict=deepcopy(self.pulse_dict))
-        tlist, self.coeffs, self.global_phase = compiler.compile(gates, schedule_mode=schedule_mode)
+        if compiler is None:
+            compiler = SpinChainCompiler(
+                self.N, self._params, setup=setup,
+                global_phase=0., pulse_dict=deepcopy(self.pulse_dict))
+        tlist, self.coeffs = compiler.compile(
+            gates, schedule_mode=schedule_mode)
+        self.global_phase = compiler.global_phase
         self.set_all_tlist(tlist)
         return tlist, self.coeffs
 
@@ -532,9 +534,9 @@ class LinearSpinChain(SpinChain):
         return self.coeffs[2*self.N: 3*self.N-1]
 
     def load_circuit(
-            self, qc, schedule_mode="ASAP",
-            compiler_kind=SpinChainCompiler):
-        return super(LinearSpinChain, self).load_circuit(qc, "linear", schedule_mode=schedule_mode, compiler_kind=compiler_kind)
+            self, qc, schedule_mode="ASAP", compiler=None):
+        return super(LinearSpinChain, self).load_circuit(
+            qc, "linear", schedule_mode=schedule_mode, compiler=compiler)
 
     def get_operators_labels(self):
         """
@@ -622,9 +624,9 @@ class CircularSpinChain(SpinChain):
         return self.coeffs[2*self.N: 3*self.N]
 
     def load_circuit(
-            self, qc, schedule_mode="ASAP",
-            compiler_kind=SpinChainCompiler):
-        return super(CircularSpinChain, self).load_circuit(qc, "circular", schedule_mode=schedule_mode, compiler_kind=compiler_kind)
+            self, qc, schedule_mode="ASAP", compiler=None):
+        return super(CircularSpinChain, self).load_circuit(
+            qc, "circular", schedule_mode=schedule_mode, compiler=compiler)
 
     def get_operators_labels(self):
         """

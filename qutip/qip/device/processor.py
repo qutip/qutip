@@ -219,8 +219,9 @@ class Processor(object):
                           label=temp_label))
         else:
             self.pulses.append(
-                Pulse(qobj, targets, spline_kind=self.spline_kind, label=label))
-    
+                Pulse(qobj, targets, spline_kind=self.spline_kind, label=label)
+                )
+
     def find_pulse(self, pulse_name):
         if isinstance(pulse_name, str):
             try:
@@ -282,7 +283,7 @@ class Processor(object):
         if not full_tlist:
             return None
         full_tlist = np.unique(np.sort(np.hstack(full_tlist)))
-        # account for inaccuracy in float-point number 
+        # account for inaccuracy in float-point number
         diff = np.append(True, np.diff(full_tlist))
         full_tlist = full_tlist[diff > tol]
         return full_tlist
@@ -763,7 +764,8 @@ class Processor(object):
             label_list.append(pulse.label)
         return [label_list]
 
-    def plot_pulses(self, title=None, figsize=(12, 6), dpi=None, show_axis=False):
+    def plot_pulses(
+            self, title=None, figsize=(12, 6), dpi=None, show_axis=False):
         """
         Plot the ideal pulse coefficients.
 

@@ -185,7 +185,7 @@ class DispersiveCavityQED(ModelProcessor):
                       list(range(N+1)), spline_kind=self.spline_kind))
             self.pulse_dict["g" + str(n)] = index
             index += 1
-    
+
     def set_up_params(
             self, N, num_levels, deltamax,
             epsmax, w0, wq, eps, delta, g):
@@ -316,8 +316,7 @@ class DispersiveCavityQED(ModelProcessor):
         return psi_proj.dag() * U * psi_proj
 
     def load_circuit(
-            self, qc, schedule_mode="ASAP",
-            compiler_kind=CavityQEDCompiler):
+            self, qc, schedule_mode="ASAP", compiler=None):
         """
         Decompose a :class:`qutip.QubitCircuit` in to the control
         amplitude generating the corresponding evolution.
@@ -338,9 +337,13 @@ class DispersiveCavityQED(ModelProcessor):
             one Hamiltonian.
         """
         gates = self.optimize_circuit(qc).gates
-        compiler = compiler_kind(
-            self.N, self._params,
-            global_phase=0., pulse_dict=deepcopy(self.pulse_dict))
-        tlist, self.coeffs, self.global_phase = compiler.compile(gates, schedule_mode=schedule_mode)
+        if compiler is None:
+            compiler = CavityQEDCompiler(
+                self.N, self._params,
+                pulse_dict=deepcopy(self.pulse_dict),
+                global_phase=0.)
+        tlist, self.coeffs = compiler.compile(
+            gates, schedule_mode=schedule_mode)
+        self.global_phase = compiler.global_phase
         self.set_all_tlist(tlist)
         return tlist, self.coeffs
