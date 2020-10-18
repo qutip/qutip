@@ -21,7 +21,7 @@ This repository contains the pure Python version of the solver. It should be not
 For uniformity across platforms, we recommend using Conda environments to keep the setup clean, and to install dependencies painlessly (since `pip install` is known to have issues on Mac OS). Once you have Conda installed, make a fresh Python 3 environment called `bofin_env`, and then switch to it :
 
 ```
-conda create -n bofin_env python=3
+conda create -n bofin_env python=3.8
 conda activate bofin_env
 ```
 
@@ -45,7 +45,7 @@ This will install the pure Python version of the Bosonic HEOM Solver.
 
 ```
 # import the pure Python Bosonic HEOM Solver
-from bofinpy.heom import BosonicHEOMSolver as BosonicHEOMSolverPy
+from bofin.heom import BosonicHEOMSolver as BosonicHEOMSolverPy
 ```
 
 ## Documentation
@@ -60,7 +60,7 @@ The documentation HTML files can be found in `docs/build/html`. The main file is
 
 ## Example notebooks
 
-There are several example notebooks illustrating usage of the code, in the `example_notebooks` folder.
+There are several example notebooks illustrating usage of the code, in the `examples` folder.
 
 ## Running tests
 
