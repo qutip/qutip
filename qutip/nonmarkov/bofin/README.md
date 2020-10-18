@@ -13,7 +13,8 @@ We have developed two packaged versions of the HEOM solver :
 - **BoFiN-Py** : Pure Python version of the HEOM solver. Has a `BosonicHEOMSolver` and `FermionicHEOMSolver`.
 - **BoFiN-CPP** : Hybrid C++ - Python version, with backend for RHS construction of the HEOM solver written in C++. Otherwise completely identical in user interface and functionality to the pure Python version.
 
-This repository contains the pure Python version of the solver.
+This repository contains the pure Python version of the solver. It should be noted that the C++ version dramatically speeds up RHS construction, with respect to the Python version. (TODO SHOW PERFORMANCE GRAPH)
+
 
 ## Installing dependencies & setting up
 
