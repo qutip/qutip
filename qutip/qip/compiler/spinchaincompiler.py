@@ -101,8 +101,8 @@ class SpinChainCompiler(GateCompiler):
         """
         targets = gate.targets
         g = self.params["sz"][targets[0]]
-        coeff = np.array([np.sign(gate.arg_value) * g])
-        tlist = np.array([abs(gate.arg_value) / (2 * g)])
+        coeff = np.sign(gate.arg_value) * g
+        tlist = abs(gate.arg_value) / (2 * g)
         pulse_info = [("sz" + str(targets[0]), coeff)]
         return [Instruction(gate, tlist, pulse_info)]
 
@@ -112,8 +112,8 @@ class SpinChainCompiler(GateCompiler):
         """
         targets = gate.targets
         g = self.params["sx"][targets[0]]
-        coeff = np.array([np.sign(gate.arg_value) * g])
-        tlist = np.array([abs(gate.arg_value) / (2 * g)])
+        coeff = np.sign(gate.arg_value) * g
+        tlist = abs(gate.arg_value) / (2 * g)
         pulse_info = [("sx" + str(targets[0]), coeff)]
         return [Instruction(gate, tlist, pulse_info)]
 
@@ -124,8 +124,8 @@ class SpinChainCompiler(GateCompiler):
         targets = gate.targets
         q1, q2 = min(targets), max(targets)
         g = self.params["sxsy"][q1]
-        coeff = np.array([-g])
-        tlist = np.array([np.pi / (4 * g)])
+        coeff = -g
+        tlist = np.pi / (4 * g)
         if self.N != 2 and q1 == 0 and q2 == self.N - 1:
             pulse_name = "g" + str(q2)
         else:
@@ -140,8 +140,8 @@ class SpinChainCompiler(GateCompiler):
         targets = gate.targets
         q1, q2 = min(targets), max(targets)
         g = self.params["sxsy"][q1]
-        coeff = np.array([-g])
-        tlist = np.array([np.pi / (8 * g)])
+        coeff = -g
+        tlist = np.pi / (8 * g)
         if self.N != 2 and q1 == 0 and q2 == self.N - 1:
             pulse_name = "g" + str(q2)
         else:

@@ -102,8 +102,8 @@ class CavityQEDCompiler(GateCompiler):
         """
         targets = gate.targets
         g = self.params["sz"][targets[0]]
-        coeff = np.array([np.sign(gate.arg_value) * g])
-        tlist = np.array([abs(gate.arg_value) / (2 * g)])
+        coeff = np.sign(gate.arg_value) * g
+        tlist = abs(gate.arg_value) / (2 * g)
         pulse_info = [("sz" + str(targets[0]), coeff)]
         return [Instruction(gate, tlist, pulse_info)]
 
@@ -113,8 +113,8 @@ class CavityQEDCompiler(GateCompiler):
         """
         targets = gate.targets
         g = self.params["sx"][targets[0]]
-        coeff = np.array([np.sign(gate.arg_value) * g])
-        tlist = np.array([abs(gate.arg_value) / (2 * g)])
+        coeff = np.sign(gate.arg_value) * g
+        tlist = abs(gate.arg_value) / (2 * g)
         pulse_info = [("sx" + str(targets[0]), coeff)]
         return [Instruction(gate, tlist, pulse_info)]
 
@@ -131,21 +131,21 @@ class CavityQEDCompiler(GateCompiler):
         q1, q2 = gate.targets
         pulse_info = []
         pulse_name = "sz" + str(q1)
-        coeff = np.array([self.wq[q1] - self.params["w0"]])
+        coeff = self.wq[q1] - self.params["w0"]
         pulse_info += [(pulse_name, coeff)]
         pulse_name = "sz" + str(q1)
-        coeff = np.array([self.wq[q2] - self.params["w0"]])
+        coeff = self.wq[q2] - self.params["w0"]
         pulse_info += [(pulse_name, coeff)]
         pulse_name = "g" + str(q1)
-        coeff = np.array([self.params["g"][q1]])
+        coeff = self.params["g"][q1]
         pulse_info += [(pulse_name, coeff)]
         pulse_name = "g" + str(q2)
-        coeff = np.array([self.params["g"][q2]])
+        coeff = self.params["g"][q2]
         pulse_info += [(pulse_name, coeff)]
 
         J = self.params["g"][q1] * self.params["g"][q2] * (
             1 / self.Delta[q1] + 1 / self.Delta[q2]) / 2
-        tlist = np.array([(4 * np.pi / abs(J)) / 8])
+        tlist = 0., (4 * np.pi / abs(J)) / 8
         instruction_list = [Instruction(gate, tlist, pulse_info)]
 
         # corrections
@@ -166,21 +166,21 @@ class CavityQEDCompiler(GateCompiler):
         q1, q2 = gate.targets
         pulse_info = []
         pulse_name = "sz" + str(q1)
-        coeff = np.array([self.wq[q1] - self.params["w0"]])
+        coeff = self.wq[q1] - self.params["w0"]
         pulse_info += [(pulse_name, coeff)]
         pulse_name = "sz" + str(q2)
-        coeff = np.array([self.wq[q2] - self.params["w0"]])
+        coeff = self.wq[q2] - self.params["w0"]
         pulse_info += [(pulse_name, coeff)]
         pulse_name = "g" + str(q1)
-        coeff = np.array([self.params["g"][q1]])
+        coeff = self.params["g"][q1]
         pulse_info += [(pulse_name, coeff)]
         pulse_name = "g" + str(q2)
-        coeff = np.array([self.params["g"][q2]])
+        coeff = self.params["g"][q2]
         pulse_info += [(pulse_name, coeff)]
 
         J = self.params["g"][q1] * self.params["g"][q2] * (
             1 / self.Delta[q1] + 1 / self.Delta[q2]) / 2
-        tlist = np.array([(4 * np.pi / abs(J)) / 4])
+        tlist = (4 * np.pi / abs(J)) / 4
         instruction_list = [Instruction(gate, tlist, pulse_info)]
 
         # corrections

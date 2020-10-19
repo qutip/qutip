@@ -123,28 +123,35 @@ class GateCompiler(object):
             if compilered_gate is None:
                 continue  # neglecting global phase gate
             instruction_list += compilered_gate
+        if not instruction_list:
+            return None, None
 
-        # If not scheduling
-        if schedule_mode is None or not schedule_mode:
-            max_step_num = sum([instruction.step_num for instruction in instruction_list])
-            tlist = np.zeros(max_step_num + 1)  # always start form 0
-            coeffs = np.zeros((num_ops, max_step_num))
-            last_time_step = 0
+        # check continuous or discrete pulse
+        if np.isscalar(instruction_list[0].tlist):
+            spline_kind = "step_func"
+        elif (len(instruction_list[0].tlist) - 1 == \
+                len(instruction_list[0].pulse_info[0][1])):
+            spline_kind = "step_func"
+        elif (len(instruction_list[0].tlist) == \
+                len(instruction_list[0].pulse_info[0][1])):
+            spline_kind = "cubic"
+        else:
+            raise ValueError(
+                "The shape of the compiled pulse is not correct.")
+
+        # scheduling
+        if schedule_mode:
+            scheduler = Scheduler(schedule_mode)
+            scheduled_start_time = scheduler.schedule(instruction_list)
+            time_ordered_pos = np.argsort(scheduled_start_time)
+        else:  # no scheduling
+            time_ordered_pos = list(range(0, len(instruction_list)))
+            scheduled_start_time = [0.]
             for instruction in instruction_list:
-                for pulse_name, coeff in instruction.pulse_info:
-                    pulse_ind = self.pulse_dict[pulse_name]
-                    tlist[last_time_step + 1: last_time_step + instruction.step_num + 1] = instruction.tlist + tlist[last_time_step]
-                    coeffs[pulse_ind, last_time_step: last_time_step + instruction.step_num] = coeff
-                last_time_step += instruction.step_num
+                scheduled_start_time.append(instruction.duration + scheduled_start_time[-1])
+            scheduled_start_time = scheduled_start_time[:-1]
 
-            return tlist, coeffs
-
-
-        # If scheduling
-        scheduler = Scheduler(schedule_mode)
-        scheduled_start_time = scheduler.schedule(instruction_list)
-        time_ordered_pos = np.argsort(scheduled_start_time)
-
+        # compile
         tlist = [[[0.]] for tmp in range(num_ops)]
         coeffs = [[] for tmp in range(num_ops)]
         for ind in time_ordered_pos:
@@ -152,10 +159,22 @@ class GateCompiler(object):
             start_time = scheduled_start_time[ind]
             for pulse_name, coeff in instruction.pulse_info:
                 pulse_ind = self.pulse_dict[pulse_name]
-                if np.abs(start_time - tlist[pulse_ind][-1]) > instruction.tlist[-1] * 1.0e-6:
+                if np.isscalar(instruction.tlist):
+                    step_size = instruction.tlist
+                    temp_tlist = np.array([instruction.tlist])
+                    coeff = np.array([coeff])
+                else:
+                    step_size = instruction.tlist[1] - instruction.tlist[0]
+                    if coeffs[pulse_ind]:  # not the first pulse
+                        temp_tlist = instruction.tlist[1:]
+                        if spline_kind == "cubic":
+                            coeff = coeff[1:]
+                    else:
+                        temp_tlist = instruction.tlist
+                if np.abs(start_time - tlist[pulse_ind][-1][-1]) > step_size * 1.0e-6:
                     tlist[pulse_ind].append([start_time])
                     coeffs[pulse_ind].append([0.])
-                tlist[pulse_ind].append(instruction.tlist + start_time)
+                tlist[pulse_ind].append(temp_tlist + start_time)
                 coeffs[pulse_ind].append(coeff)
         for i in range(num_ops):
             if not coeffs[i]:
@@ -164,5 +183,7 @@ class GateCompiler(object):
             else:
                 tlist[i] = np.concatenate(tlist[i])
                 coeffs[i] = np.concatenate(coeffs[i])
+                #  remove the leading 0
+                if spline_kind == "cubic":
+                    tlist[i] = tlist[i][1:]
         return tlist, coeffs
-

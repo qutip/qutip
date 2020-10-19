@@ -30,6 +30,7 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+import numpy as np
 
 
 __all__ = ['Instruction']
@@ -67,8 +68,14 @@ class Instruction():
             self.controls.sort()
             self.used_qubits = set(self.controls).union(set(self.targets))
         self.tlist = tlist
-        if tlist is not None:
-            self.duration = tlist[-1]
+        if self.tlist is not None:
+            if np.isscalar(self.tlist):
+                self.duration = self.tlist
+            elif self.tlist[0] != 0.:
+                self.tlist = np.concatenate([0.], self.tlist)
+                self.duration = self.tlist[-1]
+            else:
+                self.duration = self.tlist[-1]
         else:
             self.duration = duration
         self.pulse_info = pulse_info
@@ -87,4 +94,7 @@ class Instruction():
 
     @property
     def step_num(self):
-        return len(self.tlist)
+        if np.isscalar(self.tlist):
+            return 1
+        else:
+            return len(self.tlist) - 1
