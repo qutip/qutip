@@ -98,7 +98,7 @@ def _heom_state_dictionaries(dims, excitations):
 
 class BosonicHEOMSolver(object):
     """
-    This is superclass for all solvers that use the HEOM method for
+    This is a class for solvers that use the HEOM method for
     calculating the dynamics evolution. There are many references for this.
     A good introduction, and perhaps closest to the notation used here is:
     DOI:10.1103/PhysRevLett.104.250401
@@ -108,7 +108,8 @@ class BosonicHEOMSolver(object):
     or rotating wave approximation (RWA) for systems where the bath
     correlations can be approximated to a sum of complex exponentials.
     The method builds a matrix of linked differential equations, which are
-    then solved used the same ODE solvers as other qutip solvers (e.g. mesolve)
+    then solved used the same ODE solvers as other qutip solvers (e.g. mesolve)/
+
     Attributes
     ----------
     H_sys : Qobj or list
@@ -767,7 +768,7 @@ def _dsuper_list_td(t, y, L_list):
 
 class FermionicHEOMSolver(object):
     """
-    Same as above, but with Fermionic baths.
+    Same as BosonicHEOMSolver, but with Fermionic baths.
 
     Attributes
     ----------

@@ -1,4 +1,4 @@
-# BoFiN : A Bosonic and Fermionic hierarchical-equations-of-motion library for QuTiP with applications in light-harvesting, quantum control, and single-molecule electronics
+# (Python version) BoFiN : A Bosonic and Fermionic hierarchical-equations-of-motion library for QuTiP with applications in light-harvesting, quantum control, and single-molecule electronics
 
 Neill Lambert, Tarun Raheja, Shahnawaz Ahmed, Alexander Pitchford, Franco Nori 
 
@@ -13,7 +13,7 @@ We have developed two packaged versions of the HEOM solver :
 - **BoFiN-Py** : Pure Python version of the HEOM solver. Has a `BosonicHEOMSolver` and `FermionicHEOMSolver`.
 - **BoFiN-CPP** : Hybrid C++ - Python version, with backend for RHS construction of the HEOM solver written in C++. Otherwise completely identical in user interface and functionality to the pure Python version.
 
-This repository contains the pure Python version of the solver. It should be noted that the C++ version dramatically speeds up RHS construction, with respect to the Python version. (TODO SHOW PERFORMANCE GRAPH)
+This repository contains the pure Python version of the solver. It should be noted that the C++ version dramatically speeds up RHS construction, with respect to the Python version. We have noted more than 10x speedup using the C++ version for some hard Fermionic HEOM problems. 
 
 
 ## Installing dependencies & setting up
@@ -35,7 +35,7 @@ This will ensure painless setup across Windows, Linux and Mac OS.
 
 ## Installing the BoFiN-HEOM package
 
-Once you have the dependencies installed, from the `qutip_heom` folder, run the following command :
+Once you have the dependencies installed, from the parent repository folder, run the following command :
 ```
 pip3 install -e .
 ```
@@ -50,13 +50,13 @@ from bofin.heom import BosonicHEOMSolver as BosonicHEOMSolverPy
 
 ## Documentation
 
-To build the documentation locally:
+The documentation HTML files can be found in `docs/build/html`. The main file is `index.html`.
+
+To build the documentation locally, you will need `sphinx` and, `sphinx_rtd_theme`:
 ```
 cd docs/
 make html
 ```
-
-The documentation HTML files can be found in `docs/build/html`. The main file is `index.html`.
 
 ## Example notebooks
 
@@ -68,7 +68,3 @@ To run tests using `pytest` in the `qutip_heom` directory, run :
 ```
 pytest -v
 ```
-## Citation
-
-## Resources
-
