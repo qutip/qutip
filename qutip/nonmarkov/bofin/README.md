@@ -15,6 +15,10 @@ We have developed two packaged versions of the HEOM solver :
 
 This repository contains the pure Python version of the solver. It should be noted that the C++ version dramatically speeds up RHS construction, with respect to the Python version. We have noted more than 10x speedup using the C++ version for some hard Fermionic HEOM problems. 
 
+### IMPORTANT 
+
+ If you run the code on hard to compute systems, we recommend you set up the C++ verision as given here : https://github.com/tehruhn/bofin_fast
+
 
 ## Installing dependencies & setting up
 
