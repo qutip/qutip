@@ -2,14 +2,14 @@
 Fermionic Environments
 ######################
 
-The basic class object used to construct the problem is imported in the following way (alongside QuTiP, with which we define system Hamiltonian and coupling operators)
+The basic class object used to construct the problem is imported in the following way (alongside QuTiP, with which we define system Hamiltonian and coupling operators), for the pure Python BoFiN version
 
 .. code-block:: python
 
     from qutip import *
     from bofin.heom import FermionicHEOMSolver
     
-If one is using the C++ bofin_fast package, the import is instead
+If one is using the C++ BoFiN-fast package, the import is instead
 
 .. code-block:: python
 
@@ -24,14 +24,19 @@ One defines a particular problem instance in the following way:
 .. code-block:: python
 
     Solver = FermionicHEOMSolver(Hsys, Q,  eta_list, gamma_list, NC,o ptions=options)
-    
-The parameters accepted by the solver are Hsys (system Hamiltonian in quantum object form), Q a list of coupling operators (minimum two) that couple the system to the environment, eta_list and gamma_list are the coefficients and frequencies 
-of the correlation functions of the environment.  NC is the truncation parameter of the hierarchy. options is a standard QuTiP ODEoptions object, which is used by the ODE solver.
 
-Note that unlike the bosonic case we dont explicitly split the real and imaginary parts of the correlation functions, and that a single environment has a minimum of two coupling operators (due to the fundemental difference
-in how the environment interacts with the system for fermionic environments).  
 
-A simple example of how this code works, taken from example notebook 4b, is:
+The parameters accepted by the solver are :
+
+- ``Hsys`` : system Hamiltonian in quantum object form
+- ``Q`` : a list of coupling operators (minimum two) that couple the system to the environment
+- ``eta_list`` and ``gamma_list`` : the coefficients and frequencies of the correlation functions of the environment
+- ``NC`` : the truncation parameter of the hierarchy
+- ``options`` : standard QuTiP ``ODEoptions`` object, which is used by the ODE solver.
+
+Note that for the Fermionic case, unlike the Bosonic case, we **don't** explicitly split the real and imaginary parts of the correlation functions. Also, for the Fermionic case, a single environment has a minimum of two coupling operators (due to the fundemental difference in how the environment interacts with the system for fermionic environments).  
+
+A simple example of how this code works, taken from `example notebook 4b <https://github.com/tehruhn/bofin/blob/main/examples/example-4b-fermions-single-impurity-model.ipynb>`_, is:
 
 .. code-block:: python
 
@@ -139,9 +144,10 @@ A simple example of how this code works, taken from example notebook 4b, is:
 Multiple environments
 =====================
 
-In dealing with multiple environments the fermionic solver operates in a slightly different way to the fermionic case, as already shown in the above example.
-Each bath is specified by coupling to two system operators (which are related by hermitian conjugation), and the parameters the bath coefficients associated with each of the those operators are defined in a list in the corresponding possition in eta_list and gamma_list.
+In dealing with multiple environments the Fermionic solver operates in a slightly different way to the Bosonic case, as already shown in the above example.
+Each bath is specified by coupling to two system operators (which are related by hermitian conjugation), and the parameters for the bath coefficients associated with each of the those operators are defined in a list in the corresponding possition in ``eta_list`` and ``gamma_list``.
 
-Typically these must be ordered in the above shown way, such that, for the first environment, Qops[0] is the operator associate with the correlation function :math:`\sigma=+`, while Qops[1]  that associated with :math:`\sigma=-`.
-This continues for each environment, with a corresponding set of two operators in Qops, and corresponding lists of etap* and etam* in eta_list, and so on.
+Typically these must be ordered in the above shown way, such that, for the first environment, ``Qops[0]`` is the operator associated with the correlation function :math:`\sigma=+`, while ``Qops[1]``  is associated with :math:`\sigma=-`.
+
+This continues for each environment, with a corresponding set of two operators in   ``Qops``, and corresponding lists of ``etap*`` and ``etam*`` in ``eta_list``.
 

@@ -9,7 +9,7 @@ The basic class object used to construct the problem is imported in the followin
     from qutip import *
     from bofin.heom import BosonicHEOMSolver
     
-If one is using the C++ bofin_fast package, the import is instead
+If one is using the C++ BoFiN_fast package, the import is instead
 
 .. code-block:: python
 
@@ -24,11 +24,17 @@ One defines a particular problem instance in the following way:
 .. code-block:: python
 
     Solver = BosonicHEOMSolver(Hsys, Q, ckAR, ckAI, vkAR, vkAI, NC, options=options)
-    
-The parameters accepted by the solver are Hsys (system Hamiltonian in quantum object form), Q a coupling operator (or list of coupling operators) that couple the system to the environment, ckAR and vkAR are the cooefficients and frequencies of the real parts of the correlation functions, respectively. ckAI  and vkAI
-are likewise the coefficients of the imaginary parts.  NC is the truncation parameter of the hierarchy. options is a standard QuTiP ODEoptions object, which is used by the ODE solver.
 
-Thus an example solution to a single spin coupled to a Drude-Lorentz spectral density with Matsubara decomposition is (taken from example notebook 1a):
+
+The parameters accepted by the solver are :
+- ``Hsys`` : the system Hamiltonian in quantum object form
+- ``Q`` a coupling operator (or list of coupling operators) that couple the system to the environment
+- ``ckAR`` and ``vkAR`` : respectively the coefficients and frequencies of the real parts of the correlation functions
+- ``ckAI``  and ``vkAI`` : respectively the coefficients and frequencies of the imaginary parts of the correlation functions
+- ``NC`` : the truncation parameter of the hierarchy
+- ``options`` is a standard QuTiP ``ODEoptions`` object, which is used by the ODE solver.
+
+Thus an example solution to a single spin coupled to a Drude-Lorentz spectral density with Matsubara decomposition is (taken from `example notebook 1a <https://github.com/tehruhn/bofin/blob/main/examples/example-1a-Spin-bath-model-basic.ipynb>`_):
 
 .. code-block:: python
 
@@ -107,12 +113,12 @@ The above example describes a single environment parameterized by the lists of c
 For multiple environments, the list of coupling operators and bath properties must all be extended in a particular way.  Note this functionality
 differs in the case of the Fermionic solver.
 
-For the Bosonic solver, for N baths, each ckAR, vkAR, ckAI, and vkAI are extended N times with the apppriate number of terms of that bath. 
+For the Bosonic solver, for ``N`` baths, each ``ckAR``, ``vkAR``, ``ckAI``, and ``vkAI`` are extended ``N`` times with the appropriate number of terms of that bath. 
 
-On the other hand, the list of coupling operators is defined in such a way that the terms corresponding to the real cooefficients are given first, and the imaginary terms after.
+On the other hand, the list of coupling operators is defined in such a way that the terms corresponding to the real cooefficients are **given first**, and the imaginary terms after.
 Thus if each bath has :math:`N_k` coefficients, the list of coupling operators is of length :math:`N_k \times (N_R + N_I)`.
 
-This is best illustrated by the example in example notebook 2. In that case each bath is identical, and there are seven baths, each with a unique coupling operator defined by a projector onto a single state:
+This is best illustrated by the example in `example notebook 2 <https://github.com/tehruhn/bofin/blob/main/examples/example-2-FMO-example.ipynb>`_. In that case each bath is identical, and there are seven baths, each with a unique coupling operator defined by a projector onto a single state:
 
 .. code-block:: python
 

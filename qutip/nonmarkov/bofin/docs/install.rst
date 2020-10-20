@@ -4,35 +4,34 @@ Installation
 
 We have developed two packaged versions of the HEOM solver : 
 
-- BoFiN : Pure Python version of the HEOM solver. Has a `BosonicHEOMSolver` and `FermionicHEOMSolver`.
-- BoFiN-fast : Hybrid C++ - Python version, with backend for RHS construction of the HEOM solver written in C++. Otherwise completely identical in user interface and functionality to the pure Python version.
+- **BoFiN** : Pure Python version of the HEOM solver. Has a ``BosonicHEOMSolver`` and ``FermionicHEOMSolver`` class. It can be found `here <https://github.com/tehruhn/bofin>`_ .
 
-It should be noted that the C++ version dramatically speeds up RHS construction, with respect to the Python version. 
-We have noted more than 10x speedup using the C++ version for some hard Fermionic HEOM problems. 
-If you run the code on hard-to-compute systems, we recommend you set up the C++ version as given here 'Bofin Fast <https://github.com/tehruhn/bofin_fast>'
+- **BoFiN-fast** : Hybrid C++ - Python version, of the HEOM solver. Here the backend for RHS construction of the HEOM solver written in C++. It is otherwise completely identical (both in user interface and functionality) to the pure Python version. It can be found `here <https://github.com/tehruhn/bofin_fast>`_ .
 
+The following sections explain how to set up both versions, and common dependencies.
 
 Installing dependencies & setting up
 ====================================
 
-For uniformity across platforms, we recommend using Conda environments to keep the setup clean, and to install dependencies painlessly (since `pip install` is known to have issues on Mac OS). 
-Once you have Conda installed, make a fresh Python 3 environment called `bofin_env`, and then switch to it::
+The core requirements are ``numpy``, ``scipy``, ``cython`` and ``qutip``.
+For uniformity across platforms, we recommend using Conda environments to keep the setup clean, and to install dependencies painlessly (since ``pip install`` is known to have issues on Mac OS). 
+Once you have Conda installed, make a fresh Python 3 environment called ``bofin_env``, and then switch to it::
 
     conda create -n bofin_env python=3.8
     conda activate bofin_env
 
-In your `bofin_env` environment, install requirements using::
+In your ``bofin_env`` environment, install requirements using::
 
     conda install numpy scipy cython
     conda install -c conda-forge qutip
 
-
+Also, ``matplotlib`` is required for visualizations.
 This will ensure painless setup across Windows, Linux and Mac OS.
 
-Installing the BoFiN-HEOM package
-=================================
+Installing the Python version
+=============================
 
-Clone the repository using `git clone`.
+Clone the BoFiN repository given `here <https://github.com/tehruhn/bofin>`_ using ``git clone``.
 
 Once you have the dependencies installed, from the parent repository folder, run the following command::
 
@@ -40,4 +39,15 @@ Once you have the dependencies installed, from the parent repository folder, run
 
 This will install the pure Python version of the Bosonic HEOM Solver.
 
-See 'Bofin Fast <https://github.com/tehruhn/bofin_fast>' for information on installing the C++ version.
+Installing the C++ version
+==========================
+
+Clone the BoFiN-fast repository given `here <https://github.com/tehruhn/bofin_fast>`_ using ``git clone``.
+
+Once you have the dependencies installed, from the parent repository folder, run the following commands::
+
+    python3 setup.py build_ext --inplace
+    pip3 install -e .
+
+
+This installs the hybrid Python - C++ version of the HEOM solvers. These are identical in usage and functionality to the Python solvers.
