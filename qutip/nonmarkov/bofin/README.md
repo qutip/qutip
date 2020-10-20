@@ -56,7 +56,7 @@ from bofin.heom import BosonicHEOMSolver as BosonicHEOMSolverPy
 
 ## Documentation
 
-The documentation HTML files can be found in `docs/build/html`. The main file is `index.html`.
+The documentation can be found at https://bofin-heom.readthedocs.io/en/main/ .
 
 To build the documentation locally, you will need `sphinx` and, `sphinx_rtd_theme`:
 ```
