@@ -23,6 +23,8 @@ BoFiN-HEOM is designed to be as generic as possible, relying on example notebook
    dynamics
    steadystate
    zzreferences
+
+   modules
    
 Indices and tables
 ==================

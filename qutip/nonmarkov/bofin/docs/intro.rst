@@ -3,7 +3,7 @@ Introduction
 ############
 
 
-The HEOM method was originally developed in the context of Physical Chemistry to solve ``exactly'' a quantum system in contact with a bosonic environment, encapsulated in the Hamiltonian
+The HEOM method was originally developed in the context of Physical Chemistry to solve ''exactly'' a quantum system in contact with a bosonic environment, encapsulated in the Hamiltonian
 
 .. math::
 
