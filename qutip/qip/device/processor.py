@@ -140,6 +140,7 @@ class Processor(object):
             self.dims = [2] * N
         else:
             self.dims = dims
+        self.pulse_mode = "discrete"
         self.spline_kind = spline_kind
 
     def add_drift(self, qobj, targets, cyclic_permutation=False):
@@ -265,6 +266,27 @@ class Processor(object):
                              "as the number of control pulses.")
         for i, coeff in enumerate(coeffs_list):
             self.pulses[i].coeff = coeff
+
+    @property
+    def pulse_mode(self):
+        if self.spline_kind == "step_func":
+            return "discrete"
+        elif self.spline_kind == "cubic":
+            return "continuous"
+
+    @pulse_mode.setter
+    def pulse_mode(self, mode):
+        if mode == "discrete":
+            spline_kind = "step_func"
+        elif mode == "continuous":
+            spline_kind = "cubic"
+        else:
+            raise ValueError(
+                "Pulse mode must be either discrete or continuous.")
+
+        self.spline_kind = spline_kind
+        for pulse in self.pulses:
+            pulse.spline_kind = spline_kind
 
     def get_full_tlist(self, tol=1.0e-10):
         """
