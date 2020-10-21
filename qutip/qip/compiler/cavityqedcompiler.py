@@ -96,7 +96,7 @@ class CavityQEDCompiler(GateCompiler):
         self.Delta = self.wq - self.params["w0"]
         self.global_phase = global_phase
 
-    def rz_compiler(self, gate):
+    def rz_compiler(self, gate, args):
         """
         Compiler for the RZ gate
         """
@@ -107,7 +107,7 @@ class CavityQEDCompiler(GateCompiler):
         pulse_info = [("sz" + str(targets[0]), coeff)]
         return [Instruction(gate, tlist, pulse_info)]
 
-    def rx_compiler(self, gate):
+    def rx_compiler(self, gate, args):
         """
         Compiler for the RX gate
         """
@@ -118,7 +118,7 @@ class CavityQEDCompiler(GateCompiler):
         pulse_info = [("sx" + str(targets[0]), coeff)]
         return [Instruction(gate, tlist, pulse_info)]
 
-    def sqrtiswap_compiler(self, gate):
+    def sqrtiswap_compiler(self, gate, args):
         """
         Compiler for the SQRTISWAP gate
 
@@ -150,16 +150,16 @@ class CavityQEDCompiler(GateCompiler):
 
         # corrections
         gate1 = Gate("RZ", [q1], None, arg_value=-np.pi/4) 
-        compiled_gate1 = self.rz_compiler(gate1)
+        compiled_gate1 = self.rz_compiler(gate1, args)
         instruction_list += compiled_gate1
         gate2 = Gate("RZ", [q2], None, arg_value=-np.pi/4)
-        compiled_gate2 = self.rz_compiler(gate2)
+        compiled_gate2 = self.rz_compiler(gate2, args)
         instruction_list += compiled_gate2
         gate3 = Gate("GLOBALPHASE", None, None, arg_value=-np.pi/4)
-        self.globalphase_compiler(gate3)
+        self.globalphase_compiler(gate3, args)
         return instruction_list
 
-    def iswap_compiler(self, gate):
+    def iswap_compiler(self, gate, args):
         """
         Compiler for the ISWAP gate
         """
@@ -185,16 +185,16 @@ class CavityQEDCompiler(GateCompiler):
 
         # corrections
         gate1 = Gate("RZ", [q1], None, arg_value=-np.pi/2.)
-        compiled_gate1 = self.rz_compiler(gate1)
+        compiled_gate1 = self.rz_compiler(gate1, args)
         instruction_list += compiled_gate1
         gate2 = Gate("RZ", [q2], None, arg_value=-np.pi/2)
-        compiled_gate2 = self.rz_compiler(gate2)
+        compiled_gate2 = self.rz_compiler(gate2, args)
         instruction_list += compiled_gate2
         gate3 = Gate("GLOBALPHASE", None, None, arg_value=-np.pi/2)
-        self.globalphase_compiler(gate3)
+        self.globalphase_compiler(gate3, args)
         return instruction_list
 
-    def globalphase_compiler(self, gate):
+    def globalphase_compiler(self, gate, args):
         """
         Compiler for the GLOBALPHASE gate
         """

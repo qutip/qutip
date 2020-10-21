@@ -95,7 +95,7 @@ class SpinChainCompiler(GateCompiler):
                              })
         self.global_phase = global_phase
 
-    def rz_compiler(self, gate):
+    def rz_compiler(self, gate, args):
         """
         Compiler for the RZ gate
         """
@@ -106,7 +106,7 @@ class SpinChainCompiler(GateCompiler):
         pulse_info = [("sz" + str(targets[0]), coeff)]
         return [Instruction(gate, tlist, pulse_info)]
 
-    def rx_compiler(self, gate):
+    def rx_compiler(self, gate, args):
         """
         Compiler for the RX gate
         """
@@ -117,7 +117,7 @@ class SpinChainCompiler(GateCompiler):
         pulse_info = [("sx" + str(targets[0]), coeff)]
         return [Instruction(gate, tlist, pulse_info)]
 
-    def iswap_compiler(self, gate):
+    def iswap_compiler(self, gate, args):
         """
         Compiler for the ISWAP gate
         """
@@ -133,7 +133,7 @@ class SpinChainCompiler(GateCompiler):
         pulse_info = [(pulse_name, coeff)]
         return [Instruction(gate, tlist, pulse_info)]
 
-    def sqrtiswap_compiler(self, gate):
+    def sqrtiswap_compiler(self, gate, args):
         """
         Compiler for the SQRTISWAP gate
         """
@@ -149,7 +149,7 @@ class SpinChainCompiler(GateCompiler):
         pulse_info = [(pulse_name, coeff)]
         return [Instruction(gate, tlist, pulse_info)]
 
-    def globalphase_compiler(self, gate):
+    def globalphase_compiler(self, gate, args):
         """
         Compiler for the GLOBALPHASE gate
         """

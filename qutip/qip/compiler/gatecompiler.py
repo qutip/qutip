@@ -78,8 +78,9 @@ class GateCompiler(object):
         self.params = params
         self.pulse_dict = pulse_dict
         self.gate_compiler = {"GLOBALPHASE": self.globalphase_compiler}
+        self.args = {}
 
-    def globalphase_compiler(self, gate):
+    def globalphase_compiler(self, gate, args):
         """
         Compiler for the GLOBALPHASE gate
         """
@@ -119,7 +120,7 @@ class GateCompiler(object):
         for gate in gates:
             if gate.name not in self.gate_compiler:
                 raise ValueError("Unsupported gate %s" % gate.name)
-            compilered_gate = self.gate_compiler[gate.name](gate)
+            compilered_gate = self.gate_compiler[gate.name](gate, self.args)
             if compilered_gate is None:
                 continue  # neglecting global phase gate
             instruction_list += compilered_gate
