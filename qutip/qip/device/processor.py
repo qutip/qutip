@@ -142,6 +142,14 @@ class Processor(object):
             self.dims = dims
         self.pulse_mode = "discrete"
         self.spline_kind = spline_kind
+    
+    @property
+    def num_qubits(self):
+        return self.N
+
+    @num_qubits.setter
+    def get_num_qubits(self, num_qubits):
+        self.N = num_qubits
 
     def add_drift(self, qobj, targets, cyclic_permutation=False):
         """
