@@ -71,9 +71,8 @@ class Instruction():
         if self.tlist is not None:
             if np.isscalar(self.tlist):
                 self.duration = self.tlist
-            elif self.tlist[0] != 0.:
-                self.tlist = np.concatenate([0.], self.tlist)
-                self.duration = self.tlist[-1]
+            elif abs(self.tlist[0] - 0.) > 1.e-8:
+                raise ValueError("Pulse time sequence must start from 0")
             else:
                 self.duration = self.tlist[-1]
         else:

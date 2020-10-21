@@ -153,38 +153,94 @@ class GateCompiler(object):
             scheduled_start_time = scheduled_start_time[:-1]
 
         # compile
-        tlist = [[[0.]] for tmp in range(num_ops)]
-        coeffs = [[] for tmp in range(num_ops)]
+        pulse_instructions = [[] for tmp in range(num_ops)]
         for ind in time_ordered_pos:
             instruction = instruction_list[ind]
             start_time = scheduled_start_time[ind]
             for pulse_name, coeff in instruction.pulse_info:
                 pulse_ind = self.pulse_dict[pulse_name]
-                if np.isscalar(instruction.tlist):
-                    step_size = instruction.tlist
-                    temp_tlist = np.array([instruction.tlist])
-                    coeff = np.array([coeff])
-                else:
-                    step_size = instruction.tlist[1] - instruction.tlist[0]
-                    if coeffs[pulse_ind]:  # not the first pulse
-                        temp_tlist = instruction.tlist[1:]
-                        if spline_kind == "cubic":
-                            coeff = coeff[1:]
+                pulse_instructions[pulse_ind].append(
+                    (start_time, instruction.tlist, coeff))
+
+        compiled_tlist = [[[0.]] for tmp in range(num_ops)]
+        compiled_coeffs = [[] for tmp in range(num_ops)]        
+        for pulse_ind in range(num_ops):
+            for start_time, tlist, coeff in pulse_instructions[pulse_ind]:
+                if spline_kind == "step_func":
+                    if np.isscalar(tlist):
+                        step_size = tlist
+                        temp_tlist = np.array([tlist])
+                        coeff = np.array([coeff])
                     else:
-                        temp_tlist = instruction.tlist
-                if np.abs(start_time - tlist[pulse_ind][-1][-1]) > step_size * 1.0e-6:
-                    tlist[pulse_ind].append([start_time])
-                    coeffs[pulse_ind].append([0.])
-                tlist[pulse_ind].append(temp_tlist + start_time)
-                coeffs[pulse_ind].append(coeff)
+                        step_size = tlist[1] - tlist[0]
+                        temp_tlist = np.asarray(tlist)[1:]
+                        coeff = np.asarray(coeff)
+                    if np.abs(start_time - compiled_tlist[pulse_ind][-1][-1]) > step_size * 1.0e-6:
+                        compiled_tlist[pulse_ind].append([start_time])
+                        compiled_coeffs[pulse_ind].append([0.])
+                    compiled_tlist[pulse_ind].append(temp_tlist + start_time)
+                    compiled_coeffs[pulse_ind].append(coeff)
+                else:
+                    step_size = tlist[1] - tlist[0]
+                    if compiled_coeffs[pulse_ind]:  # not first pulse
+                        temp_tlist = np.asarray(tlist)[1:]
+                        coeff = np.asarray(coeff)[1:]
+                    else:  #  first pulse
+                        temp_tlist = np.asarray(tlist)[1:]
+                        coeff = np.asarray(coeff)
+                    if np.abs(start_time - compiled_tlist[pulse_ind][-1][-1]) > step_size * 1.0e-6:
+                        empty_tlist = np.arange(compiled_tlist[pulse_ind][-1][-1] + step_size, start_time, step_size)
+                        compiled_tlist[pulse_ind].append(empty_tlist)
+                        compiled_coeffs[pulse_ind].append(np.zeros(len(empty_tlist)))
+                    compiled_tlist[pulse_ind].append(temp_tlist + start_time)
+                    compiled_coeffs[pulse_ind].append(coeff)
+
         for i in range(num_ops):
-            if not coeffs[i]:
-                tlist[i] = None
-                coeffs[i] = None
+            if not compiled_coeffs[i]:
+                compiled_tlist[i] = None
+                compiled_coeffs[i] = None
             else:
-                tlist[i] = np.concatenate(tlist[i])
-                coeffs[i] = np.concatenate(coeffs[i])
+                compiled_tlist[i] = np.concatenate(compiled_tlist[i])
+                compiled_coeffs[i] = np.concatenate(compiled_coeffs[i])
                 #  remove the leading 0
-                if spline_kind == "cubic":
-                    tlist[i] = tlist[i][1:]
-        return tlist, coeffs
+                # if spline_kind == "cubic":
+                #     compiled_tlist[i] = compiled_tlist[i][1:]
+
+
+        # tlist = [[[0.]] for tmp in range(num_ops)]
+        # coeffs = [[] for tmp in range(num_ops)]
+        # for ind in time_ordered_pos:
+        #     instruction = instruction_list[ind]
+        #     start_time = scheduled_start_time[ind]
+        #     for pulse_name, coeff in instruction.pulse_info:
+        #         pulse_ind = self.pulse_dict[pulse_name]
+        #         if np.isscalar(instruction.tlist):
+        #             step_size = instruction.tlist
+        #             temp_tlist = np.array([instruction.tlist])
+        #             coeff = np.array([coeff])
+        #         else:
+        #             step_size = instruction.tlist[1] - instruction.tlist[0]
+        #             if coeffs[pulse_ind]:  # not the first pulse
+        #                 temp_tlist = instruction.tlist[1:]
+        #                 if spline_kind == "cubic":
+        #                     coeff = coeff[1:]
+        #             else:
+        #                 temp_tlist = instruction.tlist
+        #         if np.abs(start_time - tlist[pulse_ind][-1][-1]) > step_size * 1.0e-6:
+        #             tlist[pulse_ind].append([start_time])
+        #             coeffs[pulse_ind].append([0.])
+        #         tlist[pulse_ind].append(temp_tlist + start_time)
+        #         coeffs[pulse_ind].append(coeff)
+
+        # for i in range(num_ops):
+        #     if not coeffs[i]:
+        #         tlist[i] = None
+        #         coeffs[i] = None
+        #     else:
+        #         tlist[i] = np.concatenate(tlist[i])
+        #         coeffs[i] = np.concatenate(coeffs[i])
+        #         #  remove the leading 0
+        #         if spline_kind == "cubic":
+        #             tlist[i] = tlist[i][1:]
+
+        return compiled_tlist, compiled_coeffs
