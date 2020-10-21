@@ -14,7 +14,7 @@ If one is using the C++ BoFiN-fast package, the import is instead
 .. code-block:: python
 
     from qutip import *
-    from bofincpp.heom import FermionicHEOMSolver
+    from bofinfast.heom import FermionicHEOMSolver
     
     
 Apart from this difference in import, and some additional features in the solvers in the C++ variant, the functionality that follows applies to both libraries.
