@@ -99,7 +99,7 @@ def _freebsd_hardware_info():
 def _win_hardware_info():
     try:
         from comtypes.client import CoGetObject
-        winmgmts_root = CoGetObject("winmgmts:root\cimv2")
+        winmgmts_root = CoGetObject(r"winmgmts:root\cimv2")
         cpus = winmgmts_root.ExecQuery("Select * from Win32_Processor")
         ncpus = 0
         for cpu in cpus:

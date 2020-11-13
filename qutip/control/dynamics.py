@@ -1791,7 +1791,7 @@ class DynamicsSymplectic(Dynamics):
 
     @property
     def dyn_gen_phase(self):
-        """
+        r"""
         The phasing operator for the symplectic group generators
         usually refered to as \Omega
         By default this is applied as 'postop' dyn_gen*-\Omega

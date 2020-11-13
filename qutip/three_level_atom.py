@@ -30,7 +30,7 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-'''
+r'''
 This module provides functions that are useful for simulating the
 three level atom with QuTiP.  A three level atom (qutrit) has three states,
 which are linked by dipole transitions so that 1 <-> 2 <-> 3.

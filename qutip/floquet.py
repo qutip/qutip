@@ -409,9 +409,9 @@ def floquet_wavefunction_t(f_modes_0, f_energies, f_coeff, t, H, T, args=None):
                 for i in np.arange(len(f_energies))])
 
 def floquet_state_decomposition(f_states, f_energies, psi):
-    """
+    r"""
     Decompose the wavefunction `psi` (typically an initial state) in terms of
-    the Floquet states, :math:`\psi = \sum_\\alpha c_\\alpha \psi_\\alpha(0)`.
+    the Floquet states, :math:`\psi = \sum_\alpha c_\alpha \psi_\alpha(0)`.
 
     Parameters
     ----------
@@ -430,7 +430,7 @@ def floquet_state_decomposition(f_states, f_energies, psi):
 
     output : array
 
-        The coefficients :math:`c_\\alpha` in the Floquet state decomposition.
+        The coefficients :math:`c_\alpha` in the Floquet state decomposition.
 
     """
     # [:1,:1][0, 0] patch around scipy 1.3.0 bug

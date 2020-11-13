@@ -765,7 +765,7 @@ class Lattice1d():
             else:
                 ax.plot(knxA/np.pi, val_kns[g, :], 'ro')
         ax.set_ylabel('Energy')
-        ax.set_xlabel('$k_x(\pi/a)$')
+        ax.set_xlabel(r'$k_x(\pi/a)$')
         plt.show(fig)
         fig.savefig('./Dispersion.pdf')
 
@@ -826,7 +826,7 @@ class Lattice1d():
         return (knxA, val_kns)
 
     def bloch_wave_functions(self):
-        """
+        r"""
         Returns eigenvectors ($\psi_n(k)$) of the Hamiltonian in a
         numpy.ndarray for translationally symmetric lattices with periodic
         boundary condition.
@@ -862,7 +862,7 @@ class Lattice1d():
         return eigen_states
 
     def cell_periodic_parts(self):
-        """
+        r"""
         Returns eigenvectors of the bulk Hamiltonian, i.e. the cell periodic
         part($u_n(k)$) of the Bloch wavefunctios in a numpy.ndarray for
         translationally symmetric lattices with periodic boundary condition.
@@ -1186,7 +1186,7 @@ class Lattice1d():
         return Hcell
 
     def display_lattice(self):
-        """
+        r"""
         Produces a graphic portraying the lattice symbolically with a unit cell
         marked in it.
 
