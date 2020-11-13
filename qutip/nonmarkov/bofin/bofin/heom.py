@@ -325,6 +325,13 @@ class BosonicHEOMSolver(object):
 
         if type(self.H_sys) is qutip.qutip.QobjEvo:
             self.H_sys_list = self.H_sys.to_list()
+            
+            if  self.H_sys_list[0].type == "oper":
+                
+                self.isHamiltonian = True
+            else:
+                self.isHamiltonian = False
+            
             self.isTimeDep = True
 
         else:
@@ -504,18 +511,25 @@ class BosonicHEOMSolver(object):
         if self.isHamiltonian:
 
             if self.isTimeDep:
-                self.N = self.H_sys_list[0].shape[0]
+                self.N = self.H_sys_list[0].shape[0]                
                 self.L = liouvillian(self.H_sys_list[0], []).data
-                self.grad_shape = (self.N ** 2, self.N ** 2)
+                
+                #self.grad_shape = (self.N ** 2, self.N ** 2)  #this is never used?
             else:
                 self.N = self.H_sys.shape[0]
                 self.L = liouvillian(self.H_sys, []).data
-                self.grad_shape = (self.N ** 2, self.N ** 2)
+                
+                #self.grad_shape = (self.N ** 2, self.N ** 2)
 
         else:
-            self.N = int(np.sqrt(self.H_sys.shape[0]))
-            self.L = self.H_sys.data
-            self.grad_shape = (self.N, self.N)
+            if self.isTimeDep:                
+                self.N =  int(np.sqrt(self.H_sys_list[0].shape[0]))                
+                self.L = self.H_sys_list[0].data
+                #self.grad_shape = (self.N, self.N)
+            else:
+                self.N = int(np.sqrt(self.H_sys.shape[0]))
+                self.L = self.H_sys.data
+                #self.grad_shape = (self.N, self.N)
 
         self.L_helems = lil_matrix(
             (self.total_nhe * self.N ** 2, self.total_nhe * self.N ** 2),
@@ -629,7 +643,13 @@ class BosonicHEOMSolver(object):
             else:
                 self._sup_dim = H.shape[0] * H.shape[0]
         else:
-            self._sup_dim = int(sqrt(H.shape[0])) * int(sqrt(H.shape[0]))
+            if self.isTimeDep:
+                self._sup_dim = (
+                    self.H_sys_list[0].shape[0] 
+                )
+            else:
+                self._sup_dim =  H.shape[0]
+            
         self._N_he = nstates
 
     def steady_state(self, max_iter_refine=100, use_mkl=False, weighted_matching=False):
@@ -701,7 +721,7 @@ class BosonicHEOMSolver(object):
 
         return Qobj(data, dims=dims), solution
 
-    def run(self, rho0, tlist):
+    def run(self, rho0, tlist, full_init = False, return_full = False):
         """
         Function to solve for an open quantum system using the
         HEOM model.
@@ -709,21 +729,34 @@ class BosonicHEOMSolver(object):
         Parameters
         ----------
         rho0 : Qobj
-            Initial state (density matrix) of the system.
+            Initial state (density matrix) of the system (if full_init==False).
+            If full_init = True, then rho0 should be a numpy array of 
+            initial state and all ADOs.
 
         tlist : list
             Time over which system evolves.
+            
+        full_init: Boolean
+            Indicates if initial condition is just the system Qobj, or a 
+            numpy array including all ADOs.
+            
+        return_full: Boolean
+        
+            Whether to also return as output the full state of all ADOs.
 
         Returns
         -------
         results : :class:`qutip.solver.Result`
             Object storing all results from the simulation.
+            If return_full == True, also returns ADOs as an additional numpy array.
         """
 
         sup_dim = self._sup_dim
 
         solver = self._ode
-
+        dims = self.coup_op[0].dims
+        shape = self.coup_op[0].shape
+        
         if not self._configured:
             raise RuntimeError("Solver must be configured before it is run")
 
@@ -731,28 +764,57 @@ class BosonicHEOMSolver(object):
         output.solver = "hsolve"
         output.times = tlist
         output.states = []
-
-        output.states.append(Qobj(rho0))
-        rho0_flat = rho0.full().ravel("F")
-        rho0_he = np.zeros([sup_dim * self._N_he], dtype=complex)
-        rho0_he[:sup_dim] = rho0_flat
-        solver.set_initial_value(rho0_he, tlist[0])
+        if full_init == False:
+            output.states.append(Qobj(rho0))
+            rho0_flat = rho0.full().ravel('F') 
+            rho0_he = np.zeros([sup_dim*self._N_he], dtype=complex)
+            rho0_he[:sup_dim] = rho0_flat
+            solver.set_initial_value(rho0_he, tlist[0])
+        else:
+            output.states.append(Qobj(rho0[:sup_dim].reshape( shape,order='F'), dims= dims))
+            rho0_he = rho0
+            solver.set_initial_value(rho0_he, tlist[0])
+            
+        #output.states.append(Qobj(rho0))
+        #rho0_flat = rho0.full().ravel("F")
+        #rho0_he = np.zeros([sup_dim * self._N_he], dtype=complex)
+        #rho0_he[:sup_dim] = rho0_flat
+        #solver.set_initial_value(rho0_he, tlist[0])
 
         dt = np.diff(tlist)
         n_tsteps = len(tlist)
 
-        self.progress_bar.start(n_tsteps)
-        for t_idx, t in enumerate(tlist):
-            self.progress_bar.update(t_idx)
-            if t_idx < n_tsteps - 1:
-                solver.integrate(solver.t + dt[t_idx])
-                rho = Qobj(
-                    solver.y[:sup_dim].reshape(rho0.shape, order="F"), dims=rho0.dims
-                )
-                output.states.append(rho)
+        
+        
+        if return_full == False:
+            self.progress_bar.start(n_tsteps)
+            for t_idx, t in enumerate(tlist):
+                self.progress_bar.update(t_idx)
+                if t_idx < n_tsteps - 1:
+                    solver.integrate(solver.t + dt[t_idx])
+                    rho = Qobj(
+                        solver.y[:sup_dim].reshape(shape, order="F"), dims=dims
+                    )
+                    output.states.append(rho)
 
-        self.progress_bar.finished()
-        return output
+            self.progress_bar.finished()
+            return output
+        else:
+            self.progress_bar.start(n_tsteps)
+            N_he =  self._N_he
+            N = shape[0]
+            hshape = (N_he, N**2)
+            full_hierarchy = [rho0.reshape(hshape)]
+            for t_idx, t in enumerate(tlist):
+                if t_idx < n_tsteps - 1:
+                    solver.integrate(solver.t + dt[t_idx])
+                    
+                    rho = Qobj(solver.y[:sup_dim].reshape(shape,order='F'), dims=dims)
+                    full_hierarchy.append(solver.y.reshape(hshape))
+                    output.states.append(rho)
+            self.progress_bar.finished()
+            return output, full_hierarchy
+        
 
 
 def _dsuper_list_td(t, y, L_list):
