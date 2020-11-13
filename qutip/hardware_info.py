@@ -59,18 +59,20 @@ def _linux_hardware_info():
     sockets = 0
     cores_per_socket = 0
     frequency = 0.0
-    for l in [l.split(':') for l in open("/proc/cpuinfo").readlines()]:
-        if (l[0].strip() == "physical id"):
-            sockets = np.maximum(sockets,int(l[1].strip())+1)
-        if (l[0].strip() == "cpu cores"):
-            cores_per_socket = int(l[1].strip())
-        if (l[0].strip() == "cpu MHz"):
-            frequency = float(l[1].strip()) / 1000.
+    with open("/proc/cpuinfo") as f:
+        for l in [l.split(':') for l in f.readlines()]:
+            if (l[0].strip() == "physical id"):
+                sockets = np.maximum(sockets,int(l[1].strip())+1)
+            if (l[0].strip() == "cpu cores"):
+                cores_per_socket = int(l[1].strip())
+            if (l[0].strip() == "cpu MHz"):
+                frequency = float(l[1].strip()) / 1000.
     results.update({'cpus': sockets * cores_per_socket})
     # get cpu frequency directly (bypasses freq scaling)
     try:
-        file = "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq"
-        line = open(file).readlines()[0]
+        with open(
+                "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq") as f:
+            line = f.readlines()[0]
         frequency = float(line.strip('\n')) / 1000000.
     except:
         pass
@@ -78,8 +80,9 @@ def _linux_hardware_info():
 
     # get total amount of memory
     mem_info = dict()
-    for l in [l.split(':') for l in open("/proc/meminfo").readlines()]:
-        mem_info[l[0]] = l[1].strip('.\n ').strip('kB')
+    with open("/proc/meminfo") as f:
+        for l in [l.split(':') for l in f.readlines()]:
+            mem_info[l[0]] = l[1].strip('.\n ').strip('kB')
     results.update({'memsize': int(mem_info['MemTotal']) / 1024})
     # add OS information
     results.update({'os': 'Linux'})
