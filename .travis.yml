@@ -7,9 +7,11 @@ os: linux
 dist: xenial
 language: python
 
-# We use our own "_PYTHON_VERSION" variable because Travis jobs on macOS don't
-# have a "language: python" available, so don't define the variable.
-env: _CONDA_SUFFIX="Linux-x86_64" _PYTHON_VERSION="$TRAVIS_PYTHON_VERSION"
+# This is overriden by the Mac versions, which also directly set
+# _PYTHON_VERSION.  We cannot set _PYTHON_VERSION to TRAVIS_PYTHON_VERSION here
+# because the latter is not defined until after this environment setup takes
+# place.
+env: _CONDA_SUFFIX="Linux-x86_64"
 
 # Set up conda with the correct version of conda.
 before_install:
@@ -19,6 +21,10 @@ before_install:
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
   - conda info -a
+  # We have to use the older [[ -z "$x" ]] syntax rather than the more robust
+  #   [[ ! -v _PYTHON_VERSION ]]
+  # because the macOS machines on Travis only have bash 3.2 (released 2006)!
+  - if [[ -z "$_PYTHON_VERSION" ]]; then export _PYTHON_VERSION="$TRAVIS_PYTHON_VERSION"; fi
   - conda create -q -n test-environment python="$_PYTHON_VERSION"
   - source activate test-environment
   - QUTIP_DOWNLOAD=$(pwd -P)
