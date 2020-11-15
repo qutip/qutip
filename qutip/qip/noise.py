@@ -118,7 +118,7 @@ def process_pulse_noise(pulses, noise_list, dims):
         if isinstance(noise, ControlAmpNoise):
             noisy_pulses = noise.get_noisy_dynamics(noisy_pulses)
         elif isinstance(noise, UserNoise):
-            noisy_pulses = noise.get_noisy_dynamics(pulses, dims)
+            noisy_pulses = noise.get_noisy_dynamics(noisy_pulses, dims)
     return noisy_pulses
 
 
