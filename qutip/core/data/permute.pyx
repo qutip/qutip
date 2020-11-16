@@ -262,7 +262,8 @@ cpdef CSR dimensions_csr(CSR matrix, object dimensions, object order):
         return _indices_csr_rowonly(matrix, index.all())
     if matrix.shape[0] != matrix.shape[1]:
         raise ValueError("dimensional permute requires square operators")
-    if (matrix.shape[0] * matrix.shape[1]) // csr.nnz(matrix) > 0:
+    cdef double row_density = (<double> csr.nnz(matrix)) / (<double> matrix.shape[0])
+    if row_density >= 0.5:
         permutation = index.all()
         return _indices_csr_full(matrix, permutation, permutation)
     return _dimensions_csr_sparse(matrix, index)
