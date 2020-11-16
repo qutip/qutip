@@ -160,7 +160,7 @@ class TestCircuitProcessor:
             err_msg="Error in t1 & t2 simulation, "
                     "with t1={} and t2={}".format(t1, t2))
 
-    def TestPlot(self):
+    def testPlot(self):
         """
         Test for plotting functions
         """
@@ -186,7 +186,7 @@ class TestCircuitProcessor:
         processor.plot_pulses()
         plt.clf()
 
-    def TestSpline(self):
+    def testSpline(self):
         """
         Test if the spline kind is correctly transfered into
         the arguments in QobjEvo
@@ -223,7 +223,7 @@ class TestCircuitProcessor:
         noisy_qobjevo, c_ops = processor.get_qobjevo(noisy=True)
         assert_(not noisy_qobjevo.args["_step_func_coeff"])
 
-    def TestGetObjevo(self):
+    def testGetObjevo(self):
         tlist = np.array([1, 2, 3, 4, 5, 6], dtype=float)
         coeff = np.array([1, 1, 1, 1, 1, 1], dtype=float)
         processor = Processor(N=1)
@@ -277,7 +277,7 @@ class TestCircuitProcessor:
         assert_equal(sigmaz(), noisy_qobjevo.ops[0].qobj)
         assert_allclose(coeff, noisy_qobjevo.ops[0].coeff, rtol=1.e-10)
 
-    def TestNoise(self):
+    def testNoise(self):
         """
         Test for Processor with noise
         """
@@ -308,7 +308,7 @@ class TestCircuitProcessor:
         proc.add_noise(white_noise)
         result = proc.run_state(init_state=init_state)
 
-    def TestMultiLevelSystem(self):
+    def testMultiLevelSystem(self):
         """
         Test for processor with multi-level system
         """
@@ -319,7 +319,7 @@ class TestCircuitProcessor:
         proc.pulses[0].tlist = np.array([0., 1., 2])
         proc.run_state(init_state=tensor([basis(2, 0), basis(3, 1)]))
 
-    def TestDrift(self):
+    def testDrift(self):
         """
         Test for the drift Hamiltonian
         """
@@ -330,7 +330,7 @@ class TestCircuitProcessor:
         ideal_qobjevo, _ = processor.get_qobjevo(noisy=True)
         assert_equal(ideal_qobjevo.cte, sigmaz())
 
-    def TestChooseSolver(self):
+    def testChooseSolver(self):
         # setup and fidelity without noise
         init_state = qubit_states(2, [0, 0, 0, 0])
         tlist = np.array([0., np.pi/2.])

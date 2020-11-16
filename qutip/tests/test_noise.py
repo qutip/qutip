@@ -24,7 +24,7 @@ class DriftNoise(UserNoise):
 
 
 class TestNoise:
-    def TestDecoherenceNoise(self):
+    def test_decoherence_noise(self):
         """
         Test for the decoherence noise
         """
@@ -55,7 +55,7 @@ class TestNoise:
         assert_allclose(c_ops[0].tlist, tlist)
         assert_allclose(c_ops[1].ops[0].qobj, tensor(qeye(2), sigmax()))
 
-    def TestRelaxationNoise(self):
+    def test_relaxation_noise(self):
         """
         Test for the relaxation noise
         """
@@ -77,7 +77,7 @@ class TestNoise:
         noisy_qu, c_ops = relnoise.get_noisy_dynamics(2).get_noisy_qobjevo(dims=2)
         assert_(len(c_ops) == 4)
 
-    def TestControlAmpNoise(self):
+    def test_control_amplitude_oise(self):
         """
         Test for the control amplitude noise
         """
@@ -91,7 +91,7 @@ class TestNoise:
         assert_allclose(noisy_pulses[0].coherent_noise[0].qobj, sigmaz())
         assert_allclose(noisy_pulses[0].coherent_noise[0].coeff, coeff)
 
-    def TestRandomNoise(self):
+    def test_random_noise(self):
         """
         Test for the white noise
         """
@@ -131,7 +131,7 @@ class TestNoise:
             noisy_pulses[2].coherent_noise[0].tlist,
             np.linspace(1, 6, int(5/0.2) + 1))
 
-    def TestUserNoise(self):
+    def test_user_noise(self):
         """
         Test for the user-defined noise object
         """
