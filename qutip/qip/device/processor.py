@@ -607,6 +607,13 @@ class Processor(object):
         final_qu = _merge_qobjevo(qu_list)
         final_qu.args.update(args)
 
+        # bring all c_ops to the same tlist, won't need it in QuTiP 5
+        full_tlist = self.get_full_tlist()
+        temp = []
+        for _, c_op in enumerate(c_ops):
+            temp.append(_merge_qobjevo([c_op], full_tlist))
+        c_ops = temp
+
         if noisy:
             return final_qu, c_ops
         else:
@@ -758,12 +765,14 @@ class Processor(object):
         # choose solver:
         if solver == "mesolve":
             solver = mesolve
+            evo_result = mesolve(
+                H=noisy_qobjevo, rho0=init_state,
+                tlist=noisy_qobjevo.tlist, **kwargs)
         elif solver == "mcsolve":
-            solver = mcsolve
+            evo_result = mcsolve(
+                H=noisy_qobjevo, psi0=init_state,
+                tlist=noisy_qobjevo.tlist, **kwargs)
 
-        evo_result = solver(
-            H=noisy_qobjevo, rho0=init_state,
-            tlist=noisy_qobjevo.tlist, **kwargs)
         return evo_result
 
     def load_circuit(self, qc):
