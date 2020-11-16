@@ -17,10 +17,9 @@ class DriftNoise(UserNoise):
     def __init__(self, op):
         self.qobj = op
 
-    def get_noisy_dynamics(self, ctrl_pulses, dims=None):
-        dummy = Pulse(None, None)
-        dummy.add_coherent_noise(self.qobj, 0, coeff=True)
-        return ctrl_pulses + [dummy]
+    def get_noisy_dynamics(self, ctrl_pulses, system_noise, dims=None):
+        system_noise.add_coherent_noise(self.qobj, 0, coeff=True)
+        return ctrl_pulses, system_noise
 
 
 class TestNoise:
@@ -60,21 +59,29 @@ class TestNoise:
         Test for the relaxation noise
         """
         a = destroy(2)
+        system_noise = Pulse(None, None, label="system")
         relnoise = RelaxationNoise(t1=[1., 1., 1.], t2=None)
-        noisy_qu, c_ops = relnoise.get_noisy_dynamics(3).get_noisy_qobjevo(dims=3)
+        relnoise.get_noisy_dynamics(3, system_noise)
+        noisy_qu, c_ops = system_noise.get_noisy_qobjevo(dims=3)
         assert_(len(c_ops) == 3)
         assert_allclose(c_ops[1].cte, tensor([qeye(2), a, qeye(2)]))
 
+        system_noise = Pulse(None, None, label="system")
         relnoise = RelaxationNoise(t1=None, t2=None)
-        noisy_qu, c_ops = relnoise.get_noisy_dynamics(2).get_noisy_qobjevo(dims=2)
+        relnoise.get_noisy_dynamics(2, system_noise)
+        noisy_qu, c_ops = system_noise.get_noisy_qobjevo(dims=2)
         assert_(len(c_ops) == 0)
 
+        system_noise = Pulse(None, None, label="system")
         relnoise = RelaxationNoise(t1=None, t2=[0.2, 0.7])
-        noisy_qu, c_ops = relnoise.get_noisy_dynamics(2).get_noisy_qobjevo(dims=2)
+        relnoise.get_noisy_dynamics(2, system_noise)
+        noisy_qu, c_ops = system_noise.get_noisy_qobjevo(dims=2)
         assert_(len(c_ops) == 2)
 
+        system_noise = Pulse(None, None, label="system")
         relnoise = RelaxationNoise(t1=[1., 1.], t2=[0.5, 0.5])
-        noisy_qu, c_ops = relnoise.get_noisy_dynamics(2).get_noisy_qobjevo(dims=2)
+        relnoise.get_noisy_dynamics(2, system_noise)
+        noisy_qu, c_ops = system_noise.get_noisy_qobjevo(dims=2)
         assert_(len(c_ops) == 4)
 
     def TestControlAmpNoise(self):
@@ -87,9 +94,9 @@ class TestNoise:
         # use proc_qobjevo
         pulses = [Pulse(sigmaz(), 0, tlist, coeff)]
         connoise = ControlAmpNoise(coeff=coeff, tlist=tlist)
-        noisy_pulses = connoise.get_noisy_dynamics(pulses=pulses)
-        assert_allclose(noisy_pulses[0].coherent_noise[0].qobj, sigmaz())
-        assert_allclose(noisy_pulses[0].coherent_noise[0].coeff, coeff)
+        connoise.get_noisy_dynamics(pulses=pulses)
+        assert_allclose(pulses[0].coherent_noise[0].qobj, sigmaz())
+        assert_allclose(pulses[0].coherent_noise[0].coeff, coeff)
 
     def TestRandomNoise(self):
         """
@@ -107,12 +114,12 @@ class TestNoise:
         # random noise with operators from proc_qobjevo
         gaussnoise = RandomNoise(
             dt=0.1, rand_gen=np.random.normal, loc=mean, scale=std)
-        noisy_pulses = gaussnoise.get_noisy_dynamics(pulses=pulses)
-        assert_allclose(noisy_pulses[2].qobj, sigmay())
-        assert_allclose(noisy_pulses[1].coherent_noise[0].qobj, sigmax())
+        gaussnoise.get_noisy_dynamics(pulses=pulses)
+        assert_allclose(pulses[2].qobj, sigmay())
+        assert_allclose(pulses[1].coherent_noise[0].qobj, sigmax())
         assert_allclose(
-            len(noisy_pulses[0].coherent_noise[0].tlist),
-            len(noisy_pulses[0].coherent_noise[0].coeff))
+            len(pulses[0].coherent_noise[0].tlist),
+            len(pulses[0].coherent_noise[0].coeff))
 
         # random noise with dt and other random number generator
         pulses = [Pulse(sigmaz(), 0, tlist, coeff),
@@ -120,15 +127,15 @@ class TestNoise:
                   Pulse(sigmay(), 0, tlist, coeff*3)]
         gaussnoise = RandomNoise(lam=0.1, dt=0.2, rand_gen=np.random.poisson)
         assert_(gaussnoise.rand_gen is np.random.poisson)
-        noisy_pulses = gaussnoise.get_noisy_dynamics(pulses=pulses)
+        gaussnoise.get_noisy_dynamics(pulses=pulses)
         assert_allclose(
-            noisy_pulses[0].coherent_noise[0].tlist,
+            pulses[0].coherent_noise[0].tlist,
             np.linspace(1, 6, int(5/0.2) + 1))
         assert_allclose(
-            noisy_pulses[1].coherent_noise[0].tlist,
+            pulses[1].coherent_noise[0].tlist,
             np.linspace(1, 6, int(5/0.2) + 1))
         assert_allclose(
-            noisy_pulses[2].coherent_noise[0].tlist,
+            pulses[2].coherent_noise[0].tlist,
             np.linspace(1, 6, int(5/0.2) + 1))
 
     def TestUserNoise(self):
