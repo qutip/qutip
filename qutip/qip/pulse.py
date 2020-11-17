@@ -272,7 +272,7 @@ class Pulse():
     def coeff(self, x):
         self.ideal_pulse.coeff = x
 
-    def add_coherent_noise(self, qobj, targets, tlist=None, coeff=None):
+    def add_control_noise(self, qobj, targets, tlist=None, coeff=None):
         """
         Add a new (time-dependent) Hamiltonian to the coherent noise.
 
@@ -547,8 +547,8 @@ def _merge_qobjevo(qobjevo_list, full_tlist=None):
     Combine a list of `:class:qutip.QobjEvo` into one,
     different tlist will be merged.
     """
-    # TODO This method can be eventually integrated into QobjEvo, for
-    # which a more thorough test is required
+    # This part is temporal solution for merging qobjevo with unequal tlist.
+    # In QuTiP 5.0, this will no longer be needed.
 
     # no qobjevo
     if not qobjevo_list:

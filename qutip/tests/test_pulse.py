@@ -76,7 +76,7 @@ def TestCoherentNoise():
     ham = sigmaz()
     pulse1 = Pulse(ham, 1, tlist, coeff)
     # Add coherent noise with the same tlist
-    pulse1.add_coherent_noise(sigmay(), 0, tlist, coeff)
+    pulse1.add_control_noise(sigmay(), 0, tlist, coeff)
     assert_allclose(
         pulse1.get_ideal_qobjevo(2).ops[0].qobj, tensor(identity(2), sigmaz()))
     assert_(len(pulse1.coherent_noise) == 1)
@@ -102,7 +102,7 @@ def TestNoisyPulse():
     pulse1.spline_kind = "step_func"
     tlist_noise = np.array([1., 2.5, 3.])
     coeff_noise = np.array([0.5, 0.1, 0.5])
-    pulse1.add_coherent_noise(sigmay(), 0, tlist_noise, coeff_noise)
+    pulse1.add_control_noise(sigmay(), 0, tlist_noise, coeff_noise)
     tlist_noise2 = np.array([0.5, 2, 3.])
     coeff_noise2 = np.array([0.1, 0.2, 0.3])
     pulse1.add_lindblad_noise(sigmax(), 1, coeff=True)
@@ -157,7 +157,7 @@ def TestPulseConstructor():
     # Pulse with different dims
     random_qobj = Qobj(np.random.random((3, 3)))
     pulse5 = Pulse(sigmaz(), 1, tlist, True)
-    pulse5.add_coherent_noise(sigmay(), 1, tlist_noise, coeff_noise)
+    pulse5.add_control_noise(sigmay(), 1, tlist_noise, coeff_noise)
     pulse5.add_lindblad_noise(
         random_qobj, 0, tlist=tlist_noise2, coeff=coeff_noise2)
     qu, c_ops = pulse5.get_noisy_qobjevo(dims=[3, 2])

@@ -18,7 +18,7 @@ class DriftNoise(UserNoise):
         self.qobj = op
 
     def get_noisy_dynamics(self, ctrl_pulses, system_noise, dims=None):
-        system_noise.add_coherent_noise(self.qobj, 0, coeff=True)
+        system_noise.add_control_noise(self.qobj, 0, coeff=True)
         return ctrl_pulses, system_noise
 
 

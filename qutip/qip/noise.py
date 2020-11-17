@@ -304,7 +304,6 @@ class ControlAmpNoise(Noise):
         A NumPy array specifies the time of each coefficient.
     indices: list of int
         The indices of target pulse in the list of pulses.
-
     """
     def __init__(self, coeff, tlist=None, indices=None):
         self.coeff = coeff
@@ -337,7 +336,7 @@ class ControlAmpNoise(Noise):
                 tlist = pulse.tlist
             else:
                 tlist = self.tlist
-            pulses[i].add_coherent_noise(
+            pulses[i].add_control_noise(
                 pulse.qobj, pulse.targets, tlist, coeff)
 
 
@@ -417,7 +416,7 @@ class RandomNoise(ControlAmpNoise):
         for i in indices:
             pulse = pulses[i]
             coeff = self.rand_gen(**self.kwargs, size=num_rand)
-            pulses[i].add_coherent_noise(
+            pulses[i].add_control_noise(
                 pulse.qobj, pulse.targets, tlist, coeff)
 
 
@@ -448,10 +447,5 @@ class UserNoise(Noise):
         dims: list, optional
             The dimension of the components system, the default value is
             [2,2...,2] for qubits system.
-
-        Returns
-        -------
-        noisy_pulses: list of :class:`qutip.qip.Pulse`
-            The input `Pulse` object with additional noise.
         """
-        return pulses
+        pass
