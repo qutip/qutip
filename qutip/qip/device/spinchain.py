@@ -532,7 +532,9 @@ class LinearSpinChain(SpinChain):
 
     def load_circuit(
             self, qc, schedule_mode="ASAP", compiler=None):
-        return super(LinearSpinChain, self).load_circuit(qc, "linear", schedule_mode=schedule_mode, compiler=compiler)
+        return super(
+            LinearSpinChain, self).load_circuit(qc, "linear",
+            schedule_mode=schedule_mode, compiler=compiler)
 
     def get_operators_labels(self):
         """
@@ -621,7 +623,9 @@ class CircularSpinChain(SpinChain):
 
     def load_circuit(
             self, qc, schedule_mode="ASAP", compiler=None):
-        return super(CircularSpinChain, self).load_circuit(qc, "circular", schedule_mode=schedule_mode, compiler=compiler)
+        return super(
+            CircularSpinChain, self).load_circuit(qc, "circular",
+            schedule_mode=schedule_mode, compiler=compiler)
 
     def get_operators_labels(self):
         """

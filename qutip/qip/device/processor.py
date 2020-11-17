@@ -142,7 +142,7 @@ class Processor(object):
             self.dims = dims
         self.pulse_mode = "discrete"
         self.spline_kind = spline_kind
-    
+
     @property
     def num_qubits(self):
         return self.N
@@ -229,7 +229,7 @@ class Processor(object):
         else:
             self.pulses.append(
                 Pulse(qobj, targets, spline_kind=self.spline_kind, label=label))
-    
+
     def find_pulse(self, pulse_name):
         if isinstance(pulse_name, str):
             try:
@@ -802,8 +802,8 @@ class Processor(object):
         return [label_list]
 
     def plot_pulses(
-        self, title=None, figsize=(12, 6), dpi=None,
-        show_axis=False, rescale_pulse_coeffs=True):
+            self, title=None, figsize=(12, 6), dpi=None,
+            show_axis=False, rescale_pulse_coeffs=True):
         """
         Plot the ideal pulse coefficients.
 
@@ -844,7 +844,9 @@ class Processor(object):
         coeffs = self.get_full_coeffs(tlist)
         # make sure coeffs start and end with zero, for ax.fill
         tlist = np.hstack(([-dt*1.e-20], tlist, [tlist[-1] + dt*1.e-20]))
-        coeffs = np.hstack((np.array([[0.]] * len(self.pulses)), coeffs, np.array([[0.]] * len(self.pulses))))
+        coeffs = np.hstack(
+            (np.array([[0.]] * len(self.pulses)), coeffs,
+                np.array([[0.]] * len(self.pulses))))
 
         pulse_ind = 0
         axis = []
@@ -870,9 +872,9 @@ class Processor(object):
                 ax.spines['right'].set_visible(False)
                 ax.spines['left'].set_visible(False)
                 ax.set_yticks([])
-                ax.set_ylabel(label,  rotation=0)
+                ax.set_ylabel(label, rotation=0)
                 pulse_ind += 1
-                if i == 0 and j==0 and title is not None:
+                if i == 0 and j == 0 and title is not None:
                     ax.set_title(title)
         fig.tight_layout()
         return fig, axis

@@ -185,7 +185,7 @@ class DispersiveCavityQED(ModelProcessor):
                       list(range(N+1)), spline_kind=self.spline_kind))
             self.pulse_dict["g" + str(n)] = index
             index += 1
-    
+
     def set_up_params(
             self, N, num_levels, deltamax,
             epsmax, w0, wq, eps, delta, g):

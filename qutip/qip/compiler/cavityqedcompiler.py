@@ -86,12 +86,13 @@ class CavityQEDCompiler(GateCompiler):
     def __init__(self, N, params, global_phase, pulse_dict):
         super(CavityQEDCompiler, self).__init__(
             N=N, params=params, pulse_dict=pulse_dict)
-        self.gate_compiler.update({"ISWAP": self.iswap_compiler,
-                             "SQRTISWAP": self.sqrtiswap_compiler,
-                             "RZ": self.rz_compiler,
-                             "RX": self.rx_compiler,
-                             "GLOBALPHASE": self.globalphase_compiler
-                             })
+        self.gate_compiler.update({
+            "ISWAP": self.iswap_compiler,
+            "SQRTISWAP": self.sqrtiswap_compiler,
+            "RZ": self.rz_compiler,
+            "RX": self.rx_compiler,
+            "GLOBALPHASE": self.globalphase_compiler
+            })
         self.wq = np.sqrt(self.params["eps"]**2 + self.params["delta"]**2)
         self.Delta = self.wq - self.params["w0"]
         self.global_phase = global_phase
@@ -149,7 +150,7 @@ class CavityQEDCompiler(GateCompiler):
         instruction_list = [Instruction(gate, tlist, pulse_info)]
 
         # corrections
-        gate1 = Gate("RZ", [q1], None, arg_value=-np.pi/4) 
+        gate1 = Gate("RZ", [q1], None, arg_value=-np.pi/4)
         compiled_gate1 = self.rz_compiler(gate1, args)
         instruction_list += compiled_gate1
         gate2 = Gate("RZ", [q2], None, arg_value=-np.pi/4)
