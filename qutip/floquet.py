@@ -576,7 +576,7 @@ def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100,
 
 def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
                                   args, J_cb, w_th, kmax=5,
-                                  f_modes_table_t=None, options=Options()):
+                                  f_modes_table_t=None):
     """
     Calculate the rates and matrix elements for the Floquet-Markov master
     equation.
@@ -646,7 +646,7 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
     if f_modes_table_t is None:
         f_modes_table_t = floquet_modes_table(f_modes_0, f_energies,
                                               np.linspace(0, T, nT + 1), H, T,
-                                              args, options=options)
+                                              args)
 
     for t in tlist:
         # TODO: repeated invocations of floquet_modes_t is
