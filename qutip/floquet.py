@@ -89,6 +89,9 @@ def floquet_modes(H, T, args=None, sort=False, U=None, options=None):
         If U is `None` (default), it will be calculated from the Hamiltonian
         `H` using :func:`qutip.propagator.propagator`.
 
+    options : :class:`qutip.solver`
+        options for the ODE solver. For the propagator U.
+
     Returns
     -------
 
@@ -156,6 +159,9 @@ def floquet_modes_t(f_modes_0, f_energies, t, H, T, args=None,
     T : float
         The period of the time-dependence of the hamiltonian.
 
+    options : :class:`qutip.solver`
+        options for the ODE solver. For the propagator.
+
     Returns
     -------
 
@@ -207,6 +213,9 @@ def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args=None,
 
     args : dictionary
         dictionary with variables required to evaluate H
+
+    options : :class:`qutip.solver`
+        options for the ODE solver.
 
     Returns
     -------
@@ -331,6 +340,9 @@ def floquet_states_t(f_modes_0, f_energies, t, H, T, args=None,
     args : dictionary
         Dictionary with variables required to evaluate H.
 
+    options : :class:`qutip.solver`
+        options for the ODE solver.
+
     Returns
     -------
 
@@ -454,7 +466,7 @@ def floquet_state_decomposition(f_states, f_energies, psi):
 
 
 def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100,
-             options=None):
+             options_modes=None):
     """
     Solve the Schrodinger equation using the Floquet formalism.
 
@@ -485,6 +497,9 @@ def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100,
         The number of time steps in one driving period for which to
         precalculate the Floquet modes. `Tsteps` should be an even number.
 
+    options_modes : :class:`qutip.solver`
+        options for the ODE solver.
+
     Returns
     -------
 
@@ -499,13 +514,17 @@ def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100,
         # assume that tlist span exactly one period of the driving
         T = tlist[-1]
 
+    if options_modes is None:
+        options_modes_table = Options()
     # find the floquet modes for the time-dependent hamiltonian
-    f_modes_0, f_energies = floquet_modes(H, T, args, options=options)
+    f_modes_0, f_energies = floquet_modes(H, T, args,
+                                          options=options_modes)
 
     # calculate the wavefunctions using the from the floquet modes
     f_modes_table_t = floquet_modes_table(f_modes_0, f_energies,
                                           np.linspace(0, T, Tsteps + 1),
-                                          H, T, args)
+                                          H, T, args,
+                                          options=options_modes_table)
 
     # setup Result for storing the results
     output = Result()
@@ -557,7 +576,7 @@ def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100,
 
 def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
                                   args, J_cb, w_th, kmax=5,
-                                  f_modes_table_t=None):
+                                  f_modes_table_t=None, options=Options()):
     """
     Calculate the rates and matrix elements for the Floquet-Markov master
     equation.
@@ -597,6 +616,9 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
         A lookup-table of Floquet modes at times precalculated by
         :func:`qutip.floquet.floquet_modes_table` (optional).
 
+    options : :class:`qutip.solver`
+        options for the ODE solver.
+
     Returns
     -------
 
@@ -624,7 +646,7 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
     if f_modes_table_t is None:
         f_modes_table_t = floquet_modes_table(f_modes_0, f_energies,
                                               np.linspace(0, T, nT + 1), H, T,
-                                              args)
+                                              args, options=options)
 
     for t in tlist:
         # TODO: repeated invocations of floquet_modes_t is
@@ -937,7 +959,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
 
 def fmmesolve(H, rho0, tlist, c_ops=[], e_ops=[], spectra_cb=[], T=None,
               args={}, options=Options(), floquet_basis=True, kmax=5,
-              _safe_mode=True, options_propagator=None):
+              _safe_mode=True, options_modes=None):
     """
     Solve the dynamics for the system using the Floquet-Markov master equation.
 
@@ -987,10 +1009,17 @@ def fmmesolve(H, rho0, tlist, c_ops=[], e_ops=[], spectra_cb=[], T=None,
         >>> args['w_th'] = temperature * (kB / h) * 2 * pi * 1e-9
 
     options : :class:`qutip.solver`
-        options for the ODE solver.
+        options for the ODE solver. For solving the master equation.
+
+    floquet_basis : bool
+        Will return results in Floquet basis or computational basis
+        (optional).
 
     k_max : int
         The truncation of the number of sidebands (default 5).
+
+    options_modes : :class:`qutip.solver`
+        options for the ODE solver. For computing Floquet modes.
 
     Returns
     -------
@@ -1004,6 +1033,9 @@ def fmmesolve(H, rho0, tlist, c_ops=[], e_ops=[], spectra_cb=[], T=None,
     if _safe_mode:
         _solver_safety_check(H, rho0, c_ops, e_ops, args)
 
+    if options_modes is None:
+        options_modes_table = Options()
+
     if T is None:
         T = max(tlist)
 
@@ -1012,11 +1044,12 @@ def fmmesolve(H, rho0, tlist, c_ops=[], e_ops=[], spectra_cb=[], T=None,
         spectra_cb = [lambda w: 1.0] * len(c_ops)
 
     f_modes_0, f_energies = floquet_modes(H, T, args,
-                                          options=options_propagator)
+                                          options=options_modes)
 
     f_modes_table_t = floquet_modes_table(f_modes_0, f_energies,
                                           np.linspace(0, T, 500 + 1),
-                                          H, T, args)
+                                          H, T, args,
+                                          options=options_modes_table)
 
     # get w_th from args if it exists
     if 'w_th' in args:
