@@ -58,11 +58,11 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                unitary_mode='batch', parallel=False,
                progress_bar=None, _safe_mode=True,
                **kwargs):
-    """
+    r"""
     Calculate the propagator U(t) for the density matrix or wave function such
     that :math:`\psi(t) = U(t)\psi(0)` or
-    :math:`\\rho_{\mathrm vec}(t) = U(t) \\rho_{\mathrm vec}(0)`
-    where :math:`\\rho_{\mathrm vec}` is the vector representation of the
+    :math:`\rho_{\mathrm vec}(t) = U(t) \rho_{\mathrm vec}(0)`
+    where :math:`\rho_{\mathrm vec}` is the vector representation of the
     density matrix.
 
     Parameters
