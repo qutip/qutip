@@ -54,8 +54,7 @@ from qutip.core.data.expect cimport (
     expect_csr, expect_super_csr, expect_csr_dense, expect_super_csr_dense,
     expect_dense_dense, expect_super_dense_dense,
 )
-from qutip.core.data.reshape cimport (column_stack_csr, column_stack_dense,
-                                      column_unstack_dense)
+from qutip.core.data.reshape cimport (column_stack_dense, column_unstack_dense)
 from qutip.core.cy.coefficient cimport Coefficient
 
 
