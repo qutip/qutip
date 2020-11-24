@@ -9,12 +9,12 @@ cimport cython
 import warnings
 
 from qutip.core.data.base cimport idxint
-from qutip.core.data cimport csr, dense, CSR, Dense, Data
+from qutip.core.data cimport csr, csc, dense, CSR, CSC, Dense, Data
 
 __all__ = [
-    'reshape', 'reshape_csr', 'reshape_dense',
-    'column_stack', 'column_stack_csr', 'column_stack_dense',
-    'column_unstack', 'column_unstack_csr', 'column_unstack_dense',
+    'reshape', 'reshape_csr', 'reshape_dense', 'reshape_csc',
+    'column_stack', 'column_stack_csr', 'column_stack_dense', 'column_stack_csc',
+    'column_unstack', 'column_unstack_csr', 'column_unstack_dense', 'column_unstack_csc',
 ]
 
 
@@ -57,11 +57,18 @@ cpdef CSR reshape_csr(CSR matrix, idxint n_rows_out, idxint n_cols_out):
     return out
 
 
+cpdef CSC reshape_csc(CSC matrix, idxint n_rows_out, idxint n_cols_out):
+    cdef CSR transposed = csc.as_tr_csr(matrix, copy=False)
+    return csc.from_tr_csr(reshape_csr(transposed, n_cols_out, n_rows_out),
+                           copy=False)
+
+
 # We have to use a signed integer type because the standard library doesn't
 # provide overloads for unsigned types.
 cdef inline idxint _reshape_dense_reindex(idxint idx, idxint size):
     cdef div_t res = div(idx, size)
     return res.quot + res.rem
+
 
 cpdef Dense reshape_dense(Dense matrix, idxint n_rows_out, idxint n_cols_out):
     _reshape_check_input(matrix, n_rows_out, n_cols_out)
@@ -85,6 +92,12 @@ cpdef CSR column_stack_csr(CSR matrix):
     if matrix.shape[1] == 1:
         return matrix.copy()
     return reshape_csr(matrix.transpose(), matrix.shape[0]*matrix.shape[1], 1)
+
+
+cpdef CSC column_stack_csc(CSC matrix):
+    if matrix.shape[1] == 1:
+        return matrix.copy()
+    return reshape_csc(matrix.transpose(), matrix.shape[0]*matrix.shape[1], 1)
 
 
 cpdef Dense column_stack_dense(Dense matrix, bint inplace=False):
@@ -114,6 +127,13 @@ cpdef CSR column_unstack_csr(CSR matrix, idxint rows):
     _column_unstack_check_shape(matrix, rows)
     cdef idxint cols = matrix.shape[0] // rows
     return reshape_csr(matrix, cols, rows).transpose()
+
+
+cpdef CSC column_unstack_csc(CSC matrix, idxint rows):
+    _column_unstack_check_shape(matrix, rows)
+    cdef idxint cols = matrix.shape[0] // rows
+    return reshape_csc(matrix, cols, rows).transpose()
+
 
 cpdef Dense column_unstack_dense(Dense matrix, idxint rows, bint inplace=False):
     _column_unstack_check_shape(matrix, rows)
@@ -157,6 +177,7 @@ reshape.__doc__ =\
     """
 reshape.add_specialisations([
     (CSR, CSR, reshape_csr),
+    (CSC, CSC, reshape_csc),
     (Dense, Dense, reshape_dense),
 ], _defer=True)
 
@@ -201,6 +222,7 @@ column_stack.__doc__ =\
     """
 column_stack.add_specialisations([
     (CSR, CSR, column_stack_csr),
+    (CSC, CSC, column_stack_csc),
     (Dense, Dense, column_stack_dense),
 ], _defer=True)
 
@@ -241,6 +263,7 @@ column_unstack.__doc__ =\
     """
 column_unstack.add_specialisations([
     (CSR, CSR, column_unstack_csr),
+    (CSC, CSC, column_unstack_csc),
     (Dense, Dense, column_unstack_dense),
 ], _defer=True)
 

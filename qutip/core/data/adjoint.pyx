@@ -7,17 +7,18 @@ cimport cython
 
 from qutip.core.data.base cimport idxint
 from qutip.core.data.csr cimport CSR
+from qutip.core.data.csc cimport CSC
 from qutip.core.data.dense cimport Dense
-from qutip.core.data cimport csr, dense
+from qutip.core.data cimport csr, dense, csc
 
 # Import std::conj as `_conj` to avoid clashing with our 'conj' dispatcher.
 cdef extern from "<complex>" namespace "std" nogil:
     double complex _conj "conj"(double complex x)
 
 __all__ = [
-    'adjoint', 'adjoint_csr', 'adjoint_dense',
-    'conj', 'conj_csr', 'conj_dense',
-    'transpose', 'transpose_csr', 'transpose_dense',
+    'adjoint', 'adjoint_csr', 'adjoint_dense', 'adjoint_csc',
+    'conj', 'conj_csr', 'conj_dense', 'conj_csc',
+    'transpose', 'transpose_csr', 'transpose_dense', 'transpose_csc',
 ]
 
 
@@ -109,6 +110,32 @@ cpdef Dense conj_dense(Dense matrix):
     return out
 
 
+cpdef CSC transpose_csc(CSC matrix):
+    """Transpose the CSC matrix, and return a new object."""
+    # CSR <-> CSC.transpose is free.
+    # Do 3 transpositions with transpose_csr doing the real work.
+    cdef CSR transposed = csc.as_tr_csr(matrix, False)
+    cdef CSR trtr = transpose_csr(transposed)
+    return csc.from_tr_csr(trtr, False)
+
+
+cpdef CSC adjoint_csc(CSC matrix):
+    """Conjugate-transpose the CSC matrix, and return a new object."""
+    cdef CSR transposed = csc.as_tr_csr(matrix, False)
+    cdef CSR adjoint = adjoint_csr(transposed)
+    return csc.from_tr_csr(adjoint, False)
+
+
+cpdef CSC conj_csc(CSC matrix):
+    """Conjugate the CSR matrix, and return a new object."""
+    cdef CSC out = csc.copy_structure(matrix)
+    cdef idxint ptr
+    with nogil:
+        for ptr in range(csc.nnz(matrix)):
+            out.data[ptr] = _conj(matrix.data[ptr])
+    return out
+
+
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
 
@@ -125,6 +152,7 @@ adjoint.__doc__ = """Hermitian adjoint (matrix conjugate transpose)."""
 adjoint.add_specialisations([
     (Dense, Dense, adjoint_dense),
     (CSR, CSR, adjoint_csr),
+    (CSC, CSC, adjoint_csc),
 ], _defer=True)
 
 transpose = _Dispatcher(
@@ -140,6 +168,7 @@ transpose.__doc__ = """Transpose of a matrix."""
 transpose.add_specialisations([
     (Dense, Dense, transpose_dense),
     (CSR, CSR, transpose_csr),
+    (CSC, CSC, transpose_csc),
 ], _defer=True)
 
 conj = _Dispatcher(
@@ -155,6 +184,7 @@ conj.__doc__ = """Element-wise conjugation of a matrix."""
 conj.add_specialisations([
     (Dense, Dense, conj_dense),
     (CSR, CSR, conj_csr),
+    (CSC, CSC, conj_csc),
 ], _defer=True)
 
 del _inspect, _Dispatcher

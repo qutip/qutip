@@ -12,12 +12,12 @@ cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
 
 from qutip.core.data.base cimport idxint, Data
-from qutip.core.data cimport csr, CSR, Dense
+from qutip.core.data cimport csr, csc, CSR, CSC, Dense
 
 __all__ = [
-    'expect', 'expect_csr', 'expect_csr_dense', 'expect_dense_dense',
+    'expect', 'expect_csr', 'expect_csr_dense', 'expect_csc_dense', 'expect_dense_dense',
     'expect_super', 'expect_super_csr',
-    'expect_super_csr_dense', 'expect_super_dense_dense',
+    'expect_super_csr_dense', 'expect_super_csc_dense', 'expect_super_dense_dense',
 ]
 
 cdef void _check_shape_ket(Data op, Data state) nogil except *:
@@ -111,6 +111,20 @@ cpdef double complex expect_csr(CSR op, CSR state) nogil except *:
         return _expect_csr_ket(op, state)
     return _expect_csr_dm(op, state)
 
+
+cdef double complex _expect_csc_dense_ket(CSC op, Dense state) nogil except *:
+    _check_shape_ket(op, state)
+    cdef double complex out=0, sum
+    cdef size_t row, ptr
+    for row in range(op.shape[0]):
+        if op.col_index[row] == op.col_index[row + 1]:
+            continue
+        sum = 0
+        for ptr in range(op.col_index[row], op.col_index[row + 1]):
+            sum += op.data[ptr] * conj(state.data[op.row_index[ptr]])
+        out += sum * state.data[row]
+    return out
+
 cdef double complex _expect_csr_dense_ket(CSR op, Dense state) nogil except *:
     _check_shape_ket(op, state)
     cdef double complex out=0, sum
@@ -186,6 +200,22 @@ cpdef double complex expect_csr_dense(CSR op, Dense state) nogil except *:
     return _expect_csr_dense_dm(op, state)
 
 
+cpdef double complex expect_csc_dense(CSC op, Dense state) except *:
+    """
+    Get the expectation value of the operator `op` over the state `state`.  The
+    state can be either a ket or a density matrix.
+
+    The expectation of a state is defined as the operation:
+        state.adjoint() @ op @ state
+    and of a density matrix:
+        tr(op @ state)
+    """
+    if state.shape[1] == 1:
+        return _expect_csc_dense_ket(op, state)
+
+    return _expect_csr_dense_dm(csc.as_tr_csr(op), state.transpose())
+
+
 cpdef double complex expect_dense_dense(Dense op, Dense state) nogil except *:
     """
     Get the expectation value of the operator `op` over the state `state`.  The
@@ -215,6 +245,14 @@ cpdef double complex expect_super_csr_dense(CSR op, Dense state) nogil except *:
             out += op.data[ptr] * state.data[op.col_index[ptr]]
         row += n + 1
     return out
+
+
+cpdef double complex expect_super_csc_dense(CSC op, Dense state) except *:
+    """
+    Perform the operation `tr(op @ state)` where `op` is supplied as a
+    superoperator, and `state` is a column-stacked operator.
+    """
+    return expect_super_csr_dense(csc.as_tr_csr(op), state.transpose())
 
 
 cpdef double complex expect_super_dense_dense(Dense op, Dense state) nogil except *:
@@ -264,6 +302,7 @@ expect.__doc__ =\
 expect.add_specialisations([
     (CSR, CSR, expect_csr),
     (CSR, Dense, expect_csr_dense),
+    (CSC, Dense, expect_csc_dense),
     (Dense, Dense, expect_dense_dense),
 ], _defer=True)
 
@@ -286,6 +325,7 @@ expect_super.__doc__ =\
 expect_super.add_specialisations([
     (CSR, CSR, expect_super_csr),
     (CSR, Dense, expect_super_csr_dense),
+    (CSC, Dense, expect_super_csc_dense),
     (Dense, Dense, expect_super_dense_dense),
 ], _defer=True)
 

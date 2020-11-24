@@ -7,16 +7,16 @@ from cpython cimport mem
 from qutip.settings import settings
 
 from qutip.core.data.base cimport idxint
-from qutip.core.data cimport csr, dense, CSR, Dense
+from qutip.core.data cimport csr, csc, dense, CSR, CSC, Dense
 
 cdef extern from *:
     # Not defined in cpython.mem for some reason, but is in pymem.h.
     void *PyMem_Calloc(size_t nelem, size_t elsize)
 
 __all__ = [
-    'isherm', 'isherm_csr',
-    'isdiag', 'isdiag_csr',
-    'iszero', 'iszero_csr', 'iszero_dense',
+    'isherm', 'isherm_csr', 'isherm_csc',
+    'isdiag', 'isdiag_csr', 'isdiag_csc',
+    'iszero', 'iszero_csr', 'iszero_csc', 'iszero_dense',
 ]
 
 cdef inline bint _conj_feq(double complex a, double complex b, double tol) nogil:
@@ -112,6 +112,18 @@ cpdef bint iszero_csr(CSR matrix, double tol=-1) nogil:
             return False
     return True
 
+cpdef bint isherm_csc(CSC matrix, double tol=-1):
+    return isherm_csr(csc.as_tr_csr(matrix), tol)
+
+
+cpdef bint isdiag_csc(CSC matrix):
+    return isdiag_csr(csc.as_tr_csr(matrix))
+
+
+cpdef bint iszero_csc(CSC matrix, double tol=-1):
+    return iszero_csr(csc.as_tr_csr(matrix), tol)
+
+
 cpdef bint iszero_dense(Dense matrix, double tol=-1) nogil:
     cdef size_t ptr
     if tol < 0:
@@ -158,6 +170,7 @@ isherm.__doc__ =\
     """
 isherm.add_specialisations([
     (CSR, isherm_csr),
+    (CSC, isherm_csc),
 ], _defer=True)
 
 isdiag = _Dispatcher(
@@ -180,6 +193,7 @@ isdiag.__doc__ =\
     """
 isdiag.add_specialisations([
     (CSR, isdiag_csr),
+    (CSC, isdiag_csc),
 ], _defer=True)
 
 iszero = _Dispatcher(
@@ -213,6 +227,7 @@ iszero.__doc__ =\
     """
 iszero.add_specialisations([
     (CSR, iszero_csr),
+    (CSC, iszero_csc),
     (Dense, iszero_dense),
 ], _defer=True)
 

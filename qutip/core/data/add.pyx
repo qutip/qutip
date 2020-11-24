@@ -8,10 +8,11 @@ from scipy.linalg cimport cython_blas as blas
 
 from qutip.core.data.base cimport idxint, Data
 from qutip.core.data.dense cimport Dense
+from qutip.core.data.csc cimport CSC
 from qutip.core.data.csr cimport (
     CSR, Accumulator, acc_alloc, acc_free, acc_scatter, acc_gather, acc_reset,
 )
-from qutip.core.data cimport csr, dense
+from qutip.core.data cimport csr, csc, dense
 
 cnp.import_array()
 
@@ -22,8 +23,8 @@ cdef extern from *:
 
 
 __all__ = [
-    'add', 'add_csr', 'add_dense', 'iadd_dense',
-    'sub', 'sub_csr', 'sub_dense',
+    'add', 'add_csr', 'add_csc', 'add_dense', 'iadd_dense',
+    'sub', 'sub_csr', 'sub_csc', 'sub_dense',
 ]
 
 
@@ -167,6 +168,12 @@ cpdef CSR add_csr(CSR left, CSR right, double complex scale=1):
     return out
 
 
+cpdef CSC add_csc(CSC left, CSC right, double complex scale=1):
+    cdef CSR left_csr = csc.as_tr_csr(left, False)
+    cdef CSR right_csr = csc.as_tr_csr(right, False)
+    return csc.from_tr_csr(add_csr(left_csr, right_csr, scale), False)
+
+
 cdef void add_dense_eq_order_inplace(Dense left, Dense right, double complex scale):
     cdef int size = left.shape[0] * left.shape[1]
     with nogil:
@@ -216,6 +223,10 @@ cpdef CSR sub_csr(CSR left, CSR right):
     return add_csr(left, right, -1)
 
 
+cpdef CSC sub_csc(CSC left, CSC right):
+    return add_csc(left, right, -1)
+
+
 cpdef Dense sub_dense(Dense left, Dense right):
     return add_dense(left, right, -1)
 
@@ -245,6 +256,7 @@ add.__doc__ =\
 add.add_specialisations([
     (Dense, Dense, Dense, add_dense),
     (CSR, CSR, CSR, add_csr),
+    (CSC, CSC, CSC, add_csc),
 ], _defer=True)
 
 sub = _Dispatcher(
@@ -266,6 +278,7 @@ sub.__doc__ =\
 sub.add_specialisations([
     (Dense, Dense, Dense, sub_dense),
     (CSR, CSR, CSR, sub_csr),
+    (CSC, CSC, CSC, sub_csc),
 ], _defer=True)
 
 del _inspect, _Dispatcher

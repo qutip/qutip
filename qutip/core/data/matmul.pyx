@@ -16,7 +16,8 @@ from scipy.linalg cimport cython_blas as blas
 from qutip.core.data.base cimport idxint, Data
 from qutip.core.data.dense cimport Dense
 from qutip.core.data.csr cimport CSR
-from qutip.core.data cimport csr, dense
+from qutip.core.data.csc cimport CSC
+from qutip.core.data cimport csr, csc, dense
 
 cnp.import_array()
 
@@ -34,7 +35,8 @@ cdef extern from "src/matmul_csr_vector.hpp" nogil:
         T nrows)
 
 __all__ = [
-    'matmul', 'matmul_csr', 'matmul_dense', 'matmul_csr_dense_dense',
+    'matmul', 'matmul_csr', 'matmul_csc', 'matmul_dense',
+    'matmul_csr_dense_dense', 'matmul_csc_dense_dense',
 ]
 
 
@@ -165,6 +167,42 @@ cpdef CSR matmul_csr(CSR left, CSR right, double complex scale=1, CSR out=None):
     return out
 
 
+cpdef CSC matmul_csc(CSC left, CSC right, double complex scale=1, CSC out=None):
+    """
+    Multiply two CSC matrices together to produce another CSC.  If `out` is
+    specified, it must be pre-allocated with enough space to hold the output
+    result.
+
+    This is the operation
+        ``out := left @ right``
+    where `out` will be allocated if not supplied.
+
+    Parameters
+    ----------
+    left : CSC
+        CSC matrix on the left of the multiplication.
+    right : CSC
+        CSC matrix on the right of the multiplication.
+    out : optional CSC
+        Allocated space to store the result.  This must have enough space in
+        the `data`, `col_index` and `row_index` pointers already allocated.
+
+    Returns
+    -------
+    out : CSC
+        The result of the matrix multiplication.  This will be the same object
+        as the input parameter `out` if that was supplied.
+    """
+    # Since CSC to CSR transposed is 'free'
+    cdef CSR left_csr = csc.as_tr_csr(left, False)
+    cdef CSR right_csr = csc.as_tr_csr(right, False)
+    cdef CSR out_csr = None
+    if out is not None:
+        out_csr = csc.as_tr_csr(out, False)
+    return csc.from_tr_csr(matmul_csr(right_csr, left_csr, scale, out_csr),
+                           False)
+
+
 cpdef Dense matmul_csr_dense_dense(CSR left, Dense right,
                                    double complex scale=1, Dense out=None):
     """
@@ -219,6 +257,47 @@ cpdef Dense matmul_csr_dense_dense(CSR left, Dense right,
         return out
     memcpy(tmp.data, out.data, ncols * nrows * sizeof(double complex))
     return tmp
+
+
+cpdef Dense matmul_csc_dense_dense(CSC left, Dense right,
+                                   double complex scale=1, Dense out=None):
+    cdef idxint ii, ptr, col, col_start, col_end
+    cdef idxint row_stride, col_stride, out_stride
+    _check_shape(left, right, out)
+    row_stride = 1 if right.fortran else right.shape[1]
+    col_stride = right.shape[0] if right.fortran else 1
+    out_stride = left.shape[0] if right.fortran else 1
+
+    if out is None:
+        out = dense.zeros(left.shape[0], right.shape[1], right.fortran)
+
+    if bool(right.fortran) != bool(out.fortran):
+        msg = (
+            "out matrix is {}-ordered".format('Fortran' if out.fortran else 'C')
+            + " but input is {}-ordered".format('Fortran' if right.fortran else 'C')
+        )
+        warnings.warn(msg, dense.OrderEfficiencyWarning)
+        # Rather than making loads of copies of the same code, we just moan at
+        # the user and then transpose one of the arrays.  We prefer to have
+        # `right` in Fortran-order for cache efficiency.
+        if right.fortran:
+            tmp = out
+            out = out.reorder()
+        else:
+            right = right.reorder()
+
+    for col in range(left.shape[1]):
+        col_start = left.col_index[col]
+        col_end = left.col_index[col+1]
+        for ptr in range(col_start, col_end):
+            val = scale * left.data[ptr]
+            idx_out = left.row_index[ptr] * row_stride
+            idx_r = col * row_stride
+            for _ in range(right.shape[1]):
+                out.data[idx_out] += val * right.data[idx_r]
+                idx_out += out_stride
+                idx_r += col_stride
+    return out
 
 
 cpdef Dense matmul_dense(Dense left, Dense right, double complex scale=1, Dense out=None):
@@ -323,7 +402,9 @@ matmul.__doc__ =\
     """
 matmul.add_specialisations([
     (CSR, CSR, CSR, matmul_csr),
+    (CSC, CSC, CSC, matmul_csc),
     (CSR, Dense, Dense, matmul_csr_dense_dense),
+    (CSC, Dense, Dense, matmul_csc_dense_dense),
     (Dense, Dense, Dense, matmul_dense),
 ], _defer=True)
 
