@@ -15,8 +15,9 @@ from qutip.core.data.base cimport idxint, Data
 from qutip.core.data cimport csr, CSR, Dense
 
 __all__ = [
-    'expect', 'expect_csr', 'expect_csr_dense',
-    'expect_super', 'expect_super_csr', 'expect_super_csr_dense',
+    'expect', 'expect_csr', 'expect_csr_dense', 'expect_dense_dense',
+    'expect_super', 'expect_super_csr',
+    'expect_super_csr_dense', 'expect_super_dense_dense',
 ]
 
 cdef void _check_shape_ket(Data op, Data state) nogil except *:
@@ -110,7 +111,6 @@ cpdef double complex expect_csr(CSR op, CSR state) nogil except *:
         return _expect_csr_ket(op, state)
     return _expect_csr_dm(op, state)
 
-
 cdef double complex _expect_csr_dense_ket(CSR op, Dense state) nogil except *:
     _check_shape_ket(op, state)
     cdef double complex out=0, sum
@@ -139,6 +139,38 @@ cdef double complex _expect_csr_dense_dm(CSR op, Dense state) nogil except *:
     return out
 
 
+cdef double complex _expect_dense_dense_ket(Dense op, Dense state) nogil except *:
+    _check_shape_ket(op, state)
+    cdef double complex out=0, sum
+    cdef size_t row, col, op_row_stride, op_col_stride
+    op_row_stride = 1 if op.fortran else op.shape[1]
+    op_col_stride = op.shape[0] if op.fortran else 1
+
+    for row in range(op.shape[0]):
+        sum = 0
+        for col in range(op.shape[0]):
+            sum += (op.data[row * op_row_stride + col * op_col_stride] *
+                    state.data[col])
+        out += sum * conj(state.data[row])
+    return out
+
+cdef double complex _expect_dense_dense_dm(Dense op, Dense state) nogil except *:
+    _check_shape_dm(op, state)
+    cdef double complex out=0
+    cdef size_t row, col, op_row_stride, op_col_stride
+    cdef size_t state_row_stride, state_col_stride
+    state_row_stride = 1 if state.fortran else state.shape[1]
+    state_col_stride = state.shape[0] if state.fortran else 1
+    op_row_stride = 1 if op.fortran else op.shape[1]
+    op_col_stride = op.shape[0] if op.fortran else 1
+
+    for row in range(op.shape[0]):
+        for col in range(op.shape[1]):
+            out += op.data[row * op_row_stride + col * op_col_stride] * \
+                   state.data[col * state_row_stride + row * state_col_stride]
+    return out
+
+
 cpdef double complex expect_csr_dense(CSR op, Dense state) nogil except *:
     """
     Get the expectation value of the operator `op` over the state `state`.  The
@@ -154,6 +186,21 @@ cpdef double complex expect_csr_dense(CSR op, Dense state) nogil except *:
     return _expect_csr_dense_dm(op, state)
 
 
+cpdef double complex expect_dense_dense(Dense op, Dense state) nogil except *:
+    """
+    Get the expectation value of the operator `op` over the state `state`.  The
+    state can be either a ket or a density matrix.
+
+    The expectation of a state is defined as the operation:
+        state.adjoint() @ op @ state
+    and of a density matrix:
+        tr(op @ state)
+    """
+    if state.shape[1] == 1:
+        return _expect_dense_dense_ket(op, state)
+    return _expect_dense_dense_dm(op, state)
+
+
 cpdef double complex expect_super_csr_dense(CSR op, Dense state) nogil except *:
     """
     Perform the operation `tr(op @ state)` where `op` is supplied as a
@@ -166,6 +213,27 @@ cpdef double complex expect_super_csr_dense(CSR op, Dense state) nogil except *:
     for _ in range(n):
         for ptr in range(op.row_index[row], op.row_index[row + 1]):
             out += op.data[ptr] * state.data[op.col_index[ptr]]
+        row += n + 1
+    return out
+
+
+cpdef double complex expect_super_dense_dense(Dense op, Dense state) nogil except *:
+    """
+    Perform the operation `tr(op @ state)` where `op` is supplied as a
+    superoperator, and `state` is a column-stacked operator.
+    """
+    _check_shape_super(op, state)
+    cdef double complex out=0
+    cdef size_t row=0, col, N = state.shape[0]
+    cdef size_t n = <size_t> sqrt(state.shape[0])
+    cdef size_t op_row_stride, op_col_stride
+    op_row_stride = 1 if op.fortran else op.shape[1]
+    op_col_stride = op.shape[0] if op.fortran else 1
+
+    for _ in range(n):
+        for col in range(N):
+            out += op.data[row * op_row_stride + col * op_col_stride] * \
+                   state.data[col]
         row += n + 1
     return out
 
@@ -196,6 +264,7 @@ expect.__doc__ =\
 expect.add_specialisations([
     (CSR, CSR, expect_csr),
     (CSR, Dense, expect_csr_dense),
+    (Dense, Dense, expect_dense_dense),
 ], _defer=True)
 
 expect_super = _Dispatcher(
@@ -217,6 +286,7 @@ expect_super.__doc__ =\
 expect_super.add_specialisations([
     (CSR, CSR, expect_super_csr),
     (CSR, Dense, expect_super_csr_dense),
+    (Dense, Dense, expect_super_dense_dense),
 ], _defer=True)
 
 del _inspect, _Dispatcher

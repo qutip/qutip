@@ -4,14 +4,14 @@
 from libc.string cimport memcpy
 
 from qutip.core.data.base cimport idxint
-from qutip.core.data cimport csr
+from qutip.core.data cimport csr, dense, Dense
 from qutip.core.data.csr cimport CSR
 
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
 
 __all__ = [
-    'project', 'project_csr',
+    'project', 'project_csr', 'project_dense',
 ]
 
 
@@ -89,6 +89,30 @@ cpdef CSR project_csr(CSR state):
         return out
     raise TypeError("state must be a ket or a bra.")
 
+cpdef Dense project_dense(Dense state):
+    """
+    Calculate the projection |state><state|.  The shape of `state` will be used
+    to determine if it has been supplied as a ket or a bra.  The result of this
+    function will be identical is passed `state` or `adjoint(state)`.
+    """
+    cdef Dense out
+    cdef size_t size, i, h
+    cdef bint fortran
+    if state.shape[1] == 1:
+        size = state.shape[0]
+        fortran = True
+    elif state.shape[0] == 1:
+        size = state.shape[1]
+        fortran = False
+    else:
+        raise TypeError("state must be a ket or a bra.")
+    out = dense.zeros(size, size, fortran)
+    for i in range(size):
+        for j in range(size):
+            out.data[i*size+j] = conj(state.data[i]) * state.data[j]
+    return out
+
+
 
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
@@ -114,6 +138,7 @@ project.__doc__ =\
     """
 project.add_specialisations([
     (CSR, CSR, project_csr),
+    (Dense, Dense, project_dense),
 ], _defer=True)
 
 del _inspect, _Dispatcher

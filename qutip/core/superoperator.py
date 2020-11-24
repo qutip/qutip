@@ -52,7 +52,7 @@ def _map_over_compound_operators(f):
     """
     @functools.wraps(f)
     def out(qobj):
-        if isinstance(qobj, QobjEvo):
+        if isinstance(qobj, (QobjEvo, QobjEvoFunc)):
             return qobj.apply(f)
         if not isinstance(qobj, Qobj):
             raise TypeError("expected a quantum object")
@@ -80,14 +80,14 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
         Liouvillian superoperator.
 
     """
-    if isinstance(c_ops, (Qobj, QobjEvo)):
+    if isinstance(c_ops, (Qobj, QobjEvo, QobjEvoFunc)):
         c_ops = [c_ops]
     if chi and len(chi) != len(c_ops):
         raise ValueError('chi must be a list with same length as c_ops')
 
     h = None
     if H is not None:
-        if isinstance(H, QobjEvo):
+        if isinstance(H, (QobjEvo, QobjEvoFunc)):
             h = H.cte
         else:
             h = H
@@ -124,13 +124,23 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
 
     td = False
     L = None
-    if isinstance(H, QobjEvo):
+    if isinstance(H, QobjEvoFunc):
+        td = True
+        if H.cte.isoper:
+            L = H._liouvillian_h()
+        else:
+            L = H
+        data = L.cte.data * 0
+        data_empty = True
+
+    elif isinstance(H, QobjEvo):
         td = True
         if H.cte.isoper:
             L = -1.0j * (spre(H) - spost(H))
         else:
             L = H
         data = L.cte.data
+        data_empty = False
         L.cte *= 0
 
     elif isinstance(H, Qobj):
@@ -140,15 +150,21 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
                              scale=1j)
         else:
             data = H.data
+        data_empty = False
     else:
         data = _data.zeros(*sop_shape)
+        data_empty = True
 
     td_c_ops = []
+
     for idx, c_op in enumerate(c_ops):
-        if isinstance(c_op, QobjEvo):
+        if isinstance(c_op, (QobjEvo, QobjEvoFunc)):
             td = True
             if c_op.const:
                 c_ = c_op.cte
+            elif c_op.issuper:
+                td_c_ops.append(c_op)
+                continue
             elif chi:
                 td_c_ops.append(lindblad_dissipator(c_op, chi=chi[idx]))
                 continue
@@ -170,6 +186,7 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
             cdc = cd @ c
             data -= _data.kron(0.5*spI, cdc)
             data -= _data.kron(cdc.transpose(), 0.5*spI)
+        data_empty = False
 
     if data_only and not td:
         return data
@@ -189,7 +206,7 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
                              type='super',
                              superrep='super',
                              copy=False))
-        else:
+        elif not data_empty:
             L += Qobj(data,
                       dims=sop_dims,
                       type='super',
@@ -225,6 +242,8 @@ def lindblad_dissipator(a, b=None, data_only=False, chi=None):
     """
     if b is None:
         b = a
+        if isinstance(a, QobjEvoFunc):
+            return a._lindblad_dissipator(chi)
     ad_b = a.dag() * b
     if chi:
         D = (
@@ -404,7 +423,10 @@ def sprepost(A, B):
     super : Qobj or QobjEvo
         Superoperator formed from input quantum objects.
     """
-    if isinstance(A, QobjEvo) or isinstance(B, QobjEvo):
+    if (
+        isinstance(A, (QobjEvo, QobjEvoFunc)) or
+        isinstance(B, (QobjEvo, QobjEvoFunc))
+    ):
         return spre(A) * spost(B)
     dims = [[_drop_projected_dims(A.dims[0]),
              _drop_projected_dims(B.dims[1])],
@@ -444,3 +466,4 @@ def reshuffle(q_oper):
 
 
 from .qobjevo import QobjEvo
+from .qobjevofunc import QobjEvoFunc

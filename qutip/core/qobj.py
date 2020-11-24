@@ -666,7 +666,7 @@ class Qobj:
             cols += list(range(n_cols - half_length, n_cols))
         # Make the data array.
         data = r'\begin{equation*}\left(\begin{array}{*{11}c}'
-        data += r"\\".join(_latex_row(row, cols, self.data.as_scipy())
+        data += r"\\".join(_latex_row(row, cols, self.data.to_array())
                            for row in rows)
         data += r'\end{array}\right)\end{equation*}'
         return self._str_header() + data

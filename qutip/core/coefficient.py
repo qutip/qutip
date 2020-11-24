@@ -10,22 +10,22 @@ import importlib
 import shutil
 import numbers
 from collections import defaultdict
-from .. import settings as qset
-from ..optionsclass import optionsclass
-from .data import Data
-from .interpolate import Cubic_Spline
-from .cy.coefficient import (InterpolateCoefficient, InterCoefficient,
-                             StepCoefficient, FunctionCoefficient,
-                             SumCoefficient, MulCoefficient,
-                             ConjCoefficient, NormCoefficient,
-                             ShiftCoefficient, StrFunctionCoefficient,
-                             Coefficient)
 from setuptools import setup, Extension
 try:
     from Cython.Build import cythonize
 except ImportError:
     pass
 from warnings import warn
+
+from .. import settings as qset
+from ..optionsclass import optionsclass
+from .data import Data
+from .interpolate import Cubic_Spline
+from .cy.coefficient import (InterpolateCoefficient, InterCoefficient,
+                             StepCoefficient, FunctionCoefficient,
+                             ConjCoefficient, NormCoefficient,
+                             ShiftCoefficient, StrFunctionCoefficient,
+                             Coefficient)
 
 
 __all__ = ["coefficient", "CompilationOptions", "Coefficient"]
@@ -53,7 +53,10 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
         sinh cosh tanh asinh acosh atanh
         exp log log10 erf zerf sqrt
         real imag conj abs norm arg proj
-        numpy as np, and scipy.special as spe.
+        numpy as np,
+        scipy.special as spe (python interface)
+        and cython_special (cython interface)
+        [https://docs.scipy.org/doc/scipy/reference/special.cython_special.html].
     *Examples*
         coeff = coefficient('exp(-1j*w1*t)', args={"w1":1.})
     'args' is needed for string coefficient at compilation.
@@ -322,6 +325,7 @@ def make_cy_code(code, variables, constants, raw, compile_opt):
 
 import numpy as np
 import scipy.special as spe
+from scipy.special cimport cython_special
 cimport cython
 from qutip.core.cy.coefficient cimport Coefficient
 from qutip.core.cy.math cimport erf, zerf
@@ -360,6 +364,8 @@ cdef class StrCoefficient(Coefficient):
 
 def compile_code(code, file_name, parsed, c_opt):
     root = qset.install['tmproot']
+    pwd = os.getcwd()
+    os.chdir(root)
     full_file_name = os.path.join(root, file_name)
     file_ = open(full_file_name + ".pyx", "w")
     file_.writelines(code)
@@ -382,6 +388,7 @@ def compile_code(code, file_name, parsed, c_opt):
     except Exception:
         warn("File")
     sys.argv = oldargs
+    os.chdir(pwd)
     return try_import(file_name, parsed)
 
 

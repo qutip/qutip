@@ -35,6 +35,8 @@ cdef class Coefficient:
         return ""
 
     def __add__(left, right):
+        if (isinstance(left, InterCoefficient) and isinstance(right, InterCoefficient)):
+            return add_inter(left, right)
         if isinstance(left, Coefficient) and isinstance(right, Coefficient):
             return SumCoefficient(left.copy(), right.copy())
         return NotImplemented
@@ -209,6 +211,17 @@ cdef class InterCoefficient(Coefficient):
     def array(self):
         # Fro QIP tests
         return self.coeff_np
+
+
+cdef Coefficient add_inter(InterCoefficient left, InterCoefficient right):
+    if np.array_equal(left.tlist_np, right.tlist_np):
+        return InterCoefficient(left.coeff_np + right.coeff_np,
+                                left.tlist_np,
+                                left.second_np + right.second_np,
+                                left.cte
+                               )
+    else:
+        return SumCoefficient(left.copy(), right.copy())
 
 
 cdef class StepCoefficient(Coefficient):

@@ -30,6 +30,15 @@ qutip/cy/*.c
 *.dat
 qutip/core/*.h
 
+qutip/core/*/*.html
+qutip/solve/*.html
+qutip/solver/*.html
+qutip/solver/nonmarkov/*.html
+qutip/solve/nonmarkov/*.html
+qutip/solver/ode/*.html
+qutip/solver/ode/*.c
+
+
 *.qo
 
 benchmark/benchmark_data.js

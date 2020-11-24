@@ -750,6 +750,7 @@ class TestTrace(UnaryOpMixin):
     ]
     specialisations = [
         pytest.param(data.trace_csr, CSR, complex),
+        pytest.param(data.trace_dense, Dense, complex),
     ]
 
     # Trace actually does have bad shape, so we put that in too.
@@ -769,4 +770,23 @@ class TestTranspose(UnaryOpMixin):
     specialisations = [
         pytest.param(data.transpose_csr, CSR, CSR),
         pytest.param(data.transpose_dense, Dense, Dense),
+    ]
+
+
+class TestProject(UnaryOpMixin):
+    def op_numpy(self, matrix):
+        if matrix.shape[0] == 1:
+            return np.outer(np.conj(matrix), matrix)
+        else:
+            return np.outer(matrix, np.conj(matrix))
+
+    shapes = [
+        (pytest.param((1, 1), id="scalar"),),
+        (pytest.param((1, 100), id="bra"),),
+        (pytest.param((100, 1), id="ket"),),
+    ]
+
+    specialisations = [
+        pytest.param(data.project_csr, CSR, CSR),
+        pytest.param(data.project_dense, Dense, Dense),
     ]

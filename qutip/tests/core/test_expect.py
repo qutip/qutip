@@ -36,6 +36,7 @@ import collections
 import functools
 import numpy as np
 import qutip
+from qutip.core.data import CSR, Dense
 
 # We want to test the broadcasting rules for `qutip.expect` for a whole bunch
 # of different systems, without having to repeatedly specify the systems over
@@ -146,12 +147,14 @@ class TestKnownExpectation:
             assert list(part) == list(expected_part)
 
 
-@pytest.mark.repeat(20)
+@pytest.mark.repeat(5)
 @pytest.mark.parametrize("hermitian", [False, True], ids=['complex', 'real'])
-def test_equivalent_to_matrix_element(hermitian):
+@pytest.mark.parametrize("op_type", [CSR, Dense], ids=['csr', 'dense'])
+@pytest.mark.parametrize("state_type", [CSR, Dense], ids=['csr', 'dense'])
+def test_equivalent_to_matrix_element(hermitian, op_type, state_type):
     dimension = 20
-    state = qutip.rand_ket(dimension, 0.3)
-    op = qutip.rand_herm(dimension, 0.2)
+    state = qutip.rand_ket(dimension, 0.3).to(op_type)
+    op = qutip.rand_herm(dimension, 0.2).to(state_type)
     if not hermitian:
         op = op + 1j*qutip.rand_herm(dimension, 0.1)
     expected = state.dag() * op * state

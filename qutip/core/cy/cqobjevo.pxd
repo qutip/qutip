@@ -37,15 +37,23 @@ cimport numpy as cnp
 from qutip.core.data.base cimport idxint
 from qutip.core.data cimport CSR, Dense, Data
 
+
+cpdef enum LTYPE:
+    MIXED_TYPE   = 0
+    CSR_TYPE     = 1
+    Dense_TYPE   = 2
+
+
 cdef class CQobjEvo:
     cdef readonly (idxint, idxint) shape
-    cdef object dims
+    cdef readonly object dims
     cdef str type
+    cdef LTYPE layer_type
     cdef str superrep
-    cdef bint issuper
+    cdef readonly bint issuper
     cdef size_t n_ops
 
-    cdef CSR constant
+    cdef Data constant
     cdef list ops
     cdef list coeff
     cdef object coefficients
@@ -56,7 +64,8 @@ cdef class CQobjEvo:
     cdef list dynamic_arguments
     cdef dict args
     cdef object op
-    cpdef dyn_args(self, double t, Data matrix)
 
-    cpdef Dense matmul(self, double t, Dense matrix, Dense out=*)
+    cpdef Data matmul(self, double t, Data matrix)
+    cpdef Dense matmul_dense(self, double t, Dense matrix, Dense out=*)
     cpdef double complex expect(self, double t, Data matrix) except *
+    cpdef double complex expect_dense(self, double t, Dense matrix) except *

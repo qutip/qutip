@@ -102,6 +102,7 @@ class _QtOptionsMaker:
         cls.__repr__ = _repr
         cls.__getitem__ = _getitem
         cls.__setitem__ = _setitem
+        cls.__contains__ = _contains
         cls.reset = _reset
         cls.save = _save
         cls.load = _load
@@ -131,21 +132,29 @@ def _make_init(all_set):
     code = f"""
 def __init__(self, file='', *,
              {attributes_kw},
+             _child_instance=False,
              **kwargs):
     self.options = self._defaultInstance.options.copy()
 {attributes_set}
     if file:
         self.load(file)
     for child in self._defaultInstance._children:
-        self._children.append(child.__class__(file, **kwargs))
+        self._children.append(child.__class__(file, _child_instance=True,
+                                              **kwargs))
         setattr(self, child._name, self._children[-1])
+        kwargs = self._children[-1].left_over_kwargs
+    if _child_instance:
+        self.left_over_kwargs = kwargs
+    elif kwargs:
+        raise KeyError("Unknown options: " +
+                       " ,".join(str(key) for key in kwargs))
 """
     ns = {}
     exec(code, globals(), ns)
     return ns["__init__"]
 
 
-def _repr(self, _recursive=False):
+def _repr(self, _recursive=True):
     out = self._fullname + ":\n"
     longest = max(len(key) for key in self.options)
     if self.read_only_options:
@@ -204,6 +213,15 @@ def _load(self, file="qutiprc", _recursive=False):
     else:
         optcls = [self]
     qrc.load_rc_object(file, optcls)
+
+
+def _contains(self, key):
+    # Let the dict catch the KeyError
+    if key in self.read_only_options:
+        return True
+    if key in self.options:
+        return True
+    return False
 
 
 def _getitem(self, key):

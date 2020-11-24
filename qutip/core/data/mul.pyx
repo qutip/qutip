@@ -9,6 +9,14 @@ __all__ = [
 ]
 
 
+cpdef void mul_csr_inplace(CSR matrix, double complex value):
+    """Multiply this CSR `matrix` by a complex scalar `value`."""
+    cdef idxint ptr
+    with nogil:
+        for ptr in range(csr.nnz(matrix)):
+            matrix.data[ptr] *= value
+
+
 cpdef CSR mul_csr(CSR matrix, double complex value):
     """Multiply this CSR `matrix` by a complex scalar `value`."""
     if value == 0:
@@ -30,6 +38,15 @@ cpdef CSR neg_csr(CSR matrix):
             out.data[ptr] = -matrix.data[ptr]
     return out
 
+
+cpdef void mul_dense_inplace(Dense matrix, double complex value):
+    """Multiply this Dense `matrix` by a complex scalar `value`."""
+    cdef size_t ptr
+    with nogil:
+        for ptr in range(matrix.shape[0]*matrix.shape[1]):
+            matrix.data[ptr] *= value
+
+
 cpdef Dense mul_dense(Dense matrix, double complex value):
     """Multiply this Dense `matrix` by a complex scalar `value`."""
     cdef Dense out = dense.empty_like(matrix)
@@ -38,6 +55,7 @@ cpdef Dense mul_dense(Dense matrix, double complex value):
         for ptr in range(matrix.shape[0]*matrix.shape[1]):
             out.data[ptr] = value * matrix.data[ptr]
     return out
+
 
 cpdef Dense neg_dense(Dense matrix):
     """Unary negation of this CSR `matrix`.  Return a new object."""
@@ -67,6 +85,23 @@ mul.__doc__ =\
 mul.add_specialisations([
     (CSR, CSR, mul_csr),
     (Dense, Dense, mul_dense),
+], _defer=True)
+
+mul_inplace = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('value', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    ]),
+    name='mul_inplace',
+    module=__name__,
+    inputs=('matrix',),
+    out=False,
+)
+mul_inplace.__doc__ =\
+    """Multiply inplace a matrix element-wise by a scalar."""
+mul_inplace.add_specialisations([
+    (CSR, mul_csr_inplace),
+    (Dense, mul_dense_inplace),
 ], _defer=True)
 
 neg = _Dispatcher(

@@ -43,6 +43,7 @@ from functools import partial
 from .operators import qeye
 from .qobj import Qobj
 from .qobjevo import QobjEvo
+from .qobjevofunc import QobjEvoFunc
 from .superoperator import operator_to_vector, reshuffle
 from .dimensions import (
     flatten, enumerate_flat, unflatten, deep_remove, dims_to_tensor_shape,
@@ -79,18 +80,25 @@ shape = [4, 4], type = oper, isHerm = True
     """
     if not args:
         raise TypeError("Requires at least one input argument")
-    if len(args) == 1 and isinstance(args[0], (Qobj, QobjEvo)):
+    if len(args) == 1 and isinstance(args[0], (Qobj, QobjEvo, QobjEvoFunc)):
         return args[0].copy()
     if len(args) == 1:
         try:
             args = tuple(args[0])
         except TypeError:
             raise TypeError("requires Qobj or QobjEvo operands") from None
-    if not all(isinstance(q, (Qobj, QobjEvo)) for q in args):
+    if not all(isinstance(q, (Qobj, QobjEvo, QobjEvoFunc)) for q in args):
         raise TypeError("requires Qobj or QobjEvo operands")
-    if any(isinstance(q, QobjEvo) for q in args):
+    if any(isinstance(q, (QobjEvo, QobjEvoFunc)) for q in args):
+        # First make tensor from pairs only
         if len(args) >= 3:
             return tensor(args[0], tensor(args[1:]))
+        # QobjEvoFunc: Add to operation stack
+        if isinstance(args[0], QobjEvoFunc):
+            return args[0]._tensor(args[1])
+        if isinstance(args[1], QobjEvoFunc):
+            return args[1]._tensor_left(args[0])
+
         left = args[0]
         right = args[1]
         if isinstance(left, Qobj):
