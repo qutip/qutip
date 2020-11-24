@@ -44,15 +44,19 @@ cnp.import_array()
 from ..qobj import Qobj
 from .. import data as _data
 
-from qutip.core.data cimport CSR, Dense, Data
+from qutip.core.data cimport CSR, Dense, CSC, Data
 from qutip.core.data.add cimport add_csr, iadd_dense
 from qutip.core.data.matmul cimport (matmul_csr, matmul_csr_dense_dense,
-                                     matmul_dense)
+                                     matmul_dense, matmul_csc_dense_dense)
+# TODO: handle dispatch properly.  We import rather than cimport because we
+# have to call with Python semantics.
 from qutip.core.data.expect cimport (
-    expect_csr_dense, expect_super_csr_dense,
-    expect_dense_dense, expect_super_dense_dense,
+    expect_csr, expect_super_csr, expect_csr_dense, expect_super_csr_dense,
+    expect_dense_dense, expect_super_dense_dense, expect_super_csc_dense,
+    expect_csc_dense
 )
-from qutip.core.data.reshape cimport (column_stack_dense, column_unstack_dense)
+from qutip.core.data.reshape cimport (column_stack_csr, column_stack_dense,
+                                      column_unstack_dense)
 from qutip.core.cy.coefficient cimport Coefficient
 
 
@@ -66,6 +70,8 @@ cdef Dense cy_matmul(Data left, Dense right, LTYPE layer_type):
         out = matmul_csr_dense_dense(left, right)
     elif layer_type == Dense_TYPE:
         out = matmul_dense(left, right)
+    elif layer_type == CSC_TYPE:
+        out = matmul_csc_dense_dense(left, right)
     else:
         out = _data.matmul(left, right)
     return out
@@ -77,6 +83,8 @@ cdef void cy_matmul_inplace(Data left, Dense right, LTYPE layer_type,
         matmul_csr_dense_dense(left, right, scale, out)
     elif layer_type == Dense_TYPE:
         matmul_dense(left, right, scale, out)
+    elif layer_type == CSC_TYPE:
+        matmul_csc_dense_dense(left, right, scale, out)
     else:
         iadd_dense(out, _data.matmul[type(left), Dense, Dense](left, right, scale))
 
@@ -87,6 +95,8 @@ cdef double complex cy_expect(Data left, Dense right, LTYPE layer_type):
         out = expect_csr_dense(left, right)
     elif layer_type == Dense_TYPE:
         out = expect_dense_dense(left, right)
+    elif layer_type == CSC_TYPE:
+        out = expect_csc_dense(left, right)
     else:
         out = _data.expect(left, right)
     return out
@@ -98,6 +108,8 @@ cdef double complex cy_expect_super(Data left, Dense right, LTYPE layer_type):
         out = expect_super_csr_dense(left, right)
     elif layer_type == Dense_TYPE:
         out = expect_super_dense_dense(left, right)
+    elif layer_type == CSC_TYPE:
+        out = expect_super_csc_dense(left, right)
     else:
         out = _data.expect_super(left, right)
     return out
@@ -108,6 +120,8 @@ def count_types(data_obj, types):
         types[0] += 1
     elif isinstance(data_obj, Dense):
         types[1] += 1
+    elif isinstance(data_obj, CSC):
+        types[2] += 1
 
 
 def set_types(types):
@@ -115,6 +129,8 @@ def set_types(types):
         layer_type = CSR_TYPE
     elif types[0] == 0 and types[2] == 0:
         layer_type = Dense_TYPE
+    elif types[1] == 0 and types[0] == 0:
+        layer_type = CSC_TYPE
     else:
         layer_type = MIXED_TYPE
     return layer_type

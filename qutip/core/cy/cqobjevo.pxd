@@ -35,13 +35,14 @@
 cimport numpy as cnp
 
 from qutip.core.data.base cimport idxint
-from qutip.core.data cimport CSR, Dense, Data
+from qutip.core.data cimport CSR, CSC, Dense, Data
 
 
 cpdef enum LTYPE:
     MIXED_TYPE   = 0
     CSR_TYPE     = 1
     Dense_TYPE   = 2
+    CSC_TYPE     = 3
 
 
 cdef class CQobjEvo:
