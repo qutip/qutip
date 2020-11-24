@@ -48,10 +48,8 @@ from qutip.core.data cimport CSR, Dense, Data
 from qutip.core.data.add cimport add_csr, iadd_dense
 from qutip.core.data.matmul cimport (matmul_csr, matmul_csr_dense_dense,
                                      matmul_dense)
-# TODO: handle dispatch properly.  We import rather than cimport because we
-# have to call with Python semantics.
 from qutip.core.data.expect cimport (
-    expect_csr, expect_super_csr, expect_csr_dense, expect_super_csr_dense,
+    expect_csr_dense, expect_super_csr_dense,
     expect_dense_dense, expect_super_dense_dense,
 )
 from qutip.core.data.reshape cimport (column_stack_dense, column_unstack_dense)
