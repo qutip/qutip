@@ -163,8 +163,8 @@ class TestQobjevo:
     tlistlog = np.logspace(-3, 1, 10001)
     args = {'w1': 1, "w2": 2}
     cte_qobj = rand_herm(N)
-    real_qobj = Qobj(np.random.rand(N, N)).to(_data.Dense)
-    cplx_qobj = rand_herm(N).to(_data.CSR)
+    real_qobj = Qobj(np.random.rand(N, N))
+    cplx_qobj = rand_herm(N)
     real_coeff = Base_coeff(_real, "sin(t*w1)")
     cplx_coeff = Base_coeff(_cplx, "exp(1j*t*w2)")
     qobjevos = {"qobj": rand_herm(N), "scalar": np.random.rand()}
@@ -491,6 +491,26 @@ class TestQobjevo:
         obj2.compress()
         assert before >= obj2.num_obj
         _assert_qobjevo_equivalent(obj, obj2)
+
+
+@pytest.mark.parametrize(['qobjdtype'],
+    [pytest.param(dtype, id=dtype.__name__)
+     for dtype in core.data.to.dtypes])
+@pytest.mark.parametrize(['statedtype'],
+    [pytest.param(dtype, id=dtype.__name__)
+     for dtype in core.data.to.dtypes])
+def test_layer_support(qobjdtype, statedtype):
+    N = 10
+    qevo = QobjEvo(rand_herm(N).to(qobjdtype))
+    state_dense = rand_ket(N).to(core.data.Dense)
+    state = state_dense.to(statedtype).data
+    state_dense = state_dense.data
+    exp_any = qevo.compiled_qobjevo.expect(0, state)
+    exp_dense = qevo.compiled_qobjevo.expect_dense(0, state_dense)
+    assert_allclose(exp_any, exp_dense, 0.001)
+    mul_any = qevo.compiled_qobjevo.matmul(0, state).to_array()
+    mul_dense = qevo.compiled_qobjevo.matmul_dense(0, state_dense).to_array()
+    assert_allclose(mul_any, mul_dense, 0.001)
 
 
 def test_QobjEvo_step_coeff():
