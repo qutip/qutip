@@ -310,6 +310,20 @@ cdef class _constructed_specialisation:
             "<", direct, " specialisation ", spec, " of ", self._short_name, ">"
         ])
 
+    def path(self):
+        out = self._call.__name__ + "("
+        if self._output:
+            out += ", ".join([self._converters[i].from_.__name__ +
+                              " -> " + self._converters[i].to.__name__
+                              for i in range(self._n_dispatch - 1)])
+            out += ") -> " + self._converters[self._n_dispatch - 1].to.__name__
+        else:
+            out += ", ".join([self._converters[i].from_.__name__ +
+                              " -> " + self._converters[i].to.__name__
+                              for i in range(self._n_dispatch)])
+            out += ")"
+        return out
+
 
 cdef class Dispatcher:
     """

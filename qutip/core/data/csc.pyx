@@ -423,11 +423,11 @@ cpdef Dense to_dense(CSC matrix, bint fortran=False):
     )
     out.fortran = fortran
     out._deallocate = True
-    cdef size_t row, ptr_in, ptr_out, row_stride, col_stride, col
+    cdef size_t row, col, ptr_in, ptr_out, row_stride, col_stride
     row_stride = 1 if fortran else out.shape[1]
     col_stride = out.shape[0] if fortran else 1
     ptr_out = 0
-    for col in range(out.shape[0]):
+    for col in range(out.shape[1]):
         for ptr_in in range(matrix.col_index[col], matrix.col_index[col + 1]):
             out.data[ptr_out + matrix.row_index[ptr_in]*row_stride] = matrix.data[ptr_in]
         ptr_out += col_stride
