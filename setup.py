@@ -47,7 +47,7 @@ try:
     import numpy as np
 except ImportError as e:
     raise ImportError("numpy is required at installation") from e
-
+from glob import glob
 from Cython.Build import cythonize
 from Cython.Distutils import build_ext
 
@@ -78,6 +78,8 @@ PACKAGE_DATA = {
     'qutip/core/cy/openmp/src': ['*.hpp', '*.cpp'],
     'qutip/solve': ['*.pxd', '*.pyx'],
     'qutip/solve/nonmarkov': ['*.pxd', '*.pyx'],
+    'qutip/solver': ['*.pxd', '*.pyx'],
+    'qutip/solver/ode': ['*.pxd', '*.pyx'],
     'qutip/tests/qasm_files': ['*.qasm'],
     'qutip/control': ['*.pyx'],
 }
@@ -194,6 +196,11 @@ cy_exts = {
         '_steadystate',
         '_stochastic',
     ],
+    'solver': [
+        '_feedback',
+        '_solverqevo',
+    ],
+    'solver.ode': [file.split("/")[-1][:-4] for file in glob("qutip/solver/*/*.pyx")],
     'solve.nonmarkov': [
         '_heom',
     ],
