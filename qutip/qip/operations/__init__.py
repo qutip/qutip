@@ -39,4 +39,4 @@ from qutip.qip.operations.gates import (
     toffoli, rotation, controlled_gate,
     globalphase, hadamard_transform, gate_sequence_product,
     gate_expand_1toN, gate_expand_2toN, gate_expand_3toN,
-    qubit_clifford_group, expand_operator)
+    qubit_clifford_group)
