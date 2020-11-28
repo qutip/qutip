@@ -31,8 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
-import ctypes
-from ctypes import POINTER,c_int,c_char,c_double, byref
+from ctypes import POINTER, c_int, c_char, byref
 from numpy import ctypeslib
 import qutip.settings as qset
 zcsrgemv = qset.mkl_lib.mkl_cspblas_zcsrgemv
