@@ -38,20 +38,19 @@ from qutip.qobj import Qobj
 import qutip.settings as qset
 from qutip.interpolate import Cubic_Spline
 from scipy.interpolate import CubicSpline, interp1d
-from functools import partial, wraps
+from functools import partial
 from types import FunctionType, BuiltinFunctionType
 import numpy as np
 from numbers import Number
 from qutip.qobjevo_codegen import (_compile_str_single, _compiled_coeffs,
                                    _compiled_coeffs_python)
 from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi,
-                                 spmv, cy_spmm_tr)
+                                 spmv)
 from qutip.cy.cqobjevo import (CQobjCte, CQobjCteDense, CQobjEvoTd,
                                  CQobjEvoTdMatched, CQobjEvoTdDense)
 from qutip.cy.cqobjevo_factor import (InterCoeffT, InterCoeffCte,
                                       InterpolateCoeff, StrCoeff,
                                       StepCoeffCte, StepCoeffT)
-import pickle
 import sys
 import scipy
 import os
@@ -1781,6 +1780,3 @@ class _Add():
 
     def __call__(self, t, args):
         return np.sum([f(t, args) for f in self.funcs])
-
-
-from qutip.superoperator import vec2mat
