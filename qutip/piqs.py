@@ -49,7 +49,6 @@ import numpy as np
 from scipy.integrate import odeint
 from scipy.sparse.linalg import eigsh
 from scipy.special import entr
-from scipy import constants
 from scipy.sparse import dok_matrix, block_diag, lil_matrix
 from qutip.solver import Options, Result
 from qutip import (
@@ -59,10 +58,8 @@ from qutip import (
     tensor,
     identity,
     ket2dm,
-    vector_to_operator,
 )
 from qutip import sigmax, sigmay, sigmaz, sigmap, sigmam
-from qutip import entropy_vn
 from qutip.cy.piqs import Dicke as _Dicke
 from qutip.cy.piqs import (
     jmm1_dictionary,
@@ -70,7 +67,6 @@ from qutip.cy.piqs import (
     _num_dicke_ladders,
     get_blocks,
     j_min,
-    m_vals,
     j_vals,
 )
 
