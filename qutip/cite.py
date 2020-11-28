@@ -33,7 +33,6 @@
 """
 Citation generator for QuTiP
 """
-import sys
 import os
 
 __all__ = ['cite']
