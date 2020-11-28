@@ -31,7 +31,6 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
-import scipy.sparse as sp
 import ctypes
 from ctypes import POINTER,c_int,c_char,c_double, byref
 from numpy import ctypeslib
