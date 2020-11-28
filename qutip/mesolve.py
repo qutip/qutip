@@ -39,20 +39,18 @@ __all__ = ['mesolve']
 
 import numpy as np
 import scipy.integrate
-import warnings
-from qutip.qobj import Qobj, isket, isoper, issuper
-from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat, lindblad_dissipator
+from qutip.qobj import isket, isoper, issuper
+from qutip.superoperator import spre, spost, liouvillian, vec2mat, lindblad_dissipator
 from qutip.expect import expect_rho_vec
-from qutip.solver import Options, Result, config, solver_safe, SolverSystem
+from qutip.solver import Options, Result, solver_safe, SolverSystem
 from qutip.cy.spmatfuncs import spmv
-from qutip.cy.spconvert import dense2D_to_fastcsr_cmode, dense2D_to_fastcsr_fmode
+from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
 from qutip.states import ket2dm
-from qutip.settings import debug
 from qutip.sesolve import sesolve
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 from qutip.qobjevo import QobjEvo
 
-from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
+from qutip.cy.openmp.utilities import check_use_openmp
 
 # -----------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
