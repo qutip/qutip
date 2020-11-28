@@ -38,20 +38,15 @@ import os
 import time
 import types
 import warnings
-from functools import partial
 import scipy.integrate
-import scipy.sparse as sp
 from qutip.qobj import Qobj, isket
 from qutip.states import ket2dm
-from qutip.operators import qdiags
-from qutip.superoperator import spre, spost, vec2mat, mat2vec, vec2mat_index
+from qutip.superoperator import spre, spost, vec2mat, mat2vec
 from qutip.expect import expect
 from qutip.solver import Options, Result, config, _solver_safety_check
 from qutip.cy.spmatfuncs import cy_ode_rhs
 from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
-from qutip.superoperator import liouvillian
 from qutip.interpolate import Cubic_Spline
-from qutip.cy.spconvert import arr_coo2fast
 from qutip.cy.br_codegen import BR_Codegen
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 from qutip.cy.utilities import _cython_build_cleanup
