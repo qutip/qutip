@@ -50,7 +50,7 @@ from qutip.cy.sparse_utils import (_sparse_profile, _sparse_permute,
                                    _sparse_reverse_permute, _sparse_bandwidth,
                                    _isdiag, zcsr_one_norm, zcsr_inf_norm)
 from qutip.fastsparse import fast_csr_matrix
-from qutip.cy.spconvert import (arr_coo2fast, zcsr_reshape)
+from qutip.cy.spconvert import zcsr_reshape
 from qutip.settings import debug, eigh_unsafe
 
 if eigh_unsafe:
