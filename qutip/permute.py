@@ -34,7 +34,6 @@
 __all__ = ['reshuffle']
 
 import numpy as np
-import scipy.sparse as sp
 from qutip.cy.ptrace import _select
 from qutip.cy.spconvert import arr_coo2fast, cy_index_permute
 
