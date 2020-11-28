@@ -32,7 +32,6 @@
 ###############################################################################
 import sys, os
 try:
-    import pyximport
     from pyximport import install
 
     old_get_distutils_extension = pyximport.pyximport.get_distutils_extension
