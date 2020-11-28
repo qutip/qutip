@@ -33,7 +33,6 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
-import scipy.sparse as sp
 from scipy.linalg.blas import get_blas_funcs
 try:
     norm = get_blas_funcs("znrm2", dtype=np.float64)
@@ -42,16 +41,15 @@ except:
 
 from numpy.random import RandomState
 
-from qutip.qobj import Qobj, isket
-from qutip.states import ket2dm
+from qutip.qobj import isket
 from qutip.solver import Result
 from qutip.expect import expect, expect_rho_vec
 from qutip.superoperator import (spre, spost, mat2vec, vec2mat,
-                                 liouvillian, lindblad_dissipator)
-from qutip.cy.spmatfuncs import cy_expect_psi_csr, spmv, cy_expect_rho_vec
+                                 liouvillian)
+from qutip.cy.spmatfuncs import cy_expect_psi_csr, spmv
 from qutip.parallel import serial_map
 from qutip.ui.progressbar import TextProgressBar
-from qutip.solver import Options, _solver_safety_check
+from qutip.solver import Options
 from qutip.settings import debug
 
 class StochasticSolverOptions:
