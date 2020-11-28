@@ -32,7 +32,6 @@
 ###############################################################################
 
 from collections.abc import Iterable
-from collections import defaultdict
 from itertools import product
 
 import warnings
@@ -50,7 +49,7 @@ from qutip.qip.operations.gates import (rx, ry, rz, sqrtnot, snot, phasegate,
                                         sqrtswap, sqrtiswap, fredkin,
                                         toffoli, controlled_gate, globalphase,
                                         expand_operator, gate_sequence_product)
-from qutip import tensor, basis, identity, fidelity, ket2dm
+from qutip import tensor, basis, identity, ket2dm
 from qutip.qobj import Qobj
 from qutip.measurement import measurement_statistics
 
