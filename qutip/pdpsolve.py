@@ -41,7 +41,7 @@ except:
 
 from numpy.random import RandomState
 
-from qutip.qobj import isket
+from qutip.qobj import Qobj, isket
 from qutip.solver import Result
 from qutip.expect import expect, expect_rho_vec
 from qutip.superoperator import (spre, spost, mat2vec, vec2mat,
