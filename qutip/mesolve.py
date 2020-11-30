@@ -39,7 +39,7 @@ __all__ = ['mesolve']
 
 import numpy as np
 import scipy.integrate
-from qutip.qobj import isket, isoper, issuper
+from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.superoperator import spre, spost, liouvillian, vec2mat, lindblad_dissipator
 from qutip.expect import expect_rho_vec
 from qutip.solver import Options, Result, solver_safe, SolverSystem
