@@ -4,6 +4,7 @@ from copy import deepcopy
 import numpy as np
 
 from qutip.qobjevo import QobjEvo
+from qutip.qip.operations import expand_operator
 from qutip.qobj import Qobj
 from qutip.operators import sigmaz, destroy
 from qutip.qip.pulse import Pulse
