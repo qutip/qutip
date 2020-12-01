@@ -50,7 +50,7 @@ def mkl_spmv(A, x):
      indices = A.indices.ctypes.data_as(POINTER(c_int))
 
      # Allocate output, using same conventions as input
-     if x.ndim is 1:
+     if x.ndim == 1:
         y = np.empty(m,dtype=np.complex,order='C')
      elif x.ndim==2 and x.shape[1]==1:
         y = np.empty((m,1),dtype=np.complex,order='C')
