@@ -57,7 +57,7 @@ or
 .. centered:: J. R. Johansson, P.D. Nation, and F. Nori, "QuTiP: An open-source Python framework for the dynamics of open quantum systems", Comp. Phys. Comm. **183**, 1760 (2012).
 
 
-which may also be download from http://arxiv.org/abs/1211.6518 or http://arxiv.org/abs/1110.0573, respectively.
+which may also be downloaded from http://arxiv.org/abs/1211.6518 or http://arxiv.org/abs/1110.0573, respectively.
 
 .. _funding-qutip:
 
@@ -130,6 +130,42 @@ The Quantum Toolbox in Python, or QuTiP, is an open-source framework written in 
 
 
 For detailed information about new features of each release of QuTiP, see the :ref:`changelog`.
+
+.. _plugin-qutip:
+
+QuTiP Plugins
+=============
+
+Several libraries depend on QuTiP heavily making QuTiP a super-library
+
+:Matsubara: `Matsubara <https://matsubara.readthedocs.io/en/latest/>`_ is a plugin to study the ultrastrong coupling regime with structured baths
+
+:QNET: `QNET <https://qnet.readthedocs.io/en/latest/readme.html>`_ is a computer algebra package for quantum mechanics and photonic quantum networks
+
+.. _libraries:
+
+Libraries Using QuTiP
+=====================
+
+Several libraries rely on QuTiP for quantum physics or quantum information processing. Some of them are:
+
+:Krotov: `Krotov <https://qucontrol.github.io/krotov/v1.2.0/01_overview.html>`_ focuses on the python implementation of Krotov's method for quantum optimal control
+
+:pyEPR: `pyEPR <https://pyepr-docs.readthedocs.io/en/latest/index.html>`_ interfaces classical distributed microwave analysis with that of quantum structures and hamiltonians by providing easy to use analysis function and automation for the design of quantum chips
+
+:scQubits: `scQubits <https://scqubits.readthedocs.io/en/latest/>`_ is a Python library which provides a convenient way to simulate superconducting qubits by providing an interface to QuTiP
+
+:SimulaQron: `SimulaQron <https://softwarequtech.github.io/SimulaQron/html/index.html>`_ is a distributed simulation of the end nodes in a quantum internet with the specific goal to explore application development
+
+:QInfer: `QInfer <http://qinfer.org/>`_ is a library for working with sequential Monte Carlo methods for parameter estimation in quantum information
+
+:QPtomographer: `QPtomographer <https://qptomographer.readthedocs.io/en/latest/>`_ derive quantum error bars for quantum processes in terms of the diamond norm to a reference quantum channel
+
+:QuNetSim: `QuNetSim <https://tqsd.github.io/QuNetSim/_build/intro.html>`_ is a quantum networking simulation framework to develop and test protocols for quantum networks
+
+:qupulse: `qupulse <https://qupulse.readthedocs.io/en/latest/>`_ is a toolkit to facilitate experiments involving pulse driven state manipulation of physical qubits
+
+
 
 
 Contributing to QuTiP
