@@ -46,7 +46,7 @@ def _mac_hardware_info():
             l[1].strip('.\n ')
     results.update({'cpus': int(info['physicalcpu'])})
     results.update({'cpu_freq': int(float(os.popen('sysctl -n machdep.cpu.brand_string')
-                                .readlines()[0].split('@')[1][:-4])*1000)})
+                                          .readlines()[0].split('@')[1].split(' ')[1].replace('GHz', '')) * 1000)})
     results.update({'memsize': int(int(info['memsize']) / (1024 ** 2))})
     # add OS information
     results.update({'os': 'Mac OSX'})
