@@ -31,151 +31,151 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+import pytest
+import collections
+import functools
 import numpy as np
-from numpy.testing import assert_, run_module_suite
+import qutip
 
-from qutip.operators import (num, destroy,
-                             sigmax, sigmay, sigmaz, sigmam, sigmap)
-from qutip.states import fock, fock_dm
-from qutip.expect import expect
-from qutip.mesolve import mesolve
-from qutip.random_objects import rand_herm, rand_ket
+# We want to test the broadcasting rules for `qutip.expect` for a whole bunch
+# of different systems, without having to repeatedly specify the systems over
+# and over again.  We first store a small number of test cases for known
+# expectation value in the most bundled-up form, because it's easier to unroll
+# these by applying the expected broadcasting rules explicitly ourselves than
+# performing the inverse operation.
+#
+# We store a single test case in a record type, just to keep things neatly
+# together while we're munging them, so it's clear at all times what
+# constitutes a valid test case.
+
+_Case = collections.namedtuple('_Case', ['operator', 'state', 'expected'])
 
 
-class TestExpect:
-    """
-    A test class for the QuTiP function for calculating expectation values.
-    """
+def _case_to_dm(case):
+    return case._replace(state=[x.proj() for x in case.state])
 
-    def testOperatorKet(self):
+
+def _unwrap(list_):
+    """Unwrap lists until we reach the first non-list element."""
+    out = list_
+    while isinstance(out, list):
+        out = out[0]
+    return out
+
+
+def _case_id(case):
+    op_part = 'qubit' if _unwrap(case.operator).dims[0][0] == 2 else 'basis'
+    state_part = 'ket' if _unwrap(case.state).dims[1][0] == 1 else 'dm'
+    return op_part + "-" + state_part
+
+
+# This is the minimal set of test cases, with a Fock system and a qubit system
+# both in ket form and dm form.  The reference expectations are a 2D array
+# which would be found by broadcasting `operator` against `state` and applying
+# `qutip.expect` to the pairs.
+_dim = 5
+_num, _a = qutip.num(_dim), qutip.destroy(_dim)
+_sx, _sz, _sp = qutip.sigmax(), qutip.sigmaz(), qutip.sigmap()
+_known_fock = _Case([_num, _a],
+                    [qutip.fock(_dim, n) for n in range(_dim)],
+                    np.array([np.arange(_dim), np.zeros(_dim)]))
+_known_qubit = _Case([_sx, _sz, _sp],
+                     [qutip.basis(2, 0), qutip.basis(2, 1)],
+                     np.array([[0, 0], [1, -1], [0, 0]]))
+_known_cases = [_known_fock, _case_to_dm(_known_fock),
+                _known_qubit, _case_to_dm(_known_qubit)]
+
+
+class TestKnownExpectation:
+    def pytest_generate_tests(self, metafunc):
         """
-        expect: operator and ket
+        Perform the parametrisation over the test cases, performing the
+        explicit broadcasting into separate test cases when required.
+
+        We detect whether to perform explicit broadcasting over one of the
+        arguments of the `_Case` by looking for a singular/plural name of the
+        parameter in the test.  If the parameter is singular, then we manually
+        perform the broadcasting rule for that fixture, and parametrise over
+        the resulting list, taking care to pick out the correct parts of the
+        reference array.
         """
-        N = 10
-        op_N = num(N)
-        op_a = destroy(N)
-        for n in range(N):
-            e = expect(op_N, fock(N, n))
-            assert_(e == n)
-            assert_(type(e) == float)
-            e = expect(op_a, fock(N, n))
-            assert_(e == 0)
-            assert_(type(e) == complex)
+        cases = _known_cases
+        op_name, state_name = 'operator', 'state'
+        if op_name not in metafunc.fixturenames:
+            op_name += 's'
+        else:
+            cases = [_Case(op, case.state, expected)
+                     for case in cases
+                     for op, expected in zip(case.operator, case.expected)]
+        if state_name not in metafunc.fixturenames:
+            state_name += 's'
+        else:
+            cases = [_Case(case.operator, state, expected)
+                     for case in cases
+                     for state, expected in zip(case.state, case.expected.T)]
+        metafunc.parametrize([op_name, state_name, 'expected'], cases,
+                             ids=[_case_id(case) for case in cases])
 
-    def testOperatorKetRand(self):
-        """
-        expect: rand operator & rand ket
-        """
-        for kk in range(20):
-            N = 20
-            H = rand_herm(N, 0.2)
-            psi = rand_ket(N,0.3)
-            out = expect(H,psi)
-            ans = (psi.dag()*H*psi).tr()
-            assert_(np.abs(out-ans) < 1e-14)
-    
-            G = rand_herm(N, 0.1)
-            out = expect(H+1j*G,psi)
-            ans = (psi.dag()*(H+1j*G)*psi).tr()
-            assert_(np.abs(out-ans) < 1e-14)
-    
-    def testOperatorDensityMatrix(self):
-        """
-        expect: operator and density matrix
-        """
-        N = 10
-        op_N = num(N)
-        op_a = destroy(N)
-        for n in range(N):
-            e = expect(op_N, fock_dm(N, n))
-            assert_(e == n)
-            assert_(type(e) == float)
-            e = expect(op_a, fock_dm(N, n))
-            assert_(e == 0)
-            assert_(type(e) == complex)
+    def test_operator_by_basis(self, operator, state, expected):
+        result = qutip.expect(operator, state)
+        assert result == expected
+        assert isinstance(result, float if operator.isherm else complex)
 
-    def testOperatorStateList(self):
-        """
-        expect: operator and state list
-        """
-        N = 10
-        op = num(N)
+    def test_broadcast_operator_list(self, operators, state, expected):
+        result = qutip.expect(operators, state)
+        expected_dtype = (np.float64 if all(op.isherm for op in operators)
+                          else np.complex128)
+        assert isinstance(result, np.ndarray)
+        assert result.dtype == expected_dtype
+        assert list(result) == list(expected)
 
-        res = expect(op, [fock(N, n) for n in range(N)])
-        assert_(all(res == range(N)))
-        assert_(isinstance(res, np.ndarray) and res.dtype == np.float64)
+    def test_broadcast_state_list(self, operator, states, expected):
+        result = qutip.expect(operator, states)
+        expected_dtype = np.float64 if operator.isherm else np.complex128
+        assert isinstance(result, np.ndarray)
+        assert result.dtype == expected_dtype
+        assert list(result) == list(expected)
 
-        res = expect(op, [fock_dm(N, n) for n in range(N)])
-        assert_(all(res == range(N)))
-        assert_(isinstance(res, np.ndarray) and res.dtype == np.float64)
-
-        op = destroy(N)
-
-        res = expect(op, [fock(N, n) for n in range(N)])
-        assert_(all(res == np.zeros(N)))
-        assert_(isinstance(res, np.ndarray) and res.dtype == np.complex128)
-
-        res = expect(op, [fock_dm(N, n) for n in range(N)])
-        assert_(all(res == np.zeros(N)))
-        assert_(isinstance(res, np.ndarray) and res.dtype == np.complex128)
-
-    def testOperatorListState(self):
-        """
-        expect: operator list and state
-        """
-        res = expect([sigmax(), sigmay(), sigmaz()], fock(2, 0))
-        assert_(len(res) == 3)
-        assert_(all(abs(res - [0, 0, 1]) < 1e-12))
-
-        res = expect([sigmax(), sigmay(), sigmaz()], fock_dm(2, 1))
-        assert_(len(res) == 3)
-        assert_(all(abs(res - [0, 0, -1]) < 1e-12))
-
-    def testOperatorListStateList(self):
-        """
-        expect: operator list and state list
-        """
-        operators = [sigmax(), sigmay(), sigmaz(), sigmam(), sigmap()]
-        states = [fock(2, 0), fock(2, 1), fock_dm(2, 0), fock_dm(2, 1)]
-        res = expect(operators, states)
-
-        assert_(len(res) == len(operators))
-
-        for r_idx, r in enumerate(res):
-
-            assert_(isinstance(r, np.ndarray))
-
-            if operators[r_idx].isherm:
-                assert_(r.dtype == np.float64)
-            else:
-                assert_(r.dtype == np.complex128)
-
-            for s_idx, s in enumerate(states):
-                assert_(r[s_idx] == expect(operators[r_idx], states[s_idx]))
-
-    def testExpectSolverCompatibility(self):
-        """
-        expect: operator list and state list
-        """
-        c_ops = [0.0001 * sigmaz()]
-        e_ops = [sigmax(), sigmay(), sigmaz(), sigmam(), sigmap()]
-        times = np.linspace(0, 10, 100)
-
-        res1 = mesolve(sigmax(), fock(2, 0), times, c_ops, e_ops)
-        res2 = mesolve(sigmax(), fock(2, 0), times, c_ops, [])
-
-        e1 = res1.expect
-        e2 = expect(e_ops, res2.states)
-
-        assert_(len(e1) == len(e2))
-
-        for n in range(len(e1)):
-            assert_(len(e1[n]) == len(e2[n]))
-            assert_(isinstance(e1[n], np.ndarray))
-            assert_(isinstance(e2[n], np.ndarray))
-            assert_(e1[n].dtype == e2[n].dtype)
-            assert_(all(abs(e1[n] - e2[n]) < 1e-12))
+    def test_broadcast_both_lists(self, operators, states, expected):
+        result = qutip.expect(operators, states)
+        assert len(result) == len(operators)
+        for part, operator, expected_part in zip(result, operators, expected):
+            expected_dtype = np.float64 if operator.isherm else np.complex128
+            assert isinstance(part, np.ndarray)
+            assert part.dtype == expected_dtype
+            assert list(part) == list(expected_part)
 
 
-if __name__ == "__main__":
-    run_module_suite()
+@pytest.mark.repeat(20)
+@pytest.mark.parametrize("hermitian", [False, True], ids=['complex', 'real'])
+def test_equivalent_to_matrix_element(hermitian):
+    dimension = 20
+    state = qutip.rand_ket(dimension, 0.3)
+    op = qutip.rand_herm(dimension, 0.2)
+    if not hermitian:
+        op = op + 1j*qutip.rand_herm(dimension, 0.1)
+    expected = (state.dag() * op * state).data[0, 0]
+    assert abs(qutip.expect(op, state) - expected) < 1e-14
+
+
+@pytest.mark.parametrize("solve", [
+    pytest.param(qutip.sesolve, id="sesolve"),
+    pytest.param(functools.partial(qutip.mesolve, c_ops=[qutip.qzero(2)]),
+                 id="mesolve"),
+])
+def test_compatibility_with_solver(solve):
+    e_ops = [getattr(qutip, 'sigma'+x)() for x in 'xyzmp']
+    h = qutip.sigmax()
+    state = qutip.basis(2, 0)
+    times = np.linspace(0, 10, 101)
+    options = qutip.Options(store_states=True)
+    result = solve(h, state, times, e_ops=e_ops, options=options)
+    direct, states = result.expect, result.states
+    indirect = qutip.expect(e_ops, states)
+    assert len(direct) == len(indirect)
+    for direct_, indirect_ in zip(direct, indirect):
+        assert len(direct_) == len(indirect_)
+        assert isinstance(direct_, np.ndarray)
+        assert isinstance(indirect_, np.ndarray)
+        assert direct_.dtype == indirect_.dtype
+        np.testing.assert_allclose(direct_, indirect_, atol=1e-12)

@@ -106,7 +106,10 @@ else:
     # See Pull #652 for why this is here.
     os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
-
+import platform
+from .utilities import _blas_info
+qutip.settings.eigh_unsafe = (_blas_info() == "OPENBLAS" and
+                              platform.system() == 'Darwin')
 # -----------------------------------------------------------------------------
 # setup the cython environment
 #

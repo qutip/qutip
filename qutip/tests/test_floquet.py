@@ -296,6 +296,3 @@ class TestFloquet:
             Xpm_m1 = (a/(normMinus*normPlus))*(array_ana_E1[idx]-delta/2)
             assert_(min(abs(Xs-Xpm_m1)) < 1e-4)
             idx += 1
-
-if __name__ == "__main__":
-    run_module_suite()

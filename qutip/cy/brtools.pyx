@@ -31,7 +31,7 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-from scipy.linalg.cython_lapack cimport zheevr
+from scipy.linalg.cython_lapack cimport zheevr, zgeev
 from scipy.linalg.cython_blas cimport zgemm, zgemv, zaxpy
 from qutip.cy.spmath cimport (_zcsr_kron_core, _zcsr_kron,
                     _zcsr_add, _zcsr_transpose, _zcsr_adjoint,
@@ -43,12 +43,19 @@ from libc.math cimport fabs, fmin
 from libc.float cimport DBL_MAX
 from libcpp.vector cimport vector
 from qutip.cy.sparse_structs cimport (CSR_Matrix, COO_Matrix)
+from qutip.settings import eigh_unsafe
+import numpy as np
 
 include "sparse_routines.pxi"
 
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
+    double         real(double complex x)
     double cabs   "abs" (double complex x)
+    double complex sqrt(double complex x)
+
+
+cdef int use_zgeev = eigh_unsafe
 
 
 @cython.boundscheck(False)
@@ -118,6 +125,9 @@ cdef void ZHEEVR(complex[::1,:] H, double * eigvals,
     nrows : int
         Number of rows in matrix.
     """
+    if use_zgeev:
+        ZGEEV(H, eigvals, Z, nrows)
+        return
     cdef char jobz = b'V'
     cdef char rnge = b'A'
     cdef char uplo = b'L'
@@ -139,6 +149,93 @@ cdef void ZHEEVR(complex[::1,:] H, double * eigvals,
     PyDataMem_FREE(rwork)
     PyDataMem_FREE(isuppz)
     PyDataMem_FREE(iwork)
+    if info != 0:
+        if info < 0:
+            raise Exception("Error in parameter : %s" & abs(info))
+        else:
+            raise Exception("Algorithm failed to converge")
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void ZGEEV(complex[::1,:] H, double * eigvals,
+                complex[::1,:] Z, int nrows):
+    """
+    Computes the eigenvalues and vectors of a dense Hermitian matrix.
+    Eigenvectors are returned in Z.
+
+    Parameters
+    ----------
+    H : array_like
+        Input Hermitian matrix.
+    eigvals : array_like
+        Input array to store eigen values.
+    Z : array_like
+        Output array of eigenvectors.
+    nrows : int
+        Number of rows in matrix.
+    """
+    cdef char jobvl = b'N'
+    cdef char jobvr = b'V'
+    cdef int i, j, k, lwork = -1
+    cdef int same_eigv = 0
+    cdef complex dot
+    cdef complex wkopt
+    cdef int info=0
+    cdef complex * work
+
+    #These need to be freed at end
+    cdef complex * eival = <complex *>PyDataMem_NEW(nrows * sizeof(complex))
+    cdef complex * vl = <complex *>PyDataMem_NEW(nrows * nrows *
+                                                 sizeof(complex))
+    cdef complex * vr = <complex *>PyDataMem_NEW(nrows * nrows *
+                                                 sizeof(complex))
+    cdef double * rwork = <double *>PyDataMem_NEW((2*nrows) * sizeof(double))
+
+    # First call to get lwork
+    zgeev(&jobvl, &jobvr, &nrows, &H[0,0], &nrows,
+          eival, vl, &nrows, vr, &nrows,
+          &wkopt, &lwork, rwork, &info)
+    lwork = int(real(wkopt))
+    work = <complex *>PyDataMem_NEW(lwork * sizeof(complex))
+    # Solving
+    zgeev(&jobvl, &jobvr, &nrows, &H[0,0], &nrows,
+          eival, vl, &nrows, vr, &nrows, #&Z[0,0],
+          work, &lwork, rwork, &info)
+    for i in range(nrows):
+        eigvals[i] = real(eival[i])
+    # After using lapack, numpy...
+    # lapack does not seems to have sorting function
+    # zheevr sort but not zgeev
+    cdef long[:] idx = np.argsort(np.array(<double[:nrows]> eigvals))
+    for i in range(nrows):
+        eigvals[i] = real(eival[idx[i]])
+        for j in range(nrows):
+            Z[j,i] = vr[j + idx[i]*nrows]
+
+    for i in range(1, nrows):
+        if cabs(eigvals[i] - eigvals[i-1]) < 1e-12:
+            same_eigv += 1
+            for j in range(same_eigv):
+                dot = 0.
+                for k in range(nrows):
+                    dot += conj(Z[k,i-j-1]) * Z[k,i]
+                for k in range(nrows):
+                    Z[k,i] -= Z[k,i-j-1] * dot
+                dot = 0.
+                for k in range(nrows):
+                    dot += conj(Z[k,i]) * Z[k,i]
+                dot = sqrt(dot)
+                for k in range(nrows):
+                    Z[k,i] /= dot
+        else:
+            same_eigv = 0
+
+    PyDataMem_FREE(work)
+    PyDataMem_FREE(rwork)
+    PyDataMem_FREE(vl)
+    PyDataMem_FREE(vr)
+    PyDataMem_FREE(eival)
     if info != 0:
         if info < 0:
             raise Exception("Error in parameter : %s" & abs(info))

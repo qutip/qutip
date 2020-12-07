@@ -31,145 +31,57 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-import os
-from numpy import amax
-from numpy.testing import assert_, run_module_suite
-from numpy.random import rand
-import scipy
-from qutip import *
-from qutip import file_data_store, file_data_read
+import pytest
+import numpy as np
+import uuid
+import qutip
+
+# qsave _always_ appends a suffix to the file name at the time of writing, but
+# in case this changes in the future, to ensure that we never leak a temporary
+# file into the user's folders, we simply apply these tests in a temporary
+# directory.  Windows also does not allow temporary files to be opened multiple
+# times, so using a temporary directory is best.
+pytestmark = [pytest.mark.usefixtures("in_temporary_directory")]
+
+_dimension = 10
+
+def _random_file_name():
+    return "_" + str(uuid.uuid4())
 
 
-class TestFileIO:
-    """
-    A test class for the QuTiP functions for writing and reading data to files.
-    """
+class Test_file_data_store_file_data_read:
+    # Tests parametrised seprately to give nicer descriptions in verbose mode.
 
-    def testRWRealDefault(self):
-        "Read and write real valued default formatted data"
+    def case(self, filename, kwargs):
+        data = 1 - 2*np.random.rand(_dimension, _dimension)
+        if kwargs.get('numtype', 'complex') == 'complex':
+            data = data * (0.5*0.5j)
+        qutip.file_data_store(filename, data, **kwargs)
+        out = qutip.file_data_read(filename)
+        np.testing.assert_allclose(data, out, atol=1e-8)
 
-        # create some random data
-        N = 10
-        data = (1 - 2 * rand(N, N))
+    def test_defaults(self):
+        return self.case(_random_file_name(), {})
 
-        file_data_store("test.dat", data)
-        data2 = file_data_read("test.dat")
-        # make sure the deviation is small:
-        assert_(amax(abs((data - data2))) < 1e-8)
-        os.remove("test.dat")
+    @pytest.mark.parametrize("type_", ["real", "complex"])
+    @pytest.mark.parametrize("format_", ["decimal", "exp"])
+    def test_type_format(self, type_, format_):
 
-    def testRWRealDecimal(self):
-        "Read and write real valued decimal formatted data"
+        kwargs = {'numtype': type_, 'numformat': format_}
+        return self.case(_random_file_name(), kwargs)
 
-        # create some random data
-        N = 10
-        data = (1 - 2 * rand(N, N))
-
-        file_data_store("test.dat", data, "real", "decimal")
-        data2 = file_data_read("test.dat", ",")
-        # make sure the deviation is small:
-        assert_(amax(abs((data - data2))) < 1e-8)
-        os.remove("test.dat")
-
-    def testRWRealExp(self):
-        "Read and write real valued exp formatted data"
-
-        # create some random data
-        N = 10
-        data = (1 - 2 * rand(N, N))
-
-        file_data_store("test.dat", data, "real", "exp")
-        data2 = file_data_read("test.dat", ",")
-        # make sure the deviation is small:
-        assert_(amax(abs((data - data2))) < 1e-8)
-        os.remove("test.dat")
-
-    def testRWComplexDefault(self):
-        "Read and write complex valued default formatted data"
-
-        # create some random data
-        N = 10
-        data = (1 - 2 * rand(N, N)) + 1j * (1 - 2 * rand(N, N))
-
-        file_data_store("test.dat", data)
-        data2 = file_data_read("test.dat")
-        # make sure the deviation is small:
-        assert_(amax(abs((data - data2))) < 1e-8)
-        os.remove("test.dat")
-
-    def testRWComplexDecimal(self):
-        "Read and write complex valued decimal formatted data"
-
-        # create some random data
-        N = 10
-        data = (1 - 2 * rand(N, N)) + 1j * (1 - 2 * rand(N, N))
-
-        file_data_store("test.dat", data, "complex", "decimal")
-        data2 = file_data_read("test.dat", ",")
-        # make sure the deviation is small:
-        assert_(amax(abs((data - data2))) < 1e-8)
-        os.remove("test.dat")
-
-    def testRWComplexExp(self):
-        "Read and write complex valued exp formatted data"
-
-        # create some random data
-        N = 10
-        data = (1 - 2 * rand(N, N)) + 1j * (1 - 2 * rand(N, N))
-
-        file_data_store("test.dat", data, "complex", "exp")
-        data2 = file_data_read("test.dat", ",")
-        # make sure the deviation is small:
-        assert_(amax(abs((data - data2))) < 1e-8)
-        os.remove("test.dat")
-
-    def testRWSeparatorDetection(self):
-        "Read and write with automatic separator detection"
-
-        # create some random data
-        N = 10
-        data = (1 - 2 * rand(N, N)) + 1j * (1 - 2 * rand(N, N))
-
-        # comma separated values
-        file_data_store("test.dat", data, "complex", "exp", ",")
-        data2 = file_data_read("test.dat")
-        assert_(amax(abs((data - data2))) < 1e-8)
-
-        # semicolon separated values
-        file_data_store("test.dat", data, "complex", "exp", ";")
-        data2 = file_data_read("test.dat")
-        assert_(amax(abs((data - data2))) < 1e-8)
-
-        # tab separated values
-        file_data_store("test.dat", data, "complex", "exp", "\t")
-        data2 = file_data_read("test.dat")
-        assert_(amax(abs((data - data2))) < 1e-8)
-
-        # space separated values
-        file_data_store("test.dat", data, "complex", "exp", " ")
-        data2 = file_data_read("test.dat")
-        assert_(amax(abs((data - data2))) < 1e-8)
-
-        # mixed-whitespace separated values
-        file_data_store("test.dat", data, "complex", "exp", " \t ")
-        data2 = file_data_read("test.dat")
-        assert_(amax(abs((data - data2))) < 1e-8)
-        os.remove("test.dat")
-
-    def testqsaveqload(self):
-        "qsave/qload"
-        A = sigmax()
-        B = num(5)
-        C = coherent_dm(10,1j)
-        ops = [A, B, C]
-        qsave(ops, 'fileio_check')
-        ops2 = qload('fileio_check')
-        assert_(ops == ops2)
-        try:
-            os.remove('fileio_check.qu')
-        except:
-            pass
+    @pytest.mark.parametrize("separator", [",", ";", "\t", " ", " \t "],
+                             ids=lambda x: "'" + x + "'")
+    def test_separator_detection(self, separator):
+        kwargs = {'numtype': 'complex', 'numformat': 'exp', 'sep': separator}
+        return self.case(_random_file_name(), kwargs)
 
 
-if __name__ == "__main__":
-    run_module_suite()
+def test_qsave_qload():
+    ops_in = [qutip.sigmax(),
+              qutip.num(_dimension),
+              qutip.coherent_dm(_dimension, 1j)]
+    filename = _random_file_name()
+    qutip.qsave(ops_in, filename)
+    ops_out = qutip.qload(filename)
+    assert ops_in == ops_out

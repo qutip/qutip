@@ -103,7 +103,7 @@ def flatten(l):
     Examples
     --------
 
-    >>> print(flatten([[[0], 1], 2]))
+    >>> flatten([[[0], 1], 2]) # doctest: +SKIP
     [0, 1, 2]
 
     """
@@ -123,7 +123,7 @@ def deep_remove(l, *what):
     Examples
     --------
 
-    >>> print(deep_remove([[[[0, 1, 2]], [3, 4], [5], [6, 7]]], 0, 5))
+    >>> deep_remove([[[[0, 1, 2]], [3, 4], [5], [6, 7]]], 0, 5) # doctest: +SKIP
     [[[[1, 2]], [3, 4], [], [6, 7]]]
 
     """
@@ -148,9 +148,9 @@ def unflatten(l, idxs):
     Examples
     --------
 
-    >>> l = [[[10, 20, 30], [40, 50, 60]], [[70, 80, 90], [100, 110, 120]]]
-    >>> idxs = enumerate_flat(l)
-    >>> print(unflatten(flatten(l)), idxs) == l
+    >>> l = [[[10, 20, 30], [40, 50, 60]], [[70, 80, 90], [100, 110, 120]]] # doctest: +SKIP
+    >>> idxs = enumerate_flat(l) # doctest: +SKIP
+    >>> unflatten(flatten(l), idxs) == l # doctest: +SKIP
     True
 
     """
@@ -197,7 +197,7 @@ def _collapse_dims_to_level(dims, level=1):
         return _collapse_composite_index(dims)
     else:
         return [_collapse_dims_to_level(index, level=level - 1) for index in dims]
-    
+
 def collapse_dims_oper(dims):
     """
     Given the dimensions specifications for a ket-, bra- or oper-type
@@ -255,7 +255,7 @@ def enumerate_flat(l):
     Examples
     --------
 
-    >>> print(enumerate_flat([[[10], [20, 30]], 40]))
+    >>> print(enumerate_flat([[[10], [20, 30]], 40])) # doctest: +SKIP
     [[[0], [1, 2]], 3]
 
     """

@@ -57,6 +57,8 @@ has_mkl = False
 has_openmp = False
 # debug mode for development
 debug = False
+# Running on mac with openblas make eigh unsafe
+eigh_unsafe = False 
 # are we in IPython? Note that this cannot be
 # set by the RC file.
 ipython = False
@@ -70,7 +72,7 @@ log_handler = 'default'
 # and plotting options by default.
 colorblind_safe = False
 # Sets the threshold for matrix NNZ where OPENMP
-# turns on. This is automatically calculated and 
+# turns on. This is automatically calculated and
 # put in the qutiprc file.  This value is here in case
 # that failts
 openmp_thresh = 10000
