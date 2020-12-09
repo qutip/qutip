@@ -138,6 +138,15 @@ def __init__(self, file='', *,
 {attributes_set}
     if file:
         self.load(file)
+    if hasattr(self, "extra_options"):
+        other_kw = dict()
+        for kw in kwargs:
+            if kw in self.extra_options:
+                self.options[kw] = kwargs[kw]
+            else:
+                other_kw[kw] = kwargs[kw]
+        kwargs = other_kw
+    self._children = []
     for child in self._defaultInstance._children:
         self._children.append(child.__class__(file, _child_instance=True,
                                               **kwargs))

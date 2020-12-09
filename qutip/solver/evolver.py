@@ -36,29 +36,6 @@ This module provides solvers for
 __all__ = ['Evolver',  'evolver_collection',
            'EvolverScipyZvode', 'EvolverScipyDop853', 'EvolverScipylsoda']
 
-"""
-all_ode_method = ['adams', 'bdf', 'dop853', 'vern7', 'vern9']
-
-class qutip_zvode(zvode):
-    def step(self, *args):
-        itask = self.call_args[2]
-        self.rwork[0] = args[4]
-        self.call_args[2] = 5
-        r = self.run(*args)
-        self.call_args[2] = itask
-        return r
-
-def get_evolver(system, options, args, feedback_args):
-    if options.ode['method'] in ['adams','bdf']:
-        return EvolverScipyZvode(system, options, args, feedback_args)
-    elif options.ode['method'] in ['dop853']:
-        return EvolverScipyDop853(system, options, args, feedback_args)
-    elif options.ode['method'] in ['vern7', 'vern9']:
-        return EvolverVern(system, options, args, feedback_args)
-    elif options.ode['method'] in ['diagonalized', 'diag']:
-        return EvolverDiag(system, options, args, feedback_args)
-    raise ValueError("method options not recognized")
-"""
 
 import numpy as np
 from numpy.linalg import norm as la_norm
@@ -67,7 +44,7 @@ from scipy.integrate import ode
 from scipy.integrate._ode import zvode
 from ..core import data as _data
 from ._solverqevo import SolverQEvo
-from .options import SolverOptions
+from .options import SolverOptions, SolverOdeOptions
 from ..core import QobjEvo, qeye, basis
 import warnings
 
@@ -140,8 +117,10 @@ class _EvolverCollection:
         evolver_data.update(limits)
         if hasattr(evolver, 'description'):
             evolver_data['description'] = evolver.description
-        if hasattr(evolver, 'options'):
+        if hasattr(evolver, 'used_options'):
             evolver_data['options'] = evolver.used_options
+            [SolverOdeOptions.extra_options.add(opt)
+             for opt in evolver.used_options]
 
         if not method:
             evol = evolver(self["dop853", ""])

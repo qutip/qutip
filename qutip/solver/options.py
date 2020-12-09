@@ -97,9 +97,6 @@ class SolverOdeOptions:
         "max_step": 0,
         # Minimal step size (0 = determined by solver)
         "min_step": 0,
-        'ifactor': 6.0,
-        'dfactor': 0.3,
-        'beta': 0.0,
         # tidyup Hamiltonian before calculation (default = True)
         "tidy": True,
         "Operator_data_type": "input",
@@ -107,6 +104,7 @@ class SolverOdeOptions:
         # Normalize the states received in feedback_args
         "feedback_normalize": True,
     }
+    extra_options = set()
 
 
 @optionsclass("results", SolverOptions)
