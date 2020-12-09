@@ -64,6 +64,8 @@ PACKAGES = ['qutip', 'qutip/ui', 'qutip/qip', 'qutip/qip/device',
             'qutip/qip/operations', 'qutip/qip/compiler',
             'qutip/qip/algorithms', 'qutip/control',
             'qutip/solve', 'qutip/solve/nonmarkov',
+            'qutip/solver', 'qutip/solver/ode',
+            'qutip/tests/solver',
             'qutip/_mkl', 'qutip/tests', 'qutip/tests/core',
             'qutip/tests/core/data', 'qutip/tests/solve',
             'qutip/core', 'qutip/core/cy',
@@ -200,7 +202,8 @@ cy_exts = {
         '_feedback',
         '_solverqevo',
     ],
-    'solver.ode': [file.split("/")[-1][:-4] for file in glob("qutip/solver/*/*.pyx")],
+    'solver.ode': [file.split("/")[-1][:-4]
+                   for file in glob("qutip/solver/*/*.pyx")],
     'solve.nonmarkov': [
         '_heom',
     ],

@@ -8,6 +8,7 @@ cdef class Feedback:
     cdef bint norm
     cdef bint issuper
 
+
 cdef class QobjFeedback(Feedback):
     cdef:
         object dims
@@ -17,8 +18,10 @@ cdef class QobjFeedback(Feedback):
         object isunitary
         object shape
 
+
 cdef class ExpectFeedback(Feedback):
     cdef _data.Data op
+
 
 cdef class CollapseFeedback(Feedback):
     cdef list collapse

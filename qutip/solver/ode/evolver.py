@@ -2,7 +2,12 @@
 from ..evolver import Evolver, evolver_collection
 from .verner7efficient import vern7
 from .verner9efficient import vern9
-from .wrapper import QtOdeFuncWrapperSolverQEvo
+from .wrapper import QtOdeFuncWrapper
+import numpy as np
+from ...core import data as _data
+
+__all__ = ['EvolverVern', 'EvolverDiag']
+
 
 class EvolverVern(Evolver):
     # -------------------------------------------------------------------------
@@ -21,18 +26,18 @@ class EvolverVern(Evolver):
 
     def prepare(self):
         func = QtOdeFuncWrapper(self.system)
-        opt = {key: self.options[key]
+        opt = {key: self.options.ode[key]
                for key in self.used_options
-               if key in self.options}
-        ode = vern7 if self.options['method'] == 'vern7' else vern9
+               if key in self.options.ode}
+        ode = vern7 if self.options.ode['method'] == 'vern7' else vern9
         self._ode_solver = ode(func, **opt)
-        self.name = "qutip " + self.options['method']
+        self.name = "qutip " + self.options.ode['method']
 
     def get_state(self, copy=True):
         state = self._ode_solver.y
         return self._ode_solver.t, state.copy() if copy else state
 
-    def set_state(self, state, t):
+    def set_state(self, t, state):
         self._ode_solver.set_initial_value(state, t)
 
     def backstep(self, t):
@@ -59,8 +64,9 @@ vernlimits = {
     "backstep": True,
     "update_args": True,
     "feedback": True,
-    "cte": False,
+    "time_dependent": True,
 }
+
 
 evolver_collection.add(EvolverVern, methods=['vern7', 'vern9'],
                        limits=vernlimits, _test=False)
@@ -86,9 +92,10 @@ class EvolverDiag(Evolver):
         self.options = options
         self._dt = 0.
         self._expH = None
+        self.prepare()
 
     def prepare(self):
-        self.diag, self.U = system(0).eigenstates()
+        self.diag, self.U = self.system(0).eigenstates()
         self.diag = self.diag.reshape((-1,1))
         self.U = np.hstack([eket.full() for eket in self.U])
         self.Uinv = np.linalg.inv(self.U)
@@ -116,17 +123,19 @@ class EvolverDiag(Evolver):
         y = self.U @ self._y
         return self._t, _data.dense.fast_from_numpy(y)
 
-    def set_state(self, state0, t):
+    def set_state(self, t, state0):
         self._t = t
         self._y = (self.Uinv @ state0.to_array())
 
+
 diaglimits = {
-    "base": True,
+    "base": False,
     "backstep": True,
     "update_args": False,
     "feedback": False,
-    "cte": True,
+    "time_dependent": False,
 }
+
 
 evolver_collection.add(EvolverDiag, methods=['diag'],
                        limits=diaglimits, _test=False)

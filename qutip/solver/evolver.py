@@ -33,18 +33,10 @@
 """
 This module provides solvers for
 """
-__all__ = ['Evolver', 'EvolverScipyDop853',
-           'EvolverVern', 'EvolverDiag', 'get_evolver']
+__all__ = ['Evolver',  'evolver_collection',
+           'EvolverScipyZvode', 'EvolverScipyDop853', 'EvolverScipylsoda']
 
-
-import numpy as np
-from numpy.linalg import norm as la_norm
-from scipy.integrate import ode
-from scipy.integrate._ode import zvode
-from ..core import data as _data
-from ._solverqevo import SolverQEvo
-import warnings
-
+"""
 all_ode_method = ['adams', 'bdf', 'dop853', 'vern7', 'vern9']
 
 class qutip_zvode(zvode):
@@ -66,6 +58,19 @@ def get_evolver(system, options, args, feedback_args):
     elif options.ode['method'] in ['diagonalized', 'diag']:
         return EvolverDiag(system, options, args, feedback_args)
     raise ValueError("method options not recognized")
+"""
+
+import numpy as np
+from numpy.linalg import norm as la_norm
+from itertools import product
+from scipy.integrate import ode
+from scipy.integrate._ode import zvode
+from ..core import data as _data
+from ._solverqevo import SolverQEvo
+from .options import SolverOptions
+from ..core import QobjEvo, qeye, basis
+import warnings
+
 
 class _EvolverCollection:
     def __init__(self):
@@ -94,19 +99,10 @@ class _EvolverCollection:
                 evolver.__name__ not in self.evolver_data
             ):
                 raise ValueError("rhs keyword '{}' already used")
-        evolver_data = {
-            "description": evolver.description,
-            "options": evolver.options,
-            "evolver": evolver,
-            "base": None,
-            "backstep": None,
-            "update_args": None,
-            "feedback": None,
-            "cte": None,
-        }
-        evolver_data.update(limits)
-        if _test and not self._simple_test(evolver):
+
+        if _test and not self._simple_test(evolver, bool(methods)):
             raise ValueError("Could not use given evolver")
+        evolver_data = self._complete_data(evolver, limits, bool(methods))
         if methods:
             evolver_data["methods"] = methods
             for method in methods:
@@ -115,17 +111,127 @@ class _EvolverCollection:
             evolver_data["rhs"] = rhs
             for rhs_ in rhs:
                 self.rhs2evolver[rhs_] = evolver
-        self._complete_data(evolver, evolver_data)
         self.evolver_data[evolver.__name__] = evolver_data
 
-    def _simple_test(self, evolver):
+    def _simple_test(self, evolver, method):
+        system = QobjEvo(qeye(1))
+        try:
+            if method:
+                evo = evolver(system, SolverOptions(), {}, {})
+            else:
+                evo = evolver(self["dop853", ""])(system, {}, {}, {})
+            evo.set_state(0., basis(1,0).data)
+            assert np.all_close(evo.step(1)[1].to_array()[0,0], 2., 1e-5)
+        except Exception:
+            return False
         return True
 
-    def _complete_data(evolver, evolver_data):
-        pass
+    def _complete_data(self, evolver, limits, method):
+        evolver_data = {
+            "description": "",
+            "options": [],
+            "evolver": evolver,
+            "base": None,
+            "backstep": None,
+            "update_args": None,
+            "feedback": None,
+            "time_dependent": None,
+        }
+        evolver_data.update(limits)
+        if hasattr(evolver, 'description'):
+            evolver_data['description'] = evolver.description
+        if hasattr(evolver, 'options'):
+            evolver_data['options'] = evolver.used_options
 
-    def __getitem__[self, key]:
-        method, rhs = *key
+        if not method:
+            evol = evolver(self["dop853", ""])
+            evolver_data['base'] = False
+
+        if evolver_data['time_dependent'] is None:
+            try:
+                system = QobjEvo([qeye(1), lambda t, args: t])
+                evo = evol(system, SolverOptions(), {}, {})
+                evo.set_state(0, basis(1,0).data)
+                assert np.all_close(
+                    evo.step(1)[1].to_array()[0,0], 1.5, atol=1e-5
+                    )
+                evolver_data['time_dependent'] = True
+            except Exception:
+                evolver_data['time_dependent'] = False
+                evolver_data['update_args'] = False
+                evolver_data['feedback'] = False
+                evolver_data['base'] = False
+
+        if evolver_data['update_args'] is None:
+            try:
+                system = QobjEvo([qeye(1), lambda t, args: args['cte']])
+                evo = evol(system, SolverOptions(), {"cte":0}, {})
+                evo.set_state(0, basis(1,0).data)
+                evo.step(0.5)
+                evo.update_args({"cte":1})
+                assert np.all_close(
+                    evo.step(1)[1].to_array()[0,0], 0.5, atol=1e-5
+                    )
+                evolver_data['update_args'] = True
+            except Exception:
+                evolver_data['update_args'] = False
+                evolver_data['base'] = False
+
+        if evolver_data['feedback'] is None:
+            try:
+                system = QobjEvo([qeye(1), lambda t, args: args['obj'].full()[0,0]])
+                evo = evol(system, SolverOptions(), {"obj":basis(2,0)}, {})
+                evo.set_state(0, basis(1,0).data)
+                assert np.all_close(
+                    evo.step(1)[1].to_array()[0,0], np.exp(1), atol=1e-3
+                    )
+                evolver_data['feedback'] = True
+            except Exception:
+                evolver_data['feedback'] = False
+                evolver_data['base'] = False
+
+        if evolver_data['backstep'] is None:
+            try:
+                system = QobjEvo([qeye(1), lambda t, args: t])
+                evo = evol(system, SolverOptions(), {}, {})
+                evo.set_state(0, basis(1,0).data)
+                t, _ = evo.step(0.5)
+                for t_target in [0.6, 1.0]:
+                    t_old = t
+                    while t < t_target:
+                        t_old = t
+                        t, state = evo.stepping(t_target)
+                    for t_backstep in np.linspace(t_old, t, 21):
+                        # since scipy zvode naturally backstep on most but not
+                        # all the range, we test on the full range.
+                        _, state = evo.backstep(t_backstep)
+                        assert np.all_close(state.to_array()[0,0],
+                                            1 + t_backstep, atol=1e-5)
+                evolver_data['backstep'] = True
+            except Exception:
+                evolver_data['backstep'] = False
+                evolver_data['base'] = False
+
+        if evolver_data['base'] is None:
+            if not isinstance(evo.system, SolverQEvo):
+                evolver_data['base'] = False
+            else:
+                try:
+                    system = QobjEvo(qeye(1))
+                    evo = evol(system, SolverOptions(), {}, {})
+                    evo.system = SolverQEvo(QobjEvo(qeye(1)*-1),
+                                            SolverOptions(), {}, {})
+                    evo.set_state(0, basis(1,0).to(_data.Dense).data)
+                    assert  np.all_close(
+                        evo.step(1)[1].to_array()[0,0], 0., atol=1e-5
+                        )
+                    evolver_data['base'] = True
+                except Exception:
+                    evolver_data['base'] = False
+        return evolver_data
+
+    def __getitem__(self, key):
+        method, rhs = key
         try:
             evolver = self.method2evolver[method]
         except KeyError:
@@ -147,23 +253,40 @@ class _EvolverCollection:
             var = [var]
         return var
 
-    def list_keys(self, etype="methods", limits={}):
-        if etype not in ["rhs", "methods"]:
+    def list_keys(self, etype="methods", **limits):
+        if etype not in ["rhs", "methods", "pairs"]:
             raise ValueError
-        if etype == "rhs":
-            names = [val.__name__ for val in self.rhs2evolver.values]
+        if etype in ["rhs", 'pairs']:
+            names = [val.__name__ for val in self.rhs2evolver.values()]
         else:
-            names = [val.__name__ for val in self.method2evolver.values]
+            names = [val.__name__ for val in self.method2evolver.values()]
+
+        for key in limits:
+            if key not in [
+                'base',
+                "backstep",
+                "update_args",
+                "feedback",
+                "time_dependent",
+            ]:
+                raise ValueError("key " + key + "not available.")
 
         names = (name for name in names
                  if all([self.evolver_data[name][key] == val
                              for key, val in limits.items()]))
-        return [item
-                for item in self.evolver_data[name][etype]
-                for name in names]
+        keys = set([item
+                    for name in names
+                    for item in self.evolver_data[name][etype]
+                   ])
+        if etype == 'pairs':
+            methods = {(key, "") for key in self.list_keys('methods', **limits)}
+            bases = self.list_keys('methods', base=True)
+            return list(methods.union({pair for pair in product(bases, keys)}))
+        else:
+            return list(keys)
 
     def explain_evolvers(self, method=None, rhs=None, names=None,
-                          limits={}, full=None):
+                         limits={}, full=None):
         method = self._none2list(method)
         rhs = self._none2list(rhs)
         names = self._none2list(names)
@@ -171,7 +294,7 @@ class _EvolverCollection:
             names.append(self.rhs2evolver[rhs].__name__)
         if method:
             names.append(self.method2evolver[method].__name__)
-        if not method and not rhs None and not names:
+        if not method and not rhs and not names:
             names = self.evolver_data.keys()
         if limits:
             names = (name for name in names
@@ -179,7 +302,7 @@ class _EvolverCollection:
                              for key, val in limits.items()]))
         names = set(names)
         datas = [self.evolver_data[name] for name in names]
-        if (full is None and len(data)<3) or full:
+        if (full is None and len(datas)<3) or full:
             return "\n\n".join([self._full_print(data) for data in datas])
         else:
             return "\n".join([self._short_print(data) for data in datas])
@@ -193,12 +316,12 @@ class _EvolverCollection:
             out = "rhs: '" + "' ,'".join(data['rhs']) + "'\n"
         out += "used options: " + str(data['options']) + "'\n"
         support = []
-        if not data['cte']:
-            support += "time-dependent system supported"
+        if data['time_dependent']:
+            support += ["time-dependent system supported"]
         if data["feedback"]:
-            support += "feedback supported"
+            support += ["feedback supported"]
         if data["backstep"]:
-            support += "mcsolve supported"
+            support += ["mcsolve supported"]
         out += ", ".join(support)
         return out
 
@@ -235,7 +358,7 @@ class Evolver:
     get_state()
         Optain the state of the solver.
 
-    set_state(state, t)
+    set_state(t, state)
         Set the state of an existing ODE solver.
 
     """
@@ -244,7 +367,7 @@ class Evolver:
 
     def __init__(self, system, options, args, feedback_args):
         self.system = SolverQEvo(system, options, args, feedback_args)
-        self.stats = self.system.stats
+        self._stats = {}
         self.options = options
         self.prepare()
 
@@ -257,7 +380,7 @@ class Evolver:
     def get_state(self, copy=False):
         raise NotImplementedError
 
-    def set_state(self, state0, t):
+    def set_state(self, t, state0):
         raise NotImplementedError
 
     def run(self, tlist):
@@ -279,7 +402,11 @@ class Evolver:
 
     @property
     def stats(self):
-        return self.stats
+        try:
+            self._stats.update(self.system.stats)
+        except:
+            pass
+        return self._stats
     # "calls": self.system.func_call - self._previous_call
 
 
@@ -300,9 +427,9 @@ class EvolverScipyZvode(Evolver):
 
     def prepare(self):
         self._ode_solver = ode(self.system.mul_np_vec)
-        opt = {key: self.options[key]
+        opt = {key: self.options.ode[key]
                for key in self.used_options
-               if key in self.options}
+               if key in self.options.ode}
         self._ode_solver.set_integrator('zvode', **opt)
         self.name = "scipy zvode " + opt["method"]
 
@@ -317,7 +444,7 @@ class EvolverScipyZvode(Evolver):
             state = _data.dense.fast_from_numpy(self._ode_solver._y)
         return t, state.copy() if copy else state
 
-    def set_state(self, state0, t):
+    def set_state(self, t, state0):
         self._mat_state = state0.shape[1] > 1
         self._size = state0.shape[0]
         self._ode_solver.set_initial_value(
@@ -378,11 +505,11 @@ class EvolverScipyDop853(Evolver):
     used_options = ['atol', 'rtol', 'nsteps', 'first_step', 'max_step',
                     'ifactor', 'dfactor', 'beta']
 
-    def prepare(self, options=None):
+    def prepare(self):
         self._ode_solver = ode(self.system.mul_np_double_vec)
-        opt = {key: self.options[key]
+        opt = {key: self.options.ode[key]
                for key in self.used_options
-               if key in self.options}
+               if key in self.options.ode}
         self._ode_solver.set_integrator('dop853', **opt)
         self.name = "scipy ode dop853"
 
@@ -406,7 +533,7 @@ class EvolverScipyDop853(Evolver):
                                                 _y.view(np.complex))
         return t, state.copy() if copy else state
 
-    def set_state(self, state0, t):
+    def set_state(self, t, state0):
         self._mat_state = state0.shape[1] > 1
         self._size = state0.shape[0]
         self._ode_solver.set_initial_value(
@@ -414,34 +541,26 @@ class EvolverScipyDop853(Evolver):
             t
         )
 
-    def step(self, t):
-        """ Evolve to t, must be `set` before. """
-        self._ode_solver.integrate(t)
-        return self.get_state()
-
     def one_step(self, t):
-        """ Evolve to t, must be `set` before. """
-        # dop853 integrator does not support one step and is ineficient
-        # when changing direction on integration.
-        dt_max = self._ode_solver._integrator.work[6] # allowed max timestep
-        dt = t - self._ode_solver.t
-        if dt_max * dt < 0: # chande in direction
-            self._ode_solver._integrator.reset(len(self._ode_solver._y), False)
-            dt_max = -dt_max
-        elif dt_max == 0:
-            dt_max = 0.01 * dt
-        # Will probably do more work than strickly one step if cought in
-        # one of the previous conditions, making collapse finding for
-        # mcsolve not ideal.
-        t = self._ode_solver.t + min(dt_max, dt) if dt > 0 else max(dt_max, dt)
-        self._ode_solver.integrate(t)
-        return self.get_state()
+        self.back = self.get_state(True)
+        return self._safe_step(t)
 
     def backstep(self, t):
-        """ Evolve to t, must be `set` before. """
-        self._ode_solver._integrator.reset(len(self._ode_solver._y), False)
-        self._ode_solver.integrate(t)
-        return self.get_state()
+        self.set_state(*self.back)
+        return self._safe_step(t)
+
+    def _safe_step(self, t):
+        """step but safe when changing direction"""
+        dt_max = self._ode_solver._integrator.work[6]
+        dt = t - self._ode_solver.t
+        if dt == 0:
+            return self.get_state()
+        if dt * dt_max < 0:
+            self.set_state(*self.get_state())
+        out = self.step(t)
+        if self._ode_solver._integrator.work[6] < 0:
+            self.set_state(*self.get_state())
+        return out
 
 
 class EvolverScipylsoda(EvolverScipyDop853):
@@ -461,9 +580,9 @@ class EvolverScipylsoda(EvolverScipyDop853):
 
     def prepare(self):
         self._ode_solver = ode(self.system.mul_np_double_vec)
-        opt = {key: self.options[key]
+        opt = {key: self.options.ode[key]
                for key in self.used_options
-               if key in self.options}
+               if key in self.options.ode}
         self._ode_solver.set_integrator('lsoda', **opt)
         self.name = "scipy lsoda"
 
@@ -471,37 +590,29 @@ class EvolverScipylsoda(EvolverScipyDop853):
         # integrate(t, step=True) ignore the time and advance one step.
         # Here we want to advance up to t doing maximum one step.
         # So we check if a new step is really needed.
+        self.back = self.get_state(copy=True)
         t_front = self._ode_solver._integrator.rwork[12]
-        t_back = t_front - self._ode_solver._integrator.rwork[11]
         t_ode = self._ode_solver.t
-
-        if t >= t_back and t <= t_front:
-            self._ode_solver.integrate(t)
-        elif t_ode < t_front:
-            self._ode_solver.integrate(t)
-        else:
+        if t > t_front and t_front <= t_ode:
             self._ode_solver.integrate(t, step=True)
+            t_front = self._ode_solver._integrator.rwork[12]
+        elif t > t_front:
+            t = t_front
+        if t_front >= t:
+            self._ode_solver.integrate(t)
         if not self._ode_solver.successful():
             raise Exception(self._error_msg)
         return self.get_state()
 
     def backstep(self, t):
+        # zvode can step with time lower than the most recent but not all the
+        # step interval. (About the last 90%)
         """ Evolve to t, must be `set` before. """
-        t_front = self._ode_solver._integrator.rwork[12]
-        t_back = t_front - self._ode_solver._integrator.rwork[11]
-        if t < t_back:
-            # Use set_initial_value to reset the direction front the back.
-            # Do the same to reset direction to "+" at the end.
-            self._ode_solver.integrate(t_back)
-            self._ode_solver.set_initial_value(self._ode_solver.y,
-                                               self._ode_solver.t)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
             self._ode_solver.integrate(t)
-            t_front = self._ode_solver._integrator.rwork[12]
-            t_back = t_front - self._ode_solver._integrator.rwork[11]
-            self._ode_solver.integrate(t_back)
-            self._ode_solver.set_initial_value(self._ode_solver.y,
-                                               self._ode_solver.t)
-        else:
+        if not self._ode_solver.successful():
+            self.set_state(*self.back)
             self._ode_solver.integrate(t)
         return self.get_state()
 
@@ -511,7 +622,7 @@ limits = {
     "backstep": True,
     "update_args": True,
     "feedback": True,
-    "cte": False,
+    "time_dependent": True,
 }
 
 evolver_collection.add(EvolverScipyZvode, methods=['adams', 'bdf'],

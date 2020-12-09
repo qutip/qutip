@@ -96,6 +96,7 @@ class SolverOdeOptions:
         'ifactor': 6.0,
         'dfactor': 0.3,
         'beta': 0.0,
+        'rhs': ""
     }
 
 
