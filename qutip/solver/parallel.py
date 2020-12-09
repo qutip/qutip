@@ -58,7 +58,7 @@ map_kw = {
     'num_cpus': multiprocessing.cpu_count(),
 }
 
-def serial_map(task, values, task_args=tuple(), task_kwargs={},
+def serial_map(task, values, task_args=None, task_kwargs=None,
                reduce_func=None, map_kw=map_kw,
                progress_bar=None, progress_bar_kwargs={}):
     """
@@ -96,6 +96,10 @@ def serial_map(task, values, task_args=tuple(), task_kwargs={},
         value in ``values``.
 
     """
+    if task_args is None:
+        task_args = ()
+    if task_kwargs is None:
+        task_kwargs = {}
     progress_bar = get_progess_bar(progress_bar)
     progress_bar.start(len(values), **progress_bar_kwargs)
     end_time = map_kw['timeout'] + time.time()
@@ -108,13 +112,13 @@ def serial_map(task, values, task_args=tuple(), task_kwargs={},
         if reduce_func is not None:
             reduce_func(result)
         else:
-            results.append(job.get(job_time))
+            results.append(result)
     progress_bar.finished()
 
     return results
 
 
-def parallel_map(task, values, task_args=tuple(), task_kwargs={},
+def parallel_map(task, values, task_args=None, task_kwargs=None,
                  reduce_func=None, map_kw=map_kw,
                  progress_bar=None, progress_bar_kwargs={}):
     """
@@ -149,6 +153,10 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},
         each value in ``values``.
 
     """
+    if task_args is None:
+        task_args = ()
+    if task_kwargs is None:
+        task_kwargs = {}
     os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
     end_time = map_kw['timeout'] + time.time()
     job_time = map_kw['job_timeout']
@@ -187,8 +195,8 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},
     return results
 
 
-def loky_pmap(task, values, task_args=tuple(), task_kwargs={},
-              reduce_func=None, map_kw={},
+def loky_pmap(task, values, task_args=None, task_kwargs=None,
+              reduce_func=None, map_kw=map_kw,
               progress_bar=None, progress_bar_kwargs={}):
     """
     Parallel execution of a mapping of `values` to the function `task`. This
@@ -224,6 +232,10 @@ def loky_pmap(task, values, task_args=tuple(), task_kwargs={},
         each value in ``values``.
 
     """
+    if task_args is None:
+        task_args = ()
+    if task_kwargs is None:
+        task_kwargs = {}
     os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
     from loky import get_reusable_executor, TimeoutError
 

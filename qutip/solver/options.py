@@ -1,5 +1,5 @@
 __all__ = ['SolverOptions',
-           'SolverResultsOptions','SolverRhsOptions','SolverOdeOptions',
+           'SolverResultsOptions', 'SolverOdeOptions',
            'McOptions']
 
 from ..optionsclass import optionsclass
@@ -59,12 +59,13 @@ class SolverOdeOptions:
 
     Options
     -------
+    method : str {'adams','bdf'}
+        Integration method.
+
     atol : float {1e-8}
         Absolute tolerance.
     rtol : float {1e-6}
         Relative tolerance.
-    method : str {'adams','bdf'}
-        Integration method.
     order : int {12}
         Order of integrator (<=12 'adams', <=5 'bdf')
     nsteps : int {2500}
@@ -77,12 +78,15 @@ class SolverOdeOptions:
         Maximum step size (0 = automatic)
     """
     options = {
+        # Integration method (default = 'adams', for stiff 'bdf')
+        "method": 'adams',
+
+        "rhs": '',
+
         # Absolute tolerance (default = 1e-8)
         "atol": 1e-8,
         # Relative tolerance (default = 1e-6)
         "rtol": 1e-6,
-        # Integration method (default = 'adams', for stiff 'bdf')
-        "method": 'adams',
         # Maximum order used by integrator (<=12 for 'adams', <=5 for 'bdf')
         "order": 12,
         # Max. number of internal steps/call
@@ -96,50 +100,12 @@ class SolverOdeOptions:
         'ifactor': 6.0,
         'dfactor': 0.3,
         'beta': 0.0,
-        'rhs': ""
-    }
-
-
-@optionsclass("rhs", SolverOptions)
-class SolverRhsOptions:
-    """
-    Class of options for evolution solvers such as :func:`qutip.mesolve` and
-    :func:`qutip.mcsolve`. Options can be specified either as arguments to the
-    constructor::
-
-        opts = SolverOptions(order=10, ...)
-
-    or by changing the class attributes after creation::
-
-        opts = SolverOptions()
-        opts.order = 10
-
-    Returns options class to be used as options in evolution solvers.
-
-    The default can be changed by::
-
-        qutip.settings.solver['order'] = 10
-
-    Options
-    -------
-    tidy : bool {True,False}
-        Tidyup Hamiltonian and initial state by removing small terms.
-    """
-    options = {
         # tidyup Hamiltonian before calculation (default = True)
         "tidy": True,
         "Operator_data_type": "input",
         "State_data_type": "dense",
         # Normalize the states received in feedback_args
         "feedback_normalize": True,
-        "ahs": False,
-        "ahs_options": {
-            "ahs_atol": 1e-8,
-            "ahs_rtol": 1e-8,
-            "ahs_padding": 6,
-            "ahs_safety_rtol": 1e-5,
-            "ahs_safety_interval": 4,
-        }
     }
 
 
