@@ -20,7 +20,7 @@ cdef class SolverQEvo:
         self.base_py = base
         self.base = base.compiled_qobjevo
         self.set_feedback(feedback, args, base.cte.issuper,
-                          options.rhs['feedback_normalize'])
+                          options.ode['feedback_normalize'])
         self.num_calls = 0
 
     def jac_np_vec(self, t, vec):
