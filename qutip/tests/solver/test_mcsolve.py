@@ -35,7 +35,7 @@ import pytest
 import numpy as np
 import qutip
 from qutip.solver import mcsolve, mesolve, SolverOptions, McSolver, MeMcSolver
-from qutip.solver.evolver import all_ode_method
+from qutip.solver.evolver import *
 
 
 def _return_constant(t, args):
@@ -150,15 +150,16 @@ class TestConstantCollapse(StatesAndExpectOutputCase):
         ]
         cases = []
         for c_op, args, id in c_op_types:
-            for method in all_ode_method:
-                for ahs in [False, True]:
-                    fullid = id + "_" + method + ("_AHS" if ahs else "")
-                    options = SolverOptions(store_states=True,
-                                            method=method, ahs=ahs)
-                    cases.append(pytest.param(self.h, args, [c_op],
-                                              [expect], tol, options,
-                                              id=fullid,
-                                              marks=[pytest.mark.slow]))
+            for method, rhs in evolver_collection.list_keys('pairs',
+                                                            backstep=True,
+                                                            time_dependent=True):
+                fullid = "_".join([id, method, rhs])
+                options = SolverOptions(store_states=True,
+                                        method=method, rhs=rhs)
+                cases.append(pytest.param(self.h, args, [c_op],
+                                          [expect], tol, options,
+                                          id=fullid,
+                                          marks=[pytest.mark.slow]))
         metafunc.parametrize(['hamiltonian', 'args', 'c_ops', 'expected',
                               'tol', 'options'],
                              cases)
@@ -212,7 +213,8 @@ class TestDiagonalized():
     ntraj = 100
 
     def test_diag(self):
-        # The hamiltonian must not already be diagonal.
+        # The hamiltonian must not already be diagonal
+        # for the test to be meaningful.
         tol = 0.05
         a = qutip.destroy(self.size)
         h = self.h + a + a.dag()

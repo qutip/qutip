@@ -42,9 +42,11 @@ from qutip import (
     Cubic_Spline, QobjEvo, Qobj
 )
 from qutip.solver import SolverOptions, sesolve, SeSolver
-from qutip.solver.evolver import all_ode_method
+from qutip.solver.evolver import *
 import pytest
 import pickle
+
+all_ode_method = evolver_collection.list_keys('methods', time_dependent=True)
 
 os.environ['QUTIP_GRAPHICS'] = "NO"
 

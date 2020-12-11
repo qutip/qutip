@@ -39,23 +39,23 @@ class EvolverVern(Evolver):
     def set_state(self, t, state):
         self._ode_solver.set_initial_value(state, t)
 
-    def backstep(self, t):
+    def backstep(self, t, copy=False):
         self._ode_solver.integrate(t)
-        return self.get_state()
+        return self.get_state(copy)
 
-    def step(self, t):
+    def step(self, t, copy=False):
         """ Evolve to t, must be `set` before. """
         self._ode_solver.integrate(t)
         if not self._ode_solver.successful():
             raise Exception(self._error_msg)
-        return self.get_state()
+        return self.get_state(copy)
 
-    def one_step(self, t):
+    def one_step(self, t, copy=False):
         """ Evolve to t, must be `set` before. """
         self._ode_solver.integrate(t, step=True)
         if not self._ode_solver.successful():
             raise Exception(self._error_msg)
-        return self.get_state()
+        return self.get_state(copy)
 
 
 vernlimits = {
@@ -91,6 +91,7 @@ class EvolverDiag(Evolver):
         self.options = options
         self._dt = 0.
         self._expH = None
+        self._stats = {}
         self.prepare()
 
     def prepare(self):
@@ -100,7 +101,7 @@ class EvolverDiag(Evolver):
         self.Uinv = np.linalg.inv(self.U)
         self.name = "qutip diagonalized"
 
-    def step(self, t):
+    def step(self, t, copy=False):
         """ Evolve to t, must be `set` before. """
         dt = t - self._t
         if dt == 0:
@@ -110,13 +111,13 @@ class EvolverDiag(Evolver):
             self._dt = dt
         self._y *= self._expH
         self._t = t
-        return self.get_state()
+        return self.get_state(copy)
 
-    def one_step(self, t):
-        return self.step(t)
+    def one_step(self, t, copy=False):
+        return self.step(t, copy)
 
-    def backstep(self, t):
-        return self.step(t)
+    def backstep(self, t, copy=False):
+        return self.step(t, copy)
 
     def get_state(self, copy=False):
         y = self.U @ self._y

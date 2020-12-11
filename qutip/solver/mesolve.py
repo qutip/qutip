@@ -343,8 +343,8 @@ class MeSolver(Solver):
         self._state_type = state.type
         self._state_qobj = state
         str_to_type = {layer.__name__.lower(): layer for layer in to.dtypes}
-        if self.options.rhs["State_data_type"].lower() in str_to_type:
-            state = state.to(str_to_type[self.options.rhs["State_data_type"].lower()])
+        if self.options.ode["State_data_type"].lower() in str_to_type:
+            state = state.to(str_to_type[self.options.ode["State_data_type"].lower()])
         return stack_columns(state.data)
 
     def _restore_state(self, state):

@@ -49,7 +49,7 @@ from .solver import Solver
 from .sesolve import sesolve
 from .mesolve import mesolve
 from .parallel import get_map
-from .evolver import Evolver, get_evolver, EvolverDiag
+from .evolver import *
 from time import time
 
 
@@ -249,7 +249,7 @@ class McSolver(Solver):
     def start(self, state0, t0, seed=None):
         self._state = self._prepare_state(state0)
         self._t = t0
-        self._evolver.set(self._state, self._t, seed, self.options)
+        self._evolver.set_state(self._t, self._state, seed)
 
     def _safety_check(self, state):
         return None
@@ -307,7 +307,7 @@ class McSolver(Solver):
 
     def _add_traj(self, seed, tlist):
         _time_start = time()
-        self._evolver.set(self._state0, tlist[0], seed)
+        self._evolver.set_state(tlist[0], self._state0, seed)
         self.options.results['normalize_output'] = False # Done here
         res_1 = Result(self.e_ops, self.options.results, False)
         res_1.add(tlist[0], self._state_qobj)
@@ -316,9 +316,8 @@ class McSolver(Solver):
             res_1.add(t, state_qobj)
         res_1.collapse = list(self._evolver.collapses)
         res_1.stats = {}
-        res_1.stats["rhs call"] = self._evolver.solver_call
-        res_1.stats["method"] = self._evolver.name
         res_1.stats['run time'] = time() - _time_start
+        res_1.stats.update(self._evolver.stats)
         res_1.stats.update(self.stats)
         return res_1
 
@@ -408,8 +407,8 @@ class MeMcSolver(McSolver):
         self._state_type = state.type
         self._state_qobj = state
         str_to_type = {layer.__name__.lower(): layer for layer in to.dtypes}
-        if self.options.rhs["State_data_type"].lower() in str_to_type:
-            state = state.to(str_to_type[self.options.rhs["State_data_type"].lower()])
+        if self.options.ode["State_data_type"].lower() in str_to_type:
+            state = state.to(str_to_type[self.options.ode["State_data_type"].lower()])
         self._state0 = stack_columns(state.data)
         return self._state0
 
@@ -438,15 +437,14 @@ class McEvolver(Evolver):
         self.norm_func = _data.norm.l2
         self.prob_func = _prob_mcsolve
         self.name = self._evolver.name
+        self._stats = self._evolver._stats
 
-    def set(self, state, t0, seed, options=None):
+    def set_state(self, t, state, seed):
         np.random.seed(seed)
         self.target_norm = np.random.rand()
-        self.options = options or self.options
-        self._evolver.set(state, t0, self.options)
+        self._evolver.set_state(t, state)
         self.collapses = []
-        if not isinstance(self._evolver, EvolverDiag):
-            self._evolver.system.update_feedback(self.collapses)
+        self._evolver.update_feedback(self.collapses)
 
     def update_args(self, args):
         self.system.arguments(args)
@@ -461,42 +459,33 @@ class McEvolver(Evolver):
     def step(self, t, step=None):
         """ Evolve to t, must be `set` before. """
         tries = 0
-        y_old = self.get_state().copy()
-        t_old = self.t
-        norm_old = self.prob_func(self.get_state())
-        while self.t < t:
-            state = self._evolver.step(t, step=1).copy()
+        t_old, y_old = self.get_state(copy=True)
+        norm_old = self.prob_func(y_old)
+        while t_old < t:
+            t_step, state = self._evolver.one_step(t, copy=True)
             norm = self.prob_func(state)
             if norm <= self.target_norm:
                 self.do_collapse(norm_old, norm, t_old, y_old)
-                t_old = self.t
-                norm_old = self.prob_func(self.get_state())
-                y_old = self.get_state().copy()
+                t_old, y_old = self.get_state(copy=True)
+                norm_old = self.prob_func(y_old)
             else:
-                t_old = self.t
+                t_old = t_step
                 norm_old = norm
                 y_old = state
 
         return _data.mul(y_old, 1 / self.norm_func(y_old))
 
-    def get_state(self):
-        return self._evolver.get_state()
-
-    def set_state(self, state0, t):
-        self._evolver.set_state(state0, t)
-
-    @property
-    def t(self):
-        return self._evolver.t
+    def get_state(self, copy=False):
+        return self._evolver.get_state(copy=copy)
 
     def do_collapse(self, norm_old, norm, t_prev, y_prev):
-        t_final = self.t
+        t_final = self._evolver.get_state()[0]
         tries = 0
         while tries < self.norm_steps:
             tries += 1
             if (t_final - t_prev) < self.norm_t_tol:
                 t_guess = t_final
-                state = self._evolver.get_state()
+                state = self._evolver.get_state()[1]
                 break
             t_guess = (
                 t_prev
@@ -506,7 +495,7 @@ class McEvolver(Evolver):
             )
             if (t_guess - t_prev) < self.norm_t_tol:
                 t_guess = t_prev + self.norm_t_tol
-            state = self._evolver.backstep(t_guess, t_prev, y_prev)
+            _, state = self._evolver.backstep(t_guess)
             norm2_guess = self.prob_func(state)
             if (
                 np.abs(self.target_norm - norm2_guess) <
@@ -544,8 +533,4 @@ class McEvolver(Evolver):
             state_new = _data.mul(state_new, 1 / new_norm)
             self.collapses.append((t_guess, which))
             self.target_norm = np.random.rand()
-        self.set_state(state_new, t_guess)
-
-    @property
-    def solver_call(self):
-        return self._evolver.solver_call
+        self._evolver.set_state(t_guess, state_new)

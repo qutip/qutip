@@ -281,3 +281,9 @@ cdef class Explicit_RungeKutta:
     @property
     def t(self):
         return self.t
+
+    def __reduce__(self):
+        return (self.__class__, (
+            self.f, self.rtol, self.atol, self.max_numsteps,
+            self.first_step, self.min_step, self.max_step, self.interpolate
+            ))

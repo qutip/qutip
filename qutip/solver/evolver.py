@@ -353,7 +353,7 @@ class Evolver:
     def prepare(self):
         raise NotImplementedError
 
-    def step(self, t):
+    def step(self, t, copy=False):
         raise NotImplementedError
 
     def get_state(self, copy=False):
@@ -368,16 +368,20 @@ class Evolver:
             self.step(t)
             yield self.get_state()
 
-    def one_step(self, t):
+    def one_step(self, t, copy=False):
         self.back = self.get_state(True)
-        return self.step(t)
+        return self.step(t, copy)
 
-    def backstep(self, t):
+    def backstep(self, t, copy=False):
         self.set_state(*self.back)
-        return self.step(t)
+        return self.step(t, copy)
 
     def update_args(self, args):
         self.system.arguments(args)
+
+    def update_feedback(self, collapse):
+        if hasattr(self, "system") and isinstance(self.system, SolverQEvo):
+            self.system.update_feedback(collapse)
 
     @property
     def stats(self):
@@ -386,7 +390,6 @@ class Evolver:
         except:
             pass
         return self._stats
-    # "calls": self.system.func_call - self._previous_call
 
 
 class EvolverScipyZvode(Evolver):
@@ -431,14 +434,14 @@ class EvolverScipyZvode(Evolver):
             t
         )
 
-    def step(self, t):
+    def step(self, t, copy=False):
         if self._ode_solver.t != t:
             self._ode_solver.integrate(t)
         if not self._ode_solver.successful():
             raise Exception(self._error_msg)
-        return self.get_state()
+        return self.get_state(copy)
 
-    def one_step(self, t):
+    def one_step(self, t, copy=False):
         # integrate(t, step=True) ignore the time and advance one step.
         # Here we want to advance up to t doing maximum one step.
         # So we check if a new step is really needed.
@@ -454,9 +457,9 @@ class EvolverScipyZvode(Evolver):
             self._ode_solver.integrate(t)
         if not self._ode_solver.successful():
             raise Exception(self._error_msg)
-        return self.get_state()
+        return self.get_state(copy)
 
-    def backstep(self, t):
+    def backstep(self, t, copy=False):
         # zvode can step with time lower than the most recent but not all the
         # step interval. (About the last 90%)
         """ Evolve to t, must be `set` before. """
@@ -466,7 +469,7 @@ class EvolverScipyZvode(Evolver):
         if not self._ode_solver.successful():
             self.set_state(*self.back)
             self._ode_solver.integrate(t)
-        return self.get_state()
+        return self.get_state(copy)
 
 
 class EvolverScipyDop853(Evolver):
@@ -492,12 +495,12 @@ class EvolverScipyDop853(Evolver):
         self._ode_solver.set_integrator('dop853', **opt)
         self.name = "scipy ode dop853"
 
-    def step(self, t):
+    def step(self, t, copy=False):
         if self._ode_solver.t != t:
             self._ode_solver.integrate(t)
         if not self._ode_solver.successful():
             raise Exception(self._error_msg)
-        return self.get_state()
+        return self.get_state(copy)
 
     def get_state(self, copy=False):
         t = self._ode_solver.t
@@ -520,15 +523,15 @@ class EvolverScipyDop853(Evolver):
             t
         )
 
-    def one_step(self, t):
+    def one_step(self, t, copy=False):
         self.back = self.get_state(True)
-        return self._safe_step(t)
+        return self._safe_step(t, copy)
 
-    def backstep(self, t):
+    def backstep(self, t, copy=False):
         self.set_state(*self.back)
         return self._safe_step(t)
 
-    def _safe_step(self, t):
+    def _safe_step(self, t, copy=False):
         """step but safe when changing direction"""
         dt_max = self._ode_solver._integrator.work[6]
         dt = t - self._ode_solver.t
@@ -536,7 +539,7 @@ class EvolverScipyDop853(Evolver):
             return self.get_state()
         if dt * dt_max < 0:
             self.set_state(*self.get_state())
-        out = self.step(t)
+        out = self.step(t, copy)
         if self._ode_solver._integrator.work[6] < 0:
             self.set_state(*self.get_state())
         return out
@@ -565,7 +568,7 @@ class EvolverScipylsoda(EvolverScipyDop853):
         self._ode_solver.set_integrator('lsoda', **opt)
         self.name = "scipy lsoda"
 
-    def one_step(self, t):
+    def one_step(self, t, copy=False):
         # integrate(t, step=True) ignore the time and advance one step.
         # Here we want to advance up to t doing maximum one step.
         # So we check if a new step is really needed.
@@ -581,9 +584,9 @@ class EvolverScipylsoda(EvolverScipyDop853):
             self._ode_solver.integrate(t)
         if not self._ode_solver.successful():
             raise Exception(self._error_msg)
-        return self.get_state()
+        return self.get_state(copy)
 
-    def backstep(self, t):
+    def backstep(self, t, copy=False):
         # zvode can step with time lower than the most recent but not all the
         # step interval. (About the last 90%)
         """ Evolve to t, must be `set` before. """
@@ -593,7 +596,7 @@ class EvolverScipylsoda(EvolverScipyDop853):
         if not self._ode_solver.successful():
             self.set_state(*self.back)
             self._ode_solver.integrate(t)
-        return self.get_state()
+        return self.get_state(copy)
 
 
 limits = {
