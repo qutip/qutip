@@ -241,7 +241,7 @@ def local_multiply_dense(targets_op: Union[Qobj, np.ndarray], vec_mat: Qobj,
     if op_dim != np.prod(target_dims):
         raise ValueError(
             f'operator dim {op_dim} inconsistent with '
-            f'target dim Π{target_dims} = {np.prod(target_dims)}')
+            f'target dim product{target_dims} = {np.prod(target_dims)}')
 
     arr_in = arr_in.reshape(vector_dims)  # new indexing: np_arr[i1][i2]...[jn]
     arr_out = None
