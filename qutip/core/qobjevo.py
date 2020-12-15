@@ -77,10 +77,10 @@ class QobjEvoBase:
             raise TypeError("time needs to be a real scalar")
         if isinstance(state, Qobj):
             state = state.data
-        elif isinstance(state, np.ndarray):
-            state = _data.dense.fast_from_numpy(state)
         elif isinstance(state, _data.Data):
             pass
+        elif isinstance(state, np.ndarray):
+            state = _data.dense.fast_from_numpy(state)
         else:
             raise TypeError("The vector must be an array or Qobj")
 
@@ -110,25 +110,29 @@ class QobjEvoBase:
         was_data = False
         if not isinstance(t, (int, float)):
             raise TypeError("the time need to be a real scalar")
+
         if isinstance(mat, Qobj):
             if self.dims[1] != mat.dims[0]:
                 raise Exception("Dimensions do not fit")
             was_Qobj = True
-            dims = mat.dims
+            dims = [self.dims[0], mat.dims[1]]
             mat = mat.data
+
+        elif isinstance(mat, _data.Data):
+            was_data = True
+
         elif isinstance(mat, np.ndarray):
             if mat.ndim == 1:
-                # TODO: do this properly.
                 mat = _data.dense.fast_from_numpy(mat)
                 was_vec = True
             elif mat.ndim == 2:
                 mat = _data.dense.fast_from_numpy(mat)
             else:
                 raise Exception("The matrice must be 1d or 2d")
-        elif isinstance(mat, _data.Data):
-            was_data = True
+
         else:
             raise TypeError("The vector must be an array or Qobj")
+
         if mat.shape[0] != self.shape[1]:
             raise Exception("The length do not match")
 
@@ -136,10 +140,10 @@ class QobjEvoBase:
 
         if was_Qobj:
             return Qobj(out, dims=dims)
-        elif was_vec:
-            return out.as_ndarray()[:, 0]
         elif was_data:
             return out
+        elif was_vec:
+            return out.as_ndarray()[:, 0]
         else:
             return out.as_ndarray()
 
@@ -340,6 +344,7 @@ class QobjEvo(QobjEvoBase):
         if isinstance(Q_object, Qobj):
             self.cte = Q_object
             self.const = True
+
         elif isinstance(Q_object, list):
             use_step_func = self.args.get("_step_func_coeff", 0)
             for op in Q_object:
