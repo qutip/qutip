@@ -322,23 +322,35 @@ class Evolver:
 
     Methods
     -------
-    set(state, t0, options)
+    prepare()
         Prepare the ODE solver.
 
     step(t)
         Evolve to t, must be `set` before.
+        return the pair t, state.
+
+    get_state()
+        Optain the state of the solver as a pair t, state
+
+    set_state(t, state)
+        Set the state of an existing ODE solver.
 
     run(state, tlist)
         Yield (t, state(t)) for t in tlist, must be `set` before.
 
     update_args(args)
-        Change the argument of the active system
+        Change the argument of the active system.
 
-    get_state()
-        Optain the state of the solver.
+    one_step(t):
+        Advance up to t by one internal solver step.
+        Should be able to retreive the state at any time between the present
+        time and the resulting time using `backstep`.
+        return the pair t, state.
 
-    set_state(t, state)
-        Set the state of an existing ODE solver.
+    backstep(t):
+        Retreive the state at time t, with t smaller than present ODE time.
+        The time t will always be between the last calls of `one_step`.
+        return the pair t, state.
 
     """
     used_options = []
@@ -385,6 +397,8 @@ class Evolver:
 
     @property
     def stats(self):
+        if not hasattr(self, "_stats"):
+            self._stats = {}
         try:
             self._stats.update(self.system.stats)
         except:
