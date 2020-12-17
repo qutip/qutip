@@ -194,12 +194,12 @@ cpdef CSC matmul_csc(CSC left, CSC right, double complex scale=1, CSC out=None):
         as the input parameter `out` if that was supplied.
     """
     # Since CSC to CSR transposed is 'free'
-    cdef CSR left_csr = csc.as_tr_csr(left, False)
-    cdef CSR right_csr = csc.as_tr_csr(right, False)
+    cdef CSR left_csr = csc._as_tr_csr(left, False)
+    cdef CSR right_csr = csc._as_tr_csr(right, False)
     cdef CSR out_csr = None
     if out is not None:
-        out_csr = csc.as_tr_csr(out, False)
-    return csc.from_tr_csr(matmul_csr(right_csr, left_csr, scale, out_csr),
+        out_csr = csc._as_tr_csr(out, False)
+    return csc._from_tr_csr(matmul_csr(right_csr, left_csr, scale, out_csr),
                            False)
 
 

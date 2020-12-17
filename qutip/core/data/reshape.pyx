@@ -58,8 +58,8 @@ cpdef CSR reshape_csr(CSR matrix, idxint n_rows_out, idxint n_cols_out):
 
 
 cpdef CSC reshape_csc(CSC matrix, idxint n_rows_out, idxint n_cols_out):
-    cdef CSR transposed = csc.as_tr_csr(matrix, copy=False)
-    return csc.from_tr_csr(reshape_csr(transposed, n_cols_out, n_rows_out),
+    cdef CSR transposed = csc._as_tr_csr(matrix, copy=False)
+    return csc._from_tr_csr(reshape_csr(transposed, n_cols_out, n_rows_out),
                            copy=False)
 
 

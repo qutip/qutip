@@ -114,16 +114,16 @@ cpdef CSC transpose_csc(CSC matrix):
     """Transpose the CSC matrix, and return a new object."""
     # CSR <-> CSC.transpose is free.
     # Do 3 transpositions with transpose_csr doing the real work.
-    cdef CSR transposed = csc.as_tr_csr(matrix, False)
+    cdef CSR transposed = csc._as_tr_csr(matrix, False)
     cdef CSR trtr = transpose_csr(transposed)
-    return csc.from_tr_csr(trtr, False)
+    return csc._from_tr_csr(trtr, False)
 
 
 cpdef CSC adjoint_csc(CSC matrix):
     """Conjugate-transpose the CSC matrix, and return a new object."""
-    cdef CSR transposed = csc.as_tr_csr(matrix, False)
+    cdef CSR transposed = csc._as_tr_csr(matrix, False)
     cdef CSR adjoint = adjoint_csr(transposed)
-    return csc.from_tr_csr(adjoint, False)
+    return csc._from_tr_csr(adjoint, False)
 
 
 cpdef CSC conj_csc(CSC matrix):

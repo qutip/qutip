@@ -229,7 +229,7 @@ cdef class CSC(base.Data):
             PyDataMem_FREE(self.row_index)
 
     cpdef CSC sort_indices(self):
-        cdef CSR transposed = as_tr_csr(self, False)
+        cdef CSR transposed = _as_tr_csr(self, False)
         transposed.sort_indices()
         return self
 
@@ -268,7 +268,7 @@ cpdef inline base.idxint nnz(CSC matrix) nogil:
 
 
 cpdef CSC sorted(CSC matrix):
-    cdef CSR transposed = as_tr_csr(matrix, False)
+    cdef CSR transposed = _as_tr_csr(matrix, False)
     cdef CSR tr_csr_sorted = csr.sorted(transposed)
     return from_tr_csr(tr_csr_sorted, False)
 
@@ -377,7 +377,7 @@ cpdef CSC from_dense(Dense matrix):
     return out
 
 
-cpdef CSR as_tr_csr(CSC matrix, bint copy=True):
+cdef CSR _as_tr_csr(CSC matrix, bint copy=True):
     """ Return a CSR which is the transposed to this CSC.
     If copy is False, this CSR is a view on the CSC with no data ownership.
     """
@@ -394,7 +394,7 @@ cpdef CSR as_tr_csr(CSC matrix, bint copy=True):
         return out
 
 
-cpdef CSC from_tr_csr(CSR matrix, bint copy=True):
+cdef CSC _from_tr_csr(CSR matrix, bint copy=True):
     """ Return a CSC which is the transposed to this CSR.
     If copy is False, steal data ownership from the CSR.
     """
@@ -415,8 +415,22 @@ cpdef CSC from_tr_csr(CSR matrix, bint copy=True):
         return out
 
 
+cpdef CSR as_tr_csr(CSC matrix):
+    """
+    Return a CSR which is the transposed to this CSC.
+    """
+    return _as_tr_csr(matrix, True)
+
+
+cpdef CSC from_tr_csr(CSR matrix, bint copy=True):
+    """
+    Return a CSC which is the transposed to this CSR.
+    """
+    return _from_tr_csr(matrix, True)
+
+
 cpdef CSR to_csr(CSC matrix):
-    cdef CSR transposed = as_tr_csr(matrix, False)
+    cdef CSR transposed = _as_tr_csr(matrix, False)
     return transpose_csr(transposed)
 
 

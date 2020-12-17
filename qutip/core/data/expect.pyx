@@ -213,7 +213,7 @@ cpdef double complex expect_csc_dense(CSC op, Dense state) except *:
     if state.shape[1] == 1:
         return _expect_csc_dense_ket(op, state)
 
-    return _expect_csr_dense_dm(csc.as_tr_csr(op), state.transpose())
+    return _expect_csr_dense_dm(csc._as_tr_csr(op, False), state.transpose())
 
 
 cpdef double complex expect_dense_dense(Dense op, Dense state) nogil except *:
@@ -252,7 +252,7 @@ cpdef double complex expect_super_csc_dense(CSC op, Dense state) except *:
     Perform the operation `tr(op @ state)` where `op` is supplied as a
     superoperator, and `state` is a column-stacked operator.
     """
-    return expect_super_csr_dense(csc.as_tr_csr(op), state.transpose())
+    return expect_super_csr_dense(csc._as_tr_csr(op, False), state.transpose())
 
 
 cpdef double complex expect_super_dense_dense(Dense op, Dense state) nogil except *:

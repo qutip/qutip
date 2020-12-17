@@ -113,15 +113,15 @@ cpdef bint iszero_csr(CSR matrix, double tol=-1) nogil:
     return True
 
 cpdef bint isherm_csc(CSC matrix, double tol=-1):
-    return isherm_csr(csc.as_tr_csr(matrix), tol)
+    return isherm_csr(csc._as_tr_csr(matrix, False), tol)
 
 
 cpdef bint isdiag_csc(CSC matrix):
-    return isdiag_csr(csc.as_tr_csr(matrix))
+    return isdiag_csr(csc._as_tr_csr(matrix, False))
 
 
 cpdef bint iszero_csc(CSC matrix, double tol=-1):
-    return iszero_csr(csc.as_tr_csr(matrix), tol)
+    return iszero_csr(csc._as_tr_csr(matrix, False), tol)
 
 
 cpdef bint iszero_dense(Dense matrix, double tol=-1) nogil:

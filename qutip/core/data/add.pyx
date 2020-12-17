@@ -169,9 +169,9 @@ cpdef CSR add_csr(CSR left, CSR right, double complex scale=1):
 
 
 cpdef CSC add_csc(CSC left, CSC right, double complex scale=1):
-    cdef CSR left_csr = csc.as_tr_csr(left, False)
-    cdef CSR right_csr = csc.as_tr_csr(right, False)
-    return csc.from_tr_csr(add_csr(left_csr, right_csr, scale), False)
+    cdef CSR left_csr = csc._as_tr_csr(left, False)
+    cdef CSR right_csr = csc._as_tr_csr(right, False)
+    return csc._from_tr_csr(add_csr(left_csr, right_csr, scale), False)
 
 
 cdef void add_dense_eq_order_inplace(Dense left, Dense right, double complex scale):
