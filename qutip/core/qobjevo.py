@@ -288,7 +288,7 @@ class QobjEvo(QobjEvoBase):
     &
         tensor between Quantum Object
 
-    apply(f, *args, **kw_args)
+    linear_map(op_mapping)
         Apply the function f to every Qobj. f(Qobj) -> Qobj
 
     tidyup(atol=1e-12)
@@ -568,9 +568,8 @@ class QobjEvo(QobjEvoBase):
     def __imatmul__(self, other):
         if not isinstance(other, (Qobj, QobjEvo)):
             return NotImplemented
-        res = self.copy()
-        res *= other
-        return res
+        self *= other
+        return self
 
     def __mul__(self, other):
         if not isinstance(other, (Qobj, numbers.Number, Coefficient, QobjEvo)):
@@ -737,13 +736,15 @@ class QobjEvo(QobjEvoBase):
             op.qobj = op.qobj.permute(order)
         return res
 
-    # function to apply custom transformations
-    def apply(self, function, *args, **kw_args):
+    # function to linear_map custom transformations
+    def linear_map(self, op_mapping):
         """
         Apply function to each Qobj contribution.
 
         Example:
-        `QobjEvo([sigmax(),f]).apply(spre)` -> QobjEvo([spre(sigmax()),f])
+        `QobjEvo([sigmax(), coeff]).linear_map(spre)`
+        gives the same result has
+        `QobjEvo([spre(sigmax()), coeff])`
 
         Returns
         -------
@@ -752,17 +753,17 @@ class QobjEvo(QobjEvoBase):
 
         Notes
         -----
-        Does not modify the coefficients, thus `apply(conj)` would not give the
-        the conjugate of the QobjEvo. Also it's only valid for linear
+        Does not modify the coefficients, thus `linear_map(conj)` would not
+        give the the conjugate of the QobjEvo. Also it's only valid for linear
         transformations.
         """
         res = self.copy()
-        cte_res = function(res.cte, *args, **kw_args)
+        cte_res = op_mapping(res.cte)
         if not isinstance(cte_res, Qobj):
-            raise TypeError("The function must return a Qobj")
+            raise TypeError("The op_mapping function must return a Qobj")
         res.cte = cte_res
         for op in res.ops:
-            op.qobj = function(op.qobj, *args, **kw_args)
+            op.qobj = op_mapping(op.qobj)
         res._compile()
         return res
 
@@ -881,10 +882,7 @@ class QobjEvo(QobjEvoBase):
         None
         """
         res = self.copy()
-        try:
-            res.cte = res.cte.to(data_type)
-        except ValueError:
-            raise ValueError("Unknown conversion type: " + str(data_type))
+        res.cte = res.cte.to(data_type)
         for op in res.ops:
             op.qobj = op.qobj.to(data_type)
         res._compile()

@@ -216,12 +216,7 @@ def _load(self, file="qutiprc", _recursive=False):
 
 
 def _contains(self, key):
-    # Let the dict catch the KeyError
-    if key in self.read_only_options:
-        return True
-    if key in self.options:
-        return True
-    return False
+    return key in self.read_only_options or key in self.options
 
 
 def _getitem(self, key):

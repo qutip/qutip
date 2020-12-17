@@ -9,7 +9,7 @@ __all__ = [
 ]
 
 
-cpdef CSR mul_csr_inplace(CSR matrix, double complex value):
+cpdef CSR imul_csr(CSR matrix, double complex value):
     """Multiply this CSR `matrix` by a complex scalar `value`."""
     cdef idxint ptr
     with nogil:
@@ -40,7 +40,7 @@ cpdef CSR neg_csr(CSR matrix):
     return out
 
 
-cpdef Dense mul_dense_inplace(Dense matrix, double complex value):
+cpdef Dense imul_dense(Dense matrix, double complex value):
     """Multiply this Dense `matrix` by a complex scalar `value`."""
     cdef size_t ptr
     with nogil:
@@ -105,8 +105,8 @@ mul_inplace = _Dispatcher(
 mul_inplace.__doc__ =\
     """Multiply inplace a matrix element-wise by a scalar."""
 mul_inplace.add_specialisations([
-    (CSR, CSR, mul_csr_inplace),
-    (Dense, Dense, mul_dense_inplace),
+    (CSR, CSR, imul_csr),
+    (Dense, Dense, imul_dense),
 ], _defer=True)
 
 neg = _Dispatcher(

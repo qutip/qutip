@@ -427,7 +427,7 @@ class TestQobjevo:
     def test_QobjEvo_apply(self):
         "QobjEvo apply"
         obj = self.qobjevos["no_args"]
-        transposed = obj.apply(_trans)
+        transposed = obj.linear_map(_trans)
         _assert_qobjevo_equivalent(transposed, obj.trans())
 
     def test_mul_vec(self, form):
