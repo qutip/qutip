@@ -193,6 +193,9 @@ cdef class CSR(base.Data):
         # be collected while we're alive.
         if self._scipy is not None:
             return self._scipy
+        if not self._deallocate:
+            # Does not own the data, thus cannot give it to scipy.
+            raise ValueError("Can't pass data ownership to scipy")
         cdef cnp.npy_intp length = self.size if full else nnz(self)
         data = cnp.PyArray_SimpleNewFromData(1, [length],
                                              cnp.NPY_COMPLEX128,

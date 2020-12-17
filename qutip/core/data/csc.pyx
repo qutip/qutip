@@ -10,6 +10,7 @@ import numpy as np
 cimport numpy as cnp
 import scipy.sparse
 from scipy.sparse import csc_matrix as scipy_csc_matrix
+from scipy.sparse import csr_matrix as scipy_csr_matrix
 from scipy.sparse.data import _data_matrix as scipy_data_matrix
 
 from qutip.core.data cimport base
@@ -185,6 +186,9 @@ cdef class CSC(base.Data):
         # be collected while we're alive.
         if self._scipy is not None:
             return self._scipy
+        if not self._deallocate:
+            # Does not own the data, thus cannot give it to scipy.
+            raise ValueError("Can't pass data ownership to scipy")
         cdef cnp.npy_intp length = self.size if full else nnz(self)
         data = cnp.PyArray_SimpleNewFromData(1, [length],
                                              cnp.NPY_COMPLEX128,
@@ -395,7 +399,7 @@ cpdef CSC from_tr_csr(CSR matrix, bint copy=True):
     If copy is False, steal data ownership from the CSR.
     """
     if not matrix._deallocate and not copy:
-        raise ValueError("Input matrix should own its data.")
+        raise ValueError("Input matrix should own its data if not copying.")
     cdef CSC out = CSC.__new__(CSC)
     out.data = matrix.data
     out.col_index = matrix.row_index
