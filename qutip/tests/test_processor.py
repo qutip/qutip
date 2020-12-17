@@ -38,10 +38,10 @@ import numpy as np
 
 from qutip import (
     basis, sigmax, sigmay, sigmaz, identity, destroy, tensor, fidelity,
+    SolverOptions
 )
 from qutip.qip.device.processor import Processor
 from qutip.qip.operations.gates import hadamard_transform
-from qutip.solve import SolverOptions
 from qutip.random_objects import rand_ket, rand_dm
 from qutip.qip.noise import (
     DecoherenceNoise, RandomNoise, ControlAmpNoise)

@@ -47,7 +47,7 @@ from .mesolve import *
 from .sesolve import *
 from .options import SolverOptions
 from .parallel import parallel_map
-from ..ui.progressbar import BaseProgressBar, TextProgressBar
+from ..ui.progressbar import get_progess_bar
 
 
 def propagator(H, t, c_op_list=[], args={}, options=None,
@@ -136,7 +136,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                     u[:, n, k] = output[n].states[k].full().T
             output = [Qobj(u[:, :, k], dims=dims) for k in range(len(tlist))]
         else:
-            output = sesolve(H, qeye(dims[0]), tlist, [], args, options,
+            output = sesolve(H, qeye(dims[0]), tlist, [], args, options=options,
                              _safe_mode=False).states
 
     else:
@@ -163,7 +163,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
 
         else:
             rho0 = qeye([sqrt_N, sqrt_N])
-            output = mesolve(H, rho0, tlist, [], args, options).states
+            output = mesolve(H, rho0, tlist, [], args, options=options).states
 
     return output[-1] if len(tlist) == 2 else output
 
@@ -197,12 +197,12 @@ def propagator_steadystate(U):
 
 def _parallel_sesolve(n, N, H, tlist, args, options):
     psi0 = basis(N, n)
-    output = sesolve(H, psi0, tlist, [], args, options, _safe_mode=False)
+    output = sesolve(H, psi0, tlist, [], args, options=options, _safe_mode=False)
     return output
 
 def _parallel_mesolve(n, N, H, tlist, c_op_list, args, options):
     col_idx, row_idx = np.unravel_index(n, (N, N))
     rho0 = projection(N, row_idx, col_idx)
-    output = mesolve(H, rho0, tlist, c_op_list, [], args, options,
+    output = mesolve(H, rho0, tlist, c_op_list, [], args, options=options,
                      _safe_mode=False)
     return output

@@ -42,8 +42,8 @@ from qutip.qip.circuit import QubitCircuit
 from qutip.qip.qubits import qubit_states
 from qutip import (
     Qobj, fidelity, sigmax, sigmay, sigmaz, identity, destroy, tensor, basis,
+    SolverOptions
 )
-from qutip.solve import SolverOptions
 from qutip.qip.operations.gates import cnot, gate_sequence_product, hadamard_transform
 from qutip.random_objects import rand_ket
 

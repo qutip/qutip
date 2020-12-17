@@ -49,7 +49,7 @@ from .. import (
     spre, spost, sprepost, thermal_dm, tensor, identity, destroy, sigmax,
     sigmaz, basis, qeye,
 )
-from .mesolve import mesolve
+from ..solver.mesolve import mesolve
 from .solver import SolverOptions
 
 

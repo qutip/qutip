@@ -41,7 +41,7 @@ from scipy.integrate import quad
 import pytest
 import qutip
 from qutip.solve.nonmarkov.heom import HSolverDL
-
+from qutip.solve.solver import SolverOptions
 
 @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
 @pytest.mark.parametrize(['renorm', 'bnd_cut_approx', 'stats', 'tol'], [
@@ -73,7 +73,7 @@ def test_pure_dephasing_model(renorm, bnd_cut_approx, stats, tol):
     Q = qutip.sigmaz()
     initial_state = 0.5*qutip.Qobj(np.ones((2, 2)))
     projector = qutip.basis(2, 0) * qutip.basis(2, 1).dag()
-    options = qutip.SolverOptions(nsteps=15_000, store_states=True)
+    options = SolverOptions(nsteps=15_000, store_states=True)
     hsolver = HSolverDL(H_sys, Q, coupling_strength, temperature,
                         20, 2, cut_frequency,
                         renorm=renorm, bnd_cut_approx=bnd_cut_approx,

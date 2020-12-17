@@ -36,8 +36,9 @@ from numpy.testing import assert_, run_module_suite
 
 from qutip import (
     smesolve, mesolve, photocurrent_mesolve, liouvillian, QobjEvo, spre, spost,
-    destroy, coherent, parallel_map, qeye, fock_dm, general_stochastic, num,
+    destroy, coherent, qeye, fock_dm, general_stochastic, num,
 )
+from qutip.parallel import parallel_map
 
 def f(t, args):
     return args["a"] * t

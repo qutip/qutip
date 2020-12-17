@@ -46,6 +46,8 @@ from ..settings import settings
 debug = settings.install['debug']
 
 
+__all__ = ['StochasticSolverOptions', 'main_ssepdpsolve', 'main_smepdpsolve']
+
 class StochasticSolverOptions:
     """
     Class of options for stochastic (piecewse deterministic process) PDP

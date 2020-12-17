@@ -46,7 +46,7 @@ from numpy.testing import (
 )
 from numpy.random import rand
 
-from qutip.solve.propagator import propagator
+from qutip.solver.propagator import propagator
 from qutip.random_objects import (
     rand_herm, rand_dm, rand_unitary, rand_ket, rand_super_bcsz,
     rand_ket_haar, rand_dm_ginibre, rand_unitary_haar

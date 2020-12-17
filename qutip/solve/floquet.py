@@ -47,13 +47,10 @@ from numpy import angle, pi, exp, sqrt
 from types import FunctionType
 from .. import (
     Qobj, unstacked_index, stack_columns, unstack_columns, projection, expect,
+    SolverOptions, sesolve, steadystate, propagator
 )
 from ..core import data as _data
-from .sesolve import sesolve
 from ._rhs_generate import rhs_clear
-from .steadystate import steadystate
-from .solver import SolverOptions
-from .propagator import propagator
 from .solver import Result, _solver_safety_check
 from ..utilities import n_thermal
 

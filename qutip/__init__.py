@@ -153,6 +153,7 @@ else:
 #
 
 from .core import *
+from .solver import *
 from .solve import *
 
 # graphics
@@ -182,7 +183,7 @@ from .qip import *
 ########################################################################
 
 # utilities
-from .parallel import *
+#from .parallel import *
 from .utilities import *
 from .fileio import *
 from .about import *
