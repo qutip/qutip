@@ -394,6 +394,8 @@ cpdef CSC from_tr_csr(CSR matrix, bint copy=True):
     """ Return a CSC which is the transposed to this CSR.
     If copy is False, steal data ownership from the CSR.
     """
+    if not matrix._deallocate and not copy:
+        raise ValueError("Input matrix should own its data.")
     cdef CSC out = CSC.__new__(CSC)
     out.data = matrix.data
     out.col_index = matrix.row_index
