@@ -128,6 +128,7 @@ def local_multiply_dense(targets_op: Union[Qobj, np.ndarray], vec_mat: Qobj,
     .. [1] Y. Nambu, K. Nakamura,
     "On the Matrix Representation of Quantum Operations",
     arXiv:quant-ph/0504091 (2005).
+
     .. [2] J. Biamonte,
     "Lectures on Quantum Tensor Networks",
     arXiv:1912.10049 (2019)
@@ -404,6 +405,7 @@ def _reorder_vectorization_protocol(targets, local_op, full_op,
     |t1, ..., t_nt><r_1, r_2, ...|.
     Then one can just use regular matrix multiplication.
     Right multiplication is similar (swapping the bra and ket indices).
+
     This is a private function, and all dimension/shape checks are assumed
     to have already been performed.
 
