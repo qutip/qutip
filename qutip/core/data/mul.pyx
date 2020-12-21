@@ -116,22 +116,22 @@ mul.add_specialisations([
     (Dense, Dense, mul_dense),
 ], _defer=True)
 
-mul_inplace = _Dispatcher(
+imul = _Dispatcher(
     # Will not be inplce if specialisation does not exist but should still
     # give expected results if used as:
-    # mat = mul_inplace(mat, x)
+    # mat = imul(mat, x)
     _inspect.Signature([
         _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
         _inspect.Parameter('value', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
     ]),
-    name='mul_inplace',
+    name='imul',
     module=__name__,
     inputs=('matrix',),
     out=True,
 )
-mul_inplace.__doc__ =\
+imul.__doc__ =\
     """Multiply inplace a matrix element-wise by a scalar."""
-mul_inplace.add_specialisations([
+imul.add_specialisations([
     (CSC, CSC, imul_csc),
     (CSR, CSR, imul_csr),
     (Dense, Dense, imul_dense),
