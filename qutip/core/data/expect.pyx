@@ -97,7 +97,6 @@ cpdef double complex expect_super_csr(CSR op, CSR state) nogil except *:
         row += n + 1
     return out
 
-
 cpdef double complex expect_csr(CSR op, CSR state) nogil except *:
     """
     Get the expectation value of the operator `op` over the state `state`.  The
@@ -200,42 +199,6 @@ cpdef double complex expect_csr_dense(CSR op, Dense state) nogil except *:
         return _expect_csr_dense_ket(op, state)
     return _expect_csr_dense_dm(op, state)
 
-
-<<<<<<< HEAD
-cpdef double complex expect_csc_dense(CSC op, Dense state) except *:
-    """
-    Get the expectation value of the operator `op` over the state `state`.  The
-    state can be either a ket or a density matrix.
-
-    The expectation of a state is defined as the operation:
-        state.adjoint() @ op @ state
-    and of a density matrix:
-        tr(op @ state)
-    """
-    if state.shape[1] == 1:
-        return _expect_csc_dense_ket(op, state)
-
-    return _expect_csr_dense_dm(csc._as_tr_csr(op, False), state.transpose())
-
-
-cpdef double complex expect_dense_dense(Dense op, Dense state) nogil except *:
-=======
-cpdef double complex expect_dense(Dense op, Dense state) nogil except *:
->>>>>>> solve.core
-    """
-    Get the expectation value of the operator `op` over the state `state`.  The
-    state can be either a ket or a density matrix.
-
-    The expectation of a state is defined as the operation:
-        state.adjoint() @ op @ state
-    and of a density matrix:
-        tr(op @ state)
-    """
-    if state.shape[1] == 1:
-        return _expect_dense_ket(op, state)
-    return _expect_dense_dense_dm(op, state)
-
-
 cpdef double complex expect_super_csr_dense(CSR op, Dense state) nogil except *:
     """
     Perform the operation `tr(op @ state)` where `op` is supplied as a
@@ -252,7 +215,21 @@ cpdef double complex expect_super_csr_dense(CSR op, Dense state) nogil except *:
     return out
 
 
-<<<<<<< HEAD
+cpdef double complex expect_csc_dense(CSC op, Dense state) except *:
+    """
+    Get the expectation value of the operator `op` over the state `state`.  The
+    state can be either a ket or a density matrix.
+
+    The expectation of a state is defined as the operation:
+        state.adjoint() @ op @ state
+    and of a density matrix:
+        tr(op @ state)
+    """
+    if state.shape[1] == 1:
+        return _expect_csc_dense_ket(op, state)
+
+    return _expect_csr_dense_dm(csc._as_tr_csr(op, False), state.transpose())
+
 cpdef double complex expect_super_csc_dense(CSC op, Dense state) except *:
     """
     Perform the operation `tr(op @ state)` where `op` is supplied as a
@@ -261,10 +238,21 @@ cpdef double complex expect_super_csc_dense(CSC op, Dense state) except *:
     return expect_super_csr_dense(csc._as_tr_csr(op, False), state.transpose())
 
 
-cpdef double complex expect_super_dense_dense(Dense op, Dense state) nogil except *:
-=======
+cpdef double complex expect_dense(Dense op, Dense state) nogil except *:
+    """
+    Get the expectation value of the operator `op` over the state `state`.  The
+    state can be either a ket or a density matrix.
+
+    The expectation of a state is defined as the operation:
+        state.adjoint() @ op @ state
+    and of a density matrix:
+        tr(op @ state)
+    """
+    if state.shape[1] == 1:
+        return _expect_dense_ket(op, state)
+    return _expect_dense_dense_dm(op, state)
+
 cpdef double complex expect_super_dense(Dense op, Dense state) nogil except *:
->>>>>>> solve.core
     """
     Perform the operation `tr(op @ state)` where `op` is supplied as a
     superoperator, and `state` is a column-stacked operator.
@@ -311,13 +299,10 @@ expect.__doc__ =\
 expect.add_specialisations([
     (CSR, CSR, expect_csr),
     (CSR, Dense, expect_csr_dense),
-<<<<<<< HEAD
     (CSC, Dense, expect_csc_dense),
-    (Dense, Dense, expect_dense_dense),
-=======
     (Dense, Dense, expect_dense),
->>>>>>> solve.core
 ], _defer=True)
+
 
 expect_super = _Dispatcher(
     _inspect.Signature([
@@ -338,12 +323,8 @@ expect_super.__doc__ =\
 expect_super.add_specialisations([
     (CSR, CSR, expect_super_csr),
     (CSR, Dense, expect_super_csr_dense),
-<<<<<<< HEAD
     (CSC, Dense, expect_super_csc_dense),
-    (Dense, Dense, expect_super_dense_dense),
-=======
     (Dense, Dense, expect_super_dense),
->>>>>>> solve.core
 ], _defer=True)
 
 del _inspect, _Dispatcher
