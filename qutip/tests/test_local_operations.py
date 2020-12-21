@@ -46,13 +46,17 @@ class Test_local_multiply_wrapper:
     # test local_multiply
 
     @pytest.mark.parametrize('backend', ('CSR', 'sPaRse', 'Dense', 'einsum',
-                                          'vectorize', None, 'leave_blank'))
+                                          'vectorize', None, 'leave_blank',
+                                         'invalid'))
     def test_backends_accepted(self, backend):
         # just test the cases do not matter and does not throw a ValueError
         psi = qutip.ghz_state(1)
         op = qutip.sigmax()
         if backend == 'leave_blank':
             local_multiply(op, psi, 0)
+        elif backend == 'invalid':
+            with pytest.raises(ValueError):
+                local_multiply(op, psi, 0, backend=backend)
         else:
             local_multiply(op, psi, 0, backend=backend)
 
@@ -135,7 +139,6 @@ class Test_local_multiply_sparse:
             rho_expected = rho * full_op
             np.testing.assert_array_almost_equal(rho_out.full(),
                                                  rho_expected.full())
-
 
 
 class Test_local_multiply_dense:
@@ -293,7 +296,8 @@ class Test_local_multiply_dense:
                 actual = local_multiply_dense(op, state, targets=targets,
                                               backend=backend)
 
-                np.testing.assert_array_almost_equal(actual.full(), expected.full())
+                np.testing.assert_array_almost_equal(actual.full(),
+                                                     expected.full())
 
                 # right multiplication
                 # take dagger to convert ket to bra
