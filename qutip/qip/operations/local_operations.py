@@ -35,16 +35,138 @@
 ###############################################################################
 
 import numpy as np
-from typing import Sequence, Union, Optional
 
 from qutip import Qobj
+from qutip.qip.operations.gates import gate_expand_1toN, expand_operator
 from qutip.core import data
 
 
-def local_multiply_dense(targets_op: Union[Qobj, np.ndarray], vec_mat: Qobj,
-                         targets: Union[int, Sequence[int]],
-                         right: bool = False,
-                         backend: Optional[str] = None) -> Qobj:
+def local_multiply(targets_op, vec_mat, targets, right=False, backend=None):
+    """
+    Wrapper for `local_multiply_dense` and `local_multiply_sparse`.
+
+    Parameters
+    ----------
+    targets_op: :class:`qutip.Qobj` or np.ndarray
+        The local operator which will act on the `targets` of `vec_mat`.
+        Note: if specifying a sparse backend, this must be a Qobj type.
+    vec_mat: :class:`qutip.Qobj`
+            Can be 'oper', 'ket', or 'bra' type.
+            Best to be of same data format as backend being used (see Notes).
+            Convert using Qobj().to(data.Dense) or Qobj().to(data.CSR).
+    targets: int or list of int
+        The target indices that targets_op acts on.
+        E.g. ``targets=1`` acts on index 1.
+        E.g. ``targets=[6,3,0]`` acts on indices 6, 3, 0, in that order.
+    right: bool
+        Left or right matrix multiplication (default is False).
+        If ``right==True``, compute  vec_mat * targets_op
+        (in the appropriate sense), and if ``right==False``,
+        compute targets_op * vec_mat.
+    backend: str or None
+        Which backend to perform the computation.
+        Current accepted arguments (case insensitive):
+        'dense': uses `local_multiply_dense` and picks backend based on input.
+        'einsum': uses NumPy's einsum in `local_multiply_dense`.
+        'vectorize': uses the vectorization based protocol in
+        `local_multiply_dense`.
+        'sparse' or 'csr': uses `expand_operator` to build the full
+        sparse operator.
+        If unspecified (default of None used), this is decided based on the
+        data format of vec_mat.
+
+    Returns
+    -------
+    :class:`qutip.Qobj`
+        Result of the matrix multiplication of `targets_op` on `vec_mat`,
+        with the same data format as `vec_mat`.
+
+    Notes
+    -----
+    To avoid conversion slow-downs, if using the dense routines,
+    specify vec_mat data as Dense. Similarly, if using sparse, specify
+    data as CSR type.
+
+    See `local_multiply_dense`, `local_multiply_sparse` docstring for more
+    information on allowed input.
+    """
+    backends = ['csr', 'sparse', 'einsum', 'vectorize', 'dense', None]
+    if isinstance(backend, str):
+        backend = backend.lower()
+
+    if backend is None and isinstance(vec_mat.data, data.CSR):
+        # use sparse routine if vec_mat is sparse
+        backend = 'csr'
+    elif backend == 'dense':
+        # local_multiply_dense will pick the best backend given None
+        backend = None
+    if backend not in backends:
+        raise ValueError(f'Received invalid backend: {backends}. '
+                         f'Should be one of: {backends}')
+
+    if backend in backends[0: 2]:
+        return local_multiply_sparse(targets_op, vec_mat, targets, right)
+    else:
+        return local_multiply_dense(targets_op, vec_mat, targets,
+                                    right, backend)
+
+
+def local_multiply_sparse(targets_op, vec_mat, targets, right=False):
+    """
+    Sparse routine for local multiplication.
+
+    Parameters
+    ----------
+    targets_op: :class:`qutip.Qobj`
+        The local operator which will act on the `targets` of `vec_mat`.
+        `expand_operator` is used to build the full operator based on targets.
+    vec_mat: :class:`qutip.Qobj`
+        Can be 'oper', 'ket', or 'bra' type.
+        Preferred data format is `CSR`.
+    targets: int or list of int
+        The target indices that targets_op acts on.
+        E.g. ``targets=1`` acts on index 1.
+        E.g. ``targets=[6,3,0]`` acts on indices 6, 3, 0, in that order.
+    right: bool
+        Left or right matrix multiplication (default is False).
+        If ``right==True``, compute  vec_mat * targets_op
+        (in the appropriate sense), and if ``right==False``,
+        compute targets_op * vec_mat.
+        If ``vec_mat.type=='ket'``, can only have left multiplication (A|psi>),
+        if ``vec_mat.type=='bra'``, can only have right multiplication (<psi|A).
+
+    Returns
+    -------
+    :class:`qutip.Qobj`
+        Result of the matrix multiplication of `targets_op` on `vec_mat`,
+        with the same data format as `vec_mat`.
+
+    Notes
+    -----
+    It is most efficient to specify vec_mat as CSR type, otherwise there
+    is conversion overhead.
+
+    This routine simply builds the full (sparse) matrix using `expand_operator`.
+    """
+    targets = [targets] if isinstance(targets, int) else list(targets)
+    n = len(vec_mat.dims[0])
+    if len(targets) == 1:
+        # this is faster since it doesn't use Qobj().permute
+        full_op = gate_expand_1toN(targets_op, n, targets[0])
+    else:
+        full_op = expand_operator(targets_op, n, targets)
+
+    out = vec_mat * full_op if right else full_op * vec_mat
+
+    if not isinstance(vec_mat.data, data.CSR):
+        # convert back to Dense if given Dense input
+        # for this reason best to specify as input CSR type
+        out = out.to(data.Dense)
+    return out
+
+
+def local_multiply_dense(targets_op, vec_mat, targets, right=False,
+                         backend=None):
     """
     Matrix multiplication for local operator, acting on specified targets,
     using dense matrix routines.
@@ -59,7 +181,7 @@ def local_multiply_dense(targets_op: Union[Qobj, np.ndarray], vec_mat: Qobj,
     vec_mat: :class:`qutip.Qobj`
         Can be 'oper', 'ket', or 'bra' type.
         Preferred data format is `Dense`.
-    targets: int or Sequence (e.g. list, tuple) of int
+    targets: int or list of int
         The target indices that targets_op acts on.
         E.g. ``targets=1`` acts on index 1.
         E.g. ``targets=[6,3,0]`` acts on indices 6, 3, 0.
@@ -308,7 +430,7 @@ _EINSUM_AXES = ''.join([chr(ord('a') + i) for i in range(0, 26)])
 _EINSUM_AXES += ''.join([chr(ord('A') + i) for i in range(0, 26)])
 
 
-def _einsum_protocol(targets, local_op, full_op, right) -> Optional[np.ndarray]:
+def _einsum_protocol(targets, local_op, full_op, right):
     """
     Use NumPy's einsum to compute matrix operation.
 

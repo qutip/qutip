@@ -39,8 +39,103 @@ import itertools
 import numpy as np
 import qutip
 from qutip.qip.operations import gates
-from qutip.qip.operations.local_operations import local_multiply_dense
+from qutip.qip.operations.local_operations import local_multiply_dense, local_multiply_sparse, local_multiply
 from qutip.core import data
+
+class Test_local_multiply_wrapper:
+    # test local_multiply
+
+    @pytest.mark.parametrize('backend', ('CSR', 'sPaRse', 'Dense', 'einsum',
+                                          'vectorize', None, 'leave_blank'))
+    def test_backends_accepted(self, backend):
+        # just test the cases do not matter and does not throw a ValueError
+        psi = qutip.ghz_state(1)
+        op = qutip.sigmax()
+        if backend == 'leave_blank':
+            local_multiply(op, psi, 0)
+        else:
+            local_multiply(op, psi, 0, backend=backend)
+
+    @pytest.mark.parametrize('backend', ('csr', 'sparse', 'dense',
+                                         'einsum', 'vectorize', None))
+    @pytest.mark.parametrize('data_format', (data.CSR, data.Dense))
+    def test_numpy_input_accepted_or_rejected(self, backend, data_format):
+        # sparse backend should not accept numpy input,
+        # but dense should
+        psi = qutip.ghz_state(1).to(data_format)
+        op = np.array([[1, 2], [3, 4]])
+
+        if backend in ['csr', 'sparse']:
+            expected_backend = 'csr'
+        elif backend is None and data_format is data.CSR:
+            expected_backend = 'csr'
+        else:
+            expected_backend = 'dense'
+
+        if expected_backend is 'csr':
+            with pytest.raises(TypeError):
+                local_multiply(op, psi, 0, backend=backend)
+        else:
+            local_multiply(op, psi, 0, backend=backend)
+
+
+class Test_local_multiply_sparse:
+    # test local_multiply_sparse function
+
+    @pytest.mark.parametrize('n', (1, 2, 3, 4))
+    @pytest.mark.parametrize('k', (1, 2, 3, 4))
+    def test_left_multiplication(self, n, k):
+        if k > n:
+            return
+
+        psi = qutip.ghz_state(n)
+        rho = qutip.ket2dm(psi)
+        local_op = (-1j * 0.25 * np.pi * qutip.sigmax()).expm()
+        k_local_op = qutip.tensor([local_op] * k)
+
+        for targets in itertools.product(*[range(n)] * k):
+            if len(set(targets)) != k:
+                continue
+            psi_out = local_multiply_sparse(k_local_op, psi, targets)
+            full_op = gates.expand_operator(k_local_op, n, list(targets))
+            psi_expected = full_op * psi
+
+            np.testing.assert_array_almost_equal(psi_out.full(),
+                                                 psi_expected.full())
+
+            rho_out = local_multiply_sparse(k_local_op, rho, targets)
+            rho_expected = full_op * rho
+            np.testing.assert_array_almost_equal(rho_out.full(),
+                                                 rho_expected.full())
+
+    @pytest.mark.parametrize('n', (1, 2, 3, 4))
+    @pytest.mark.parametrize('k', (1, 2, 3, 4))
+    def test_right_multiplication(self, n, k):
+        if k > n:
+            return
+        ket = qutip.ghz_state(n)
+        bra = ket.dag()
+        rho = qutip.ket2dm(ket)
+        local_op = (-1j * 0.25 * np.pi * qutip.sigmax()).expm()
+        k_local_op = qutip.tensor([local_op] * k)
+
+        for targets in itertools.product(*[range(n)] * k):
+            if len(set(targets)) != k:
+                continue
+            psi_out = local_multiply_sparse(k_local_op, bra,
+                                            targets, right=True)
+            full_op = gates.expand_operator(k_local_op, n, list(targets))
+            psi_expected = bra * full_op
+
+            np.testing.assert_array_almost_equal(psi_out.full(),
+                                                 psi_expected.full())
+
+            rho_out = local_multiply_sparse(k_local_op, rho,
+                                            targets, right=True)
+            rho_expected = rho * full_op
+            np.testing.assert_array_almost_equal(rho_out.full(),
+                                                 rho_expected.full())
+
 
 
 class Test_local_multiply_dense:
