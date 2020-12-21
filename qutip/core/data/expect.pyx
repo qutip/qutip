@@ -15,9 +15,10 @@ from qutip.core.data.base cimport idxint, Data
 from qutip.core.data cimport csr, csc, CSR, CSC, Dense
 
 __all__ = [
-    'expect', 'expect_csr', 'expect_csr_dense', 'expect_csc_dense', 'expect_dense_dense',
-    'expect_super', 'expect_super_csr',
-    'expect_super_csr_dense', 'expect_super_csc_dense', 'expect_super_dense_dense',
+    'expect', 'expect_super',
+    'expect_csr', 'expect_dense', 'expect_super_csr', 'expect_super_dense',
+    'expect_csr_dense', 'expect_csc_dense',
+    'expect_super_csr_dense', 'expect_super_csc_dense',
 ]
 
 cdef void _check_shape_ket(Data op, Data state) nogil except *:
@@ -153,7 +154,7 @@ cdef double complex _expect_csr_dense_dm(CSR op, Dense state) nogil except *:
     return out
 
 
-cdef double complex _expect_dense_dense_ket(Dense op, Dense state) nogil except *:
+cdef double complex _expect_dense_ket(Dense op, Dense state) nogil except *:
     _check_shape_ket(op, state)
     cdef double complex out=0, sum
     cdef size_t row, col, op_row_stride, op_col_stride
@@ -200,6 +201,7 @@ cpdef double complex expect_csr_dense(CSR op, Dense state) nogil except *:
     return _expect_csr_dense_dm(op, state)
 
 
+<<<<<<< HEAD
 cpdef double complex expect_csc_dense(CSC op, Dense state) except *:
     """
     Get the expectation value of the operator `op` over the state `state`.  The
@@ -217,6 +219,9 @@ cpdef double complex expect_csc_dense(CSC op, Dense state) except *:
 
 
 cpdef double complex expect_dense_dense(Dense op, Dense state) nogil except *:
+=======
+cpdef double complex expect_dense(Dense op, Dense state) nogil except *:
+>>>>>>> solve.core
     """
     Get the expectation value of the operator `op` over the state `state`.  The
     state can be either a ket or a density matrix.
@@ -227,7 +232,7 @@ cpdef double complex expect_dense_dense(Dense op, Dense state) nogil except *:
         tr(op @ state)
     """
     if state.shape[1] == 1:
-        return _expect_dense_dense_ket(op, state)
+        return _expect_dense_ket(op, state)
     return _expect_dense_dense_dm(op, state)
 
 
@@ -247,6 +252,7 @@ cpdef double complex expect_super_csr_dense(CSR op, Dense state) nogil except *:
     return out
 
 
+<<<<<<< HEAD
 cpdef double complex expect_super_csc_dense(CSC op, Dense state) except *:
     """
     Perform the operation `tr(op @ state)` where `op` is supplied as a
@@ -256,6 +262,9 @@ cpdef double complex expect_super_csc_dense(CSC op, Dense state) except *:
 
 
 cpdef double complex expect_super_dense_dense(Dense op, Dense state) nogil except *:
+=======
+cpdef double complex expect_super_dense(Dense op, Dense state) nogil except *:
+>>>>>>> solve.core
     """
     Perform the operation `tr(op @ state)` where `op` is supplied as a
     superoperator, and `state` is a column-stacked operator.
@@ -302,8 +311,12 @@ expect.__doc__ =\
 expect.add_specialisations([
     (CSR, CSR, expect_csr),
     (CSR, Dense, expect_csr_dense),
+<<<<<<< HEAD
     (CSC, Dense, expect_csc_dense),
     (Dense, Dense, expect_dense_dense),
+=======
+    (Dense, Dense, expect_dense),
+>>>>>>> solve.core
 ], _defer=True)
 
 expect_super = _Dispatcher(
@@ -325,8 +338,34 @@ expect_super.__doc__ =\
 expect_super.add_specialisations([
     (CSR, CSR, expect_super_csr),
     (CSR, Dense, expect_super_csr_dense),
+<<<<<<< HEAD
     (CSC, Dense, expect_super_csc_dense),
     (Dense, Dense, expect_super_dense_dense),
+=======
+    (Dense, Dense, expect_super_dense),
+>>>>>>> solve.core
 ], _defer=True)
 
 del _inspect, _Dispatcher
+
+
+cdef double complex expect_data_dense(Data op, Dense state):
+    cdef double complex out
+    if type(op) is CSR:
+        out = expect_csr_dense(op, state)
+    elif type(op) is Dense:
+        out = expect_dense(op, state)
+    else:
+        out = expect(op, state)
+    return out
+
+
+cdef double complex expect_super_data_dense(Data op, Dense state):
+    cdef double complex out
+    if type(op) is CSR:
+        out = expect_super_csr_dense(op, state)
+    elif type(op) is Dense:
+        out = expect_super_dense(op, state)
+    else:
+        out = expect_super(op, state)
+    return out

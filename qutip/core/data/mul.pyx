@@ -6,22 +6,15 @@ from qutip.core.data cimport idxint, csr, CSR, dense, Dense, csc, CSC
 __all__ = [
     'mul', 'mul_csr', 'mul_dense', 'mul_csc',
     'neg', 'neg_csr', 'neg_dense', 'neg_csc',
+    'imul', 'imul_csr', 'imul_dense', 'imul_csc',
 ]
 
 
-cpdef CSR mul_csr_inplace(CSR matrix, double complex value):
+cpdef CSR imul_csr(CSR matrix, double complex value):
     """Multiply this CSR `matrix` by a complex scalar `value`."""
     cdef idxint ptr
     with nogil:
         for ptr in range(csr.nnz(matrix)):
-            matrix.data[ptr] *= value
-    return matrix
-
-cpdef CSC mul_csc_inplace(CSC matrix, double complex value):
-    """Multiply this CSR `matrix` by a complex scalar `value`."""
-    cdef idxint ptr
-    with nogil:
-        for ptr in range(csc.nnz(matrix)):
             matrix.data[ptr] *= value
     return matrix
 
@@ -36,6 +29,24 @@ cpdef CSR mul_csr(CSR matrix, double complex value):
             out.data[ptr] = value * matrix.data[ptr]
     return out
 
+cpdef CSR neg_csr(CSR matrix):
+    """Unary negation of this CSR `matrix`.  Return a new object."""
+    cdef CSR out = csr.copy_structure(matrix)
+    cdef idxint ptr
+    with nogil:
+        for ptr in range(csr.nnz(matrix)):
+            out.data[ptr] = -matrix.data[ptr]
+    return out
+
+
+cpdef CSC imul_csc(CSC matrix, double complex value):
+    """Multiply this CSC `matrix` by a complex scalar `value`."""
+    cdef idxint ptr
+    with nogil:
+        for ptr in range(csc.nnz(matrix)):
+            matrix.data[ptr] *= value
+    return matrix
+
 cpdef CSC mul_csc(CSC matrix, double complex value):
     """Multiply this CSR `matrix` by a complex scalar `value`."""
     if value == 0:
@@ -45,15 +56,6 @@ cpdef CSC mul_csc(CSC matrix, double complex value):
     with nogil:
         for ptr in range(csc.nnz(matrix)):
             out.data[ptr] = value * matrix.data[ptr]
-    return out
-
-cpdef CSR neg_csr(CSR matrix):
-    """Unary negation of this CSR `matrix`.  Return a new object."""
-    cdef CSR out = csr.copy_structure(matrix)
-    cdef idxint ptr
-    with nogil:
-        for ptr in range(csr.nnz(matrix)):
-            out.data[ptr] = -matrix.data[ptr]
     return out
 
 cpdef CSC neg_csc(CSC matrix):
@@ -66,7 +68,7 @@ cpdef CSC neg_csc(CSC matrix):
     return out
 
 
-cpdef Dense mul_dense_inplace(Dense matrix, double complex value):
+cpdef Dense imul_dense(Dense matrix, double complex value):
     """Multiply this Dense `matrix` by a complex scalar `value`."""
     cdef size_t ptr
     with nogil:
@@ -130,9 +132,9 @@ mul_inplace = _Dispatcher(
 mul_inplace.__doc__ =\
     """Multiply inplace a matrix element-wise by a scalar."""
 mul_inplace.add_specialisations([
-    (CSR, CSR, mul_csr_inplace),
-    (CSC, CSC, mul_csc_inplace),
-    (Dense, Dense, mul_dense_inplace),
+    (CSC, CSC, imul_csc),
+    (CSR, CSR, imul_csr),
+    (Dense, Dense, imul_dense),
 ], _defer=True)
 
 neg = _Dispatcher(

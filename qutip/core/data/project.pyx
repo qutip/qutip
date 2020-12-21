@@ -96,7 +96,7 @@ cpdef Dense project_dense(Dense state):
     function will be identical is passed `state` or `adjoint(state)`.
     """
     cdef Dense out
-    cdef size_t size, i, h
+    cdef size_t size, i
     cdef bint fortran
     if state.shape[1] == 1:
         size = state.shape[0]
