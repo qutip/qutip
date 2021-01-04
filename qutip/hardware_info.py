@@ -33,10 +33,12 @@
 
 __all__ = ['hardware_info']
 
+import multiprocessing
 import os
 import sys
-import multiprocessing
+
 import numpy as np
+
 
 def _mac_hardware_info():
     info = dict()
@@ -45,8 +47,9 @@ def _mac_hardware_info():
         info[l[0].strip(' "').replace(' ', '_').lower().strip('hw.')] = \
             l[1].strip('.\n ')
     results.update({'cpus': int(info['physicalcpu'])})
-    results.update({'cpu_freq': int(float(os.popen('sysctl -n machdep.cpu.brand_string')
-                                .readlines()[0].split('@')[1][:-4])*1000)})
+    results.update({'cpu_freq': int(float(os.popen('sysctl hw.cpufrequency')
+                                          .readlines()[0].split(':')[
+                                              1]) / 1000000)})
     results.update({'memsize': int(int(info['memsize']) / (1024 ** 2))})
     # add OS information
     results.update({'os': 'Mac OSX'})
@@ -88,13 +91,17 @@ def _linux_hardware_info():
     results.update({'os': 'Linux'})
     return results
 
+
 def _freebsd_hardware_info():
     results = {}
     results.update({'cpus': int(os.popen('sysctl -n hw.ncpu').readlines()[0])})
-    results.update({'cpu_freq': int(os.popen('sysctl -n dev.cpu.0.freq').readlines()[0])})
-    results.update({'memsize': int(os.popen('sysctl -n hw.realmem').readlines()[0]) / 1024})
+    results.update(
+        {'cpu_freq': int(os.popen('sysctl -n dev.cpu.0.freq').readlines()[0])})
+    results.update({'memsize': int(
+        os.popen('sysctl -n hw.realmem').readlines()[0]) / 1024})
     results.update({'os': 'FreeBSD'})
     return results
+
 
 def _win_hardware_info():
     try:
@@ -133,6 +140,7 @@ def hardware_info():
     else:
         out = {}
     return out
+
 
 if __name__ == '__main__':
     print(hardware_info())
