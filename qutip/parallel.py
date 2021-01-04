@@ -136,7 +136,7 @@ def parfor(func, *args, **kwargs):
             return [array([elem[ii] for elem in par_return], dtype=dt[ii])
                     for ii in range(num_elems)]
         else:
-            return list(par_return)
+            return par_return
 
     except KeyboardInterrupt:
         os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
