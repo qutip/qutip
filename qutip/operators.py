@@ -308,7 +308,7 @@ shape = [2, 2], type = oper, isHerm = False
      [ 1.  0.]]
 
     """
-    return 2.0 * jmat(1.0 / 2, 'x')
+    return 2 * jmat(1 / 2, 'x')
 
 
 def sigmay():
@@ -324,7 +324,7 @@ shape = [2, 2], type = oper, isHerm = True
      [ 0.+1.j  0.+0.j]]
 
     """
-    return 2.0 * jmat(1.0 / 2, 'y')
+    return 2 * jmat(1 / 2, 'y')
 
 
 def sigmaz():
@@ -340,7 +340,7 @@ shape = [2, 2], type = oper, isHerm = True
      [ 0. -1.]]
 
     """
-    return 2.0 * jmat(1.0 / 2, 'z')
+    return 2 * jmat(1 / 2, 'z')
 
 
 #
