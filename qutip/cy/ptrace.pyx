@@ -184,6 +184,10 @@ def _ptrace(object rho, sel): # work for N<= 26 on 16G Ram
         if _sel[ii] < 0 or _sel[ii] >= num_dims:
             raise TypeError("Invalid selection index in ptrace.")
 
+    if len(_sel) == num_dims:
+        # If all dimensions are selected, just fast-path return a copy.
+        return rho.data.copy(), rho.dims.copy(), rho.shape
+
     if np.prod(rho.shape[1]) == 1:
         _oper = (rho * rho.dag()).data
     else:

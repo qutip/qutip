@@ -34,6 +34,15 @@ from numpy.testing import assert_
 from qutip import *
 from qutip.legacy.ptrace import _ptrace as _pt
 
+def test_ptrace_noncompound_rand():
+    """Test `A.ptrace(0) == A` when `A` is in a non-tensored Hilbert space."""
+    for _ in range(5):
+        psi = qutip.rand_ket(5)
+        assert psi.ptrace(0) == psi
+    for _ in range(5):
+        rho = qutip.rand_dm(5)
+        assert rho.ptrace(0) == rho
+
 def test_ptrace_rand():
     'ptrace : randomized tests, sparse'
     for k in range(5):

@@ -2204,6 +2204,9 @@ def _ptrace_dense(Q, sel):
     dkeep = (rd[sel]).tolist()
     qtrace = list(set(np.arange(nd)) - set(sel))
     dtrace = (rd[qtrace]).tolist()
+    if not dtrace:
+        # If we are keeping all dimensions, no need to construct an ndarray.
+        return Q.copy()
     rd = list(rd)
     if isket(Q):
         vmat = (Q.full()
