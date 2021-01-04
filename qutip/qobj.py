@@ -2209,17 +2209,18 @@ def _ptrace_dense(Q, sel):
         vmat = (Q.full()
                 .reshape(rd)
                 .transpose(sel + qtrace)
-                .reshape([np.prod(dkeep), np.prod(dtrace)]))
+                .reshape([np.prod(dkeep, dtype=np.int32),
+                          np.prod(dtrace, dtype=np.int32)]))
         rhomat = vmat.dot(vmat.conj().T)
     else:
         rhomat = np.trace(Q.full()
                           .reshape(rd + rd)
                           .transpose(qtrace + [nd + q for q in qtrace] +
                                      sel + [nd + q for q in sel])
-                          .reshape([np.prod(dtrace),
-                                    np.prod(dtrace),
-                                    np.prod(dkeep),
-                                    np.prod(dkeep)]))
+                          .reshape([np.prod(dtrace, dtype=np.int32),
+                                    np.prod(dtrace, dtype=np.int32),
+                                    np.prod(dkeep, dtype=np.int32),
+                                    np.prod(dkeep, dtype=np.int32)]))
     return Qobj(rhomat, dims=[dkeep, dkeep])
 
 
