@@ -1329,6 +1329,8 @@ class Qobj(object):
         ----------
         sel : int/list
             An ``int`` or ``list`` of components to keep after partial trace.
+            The order is unimportant; no transposition will be done and the
+            spaces will remain in the same order in the output.
 
         Returns
         -------
