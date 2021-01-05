@@ -44,7 +44,6 @@ __all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
 
 import numbers
 import numpy as np
-import scipy
 import scipy.sparse as sp
 from qutip.qobj import Qobj
 from qutip.fastsparse import fast_csr_matrix, fast_identity

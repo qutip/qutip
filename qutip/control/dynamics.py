@@ -56,14 +56,13 @@ Note the methods in these classes were inspired by:
 DYNAMO - Dynamic Framework for Quantum Optimal Control
 See Machnes et.al., arXiv.1011.4874
 """
-import os
 import warnings
 import numpy as np
 import scipy.linalg as la
 import scipy.sparse as sp
 # QuTiP
 from qutip.qobj import Qobj
-from qutip.sparse import sp_eigs, _dense_eigs, eigh
+from qutip.sparse import sp_eigs, eigh
 import qutip.settings as settings
 # QuTiP logging
 import qutip.logging_utils as logging

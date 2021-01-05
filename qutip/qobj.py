@@ -50,11 +50,10 @@ except:
 from numpy import (arccos, arccosh, arcsin, arcsinh, arctan, arctan2, arctanh,
                    ceil, copysign, cos, cosh, degrees, e, exp, expm1, fabs,
                    floor, fmod, frexp, hypot, isinf, isnan, ldexp, log, log10,
-                   log1p, modf, pi, radians, sin, sinh, sqrt, tan, tanh, trunc)
+                   log1p, modf, pi, radians, sin, sinh, sqrt, tan, tanh)
 
 import numpy as np
 import scipy.sparse as sp
-import scipy.linalg as la
 import qutip.settings as settings
 from qutip import __version__
 from qutip.fastsparse import fast_csr_matrix, fast_identity

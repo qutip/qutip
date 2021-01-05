@@ -30,17 +30,13 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-import warnings
-
 import numpy as np
 
-from qutip.operators import sigmax, sigmay, sigmaz, identity
+from qutip.operators import sigmax, sigmay, sigmaz
 from qutip.tensor import tensor
 from qutip.qip.circuit import QubitCircuit
-from qutip.qip.device.processor import Processor
 from qutip.qip.device.modelprocessor import ModelProcessor
 from qutip.qip.pulse import Pulse
-from qutip.qip.compiler.gatecompiler import GateCompiler
 from qutip.qip.compiler.spinchaincompiler import SpinChainCompiler
 
 

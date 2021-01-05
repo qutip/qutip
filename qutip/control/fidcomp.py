@@ -58,11 +58,8 @@ The other fidelity measures are extensions, and the sources are given
 in the class descriptions.
 """
 
-import os
 import warnings
 import numpy as np
-import scipy.sparse as sp
-# import scipy.linalg as la
 import timeit
 # QuTiP
 from qutip.qobj import Qobj

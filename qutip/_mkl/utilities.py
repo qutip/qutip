@@ -31,7 +31,6 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-import numpy as np
 import os, sys
 from qutip.utilities import _blas_info
 import qutip.settings as qset
