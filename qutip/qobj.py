@@ -1329,6 +1329,8 @@ class Qobj(object):
         ----------
         sel : int/list
             An ``int`` or ``list`` of components to keep after partial trace.
+            The order is unimportant; no transposition will be done and the
+            spaces will remain in the same order in the output.
 
         Returns
         -------
@@ -2201,25 +2203,34 @@ def _ptrace_dense(Q, sel):
     else:
         sel = np.asarray(sel)
     sel = list(np.sort(sel))
+    for x in sel:
+        if not 0 <= x < len(rd):
+            raise IndexError("Invalid selection index in ptrace.")
     dkeep = (rd[sel]).tolist()
     qtrace = list(set(np.arange(nd)) - set(sel))
     dtrace = (rd[qtrace]).tolist()
+    if len(dkeep) + len(dtrace) != len(rd):
+        raise ValueError("Duplicate selection index in ptrace.")
+    if not dtrace:
+        # If we are keeping all dimensions, no need to construct an ndarray.
+        return Q.copy()
     rd = list(rd)
     if isket(Q):
         vmat = (Q.full()
                 .reshape(rd)
                 .transpose(sel + qtrace)
-                .reshape([np.prod(dkeep), np.prod(dtrace)]))
+                .reshape([np.prod(dkeep, dtype=np.int32),
+                          np.prod(dtrace, dtype=np.int32)]))
         rhomat = vmat.dot(vmat.conj().T)
     else:
         rhomat = np.trace(Q.full()
                           .reshape(rd + rd)
                           .transpose(qtrace + [nd + q for q in qtrace] +
                                      sel + [nd + q for q in sel])
-                          .reshape([np.prod(dtrace),
-                                    np.prod(dtrace),
-                                    np.prod(dkeep),
-                                    np.prod(dkeep)]))
+                          .reshape([np.prod(dtrace, dtype=np.int32),
+                                    np.prod(dtrace, dtype=np.int32),
+                                    np.prod(dkeep, dtype=np.int32),
+                                    np.prod(dkeep, dtype=np.int32)]))
     return Qobj(rhomat, dims=[dkeep, dkeep])
 
 
