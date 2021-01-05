@@ -2203,9 +2203,14 @@ def _ptrace_dense(Q, sel):
     else:
         sel = np.asarray(sel)
     sel = list(np.sort(sel))
+    for x in sel:
+        if not 0 <= x < len(rd):
+            raise IndexError("Invalid selection index in ptrace.")
     dkeep = (rd[sel]).tolist()
     qtrace = list(set(np.arange(nd)) - set(sel))
     dtrace = (rd[qtrace]).tolist()
+    if len(dkeep) + len(dtrace) != len(rd):
+        raise ValueError("Duplicate selection index in ptrace.")
     if not dtrace:
         # If we are keeping all dimensions, no need to construct an ndarray.
         return Q.copy()
