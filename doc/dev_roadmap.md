@@ -15,5 +15,13 @@ These related, and overlapping, uses of the QuTiP name are of little consequence
 
 ## Library structure
 
-With a name as general as Quantum Toolkit in Python, the scope for new code modules to be added to `qutip` is very wide. The library was becoming increasingly difficult to maintain, and in c. 2020 the QuTiP Admim Team decided to limit the scope of the 'main'  
-decision to limit dependences.
+With a name as general as Quantum Toolkit in Python, the scope for new code modules to be added to `qutip` is very wide. The library was becoming increasingly difficult to maintain, and in c. 2020 the QuTiP Admim Team decided to limit the scope of the 'main' (for want of a better name) qutip package. 
+This scope is restricted to components for the simulation (solving) of the dynamics of quantum systems.
+The scope includes utilities to support this, including analysis and visualisation of output.
+
+At the same time, again with the intention of easing maintence, a decision to limit dependences was agreed upon.
+Main `qutip` runtime code components should depend only upon Numpy and Scipy. 
+Installation (from source) requires Cython, and some optional components also require Cython at runtime.
+Unit testing requires Pytest.
+
+
