@@ -12,3 +12,8 @@ To support this, the library also contains various software tools (functions and
 QuTiP is also an organisation, in the Github sense, and in the sense of a group of people working collaboratively towards common objectives, and also a web presence [qutip.org](http://qutip.org/). The QuTiP Community includes all the people who have supported the project since in conception in 2010, including manager, funders, developers, maintainers and users.
 
 These related, and overlapping, uses of the QuTiP name are of little consequence until one starts to consider how to organise all the software packages that are somehow related to QuTiP, and specifically those that are maintained by the QuTiP Admim Team. Herin QuTiP will refer to the project / organisation and `qutip` to the library for simulating quantum dyanmics.
+
+## Library structure
+
+With a name as general as Quantum Toolkit in Python, the scope for new code modules to be added to `qutip` is very wide. The library was becoming increasingly difficult to maintain, and in c. 2020 the QuTiP Admim Team decided to limit the scope of the 'main'  
+decision to limit dependences.
