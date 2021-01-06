@@ -120,6 +120,7 @@ cdef class Dense(base.Data):
         out.shape = self.shape
         out.data = ptr
         out.fortran = self.fortran
+        out._deallocate = True
         return out
 
     cdef void _fix_flags(self, object array, bint make_owner=False):
