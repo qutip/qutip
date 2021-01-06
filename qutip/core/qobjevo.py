@@ -77,10 +77,10 @@ class QobjEvoBase:
             raise TypeError("time needs to be a real scalar")
         if isinstance(state, Qobj):
             state = state.data
-        elif isinstance(state, np.ndarray):
-            state = _data.dense.fast_from_numpy(state)
         elif isinstance(state, _data.Data):
             pass
+        elif isinstance(state, np.ndarray):
+            state = _data.dense.fast_from_numpy(state)
         else:
             raise TypeError("The vector must be an array or Qobj")
 
@@ -110,25 +110,29 @@ class QobjEvoBase:
         was_data = False
         if not isinstance(t, (int, float)):
             raise TypeError("the time need to be a real scalar")
+
         if isinstance(mat, Qobj):
             if self.dims[1] != mat.dims[0]:
                 raise Exception("Dimensions do not fit")
             was_Qobj = True
-            dims = mat.dims
+            dims = [self.dims[0], mat.dims[1]]
             mat = mat.data
+
+        elif isinstance(mat, _data.Data):
+            was_data = True
+
         elif isinstance(mat, np.ndarray):
             if mat.ndim == 1:
-                # TODO: do this properly.
                 mat = _data.dense.fast_from_numpy(mat)
                 was_vec = True
             elif mat.ndim == 2:
                 mat = _data.dense.fast_from_numpy(mat)
             else:
                 raise Exception("The matrice must be 1d or 2d")
-        elif isinstance(mat, _data.Data):
-            was_data = True
+
         else:
             raise TypeError("The vector must be an array or Qobj")
+
         if mat.shape[0] != self.shape[1]:
             raise Exception("The length do not match")
 
@@ -136,10 +140,10 @@ class QobjEvoBase:
 
         if was_Qobj:
             return Qobj(out, dims=dims)
-        elif was_vec:
-            return out.as_ndarray()[:, 0]
         elif was_data:
             return out
+        elif was_vec:
+            return out.as_ndarray()[:, 0]
         else:
             return out.as_ndarray()
 
@@ -284,7 +288,7 @@ class QobjEvo(QobjEvoBase):
     &
         tensor between Quantum Object
 
-    apply(f, *args, **kw_args)
+    linear_map(op_mapping)
         Apply the function f to every Qobj. f(Qobj) -> Qobj
 
     tidyup(atol=1e-12)
@@ -340,6 +344,7 @@ class QobjEvo(QobjEvoBase):
         if isinstance(Q_object, Qobj):
             self.cte = Q_object
             self.const = True
+
         elif isinstance(Q_object, list):
             use_step_func = self.args.get("_step_func_coeff", 0)
             for op in Q_object:
@@ -563,9 +568,8 @@ class QobjEvo(QobjEvoBase):
     def __imatmul__(self, other):
         if not isinstance(other, (Qobj, QobjEvo)):
             return NotImplemented
-        res = self.copy()
-        res *= other
-        return res
+        self *= other
+        return self
 
     def __mul__(self, other):
         if not isinstance(other, (Qobj, numbers.Number, Coefficient, QobjEvo)):
@@ -732,13 +736,15 @@ class QobjEvo(QobjEvoBase):
             op.qobj = op.qobj.permute(order)
         return res
 
-    # function to apply custom transformations
-    def apply(self, function, *args, **kw_args):
+    # function to linear_map custom transformations
+    def linear_map(self, op_mapping):
         """
         Apply function to each Qobj contribution.
 
         Example:
-        `QobjEvo([sigmax(),f]).apply(spre)` -> QobjEvo([spre(sigmax()),f])
+        `QobjEvo([sigmax(), coeff]).linear_map(spre)`
+        gives the same result has
+        `QobjEvo([spre(sigmax()), coeff])`
 
         Returns
         -------
@@ -747,17 +753,17 @@ class QobjEvo(QobjEvoBase):
 
         Notes
         -----
-        Does not modify the coefficients, thus `apply(conj)` would not give the
-        the conjugate of the QobjEvo. Also it's only valid for linear
+        Does not modify the coefficients, thus `linear_map(conj)` would not
+        give the the conjugate of the QobjEvo. Also it's only valid for linear
         transformations.
         """
         res = self.copy()
-        cte_res = function(res.cte, *args, **kw_args)
+        cte_res = op_mapping(res.cte)
         if not isinstance(cte_res, Qobj):
-            raise TypeError("The function must return a Qobj")
+            raise TypeError("The op_mapping function must return a Qobj")
         res.cte = cte_res
         for op in res.ops:
-            op.qobj = function(op.qobj, *args, **kw_args)
+            op.qobj = op_mapping(op.qobj)
         res._compile()
         return res
 
@@ -876,10 +882,7 @@ class QobjEvo(QobjEvoBase):
         None
         """
         res = self.copy()
-        try:
-            res.cte = res.cte.to(data_type)
-        except ValueError:
-            raise ValueError("Unknown conversion type: " + str(data_type))
+        res.cte = res.cte.to(data_type)
         for op in res.ops:
             op.qobj = op.qobj.to(data_type)
         res._compile()

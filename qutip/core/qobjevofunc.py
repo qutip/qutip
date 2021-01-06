@@ -130,7 +130,7 @@ class QobjEvoFunc(QobjEvoBase):
     &
         tensor between Quantum Object
 
-    apply(f, *args, **kw_args)
+    linear_map(f, op_mapping)
         Apply a transformation function to the Quantum Object
 
     __call__(t, args={}, data=False):
@@ -227,7 +227,7 @@ class QobjEvoFunc(QobjEvoBase):
         return res
 
     def __iadd__(self, other):
-        if isinstance(other, (QobjEvo, QobjEvoFunc)):
+        if isinstance(other, QobjEvoBase):
             self.operation_stack.append(_Block_Sum_Qoe(other))
         elif isinstance(other, Qobj):
             self.operation_stack.append(_Block_Sum(other))
@@ -259,7 +259,7 @@ class QobjEvoFunc(QobjEvoBase):
 
     def __rmul__(self, other):
         res = self.copy()
-        if isinstance(other, (QobjEvo, QobjEvoFunc)):
+        if isinstance(other, QobjEvoBase):
             res.operation_stack.append(_Block_rmul_Qoe(other))
         else:
             res.operation_stack.append(_Block_rmul(other))
@@ -269,7 +269,7 @@ class QobjEvoFunc(QobjEvoBase):
         return res
 
     def __imul__(self, other):
-        if isinstance(other, (QobjEvo, QobjEvoFunc)):
+        if isinstance(other, QobjEvoBase):
             self.operation_stack.append(_Block_mul_Qoe(other))
         else:
             self.operation_stack.append(_Block_mul(other))
@@ -285,7 +285,7 @@ class QobjEvoFunc(QobjEvoBase):
 
     def __rmatmul__(self, other):
         res = self.copy()
-        if isinstance(other, (QobjEvo, QobjEvoFunc)):
+        if isinstance(other, QobjEvoBase):
             res.operation_stack.append(_Block_rmul_Qoe(other))
         else:
             res.operation_stack.append(_Block_rmul(other))
@@ -296,7 +296,7 @@ class QobjEvoFunc(QobjEvoBase):
 
 
     def __imatmul__(self, other):
-        if isinstance(other, (QobjEvo, QobjEvoFunc)):
+        if isinstance(other, QobjEvoBase):
             self.operation_stack.append(_Block_mul_Qoe(other))
         else:
             self.operation_stack.append(_Block_mul(other))
@@ -438,17 +438,17 @@ class QobjEvoFunc(QobjEvoBase):
         return True
 
     # function to apply custom transformations
-    def apply(self, function, *args, **kw_args):
+    def linear_map(self, op_mapping):
         """
         Apply function to each Qobj contribution.
         """
-        if function is spre:
-            return self._spre
-        if function is spost:
-            return self._spost
+        if op_mapping is spre:
+            return self._spre()
+        if op_mapping is spost:
+            return self._spost()
 
         res = self.copy()
-        res.operation_stack.append(_Block_apply(function, args, kw_args))
+        res.operation_stack.append(_Block_linear_map(op_mapping))
         res._check_validity()
         return res
 
@@ -504,14 +504,14 @@ class _Block_rmul_Qoe(_Block_transform):
 
 class _Block_tensor_l(_Block_transform):
     def __call__(self, obj, t, args={}):
-        if isinstance(self.other, (QobjEvo, QobjEvoFunc)):
+        if isinstance(self.other, QobjEvoBase):
             return tensor(obj, self.other(t, args))
         return tensor(obj, self.other)
 
 
 class _Block_tensor_r(_Block_transform):
     def __call__(self, obj, t, args={}):
-        if isinstance(self.other, (QobjEvo, QobjEvoFunc)):
+        if isinstance(self.other, QobjEvoBase):
             return tensor(self.other(t, args), obj)
         return tensor(self.other, obj)
 
@@ -566,16 +566,14 @@ class _Block_lindblad_dissipator(_Block_transform):
         return lindblad_dissipator(obj, chi=self.other)
 
 
-class _Block_apply(_Block_transform):
-    def __init__(self, func, args, kwargs):
+class _Block_linear_map(_Block_transform):
+    def __init__(self, func):
         self.func = func
-        self.args = args
-        self.kwargs = kwargs
 
     def copy(self):
-        return _Block_apply(self.func, self.args, self.kwargs.copy())
+        return _Block_linear_map(self.func)
 
     def __call__(self, obj, t, args={}):
-        return self.func(obj, *self.args, **self.kwargs)
+        return self.func(obj)
 
 from .tensor import tensor

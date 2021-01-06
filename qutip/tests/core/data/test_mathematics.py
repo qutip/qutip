@@ -785,6 +785,10 @@ class TestProject(UnaryOpMixin):
         (pytest.param((1, 100), id="bra"),),
         (pytest.param((100, 1), id="ket"),),
     ]
+    bad_shapes = [
+        (pytest.param((10, 10), id="square"),),
+        (pytest.param((2, 10), id="nonsquare"),),
+    ]
 
     specialisations = [
         pytest.param(data.project_csr, CSR, CSR),
