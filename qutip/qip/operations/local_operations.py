@@ -36,7 +36,7 @@
 
 import numpy as np
 
-from qutip import Qobj
+from qutip import Qobj, tensor
 from qutip.qip.operations.gates import gate_expand_1toN, expand_operator
 from qutip.core import data
 
@@ -244,6 +244,7 @@ def local_multiply_dense(targets_op, vec_mat, targets, right=False,
     one should specify ``targets=[t1, ..., t_nt, t1 + n, ..., t_nt + n]``.
     Depending on the system, this can be more efficient than first applying
     a matrix on the left, and then separately on the right.
+    There is also a wrapper to do this: `local_multiply_left_right_simul`.
 
     References
     ----------
@@ -553,3 +554,47 @@ def _reorder_vectorization_protocol(targets, local_op, full_op,
     # now permute back order
     arr_out = arr_out.reshape([vector_dims[p] for p in perm])
     return np.transpose(arr_out, np.argsort(perm))
+
+
+def local_multiply_left_right_simul(rho, op_l, op_r, targets, backend=None):
+    """
+    Compute simultaneous left and right multiplication of local operators
+    op_l, op_r acting on targets of rho, computing (in the appropriate sense)
+    op_l * rho * op_r, where rho is a matrix type ('oper').
+
+    Parameters
+    ----------
+    rho: Qobj
+        'oper' type Qobj which operators are applied to.
+    op_l: Qobj
+        Left operator to apply to rho
+    op_r: Qobj
+        Right operator to apply to rho
+    targets: int or list of int
+        The targets which op_l, op_r apply to rho
+    backend: str
+        Backend to use in `local_multiply_dense`
+        (see docstring there for possible options).
+
+    Returns
+    -------
+    Qobj
+        Result of op_l * rho * op_r (in the appropriate sense).
+
+    Notes
+    -----
+    This uses vectorization |op_l rho op_r>> = (op_l tensor op_r^T)|rho>>.
+
+    This can be faster than multiplying left and right separately,
+    even though the locality is effectively increased.
+
+    We do not perform any input checks here;
+    they will be done in `local_multiply_dense`.
+    Of course op_l, op_r should be consistent with the dimensions of the target
+    dimensions of rho.
+    """
+    targets = [targets] if isinstance(targets, int) else list(targets)
+    n = len(rho.dims[0])
+    op = tensor(op_l, op_r.trans())
+    t2 = [t + n for t in targets]
+    return local_multiply_dense(op, rho, targets=targets+t2, backend=backend)

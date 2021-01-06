@@ -39,11 +39,13 @@ import itertools
 import numpy as np
 import qutip
 from qutip.qip.operations import gates
-from qutip.qip.operations.local_operations import local_multiply_dense, local_multiply_sparse, local_multiply
+from qutip.qip.operations.local_operations import local_multiply_dense, local_multiply_sparse, local_multiply, local_multiply_left_right_simul
 from qutip.core import data
 
 class Test_local_multiply_wrapper:
-    # test local_multiply
+    """
+    Tests for the local_multiply wrapper
+    """
 
     @pytest.mark.parametrize('backend', ('CSR', 'sPaRse', 'Dense', 'einsum',
                                           'vectorize', None, 'leave_blank',
@@ -76,7 +78,7 @@ class Test_local_multiply_wrapper:
         else:
             expected_backend = 'dense'
 
-        if expected_backend is 'csr':
+        if expected_backend == 'csr':
             with pytest.raises(TypeError):
                 local_multiply(op, psi, 0, backend=backend)
         else:
@@ -142,12 +144,14 @@ class Test_local_multiply_sparse:
 
 
 class Test_local_multiply_dense:
-    # these tests are designed to check the `local_multiply_dense` function.
-    # we test left and right multiplication on ket, oper, and bra types.
-    # we test explicitly 1,2, and 3-local operations.
-    # we also test operations on qudit types.
-    # for each test, we use each backend (einsum and a vectorized approach).
-    # typically, we compare against results using `expand_operator`.
+    """
+    These tests are designed to check the `local_multiply_dense` function.
+    We test left and right multiplication on ket, oper, and bra types.
+    We test explicitly 1,2, and 3-local operations.
+    We also test operations on qudit types.
+    For each test, we use each backend (einsum and a vectorized approach).
+    Typically, we compare against results using `expand_operator`.
+    """
 
     @pytest.mark.parametrize('n', (1, 2, 3, 4))
     @pytest.mark.parametrize('backend', ('einsum', 'vectorize'))
@@ -438,3 +442,53 @@ class Test_local_multiply_dense:
 
         if not isinstance(out_dense.data, data.Dense):
             raise TypeError()
+
+
+class Test_local_multiply_left_right_simul:
+    """
+    This tests the wrapper function local_multiply_left_right_simul
+    to perform left and right multiplication.
+    """
+
+    @pytest.mark.parametrize('n', (1, 2, 3))
+    def test_one_local_left_right_mul(self, n):
+        rho = qutip.ket2dm(qutip.tensor([qutip.ghz_state(1)] * n))
+        opl = (-0.25 * np.pi * 1j * qutip.sigmax()).expm()
+        opr = (-0.25 * np.pi * 1j * qutip.sigmaz()).expm()
+
+        for t in range(n):
+            full_op_l = gates.expand_operator(opl, n, targets=t,
+                                              dims=rho.dims[0])
+            full_op_r = gates.expand_operator(opr, n, targets=t,
+                                              dims=rho.dims[0])
+            expected = full_op_l * rho * full_op_r
+            actual = local_multiply_left_right_simul(rho, opl, opr, targets=t)
+
+            np.testing.assert_array_almost_equal(actual.full(), expected.full())
+
+
+    @pytest.mark.parametrize('n', (2, 3, 4))
+    def test_two_local_left_right_mul(self, n):
+        rho = qutip.ket2dm(qutip.tensor([qutip.ghz_state(1)] * n))
+
+        # define two-local operators
+        opl1 = (-0.25 * np.pi * 1j * qutip.sigmax()).expm()
+        opl2 = (-0.25 * np.pi * 1j * qutip.sigmay()).expm()
+        opl = qutip.tensor(opl1, opl2)
+
+        opr1 = (-0.35 * np.pi * 1j * qutip.sigmay()).expm()
+        opr2 = (-0.15 * np.pi * 1j * qutip.sigmaz()).expm()
+        opr = qutip.tensor(opr1, opr2)
+
+        for t1, t2 in itertools.product(range(n), range(n)):
+            if t1 == t2:
+                continue
+            full_op_l = gates.expand_operator(opl, n, targets=[t1, t2],
+                                              dims=rho.dims[0])
+            full_op_r = gates.expand_operator(opr, n, targets=[t1, t2],
+                                              dims=rho.dims[0])
+            expected = full_op_l * rho * full_op_r
+            actual = local_multiply_left_right_simul(rho, opl, opr,
+                                                     targets=[t1, t2])
+
+            np.testing.assert_array_almost_equal(actual.full(), expected.full())
