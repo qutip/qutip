@@ -1,7 +1,7 @@
 #cython: language_level=3
 from qutip import Qobj, spre
 from qutip.core import data
-from qutip.core.data.mul import mul_inplace, mul
+from qutip.core.data.mul import imul, mul
 from qutip.core cimport data as _data
 
 cdef class Feedback:
@@ -29,9 +29,9 @@ cdef class QobjFeedback(Feedback):
                                               self.shape[0], self.shape[1])
         if self.norm:
             if self.issuper:
-                mul_inplace(matrix, 1 / data.norm.trace(matrix))
+                imul(matrix, 1 / data.norm.trace(matrix))
             else:
-                mul_inplace(matrix, 1 / data.norm.l2(matrix))
+                imul(matrix, 1 / data.norm.l2(matrix))
         return Qobj(arg=matrix, dims=self.dims,
                     type=self.type, copy=False,
                     superrep=self.superrep, isherm=self.isherm,

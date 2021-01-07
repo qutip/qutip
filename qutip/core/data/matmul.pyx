@@ -17,6 +17,7 @@ from qutip.core.data.base cimport idxint, Data
 from qutip.core.data.dense cimport Dense
 from qutip.core.data.csr cimport CSR
 from qutip.core.data cimport csr, dense
+from qutip.core.data.add cimport iadd_dense
 
 cnp.import_array()
 
@@ -328,3 +329,23 @@ matmul.add_specialisations([
 ], _defer=True)
 
 del _inspect, _Dispatcher
+
+
+cdef Dense matmul_data_dense(Data left, Dense right):
+    cdef Dense out
+    if type(left) is CSR:
+        out = matmul_csr_dense_dense(left, right)
+    elif type(left) is Dense:
+        out = matmul_dense(left, right)
+    else:
+        out = matmul(left, right)
+    return out
+
+
+cdef void imatmul_data_dense(Data left, Dense right, double complex scale, Dense out):
+    if type(left) is CSR:
+        matmul_csr_dense_dense(left, right, scale, out)
+    elif type(left) is Dense:
+        matmul_dense(left, right, scale, out)
+    else:
+        iadd_dense(out, matmul(left, right), scale)
