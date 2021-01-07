@@ -7,6 +7,8 @@ The document is maintained by the QuTiP admim team. Contributuions from the QuTi
 In particular this document outlines plans for the next major release of qutip, which will be version 5. 
 And also plans and dreams beyond the next major version.
 
+There is lots of development going on in QuTiP that is not recorded in here. This a just an attempt at coordinated stragetgy and ideas for the future.
+
 ### What is QuTiP?
 The name QuTiP refers to a few things. 
 Most famously, qutip is a Python library for simulating quantum dynamics. 
@@ -34,22 +36,58 @@ Due to the all encompassing nature of the plan to abstract the linear algebra da
  
  ### Family packages
  #### qutip main
- **current package status**: family package `qutip`
- **planned package status**: family package `qutip`
+ *current package status*: family package `qutip`
  
- #### QIP
- **current package status**: integrated sub-package `qutip.qip`
- **planned package status**: optional sub-package `qutip.qip`
+ *planned package status*: family package `qutip`
+ 
+ The in scope components of the main qutip package all currently reside in the base folder.
+ The plan is to move some components into integrated subpackages as follows.
+ 
+ - `core` quantum objects and operations
+ - `solver` quantum dynamics solvers
+ 
+ What will remain in the base folder will be miscellaneous modules. There may be some opportunity for grouping some into a `visualisation` subpackage.
  
   #### Qtrl
- **current package status**: integrated sub-package `qutip.control`
- **planned package status**: family package `qtrl`
+ *current package status*: integrated sub-package `qutip.control`
+ 
+ *planned package status*: family package `qtrl`
+ 
+ There are many OSS Python packages for quantum control optimisation. There are also many different algorithms. 
+ The current `control` integrated subpackage provides the GRAPE and CRAB algorithms. 
+ It is too ambitious for QuTiP to attempt (or want) to provide for all options.
+ Control optimisation has been deemed out of scope and hence these components will be separated out into a family package called Qtrl.
+ 
+ Potentially Qtrl may be replaced by separate packages for GRAPE and CRAB, based on the QuTiP Control Framework.
+ 
+ #### QIP
+ *current package status*: integrated sub-package `qutip.qip`
+ 
+ *planned package status*: optional sub-package `qutip.qip`
  
  #### Qsymbolic
- **current package status**: independent package `sympsi`
- **planned package status**: family package `qsymbolic`
+ *current package status*: independent package `sympsi`
+ 
+ *planned package status*: family package `qsymbolic`
  
  ### Affilliated packages
+ 
+ 
+ ## Workpackages
+ 
+ ### data layer abstraction
+ 
+ ### qutip main reorganisation
+ 
+ ### QIP Migration
+ 
+ ### Qtrl Migration
+ 
+ ### QuTiP control framework
+ 
+ ### Status messaging and recording
+ 
+ ## qutip major release roadmap
  
  
 
