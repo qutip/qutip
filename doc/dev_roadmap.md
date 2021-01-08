@@ -22,7 +22,7 @@ These related, and overlapping, uses of the QuTiP name are of little consequence
 
 With a name as general as Quantum Toolkit in Python, the scope for new code modules to be added to qutip is very wide. The library was becoming increasingly difficult to maintain, and in c. 2020 the QuTiP Admim Team decided to limit the scope of the 'main' (for want of a better name) qutip package. 
 This scope is restricted to components for the simulation (solving) of the dynamics of quantum systems.
-The scope includes utilities to support this, including analysis and visualisation of output.
+The scope includes utilities to support this, including analysis and visualisation of output.https://github.com/ajgpitch/sympsi
 
 At the same time, again with the intention of easing maintence, a decision to limit dependences was agreed upon.
 Main `qutip` runtime code components should depend only upon Numpy and Scipy. 
@@ -96,24 +96,44 @@ A separate repository has already been made for qutip-qip.
  &#x1F535; tag: dl-abs
  
  ### qutip main reorganization
+ &#x1F535; tag: qmain-reorg
+ 
+ ### qutip main docs migration
+ &#x1F535; tag: qmain-docs
+ 
+ ### Solver data layer integration
+ &#x1F535; tag: solve-dl
  
  ### QIP migration
+ &#x1F535; tag: qip-mig
  
  ### Qtrl migration
+ &#x1F535; tag: qtrl-mig
  
  ### Sympy non-commuting operator simplify
+ &#x1F535; tag: sympy-noncomm
  
  ### QuTiP control framework
+ &#x1F535; tag: ctrl-fw
  
  ### Status messaging and recording
+ &#x1F535; tag: status-msg
+ 
+ ### Interactive Bloch sphere
+ &#x1F535; tag: bloch-interact
  
  ## qutip major release roadmap
  
  ### qutip v.5
  These workpackages need to be completed for the qutip v.5 release.
  
-  - [dl-abs](data layer abstraction)
- 
+  - [dl-abs](#data-layer-abstraction)
+  - [qmain-reorg](#qutip-main-reorganization)
+  - [qmain-docs](#qutip-main-docs-migration)
+  - [solve-dl](#solver-data-layer-integration)
+  - [qip-mig](#qip-migration)
+  - [qtrl-mig](#qtrl-migration)
+  
  
 
 
