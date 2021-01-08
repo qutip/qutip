@@ -89,14 +89,33 @@ A separate repository has already been made for qutip-qip.
  
  ### Affilliated packages
  
+ #### qucontrol-krotov
+ https://github.com/qucontrol/krotov
+ 
+ A package for quantum control optimisation using Krotov, developed mainly by Michael Goerz.
+ 
+ Generally accepted by the Admin Team as well developed and maintain. A solid candiate for affilliation.
 
  ## Workpackages
  
  ### data layer abstraction 
  &#x1F535; tag: dl-abs
  
+ *status*: development [pretty much] complete
+ 
+ *lead*: [jakelishman](https://github.com/jakelishman)
+ 
+ Development completed as a GSoC project. Fully implemented in the dev.major branch. Currently be used by some research groups.
+ 
+ Abstraction of the [linear algebra] data from code qutip components, allowing for alternatives, such as sparse, dense etc.
+ Difficult to summarize. Almost every file in qutip affected in some way. A major milestone for qutip. Significant performance improvements.
+ 
  ### qutip main reorganization
  &#x1F535; tag: qmain-reorg
+ 
+ *status*: development [pretty much] complete
+ 
+ *lead*: [jakelishman](https://github.com/jakelishman)
  
  ### qutip main docs migration
  &#x1F535; tag: qmain-docs
