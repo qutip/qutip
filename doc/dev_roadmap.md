@@ -34,6 +34,8 @@ Due to the all encompassing nature of the plan to abstract the linear algebra da
  - QuTiP family packages. The main qutip package already has sub-packages, which are maintained in the main qutip repo. Any packages maitained by the QuTiP organisation will be called QuTiP 'family' packages. Sub-packages within qutip main will be called 'integrated' sub-packages. Some packages will be maintained in their own repos and installed separately within the main qutip folder structure to provide backwards compatibility, these are (will be) called qutip optional sub-packages. Others will be installed in their own folders, but (most likely) have qutip as a dependency -- these will just be called 'family' packages.
  - QuTiP affilliated packages. Other packages have been developed by others outside of the QuTiP organisation that work with, and are complementary to, qutip. The plan is to give some recognition to those that we deserve worthy of such [this needs clarification]. These packages will not be maintained by the QuTiP Team.
  
+ &#x1F537; Do we really need optional subpackages? It seems that are a bit fiddly and as we are side-stepping bw compat with a major version, we could just make QIP a separate package.
+ 
  ### Family packages
  #### qutip main
  *current package status*: family package `qutip`
@@ -65,29 +67,52 @@ Due to the all encompassing nature of the plan to abstract the linear algebra da
  
  *planned package status*: optional sub-package `qutip.qip`
  
- #### Qsymbolic
+&#x1F537; Is it really necessary for this to be a sub-package? It could just be a separate package
+
+The QIP subpackage has been deemed out of scope (feature-wise). It also depends on `qutip.control` and hence would be out of scope for dependency reasons.
+A separate repository has already been made for qutip-qip.
+ 
+ #### qutip-symbolic
  *current package status*: independent package `sympsi`
  
- *planned package status*: family package `qsymbolic`
+ *planned package status*: family package `qutip-symbolic`
+ 
+ Long ago Robert Johansson developed Sympsi. It is a fairly coomplete library for quantum computer algebra (symbolic computation). 
+ It is primarily a quantum wrapper for [Sympy](https://www.sympy.org).
+ 
+ It has fallen into unmaintained status. The latest version on the [sympsi repo](https://github.com/sympsi/sympsi) does not work with recent versions of Sympy.
+ Alex Pitchford has a [fork](https://github.com/ajgpitch/sympsi) that does 'work' with recent Sympy versions -- unit tests pass, and most examples. 
+ However, some (important) examples fail, due to lack of respect for non-commuting operators in Sympy simplifcation functions (note this was true as of Nov 2019, may be fixed now).
+ 
+ There is [not discussed with RJ) to move this into the QuTiP family to allow the Admin Team to maintain, develop and promote it. 
+ The 'Sympsi' name is cute, but a little abstract, and qutip-symbolic is proposed as an alternative, as it is plainer.
  
  ### Affilliated packages
  
- 
+
  ## Workpackages
  
- ### data layer abstraction
+ ### data layer abstraction 
+ &#x1F535; tag: dl-abs
  
- ### qutip main reorganisation
+ ### qutip main reorganization
  
- ### QIP Migration
+ ### QIP migration
  
- ### Qtrl Migration
+ ### Qtrl migration
+ 
+ ### Sympy non-commuting operator simplify
  
  ### QuTiP control framework
  
  ### Status messaging and recording
  
  ## qutip major release roadmap
+ 
+ ### qutip v.5
+ These workpackages need to be completed for the qutip v.5 release.
+ 
+  - [dl-abs](data layer abstraction)
  
  
 
