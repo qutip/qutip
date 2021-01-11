@@ -576,7 +576,7 @@ def spectrum_correlation_fft(tlist, y, inverse=False):
 # master 2t correlation solver
 
 def _correlation_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
-                    solver="me", args={}, options=SolverOptions()):
+                    ntraj, solver="me", args={}, options=SolverOptions()):
     """
     Internal function for calling solvers in order to calculate the
     three-operator two-time correlation function:
@@ -602,7 +602,7 @@ def _correlation_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                                   args=args, options=options)
     elif solver == "mc":
         return _correlation_mc_2t(H, state0, tlist, taulist,
-                                  c_ops, a_op, b_op, c_op,
+                                  c_ops, a_op, b_op, c_op, ntraj,
                                   args=args, options=options)
     elif solver == "es":
         return _correlation_es_2t(H, state0, tlist, taulist,
@@ -614,7 +614,7 @@ def _correlation_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 # master equation solvers
 
 def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
-                       args={}, options=SolverOptions()):
+                       args={}, options=None):
     """
     Internal function for calculating the three-operator two-time
     correlation function:
@@ -624,6 +624,8 @@ def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
     # the solvers only work for positive time differences and the correlators
     # require positive tau
+    options = options if options is not None else SolverOptions()
+
     if state0 is None:
         rho0 = steadystate(H, c_ops)
         tlist = [0]
@@ -637,10 +639,10 @@ def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
     rho_t = mesolve(H, rho0, tlist, c_ops, args=args, options=options).states
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
-    H_shifted, c_ops_shifted, _args = _transform_L_t_shift_new(H, c_ops, args)
+    H_shifted, c_ops_shifted, _args = _transform_L_t_shift_new(H, c_ops, tlist, args)
 
-    solver = MeSolver(H_shifted, c_ops_shifted, [b_op], options=options,
-                      args=_args)
+    solver = MeSolver(H_shifted, c_ops_shifted, [b_op],
+                      options=options, times=tlist, args=_args)
 
     for t_idx, rho in enumerate(rho_t):
         _args["_t0"] = tlist[t_idx]
@@ -730,13 +732,18 @@ def _spectrum_es(H, wlist, c_ops, a_op, b_op):
 # Monte Carlo solvers
 
 def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
-                       ntraj, args={}, options=SolverOptions(progress_bar=None)):
+                       ntraj, args={}, options=None):
     """
     Internal function for calculating the three-operator two-time
     correlation function:
     <A(t)B(t+tau)C(t)>
     using a Monte Carlo solver.
     """
+
+    options = options if options is not None else SolverOptions()
+    options["progress_bar"] = None
+    options.mcsolve["keep_runs_results"] = True
+
     if not c_ops:
         raise TypeError("If no collapse operators are required, use the `me`" +
                         "or `es` solvers")
@@ -755,14 +762,15 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     psi_t_mat = mcsolve(
         H, psi0, tlist, c_ops, [], args=args,
         ntraj=ntraj[0], options=options
-    ).states
+    ).runs_states
 
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
-    H_shifted, c_ops_shifted, _args = _transform_L_t_shift_new(H, c_ops, args)
+    H_shifted, c_ops_shifted, _args = _transform_L_t_shift_new(H, c_ops, tlist, args)
 
     # calculation of <A(t)B(t+tau)C(t)> from only knowledge of psi0 requires
     # averaging over both t and tau
-    solver = McSolver(H_shifted, c_ops_shifted, [b_op], options=options, args=_args)
+    solver = McSolver(H_shifted, c_ops_shifted, [b_op],
+                      options=options, times=tlist, args=_args)
     for t_idx in range(np.size(tlist)):
         _args["_t0"] = tlist[t_idx]
 
@@ -771,7 +779,7 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                 if a_op.dag() == c_op:
                     # A shortcut here, requires only 1/4 the trials
                     chi_0 = (options.mcsolve['mc_corr_eps'] + c_op) * \
-                        psi_t_mat[trial_idx, t_idx]
+                        psi_t_mat[trial_idx][t_idx]
 
                     # evolve these states and calculate expectation value of B
                     c_tau = chi_0.norm()**2 * solver.run(
@@ -786,16 +794,16 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                 # otherwise, need four trial wavefunctions
                 # (Ad+C)*psi_t, (Ad+iC)*psi_t, (Ad-C)*psi_t, (Ad-iC)*psi_t
                 if isinstance(a_op, Qobj):
-                    a_op_dag = a_op.dag()
+                    a_op_dag = options.mcsolve['mc_corr_eps'] + a_op.dag()
                 else:
                     # assume this is a number, ex. i.e. a_op = 1
                     # if this is not correct, the over-loaded addition
                     # operation will raise errors
-                    a_op_dag = a_op
-                chi_0 = [(options.mcsolve['mc_corr_eps'] + a_op_dag +
-                          np.exp(1j*x*np.pi/2)*c_op) *
-                         psi_t_mat[trial_idx, t_idx]
-                         for x in range(4)]
+                    a_op_dag = options.mcsolve['mc_corr_eps'] + a_op
+                chi_0 = [(a_op_dag + np.exp(0.5j * x * np.pi) * c_op)
+                         for x in range(4)
+                        ]
+                chi_0 = [chi * psi_t_mat[trial_idx][t_idx] for chi in chi_0]
 
                 # evolve these states and calculate expectation value of B
                 c_tau = [
@@ -853,9 +861,9 @@ def _spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
 
 
 # auxiliary
-def _transform_shift_one_op(op, args={}):
+def _transform_shift_one_op(op, tlist, args={}):
     if isinstance(op, (Qobj, list)):
-        new_op = QobjEvo(op, args)
+        new_op = QobjEvo(op, args, tlist=tlist)
         new_op._shift()
     elif isinstance(op, QobjEvo):
         new_op = op
@@ -868,9 +876,9 @@ def _transform_shift_one_op(op, args={}):
     return new_op
 
 
-def _transform_L_t_shift_new(H, c_ops, args={}):
-    H_shifted = _transform_shift_one_op(H, args)
-    c_ops_shifted = [_transform_shift_one_op(op, args) for op in c_ops]
+def _transform_L_t_shift_new(H, c_ops, tlist, args={}):
+    H_shifted = _transform_shift_one_op(H, tlist, args)
+    c_ops_shifted = [_transform_shift_one_op(op, tlist, args) for op in c_ops]
     if args is None:
         _args = {"_t0": 0}
     elif isinstance(args, dict):

@@ -4,7 +4,7 @@ import numpy as np
 
 def test_result_states():
     N = 10
-    res = Result([], qt.solver.SolverResultsOptions(), False)
+    res = Result([], qt.SolverResultsOptions(), False)
     for i in range(N):
         res.add(i, qt.basis(N,i))
     for i in range(N):
@@ -15,7 +15,7 @@ def test_result_states():
 def test_result_expect():
     N = 10
     res = Result([qt.num(N), qt.qeye(N)],
-                 qt.solver.SolverResultsOptions(store_final_state=False,
+                 qt.SolverResultsOptions(store_final_state=False,
                                                 store_states=False), False)
     for i in range(N):
         res.add(i, qt.basis(N,i))
@@ -27,7 +27,7 @@ def test_result_expect():
 def test_result_normalize():
     N = 10
     res = Result([qt.num(N), qt.qeye(N)],
-                 qt.solver.SolverResultsOptions(store_states=True,
+                 qt.SolverResultsOptions(store_states=True,
                                                 normalize_output=True), False)
     for i in range(N):
         res.add(i, qt.basis(N,i)/2)
@@ -41,7 +41,7 @@ def test_multitraj_results():
     N = 10
     e_ops = [qt.num(N), qt.qeye(N)]
     m_res = MultiTrajResult(3)
-    opt = qt.solver.SolverResultsOptions(store_states=True,
+    opt = qt.SolverResultsOptions(store_states=True,
                                          normalize_output=True)
     for _ in range(5):
         res = Result(e_ops, opt, False)
@@ -67,7 +67,7 @@ def test_multitrajavg_results():
     N = 10
     e_ops = [qt.num(N), qt.qeye(N)]
     m_res = MultiTrajResultAveraged(3)
-    opt = qt.solver.SolverResultsOptions(store_final_state=True,
+    opt = qt.SolverResultsOptions(store_final_state=True,
                                          normalize_output=True)
     for _ in range(5):
         res = Result(e_ops, opt, False)

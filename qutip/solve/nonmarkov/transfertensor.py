@@ -50,6 +50,8 @@ from qutip import spre, vector_to_operator, operator_to_vector
 from qutip.core import data as _data
 from ..solver import Result, SolverOptions
 
+__all__ = ['TTMSolverOptions', 'ttmsolve']
+
 
 class TTMSolverOptions:
     """Class of options for the Transfer Tensor Method solver.

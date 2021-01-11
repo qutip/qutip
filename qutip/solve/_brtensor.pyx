@@ -52,6 +52,8 @@ from qutip.solve._brtools cimport (
     liou_from_diag_ham, cop_super_term
 )
 
+__all__ = ['_br_term', 'bloch_redfield_tensor']
+
 np.import_array()
 
 cdef extern from "numpy/arrayobject.h" nogil:

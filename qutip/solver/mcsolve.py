@@ -447,7 +447,7 @@ class McEvolver(Evolver):
         self._evolver.update_feedback(self.collapses)
 
     def update_args(self, args):
-        self.system.arguments(args)
+        self._evolver.update_args(args)
         [op.arguments(args) for op in self.c_ops]
         [op.arguments(args) for op in self.n_ops]
 

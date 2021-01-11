@@ -46,12 +46,17 @@ import scipy
 from numpy import angle, pi, exp, sqrt
 from types import FunctionType
 from .. import (
-    Qobj, unstacked_index, stack_columns, unstack_columns, projection, expect,
-    SolverOptions, sesolve, steadystate, propagator
+    Qobj, unstacked_index, stack_columns, unstack_columns, projection, expect
 )
 from ..core import data as _data
 from ._rhs_generate import rhs_clear
-from .solver import Result, _solver_safety_check
+from .solver import (
+    Result, _solver_safety_check
+)
+from ..solver import (
+    SolverOptions, sesolve,
+    steadystate, propagator
+)
 from ..utilities import n_thermal
 
 
@@ -214,7 +219,7 @@ def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args=None):
     rhs_clear()
 
     for n, f_mode in enumerate(f_modes_0):
-        output = sesolve(H, f_mode, tlist_period, [], args, opt)
+        output = sesolve(H, f_mode, tlist_period, [], args, options=opt)
         for t_idx, f_state_t in enumerate(output.states):
             f_modes_table_t[t_idx].append(
                 f_state_t * exp(1j * f_energies[n] * tlist_period[t_idx]))

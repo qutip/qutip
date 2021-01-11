@@ -100,9 +100,6 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         Instance representing the propagator :math:`U(t)`.
 
     """
-    # TODO: correct for proper ammout
-    num_cpus = kwargs.get('num_cpus', 1)
-
     if options is None:
         options = SolverOptions()
     progress_bar = get_progess_bar(options['progress_bar'])
@@ -130,7 +127,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
             u = np.zeros([N, N, len(tlist)], dtype=complex)
             output = parallel_map(_parallel_sesolve, range(N),
                                   task_args=(N, H, tlist, args, options),
-                                  progress_bar=progress_bar, num_cpus=num_cpus)
+                                  progress_bar=progress_bar)
             for n in range(N):
                 for k, t in enumerate(tlist):
                     u[:, n, k] = output[n].states[k].full().T
@@ -152,18 +149,19 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
 
         if parallel:
             u = np.zeros([N, N, len(tlist)], dtype=complex)
-            output = parallel_map(_parallel_mesolve, range(N * N),
+            output = parallel_map(_parallel_mesolve, range(N),
                                   task_args=(
                                       sqrt_N, H, tlist, c_op_list, args, options),
-                                  progress_bar=progress_bar, num_cpus=num_cpus)
-            for n in range(N * N):
+                                  progress_bar=progress_bar)
+            for n in range(N):
                 for k, state in enumerate(output[n].states):
                     u[:, n, k] = stack_columns(state.data).to_array()[:, 0]
             output = [Qobj(u[:, :, k], dims=dims) for k in range(len(tlist))]
 
         else:
-            rho0 = qeye([sqrt_N, sqrt_N])
-            output = mesolve(H, rho0, tlist, [], args, options=options).states
+            rho0 = qeye([[sqrt_N], [sqrt_N]])
+            output = mesolve(H, rho0, tlist, c_ops=c_op_list, args=args,
+                             options=options).states
 
     return output[-1] if len(tlist) == 2 else output
 

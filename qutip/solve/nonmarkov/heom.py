@@ -53,6 +53,9 @@ from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 from ._heom import pad
 
 
+__all__ = ['HEOMSolver', 'HSolverDL']
+
+
 def _ode_rhs(t, state, operator):
     state = _data.dense.fast_from_numpy(state)
     return _data.matmul(operator, state, dtype=_data.Dense).as_ndarray()[:, 0]

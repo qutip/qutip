@@ -13,5 +13,5 @@ from .stochastic import *
 #from .mesolve import *
 #from .propagator import *
 #from .sesolve import *
-#from .solver import *
+from .solver import *
 #from .steadystate import *

@@ -36,6 +36,9 @@
 from libc.string cimport memcpy, memset
 from qutip.core.data cimport idxint, CSR, csr
 
+__all__ = ['pad', 'pad_csr']
+
+
 def pad_csr(CSR matrix, idxint row_scale, idxint col_scale,
             idxint insertrow=0, idxint insertcol=0):
     cdef idxint n_rows_in = matrix.shape[0]
