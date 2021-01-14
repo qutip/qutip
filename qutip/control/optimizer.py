@@ -506,19 +506,35 @@ class Optimizer(object):
         self.bounds = []
         for t in range(dyn.num_tslots):
             for c in range(n_ctrls):
-                if isinstance(self.amp_lbound, np.ndarray):
+                if (isinstance(self.amp_lbound, np.ndarray) 
+                    and self.amp_lbound.ndim == 2):
                     lb = self.amp_lbound[t, c]
+                elif (isinstance(self.amp_lbound, np.ndarray) 
+                    and self.amp_lbound.ndim == 1):
+                    lb = self.amp_lbound[c]
                 elif isinstance(self.amp_lbound, list):
                     lb = self.amp_lbound[c]
-                else:
+                elif isinstance(self.amp_lbound, (float, int)):
                     lb = self.amp_lbound
-                    
-                if isinstance(self.amp_ubound, np.ndarray):
+                else:
+                    raise ValueError('The bounds supplied must be \
+                    floats, lists or ndarrays of shape (num_ctrls), \
+                    or ndarrays of shape (num_tslots x num_ctrls)')
+                
+                if (isinstance(self.amp_ubound, np.ndarray) 
+                    and self.amp_ubound.ndim == 2):
                     ub = self.amp_ubound[t, c]
+                elif (isinstance(self.amp_ubound, np.ndarray) 
+                    and self.amp_ubound.ndim == 1):
+                    ub = self.amp_ubound[c]
                 elif isinstance(self.amp_ubound, list):
                     ub = self.amp_ubound[c]
-                else:
+                elif isinstance(self.amp_ubound, (float, int)):
                     ub = self.amp_ubound
+                else:
+                    raise ValueError('The bounds supplied must be \
+                    floats, lists or ndarrays of shape (num_ctrls), \
+                    or ndarrays of shape (num_tslots x num_ctrls)')
 
                 if not lb is None and np.isinf(lb):
                     lb = None
