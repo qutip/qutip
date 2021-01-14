@@ -514,7 +514,7 @@ class Optimizer(object):
                     lb = self.amp_lbound
                     
                 if isinstance(self.amp_ubound, np.ndarray):
-                    ub = self.amp_ubound[t,c]  
+                    ub = self.amp_ubound[t, c]
                 elif isinstance(self.amp_ubound, list):
                     ub = self.amp_ubound[c]
                 else:
