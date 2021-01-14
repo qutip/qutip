@@ -507,7 +507,7 @@ class Optimizer(object):
         for t in range(dyn.num_tslots):
             for c in range(n_ctrls):
                 if isinstance(self.amp_lbound, np.ndarray):
-                    lb = self.amp_lbound[t,c]
+                    lb = self.amp_lbound[t, c]
                 elif isinstance(self.amp_lbound, list):
                     lb = self.amp_lbound[c]
                 else:
