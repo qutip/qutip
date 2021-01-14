@@ -311,7 +311,7 @@ class PulseGen(object):
                 isinstance(self.ubound, np.ndarray)):
             if ctrl_index not in range(self.lbound.shape[1]):
                 raise ValueError('ndarray bounds should be of \
-                    size (n_tslots x n_ctrls).')
+                    shape (n_tslots x n_ctrls).')
             offset_pulse = pulse + self.offset
             lbound = self.lbound[:, ctrl_index]
             ubound = self.ubound[:, ctrl_index]
