@@ -1038,7 +1038,7 @@ class PulseGenCustom(PulseGen):
         if ((self.init_custom_pulse.shape[0] != self.tau.shape[0]) or 
             (ctrl_index not in range(self.init_custom_pulse.shape[1]))):
             raise ValueError("The initial custom pulse array should be of "
-                    "size (num_tslots x num_ctrls).")
+                    "shape (num_tslots x num_ctrls).")
 
         if not self._pulse_initialised:
             self.init_pulse()
