@@ -386,16 +386,8 @@ def destroy(N, offset=0):
     """
     if not isinstance(N, (int, np.integer)):  # raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
-    data = np.sqrt(np.arange(offset+1, N+offset, dtype=complex))
-    ind = np.arange(1, N, dtype=np.int32)
-    ptr = np.arange(N+1, dtype=np.int32)
-    ptr[-1] = N-1
-    return Qobj(_data.csr.CSR((data, ind, ptr), shape=(N, N)),
-                dims=[[N], [N]],
-                type='oper',
-                isherm=False,
-                isunitary=False,
-                copy=False)
+    data = np.sqrt(np.arange(offset+1, N+offset)).astype(np.complex128)
+    return qdiags([data], [1])
 
 
 def create(N, offset=0):
@@ -426,7 +418,10 @@ def create(N, offset=0):
      [ 0.00000000+0.j  1.41421356+0.j  0.00000000+0.j  0.00000000+0.j]
      [ 0.00000000+0.j  0.00000000+0.j  1.73205081+0.j  0.00000000+0.j]]
     """
-    return destroy(N, offset=offset).dag()
+    if not isinstance(N, (int, np.integer)):  # raise error if N not integer
+        raise ValueError("Hilbert space dimension must be integer value")
+    data = np.sqrt(np.arange(offset+1, N+offset)).astype(np.complex128)
+    return qdiags([data], [-1])
 
 
 def _implicit_tensor_dimensions(dimensions):
@@ -601,22 +596,7 @@ def num(N, offset=0):
      [0 0 2 0]
      [0 0 0 3]]
     """
-    if offset == 0:
-        data = np.arange(1, N, dtype=complex)
-        ind = np.arange(1, N, dtype=np.int32)
-        ptr = np.arange(-1, N, dtype=np.int32)
-        ptr[0] = 0
-    else:
-        data = np.arange(offset, offset + N, dtype=complex)
-        ind = np.arange(N, dtype=np.int32)
-        ptr = np.arange(N+1, dtype=np.int32)
-
-    return Qobj(_data.CSR((data, ind, ptr), shape=(N, N)),
-                dims=[[N], [N]],
-                type='oper',
-                isherm=True,
-                isunitary=False,
-                copy=False)
+    return qdiags([np.arange(offset, offset+N, dtype=np.complex128)], [0])
 
 
 def squeeze(N, z, offset=0):
@@ -801,8 +781,7 @@ shape = [4, 4], type = oper, isherm = False
      [ 0.          0.          0.          0.        ]]
 
     """
-    data = scipy.sparse.diags(diagonals, offsets, shape,
-                              format='csr', dtype=np.complex128)
+    data = _data.csr.diags(diagonals, offsets, shape)
     return Qobj(data, dims=dims, type='oper', copy=False)
 
 
