@@ -228,7 +228,7 @@ class InstructionsGraph():
         """
         A list-schedule algorithm, it
         finds the topological order of the directed graph
-        under certain apply_constraint and priority indicator.
+        under certain constraint and priority indicator.
         The function returns a list of cycles,
         where each cycle is a list of instructions
         that can be executed in parallel.
@@ -240,9 +240,11 @@ class InstructionsGraph():
         priority: bool
             If use distance to the start and end nodes
             as a priority measure for the schedule problem.
-        constrains: function
+        apply_constraint: function
             A Python function that determines
             if to instruction can be executed in parallel.
+            E.g. if two gates apply to the same qubit, the function
+            returns False.
 
         Returns
         -------
@@ -430,9 +432,12 @@ class Scheduler():
         Default includes a function `qubit_contraint`,
         i.e. one qubit cannot be used by two gates at the same time.
     """
-    def __init__(self, method="ALAP"):
+    def __init__(self, method="ALAP", constraint_functions=None):
         self.method = method
-        self.constraint_functions = [qubit_constraint]
+        if constraint_functions is None:
+            self.constraint_functions = [qubit_constraint]
+        else:
+            return constraint_functions
 
     def schedule(self, circuit, gates_schedule=False,
                  return_cycles_list=False, random_shuffle=False,
