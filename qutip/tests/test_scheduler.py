@@ -242,3 +242,4 @@ def test_scheduling_pulse(
     circuit.gates = sum(scheduled_gate, [])
     result1 = gate_sequence_product(circuit.propagators())
     assert(tracedist(result0*result1.dag(), qeye(result0.dims[0])) < 1.0e-7)
+    
