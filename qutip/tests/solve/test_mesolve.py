@@ -843,30 +843,5 @@ class TestMESolveStepFuncCoeff:
         assert_allclose(
             fidelity(result.states[-1], sigmax()*rho0), 1, rtol=1.e-7)
 
-    def test_dynamic_args(self):
-        "sesolve: state feedback"
-        tol = 1e-3
-        def f(t, args):
-            return np.sqrt(args["state_vec"][3])
-
-        H = [qeye(2), [destroy(2)+create(2), f]]
-        res = mesolve(H, basis(2, 1), tlist=np.linspace(0, 10, 11),
-                      c_ops=[qeye(2)],
-                      e_ops=[num(2)],
-                      args={"state_vec": basis(2, 1)})
-        assert_(max(abs(res.expect[0][5:])) < tol,
-            msg="evolution with feedback not proceding as expected")
-
-        def f(t, args):
-            return np.sqrt(args["expect_op_0"])
-
-        H = [qeye(2), [destroy(2)+create(2), f]]
-        res = mesolve(H, basis(2, 1), tlist=np.linspace(0, 10, 11),
-                      c_ops=[qeye(2)],
-                      e_ops=[num(2)], args={"expect_op_0":num(2)})
-        assert_(max(abs(res.expect[0][5:])) < tol,
-            msg="evolution with feedback not proceding as expected")
-
-
 if __name__ == "__main__":
     run_module_suite()

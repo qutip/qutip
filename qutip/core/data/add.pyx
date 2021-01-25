@@ -4,7 +4,6 @@
 cimport cython
 import numpy as np
 cimport numpy as cnp
-
 from scipy.linalg cimport cython_blas as blas
 
 from qutip.core.data.base cimport idxint, Data
@@ -21,12 +20,15 @@ cdef extern from *:
     void *PyDataMem_NEW_ZEROED(size_t size, size_t elsize)
     void PyDataMem_FREE(void *ptr)
 
+
 __all__ = [
-    'add', 'add_csr', 'add_dense',
+    'add', 'add_csr', 'add_dense', 'iadd_dense',
     'sub', 'sub_csr', 'sub_dense',
 ]
 
+
 cdef int _ONE=1
+
 
 cdef void _check_shape(Data left, Data right) nogil except *:
     if left.shape[0] != right.shape[0] or left.shape[1] != right.shape[1]:
@@ -36,6 +38,7 @@ cdef void _check_shape(Data left, Data right) nogil except *:
             + " and "
             + str(right.shape)
         )
+
 
 cdef idxint _add_csr(Accumulator *acc, CSR a, CSR b, CSR c) nogil:
     """
@@ -78,6 +81,7 @@ cdef idxint _add_csr(Accumulator *acc, CSR a, CSR b, CSR c) nogil:
         c.row_index[row + 1] = nnz
     return nnz
 
+
 cdef idxint _add_csr_scale(Accumulator *acc, CSR a, CSR b, CSR c, double complex scale) nogil:
     """
     Perform the operation
@@ -111,6 +115,7 @@ cdef idxint _add_csr_scale(Accumulator *acc, CSR a, CSR b, CSR c, double complex
         acc_reset(acc)
         c.row_index[row + 1] = nnz
     return nnz
+
 
 cpdef CSR add_csr(CSR left, CSR right, double complex scale=1):
     """
@@ -161,12 +166,20 @@ cpdef CSR add_csr(CSR left, CSR right, double complex scale=1):
     acc_free(&acc)
     return out
 
+
+cdef void add_dense_eq_order_inplace(Dense left, Dense right, double complex scale):
+    cdef int size = left.shape[0] * left.shape[1]
+    with nogil:
+        blas.zaxpy(&size, &scale, right.data, &_ONE, left.data, &_ONE)
+
+
 cdef Dense _add_dense_eq_order(Dense left, Dense right, double complex scale):
     cdef Dense out = left.copy()
     cdef int size = left.shape[0] * left.shape[1]
     with nogil:
         blas.zaxpy(&size, &scale, right.data, &_ONE, out.data, &_ONE)
     return out
+
 
 cpdef Dense add_dense(Dense left, Dense right, double complex scale=1):
     _check_shape(left, right)
@@ -182,8 +195,26 @@ cpdef Dense add_dense(Dense left, Dense right, double complex scale=1):
             blas.zaxpy(&dim1, &scale, right.data + idx, &dim2, out.data + idx*dim1, &_ONE)
     return out
 
+
+cpdef Dense iadd_dense(Dense left, Dense right, double complex scale=1):
+    _check_shape(left, right)
+    cdef int size = left.shape[0] * left.shape[1]
+    cdef int dim1, dim2
+    cdef size_t nrows=left.shape[0], ncols=left.shape[1], idx
+    dim1, dim2 = (nrows, ncols) if left.fortran else (ncols, nrows)
+    with nogil:
+        if not (left.fortran ^ right.fortran):
+            blas.zaxpy(&size, &scale, right.data, &_ONE, left.data, &_ONE)
+        else:
+            for idx in range(dim2):
+                blas.zaxpy(&dim1, &scale, right.data + idx, &dim2,
+                           left.data + idx*dim1, &_ONE)
+    return left
+
+
 cpdef CSR sub_csr(CSR left, CSR right):
     return add_csr(left, right, -1)
+
 
 cpdef Dense sub_dense(Dense left, Dense right):
     return add_dense(left, right, -1)

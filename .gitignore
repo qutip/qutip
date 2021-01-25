@@ -30,6 +30,11 @@ qutip/cy/*.c
 *.dat
 qutip/core/*.h
 
+
+qutip/**/*.html
+qutip/solver/ode/*.c
+
+
 *.qo
 
 benchmark/benchmark_data.js

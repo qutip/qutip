@@ -5,9 +5,18 @@ from qutip.core.data cimport idxint, csr, CSR, dense, Dense
 
 __all__ = [
     'mul', 'mul_csr', 'mul_dense',
+    'imul', 'imul_csr', 'imul_dense',
     'neg', 'neg_csr', 'neg_dense',
 ]
 
+
+cpdef CSR imul_csr(CSR matrix, double complex value):
+    """Multiply this CSR `matrix` by a complex scalar `value`."""
+    cdef idxint ptr
+    with nogil:
+        for ptr in range(csr.nnz(matrix)):
+            matrix.data[ptr] *= value
+    return matrix
 
 cpdef CSR mul_csr(CSR matrix, double complex value):
     """Multiply this CSR `matrix` by a complex scalar `value`."""
@@ -20,7 +29,6 @@ cpdef CSR mul_csr(CSR matrix, double complex value):
             out.data[ptr] = value * matrix.data[ptr]
     return out
 
-
 cpdef CSR neg_csr(CSR matrix):
     """Unary negation of this CSR `matrix`.  Return a new object."""
     cdef CSR out = csr.copy_structure(matrix)
@@ -29,6 +37,15 @@ cpdef CSR neg_csr(CSR matrix):
         for ptr in range(csr.nnz(matrix)):
             out.data[ptr] = -matrix.data[ptr]
     return out
+
+
+cpdef Dense imul_dense(Dense matrix, double complex value):
+    """Multiply this Dense `matrix` by a complex scalar `value`."""
+    cdef size_t ptr
+    with nogil:
+        for ptr in range(matrix.shape[0]*matrix.shape[1]):
+            matrix.data[ptr] *= value
+    return matrix
 
 cpdef Dense mul_dense(Dense matrix, double complex value):
     """Multiply this Dense `matrix` by a complex scalar `value`."""
@@ -67,6 +84,26 @@ mul.__doc__ =\
 mul.add_specialisations([
     (CSR, CSR, mul_csr),
     (Dense, Dense, mul_dense),
+], _defer=True)
+
+imul = _Dispatcher(
+    # Will not be inplce if specialisation does not exist but should still
+    # give expected results if used as:
+    # mat = imul(mat, x)
+    _inspect.Signature([
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('value', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    ]),
+    name='imul',
+    module=__name__,
+    inputs=('matrix',),
+    out=True,
+)
+imul.__doc__ =\
+    """Multiply inplace a matrix element-wise by a scalar."""
+imul.add_specialisations([
+    (CSR, CSR, imul_csr),
+    (Dense, Dense, imul_dense),
 ], _defer=True)
 
 neg = _Dispatcher(
