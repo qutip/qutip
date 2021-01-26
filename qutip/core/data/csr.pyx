@@ -687,3 +687,210 @@ cdef CSR from_coo_pointers(
     mem.PyMem_Free(cols_tmp)
     acc_free(&acc)
     return out
+
+
+cdef inline base.idxint _diagonal_length(
+    base.idxint offset, base.idxint n_rows, base.idxint n_cols,
+) nogil:
+    if offset > 0:
+        return n_rows if offset <= n_cols - n_rows else n_cols - offset
+    return n_cols if offset > n_cols - n_rows else n_rows + offset
+
+cdef CSR diag(
+    double complex[:] diagonal, base.idxint offset,
+    base.idxint n_rows, base.idxint n_cols,
+):
+    """
+    Construct a CSR matrix with a single non-zero diagonal.
+
+    Parameters
+    ----------
+    diagonal : indexable of double complex
+        The entries (including zeros) that should be placed on the diagonal in
+        the output matrix.  Each entry must have enough entries in it to fill
+        the relevant diagonal.
+
+    offsets : idxint
+        The index of the diagonals.  An offset of 0 is the main diagonal,
+        positive values are above the main diagonal and negative ones are below
+        the main diagonal.
+
+    n_rows, n_cols : idxint
+        The shape of the output.  The result does not need to be square, but
+        the diagonal must be of the correct length to fit in.
+    """
+    if n_rows < 0 or n_cols < 0:
+        raise ValueError("shape must be positive")
+    cdef base.idxint nnz = len(diagonal)
+    cdef base.idxint n_diag = _diagonal_length(offset, n_rows, n_cols)
+    if nnz != n_diag:
+        raise ValueError("incorrect number of diagonal elements")
+    cdef CSR out = empty(n_rows, n_cols, nnz)
+    cdef base.idxint start_row = 0 if offset >= 0 else -offset
+    cdef base.idxint col = 0 if offset <= 0 else offset
+    memset(out.row_index, 0, (start_row + 1) * sizeof(base.idxint))
+    nnz = 0
+    for row in range(start_row + 1, start_row + n_diag + 1):
+        out.col_index[nnz] = col
+        out.data[nnz] = diagonal[nnz]
+        col += 1
+        nnz += 1
+        out.row_index[row] = nnz
+    for row in range(start_row + n_diag + 1, n_rows + 1):
+        out.row_index[row] = nnz
+    return out
+
+cdef CSR diags_(
+    list diagonals, base.idxint[:] offsets,
+    base.idxint n_rows, base.idxint n_cols,
+):
+    """
+    Construct a CSR matrix from a list of diagonals and their offsets.  The
+    offsets are assumed to be in sorted order.  This is the C-only interface to
+    csr.diags, and inputs are not sanity checked (use the Python interface for
+    that).
+
+    Parameters
+    ----------
+    diagonals : list of indexable of double complex
+        The entries (including zeros) that should be placed on the diagonals in
+        the output matrix.  Each entry must have enough entries in it to fill
+        the relevant diagonal (not checked).
+
+    offsets : idxint[:]
+        The indices of the diagonals.  These should be sorted and without
+        duplicates.  `offsets[i]` is the location of the values `diagonals[i]`.
+        An offset of 0 is the main diagonal, positive values are above the main
+        diagonal and negative ones are below the main diagonal.
+
+    n_rows, n_cols : idxint
+        The shape of the output.  The result does not need to be square, but
+        the diagonals must be of the correct length to fit in.
+    """
+    cdef size_t n_diagonals = len(diagonals)
+    if n_diagonals == 0:
+        return zeros(n_rows, n_cols)
+    cdef base.idxint k, row, start_row, offset, nnz=0,
+    cdef base.idxint min_k=n_diagonals, max_k=n_diagonals
+    cdef double complex value
+    for k in range(n_diagonals):
+        offset = offsets[k]
+        if offset >= 0 and min_k > k:
+            min_k = k
+        nnz += _diagonal_length(offset, n_rows, n_cols)
+    cdef CSR out = empty(n_rows, n_cols, nnz)
+    nnz = 0
+    out.row_index[0] = 0
+    for row in range(n_rows):
+        if min_k > 0:
+            offset = offsets[min_k - 1]
+            start_row = 0 if offset >= 0 else -offset
+            if start_row == row:
+                min_k -= 1
+        if max_k > 0:
+            offset = offsets[max_k - 1]
+            start_row = 0 if offset >= 0 else -offset
+            if start_row + _diagonal_length(offset, n_rows, n_cols) - 1 < row:
+                max_k -= 1
+        for k in range(min_k, max_k):
+            offset = offsets[k]
+            value = diagonals[k][row if offset >= 0 else row + offset]
+            if value == 0:
+                continue
+            out.data[nnz] = value
+            out.col_index[nnz] = row + offset
+            nnz += 1
+        out.row_index[row + 1] = nnz
+    return out
+
+@cython.wraparound(True)
+def diags(diagonals, offsets=None, shape=None):
+    """
+    Construct a CSR matrix from diagonals and their offsets.  Using this
+    function in single-argument form produces a square matrix with the given
+    values on the main diagonal.
+
+    With lists of diagonals and offsets, the matrix will be the smallest
+    possible square matrix if shape is not given, but in all cases the
+    diagonals must fit exactly with no extra or missing elements.  Duplicated
+    diagonals will be summed together in the output.
+
+    Parameters
+    ----------
+    diagonals : sequence of array_like of complex or array_like of complex
+        The entries (including zeros) that should be placed on the diagonals in
+        the output matrix.  Each entry must have enough entries in it to fill
+        the relevant diagonal and no more.
+
+    offsets : sequence of integer or integer, optional
+        The indices of the diagonals.  `offsets[i]` is the location of the
+        values `diagonals[i]`.  An offset of 0 is the main diagonal, positive
+        values are above the main diagonal and negative ones are below the main
+        diagonal.
+
+    shape : tuple, optional
+        The shape of the output as (``rows``, ``columns``).  The result does
+        not need to be square, but the diagonals must be of the correct length
+        to fit in exactly.
+    """
+    cdef base.idxint n_rows, n_cols, offset
+    try:
+        diagonals = list(diagonals)
+        if diagonals and np.isscalar(diagonals[0]):
+            # Catch the case where we're being called as (for example)
+            #   diags([1, 2, 3], 0)
+            # with a single diagonal and offset.
+            diagonals = [diagonals]
+    except TypeError:
+        raise TypeError("diagonals must be a list of arrays of complex") from None
+    if offsets is None:
+        if len(diagonals) == 0:
+            offsets = []
+        elif len(diagonals) == 1:
+            offsets = [0]
+        else:
+            raise TypeError("offsets must be supplied if passing more than one diagonal")
+    offsets = np.atleast_1d(offsets)
+    if offsets.ndim > 1:
+        raise ValueError("offsets must be a 1D array of integers")
+    if len(diagonals) != len(offsets):
+        raise ValueError("number of diagonals does not match number of offsets")
+    if len(diagonals) == 0:
+        if shape is None:
+            raise ValueError("cannot construct matrix with no diagonals without a shape")
+        else:
+            n_rows, n_cols = shape
+        return zeros(n_rows, n_cols)
+    order = np.argsort(offsets)
+    diagonals_ = []
+    offsets_ = []
+    prev, cur = None, None
+    for i in order:
+        cur = offsets[i]
+        if cur == prev:
+            diagonals_[-1] += np.asarray(diagonals[i], dtype=np.complex128)
+        else:
+            offsets_.append(cur)
+            diagonals_.append(np.asarray(diagonals[i], dtype=np.complex128))
+        prev = cur
+    if shape is None:
+        n_rows = n_cols = abs(offsets_[0]) + len(diagonals_[0])
+    else:
+        try:
+            n_rows, n_cols = shape
+        except (TypeError, ValueError):
+            raise TypeError("shape must be a 2-tuple of positive integers")
+        if n_rows < 0 or n_cols < 0:
+            raise ValueError("shape must be a 2-tuple of positive integers")
+    for i in range(len(diagonals_)):
+        offset = offsets_[i]
+        if len(diagonals_[i]) != _diagonal_length(offset, n_rows, n_cols):
+            raise ValueError("given diagonals do not have the correct lengths")
+    if n_rows == 0 and n_cols == 0:
+        raise ValueError("can't produce a 0x0 matrix")
+    if len(offsets) == 1:
+        # Fast path for a single diagonal.
+        return diag(diagonals_[0], offsets_[0], n_rows, n_cols)
+    return diags_(
+        diagonals_, np.array(offsets_, dtype=idxint_dtype), n_rows, n_cols,
+    )

@@ -739,7 +739,7 @@ class QobjEvo(QobjEvoBase):
     # function to linear_map custom transformations
     def linear_map(self, op_mapping):
         """
-        Apply function to each Qobj contribution.
+        Apply mapping to each Qobj contribution.
 
         Example:
         `QobjEvo([sigmax(), coeff]).linear_map(spre)`
