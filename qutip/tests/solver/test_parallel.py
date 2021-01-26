@@ -77,16 +77,16 @@ def test_map(map, num_cpus):
     assert ((np.array(y1) == np.array(y2)).all())
 
 
-@pytest.mark.parametrize('map',
-                         [parallel_map, loky_pmap, serial_map],
-                         ids=['parallel_map', 'loky_pmap', 'serial_map'])
+@pytest.mark.parametrize('map',[
+    pytest.param(parallel_map, id='parallel_map'),
+    pytest.param(loky_pmap, id='loky_pmap',
+                 marks=pytest.importorskip('loky')),
+    pytest.param(serial_map, id='serial_map'),
+])
 @pytest.mark.parametrize('num_cpus',
                          [1, 2],
                          ids=['1', '2'])
 def test_map_accumulator(map, num_cpus):
-    if map is loky_pmap and not loky:
-        pytest.skip(reason="module loky not available")
-
     args = (1, 2, 3)
     kwargs = {'d': 4, 'e': 5, 'f': 6}
     map_kw = {
