@@ -149,12 +149,12 @@ class Gate:
         if name in _single_qubit_gates:
             if self.targets is None or len(self.targets) != 1:
                 raise ValueError("Gate %s requires one target" % name)
-            if self.controls is not None:
+            if self.controls:
                 raise ValueError("Gate %s cannot have a control" % name)
         elif name in _swap_like:
             if (self.targets is None) or (len(self.targets) != 2):
                 raise ValueError("Gate %s requires two targets" % name)
-            if self.controls is not None:
+            if self.controls:
                 raise ValueError("Gate %s cannot have a control" % name)
         elif name in _ctrl_gates:
             if self.targets is None or len(self.targets) != 1:
