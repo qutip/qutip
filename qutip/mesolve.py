@@ -265,6 +265,7 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
 
     res = _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, options,
                              progress_bar, dims=rho0.dims)
+    res.num_collapse = len(c_ops)
 
     if e_ops_dict:
         res.expect = {e: res.expect[n]
