@@ -1,278 +1,219 @@
 #!/usr/bin/env python
-"""QuTiP: The Quantum Toolbox in Python
 
-QuTiP is open-source software for simulating the dynamics of closed and open
-quantum systems. The QuTiP library depends on the excellent Numpy, Scipy, and
-Cython numerical packages. In addition, graphical output is provided by
-Matplotlib.  QuTiP aims to provide user-friendly and efficient numerical
-simulations of a wide variety of quantum mechanical problems, including those
-with Hamiltonians and/or collapse operators with arbitrary time-dependence,
-commonly found in a wide range of physics applications. QuTiP is freely
-available for use and/or modification on all common platforms. Being free of
-any licensing fees, QuTiP is ideal for exploring quantum mechanics in research
-as well as in the classroom.
-"""
-
-DOCLINES = __doc__.split('\n')
-
-CLASSIFIERS = """\
-Development Status :: 2 - Pre-Alpha
-Intended Audience :: Science/Research
-License :: OSI Approved :: BSD License
-Programming Language :: Python
-Programming Language :: Python :: 3
-Topic :: Scientific/Engineering
-Operating System :: MacOS
-Operating System :: POSIX
-Operating System :: Unix
-Operating System :: Microsoft :: Windows
-"""
-
-# import statements
 import os
+import pathlib
 import re
 import subprocess
 import sys
-# The following is required to get unit tests up and running.
-# If the user doesn't have, then that's OK, we'll just skip unit tests.
-try:
-    from setuptools import setup, Extension
-    EXTRA_KWARGS = {
-        'tests_require': ['pytest']
-    }
-except:
-    from distutils.core import setup
-    from distutils.extension import Extension
-    EXTRA_KWARGS = {}
+import sysconfig
+import warnings
 
-try:
-    import numpy as np
-except ImportError as e:
-    raise ImportError("numpy is required at installation") from e
-
+# Required third-party imports, must be specified in pyproject.toml.
+from setuptools import setup, Extension
+from distutils import sysconfig
+import numpy as np
 from Cython.Build import cythonize
 from Cython.Distutils import build_ext
 
-# all information about QuTiP goes here
-REQUIRES = ['numpy (>=1.12)', 'scipy (>=1.0)', 'cython (>=0.29.20)']
-EXTRAS_REQUIRE = {'graphics': ['matplotlib(>=1.2.1)']}
-INSTALL_REQUIRES = ['numpy>=1.12', 'scipy>=1.0', 'cython>=0.29.20']
-PACKAGES = ['qutip', 'qutip/ui', 'qutip/qip', 'qutip/qip/device',
-            'qutip/qip/operations', 'qutip/qip/compiler',
-            'qutip/qip/algorithms', 'qutip/control',
-            'qutip/solve', 'qutip/solve/nonmarkov',
-            'qutip/_mkl', 'qutip/tests', 'qutip/tests/core',
-            'qutip/tests/core/data', 'qutip/tests/solve',
-            'qutip/core', 'qutip/core/cy',
-            'qutip/core/data/', 'qutip/core/cy/openmp']
-PACKAGE_DATA = {
-    'qutip': ['configspec.ini'],
-    'qutip/tests': ['*.ini'],
-    'qutip/core/data': ['*.pxd', '*.pyx'],
-    'qutip/core/cy': ['*.pxd', '*.pyx'],
-    'qutip/core/cy/src': ['*.hpp', '*.cpp'],
-    'qutip/core/cy/openmp': ['*.pxd', '*.pyx'],
-    'qutip/core/cy/openmp/src': ['*.hpp', '*.cpp'],
-    'qutip/solve': ['*.pxd', '*.pyx'],
-    'qutip/solve/nonmarkov': ['*.pxd', '*.pyx'],
-    'qutip/tests/qasm_files': ['*.qasm'],
-    'qutip/control': ['*.pyx'],
-}
-# If we're missing numpy, exclude import directories until we can
-# figure them out properly.
-INCLUDE_DIRS = [np.get_include()] if np is not None else []
-NAME = "qutip"
-AUTHOR = ("Alexander Pitchford, Paul D. Nation, Robert J. Johansson, "
-          "Chris Granade, Arne Grimsmo, Nathan Shammah, Shahnawaz Ahmed, "
-          "Neill Lambert, Eric Giguere, Boxi Li, Jake Lishman")
-AUTHOR_EMAIL = ("alex.pitchford@gmail.com, nonhermitian@gmail.com, "
-                "jrjohansson@gmail.com, cgranade@cgranade.com, "
-                "arne.grimsmo@gmail.com, nathan.shammah@gmail.com, "
-                "shahnawaz.ahmed95@gmail.com, nwlambert@gmail.com, "
-                "eric.giguere@usherbrooke.ca, etamin1201@gmail.com, "
-                "jake@binhbar.com")
-LICENSE = "BSD"
-DESCRIPTION = DOCLINES[0]
-LONG_DESCRIPTION = "\n".join(DOCLINES[2:])
-KEYWORDS = "quantum physics dynamics"
-URL = "http://qutip.org"
-CLASSIFIERS = [_f for _f in CLASSIFIERS.split('\n') if _f]
-PLATFORMS = ["Linux", "Mac OSX", "Unix", "Windows"]
 
-_ROOTDIR = os.path.dirname(os.path.abspath(__file__))
-
-# Read from the VERSION file.  This should be a single line file containing
-# valid Python package public identifier (see PEP 440), for example
-#   4.5.2rc2
-#   5.0.0
-#   5.1.1a1
-# We do that here rather than in setup.cfg so we can apply the local versioning
-# number as well (or omit it if we've been passed '--release').
-with open(os.path.join(_ROOTDIR, 'VERSION'), "r") as _version_file:
-    version = short_version = _version_file.read().strip()
-_VERSION_RE = r'\d+(\.\d+)*((a|b|rc)\d+)?(\.post\d+)?(\.dev\d+)?'
-if re.fullmatch(_VERSION_RE, version, re.A) is None:
-    raise ValueError("invalid version: " + version)
-
-release = '--release' in sys.argv or bool(os.environ.get('CI_QUTIP_RELEASE'))
-if '--release' in sys.argv:
-    sys.argv.remove('--release')
-if not release:
-    version += "+"
-    try:
-        _git_out = subprocess.run(
-            ('git', 'rev-parse', '--verify', '--short=7', 'HEAD'),
-            check=True,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        )
-        _git_hash = _git_out.stdout.decode(sys.stdout.encoding).strip()
-        version += _git_hash or "nogit"
-    except subprocess.CalledProcessError:
-        version += "nogit"
+def process_options():
+    """
+    Determine all runtime options, returning a dictionary of the results.  The
+    keys are:
+        'rootdir': str
+            The root directory of the setup.  Almost certainly the directory
+            that this setup.py file is contained in.
+        'release': bool
+            Is this a release build (True) or a local development build (False)
+        'openmp': bool
+            Should we build our OpenMP extensions and attempt to link in OpenMP
+            libraries?
+        'cflags': list of str
+            Flags to be passed to the C++ compiler.
+        'ldflags': list of str
+            Flags to be passed to the linker.
+        'include': list of str
+            Additional directories to be added to the header files include
+            path.  These files will be detected by Cython as dependencies, so
+            changes to them will trigger recompilation of .pyx files, whereas
+            includes added in 'cflags' as '-I/path/to/include' may not.
+    """
+    options = {}
+    options['rootdir'] = os.path.dirname(os.path.abspath(__file__))
+    options = _determine_user_arguments(options)
+    options = _determine_version(options)
+    options = _determine_compilation_options(options)
+    return options
 
 
-# Always overwrite qutip/version.py with the current version information.
-_version_py_filename = os.path.join(_ROOTDIR, 'qutip', 'version.py')
-_version_py_content = f"""\
-# THIS FILE IS GENERATED FROM QUTIP SETUP.PY
-short_version = '{short_version}'
-version = '{version}'
-release = {release}
-"""
-with open(_version_py_filename, 'w') as _version_py_file:
-    print(_version_py_content, file=_version_py_file)
+def _determine_user_arguments(options):
+    """
+    Add the 'release' and 'openmp' options to the collection, based on the
+    passed command-line arguments or environment variables.
+    """
+    options['release'] = (
+        '--release' in sys.argv
+        or bool(os.environ.get('CI_QUTIP_RELEASE'))
+    )
+    if '--release' in sys.argv:
+        sys.argv.remove('--release')
+    options['openmp'] = (
+        '--with-openmp' in sys.argv
+        or bool(os.environ.get('CI_QUTIP_WITH_OPENMP'))
+    )
+    if "--with-openmp" in sys.argv:
+        sys.argv.remove("--with-openmp")
+    return options
 
-# Cython extensions to be compiled.  The key is the relative package name, the
-# value is a list of the Cython modules in that package.
-cy_exts = {
-    'core.data': [
-        'add',
-        'adjoint',
-        'base',
-        'convert',
-        'csr',
-        'dense',
-        'dispatch',
-        'expect',
-        'inner',
-        'kron',
-        'matmul',
-        'mul',
-        'norm',
-        'permute',
-        'pow',
-        'project',
-        'properties',
-        'ptrace',
-        'reshape',
-        'tidyup',
-        'trace',
-    ],
-    'core.cy': [
-        'coefficient',
-        'cqobjevo',
-        'inter',
-        'interpolate',
-        'math',
-    ],
-    'control': [
-        'cy_grape',
-    ],
-    'solve': [
-        '_brtensor',
-        '_brtools',
-        '_brtools_checks',
-        '_mcsolve',
-        '_piqs',
-        '_steadystate',
-        '_stochastic',
-    ],
-    'solve.nonmarkov': [
-        '_heom',
-    ],
-}
 
-# Extra link args
-_link_flags = []
-
-# If on Win and Python version >= 3.5 and not in MSYS2
-# (i.e. Visual studio compile)
-if (
-    sys.platform == 'win32'
-    and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35
-    and os.environ.get('MSYSTEM') is None
-):
-    _compiler_flags = ['/w', '/Ox']
-# Everything else
-else:
-    _compiler_flags = ['-w', '-O3', '-funroll-loops']
+def _determine_compilation_options(options):
+    """
+    Add additional options specific to C/C++ compilation.  These are 'cflags',
+    'ldflags' and 'include'.
+    """
+    # Remove -Wstrict-prototypes from the CFLAGS variable that the Python build
+    # process uses in addition to user-specified ones; the flag is not valid
+    # for C++ compiles, but CFLAGS gets appended to those compiles anyway.
+    config = sysconfig.get_config_vars()
+    if "CFLAGS" in config:
+        config["CFLAGS"] = config["CFLAGS"].replace("-Wstrict-prototypes", "")
+    options['cflags'] = []
+    options['ldflags'] = []
+    options['include'] = [np.get_include()]
+    if (
+        sys.platform == 'win32'
+        and sys.version_info[:2] >= (3, 5)
+        and os.environ.get('MSYSTEM') is None
+    ):
+        # Visual Studio
+        options['cflags'].extend(['/w', '/Ox'])
+        if options['openmp']:
+            options['cflags'].append('/openmp')
+    else:
+        # Everything else
+        options['cflags'].extend(['-w', '-O3', '-funroll-loops'])
     if sys.platform == 'darwin':
         # These are needed for compiling on OSX 10.14+
-        _compiler_flags.append('-mmacosx-version-min=10.9')
-        _link_flags.append('-mmacosx-version-min=10.9')
-
-EXT_MODULES = []
-_include = [
-    np.get_include(),
-]
-
-# Add Cython files from qutip
-for package, files in cy_exts.items():
-    for file in files:
-        _module = 'qutip' + ('.' + package if package else '') + '.' + file
-        _file = os.path.join('qutip', *package.split("."), file + '.pyx')
-        _sources = [_file, 'qutip/core/data/src/matmul_csr_vector.cpp']
-        EXT_MODULES.append(Extension(_module,
-                                     sources=_sources,
-                                     include_dirs=_include,
-                                     extra_compile_args=_compiler_flags,
-                                     extra_link_args=_link_flags,
-                                     language='c++'))
+        options['cflags'].append('-mmacosx-version-min=10.9')
+        options['ldflags'].append('-mmacosx-version-min=10.9')
+        if options['openmp']:
+            options['cflags'].append('-fopenmp')
+            options['ldflags'].append('-fopenmp')
+    return options
 
 
-# Remove -Wstrict-prototypes from cflags
-import distutils.sysconfig
-cfg_vars = distutils.sysconfig.get_config_vars()
-if "CFLAGS" in cfg_vars:
-    cfg_vars["CFLAGS"] = cfg_vars["CFLAGS"].replace("-Wstrict-prototypes", "")
+def _determine_version(options):
+    """
+    Adds the 'short_version' and 'version' options.
+
+    Read from the VERSION file to discover the version.  This should be a
+    single line file containing valid Python package public identifier (see PEP
+    440), for example
+      4.5.2rc2
+      5.0.0
+      5.1.1a1
+    We do that here rather than in setup.cfg so we can apply the local
+    versioning number as well.
+    """
+    version_filename = os.path.join(options['rootdir'], 'VERSION')
+    with open(version_filename, "r") as version_file:
+        version = options['short_version'] = version_file.read().strip()
+    VERSION_RE = r'\d+(\.\d+)*((a|b|rc)\d+)?(\.post\d+)?(\.dev\d+)?'
+    if re.fullmatch(VERSION_RE, version, re.A) is None:
+        raise ValueError("invalid version: " + version)
+    if not options['release']:
+        version += "+"
+        try:
+            git_out = subprocess.run(
+                ('git', 'rev-parse', '--verify', '--short=7', 'HEAD'),
+                check=True,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            )
+            git_hash = git_out.stdout.decode(sys.stdout.encoding).strip()
+            version += git_hash or "nogit"
+        except subprocess.CalledProcessError:
+            version += "nogit"
+    options['version'] = version
+    return options
 
 
-# TODO: reinstate proper OpenMP handling.
-if '--with-openmp' in sys.argv:
-    sys.argv.remove('--with-openmp')
+def create_version_py_file(options):
+    """
+    Generate and write out the file qutip/version.py, which is used to produce
+    the '__version__' information for the module.  This function will overwrite
+    an existing file at that location.
+    """
+    filename = os.path.join(options['rootdir'], 'qutip', 'version.py')
+    content = "\n".join([
+        f"# This file is automatically generated by QuTiP's setup.py.",
+        f"short_version = '{options['short_version']}'",
+        f"version = '{options['version']}'",
+        f"release = {options['release']}",
+    ])
+    with open(filename, 'w') as file:
+        print(content, file=file)
 
 
-# Setup commands go here
-setup(
-    name=NAME,
-    version=version,
-    packages=PACKAGES,
-    include_package_data=True,
-    include_dirs=INCLUDE_DIRS,
-    ext_modules=cythonize(EXT_MODULES),
-    cmdclass={'build_ext': build_ext},
-    author=AUTHOR,
-    author_email=AUTHOR_EMAIL,
-    license=LICENSE,
-    description=DESCRIPTION,
-    long_description=LONG_DESCRIPTION,
-    keywords=KEYWORDS,
-    url=URL,
-    classifiers=CLASSIFIERS,
-    platforms=PLATFORMS,
-    requires=REQUIRES,
-    extras_require=EXTRAS_REQUIRE,
-    package_data=PACKAGE_DATA,
-    zip_safe=False,
-    install_requires=INSTALL_REQUIRES,
-    **EXTRA_KWARGS,
-)
+def create_extension_modules(options):
+    """
+    Discover and Cythonise all extension modules that need to be built.  These
+    are returned so they can be passed into the setup command.
+    """
+    out = []
+    root = pathlib.Path(options['rootdir'])
+    pyx_files = set(root.glob('qutip/**/*.pyx'))
+    if not options['openmp']:
+        pyx_files -= set(root.glob('qutip/**/openmp/**/*.pyx'))
+    # Add Cython files from qutip
+    for pyx_file in pyx_files:
+        pyx_file = pyx_file.relative_to(root)
+        pyx_file_str = str(pyx_file)
+        if 'compiled_coeff' in pyx_file_str or 'qtcoeff_' in pyx_file_str:
+            # In development (at least for QuTiP ~4.5 and ~5.0) sometimes the
+            # Cythonised time-dependent coefficients would get dropped in the
+            # qutip directory if you weren't careful - this is just trying to
+            # minimise the occasional developer error.
+            warnings.warn(
+                "skipping generated time-dependent coefficient: "
+                + pyx_file_str
+            )
+            continue
+        # The module name is the same as the folder structure, but with dots in
+        # place of separators ('/' or '\'), and without the '.pyx' extension.
+        pyx_module = ".".join(pyx_file.parts)[:-4]
+        pyx_sources = [pyx_file_str]
+        out.append(Extension(pyx_module,
+                             sources=pyx_sources,
+                             include_dirs=options['include'],
+                             extra_compile_args=options['cflags'],
+                             extra_link_args=options['ldflags'],
+                             language='c++'))
+    return cythonize(out)
 
-print("""\
-==============================================================================
-Installation complete
-Please cite QuTiP in your publication.
-==============================================================================
-For your convenience a bibtex reference can be easily generated using
-`qutip.cite()`\
-""")
+
+def print_epilogue():
+    """Display a post-setup epilogue."""
+    longbar = "="*80
+    message = "\n".join([
+        longbar,
+        "Installation complete",
+        "Please cite QuTiP in your publication.",
+        longbar,
+        "For your convenience a BibTeX reference can be easily generated with",
+        "`qutip.cite()`",
+    ])
+    print(message)
+
+
+if __name__ == "__main__":
+    options = process_options()
+    create_version_py_file(options)
+    extensions = create_extension_modules(options)
+    # Most of the kwargs to setup are defined in setup.cfg; the only ones we
+    # keep here are ones that we have done some compile-time processing on.
+    setup(
+        version=options['version'],
+        ext_modules=extensions,
+        cmdclass={'build_ext': build_ext},
+    )
+    print_epilogue()
