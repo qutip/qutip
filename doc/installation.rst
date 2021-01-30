@@ -198,9 +198,14 @@ Installation on MS Windows
 
 We are recommending and supporting installation of QuTiP into a Conda environment. Other scientific Python implementations such as Python-xy may also work, but are not supported.  
 
-As of QuTiP 4.1, recommended installation on Windows requires Python 3.5+, as well as Visual Studio 2015.  With this configuration, one can install QuTiP using any of the above mentioned receipes. Visual Studio 2015 is not required for the install of the conda-forge package, but it is required at runtime for the string format time-dependence solvers. When installing Visual Studio 2015 be sure to select options for the C++ compiler.
+As of QuTiP 4.1, recommended installation on Windows requires Python 3.5+, as well as MS Visual C++ Build Tools. MS Visual C++ Build Tools are strictly required for the install of the conda-forge package, but [MS Visual Studio](https://visualstudio.microsoft.com/de/downloads/) 2015 (or more recent) is recommended because it is required at runtime for the string format time-dependence solvers. When installing MS Visual Studio be sure to select the following components: 
+- Windows "X" SDK (where "X" stands for your version: 7/8/8.1/10)
+- MSVC v140 - VS 2015 C++ build tools (v14.00) 
 
-The 'Community' edition of Visual Studio 2015 is free to download use, however it does require approx 10GB of disk space, much of which does have to be on the system drive. If this is not feasible, then it is possible to run QuTiP under Python 2.7.
+With this configuration, one can install QuTiP using any of the above mentioned receipes. 
+.. important:: In order to prevent issues with where Windows locates the PATH variables for the compiler and dll dependencies, it is recommended NOT to launch the usual command prompt in Windows, but use instead the developer command prompt provided in the Visual Studio 2015+ folder. 
+
+The 'Community' edition of Visual Studio 2015 is free to download use, however it does require approx 10GB of disk space, much of which does have to be on the system drive. If this is not feasible, then it is possible to install only [MS Visual C++ Build Tools 14.0 and the SDK](https://visualstudio.microsoft.com/visual-cpp-build-tools/) ahead of QuTiP (this should save about 2 GB of space)
 
 Windows and Python 2.7
 ----------------------
@@ -256,4 +261,3 @@ QuTiP includes an "about" function for viewing information about QuTiP and the i
    In [1]: from qutip import *
 
    In [2]: about()
-
