@@ -33,6 +33,7 @@
 import collections
 import functools
 import os
+import sys
 import shutil
 import subprocess
 import tempfile
@@ -48,9 +49,16 @@ _latex_template = r"""
 """
 
 
-_run_command = functools.partial(subprocess.run, check=True,
-                                 stdout=subprocess.DEVNULL,
-                                 stderr=subprocess.DEVNULL)
+def _run_command(command, *args, **kwargs):
+    try:
+        return subprocess.run(
+            command, *args,
+            check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+            **kwargs,
+        )
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(e.stderr.decode(sys.stderr.encoding)) from None
+
 _run_command.__doc__ = \
     """
     Run a command with stdout and stderr explicitly thrown away, raising
