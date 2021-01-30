@@ -30,6 +30,8 @@ Operating System :: Microsoft :: Windows
 
 # import statements
 import os
+import re
+import subprocess
 import sys
 # The following is required to get unit tests up and running.
 # If the user doesn't have, then that's OK, we'll just skip unit tests.
@@ -52,11 +54,6 @@ from Cython.Build import cythonize
 from Cython.Distutils import build_ext
 
 # all information about QuTiP goes here
-MAJOR = 5
-MINOR = 0
-MICRO = 0
-ISRELEASED = False
-VERSION = '%d.%d.%db1' % (MAJOR, MINOR, MICRO)
 REQUIRES = ['numpy (>=1.12)', 'scipy (>=1.0)', 'cython (>=0.29.20)']
 EXTRAS_REQUIRE = {'graphics': ['matplotlib(>=1.2.1)']}
 INSTALL_REQUIRES = ['numpy>=1.12', 'scipy>=1.0', 'cython>=0.29.20']
@@ -102,55 +99,48 @@ URL = "http://qutip.org"
 CLASSIFIERS = [_f for _f in CLASSIFIERS.split('\n') if _f]
 PLATFORMS = ["Linux", "Mac OSX", "Unix", "Windows"]
 
+_ROOTDIR = os.path.dirname(os.path.abspath(__file__))
 
-def git_short_hash():
+# Read from the VERSION file.  This should be a single line file containing
+# valid Python package public identifier (see PEP 440), for example
+#   4.5.2rc2
+#   5.0.0
+#   5.1.1a1
+# We do that here rather than in setup.cfg so we can apply the local versioning
+# number as well (or omit it if we've been passed '--release').
+with open(os.path.join(_ROOTDIR, 'VERSION'), "r") as _version_file:
+    version = short_version = _version_file.read().strip()
+_VERSION_RE = r'\d+(\.\d+)*((a|b|rc)\d+)?(\.post\d+)?(\.dev\d+)?'
+if re.fullmatch(_VERSION_RE, version, re.A) is None:
+    raise ValueError("invalid version: " + version)
+
+release = '--release' in sys.argv or bool(os.environ.get('CI_QUTIP_RELEASE'))
+if '--release' in sys.argv:
+    sys.argv.remove('--release')
+if not release:
+    version += "+"
     try:
-        git_str = "+" + os.popen('git log -1 --format="%h"').read().strip()
-    except:
-        git_str = ""
-    else:
-        if git_str == '+':  # fixes setuptools PEP issues with versioning
-            git_str = ''
-    return git_str
+        _git_out = subprocess.run(
+            ('git', 'rev-parse', '--verify', '--short=7', 'HEAD'),
+            check=True,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        )
+        _git_hash = _git_out.stdout.decode(sys.stdout.encoding).strip()
+        version += _git_hash or "nogit"
+    except subprocess.CalledProcessError:
+        version += "nogit"
 
 
-FULLVERSION = VERSION
-if not ISRELEASED:
-    FULLVERSION += '.dev'+str(MICRO)+git_short_hash()
-
-# NumPy's distutils reads in versions differently than
-# our fallback. To make sure that versions are added to
-# egg-info correctly, we need to add FULLVERSION to
-# EXTRA_KWARGS if NumPy wasn't imported correctly.
-if np is None:
-    EXTRA_KWARGS['version'] = FULLVERSION
-
-
-def write_version_py(filename='qutip/version.py'):
-    cnt = """\
+# Always overwrite qutip/version.py with the current version information.
+_version_py_filename = os.path.join(_ROOTDIR, 'qutip', 'version.py')
+_version_py_content = f"""\
 # THIS FILE IS GENERATED FROM QUTIP SETUP.PY
-short_version = '%(version)s'
-version = '%(fullversion)s'
-release = %(isrelease)s
+short_version = '{short_version}'
+version = '{version}'
+release = {release}
 """
-    a = open(filename, 'w')
-    try:
-        a.write(cnt % {'version': VERSION, 'fullversion':
-                FULLVERSION, 'isrelease': str(ISRELEASED)})
-    finally:
-        a.close()
-
-
-local_path = os.path.dirname(os.path.abspath(sys.argv[0]))
-os.chdir(local_path)
-sys.path.insert(0, local_path)
-sys.path.insert(0, os.path.join(local_path, 'qutip'))  # to retrive _version
-
-# always rewrite _version
-if os.path.exists('qutip/version.py'):
-    os.remove('qutip/version.py')
-
-write_version_py()
+with open(_version_py_filename, 'w') as _version_py_file:
+    print(_version_py_content, file=_version_py_file)
 
 # Cython extensions to be compiled.  The key is the relative package name, the
 # value is a list of the Cython modules in that package.
@@ -255,7 +245,7 @@ if '--with-openmp' in sys.argv:
 # Setup commands go here
 setup(
     name=NAME,
-    version=FULLVERSION,
+    version=version,
     packages=PACKAGES,
     include_package_data=True,
     include_dirs=INCLUDE_DIRS,
