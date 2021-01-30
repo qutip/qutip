@@ -33,6 +33,7 @@
 import collections
 import functools
 import os
+import sys
 import shutil
 import subprocess
 import tempfile
@@ -48,15 +49,20 @@ _latex_template = r"""
 """
 
 
-_run_command = functools.partial(subprocess.run, check=True,
-                                 stdout=subprocess.DEVNULL,
-                                 stderr=subprocess.DEVNULL)
-_run_command.__doc__ = \
+def _run_command(command, *args, **kwargs):
     """
-    Run a command with stdout and stderr explicitly thrown away, raising
-    `subprocess.CalledProcessError` if the command returned a non-zero exit
-    code.
+    Run a command with stdout explicitly thrown away, raising
+    `RuntimeError` with the system error message
+    if the command returned a non-zero exit code.
     """
+    try:
+        return subprocess.run(
+            command, *args,
+            check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+            **kwargs,
+        )
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(e.stderr.decode(sys.stderr.encoding)) from None
 
 
 def _force_remove(*filenames):
