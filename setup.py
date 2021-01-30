@@ -1,105 +1,22 @@
 #!/usr/bin/env python
-"""QuTiP: The Quantum Toolbox in Python
 
-QuTiP is open-source software for simulating the dynamics of closed and open
-quantum systems. The QuTiP library depends on the excellent Numpy, Scipy, and
-Cython numerical packages. In addition, graphical output is provided by
-Matplotlib.  QuTiP aims to provide user-friendly and efficient numerical
-simulations of a wide variety of quantum mechanical problems, including those
-with Hamiltonians and/or collapse operators with arbitrary time-dependence,
-commonly found in a wide range of physics applications. QuTiP is freely
-available for use and/or modification on all common platforms. Being free of
-any licensing fees, QuTiP is ideal for exploring quantum mechanics in research
-as well as in the classroom.
-"""
-
-DOCLINES = __doc__.split('\n')
-
-CLASSIFIERS = """\
-Development Status :: 2 - Pre-Alpha
-Intended Audience :: Science/Research
-License :: OSI Approved :: BSD License
-Programming Language :: Python
-Programming Language :: Python :: 3
-Topic :: Scientific/Engineering
-Operating System :: MacOS
-Operating System :: POSIX
-Operating System :: Unix
-Operating System :: Microsoft :: Windows
-"""
-
-# import statements
+import glob
 import os
 import re
 import subprocess
 import sys
-# The following is required to get unit tests up and running.
-# If the user doesn't have, then that's OK, we'll just skip unit tests.
-try:
-    from setuptools import setup, Extension
-    EXTRA_KWARGS = {
-        'tests_require': ['pytest']
-    }
-except:
-    from distutils.core import setup
-    from distutils.extension import Extension
-    EXTRA_KWARGS = {}
+import sysconfig
+import warnings
 
-try:
-    import numpy as np
-except ImportError as e:
-    raise ImportError("numpy is required at installation") from e
-
+# Required third-party imports, must be specified in pyproject.toml.
+from setuptools import setup, Extension
+from distutils import sysconfig
+import numpy as np
 from Cython.Build import cythonize
 from Cython.Distutils import build_ext
 
-# all information about QuTiP goes here
-REQUIRES = ['numpy (>=1.12)', 'scipy (>=1.0)', 'cython (>=0.29.20)']
-EXTRAS_REQUIRE = {'graphics': ['matplotlib(>=1.2.1)']}
-INSTALL_REQUIRES = ['numpy>=1.12', 'scipy>=1.0', 'cython>=0.29.20']
-PACKAGES = ['qutip', 'qutip/ui', 'qutip/qip', 'qutip/qip/device',
-            'qutip/qip/operations', 'qutip/qip/compiler',
-            'qutip/qip/algorithms', 'qutip/control',
-            'qutip/solve', 'qutip/solve/nonmarkov',
-            'qutip/_mkl', 'qutip/tests', 'qutip/tests/core',
-            'qutip/tests/core/data', 'qutip/tests/solve',
-            'qutip/core', 'qutip/core/cy',
-            'qutip/core/data/', 'qutip/core/cy/openmp']
-PACKAGE_DATA = {
-    'qutip': ['configspec.ini'],
-    'qutip/tests': ['*.ini'],
-    'qutip/core/data': ['*.pxd', '*.pyx'],
-    'qutip/core/cy': ['*.pxd', '*.pyx'],
-    'qutip/core/cy/src': ['*.hpp', '*.cpp'],
-    'qutip/core/cy/openmp': ['*.pxd', '*.pyx'],
-    'qutip/core/cy/openmp/src': ['*.hpp', '*.cpp'],
-    'qutip/solve': ['*.pxd', '*.pyx'],
-    'qutip/solve/nonmarkov': ['*.pxd', '*.pyx'],
-    'qutip/tests/qasm_files': ['*.qasm'],
-    'qutip/control': ['*.pyx'],
-}
-# If we're missing numpy, exclude import directories until we can
-# figure them out properly.
-INCLUDE_DIRS = [np.get_include()] if np is not None else []
-NAME = "qutip"
-AUTHOR = ("Alexander Pitchford, Paul D. Nation, Robert J. Johansson, "
-          "Chris Granade, Arne Grimsmo, Nathan Shammah, Shahnawaz Ahmed, "
-          "Neill Lambert, Eric Giguere, Boxi Li, Jake Lishman")
-AUTHOR_EMAIL = ("alex.pitchford@gmail.com, nonhermitian@gmail.com, "
-                "jrjohansson@gmail.com, cgranade@cgranade.com, "
-                "arne.grimsmo@gmail.com, nathan.shammah@gmail.com, "
-                "shahnawaz.ahmed95@gmail.com, nwlambert@gmail.com, "
-                "eric.giguere@usherbrooke.ca, etamin1201@gmail.com, "
-                "jake@binhbar.com")
-LICENSE = "BSD"
-DESCRIPTION = DOCLINES[0]
-LONG_DESCRIPTION = "\n".join(DOCLINES[2:])
-KEYWORDS = "quantum physics dynamics"
-URL = "http://qutip.org"
-CLASSIFIERS = [_f for _f in CLASSIFIERS.split('\n') if _f]
-PLATFORMS = ["Linux", "Mac OSX", "Unix", "Windows"]
-
 _ROOTDIR = os.path.dirname(os.path.abspath(__file__))
+os.chdir(_ROOTDIR)
 
 # Read from the VERSION file.  This should be a single line file containing
 # valid Python package public identifier (see PEP 440), for example
@@ -142,130 +59,79 @@ release = {release}
 with open(_version_py_filename, 'w') as _version_py_file:
     print(_version_py_content, file=_version_py_file)
 
-# Cython extensions to be compiled.  The key is the relative package name, the
-# value is a list of the Cython modules in that package.
-cy_exts = {
-    'core.data': [
-        'add',
-        'adjoint',
-        'base',
-        'convert',
-        'csr',
-        'dense',
-        'dispatch',
-        'expect',
-        'inner',
-        'kron',
-        'matmul',
-        'mul',
-        'norm',
-        'permute',
-        'pow',
-        'project',
-        'properties',
-        'ptrace',
-        'reshape',
-        'tidyup',
-        'trace',
-    ],
-    'core.cy': [
-        'coefficient',
-        'cqobjevo',
-        'inter',
-        'interpolate',
-        'math',
-    ],
-    'control': [
-        'cy_grape',
-    ],
-    'solve': [
-        '_brtensor',
-        '_brtools',
-        '_brtools_checks',
-        '_mcsolve',
-        '_piqs',
-        '_steadystate',
-        '_stochastic',
-    ],
-    'solve.nonmarkov': [
-        '_heom',
-    ],
-}
 
-# Extra link args
+# Linker arguments
 _link_flags = []
 
-# If on Win and Python version >= 3.5 and not in MSYS2
-# (i.e. Visual studio compile)
 if (
     sys.platform == 'win32'
-    and int(str(sys.version_info[0])+str(sys.version_info[1])) >= 35
+    and sys.version_info[:2] >= (3, 5)
     and os.environ.get('MSYSTEM') is None
 ):
+    # Visual Studio
     _compiler_flags = ['/w', '/Ox']
-# Everything else
 else:
+    # Everything else
     _compiler_flags = ['-w', '-O3', '-funroll-loops']
-    if sys.platform == 'darwin':
-        # These are needed for compiling on OSX 10.14+
-        _compiler_flags.append('-mmacosx-version-min=10.9')
-        _link_flags.append('-mmacosx-version-min=10.9')
+if sys.platform == 'darwin':
+    # These are needed for compiling on OSX 10.14+
+    _compiler_flags.append('-mmacosx-version-min=10.9')
+    _link_flags.append('-mmacosx-version-min=10.9')
 
-EXT_MODULES = []
+ext_modules = []
 _include = [
     np.get_include(),
 ]
 
 # Add Cython files from qutip
-for package, files in cy_exts.items():
-    for file in files:
-        _module = 'qutip' + ('.' + package if package else '') + '.' + file
-        _file = os.path.join('qutip', *package.split("."), file + '.pyx')
-        _sources = [_file, 'qutip/core/data/src/matmul_csr_vector.cpp']
-        EXT_MODULES.append(Extension(_module,
-                                     sources=_sources,
-                                     include_dirs=_include,
-                                     extra_compile_args=_compiler_flags,
-                                     extra_link_args=_link_flags,
-                                     language='c++'))
+_matmul_csr_vector = os.path.join(
+    # Don't include _ROOTDIR; this must be a relative path from setup.py in
+    # order for it to be included in distribution SOURCES.txt etc.
+    'qutip', 'core', 'data', 'src', 'matmul_csr_vector.cpp',
+)
+for pyx_file in glob.glob('qutip/**/*.pyx', recursive=True):
+    if 'compiled_coeff' in pyx_file or 'qtcoeff_' in pyx_file:
+        # In development (at least for QuTiP ~4.5 and ~5.0) sometimes the
+        # Cythonised time-dependent coefficients would get dropped in the qutip
+        # directory if you weren't careful - this is just trying to minimise
+        # the occasional developer error.
+        warnings.warn(
+            "skipping generated time-dependent coefficient: "
+            + pyx_file
+        )
+        continue
+    # We have to be a little verbose about splitting the path because Windows
+    # intermittently uses '\' or '/' in paths.
+    pyx_module_path = []
+    _head = pyx_file[:-4]
+    while _head:
+        _head, _tail = os.path.split(_head)
+        pyx_module_path.append(_tail)
+    pyx_module = '.'.join(reversed(pyx_module_path))
+    pyx_sources = [pyx_file, _matmul_csr_vector]
+    ext_modules.append(Extension(pyx_module,
+                                 sources=pyx_sources,
+                                 include_dirs=_include,
+                                 extra_compile_args=_compiler_flags,
+                                 extra_link_args=_link_flags,
+                                 language='c++'))
 
-
-# Remove -Wstrict-prototypes from cflags
-import distutils.sysconfig
-cfg_vars = distutils.sysconfig.get_config_vars()
+# Remove -Wstrict-prototypes from CFLAGS; the flag is not valid for C++
+# compiles, but CFLAGS gets appended to the call anyway.
+cfg_vars = sysconfig.get_config_vars()
 if "CFLAGS" in cfg_vars:
     cfg_vars["CFLAGS"] = cfg_vars["CFLAGS"].replace("-Wstrict-prototypes", "")
-
 
 # TODO: reinstate proper OpenMP handling.
 if '--with-openmp' in sys.argv:
     sys.argv.remove('--with-openmp')
 
-
-# Setup commands go here
+# Most of the kwargs to setup are defined in setup.cfg; the only ones we keep
+# here are ones that we have done some compile-time processing on.
 setup(
-    name=NAME,
     version=version,
-    packages=PACKAGES,
-    include_package_data=True,
-    include_dirs=INCLUDE_DIRS,
-    ext_modules=cythonize(EXT_MODULES),
+    ext_modules=cythonize(ext_modules),
     cmdclass={'build_ext': build_ext},
-    author=AUTHOR,
-    author_email=AUTHOR_EMAIL,
-    license=LICENSE,
-    description=DESCRIPTION,
-    long_description=LONG_DESCRIPTION,
-    keywords=KEYWORDS,
-    url=URL,
-    classifiers=CLASSIFIERS,
-    platforms=PLATFORMS,
-    requires=REQUIRES,
-    extras_require=EXTRAS_REQUIRE,
-    package_data=PACKAGE_DATA,
-    zip_safe=False,
-    install_requires=INSTALL_REQUIRES,
-    **EXTRA_KWARGS,
 )
 
 print("""\
@@ -274,5 +140,4 @@ Installation complete
 Please cite QuTiP in your publication.
 ==============================================================================
 For your convenience a bibtex reference can be easily generated using
-`qutip.cite()`\
-""")
+`qutip.cite()`""")
