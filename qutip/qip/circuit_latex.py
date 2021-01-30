@@ -50,6 +50,11 @@ _latex_template = r"""
 
 
 def _run_command(command, *args, **kwargs):
+    """
+    Run a command with stdout explicitly thrown away, raising
+    `RuntimeError` with the system error message
+    if the command returned a non-zero exit code.
+    """
     try:
         return subprocess.run(
             command, *args,
@@ -58,13 +63,6 @@ def _run_command(command, *args, **kwargs):
         )
     except subprocess.CalledProcessError as e:
         raise RuntimeError(e.stderr.decode(sys.stderr.encoding)) from None
-
-_run_command.__doc__ = \
-    """
-    Run a command with stdout and stderr explicitly thrown away, raising
-    `subprocess.CalledProcessError` if the command returned a non-zero exit
-    code.
-    """
 
 
 def _force_remove(*filenames):
