@@ -44,7 +44,6 @@ from ..core import (
 )
 from ..core import data as _data
 from .. import settings as qset
-from ..core.cy.openmp.utilities import check_use_openmp
 from ..ui.progressbar import BaseProgressBar, TextProgressBar
 from .br_codegen import BR_Codegen
 from ._brtensor import bloch_redfield_tensor
@@ -204,9 +203,6 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
     #if (not options.rhs_reuse) or (not config.tdfunc):
     #    # reset config collapse and time-dependence flags to default values
     #    config.reset()
-
-    # check if should use OPENMP
-    #check_use_openmp(options)
 
     if n_str == 0:
         R, ekets = bloch_redfield_tensor(
