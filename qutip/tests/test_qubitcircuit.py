@@ -252,7 +252,7 @@ class TestQubitCircuit:
         User defined gate for QubitCircuit
         """
         def customer_gate1(arg_values):
-            mat = np.zeros((4, 4), dtype=np.complex)
+            mat = np.zeros((4, 4), dtype=np.complex128)
             mat[0, 0] = mat[1, 1] = 1.
             mat[2:4, 2:4] = rx(arg_values)
             return Qobj(mat, dims=[[2, 2], [2, 2]])

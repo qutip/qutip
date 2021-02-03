@@ -80,10 +80,10 @@ def rand_jacobi_rotation(A, seed=None):
     angle = 2*np.random.random()*np.pi
     a = 1.0/np.sqrt(2)*np.exp(-1j*angle)
     b = 1.0/np.sqrt(2)*np.exp(1j*angle)
-    i = np.int(np.floor(np.random.random()*n))
+    i = int(np.floor(np.random.random()*n))
     j = i
     while (i == j):
-        j = np.int(np.floor(np.random.random()*n))
+        j = int(np.floor(np.random.random()*n))
     data = np.hstack((np.array([a,-b,a,b], dtype=complex),
                       np.ones(n-2, dtype=complex)))
     diag = np.delete(np.arange(n), [i,j])
@@ -181,7 +181,7 @@ def _rand_herm_sparse(N, density, pos_def):
     target = (1-(1-density)**0.5)
     num_elems = (N**2 - 0.666 * N) * target + 0.666 * N * density
     num_elems = max([num_elems, 1])
-    num_elems = np.int(num_elems)
+    num_elems = int(num_elems)
     data = (2 * np.random.rand(num_elems) - 1) + \
            (2 * np.random.rand(num_elems) - 1) * 1j
     row_idx, col_idx = zip(*[divmod(index, N) for index
@@ -204,7 +204,7 @@ def _rand_herm_dense(N, density, pos_def):
     target = (1-(density)**0.5)
     num_remove = N * (N - 0.666) * target + 0.666 * N * (1 - density)
     num_remove = max([num_remove, 1])
-    num_remove = np.int(num_remove)
+    num_remove = int(num_remove)
     for row, col in [divmod(index, N)
                      for index in np.random.choice(N*N,
                                                    num_remove,
@@ -678,7 +678,7 @@ def rand_stochastic(N, density=0.75, kind='left', dims=None, seed=None):
         np.random.seed(seed=seed)
     if dims:
         _check_dims(dims, N, N)
-    num_elems = max([np.int(np.ceil(N*(N+1)*density)/2), N])
+    num_elems = max([int(np.ceil(N*(N+1)*density)/2), N])
     data = np.random.rand(num_elems)
     # Ensure an element on every row and column
     row_idx = np.hstack([np.random.permutation(N),

@@ -32,6 +32,9 @@
 ###############################################################################
 
 from collections.abc import Iterable
+from itertools import product
+import numbers
+
 import warnings
 import inspect
 
@@ -85,7 +88,7 @@ class Gate(object):
         for ind_list in [self.targets, self.controls]:
             if isinstance(ind_list, Iterable):
                 all_integer = all(
-                    [isinstance(ind, np.int) for ind in ind_list])
+                    [isinstance(ind, numbers.Integral) for ind in ind_list])
                 if not all_integer:
                     raise ValueError("Index of a qubit must be an integer")
 

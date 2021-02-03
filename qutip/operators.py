@@ -889,7 +889,7 @@ def enr_destroy(dims, excitations):
 
     nstates, state2idx, idx2state = enr_state_dictionaries(dims, excitations)
 
-    a_ops = [sp.lil_matrix((nstates, nstates), dtype=np.complex)
+    a_ops = [sp.lil_matrix((nstates, nstates), dtype=np.complex128)
              for _ in range(len(dims))]
 
     for n1, state1 in idx2state.items():
@@ -932,7 +932,7 @@ def enr_identity(dims, excitations):
     from qutip.states import enr_state_dictionaries
 
     nstates, _, _ = enr_state_dictionaries(dims, excitations)
-    data = sp.eye(nstates, nstates, dtype=np.complex)
+    data = sp.eye(nstates, nstates, dtype=np.complex128)
     return Qobj(data, dims=[dims, dims])
 
 
