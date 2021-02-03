@@ -142,6 +142,7 @@ class Processor(object):
             self.dims = dims
         self.pulse_mode = "discrete"
         self.spline_kind = spline_kind
+        print('a new processor')
 
     @property
     def num_qubits(self):
@@ -246,6 +247,8 @@ class Processor(object):
                 "pulse_name is either a string or an integer, not "
                 "{}".format(type(pulse_name))
                 )
+
+
 
     @property
     def ctrls(self):

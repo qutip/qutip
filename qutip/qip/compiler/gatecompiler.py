@@ -53,7 +53,7 @@ class GateCompiler(object):
         A Python dictionary contains the name and the value of the parameters,
         such as laser frequency, detuning etc.
 
-    num_ops: int
+    pulse_dict: int
         Dictionary of pulse indices.
 
     Attributes
