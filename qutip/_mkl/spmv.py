@@ -49,9 +49,9 @@ def mkl_spmv(A, x):
 
      # Allocate output, using same conventions as input
      if x.ndim == 1:
-        y = np.empty(m,dtype=np.complex,order='C')
+        y = np.empty(m,dtype=np.complex128,order='C')
      elif x.ndim==2 and x.shape[1]==1:
-        y = np.empty((m,1),dtype=np.complex,order='C')
+        y = np.empty((m,1),dtype=np.complex128,order='C')
      else:
         raise Exception('Input vector must be 1D row or 2D column vector')
      

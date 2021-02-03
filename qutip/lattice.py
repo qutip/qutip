@@ -685,7 +685,8 @@ class Lattice1d():
                         data = np.append(data, [op[k, l]])
 
         m = nx_units*ny_units*nS
-        op_H = csr_matrix((data, (row_ind, col_ind)), [m, m], dtype=np.complex)
+        op_H = csr_matrix((data, (row_ind, col_ind)), [m, m],
+                          dtype=np.complex128)
         dim_op = [self.lattice_tensor_config, self.lattice_tensor_config]
         return Qobj(op_H, dims=dim_op)
 
