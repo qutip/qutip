@@ -979,7 +979,7 @@ def enr_fock(dims, excitations, state):
     """
     nstates, state2idx, idx2state = enr_state_dictionaries(dims, excitations)
 
-    data = sp.lil_matrix((nstates, 1), dtype=np.complex)
+    data = sp.lil_matrix((nstates, 1), dtype=np.complex128)
 
     try:
         data[state2idx[tuple(state)], 0] = 1
