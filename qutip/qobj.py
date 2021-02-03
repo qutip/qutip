@@ -208,7 +208,6 @@ class Qobj(object):
         Returns normalized quantum object.
 
     """
-    __array_priority__ = 100  # sets Qobj priority above numpy arrays
 
     def __init__(self, inpt=None, dims=[[], []], shape=[],
                  type=None, isherm=None, copy=True,
@@ -1086,12 +1085,6 @@ class Qobj(object):
             return self.data.toarray(order=order).squeeze()
         else:
             return self.data.toarray(order=order)
-
-    def __array__(self, *arg, **kwarg):
-        """Numpy array from Qobj
-        For compatibility with np.array
-        """
-        return self.full()
 
     def diag(self):
         """Diagonal elements of quantum object.
