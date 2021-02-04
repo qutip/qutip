@@ -6,6 +6,9 @@ import qutip
 from qutip import sigmax, sigmay, sigmaz, tensor, fidelity
 from qutip.qip.pulse import Pulse
 from qutip.qip.device.processor import Processor
+import matplotlib.pyplot as plt
+
+
 #%%
 class single_qubit_processor(Processor):
     def __init__(self,N,t1,t2,dims,h_x,h_z,alpha):
@@ -52,16 +55,14 @@ class single_qubit_processor(Processor):
 
 # %%
 qubits_num=2
-test_processor=single_qubit_processor(qubits_num,[20,20],[40,40],[3,3],30,30,150)
+test_processor=single_qubit_processor(qubits_num,[20,20],[39,39],[3,3],0.03,0.03,150)
 from qutip import basis
 from qutip.qip.circuit import QubitCircuit
 circuit = QubitCircuit(qubits_num)
 circuit.add_gate("X", targets=1)
 circuit.add_gate("X", targets=0)
-
-
-#%%
 circuit.png
+
 # %%
 from qutip.qip.compiler import Instruction
 def gauss_dist(t, sigma, amplitude, duration):
@@ -93,7 +94,14 @@ class MyCompiler(GateCompiler):  # compiler class
 # %%
 gauss_compiler = MyCompiler(test_processor.num_qubits,\
      test_processor.params, test_processor.pulse_dict)
-tlist, coeff = test_processor.load_circuit(circuit, compiler=gauss_compiler);
+tlist, coeff = test_processor.load_circuit(circuit, compiler=gauss_compiler)
 result = test_processor.run_state(init_state = basis([2,2], [0,0]))
 print("fidelity without scheduling:", fidelity(result.states[-1], basis([2,2],[1,1])))
+# %%
+fidelity_list=[]
+for state in result.states:
+    fidelity_list.append( fidelity(state, basis([2,2],[1,1])) )
+plt.plot(result.times,fidelity_list)
+# %%
+test_processor.plot_pulses()
 # %%
