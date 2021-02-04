@@ -7,6 +7,7 @@ from qutip import sigmax, sigmay, sigmaz, tensor, fidelity
 from qutip.qip.pulse import Pulse
 from qutip.qip.device.processor import Processor
 import matplotlib.pyplot as plt
+from qutip.qip.compiler import Instruction
 
 
 #%%
@@ -40,7 +41,7 @@ class single_qubit_processor(Processor):
             index += 1
     def set_up_drift(self):
         for i in range(self.N):
-            self.add_drift(create(self.dims[i])**2*destroy(self.dims[i])**2,i)
+            self.add_drift(self.params['alpha'][i]*create(self.dims[i])**2*destroy(self.dims[i])**2,i)
 
     def load_circuit(self, circuit, schedule_mode=False, compiler=None):
         # resolve the circuit to a certain basis
@@ -53,18 +54,6 @@ class single_qubit_processor(Processor):
         self.coeffs = coeffs
         return tlist, self.coeffs
 
-# %%
-qubits_num=2
-test_processor=single_qubit_processor(qubits_num,[20,20],[39,39],[3,3],0.03,0.03,150)
-from qutip import basis
-from qutip.qip.circuit import QubitCircuit
-circuit = QubitCircuit(qubits_num)
-circuit.add_gate("X", targets=1)
-circuit.add_gate("X", targets=0)
-circuit.png
-
-# %%
-from qutip.qip.compiler import Instruction
 def gauss_dist(t, sigma, amplitude, duration):
     return amplitude/np.sqrt(2*np.pi) /sigma*np.exp(-0.5*((t-duration/2)/sigma)**2)
 
@@ -92,16 +81,24 @@ class MyCompiler(GateCompiler):  # compiler class
         self.gate_compiler["RX"] = gauss_rx_compiler
         self.args.update({"params": params})
 # %%
+qubits_num=2
+test_processor=single_qubit_processor(qubits_num,[20,20],[39,39],[3,3],0.03,0.03,150)
+from qutip import basis
+from qutip.qip.circuit import QubitCircuit
+circuit = QubitCircuit(qubits_num)
+circuit.add_gate("X", targets=1)
+circuit.add_gate("X", targets=0)
+circuit.png
+# %%
 gauss_compiler = MyCompiler(test_processor.num_qubits,\
      test_processor.params, test_processor.pulse_dict)
 tlist, coeff = test_processor.load_circuit(circuit, compiler=gauss_compiler)
-result = test_processor.run_state(init_state = basis([2,2], [0,0]))
-print("fidelity without scheduling:", fidelity(result.states[-1], basis([2,2],[1,1])))
+result = test_processor.run_state(init_state = basis([3,3], [0,0]))
+print("fidelity without scheduling:", fidelity(result.states[-1], basis([3,3],[1,1])))
 # %%
 fidelity_list=[]
 for state in result.states:
-    fidelity_list.append( fidelity(state, basis([2,2],[1,1])) )
+    fidelity_list.append( fidelity(state, basis([3,3],[1,1])) )
 plt.plot(result.times,fidelity_list)
-# %%
-test_processor.plot_pulses()
+plt.show()
 # %%

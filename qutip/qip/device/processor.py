@@ -764,11 +764,10 @@ class Processor(object):
                 kwargs["c_ops"] += sys_c_ops
         else:
             kwargs["c_ops"] = sys_c_ops
-
         # choose solver:
         if solver == "mesolve":
             solver = mesolve
-            print(noisy_qobjevo.cte)
+        
             evo_result = mesolve(
                 H=noisy_qobjevo, rho0=init_state,
                 tlist=noisy_qobjevo.tlist, **kwargs)
