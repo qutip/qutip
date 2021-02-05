@@ -207,6 +207,7 @@ cdef class CQobjFunc(CQobjEvo):
     def __init__(self, base):
         self.base = base
         self.reset_shape()
+        self.n_ops = 0
 
     def reset_shape(self):
         self.shape = self.base.shape

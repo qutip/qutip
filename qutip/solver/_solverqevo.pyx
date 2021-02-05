@@ -24,7 +24,7 @@ cdef class SolverQEvo:
         self.num_calls = 0
 
     def jac_np_vec(self, t, vec):
-        return self.jac_data(t).as_array()
+        return self.jac_data(t).to_array()
 
     cdef _data.Data jac_data(self, double t):
         if self.has_dynamic_args:
@@ -33,10 +33,11 @@ cdef class SolverQEvo:
         return self.base.call(t, data=True)
 
     cpdef list get_coeff(self, double t, vec=None):
+        # TODO: Is this needed? I used it in debug but does it have any other use?
         cdef Feedback feedback
         cdef _data.Dense state
         if self.has_dynamic_args and vec is not None:
-            state = _data.dense.fast_from_numpy(vec)
+            state = _data.dense.Dense(vec, copy=False)
             for dyn_args in self.dynamic_arguments:
                 feedback = <Feedback> dyn_args
                 val = feedback._call(t, state)
@@ -104,10 +105,10 @@ cdef class SolverQEvo:
             feedback = <Feedback> dyn_args
             val = feedback._call(t, matrix)
             self.args[feedback.key] = val
-        for i in range(self.base.n_ops):
-            (<Coefficient> self.base.coeff[i]).arguments(self.args)
+        self.base_py.arguments(self.args)
 
     cpdef void arguments(self, dict args):
+        self.args = args
         self.base_py.arguments(args)
 
     @property

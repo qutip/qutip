@@ -52,6 +52,7 @@ cdef class CQobjEvo:
 
     cdef void _factor(self, double t) except *
 
+    # To remove when safe
     cdef bint has_dynamic_args
     cdef list dynamic_arguments
     cdef dict args
