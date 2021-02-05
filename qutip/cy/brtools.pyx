@@ -33,9 +33,10 @@
 ###############################################################################
 from scipy.linalg.cython_lapack cimport zheevr, zgeev
 from scipy.linalg.cython_blas cimport zgemm, zgemv, zaxpy
-from qutip.cy.spmath cimport (_zcsr_kron_core, _zcsr_kron,
-                    _zcsr_add, _zcsr_transpose, _zcsr_adjoint,
-                    _zcsr_mult)
+from qutip.cy.spmath cimport (
+    _zcsr_kron_core, _zcsr_kron, _zcsr_add, _zcsr_transpose, _zcsr_adjoint,
+    _zcsr_mult, _safe_multiply,
+)
 from qutip.cy.spconvert cimport fdense2D_to_CSR
 from qutip.cy.spmatfuncs cimport spmvpy
 from qutip.cy.brtools cimport spec_func
@@ -432,7 +433,10 @@ cpdef cop_super_term(complex[::1,:] cop, complex[::1,:] evecs,
 
 
     #mat2 holds data for kron(cop.dag(), c)
-    init_CSR(&mat2, mat1.nnz**2, mat1.nrows**2, mat1.ncols**2)
+    init_CSR(&mat2,
+             _safe_multiply(mat1.nnz, mat1.nnz),
+             _safe_multiply(mat1.nrows, mat1.nrows),
+             _safe_multiply(mat1.ncols, mat1.ncols))
     _zcsr_kron_core(conj_data, mat1.indices, mat1.indptr,
                    mat1.data, mat1.indices, mat1.indptr,
                    &mat2,
@@ -477,7 +481,7 @@ cdef void cop_super_mult(complex[::1,:] cop, complex[::1,:] evecs,
                      double complex alpha,
                      double complex * out,
                      unsigned int nrows,
-                     double atol):
+                     double atol) except *:
     cdef size_t kk
     cdef CSR_Matrix mat1, mat2, mat3, mat4
 
@@ -499,7 +503,12 @@ cdef void cop_super_mult(complex[::1,:] cop, complex[::1,:] evecs,
         conj_data[kk] = conj(mat1.data[kk])
 
     #mat2 holds data for kron(cop.dag(), c)
-    init_CSR(&mat2, mat1.nnz**2, mat1.nrows**2, mat1.ncols**2)
+    init_CSR(
+        &mat2,
+        _safe_multiply(mat1.nnz, mat1.nnz),
+        _safe_multiply(mat1.nrows, mat1.nrows),
+        _safe_multiply(mat1.ncols, mat1.ncols),
+    )
     _zcsr_kron_core(conj_data, mat1.indices, mat1.indptr,
                    mat1.data, mat1.indices, mat1.indptr,
                    &mat2,

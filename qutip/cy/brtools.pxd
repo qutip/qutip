@@ -62,7 +62,7 @@ cdef void cop_super_mult(complex[::1,:] cop, complex[::1,:] evecs,  double compl
                     double complex alpha,
                     double complex * out,
                     unsigned int nrows,
-                    double atol)
+                    double atol) except *
 
 cdef void vec2mat_index(int nrows, int index, int[2] out) nogil
 
