@@ -756,6 +756,8 @@ class Processor(object):
         else:
             noisy_qobjevo, sys_c_ops = self.get_qobjevo(noisy=noisy)
 
+        # return noisy_qobjevo
+        
         # add collpase operators into kwargs
         if "c_ops" in kwargs:
             if isinstance(kwargs["c_ops"], (Qobj, QobjEvo)):
@@ -764,6 +766,7 @@ class Processor(object):
                 kwargs["c_ops"] += sys_c_ops
         else:
             kwargs["c_ops"] = sys_c_ops
+
         # choose solver:
         if solver == "mesolve":
             solver = mesolve
