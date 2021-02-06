@@ -847,12 +847,36 @@ class Processor(object):
 
         tlist = np.linspace(0., self.get_full_tlist()[-1], 1000)
         dt = tlist[1] - tlist[0]
-        coeffs = self.get_full_coeffs(tlist)
+
+
+        def pulse_interpolate(pulse, tlist):
+            if pulse.tlist is None and pulse.coeff is None:
+                coeff = np.zeros(len(tlist))
+                return coeff
+            if not isinstance(pulse.coeff, (bool, np.ndarray)):
+                raise ValueError(
+                    "get_full_coeffs only works for "
+                    "NumPy array or bool coeff.")
+            if isinstance(pulse.coeff, bool):
+                if pulse.coeff:
+                    coeff = np.ones(len(tlist))
+                else:
+                    coeff = np.zeros(len(tlist))
+                return coeff
+
+            from scipy import interpolate
+            if pulse.spline_kind == "step_func":
+                kind = "previous"
+            else:
+                kind = "cubic"
+            inter = interpolate.interp1d(pulse.tlist, pulse.coeff, kind=kind,  bounds_error=False, fill_value=0.0)
+            return inter(tlist)
+
         # make sure coeffs start and end with zero, for ax.fill
         tlist = np.hstack(([-dt*1.e-20], tlist, [tlist[-1] + dt*1.e-20]))
-        coeffs = np.hstack(
-            (np.array([[0.]] * len(self.pulses)), coeffs,
-                np.array([[0.]] * len(self.pulses))))
+        coeffs = []
+        for pulse in self.pulses:
+            coeffs.append(pulse_interpolate(pulse, tlist))
 
         pulse_ind = 0
         axis = []
