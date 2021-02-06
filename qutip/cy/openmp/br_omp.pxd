@@ -33,8 +33,7 @@
 ###############################################################################
 cimport numpy as cnp
 
-#Spectral function with signature (w,t)
-ctypedef complex (*spec_func)(double, double)
+from qutip.cy.brtools cimport spec_func
 
 
 cdef void cop_super_mult_openmp(complex[::1,:] cop, complex[::1,:] evecs,  double complex * vec,
