@@ -2,7 +2,7 @@
 import numpy as np
 from qutip.qip.compiler import Instruction
 from qutip.qip.compiler import GateCompiler
-
+import matplotlib.pyplot as plt
 
 #define gauss block shape
 def gauss_block(t,sigma,amplitude,duration):
@@ -13,8 +13,50 @@ def gauss_block(t,sigma,amplitude,duration):
     else:
         return amplitude
 gauss_block=np.vectorize(gauss_block)
-#define sigma_z gaussian block shape pulse
-#define gaussian shape x rotation, normally for quick pulse
+
+# define modulated gauss block shape
+def gauss_block_modulated(t,sigma,amplitude,duration,omega,phase):
+    return gauss_block(t,sigma,amplitude,duration)*np.cos(omega*t+phase)
+
+#define gauss_block shape modulated which used for qubit XY plane rotation, mostly used 
+def gauss_block_modulated_XY_rotate_compiler(gate,args):   
+    """
+    Compiler for the X-axis_Rotate gate
+    """
+    targets = gate.targets  # target qubit
+    parameters = args["params"]
+
+    #set pulse strength (rabi frequency)
+    if gate.arg_value['Omega']:
+        Omega=gate.arg_value['Omega']*np.pi*2
+    else:
+        Omega= parameters["Omega"]
+    #set pulse raising time (sigma)
+    if gate.arg_value['sigma']:
+        gate_sigma=gate.arg_value['sigma']
+    else:
+        gate_sigma = 0.01
+    #set drive detuning frequency
+    if gate.arg_value['detuning']:
+        omega=gate.arg_value['detuning']*np.pi*2
+    else:
+        omega=0
+    #set drive direction
+    if gate.arg_value['phase']:
+        phase=gate.arg_value['phase']
+    else:
+        phase=0
+    #set pulse duration
+    duration=gate.arg_value['duration']
+    
+    time_step=3e-3
+    tlist = np.linspace(0, duration, int(duration/time_step))
+    coeff1 = gauss_block_modulated(tlist, gate_sigma, Omega, duration,omega, phase)
+    coeff2 = gauss_block_modulated(tlist, gate_sigma, Omega, duration,omega, phase+np.pi/2)
+
+    pulse_info =[ ("X-axis_R", coeff1),("Y-axis_R",coeff2) ]#  save the information in a tuple (pulse_name, coeff)
+    return [Instruction(gate, tlist, pulse_info)]
+
 
 def swap_phonon_compiler(gate, args):
     """
@@ -31,7 +73,7 @@ def swap_phonon_compiler(gate, args):
     pulse_info =[ ("Z-axis_R", coeff) ]#  save the information in a tuple (pulse_name, coeff)
     return [Instruction(gate, tlist, pulse_info)]
 
-
+#define sigma_z gaussian block shape pulse
 def starkshift_compiler(gate, args):
     """
     Compiler for the X-axis_Rotate gate
@@ -59,7 +101,10 @@ def gauss_rx_compiler(gate, args):
     """
     targets = gate.targets  # target qubit
     parameters = args["params"]
-    Omega= parameters["Omega"]  # find the coupling strength for the target qubit
+    if gate.arg_value:
+        Omega=gate.arg_value['Omega']
+    else:
+        Omega= parameters["Omega"]  # find the coupling strength for the target qubit
     gate_sigma = 1/Omega
     amplitude = Omega/2.49986*np.pi/2 #  0.9973 is just used to compensate the finite pulse duration so that the total area is fixed
     duration = 6 * gate_sigma
@@ -84,8 +129,9 @@ class HBAR_Compiler(GateCompiler):  # compiler class
         super(HBAR_Compiler, self).__init__(
             num_qubits, params=params, pulse_dict=pulse_dict)
         # pass our compiler function as a compiler for RX (rotation around X) gate.
-        self.gate_compiler["X"] = gauss_rx_compiler
+        self.gate_compiler["X_R"] = gauss_rx_compiler
         self.gate_compiler["Wait"]=wait_complier
         self.gate_compiler["swap"]=swap_phonon_compiler
-        self.gate_compiler['Z_R']=starkshift_compiler
+        self.gate_compiler['Z_R_GB']=starkshift_compiler
+        self.gate_compiler['XY_R_GB']= gauss_block_modulated_XY_rotate_compiler
         self.args.update({"params": params})

@@ -6,17 +6,17 @@ from qutip.qip.device.processor import Processor
 
 
 class HBAR_processor(Processor):
-    def __init__(self,N,t1,t2,dims,Omega=20,alpha=200,FSR=13,g=0.266):
+    def __init__(self,N,t1,t2,dims,Omega=20,alpha=200,FSR=13,g=0.266,rest_place=6.5):
         super(HBAR_processor,self).__init__(N,t1,t2,dims)
         self.set_up_params(Omega,alpha,FSR,g)
         self.set_up_ops()
         self.set_up_drift() 
 
-    def set_up_params(self, Omega,alpha,FSR,g):
+    def set_up_params(self, Omega,alpha,FSR,g,rest_place):
         self.params = {}
-        self.params["Omega"] = 2*np.pi*Omega  # for each qubtis, they can also be different
-        self.params["alpha"] = 2*np.pi*alpha
-        self.params['phonon_omega_z']=(np.array(range(self.N-1))*FSR-FSR/2)*2*np.pi
+        self.params["Omega"] = 2*np.pi*Omega  # default rabi frequency
+        self.params["alpha"] = 2*np.pi*alpha  # enharmonic term
+        self.params['phonon_omega_z']=(np.array(range(self.N-1))*FSR-rest_place)*2*np.pi
         self.params['g']=g*2*np.pi
         # Here goes all computation of hardware parameters. They all need to be saved in self.params for later use.
         # The computed parameters can be used e.g. in setting up the Hamiltonians or the compiler to compute the pulse coefficients.
