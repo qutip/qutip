@@ -8,7 +8,7 @@ from qutip.qip.device.processor import Processor
 class HBAR_processor(Processor):
     def __init__(self,N,t1,t2,dims,Omega=20,alpha=200,FSR=13,g=0.266,rest_place=6.5):
         super(HBAR_processor,self).__init__(N,t1,t2,dims)
-        self.set_up_params(Omega,alpha,FSR,g)
+        self.set_up_params(Omega,alpha,FSR,g,rest_place)
         self.set_up_ops()
         self.set_up_drift() 
 
@@ -46,8 +46,10 @@ class HBAR_processor(Processor):
         index +=1
 
     def set_up_drift(self):
+
         #qubit enharmonic term
         self.add_drift(self.params['alpha']*create(self.dims[0])**2*destroy(self.dims[0])**2,0)
+
         #qubit phonon coupling
         for i in range(self.N-1):
             self.add_drift(
@@ -64,10 +66,6 @@ class HBAR_processor(Processor):
                         ),i+1
                             )
     def load_circuit(self, circuit, schedule_mode=False, compiler=None):
-        # resolve the circuit to a certain basis
-        # circuit = circuit.resolve_gates(basis=["ISWAP", "RX", "RZ"])  # other supported gates includes RY, Cnum_qubitsOT, SQRTISWAP
-        # compile the circuit to control pulses
-        
         tlist, coeffs = compiler.compile(circuit, schedule_mode=schedule_mode)
         # save the time sequence and amplitude for all pulses
         self.set_all_tlist(tlist)

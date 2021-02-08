@@ -37,6 +37,7 @@ class fitter(object):
         self.t_list=t_list
         self.apm_list=amp_list
     def fit_T1(self):
+        #fit for exp decay, e.g. T1
         x_array=self.t_list
         y_array=self.apm_list
         minimum_amp=np.min(y_array)
@@ -51,6 +52,7 @@ class fitter(object):
         return popt[1]
     
     def fit_phonon_rabi(self):
+        #fit for phonon_qubit oscillation
         x_array=self.t_list
         y_array=self.apm_list
         minimum_point=signal.argrelextrema(y_array, np.less)[0]

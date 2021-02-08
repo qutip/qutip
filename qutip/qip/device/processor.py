@@ -142,7 +142,6 @@ class Processor(object):
             self.dims = dims
         self.pulse_mode = "discrete"
         self.spline_kind = spline_kind
-        print('a new processor')
 
     @property
     def num_qubits(self):

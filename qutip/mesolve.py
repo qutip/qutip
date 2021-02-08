@@ -459,7 +459,8 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
         output.num_expect = n_expt_op
         if n_expt_op == 0:
             # fall back on storing states
-            opt.store_states = True
+            # opt.store_states = True
+            pass
         else:
             for op in e_ops:
                 e_ops_data.append(spre(op).data)
