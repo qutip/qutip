@@ -33,13 +33,13 @@ def continue_fourier_transform(time_array,amp_array,freq_array):
 
 
 class fitter(object):
-    def __init__(self,t_list,amp_list):
-        self.t_list=t_list
-        self.apm_list=amp_list
+    def __init__(self,x_array,y_array):
+        self.x_array=x_array
+        self.y_array=y_array
     def fit_T1(self):
         #fit for exp decay, e.g. T1
-        x_array=self.t_list
-        y_array=self.apm_list
+        x_array=self.x_array
+        y_array=self.y_array
         minimum_amp=np.min(y_array)
         normalization=y_array[-1]
         popt,pcov =curve_fit(Exp_decay,x_array,y_array,[-(normalization-minimum_amp),20,normalization])
@@ -53,8 +53,8 @@ class fitter(object):
     
     def fit_phonon_rabi(self):
         #fit for phonon_qubit oscillation
-        x_array=self.t_list
-        y_array=self.apm_list
+        x_array=self.x_array
+        y_array=self.y_array
         minimum_point=signal.argrelextrema(y_array, np.less)[0]
         delay_range=x_array[-1]-x_array[0]
         minimum_amp=np.min(y_array)

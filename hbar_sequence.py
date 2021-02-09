@@ -60,6 +60,7 @@ def qubit_pec_measurement(detuning_list,processor,compiler,params):
         circuit.add_gate("XY_R_GB", targets=0,arg_value=params)
         final_state=run_circuit(circuit,processor,compiler)
         qubit_measured_list.append(expect(num(processor.dims[0]),final_state.ptrace(0)))
+
     return qubit_measured_list
 
 # fock state phonon number splitting

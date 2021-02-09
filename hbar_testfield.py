@@ -1,3 +1,4 @@
+#%%
 import hbar_compiler
 import hbar_processor
 import hbar_sequence
@@ -18,18 +19,25 @@ test_compiler = hbar_compiler.HBAR_Compiler(test_processor.num_qubits,\
 #fitted simulation result of swap gate time for each fock state.
 swap_t_list_simulated=np.array([0.9615710875211836, 0.6793394959515644, 0.5549226661382177, 0.4804636060930446,\
      0.4294620578370378, 0.3923078531720593, 0.3639007000694595, 0.34220291598663793])
-
+#%%
 t_L=np.linspace(0.1,10,100)
 detuning_L=np.linspace(-0.2,0.5,71)
-param1={'Omega':0.025,
+param1={'Omega':0.0125,
     'phase':0,
-    'sigma':0.02,
-    'duration':10,
+    'sigma':0.2,
+    'duration':15,
     }
-catch_result=hbar_sequence.num_split_fock_measurement(detuning_L,test_processor,test_compiler,param1,swap_t_list_simulated[:1])
+param2={'Omega':0.3,
+    'phase':0,
+    'sigma':0.2,
+    'duration':30,
+    'detuning':-1
+    }
+catch_result=hbar_sequence.num_split_coh_measurement(detuning_L,test_processor,test_compiler,param2,param1)
+# catch_result=hbar_sequence.num_split_fock_measurement(detuning_L,test_processor,test_compiler,param1,swap_t_list_simulated[:3])
 plt.plot(detuning_L,catch_result)
+#%%
 plt.show()
-
 
 # if 1:
 #     tl=np.linspace(0.1,10,100)
@@ -41,3 +49,7 @@ plt.show()
 #         swap_t=t1_fitter.fit_phonon_rabi()
 #         swap_t_list.append(swap_t)
 
+
+# %%
+
+# %%
