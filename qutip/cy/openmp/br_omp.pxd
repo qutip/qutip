@@ -33,8 +33,7 @@
 ###############################################################################
 cimport numpy as cnp
 
-#Spectral function with signature (w,t)
-ctypedef complex (*spec_func)(double, double)
+from qutip.cy.brtools cimport spec_func
 
 
 cdef void cop_super_mult_openmp(complex[::1,:] cop, complex[::1,:] evecs,  double complex * vec,
@@ -43,7 +42,7 @@ cdef void cop_super_mult_openmp(complex[::1,:] cop, complex[::1,:] evecs,  doubl
                     unsigned int nrows,
                     unsigned int omp_thresh,
                     unsigned int nthr,
-                    double atol)
+                    double atol) except *
 
 
 cdef void br_term_mult_openmp(double t, complex[::1,:] A, complex[::1,:] evecs,
@@ -53,4 +52,4 @@ cdef void br_term_mult_openmp(double t, complex[::1,:] A, complex[::1,:] evecs,
                 double sec_cutoff,
                 unsigned int omp_thresh,
                 unsigned int nthr,
-                double atol)
+                double atol) except *

@@ -356,9 +356,9 @@ def zcsr_kron(object A, object B):
     cdef int rowsB = B.shape[0]
     cdef int colsB = B.shape[1]
 
-    cdef int out_nnz = _safe_multiply(dataA.shape[0], dataB.shape[0])
-    cdef int rows_out = rowsA * rowsB
-    cdef int cols_out = colsA * colsB
+    cdef int out_nnz = _safe_multiply(indptrA[rowsA], indptrB[rowsB])
+    cdef int rows_out = _safe_multiply(rowsA, rowsB)
+    cdef int cols_out = _safe_multiply(colsA, colsB)
 
     cdef CSR_Matrix out
     init_CSR(&out, out_nnz, rows_out, cols_out)
@@ -372,15 +372,15 @@ def zcsr_kron(object A, object B):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void _zcsr_kron(CSR_Matrix * A, CSR_Matrix * B, CSR_Matrix * C):
+cdef void _zcsr_kron(CSR_Matrix * A, CSR_Matrix * B, CSR_Matrix * C) except *:
     """
     Computes the kronecker product between two complex
     sparse matrices in CSR format.
     """
 
     cdef int out_nnz = _safe_multiply(A.nnz, B.nnz)
-    cdef int rows_out = A.nrows * B.nrows
-    cdef int cols_out = A.ncols * B.ncols
+    cdef int rows_out = _safe_multiply(A.nrows, B.nrows)
+    cdef int cols_out = _safe_multiply(A.ncols, B.ncols)
 
     init_CSR(C, out_nnz, rows_out, cols_out)
 
@@ -695,8 +695,9 @@ cdef bint _zcsr_isherm_full(
         free_CSR(&transpose)
 
 
+# Exception signal value should be something we only return rarely.
 @cython.overflowcheck(True)
-cdef _safe_multiply(int A, int B):
+cdef int _safe_multiply(int A, int B) except? -1:
     """
     Computes A*B and checks for overflow.
     """

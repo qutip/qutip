@@ -34,6 +34,8 @@
 
 from qutip.cy.sparse_structs cimport CSR_Matrix
 
+cdef int _safe_multiply(int a, int b) except? -1
+
 cdef void _zcsr_add(CSR_Matrix * A, CSR_Matrix * B,
                     CSR_Matrix * C, double complex alpha)
 
@@ -46,7 +48,7 @@ cdef int _zcsr_add_core(double complex * Adata, int * Aind, int * Aptr,
 cdef void _zcsr_mult(CSR_Matrix * A, CSR_Matrix * B, CSR_Matrix * C)
 
 
-cdef void _zcsr_kron(CSR_Matrix * A, CSR_Matrix * B, CSR_Matrix * C)
+cdef void _zcsr_kron(CSR_Matrix * A, CSR_Matrix * B, CSR_Matrix * C) except *
 
 cdef void _zcsr_kron_core(double complex * dataA, int * indsA, int * indptrA,
                           double complex * dataB, int * indsB, int * indptrB,
