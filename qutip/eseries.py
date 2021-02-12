@@ -84,13 +84,12 @@ class eseries():
                 self.dims = q.dims
                 self.shape = q.shape
             elif isinstance(q, (np.ndarray, list)):
-                ind = np.shape(q)
-                num = ind[0]  # number of elements in q
+                num = len(q)  # number of elements in q
                 if any([Qobj(x).shape != Qobj(q[0]).shape for x in q]):
                     raise TypeError('All amplitudes must have same dimension.')
-                self.ampl = np.empty(ind, dtype=object)
+                self.ampl = np.empty((num,), dtype=object)
                 self.ampl[:] = q
-                self.rates = np.zeros(ind)
+                self.rates = np.zeros((num,))
                 self.dims = self.ampl[0].dims
                 self.shape = self.ampl[0].shape
             elif isinstance(q, Qobj):
@@ -108,11 +107,10 @@ class eseries():
 
         elif len(s) != 0:
             if isinstance(q, (np.ndarray, list)):
-                ind = np.shape(q)
-                num = ind[0]
+                num = len(q)
                 if any([Qobj(x).shape != Qobj(q[0]).shape for x in q]):
                     raise TypeError('All amplitudes must have same dimension.')
-                self.ampl = np.empty((len(q),), dtype=object)
+                self.ampl = np.empty((num,), dtype=object)
                 self.ampl[:] = [Qobj(qq) for qq in q]
                 self.dims = self.ampl[0].dims
                 self.shape = self.ampl[0].shape

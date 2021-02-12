@@ -137,19 +137,15 @@ def ode2es(L, rho0):
         ``eseries`` represention of the system dynamics.
 
     """
-
     if issuper(L):
-
         # check initial state
         if isket(rho0):
             # Got a wave function as initial state: convert to density matrix.
             rho0 = rho0 * rho0.dag()
-
         # check if state is below error threshold
         if abs(rho0.full()).sum() < 1e-10 + 1e-24:
             # enforce zero operator
             return eseries(qzero(rho0.dims[0]))
-
         w, v = L.eigenstates()
         v = np.hstack([ket.full() for ket in v])
         # w[i]   = eigenvalue i
