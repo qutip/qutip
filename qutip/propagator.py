@@ -258,11 +258,13 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
             return Qobj(u[:, :, 1], dims=dims)
     else:
         if unitary_mode == 'batch':
-            return np.array([Qobj(u[k], dims=dims)
-                             for k in range(len(tlist))], dtype=object)
+            out = np.empty((len(tlist),), dtype=object)
+            out[:] = [Qobj(u[k], dims=dims) for k in range(len(tlist))]
+            return out
         else:
-            return np.array([Qobj(u[:, :, k], dims=dims)
-                             for k in range(len(tlist))], dtype=object)
+            out = np.empty((len(tlist),), dtype=object)
+            out[:] = [Qobj(u[:, :, k], dims=dims) for k in range(len(tlist))]
+            return out
 
 
 def _get_min_and_index(lst):

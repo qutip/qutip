@@ -163,7 +163,9 @@ def qutrit_basis():
         Array of qutrit basis vectors
 
     """
-    return np.array([basis(3, 0), basis(3, 1), basis(3, 2)], dtype=object)
+    out = np.empty((3,), dtype=object)
+    out[:] = [basis(3, 0), basis(3, 1), basis(3, 2)]
+    return out
 
 
 def coherent(N, alpha, offset=0, method='operator'):

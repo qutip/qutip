@@ -758,16 +758,15 @@ def qutrit_ops():
 
     """
     from qutip.states import qutrit_basis
-
+    out = np.empty((6,), dtype=object)
     one, two, three = qutrit_basis()
-    sig11 = one * one.dag()
-    sig22 = two * two.dag()
-    sig33 = three * three.dag()
-    sig12 = one * two.dag()
-    sig23 = two * three.dag()
-    sig31 = three * one.dag()
-    return np.array([sig11, sig22, sig33, sig12, sig23, sig31],
-                    dtype=object)
+    out[0] = one * one.dag()
+    out[1] = two * two.dag()
+    out[2] = three * three.dag()
+    out[3] = one * two.dag()
+    out[4] = two * three.dag()
+    out[5] = three * one.dag()
+    return out
 
 
 def qdiags(diagonals, offsets, dims=None, shape=None):

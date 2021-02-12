@@ -214,9 +214,9 @@ class Qobj(object):
 
     """
     __array_priority__ = 100  # sets Qobj priority above numpy arrays
-    # Disable ufuncs and other numpy interface functions from acting directly
-    # on Qobj. This is necessary because we define __array__.
-    __array_ufunc__ = __array_function__ = None
+    # Disable ufuncs from acting directly on Qobj. This is necessary because we
+    # define __array__.
+    __array_ufunc__ = None
 
     def __init__(self, inpt=None, dims=[[], []], shape=[],
                  type=None, isherm=None, copy=True,
@@ -577,21 +577,23 @@ class Qobj(object):
 
         elif isinstance(other, np.ndarray):
             if other.dtype == 'object':
-                return np.array([self * item for item in other],
-                                dtype=object)
+                out = np.empty(other.shape, dtype=object)
+                for i, item in enumerate(other.flat):
+                    out.flat[i] = self * item
+                return out
             else:
                 return self.data * other
 
         elif isinstance(other, list):
             # if other is a list, do element-wise multiplication
-            return np.array([self * item for item in other],
-                            dtype=object)
+            out = np.empty(len(other), dtype=object)
+            out[:] = [self * item for item in other]
+            return out
 
         elif isinstance(other, eseries):
             return other.__rmul__(self)
 
-        elif isinstance(other, (int, float, complex,
-                                np.integer, np.floating, np.complexfloating)):
+        elif isinstance(other, numbers.Number):
             out = Qobj()
             out.data = self.data * other
             out.dims = self.dims
@@ -614,14 +616,18 @@ class Qobj(object):
         """
         if isinstance(other, np.ndarray):
             if other.dtype == 'object':
-                return np.array([item * self for item in other], dtype=object)
+                out = np.empty(other.shape, dtype=object)
+                for i, item in enumerate(other.flat):
+                    out.flat[i] = item * self
+                return out
             else:
                 return other * self.data
 
         elif isinstance(other, list):
             # if other is a list, do element-wise multiplication
-            return np.array([item * self for item in other],
-                            dtype=object)
+            out = np.empty(len(other), dtype=object)
+            out[:] = [item * self for item in other]
+            return out
 
         elif isinstance(other, eseries):
             return other.__mul__(self)
@@ -1717,8 +1723,8 @@ class Qobj(object):
                                sort=sort, eigvals=eigvals, tol=tol,
                                maxiter=maxiter)
         new_dims = [self.dims[0], [1] * len(self.dims[0])]
-        ekets = np.array([Qobj(vec, dims=new_dims) for vec in evecs],
-                         dtype=object)
+        ekets = np.empty((len(evecs),), dtype=object)
+        ekets[:] = [Qobj(vec, dims=new_dims) for vec in evecs]
         norms = np.array([ket.norm() for ket in ekets])
         if phase_fix is None:
             phase = np.array([1] * len(ekets))
