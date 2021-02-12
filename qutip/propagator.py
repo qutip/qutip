@@ -133,7 +133,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
     if isinstance(H, (types.FunctionType, types.BuiltinFunctionType,
                       functools.partial)):
         H0 = H(0.0, args)
-        if unitary_mode =='batch':
+        if unitary_mode == 'batch':
             # batch don't work with function Hamiltonian
             unitary_mode = 'single'
     elif isinstance(H, list):
@@ -165,7 +165,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                 else:
                     return output.states
 
-            elif unitary_mode =='batch':
+            elif unitary_mode == 'batch':
                 u = np.zeros(len(tlist), dtype=object)
                 _rows = np.array([(N+1)*m for m in range(N)])
                 _cols = np.zeros_like(_rows)
@@ -192,7 +192,6 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
             else:
                 raise Exception('Invalid unitary mode.')
 
-
     elif len(c_op_list) == 0 and H0.issuper:
         # calculate the propagator for the vector representation of the
         # density matrix (a superoperator propagator)
@@ -204,7 +203,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         u = np.zeros([N, N, len(tlist)], dtype=complex)
 
         if parallel:
-            output = parallel_map(_parallel_mesolve,range(N * N),
+            output = parallel_map(_parallel_mesolve, range(N * N),
                                   task_args=(
                                       sqrt_N, H, tlist, c_op_list, args,
                                       options),
@@ -213,7 +212,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                 for k, t in enumerate(tlist):
                     u[:, n, k] = mat2vec(output[n].states[k].full()).T
         else:
-            rho0 = qeye(N,N)
+            rho0 = qeye(N, N)
             rho0.dims = [[sqrt_N, sqrt_N], [sqrt_N, sqrt_N]]
             output = mesolve(H, psi0, tlist, [], args, options,
                              _safe_mode=False)
@@ -245,7 +244,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                 progress_bar.update(n)
                 col_idx, row_idx = np.unravel_index(n, (N, N))
                 rho0 = Qobj(sp.csr_matrix(([1], ([row_idx], [col_idx])),
-                                          shape=(N,N), dtype=complex))
+                                          shape=(N, N), dtype=complex))
                 output = mesolve(H, rho0, tlist, c_op_list, [], args, options,
                                  _safe_mode=False)
                 for k, t in enumerate(tlist):
@@ -311,10 +310,11 @@ def _parallel_sesolve(n, N, H, tlist, args, options):
     output = sesolve(H, psi0, tlist, [], args, options, _safe_mode=False)
     return output
 
+
 def _parallel_mesolve(n, N, H, tlist, c_op_list, args, options):
     col_idx, row_idx = np.unravel_index(n, (N, N))
     rho0 = Qobj(sp.csr_matrix(([1], ([row_idx], [col_idx])),
-                              shape=(N,N), dtype=complex))
+                              shape=(N, N), dtype=complex))
     output = mesolve(H, rho0, tlist, c_op_list, [], args, options,
                      _safe_mode=False)
     return output
