@@ -209,6 +209,9 @@ class Qobj(object):
 
     """
     __array_priority__ = 100  # sets Qobj priority above numpy arrays
+    # Disable ufuncs and other numpy interface functions from acting directly
+    # on Qobj. This is necessary because we define __array__.
+    __array_ufunc__ = __array_function__ = None
 
     def __init__(self, inpt=None, dims=[[], []], shape=[],
                  type=None, isherm=None, copy=True,
