@@ -160,10 +160,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
             if unitary_mode == 'single':
                 output = sesolve(H, qeye(dims[0]), tlist, [], args, options,
                                  _safe_mode=False)
-                if len(tlist) == 2:
-                    return output.states[-1]
-                else:
-                    return output.states
+                return output.states[-1] if len(tlist) == 2 else output.states
 
             elif unitary_mode == 'batch':
                 u = np.zeros(len(tlist), dtype=object)
@@ -188,9 +185,8 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                     u[k] = sp_reshape(output.states[k].data, (N, N))
                     unit_row_norm(u[k].data, u[k].indptr, u[k].shape[0])
                     u[k] = u[k].T.tocsr()
-
             else:
-                raise Exception('Invalid unitary mode.')
+                raise ValueError('Invalid unitary mode.')
 
     elif len(c_op_list) == 0 and H0.issuper:
         # calculate the propagator for the vector representation of the
@@ -216,10 +212,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
             rho0.dims = [[sqrt_N, sqrt_N], [sqrt_N, sqrt_N]]
             output = mesolve(H, psi0, tlist, [], args, options,
                              _safe_mode=False)
-            if len(tlist) == 2:
-                return output.states[-1]
-            else:
-                return output.states
+            return output.states[-1] if len(tlist) == 2 else output.states
 
     else:
         # calculate the propagator for the vector representation of the
@@ -252,19 +245,15 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
             progress_bar.finished()
 
     if len(tlist) == 2:
-        if unitary_mode == 'batch':
-            return Qobj(u[-1], dims=dims)
-        else:
-            return Qobj(u[:, :, 1], dims=dims)
+        data = u[-1] if unitary_mode == 'batch' else u[:, :, 1]
+        return Qobj(data, dims=dims)
+
+    out = np.empty((len(tlist),), dtype=object)
+    if unitary_mode == 'batch':
+        out[:] = [Qobj(u[k], dims=dims) for k in range(len(tlist))]
     else:
-        if unitary_mode == 'batch':
-            out = np.empty((len(tlist),), dtype=object)
-            out[:] = [Qobj(u[k], dims=dims) for k in range(len(tlist))]
-            return out
-        else:
-            out = np.empty((len(tlist),), dtype=object)
-            out[:] = [Qobj(u[:, :, k], dims=dims) for k in range(len(tlist))]
-            return out
+        out[:] = [Qobj(u[:, :, k], dims=dims) for k in range(len(tlist))]
+    return out
 
 
 def _get_min_and_index(lst):
