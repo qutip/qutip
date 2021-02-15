@@ -802,8 +802,10 @@ def floquet_basis_transform(f_modes, f_energies, rho0):
 #
 
 
-def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
-                           options=None, floquet_basis=True, f_energies=None):
+def floquet_markov_mesolve(
+    R, rho0, tlist, e_ops, options=None, floquet_basis=True,
+    f_modes_0=None, f_modes_table_t=None, f_energies=None, T=None,
+):
     """
     Solve the dynamics for the system using the Floquet-Markov master equation.
 
@@ -818,11 +820,9 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
     R : array
         The Floquet-Markov master equation tensor `R`.
 
-    ekets : list of :class:`qutip.qobj` (kets)
-        A list of initial Floquet modes.
-
     rho0 : :class:`qutip.qobj`
-        initial density matrix.
+        Initial density matrix.  If ``f_modes_0`` is not passed, this density
+        matrix is assumed to be in the Floquet picture.
 
     tlist : *list* / *array*
         list of times for :math:`t`.
@@ -830,127 +830,116 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
     e_ops : list of :class:`qutip.qobj` / callback function
         list of operators for which to evaluate expectation values.
 
-    f_modes_table_t : nested list of :class:`qutip.qobj` (kets)
-        A lookup-table of Floquet modes at times precalculated by
-        :func:`qutip.floquet.floquet_modes_table` (optional).
-
     options : :class:`qutip.solver`
         options for the ODE solver.
 
-    floquet_basis : bool
-        Will return results in Floquet basis or computational basis
-        (optional).
+    floquet_basis: bool, True
+        If ``True``, states and expectation values will be returned in the
+        Floquet basis.  If ``False``, a transformation will be made to the
+        computational basis; this will be in the lab frame if
+        ``f_modes_table``, ``T` and ``f_energies`` are all supplied, or the
+        interaction picture (defined purely be f_modes_0) if they are not.
 
-    f_energies : array
-        The Floquet energies (optional). Optional but necessary to
-        do the basis change that will return the density matrix or
-        the expectation values in the lab frame and in computational
-        basis.
+    f_modes_0 : list of :class:`qutip.qobj` (kets), optional
+        A list of initial Floquet modes, used to transform the given starting
+        density matrix into the Floquet basis.  If this is not passed, it is
+        assumed that ``rho`` is already in the Floquet basis.
+
+    f_modes_table_t : nested list of :class:`qutip.qobj` (kets), optional
+        A lookup-table of Floquet modes at times precalculated by
+        :func:`qutip.floquet.floquet_modes_table`.  Necessary if
+        ``floquet_basis`` is ``False`` and the transformation should be made
+        back to the lab frame.
+
+    f_energies : array_like of float, optional
+        The precalculated Floquet quasienergies.  Necessary if
+        ``floquet_basis`` is ``False`` and the transformation should be made
+        back to the lab frame.
+
+    T : float, optional
+        The time period of driving.  Necessary if ``floquet_basis`` is
+        ``False`` and the transformation should be made back to the lab frame.
 
     Returns
     -------
 
     output : :class:`qutip.solver.Result`
-
         An instance of the class :class:`qutip.solver.Result`, which
         contains either an *array* of expectation values or an array of
         state vectors, for the times specified by `tlist`.
     """
-
-    if options is None:
-        opt = Options()
-    else:
-        opt = options
-
+    opt = options or Options()
     if opt.tidy:
         R.tidyup()
+    rho0 = rho0.proj() if rho0.isket else rho0
 
-    #
-    # check initial state
-    #
-    if isket(rho0):
-        # Got a wave function as initial state: convert to density matrix.
-        rho0 = ket2dm(rho0)
-
-    #
-    # prepare output array
-    #
-    n_tsteps = len(tlist)
+    # Prepare output object.
     dt = tlist[1] - tlist[0]
-
     output = Result()
     output.solver = "fmmesolve"
     output.times = tlist
-
     if isinstance(e_ops, FunctionType):
-        n_expt_op = 0
         expt_callback = True
-
-    elif isinstance(e_ops, list):
-
-        n_expt_op = len(e_ops)
+        store_states = options.store_states or False
+    else:
         expt_callback = False
-
+        try:
+            e_ops = list(e_ops)
+        except TypeError:
+            raise TypeError("`e_ops` must be iterable or a function") from None
+        n_expt_op = len(e_ops)
         if n_expt_op == 0:
-            output.states = []
+            store_states = True
         else:
-            if not f_modes_table:
-                raise TypeError("The Floquet mode table has to be provided " +
-                                "when requesting expectation values.")
-
             output.expect = []
             output.num_expect = n_expt_op
             for op in e_ops:
-                if op.isherm:
-                    output.expect.append(np.zeros(n_tsteps))
-                else:
-                    output.expect.append(np.zeros(n_tsteps, dtype=complex))
+                dtype = np.float64 if op.isherm else np.complex128
+                output.expect.append(np.zeros(len(tlist), dtype=dtype))
+        store_states = options.store_states or (n_expt_op == 0)
+    if store_states:
+        output.states = []
 
+    # Choose which frame transformations should be done on the initial and
+    # evolved states.
+    lab_lookup = [f_modes_table_t, f_energies, T]
+    if (
+        any(x is None for x in lab_lookup)
+        and not all(x is None for x in lab_lookup)
+    ):
+        warnings.warn(
+            "if transformation back to the computational basis in the lab"
+            "frame is desired, all of `f_modes_t`, `f_energies` and `T` must"
+            "be supplied."
+        )
+        f_modes_table_t = f_energies = T = None
+
+    # Initial state.
+    if f_modes_0 is not None:
+        rho0 = rho0.transform(f_modes_0)
+
+    # Evolved states.
+    if floquet_basis:
+        def transform(rho, t):
+            return rho
+    elif f_modes_table_t is not None:
+        # Lab frame, computational basis.
+        def transform(rho, t):
+            f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
+            f_states_t = floquet_states(f_modes_t, f_energies, t)
+            return rho.transform(f_states_t, True)
+    elif f_modes_0 is not None:
+        # Interaction picture, computational basis.
+        def transform(rho, t):
+            return rho.transform(f_modes_0, False)
     else:
-        raise TypeError("Expectation parameter must be a list or a function")
+        raise ValueError(
+            "cannot transform out of the Floquet basis without some knowledge "
+            "of the Floquet modes.  Pass `f_modes_0`, or all of `f_modes_t`, "
+            "`f_energies` and `T`."
+        )
 
-    if expt_callback:
-        if floquet_basis:
-            warnings.warn(
-                       'Be aware that the density matrix that enters ' +
-                       'the callback function e_ops is given in' +
-                       ' the interaction picture and in the floquet basis.')
-        else:
-            if f_energies is None:
-                    warnings.warn(
-                       'The expectation value will be returned ' +
-                       'in the interaction picture and in the computational' +
-                       ' basis. If you want the density matrix in the lab' +
-                       ' frame and in the computational basis, please enter' +
-                       ' f_energies.')
-    else:
-        if n_expt_op == 0:
-            if floquet_basis is False:
-                if f_energies is None:
-                    warnings.warn(
-                        'The density matrix will be returned in the ' +
-                        'interaction picture and in the computational' +
-                        'basis. If you want the density matrix in the ' +
-                        'lab frame and in the computational basis, ' +
-                        'please enter f_energies.')
-        else:
-            if f_energies is None:
-                    warnings.warn(
-                       'The expectation values are those' +
-                       ' in the interaction picture and in the computational' +
-                       ' basis. If you want the expectation values in the ' +
-                       ' lab frame and in the computational basis, please' +
-                       ' enter f_energies.')
-    #
-    # transform the initial density matrix to the eigenbasis: from
-    # computational basis to the floquet basis
-    #
-    if ekets is not None:
-        rho0 = rho0.transform(ekets)
-
-    #
-    # setup integrator
-    #
+    # Setup integrator.
     initial_vector = mat2vec(rho0.full())
     r = scipy.integrate.ode(cy_ode_rhs)
     r.set_f_params(R.data.data, R.data.indices, R.data.indptr)
@@ -958,64 +947,19 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
                      atol=opt.atol, rtol=opt.rtol, max_step=opt.max_step)
     r.set_initial_value(initial_vector, tlist[0])
 
-    #
-    # start evolution
-    #
-    rho = Qobj(rho0)
-
-    t_idx = 0
-    for t in tlist:
+    # Main evolution loop.
+    for t_idx, t in enumerate(tlist):
         if not r.successful():
             break
-
-        rho = Qobj(vec2mat(r.y), rho0.dims, rho0.shape)
-
+        rho = transform(Qobj(vec2mat(r.y), rho0.dims, rho0.shape), t)
         if expt_callback:
-            # use callback method
-            if floquet_basis:
-                e_ops(t, Qobj(rho))
-            else:
-                if f_energies is None:
-                    e_ops(t, Qobj(rho).transform(ekets, True))
-                else:
-                    f_modes_table_t, T = f_modes_table
-                    f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
-                    f_states_t = floquet_states(f_modes_t, f_energies, t)
-                    e_ops(t, Qobj(rho).transform(f_states_t, True))
-
+            e_ops(t, rho)
         else:
-            # calculate all the expectation values, or output rho if
-            # no operators
-            if n_expt_op == 0:
-                if floquet_basis:
-                    output.states.append(Qobj(rho))
-                else:
-                    if f_energies is None:
-                        output.states.append(Qobj(rho).transform(ekets,
-                                                                 True))
-                    else:
-                        f_modes_table_t, T = f_modes_table
-                        f_modes_t = floquet_modes_t_lookup(f_modes_table_t,
-                                                           t, T)
-                        f_states_t = floquet_states(f_modes_t, f_energies, t)
-                        output.states.append(Qobj(rho).transform(f_states_t,
-                                                                 True))
-            else:
-                if f_energies is None:
-                    for m in range(0, n_expt_op):
-                        output.expect[m][t_idx] = \
-                            expect(e_ops[m], rho.transform(ekets, True))
-                else:
-                    f_modes_table_t, T = f_modes_table
-                    f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
-                    f_states_t = floquet_states(f_modes_t, f_energies, t)
-                    for m in range(0, n_expt_op):
-                        output.expect[m][t_idx] = \
-                            expect(e_ops[m], rho.transform(f_states_t, True))
-
+            for m, e_op in enumerate(e_ops):
+                output.expect[m][t_idx] = expect(e_op, rho)
+        if store_states:
+            output.states.append(rho)
         r.integrate(r.t + dt)
-        t_idx += 1
-
     return output
 
 # -----------------------------------------------------------------------------
@@ -1137,8 +1081,10 @@ def fmmesolve(H, rho0, tlist, c_ops=[], e_ops=[], spectra_cb=[], T=None,
     # the floquet-markov master equation tensor
     R = floquet_master_equation_tensor(Amat, f_energies)
 
-    return floquet_markov_mesolve(R, f_modes_0, rho0, tlist, e_ops,
-                                  f_modes_table=(f_modes_table_t, T),
+    return floquet_markov_mesolve(R, rho0, tlist, e_ops,
                                   options=options,
                                   floquet_basis=floquet_basis,
+                                  f_modes_0=f_modes_0,
+                                  f_modes_table_t=f_modes_table_t,
+                                  T=T,
                                   f_energies=f_energies)
