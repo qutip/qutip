@@ -163,7 +163,9 @@ def qutrit_basis():
         Array of qutrit basis vectors
 
     """
-    return np.array([basis(3, 0), basis(3, 1), basis(3, 2)], dtype=object)
+    out = np.empty((3,), dtype=object)
+    out[:] = [basis(3, 0), basis(3, 1), basis(3, 2)]
+    return out
 
 
 def coherent(N, alpha, offset=0, method='operator'):
@@ -224,16 +226,15 @@ def coherent(N, alpha, offset=0, method='operator'):
         return D * x
 
     elif method == "analytic" or offset > 0:
-
         sqrtn = np.sqrt(np.arange(offset, offset+N, dtype=complex))
-        sqrtn[0] = 1 # Get rid of divide by zero warning
+        sqrtn[0] = 1  # Get rid of divide by zero warning
         data = alpha/sqrtn
         if offset == 0:
             data[0] = np.exp(-abs(alpha)**2 / 2.0)
         else:
-            s = np.prod(np.sqrt(np.arange(1, offset + 1))) # sqrt factorial
+            s = np.prod(np.sqrt(np.arange(1, offset + 1)))  # sqrt factorial
             data[0] = np.exp(-abs(alpha)**2 / 2.0) * alpha**(offset) / s
-        np.cumprod(data, out=sqrtn) # Reuse sqrtn array
+        np.cumprod(data, out=sqrtn)  # Reuse sqrtn array
         return Qobj(sqrtn)
 
     else:

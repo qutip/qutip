@@ -104,7 +104,10 @@ def _check_ctrls_container(ctrls):
         # Check to see if list of lists
         try:
             if isinstance(ctrls[0], (list, tuple)):
-                ctrls = np.array(ctrls, dtype=object)
+                ctrls_ = np.empty((len(ctrls), len(ctrls[0])), dtype=object)
+                for i, ctrl in enumerate(ctrls):
+                    ctrls_[i, :] = ctrl
+                ctrls = ctrls_
         except:
             pass
 

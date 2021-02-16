@@ -376,7 +376,7 @@ class Lattice1d():
                 raise Exception("Hamiltonian_of_cell does not have a shape \
                             consistent with cell_num_site and cell_site_dof.")
             self._H_intra = Qobj(Hamiltonian_of_cell, dims=dim_ih, type='oper')
-        is_real = np.isreal(self._H_intra).all()
+        is_real = np.isreal(self._H_intra.full()).all()
         if not isherm(self._H_intra):
             raise Exception("Hamiltonian_of_cell is required to be Hermitian.")
 
@@ -396,7 +396,7 @@ class Lattice1d():
                 else:    # inter_hop[i] has the right shape, now confirmed,
                     inter_hop[i] = Qobj(inter_hop[i], dims=dim_ih)
                     inter_hop_sum = inter_hop_sum + inter_hop[i]
-                    is_real = is_real and np.isreal(inter_hop[i]).all()
+                    is_real = is_real and np.isreal(inter_hop[i].full()).all()
             self._H_inter_list = inter_hop    # The user input list was correct
             # we store it in _H_inter_list
             self._H_inter = Qobj(inter_hop_sum, dims=dim_ih, type='oper')
@@ -410,7 +410,7 @@ class Lattice1d():
                 inter_hop = Qobj(inter_hop, dims=dim_ih, type='oper')
             self._H_inter_list = [inter_hop]
             self._H_inter = inter_hop
-            is_real = is_real and np.isreal(inter_hop).all()
+            is_real = is_real and np.isreal(inter_hop.full()).all()
 
         elif inter_hop is None:      # inter_hop is the default None)
             # So, we set self._H_inter_list from cell_num_site and
@@ -668,7 +668,7 @@ class Lattice1d():
             raise Exception("op in operstor_at_cells() is required to \
                             be dimensionaly the same as Hamiltonian_of_cell.")
 
-        (xx, yy) = np.shape(op)
+        (xx, yy) = op.shape
         row_ind = np.array([])
         col_ind = np.array([])
         data = np.array([])
@@ -1030,7 +1030,7 @@ class Lattice1d():
         chiral_op = self.distribute_operator(sigmaz())
         Hamt = self.Hamiltonian()
         anti_commutator_chi_H = chiral_op * Hamt + Hamt * chiral_op
-        is_null = (np.abs(anti_commutator_chi_H) < 1E-10).all()
+        is_null = (np.abs(anti_commutator_chi_H.full()) < 1E-10).all()
 
         if not is_null:
             raise Exception("The Hamiltonian does not have chiral symmetry!")
@@ -1077,9 +1077,9 @@ class Lattice1d():
                     ddk_Phi_m_k[knpoints//2:knpoints])
             winding_number = intg_over_k/(2*np.pi)
 
-            X_lim = 1.125 * np.abs(self._H_intra[1, 0])
+            X_lim = 1.125 * np.abs(self._H_intra.full()[1, 0])
             for i in range(len(self._H_inter_list)):
-                X_lim = X_lim + np.abs(self._H_inter_list[i][1, 0])
+                X_lim = X_lim + np.abs(self._H_inter_list[i].full()[1, 0])
             plt.figure(figsize=(3*X_lim, 3*X_lim))
             plt.plot(mx_k, my_k)
             plt.plot(0, 0, 'ro')
