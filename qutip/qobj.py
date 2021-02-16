@@ -218,7 +218,7 @@ class Qobj(object):
     # define __array__.
     __array_ufunc__ = None
 
-    def __init__(self, inpt=None, dims=[[], []], shape=[],
+    def __init__(self, inpt=None, dims=None, shape=None,
                  type=None, isherm=None, copy=True,
                  fast=False, superrep=None, isunitary=None):
         """
@@ -251,7 +251,7 @@ class Qobj(object):
                 shape=inpt.shape, copy=copy,
             )
 
-            if not np.any(dims):
+            if dims is None:
                 # Dimensions of quantum object used for keeping track of tensor
                 # components
                 self.dims = inpt.dims
@@ -264,11 +264,11 @@ class Qobj(object):
         elif inpt is None:
             # initialize an empty Qobj with correct dimensions and shape
 
-            if any(dims):
+            if dims is not None:
                 N, M = np.prod(dims[0]), np.prod(dims[1])
                 self.dims = dims
 
-            elif shape:
+            elif shape is not None:
                 N, M = shape
                 self.dims = [[N], [M]]
 
@@ -290,7 +290,7 @@ class Qobj(object):
                 (_tmp.data, _tmp.indices, _tmp.indptr),
                 shape=_tmp.shape,
             )
-            if not np.any(dims):
+            if dims is None:
                 self.dims = [[int(data.shape[0])], [int(data.shape[1])]]
             else:
                 self.dims = dims
@@ -313,7 +313,7 @@ class Qobj(object):
                 copy=do_copy,
             )
 
-            if not np.any(dims):
+            if dims is None:
                 self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
             else:
                 self.dims = dims
@@ -326,7 +326,7 @@ class Qobj(object):
                 (_tmp.data, _tmp.indices, _tmp.indptr),
                 shape=_tmp.shape,
             )
-            if not np.any(dims):
+            if dims is None:
                 self.dims = [[1], [1]]
             else:
                 self.dims = dims
@@ -345,7 +345,7 @@ class Qobj(object):
         if type == 'super':
             # Type is not super, i.e. dims not explicitly passed, but oper-like
             # shape.
-            if dims == [[], []] and self.shape[0] == self.shape[1]:
+            if dims is None and self.shape[0] == self.shape[1]:
                 sub_shape = np.sqrt(self.shape[0])
                 # check if root of shape is int
                 if (sub_shape % 1) != 0:

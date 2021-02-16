@@ -811,11 +811,7 @@ shape = [4, 4], type = oper, isherm = False
 
     """
     data = sp.diags(diagonals, offsets, shape, format='csr', dtype=complex)
-    if not dims:
-        dims = [[], []]
-    if not shape:
-        shape = []
-    return Qobj(data, dims, list(shape))
+    return Qobj(data, dims, shape)
 
 
 def phase(N, phi0=0):
