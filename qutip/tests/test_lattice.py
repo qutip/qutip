@@ -365,7 +365,7 @@ class TestLattice:
                 else:
                     E_V = Qobj(vec_kns[i, j, :])
                     eE_V = qH_ks[i] * E_V
-                    qE_V = np.divide(eE_V, E_V)
+                    qE_V = np.divide(eE_V.full(), E_V.full())
                     oE = val_kns[j][i] * np.ones((2, 1))
                     assert_(np.max(abs(oE-qE_V)) < 1.0E-12)
 
@@ -443,7 +443,7 @@ class TestLattice:
             else:
                 E_V = eigen_states[i][1]
                 eE_V = CROW_Haml * E_V
-                qE_V = np.divide(eE_V, E_V)
+                qE_V = np.divide(eE_V.full(), E_V.full())
                 oE = eigen_states[i][0] * np.ones((8, 1))
                 assert_(np.max(abs(oE-qE_V)) < 1.0E-10)
 
@@ -503,7 +503,7 @@ class TestLattice:
         for i in range(8):
             E_V = eigen_states[i][1]
             eE_V = CROW_Haml * E_V
-            qE_V = np.divide(eE_V, E_V)
+            qE_V = np.divide(eE_V.full(), E_V.full())
             oE = eigen_states[i][0] * np.ones((8, 1))
             assert_(np.max(abs(oE-qE_V)) < 1.0E-10)
         (knxA, qH_ks) = CROW_lattice.bulk_Hamiltonians()
@@ -528,7 +528,7 @@ class TestLattice:
             for j in range(2):
                 E_V = Qobj(vec_kns[i, j, :])
                 eE_V = qH_ks[i] * E_V
-                qE_V = np.divide(eE_V, E_V)
+                qE_V = np.divide(eE_V.full(), E_V.full())
                 oE = val_kns[j][i]*np.ones((2, 1))
                 assert_(np.max(abs(oE-qE_V)) < 1.0E-12)
 

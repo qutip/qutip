@@ -69,15 +69,16 @@ def correlation_matrix(basis, rho=None):
 
 
     """
-
     if rho is None:
         # return array of operators
-        return np.array([[op1 * op2 for op1 in basis]
-                         for op2 in basis], dtype=object)
+        out = np.empty((len(basis), len(basis)), dtype=object)
+        for i, op2 in enumerate(basis):
+            out[i, :] = [op1 * op2 for op1 in basis]
+        return out
     else:
         # return array of expectation values
         return np.array([[expect(op1 * op2, rho)
-                          for op1 in basis] for op2 in basis], dtype=object)
+                          for op1 in basis] for op2 in basis])
 
 
 def covariance_matrix(basis, rho, symmetrized=True):
@@ -116,11 +117,11 @@ def covariance_matrix(basis, rho, symmetrized=True):
     if symmetrized:
         return np.array([[0.5 * expect(op1 * op2 + op2 * op1, rho) -
                           expect(op1, rho) * expect(op2, rho)
-                          for op1 in basis] for op2 in basis], dtype=object)
+                          for op1 in basis] for op2 in basis])
     else:
         return np.array([[expect(op1 * op2, rho) -
                           expect(op1, rho) * expect(op2, rho)
-                          for op1 in basis] for op2 in basis], dtype=object)
+                          for op1 in basis] for op2 in basis])
 
 
 def correlation_matrix_field(a1, a2, rho=None):
@@ -145,9 +146,7 @@ def correlation_matrix_field(a1, a2, rho=None):
         A 2-dimensional *array* of covariance values, or, if rho=0, a matrix
         of operators.
     """
-
     basis = [a1, a1.dag(), a2, a2.dag()]
-
     return correlation_matrix(basis, rho)
 
 
@@ -183,9 +182,7 @@ def correlation_matrix_quadrature(a1, a2, rho=None, g=np.sqrt(2)):
     p1 = -1j * (a1 - a1.dag()) / g
     x2 = (a2 + a2.dag()) / g
     p2 = -1j * (a2 - a2.dag()) / g
-
     basis = [x1, p1, x2, p2]
-
     return correlation_matrix(basis, rho)
 
 
@@ -232,18 +229,15 @@ def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None, g=np.sqrt(2)):
 
     """
     if R is not None:
-
         if rho is None:
             return np.array([[0.5 * np.real(R[i, j] + R[j, i])
                               for i in range(4)]
-                             for j in range(4)], dtype=object)
+                             for j in range(4)], dtype=np.float64)
         else:
             return np.array([[0.5 * np.real(expect(R[i, j] + R[j, i], rho))
                               for i in range(4)]
-                             for j in range(4)], dtype=object)
-
+                             for j in range(4)], dtype=np.float64)
     elif a1 is not None and a2 is not None:
-
         if rho is not None:
             x1 = (a1 + a1.dag()) / g
             p1 = -1j * (a1 - a1.dag()) / g
@@ -253,7 +247,6 @@ def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None, g=np.sqrt(2)):
         else:
             raise ValueError("Must give rho if using field operators " +
                              "(a1 and a2)")
-
     else:
         raise ValueError("Must give either field operators (a1 and a2) " +
                          "or a precomputed correlation matrix (R)")
@@ -286,11 +279,9 @@ def logarithmic_negativity(V, g=np.sqrt(2)):
         that is described by the the Wigner covariance matrix V.
 
     """
-
     A = 0.5 * V[0:2, 0:2] * g ** 2
     B = 0.5 * V[2:4, 2:4] * g ** 2
     C = 0.5 * V[0:2, 2:4] * g ** 2
-
     sigma = np.linalg.det(A) + np.linalg.det(B) - 2 * np.linalg.det(C)
     nu_ = sigma / 2 - np.sqrt(sigma ** 2 - 4 * np.linalg.det(V)) / 2
     if nu_ < 0.0:
@@ -298,5 +289,4 @@ def logarithmic_negativity(V, g=np.sqrt(2)):
     nu = np.sqrt(nu_)
     lognu = -np.log(2 * nu)
     logneg = max(0, lognu)
-
     return logneg
