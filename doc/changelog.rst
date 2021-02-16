@@ -7,6 +7,60 @@
 Change Log
 **********
 
+Version 4.5.2 (July 14, 2020)
++++++++++++++++++++++++++++++
+
+This is predominantly a hot-fix release to add support for Scipy 1.5, due to changes in private sparse matrix functions that QuTiP also used.
+
+Improvements
+------------
+- Add support for Scipy 1.5. (by **Jake Lishman**)
+- Improved speed of ``zcsr_inner``, which affects ``Qobj.overlap``. (by **Jake Lishman**)
+- Better error messages when installation requirements are not satisfied. (by **Eric Giguère**)
+
+Bug Fixes
+---------
+- Fix ``zcsr_proj`` acting on matrices with unsorted indices.  (by **Jake Lishman**)
+- Fix errors in Milstein's heterodyne. (by **Eric Giguère**)
+- Fix datatype bug in ``qutip.lattice`` module. (by **Boxi Li**)
+- Fix issues with ``eigh`` on Mac when using OpenBLAS.  (by **Eric Giguère**)
+
+Developer Changes
+-----------------
+- Converted more of the codebase to PEP 8.
+- Fix several instances of unsafe mutable default values and unsafe ``is`` comparisons.
+
+
+
+Version 4.5.1 (May 15, 2020)
+++++++++++++++++++++++++++++
+
+Improvements
+------------
+- ``husimi`` and ``wigner`` now accept half-integer spin (by **maij**)
+- Better error messages for failed string coefficient compilation. (issue raised by **nohchangsuk**)
+
+Bug Fixes
+---------
+- Safer naming for temporary files. (by **Eric Giguère**)
+- Fix ``clebsch`` function for half-integer (by **Thomas Walker**)
+- Fix ``randint``'s dtype to ``uint32`` for compatibility with Windows. (issue raised by **Boxi Li**)
+- Corrected stochastic's heterodyne's m_ops (by **eliegenois**)
+- Mac pool use spawn. (issue raised by **goerz**)
+- Fix typos in ``QobjEvo._shift``. (by **Eric Giguère**)
+- Fix warning on Travis CI. (by **Ivan Carvalho**)
+
+Deprecations
+------------
+- ``qutip.graph`` functions will be deprecated in QuTiP 5.0 in favour of ``scipy.sparse.csgraph``.
+
+Developer Changes
+-----------------
+- Add Boxi Li to authors. (by **Alex Pitchford**)
+- Skip some tests that cause segfaults on Mac. (by **Nathan Shammah** and **Eric Giguère**)
+- Use Python 3.8 for testing on Mac and Linux. (by **Simon Cross** and **Eric Giguère**)
+
+
 
 Version 4.5.0 (January 31, 2020)
 ++++++++++++++++++++++++++++++
