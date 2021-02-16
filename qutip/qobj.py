@@ -1722,9 +1722,14 @@ class Qobj(object):
         evals, evecs = sp_eigs(self.data, self.isherm, sparse=sparse,
                                sort=sort, eigvals=eigvals, tol=tol,
                                maxiter=maxiter)
-        new_dims = [self.dims[0], [1] * len(self.dims[0])]
+        if self.type == 'super':
+            new_dims = [self.dims[0], [1]]
+            new_type = 'operator-ket'
+        else:
+            new_dims = [self.dims[0], [1] * len(self.dims[0])]
+            new_type = 'ket'
         ekets = np.empty((len(evecs),), dtype=object)
-        ekets[:] = [Qobj(vec, dims=new_dims) for vec in evecs]
+        ekets[:] = [Qobj(vec, dims=new_dims, type=new_type) for vec in evecs]
         norms = np.array([ket.norm() for ket in ekets])
         if phase_fix is None:
             phase = np.array([1] * len(ekets))
