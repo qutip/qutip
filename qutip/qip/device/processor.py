@@ -263,7 +263,7 @@ class Processor(object):
         all_tlists = [pulse.tlist
                       for pulse in self.pulses if pulse.tlist is not None]
         if not all_tlists:
-            return None
+            raise ValueError("No valid pulse found, tlist is empty.")
         return np.unique(np.sort(np.hstack(all_tlists)))
 
     def get_full_coeffs(self, full_tlist=None):
@@ -734,20 +734,32 @@ class Processor(object):
             label_list.append(pulse.label)
         return [label_list]
 
-    def plot_pulses(self, title=None, figsize=(12, 6), dpi=None):
+    def plot_pulses(
+            self, title=None, figsize=(12, 6), dpi=None,
+            show_axis=False, rescale_pulse_coeffs=True,
+            num_steps=1000):
         """
         Plot the ideal pulse coefficients.
 
         Parameters
         ----------
-        title: str
+        title: str, optional
             Title for the plot.
 
-        figsize: tuple
-            The size of the figure
+        figsize: tuple, optional
+            The size of the figure.
 
-        dpi: int
-            The dpi of the figure
+        dpi: int, optional
+            The dpi of the figure.
+
+        show_axis: bool, optional
+            If the axis are shown.
+
+        rescale_pulse_coeffs: bool, optional
+            Rescale the hight of each pulses.
+
+        num_steps: int, optional
+            Number of time steps in the plot.
 
         Returns
         -------
@@ -770,20 +782,28 @@ class Processor(object):
         grids = gridspec.GridSpec(len(self.pulses), 1)
         grids.update(wspace=0., hspace=0.)
 
-        tlist = np.linspace(0., self.get_full_tlist()[-1], 1000)
-        coeffs = self.get_full_coeffs(tlist)
-        # make sure coeffs start with zero, for ax.fill
-        tlist = np.hstack(([-1.e-20], tlist))
-        coeffs = np.hstack((np.array([[0.]] * len(self.pulses)), coeffs))
+        tlist = np.linspace(0., self.get_full_tlist()[-1], num_steps)
+        dt = tlist[1] - tlist[0]
+
+        # make sure coeffs start and end with zero, for ax.fill
+        tlist = np.hstack(([-dt*1.e-20], tlist, [tlist[-1] + dt*1.e-20]))
+        coeffs = []
+        for pulse in self.pulses:
+            coeffs.append(_pulse_interpolate(pulse, tlist))
 
         pulse_ind = 0
+        axis = []
         for i, label_group in enumerate(self.get_operators_labels()):
-            for label in label_group:
+            for j, label in enumerate(label_group):
                 grid = grids[pulse_ind]
                 ax = plt.subplot(grid)
+                axis.append(ax)
                 ax.fill(tlist, coeffs[pulse_ind], color_list[i], alpha=0.7)
                 ax.plot(tlist, coeffs[pulse_ind], color_list[i])
-                ymax = max(np.abs(coeffs[pulse_ind])) * 1.1
+                if rescale_pulse_coeffs:
+                    ymax = np.max(np.abs(coeffs[pulse_ind])) * 1.1
+                else:
+                    ymax = np.max(np.abs(coeffs)) * 1.1
                 if ymax != 0.:
                     ax.set_ylim((-ymax, ymax))
 
@@ -794,9 +814,37 @@ class Processor(object):
                 ax.spines['bottom'].set_visible(False)
                 ax.spines['left'].set_visible(False)
                 ax.set_yticks([])
-                ax.set_ylabel(label,  rotation=0)
+                ax.set_ylabel(label, rotation=0)
                 pulse_ind += 1
-        if title is not None:
-            ax.set_title(title)
+                if i == 0 and j == 0 and title is not None:
+                    ax.set_title(title)
         fig.tight_layout()
-        return fig, ax
+        return fig, axis
+
+
+def _pulse_interpolate(pulse, tlist):
+    """
+    A function that calls Scipy interpolation routine. Used for plotting.
+    """
+    if pulse.tlist is None and pulse.coeff is None:
+        coeff = np.zeros(len(tlist))
+        return coeff
+    if isinstance(pulse.coeff, bool):
+        if pulse.coeff:
+            coeff = np.ones(len(tlist))
+        else:
+            coeff = np.zeros(len(tlist))
+        return coeff
+    coeff = pulse.coeff
+    if len(coeff) == len(pulse.tlist)-1:  # for discrete pulse
+        coeff = np.concatenate([coeff, [0]])
+
+    from scipy import interpolate
+    if pulse.spline_kind == "step_func":
+        kind = "previous"
+    else:
+        kind = "cubic"
+    inter = interpolate.interp1d(
+        pulse.tlist, coeff, kind=kind,
+        bounds_error=False, fill_value=0.0)
+    return inter(tlist)
