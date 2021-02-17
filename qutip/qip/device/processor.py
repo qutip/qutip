@@ -249,7 +249,7 @@ class Processor(object):
         for i, coeff in enumerate(coeffs_list):
             self.pulses[i].coeff = coeff
 
-    def get_full_tlist(self):
+    def get_full_tlist(self, tol=1.0e-10):
         """
         Return the full tlist of the ideal pulses.
         If different pulses have different time steps,
@@ -260,11 +260,15 @@ class Processor(object):
         full_tlist: array-like 1d
             The full time sequence for the ideal evolution.
         """
-        all_tlists = [pulse.tlist
+        full_tlist = [pulse.tlist
                       for pulse in self.pulses if pulse.tlist is not None]
-        if not all_tlists:
+        if not full_tlist:
             return None
-        return np.unique(np.sort(np.hstack(all_tlists)))
+        full_tlist = np.unique(np.sort(np.hstack(full_tlist)))
+        # account for inaccuracy in float-point number 
+        diff = np.append(True, np.diff(full_tlist))
+        full_tlist = full_tlist[diff > tol]
+        return full_tlist
 
     def get_full_coeffs(self, full_tlist=None):
         """
