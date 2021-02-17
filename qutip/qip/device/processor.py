@@ -143,6 +143,14 @@ class Processor(object):
         self.pulse_mode = "discrete"
         self.spline_kind = spline_kind
 
+    @property
+    def num_qubits(self):
+        return self.N
+
+    @num_qubits.setter
+    def num_qubits(self, value):
+        self.N = value
+
     def add_drift(self, qobj, targets, cyclic_permutation=False):
         """
         Add a drift Hamiltonians. The drift Hamiltonians are intrinsic
