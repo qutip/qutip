@@ -30,6 +30,8 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+from copy import deepcopy
+import numpy as np
 
 
 __all__ = ['Instruction']
@@ -38,37 +40,51 @@ __all__ = ['Instruction']
 class Instruction():
     """
     The instruction that implements a quantum gate.
+    It contains the control pulse required to implement the gate
+    on a particular hardware model.
 
     Parameters
     ----------
-    name: str
-        Name of the gate.
+    gate: :class:`gate`
+        The quantum gate.
+    duration: list, optional
+        The execution time needed for the instruction.
+    tlist: array_like
+        A list of time at which the time-dependent coefficients are
+        applied. See :class:`qutip.qip.Pulse` for detailed information`
+    pulse_info: list
+        A list of tuples, each tuple corresponding to a pair of pulse label
+        and pulse coefficient, in the format (str, array_like).
+        This pulses will implement the desired gate.
+
+    Attributes
+    ----------
     targets: list, optional
         The target qubits.
     controls: list, optional
         The control qubits.
-    duration: list, optional
-        The execution time needed for the instruction.
-
-    Attributes
-    ----------
     used_qubits: set
         Union of the control and target qubits.
     """
     def __init__(
             self, gate, tlist=None,
             pulse_info=(), duration=1):
-        self.gate = gate
+        self.gate = deepcopy(gate)
         if self.targets is not None:
-            self.targets.sort()
+            self.targets.sort()  # Used when comparing the instructions
         if self.controls is None:
             self.used_qubits = set(self.targets)
         else:
             self.controls.sort()
             self.used_qubits = set(self.controls).union(set(self.targets))
         self.tlist = tlist
-        if tlist is not None:
-            self.duration = tlist[-1]
+        if self.tlist is not None:
+            if np.isscalar(self.tlist):
+                self.duration = self.tlist
+            elif abs(self.tlist[0] - 0.) > 1.e-8:
+                raise ValueError("Pulse time sequence must start from 0")
+            else:
+                self.duration = self.tlist[-1]
         else:
             self.duration = duration
         self.pulse_info = pulse_info
@@ -87,4 +103,7 @@ class Instruction():
 
     @property
     def step_num(self):
-        return len(self.tlist)
+        if np.isscalar(self.tlist):
+            return 1
+        else:
+            return len(self.tlist) - 1
