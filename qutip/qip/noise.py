@@ -43,83 +43,29 @@ def process_noise(pulses, noise_list, dims, t1=None, t2=None,
     Returns
     -------
     noisy_pulses: list of :class:`qutip.qip.Pulse`
-        The noisy pulses.
+        The noisy pulses, including the system noise.
     """
-    # first the control pulse with noise,
-    # then additional pulse independent noise.
-    noisy_pulses = process_pulse_noise(pulses, noise_list, dims)
-    if device_noise:
-        noisy_pulses += process_device_noise(noise_list, dims, t1, t2)
-    return noisy_pulses
+    if device_noise:  # first pulse independent noise
+        systematic_noise = Pulse(None, None, label="systematic_noise")
+        if (t1 is not None) or (t2 is not None):
+            RelaxationNoise(t1, t2).get_noisy_dynamics(dims, systematic_noise)
 
+        for noise in noise_list:
+            if isinstance(noise, (DecoherenceNoise, RelaxationNoise)):
+                noise.get_noisy_dynamics(dims, systematic_noise)
 
-def process_device_noise(noise_list, dims, t1=None, t2=None):
-    """
-    Apply pulse independent noise to the input list of pulses.
-    It does not modify the input
-    pulse, but return a new one containing the noise.
-    Pulse dependent noise will be ignored.
-
-    Parameters
-    ----------
-    noise_list: list of :class:`qutip.qip.noise`
-        A list of noise objects.
-    dims: int or list
-        Dimension of the system.
-        If int, we assume it is the number of qubits in the system.
-        If list, it is the dimension of the component systems.
-    t1: list or float, optional
-        Characterize the decoherence of amplitude damping for
-        each qubit. A list of size `N` or a float for all qubits.
-    t2: list of float, optional
-        Characterize the decoherence of dephasing for
-        each qubit. A list of size `N` or a float for all qubits.
-
-    Returns
-    -------
-    noisy_pulses: list of :class:`qutip.qip.Pulse`
-        A list of Dummy pulse objects with zero Hamiltonian
-        by non-trivial noise.
-    """
-    device_noise = []
-    if (t1 is not None) or (t2 is not None):
-        device_noise += [RelaxationNoise(t1, t2).get_noisy_dynamics(dims)]
-
-    for noise in noise_list:
-        if isinstance(noise, (DecoherenceNoise, RelaxationNoise)):
-            device_noise += [noise.get_noisy_dynamics(dims)]
-
-    return device_noise
-
-
-def process_pulse_noise(pulses, noise_list, dims):
-    """
-    Apply pulse dependent noise to the input list of pulses.
-    It does not modify the input
-    pulse, but return a new one containing the noise.
-    Device noise noise will be ignored.
-
-    Parameters
-    ----------
-    pulses: list of :class:`qutip.qip.Pulse`
-        The input pulses, on which the noise object will be applied.
-    noise_list: list of :class:`qutip.qip.noise`
-        A list of noise objects.
-    dims: int or list
-        Dimension of the system.
-        If int, we assume it is the number of qubits in the system.
-        If list, it is the dimension of the component systems.
-
-    noisy_pulses: list of :class:`qutip.qip.Pulse`
-        The list of pulses with pulse dependent noise.
-    """
+    # then pulse-dependent noise
     noisy_pulses = deepcopy(pulses)
     for noise in noise_list:
         if isinstance(noise, ControlAmpNoise):
-            noisy_pulses = noise.get_noisy_dynamics(noisy_pulses)
+            noise.get_noisy_dynamics(noisy_pulses)
         elif isinstance(noise, UserNoise):
-            noisy_pulses = noise.get_noisy_dynamics(noisy_pulses, dims)
-    return noisy_pulses
+            noise.get_noisy_dynamics(noisy_pulses, systematic_noise, dims)
+
+    if device_noise:
+        return noisy_pulses + [systematic_noise]
+    else:
+        return noisy_pulses
 
 
 class Noise(object):
@@ -187,7 +133,7 @@ class DecoherenceNoise(Noise):
                     "thus cannot be applied to all qubits")
         self.all_qubits = all_qubits
 
-    def get_noisy_dynamics(self, dims):
+    def get_noisy_dynamics(self, dims, systematic_noise=None):
         """
         Return a list of Pulse object with only trivial ideal pulse (H=0) but
         non-trivial lindblad noise.
@@ -198,12 +144,11 @@ class DecoherenceNoise(Noise):
             The dimension of the components system, the default value is
             [2,2...,2] for qubits system.
 
-        Returns
-        -------
-        lindblad_noise: list of :class:`qutip.qip.Pulse`
-            A list of Pulse object with only trivial ideal pulse (H=0) but
-            non-trivial lindblad noise.
+        systematic_noise: :class:`qutip.qip.pulse.Pulse`
+            The dummy pulse representing systematic noise.
         """
+        if systematic_noise is None:
+            systematic_noise = Pulse(None, None, label="system")
         if isinstance(dims, list):
             N = len(dims)
         else:
@@ -212,16 +157,15 @@ class DecoherenceNoise(Noise):
         if (self.coeff is None) and (self.tlist is None):
             self.coeff = True
 
-        lindblad_noise = Pulse(None, None)
         for c_op in self.c_ops:
             if self.all_qubits:
                 for targets in range(N):
-                    lindblad_noise.add_lindblad_noise(
+                    systematic_noise.add_lindblad_noise(
                         c_op, targets, self.tlist, self.coeff)
             else:
-                lindblad_noise.add_lindblad_noise(
+                systematic_noise.add_lindblad_noise(
                     c_op, self.targets, self.tlist, self.coeff)
-        return lindblad_noise
+        return systematic_noise
 
 
 class RelaxationNoise(Noise):
@@ -283,7 +227,7 @@ class RelaxationNoise(Noise):
                 "either the length is not equal to the number of qubits, "
                 "or T is not a positive number.".format(T))
 
-    def get_noisy_dynamics(self, dims):
+    def get_noisy_dynamics(self, dims, systematic_noise=None):
         """
         Return a list of Pulse object with only trivial ideal pulse (H=0) but
         non-trivial relaxation noise.
@@ -293,13 +237,11 @@ class RelaxationNoise(Noise):
         dims: list, optional
             The dimension of the components system, the default value is
             [2,2...,2] for qubits system.
-
-        Returns
-        -------
-        lindblad_noise: list of :class:`qutip.qip.Pulse`
-            A list of Pulse object with only trivial ideal pulse (H=0) but
-            non-trivial relaxation noise.
+        systematic_noise: :class:`qutip.qip.pulse.Pulse`
+            The dummy pulse representing systematic noise.
         """
+        if systematic_noise is None:
+            systematic_noise = Pulse(None, None, label="system")
         if isinstance(dims, list):
             for d in dims:
                 if d != 2:
@@ -316,7 +258,6 @@ class RelaxationNoise(Noise):
                 "Length of t1 or t2 does not match N, "
                 "len(t1)={}, len(t2)={}".format(
                     len(self.t1), len(self.t2)))
-        lindblad_noise = Pulse(None, None)
 
         if self.targets is None:
             targets = range(N)
@@ -327,7 +268,7 @@ class RelaxationNoise(Noise):
             t2 = self.t2[qu_ind]
             if t1 is not None:
                 op = 1/np.sqrt(t1) * destroy(2)
-                lindblad_noise.add_lindblad_noise(op, qu_ind, coeff=True)
+                systematic_noise.add_lindblad_noise(op, qu_ind, coeff=True)
             if t2 is not None:
                 # Keep the total dephasing ~ exp(-t/t2)
                 if t1 is not None:
@@ -339,8 +280,8 @@ class RelaxationNoise(Noise):
                 else:
                     T2_eff = t2
                 op = 1/np.sqrt(2*T2_eff) * sigmaz()
-                lindblad_noise.add_lindblad_noise(op, qu_ind, coeff=True)
-        return lindblad_noise
+                systematic_noise.add_lindblad_noise(op, qu_ind, coeff=True)
+        return systematic_noise
 
 
 class ControlAmpNoise(Noise):
@@ -381,11 +322,8 @@ class ControlAmpNoise(Noise):
         ----------
         pulses: list of :class:`qutip.qip.Pulse`
             The input pulses, on which the noise object will be applied.
-
-        Returns
-        -------
-        noisy_pulses: list of :class:`qutip.qip.Pulse`
-            The input `Pulse` object with additional coherent noise.
+        systematic_noise: :class:`qutip.qip.pulse.Pulse`
+            The dummy pulse representing systematic noise.
         """
         if self.indices is None:
             indices = range(len(pulses))
@@ -403,7 +341,6 @@ class ControlAmpNoise(Noise):
                 tlist = self.tlist
             pulses[i].add_coherent_noise(
                 pulse.qobj, pulse.targets, tlist, coeff)
-
         return pulses
 
 
@@ -463,11 +400,8 @@ class RandomNoise(ControlAmpNoise):
         ----------
         pulses: list of :class:`qutip.qip.Pulse`
             The input pulses, on which the noise object will be applied.
-
-        Returns
-        -------
-        noisy_pulses: list of :class:`qutip.qip.Pulse`
-            The input `Pulse` object with additional coherent noise.
+        systematic_noise: :class:`qutip.qip.pulse.Pulse`
+            The dummy pulse representing systematic noise.
         """
         if self.indices is None:
             indices = range(len(pulses))
@@ -504,7 +438,7 @@ class UserNoise(Noise):
     def __init__(self):
         pass
 
-    def get_noisy_dynamics(self, pulses, dims):
+    def get_noisy_dynamics(self, pulses, systematic_noise, dims):
         """
         Template method.
         It should return a list of pulses with noise.
@@ -513,7 +447,8 @@ class UserNoise(Noise):
         ----------
         pulses: list of :class:`qutip.qip.Pulse`
             The input pulses, on which the noise object will be applied.
-
+        systematic_noise: :class:`qutip.qip.pulse.Pulse`
+            The dummy pulse representing systematic noise.
         dims: list, optional
             The dimension of the components system, the default value is
             [2,2...,2] for qubits system.
@@ -523,4 +458,6 @@ class UserNoise(Noise):
         noisy_pulses: list of :class:`qutip.qip.Pulse`
             The input `Pulse` object with additional noise.
         """
-        return pulses
+        if systematic_noise is None:
+            systematic_noise = Pulse(None, None, label="system")
+        return pulses, systematic_noise
