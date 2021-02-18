@@ -1,4 +1,4 @@
-.. QuTiP 
+.. QuTiP
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
 .. _tensor:
@@ -6,11 +6,6 @@
 ******************************************
 Using Tensor Products and Partial Traces
 ******************************************
-
-.. ipython::
-   :suppress:
-
-   In [1]: from qutip import *
 
 
 .. _tensor-products:
@@ -22,49 +17,111 @@ To describe the states of multipartite quantum systems - such as two coupled qub
 
 In QuTiP the function :func:`qutip.tensor.tensor` is used to accomplish this task. This function takes as argument a collection::
 
->>> tensor(op1, op2, op3)
+>>> tensor(op1, op2, op3) # doctest: +SKIP
 
 or a ``list``::
 
->>> tensor([op1, op2, op3])
+>>> tensor([op1, op2, op3]) # doctest: +SKIP
 
 of state vectors *or* operators and returns a composite quantum object for the combined Hilbert space. The function accepts an arbitray number of states or operators as argument. The type returned quantum object is the same as that of the input(s).
 
 For example, the state vector describing two qubits in their ground states is formed by taking the tensor product of the two single-qubit ground state vectors:
 
-.. ipython::
+.. testcode:: [tensor]
 
-   In [1]: tensor(basis(2, 0), basis(2, 0))
-    
+    print(tensor(basis(2, 0), basis(2, 0)))
+
+**Output**:
+
+.. testoutput:: [tensor]
+    :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[2, 2], [1, 1]], shape = (4, 1), type = ket
+    Qobj data =
+    [[1.]
+     [0.]
+     [0.]
+     [0.]]
 
 or equivalently using the ``list`` format:
 
-.. ipython::
+.. testcode:: [tensor]
 
-   In [1]: tensor([basis(2, 0), basis(2, 0)])
+    print(tensor([basis(2, 0), basis(2, 0)]))
+
+**Output**:
+
+.. testoutput:: [tensor]
+    :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[2, 2], [1, 1]], shape = (4, 1), type = ket
+    Qobj data =
+    [[1.]
+     [0.]
+     [0.]
+     [0.]]
 
 This is straightforward to generalize to more qubits by adding more component state vectors in the argument list to the :func:`qutip.tensor.tensor` function, as illustrated in the following example:
 
-.. ipython::
+.. testcode:: [tensor]
 
-   In [1]: tensor((basis(2, 0) + basis(2, 1)).unit(),
-      ...:       (basis(2, 0) + basis(2, 1)).unit(), basis(2, 0))
+    print(tensor((basis(2, 0) + basis(2, 1)).unit(), (basis(2, 0) + basis(2, 1)).unit(), basis(2, 0)))
+
+**Output**:
+
+.. testoutput:: [tensor]
+    :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[2, 2, 2], [1, 1, 1]], shape = (8, 1), type = ket
+    Qobj data =
+    [[0.5]
+     [0. ]
+     [0.5]
+     [0. ]
+     [0.5]
+     [0. ]
+     [0.5]
+     [0. ]]
 
 
 This state is slightly more complicated, describing two qubits in a superposition between the up and down states, while the third qubit is in its ground state.
 
 To construct operators that act on an extended Hilbert space of a combined system, we similarly pass a list of operators for each component system to the :func:`qutip.tensor.tensor` function. For example, to form the operator that represents the simultaneous action of the :math:`\sigma_x` operator on two qubits:
 
-.. ipython::
+.. testcode:: [tensor]
 
-   In [1]: tensor(sigmax(), sigmax())
+    print(tensor(sigmax(), sigmax()))
+
+**Output**:
+
+.. testoutput:: [tensor]
+    :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[2, 2], [2, 2]], shape = (4, 4), type = oper, isherm = True
+    Qobj data =
+    [[0. 0. 0. 1.]
+     [0. 0. 1. 0.]
+     [0. 1. 0. 0.]
+     [1. 0. 0. 0.]]
 
 To create operators in a combined Hilbert space that only act only on a single component, we take the tensor product of the operator acting on the subspace of interest, with the identity operators corresponding to the components that are to be unchanged. For example, the operator that represents :math:`\sigma_z` on the first qubit in a two-qubit system, while leaving the second qubit unaffected:
 
-.. ipython::
+.. testcode:: [tensor]
 
-   In [1]: tensor(sigmaz(), identity(2))
-    
+    print(tensor(sigmaz(), identity(2)))
+
+**Output**:
+
+.. testoutput:: [tensor]
+    :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[2, 2], [2, 2]], shape = (4, 4), type = oper, isherm = True
+    Qobj data =
+    [[ 1.  0.  0.  0.]
+     [ 0.  1.  0.  0.]
+     [ 0.  0. -1.  0.]
+     [ 0.  0.  0. -1.]]
+
 
 .. _tensor-product-example:
 
@@ -80,12 +137,23 @@ Two coupled qubits
 
 First, let's consider a system of two coupled qubits. Assume that both qubit has equal energy splitting, and that the qubits are coupled through a :math:`\sigma_x\otimes\sigma_x` interaction with strength g = 0.05 (in units where the bare qubit energy splitting is unity). The Hamiltonian describing this system is:
 
-.. ipython::
+.. testcode:: [tensor]
 
-   In [1]: H = tensor(sigmaz(), identity(2)) + tensor(identity(2),
-      ...:           sigmaz()) + 0.05 * tensor(sigmax(), sigmax())
-   
-   In [2]: H
+    H = tensor(sigmaz(), identity(2)) + tensor(identity(2), sigmaz()) + 0.05 * tensor(sigmax(), sigmax())
+
+    print(H)
+
+**Output**:
+
+.. testoutput:: [tensor]
+    :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[2, 2], [2, 2]], shape = (4, 4), type = oper, isherm = True
+    Qobj data =
+    [[ 2.    0.    0.    0.05]
+     [ 0.    0.    0.05  0.  ]
+     [ 0.    0.05  0.    0.  ]
+     [ 0.05  0.    0.   -2.  ]]
 
 .. _tensor-product-example-3qubits:
 
@@ -94,15 +162,27 @@ Three coupled qubits
 
 The two-qubit example is easily generalized to three coupled qubits:
 
-.. ipython::
-    
-    In [1]: H = (tensor(sigmaz(), identity(2), identity(2)) + 
-       ...:     tensor(identity(2), sigmaz(), identity(2)) + 
-       ...:     tensor(identity(2), identity(2), sigmaz()) + 
-       ...:     0.5 * tensor(sigmax(), sigmax(), identity(2)) + 
-       ...:     0.25 * tensor(identity(2), sigmax(), sigmax()))
-    
-    In [2]: H    
+.. testcode:: [tensor]
+
+    H = (tensor(sigmaz(), identity(2), identity(2)) + tensor(identity(2), sigmaz(), identity(2)) + tensor(identity(2), identity(2), sigmaz()) + 0.5 * tensor(sigmax(), sigmax(), identity(2)) + 0.25 * tensor(identity(2), sigmax(), sigmax()))
+
+    print(H)
+
+**Output**:
+
+.. testoutput:: [tensor]
+    :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[2, 2, 2], [2, 2, 2]], shape = (8, 8), type = oper, isherm = True
+    Qobj data =
+    [[ 3.    0.    0.    0.25  0.    0.    0.5   0.  ]
+     [ 0.    1.    0.25  0.    0.    0.    0.    0.5 ]
+     [ 0.    0.25  1.    0.    0.5   0.    0.    0.  ]
+     [ 0.25  0.    0.   -1.    0.    0.5   0.    0.  ]
+     [ 0.    0.    0.5   0.    1.    0.    0.    0.25]
+     [ 0.    0.    0.    0.5   0.   -1.    0.25  0.  ]
+     [ 0.5   0.    0.    0.    0.    0.25 -1.    0.  ]
+     [ 0.    0.5   0.    0.    0.25  0.    0.   -3.  ]]
 
 
 .. _tensor-product-example-jcmodel:
@@ -112,26 +192,116 @@ A two-level system coupled to a cavity: The Jaynes-Cummings model
 
 The simplest possible quantum mechanical description for light-matter interaction is encapsulated in the Jaynes-Cummings model, which describes the coupling between a two-level atom and a single-mode electromagnetic field (a cavity mode). Denoting the energy splitting of the atom and cavity ``omega_a`` and ``omega_c``, respectively, and the atom-cavity interaction strength ``g``, the Jaynes-Cumming Hamiltonian can be constructed as:
 
-.. ipython::
+.. testcode:: [tensor]
 
-    In [1]: N = 10
-    
-    In [1]: omega_a = 1.0
-    
-    In [1]: omega_c = 1.25
-    
-    In [1]: g = 0.05
-    
-    In [1]: a = tensor(identity(2), destroy(N))
-    
-    In [1]: sm = tensor(destroy(2), identity(N))
-    
-    In [1]: sz = tensor(sigmaz(), identity(N))
-    
-    In [1]: H = 0.5 * omega_a * sz + omega_c * a.dag() * a + g * (a.dag() * sm + a * sm.dag())
+    N = 10
+
+    omega_a = 1.0
+
+    omega_c = 1.25
+
+    g = 0.05
+
+    a = tensor(identity(2), destroy(N))
+
+    sm = tensor(destroy(2), identity(N))
+
+    sz = tensor(sigmaz(), identity(N))
+
+    H = 0.5 * omega_a * sz + omega_c * a.dag() * a + g * (a.dag() * sm + a * sm.dag())
+
+    print(H)
+
+**Output**:
+
+.. testoutput:: [tensor]
+    :options: +NORMALIZE_WHITESPACE
+
+    Quantum object: dims = [[2, 10], [2, 10]], shape = (20, 20), type = oper, isherm = True
+    Qobj data =
+    [[ 0.5         0.          0.          0.          0.          0.
+       0.          0.          0.          0.          0.          0.
+       0.          0.          0.          0.          0.          0.
+       0.          0.        ]
+     [ 0.          1.75        0.          0.          0.          0.
+       0.          0.          0.          0.          0.05        0.
+       0.          0.          0.          0.          0.          0.
+       0.          0.        ]
+     [ 0.          0.          3.          0.          0.          0.
+       0.          0.          0.          0.          0.          0.07071068
+       0.          0.          0.          0.          0.          0.
+       0.          0.        ]
+     [ 0.          0.          0.          4.25        0.          0.
+       0.          0.          0.          0.          0.          0.
+       0.08660254  0.          0.          0.          0.          0.
+       0.          0.        ]
+     [ 0.          0.          0.          0.          5.5         0.
+       0.          0.          0.          0.          0.          0.
+       0.          0.1         0.          0.          0.          0.
+       0.          0.        ]
+     [ 0.          0.          0.          0.          0.          6.75
+       0.          0.          0.          0.          0.          0.
+       0.          0.          0.1118034   0.          0.          0.
+       0.          0.        ]
+     [ 0.          0.          0.          0.          0.          0.
+       8.          0.          0.          0.          0.          0.
+       0.          0.          0.          0.12247449  0.          0.
+       0.          0.        ]
+     [ 0.          0.          0.          0.          0.          0.
+       0.          9.25        0.          0.          0.          0.
+       0.          0.          0.          0.          0.13228757  0.
+       0.          0.        ]
+     [ 0.          0.          0.          0.          0.          0.
+       0.          0.         10.5         0.          0.          0.
+       0.          0.          0.          0.          0.          0.14142136
+       0.          0.        ]
+     [ 0.          0.          0.          0.          0.          0.
+       0.          0.          0.         11.75        0.          0.
+       0.          0.          0.          0.          0.          0.
+       0.15        0.        ]
+     [ 0.          0.05        0.          0.          0.          0.
+       0.          0.          0.          0.         -0.5         0.
+       0.          0.          0.          0.          0.          0.
+       0.          0.        ]
+     [ 0.          0.          0.07071068  0.          0.          0.
+       0.          0.          0.          0.          0.          0.75
+       0.          0.          0.          0.          0.          0.
+       0.          0.        ]
+     [ 0.          0.          0.          0.08660254  0.          0.
+       0.          0.          0.          0.          0.          0.
+       2.          0.          0.          0.          0.          0.
+       0.          0.        ]
+     [ 0.          0.          0.          0.          0.1         0.
+       0.          0.          0.          0.          0.          0.
+       0.          3.25        0.          0.          0.          0.
+       0.          0.        ]
+     [ 0.          0.          0.          0.          0.          0.1118034
+       0.          0.          0.          0.          0.          0.
+       0.          0.          4.5         0.          0.          0.
+       0.          0.        ]
+     [ 0.          0.          0.          0.          0.          0.
+       0.12247449  0.          0.          0.          0.          0.
+       0.          0.          0.          5.75        0.          0.
+       0.          0.        ]
+     [ 0.          0.          0.          0.          0.          0.
+       0.          0.13228757  0.          0.          0.          0.
+       0.          0.          0.          0.          7.          0.
+       0.          0.        ]
+     [ 0.          0.          0.          0.          0.          0.
+       0.          0.          0.14142136  0.          0.          0.
+       0.          0.          0.          0.          0.          8.25
+       0.          0.        ]
+     [ 0.          0.          0.          0.          0.          0.
+       0.          0.          0.          0.15        0.          0.
+       0.          0.          0.          0.          0.          0.
+       9.5         0.        ]
+     [ 0.          0.          0.          0.          0.          0.
+       0.          0.          0.          0.          0.          0.
+       0.          0.          0.          0.          0.          0.
+       0.         10.75      ]]
 
 
-Here ``N`` is the number of Fock states included in the cavity mode. 
+Here ``N`` is the number of Fock states included in the cavity mode.
 
 .. _tensor-ptrace:
 
@@ -142,29 +312,59 @@ The partial trace is an operation that reduces the dimension of a Hilbert space 
 
 For example, the density matrix describing a single qubit obtained from a coupled two-qubit system is obtained via:
 
-.. ipython::
-    
-    In [1]:    psi = tensor(basis(2, 0), basis(2, 1))
-    
-    In [2]:    psi.ptrace(0)
-    
-    In [3]:    psi.ptrace(1)
+.. doctest:: [tensor]
+  :options: +NORMALIZE_WHITESPACE
+
+  >>> psi = tensor(basis(2, 0), basis(2, 1))
+
+  >>> psi.ptrace(0)
+  Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = True
+  Qobj data =
+  [[1. 0.]
+   [0. 0.]]
+
+  >>> psi.ptrace(1)
+  Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = True
+  Qobj data =
+  [[0. 0.]
+   [0. 1.]]
 
 Note that the partial trace always results in a density matrix (mixed state), regardless of whether the composite system is a pure state (described by a state vector) or a mixed state (described by a density matrix):
 
-.. ipython::
+.. doctest:: [tensor]
+  :options: +NORMALIZE_WHITESPACE
 
-    In [1]:    psi = tensor((basis(2, 0) + basis(2, 1)).unit(), basis(2, 0))
-   
-    In [2]:    psi
-   
-    In [3]:    psi.ptrace(0)
-   
-    In [4]:    rho = tensor(ket2dm((basis(2, 0) + basis(2, 1)).unit()), fock_dm(2, 0))
-   
-    In [5]:    rho
-   
-    In [6]:    rho.ptrace(0)
+  >>> psi = tensor((basis(2, 0) + basis(2, 1)).unit(), basis(2, 0))
+
+  >>> psi
+  Quantum object: dims = [[2, 2], [1, 1]], shape = (4, 1), type = ket
+  Qobj data =
+  [[0.70710678]
+   [0.        ]
+   [0.70710678]
+   [0.        ]]
+
+  >>> psi.ptrace(0)
+  Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = True
+  Qobj data =
+  [[0.5 0.5]
+   [0.5 0.5]]
+
+  >>> rho = tensor(ket2dm((basis(2, 0) + basis(2, 1)).unit()), fock_dm(2, 0))
+
+  >>> rho
+  Quantum object: dims = [[2, 2], [2, 2]], shape = (4, 4), type = oper, isherm = True
+  Qobj data =
+  [[0.5 0.  0.5 0. ]
+   [0.  0.  0.  0. ]
+   [0.5 0.  0.5 0. ]
+   [0.  0.  0.  0. ]]
+
+  >>> rho.ptrace(0)
+  Quantum object: dims = [[2], [2]], shape = (2, 2), type = oper, isherm = True
+  Qobj data =
+  [[0.5 0.5]
+   [0.5 0.5]]
 
 Superoperators and Tensor Manipulations
 =======================================
@@ -180,18 +380,17 @@ To represent superoperators acting on :math:`\mathcal{L}(\mathcal{H}_1 \otimes \
 In particular, this means that :func:`qutip.tensor` does not act as
 one might expect on the results of :func:`qutip.to_super`:
 
-.. ipython::
+.. doctest:: [tensor]
 
-    In [1]: A = qeye([2])
+  >>> A = qeye([2])
 
-    In [2]: B = qeye([3])
+  >>> B = qeye([3])
 
+  >>> to_super(tensor(A, B)).dims
+  [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]
 
-    In [3]: to_super(tensor(A, B)).dims
-    Out[3]: [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]
-
-    In [4]: tensor(to_super(A), to_super(B)).dims
-    Out[4]: [[[2], [2], [3], [3]], [[2], [2], [3], [3]]]
+  >>> tensor(to_super(A), to_super(B)).dims
+  [[[2], [2], [3], [3]], [[2], [2], [3], [3]]]
 
 In the former case, the result correctly has four copies
 of the compound index with dims ``[2, 3]``. In the latter
@@ -204,23 +403,23 @@ the underlying Hilbert space. In particular, for any two ``type="oper"``
 Qobjs ``A`` and ``B``, ``to_super(tensor(A, B)) == super_tensor(to_super(A), to_super(B))`` and
 ``operator_to_vector(tensor(A, B)) == super_tensor(operator_to_vector(A), operator_to_vector(B))``. Returning to the previous example:
 
-.. ipython::
+.. doctest:: [tensor]
 
-    In [5]: super_tensor(to_super(A), to_super(B)).dims
-    Out[5]: [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]
+  >>> super_tensor(to_super(A), to_super(B)).dims
+  [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]
 
 The :func:`qutip.composite` function automatically switches between
 :func:`qutip.tensor` and :func:`qutip.super_tensor` based on the ``type``
 of its arguments, such that ``composite(A, B)`` returns an appropriate Qobj to
 represent the composition of two systems.
 
-.. ipython::
+.. doctest:: [tensor]
 
-    In [6]: composite(A, B).dims
-    Out[6]: [[2, 3], [2, 3]]
+  >>> composite(A, B).dims
+  [[2, 3], [2, 3]]
 
-    In [7]: composite(to_super(A), to_super(B)).dims
-    Out[7]: [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]
+  >>> composite(to_super(A), to_super(B)).dims
+  [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]
 
 QuTiP also allows more general tensor manipulations that are
 useful for converting between superoperator representations [WBC11]_.
@@ -232,10 +431,10 @@ Using this functionality, we can construct some quite exotic maps,
 such as a map from :math:`3 \times 3` operators to :math:`2 \times 2`
 operators:
 
-.. ipython::
+.. doctest:: [tensor]
 
-    In [8]: tensor_contract(composite(to_super(A), to_super(B)), (1, 3), (4, 6)).dims
-    Out[8]: [[[2], [2]], [[3], [3]]]
+  >>> tensor_contract(composite(to_super(A), to_super(B)), (1, 3), (4, 6)).dims
+  [[[2], [2]], [[3], [3]]]
 
 
 

@@ -16,7 +16,7 @@ Build requirements
 * ipython
 
 In a conda environment use:
-    
+
     $ conda install sphinx numpydoc sphinx_rtd_theme sphinx-gallery ipython
 
 2017-03-28: Successful building using:
@@ -27,8 +27,8 @@ In a conda environment use:
 
 Build
 -----
-2017-01-07: 
-Thanks to some bug in ipython/ipython#8733 to do with the `ipython_savefig_dir` conf option, 
+2017-01-07:
+Thanks to some bug in ipython/ipython#8733 to do with the `ipython_savefig_dir` conf option,
 then note that this build directory structure must exist already:
 
     _build/html/_images
@@ -37,7 +37,11 @@ then note that this build directory structure must exist already:
 To build the documentation on Linux or OS X run:
 
     $ make html latexpdf
-    
+
+To run doctest:
+
+    $ make doctest
+
 Building Documentation On Windows
 ---------------------------------
 
@@ -57,3 +61,15 @@ To build the HTML documentation on Windows using ``cmd.exe``, run:
 From PowerShell, run:
 
     PS> .\make html
+
+Writing User Guides
+-------------------
+
+The user guide provides an overview of QuTiP's functionality. The guide is composed of individual reStructuredText (`.rst`) files which each get rendered as a webpage. Each page typically tackles one area of functionality. To learn more about how to write `.rst` files, it is useful to follow the [Sphinx Guide](https://www.sphinx-doc.org/en/master/usage/index.html).
+
+The documentation build also utilizes a number of [Sphinx Extensions](https://www.sphinx-doc.org/en/master/usage/extensions/index.html) including but not limited to
+[doctest](https://www.sphinx-doc.org/en/master/usage/extensions/doctest.html) , [autodoc](https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html) , [sphinx gallery](https://sphinx-gallery.github.io/stable/index.html) , [plot](http://matthew-brett.github.io/nb2plots/nbplots.html#module-nb2plots.nbplots) . Additional extensions can be configured in the `conf.py` file.
+
+Tests can also be run on examples in the documentation using the doctest extension
+and plots are generated using the `plot` directive. For more specific
+guidelines on how to incorporate code examples into the guide, refer to (insert reference).

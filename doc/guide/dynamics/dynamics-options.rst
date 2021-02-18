@@ -7,24 +7,52 @@
 Setting Options for the Dynamics Solvers
 *********************************************
 
-.. ipython::
-   :suppress:
+.. testsetup:: [dynamics_options]
 
-   In [1]: from qutip import *
+   from qutip import Options
 
-   In [1]: import numpy as np
+   import numpy as np
 
 Occasionally it is necessary to change the built in parameters of the dynamics solvers used by for example the :func:`qutip.mesolve` and :func:`qutip.mcsolve` functions.  The options for all dynamics solvers may be changed by using the Options class :class:`qutip.solver.Options`.
 
-.. ipython::
+.. testcode:: [dynamics_options]
 
-   In [1]: options = Options()
+   options = Options()
 
 the properties and default values of this class can be view via the `print` function:
 
-.. ipython::
+.. testcode:: [dynamics_options]
 
-   In [1]: print(options)
+   print(options)
+
+**Output**:
+
+.. testoutput:: [dynamics_options]
+  :options: +NORMALIZE_WHITESPACE
+
+  Options:
+  -----------
+  atol:              1e-08
+  rtol:              1e-06
+  method:            adams
+  order:             12
+  nsteps:            1000
+  first_step:        0
+  min_step:          0
+  max_step:          0
+  tidy:              True
+  num_cpus:          2
+  norm_tol:          0.001
+  norm_steps:        5
+  rhs_filename:      None
+  rhs_reuse:         False
+  seeds:             0
+  rhs_with_state:    False
+  average_expect:    True
+  average_states:    False
+  ntraj:             500
+  store_states:      False
+  store_final_state: False
 
 These properties are detailed in the following table.  Assuming ``options = Options()``:
 
@@ -88,25 +116,56 @@ These properties are detailed in the following table.  Assuming ``options = Opti
 
 As an example, let us consider changing the number of processors used, turn the GUI off, and strengthen the absolute tolerance.  There are two equivalent ways to do this using the Options class.  First way,
 
-.. ipython::
+.. testcode:: [dynamics_options]
 
-    In [1]: options = Options()
+    options = Options()
 
-    In [1]: options.num_cpus = 3
+    options.num_cpus = 3
 
-    In [1]: options.atol = 1e-10
+    options.atol = 1e-10
 
 or one can use an inline method,
 
-.. ipython::
+.. testcode:: [dynamics_options]
 
-    In [1]: options = Options(num_cpus=4, atol=1e-10)
+    options = Options(num_cpus=4, atol=1e-10)
 
 Note that the order in which you input the options does not matter.  Using either method, the resulting `options` variable is now:
 
-.. ipython::
+.. testcode:: [dynamics_options]
 
-    In [1]: print(options)
+  print(options)
+
+**Output**:
+
+.. testoutput:: [dynamics_options]
+  :options: +NORMALIZE_WHITESPACE
+
+  Options:
+  -----------
+  atol:              1e-10
+  rtol:              1e-06
+  method:            adams
+  order:             12
+  nsteps:            1000
+  first_step:        0
+  min_step:          0
+  max_step:          0
+  tidy:              True
+  num_cpus:          4
+  norm_tol:          0.001
+  norm_steps:        5
+  rhs_filename:      None
+  rhs_reuse:         False
+  seeds:             0
+  rhs_with_state:    False
+  average_expect:    True
+  average_states:    False
+  ntraj:             500
+  store_states:      False
+  store_final_state: False
+
+
 
 To use these new settings we can use the keyword argument ``options`` in either the func:`qutip.mesolve` and :func:`qutip.mcsolve` function.  We can modify the last example as::
 

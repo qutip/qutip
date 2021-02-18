@@ -124,7 +124,7 @@ Measurement of quantum states
 -----------------------------
 
 .. automodule:: qutip.measurement
-    :members: measure, measurement_statistics
+    :members: measure, measure_observable, measurement_statistics, measurement_statistics_observable
 
 
 Dynamics and Time-Evolution
@@ -293,7 +293,7 @@ Algorithms
 
 
 Noisy Devices
-----------
+-------------
 .. automodule:: qutip.qip.device
     :members:
 
@@ -358,7 +358,7 @@ Parallelization
 .. _functions-ipython:
 
 Semidefinite Programming
----------------
+------------------------
 
 .. automodule:: qutip.semidefinite
     :members: complex_var, herm, pos_noherm, pos, dens, kron, conj, bmat, bmat, memoize, qudit_swap, dnorm_problem

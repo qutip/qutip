@@ -105,5 +105,3 @@ The evolution of the system at each time step if thus given by
 
 	\rho(t + \delta t) = \rho(t) + L_{\rm eff}(\rho) \delta t + \delta N
 	\left(\frac{C \rho C^{+}}{\rm{tr} \left( C \rho C^{+} \right)} - \rho \right).
-
-===============================================================================

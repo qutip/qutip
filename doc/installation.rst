@@ -258,6 +258,5 @@ QuTiP includes an "about" function for viewing information about QuTiP and the i
 
 .. code-block:: python
 
-   In [1]: from qutip import *
-
-   In [2]: about()
+   from qutip import *
+   about()

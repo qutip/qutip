@@ -1,4 +1,4 @@
-.. QuTiP 
+.. QuTiP
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
 .. _control:
@@ -6,11 +6,6 @@
 *********************************************
 Quantum Optimal Control
 *********************************************
-
-.. ipython::
-   :suppress:
-
-   In [1]: from qutip import *
 
 
 Introduction
@@ -27,7 +22,7 @@ These questions are addressed as *controllability* and *quantum optimal control*
 .. figure:: figures/quant_optim_ctrl.png
    :align: center
    :width: 2.5in
-   
+
    Schematic showing the principle of quantum control.
 
 Quantum Control has many applications including NMR, *quantum metrology*, *control of chemical reactions*, and *quantum information processing*.
@@ -38,8 +33,8 @@ Closed Quantum Systems
 ======================
 In closed quantum systems the states can be represented by kets, and the transformations on these states are unitary operators. The dynamics generators are Hamiltonians. The combined Hamiltonian for the system is given by
 
-.. math::    
-    
+.. math::
+
     H(t) = H_0 + \sum_{j=1} u_j(t) H_j
 
 where :math:`H_0` is the drift Hamiltonian and the :math:`H_j` are the control Hamiltonians. The :math:`u_j` are time varying amplitude functions for the specific control.
@@ -47,7 +42,7 @@ where :math:`H_0` is the drift Hamiltonian and the :math:`H_j` are the control H
 The dynamics of the system are governed by *Schrödingers equation*.
 
 .. math::
-    
+
     \newcommand{\ket}[1]{\left|{#1}\right\rangle} \tfrac{d}{dt}\ket{\psi} = -i H(t)\ket{\psi}
 
 Note we use units where :math:`\hbar=1` throughout. The solutions to Schrödinger's equation are of the form:
@@ -92,7 +87,7 @@ A *figure of merit* or *fidelity* is some measure of how close the evolution is 
 .. math::
 
     \newcommand{\tr}[0]{\operatorname{tr}} f_{PSU} = \tfrac{1}{d} \big| \tr \{X_{targ}^{\dagger} X(T)\} \big|
-    
+
 where :math:`d` is the system dimension. In this figure of merit the absolute value is taken to ignore any differences in global phase, and :math:`0 \le f \le 1`. Typically the fidelity error (or *infidelity*) is more useful, in this case defined as :math:`\varepsilon = 1 - f_{PSU}`.  There are many other possible objectives, and hence figures of merit.
 
 As there are now :math:`N \times M` variables (the :math:`u_{jk}`) and one parameter to minimise :math:`\varepsilon`, then the problem becomes a finite multi-variable optimisation problem, for which there are many established methods, often referred to as 'hill-climbing' methods. The simplest of these to understand is that of steepest ascent (or descent). The gradient of the fidelity with respect to all the variables is calculated (or approximated) and a step is made in the variable space in the direction of steepest ascent (or descent). This method is a first order gradient method. In two dimensions this describes a method of climbing a hill by heading in the direction where the ground rises fastest. This analogy also clearly illustrates one of the main challenges in multi-variable optimisation, which is that all methods have a tendency to get stuck in local maxima. It is hard to determine whether one has found a global maximum or not - a local peak is likely not to be the highest mountain in the region. In quantum optimal control we can typically define an infidelity that has a lower bound of zero. We can then look to minimise the infidelity (from here on we will only consider optimising for infidelity minima). This means that we can terminate any pulse optimisation when the infidelity reaches zero (to a sufficient precision). This is however only possible for fully controllable systems; otherwise it is hard (if not impossible) to know that the minimum possible infidelity has been achieved. In the hill walking analogy the step size is roughly fixed to a stride, however, in computations the step size must be chosen. Clearly there is a trade-off here between the number of steps (or iterations) required to reach the minima and the possibility that we might step over a minima. In practice it is difficult to determine an efficient and effective step size.
@@ -121,11 +116,11 @@ The rest of this section describes the Qtrl implementation and how to use it.
 
 Object Model
   The Qtrl code is organised in a hierarchical object model in order to try and maximise configurability whilst maintaining some clarity. It is not necessary to understand the model in order to use the pulse optimisation functions, but it is the most flexible method of using Qtrl. If you just want to use a simple single function call interface, then jump to :ref:`pulseoptim-functions`
-  
+
 .. figure:: figures/qtrl-code_object_model.png
    :align: center
    :width: 3.5in
-   
+
    Qtrl code object model.
 
 The object's properties and methods are described in detail in the documentation, so that will not be repeated here.
@@ -136,7 +131,7 @@ OptimConfig
 Optimizer
   This acts as a wrapper to the ``Scipy.optimize`` functions that perform the work of the pulse optimisation algorithms. Using the main classes the user can specify which of the optimisation methods are to be used. There are subclasses specifically for the BFGS and L-BFGS-B methods. There is another subclass for using the CRAB algorithm.
 
-Dynamics  
+Dynamics
   This is mainly a container for the lists that hold the dynamics generators, propagators, and time evolution operators in each timeslot. The combining of dynamics generators is also complete by this object. Different subclasses support a range of types of quantum systems, including closed systems with unitary dynamics, systems with quadratic Hamiltonians that have Gaussian states and symplectic transforms, and a general subclass that can be used for open system dynamics with Lindbladian operators.
 
 PulseGen
@@ -165,7 +160,6 @@ OptimResult
 
 Using the pulseoptim functions
 ==============================
-The simplest method for optimising a control pulse is to call one of the functions in the ``pulseoptim`` module. This automates the creation and configuration of the necessary objects, generation of initial pulses, running the optimisation and returning the result. There are functions specifically for unitary dynamics, and also specifically for the CRAB algorithm (GRAPE is the default). The ``optimise_pulse`` function can in fact be used for unitary dynamics and / or the CRAB algorithm, the more specific functions simply have parameter names that are more familiar in that application. 
+The simplest method for optimising a control pulse is to call one of the functions in the ``pulseoptim`` module. This automates the creation and configuration of the necessary objects, generation of initial pulses, running the optimisation and returning the result. There are functions specifically for unitary dynamics, and also specifically for the CRAB algorithm (GRAPE is the default). The ``optimise_pulse`` function can in fact be used for unitary dynamics and / or the CRAB algorithm, the more specific functions simply have parameter names that are more familiar in that application.
 
 A semi-automated method is to use the ``create_optimizer_objects`` function to generate and configure all the objects, then manually set the initial pulse and call the optimisation. This would be more efficient when repeating runs with different starting conditions.
-

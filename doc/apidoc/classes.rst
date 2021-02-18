@@ -90,7 +90,7 @@ Solver Options and Results
 .. _classes-piqs:
 
 Permutational Invariance
----------------
+------------------------
 
 .. autoclass:: qutip.piqs.Dicke
     :members:
@@ -101,7 +101,7 @@ Permutational Invariance
 .. _classes-distributions:
 
 One-Dimensional Lattice
----------------
+-----------------------
 
 .. autoclass:: qutip.lattice.Lattice1d
     :members:
@@ -135,7 +135,16 @@ Quantum information processing
 .. autoclass:: qutip.qip.Gate
     :members:
 
+.. autoclass:: qutip.qip.Measurement
+    :members:
+
 .. autoclass:: qutip.qip.QubitCircuit
+    :members:
+
+.. autoclass:: qutip.qip.Result
+    :members:
+
+.. autoclass:: qutip.qip.ExactSimulator
     :members:
 
 .. autoclass:: qutip.qip.device.Processor
@@ -161,11 +170,11 @@ Quantum information processing
     :members:
     :inherited-members:
 
-.. autoclass:: qutip.qip.device.DispersivecQED
+.. autoclass:: qutip.qip.device.DispersiveCavityQED
     :members:
     :inherited-members:
-    
-.. autoclass:: qutip.qip.Noise
+
+.. autoclass:: qutip.qip.noise.Noise
     :members:
 
 .. autoclass:: qutip.qip.noise.DecoherenceNoise

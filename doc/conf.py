@@ -30,8 +30,6 @@ needs_sphinx = '1.8.3'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.mathjax',
-              'IPython.sphinxext.ipython_console_highlighting',
-              'IPython.sphinxext.ipython_directive',
               'matplotlib.sphinxext.plot_directive',
               'sphinx.ext.autodoc',
               'sphinx.ext.todo',
@@ -42,8 +40,7 @@ extensions = ['sphinx.ext.mathjax',
               'sphinx.ext.viewcode',
               'sphinx.ext.ifconfig',
               'sphinx.ext.napoleon',
-              'sphinx_gallery.gen_gallery'
-              ]
+              'sphinx_gallery.gen_gallery']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['templates']
@@ -51,8 +48,6 @@ templates_path = ['templates']
 # This is needed for ipython @savefig
 # Otherwise it just puts the png in the root dir
 savefig_dir = '_images'
-ipython_savefig_dir = '_images'
-ipython_strict_fail = False
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
@@ -251,6 +246,35 @@ man_pages = [
     (master_doc, 'qutip', project, [author], 1)
 ]
 
+# -- Doctest Setup ---------------------------------------
+
+os_nt = False
+if os.name == "nt":
+    os_nt = True
+
+doctest_global_setup = '''
+from pylab import *
+from qutip import *
+import numpy as np
+import os
+import warnings
+warnings.filterwarnings("ignore")
+os_nt = {}
+'''.format(os_nt)
+
+# -- Options for plot directive ---------------------------------------
+
+plot_working_directory = "./"
+plot_pre_code = """
+from pylab import *
+from scipy import *
+from qutip import *
+import numpy as np
+import matplotlib.pyplot as plt
+plt.close("all")
+"""
+plot_include_source = True
+plot_html_show_source_link = False
 
 # -- Options for Texinfo output -------------------------------------------
 
@@ -263,6 +287,9 @@ texinfo_documents = [
      'Quantum Toolbox in Python',
      'Miscellaneous'),
 ]
+
+
+
 
 # Documents to append as an appendix to all manuals.
 #texinfo_appendices = []
@@ -288,28 +315,7 @@ extlinks = {
 # does exactly what IPythonDirective does, or does syntax highlighting only,
 # depending on the hosting OS.
 
-def setup(app):
-    import os
-    from IPython.sphinxext.ipython_directive import IPythonDirective
-
-    if os.name == "nt":
-        from sphinx.directives.code import CodeBlock
-
-        class IPythonCodeBlock(CodeBlock):
-            required_arguments = 0
-
-            @property
-            def arguments(self):
-                return ['ipython']
-            @arguments.setter
-            def arguments(self, newval):
-                pass
-        app.add_directive('ipython-posix', IPythonCodeBlock)
-
-    else:
-        app.add_directive('ipython-posix', IPythonDirective)
-
-# The other workaround we need is that IPython's sphinxext depends on
+# The other workaround we need is that ipython's sphinxext depends on
 # pickeshare 0.5 (latest being 0.6), which in turn calls path.path
 # instead of path.Path. This results in an entire sea of DeprecationWarnings.
 # Since Sphinx overrides warnings filters during the parsing stage, we can't
@@ -322,8 +328,11 @@ def setup(app):
 
 # configuration declares the location of the examples directory for
 # Sphinx Gallery
+
 sphinx_gallery_conf = {
      'examples_dirs': 'gallery',   # path to your example scripts
      'gallery_dirs': 'gallery/qutip_examples',  # save generated examples
      'abort_on_example_error': True  # abort if exception occurs
 }
+
+ipython_strict_fail = False

@@ -1,23 +1,26 @@
-.. QuTiP
+QuTiP
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
 .. _visual:
 
+
+.. plot::
+   :include-source: False
+
+   import numpy as np
+
+   from qutip import *
+
+   import pylab as plt
+
+   from warnings import warn
+
+   plt.close("all")
+
+
 *********************************************
 Visualization of quantum states and processes
 *********************************************
-
-.. ipython::
-   :suppress:
-
-   In [1]: from qutip import *
-
-   In [1]: import numpy as np
-
-   In [1]: import matplotlib.pyplot as plt
-
-   In [1]: plt.close("all")
-
 
 Visualization is often an important complement to a simulation of a quantum
 mechanical system. The first method of visualization that come to mind might be
@@ -52,43 +55,44 @@ for a few possible oscillator states with on average occupation of two photons.
 
 First we generate the density matrices for the coherent, thermal and fock states.
 
-.. ipython::
+.. plot::
+    :context: reset
 
-    In [1]: N = 20
+    N = 20
 
-    In [1]: rho_coherent = coherent_dm(N, np.sqrt(2))
+    rho_coherent = coherent_dm(N, np.sqrt(2))
 
-    In [1]: rho_thermal = thermal_dm(N, 2)
+    rho_thermal = thermal_dm(N, 2)
 
-    In [1]: rho_fock = fock_dm(N, 2)
+    rho_fock = fock_dm(N, 2)
 
 
 Next, we plot histograms of the diagonals of the density matrices:
 
-.. ipython::
+.. plot::
+    :context:
 
-    In [1]: fig, axes = plt.subplots(1, 3, figsize=(12,3))
+    fig, axes = plt.subplots(1, 3, figsize=(12,3))
 
-    In [1]: bar0 = axes[0].bar(np.arange(0, N)-.5, rho_coherent.diag())
+    bar0 = axes[0].bar(np.arange(0, N)-.5, rho_coherent.diag())
 
-    In [1]: lbl0 = axes[0].set_title("Coherent state")
+    lbl0 = axes[0].set_title("Coherent state")
 
-    In [1]: lim0 = axes[0].set_xlim([-.5, N])
+    lim0 = axes[0].set_xlim([-.5, N])
 
-    In [1]: bar1 = axes[1].bar(np.arange(0, N)-.5, rho_thermal.diag())
+    bar1 = axes[1].bar(np.arange(0, N)-.5, rho_thermal.diag())
 
-    In [1]: lbl1 = axes[1].set_title("Thermal state")
+    lbl1 = axes[1].set_title("Thermal state")
 
-    In [1]: lim1 = axes[1].set_xlim([-.5, N])
+    lim1 = axes[1].set_xlim([-.5, N])
 
-    In [1]: bar2 = axes[2].bar(np.arange(0, N)-.5, rho_fock.diag())
+    bar2 = axes[2].bar(np.arange(0, N)-.5, rho_fock.diag())
 
-    In [1]: lbl2 = axes[2].set_title("Fock state")
+    lbl2 = axes[2].set_title("Fock state")
 
-    In [1]: lim2 = axes[2].set_xlim([-.5, N])
+    lim2 = axes[2].set_xlim([-.5, N])
 
-    @savefig visualization-distribution.png width=7.0in align=center
-    In [1]: plt.show()
+    plt.show()
 
 
 All these states correspond to an average of two photons, but by visualizing
@@ -99,20 +103,20 @@ One frequently need to visualize the Fock-distribution in the way described
 above, so QuTiP provides a convenience function for doing this, see
 :func:`qutip.visualization.plot_fock_distribution`, and the following example:
 
-.. ipython::
+.. plot::
+    :context: close-figs
 
-    In [1]: fig, axes = plt.subplots(1, 3, figsize=(12,3))
+    fig, axes = plt.subplots(1, 3, figsize=(12,3))
 
-    In [1]: plot_fock_distribution(rho_coherent, fig=fig, ax=axes[0], title="Coherent state");
+    plot_fock_distribution(rho_coherent, fig=fig, ax=axes[0], title="Coherent state");
 
-    In [1]: plot_fock_distribution(rho_thermal, fig=fig, ax=axes[1], title="Thermal state");
+    plot_fock_distribution(rho_thermal, fig=fig, ax=axes[1], title="Thermal state");
 
-    In [1]: plot_fock_distribution(rho_fock, fig=fig, ax=axes[2], title="Fock state");
+    plot_fock_distribution(rho_fock, fig=fig, ax=axes[2], title="Fock state");
 
-    In [1]: fig.tight_layout()
+    fig.tight_layout()
 
-    @savefig visualization-distribution-2.png width=7.0in align=center
-    In [1]: plt.show()
+    plt.show()
 
 .. _visual-dist:
 
@@ -141,34 +145,34 @@ input, together with arrays that define the ranges of the phase-space
 coordinates (in the x-y plane). In the following example the Wigner functions
 are calculated and plotted for the same three states as in the previous section.
 
-.. ipython::
+.. plot::
+    :context: close-figs
 
-    In [1]: xvec = np.linspace(-5,5,200)
+    xvec = np.linspace(-5,5,200)
 
-    In [1]: W_coherent = wigner(rho_coherent, xvec, xvec)
+    W_coherent = wigner(rho_coherent, xvec, xvec)
 
-    In [1]: W_thermal = wigner(rho_thermal, xvec, xvec)
+    W_thermal = wigner(rho_thermal, xvec, xvec)
 
-    In [1]: W_fock = wigner(rho_fock, xvec, xvec)
+    W_fock = wigner(rho_fock, xvec, xvec)
 
-    In [1]: # plot the results
+    # plot the results
 
-    In [1]: fig, axes = plt.subplots(1, 3, figsize=(12,3))
+    fig, axes = plt.subplots(1, 3, figsize=(12,3))
 
-    In [1]: cont0 = axes[0].contourf(xvec, xvec, W_coherent, 100)
+    cont0 = axes[0].contourf(xvec, xvec, W_coherent, 100)
 
-    In [1]: lbl0 = axes[0].set_title("Coherent state")
+    lbl0 = axes[0].set_title("Coherent state")
 
-    In [1]: cont1 = axes[1].contourf(xvec, xvec, W_thermal, 100)
+    cont1 = axes[1].contourf(xvec, xvec, W_thermal, 100)
 
-    In [1]: lbl1 = axes[1].set_title("Thermal state")
+    lbl1 = axes[1].set_title("Thermal state")
 
-    In [1]: cont0 = axes[2].contourf(xvec, xvec, W_fock, 100)
+    cont0 = axes[2].contourf(xvec, xvec, W_fock, 100)
 
-    In [1]: lbl2 = axes[2].set_title("Fock state")
+    lbl2 = axes[2].set_title("Fock state")
 
-    @savefig visualization-wigner.png width=7.0in align=center
-    In [1]: plt.show()
+    plt.show()
 
 .. _visual-cmap:
 
@@ -184,45 +188,40 @@ are thus hidden.  To fix this dilemma, QuTiP includes a nonlinear colormap funct
 that colors all negative values differently than positive or zero values.  Below is a demonstration of how to use
 this function in your Wigner figures:
 
-.. ipython::
-   :suppress:
+.. plot::
+    :context: close-figs
 
-   In [1]: plt.clf()
+    import matplotlib as mpl
 
-.. ipython::
+    from matplotlib import cm
 
-    In [1]: import matplotlib as mpl
+    psi = (basis(10, 0) + basis(10, 3) + basis(10, 9)).unit()
 
-    In [1]: from matplotlib import cm
+    xvec = np.linspace(-5, 5, 500)
 
-    In [1]: psi = (basis(10, 0) + basis(10, 3) + basis(10, 9)).unit()
+    W = wigner(psi, xvec, xvec)
 
-    In [1]: xvec = np.linspace(-5, 5, 500)
+    wmap = wigner_cmap(W)  # Generate Wigner colormap
 
-    In [1]: W = wigner(psi, xvec, xvec)
+    nrm = mpl.colors.Normalize(-W.max(), W.max())
 
-    In [1]: wmap = wigner_cmap(W)  # Generate Wigner colormap
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
 
-    In [1]: nrm = mpl.colors.Normalize(-W.max(), W.max())
+    plt1 = axes[0].contourf(xvec, xvec, W, 100, cmap=cm.RdBu, norm=nrm)
 
-    In [1]: fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+    axes[0].set_title("Standard Colormap");
 
-    In [1]: plt1 = axes[0].contourf(xvec, xvec, W, 100, cmap=cm.RdBu, norm=nrm)
+    cb1 = fig.colorbar(plt1, ax=axes[0])
 
-    In [1]: axes[0].set_title("Standard Colormap");
+    plt2 = axes[1].contourf(xvec, xvec, W, 100, cmap=wmap)  # Apply Wigner colormap
 
-    In [1]: cb1 = fig.colorbar(plt1, ax=axes[0])
+    axes[1].set_title("Wigner Colormap");
 
-    In [1]: plt2 = axes[1].contourf(xvec, xvec, W, 100, cmap=wmap)  # Apply Wigner colormap
+    cb2 = fig.colorbar(plt2, ax=axes[1])
 
-    In [1]: axes[1].set_title("Wigner Colormap");
+    fig.tight_layout()
 
-    In [1]: cb2 = fig.colorbar(plt2, ax=axes[1])
-
-    In [1]: fig.tight_layout()
-
-    @savefig wigner_cmap.png width=7.0in align=center
-    In [10]: plt.show()
+    plt.show()
 
 
 
@@ -241,30 +240,30 @@ where :math:`\left|\alpha\right>` is a coherent state and
 a state ket or density matrix using the function :func:`qutip.wigner.qfunc`, as
 demonstrated below.
 
-.. ipython::
+.. plot::
+    :context: close-figs
 
-    In [1]: Q_coherent = qfunc(rho_coherent, xvec, xvec)
+    Q_coherent = qfunc(rho_coherent, xvec, xvec)
 
-    In [1]: Q_thermal = qfunc(rho_thermal, xvec, xvec)
+    Q_thermal = qfunc(rho_thermal, xvec, xvec)
 
-    In [1]: Q_fock = qfunc(rho_fock, xvec, xvec)
+    Q_fock = qfunc(rho_fock, xvec, xvec)
 
-    In [1]: fig, axes = plt.subplots(1, 3, figsize=(12,3))
+    fig, axes = plt.subplots(1, 3, figsize=(12,3))
 
-    In [1]: cont0 = axes[0].contourf(xvec, xvec, Q_coherent, 100)
+    cont0 = axes[0].contourf(xvec, xvec, Q_coherent, 100)
 
-    In [1]: lbl0 = axes[0].set_title("Coherent state")
+    lbl0 = axes[0].set_title("Coherent state")
 
-    In [1]: cont1 = axes[1].contourf(xvec, xvec, Q_thermal, 100)
+    cont1 = axes[1].contourf(xvec, xvec, Q_thermal, 100)
 
-    In [1]: lbl1 = axes[1].set_title("Thermal state")
+    lbl1 = axes[1].set_title("Thermal state")
 
-    In [1]: cont0 = axes[2].contourf(xvec, xvec, Q_fock, 100)
+    cont0 = axes[2].contourf(xvec, xvec, Q_fock, 100)
 
-    In [1]: lbl2 = axes[2].set_title("Fock state")
+    lbl2 = axes[2].set_title("Fock state")
 
-    @savefig visualization-q-func.png width=7.0in align=center
-    In [1]: plt.show()
+    plt.show()
 
 
 .. _visual-oper:
@@ -289,47 +288,46 @@ for details).
 For example, to illustrate the use of :func:`qutip.visualization.matrix_histogram`,
 let's visualize of the Jaynes-Cummings Hamiltonian:
 
-.. ipython::
+.. plot::
+    :context: close-figs
 
-    In [1]: N = 5
+    N = 5
 
-    In [1]: a = tensor(destroy(N), qeye(2))
+    a = tensor(destroy(N), qeye(2))
 
-    In [1]: b = tensor(qeye(N), destroy(2))
+    b = tensor(qeye(N), destroy(2))
 
-    In [1]: sx = tensor(qeye(N), sigmax())
+    sx = tensor(qeye(N), sigmax())
 
-    In [1]: H = a.dag() * a + sx - 0.5 * (a * b.dag() + a.dag() * b)
+    H = a.dag() * a + sx - 0.5 * (a * b.dag() + a.dag() * b)
 
-    In [1]: # visualize H
+    # visualize H
 
-    In [1]: lbls_list = [[str(d) for d in range(N)], ["u", "d"]]
+    lbls_list = [[str(d) for d in range(N)], ["u", "d"]]
 
-    In [1]: xlabels = []
+    xlabels = []
 
-    In [1]: for inds in tomography._index_permutations([len(lbls) for lbls in lbls_list]):
-       ...:     xlabels.append("".join([lbls_list[k][inds[k]]
-       ...:                            for k in range(len(lbls_list))]))
+    for inds in tomography._index_permutations([len(lbls) for lbls in lbls_list]):
+       xlabels.append("".join([lbls_list[k][inds[k]] for k in range(len(lbls_list))]))
 
-    In [1]: fig, ax = matrix_histogram(H, xlabels, xlabels, limits=[-4,4])
+    fig, ax = matrix_histogram(H, xlabels, xlabels, limits=[-4,4])
 
-    In [1]: ax.view_init(azim=-55, elev=45)
+    ax.view_init(azim=-55, elev=45)
 
-    @savefig visualization-H.png width=5.0in align=center
-    In [1]: plt.show()
+    plt.show()
 
 
 Similarly, we can use the function :func:`qutip.visualization.hinton`, which is
 used below to visualize the corresponding steadystate density matrix:
 
-.. ipython::
+.. plot::
+    :context: close-figs
 
-    In [1]: rho_ss = steadystate(H, [np.sqrt(0.1) * a, np.sqrt(0.4) * b.dag()])
+    rho_ss = steadystate(H, [np.sqrt(0.1) * a, np.sqrt(0.4) * b.dag()])
 
-    In [1]: hinton(rho_ss)
+    hinton(rho_ss)
 
-    @savefig visualization-rho-ss.png width=5.0in align=center
-    In [1]: plt.show()
+    plt.show()
 
 .. _visual-qpt:
 
@@ -393,32 +391,41 @@ Implementation in QuTiP
 
 In QuTiP, the procedure described above is implemented in the function :func:`qutip.tomography.qpt`, which returns the :math:`\chi` matrix given a density matrix propagator. To illustrate how to use this function, let's consider the :math:`i`-SWAP gate for two qubits. In QuTiP the function :func:`qutip.qip.operations.iswap` generates the unitary transformation for the state kets:
 
-`U_psi = iswap()`
+
+.. plot::
+    :context: close-figs
+
+    from qutip.qip.operations import iswap
+
+    U_psi = iswap()
 
 To be able to use this unitary transformation matrix as input to the function :func:`qutip.tomography.qpt`, we first need to convert it to a transformation matrix for the corresponding density matrix:
 
+.. plot::
+    :context:
 
-`In [1]: U_rho = spre(U_psi) * spost(U_psi.dag())`
+    U_rho = spre(U_psi) * spost(U_psi.dag())
 
 
 Next, we construct a list of operators that define the basis :math:`\{B_i\}` in the form of a list of operators for each composite system. At the same time, we also construct a list of corresponding labels that will be used when plotting the :math:`\chi` matrix.
 
+.. plot::
+    :context:
 
-
-`In [1]: op_basis = [[qeye(2), sigmax(), sigmay(), sigmaz()]] * 2`
-
-`In [1]: op_label = [["i", "x", "y", "z"]] * 2`
+    op_basis = [[qeye(2), sigmax(), sigmay(), sigmaz()]] * 2
+    op_label = [["i", "x", "y", "z"]] * 2
 
 
 We are now ready to compute :math:`\chi` using :func:`qutip.tomography.qpt`, and to plot it using :func:`qutip.tomography.qpt_plot_combined`.
 
+.. plot::
+    :context:
 
-`In [1]: chi = qpt(U_rho, op_basis)`
+    chi = qpt(U_rho, op_basis)
 
-`In [1]: fig = qpt_plot_combined(chi, op_label, r'$i$SWAP')`
+    fig = qpt_plot_combined(chi, op_label, r'$i$SWAP')
 
-`@savefig visualization-chi-iswap.png width=5.0in align=center`
-`In [1]: plt.show()`
+    plt.show()
 
 
 

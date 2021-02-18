@@ -9,14 +9,14 @@ Stochastic Solver
 
 .. _stochastic-intro:
 
-.. ipython::
-   :suppress:
 
-   In [1]: from qutip import *
+.. plot::
+      :include-source: False
 
-   In [1]: import numpy as np
-
-   In [1]: from pylab import *
+      from pylab import *
+      from scipy import *
+      from qutip import *
+      import numpy as np
 
 Homodyne detection
 ==================
@@ -59,34 +59,34 @@ Here :math:`\delta \omega` is a Wiener increment.
 
 In QuTiP, this is available with the function :func:`ssesolve`.
 
-.. ipython::
+.. plot::
+    :context:
 
-    In [1]: times = np.linspace(0.0, 10.0, 201)
+    times = np.linspace(0.0, 10.0, 201)
 
-    In [1]: psi0 = tensor(fock(2, 0), fock(10, 5))
+    psi0 = tensor(fock(2, 0), fock(10, 5))
 
-    In [1]: a  = tensor(qeye(2), destroy(10))
+    a  = tensor(qeye(2), destroy(10))
 
-    In [1]: sm = tensor(destroy(2), qeye(10))
+    sm = tensor(destroy(2), qeye(10))
 
-    In [1]: H = 2 * np.pi * a.dag() * a + 2 * np.pi * sm.dag() * sm + 2 * np.pi * 0.25 * (sm * a.dag() + sm.dag() * a)
+    H = 2 * np.pi * a.dag() * a + 2 * np.pi * sm.dag() * sm + 2 * np.pi * 0.25 * (sm * a.dag() + sm.dag() * a)
 
-    In [1]: data = ssesolve(H, psi0, times, sc_ops=[np.sqrt(0.1) * a], e_ops=[a.dag() * a, sm.dag() * sm], method="homodyne")
+    data = ssesolve(H, psi0, times, sc_ops=[np.sqrt(0.1) * a], e_ops=[a.dag() * a, sm.dag() * sm], method="homodyne")
 
-    In [1]: figure()
+    figure()
 
-    In [1]: plot(times, data.expect[0], times, data.expect[1])
+    plot(times, data.expect[0], times, data.expect[1])
 
-    In [1]: title('Homodyne time evolution')
+    title('Homodyne time evolution')
 
-    In [1]: xlabel('Time')
+    xlabel('Time')
 
-    In [1]: ylabel('Expectation values')
+    ylabel('Expectation values')
 
-    In [1]: legend(("cavity photon number", "atom excitation probability"))
+    legend(("cavity photon number", "atom excitation probability"))
 
-    @savefig guide-sse1.png width=5.0in align=center
-    In [1]: show()
+    show()
 
 
 Open system

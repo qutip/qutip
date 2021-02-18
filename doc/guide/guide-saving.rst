@@ -7,15 +7,6 @@
 Saving QuTiP Objects and Data Sets
 **********************************
 
-.. ipython::
-   :suppress:
-
-   In [1]: from qutip import *
-
-   In [2]: import numpy as np
-
-   In [3]: from pylab import *
-
 
 With time-consuming calculations it is often necessary to store the results to files on disk, so it can be post-processed and archived. In QuTiP there are two facilities for storing data: Quantum objects can be stored to files and later read back as python pickles, and numerical data (vectors and matrices) can be exported as plain text files in for example CSV (comma-separated values), TSV (tab-separated values), etc. The former method is preferred when further calculations will be performed with the data, and the latter when the calculations are completed and data is to be imported into a post-processing tool (e.g. for generating figures).
 
@@ -26,54 +17,68 @@ To store and load arbitrary QuTiP related objects (:class:`qutip.Qobj`, :class:`
 
 To illustrate how these functions can be used, consider a simple calculation of the steadystate of the harmonic oscillator:
 
-.. ipython::
+.. doctest:: [saving]
 
-    In [1]: a = destroy(10); H = a.dag() * a ; c_ops = [np.sqrt(0.5) * a, np.sqrt(0.25) * a.dag()]
+    >>> a = destroy(10); H = a.dag() * a
+    >>> c_ops = [np.sqrt(0.5) * a, np.sqrt(0.25) * a.dag()]
 
-    In [2]: rho_ss = steadystate(H, c_ops)
+    >>> rho_ss = steadystate(H, c_ops)
 
 The steadystate density matrix `rho_ss` is an instance of :class:`qutip.Qobj`. It can be stored to a file `steadystate.qu` using
 
-.. ipython::
+.. doctest:: [saving]
 
-    In [1]: qsave(rho_ss, 'steadystate')
+    >>> qsave(rho_ss, 'steadystate')
 
-    In [2]: ls *.qu
+    >>> !ls *.qu # doctest: +SKIP
+    density_matrix_vs_time.qu  steadystate.qu
+
 
 
 and it can later be loaded again, and used in further calculations:
 
-.. ipython::
+.. doctest:: [saving]
 
-    In [1]: rho_ss_loaded = qload('steadystate')
+    >>> rho_ss_loaded = qload('steadystate') # doctest: +ELLIPSIS
+    Loaded Qobj object:
+    Quantum object: dims = [[10], [10]], shape = (10, 10), type = oper, isHerm = True
+    <BLANKLINE>
 
-    In [2]: a = destroy(10)
+    >>> a = destroy(10)
 
-    In [3]: expect(a.dag() * a, rho_ss_loaded)
+    >>> np.testing.assert_almost_equal(expect(a.dag() * a, rho_ss_loaded), 0.9902248289345061)
+
 
 The nice thing about the :func:`qutip.fileio.qsave` and :func:`qutip.fileio.qload` functions is that almost any object can be stored and load again later on. We can for example store a list of density matrices as returned by :func:`qutip.mesolve`:
 
-.. ipython::
+.. doctest:: [saving]
 
-    In [1]: a = destroy(10); H = a.dag() * a ; c_ops = [np.sqrt(0.5) * a, np.sqrt(0.25) * a.dag()]
+    >>> a = destroy(10); H = a.dag() * a ; c_ops = [np.sqrt(0.5) * a, np.sqrt(0.25) * a.dag()]
 
-    In [2]: psi0 = rand_ket(10)
+    >>> psi0 = rand_ket(10)
 
-    In [3]: times = np.linspace(0, 10, 10)
+    >>> times = np.linspace(0, 10, 10)
 
-    In [4]: dm_list = mesolve(H, psi0, times, c_ops, [])
+    >>> dm_list = mesolve(H, psi0, times, c_ops, [])
 
-    In [5]: qsave(dm_list, 'density_matrix_vs_time')
+    >>> qsave(dm_list, 'density_matrix_vs_time')
 
 And it can then be loaded and used again, for example in an other program:
 
-.. ipython::
+.. doctest:: [saving]
 
-    In [1]: dm_list_loaded = qload('density_matrix_vs_time')
+    >>> dm_list_loaded = qload('density_matrix_vs_time')
+    Loaded Result object:
+    Result object with mesolve data.
+    --------------------------------
+    states = True
+    num_collapse = 0
 
-    In [2]: a = destroy(10)
+    >>> a = destroy(10)
 
-    In [3]: expect(a.dag() * a, dm_list_loaded.states)
+    >>> expect(a.dag() * a, dm_list_loaded.states) # doctest: +SKIP
+    array([4.63317086, 3.59150315, 2.90590183, 2.41306641, 2.05120716,
+       1.78312503, 1.58357995, 1.4346382 , 1.32327398, 1.23991233])
 
 
 Storing and loading datasets
@@ -83,62 +88,82 @@ The :func:`qutip.fileio.qsave` and :func:`qutip.fileio.qload` are great, but the
 
 The :func:`qutip.fileio.file_data_store` takes two mandatory and three optional arguments:
 
->>> file_data_store(filename, data, numtype="complex", numformat="decimal", sep=",")
+>>> file_data_store(filename, data, numtype="complex", numformat="decimal", sep=",") # doctest: +SKIP
 
 where `filename` is the name of the file, `data` is the data to be written to the file (must be a *numpy* array), `numtype` (optional) is a flag indicating numerical type that can take values `complex` or `real`, `numformat` (optional) specifies the numerical format that can take the values `exp` for the format `1.0e1` and `decimal` for the format `10.0`, and `sep` (optional) is an arbitrary single-character field separator (usually a tab, space, comma, semicolon, etc.).
 
 A common use for the :func:`qutip.fileio.file_data_store` function is to store the expectation values of a set of operators for a sequence of times, e.g., as returned by the :func:`qutip.mesolve` function, which is what the following example does:
 
-.. ipython::
+.. doctest:: [saving]
+  :options: +NORMALIZE_WHITESPACE
 
-    In [1]: a = destroy(10); H = a.dag() * a ; c_ops = [np.sqrt(0.5) * a, np.sqrt(0.25) * a.dag()]
+    >>> a = destroy(10); H = a.dag() * a ; c_ops = [np.sqrt(0.5) * a, np.sqrt(0.25) * a.dag()]
 
-    In [2]: psi0 = rand_ket(10)
-    
-    In [3]: times = np.linspace(0, 100, 100)
+    >>> psi0 = rand_ket(10)
 
-    In [4]: medata = mesolve(H, psi0, times, c_ops, [a.dag() * a, a + a.dag(), -1j * (a - a.dag())])
+    >>> times = np.linspace(0, 100, 100)
 
-    In [5]:    shape(medata.expect)
+    >>> medata = mesolve(H, psi0, times, c_ops, [a.dag() * a, a + a.dag(), -1j * (a - a.dag())])
 
-    In [6]: shape(times)
+    >>> shape(medata.expect)
+    (3, 100)
 
-    In [7]: output_data = np.vstack((times, medata.expect))   # join time and expt data
+    >>> shape(times)
+    (100,)
 
-    In [8]: file_data_store('expect.dat', output_data.T) # Note the .T for transpose!
+    >>> output_data = np.vstack((times, medata.expect))   # join time and expt data
 
-    In [9]: ls *.dat
+    >>> file_data_store('expect.dat', output_data.T) # Note the .T for transpose!
 
-    In [10]: !head expect.dat
+    >>> !ls *.dat # doctest: +SKIP
+    expect.dat
+
+
+    >>> !head expect.dat # doctest: +SKIP
+    # Generated by QuTiP: 100x4 complex matrix in decimal format [',' separated values].
+    0.0000000000+0.0000000000j,3.2109553666+0.0000000000j,0.3689771549+0.0000000000j,0.0185002867+0.0000000000j
+    1.0101010101+0.0000000000j,2.6754598872+0.0000000000j,0.1298251132+0.0000000000j,-0.3303672956+0.0000000000j
+    2.0202020202+0.0000000000j,2.2743186810+0.0000000000j,-0.2106241300+0.0000000000j,-0.2623894277+0.0000000000j
+    3.0303030303+0.0000000000j,1.9726633457+0.0000000000j,-0.3037311621+0.0000000000j,0.0397330921+0.0000000000j
+    4.0404040404+0.0000000000j,1.7435892209+0.0000000000j,-0.1126550232+0.0000000000j,0.2497182058+0.0000000000j
+    5.0505050505+0.0000000000j,1.5687324121+0.0000000000j,0.1351622725+0.0000000000j,0.2018398581+0.0000000000j
+    6.0606060606+0.0000000000j,1.4348632045+0.0000000000j,0.2143080535+0.0000000000j,-0.0067820038+0.0000000000j
+    7.0707070707+0.0000000000j,1.3321818015+0.0000000000j,0.0950352763+0.0000000000j,-0.1630920429+0.0000000000j
+    8.0808080808+0.0000000000j,1.2533244850+0.0000000000j,-0.0771210981+0.0000000000j,-0.1468923919+0.0000000000j
 
 
 In this case we didn't really need to store both the real and imaginary parts, so instead we could use the `numtype="real"` option:
 
-.. ipython::
+.. doctest:: [saving]
 
-    In [1]: file_data_store('expect.dat', output_data.T, numtype="real")
+    >>> file_data_store('expect.dat', output_data.T, numtype="real")
 
-    In [2]: !head -n5 expect.dat
+    >>> !head -n5 expect.dat # doctest: +SKIP
+    # Generated by QuTiP: 100x4 real matrix in decimal format [',' separated values].
+    0.0000000000,3.2109553666,0.3689771549,0.0185002867
+    1.0101010101,2.6754598872,0.1298251132,-0.3303672956
+    2.0202020202,2.2743186810,-0.2106241300,-0.2623894277
+    3.0303030303,1.9726633457,-0.3037311621,0.0397330921
 
 
 and if we prefer scientific notation we can request that using the `numformat="exp"` option
 
-.. ipython::
+.. doctest:: [saving]
 
-    In [1]: file_data_store('expect.dat', output_data.T, numtype="real", numformat="exp")
+    >>> file_data_store('expect.dat', output_data.T, numtype="real", numformat="exp")
 
-    In [2]: !head -n 5 expect.dat
+    >>> !head -n 5 expect.dat # doctest: +SKIP
 
 Loading data previously stored using :func:`qutip.fileio.file_data_store` (or some other software) is a even easier. Regardless of which deliminator was used, if data was stored as complex or real numbers, if it is in decimal or exponential form, the data can be loaded using the :func:`qutip.fileio.file_data_read`, which only takes the filename as mandatory argument.
 
-.. ipython::
+.. plot::
+    :context: reset
 
-    In [1]: input_data = file_data_read('expect.dat')
+    input_data = file_data_read('expect.dat')
 
-    In [2]: shape(input_data)
+    shape(input_data)
 
-    @savefig saving_ex.png width=4in align=center
-    In [5]: plot(input_data[:,0], input_data[:,1]);  # plot the data
+    plot(input_data[:,0], input_data[:,1]);  # plot the data
 
 
 (If a particularly obscure choice of deliminator was used it might be necessary to use the optional second argument, for example `sep="_"` if _ is the deliminator).
