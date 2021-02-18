@@ -19,7 +19,7 @@ tlist = np.arange(0.00, 20.2, 0.2)
 T2 = 5
 processor = Processor(1, t2=T2)
 processor.add_control(sigmaz())
-processor.pulses[0].coeff = True
+processor.pulses[0].coeff = np.ones(len(tlist))
 processor.pulses[0].tlist = tlist
 result = processor.run_state(
     plus_state, e_ops=[a.dag()*a, Hadamard*a.dag()*a*Hadamard])
@@ -34,3 +34,4 @@ ax.legend()
 ax.set_title("Relaxation T2=5")
 ax.grid()
 fig.tight_layout()
+fig.show()

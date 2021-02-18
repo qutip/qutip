@@ -3,14 +3,14 @@
 
 .. _qip_intro:
 
-*********************************************
+******************************
 Quantum Information Processing
-*********************************************
+******************************
 
 Introduction
 ============
 
-The Quantum Information Processing (QIP) module aims at providing basic tools for quantum computing simulation both for simple quantum algorithm design and for experimental realization. It offers two different approaches, one with :class:`~qutip.qip.QubitCircuit` calculating unitary evolution under quantum gates by matrix product, another called :class:`qutip.qip.device.Processor` using open system solver in QuTiP to simulate noisy quantum device.
+The Quantum Information Processing (QIP) module aims at providing basic tools for quantum computing simulation both for simple quantum algorithm design and for experimental realization. It offers two different approaches, one with :class:`~qutip.qip.QubitCircuit` calculating unitary evolution under quantum gates by matrix product, another called :class:`~qutip.qip.device.Processor` using open system solvers in QuTiP to simulate noisy quantum device.
 
 .. _quantum_circuits:
 
@@ -21,18 +21,18 @@ The most common model for quantum computing is the quantum circuit model.
 In QuTiP, we use :class:`~qutip.qip.QubitCircuit` to represent a quantum circuit.
 The circuit is characterized by registers and gates:
 
-- **Registers**: The argument N specifies the number of qubit registers in the circuit
-  and the argument num_cbits (optional) specifies the number of classical bits available for measurement
+- **Registers**: The argument ``N`` specifies the number of qubit registers in the circuit
+  and the argument ``num_cbits`` (optional) specifies the number of classical bits available for measurement
   and control.
 
-- **Gates**: Each quantum gate is saved as a class object :class:`qutip.qip.Gate`
+- **Gates**: Each quantum gate is saved as a class object :class:`~qutip.qip.Gate`
   with information such as gate name, target qubits and arguments.
   Gates can also be controlled on a classical bit by specifying the register number
-  with the argument classical_controls.
+  with the argument ``classical_controls``.
 
-- **Measurements**: We can also carry out measurements on individual qubits (both in the middle and at the end of the circuit).
-  Each measurement is saved as a class object :class:`~qutip.qip.Measurement` with parameters such as target,
-  the target qubit on which the measurement will be carried out and classical_store,
+- **Measurements**: We can also carry out measurements on individual qubit (both in the middle and at the end of the circuit).
+  Each measurement is saved as a class object :class:`~qutip.qip.Measurement` with parameters such as `targets`,
+  the target qubit on which the measurement will be carried out, and `classical_store`,
   the index of the classical register which stores the result of the measurement.
 
 A circuit with the various gates and registers available is demonstrated below:
@@ -68,7 +68,7 @@ Unitaries
 =========
 
 There are a few useful functions associated with the circuit object. For example,
-the :func:`qutip.qip.QubitCircuit.propagators()` method returns a list of the unitaries associated
+the :meth:`~qutip.qip.circuit.QubitCircuit.propagators` method returns a list of the unitaries associated
 with the sequence of gates in the circuit. By default, the unitaries are expanded to the
 full dimension of the circuit:
 
@@ -104,7 +104,8 @@ full dimension of the circuit:
    [0. 0. 0. 1.]]]
 
 Another option is to only return the unitaries in their original dimension. This
-can be achieved with the argument **expand=False** specified to the propagators function.
+can be achieved with the argument ``expand=False`` specified to the
+:meth:`~qutip.qip.circuit.QubitCircuit.propagators`.
 
 .. testcode::
 
@@ -179,11 +180,14 @@ Gate name                           Description
 "GLOBALPHASE"         Global phase
 ====================  ========================================
 
-For some of the gates listed above, :class:`~qutip.qip.QubitCircuit` also has a primitive :func:`~qutip.qip.QubitCircuit.resolve_gates()` method that decomposes them into elementary gate sets such as CNOT or SWAP with single-qubit gates. However, this method is not fully optimized. It is very likely that the depth of the circuit can be further reduced by merging quantum gates. It is required that the gate resolution be carried out before the measurements to the circuit are added.
+For some of the gates listed above, :class:`~qutip.qip.QubitCircuit` also has a primitive :func:`~qutip.qip.QubitCircuit.resolve_gates()` method that decomposes them into elementary gate sets such as CNOT or SWAP with single-qubit gates (RX, RY and RZ). However, this method is not fully optimized. It is very likely that the depth of the circuit can be further reduced by merging quantum gates. It is required that the gate resolution be carried out before the measurements to the circuit are added.
 
 **Custom Gates**
 
-In addition to these pre-defined gates, QuTiP also allows the user to define their own gate. The following example shows how to define a customized gate.
+In addition to these pre-defined gates, QuTiP also allows the user to define their own gate.
+The following example shows how to define a customized gate.
+The key step is to define a
+gate function returning a :class:`qutip.Qobj` and save it in the attribute ``user_gates``.
 
 .. note::
 
@@ -284,36 +288,54 @@ In addition to these pre-defined gates, QuTiP also allows the user to define the
 Plotting a Quantum Circuit
 ===================================
 
-A quantum circuit (described above) can directly be plotted using the QCircuit library ( https://github.com/CQuIC/qcircuit ).
-QCiruit is a quantum circuit drawing application and is implemented directly into QuTiP. As QCircuit uses LaTex for plotting you need to have several tools installed to use the plotting function within QuTip:
-*pdflatex*, *pdfcrop* and *imagemagick (to convert pdf to png)*.
+A quantum circuit (described above) can directly be plotted using the QCircuit library (https://github.com/CQuIC/qcircuit).
+QCiruit is a quantum circuit drawing application and is implemented directly into QuTiP.
+
+The circuit image visualization requires LaTeX and ImageMagick for display.
+The module automatically generates the LaTeX code for plotting the circuit,
+produces the pdf and converts it to the png format. On Mac and Linux,
+ImageMagick can be easily installed with the command conda install imagemagick if you have conda installed.
+Otherwise, please follow the installation instructions on the ImageMagick documentation.
+
+On windows, you need to download and install ImageMagick installer.
+In addition, you also need perl (for `pdfcrop`) and
+Ghostscript (additional dependency of ImageMagick for png conversion).
+
+If you want to check whether all dependencies are installed,
+see if the following three commands work correctly:
+``pdflatex``, ``pdfcrop`` and ``magick anypdf.pdf antpdf.png``,
+where ``anypdf.pdf`` is any pdf file you have.
+
 An example code for plotting the example quantum circuit from above is given:
 
-.. testcode::
+.. code-block:: python
 
     from qutip.qip.circuit import QubitCircuit, Gate
     # create the quantum circuit
-    qc = QubitCircuit(N=2, num_cbits=1)
+    qc = QubitCircuit(2, num_cbits=1)
     qc.add_gate("CNOT", controls=0, targets=1)
     qc.add_gate("H", targets=1)
+    qc.add_gate("ISWAP", targets=[0,1])
     qc.add_measurement("M0", targets=1, classical_store=0)
     # plot the quantum circuit
     qc.png
 
-.. image:: /gallery/qutip_examples/qip/images/qc_example.png
+.. image:: /figures/qip/quantum_circuit_example.png
+
+..
+   _This: is a comment, do not test the png generation as it requires additional installation!
 
 
-
-Simulation
-==========
+Circuit simulation
+==================
 
 There are two different ways to simulate the action of quantum circuits using QuTiP:
 
 - The first method utilizes unitary application through matrix products on the input states.
   This method simulates circuits exactly in a deterministic manner. This is achieved through
-  :class:`qutip.qip.ExactSimulator`. A short guide to exact simulation can be
+  :class:`~qutip.qip.CircuitSimulator`. A short guide to exact simulation can be
   found at :ref:`qip_simulator`. The teleportation notebook is also useful as an example.
 
 - A different method of circuit simulation employs driving Hamiltonians with the ability to
   simulate circuits in the presence of noise. This can be achieved through the various classes
-  in :class:`qutip.qip.device`. A short guide to processors for QIP simulation can be found at :ref:`qip_processor`.
+  in :class:`~qutip.qip.device`.A short guide to processors for QIP simulation can be found at :ref:`qip_processor`.
