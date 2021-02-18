@@ -6,7 +6,7 @@ import numpy as np
 from qutip.qobjevo import QobjEvo
 from qutip.qip.operations import expand_operator
 from qutip.qobj import Qobj
-from qutip.operators import sigmaz, destroy
+from qutip.operators import sigmaz, destroy, num
 from qutip.qip.pulse import Pulse
 
 
@@ -242,14 +242,9 @@ class RelaxationNoise(Noise):
         """
         if systematic_noise is None:
             systematic_noise = Pulse(None, None, label="system")
-        if isinstance(dims, list):
-            for d in dims:
-                if d != 2:
-                    raise ValueError(
-                        "Relaxation noise is defined only for qubits system")
-            N = len(dims)
-        else:
-            N = dims
+        if not isinstance(dims, Iterable):
+            dims = [2] * dims
+        N = len(dims)
 
         self.t1 = self._T_to_list(self.t1, N)
         self.t2 = self._T_to_list(self.t2, N)
@@ -267,7 +262,7 @@ class RelaxationNoise(Noise):
             t1 = self.t1[qu_ind]
             t2 = self.t2[qu_ind]
             if t1 is not None:
-                op = 1/np.sqrt(t1) * destroy(2)
+                op = 1/np.sqrt(t1) * destroy(dims[qu_ind])
                 systematic_noise.add_lindblad_noise(op, qu_ind, coeff=True)
             if t2 is not None:
                 # Keep the total dephasing ~ exp(-t/t2)
@@ -279,7 +274,7 @@ class RelaxationNoise(Noise):
                     T2_eff = 1./(1./t2-1./2./t1)
                 else:
                     T2_eff = t2
-                op = 1/np.sqrt(2*T2_eff) * sigmaz()
+                op = 1/np.sqrt(2*T2_eff) * 2 * num(dims[qu_ind])
                 systematic_noise.add_lindblad_noise(op, qu_ind, coeff=True)
         return systematic_noise
 
