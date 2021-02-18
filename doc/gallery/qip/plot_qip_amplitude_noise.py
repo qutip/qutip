@@ -30,4 +30,4 @@ processor.plot_pulses(title="Original control amplitude", figsize=(5,3))
 qobjevo, _ = processor.get_qobjevo(noisy=True)
 noisy_coeff = qobjevo.to_list()[1][1] + qobjevo.to_list()[2][1]
 fig2, ax2 = processor.plot_pulses(title="Noisy control amplitude", figsize=(5,3))
-ax2.step(qobjevo.tlist, noisy_coeff)
+ax2[0].step(qobjevo.tlist, noisy_coeff)
