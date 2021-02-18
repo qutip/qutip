@@ -178,7 +178,10 @@ class GateCompiler(object):
         for instruction, start_time in \
                 zip(instruction_list, scheduled_start_time):
             for pulse_name, coeff in instruction.pulse_info:
-                pulse_ind = self.pulse_dict[pulse_name]
+                if self.pulse_dict is not None:
+                    pulse_ind = self.pulse_dict[pulse_name]
+                else:
+                    pulse_ind = pulse_name
                 pulse_instructions[pulse_ind].append(
                     (start_time, instruction.tlist, coeff))
 
