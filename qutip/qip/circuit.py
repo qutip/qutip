@@ -30,7 +30,7 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-
+import copy
 from collections.abc import Iterable
 from itertools import product
 import numbers
@@ -1645,13 +1645,22 @@ class QubitCircuit:
             if isinstance(op, Gate):
                 gate = op
                 col = []
+                _swap_processing = False
                 for n in range(self.N+self.num_cbits):
 
                     if gate.targets and n in gate.targets:
 
                         if len(gate.targets) > 1:
                             if gate.name == "SWAP":
-                                col.append(r" \qswap \qwx ")
+                                if _swap_processing:
+                                    col.append(r" \qswap \qw")
+                                    continue
+                                temp = copy.copy(gate.targets)
+                                temp.remove(n)
+                                second_targets = temp[0]
+                                distance = n - second_targets
+                                col.append(r" \qswap \qwx[%d] \qw" % distance)
+                                _swap_processing = True
 
                             elif ((self.reverse_states and
                                    n == max(gate.targets)) or
@@ -1717,7 +1726,7 @@ class QubitCircuit:
                         col.append(r" \meter")
                     elif (n-self.N) == measurement.classical_store:
                         store_tag = n - measurement.targets[0]
-                        col.append(r" \cwx[%d] " % store_tag)
+                        col.append(r" \qw \cwx[%d] " % store_tag)
                     else:
                         col.append(r" \qw ")
 
