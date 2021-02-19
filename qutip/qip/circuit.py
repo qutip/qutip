@@ -30,7 +30,6 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-import copy
 from collections.abc import Iterable
 from itertools import product
 import numbers
@@ -1655,10 +1654,8 @@ class QubitCircuit:
                                 if _swap_processing:
                                     col.append(r" \qswap \qw")
                                     continue
-                                temp = copy.copy(gate.targets)
-                                temp.remove(n)
-                                second_targets = temp[0]
-                                distance = n - second_targets
+                                distance = abs(
+                                    gate.targets[1] - gate.targets[0])
                                 col.append(r" \qswap \qwx[%d] \qw" % distance)
                                 _swap_processing = True
 
