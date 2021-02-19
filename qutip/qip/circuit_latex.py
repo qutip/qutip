@@ -259,7 +259,7 @@ _qcircuit_latex_min = r"""
 % Last modified on: 9/16/2011
 % License: http://www.gnu.org/licenses/gpl-2.0.html
 % Original file: http://physics.unm.edu/CQuIC/Qcircuit/Qcircuit.tex
-% Modified for QuTiP on: 5/22/2014
+% Modified for QuTiP on: 2/19/2021
 \usepackage{xy}
 \xyoption{matrix}
 \xyoption{frame}
