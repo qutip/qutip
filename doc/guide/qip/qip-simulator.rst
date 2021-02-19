@@ -347,4 +347,4 @@ One can save it in a ``.qasm`` file and import it using the following code:
 .. testcode::
 
   from qutip.qip.qasm import read_qasm
-  qc = read_qasm("w-state.qasm")
+  qc = read_qasm("guide/qip/w-state.qasm")
