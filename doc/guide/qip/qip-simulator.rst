@@ -35,9 +35,11 @@ examples of circuit evolution. We take a circuit from
     qc.add_gate("X", targets=[1])
     qc.add_gate("CNOT", targets=[1], controls=0)
 
+It corresponds to the following circuit:
+
 .. image:: /figures/qip/quantum_circuit_w_state.png
 
-This circuit prepares the W-state :math:`\newcommand{\ket}[1]{\left|{#1}\right\rangle} \frac{\ket{001} + \ket{010} + \ket{100}}{\sqrt{3}}`.
+We will add the measurement gates later. This circuit prepares the W-state :math:`\newcommand{\ket}[1]{\left|{#1}\right\rangle} \frac{\ket{001} + \ket{010} + \ket{100}}{\sqrt{3}}`.
 The simplest way to carry out state evolution through a quantum circuit is
 providing a input state to the :func:`~qutip.qip.circuit.QubitCircuit.run`
 method.
