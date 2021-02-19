@@ -13,13 +13,14 @@ from qutip.tensor import tensor
 from qutip.qip.pulse import Pulse
 
 
-class DriftNoise(UserNoise):
+class DriftNoise(Noise):
     def __init__(self, op):
         self.qobj = op
 
-    def get_noisy_dynamics(self, ctrl_pulses, system_noise, dims):
-        system_noise.add_coherent_noise(self.qobj, 0, coeff=True)
-        return ctrl_pulses, system_noise
+    def get_noisy_dynamics(self, dims, pulses, systematic_noise):
+        systematic_noise.add_coherent_noise(self.qobj, 0, coeff=True)
+        # test the backward compatibility
+        return pulses
 
 
 class TestNoise:
@@ -33,16 +34,17 @@ class TestNoise:
         # Time-dependent
         decnoise = DecoherenceNoise(
             sigmaz(), coeff=coeff, tlist=tlist, targets=[1])
-        noisy_qu, c_ops = \
-            decnoise.get_noisy_dynamics(2).get_noisy_qobjevo(dims=2)
+        dims = [2] * 2
+        pulses, systematic_noise = decnoise.get_noisy_dynamics(dims=dims)
+        noisy_qu, c_ops = systematic_noise.get_noisy_qobjevo(dims=dims)
         assert_allclose(c_ops[0].ops[0].qobj, tensor(qeye(2), sigmaz()))
         assert_allclose(c_ops[0].ops[0].coeff, coeff)
         assert_allclose(c_ops[0].tlist, tlist)
 
         # Time-indenpendent and all qubits
         decnoise = DecoherenceNoise(sigmax(), all_qubits=True)
-        noisy_qu, c_ops = \
-            decnoise.get_noisy_dynamics(2).get_noisy_qobjevo(dims=2)
+        pulses, systematic_noise = decnoise.get_noisy_dynamics(dims=dims)
+        noisy_qu, c_ops = systematic_noise.get_noisy_qobjevo(dims=dims)
         c_ops = [qu.cte for qu in c_ops]
         assert_(tensor([qeye(2), sigmax()]) in c_ops)
         assert_(tensor([sigmax(), qeye(2)]) in c_ops)
@@ -50,8 +52,8 @@ class TestNoise:
         # Time-denpendent and all qubits
         decnoise = DecoherenceNoise(
             sigmax(), all_qubits=True, coeff=coeff*2, tlist=tlist)
-        noisy_qu, c_ops = \
-            decnoise.get_noisy_dynamics(2).get_noisy_qobjevo(dims=2)
+        pulses, systematic_noise = decnoise.get_noisy_dynamics(dims=dims)
+        noisy_qu, c_ops = systematic_noise.get_noisy_qobjevo(dims=dims)
         assert_allclose(c_ops[0].ops[0].qobj, tensor(sigmax(), qeye(2)))
         assert_allclose(c_ops[0].ops[0].coeff, coeff*2)
         assert_allclose(c_ops[0].tlist, tlist)
@@ -61,27 +63,38 @@ class TestNoise:
         """
         Test for the relaxation noise
         """
+        # only t1
         a = destroy(2)
+        dims = [2] * 3
         relnoise = RelaxationNoise(t1=[1., 1., 1.], t2=None)
-        noisy_qu, c_ops = \
-            relnoise.get_noisy_dynamics(3).get_noisy_qobjevo(dims=3)
+        systematic_noise = Pulse(None, None, label="system")
+        pulses, systematic_noise = relnoise.get_noisy_dynamics(
+            dims=dims, systematic_noise=systematic_noise)
+        noisy_qu, c_ops = systematic_noise.get_noisy_qobjevo(dims=dims)
         assert_(len(c_ops) == 3)
         assert_allclose(c_ops[1].cte, tensor([qeye(2), a, qeye(2)]))
 
+        # no relaxation
+        dims = [2] * 2
         relnoise = RelaxationNoise(t1=None, t2=None)
-        noisy_qu, c_ops = \
-            relnoise.get_noisy_dynamics(2).get_noisy_qobjevo(dims=2)
+        systematic_noise = Pulse(None, None, label="system")
+        pulses, systematic_noise = relnoise.get_noisy_dynamics(
+            dims=dims, systematic_noise=systematic_noise)
+        noisy_qu, c_ops = systematic_noise.get_noisy_qobjevo(dims=dims)
         assert_(len(c_ops) == 0)
 
+        # only t2
         relnoise = RelaxationNoise(t1=None, t2=[0.2, 0.7])
-        noisy_qu, c_ops = \
-            relnoise.get_noisy_dynamics(2).get_noisy_qobjevo(dims=2)
+        systematic_noise = Pulse(None, None, label="system")
+        pulses, systematic_noise = relnoise.get_noisy_dynamics(
+            dims=dims, systematic_noise=systematic_noise)
+        noisy_qu, c_ops = systematic_noise.get_noisy_qobjevo(dims=dims)
         assert_(len(c_ops) == 2)
 
-        system_noise = Pulse(None, None, label="system")
+        # t1+t2 and systematic_noise = None
         relnoise = RelaxationNoise(t1=[1., 1.], t2=[0.5, 0.5])
-        relnoise.get_noisy_dynamics(2, system_noise)
-        noisy_qu, c_ops = system_noise.get_noisy_qobjevo(dims=2)
+        pulses, systematic_noise = relnoise.get_noisy_dynamics(dims=dims)
+        noisy_qu, c_ops = systematic_noise.get_noisy_qobjevo(dims=dims)
         assert_(len(c_ops) == 4)
 
     def test_control_amplitude_noise(self):
@@ -94,8 +107,9 @@ class TestNoise:
         # use proc_qobjevo
         pulses = [Pulse(sigmaz(), 0, tlist, coeff)]
         connoise = ControlAmpNoise(coeff=coeff, tlist=tlist)
-        noisy_pulses = connoise.get_noisy_dynamics(pulses=pulses)
-        assert_allclose(noisy_pulses[0].coherent_noise[0].qobj, sigmaz())
+        noisy_pulses, systematic_noise = \
+            connoise.get_noisy_dynamics(pulses=pulses)
+        assert_allclose(pulses[0].coherent_noise[0].qobj, sigmaz())
         assert_allclose(noisy_pulses[0].coherent_noise[0].coeff, coeff)
 
     def test_random_noise(self):
@@ -114,7 +128,8 @@ class TestNoise:
         # random noise with operators from proc_qobjevo
         gaussnoise = RandomNoise(
             dt=0.1, rand_gen=np.random.normal, loc=mean, scale=std)
-        noisy_pulses = gaussnoise.get_noisy_dynamics(pulses=pulses)
+        noisy_pulses, systematic_noise = \
+            gaussnoise.get_noisy_dynamics(pulses=pulses)
         assert_allclose(noisy_pulses[2].qobj, sigmay())
         assert_allclose(noisy_pulses[1].coherent_noise[0].qobj, sigmax())
         assert_allclose(
@@ -127,7 +142,8 @@ class TestNoise:
                   Pulse(sigmay(), 0, tlist, coeff*3)]
         gaussnoise = RandomNoise(lam=0.1, dt=0.2, rand_gen=np.random.poisson)
         assert_(gaussnoise.rand_gen is np.random.poisson)
-        noisy_pulses = gaussnoise.get_noisy_dynamics(pulses=pulses)
+        noisy_pulses, systematic_noise = \
+            gaussnoise.get_noisy_dynamics(pulses=pulses)
         assert_allclose(
             noisy_pulses[0].coherent_noise[0].tlist,
             np.linspace(1, 6, int(5/0.2) + 1))
