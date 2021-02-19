@@ -91,7 +91,7 @@ class Noise(object):
 
         systematic_noise: :class:`~qutip.qip.pulse.Pulse`
             The dummy pulse with no ideal control element.
-        
+
         Returns
         -------
         noisy_pulses: list of :class:`~qutip.qip.pulse.Pulse`
@@ -115,7 +115,8 @@ class Noise(object):
             pass
         elif isinstance(result, tuple) and len(result) == 2:
             pulses, systematic_noise = result
-        elif isinstance(result, list) and len(result) == len(pulses):  # only pulse
+        # only pulse
+        elif isinstance(result, list) and len(result) == len(pulses):
             pulses = result
         else:
             raise TypeError(
