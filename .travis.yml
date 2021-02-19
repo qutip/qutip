@@ -56,7 +56,7 @@ _stage_linux_38: &stage_linux_38
     - conda info -a
     - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
     - source activate test-environment
-    - conda install numpy scipy pytest pytest-cov cython coveralls
+    - conda install 'numpy>=1.16.6,<1.20' scipy pytest pytest-cov cython coveralls
     - python setup.py install
 
 
@@ -74,8 +74,7 @@ _stage_linux_no_cython: &stage_linux_no_cython
     - conda info -a
     - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
     - source activate test-environment
-    - conda install -c conda-forge nomkl blas=*=openblas numpy scipy pytest pytest-cov
-    - conda install -c conda-forge cython --freeze-installed
+    - conda install blas=*=openblas 'numpy>=1.16.6,<1.20' scipy pytest pytest-cov cython
     - conda list
     - python setup.py install
     - conda uninstall cython
@@ -94,7 +93,7 @@ _stage_linux_38_openblas: &stage_linux_38_openblas
     - conda info -a
     - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
     - source activate test-environment
-    - conda install nomkl blas=*=openblas numpy scipy pytest pytest-cov cython
+    - conda install nomkl blas=*=openblas 'numpy>=1.16.6,<1.20' scipy pytest pytest-cov cython
     - python setup.py install
 
 _stage_linux_omp: &stage_linux_omp
@@ -111,7 +110,7 @@ _stage_linux_omp: &stage_linux_omp
     - conda info -a
     - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
     - source activate test-environment
-    - conda install mkl blas=*=mkl numpy 'scipy<1.5' pytest pytest-cov cython coveralls
+    - conda install mkl blas=*=mkl 'numpy>=1.16.6,<1.20' 'scipy<1.5' pytest pytest-cov cython coveralls
     - python setup.py install --with-openmp
   after_success:
     - coveralls
@@ -138,8 +137,7 @@ _stage_osx_37: &stage_osx_37
     - conda info -a
     - conda create -q -n test-environment python=3.7
     - source activate test-environment
-    # - conda install mkl blas=*=mkl numpy scipy pytest pytest-cov cython coveralls
-    - conda install nomkl blas=*=openblas numpy scipy pytest pytest-cov cython
+    - conda install nomkl blas=*=openblas 'numpy>=1.16.6,<1.20' scipy pytest pytest-cov cython
     - python setup.py install
 
 _stage_osx_38: &stage_osx_38
@@ -164,8 +162,7 @@ _stage_osx_38: &stage_osx_38
     - conda info -a
     - conda create -q -n test-environment python=3.8
     - source activate test-environment
-    # - conda install mkl blas=*=mkl numpy scipy pytest pytest-cov cython coveralls
-    - conda install nomkl blas=*=openblas numpy scipy pytest pytest-cov cython
+    - conda install nomkl blas=*=openblas 'numpy>=1.16.6,<1.20' scipy pytest pytest-cov cython
     - python setup.py install
 
 stages:
