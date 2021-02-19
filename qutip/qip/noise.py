@@ -11,7 +11,7 @@ from qutip.qip.pulse import Pulse
 
 
 __all__ = ["Noise", "DecoherenceNoise", "RelaxationNoise",
-           "ControlAmpNoise", "RandomNoise", "UserNoise", "process_noise"]
+           "ControlAmpNoise", "RandomNoise", "process_noise"]
 
 
 def process_noise(pulses, noise_list, dims, t1=None, t2=None,
