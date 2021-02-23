@@ -51,14 +51,6 @@ class GateCompiler(object):
     N: int
         The number of the component systems.
 
-    kwargs:
-        Keyword arguments for the compiler.
-        By default, the hardware parameters `Processor.params` defined
-        in the processor and a map between the pulse label and the
-        position `Processor.pulse_dict` is passed to the compiler
-        when calling it.
-        It adds more flexibility in customizing compiler.
-
     params: dict, optional
         A Python dictionary contains the name and the value of the parameters,
         such as laser frequency, detuning etc.
@@ -78,6 +70,10 @@ class GateCompiler(object):
         The Python dictionary in the form of {gate_name: compiler_function}.
         It saves the compiling routine for each gate. See sub-classes
         for implementation.
+
+    args: dict
+        Arguments for individual compiling routines.
+        It adds more flexibility in customizing compiler.
     """
     def __init__(self, N, params=None, pulse_dict=None):
         self.gate_compiler = {}
@@ -102,7 +98,8 @@ class GateCompiler(object):
 
         Parameters
         ----------
-        circuit: :class:`QubitCircuit` or list of :class:`gate`
+        circuit: :class:`qutip.qip.circuit.QubitCircuit` or list of
+            :class:`qutip.qip.operations.gate`
             A list of elementary gates that can be implemented in the
             corresponding hardware.
             The gate names have to be in `gate_compiler`.

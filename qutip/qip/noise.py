@@ -422,7 +422,7 @@ class RandomNoise(ControlAmpNoise):
         parameter as the size of random numbers in the output array.
     indices: list of int, optional
         The indices of target pulse in the list of pulses.
-    kwargs:
+    **kwargs:
         Key word arguments for the random number generator.
 
     Attributes
@@ -435,7 +435,7 @@ class RandomNoise(ControlAmpNoise):
         parameter.
     indices: list of int
         The indices of target pulse in the list of pulses.
-    kwargs:
+    **kwargs:
         Key word arguments for the random number generator.
 
     Examples

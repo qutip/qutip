@@ -53,19 +53,15 @@ class CavityQEDCompiler(GateCompiler):
         A Python dictionary contains the name and the value of the parameters,
         such as laser frequency, detuning etc.
 
-    wq: list of float
-        The frequency of the qubits calculated from
-        eps and delta for each qubit.
-
-    Delta: list of float
-        The detuning with respect to w0 calculated
-        from wq and w0 for each qubit.
-
-    global_phase: bool
+    global_phase: float, optional
         Record of the global phase change and will be returned.
 
-    pulse_dict: int
-        Dictionary of pulse indices.
+    pulse_dict: dict, optional
+        A map between the pulse label and its index in the pulse list.
+        If given, the compiled pulse can be identified with
+        ``(pulse_label, coeff)``, instead of ``(pulse_index, coeff)``.
+        The number of key-value pairs should match the number of pulses
+        in the processor.
 
     Attributes
     ----------
@@ -76,8 +72,8 @@ class CavityQEDCompiler(GateCompiler):
         A Python dictionary contains the name and the value of the parameters,
         such as laser frequency, detuning etc.
 
-    pulse_dict: int
-        Dictionary of pulse indices.
+    pulse_dict: dict
+        A map between the pulse label and its index in the pulse list.
 
     gate_compiler: dict
         The Python dictionary in the form of {gate_name: decompose_function}.

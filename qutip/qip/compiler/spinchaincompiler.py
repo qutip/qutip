@@ -41,7 +41,7 @@ __all__ = ['SpinChainCompiler']
 
 class SpinChainCompiler(GateCompiler):
     """
-    Compile a :class:`qutip.QubitCircuit` into
+    Compile a :class:`qutip.qip.circuit.QubitCircuit` into
     the pulse sequence for the processor.
 
     Parameters
@@ -59,8 +59,12 @@ class SpinChainCompiler(GateCompiler):
     global_phase: bool
         Record of the global phase change and will be returned.
 
-    pulse_dict: dict
-        Dictionary of pulse indices.
+    pulse_dict: dict, optional
+        A map between the pulse label and its index in the pulse list.
+        If given, the compiled pulse can be identified with
+        ``(pulse_label, coeff)``, instead of ``(pulse_index, coeff)``.
+        The number of key-value pairs should match the number of pulses
+        in the processor.
 
     Attributes
     ----------
@@ -72,7 +76,7 @@ class SpinChainCompiler(GateCompiler):
         such as laser frequency, detuning etc.
 
     pulse_dict: dict
-        Dictionary of pulse indices.
+        A map between the pulse label and its index in the pulse list.
 
     gate_compiler: dict
         The Python dictionary in the form of {gate_name: decompose_function}.
