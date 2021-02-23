@@ -60,7 +60,7 @@ class DispersiveCavityQED(ModelProcessor):
     calculate the state evolution under the given control pulse,
     either analytically or numerically.
     (Only additional attributes are documented here, for others please
-    refer to the parent class :class:`qutip.qip.device.ModelProcessor`)
+    refer to the parent class :class:`.ModelProcessor`)
 
     Parameters
     ----------
@@ -292,12 +292,12 @@ class DispersiveCavityQED(ModelProcessor):
 
         Parameters
         ----------
-        qc: :class:`qutip.QubitCircuit`
+        qc: :class:`.QubitCircuit`
             Takes the quantum circuit to be implemented.
 
         Returns
         -------
-        qc: :class:`qutip.QubitCircuit`
+        qc: :class:`.QubitCircuit`
             The circuit representation with elementary gates
             that can be implemented in this model.
         """
@@ -318,12 +318,12 @@ class DispersiveCavityQED(ModelProcessor):
     def load_circuit(
             self, qc, schedule_mode="ASAP", compiler=None):
         """
-        Decompose a :class:`qutip.QubitCircuit` in to the control
+        Decompose a :class:`.QubitCircuit` in to the control
         amplitude generating the corresponding evolution.
 
         Parameters
         ----------
-        qc: :class:`qutip.QubitCircuit`
+        qc: :class:`.QubitCircuit`
             Takes the quantum circuit to be implemented.
 
         Returns

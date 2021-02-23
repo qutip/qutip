@@ -58,7 +58,7 @@ class OptPulseProcessor(Processor):
     The processor can simulate the evolution under the given
     control pulses using :func:`qutip.mesolve`.
     (For attributes documentation, please
-    refer to the parent class :class:`qutip.qip.device.Processor`)
+    refer to the parent class :class:`.Processor`)
 
     Parameters
     ----------
@@ -91,7 +91,8 @@ class OptPulseProcessor(Processor):
     def load_circuit(self, qc, min_fid_err=np.inf, merge_gates=True,
                      setting_args=None, verbose=False, **kwargs):
         """
-        Find the pulses realizing a given :class:`qutip.qip.Circuit` using
+        Find the pulses realizing a given
+        :class:`.QubitCircuit` using
         `qutip.control.optimize_pulse_unitary`. Further parameter for
         for `qutip.control.optimize_pulse_unitary` needs to be given as
         keyword arguments. By default, it first merge all the gates
@@ -130,7 +131,7 @@ class OptPulseProcessor(Processor):
 
         Parameters
         ----------
-        qc: :class:`qutip.QubitCircuit` or list of Qobj
+        qc: :class:`.QubitCircuit` or list of Qobj
             The quantum circuit to be translated.
 
         min_fid_err: float, optional

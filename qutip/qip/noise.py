@@ -22,9 +22,9 @@ def process_noise(pulses, noise_list, dims, t1=None, t2=None,
 
     Parameters
     ----------
-    pulses: list of :class:`qutip.qip.Pulse`
+    pulses: list of :class:`.Pulse`
         The input pulses, on which the noise object will be applied.
-    noise_list: list of :class:`qutip.qip.noise`
+    noise_list: list of :class:`.Noise`
         A list of noise objects.
     dims: int or list
         Dimension of the system.
@@ -42,7 +42,7 @@ def process_noise(pulses, noise_list, dims, t1=None, t2=None,
 
     Returns
     -------
-    noisy_pulses: list of :class:`qutip.qip.Pulse`
+    noisy_pulses: list of :class:`.Pulse`
         The noisy pulses.
     """
     # first the control pulse with noise,
@@ -62,7 +62,7 @@ def process_device_noise(noise_list, dims, t1=None, t2=None):
 
     Parameters
     ----------
-    noise_list: list of :class:`qutip.qip.noise`
+    noise_list: list of :class:`.Noise`
         A list of noise objects.
     dims: int or list
         Dimension of the system.
@@ -77,7 +77,7 @@ def process_device_noise(noise_list, dims, t1=None, t2=None):
 
     Returns
     -------
-    noisy_pulses: list of :class:`qutip.qip.Pulse`
+    noisy_pulses: list of :class:`.Pulse`
         A list of Dummy pulse objects with zero Hamiltonian
         by non-trivial noise.
     """
@@ -101,16 +101,16 @@ def process_pulse_noise(pulses, noise_list, dims):
 
     Parameters
     ----------
-    pulses: list of :class:`qutip.qip.Pulse`
+    pulses: list of :class:`.Pulse`
         The input pulses, on which the noise object will be applied.
-    noise_list: list of :class:`qutip.qip.noise`
+    noise_list: list of :class:`.Noise`
         A list of noise objects.
     dims: int or list
         Dimension of the system.
         If int, we assume it is the number of qubits in the system.
         If list, it is the dimension of the component systems.
 
-    noisy_pulses: list of :class:`qutip.qip.Pulse`
+    noisy_pulses: list of :class:`.Pulse`
         The list of pulses with pulse dependent noise.
     """
     noisy_pulses = deepcopy(pulses)
@@ -125,7 +125,7 @@ def process_pulse_noise(pulses, noise_list, dims):
 class Noise(object):
     """
     The base class representing noise in a processor.
-    The noise object can be added to :class:`qutip.qip.device.Processor` and
+    The noise object can be added to :class:`.Processor` and
     contributes to evolution.
     """
     def __init__(self):
@@ -200,7 +200,7 @@ class DecoherenceNoise(Noise):
 
         Returns
         -------
-        lindblad_noise: list of :class:`qutip.qip.Pulse`
+        lindblad_noise: list of :class:`.Pulse`
             A list of Pulse object with only trivial ideal pulse (H=0) but
             non-trivial lindblad noise.
         """
@@ -296,7 +296,7 @@ class RelaxationNoise(Noise):
 
         Returns
         -------
-        lindblad_noise: list of :class:`qutip.qip.Pulse`
+        lindblad_noise: list of :class:`.Pulse`
             A list of Pulse object with only trivial ideal pulse (H=0) but
             non-trivial relaxation noise.
         """
@@ -379,12 +379,12 @@ class ControlAmpNoise(Noise):
 
         Parameters
         ----------
-        pulses: list of :class:`qutip.qip.Pulse`
+        pulses: list of :class:`.Pulse`
             The input pulses, on which the noise object will be applied.
 
         Returns
         -------
-        noisy_pulses: list of :class:`qutip.qip.Pulse`
+        noisy_pulses: list of :class:`.Pulse`
             The input `Pulse` object with additional coherent noise.
         """
         if self.indices is None:
@@ -461,12 +461,12 @@ class RandomNoise(ControlAmpNoise):
 
         Parameters
         ----------
-        pulses: list of :class:`qutip.qip.Pulse`
+        pulses: list of :class:`.Pulse`
             The input pulses, on which the noise object will be applied.
 
         Returns
         -------
-        noisy_pulses: list of :class:`qutip.qip.Pulse`
+        noisy_pulses: list of :class:`.Pulse`
             The input `Pulse` object with additional coherent noise.
         """
         if self.indices is None:
@@ -511,7 +511,7 @@ class UserNoise(Noise):
 
         Parameters
         ----------
-        pulses: list of :class:`qutip.qip.Pulse`
+        pulses: list of :class:`.Pulse`
             The input pulses, on which the noise object will be applied.
 
         dims: list, optional
@@ -520,7 +520,7 @@ class UserNoise(Noise):
 
         Returns
         -------
-        noisy_pulses: list of :class:`qutip.qip.Pulse`
+        noisy_pulses: list of :class:`.Pulse`
             The input `Pulse` object with additional noise.
         """
         return pulses

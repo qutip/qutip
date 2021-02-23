@@ -53,10 +53,10 @@ class SpinChain(ModelProcessor):
     The processor can simulate the evolution under the given
     control pulses either numerically or analytically.
     It is a base class and should not be used directly, please
-    refer the the subclasses :class:`qutip.qip.LinearSpinChain` and
-    :class:`qutip.qip.CircularSpinChain`.
+    refer the the subclasses :class:`qutip.qip.device.LinearSpinChain` and
+    :class:`qutip.qip.device.CircularSpinChain`.
     (Only additional attributes are documented here, for others please
-    refer to the parent class :class:`qutip.qip.device.ModelProcessor`)
+    refer to the parent class :class:`.ModelProcessor`)
 
     Parameters
     ----------
@@ -204,12 +204,12 @@ class SpinChain(ModelProcessor):
     def load_circuit(
             self, qc, setup, schedule_mode="ASAP", compiler=None):
         """
-        Decompose a :class:`qutip.QubitCircuit` in to the control
+        Decompose a :class:`.QubitCircuit` in to the control
         amplitude generating the corresponding evolution.
 
         Parameters
         ----------
-        qc: :class:`qutip.QubitCircuit`
+        qc: :class:`.QubitCircuit`
             Takes the quantum circuit to be implemented.
 
         setup: string
@@ -247,7 +247,7 @@ class SpinChain(ModelProcessor):
 
         Parameters
         ----------
-        qc: :class:`qutip.QubitCircuit`
+        qc: :class:`.QubitCircuit`
             The circular spin chain circuit to be resolved
 
         setup: Boolean
@@ -255,7 +255,7 @@ class SpinChain(ModelProcessor):
 
         Returns
         -------
-        qc: :class:`qutip.QubitCircuit`
+        qc: :class:`.QubitCircuit`
             Returns QubitCircuit of resolved gates for the qubit circuit in the
             desired basis.
         """
@@ -459,12 +459,12 @@ class SpinChain(ModelProcessor):
 
         Parameters
         ----------
-        qc: :class:`qutip.QubitCircuit`
+        qc: :class:`.QubitCircuit`
             Takes the quantum circuit to be implemented.
 
         Returns
         -------
-        qc: :class:`qutip.QubitCircuit`
+        qc: :class:`.QubitCircuit`
             The circuit representation with elementary gates
             that can be implemented in this model.
         """

@@ -62,7 +62,7 @@ class Processor(object):
     the decoherence time for each component systems.
     The processor can simulate the evolution under the given
     control pulses. Noisy evolution is supported by
-    :class:`qutip.qip.Noise` and can be added to the processor.
+    :class:`.Noise` and can be added to the processor.
 
     Parameters
     ----------
@@ -101,7 +101,7 @@ class Processor(object):
     N: int
         The number of component systems.
 
-    pulses: list of :class:`qutip.qip.Pulse`
+    pulses: list of :class:`.Pulse`
         A list of control pulses of this device
 
     t1: float or list
@@ -112,11 +112,11 @@ class Processor(object):
         Characterize the decoherence of dephasing for
         each qubit.
 
-    noise: :class:`qutip.qip.Noise`, optional
+    noise: :class:`.Noise`, optional
         A list of noise objects. They will be processed when creating the
         noisy :class:`qutip.QobjEvo` from the processor or run the simulation.
 
-    drift: :class:`qutip.qip.Drift`
+    drift: :class:`qutip.qip.pulse.Drift`
         A `Drift` object representing the drift Hamiltonians.
 
     dims: list
@@ -126,7 +126,7 @@ class Processor(object):
 
     spline_kind: str
         Type of the coefficient interpolation.
-        See parameters of :class:`qutip.qip.Processor` for details.
+        See parameters of :class:`.Processor` for details.
     """
     def __init__(self, N, t1=None, t2=None,
                  dims=None, spline_kind="step_func"):
@@ -176,7 +176,7 @@ class Processor(object):
                     label=None):
         """
         Add a control Hamiltonian to the processor. It creates a new
-        :class:`qutip.qip.Pulse`
+        :class:`.Pulse`
         object for the device that is turned off
         (``tlist = None``, ``coeff = None``). To activate the pulse, one
         can set its `tlist` and `coeff`.
@@ -339,7 +339,7 @@ class Processor(object):
         ----------
         tlist: array-like, optional
             A list of time at which the time-dependent coefficients are
-            applied. See :class:`qutip.qip.Pulse` for detailed information`
+            applied. See :class:`.Pulse` for detailed information`
         """
         if isinstance(tlist, list) and len(tlist) == len(self.pulses):
             for i, pulse in enumerate(self.pulses):
@@ -354,7 +354,7 @@ class Processor(object):
 
         Parameters
         ----------
-        pulse: :class:`qutip.qip.Pulse`
+        pulse: :class:`.Pulse`
             `Pulse` object to be added.
         """
         if isinstance(pulse, Pulse):
@@ -433,7 +433,7 @@ class Processor(object):
 
         Parameters
         ----------
-        noise: :class:`qutip.qip.Noise`
+        noise: :class:`qutip.qip.nosie.Noise`
             The noise object defined outside the processor
         """
         if isinstance(noise, Noise):
@@ -515,7 +515,7 @@ class Processor(object):
 
         Returns
         -------
-        noisy_pulses: list of :class"`qutip.qip.Pulse`/:class:`qutip.qip.Drift`
+        noisy_pulses: list of :class"`:class:`.Pulse``
             A list of noisy pulses.
         """
         pulses = deepcopy(self.pulses)
@@ -597,7 +597,7 @@ class Processor(object):
 
         Parameters
         ----------
-        qc: :class:`qutip.qip.QubitCircuit`, optional
+        qc: :class:`.QubitCircuit`, optional
             Takes the quantum circuit to be implemented. If not given, use
             the quantum circuit saved in the processor by ``load_circuit``.
 
@@ -640,7 +640,7 @@ class Processor(object):
 
         Parameters
         ----------
-        qc: :class:`qutip.qip.QubitCircuit`, optional
+        qc: :class:`.QubitCircuit`, optional
             Takes the quantum circuit to be implemented. If not given, use
             the quantum circuit saved in the processor by `load_circuit`.
 
@@ -746,7 +746,7 @@ class Processor(object):
 
     def load_circuit(self, qc):
         """
-        Translate an :class:`qutip.qip.QubitCircuit` to its
+        Translate an :class:`.QubitCircuit` to its
         corresponding Hamiltonians. (Defined in subclasses)
         """
         raise NotImplementedError("Use the function in the sub-class")

@@ -45,14 +45,14 @@ class Instruction():
 
     Parameters
     ----------
-    gate: :class:`gate`
+    gate: :class:`.Gate`
         The quantum gate.
     duration: list, optional
         The execution time needed for the instruction.
-    tlist: array_like
+    tlist: array_like, optional
         A list of time at which the time-dependent coefficients are
-        applied. See :class:`qutip.qip.Pulse` for detailed information`
-    pulse_info: list
+        applied. See :class:`.Pulse` for detailed information`
+    pulse_info: list, optional
         A list of tuples, each tuple corresponding to a pair of pulse label
         and pulse coefficient, in the format (str, array_like).
         This pulses will implement the desired gate.

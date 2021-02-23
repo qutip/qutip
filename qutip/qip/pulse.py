@@ -17,7 +17,7 @@ class _EvoElement():
     `qobj`, `targets`, `tlist` and `coeff`.
 
     For documentation and use instruction of the attributes, please
-    refer to :class:`qutip.qip.Pulse`.
+    refer to :class:`.Pulse`.
     """
     def __init__(self, qobj, targets, tlist=None, coeff=None):
         self.qobj = qobj
@@ -179,12 +179,12 @@ class Pulse():
 
     Attributes
     ----------
-    ideal_pulse: :class:`qutip.qip.pulse._EvoElement`
+    ideal_pulse: :class:`._EvoElement`
         The ideal dynamic of the control pulse.
-    coherent_noise: list of :class:`qutip.qip.pulse._EvoElement`
+    coherent_noise: list of :class:`._EvoElement`
         The coherent noise caused by the control pulse. Each dynamic element is
         still characterized by a time-dependent Hamiltonian.
-    lindblad_noise: list of :class:`qutip.qip.pulse._EvoElement`
+    lindblad_noise: list of :class:`._EvoElement`
         The dissipative noise of the control pulse. Each dynamic element
         will be treated as a (time-dependent) lindblad operator in the
         master equation.
@@ -289,13 +289,13 @@ class Pulse():
             `tlist` does not have to be equidistant, but must have the same
             length
             or one element shorter compared to `coeff`. See documentation for
-            the parameter `spline_kind` of :class:`qutip.qip.Pulse`.
+            the parameter `spline_kind` of :class:`.Pulse`.
         coeff: array-like or bool, optional
             Time-dependent coefficients of the pulse noise.
             If an array, the length
             must be the same or one element longer compared to `tlist`.
             See documentation for
-            the parameter `spline_kind` of :class:`qutip.qip.Pulse`.
+            the parameter `spline_kind` of :class:`.Pulse`.
             If a bool, the coefficient is a constant 1 or 0.
         """
         self.coherent_noise.append(_EvoElement(qobj, targets, tlist, coeff))
@@ -318,13 +318,13 @@ class Pulse():
             length
             or one element shorter compared to `coeff`.
             See documentation for
-            the parameter `spline_kind` of :class:`qutip.qip.Pulse`.
+            the parameter `spline_kind` of :class:`.Pulse`.
         coeff: array-like or bool, optional
             Time-dependent coefficients of the pulse noise.
             If an array, the length
             must be the same or one element longer compared to `tlist`.
             See documentation for
-            the parameter `spline_kind` of :class:`qutip.qip.Pulse`.
+            the parameter `spline_kind` of :class:`.Pulse`.
             If a bool, the coefficient is a constant 1 or 0.
         """
         self.lindblad_noise.append(_EvoElement(qobj, targets, tlist, coeff))

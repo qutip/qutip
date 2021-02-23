@@ -41,7 +41,7 @@ __all__ = ['GateCompiler']
 
 class GateCompiler(object):
     """
-    Base class. It compiles a :class:`qutip.QubitCircuit` into
+    Base class. It compiles a :class:`.QubitCircuit` into
     the pulse sequence for the processor. The core member function
     `compile` calls compiling method from the sub-class and concatenate
     the compiled pulses.
@@ -98,8 +98,8 @@ class GateCompiler(object):
 
         Parameters
         ----------
-        circuit: :class:`qutip.qip.circuit.QubitCircuit` or list of
-            :class:`qutip.qip.operations.gate`
+        circuit: :class:`.QubitCircuit` or list of
+            :class:`.Gate`
             A list of elementary gates that can be implemented in the
             corresponding hardware.
             The gate names have to be in `gate_compiler`.

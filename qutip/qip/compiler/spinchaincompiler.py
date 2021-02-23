@@ -41,7 +41,7 @@ __all__ = ['SpinChainCompiler']
 
 class SpinChainCompiler(GateCompiler):
     """
-    Compile a :class:`qutip.qip.circuit.QubitCircuit` into
+    Compile a :class:`.QubitCircuit` into
     the pulse sequence for the processor.
 
     Parameters

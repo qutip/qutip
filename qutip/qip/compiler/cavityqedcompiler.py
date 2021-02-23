@@ -41,7 +41,7 @@ __all__ = ['CavityQEDCompiler']
 
 class CavityQEDCompiler(GateCompiler):
     """
-    Decompose a :class:`qutip.QubitCircuit` into
+    Decompose a :class:`.QubitCircuit` into
     the pulse sequence for the processor.
 
     Parameters
