@@ -7,7 +7,7 @@ import warnings
 from math import pi
 import numpy as np
 
-from qutip.qip import gate_sequence_product
+from qutip.qip.operations.gates import gate_sequence_product
 from qutip.qip.circuit import QubitCircuit
 from qutip.qip.operations.gates import controlled_gate, qasmu_gate, rz, snot
 

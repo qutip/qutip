@@ -49,11 +49,10 @@ import numpy as np
 from scipy.integrate import odeint
 from scipy.sparse.linalg import eigsh
 from scipy.special import entr
-from scipy import constants
 from scipy.sparse import dok_matrix, block_diag, lil_matrix
 from .. import (
-    Qobj, spre, spost, tensor, identity, ket2dm, vector_to_operator,
-    sigmax, sigmay, sigmaz, sigmap, sigmam,
+    Qobj, spre, spost, tensor, identity, ket2dm, sigmax, sigmay, sigmaz,
+    sigmap, sigmam,
 )
 from ..entropy import entropy_vn
 from .solver import SolverOptions, Result
@@ -64,7 +63,6 @@ from ._piqs import (
     _num_dicke_ladders,
     get_blocks,
     j_min,
-    m_vals,
     j_vals,
 )
 
@@ -908,9 +906,9 @@ def jspin(N, op=None, basis="dicke"):
 
     nds = num_dicke_states(N)
     num_ladders = num_dicke_ladders(N)
-    jz_operator = dok_matrix((nds, nds), dtype=np.complex)
-    jp_operator = dok_matrix((nds, nds), dtype=np.complex)
-    jm_operator = dok_matrix((nds, nds), dtype=np.complex)
+    jz_operator = dok_matrix((nds, nds), dtype=np.complex128)
+    jp_operator = dok_matrix((nds, nds), dtype=np.complex128)
+    jm_operator = dok_matrix((nds, nds), dtype=np.complex128)
     s = 0
 
     for k in range(0, num_ladders):
@@ -1384,7 +1382,7 @@ def css(
         return _uncoupled_css(N, a, b)
     nds = num_dicke_states(N)
     num_ladders = num_dicke_ladders(N)
-    rho = dok_matrix((nds, nds), dtype=np.complex)
+    rho = dok_matrix((nds, nds), dtype=np.complex128)
 
     # loop in the allowed matrix elements
     jmm1_dict = jmm1_dictionary(N)[1]
@@ -1433,7 +1431,7 @@ def ghz(N, basis="dicke"):
     if basis == "uncoupled":
         return _uncoupled_ghz(N)
     nds = _num_dicke_states(N)
-    rho = dok_matrix((nds, nds), dtype=np.complex)
+    rho = dok_matrix((nds, nds), dtype=np.complex128)
     rho[0, 0] = 1 / 2
     rho[N, N] = 1 / 2
     rho[N, 0] = 1 / 2
@@ -1466,7 +1464,7 @@ def ground(N, basis="dicke"):
         state = _uncoupled_ground(N)
         return state
     nds = _num_dicke_states(N)
-    rho = dok_matrix((nds, nds), dtype=np.complex)
+    rho = dok_matrix((nds, nds), dtype=np.complex128)
     rho[N, N] = 1
     return Qobj(rho)
 

@@ -723,7 +723,6 @@ class TestMESolverMisc:
     """
     A test class for the misc mesolve features.
     """
-
     def testMEFinalState(self):
         "mesolve: final_state has correct dims"
 
@@ -758,6 +757,19 @@ class TestMESolverMisc:
                          options=opts)
         assert_(psi0.dims == result.final_state.dims)
 
+    def test_num_collapse_set(self):
+        H = sigmaz()
+        psi = (basis(2, 0) + basis(2, 1)).unit()
+        ts = [0, 1]
+        for c_ops in (
+            sigmax(),
+            [sigmax()],
+            [sigmay(), sigmax()],
+        ):
+            res = mesolve(H, psi, ts, c_ops=c_ops)
+            if not isinstance(c_ops, list):
+                c_ops = [c_ops]
+            assert res.num_collapse == len(c_ops)
 
 class TestMESolveStepFuncCoeff:
     """

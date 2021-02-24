@@ -65,7 +65,6 @@ DYNAMO - Dynamic Framework for Quantum Optimal Control
 See Machnes et.al., arXiv.1011.4874
 """
 
-import os
 import warnings
 import numpy as np
 import timeit
