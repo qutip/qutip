@@ -430,7 +430,8 @@ cdef class Dicke(object):
 
         cdef lindblad_matrix = csr_matrix((lindblad_data,
                                           (lindblad_row, lindblad_col)),
-                                          shape=(nds**2, nds**2))
+                                          shape=(nds**2, nds**2),
+                                          dtype=np.complex128)
 
         # make matrix a Qobj superoperator with expected dims
         llind_dims = [[[nds], [nds]], [[nds], [nds]]]
