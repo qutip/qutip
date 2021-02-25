@@ -30,7 +30,7 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-'''
+r'''
 This module provides functions that are useful for simulating the
 three level atom with QuTiP.  A three level atom (qutrit) has three states,
 which are linked by dipole transitions so that 1 <-> 2 <-> 3.
@@ -66,7 +66,7 @@ Contributed by Markus Baden, Oct. 07, 2011
 
 __all__ = ['three_level_basis', 'three_level_ops']
 
-from numpy import array
+import numpy as np
 from . import qutrit_basis
 
 
@@ -75,9 +75,8 @@ def three_level_basis():
 
     Returns
     -------
-    states : array
-        `array` of three level atom basis vectors.
-
+    states : np.array
+        :obj:`numpy.ndarray` of three level atom basis vectors.
     '''
     # A three level atom has the same representation as a qutrit, i.e.
     # three states
@@ -85,22 +84,23 @@ def three_level_basis():
 
 
 def three_level_ops():
-    ''' Operators for a three level system (qutrit)
+    """
+    Operators for a three level system (qutrit)
 
     Returns
     --------
-    ops : array
-        `array` of three level operators.
-
-    '''
+    ops : np.array
+        :obj:`numpy.ndarray` of three level operators.
+    """
+    out = np.empty((5,), dtype=object)
     one, two, three = qutrit_basis()
     # Note that the three level operators are different
     # from the qutrit operators. A three level atom only
     # has transitions 1 <-> 2 <-> 3, so we define the
     # operators seperately from the qutrit code
-    sig11 = one * one.dag()
-    sig22 = two * two.dag()
-    sig33 = three * three.dag()
-    sig12 = one * two.dag()
-    sig32 = three * two.dag()
-    return array([sig11, sig22, sig33, sig12, sig32], dtype=object)
+    out[0] = one * one.dag()
+    out[1] = two * two.dag()
+    out[2] = three * three.dag()
+    out[3] = one * two.dag()
+    out[4] = three * two.dag()
+    return out

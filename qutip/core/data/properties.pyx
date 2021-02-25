@@ -8,6 +8,7 @@ from qutip.settings import settings
 
 from qutip.core.data.base cimport idxint
 from qutip.core.data cimport csr, dense, CSR, Dense
+from qutip.core.data.adjoint cimport transpose_csr
 
 cdef extern from *:
     # Not defined in cpython.mem for some reason, but is in pymem.h.
@@ -29,9 +30,54 @@ cdef inline bint _conj_feq(double complex a, double complex b, double tol) nogil
     # Save the cycles: don't sqrt.
     return re*re + im*im < tol*tol
 
+cdef inline bint _feq_zero(double complex a, double tol) nogil:
+    return a.real*a.real + a.imag*a.imag < tol*tol
+
 cdef inline double _abssq(double complex x) nogil:
     return x.real*x.real + x.imag*x.imag
 
+
+cdef bint _isherm_csr_full(CSR matrix, double tol) except 2:
+    """
+    Full, structural test for Hermicity of a matrix.  We assume that the input
+    matrix has already had its shape tested (must be square).
+
+    This test is only necessary when there is at least one value which is less
+    than the tolerance, and needed to be compared to an implicit zero.  In
+    general it is less efficient than the other test, and allocates more
+    memory.
+    """
+    cdef CSR transpose = transpose_csr(matrix)
+    cdef idxint row, ptr_a, ptr_b, col_a, col_b
+    for row in range(matrix.shape[0]):
+        ptr_a, ptr_a_end = matrix.row_index[row], matrix.row_index[row + 1]
+        ptr_b, ptr_b_end = transpose.indptr[row], transpose.indptr[row + 1]
+        while ptr_a < ptr_a_end and ptr_b < ptr_b_end:
+            # Doing this on every loop actually involves a few more
+            # de-references than are strictly necessary, but just
+            # simplifies the logic checking for the end of the row.
+            col_a = matrix.col_index[ptr_a]
+            col_b = transpose.indices[ptr_b]
+            if col_a == col_b:
+                if not _conj_feq(matrix.data[ptr_a], transpose.data[ptr_b], tol):
+                    return False
+                ptr_a += 1
+                ptr_b += 1
+            elif col_a < col_b:
+                if not _feq_zero(matrix.data[ptr_a], tol):
+                    return False
+                ptr_a += 1
+            else:
+                if not _feq_zero(transpose.data[ptr_b], tol):
+                    return False
+                ptr_b += 1
+        for ptr_a in range(ptr_a, ptr_a_end):
+            if not _feq_zero(matrix.data[ptr_a], tol):
+                return False
+        for ptr_b in range(ptr_b, ptr_b_end):
+            if not _feq_zero(transpose.data[ptr_b], tol):
+                return False
+    return True
 
 cpdef bint isherm_csr(CSR matrix, double tol=-1):
     """
@@ -55,7 +101,9 @@ cpdef bint isherm_csr(CSR matrix, double tol=-1):
     -----
     The implementation is effectively just taking the adjoint, but rather than
     actually allocating and creating a new matrix, we just check whether the
-    output would match the input matrix.
+    output would match the input matrix.  If we cannot be certain of Hermicity
+    because the sizes of some elements are within tolerance of 0, we have to
+    resort to a complete adjoint calculation.
     """
     tol = tol if tol >= 0 else settings.core["atol"]
     cdef size_t row, col, ptr, ptr_t, nrows=matrix.shape[0]
@@ -72,17 +120,24 @@ cpdef bint isherm_csr(CSR matrix, double tol=-1):
                 out_row_index[col] += 1
         for row in range(nrows):
             out_row_index[row+1] += out_row_index[row]
-
+            if out_row_index[row + 1] != matrix.row_index[row + 1]:
+                # Structures are not the same, but it could still be Hermitian
+                # if any value is less than the tolerance.  That is the
+                # worst-case scenario, so we sacrifice its speed in favour of
+                # returning faster for the more common failure cases.
+                for ptr in range(matrix.row_index[nrows]):
+                    if _conj_feq(matrix.data[ptr], 0, tol):
+                        return _isherm_csr_full(matrix, tol)
+                return False
         for row in range(nrows):
             for ptr in range(matrix.row_index[row], matrix.row_index[row + 1]):
                 col = matrix.col_index[ptr]
                 # Pointer into the "transposed" matrix.
                 ptr_t = out_row_index[col]
                 out_row_index[col] += 1
-                if not (
-                    matrix.col_index[ptr_t] == row
-                    and _conj_feq(matrix.data[ptr], matrix.data[ptr_t], tol)
-                ):
+                # We tested the structure already, so we can guarantee that
+                # these two elements correspond.
+                if not _conj_feq(matrix.data[ptr], matrix.data[ptr_t], tol):
                     return False
         return True
     finally:

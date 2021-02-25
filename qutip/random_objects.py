@@ -79,10 +79,10 @@ def rand_jacobi_rotation(A, seed=None):
     angle = 2*np.random.random()*np.pi
     a = np.sqrt(0.5) * np.exp(-1j*angle)
     b = np.conj(a)
-    i = np.int(np.floor(np.random.random() * n))
+    i = int(np.floor(np.random.random() * n))
     j = i
     while i == j:
-        j = np.int(np.floor(np.random.random() * n))
+        j = int(np.floor(np.random.random() * n))
     data = np.hstack((np.array([a, -b, a, b], dtype=complex),
                       np.ones(n - 2, dtype=complex)))
     diag = np.delete(np.arange(n), [i, j])
@@ -179,7 +179,7 @@ def _rand_herm_sparse(N, density, pos_def):
     target = (1-(1-density)**0.5)
     num_elems = (N**2 - 0.666 * N) * target + 0.666 * N * density
     num_elems = max([num_elems, 1])
-    num_elems = np.int(num_elems)
+    num_elems = int(num_elems)
     data = (2 * np.random.rand(num_elems) - 1) + \
            (2 * np.random.rand(num_elems) - 1) * 1j
     row_idx, col_idx = zip(*[divmod(index, N) for index
@@ -202,7 +202,7 @@ def _rand_herm_dense(N, density, pos_def):
     target = (1-(density)**0.5)
     num_remove = N * (N - 0.666) * target + 0.666 * N * (1 - density)
     num_remove = max([num_remove, 1])
-    num_remove = np.int(num_remove)
+    num_remove = int(num_remove)
     for row, col in [divmod(index, N)
                      for index in np.random.choice(N*N,
                                                    num_remove,
@@ -215,7 +215,7 @@ def _rand_herm_dense(N, density, pos_def):
 
 
 def rand_unitary(N, density=0.75, dims=None, seed=None):
-    """Creates a random NxN sparse unitary quantum object.
+    r"""Creates a random NxN sparse unitary quantum object.
 
     Uses :math:`\exp(-iH)` where H is a randomly generated
     Hermitian operator.
@@ -373,7 +373,7 @@ def rand_ket_haar(N=2, dims=None, seed=None):
 
 
 def rand_dm(N, density=0.75, pure=False, dims=None, seed=None):
-    """Creates a random NxN density matrix.
+    r"""Creates a random NxN density matrix.
 
     Parameters
     ----------
@@ -394,8 +394,7 @@ def rand_dm(N, density=0.75, pure=False, dims=None, seed=None):
     Notes
     -----
     For small density matrices., choosing a low density will result in an error
-    as no diagonal elements will be generated such that :math:`Tr(\\rho)=1`.
-
+    as no diagonal elements will be generated such that :math:`Tr(\rho)=1`.
     """
     if isinstance(N, (np.ndarray, list)):
         if np.abs(np.sum(N)-1.0) > 1e-15:
@@ -639,7 +638,6 @@ def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None, seed=None):
     # Mark that we've made a Choi matrix.
     D.superrep = 'choi'
     D.dims = dims
-
     return to_super(D)
 
 
@@ -667,7 +665,7 @@ def rand_stochastic(N, density=0.75, kind='left', dims=None, seed=None):
         np.random.seed(seed=seed)
     if dims:
         _check_dims(dims, N, N)
-    num_elems = max([np.int(np.ceil(N*(N+1)*density)/2), N])
+    num_elems = max([int(np.ceil(N*(N+1)*density)/2), N])
     data = np.random.rand(num_elems)
     # Ensure an element on every row and column
     row_idx = np.hstack([np.random.permutation(N),

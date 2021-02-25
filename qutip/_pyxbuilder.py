@@ -30,7 +30,10 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-import sys, os
+
+import sys
+import os
+
 try:
     import pyximport
     from pyximport import install
@@ -38,10 +41,9 @@ try:
     old_get_distutils_extension = pyximport.pyximport.get_distutils_extension
 
     def new_get_distutils_extension(modname, pyxfilename, language_level=None):
-        extension_mod, setup_args = old_get_distutils_extension(modname,
-                                                                pyxfilename,
-                                                                language_level)
-        extension_mod.language='c++'
+        extension_mod, setup_args =\
+            old_get_distutils_extension(modname, pyxfilename, language_level)
+        extension_mod.language = 'c++'
         # If on Win and Python version >= 3.5 and not in MSYS2
         # (i.e. Visual studio compile)
         if sys.platform == 'win32' and \
@@ -55,8 +57,7 @@ try:
                 extension_mod.extra_compile_args.append(
                                                 '-mmacosx-version-min=10.9')
                 extension_mod.extra_link_args = ['-mmacosx-version-min=10.9']
-        return extension_mod,setup_args
-
+        return extension_mod, setup_args
     pyximport.pyximport.get_distutils_extension = new_get_distutils_extension
-except Exception:
+except ImportError:
     pass
