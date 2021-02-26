@@ -182,72 +182,17 @@ class GateCompiler(object):
                 pulse_instructions[pulse_ind].append(
                     (start_time, instruction.tlist, coeff))
 
-        compiled_tlist = [[[0.]] for tmp in range(num_controls)]
+        # Concatenate tlist and coeffs
+        compiled_tlist = [[] for tmp in range(num_controls)]
         compiled_coeffs = [[] for tmp in range(num_controls)]
         for pulse_ind in range(num_controls):
+            last_pulse_time = 0.
             for start_time, tlist, coeff in pulse_instructions[pulse_ind]:
-                if np.isscalar(tlist):
-                    # a single constant rectanglar pulse, where
-                    # tlist and coeff are just float numbers
-                    step_size = tlist
-                    temp_tlist = np.array([tlist])
-                    coeff = np.array([coeff])
-                elif len(tlist) - 1 == len(coeff):
-                    # discrete pulse
-                    step_size = tlist[1] - tlist[0]
-                    temp_tlist = np.asarray(tlist)[1:]
-                    coeff = np.asarray(coeff)
-                elif len(tlist) == len(coeff):
-                    # continuos pulse
-                    step_size = tlist[1] - tlist[0]
-                    if compiled_coeffs[pulse_ind]:  # not first pulse
-                        temp_tlist = np.asarray(tlist)[1:]
-                        coeff = np.asarray(coeff)[1:]
-                    else:  # first pulse
-                        temp_tlist = np.asarray(tlist)[1:]
-                        coeff = np.asarray(coeff)
-                else:
-                    raise ValueError(
-                        "The shape of the compiled pulse is not correct.")
-                # If there is a idling time between the last pulse and
-                # the current one, we need to add zeros in between.
-                # We add sufficient number of zeros at the begining
-                # and the end of the idling to prevent wrong cubic spline.
-                if np.abs(start_time - compiled_tlist[pulse_ind][-1][-1]) \
-                        > step_size * 1.0e-6:
-                    idling_time = (
-                            start_time - compiled_tlist[pulse_ind][-1][-1]
-                        )
-                    if idling_time > 3 * step_size:
-                        idling_tlist1 = np.linspace(
-                            compiled_tlist[pulse_ind][-1][-1] + step_size/5,
-                            compiled_tlist[pulse_ind][-1][-1] + step_size,
-                            5
-                        )
-                        idling_tlist2 = np.linspace(
-                            start_time - step_size,
-                            start_time - step_size/5,
-                            5
-                        )
-                        idling_tlist = np.concatenate(
-                            [idling_tlist1, idling_tlist2])
-                    else:
-                        idling_tlist = np.arange(
-                            compiled_tlist[pulse_ind][-1][-1] + step_size,
-                            start_time - step_size, step_size
-                        )
-                    compiled_tlist[pulse_ind].append(idling_tlist)
-                    compiled_coeffs[pulse_ind].append(
-                        np.zeros(len(idling_tlist))
-                    )
-                    # The pulse should always start with 0
-                    # For rectangular pulse, len(tlist) = 0 and the above
-                    # idling_tlist is empty, hence this is necenssary.
-                    compiled_tlist[pulse_ind].append([start_time])
-                    compiled_coeffs[pulse_ind].append([0.])
-                # add the compiled pulse coeffs to the list
-                compiled_tlist[pulse_ind].append(temp_tlist + start_time)
-                compiled_coeffs[pulse_ind].append(coeff)
+                tlist_to_add, coeffs_to_add, last_pulse_time = \
+                    self._concatenate_instruction(
+                        start_time, tlist, coeff, last_pulse_time)
+                compiled_tlist[pulse_ind].extend(tlist_to_add)
+                compiled_coeffs[pulse_ind].extend(coeffs_to_add)
 
         for i in range(num_controls):
             if not compiled_coeffs[i]:
@@ -258,3 +203,89 @@ class GateCompiler(object):
                 compiled_coeffs[i] = np.concatenate(compiled_coeffs[i])
 
         return compiled_tlist, compiled_coeffs
+
+
+    def _concatenate_instruction(
+            self, start_time, tlist, coeff, last_pulse_time):
+        # compute the gate time, step size and coeffs
+        if np.isscalar(tlist):
+            pulse_mode = "discrete"
+            # a single constant rectanglar pulse, where
+            # tlist and coeff are just float numbers
+            step_size = tlist
+            coeff = np.array([coeff])
+            if abs(start_time) < 1.0e-10:
+                gate_tlist = np.array([0., tlist])  # first gate
+            else:
+                gate_tlist = np.array([tlist])
+        elif len(tlist) - 1 == len(coeff):
+            # discrete pulse
+            pulse_mode = "discrete"
+            step_size = tlist[1] - tlist[0]
+            coeff = np.asarray(coeff)
+            if abs(start_time) < step_size * 1.0e-6:
+                gate_tlist = np.asarray(tlist)
+            else:
+                gate_tlist = np.asarray(tlist)[1:]
+        elif len(tlist) == len(coeff):
+            # continuos pulse
+            pulse_mode = "continuous"
+            step_size = tlist[1] - tlist[0]
+            if abs(start_time) < step_size * 1.0e-6:
+                coeff = np.asarray(coeff)
+                gate_tlist = np.asarray(tlist)
+            else:
+                coeff = np.asarray(coeff)[1:]
+                gate_tlist = np.asarray(tlist)[1:]
+        else:
+            raise ValueError(
+                "The shape of the compiled pulse is not correct.")
+
+        # consider the idling time and add to the resulting list
+        tlist_to_add = []
+        coeffs_to_add = []
+        # If there is a idling time between the last pulse and
+        # the current one, we need to add zeros in between.
+        if np.abs(start_time - last_pulse_time) > step_size * 1.0e-6:
+            idling_time = start_time - last_pulse_time
+            if pulse_mode == "continuous":
+                # We add sufficient number of zeros at the begining
+                # and the end of the idling to prevent wrong cubic spline.
+                if abs(last_pulse_time) < 1.e-14:
+                    tlist_to_add.append(np.array([0.]))
+                    coeffs_to_add.append(np.array([0.]))
+                if idling_time > 3 * step_size:
+                    idling_tlist1 = np.linspace(
+                        last_pulse_time + step_size/5,
+                        last_pulse_time + step_size,
+                        5
+                    )
+                    idling_tlist2 = np.linspace(
+                        start_time - step_size,
+                        start_time - step_size/5,
+                        5
+                    )
+                    idling_tlist = np.concatenate(
+                        [idling_tlist1, idling_tlist2])
+                else:
+                    idling_tlist = np.arange(
+                        last_pulse_time + step_size,
+                        start_time - step_size, step_size
+                    )
+                tlist_to_add.append(idling_tlist)
+                coeffs_to_add.append(np.zeros(len(idling_tlist)))
+            elif pulse_mode == "discrete":
+                if abs(last_pulse_time) < 1.e-14:
+                    tlist_to_add.append([0.])
+            # The pulse should always start with 0.
+            # For discrete pulse, it is assumed implicitly;
+            # for continuous pulse, the difference is negligible.
+            tlist_to_add.append([start_time])
+            coeffs_to_add.append([0.])
+        # Add the gate time and coeffs to the list.
+        execution_time = gate_tlist + start_time
+        last_pulse_time = execution_time[-1]
+        tlist_to_add.append(execution_time)
+        coeffs_to_add.append(coeff)
+
+        return tlist_to_add, coeffs_to_add, last_pulse_time
