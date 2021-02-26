@@ -418,8 +418,8 @@ class Pulse():
         if not all_tlists:
             return None
         full_tlist = np.unique(np.sort(np.hstack(all_tlists)))
-        diff = np.append(True, np.diff(full_tlist))
-        full_tlist = full_tlist[diff > tol]
+        full_tlist = np.concatenate(
+            (full_tlist[:1], full_tlist[1:][np.diff(full_tlist) > tol]))
         return full_tlist
 
     def print_info(self):
@@ -533,8 +533,8 @@ def _find_common_tlist(qobjevo_list, tol=1.0e-10):
     if not all_tlists:
         return None
     full_tlist = np.unique(np.sort(np.hstack(all_tlists)))
-    diff = np.append(True, np.diff(full_tlist))
-    full_tlist = full_tlist[diff > tol]
+    full_tlist = np.concatenate(
+        (full_tlist[:1], full_tlist[1:][np.diff(full_tlist) > tol]))
     return full_tlist
 
 ########################################################################

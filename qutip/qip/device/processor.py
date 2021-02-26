@@ -281,8 +281,8 @@ class Processor(object):
             return None
         full_tlist = np.unique(np.sort(np.hstack(full_tlist)))
         # account for inaccuracy in float-point number
-        diff = np.append(True, np.diff(full_tlist))
-        full_tlist = full_tlist[diff > tol]
+        full_tlist = np.concatenate(
+            (full_tlist[:1], full_tlist[1:][np.diff(full_tlist) > tol]))
         return full_tlist
 
     def get_full_coeffs(self, full_tlist=None):
