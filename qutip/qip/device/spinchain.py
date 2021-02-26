@@ -235,7 +235,6 @@ class SpinChain(ModelProcessor):
         self.global_phase = compiler.global_phase
         self.coeffs = coeffs
         for i in range(len(coeffs)):
-            print(i)
             self.pulses[i].tlist = tlist[i]
         return tlist, self.coeffs
 
