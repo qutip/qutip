@@ -8,3 +8,4 @@ recursive-include qutip *.hpp
 recursive-include qutip *.pxd
 recursive-include qutip *.ini
 recursive-include qutip/tests/qasm_files *.qasm
+include qutip/cy/openmp/src/zspmv_openmp.cpp

@@ -69,7 +69,7 @@ def tensor(*args):
 
     Examples
     --------
-    >>> tensor([sigmax(), sigmax()])
+    >>> tensor([sigmax(), sigmax()]) # doctest: +SKIP
     Quantum object: dims = [[2, 2], [2, 2]], \
 shape = [4, 4], type = oper, isHerm = True
     Qobj data =

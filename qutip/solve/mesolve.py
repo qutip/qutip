@@ -261,6 +261,7 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
 
     res = _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, options,
                              progress_bar, dims=rho0.dims)
+    res.num_collapse = len(c_ops)
 
     if e_ops_dict:
         res.expect = {e: res.expect[n]
@@ -372,7 +373,7 @@ def _mesolve_func_td(L_func, c_op_list, rho0, tlist, args, opt):
     else:
         c_ops_ = []
 
-    if False: # opt.rhs_with_state:
+    if False:  # TODO check: old version was `opt.rhs_with_state`
         state0 = rho0.full().ravel("F")
         obj = L_func(0., state0, args)
         if not issuper(obj):

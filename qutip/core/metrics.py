@@ -75,9 +75,7 @@ def fidelity(A, B):
     --------
     >>> x = fock_dm(5,3)
     >>> y = coherent_dm(5,1)
-    >>> fidelity(x,y)
-    0.24104350624628332
-
+    >>> np.testing.assert_almost_equal(fidelity(x,y), 0.24104350624628332)
     """
     if A.isket or A.isbra:
         # Take advantage of the fact that the density operator for A
@@ -174,9 +172,7 @@ def tracedist(A, B, sparse=False, tol=0):
     --------
     >>> x=fock_dm(5,3)
     >>> y=coherent_dm(5,1)
-    >>> tracedist(x,y)
-    0.9705143161472971
-
+    >>> np.testing.assert_almost_equal(tracedist(x,y), 0.9705143161472971)
     """
     if A.isket or A.isbra:
         A = A.proj()
@@ -307,9 +303,7 @@ def hellinger_dist(A, B, sparse=False, tol=0):
     --------
     >>> x=fock_dm(5,3)
     >>> y=coherent_dm(5,1)
-    >>> hellinger_dist(x,y)
-    1.3725145002591095
-
+    >>> np.testing.assert_almost_equal(hellinger_dist(x,y), 1.3725145002591095)
     """
     if A.dims != B.dims:
         raise TypeError("A and B do not have same dimensions.")

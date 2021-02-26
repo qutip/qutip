@@ -31,12 +31,10 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
-from qutip import sigmax, sigmay, sigmaz, identity, tensor
+from qutip import sigmax, sigmay, sigmaz, tensor
 from qutip.qip.circuit import QubitCircuit
-from qutip.qip.device.processor import Processor
 from qutip.qip.device.modelprocessor import ModelProcessor
 from qutip.qip.pulse import Pulse
-from qutip.qip.compiler.gatecompiler import GateCompiler
 from qutip.qip.compiler.spinchaincompiler import SpinChainCompiler
 
 
@@ -577,7 +575,10 @@ class CircularSpinChain(SpinChain):
     """
     def __init__(self, N, correct_global_phase=True,
                  sx=0.25, sz=1.0, sxsy=0.1, t1=None, t2=None):
-
+        if N <= 1:
+            raise ValueError(
+                "Circuit spin chain must have at least 2 qubits. "
+                "The number of qubits is increased to 2.")
         super(CircularSpinChain, self).__init__(
             N, correct_global_phase=correct_global_phase,
             sx=sx, sz=sz, sxsy=sxsy, t1=t1, t2=t2)

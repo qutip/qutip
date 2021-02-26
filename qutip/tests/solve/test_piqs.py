@@ -989,7 +989,7 @@ class TestDicke:
 
         PIQS: Test for N = 2 in the 'dicke' and in the 'uncoupled' basis.
         """
-        zeros = np.zeros((4, 4), dtype=np.complex)
+        zeros = np.zeros((4, 4), dtype=np.complex128)
         gdicke = zeros.copy()
         guncoupled = zeros.copy()
         gdicke[2, 2] = 1
@@ -1013,7 +1013,7 @@ class TestDicke:
         test_identity = identity_uncoupled(4)
         assert_equal(test_identity.dims, [[2, 2, 2, 2], [2, 2, 2, 2]])
         assert_array_equal(
-            np.diag(test_identity.full()), np.ones(16, np.complex)
+            np.diag(test_identity.full()), np.ones(16, np.complex128)
         )
 
     def test_css(self):
@@ -1022,7 +1022,7 @@ class TestDicke:
         """
         test_css_uncoupled = css(2, basis="uncoupled")
         test_css_dicke = css(2)
-        css_uncoupled = 0.25 * np.ones((4, 4), dtype=np.complex)
+        css_uncoupled = 0.25 * np.ones((4, 4), dtype=np.complex128)
         css_dicke = np.array(
             [
                 [

@@ -33,6 +33,7 @@
 import collections
 import functools
 import os
+import sys
 import shutil
 import subprocess
 import tempfile
@@ -48,15 +49,20 @@ _latex_template = r"""
 """
 
 
-_run_command = functools.partial(subprocess.run, check=True,
-                                 stdout=subprocess.DEVNULL,
-                                 stderr=subprocess.DEVNULL)
-_run_command.__doc__ = \
+def _run_command(command, *args, **kwargs):
     """
-    Run a command with stdout and stderr explicitly thrown away, raising
-    `subprocess.CalledProcessError` if the command returned a non-zero exit
-    code.
+    Run a command with stdout explicitly thrown away, raising
+    `RuntimeError` with the system error message
+    if the command returned a non-zero exit code.
     """
+    try:
+        return subprocess.run(
+            command, *args,
+            check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+            **kwargs,
+        )
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(e.stderr.decode(sys.stderr.encoding)) from None
 
 
 def _force_remove(*filenames):
@@ -253,7 +259,7 @@ _qcircuit_latex_min = r"""
 % Last modified on: 9/16/2011
 % License: http://www.gnu.org/licenses/gpl-2.0.html
 % Original file: http://physics.unm.edu/CQuIC/Qcircuit/Qcircuit.tex
-% Modified for QuTiP on: 5/22/2014
+% Modified for QuTiP on: 2/19/2021
 \usepackage{xy}
 \xyoption{matrix}
 \xyoption{frame}
@@ -279,7 +285,7 @@ _qcircuit_latex_min = r"""
 \newcommand{\ctrl}[1]{\control \qwx[#1] \qw}
 \newcommand{\ctrlo}[1]{\controlo \qwx[#1] \qw}
 \newcommand{\targ}{*+<.02em,.02em>{\xy ="i","i"-<.39em,0em>;"i"+<.39em,0em> **\dir{-}, "i"-<0em,.39em>;"i"+<0em,.39em> **\dir{-},"i"*\xycircle<.4em>{} \endxy} \qw}
-\newcommand{\qswap}{*=<0em>{\times} \qw}
+\newcommand{\qswap}{*=<0em>{\times}}
 \newcommand{\multigate}[2]{*+<1em,.9em>{\hphantom{#2}} \POS [0,0]="i",[0,0].[#1,0]="e",!C *{#2},"e"+UR;"e"+UL **\dir{-};"e"+DL **\dir{-};"e"+DR **\dir{-};"e"+UR **\dir{-},"i" \qw}
 \newcommand{\ghost}[1]{*+<1em,.9em>{\hphantom{#1}} \qw}
 \newcommand{\push}[1]{*{#1}}

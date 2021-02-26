@@ -49,19 +49,24 @@ from qutip.hardware_info import hardware_info
 
 def about():
     """
-    About box for QuTiP. Gives version numbers for
-    QuTiP, NumPy, SciPy, Cython, and MatPlotLib.
+    About box for QuTiP. Gives version numbers for QuTiP, NumPy, SciPy, Cython,
+    and MatPlotLib.
     """
     print("")
     print("QuTiP: Quantum Toolbox in Python")
     print("================================")
     print("Copyright (c) QuTiP team 2011 and later.")
+    print(
+        "Current admin team: Alexander Pitchford, "
+        "Nathan Shammah, Shahnawaz Ahmed, Neill Lambert, Eric Giguère, "
+        "Boxi Li and Jake Lishman."
+    )
+    print(
+        "Board members: Daniel Burgarth, Robert Johansson, Anton F. Kockum, "
+        "Franco Nori and Will Zeng."
+    )
     print("Original developers: R. J. Johansson & P. D. Nation.")
     print("Previous lead developers: Chris Granade & A. Grimsmo.")
-    print("Current admin team: Alexander Pitchford, Paul D. Nation, "
-            "Nathan Shammah, Shahnawaz Ahmed, "
-            "Neill Lambert, Eric Giguère, and Boxi Li")
-    print("Project Manager: Franco Nori.")
     print("Currently developed through wide collaboration. "
           "See https://github.com/qutip for details.")
     print("")
@@ -71,13 +76,13 @@ def about():
     try:
         import Cython
         cython_ver = Cython.__version__
-    except:
+    except ImportError:
         cython_ver = 'None'
     print("Cython Version:     %s" % cython_ver)
     try:
         import matplotlib
         matplotlib_ver = matplotlib.__version__
-    except:
+    except ImportError:
         matplotlib_ver = 'None'
     print("Matplotlib Version: %s" % matplotlib_ver)
     print("Python Version:     %d.%d.%d" % sys.version_info[0:3])
@@ -91,10 +96,9 @@ def about():
     print("Installation path:  %s" % qutip_install_path)
 
     # citation
-    longbar = "=============================================================="
-    longbar += "================"
-    cite_msg = "For your convenience a bibtex reference can be easily generated"
-    cite_msg += " using `qutip.cite()`"
+    longbar = "=" * 80
+    cite_msg = "For your convenience a bibtex reference can be easily"
+    cite_msg += " generated using `qutip.cite()`"
     print(longbar)
     print("Please cite QuTiP in your publication.")
     print(longbar)
