@@ -1,4 +1,3 @@
-
 from ..evolver import Evolver, evolver_collection, EvolverException
 from .explicit_rk import Explicit_RungeKutta
 import numpy as np
@@ -11,6 +10,7 @@ class EvolverVern(Evolver):
     """
     Evolver wrapping Qutip's implementation of Verner 'most efficient'
     Runge-Kutta method for solver ODE.
+    http://people.math.sfu.ca/~jverner/
     """
     description = "Qutip implementation of Verner's most efficient Runge-Kutta"
     used_options = ['atol', 'rtol', 'nsteps', 'first_step', 'max_step',
@@ -153,7 +153,7 @@ class EvolverDiag(Evolver):
         Obtain the state of the solver as a pair t, state
         """
         y = self.U @ self._y
-        return self._t, _data.dense.fast_from_numpy(y)
+        return self._t, _data.dense.Dense(y, copy=False)
 
     def set_state(self, t, state0):
         """

@@ -493,11 +493,11 @@ class EvolverScipyZvode(Evolver):
         t = self._ode_solver.t
         if self._mat_state:
             state = _data.column_unstack_dense(
-                _data.dense.fast_from_numpy(self._ode_solver._y),
+                _data.dense.Dense(self._ode_solver._y, copy=False),
                 self._size,
                 inplace=True)
         else:
-            state = _data.dense.fast_from_numpy(self._ode_solver._y)
+            state = _data.dense.Dense(self._ode_solver._y, copy=False)
         return t, state.copy() if copy else state
 
     def set_state(self, t, state0):
@@ -611,13 +611,13 @@ class EvolverScipyDop853(Evolver):
         t = self._ode_solver.t
         if self._mat_state:
             state = _data.column_unstack_dense(
-                _data.dense.fast_from_numpy(self._ode_solver.
-                                            _y.view(np.complex)),
+                _data.dense.Dense(self._ode_solver._y.view(np.complex128),
+                                  copy=False),
                 self._size,
                 inplace=True)
         else:
-            state = _data.dense.fast_from_numpy(self._ode_solver.
-                                                _y.view(np.complex))
+            state = _data.dense.Dense(self._ode_solver._y.view(np.complex128),
+                                      copy=False)
         return t, state.copy() if copy else state
 
     def set_state(self, t, state0):

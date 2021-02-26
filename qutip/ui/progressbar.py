@@ -161,7 +161,7 @@ class TqdmProgressBar(BaseProgressBar):
     """
 
     def __init__(self, iterations=0, chunk_size=10):
-        from tqdm import tqdm
+        from tqdm.auto import tqdm
         self.tqdm = tqdm
         self.t_start = time.time()
         self.t_done = self.t_start - 1

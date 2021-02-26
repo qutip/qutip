@@ -9,7 +9,7 @@ cdef class SolverQEvo:
     cdef readonly object base_py
     cdef CQobjEvo base
     cdef list collapse
-    cdef list dynamic_arguments
+    cdef list feedback
     cdef bint has_dynamic_args
     cdef idxint ncols
     cdef int num_calls

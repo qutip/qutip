@@ -69,29 +69,29 @@ cdef class SolverQEvo:
     def set_feedback(self, dict feedback, dict args, bint issuper, bint norm):
         # Move elsewhere and op should be a dimensions object when available
         self.args = args
-        self.dynamic_arguments = []
+        self.feedback = []
         for key, val in feedback.items():
             if val in [Qobj, "Qobj", "qobj", "state"]:
-                self.dynamic_arguments.append(QobjFeedback(key, args[key],
+                self.feedback.append(QobjFeedback(key, args[key],
                                                            norm))
             elif isinstance(val, Qobj):
-                self.dynamic_arguments.append(ExpectFeedback(key, val,
+                self.feedback.append(ExpectFeedback(key, val,
                                                              issuper, norm))
             elif val in ["collapse"]:
-                self.dynamic_arguments.append(
+                self.feedback.append(
                     CollapseFeedback(key)
                 )
             else:
                 raise ValueError("unknown feedback type")
-        self.has_dynamic_args = bool(self.dynamic_arguments)
+        self.has_dynamic_args = bool(self.feedback)
 
     def update_feedback(self, what, data):
-        for dargs in self.dynamic_arguments:
+        for dargs in self.feedback:
             dargs.update(what, data)
 
     cpdef void apply_feedback(self, double t, _data.Data matrix) except *:
         cdef Feedback feedback
-        for dyn_args in self.dynamic_arguments:
+        for dyn_args in self.feedback:
             feedback = <Feedback> dyn_args
             val = feedback._call(t, matrix)
             self.args[feedback.key] = val
