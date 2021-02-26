@@ -118,7 +118,7 @@ class ModelProcessor(Processor):
 
     @params.setter
     def params(self, par):
-        self._params
+        self._params = par
 
     def run_state(self, init_state=None, analytical=False, qc=None,
                   states=None, **kwargs):
