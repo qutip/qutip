@@ -230,10 +230,13 @@ class SpinChain(ModelProcessor):
             compiler = SpinChainCompiler(
                 self.N, self._params, setup=setup,
                 global_phase=0., pulse_dict=deepcopy(self.pulse_dict))
-        tlist, self.coeffs = compiler.compile(
+        tlist, coeffs = compiler.compile(
             gates, schedule_mode=schedule_mode)
         self.global_phase = compiler.global_phase
-        self.set_all_tlist(tlist)
+        self.coeffs = coeffs
+        for i in range(len(coeffs)):
+            print(i)
+            self.pulses[i].tlist = tlist[i]
         return tlist, self.coeffs
 
     def adjacent_gates(self, qc, setup="linear"):

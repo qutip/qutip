@@ -261,9 +261,6 @@ class Processor(object):
 
     @coeffs.setter
     def coeffs(self, coeffs_list):
-        if len(coeffs_list) != len(self.pulses):
-            raise ValueError("The row number of coeffs must be same "
-                             "as the number of control pulses.")
         for i, coeff in enumerate(coeffs_list):
             self.pulses[i].coeff = coeff
 

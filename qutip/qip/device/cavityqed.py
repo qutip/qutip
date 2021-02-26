@@ -342,8 +342,10 @@ class DispersiveCavityQED(ModelProcessor):
                 self.N, self._params,
                 pulse_dict=deepcopy(self.pulse_dict),
                 global_phase=0.)
-        tlist, self.coeffs = compiler.compile(
+        tlist, coeffs = compiler.compile(
             gates, schedule_mode=schedule_mode)
         self.global_phase = compiler.global_phase
-        self.set_all_tlist(tlist)
+        self.coeffs = coeffs
+        for i in range(len(coeffs)):
+            self.pulses[i].tlist = tlist[i]
         return tlist, self.coeffs

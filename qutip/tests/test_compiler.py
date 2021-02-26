@@ -34,7 +34,9 @@ import pytest
 import numpy as np
 
 from qutip.qip.device import DispersiveCavityQED, CircularSpinChain
-from qutip.qip.compiler import CavityQEDCompiler, Instruction
+from qutip.qip.compiler import (
+    SpinChainCompiler, CavityQEDCompiler, Instruction, GateCompiler
+    )
 from qutip.qip.circuit import QubitCircuit
 from qutip import basis, fidelity
 from qutip.qip.circuit import QubitCircuit
@@ -118,3 +120,34 @@ def test_compiler_with_continous_pulse(spline_kind, schedule_mode):
         circuit, schedule_mode = schedule_mode, compiler=gauss_compiler)
     result = processor.run_state(init_state = basis([2,2], [0,0]))
     assert(abs(fidelity(result.states[-1],basis([2,2],[0,1])) - 1) < 1.e-6)
+
+
+def rx_compiler_without_pulse_dict(gate, args):
+    """
+    Define a gate compiler that does not use pulse_dict but directly
+    give the index of control pulses in the Processor.
+    """
+    targets = gate.targets
+    g = args["params"]["sx"][targets[0]]
+    coeff = np.sign(gate.arg_value) * g
+    tlist = abs(gate.arg_value) / (2 * g)
+    pulse_info = [(targets[0], coeff)]
+    return [Instruction(gate, tlist, pulse_info)]
+
+
+def test_compiler_without_pulse_dict():
+    """
+    Test for a compiler function without pulse_dict and using args.
+    """
+    num_qubits = 2
+    circuit = QubitCircuit(num_qubits)
+    circuit.add_gate("X", targets=[0])
+    circuit.add_gate("X", targets=[1])
+    processor = CircularSpinChain(num_qubits)
+    compiler = SpinChainCompiler(
+        num_qubits, params=processor.params, pulse_dict=None, setup="circular")
+    compiler.gate_compiler["RX"] = rx_compiler_without_pulse_dict
+    compiler.args = {"params": processor.params}
+    processor.load_circuit(circuit, compiler=compiler)
+    result = processor.run_state(basis([2,2], [0,0]))
+    assert(abs(fidelity(result.states[-1], basis([2,2], [1,1])) - 1.) < 1.e-6 )

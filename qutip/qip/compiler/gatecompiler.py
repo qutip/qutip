@@ -144,13 +144,13 @@ class GateCompiler(object):
         if not instruction_list:
             return None, None
         if self.pulse_dict is not None:
-            num_pulses = len(self.pulse_dict)
+            num_controls = len(self.pulse_dict)
         else:  # if pulse_dict is not given, compute the number of pulses
-            num_pulses = 0
+            num_controls = 0
             for instruction in instruction_list:
-                for pulse_index in instruction_list.pulse_info:
-                    num_pulses = max(num_pulses, pulse_index)
-            num_pulses += 1
+                for pulse_index, _ in instruction.pulse_info:
+                    num_controls = max(num_controls, pulse_index)
+            num_controls += 1
 
         # schedule
         # scheduled_start_time:
@@ -174,7 +174,7 @@ class GateCompiler(object):
         # compile
         # An instruction can be composed from several different pulse elements.
         # We separate them an assign them to each pulse index.
-        pulse_instructions = [[] for tmp in range(num_pulses)]
+        pulse_instructions = [[] for tmp in range(num_controls)]
         for instruction, start_time in \
                 zip(instruction_list, scheduled_start_time):
             for pulse_name, coeff in instruction.pulse_info:
@@ -185,9 +185,9 @@ class GateCompiler(object):
                 pulse_instructions[pulse_ind].append(
                     (start_time, instruction.tlist, coeff))
 
-        compiled_tlist = [[[0.]] for tmp in range(num_pulses)]
-        compiled_coeffs = [[] for tmp in range(num_pulses)]
-        for pulse_ind in range(num_pulses):
+        compiled_tlist = [[[0.]] for tmp in range(num_controls)]
+        compiled_coeffs = [[] for tmp in range(num_controls)]
+        for pulse_ind in range(num_controls):
             for start_time, tlist, coeff in pulse_instructions[pulse_ind]:
                 if np.isscalar(tlist):
                     # a single constant rectanglar pulse, where
@@ -252,7 +252,7 @@ class GateCompiler(object):
                 compiled_tlist[pulse_ind].append(temp_tlist + start_time)
                 compiled_coeffs[pulse_ind].append(coeff)
 
-        for i in range(num_pulses):
+        for i in range(num_controls):
             if not compiled_coeffs[i]:
                 compiled_tlist[i] = None
                 compiled_coeffs[i] = None
