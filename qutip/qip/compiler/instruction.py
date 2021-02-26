@@ -70,13 +70,13 @@ class Instruction():
             self, gate, tlist=None,
             pulse_info=(), duration=1):
         self.gate = deepcopy(gate)
+        self.used_qubits = set()
         if self.targets is not None:
             self.targets.sort()  # Used when comparing the instructions
-        if self.controls is None:
-            self.used_qubits = set(self.targets)
-        else:
+            self.used_qubits |= set(self.targets)
+        if self.controls is not None:
             self.controls.sort()
-            self.used_qubits = set(self.controls).union(set(self.targets))
+            self.used_qubits |= set(self.controls)
         self.tlist = tlist
         if self.tlist is not None:
             if np.isscalar(self.tlist):
