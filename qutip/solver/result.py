@@ -167,7 +167,13 @@ class MultiTrajResult:
     """
     Contain result of simulations with multiple trajectories.
     """
-    def __init__(self, num_c_ops):
+    def __init__(self, num_c_ops=0):
+        """
+        Parameters:
+        -----------
+        num_c_ops: int
+            Number of collapses operator used in the McSolver
+        """
         self.trajectories = []
         self._to_dm = True # MCsolve
         self.num_c_ops = num_c_ops
@@ -392,7 +398,13 @@ class MultiTrajResultAveraged:
     """
     Contain result of simulations with multiple trajectories.
     """
-    def __init__(self, num_c_ops):
+    def __init__(self, num_c_ops=0):
+        """
+        Parameters:
+        -----------
+        num_c_ops: int
+            Number of collapses operator used in the McSolver
+        """
         self.trajectories = None
         self._sum_states = None
         self._sum_last_states = None

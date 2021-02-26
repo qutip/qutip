@@ -1,62 +1,83 @@
 
-from ..evolver import Evolver, evolver_collection
-from .verner7efficient import vern7
-from .verner9efficient import vern9
-from .wrapper import QtOdeFuncWrapper
+from ..evolver import Evolver, evolver_collection, EvolverException
+from .explicit_rk import Explicit_RungeKutta
 import numpy as np
-from ...core import data as _data
+from qutip import data as _data
 
 __all__ = ['EvolverVern', 'EvolverDiag']
 
 
 class EvolverVern(Evolver):
-    # -------------------------------------------------------------------------
-    # Solve an ODE for func.
-    # Calculate the required expectation values or invoke callback
-    # function at each time step.
-    #
-    # Use verner method implimented in cython
-    #
-    _error_msg = ("ODE integration error: Try to increase "
-                  "the allowed number of substeps by increasing "
-                  "the nsteps parameter in the Options class.")
-    description = "qutip implementation of verner most efficient runge-kutta"
+    """
+    Evolver wrapping Qutip's implementation of Verner 'most efficient'
+    Runge-Kutta method for solver ODE.
+    """
+    description = "Qutip implementation of Verner's most efficient Runge-Kutta"
     used_options = ['atol', 'rtol', 'nsteps', 'first_step', 'max_step',
-                    'min_step', 'interpolate']
+                    'min_step', 'interpolate', 'method']
 
     def prepare(self):
-        func = QtOdeFuncWrapper(self.system)
+        """
+        Initialize the solver
+        """
         opt = {key: self.options.ode[key]
                for key in self.used_options
                if key in self.options.ode}
-        ode = vern7 if self.options.ode['method'] == 'vern7' else vern9
-        self._ode_solver = ode(func, **opt)
+        self._ode_solver = Explicit_RungeKutta(self.system, **opt)
         self.name = "qutip " + self.options.ode['method']
 
     def get_state(self, copy=True):
+        """
+        Obtain the state of the solver as a pair t, state
+        """
         state = self._ode_solver.y
         return self._ode_solver.t, state.copy() if copy else state
 
     def set_state(self, t, state):
+        """
+        Set the state of the ODE solver.
+        """
         self._ode_solver.set_initial_value(state, t)
 
-    def backstep(self, t):
-        self._ode_solver.integrate(t)
-        return self.get_state()
-
     def step(self, t):
-        """ Evolve to t, must be `set` before. """
+        """
+        Evolve to t, must be `prepare` before.
+        return the pair (t, state).
+        """
         self._ode_solver.integrate(t)
-        if not self._ode_solver.successful():
-            raise Exception(self._error_msg)
+        self._check_failed_integration()
         return self.get_state()
 
     def one_step(self, t):
-        """ Evolve to t, must be `set` before. """
+        """
+        Advance up to t by one internal solver step.
+        Should be able to retreive the state at any time between the present
+        time and the resulting time using `backstep`.
+        """
         self._ode_solver.integrate(t, step=True)
-        if not self._ode_solver.successful():
-            raise Exception(self._error_msg)
+        self._check_failed_integration()
         return self.get_state()
+
+    def backstep(self, t):
+        """
+        Retreive the state at time t, with t smaller than present ODE time.
+        The time t will always be between the last calls of `one_step`.
+        return the pair t, state.
+        """
+        self._ode_solver.integrate(t)
+        self._check_failed_integration()
+        return self.get_state()
+
+    def _check_failed_integration(self):
+        if self._ode_solver.successful():
+            return
+        messages = {
+            -1: 'larger nsteps is needed, Try to increase the nsteps '
+                'parameter in the Options class.',
+            -2: 'step size becomes too small. Try increasing tolerance',
+            -3: 'step outside available range.',
+        }
+        raise EvolverException(messages[self._ode_solver.status])
 
 
 vernlimits = {
@@ -73,14 +94,9 @@ evolver_collection.add(EvolverVern, methods=['vern7', 'vern9'],
 
 
 class EvolverDiag(Evolver):
-    # -------------------------------------------------------------------------
-    # Solve an ODE for func.
-    # Calculate the required expectation values or invoke callback
-    # function at each time step.
-    #
-    # Diagonalize the Hamiltonian and
-    # This should be used for constant Hamiltonian evolution (sesolve, mcsolve)
-    #
+    """
+    Evolver solving the ODE by diagonalizing the system.
+    """
     description = "Diagonalize a constant system"
     used_options = []
 
@@ -95,6 +111,9 @@ class EvolverDiag(Evolver):
         self.prepare()
 
     def prepare(self):
+        """
+        Initialize the solver
+        """
         self.diag, self.U = self.system(0).eigenstates()
         self.diag = self.diag.reshape((-1,1))
         self.U = np.hstack([eket.full() for eket in self.U])
@@ -114,16 +133,32 @@ class EvolverDiag(Evolver):
         return self.get_state()
 
     def one_step(self, t):
+        """
+        Advance up to t by one internal solver step.
+        Should be able to retreive the state at any time between the present
+        time and the resulting time using `backstep`.
+        """
         return self.step(t)
 
     def backstep(self, t):
+        """
+        Retreive the state at time t, with t smaller than present ODE time.
+        The time t will always be between the last calls of `one_step`.
+        return the pair t, state.
+        """
         return self.step(t)
 
     def get_state(self, copy=False):
+        """
+        Obtain the state of the solver as a pair t, state
+        """
         y = self.U @ self._y
         return self._t, _data.dense.fast_from_numpy(y)
 
     def set_state(self, t, state0):
+        """
+        Set the state of the ODE solver.
+        """
         self._t = t
         self._y = (self.Uinv @ state0.to_array())
 

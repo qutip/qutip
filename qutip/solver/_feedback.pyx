@@ -6,10 +6,10 @@ from qutip.core cimport data as _data
 
 cdef class Feedback:
     def __init__(self, key, state):
-        self.key = key
+        raise NotImplementedError
 
     cdef object _call(self, double t, _data.Data state):
-        return 0
+        raise NotImplementedError
 
 
 cdef class QobjFeedback(Feedback):

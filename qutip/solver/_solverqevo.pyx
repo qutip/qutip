@@ -32,23 +32,6 @@ cdef class SolverQEvo:
         self.num_calls += 1
         return self.base.call(t, data=True)
 
-    cpdef list get_coeff(self, double t, vec=None):
-        # TODO: Is this needed? I used it in debug but does it have any other use?
-        cdef Feedback feedback
-        cdef _data.Dense state
-        if self.has_dynamic_args and vec is not None:
-            state = _data.dense.Dense(vec, copy=False)
-            for dyn_args in self.dynamic_arguments:
-                feedback = <Feedback> dyn_args
-                val = feedback._call(t, state)
-                self.args[feedback.key] = val
-            for i in range(self.base.n_ops):
-                (<Coefficient> self.base.coeff[i]).arguments(self.args)
-        out = []
-        for i in range(self.base.n_ops):
-            out.append((<Coefficient> self.base.coeff[i])(t))
-        return out
-
     def mul_np_double_vec(self, t, vec):
         vec_cplx = vec.view(complex)
         return self.mul_np_vec(t, vec_cplx).view(np.float64)
@@ -63,13 +46,21 @@ cdef class SolverQEvo:
         column_stack_dense(out, inplace=True)
         return out.as_ndarray().ravel()
 
-    cdef _data.Data mul_data(self, double t, _data.Data vec):
+    cdef _data.Data mul_data(self, double t, _data.Data vec, _data.Data out=None):
+        if (
+            type(vec) is _data.Dense and
+            (out is None or type(out) is _data.Dense)
+        ):
+            return self.mul_dense(t, vec, out)
         if self.has_dynamic_args:
             self.apply_feedback(t, vec)
         self.num_calls += 1
-        return self.base.matmul(t, vec)
+        if out is None:
+            return self.base.matmul(t, vec)
+        else:
+            return data.add(out, self.base.matmul(t, vec))
 
-    cdef _data.Dense mul_dense(self, double t, _data.Dense vec, _data.Dense out):
+    cdef _data.Dense mul_dense(self, double t, _data.Dense vec, _data.Dense out=None):
         if self.has_dynamic_args:
             self.apply_feedback(t, vec)
         self.num_calls += 1
