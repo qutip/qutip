@@ -85,10 +85,9 @@ cdef class SolverQEvo:
                 raise ValueError("unknown feedback type")
         self.has_dynamic_args = bool(self.dynamic_arguments)
 
-    def update_feedback(self, collapse):
+    def update_feedback(self, what, data):
         for dargs in self.dynamic_arguments:
-            if isinstance(dargs, CollapseFeedback):
-                dargs.set_collapse(collapse)
+            dargs.update(what, data)
 
     cpdef void apply_feedback(self, double t, _data.Data matrix) except *:
         cdef Feedback feedback

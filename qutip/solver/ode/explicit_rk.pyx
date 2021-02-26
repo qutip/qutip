@@ -193,7 +193,7 @@ cdef class Explicit_RungeKutta:
             return
 
         if step and self._t < self._t_front and t > self._t_front:
-            # To ensure that the _t ... t_out interval can be covered.
+            # To ensure that the self._t ... t_out interval can be covered.
             t = self._t_front
 
         while self._t_front < t and nsteps < self.max_numsteps:
@@ -243,6 +243,9 @@ cdef class Explicit_RungeKutta:
 
         copy_to(self._y_prev, self._y_front)
         self._y_front = self.accumulate(self._y_front, self.b, dt, self.rk_step)
+        if type(self._y_front) is CSR:
+            # issparse() test would be better.
+            tidyup_csr(self._y_front, self.atol/self._y_front.shape[0], True)
 
         return self.error(self._y_front, dt)
 

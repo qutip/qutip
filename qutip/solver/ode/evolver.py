@@ -72,10 +72,10 @@ class EvolverVern(Evolver):
         if self._ode_solver.successful():
             return
         messages = {
-            -1: 'larger nsteps is needed, Try to increase the nsteps '
-                'parameter in the Options class.',
-            -2: 'step size becomes too small. Try increasing tolerance',
-            -3: 'step outside available range.',
+            -1: 'Too much work done in one call. Try to increase the nsteps '
+                'parameter or increasing the tolerance.',
+            -2: 'Step size becomes too small. Try increasing tolerance',
+            -3: 'Etep outside available range.',
         }
         raise EvolverException(messages[self._ode_solver.status])
 

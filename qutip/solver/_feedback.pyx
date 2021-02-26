@@ -11,6 +11,9 @@ cdef class Feedback:
     cdef object _call(self, double t, _data.Data state):
         raise NotImplementedError
 
+    def update(self, what, collapse):
+        pass
+
 
 cdef class QobjFeedback(Feedback):
     def __init__(self, key, state, norm):
@@ -67,5 +70,6 @@ cdef class CollapseFeedback(Feedback):
     cdef object _call(self, double t, _data.Data state):
         return self.collapse
 
-    def set_collapse(self, collapse):
-        self.collapse = collapse
+    def update(self, what, collapse):
+        if what == "collapse":
+            self.collapse = collapse
