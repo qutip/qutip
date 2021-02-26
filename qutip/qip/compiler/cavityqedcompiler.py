@@ -33,7 +33,7 @@
 import numpy as np
 
 from qutip.qip.circuit import QubitCircuit, Gate
-from qutip.qip.compiler.gatecompiler import GateCompiler, Instruction
+from qutip.qip.compiler import GateCompiler, Instruction
 
 
 __all__ = ['CavityQEDCompiler']
@@ -142,7 +142,7 @@ class CavityQEDCompiler(GateCompiler):
 
         J = self.params["g"][q1] * self.params["g"][q2] * (
             1 / self.Delta[q1] + 1 / self.Delta[q2]) / 2
-        tlist = 0., (4 * np.pi / abs(J)) / 8
+        tlist = (4 * np.pi / abs(J)) / 8
         instruction_list = [Instruction(gate, tlist, pulse_info)]
 
         # corrections

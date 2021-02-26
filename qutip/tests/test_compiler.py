@@ -39,7 +39,6 @@ from qutip.qip.compiler import (
     )
 from qutip.qip.circuit import QubitCircuit
 from qutip import basis, fidelity
-from qutip.qip.circuit import QubitCircuit
 
 
 def test_compiling_with_scheduler():
@@ -86,7 +85,6 @@ def gauss_rx_compiler(gate, args):
     return [Instruction(gate, tlist, pulse_info)]
 
 
-from qutip.qip.compiler import GateCompiler
 class MyCompiler(GateCompiler):  # compiler class
     def __init__(self, num_qubits, params, pulse_dict):
         super(MyCompiler, self).__init__(
@@ -97,12 +95,12 @@ class MyCompiler(GateCompiler):  # compiler class
 
 
 spline_kind = [
-    pytest.param("step_func", id = "discrete"),
-    pytest.param("cubic", id = "continuos"),
+    pytest.param("step_func", id="discrete"),
+    pytest.param("cubic", id="continuous"),
 ]
 schedule_mode = [
-    pytest.param("ASAP", id = "ASAP"),
-    pytest.param(False, id = "No schedule"),
+    pytest.param("ASAP", id="ASAP"),
+    pytest.param(False, id="No schedule"),
 ]
 @pytest.mark.parametrize("spline_kind", spline_kind)
 @pytest.mark.parametrize("schedule_mode", schedule_mode)
