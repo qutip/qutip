@@ -7,6 +7,7 @@ from qutip.core.data cimport Data, Dense, CSR, dense
 from qutip.core.data.add cimport iadd_dense
 from qutip.core.data.add import add
 from qutip.core.data.mul import imul_data
+from qutip.core.data.tidyup import tidyup_csr
 from qutip.core.data.norm import frobenius_data
 from .verner7efficient import vern7_coeff
 from .verner9efficient import vern9_coeff

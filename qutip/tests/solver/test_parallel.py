@@ -73,7 +73,7 @@ def test_map(map, num_cpus):
     x = np.arange(10)
     y1 = [_func1(xx) for xx in x]
 
-    y2 = parallel_map(_func2, x, args, kwargs, map_kw=map_kw)
+    y2 = map(_func2, x, args, kwargs, map_kw=map_kw)
     assert ((np.array(y1) == np.array(y2)).all())
 
 
@@ -100,5 +100,5 @@ def test_map_accumulator(map, num_cpus):
     x = np.arange(10)
     y1 = [_func1(xx) for xx in x]
 
-    parallel_map(_func2, x, args, kwargs, reduce_func=y2.append, map_kw=map_kw)
+    map(_func2, x, args, kwargs, reduce_func=y2.append, map_kw=map_kw)
     assert ((np.array(y1) == np.array(y2)).all())
