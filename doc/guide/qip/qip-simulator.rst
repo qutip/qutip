@@ -39,9 +39,9 @@ It corresponds to the following circuit:
 
 .. image:: /figures/qip/quantum_circuit_w_state.png
 
-We will add the measurement gates later. This circuit prepares the W-state :math:`\newcommand{\ket}[1]{\left|{#1}\right\rangle} \frac{\ket{001} + \ket{010} + \ket{100}}{\sqrt{3}}`.
+We will add the measurement gates later. This circuit prepares the W-state :math:`\newcommand{\ket}[1]{\left|{#1}\right\rangle} (\ket{001} + \ket{010} + \ket{100})/\sqrt{3}`.
 The simplest way to carry out state evolution through a quantum circuit is
-providing a input state to the :func:`~qutip.qip.circuit.QubitCircuit.run`
+providing a input state to the :meth:`~qutip.qip.circuit.QubitCircuit.run`
 method.
 
 .. testcode::
@@ -84,7 +84,7 @@ we measure each of the three qubits at the end.
   qc.add_measurement("M2", targets=[2], classical_store=2)
 
 To get all the possible output states along with the respective probability of observing the
-outputs, we can use the :func:`~qutip.qip.circuit.QubitCircuit.run_statistics` function:
+outputs, we can use the :meth:`~qutip.qip.circuit.QubitCircuit.run_statistics` function:
 
 .. testcode::
 
@@ -139,7 +139,7 @@ outputs, we can use the :func:`~qutip.qip.circuit.QubitCircuit.run_statistics` f
 
 The function returns a :class:`~qutip.qip.Result` object which contains
 the output states.
-The method :func:`~qutip.qip.Result.get_results()` can be used to obtain the
+The method :meth:`~qutip.qip.Result.get_results` can be used to obtain the
 possible states and probabilities.
 Since the state created by the circuit is the W-state, we observe the states
 :math:`\newcommand{\ket}[1]{\left|{#1}\right\rangle} \ket{001}`,  :math:`\newcommand{\ket}[1]{\left|{#1}\right\rangle} \ket{010}` and :math:`\newcommand{\ket}[1]{\left|{#1}\right\rangle} \ket{100}` with equal probability.
@@ -150,7 +150,7 @@ Circuit simulator
 
 .. _simulator_class:
 
-The :func:`~qutip.qip.circuit.QubitCircuit.run` and :func:`~qutip.qip.circuit.QubitCircuit.run_statistics` functions
+The :meth:`~qutip.qip.circuit.QubitCircuit.run` and :meth:`~qutip.qip.circuit.QubitCircuit.run_statistics` functions
 make use of the :class:`~qutip.qip.circuit.CircuitSimulator` which enables exact simulation with more
 granular options. The simulator object takes a quantum circuit as an argument. It can optionally
 be supplied with an initial state. There are two modes in which the exact simulator can function. The default mode is the
@@ -167,8 +167,8 @@ and computation proceeds. To demonstrate, we continue with our previous circuit:
 
 This initializes the simulator object and carries out any pre-computation
 required. There are two ways to carry out state evolution with the simulator.
-The primary way is to use the :func:`~qutip.qip.circuit.CircuitSimulator.run` and
-:func:`~qutip.qip.circuit.CircuitSimulator.run_statistics` functions just like before (only
+The primary way is to use the :meth:`~qutip.qip.circuit.CircuitSimulator.run` and
+:meth:`~qutip.qip.circuit.CircuitSimulator.run_statistics` functions just like before (only
 now with the :class:`~qutip.qip.circuit.CircuitSimulator` class).
 
 The :class:`~qutip.qip.circuit.CircuitSimulator` class also enables stepping through the circuit:
@@ -242,7 +242,7 @@ state evolution. As observed above, all the unitaries of the circuit are compres
 a single unitary product with the precompute optimization enabled.
 This is more efficient if one runs the same circuit one multiple initial states.
 However, as the number of qubits increases, this will consume more and more memory
-and become infeasible.
+and become unfeasible.
 
 Density Matrix Simulation
 -------------------------
@@ -303,7 +303,7 @@ Import and export quantum circuits
 ----------------------------------
 
 QuTiP supports importation and exportation of quantum circuit in the `OpenQASM 2 <https://github.com/Qiskit/openqasm/tree/OpenQASM2.x>`_ format
-throught the method :func:`~qutip.qip.qasm.read_qasm` and :func:`~qutip.qip.qasm.save_qasm`.
+throught the function :func:`~qutip.qip.qasm.read_qasm` and :func:`~qutip.qip.qasm.save_qasm`.
 We demonstrate this using the w-state generation circuit.
 The following code is in OpenQASM format:
 

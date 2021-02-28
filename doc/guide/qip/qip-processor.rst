@@ -8,7 +8,7 @@ Pulse-level circuit simulation
 ******************************
 
 Modelling quantum hardware with Processor
-----------------------------------------
+-----------------------------------------
 
 .. note::
 
@@ -130,7 +130,7 @@ Same as above, :class:`~qutip.qip.device.DispersiveCavityQED` is a simulator bas
 
 .. note::
 
-   The :func:`~qutip.qip.device.DispersiveCavityQED.run_state` method of :class:`~qutip.qip.device.DispersiveCavityQED`
+   The :meth:`~qutip.qip.device.DispersiveCavityQED.run_state` method of :class:`~qutip.qip.device.DispersiveCavityQED`
    returns the full simulation result of the solver,
    hence including the cavity.
    To obtain the circuit result, one needs to first trace out the cavity state.
@@ -221,15 +221,15 @@ It is called implicitly when calling the method
     [array([0., 1.]), array([0., 1., 2.]), None, None, None]
     [array([1.57079633]), array([0.        , 1.57079633]), None, None, None]
 
-Here we first use :func:`~qutip.qip.circuit.QubitCircuit.resolve_gates`
+Here we first use :meth:`~qutip.qip.circuit.QubitCircuit.resolve_gates`
 to decompose the X gate to its natural gate on Spin Chain model,
 the rotation over X-axis.
 We pass the hardware parameters of the :class:`~qutip.qip.device.SpinChain `` model, ``processor.params``, as well as a map between the pulse name and pulse index ``pulse_dict`` to the compiler.
 The later one allows one to address the pulse more conveniently in the compiler.
 
-The compiler returns a list of `tlist` and `coeff`, corresponding to each pulse.
-The first pulse starts from `t=0` and ends at `t=1`, with the strengh :math:`\pi/2`.
-The second one is turned on from `t=1` to `t=2` with the same strength.
+The compiler returns a list of ``tlist`` and ``coeff``, corresponding to each pulse.
+The first pulse starts from ``t=0`` and ends at ``t=1``, with the strengh :math:`\pi/2`.
+The second one is turned on from ``t=1`` to ``t=2`` with the same strength.
 The compiled pulse here is different from what is shown in the plot
 in the previous subsection because the scheduler is turned off by default.
 
@@ -313,10 +313,9 @@ The first example is a processor with one qubit under rotation around the z-axis
 
     import numpy as np
     import matplotlib.pyplot as plt
+    from qutip import sigmaz, destroy, basis
     from qutip.qip.device import Processor
-    from qutip.operators import sigmaz, destroy
     from qutip.qip.operations import snot
-    from qutip.states import basis
 
     a = destroy(2)
     Hadamard = snot()
@@ -349,9 +348,9 @@ The second example demonstrates a biased Gaussian noise on the pulse amplitude. 
 
     import numpy as np
     import matplotlib.pyplot as plt
+    from qutip import sigmaz, sigmay
     from qutip.qip.device import Processor
     from qutip.qip.noise import RandomNoise
-    from qutip.operators import sigmaz, sigmay
 
     # add control Hamiltonians
     processor = Processor(N=1)

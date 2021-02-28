@@ -298,12 +298,12 @@ ImageMagick can be easily installed with the command conda install imagemagick i
 Otherwise, please follow the installation instructions on the ImageMagick documentation.
 
 On windows, you need to download and install ImageMagick installer.
-In addition, you also need perl (for `pdfcrop`) and
+In addition, you also need perl (for ``pdfcrop``) and
 Ghostscript (additional dependency of ImageMagick for png conversion).
 
 If you want to check whether all dependencies are installed,
 see if the following three commands work correctly:
-``pdflatex``, ``pdfcrop`` and ``magick anypdf.pdf antpdf.png``,
+``pdflatex``, ``pdfcrop`` and ``magick anypdf.pdf anypdf.png``,
 where ``anypdf.pdf`` is any pdf file you have.
 
 An example code for plotting the example quantum circuit from above is given:
