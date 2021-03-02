@@ -45,7 +45,7 @@ from ..core.data import to
 from ..core import data as _data
 from .options import SolverOptions
 from .result import Result, MultiTrajResult, MultiTrajResultAveraged
-from .solver import Solver, _to_qevo
+from .solver_base import Solver, _to_qevo
 from .sesolve import sesolve
 from .mesolve import mesolve
 from .parallel import get_map

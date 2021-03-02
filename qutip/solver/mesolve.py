@@ -43,7 +43,7 @@ from .. import ( Qobj, QobjEvo, isket, issuper, liouvillian, ket2dm)
 from ..core import stack_columns, unstack_columns
 from ..core.data import to
 from ..core.qobjevofunc import QobjEvoFunc
-from .solver import Solver, _to_qevo
+from .solver_base import Solver, _to_qevo
 from .options import SolverOptions
 from .sesolve import sesolve
 
