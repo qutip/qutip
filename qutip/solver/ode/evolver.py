@@ -39,16 +39,16 @@ class EvolverVern(Evolver):
         """
         self._ode_solver.set_initial_value(state, t)
 
-    def step(self, t):
+    def step(self, t, copy=True):
         """
         Evolve to t, must be `prepare` before.
         return the pair (t, state).
         """
         self._ode_solver.integrate(t)
         self._check_failed_integration()
-        return self.get_state()
+        return self.get_state(copy)
 
-    def one_step(self, t):
+    def one_step(self, t, copy=True):
         """
         Advance up to t by one internal solver step.
         Should be able to retreive the state at any time between the present
@@ -56,9 +56,9 @@ class EvolverVern(Evolver):
         """
         self._ode_solver.integrate(t, step=True)
         self._check_failed_integration()
-        return self.get_state()
+        return self.get_state(copy)
 
-    def backstep(self, t):
+    def backstep(self, t, copy=True):
         """
         Retreive the state at time t, with t smaller than present ODE time.
         The time t will always be between the last calls of `one_step`.
@@ -66,7 +66,7 @@ class EvolverVern(Evolver):
         """
         self._ode_solver.integrate(t)
         self._check_failed_integration()
-        return self.get_state()
+        return self.get_state(copy)
 
     def _check_failed_integration(self):
         if self._ode_solver.successful():
@@ -108,6 +108,7 @@ class EvolverDiag(Evolver):
         self.options = options
         self._dt = 0.
         self._expH = None
+        self._stats = {}
         self.prepare()
 
     def prepare(self):
@@ -120,7 +121,7 @@ class EvolverDiag(Evolver):
         self.Uinv = np.linalg.inv(self.U)
         self.name = "qutip diagonalized"
 
-    def step(self, t):
+    def step(self, t, copy=True):
         """ Evolve to t, must be `set` before. """
         dt = t - self._t
         if dt == 0:
@@ -130,30 +131,30 @@ class EvolverDiag(Evolver):
             self._dt = dt
         self._y *= self._expH
         self._t = t
-        return self.get_state()
+        return self.get_state(copy)
 
-    def one_step(self, t):
+    def one_step(self, t, copy=True):
         """
         Advance up to t by one internal solver step.
         Should be able to retreive the state at any time between the present
         time and the resulting time using `backstep`.
         """
-        return self.step(t)
+        return self.step(t, copy=True)
 
-    def backstep(self, t):
+    def backstep(self, t, copy=True):
         """
         Retreive the state at time t, with t smaller than present ODE time.
         The time t will always be between the last calls of `one_step`.
         return the pair t, state.
         """
-        return self.step(t)
+        return self.step(t, copy=True)
 
-    def get_state(self, copy=False):
+    def get_state(self, copy=True):
         """
         Obtain the state of the solver as a pair t, state
         """
         y = self.U @ self._y
-        return self._t, _data.dense.Dense(y, copy=False)
+        return self._t, _data.dense.Dense(y, copy=copy)
 
     def set_state(self, t, state0):
         """

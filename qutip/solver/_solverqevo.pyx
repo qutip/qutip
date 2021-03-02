@@ -26,7 +26,7 @@ cdef class SolverQEvo:
     def jac_np_vec(self, t, vec):
         return self.jac_data(t).to_array()
 
-    cdef _data.Data jac_data(self, double t):
+    cpdef _data.Data jac_data(self, double t):
         if self.has_dynamic_args:
             raise NotImplementedError("jacobian not available with feedback")
         self.num_calls += 1
@@ -46,7 +46,8 @@ cdef class SolverQEvo:
         column_stack_dense(out, inplace=True)
         return out.as_ndarray().ravel()
 
-    cdef _data.Data mul_data(self, double t, _data.Data vec, _data.Data out=None):
+    cpdef _data.Data mul_data(self, double t, _data.Data vec,
+                              _data.Data out=None):
         if (
             type(vec) is _data.Dense and
             (out is None or type(out) is _data.Dense)
@@ -60,7 +61,8 @@ cdef class SolverQEvo:
         else:
             return data.add(out, self.base.matmul(t, vec))
 
-    cdef _data.Dense mul_dense(self, double t, _data.Dense vec, _data.Dense out=None):
+    cpdef _data.Dense mul_dense(self, double t, _data.Dense vec,
+                                _data.Dense out=None):
         if self.has_dynamic_args:
             self.apply_feedback(t, vec)
         self.num_calls += 1

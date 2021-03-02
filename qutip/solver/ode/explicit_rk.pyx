@@ -32,12 +32,6 @@ rk4_coeff = (
 )
 
 
-cdef Data empty_like(Data state):
-    if type(state) == Dense:
-        return dense.empty_like(state)
-    return state.copy()
-
-
 cdef Data copy_to(Data in_, Data out):
     # Copy while reusing allocated buffer if possible.
     # Does not check the shape, etc.
@@ -77,6 +71,7 @@ cdef class Explicit_RungeKutta:
         self.interpolate = interpolate
         self.k = []
         self.dt_safe = atol
+        self.method = method
         self._read_method(method)
 
     def _read_method(self, method):
@@ -131,10 +126,10 @@ cdef class Explicit_RungeKutta:
 
         #prepare_buffer
         for i in range(self.rk_extra_step):
-            self.k.append(empty_like(self._y))
-        self._y_temp = empty_like(self._y)
+            self.k.append(self._y.copy())
+        self._y_temp = self._y.copy()
         self._y_front = self._y.copy()
-        self._y_prev = empty_like(self._y)
+        self._y_prev = self._y.copy()
 
         if not self.first_step:
             self.dt_safe = self.estimate_first_step(t, self._y)
@@ -159,9 +154,10 @@ cdef class Explicit_RungeKutta:
         for i in range(1, self.order+1):
             factorial *= i
         if tmp_norm != 0:
-            dt1 = (tol*factorial*norm**self.order)**(1/(self.order+1)) / tmp_norm
+            dt1 = ((tol * factorial * norm**self.order)**(1 /(self.order+1))
+                   / tmp_norm)
         else:
-            dt1 = (tol*factorial*norm**self.order)**(1/(self.order+1))
+            dt1 = (tol * factorial * norm**self.order)**(1 /(self.order+1))
         copy_to(y0, self._y_temp)
         self._y_temp = iadd_data(self._y_temp, <Data> self.k[0], dt1 / 100)
         imul_data(<Data> self.k[1], 0)
@@ -352,32 +348,19 @@ cdef class Explicit_RungeKutta:
     def t(self):
         return self._t
 
-    def print_ks(self):
-        for i in range(self.rk_step):
+    def __reduce__(self):
+        return (Explicit_RungeKutta, (self.f,
+            self.rtol, self.atol, self.max_numsteps,
+            self.first_step, self.min_step, self.max_step, self.interpolate,
+            self.method
+            ))
+
+    def _debug_state(self):
+        print(self.norm_front, self.norm_tmp, self._t, self._t_prev,
+              self._t_front, self.dt_safe, self.dt_int)
+        print(self._y_temp.to_array())
+        print(self._y.to_array())
+        print(self._y_prev.to_array())
+        print(self._y_front.to_array())
+        for i in range(self.rk_extra_step):
             print(self.k[i].to_array())
-
-    def print_state(self):
-        print(self._t, self._t_prev, self._t_front)
-        print(self.dt_int, self.dt_safe)
-        print(self._status)
-        print(self.y.to_array(), self._y_prev.to_array())
-        print(self.norm_tmp, self.norm_front)
-        print(self.order, self.rk_step, self.rk_extra_step, self.denseout_order)
-        print(self.a.shape)
-        print(self.b.shape)
-        print(self.c.shape)
-
-    def print_table(self):
-        for i in range(self.a.shape[0]):
-            for j in range(i):
-                print("a", i, j, self.a[i,j])
-
-        for i in range(self.b.shape[0]):
-            print("b", i, self.b[i])
-
-        for i in range(self.c.shape[0]):
-            print("c", i, self.c[i])
-
-        if self.e is not None:
-            for i in range(self.e.shape[0]):
-                print("e", i, self.e[i])

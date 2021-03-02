@@ -247,11 +247,11 @@ class McOptions:
 
         "keep_runs_results": False,
 
+        "mc_corr_eps": 1e-10,
+
         "map_options": {
             'num_cpus': multiprocessing.cpu_count(),
             'timeout':1e8,
             'job_timeout':1e8
         },
-
-        "mc_corr_eps": 1e-10,
     }

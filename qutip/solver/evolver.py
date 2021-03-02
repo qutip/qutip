@@ -345,7 +345,7 @@ class Evolver:
     prepare()
         Prepare the ODE solver.
 
-    step(t)
+    step(t, copy)
         Evolve to t, must be `prepare` before.
         return the pair t, state.
 
@@ -361,13 +361,13 @@ class Evolver:
     update_args(args)
         Change the argument of the active system.
 
-    one_step(t):
+    one_step(t, copy):
         Advance up to t by one internal solver step.
         Should be able to retreive the state at any time between the present
         time and the resulting time using `backstep`.
         return the pair t, state.
 
-    backstep(t):
+    backstep(t, copy):
         Retreive the state at time t, with t smaller than present ODE time.
         The time t will always be between the last calls of `one_step`.
         return the pair t, state.
@@ -401,14 +401,14 @@ class Evolver:
         """
         raise NotImplementedError
 
-    def step(self, t):
+    def step(self, t, copy=True):
         """
         Evolve to t, must be `prepare` before.
         return the pair t, state.
         """
         raise NotImplementedError
 
-    def get_state(self, copy=False):
+    def get_state(self, copy=True):
         """
         Obtain the state of the solver as a pair t, state
         """
@@ -425,32 +425,35 @@ class Evolver:
         Yield (t, state(t)) for t in tlist, must be `set` before.
         """
         for t in tlist[1:]:
-            self.step(t)
-            yield self.get_state()
+            yield self.step(t, False)
 
-    def one_step(self, t):
+    def one_step(self, t, copy=True):
         """
         Advance up to t by one internal solver step.
         Should be able to retreive the state at any time between the present
         time and the resulting time using `backstep`.
         """
         self.back = self.get_state(True)
-        return self.step(t)
+        return self.step(t, copy)
 
-    def backstep(self, t):
+    def backstep(self, t, copy=True):
         """
         Retreive the state at time t, with t smaller than present ODE time.
         The time t will always be between the last calls of `one_step`.
         return the pair t, state.
         """
         self.set_state(*self.back)
-        return self.step(t)
+        return self.step(t, copy)
 
     def update_args(self, args):
         """
         Change the argument of the active system.
         """
         self.system.arguments(args)
+
+    def update_feedback(self, what, data):
+        if hasattr(self, "system") and isinstance(self.system, SolverQEvo):
+            self.system.update_feedback(what, data)
 
     @property
     def stats(self):
@@ -464,7 +467,6 @@ class Evolver:
         except:
             pass
         return self._stats
-    # "calls": self.system.func_call - self._previous_call
 
 
 class EvolverScipyZvode(Evolver):
@@ -486,7 +488,7 @@ class EvolverScipyZvode(Evolver):
         self._ode_solver.set_integrator('zvode', **opt)
         self.name = "scipy zvode " + opt["method"]
 
-    def get_state(self, copy=False):
+    def get_state(self, copy=True):
         """
         Obtain the state of the solver as a pair t, state
         """
@@ -511,14 +513,14 @@ class EvolverScipyZvode(Evolver):
             t
         )
 
-    def step(self, t):
+    def step(self, t, copy=True):
         """ Evolve to t, must be `set` before. """
         if self._ode_solver.t != t:
             self._ode_solver.integrate(t)
         self._check_failed_integration()
-        return self.get_state()
+        return self.get_state(copy)
 
-    def one_step(self, t):
+    def one_step(self, t, copy=True):
         """
         Advance up to t by one internal solver step.
         Should be able to retreive the state at any time between the present
@@ -538,9 +540,9 @@ class EvolverScipyZvode(Evolver):
         if t_front >= t:
             self._ode_solver.integrate(t)
         self._check_failed_integration()
-        return self.get_state()
+        return self.get_state(copy)
 
-    def backstep(self, t):
+    def backstep(self, t, copy=True):
         """
         Retreive the state at time t, with t smaller than present ODE time.
         The time t will always be between the last calls of `one_step`.
@@ -557,7 +559,7 @@ class EvolverScipyZvode(Evolver):
             self.set_state(*self.back)
             self._ode_solver.integrate(t)
         self._check_failed_integration()
-        return self.get_state()
+        return self.get_state(copy)
 
     def _check_failed_integration(self):
         if self._ode_solver.successful():
@@ -595,16 +597,16 @@ class EvolverScipyDop853(Evolver):
         self._ode_solver.set_integrator('dop853', **opt)
         self.name = "scipy ode dop853"
 
-    def step(self, t):
+    def step(self, t, copy=True):
         """
         Evolve to t, must be `set` before.
         """
         if self._ode_solver.t != t:
             self._ode_solver.integrate(t)
         self._check_failed_integration()
-        return self.get_state()
+        return self.get_state(copy)
 
-    def get_state(self, copy=False):
+    def get_state(self, copy=True):
         """
         Obtain the state of the solver as a pair t, state
         """
@@ -631,16 +633,16 @@ class EvolverScipyDop853(Evolver):
             t
         )
 
-    def one_step(self, t):
+    def one_step(self, t, copy=True):
         """
         Advance up to t by one internal solver step.
         Should be able to retreive the state at any time between the present
         time and the resulting time using `backstep`.
         """
         self.back = self.get_state(True)
-        return self._safe_step(t)
+        return self._safe_step(t, copy)
 
-    def backstep(self, t):
+    def backstep(self, t, copy=True):
         """
         Retreive the state at time t, with t smaller than present ODE time.
         The time t will always be between the last calls of `one_step`.
@@ -649,17 +651,18 @@ class EvolverScipyDop853(Evolver):
         self.set_state(*self.back)
         return self._safe_step(t)
 
-    def _safe_step(self, t):
+    def _safe_step(self, t, copy=True):
         """
-        step but safe when changing direction
+        DOP853 ODE does extra work when changing direction.
+        This reset the state to save this extra work.
         """
         dt_max = self._ode_solver._integrator.work[6]
         dt = t - self._ode_solver.t
         if dt == 0:
-            return self.get_state()
+            return self.get_state(copy)
         if dt * dt_max < 0:
             self.set_state(*self.get_state())
-        out = self.step(t)
+        out = self.step(t, copy)
         if self._ode_solver._integrator.work[6] < 0:
             self.set_state(*self.get_state())
         return out
@@ -697,7 +700,7 @@ class EvolverScipylsoda(EvolverScipyDop853):
         self._ode_solver.set_integrator('lsoda', **opt)
         self.name = "scipy lsoda"
 
-    def one_step(self, t):
+    def one_step(self, t, copy=True):
         """
         Advance up to t by one internal solver step.
         Should be able to retreive the state at any time between the present
@@ -717,9 +720,9 @@ class EvolverScipylsoda(EvolverScipyDop853):
         if t_front >= t:
             self._ode_solver.integrate(t)
         self._check_failed_integration()
-        return self.get_state()
+        return self.get_state(copy)
 
-    def backstep(self, t):
+    def backstep(self, t, copy=True):
         """
         Retreive the state at time t, with t smaller than present ODE time.
         The time t will always be between the last calls of `one_step`.
@@ -734,7 +737,7 @@ class EvolverScipylsoda(EvolverScipyDop853):
             self.set_state(*self.back)
             self._ode_solver.integrate(t)
         self._check_failed_integration()
-        return self.get_state()
+        return self.get_state(copy)
 
     def _check_failed_integration(self):
         if self._ode_solver.successful():

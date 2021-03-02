@@ -15,6 +15,7 @@ cdef class Explicit_RungeKutta:
     cdef double rtol, atol, first_step, min_step, max_step
     cdef int max_numsteps
     cdef bint interpolate
+    cdef str method
 
     # runge Kutta tableau and info, set in cinit
     cdef int rk_step, rk_extra_step,  order, denseout_order

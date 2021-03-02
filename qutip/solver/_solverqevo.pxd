@@ -14,8 +14,8 @@ cdef class SolverQEvo:
     cdef idxint ncols
     cdef int num_calls
 
-    cdef _data.Data mul_data(self, double t, _data.Data vec, _data.Data out=*)
-    cdef _data.Dense mul_dense(self, double t, _data.Dense vec, _data.Dense out=*)
-    cdef _data.Data jac_data(self, double t)
+    cpdef _data.Data mul_data(self, double t, _data.Data vec, _data.Data out=*)
+    cpdef _data.Dense mul_dense(self, double t, _data.Dense vec, _data.Dense out=*)
+    cpdef _data.Data jac_data(self, double t)
     cpdef void apply_feedback(self, double t, _data.Data matrix) except *
     cpdef void arguments(self, dict args)
