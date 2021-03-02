@@ -72,7 +72,7 @@ def jmat(j, which=None):
 
     Examples
     --------
-    >>> jmat(1)
+    >>> jmat(1) # doctest: +SKIP
     [ Quantum object: dims = [[3], [3]], \
 shape = [3, 3], type = oper, isHerm = True
     Qobj data =
@@ -281,7 +281,7 @@ def sigmap():
 
     Examples
     --------
-    >>> sigmap()
+    >>> sigmap() # doctest: +SKIP
     Quantum object: dims = [[2], [2]], \
 shape = [2, 2], type = oper, isHerm = False
     Qobj data =
@@ -297,7 +297,7 @@ def sigmam():
 
     Examples
     --------
-    >>> sigmam()
+    >>> sigmam() # doctest: +SKIP
     Quantum object: dims = [[2], [2]], \
 shape = [2, 2], type = oper, isHerm = False
     Qobj data =
@@ -313,7 +313,7 @@ def sigmax():
 
     Examples
     --------
-    >>> sigmax()
+    >>> sigmax() # doctest: +SKIP
     Quantum object: dims = [[2], [2]], \
 shape = [2, 2], type = oper, isHerm = False
     Qobj data =
@@ -329,7 +329,7 @@ def sigmay():
 
     Examples
     --------
-    >>> sigmay()
+    >>> sigmay() # doctest: +SKIP
     Quantum object: dims = [[2], [2]], \
 shape = [2, 2], type = oper, isHerm = True
     Qobj data =
@@ -345,7 +345,7 @@ def sigmaz():
 
     Examples
     --------
-    >>> sigmaz()
+    >>> sigmaz() # doctest: +SKIP
     Quantum object: dims = [[2], [2]], \
 shape = [2, 2], type = oper, isHerm = True
     Qobj data =
@@ -376,7 +376,7 @@ def destroy(N, offset=0):
 
     Examples
     --------
-    >>> destroy(4)
+    >>> destroy(4) # doctest: +SKIP
     Quantum object: dims=[[4], [4]], shape=(4, 4), type='oper', isherm=False
     Qobj data =
     [[ 0.00000000+0.j  1.00000000+0.j  0.00000000+0.j  0.00000000+0.j]
@@ -386,16 +386,8 @@ def destroy(N, offset=0):
     """
     if not isinstance(N, (int, np.integer)):  # raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
-    data = np.sqrt(np.arange(offset+1, N+offset, dtype=complex))
-    ind = np.arange(1, N, dtype=np.int32)
-    ptr = np.arange(N+1, dtype=np.int32)
-    ptr[-1] = N-1
-    return Qobj(_data.csr.CSR((data, ind, ptr), shape=(N, N)),
-                dims=[[N], [N]],
-                type='oper',
-                isherm=False,
-                isunitary=False,
-                copy=False)
+    data = np.sqrt(np.arange(offset+1, N+offset)).astype(np.complex128)
+    return qdiags([data], [1])
 
 
 def create(N, offset=0):
@@ -418,7 +410,7 @@ def create(N, offset=0):
 
     Examples
     --------
-    >>> create(4)
+    >>> create(4) # doctest: +SKIP
     Quantum object: dims=[[4], [4]], shape=(4, 4), type='oper', isherm=False
     Qobj data =
     [[ 0.00000000+0.j  0.00000000+0.j  0.00000000+0.j  0.00000000+0.j]
@@ -426,7 +418,10 @@ def create(N, offset=0):
      [ 0.00000000+0.j  1.41421356+0.j  0.00000000+0.j  0.00000000+0.j]
      [ 0.00000000+0.j  0.00000000+0.j  1.73205081+0.j  0.00000000+0.j]]
     """
-    return destroy(N, offset=offset).dag()
+    if not isinstance(N, (int, np.integer)):  # raise error if N not integer
+        raise ValueError("Hilbert space dimension must be integer value")
+    data = np.sqrt(np.arange(offset+1, N+offset)).astype(np.complex128)
+    return qdiags([data], [-1])
 
 
 def _implicit_tensor_dimensions(dimensions):
@@ -502,14 +497,14 @@ def qeye(dimensions):
 
     Examples
     --------
-    >>> qeye(3)
+    >>> qeye(3) # doctest: +SKIP
     Quantum object: dims = [[3], [3]], shape = (3, 3), type = oper, \
 isherm = True
     Qobj data =
     [[ 1.  0.  0.]
      [ 0.  1.  0.]
      [ 0.  0.  1.]]
-    >>> qeye([2,2])
+    >>> qeye([2,2]) # doctest: +SKIP
     Quantum object: dims = [[2, 2], [2, 2]], shape = (4, 4), type = oper, \
 isherm = True
     Qobj data =
@@ -593,7 +588,7 @@ def num(N, offset=0):
 
     Examples
     --------
-    >>> num(4)
+    >>> num(4) # doctest: +SKIP
     Quantum object: dims=[[4], [4]], shape=(4, 4), type='oper', isherm=True
     Qobj data =
     [[0 0 0 0]
@@ -601,22 +596,7 @@ def num(N, offset=0):
      [0 0 2 0]
      [0 0 0 3]]
     """
-    if offset == 0:
-        data = np.arange(1, N, dtype=complex)
-        ind = np.arange(1, N, dtype=np.int32)
-        ptr = np.arange(-1, N, dtype=np.int32)
-        ptr[0] = 0
-    else:
-        data = np.arange(offset, offset + N, dtype=complex)
-        ind = np.arange(N, dtype=np.int32)
-        ptr = np.arange(N+1, dtype=np.int32)
-
-    return Qobj(_data.CSR((data, ind, ptr), shape=(N, N)),
-                dims=[[N], [N]],
-                type='oper',
-                isherm=True,
-                isunitary=False,
-                copy=False)
+    return qdiags([np.arange(offset, offset+N, dtype=np.complex128)], [0])
 
 
 def squeeze(N, z, offset=0):
@@ -642,7 +622,7 @@ def squeeze(N, z, offset=0):
 
     Examples
     --------
-    >>> squeeze(4, 0.25)
+    >>> squeeze(4, 0.25) # doctest: +SKIP
     Quantum object: dims = [[4], [4]], \
 shape = [4, 4], type = oper, isHerm = False
     Qobj data =
@@ -708,7 +688,7 @@ def displace(N, alpha, offset=0):
 
     Examples
     ---------
-    >>> displace(4,0.25)
+    >>> displace(4,0.25) # doctest: +SKIP
     Quantum object: dims = [[4], [4]], \
 shape = [4, 4], type = oper, isHerm = False
     Qobj data =
@@ -748,16 +728,15 @@ def qutrit_ops():
 
     """
     from .states import qutrit_basis
-
+    out = np.empty((6,), dtype=object)
     one, two, three = qutrit_basis()
-    sig11 = one * one.dag()
-    sig22 = two * two.dag()
-    sig33 = three * three.dag()
-    sig12 = one * two.dag()
-    sig23 = two * three.dag()
-    sig31 = three * one.dag()
-    return np.array([sig11, sig22, sig33, sig12, sig23, sig31],
-                    dtype=object)
+    out[0] = one * one.dag()
+    out[1] = two * two.dag()
+    out[2] = three * three.dag()
+    out[3] = one * two.dag()
+    out[4] = two * three.dag()
+    out[5] = three * one.dag()
+    return out
 
 
 def qdiags(diagonals, offsets, dims=None, shape=None):
@@ -791,7 +770,7 @@ def qdiags(diagonals, offsets, dims=None, shape=None):
 
     Examples
     --------
-    >>> qdiags(sqrt(range(1, 4)), 1)
+    >>> qdiags(sqrt(range(1, 4)), 1) # doctest: +SKIP
     Quantum object: dims = [[4], [4]], \
 shape = [4, 4], type = oper, isherm = False
     Qobj data =
@@ -801,8 +780,7 @@ shape = [4, 4], type = oper, isherm = False
      [ 0.          0.          0.          0.        ]]
 
     """
-    data = scipy.sparse.diags(diagonals, offsets, shape,
-                              format='csr', dtype=np.complex128)
+    data = _data.csr.diags(diagonals, offsets, shape)
     return Qobj(data, dims=dims, type='oper', copy=False)
 
 
@@ -967,7 +945,7 @@ def charge(Nmax, Nmin=None, frac=1):
 def tunneling(N, m=1):
     r"""
     Tunneling operator with elements of the form
-    :math:`\sum |N><N+m| + |N+m><N|`.
+    :math:`\\sum |N><N+m| + |N+m><N|`.
 
     Parameters
     ----------

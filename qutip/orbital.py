@@ -38,7 +38,7 @@ from scipy.special import factorial
 
 
 def orbital(theta, phi, *args):
-    """Calculates an angular wave function on a sphere.
+    r"""Calculates an angular wave function on a sphere.
     ``psi = orbital(theta,phi,ket1,ket2,...)`` calculates
     the angular wave function on a sphere at the mesh of points
     defined by theta and phi which is

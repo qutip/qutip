@@ -43,7 +43,7 @@ from .. import ( Qobj, QobjEvo, isket, issuper, liouvillian, ket2dm)
 from ..core import stack_columns, unstack_columns
 from ..core.data import to
 from ..core.qobjevofunc import QobjEvoFunc
-from .solver import Solver
+from .solver import Solver, _to_qevo
 from .options import SolverOptions
 from .sesolve import sesolve
 
@@ -179,6 +179,9 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None,
         operators for which to calculate the expectation values.
 
     """
+    c_ops = c_ops if c_ops is not None else []
+    if not isinstance(c_ops, list):
+        c_ops = [c_ops]
     use_mesolve = (
         (c_ops is not None and len(c_ops) > 0)
         or (not rho0.isket)
@@ -195,7 +198,6 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None,
         return sesolve(H, rho0, tlist, e_ops=e_ops, args=args, options=options,
                        feedback_args=feedback_args, _safe_mode=_safe_mode)
 
-    c_ops = c_ops if c_ops is not None else []
     solver = MeSolver(H, c_ops, e_ops, options, tlist,
                       args, feedback_args, _safe_mode)
 
@@ -310,30 +312,16 @@ class MeSolver(Solver):
         self.e_ops = e_ops
         self.options = options
 
-        if isinstance(H, QobjEvo):
-            pass
-        elif isinstance(H, (list, Qobj)):
-            H = QobjEvo(H, args=args, tlist=times)
-        elif callable(H):
-            H = QobjEvoFunc(H, args=args)
-        else:
-            raise ValueError("Invalid Hamiltonian")
-
+        H = _to_qevo(H, args, times)
         c_evos = []
         for op in c_ops:
-            if isinstance(op, QobjEvo):
-                c_evos.append(op)
-            elif isinstance(op, (list, Qobj)):
-                c_evos.append(QobjEvo(op, args=args, tlist=times))
-            elif callable(op):
-                c_evos.append(QobjEvoFunc(op, args=args))
-            else:
-                raise ValueError("Invalid Hamiltonian")
+            c_evos.append(_to_qevo(op, args, times))
 
         self._system = liouvillian(H, c_evos)
         self._evolver = self._get_evolver(options, args, feedback_args)
         self.stats["preparation time"] = time() - _time_start
         self.stats['solver'] = "Master Equation Evolution"
+        self.stats['num_collapse'] = len(c_ops)
 
     def _prepare_state(self, state):
         if isket(state):
@@ -342,17 +330,17 @@ class MeSolver(Solver):
         self._state_shape = state.shape
         self._state_type = state.type
         self._state_qobj = state
+        # Todo, remove str_to_type when #1420 merged...
         str_to_type = {layer.__name__.lower(): layer for layer in to.dtypes}
         if self.options.ode["State_data_type"].lower() in str_to_type:
             state = state.to(str_to_type[self.options.ode["State_data_type"].lower()])
         return stack_columns(state.data)
 
-    def _restore_state(self, state):
+    def _restore_state(self, state, copy=True):
         return Qobj(unstack_columns(state),
                     dims=self._state_dims,
                     type=self._state_type,
-                    copy=True)
-
+                    copy=copy)
 
     def _safety_check(self, state):
         return None

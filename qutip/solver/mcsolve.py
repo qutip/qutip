@@ -41,11 +41,11 @@ from scipy.integrate import ode
 from scipy.integrate._ode import zvode
 from ..core import (Qobj, QobjEvo, spre, spost, liouvillian, isket, ket2dm,
                     stack_columns, unstack_columns)
-from ..core.data import column_stack, column_unstack, to
+from ..core.data import to
 from ..core import data as _data
 from .options import SolverOptions
 from .result import Result, MultiTrajResult, MultiTrajResultAveraged
-from .solver import Solver
+from .solver import Solver, _to_qevo
 from .sesolve import sesolve
 from .mesolve import mesolve
 from .parallel import get_map
@@ -56,7 +56,7 @@ from time import time
 def mcsolve(H, psi0, tlist, c_ops=None, e_ops=None, ntraj=1,
             feedback_args=None, args=None, options=None, seeds=None,
             _safe_mode=True):
-    """Monte Carlo evolution of a state vector :math:`|\psi \\rangle` for a
+    r"""Monte Carlo evolution of a state vector :math:`|\psi \rangle` for a
     given Hamiltonian and sets of collapse operators, and possibly, operators
     for calculating expectation values. Options for the underlying ODE solver
     are given by the Options class.
@@ -175,7 +175,7 @@ def _prob_memcsolve(state):
 # -----------------------------------------------------------------------------
 class McSolver(Solver):
     """
-    Private class for solving Monte Carlo evolution from mcsolve
+    ... TODO
     """
     def __init__(self, H, c_ops, e_ops=None, options=None,
                  times=None, args=None, feedback_args=None,
@@ -200,25 +200,10 @@ class McSolver(Solver):
         self.e_ops = e_ops
         self.options = options
 
-        if isinstance(H, QobjEvo):
-            pass
-        elif isinstance(H, (list, Qobj)):
-            H = QobjEvo(H, args=args, tlist=times)
-        elif callable(H):
-            H = QobjEvoFunc(H, args=args)
-        else:
-            raise ValueError("Invalid Hamiltonian")
-
+        H = _to_qevo(H, args, times)
         c_evos = []
         for op in c_ops:
-            if isinstance(op, QobjEvo):
-                c_evos.append(op)
-            elif isinstance(op, (list, Qobj)):
-                c_evos.append(QobjEvo(op, args=args, tlist=times))
-            elif callable(op):
-                c_evos.append(QobjEvoFunc(op, args=args))
-            else:
-                raise ValueError("Invalid Hamiltonian")
+            c_evos.append(_to_qevo(op, args, times))
 
         n_evos = [c_evo._cdc() for c_evo in c_evos]
         self._system = -1j* H
@@ -229,8 +214,12 @@ class McSolver(Solver):
                                   options, args, feedback_args)
         self.stats["preparation time"] = time() - _time_start
         self.stats['solver'] = "MonteCarlo Schrodinger Equation Evolution"
+        self.stats['num_collapse'] = len(c_ops)
 
     def seed(self, ntraj, seeds=[]):
+        """
+        Compute ntraj trajectories starting from `state0`.
+        """
         # setup seeds array
         try:
             seed = int(seeds)
@@ -247,6 +236,9 @@ class McSolver(Solver):
             self._seeds = seeds[:ntraj]
 
     def start(self, state0, t0, seed=None):
+        """
+        Prepare the Solver for stepping.
+        """
         self._state = self._prepare_state(state0)
         self._t = t0
         self._evolver.set_state(self._t, self._state, seed)
@@ -255,6 +247,9 @@ class McSolver(Solver):
         return None
 
     def run(self, state0, tlist, ntraj=1, args={}):
+        """
+        Compute ntraj trajectories starting from `state0`.
+        """
         start_time = time()
         if args:
             self._evolver.update_args(args)
@@ -283,6 +278,9 @@ class McSolver(Solver):
         return self.res
 
     def add_traj(self, ntraj, seeds=[]):
+        """
+        Add ntraj more trajectories.
+        """
         start_time = time()
         self._seeds += seeds
         n_needed = self.res.num_traj + ntraj
@@ -312,7 +310,7 @@ class McSolver(Solver):
         res_1 = Result(self.e_ops, self.options.results, False)
         res_1.add(tlist[0], self._state_qobj)
         for t, state in self._evolver.run(tlist):
-            state_qobj = self._restore_state(state)
+            state_qobj = self._restore_state(state, False)
             res_1.add(t, state_qobj)
         res_1.collapse = list(self._evolver.collapses)
         res_1.stats = {}
@@ -321,17 +319,24 @@ class McSolver(Solver):
         res_1.stats.update(self.stats)
         return res_1
 
-    def _restore_state(self, state):
+    def _restore_state(self, state, copy=False):
         norm = 1/_data.norm.l2(state)
         state = _data.mul(state, norm)
         qobj = Qobj(state,
                     dims=self._state_dims,
                     type=self._state_type,
-                    copy=False)
+                    copy=copy)
         return qobj
 
 
 class MeMcSolver(McSolver):
+    """
+    ... TODO
+
+    McSolve with jump on some c_ops, but not all.
+    Can replace photocurrent_mesolve: give the same result up to `dt`,
+    but more efficient.
+    """
     def __init__(self, H, c_ops, sc_ops, e_ops=None, options=None,
                  times=None, args=None, feedback_args=None,
                  _safe_mode=False):
@@ -355,36 +360,13 @@ class MeMcSolver(McSolver):
         self.e_ops = e_ops
         self.options = options
 
-        if isinstance(H, QobjEvo):
-            pass
-        elif isinstance(H, (list, Qobj)):
-            H = QobjEvo(H, args=args, tlist=times)
-        elif callable(H):
-            H = QobjEvoFunc(H, args=args)
-        else:
-            raise ValueError("Invalid Hamiltonian")
-
+        H = _to_qevo(H, args, times)
         c_evos = []
         for op in c_ops:
-            if isinstance(op, QobjEvo):
-                c_evos.append(op)
-            elif isinstance(op, (list, Qobj)):
-                c_evos.append(QobjEvo(op, args=args, tlist=times))
-            elif callable(op):
-                c_evos.append(QobjEvoFunc(op, args=args))
-            else:
-                raise ValueError("Invalid Hamiltonian")
-
+            c_evos.append(_to_qevo(op, args, times))
         sc_evos = []
         for op in sc_ops:
-            if isinstance(op, QobjEvo):
-                sc_evos.append(op)
-            elif isinstance(op, (list, Qobj)):
-                sc_evos.append(QobjEvo(op, args=args, tlist=times))
-            elif callable(op):
-                sc_evos.append(QobjEvoFunc(op, args=args))
-            else:
-                raise ValueError("Invalid Hamiltonian")
+            sc_evos.append(_to_qevo(op, args, times))
 
         ns_evos = [spre(op._cdc()) + spost(op._cdc()) for op in sc_evos]
         n_evos = [spre(op) * spost(op.dag()) for op in sc_evos]
@@ -398,6 +380,7 @@ class MeMcSolver(McSolver):
         self._evolver.prob_func = _prob_memcsolve
         self.stats["preparation time"] = time() - _time_start
         self.stats['solver'] = "MonteCarlo Master Equation Evolution"
+        self.stats['num_collapse'] = len(c_ops)
 
     def _prepare_state(self, state):
         if isket(state):
@@ -406,17 +389,21 @@ class MeMcSolver(McSolver):
         self._state_shape = state.shape
         self._state_type = state.type
         self._state_qobj = state
+        # Todo, remove str_to_type when #1420 merged...
         str_to_type = {layer.__name__.lower(): layer for layer in to.dtypes}
         if self.options.ode["State_data_type"].lower() in str_to_type:
             state = state.to(str_to_type[self.options.ode["State_data_type"].lower()])
         self._state0 = stack_columns(state.data)
         return self._state0
 
-    def _restore_state(self, state):
-        return Qobj(unstack_columns(state),
+    def _restore_state(self, state, copy=True):
+        dm = unstack_columns(state)
+        norm = 1/_data.norm.trace(dm)
+        dm = _data.mul(dm, norm)
+        return Qobj(dm,
                     dims=self._state_dims,
                     type=self._state_type,
-                    copy=True)
+                    copy=copy)
 
 
 class McEvolver(Evolver):
@@ -433,6 +420,7 @@ class McEvolver(Evolver):
         self.norm_steps = options.mcsolve['norm_steps']
         self.norm_t_tol = options.mcsolve['norm_t_tol']
         self.norm_tol = options.mcsolve['norm_tol']
+        self.mc_corr_eps = options.mcsolve['mc_corr_eps']
 
         self.norm_func = _data.norm.l2
         self.prob_func = _prob_mcsolve
@@ -444,7 +432,8 @@ class McEvolver(Evolver):
         self.target_norm = np.random.rand()
         self._evolver.set_state(t, state)
         self.collapses = []
-        self._evolver.update_feedback(self.collapses)
+        # set collapse feedback only once since list are mutable.
+        self._evolver.update_feedback("collapse", self.collapses)
 
     def update_args(self, args):
         self._evolver.update_args(args)
@@ -452,13 +441,12 @@ class McEvolver(Evolver):
         [op.arguments(args) for op in self.n_ops]
 
     def run(self, tlist):
-        """ Yield (t, state(t)) for t in tlist, must be `set` before. """
+        """ Yield (t, state(t)) for t in tlist, the state must be set before. """
         for t in tlist[1:]:
-            yield t, self.step(t, False)
+            yield self.step(t, False)
 
-    def step(self, t, step=None):
-        """ Evolve to t, must be `set` before. """
-        tries = 0
+    def step(self, t, copy=True):
+        """ Evolve to t, the state must be set before. """
         t_old, y_old = self.get_state(copy=True)
         norm_old = self.prob_func(y_old)
         while t_old < t:
@@ -473,19 +461,19 @@ class McEvolver(Evolver):
                 norm_old = norm
                 y_old = state
 
-        return _data.mul(y_old, 1 / self.norm_func(y_old))
+        return t_old, _data.mul(y_old, 1 / self.norm_func(y_old))
 
-    def get_state(self, copy=False):
+    def get_state(self, copy=True):
         return self._evolver.get_state(copy=copy)
 
     def do_collapse(self, norm_old, norm, t_prev, y_prev):
-        t_final = self._evolver.get_state()[0]
+        t_final, _ = self._evolver.get_state()
         tries = 0
         while tries < self.norm_steps:
             tries += 1
             if (t_final - t_prev) < self.norm_t_tol:
                 t_guess = t_final
-                state = self._evolver.get_state()[1]
+                _, state = self._evolver.get_state()
                 break
             t_guess = (
                 t_prev
@@ -526,7 +514,7 @@ class McEvolver(Evolver):
 
         state_new = self.c_ops[which].mul(t_guess, state)
         new_norm = self.norm_func(state_new)
-        if new_norm < 1e-12:
+        if new_norm < self.mc_corr_eps:
             # This happen when the collapse is caused by numerical error
             state_new = _data.mul(state, 1 / self.norm_func(state))
         else:

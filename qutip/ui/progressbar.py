@@ -98,7 +98,8 @@ class TextProgressBar(BaseProgressBar):
     """
 
     def __init__(self, iterations=0, chunk_size=10):
-        super(TextProgressBar, self).start(iterations, chunk_size)
+        pass
+        # super(TextProgressBar, self).start(iterations, chunk_size)
 
     def start(self, iterations, chunk_size=10, **kwargs):
         super(TextProgressBar, self).start(iterations, chunk_size)
@@ -125,7 +126,8 @@ class EnhancedTextProgressBar(BaseProgressBar):
     """
 
     def __init__(self, iterations=0, chunk_size=10):
-        super(EnhancedTextProgressBar, self).start(iterations, chunk_size)
+        pass
+        # super(EnhancedTextProgressBar, self).start(iterations, chunk_size)
 
     def start(self, iterations, chunk_size=10, **kwargs):
         super(EnhancedTextProgressBar, self).start(iterations, chunk_size)
@@ -161,13 +163,13 @@ class TqdmProgressBar(BaseProgressBar):
     """
 
     def __init__(self, iterations=0, chunk_size=10):
-        from tqdm import tqdm
+        from tqdm.auto import tqdm
         self.tqdm = tqdm
-        self.t_start = time.time()
-        self.t_done = self.t_start - 1
 
     def start(self, iterations, **kwargs):
         self.pbar = self.tqdm(total=iterations, **kwargs)
+        self.t_start = time.time()
+        self.t_done = self.t_start - 1
 
     def update(self, n=None):
         self.pbar.update()
@@ -186,6 +188,8 @@ def get_progess_bar(opt):
         progress_bar = TextProgressBar()
     elif opt in ["Tqdm", "tqdm"]:
         progress_bar = TqdmProgressBar()
-    else:
+    elif opt in [False, "", None]:
         progress_bar = BaseProgressBar()
+    else:
+        raise ValueError("Progress Bar not understood")
     return progress_bar

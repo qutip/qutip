@@ -7,7 +7,6 @@ import numpy as np
 from qutip.core.qobjevofunc import QobjEvoFunc
 
 def id_from_pair(pair):
-    #raise Exception(str(pair) + "   " + str(pair[0]) + "    " + str(type( pair[0])))
     if pair[1] == "":
         return pair[0]
     else:
@@ -66,11 +65,11 @@ class TestEvolverCte():
         evol.set_state(0, qt.basis(2,0).to(qt.data.Dense).data)
         t = 0
         for i in range(1, 21):
-            t_traget = i*0.05
-            while t < t_traget:
+            t_target = i*0.05
+            while t < t_target:
                 t_old, y_old = evol.get_state()
-                t, state = evol.one_step(t_traget)
-                assert t <= t_traget
+                t, state = evol.one_step(t_target)
+                assert t <= t_target
                 assert t > t_old
                 assert np.abs(self._analytical(t) -
                               state.to_array()[0,0]) < tol

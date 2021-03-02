@@ -128,12 +128,15 @@ cdef class CQobjEvo:
             self.coefficients[i] = coeff._call(t)
         return
 
-    cpdef Data matmul(self, double t, Data matrix):
+    cpdef Data matmul(self, double t, Data matrix, Data out=None):
         cdef size_t i
-        if isinstance(matrix, Dense):
-            return self.matmul_dense(t, matrix)
+        if type(matrix) is Dense and (out is None or type(out) is None):
+            return self.matmul_dense(t, matrix, out)
         self._factor(t)
-        out = _data.matmul(self.constant, matrix)
+        if out is None:
+            out = _data.matmul(self.constant, matrix)
+        else:
+            out = _data.add(out, _data.matmul(self.constant, matrix))
         for i in range(self.n_ops):
             out = _data.add(out,
                             _data.matmul(<Data> self.ops[i],
@@ -207,6 +210,7 @@ cdef class CQobjFunc(CQobjEvo):
     def __init__(self, base):
         self.base = base
         self.reset_shape()
+        self.n_ops = 0
 
     def reset_shape(self):
         self.shape = self.base.shape
@@ -216,19 +220,20 @@ cdef class CQobjFunc(CQobjEvo):
     def call(self, double t, int data=0):
         return self.base(t, data=data)
 
-    cpdef Data matmul(self, double t, Data matrix):
+    cpdef Data matmul(self, double t, Data matrix, Data out=None):
         cdef Data objdata = self.base(t, data=True)
-        out = _data.matmul(objdata, matrix)
+        if out is not None:
+            out = _data.add(_data.matmul(objdata, matrix), out)
+        else:
+            out = _data.matmul(objdata, matrix)
         return out
 
     cpdef Dense matmul_dense(self, double t, Dense matrix, Dense out=None):
         cdef Data objdata = self.base(t).data
         if out is None:
-            # out = _data.matmul(objdata, matrix)
             out = matmul_data_dense(objdata, matrix)
         else:
             imatmul_data_dense(objdata, matrix, 1, out)
-            #iadd_dense(out, _data.matmul[type(objdata), Dense, Dense](objdata, matrix, 1))
         return out
 
     cpdef double complex expect(self, double t, Data matrix) except *:

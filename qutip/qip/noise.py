@@ -2,11 +2,8 @@ import numbers
 from collections.abc import Iterable
 from copy import deepcopy
 import numpy as np
-from numpy.random import normal
 
-from qutip import (
-    Qobj, QobjEvo, sigmaz, destroy, identity, tensor,
-)
+from qutip import Qobj, QobjEvo, sigmaz, destroy, tensor
 from qutip.qip.operations import expand_operator
 from qutip.qip.pulse import Pulse
 
@@ -441,8 +438,9 @@ class RandomNoise(ControlAmpNoise):
 
     Examples
     --------
-    >>> gaussnoise = RandomNoise(
-            dt=0.1, rand_gen=np.random.normal, loc=mean, scale=std)
+    >>> gaussnoise = RandomNoise( \
+            dt=0.1, rand_gen=np.random.normal, loc=mean, scale=std) \
+            # doctest: +SKIP
     """
     def __init__(
             self, dt, rand_gen, indices=None, **kwargs):

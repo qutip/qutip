@@ -24,29 +24,13 @@ cdef class SolverQEvo:
         self.num_calls = 0
 
     def jac_np_vec(self, t, vec):
-        return self.jac_data(t).as_array()
+        return self.jac_data(t).to_array()
 
-    cdef _data.Data jac_data(self, double t):
+    cpdef _data.Data jac_data(self, double t):
         if self.has_dynamic_args:
             raise NotImplementedError("jacobian not available with feedback")
         self.num_calls += 1
         return self.base.call(t, data=True)
-
-    cpdef list get_coeff(self, double t, vec=None):
-        cdef Feedback feedback
-        cdef _data.Dense state
-        if self.has_dynamic_args and vec is not None:
-            state = _data.dense.fast_from_numpy(vec)
-            for dyn_args in self.dynamic_arguments:
-                feedback = <Feedback> dyn_args
-                val = feedback._call(t, state)
-                self.args[feedback.key] = val
-            for i in range(self.base.n_ops):
-                (<Coefficient> self.base.coeff[i]).arguments(self.args)
-        out = []
-        for i in range(self.base.n_ops):
-            out.append((<Coefficient> self.base.coeff[i])(t))
-        return out
 
     def mul_np_double_vec(self, t, vec):
         vec_cplx = vec.view(complex)
@@ -62,13 +46,23 @@ cdef class SolverQEvo:
         column_stack_dense(out, inplace=True)
         return out.as_ndarray().ravel()
 
-    cdef _data.Data mul_data(self, double t, _data.Data vec):
+    cpdef _data.Data mul_data(self, double t, _data.Data vec,
+                              _data.Data out=None):
+        if (
+            type(vec) is _data.Dense and
+            (out is None or type(out) is _data.Dense)
+        ):
+            return self.mul_dense(t, vec, out)
         if self.has_dynamic_args:
             self.apply_feedback(t, vec)
         self.num_calls += 1
-        return self.base.matmul(t, vec)
+        if out is None:
+            return self.base.matmul(t, vec)
+        else:
+            return data.add(out, self.base.matmul(t, vec))
 
-    cdef _data.Dense mul_dense(self, double t, _data.Dense vec, _data.Dense out):
+    cpdef _data.Dense mul_dense(self, double t, _data.Dense vec,
+                                _data.Dense out=None):
         if self.has_dynamic_args:
             self.apply_feedback(t, vec)
         self.num_calls += 1
@@ -77,37 +71,36 @@ cdef class SolverQEvo:
     def set_feedback(self, dict feedback, dict args, bint issuper, bint norm):
         # Move elsewhere and op should be a dimensions object when available
         self.args = args
-        self.dynamic_arguments = []
+        self.feedback = []
         for key, val in feedback.items():
             if val in [Qobj, "Qobj", "qobj", "state"]:
-                self.dynamic_arguments.append(QobjFeedback(key, args[key],
+                self.feedback.append(QobjFeedback(key, args[key],
                                                            norm))
             elif isinstance(val, Qobj):
-                self.dynamic_arguments.append(ExpectFeedback(key, val,
+                self.feedback.append(ExpectFeedback(key, val,
                                                              issuper, norm))
             elif val in ["collapse"]:
-                self.dynamic_arguments.append(
+                self.feedback.append(
                     CollapseFeedback(key)
                 )
             else:
                 raise ValueError("unknown feedback type")
-        self.has_dynamic_args = bool(self.dynamic_arguments)
+        self.has_dynamic_args = bool(self.feedback)
 
-    def update_feedback(self, collapse):
-        for dargs in self.dynamic_arguments:
-            if isinstance(dargs, CollapseFeedback):
-                dargs.set_collapse(collapse)
+    def update_feedback(self, what, data):
+        for dargs in self.feedback:
+            dargs.update(what, data)
 
     cpdef void apply_feedback(self, double t, _data.Data matrix) except *:
         cdef Feedback feedback
-        for dyn_args in self.dynamic_arguments:
+        for dyn_args in self.feedback:
             feedback = <Feedback> dyn_args
             val = feedback._call(t, matrix)
             self.args[feedback.key] = val
-        for i in range(self.base.n_ops):
-            (<Coefficient> self.base.coeff[i]).arguments(self.args)
+        self.base_py.arguments(self.args)
 
     cpdef void arguments(self, dict args):
+        self.args = args
         self.base_py.arguments(args)
 
     @property

@@ -52,12 +52,13 @@ cdef class CQobjEvo:
 
     cdef void _factor(self, double t) except *
 
+    # To remove when safe
     cdef bint has_dynamic_args
     cdef list dynamic_arguments
     cdef dict args
     cdef object op
 
-    cpdef Data matmul(self, double t, Data matrix)
+    cpdef Data matmul(self, double t, Data matrix, Data out=*)
     cpdef Dense matmul_dense(self, double t, Dense matrix, Dense out=*)
     cpdef double complex expect(self, double t, Data matrix) except *
     cpdef double complex expect_dense(self, double t, Dense matrix) except *

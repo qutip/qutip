@@ -334,6 +334,9 @@ class Qobj:
         Returns normalized quantum object.
 
     """
+    # Disable ufuncs from acting directly on Qobj.
+    __array_ufunc__ = None
+
     def _initialize_data(self, arg, dims, copy):
         if isinstance(arg, _data.Data):
             self.dims = dims or [[arg.shape[0]], [arg.shape[1]]]
@@ -1540,10 +1543,15 @@ class Qobj:
             evals, evecs = _data.eigs_dense(_data.to(_data.Dense, self.data),
                                             isherm=self._isherm,
                                             sort=sort, eigvals=eigvals)
-        new_dims = [self.dims[0], [1] * len(self.dims[0])]
-        ekets = np.array([Qobj(vec, dims=new_dims, copy=False)
-                          for vec in evecs],
-                         dtype=object)
+        if self.type == 'super':
+            new_dims = [self.dims[0], [1]]
+            new_type = 'operator-ket'
+        else:
+            new_dims = [self.dims[0], [1]*len(self.dims[0])]
+            new_type = 'ket'
+        ekets = np.empty((len(evecs),), dtype=object)
+        ekets[:] = [Qobj(vec, dims=new_dims, type=new_type, copy=False)
+                    for vec in evecs]
         norms = np.array([ket.norm() for ket in ekets])
         if phase_fix is None:
             phase = np.array([1] * len(ekets))

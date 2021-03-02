@@ -9,14 +9,13 @@ cdef class SolverQEvo:
     cdef readonly object base_py
     cdef CQobjEvo base
     cdef list collapse
-    cdef list dynamic_arguments
+    cdef list feedback
     cdef bint has_dynamic_args
     cdef idxint ncols
     cdef int num_calls
 
-    cpdef list get_coeff(self, double t, vec=*)
-    cdef _data.Data mul_data(self, double t, _data.Data vec)
-    cdef _data.Dense mul_dense(self, double t, _data.Dense vec, _data.Dense out)
-    cdef _data.Data jac_data(self, double t)
+    cpdef _data.Data mul_data(self, double t, _data.Data vec, _data.Data out=*)
+    cpdef _data.Dense mul_dense(self, double t, _data.Dense vec, _data.Dense out=*)
+    cpdef _data.Data jac_data(self, double t)
     cpdef void apply_feedback(self, double t, _data.Data matrix) except *
     cpdef void arguments(self, dict args)

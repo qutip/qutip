@@ -31,9 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
-import scipy.sparse as sp
-import ctypes
-from ctypes import POINTER,c_int,c_char,c_double, byref
+from ctypes import POINTER, c_int, c_char, byref
 from numpy import ctypeslib
 from qutip.settings import settings as qset
 zcsrgemv = qset.install['mkl_lib'].mkl_cspblas_zcsrgemv
@@ -50,10 +48,10 @@ def mkl_spmv(A, x):
      indices = A.indices.ctypes.data_as(POINTER(c_int))
 
      # Allocate output, using same conventions as input
-     if x.ndim is 1:
-        y = np.empty(m,dtype=np.complex,order='C')
+     if x.ndim == 1:
+        y = np.empty(m,dtype=np.complex128,order='C')
      elif x.ndim==2 and x.shape[1]==1:
-        y = np.empty((m,1),dtype=np.complex,order='C')
+        y = np.empty((m,1),dtype=np.complex128,order='C')
      else:
         raise Exception('Input vector must be 1D row or 2D column vector')
 

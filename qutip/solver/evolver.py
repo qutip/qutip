@@ -31,9 +31,11 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 """
-This module provides solvers for
+...
 """
-__all__ = ['Evolver',  'evolver_collection',
+#TODO: DOC
+
+__all__ = ['Evolver',  'evolver_collection', 'EvolverException',
            'EvolverScipyZvode', 'EvolverScipyDop853', 'EvolverScipylsoda']
 
 
@@ -42,20 +44,30 @@ from numpy.linalg import norm as la_norm
 from itertools import product
 from scipy.integrate import ode
 from scipy.integrate._ode import zvode
-from ..core import data as _data
+from qutip.core import data as _data
 from ._solverqevo import SolverQEvo
 from .options import SolverOptions, SolverOdeOptions
-from ..core import QobjEvo, qeye, basis
+from qutip import QobjEvo, qeye, basis
 import warnings
 
 
+class EvolverException(Exception):
+    pass
+
+
 class _EvolverCollection:
+    """
+    Set of Evolver available to Solver.
+    """
     def __init__(self):
         self.method2evolver = {}
         self.rhs2evolver = {}
         self.evolver_data = {}
 
     def add(self, evolver, methods=[], rhs=[], limits={}, _test=True):
+        """
+        Add a new evolver to the set available to Solver.
+        """
         if not isinstance(methods, list):
             methods = [methods]
         if not isinstance(rhs, list):
@@ -210,6 +222,9 @@ class _EvolverCollection:
         return evolver_data
 
     def __getitem__(self, key):
+        """
+        Obtain the evolver corresponding to the key
+        """
         method, rhs = key
         try:
             evolver = self.method2evolver[method]
@@ -233,6 +248,8 @@ class _EvolverCollection:
         return var
 
     def list_keys(self, etype="methods", **limits):
+        """ list Evolver available corresponding to the conditions given
+        """
         if etype not in ["rhs", "methods", "pairs"]:
             raise ValueError
         if etype in ["rhs", 'pairs']:
@@ -266,6 +283,9 @@ class _EvolverCollection:
 
     def explain_evolvers(self, method=None, rhs=None, names=None,
                          limits={}, full=None):
+        """ Describe the Evolver, can choose the evolver from key,
+        and/or capacities.
+        """
         method = self._none2list(method)
         rhs = self._none2list(rhs)
         names = self._none2list(names)
@@ -325,15 +345,15 @@ class Evolver:
     prepare()
         Prepare the ODE solver.
 
-    step(t)
-        Evolve to t, must be `set` before.
+    step(t, copy)
+        Evolve to t, must be `prepare` before.
         return the pair t, state.
 
     get_state()
-        Optain the state of the solver as a pair t, state
+        Obtain the state of the solver as a pair t, state
 
     set_state(t, state)
-        Set the state of an existing ODE solver.
+        Set the state of the ODE solver.
 
     run(state, tlist)
         Yield (t, state(t)) for t in tlist, must be `set` before.
@@ -341,17 +361,30 @@ class Evolver:
     update_args(args)
         Change the argument of the active system.
 
-    one_step(t):
+    one_step(t, copy):
         Advance up to t by one internal solver step.
         Should be able to retreive the state at any time between the present
         time and the resulting time using `backstep`.
         return the pair t, state.
 
-    backstep(t):
+    backstep(t, copy):
         Retreive the state at time t, with t smaller than present ODE time.
         The time t will always be between the last calls of `one_step`.
         return the pair t, state.
 
+    Parameters
+    ----------
+    sytem: qutip.QobjEvo_base
+        Input system controling the evolution.
+
+    options: qutip.SolverOptions
+        Options for the solver.
+
+    args: dict
+        Arguments passed to the system.
+
+    feedback_args: dict
+        Arguments that dependent on the states.
     """
     used_options = []
     description = ""
@@ -363,40 +396,70 @@ class Evolver:
         self.prepare()
 
     def prepare(self):
+        """
+        Initialize the solver
+        """
         raise NotImplementedError
 
-    def step(self, t, copy=False):
+    def step(self, t, copy=True):
+        """
+        Evolve to t, must be `prepare` before.
+        return the pair t, state.
+        """
         raise NotImplementedError
 
-    def get_state(self, copy=False):
+    def get_state(self, copy=True):
+        """
+        Obtain the state of the solver as a pair t, state
+        """
         raise NotImplementedError
 
     def set_state(self, t, state0):
+        """
+        Set the state of the ODE solver.
+        """
         raise NotImplementedError
 
     def run(self, tlist):
-        """ Yield (t, state(t)) for t in tlist, must be `set` before. """
+        """
+        Yield (t, state(t)) for t in tlist, must be `set` before.
+        """
         for t in tlist[1:]:
-            self.step(t)
-            yield self.get_state()
+            yield self.step(t, False)
 
-    def one_step(self, t, copy=False):
+    def one_step(self, t, copy=True):
+        """
+        Advance up to t by one internal solver step.
+        Should be able to retreive the state at any time between the present
+        time and the resulting time using `backstep`.
+        """
         self.back = self.get_state(True)
         return self.step(t, copy)
 
-    def backstep(self, t, copy=False):
+    def backstep(self, t, copy=True):
+        """
+        Retreive the state at time t, with t smaller than present ODE time.
+        The time t will always be between the last calls of `one_step`.
+        return the pair t, state.
+        """
         self.set_state(*self.back)
         return self.step(t, copy)
 
     def update_args(self, args):
+        """
+        Change the argument of the active system.
+        """
         self.system.arguments(args)
 
-    def update_feedback(self, collapse):
+    def update_feedback(self, what, data):
         if hasattr(self, "system") and isinstance(self.system, SolverQEvo):
-            self.system.update_feedback(collapse)
+            self.system.update_feedback(what, data)
 
     @property
     def stats(self):
+        """
+        Return statistic of the evolution as a dict
+        """
         if not hasattr(self, "_stats"):
             self._stats = {}
         try:
@@ -407,21 +470,17 @@ class Evolver:
 
 
 class EvolverScipyZvode(Evolver):
-    # -------------------------------------------------------------------------
-    # Solve an ODE for func.
-    # Calculate the required expectation values or invoke callback
-    # function at each time step.
-    #
-    # Use scipy's Ode, with zvode solver
-    #
-    _error_msg = ("ODE integration error: Try to increase "
-                  "the allowed number of substeps by increasing "
-                  "the nsteps parameter in the Options class.")
+    """
+    Evolver using Scipy `ode` interface for netlib zvode integrator.
+    """
     used_options = ['atol', 'rtol', 'nsteps', 'method', 'order',
                     'first_step', 'max_step', 'min_step']
     description = "scipy.integrate.ode using zvode integrator"
 
     def prepare(self):
+        """
+        Initialize the solver
+        """
         self._ode_solver = ode(self.system.mul_np_vec)
         opt = {key: self.options.ode[key]
                for key in self.used_options
@@ -429,18 +488,24 @@ class EvolverScipyZvode(Evolver):
         self._ode_solver.set_integrator('zvode', **opt)
         self.name = "scipy zvode " + opt["method"]
 
-    def get_state(self, copy=False):
+    def get_state(self, copy=True):
+        """
+        Obtain the state of the solver as a pair t, state
+        """
         t = self._ode_solver.t
         if self._mat_state:
             state = _data.column_unstack_dense(
-                _data.dense.fast_from_numpy(self._ode_solver._y),
+                _data.dense.Dense(self._ode_solver._y, copy=False),
                 self._size,
                 inplace=True)
         else:
-            state = _data.dense.fast_from_numpy(self._ode_solver._y)
+            state = _data.dense.Dense(self._ode_solver._y, copy=False)
         return t, state.copy() if copy else state
 
     def set_state(self, t, state0):
+        """
+        Set the state of the ODE solver.
+        """
         self._mat_state = state0.shape[1] > 1
         self._size = state0.shape[0]
         self._ode_solver.set_initial_value(
@@ -448,14 +513,19 @@ class EvolverScipyZvode(Evolver):
             t
         )
 
-    def step(self, t, copy=False):
+    def step(self, t, copy=True):
+        """ Evolve to t, must be `set` before. """
         if self._ode_solver.t != t:
             self._ode_solver.integrate(t)
-        if not self._ode_solver.successful():
-            raise Exception(self._error_msg)
+        self._check_failed_integration()
         return self.get_state(copy)
 
-    def one_step(self, t, copy=False):
+    def one_step(self, t, copy=True):
+        """
+        Advance up to t by one internal solver step.
+        Should be able to retreive the state at any time between the present
+        time and the resulting time using `backstep`.
+        """
         # integrate(t, step=True) ignore the time and advance one step.
         # Here we want to advance up to t doing maximum one step.
         # So we check if a new step is really needed.
@@ -469,39 +539,57 @@ class EvolverScipyZvode(Evolver):
             t = t_front
         if t_front >= t:
             self._ode_solver.integrate(t)
-        if not self._ode_solver.successful():
-            raise Exception(self._error_msg)
+        self._check_failed_integration()
         return self.get_state(copy)
 
-    def backstep(self, t, copy=False):
+    def backstep(self, t, copy=True):
+        """
+        Retreive the state at time t, with t smaller than present ODE time.
+        The time t will always be between the last calls of `one_step`.
+        return the pair t, state.
+        """
         # zvode can step with time lower than the most recent but not all the
-        # step interval. (About the last 90%)
-        """ Evolve to t, must be `set` before. """
+        # step interval.
+        # About 90% of the last step interval?
+        # It return a warning, not an Error.
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self._ode_solver.integrate(t)
         if not self._ode_solver.successful():
             self.set_state(*self.back)
             self._ode_solver.integrate(t)
+        self._check_failed_integration()
         return self.get_state(copy)
+
+    def _check_failed_integration(self):
+        if self._ode_solver.successful():
+            return
+        messages = {
+            -1: 'Excess work done on this call. Try to increasing '
+                'the nsteps parameter in the Options class',
+            -2: 'Excess accuracy requested. (Tolerances too small.)',
+            -3: 'Illegal input detected.',
+            -4: 'Repeated error test failures. (Check all input.)',
+            -5: 'Repeated convergence failures. (Perhaps bad'
+                ' Jacobian supplied or wrong choice of MF or tolerances.)',
+            -6: 'Error weight became zero during problem. (Solution'
+                ' component i vanished, and ATOL or ATOL(i) = 0.)'
+        }
+        raise EvolverException(messages[self._ode_solver._integrator.istate])
 
 
 class EvolverScipyDop853(Evolver):
-    # -------------------------------------------------------------------------
-    # Solve an ODE for func.
-    # Calculate the required expectation values or invoke callback
-    # function at each time step.
-    #
-    # Use scipy's Ode, with dop853 solver
-    #
-    _error_msg = ("ODE integration error: Try to increase "
-                  "the allowed number of substeps by increasing "
-                  "the nsteps parameter in the Options class.")
-    description = "scipy.integrate.ode using dopri5 integrator"
+    """
+    Evolver using Scipy `ode` interface with dop853 integrator.
+    """
+    description = "scipy.integrate.ode using dop853 integrator"
     used_options = ['atol', 'rtol', 'nsteps', 'first_step', 'max_step',
                     'ifactor', 'dfactor', 'beta']
 
     def prepare(self):
+        """
+        Initialize the solver
+        """
         self._ode_solver = ode(self.system.mul_np_double_vec)
         opt = {key: self.options.ode[key]
                for key in self.used_options
@@ -509,27 +597,35 @@ class EvolverScipyDop853(Evolver):
         self._ode_solver.set_integrator('dop853', **opt)
         self.name = "scipy ode dop853"
 
-    def step(self, t, copy=False):
+    def step(self, t, copy=True):
+        """
+        Evolve to t, must be `set` before.
+        """
         if self._ode_solver.t != t:
             self._ode_solver.integrate(t)
-        if not self._ode_solver.successful():
-            raise Exception(self._error_msg)
+        self._check_failed_integration()
         return self.get_state(copy)
 
-    def get_state(self, copy=False):
+    def get_state(self, copy=True):
+        """
+        Obtain the state of the solver as a pair t, state
+        """
         t = self._ode_solver.t
         if self._mat_state:
             state = _data.column_unstack_dense(
-                _data.dense.fast_from_numpy(self._ode_solver.
-                                            _y.view(np.complex)),
+                _data.dense.Dense(self._ode_solver._y.view(np.complex128),
+                                  copy=False),
                 self._size,
                 inplace=True)
         else:
-            state = _data.dense.fast_from_numpy(self._ode_solver.
-                                                _y.view(np.complex))
+            state = _data.dense.Dense(self._ode_solver._y.view(np.complex128),
+                                      copy=False)
         return t, state.copy() if copy else state
 
     def set_state(self, t, state0):
+        """
+        Set the state of the ODE solver.
+        """
         self._mat_state = state0.shape[1] > 1
         self._size = state0.shape[0]
         self._ode_solver.set_initial_value(
@@ -537,20 +633,33 @@ class EvolverScipyDop853(Evolver):
             t
         )
 
-    def one_step(self, t, copy=False):
+    def one_step(self, t, copy=True):
+        """
+        Advance up to t by one internal solver step.
+        Should be able to retreive the state at any time between the present
+        time and the resulting time using `backstep`.
+        """
         self.back = self.get_state(True)
         return self._safe_step(t, copy)
 
-    def backstep(self, t, copy=False):
+    def backstep(self, t, copy=True):
+        """
+        Retreive the state at time t, with t smaller than present ODE time.
+        The time t will always be between the last calls of `one_step`.
+        return the pair t, state.
+        """
         self.set_state(*self.back)
         return self._safe_step(t)
 
-    def _safe_step(self, t, copy=False):
-        """step but safe when changing direction"""
+    def _safe_step(self, t, copy=True):
+        """
+        DOP853 ODE does extra work when changing direction.
+        This reset the state to save this extra work.
+        """
         dt_max = self._ode_solver._integrator.work[6]
         dt = t - self._ode_solver.t
         if dt == 0:
-            return self.get_state()
+            return self.get_state(copy)
         if dt * dt_max < 0:
             self.set_state(*self.get_state())
         out = self.step(t, copy)
@@ -558,23 +667,32 @@ class EvolverScipyDop853(Evolver):
             self.set_state(*self.get_state())
         return out
 
+    def _check_failed_integration(self):
+        if self._ode_solver.successful():
+            return
+        messages = {
+            -1: 'input is not consistent',
+            -2: 'larger nsteps is needed, Try to increase the nsteps '
+                'parameter in the Options class.',
+            -3: 'step size becomes too small. Try increasing tolerance',
+            -4: 'problem is probably stiff (interrupted), try "bdf" '
+                'method instead',
+        }
+        raise EvolverException(messages[self._ode_solver._integrator.istate])
+
 
 class EvolverScipylsoda(EvolverScipyDop853):
-    # -------------------------------------------------------------------------
-    # Solve an ODE for func.
-    # Calculate the required expectation values or invoke callback
-    # function at each time step.
-    #
-    # Use scipy's Ode, with zvode solver
-    #
-    _error_msg = ("ODE integration error: Try to increase "
-                  "the allowed number of substeps by increasing "
-                  "the nsteps parameter in the Options class.")
+    """
+    Evolver using Scipy `ode` interface of lsoda integrator from netlib.
+    """
     used_options = ['atol', 'rtol', 'nsteps', 'max_order_ns', 'max_order_s',
                     'first_step', 'max_step', 'min_step']
     description = "scipy.integrate.ode using lsoda integrator"
 
     def prepare(self):
+        """
+        Initialize the solver
+        """
         self._ode_solver = ode(self.system.mul_np_double_vec)
         opt = {key: self.options.ode[key]
                for key in self.used_options
@@ -582,7 +700,12 @@ class EvolverScipylsoda(EvolverScipyDop853):
         self._ode_solver.set_integrator('lsoda', **opt)
         self.name = "scipy lsoda"
 
-    def one_step(self, t, copy=False):
+    def one_step(self, t, copy=True):
+        """
+        Advance up to t by one internal solver step.
+        Should be able to retreive the state at any time between the present
+        time and the resulting time using `backstep`.
+        """
         # integrate(t, step=True) ignore the time and advance one step.
         # Here we want to advance up to t doing maximum one step.
         # So we check if a new step is really needed.
@@ -596,21 +719,40 @@ class EvolverScipylsoda(EvolverScipyDop853):
             t = t_front
         if t_front >= t:
             self._ode_solver.integrate(t)
-        if not self._ode_solver.successful():
-            raise Exception(self._error_msg)
+        self._check_failed_integration()
         return self.get_state(copy)
 
-    def backstep(self, t, copy=False):
-        # zvode can step with time lower than the most recent but not all the
-        # step interval. (About the last 90%)
-        """ Evolve to t, must be `set` before. """
+    def backstep(self, t, copy=True):
+        """
+        Retreive the state at time t, with t smaller than present ODE time.
+        The time t will always be between the last calls of `one_step`.
+        return the pair t, state.
+        """
+        # like zvode, lsoda can step with time lower than the most recent.
+        # But not all the step interval. (About the last 90%)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self._ode_solver.integrate(t)
         if not self._ode_solver.successful():
             self.set_state(*self.back)
             self._ode_solver.integrate(t)
+        self._check_failed_integration()
         return self.get_state(copy)
+
+    def _check_failed_integration(self):
+        if self._ode_solver.successful():
+            return
+        messages = {
+            -1: "Excess work done on this call."
+                "Try to increase the nsteps parameter in the Options class.",
+            -2: "Excess accuracy requested (tolerances too small).",
+            -3: "Illegal input detected (internal error).",
+            -4: "Repeated error test failures (internal error).",
+            -5: "Repeated convergence failures (perhaps bad Jacobian or tolerances).",
+            -6: "Error weight became zero during problem.",
+            -7: "Internal workspace insufficient to finish (internal error)."
+        }
+        raise EvolverException(messages[self._ode_solver._integrator.istate])
 
 
 limits = {

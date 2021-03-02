@@ -37,12 +37,25 @@ __all__ = ['Solver']
 # import numpy as np
 # from ..core import data as _data
 
-from .. import Qobj
+from .. import Qobj, QobjEvo, QobjEvoFunc
+from qutip.core.qobjevo import QobjEvoBase
 from .result import Result
 from .evolver import *
 from ..ui.progressbar import get_progess_bar
 from ..core.data import to
 from time import time
+
+
+def _to_qevo(arg, args, times):
+    if isinstance(arg, QobjEvoBase):
+        return arg
+    elif isinstance(arg, (list, Qobj)):
+        return QobjEvo(arg, args=args, tlist=times)
+    elif callable(arg):
+        return QobjEvoFunc(arg, args=args)
+    else:
+        raise ValueError("Invalid Hamiltonian")
+
 
 
 class Solver:
@@ -96,6 +109,7 @@ class Solver:
         self._state_dims = state.dims
         self._state_type = state.type
         self._state_qobj = state
+        # Todo, remove str_to_type when #1420 merged...
         str_to_type = {layer.__name__.lower(): layer for layer in to.dtypes}
         if self.options.ode["State_data_type"].lower() in str_to_type:
             state = state.to(
@@ -104,11 +118,11 @@ class Solver:
         self._state0 = state.data
         return state.data
 
-    def _restore_state(self, state):
+    def _restore_state(self, state, copy=True):
         return Qobj(state,
                     dims=self._state_dims,
                     type=self._state_type,
-                    copy=True)
+                    copy=copy)
 
     def run(self, state0, tlist, args={}):
         if self._safe_mode:
@@ -130,7 +144,7 @@ class Solver:
         if args:
             self._evolver.update_args(args)
             self._evolver.set_state(self._t, self._state)
-        self._t, self._state = self._evolver.step(t)
+        self._t, self._state = self._evolver.step(t, copy=False)
         return self._restore_state(self._state)
 
     def _driver_step(self, tlist, state0):
@@ -147,7 +161,7 @@ class Solver:
         progress_bar.start(len(tlist)-1, **self.options['progress_kwargs'])
         for t, state in self._evolver.run(tlist):
             progress_bar.update()
-            res.add(t, self._restore_state(state))
+            res.add(t, self._restore_state(state, False))
         progress_bar.finished()
 
         self.stats['run time'] = progress_bar.total_time()
@@ -157,6 +171,7 @@ class Solver:
         return res
 
     def _get_evolver(self, options, args, feedback_args):
+        # Todo, remove str_to_type when #1420 merged...
         str_to_type = {layer.__name__.lower(): layer for layer in to.dtypes}
         if options.ode["Operator_data_type"].lower() in str_to_type:
             self._system = self._system.to(str_to_type[

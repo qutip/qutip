@@ -137,7 +137,8 @@ class TestExplicitForm:
         assert _infidelity(swapped, swap*start) < 1e-12
         assert _infidelity(start, swap*swap*start) < 1e-12
 
-    @pytest.mark.parametrize('permutation', itertools.permutations([0, 1, 2]),
+    @pytest.mark.parametrize('permutation',
+                             tuple(itertools.permutations([0, 1, 2])),
                              ids=_permutation_id)
     def test_toffoli(self, permutation):
         test = gates.toffoli(N=3,
@@ -296,8 +297,9 @@ class Test_expand_operator:
     # surrounding code, but the surrounding code wasn't updated.
     @pytest.mark.parametrize(
         'permutation',
-        itertools.chain(*[itertools.permutations(range(k))
-                          for k in [2, 3, 4]]),
+        tuple(itertools.chain(*[
+            itertools.permutations(range(k)) for k in [2, 3, 4]
+        ])),
         ids=_permutation_id)
     def test_permutation_without_expansion(self, permutation):
         base = qutip.tensor([qutip.rand_unitary(2) for _ in permutation])

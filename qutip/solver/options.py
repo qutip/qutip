@@ -27,6 +27,15 @@ class SolverOptions:
 
     Options
     -------
+    progress_bar : str {'text', 'enhanced', 'tqdm', ''}
+        How to present the solver progress.
+        'tqdm' use the python module of the same name and raise an error if
+        not installed.
+        True will result in 'text'.
+        Empty string or False will disable the bar.
+
+    progress_kwargs : dict
+        kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
     """
     options = {
         # (turned off for batch unitary propagator mode)
@@ -59,23 +68,42 @@ class SolverOdeOptions:
 
     Options
     -------
-    method : str {'adams','bdf'}
+    method : str {'adams', 'bdf', 'dop853', 'lsoda', 'vern7', 'vern9', 'diag'}
         Integration method.
 
     atol : float {1e-8}
         Absolute tolerance.
+
     rtol : float {1e-6}
         Relative tolerance.
+
     order : int {12}
         Order of integrator (<=12 'adams', <=5 'bdf')
+
     nsteps : int {2500}
         Max. number of internal steps/call.
+
     first_step : float {0}
         Size of initial step (0 = automatic).
+
     min_step : float {0}
         Minimum step size (0 = automatic).
+
     max_step : float {0}
         Maximum step size (0 = automatic)
+
+    tidy: bool {True}
+        tidyup Hamiltonian before calculation
+
+    Operator_data_type: :class:`qutip.data.Data`, str {"input"}
+        Data type of the system, some method can overwrite it.
+
+    State_data_type: :class:`qutip.data.Data`, str {qutip.data.Dense}
+        Data type of the state, most solver can only work with `Dense`.
+
+    feedback_normalize: bool
+
+
     """
     options = {
         # Integration method (default = 'adams', for stiff 'bdf')
@@ -99,7 +127,9 @@ class SolverOdeOptions:
         "min_step": 0,
         # tidyup Hamiltonian before calculation (default = True)
         "tidy": True,
+
         "Operator_data_type": "input",
+
         "State_data_type": "dense",
         # Normalize the states received in feedback_args
         "feedback_normalize": True,
@@ -137,11 +167,10 @@ class SolverResultsOptions:
         result class, even if expectation values operators are given. If no
         expectation are provided, then states are stored by default and this
         option has no effect.
+    normalize_output : str {"", "ket", "all"}
+        normalize output state to hide ODE numerical errors.
+        On "ket", only 'ket' output are normalized.
     """
-    #average_states : bool {False}
-    #    Average states values over trajectories in stochastic solvers.
-    #average_expect : bool {True}
-    #    Average expectation values over trajectories for stochastic solvers.
     options = {
         # store final state?
         "store_final_state": False,
@@ -150,13 +179,6 @@ class SolverResultsOptions:
         # Normalize output of solvers
         # (turned off for batch unitary propagator mode)
         "normalize_output": "ket",
-
-        # Average expectation values over trajectories (default = True)
-        # "average_expect": True,
-        # average expectation values
-        # "average_states": False,
-        # average mcsolver density matricies assuming steady state evolution
-        # "steady_state_average": False,
     }
 
 
@@ -185,15 +207,33 @@ class McOptions:
 
     norm_tol : float {1e-4}
         Tolerance used when finding wavefunction norm in mcsolve.
+
     norm_t_tol : float {1e-6}
         Tolerance used when finding wavefunction time in mcsolve.
+
     norm_steps : int {5}
         Max. number of steps used to find wavefunction norm to within norm_tol
         in mcsolve.
+
+    keep_runs_results: bool
+        Keep all trajectories results or save only the average.
+
+    map : str  {'parallel', 'serial', 'loky'}
+        How to run the trajectories.
+        'parallel' use python's multiprocessing.
+        'loky' use the pyhon module of the same name (not installed with qutip).
+
+    map_options: dict
+        keys:
+            'num_cpus': number of cpus to use.
+            'timeout': maximum time for all trajectories. (sec)
+            'job_timeout': maximum time per trajectory. (sec)
+        Only finished trajectories will be returned when timeout is reached.
+
+    mc_corr_eps : float {1e-10}
+        Arbitrarily small value for eliminating any divide-by-zero errors in
+        correlation calculations when using mcsolve.
     """
-    # mc_corr_eps : float {1e-10}
-    #     Arbitrarily small value for eliminating any divide-by-zero errors in
-    #     correlation calculations when using mcsolve.
     options = {
         # Tolerance for wavefunction norm (mcsolve only)
         "norm_tol": 1e-4,
@@ -213,5 +253,5 @@ class McOptions:
             'num_cpus': multiprocessing.cpu_count(),
             'timeout':1e8,
             'job_timeout':1e8
-        }
+        },
     }

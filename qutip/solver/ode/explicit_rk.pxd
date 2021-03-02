@@ -1,51 +1,50 @@
 #cython: language_level=3
-#cython: boundscheck=False, wraparound=False, initializedcheck=False, nonecheck=False
-from .wrapper cimport QtOdeData, QtOdeFuncWrapper
+from qutip.core.data cimport Data
+from .._solverqevo cimport SolverQEvo
 
 cdef class Explicit_RungeKutta:
-    cdef QtOdeFuncWrapper f
+    cdef SolverQEvo f
 
     # Ode state data, set in set_initial_value
     cdef list k
-    cdef QtOdeData _y_temp, _y, _y_prev, _y_front
-    cdef double norm_front, norm_tmp, t, t_prev, t_front, dt_safe, dt_int
-    cdef bint failed
+    cdef Data _y_temp, _y, _y_prev, _y_front
+    cdef double norm_front, norm_tmp, _t, _t_prev, _t_front, dt_safe, dt_int
+    cdef int _status
 
     # options: set in init
     cdef double rtol, atol, first_step, min_step, max_step
     cdef int max_numsteps
     cdef bint interpolate
+    cdef str method
 
     # runge Kutta tableau and info, set in cinit
     cdef int rk_step, rk_extra_step,  order, denseout_order
     cdef bint adaptative_step, can_interpolate
-    cdef double *b
-    cdef double *c
-    cdef double *e
-    cdef double **a
+    cdef object b_factor_np
+    cdef double [:] b
+    cdef double [:] b_factor
+    cdef double [:] c
+    cdef double [:] e
+    cdef double [:,::1] a
     # dense out factors: set in cinit
-    cdef double **bi
-    # buffer for dense out: set in cinit
-    cdef double *b_factor
+    cdef double [:,::1] bi
 
     cpdef integrate(Explicit_RungeKutta self, double t, bint step=*)
 
-    cpdef void set_initial_value(self, y0, double t)
+    cpdef void set_initial_value(self, Data y0, double t)
 
-    cdef double compute_step(self, double dt, QtOdeData out)
+    cdef double compute_step(self, double dt)
 
-    cdef double eigen_est(self)
-
-    cdef double error(self, QtOdeData y_new, double dt)
+    cdef double error(self, Data y_new, double dt)
 
     cdef void prep_dense_out(self)
 
-    cdef void interpolate_step(self, double t, QtOdeData out)
+    cdef void interpolate_step(self, double t, Data out)
 
-    cdef void accumulate(self, QtOdeData target, double *factors,
+    cdef Data accumulate(self, Data target, double[:] factors,
                          double dt, int size)
 
-    cdef double estimate_first_step(self, double t, QtOdeData y0)
+    cdef double estimate_first_step(self, double t, Data y0)
 
     cdef double get_timestep(self, double t)
 

@@ -425,7 +425,7 @@ class Processor(object):
         coeffs = np.array(self.get_full_coeffs())
         if inctime:
             shp = coeffs.T.shape
-            data = np.empty((shp[0], shp[1] + 1), dtype=np.float)
+            data = np.empty((shp[0], shp[1] + 1), dtype=np.float64)
             data[:, 0] = self.get_full_tlist()
             data[:, 1:] = coeffs.T
         else:

@@ -372,8 +372,8 @@ class Bloch3d():
                             self.points[k][2][j] ** 2) for j in range(num)]
             if any(abs(dist - dist[0]) / dist[0] > 1e-12):
                 # combine arrays so that they can be sorted together
-                zipped = zip(dist, range(num))
-                zipped.sort()  # sort rates from lowest to highest
+                # and sort rates from lowest to highest
+                zipped = sorted(zip(dist, range(num)))
                 dist, indperm = zip(*zipped)
                 indperm = np.array(indperm)
             else:

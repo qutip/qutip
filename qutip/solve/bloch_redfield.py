@@ -209,7 +209,6 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
     #check_use_openmp(options)
 
     if n_str == 0:
-
         R, ekets = bloch_redfield_tensor(
             H, a_ops, spectra_cb=None, c_ops=c_ops, use_secular=use_secular,
             sec_cutoff=sec_cutoff)
@@ -236,9 +235,7 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
             verbose=verbose, _prep_time=_prep_time)
 
         return output
-
-    else:
-        raise Exception('Cannot mix func and str formats.')
+    raise Exception('Cannot mix func and str formats.')
 
 
 def _ode_rhs(t, state, oper):
@@ -602,6 +599,7 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
     if type(progress_bar)==BaseProgressBar and verbose:
         print('BR runtime:', time.time()-_run_time)
 
+    # TODO: check: True used to be `not options.rhs_reuse`.
     if (True) and (config.tdname is not None):
         cython_build_cleanup(config.tdname)
 

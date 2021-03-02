@@ -40,7 +40,7 @@ import numpy as np
 from time import time
 from .. import Qobj, QobjEvo
 from ..core.qobjevofunc import QobjEvoFunc
-from .solver import Solver
+from .solver import Solver, _to_qevo
 from .options import SolverOptions
 
 
@@ -210,15 +210,8 @@ class SeSolver(Solver):
         self.options = options
         self.e_ops = e_ops
 
-        if isinstance(H, QobjEvo):
-            self._system = -1j * H
-        elif isinstance(H, (list, Qobj)):
-            H = QobjEvo(H, args=args, tlist=times)
-            self._system = -1j * H
-        elif callable(H):
-            self._system = -1j * QobjEvoFunc(H, args=args)
-        else:
-            raise ValueError("Invalid Hamiltonian")
+        self._system = -1j * _to_qevo(H, args, times)
+
         self._evolver = self._get_evolver(options, args, feedback_args)
         self.stats["preparation time"] = time() - _time_start
         self.stats['solver'] = "Stochastic Evolution"

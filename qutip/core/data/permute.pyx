@@ -155,14 +155,15 @@ cdef CSR _indices_csr_full(CSR matrix, idxint[:] rows, idxint[:] cols):
     # First build up the row index structure by cumulative sum, so we know
     # where to place the data and column indices.  We also use this opportunity
     # to find the maximum number of non-zero elements in a row.
-    len = 0
-    out.row_index[0] = 0
-    for row in range(matrix.shape[0]):
-        n = matrix.row_index[row + 1] - matrix.row_index[row]
-        out.row_index[rows[row] + 1] = n
-        len = n if n > len else len
-    for row in range(matrix.shape[0]):
-        out.row_index[row + 1] += out.row_index[row]
+    with nogil:
+        len = 0
+        out.row_index[0] = 0
+        for row in range(matrix.shape[0]):
+            n = matrix.row_index[row + 1] - matrix.row_index[row]
+            out.row_index[rows[row] + 1] = n
+            len = n if n > len else len
+        for row in range(matrix.shape[0]):
+            out.row_index[row + 1] += out.row_index[row]
     # Now we know that `len` is the most number of non-zero elements in a row,
     # so we can allocate space to sort only once.
     cdef idxint *new_cols = <idxint *> mem.PyMem_Malloc(len * sizeof(idxint))
@@ -221,33 +222,49 @@ cdef CSR _dimensions_csr_columns(CSR matrix, _Indexer index):
 
 cdef CSR _dimensions_csr_sparse(CSR matrix, _Indexer index):
     cdef CSR out = csr.empty_like(matrix)
+    cdef csr.Sorter sort
     cdef size_t row, n, len=0
-    cdef idxint ptr_in, ptr_out
-    memset(&out.row_index[0], 0, (matrix.shape[0] + 1) * sizeof(idxint))
-    for row in range(matrix.shape[0]):
-        n = matrix.row_index[row + 1] - matrix.row_index[row]
-        if n:
-            out.row_index[index.single(row) + 1] = len
-        len = n if n > len else len
-    for row in range(matrix.shape[0]):
-        out.row_index[row + 1] += out.row_index[row]
-    # Since this is very sparse, we expect almost all rows to have at most two
-    # elements in them.  It will be faster to copy them across, and perform the
-    # sort in place rather than allocating temporary space and making an
-    # additional copy.  This will still work even if there are more in a row,
-    # it just won't be quite as efficient in that case (which should be rare).
-    cdef csr.Sorter sort = csr.Sorter(len)
-    for row in range(matrix.shape[0]):
-        ptr_in = matrix.row_index[row]
-        len = matrix.row_index[row + 1] - ptr_in
-        if len == 0:
-            continue
-        ptr_out = out.row_index[index.single(row)]
-        for n in range(len):
-            out.col_index[ptr_out + n] = index.single(matrix.col_index[ptr_in + n])
-        memcpy(&out.data[ptr_out], &matrix.data[ptr_in], len*sizeof(double complex))
-        sort.inplace(out, ptr_out, len)
-    return out
+    cdef idxint ptr_in, ptr_out, col
+    cdef idxint *idx_lookup = <idxint *> mem.PyMem_Malloc(matrix.shape[0] * sizeof(idxint))
+    try:
+        memset(&out.row_index[0], 0, (matrix.shape[0] + 1) * sizeof(idxint))
+        with nogil:
+            for row in range(matrix.shape[0]):
+                n = matrix.row_index[row + 1] - matrix.row_index[row]
+                if n:
+                    idx_lookup[row] = index.single(row)
+                    out.row_index[idx_lookup[row] + 1] = n
+                    len = n if n > len else len
+                else:
+                    # Use a sentinel value so we can avoid looking up columns
+                    # that we already know about later.  Not all values in
+                    # idx_lookup will even be filled---this is the speed up
+                    # this function achieves over `_indices_csr_all`.
+                    idx_lookup[row] = -1
+            for row in range(matrix.shape[0]):
+                out.row_index[row + 1] += out.row_index[row]
+        # Since this is very sparse, we expect almost all rows to have at most two
+        # elements in them.  It will be faster to copy them across, and perform the
+        # sort in place rather than allocating temporary space and making an
+        # additional copy.  This will still work even if there are more in a row,
+        # it just won't be quite as efficient in that case (which should be rare).
+        sort = csr.Sorter(len)
+        for row in range(matrix.shape[0]):
+            ptr_in = matrix.row_index[row]
+            len = matrix.row_index[row + 1] - ptr_in
+            if len == 0:
+                continue
+            ptr_out = out.row_index[idx_lookup[row]]
+            for n in range(len):
+                col = matrix.col_index[ptr_in + n]
+                if idx_lookup[col] == -1:
+                    idx_lookup[col] = index.single(col)
+                out.col_index[ptr_out + n] = idx_lookup[col]
+            memcpy(&out.data[ptr_out], &matrix.data[ptr_in], len*sizeof(double complex))
+            sort.inplace(out, ptr_out, len)
+        return out
+    finally:
+        mem.PyMem_Free(idx_lookup)
 
 @cython.cdivision(True)
 cpdef CSR dimensions_csr(CSR matrix, object dimensions, object order):
@@ -262,7 +279,16 @@ cpdef CSR dimensions_csr(CSR matrix, object dimensions, object order):
         return _indices_csr_rowonly(matrix, index.all())
     if matrix.shape[0] != matrix.shape[1]:
         raise ValueError("dimensional permute requires square operators")
-    if (matrix.shape[0] * matrix.shape[1]) // csr.nnz(matrix) > 0:
+    cdef double row_density = (<double> csr.nnz(matrix)) / (<double> matrix.shape[0])
+    # The speed-up for _dimensions_csr_sparse is only achieved by having fewer
+    # calls to `index.single()` than the matrix dimension.  To be sure of this,
+    # we actually require the density per row to be less than 1/2, because we
+    # have to look up both the row _and_ column on output.  This only
+    # corresponds to exceptionally sparse matrices.  We try to avoid these
+    # calls because index.single has ~logarithmic complexity in the dimension
+    # (so for qubit systems it's linear in the number of qubits), and
+    # consequently `index.all()` is a hidden quadratic complexity.
+    if row_density >= 0.5:
         permutation = index.all()
         return _indices_csr_full(matrix, permutation, permutation)
     return _dimensions_csr_sparse(matrix, index)

@@ -286,4 +286,5 @@ def get_map(options):
     elif "loky" in options['map']:
         return loky_pmap
     else:
-        raise InputError("")
+        raise ValueError("map not found, available options are 'parallel',"
+                         " 'serial' and 'loky'")

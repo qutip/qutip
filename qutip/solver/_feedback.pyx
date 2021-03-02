@@ -6,13 +6,19 @@ from qutip.core cimport data as _data
 
 cdef class Feedback:
     def __init__(self, key, state):
-        self.key = key
+        raise NotImplementedError
 
     cdef object _call(self, double t, _data.Data state):
-        return 0
+        raise NotImplementedError
+
+    def update(self, what, collapse):
+        pass
 
 
 cdef class QobjFeedback(Feedback):
+    """
+    Give access to the state during evolution.
+    """
     def __init__(self, key, state, norm):
         self.norm = norm
         self.key = key
@@ -39,6 +45,9 @@ cdef class QobjFeedback(Feedback):
 
 
 cdef class ExpectFeedback(Feedback):
+    """
+    Give access to the an expectation value of the state during evolution.
+    """
     def __init__(self, key, op, issuper, norm):
         self.key = key
         self.norm = norm
@@ -60,6 +69,9 @@ cdef class ExpectFeedback(Feedback):
 
 
 cdef class CollapseFeedback(Feedback):
+    """
+    Give access to the collapse during monte-carlo evolution.
+    """
     def __init__(self, key):
         self.key = key
         self.collapse = []
@@ -67,5 +79,6 @@ cdef class CollapseFeedback(Feedback):
     cdef object _call(self, double t, _data.Data state):
         return self.collapse
 
-    def set_collapse(self, collapse):
-        self.collapse = collapse
+    def update(self, what, collapse):
+        if what == "collapse":
+            self.collapse = collapse
