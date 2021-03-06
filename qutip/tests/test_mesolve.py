@@ -35,6 +35,7 @@ from functools import partial
 
 import numpy as np
 from numpy.testing import assert_, run_module_suite, assert_allclose
+import pytest
 
 # disable the MC progress bar
 import os
@@ -718,6 +719,7 @@ class TestMESolveSuperInit:
         avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
         assert_(avg_diff < 1e-5)
 
+
 class TestMESolverMisc:
     """
     A test class for the misc mesolve features.
@@ -769,6 +771,42 @@ class TestMESolverMisc:
             if not isinstance(c_ops, list):
                 c_ops = [c_ops]
             assert res.num_collapse == len(c_ops)
+
+    # All Hamiltonians should have dimensions [3, 2], so "bad" states can have
+    # [2, 3] instead - the aim is to test mismatch in most cases.
+    @pytest.mark.parametrize(['state'], [
+        pytest.param(basis([2, 3], [0, 0]), id='ket_bad_tensor'),
+        pytest.param(basis([2, 3], [0, 0]).proj(), id='dm_bad_tensor'),
+        pytest.param(basis([2, 3], [0, 0]).dag(), id='bra_bad_tensor'),
+        pytest.param(to_super(basis([2, 3], [0, 0]).proj()),
+                     id='super_bad_tensor'),
+        pytest.param(basis([3, 2], [0, 0]).dag(), id='bra_good_tensor'),
+        pytest.param(operator_to_vector(basis([3, 2], [0, 0]).proj()),
+                     id='operket_good_tensor'),
+        pytest.param(operator_to_vector(basis([3, 2], [0, 0]).proj()).dag(),
+                     id='operbra_good_tensor'),
+        pytest.param(tensor(basis(2, 0), qeye(3)), id='nonsquare_operator'),
+    ])
+    @pytest.mark.parametrize(['operator'], [
+        pytest.param(qeye([3, 2]), id='constant_hamiltonian'),
+        pytest.param(liouvillian(qeye([3, 2]), []), id='constant_liouvillian'),
+        pytest.param([[qeye([3, 2]), lambda t, args: 1]], id='py_scalar'),
+        pytest.param(lambda t, args: qeye([3, 2]), id='py_hamiltonian'),
+        pytest.param(lambda t, args: liouvillian(qeye([3, 2]), []),
+                     id='py_liouvillian'),
+    ])
+    def test_incorrect_state_caught(self, state, operator):
+        """
+        Test that mesolve will correctly catch an input state that is not a
+        correctly shaped state, relative to the Hamiltonian or Liouvillian.
+
+        Regression test for gh-1456.
+        """
+        times = [0, 1e-5]
+        c_op = qeye([3, 2])
+        with pytest.raises(ValueError):
+            mesolve(operator, state, times, c_ops=[c_op])
+
 
 class TestMESolveStepFuncCoeff:
     """
