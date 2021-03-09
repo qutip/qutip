@@ -95,7 +95,7 @@ cpdef cnp.ndarray[complex, ndim=1, mode="c"] spmv_csr(complex[::1] data,
 
     """
     cdef unsigned int num_rows = ptr.shape[0] - 1
-    cdef cnp.ndarray[complex, ndim=1, mode="c"] out = np.zeros((num_rows), dtype=np.complex)
+    cdef cnp.ndarray[complex, ndim=1, mode="c"] out = np.zeros((num_rows), dtype=np.complex128)
     zspmvpy(&data[0], &ind[0], &ptr[0], &vec[0], 1.0, &out[0], num_rows)
     return out
 
