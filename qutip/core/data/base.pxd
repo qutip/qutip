@@ -14,3 +14,4 @@ cdef class Data:
     cpdef Data adjoint(self)
     cpdef Data conj(self)
     cpdef Data transpose(self)
+    cpdef Data copy(self)

@@ -1,11 +1,11 @@
 #cython: language_level=3
 #cython: boundscheck=False, wrapround=False, initializedcheck=False
 
-from qutip.core.data cimport idxint, csr, CSR, dense, Dense
+from qutip.core.data cimport idxint, csr, CSR, dense, Dense, Data
 
 __all__ = [
     'mul', 'mul_csr', 'mul_dense',
-    'imul', 'imul_csr', 'imul_dense',
+    'imul', 'imul_csr', 'imul_dense', 'imul_data',
     'neg', 'neg_csr', 'neg_dense',
 ]
 
@@ -123,3 +123,12 @@ neg.add_specialisations([
 ], _defer=True)
 
 del _inspect, _Dispatcher
+
+
+cpdef Data imul_data(Data matrix, double complex value):
+    if type(matrix) is CSR:
+        return imul_csr(matrix, value)
+    elif type(matrix) is Dense:
+        return imul_dense(matrix, value)
+    else:
+        return imul(matrix, value)

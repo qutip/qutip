@@ -329,6 +329,7 @@ class QobjEvoFunc(QobjEvoBase):
     def __neg__(self):
         res = self.copy()
         res.operation_stack.append(_Block_neg())
+        res._check_validity()
         return res
 
     def __and__(self, other):
@@ -342,22 +343,26 @@ class QobjEvoFunc(QobjEvoBase):
     def trans(self):
         res = self.copy()
         res.operation_stack.append(_Block_trans())
+        res._check_validity()
         return res
 
     def conj(self):
         res = self.copy()
         res.operation_stack.append(_Block_conj())
+        res._check_validity()
         return res
 
     def dag(self):
         res = self.copy()
         res.operation_stack.append(_Block_dag())
+        res._check_validity()
         return res
 
     def _cdc(self):
         """return a.dag * a """
         res = self.copy()
         res.operation_stack.append(_Block_cdc())
+        res._check_validity()
         return res
 
     def _tensor(self, other):
@@ -410,6 +415,7 @@ class QobjEvoFunc(QobjEvoBase):
         res = self.copy()
         res._shifted = True
         res.args["_t0"] = 0
+        res._check_validity()
         return res
 
     # Unitary function of Qobj
@@ -440,7 +446,7 @@ class QobjEvoFunc(QobjEvoBase):
     # function to apply custom transformations
     def linear_map(self, op_mapping):
         """
-        Apply function to each Qobj contribution.
+        Apply mapping to each Qobj contribution.
         """
         if op_mapping is spre:
             return self._spre()
@@ -449,6 +455,33 @@ class QobjEvoFunc(QobjEvoBase):
 
         res = self.copy()
         res.operation_stack.append(_Block_linear_map(op_mapping))
+        res._check_validity()
+        return res
+
+    def to(self, data_type):
+        """
+        Convert the underlying data store of all component into the desired
+        storage representation.
+
+        The different storage representations available are the "data-layer
+        types".  By default, these are `qutip.data.Dense` and `qutip.data.CSR`,
+        which respectively construct a dense matrix store and a compressed
+        sparse row one.
+
+        The `QobjEvo` is transformed inplace.
+
+        Arguments
+        ---------
+        data_type : type
+            The data-layer type that the data of this `Qobj` should be
+            converted to.
+
+        Returns
+        -------
+        None
+        """
+        res = self.copy()
+        res.operation_stack.append(_Block_to(data_type))
         res._check_validity()
         return res
 
@@ -575,5 +608,16 @@ class _Block_linear_map(_Block_transform):
 
     def __call__(self, obj, t, args={}):
         return self.func(obj)
+
+
+class _Block_to(_Block_transform):
+    def __init__(self, data_type):
+        self.data_type = data_type
+
+    def copy(self):
+        return _Block_to(self.data_type)
+
+    def __call__(self, obj, t, args={}):
+        return obj.to(self.data_type)
 
 from .tensor import tensor

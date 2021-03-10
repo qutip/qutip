@@ -209,6 +209,29 @@ class CompilationOptions:
     }
 
 
+# Version number of the Coefficient
+COEFF_VERSION = "1.0"
+
+
+def get_root():
+    """
+    Find the location of the compiled coefficient and ensure they are in
+    the import path.
+    """
+    # qset.install['tmproot'] can be changed by the user without updating
+    # PYTHONPATH. If optionsclass allows for property like options,
+    # the logic could be moved there
+    tmproot = qset.install['tmproot']
+    root = os.path.join(tmproot, 'qutip_coeffs_{}'.format(COEFF_VERSION))
+    if not os.path.exists(root):
+        os.mkdir(root)
+    if not os.access(root, os.W_OK):
+        root = "."
+    if root not in sys.path:
+        sys.path.insert(0, root)
+    return root
+
+
 def proj(x):
     if np.isfinite(x):
         return (x)
@@ -273,9 +296,10 @@ def coeff_from_str(base, args, args_ctypes, compile_opt):
     hash_ = hashlib.sha256(bytes(parsed, encoding='utf8'))
     file_name = "qtcoeff_" + hash_.hexdigest()[:30]
     # See if it already exist, if not write and cythonize it
-    coeff = try_import(file_name, parsed)
+    coeff, file_name = try_import(file_name, parsed)
     if coeff is None or compile_opt['recompile']:
-        code = make_cy_code(parsed, variables, constants, raw, compile_opt)
+        code = make_cy_code(parsed, variables, constants,
+                            raw, compile_opt)
         coeff = compile_code(code, file_name, parsed, compile_opt)
     keys = [key for _, key, _ in variables]
     const = [fromstr(val) for _, val, _ in constants]
@@ -286,17 +310,31 @@ def try_import(file_name, parsed_in):
     """ Import the compiled coefficient if existing and check for
     name collision.
     """
+    get_root()
     coeff = None
     try:
         mod = importlib.import_module(file_name)
-        coeff = getattr(mod, "StrCoefficient")
-        parsed_saved = getattr(mod, "parsed_code")
-    except Exception as e:
-        parsed_saved = ""
-    if parsed_saved and parsed_in != parsed_saved:
-        # hash collision!
-        coeff = None
-    return coeff
+    except ModuleNotFoundError:
+        # Coefficient does not exist, to compile as file_name
+        return None, file_name
+
+    if mod.parsed_code == parsed_in:
+        # Coefficient found!
+        return mod.StrCoefficient, file_name
+
+    # hash collision!
+    # Increment filename
+    tries = -1
+    file_name_ = file_name
+    while mod.parsed_code != parsed_in and tries < 10:
+        tries += 1
+        file_name_ = file_name + str(tries)
+        try:
+            mod = importlib.import_module(file_name_)
+        except ModuleNotFoundError:
+            # Coefficient does not exist, to compile as file_name_
+            return None, file_name_
+    return mod.StrCoefficient, file_name_
 
 
 def make_cy_code(code, variables, constants, raw, compile_opt):
@@ -316,7 +354,8 @@ def make_cy_code(code, variables, constants, raw, compile_opt):
         cdef_var += "        str key{}\n".format(i)
         cdef_var += "        {} {}\n".format(ctype, name[5:])
         init_var += "        self.key{} = var[{}]\n".format(i, i)
-        args_var += "        {} = args[self.key{}]\n".format(name, i)
+        args_var += "        if self.key{} in args:\n".format(i)
+        args_var += "            {} = args[self.key{}]\n".format(name, i)
         if raw:
             call_var += "        cdef {} {} = {}\n".format(ctype, val, name)
 
@@ -335,7 +374,6 @@ cdef double pi = 3.14159265358979323
 {}
 
 parsed_code = "{}"
-
 
 @cython.auto_pickle(True)
 cdef class StrCoefficient(Coefficient):
@@ -363,9 +401,10 @@ cdef class StrCoefficient(Coefficient):
 
 
 def compile_code(code, file_name, parsed, c_opt):
-    root = qset.install['tmproot']
+    root = get_root()
     pwd = os.getcwd()
     os.chdir(root)
+    [os.remove(file) for file in glob.glob(file_name + "*")]
     full_file_name = os.path.join(root, file_name)
     file_ = open(full_file_name + ".pyx", "w")
     file_.writelines(code)
@@ -389,7 +428,7 @@ def compile_code(code, file_name, parsed, c_opt):
         warn("File")
     sys.argv = oldargs
     os.chdir(pwd)
-    return try_import(file_name, parsed)
+    return try_import(file_name, parsed)[0]
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

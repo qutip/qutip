@@ -7,7 +7,7 @@ from cpython cimport mem
 
 from scipy.linalg cimport cython_blas as blas
 
-from qutip.core.data cimport CSR, Dense, csr, dense
+from qutip.core.data cimport CSR, Dense, csr, dense, Data
 
 from qutip.core.data.adjoint cimport adjoint_csr, adjoint_dense
 from qutip.core.data.matmul cimport matmul_csr
@@ -213,3 +213,12 @@ trace.__doc__ =\
 trace.add_specialisations([
     (CSR, trace_csr),
 ], _defer=True)
+
+
+cpdef double frobenius_data(Data state):
+    if type(state) is Dense:
+        return frobenius_dense(state)
+    elif type(state) is CSR:
+        return frobenius_csr(state)
+    else:
+        return frobenius(state)

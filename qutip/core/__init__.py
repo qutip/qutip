@@ -3,6 +3,7 @@ from .coefficient import *
 from .interpolate import *
 from .qobj import *
 from .qobjevo import *
+from .qobjevofunc import *
 from .expect import *
 from .tensor import *
 from .states import *

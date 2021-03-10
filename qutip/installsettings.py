@@ -58,18 +58,12 @@ class InstallSettings:
         _logger = None
 
     try:
-        qutip_conf_dir = os.path.join(os.path.expanduser("~"), '.qutip')
-        if not os.path.exists(qutip_conf_dir):
-            os.mkdir(qutip_conf_dir)
-        tmproot = os.path.join(qutip_conf_dir, 'coeffs')
+        tmproot = os.path.join(os.path.expanduser("~"), '.qutip')
         if not os.path.exists(tmproot):
             os.mkdir(tmproot)
         assert os.access(tmproot, os.W_OK)
-        del qutip_conf_dir
     except Exception:
         tmproot = "."
-    if tmproot not in sys.path:
-        sys.path.insert(0, tmproot)
 
     # ------------------------------------------------------------------------
     # Check if we're in IPython.
