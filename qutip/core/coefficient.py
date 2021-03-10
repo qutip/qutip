@@ -334,7 +334,13 @@ def try_import(file_name, parsed_in):
         except ModuleNotFoundError:
             # Coefficient does not exist, to compile as file_name_
             return None, file_name_
-    return mod.StrCoefficient, file_name_
+
+    if mod.parsed_code != parsed_in:
+        # At least 10 coeff with the same hash!?
+        # Overwrite the last file,
+        return None, file_name_
+    else:
+        return mod.StrCoefficient, file_name
 
 
 def make_cy_code(code, variables, constants, raw, compile_opt):

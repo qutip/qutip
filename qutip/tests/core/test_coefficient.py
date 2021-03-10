@@ -46,6 +46,10 @@ def g(t, args):
     return np.cos(args["w"] * t * np.pi)
 
 
+def h(t, args):
+    return args["a"] + args["b"] +t
+
+
 args = {"w": 1j}
 tlist = np.linspace(0, 1, 101)
 f_asarray = f(tlist, args)
@@ -116,8 +120,23 @@ def test_CoeffCallArgs(base, kwargs, tol):
     t = np.random.rand() * 0.9 + 0.05
     w = np.random.rand() + 0.5j
     val = np.exp(w * t * np.pi)
-    coeff = coefficient(f, **kwargs)
+    coeff = coefficient(base, **kwargs)
     assert np.allclose(coeff(t, {"w": w}), val, rtol=tol)
+
+
+@pytest.mark.parametrize(['base', 'tol'], [
+    pytest.param(h, 1e-10, id="func"),
+    pytest.param("a + b + t", 1e-10, id="string")
+])
+def test_CoeffCallArguments(base, tol):
+    # Partial args update
+    t = np.random.rand() * 0.9 + 0.05
+    args = {"a": 1, "b": 1}
+    a = np.random.rand()
+    val = a + 1 + t
+    coeff = coefficient(base, args=args)
+    coeff.arguments({"a": a})
+    assert np.allclose(coeff(t), val, rtol=tol)
 
 
 @pytest.mark.parametrize(['style'], [
