@@ -190,6 +190,10 @@ class CompilationOptions:
     options = {
         # use cython for compiling string coefficient
         "use_cython": _use_cython,
+        # try to parse the string so qutip recognise similar string as one
+        # compiled coefficient:
+        # "a*t", "a * t", "b*t" would all use one compiled version
+        "try_parse": True,
         # In compiled Coefficient, are int kept as int?
         # None indicate to look for list subscription
         "accept_int": None,
@@ -303,6 +307,7 @@ def coeff_from_str(base, args, args_ctypes, compile_opt):
         coeff = compile_code(code, file_name, parsed, compile_opt)
     keys = [key for _, key, _ in variables]
     const = [fromstr(val) for _, val, _ in constants]
+    print(keys, variables)
     return coeff(base, keys, const, args)
 
 
@@ -334,7 +339,13 @@ def try_import(file_name, parsed_in):
         except ModuleNotFoundError:
             # Coefficient does not exist, to compile as file_name_
             return None, file_name_
-    return mod.StrCoefficient, file_name_
+
+    if mod.parsed_code != parsed_in:
+        # At least 10 coeff with the same hash!?
+        # Giveup
+        raise ValueError("string hash collision, change the string or ")
+    else:
+        return mod.StrCoefficient, file_name
 
 
 def make_cy_code(code, variables, constants, raw, compile_opt):
@@ -592,32 +603,38 @@ def parse(code, args, compile_opt):
     return code, variables, ordered_constants
 
 
-def use_hinted_type(var_tuple, ncode, args_ctypes):
-    name, key, type_ = var_tuple
-    if key in args_ctypes:
-        code = code.replace(cte, cte[0] + name, 1)
+def use_hinted_type(variables, code, args_ctypes):
+    variables_manually_typed = []
+    for i, (name, key, type_) in enumerate(variables):
+        if key in args_ctypes:
+            new_name = "self._custom_" + args_ctypes[key] + str(i)
+            code = code.replace(name, new_name)
+            variables_manually_typed.append((new_name, key, args_ctypes[key]))
+        else:
+            variables_manually_typed.append((name, key, type_))
+    return code, variables_manually_typed
 
 
 def try_parse(code, args, args_ctypes, compile_opt):
     """
     Try to parse and verify that the result is still usable.
     """
+    if not compile_opt['try_parse']:
+        variables = [("self." + name, name, "object") for name in args]
+        code, variables = use_hinted_type(variables, code, args_ctypes)
+        return code, variables, [], True
     ncode, variables, constants = parse(code, args, compile_opt)
     if compile_opt['no_types']:
         # Fallback to all object
         variables = [(f, s, "object") for f, s, _ in variables]
         constants = [(f, s, "object") for f, s, _ in constants]
-    variables_manually_typed = []
-    for i, (name, key, type_) in enumerate(variables):
-        if key in args_ctypes:
-            new_name = "self._custom_" + args_ctypes[key] + str(i)
-            ncode = ncode.replace(name, new_name)
-            variables_manually_typed.append((new_name, key, args_ctypes[key]))
-        else:
-            variables_manually_typed.append((name, key, type_))
-    variables = variables_manually_typed
-    if (compile_opt['extra_import'] or
-        test_parsed(ncode, variables, constants, args)):
+    ncode, variables = use_hinted_type(variables, ncode, args_ctypes)
+    if (
+        compile_opt['extra_import']
+        and not compile_opt['extra_import'].isspace()
+    ):
+        return ncode + ";", variables, constants, False
+    if test_parsed(ncode, variables, constants, args):
             return ncode, variables, constants, False
     else:
         warn("Could not find c types", StringParsingWarning)
