@@ -208,7 +208,10 @@ def test_CoeffOptions():
     options.append(CompilationOptions(accept_float=False))
     options.append(CompilationOptions(no_types=True))
     options.append(CompilationOptions(use_cython=False))
+    options.append(CompilationOptions(try_parse=False))
     coeffs = [coefficient(base, compile_opt=opt) for opt in options]
+    for coeff in coeffs:
+        assert coeff(0) == 2+1j
     for coeff1, coeff2 in combinations(coeffs, 2):
         assert not isinstance(coeff1, coeff2.__class__)
 

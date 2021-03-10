@@ -190,6 +190,10 @@ class CompilationOptions:
     options = {
         # use cython for compiling string coefficient
         "use_cython": _use_cython,
+        # try to parse the string so qutip recognise similar string as one
+        # compiled coefficient:
+        # "a*t", "a * t", "b*t" would all use one compiled version
+        "try_parse": True,
         # In compiled Coefficient, are int kept as int?
         # None indicate to look for list subscription
         "accept_int": None,
@@ -337,8 +341,8 @@ def try_import(file_name, parsed_in):
 
     if mod.parsed_code != parsed_in:
         # At least 10 coeff with the same hash!?
-        # Overwrite the last file,
-        return None, file_name_
+        # Giveup
+        raise ValueError("")
     else:
         return mod.StrCoefficient, file_name
 
@@ -608,6 +612,9 @@ def try_parse(code, args, args_ctypes, compile_opt):
     """
     Try to parse and verify that the result is still usable.
     """
+    if not compile_opt['try_parse']:
+        variable = [("self." + name, name, "object") for name in args]
+        return code, variable, [], True
     ncode, variables, constants = parse(code, args, compile_opt)
     if compile_opt['no_types']:
         # Fallback to all object
