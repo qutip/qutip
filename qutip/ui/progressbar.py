@@ -32,7 +32,9 @@
 ###############################################################################
 from __future__ import print_function
 
-__all__ = ['BaseProgressBar', 'TextProgressBar', 'EnhancedTextProgressBar']
+__all__ = ['BaseProgressBar', 'TextProgressBar',
+           'EnhancedTextProgressBar', 'TqdmProgressBar',
+           'get_progess_bar']
 
 import time
 import datetime
@@ -57,14 +59,19 @@ class BaseProgressBar(object):
     def __init__(self, iterations=0, chunk_size=10):
         pass
 
-    def start(self, iterations, chunk_size=10):
+    def start(self, iterations, chunk_size=10, **kwargs):
         self.N = float(iterations)
+        self.n = 0
         self.p_chunk_size = chunk_size
         self.p_chunk = chunk_size
         self.t_start = time.time()
+        self.t_done = self.t_start - 1
 
-    def update(self, n):
+    def update(self, n=None):
         pass
+
+    def total_time(self):
+        return self.t_done - self.t_start
 
     def time_elapsed(self):
         return "%6.2fs" % (time.time() - self.t_start)
@@ -82,7 +89,7 @@ class BaseProgressBar(object):
         return time_string
 
     def finished(self):
-        pass
+        self.t_done = time.time()
 
 
 class TextProgressBar(BaseProgressBar):
@@ -91,12 +98,15 @@ class TextProgressBar(BaseProgressBar):
     """
 
     def __init__(self, iterations=0, chunk_size=10):
+        pass
+        # super(TextProgressBar, self).start(iterations, chunk_size)
+
+    def start(self, iterations, chunk_size=10, **kwargs):
         super(TextProgressBar, self).start(iterations, chunk_size)
 
-    def start(self, iterations, chunk_size=10):
-        super(TextProgressBar, self).start(iterations, chunk_size)
-
-    def update(self, n):
+    def update(self, n=None):
+        self.n += 1
+        n = self.n
         p = (n / self.N) * 100.0
         if p >= self.p_chunk:
             print("%4.1f%%." % p +
@@ -116,14 +126,17 @@ class EnhancedTextProgressBar(BaseProgressBar):
     """
 
     def __init__(self, iterations=0, chunk_size=10):
-        super(EnhancedTextProgressBar, self).start(iterations, chunk_size)
+        pass
+        # super(EnhancedTextProgressBar, self).start(iterations, chunk_size)
 
-    def start(self, iterations, chunk_size=10):
+    def start(self, iterations, chunk_size=10, **kwargs):
         super(EnhancedTextProgressBar, self).start(iterations, chunk_size)
         self.fill_char = '*'
         self.width = 25
 
-    def update(self, n):
+    def update(self, n=None):
+        self.n += 1
+        n = self.n
         percent_done = int(round(n / self.N * 100.0))
         all_full = self.width - 2
         num_hashes = int(round((percent_done / 100.0) * all_full))
@@ -142,3 +155,41 @@ class EnhancedTextProgressBar(BaseProgressBar):
     def finished(self):
         self.t_done = time.time()
         print("\r", "Total run time: %s" % self.time_elapsed())
+
+
+class TqdmProgressBar(BaseProgressBar):
+    """
+    A progress bar using tqdm module
+    """
+
+    def __init__(self, iterations=0, chunk_size=10):
+        from tqdm.auto import tqdm
+        self.tqdm = tqdm
+
+    def start(self, iterations, **kwargs):
+        self.pbar = self.tqdm(total=iterations, **kwargs)
+        self.t_start = time.time()
+        self.t_done = self.t_start - 1
+
+    def update(self, n=None):
+        self.pbar.update()
+
+    def finished(self):
+        self.pbar.close()
+        self.t_done = time.time()
+
+
+def get_progess_bar(opt):
+    if isinstance(opt, BaseProgressBar):
+        return opt
+    if opt in ["Enhanced", "enhanced"]:
+        progress_bar = EnhancedTextProgressBar()
+    elif opt in [True, "Text", "text"]:
+        progress_bar = TextProgressBar()
+    elif opt in ["Tqdm", "tqdm"]:
+        progress_bar = TqdmProgressBar()
+    elif opt in [False, "", None]:
+        progress_bar = BaseProgressBar()
+    else:
+        raise ValueError("Progress Bar not understood")
+    return progress_bar
