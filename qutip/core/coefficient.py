@@ -341,9 +341,9 @@ def try_import(file_name, parsed_in):
             return None, file_name_
 
     if mod.parsed_code != parsed_in:
-        # At least 10 coeff with the same hash!?
-        # Giveup
-        raise ValueError("string hash collision, change the string or ")
+        # At least 10 coeff with the same hash!? Giveup...
+        raise ValueError("string hash collision, change the string "
+                         "or clean files in qutip.settings.install['tmproot']")
     else:
         return mod.StrCoefficient, file_name
 
@@ -630,12 +630,11 @@ def try_parse(code, args, args_ctypes, compile_opt):
         constants = [(f, s, "object") for f, s, _ in constants]
     ncode, variables = use_hinted_type(variables, ncode, args_ctypes)
     if (
-        compile_opt['extra_import']
-        and not compile_opt['extra_import'].isspace()
+        (compile_opt['extra_import']
+        and not compile_opt['extra_import'].isspace())
+        or test_parsed(ncode, variables, constants, args)
     ):
-        return ncode + ";", variables, constants, False
-    if test_parsed(ncode, variables, constants, args):
-            return ncode, variables, constants, False
+        return ncode, variables, constants, False
     else:
         warn("Could not find c types", StringParsingWarning)
         remaped_variable = []
