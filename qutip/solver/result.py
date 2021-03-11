@@ -255,64 +255,6 @@ class MultiTrajResult:
     expect_traj_std(ntraj):
         Standard derivation of expectation values over `ntraj` trajectories.
         Last state of each trajectories. (ket)
-
-    average_final_state : Qobj
-        Average last state. (density matrix)
-
-    steady_state : Qobj
-        Average state of each time and trajectories. (density matrix)
-
-    runs_expect : list of list of list of number
-        Expectation values for each [e_ops, trajectory, time]
-
-    average_expect : list of list of number
-        Averaged expectation values over trajectories.
-
-    std_expect : list of list of number
-        Standard derivation of each averaged expectation values.
-
-    expect : list
-        list of list of averaged expectation values.
-
-    times : list
-        list of the times at which the expectation values and
-        states where taken.
-
-    stats :
-        Diverse statistics of the evolution.
-
-    num_expect : int
-        Number of expectation value operators in simulation.
-
-    num_collapse : int
-        Number of collapse operators in simualation.
-
-    num_traj : int/list
-        Number of trajectories (for stochastic solvers). A list indicates
-        that averaging of expectation values was done over a subset of total
-        number of trajectories.
-
-    col_times : list
-        Times at which state collpase occurred. Only for Monte Carlo solver.
-
-    col_which : list
-        Which collapse operator was responsible for each collapse in
-        ``col_times``. Only for Monte Carlo solver.
-
-    collapse : list
-        Each collapse per trajectory as a (time, which_oper)
-
-    photocurrent : list
-        photocurrent corresponding to each collapse operator.
-
-    Methods
-    -------
-    expect_traj_avg(ntraj):
-        Averaged expectation values over `ntraj` trajectories.
-
-    expect_traj_std(ntraj):
-        Standard derivation of expectation values over `ntraj` trajectories.
-
     """
     def __init__(self, num_c_ops=0):
         """
