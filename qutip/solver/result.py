@@ -1,9 +1,17 @@
 """ Class for solve function results"""
 import numpy as np
-from ..core import Qobj, QobjEvo, spre, issuper
-
+from ..core import Qobj, QobjEvo, spre, issuper, expect
 
 __all__ = ["Result", "MultiTrajResult", "MultiTrajResultAveraged"]
+
+
+class _Expect_Caller:
+    """pickable partial(expect, oper) with extra `t` input"""
+    def __init__(self, oper):
+        self.oper = oper
+
+    def __call__(self, t, state):
+        return expect(self.oper, state)
 
 
 class Result:
@@ -55,7 +63,6 @@ class Result:
         self._e_ops_dict = False
         self._e_num = 0
         self._e_ops = []
-        self._e_type = []
 
         if isinstance(self._raw_e_ops, (Qobj, QobjEvo)):
             e_ops = [self._raw_e_ops]
@@ -69,18 +76,13 @@ class Result:
 
         for e in e_ops:
             if isinstance(e, Qobj):
-                if not issuper(e) and _super:
-                    e = spre(e)
-                self._e_ops.append(QobjEvo(e).expect)
-                self._e_type.append(e.isherm)
+                self._e_ops.append(_Expect_Caller(e))
             elif isinstance(e, QobjEvo):
                 if not issuper(e.cte) and _super:
                     e = spre(e)
                 self._e_ops.append(e.expect)
-                self._e_type.append(e.isherm)
             elif callable(e):
                 self._e_ops.append(e)
-                self._e_type.append(False)
             self._expects.append([])
 
         self._e_num = len(e_ops)
@@ -144,11 +146,8 @@ class Result:
     @property
     def expect(self):
         result = []
-        for expect_vals, isreal  in zip(self._expects, self._e_type):
-            es = np.array(expect_vals)
-            if isreal:
-                es = es.real
-            result.append(es)
+        for expect_vals in self._expects:
+            result.append(np.array(expect_vals))
         if self._e_ops_dict:
             result = {e: result[n]
                       for n, e in enumerate(self._e_ops_dict.keys())}
@@ -368,17 +367,10 @@ class MultiTrajResult:
     @property
     def average_expect(self):
         num_e = self.trajectories[0]._e_num
-        _e_type = self.trajectories[0]._e_type
         _e_ops_dict = self.trajectories[0]._e_ops_dict
-        avg = [np.mean(np.stack([traj._expects[i]
+        result = [np.mean(np.stack([traj._expects[i]
                     for traj in self.trajectories]), axis=0)
                for i in range(num_e)]
-
-        result = []
-        for expect_vals, isreal  in zip(avg, _e_type):
-            if isreal:
-                expect_vals = expect_vals.real
-            result.append(expect_vals)
 
         if _e_ops_dict:
             result = {e: result[n]
@@ -388,17 +380,10 @@ class MultiTrajResult:
     @property
     def std_expect(self):
         num_e = self.trajectories[0]._e_num
-        _e_type = self.trajectories[0]._e_type
         _e_ops_dict = self.trajectories[0]._e_ops_dict
-        avg = [np.std(np.stack([traj._expects[i]
+        result = [np.std(np.stack([traj._expects[i]
                     for traj in self.trajectories]), axis=0)
                for i in range(num_e)]
-
-        result = []
-        for expect_vals, isreal  in zip(avg, _e_type):
-            if isreal:
-                expect_vals = expect_vals.real
-            result.append(expect_vals)
 
         if _e_ops_dict:
             result = {e: result[n]
@@ -408,16 +393,9 @@ class MultiTrajResult:
     @property
     def runs_expect(self):
         num_e = self.trajectories[0]._e_num
-        _e_type = self.trajectories[0]._e_type
         _e_ops_dict = self.trajectories[0]._e_ops_dict
-        avg = [np.stack([traj._expects[i] for traj in self.trajectories])
+        result = [np.stack([traj._expects[i] for traj in self.trajectories])
                for i in range(num_e)]
-
-        result = []
-        for expect_vals, isreal  in zip(avg, _e_type):
-            if isreal:
-                expect_vals = expect_vals.real
-            result.append(expect_vals)
 
         if _e_ops_dict:
             result = {e: result[n]
@@ -426,17 +404,10 @@ class MultiTrajResult:
 
     def expect_traj_avg(self, ntraj=-1):
         num_e = self.trajectories[0]._e_num
-        _e_type = self.trajectories[0]._e_type
         _e_ops_dict = self.trajectories[0]._e_ops_dict
-        avg = [np.mean(np.stack([traj._expects[i]
+        result = [np.mean(np.stack([traj._expects[i]
                     for traj in self.trajectories[:ntraj]]), axis=0)
                for i in range(num_e)]
-
-        result = []
-        for expect_vals, isreal  in zip(avg, _e_type):
-            if isreal:
-                expect_vals = expect_vals.real
-            result.append(expect_vals)
 
         if _e_ops_dict:
             result = {e: result[n]
@@ -445,17 +416,10 @@ class MultiTrajResult:
 
     def expect_traj_std(self, ntraj=-1):
         num_e = self.trajectories[0]._e_num
-        _e_type = self.trajectories[0]._e_type
         _e_ops_dict = self.trajectories[0]._e_ops_dict
-        avg = [np.std(np.stack([traj._expects[i]
+        result = [np.std(np.stack([traj._expects[i]
                     for traj in self.trajectories[:ntraj]]), axis=0)
                for i in range(num_e)]
-
-        result = []
-        for expect_vals, isreal  in zip(avg, _e_type):
-            if isreal:
-                expect_vals = expect_vals.real
-            result.append(expect_vals)
 
         if _e_ops_dict:
             result = {e: result[n]
@@ -682,15 +646,8 @@ class MultiTrajResultAveraged:
     @property
     def average_expect(self):
         num_e = self.trajectories._e_num
-        _e_type = self.trajectories._e_type
         _e_ops_dict = self.trajectories._e_ops_dict
-        avg = [_sum / self._num for _sum in self._sum_expect]
-
-        result = []
-        for expect_vals, isreal  in zip(avg, _e_type):
-            if isreal:
-                expect_vals = expect_vals.real
-            result.append(expect_vals)
+        result = [_sum / self._num for _sum in self._sum_expect]
 
         if _e_ops_dict:
             result = {e: result[n]
@@ -700,17 +657,10 @@ class MultiTrajResultAveraged:
     @property
     def std_expect(self):
         num_e = self.trajectories._e_num
-        _e_type = self.trajectories._e_type
         _e_ops_dict = self.trajectories._e_ops_dict
         avg = [_sum / self._num for _sum in self._sum_expect]
         avg2 = [_sum2 / self._num for _sum2 in self._sum2_expect]
-        std = [np.sqrt(a2 - a*a) for a, a2 in zip(avg, avg2)]
-
-        result = []
-        for expect_vals, isreal  in zip(std, _e_type):
-            if isreal:
-                expect_vals = expect_vals.real
-            result.append(expect_vals)
+        result = [np.sqrt(a2 - a*a) for a, a2 in zip(avg, avg2)]
 
         if _e_ops_dict:
             result = {e: result[n]
