@@ -1,5 +1,4 @@
-
-
+""" Class for solve function results"""
 import numpy as np
 from ..core import Qobj, QobjEvo, spre, issuper
 
@@ -9,7 +8,8 @@ __all__ = ["Result", "MultiTrajResult", "MultiTrajResultAveraged"]
 
 class Result:
     """
-    Result for one trajectory of an solver evolution.
+    Class for storing simulation results from single trajectory
+    dynamics solvers.
 
     Property
     --------
@@ -26,7 +26,16 @@ class Result:
     times : list
         list of the times at which the expectation values and
         states where taken.
-    """
+
+    stats :
+        Diverse statistics of the evolution.
+
+    num_expect : int
+        Number of expectation value operators in simulation.
+
+    num_collapse : int
+        Number of collapse operators in simualation.
+"""
     def __init__(self, e_ops, options, super_):
         self.e_ops = e_ops
         self.times = []
@@ -40,7 +49,7 @@ class Result:
         self._read_e_ops(super_)
         self._read_options(options)
         self.collapse = None
-        self.stats = {}
+        self.stats = {"num_expect": self._e_num}
 
     def _read_e_ops(self, _super):
         self._e_ops_dict = False
@@ -77,7 +86,10 @@ class Result:
         self._e_num = len(e_ops)
 
     def _read_options(self, options):
-        self._store_states = self._e_num == 0 or options['store_states']
+        if options['store_states'] is not None:
+            self._store_states = options['store_states']
+        else:
+            self._store_states = self._e_num == 0
         self._store_final_state = options['store_final_state']
         if self._super:
             self._normalize_outputs = options['normalize_output'] in ['dm', True, 'all']
@@ -146,6 +158,13 @@ class Result:
     def num_expect(self):
         return self._e_num
 
+    @property
+    def num_collapse(self):
+        if 'num_collapse' in self.stats:
+            return self.stats["num_collapse"]
+        else:
+            return 0
+
     def __repr__(self):
         out = ""
         out += self.stats['solver'] + "\n"
@@ -165,7 +184,136 @@ class Result:
 
 class MultiTrajResult:
     """
-    Contain result of simulations with multiple trajectories.
+    Contain result of simulations with multiple trajectories. Keeps all
+    trajectories' data.
+
+    Property
+    --------
+
+    runs_states : list of list of Qobj
+        Every state of the evolution for each trajectories. (ket)
+
+    average_states : list of Qobj
+        Average state for each time. (density matrix)
+
+    runs_final_states : Qobj
+        Average last state for each trajectories. (ket)
+
+    average_final_state : Qobj
+        Average last state. (density matrix)
+
+    steady_state : Qobj
+        Average state of each time and trajectories. (density matrix)
+
+    runs_expect : list of list of list of number
+        Expectation values for each [e_ops, trajectory, time]
+
+    average_expect : list of list of number
+        Averaged expectation values over trajectories.
+
+    std_expect : list of list of number
+        Standard derivation of each averaged expectation values.
+
+    expect : list
+        list of list of averaged expectation values.
+
+    times : list
+        list of the times at which the expectation values and
+        states where taken.
+
+    stats :
+        Diverse statistics of the evolution.
+
+    num_expect : int
+        Number of expectation value operators in simulation.
+
+    num_collapse : int
+        Number of collapse operators in simualation.
+
+    num_traj : int/list
+        Number of trajectories (for stochastic solvers). A list indicates
+        that averaging of expectation values was done over a subset of total
+        number of trajectories.
+
+    col_times : list
+        Times at which state collpase occurred. Only for Monte Carlo solver.
+
+    col_which : list
+        Which collapse operator was responsible for each collapse in
+        ``col_times``. Only for Monte Carlo solver.
+
+    collapse : list
+        Each collapse per trajectory as a (time, which_oper)
+
+    photocurrent : list
+        photocurrent corresponding to each collapse operator.
+
+    Methods
+    -------
+    expect_traj_avg(ntraj):
+        Averaged expectation values over `ntraj` trajectories.
+
+    expect_traj_std(ntraj):
+        Standard derivation of expectation values over `ntraj` trajectories.
+        Last state of each trajectories. (ket)
+
+    average_final_state : Qobj
+        Average last state. (density matrix)
+
+    steady_state : Qobj
+        Average state of each time and trajectories. (density matrix)
+
+    runs_expect : list of list of list of number
+        Expectation values for each [e_ops, trajectory, time]
+
+    average_expect : list of list of number
+        Averaged expectation values over trajectories.
+
+    std_expect : list of list of number
+        Standard derivation of each averaged expectation values.
+
+    expect : list
+        list of list of averaged expectation values.
+
+    times : list
+        list of the times at which the expectation values and
+        states where taken.
+
+    stats :
+        Diverse statistics of the evolution.
+
+    num_expect : int
+        Number of expectation value operators in simulation.
+
+    num_collapse : int
+        Number of collapse operators in simualation.
+
+    num_traj : int/list
+        Number of trajectories (for stochastic solvers). A list indicates
+        that averaging of expectation values was done over a subset of total
+        number of trajectories.
+
+    col_times : list
+        Times at which state collpase occurred. Only for Monte Carlo solver.
+
+    col_which : list
+        Which collapse operator was responsible for each collapse in
+        ``col_times``. Only for Monte Carlo solver.
+
+    collapse : list
+        Each collapse per trajectory as a (time, which_oper)
+
+    photocurrent : list
+        photocurrent corresponding to each collapse operator.
+
+    Methods
+    -------
+    expect_traj_avg(ntraj):
+        Averaged expectation values over `ntraj` trajectories.
+
+    expect_traj_std(ntraj):
+        Standard derivation of expectation values over `ntraj` trajectories.
+
     """
     def __init__(self, num_c_ops=0):
         """
@@ -393,10 +541,71 @@ class MultiTrajResult:
     def num_traj(self):
         return len(self.trajectories)
 
+    @property
+    def num_expect(self):
+        return self.trajectories[0].num_expect
+
+    @property
+    def num_collapse(self):
+        return self.trajectories[0].num_collapse
+
 
 class MultiTrajResultAveraged:
     """
     Contain result of simulations with multiple trajectories.
+    Only keeps the averages.
+
+    Property
+    --------
+    average_states : list of Qobj
+        Average state for each time. (density matrix)
+
+    average_final_state : Qobj
+        Average last state. (density matrix)
+
+    steady_state : Qobj
+        Average state of each time and trajectories. (density matrix)
+
+    average_expect : list of list of number
+        Averaged expectation values over trajectories.
+
+    std_expect : list of list of number
+        Standard derivation of each averaged expectation values.
+
+    expect : list
+        list of list of averaged expectation values.
+
+    times : list
+        list of the times at which the expectation values and
+        states where taken.
+
+    stats :
+        Diverse statistics of the evolution.
+
+    num_expect : int
+        Number of expectation value operators in simulation.
+
+    num_collapse : int
+        Number of collapse operators in simualation.
+
+    num_traj : int/list
+        Number of trajectories (for stochastic solvers). A list indicates
+        that averaging of expectation values was done over a subset of total
+        number of trajectories.
+
+    col_times : list
+        Times at which state collpase occurred. Only for Monte Carlo solver.
+
+    col_which : list
+        Which collapse operator was responsible for each collapse in
+        ``col_times``. Only for Monte Carlo solver.
+
+    collapse : list
+        Each collapse per trajectory as a (time, which_oper)
+
+    photocurrent : list
+        photocurrent corresponding to each collapse operator.
+
     """
     def __init__(self, num_c_ops=0):
         """
@@ -596,3 +805,11 @@ class MultiTrajResultAveraged:
     @property
     def num_traj(self):
         return self._num
+
+    @property
+    def num_expect(self):
+        return self.trajectories.num_expect
+
+    @property
+    def num_collapse(self):
+        return self.trajectories.num_collapse

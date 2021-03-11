@@ -36,16 +36,11 @@ mappings, using the builtin Python module multiprocessing.
 """
 __all__ = ['parallel_map', 'serial_map', 'loky_pmap', 'get_map']
 
-from scipy import array
 import multiprocessing
-from functools import partial
 import os
 import sys
 import time
-import signal
-from qutip.settings import settings as qset
 from qutip.ui.progressbar import get_progess_bar
-
 
 if sys.platform == 'darwin':
     Pool = multiprocessing.get_context('fork').Pool
@@ -57,6 +52,7 @@ map_kw = {
     'timeout': 1e8,
     'num_cpus': multiprocessing.cpu_count(),
 }
+
 
 def serial_map(task, values, task_args=None, task_kwargs=None,
                reduce_func=None, map_kw=map_kw,

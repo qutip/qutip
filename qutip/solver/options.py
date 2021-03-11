@@ -12,18 +12,18 @@ class SolverOptions:
     :func:`qutip.mcsolve`. Options can be specified either as arguments to the
     constructor::
 
-        opts = SolverOptions(order=10, ...)
+        opts = SolverOptions(progress_bar='enhanced', ...)
 
     or by changing the class attributes after creation::
 
         opts = SolverOptions()
-        opts.order = 10
+        opts['progress_bar'] = 'enhanced'
 
     Returns options class to be used as options in evolution solvers.
 
     The default can be changed by::
 
-        qutip.settings.solver['order'] = 10
+        qutip.settings.solver['progress_bar'] = 'enhanced'
 
     Options
     -------
@@ -51,20 +51,20 @@ class SolverOdeOptions:
     """
     Class of options for evolution solvers such as :func:`qutip.mesolve` and
     :func:`qutip.mcsolve`. Options can be specified either as arguments to the
-    constructor::
+    SolverOptions constructor::
 
-        opts = SolverOptions(order=10, ...)
+        opts = SolverOptions(method=bdf, ...)
 
     or by changing the class attributes after creation::
 
         opts = SolverOptions()
-        opts.order = 10
+        opts.ode['method'] = 'bdf'
 
     Returns options class to be used as options in evolution solvers.
 
     The default can be changed by::
 
-        qutip.settings.solver['order'] = 10
+        qutip.settings.solver.ode['method'] = 'bdf'
 
     Options
     -------
@@ -102,8 +102,8 @@ class SolverOdeOptions:
         Data type of the state, most solver can only work with `Dense`.
 
     feedback_normalize: bool
-
-
+        Normalize the state before passing it to coefficient when using
+        feedback.
     """
     options = {
         # Integration method (default = 'adams', for stiff 'bdf')
@@ -140,33 +140,34 @@ class SolverOdeOptions:
 @optionsclass("results", SolverOptions)
 class SolverResultsOptions:
     """
-    Class of options for evolution solvers such as :func:`qutip.mesolve` and
-    :func:`qutip.mcsolve`. Options can be specified either as arguments to the
-    constructor::
+    Class of options for Results of evolution solvers such as
+    :func:`qutip.mesolve` and :func:`qutip.mcsolve`.
+    Options can be specified when constructing SolverOptions
 
-        opts = SolverOptions(order=10, ...)
+        opts = SolverOptions(store_final_state=True, ...)
 
     or by changing the class attributes after creation::
 
         opts = SolverOptions()
-        opts.order = 10
+        opts.results["store_final_state"] = True
 
     Returns options class to be used as options in evolution solvers.
 
     The default can be changed by::
 
-        qutip.settings.solver['order'] = 10
+        qutip.settings.solver.result['store_final_state'] = True
 
     Options
     -------
     store_final_state : bool {False, True}
         Whether or not to store the final state of the evolution in the
         result class.
-    store_states : bool {False, True}
-        Whether or not to store the state vectors or density matrices in the
-        result class, even if expectation values operators are given. If no
-        expectation are provided, then states are stored by default and this
-        option has no effect.
+
+    store_states : bool {False, True, None}
+        Whether or not to store the state vectors or density matrices.
+        On `None` the states will be saved if no expectation operators are
+        given.
+
     normalize_output : str {"", "ket", "all"}
         normalize output state to hide ODE numerical errors.
         On "ket", only 'ket' output are normalized.
@@ -175,7 +176,7 @@ class SolverResultsOptions:
         # store final state?
         "store_final_state": False,
         # store states even if expectation operators are given?
-        "store_states": False,
+        "store_states": None,
         # Normalize output of solvers
         # (turned off for batch unitary propagator mode)
         "normalize_output": "ket",
@@ -185,16 +186,16 @@ class SolverResultsOptions:
 @optionsclass("mcsolve", SolverOptions)
 class McOptions:
     """
-    Class of options for evolution solvers such as :func:`qutip.mesolve` and
-    :func:`qutip.mcsolve`. Options can be specified either as arguments to the
-    constructor::
+    Class of options specific for :func:`qutip.mcsolve`.
+    Options can be specified either as arguments to the constructor of
+    SolverOptions::
 
         opts = SolverOptions(norm_tol=1e-3, ...)
 
     or by changing the class attributes after creation::
 
         opts = SolverOptions()
-        opts['norm_tol'] = 1e-3
+        opts.mcsolve['norm_tol'] = 1e-3
 
     Returns options class to be used as options in evolution solvers.
 
