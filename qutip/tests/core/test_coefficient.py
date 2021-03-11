@@ -35,7 +35,13 @@ import pickle
 import qutip as qt
 import numpy as np
 from qutip.core.coefficient import (coefficient, norm, conj, shift,
-                                    reduce, CompilationOptions)
+                                    reduce, CompilationOptions,
+                                    clean_compiled_coefficient
+                                   )
+
+
+# Ensure the latest version is tested
+clean_compiled_coefficient(True)
 
 
 def f(t, args):

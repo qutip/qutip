@@ -130,7 +130,7 @@ cdef class CQobjEvo:
 
     cpdef Data matmul(self, double t, Data matrix, Data out=None):
         cdef size_t i
-        if type(matrix) is Dense and (out is None or type(out) is None):
+        if type(matrix) is Dense and (out is None or type(out) is Dense):
             return self.matmul_dense(t, matrix, out)
         self._factor(t)
         if out is None:
@@ -220,6 +220,8 @@ cdef class CQobjFunc(CQobjEvo):
         return self.base(t, data=data)
 
     cpdef Data matmul(self, double t, Data matrix, Data out=None):
+        if type(matrix) is Dense and (out is None or type(out) is Dense):
+            return self.matmul_dense(t, matrix, out)
         cdef Data objdata = self.call(t, data=True)
         if out is not None:
             out = _data.add(_data.matmul(objdata, matrix), out)
