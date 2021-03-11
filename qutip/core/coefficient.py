@@ -28,7 +28,8 @@ from .cy.coefficient import (InterpolateCoefficient, InterCoefficient,
                              Coefficient)
 
 
-__all__ = ["coefficient", "CompilationOptions", "Coefficient"]
+__all__ = ["coefficient", "CompilationOptions", "Coefficient",
+           "clean_compiled_coefficient"]
 
 
 class StringParsingWarning(Warning):
@@ -236,6 +237,26 @@ def get_root():
     return root
 
 
+def clean_compiled_coefficient(all=False):
+    """
+    Remove previouly compiled string Coefficient.
+
+    Parameter:
+    ----------
+    all: bool
+        If not `all` will remove only previous version.
+    """
+    import glob
+    import shutil
+    tmproot = qset.install['tmproot']
+    root = os.path.join(tmproot, 'qutip_coeffs_{}'.format(COEFF_VERSION))
+    folders = glob.glob(os.path.join(tmproot, 'qutip_coeffs_') + "*")
+    for folder in folders:
+        if all or folder != root:
+            shutil.rmtree(folder)
+
+
+
 def proj(x):
     if np.isfinite(x):
         return (x)
@@ -364,7 +385,10 @@ def make_cy_code(code, variables, constants, raw, compile_opt):
     for i, (name, val, ctype) in enumerate(variables):
         cdef_var += "        str key{}\n".format(i)
         cdef_var += "        {} {}\n".format(ctype, name[5:])
-        init_var += "        self.key{} = var[{}]\n".format(i, i)
+        if not raw:
+            init_var += "        self.key{} = var[{}]\n".format(i, i)
+        else:
+            init_var += "        self.key{} = '{}'\n".format(i, val)
         args_var += "        if self.key{} in args:\n".format(i)
         args_var += "            {} = args[self.key{}]\n".format(name, i)
         if raw:
@@ -620,7 +644,8 @@ def try_parse(code, args, args_ctypes, compile_opt):
     Try to parse and verify that the result is still usable.
     """
     if not compile_opt['try_parse']:
-        variables = [("self." + name, name, "object") for name in args]
+        variables = [("self." + name, name, "object") for name in args
+                     if name in code]
         code, variables = use_hinted_type(variables, code, args_ctypes)
         return code, variables, [], True
     ncode, variables, constants = parse(code, args, compile_opt)
