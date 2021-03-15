@@ -53,7 +53,7 @@ def g(t, args):
 
 
 def h(t, args):
-    return args["a"] + args["b"] +t
+    return args["a"] + args["b"] + t
 
 
 args = {"w": 1j}

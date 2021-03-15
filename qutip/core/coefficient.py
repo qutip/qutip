@@ -9,6 +9,7 @@ import glob
 import importlib
 import shutil
 import numbers
+from contextlib import contextmanager
 from collections import defaultdict
 from setuptools import setup, Extension
 try:
@@ -321,14 +322,13 @@ def coeff_from_str(base, args, args_ctypes, compile_opt):
     hash_ = hashlib.sha256(bytes(parsed, encoding='utf8'))
     file_name = "qtcoeff_" + hash_.hexdigest()[:30]
     # See if it already exist, if not write and cythonize it
-    coeff, file_name = try_import(file_name, parsed)
+    coeff = try_import(file_name, parsed)
     if coeff is None or compile_opt['recompile']:
         code = make_cy_code(parsed, variables, constants,
                             raw, compile_opt)
         coeff = compile_code(code, file_name, parsed, compile_opt)
     keys = [key for _, key, _ in variables]
     const = [fromstr(val) for _, val, _ in constants]
-    print(keys, variables)
     return coeff(base, keys, const, args)
 
 
@@ -342,31 +342,14 @@ def try_import(file_name, parsed_in):
         mod = importlib.import_module(file_name)
     except ModuleNotFoundError:
         # Coefficient does not exist, to compile as file_name
-        return None, file_name
+        return None
 
     if mod.parsed_code == parsed_in:
         # Coefficient found!
-        return mod.StrCoefficient, file_name
-
-    # hash collision!
-    # Increment filename
-    tries = -1
-    file_name_ = file_name
-    while mod.parsed_code != parsed_in and tries < 10:
-        tries += 1
-        file_name_ = file_name + str(tries)
-        try:
-            mod = importlib.import_module(file_name_)
-        except ModuleNotFoundError:
-            # Coefficient does not exist, to compile as file_name_
-            return None, file_name_
-
-    if mod.parsed_code != parsed_in:
-        # At least 10 coeff with the same hash!? Giveup...
+        return mod.StrCoefficient
+    else:
         raise ValueError("string hash collision, change the string "
                          "or clean files in qutip.settings.install['tmproot']")
-    else:
-        return mod.StrCoefficient, file_name
 
 
 def make_cy_code(code, variables, constants, raw, compile_opt):
@@ -436,34 +419,37 @@ cdef class StrCoefficient(Coefficient):
 
 
 def compile_code(code, file_name, parsed, c_opt):
-    root = get_root()
     pwd = os.getcwd()
-    os.chdir(root)
-    [os.remove(file) for file in glob.glob(file_name + "*")]
-    full_file_name = os.path.join(root, file_name)
-    file_ = open(full_file_name + ".pyx", "w")
-    file_.writelines(code)
-    file_.close()
-    oldargs = sys.argv
+    root = get_root()
     try:
-        sys.argv = ["setup.py", "build_ext", "--inplace"]
-        coeff_file = Extension(file_name,
-                               sources=[full_file_name + ".pyx"],
-                               extra_compile_args=c_opt['compiler_flags'].split(),
-                               extra_link_args=c_opt['link_flags'].split(),
-                               include_dirs=[np.get_include()],
-                               language='c++')
-        setup(ext_modules=cythonize(coeff_file, force=c_opt['recompile']))
-    except Exception as e:
-        raise Exception("Could not compile") from e
-    try:
-        libfile = glob.glob(file_name + "*")[0]
-        shutil.move(libfile, os.path.join(root, libfile))
-    except Exception:
-        warn("File")
-    sys.argv = oldargs
-    os.chdir(pwd)
-    return try_import(file_name, parsed)[0]
+        os.chdir(root)
+        [os.remove(file) for file in glob.glob(file_name + "*")]
+        full_file_name = os.path.join(root, file_name)
+        file_ = open(full_file_name + ".pyx", "w")
+        file_.writelines(code)
+        file_.close()
+        oldargs = sys.argv
+        try:
+            sys.argv = ["setup.py", "build_ext", "--inplace"]
+            coeff_file = Extension(file_name,
+                                   sources=[full_file_name + ".pyx"],
+                                   extra_compile_args=c_opt['compiler_flags'].split(),
+                                   extra_link_args=c_opt['link_flags'].split(),
+                                   include_dirs=[np.get_include()],
+                                   language='c++')
+            setup(ext_modules=cythonize(coeff_file, force=c_opt['recompile']))
+        except Exception as e:
+            raise Exception("Could not compile") from e
+        finally:
+            sys.argv = oldargs
+        try:
+            libfile = glob.glob(file_name + "*")[0]
+            shutil.move(libfile, os.path.join(root, libfile))
+        except Exception:
+            warn("File")
+    finally:
+        os.chdir(pwd)
+    return try_import(file_name, parsed)
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

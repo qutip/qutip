@@ -151,6 +151,9 @@ def _trans(a):
 def _neg(a):
     return -a
 
+def _to(a, dtype):
+    return a.to(dtype)
+
 def _cdc(a):
     if isinstance(a, Qobj):
         return a.dag() * a
