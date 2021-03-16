@@ -1,0 +1,6 @@
+{
+    "python.pythonPath": "/home/felipe/anaconda3/envs/qutip-dev/bin/python",
+    "python.linting.pylintEnabled": false,
+    "python.linting.enabled": true,
+    "python.linting.flake8Enabled": true
+}

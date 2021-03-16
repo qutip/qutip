@@ -190,7 +190,6 @@ def dnorm_problem(dim):
     # The objective, however, depends on J.
     objective = cvxpy.Maximize(cvxpy.trace(
         Jr.T * X.re + Ji.T * X.im
-       # (Jr.T @ X.re) + (Ji.T @ X.im)
     ))
 
     problem = cvxpy.Problem(objective, constraints)

@@ -463,9 +463,9 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
     J_dat = J.data
 
     Jr.value = sp.csr_matrix((J_dat.data.real, J_dat.indices, J_dat.indptr),
-                            shape=J_dat.shape).todense()
+                             shape=J_dat.shape).todense()
     Ji.value = sp.csr_matrix((J_dat.data.imag, J_dat.indices, J_dat.indptr),
-                            shape=J_dat.shape).todense()
+                             shape=J_dat.shape).todense()
     problem.solve(solver=solver, verbose=verbose)
 
     return problem.value
