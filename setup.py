@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import collections
 import os
 import pathlib
 import re
@@ -153,6 +154,27 @@ def create_version_py_file(options):
         print(content, file=file)
 
 
+def _extension_extra_sources():
+    """
+    Get a mapping of {module: extra_sources} for all modules to be built.  The
+    module is the fully qualified Python module (e.g. 'qutip.cy.spmatfuncs'),
+    and extra_sources is a list of strings of relative paths to files.  If no
+    extra sources are known for a given module, the mapping will return an
+    empty list.
+    """
+    # For typing brevity we specify sources in Unix-style string form, then
+    # normalise them into the OS-specific form later.
+    extra_sources = {
+        'qutip.cy.spmatfuncs': ['qutip/cy/src/zspmv.cpp'],
+        'qutip.cy.openmp.parfuncs': ['qutip/cy/openmp/src/zspmv_openmp.cpp'],
+    }
+    out = collections.defaultdict(list)
+    for module, sources in extra_sources.items():
+        # Normalise the sources into OS-specific form.
+        out[module] = [str(pathlib.Path(source)) for source in sources]
+    return out
+
+
 def create_extension_modules(options):
     """
     Discover and Cythonise all extension modules that need to be built.  These
@@ -163,6 +185,7 @@ def create_extension_modules(options):
     pyx_files = set(root.glob('qutip/**/*.pyx'))
     if not options['openmp']:
         pyx_files -= set(root.glob('qutip/**/openmp/**/*.pyx'))
+    extra_sources = _extension_extra_sources()
     # Add Cython files from qutip
     for pyx_file in pyx_files:
         pyx_file = pyx_file.relative_to(root)
@@ -180,7 +203,7 @@ def create_extension_modules(options):
         # The module name is the same as the folder structure, but with dots in
         # place of separators ('/' or '\'), and without the '.pyx' extension.
         pyx_module = ".".join(pyx_file.parts)[:-4]
-        pyx_sources = [pyx_file_str]
+        pyx_sources = [pyx_file_str] + extra_sources[pyx_module]
         out.append(Extension(pyx_module,
                              sources=pyx_sources,
                              include_dirs=options['include'],
