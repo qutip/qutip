@@ -411,7 +411,7 @@ cdef cnp.ndarray[complex, ndim=1, mode='c'] vec_to_fockbasis(double complex * ei
     PyDataMem_FREE(temp1)
     cdef cnp.ndarray[complex, ndim=1, mode='c'] out = \
                 cnp.PyArray_SimpleNewFromData(1, &nrows2, cnp.NPY_COMPLEX128, fock_vec)
-    PyArray_ENABLEFLAGS(out, cnp.NPY_OWNDATA)
+    PyArray_ENABLEFLAGS(out, cnp.NPY_ARRAY_OWNDATA)
     return out
 
 

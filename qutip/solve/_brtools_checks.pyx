@@ -71,7 +71,7 @@ def _test_dense_to_eigbasis(complex[::1,:] A, complex[::1,:] evecs,
     dims[:] = [A.shape[0], A.shape[1]]
     #We cannot build simple in fortran-order, so build c-order and return transpose
     mat = np.PyArray_SimpleNewFromData(2, <np.npy_intp *>dims, np.NPY_COMPLEX128, &out[0,0])
-    PyArray_ENABLEFLAGS(mat, np.NPY_OWNDATA)
+    PyArray_ENABLEFLAGS(mat, np.NPY_ARRAY_OWNDATA)
     return mat.T
 
 
@@ -86,7 +86,7 @@ def _test_vec_to_eigbasis(complex[::1,:] H, complex[::1] vec):
     cdef np.npy_intp dim = H.shape[0]**2
     cdef np.ndarray[complex, ndim=1, mode='c'] out
     out = np.PyArray_SimpleNewFromData(1, &dim, np.NPY_COMPLEX128, eig_vec)
-    PyArray_ENABLEFLAGS(out, np.NPY_OWNDATA)
+    PyArray_ENABLEFLAGS(out, np.NPY_ARRAY_OWNDATA)
     return out
 
 
