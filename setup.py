@@ -82,7 +82,6 @@ def _determine_compilation_options(options):
     options['include'] = [np.get_include()]
     if (
         sys.platform == 'win32'
-        and sys.version_info[:2] >= (3, 5)
         and os.environ.get('MSYSTEM') is None
     ):
         # Visual Studio
