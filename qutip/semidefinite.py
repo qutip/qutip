@@ -230,7 +230,8 @@ def dnorm_sparse_problem(dim, J_dat=None):
 
     logger.debug("Using {} constraints.".format(len(constraints)))
 
-    J_val = sp.coo_matrix(sp.csr_matrix((J_dat.data, J_dat.indices, J_dat.indptr),
+    J_val = sp.coo_matrix(sp.csr_matrix((J_dat.data, J_dat.indices,
+                                         J_dat.indptr),
                           shape=J_dat.shape))
 
     def adapt_sparse_params(A_val, dim):
@@ -243,7 +244,7 @@ def dnorm_sparse_problem(dim, J_dat=None):
         A_rows = A_val.row * side_size + A_val.col
         A_cols = np.arange(A_nnz.size)
 
-        A_Indexer = sp.coo_matrix((A_data, (A_rows, A_cols)), 
+        A_Indexer = sp.coo_matrix((A_data, (A_rows, A_cols)),
                                   shape=(side_size**2, A_nnz.size))
 
         A = cvxpy.reshape(A_Indexer @ A_nnz, (side_size, side_size), order='C')

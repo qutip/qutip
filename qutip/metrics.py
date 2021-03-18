@@ -343,7 +343,7 @@ def hellinger_dist(A, B, sparse=False, tol=0):
     return np.sqrt(2.0 * np.maximum(0., (1.0 - np.real(np.sum(eigs)))))
 
 
-def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False, 
+def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
           dense_memoized_solve=True):
     """
     Calculates the diamond norm of the quantum map q_oper, using
@@ -469,9 +469,12 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
         problem, Jr, Ji, X, rho0, rho1 = dnorm_problem(dim)
 
         # Load the parameters with the Choi matrix passed in.
-        Jr.value = sp.csr_matrix((J_dat.data.real, J_dat.indices, J_dat.indptr),
+        Jr.value = sp.csr_matrix((J_dat.data.real, J_dat.indices,
+                                  J_dat.indptr),
                                  shape=J_dat.shape).todense()
-        Ji.value = sp.csr_matrix((J_dat.data.imag, J_dat.indices, J_dat.indptr),
+
+        Ji.value = sp.csr_matrix((J_dat.data.imag, J_dat.indices,
+                                  J_dat.indptr),
                                  shape=J_dat.shape).todense()
     else:
 
