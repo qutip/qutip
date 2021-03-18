@@ -557,5 +557,27 @@ def test_dnorm_cptp():
             yield case, rand_super_bcsz(dim)
 
 
+@dnorm_test
+def test_dnorm_sparse_vs_dense():
+    """
+    Metrics: checks that the diamond norm is one for CPTP maps.
+    """
+    # NB: It might be worth dropping test_dnorm_force_solve, and separating
+    #     into cases for each optimization path.
+    def case(A, significant=4):
+        for force_solve in (False, True):
+            assert_approx_equal(
+                dnorm(A, force_solve=force_solve), 
+                dnorm(A, force_solve=force_solve, dense_memoized_solve=False)
+            )
+
+    for dim in (2, 3):
+        for _ in range(10):
+            yield case, rand_super_bcsz(dim)
+
+
+
+
+
 if __name__ == "__main__":
     run_module_suite()
