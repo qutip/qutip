@@ -37,3 +37,4 @@ benchmark/benchmark_data.js
 *-tasks.txt
 *compiled_coeff*
 
+.vscode/
