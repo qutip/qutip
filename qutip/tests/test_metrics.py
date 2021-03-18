@@ -56,7 +56,7 @@ from qutip.random_objects import (
     rand_ket_haar, rand_dm_ginibre, rand_unitary_haar
 )
 from qutip.qobj import Qobj
-from qutip.superop_reps import to_super, to_choi
+from qutip.superop_reps import to_super, to_choi, kraus_to_choi
 from qutip.qip.operations.gates import hadamard_transform, swap
 from qutip.tensor import tensor
 from qutip.metrics import *
@@ -560,14 +560,14 @@ def test_dnorm_cptp():
 @dnorm_test
 def test_dnorm_sparse_vs_dense():
     """
-    Metrics: checks that the diamond norm is one for CPTP maps.
+    Metrics: checks that the diamond norm is equal when calculated with memoized dense or sparse settings.
     """
     # NB: It might be worth dropping test_dnorm_force_solve, and separating
     #     into cases for each optimization path.
     def case(A, significant=4):
         for force_solve in (False, True):
             assert_approx_equal(
-                dnorm(A, force_solve=force_solve), 
+                dnorm(A, force_solve=force_solve),
                 dnorm(A, force_solve=force_solve, dense_memoized_solve=False)
             )
 
@@ -575,6 +575,31 @@ def test_dnorm_sparse_vs_dense():
         for _ in range(10):
             yield case, rand_super_bcsz(dim)
 
+
+@dnorm_test
+def test_dnorm_on_sparse_matrix():
+    """
+    Metrics: checks that the diamond norm is working on sparse densities.
+    """
+    # NB: It might be worth dropping test_dnorm_force_solve, and separating
+    #     into cases for each optimization path.
+    def case(A, B, significant=4):
+        for force_solve in (False, True):
+            assert_approx_equal(
+                dnorm(A, B, force_solve=force_solve),
+                dnorm(A, B, force_solve=force_solve, dense_memoized_solve=False)
+            )
+
+    def AmpDampChoi(p):
+        Kraus = [(1-p)**.5*qeye(2), p**.5*destroy(2), p**.5*fock_dm(2,0)]
+        return kraus_to_choi(Kraus)
+
+    # Choi matrix for identity channel on 1 qubit
+    IdChoi = kraus_to_choi([qeye(2)])
+
+    for p in np.arange(0.01, 0.9, 0.5):
+        for _ in range(3):
+            yield case, IdChoi, AmpDampChoi(p)
 
 
 
