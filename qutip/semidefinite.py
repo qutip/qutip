@@ -41,7 +41,7 @@ from collections import namedtuple
 
 # NumPy/SciPy
 import numpy as np
-
+import scipy.sparse as sp
 # Conditionally import CVXPY
 try:
     import cvxpy
@@ -194,5 +194,77 @@ def dnorm_problem(dim):
 
     problem = cvxpy.Problem(objective, constraints)
     print('problem defined')
+    return problem, Jr, Ji, X, rho0, rho1
+
+
+def dnorm_sparse_problem(dim, J_dat=None):
+    # Start assembling constraints and variables.
+    constraints = []
+
+    # Make a complex variable for X.
+    X = complex_var(dim ** 2, dim ** 2, "X")
+
+    # Make complex variables for rho0 and rho1.
+    rho0 = complex_var(dim, dim, "rho0")
+    rho1 = complex_var(dim, dim, "rho1")
+    constraints += dens(rho0, rho1)
+
+    # Finally, add the tricky positive semidefinite constraint.
+    # Since we're using column-stacking, but Watrous used row-stacking,
+    # we need to swap the order in Rho0 and Rho1. This is not straightforward,
+    # as CVXPY requires that the constant be the first argument. To solve this,
+    # We conjugate by SWAP.
+    W = qudit_swap(dim).data.todense()
+    W = Complex(re=W.real, im=W.imag)
+    Rho0 = conj(W, kron(np.eye(dim), rho0))
+    Rho1 = conj(W, kron(np.eye(dim), rho1))
+
+    Y = cvxpy.bmat([
+        [Rho0.re, X.re,      -Rho0.im, -X.im],
+        [X.re.T, Rho1.re,    X.im.T, -Rho1.im],
+
+        [Rho0.im, X.im,      Rho0.re, X.re],
+        [-X.im.T, Rho1.im,   X.re.T, Rho1.re],
+    ])
+    constraints += [Y >> 0]
+
+    logger.debug("Using {} constraints.".format(len(constraints)))
+
+    J_val = sp.coo_matrix(sp.csr_matrix((J_dat.data, J_dat.indices, J_dat.indptr),
+                          shape=J_dat.shape))
+    
+    def adapt_sparse_params(A_val, dim):
+        
+        A = cvxpy.Parameter((dim**2, dim**2))
+        side_size = dim**2
+        A_nnz = cvxpy.Parameter(A_val.nnz)
+        
+        A_data = np.ones(A_nnz.size)
+        A_rows = A_val.row * side_size + A_val.col
+        A_cols = np.arange(A_nnz.size)
+
+        A_Indexer = sp.coo_matrix((A_data, (A_rows, A_cols)), 
+                                  shape=(side_size**2, A_nnz.size))
+
+        A = cvxpy.reshape(A_Indexer @ A_nnz, (side_size, side_size), order='C')
+
+        return A_nnz, A
+
+    Jr_val = J_val.real
+    Jr_nnz, Jr = adapt_sparse_params(Jr_val, dim)
+
+    Ji_val = J_val.imag
+    Ji_nnz, Ji = adapt_sparse_params(Ji_val, dim)
+
+    # The objective, however, depends on J.
+    objective = cvxpy.Maximize(cvxpy.trace(
+        Jr.T * X.re + Ji.T * X.im
+    ))
+
+    Jr_nnz.value = Jr_val.data
+    Ji_nnz.value = Ji_val.data
+
+    problem = cvxpy.Problem(objective, constraints)
+    # print('problem defined')
     return problem, Jr, Ji, X, rho0, rho1
 

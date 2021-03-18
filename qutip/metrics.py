@@ -48,7 +48,7 @@ from qutip.states import ket2dm
 from qutip.superop_reps import to_kraus, to_stinespring, to_choi, _super_to_superpauli, to_super
 from qutip.superoperator import operator_to_vector, vector_to_operator
 from qutip.operators import qeye
-from qutip.semidefinite import dnorm_problem
+from qutip.semidefinite import dnorm_problem, dnorm_sparse_problem
 import qutip.settings as settings
 
 import qutip.logging_utils as logging
@@ -343,7 +343,7 @@ def hellinger_dist(A, B, sparse=False, tol=0):
     return np.sqrt(2.0 * np.maximum(0., (1.0 - np.real(np.sum(eigs)))))
 
 
-def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
+def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False, dense_memoized_solve=True):
     """
     Calculates the diamond norm of the quantum map q_oper, using
     the simplified semidefinite program of [Wat12]_.
@@ -366,7 +366,10 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
         solution.
     force_solve : bool
         If True, forces dnorm to solve the associated SDP, even if a special
-        case is known for the argument.
+        case is known for the argument.    
+    dense_memoized_solve : bool
+        If True, sparse matrices are cast to dense and the convex optimization Problem is memoized. 
+        If False, sparsity is kept but the convex optimization Problem is not memoized.   
 
     Returns
     -------
@@ -455,17 +458,25 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
     # Assume square...
     dim = np.prod(J.dims[0][0])
 
-    # The constraints only depend on the dimension, so
-    # we can cache them efficiently.
-    problem, Jr, Ji, X, rho0, rho1 = dnorm_problem(dim)
-
-    # Load the parameters with the Choi matrix passed in.
     J_dat = J.data
 
-    Jr.value = sp.csr_matrix((J_dat.data.real, J_dat.indices, J_dat.indptr),
-                             shape=J_dat.shape).todense()
-    Ji.value = sp.csr_matrix((J_dat.data.imag, J_dat.indices, J_dat.indptr),
-                             shape=J_dat.shape).todense()
+    if dense_memoized_solve:
+        # The constraints only depend on the dimension, so
+        # we can cache them efficiently.
+        problem, Jr, Ji, X, rho0, rho1 = dnorm_problem(dim)
+
+        # Load the parameters with the Choi matrix passed in.
+        Jr.value = sp.csr_matrix((J_dat.data.real, J_dat.indices, J_dat.indptr),
+                                 shape=J_dat.shape).todense()
+        Ji.value = sp.csr_matrix((J_dat.data.imag, J_dat.indices, J_dat.indptr),
+                                 shape=J_dat.shape).todense()
+    else:
+
+        # It is no longer ttrue that constraints only depend on the dimension, so
+        # we can cache them efficiently.
+
+        problem, Jr, Ji, X, rho0, rho1 = dnorm_sparse_problem(dim, J_dat)
+
     problem.solve(solver=solver, verbose=verbose)
 
     return problem.value
