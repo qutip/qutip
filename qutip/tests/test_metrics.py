@@ -631,6 +631,9 @@ class TestDiamondMetrics:
     """
     @pytest.mark.repeat(10)
     def test_dnorm_on_sparse_matrix(self):
+        """
+        Metrics: Tests sparse versus dense dnorm calculation on sparse matrices.
+        """
         force_solve = True
 
         def AmpDampChoi(p):
@@ -655,6 +658,9 @@ class TestDiamondMetrics:
                         pytest.param(3, id="dim3")
                         ])
     def test_dnorm_on_dense_matrix(self, dim):
+        """
+        Metrics: Tests sparse versus dense dnorm calculation on dense matrices.
+        """
         force_solve = True
 
         A = rand_super_bcsz(dim)
@@ -675,7 +681,7 @@ class TestDiamondMetrics:
         A, B = rand_super_bcsz(3), rand_super_bcsz(3)
 
         norm_result = dnorm(A, B)
-        assert  1 == pytest.approx(norm_result, abs=1 + 1e-7)
+        assert 1 == pytest.approx(norm_result, abs=1 + 1e-7)
 
 
     def test_dnorm_qubit_simple_known_cases(self):
