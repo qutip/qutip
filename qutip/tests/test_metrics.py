@@ -37,6 +37,8 @@ the qutip.metrics module.
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 from __future__ import division
+import pytest
+
 
 import numpy as np
 from numpy import abs, sqrt, ones, diag
@@ -602,6 +604,47 @@ def test_dnorm_on_sparse_matrix():
             yield case, IdChoi, AmpDampChoi(p)
 
 
+class TestDiamondMetrics:
+    """
+    A test class for the QuTiP functions for metric calculation.
+    """
+    @pytest.mark.repeat(10)
+    def test_dnorm_on_sparse_matrix(self):
+        force_solve = True
+
+        def AmpDampChoi(p):
+            Kraus = [(1-p)**.5*qeye(2), p**.5*destroy(2), p**.5*fock_dm(2, 0)]
+            return kraus_to_choi(Kraus)
+
+        # Choi matrix for identity channel on 1 qubit
+        A = kraus_to_choi([qeye(2)])
+
+        p = np.random.uniform(0.1, 0.9)
+        B = AmpDampChoi(p)
+
+        dense_run_result = dnorm(A, B, force_solve=force_solve)
+        sparse_run_result = dnorm(A, B, force_solve=force_solve,
+                                  dense_memoized_solve=False)
+        
+        assert dense_run_result == pytest.approx(sparse_run_result, abs=1e-7)
+
+    @pytest.mark.repeat(10)
+    @pytest.mark.parametrize(["dim"], [
+                        pytest.param(2, id="dim2"),
+                        pytest.param(2, id="dim3")
+                        ])
+    def test_dnorm_on_dense_matrix(self, dim):
+        force_solve = True
+
+        A =  rand_super_bcsz(dim)
+
+        dense_run_result = dnorm(A, force_solve=force_solve)
+        sparse_run_result = dnorm(A, force_solve=force_solve,
+                                  dense_memoized_solve=False)
+        
+        assert dense_run_result == pytest.approx(sparse_run_result, abs=1e-7)
+    
+    
 
 
 if __name__ == "__main__":

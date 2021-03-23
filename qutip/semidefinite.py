@@ -196,7 +196,7 @@ def dnorm_problem(dim):
     return problem, Jr, Ji, X, rho0, rho1
 
 
-def dnorm_sparse_problem(dim, J_dat=None):
+def dnorm_sparse_problem(dim, J_dat):
     # Start assembling constraints and variables.
     constraints = []
 

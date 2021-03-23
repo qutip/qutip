@@ -235,7 +235,7 @@ def kraus_to_choi(kraus_list):
     Takes a list of Kraus operators and returns the Choi matrix for the channel
     represented by the Kraus operators in `kraus_list`
     """
-    kraus_mat_list = list(map(lambda x: matrix(x.data.todense()), kraus_list))
+    kraus_mat_list = list(map(lambda x: matrix(x.data.toarray()), kraus_list))
     op_rng = range(kraus_mat_list[0].shape[1])
     choi_blocks = array([[sum([op[:, c_ix] * array([op.H[r_ix, :]])
                                for op in kraus_mat_list])
