@@ -193,7 +193,6 @@ def dnorm_problem(dim):
     ))
 
     problem = cvxpy.Problem(objective, constraints)
-    print('problem defined')
     return problem, Jr, Ji, X, rho0, rho1
 
 
@@ -266,5 +265,4 @@ def dnorm_sparse_problem(dim, J_dat=None):
     Ji_nnz.value = Ji_val.data
 
     problem = cvxpy.Problem(objective, constraints)
-    # print('problem defined')
     return problem, Jr, Ji, X, rho0, rho1
