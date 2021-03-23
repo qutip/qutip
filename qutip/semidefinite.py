@@ -114,8 +114,8 @@ def conj(W, A):
     U, V = W.re, W.im
     A, B = A.re, A.im
     return Complex(
-        re=(U * A * U.T - U * B * V.T - V * A * V.T - V * B * U.T),
-        im=(U * A * V.T + U * B * U.T + V * A * U.T - V * B * V.T)
+        re=(U @ A @ U.T - U @ B @ V.T - V @ A @ V.T - V @ B @ U.T),
+        im=(U @ A @ V.T + U @ B @ U.T + V @ A @ U.T - V @ B @ V.T)
     )
 
 def bmat(B):

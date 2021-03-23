@@ -591,7 +591,7 @@ def test_dnorm_on_sparse_matrix():
             )
 
     def AmpDampChoi(p):
-        Kraus = [(1-p)**.5*qeye(2), p**.5*destroy(2), p**.5*fock_dm(2 0)]
+        Kraus = [(1-p)**.5*qeye(2), p**.5*destroy(2), p**.5*fock_dm(2, 0)]
         return kraus_to_choi(Kraus)
 
     # Choi matrix for identity channel on 1 qubit
