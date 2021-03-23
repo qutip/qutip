@@ -233,7 +233,6 @@ def dnorm_sparse_problem(dim, J_dat=None):
 
     def adapt_sparse_params(A_val, dim):
 
-        A = cvxpy.Parameter((dim**2, dim**2))
         side_size = dim**2
         A_nnz = cvxpy.Parameter(A_val.nnz)
 
