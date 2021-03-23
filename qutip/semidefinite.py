@@ -189,7 +189,7 @@ def dnorm_problem(dim):
 
     # The objective, however, depends on J.
     objective = cvxpy.Maximize(cvxpy.trace(
-        Jr.T * X.re + Ji.T * X.im
+        Jr.T @ X.re + Ji.T @ X.im
     ))
 
     problem = cvxpy.Problem(objective, constraints)
@@ -229,9 +229,7 @@ def dnorm_sparse_problem(dim, J_dat=None):
 
     logger.debug("Using {} constraints.".format(len(constraints)))
 
-    J_val = sp.coo_matrix(sp.csr_matrix((J_dat.data, J_dat.indices,
-                                         J_dat.indptr),
-                          shape=J_dat.shape))
+    J_val = J_dat.tocoo()
 
     def adapt_sparse_params(A_val, dim):
 
@@ -258,11 +256,11 @@ def dnorm_sparse_problem(dim, J_dat=None):
 
     # The objective, however, depends on J.
     objective = cvxpy.Maximize(cvxpy.trace(
-        Jr.T * X.re + Ji.T * X.im
+        Jr.T @ X.re + Ji.T @ X.im
     ))
 
     Jr_nnz.value = Jr_val.data
     Ji_nnz.value = Ji_val.data
-
+    
     problem = cvxpy.Problem(objective, constraints)
     return problem, Jr, Ji, X, rho0, rho1

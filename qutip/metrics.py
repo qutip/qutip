@@ -471,11 +471,11 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
         # Load the parameters with the Choi matrix passed in.
         Jr.value = sp.csr_matrix((J_dat.data.real, J_dat.indices,
                                   J_dat.indptr),
-                                 shape=J_dat.shape).todense()
+                                 shape=J_dat.shape).toarray()
 
         Ji.value = sp.csr_matrix((J_dat.data.imag, J_dat.indices,
                                   J_dat.indptr),
-                                 shape=J_dat.shape).todense()
+                                 shape=J_dat.shape).toarray()
     else:
 
         # The parameters do not depend solely on the dimension,
