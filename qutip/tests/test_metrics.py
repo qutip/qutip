@@ -645,6 +645,175 @@ class TestDiamondMetrics:
         assert dense_run_result == pytest.approx(sparse_run_result, abs=1e-7)
     
     
+    @pytest.mark.repeat(10)
+    def test_dnorm_bounded(self):
+        """
+        Metrics: dnorm(A - B) in [0, 2] for random superops A, B.
+        """
+
+        A, B = rand_super_bcsz(3), rand_super_bcsz(3)
+        
+        norm_result = dnorm(A, B)
+        assert  1 == pytest.approx(norm_result, abs=1 + 1e-7)
+       
+
+
+    def test_dnorm_qubit_simple_known_cases(self):
+        """
+        Metrics: check agreement for known qubit channels.
+        """
+
+        id_chan = to_choi(qeye(2))
+        S_eye = to_super(id_chan)
+        X_chan = to_choi(sigmax())
+        depol = to_choi(Qobj(
+            diag(ones((4,))),
+            dims=[[[2], [2]], [[2], [2]]], superrep='chi'
+        ))
+        S_H = to_super(hadamard_transform())
+        W = swap()
+
+        # We need to restrict the number of iterations for things on the boundary,
+        # such as perfectly distinguishable channels.
+        assert 2 == pytest.approx(dnorm(id_chan, X_chan), abs=1e-7)
+        assert 1.5 == pytest.approx(dnorm(id_chan, depol), abs=1e-7)
+
+
+    @pytest.mark.parametrize(["dim"], [
+                        pytest.param(2, id="dim2"),
+                        pytest.param(2, id="dim3")
+                        ])    
+    def test_dnorm_qubit_known_cases(self,,):
+        
+        # Next, we'll generate some test cases based on comparisons to pre-existing
+        # dnorm() implementations. In particular, the targets for the following
+        # test cases were generated using QuantumUtils for MATLAB (https://goo.gl/oWXhO9).
+
+        def overrotation(x):
+            return to_super((1j * np.pi * x * sigmax() / 2).expm())
+
+        for x, target in {
+            1.000000e-03: 3.141591e-03,
+            3.100000e-03: 9.738899e-03,
+            1.000000e-02: 3.141463e-02,
+            3.100000e-02: 9.735089e-02,
+            1.000000e-01: 3.128689e-01,
+            3.100000e-01: 9.358596e-01
+        }.items():
+            yield case, overrotation(x), id_chan, target
+
+        def had_mixture(x):
+            return (1 - x) * S_eye + x * S_H
+
+        for x, target in {
+            1.000000e-03: 2.000000e-03,
+            3.100000e-03: 6.200000e-03,
+            1.000000e-02: 2.000000e-02,
+            3.100000e-02: 6.200000e-02,
+            1.000000e-01: 2.000000e-01,
+            3.100000e-01: 6.200000e-01
+        }.items():
+            yield case, had_mixture(x), id_chan, target
+
+        def swap_map(x):
+            S = (1j * x * W).expm()
+            S._type = None
+            S.dims = [[[2], [2]], [[2], [2]]]
+            S.superrep = 'super'
+            return S
+
+        for x, target in {
+            1.000000e-03: 2.000000e-03,
+            3.100000e-03: 6.199997e-03,
+            1.000000e-02: 1.999992e-02,
+            3.100000e-02: 6.199752e-02,
+            1.000000e-01: 1.999162e-01,
+            3.100000e-01: 6.173918e-01
+        }.items():
+            yield case, swap_map(x), id_chan, target
+
+        # Finally, we add a known case from Johnston's QETLAB documentation,
+        # || Phi - I ||,_♢ where Phi(X) = UXU⁺ and U = [[1, 1], [-1, 1]] / sqrt(2).
+        yield case, Qobj([[1, 1], [-1, 1]]) / np.sqrt(2), qeye(2), np.sqrt(2)
+
+
+# @dnorm_test
+# def test_dnorm_qubit_scalar():
+#     """
+#     Metrics: checks that dnorm(a * A) == a * dnorm(A) for scalar a, qobj A.
+#     """
+#     def case(a, A, B, significant=5):
+#         assert_approx_equal(
+#             dnorm(a * A, a * B), a * dnorm(A, B),
+#             significant=significant
+#         )
+
+#     for dim in (2, 3):
+#         for _ in range(10):
+#             yield (
+#                 case, np.random.random(),
+#                 rand_super_bcsz(dim), rand_super_bcsz(dim)
+#             )
+
+
+# @dnorm_test
+# def test_dnorm_qubit_triangle():
+#     """
+#     Metrics: checks that dnorm(A + B) ≤ dnorm(A) + dnorm(B).
+#     """
+#     def case(A, B, tol=1e-4):
+#         assert (
+#             dnorm(A + B) <= dnorm(A) + dnorm(B) + tol
+#         )
+
+#     for dim in (2, 3):
+#         for _ in range(10):
+#             yield (
+#                 case,
+#                 rand_super_bcsz(dim), rand_super_bcsz(dim)
+#             )
+
+
+# @dnorm_test
+# def test_dnorm_force_solve():
+#     """
+#     Metrics: checks that special cases for dnorm agree with SDP solutions.
+#     """
+#     def case(A, B, significant=4):
+#         assert_approx_equal(
+#             dnorm(A, B, force_solve=False), dnorm(A, B, force_solve=True)
+#         )
+
+#     for dim in (2, 3):
+#         for _ in range(10):
+#             yield (
+#                 case,
+#                 rand_super_bcsz(dim), None
+#             )
+#         for _ in range(10):
+#             yield (
+#                 case,
+#                 rand_unitary_haar(dim), rand_unitary_haar(dim)
+#             )
+
+
+# @dnorm_test
+# def test_dnorm_cptp():
+#     """
+#     Metrics: checks that the diamond norm is one for CPTP maps.
+#     """
+#     # NB: It might be worth dropping test_dnorm_force_solve, and separating
+#     #     into cases for each optimization path.
+#     def case(A, significant=4):
+#         for force_solve in (False, True):
+#             assert_approx_equal(
+#                 dnorm(A, force_solve=force_solve), 1
+#             )
+
+#     for dim in (2, 3):
+#         for _ in range(10):
+#             yield case, rand_super_bcsz(dim)
+
 
 
 if __name__ == "__main__":
