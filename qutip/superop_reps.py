@@ -239,7 +239,7 @@ def kraus_to_choi(kraus_list):
     op_rng = range(kraus_mat_list[0].shape[0])
     choi_blocks = array([[sum([
                               np.outer(op[:, c_ix],
-                              np.transpose(np.conjugate(op))[r_ix, :])
+                                       np.transpose(np.conjugate(op))[r_ix, :])
                               for op in kraus_mat_list])
                           for r_ix in op_rng]
                          for c_ix in op_rng])
