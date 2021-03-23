@@ -587,11 +587,11 @@ def test_dnorm_on_sparse_matrix():
         for force_solve in (False, True):
             assert_approx_equal(
                 dnorm(A, B, force_solve=force_solve),
-                dnorm(A, B, force_solve=force_solve, dense_memoized_solve=False)
+                dnorm(A, B, force_solve=force_solve, dense_memoized_solve= False)
             )
 
     def AmpDampChoi(p):
-        Kraus = [(1-p)**.5*qeye(2), p**.5*destroy(2), p**.5*fock_dm(2,0)]
+        Kraus = [(1-p)**.5*qeye(2), p**.5*destroy(2), p**.5*fock_dm(2 0)]
         return kraus_to_choi(Kraus)
 
     # Choi matrix for identity channel on 1 qubit

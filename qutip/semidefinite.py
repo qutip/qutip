@@ -260,6 +260,6 @@ def dnorm_sparse_problem(dim, J_dat=None):
 
     Jr_nnz.value = Jr_val.data
     Ji_nnz.value = Ji_val.data
-    
+
     problem = cvxpy.Problem(objective, constraints)
     return problem, Jr, Ji, X, rho0, rho1
