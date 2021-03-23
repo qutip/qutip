@@ -622,7 +622,7 @@ def swap_map(x):
     S._type = None
     S.dims = [[[2], [2]], [[2], [2]]]
     S.superrep = 'super'
-    return S      
+    return S
 
 
 class TestDiamondMetrics:
@@ -646,7 +646,7 @@ class TestDiamondMetrics:
         dense_run_result = dnorm(A, B, force_solve=force_solve)
         sparse_run_result = dnorm(A, B, force_solve=force_solve,
                                   dense_memoized_solve=False)
-        
+
         assert dense_run_result == pytest.approx(sparse_run_result, abs=1e-7)
 
     @pytest.mark.repeat(10)
@@ -657,15 +657,15 @@ class TestDiamondMetrics:
     def test_dnorm_on_dense_matrix(self, dim):
         force_solve = True
 
-        A =  rand_super_bcsz(dim)
+        A = rand_super_bcsz(dim)
 
         dense_run_result = dnorm(A, force_solve=force_solve)
         sparse_run_result = dnorm(A, force_solve=force_solve,
                                   dense_memoized_solve=False)
-        
+ 
         assert dense_run_result == pytest.approx(sparse_run_result, abs=1e-7)
-    
-    
+
+
     @pytest.mark.repeat(10)
     def test_dnorm_bounded(self):
         """
@@ -684,14 +684,11 @@ class TestDiamondMetrics:
         """
 
         id_chan = to_choi(qeye(2))
-        S_eye = to_super(id_chan)
         X_chan = to_choi(sigmax())
         depol = to_choi(Qobj(
             diag(ones((4,))),
             dims=[[[2], [2]], [[2], [2]]], superrep='chi'
         ))
-        S_H = to_super(hadamard_transform())
-        W = swap()
 
         # We need to restrict the number of iterations for things on the boundary,
         # such as perfectly distinguishable channels.
@@ -703,7 +700,7 @@ class TestDiamondMetrics:
                                            / np.sqrt(2), qeye(2)))
 
     @pytest.mark.parametrize(["variable", 'target', 'matrix_creator'], [
-                              [ 1.000000e-03, 3.141591e-03, 'overrotation'],
+                              [1.000000e-03, 3.141591e-03, 'overrotation'],
             [3.100000e-03, 9.738899e-03, 'overrotation'],
             [1.000000e-02, 3.141463e-02, 'overrotation'],
             [3.100000e-02, 9.735089e-02, 'overrotation'],
@@ -793,13 +790,14 @@ class TestDiamondMetrics:
                         pytest.param(2, id="dim2"),
                         pytest.param(3, id="dim3")
                         ])
-    def test_dnorm_cptp():
+    def test_dnorm_cptp(self, dim):
         """
         Metrics: checks that the diamond norm is one for CPTP maps.
         """
         A = rand_super_bcsz(dim)
 
         assert 1 == pytest.approx(dnorm(A, force_solve=True), abs=1e-7)
+
 
 if __name__ == "__main__":
     run_module_suite()
