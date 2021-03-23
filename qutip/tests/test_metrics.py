@@ -350,6 +350,7 @@ def test_average_gate_fidelity_target():
         SU = to_super(U)
         assert_almost_equal(average_gate_fidelity(SU, target=U), 1)
 
+
 def test_hilbert_dist():
     """
     Metrics: Hilbert distance.
@@ -603,8 +604,10 @@ def test_dnorm_on_sparse_matrix():
         for _ in range(3):
             yield case, IdChoi, AmpDampChoi(p)
 
+
 def overrotation(x):
     return to_super((1j * np.pi * x * sigmax() / 2).expm())
+
 
 def had_mixture(x):
     id_chan = to_choi(qeye(2))
@@ -612,13 +615,15 @@ def had_mixture(x):
     S_H = to_super(hadamard_transform())
     return (1 - x) * S_eye + x * S_H
 
+
 def swap_map(x):
     W = swap()
     S = (1j * x * W).expm()
     S._type = None
     S.dims = [[[2], [2]], [[2], [2]]]
     S.superrep = 'super'
-    return S            
+    return S      
+
 
 class TestDiamondMetrics:
     """
@@ -647,7 +652,7 @@ class TestDiamondMetrics:
     @pytest.mark.repeat(10)
     @pytest.mark.parametrize(["dim"], [
                         pytest.param(2, id="dim2"),
-                        pytest.param(2, id="dim3")
+                        pytest.param(3, id="dim3")
                         ])
     def test_dnorm_on_dense_matrix(self, dim):
         force_solve = True
@@ -668,10 +673,9 @@ class TestDiamondMetrics:
         """
 
         A, B = rand_super_bcsz(3), rand_super_bcsz(3)
-        
+
         norm_result = dnorm(A, B)
         assert  1 == pytest.approx(norm_result, abs=1 + 1e-7)
-       
 
 
     def test_dnorm_qubit_simple_known_cases(self):
@@ -732,92 +736,70 @@ class TestDiamondMetrics:
             assert target == pytest.approx(dnorm(had_mixture(variable),
                                                  id_chan), abs=1e-7)
 
-
-        elif  matrix_creator == 'swap_map':
+        elif matrix_creator == 'swap_map':
             assert target == pytest.approx(dnorm(swap_map(variable),
                                                  id_chan), abs=1e-7)
 
-       
+    @pytest.mark.parametrize(["dim"], [
+                        pytest.param(2, id="dim2"),
+                        pytest.param(2, id="dim3")
+                        ])
+    def test_dnorm_qubit_scalar(self, dim):
+        """
+        Metrics: checks that dnorm(a * A) == a * dnorm(A) for scalar a, qobj A.
+        """
+        a = np.random.random()
+        A = rand_super_bcsz(dim)
+        B = rand_super_bcsz(dim)
 
+        assert dnorm(a * A, a * B) == pytest.approx(a * dnorm(A, B), abs=1e-7)
 
-# @dnorm_test
-# def test_dnorm_qubit_scalar():
-#     """
-#     Metrics: checks that dnorm(a * A) == a * dnorm(A) for scalar a, qobj A.
-#     """
-#     def case(a, A, B, significant=5):
-#         assert_approx_equal(
-#             dnorm(a * A, a * B), a * dnorm(A, B),
-#             significant=significant
-#         )
+    @pytest.mark.parametrize(["dim"], [
+                        pytest.param(2, id="dim2"),
+                        pytest.param(3, id="dim3")
+                        ])
+    def test_dnorm_qubit_triangle(self, dim):
+        """
+        Metrics: checks that dnorm(A + B) ≤ dnorm(A) + dnorm(B).
+        """
+        A = rand_super_bcsz(dim)
+        B = rand_super_bcsz(dim)
 
-#     for dim in (2, 3):
-#         for _ in range(10):
-#             yield (
-#                 case, np.random.random(),
-#                 rand_super_bcsz(dim), rand_super_bcsz(dim)
-#             )
+        assert dnorm(A + B) <=  dnorm(A) + dnorm(B) + 1e-7
 
+    @pytest.mark.repeat(10)
+    @pytest.mark.parametrize(["dim",'matrix_generator'], [
+                            pytest.param(2, 'bcsz', id="dim2"),
+                            pytest.param(3, 'bcsz', id="dim3"),
+                            pytest.param(2, 'haar', id="dim2"),
+                            pytest.param(3, 'haar', id="dim3")
+                            ])
+    def test_dnorm_force_solve(self, dim, matrix_generator):
+        """
+        Metrics: checks that special cases for dnorm agree with SDP solutions.
+        """
+        if matrix_generator == 'bcsz':
+            A = rand_super_bcsz(dim)
+            B = rand_super_bcsz(dim)
 
-# @dnorm_test
-# def test_dnorm_qubit_triangle():
-#     """
-#     Metrics: checks that dnorm(A + B) ≤ dnorm(A) + dnorm(B).
-#     """
-#     def case(A, B, tol=1e-4):
-#         assert (
-#             dnorm(A + B) <= dnorm(A) + dnorm(B) + tol
-#         )
+        elif matrix_generator == 'haar':
+            A = rand_unitary_haar(dim)
+            B = rand_unitary_haar(dim)
 
-#     for dim in (2, 3):
-#         for _ in range(10):
-#             yield (
-#                 case,
-#                 rand_super_bcsz(dim), rand_super_bcsz(dim)
-#             )
+        assert dnorm(A, B, force_solve=False) == pytest.approx(dnorm(A, B, force_solve=True), abs=1e-7)
 
+    @pytest.mark.repeat(10)
+    @pytest.mark.parametrize(["dim"], [
+                        pytest.param(2, id="dim2"),
+                        pytest.param(3, id="dim3")
+                        ])
+    def test_dnorm_cptp():
+        """
+        Metrics: checks that the diamond norm is one for CPTP maps.
+        """
+        A = rand_super_bcsz(dim)
 
-# @dnorm_test
-# def test_dnorm_force_solve():
-#     """
-#     Metrics: checks that special cases for dnorm agree with SDP solutions.
-#     """
-#     def case(A, B, significant=4):
-#         assert_approx_equal(
-#             dnorm(A, B, force_solve=False), dnorm(A, B, force_solve=True)
-#         )
-
-#     for dim in (2, 3):
-#         for _ in range(10):
-#             yield (
-#                 case,
-#                 rand_super_bcsz(dim), None
-#             )
-#         for _ in range(10):
-#             yield (
-#                 case,
-#                 rand_unitary_haar(dim), rand_unitary_haar(dim)
-#             )
-
-
-# @dnorm_test
-# def test_dnorm_cptp():
-#     """
-#     Metrics: checks that the diamond norm is one for CPTP maps.
-#     """
-#     # NB: It might be worth dropping test_dnorm_force_solve, and separating
-#     #     into cases for each optimization path.
-#     def case(A, significant=4):
-#         for force_solve in (False, True):
-#             assert_approx_equal(
-#                 dnorm(A, force_solve=force_solve), 1
-#             )
-
-#     for dim in (2, 3):
-#         for _ in range(10):
-#             yield case, rand_super_bcsz(dim)
-
-
+        assert 1 == pytest.approx(dnorm(A, force_solve=True), abs=1e-7)
 
 if __name__ == "__main__":
     run_module_suite()
