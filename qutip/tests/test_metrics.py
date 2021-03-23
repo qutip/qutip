@@ -603,6 +603,22 @@ def test_dnorm_on_sparse_matrix():
         for _ in range(3):
             yield case, IdChoi, AmpDampChoi(p)
 
+def overrotation(x):
+    return to_super((1j * np.pi * x * sigmax() / 2).expm())
+
+def had_mixture(x):
+    id_chan = to_choi(qeye(2))
+    S_eye = to_super(id_chan)
+    S_H = to_super(hadamard_transform())
+    return (1 - x) * S_eye + x * S_H
+
+def swap_map(x):
+    W = swap()
+    S = (1j * x * W).expm()
+    S._type = None
+    S.dims = [[[2], [2]], [[2], [2]]]
+    S.superrep = 'super'
+    return S            
 
 class TestDiamondMetrics:
     """
@@ -677,64 +693,51 @@ class TestDiamondMetrics:
         # such as perfectly distinguishable channels.
         assert 2 == pytest.approx(dnorm(id_chan, X_chan), abs=1e-7)
         assert 1.5 == pytest.approx(dnorm(id_chan, depol), abs=1e-7)
+        # Finally, we add a known case from Johnston's QETLAB documentation,
+        # || Phi - I ||,_♢ where Phi(X) = UXU⁺ and U = [[1, 1], [-1, 1]] / sqrt(2).
+        assert np.sqrt(2) == pytest.approx(dnorm(Qobj([[1, 1], [-1, 1]])
+                                           / np.sqrt(2), qeye(2)))
 
+    @pytest.mark.parametrize(["variable", 'target', 'matrix_creator'], [
+                              [ 1.000000e-03, 3.141591e-03, 'overrotation'],
+            [3.100000e-03, 9.738899e-03, 'overrotation'],
+            [1.000000e-02, 3.141463e-02, 'overrotation'],
+            [3.100000e-02, 9.735089e-02, 'overrotation'],
+            [1.000000e-01, 3.128689e-01, 'overrotation'],
+            [3.100000e-01, 9.358596e-01, 'overrotation'],
+            [1.000000e-03, 2.000000e-03, 'had_mixture'],
+            [3.100000e-03, 6.200000e-03, 'had_mixture'],
+            [1.000000e-02, 2.000000e-02, 'had_mixture'],
+            [3.100000e-02, 6.200000e-02, 'had_mixture'],
+            [1.000000e-01, 2.000000e-01, 'had_mixture'],
+            [3.100000e-01, 6.200000e-01, 'had_mixture'],
+            [1.000000e-03, 2.000000e-03, 'swap_map'],
+            [3.100000e-03, 6.199997e-03, 'swap_map'],
+            [1.000000e-02, 1.999992e-02, 'swap_map'],
+            [3.100000e-02, 6.199752e-02, 'swap_map'],
+            [1.000000e-01, 1.999162e-01, 'swap_map'],
+            [3.100000e-01, 6.173918e-01, 'swap_map']
+                        ])
+    def test_dnorm_qubit_known_cases(self, variable, target, matrix_creator):
 
-    @pytest.mark.parametrize(["dim"], [
-                        pytest.param(2, id="dim2"),
-                        pytest.param(2, id="dim3")
-                        ])    
-    def test_dnorm_qubit_known_cases(self,,):
-        
         # Next, we'll generate some test cases based on comparisons to pre-existing
         # dnorm() implementations. In particular, the targets for the following
         # test cases were generated using QuantumUtils for MATLAB (https://goo.gl/oWXhO9).
+        id_chan = to_choi(qeye(2))
+        if matrix_creator == 'overrotation':
+            assert target == pytest.approx(dnorm(overrotation(variable),
+                                                 id_chan), abs=1e-7)
 
-        def overrotation(x):
-            return to_super((1j * np.pi * x * sigmax() / 2).expm())
+        elif matrix_creator == 'had_mixture':
+            assert target == pytest.approx(dnorm(had_mixture(variable),
+                                                 id_chan), abs=1e-7)
 
-        for x, target in {
-            1.000000e-03: 3.141591e-03,
-            3.100000e-03: 9.738899e-03,
-            1.000000e-02: 3.141463e-02,
-            3.100000e-02: 9.735089e-02,
-            1.000000e-01: 3.128689e-01,
-            3.100000e-01: 9.358596e-01
-        }.items():
-            yield case, overrotation(x), id_chan, target
 
-        def had_mixture(x):
-            return (1 - x) * S_eye + x * S_H
+        elif  matrix_creator == 'swap_map':
+            assert target == pytest.approx(dnorm(swap_map(variable),
+                                                 id_chan), abs=1e-7)
 
-        for x, target in {
-            1.000000e-03: 2.000000e-03,
-            3.100000e-03: 6.200000e-03,
-            1.000000e-02: 2.000000e-02,
-            3.100000e-02: 6.200000e-02,
-            1.000000e-01: 2.000000e-01,
-            3.100000e-01: 6.200000e-01
-        }.items():
-            yield case, had_mixture(x), id_chan, target
-
-        def swap_map(x):
-            S = (1j * x * W).expm()
-            S._type = None
-            S.dims = [[[2], [2]], [[2], [2]]]
-            S.superrep = 'super'
-            return S
-
-        for x, target in {
-            1.000000e-03: 2.000000e-03,
-            3.100000e-03: 6.199997e-03,
-            1.000000e-02: 1.999992e-02,
-            3.100000e-02: 6.199752e-02,
-            1.000000e-01: 1.999162e-01,
-            3.100000e-01: 6.173918e-01
-        }.items():
-            yield case, swap_map(x), id_chan, target
-
-        # Finally, we add a known case from Johnston's QETLAB documentation,
-        # || Phi - I ||,_♢ where Phi(X) = UXU⁺ and U = [[1, 1], [-1, 1]] / sqrt(2).
-        yield case, Qobj([[1, 1], [-1, 1]]) / np.sqrt(2), qeye(2), np.sqrt(2)
+       
 
 
 # @dnorm_test
