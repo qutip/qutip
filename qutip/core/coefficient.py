@@ -442,11 +442,6 @@ def compile_code(code, file_name, parsed, c_opt):
             raise Exception("Could not compile") from e
         finally:
             sys.argv = oldargs
-        try:
-            libfile = glob.glob(file_name + "*")[0]
-            shutil.move(libfile, os.path.join(root, libfile))
-        except Exception:
-            warn("File")
     finally:
         os.chdir(pwd)
     return try_import(file_name, parsed)
