@@ -243,8 +243,15 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
 
     if not use_mesolve:
         return sesolve(H, rho0, tlist, e_ops=e_ops, args=args, options=options,
-                    progress_bar=progress_bar, _safe_mode=_safe_mode)
+                       progress_bar=progress_bar, _safe_mode=_safe_mode)
 
+    if isket(rho0):
+        rho0 = ket2dm(rho0)
+    if (not (rho0.isoper or rho0.issuper)) or (rho0.dims[0] != rho0.dims[1]):
+        raise ValueError(
+            "input state must be a pure state vector, square density matrix, "
+            "or superoperator"
+        )
 
     if isinstance(H, SolverSystem):
         ss = H
@@ -256,10 +263,9 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
         raise Exception("Invalid H type")
 
     func, ode_args = ss.makefunc(ss, rho0, args, e_ops, options)
-    if isket(rho0):
-        rho0 = ket2dm(rho0)
 
     if _safe_mode:
+        # This is to test safety of the function before starting the loop.
         v = rho0.full().ravel('F')
         func(0., v, *ode_args) + v
 
@@ -304,6 +310,21 @@ def _mesolve_QobjEvo(H, c_ops, tlist, args, opt):
     solver_safe["mesolve"] = ss
     return ss
 
+
+def _test_liouvillian_dimensions(L_dims, rho_dims):
+    """
+    Raise ValueError if the dimensions of the Liouvillian and the density
+    matrix or superoperator state are incompatible with the master equation.
+    """
+    if L_dims[0] != L_dims[1]:
+        raise ValueError("Liouvillian had nonsquare dims: " + str(L_dims))
+    if not ((L_dims[1] == rho_dims) or (L_dims[1] == rho_dims[0])):
+        raise ValueError("".join([
+            "incompatible Liouvillian and state dimensions: ",
+            str(L_dims), " and ", str(rho_dims),
+        ]))
+
+
 def _qobjevo_set(HS, rho0, args, e_ops, opt):
     """
     From the system, get the ode function and args
@@ -315,41 +336,51 @@ def _qobjevo_set(HS, rho0, args, e_ops, opt):
     elif rho0.isket or rho0.isoper:
         func = H_td.compiled_qobjevo.mul_vec
     else:
-        raise TypeError("The unitary solver requires rho0 to be"
-                        " a ket or dm as initial state"
-                        " or a super operator as initial state.")
+        # Should be caught earlier in mesolve.
+        raise ValueError("rho0 must be a ket, density matrix or superoperator")
+    _test_liouvillian_dimensions(H_td.cte.dims, rho0.dims)
     return func, ()
+
 
 # -----------------------------------------------------------------------------
 # Master equation solver for python-function time-dependence.
 #
 class _LiouvillianFromFunc:
-    def __init__(self, func, c_ops):
+    def __init__(self, func, c_ops, rho_dims):
         self.f = func
         self.c_ops = c_ops
+        self.rho_dims = rho_dims
 
     def H2L(self, t, rho, args):
         Ht = self.f(t, args)
-        Lt = -1.0j * (spre(Ht) - spost(Ht)).data
+        Lt = -1.0j * (spre(Ht) - spost(Ht))
+        _test_liouvillian_dimensions(Lt.dims, self.rho_dims)
+        Lt = Lt.data
         for op in self.c_ops:
             Lt += op(t).data
         return Lt
 
     def H2L_with_state(self, t, rho, args):
         Ht = self.f(t, rho, args)
-        Lt = -1.0j * (spre(Ht) - spost(Ht)).data
+        Lt = -1.0j * (spre(Ht) - spost(Ht))
+        _test_liouvillian_dimensions(Lt.dims, self.rho_dims)
+        Lt = Lt.data
         for op in self.c_ops:
             Lt += op(t).data
         return Lt
 
     def L(self, t, rho, args):
-        Lt = self.f(t, args).data
+        Lt = self.f(t, args)
+        _test_liouvillian_dimensions(Lt.dims, self.rho_dims)
+        Lt = Lt.data
         for op in self.c_ops:
             Lt += op(t).data
         return Lt
 
     def L_with_state(self, t, rho, args):
-        Lt = self.f(t, rho, args).data
+        Lt = self.f(t, rho, args)
+        _test_liouvillian_dimensions(Lt.dims, self.rho_dims)
+        Lt = Lt.data
         for op in self.c_ops:
             Lt += op(t).data
         return Lt
@@ -362,30 +393,16 @@ def _mesolve_func_td(L_func, c_op_list, rho0, tlist, args, opt):
     """
     c_ops = []
     for op in c_op_list:
-        op_td = QobjEvo(op, args, tlist=tlist, copy=False)
-        if not issuper(op_td.cte):
-            c_ops += [lindblad_dissipator(op_td)]
-        else:
-            c_ops += [op_td]
-    if c_op_list:
-        c_ops_ = [sum(c_ops)]
-    else:
-        c_ops_ = []
-
+        td = QobjEvo(op, args, tlist=tlist, copy=False)
+        c_ops.append(td if td.cte.issuper else lindblad_dissipator(td))
+    c_ops_ = [sum(c_ops)] if c_op_list else []
+    L_api = _LiouvillianFromFunc(L_func, c_ops_, rho0.dims)
     if opt.rhs_with_state:
-        state0 = rho0.full().ravel("F")
-        obj = L_func(0., state0, args)
-        if not issuper(obj):
-            L_func = _LiouvillianFromFunc(L_func, c_ops_).H2L_with_state
-        else:
-            L_func = _LiouvillianFromFunc(L_func, c_ops_).L_with_state
+        obj = L_func(0., rho0.full().ravel("F"), args)
+        L_func = L_api.L_with_state if issuper(obj) else L_api.H2L_with_state
     else:
         obj = L_func(0., args)
-        if not issuper(obj):
-            L_func = _LiouvillianFromFunc(L_func, c_ops_).H2L
-        else:
-            L_func = _LiouvillianFromFunc(L_func, c_ops_).L
-
+        L_func = L_api.L if issuper(obj) else L_api.H2L
     ss = SolverSystem()
     ss.L = L_func
     ss.makefunc = _Lfunc_set

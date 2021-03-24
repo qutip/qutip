@@ -47,7 +47,7 @@ from qutip.mcsolve import mcsolve
 from qutip.qip.circuit import QubitCircuit
 from qutip.qip.noise import (
     Noise, RelaxationNoise, DecoherenceNoise,
-    ControlAmpNoise, RandomNoise, UserNoise, process_noise)
+    ControlAmpNoise, RandomNoise, process_noise)
 from qutip.qip.pulse import Pulse, Drift, _merge_qobjevo, _fill_coeff
 
 

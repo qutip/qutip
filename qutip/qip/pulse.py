@@ -300,6 +300,9 @@ class Pulse():
         """
         self.coherent_noise.append(_EvoElement(qobj, targets, tlist, coeff))
 
+    def add_control_noise(self, qobj, targets, tlist=None, coeff=None):
+        self.add_coherent_noise(qobj, targets, tlist=tlist, coeff=coeff)
+
     def add_lindblad_noise(self, qobj, targets, tlist=None, coeff=None):
         """
         Add a new (time-dependent) lindblad noise to the coherent noise.
