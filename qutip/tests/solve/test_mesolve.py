@@ -853,7 +853,7 @@ class TestMESolveStepFuncCoeff:
             tlist=tlist, args={"_step_func_coeff": 1})
         result = mesolve(qu, rho0=rho0, tlist=tlist)
         assert_allclose(
-            fidelity(result.states[-1], sigmax()*rho0), 1, rtol=1.e-7)
+            fidelity(result.states[-1], sigmax()*rho0), 1, rtol=3.e-7)
 
 if __name__ == "__main__":
     run_module_suite()
