@@ -14,7 +14,7 @@ on:
 jobs:
   deploy_canary:
     name: "Will deploy to PyPI if ticked"
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     if: endsWith(github.ref, format('/{0}', github.event.inputs.confirm_ref))
     steps:
       - name: "Built wheels will be deployed at the end."
@@ -26,7 +26,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-18.04, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     env:
       # Set up wheels matrix.  This is CPython 3.6--3.9 for all OS targets.
       CIBW_BUILD: "cp3[6-9]-*"
@@ -68,10 +68,11 @@ jobs:
           name: wheels
           path: ./wheelhouse/*.whl
 
+
   deploy:
     name: "Deploy to PyPI"
     needs: build_wheels
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     if: endsWith(github.ref, format('/{0}', github.event.inputs.confirm_ref))
     env:
       TWINE_USERNAME: __token__
