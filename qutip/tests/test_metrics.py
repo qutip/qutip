@@ -437,7 +437,7 @@ class TestDiamondMetrics:
 
         dense_run_result = dnorm(A, B, force_solve=force_solve)
         sparse_run_result = dnorm(A, B, force_solve=force_solve,
-                                  dense_memoized_solve=False)
+                                  sparse=True)
 
         assert dense_run_result == pytest.approx(sparse_run_result, abs=1e-7)
 
@@ -457,7 +457,7 @@ class TestDiamondMetrics:
 
         dense_run_result = dnorm(A, force_solve=force_solve)
         sparse_run_result = dnorm(A, force_solve=force_solve,
-                                  dense_memoized_solve=False)
+                                  sparse=True)
 
         assert dense_run_result == pytest.approx(sparse_run_result, abs=1e-7)
 

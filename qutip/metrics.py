@@ -344,7 +344,7 @@ def hellinger_dist(A, B, sparse=False, tol=0):
 
 
 def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
-          dense_memoized_solve=True):
+          sparse=False):
     """
     Calculates the diamond norm of the quantum map q_oper, using
     the simplified semidefinite program of [Wat12]_.
@@ -368,7 +368,7 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
     force_solve : bool
         If True, forces dnorm to solve the associated SDP, even if a special
         case is known for the argument.
-    dense_memoized_solve : bool
+    sparse : bool
         If True, sparse matrices are cast to dense and the convex optimization
         Problem is memoized.
         If False, sparsity is kept but the convex optimization
@@ -463,7 +463,7 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
 
     J_dat = J.data
 
-    if dense_memoized_solve:
+    if not sparse:
         # The parameters and constraints only depend on the dimension, so
         # we can cache them efficiently.
         problem, Jr, Ji = dnorm_problem(dim)
