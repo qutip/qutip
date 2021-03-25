@@ -74,12 +74,13 @@ except:
     cvxpy = None
 
 
-# Disable dnorm tests if MKL is present (see Issue #484).
-if qutip.settings.has_mkl:
-    dnorm_test = unittest.skipIf(True,
-                                 "Known failure; CVXPY/MKL incompatibility.")
-else:
-    dnorm_test = unittest.skipIf(cvxpy is None, "CVXPY required for dnorm().")
+# We are disregarding this Issue #484 as mkl does not appear to still be incompatible with cvxpy.
+
+dnorm_test = pytest.mark.skipif(cvxpy is None, reason='requires cvxpy')
+
+
+
+
 
 #FIXME: Try to resolve the average_gate_fidelity issues on MACOS
 avg_gate_fidelity_test = unittest.skipIf(platform.system().startswith("Darwin"),
@@ -705,6 +706,7 @@ class TestDiamondMetrics:
         assert np.sqrt(2) == pytest.approx(dnorm(Qobj([[1, 1], [-1, 1]])
                                            / np.sqrt(2), qeye(2)))
 
+    @dnorm_test
     @pytest.mark.parametrize(["variable", 'target', 'matrix_creator'], [
                               [1.000000e-03, 3.141591e-03, 'overrotation'],
             [3.100000e-03, 9.738899e-03, 'overrotation'],
@@ -743,6 +745,7 @@ class TestDiamondMetrics:
             assert target == pytest.approx(dnorm(swap_map(variable),
                                                  id_chan), abs=1e-7)
 
+    @dnorm_test
     @pytest.mark.parametrize(["dim"], [
                         pytest.param(2, id="dim2"),
                         pytest.param(2, id="dim3")
@@ -757,6 +760,7 @@ class TestDiamondMetrics:
 
         assert dnorm(a * A, a * B) == pytest.approx(a * dnorm(A, B), abs=1e-7)
 
+    @dnorm_test
     @pytest.mark.parametrize(["dim"], [
                         pytest.param(2, id="dim2"),
                         pytest.param(3, id="dim3")
@@ -768,8 +772,9 @@ class TestDiamondMetrics:
         A = rand_super_bcsz(dim)
         B = rand_super_bcsz(dim)
 
-        assert dnorm(A + B) <=  dnorm(A) + dnorm(B) + 1e-7
+        assert dnorm(A + B) <= dnorm(A) + dnorm(B) + 1e-7
 
+    @dnorm_test
     @pytest.mark.repeat(10)
     @pytest.mark.parametrize(["dim",'matrix_generator'], [
                             pytest.param(2, 'bcsz', id="dim2"),
@@ -791,6 +796,7 @@ class TestDiamondMetrics:
 
         assert dnorm(A, B, force_solve=False) == pytest.approx(dnorm(A, B, force_solve=True), abs=1e-7)
 
+    @dnorm_test
     @pytest.mark.repeat(10)
     @pytest.mark.parametrize(["dim"], [
                         pytest.param(2, id="dim2"),
