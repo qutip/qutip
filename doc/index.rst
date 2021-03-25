@@ -22,6 +22,7 @@ QuTiP: Quantum Toolbox in Python (4.5)
 
    changelog.rst
    contributors.rst
+   development/development.rst
    biblio.rst
 
 
