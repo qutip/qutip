@@ -1,13 +1,13 @@
-name: Build wheels and deploy
+name: Build wheels, optionally deploy to PyPI
 
 on:
   workflow_dispatch:
     inputs:
       confirm_ref:
-        description: "Enter branch/tag name to deploy to PyPI, or leave blank to only build wheels."
+        description: "Confirm chosen branch name to deploy to PyPI (optional):"
         default: ""
       override_version:
-        description: "Override version number:"
+        description: "Override version number (optional):"
         default: ""
 
 
