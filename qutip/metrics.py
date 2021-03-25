@@ -464,9 +464,9 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
     J_dat = J.data
 
     if dense_memoized_solve:
-        # The constraints only depend on the dimension, so
+        # The parameters and constraints only depend on the dimension, so
         # we can cache them efficiently.
-        problem, Jr, Ji, X, rho0, rho1 = dnorm_problem(dim)
+        problem, Jr, Ji = dnorm_problem(dim)
 
         # Load the parameters with the Choi matrix passed in.
         Jr.value = sp.csr_matrix((J_dat.data.real, J_dat.indices,
@@ -481,8 +481,8 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
         # The parameters do not depend solely on the dimension,
         # so we can not cache them efficiently.
 
-        problem, Jr, Ji, X, rho0, rho1 = dnorm_sparse_problem(dim, J_dat)
-
+        problem = dnorm_sparse_problem(dim, J_dat)
+    
     problem.solve(solver=solver, verbose=verbose)
 
     return problem.value

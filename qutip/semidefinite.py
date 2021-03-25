@@ -151,7 +151,7 @@ def qudit_swap(dim):
     return tensor_swap(W, (0, 1))
 
 @memoize
-def dnorm_problem(dim):
+def initialize_constraints_on_dnorm_problem(dim):
     # Start assembling constraints and variables.
     constraints = []
 
@@ -183,6 +183,14 @@ def dnorm_problem(dim):
     constraints += [Y >> 0]
 
     logger.debug("Using {} constraints.".format(len(constraints)))
+  
+    return X, constraints
+
+
+@memoize
+def dnorm_problem(dim):
+
+    X, constraints = initialize_constraints_on_dnorm_problem(dim)
 
     Jr = cvxpy.Parameter((dim**2, dim**2))
     Ji = cvxpy.Parameter((dim**2, dim**2))
@@ -193,45 +201,19 @@ def dnorm_problem(dim):
     ))
 
     problem = cvxpy.Problem(objective, constraints)
-    return problem, Jr, Ji, X, rho0, rho1
-
+    return problem, Jr, Ji
 
 def dnorm_sparse_problem(dim, J_dat):
-    # Start assembling constraints and variables.
-    constraints = []
+    # the solution in this case is based upon the answers to GitHub issue cvxpy/cvxpy#1159
 
-    # Make a complex variable for X.
-    X = complex_var(dim ** 2, dim ** 2, "X")
-
-    # Make complex variables for rho0 and rho1.
-    rho0 = complex_var(dim, dim, "rho0")
-    rho1 = complex_var(dim, dim, "rho1")
-    constraints += dens(rho0, rho1)
-
-    # Finally, add the tricky positive semidefinite constraint.
-    # Since we're using column-stacking, but Watrous used row-stacking,
-    # we need to swap the order in Rho0 and Rho1. This is not straightforward,
-    # as CVXPY requires that the constant be the first argument. To solve this,
-    # We conjugate by SWAP.
-    W = qudit_swap(dim).data.todense()
-    W = Complex(re=W.real, im=W.imag)
-    Rho0 = conj(W, kron(np.eye(dim), rho0))
-    Rho1 = conj(W, kron(np.eye(dim), rho1))
-
-    Y = cvxpy.bmat([
-        [Rho0.re, X.re,      -Rho0.im, -X.im],
-        [X.re.T, Rho1.re,    X.im.T, -Rho1.im],
-
-        [Rho0.im, X.im,      Rho0.re, X.re],
-        [-X.im.T, Rho1.im,   X.re.T, Rho1.re],
-    ])
-    constraints += [Y >> 0]
-
-    logger.debug("Using {} constraints.".format(len(constraints)))
+    X, constraints = initialize_constraints_on_dnorm_problem(dim)
 
     J_val = J_dat.tocoo()
 
     def adapt_sparse_params(A_val, dim):
+        # This detour is needed as pointed out in cvxpy/cvxpy#1159, as cvxpy can not 
+        # solve with parameters that aresparse matrices directly.
+        # solutions have to be made through calling cvxpy.reshape on the original sparse matrix.
 
         side_size = dim**2
         A_nnz = cvxpy.Parameter(A_val.nnz)
@@ -239,27 +221,25 @@ def dnorm_sparse_problem(dim, J_dat):
         A_data = np.ones(A_nnz.size)
         A_rows = A_val.row * side_size + A_val.col
         A_cols = np.arange(A_nnz.size)
-
+        # we are pushing the data on the location of the nonzero elements to the nonzero rows of A_indexer
         A_Indexer = sp.coo_matrix((A_data, (A_rows, A_cols)),
                                   shape=(side_size**2, A_nnz.size))
-
+        # We get finaly the sparse matrix A which we wanted
         A = cvxpy.reshape(A_Indexer @ A_nnz, (side_size, side_size), order='C')
+        A_nnz.value = A_val.data
 
-        return A_nnz, A
+        return  A
 
     Jr_val = J_val.real
-    Jr_nnz, Jr = adapt_sparse_params(Jr_val, dim)
+    Jr = adapt_sparse_params(Jr_val, dim)
 
     Ji_val = J_val.imag
-    Ji_nnz, Ji = adapt_sparse_params(Ji_val, dim)
+    Ji = adapt_sparse_params(Ji_val, dim)
 
     # The objective, however, depends on J.
     objective = cvxpy.Maximize(cvxpy.trace(
         Jr.T @ X.re + Ji.T @ X.im
     ))
 
-    Jr_nnz.value = Jr_val.data
-    Ji_nnz.value = Ji_val.data
-
     problem = cvxpy.Problem(objective, constraints)
-    return problem, Jr, Ji, X, rho0, rho1
+    return problem
