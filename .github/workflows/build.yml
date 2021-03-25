@@ -21,6 +21,43 @@ jobs:
         run: |
           echo "Built wheels will be deployed at the end."
 
+
+  build_sdist:
+    name: Build sdist on Ubuntu
+    runs-on: ubuntu-latest
+    env:
+      CI_QUTIP_RELEASE: 1
+      OVERRIDE_VERSION: ${{ github.event.inputs.override_version }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-python@v2
+        name: Install Python
+        with:
+          # For the sdist we should be as conservative as possible with our
+          # Python version.  This should be the lowest supported version.  This
+          # means that no unsupported syntax can sneak through.
+          python-version: '3.6'
+
+      - name: Install pip build
+        run: |
+          python -m pip install 'build'
+
+      - name: Build sdist
+        run: |
+          if [[ ! -z "$OVERRIDE_VERSION" ]]; then echo "$OVERRIDE_VERSION" > VERSION; fi
+          # The build package is the reference PEP 517 package builder.  All
+          # dependencies are specified by our setup code.
+          python -m build --sdist .
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: sdist
+          path: ./dist/*.tar.gz
+          if-no-files-found: error
+
+
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -66,7 +103,7 @@ jobs:
 
   deploy:
     name: "Deploy to PyPI"
-    needs: build_wheels
+    needs: [build_sdist, build_wheels]
     runs-on: ubuntu-latest
     if: endsWith(github.ref, format('/{0}', github.event.inputs.confirm_ref))
     env:
@@ -76,10 +113,10 @@ jobs:
       TWINE_REPOSITORY: pypi
 
     steps:
-      - uses: actions/download-artifact@v2
-        name: Download wheels to local runner
+      - name: Download build artifacts to local runner
+        uses: actions/download-artifact@v2
 
-      - name: Upload wheels to PyPI
+      - name: Upload sdist and wheels to PyPI
         run: |
           python -m pip install "twine"
-          python -m twine upload --verbose wheels/*.whl
+          python -m twine upload --verbose wheels/* sdist/*
