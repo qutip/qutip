@@ -480,9 +480,8 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
 
         # The parameters do not depend solely on the dimension,
         # so we can not cache them efficiently.
-
         problem = dnorm_sparse_problem(dim, J_dat)
-    
+
     problem.solve(solver=solver, verbose=verbose)
 
     return problem.value
