@@ -33,7 +33,7 @@
 
 import pytest
 import numpy as np
-from numpy.testing import assert_, run_module_suite
+from numpy.testing import assert_, run_module_suite, assert_raises
 import qutip
 from qutip import (expect, destroy, coherent, coherent_dm, thermal_dm,
                    fock_dm, triplet_states)
@@ -82,6 +82,11 @@ class TestStates:
         assert_(abs(expect(destroy(N), c1) - alpha) < 1e-10)
         assert_((c1[3:]-c2).norm() < 1e-7)
 
+        # make sure bad method causes a problem
+        assert_raises(TypeError, coherent, N, 1, 'aaa')
+
+        # make sure bad offset causes a problem
+        assert_raises(ValueError, coherent, N, -1)
 
     def testCoherentDensityMatrix(self):
         """
@@ -93,6 +98,12 @@ class TestStates:
 
         # make sure rho has trace close to 1.0
         assert_(abs(rho.tr() - 1.0) < 1e-12)
+
+        # make sure bad method causes a problem
+        assert_raises(TypeError, coherent_dm, N, 1, 'aaa')
+
+        # make sure bad offset causes a problem
+        assert_raises(ValueError, coherent_dm, N, -1)
 
     def testThermalDensityMatrix(self):
         """
