@@ -100,6 +100,7 @@ spline_kind = [
 ]
 schedule_mode = [
     pytest.param("ASAP", id="ASAP"),
+    pytest.param("ALAP", id="ALAP"),
     pytest.param(False, id="No schedule"),
 ]
 @pytest.mark.parametrize("spline_kind", spline_kind)
