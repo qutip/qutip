@@ -796,7 +796,7 @@ class TestDiamondMetrics:
             A = rand_unitary_haar(dim)
             B = rand_unitary_haar(dim)
 
-        assert dnorm(A, B, force_solve=False) == pytest.approx(dnorm(A, B, force_solve=True), abs=1e-7)
+        assert dnorm(A, B, force_solve=False) == pytest.approx(dnorm(A, B, force_solve=True), abs=1e-5)
 
     @dnorm_test
     @pytest.mark.repeat(10)
