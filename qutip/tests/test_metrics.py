@@ -630,6 +630,7 @@ class TestDiamondMetrics:
     """
     A test class for the QuTiP functions for metric calculation.
     """
+    @dnorm_test
     @pytest.mark.repeat(10)
     def test_dnorm_on_sparse_matrix(self):
         """
@@ -653,6 +654,7 @@ class TestDiamondMetrics:
 
         assert dense_run_result == pytest.approx(sparse_run_result, abs=1e-7)
 
+    @dnorm_test
     @pytest.mark.repeat(10)
     @pytest.mark.parametrize(["dim"], [
                         pytest.param(2, id="dim2"),
@@ -669,10 +671,10 @@ class TestDiamondMetrics:
         dense_run_result = dnorm(A, force_solve=force_solve)
         sparse_run_result = dnorm(A, force_solve=force_solve,
                                   dense_memoized_solve=False)
- 
+
         assert dense_run_result == pytest.approx(sparse_run_result, abs=1e-7)
 
-
+    @dnorm_test
     @pytest.mark.repeat(10)
     def test_dnorm_bounded(self):
         """
@@ -684,7 +686,7 @@ class TestDiamondMetrics:
         norm_result = dnorm(A, B)
         assert 1 == pytest.approx(norm_result, abs=1 + 1e-7)
 
-
+    @dnorm_test
     def test_dnorm_qubit_simple_known_cases(self):
         """
         Metrics: check agreement for known qubit channels.
