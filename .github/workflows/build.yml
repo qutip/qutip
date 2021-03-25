@@ -50,11 +50,6 @@ jobs:
           # 1.8.0, but should be fine at least up to any major new release.
           python -m pip install 'cibuildwheel<2.0'
 
-      - name: Install Visual C++ for Python 2.7
-        if: runner.os == 'Windows'
-        run: |
-          choco install vcpython27 -f -y
-
       - name: Build wheels
         shell: bash
         run: |
