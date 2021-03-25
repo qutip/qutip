@@ -70,6 +70,7 @@ class GateCompiler(object):
         The Python dictionary in the form of {gate_name: compiler_function}.
         It saves the compiling routine for each gate. See sub-classes
         for implementation.
+        Note that for continuous pulse, the first coeff should always be 0.
 
     args: dict
         Arguments for individual compiling routines.
@@ -131,6 +132,8 @@ class GateCompiler(object):
         if args is not None:
             self.args.update(args)
         instruction_list = []
+
+        # compile gates
         for gate in gates:
             if gate.name not in self.gate_compiler:
                 raise ValueError("Unsupported gate %s" % gate.name)
@@ -154,21 +157,9 @@ class GateCompiler(object):
         #   An ordered list of the start_time for each pulse,
         #   corresponding to gates in the instruction_list.
         # instruction_list reordered according to the scheduled result
-        if schedule_mode:
-            scheduler = Scheduler(schedule_mode)
-            scheduled_start_time = scheduler.schedule(instruction_list)
-            time_ordered_pos = np.argsort(scheduled_start_time)
-            instruction_list = [instruction_list[i] for i in time_ordered_pos]
-            scheduled_start_time.sort()
-        else:  # no scheduling
-            time_ordered_pos = list(range(0, len(instruction_list)))
-            scheduled_start_time = [0.]
-            for instruction in instruction_list:
-                scheduled_start_time.append(
-                    instruction.duration + scheduled_start_time[-1])
-            scheduled_start_time = scheduled_start_time[:-1]
+        instruction_list, scheduled_start_time = \
+            self._schedule(instruction_list, schedule_mode)
 
-        # compile
         # An instruction can be composed from several different pulse elements.
         # We separate them an assign them to each pulse index.
         pulse_instructions = [[] for tmp in range(num_controls)]
@@ -182,17 +173,67 @@ class GateCompiler(object):
                 pulse_instructions[pulse_ind].append(
                     (start_time, instruction.tlist, coeff))
 
-        # Concatenate tlist and coeffs
+        # concatenate pulses
+        compiled_tlist, compiled_coeffs = \
+            self._concatenate_pulses(
+                pulse_instructions, scheduled_start_time, num_controls)
+        return compiled_tlist, compiled_coeffs
+
+    def _schedule(self, instruction_list, schedule_mode):
+        """
+        Schedule the instructions if required and 
+        reorder instruction_list accordingly
+        """
+        if schedule_mode:
+            scheduler = Scheduler(schedule_mode)
+            scheduled_start_time = scheduler.schedule(instruction_list)
+            time_ordered_pos = np.argsort(scheduled_start_time)
+            instruction_list = [instruction_list[i] for i in time_ordered_pos]
+            scheduled_start_time.sort()
+        else:  # no scheduling
+            scheduled_start_time = [0.]
+            for instruction in instruction_list:
+                scheduled_start_time.append(
+                    instruction.duration + scheduled_start_time[-1])
+            scheduled_start_time = scheduled_start_time[:-1]
+        return instruction_list, scheduled_start_time
+
+    def _concatenate_pulses(
+            self, pulse_instructions, scheduled_start_time, num_controls):
+        """
+        Concatenate compiled pulses coefficients and tlist for each pulse.
+        If there is idling time, add zeros properly to prevent wrong spline.
+        """
+        # Concatenate tlist and coeffs for each control pulses
         compiled_tlist = [[] for tmp in range(num_controls)]
         compiled_coeffs = [[] for tmp in range(num_controls)]
         for pulse_ind in range(num_controls):
             last_pulse_time = 0.
             for start_time, tlist, coeff in pulse_instructions[pulse_ind]:
-                tlist_to_add, coeffs_to_add, last_pulse_time = \
-                    self._concatenate_instruction(
-                        start_time, tlist, coeff, last_pulse_time)
-                compiled_tlist[pulse_ind].extend(tlist_to_add)
-                compiled_coeffs[pulse_ind].extend(coeffs_to_add)
+                # compute the gate time, step size and coeffs
+                # according to different pulse mode
+                gate_tlist, coeffs, step_size, pulse_mode = \
+                    self._process_gate_pulse(start_time, tlist, coeff)
+
+                if abs(last_pulse_time) < step_size * 1.0e-6:  # if first pulse
+                    compiled_tlist[pulse_ind].append([0.])  
+                    if pulse_mode == "continuous":
+                        compiled_coeffs[pulse_ind].append([0.])
+                    # for discrete pulse len(coeffs) = len(tlist) - 1
+
+                # If there is idling time between the last pulse and
+                # the current one, we need to add zeros in between.
+                if np.abs(start_time - last_pulse_time) > step_size * 1.0e-6:
+                    idling_tlist = self._process_idling_tlist(
+                        pulse_mode, start_time, last_pulse_time, step_size)
+                    compiled_tlist[pulse_ind].append(idling_tlist)
+                    compiled_coeffs[pulse_ind].append(np.zeros(len(idling_tlist)))
+
+                # Add the gate time and coeffs to the list.
+                execution_time = gate_tlist + start_time
+                last_pulse_time = execution_time[-1]
+                compiled_tlist[pulse_ind].append(execution_time)
+                compiled_coeffs[pulse_ind].append(coeffs)
 
         for i in range(num_controls):
             if not compiled_coeffs[i]:
@@ -201,91 +242,62 @@ class GateCompiler(object):
             else:
                 compiled_tlist[i] = np.concatenate(compiled_tlist[i])
                 compiled_coeffs[i] = np.concatenate(compiled_coeffs[i])
-
         return compiled_tlist, compiled_coeffs
 
-
-    def _concatenate_instruction(
-            self, start_time, tlist, coeff, last_pulse_time):
+    def _process_gate_pulse(
+            self, start_time, tlist, coeff):
         # compute the gate time, step size and coeffs
+        # according to different pulse mode
         if np.isscalar(tlist):
             pulse_mode = "discrete"
             # a single constant rectanglar pulse, where
             # tlist and coeff are just float numbers
             step_size = tlist
             coeff = np.array([coeff])
-            if abs(start_time) < 1.0e-10:
-                gate_tlist = np.array([0., tlist])  # first gate
-            else:
-                gate_tlist = np.array([tlist])
+            gate_tlist = np.array([tlist])
         elif len(tlist) - 1 == len(coeff):
             # discrete pulse
             pulse_mode = "discrete"
             step_size = tlist[1] - tlist[0]
             coeff = np.asarray(coeff)
-            if abs(start_time) < step_size * 1.0e-6:
-                gate_tlist = np.asarray(tlist)
-            else:
-                gate_tlist = np.asarray(tlist)[1:]
+            gate_tlist = np.asarray(tlist)[1:]  #  first t always 0 by def
         elif len(tlist) == len(coeff):
             # continuos pulse
             pulse_mode = "continuous"
             step_size = tlist[1] - tlist[0]
-            if abs(start_time) < step_size * 1.0e-6:
-                coeff = np.asarray(coeff)
-                gate_tlist = np.asarray(tlist)
-            else:
-                coeff = np.asarray(coeff)[1:]
-                gate_tlist = np.asarray(tlist)[1:]
+            coeff = np.asarray(coeff)[1:]
+            gate_tlist = np.asarray(tlist)[1:]
         else:
             raise ValueError(
                 "The shape of the compiled pulse is not correct.")
+        return gate_tlist, coeff, step_size, pulse_mode
 
-        # consider the idling time and add to the resulting list
-        tlist_to_add = []
-        coeffs_to_add = []
-        # If there is a idling time between the last pulse and
-        # the current one, we need to add zeros in between.
-        if np.abs(start_time - last_pulse_time) > step_size * 1.0e-6:
-            idling_time = start_time - last_pulse_time
-            if pulse_mode == "continuous":
-                # We add sufficient number of zeros at the begining
-                # and the end of the idling to prevent wrong cubic spline.
-                if abs(last_pulse_time) < 1.e-14:
-                    tlist_to_add.append(np.array([0.]))
-                    coeffs_to_add.append(np.array([0.]))
-                if idling_time > 3 * step_size:
-                    idling_tlist1 = np.linspace(
-                        last_pulse_time + step_size/5,
+    def _process_idling_tlist(
+            self, pulse_mode, start_time, last_pulse_time, step_size):
+        idling_tlist = []
+        if pulse_mode == "continuous":
+            # We add sufficient number of zeros at the begining
+            # and the end of the idling to prevent wrong cubic spline.
+            if start_time - last_pulse_time > 3 * step_size:
+                idling_tlist1 = np.linspace(
+                    last_pulse_time + step_size/5,
+                    last_pulse_time + step_size,
+                    5
+                )
+                idling_tlist2 = np.linspace(
+                    start_time - step_size,
+                    start_time,
+                    5
+                )
+                idling_tlist.extend([idling_tlist1, idling_tlist2])
+            else:
+                idling_tlist.append(
+                    np.arange(
                         last_pulse_time + step_size,
-                        5
+                        start_time, step_size
                     )
-                    idling_tlist2 = np.linspace(
-                        start_time - step_size,
-                        start_time - step_size/5,
-                        5
-                    )
-                    idling_tlist = np.concatenate(
-                        [idling_tlist1, idling_tlist2])
-                else:
-                    idling_tlist = np.arange(
-                        last_pulse_time + step_size,
-                        start_time - step_size, step_size
-                    )
-                tlist_to_add.append(idling_tlist)
-                coeffs_to_add.append(np.zeros(len(idling_tlist)))
-            elif pulse_mode == "discrete":
-                if abs(last_pulse_time) < 1.e-14:
-                    tlist_to_add.append([0.])
-            # The pulse should always start with 0.
-            # For discrete pulse, it is assumed implicitly;
-            # for continuous pulse, the difference is negligible.
-            tlist_to_add.append([start_time])
-            coeffs_to_add.append([0.])
-        # Add the gate time and coeffs to the list.
-        execution_time = gate_tlist + start_time
-        last_pulse_time = execution_time[-1]
-        tlist_to_add.append(execution_time)
-        coeffs_to_add.append(coeff)
-
-        return tlist_to_add, coeffs_to_add, last_pulse_time
+                )
+        elif pulse_mode == "discrete":
+            # idling until the start time
+            idling_tlist.append([start_time])
+        return np.concatenate(idling_tlist)
