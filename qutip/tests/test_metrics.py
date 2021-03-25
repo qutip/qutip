@@ -72,11 +72,15 @@ try:
     import cvxpy
 except:
     cvxpy = None
+try:
+    import cvxopt
+except:
+    cvxopt = None
 
 
 # We are disregarding this Issue #484 as mkl does not appear to still be incompatible with cvxpy.
 
-dnorm_test = pytest.mark.skipif(cvxpy is None, reason='requires cvxpy')
+dnorm_test = pytest.mark.skipif((cvxpy is None) or (cvxopt is None), reason='requires cvxpy and cvxopt')
 
 
 
