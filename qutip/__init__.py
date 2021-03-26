@@ -48,22 +48,6 @@ try:
 except:
     qutip.settings.ipython = False
 
-# -----------------------------------------------------------------------------
-# check to see if running from install directory for released versions.
-#
-top_path = os.path.dirname(os.path.dirname(__file__))
-try:
-    setup_file = open(top_path + '/setup.py', 'r')
-except:
-    pass
-else:
-    if ('QuTiP' in setup_file.readlines()[1][3:]) and qutip.version.release:
-        print("You are in the installation directory. " +
-              "Change directories before running QuTiP.")
-    setup_file.close()
-
-del top_path
-
 
 # -----------------------------------------------------------------------------
 # Look to see if we are running with OPENMP
