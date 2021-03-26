@@ -268,7 +268,7 @@ if qutip.settings.has_openmp and (not has_rc):
         #bench OPENMP
         print('Calibrating OPENMP threshold...')
         thrsh = calculate_openmp_thresh()
-        qutip.configrc.write_rc_key(rc_file, 'openmp_thresh', thrsh)
+        qutip.configrc.write_rc_key('openmp_thresh', thrsh, rc_file=rc_file)
 # Make OPENMP if has_rc but 'openmp_thresh' not in keys
 elif qutip.settings.has_openmp and has_rc:
     has_omp_key = qutip.configrc.has_rc_key(rc_file, 'openmp_thresh')
@@ -276,7 +276,7 @@ elif qutip.settings.has_openmp and has_rc:
         from qutip.cy.openmp.bench_openmp import calculate_openmp_thresh
         print('Calibrating OPENMP threshold...')
         thrsh = calculate_openmp_thresh()
-        qutip.configrc.write_rc_key(rc_file, 'openmp_thresh', thrsh)
+        qutip.configrc.write_rc_key('openmp_thresh', thrsh, rc_file=rc_file)
 
 # Load the config file
 if has_rc:
