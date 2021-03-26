@@ -65,10 +65,10 @@ else:
     os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 import platform
-from .utilities import _blas_info
+from qutip.utilities import _blas_info
 qutip.settings.eigh_unsafe = (_blas_info() == "OPENBLAS" and
                               platform.system() == 'Darwin')
-del platform
+del platform, _blas_info
 # -----------------------------------------------------------------------------
 # setup the cython environment
 #
@@ -213,24 +213,24 @@ from qutip.cite import *
 import qutip.configrc
 has_rc, rc_file = qutip.configrc.has_qutip_rc()
 
-# Make qutiprc and benchmark OPENMP if has_rc = False
-if qutip.settings.has_openmp and (not has_rc):
-    qutip.configrc.generate_qutiprc()
-    has_rc, rc_file = qutip.configrc.has_qutip_rc()
-    if has_rc and qutip.settings.num_cpus > 1:
+# Read the OpenMP threshold out if it already exists, or calibrate and save it
+# if it doesn't.
+if qutip.settings.has_openmp:
+    _calibrate_openmp = qutip.settings.num_cpus > 1
+    if has_rc:
+        _calibrate_openmp = (
+            _calibrate_openmp
+            and not qutip.configrc.has_rc_key('openmp_thresh', rc_file=rc_file)
+        )
+    else:
+        qutip.configrc.generate_qutiprc()
+        has_rc, rc_file = qutip.configrc.has_qutip_rc()
+    if _calibrate_openmp:
+        print('Calibrating OpenMP threshold...')
         from qutip.cy.openmp.bench_openmp import calculate_openmp_thresh
-        #bench OPENMP
-        print('Calibrating OPENMP threshold...')
-        thrsh = calculate_openmp_thresh()
-        qutip.configrc.write_rc_key('openmp_thresh', thrsh, rc_file=rc_file)
-# Make OPENMP if has_rc but 'openmp_thresh' not in keys
-elif qutip.settings.has_openmp and has_rc:
-    has_omp_key = qutip.configrc.has_rc_key(rc_file, 'openmp_thresh')
-    if not has_omp_key and qutip.settings.num_cpus > 1:
-        from qutip.cy.openmp.bench_openmp import calculate_openmp_thresh
-        print('Calibrating OPENMP threshold...')
-        thrsh = calculate_openmp_thresh()
-        qutip.configrc.write_rc_key('openmp_thresh', thrsh, rc_file=rc_file)
+        thresh = calculate_openmp_thresh()
+        qutip.configrc.write_rc_key('openmp_thresh', thresh, rc_file=rc_file)
+        del calculate_openmp_thresh
 
 # Load the config file
 if has_rc:
