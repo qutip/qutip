@@ -188,7 +188,6 @@ def initialize_constraints_on_dnorm_problem(dim):
     return X, constraints
 
 
-@memoize
 def dnorm_problem(dim):
 
     X, constraints = initialize_constraints_on_dnorm_problem(dim)

@@ -369,10 +369,8 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
         If True, forces dnorm to solve the associated SDP, even if a special
         case is known for the argument.
     sparse : bool
-        If True, sparse matrices are cast to dense and the convex optimization
-        Problem is memoized.
-        If False, sparsity is kept but the convex optimization
-        Problem is not memoized.
+        If False, sparse matrices are cast to dense and the convex optimization
+        If True, sparsity is kept but the convex optimization
 
     Returns
     -------
