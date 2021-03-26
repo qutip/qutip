@@ -41,31 +41,6 @@ from .version import version as __version__
 from .utilities import _version2int
 
 # -----------------------------------------------------------------------------
-# Check for minimum requirements of dependencies, give the user a warning
-# if the requirements aren't fulfilled
-#
-
-numpy_requirement = "1.12.0"
-try:
-    import numpy
-    if _version2int(numpy.__version__) < _version2int(numpy_requirement):
-        print("QuTiP warning: old version of numpy detected " +
-              ("(%s), requiring %s." %
-               (numpy.__version__, numpy_requirement)))
-except:
-    warnings.warn("numpy not found.")
-
-scipy_requirement = "1.0.0"
-try:
-    import scipy
-    if _version2int(scipy.__version__) < _version2int(scipy_requirement):
-        print("QuTiP warning: old version of scipy detected " +
-              ("(%s), requiring %s." %
-               (scipy.__version__, scipy_requirement)))
-except:
-    warnings.warn("scipy not found.")
-
-# -----------------------------------------------------------------------------
 # check to see if running from install directory for released versions.
 #
 top_path = os.path.dirname(os.path.dirname(__file__))
@@ -89,6 +64,7 @@ del top_path
 _cython_requirement = "0.21.0"
 try:
     import Cython
+    import numpy
     if _version2int(Cython.__version__) < _version2int(_cython_requirement):
         print("QuTiP warning: old version of cython detected " +
               ("(%s), requiring %s." %
@@ -100,7 +76,7 @@ try:
 except Exception:
     pass
 else:
-    del Cython
+    del Cython, numpy
 
 
 # -----------------------------------------------------------------------------
@@ -205,4 +181,4 @@ if configrc.has_qutip_rc():
 # -----------------------------------------------------------------------------
 # Clean name space
 #
-del os, sys, numpy, scipy, multiprocessing, distutils, configrc, warnings
+del os, sys, multiprocessing, distutils, configrc, warnings
