@@ -30,9 +30,7 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-from __future__ import division, print_function, absolute_import
 import os
-import sys
 import warnings
 
 import qutip.settings
@@ -112,6 +110,8 @@ if qutip.settings.num_cpus == 0:
             qutip.settings.num_cpus = multiprocessing.cpu_count()
         except NotImplementedError:
             qutip.settings.num_cpus = 1
+
+del multiprocessing
 
 
 # Find MKL library if it exists
@@ -239,4 +239,4 @@ if has_rc:
 # -----------------------------------------------------------------------------
 # Clean name space
 #
-del os, sys, multiprocessing, warnings
+del os, warnings
