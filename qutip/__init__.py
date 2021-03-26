@@ -150,13 +150,6 @@ from .fileio import *
 from .about import *
 from .cite import *
 
-# Remove -Wstrict-prototypes from cflags
-import setuptools
-import distutils.sysconfig
-cfg_vars = distutils.sysconfig.get_config_vars()
-if "CFLAGS" in cfg_vars:
-    cfg_vars["CFLAGS"] = cfg_vars["CFLAGS"].replace("-Wstrict-prototypes", "")
-
 # -----------------------------------------------------------------------------
 # Load user configuration if present: override defaults.
 #
@@ -167,4 +160,4 @@ if configrc.has_qutip_rc():
 # -----------------------------------------------------------------------------
 # Clean name space
 #
-del os, sys, multiprocessing, distutils, warnings
+del os, sys, multiprocessing, warnings
