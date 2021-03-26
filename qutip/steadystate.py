@@ -61,7 +61,6 @@ from qutip.cy.spmath import zcsr_kron
 from qutip.graph import weighted_bipartite_matching
 from qutip import (mat2vec, tensor, identity, operator_to_vector)
 import qutip.settings as settings
-from qutip.utilities import _version2int
 from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
 
 import qutip.logging_utils
@@ -71,9 +70,6 @@ logger.setLevel('DEBUG')
 # Load MKL spsolve if avaiable
 if settings.has_mkl:
     from qutip._mkl.spsolve import (mkl_splu, mkl_spsolve)
-
-# test if scipy is recent enought to get L & U factors from superLU
-_scipy_check = _version2int(scipy.__version__) >= _version2int('0.14.0')
 
 
 def _empty_info_dict():
@@ -423,7 +419,7 @@ def _steadystate_direct_sparse(L, ss_args):
         v = lu.solve(b)
         _direct_end = time.time()
         ss_args['info']['solution_time'] = _direct_end - _direct_start
-        if (settings.debug or ss_args['return_info']) and _scipy_check:
+        if (settings.debug or ss_args['return_info']):
             L_nnz = lu.L.nnz
             U_nnz = lu.U.nnz
             ss_args['info']['l_nnz'] = L_nnz
@@ -566,20 +562,18 @@ def _iterative_precondition(A, n, ss_args):
                 logger.debug('Preconditioning succeeded.')
                 logger.debug('Precond. time: %f' %
                              (_precond_end - _precond_start))
-
-            if _scipy_check:
-                L_nnz = P.L.nnz
-                U_nnz = P.U.nnz
-                ss_args['info']['l_nnz'] = L_nnz
-                ss_args['info']['u_nnz'] = U_nnz
-                ss_args['info']['ilu_fill_factor'] = (L_nnz+U_nnz)/A.nnz
-                e = np.ones(n ** 2, dtype=int)
-                condest = la.norm(M*e, np.inf)
-                ss_args['info']['ilu_condest'] = condest
-                if settings.debug:
-                    logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz, U_nnz))
-                    logger.debug('Fill factor: %f' % ((L_nnz+U_nnz)/A.nnz))
-                    logger.debug('iLU condest: %f' % condest)
+            L_nnz = P.L.nnz
+            U_nnz = P.U.nnz
+            ss_args['info']['l_nnz'] = L_nnz
+            ss_args['info']['u_nnz'] = U_nnz
+            ss_args['info']['ilu_fill_factor'] = (L_nnz+U_nnz)/A.nnz
+            e = np.ones(n ** 2, dtype=int)
+            condest = la.norm(M*e, np.inf)
+            ss_args['info']['ilu_condest'] = condest
+            if settings.debug:
+                logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz, U_nnz))
+                logger.debug('Fill factor: %f' % ((L_nnz+U_nnz)/A.nnz))
+                logger.debug('iLU condest: %f' % condest)
 
     except:
         raise Exception("Failed to build preconditioner. Try increasing " +
@@ -863,7 +857,7 @@ def _steadystate_power(L, ss_args):
                       diag_pivot_thresh=ss_args['diag_pivot_thresh'],
                       options=dict(ILU_MILU=ss_args['ILU_MILU']))
 
-            if settings.debug and _scipy_check:
+            if settings.debug:
                 L_nnz = lu.L.nnz
                 U_nnz = lu.U.nnz
                 logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz, U_nnz))
