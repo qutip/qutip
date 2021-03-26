@@ -37,7 +37,7 @@ from numpy.testing import assert_equal, run_module_suite, assert_
 import unittest
 
 from qutip import num, rand_herm, expect, rand_unitary
-from qutip import _version2int
+
 
 def test_SparseHermValsVecs():
     """

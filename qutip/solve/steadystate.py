@@ -645,7 +645,6 @@ def _iterative_precondition(A, n, ss_args):
                 logger.debug('Preconditioning succeeded.')
                 logger.debug('Precond. time: %f' %
                              (_precond_end - _precond_start))
-
             L_nnz = P.L.nnz
             U_nnz = P.U.nnz
             ss_args['info']['l_nnz'] = L_nnz
