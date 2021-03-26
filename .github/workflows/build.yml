@@ -61,7 +61,7 @@ jobs:
         run: |
           python -m pip install 'build'
 
-      - name: Build sdist
+      - name: Build sdist tarball
         shell: bash
         run: |
           if [[ ! -z "$OVERRIDE_VERSION" ]]; then echo "$OVERRIDE_VERSION" > VERSION; fi
@@ -69,10 +69,31 @@ jobs:
           # dependencies are specified by our setup code.
           python -m build --sdist .
 
+      # Zip files are not part of PEP 517, so we need to make our own.
+      - name: Create zipfile from tarball
+        shell: bash
+        working-directory: dist
+        run: |
+          # First assert that there is exactly one tarball, and find its name.
+          shopt -s failglob
+          tarball_pattern="*.tar.gz"
+          tarballs=($tarball_pattern)
+          [[ ${#tarballs[@]} == 1 ]]
+          tarball="${tarballs[0]}"
+          # Get the stem and make the zipfile name.
+          stem="${tarball%.tar.gz}"
+          zipfile="${stem}.zip"
+          # Extract the tarball and rezip it.
+          tar -xzf "$tarball"
+          zip "$zipfile" -r "$stem"
+          rm -r "$stem"
+
       - uses: actions/upload-artifact@v2
         with:
           name: sdist
-          path: ./dist/*.tar.gz
+          path: |
+            dist/*.tar.gz
+            dist/*.zip
           if-no-files-found: error
 
 
@@ -139,7 +160,9 @@ jobs:
       - name: Download build artifacts to local runner
         uses: actions/download-artifact@v2
 
+      # We built the zipfile for convenience distributing to Windows users on
+      # our end, but PyPI only needs the tarball.
       - name: Upload sdist and wheels to PyPI
         run: |
           python -m pip install "twine"
-          python -m twine upload --verbose wheels/* sdist/*
+          python -m twine upload --verbose wheels/*.whl sdist/*.tar.gz
