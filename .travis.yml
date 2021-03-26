@@ -72,6 +72,7 @@ jobs:
         - python setup.py develop --with-openmp
       before_script:
         - QUTIP_INSTALL="${QUTIP_DOWNLOAD}/qutip"
+        - export QUTIP_NUM_PROCESSES=2
       script:
         - python -c "import qutip; qutip.about()"
         - pytest --verbosity=1 --cov=qutip --cov-config="${QUTIP_DOWNLOAD}/.coveragerc" --rootdir="${QUTIP_INSTALL}/tests" -c "${QUTIP_INSTALL}/tests/pytest.ini" --pyargs qutip
