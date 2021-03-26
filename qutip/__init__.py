@@ -40,23 +40,6 @@ from . import version
 from .version import version as __version__
 from .utilities import _version2int
 
-# -----------------------------------------------------------------------------
-# check to see if running from install directory for released versions.
-#
-top_path = os.path.dirname(os.path.dirname(__file__))
-try:
-    setup_file = open(top_path + '/setup.py', 'r')
-except:
-    pass
-else:
-    if ('QuTiP' in setup_file.readlines()[1][3:]) and version.release:
-        print("You are in the installation directory. " +
-              "Change directories before running QuTiP.")
-    setup_file.close()
-
-del top_path
-
-
 
 # -----------------------------------------------------------------------------
 # setup the cython environment
