@@ -207,12 +207,6 @@ from qutip.fileio import *
 from qutip.about import *
 from qutip.cite import *
 
-# Remove -Wstrict-prototypes from cflags
-import distutils.sysconfig
-cfg_vars = distutils.sysconfig.get_config_vars()
-if "CFLAGS" in cfg_vars:
-    cfg_vars["CFLAGS"] = cfg_vars["CFLAGS"].replace("-Wstrict-prototypes", "")
-
 # -----------------------------------------------------------------------------
 # Load user configuration if present: override defaults.
 #
@@ -245,4 +239,4 @@ if has_rc:
 # -----------------------------------------------------------------------------
 # Clean name space
 #
-del os, sys, multiprocessing, distutils, warnings
+del os, sys, multiprocessing, warnings

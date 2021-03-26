@@ -40,6 +40,14 @@ old_get_distutils_extension = pyximport.pyximport.get_distutils_extension
 
 
 def new_get_distutils_extension(modname, pyxfilename, language_level=None):
+    # Remove -Wstrict-prototypes from cflags; we build in C++ mode, where the
+    # flag is invalid, but for some reason distutils still has it as a default,
+    # and tries to append CFLAGS to the compile even in C++ mode.
+    import distutils.sysconfig
+    cfg_vars = distutils.sysconfig.get_config_vars()
+    if "CFLAGS" in cfg_vars:
+        cfg_vars["CFLAGS"] = cfg_vars["CFLAGS"].replace("-Wstrict-prototypes",
+                                                        "")
     extension_mod, setup_args =\
         old_get_distutils_extension(modname, pyxfilename, language_level)
     extension_mod.language = 'c++'
