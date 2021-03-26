@@ -38,14 +38,13 @@ import warnings
 import qutip.settings
 import qutip.version
 from qutip.version import version as __version__
-from qutip.utilities import _version2int
 
 # -----------------------------------------------------------------------------
 # Check if we're in IPython.
 try:
     __IPYTHON__
     qutip.settings.ipython = True
-except:
+except NameError:
     qutip.settings.ipython = False
 
 
@@ -58,7 +57,7 @@ os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
 
 try:
     from qutip.cy.openmp.parfuncs import spmv_csr_openmp
-except:
+except ImportError:
     qutip.settings.has_openmp = False
 else:
     qutip.settings.has_openmp = True
@@ -69,24 +68,26 @@ import platform
 from .utilities import _blas_info
 qutip.settings.eigh_unsafe = (_blas_info() == "OPENBLAS" and
                               platform.system() == 'Darwin')
+del platform
 # -----------------------------------------------------------------------------
 # setup the cython environment
 #
-_cython_requirement = "0.21.0"
 try:
-    import Cython
-    if _version2int(Cython.__version__) < _version2int(_cython_requirement):
-        print("QuTiP warning: old version of cython detected " +
-              ("(%s), requiring %s." %
-               (Cython.__version__, _cython_requirement)))
-    # Setup pyximport
-    import qutip.cy.pyxbuilder as pbldr
-    pbldr.install(setup_args={'include_dirs': [numpy.get_include()]})
-    del pbldr
-except Exception as e:
+    import Cython as _Cython
+except ImportError:
     pass
 else:
-    del Cython
+    from qutip.utilities import _version2int
+    _cy_require = "0.29.20"
+    if _version2int(_Cython.__version__) < _version2int(_cy_require):
+        warnings.warn(
+            "Old version of Cython detected: needed {}, got {}."
+            .format(_cy_require, _Cython.__version__)
+        )
+    # Setup pyximport
+    import qutip.cy.pyxbuilder as _pyxbuilder
+    _pyxbuilder.install()
+    del _pyxbuilder, _Cython, _version2int
 
 
 # -----------------------------------------------------------------------------
@@ -103,13 +104,13 @@ else:
 if qutip.settings.num_cpus == 0:
     # if num_cpu is 0 set it to the available number of cores
     import qutip.hardware_info
-    info =  qutip.hardware_info.hardware_info()
+    info = qutip.hardware_info.hardware_info()
     if 'cpus' in info:
         qutip.settings.num_cpus = info['cpus']
     else:
         try:
             qutip.settings.num_cpus = multiprocessing.cpu_count()
-        except:
+        except NotImplementedError:
             qutip.settings.num_cpus = 1
 
 
@@ -124,7 +125,7 @@ import qutip._mkl
 # Check for Matplotlib
 try:
     import matplotlib
-except:
+except ImportError:
     warnings.warn("matplotlib not found: Graphics will not work.")
 else:
     del matplotlib
@@ -244,4 +245,4 @@ if has_rc:
 # -----------------------------------------------------------------------------
 # Clean name space
 #
-del os, sys, multiprocessing, distutils
+del os, sys, multiprocessing, distutils, warnings
