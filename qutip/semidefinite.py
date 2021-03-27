@@ -205,9 +205,9 @@ def dnorm_sparse_problem(dim, J_dat):
     J_val = J_dat.tocoo()
 
     def adapt_sparse_params(A_val, dim):
-        # This detour is needed as pointed out in cvxpy/cvxpy#1159, as cvxpy
+        # This detour is needed as pointed out in cvxgrp/cvxpy#1159, as cvxpy
         # can not solve with parameters that aresparse matrices directly.
-        # solutions have to be made through calling cvxpy.reshape on
+        # Solutions have to be made through calling cvxpy.reshape on
         # the original sparse matrix.
         side_size = dim**2
         A_nnz = cvxpy.Parameter(A_val.nnz)
