@@ -70,21 +70,14 @@ import unittest
 
 try:
     import cvxpy
-except:
+except ImportError:
     cvxpy = None
 try:
     import cvxopt
-except:
+except ImportError:
     cvxopt = None
 
-
-# We are disregarding this Issue #484 as mkl does not appear to still be incompatible with cvxpy.
-
 dnorm_test = pytest.mark.skipif((cvxpy is None) or (cvxopt is None), reason='requires cvxpy and cvxopt')
-
-
-
-
 
 #FIXME: Try to resolve the average_gate_fidelity issues on MACOS
 avg_gate_fidelity_test = unittest.skipIf(platform.system().startswith("Darwin"),
@@ -94,7 +87,6 @@ avg_gate_fidelity_test = unittest.skipIf(platform.system().startswith("Darwin"),
 """
 A test class for the metrics and pseudo-metrics included with QuTiP.
 """
-
 
 
 def test_fid_trdist_limits():
