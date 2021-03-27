@@ -56,7 +56,7 @@ logger = logging.get_logger()
 
 try:
     import cvxpy
-except:
+except ImportError:
     cvxpy = None
 
 

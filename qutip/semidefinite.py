@@ -45,7 +45,7 @@ import scipy.sparse as sp
 # Conditionally import CVXPY
 try:
     import cvxpy
-except:
+except ImportError:
     cvxpy = None
 
 Complex = namedtuple('Complex', ['re', 'im'])
