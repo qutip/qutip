@@ -425,9 +425,8 @@ class TestDiamondMetrics:
         A = kraus_to_choi([qeye(2)])
         p = np.random.uniform(0.1, 0.9)
         B = AmpDampChoi(p)
-        dense_run_result = dnorm(A, B, force_solve=force_solve)
-        sparse_run_result = dnorm(A, B, force_solve=force_solve,
-                                  sparse=True)
+        dense_run_result = dnorm(A, B, force_solve=force_solve, sparse=False)
+        sparse_run_result = dnorm(A, B, force_solve=force_solve, sparse=True)
         assert dense_run_result == pytest.approx(sparse_run_result, abs=1e-7)
 
     @dnorm_test
@@ -442,9 +441,8 @@ class TestDiamondMetrics:
         """
         force_solve = True
         A = rand_super_bcsz(dim)
-        dense_run_result = dnorm(A, force_solve=force_solve)
-        sparse_run_result = dnorm(A, force_solve=force_solve,
-                                  sparse=True)
+        dense_run_result = dnorm(A, force_solve=force_solve, sparse=False)
+        sparse_run_result = dnorm(A, force_solve=force_solve, sparse=True)
         assert dense_run_result == pytest.approx(sparse_run_result, abs=1e-7)
 
     @dnorm_test

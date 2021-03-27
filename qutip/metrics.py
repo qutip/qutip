@@ -344,7 +344,7 @@ def hellinger_dist(A, B, sparse=False, tol=0):
 
 
 def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
-          sparse=False):
+          sparse=True):
     """
     Calculates the diamond norm of the quantum map q_oper, using
     the simplified semidefinite program of [Wat12]_.
@@ -356,21 +356,18 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
     A : Qobj
         Quantum map to take the diamond norm of.
     B : Qobj or None
-        If provided, the diamond norm of :math:`A - B` is
-        taken instead.
+        If provided, the diamond norm of :math:`A - B` is taken instead.
     solver : str
-        Solver to use with CVXPY. One of "CVXOPT" (default)
-        or "SCS". The latter tends to be significantly faster,
-        but somewhat less accurate.
+        Solver to use with CVXPY. One of "CVXOPT" (default) or "SCS". The
+        latter tends to be significantly faster, but somewhat less accurate.
     verbose : bool
-        If True, prints additional information about the
-        solution.
+        If True, prints additional information about the solution.
     force_solve : bool
         If True, forces dnorm to solve the associated SDP, even if a special
         case is known for the argument.
     sparse : bool
-        If False, sparse matrices are cast to dense and the convex optimization
-        If True, sparsity is kept but the convex optimization
+        Whether to use sparse matrices in the convex optimisation problem.
+        Default True.
 
     Returns
     -------
