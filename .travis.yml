@@ -68,7 +68,8 @@ jobs:
       # This is why we use `setup.py develop` here, and why we don't change
       # directories.
       install:
-        - conda install mkl blas=*=mkl numpy 'scipy<1.5' matplotlib cython pytest pytest-cov coveralls
+        - conda install mkl blas=*=mkl numpy 'scipy<1.5' matplotlib cython pytest pytest-cov coveralls cvxopt
+        - conda install -c conda-forge cvxpy
         - python setup.py develop --with-openmp
       before_script:
         - QUTIP_INSTALL="${QUTIP_DOWNLOAD}/qutip"

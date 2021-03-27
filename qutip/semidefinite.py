@@ -41,11 +41,11 @@ from collections import namedtuple
 
 # NumPy/SciPy
 import numpy as np
-
+import scipy.sparse as sp
 # Conditionally import CVXPY
 try:
     import cvxpy
-except:
+except ImportError:
     cvxpy = None
 
 Complex = namedtuple('Complex', ['re', 'im'])
@@ -114,8 +114,8 @@ def conj(W, A):
     U, V = W.re, W.im
     A, B = A.re, A.im
     return Complex(
-        re=(U * A * U.T - U * B * V.T - V * A * V.T - V * B * U.T),
-        im=(U * A * V.T + U * B * U.T + V * A * U.T - V * B * V.T)
+        re=(U @ A @ U.T - U @ B @ V.T - V @ A @ V.T - V @ B @ U.T),
+        im=(U @ A @ V.T + U @ B @ U.T + V @ A @ U.T - V @ B @ V.T)
     )
 
 def bmat(B):
@@ -150,8 +150,9 @@ def qudit_swap(dim):
     W = qeye([dim, dim])
     return tensor_swap(W, (0, 1))
 
+
 @memoize
-def dnorm_problem(dim):
+def initialize_constraints_on_dnorm_problem(dim):
     # Start assembling constraints and variables.
     constraints = []
 
@@ -184,15 +185,55 @@ def dnorm_problem(dim):
 
     logger.debug("Using {} constraints.".format(len(constraints)))
 
+    return X, constraints
+
+
+def dnorm_problem(dim):
+    X, constraints = initialize_constraints_on_dnorm_problem(dim)
     Jr = cvxpy.Parameter((dim**2, dim**2))
     Ji = cvxpy.Parameter((dim**2, dim**2))
+    # The objective, however, depends on J.
+    objective = cvxpy.Maximize(cvxpy.trace(
+        Jr.T @ X.re + Ji.T @ X.im
+    ))
+    problem = cvxpy.Problem(objective, constraints)
+    return problem, Jr, Ji
+
+
+def dnorm_sparse_problem(dim, J_dat):
+    X, constraints = initialize_constraints_on_dnorm_problem(dim)
+    J_val = J_dat.tocoo()
+
+    def adapt_sparse_params(A_val, dim):
+        # This detour is needed as pointed out in cvxgrp/cvxpy#1159, as cvxpy
+        # can not solve with parameters that aresparse matrices directly.
+        # Solutions have to be made through calling cvxpy.reshape on
+        # the original sparse matrix.
+        side_size = dim**2
+        A_nnz = cvxpy.Parameter(A_val.nnz)
+
+        A_data = np.ones(A_nnz.size)
+        A_rows = A_val.row * side_size + A_val.col
+        A_cols = np.arange(A_nnz.size)
+        # We are pushing the data on the location of the nonzero elements
+        # to the nonzero rows of A_indexer
+        A_Indexer = sp.coo_matrix((A_data, (A_rows, A_cols)),
+                                  shape=(side_size**2, A_nnz.size))
+        # We get finaly the sparse matrix A which we wanted
+        A = cvxpy.reshape(A_Indexer @ A_nnz, (side_size, side_size), order='C')
+        A_nnz.value = A_val.data
+        return A
+
+    Jr_val = J_val.real
+    Jr = adapt_sparse_params(Jr_val, dim)
+
+    Ji_val = J_val.imag
+    Ji = adapt_sparse_params(Ji_val, dim)
 
     # The objective, however, depends on J.
     objective = cvxpy.Maximize(cvxpy.trace(
-        Jr.T * X.re + Ji.T * X.im
+        Jr.T @ X.re + Ji.T @ X.im
     ))
 
     problem = cvxpy.Problem(objective, constraints)
-
-    return problem, Jr, Ji, X, rho0, rho1
-
+    return problem

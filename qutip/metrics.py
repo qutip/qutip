@@ -48,7 +48,7 @@ from qutip.states import ket2dm
 from qutip.superop_reps import to_kraus, to_stinespring, to_choi, _super_to_superpauli, to_super
 from qutip.superoperator import operator_to_vector, vector_to_operator
 from qutip.operators import qeye
-from qutip.semidefinite import dnorm_problem
+from qutip.semidefinite import dnorm_problem, dnorm_sparse_problem
 import qutip.settings as settings
 
 import qutip.logging_utils as logging
@@ -56,7 +56,7 @@ logger = logging.get_logger()
 
 try:
     import cvxpy
-except:
+except ImportError:
     cvxpy = None
 
 
@@ -343,7 +343,8 @@ def hellinger_dist(A, B, sparse=False, tol=0):
     return np.sqrt(2.0 * np.maximum(0., (1.0 - np.real(np.sum(eigs)))))
 
 
-def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
+def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
+          sparse=True):
     """
     Calculates the diamond norm of the quantum map q_oper, using
     the simplified semidefinite program of [Wat12]_.
@@ -355,18 +356,18 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
     A : Qobj
         Quantum map to take the diamond norm of.
     B : Qobj or None
-        If provided, the diamond norm of :math:`A - B` is
-        taken instead.
+        If provided, the diamond norm of :math:`A - B` is taken instead.
     solver : str
-        Solver to use with CVXPY. One of "CVXOPT" (default)
-        or "SCS". The latter tends to be significantly faster,
-        but somewhat less accurate.
+        Solver to use with CVXPY. One of "CVXOPT" (default) or "SCS". The
+        latter tends to be significantly faster, but somewhat less accurate.
     verbose : bool
-        If True, prints additional information about the
-        solution.
+        If True, prints additional information about the solution.
     force_solve : bool
         If True, forces dnorm to solve the associated SDP, even if a special
         case is known for the argument.
+    sparse : bool
+        Whether to use sparse matrices in the convex optimisation problem.
+        Default True.
 
     Returns
     -------
@@ -455,19 +456,27 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
     # Assume square...
     dim = np.prod(J.dims[0][0])
 
-    # The constraints only depend on the dimension, so
-    # we can cache them efficiently.
-    problem, Jr, Ji, X, rho0, rho1 = dnorm_problem(dim)
-
-    # Load the parameters with the Choi matrix passed in.
     J_dat = J.data
 
-    Jr.value = sp.csr_matrix((J_dat.data.real, J_dat.indices, J_dat.indptr),
-                             shape=J_dat.shape)
+    if not sparse:
+        # The parameters and constraints only depend on the dimension, so
+        # we can cache them efficiently.
+        problem, Jr, Ji = dnorm_problem(dim)
 
-    Ji.value = sp.csr_matrix((J_dat.data.imag, J_dat.indices, J_dat.indptr),
-                             shape=J_dat.shape)
-    # Finally, set up and run the problem.
+        # Load the parameters with the Choi matrix passed in.
+        Jr.value = sp.csr_matrix((J_dat.data.real, J_dat.indices,
+                                  J_dat.indptr),
+                                 shape=J_dat.shape).toarray()
+
+        Ji.value = sp.csr_matrix((J_dat.data.imag, J_dat.indices,
+                                  J_dat.indptr),
+                                 shape=J_dat.shape).toarray()
+    else:
+
+        # The parameters do not depend solely on the dimension,
+        # so we can not cache them efficiently.
+        problem = dnorm_sparse_problem(dim, J_dat)
+
     problem.solve(solver=solver, verbose=verbose)
 
     return problem.value
