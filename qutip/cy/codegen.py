@@ -360,7 +360,7 @@ class Codegen():
         return """\
 cdef np.npy_intp dims = num_rows
     cdef np.ndarray[complex, ndim=1, mode='c'] arr_out = np.PyArray_SimpleNewFromData(1, &dims, np.NPY_COMPLEX128, out)
-    PyArray_ENABLEFLAGS(arr_out, np.NPY_OWNDATA)
+    PyArray_ENABLEFLAGS(arr_out, np.NPY_ARRAY_OWNDATA)
     return arr_out
 """
 
