@@ -189,27 +189,19 @@ def initialize_constraints_on_dnorm_problem(dim):
 
 
 def dnorm_problem(dim):
-
     X, constraints = initialize_constraints_on_dnorm_problem(dim)
-
     Jr = cvxpy.Parameter((dim**2, dim**2))
     Ji = cvxpy.Parameter((dim**2, dim**2))
-
     # The objective, however, depends on J.
     objective = cvxpy.Maximize(cvxpy.trace(
         Jr.T @ X.re + Ji.T @ X.im
     ))
-
     problem = cvxpy.Problem(objective, constraints)
     return problem, Jr, Ji
 
 
 def dnorm_sparse_problem(dim, J_dat):
-    # the solution in this case is based upon the answers to GitHub
-    #  issue cvxpy/cvxpy#1159
-
     X, constraints = initialize_constraints_on_dnorm_problem(dim)
-
     J_val = J_dat.tocoo()
 
     def adapt_sparse_params(A_val, dim):
@@ -217,21 +209,19 @@ def dnorm_sparse_problem(dim, J_dat):
         # can not solve with parameters that aresparse matrices directly.
         # solutions have to be made through calling cvxpy.reshape on
         # the original sparse matrix.
-
         side_size = dim**2
         A_nnz = cvxpy.Parameter(A_val.nnz)
 
         A_data = np.ones(A_nnz.size)
         A_rows = A_val.row * side_size + A_val.col
         A_cols = np.arange(A_nnz.size)
-        # we are pushing the data on the location of the nonzero elements
+        # We are pushing the data on the location of the nonzero elements
         # to the nonzero rows of A_indexer
         A_Indexer = sp.coo_matrix((A_data, (A_rows, A_cols)),
                                   shape=(side_size**2, A_nnz.size))
         # We get finaly the sparse matrix A which we wanted
         A = cvxpy.reshape(A_Indexer @ A_nnz, (side_size, side_size), order='C')
         A_nnz.value = A_val.data
-
         return A
 
     Jr_val = J_val.real
