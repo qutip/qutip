@@ -16,5 +16,6 @@ a roadmap for upcoming releases and ideas for future improvements.
 
    ideas/qutip-interactive.rst
    ideas/pulse-level-quantum-circuits.rst
+   ideas/tensorflow-data-backend.rst
    ideas/quantum-error-mitigation.rst
    ideas/heom-gpu.rst
