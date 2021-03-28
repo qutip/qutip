@@ -37,11 +37,8 @@ from numpy.testing import assert_equal, run_module_suite, assert_
 import unittest
 
 from qutip import num, rand_herm, expect, rand_unitary
-from qutip import _version2int
 
 
-@unittest.skipIf(_version2int(scipy.__version__) < _version2int('0.10'),
-                 'Known to fail on SciPy ' + scipy.__version__)
 def test_SparseHermValsVecs():
     """
     Sparse eigs Hermitian
@@ -105,8 +102,6 @@ def test_SparseValsVecs():
     assert_equal(len(spvals), 9)
 
 
-@unittest.skipIf(_version2int(scipy.__version__) < _version2int('0.10'),
-                 'Known to fail on SciPy ' + scipy.__version__)
 def test_SparseValsOnly():
     """
     Sparse eigvals only Hermitian.
