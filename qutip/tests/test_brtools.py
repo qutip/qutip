@@ -42,25 +42,25 @@ from qutip.cy.brtools_checks import (
 )
 
 
-def test_zheevr():
+@pytest.mark.parametrize('dimension', list(range(2, 100)))
+def test_zheevr(dimension):
     """
     zheevr: store eigenvalues in the passed array, and return the eigenvectors
     of a complex Hermitian matrix.
     """
-    for dimension in range(2, 100):
-        H = qutip.rand_herm(dimension, 1/dimension)
-        Hf = H.full()
-        evals = np.zeros(dimension, dtype=np.float64)
-        # This routine modifies its arguments inplace, so we must make a copy.
-        evecs = _test_zheevr(Hf.copy(order='F'), evals).T
-        # Assert linear independence of all the eigenvectors.
-        assert abs(scipy.linalg.det(evecs)) > 1e-12
-        for value, vector in zip(evals, evecs):
-            # Assert the eigenvector satisfies the eigenvalue equation.
-            unit = vector / scipy.linalg.norm(vector)
-            test_value = np.conj(unit.T) @ Hf @ unit
-            assert abs(test_value.imag) < 1e-12
-            assert abs(test_value - value) < 1e-12
+    H = qutip.rand_herm(dimension, 1/dimension)
+    Hf = H.full()
+    evals = np.zeros(dimension, dtype=np.float64)
+    # This routine modifies its arguments inplace, so we must make a copy.
+    evecs = _test_zheevr(Hf.copy(order='F'), evals).T
+    # Assert linear independence of all the eigenvectors.
+    assert abs(scipy.linalg.det(evecs)) > 1e-12
+    for value, vector in zip(evals, evecs):
+        # Assert the eigenvector satisfies the eigenvalue equation.
+        unit = vector / scipy.linalg.norm(vector)
+        test_value = np.conj(unit.T) @ Hf @ unit
+        assert abs(test_value.imag) < 1e-12
+        assert abs(test_value - value) < 1e-12
 
 
 @pytest.mark.parametrize("operator", [
@@ -121,17 +121,17 @@ def test_vector_roundtrip():
                                    atol=1e-12)
 
 
-def test_diag_liou_mult():
+@pytest.mark.parametrize('dimension', list(range(2, 100)))
+def test_diag_liou_mult(dimension):
     "BR Tools : Diagonal Liouvillian mult"
-    for dimension in range(2, 100):
-        H = qutip.rand_dm(dimension, 0.5)
-        evals, evecs = H.eigenstates()
-        L = qutip.liouvillian(H.transform(evecs))
-        coefficients = np.ones((dimension*dimension,), dtype=np.complex128)
-        calculated = np.zeros_like(coefficients)
-        target = L.data.dot(coefficients)
-        _test_diag_liou_mult(evals, coefficients, calculated, dimension)
-        np.testing.assert_allclose(target, calculated, atol=1e-12)
+    H = qutip.rand_dm(dimension, 0.5)
+    evals, evecs = H.eigenstates()
+    L = qutip.liouvillian(H.transform(evecs))
+    coefficients = np.ones((dimension*dimension,), dtype=np.complex128)
+    calculated = np.zeros_like(coefficients)
+    target = L.data.dot(coefficients)
+    _test_diag_liou_mult(evals, coefficients, calculated, dimension)
+    np.testing.assert_allclose(target, calculated, atol=1e-12)
 
 
 def test_cop_super_mult():
