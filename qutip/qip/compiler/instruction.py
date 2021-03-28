@@ -100,10 +100,3 @@ class Instruction():
     @property
     def controls(self):
         return self.gate.controls
-
-    @property
-    def step_num(self):
-        if np.isscalar(self.tlist):
-            return 1
-        else:
-            return len(self.tlist) - 1
