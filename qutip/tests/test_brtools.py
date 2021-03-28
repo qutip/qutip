@@ -131,7 +131,7 @@ def test_diag_liou_mult(dimension):
     calculated = np.zeros_like(coefficients)
     target = L.data.dot(coefficients)
     _test_diag_liou_mult(evals, coefficients, calculated, dimension)
-    np.testing.assert_allclose(target, calculated, atol=1e-12)
+    np.testing.assert_allclose(target, calculated, atol=1e-11, rtol=1e-6)
 
 
 def test_cop_super_mult():
