@@ -63,6 +63,8 @@ class GateCompiler(object):
         ``(pulse_label, coeff)``, instead of ``(pulse_index, coeff)``.
         The number of key-value pairs should match the number of pulses
         in the processor.
+        If it is empty, an integer ``pulse_index`` needs to be used
+        in the compiling routine saved under the attributes ``gate_compiler``.
 
     Attributes
     ----------
@@ -80,7 +82,7 @@ class GateCompiler(object):
         self.gate_compiler = {}
         self.N = N
         self.params = params if params is not None else {}
-        self.pulse_dict = pulse_dict
+        self.pulse_dict = pulse_dict if pulse_dict is not None else {}
         self.gate_compiler = {"GLOBALPHASE": self.globalphase_compiler}
         self.args = {"params": self.params}
         self.global_phase = 0.
@@ -143,7 +145,7 @@ class GateCompiler(object):
             instruction_list += instruction
         if not instruction_list:
             return None, None
-        if self.pulse_dict is not None:
+        if self.pulse_dict:
             num_controls = len(self.pulse_dict)
         else:  # if pulse_dict is not given, compute the number of pulses
             num_controls = 0
@@ -166,8 +168,13 @@ class GateCompiler(object):
         for instruction, start_time in \
                 zip(instruction_list, scheduled_start_time):
             for pulse_name, coeff in instruction.pulse_info:
-                if self.pulse_dict is not None:
-                    pulse_ind = self.pulse_dict[pulse_name]
+                if self.pulse_dict:
+                    try:
+                        pulse_ind = self.pulse_dict[pulse_name]
+                    except KeyError:
+                        raise ValueError(
+                            f"Pulse name {pulse_name} not found"
+                            " in pulse_dict.")
                 else:
                     pulse_ind = pulse_name
                 pulse_instructions[pulse_ind].append(
@@ -192,10 +199,9 @@ class GateCompiler(object):
             scheduled_start_time.sort()
         else:  # no scheduling
             scheduled_start_time = [0.]
-            for instruction in instruction_list:
+            for instruction in instruction_list[:-1]:
                 scheduled_start_time.append(
                     instruction.duration + scheduled_start_time[-1])
-            scheduled_start_time = scheduled_start_time[:-1]
         return instruction_list, scheduled_start_time
 
     def _concatenate_pulses(

@@ -65,6 +65,8 @@ class SpinChainCompiler(GateCompiler):
         ``(pulse_label, coeff)``, instead of ``(pulse_index, coeff)``.
         The number of key-value pairs should match the number of pulses
         in the processor.
+        If it is empty, an integer ``pulse_index`` needs to be used
+        in the compiling routine saved under the attributes ``gate_compiler``.
 
     Attributes
     ----------
