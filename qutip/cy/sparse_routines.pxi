@@ -337,13 +337,13 @@ cdef object CSR_to_scipy(CSR_Matrix * mat):
         dat_len = mat.nnz
         ptr_len = mat.nrows+1
         _data = np.PyArray_SimpleNewFromData(1, &dat_len, np.NPY_COMPLEX128, mat.data)
-        PyArray_ENABLEFLAGS(_data, np.NPY_OWNDATA)
+        PyArray_ENABLEFLAGS(_data, np.NPY_ARRAY_OWNDATA)
 
         _ind = np.PyArray_SimpleNewFromData(1, &dat_len, np.NPY_INT32, mat.indices)
-        PyArray_ENABLEFLAGS(_ind, np.NPY_OWNDATA)
+        PyArray_ENABLEFLAGS(_ind, np.NPY_ARRAY_OWNDATA)
 
         _ptr = np.PyArray_SimpleNewFromData(1, &ptr_len, np.NPY_INT32, mat.indptr)
-        PyArray_ENABLEFLAGS(_ptr, np.NPY_OWNDATA)
+        PyArray_ENABLEFLAGS(_ptr, np.NPY_ARRAY_OWNDATA)
         mat.numpy_lock = 1
         return fast_csr_matrix((_data, _ind, _ptr), shape=(mat.nrows,mat.ncols))
     else:
@@ -373,13 +373,13 @@ cdef object COO_to_scipy(COO_Matrix * mat):
     if (not mat.numpy_lock) and mat.is_set:
         dat_len = mat.nnz
         _data = np.PyArray_SimpleNewFromData(1, &dat_len, np.NPY_COMPLEX128, mat.data)
-        PyArray_ENABLEFLAGS(_data, np.NPY_OWNDATA)
+        PyArray_ENABLEFLAGS(_data, np.NPY_ARRAY_OWNDATA)
 
         _row = np.PyArray_SimpleNewFromData(1, &dat_len, np.NPY_INT32, mat.rows)
-        PyArray_ENABLEFLAGS(_row, np.NPY_OWNDATA)
+        PyArray_ENABLEFLAGS(_row, np.NPY_ARRAY_OWNDATA)
 
         _col = np.PyArray_SimpleNewFromData(1, &dat_len, np.NPY_INT32, mat.cols)
-        PyArray_ENABLEFLAGS(_col, np.NPY_OWNDATA)
+        PyArray_ENABLEFLAGS(_col, np.NPY_ARRAY_OWNDATA)
         mat.numpy_lock = 1
         return coo_matrix((_data, (_row, _col)), shape=(mat.nrows,mat.ncols))
     else:
