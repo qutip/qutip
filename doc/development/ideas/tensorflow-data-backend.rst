@@ -7,7 +7,7 @@ TensorFlow Data Backend
     :depth: 3
 
 QuTiP's data layer provides the mathematical operations needed to work with
-quantum states and operators, i.e. `QObjs`, inside QuTiP. As part of Google
+quantum states and operators, i.e. `Qobj`s, inside QuTiP. As part of Google
 Summer of Code 2020, the data layer was rewritten to allow new backends to
 be added more easily and for different backends to interoperate with each
 other. Backends using in-memory spares and dense matrices already exist,
@@ -23,7 +23,7 @@ efficiently. We hope that by using TensorFlow we might enable QuTiP to scale
 to bigger quantum systems (e.g. more qubits) and decrease the time taken to
 simulate them.
 
-There is particular interest in the trying the new backend with the
+There is particular interest in trying the new backend with the
 BoFiN HEOM (Hierarchical Equations of Motion) solver [2]_.
 
 Challenges
@@ -44,7 +44,7 @@ Expected outcomes
 * Add a `qutip.core.data.tensorflow` data type.
 * Implement specialisations for some important operations (e.g. `add`,
   `mul`, `matmul`, `eigen`, etc).
-* Write a small benchmark to show how QObj operations scale on the new
+* Write a small benchmark to show how `Qobj` operations scale on the new
   backend in comparison to the existing backends. Run the benchmark both
   with and without using a GPU.
 * Implement enough for a solver to run on top of the new TensorFlow data
