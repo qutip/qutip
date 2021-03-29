@@ -32,7 +32,7 @@
 ###############################################################################
 """
 This function provides functions for parallel execution of loops and function
-mappings, using the builtin Python module multiprocessing.
+mappings, using the builtin Python module multiprocessing or the loky parallel execution library. 
 """
 __all__ = ['parallel_map', 'serial_map', 'loky_pmap', 'get_map']
 
