@@ -81,7 +81,7 @@ def test_map(map, num_cpus):
     assert ((np.array(y1) == np.array(y2)).all())
 
 
-@pytest.mark.parametrize('map',[
+@pytest.mark.parametrize('map', [
     pytest.param(parallel_map, id='parallel_map'),
     pytest.param(loky_pmap, id='loky_pmap'),
     pytest.param(serial_map, id='serial_map'),
