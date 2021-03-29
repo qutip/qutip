@@ -945,14 +945,15 @@ def test_non_hermitian_dm():
     msg = 'Mesolve is not working properly with a non Hermitian density ' +
     ' matrix as input. Check computation of '
 
-    assert_(imag_part > 0, msg + "expectation values. They should be imaginary")
+    assert_(imag_part > 0,
+            msg + "expectation values. They should be imaginary")
 
-    # Check that the output state is not hermitian since the input was not 
+    # Check that the output state is not hermitian since the input was not
     # Hermitian either.
     assert_(not result.final_state.isherm,
             msg + " final density  matrix. It should not be hermitian")
     assert_(not result.states[-1].isherm,
-           msg + " states. They should not be hermitian.")
+            msg + " states. They should not be hermitian.")
 
 
 if __name__ == "__main__":
