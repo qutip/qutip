@@ -510,18 +510,20 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
 
         if opt.store_states or expt_callback:
             cdata = get_curr_state_data(r)
+            fdata = dense2D_to_fastcsr_fmode(cdata, size, size)
+
+            # Try to guess if there is a fast path for rho_t
+            if issuper(rho0) or not rho0.isherm:
+                rho_t = Qobj(fdata, dims=dims)
+            else:
+                rho_t = Qobj(fdata, dims=dims, fast="mc-dm")
 
         if opt.store_states:
-            if issuper(rho0):
-                fdata = dense2D_to_fastcsr_fmode(cdata, size, size)
-                output.states.append(Qobj(fdata, dims=dims))
-            else:
-                fdata = dense2D_to_fastcsr_fmode(cdata, size, size)
-                output.states.append(Qobj(fdata, dims=dims, fast="mc-dm"))
+            output.states.append(rho_t)
 
         if expt_callback:
             # use callback method
-            output.expect.append(e_ops(t, Qobj(cdata, dims=dims)))
+            output.expect.append(e_ops(t, rho_t))
 
         for m in range(n_expt_op):
             output.expect[m][t_idx] = expect_rho_vec(e_ops_data[m], r.y,
