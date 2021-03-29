@@ -113,9 +113,9 @@ cdef double _spline_float_cte_second(double x,
                                      int n_t,
                                      double dt):
     # inbound?
-    if x < t[0]:
+    if x <= t[0]:
         return y[0]
-    elif x > t[n_t-1]:
+    elif x >= t[n_t-1]:
         return y[n_t-1]
     cdef double xx = (x-t[0])/dt
     cdef int p = <int>xx
@@ -137,9 +137,9 @@ cdef double _spline_float_t_second(double x,
                                    double[::1] M,
                                    int n_t):
     # inbound?
-    if x < t[0]:
+    if x <= t[0]:
         return y[0]
-    elif x > t[n_t-1]:
+    elif x >= t[n_t-1]:
         return y[n_t-1]
     cdef int p = _binary_search(x, t, n_t)
     cdef double dt = t[p+1] - t[p]
@@ -162,9 +162,9 @@ cdef complex _spline_complex_cte_second(double x,
                                         int n_t,
                                         double dt):
     # inbound?
-    if x < t[0]:
+    if x <= t[0]:
         return y[0]
-    elif x > t[n_t-1]:
+    elif x >= t[n_t-1]:
         return y[n_t-1]
     cdef double xx = (x-t[0])/dt
     cdef int p = <int>xx
@@ -186,9 +186,9 @@ cdef complex _spline_complex_t_second(double x,
                                       complex[::1] M,
                                       int n_t):
     # inbound?
-    if x < t[0]:
+    if x <= t[0]:
         return y[0]
-    elif x > t[n_t-1]:
+    elif x >= t[n_t-1]:
         return y[n_t-1]
     cdef int p = _binary_search(x, t, n_t)
     cdef double dt = t[p+1] - t[p]
@@ -205,7 +205,7 @@ cdef complex _spline_complex_t_second(double x,
 @cython.boundscheck(False)
 @cython.cdivision(True)
 cdef double _step_float_cte(double x, double[::1] t, double[::1] y, int n_t):
-    if x < t[0]:
+    if x <= t[0]:
         return y[0]
     elif x >= t[n_t-1]:
         return y[n_t-1]
@@ -217,7 +217,7 @@ cdef double _step_float_cte(double x, double[::1] t, double[::1] y, int n_t):
 @cython.boundscheck(False)
 @cython.cdivision(True)
 cdef complex _step_complex_cte(double x, double[::1] t, complex[::1] y, int n_t):
-    if x < t[0]:
+    if x <= t[0]:
         return y[0]
     elif x >= t[n_t-1]:
         return y[n_t-1]
@@ -229,7 +229,7 @@ cdef complex _step_complex_cte(double x, double[::1] t, complex[::1] y, int n_t)
 @cython.boundscheck(False)
 @cython.cdivision(True)
 cdef double _step_float_t(double x, double[::1] t, double[::1] y, int n_t):
-    if x < t[0]:
+    if x <= t[0]:
         return y[0]
     elif x >= t[n_t-1]:
         return y[n_t-1]
@@ -242,7 +242,7 @@ cdef double _step_float_t(double x, double[::1] t, double[::1] y, int n_t):
 @cython.boundscheck(False)
 @cython.cdivision(True)
 cdef complex _step_complex_t(double x, double[::1] t, complex[::1] y, int n_t):
-    if x < t[0]:
+    if x <= t[0]:
         return y[0]
     elif x >= t[n_t-1]:
         return y[n_t-1]

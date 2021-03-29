@@ -104,7 +104,7 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
 
     elif callable(base):
         # TODO add tests?
-        return FunctionCoefficient(base, args)
+        return FunctionCoefficient(base, args.copy())
     else:
         raise ValueError("coefficient format not understood")
 

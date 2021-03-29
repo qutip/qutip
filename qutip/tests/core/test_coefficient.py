@@ -57,11 +57,16 @@ def h(t, args):
     return args["a"] + args["b"] + t
 
 
-def _assert_eq_over_interval(coeff1, coeff2,
-                             t_start=0.05, t_end=0.95, rtol=1e-12):
-    ts = np.linspace(t_start, t_end, 17)
-    c1 = [coeff1(t) for t in ts]
-    c2 = [coeff2(t) for t in ts]
+def _assert_eq_over_interval(coeff1, coeff2, rtol=1e-12, inside=False):
+    "assert coeff1 == coeff2"
+    "inside refer to the range covered by tlistlog: [0.01, 1]"
+    ts = np.linspace(0.01, 1, 20)
+    eps = 1e-12
+    crit_times = [0.01+eps, 0.95, 1-eps]
+    if not inside:
+        crit_times += [-0.1, 0, eps, -eps, 1+eps, 1.1]
+    c1 = [coeff1(t) for t in ts] + [coeff1(t) for t in crit_times]
+    c2 = [coeff2(t) for t in ts] + [coeff2(t) for t in crit_times]
     np.testing.assert_allclose(c1, c2, rtol=rtol, atol=1e-15)
 
 
@@ -117,11 +122,11 @@ def coeff_generator(style, func):
                  1e-10, id="string")
 ])
 def test_CoeffCreationCall(base, kwargs, tol):
-    CompilationOptions.recompile = True
+    opt = CompilationOptions(recompile=True)
     expected = lambda t: np.exp(1j * t * np.pi)
-    coeff = coefficient(base, **kwargs)
-    _assert_eq_over_interval(coeff, expected, rtol=tol)
-    CompilationOptions.recompile = False
+    coeff = coefficient(base, **kwargs, compile_opt=opt)
+    _assert_eq_over_interval(coeff, expected, rtol=tol, inside=True)
+
 
 
 @pytest.mark.parametrize(['base', 'kwargs', 'tol'], [
@@ -182,7 +187,7 @@ def test_CoeffShift(style):
     coeff = coeff_generator(style, "f")
     dt = np.e / 30
     _assert_eq_over_interval(shift(coeff, dt),
-                             lambda t: coeff(t + dt), .05, .75)
+                             lambda t: coeff(t + dt))
 
 
 @pytest.mark.parametrize(['style_left'], [
@@ -261,21 +266,20 @@ def test_CoeffOptions():
                  lambda t: t + 1, id="branch")
 ])
 def test_CoeffParsingStressTest(codestring, args, reference):
-    CompilationOptions.recompile = True
-    coeff = coefficient(codestring, args=args)
+    opt = CompilationOptions(recompile=True)
+    coeff = coefficient(codestring, args=args, compile_opt=opt)
     _assert_eq_over_interval(coeff, reference)
-    CompilationOptions.recompile = False
 
 
 @pytest.mark.requires_cython
 @pytest.mark.filterwarnings("error")
 def test_manual_typing():
-    CompilationOptions.recompile = True
+    opt = CompilationOptions(recompile=True)
     coeff = coefficient("my_list[0] + my_dict[5]",
                         args={"my_list": [1], "my_dict": {5: 2}},
-                        args_ctypes={"my_list": "list", "my_dict": "dict"})
+                        args_ctypes={"my_list": "list", "my_dict": "dict"},
+                        compile_opt=opt)
     assert coeff(0) == 3
-    CompilationOptions.recompile = False
 
 
 @pytest.mark.requires_cython
@@ -338,7 +342,7 @@ def test_Coeffpickle(style, transform):
     coeff = coeff_generator(style, "f")
     coeff = transform(coeff)
     coeff_pick = pickle.loads(pickle.dumps(coeff, -1))
-    _assert_eq_over_interval(coeff, coeff_pick, 0.5, 0.90)
+    _assert_eq_over_interval(coeff, coeff_pick)
 
 
 @pytest.mark.parametrize(['style'], [
