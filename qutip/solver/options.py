@@ -29,9 +29,9 @@ class SolverOptions:
     -------
     progress_bar : str {'text', 'enhanced', 'tqdm', ''}
         How to present the solver progress.
-        'tqdm' use the python module of the same name and raise an error if
-        not installed.
         True will result in 'text'.
+        'tqdm' uses the python module of the same name and raise an error if
+        not installed.
         Empty string or False will disable the bar.
 
     progress_kwargs : dict
@@ -49,9 +49,9 @@ class SolverOptions:
 @optionsclass("ode", SolverOptions)
 class SolverOdeOptions:
     """
-    Class of options for evolution solvers such as :func:`qutip.mesolve` and
-    :func:`qutip.mcsolve`. Options can be specified either as arguments to the
-    SolverOptions constructor::
+    Class of options for the ODE integrator of solvers such as
+    :func:`qutip.mesolve` and :func:`qutip.mcsolve`. Options can be
+    specified either as arguments to the SolverOptions constructor::
 
         opts = SolverOptions(method=bdf, ...)
 
@@ -170,7 +170,9 @@ class SolverResultsOptions:
 
     normalize_output : str {"", "ket", "all"}
         normalize output state to hide ODE numerical errors.
+        "all" will normalize both ket and dm.
         On "ket", only 'ket' output are normalized.
+        Leave empty for no normalization.
     """
     options = {
         # store final state?

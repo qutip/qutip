@@ -235,8 +235,6 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
     os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
     from loky import get_reusable_executor, TimeoutError
 
-    # kw = _default_kwargs()
-    # kw.update(kwargs)
     kw = map_kw
 
     progress_bar = get_progess_bar(progress_bar)
