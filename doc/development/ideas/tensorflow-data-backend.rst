@@ -23,6 +23,9 @@ efficiently. We hope that by using TensorFlow we might enable QuTiP to scale
 to bigger quantum systems (e.g. more qubits) and decrease the time taken to
 simulate them.
 
+There is particular interest in the trying the new backend with the
+BoFiN HEOM (Hierarchical Euqations of Motion) solver with the new backend [2]_.
+
 Challenges
 ----------
 
@@ -70,3 +73,4 @@ References
 ==========
 
 .. [1] https://www.tensorflow.org/
+.. [2] https://github.com/tehruhn/bofin
