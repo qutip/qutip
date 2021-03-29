@@ -252,32 +252,64 @@ def lindblad_dissipator(a, b=None, data_only=False, chi=None):
 
 def operator_to_vector(op):
     """
-    Create a vector representation of a quantum operator given
-    the matrix representation.
+    Create a vector representation given a quantum operator in matrix form.
+    The passed object should have a ``Qobj.type`` of 'oper' or 'super'; this
+    function is not designed for general-purpose matrix reshaping.
+
+    Parameters
+    ----------
+    op : Qobj or QobjEvo
+        Quantum operator in matrix form.  This must have a type of 'oper' or
+        'super'.
+
+    Returns
+    -------
+    Qobj or QobjEvo
+        The same object, but re-cast into a column-stacked-vector form of type
+        'operator-ket'.  The output is the same type as the passed object.
     """
     if isinstance(op, QobjEvo):
         return op.apply(operator_to_vector)
-
-    q = Qobj()
-    q.dims = [op.dims, [1]]
-    q.data = sp_reshape(op.data.T, (np.prod(op.shape), 1))
-    return q
+    if not (op.isoper or op.issuper):
+        raise ValueError("only valid for operator matrices")
+    size = op.shape[0] * op.shape[1]
+    return Qobj(
+        sp_reshape(op.data.T, (size, 1)),
+        dims=[op.dims, [1]], shape=(size, 1), type='operator-ket', copy=False,
+    )
 
 
 def vector_to_operator(op):
     """
-    Create a matrix representation given a quantum operator in
-    vector form.
+    Create a matrix representation given a quantum operator in vector form.
+    The passed object should have a ``Qobj.type`` of 'operator-ket'; this
+    function is not designed for general-purpose matrix reshaping.
+
+    Parameters
+    ----------
+    op : Qobj or QobjEvo
+        Quantum operator in column-stacked-vector form.  This must have a type
+        of 'operator-ket'.
+
+    Returns
+    -------
+    Qobj or QobjEvo
+        The same object, but re-cast into "standard" operator form.  The output
+        is the same type as the passed object.
     """
     if isinstance(op, QobjEvo):
         return op.apply(vector_to_operator)
-
-    q = Qobj()
+    if not op.isoperket:
+        raise ValueError(
+            "only valid for operators in column-stacked 'operator-ket' format"
+        )
     # e.g. op.dims = [ [[rows], [cols]], [1]]
-    q.dims = op.dims[0]
-    shape = (np.prod(q.dims[0]), np.prod(q.dims[1]))
-    q.data = sp_reshape(op.data.T, shape[::-1]).T
-    return q
+    dims = op.dims[0]
+    shape = (np.prod(dims[0]), np.prod(dims[1]))
+    return Qobj(
+        sp_reshape(op.data.T, shape[::-1]).T,
+        dims=dims, shape=shape, copy=False,
+    )
 
 
 def mat2vec(mat):
