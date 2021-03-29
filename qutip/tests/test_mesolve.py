@@ -919,6 +919,26 @@ class TestMESolveStepFuncCoeff:
         assert_(max(abs(res.expect[0][5:])) < tol,
             msg="evolution with feedback not proceding as expected")
 
+def test_non_hermitian_dm():
+    """Test that mesolve works correctly for density matrices that are
+    not Hermitian.
+    See Issue #1460
+    """
+    N = 2
+    a = destroy(N)
+    n = num(N)
+    x = (a + a.dag())/np.sqrt(2)
+    H = a.dag() * a
+
+    rho0 = x*fock_dm(N,0)
+    tlist = np.linspace(0, 0.1, 2)
+
+    result = mesolve(H, rho0, tlist, e_ops = [x])
+
+    imag_part = np.abs(np.imag(result.expect[0][-1]))
+    # Since we used an
+    assert(imag_part> 0)
+
 
 if __name__ == "__main__":
     run_module_suite()
