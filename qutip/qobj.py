@@ -1015,8 +1015,8 @@ class Qobj(object):
         """
         if self.type in ['oper', 'super']:
             if norm is None or norm == 'tr':
-                _op = self*self.dag()
-                vals = sp_eigs(_op.data, _op.isherm, vecs=False,
+                _op = self.data * zcsr_adjoint(self.data)
+                vals = sp_eigs(_op, True, vecs=False,
                                sparse=sparse, tol=tol, maxiter=maxiter)
                 return np.sum(np.sqrt(np.abs(vals)))
             elif norm == 'fro':
