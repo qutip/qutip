@@ -537,6 +537,7 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
 
     if opt.store_final_state:
         cdata = get_curr_state_data(r)
-        output.final_state = Qobj(cdata, dims=dims, isherm=True)
+        output.final_state = Qobj(cdata, dims=dims,
+                                  isherm=rho0.isherm or None)
 
     return output
