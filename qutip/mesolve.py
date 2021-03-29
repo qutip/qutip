@@ -525,7 +525,8 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
 
         for m in range(n_expt_op):
             output.expect[m][t_idx] = expect_rho_vec(e_ops_data[m], r.y,
-                                                     e_ops[m].isherm and rho0.isherm)
+                                                     e_ops[m].isherm
+                                                     and rho0.isherm)
 
         if t_idx < n_tsteps - 1:
             r.integrate(r.t + dt[t_idx])
