@@ -24,7 +24,7 @@ to bigger quantum systems (e.g. more qubits) and decrease the time taken to
 simulate them.
 
 There is particular interest in the trying the new backend with the
-BoFiN HEOM (Hierarchical Euqations of Motion) solver with the new backend [2]_.
+BoFiN HEOM (Hierarchical Equations of Motion) solver [2]_.
 
 Challenges
 ----------
