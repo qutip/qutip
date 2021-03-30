@@ -965,7 +965,7 @@ def test_non_hermitian_dm():
     imag_part = np.abs(np.imag(result.expect[-1]))
     assert_(imag_part > 0,
             msg + "expectation values when using callable operator." +
-            "They should be imaginary")
+            "It should be imaginary.")
 
 
 if __name__ == "__main__":
