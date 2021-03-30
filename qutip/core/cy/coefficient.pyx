@@ -184,7 +184,6 @@ cdef class InterCoefficient(Coefficient):
             self.cte = cte
         self.second_derr = self.second_np
         self.dt = tlist[1] - tlist[0]
-        self.n_t = len(tlist)
         self.args = {}
 
     @cython.initializedcheck(False)
@@ -194,15 +193,12 @@ cdef class InterCoefficient(Coefficient):
             coeff = _spline_complex_cte_second(t,
                                                self.tlist,
                                                self.coeff_arr,
-                                               self.second_derr,
-                                               self.n_t,
-                                               self.dt)
+                                               self.second_derr)
         else:
             coeff = _spline_complex_t_second(t,
                                              self.tlist,
                                              self.coeff_arr,
-                                             self.second_derr,
-                                             self.n_t)
+                                             self.second_derr)
         return coeff
 
     def __reduce__(self):
@@ -243,16 +239,15 @@ cdef class StepCoefficient(Coefficient):
         else:
             self.cte = cte
         self.dt = tlist[1] - tlist[0]
-        self.n_t = len(tlist)
         self.args = {}
 
     @cython.initializedcheck(False)
     cdef complex _call(self, double t) except *:
         cdef complex coeff
         if self.cte:
-            coeff = _step_complex_cte(t, self.tlist, self.coeff_arr, self.n_t)
+            coeff = _step_complex_cte(t, self.tlist, self.coeff_arr)
         else:
-            coeff = _step_complex_t(t, self.tlist, self.coeff_arr, self.n_t)
+            coeff = _step_complex_t(t, self.tlist, self.coeff_arr)
         return coeff
 
     def __reduce__(self):

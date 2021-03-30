@@ -87,12 +87,13 @@ def _prep_cubic_spline(array, tlist):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision(True)
-cdef int _binary_search(double x, double[::1] t, int n):
-    #Binary search for the interval
-    cdef int low = 0
-    cdef int high = n
-    cdef int middle
-    cdef int count = 0
+cdef size_t _binary_search(double x, double[::1] t):
+    # Binary search for the interval
+    # return the indice of the of the biggest element where t <= x
+    cdef size_t low = 0
+    cdef size_t high = t.shape[0]
+    cdef size_t middle
+    cdef size_t count = 0
     while low+1 != high and count < 30:
         middle = (low+high)//2
         if x < t[middle]:
@@ -109,16 +110,15 @@ cdef int _binary_search(double x, double[::1] t, int n):
 cdef double _spline_float_cte_second(double x,
                                      double[::1] t,
                                      double[::1] y,
-                                     double[::1] M,
-                                     int n_t,
-                                     double dt):
+                                     double[::1] M):
     # inbound?
     if x <= t[0]:
         return y[0]
-    elif x >= t[n_t-1]:
-        return y[n_t-1]
+    elif x >= t[t.shape[0]-1]:
+        return y[y.shape[0]-1]
+    cdef double dt = t[1] - t[0]
     cdef double xx = (x-t[0])/dt
-    cdef int p = <int>xx
+    cdef size_t p = <size_t>xx
     cdef double tb = (xx - p)
     cdef double te = 1 - tb
     cdef double dt2 = dt * dt
@@ -134,14 +134,13 @@ cdef double _spline_float_cte_second(double x,
 cdef double _spline_float_t_second(double x,
                                    double[::1] t,
                                    double[::1] y,
-                                   double[::1] M,
-                                   int n_t):
+                                   double[::1] M):
     # inbound?
     if x <= t[0]:
         return y[0]
-    elif x >= t[n_t-1]:
-        return y[n_t-1]
-    cdef int p = _binary_search(x, t, n_t)
+    elif x >= t[t.shape[0]-1]:
+        return y[y.shape[0]-1]
+    cdef size_t p = _binary_search(x, t)
     cdef double dt = t[p+1] - t[p]
     cdef double tb = (x - t[p]) / dt
     cdef double te = 1 - tb
@@ -158,16 +157,15 @@ cdef double _spline_float_t_second(double x,
 cdef complex _spline_complex_cte_second(double x,
                                         double[::1] t,
                                         complex[::1] y,
-                                        complex[::1] M,
-                                        int n_t,
-                                        double dt):
+                                        complex[::1] M):
     # inbound?
     if x <= t[0]:
         return y[0]
-    elif x >= t[n_t-1]:
-        return y[n_t-1]
+    elif x >= t[t.shape[0]-1]:
+        return y[y.shape[0]-1]
+    cdef double dt = t[1] - t[0]
     cdef double xx = (x-t[0])/dt
-    cdef int p = <int>xx
+    cdef size_t p = <size_t>xx
     cdef double tb = (xx - p)
     cdef double te = 1 - tb
     cdef double dt2 = dt * dt
@@ -183,14 +181,13 @@ cdef complex _spline_complex_cte_second(double x,
 cdef complex _spline_complex_t_second(double x,
                                       double[::1] t,
                                       complex[::1] y,
-                                      complex[::1] M,
-                                      int n_t):
+                                      complex[::1] M):
     # inbound?
     if x <= t[0]:
         return y[0]
-    elif x >= t[n_t-1]:
-        return y[n_t-1]
-    cdef int p = _binary_search(x, t, n_t)
+    elif x >= t[t.shape[0]-1]:
+        return y[y.shape[0]-1]
+    cdef size_t p = _binary_search(x, t)
     cdef double dt = t[p+1] - t[p]
     cdef double tb = (x - t[p]) / dt
     cdef double te = 1 - tb
@@ -204,48 +201,50 @@ cdef complex _spline_complex_t_second(double x,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision(True)
-cdef double _step_float_cte(double x, double[::1] t, double[::1] y, int n_t):
+cdef double _step_float_cte(double x, double[::1] t, double[::1] y):
+    cdef size_t n_t = t.shape[0]
     if x <= t[0]:
         return y[0]
-    elif x >= t[n_t-1]:
-        return y[n_t-1]
-    cdef int p = <int> ((x-t[0]) / (t[n_t-1]-t[0]) * (n_t-1))
+    elif x >= t[t.shape[0]-1]:
+        return y[y.shape[0]-1]
+    cdef size_t p = <size_t> ((x-t[0]) / (t[n_t-1]-t[0]) * (n_t-1))
     return y[p]
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision(True)
-cdef complex _step_complex_cte(double x, double[::1] t, complex[::1] y, int n_t):
+cdef complex _step_complex_cte(double x, double[::1] t, complex[::1] y):
+    cdef size_t n_t = t.shape[0]
     if x <= t[0]:
         return y[0]
-    elif x >= t[n_t-1]:
-        return y[n_t-1]
-    cdef int p = <int> ((x-t[0]) / (t[n_t-1]-t[0]) * (n_t-1))
+    elif x >= t[t.shape[0]-1]:
+        return y[y.shape[0]-1]
+    cdef size_t p = <size_t> ((x-t[0]) / (t[n_t-1]-t[0]) * (n_t-1))
     return y[p]
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision(True)
-cdef double _step_float_t(double x, double[::1] t, double[::1] y, int n_t):
+cdef double _step_float_t(double x, double[::1] t, double[::1] y):
     if x <= t[0]:
         return y[0]
-    elif x >= t[n_t-1]:
-        return y[n_t-1]
+    elif x >= t[t.shape[0]-1]:
+        return y[y.shape[0]-1]
     # TODO this can be moved out for better performance
-    cdef int p = _binary_search(x, t, n_t)
+    cdef size_t p = _binary_search(x, t)
     return y[p]
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision(True)
-cdef complex _step_complex_t(double x, double[::1] t, complex[::1] y, int n_t):
+cdef complex _step_complex_t(double x, double[::1] t, complex[::1] y):
     if x <= t[0]:
         return y[0]
-    elif x >= t[n_t-1]:
-        return y[n_t-1]
+    elif x >= t[t.shape[0]-1]:
+        return y[y.shape[0]-1]
     # TODO this can be moved out for better performance
-    cdef int p = _binary_search(x, t, n_t)
+    cdef size_t p = _binary_search(x, t)
     return y[p]
