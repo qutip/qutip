@@ -50,8 +50,8 @@ class SpinChainCompiler(GateCompiler):
         The number of qubits in the system.
 
     params: dict
-        A Python dictionary contains the name and the value of the parameters,
-        such as laser frequency, detuning etc.
+        A Python dictionary contains the name and the value of the parameters.
+        See :meth:`.SpinChain.set_up_params` for the definition.
 
     setup: string
         "linear" or "circular" for two sub-classes.

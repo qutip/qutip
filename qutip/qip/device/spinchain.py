@@ -158,6 +158,10 @@ class SpinChain(ModelProcessor):
     def set_up_params(self, sx, sz):
         """
         Save the parameters in the attribute `params` and check the validity.
+        The keys of `params` including "sx", "sz", and "sxsy", each
+        mapped to a list for parameters corresponding to each qubits.
+        For coupling strength "sxsy", list element i is the interaction
+        between qubits i and i+1.
 
         Parameters
         ----------

@@ -191,6 +191,11 @@ class DispersiveCavityQED(ModelProcessor):
             epsmax, w0, wq, eps, delta, g):
         """
         Save the parameters in the attribute `params` and check the validity.
+        The keys of `params` including "sx", "sz", "w0", "eps", "delta"
+        and "g", each
+        mapped to a list for parameters corresponding to each qubits.
+        For coupling strength "g", list element i is the interaction
+        between qubits i and i+1.
 
         Parameters
         ----------

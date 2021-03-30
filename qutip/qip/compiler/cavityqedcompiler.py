@@ -50,8 +50,8 @@ class CavityQEDCompiler(GateCompiler):
         The number of qubits in the system.
 
     params: dict
-        A Python dictionary contains the name and the value of the parameters,
-        such as laser frequency, detuning etc.
+        A Python dictionary contains the name and the value of the parameters.
+        See :meth:`.DispersiveCavityQED.set_up_params` for the definition.
 
     global_phase: float, optional
         Record of the global phase change and will be returned.
