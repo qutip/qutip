@@ -517,6 +517,9 @@ def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100,
 
     if options_modes is None:
         options_modes_table = Options()
+    else:
+        options_modes_table = options_modes
+
     # find the floquet modes for the time-dependent hamiltonian
     f_modes_0, f_energies = floquet_modes(H, T, args,
                                           options=options_modes)
@@ -804,6 +807,11 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
     """
     Solve the dynamics for the system using the Floquet-Markov master equation.
 
+    .. note::
+
+        It is important to understand in which frame and basis the results 
+        are returned here.
+
     Parameters
     ----------
 
@@ -838,7 +846,6 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
         do the basis change that will return the density matrix or
         the expectation values in the lab frame and in computational
         basis.
-
 
     Returns
     -------
@@ -902,6 +909,38 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
     else:
         raise TypeError("Expectation parameter must be a list or a function")
 
+    if expt_callback:
+        if floquet_basis:
+            warnings.warn(
+                       'Be aware that the density matrix that enters ' +
+                       'the callback function e_ops is given in' +
+                       ' the interaction picture and in the floquet basis.')
+        else:
+            if f_energies is None:
+                    warnings.warn(
+                       'The expectation value will be returned ' +
+                       'in the interaction picture and in the computational' +
+                       ' basis. If you want the density matrix in the lab' +
+                       ' frame and in the computational basis, please enter' +
+                       ' f_energies.')
+    else:
+        if n_expt_op == 0:
+            if floquet_basis==False:
+                if f_energies is None:
+                    warnings.warn(
+                        'The density matrix will be returned in the ' +
+                        'interaction picture and in the computational' +
+                        'basis. If you want the density matrix in the ' +
+                        'lab frame and in the computational basis, ' +
+                        'please enter f_energies.')
+        else:
+            if f_energies is None:
+                    warnings.warn(
+                       'The expectation values are those' +
+                       ' in the interaction picture and in the computational' +
+                       ' basis. If you want the expectation values in the ' +
+                       ' lab frame and in the computational basis, please' +
+                       ' enter f_energies.')
     #
     # transform the initial density matrix to the eigenbasis: from
     # computational basis to the floquet basis
@@ -937,13 +976,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
                 e_ops(t, Qobj(rho))
             else:
                 if f_energies is None:
-                    warnings.warn(
-                       'The expectation value will be returned ' +
-                       'in the interaction picture and in the computational' +
-                       ' basis. If you want the density matrix in the lab' +
-                       ' frame and in the computational basis, please enter' +
-                       ' f_energies.')
-                    e_ops(t, Qobj(rho).transform(ekets, False))
+                    e_ops(t, Qobj(rho).transform(ekets, True))
                 else:
                     f_modes_table_t, T = f_modes_table
                     f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
@@ -958,14 +991,8 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
                     output.states.append(Qobj(rho))
                 else:
                     if f_energies is None:
-                        warnings.warn(
-                            'The density matrix will be returned in the ' +
-                            'interaction picture and in the computational' +
-                            'basis. If you want the density matrix in the ' +
-                            'lab frame and in the computational basis, ' +
-                            'please enter f_energies.')
                         output.states.append(Qobj(rho).transform(ekets,
-                                                                 False))
+                                                                 True))
                     else:
                         f_modes_table_t, T = f_modes_table
                         f_modes_t = floquet_modes_t_lookup(f_modes_table_t,
@@ -975,15 +1002,9 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
                                                                  True))
             else:
                 if f_energies is None:
-                    warnings.warn(
-                       'The expectation values are those' +
-                       ' in the interaction picture and in the computational' +
-                       ' basis. If you want the expectation values in the ' +
-                       ' lab frame and in the computational basis, please' +
-                       ' enter f_energies.')
                     for m in range(0, n_expt_op):
                         output.expect[m][t_idx] = \
-                            expect(e_ops[m], rho.transform(ekets, False))
+                            expect(e_ops[m], rho.transform(ekets, True))
                 else:
                     f_modes_table_t, T = f_modes_table
                     f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
