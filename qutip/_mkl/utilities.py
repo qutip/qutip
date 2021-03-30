@@ -53,7 +53,7 @@ def _set_mkl():
         if plat == 'darwin':
             lib = '/libmkl_rt.dylib'
         elif plat == 'win32':
-            lib = '\\mkl_rt.dll'
+            lib = r'\mkl_rt.dll'
         elif plat in ['linux2', 'linux']:
             lib = '/libmkl_rt.so'
         else:
@@ -62,7 +62,7 @@ def _set_mkl():
         if plat in ['darwin','linux2', 'linux']:
             lib_dir = '/lib'
         else:
-            lib_dir = '\Library\\bin'
+            lib_dir = r'\Library\bin'
         
         # Try in default Anaconda location first
         try:
@@ -76,7 +76,7 @@ def _set_mkl():
             if plat in ['darwin','linux2', 'linux']:
                 lib_dir = '/ext/lib'
             else:
-                lib_dir = '\ext\\lib'
+                lib_dir = r'\ext\lib'
             try:
                 qset.mkl_lib = cdll.LoadLibrary(python_dir+lib_dir+lib)
                 qset.has_mkl = True

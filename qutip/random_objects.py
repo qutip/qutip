@@ -218,7 +218,7 @@ def _rand_herm_dense(N, density, pos_def):
 
 
 def rand_unitary(N, density=0.75, dims=None, seed=None):
-    """Creates a random NxN sparse unitary quantum object.
+    r"""Creates a random NxN sparse unitary quantum object.
 
     Uses :math:`\exp(-iH)` where H is a randomly generated
     Hermitian operator.
@@ -375,7 +375,7 @@ def rand_ket_haar(N=2, dims=None, seed=None):
 
 
 def rand_dm(N, density=0.75, pure=False, dims=None, seed=None):
-    """Creates a random NxN density matrix.
+    r"""Creates a random NxN density matrix.
 
     Parameters
     ----------
@@ -396,7 +396,7 @@ def rand_dm(N, density=0.75, pure=False, dims=None, seed=None):
     Notes
     -----
     For small density matrices., choosing a low density will result in an error
-    as no diagonal elements will be generated such that :math:`Tr(\\rho)=1`.
+    as no diagonal elements will be generated such that :math:`Tr(\rho)=1`.
 
     """
     if isinstance(N, (np.ndarray, list)):

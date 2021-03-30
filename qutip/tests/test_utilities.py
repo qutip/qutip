@@ -81,10 +81,22 @@ def test_unit_clebsch():
         j3p = np.random.randint(abs(j1-j2), j1+j2+1)
         m3 = np.random.randint(-j3, j3+1)
         m3p = np.random.randint(-j3p, j3p+1)
+        if np.random.rand() < 0.25:
+            j1 += 0.5
+            j3 += 0.5
+            j3p += 0.5
+            m3 += np.random.choice([-0.5, 0.5])
+            m3p += np.random.choice([-0.5, 0.5])
+        if np.random.rand() < 0.25:
+            j2 += 0.5
+            j3 += 0.5
+            j3p += 0.5
+            m3 += np.random.choice([-0.5, 0.5])
+            m3p += np.random.choice([-0.5, 0.5])
         sum_match = -1
         sum_differ = -int(j3 == j3p and m3 == m3p)
-        for m1 in range(-j1,j1+1):
-            for m2 in range(-j2,j2+1):
+        for m1 in np.arange(-j1,j1+1):
+            for m2 in np.arange(-j2,j2+1):
                 c1 = clebsch(j1, j2, j3, m1, m2, m3)
                 c2 = clebsch(j1, j2, j3p, m1, m2, m3p)
                 sum_match += c1**2
@@ -101,10 +113,18 @@ def test_unit_clebsch():
         m1p = np.random.randint(-j1,j1+1)
         m2 = np.random.randint(-j2,j2+1)
         m2p = np.random.randint(-j2,j2+1)
+        if np.random.rand() < 0.25:
+            j1 += 0.5
+            m1 += np.random.choice([-0.5, 0.5])
+            m1p += np.random.choice([-0.5, 0.5])
+        if np.random.rand() < 0.25:
+            j2 += 0.5
+            m2 += np.random.choice([-0.5, 0.5])
+            m2p += np.random.choice([-0.5, 0.5])
         sum_match = -1
         sum_differ = -int(m1 == m1p and m2 == m2p)
-        for j3 in range(abs(j1-j2),j1+j2+1):
-            for m3 in range(-j3,j3+1):
+        for j3 in np.arange(abs(j1-j2),j1+j2+1):
+            for m3 in np.arange(-j3,j3+1):
                 c1 = clebsch(j1, j2, j3, m1, m2, m3)
                 c2 = clebsch(j1, j2, j3, m1p, m2p, m3)
                 sum_match += c1**2

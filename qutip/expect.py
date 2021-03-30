@@ -66,8 +66,8 @@ def expect(oper, state):
 
     Examples
     --------
-    >>> expect(num(4), basis(4, 3))
-    3
+    >>> expect(num(4), basis(4, 3)) == 3 # doctest: +NORMALIZE_WHITESPACE
+        True
 
     '''
     if isinstance(state, Qobj) and isinstance(oper, Qobj):

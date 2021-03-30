@@ -442,8 +442,9 @@ class RandomNoise(ControlAmpNoise):
 
     Examples
     --------
-    >>> gaussnoise = RandomNoise(
-            dt=0.1, rand_gen=np.random.normal, loc=mean, scale=std)
+    >>> gaussnoise = RandomNoise( \
+            dt=0.1, rand_gen=np.random.normal, loc=mean, scale=std) \
+            # doctest: +SKIP
     """
     def __init__(
             self, dt, rand_gen, indices=None, **kwargs):

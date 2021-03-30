@@ -1749,7 +1749,7 @@ cdef class SMESolver(StochasticSolver):
             for j in range(i, self.num_ops):
                 c_op._mul_vec(t, &b[j,0], &Lb[i,j,0])
                 trAb[i,j] = self.expect(Lb[i,j,:])
-                _axpy(-trAp[j], b[i,:], Lb[i,j,:])
+                _axpy(-trAp[i], b[j,:], Lb[i,j,:])
                 _axpy(-trAb[i,j], rho, Lb[i,j,:])
 
         # L0b La LLb

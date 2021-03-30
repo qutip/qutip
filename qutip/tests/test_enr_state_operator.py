@@ -31,109 +31,112 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-from numpy.testing import assert_, run_module_suite
-
-from qutip import (destroy, enr_destroy, identity, tensor, enr_fock,
-                   enr_identity, enr_thermal_dm, thermal_dm,
-                   state_number_enumerate)
-
-
-def test_enr_destory_full():
-    "Excitation-number-restricted state-space: full state space"
-    a1, a2 = enr_destroy([4, 4], 4**2)
-    b1, b2 = tensor(destroy(4), identity(4)), tensor(identity(4), destroy(4))
-
-    assert_(a1 == b1)
-    assert_(a2 == b2)
+import pytest
+import itertools
+import random
+import numpy as np
+import qutip
 
 
-def test_enr_destory_single():
-    "Excitation-number-restricted state space: single excitations"
-    a1, a2 = enr_destroy([4, 4], 1)
-    assert_(a1.shape == (3, 3))
-
-    a1, a2, a3 = enr_destroy([4, 4, 4], 1)
-    assert_(a1.shape == (4, 4))
-
-    a1, a2, a3, a4 = enr_destroy([4, 4, 4, 4], 1)
-    assert_(a1.shape == (5, 5))
-
-
-def test_enr_destory_double():
-    "Excitation-number-restricted state space: two excitations"
-    a1, a2 = enr_destroy([4, 4], 2)
-    assert_(a1.shape == (6, 6))
-
-    a1, a2, a3 = enr_destroy([4, 4, 4], 2)
-    assert_(a1.shape == (10, 10))
-
-    a1, a2, a3, a4 = enr_destroy([4, 4, 4, 4], 2)
-    assert_(a1.shape == (15, 15))
+def _n_enr_states(dimensions, n_excitations):
+    """
+    Calculate the total number of distinct ENR states for a given set of
+    subspaces.  This method is not intended to be fast or efficient, it's
+    intended to be obviously correct for testing purposes.
+    """
+    count = 0
+    for excitations in itertools.product(*map(range, dimensions)):
+        count += int(sum(excitations) <= n_excitations)
+    return count
 
 
-def test_enr_fock_state():
-    "Excitation-number-restricted state space: fock states"
-    dims, excitations = [4, 4], 2
-
-    a1, a2 = enr_destroy(dims, excitations)
-
-    psi = enr_fock(dims, excitations, [0, 2])
-    assert_(abs((a1.dag()*a1).matrix_element(psi.dag(), psi) - 0) < 1e-10)
-    assert_(abs((a2.dag()*a2).matrix_element(psi.dag(), psi) - 2) < 1e-10)
-
-    psi = enr_fock(dims, excitations, [2, 0])
-    assert_(abs((a1.dag()*a1).matrix_element(psi.dag(), psi) - 2) < 1e-10)
-    assert_(abs((a2.dag()*a2).matrix_element(psi.dag(), psi) - 0) < 1e-10)
-
-    psi = enr_fock(dims, excitations, [1, 1])
-    assert_(abs((a1.dag()*a1).matrix_element(psi.dag(), psi) - 1) < 1e-10)
-    assert_(abs((a2.dag()*a2).matrix_element(psi.dag(), psi) - 1) < 1e-10)
+@pytest.fixture(params=[
+    pytest.param([4], id="single"),
+    pytest.param([4]*2, id="tensor-equal-2"),
+    pytest.param([4]*3, id="tensor-equal-3"),
+    pytest.param([4]*4, id="tensor-equal-4"),
+    pytest.param([2, 3, 4], id="tensor-not-equal"),
+])
+def dimensions(request):
+    return request.param
 
 
-def test_enr_identity():
-    "Excitation-number-restricted state space: identity operator"
-    dims, excitations = [4, 4], 2
-
-    i = enr_identity(dims, excitations)
-    assert_((i.diag() == 1).all())
-    assert_(i.dims[0] == dims)
-    assert_(i.dims[1] == dims)
+@pytest.fixture(params=[1, 2, 3, 1_000_000])
+def n_excitations(request):
+    return request.param
 
 
-def test_enr_thermal_dm1():
-    "Excitation-number-restricted state space: thermal density operator (I)"
-    dims, excitations = [3, 4, 5, 6], 3
+class TestOperator:
+    def test_no_restrictions(self, dimensions):
+        """
+        Test that the restricted-excitation operators are equal to the standard
+        operators when there aren't any restrictions.
+        """
+        test_operators = qutip.enr_destroy(dimensions, sum(dimensions))
+        a = [qutip.destroy(n) for n in dimensions]
+        iden = [qutip.qeye(n) for n in dimensions]
+        for i, test in enumerate(test_operators):
+            expected = qutip.tensor(iden[:i] + [a[i]] + iden[i+1:])
+            assert test == expected
+            assert test.dims == [dimensions, dimensions]
 
-    n_vec = [0.01, 0.05, 0.1, 0.15]
+    def test_space_size_reduction(self, dimensions, n_excitations):
+        test_operators = qutip.enr_destroy(dimensions, n_excitations)
+        expected_size = _n_enr_states(dimensions, n_excitations)
+        expected_shape = (expected_size, expected_size)
+        for test in test_operators:
+            assert test.shape == expected_shape
+            assert test.dims == [dimensions, dimensions]
 
-    rho = enr_thermal_dm(dims, excitations, n_vec)
-
-    rho_ref = tensor([thermal_dm(d, n_vec[idx])
-                      for idx, d in enumerate(dims)])
-    gonners = [idx for idx, state in enumerate(state_number_enumerate(dims))
-               if sum(state) > excitations]
-    rho_ref = rho_ref.eliminate_states(gonners)
-    rho_ref = rho_ref / rho_ref.tr()
-
-    assert_(abs((rho.data - rho_ref.data).data).max() < 1e-12)
-
-
-def test_enr_thermal_dm2():
-    "Excitation-number-restricted state space: thermal density operator (II)"
-    dims, excitations = [3, 4, 5], 2
-
-    n_vec = 0.1
-
-    rho = enr_thermal_dm(dims, excitations, n_vec)
-
-    rho_ref = tensor([thermal_dm(d, n_vec) for idx, d in enumerate(dims)])
-    gonners = [idx for idx, state in enumerate(state_number_enumerate(dims))
-               if sum(state) > excitations]
-    rho_ref = rho_ref.eliminate_states(gonners)
-    rho_ref = rho_ref / rho_ref.tr()
-
-    assert_(abs((rho.data - rho_ref.data).data).max() < 1e-12)
+    def test_identity(self, dimensions, n_excitations):
+        iden = qutip.enr_identity(dimensions, n_excitations)
+        expected_size = _n_enr_states(dimensions, n_excitations)
+        expected_shape = (expected_size, expected_size)
+        assert np.all(iden.diag() == 1)
+        assert np.all(iden.full() - np.diag(iden.diag()) == 0)
+        assert iden.shape == expected_shape
+        assert iden.dims == [dimensions, dimensions]
 
 
-if __name__ == "__main__":
-    run_module_suite()
+def test_fock_state(dimensions, n_excitations):
+    """
+    Test Fock state creation agrees with the number operators implied by the
+    existence of the ENR annihiliation operators.
+    """
+    number = [a.dag()*a for a in qutip.enr_destroy(dimensions, n_excitations)]
+    bases = list(qutip.state_number_enumerate(dimensions, n_excitations))
+    n_samples = min((len(bases), 5))
+    for basis in random.sample(bases, n_samples):
+        state = qutip.enr_fock(dimensions, n_excitations, basis)
+        for n, x in zip(number, basis):
+            assert abs(n.matrix_element(state.dag(), state)) - x < 1e-10
+
+
+def _reference_dm(dimensions, n_excitations, nbars):
+    """
+    Get the reference density matrix using `Qobj.eliminate_states` explicitly,
+    to compare to the direct ENR construction.
+    """
+    if np.isscalar(nbars):
+        nbars = [nbars] * len(dimensions)
+    out = qutip.tensor([qutip.thermal_dm(dimension, nbar)
+                        for dimension, nbar in zip(dimensions, nbars)])
+    eliminate = [
+        i for i, state in enumerate(qutip.state_number_enumerate(dimensions))
+        if sum(state) > n_excitations]
+    out = out.eliminate_states(eliminate)
+    return out / out.tr()
+
+
+@pytest.mark.parametrize("nbar_type", ["scalar", "vector"])
+def test_thermal_dm(dimensions, n_excitations, nbar_type):
+    # Ensure that the average number of excitations over all the states is
+    # much less than the total number of allowed excitations.
+    if nbar_type == "scalar":
+        nbars = 0.1 * n_excitations / len(dimensions)
+    else:
+        nbars = np.random.rand(len(dimensions))
+        nbars = (0.1 * n_excitations) / np.sum(nbars)
+    test_dm = qutip.enr_thermal_dm(dimensions, n_excitations, nbars)
+    expect_dm = _reference_dm(dimensions, n_excitations, nbars)
+    np.testing.assert_allclose(test_dm.full(), expect_dm.full(), atol=1e-12)

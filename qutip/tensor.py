@@ -68,7 +68,7 @@ def tensor(*args):
 
     Examples
     --------
-    >>> tensor([sigmax(), sigmax()])
+    >>> tensor([sigmax(), sigmax()]) # doctest: +SKIP
     Quantum object: dims = [[2, 2], [2, 2]], \
 shape = [4, 4], type = oper, isHerm = True
     Qobj data =
@@ -114,7 +114,7 @@ shape = [4, 4], type = oper, isHerm = True
             out.dims = q.dims
         else:
             out.data  = zcsr_kron(out.data, q.data)
-            
+
             out.dims = [out.dims[0] + q.dims[0], out.dims[1] + q.dims[1]]
 
         out.isherm = out.isherm and q.isherm

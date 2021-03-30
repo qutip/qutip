@@ -43,6 +43,7 @@ from qutip.operators import identity
 from qutip.qip.operations.gates import expand_operator, globalphase
 from qutip.tensor import tensor
 from qutip.mesolve import mesolve
+from qutip.mcsolve import mcsolve
 from qutip.qip.circuit import QubitCircuit
 from qutip.qip.noise import (
     Noise, RelaxationNoise, DecoherenceNoise,
@@ -143,7 +144,8 @@ class Processor(object):
 
     def add_drift(self, qobj, targets, cyclic_permutation=False):
         """
-        Add one Hamiltonian to the drift Hamiltonians
+        Add a drift Hamiltonians. The drift Hamiltonians are intrinsic
+        of the quantum system and cannot be controlled by external field.
 
         Parameters
         ----------
@@ -222,7 +224,7 @@ class Processor(object):
     @property
     def ctrls(self):
         """
-        list: A list of Hamiltonian of all pulses.
+        A list of Hamiltonians of all pulses.
         """
         result = []
         for pulse in self.pulses:
@@ -250,8 +252,8 @@ class Processor(object):
     def get_full_tlist(self):
         """
         Return the full tlist of the ideal pulses.
-        It means that if different `tlist`s are present, they will be merged
-        to one with all time points stored in a sorted array.
+        If different pulses have different time steps,
+        it will collect all the time steps in a sorted array.
 
         Returns
         -------
@@ -264,7 +266,7 @@ class Processor(object):
             return None
         return np.unique(np.sort(np.hstack(all_tlists)))
 
-    def get_full_coeffs(self):
+    def get_full_coeffs(self, full_tlist=None):
         """
         Return the full coefficients in a 2d matrix form.
         Each row corresponds to one pulse. If the `tlist` are
@@ -282,18 +284,19 @@ class Processor(object):
         self._is_pulses_valid()
         if not self.pulses:
             return np.array((0, 0), dtype=float)
-        full_tlist = self.get_full_tlist()
+        if full_tlist is None:
+            full_tlist = self.get_full_tlist()
         coeffs_list = []
         for pulse in self.pulses:
+            if not isinstance(pulse.coeff, (bool, np.ndarray)):
+                raise ValueError(
+                    "get_full_coeffs only works for "
+                    "NumPy array or bool coeff.")
             if isinstance(pulse.coeff, bool):
                 if pulse.coeff:
                     coeffs_list.append(np.ones(full_tlist))
                 else:
                     coeffs_list.append(np.zeros(full_tlist))
-            if not isinstance(pulse.coeff, np.ndarray):
-                raise ValueError(
-                    "get_full_coeffs only works for "
-                    "NumPy array or bool coeff.")
             if self.spline_kind == "step_func":
                 arg = {"_step_func_coeff": True}
                 coeffs_list.append(
@@ -306,10 +309,8 @@ class Processor(object):
         return np.array(coeffs_list)
 
     def set_all_tlist(self, tlist):
-        # TODO add tests
         """
-        Set `tlist` for all the pulses. It can be used to set `tlist` if
-        all pulses are controlled by the same time sequence.
+        Set the same `tlist` for all the pulses.
 
         Parameters
         ----------
@@ -336,7 +337,7 @@ class Processor(object):
         else:
             raise ValueError("Invalid input, pulse must be a Pulse object")
 
-    def remove_pulse(self, indices):
+    def remove_pulse(self, indices=None, label=None):
         """
         Remove the control pulse with given indices.
 
@@ -344,12 +345,19 @@ class Processor(object):
         ----------
         indices: int or list of int
             The indices of the control Hamiltonians to be removed.
+        label: str
+            The label of the pulse
         """
-        if not isinstance(indices, Iterable):
-            indices = [indices]
-        indices.sort(reverse=True)
-        for ind in indices:
-            del self.pulses[ind]
+        if indices is not None:
+            if not isinstance(indices, Iterable):
+                indices = [indices]
+            indices.sort(reverse=True)
+            for ind in indices:
+                del self.pulses[ind]
+        else:
+            for ind, pulse in enumerate(self.pulses):
+                if pulse.label == label:
+                    del self.pulses[ind]
 
     def _is_pulses_valid(self):
         """
@@ -419,8 +427,6 @@ class Processor(object):
             True if the time list should be included in the first column.
         """
         self._is_pulses_valid()
-        # TODO this works only for step_func
-        # TODO replace this by get_complete_coeffs
         coeffs = np.array(self.get_full_coeffs())
         if inctime:
             shp = coeffs.T.shape
@@ -485,7 +491,6 @@ class Processor(object):
         noisy_pulses: list of :class"`qutip.qip.Pulse`/:class:`qutip.qip.Drift`
             A list of noisy pulses.
         """
-        # TODO add tests
         pulses = deepcopy(self.pulses)
         noisy_pulses = process_noise(
             pulses, self.noise, self.dims, t1=self.t1, t2=self.t2,
@@ -571,14 +576,13 @@ class Processor(object):
             An instance of the class
             :class:`qutip.Result` will be returned.
         """
-        # TODO change init_state to init_state
         if init_state is not None:
             U_list = [init_state]
         else:
             U_list = []
         tlist = self.get_full_tlist()
         # TODO replace this by get_complete_coeff
-        coeffs = np.array(self.coeffs)
+        coeffs = self.get_full_coeffs()
         for n in range(len(tlist)-1):
             H = sum([coeffs[m, n] * self.ctrls[m]
                     for m in range(len(self.ctrls))])
@@ -616,15 +620,16 @@ class Processor(object):
         return self.run_analytically(qc=qc, init_state=None)
 
     def run_state(self, init_state=None, analytical=False, states=None,
-                  noisy=True, **kwargs):
+                  noisy=True, solver="mesolve", **kwargs):
         """
         If `analytical` is False, use :func:`qutip.mesolve` to
         calculate the time of the state evolution
         and return the result. Other arguments of mesolve can be
         given as keyword arguments.
+
         If `analytical` is True, calculate the propagator
         with matrix exponentiation and return a list of matrices.
-        Noise will be neglected in this choice.
+        Noise will be neglected in this option.
 
         Parameters
         ----------
@@ -636,6 +641,9 @@ class Processor(object):
 
         states: :class:`qutip.Qobj`, optional
             Old API, same as init_state.
+
+        solver: str
+            "mesolve" or "mcsolve"
 
         **kwargs
             Keyword arguments for the qutip solver.
@@ -689,7 +697,13 @@ class Processor(object):
         else:
             kwargs["c_ops"] = sys_c_ops
 
-        evo_result = mesolve(
+        # choose solver:
+        if solver == "mesolve":
+            solver = mesolve
+        elif solver == "mcsolve":
+            solver = mcsolve
+
+        evo_result = solver(
             H=noisy_qobjevo, rho0=init_state,
             tlist=noisy_qobjevo.tlist, **kwargs)
         return evo_result
@@ -708,15 +722,24 @@ class Processor(object):
         """
         return U
 
-    def plot_pulses(self, title=None, figsize=None, dpi=None):
+    def get_operators_labels(self):
         """
-        Plot the pulse amplitude
+        Get the labels for each Hamiltonian.
+        It is used in the method``plot_pulses``.
+        It is a 2-d nested list, in the plot,
+        a different color will be used for each sublist.
+        """
+        label_list = []
+        for pulse in self.pulses:
+            label_list.append(pulse.label)
+        return [label_list]
+
+    def plot_pulses(self, title=None, figsize=(12, 6), dpi=None):
+        """
+        Plot the ideal pulse coefficients.
 
         Parameters
         ----------
-        noisy: bool, optional
-            If true, plot the noisy pulses.
-
         title: str
             Title for the plot.
 
@@ -739,31 +762,40 @@ class Processor(object):
         ``plot_pulses`` only works for array_like coefficients
         """
         import matplotlib.pyplot as plt
+        import matplotlib.gridspec as gridspec
+        color_list = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
-        fig, ax = plt.subplots(1, 1, figsize=figsize, dpi=dpi)
-        ax.set_ylabel("Control pulse amplitude")
-        ax.set_xlabel("Time")
+        # create a axis for each pulse
+        fig = plt.figure(figsize=figsize, dpi=dpi)
+        grids = gridspec.GridSpec(len(self.pulses), 1)
+        grids.update(wspace=0., hspace=0.)
 
-        # TODO add test
-        coeffs = self.coeffs
-        tlist = self.get_full_tlist()
+        tlist = np.linspace(0., self.get_full_tlist()[-1], 1000)
+        coeffs = self.get_full_coeffs(tlist)
+        # make sure coeffs start with zero, for ax.fill
+        tlist = np.hstack(([-1.e-20], tlist))
+        coeffs = np.hstack((np.array([[0.]] * len(self.pulses)), coeffs))
 
-        for i in range(len(coeffs)):
-            if not isinstance(coeffs[i], (Iterable, np.ndarray)):
-                raise ValueError(
-                    "plot_pulse only accepts array_like coefficients.")
-            if self.spline_kind == "step_func":
-                if len(coeffs[i]) == len(tlist) - 1:
-                    coeffs[i] = np.hstack(
-                        [coeffs[i], coeffs[i][-1:]])
-                else:
-                    coeffs[i][-1] = coeffs[i][-2]
-                ax.step(tlist, coeffs[i], where='post')
-            elif self.spline_kind == "cubic":
-                sp = CubicSpline(tlist, coeffs[i])
-                t_line = np.linspace(tlist[0], tlist[-1], 200)
-                c_line = [sp(t) for t in t_line]
-                ax.plot(t_line, c_line)
+        pulse_ind = 0
+        for i, label_group in enumerate(self.get_operators_labels()):
+            for label in label_group:
+                grid = grids[pulse_ind]
+                ax = plt.subplot(grid)
+                ax.fill(tlist, coeffs[pulse_ind], color_list[i], alpha=0.7)
+                ax.plot(tlist, coeffs[pulse_ind], color_list[i])
+                ymax = max(np.abs(coeffs[pulse_ind])) * 1.1
+                if ymax != 0.:
+                    ax.set_ylim((-ymax, ymax))
+
+                # disable frame and ticks
+                ax.set_xticks([])
+                ax.spines['top'].set_visible(False)
+                ax.spines['right'].set_visible(False)
+                ax.spines['bottom'].set_visible(False)
+                ax.spines['left'].set_visible(False)
+                ax.set_yticks([])
+                ax.set_ylabel(label,  rotation=0)
+                pulse_ind += 1
         if title is not None:
             ax.set_title(title)
         fig.tight_layout()

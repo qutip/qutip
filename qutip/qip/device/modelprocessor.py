@@ -90,16 +90,16 @@ class ModelProcessor(Processor):
         super(ModelProcessor, self).__init__(N, t1=t1, t2=t2)
         self.correct_global_phase = correct_global_phase
         self.global_phase = 0.
-        self._paras = {}
+        self._params = {}
 
-    def _para_list(self, para, N):
+    def to_array(self, params, N):
         """
-        Transfer a parameter to list form and multiplied by 2*pi.
+        Transfer a parameter to an array.
         """
-        if isinstance(para, numbers.Real):
-            return [para * 2 * np.pi] * N
-        elif isinstance(para, Iterable):
-            return [c * 2 * np.pi for c in para]
+        if isinstance(params, numbers.Real):
+            return np.asarray([params] * N)
+        elif isinstance(params, Iterable):
+            return np.asarray(params)
 
     def set_up_params(self):
         """
@@ -114,7 +114,7 @@ class ModelProcessor(Processor):
 
     @property
     def params(self):
-        return self._paras
+        return self._params
 
     @params.setter
     def params(self, par):
@@ -176,7 +176,7 @@ class ModelProcessor(Processor):
         """
         return (self.ctrls, self.get_full_coeffs().T)
 
-    def pulse_matrix(self):
+    def pulse_matrix(self, dt=0.01):
         """
         Generates the pulse matrix for the desired physical system.
 
@@ -185,63 +185,27 @@ class ModelProcessor(Processor):
         t, u, labels:
             Returns the total time and label for every operation.
         """
-        dt = 0.01
-        H_ops, H_u = self.get_ops_and_u()
+        ctrls = self.ctrls
+        coeffs = self.get_full_coeffs().T
 
         # FIXME This might becomes a problem if new tlist other than
         # int the default pulses are added.
         tlist = self.get_full_tlist()
-        diff_tlist = tlist[1:] - tlist[:-1]
-        t_tot = sum(diff_tlist)
-        n_t = int(np.ceil(t_tot / dt))
-        n_ops = len(H_ops)
+        dt_list = tlist[1:] - tlist[:-1]
+        t_tot = tlist[-1]
+        num_step = int(np.ceil(t_tot / dt))
 
-        t = np.linspace(0, t_tot, n_t)
-        u = np.zeros((n_ops, n_t))
+        t = np.linspace(0, t_tot, num_step)
+        u = np.zeros((len(ctrls), num_step))
 
         t_start = 0
-        for n in range(len(diff_tlist)):
-
-            t_idx_len = int(np.floor(diff_tlist[n] / dt))
-
+        for n in range(len(dt_list)):
+            t_idx_len = int(np.floor(dt_list[n] / dt))
             mm = 0
-            for m in range(len(H_ops)):
+            for m in range(len(ctrls)):
                 u[mm, t_start:(t_start + t_idx_len)] = (np.ones(t_idx_len) *
-                                                        H_u[n, m])
+                                                        coeffs[n, m])
                 mm += 1
-
             t_start += t_idx_len
 
-        return t, u, self.get_ops_labels()
-
-    def plot_pulses(self, title=None, noisy=None, figsize=(12, 6), dpi=None):
-        """
-        Maps the physical interaction between the circuit components for the
-        desired physical system.
-
-        Returns
-        -------
-        fig, ax: Figure
-            Maps the physical interaction between the circuit components.
-        """
-        # TODO add test
-        if noisy is not None:
-            return super(ModelProcessor, self).plot_pulses(
-                title=title, noisy=noisy)
-        import matplotlib.pyplot as plt
-        t, u, u_labels = self.pulse_matrix()
-        fig, ax = plt.subplots(1, 1, figsize=figsize, dpi=dpi)
-
-        for n, uu in enumerate(u):
-            ax.plot(t, u[n], label=u_labels[n])
-
-        ax.axis('tight')
-        ax.set_ylim(-1.5 * 2 * np.pi, 1.5 * 2 * np.pi)
-        ax.legend(loc='center left',
-                  bbox_to_anchor=(1, 0.5), ncol=(1 + len(u) // 16))
-        ax.set_ylabel("Control pulse amplitude")
-        ax.set_xlabel("Time")
-        if title is not None:
-            ax.set_title(title)
-        fig.tight_layout()
-        return fig, ax
+        return t, u, self.get_operators_labels()

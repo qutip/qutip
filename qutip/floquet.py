@@ -437,9 +437,9 @@ def floquet_wavefunction_t(f_modes_0, f_energies, f_coeff, t, H, T, args=None,
 
 
 def floquet_state_decomposition(f_states, f_energies, psi):
-    """
+    r"""
     Decompose the wavefunction `psi` (typically an initial state) in terms of
-    the Floquet states, :math:`\psi = \sum_\\alpha c_\\alpha \psi_\\alpha(0)`.
+    the Floquet states, :math:`\psi = \sum_\alpha c_\alpha \psi_\alpha(0)`.
 
     Parameters
     ----------
@@ -458,7 +458,7 @@ def floquet_state_decomposition(f_states, f_energies, psi):
 
     output : array
 
-        The coefficients :math:`c_\\alpha` in the Floquet state decomposition.
+        The coefficients :math:`c_\alpha` in the Floquet state decomposition.
 
     """
     # [:1,:1][0, 0] patch around scipy 1.3.0 bug
@@ -1070,10 +1070,11 @@ def fmmesolve(H, rho0, tlist, c_ops=[], e_ops=[], spectra_cb=[], T=None,
         the Hamiltonian written in units of 2pi GHz, and the
         temperature is given in K, use the following conversion
 
-        >>> temperature = 25e-3 # unit K
-        >>> h = 6.626e-34
-        >>> kB = 1.38e-23
-        >>> args['w_th'] = temperature * (kB / h) * 2 * pi * 1e-9
+        >>> temperature = 25e-3 # unit K # doctest: +SKIP
+        >>> h = 6.626e-34 # doctest: +SKIP
+        >>> kB = 1.38e-23 # doctest: +SKIP
+        >>> args['w_th'] = temperature * (kB / h) * 2 * pi * 1e-9 \
+            #doctest: +SKIP
 
     options : :class:`qutip.solver`
         options for the ODE solver. For solving the master equation.

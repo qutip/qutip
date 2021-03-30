@@ -765,7 +765,7 @@ class Lattice1d():
             else:
                 ax.plot(knxA/np.pi, val_kns[g, :], 'ro')
         ax.set_ylabel('Energy')
-        ax.set_xlabel('$k_x(\pi/a)$')
+        ax.set_xlabel(r'$k_x(\pi/a)$')
         plt.show(fig)
         fig.savefig('./Dispersion.pdf')
 
@@ -826,7 +826,7 @@ class Lattice1d():
         return (knxA, val_kns)
 
     def bloch_wave_functions(self):
-        """
+        r"""
         Returns eigenvectors ($\psi_n(k)$) of the Hamiltonian in a
         numpy.ndarray for translationally symmetric lattices with periodic
         boundary condition.
@@ -851,7 +851,7 @@ class Lattice1d():
         if self.period_bnd_cond_x == 0:
             raise Exception("The lattice is not periodic.")
         (knxA, qH_ks, val_kns, vec_kns, vec_xs) = self._k_space_calculations()
-        dtype = [('eigen_value', '<f16'), ('eigen_vector', Qobj)]
+        dtype = [('eigen_value', np.longdouble), ('eigen_vector', Qobj)]
         values = list()
         for i in range(self.num_cell):
             for j in range(self._length_of_unit_cell):
@@ -862,7 +862,7 @@ class Lattice1d():
         return eigen_states
 
     def cell_periodic_parts(self):
-        """
+        r"""
         Returns eigenvectors of the bulk Hamiltonian, i.e. the cell periodic
         part($u_n(k)$) of the Bloch wavefunctios in a numpy.ndarray for
         translationally symmetric lattices with periodic boundary condition.
@@ -1070,7 +1070,7 @@ class Lattice1d():
             else:
                 Phi_m_k[ks] = 2*np.pi + np.angle(mx_k[ks]+1j*my_k[ks])
 
-        if winding_number is 'defined':
+        if winding_number == 'defined':
             ddk_Phi_m_k = np.roll(Phi_m_k, -1) - Phi_m_k
             intg_over_k = -np.sum(ddk_Phi_m_k[0:knpoints//2])+np.sum(
                     ddk_Phi_m_k[knpoints//2:knpoints])
@@ -1186,7 +1186,7 @@ class Lattice1d():
         return Hcell
 
     def display_lattice(self):
-        """
+        r"""
         Produces a graphic portraying the lattice symbolically with a unit cell
         marked in it.
 

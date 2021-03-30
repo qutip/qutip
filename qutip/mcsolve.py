@@ -78,7 +78,7 @@ class qutip_zvode(zvode):
 def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=0,
             args={}, options=None, progress_bar=True,
             map_func=parallel_map, map_kwargs={}, _safe_mode=True):
-    """Monte Carlo evolution of a state vector :math:`|\psi \\rangle` for a
+    r"""Monte Carlo evolution of a state vector :math:`|\psi \rangle` for a
     given Hamiltonian and sets of collapse operators, and possibly, operators
     for calculating expectation values. Options for the underlying ODE solver
     are given by the Options class.
@@ -282,7 +282,9 @@ class _MC():
             pass
 
         if len(seeds) < ntraj:
-            self.seeds = seeds + list(randint(0, 2**31-1, size=ntraj-len(seeds)))
+            self.seeds = seeds + list(randint(0, 2**32,
+                                              size=ntraj-len(seeds),
+                                              dtype=np.uint32))
         else:
             self.seeds = seeds[:ntraj]
 
