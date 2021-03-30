@@ -809,7 +809,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
 
     .. note::
 
-        It is important to understand in which frame and basis the results 
+        It is important to understand in which frame and basis the results
         are returned here.
 
     Parameters
@@ -925,7 +925,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
                        ' f_energies.')
     else:
         if n_expt_op == 0:
-            if floquet_basis==False:
+            if floquet_basis is False:
                 if f_energies is None:
                     warnings.warn(
                         'The density matrix will be returned in the ' +
