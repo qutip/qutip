@@ -937,14 +937,15 @@ def test_non_hermitian_dm():
     options = Options()
     options.store_final_state = True
     options.store_states = True
+
     result = mesolve(H, rho0, tlist, e_ops=[x], options=options)
 
     imag_part = np.abs(np.imag(result.expect[0][-1]))
     # Since we used an initial state that is not Hermitian, the expectation of
     # x must be imaginary for t>0.
-    msg = 'Mesolve is not working properly with a non Hermitian density ' +
-    ' matrix as input. Check computation of '
-
+    msg = ('Mesolve is not working properly with a non Hermitian density ' +
+           ' matrix as input. Check computation of '
+          )
     assert_(imag_part > 0,
             msg + "expectation values. They should be imaginary")
 
@@ -954,6 +955,17 @@ def test_non_hermitian_dm():
             msg + " final density  matrix. It should not be hermitian")
     assert_(not result.states[-1].isherm,
             msg + " states. They should not be hermitian.")
+
+    # Check that when suing a callable we get the same result as previously.
+    def callable_x(t, rho):
+        "Dummy callable_x expectation operator."
+        return expect(rho, x)
+    result = mesolve(H, rho0, tlist, e_ops=callable_x)
+
+    imag_part = np.abs(np.imag(result.expect[-1]))
+    assert_(imag_part > 0,
+            msg + "expectation values when using callable operator." +
+            "They should be imaginary")
 
 
 if __name__ == "__main__":
