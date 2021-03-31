@@ -1152,14 +1152,13 @@ def _correlation_es_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op):
     L = liouvillian(H, c_ops)
 
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
-    solES_t = ode2es(L, rho0)
 
+    solES_t = ode2es(L, rho0)
     # evaluate the correlation function
     for t_idx in range(len(tlist)):
         rho_t = esval(solES_t, [tlist[t_idx]])
         solES_tau = ode2es(L, c_op * rho_t * a_op)
         corr_mat[t_idx, :] = esval(expect(b_op, solES_tau), taulist)
-
     return corr_mat
 
 
@@ -1182,19 +1181,15 @@ def _spectrum_es(H, wlist, c_ops, a_op, b_op):
 
     # eseries solution for (b * rho0)(t)
     es = ode2es(L, b_op * rho0)
-
     # correlation
     corr_es = expect(a_op, es)
-
     # covariance
     cov_es = corr_es - a_op_ss * b_op_ss
-    # tidy up covariance (to combine, e.g., zero-frequency components that cancel)
+    # tidy up covariance (to combine, e.g., zero-frequency components that
+    # cancel)
     cov_es.tidyup()
-
     # spectrum
-    spectrum = esspec(cov_es, wlist)
-
-    return spectrum
+    return esspec(cov_es, wlist)
 
 
 # Monte Carlo solvers

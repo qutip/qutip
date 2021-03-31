@@ -33,8 +33,11 @@
 
 import numpy as np
 from numpy.testing import run_module_suite, assert_equal
-from qutip import (sigmax, sigmay, sigmaz, sigmam, mesolve, mcsolve, essolve,
-                   basis)
+import pytest
+
+from qutip import (
+    sigmax, sigmay, sigmaz, sigmam, mesolve, mcsolve, essolve, basis,
+)
 
 
 def _qubit_integrate(tlist, psi0, epsilon, delta, g1, g2, solver):
@@ -122,7 +125,8 @@ def test_ESSolverCase1():
     psi0 = basis(2, 0)          # initial state
     tlist = np.linspace(0, 5, 200)
 
-    sx, sy, sz = _qubit_integrate(tlist, psi0, epsilon, delta, g1, g2, "es")
+    with pytest.deprecated_call():
+        sx, sy, sz = _qubit_integrate(tlist, psi0, epsilon, delta, g1, g2, "es")
 
     sx_analytic = np.zeros(np.shape(tlist))
     sy_analytic = -np.sin(2 * np.pi * tlist) * np.exp(-tlist * g2)

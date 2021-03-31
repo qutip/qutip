@@ -37,6 +37,8 @@ import numpy as np
 import scipy.sparse as sp
 from qutip.qobj import Qobj
 
+import warnings
+
 
 class eseries():
     """
@@ -67,6 +69,11 @@ class eseries():
     __array_priority__ = 101
 
     def __init__(self, q=None, s=np.array([])):
+        warnings.warn(
+            "eseries is to be removed in QuTiP 5.0,"
+            " consider swapping to QobjEvo for general time dependence.",
+            DeprecationWarning, stacklevel=2,
+        )
 
         if isinstance(s, (int, float, complex)):
             s = np.array([s])

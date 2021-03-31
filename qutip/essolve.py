@@ -44,11 +44,31 @@ from qutip.superoperator import liouvillian, mat2vec, vec2mat
 from qutip.solver import Result
 from qutip.operators import qzero
 
+# Only used for deprecation warnings.
+import functools
+import warnings
+
+
+def _deprecate(alternative):
+    def decorated(f):
+        message = (
+            f"{f.__name__} is to be removed in QuTiP 5.0"
+            f", consider swapping to {alternative}."
+        )
+
+        @functools.wraps(f)
+        def out(*args, **kwargs):
+            warnings.warn(message, DeprecationWarning, stacklevel=2)
+            return f(*args, **kwargs)
+        return out
+    return decorated
+
 
 # -----------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
 # any collapse operators were given.
 #
+@_deprecate("mesolve")
 def essolve(H, rho0, tlist, c_op_list, e_ops):
     """
     Evolution of a state vector or density matrix (`rho0`) for a given
@@ -118,6 +138,7 @@ def essolve(H, rho0, tlist, c_op_list, e_ops):
 # -----------------------------------------------------------------------------
 #
 #
+@_deprecate("direct eigenstate and -value calculation")
 def ode2es(L, rho0):
     """Creates an exponential series that describes the time evolution for the
     initial density matrix (or state vector) `rho0`, given the Liouvillian
