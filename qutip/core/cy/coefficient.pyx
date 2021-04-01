@@ -22,7 +22,7 @@ cdef class Coefficient:
         return 0j
 
     cpdef void arguments(self, dict args) except *:
-        self.args = args
+        self.args.update(args)
 
     def __call__(self, double t, dict args={}):
         """update args and return the
@@ -67,7 +67,7 @@ cdef class Coefficient:
 cdef class FunctionCoefficient(Coefficient):
     cdef object func
 
-    def __init__(self, func, args):
+    def __init__(self, func, dict args):
         self.func = func
         self.args = args
 
@@ -119,7 +119,7 @@ cdef class StrFunctionCoefficient(Coefficient):
         "np": np,
         "spe": scipy.special}
 
-    def __init__(self, base, args):
+    def __init__(self, base, dict args):
         code = """
 def coeff(t, args):
 {}
@@ -152,6 +152,7 @@ cdef class InterpolateCoefficient(Coefficient):
         self.higher_bound = splineObj.b
         self.spline_data = splineObj.coeffs.astype(np.complex128)
         self.spline = splineObj
+        self.args = {}
 
     @cython.initializedcheck(False)
     cdef complex _call(self, double t) except *:
@@ -183,7 +184,7 @@ cdef class InterCoefficient(Coefficient):
             self.cte = cte
         self.second_derr = self.second_np
         self.dt = tlist[1] - tlist[0]
-        self.n_t = len(tlist)
+        self.args = {}
 
     @cython.initializedcheck(False)
     cdef complex _call(self, double t) except *:
@@ -192,15 +193,12 @@ cdef class InterCoefficient(Coefficient):
             coeff = _spline_complex_cte_second(t,
                                                self.tlist,
                                                self.coeff_arr,
-                                               self.second_derr,
-                                               self.n_t,
-                                               self.dt)
+                                               self.second_derr)
         else:
             coeff = _spline_complex_t_second(t,
                                              self.tlist,
                                              self.coeff_arr,
-                                             self.second_derr,
-                                             self.n_t)
+                                             self.second_derr)
         return coeff
 
     def __reduce__(self):
@@ -241,15 +239,15 @@ cdef class StepCoefficient(Coefficient):
         else:
             self.cte = cte
         self.dt = tlist[1] - tlist[0]
-        self.n_t = len(tlist)
+        self.args = {}
 
     @cython.initializedcheck(False)
     cdef complex _call(self, double t) except *:
         cdef complex coeff
         if self.cte:
-            coeff = _step_complex_cte(t, self.tlist, self.coeff_arr, self.n_t)
+            coeff = _step_complex_cte(t, self.tlist, self.coeff_arr)
         else:
-            coeff = _step_complex_t(t, self.tlist, self.coeff_arr, self.n_t)
+            coeff = _step_complex_t(t, self.tlist, self.coeff_arr)
         return coeff
 
     def __reduce__(self):

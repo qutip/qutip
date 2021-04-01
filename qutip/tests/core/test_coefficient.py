@@ -34,8 +34,15 @@ import pytest
 import pickle
 import qutip as qt
 import numpy as np
+from functools import partial
 from qutip.core.coefficient import (coefficient, norm, conj, shift,
-                                    reduce, CompilationOptions)
+                                    reduce, CompilationOptions,
+                                    clean_compiled_coefficient
+                                   )
+
+
+# Ensure the latest version is tested
+clean_compiled_coefficient(True)
 
 
 def f(t, args):
@@ -44,6 +51,23 @@ def f(t, args):
 
 def g(t, args):
     return np.cos(args["w"] * t * np.pi)
+
+
+def h(t, args):
+    return args["a"] + args["b"] + t
+
+
+def _assert_eq_over_interval(coeff1, coeff2, rtol=1e-12, inside=False):
+    "assert coeff1 == coeff2"
+    "inside refer to the range covered by tlistlog: [0.01, 1]"
+    ts = np.linspace(0.01, 1, 20)
+    eps = 1e-12
+    crit_times = [0.01+eps, 0.95, 1-eps]
+    if not inside:
+        crit_times += [-0.1, 0, eps, -eps, 1+eps, 1.1]
+    c1 = [coeff1(t) for t in ts] + [coeff1(t) for t in crit_times]
+    c2 = [coeff2(t) for t in ts] + [coeff2(t) for t in crit_times]
+    np.testing.assert_allclose(c1, c2, rtol=rtol, atol=1e-15)
 
 
 args = {"w": 1j}
@@ -98,12 +122,11 @@ def coeff_generator(style, func):
                  1e-10, id="string")
 ])
 def test_CoeffCreationCall(base, kwargs, tol):
-    CompilationOptions.recompile = True
-    t = np.random.rand() * 0.9 + 0.05
-    val = np.exp(1j * t * np.pi)
-    coeff = coefficient(base, **kwargs)
-    assert np.allclose(coeff(t), val, rtol=tol)
-    CompilationOptions.recompile = False
+    opt = CompilationOptions(recompile=True)
+    expected = lambda t: np.exp(1j * t * np.pi)
+    coeff = coefficient(base, **kwargs, compile_opt=opt)
+    _assert_eq_over_interval(coeff, expected, rtol=tol, inside=True)
+
 
 
 @pytest.mark.parametrize(['base', 'kwargs', 'tol'], [
@@ -113,11 +136,24 @@ def test_CoeffCreationCall(base, kwargs, tol):
                  1e-10, id="string")
 ])
 def test_CoeffCallArgs(base, kwargs, tol):
-    t = np.random.rand() * 0.9 + 0.05
-    w = np.random.rand() + 0.5j
-    val = np.exp(w * t * np.pi)
-    coeff = coefficient(f, **kwargs)
-    assert np.allclose(coeff(t, {"w": w}), val, rtol=tol)
+    w = np.e + 0.5j
+    expected = lambda t: np.exp(w * t * np.pi)
+    coeff = coefficient(base, **kwargs)
+    _assert_eq_over_interval(partial(coeff, args={"w": w}), expected, rtol=tol)
+
+
+@pytest.mark.parametrize(['base', 'tol'], [
+    pytest.param(h, 1e-10, id="func"),
+    pytest.param("a + b + t", 1e-10, id="string")
+])
+def test_CoeffCallArguments(base, tol):
+    # Partial args update
+    args = {"a": 1, "b": 1}
+    a = np.e
+    expected = lambda t: a + 1 + t
+    coeff = coefficient(base, args=args)
+    coeff.arguments({"a": a})
+    _assert_eq_over_interval(coeff, expected, rtol=tol)
 
 
 @pytest.mark.parametrize(['style'], [
@@ -129,15 +165,29 @@ def test_CoeffCallArgs(base, kwargs, tol):
     pytest.param("steparray", id="steparray"),
     pytest.param("steparraylog", id="steparraylog")
 ])
-def test_CoeffUnitaryTransform(style):
+@pytest.mark.parametrize(['transform', 'expected'], [
+    pytest.param(norm, lambda val: np.abs(val)**2, id="norm"),
+    pytest.param(conj, lambda val: np.conj(val), id="conj"),
+])
+def test_CoeffUnitaryTransform(style, transform, expected):
     coeff = coeff_generator(style, "f")
-    t = np.random.rand() * 0.7 + 0.05
-    dt = np.random.rand() * 0.2
-    val = coeff(t)
-    val_dt = coeff(t+dt)
-    assert np.allclose(norm(coeff)(t), np.abs(val)**2)
-    assert np.allclose(conj(coeff)(t), np.conj(val))
-    assert np.allclose(shift(coeff, dt)(t), val_dt)
+    _assert_eq_over_interval(transform(coeff), lambda t: expected(coeff(t)))
+
+
+@pytest.mark.parametrize(['style'], [
+    pytest.param("func", id="func"),
+    pytest.param("array", id="array"),
+    pytest.param("arraylog", id="logarray"),
+    pytest.param("spline", id="Cubic_Spline"),
+    pytest.param("string", id="string"),
+    pytest.param("steparray", id="steparray"),
+    pytest.param("steparraylog", id="steparraylog")
+])
+def test_CoeffShift(style):
+    coeff = coeff_generator(style, "f")
+    dt = np.e / 30
+    _assert_eq_over_interval(shift(coeff, dt),
+                             lambda t: coeff(t + dt))
 
 
 @pytest.mark.parametrize(['style_left'], [
@@ -158,16 +208,17 @@ def test_CoeffUnitaryTransform(style):
     pytest.param("steparray", id="steparray"),
     pytest.param("steparraylog", id="steparraylog")
 ])
-def test_CoeffOperation(style_left, style_right):
+@pytest.mark.parametrize(['oper'], [
+    pytest.param(lambda a, b: a+b, id="sum"),
+    pytest.param(lambda a, b: a*b, id="prod"),
+])
+def test_CoeffOperation(style_left, style_right, oper):
     coeff_left = coeff_generator(style_left, "f")
     coeff_right = coeff_generator(style_right, "g")
-    t = np.random.rand() * 0.9 + 0.05
-    val_l = coeff_left(t)
-    val_r = coeff_right(t)
-    coeff_sum = coeff_left + coeff_right
-    assert np.allclose(coeff_sum(t), val_l + val_r)
-    coeff_prod = coeff_left * coeff_right
-    assert np.allclose(coeff_prod(t), val_l * val_r)
+    _assert_eq_over_interval(
+        oper(coeff_left, coeff_right),
+        lambda t: oper(coeff_left(t), coeff_right(t))
+    )
 
 
 @pytest.mark.requires_cython
@@ -182,14 +233,16 @@ def test_CoeffReuse():
 @pytest.mark.requires_cython
 def test_CoeffOptions():
     from itertools import combinations
-    t = np.random.rand() * 0.9 + 0.05
     base = "1 + 1. + 1j"
     options = []
     options.append(CompilationOptions(accept_int=True))
     options.append(CompilationOptions(accept_float=False))
     options.append(CompilationOptions(no_types=True))
     options.append(CompilationOptions(use_cython=False))
+    options.append(CompilationOptions(try_parse=False))
     coeffs = [coefficient(base, compile_opt=opt) for opt in options]
+    for coeff in coeffs:
+        assert coeff(0) == 2+1j
     for coeff1, coeff2 in combinations(coeffs, 2):
         assert not isinstance(coeff1, coeff2.__class__)
 
@@ -213,22 +266,20 @@ def test_CoeffOptions():
                  lambda t: t + 1, id="branch")
 ])
 def test_CoeffParsingStressTest(codestring, args, reference):
-    CompilationOptions.recompile = True
-    t = np.random.rand() * 0.9 + 0.05
-    coeff = coefficient(codestring, args=args)
-    assert np.allclose(coeff(t), reference(t))
-    CompilationOptions.recompile = False
+    opt = CompilationOptions(recompile=True)
+    coeff = coefficient(codestring, args=args, compile_opt=opt)
+    _assert_eq_over_interval(coeff, reference)
 
 
 @pytest.mark.requires_cython
 @pytest.mark.filterwarnings("error")
 def test_manual_typing():
-    CompilationOptions.recompile = True
+    opt = CompilationOptions(recompile=True)
     coeff = coefficient("my_list[0] + my_dict[5]",
                         args={"my_list": [1], "my_dict": {5: 2}},
-                        args_ctypes={"my_list": "list", "my_dict": "dict"})
+                        args_ctypes={"my_list": "list", "my_dict": "dict"},
+                        compile_opt=opt)
     assert coeff(0) == 3
-    CompilationOptions.recompile = False
 
 
 @pytest.mark.requires_cython
@@ -248,11 +299,10 @@ from qutip.core.data.expect cimport expect_csr
 
 @pytest.mark.requires_cython
 def test_CoeffReduce():
-    t = np.random.rand() * 0.9 + 0.05
     coeff = coefficient("exp(w * t * pi)", args={'w': 1.0j})
     apad = coeff + conj(coeff)
     reduced = reduce(apad, {'w': 1.0j})
-    assert np.allclose(apad(t), reduced(t))
+    _assert_eq_over_interval(apad, reduced)
 
 
 def _add(coeff):
@@ -290,11 +340,9 @@ def _shift(coeff):
 ])
 def test_Coeffpickle(style, transform):
     coeff = coeff_generator(style, "f")
-    t = np.random.rand() * 0.85 + 0.05
     coeff = transform(coeff)
     coeff_pick = pickle.loads(pickle.dumps(coeff, -1))
-    # Check for const case
-    assert coeff(t) == coeff_pick(t)
+    _assert_eq_over_interval(coeff, coeff_pick)
 
 
 @pytest.mark.parametrize(['style'], [
@@ -316,8 +364,6 @@ def test_Coeffpickle(style, transform):
 ])
 def test_Coeffcopy(style, transform):
     coeff = coeff_generator(style, "f")
-    t = np.random.rand() * 0.85 + 0.05
     coeff = transform(coeff)
     coeff_cp = coeff.copy()
-    # Check for const case
-    assert coeff(t) == coeff_cp(t)
+    _assert_eq_over_interval(coeff, coeff_cp)

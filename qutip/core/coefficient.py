@@ -9,6 +9,7 @@ import glob
 import importlib
 import shutil
 import numbers
+from contextlib import contextmanager
 from collections import defaultdict
 from setuptools import setup, Extension
 try:
@@ -28,7 +29,8 @@ from .cy.coefficient import (InterpolateCoefficient, InterCoefficient,
                              Coefficient)
 
 
-__all__ = ["coefficient", "CompilationOptions", "Coefficient"]
+__all__ = ["coefficient", "CompilationOptions", "Coefficient",
+           "clean_compiled_coefficient"]
 
 
 class StringParsingWarning(Warning):
@@ -102,7 +104,7 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
 
     elif callable(base):
         # TODO add tests?
-        return FunctionCoefficient(base, args)
+        return FunctionCoefficient(base, args.copy())
     else:
         raise ValueError("coefficient format not understood")
 
@@ -190,6 +192,10 @@ class CompilationOptions:
     options = {
         # use cython for compiling string coefficient
         "use_cython": _use_cython,
+        # try to parse the string so qutip recognise similar string as one
+        # compiled coefficient:
+        # "a*t", "a * t", "b*t" would all use one compiled version
+        "try_parse": True,
         # In compiled Coefficient, are int kept as int?
         # None indicate to look for list subscription
         "accept_int": None,
@@ -207,6 +213,49 @@ class CompilationOptions:
         # Extra_header
         "extra_import": ""
     }
+
+
+# Version number of the Coefficient
+COEFF_VERSION = "1.0"
+
+
+def get_root():
+    """
+    Find the location of the compiled coefficient and ensure they are in
+    the import path.
+    """
+    # qset.install['tmproot'] can be changed by the user without updating
+    # PYTHONPATH. If optionsclass allows for property like options,
+    # the logic could be moved there
+    tmproot = qset.install['tmproot']
+    root = os.path.join(tmproot, 'qutip_coeffs_{}'.format(COEFF_VERSION))
+    if not os.path.exists(root):
+        os.mkdir(root)
+    if not os.access(root, os.W_OK):
+        root = "."
+    if root not in sys.path:
+        sys.path.insert(0, root)
+    return root
+
+
+def clean_compiled_coefficient(all=False):
+    """
+    Remove previouly compiled string Coefficient.
+
+    Parameter:
+    ----------
+    all: bool
+        If not `all` will remove only previous version.
+    """
+    import glob
+    import shutil
+    tmproot = qset.install['tmproot']
+    root = os.path.join(tmproot, 'qutip_coeffs_{}'.format(COEFF_VERSION))
+    folders = glob.glob(os.path.join(tmproot, 'qutip_coeffs_') + "*")
+    for folder in folders:
+        if all or folder != root:
+            shutil.rmtree(folder)
+
 
 
 def proj(x):
@@ -275,7 +324,8 @@ def coeff_from_str(base, args, args_ctypes, compile_opt):
     # See if it already exist, if not write and cythonize it
     coeff = try_import(file_name, parsed)
     if coeff is None or compile_opt['recompile']:
-        code = make_cy_code(parsed, variables, constants, raw, compile_opt)
+        code = make_cy_code(parsed, variables, constants,
+                            raw, compile_opt)
         coeff = compile_code(code, file_name, parsed, compile_opt)
     keys = [key for _, key, _ in variables]
     const = [fromstr(val) for _, val, _ in constants]
@@ -286,17 +336,20 @@ def try_import(file_name, parsed_in):
     """ Import the compiled coefficient if existing and check for
     name collision.
     """
+    get_root()
     coeff = None
     try:
         mod = importlib.import_module(file_name)
-        coeff = getattr(mod, "StrCoefficient")
-        parsed_saved = getattr(mod, "parsed_code")
-    except Exception as e:
-        parsed_saved = ""
-    if parsed_saved and parsed_in != parsed_saved:
-        # hash collision!
-        coeff = None
-    return coeff
+    except ModuleNotFoundError:
+        # Coefficient does not exist, to compile as file_name
+        return None
+
+    if mod.parsed_code == parsed_in:
+        # Coefficient found!
+        return mod.StrCoefficient
+    else:
+        raise ValueError("string hash collision, change the string "
+                         "or clean files in qutip.settings.install['tmproot']")
 
 
 def make_cy_code(code, variables, constants, raw, compile_opt):
@@ -315,8 +368,12 @@ def make_cy_code(code, variables, constants, raw, compile_opt):
     for i, (name, val, ctype) in enumerate(variables):
         cdef_var += "        str key{}\n".format(i)
         cdef_var += "        {} {}\n".format(ctype, name[5:])
-        init_var += "        self.key{} = var[{}]\n".format(i, i)
-        args_var += "        {} = args[self.key{}]\n".format(name, i)
+        if not raw:
+            init_var += "        self.key{} = var[{}]\n".format(i, i)
+        else:
+            init_var += "        self.key{} = '{}'\n".format(i, val)
+        args_var += "        if self.key{} in args:\n".format(i)
+        args_var += "            {} = args[self.key{}]\n".format(name, i)
         if raw:
             call_var += "        cdef {} {} = {}\n".format(ctype, val, name)
 
@@ -335,7 +392,6 @@ cdef double pi = 3.14159265358979323
 {}
 
 parsed_code = "{}"
-
 
 @cython.auto_pickle(True)
 cdef class StrCoefficient(Coefficient):
@@ -363,32 +419,31 @@ cdef class StrCoefficient(Coefficient):
 
 
 def compile_code(code, file_name, parsed, c_opt):
-    root = qset.install['tmproot']
     pwd = os.getcwd()
-    os.chdir(root)
-    full_file_name = os.path.join(root, file_name)
-    file_ = open(full_file_name + ".pyx", "w")
-    file_.writelines(code)
-    file_.close()
-    oldargs = sys.argv
+    root = get_root()
     try:
-        sys.argv = ["setup.py", "build_ext", "--inplace"]
-        coeff_file = Extension(file_name,
-                               sources=[full_file_name + ".pyx"],
-                               extra_compile_args=c_opt['compiler_flags'].split(),
-                               extra_link_args=c_opt['link_flags'].split(),
-                               include_dirs=[np.get_include()],
-                               language='c++')
-        setup(ext_modules=cythonize(coeff_file, force=c_opt['recompile']))
-    except Exception as e:
-        raise Exception("Could not compile") from e
-    try:
-        libfile = glob.glob(file_name + "*")[0]
-        shutil.move(libfile, os.path.join(root, libfile))
-    except Exception:
-        warn("File")
-    sys.argv = oldargs
-    os.chdir(pwd)
+        os.chdir(root)
+        [os.remove(file) for file in glob.glob(file_name + "*")]
+        full_file_name = os.path.join(root, file_name)
+        file_ = open(full_file_name + ".pyx", "w")
+        file_.writelines(code)
+        file_.close()
+        oldargs = sys.argv
+        try:
+            sys.argv = ["setup.py", "build_ext", "--inplace"]
+            coeff_file = Extension(file_name,
+                                   sources=[full_file_name + ".pyx"],
+                                   extra_compile_args=c_opt['compiler_flags'].split(),
+                                   extra_link_args=c_opt['link_flags'].split(),
+                                   include_dirs=[np.get_include()],
+                                   language='c++')
+            setup(ext_modules=cythonize(coeff_file, force=c_opt['recompile']))
+        except Exception as e:
+            raise Exception("Could not compile") from e
+        finally:
+            sys.argv = oldargs
+    finally:
+        os.chdir(pwd)
     return try_import(file_name, parsed)
 
 
@@ -553,33 +608,39 @@ def parse(code, args, compile_opt):
     return code, variables, ordered_constants
 
 
-def use_hinted_type(var_tuple, ncode, args_ctypes):
-    name, key, type_ = var_tuple
-    if key in args_ctypes:
-        code = code.replace(cte, cte[0] + name, 1)
+def use_hinted_type(variables, code, args_ctypes):
+    variables_manually_typed = []
+    for i, (name, key, type_) in enumerate(variables):
+        if key in args_ctypes:
+            new_name = "self._custom_" + args_ctypes[key] + str(i)
+            code = code.replace(name, new_name)
+            variables_manually_typed.append((new_name, key, args_ctypes[key]))
+        else:
+            variables_manually_typed.append((name, key, type_))
+    return code, variables_manually_typed
 
 
 def try_parse(code, args, args_ctypes, compile_opt):
     """
     Try to parse and verify that the result is still usable.
     """
+    if not compile_opt['try_parse']:
+        variables = [("self." + name, name, "object") for name in args
+                     if name in code]
+        code, variables = use_hinted_type(variables, code, args_ctypes)
+        return code, variables, [], True
     ncode, variables, constants = parse(code, args, compile_opt)
     if compile_opt['no_types']:
         # Fallback to all object
         variables = [(f, s, "object") for f, s, _ in variables]
         constants = [(f, s, "object") for f, s, _ in constants]
-    variables_manually_typed = []
-    for i, (name, key, type_) in enumerate(variables):
-        if key in args_ctypes:
-            new_name = "self._custom_" + args_ctypes[key] + str(i)
-            ncode = ncode.replace(name, new_name)
-            variables_manually_typed.append((new_name, key, args_ctypes[key]))
-        else:
-            variables_manually_typed.append((name, key, type_))
-    variables = variables_manually_typed
-    if (compile_opt['extra_import'] or
-        test_parsed(ncode, variables, constants, args)):
-            return ncode, variables, constants, False
+    ncode, variables = use_hinted_type(variables, ncode, args_ctypes)
+    if (
+        (compile_opt['extra_import']
+        and not compile_opt['extra_import'].isspace())
+        or test_parsed(ncode, variables, constants, args)
+    ):
+        return ncode, variables, constants, False
     else:
         warn("Could not find c types", StringParsingWarning)
         remaped_variable = []
