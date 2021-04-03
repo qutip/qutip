@@ -941,6 +941,10 @@ def test_non_hermitian_dm():
 
     result = mesolve(H, rho0, tlist, e_ops=[x], options=options)
 
+    msg = ('Mesolve is not working properly with a non Hermitian density' +
+       ' matrix as input. Check computation of '
+      )
+
     imag_part = np.abs(np.imag(result.expect[0][-1]))
     # Since we used an initial state that is not Hermitian, the expectation of
     # x must be imaginary for t>0.
