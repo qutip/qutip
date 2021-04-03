@@ -58,6 +58,7 @@ def test_correlation_solver_equivalence(solver, start, legacy):
     system.
     """
     a = qutip.destroy(_equivalence_dimension)
+    x = ( a +a.dag() )/np.sqrt(2)
     H = a.dag() * a
     G1 = 0.75
     n_th = 2
@@ -74,8 +75,8 @@ def test_correlation_solver_equivalence(solver, start, legacy):
     # broken, whereas if only one fails, then it implies that only that one is
     # broken.  We test that all solvers are equivalent by transitive equality
     # to the "me" solver.
-    base = correlation(H, start, None, times, c_ops, a.dag(), a, solver="me")
-    cmp = correlation(H, start, None, times, c_ops, a.dag(), a, solver=solver)
+    base = correlation(H, start, None, times, c_ops, x, x, solver="me")
+    cmp = correlation(H, start, None, times, c_ops, x, x, solver=solver)
     np.testing.assert_allclose(base, cmp, atol=tol)
 
 
