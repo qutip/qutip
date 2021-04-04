@@ -64,7 +64,7 @@ def _promote_to_zero_list(arg, length):
         A list of integers of length `length`.
     """
     if arg is None:
-        arg = [0]*length
+        arg = [0] * length
     elif not isinstance(arg, list):
         arg = [arg]
     if not len(arg) == length:
@@ -136,8 +136,8 @@ def basis(dimensions, n=None, offset=None):
     if not isinstance(dimensions, list):
         dimensions = [dimensions]
     n_dimensions = len(dimensions)
-    ns = [m-off for m, off in zip(_promote_to_zero_list(n, n_dimensions),
-                                  _promote_to_zero_list(offset, n_dimensions))]
+    ns = [m - off for m, off in zip(_promote_to_zero_list(n, n_dimensions),
+                                    _promote_to_zero_list(offset, n_dimensions))]
     if any((not isinstance(x, numbers.Integral)) or x < 0 for x in dimensions):
         raise ValueError("All dimensions must be >= 0.")
     if not all(0 <= n < dimension for n, dimension in zip(ns, dimensions)):
@@ -145,13 +145,14 @@ def basis(dimensions, n=None, offset=None):
                          "`offset <= n < dimension+offset`.")
     location, size = 0, 1
     for m, dimension in zip(reversed(ns), reversed(dimensions)):
-        location += m*size
+        location += m * size
         size *= dimension
     data = np.array([1], dtype=complex)
     ind = np.array([0], dtype=np.int32)
-    ptr = np.array([0]*(location+1) + [1]*(size-location), dtype=np.int32)
+    ptr = np.array([0] * (location + 1) + [1] *
+                   (size - location), dtype=np.int32)
     return Qobj(fast_csr_matrix((data, ind, ptr), shape=(size, 1)),
-                dims=[dimensions, [1]*n_dimensions], isherm=False)
+                dims=[dimensions, [1] * n_dimensions], isherm=False)
 
 
 def qutrit_basis():
@@ -226,9 +227,9 @@ def coherent(N, alpha, offset=0, method='operator'):
         return D * x
 
     elif method == "analytic" or offset > 0:
-        sqrtn = np.sqrt(np.arange(offset, offset+N, dtype=complex))
+        sqrtn = np.sqrt(np.arange(offset, offset + N, dtype=complex))
         sqrtn[0] = 1  # Get rid of divide by zero warning
-        data = alpha/sqrtn
+        data = alpha / sqrtn
         if offset == 0:
             data[0] = np.exp(-abs(alpha)**2 / 2.0)
         else:
@@ -988,7 +989,7 @@ def enr_fock(dims, excitations, state):
         raise ValueError("The state tuple %s is not in the restricted "
                          "state space" % str(tuple(state)))
 
-    return Qobj(data, dims=[dims, [1]*len(dims)])
+    return Qobj(data, dims=[dims, [1] * len(dims)])
 
 
 def enr_thermal_dm(dims, excitations, n):
@@ -1175,16 +1176,16 @@ def bell_state(state='00'):
     """
     if state == '00':
         Bell_state = tensor(
-            basis(2), basis(2))+tensor(basis(2, 1), basis(2, 1))
+            basis(2), basis(2)) + tensor(basis(2, 1), basis(2, 1))
     elif state == '01':
         Bell_state = tensor(
-            basis(2), basis(2))-tensor(basis(2, 1), basis(2, 1))
+            basis(2), basis(2)) - tensor(basis(2, 1), basis(2, 1))
     elif state == '10':
         Bell_state = tensor(
-            basis(2), basis(2, 1))+tensor(basis(2, 1), basis(2))
+            basis(2), basis(2, 1)) + tensor(basis(2, 1), basis(2))
     elif state == '11':
         Bell_state = tensor(
-            basis(2), basis(2, 1))-tensor(basis(2, 1), basis(2))
+            basis(2), basis(2, 1)) - tensor(basis(2, 1), basis(2))
 
     return Bell_state.unit()
 
@@ -1224,7 +1225,7 @@ def triplet_states():
     trip_states = []
     trip_states.append(tensor(basis(2, 1), basis(2, 1)))
     trip_states.append(
-       (tensor(basis(2), basis(2, 1)) + tensor(basis(2, 1), basis(2))).unit()
+        (tensor(basis(2), basis(2, 1)) + tensor(basis(2, 1), basis(2))).unit()
     )
     trip_states.append(tensor(basis(2), basis(2)))
     return trip_states
@@ -1271,4 +1272,4 @@ def ghz_state(N=3):
     """
     state = (tensor([basis(2) for k in range(N)]) +
              tensor([basis(2, 1) for k in range(N)]))
-    return state/np.sqrt(2)
+    return state / np.sqrt(2)

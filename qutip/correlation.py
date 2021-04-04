@@ -481,11 +481,13 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me", args={},
         state0 = steadystate(H, c_ops)
         n = np.array([expect(state0, a_op.dag() * a_op)])
     else:
-        n = mesolve(H, state0, taulist, c_ops, [a_op.dag() * a_op], args=args).expect[0]
+        n = mesolve(
+            H, state0, taulist, c_ops, [
+                a_op.dag() * a_op], args=args).expect[0]
 
     # calculate the correlation function G2 and normalize with n to obtain g2
     G2 = correlation_3op_1t(H, state0, taulist, c_ops,
-                            a_op.dag(), a_op.dag()*a_op, a_op,
+                            a_op.dag(), a_op.dag() * a_op, a_op,
                             solver=solver, args=args, options=options)
     g2 = G2 / (n[0] * n)
 
@@ -575,19 +577,19 @@ def spectrum_correlation_fft(tlist, y, inverse=False):
     tlist = np.asarray(tlist)
     N = tlist.shape[0]
     dt = tlist[1] - tlist[0]
-    if not np.allclose(np.diff(tlist), dt*np.ones(N-1,dtype=float)):
+    if not np.allclose(np.diff(tlist), dt * np.ones(N - 1, dtype=float)):
         raise Exception('tlist must be equally spaced for FFT.')
 
     if inverse:
-           F = N * scipy.fftpack.ifft(y)
+        F = N * scipy.fftpack.ifft(y)
     else:
-           F = scipy.fftpack.fft(y)
+        F = scipy.fftpack.fft(y)
 
     # calculate the frequencies for the components in F
     f = scipy.fftpack.fftfreq(N, dt)
 
     # re-order frequencies from most negative to most positive (centre on 0)
-    idx = np.array([], dtype = 'int')
+    idx = np.array([], dtype='int')
     idx = np.append(idx, np.where(f < 0.0))
     idx = np.append(idx, np.where(f >= 0.0))
 
@@ -1250,7 +1252,7 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
                     # evolve these states and calculate expectation value of B
                     c_tau = chi_0.norm()**2 * mcsolve(
-                        H_shifted, chi_0/chi_0.norm(), taulist, c_ops_shifted,
+                        H_shifted, chi_0 / chi_0.norm(), taulist, c_ops_shifted,
                         [b_op],
                         args=_args, ntraj=options.ntraj[1], options=options,
                         progress_bar=None
@@ -1258,7 +1260,7 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
                     # final correlation vector computed by combining the
                     # averages
-                    corr_mat[t_idx, :] += c_tau/options.ntraj[1]
+                    corr_mat[t_idx, :] += c_tau / options.ntraj[1]
             else:
                 # otherwise, need four trial wavefunctions
                 # (Ad+C)*psi_t, (Ad+iC)*psi_t, (Ad-C)*psi_t, (Ad-iC)*psi_t
@@ -1270,14 +1272,14 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                     # operation will raise errors
                     a_op_dag = a_op
                 chi_0 = [(options.mc_corr_eps + a_op_dag +
-                          np.exp(1j*x*np.pi/2)*c_op) *
+                          np.exp(1j * x * np.pi / 2) * c_op) *
                          psi_t_mat[trial_idx, t_idx]
                          for x in range(4)]
 
                 # evolve these states and calculate expectation value of B
                 c_tau = [
                     chi.norm()**2 * mcsolve(
-                        H_shifted, chi/chi.norm(), taulist, c_ops_shifted,
+                        H_shifted, chi / chi.norm(), taulist, c_ops_shifted,
                         [b_op],
                         args=_args, ntraj=options.ntraj[1], options=options,
                         progress_bar=None
@@ -1287,8 +1289,8 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
                 # final correlation vector computed by combining the averages
                 corr_mat_add = np.asarray(
-                    1.0 / (4*options.ntraj[0]) *
-                    (c_tau[0] - c_tau[2] - 1j*c_tau[1] + 1j*c_tau[3]),
+                    1.0 / (4 * options.ntraj[0]) *
+                    (c_tau[0] - c_tau[2] - 1j * c_tau[1] + 1j * c_tau[3]),
                     dtype=corr_mat.dtype
                 )
                 corr_mat[t_idx, :] += corr_mat_add

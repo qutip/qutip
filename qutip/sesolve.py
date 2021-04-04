@@ -47,11 +47,12 @@ from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
 from qutip.cy.spconvert import dense1D_to_fastcsr_ket, dense2D_to_fastcsr_fmode
 from qutip.cy.spmatfuncs import (cy_expect_psi, cy_ode_psi_func_td,
-                                cy_ode_psi_func_td_with_state)
+                                 cy_ode_psi_func_td_with_state)
 from qutip.solver import Result, Options, config, solver_safe, SolverSystem
 from qutip.superoperator import vec2mat
 from qutip.ui.progressbar import (BaseProgressBar, TextProgressBar)
 from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
+
 
 def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
             progress_bar=None, _safe_mode=True):
@@ -194,6 +195,7 @@ def _sesolve_QobjEvo(H, tlist, args, opt):
     solver_safe["sesolve"] = ss
     return ss
 
+
 def _qobjevo_set(HS, psi, args, e_ops, opt):
     """
     From the system, get the ode function and args
@@ -225,6 +227,7 @@ def _sesolve_func_td(H_func, args, opt):
     solver_safe["sesolve"] = ss
     return ss
 
+
 def _Hfunc_set(HS, psi, args, e_ops, opt):
     """
     From the system, get the ode function and args
@@ -251,6 +254,7 @@ def _ode_oper_func_td(t, y, H_func, args):
     H = H_func(t, args).data * -1j
     ym = vec2mat(y)
     return (H * ym).ravel("F")
+
 
 def _ode_oper_func_td_with_state(t, y, H_func, args):
     H = H_func(t, y, args).data * -1j

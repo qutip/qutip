@@ -103,7 +103,7 @@ def cell_structures(val_s=None, val_t=None, val_u=None):
 
         for ir in range(lng0):
             for ic in range(lng0):
-                sst = val_s[Rows[ir][ic]]+" H "+val_s[Rows[ic][ir]]
+                sst = val_s[Rows[ir][ic]] + " H " + val_s[Rows[ic][ir]]
                 H_cell_s[ir][ic] = "<" + sst + ">"
                 T_inter_cell_s[ir][ic] = "<cell(i):" + sst + ":cell(i+1) >"
 
@@ -288,6 +288,7 @@ class Lattice1d():
         Returns the bulk Hamiltonian for the lattice at the good quantum
         numbers of lattice momentum, k in a numpy ndarray of Qobj's.
     """
+
     def __init__(self, num_cell=10, boundary="periodic", cell_num_site=1,
                  cell_site_dof=[1], Hamiltonian_of_cell=None,
                  inter_hop=None):
@@ -337,7 +338,7 @@ class Lattice1d():
                 self.lattice_tensor_config.remove(1)
 
         dim_ih = [self.cell_tensor_config, self.cell_tensor_config]
-        self._length_of_unit_cell = self.cell_num_site*self._length_for_site
+        self._length_of_unit_cell = self.cell_num_site * self._length_for_site
 
         if boundary == "periodic":
             self.period_bnd_cond_x = 1
@@ -349,8 +350,8 @@ class Lattice1d():
 
         if Hamiltonian_of_cell is None:       # There is no user input for
             # Hamiltonian_of_cell, so we set it ourselves
-            H_site = np.diag(np.zeros(cell_num_site-1)-1, 1)
-            H_site += np.diag(np.zeros(cell_num_site-1)-1, -1)
+            H_site = np.diag(np.zeros(cell_num_site - 1) - 1, 1)
+            H_site += np.diag(np.zeros(cell_num_site - 1) - 1, -1)
             if cell_site_dof == [1] or cell_site_dof == 1:
                 Hamiltonian_of_cell = Qobj(H_site, type='oper')
                 self._H_intra = Hamiltonian_of_cell
@@ -418,7 +419,7 @@ class Lattice1d():
             if self._length_of_unit_cell == 1:
                 inter_hop = Qobj([[-1]], type='oper')
             else:
-                bNm = basis(cell_num_site, cell_num_site-1)
+                bNm = basis(cell_num_site, cell_num_site - 1)
                 bN0 = basis(cell_num_site, 0)
                 siteT = -bNm * bN0.dag()
                 inter_hop = tensor(Qobj(siteT), qeye(self.cell_site_dof))
@@ -435,7 +436,7 @@ class Lattice1d():
             raise Exception("inter_hop is required to be a Qobj or a \
                             list of Qobjs.")
 
-        self.positions_of_sites = [(i/self.cell_num_site) for i in
+        self.positions_of_sites = [(i / self.cell_num_site) for i in
                                    range(self.cell_num_site)]
         self._inter_vec_list = [[1] for i in range(len(self._H_inter_list))]
         self._Brav_lattice_vectors_list = [[1]]     # unit vectors
@@ -448,7 +449,7 @@ class Lattice1d():
               ",\nNumber of sites in the cell = " + str(self.cell_num_site) +
               ",\nDegrees of freedom per site = " +
               str(
-               self.lattice_tensor_config[2:len(self.lattice_tensor_config)]) +
+                  self.lattice_tensor_config[2:len(self.lattice_tensor_config)]) +
               ",\nLattice tensor configuration = " +
               str(self.lattice_tensor_config) +
               ",\nbasis_Hamiltonian = " + str(self._H_intra) +
@@ -471,16 +472,16 @@ class Lattice1d():
             oper type Quantum object representing the lattice Hamiltonian.
         """
         D = qeye(self.num_cell)
-        T = np.diag(np.zeros(self.num_cell-1)+1, 1)
-        Tdag = np.diag(np.zeros(self.num_cell-1)+1, -1)
+        T = np.diag(np.zeros(self.num_cell - 1) + 1, 1)
+        Tdag = np.diag(np.zeros(self.num_cell - 1) + 1, -1)
 
         if self.period_bnd_cond_x == 1 and self.num_cell > 2:
-            Tdag[0][self.num_cell-1] = 1
-            T[self.num_cell-1][0] = 1
+            Tdag[0][self.num_cell - 1] = 1
+            T[self.num_cell - 1][0] = 1
         T = Qobj(T)
         Tdag = Qobj(Tdag)
         Hamil = tensor(D, self._H_intra) + tensor(
-                T, self._H_inter) + tensor(Tdag, self._H_inter.dag())
+            T, self._H_inter) + tensor(Tdag, self._H_inter.dag())
         dim_H = [self.lattice_tensor_config, self.lattice_tensor_config]
         return Qobj(Hamil, dims=dim_H)
 
@@ -536,8 +537,8 @@ class Lattice1d():
         for i in range(1, len(dof_ind)):
             doft = tensor(doft, basis(self.cell_site_dof[i], dof_ind[i]))
         vec_i = tensor(
-                basis(self.num_cell, cell), basis(self.cell_num_site, site),
-                doft)
+            basis(self.num_cell, cell), basis(self.cell_num_site, site),
+            doft)
         ltc = self.lattice_tensor_config
         vec_i = Qobj(vec_i, dims=[ltc, [1 for i, j in enumerate(ltc)]])
         return vec_i
@@ -586,7 +587,7 @@ class Lattice1d():
 #        S = np.kron(np.ones(self.num_cell), positions)
 #        xs = np.diagflat(R+S)        # not used in the
         # current definition of x
-        R = np.kron(range(0, self.num_cell), np.ones(nx*ne))
+        R = np.kron(range(0, self.num_cell), np.ones(nx * ne))
         xs = np.diagflat(R)
         dim_H = [self.lattice_tensor_config, self.lattice_tensor_config]
         return Qobj(xs, dims=dim_H)
@@ -608,11 +609,12 @@ class Lattice1d():
         for row in range(L):
             for col in range(L):
                 if row == col:
-                    kop[row, col] = (L-1)/2
+                    kop[row, col] = (L - 1) / 2
 #                    kop[row, col] = ((L+1) % 2)/ 2
                     # shifting the eigenvalues
                 else:
-                    kop[row, col] = 1/(np.exp(2j * np.pi * (row - col)/L) - 1)
+                    kop[row, col] = 1 / \
+                        (np.exp(2j * np.pi * (row - col) / L) - 1)
         qkop = Qobj(kop)
         [kD, kV] = qkop.eigenstates()
         kop_P = np.zeros((L, L), dtype=complex)
@@ -626,7 +628,7 @@ class Lattice1d():
         kop = 2 * np.pi / L * kop_P
         nx = self.cell_num_site
         ne = self._length_for_site
-        k = np.kron(kop, np.eye(nx*ne))
+        k = np.kron(kop, np.eye(nx * ne))
         dim_H = [self.lattice_tensor_config, self.lattice_tensor_config]
         return Qobj(k, dims=dim_H)
 
@@ -680,11 +682,11 @@ class Lattice1d():
             if (i in cells):
                 for k in range(xx):
                     for l in range(yy):
-                        row_ind = np.append(row_ind, [lin_RI*nS+k])
-                        col_ind = np.append(col_ind, [lin_RI*nS+l])
+                        row_ind = np.append(row_ind, [lin_RI * nS + k])
+                        col_ind = np.append(col_ind, [lin_RI * nS + l])
                         data = np.append(data, [op[k, l]])
 
-        m = nx_units*ny_units*nS
+        m = nx_units * ny_units * nS
         op_H = csr_matrix((data, (row_ind, col_ind)), [m, m],
                           dtype=np.complex128)
         dim_op = [self.lattice_tensor_config, self.lattice_tensor_config]
@@ -716,13 +718,13 @@ class Lattice1d():
         if not isinstance(row_cell, int):
             raise Exception("row_cell is required to be an int between 0 and\
                             num_cell - 1.")
-            if row_cell < 0 or row_cell > self.num_cell-1:
+            if row_cell < 0 or row_cell > self.num_cell - 1:
                 raise Exception("row_cell is required to be an int between 0\
                                 and num_cell - 1.")
         if not isinstance(col_cell, int):
             raise Exception("row_cell is required to be an int between 0 and\
                             num_cell - 1.")
-            if col_cell < 0 or col_cell > self.num_cell-1:
+            if col_cell < 0 or col_cell > self.num_cell - 1:
                 raise Exception("row_cell is required to be an int between 0\
                                 and num_cell - 1.")
 
@@ -757,14 +759,14 @@ class Lattice1d():
         fig, ax = plt.subplots()
         if self.num_cell <= MAXc:
             for g in range(self._length_of_unit_cell):
-                ax.plot(kxA/np.pi, val_ks[g, :])
+                ax.plot(kxA / np.pi, val_ks[g, :])
 
         for g in range(self._length_of_unit_cell):
             if self.num_cell % 2 == 0:
-                ax.plot(np.append(knxA, [np.pi])/np.pi,
+                ax.plot(np.append(knxA, [np.pi]) / np.pi,
                         np.append(val_kns[g, :], val_kns[g, 0]), 'ro')
             else:
-                ax.plot(knxA/np.pi, val_kns[g, :], 'ro')
+                ax.plot(knxA / np.pi, val_kns[g, :], 'ro')
         ax.set_ylabel('Energy')
         ax.set_xlabel(r'$k_x(\pi/a)$')
         plt.show(fig)
@@ -796,14 +798,14 @@ class Lattice1d():
 
         a = 1  # The unit cell length is always considered 1
         kn_start = 0
-        kn_end = 2*np.pi/a
+        kn_end = 2 * np.pi / a
         val_kns = np.zeros((self._length_of_unit_cell, knpoints), dtype=float)
         knxA = np.zeros((knpoints, 1), dtype=float)
         G0_H = self._H_intra
 #        knxA = np.roll(knxA, np.floor_divide(knpoints, 2))
 
         for ks in range(knpoints):
-            knx = kn_start + (ks*(kn_end-kn_start)/knpoints)
+            knx = kn_start + (ks * (kn_end - kn_start) / knpoints)
 
             if knx >= np.pi:
                 knxA[ks, 0] = knx - 2 * np.pi
@@ -818,7 +820,7 @@ class Lattice1d():
             for m in range(len(self._H_inter_list)):
                 r_cos = self._inter_vec_list[m]
                 kr_dotted = np.dot(k_cos, r_cos)
-                H_int = self._H_inter_list[m]*np.exp(kr_dotted*1j)[0]
+                H_int = self._H_inter_list[m] * np.exp(kr_dotted * 1j)[0]
                 H_ka = H_ka + H_int + H_int.dag()
             H_k = csr_matrix(H_ka)
             qH_k = Qobj(H_k)
@@ -857,7 +859,7 @@ class Lattice1d():
         for i in range(self.num_cell):
             for j in range(self._length_of_unit_cell):
                 values.append((
-                        val_kns[j][i], vec_xs[j+i*self._length_of_unit_cell]))
+                    val_kns[j][i], vec_xs[j + i * self._length_of_unit_cell]))
         eigen_states = np.array(values, dtype=dtype)
 #        eigen_states = np.sort(eigen_states, order='eigen_value')
         return eigen_states
@@ -944,7 +946,7 @@ class Lattice1d():
 
         a = 1  # The unit cell length is always considered 1
         kn_start = 0
-        kn_end = 2*np.pi/a
+        kn_end = 2 * np.pi / a
         val_kns = np.zeros((self._length_of_unit_cell, knpoints), dtype=float)
         knxA = np.zeros((knpoints, 1), dtype=float)
         G0_H = self._H_intra
@@ -952,11 +954,11 @@ class Lattice1d():
                            self._length_of_unit_cell), dtype=complex)
 
         vec_xs = np.array([None for i in range(
-                knpoints * self._length_of_unit_cell)])
+            knpoints * self._length_of_unit_cell)])
         qH_ks = np.array([None for i in range(knpoints)])
 
         for ks in range(knpoints):
-            knx = kn_start + (ks*(kn_end-kn_start)/knpoints)
+            knx = kn_start + (ks * (kn_end - kn_start) / knpoints)
 
             if knx >= np.pi:
                 knxA[ks, 0] = knx - 2 * np.pi
@@ -971,7 +973,7 @@ class Lattice1d():
             for m in range(len(self._H_inter_list)):
                 r_cos = self._inter_vec_list[m]
                 kr_dotted = np.dot(k_cos, r_cos)
-                H_int = self._H_inter_list[m]*np.exp(kr_dotted*1j)[0]
+                H_int = self._H_inter_list[m] * np.exp(kr_dotted * 1j)[0]
                 H_ka = H_ka + H_int + H_int.dag()
             H_k = csr_matrix(H_ka)
             qH_k = Qobj(H_k, dims=dim_hk)
@@ -994,7 +996,7 @@ class Lattice1d():
                 length_vec_x = np.sqrt((Qobj(vec_x) * Qobj(vec_x).dag())[0][0])
                 vec_x = vec_x / length_vec_x
                 vec_x = Qobj(vec_x, dims=dim_H)
-                vec_xs[ks*self._length_of_unit_cell+eig_no] = vec_x.dag()
+                vec_xs[ks * self._length_of_unit_cell + eig_no] = vec_x.dag()
 
             for i in range(self._length_of_unit_cell):
                 v0 = np.squeeze(veks[i].full(), axis=1)
@@ -1037,50 +1039,50 @@ class Lattice1d():
 
         knpoints = 100  # choose even
         kn_start = 0
-        kn_end = 2*np.pi
+        kn_end = 2 * np.pi
 
-        knxA = np.zeros((knpoints+1, 1), dtype=float)
+        knxA = np.zeros((knpoints + 1, 1), dtype=float)
         G0_H = self._H_intra
-        mx_k = np.array([None for i in range(knpoints+1)])
-        my_k = np.array([None for i in range(knpoints+1)])
-        Phi_m_k = np.array([None for i in range(knpoints+1)])
+        mx_k = np.array([None for i in range(knpoints + 1)])
+        my_k = np.array([None for i in range(knpoints + 1)])
+        Phi_m_k = np.array([None for i in range(knpoints + 1)])
 
-        for ks in range(knpoints+1):
-            knx = kn_start + (ks*(kn_end-kn_start)/knpoints)
+        for ks in range(knpoints + 1):
+            knx = kn_start + (ks * (kn_end - kn_start) / knpoints)
             knxA[ks, 0] = knx
 
-        for ks in range(knpoints+1):
+        for ks in range(knpoints + 1):
             kx = knxA[ks, 0]
             H_ka = G0_H
             k_cos = [[kx]]
             for m in range(len(self._H_inter_list)):
                 r_cos = self._inter_vec_list[m]
                 kr_dotted = np.dot(k_cos, r_cos)
-                H_int = self._H_inter_list[m]*np.exp(kr_dotted*1j)[0]
+                H_int = self._H_inter_list[m] * np.exp(kr_dotted * 1j)[0]
                 H_ka = H_ka + H_int + H_int.dag()
             H_k = csr_matrix(H_ka)
             qH_k = Qobj(H_k)
-            mx_k[ks] = 0.5*(qH_k*sigmax()).tr()
-            my_k[ks] = 0.5*(qH_k*sigmay()).tr()
+            mx_k[ks] = 0.5 * (qH_k * sigmax()).tr()
+            my_k[ks] = 0.5 * (qH_k * sigmay()).tr()
 
             if np.abs(mx_k[ks]) < 1E-10 and np.abs(my_k[ks]) < 1E-10:
                 winding_number = 'undefined'
 
-            if np.angle(mx_k[ks]+1j*my_k[ks]) >= 0:
-                Phi_m_k[ks] = np.angle(mx_k[ks]+1j*my_k[ks])
+            if np.angle(mx_k[ks] + 1j * my_k[ks]) >= 0:
+                Phi_m_k[ks] = np.angle(mx_k[ks] + 1j * my_k[ks])
             else:
-                Phi_m_k[ks] = 2*np.pi + np.angle(mx_k[ks]+1j*my_k[ks])
+                Phi_m_k[ks] = 2 * np.pi + np.angle(mx_k[ks] + 1j * my_k[ks])
 
         if winding_number == 'defined':
             ddk_Phi_m_k = np.roll(Phi_m_k, -1) - Phi_m_k
-            intg_over_k = -np.sum(ddk_Phi_m_k[0:knpoints//2])+np.sum(
-                    ddk_Phi_m_k[knpoints//2:knpoints])
-            winding_number = intg_over_k/(2*np.pi)
+            intg_over_k = -np.sum(ddk_Phi_m_k[0:knpoints // 2]) + np.sum(
+                ddk_Phi_m_k[knpoints // 2:knpoints])
+            winding_number = intg_over_k / (2 * np.pi)
 
             X_lim = 1.125 * np.abs(self._H_intra.full()[1, 0])
             for i in range(len(self._H_inter_list)):
                 X_lim = X_lim + np.abs(self._H_inter_list[i].full()[1, 0])
-            plt.figure(figsize=(3*X_lim, 3*X_lim))
+            plt.figure(figsize=(3 * X_lim, 3 * X_lim))
             plt.plot(mx_k, my_k)
             plt.plot(0, 0, 'ro')
             plt.ylabel('$h_y$')
@@ -1115,13 +1117,13 @@ class Lattice1d():
                 for i in range(self._length_for_site):
                     for j in range(self._length_for_site):
                         Qin[i, j] = self._H_intra[
-                                i0*self._length_for_site+i,
-                                j0*self._length_for_site+j]
+                            i0 * self._length_for_site + i,
+                            j0 * self._length_for_site + j]
                 dim_site = list(np.delete(self.cell_tensor_config, [0], None))
                 dims_site = [dim_site, dim_site]
                 Hcell[i0][j0] = Qobj(Qin, dims=dims_site)
 
-        fig = plt.figure(figsize=[CNS*2, CNS*2.5])
+        fig = plt.figure(figsize=[CNS * 2, CNS * 2.5])
         ax = fig.add_subplot(111, aspect='equal')
         plt.rc('text', usetex=True)
         plt.rc('font', family='serif')
@@ -1129,12 +1131,12 @@ class Lattice1d():
             ax.plot([self.positions_of_sites[0]], [0], "o", c="b", mec="w",
                     mew=0.0, zorder=10, ms=8.0)
             if label_on is True:
-                plt.text(x=self.positions_of_sites[0]+0.2, y=0.0,
-                         s='H'+str(i)+str(i), horizontalalignment='center',
+                plt.text(x=self.positions_of_sites[0] + 0.2, y=0.0,
+                         s='H' + str(i) + str(i), horizontalalignment='center',
                          verticalalignment='center')
-            x2 = (1+self.positions_of_sites[CNS-1])/2
-            x1 = x2-1
-            h = 1-x2
+            x2 = (1 + self.positions_of_sites[CNS - 1]) / 2
+            x1 = x2 - 1
+            h = 1 - x2
             ax.plot([x1, x1], [-h, h], "-", c="k", lw=1.5, zorder=7)
             ax.plot([x2, x2], [-h, h], "-", c="k", lw=1.5, zorder=7)
             ax.plot([x1, x2], [h, h], "-", c="k", lw=1.5, zorder=7)
@@ -1148,21 +1150,21 @@ class Lattice1d():
                 ax.plot([self.positions_of_sites[i]], [0], "o", c="b", mec="w",
                         mew=0.0, zorder=10, ms=8.0)
                 if label_on is True:
-                    x_b = self.positions_of_sites[i]+1/CNS/6
-                    plt.text(x=x_b, y=0.0, s='H'+str(i)+str(i),
+                    x_b = self.positions_of_sites[i] + 1 / CNS / 6
+                    plt.text(x=x_b, y=0.0, s='H' + str(i) + str(i),
                              horizontalalignment='center',
                              verticalalignment='center')
-                if i == CNS-1:
+                if i == CNS - 1:
                     continue
 
-                for j in range(i+1, CNS):
+                for j in range(i + 1, CNS):
                     if (Hcell[i][j].full() == 0).all():
                         continue
                     c_cen = (self.positions_of_sites[
-                            i]+self.positions_of_sites[j])/2
+                        i] + self.positions_of_sites[j]) / 2
 
                     c_radius = (self.positions_of_sites[
-                            j]-self.positions_of_sites[i])/2
+                        j] - self.positions_of_sites[i]) / 2
 
                     circle1 = plt.Circle((c_cen, 0), c_radius, color='g',
                                          fill=False)
@@ -1170,13 +1172,13 @@ class Lattice1d():
                     if label_on is True:
                         x_b = c_cen
                         y_b = c_radius - 0.025
-                        plt.text(x=x_b, y=y_b, s='H'+str(i)+str(j),
+                        plt.text(x=x_b, y=y_b, s='H' + str(i) + str(j),
                                  horizontalalignment='center',
                                  verticalalignment='center')
-            x2 = (1+self.positions_of_sites[CNS-1])/2
-            x1 = x2-1
+            x2 = (1 + self.positions_of_sites[CNS - 1]) / 2
+            x1 = x2 - 1
             h = (self.positions_of_sites[
-                    CNS-1]-self.positions_of_sites[0])*8/15
+                CNS - 1] - self.positions_of_sites[0]) * 8 / 15
             ax.plot([x1, x1], [-h, h], "-", c="k", lw=1.5, zorder=7)
             ax.plot([x2, x2], [-h, h], "-", c="k", lw=1.5, zorder=7)
             ax.plot([x1, x2], [h, h], "-", c="k", lw=1.5, zorder=7)
@@ -1215,23 +1217,23 @@ class Lattice1d():
                 for i in range(self._length_for_site):
                     for j in range(self._length_for_site):
                         Qin[i, j] = self._H_intra[
-                                i0*self._length_for_site+i,
-                                j0*self._length_for_site+j]
+                            i0 * self._length_for_site + i,
+                            j0 * self._length_for_site + j]
                 dim_site = list(np.delete(self.cell_tensor_config, [0], None))
                 dims_site = [dim_site, dim_site]
                 Hcell[i0][j0] = Qobj(Qin, dims=dims_site)
 
         j0 = 0
-        i0 = csn-1
+        i0 = csn - 1
         Qin = np.zeros((self._length_for_site, self._length_for_site),
                        dtype=complex)
         for i in range(self._length_for_site):
             for j in range(self._length_for_site):
-                Qin[i, j] = H_inter[i0*self._length_for_site+i,
-                                    j0*self._length_for_site+j]
+                Qin[i, j] = H_inter[i0 * self._length_for_site + i,
+                                    j0 * self._length_for_site + j]
         inter_T = Qin
 
-        fig = plt.figure(figsize=[self.num_cell*3, self.num_cell*3])
+        fig = plt.figure(figsize=[self.num_cell * 3, self.num_cell * 3])
         plt.rc('text', usetex=True)
         plt.rc('font', family='serif')
         ax = fig.add_subplot(111, aspect='equal')
@@ -1244,62 +1246,62 @@ class Lattice1d():
 
                 if nc > 0:
                     # plot inter_cell_hop
-                    ax.plot([x_cell-1+self.positions_of_sites[csn-1],
-                             x_cell+self.positions_of_sites[0]], [0.0, 0.0],
+                    ax.plot([x_cell - 1 + self.positions_of_sites[csn - 1],
+                             x_cell + self.positions_of_sites[0]], [0.0, 0.0],
                             "-", c="r", lw=1.5, zorder=7)
 
-                    x_b = (x_cell-1+self.positions_of_sites[
-                            csn-1] + x_cell + self.positions_of_sites[0])/2
+                    x_b = (x_cell - 1 + self.positions_of_sites[
+                        csn - 1] + x_cell + self.positions_of_sites[0]) / 2
 
                     plt.text(x=x_b, y=0.1, s='T',
                              horizontalalignment='center',
                              verticalalignment='center')
-                if i == csn-1:
+                if i == csn - 1:
                     continue
 
-                for j in range(i+1, csn):
+                for j in range(i + 1, csn):
 
                     if (Hcell[i][j].full() == 0).all():
                         continue
                     c_cen = self.positions_of_sites[i]
-                    c_cen = (c_cen+self.positions_of_sites[j])/2
+                    c_cen = (c_cen + self.positions_of_sites[j]) / 2
                     c_cen = c_cen + x_cell
 
                     c_radius = self.positions_of_sites[j]
-                    c_radius = (c_radius-self.positions_of_sites[i])/2
+                    c_radius = (c_radius - self.positions_of_sites[i]) / 2
 
                     circle1 = plt.Circle((c_cen, 0),
                                          c_radius, color='g', fill=False)
                     ax.add_artist(circle1)
         if (self.period_bnd_cond_x == 1):
             x_cell = 0
-            x_b = 2*x_cell-1+self.positions_of_sites[csn-1]
-            x_b = (x_b+self.positions_of_sites[0])/2
+            x_b = 2 * x_cell - 1 + self.positions_of_sites[csn - 1]
+            x_b = (x_b + self.positions_of_sites[0]) / 2
 
             plt.text(x=x_b, y=0.1, s='T', horizontalalignment='center',
                      verticalalignment='center')
-            ax.plot([x_cell-1+self.positions_of_sites[csn-1],
-                     x_cell+self.positions_of_sites[0]], [0.0, 0.0],
+            ax.plot([x_cell - 1 + self.positions_of_sites[csn - 1],
+                     x_cell + self.positions_of_sites[0]], [0.0, 0.0],
                     "-", c="r", lw=1.5, zorder=7)
 
             x_cell = self.num_cell
-            x_b = 2*x_cell-1+self.positions_of_sites[csn-1]
-            x_b = (x_b+self.positions_of_sites[0])/2
+            x_b = 2 * x_cell - 1 + self.positions_of_sites[csn - 1]
+            x_b = (x_b + self.positions_of_sites[0]) / 2
 
             plt.text(x=x_b, y=0.1, s='T', horizontalalignment='center',
                      verticalalignment='center')
-            ax.plot([x_cell-1+self.positions_of_sites[csn-1],
-                     x_cell+self.positions_of_sites[0]], [0.0, 0.0],
+            ax.plot([x_cell - 1 + self.positions_of_sites[csn - 1],
+                     x_cell + self.positions_of_sites[0]], [0.0, 0.0],
                     "-", c="r", lw=1.5, zorder=7)
 
-        x2 = (1+self.positions_of_sites[csn-1])/2
-        x1 = x2-1
+        x2 = (1 + self.positions_of_sites[csn - 1]) / 2
+        x1 = x2 - 1
         h = 0.5
 
         if self.num_cell > 2:
             xu = 1    # The index of cell over which the black box is drawn
-            x1 = x1+xu
-            x2 = x2+xu
+            x1 = x1 + xu
+            x2 = x2 + xu
         ax.plot([x1, x1], [-h, h], "-", c="k", lw=1.5, zorder=7, alpha=0.3)
         ax.plot([x2, x2], [-h, h], "-", c="k", lw=1.5, zorder=7, alpha=0.3)
         ax.plot([x1, x2], [h, h], "-", c="k", lw=1.5, zorder=7, alpha=0.3)

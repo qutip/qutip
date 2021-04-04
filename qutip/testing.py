@@ -33,6 +33,7 @@
 from qutip.about import about
 from qutip import settings as qset
 
+
 def run(full=False):
     """
     Run the test scripts for QuTiP.

@@ -47,7 +47,7 @@ from qutip.qobjevo_codegen import (_compile_str_single, _compiled_coeffs,
 from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi,
                                  spmv)
 from qutip.cy.cqobjevo import (CQobjCte, CQobjCteDense, CQobjEvoTd,
-                                 CQobjEvoTdMatched, CQobjEvoTdDense)
+                               CQobjEvoTdMatched, CQobjEvoTdDense)
 from qutip.cy.cqobjevo_factor import (InterCoeffT, InterCoeffCte,
                                       InterpolateCoeff, StrCoeff,
                                       StepCoeffCte, StepCoeffT)
@@ -113,6 +113,7 @@ class _file_list:
     """
     Contain temp a list .pyx to clean
     """
+
     def __init__(self):
         self.files = []
 
@@ -135,6 +136,7 @@ class _file_list:
     def __del__(self):
         self.clean()
 
+
 coeff_files = _file_list()
 
 
@@ -147,6 +149,7 @@ class _StrWrapper:
         env.update(args)
         exec(self.code, str_env, env)
         return env["_out"]
+
 
 class _CubicSplineWrapper:
     # Using scipy's CubicSpline since Qutip's one
@@ -168,6 +171,7 @@ class _CubicSplineWrapper:
     def __call__(self, t, args={}):
         return self.func([t])[0]
 
+
 class _StateAsArgs:
     # old with state (f(t, psi, args)) to new (args["state"] = psi)
     def __init__(self, coeff_func):
@@ -182,6 +186,7 @@ class StateArgs:
     """Object to indicate to use the state in args outside solver.
     args[key] = StateArgs(type, op)
     """
+
     def __init__(self, type="Qobj", op=None):
         self.dyn_args = (type, op)
 
@@ -194,6 +199,8 @@ class StateArgs:
 # get_coeff : a callable that take (t, args) and return the coeff at that t
 # coeff : The coeff as a string, array or function as provided by the user.
 # type : flag for the type of coeff
+
+
 class EvoElement:
     def __init__(self, qobj, get_coeff, coeff, type):
         self.qobj = qobj
@@ -589,7 +596,7 @@ class QobjEvo:
                             op_type.append(2)
                         elif isinstance(op_k[1], np.ndarray):
                             if not isinstance(tlist, np.ndarray) or not \
-                                        len(op_k[1]) == len(tlist):
+                                    len(op_k[1]) == len(tlist):
                                 raise TypeError("Time list does not match")
                             op_type.append(3)
                         else:
@@ -601,7 +608,7 @@ class QobjEvo:
         return op_type
 
     def _args_checks(self):
-        statedims = [self.cte.dims[1],[1]]
+        statedims = [self.cte.dims[1], [1]]
         for key in self.args:
             if key == "state" or key == "state_qobj":
                 self.dynamics_args += [(key, "Qobj", None)]
@@ -647,7 +654,7 @@ class QobjEvo:
         for file_ in self.coeff_files:
             try:
                 os.remove(file_)
-            except:
+            except BaseException:
                 pass
 
     def __call__(self, t, data=False, state=None, args={}):
@@ -714,12 +721,13 @@ class QobjEvo:
                     elif what == "Qobj":
                         self.args[name] = Qobj(mat, dims=self.cte.dims[1])
                 elif state.shape[0] == s1:
-                    mat = state.reshape((-1,1))
+                    mat = state.reshape((-1, 1))
                     if what == "mat":
                         self.args[name] = mat
                     elif what == "Qobj":
-                        self.args[name] = Qobj(mat, dims=[self.cte.dims[1],[1]])
-                elif state.shape[0] == s1*s1:
+                        self.args[name] = Qobj(
+                            mat, dims=[self.cte.dims[1], [1]])
+                elif state.shape[0] == s1 * s1:
                     new_l = int(np.sqrt(s1))
                     mat = state.reshape((new_l, new_l), order="F")
                     if what == "mat":
@@ -739,7 +747,7 @@ class QobjEvo:
                 elif what == "expect":
                     self.args[name] = op.expect(t, state)
                 elif state.shape[1] == 1:
-                    self.args[name] = Qobj(state, dims=[self.cte.dims[1],[1]])
+                    self.args[name] = Qobj(state, dims=[self.cte.dims[1], [1]])
                 elif state.shape[1] == s1:
                     self.args[name] = Qobj(state, dims=self.cte.dims)
                 else:
@@ -938,7 +946,7 @@ class QobjEvo:
                 self = other.copy()
                 self.cte = cte * self.cte
                 for op in self.ops:
-                    op.qobj = cte*op.qobj
+                    op.qobj = cte * op.qobj
             else:
                 cte = self.cte.copy()
                 self.cte *= other.cte
@@ -960,7 +968,7 @@ class QobjEvo:
                 self.dynamics_args += other.dynamics_args
                 self.dummy_cte = self.dummy_cte and other.dummy_cte
                 self.num_obj = (len(self.ops) if
-                              self.dummy_cte else len(self.ops) + 1)
+                                self.dummy_cte else len(self.ops) + 1)
             self._reset_type()
 
         else:
@@ -997,12 +1005,12 @@ class QobjEvo:
 
     def _ops_mul_(self, opL, opR):
         new_f = _Prod(opL.get_coeff, opR.get_coeff)
-        new_op = [opL.qobj*opR.qobj, new_f, None, 0]
+        new_op = [opL.qobj * opR.qobj, new_f, None, 0]
         if opL.type == opR.type and opL.type == "string":
             new_op[2] = "(" + opL.coeff + ") * (" + opR.coeff + ")"
             new_op[3] = "string"
         elif opL[3] == opR[3] and opL[3] == "array":
-            new_op[2] = opL[2]*opR[2]
+            new_op[2] = opL[2] * opR[2]
             new_op[3] = "array"
         else:
             new_op[2] = new_f
@@ -1072,13 +1080,13 @@ class QobjEvo:
                 already_matched = already_matched or i in _set
             if not already_matched:
                 this_set = [i]
-                for j, op2 in enumerate(self.ops[i+1:]):
+                for j, op2 in enumerate(self.ops[i + 1:]):
                     if op1.qobj == op2.qobj:
                         same_flag = op1.type == op2.type
                         callable_1 = op1.type in callable_flags
                         callable_2 = op2.type in callable_flags
                         if (same_flag or (callable_1 and callable_2)):
-                            this_set.append(j+i+1)
+                            this_set.append(j + i + 1)
                 sets.append(this_set)
 
         fsets = []
@@ -1088,15 +1096,15 @@ class QobjEvo:
                 already_matched = already_matched or i in _set
             if not already_matched:
                 this_set = [i]
-                for j, op2 in enumerate(self.ops[i+1:]):
+                for j, op2 in enumerate(self.ops[i + 1:]):
                     if op1.type != op2.type:
                         pass
                     elif op1.type == "array":
                         if np.allclose(op1.coeff, op2.coeff):
-                            this_set.append(j+i+1)
+                            this_set.append(j + i + 1)
                     else:
                         if op1.coeff is op2.coeff:
-                            this_set.append(j+i+1)
+                            this_set.append(j + i + 1)
                 fsets.append(this_set)
         return sets, fsets
 
@@ -1521,8 +1529,8 @@ class QobjEvo:
                 for part in self.ops:
                     if isinstance(part.get_coeff, _StrWrapper):
                         get_coeff, file_ = _compile_str_single(
-                                                                part.coeff,
-                                                                self.args)
+                            part.coeff,
+                            self.args)
                         coeff_files.add(file_)
                         self.coeff_files.append(file_)
                         funclist.append(get_coeff)
@@ -1537,10 +1545,10 @@ class QobjEvo:
             elif self.type in ["mixed_callable"]:
                 funclist = [part.get_coeff for part in self.ops]
                 _UnitedStrCaller, Code, file_ = _compiled_coeffs_python(
-                                                        self.ops,
-                                                        self.args,
-                                                        self.dynamics_args,
-                                                        self.tlist)
+                    self.ops,
+                    self.args,
+                    self.dynamics_args,
+                    self.tlist)
                 coeff_files.add(file_)
                 self.coeff_files.append(file_)
                 self.coeff_get = _UnitedStrCaller(funclist, self.args,
@@ -1552,10 +1560,10 @@ class QobjEvo:
                 if self.use_cython:
                     # All factor can be compiled
                     self.coeff_get, Code, file_ = _compiled_coeffs(
-                                                        self.ops,
-                                                        self.args,
-                                                        self.dynamics_args,
-                                                        self.tlist)
+                        self.ops,
+                        self.args,
+                        self.dynamics_args,
+                        self.tlist)
                     coeff_files.add(file_)
                     self.coeff_files.append(file_)
                     self.compiled_qobjevo.set_factor(obj=self.coeff_get)
@@ -1563,10 +1571,10 @@ class QobjEvo:
                 else:
                     # All factor can be compiled
                     _UnitedStrCaller, Code, file_ = _compiled_coeffs_python(
-                                                        self.ops,
-                                                        self.args,
-                                                        self.dynamics_args,
-                                                        self.tlist)
+                        self.ops,
+                        self.args,
+                        self.dynamics_args,
+                        self.tlist)
                     coeff_files.add(file_)
                     self.coeff_files.append(file_)
                     funclist = [part.get_coeff for part in self.ops]
@@ -1582,7 +1590,7 @@ class QobjEvo:
                 except KeyError:
                     use_step_func = 0
                 if np.allclose(np.diff(self.tlist),
-                            self.tlist[1] - self.tlist[0]):
+                               self.tlist[1] - self.tlist[0]):
                     if use_step_func:
                         self.coeff_get = StepCoeffCte(
                             self.ops, None, self.tlist)
@@ -1629,7 +1637,7 @@ class QobjEvo:
         self.__dict__ = state[0]
         self.compiled_qobjevo = None
         if self.compiled:
-            mat_type, threading, td =  self.compiled.split()
+            mat_type, threading, td = self.compiled.split()
             if mat_type == "csr":
                 if self.safePickle:
                     # __getstate__ and __setstate__ of compiled_qobjevo pass pointers
@@ -1653,22 +1661,27 @@ class QobjEvo:
                             self.compiled_qobjevo.set_threads(self.omp)
 
                         if td == "pyfunc":
-                            self.compiled_qobjevo.set_factor(func=self.coeff_get)
+                            self.compiled_qobjevo.set_factor(
+                                func=self.coeff_get)
                         elif td == "cyfactor":
-                            self.compiled_qobjevo.set_factor(obj=self.coeff_get)
+                            self.compiled_qobjevo.set_factor(
+                                obj=self.coeff_get)
                 else:
                     if td == "cte":
                         if threading == "single":
                             self.compiled_qobjevo = CQobjCte.__new__(CQobjCte)
                         elif threading == "omp":
-                            self.compiled_qobjevo = CQobjCteOmp.__new__(CQobjCteOmp)
+                            self.compiled_qobjevo = CQobjCteOmp.__new__(
+                                CQobjCteOmp)
                             self.compiled_qobjevo.set_threads(self.omp)
                     else:
                         # time dependence is pyfunc or cyfactor
                         if threading == "single":
-                            self.compiled_qobjevo = CQobjEvoTd.__new__(CQobjEvoTd)
+                            self.compiled_qobjevo = CQobjEvoTd.__new__(
+                                CQobjEvoTd)
                         elif threading == "omp":
-                            self.compiled_qobjevo = CQobjEvoTdOmp.__new__(CQobjEvoTdOmp)
+                            self.compiled_qobjevo = CQobjEvoTdOmp.__new__(
+                                CQobjEvoTdOmp)
                             self.compiled_qobjevo.set_threads(self.omp)
                     self.compiled_qobjevo.__setstate__(state[1])
 
@@ -1716,12 +1729,12 @@ class _UnitedFuncCaller:
             elif what == "Qobj":
                 if self.shape[1] == shape[1]:  # oper
                     self.args[name] = Qobj(mat, dims=self.dims)
-                elif shape[1] == 1: # ket
-                    self.args[name] = Qobj(mat, dims=[self.dims[1],[1]])
+                elif shape[1] == 1:  # ket
+                    self.args[name] = Qobj(mat, dims=[self.dims[1], [1]])
                 else:  # rho
                     self.args[name] = Qobj(mat, dims=self.dims[1])
             elif what == "expect":
-                if shape[1] == op.cte.shape[1]: # same shape as object
+                if shape[1] == op.cte.shape[1]:  # same shape as object
                     self.args[name] = op.mul_mat(t, mat).trace()
                 else:
                     self.args[name] = op.expect(t, state)
@@ -1746,7 +1759,7 @@ class _Norm2():
         self.func = f
 
     def __call__(self, t, args):
-        return self.func(t, args)*np.conj(self.func(t, args))
+        return self.func(t, args) * np.conj(self.func(t, args))
 
 
 class _Shift():
@@ -1771,7 +1784,7 @@ class _Prod():
         self.func_2 = g
 
     def __call__(self, t, args):
-        return self.func_1(t, args)*self.func_2(t, args)
+        return self.func_1(t, args) * self.func_2(t, args)
 
 
 class _Add():

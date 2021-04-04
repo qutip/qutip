@@ -36,9 +36,9 @@ import qutip.settings as qset
 import qutip.solver as def_options
 import warnings
 try:
-    import ConfigParser as configparser #py27
+    import ConfigParser as configparser  # py27
 except:
-    import configparser #py3x
+    import configparser  # py3x
 from functools import partial
 
 
@@ -100,7 +100,7 @@ def generate_qutiprc(rc_file="qutiprc"):
 
         return modified
 
-    with open(qutip_rc_file,'w') as cfgfile:
+    with open(qutip_rc_file, 'w') as cfgfile:
         config = configparser.ConfigParser()
         for section, settings_object in sections:
             config.add_section(section)

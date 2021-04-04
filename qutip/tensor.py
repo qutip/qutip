@@ -113,7 +113,7 @@ shape = [4, 4], type = oper, isHerm = True
             out.data = q.data
             out.dims = q.dims
         else:
-            out.data  = zcsr_kron(out.data, q.data)
+            out.data = zcsr_kron(out.data, q.data)
 
             out.dims = [out.dims[0] + q.dims[0], out.dims[1] + q.dims[1]]
 
@@ -363,7 +363,8 @@ def tensor_contract(qobj, *pairs):
     # Contract out the indices from the flattened object.
     # Note that we need to feed pairs through dims_idxs_to_tensor_idxs
     # to ensure that we are contracting the right indices.
-    qtens = _tensor_contract_dense(qtens, *dims_idxs_to_tensor_idxs(dims, pairs))
+    qtens = _tensor_contract_dense(
+        qtens, *dims_idxs_to_tensor_idxs(dims, pairs))
 
     # Remove the contracted indexes from dims so we know how to
     # reshape back.

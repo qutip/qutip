@@ -41,6 +41,7 @@ __all__ = ['n_thermal', 'linspace_with', 'clebsch', 'convert_unit',
 
 import numpy as np
 
+
 def n_thermal(w, w_th):
     """
     Return the number of photons in thermal equilibrium for an harmonic
@@ -122,7 +123,7 @@ def _factorial_div(N, arr):
 def _to_long(arr):
     prod = 1
     for i, v in enumerate(arr):
-        prod *= (i+1)**int(v)
+        prod *= (i + 1)**int(v)
     return prod
 
 
@@ -172,12 +173,12 @@ def clebsch(j1, j2, j3, m1, m2, m3):
     _factorial_div(j1 + m1, c_factor)
     _factorial_div(j2 - m2, c_factor)
     _factorial_div(j2 + m2, c_factor)
-    C = np.sqrt((2.0 * j3 + 1.0)*_to_long(c_factor))
+    C = np.sqrt((2.0 * j3 + 1.0) * _to_long(c_factor))
 
     s_factors = np.zeros(((vmax + 1 - vmin), (int(j1 + j2 + j3))), np.int32)
     sign = (-1) ** (vmin + j2 + m2)
-    for i,v in enumerate(range(vmin, vmax + 1)):
-        factor = s_factors[i,:]
+    for i, v in enumerate(range(vmin, vmax + 1)):
+        factor = s_factors[i, :]
         _factorial_prod(j2 + j3 + m1 - v, factor)
         _factorial_prod(j1 - m1 + v, factor)
         _factorial_div(j3 - j1 + j2 - v, factor)
@@ -186,7 +187,7 @@ def clebsch(j1, j2, j3, m1, m2, m3):
         _factorial_div(v, factor)
     common_denominator = -np.min(s_factors, axis=0)
     numerators = s_factors + common_denominator
-    S = sum([(-1)**i * _to_long(vec) for i,vec in enumerate(numerators)]) * \
+    S = sum([(-1)**i * _to_long(vec) for i, vec in enumerate(numerators)]) * \
         sign / _to_long(common_denominator)
     return C * S
 
@@ -414,7 +415,7 @@ def view_methods(Q):
         meth_str = m.__doc__
         ind = meth_str.find('\n')
         pub_len = len(pub_meth[ii] + ': ')
-        print(pub_meth[ii] + ':' + ' ' * (ml+3-pub_len) + meth_str[:ind])
+        print(pub_meth[ii] + ':' + ' ' * (ml + 3 - pub_len) + meth_str[:ind])
 
 
 def _version2int(version_string):
@@ -430,10 +431,10 @@ def _blas_info():
     blas_info = config.blas_opt_info
     _has_lib_key = 'libraries' in blas_info.keys()
     blas = None
-    if hasattr(config,'mkl_info') or \
+    if hasattr(config, 'mkl_info') or \
             (_has_lib_key and any('mkl' in lib for lib in blas_info['libraries'])):
         blas = 'INTEL MKL'
-    elif hasattr(config,'openblas_info') or \
+    elif hasattr(config, 'openblas_info') or \
             (_has_lib_key and any('openblas' in lib for lib in blas_info['libraries'])):
         blas = 'OPENBLAS'
     elif 'extra_link_args' in blas_info.keys() and ('-Wl,Accelerate' in blas_info['extra_link_args']):

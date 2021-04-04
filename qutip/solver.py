@@ -57,6 +57,7 @@ class ExpectOps:
     """
         Contain and compute expectation values
     """
+
     def __init__(self, e_ops=[], super_=False):
         # take care of expectation values, if any
         self.isfunc = False
@@ -353,6 +354,7 @@ class Result():
         ``col_times``. Only for Monte Carlo solver.
 
     """
+
     def __init__(self):
         self.solver = None
         self.times = None
@@ -480,16 +482,16 @@ class SolverConfiguration():
 def _format_time(t, tt=None, ttt=None):
     time_str = str(datetime.timedelta(seconds=t))
     if tt is not None and ttt is not None:
-        sect_percent = 100*t/tt
-        solve_percent = 100*t/ttt
+        sect_percent = 100 * t / tt
+        solve_percent = 100 * t / ttt
         time_str += " ({:03.2f}% section, {:03.2f}% total)".format(
-                                            sect_percent, solve_percent)
+            sect_percent, solve_percent)
     elif tt is not None:
-        sect_percent = 100*t/tt
+        sect_percent = 100 * t / tt
         time_str += " ({:03.2f}% section)".format(sect_percent)
 
     elif ttt is not None:
-        solve_percent = 100*t/ttt
+        solve_percent = 100 * t / ttt
         time_str += " ({:03.2f}% total)".format(solve_percent)
 
     return time_str
@@ -558,7 +560,7 @@ class Stats(object):
 
         else:
             self.sections[self._def_section_name] = \
-                        _StatsSection(self._def_section_name)
+                _StatsSection(self._def_section_name)
 
     def _get_section(self, section):
         if section is None:
@@ -710,14 +712,14 @@ class Stats(object):
 
         if self.header:
             output.write("{}\n{}\n".format(self.header,
-                                     ("="*len(self.header))))
+                                           ("=" * len(self.header))))
         for name, sect in self.sections.items():
             sect.report(output)
 
         if self.total_time is not None:
             output.write("\nSummary\n-------\n")
             output.write("{}\t solver total time\n".format(
-                                            _format_time(self.total_time)))
+                _format_time(self.total_time)))
 
     def clear(self):
         """
@@ -771,6 +773,7 @@ class _StatsSection(object):
         Total time for processing in the section
         Can be None, meaning that section timing percentages will be reported
     """
+
     def __init__(self, name, parent):
         self.parent = parent
         self.header = str(name)
@@ -844,7 +847,7 @@ class _StatsSection(object):
         """
         if self.header:
             output.write("\n{}\n{}\n".format(self.header,
-                                     ("-"*len(self.header))))
+                                             ("-" * len(self.header))))
 
         # TODO: Make the timings and counts ouput in a table format
         #       Generally make more pretty
@@ -863,7 +866,7 @@ class _StatsSection(object):
             output.write(l)
         if tt is not None:
             output.write(" - {}\t{} total time\n".format(_format_time(tt),
-                                                     self.name))
+                                                         self.name))
 
         # Report counts
         output.write("### Counts:\n")
@@ -876,7 +879,6 @@ class _StatsSection(object):
         for key, value in self.messages.items():
             l = " - {}:\t{}\n".format(key, value)
             output.write(l)
-
 
     def clear(self):
         """
@@ -896,8 +898,8 @@ def _solver_safety_check(H, state=None, c_ops=[], e_ops=[], args={}):
         _structure_check(Hdims, Htype, state)
     # Input H is function
     elif isinstance(H, (FunctionType, BuiltinFunctionType)):
-        Hdims = H(0,args).dims
-        Htype = H(0,args).type
+        Hdims = H(0, args).dims
+        Htype = H(0, args).type
         _structure_check(Hdims, Htype, state)
     # Input is td-list
     elif isinstance(H, list):
@@ -908,8 +910,8 @@ def _solver_safety_check(H, state=None, c_ops=[], e_ops=[], args={}):
             Hdims = H[0][0].dims
             Htype = H[0][0].type
         elif isinstance(H[0], (FunctionType, BuiltinFunctionType)):
-            Hdims = H[0](0,args).dims
-            Htype = H[0](0,args).type
+            Hdims = H[0](0, args).dims
+            Htype = H[0](0, args).type
         else:
             raise Exception('Invalid td-list element.')
         # Check all operators in list
@@ -921,15 +923,14 @@ def _solver_safety_check(H, state=None, c_ops=[], e_ops=[], args={}):
                 _temp_dims = H[ii][0].dims
                 _temp_type = H[ii][0].type
             elif isinstance(H[ii], (FunctionType, BuiltinFunctionType)):
-                _temp_dims = H[ii](0,args).dims
-                _temp_type = H[ii](0,args).type
+                _temp_dims = H[ii](0, args).dims
+                _temp_type = H[ii](0, args).type
             else:
                 raise Exception('Invalid td-list element.')
-            _structure_check(_temp_dims,_temp_type,state)
+            _structure_check(_temp_dims, _temp_type, state)
 
     else:
         raise Exception('Invalid time-dependent format.')
-
 
     for ii in range(len(c_ops)):
         do_tests = True
@@ -956,7 +957,7 @@ def _solver_safety_check(H, state=None, c_ops=[], e_ops=[], args={}):
                 _temp_state = e_ops[ii][0]
             else:
                 raise Exception('Invalid td-list element.')
-            _structure_check(Hdims,Htype,_temp_state)
+            _structure_check(Hdims, Htype, _temp_state)
     elif isinstance(e_ops, FunctionType):
         pass
     else:

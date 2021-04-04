@@ -36,6 +36,9 @@ This module implements internal-use functions for semidefinite programming.
 """
 
 # Python Standard Library
+from qutip.logging_utils import get_logger
+from qutip.operators import qeye
+from qutip.tensor import tensor_swap
 from functools import wraps
 from collections import namedtuple
 
@@ -50,11 +53,9 @@ except ImportError:
 
 Complex = namedtuple('Complex', ['re', 'im'])
 
-from qutip.tensor import tensor_swap
-from qutip.operators import qeye
 
-from qutip.logging_utils import get_logger
 logger = get_logger()
+
 
 def complex_var(rows=1, cols=1, name=None):
     return Complex(
@@ -71,7 +72,7 @@ def herm(*Xs):
 
 
 def pos_noherm(*Xs):
-    constraints =[
+    constraints = [
         cvxpy.bmat([
             [X.re, -X.im],
             [X.im, X.re]
@@ -110,6 +111,7 @@ def kron(A, B):
         im=(cvxpy.kron(A.im, B.re) + cvxpy.kron(A.re, B.im)),
     )
 
+
 def conj(W, A):
     U, V = W.re, W.im
     A, B = A.re, A.im
@@ -117,6 +119,7 @@ def conj(W, A):
         re=(U @ A @ U.T - U @ B @ V.T - V @ A @ V.T - V @ B @ U.T),
         im=(U @ A @ V.T + U @ B @ U.T + V @ A @ U.T - V @ B @ V.T)
     )
+
 
 def bmat(B):
     return Complex(
@@ -175,11 +178,11 @@ def initialize_constraints_on_dnorm_problem(dim):
     Rho1 = conj(W, kron(np.eye(dim), rho1))
 
     Y = cvxpy.bmat([
-        [Rho0.re, X.re,      -Rho0.im, -X.im],
-        [X.re.T, Rho1.re,    X.im.T, -Rho1.im],
+        [Rho0.re, X.re, -Rho0.im, -X.im],
+        [X.re.T, Rho1.re, X.im.T, -Rho1.im],
 
-        [Rho0.im, X.im,      Rho0.re, X.re],
-        [-X.im.T, Rho1.im,   X.re.T, Rho1.re],
+        [Rho0.im, X.im, Rho0.re, X.re],
+        [-X.im.T, Rho1.im, X.re.T, Rho1.re],
     ])
     constraints += [Y >> 0]
 

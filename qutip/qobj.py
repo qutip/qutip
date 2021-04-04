@@ -352,7 +352,7 @@ class Qobj(object):
                     raise Exception('Invalid shape for a super operator.')
                 else:
                     sub_shape = int(sub_shape)
-                    self.dims = [[[sub_shape], [sub_shape]]]*2
+                    self.dims = [[[sub_shape], [sub_shape]]] * 2
 
         if superrep:
             self.superrep = superrep
@@ -389,8 +389,8 @@ class Qobj(object):
 
         if not isinstance(other, Qobj):
             if isinstance(other, (int, float, complex, np.integer, np.floating,
-                          np.complexfloating, np.ndarray, list, tuple)) \
-                          or sp.issparse(other):
+                                  np.complexfloating, np.ndarray, list, tuple)) \
+                    or sp.issparse(other):
                 other = Qobj(other)
             else:
                 return NotImplemented
@@ -864,7 +864,7 @@ class Qobj(object):
 
         def _format_element(m, n, d):
             s = " & " if n > 0 else ""
-            if type(d) == str:
+            if isinstance(d, str):
                 return s + d
             else:
                 if abs(np.imag(d)) < settings.atol:
@@ -961,8 +961,8 @@ class Qobj(object):
         J = sr.to_choi(self)
         tensor_idxs = enumerate_flat(J.dims)
         J_dual = tensor.tensor_swap(J, *(
-                list(zip(tensor_idxs[0][1], tensor_idxs[0][0])) +
-                list(zip(tensor_idxs[1][1], tensor_idxs[1][0]))
+            list(zip(tensor_idxs[0][1], tensor_idxs[0][0])) +
+            list(zip(tensor_idxs[1][1], tensor_idxs[1][0]))
         )).trans()
         J_dual.superrep = 'choi'
         return J_dual
@@ -1087,10 +1087,10 @@ class Qobj(object):
             raise TypeError('Purity is defined on a density matrix or state.')
 
         if rho.type == "ket" or rho.type == "bra":
-            state_purity = (rho*rho.dag()).tr()
+            state_purity = (rho * rho.dag()).tr()
 
         if rho.type == "oper":
-            state_purity = (rho*rho).tr()
+            state_purity = (rho * rho).tr()
 
         return state_purity
 
@@ -1561,12 +1561,12 @@ class Qobj(object):
                     acc += eigvals[idx]
                     eigvals[idx] = 0.0
 
-            eigvals[:idx+1] += acc / (idx + 1)
+            eigvals[:idx + 1] += acc / (idx + 1)
 
         return sum([
-                val * qutip.states.ket2dm(state)
-                for val, state in zip(eigvals, eigstates)
-            ], Qobj(np.zeros(self.shape), dims=self.dims)
+            val * qutip.states.ket2dm(state)
+            for val, state in zip(eigvals, eigstates)
+        ], Qobj(np.zeros(self.shape), dims=self.dims)
         ).unit()
 
     def matrix_element(self, bra, ket):
@@ -1812,7 +1812,7 @@ class Qobj(object):
                                    eigvals=evals, tol=tol, maxiter=maxiter)
         if safe:
             tol = 1e-15 if tol == 0 else tol
-            if (grndval[1]-grndval[0]) <= 10*tol:
+            if (grndval[1] - grndval[0]) <= 10 * tol:
                 print("WARNING: Ground state may be degenerate. "
                       "Use Q.eigenstates()")
         new_dims = [self.dims[0], [1] * len(self.dims[0])]
@@ -2027,12 +2027,12 @@ class Qobj(object):
             eye_data = fast_identity(self.shape[0])
             return not (
                 np.any(
-                    np.abs((self.data*self.dag().data - eye_data).data)
+                    np.abs((self.data * self.dag().data - eye_data).data)
                     > settings.atol
                 )
                 or
                 np.any(
-                    np.abs((self.dag().data*self.data - eye_data).data)
+                    np.abs((self.dag().data * self.data - eye_data).data)
                     > settings.atol
                 )
             )

@@ -36,7 +36,7 @@ import numpy as np
 from scipy.linalg.blas import get_blas_funcs
 try:
     norm = get_blas_funcs("znrm2", dtype=np.float64)
-except:
+except BaseException:
     from scipy.linalg import norm
 
 from numpy.random import RandomState
@@ -51,6 +51,7 @@ from qutip.parallel import serial_map
 from qutip.ui.progressbar import TextProgressBar
 from qutip.solver import Options
 from qutip.settings import debug
+
 
 class StochasticSolverOptions:
     """Class of options for stochastic (piecewse deterministic process) PDP
@@ -188,6 +189,7 @@ class StochasticSolverOptions:
         Optional progress bar class instance.
 
     """
+
     def __init__(self, H=None, state0=None, times=None, c_ops=[], sc_ops=[],
                  e_ops=[], m_ops=None, args=None, ntraj=1, nsubsteps=1,
                  d1=None, d2=None, d2_len=1, dW_factors=None, rhs=None,
@@ -207,16 +209,16 @@ class StochasticSolverOptions:
         self.d1 = d1
         self.d2 = d2
         self.d2_len = d2_len
-        self.dW_factors = dW_factors# if dW_factors else np.ones(d2_len)
+        self.dW_factors = dW_factors  # if dW_factors else np.ones(d2_len)
         self.state0 = state0
         self.times = times
         self.c_ops = c_ops
         self.sc_ops = sc_ops
         self.e_ops = e_ops
 
-        #if m_ops is None:
+        # if m_ops is None:
         #    self.m_ops = [[c for _ in range(d2_len)] for c in sc_ops]
-        #else:
+        # else:
         #    self.m_ops = m_ops
 
         self.m_ops = m_ops
@@ -246,7 +248,7 @@ class StochasticSolverOptions:
 
         self.map_kwargs = map_kwargs if map_kwargs is not None else {}
 
-        #Does any operator depend on time?
+        # Does any operator depend on time?
         self.td = False
         if not isinstance(H, Qobj):
             self.td = True
@@ -256,6 +258,7 @@ class StochasticSolverOptions:
         for ops in sc_ops:
             if not isinstance(ops, Qobj):
                 self.td = True
+
 
 def main_ssepdpsolve(H, psi0, times, c_ops, e_ops, **kwargs):
     """
@@ -313,6 +316,7 @@ def main_ssepdpsolve(H, psi0, times, c_ops, e_ops, **kwargs):
         res.expect = {e: res.expect[n]
                       for n, e in enumerate(e_ops_dict.keys())}
     return res
+
 
 def main_smepdpsolve(H, rho0, times, c_ops, e_ops, **kwargs):
     """
@@ -443,7 +447,9 @@ def _ssepdpsolve_generic(sso, options, progress_bar):
 
     return data
 
-def _ssepdpsolve_single_trajectory(data, Heff, dt, times, N_store, N_substeps, psi_t, dims, c_ops, e_ops):
+
+def _ssepdpsolve_single_trajectory(
+        data, Heff, dt, times, N_store, N_substeps, psi_t, dims, c_ops, e_ops):
     """
     Internal function. See ssepdpsolve.
     """
@@ -567,7 +573,9 @@ def _smepdpsolve_generic(sso, options, progress_bar):
 
     return data
 
-def _smepdpsolve_single_trajectory(data, L, dt, times, N_store, N_substeps, rho_t, dims, c_ops, e_ops):
+
+def _smepdpsolve_single_trajectory(
+        data, L, dt, times, N_store, N_substeps, rho_t, dims, c_ops, e_ops):
     """
     Internal function. See smepdpsolve.
     """

@@ -164,7 +164,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
 
             elif unitary_mode == 'batch':
                 u = np.zeros(len(tlist), dtype=object)
-                _rows = np.array([(N+1)*m for m in range(N)])
+                _rows = np.array([(N + 1) * m for m in range(N)])
                 _cols = np.zeros_like(_rows)
                 _data = np.ones_like(_rows, dtype=complex)
                 psi0 = Qobj(sp.coo_matrix((_data, (_rows, _cols))).tocsr())

@@ -107,6 +107,7 @@ class Bloch3d():
 
 
     """
+
     def __init__(self, fig=None):
         # ----check for mayavi-----
         try:

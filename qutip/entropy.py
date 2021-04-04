@@ -168,10 +168,10 @@ def negativity(rho, subsys, method='tracenorm', logarithmic=False):
     rho_pt = partial_transpose(rho, mask)
 
     if method == 'tracenorm':
-        N = ((rho_pt.dag() * rho_pt).sqrtm().tr().real - 1)/2.0
+        N = ((rho_pt.dag() * rho_pt).sqrtm().tr().real - 1) / 2.0
     elif method == 'eigenvalues':
         l = rho_pt.eigenenergies()
-        N = ((abs(l)-l)/2).sum()
+        N = ((abs(l) - l) / 2).sum()
     else:
         raise ValueError("Unknown method %s" % method)
 
@@ -354,4 +354,4 @@ def entangling_power(U):
     b = (tensor(swap() * U, swap() * U).dag() * swap(N=4, targets=[1, 3]) *
          tensor(swap() * U, swap() * U) * swap(N=4, targets=[1, 3]))
 
-    return 5.0/9 - 1.0/36 * (a.tr() + b.tr()).real
+    return 5.0 / 9 - 1.0 / 36 * (a.tr() + b.tr()).real

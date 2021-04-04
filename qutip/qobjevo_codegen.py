@@ -63,7 +63,7 @@ def _import_str(code, basefilename, obj_name, cythonfile=False):
         sys.path.insert(0, os.getcwd())
     while not import_list and tries < 3:
         try_file = filename + str(tries)
-        file_ = open(try_file+ext, "w")
+        file_ = open(try_file + ext, "w")
         file_.writelines(code)
         file_.close()
         if not os.access(try_file, os.R_OK):
@@ -77,7 +77,7 @@ def _import_str(code, basefilename, obj_name, cythonfile=False):
         except (ModuleNotFoundError, ImportError) as e:
             time.sleep(0.05)
             tries += 1
-            _try_remove(try_file+ext)
+            _try_remove(try_file + ext)
             err = e
     if not import_list:
         raise Exception("Could not convert string to importable function, "
@@ -90,8 +90,8 @@ def _compile_str_single(string, args):
     """Create and import a cython compiled function from text
     """
     _cython_path = os.path.dirname(os.path.abspath(__file__)).replace(
-                    "\\", "/")
-    _include_string = "'"+_cython_path + "/cy/complex_math.pxi'"
+        "\\", "/")
+    _include_string = "'" + _cython_path + "/cy/complex_math.pxi'"
 
     Code = """#!python
 #cython: language_level=3
@@ -103,7 +103,7 @@ cimport numpy as np
 cimport cython
 from qutip.cy.math cimport erf, zerf
 cdef double pi = 3.14159265358979323
-include """+_include_string+"""
+include """ + _include_string + """
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -132,8 +132,10 @@ def _make_code_4_cimport(ops, args, dyn_args, tlist):
     Create the code for a CoeffFunc cython class the wraps
     the string coefficients, array_like coefficients and Cubic_Spline.
     """
-    _cython_path = os.path.dirname(os.path.abspath(__file__)).replace("\\", "/")
-    _include_string = "'"+_cython_path + "/cy/complex_math.pxi'"
+    _cython_path = os.path.dirname(
+        os.path.abspath(__file__)).replace(
+        "\\", "/")
+    _include_string = "'" + _cython_path + "/cy/complex_math.pxi'"
 
     code = """#!python
 #cython: language_level=3
@@ -174,7 +176,7 @@ include """ + _include_string + "\n\n"
             y_str = "_array_" + str(N_np)
             s_str = "_spline_" + str(N_np)
             N_times = str(len(tlist))
-            dt_times = str(tlist[1]-tlist[0])
+            dt_times = str(tlist[1] - tlist[0])
             try:
                 use_step_func = args["_step_func_coeff"]
             except KeyError:
@@ -183,35 +185,35 @@ include """ + _include_string + "\n\n"
                 if isinstance(op.coeff[0], (float, np.float32, np.float64)):
                     if use_step_func:
                         string = "_step_float_cte(t, " + t_str + ", " +\
-                                y_str + ", " + N_times + ")"
+                            y_str + ", " + N_times + ")"
                     else:
                         string = "_spline_float_cte_second(t, " + t_str + ", " +\
-                                y_str + ", " + s_str + ", " + N_times + ", " +\
-                                dt_times + ")"
+                            y_str + ", " + s_str + ", " + N_times + ", " +\
+                            dt_times + ")"
 
                 elif isinstance(op.coeff[0], (complex, np.complex128)):
                     if use_step_func:
                         string = "_step_complex_cte(t, " + t_str + ", " +\
-                                y_str + ", " + N_times + ")"
+                            y_str + ", " + N_times + ")"
                     else:
                         string = "_spline_complex_cte_second(t, " + t_str + ", " +\
-                                y_str + ", " + s_str + ", " + N_times + ", " +\
-                                dt_times + ")"
+                            y_str + ", " + s_str + ", " + N_times + ", " +\
+                            dt_times + ")"
             else:
                 if isinstance(op.coeff[0], (float, np.float32, np.float64)):
                     if use_step_func:
                         string = "_step_float_t(t, " + t_str + ", " +\
-                             y_str + ", " + N_times + ")"
+                            y_str + ", " + N_times + ")"
                     else:
                         string = "_spline_float_t_second(t, " + t_str + ", " +\
-                             y_str + ", " + s_str + ", " + N_times + ")"
+                            y_str + ", " + s_str + ", " + N_times + ")"
                 elif isinstance(op.coeff[0], (complex, np.complex128)):
                     if use_step_func:
                         string = "_step_complex_t(t, " + t_str + ", " +\
-                             y_str + ", " + N_times + ")"
+                            y_str + ", " + N_times + ")"
                     else:
                         string = "_spline_complex_t_second(t, " + t_str + ", " +\
-                             y_str + ", " + s_str + ", " + N_times + ")"
+                            y_str + ", " + s_str + ", " + N_times + ")"
             compile_list.append(string)
             args[t_str] = tlist
             args[y_str] = op.coeff

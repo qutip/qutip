@@ -59,55 +59,57 @@ from qutip.cy.br_tensor import bloch_redfield_tensor
 # -----------------------------------------------------------------------------
 # Solve the Bloch-Redfield master equation
 #
+
+
 def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
-              args={}, use_secular=True, sec_cutoff = 0.1,
+              args={}, use_secular=True, sec_cutoff=0.1,
               tol=qset.atol,
               spectra_cb=None, options=None,
               progress_bar=None, _safe_mode=True, verbose=False):
     """
     Solves for the dynamics of a system using the Bloch-Redfield master equation,
-    given an input Hamiltonian, Hermitian bath-coupling terms and their associated 
+    given an input Hamiltonian, Hermitian bath-coupling terms and their associated
     spectrum functions, as well as possible Lindblad collapse operators.
-              
+
     For time-independent systems, the Hamiltonian must be given as a Qobj,
     whereas the bath-coupling terms (a_ops), must be written as a nested list
     of operator - spectrum function pairs, where the frequency is specified by
     the `w` variable.
-              
+
     *Example*
 
-        a_ops = [[a+a.dag(),lambda w: 0.2*(w>=0)]] 
-              
+        a_ops = [[a+a.dag(),lambda w: 0.2*(w>=0)]]
+
     For time-dependent systems, the Hamiltonian, a_ops, and Lindblad collapse
     operators (c_ops), can be specified in the QuTiP string-based time-dependent
-    format.  For the a_op spectra, the frequency variable must be `w`, and the 
+    format.  For the a_op spectra, the frequency variable must be `w`, and the
     string cannot contain any other variables other than the possibility of having
     a time-dependence through the time variable `t`:
-                            
+
     *Example*
 
         a_ops = [[a+a.dag(), '0.2*exp(-t)*(w>=0)']]
-              
+
     It is also possible to use Cubic_Spline objects for time-dependence.  In
     the case of a_ops, Cubic_Splines must be passed as a tuple:
-              
+
     *Example*
-              
+
         a_ops = [ [a+a.dag(), ( f(w), g(t)] ]
-              
+
     where f(w) and g(t) are strings or Cubic_spline objects for the bath
     spectrum and time-dependence, respectively.
-              
+
     Finally, if one has bath-couplimg terms of the form
     H = f(t)*a + conj[f(t)]*a.dag(), then the correct input format is
-              
+
     *Example*
-    
+
               a_ops = [ [(a,a.dag()), (f(w), g1(t), g2(t))],... ]
 
     where f(w) is the spectrum of the operators while g1(t) and g2(t)
-    are the time-dependence of the operators `a` and `a.dag()`, respectively 
-    
+    are the time-dependence of the operators `a` and `a.dag()`, respectively
+
     Parameters
     ----------
     H : Qobj / list
@@ -121,7 +123,7 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         List of times for evaluating evolution
 
     a_ops : list
-        Nested list of Hermitian system operators that couple to 
+        Nested list of Hermitian system operators that couple to
         the bath degrees of freedom, along with their associated
         spectra.
 
@@ -132,25 +134,25 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         List of system collapse operators, or nested list in
         string-based format.
 
-    args : dict 
+    args : dict
         Placeholder for future implementation, kept for API consistency.
 
     use_secular : bool {True}
         Use secular approximation when evaluating bath-coupling terms.
-    
+
     sec_cutoff : float {0.1}
         Cutoff for secular approximation.
-    
+
     tol : float {qutip.setttings.atol}
-        Tolerance used for removing small values after 
+        Tolerance used for removing small values after
         basis transformation.
-              
+
     spectra_cb : list
         DEPRECIATED. Do not use.
-    
+
     options : :class:`qutip.solver.Options`
         Options for the solver.
-              
+
     progress_bar : BaseProgressBar
         Optional instance of BaseProgressBar, or a subclass thereof, for
         showing the progress of the simulation.
@@ -164,12 +166,12 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         or a list of states for the times specified by `tlist`.
     """
     _prep_time = time.time()
-    #This allows for passing a list of time-independent Qobj
-    #as allowed by mesolve
+    # This allows for passing a list of time-independent Qobj
+    # as allowed by mesolve
     if isinstance(H, list):
-        if np.all([isinstance(h,Qobj) for h in H]):
+        if np.all([isinstance(h, Qobj) for h in H]):
             H = sum(H)
-    
+
     if isinstance(c_ops, Qobj):
         c_ops = [c_ops]
 
@@ -181,46 +183,48 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         e_ops = [e for e in e_ops.values()]
     else:
         e_ops_dict = None
-    
+
     if not (spectra_cb is None):
-        warnings.warn("The use of spectra_cb is depreciated.", DeprecationWarning)
+        warnings.warn(
+            "The use of spectra_cb is depreciated.",
+            DeprecationWarning)
         _a_ops = []
         for kk, a in enumerate(a_ops):
-            _a_ops.append([a,spectra_cb[kk]])
+            _a_ops.append([a, spectra_cb[kk]])
         a_ops = _a_ops
 
     if _safe_mode:
-        _solver_safety_check(H, psi0, a_ops+c_ops, e_ops, args)
-    
+        _solver_safety_check(H, psi0, a_ops + c_ops, e_ops, args)
+
     # check for type (if any) of time-dependent inputs
-    _, n_func, n_str = _td_format_check(H, a_ops+c_ops)
-    
+    _, n_func, n_str = _td_format_check(H, a_ops + c_ops)
+
     if progress_bar is None:
         progress_bar = BaseProgressBar()
     elif progress_bar is True:
         progress_bar = TextProgressBar()
-        
+
     if options is None:
         options = Options()
 
     if (not options.rhs_reuse) or (not config.tdfunc):
         # reset config collapse and time-dependence flags to default values
         config.reset()
-    
-    #check if should use OPENMP
+
+    # check if should use OPENMP
     check_use_openmp(options)
-    
+
     if n_str == 0:
-    
+
         R, ekets = bloch_redfield_tensor(H, a_ops, spectra_cb=None, c_ops=c_ops,
-                    use_secular=use_secular, sec_cutoff=sec_cutoff)
+                                         use_secular=use_secular, sec_cutoff=sec_cutoff)
 
         output = Result()
         output.solver = "brmesolve"
         output.times = tlist
 
         results = bloch_redfield_solve(R, ekets, psi0, tlist, e_ops, options,
-                    progress_bar=progress_bar)
+                                       progress_bar=progress_bar)
 
         if e_ops:
             output.expect = results
@@ -228,18 +232,18 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
             output.states = results
 
         return output
-        
+
     elif n_str != 0 and n_func == 0:
-        output = _td_brmesolve(H, psi0, tlist, a_ops=a_ops, e_ops=e_ops, 
-                        c_ops=c_ops, args=args, use_secular=use_secular, 
-                        sec_cutoff=sec_cutoff,
-                        tol=tol, options=options, 
-                         progress_bar=progress_bar,
-                         _safe_mode=_safe_mode, verbose=verbose, 
-                         _prep_time=_prep_time)
-                         
+        output = _td_brmesolve(H, psi0, tlist, a_ops=a_ops, e_ops=e_ops,
+                               c_ops=c_ops, args=args, use_secular=use_secular,
+                               sec_cutoff=sec_cutoff,
+                               tol=tol, options=options,
+                               progress_bar=progress_bar,
+                               _safe_mode=_safe_mode, verbose=verbose,
+                               _prep_time=_prep_time)
+
         return output
-        
+
     else:
         raise Exception('Cannot mix func and str formats.')
 
@@ -248,7 +252,8 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
 # Evolution of the Bloch-Redfield master equation given the Bloch-Redfield
 # tensor.
 #
-def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None, progress_bar=None):
+def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[],
+                         options=None, progress_bar=None):
     """
     Evolve the ODEs defined by Bloch-Redfield master equation. The
     Bloch-Redfield tensor can be calculated by the function
@@ -295,7 +300,7 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None, progress
         progress_bar = BaseProgressBar()
     elif progress_bar is True:
         progress_bar = TextProgressBar()
-    
+
     #
     # check initial state
     #
@@ -345,7 +350,8 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None, progress
         if not r.successful():
             break
 
-        rho_eb.data = dense2D_to_fastcsr_fmode(vec2mat(r.y), rho0.shape[0], rho0.shape[1])
+        rho_eb.data = dense2D_to_fastcsr_fmode(
+            vec2mat(r.y), rho0.shape[0], rho0.shape[1])
 
         # calculate all the expectation values, or output rho_eb if no
         # expectation value operators are given
@@ -362,20 +368,19 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None, progress
     return result_list
 
 
-
 def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
-                 use_secular=True, sec_cutoff=0.1,
-                 tol=qset.atol, options=None, 
-                 progress_bar=None,_safe_mode=True,
-                 verbose=False,
-                 _prep_time=0):
-    
+                  use_secular=True, sec_cutoff=0.1,
+                  tol=qset.atol, options=None,
+                  progress_bar=None, _safe_mode=True,
+                  verbose=False,
+                  _prep_time=0):
+
     if isket(psi0):
         rho0 = ket2dm(psi0)
     else:
         rho0 = psi0
     nrows = rho0.shape[0]
-    
+
     H_terms = []
     H_td_terms = []
     H_obj = []
@@ -384,15 +389,15 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
     C_terms = []
     C_td_terms = []
     CA_obj = []
-    spline_count = [0,0]
+    spline_count = [0, 0]
     coupled_ops = []
     coupled_lengths = []
     coupled_spectra = []
-    
+
     if isinstance(H, Qobj):
         H_terms.append(H.full('f'))
         H_td_terms.append('1')
-    else: 
+    else:
         for kk, h in enumerate(H):
             if isinstance(h, Qobj):
                 H_terms.append(h.full('f'))
@@ -405,8 +410,7 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
                 H_td_terms.append(h[1])
             else:
                 raise Exception('Invalid Hamiltonian specification.')
-    
-            
+
     for kk, c in enumerate(c_ops):
         if isinstance(c, Qobj):
             C_terms.append(c.full('f'))
@@ -419,7 +423,7 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
             C_td_terms.append(c[1])
         else:
             raise Exception('Invalid collapse operator specification.')
-            
+
     coupled_offset = 0
     for kk, a in enumerate(a_ops):
         if isinstance(a, list):
@@ -427,48 +431,47 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
                 A_terms.append(a[0].full('f'))
                 A_td_terms.append(a[1])
                 if isinstance(a[1], tuple):
-                    if not len(a[1])==2:
-                       raise Exception('Tuple must be len=2.')
-                    if isinstance(a[1][0],Cubic_Spline):
+                    if not len(a[1]) == 2:
+                        raise Exception('Tuple must be len=2.')
+                    if isinstance(a[1][0], Cubic_Spline):
                         spline_count[1] += 1
-                    if isinstance(a[1][1],Cubic_Spline):
+                    if isinstance(a[1][1], Cubic_Spline):
                         spline_count[1] += 1
             elif isinstance(a[0], tuple):
                 if not isinstance(a[1], tuple):
                     raise Exception('Invalid bath-coupling specification.')
-                if (len(a[0])+1) != len(a[1]):
+                if (len(a[0]) + 1) != len(a[1]):
                     raise Exception('BR a_ops tuple lengths not compatible.')
-                
-                coupled_ops.append(kk+coupled_offset)
+
+                coupled_ops.append(kk + coupled_offset)
                 coupled_lengths.append(len(a[0]))
                 coupled_spectra.append(a[1][0])
-                coupled_offset += len(a[0])-1
-                if isinstance(a[1][0],Cubic_Spline):
+                coupled_offset += len(a[0]) - 1
+                if isinstance(a[1][0], Cubic_Spline):
                     spline_count[1] += 1
-                
+
                 for nn, _a in enumerate(a[0]):
                     A_terms.append(_a.full('f'))
-                    A_td_terms.append(a[1][nn+1])
-                    if isinstance(a[1][nn+1],Cubic_Spline):
-                        CA_obj.append(a[1][nn+1].coeffs)
+                    A_td_terms.append(a[1][nn + 1])
+                    if isinstance(a[1][nn + 1], Cubic_Spline):
+                        CA_obj.append(a[1][nn + 1].coeffs)
                         spline_count[1] += 1
-                                
+
         else:
             raise Exception('Invalid bath-coupling specification.')
-            
-    
+
     string_list = []
-    for kk,_ in enumerate(H_td_terms):
+    for kk, _ in enumerate(H_td_terms):
         string_list.append("H_terms[{0}]".format(kk))
-    for kk,_ in enumerate(H_obj):
+    for kk, _ in enumerate(H_obj):
         string_list.append("H_obj[{0}]".format(kk))
-    for kk,_ in enumerate(C_td_terms):
+    for kk, _ in enumerate(C_td_terms):
         string_list.append("C_terms[{0}]".format(kk))
-    for kk,_ in enumerate(CA_obj):
+    for kk, _ in enumerate(CA_obj):
         string_list.append("CA_obj[{0}]".format(kk))
-    for kk,_ in enumerate(A_td_terms):
+    for kk, _ in enumerate(A_td_terms):
         string_list.append("A_terms[{0}]".format(kk))
-    #Add nrows to parameters
+    # Add nrows to parameters
     string_list.append('nrows')
     for name, value in args.items():
         if isinstance(value, np.ndarray):
@@ -476,9 +479,9 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
         else:
             string_list.append(str(value))
     parameter_string = ",".join(string_list)
-    
+
     if verbose:
-        print('BR prep time:', time.time()-_prep_time)
+        print('BR prep time:', time.time() - _prep_time)
     #
     # generate and compile new cython code if necessary
     #
@@ -489,45 +492,45 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
             config.tdname = opt.rhs_filename
         if verbose:
             _st = time.time()
-        cgen = BR_Codegen(h_terms=len(H_terms), 
-                    h_td_terms=H_td_terms, h_obj=H_obj,
-                    c_terms=len(C_terms), 
-                    c_td_terms=C_td_terms, c_obj=CA_obj,
-                    a_terms=len(A_terms), a_td_terms=A_td_terms,
-                    spline_count=spline_count,
-                    coupled_ops = coupled_ops,
-                    coupled_lengths = coupled_lengths,
-                    coupled_spectra = coupled_spectra,
-                    config=config, sparse=False,
-                    use_secular = use_secular,
-                    sec_cutoff = sec_cutoff,
-                    args=args,
-                    use_openmp=options.use_openmp, 
-                    omp_thresh=qset.openmp_thresh if qset.has_openmp else None,
-                    omp_threads=options.num_cpus, 
-                    atol=tol)
-        
+        cgen = BR_Codegen(h_terms=len(H_terms),
+                          h_td_terms=H_td_terms, h_obj=H_obj,
+                          c_terms=len(C_terms),
+                          c_td_terms=C_td_terms, c_obj=CA_obj,
+                          a_terms=len(A_terms), a_td_terms=A_td_terms,
+                          spline_count=spline_count,
+                          coupled_ops=coupled_ops,
+                          coupled_lengths=coupled_lengths,
+                          coupled_spectra=coupled_spectra,
+                          config=config, sparse=False,
+                          use_secular=use_secular,
+                          sec_cutoff=sec_cutoff,
+                          args=args,
+                          use_openmp=options.use_openmp,
+                          omp_thresh=qset.openmp_thresh if qset.has_openmp else None,
+                          omp_threads=options.num_cpus,
+                          atol=tol)
+
         cgen.generate(config.tdname + ".pyx")
         code = compile('from ' + config.tdname + ' import cy_td_ode_rhs',
                        '<string>', 'exec')
         exec(code, globals())
         config.tdfunc = cy_td_ode_rhs
         if verbose:
-            print('BR compile time:', time.time()-_st)
+            print('BR compile time:', time.time() - _st)
     initial_vector = mat2vec(rho0.full()).ravel()
-    
+
     _ode = scipy.integrate.ode(config.tdfunc)
     code = compile('_ode.set_f_params(' + parameter_string + ')',
-                    '<string>', 'exec')
-    _ode.set_integrator('zvode', method=options.method, 
-                    order=options.order, atol=options.atol, 
-                    rtol=options.rtol, nsteps=options.nsteps,
-                    first_step=options.first_step, 
-                    min_step=options.min_step,
-                    max_step=options.max_step)
+                   '<string>', 'exec')
+    _ode.set_integrator('zvode', method=options.method,
+                        order=options.order, atol=options.atol,
+                        rtol=options.rtol, nsteps=options.nsteps,
+                        first_step=options.first_step,
+                        min_step=options.min_step,
+                        max_step=options.max_step)
     _ode.set_initial_value(initial_vector, tlist[0])
     exec(code, locals())
-    
+
     #
     # prepare output array
     #
@@ -569,9 +572,9 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
     #
     # start evolution
     #
-    if type(progress_bar)==BaseProgressBar and verbose:
+    if type(progress_bar) == BaseProgressBar and verbose:
         _run_time = time.time()
-    
+
     progress_bar.start(n_tsteps)
 
     rho = Qobj(rho0)
@@ -586,7 +589,8 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
                             "the nsteps parameter in the Options class.")
 
         if options.store_states or expt_callback:
-            rho.data = dense2D_to_fastcsr_fmode(vec2mat(_ode.y), rho.shape[0], rho.shape[1])
+            rho.data = dense2D_to_fastcsr_fmode(
+                vec2mat(_ode.y), rho.shape[0], rho.shape[1])
 
             if options.store_states:
                 output.states.append(Qobj(rho, isherm=True))
@@ -607,15 +611,16 @@ def _td_brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[], args={},
             _ode.integrate(_ode.t + dt[t_idx])
 
     progress_bar.finished()
-    
-    if type(progress_bar)==BaseProgressBar and verbose:
-        print('BR runtime:', time.time()-_run_time)
+
+    if type(progress_bar) == BaseProgressBar and verbose:
+        print('BR runtime:', time.time() - _run_time)
 
     if (not options.rhs_reuse) and (config.tdname is not None):
         _cython_build_cleanup(config.tdname)
-    
+
     if options.store_final_state:
-        rho.data = dense2D_to_fastcsr_fmode(vec2mat(_ode.y), rho.shape[0], rho.shape[1])
+        rho.data = dense2D_to_fastcsr_fmode(
+            vec2mat(_ode.y), rho.shape[0], rho.shape[1])
         output.final_state = Qobj(rho, dims=rho0.dims, isherm=True)
 
     return output

@@ -77,6 +77,7 @@ class Evolver:
         Dictionary of dictionaries of propagator objects with keys of
         evaluation times, e.g. propagators[t2][t1] returns U[t2,t1].
     """
+
     def __init__(self, H, tlist, options=None):
         self.H = H
         self.tlist = tlist
@@ -168,7 +169,7 @@ def photon_scattering_operator(evolver, c_ops, taus_list):
     for i, tau_wg in enumerate(taus_list):
         for tau in tau_wg:
             taus.append((tau, i))
-    taus.sort(key = lambda tup: tup[0])  # sort taus by time
+    taus.sort(key=lambda tup: tup[0])  # sort taus by time
 
     # Compute Prod Ueff(tq, tq-1)
     for i in range(1, len(taus)):
@@ -371,5 +372,5 @@ def scattering_probability(H, psi0, n_emissions, c_ops, tlist,
 
     # Iteratively integrate to obtain single value
     while probs.shape != ():
-        probs = np.trapz(probs, x = tlist)
+        probs = np.trapz(probs, x=tlist)
     return np.abs(probs)

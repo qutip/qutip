@@ -303,6 +303,7 @@ class StochasticSolverOptions:
     where, c_opN = Qobj or [Qobj,coeff]
     The coeff format is the same as for the Hamiltonian.
     """
+
     def __init__(self, me, H=None, c_ops=[], sc_ops=[], state0=None,
                  e_ops=[], m_ops=None, store_all_expect=False,
                  store_measurement=False, dW_factors=None,
@@ -487,15 +488,15 @@ class StochasticSolverOptions:
                     not self.sc_ops[0].const or \
                     not self.method == "homodyne":
                 raise ValueError("Taylor2.0 only works with 1 constant " +
-                                "sc_ops and for homodyne method")
+                                 "sc_ops and for homodyne method")
         else:
             raise ValueError((
-                    "The solver should be one of "
-                    "[None, 'euler-maruyama', 'platen', 'pc-euler', "
-                    "'pc-euler-imp', 'milstein', 'milstein-imp', "
-                    "'rouchon', "
-                    "'taylor1.5', 'taylor1.5-imp', 'explicit1.5' "
-                    "'taylor2.0']"))
+                "The solver should be one of "
+                "[None, 'euler-maruyama', 'platen', 'pc-euler', "
+                "'pc-euler-imp', 'milstein', 'milstein-imp', "
+                "'rouchon', "
+                "'taylor1.5', 'taylor1.5-imp', 'explicit1.5' "
+                "'taylor2.0']"))
 
 
 class StochasticSolverOptionsPhoto(StochasticSolverOptions):
@@ -510,6 +511,7 @@ class StochasticSolverOptionsPhoto(StochasticSolverOptions):
         order 2 algorithms: 'pred-corr'
         In photocurrent evolution
     """
+
     def set_solver(self):
         if self.solver in [None, 'euler', 1, 60]:
             self.solver_code = 60
@@ -573,8 +575,8 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
         print("stochastic solver with photocurrent method has been moved to "
               "it's own function: photocurrent_mesolve")
         return photocurrent_mesolve(H, rho0, times, c_ops=c_ops, sc_ops=sc_ops,
-                                   e_ops=e_ops, _safe_mode=_safe_mode,
-                                   args=args, **kwargs)
+                                    e_ops=e_ops, _safe_mode=_safe_mode,
+                                    args=args, **kwargs)
     if isket(rho0):
         rho0 = ket2dm(rho0)
 
@@ -700,8 +702,8 @@ def ssesolve(H, psi0, times, sc_ops=[], e_ops=[],
         print("stochastic solver with photocurrent method has been moved to "
               "it's own function: photocurrent_sesolve")
         return photocurrent_sesolve(H, psi0, times, c_ops=c_ops,
-                                   e_ops=e_ops, _safe_mode=_safe_mode,
-                                   args=args, **kwargs)
+                                    e_ops=e_ops, _safe_mode=_safe_mode,
+                                    args=args, **kwargs)
 
     if isinstance(e_ops, dict):
         e_ops_dict = e_ops
@@ -756,9 +758,9 @@ def ssesolve(H, psi0, times, sc_ops=[], e_ops=[],
     else:
         raise Exception("The method must be one of None, homodyne, heterodyne")
 
-    sso.LH = sso.H * (-1j*sso.dt)
+    sso.LH = sso.H * (-1j * sso.dt)
     for ops in sso.sops:
-        sso.LH -= ops[0]._cdc()*0.5*sso.dt
+        sso.LH -= ops[0]._cdc() * 0.5 * sso.dt
 
     sso.ce_ops = [QobjEvo(op) for op in sso.e_ops]
     sso.cm_ops = [QobjEvo(op) for op in sso.m_ops]
@@ -863,7 +865,7 @@ def _positive_map(sso, e_ops_dict):
 
 
 def photocurrent_mesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
-                        _safe_mode=True, args={}, **kwargs):
+                         _safe_mode=True, args={}, **kwargs):
     """
     Solve stochastic master equation using the photocurrent method.
 
@@ -959,7 +961,7 @@ def photocurrent_mesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
 
 
 def photocurrent_sesolve(H, psi0, times, sc_ops=[], e_ops=[],
-                        _safe_mode=True, args={}, **kwargs):
+                         _safe_mode=True, args={}, **kwargs):
     """
     Solve stochastic schrodinger equation using the photocurrent method.
 
@@ -1021,9 +1023,9 @@ def photocurrent_sesolve(H, psi0, times, sc_ops=[], e_ops=[],
     sso.solver_obj = PcSSESolver
     sso.solver_name = "photocurrent_sesolve"
     sso.sops = [[op, op._cdc()] for op in sso.sc_ops]
-    sso.LH = sso.H * (-1j*sso.dt)
+    sso.LH = sso.H * (-1j * sso.dt)
     for ops in sso.sops:
-        sso.LH -= ops[0]._cdc()*0.5*sso.dt
+        sso.LH -= ops[0]._cdc() * 0.5 * sso.dt
     sso.ce_ops = [QobjEvo(op) for op in sso.e_ops]
     sso.cm_ops = [QobjEvo(op) for op in sso.m_ops]
 
@@ -1169,7 +1171,7 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
         if sso.dW_factors is None:
             sso.dW_factors = [1.] * len(sso.m_ops)
         elif len(sso.dW_factors) == 1:
-                sso.dW_factors = sso.dW_factors * len(sso.m_ops)
+            sso.dW_factors = sso.dW_factors * len(sso.m_ops)
         elif len(sso.dW_factors) != len(sso.m_ops):
             raise ValueError("The number of dW_factors must fit" +
                              " the number of m_ops.")
@@ -1353,9 +1355,9 @@ def _sesolve_generic(sso, options, progress_bar):
 def _single_trajectory(i, sso):
     # Only one step?
     ssolver = sso.solver_obj()
-    #ssolver.set_data(sso)
+    # ssolver.set_data(sso)
     ssolver.set_solver(sso)
-    result = ssolver.cy_sesolve_single_trajectory(i)#, sso)
+    result = ssolver.cy_sesolve_single_trajectory(i)  # , sso)
     return result
 
 

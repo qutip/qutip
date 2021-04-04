@@ -34,12 +34,13 @@
 Internal use module for manipulating dims specifications.
 """
 
-__all__ = [] # Everything should be explicitly imported, not made available
-             # by default.
+__all__ = []  # Everything should be explicitly imported, not made available
+# by default.
 
 import numpy as np
 from operator import getitem
 from functools import partial
+
 
 def is_scalar(dims):
     """
@@ -48,11 +49,13 @@ def is_scalar(dims):
     """
     return np.prod(flatten(dims)) == 1
 
+
 def is_vector(dims):
     return (
         isinstance(dims, list) and
         isinstance(dims[0], (int, np.integer))
     )
+
 
 def is_vectorized_oper(dims):
     return (
@@ -177,6 +180,7 @@ def _enumerate_flat(l, idx=0):
             acc.append(labels)
         return acc, idx
 
+
 def _collapse_composite_index(dims):
     """
     Given the dimensions specification for a composite index
@@ -186,6 +190,7 @@ def _collapse_composite_index(dims):
     would collapse to [6].
     """
     return [np.prod(dims)]
+
 
 def _collapse_dims_to_level(dims, level=1):
     """
@@ -197,6 +202,7 @@ def _collapse_dims_to_level(dims, level=1):
         return _collapse_composite_index(dims)
     else:
         return [_collapse_dims_to_level(index, level=level - 1) for index in dims]
+
 
 def collapse_dims_oper(dims):
     """
@@ -221,6 +227,7 @@ def collapse_dims_oper(dims):
     """
     return _collapse_dims_to_level(dims, 1)
 
+
 def collapse_dims_super(dims):
     """
     Given the dimensions specifications for an operator-ket-, operator-bra- or
@@ -244,6 +251,7 @@ def collapse_dims_super(dims):
         in ``range(2)``.
     """
     return _collapse_dims_to_level(dims, 2)
+
 
 def enumerate_flat(l):
     """Labels the indices at which scalars occur in a flattened list.
@@ -313,7 +321,6 @@ def dims_to_tensor_perm(dims):
     # input and output indices of vectorized matrices, then flattening
     # the result. We'll then rebuild indices using this permutation.
 
-
     if dims_type in ('operator-ket', 'super'):
         # Swap the input and output spaces of the right part of
         # perm.
@@ -324,6 +331,7 @@ def dims_to_tensor_perm(dims):
         perm[0] = list(reversed(perm[0]))
 
     return flatten(perm)
+
 
 def dims_to_tensor_shape(dims):
     """

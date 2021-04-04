@@ -225,7 +225,7 @@ def choi_to_kraus(q_oper, tol=1e-9):
     vals, vecs = eig(q_oper.data.todense())
     vecs = [array(_) for _ in zip(*vecs)]
     shape = [np.prod(q_oper.dims[0][i]) for i in range(2)][::-1]
-    return [Qobj(inpt=sqrt(val)*vec2mat(vec, shape=shape),
+    return [Qobj(inpt=sqrt(val) * vec2mat(vec, shape=shape),
             dims=q_oper.dims[0][::-1])
             for val, vec in zip(vals, vecs) if abs(val) >= tol]
 
@@ -303,6 +303,7 @@ def chi_to_choi(q_oper):
     # by that to get back to the Choi form.
     return Qobj((B * q_oper * B.dag()) / q_oper.shape[0], superrep='choi')
 
+
 def _svd_u_to_kraus(U, S, d, dK, indims, outdims):
     """
     Given a partial isometry U and a vector of square-roots of singular values S
@@ -315,7 +316,8 @@ def _svd_u_to_kraus(U, S, d, dK, indims, outdims):
     """
     # We use U * S since S is 1-index, such that this is equivalent to
     # U . diag(S), but easier to write down.
-    Ks = list(map(Qobj, array(U * S).reshape((d, d, dK), order='F').transpose((2, 0, 1))))
+    Ks = list(map(Qobj, array(U * S).reshape((d, d, dK),
+              order='F').transpose((2, 0, 1))))
     for K in Ks:
         K.dims = [outdims, indims]
     return Ks
@@ -327,8 +329,10 @@ def _generalized_kraus(q_oper, thresh=1e-10):
     #       This is critical for non-CP maps, as appear in (for example)
     #       diamond norm differences between two CP maps.
     if q_oper.type != "super" or q_oper.superrep != "choi":
-        raise ValueError("Expected a Choi matrix, got a {} (superrep {}).".format(q_oper.type, q_oper.superrep))
-    
+        raise ValueError(
+            "Expected a Choi matrix, got a {} (superrep {}).".format(
+                q_oper.type, q_oper.superrep))
+
     # Remember the shape of the underlying space,
     # as we'll need this to make Kraus operators later.
     dL, dR = map(int, map(sqrt, q_oper.shape))
@@ -380,7 +384,7 @@ def choi_to_stinespring(q_oper, thresh=1e-10):
     for idx_kraus, (KL, KR) in enumerate(zip(kU, kV)):
         A += tensor(KL, basis(dK, idx_kraus))
         B += tensor(KR, basis(dK, idx_kraus))
-        
+
     # There is no input (right) Kraus index, so strip that off.
     del A.dims[1][-1]
     del B.dims[1][-1]
@@ -391,6 +395,7 @@ def choi_to_stinespring(q_oper, thresh=1e-10):
 # These functions handle superoperator conversions in a way that preserves the
 # correctness of Qobj.type, and in a way that automatically branches based on
 # the input Qobj.type.
+
 
 def to_choi(q_oper):
     """
@@ -567,6 +572,7 @@ def to_kraus(q_oper, tol=1e-9):
             "and superrep = {0.superrep} to Kraus decomposition not "
             "supported.".format(q_oper)
         )
+
 
 def to_stinespring(q_oper):
     r"""

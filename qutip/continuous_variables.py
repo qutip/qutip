@@ -141,7 +141,7 @@ def correlation_matrix_field(a1, a2, rho=None):
 
     Returns
     -------
-    cov_mat : ndarray 
+    cov_mat : ndarray
         Array of complex numbers or Qobj's
         A 2-dimensional *array* of covariance values, or, if rho=0, a matrix
         of operators.
@@ -166,13 +166,13 @@ def correlation_matrix_quadrature(a1, a2, rho=None, g=np.sqrt(2)):
         Density matrix for which to calculate the covariance matrix.
     g : float
         Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
-        The value of `g` is related to the value of `hbar` in the commutation 
+        The value of `g` is related to the value of `hbar` in the commutation
         relation `[x, y] = i * hbar` via `hbar=2/g ** 2` giving the default
-        value `hbar=1`. 
+        value `hbar=1`.
 
     Returns
     -------
-    corr_mat : ndarray 
+    corr_mat : ndarray
         Array of complex numbers or Qobj's
         A 2-dimensional *array* of covariance values for the field quadratures,
         or, if rho=0, a matrix of operators.
@@ -218,9 +218,9 @@ def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None, g=np.sqrt(2)):
 
     g : float
         Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
-        The value of `g` is related to the value of `hbar` in the commutation 
-        relation `[x, y] = i * hbar` via `hbar=2/g ** 2` giving the default 
-        value `hbar=1`. 
+        The value of `g` is related to the value of `hbar` in the commutation
+        relation `[x, y] = i * hbar` via `hbar=2/g ** 2` giving the default
+        value `hbar=1`.
 
     Returns
     -------
@@ -267,14 +267,14 @@ def logarithmic_negativity(V, g=np.sqrt(2)):
 
     g : float
         Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
-        The value of `g` is related to the value of `hbar` in the commutation 
-        relation `[x, y] = i * hbar` via `hbar=2/g ** 2` giving the default 
-        value `hbar=1`. 
+        The value of `g` is related to the value of `hbar` in the commutation
+        relation `[x, y] = i * hbar` via `hbar=2/g ** 2` giving the default
+        value `hbar=1`.
 
     Returns
     -------
 
-    N : float 
+    N : float
         The logarithmic negativity for the two-mode Gaussian state
         that is described by the the Wigner covariance matrix V.
 

@@ -109,32 +109,32 @@ def plot_wigner_sphere(fig, ax, wigner, reflections):
                     zorder=0.5, antialiased=None)
 
     if reflections:
-        wigner_c2 = cm.seismic_r((wigner[0:steps, 0:steps]+wigner_max) /
-                                 (2*wigner_max))  # bottom
-        wigner_c3 = cm.seismic_r((wigner[0:steps, 0:steps]+wigner_max) /
-                                 (2*wigner_max))  # side
-        wigner_c4 = cm.seismic_r((wigner[0:steps, 0:steps]+wigner_max) /
-                                 (2*wigner_max))  # back
+        wigner_c2 = cm.seismic_r((wigner[0:steps, 0:steps] + wigner_max) /
+                                 (2 * wigner_max))  # bottom
+        wigner_c3 = cm.seismic_r((wigner[0:steps, 0:steps] + wigner_max) /
+                                 (2 * wigner_max))  # side
+        wigner_c4 = cm.seismic_r((wigner[0:steps, 0:steps] + wigner_max) /
+                                 (2 * wigner_max))  # back
 
         # Plot bottom reflection:
         ax.plot_surface(x[0:steps, 0:steps], y[0:steps, 0:steps],
-                        -1.5*np.ones((steps, steps)), facecolors=wigner_c2,
-                        vmin=-wigner_max, vmax=wigner_max, rcount=steps/2,
-                        ccount=steps/2, linewidth=0, zorder=0.5,
+                        -1.5 * np.ones((steps, steps)), facecolors=wigner_c2,
+                        vmin=-wigner_max, vmax=wigner_max, rcount=steps / 2,
+                        ccount=steps / 2, linewidth=0, zorder=0.5,
                         antialiased=False)
 
         # Plot side reflection:
-        ax.plot_surface(-1.5*np.ones((steps, steps)), y[0:steps, 0:steps],
+        ax.plot_surface(-1.5 * np.ones((steps, steps)), y[0:steps, 0:steps],
                         z[0:steps, 0:steps], facecolors=wigner_c3,
-                        vmin=-wigner_max, vmax=wigner_max, rcount=steps/2,
-                        ccount=steps/2, linewidth=0, zorder=0.5,
+                        vmin=-wigner_max, vmax=wigner_max, rcount=steps / 2,
+                        ccount=steps / 2, linewidth=0, zorder=0.5,
                         antialiased=False)
 
         # Plot back reflection:
-        ax.plot_surface(x[0:steps, 0:steps], 1.5*np.ones((steps, steps)),
+        ax.plot_surface(x[0:steps, 0:steps], 1.5 * np.ones((steps, steps)),
                         z[0:steps, 0:steps], facecolors=wigner_c4,
-                        vmin=-wigner_max, vmax=wigner_max, rcount=steps/2,
-                        ccount=steps/2, linewidth=0, zorder=0.5,
+                        vmin=-wigner_max, vmax=wigner_max, rcount=steps / 2,
+                        ccount=steps / 2, linewidth=0, zorder=0.5,
                         antialiased=False)
 
     # Create colourbar:
@@ -161,7 +161,7 @@ def _blob(x, y, w, w_max, area, cmap=None, ax=None):
         handle = plt
 
     handle.fill(xcorners, ycorners,
-             color=cmap(int((w + w_max) * 256 / (2 * w_max))))
+                color=cmap(int((w + w_max) * 256 / (2 * w_max))))
 
 
 def _cb_labels(left_dims):
@@ -1322,7 +1322,7 @@ def plot_qubism(ket, theme='light', how='pairs',
     Allows to see entanglement between first 2*k particles and the rest.
 
     More information:
-        
+
         J. Rodriguez-Laguna, P. Migdal,
         M. Ibanez Berganza, M. Lewenstein, G. Sierra,
         "Qubism: self-similar visualization of many-body wavefunctions",
@@ -1341,7 +1341,7 @@ def plot_qubism(ket, theme='light', how='pairs',
     how : 'pairs' (default), 'pairs_skewed' or 'before_after'
         Type of Qubism plotting.
         Options:
-            
+
             'pairs' - typical coordinates,
             'pairs_skewed' - for ferromagnetic/antriferromagnetic plots,
             'before_after' - related to Schmidt plot (see also: plot_schmidt).
@@ -1558,10 +1558,10 @@ def plot_schmidt(ket, splitting=None,
     ticks_y = [size_y / quadrants_y * (quadrants_y - i - 0.5)
                for i in range(quadrants_y)]
 
-    labels_x = [_sequence_to_latex(_index_to_sequence(i*size_x // quadrants_x,
+    labels_x = [_sequence_to_latex(_index_to_sequence(i * size_x // quadrants_x,
                                                       dim_list=dim_list_x))
                 for i in range(quadrants_x)]
-    labels_y = [_sequence_to_latex(_index_to_sequence(i*size_y // quadrants_y,
+    labels_y = [_sequence_to_latex(_index_to_sequence(i * size_y // quadrants_y,
                                                       dim_list=dim_list_y))
                 for i in range(quadrants_y)]
 

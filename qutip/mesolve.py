@@ -56,6 +56,8 @@ from qutip.cy.openmp.utilities import check_use_openmp
 # pass on to wavefunction solver or master equation solver depending on whether
 # any collapse operators were given.
 #
+
+
 def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
             progress_bar=None, _safe_mode=True):
     """
@@ -212,7 +214,7 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
     # TODO: e_ops for superoperator
     if issuper(rho0) and not e_ops == []:
         raise TypeError("Must have e_ops = [] when initial condition rho0 is" +
-                " a superoperator.")
+                        " a superoperator.")
 
     if options is None:
         options = Options()
@@ -235,11 +237,11 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
                    or (isinstance(H, Qobj) and issuper(H))
                    or (isinstance(H, QobjEvo) and issuper(H.cte))
                    or (isinstance(H, list) and isinstance(H[0], Qobj) and
-                            issuper(H[0]))
+                       issuper(H[0]))
                    or (not isinstance(H, (Qobj, QobjEvo)) and callable(H) and
-                            not options.rhs_with_state and issuper(H(0., args)))
+                       not options.rhs_with_state and issuper(H(0., args)))
                    or (not isinstance(H, (Qobj, QobjEvo)) and callable(H) and
-                            options.rhs_with_state))
+                       options.rhs_with_state))
 
     if not use_mesolve:
         return sesolve(H, rho0, tlist, e_ops=e_ops, args=args, options=options,
@@ -422,18 +424,21 @@ def _Lfunc_set(HS, rho0, args, e_ops, opt):
 
     return func, (L_func, args)
 
+
 def _ode_rho_func_td(t, y, L_func, args):
     L = L_func(t, y, args)
     return spmv(L, y)
 
+
 def _ode_super_func_td(t, y, L_func, args):
     L = L_func(t, y, args)
     ym = vec2mat(y)
-    return (L*ym).ravel('F')
+    return (L * ym).ravel('F')
 
 # -----------------------------------------------------------------------------
 # Generic ODE solver: shared code among the various ODE solver
 # -----------------------------------------------------------------------------
+
 
 def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
                        progress_bar, dims=None):

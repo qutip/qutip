@@ -67,14 +67,14 @@ if eigh_unsafe:
         val = val[idx]
         vec = vec[:, idx]
         if eigvals:
-            val = val[eigvals[0]:eigvals[1]+1]
-            vec = vec[:, eigvals[0]:eigvals[1]+1]
+            val = val[eigvals[0]:eigvals[1] + 1]
+            vec = vec[:, eigvals[0]:eigvals[1] + 1]
         same_eigv = 0
         for i in range(1, len(val)):
-            if abs(val[i] - val[i-1]) < 1e-12:
+            if abs(val[i] - val[i - 1]) < 1e-12:
                 same_eigv += 1
                 for j in range(same_eigv):
-                    _orthogonalize(vec[:, i], vec[:, i-j-1])
+                    _orthogonalize(vec[:, i], vec[:, i - j - 1])
             else:
                 same_eigv = 0
         return val, vec
@@ -83,7 +83,7 @@ if eigh_unsafe:
         val = la.eigvals(a)
         val = np.sort(np.real(val))
         if eigvals:
-            return val[eigvals[0]:eigvals[1]+1]
+            return val[eigvals[0]:eigvals[1] + 1]
         return val
 else:
     eigh = la.eigh
@@ -109,7 +109,7 @@ def sp_inf_norm(A):
     Infinity norm for sparse matrix
     """
     return zcsr_inf_norm(A.data, A.indices,
-                A.indptr, A.shape[0], A.shape[1])
+                         A.indptr, A.shape[0], A.shape[1])
 
 
 def sp_L2_norm(A):
@@ -137,7 +137,7 @@ def sp_one_norm(A):
     One norm for sparse matrix
     """
     return zcsr_one_norm(A.data, A.indices,
-                A.indptr, A.shape[0], A.shape[1])
+                         A.indptr, A.shape[0], A.shape[1])
 
 
 def sp_reshape(A, shape, format='csr'):
@@ -423,14 +423,13 @@ def sp_expm(A, sparse=False):
     """
     if _isdiag(A.indices, A.indptr, A.shape[0]):
         A = sp.diags(np.exp(A.diagonal()), shape=A.shape,
-                    format='csr', dtype=complex)
+                     format='csr', dtype=complex)
         return A
     if sparse:
         E = spla.expm(A.tocsc())
     else:
         E = spla.expm(A.toarray())
     return sp.csr_matrix(E)
-
 
 
 def sp_permute(A, rperm=(), cperm=(), safe=True):
@@ -605,7 +604,7 @@ def sp_profile(A):
     else:
         raise TypeError('Input sparse matrix must be in CSR or CSC format.')
 
-    return up+lp, lp, up
+    return up + lp, lp, up
 
 
 def sp_isdiag(A):

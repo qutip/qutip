@@ -282,8 +282,8 @@ def weighted_bipartite_matching(A, perm_type='row'):
     if perm_type == 'column':
         A = A.transpose().tocsc()
     perm = _weighted_bipartite_matching(
-                    np.asarray(np.abs(A.data), dtype=float),
-                    A.indices, A.indptr, nrows)
+        np.asarray(np.abs(A.data), dtype=float),
+        A.indices, A.indptr, nrows)
     if np.any(perm == -1):
         raise Exception('Possibly singular input matrix.')
     return perm

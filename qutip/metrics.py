@@ -149,10 +149,10 @@ def average_gate_fidelity(oper, target=None):
 
     if target is None:
         return (d + np.sum([np.abs(A_k.tr())**2
-                        for A_k in kraus_form])) / (d**2 + d)
+                            for A_k in kraus_form])) / (d**2 + d)
     else:
         return (d + np.sum([np.abs((A_k * target.dag()).tr())**2
-                        for A_k in kraus_form])) / (d**2 + d)
+                            for A_k in kraus_form])) / (d**2 + d)
 
 
 def tracedist(A, B, sparse=False, tol=0):
@@ -333,13 +333,13 @@ def hellinger_dist(A, B, sparse=False, tol=0):
     else:
         sqrtmB = B.sqrtm(sparse=sparse, tol=tol)
 
-    product = sqrtmA*sqrtmB
+    product = sqrtmA * sqrtmB
 
     eigs = sp_eigs(product.data,
                    isherm=product.isherm, vecs=False, sparse=sparse, tol=tol)
-    #np.maximum() is to avoid nan appearing sometimes due to numerical
-    #instabilities causing np.sum(eigs) slightly (~1e-8) larger than 1
-    #when hellinger_dist(A, B) is called for A=B
+    # np.maximum() is to avoid nan appearing sometimes due to numerical
+    # instabilities causing np.sum(eigs) slightly (~1e-8) larger than 1
+    # when hellinger_dist(A, B) is called for A=B
     return np.sqrt(2.0 * np.maximum(0., (1.0 - np.real(np.sum(eigs)))))
 
 
@@ -498,5 +498,5 @@ def unitarity(oper):
         Unitarity of ``oper``.
     """
     Eu = _super_to_superpauli(oper).full()[1:, 1:]
-    #return np.real(np.trace(np.dot(Eu, Eu.conj().T))) / len(Eu)
+    # return np.real(np.trace(np.dot(Eu, Eu.conj().T))) / len(Eu)
     return np.linalg.norm(Eu, 'fro')**2 / len(Eu)

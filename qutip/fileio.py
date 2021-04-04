@@ -278,7 +278,8 @@ def qload(name):
     """
     fileObject = open(name + '.qu', 'rb')  # open the file for reading
     if sys.version_info >= (3, 0):
-        out = pickle.load(fileObject, encoding='latin1')  # return the object from the file
+        # return the object from the file
+        out = pickle.load(fileObject, encoding='latin1')
     else:
         out = pickle.load(fileObject)
     if isinstance(out, Qobj):  # for quantum objects

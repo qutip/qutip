@@ -151,7 +151,7 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
             c = c_.data
             if chi:
                 data = data + np.exp(1j * chi[idx]) * \
-                                zcsr_kron(c.conj(), c)
+                    zcsr_kron(c.conj(), c)
             else:
                 data = data + zcsr_kron(c.conj(), c)
             cdc = cd * c

@@ -35,6 +35,7 @@ This module contains functions for generating Qobj representation of a variety
 of commonly occuring quantum operators.
 """
 
+from qutip.tensor import tensor
 __all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
            'spin_J_set', 'sigmap', 'sigmam', 'sigmax', 'sigmay', 'sigmaz',
            'destroy', 'create', 'qeye', 'identity', 'position', 'momentum',
@@ -52,6 +53,8 @@ from qutip.dimensions import flatten
 #
 # Spin operators
 #
+
+
 def jmat(j, *args):
     """Higher-order spin operators:
 
@@ -129,29 +132,29 @@ def _jplus(j):
     data = (np.sqrt(j * (j + 1.0) - (m + 1.0) * m))[1:]
     N = m.shape[0]
     ind = np.arange(1, N, dtype=np.int32)
-    ptr = np.array(list(range(N-1))+[N-1]*2, dtype=np.int32)
-    ptr[-1] = N-1
-    return fast_csr_matrix((data,ind,ptr), shape=(N,N))
+    ptr = np.array(list(range(N - 1)) + [N - 1] * 2, dtype=np.int32)
+    ptr[-1] = N - 1
+    return fast_csr_matrix((data, ind, ptr), shape=(N, N))
 
 
 def _jz(j):
     """
     Internal functions for generating the data representing the J-z operator.
     """
-    N = int(2*j+1)
-    data = np.array([j-k for k in range(N) if (j-k)!=0], dtype=complex)
+    N = int(2 * j + 1)
+    data = np.array([j - k for k in range(N) if (j - k) != 0], dtype=complex)
     # Even shaped matrix
     if (N % 2 == 0):
         ind = np.arange(N, dtype=np.int32)
-        ptr = np.arange(N+1,dtype=np.int32)
+        ptr = np.arange(N + 1, dtype=np.int32)
         ptr[-1] = N
     # Odd shaped matrix
     else:
         j = int(j)
-        ind = np.array(list(range(j))+list(range(j+1,N)), dtype=np.int32)
-        ptr = np.array(list(range(j+1))+list(range(j,N)), dtype=np.int32)
-        ptr[-1] = N-1
-    return fast_csr_matrix((data,ind,ptr), shape=(N,N))
+        ind = np.array(list(range(j)) + list(range(j + 1, N)), dtype=np.int32)
+        ptr = np.array(list(range(j + 1)) + list(range(j, N)), dtype=np.int32)
+        ptr[-1] = N - 1
+    return fast_csr_matrix((data, ind, ptr), shape=(N, N))
 
 
 #
@@ -377,11 +380,11 @@ shape = [4, 4], type = oper, isHerm = False
     '''
     if not isinstance(N, (int, np.integer)):  # raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
-    data = np.sqrt(np.arange(offset+1, N+offset, dtype=complex))
-    ind = np.arange(1,N, dtype=np.int32)
-    ptr = np.arange(N+1, dtype=np.int32)
-    ptr[-1] = N-1
-    return Qobj(fast_csr_matrix((data,ind,ptr),shape=(N,N)), isherm=False)
+    data = np.sqrt(np.arange(offset + 1, N + offset, dtype=complex))
+    ind = np.arange(1, N, dtype=np.int32)
+    ptr = np.arange(N + 1, dtype=np.int32)
+    ptr[-1] = N - 1
+    return Qobj(fast_csr_matrix((data, ind, ptr), shape=(N, N)), isherm=False)
 
 
 #
@@ -614,17 +617,17 @@ shape = [4, 4], type = oper, isHerm = True
 
     """
     if offset == 0:
-        data = np.arange(1,N, dtype=complex)
-        ind = np.arange(1,N, dtype=np.int32)
-        ptr = np.array([0]+list(range(0,N)), dtype=np.int32)
-        ptr[-1] = N-1
+        data = np.arange(1, N, dtype=complex)
+        ind = np.arange(1, N, dtype=np.int32)
+        ptr = np.array([0] + list(range(0, N)), dtype=np.int32)
+        ptr[-1] = N - 1
     else:
         data = np.arange(offset, offset + N, dtype=complex)
         ind = np.arange(N, dtype=np.int32)
-        ptr = np.arange(N+1,dtype=np.int32)
+        ptr = np.arange(N + 1, dtype=np.int32)
         ptr[-1] = N
 
-    return Qobj(fast_csr_matrix((data,ind,ptr), shape=(N,N)), isherm=True)
+    return Qobj(fast_csr_matrix((data, ind, ptr), shape=(N, N)), isherm=True)
 
 
 def squeeze(N, z, offset=0):
@@ -935,8 +938,7 @@ def enr_identity(dims, excitations):
     return Qobj(data, dims=[dims, dims])
 
 
-
-def charge(Nmax, Nmin=None, frac = 1):
+def charge(Nmax, Nmin=None, frac=1):
     """
     Generate the diagonal charge operator over charge states
     from Nmin to Nmax.
@@ -964,12 +966,11 @@ def charge(Nmax, Nmin=None, frac = 1):
     """
     if Nmin is None:
         Nmin = -Nmax
-    diag = np.arange(Nmin, Nmax+1, dtype=float)
+    diag = np.arange(Nmin, Nmax + 1, dtype=float)
     if frac != 1:
         diag *= frac
     C = sp.diags(diag, 0, format='csr', dtype=complex)
     return Qobj(C, isherm=True)
-
 
 
 def tunneling(N, m=1):
@@ -994,13 +995,11 @@ def tunneling(N, m=1):
     .. versionadded:: 3.2
 
     """
-    diags = [np.ones(N-m,dtype=int),np.ones(N-m,dtype=int)]
-    T = sp.diags(diags,[m,-m],format='csr', dtype=complex)
+    diags = [np.ones(N - m, dtype=int), np.ones(N - m, dtype=int)]
+    T = sp.diags(diags, [m, -m], format='csr', dtype=complex)
     return Qobj(T, isherm=True)
-
 
 
 # Break circular dependencies by a trailing import.
 # Note that we use a relative import here to deal with that
 # qutip.tensor is the *function* tensor, not the module.
-from qutip.tensor import tensor

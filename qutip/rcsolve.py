@@ -91,12 +91,12 @@ def rcsolve(Hsys, psi0, tlist, e_ops, Q, wc, alpha, N, w_th, sparse=False,
 
     dot_energy, dot_state = Hsys.eigenstates(sparse=sparse)
     deltaE = dot_energy[1] - dot_energy[0]
-    if (w_th < deltaE/2):
+    if (w_th < deltaE / 2):
         warnings.warn("Given w_th might not provide accurate results")
     gamma = deltaE / (2 * np.pi * wc)
     wa = 2 * np.pi * gamma * wc  # reaction coordinate frequency
     g = np.sqrt(np.pi * wa * alpha / 2.0)  # reaction coordinate coupling
-    nb = (1 / (np.exp(wa/w_th) - 1))
+    nb = (1 / (np.exp(wa / w_th) - 1))
 
     # Reaction coordinate hamiltonian/operators
 
@@ -129,7 +129,7 @@ def rcsolve(Hsys, psi0, tlist, e_ops, Q, wc, alpha, N, w_th, sparse=False,
             delE = (all_energy[j] - all_energy[k])
             if abs(A) > 0.0:
                 if abs(delE) > 0.0:
-                    X = (0.5 * np.pi * gamma*(all_energy[j] - all_energy[k])
+                    X = (0.5 * np.pi * gamma * (all_energy[j] - all_energy[k])
                          * (np.cosh((all_energy[j] - all_energy[k]) /
                             (2 * w_th))
                          / (np.sinh((all_energy[j] - all_energy[k]) /

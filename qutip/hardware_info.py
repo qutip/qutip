@@ -65,7 +65,7 @@ def _linux_hardware_info():
     with open("/proc/cpuinfo") as f:
         for l in [l.split(':') for l in f.readlines()]:
             if (l[0].strip() == "physical id"):
-                sockets = np.maximum(sockets,int(l[1].strip())+1)
+                sockets = np.maximum(sockets, int(l[1].strip()) + 1)
             if (l[0].strip() == "cpu cores"):
                 cores_per_socket = int(l[1].strip())
             if (l[0].strip() == "cpu MHz"):

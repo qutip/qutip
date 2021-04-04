@@ -70,6 +70,7 @@ def rhs_clear():
     if "mcsolve" in solver_safe:
         del solver_safe["mcsolve"]
 
+
 def rhs_generate(H, c_ops, args={}, options=Options(), name=None,
                  cleanup=True):
     """
@@ -228,7 +229,7 @@ def rhs_generate(H, c_ops, args={}, options=Options(), name=None,
     if cleanup:
         try:
             os.remove(config.tdname + ".pyx")
-        except:
+        except BaseException:
             pass
 
 
@@ -314,20 +315,20 @@ def _td_format_check(H, c_ops, solver='me'):
     # check to see if Cython is installed and version is high enough.
     if len(h_str) > 0 or len(c_str) > 0:
         pass
-        #try:
+        # try:
         #    import Cython
-        #except:
+        # except:
         #    raise Exception(
         #        "Unable to load Cython. Use Python function format.")
-        #else:
+        # else:
         #    if Cython.__version__ < '0.21':
         #        raise Exception("Cython version (%s) is too old. Upgrade to" +
         #                        " version 0.21+" % Cython.__version__)
 
     # If only time-dependence is in Objects, then prefer string based format
     if (len(h_func) + len(c_func) + len(h_str) + len(c_str)) == 0:
-         h_str += h_obj #Does nothing if not objects
-         c_str += c_obj
+        h_str += h_obj  # Does nothing if not objects
+        c_str += c_obj
     else:
         # Combine Hamiltonian objects
         if len(h_func) > 0:
@@ -335,7 +336,7 @@ def _td_format_check(H, c_ops, solver='me'):
         elif len(h_str) > 0:
             h_str += h_obj
 
-        #Combine collapse objects
+        # Combine collapse objects
         if len(c_func) > 0:
             c_func += c_obj
         elif len(c_str) > 0:

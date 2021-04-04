@@ -129,6 +129,7 @@ class Bloch():
         Positions of +z and -z labels respectively.
 
     """
+
     def __init__(self, fig=None, axes=None, view=None, figsize=None,
                  background=False):
 
@@ -683,10 +684,10 @@ class Bloch():
         if name is None:
             if dirc:
                 complete_path = os.getcwd() + "/" + str(dirc) + '/bloch_' \
-                                + str(self.savenum) + '.' + format
+                    + str(self.savenum) + '.' + format
             else:
                 complete_path = os.getcwd() + '/bloch_' + \
-                                str(self.savenum) + '.' + format
+                    str(self.savenum) + '.' + format
         else:
             complete_path = name
 

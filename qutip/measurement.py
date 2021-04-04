@@ -136,7 +136,7 @@ def _measurement_statistics_povm_dm(density_mat, ops):
         p = st.tr()
         probabilities.append(p)
         if p != 0:
-            collapsed_states.append(st/p)
+            collapsed_states.append(st / p)
         else:
             collapsed_states.append(None)
 
