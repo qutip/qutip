@@ -75,8 +75,8 @@ def test_correlation_solver_equivalence(solver, start, legacy):
     # broken, whereas if only one fails, then it implies that only that one is
     # broken.  We test that all solvers are equivalent by transitive equality
     # to the "me" solver.
-    base = correlation(H, start, None, times, c_ops, x, x, solver="me")
-    cmp = correlation(H, start, None, times, c_ops, x, x, solver=solver)
+    base = correlation(H, start, None, times, c_ops, a, a.dag(), solver="me")
+    cmp = correlation(H, start, None, times, c_ops, a, a.dag(), solver=solver)
     np.testing.assert_allclose(base, cmp, atol=tol)
 
 
