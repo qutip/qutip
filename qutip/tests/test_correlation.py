@@ -252,3 +252,39 @@ def test_hamiltonian_order_unimportant():
     backwards = qutip.correlation_2op_2t(H[::-1], start, times, times, [sp],
                                          sp.dag(), sp)
     np.testing.assert_allclose(forwards, backwards, atol=1e-6)
+
+@pytest.mark.filterwarnings("ignore::FutureWarning")
+@pytest.mark.parametrize(["solver", "start", "legacy"], [
+    pytest.param("me", _equivalence_coherent, False, id="me"),
+    # pytest.param("es", _equivalence_coherent, True, id="es-legacy"),
+    # pytest.param("es", None, False, id="es-steady state"),
+    # pytest.param("es", None, True, id="es-steady state-legacy"),
+    # pytest.param("mc", _equivalence_fock, False, id="mc",
+                 # marks=pytest.mark.slow),
+])
+def test_correlation_2op_1t(solver, start, legacy):
+    """This test compares the solvers solution to an analytical solution."""
+    w = 1
+    gamma = 2
+
+    # Set up some operators
+    a = qutip.destroy(_equivalence_dimension)
+    x = (a + a.dag())/np.sqrt(2)
+
+    n = qutip.num(_equivalence_dimension)
+    H = w * n
+
+    psi0 = start
+    n_0 = qutip.expect(n, psi0)
+
+    c_ops = [np.sqrt(gamma) * a]
+
+    times = np.linspace(0, 1, 100)
+
+    base = np.exp(-1j*w*times - gamma*times/2)*(n_0+1)
+
+    cmp = qutip.correlation_2op_1t(H, psi0, times, c_ops, a, a.dag(), solver=solver)
+
+    np.testing.assert_allclose(base,cmp, atol=1e-6)
+
+
