@@ -11,7 +11,7 @@ import warnings
 
 # Required third-party imports, must be specified in pyproject.toml.
 from setuptools import setup, Extension
-from distutils import sysconfig
+import distutils.sysconfig
 import numpy as np
 from Cython.Build import cythonize
 from Cython.Distutils import build_ext
@@ -75,14 +75,14 @@ def _determine_compilation_options(options):
     # Remove -Wstrict-prototypes from the CFLAGS variable that the Python build
     # process uses in addition to user-specified ones; the flag is not valid
     # for C++ compiles, but CFLAGS gets appended to those compiles anyway.
-    config = sysconfig.get_config_vars()
+    config = distutils.sysconfig.get_config_vars()
     if "CFLAGS" in config:
         config["CFLAGS"] = config["CFLAGS"].replace("-Wstrict-prototypes", "")
     options['cflags'] = []
     options['ldflags'] = []
     options['include'] = [np.get_include()]
     if (
-        sys.platform == 'win32'
+        sysconfig.get_platform().startswith("win")
         and os.environ.get('MSYSTEM') is None
     ):
         # Visual Studio
@@ -92,7 +92,7 @@ def _determine_compilation_options(options):
     else:
         # Everything else
         options['cflags'].extend(['-w', '-O3', '-funroll-loops'])
-    if sys.platform == 'darwin':
+    if sysconfig.get_platform().startswith("macos"):
         # These are needed for compiling on OSX 10.14+
         options['cflags'].append('-mmacosx-version-min=10.9')
         options['ldflags'].append('-mmacosx-version-min=10.9')
