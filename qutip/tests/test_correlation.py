@@ -254,16 +254,17 @@ def test_hamiltonian_order_unimportant():
     np.testing.assert_allclose(forwards, backwards, atol=1e-6)
 
 @pytest.mark.filterwarnings("ignore::FutureWarning")
-@pytest.mark.parametrize(["solver", "start", "legacy", "op"], [
-    pytest.param("me", _equivalence_coherent, False, "x", id="me"),
-    pytest.param("me", _equivalence_coherent, False, "a", id="me_a"),
+@pytest.mark.parametrize(["solver", "start", "legacy", "e_op"], [
+    pytest.param("me", _equivalence_coherent, False, "hermitian", id="me"),
+    pytest.param("me", _equivalence_coherent, False, "non-hermitian"),
+    pytest.param("me", None, False, "non-hermitian"),
     # pytest.param("es", _equivalence_coherent, True, id="es-legacy"),
     # pytest.param("es", None, False, id="es-steady state"),
     # pytest.param("es", None, True, id="es-steady state-legacy"),
     # pytest.param("mc", _equivalence_fock, False, id="mc",
                  # marks=pytest.mark.slow),
 ])
-def test_correlation_2op_1t(solver, start, legacy, op):
+def test_correlation_2op_1t(solver, start, legacy, e_op):
     """This test compares the solvers solution to an analytical solution."""
     w = 1
     gamma = 2
@@ -274,15 +275,16 @@ def test_correlation_2op_1t(solver, start, legacy, op):
 
     H = w * a.dag() * a
 
-    psi0 = start
 
-    a_op = a if op=='a' else x
-    b_op = a.dag() if op=='a' else x
+    a_op = x if e_op=="hermitian" else a
+    b_op = x if e_op=="hermitian" else a.dag()
     c_ops = [np.sqrt(gamma) * a]
+
+    psi0 = start if start else qutip.steadystate(H,c_ops)
 
     times = np.linspace(0, 1, 100)
 
-    if op == 'x':
+    if e_op == "hermitian":
         # Analitycal solution for x,x as operators.
         base = 0
         base += qutip.expect(a*x, psi0)*np.exp(-1j*w*times - gamma*times/2)
@@ -294,6 +296,6 @@ def test_correlation_2op_1t(solver, start, legacy, op):
 
     cmp = qutip.correlation_2op_1t(H, psi0, times, c_ops, a_op, b_op, solver=solver)
 
-    np.testing.assert_allclose(base,cmp, atol=1e-6)
+    np.testing.assert_allclose(base,cmp, atol=1e-5)
 
 
