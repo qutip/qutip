@@ -273,7 +273,6 @@ args_slow = list(product(solver_list, start_list, e_op_list, w_list, gamma_list)
 args += [pytest.param(*arg, marks = pytest.mark.slow) for arg in args_slow]
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning")
 @pytest.mark.parametrize(["solver", "start", "e_op", "w", "gamma"], args)
 def test_correlation_2op_1t(solver, start, e_op, w, gamma):
     """This test compares the output correlation_2op_1 solution to an analytical
