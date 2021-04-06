@@ -80,7 +80,7 @@ except ImportError:
 dnorm_test = pytest.mark.skipif((cvxpy is None) or (cvxopt is None), reason='requires cvxpy and cvxopt')
 
 #FIXME: Try to resolve the average_gate_fidelity issues on MACOS
-avg_gate_fidelity_test = unittest.skipIf(platform.system().startswith("Darwin"),
+avg_gate_fidelity_test = pytest.mark.skipIf(platform.system().startswith("Darwin"),
                 "average_gate_fidelity tests were failing on MacOS "
                 "as of July 2019.")
 
@@ -385,6 +385,7 @@ def test_unitarity_bounded(nq=3, n_cases=10):
         yield case, rand_super_bcsz(2**nq)
 
 
+
 def overrotation(x):
     return to_super((1j * np.pi * x * sigmax() / 2).expm())
 
@@ -518,7 +519,7 @@ class TestDiamondMetrics:
     @dnorm_test
     @pytest.mark.parametrize(["dim"], [
         pytest.param(2, id="dim2"),
-        pytest.param(2, id="dim3"),
+        pytest.param(3, id="dim3"),
     ])
     def test_dnorm_qubit_scalar(self, dim):
         """
