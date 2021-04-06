@@ -269,7 +269,12 @@ def test_hamiltonian_order_unimportant():
                          ids=["hermitian", "nonhermitian"])
 @pytest.mark.parametrize("w", [1, 2])
 @pytest.mark.parametrize("gamma", [1, 10])
-def test_correlation_2op_1t(solver, state, is_e_op_hermitian, w, gamma):
+def test_correlation_2op_1t_known_cases(solver,
+                                        state,
+                                        is_e_op_hermitian,
+                                        w,
+                                        gamma,
+                                       ):
     """This test compares the output correlation_2op_1 solution to an analytical
     solution."""
 
