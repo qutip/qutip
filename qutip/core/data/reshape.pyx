@@ -1,7 +1,6 @@
 #cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False, cdivision=True
 
-from libc.stdlib cimport div, div_t
 from libc.string cimport memcpy, memset
 
 cimport cython
@@ -33,7 +32,6 @@ cpdef CSR reshape_csr(CSR matrix, idxint n_rows_out, idxint n_cols_out):
     cdef size_t ptr, row_in, row_out=0, loc, cur=0
     cdef size_t n_rows_in=matrix.shape[0], n_cols_in=matrix.shape[1]
     cdef idxint nnz = csr.nnz(matrix)
-    cdef div_t res
     cdef CSR out
     _reshape_check_input(matrix, n_rows_out, n_cols_out)
     out = csr.empty(n_rows_out, n_cols_out, nnz)
@@ -45,23 +43,17 @@ cpdef CSR reshape_csr(CSR matrix, idxint n_rows_out, idxint n_cols_out):
         for row_in in range(n_rows_in):
             for ptr in range(matrix.row_index[row_in], matrix.row_index[row_in+1]):
                 loc = cur + matrix.col_index[ptr]
-                # This stdlib.div method is a little bit faster when working
-                # with very dense large matrices, and doesn't make a difference
-                # for smaller ones.
-                res = div(loc, n_cols_out)
-                out.row_index[res.quot + 1] += 1
-                out.col_index[ptr] = res.rem
+                out.row_index[loc // n_cols_out + 1] += 1
+                out.col_index[ptr] = loc % n_cols_out
             cur += n_cols_in
         for row_out in range(n_rows_out):
             out.row_index[row_out + 1] += out.row_index[row_out]
     return out
 
 
-# We have to use a signed integer type because the standard library doesn't
-# provide overloads for unsigned types.
 cdef inline idxint _reshape_dense_reindex(idxint idx, idxint size):
-    cdef div_t res = div(idx, size)
-    return res.quot + res.rem
+    return (idx // size) + (idx % size)
+
 
 cpdef Dense reshape_dense(Dense matrix, idxint n_rows_out, idxint n_cols_out):
     _reshape_check_input(matrix, n_rows_out, n_cols_out)
