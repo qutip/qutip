@@ -255,26 +255,21 @@ def test_hamiltonian_order_unimportant():
     np.testing.assert_allclose(forwards, backwards, atol=1e-6)
 
 
-# Paramters for the test
-solver_list = ['me', 'es']
-start_list = [ 'coherent_dm', 'fock', None]
-e_op_list = ['non-hermitian', 'hermitian']
-w_list = [1,2] # Fast and slow oscillations
-gamma_list = [1,10] # Small and high damping
-args = list(product(solver_list, start_list, e_op_list, w_list, gamma_list))
-
-# We want to mark mc as slow
-solver_list = ['mc']
-start_list = [ 'fock']
-e_op_list = ['non-hermitian', 'hermitian']
-w_list = [1,2] # Fast and slow oscillations
-gamma_list = [1,10] # Small and high damping
-args_slow = list(product(solver_list, start_list, e_op_list, w_list, gamma_list))
-args += [pytest.param(*arg, marks = pytest.mark.slow) for arg in args_slow]
-
-
-@pytest.mark.parametrize(["solver", "start", "e_op", "w", "gamma"], args)
-def test_correlation_2op_1t(solver, start, e_op, w, gamma):
+@pytest.mark.parametrize(['solver', 'state'], [
+    pytest.param('me', _equivalence_fock, id="me-ket"),
+    pytest.param('me', _equivalence_coherent, id="me-dm"),
+    pytest.param('me', None, id="me-steady"),
+    pytest.param('es', _equivalence_fock, id="es-ket"),
+    pytest.param('es', _equivalence_coherent, id="es-dm"),
+    pytest.param('es', None, id="es-steady"),
+    pytest.param('mc', _equivalence_fock, id="mc-ket",
+                 marks=[pytest.mark.slow]),
+])
+@pytest.mark.parametrize("is_e_op_hermitian", [True, False],
+                         ids=["hermitian", "nonhermitian"])
+@pytest.mark.parametrize("w", [1, 2])
+@pytest.mark.parametrize("gamma", [1, 10])
+def test_correlation_2op_1t(solver, state, is_e_op_hermitian, w, gamma):
     """This test compares the output correlation_2op_1 solution to an analytical
     solution."""
 
@@ -283,22 +278,15 @@ def test_correlation_2op_1t(solver, start, e_op, w, gamma):
 
     H = w * a.dag() * a
 
-    a_op = x if e_op=="hermitian" else a
-    b_op = x if e_op=="hermitian" else a.dag()
+    a_op = x if is_e_op_hermitian else a
+    b_op = x if is_e_op_hermitian else a.dag()
     c_ops = [np.sqrt(gamma) * a]
-
-    if start=='fock':
-        psi0 = _equivalence_fock
-    elif start=='coherent_dm':
-        psi0 = _equivalence_coherent
-    else:
-        psi0 = start
 
     times = np.linspace(0, 1, 30)
 
-    # Handle the case psi0==None when computing expt values
-    rho0 = psi0 if psi0 else qutip.steadystate(H, c_ops)
-    if e_op == "hermitian":
+    # Handle the case state==None when computing expt values
+    rho0 = state if state else qutip.steadystate(H, c_ops)
+    if is_e_op_hermitian:
         # Analitycal solution for x,x as operators.
         base = 0
         base += qutip.expect(a*x, rho0)*np.exp(-1j*w*times - gamma*times/2)
@@ -308,8 +296,8 @@ def test_correlation_2op_1t(solver, start, e_op, w, gamma):
         # Analitycal solution for a,adag as operators.
         base = qutip.expect(a*a.dag(), rho0)*np.exp(-1j*w*times - gamma*times/2)
 
-    cmp = qutip.correlation_2op_1t(H, psi0, times, c_ops, a_op, b_op, solver=solver)
+    cmp = qutip.correlation_2op_1t(H, state, times, c_ops, a_op, b_op, solver=solver)
 
-    np.testing.assert_allclose(base,cmp, atol=0.25 if solver == 'mc' else 2e-5)
+    np.testing.assert_allclose(base, cmp, atol=0.25 if solver == 'mc' else 2e-5)
 
 
