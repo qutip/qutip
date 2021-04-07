@@ -169,103 +169,76 @@ class TestSuperopReps:
         assert (len(sixteen_kraus_ops) == 16 and len(one_kraus_op) == 1)
         assert ((one_kraus_op[0] - kraus).norm() < tol)
 
-    # def test_SuperPreservesSelf(self):
-    #     """
-    #     Superoperator: to_super(q) returns q if q is already a
-    #     supermatrix.
-    #     """
-    #     superop = rand_super()
-    #     assert_(superop is to_super(superop))
+    def test_SuperPreservesSelf(self, superoperator):
+        """
+        Superoperator: to_super(q) returns q if q is already a
+        supermatrix.
+        """
 
-    # def test_ChoiPreservesSelf(self):
-    #     """
-    #     Superoperator: to_choi(q) returns q if q is already Choi.
-    #     """
-    #     superop = rand_super()
-    #     choi = to_choi(superop)
-    #     assert_(choi is to_choi(choi))
+        assert (superoperator is to_super(superoperator))
 
-    # def test_random_iscptp(self):
-    #     """
-    #     Superoperator: Randomly generated superoperators are
-    #     correctly reported as CPTP and HP.
-    #     """
-    #     superop = rand_super()
-    #     assert_(superop.iscptp)
-    #     assert_(superop.ishp)
+    def test_ChoiPreservesSelf(self, superoperator):
+        """
+        Superoperator: to_choi(q) returns q if q is already Choi.
+        """
+        choi = to_choi(superoperator)
+        assert_(choi is to_choi(choi))
 
-    # def test_known_iscptp(self):
-    #     """
-    #     Superoperator: ishp, iscp, istp and iscptp known cases.
-    #     """
-    #     def case(qobj, shouldhp, shouldcp, shouldtp):
-    #         hp = qobj.ishp
-    #         cp = qobj.iscp
-    #         tp = qobj.istp
-    #         cptp = qobj.iscptp
+    def test_random_iscptp(self, superoperator):
+        """
+        Superoperator: Randomly generated superoperators are
+        correctly reported as CPTP and HP.
+        """
+        assert (superoperator.iscptp)
+        assert (superoperator.ishp)
 
-    #         shouldcptp = shouldcp and shouldtp
 
-    #         if (
-    #             hp == shouldhp and
-    #             cp == shouldcp and
-    #             tp == shouldtp and
-    #             cptp == shouldcptp
-    #         ):
-    #             return
+    # Conjugation by a creation operator
+    a = create(2).dag()
+    S = sprepost(a, a.dag())
 
-    #         fails = []
-    #         if hp != shouldhp:
-    #             fails.append(("ishp", shouldhp, hp))
-    #         if tp != shouldtp:
-    #             fails.append(("istp", shouldtp, tp))
-    #         if cp != shouldcp:
-    #             fails.append(("iscp", shouldcp, cp))
-    #         if cptp != shouldcptp:
-    #             fails.append(("iscptp", shouldcptp, cptp))
+    # A single off-diagonal element 
+    S_ = sprepost(a, a)
 
-    #         raise AssertionError("Expected {}.".format(" and ".join([
-    #             "{} == {} (got {})".format(fail, expected, got)
-    #             for fail, expected, got in fails
-    #         ])))
+    # Check that a linear combination of bipartitie unitaries is CPTP and HP.
+    S_U = (
+        to_super(tensor(sigmax(), identity(2))) + to_super(tensor(identity(2), sigmay()))
+    ) / 2
 
-    #     # Conjugation by a creation operator should
-    #     # have be CP (and hence HP), but not TP.
-    #     a = create(2).dag()
-    #     S = sprepost(a, a.dag())
-    #     case(S, True, True, False)
+    # The partial transpose map, whose Choi matrix is SWAP
+    ptr_swap = Qobj(swap(), type='super', superrep='choi')
 
-    #     # A single off-diagonal element should not be CP,
-    #     # nor even HP.
-    #     S = sprepost(a, a)
-    #     case(S, False, False, False)
-        
-    #     # Check that unitaries are CPTP and HP.
-    #     case(identity(2), True, True, True)
-    #     case(sigmax(), True, True, True)
+    # Subnormalized maps (representing erasure channels, for instance)
+    subnorm_map = Qobj(identity(4) * 0.9, type='super', superrep='super')
 
-    #     # Check that unitaries on bipartite systems are CPTP and HP.
-    #     case(tensor(sigmax(), identity(2)), True, True, True)
+    @pytest.mark.parametrize(['qobj',  'shouldhp', 'shouldcp', 'shouldtp'], [
+        pytest.param(S, True, True, False, id="conjugatio by create op"),
+        pytest.param(S_, False, False, False, id="single off-diag"),
+        pytest.param(identity(2), True, True, True, id="Identity"),
+        pytest.param(sigmax(), True, True, True, id="Pauli X"),
+        pytest.param(tensor(sigmax(), identity(2)), True, True, True, id="bipartite system"),
+        pytest.param(S_U, True, True, True, id="linear combination of bip. unitaries"),
+        pytest.param(ptr_swap,  True, False, True, id="partial transpose map"),
+        pytest.param(subnorm_map, True, True, False, id="subnorm map"),
+        pytest.param(basis(2), False, False, False, id="not an operator"),
 
-    #     # Check that a linear combination of bipartitie unitaries is CPTP and HP.
-    #     S = (
-    #         to_super(tensor(sigmax(), identity(2))) + to_super(tensor(identity(2), sigmay()))
-    #     ) / 2
-    #     case(S, True, True, True)
+    ])
+    def test_known_iscptp(self, qobj, shouldhp, shouldcp, shouldtp):
+        """
+        Superoperator: ishp, iscp, istp and iscptp known cases.
+        """
+        hp = qobj.ishp
+        cp = qobj.iscp
+        tp = qobj.istp
+        cptp = qobj.iscptp
+        shouldcptp = shouldcp and shouldtp
 
-    #     # The partial transpose map, whose Choi matrix is SWAP, is TP
-    #     # and HP but not CP (one negative eigenvalue).
-    #     W = Qobj(swap(), type='super', superrep='choi')
-    #     case(W, True, False, True)
+        assert hp == shouldhp
+        assert cp == shouldcp
+        assert tp == shouldtp
+        assert cptp == shouldcptp
 
-    #     # Subnormalized maps (representing erasure channels, for instance)
-    #     # can be CP but not TP.
-    #     subnorm_map = Qobj(identity(4) * 0.9, type='super', superrep='super')
-    #     case(subnorm_map, True, True, False)
 
-    #     # Check that things which aren't even operators aren't identified as
-    #     # CPTP.
-    #     case(basis(2), False, False, False)
 
     # def test_choi_tr(self):
     #     """
