@@ -88,122 +88,131 @@ avg_gate_fidelity_test = pytest.mark.skipIf(platform.system().startswith("Darwin
 A test class for the metrics and pseudo-metrics included with QuTiP.
 """
 
-
-def test_fid_trdist_limits():
+class TestFidelity:
     """
-    Metrics: Fidelity / trace distance limiting cases
+    A test class for the QuTiP functions for Hellinger metric calculation.
     """
-    rho = rand_dm(25, 0.25)
-    assert_(abs(fidelity(rho, rho)-1) < 1e-6)
-    assert_(tracedist(rho, rho) < 1e-6)
-    rho1 = fock_dm(5, 1)
-    rho2 = fock_dm(5, 2)
-    assert_(fidelity(rho1, rho2) < 1e-6)
-    assert_(abs(tracedist(rho1, rho2)-1) < 1e-6)
+    @pytest.mark.repeat(10)
+    @pytest.mark.parametrize(["state0", "state1"],
+                             [pytest.param(rand_dm(25, .25), None, id='identity'),
+                             pytest.param(fock_dm(5, 1), fock_dm(5, 2), id='distinct')])
+    def test_fid_trdist_limits(self, state0, state1):
+        """
+        Metrics: Fidelity / trace distance limiting cases
+        """
+        if state1 is None:
+            state1 = state0
+
+            assert abs(fidelity(state0, state1)-1) < 1e-6
+            assert tracedist(state0, state1) < 1e-6
+        else:
+            assert fidelity(state0, state1) < 1e-6
+            assert abs(tracedist(state0, state1)-1) < 1e-6
+        
+    @pytest.mark.repeat(10)
+    @pytest.mark.parametrize(["state0", "state1"],
+                             [pytest.param(rand_dm(25, .25), rand_dm(25, .25)),
+                              ])
+    def test_fidelity1(self, state0, state1):
+        """
+        Metrics: Fidelity, mixed state inequality
+        """
+    
+        F = fidelity(state0, state1)
+        assert 1-F <= sqrt(1-F**2)
+
+    @pytest.mark.repeat(10)
+    @pytest.mark.parametrize(["state0", "state1","U"],
+                             [pytest.param(rand_dm(25, .25), rand_dm(25, .25),
+                              rand_unitary(25, 0.25))
+                              ])
+    def test_fidelity2(self, state0, state1, U):
+        """
+        Metrics: Fidelity, invariance under unitary trans.
+        """
+        F = fidelity(state0, state1)
+        FU = fidelity(U*state0*U.dag(), U*state1*U.dag())
+        assert abs((F-FU)/F) < 1e-5
 
 
-def test_fidelity1():
-    """
-    Metrics: Fidelity, mixed state inequality
-    """
-    for k in range(10):
-        rho1 = rand_dm(25, 0.25)
-        rho2 = rand_dm(25, 0.25)
-        F = fidelity(rho1, rho2)
-        assert_(1-F <= sqrt(1-F**2))
+    # def test_fidelity_max():
+    #     """
+    #     Metrics: Fidelity of a pure state w/ itself should be 1.
+    #     """
+    #     for _ in range(10):
+    #         psi = rand_ket_haar(13)
+    #         assert_almost_equal(fidelity(psi, psi), 1)
 
 
-def test_fidelity2():
-    """
-    Metrics: Fidelity, invariance under unitary trans.
-    """
-    for k in range(10):
-        rho1 = rand_dm(25, 0.25)
-        rho2 = rand_dm(25, 0.25)
-        U = rand_unitary(25, 0.25)
-        F = fidelity(rho1, rho2)
-        FU = fidelity(U*rho1*U.dag(), U*rho2*U.dag())
-        assert_(abs((F-FU)/F) < 1e-5)
+    # def test_fidelity_bounded_purepure(tol=1e-7):
+    #     """
+    #     Metrics: Fidelity of pure states within [0, 1].
+    #     """
+    #     for _ in range(10):
+    #         psi = rand_ket_haar(17)
+    #         phi = rand_ket_haar(17)
+    #         F = fidelity(psi, phi)
+    #         assert_(-tol <= F <= 1 + tol)
 
 
-def test_fidelity_max():
-    """
-    Metrics: Fidelity of a pure state w/ itself should be 1.
-    """
-    for _ in range(10):
-        psi = rand_ket_haar(13)
-        assert_almost_equal(fidelity(psi, psi), 1)
+    # def test_fidelity_bounded_puremixed(tol=1e-7):
+    #     """
+    #     Metrics: Fidelity of pure states against mixed states within [0, 1].
+    #     """
+    #     for _ in range(10):
+    #         psi = rand_ket_haar(11)
+    #         sigma = rand_dm_ginibre(11)
+    #         F = fidelity(psi, sigma)
+    #         assert_(-tol <= F <= 1 + tol)
 
 
-def test_fidelity_bounded_purepure(tol=1e-7):
-    """
-    Metrics: Fidelity of pure states within [0, 1].
-    """
-    for _ in range(10):
-        psi = rand_ket_haar(17)
-        phi = rand_ket_haar(17)
-        F = fidelity(psi, phi)
-        assert_(-tol <= F <= 1 + tol)
+    # def test_fidelity_bounded_mixedmixed(tol=1e-7):
+    #     """
+    #     Metrics: Fidelity of mixed states within [0, 1].
+    #     """
+    #     for _ in range(10):
+    #         rho = rand_dm_ginibre(11)
+    #         sigma = rand_dm_ginibre(11)
+    #         F = fidelity(rho, sigma)
+    #         assert_(-tol <= F <= 1 + tol)
 
 
-def test_fidelity_bounded_puremixed(tol=1e-7):
-    """
-    Metrics: Fidelity of pure states against mixed states within [0, 1].
-    """
-    for _ in range(10):
-        psi = rand_ket_haar(11)
-        sigma = rand_dm_ginibre(11)
-        F = fidelity(psi, sigma)
-        assert_(-tol <= F <= 1 + tol)
+    # def test_fidelity_known_cases():
+    #     """
+    #     Metrics: Checks fidelity against known cases.
+    #     """
+    #     ket0 = basis(2, 0)
+    #     ket1 = basis(2, 1)
+    #     ketp = (ket0 + ket1).unit()
+    #     # A state that almost overlaps with |+> should serve as
+    #     # a nice test case, especially since we can analytically
+    #     # calculate its overlap with |+>.
+    #     ketpy = (ket0 + np.exp(1j * np.pi / 4) * ket1).unit()
+
+    #     mms = qeye(2).unit()
+
+    #     assert_almost_equal(fidelity(ket0, ketp), 1 / np.sqrt(2))
+    #     assert_almost_equal(fidelity(ket0, ket1), 0)
+    #     assert_almost_equal(fidelity(ket0, mms),  1 / np.sqrt(2))
+    #     assert_almost_equal(fidelity(ketp, ketpy),
+    #         np.sqrt(
+    #             (1 / 8) + (1 / 2 + 1 / (2 * np.sqrt(2))) ** 2
+    #         )
+    #     )
 
 
-def test_fidelity_bounded_mixedmixed(tol=1e-7):
-    """
-    Metrics: Fidelity of mixed states within [0, 1].
-    """
-    for _ in range(10):
-        rho = rand_dm_ginibre(11)
-        sigma = rand_dm_ginibre(11)
-        F = fidelity(rho, sigma)
-        assert_(-tol <= F <= 1 + tol)
+    # def test_fidelity_overlap():
+    #     """
+    #     Metrics: Checks fidelity against pure-state overlap. (#631)
+    #     """
+    #     for _ in range(10):
+    #         psi = rand_ket_haar(7)
+    #         phi = rand_ket_haar(7)
 
-
-def test_fidelity_known_cases():
-    """
-    Metrics: Checks fidelity against known cases.
-    """
-    ket0 = basis(2, 0)
-    ket1 = basis(2, 1)
-    ketp = (ket0 + ket1).unit()
-    # A state that almost overlaps with |+> should serve as
-    # a nice test case, especially since we can analytically
-    # calculate its overlap with |+>.
-    ketpy = (ket0 + np.exp(1j * np.pi / 4) * ket1).unit()
-
-    mms = qeye(2).unit()
-
-    assert_almost_equal(fidelity(ket0, ketp), 1 / np.sqrt(2))
-    assert_almost_equal(fidelity(ket0, ket1), 0)
-    assert_almost_equal(fidelity(ket0, mms),  1 / np.sqrt(2))
-    assert_almost_equal(fidelity(ketp, ketpy),
-        np.sqrt(
-            (1 / 8) + (1 / 2 + 1 / (2 * np.sqrt(2))) ** 2
-        )
-    )
-
-
-def test_fidelity_overlap():
-    """
-    Metrics: Checks fidelity against pure-state overlap. (#631)
-    """
-    for _ in range(10):
-        psi = rand_ket_haar(7)
-        phi = rand_ket_haar(7)
-
-        assert_almost_equal(
-            fidelity(psi, phi),
-            np.abs((psi.dag() * phi)[0, 0])
-        )
+    #         assert_almost_equal(
+    #             fidelity(psi, phi),
+    #             np.abs((psi.dag() * phi)[0, 0])
+    #         )
 
 def test_tracedist1():
     """
