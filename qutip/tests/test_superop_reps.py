@@ -57,7 +57,7 @@ from qutip.superoperator import operator_to_vector, vector_to_operator, sprepost
 
 tol = 1e-9
 
-
+#doing
 class TestSuperopReps(object):
     """
     A test class for the QuTiP function for applying superoperators to
