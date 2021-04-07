@@ -62,7 +62,7 @@ class Processor(object):
     the decoherence time for each component systems.
     The processor can simulate the evolution under the given
     control pulses. Noisy evolution is supported by
-    :class:`qutip.qip.Noise` and can be added to the processor.
+    :class:`.Noise` and can be added to the processor.
 
     Parameters
     ----------
@@ -101,7 +101,7 @@ class Processor(object):
     N: int
         The number of component systems.
 
-    pulses: list of :class:`qutip.qip.Pulse`
+    pulses: list of :class:`.Pulse`
         A list of control pulses of this device
 
     t1: float or list
@@ -112,11 +112,11 @@ class Processor(object):
         Characterize the decoherence of dephasing for
         each qubit.
 
-    noise: :class:`qutip.qip.Noise`, optional
+    noise: :class:`.Noise`, optional
         A list of noise objects. They will be processed when creating the
         noisy :class:`qutip.QobjEvo` from the processor or run the simulation.
 
-    drift: :class:`qutip.qip.Drift`
+    drift: :class:`qutip.qip.pulse.Drift`
         A `Drift` object representing the drift Hamiltonians.
 
     dims: list
@@ -126,7 +126,7 @@ class Processor(object):
 
     spline_kind: str
         Type of the coefficient interpolation.
-        See parameters of :class:`qutip.qip.Processor` for details.
+        See parameters of :class:`.Processor` for details.
     """
     def __init__(self, N, t1=None, t2=None,
                  dims=None, spline_kind="step_func"):
@@ -185,7 +185,7 @@ class Processor(object):
                     label=None):
         """
         Add a control Hamiltonian to the processor. It creates a new
-        :class:`qutip.qip.Pulse`
+        :class:`.Pulse`
         object for the device that is turned off
         (``tlist = None``, ``coeff = None``). To activate the pulse, one
         can set its `tlist` and `coeff`.
@@ -228,7 +228,25 @@ class Processor(object):
                           label=temp_label))
         else:
             self.pulses.append(
-                Pulse(qobj, targets, spline_kind=self.spline_kind, label=label))
+                Pulse(qobj, targets, spline_kind=self.spline_kind, label=label)
+                )
+
+    def find_pulse(self, pulse_name):
+        if isinstance(pulse_name, str):
+            try:
+                return self.pulses[self.pulse_dict[pulse_name]]
+            except (KeyError):
+                raise KeyError(
+                    "Pulse name {} undefined. "
+                    "Please define it in the attribute "
+                    "`pulse_dict`.".format(pulse_name))
+        elif isinstance(pulse_name, int):
+            return self.pulses[pulse_name]
+        else:
+            raise TypeError(
+                "pulse_name is either a string or an integer, not "
+                "{}".format(type(pulse_name))
+                )
 
     @property
     def ctrls(self):
@@ -252,9 +270,6 @@ class Processor(object):
 
     @coeffs.setter
     def coeffs(self, coeffs_list):
-        if len(coeffs_list) != len(self.pulses):
-            raise ValueError("The row number of coeffs must be same "
-                             "as the number of control pulses.")
         for i, coeff in enumerate(coeffs_list):
             self.pulses[i].coeff = coeff
 
@@ -282,7 +297,7 @@ class Processor(object):
         for pulse in self.pulses:
             pulse.spline_kind = spline_kind
 
-    def get_full_tlist(self):
+    def get_full_tlist(self, tol=1.0e-10):
         """
         Return the full tlist of the ideal pulses.
         If different pulses have different time steps,
@@ -293,11 +308,15 @@ class Processor(object):
         full_tlist: array-like 1d
             The full time sequence for the ideal evolution.
         """
-        all_tlists = [pulse.tlist
+        full_tlist = [pulse.tlist
                       for pulse in self.pulses if pulse.tlist is not None]
-        if not all_tlists:
-            raise ValueError("No valid pulse found, tlist is empty.")
-        return np.unique(np.sort(np.hstack(all_tlists)))
+        if not full_tlist:
+            return None
+        full_tlist = np.unique(np.sort(np.hstack(full_tlist)))
+        # account for inaccuracy in float-point number
+        full_tlist = np.concatenate(
+            (full_tlist[:1], full_tlist[1:][np.diff(full_tlist) > tol]))
+        return full_tlist
 
     def get_full_coeffs(self, full_tlist=None):
         """
@@ -321,15 +340,19 @@ class Processor(object):
             full_tlist = self.get_full_tlist()
         coeffs_list = []
         for pulse in self.pulses:
+            if pulse.tlist is None and pulse.coeff is None:
+                coeffs_list.append(np.zeros(len(full_tlist)))
+                continue
             if not isinstance(pulse.coeff, (bool, np.ndarray)):
                 raise ValueError(
                     "get_full_coeffs only works for "
                     "NumPy array or bool coeff.")
             if isinstance(pulse.coeff, bool):
                 if pulse.coeff:
-                    coeffs_list.append(np.ones(full_tlist))
+                    coeffs_list.append(np.ones(len(full_tlist)))
                 else:
-                    coeffs_list.append(np.zeros(full_tlist))
+                    coeffs_list.append(np.zeros(len(full_tlist)))
+                continue
             if self.spline_kind == "step_func":
                 arg = {"_step_func_coeff": True}
                 coeffs_list.append(
@@ -349,10 +372,14 @@ class Processor(object):
         ----------
         tlist: array-like, optional
             A list of time at which the time-dependent coefficients are
-            applied. See :class:`qutip.qip.Pulse` for detailed information`
+            applied. See :class:`.Pulse` for detailed information`
         """
-        for pulse in self.pulses:
-            pulse.tlist = tlist
+        if isinstance(tlist, list) and len(tlist) == len(self.pulses):
+            for i, pulse in enumerate(self.pulses):
+                pulse.tlist = tlist[i]
+        else:
+            for pulse in self.pulses:
+                pulse.tlist = tlist
 
     def add_pulse(self, pulse):
         """
@@ -360,7 +387,7 @@ class Processor(object):
 
         Parameters
         ----------
-        pulse: :class:`qutip.qip.Pulse`
+        pulse: :class:`.Pulse`
             `Pulse` object to be added.
         """
         if isinstance(pulse, Pulse):
@@ -439,7 +466,7 @@ class Processor(object):
 
         Parameters
         ----------
-        noise: :class:`qutip.qip.Noise`
+        noise: :class:`.Noise`
             The noise object defined outside the processor
         """
         if isinstance(noise, Noise):
@@ -521,7 +548,7 @@ class Processor(object):
 
         Returns
         -------
-        noisy_pulses: list of :class"`qutip.qip.Pulse`/:class:`qutip.qip.Drift`
+        noisy_pulses: list of :class:`.Pulse`
             A list of noisy pulses.
         """
         pulses = deepcopy(self.pulses)
@@ -582,6 +609,13 @@ class Processor(object):
         final_qu = _merge_qobjevo(qu_list)
         final_qu.args.update(args)
 
+        # bring all c_ops to the same tlist, won't need it in QuTiP 5
+        full_tlist = self.get_full_tlist()
+        temp = []
+        for c_op in c_ops:
+            temp.append(_merge_qobjevo([c_op], full_tlist))
+        c_ops = temp
+
         if noisy:
             return final_qu, c_ops
         else:
@@ -596,7 +630,7 @@ class Processor(object):
 
         Parameters
         ----------
-        qc: :class:`qutip.qip.QubitCircuit`, optional
+        qc: :class:`.QubitCircuit`, optional
             Takes the quantum circuit to be implemented. If not given, use
             the quantum circuit saved in the processor by ``load_circuit``.
 
@@ -639,7 +673,7 @@ class Processor(object):
 
         Parameters
         ----------
-        qc: :class:`qutip.qip.QubitCircuit`, optional
+        qc: :class:`.QubitCircuit`, optional
             Takes the quantum circuit to be implemented. If not given, use
             the quantum circuit saved in the processor by `load_circuit`.
 
@@ -732,18 +766,19 @@ class Processor(object):
 
         # choose solver:
         if solver == "mesolve":
-            solver = mesolve
+            evo_result = mesolve(
+                H=noisy_qobjevo, rho0=init_state,
+                tlist=noisy_qobjevo.tlist, **kwargs)
         elif solver == "mcsolve":
-            solver = mcsolve
+            evo_result = mcsolve(
+                H=noisy_qobjevo, psi0=init_state,
+                tlist=noisy_qobjevo.tlist, **kwargs)
 
-        evo_result = solver(
-            H=noisy_qobjevo, rho0=init_state,
-            tlist=noisy_qobjevo.tlist, **kwargs)
         return evo_result
 
     def load_circuit(self, qc):
         """
-        Translate an :class:`qutip.qip.QubitCircuit` to its
+        Translate an :class:`.QubitCircuit` to its
         corresponding Hamiltonians. (Defined in subclasses)
         """
         raise NotImplementedError("Use the function in the sub-class")
@@ -841,10 +876,11 @@ class Processor(object):
                     ax.set_ylim((-ymax, ymax))
 
                 # disable frame and ticks
-                ax.set_xticks([])
+                if not show_axis:
+                    ax.set_xticks([])
+                    ax.spines['bottom'].set_visible(False)
                 ax.spines['top'].set_visible(False)
                 ax.spines['right'].set_visible(False)
-                ax.spines['bottom'].set_visible(False)
                 ax.spines['left'].set_visible(False)
                 ax.set_yticks([])
                 ax.set_ylabel(label, rotation=0)

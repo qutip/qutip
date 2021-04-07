@@ -31,6 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import warnings
+from copy import deepcopy
 
 import numpy as np
 
@@ -59,7 +60,7 @@ class DispersiveCavityQED(ModelProcessor):
     calculate the state evolution under the given control pulse,
     either analytically or numerically.
     (Only additional attributes are documented here, for others please
-    refer to the parent class :class:`qutip.qip.device.ModelProcessor`)
+    refer to the parent class :class:`.ModelProcessor`)
 
     Parameters
     ----------
@@ -158,13 +159,19 @@ class DispersiveCavityQED(ModelProcessor):
         N: int
             The number of qubits in the system.
         """
+        self.pulse_dict = {}
+        index = 0
         # single qubit terms
         for m in range(N):
             self.pulses.append(
                 Pulse(sigmax(), [m+1], spline_kind=self.spline_kind))
+            self.pulse_dict["sx" + str(m)] = index
+            index += 1
         for m in range(N):
             self.pulses.append(
                 Pulse(sigmaz(), [m+1], spline_kind=self.spline_kind))
+            self.pulse_dict["sz" + str(m)] = index
+            index += 1
         # coupling terms
         a = tensor(
             [destroy(self.num_levels)] +
@@ -176,12 +183,19 @@ class DispersiveCavityQED(ModelProcessor):
             self.pulses.append(
                 Pulse(a.dag() * sm + a * sm.dag(),
                       list(range(N+1)), spline_kind=self.spline_kind))
+            self.pulse_dict["g" + str(n)] = index
+            index += 1
 
     def set_up_params(
             self, N, num_levels, deltamax,
             epsmax, w0, wq, eps, delta, g):
         """
         Save the parameters in the attribute `params` and check the validity.
+        The keys of `params` including "sx", "sz", "w0", "eps", "delta"
+        and "g", each
+        mapped to a list for parameters corresponding to each qubits.
+        For coupling strength "g", list element i is the interaction
+        between qubits i and i+1.
 
         Parameters
         ----------
@@ -283,12 +297,12 @@ class DispersiveCavityQED(ModelProcessor):
 
         Parameters
         ----------
-        qc: :class:`qutip.QubitCircuit`
+        qc: :class:`.QubitCircuit`
             Takes the quantum circuit to be implemented.
 
         Returns
         -------
-        qc: :class:`qutip.QubitCircuit`
+        qc: :class:`.QubitCircuit`
             The circuit representation with elementary gates
             that can be implemented in this model.
         """
@@ -306,14 +320,15 @@ class DispersiveCavityQED(ModelProcessor):
             [identity(2) for n in range(self.N)])
         return psi_proj.dag() * U * psi_proj
 
-    def load_circuit(self, qc):
+    def load_circuit(
+            self, qc, schedule_mode="ASAP", compiler=None):
         """
-        Decompose a :class:`qutip.QubitCircuit` in to the control
+        Decompose a :class:`.QubitCircuit` in to the control
         amplitude generating the corresponding evolution.
 
         Parameters
         ----------
-        qc: :class:`qutip.QubitCircuit`
+        qc: :class:`.QubitCircuit`
             Takes the quantum circuit to be implemented.
 
         Returns
@@ -327,9 +342,15 @@ class DispersiveCavityQED(ModelProcessor):
             one Hamiltonian.
         """
         gates = self.optimize_circuit(qc).gates
-        compiler = CavityQEDCompiler(
-            self.N, self._params,
-            global_phase=0., num_ops=len(self.ctrls))
-        tlist, self.coeffs, self.global_phase = compiler.decompose(gates)
-        self.set_all_tlist(tlist)
+        if compiler is None:
+            compiler = CavityQEDCompiler(
+                self.N, self._params,
+                pulse_dict=deepcopy(self.pulse_dict),
+                global_phase=0.)
+        tlist, coeffs = compiler.compile(
+            gates, schedule_mode=schedule_mode)
+        self.global_phase = compiler.global_phase
+        self.coeffs = coeffs
+        for i in range(len(coeffs)):
+            self.pulses[i].tlist = tlist[i]
         return tlist, self.coeffs

@@ -31,6 +31,8 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+from .instruction import Instruction
+from .scheduler import Scheduler
 from .gatecompiler import GateCompiler
 from .cavityqedcompiler import CavityQEDCompiler
 from .spinchaincompiler import SpinChainCompiler
