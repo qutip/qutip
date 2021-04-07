@@ -135,16 +135,16 @@ Quantum information processing
 .. autoclass:: qutip.qip.Gate
     :members:
 
-.. autoclass:: qutip.qip.Measurement
+.. autoclass:: qutip.qip.circuit.Measurement
     :members:
 
-.. autoclass:: qutip.qip.QubitCircuit
+.. autoclass:: qutip.qip.circuit.QubitCircuit
     :members:
 
-.. autoclass:: qutip.qip.Result
+.. autoclass:: qutip.qip.circuit.CircuitResult
     :members:
 
-.. autoclass:: qutip.qip.ExactSimulator
+.. autoclass:: qutip.qip.circuit.CircuitSimulator
     :members:
 
 .. autoclass:: qutip.qip.device.Processor
@@ -198,6 +198,23 @@ Quantum information processing
     :inherited-members:
 
 .. autoclass:: qutip.qip.pulse.Pulse
+    :members:
+
+.. autoclass:: qutip.qip.compiler.GateCompiler
+    :members:
+
+.. autoclass:: qutip.qip.compiler.CavityQEDCompiler
+    :members:
+    :inherited-members:
+
+.. autoclass:: qutip.qip.compiler.SpinChainCompiler
+    :members:
+    :inherited-members:
+
+.. autoclass:: qutip.qip.compiler.Scheduler
+    :members:
+
+.. autoclass:: qutip.qip.compiler.Instruction
     :members:
 
 .. _classes-control:
