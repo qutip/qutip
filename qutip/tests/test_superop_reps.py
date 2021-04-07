@@ -238,25 +238,22 @@ class TestSuperopReps:
         assert tp == shouldtp
         assert cptp == shouldcptp
 
+    @pytest.mark.parametrize('dimension', [2, 3, 4])
+    def test_choi_tr(self, dimension):
+        """
+        Superoperator: Trace returned by to_choi matches docstring.
+        """
+        assert abs(to_choi(identity(dimension)).tr() - dimension) <= tol
 
+    @pytest.mark.repeat(4)
+    def test_stinespring_cp(self):
+        """
+        Stinespring: A and B match for CP maps.
+        """
+        superop = rand_super_bcsz(7)
+        A, B = to_stinespring(superop)
 
-    # def test_choi_tr(self):
-    #     """
-    #     Superoperator: Trace returned by to_choi matches docstring.
-    #     """
-    #     for dims in range(2, 5):
-    #         assert_(abs(to_choi(identity(dims)).tr() - dims) <= tol)
-
-    # def test_stinespring_cp(self, thresh=1e-10):
-    #     """
-    #     Stinespring: A and B match for CP maps.
-    #     """
-    #     def case(map):
-    #         A, B = to_stinespring(map)
-    #         assert_(norm((A - B).data.todense()) < thresh)
-
-    #     for idx in range(4):
-    #         case(rand_super_bcsz(7))
+        assert norm((A - B).data.todense()) < tol
 
     # def test_stinespring_agrees(self, thresh=1e-10):
     #     """
