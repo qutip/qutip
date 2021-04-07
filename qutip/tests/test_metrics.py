@@ -243,81 +243,92 @@ def test_tracedist3():
         assert_(1-F**2 <= D)
 
 
-def test_hellinger_corner():
-    """
-    Metrics: Hellinger dist.: check corner cases:
-    same states, orthogonal states
-    """
-    orth1 = basis(40, 1)
-    orth2 = basis(40, 3)
-    orth3 = basis(40, 38)
-    s2 = np.sqrt(2.0)
-    assert_almost_equal(hellinger_dist(orth1, orth2), s2)
-    assert_almost_equal(hellinger_dist(orth2, orth3), s2)
-    assert_almost_equal(hellinger_dist(orth3, orth1), s2)
-    for _ in range(10):
-        ket = rand_ket(25, 0.25)
-        rho = rand_dm(18, 0.75)
-        assert_almost_equal(hellinger_dist(ket, ket), 0.)
-        assert_almost_equal(hellinger_dist(rho, rho), 0.)
+def pure_state_Hellinger(ket1, ket2):
+    sqr_overlap = np.square(np.abs(ket1.overlap(ket2)))
+    simple_expr = np.sqrt(2.0*(1.0-sqr_overlap))
+    return simple_expr
 
 
-def test_hellinger_pure():
+class TestHellingerMetric:
     """
-    Metrics: Hellinger dist.: check against a simple
-    expression which applies to pure states
+    A test class for the QuTiP functions for Hellinger metric calculation.
     """
-    for _ in range(10):
-        ket1 = rand_ket(25, 0.25)
-        ket2 = rand_ket(25, 0.25)
-        hellinger = hellinger_dist(ket1, ket2)
-        sqr_overlap = np.square(np.abs(ket1.overlap(ket2)))
-        simple_expr = np.sqrt(2.0*(1.0-sqr_overlap))
-        assert_almost_equal(hellinger, simple_expr)
+    @pytest.mark.parametrize(["state0", "state1", "distance"], [
+        pytest.param(basis(40, 1), basis(40, 3), np.sqrt(2.), id="orthogonal_states"),
+        pytest.param(basis(40, 1), basis(40, 38), np.sqrt(2.), id="orthogonal_states"),
+        pytest.param(basis(40, 3), basis(40, 38), np.sqrt(2.), id="orthogonal_states"),
+        pytest.param(rand_dm(18, .75), None, 0., id="same_state",
+                     marks=[pytest.mark.repeat(10)]),
+        pytest.param(rand_ket(25, .25), None, 0., id="same_state",
+                     marks=[pytest.mark.repeat(10)])
+    ])
+    def test_hellinger_corner(self, state0, state1, distance):
+        """
+        Metrics: Hellinger dist.: check corner cases:
+        same states, orthogonal states
+        """
+        if state1 is None:
+            print('state0')
+            assert distance == pytest.approx(hellinger_dist(state0, state0), abs=1e-7)
+        else:
+            assert distance == pytest.approx(hellinger_dist(state0, state1), abs=1e-7)
 
+    @pytest.mark.repeat(10)
+    @pytest.mark.parametrize(["state0", "state1"],
+                             [pytest.param(rand_ket(25, .25), rand_ket(25, .25)
+                                           )])
+    def test_hellinger_pure(self, state0, state1):
+        """
+        Metrics: Hellinger dist.: check against a simple
+        expression which applies to pure states
+        """ 
+        distance = pure_state_Hellinger(state0, state1)
 
-def test_hellinger_inequality():
-    """
-    Metrics: Hellinger dist.: check whether Hellinger
-    distance is indeed larger than Bures distance
-    """
-    for _ in range(10):
-        rho1 = rand_dm(25, 0.25)
-        rho2 = rand_dm(25, 0.25)
-        hellinger = hellinger_dist(rho1, rho2)
-        bures = bures_dist(rho1, rho2)
-        assert_(hellinger >= bures)
-        ket1 = rand_ket(40, 0.25)
-        ket2 = rand_ket(40, 0.25)
-        hellinger = hellinger_dist(ket1, ket2)
-        bures = bures_dist(ket1, ket2)
-        assert_(hellinger >= bures)
+        assert  distance == pytest.approx(hellinger_dist(state0, state1), abs=1e-7)
 
-
-def test_hellinger_monotonicity():
-    """
-    Metrics: Hellinger dist.: check monotonicity
-    w.r.t. tensor product, see. Eq. (45) in
-    arXiv:1611.03449v2:
-    hellinger_dist(rhoA*rhoB, sigmaA*sigmaB)>=
-    hellinger_dist(rhoA, sigmaA)
-    with equality iff sigmaB=rhoB
-    """
-    for _ in range(10):
-        rhoA = rand_dm(8, 0.5)
-        sigmaA = rand_dm(8, 0.5)
-        rhoB = rand_dm(8, 0.5)
-        sigmaB = rand_dm(8, 0.5)
+    @pytest.mark.repeat(10)
+    @pytest.mark.parametrize(["state0", "state1"],
+                             [pytest.param(rand_dm(25, .25), rand_dm(25, .25), id='density'),
+                             pytest.param(rand_ket(40, .25), rand_ket(40, .25), id='kets')])
+    def test_hellinger_inequality(self, state0, state1):
+        """
+        Metrics: Hellinger dist.: check whether Hellinger
+        distance is indeed larger than Bures distance
+        """
+        hellinger = hellinger_dist(state0, state1)
+        bures = bures_dist(state0, state1)
+        assert  hellinger >= bures + 1e-7
+        
+    @pytest.mark.repeat(10)
+    @pytest.mark.parametrize(["rhoA", "sigmaA", "rhoB", "sigmaB"],
+                             [pytest.param(rand_dm(8, .5), rand_dm(8, .5),
+                                           rand_dm(8, .5), rand_dm(8, .5),
+                                           id='different right tensors'),
+                              pytest.param(rand_dm(8, .5), rand_dm(8, .5),
+                                           rand_dm(8, .5), None,
+                                           id='same right tensors')
+                              ])
+    def test_hellinger_monotonicity(self, rhoA, sigmaA, rhoB, sigmaB):
+        """
+        Metrics: Hellinger dist.: check monotonicity
+        w.r.t. tensor product, see. Eq. (45) in
+        arXiv:1611.03449v2:
+        hellinger_dist(rhoA*rhoB, sigmaA*sigmaB)>=
+        hellinger_dist(rhoA, sigmaA)
+        with equality iff sigmaB=rhoB
+        """
         hellA = hellinger_dist(rhoA, sigmaA)
-        hell_tensor = hellinger_dist(tensor(rhoA, rhoB),
-                                     tensor(sigmaA, sigmaB))
-        #inequality when sigmaB!=rhoB
-        assert_(hell_tensor >= hellA)
-        #equality iff sigmaB=rhoB
-        rhoB = sigmaB
-        hell_tensor = hellinger_dist(tensor(rhoA, rhoB),
-                                     tensor(sigmaA, sigmaB))
-        assert_almost_equal(hell_tensor, hellA)
+        if sigmaB is not None:
+            hell_tensor = hellinger_dist(tensor(rhoA, rhoB),
+                                         tensor(sigmaA, sigmaB))
+            # inequality when sigmaB!=rhoB
+            assert hell_tensor >= hellA + 1e-7
+        else:
+            # equality iff sigmaB=rhoB
+            sigmaB = rhoB
+            hell_tensor = hellinger_dist(tensor(rhoA, rhoB),
+                                         tensor(sigmaA, sigmaB))
+            assert hell_tensor == pytest.approx(hellA, abs=1e-7)
 
 
 def rand_super():
