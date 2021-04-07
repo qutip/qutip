@@ -1,11 +1,24 @@
 .. QuTiP
-   Copyright (C) 2011-2020, Paul D. Nation, Robert J. Johansson, Alexander Pitchford, Chris Granade, Arne Grimsmo, Nathan Shammah, Shahnawax Ahmed, Eric Giguère
+   Copyright (C) 2011-2020, Paul D. Nation, Robert J. Johansson, Alexander Pitchford, Chris Granade, Arne Grimsmo, Nathan Shammah, Shahnawaz Ahmed, Jake Lishman, and Eric Giguère
 
 .. _changelog:
 
 **********
 Change Log
 **********
+
+Version 4.5.3 (February 19, 2021)
++++++++++++++++++++++++++++++++++
+
+This patch release adds support for Numpy 1.20, made necessary by changes to how array-like objects are handled. There are no other changes relative to version 4.5.2.
+
+Users building from source should ensure that they build against Numpy versions >= 1.16.6 and < 1.20 (not including 1.20 itself), but after that or for those installing from conda, an installation will support any current Numpy version >= 1.16.6.
+
+Improvements
+------------
+- Add support for Numpy 1.20.  QuTiP should be compiled against a version of Numpy ``>= 1.16.6`` and ``< 1.20`` (note: does _not_ include 1.20 itself), but such an installation is compatible with any modern version of Numpy.  Source installations from ``pip`` understand this constraint.
+
+
 
 Version 4.5.2 (July 14, 2020)
 +++++++++++++++++++++++++++++
