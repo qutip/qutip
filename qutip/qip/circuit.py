@@ -848,7 +848,7 @@ class QubitCircuit:
         temp_resolved.append(Gate("RZ", gate.controls, None,
                                   arg_value=eigth_pi,
                                   arg_label=r"\pi/8"))
-        temp_resolved.append(Gate("RZ", [gate.targets[0]], None,
+        temp_resolved.append(Gate("RZ", gate.targets[0], None,
                                   arg_value=-eigth_pi,
                                   arg_label=r"-\pi/8"))
         temp_resolved.append(Gate("CNOT", gate.targets[0],
@@ -859,12 +859,22 @@ class QubitCircuit:
         temp_resolved.append(Gate("RY", gate.targets[1], None,
                                   arg_value=half_pi,
                                   arg_label=r"\pi/2"))
-        temp_resolved.append(Gate("RY", gate.targets, None,
+        temp_resolved.append(Gate("RY", gate.targets[0], None,
                                   arg_value=-half_pi,
                                   arg_label=r"-\pi/2"))
-        temp_resolved.append(Gate("RZ", gate.targets, None,
-                                  arg_value=np.pi, arg_label=r"\pi"))
-        temp_resolved.append(Gate("RY", gate.targets, None,
+        temp_resolved.append(Gate("RY", gate.targets[1], None,
+                                  arg_value=-half_pi,
+                                  arg_label=r"-\pi/2"))
+        temp_resolved.append(Gate("RZ", gate.targets[0], None,
+                                  arg_value=np.pi,
+                                  arg_label=r"\pi"))
+        temp_resolved.append(Gate("RZ", gate.targets[1], None,
+                                  arg_value=np.pi,
+                                  arg_label=r"\pi"))
+        temp_resolved.append(Gate("RY", gate.targets[0], None,
+                                  arg_value=half_pi,
+                                  arg_label=r"\pi/2"))
+        temp_resolved.append(Gate("RY", gate.targets[1], None,
                                   arg_value=half_pi,
                                   arg_label=r"\pi/2"))
         temp_resolved.append(Gate("RZ", gate.targets[0], None,
@@ -896,12 +906,22 @@ class QubitCircuit:
         temp_resolved.append(Gate("RY", gate.targets[1], None,
                                   arg_value=half_pi,
                                   arg_label=r"\pi/2"))
-        temp_resolved.append(Gate("RY", gate.targets, None,
+        temp_resolved.append(Gate("RY", gate.targets[0], None,
                                   arg_value=-half_pi,
                                   arg_label=r"-\pi/2"))
-        temp_resolved.append(Gate("RZ", gate.targets, None,
-                                  arg_value=np.pi, arg_label=r"\pi"))
-        temp_resolved.append(Gate("RY", gate.targets, None,
+        temp_resolved.append(Gate("RY", gate.targets[1], None,
+                                  arg_value=-half_pi,
+                                  arg_label=r"-\pi/2"))
+        temp_resolved.append(Gate("RZ", gate.targets[0], None,
+                                  arg_value=np.pi,
+                                  arg_label=r"\pi"))
+        temp_resolved.append(Gate("RZ", gate.targets[1], None,
+                                  arg_value=np.pi,
+                                  arg_label=r"\pi"))
+        temp_resolved.append(Gate("RY", gate.targets[0], None,
+                                  arg_value=half_pi,
+                                  arg_label=r"\pi/2"))
+        temp_resolved.append(Gate("RY", gate.targets[1], None,
                                   arg_value=half_pi,
                                   arg_label=r"\pi/2"))
         temp_resolved.append(Gate("CNOT", gate.targets[0],
