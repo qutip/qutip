@@ -7,6 +7,63 @@
 Change Log
 **********
 
+Version 4.6.0 (April 10, 2021)
++++++++++++++++++++++++++++++++++
+
+This release brings improvements for qubit circuits, including a pulse scheduler, measurement statistics, reading/writing OpenQASM and optimisations in the circuit simulations.
+
+This is the first release to have full binary wheel releases on pip; you can now do ``pip install qutip`` on almost any machine to get a correct version of the package without needing any compilers set up.
+The support for Numpy 1.20 that was first added in QuTiP 4.5.3 is present in this version as well, and the same build considerations mentioned there apply here too.
+If building using the now-supported PEP 517 mechanisms (e.g. ``python -mbuild /path/to/qutip``), all build dependencies will be correctly satisfied.
+
+Improvements
+------------
+- **MAJOR** Add saving, loading and resetting functionality to ``qutip.settings`` for easy re-configuration. (by **Eric Giguère**)
+- **MAJOR** Add a quantum gate scheduler in ``qutip.qip.scheduler``, to help parallelise the operations of quantum gates.  This supports two scheduling modes: as late as possible, and as soon as possible. (by **Boxi Li**)
+- **MAJOR** Improved qubit circuit simulators, including OpenQASM support and performance optimisations. (by **Sidhant Saraogi**)
+- **MAJOR** Add tools for quantum measurements and their statistics. (by **Simon Cross** and **Sidhant Saraogi**)
+- Add support for Numpy 1.20.  QuTiP should be compiled against a version of Numpy ``>= 1.16.6`` and ``< 1.20`` (note: does _not_ include 1.20 itself), but such an installation is compatible with any modern version of Numpy.  Source installations from ``pip`` understand this constraint.
+- Improve the error message when circuit plotting fails. (by **Boxi Li**)
+- Add support for parsing M1 Mac hardware information. (by **Xiaoliang Wu**)
+- Add more single-qubit gates and controlled gates. (by **Mateo Laguna** and **Martín Sande Costa**)
+- Support decomposition of ``X``, ``Y`` and ``Z`` gates in circuits. (by **Boxi Li**)
+- Refactor ``QubitCircuit.resolve_gate()`` (by **Martín Sande Costa**)
+
+Bug Fixes
+---------
+- Fix ``dims`` in the returns from ``Qobj.eigenstates`` on superoperators. (by **Jake Lishman**)
+- Calling Numpy ufuncs on ``Qobj`` will now correctly raise a ``TypeError`` rather than returning a nonsense ``ndarray``. (by **Jake Lishman**)
+- Convert segfault into Python exception when creating too-large tensor products. (by **Jake Lishman**)
+- Correctly set ``num_collapse`` in the output of ``mesolve``. (by **Jake Lishman**)
+- Fix ``ptrace`` when all subspaces are being kept, or the subspaces are passed in order. (by **Jake Lishman**)
+- Fix sorting bug in ``Bloch3d.add_points()``. (by **pschindler**)
+- Fix invalid string literals in docstrings and some unclosed files. (by **Élie Gouzien**)
+- Fix Hermicity tests for matrices with values that are within the tolerance of 0. (by **Jake Lishman**)
+- Fix the trace norm being incorrectly reported as 0 for small matrices. (by **Jake Lishman**)
+- Fix issues with ``dnorm`` when using CVXPy 1.1 with sparse matrices. (by **Felipe Bivort Haiek**)
+- Fix segfaults in ``mesolve`` when passed a bad initial ``Qobj`` as the state. (by **Jake Lishman**)
+- Fix sparse matrix construction in PIQS when using Scipy 1.6.1. (by **Drew Parsons**)
+- Fix ``zspmv_openmp.cpp`` missing from the pip sdist. (by **Christoph Gohlke**)
+- Fix correlation functions throwing away imaginary components. (by **Asier Galicia Martinez**)
+- Fix ``QubitCircuit.add_circuit()`` for SWAP gate. (by **Canoming**)
+- Fix the broken LaTeX image conversion. (by **Jake Lishman**)
+
+Deprecations
+------------
+- ``eseries``, ``essolve`` and ``ode2es`` are all deprecated, pending removal in QuTiP 5.0.  These are legacy functions and classes that have been left unmaintained for a long time, and their functionality is now better achieved with ``QobjEvo`` or ``mesolve``.
+
+Developer Changes
+-----------------
+- **MAJOR** Overhaul of setup and packaging code to make it satisfy PEP 517, and move the build to a matrix on GitHub Actions in order to release binary wheels on pip for all major platforms and supported Python versions. (by **Jake Lishman**)
+- Default arguments in ``Qobj`` are now ``None`` rather than mutable types. (by **Jake Lishman**)
+- Fixed comsumable iterators being used to parametrise some tests, preventing the testing suite from being re-run within the same session. (by **Jake Lishman**)
+- Remove unused imports, simplify some floats and remove unnecessary list conversions. (by **jakobjakobson13**)
+- Improve Travis jobs matrix for specifying the testing containers. (by **Jake Lishman**)
+- Fix coverage reporting on Travis. (by **Jake Lishman**)
+- Added a ``pyproject.toml`` file. (by **Simon Humpohl** and **Eric Giguère**)
+
+
+
 Version 4.5.3 (February 19, 2021)
 +++++++++++++++++++++++++++++++++
 
