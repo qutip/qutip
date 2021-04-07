@@ -75,6 +75,12 @@ def state(request, dimension):
 left = right = state
 
 
+# The class names have an unusual naming convention to make them more
+# convenient to use with the `pytest -k "expr"` selection syntax.  They start
+# with the standard `Test`, but then are the name of the function they are
+# testing in the function naming convention, so it's easy to remember the
+# selector to choose a particular function.
+
 class Test_fidelity:
     def test_mixed_state_inequality(self, dimension):
         tol = 1e-7
@@ -253,6 +259,7 @@ class Test_unitarity:
 
 class TestComparisons:
     """Test some known inequalities between two different metrics."""
+
     def test_inequality_tracedist_to_fidelity(self, left, right):
         tol = 1e-7
         assert 1 - fidelity(left, right) <= tracedist(left, right) + tol
@@ -281,59 +288,74 @@ def swap_map(x):
     return Qobj(base, dims=dims, type='super', superrep='super')
 
 
+def adc_choi(x):
+    kraus = [
+        np.sqrt(1 - x) * qeye(2),
+        np.sqrt(x) * destroy(2),
+        np.sqrt(x) * fock_dm(2, 0),
+    ]
+    return kraus_to_choi(kraus)
+
+
+# dnorm tests have always been slightly flaky; in some cases, cvxpy will fail
+# to solve the problem, and this can cause an entire test-suite failure.  As
+# long as we are using random tests (perhaps not ideal), this will happen
+# occasionally.  This isn't entirely a bug, it's just a reality of using a
+# one-size-fits-all solver; we've historically assumed users who come up
+# against this sort of thing will be accepting of the fact that dnorm
+# calculation is nontrivial, and isn't always entirely feasible.
+#
+# To deal with it, we allow each test to be rerun twice, using
+# pytest-rerunfailures.  This should forbid pathological cases where the test
+# is failing every time, but not penalise one-off failures.  As far as we know,
+# the failing tests always involve a random step, so triggering a re-run will
+# have them choose new variables as well.
+@pytest.mark.flaky(reruns=2)
 class Test_dnorm:
     # Skip dnorm tests if we don't have cvxpy or cvxopt available, since it
     # depends on them.
-    pytest.importorskip("cvxpy")
-    pytest.importorskip("cvxopt")
+    cvxpy = pytest.importorskip("cvxpy")
+    cvxopt = pytest.importorskip("cvxopt")
 
-    @pytest.mark.repeat(10)
-    def test_on_sparse_matrix(self):
+    @pytest.fixture(params=[2, 3])
+    def dimension(self, request):
+        return request.param
+
+    @pytest.fixture(params=[True, False], ids=['sparse', 'dense'])
+    def sparse(self, request):
+        return request.param
+
+    @pytest.mark.parametrize("variable", [0.1, 0.5, 0.9])
+    def test_sparse_against_dense_adc(self, variable):
         """
-        Tests sparse versus dense dnorm calculation on sparse matrices.
+        Test sparse versus dense dnorm calculation for a sample of
+        amplitude-damping channels.
         """
-        force_solve = True
-
-        def AmpDampChoi(p):
-            Kraus = [(1-p)**.5*qeye(2), p**.5*destroy(2), p**.5*fock_dm(2, 0)]
-            return kraus_to_choi(Kraus)
-
         # Choi matrix for identity channel on 1 qubit
         A = kraus_to_choi([qeye(2)])
-        p = np.random.uniform(0.1, 0.9)
-        B = AmpDampChoi(p)
-        dense_run_result = dnorm(A, B, force_solve=force_solve, sparse=False)
-        sparse_run_result = dnorm(A, B, force_solve=force_solve, sparse=True)
+        B = adc_choi(variable)
+        dense = dnorm(A, B, force_solve=True, sparse=False)
+        sparse = dnorm(A, B, force_solve=True, sparse=True)
+        assert dense == pytest.approx(sparse, abs=1e-7)
+
+    @pytest.mark.repeat(3)
+    def test_sparse_against_dense_random(self, dimension):
+        """
+        Test sparse versus dense dnorm calculation for random superoperators.
+        """
+        A = rand_super_bcsz(dimension)
+        dense_run_result = dnorm(A, force_solve=True, sparse=False)
+        sparse_run_result = dnorm(A, force_solve=True, sparse=True)
         assert dense_run_result == pytest.approx(sparse_run_result, abs=1e-7)
 
-    @pytest.mark.repeat(10)
-    @pytest.mark.parametrize(["dim"], [
-        pytest.param(2, id="dim2"),
-        pytest.param(3, id="dim3"),
-    ])
-    def test_on_dense_matrix(self, dim):
-        """
-        Metrics: Tests sparse versus dense dnorm calculation on dense matrices.
-        """
-        force_solve = True
-        A = rand_super_bcsz(dim)
-        dense_run_result = dnorm(A, force_solve=force_solve, sparse=False)
-        sparse_run_result = dnorm(A, force_solve=force_solve, sparse=True)
-        assert dense_run_result == pytest.approx(sparse_run_result, abs=1e-7)
+    def test_bounded(self, dimension, sparse):
+        """dnorm(A - B) in [0, 2] for random superops A, B."""
+        tol = 1e-7
+        A, B = rand_super_bcsz(dimension), rand_super_bcsz(dimension)
+        assert -tol <= dnorm(A, B, sparse=sparse) <= 2 + tol
 
-    @pytest.mark.repeat(10)
-    def test_bounded(self):
-        """
-        Metrics: dnorm(A - B) in [0, 2] for random superops A, B.
-        """
-        A, B = rand_super_bcsz(3), rand_super_bcsz(3)
-        norm_result = dnorm(A, B)
-        assert 1 == pytest.approx(norm_result, abs=1 + 1e-7)
-
-    def test_qubit_simple_known_cases(self):
-        """
-        Metrics: check agreement for known qubit channels.
-        """
+    def test_qubit_simple_known_cases(self, sparse):
+        """Check agreement for known qubit channels."""
         id_chan = to_choi(qeye(2))
         X_chan = to_choi(sigmax())
         depol = to_choi(Qobj(
@@ -341,107 +363,87 @@ class Test_dnorm:
         ))
         # We need to restrict the number of iterations for things on the
         # boundary, such as perfectly distinguishable channels.
-        assert 2 == pytest.approx(dnorm(id_chan, X_chan), abs=1e-7)
-        assert 1.5 == pytest.approx(dnorm(id_chan, depol), abs=1e-7)
+        assert (
+            dnorm(id_chan, X_chan, sparse=sparse)
+            == pytest.approx(2, abs=1e-7)
+        )
+        assert (
+            dnorm(id_chan, depol, sparse=sparse)
+            == pytest.approx(1.5, abs=1e-7)
+        )
         # Finally, we add a known case from Johnston's QETLAB documentation,
         #   || Phi - I ||_♢,
         # where Phi(X) = UXU⁺ and U = [[1, 1], [-1, 1]] / sqrt(2).
-        assert np.sqrt(2) == pytest.approx(dnorm(Qobj([[1, 1], [-1, 1]])
-                                           / np.sqrt(2), qeye(2)))
+        U = np.sqrt(0.5) * Qobj([[1, 1], [-1, 1]])
+        assert (
+            dnorm(U, qeye(2), sparse=sparse)
+            == pytest.approx(np.sqrt(2), abs=1e-7)
+        )
 
-    @pytest.mark.parametrize(["variable", 'target', 'matrix_creator'], [
-        [1.000000e-03, 3.141591e-03, 'overrotation'],
-        [3.100000e-03, 9.738899e-03, 'overrotation'],
-        [1.000000e-02, 3.141463e-02, 'overrotation'],
-        [3.100000e-02, 9.735089e-02, 'overrotation'],
-        [1.000000e-01, 3.128689e-01, 'overrotation'],
-        [3.100000e-01, 9.358596e-01, 'overrotation'],
-        [1.000000e-03, 2.000000e-03, 'had_mixture'],
-        [3.100000e-03, 6.200000e-03, 'had_mixture'],
-        [1.000000e-02, 2.000000e-02, 'had_mixture'],
-        [3.100000e-02, 6.200000e-02, 'had_mixture'],
-        [1.000000e-01, 2.000000e-01, 'had_mixture'],
-        [3.100000e-01, 6.200000e-01, 'had_mixture'],
-        [1.000000e-03, 2.000000e-03, 'swap_map'],
-        [3.100000e-03, 6.199997e-03, 'swap_map'],
-        [1.000000e-02, 1.999992e-02, 'swap_map'],
-        [3.100000e-02, 6.199752e-02, 'swap_map'],
-        [1.000000e-01, 1.999162e-01, 'swap_map'],
-        [3.100000e-01, 6.173918e-01, 'swap_map'],
+    @pytest.mark.parametrize(["variable", "expected", "generator"], [
+        [1.0e-3, 3.141591e-03, overrotation],
+        [3.1e-3, 9.738899e-03, overrotation],
+        [1.0e-2, 3.141463e-02, overrotation],
+        [3.1e-2, 9.735089e-02, overrotation],
+        [1.0e-1, 3.128689e-01, overrotation],
+        [3.1e-1, 9.358596e-01, overrotation],
+        [1.0e-3, 2.000000e-03, had_mixture],
+        [3.1e-3, 6.200000e-03, had_mixture],
+        [1.0e-2, 2.000000e-02, had_mixture],
+        [3.1e-2, 6.200000e-02, had_mixture],
+        [1.0e-1, 2.000000e-01, had_mixture],
+        [3.1e-1, 6.200000e-01, had_mixture],
+        [1.0e-3, 2.000000e-03, swap_map],
+        [3.1e-3, 6.199997e-03, swap_map],
+        [1.0e-2, 1.999992e-02, swap_map],
+        [3.1e-2, 6.199752e-02, swap_map],
+        [1.0e-1, 1.999162e-01, swap_map],
+        [3.1e-1, 6.173918e-01, swap_map],
     ])
-    def test_qubit_known_cases(self, variable, target, matrix_creator):
-        # Next, we'll generate some test cases based on comparisons to
-        # pre-existing dnorm() implementations. In particular, the targets for
-        # the following test cases were generated using QuantumUtils for MATLAB
-        # (https://goo.gl/oWXhO9).
+    def test_qubit_known_cases(self, variable, expected, generator, sparse):
+        """
+        Test cases based on comparisons to pre-existing dnorm implementations.
+        In particular, the targets for the following test cases were generated
+        using QuantumUtils for MATLAB (https://goo.gl/oWXhO9).
+        """
         id_chan = to_choi(qeye(2))
-        if matrix_creator == 'overrotation':
-            assert target == pytest.approx(dnorm(overrotation(variable),
-                                                 id_chan), abs=1e-7)
+        channel = generator(variable)
+        assert (
+            dnorm(channel, id_chan, sparse=sparse)
+            == pytest.approx(expected, abs=1e-7)
+        )
 
-        elif matrix_creator == 'had_mixture':
-            assert target == pytest.approx(dnorm(had_mixture(variable),
-                                                 id_chan), abs=1e-7)
-
-        elif matrix_creator == 'swap_map':
-            assert target == pytest.approx(dnorm(swap_map(variable),
-                                                 id_chan), abs=1e-7)
-
-    @pytest.mark.parametrize(["dim"], [
-        pytest.param(2, id="dim2"),
-        pytest.param(2, id="dim3"),
-    ])
-    def test_qubit_scalar(self, dim):
-        """
-        Metrics: checks that dnorm(a * A) == a * dnorm(A) for scalar a, qobj A.
-        """
+    def test_qubit_scalar(self, dimension):
+        """dnorm(a * A) == a * dnorm(A) for scalar a, qobj A."""
         a = np.random.random()
-        A = rand_super_bcsz(dim)
-        B = rand_super_bcsz(dim)
-        assert dnorm(a * A, a * B) == pytest.approx(a * dnorm(A, B), abs=1e-7)
+        A = rand_super_bcsz(dimension)
+        B = rand_super_bcsz(dimension)
+        assert dnorm(a*A, a*B) == pytest.approx(a*dnorm(A, B), abs=1e-7)
 
-    @pytest.mark.parametrize(["dim"], [
-        pytest.param(2, id="dim2"),
-        pytest.param(3, id="dim3")
-    ])
-    def test_qubit_triangle(self, dim):
-        """
-        Metrics: checks that dnorm(A + B) ≤ dnorm(A) + dnorm(B).
-        """
-        A = rand_super_bcsz(dim)
-        B = rand_super_bcsz(dim)
+    def test_qubit_triangle(self, dimension):
+        """Check that dnorm(A + B) <= dnorm(A) + dnorm(B)."""
+        A = rand_super_bcsz(dimension)
+        B = rand_super_bcsz(dimension)
         assert dnorm(A + B) <= dnorm(A) + dnorm(B) + 1e-7
 
-    @pytest.mark.repeat(10)
-    @pytest.mark.parametrize(["dim", 'matrix_generator'], [
-        pytest.param(2, 'bcsz', id="dim2"),
-        pytest.param(3, 'bcsz', id="dim3"),
-        pytest.param(2, 'haar', id="dim2"),
-        pytest.param(3, 'haar', id="dim3"),
+    @pytest.mark.repeat(3)
+    @pytest.mark.parametrize("generator", [
+        pytest.param(rand_super_bcsz, id="super"),
+        pytest.param(rand_unitary_haar, id="unitary"),
     ])
-    def test_force_solve(self, dim, matrix_generator):
+    def test_force_solve(self, dimension, generator):
         """
         Metrics: checks that special cases for dnorm agree with SDP solutions.
         """
-        if matrix_generator == 'bcsz':
-            A = rand_super_bcsz(dim)
-            B = rand_super_bcsz(dim)
-        elif matrix_generator == 'haar':
-            A = rand_unitary_haar(dim)
-            B = rand_unitary_haar(dim)
+        A, B = generator(dimension), generator(dimension)
         assert (
             dnorm(A, B, force_solve=False)
             == pytest.approx(dnorm(A, B, force_solve=True), abs=1e-5)
         )
 
-    @pytest.mark.repeat(10)
-    @pytest.mark.parametrize(["dim"], [
-        pytest.param(2, id="dim2"),
-        pytest.param(3, id="dim3"),
-    ])
-    def test_cptp(self, dim):
-        """
-        Metrics: checks that the diamond norm is one for CPTP maps.
-        """
-        A = rand_super_bcsz(dim)
-        assert 1 == pytest.approx(dnorm(A, force_solve=True), abs=1e-7)
+    @pytest.mark.repeat(3)
+    def test_cptp(self, dimension, sparse):
+        """Check that the diamond norm is one for CPTP maps."""
+        A = rand_super_bcsz(dimension)
+        assert A.iscptp
+        assert dnorm(A, sparse=sparse) == pytest.approx(1, abs=1e-7)
