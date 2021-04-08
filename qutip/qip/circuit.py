@@ -839,93 +839,118 @@ class QubitCircuit:
                                   arg_label=r"\pi/2"))
 
     def _gate_FREDKIN(self, gate, temp_resolved):
-        half_pi = np.pi / 2
-        eigth_pi = np.pi / 8
-        temp_resolved.append(Gate("CNOT", gate.targets[0],
-                                  gate.targets[1]))
-        temp_resolved.append(Gate("CNOT", gate.targets[0],
-                                  gate.controls))
-        temp_resolved.append(Gate("RZ", gate.controls, None,
-                                  arg_value=eigth_pi,
-                                  arg_label=r"\pi/8"))
-        temp_resolved.append(Gate("RZ", gate.targets[0], None,
-                                  arg_value=-eigth_pi,
-                                  arg_label=r"-\pi/8"))
-        temp_resolved.append(Gate("CNOT", gate.targets[0],
-                                  gate.controls))
-        temp_resolved.append(Gate("GLOBALPHASE", None, None,
-                                  arg_value=half_pi,
-                                  arg_label=r"\pi/2"))
-        temp_resolved.append(Gate("RY", gate.targets[1], None,
-                                  arg_value=half_pi,
-                                  arg_label=r"\pi/2"))
-        temp_resolved.append(Gate("RY", gate.targets[0], None,
-                                  arg_value=-half_pi,
-                                  arg_label=r"-\pi/2"))
-        temp_resolved.append(Gate("RY", gate.targets[1], None,
-                                  arg_value=-half_pi,
-                                  arg_label=r"-\pi/2"))
-        temp_resolved.append(Gate("RZ", gate.targets[0], None,
-                                  arg_value=np.pi,
-                                  arg_label=r"\pi"))
-        temp_resolved.append(Gate("RZ", gate.targets[1], None,
-                                  arg_value=np.pi,
-                                  arg_label=r"\pi"))
-        temp_resolved.append(Gate("RY", gate.targets[0], None,
-                                  arg_value=half_pi,
-                                  arg_label=r"\pi/2"))
-        temp_resolved.append(Gate("RY", gate.targets[1], None,
-                                  arg_value=half_pi,
-                                  arg_label=r"\pi/2"))
-        temp_resolved.append(Gate("RZ", gate.targets[0], None,
-                                  arg_value=eigth_pi,
-                                  arg_label=r"\pi/8"))
-        temp_resolved.append(Gate("RZ", gate.targets[1], None,
-                                  arg_value=eigth_pi,
-                                  arg_label=r"\pi/8"))
-        temp_resolved.append(Gate("CNOT", gate.targets[1],
-                                  gate.controls))
-        temp_resolved.append(Gate("RZ", gate.targets[1], None,
-                                  arg_value=-eigth_pi,
-                                  arg_label=r"-\pi/8"))
-        temp_resolved.append(Gate("CNOT", gate.targets[1],
-                                  gate.targets[0]))
-        temp_resolved.append(Gate("RZ", gate.targets[1], None,
-                                  arg_value=eigth_pi,
-                                  arg_label=r"\pi/8"))
-        temp_resolved.append(Gate("CNOT", gate.targets[1],
-                                  gate.controls))
-        temp_resolved.append(Gate("RZ", gate.targets[1], None,
-                                  arg_value=-eigth_pi,
-                                  arg_label=r"-\pi/8"))
-        temp_resolved.append(Gate("CNOT", gate.targets[1],
-                                  gate.targets[0]))
-        temp_resolved.append(Gate("GLOBALPHASE", None, None,
-                                  arg_value=half_pi,
-                                  arg_label=r"\pi/2"))
-        temp_resolved.append(Gate("RY", gate.targets[1], None,
-                                  arg_value=half_pi,
-                                  arg_label=r"\pi/2"))
-        temp_resolved.append(Gate("RY", gate.targets[0], None,
-                                  arg_value=-half_pi,
-                                  arg_label=r"-\pi/2"))
-        temp_resolved.append(Gate("RY", gate.targets[1], None,
-                                  arg_value=-half_pi,
-                                  arg_label=r"-\pi/2"))
-        temp_resolved.append(Gate("RZ", gate.targets[0], None,
-                                  arg_value=np.pi,
-                                  arg_label=r"\pi"))
-        temp_resolved.append(Gate("RZ", gate.targets[1], None,
-                                  arg_value=np.pi,
-                                  arg_label=r"\pi"))
-        temp_resolved.append(Gate("RY", gate.targets[0], None,
-                                  arg_value=half_pi,
-                                  arg_label=r"\pi/2"))
-        temp_resolved.append(Gate("RY", gate.targets[1], None,
-                                  arg_value=half_pi,
-                                  arg_label=r"\pi/2"))
-        temp_resolved.append(Gate("CNOT", gate.targets[0],
-                                  gate.targets[1]))
+        pi = np.pi
+        temp_resolved += [
+            Gate("CNOT",
+                controls=gate.targets[1],
+                targets=gate.targets[0]),
+            Gate("RZ",
+                controls=None,
+                targets=gate.targets[1],
+                arg_value=pi,
+                arg_label=r"\pi"),
+            Gate("RX",
+                controls=None,
+                targets=gate.targets[1],
+                arg_value=pi / 2,
+                arg_label=r"\pi/2"),
+            Gate("RZ",
+                controls=None,
+                targets=gate.targets[1],
+                arg_value=- pi / 2,
+                arg_label=r"-\pi/2"),
+            Gate("RX",
+                controls=None,
+                targets=gate.targets[1],
+                arg_value=pi / 2,
+                arg_label=r"\pi/2"),
+            Gate("RZ",
+                controls=None,
+                targets=gate.targets[1],
+                arg_value=pi,
+                arg_label=r"\pi"),
+            Gate("CNOT",
+                controls=gate.targets[0],
+                targets=gate.targets[1]),
+            Gate("PHASEGATE",
+                controls=None,
+                targets=gate.targets[1],
+                arg_value=- pi / 4,
+                arg_label=r"-\pi/4"),
+            Gate("CNOT",
+                controls=gate.controls,
+                targets=gate.targets[1]),
+            Gate("PHASEGATE",
+                controls=None,
+                targets=gate.targets[1],
+                arg_value=pi / 4,
+                arg_label=r"\pi/4"),
+            Gate("CNOT",
+                controls=gate.targets[0],
+                targets=gate.targets[1]),
+            Gate("PHASEGATE",
+                controls=None,
+                targets=gate.targets[0],
+                arg_value=pi / 4,
+                arg_label=r"\pi/4"),
+            Gate("PHASEGATE",
+                controls=None,
+                targets=gate.targets[1],
+                arg_value=- pi / 4,
+                arg_label=r"-\pi/4"),
+            Gate("CNOT",
+                controls=gate.controls,
+                targets=gate.targets[1]),
+            Gate("CNOT",
+                controls=gate.controls,
+                targets=gate.targets[0]),
+            Gate("PHASEGATE",
+                controls=None,
+                targets=gate.controls,
+                arg_value=pi / 4,
+                arg_label=r"\pi/4"),
+            Gate("PHASEGATE",
+                controls=None,
+                targets=gate.targets[0],
+                arg_value=- pi / 4,
+                arg_label=r"-\pi/4"),
+            Gate("CNOT",
+                controls=gate.controls,
+                targets=gate.targets[0]),
+            Gate("RZ",
+                controls=None,
+                targets=gate.targets[1],
+                arg_value=- 3 * pi / 4,
+                arg_label=r"-3\pi/4"),
+            Gate("RX",
+                controls=None,
+                targets=gate.targets[1],
+                arg_value=pi / 2,
+                arg_label=r"\pi/2"),
+            Gate("RZ",
+                controls=None,
+                targets=gate.targets[1],
+                arg_value=- pi / 2,
+                arg_label=r"-\pi/2"),
+            Gate("RX",
+                controls=None,
+                targets=gate.targets[1],
+                arg_value=pi / 2,
+                arg_label=r"\pi/2"),
+            Gate("RZ",
+                controls=None,
+                targets=gate.targets[1],
+                arg_value=pi,
+                arg_label=r"\pi"),
+            Gate("CNOT",
+                controls=gate.targets[1],
+                targets=gate.targets[0]),
+            Gate("GLOBALPHASE",
+                controls=None,
+                targets=None,
+                arg_value=pi / 8,
+                arg_label=r"\pi/8")
+        ]
 
     def _gate_TOFFOLI(self, gate, temp_resolved):
         half_pi = np.pi / 2
