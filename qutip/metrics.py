@@ -321,9 +321,6 @@ def hellinger_dist(A, B, sparse=False, tol=0):
     >>> y=coherent_dm(5,1)
     >>> np.testing.assert_almost_equal(hellinger_dist(x,y), 1.3725145002591095)
     """
-    if A.dims != B.dims:
-        raise TypeError("A and B do not have same dimensions.")
-
     if A.isket or A.isbra:
         sqrtmA = ket2dm(A)
     else:
@@ -333,13 +330,15 @@ def hellinger_dist(A, B, sparse=False, tol=0):
     else:
         sqrtmB = B.sqrtm(sparse=sparse, tol=tol)
 
-    product = sqrtmA*sqrtmB
+    if sqrtmA.dims != sqrtmB.dims:
+        raise TypeError("A and B do not have compatible dimensions.")
 
+    product = sqrtmA*sqrtmB
     eigs = sp_eigs(product.data,
                    isherm=product.isherm, vecs=False, sparse=sparse, tol=tol)
-    #np.maximum() is to avoid nan appearing sometimes due to numerical
-    #instabilities causing np.sum(eigs) slightly (~1e-8) larger than 1
-    #when hellinger_dist(A, B) is called for A=B
+    # np.maximum() is to avoid nan appearing sometimes due to numerical
+    # instabilities causing np.sum(eigs) slightly (~1e-8) larger than 1
+    # when hellinger_dist(A, B) is called for A=B
     return np.sqrt(2.0 * np.maximum(0., (1.0 - np.real(np.sum(eigs)))))
 
 

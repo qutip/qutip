@@ -46,7 +46,8 @@ _mac_generic_setup: &mac_generic_setup
   os: osx
   language: generic
   install:
-    - conda install nomkl blas=*=openblas numpy scipy matplotlib cython pytest
+    - conda install nomkl blas=*=openblas numpy scipy matplotlib cython
+    - pip install pytest pytest-rerunfailures
     - python setup.py install
 
 jobs:
@@ -54,7 +55,8 @@ jobs:
     - name: "Linux, Python 3.8: regular"
       python: 3.8
       install:
-        - conda install numpy scipy matplotlib pytest cython
+        - conda install numpy scipy matplotlib cython
+        - pip install pytest pytest-rerunfailures
         - python setup.py install
 
     - name: "Linux, Python 3.7: OpenMP, MKL, scipy<1.5 (coverage)"
@@ -68,7 +70,8 @@ jobs:
       # This is why we use `setup.py develop` here, and why we don't change
       # directories.
       install:
-        - conda install mkl blas=*=mkl numpy 'scipy<1.5' matplotlib cython pytest pytest-cov coveralls cvxopt
+        - conda install mkl blas=*=mkl numpy 'scipy<1.5' matplotlib cython cvxopt
+        - pip install pytest pytest-rerunfailures pytest-cov coveralls
         - conda install -c conda-forge cvxpy
         - python setup.py develop --with-openmp
       before_script:
@@ -83,7 +86,8 @@ jobs:
     - name: "Linux, Python 3.6: No Cython, OpenBLAS"
       python: 3.6
       install:
-      - conda install nomkl blas=*=openblas numpy scipy matplotlib pytest
+      - conda install nomkl blas=*=openblas numpy scipy matplotlib
+      - pip install pytest pytest-rerunfailures
       - conda install cython --freeze-installed
       - conda list
       - python setup.py install
