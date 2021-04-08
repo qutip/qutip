@@ -77,6 +77,7 @@ def superoperator(request, dimension):
 
 right=left=superoperator
 
+
 class TestSuperopReps:
     """
     A test class for the QuTiP function for applying superoperators to
@@ -255,36 +256,38 @@ class TestSuperopReps:
 
         assert norm((A - B).data.todense()) < tol
 
-    # def test_stinespring_agrees(self, thresh=1e-10):
-    #     """
-    #     Stinespring: Partial Tr over pair agrees w/ supermatrix.
-    #     """
-    #     def case(map, state):
-    #         S = to_super(map)
-    #         A, B = to_stinespring(map)
+    @pytest.mark.repeat(4)
+    @pytest.mark.parametrize('dimension', [2, 4, 8])
+    def test_stinespring_agrees(self, dimension):
+        """
+        Stinespring: Partial Tr over pair agrees w/ supermatrix.
+        """
 
-    #         q1 = vector_to_operator(
-    #             S * operator_to_vector(state)
-    #         )
-    #         # FIXME: problem if Kraus index is implicitly
-    #         #        ptraced!
-    #         q2 = (A * state * B.dag()).ptrace((0,))
+        map = rand_super_bcsz(dimension)
+        state = rand_dm_ginibre(dimension)
 
-    #         assert_((q1 - q2).norm('tr') <= thresh)
+        S = to_super(map)
+        A, B = to_stinespring(map)
 
-    #     for idx in range(4):
-    #         case(rand_super_bcsz(2), rand_dm_ginibre(2))
+        q1 = vector_to_operator(
+            S * operator_to_vector(state)
+        )
+        # FIXME: problem if Kraus index is implicitly
+        #        ptraced!
+        q2 = (A * state * B.dag()).ptrace((0,))
 
-    # def test_stinespring_dims(self):
-    #     """
-    #     Stinespring: Check that dims of channels are preserved.
-    #     """
-    #     # FIXME: not the most general test, since this assumes a map
-    #     #        from square matrices to square matrices on the same space.
-    #     chan = super_tensor(to_super(sigmax()), to_super(qeye(3)))
-    #     A, B = to_stinespring(chan)
-    #     assert_equal(A.dims, [[2, 3, 1], [2, 3]])
-    #     assert_equal(B.dims, [[2, 3, 1], [2, 3]])
+        assert (q1 - q2).norm('tr') <= tol
+
+    def test_stinespring_dims(self):
+        """
+        Stinespring: Check that dims of channels are preserved.
+        """
+        # FIXME: not the most general test, since this assumes a map
+        #        from square matrices to square matrices on the same space.
+        chan = super_tensor(to_super(sigmax()), to_super(qeye(3)))
+        A, B = to_stinespring(chan)
+        assert A.dims == [[2, 3, 1], [2, 3]]
+        assert B.dims == [[2, 3, 1], [2, 3]]
 
     # def test_chi_choi_roundtrip(self):
     #     def case(qobj):
