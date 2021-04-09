@@ -15,57 +15,35 @@ Storing and loading QuTiP objects
 
 To store and load arbitrary QuTiP related objects (:class:`qutip.Qobj`, :class:`qutip.solver.Result`, etc.) there are two functions: :func:`qutip.fileio.qsave` and :func:`qutip.fileio.qload`. The function :func:`qutip.fileio.qsave` takes an arbitrary object as first parameter and an optional filename as second parameter (default filename is `qutip_data.qu`). The filename extension is always `.qu`. The function :func:`qutip.fileio.qload` takes a mandatory filename as first argument and loads and returns the objects in the file.
 
-To illustrate how these functions can be used, consider a simple calculation of the steadystate of the harmonic oscillator:
-
-.. doctest:: [saving]
+To illustrate how these functions can be used, consider a simple calculation of the steadystate of the harmonic oscillator ::
 
     >>> a = destroy(10); H = a.dag() * a
     >>> c_ops = [np.sqrt(0.5) * a, np.sqrt(0.25) * a.dag()]
-
     >>> rho_ss = steadystate(H, c_ops)
 
-The steadystate density matrix `rho_ss` is an instance of :class:`qutip.Qobj`. It can be stored to a file `steadystate.qu` using
-
-.. doctest:: [saving]
+The steadystate density matrix `rho_ss` is an instance of :class:`qutip.Qobj`. It can be stored to a file `steadystate.qu` using ::
 
     >>> qsave(rho_ss, 'steadystate')
-
-    >>> !ls *.qu # doctest: +SKIP
+    >>> !ls *.qu
     density_matrix_vs_time.qu  steadystate.qu
 
+and it can later be loaded again, and used in further calculations ::
 
-
-and it can later be loaded again, and used in further calculations:
-
-.. doctest:: [saving]
-
-    >>> rho_ss_loaded = qload('steadystate') # doctest: +ELLIPSIS
+    >>> rho_ss_loaded = qload('steadystate')
     Loaded Qobj object:
     Quantum object: dims = [[10], [10]], shape = (10, 10), type = oper, isHerm = True
-    <BLANKLINE>
-
     >>> a = destroy(10)
-
     >>> np.testing.assert_almost_equal(expect(a.dag() * a, rho_ss_loaded), 0.9902248289345061)
 
-
-The nice thing about the :func:`qutip.fileio.qsave` and :func:`qutip.fileio.qload` functions is that almost any object can be stored and load again later on. We can for example store a list of density matrices as returned by :func:`qutip.mesolve`:
-
-.. doctest:: [saving]
+The nice thing about the :func:`qutip.fileio.qsave` and :func:`qutip.fileio.qload` functions is that almost any object can be stored and load again later on. We can for example store a list of density matrices as returned by :func:`qutip.mesolve` ::
 
     >>> a = destroy(10); H = a.dag() * a ; c_ops = [np.sqrt(0.5) * a, np.sqrt(0.25) * a.dag()]
-
     >>> psi0 = rand_ket(10)
-
     >>> times = np.linspace(0, 10, 10)
-
     >>> dm_list = mesolve(H, psi0, times, c_ops, [])
-
     >>> qsave(dm_list, 'density_matrix_vs_time')
 
-And it can then be loaded and used again, for example in an other program:
-
-.. doctest:: [saving]
+And it can then be loaded and used again, for example in an other program ::
 
     >>> dm_list_loaded = qload('density_matrix_vs_time')
     Loaded Result object:
@@ -73,9 +51,7 @@ And it can then be loaded and used again, for example in an other program:
     --------------------------------
     states = True
     num_collapse = 0
-
     >>> a = destroy(10)
-
     >>> expect(a.dag() * a, dm_list_loaded.states) # doctest: +SKIP
     array([4.63317086, 3.59150315, 2.90590183, 2.41306641, 2.05120716,
        1.78312503, 1.58357995, 1.4346382 , 1.32327398, 1.23991233])
@@ -92,34 +68,23 @@ The :func:`qutip.fileio.file_data_store` takes two mandatory and three optional 
 
 where `filename` is the name of the file, `data` is the data to be written to the file (must be a *numpy* array), `numtype` (optional) is a flag indicating numerical type that can take values `complex` or `real`, `numformat` (optional) specifies the numerical format that can take the values `exp` for the format `1.0e1` and `decimal` for the format `10.0`, and `sep` (optional) is an arbitrary single-character field separator (usually a tab, space, comma, semicolon, etc.).
 
-A common use for the :func:`qutip.fileio.file_data_store` function is to store the expectation values of a set of operators for a sequence of times, e.g., as returned by the :func:`qutip.mesolve` function, which is what the following example does:
+A common use for the :func:`qutip.fileio.file_data_store` function is to store the expectation values of a set of operators for a sequence of times, e.g., as returned by the :func:`qutip.mesolve` function, which is what the following example does
 
-.. doctest:: [saving]
-  :options: +NORMALIZE_WHITESPACE
+.. plot::
+    :context:
 
     >>> a = destroy(10); H = a.dag() * a ; c_ops = [np.sqrt(0.5) * a, np.sqrt(0.25) * a.dag()]
-
     >>> psi0 = rand_ket(10)
-
     >>> times = np.linspace(0, 100, 100)
-
     >>> medata = mesolve(H, psi0, times, c_ops, [a.dag() * a, a + a.dag(), -1j * (a - a.dag())])
-
-    >>> shape(medata.expect)
+    >>> np.shape(medata.expect)
     (3, 100)
-
-    >>> shape(times)
+    >>> times.shape
     (100,)
-
     >>> output_data = np.vstack((times, medata.expect))   # join time and expt data
-
     >>> file_data_store('expect.dat', output_data.T) # Note the .T for transpose!
-
-    >>> !ls *.dat # doctest: +SKIP
-    expect.dat
-
-
-    >>> !head expect.dat # doctest: +SKIP
+    >>> with open("expect.dat", "r") as f:
+    ...    print('\n'.join(f.readlines()[:10]))
     # Generated by QuTiP: 100x4 complex matrix in decimal format [',' separated values].
     0.0000000000+0.0000000000j,3.2109553666+0.0000000000j,0.3689771549+0.0000000000j,0.0185002867+0.0000000000j
     1.0101010101+0.0000000000j,2.6754598872+0.0000000000j,0.1298251132+0.0000000000j,-0.3303672956+0.0000000000j
@@ -132,38 +97,34 @@ A common use for the :func:`qutip.fileio.file_data_store` function is to store t
     8.0808080808+0.0000000000j,1.2533244850+0.0000000000j,-0.0771210981+0.0000000000j,-0.1468923919+0.0000000000j
 
 
-In this case we didn't really need to store both the real and imaginary parts, so instead we could use the `numtype="real"` option:
+In this case we didn't really need to store both the real and imaginary parts, so instead we could use the ``numtype="real"`` option
 
-.. doctest:: [saving]
+.. plot::
+   :context:
 
     >>> file_data_store('expect.dat', output_data.T, numtype="real")
-
-    >>> !head -n5 expect.dat # doctest: +SKIP
+    >>> with open("expect.dat", "r") as f:
+    ...    print('\n'.join(f.readlines()[:5]))
     # Generated by QuTiP: 100x4 real matrix in decimal format [',' separated values].
     0.0000000000,3.2109553666,0.3689771549,0.0185002867
     1.0101010101,2.6754598872,0.1298251132,-0.3303672956
     2.0202020202,2.2743186810,-0.2106241300,-0.2623894277
     3.0303030303,1.9726633457,-0.3037311621,0.0397330921
 
+and if we prefer scientific notation we can request that using the ``numformat="exp"`` option
 
-and if we prefer scientific notation we can request that using the `numformat="exp"` option
-
-.. doctest:: [saving]
+.. plot::
+    :context:
 
     >>> file_data_store('expect.dat', output_data.T, numtype="real", numformat="exp")
-
-    >>> !head -n 5 expect.dat # doctest: +SKIP
 
 Loading data previously stored using :func:`qutip.fileio.file_data_store` (or some other software) is a even easier. Regardless of which deliminator was used, if data was stored as complex or real numbers, if it is in decimal or exponential form, the data can be loaded using the :func:`qutip.fileio.file_data_read`, which only takes the filename as mandatory argument.
 
 .. plot::
-    :context: reset
+    :context:
 
     input_data = file_data_read('expect.dat')
-
-    shape(input_data)
-
-    plot(input_data[:,0], input_data[:,1]);  # plot the data
+    plt.plot(input_data[:,0], input_data[:,1]);  # plot the data
 
 
-(If a particularly obscure choice of deliminator was used it might be necessary to use the optional second argument, for example `sep="_"` if _ is the deliminator).
+(If a particularly obscure choice of deliminator was used it might be necessary to use the optional second argument, for example ``sep="_"`` if ``_`` is the deliminator).
