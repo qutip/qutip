@@ -33,6 +33,7 @@
 
 import pytest
 import functools
+from itertools import product
 import numpy as np
 import qutip
 
@@ -58,6 +59,7 @@ def test_correlation_solver_equivalence(solver, start, legacy):
     system.
     """
     a = qutip.destroy(_equivalence_dimension)
+    x = ( a +a.dag() )/np.sqrt(2)
     H = a.dag() * a
     G1 = 0.75
     n_th = 2
@@ -251,3 +253,56 @@ def test_hamiltonian_order_unimportant():
     backwards = qutip.correlation_2op_2t(H[::-1], start, times, times, [sp],
                                          sp.dag(), sp)
     np.testing.assert_allclose(forwards, backwards, atol=1e-6)
+
+
+@pytest.mark.parametrize(['solver', 'state'], [
+    pytest.param('me', _equivalence_fock, id="me-ket"),
+    pytest.param('me', _equivalence_coherent, id="me-dm"),
+    pytest.param('me', None, id="me-steady"),
+    pytest.param('es', _equivalence_fock, id="es-ket"),
+    pytest.param('es', _equivalence_coherent, id="es-dm"),
+    pytest.param('es', None, id="es-steady"),
+    pytest.param('mc', _equivalence_fock, id="mc-ket",
+                 marks=[pytest.mark.slow]),
+])
+@pytest.mark.parametrize("is_e_op_hermitian", [True, False],
+                         ids=["hermitian", "nonhermitian"])
+@pytest.mark.parametrize("w", [1, 2])
+@pytest.mark.parametrize("gamma", [1, 10])
+def test_correlation_2op_1t_known_cases(solver,
+                                        state,
+                                        is_e_op_hermitian,
+                                        w,
+                                        gamma,
+                                       ):
+    """This test compares the output correlation_2op_1 solution to an analytical
+    solution."""
+
+    a = qutip.destroy(_equivalence_dimension)
+    x = (a + a.dag())/np.sqrt(2)
+
+    H = w * a.dag() * a
+
+    a_op = x if is_e_op_hermitian else a
+    b_op = x if is_e_op_hermitian else a.dag()
+    c_ops = [np.sqrt(gamma) * a]
+
+    times = np.linspace(0, 1, 30)
+
+    # Handle the case state==None when computing expt values
+    rho0 = state if state else qutip.steadystate(H, c_ops)
+    if is_e_op_hermitian:
+        # Analitycal solution for x,x as operators.
+        base = 0
+        base += qutip.expect(a*x, rho0)*np.exp(-1j*w*times - gamma*times/2)
+        base += qutip.expect(a.dag()*x, rho0)*np.exp(1j*w*times - gamma*times/2)
+        base /= np.sqrt(2)
+    else:
+        # Analitycal solution for a,adag as operators.
+        base = qutip.expect(a*a.dag(), rho0)*np.exp(-1j*w*times - gamma*times/2)
+
+    cmp = qutip.correlation_2op_1t(H, state, times, c_ops, a_op, b_op, solver=solver)
+
+    np.testing.assert_allclose(base, cmp, atol=0.25 if solver == 'mc' else 2e-5)
+
+

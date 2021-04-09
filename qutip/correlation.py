@@ -116,7 +116,7 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
     Returns
     -------
     corr_vec : ndarray
-        An array of correlation values for the times specified by `tlist`.
+        An array of correlation values for the times specified by `taulist`.
 
     References
     ----------
