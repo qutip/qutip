@@ -57,12 +57,10 @@ __all__ = ['Processor']
 class Processor(object):
     """
     A simulator of a quantum device based on the QuTiP solver
-    :func:`qutip.mesolve`.
-    It is defined by the available driving Hamiltonian and
-    the decoherence time for each component systems.
-    The processor can simulate the evolution under the given
-    control pulses. Noisy evolution is supported by
-    :class:`.Noise` and can be added to the processor.
+    :func:`qutip.mesolve`.  It is defined by the available driving Hamiltonian
+    and the decoherence time for each component systems.  The processor can
+    simulate the evolution under the given control pulses. Noisy evolution is
+    supported by :class:`.Noise` and can be added to the processor.
 
     Parameters
     ----------
@@ -84,17 +82,17 @@ class Processor(object):
 
     spline_kind: str, optional
         Type of the coefficient interpolation. Default is "step_func"
-        Note that they have different requirement for the length of `coeff'.
+        Note that they have different requirement for the length of ``coeff``.
 
-        -"step_func":
-        The coefficient will be treated as a step function.
-        E.g. ``tlist=[0,1,2]`` and ``coeff=[3,2]``, means that the coefficient
-        is 3 in t=[0,1) and 2 in t=[2,3). It requires
-        ``len(coeff)=len(tlist)-1`` or ``len(coeff)=len(tlist)``, but
-        in the second case the last element of `coeff` has no effect.
+        - "step_func":
+          The coefficient will be treated as a step function.  E.g.
+          ``tlist=[0,1,2]`` and ``coeff=[3,2]``, means that the coefficient is
+          3 in t=[0,1) and 2 in t=[2,3). It requires
+          ``len(coeff)=len(tlist)-1`` or ``len(coeff)=len(tlist)``, but in the
+          second case the last element of `coeff` has no effect.
 
-        -"cubic": Use cubic interpolation for the coefficient. It requires
-        ``len(coeff)=len(tlist)``
+        - "cubic": Use cubic interpolation for the coefficient. It requires
+          ``len(coeff)=len(tlist)``
 
     Attributes
     ----------

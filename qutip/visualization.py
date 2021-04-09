@@ -74,14 +74,14 @@ def plot_wigner_sphere(fig, ax, wigner, reflections):
 
     Parameters
     ----------
-        fig
-            An instance of matplotlib.pyplot.figure.
-        ax
-            An axes instance in fig.
-        wigner : list of float
-            the wigner transformation at `steps` different theta and phi.
-        reflections : bool
-            If the reflections of the sphere should be plotted as well.
+    fig : :obj:`matplotlib.figure.Figure`
+        An instance of :obj:`~matplotlib.figure.Figure`.
+    ax : :obj:`matplotlib.axes.Axes`
+        An axes instance in the given figure.
+    wigner : list of float
+        The wigner transformation at `steps` different theta and phi.
+    reflections : bool
+        If the reflections of the sphere should be plotted as well.
 
     Notes
     ------
@@ -1316,18 +1316,9 @@ def plot_qubism(ket, theme='light', how='pairs',
                 grid_iteration=1, legend_iteration=0,
                 fig=None, ax=None, figsize=(6, 6)):
     """
-    Qubism plot for pure states of many qudits.
-    Works best for spin chains, especially with even number of particles
-    of the same dimension.
-    Allows to see entanglement between first 2*k particles and the rest.
-
-    More information:
-        
-        J. Rodriguez-Laguna, P. Migdal,
-        M. Ibanez Berganza, M. Lewenstein, G. Sierra,
-        "Qubism: self-similar visualization of many-body wavefunctions",
-        New J. Phys. 14 053028 (2012), arXiv:1112.3560,
-        http://dx.doi.org/10.1088/1367-2630/14/5/053028 (open access)
+    Qubism plot for pure states of many qudits.  Works best for spin chains,
+    especially with even number of particles of the same dimension.  Allows to
+    see entanglement between first 2k particles and the rest.
 
     Parameters
     ----------
@@ -1339,23 +1330,21 @@ def plot_qubism(ket, theme='light', how='pairs',
         See: complex_array_to_rgb.
 
     how : 'pairs' (default), 'pairs_skewed' or 'before_after'
-        Type of Qubism plotting.
-        Options:
-            
-            'pairs' - typical coordinates,
-            'pairs_skewed' - for ferromagnetic/antriferromagnetic plots,
-            'before_after' - related to Schmidt plot (see also: plot_schmidt).
+        Type of Qubism plotting.  Options:
+
+        - 'pairs' - typical coordinates,
+        - 'pairs_skewed' - for ferromagnetic/antriferromagnetic plots,
+        - 'before_after' - related to Schmidt plot (see also: plot_schmidt).
 
     grid_iteration : int (default 1)
         Helper lines to be drawn on plot.
         Show tiles for 2*grid_iteration particles vs all others.
 
     legend_iteration : int (default 0) or 'grid_iteration' or 'all'
-        Show labels for first 2*legend_iteration particles.
-        Option 'grid_iteration' sets the same number of particles
-            as for grid_iteration.
-        Option 'all' makes label for all particles.
-        Typically it should be 0, 1, 2 or perhaps 3.
+        Show labels for first ``2*legend_iteration`` particles.  Option
+        'grid_iteration' sets the same number of particles as for
+        grid_iteration.  Option 'all' makes label for all particles.  Typically
+        it should be 0, 1, 2 or perhaps 3.
 
     fig : a matplotlib figure instance
         The figure canvas on which the plot will be drawn.
@@ -1373,6 +1362,17 @@ def plot_qubism(ket, theme='light', how='pairs',
         A tuple of the matplotlib figure and axes instances used to produce
         the figure.
 
+    Notes
+    -----
+    See also [1]_.
+
+    References
+    ----------
+    .. [1] J. Rodriguez-Laguna, P. Migdal, M. Ibanez Berganza, M. Lewenstein
+       and G. Sierra, *Qubism: self-similar visualization of many-body
+       wavefunctions*, `New J. Phys. 14 053028
+       <http://dx.doi.org/10.1088/1367-2630/14/5/053028>`_, arXiv:1112.3560
+       (2012), open access.
     """
 
     if not isket(ket):

@@ -370,8 +370,8 @@ class Pulse():
 
     def get_noisy_qobjevo(self, dims):
         """
-        Get the `QobjEvo` representation of the noisy evolution. The result
-        can be used directly as input for the qutip solvers.
+        Get the :obj:`.QobjEvo` representation of the noisy evolution. The
+        result can be used directly as input for the qutip solvers.
 
         Parameters
         ----------
@@ -383,7 +383,7 @@ class Pulse():
         Returns
         -------
         noisy_evo: :class:`qutip.QobjEvo`
-            A `QobjEvo` representing the ideal evolution and coherent noise.
+            A ``QobjEvo`` representing the ideal evolution and coherent noise.
         c_ops: list of :class:`qutip.QobjEvo`
             A list of (time-dependent) lindbald operators.
         """
@@ -401,14 +401,14 @@ class Pulse():
 
     def get_full_tlist(self, tol=1.0e-10):
         """
-        Return the full tlist of the pulses and noise.
-        It means that if different `tlist`s are present, they will be merged
-        to one with all time points stored in a sorted array.
+        Return the full tlist of the pulses and noise.  It means that if
+        different ``tlist`` are present, they will be merged to one with all
+        time points stored in a sorted array.
 
         Returns
         -------
         full_tlist: array-like 1d
-            The full time sequence for the nosiy evolution.
+            The full time sequence for the noisy evolution.
         """
         # TODO add test
         all_tlists = []

@@ -56,64 +56,62 @@ from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
 def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
             progress_bar=None, _safe_mode=True):
     """
-    Schrodinger equation evolution of a state vector or unitary matrix
-    for a given Hamiltonian.
+    Schrodinger equation evolution of a state vector or unitary matrix for a
+    given Hamiltonian.
 
-    Evolve the state vector (`psi0`) using a given
-    Hamiltonian (`H`), by integrating the set of ordinary differential
-    equations that define the system. Alternatively evolve a unitary matrix in
-    solving the Schrodinger operator equation.
+    Evolve the state vector (``psi0``) using a given Hamiltonian (``H``), by
+    integrating the set of ordinary differential equations that define the
+    system. Alternatively evolve a unitary matrix in solving the Schrodinger
+    operator equation.
 
     The output is either the state vector or unitary matrix at arbitrary points
-    in time (`tlist`), or the expectation values of the supplied operators
-    (`e_ops`). If e_ops is a callback function, it is invoked for each
-    time in `tlist` with time and the state as arguments, and the function
-    does not use any return values. e_ops cannot be used in conjunction
+    in time (``tlist``), or the expectation values of the supplied operators
+    (``e_ops``). If ``e_ops`` is a callback function, it is invoked for each
+    time in ``tlist`` with time and the state as arguments, and the function
+    does not use any return values. ``e_ops`` cannot be used in conjunction
     with solving the Schrodinger operator equation
 
     Parameters
     ----------
 
-    H : :class:`qutip.qobj`, :class:`qutip.qobjevo`, *list*, *callable*
-        system Hamiltonian as a Qobj, list of Qobj and coefficient, QobjEvo,
-        or a callback function for time-dependent Hamiltonians.
-        list format and options can be found in QobjEvo's description.
+    H : :class:`~Qobj`, :class:`~QobjEvo`, list, or callable
+        System Hamiltonian as a :obj:`~Qobj , list of :obj:`Qobj` and
+        coefficient, :obj:`~QObjEvo`, or a callback function for time-dependent
+        Hamiltonians.  List format and options can be found in QobjEvo's
+        description.
 
-    psi0 : :class:`qutip.qobj`
-        initial state vector (ket)
-        or initial unitary operator `psi0 = U`
+    psi0 : :class:`~Qobj`
+        Initial state vector (ket) or initial unitary operator ``psi0 = U``.
 
-    tlist : *list* / *array*
-        list of times for :math:`t`.
+    tlist : array_like of float
+        List of times for :math:`t`.
 
-    e_ops : None / list of :class:`qutip.qobj` / callback function
-        single operator or list of operators for which to evaluate
-        expectation values.
-        For list operator evolution, the overlapse is computed:
-            tr(e_ops[i].dag()*op(t))
+    e_ops : list of :class:`~Qobj` or callback function, optional
+        Single operator or list of operators for which to evaluate expectation
+        values.  For operator evolution, the overlap is computed: ::
 
-    args : None / *dictionary*
-        dictionary of parameters for time-dependent Hamiltonians
+            (e_ops[i].dag() * op(t)).tr()
 
-    options : None / :class:`qutip.Qdeoptions`
-        with options for the ODE solver.
+    args : dict, optional
+        Dictionary of scope parameters for time-dependent Hamiltonians.
 
-    progress_bar : None / BaseProgressBar
-        Optional instance of BaseProgressBar, or a subclass thereof, for
-        showing the progress of the simulation.
+    options : :obj:`~solver.Options`, optional
+        Options for the ODE solver.
+
+    progress_bar : :obj:`~BaseProgressBar`, optional
+        Optional instance of :obj:`~BaseProgressBar`, or a subclass thereof,
+        for showing the progress of the simulation.
 
     Returns
     -------
 
-    output: :class:`qutip.solver`
-
-        An instance of the class :class:`qutip.solver`, which contains either
-        an *array* of expectation values for the times specified by `tlist`, or
-        an *array* or state vectors corresponding to the
-        times in `tlist` [if `e_ops` is an empty list], or
-        nothing if a callback function was given inplace of operators for
-        which to calculate the expectation values.
-
+    output: :class:`~solver.Result`
+        An instance of the class :class:`~solver.Result`, which contains either
+        an array of expectation values for the times specified by ``tlist``, or
+        an array or state vectors corresponding to the times in ``tlist`` (if
+        ``e_ops`` is an empty list), or nothing if a callback function was
+        given inplace of operators for which to calculate the expectation
+        values.
     """
     if e_ops is None:
         e_ops = []
@@ -140,11 +138,7 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
     if options.rhs_reuse and not isinstance(H, SolverSystem):
         # TODO: deprecate when going to class based solver.
         if "sesolve" in solver_safe:
-            # print(" ")
             H = solver_safe["sesolve"]
-        else:
-            pass
-            # raise Exception("Could not find the Hamiltonian to reuse.")
 
     if args is None:
         args = {}

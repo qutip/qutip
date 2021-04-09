@@ -387,11 +387,10 @@ class PropCompAugMat(PropagatorComputer):
 
 class PropCompFrechet(PropagatorComputer):
     """
-    Frechet method for calculating the propagator:
-        exponentiating the combined dynamics generator
-    and the propagator gradient
-    It should work for all systems, e.g. unitary, open, symplectic
-    There are other PropagatorComputer subclasses that may be more efficient
+    Frechet method for calculating the propagator: exponentiating the combined
+    dynamics generator and the propagator gradient. It should work for all
+    systems, e.g. unitary, open, symplectic. There are other
+    :obj:`PropagatorComputer` subclasses that may be more efficient.
     """
     def reset(self):
         PropagatorComputer.reset(self)

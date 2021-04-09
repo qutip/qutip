@@ -514,13 +514,15 @@ class Dynamics(object):
         """
         The level of data dumping that will occur during the time evolution
         calculation.
-         - NONE : No processing data dumped (Default)
-         - SUMMARY : A summary of each time evolution will be recorded
-         - FULL : All operators used or created in the calculation dumped
-         - CUSTOM : Some customised level of dumping
+
+        - NONE : No processing data dumped (Default)
+        - SUMMARY : A summary of each time evolution will be recorded
+        - FULL : All operators used or created in the calculation dumped
+        - CUSTOM : Some customised level of dumping
+
         When first set to CUSTOM this is equivalent to SUMMARY. It is then up
-        to the user to specify which operators are dumped
-        WARNING: FULL could consume a lot of memory!
+        to the user to specify which operators are dumped.  WARNING: FULL could
+        consume a lot of memory!
         """
         if self.dump is None:
             lvl = 'NONE'
@@ -867,11 +869,13 @@ class Dynamics(object):
         """
         phase_application : scalar(string), default='preop'
         Determines how the phase is applied to the dynamics generators
-         - 'preop'  : P = expm(phase*dyn_gen)
-         - 'postop' : P = expm(dyn_gen*phase)
-         - 'custom' : Customised phase application
+
+        - 'preop'  : P = expm(phase*dyn_gen)
+        - 'postop' : P = expm(dyn_gen*phase)
+        - 'custom' : Customised phase application
+
         The 'custom' option assumes that the _apply_phase method has been
-        set to a custom function
+        set to a custom function.
         """
         return self._phase_application
 

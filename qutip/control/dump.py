@@ -155,10 +155,17 @@ class Dump(object):
     @property
     def level(self):
         """
-        The level of data dumping that will occur
-         - SUMMARY : A summary will be recorded
-         - FULL : All possible dumping
-         - CUSTOM : Some customised level of dumping
+        The level of data dumping that will occur.
+
+        SUMMARY
+            A summary will be recorded
+
+        FULL
+            All possible dumping
+
+        CUSTOM
+            Some customised level of dumping
+
         When first set to CUSTOM this is equivalent to SUMMARY. It is then up
         to the user to specify what specifically is dumped
         """
@@ -507,15 +514,14 @@ class OptimDump(Dump):
 
 class DynamicsDump(Dump):
     """
-    A container for dumps of dynamics data.
-    Mainly time evolution calculations
+    A container for dumps of dynamics data. Mainly time evolution calculations.
 
     Attributes
     ----------
     dump_summary : bool
         If True a summary is recorded
 
-    evo_summary : list of :class:`tslotcomp.EvoCompSummary'
+    evo_summary : list of :class:`tslotcomp.EvoCompSummary`
         Summary items are appended if dump_summary is True
         at each recomputation of the evolution.
 
@@ -686,15 +692,16 @@ class DynamicsDump(Dump):
         return ecs
 
     def writeout(self, f=None):
-        """write all the dump items and the summary out to file(s)
+        """
+        Write all the dump items and the summary out to file(s).
+
         Parameters
         ----------
         f : filename or filehandle
             If specified then all summary and object data will go in one file.
-            If None is specified then type specific files will be generated
-            in the dump_dir
-            If a filehandle is specified then it must be a byte mode file
-            as numpy.savetxt is used, and requires this.
+            If None is specified then type specific files will be generated in
+            the dump_dir.  If a filehandle is specified then it must be a byte
+            mode file as numpy.savetxt is used, and requires this.
         """
         fall = None
         # If specific file given then write everything to it
@@ -746,18 +753,20 @@ class DynamicsDump(Dump):
             else:
                 logger.info("Dynamics dump saved to {}".format(self.dump_dir))
 
-class DumpItem(object):
+
+class DumpItem:
     """
     An item in a dump list
     """
     def __init__(self):
         pass
 
+
 class EvoCompDumpItem(DumpItem):
     """
-    A copy of all objects generated to calculate one time evolution
-    Note the attributes are only set if the corresponding
-    :class:`DynamicsDump` dump_ attribute is set.
+    A copy of all objects generated to calculate one time evolution. Note the
+    attributes are only set if the corresponding :class:`DynamicsDump`
+    ``dump_*`` attribute is set.
     """
     def __init__(self, dump):
         if not isinstance(dump, DynamicsDump):
@@ -931,11 +940,12 @@ class EvoCompDumpItem(DumpItem):
         if closefall:
             fall.close()
 
-class DumpSummaryItem(object):
-    """A summary of the most recent iteration
-    Abstract class only
+class DumpSummaryItem:
+    """
+    A summary of the most recent iteration.  Abstract class only.
 
-    Attributes:
+    Attributes
+    ----------
     idx : int
         Index in the summary list in which this is stored
     """
