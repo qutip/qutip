@@ -342,8 +342,8 @@ def purity_dicke(rho):
 class Dicke(object):
     """The Dicke class which builds the Lindbladian and Liouvillian matrix.
 
-    Example
-    -------
+    Examples
+    --------
     >>> from piqs import Dicke, jspin
     >>> N = 2
     >>> jx, jy, jz = jspin(N)

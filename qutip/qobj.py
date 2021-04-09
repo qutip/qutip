@@ -1588,11 +1588,10 @@ class Qobj(object):
         elem : complex
             Complex valued matrix element.
 
-        Note
-        ----
+        Notes
+        -----
         It is slightly more computationally efficient to use a ket
         vector for the 'bra' input.
-
         """
         if not self.isoper:
             raise TypeError("Can only get matrix elements for an operator.")
