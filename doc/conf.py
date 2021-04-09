@@ -294,8 +294,8 @@ extlinks = {
 # Sphinx Gallery
 
 sphinx_gallery_conf = {
-     'examples_dirs': 'gallery',   # path to your example scripts
-     'gallery_dirs': 'gallery/qutip_examples',  # save generated examples
+     'examples_dirs': 'gallery/src',   # path to your example scripts
+     'gallery_dirs': 'gallery/build',  # save generated examples
      'abort_on_example_error': True  # abort if exception occurs
 }
 
