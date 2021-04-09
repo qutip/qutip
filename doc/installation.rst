@@ -59,7 +59,7 @@ We would not recommend installation into the system Python on Linux platforms, a
 Platform-independent Installation
 =================================
 
-QuTiP is designed to work best when using the `Anaconda <https://www.continuum.io/downloads>`_ or `Intel <https://software.intel.com/en-us/python-distribution>`_ Python distributions that support the conda package management system.
+QuTiP is designed to work best when using the `Anaconda <https://www.anaconda.com/products/individual>`_ or `Intel <https://software.intel.com/en-us/python-distribution>`_ Python distributions that support the conda package management system.
 
 
 If you aleady have your conda environment set up, and have the ``conda-forge`` channel available, then you can install QuTiP using:
@@ -109,7 +109,7 @@ absolute mimimum:
 
    conda install numpy scipy cython
 
-The ``jupyter`` and ``notebook`` packages are for working with `Jupyter <http://jupyter.org/>`_ notebooks (fka IPython notebooks). `Spyder <https://pythonhosted.org/spyder/>`_ is an IDE for scientific development with Python.
+The ``jupyter`` and ``notebook`` packages are for working with `Jupyter <http://jupyter.org/>`_ notebooks (fka IPython notebooks). `Spyder <https://www.spyder-ide.org/>`_ is an IDE for scientific development with Python.
 
 .. _adding-conda-forge:
 
