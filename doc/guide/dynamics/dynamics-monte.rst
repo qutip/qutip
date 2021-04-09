@@ -7,14 +7,6 @@
 Monte Carlo Solver
 *******************************************
 
-.. plot::
-      :include-source: False
-
-      from pylab import *
-      from scipy import *
-      from qutip import *
-      import numpy as np
-
 .. _monte-intro:
 
 Introduction
@@ -83,15 +75,16 @@ To illustrate the use of the Monte Carlo evolution of quantum systems in QuTiP, 
     psi0 = tensor(fock(2, 0), fock(10, 5))
     a  = tensor(qeye(2), destroy(10))
     sm = tensor(destroy(2), qeye(10))
-    H = 2 * np.pi * a.dag() * a + 2 * np.pi * sm.dag() * sm + 2 * np.pi * 0.25 * (sm * a.dag() + sm.dag() * a)
+    H = 2*np.pi*a.dag()*a + 2*np.pi*sm.dag()*sm + 2*np.pi*0.25*(sm*a.dag() + sm.dag()*a)
     data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm])
-    figure()
-    plot(times, data.expect[0], times, data.expect[1])
-    title('Monte Carlo time evolution')
-    xlabel('Time')
-    ylabel('Expectation values')
-    legend(("cavity photon number", "atom excitation probability"))
-    show()
+
+    plt.figure()
+    plt.plot(times, data.expect[0], times, data.expect[1])
+    plt.title('Monte Carlo time evolution')
+    plt.xlabel('Time')
+    plt.ylabel('Expectation values')
+    plt.legend(("cavity photon number", "atom excitation probability"))
+    plt.show()
 
 .. guide-dynamics-mc1:
 
@@ -132,11 +125,8 @@ we can extract the relevant expectation values using:
     :context:
 
     expt1 = data.expect[0]
-
     expt10 = data.expect[1]
-
     expt100 = data.expect[2]
-
     expt1000 = data.expect[3]
 
 The Monte Carlo solver also has many available options that can be set using the :func:`qutip.solver.Options` class as discussed in :ref:`options`.
@@ -164,38 +154,24 @@ A full account of this feature is given in :ref:`options`.  Using the previous e
     :context:
 
     times = np.linspace(0.0, 10.0, 200)
-
     psi0 = tensor(fock(2, 0), fock(10, 5))
-
     a  = tensor(qeye(2), destroy(10))
-
     sm = tensor(destroy(2), qeye(10))
 
-    H = 2 * np.pi * a.dag() * a + 2 * np.pi * sm.dag() * sm + 2 * np.pi * 0.25 * (sm * a.dag() + sm.dag() * a)
-
+    H = 2*np.pi*a.dag()*a + 2*np.pi*sm.dag()*sm + 2*np.pi*0.25*(sm*a.dag() + sm.dag()*a)
     data1 = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm])
-
     psi1 = tensor(fock(2, 0), coherent(10, 2 - 1j))
-
     opts = Options(rhs_reuse=True) # Run a second time, reusing RHS
-
     data2 = mcsolve(H, psi1, times, [np.sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm], options=opts)
 
-    figure()
-
-    plot(times, data1.expect[0], times, data1.expect[1], lw=2)
-
-    plot(times, data2.expect[0], '--', times, data2.expect[1], '--', lw=2)
-
-    title('Monte Carlo time evolution')
-
-    xlabel('Time', fontsize=14)
-
-    ylabel('Expectation values', fontsize=14)
-
-    legend(("cavity photon number", "atom excitation probability"))
-
-    show()
+    plt.figure()
+    plt.plot(times, data1.expect[0], times, data1.expect[1], lw=2)
+    plt.plot(times, data2.expect[0], '--', times, data2.expect[1], '--', lw=2)
+    plt.title('Monte Carlo time evolution')
+    plt.xlabel('Time', fontsize=14)
+    plt.ylabel('Expectation values', fontsize=14)
+    plt.legend(("cavity photon number", "atom excitation probability"))
+    plt.show()
 
 .. guide-dynamics-mc2:
 

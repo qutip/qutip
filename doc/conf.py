@@ -246,12 +246,12 @@ if os.name == "nt":
     os_nt = True
 
 doctest_global_setup = '''
-from pylab import *
-from qutip import *
+import matplotlib.pyplot as plt
 import numpy as np
 import os
 import warnings
 warnings.filterwarnings("ignore")
+from qutip import *
 os_nt = {}
 '''.format(os_nt)
 
@@ -259,11 +259,9 @@ os_nt = {}
 
 plot_working_directory = "./"
 plot_pre_code = """
-from pylab import *
-from scipy import *
-from qutip import *
 import numpy as np
 import matplotlib.pyplot as plt
+from qutip import *
 plt.close("all")
 """
 plot_include_source = True

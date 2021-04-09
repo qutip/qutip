@@ -7,14 +7,6 @@
 An Overview of the Eseries Class
 **********************************
 
-.. plot::
-      :include-source: False
-
-      >>> from pylab import *
-      >>> from scipy import *
-      >>> from qutip import *
-      >>> import numpy as np
-
 .. _eseries-rep:
 
 Exponential-series representation of time-dependent quantum objects
@@ -117,7 +109,7 @@ To calculate the expectation value of an time-dependent operator represented by 
   (-0.5+0j)
   Exponent #1 = 1j
   (-0.5+0j)
-  >>> es3_expect.value([0.0, pi/2]) # doctest: +NORMALIZE_WHITESPACE
+  >>> es3_expect.value([0.0, np.pi/2]) # doctest: +NORMALIZE_WHITESPACE
   array([-1.000000e+00, -6.123234e-17])
 
 Note the expectation value of the :class:`qutip.eseries` object, ``expect(rho, es3)``, itself is an :class:`qutip.eseries`, but with amplitude coefficients that are C-numbers instead of quantum operators. To evaluate the C-number :class:`qutip.eseries` at the times `times` we use ``esval(es3_expect, times)``, or, equivalently, ``es3_expect.value(times)``.
@@ -195,9 +187,9 @@ The result `es_expect` is now an exponential series with c-numbers as amplitudes
 .. plot::
     :context:
 
-    >>> times = linspace(0.0, 10.0, 100)
+    >>> times = np.linspace(0.0, 10.0, 100)
     >>> sz_expect = es_expect.value(times)
-    >>> plot(times, sz_expect, lw=2) # doctest: +SKIP
-    >>> xlabel("Time", fontsize=16) # doctest: +SKIP
-    >>> ylabel("Expectation value of sigma-z", fontsize=16) # doctest: +SKIP
-    >>> title("The expectation value of the $\sigma_{z}$ operator", fontsize=16) # doctest: +SKIP
+    >>> plt.plot(times, sz_expect, lw=2) # doctest: +SKIP
+    >>> plt.xlabel("Time", fontsize=16) # doctest: +SKIP
+    >>> plt.ylabel("Expectation value of sigma-z", fontsize=16) # doctest: +SKIP
+    >>> plt.title("The expectation value of the $\sigma_{z}$ operator", fontsize=16) # doctest: +SKIP

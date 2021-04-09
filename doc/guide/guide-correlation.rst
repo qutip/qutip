@@ -7,20 +7,6 @@
 Two-time correlation functions
 ******************************
 
-
-.. plot::
-   :include-source: False
-
-   import numpy as np
-
-   from qutip import *
-
-   import pylab as plt
-
-   from warnings import warn
-
-   plt.close("all")
-
 With the QuTiP time-evolution functions (for example :func:`qutip.mesolve` and :func:`qutip.mcsolve`), a state vector or density matrix can be evolved from an initial state at :math:`t_0` to an arbitrary time :math:`t`, :math:`\rho(t)=V(t, t_0)\left\{\rho(t_0)\right\}`, where :math:`V(t, t_0)` is the propagator defined by the equation of motion. The resulting density matrix can then be used to evaluate the expectation values of arbitrary combinations of *same-time* operators.
 
 To calculate *two-time* correlation functions on the form :math:`\left<A(t+\tau)B(t)\right>`, we can use the quantum regression theorem (see, e.g., [Gar03]_) to write
@@ -72,30 +58,20 @@ The following code demonstrates how to calculate the :math:`\left<x(t)x(0)\right
     :context:
 
     times = np.linspace(0,10.0,200)
-
     a = destroy(10)
-
     x = a.dag() + a
-
     H = a.dag() * a
 
     corr1 = correlation_2op_1t(H, None, times, [np.sqrt(0.5) * a], x, x)
-
     corr2 = correlation_2op_1t(H, None, times, [np.sqrt(1.0) * a], x, x)
-
     corr3 = correlation_2op_1t(H, None, times, [np.sqrt(2.0) * a], x, x)
 
-    figure()
-
-    plot(times, np.real(corr1), times, np.real(corr2), times, np.real(corr3))
-
-    legend(['0.5','1.0','2.0'])
-
-    xlabel(r'Time $t$')
-
-    ylabel(r'Correlation $\left<x(t)x(0)\right>$')
-
-    show()
+    plt.figure()
+    plt.plot(times, np.real(corr1), times, np.real(corr2), times, np.real(corr3))
+    plt.legend(['0.5','1.0','2.0'])
+    plt.xlabel(r'Time $t$')
+    plt.ylabel(r'Correlation $\left<x(t)x(0)\right>$')
+    plt.show()
 
 
 Emission spectrum

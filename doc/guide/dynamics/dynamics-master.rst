@@ -7,15 +7,6 @@
 Lindblad Master Equation Solver
 *********************************
 
-
-.. plot::
-      :include-source: False
-
-      >>> from pylab import *
-      >>> from scipy import *
-      >>> from qutip import *
-      >>> import numpy as np
-
 .. _master-unitary:
 
 Unitary evolution
@@ -42,7 +33,7 @@ For example, the time evolution of a quantum spin-1/2 system with tunneling rate
 .. plot::
     :context:
 
-    >>> H = 2 * np.pi * 0.1 * sigmax()
+    >>> H = 2*np.pi * 0.1 * sigmax()
     >>> psi0 = basis(2, 0)
     >>> times = np.linspace(0.0, 10.0, 20)
     >>> result = sesolve(H, psi0, times, [sigmaz()])
@@ -66,24 +57,23 @@ The function returns an instance of :class:`qutip.solver.Result`, as described i
              8.37167094e-01,  3.24700624e-01, -3.24698160e-01, -8.37165632e-01,
             -9.96584633e-01, -7.35725221e-01, -1.64596567e-01,  4.75945525e-01,
              9.15772479e-01,  9.69400830e-01,  6.14214701e-01,  2.77159958e-06])]
-​
 
 The resulting list of expectation values can easily be visualized using matplotlib's plotting functions:
 
 .. plot::
     :context:
 
-    >>> H = 2 * np.pi * 0.1 * sigmax()
+    >>> H = 2*np.pi * 0.1 * sigmax()
     >>> psi0 = basis(2, 0)
     >>> times = np.linspace(0.0, 10.0, 100)
     >>> result = sesolve(H, psi0, times, [sigmaz(), sigmay()])
-    >>> fig, ax = subplots()
+    >>> fig, ax = plt.subplots()
     >>> ax.plot(result.times, result.expect[0]) # doctest: +SKIP
     >>> ax.plot(result.times, result.expect[1]) # doctest: +SKIP
     >>> ax.set_xlabel('Time') # doctest: +SKIP
     >>> ax.set_ylabel('Expectation values') # doctest: +SKIP
     >>> ax.legend(("Sigma-Z", "Sigma-Y")) # doctest: +SKIP
-    >>> show() # doctest: +SKIP
+    >>> plt.show() # doctest: +SKIP
 
 If an empty list of operators is passed as fifth parameter, the :func:`qutip.mesolve` function returns a :class:`qutip.solver.Result` instance that contains a list of state vectors for the times specified in ``times``
 
@@ -183,13 +173,13 @@ the previously empty list in the fourth parameter to the :func:`qutip.mesolve` f
 
     >>> times = np.linspace(0.0, 10.0, 100)
     >>> result = mesolve(H, psi0, times, [np.sqrt(0.05) * sigmax()], [sigmaz(), sigmay()])
-    >>> fig, ax = subplots()
+    >>> fig, ax = plt.subplots()
     >>> ax.plot(times, result.expect[0]) # doctest: +SKIP
     >>> ax.plot(times, result.expect[1]) # doctest: +SKIP
     >>> ax.set_xlabel('Time') # doctest: +SKIP
     >>> ax.set_ylabel('Expectation values') # doctest: +SKIP
     >>> ax.legend(("Sigma-Z", "Sigma-Y"))  # doctest: +SKIP
-    >>> show() # doctest: +SKIP
+    >>> plt.show() # doctest: +SKIP
 
 
 Here, 0.05 is the rate and the operator :math:`\sigma_x` (:func:`qutip.operators.sigmax`) describes the dissipation
@@ -206,10 +196,10 @@ Now a slightly more complex example: Consider a two-level atom coupled to a leak
     >>> sm = tensor(destroy(2), qeye(10))
     >>> H = 2 * np.pi * a.dag() * a + 2 * np.pi * sm.dag() * sm + 2 * np.pi * 0.25 * (sm * a.dag() + sm.dag() * a)
     >>> result = mesolve(H, psi0, times, [np.sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
-    >>> figure() # doctest: +SKIP
-    >>> plot(times, result.expect[0]) # doctest: +SKIP
-    >>> plot(times, result.expect[1]) # doctest: +SKIP
-    >>> xlabel('Time') # doctest: +SKIP
-    >>> ylabel('Expectation values') # doctest: +SKIP
-    >>> legend(("cavity photon number", "atom excitation probability")) # doctest: +SKIP
-    >>> show() # doctest: +SKIP
+    >>> plt.figure() # doctest: +SKIP
+    >>> plt.plot(times, result.expect[0]) # doctest: +SKIP
+    >>> plt.plot(times, result.expect[1]) # doctest: +SKIP
+    >>> plt.xlabel('Time') # doctest: +SKIP
+    >>> plt.ylabel('Expectation values') # doctest: +SKIP
+    >>> plt.legend(("cavity photon number", "atom excitation probability")) # doctest: +SKIP
+    >>> plt.show() # doctest: +SKIP

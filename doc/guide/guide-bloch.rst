@@ -12,14 +12,6 @@ Plotting on the Bloch Sphere
 
 .. _bloch-intro:
 
-.. plot::
-      :include-source: False
-
-      from pylab import *
-      from scipy import *
-      from qutip import *
-      import numpy as np
-
 Introduction
 ============
 
@@ -35,11 +27,11 @@ In QuTiP, creating a Bloch sphere is accomplished by calling either:
 .. plot::
     :context:
 
-    b = Bloch()
+    b = qutip.Bloch()
 
-which will load an instance of the :class:`qutip.Bloch` class, or using::
+which will load an instance of the :class:`qutip.Bloch` class, or using ::
 
- >>> b3d = Bloch3d() # doctest: +SKIP
+   >>> b3d = qutip.Bloch3d()
 
 that loads the :class:`qutip.Bloch3d` version.  Before getting into the details of these objects, we can simply plot the blank Bloch sphere associated with these instances via:
 
@@ -98,10 +90,8 @@ As an example, we can add a single data point:
 .. plot::
     :context: close-figs
 
-    pnt = [1/np.sqrt(3),1/np.sqrt(3),1/np.sqrt(3)]
-
+    pnt = [1/np.sqrt(3), 1/np.sqrt(3), 1/np.sqrt(3)]
     b.add_points(pnt)
-
     b.render()
 
 and then a single vector:
@@ -110,23 +100,17 @@ and then a single vector:
     :context: close-figs
 
     b.fig.clf()
-
-    vec = [0,1,0]
-
+    vec = [0, 1, 0]
     b.add_vectors(vec)
-
     b.render()
-
 
 and then add another vector corresponding to the :math:`\left|\rm up \right>` state:
 
 .. plot::
     :context: close-figs
 
-    up = basis(2,0)
-
+    up = qutip.basis(2, 0)
     b.add_states(up)
-
     b.render()
 
 Notice that when we add more than a single vector (or data point), a different color will automatically be applied to the later data set (mod 4).  In total, the code for constructing our Bloch sphere with one vector, one state, and a single data point is:
@@ -134,23 +118,17 @@ Notice that when we add more than a single vector (or data point), a different c
 .. plot::
     :context: close-figs
 
-    b = Bloch()
+    b = qutip.Bloch()
 
     pnt = [1./np.sqrt(3), 1./np.sqrt(3), 1./np.sqrt(3)]
-
     b.add_points(pnt)
-
-    vec = [0,1,0]
-
+    vec = [0, 1, 0]
     b.add_vectors(vec)
-
-    up = basis(2,0)
-
+    up = qutip.basis(2, 0)
     b.add_states(up)
-
     b.render()
 
-where we have removed the extra ``show()`` commands.  Replacing ``b=Bloch()`` with ``b=Bloch3d()`` in the above code generates the following 3D Bloch sphere.
+where we have removed the extra ``show()`` commands.  Replacing ``b=qutip.Bloch()`` with ``b=qutip.Bloch3d()`` in the above code generates the following 3D Bloch sphere.
 
 .. _image-bloch3ddata:
 
@@ -165,7 +143,6 @@ We can also plot multiple points, vectors, and states at the same time by passin
     :context: close-figs
 
     b.clear()
-
     b.render()
 
 
@@ -174,14 +151,11 @@ Now on the same Bloch sphere, we can plot the three states associated with the x
 .. plot::
     :context: close-figs
 
-    x = (basis(2,0)+(1+0j)*basis(2,1)).unit()
-
-    y = (basis(2,0)+(0+1j)*basis(2,1)).unit()
-
-    z = (basis(2,0)+(0+0j)*basis(2,1)).unit()
+    x = (qutip.basis(2, 0)+ (1+0j)*qutip.basis(2, 1)).unit()
+    y = (qutip.basis(2, 0)+ (0+1j)*qutip.basis(2, 1)).unit()
+    z = (qutip.basis(2, 0)+ (0+0j)*qutip.basis(2, 1)).unit()
 
     b.add_states([x,y,z])
-
     b.render()
 
 a similar method works for adding vectors:
@@ -190,11 +164,8 @@ a similar method works for adding vectors:
     :context: close-figs
 
     b.clear()
-
-    vec = [[1,0,0],[0,1,0],[0,0,1]]
-
+    vec = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
     b.add_vectors(vec)
-
     b.render()
 
 Adding multiple points to the Bloch sphere works slightly differently than adding multiple states or vectors.  For example, lets add a set of 20 points around the equator (after calling `clear()`):
@@ -204,16 +175,13 @@ Adding multiple points to the Bloch sphere works slightly differently than addin
 
     b.clear()
 
-    xp = [np.cos(th) for th in np.linspace(0, 2*pi, 20)]
-
-    yp = [np.sin(th) for th in np.linspace(0, 2*pi, 20)]
-
+    th = np.linspace(0, 2*np.pi, 20)
+    xp = np.cos(th)
+    yp = np.sin(th)
     zp = np.zeros(20)
 
     pnts = [xp, yp, zp]
-
     b.add_points(pnts)
-
     b.render()
 
 Notice that, in contrast to states or vectors, each point remains the same color as the initial point.  This is because adding multiple data points using the add_points function is interpreted, by default, to correspond to a single data point (single qubit state) plotted at different times.  This is very useful when visualizing the dynamics of a qubit.  An example of this is given in the example .  If we want to plot additional qubit states we can call additional `add_points` functions:
@@ -222,13 +190,9 @@ Notice that, in contrast to states or vectors, each point remains the same color
     :context: close-figs
 
     xz = np.zeros(20)
-
-    yz = [np.sin(th) for th in np.linspace(0, pi, 20)]
-
-    zz = [np.cos(th) for th in np.linspace(0, pi, 20)]
-
+    yz = np.sin(th)
+    zz = np.cos(th)
     b.add_points([xz, yz, zz])
-
     b.render()
 
 The color and shape of the data points is varied automatically by the Bloch class.  Notice how the color and point markers change for each set of data.  Again, we have had to call ``add_points`` twice because adding more than one set of multiple data points is *not* supported by the ``add_points`` function.
@@ -240,16 +204,11 @@ What if we want to vary the color of our points.  We can tell the :class:`qutip.
 
     b.clear()
 
-    xp = [np.cos(th) for th in np.linspace(0, 2*pi, 20)]
-
-    yp = [sin(th) for th in np.linspace(0, 2*pi, 20)]
-
+    xp = np.cos(th)
+    yp = np.sin(th)
     zp = np.zeros(20)
-
     pnts = [xp, yp, zp]
-
-    b.add_points(pnts,'m') # <-- add a 'm' string to signify 'multi' colored points
-
+    b.add_points(pnts, 'm')  # <-- add a 'm' string to signify 'multi' colored points
     b.render()
 
 
@@ -259,13 +218,10 @@ Now, the data points cycle through a variety of predefined colors.  Now lets add
     :context: close-figs
 
     xz = np.zeros(20)
+    yz = np.sin(th)
+    zz = np.cos(th)
 
-    yz = [np.sin(th) for th in np.linspace(0, pi ,20)]
-
-    zz = [np.cos(th) for th in np.linspace(0, pi, 20)]
-
-    b.add_points([xz, yz, zz]) # no 'm'
-
+    b.add_points([xz, yz, zz])  # no 'm'
     b.render()
 
 Again, the same plot can be generated using the :class:`qutip.Bloch3d` class by replacing ``Bloch`` with ``Bloch3d``:
@@ -420,7 +376,7 @@ These properties can also be accessed via the print command:
 
 .. doctest::
 
-    >>> b = Bloch()
+    >>> b = qutip.Bloch()
 
     >>> print(b) # doctest: +NORMALIZE_WHITESPACE
     Bloch data:
@@ -477,51 +433,53 @@ Generating Images for Animation
 
 An example of generating images for generating an animation outside of Python is given below::
 
-	import numpy as np
-	b = Bloch()
-	b.vector_color = ['r']
-	b.view = [-40,30]
-	for i in range(len(sx)):
-	    b.clear()
-	    b.add_vectors([np.sin(theta),0,np.cos(theta)])
-	    b.add_points([sx[:i+1],sy[:i+1],sz[:i+1]])
-	    b.save(dirc='temp') #saving images to temp directory in current working directory
+     import numpy as np
+     b = Bloch()
+     b.vector_color = ['r']
+     b.view = [-40, 30]
+     for i in range(len(sx)):
+         b.clear()
+         b.add_vectors([np.sin(theta), 0, np.cos(theta)])
+         b.add_points([sx[:i+1], sy[:i+1], sz[:i+1]])
+         b.save(dirc='temp')  # saving images to temp directory in current working directory
 
 Generating an animation using ffmpeg (for example) is fairly simple::
 
-    ffmpeg -r 20 -b 1800 -i bloch_%01d.png bloch.mp4
+   ffmpeg -r 20 -b 1800 -i bloch_%01d.png bloch.mp4
 
 .. _bloch-animate-decay-direct:
 
 Directly Generating an Animation
 ++++++++++++++++++++++++++++++++
 
-.. important:: Generating animations directly from Matplotlib requires installing either mencoder or ffmpeg.  While either choice works on linux, it is best to choose ffmpeg when running on the Mac.  If using macports just do: ``sudo port install ffmpeg``.
+.. important::
+   Generating animations directly from Matplotlib requires installing either mencoder or ffmpeg.
+   While either choice works on linux, it is best to choose ffmpeg when running on the Mac.
+   If using macports just do: ``sudo port install ffmpeg``.
 
+The code to directly generate an mp4 movie of the Qubit decay is as follows ::
 
-The code to directly generate an mp4 movie of the Qubit decay is as follows::
+   from matplotlib import pyplot
+   from matplotlib import animation
+   from mpl_toolkits.mplot3d import Axes3D
 
-	from pylab import *
-	import matplotlib.animation as animation
-	from mpl_toolkits.mplot3d import Axes3D
+   fig = pyplot.figure()
+   ax = Axes3D(fig,azim=-40,elev=30)
+   sphere = qutip.Bloch(axes=ax)
 
-	fig = figure()
-	ax = Axes3D(fig,azim=-40,elev=30)
-	sphere = Bloch(axes=ax)
+   def animate(i):
+      sphere.clear()
+      sphere.add_vectors([np.sin(theta), 0, np.cos(theta)])
+      sphere.add_points([sx[:i+1], sy[:i+1], sz[:i+1]])
+      sphere.make_sphere()
+      return ax
 
-	def animate(i):
-	    sphere.clear()
-	    sphere.add_vectors([np.sin(theta),0,np.cos(theta)])
-	    sphere.add_points([sx[:i+1],sy[:i+1],sz[:i+1]])
-	    sphere.make_sphere()
-	    return ax
+   def init():
+      sphere.vector_color = ['r']
+      return ax
 
-	def init():
-	    sphere.vector_color = ['r']
-	    return ax
-
-	ani = animation.FuncAnimation(fig, animate, np.arange(len(sx)),
-	                            init_func=init, blit=True, repeat=False)
-	ani.save('bloch_sphere.mp4', fps=20)
+   ani = animation.FuncAnimation(fig, animate, np.arange(len(sx)),
+                                 init_func=init, blit=True, repeat=False)
+   ani.save('bloch_sphere.mp4', fps=20)
 
 The resulting movie may be viewed here: `bloch_decay.mp4 <https://github.com/qutip/qutip-doc/raw/master/figures/bloch_decay.mp4>`_
