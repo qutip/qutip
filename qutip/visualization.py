@@ -305,8 +305,8 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
             _x = x + 1
             _y = y + 1
             if np.real(W[x, y]) > 0.0:
-                _blob(_x - 0.5, height - _y + 0.5, abs(W[x,
-                      y]), w_max, min(1, abs(W[x, y]) / w_max), cmap=cmap, ax=ax)
+                _blob(_x - 0.5, height - _y + 0.5, abs(W[x, y]), w_max,
+                      min(1, abs(W[x, y]) / w_max), cmap=cmap, ax=ax)
             else:
                 _blob(_x - 0.5, height - _y + 0.5, -abs(W[
                       x, y]), w_max, min(1, abs(W[x, y]) / w_max), cmap=cmap, ax=ax)
@@ -316,18 +316,25 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
     cax, kw = mpl.colorbar.make_axes(ax, shrink=0.75, pad=.1)
     mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cmap)
 
+    xtics = 0.5 + np.arange(width)
     # x axis
-    ax.xaxis.set_major_locator(plt.IndexLocator(1, 0.5))
-
+    ax.xaxis.set_major_locator(plt.FixedLocator(xtics))
     if xlabels:
+        nxlabels = len(xlabels)
+        if nxlabels != len(xtics):
+            raise ValueError(f"got {nxlabels} xlabels but needed {len(xtics)}")
         ax.set_xticklabels(xlabels)
         if label_top:
             ax.xaxis.tick_top()
     ax.tick_params(axis='x', labelsize=14)
 
     # y axis
-    ax.yaxis.set_major_locator(plt.IndexLocator(1, 0.5))
+    ytics = 0.5 + np.arange(height)
+    ax.yaxis.set_major_locator(plt.FixedLocator(ytics))
     if ylabels:
+        nylabels = len(ylabels)
+        if nylabels != len(ytics):
+            raise ValueError(f"got {nylabels} ylabels but needed {len(ytics)}")
         ax.set_yticklabels(list(reversed(ylabels)))
     ax.tick_params(axis='y', labelsize=14)
 
@@ -469,14 +476,22 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
         ax.set_title(title)
 
     # x axis
-    ax.axes.w_xaxis.set_major_locator(plt.IndexLocator(1, -0.5))
+    xtics = -0.5 + np.arange(M.shape[0])
+    ax.axes.w_xaxis.set_major_locator(plt.FixedLocator(xtics))
     if xlabels:
+        nxlabels = len(xlabels)
+        if nxlabels != len(xtics):
+            raise ValueError(f"got {nxlabels} xlabels but needed {len(xtics)}")
         ax.set_xticklabels(xlabels)
     ax.tick_params(axis='x', labelsize=14)
 
     # y axis
-    ax.axes.w_yaxis.set_major_locator(plt.IndexLocator(1, -0.5))
+    ytics = -0.5 + np.arange(M.shape[1])
+    ax.axes.w_yaxis.set_major_locator(plt.FixedLocator(ytics))
     if ylabels:
+        nylabels = len(ylabels)
+        if nylabels != len(ytics):
+            raise ValueError(f"got {nylabels} ylabels but needed {len(ytics)}")
         ax.set_yticklabels(ylabels)
     ax.tick_params(axis='y', labelsize=14)
 
@@ -582,14 +597,22 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None,
         ax.set_title(title)
 
     # x axis
-    ax.axes.w_xaxis.set_major_locator(plt.IndexLocator(1, -0.5))
+    xtics = -0.5 + np.arange(M.shape[0])
+    ax.axes.w_xaxis.set_major_locator(plt.FixedLocator(xtics))
     if xlabels:
+        nxlabels = len(xlabels)
+        if nxlabels != len(xtics):
+            raise ValueError(f"got {nxlabels} xlabels but needed {len(xtics)}")
         ax.set_xticklabels(xlabels)
     ax.tick_params(axis='x', labelsize=12)
 
     # y axis
-    ax.axes.w_yaxis.set_major_locator(plt.IndexLocator(1, -0.5))
+    ytics = -0.5 + np.arange(M.shape[1])
+    ax.axes.w_yaxis.set_major_locator(plt.FixedLocator(ytics))
     if ylabels:
+        nylabels = len(ylabels)
+        if nylabels != len(ytics):
+            raise ValueError(f"got {nylabels} ylabels but needed {len(ytics)}")
         ax.set_yticklabels(ylabels)
     ax.tick_params(axis='y', labelsize=12)
 
