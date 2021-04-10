@@ -303,6 +303,7 @@ def chi_to_choi(q_oper):
     # by that to get back to the Choi form.
     return Qobj((B * q_oper * B.dag()) / q_oper.shape[0], superrep='choi')
 
+
 def _svd_u_to_kraus(U, S, d, dK, indims, outdims):
     """
     Given a partial isometry U and a vector of square-roots of singular values S
@@ -354,7 +355,7 @@ def _generalized_kraus(q_oper, thresh=1e-10):
     # Since NumPy returns V and not V+, we need to take the dagger
     # to get back to quantum info notation for Stinespring pairs.
 
-    V_idxs = np.zeros(V.shape[1], dtype=bool )
+    V_idxs = np.zeros(V.shape[1], dtype=bool)
     V_idxs[:nonzero_idxs.shape[0]] = nonzero_idxs
     V = array(V.conj().T)[:, V_idxs]
 
@@ -397,6 +398,7 @@ def choi_to_stinespring(q_oper, thresh=1e-10):
 # These functions handle superoperator conversions in a way that preserves the
 # correctness of Qobj.type, and in a way that automatically branches based on
 # the input Qobj.type.
+
 
 def to_choi(q_oper):
     """

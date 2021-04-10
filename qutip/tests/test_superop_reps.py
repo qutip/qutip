@@ -48,7 +48,7 @@ import pytest
 from qutip import composite
 from qutip.qobj import Qobj
 from qutip.states import basis
-from qutip.operators import identity, sigmax, sigmay, qeye, create
+from qutip.operators import identity, sigmax, sigmay, sigmaz, qeye, create
 from qutip.qip.operations.gates import swap
 from qutip.random_objects import rand_super, rand_super_bcsz, rand_dm_ginibre
 from qutip.tensor import tensor, super_tensor, tensor_contract
@@ -112,7 +112,7 @@ class TestSuperopReps:
 
         # Assert both that the result is close to expected, and has the right
         # type.
-        assert (test_supe - superoperator).norm() < tol
+        assert (test_supe - superoperator).norm() < 1e-5
         assert choi_matrix.type == "super" and choi_matrix.superrep == "choi"
         assert chi_matrix.type == "super" and chi_matrix.superrep == "chi"
         assert test_supe.type == "super" and test_supe.superrep == "super"
@@ -296,16 +296,23 @@ class TestSuperopReps:
         assert A.dims == [[2, 4, 1], [2, 4]]
         assert B.dims == [[2, 4, 1], [2, 4]]
 
-    def test_stinespring_general_rectangular_dims(self):
+    @pytest.mark.parametrize(['dim1', 'dim2'],
+                            [pytest.param(4, 3),
+                            pytest.param(5, 7),
+                            pytest.param(3, 4)
+                            ])
+    def test_stinespring_general_rectangular_dims(self, dim1, dim2):
         """
         Stinespring: Check that dims of channels are preserved.
         """
-        chan = tensor_contract(composite(to_super(qeye(4)), to_super(qeye(3))),(1,5),(2,6))
+        chan = tensor_contract(composite(to_super(qeye(dim1)),
+                                to_super(qeye(dim2))),(1, 5), (2, 6))
 
         A, B = to_stinespring(chan)
 
-        assert A.dims == [[3, 1], [3]]
-        assert B.dims == [[4, 1], [4]]
+        assert A.dims == [[dim2, 1], [dim2]]
+        assert B.dims == [[dim1, 1], [dim1]]
+
 
     @pytest.mark.parametrize('dimension', [2, 4, 8])
     def test_chi_choi_roundtrip(self, dimension):
@@ -319,42 +326,46 @@ class TestSuperopReps:
         assert rt_superop.type == superop.type
         assert rt_superop.dims == superop.dims
 
-    # def test_chi_known(self):
-    #     """
-    #     Superoperator: Chi-matrix for known cases is correct.
-    #     """
-    #     def case(S, chi_expected, silent=True):
-    #         chi_actual = to_chi(S)
-    #         chiq = Qobj(chi_expected, dims=[[[2], [2]], [[2], [2]]], superrep='chi')
-    #         if not silent:
-    #             print(chi_actual)
-    #             print(chi_expected)
-    #         assert_almost_equal((chi_actual - chiq).norm('tr'), 0)
+    chi_sigmax = [
+        [0, 0, 0, 0],
+        [0, 4, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0]
+    ]
+    chi_super_sigmax = [
+        [0, 0, 0, 0],
+        [0, 4, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0]
+    ]
+    chi_diag2 = [
+        [4, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0]
+    ]
+    rotX_pi_4 = (-1j * sigmax() * pi / 4).expm()
+    chi_rotX_pi_4 = [
+        [2, 2j, 0, 0],
+        [-2j, 2, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0]
+    ]
 
-    #     case(sigmax(), [
-    #         [0, 0, 0, 0],
-    #         [0, 4, 0, 0],
-    #         [0, 0, 0, 0],
-    #         [0, 0, 0, 0]
-    #     ])
-    #     case(to_super(sigmax()), [
-    #         [0, 0, 0, 0],
-    #         [0, 4, 0, 0],
-    #         [0, 0, 0, 0],
-    #         [0, 0, 0, 0]
-    #     ])
-    #     case(qeye(2), [
-    #         [4, 0, 0, 0],
-    #         [0, 0, 0, 0],
-    #         [0, 0, 0, 0],
-    #         [0, 0, 0, 0]
-    #     ])
-    #     case((-1j * sigmax() * pi / 4).expm(), [
-    #         [2, 2j, 0, 0],
-    #         [-2j, 2, 0, 0],
-    #         [0, 0, 0, 0],
-    #         [0, 0, 0, 0]
-    #     ])
+
+    @pytest.mark.parametrize(['superop', 'chi_expected'], 
+                             [pytest.param(sigmax(), chi_sigmax),
+                             pytest.param(to_super(sigmax()), chi_super_sigmax),
+                             pytest.param(qeye(2), chi_diag2),
+                             pytest.param(rotX_pi_4, chi_rotX_pi_4)
+                             ])
+    def test_chi_known(self, superop, chi_expected):
+        """
+        Superoperator: Chi-matrix for known cases is correct.
+        """
+        chi_actual = to_chi(superop)
+        chiq = Qobj(chi_expected, dims=[[[2], [2]], [[2], [2]]], superrep='chi')
+        assert 0 == pytest.approx((chi_actual - chiq).norm('tr'), abs=1e-7)
 
 if __name__ == "__main__":
     run_module_suite()
