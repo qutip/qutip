@@ -16,9 +16,9 @@ is mixed with a strong external source allowing to get information about the
 phase of the system. With this method, the resulting detection rate depends is
 
 .. math::
-	:label: jump_rate
+   :label: jump_rate
 
-    \tau = tr \left((\gamma^2 + \gamma (C+C^\dag) + C^\dag C)\rho \right)
+   \tau = \tr \left((\gamma^2 + \gamma (C+C^\dag) + C^\dag C)\rho \right)
 
 With :math:`\gamma`, the strength of the external beam and :math:`C` the collapse
 operator. When the beam is very strong :math:`(\gamma >> C^\dag C)`,
@@ -42,9 +42,9 @@ In closed systems, the resulting stochastic differential equation is
 with
 
 .. math::
-	:label: jump_rate
+   :label: jump_matrix_element
 
-    e_n = \left<\psi(t)|C_n + C_n^{+}|\psi(t)\right>
+   e_n = \left<\psi(t)|C_n + C_n^{+}|\psi(t)\right>
 
 Here :math:`\delta \omega` is a Wiener increment.
 

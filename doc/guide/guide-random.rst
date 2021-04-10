@@ -130,10 +130,6 @@ See the API documentation: :ref:`functions-rand` for details.
 Random objects with a given eigen spectrum
 ==========================================
 
-.. note::
-
-    New in QuTiP 3.2
-
 It is also possible to generate random Hamiltonian (``rand_herm``) and densitiy matrices (``rand_dm``) with a given eigen spectrum.  This is done by passing an array of eigenvalues as the first argument to either function.  For example,
 
 .. doctest:: [random]

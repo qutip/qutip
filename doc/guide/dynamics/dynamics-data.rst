@@ -7,8 +7,6 @@
 Dynamics Simulation Results
 ********************************************************
 
-.. important::  In QuTiP 2, the results from all of the dynamics solvers are returned as Odedata objects. This unified and significantly simplified postprocessing of simulation results from different solvers, compared to QuTiP 1. However, this change also results in the loss of backward compatibility with QuTiP version 1.x. In QuTiP 3, the Odedata class has been renamed to Result, but for backwards compatibility an alias between Result and Odedata is provided.
-
 .. _solver_result-class:
 
 The solver.Result Class

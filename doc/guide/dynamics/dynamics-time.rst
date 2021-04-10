@@ -273,8 +273,6 @@ Collapse operators are handled in the exact same way.
 Modeling Non-Analytic and/or Experimental Time-Dependent Parameters using Interpolating Functions
 =================================================================================================
 
-.. note:: New in QuTiP 4.1
-
 Sometimes it is necessary to model a system where the time-dependent parameters are non-analytic functions, or are derived from experimental data (i.e. a collection of data points).  In these situations, one can use interpolating functions as an approximate functional form for input into a time-dependent solver.  QuTiP includes it own custom cubic spline interpolation class :class:`qutip.interpolate.Cubic_Spline` to provide this functionality.  To see how this works, lets first generate some noisy data:
 
 .. plot::

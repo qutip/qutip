@@ -103,10 +103,6 @@ The :func:`qutip.parallel.parallel_map` and :func:`qutip.parallel.parfor` functi
    ['' 'a' 'aa' 'aaa' 'aaaa']
 
 
-.. note::
-
-    New in QuTiP 3.
-
 One can also define functions with **multiple** input arguments and even keyword arguments. Here the :func:`qutip.parallel.parallel_map` and :func:`qutip.parallel.parfor` functions behaves differently:
 While :func:`qutip.parallel.parallel_map` only iterate over the values `arguments`, the :func:`qutip.parallel.parfor` function simultaneously iterates over all arguments:
 
@@ -154,9 +150,5 @@ Parallel processing is useful for repeated tasks such as generating plots corres
 
 IPython-based parallel_map
 --------------------------
-
-.. note::
-
-    New in QuTiP 3.
 
 When QuTiP is used with IPython interpreter, there is an alternative parallel for-loop implementation in the QuTiP  module :func:`qutip.ipynbtools`, see :func:`qutip.ipynbtools.parallel_map`. The advantage of this parallel_map implementation is based on IPythons powerful framework for parallelization, so the compute processes are not confined to run on the same host as the main process.

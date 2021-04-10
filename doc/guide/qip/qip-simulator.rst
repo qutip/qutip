@@ -9,7 +9,7 @@ Operator-level circuit simulation
 
 .. note::
 
-   Available from QuTiP 4.6
+   New in QuTiP 4.6
 
 Run a quantum circuit
 ---------------------

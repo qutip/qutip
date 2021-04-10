@@ -34,15 +34,15 @@ QuTiP provides a family of functions that assists in the process of calculating 
 +----------------------------------------------+--------------------------------------------------+
 | QuTiP function                               | Correlation function                             |
 +==============================================+==================================================+
-| :func:`qutip.correlation.correlation` or     | :math:`\left<A(t+\tau)B(t)\right>` or            |
+|                                              | :math:`\left<A(t+\tau)B(t)\right>` or            |
 | :func:`qutip.correlation.correlation_2op_2t` | :math:`\left<A(t)B(t+\tau)\right>`.              |
 +----------------------------------------------+--------------------------------------------------+
-| :func:`qutip.correlation.correlation_ss` or  | :math:`\left<A(\tau)B(0)\right>` or              |
+|                                              | :math:`\left<A(\tau)B(0)\right>` or              |
 | :func:`qutip.correlation.correlation_2op_1t` | :math:`\left<A(0)B(\tau)\right>`.                |
 +----------------------------------------------+--------------------------------------------------+
-| :func:`qutip.correlation.correlation_4op_1t` | :math:`\left<A(0)B(\tau)C(\tau)D(0)\right>`.     |
+| :func:`qutip.correlation.correlation_3op_1t` | :math:`\left<A(0)B(\tau)C(0)\right>`.            |
 +----------------------------------------------+--------------------------------------------------+
-| :func:`qutip.correlation.correlation_4op_2t` | :math:`\left<A(t)B(t+\tau)C(t+\tau)D(t)\right>`. |
+| :func:`qutip.correlation.correlation_3op_2t` | :math:`\left<A(t)B(t+\tau)C(t)\right>`.          |
 +----------------------------------------------+--------------------------------------------------+
 
 The most common use-case is to calculate correlation functions of the kind :math:`\left<A(\tau)B(0)\right>`, in which case we use the correlation function solvers that start from the steady state, e.g., the :func:`qutip.correlation.correlation_2op_1t` function. These correlation function solvers return a vector or matrix (in general complex) with the correlations as a function of the delays times.
@@ -127,7 +127,8 @@ The second-order optical coherence function, with time-delay :math:`\tau`, is de
 
 For a coherent state :math:`g^{(2)}(\tau) = 1`, for a thermal state :math:`g^{(2)}(\tau=0) = 2` and it decreases as a function of time (bunched photons, they tend to appear together), and for a Fock state with :math:`n` photons :math:`g^{(2)}(\tau = 0) = n(n - 1)/n^2 < 1` and it increases with time (anti-bunched photons, more likely to arrive separated in time).
 
-To calculate this type of correlation function with QuTiP, we can use :func:`qutip.correlation.correlation_4op_1t`, which computes a correlation function on the form :math:`\left<A(0)B(\tau)C(\tau)D(0)\right>` (four operators, one delay-time vector).
+To calculate this type of correlation function with QuTiP, we can use :func:`qutip.correlation.correlation_3op_1t`, which computes a correlation function on the form :math:`\left<A(0)B(\tau)C(0)\right>` (three operators, one delay-time vector).
+We first have to combine the central two operators into one single one as they are evaluated at the same time, e.g. here we do :math:`a^\dagger(\tau)a(\tau) = (a^\dagger a)(\tau)`.
 
 The following code calculates and plots :math:`g^{(2)}(\tau)` as a function of :math:`\tau` for a coherent, thermal and fock state.
 
