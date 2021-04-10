@@ -303,22 +303,21 @@ class TestSuperopReps:
         chan = tensor_contract(composite(to_super(qeye(4)), to_super(qeye(3))),(1,5),(2,6))
 
         A, B = to_stinespring(chan)
-        
+
         assert A.dims == [[3, 1], [3]]
         assert B.dims == [[4, 1], [4]]
 
+    @pytest.mark.parametrize('dimension', [2, 4, 8])
+    def test_chi_choi_roundtrip(self, dimension):
 
-    # def test_chi_choi_roundtrip(self):
-    #     def case(qobj):
-    #         qobj = to_chi(qobj)
-    #         rt_qobj = to_chi(to_choi(qobj))
+        superop = rand_super_bcsz(dimension)
+        superop = to_chi(superop)
+        rt_superop = to_chi(to_choi(superop))
+        dif = norm(rt_superop.data.toarray() - superop.data.toarray())
 
-    #         assert_almost_equal(rt_qobj.data.toarray(), qobj.data.toarray())
-    #         assert_equal(rt_qobj.type, qobj.type)
-    #         assert_equal(rt_qobj.dims, qobj.dims)
-
-    #     for N in (2, 4, 8):
-    #         case(rand_super_bcsz(N))
+        assert 0 == pytest.approx(dif, abs=1e-7)
+        assert rt_superop.type == superop.type
+        assert rt_superop.dims == superop.dims
 
     # def test_chi_known(self):
     #     """
