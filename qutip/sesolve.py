@@ -56,7 +56,7 @@ from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
 def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
             progress_bar=None, _safe_mode=True):
     """
-    Schrodinger equation evolution of a state vector or unitary matrix for a
+    Schrödinger equation evolution of a state vector or unitary matrix for a
     given Hamiltonian.
 
     Evolve the state vector (``psi0``) using a given Hamiltonian (``H``), by

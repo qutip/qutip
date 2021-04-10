@@ -103,7 +103,7 @@ class OptPulseProcessor(Processor):
         Examples
         --------
 
-        Same parameter for all the gates
+        Same parameter for all the gates:
 
         .. code-block:: python
 
@@ -117,7 +117,7 @@ class OptPulseProcessor(Processor):
             tlist, coeffs = processor.load_circuit(
                 qc, num_tslots=num_tslots, evo_time=evo_time)
 
-        Different parameters for different gates
+        Different parameters for different gates:
 
         .. code-block:: python
 
@@ -157,7 +157,7 @@ class OptPulseProcessor(Processor):
             It is a dictionary containing keyword arguments
             for different gates.
 
-            E.g: ::
+            E.g.: ::
 
                 setting_args = {"SNOT": {"num_tslots": 10, "evo_time": 1},
                                 "SWAP": {"num_tslots": 30, "evo_time": 3},
