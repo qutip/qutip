@@ -240,7 +240,28 @@ class QobjEvo:
     - ``*``: :class:`~Qobj`, C number
     - ``/`` : C number
 
+    This object is constructed by passing a list of :obj:`~Qobj` instances,
+    each of which *may* have an associated scalar time dependence.  The list is
+    summed to produce the final result.  In other words, if an instance of this
+    class is :math:`Q(t)`, then it is constructed from a set of constant
+    :obj:`~Qobj` :math:`\\{Q_k\\}` and time-dependent scalars :math:`f_k(t)` by
+
+    .. math::
+
+        Q(t) = \\sum_k f_k(t) Q_k
+
+    If a scalar :math:`f_k(t)` is not passed with a given :obj:`~Qobj`, then
+    that term is assumed to be constant.  The next section contains more detail
+    on the allowed forms of the constants, and gives several examples for how
+    to build instances of this class.
+
     **Time-dependence formats**
+
+    There are three major formats for specifying a time-dependent scalar:
+
+    - Python function
+    - string
+    - array
 
     For function format, the function signature must be
     ``f(t: float, args: dict) -> complex``, for example
