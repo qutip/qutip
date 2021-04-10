@@ -16,3 +16,5 @@ a roadmap for upcoming releases and ideas for future improvements.
 
    roadmap.rst
    ideas.rst
+   docs.rst
+   release_distribution.rst

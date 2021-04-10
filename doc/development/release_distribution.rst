@@ -161,7 +161,7 @@ Go to the `"Actions" tab at the top of the QuTiP code repository <https://github
 Click on the "Build wheels, optionally deploy to PyPI" action in the left-hand sidebar.
 Click the "Run workflow" dropdown in the header notification; it should look like the image below.
 
-.. image:: https://raw.githubusercontent.com/qutip/qutip-doc/master/figures/release_guide_run_build_workflow.png
+.. image:: /figures/release_guide_run_build_workflow.png
 
 - Use the drop-down menu to choose the branch or tag you want to release from.
   This should be called ``qutip-4.5.X`` or similar, depending on what you made earlier.
@@ -184,7 +184,7 @@ Download built files
 When the build is complete, click into its summary screen.
 This is the main screen used to both monitor the build and see its output, and should look like the below image on a success.
 
-.. image:: https://raw.githubusercontent.com/qutip/qutip-doc/master/figures/release_guide_after_workflow.png
+.. image:: /figures/release_guide_after_workflow.png
 
 The built binary wheels and the source distribution are the "build artifacts" at the bottom.
 You need to download both the wheels and the source distribution.
