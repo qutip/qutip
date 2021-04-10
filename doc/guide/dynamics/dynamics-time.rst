@@ -7,19 +7,6 @@
 Solving Problems with Time-dependent Hamiltonians
 *************************************************
 
-.. plot::
-   :include-source: False
-
-   import numpy as np
-
-   from qutip import *
-
-   import pylab as plt
-
-   from warnings import warn
-
-   plt.close("all")
-
 
 Methods for Writing Time-Dependent Operators
 ============================================
@@ -99,49 +86,32 @@ As an example, we will look at an example that has a time-dependent Hamiltonian 
     :context:
 
     ustate = basis(3, 0)
-
     excited = basis(3, 1)
-
     ground = basis(3, 2)
 
     N = 2 # Set where to truncate Fock state for cavity
-
     sigma_ge = tensor(qeye(N), ground * excited.dag())  # |g><e|
-
     sigma_ue = tensor(qeye(N), ustate * excited.dag())  # |u><e|
-
     a = tensor(destroy(N), qeye(3))
-
     ada = tensor(num(N), qeye(3))
 
     c_ops = []  # Build collapse operators
-
     kappa = 1.5 # Cavity decay rate
-
     c_ops.append(np.sqrt(kappa) * a)
-
     gamma = 6  # Atomic decay rate
-
     c_ops.append(np.sqrt(5*gamma/9) * sigma_ue) # Use Rb branching ratio of 5/9 e->u
-
     c_ops.append(np.sqrt(4*gamma/9) * sigma_ge) # 4/9 e->g
 
     t = np.linspace(-15, 15, 100) # Define time vector
-
     psi0 = tensor(basis(N, 0), ustate) # Define initial state
 
     state_GG = tensor(basis(N, 1), ground) # Define states onto which to project
-
     sigma_GG = state_GG * state_GG.dag()
-
     state_UU = tensor(basis(N, 0), ustate)
-
     sigma_UU = state_UU * state_UU.dag()
 
     g = 5  # coupling strength
-
     H0 = -g * (sigma_ge.dag() * a + a.dag() * sigma_ge)  # time-independent term
-
     H1 = (sigma_ue.dag() + sigma_ue)  # time-dependent term
 
 Given that we have a single time-dependent Hamiltonian term, and constant collapse terms, we need to specify a single Python function for the coefficient :math:`f(t)`.  In this case, one can simply do
@@ -158,7 +128,6 @@ In this case, the return value dependents only on time.  However, when specifyin
     :context:
 
     H = [H0,[H1, H1_coeff]]
-
     output = mesolve(H, psi0, t, c_ops, [ada, sigma_UU, sigma_GG])
 
 We can call the Monte Carlo solver in the exact same way (if using the default ``ntraj=500``):
@@ -183,17 +152,11 @@ The output from the master equation solver is identical to that shown in the exa
         return np.sqrt(kappa * np.exp(-t))
 
     N = 10  # number of basis states
-
     a = destroy(N)
-
     H = a.dag() * a  # simple HO
-
     psi0 = basis(N, 9)  # initial state
-
     c_ops = [[a, col_coeff]]  # time-dependent collapse term
-
     times = np.linspace(0, 10, 100)
-
     output = mesolve(H, psi0, times, c_ops, [a.dag() * a])
 
 
@@ -230,7 +193,6 @@ or to keep things looking pretty
     :context:
 
     args = {'A': 9, 'sigma': 5}
-
     output = mesolve(H, psi0, times, c_ops, [a.dag() * a], args=args)
 
 Once again, the Monte Carlo solver :func:`qutip.mcsolve` works in an identical manner.
@@ -250,49 +212,32 @@ Like the previous method, the string-based format uses a list pair format ``[Op,
    :context:
 
    ustate = basis(3, 0)
-
    excited = basis(3, 1)
-
    ground = basis(3, 2)
 
    N = 2 # Set where to truncate Fock state for cavity
 
    sigma_ge = tensor(qeye(N), ground * excited.dag())  # |g><e|
-
    sigma_ue = tensor(qeye(N), ustate * excited.dag())  # |u><e|
-
    a = tensor(destroy(N), qeye(3))
-
    ada = tensor(num(N), qeye(3))
 
    c_ops = []  # Build collapse operators
-
    kappa = 1.5 # Cavity decay rate
-
    c_ops.append(np.sqrt(kappa) * a)
-
    gamma = 6  # Atomic decay rate
-
    c_ops.append(np.sqrt(5*gamma/9) * sigma_ue) # Use Rb branching ratio of 5/9 e->u
-
    c_ops.append(np.sqrt(4*gamma/9) * sigma_ge) # 4/9 e->g
 
    t = np.linspace(-15, 15, 100) # Define time vector
-
    psi0 = tensor(basis(N, 0), ustate) # Define initial state
-
    state_GG = tensor(basis(N, 1), ground) # Define states onto which to project
-
    sigma_GG = state_GG * state_GG.dag()
-
    state_UU = tensor(basis(N, 0), ustate)
-
    sigma_UU = state_UU * state_UU.dag()
 
    g = 5  # coupling strength
-
    H0 = -g * (sigma_ge.dag() * a + a.dag() * sigma_ge)  # time-independent term
-
    H1 = (sigma_ue.dag() + sigma_ue)  # time-dependent term
 
 
@@ -314,9 +259,7 @@ We can also use the ``args`` variable in the same manner as before, however we m
     :context:
 
     H = [H0, [H1, 'A * exp(-(t / sig) ** 2)']]
-
     args = {'A': 9, 'sig': 5}
-
     output = mesolve(H, psi0, times, c_ops, [a.dag()*a], args=args)
 
 
@@ -338,19 +281,13 @@ Sometimes it is necessary to model a system where the time-dependent parameters 
     :context:
 
     t = np.linspace(-15, 15, 100)
-
     func = lambda t: 9*np.exp(-(t / 5)** 2)
-
     noisy_func = lambda t: func(t)+(0.05*func(t))*np.random.randn(t.shape[0])
-
     noisy_data = noisy_func(t)
 
     plt.figure()
-
     plt.plot(t, func(t))
-
     plt.plot(t, noisy_data, 'o')
-
     plt.show()
 
 
@@ -363,13 +300,9 @@ To turn these data points into a function we call the QuTiP :class:`qutip.interp
     S = Cubic_Spline(t[0], t[-1], noisy_data)
 
     plt.figure()
-
     plt.plot(t, func(t))
-
     plt.plot(t, noisy_data, 'o')
-
     plt.plot(t, S(t), lw=2)
-
     plt.show()
 
 
@@ -414,9 +347,9 @@ expectation values and collapse can also be obtained.
 +-------------------+-------------------------+----------------------+------------------------------------------------------------------+
 | expectation value | ``name+"=expect":O``    | ``e=args[name]``     | Expectation value of the operator ``O``, either                  |
 |                   |                         |                      | :math:`\left<\psi(t)|O|\psi(t)\right>`                           |
-|                   |                         |                      |  or :math:`\rm{tr}\left(O \rho(t)\right)`                        |
+|                   |                         |                      | or :math:`\rm{tr}\left(O \rho(t)\right)`                         |
 +-------------------+-------------------------+----------------------+------------------------------------------------------------------+
-| collpases         | ``name+"=collapse":[]`` | ``col=args[name]``   | List of collapse,                                               |
+| collpases         | ``name+"=collapse":[]`` | ``col=args[name]``   | List of collapse,                                                |
 |                   |                         |                      | each collapse is a tuple of the pair ``(time, which)``           |
 |                   |                         |                      | ``which`` being the indice of the collapse operator.             |
 |                   |                         |                      | ``mcsolve`` only.                                                |
@@ -436,15 +369,10 @@ When repeatedly simulating a system where only the time-dependent variables, or 
     :context: close-figs
 
     H = [H0, [H1, 'A * exp(-(t / sig) ** 2)']]
-
     args = {'A': 9, 'sig': 5}
-
     output = mcsolve(H, psi0, times, c_ops, [a.dag()*a], args=args)
-
     opts = Options(rhs_reuse=True)
-
     args = {'A': 10, 'sig': 3}
-
     output = mcsolve(H, psi0, times, c_ops, [a.dag()*a], args=args, options=opts)
 
 The second call to :func:`qutip.mcsolve` does not reorganize the data, and in the case of the string format, does not recompile the Cython code.  For the small system here, the savings in computation time is quite small, however, if you need to call the solvers many times for different parameters, this savings will obviously start to add up.
@@ -465,29 +393,20 @@ To set up the problem, we run the following code:
    :context:
 
    delta = 0.1  * 2 * np.pi  # qubit sigma_x coefficient
-
    w = 2.0  * 2 * np.pi      # driving frequency
-
    T = 2 * np.pi / w         # driving period
-
    gamma1 = 0.00001          # relaxation rate
-
    gamma2 = 0.005            # dephasing  rate
 
    eps_list = np.linspace(-10.0, 10.0, 51) * 2 * np.pi  # epsilon
-
    A_list = np.linspace(0.0, 20.0, 51) * 2 * np.pi	# Amplitude
 
    sx = sigmax(); sz = sigmaz(); sm = destroy(2); sn = num(2)
 
    c_ops = [np.sqrt(gamma1) * sm, np.sqrt(gamma2) * sz]  # relaxation and dephasing
-
    H0 = -delta / 2.0 * sx
-
    H1 = [sz, '-eps / 2.0 + A / 2.0 * sin(w * t)']
-
    H_td = [H0, H1]
-
    Hargs = {'w': w, 'eps': eps_list[0], 'A': A_list[0]}
 
 
@@ -502,22 +421,21 @@ pre-generated Hamiltonian constructed using the :func:`qutip.rhs_generate` comma
    :context:
 
    opts = Options(rhs_reuse=True)
-
    rhs_generate(H_td, c_ops, Hargs, name='lz_func')
 
 Here, we have given the generated file a custom name ``lz_func``, however this is not necessary as a generic name will automatically be given.  Now we define the function ``task`` that is called by :func:`qutip.parallel.parfor` with the m-index parallelized in loop over the elements of ``p_mat[m,n]``:
 
-.. doctest::
+.. code-block:: python
 
    def task(args):
-      ...:     m, eps = args
-      ...:     p_mat_m = np.zeros(len(A_list))
-      ...:     for n, A in enumerate(A_list):
-      ...:         # change args sent to solver, w is really a constant though.
-      ...:         Hargs = {'w': w, 'eps': eps,'A': A}
-      ...:         U = propagator(H_td, T, c_ops, Hargs, opts) #<- IMPORTANT LINE
-      ...:         rho_ss = propagator_steadystate(U)
-      ...:         p_mat_m[n] = expect(sn, rho_ss)
-      ...:     return [m, p_mat_m]
+      m, eps = args
+      p_mat_m = np.zeros(len(A_list))
+      for n, A in enumerate(A_list):
+          # change args sent to solver, w is really a constant though.
+          Hargs = {'w': w, 'eps': eps,'A': A}
+          U = propagator(H_td, T, c_ops, Hargs, opts) #<- IMPORTANT LINE
+          rho_ss = propagator_steadystate(U)
+          p_mat_m[n] = expect(sn, rho_ss)
+      return [m, p_mat_m]
 
 Notice the Options ``opts`` in the call to the :func:`qutip.propagator` function.  This is tells the :func:`qutip.mesolve` function used in the propagator to call the pre-generated file ``lz_func``. If this were missing then the routine would fail.

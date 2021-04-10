@@ -15,8 +15,8 @@ Run a quantum circuit
 ---------------------
 
 Let's start off by defining a simple circuit which we use to demonstrate a few
-examples of circuit evolution. We take a circuit from
-`OpenQASM 2 <https://github.com/Qiskit/openqasm/blob/OpenQASM2.x/examples/W-state.qasm>`_
+examples of circuit evolution.
+We take `a circuit from OpenQASM 2 <https://github.com/Qiskit/openqasm/blob/OpenQASM2.x/examples/W-state.qasm>`_
 
 .. testcode::
 
@@ -302,8 +302,8 @@ We are left with a mixed state.
 Import and export quantum circuits
 ----------------------------------
 
-QuTiP supports importation and exportation of quantum circuit in the `OpenQASM 2 <https://github.com/Qiskit/openqasm/tree/OpenQASM2.x>`_ format
-throught the function :func:`~qutip.qip.qasm.read_qasm` and :func:`~qutip.qip.qasm.save_qasm`.
+QuTiP supports importation and exportation of quantum circuit in the `OpenQASM 2 format <https://github.com/Qiskit/openqasm/tree/OpenQASM2.x>`_
+through the functions :func:`~qutip.qip.qasm.read_qasm` and :func:`~qutip.qip.qasm.save_qasm`.
 We demonstrate this using the w-state generation circuit.
 The following code is in OpenQASM format:
 

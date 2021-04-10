@@ -1006,7 +1006,7 @@ convention,
     J(\Lambda) = (\mathbb{1} \otimes \Lambda) [|\mathbb{1}\rangle\!\rangle \langle\!\langle \mathbb{1}|].
 
 In QuTiP, :math:`J(\Lambda)` can be found by calling the :func:`~qutip.superop_reps.to_choi`
-function on a ``type="super"`` :ref:`Qobj`.
+function on a ``type="super"`` :obj:`~Qobj`.
 
 .. testcode:: [states]
 
@@ -1046,7 +1046,7 @@ function on a ``type="super"`` :ref:`Qobj`.
    [0. 0. 0. 0.]
    [1. 0. 0. 1.]]
 
-If a :ref:`Qobj` instance is already in the Choi :attr:`~Qobj.superrep`, then calling :func:`~qutip.superop_reps.to_choi`
+If a :obj:`~Qobj` instance is already in the Choi :attr:`~Qobj.superrep`, then calling :func:`~qutip.superop_reps.to_choi`
 does nothing:
 
 .. testcode:: [states]
