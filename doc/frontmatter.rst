@@ -39,8 +39,10 @@ This document contains a user guide and automatically generated API documentatio
 
 :Author: Boxi Li
 
-:version: 4.5
-:status: Released (January 30, 2020)
+:Author: Jake Lishman
+
+:version: |version|
+
 :copyright: This documentation is licensed under the Creative Commons Attribution 3.0 Unported License.
 
 .. _citing-qutip:
