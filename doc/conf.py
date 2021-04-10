@@ -194,15 +194,38 @@ html_show_copyright = True
 htmlhelp_basename = 'QuTiPdoc'
 
 
+# -- Configure MathJax for maths output in HTML targets
+
+# Currently (2021-04-10) Sphinx 3.5.3 loads MathJax 2.7, which does not have
+# support for the 'physics' package.  MathJax 3 does, so once Sphinx is using
+# that (should be in Sphinx 4), you will be able to swap to using that.  In the
+# meantime, we just have to define all the functions we're going to use.
+# 
+# See:
+# - http://docs.mathjax.org/en/v3.0-latest/input/tex/extensions/physics.html
+mathjax_config = {
+    'TeX': {
+        'Macros': {
+            'bra': [r'\left\langle{#1}\right\rvert', 1],
+            'ket': [r'\left\lvert{#1}\right\rangle', 1],
+            'tr': r'\operatorname{tr}',
+        },
+    },
+}
+
 # -- Options for LaTeX output ---------------------------------------------
 
 latex_elements = {
-                  'papersize':'a4paper',
-                  'pointsize':'10pt',
-                  'classoptions': '',
-                  'babel': '\\usepackage[english]{babel}',
-                  'fncychap' : '',
-                  'figure_align': 'H',
+    'papersize': 'a4paper',
+    'pointsize': '10pt',
+    'classoptions': '',
+    'babel': '\\usepackage[english]{babel}',
+    'fncychap': '',
+    'figure_align': 'H',
+    # This preamble is inserted into the build tools for the latex make targets
+    # but not any others.  Be sure to change mathjax_config too if you need to
+    # define more commands.
+    'preamble': r"\usepackage{physics}",
 }
 
 # Grouping the document tree into LaTeX files. List of tuples

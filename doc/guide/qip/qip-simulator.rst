@@ -39,7 +39,7 @@ It corresponds to the following circuit:
 
 .. image:: /figures/qip/quantum_circuit_w_state.png
 
-We will add the measurement gates later. This circuit prepares the W-state :math:`\newcommand{\ket}[1]{\left|{#1}\right\rangle} (\ket{001} + \ket{010} + \ket{100})/\sqrt{3}`.
+We will add the measurement gates later. This circuit prepares the W-state :math:`(\ket{001} + \ket{010} + \ket{100})/\sqrt{3}`.
 The simplest way to carry out state evolution through a quantum circuit is
 providing a input state to the :meth:`~qutip.qip.circuit.QubitCircuit.run`
 method.
@@ -142,7 +142,7 @@ the output states.
 The method :meth:`~qutip.qip.Result.get_results` can be used to obtain the
 possible states and probabilities.
 Since the state created by the circuit is the W-state, we observe the states
-:math:`\newcommand{\ket}[1]{\left|{#1}\right\rangle} \ket{001}`,  :math:`\newcommand{\ket}[1]{\left|{#1}\right\rangle} \ket{010}` and :math:`\newcommand{\ket}[1]{\left|{#1}\right\rangle} \ket{100}` with equal probability.
+:math:`\ket{001}`,  :math:`\ket{010}` and :math:`\ket{100}` with equal probability.
 
 
 Circuit simulator
