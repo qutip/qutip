@@ -45,8 +45,8 @@ from qutip.qip.operations.gates import (rx, ry, rz, sqrtnot, snot, phasegate,
                                         x_gate, y_gate, z_gate, cy_gate,
                                         cz_gate, s_gate, t_gate, cs_gate,
                                         qasmu_gate, ct_gate, cphase, cnot,
-                                        csign, berkeley, swapalpha, swap, iswap,
-                                        sqrtswap, sqrtiswap, fredkin,
+                                        csign, berkeley, swapalpha, swap,
+                                        iswap, sqrtswap, sqrtiswap, fredkin,
                                         toffoli, controlled_gate, globalphase,
                                         expand_operator, gate_sequence_product)
 from qutip import tensor, basis, identity, ket2dm
@@ -217,7 +217,8 @@ class Gate:
         qasm_gate = qasm_out.qasm_name(self.name)
 
         if not qasm_gate:
-            error_str = "{} gate's qasm defn is not specified".format(self.name)
+            error_str =\
+                 "{} gate's qasm defn is not specified".format(self.name)
             raise NotImplementedError(error_str)
 
         if self.classical_controls:
@@ -839,73 +840,118 @@ class QubitCircuit:
                                   arg_label=r"\pi/2"))
 
     def _gate_FREDKIN(self, gate, temp_resolved):
-        half_pi = np.pi / 2
-        eigth_pi = np.pi / 8
-        temp_resolved.append(Gate("CNOT", gate.targets[0],
-                                  gate.targets[1]))
-        temp_resolved.append(Gate("CNOT", gate.targets[0],
-                                  gate.controls))
-        temp_resolved.append(Gate("RZ", gate.controls, None,
-                                  arg_value=eigth_pi,
-                                  arg_label=r"\pi/8"))
-        temp_resolved.append(Gate("RZ", [gate.targets[0]], None,
-                                  arg_value=-eigth_pi,
-                                  arg_label=r"-\pi/8"))
-        temp_resolved.append(Gate("CNOT", gate.targets[0],
-                                  gate.controls))
-        temp_resolved.append(Gate("GLOBALPHASE", None, None,
-                                  arg_value=half_pi,
-                                  arg_label=r"\pi/2"))
-        temp_resolved.append(Gate("RY", gate.targets[1], None,
-                                  arg_value=half_pi,
-                                  arg_label=r"\pi/2"))
-        temp_resolved.append(Gate("RY", gate.targets, None,
-                                  arg_value=-half_pi,
-                                  arg_label=r"-\pi/2"))
-        temp_resolved.append(Gate("RZ", gate.targets, None,
-                                  arg_value=np.pi, arg_label=r"\pi"))
-        temp_resolved.append(Gate("RY", gate.targets, None,
-                                  arg_value=half_pi,
-                                  arg_label=r"\pi/2"))
-        temp_resolved.append(Gate("RZ", gate.targets[0], None,
-                                  arg_value=eigth_pi,
-                                  arg_label=r"\pi/8"))
-        temp_resolved.append(Gate("RZ", gate.targets[1], None,
-                                  arg_value=eigth_pi,
-                                  arg_label=r"\pi/8"))
-        temp_resolved.append(Gate("CNOT", gate.targets[1],
-                                  gate.controls))
-        temp_resolved.append(Gate("RZ", gate.targets[1], None,
-                                  arg_value=-eigth_pi,
-                                  arg_label=r"-\pi/8"))
-        temp_resolved.append(Gate("CNOT", gate.targets[1],
-                                  gate.targets[0]))
-        temp_resolved.append(Gate("RZ", gate.targets[1], None,
-                                  arg_value=eigth_pi,
-                                  arg_label=r"\pi/8"))
-        temp_resolved.append(Gate("CNOT", gate.targets[1],
-                                  gate.controls))
-        temp_resolved.append(Gate("RZ", gate.targets[1], None,
-                                  arg_value=-eigth_pi,
-                                  arg_label=r"-\pi/8"))
-        temp_resolved.append(Gate("CNOT", gate.targets[1],
-                                  gate.targets[0]))
-        temp_resolved.append(Gate("GLOBALPHASE", None, None,
-                                  arg_value=half_pi,
-                                  arg_label=r"\pi/2"))
-        temp_resolved.append(Gate("RY", gate.targets[1], None,
-                                  arg_value=half_pi,
-                                  arg_label=r"\pi/2"))
-        temp_resolved.append(Gate("RY", gate.targets, None,
-                                  arg_value=-half_pi,
-                                  arg_label=r"-\pi/2"))
-        temp_resolved.append(Gate("RZ", gate.targets, None,
-                                  arg_value=np.pi, arg_label=r"\pi"))
-        temp_resolved.append(Gate("RY", gate.targets, None,
-                                  arg_value=half_pi,
-                                  arg_label=r"\pi/2"))
-        temp_resolved.append(Gate("CNOT", gate.targets[0],
-                                  gate.targets[1]))
+        pi = np.pi
+        temp_resolved += [
+            Gate("CNOT",
+                 controls=gate.targets[1],
+                 targets=gate.targets[0]),
+            Gate("RZ",
+                 controls=None,
+                 targets=gate.targets[1],
+                 arg_value=pi,
+                 arg_label=r"\pi"),
+            Gate("RX",
+                 controls=None,
+                 targets=gate.targets[1],
+                 arg_value=pi / 2,
+                 arg_label=r"\pi/2"),
+            Gate("RZ",
+                 controls=None,
+                 targets=gate.targets[1],
+                 arg_value=- pi / 2,
+                 arg_label=r"-\pi/2"),
+            Gate("RX",
+                 controls=None,
+                 targets=gate.targets[1],
+                 arg_value=pi / 2,
+                 arg_label=r"\pi/2"),
+            Gate("RZ",
+                 controls=None,
+                 targets=gate.targets[1],
+                 arg_value=pi,
+                 arg_label=r"\pi"),
+            Gate("CNOT",
+                 controls=gate.targets[0],
+                 targets=gate.targets[1]),
+            Gate("RZ",
+                 controls=None,
+                 targets=gate.targets[1],
+                 arg_value=- pi / 4,
+                 arg_label=r"-\pi/4"),
+            Gate("CNOT",
+                 controls=gate.controls,
+                 targets=gate.targets[1]),
+            Gate("RZ",
+                 controls=None,
+                 targets=gate.targets[1],
+                 arg_value=pi / 4,
+                 arg_label=r"\pi/4"),
+            Gate("CNOT",
+                 controls=gate.targets[0],
+                 targets=gate.targets[1]),
+            Gate("RZ",
+                 controls=None,
+                 targets=gate.targets[0],
+                 arg_value=pi / 4,
+                 arg_label=r"\pi/4"),
+            Gate("RZ",
+                 controls=None,
+                 targets=gate.targets[1],
+                 arg_value=- pi / 4,
+                 arg_label=r"-\pi/4"),
+            Gate("CNOT",
+                 controls=gate.controls,
+                 targets=gate.targets[1]),
+            Gate("CNOT",
+                 controls=gate.controls,
+                 targets=gate.targets[0]),
+            Gate("RZ",
+                 controls=None,
+                 targets=gate.controls,
+                 arg_value=pi / 4,
+                 arg_label=r"\pi/4"),
+            Gate("RZ",
+                 controls=None,
+                 targets=gate.targets[0],
+                 arg_value=- pi / 4,
+                 arg_label=r"-\pi/4"),
+            Gate("CNOT",
+                 controls=gate.controls,
+                 targets=gate.targets[0]),
+            Gate("RZ",
+                 controls=None,
+                 targets=gate.targets[1],
+                 arg_value=- 3 * pi / 4,
+                 arg_label=r"-3\pi/4"),
+            Gate("RX",
+                 controls=None,
+                 targets=gate.targets[1],
+                 arg_value=pi / 2,
+                 arg_label=r"\pi/2"),
+            Gate("RZ",
+                 controls=None,
+                 targets=gate.targets[1],
+                 arg_value=- pi / 2,
+                 arg_label=r"-\pi/2"),
+            Gate("RX",
+                 controls=None,
+                 targets=gate.targets[1],
+                 arg_value=pi / 2,
+                 arg_label=r"\pi/2"),
+            Gate("RZ",
+                 controls=None,
+                 targets=gate.targets[1],
+                 arg_value=pi,
+                 arg_label=r"\pi"),
+            Gate("CNOT",
+                 controls=gate.targets[1],
+                 targets=gate.targets[0]),
+            Gate("GLOBALPHASE",
+                 controls=None,
+                 targets=None,
+                 arg_value=pi / 8,
+                 arg_label=r"\pi/8")
+        ]
 
     def _gate_TOFFOLI(self, gate, temp_resolved):
         half_pi = np.pi / 2
@@ -1123,8 +1169,8 @@ class QubitCircuit:
             chosen at random.
         precompute_unitary: Boolean, optional
             Specify if computation is done by pre-computing and aggregating
-            gate unitaries. Possibly a faster method in the case of large number
-            of repeat runs with different state inputs.
+            gate unitaries. Possibly a faster method in the case of
+            large number of repeat runs with different state inputs.
 
         Returns
         -------
@@ -1165,8 +1211,8 @@ class QubitCircuit:
             chosen at random.
         precompute_unitary: Boolean, optional
             Specify if computation is done by pre-computing and aggregating
-            gate unitaries. Possibly a faster method in the case of large number
-            of repeat runs with different state inputs.
+            gate unitaries. Possibly a faster method in the case of
+            large number of repeat runs with different state inputs.
 
         Returns
         -------
@@ -1932,8 +1978,8 @@ class CircuitSimulator:
 
         precompute_unitary: Boolean, optional
             Specify if computation is done by pre-computing and aggregating
-            gate unitaries. Possibly a faster method in the case of large number
-            of repeat runs with different state inputs.
+            gate unitaries. Possibly a faster method in the case of
+            large number of repeat runs with different state inputs.
         """
 
         self.qc = qc

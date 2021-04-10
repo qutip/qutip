@@ -148,6 +148,19 @@ class TestQubitCircuit:
         U2 = gates.gate_sequence_product(qc2.propagators())
         assert _op_dist(U1, U2) < 1e-12
 
+    def testFREDKINdecompose(self):
+        """
+        FREDKIN to rotation and CNOT: compare unitary matrix for FREDKIN and product of
+        resolved matrices in terms of rotation gates and CNOT.
+        """
+        qc1 = QubitCircuit(3)
+        qc1.add_gate("FREDKIN", targets=[0, 1], controls=[2])
+        U1 = gates.gate_sequence_product(qc1.propagators())
+        qc2 = qc1.resolve_gates()
+        U2 = gates.gate_sequence_product(qc2.propagators())
+        assert _op_dist(U1, U2) < 1e-12
+
+
     def testadjacentgates(self):
         """
         Adjacent Gates: compare unitary matrix for ISWAP and product of
