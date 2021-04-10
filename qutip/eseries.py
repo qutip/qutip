@@ -45,6 +45,10 @@ class eseries():
     Class representation of an exponential-series expansion of
     time-dependent quantum objects.
 
+    .. deprecated:: 4.6.0
+        :obj:`~eseries` will be removed in QuTiP 5.  Please use :obj:`~QobjEvo`
+        for general time-dependence.
+
     Attributes
     ----------
     ampl : ndarray
