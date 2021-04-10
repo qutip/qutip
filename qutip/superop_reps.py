@@ -328,7 +328,7 @@ def _generalized_kraus(q_oper, thresh=1e-10):
     #       diamond norm differences between two CP maps.
     if q_oper.type != "super" or q_oper.superrep != "choi":
         raise ValueError("Expected a Choi matrix, got a {} (superrep {}).".format(q_oper.type, q_oper.superrep))
-    
+
     # Remember the shape of the underlying space,
     # as we'll need this to make Kraus operators later.
     dL, dR = map(int, map(sqrt, q_oper.shape))
@@ -342,21 +342,27 @@ def _generalized_kraus(q_oper, thresh=1e-10):
 
     # Truncate away the zero singular values, up to a threshold.
     nonzero_idxs = S > thresh
+
     dK = nonzero_idxs.sum()
-    U = array(U)[:, nonzero_idxs]
+    U_idxs = np.zeros(U.shape[0], dtype=bool)
+    U_idxs[:nonzero_idxs.shape[0]] = nonzero_idxs
+    U = array(U)[:, U_idxs]
     # We also want S to be a single index array, which np.matrix
     # doesn't allow for. This is stripped by calling array() on it.
     S = sqrt(array(S)[nonzero_idxs])
+
     # Since NumPy returns V and not V+, we need to take the dagger
     # to get back to quantum info notation for Stinespring pairs.
-    V = array(V.conj().T)[:, nonzero_idxs]
+
+    V_idxs = np.zeros(V.shape[1], dtype=bool )
+    V_idxs[:nonzero_idxs.shape[0]] = nonzero_idxs
+    V = array(V.conj().T)[:, V_idxs]
 
     # Next, we convert each of U and V into Kraus operators.
     # Finally, we want the Kraus index to be left-most so that we
     # can map over it when making Qobjs.
-    # FIXME: does not preserve dims!
     kU = _svd_u_to_kraus(U, S, dL, dK, out_right, out_left)
-    kV = _svd_u_to_kraus(V, S, dL, dK, in_right, in_left)
+    kV = _svd_u_to_kraus(V, S, dR, dK, in_right, in_left)
 
     return kU, kV
 
@@ -380,7 +386,7 @@ def choi_to_stinespring(q_oper, thresh=1e-10):
     for idx_kraus, (KL, KR) in enumerate(zip(kU, kV)):
         A += tensor(KL, basis(dK, idx_kraus))
         B += tensor(KR, basis(dK, idx_kraus))
-        
+
     # There is no input (right) Kraus index, so strip that off.
     del A.dims[1][-1]
     del B.dims[1][-1]

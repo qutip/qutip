@@ -41,17 +41,17 @@ from __future__ import division
 
 from numpy import abs, pi, asarray, kron
 from numpy.linalg import norm
-from numpy.testing import assert_, assert_almost_equal, run_module_suite, assert_equal
+from numpy.testing import assert_, assert_almost_equal, run_module_suite
 
 #from unittest import expectedFailure
 import pytest
-
+from qutip import composite
 from qutip.qobj import Qobj
 from qutip.states import basis
 from qutip.operators import identity, sigmax, sigmay, qeye, create
 from qutip.qip.operations.gates import swap
 from qutip.random_objects import rand_super, rand_super_bcsz, rand_dm_ginibre
-from qutip.tensor import tensor, super_tensor
+from qutip.tensor import tensor, super_tensor, tensor_contract
 from qutip.superop_reps import (kraus_to_choi, to_super, to_choi, to_kraus,
                                 to_chi, to_stinespring)
 from qutip.superoperator import operator_to_vector, vector_to_operator, sprepost
@@ -282,12 +282,31 @@ class TestSuperopReps:
         """
         Stinespring: Check that dims of channels are preserved.
         """
-        # FIXME: not the most general test, since this assumes a map
-        #        from square matrices to square matrices on the same space.
         chan = super_tensor(to_super(sigmax()), to_super(qeye(3)))
         A, B = to_stinespring(chan)
         assert A.dims == [[2, 3, 1], [2, 3]]
         assert B.dims == [[2, 3, 1], [2, 3]]
+
+    def test_stinespring_general_dims(self):
+        """
+        Stinespring: Check that dims of channels are preserved.
+        """
+        chan = super_tensor(to_super(sigmax()), to_super(qeye(4)))
+        A, B = to_stinespring(chan)
+        assert A.dims == [[2, 4, 1], [2, 4]]
+        assert B.dims == [[2, 4, 1], [2, 4]]
+
+    def test_stinespring_general_rectangular_dims(self):
+        """
+        Stinespring: Check that dims of channels are preserved.
+        """
+        chan = tensor_contract(composite(to_super(qeye(4)), to_super(qeye(3))),(1,5),(2,6))
+
+        A, B = to_stinespring(chan)
+        
+        assert A.dims == [[3, 1], [3]]
+        assert B.dims == [[4, 1], [4]]
+
 
     # def test_chi_choi_roundtrip(self):
     #     def case(qobj):
