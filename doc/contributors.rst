@@ -13,9 +13,32 @@ Developers
 Lead Developers
 ===============
 
+`Alex Pitchford <https://github.com/ajgpitch>`_
+
+`Nathan Shammah <https://nathanshammah.com/>`_
+
+`Shahnawaz Ahmed <http://sahmed.in/>`_
+
+`Neill Lambert <https://github.com/nwlambert>`_
+
+`Eric Giguère <https://github.com/Ericgig>`_
+
+`Boxi Li <https://github.com/BoxiLi>`_
+
+`Jake Lishman <https://binhbar.com>`_
+
+`Simon Cross <http://hodgestar.za.net/>`_
+
+Past Lead Developers
+====================
+
 `Robert Johansson <http://jrjohansson.github.io/research.html>`_ (RIKEN)
 
 `Paul Nation <http://nqdl.korea.ac.kr>`_ (Korea University)
+
+`Chris Granade <https://www.cgranade.com>`_
+
+`Arne Grimsmo <https://www.sydney.edu.au/science/about/our-people/academic-staff/arne-grimsmo.html>`_
 
 
 .. _developers-contributors:
