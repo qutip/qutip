@@ -21,17 +21,11 @@ Bibliography
 .. [Mez07]
     F. Mezzadri, *How to generate random matrices from the classical compact groups*, Notices of the AMS **54** 592-604 (2007). :arxiv:`math-ph/0609050`.
 
-.. [Mis12]
-    J. A. Miszczak, *Generating and using truly random quantum states in Mathematica*, Computer Physics Communications **183** 1, 118-124 (2012). :doi:`10.1016/j.cpc.2011.08.002`.
-
 .. [Moh08]
     M. Mohseni, A. T. Rezakhani, D. A. Lidar, *Quantum-process tomography: Resource analysis of different strategies*, Phys. Rev. A **77**, 032322 (2008). :doi:`10.1103/PhysRevA.77.032322`.
 
 .. [Gri98]
     M. Grifoni, P. Hänggi, *Driven quantum tunneling*, Physics Reports **304**, 299 (1998). :doi:`10.1016/S0370-1573(98)00022-2`.
-
-.. [Cre03]
-    C. E. Creffield, *Location of crossings in the Floquet spectrum of a driven two-level system*, Phys. Rev. B **67**, 165301 (2003). :doi:`10.1103/PhysRevB.67.165301`.
 
 .. [Gar03]
     Gardineer and Zoller, *Quantum Noise* (Springer, 2004).
@@ -48,9 +42,6 @@ Bibliography
     
 .. [dAless08]
     D. d’Alessandro, *Introduction to Quantum Control and Dynamics*, (Chapman & Hall/CRC, 2008)
-    
-.. [Kha05]
-    N. Khaneja, T. Reiss, C. Kehlet, T. Schulte-Herbruggen, and S. J. Glaser, *Optimal control of coupled spin dynamics: Design of NMR pulse sequences by gradient ascent algorithms*, J. Magn. Reson. **172**, 296 (2005). :doi:`10.1016/j.jmr.2004.11.004`
     
 .. [Byrd95]
     R. H. Byrd, P. Lu, J. Nocedal, and C. Zhu, *A Limited Memory Algorithm for Bound Constrained Optimization*, SIAM J. Sci. Comput. **16**, 1190 (1995). :doi:`10.1137/0916069`
