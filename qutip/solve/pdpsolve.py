@@ -324,7 +324,7 @@ def main_smepdpsolve(H, rho0, times, c_ops, e_ops, **kwargs):
     sc_ops : list of :class:`qutip.Qobj`
         List of stochastic collapse operators. Each stochastic collapse
         operator will give a deterministic and stochastic contribution
-        to the eqaution of motion according to how the d1 and d2 functions
+        to the equation of motion according to how the d1 and d2 functions
         are defined.
 
     e_ops : list of :class:`qutip.Qobj` / callback function single
