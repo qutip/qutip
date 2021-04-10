@@ -7,7 +7,7 @@
 Change Log
 **********
 
-Version 4.6.0 (April 10, 2021)
+Version 4.6.0 (April 11, 2021)
 ++++++++++++++++++++++++++++++
 
 This release brings improvements for qubit circuits, including a pulse scheduler, measurement statistics, reading/writing OpenQASM and optimisations in the circuit simulations.
