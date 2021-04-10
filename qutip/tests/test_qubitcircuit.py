@@ -154,15 +154,10 @@ class TestQubitCircuit:
         resolved matrices in terms of rotation gates and CNOT.
         """
         qc1 = QubitCircuit(3)
-        print("OK")
         qc1.add_gate("FREDKIN", targets=[0, 1], controls=[2])
-        print("OK")
         U1 = gates.gate_sequence_product(qc1.propagators())
-        print("OK")
         qc2 = qc1.resolve_gates()
-        print("OK")
         U2 = gates.gate_sequence_product(qc2.propagators())
-        print("OK")
         assert _op_dist(U1, U2) < 1e-12
 
 
