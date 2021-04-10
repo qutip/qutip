@@ -18,8 +18,6 @@ QuTiP: Quantum Toolbox in Python
    gallery/build/index.rst
    apidoc/apidoc.rst
 
-   :maxdepth: 1
-
    changelog.rst
    contributors.rst
    development/development.rst
