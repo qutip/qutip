@@ -461,6 +461,9 @@ class Bloch:
             self.axes.set_xlim3d(-0.7, 0.7)
             self.axes.set_ylim3d(-0.7, 0.7)
             self.axes.set_zlim3d(-0.7, 0.7)
+        # Manually set aspect ratio to fit a square bounding box.
+        # Matplotlib did this stretching for < 3.3.0, but not above.
+        self.axes.set_box_aspect((1, 1, 1))
 
         self.axes.grid(False)
         self.plot_back()
