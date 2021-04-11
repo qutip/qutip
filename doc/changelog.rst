@@ -47,6 +47,8 @@ Bug Fixes
 - Fix correlation functions throwing away imaginary components. (by **Asier Galicia Martinez**)
 - Fix ``QubitCircuit.add_circuit()`` for SWAP gate. (by **Canoming**)
 - Fix the broken LaTeX image conversion. (by **Jake Lishman**)
+- Fix gate resolution of the FREDKIN gate. (by **Bo Yang**)
+- Fix broken formatting in docstrings. (by **Jake Lishman**)
 
 Deprecations
 ------------
@@ -61,6 +63,8 @@ Developer Changes
 - Improve Travis jobs matrix for specifying the testing containers. (by **Jake Lishman**)
 - Fix coverage reporting on Travis. (by **Jake Lishman**)
 - Added a ``pyproject.toml`` file. (by **Simon Humpohl** and **Eric Giguère**)
+- Add doctests to documentation. (by **Sidhant Saraogi**)
+- Fix all warnings in the documentation build. (by **Jake Lishman**)
 
 
 
