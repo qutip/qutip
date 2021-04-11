@@ -1,37 +1,40 @@
-from qutip import *
-from scipy import *
+import numpy as np
+from matplotlib import pyplot
 
-delta = 0.2 * 2*pi; eps0  = 1.0 * 2*pi
-A     = 0.5 * 2*pi; omega = 1.0 * 2*pi
-T      = (2*pi)/omega
-tlist  = linspace(0.0, 10 * T, 101)
-psi0   = basis(2,0)
+import qutip
 
-H0 = - delta/2.0 * sigmax() - eps0/2.0 * sigmaz()
-H1 = A/2.0 * sigmaz()
+delta = 0.2 * 2*np.pi
+eps0  = 1.0 * 2*np.pi
+A     = 0.5 * 2*np.pi
+omega = 1.0 * 2*np.pi
+T      = (2*np.pi)/omega
+tlist  = np.linspace(0.0, 10 * T, 101)
+psi0   = qutip.basis(2, 0)
+
+H0 = - delta/2.0 * qutip.sigmax() - eps0/2.0 * qutip.sigmaz()
+H1 = A/2.0 * qutip.sigmaz()
 args = {'w': omega}
-H = [H0, [H1, lambda t,args: sin(args['w'] * t)]]
+H = [H0, [H1, lambda t,args: np.sin(args['w'] * t)]]
 
 # find the floquet modes for the time-dependent hamiltonian
-f_modes_0,f_energies = floquet_modes(H, T, args)
+f_modes_0,f_energies = qutip.floquet_modes(H, T, args)
 
 # decompose the inital state in the floquet modes
-f_coeff = floquet_state_decomposition(f_modes_0, f_energies, psi0)
+f_coeff = qutip.floquet_state_decomposition(f_modes_0, f_energies, psi0)
 
 # calculate the wavefunctions using the from the floquet modes
-p_ex = zeros(len(tlist))
+p_ex = np.zeros(len(tlist))
 for n, t in enumerate(tlist):
-    psi_t = floquet_wavefunction_t(f_modes_0, f_energies, f_coeff, t, H, T, args)
-    p_ex[n] = expect(num(2), psi_t)
+    psi_t = qutip.floquet_wavefunction_t(f_modes_0, f_energies, f_coeff, t, H, T, args)
+    p_ex[n] = qutip.expect(qutip.num(2), psi_t)
 
 # For reference: calculate the same thing with mesolve
-p_ex_ref = mesolve(H, psi0, tlist, [], [num(2)], args).expect[0]
+p_ex_ref = qutip.mesolve(H, psi0, tlist, [], [qutip.num(2)], args).expect[0]
 
 # plot the results
-from pylab import *
-plot(tlist, real(p_ex),     'ro', tlist, 1-real(p_ex),     'bo')
-plot(tlist, real(p_ex_ref), 'r',  tlist, 1-real(p_ex_ref), 'b')
-xlabel('Time')
-ylabel('Occupation probability')
-legend(("Floquet $P_1$", "Floquet $P_0$", "Lindblad $P_1$", "Lindblad $P_0$"))
-show()
+pyplot.plot(tlist, np.real(p_ex),     'ro', tlist, 1-np.real(p_ex),     'bo')
+pyplot.plot(tlist, np.real(p_ex_ref), 'r',  tlist, 1-np.real(p_ex_ref), 'b')
+pyplot.xlabel('Time')
+pyplot.ylabel('Occupation probability')
+pyplot.legend(("Floquet $P_1$", "Floquet $P_0$", "Lindblad $P_1$", "Lindblad $P_0$"))
+pyplot.show()

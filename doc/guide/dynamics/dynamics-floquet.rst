@@ -7,15 +7,6 @@
 Floquet Formalism
 *****************
 
-
-.. plot::
-      :include-source: False
-
-      >>> from pylab import *
-      >>> from scipy import *
-      >>> from qutip import *
-      >>> import numpy as np
-
 .. _floquet-intro:
 
 Introduction
@@ -105,7 +96,7 @@ Consider for example the case of a strongly driven two-level atom, described by 
 In QuTiP we can define this Hamiltonian as follows:
 
 .. plot::
-   :context: reset
+   :context:
 
    >>> delta = 0.2 * 2*np.pi
    >>> eps0 = 1.0 * 2*np.pi
@@ -121,7 +112,7 @@ The :math:`t=0` Floquet modes corresponding to the Hamiltonian :eq:`eq_driven_qu
 .. plot::
    :context:
 
-   >>> T = 2*pi / omega
+   >>> T = 2*np.pi / omega
    >>> f_modes_0, f_energies = floquet_modes(H, T, args)
    >>> f_energies # doctest: +NORMALIZE_WHITESPACE
    array([-2.83131212,  2.83131212])
@@ -144,7 +135,7 @@ For some problems interesting observations can be draw from the quasienergy leve
    >>> eps0  = 0.0 * 2*np.pi
    >>> omega = 1.0 * 2*np.pi
    >>> A_vec = np.linspace(0, 10, 100) * omega
-   >>> T = (2*pi)/omega
+   >>> T = (2*np.pi)/omega
    >>> tlist = np.linspace(0.0, 10 * T, 101)
    >>> spsi0 = basis(2,0)
    >>> q_energies = np.zeros((len(A_vec), 2))
@@ -152,15 +143,15 @@ For some problems interesting observations can be draw from the quasienergy leve
    >>> args = {'w': omega}
    >>> for idx, A in enumerate(A_vec): # doctest: +SKIP
    >>>   H1 = A/2.0 * sigmax() # doctest: +SKIP
-   >>>   H = [H0, [H1, lambda t, args: sin(args['w']*t)]] # doctest: +SKIP
+   >>>   H = [H0, [H1, lambda t, args: np.sin(args['w']*t)]] # doctest: +SKIP
    >>>   f_modes, f_energies = floquet_modes(H, T, args, True) # doctest: +SKIP
    >>>   q_energies[idx,:] = f_energies # doctest: +SKIP
-   >>> figure() # doctest: +SKIP
-   >>> plot(A_vec/omega, q_energies[:,0] / delta, 'b', A_vec/omega, q_energies[:,1] / delta, 'r') # doctest: +SKIP
-   >>> xlabel(r'$A/\omega$') # doctest: +SKIP
-   >>> ylabel(r'Quasienergy / $\Delta$') # doctest: +SKIP
-   >>> title(r'Floquet quasienergies') # doctest: +SKIP
-   >>> show() # doctest: +SKIP
+   >>> plt.figure() # doctest: +SKIP
+   >>> plt.plot(A_vec/omega, q_energies[:,0] / delta, 'b', A_vec/omega, q_energies[:,1] / delta, 'r') # doctest: +SKIP
+   >>> plt.xlabel(r'$A/\omega$') # doctest: +SKIP
+   >>> plt.ylabel(r'Quasienergy / $\Delta$') # doctest: +SKIP
+   >>> plt.title(r'Floquet quasienergies') # doctest: +SKIP
+   >>> plt.show() # doctest: +SKIP
 
 Given the Floquet modes at :math:`t=0`, we obtain the Floquet mode at some later time :math:`t` using the function :func:`qutip.floquet.floquet_mode_t`:
 
@@ -214,7 +205,7 @@ When evaluating the Floquet states or the wavefunction at many points in time it
 
 Note that the parameters and the Hamiltonian used in this example is not the same as in the previous section, and hence the different appearance of the resulting figure.
 
-For convenience, all the steps described above for calculating the evolution of a quantum system using the Floquet formalisms are encapsulated in the function :func:`qutip.floquet.fsesolve`. Using this function, we could have achieved the same results as in the examples above using::
+For convenience, all the steps described above for calculating the evolution of a quantum system using the Floquet formalisms are encapsulated in the function :func:`qutip.floquet.fsesolve`. Using this function, we could have achieved the same results as in the examples above using
 
 .. code-block:: python
 
@@ -245,7 +236,7 @@ The noise spectral-density function of the environment is implemented as a Pytho
 
     gamma1 = 0.1
     def noise_spectrum(omega):
-    ...:  return 0.5 * gamma1 * omega/(2*pi)
+        return 0.5 * gamma1 * omega/(2*pi)
 
 The other parameters are similar to the :func:`qutip.mesolve` and :func:`qutip.mcsolve`, and the same format for the return value is used :class:`qutip.solver.Result`. The following example extends the example studied above, and uses :func:`qutip.floquet.fmmesolve` to introduce dissipation into the calculation
 

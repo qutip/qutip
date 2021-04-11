@@ -10,10 +10,6 @@ Pulse-level circuit simulation
 Modelling quantum hardware with Processor
 -----------------------------------------
 
-.. note::
-
-   Available from QuTiP 4.5
-
 Based on the open system solver, :class:`~qutip.qip.device.Processor` in the :mod:`qutip.qip` module simulates quantum circuits at the level of time evolution. One can consider the processor as a simulator of a quantum device, on which the quantum circuit is to be implemented. 
 
 The procedure is illustrated in the figure below.
@@ -186,7 +182,7 @@ Compiler and scheduler
 
 .. note::
 
-   Available from QuTiP 4.6
+   New in QuTiP 4.6
 
 In order to simulate quantum circuits at the level of time evolution.
 We need to first compile the circuit into the Hamiltonian model, i.e.

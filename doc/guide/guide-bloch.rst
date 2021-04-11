@@ -7,18 +7,7 @@
 Plotting on the Bloch Sphere
 ******************************
 
-.. important::
-    Updated in QuTiP version 3.0.
-
 .. _bloch-intro:
-
-.. plot::
-      :include-source: False
-
-      from pylab import *
-      from scipy import *
-      from qutip import *
-      import numpy as np
 
 Introduction
 ============
@@ -35,11 +24,11 @@ In QuTiP, creating a Bloch sphere is accomplished by calling either:
 .. plot::
     :context:
 
-    b = Bloch()
+    b = qutip.Bloch()
 
-which will load an instance of the :class:`qutip.Bloch` class, or using::
+which will load an instance of the :class:`qutip.Bloch` class, or using ::
 
- >>> b3d = Bloch3d() # doctest: +SKIP
+   >>> b3d = qutip.Bloch3d()
 
 that loads the :class:`qutip.Bloch3d` version.  Before getting into the details of these objects, we can simply plot the blank Bloch sphere associated with these instances via:
 
@@ -56,52 +45,14 @@ or
     :width: 3.5in
     :figclass: align-center
 
-In addition to the show() command, the Bloch class has the following functions:
-
-.. tabularcolumns:: | p{3.5cm} | p{7cm} | p{6cm} |
-
-.. cssclass:: table-striped
-
-+--------------------------+--------------------------------------+------------------------------------------+
-| Name                     | Input Parameters (#=optional)        | Description                              |
-+==========================+======================================+==========================================+
-| add_points(pnts,#meth)   | pnts list/array of (x,y,z) points,   | Adds a single or set of data points      |
-|                          | meth='m' (default meth='s') will     | to be plotted on the sphere.             |
-|                          | plot a collection of points as       |                                          |
-|                          | multi-colored data points.           |                                          |
-+--------------------------+--------------------------------------+------------------------------------------+
-|add_states(state,#kind)   | `state` Qobj or list/array of Qobj's | Input multiple states as a list or array |
-|                          | representing state or density matrix |                                          |
-|                          | of a two-level system,               |                                          |
-|                          | `kind` (optional) string specifying  |                                          |
-|                          | if state should be plotted as point  |                                          |
-|                          | ('point') or vector (default).       |                                          |
-+--------------------------+--------------------------------------+------------------------------------------+
-| add_vectors(vec)         | `vec` list/array of (x,y,z) points   | adds single or multiple vectors to plot. |
-|                          | giving direction and length of       |                                          |
-|                          | state vectors.                       |                                          |
-+--------------------------+--------------------------------------+------------------------------------------+
-| clear()                  |                                      | Removes all data from Bloch sphere.      |
-|                          |                                      | Keeps customized figure properties.      |
-+--------------------------+--------------------------------------+------------------------------------------+
-| save(#name,#format,#dirc,|*name* name of output file,           |                                          |
-|	#dpin)				   |*format* format (default='png') of    | Saves Bloch sphere to a file.            |
-|                          | output file, *dirc* (default=cwd)    |                                          |
-|                          | output directory, *dpin* resolution  |                                          |
-|                          | in dots per square inch.             |                                          |
-+--------------------------+--------------------------------------+------------------------------------------+
-| show()                   |                                      | Generates Bloch sphere with given data.  |
-+--------------------------+--------------------------------------+------------------------------------------+
-
+In addition to the ``show`` command, see the API documentation for :class:`~Bloch` for a full list of other available functions.
 As an example, we can add a single data point:
 
 .. plot::
     :context: close-figs
 
-    pnt = [1/np.sqrt(3),1/np.sqrt(3),1/np.sqrt(3)]
-
+    pnt = [1/np.sqrt(3), 1/np.sqrt(3), 1/np.sqrt(3)]
     b.add_points(pnt)
-
     b.render()
 
 and then a single vector:
@@ -110,44 +61,33 @@ and then a single vector:
     :context: close-figs
 
     b.fig.clf()
-
-    vec = [0,1,0]
-
+    vec = [0, 1, 0]
     b.add_vectors(vec)
-
     b.render()
-
 
 and then add another vector corresponding to the :math:`\left|\rm up \right>` state:
 
 .. plot::
     :context: close-figs
 
-    up = basis(2,0)
-
+    up = qutip.basis(2, 0)
     b.add_states(up)
-
     b.render()
 
-Notice that when we add more than a single vector (or data point), a different color will automatically be applied to the later data set (mod 4).  In total, the code for constructing our Bloch sphere with one vector, one state, and a single data point is:
+Notice that when we add more than a single vector (or data point), a different color will automatically be applied to the later data set (mod 4).
+In total, the code for constructing our Bloch sphere with one vector, one state, and a single data point is:
 
 .. plot::
     :context: close-figs
 
-    b = Bloch()
+    b = qutip.Bloch()
 
     pnt = [1./np.sqrt(3), 1./np.sqrt(3), 1./np.sqrt(3)]
-
     b.add_points(pnt)
-
-    vec = [0,1,0]
-
+    vec = [0, 1, 0]
     b.add_vectors(vec)
-
-    up = basis(2,0)
-
+    up = qutip.basis(2, 0)
     b.add_states(up)
-
     b.render()
 
 where we have removed the extra ``show()`` commands.  Replacing ``b=Bloch()`` with ``b=Bloch3d()`` in the above code generates the following 3D Bloch sphere.
@@ -165,7 +105,6 @@ We can also plot multiple points, vectors, and states at the same time by passin
     :context: close-figs
 
     b.clear()
-
     b.render()
 
 
@@ -174,14 +113,11 @@ Now on the same Bloch sphere, we can plot the three states associated with the x
 .. plot::
     :context: close-figs
 
-    x = (basis(2,0)+(1+0j)*basis(2,1)).unit()
+    x = (qutip.basis(2, 0) + (1+0j)*qutip.basis(2, 1)).unit()
+    y = (qutip.basis(2, 0) + (0+1j)*qutip.basis(2, 1)).unit()
+    z = (qutip.basis(2, 0) + (0+0j)*qutip.basis(2, 1)).unit()
 
-    y = (basis(2,0)+(0+1j)*basis(2,1)).unit()
-
-    z = (basis(2,0)+(0+0j)*basis(2,1)).unit()
-
-    b.add_states([x,y,z])
-
+    b.add_states([x, y, z])
     b.render()
 
 a similar method works for adding vectors:
@@ -190,11 +126,8 @@ a similar method works for adding vectors:
     :context: close-figs
 
     b.clear()
-
-    vec = [[1,0,0],[0,1,0],[0,0,1]]
-
+    vec = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
     b.add_vectors(vec)
-
     b.render()
 
 Adding multiple points to the Bloch sphere works slightly differently than adding multiple states or vectors.  For example, lets add a set of 20 points around the equator (after calling `clear()`):
@@ -204,16 +137,13 @@ Adding multiple points to the Bloch sphere works slightly differently than addin
 
     b.clear()
 
-    xp = [np.cos(th) for th in np.linspace(0, 2*pi, 20)]
-
-    yp = [np.sin(th) for th in np.linspace(0, 2*pi, 20)]
-
+    th = np.linspace(0, 2*np.pi, 20)
+    xp = np.cos(th)
+    yp = np.sin(th)
     zp = np.zeros(20)
 
     pnts = [xp, yp, zp]
-
     b.add_points(pnts)
-
     b.render()
 
 Notice that, in contrast to states or vectors, each point remains the same color as the initial point.  This is because adding multiple data points using the add_points function is interpreted, by default, to correspond to a single data point (single qubit state) plotted at different times.  This is very useful when visualizing the dynamics of a qubit.  An example of this is given in the example .  If we want to plot additional qubit states we can call additional `add_points` functions:
@@ -222,13 +152,9 @@ Notice that, in contrast to states or vectors, each point remains the same color
     :context: close-figs
 
     xz = np.zeros(20)
-
-    yz = [np.sin(th) for th in np.linspace(0, pi, 20)]
-
-    zz = [np.cos(th) for th in np.linspace(0, pi, 20)]
-
+    yz = np.sin(th)
+    zz = np.cos(th)
     b.add_points([xz, yz, zz])
-
     b.render()
 
 The color and shape of the data points is varied automatically by the Bloch class.  Notice how the color and point markers change for each set of data.  Again, we have had to call ``add_points`` twice because adding more than one set of multiple data points is *not* supported by the ``add_points`` function.
@@ -240,16 +166,11 @@ What if we want to vary the color of our points.  We can tell the :class:`qutip.
 
     b.clear()
 
-    xp = [np.cos(th) for th in np.linspace(0, 2*pi, 20)]
-
-    yp = [sin(th) for th in np.linspace(0, 2*pi, 20)]
-
+    xp = np.cos(th)
+    yp = np.sin(th)
     zp = np.zeros(20)
-
     pnts = [xp, yp, zp]
-
-    b.add_points(pnts,'m') # <-- add a 'm' string to signify 'multi' colored points
-
+    b.add_points(pnts, 'm')  # <-- add a 'm' string to signify 'multi' colored points
     b.render()
 
 
@@ -259,13 +180,10 @@ Now, the data points cycle through a variety of predefined colors.  Now lets add
     :context: close-figs
 
     xz = np.zeros(20)
+    yz = np.sin(th)
+    zz = np.cos(th)
 
-    yz = [np.sin(th) for th in np.linspace(0, pi ,20)]
-
-    zz = [np.cos(th) for th in np.linspace(0, pi, 20)]
-
-    b.add_points([xz, yz, zz]) # no 'm'
-
+    b.add_points([xz, yz, zz])  # no 'm'
     b.render()
 
 Again, the same plot can be generated using the :class:`qutip.Bloch3d` class by replacing ``Bloch`` with ``Bloch3d``:
@@ -303,57 +221,57 @@ At the end of the last section we saw that the colors and marker shapes of the d
 
 .. cssclass:: table-striped
 
-+---------------+---------------------------------------------------------+---------------------------------------------+
-| Attribute     | Function                                                | Default Setting                             |
-+===============+=========================================================+=============================================+
-| b.axes        | Matplotlib axes instance for animations. Set by ``axes``| ``None``                                    |
-|               | keyword arg.                                            |                                             |
-+---------------+---------------------------------------------------------+---------------------------------------------+
-| b.fig         | User supplied Matplotlib Figure instance. Set by ``fig``| ``None``                                    |
-|               | keyword arg.                                            |                                             |
-+---------------+---------------------------------------------------------+---------------------------------------------+
-| b.font_color  | Color of fonts                                          | `'black'`                                   |
-+---------------+---------------------------------------------------------+---------------------------------------------+
-| b.font_size   | Size of fonts                                           | 20                                          |
-+---------------+---------------------------------------------------------+---------------------------------------------+
-| b.frame_alpha | Transparency of wireframe                               | 0.1                                         |
-+---------------+---------------------------------------------------------+---------------------------------------------+
-| b.frame_color | Color of wireframe                                      | `'gray'`                                    |
-+---------------+---------------------------------------------------------+---------------------------------------------+
-| b.frame_width | Width of wireframe                                      | 1                                           |
-+---------------+---------------------------------------------------------+---------------------------------------------+
-| b.point_color | List of colors for Bloch point markers to cycle through | `['b','r','g','#CC6600']`                   |
-+---------------+---------------------------------------------------------+---------------------------------------------+
-| b.point_marker| List of point marker shapes to cycle through            | `['o','s','d','^']`                         |
-+---------------+---------------------------------------------------------+---------------------------------------------+
-| b.point_size  | List of point marker sizes (not all markers look the    | `[55,62,65,75]`                             |
-|               | same size when plotted)                                 |                                             |
-+---------------+---------------------------------------------------------+---------------------------------------------+
-| b.sphere_alpha| Transparency of Bloch sphere                            |  0.2                                        |
-+---------------+---------------------------------------------------------+---------------------------------------------+
-| b.sphere_color| Color of Bloch sphere                                   |  `'#FFDDDD'`                                |
-+---------------+---------------------------------------------------------+---------------------------------------------+
-| b.size        | Sets size of figure window                              | `[7,7]` (700x700 pixels)                    |
-+---------------+---------------------------------------------------------+---------------------------------------------+
-| b.vector_color| List of colors for Bloch vectors to cycle through       |  `['g','#CC6600','b','r']`                  |
-+---------------+---------------------------------------------------------+---------------------------------------------+
-| b.vector_width| Width of Bloch vectors                                  | 4                                           |
-+---------------+---------------------------------------------------------+---------------------------------------------+
-| b.view        | Azimuthal and Elevation viewing angles                  |  `[-60,30]`                                 |
-+---------------+---------------------------------------------------------+---------------------------------------------+
-| b.xlabel      | Labels for x-axis                                       | `['$x$','']` +x and -x (labels use LaTeX)   |
-+---------------+---------------------------------------------------------+---------------------------------------------+
-| b.xlpos       | Position of x-axis labels                               | `[1.1,-1.1]`                                |
-+---------------+---------------------------------------------------------+---------------------------------------------+
-| b.ylabel      | Labels for y-axis                                       | `['$y$','']` +y and -y (labels use LaTeX)   |
-+---------------+---------------------------------------------------------+---------------------------------------------+
-| b.ylpos       | Position of y-axis labels                               | `[1.2,-1.2]`                                |
-+---------------+---------------------------------------------------------+---------------------------------------------+
-| b.zlabel      | Labels for z-axis                                       | `['$\left|0\\right>$','$\left|1\\right>$']` |
-|               |                                                         | +z and -z (labels use LaTeX)                |
-+---------------+---------------------------------------------------------+---------------------------------------------+
-| b.zlpos       | Position of z-axis labels                               | `[1.2,-1.2]`                                |
-+---------------+---------------------------------------------------------+---------------------------------------------+
++---------------+---------------------------------------------------------+-------------------------------------------------+
+| Attribute     | Function                                                | Default Setting                                 |
++===============+=========================================================+=================================================+
+| b.axes        | Matplotlib axes instance for animations. Set by ``axes``| ``None``                                        |
+|               | keyword arg.                                            |                                                 |
++---------------+---------------------------------------------------------+-------------------------------------------------+
+| b.fig         | User supplied Matplotlib Figure instance. Set by ``fig``| ``None``                                        |
+|               | keyword arg.                                            |                                                 |
++---------------+---------------------------------------------------------+-------------------------------------------------+
+| b.font_color  | Color of fonts                                          | 'black'                                         |
++---------------+---------------------------------------------------------+-------------------------------------------------+
+| b.font_size   | Size of fonts                                           | 20                                              |
++---------------+---------------------------------------------------------+-------------------------------------------------+
+| b.frame_alpha | Transparency of wireframe                               | 0.1                                             |
++---------------+---------------------------------------------------------+-------------------------------------------------+
+| b.frame_color | Color of wireframe                                      | 'gray'                                          |
++---------------+---------------------------------------------------------+-------------------------------------------------+
+| b.frame_width | Width of wireframe                                      | 1                                               |
++---------------+---------------------------------------------------------+-------------------------------------------------+
+| b.point_color | List of colors for Bloch point markers to cycle through | ``['b', 'r', 'g', '#CC6600']``                  |
++---------------+---------------------------------------------------------+-------------------------------------------------+
+| b.point_marker| List of point marker shapes to cycle through            | ``['o', 's', 'd', '^']``                        |
++---------------+---------------------------------------------------------+-------------------------------------------------+
+| b.point_size  | List of point marker sizes (not all markers look the    | ``[55, 62, 65, 75]``                            |
+|               | same size when plotted)                                 |                                                 |
++---------------+---------------------------------------------------------+-------------------------------------------------+
+| b.sphere_alpha| Transparency of Bloch sphere                            | 0.2                                             |
++---------------+---------------------------------------------------------+-------------------------------------------------+
+| b.sphere_color| Color of Bloch sphere                                   | ``'#FFDDDD'``                                   |
++---------------+---------------------------------------------------------+-------------------------------------------------+
+| b.size        | Sets size of figure window                              | ``[7, 7]`` (700x700 pixels)                     |
++---------------+---------------------------------------------------------+-------------------------------------------------+
+| b.vector_color| List of colors for Bloch vectors to cycle through       | ``['g', '#CC6600', 'b', 'r']``                  |
++---------------+---------------------------------------------------------+-------------------------------------------------+
+| b.vector_width| Width of Bloch vectors                                  | 4                                               |
++---------------+---------------------------------------------------------+-------------------------------------------------+
+| b.view        | Azimuthal and Elevation viewing angles                  | ``[-60,30]``                                    |
++---------------+---------------------------------------------------------+-------------------------------------------------+
+| b.xlabel      | Labels for x-axis                                       | ``['$x$', '']`` +x and -x (labels use LaTeX)    |
++---------------+---------------------------------------------------------+-------------------------------------------------+
+| b.xlpos       | Position of x-axis labels                               | ``[1.1, -1.1]``                                 |
++---------------+---------------------------------------------------------+-------------------------------------------------+
+| b.ylabel      | Labels for y-axis                                       | ``['$y$', '']`` +y and -y (labels use LaTeX)    |
++---------------+---------------------------------------------------------+-------------------------------------------------+
+| b.ylpos       | Position of y-axis labels                               | ``[1.2, -1.2]``                                 |
++---------------+---------------------------------------------------------+-------------------------------------------------+
+| b.zlabel      | Labels for z-axis                                       | ``['$\left|0\right>$', '$\left|1\right>$']``    |
+|               |                                                         | +z and -z (labels use LaTeX)                    |
++---------------+---------------------------------------------------------+-------------------------------------------------+
+| b.zlpos       | Position of z-axis labels                               | ``[1.2, -1.2]``                                 |
++---------------+---------------------------------------------------------+-------------------------------------------------+
 
 Bloch3d Class Options
 ---------------------
@@ -371,56 +289,56 @@ correspondence to those of the ``Bloch`` class due to the different underlying r
 | b.fig         | User supplied Mayavi Figure instance. Set by ``fig``    | ``None``                                    |
 |               | keyword arg.                                            |                                             |
 +---------------+---------------------------------------------------------+---------------------------------------------+
-| b.font_color  | Color of fonts                                          | `'black'`                                   |
+| b.font_color  | Color of fonts                                          | ``'black'``                                 |
 +---------------+---------------------------------------------------------+---------------------------------------------+
 | b.font_scale  | Scale of fonts                                          | 0.08                                        |
 +---------------+---------------------------------------------------------+---------------------------------------------+
-| b.frame       | Draw wireframe for sphere?                              | True                                        |
+| b.frame       | Draw wireframe for sphere?                              | ``True``                                    |
 +---------------+---------------------------------------------------------+---------------------------------------------+
 | b.frame_alpha | Transparency of wireframe                               | 0.05                                        |
 +---------------+---------------------------------------------------------+---------------------------------------------+
-| b.frame_color | Color of wireframe                                      | `'gray'`                                    |
+| b.frame_color | Color of wireframe                                      | ``'gray'``                                  |
 +---------------+---------------------------------------------------------+---------------------------------------------+
 | b.frame_num   | Number of wireframe elements to draw                    | 8                                           |
 +---------------+---------------------------------------------------------+---------------------------------------------+
 | b.frame_radius| Radius of wireframe lines                               | 0.005                                       |
 +---------------+---------------------------------------------------------+---------------------------------------------+
-| b.point_color | List of colors for Bloch point markers to cycle through | `['r', 'g', 'b', 'y']`                      |
+| b.point_color | List of colors for Bloch point markers to cycle through | ``['r', 'g', 'b', 'y']``                    |
 +---------------+---------------------------------------------------------+---------------------------------------------+
-| b.point_mode  | Type of point markers to draw                           | `sphere`                                    |
+| b.point_mode  | Type of point markers to draw                           | ``'sphere'``                                |
 +---------------+---------------------------------------------------------+---------------------------------------------+
 | b.point_size  | Size of points                                          | 0.075                                       |
 +---------------+---------------------------------------------------------+---------------------------------------------+
-| b.sphere_alpha| Transparency of Bloch sphere                            |  0.1                                        |
+| b.sphere_alpha| Transparency of Bloch sphere                            | 0.1                                         |
 +---------------+---------------------------------------------------------+---------------------------------------------+
-| b.sphere_color| Color of Bloch sphere                                   |  `'#808080'`                                |
+| b.sphere_color| Color of Bloch sphere                                   | ``'#808080'``                               |
 +---------------+---------------------------------------------------------+---------------------------------------------+
-| b.size        | Sets size of figure window                              | `[500,500]` (500x500 pixels)                |
+| b.size        | Sets size of figure window                              | ``[500, 500]`` (500x500 pixels)             |
 +---------------+---------------------------------------------------------+---------------------------------------------+
-| b.vector_color| List of colors for Bloch vectors to cycle through       |  `['r', 'g', 'b', 'y']`                     |
+| b.vector_color| List of colors for Bloch vectors to cycle through       | ``['r', 'g', 'b', 'y']``                    |
 +---------------+---------------------------------------------------------+---------------------------------------------+
 | b.vector_width| Width of Bloch vectors                                  | 3                                           |
 +---------------+---------------------------------------------------------+---------------------------------------------+
-| b.view        | Azimuthal and Elevation viewing angles                  |  `[45,65 ]`                                 |
+| b.view        | Azimuthal and Elevation viewing angles                  | ``[45, 65]``                                |
 +---------------+---------------------------------------------------------+---------------------------------------------+
-| b.xlabel      | Labels for x-axis                                       | ['|x>', '']  +x and -x                      |
+| b.xlabel      | Labels for x-axis                                       | ``['|x>', '']`` +x and -x                   |
 +---------------+---------------------------------------------------------+---------------------------------------------+
-| b.xlpos       | Position of x-axis labels                               | `[1.07,-1.07]`                              |
+| b.xlpos       | Position of x-axis labels                               | ``[1.07, -1.07]``                           |
 +---------------+---------------------------------------------------------+---------------------------------------------+
-| b.ylabel      | Labels for y-axis                                       | `['$y$','']` +y and -y                      |
+| b.ylabel      | Labels for y-axis                                       | ``['$y$', '']`` +y and -y                   |
 +---------------+---------------------------------------------------------+---------------------------------------------+
-| b.ylpos       | Position of y-axis labels                               | `[1.07,-1.07]`                              |
+| b.ylpos       | Position of y-axis labels                               | ``[1.07, -1.07]``                           |
 +---------------+---------------------------------------------------------+---------------------------------------------+
-| b.zlabel      | Labels for z-axis                                       | `['|0>', '|1>']` +z and -z                  |
+| b.zlabel      | Labels for z-axis                                       | ``['|0>', '|1>']`` +z and -z                |
 +---------------+---------------------------------------------------------+---------------------------------------------+
-| b.zlpos       | Position of z-axis labels                               | `[1.07,-1.07]`                              |
+| b.zlpos       | Position of z-axis labels                               | ``[1.07, -1.07]``                           |
 +---------------+---------------------------------------------------------+---------------------------------------------+
 
 These properties can also be accessed via the print command:
 
 .. doctest::
 
-    >>> b = Bloch()
+    >>> b = qutip.Bloch()
 
     >>> print(b) # doctest: +NORMALIZE_WHITESPACE
     Bloch data:
@@ -477,51 +395,52 @@ Generating Images for Animation
 
 An example of generating images for generating an animation outside of Python is given below::
 
-	import numpy as np
-	b = Bloch()
-	b.vector_color = ['r']
-	b.view = [-40,30]
-	for i in range(len(sx)):
-	    b.clear()
-	    b.add_vectors([np.sin(theta),0,np.cos(theta)])
-	    b.add_points([sx[:i+1],sy[:i+1],sz[:i+1]])
-	    b.save(dirc='temp') #saving images to temp directory in current working directory
+     import numpy as np
+     b = Bloch()
+     b.vector_color = ['r']
+     b.view = [-40, 30]
+     for i in range(len(sx)):
+         b.clear()
+         b.add_vectors([np.sin(theta), 0, np.cos(theta)])
+         b.add_points([sx[:i+1], sy[:i+1], sz[:i+1]])
+         b.save(dirc='temp')  # saving images to temp directory in current working directory
 
 Generating an animation using ffmpeg (for example) is fairly simple::
 
-    ffmpeg -r 20 -b 1800 -i bloch_%01d.png bloch.mp4
+   ffmpeg -r 20 -b 1800 -i bloch_%01d.png bloch.mp4
 
 .. _bloch-animate-decay-direct:
 
 Directly Generating an Animation
 ++++++++++++++++++++++++++++++++
 
-.. important:: Generating animations directly from Matplotlib requires installing either mencoder or ffmpeg.  While either choice works on linux, it is best to choose ffmpeg when running on the Mac.  If using macports just do: ``sudo port install ffmpeg``.
+.. important::
+   Generating animations directly from Matplotlib requires installing either mencoder or ffmpeg.
+   While either choice works on linux, it is best to choose ffmpeg when running on the Mac.
+   If using macports just do: ``sudo port install ffmpeg``.
 
+The code to directly generate an mp4 movie of the Qubit decay is as follows ::
 
-The code to directly generate an mp4 movie of the Qubit decay is as follows::
+   from matplotlib import pyplot, animation
+   from mpl_toolkits.mplot3d import Axes3D
 
-	from pylab import *
-	import matplotlib.animation as animation
-	from mpl_toolkits.mplot3d import Axes3D
+   fig = pyplot.figure()
+   ax = Axes3D(fig,azim=-40,elev=30)
+   sphere = qutip.Bloch(axes=ax)
 
-	fig = figure()
-	ax = Axes3D(fig,azim=-40,elev=30)
-	sphere = Bloch(axes=ax)
+   def animate(i):
+      sphere.clear()
+      sphere.add_vectors([np.sin(theta), 0, np.cos(theta)])
+      sphere.add_points([sx[:i+1], sy[:i+1], sz[:i+1]])
+      sphere.make_sphere()
+      return ax
 
-	def animate(i):
-	    sphere.clear()
-	    sphere.add_vectors([np.sin(theta),0,np.cos(theta)])
-	    sphere.add_points([sx[:i+1],sy[:i+1],sz[:i+1]])
-	    sphere.make_sphere()
-	    return ax
+   def init():
+      sphere.vector_color = ['r']
+      return ax
 
-	def init():
-	    sphere.vector_color = ['r']
-	    return ax
-
-	ani = animation.FuncAnimation(fig, animate, np.arange(len(sx)),
-	                            init_func=init, blit=True, repeat=False)
-	ani.save('bloch_sphere.mp4', fps=20)
+   ani = animation.FuncAnimation(fig, animate, np.arange(len(sx)),
+                                 init_func=init, blit=True, repeat=False)
+   ani.save('bloch_sphere.mp4', fps=20)
 
 The resulting movie may be viewed here: `bloch_decay.mp4 <https://github.com/qutip/qutip-doc/raw/master/figures/bloch_decay.mp4>`_

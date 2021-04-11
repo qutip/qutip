@@ -1,12 +1,17 @@
-from qutip import *
+import numpy as np
+import qutip
 
-b=Bloch()
-xp=[cos(th) for th in linspace(0,2*pi,20)]
-yp=[sin(th) for th in linspace(0,2*pi,20)]
-zp=zeros(20)
-xz=zeros(20)
-yz=[sin(th) for th in linspace(0,pi,20)]
-zz=[cos(th) for th in linspace(0,pi,20)]
-b.add_points([xp,yp,zp])
-b.add_points([xz,yz,zz]) 
+b = qutip.Bloch()
+th = np.linspace(0, 2*np.pi, 20)
+
+xp = np.cos(th)
+yp = np.sin(th)
+zp = np.zeros(20)
+
+xz = np.zeros(20)
+yz = np.sin(th)
+zz = np.cos(th)
+
+b.add_points([xp, yp, zp])
+b.add_points([xz, yz, zz])
 b.show()

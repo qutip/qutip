@@ -7,11 +7,13 @@
 Measurement of Quantum Objects
 ******************************
 
+.. note::
+   New in QuTiP 4.6
 
 .. _measurement-intro:
 
 Introduction
-============
+------------
 
 Measurement is a fundamental part of the standard formulation of quantum
 mechanics and is the process by which classical readings are obtained from

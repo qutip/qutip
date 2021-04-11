@@ -189,10 +189,6 @@ The following example shows how to define a customized gate.
 The key step is to define a
 gate function returning a :class:`qutip.Qobj` and save it in the attribute ``user_gates``.
 
-.. note::
-
-   Available from QuTiP 4.4
-
 .. testcode::
 
       from qutip.qip.circuit import Gate

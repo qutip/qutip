@@ -15,12 +15,14 @@ The goal of this guide is to introduce you to the basic structures and functions
 Organization
 =============
 
-QuTiP is designed to be a general framework for solving quantum mechanics problems such as systems composed of few-level quantum systems and harmonic oscillators. To this end, QuTiP is built from a large (and ever growing) library of functions and classes; from :func:`qutip.states.basis` to :func:`qutip.wigner`.  The general organization of QuTiP, highlighting the important API available to the user, is shown in the :ref:`figure-qutip_org`
+QuTiP is designed to be a general framework for solving quantum mechanics problems such as systems composed of few-level quantum systems and harmonic oscillators. To this end, QuTiP is built from a large (and ever growing) library of functions and classes; from :func:`qutip.states.basis` to :func:`qutip.wigner`.  The general organization of QuTiP, highlighting the important API available to the user, is shown in the :ref:`figure-qutip-org`
 
 
-.. _figure-qutip_org:
+.. _figure-qutip-org:
 
 .. figure:: figures/qutip_tree.png
    :align: center
    :figwidth: 100%
-Tree-diagram of the 361 user accessible functions and classes in QuTiP 4.4. A vector image of the code tree is in :download:`qutip_tree.pdf <doc/qutip_tree.pdf>`.
+
+   Tree-diagram of the 361 user accessible functions and classes in QuTiP 4.4. A vector image of the code tree is in :download:`qutip_tree.pdf <doc/qutip_tree.pdf>`.
+

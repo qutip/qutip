@@ -9,14 +9,14 @@ Operator-level circuit simulation
 
 .. note::
 
-   Available from QuTiP 4.6
+   New in QuTiP 4.6
 
 Run a quantum circuit
 ---------------------
 
 Let's start off by defining a simple circuit which we use to demonstrate a few
-examples of circuit evolution. We take a circuit from
-`OpenQASM 2 <https://github.com/Qiskit/openqasm/blob/OpenQASM2.x/examples/W-state.qasm>`_
+examples of circuit evolution.
+We take `a circuit from OpenQASM 2 <https://github.com/Qiskit/openqasm/blob/OpenQASM2.x/examples/W-state.qasm>`_
 
 .. testcode::
 
@@ -39,7 +39,7 @@ It corresponds to the following circuit:
 
 .. image:: /figures/qip/quantum_circuit_w_state.png
 
-We will add the measurement gates later. This circuit prepares the W-state :math:`\newcommand{\ket}[1]{\left|{#1}\right\rangle} (\ket{001} + \ket{010} + \ket{100})/\sqrt{3}`.
+We will add the measurement gates later. This circuit prepares the W-state :math:`(\ket{001} + \ket{010} + \ket{100})/\sqrt{3}`.
 The simplest way to carry out state evolution through a quantum circuit is
 providing a input state to the :meth:`~qutip.qip.circuit.QubitCircuit.run`
 method.
@@ -142,7 +142,7 @@ the output states.
 The method :meth:`~qutip.qip.Result.get_results` can be used to obtain the
 possible states and probabilities.
 Since the state created by the circuit is the W-state, we observe the states
-:math:`\newcommand{\ket}[1]{\left|{#1}\right\rangle} \ket{001}`,  :math:`\newcommand{\ket}[1]{\left|{#1}\right\rangle} \ket{010}` and :math:`\newcommand{\ket}[1]{\left|{#1}\right\rangle} \ket{100}` with equal probability.
+:math:`\ket{001}`,  :math:`\ket{010}` and :math:`\ket{100}` with equal probability.
 
 
 Circuit simulator
@@ -302,8 +302,8 @@ We are left with a mixed state.
 Import and export quantum circuits
 ----------------------------------
 
-QuTiP supports importation and exportation of quantum circuit in the `OpenQASM 2 <https://github.com/Qiskit/openqasm/tree/OpenQASM2.x>`_ format
-throught the function :func:`~qutip.qip.qasm.read_qasm` and :func:`~qutip.qip.qasm.save_qasm`.
+QuTiP supports importation and exportation of quantum circuit in the `OpenQASM 2 format <https://github.com/Qiskit/openqasm/tree/OpenQASM2.x>`_
+through the functions :func:`~qutip.qip.qasm.read_qasm` and :func:`~qutip.qip.qasm.save_qasm`.
 We demonstrate this using the w-state generation circuit.
 The following code is in OpenQASM format:
 

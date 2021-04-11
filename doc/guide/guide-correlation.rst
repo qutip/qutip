@@ -7,20 +7,6 @@
 Two-time correlation functions
 ******************************
 
-
-.. plot::
-   :include-source: False
-
-   import numpy as np
-
-   from qutip import *
-
-   import pylab as plt
-
-   from warnings import warn
-
-   plt.close("all")
-
 With the QuTiP time-evolution functions (for example :func:`qutip.mesolve` and :func:`qutip.mcsolve`), a state vector or density matrix can be evolved from an initial state at :math:`t_0` to an arbitrary time :math:`t`, :math:`\rho(t)=V(t, t_0)\left\{\rho(t_0)\right\}`, where :math:`V(t, t_0)` is the propagator defined by the equation of motion. The resulting density matrix can then be used to evaluate the expectation values of arbitrary combinations of *same-time* operators.
 
 To calculate *two-time* correlation functions on the form :math:`\left<A(t+\tau)B(t)\right>`, we can use the quantum regression theorem (see, e.g., [Gar03]_) to write
@@ -48,15 +34,15 @@ QuTiP provides a family of functions that assists in the process of calculating 
 +----------------------------------------------+--------------------------------------------------+
 | QuTiP function                               | Correlation function                             |
 +==============================================+==================================================+
-| :func:`qutip.correlation.correlation` or     | :math:`\left<A(t+\tau)B(t)\right>` or            |
+|                                              | :math:`\left<A(t+\tau)B(t)\right>` or            |
 | :func:`qutip.correlation.correlation_2op_2t` | :math:`\left<A(t)B(t+\tau)\right>`.              |
 +----------------------------------------------+--------------------------------------------------+
-| :func:`qutip.correlation.correlation_ss` or  | :math:`\left<A(\tau)B(0)\right>` or              |
+|                                              | :math:`\left<A(\tau)B(0)\right>` or              |
 | :func:`qutip.correlation.correlation_2op_1t` | :math:`\left<A(0)B(\tau)\right>`.                |
 +----------------------------------------------+--------------------------------------------------+
-| :func:`qutip.correlation.correlation_4op_1t` | :math:`\left<A(0)B(\tau)C(\tau)D(0)\right>`.     |
+| :func:`qutip.correlation.correlation_3op_1t` | :math:`\left<A(0)B(\tau)C(0)\right>`.            |
 +----------------------------------------------+--------------------------------------------------+
-| :func:`qutip.correlation.correlation_4op_2t` | :math:`\left<A(t)B(t+\tau)C(t+\tau)D(t)\right>`. |
+| :func:`qutip.correlation.correlation_3op_2t` | :math:`\left<A(t)B(t+\tau)C(t)\right>`.          |
 +----------------------------------------------+--------------------------------------------------+
 
 The most common use-case is to calculate correlation functions of the kind :math:`\left<A(\tau)B(0)\right>`, in which case we use the correlation function solvers that start from the steady state, e.g., the :func:`qutip.correlation.correlation_2op_1t` function. These correlation function solvers return a vector or matrix (in general complex) with the correlations as a function of the delays times.
@@ -72,30 +58,20 @@ The following code demonstrates how to calculate the :math:`\left<x(t)x(0)\right
     :context:
 
     times = np.linspace(0,10.0,200)
-
     a = destroy(10)
-
     x = a.dag() + a
-
     H = a.dag() * a
 
     corr1 = correlation_2op_1t(H, None, times, [np.sqrt(0.5) * a], x, x)
-
     corr2 = correlation_2op_1t(H, None, times, [np.sqrt(1.0) * a], x, x)
-
     corr3 = correlation_2op_1t(H, None, times, [np.sqrt(2.0) * a], x, x)
 
-    figure()
-
-    plot(times, np.real(corr1), times, np.real(corr2), times, np.real(corr3))
-
-    legend(['0.5','1.0','2.0'])
-
-    xlabel(r'Time $t$')
-
-    ylabel(r'Correlation $\left<x(t)x(0)\right>$')
-
-    show()
+    plt.figure()
+    plt.plot(times, np.real(corr1), times, np.real(corr2), times, np.real(corr3))
+    plt.legend(['0.5','1.0','2.0'])
+    plt.xlabel(r'Time $t$')
+    plt.ylabel(r'Correlation $\left<x(t)x(0)\right>$')
+    plt.show()
 
 
 Emission spectrum
@@ -107,7 +83,7 @@ Given a correlation function :math:`\left<A(\tau)B(0)\right>` we can define the 
 
     S(\omega) = \int_{-\infty}^{\infty} \left<A(\tau)B(0)\right> e^{-i\omega\tau} d\tau.
 
-In QuTiP, we can calculate :math:`S(\omega)` using either :func:`qutip.correlation.spectrum_ss`, which first calculates the correlation function using the :func:`qutip.essolve.essolve` solver and then performs the Fourier transform semi-analytically, or we can use the function :func:`qutip.correlation.spectrum_correlation_fft` to numerically calculate the Fourier transform of a given correlation data using FFT.
+In QuTiP, we can calculate :math:`S(\omega)` using either :func:`qutip.correlation.spectrum_ss`, which first calculates the correlation function using one of the time-dependent solvers and then performs the Fourier transform semi-analytically, or we can use the function :func:`qutip.correlation.spectrum_correlation_fft` to numerically calculate the Fourier transform of a given correlation data using FFT.
 
 The following example demonstrates how these two functions can be used to obtain the emission power spectrum.
 
@@ -151,7 +127,8 @@ The second-order optical coherence function, with time-delay :math:`\tau`, is de
 
 For a coherent state :math:`g^{(2)}(\tau) = 1`, for a thermal state :math:`g^{(2)}(\tau=0) = 2` and it decreases as a function of time (bunched photons, they tend to appear together), and for a Fock state with :math:`n` photons :math:`g^{(2)}(\tau = 0) = n(n - 1)/n^2 < 1` and it increases with time (anti-bunched photons, more likely to arrive separated in time).
 
-To calculate this type of correlation function with QuTiP, we can use :func:`qutip.correlation.correlation_4op_1t`, which computes a correlation function on the form :math:`\left<A(0)B(\tau)C(\tau)D(0)\right>` (four operators, one delay-time vector).
+To calculate this type of correlation function with QuTiP, we can use :func:`qutip.correlation.correlation_3op_1t`, which computes a correlation function on the form :math:`\left<A(0)B(\tau)C(0)\right>` (three operators, one delay-time vector).
+We first have to combine the central two operators into one single one as they are evaluated at the same time, e.g. here we do :math:`a^\dagger(\tau)a(\tau) = (a^\dagger a)(\tau)`.
 
 The following code calculates and plots :math:`g^{(2)}(\tau)` as a function of :math:`\tau` for a coherent, thermal and fock state.
 

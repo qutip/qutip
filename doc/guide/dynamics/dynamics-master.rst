@@ -7,15 +7,6 @@
 Lindblad Master Equation Solver
 *********************************
 
-
-.. plot::
-      :include-source: False
-
-      >>> from pylab import *
-      >>> from scipy import *
-      >>> from qutip import *
-      >>> import numpy as np
-
 .. _master-unitary:
 
 Unitary evolution
@@ -35,14 +26,14 @@ where :math:`\Psi` is the wave function, :math:`\hat H` the Hamiltonian, and :ma
 
 where :math:`\left|\psi\right>` is the state vector and :math:`H` is the matrix representation of the Hamiltonian. This matrix equation can, in principle, be solved by diagonalizing the Hamiltonian matrix :math:`H`. In practice, however, it is difficult to perform this diagonalization unless the size of the Hilbert space (dimension of the matrix :math:`H`) is small. Analytically, it is a formidable task to calculate the dynamics for systems with more than two states. If, in addition, we consider dissipation due to the inevitable interaction with a surrounding environment, the computational complexity grows even larger, and we have to resort to numerical calculations in all realistic situations. This illustrates the importance of numerical calculations in describing the dynamics of open quantum systems, and the need for efficient and accessible tools for this task.
 
-The Schrödinger equation, which governs the time-evolution of closed quantum systems, is defined by its Hamiltonian and state vector. In the previous section, :ref:`tensor`, we showed how Hamiltonians and state vectors are constructed in QuTiP. Given a Hamiltonian, we can calculate the unitary (non-dissipative) time-evolution of an arbitrary state vector :math:`\left|\psi_0\right>` (``psi0``) using the QuTiP function :func:`qutip.mesolve`. It evolves the state vector and evaluates the expectation values for a set of operators ``expt_ops`` at the points in time in the list ``times``, using an ordinary differential equation solver. Alternatively, we can use the function :func:`qutip.essolve`, which uses the exponential-series technique to calculate the time evolution of a system. The :func:`qutip.mesolve` and :func:`qutip.essolve` functions take the same arguments and it is therefore easy switch between the two solvers.
+The Schrödinger equation, which governs the time-evolution of closed quantum systems, is defined by its Hamiltonian and state vector. In the previous section, :ref:`tensor`, we showed how Hamiltonians and state vectors are constructed in QuTiP. Given a Hamiltonian, we can calculate the unitary (non-dissipative) time-evolution of an arbitrary state vector :math:`\left|\psi_0\right>` (``psi0``) using the QuTiP function :func:`qutip.mesolve`. It evolves the state vector and evaluates the expectation values for a set of operators ``expt_ops`` at the points in time in the list ``times``, using an ordinary differential equation solver.
 
 For example, the time evolution of a quantum spin-1/2 system with tunneling rate 0.1 that initially is in the up state is calculated, and the  expectation values of the :math:`\sigma_z` operator evaluated, with the following code
 
 .. plot::
     :context:
 
-    >>> H = 2 * np.pi * 0.1 * sigmax()
+    >>> H = 2*np.pi * 0.1 * sigmax()
     >>> psi0 = basis(2, 0)
     >>> times = np.linspace(0.0, 10.0, 20)
     >>> result = sesolve(H, psi0, times, [sigmaz()])
@@ -66,24 +57,23 @@ The function returns an instance of :class:`qutip.solver.Result`, as described i
              8.37167094e-01,  3.24700624e-01, -3.24698160e-01, -8.37165632e-01,
             -9.96584633e-01, -7.35725221e-01, -1.64596567e-01,  4.75945525e-01,
              9.15772479e-01,  9.69400830e-01,  6.14214701e-01,  2.77159958e-06])]
-​
 
 The resulting list of expectation values can easily be visualized using matplotlib's plotting functions:
 
 .. plot::
     :context:
 
-    >>> H = 2 * np.pi * 0.1 * sigmax()
+    >>> H = 2*np.pi * 0.1 * sigmax()
     >>> psi0 = basis(2, 0)
     >>> times = np.linspace(0.0, 10.0, 100)
     >>> result = sesolve(H, psi0, times, [sigmaz(), sigmay()])
-    >>> fig, ax = subplots()
+    >>> fig, ax = plt.subplots()
     >>> ax.plot(result.times, result.expect[0]) # doctest: +SKIP
     >>> ax.plot(result.times, result.expect[1]) # doctest: +SKIP
     >>> ax.set_xlabel('Time') # doctest: +SKIP
     >>> ax.set_ylabel('Expectation values') # doctest: +SKIP
     >>> ax.legend(("Sigma-Z", "Sigma-Y")) # doctest: +SKIP
-    >>> show() # doctest: +SKIP
+    >>> plt.show() # doctest: +SKIP
 
 If an empty list of operators is passed as fifth parameter, the :func:`qutip.mesolve` function returns a :class:`qutip.solver.Result` instance that contains a list of state vectors for the times specified in ``times``
 
@@ -183,13 +173,13 @@ the previously empty list in the fourth parameter to the :func:`qutip.mesolve` f
 
     >>> times = np.linspace(0.0, 10.0, 100)
     >>> result = mesolve(H, psi0, times, [np.sqrt(0.05) * sigmax()], [sigmaz(), sigmay()])
-    >>> fig, ax = subplots()
+    >>> fig, ax = plt.subplots()
     >>> ax.plot(times, result.expect[0]) # doctest: +SKIP
     >>> ax.plot(times, result.expect[1]) # doctest: +SKIP
     >>> ax.set_xlabel('Time') # doctest: +SKIP
     >>> ax.set_ylabel('Expectation values') # doctest: +SKIP
     >>> ax.legend(("Sigma-Z", "Sigma-Y"))  # doctest: +SKIP
-    >>> show() # doctest: +SKIP
+    >>> plt.show() # doctest: +SKIP
 
 
 Here, 0.05 is the rate and the operator :math:`\sigma_x` (:func:`qutip.operators.sigmax`) describes the dissipation
@@ -206,10 +196,10 @@ Now a slightly more complex example: Consider a two-level atom coupled to a leak
     >>> sm = tensor(destroy(2), qeye(10))
     >>> H = 2 * np.pi * a.dag() * a + 2 * np.pi * sm.dag() * sm + 2 * np.pi * 0.25 * (sm * a.dag() + sm.dag() * a)
     >>> result = mesolve(H, psi0, times, [np.sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
-    >>> figure() # doctest: +SKIP
-    >>> plot(times, result.expect[0]) # doctest: +SKIP
-    >>> plot(times, result.expect[1]) # doctest: +SKIP
-    >>> xlabel('Time') # doctest: +SKIP
-    >>> ylabel('Expectation values') # doctest: +SKIP
-    >>> legend(("cavity photon number", "atom excitation probability")) # doctest: +SKIP
-    >>> show() # doctest: +SKIP
+    >>> plt.figure() # doctest: +SKIP
+    >>> plt.plot(times, result.expect[0]) # doctest: +SKIP
+    >>> plt.plot(times, result.expect[1]) # doctest: +SKIP
+    >>> plt.xlabel('Time') # doctest: +SKIP
+    >>> plt.ylabel('Expectation values') # doctest: +SKIP
+    >>> plt.legend(("cavity photon number", "atom excitation probability")) # doctest: +SKIP
+    >>> plt.show() # doctest: +SKIP

@@ -107,6 +107,8 @@ QuTiP affilliated packages
 Family packages
 ---------------
 
+.. _qmain:
+
 qutip main
 ^^^^^^^^^^
 
@@ -227,9 +229,9 @@ qutip main reorganization
 :tag: qmain-reorg
 :status: development [pretty much] complete
 :admin lead: `Eric <https://github.com/Ericgig>`_
-:main dev: `Jake Lishman https://github.com/jakelishman>`_
+:main dev: `Jake Lishman <https://github.com/jakelishman>`_
 
-Reorganise qutip main components to the structure :ref:`described above <qutip-main>`.
+Reorganise qutip main components to the structure :ref:`described above <qmain>`.
 
 .. _qmain-docs:
 

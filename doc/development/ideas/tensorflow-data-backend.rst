@@ -7,7 +7,7 @@ TensorFlow Data Backend
     :depth: 3
 
 QuTiP's data layer provides the mathematical operations needed to work with
-quantum states and operators, i.e. `Qobj`s, inside QuTiP. As part of Google
+quantum states and operators, i.e. ``Qobj``, inside QuTiP. As part of Google
 Summer of Code 2020, the data layer was rewritten to allow new backends to
 be added more easily and for different backends to interoperate with each
 other. Backends using in-memory spares and dense matrices already exist,
@@ -41,10 +41,10 @@ that we will not find a reasonable way to achieve the desired performance.
 Expected outcomes
 =================
 
-* Add a `qutip.core.data.tensorflow` data type.
-* Implement specialisations for some important operations (e.g. `add`,
-  `mul`, `matmul`, `eigen`, etc).
-* Write a small benchmark to show how `Qobj` operations scale on the new
+* Add a ``qutip.core.data.tensorflow`` data type.
+* Implement specialisations for some important operations (e.g. ``add``,
+  ``mul``, ``matmul``, ``eigen``, etc).
+* Write a small benchmark to show how ``Qobj`` operations scale on the new
   backend in comparison to the existing backends. Run the benchmark both
   with and without using a GPU.
 * Implement enough for a solver to run on top of the new TensorFlow data

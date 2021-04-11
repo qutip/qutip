@@ -1,11 +1,13 @@
 import numpy as np
-import pylab as plt
-from qutip import *
+import matplotlib.pyplot as plt
+
+import qutip
+
 # Define paramters
 N = 20  # number of basis states to consider
-a = destroy(N)
+a = qutip.destroy(N)
 H = a.dag() * a
-psi0 = basis(N, 10)  # initial state
+psi0 = qutip.basis(N, 10)  # initial state
 kappa = 0.1  # coupling to oscillator
 
 # collapse operators
@@ -19,15 +21,15 @@ if rate > 0.0:
     c_op_list.append(np.sqrt(rate) * a.dag())  # excitation operators
 
 # find steady-state solution
-final_state = steadystate(H, c_op_list)
+final_state = qutip.steadystate(H, c_op_list)
 # find expectation value for particle number in steady state
-fexpt = expect(a.dag() * a, final_state)
+fexpt = qutip.expect(a.dag() * a, final_state)
 
 tlist = np.linspace(0, 50, 100)
 # monte-carlo
-mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=100)
+mcdata = qutip.mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=100)
 # master eq.
-medata = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a])
+medata = qutip.mesolve(H, psi0, tlist, c_op_list, [a.dag() * a])
 
 plt.plot(tlist, mcdata.expect[0], tlist, medata.expect[0], lw=2)
 # plot steady-state expt. value as horizontal line (should be = 2)
@@ -36,6 +38,8 @@ plt.ylim([0, 10])
 plt.xlabel('Time', fontsize=14)
 plt.ylabel('Number of excitations', fontsize=14)
 plt.legend(('Monte-Carlo', 'Master Equation', 'Steady State'))
-plt.title('Decay of Fock state $\left|10\\rangle\\right.$' +
-      ' in a thermal environment with $\langle n\\rangle=2$')
+plt.title(
+    r'Decay of Fock state $\left|10\rangle\right.$'
+    r' in a thermal environment with $\langle n\rangle=2$'
+)
 plt.show()

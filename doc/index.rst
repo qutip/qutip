@@ -15,10 +15,8 @@ QuTiP: Quantum Toolbox in Python
    frontmatter.rst
    installation.rst
    guide/guide.rst
-   gallery/qutip_examples/index.rst
+   gallery/build/index.rst
    apidoc/apidoc.rst
-
-   :maxdepth: 1
 
    changelog.rst
    contributors.rst

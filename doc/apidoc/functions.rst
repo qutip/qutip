@@ -11,14 +11,14 @@ Manipulation and Creation of States and Operators
 =================================================
 
 Quantum States
-----------------
+--------------
 
 .. automodule:: qutip.states
-    :members: basis, bell_state, bra, coherent, coherent_dm, enr_state_dictionaries, enr_thermal_dm, enr_fock, fock, fock_dm, ghz_state, maximally_mixed_dm, ket, ket2dm, phase_basis, projection, qutrit_basis, singlet_state, spin_state, spin_coherent, state_number_enumerate, state_number_index, state_index_number, state_number_qobj, thermal_dm, triplet_states. w_state, zero_ket
+    :members: basis, bell_state, bra, coherent, coherent_dm, enr_state_dictionaries, enr_thermal_dm, enr_fock, fock, fock_dm, ghz_state, maximally_mixed_dm, ket, ket2dm, phase_basis, projection, qutrit_basis, singlet_state, spin_state, spin_coherent, state_number_enumerate, state_number_index, state_index_number, state_number_qobj, thermal_dm, triplet_states, w_state, zero_ket
 
 
 Quantum Operators
----------------------
+-----------------
 
 .. automodule:: qutip.operators
     :members: charge, commutator, create, destroy, displace, enr_destroy, enr_identity, jmat, num, qeye, identity, momentum, phase, position, qdiags, qutrit_ops, qzero, sigmam, sigmap, sigmax, sigmay, sigmaz, spin_Jx, spin_Jy, spin_Jz, spin_Jm, spin_Jp, squeeze, squeezing, tunneling
@@ -27,11 +27,10 @@ Quantum Operators
 .. _functions-rand:
 
 Quantum Objects
----------------------
+---------------
 
 .. automodule:: qutip.qobj
-    :members: qobj_list_evaluate, ptrace, dag, isequal, issuper, isoper, isoperket, isoperbra, isket, isbra,
-    isherm, shape, dims
+    :members: qobj_list_evaluate, ptrace, dag, isequal, issuper, isoper, isoperket, isoperbra, isket, isbra, isherm, shape, dims
 
 
 Random Operators and States
@@ -42,7 +41,7 @@ Random Operators and States
 
 
 Three-Level Atoms
--------------------
+-----------------
 
 .. automodule:: qutip.three_level_atom
     :members: three_level_basis, three_level_ops
@@ -63,7 +62,7 @@ Superoperator Representations
     :undoc-members:
 
 Operators and Superoperator Dimensions
------------------------------
+--------------------------------------
 
 .. automodule:: qutip.dimensions
     :members: is_scalar, is_vector, is_vectorized_oper, type_from_dims, flatten, deep_remove, unflatten, collapse_dims_oper, collapse_dims_super, enumerate_flat, deep_map, dims_to_tensor_perm, dims_to_tensor_shape, dims_idxs_to_tensor_idxs
@@ -73,14 +72,14 @@ Functions acting on states and operators
 ========================================
 
 Expectation Values
---------------------
+------------------
 
 .. automodule:: qutip.expect
     :members: expect, variance
 
 
 Tensor
--------
+------
 
 .. automodule:: qutip.tensor
     :members: tensor, super_tensor, composite, tensor_contract
@@ -111,7 +110,7 @@ Density Matrix Metrics
 
 
 Continuous Variables
--------------------
+--------------------
 
 .. automodule:: qutip.continuous_variables
     :members: correlation_matrix, covariance_matrix, correlation_matrix_field, correlation_matrix_quadrature, wigner_covariance_matrix, logarithmic_negativity
@@ -137,13 +136,13 @@ Schrödinger Equation
     :members: sesolve
 
 Master Equation
------------------
+---------------
 
 .. automodule:: qutip.mesolve
     :members: mesolve
 
 Monte Carlo Evolution
------------------------
+---------------------
 
 .. automodule:: qutip.mcsolve
     :members: mcsolve
@@ -182,7 +181,7 @@ Stochastic Schrödinger Equation and Master Equation
 
 
 Correlation Functions
------------------------
+---------------------
 
 .. automodule:: qutip.correlation
     :members: correlation, correlation_ss, correlation_2op_1t, correlation_2op_2t, correlation_3op_1t, correlation_3op_2t, correlation_4op_1t, correlation_4op_2t, spectrum, spectrum_ss, spectrum_pi, spectrum_correlation_fft, coherence_function_g1, coherence_function_g2
@@ -217,23 +216,23 @@ Scattering in Quantum Optical Systems
     :undoc-members:
 
 Permutational Invariance
--------------------------------------
+------------------------
 
 .. automodule:: qutip.piqs
-    :members: [num_dicke_states, num_dicke_ladders, num_tls, isdiagonal, dicke_blocks, dicke_blocks_full, dicke_function_trace, purity_dicke, entropy_vn_dicke, state_degeneracy, m_degeneracy, energy_degeneracy, ap, am, spin_algebra, jspin, collapse_uncoupled, dicke_basis, dicke, excited, superradiant, css, ghz, ground, identity_uncoupled, block_matrix, tau_column,
+    :members: num_dicke_states, num_dicke_ladders, num_tls, isdiagonal, dicke_blocks, dicke_blocks_full, dicke_function_trace, purity_dicke, entropy_vn_dicke, state_degeneracy, m_degeneracy, energy_degeneracy, ap, am, spin_algebra, jspin, collapse_uncoupled, dicke_basis, dicke, excited, superradiant, css, ghz, ground, identity_uncoupled, block_matrix, tau_column,
 
 
 Lattice
-===============
+=======
 
 Lattice Properties
--------------------------------------
+------------------
 .. automodule:: qutip.lattice
     :members: cell_structures
 
 
 Topology
--------------------------------------
+--------
 .. automodule:: qutip.topology
     :members: berry_curvature, plot_berry_curvature
 
@@ -242,7 +241,7 @@ Visualization
 ===============
 
 Pseudoprobability Functions
-----------------------------
+---------------------------
 
 .. automodule:: qutip.wigner
     :members: qfunc, spin_q_function, spin_wigner, wigner
@@ -252,11 +251,14 @@ Graphs and Visualization
 ------------------------
 
 .. automodule:: qutip.visualization
-    :members: hinton, matrix_histogram, matrix_histogram_complex, plot_energy_levels, wigner_cmap, plot_fock_distribution, plot_wigner_fock_distribution, plot_wigner, sphereplot, plot_schmidt, plot_qubism, plot_expectation_values, plot_spin_distribution_2d, plot_spin_distribution_3d, plot_wigner_sphere, sphereplot
+    :members: hinton, matrix_histogram, matrix_histogram_complex, plot_energy_levels, plot_fock_distribution, plot_wigner_fock_distribution, plot_wigner, sphereplot, plot_schmidt, plot_qubism, plot_expectation_values, plot_spin_distribution_2d, plot_spin_distribution_3d, plot_wigner_sphere
     :undoc-members:
 
 .. automodule:: qutip.orbital
     :members: orbital
+
+.. automodule:: qutip.matplotlib_utilities
+   :members: wigner_cmap, complex_phase_cmap
 
 
 Quantum Process Tomography
@@ -318,12 +320,12 @@ Optimal control
     :members: create_pulse_gen
 
 Utility Functions
-==================
+=================
 
 .. _functions-graph:
 
 Graph Theory Routines
-----------------------
+---------------------
 
 .. automodule:: qutip.graph
     :members: breadth_first_search, graph_degree, reverse_cuthill_mckee, maximum_bipartite_matching, weighted_bipartite_matching
@@ -332,7 +334,7 @@ Graph Theory Routines
 .. _functions-utilities:
 
 Utility Functions
-------------------
+-----------------
 
 .. automodule:: qutip.utilities
     :members: n_thermal, linspace_with, clebsch, convert_unit
@@ -376,7 +378,7 @@ IPython Notebook Tools
 .. _functions-misc:
 
 Miscellaneous
---------------
+-------------
 
 .. automodule:: qutip
     :members: about, simdiag

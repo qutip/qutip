@@ -275,10 +275,6 @@ where the resulting `output` is an instance of the class :class:`qutip.solver.Re
 Time-dependent Bloch-Redfield Dynamics
 =======================================
 
-.. note::
-
-    New in QuTiP 4.2.
-
 .. warning::
 
     It takes ~3-5 seconds (~30 if using Visual Studio) to compile a time-dependent Bloch-Redfield problem.  Therefore,

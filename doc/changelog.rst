@@ -7,8 +7,8 @@
 Change Log
 **********
 
-Version 4.6.0 (April 10, 2021)
-+++++++++++++++++++++++++++++++++
+Version 4.6.0 (April 11, 2021)
+++++++++++++++++++++++++++++++
 
 This release brings improvements for qubit circuits, including a pulse scheduler, measurement statistics, reading/writing OpenQASM and optimisations in the circuit simulations.
 
@@ -133,7 +133,7 @@ Developer Changes
 
 
 Version 4.5.0 (January 31, 2020)
-++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++
 
 Improvements
 ------------
@@ -205,7 +205,7 @@ Bug Fixes
 
 
 Version 4.4.1 (August 29, 2019)
-++++++++++++++++++++++++++++++
++++++++++++++++++++++++++++++++
 
 Improvements
 ------------
@@ -242,7 +242,7 @@ Bug Fixes
 
 
 Version 4.4.0 (July 03, 2019)
-++++++++++++++++++++++++++++++
++++++++++++++++++++++++++++++
 
 Improvements
 ------------
@@ -275,7 +275,7 @@ Bug Fixes
 
 
 Version 4.3.0 (July 14, 2018)
-++++++++++++++++++++++++++++++
++++++++++++++++++++++++++++++
 
 Improvements
 ------------
@@ -334,7 +334,7 @@ Bug Fixes
 
 
 Version 4.2.0 (July 28, 2017)
-++++++++++++++++++++++++++++++
++++++++++++++++++++++++++++++
 
 Improvements
 ------------
@@ -354,7 +354,7 @@ Improvements
 - Codegen now makes sure that division is done in C, as opposed to Python.
 
 - Can now set different controls for a each timeslot in quantum optimization.
-This allows time-varying controls to be used in pulse optimisation.
+  This allows time-varying controls to be used in pulse optimisation.
 
 
 Bug Fixes
@@ -372,8 +372,7 @@ Bug Fixes
 
 - Liouvillian superoperators were hard setting isherm=True by default.
 
-- Fixed an issue with the solver safety checks when inputing a list
-with Python functions as time-dependence.
+- Fixed an issue with the solver safety checks when inputing a list with Python functions as time-dependence.
 
 - Fixed non-int issue in Wigner_cmap.
 
@@ -574,11 +573,11 @@ Bug Fixes
 
 
 
-Version 3.1.0 (January 1, 2015):
-++++++++++++++++++++++++++++++++
+Version 3.1.0 (January 1, 2015)
++++++++++++++++++++++++++++++++
 
 New Features
--------------
+------------
 
 - **MAJOR FEATURE**: New module for quantum control (qutip.control).
 - **NAMESPACE CHANGE**: QuTiP no longer exports symbols from NumPy and matplotlib, so those modules must now be explicitly imported when required.
@@ -611,8 +610,8 @@ Bug Fixes
 - Fixed bug in `gate_expand_3toN`.
 - Fixed bug for time-dependent problem (list string format) with multiple terms in coefficient to an operator.
 
-Version 3.0.1 (Aug 5, 2014):
-++++++++++++++++++++++++++++
+Version 3.0.1 (Aug 5, 2014)
++++++++++++++++++++++++++++
 
 Bug Fixes
 ---------
@@ -627,11 +626,11 @@ Bug Fixes
 -
 
 
-Version 3.0.0 (July 17, 2014):
-++++++++++++++++++++++++++++++
+Version 3.0.0 (July 17, 2014)
++++++++++++++++++++++++++++++
 
 New Features
--------------
+------------
 
 - New module `qutip.stochastic` with stochastic master equation and stochastic
   Schrödinger equation solvers.
@@ -707,7 +706,7 @@ New Features
   master equations with mean field terms.
 
 Improvements
--------------
+------------
 
 - Restructured and optimized implementation of Qobj, which now has
   significantly lower memory footprint due to avoiding excessive copying of
@@ -736,12 +735,12 @@ Improvements
 
 - QuTiP is now using continuous integration tests (TravisCI).
 
-Version 2.2.0 (March 01, 2013):
-++++++++++++++++++++++++++++++++++++++++++++++
+Version 2.2.0 (March 01, 2013)
+++++++++++++++++++++++++++++++
 
 
 New Features
--------------
+------------
 
 - **Added Support for Windows**
 
@@ -770,20 +769,20 @@ New Features
 - More graph styles to the visualization module.
 
 
-Bug Fixes:
-----------
+Bug Fixes
+---------
 
 - Function based time-dependent Hamiltonians now keep the correct phase.
 
 - mcsolve no longer prints to the command line if ntraj=1.
 
 
-Version 2.1.0 (October 05, 2012):
-++++++++++++++++++++++++++++++++++++++++++++++
+Version 2.1.0 (October 05, 2012)
+++++++++++++++++++++++++++++++++
 
 
 New Features
--------------
+------------
 
 - New method for generating Wigner functions based on Laguerre polynomials.
 
@@ -800,8 +799,8 @@ New Features
 - The propagator function can now take a list of times as argument, and returns a list of corresponding propagators.
 
 
-Bug Fixes:
-----------
+Bug Fixes
+---------
 
 - mesolver now correctly uses the user defined rhs_filename in Odeoptions().
 
@@ -832,13 +831,13 @@ Bug Fixes:
 - Text for progress bar on Linux systems is no longer cutoff.
 
 
-Version 2.0.0 (June 01, 2012):
-+++++++++++++++++++++++++++++++++++++++++
+Version 2.0.0 (June 01, 2012)
++++++++++++++++++++++++++++++
 
 The second version of QuTiP has seen many improvements in the performance of the original code base, as well as the addition of several new routines supporting a wide range of functionality.  Some of the highlights of this release include:
 
 New Features
--------------
+------------
 
 - QuTiP now includes solvers for both Floquet and Bloch-Redfield master equations.
 
@@ -885,11 +884,11 @@ New Features
 - Demos window now lets you copy and paste code from each example.
 
 
-Version 1.1.4 (May 28, 2012):
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Version 1.1.4 (May 28, 2012)
+++++++++++++++++++++++++++++
 
-Bug Fixes:
-----------
+Bug Fixes
+---------
 
 - Fixed bug pointed out by Brendan Abolins.
 
@@ -898,16 +897,16 @@ Bug Fixes:
 - Updated factorial import for scipy version 0.10+
 
 
-Version 1.1.3 (November 21, 2011):
-+++++++++++++++++++++++++++++++++++++++++++++
+Version 1.1.3 (November 21, 2011)
++++++++++++++++++++++++++++++++++
 
-New Functions:
---------------
+New Functions
+-------------
 
 - Allow custom naming of Bloch sphere.
 
-Bug Fixes:
-----------
+Bug Fixes
+---------
 - Fixed text alignment issues in AboutBox.
 
 - Added fix for SciPy V>0.10 where factorial was moved to scipy.misc module.
@@ -924,7 +923,7 @@ Bug Fixes:
 
 
 Version 1.1.2 (October 27, 2011)
-+++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++
 
 Bug Fixes
 ---------
@@ -933,12 +932,12 @@ Bug Fixes
 
 
 Version 1.1.1 (October 25, 2011)
-+++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++
 
 **THIS POINT-RELEASE INCLUDES VASTLY IMPROVED TIME-INDEPENDENT MCSOLVE AND ODESOLVE PERFORMANCE**
 
 New Functions
----------------
+-------------
 
 - Added linear entropy function.
 
@@ -957,12 +956,12 @@ Bug Fixes
 
 
 Version 1.1.0 (October 04, 2011)
-+++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++
 
 **THIS RELEASE NOW REQUIRES THE GCC COMPILER TO BE INSTALLED**
 
 New Functions
----------------
+-------------
 
 - tidyup function to remove small elements from a Qobj.
 
@@ -999,6 +998,6 @@ Bug Fixes
 
 
 Version 1.0.0 (July 29, 2011)
-+++++++++++++++++++++++++++++++++++++++++
++++++++++++++++++++++++++++++
 
 - **Initial release.**

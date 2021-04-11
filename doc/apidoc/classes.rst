@@ -193,10 +193,6 @@ Quantum information processing
     :members:
     :inherited-members:
 
-.. autoclass:: qutip.qip.noise.UserNoise
-    :members:
-    :inherited-members:
-
 .. autoclass:: qutip.qip.pulse.Pulse
     :members:
 

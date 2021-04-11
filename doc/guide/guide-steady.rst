@@ -7,8 +7,6 @@
 Solving for Steady-State Solutions
 *************************************
 
-.. important:: Updated in QuTiP 3.2.
-
 .. _steady-intro:
 
 Introduction

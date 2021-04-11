@@ -3,17 +3,15 @@
 
 .. _user_guide.rst:
 
-*********************
-Making the User Guide
-*********************
+************************************
+Working with the QuTiP Documentation
+************************************
 
 
 The user guide provides an overview of QuTiP's functionality.
-The guide is composed of individual reStructuredText (**.rst**)
-files which each get rendered as a webpage.
+The guide is composed of individual reStructuredText (``.rst``) files which each get rendered as a webpage.
 Each page typically tackles one area of functionality.
-To learn more about how to write **.rst** files,
-it is useful to follow the `sphinx guide <https://www.sphinx-doc.org/en/master/usage/index.html>`_.
+To learn more about how to write ``.rst`` files, it is useful to follow the `sphinx guide <https://www.sphinx-doc.org/en/master/usage/index.html>`_.
 
 The documentation build also utilizes a number of
 `Sphinx Extensions <https://www.sphinx-doc.org/en/master/usage/extensions/index.html>`_
@@ -29,23 +27,19 @@ Additional extensions can be configured in the `conf.py <https://github.com/quti
 Directives
 ==========
 
-There are two Sphinx directives that can be used to write code examples
-in the user guide:
+There are two Sphinx directives that can be used to write code examples in the user guide:
 
 - `Doctest <https://www.sphinx-doc.org/en/master/usage/extensions/doctest.html>`_
 - `Plot <https://matplotlib.org/3.1.1/devel/plot_directive.html>`_
 
-For a more comprehensive account of the usage of each directive, please refer to
-their individual pages. Here we outline some general guidelines on how to these
-directives while making a user guide.
+For a more comprehensive account of the usage of each directive, please refer to their individual pages. Here we outline some general guidelines on how to these directives while making a user guide.
 
 Doctest
-*******
+-------
 
+The doctest directive enables tests on interactive code examples.
+The simplest way to do this is by specifying a prompt along with its respective output: ::
 
-The doctest directive enables tests on interactive code examples. The simplest way
-to do this is by specifying a prompt along with it's respective output:
-::
     .. doctest::
 
         >>> a = 2
@@ -61,42 +55,39 @@ This is rendered in the documentation as follows:
     2
 
 
-While specifying code examples under the **.. doctest::** directive,
-either all statements must be specified by the **>>>** prompt or without it. For
-every prompt, any potential corresponding output must be specified immediately
-after it. This directive is ideally used when there are a number of examples that
-need to be checked in quick succession.
+While specifying code examples under the ``.. doctest::`` directive, either all statements must be specified by the ``>>>`` prompt or without it.
+For every prompt, any potential corresponding output must be specified immediately after it.
+This directive is ideally used when there are a number of examples that need to be checked in quick succession.
 
-A different way to specify code examples (and test them) is using the associated
-**.. testcode::** directive which is effectively a code block:
-::
+A different way to specify code examples (and test them) is using the associated ``.. testcode::`` directive which is effectively a code block: ::
+
     .. testcode::
 
         a = 2
         print(a)
 
-followed by  it's results. The result can be specified with the
-**.. testoutput::** block:
-::
+followed by its results.
+The result can be specified with the ``.. testoutput::`` block: ::
+
     .. testoutput::
 
         2
 
-The advantage of the **testcode** directive is that it is a lot simpler to
+The advantage of the ``testcode`` directive is that it is a lot simpler to
 specify and amenable to copying the code to clipboard. Usually, tests are
 more easily specified with this directive as the input and output are
 specified in different blocks. The rendering is neater too.
 
 .. note::
-    The **doctest** and **testcode** directives should not be assumed to
+    The ``doctest`` and ``testcode`` directives should not be assumed to
     have the same namespace.
+
+**Output:**
 
 .. testcode::
 
     a = 2
     print(a)
-
-**Output:**
 
 .. testoutput::
 
@@ -104,40 +95,39 @@ specified in different blocks. The rendering is neater too.
 
 A few notes on using the doctest extension:
 
-- By default, each **testcode** and **doctest** block is run in a fresh namespace.
+- By default, each ``testcode`` and ``doctest`` block is run in a fresh namespace.
   To share a common namespace, we can specify a common group across the blocks
-  (within a single **.rst** file). For example,
-  ::
+  (within a single ``.rst`` file). For example, ::
+
         .. doctest:: [group_name]
 
           >>> a = 2
 
-        can be followed by some explanation followed by another code block
-        sharing the same namespace
+  can be followed by some explanation followed by another code block
+  sharing the same namespace ::
 
         .. doctest:: [group_name]
 
           >>> print(a)
           2
 
+- To only print the code blocks (or the output), use the option ``+SKIP`` to
+  specify the block without the code being tested when running ``make doctest``.
 
-- To only print the code blocks (or the output), use the option **+SKIP** to
-  specify the block without the code being tested when running **make doctest**.
-
-- To check the result of a **Qobj** output, it is useful to make sure that
+- To check the result of a ``Qobj`` output, it is useful to make sure that
   spacing irregularities between the expected and actual output are ignored.
-  For that, we can use the option **+NORMALIZE_WHITESPACE**.
+  For that, we can use the option ``+NORMALIZE_WHITESPACE``.
 
 Plot
-*******
+----
 
 Since the doctest directive cannot render matplotlib figures, we use Matplotlib's
 `Plot <https://matplotlib.org/3.1.1/devel/plot_directive.html>`_
-directive when rendering to **latex** or **html**.
+directive when rendering to LaTeX or HTML.
 
 The plot directive can also be used in the doctest format. In this case,
 when running doctests (which is enabled by specifying all statements with the
-**>>>** prompts), tests also include those specified under the plot directive.
+``>>>`` prompts), tests also include those specified under the plot directive.
 
 **Example:**
 ::
@@ -160,7 +150,7 @@ when running doctests (which is enabled by specifying all statements with the
       >>> plt.plot(x, np.sin(x))
       [...]
 
-Note the use of the **NORMALIZE_WHITESPACE** option to ensure that the
+Note the use of the ``NORMALIZE_WHITESPACE`` option to ensure that the
 multiline output matches.
 
 **Render:**
@@ -179,19 +169,19 @@ multiline output matches.
 
 A few notes on using the plot directive:
 
-- A useful argument to specify in plot blocks is that of **context** which ensures
+- A useful argument to specify in plot blocks is that of ``context`` which ensures
   that the code is being run in the namespace of the previous plot block within the
   same file.
 
-- By default, each rendered figure in one plot block (when using **:context:**)
+- By default, each rendered figure in one plot block (when using ``:context:``)
   is carried over to the next block.
 
-- When the **context** argument is specified with the **reset** option
-  as **:context: reset**, the namespace is reset to a new one and all figures are
+- When the ``context`` argument is specified with the ``reset`` option
+  as ``:context: reset``, the namespace is reset to a new one and all figures are
   erased.
 
-- When the **context** argument is specified with the **close-figs** option
-  as **:context: reset**, the namespace is reset to a new one and all figures are
+- When the ``context`` argument is specified with the ``close-figs`` option
+  as ``:context: reset``, the namespace is reset to a new one and all figures are
   erased.
 
 
