@@ -102,32 +102,40 @@ class OptPulseProcessor(Processor):
 
         Examples
         --------
-        # Same parameter for all the gates
-        qc = QubitCircuit(N=1)
-        qc.add_gate("SNOT", 0)
 
-        num_tslots = 10
-        evo_time = 10
-        processor = OptPulseProcessor(N=1, drift=sigmaz(), ctrls=[sigmax()])
-        # num_tslots and evo_time are two keyword arguments
-        tlist, coeffs = processor.load_circuit(
-            qc, num_tslots=num_tslots, evo_time=evo_time)
+        Same parameter for all the gates:
 
-        # Different parameters for different gates
-        qc = QubitCircuit(N=2)
-        qc.add_gate("SNOT", 0)
-        qc.add_gate("SWAP", targets=[0, 1])
-        qc.add_gate('CNOT', controls=1, targets=[0])
+        .. code-block:: python
 
-        processor = OptPulseProcessor(N=2, drift=tensor([sigmaz()]*2))
-        processor.add_control(sigmax(), cyclic_permutation=True)
-        processor.add_control(sigmay(), cyclic_permutation=True)
-        processor.add_control(tensor([sigmay(), sigmay()]))
-        setting_args = {"SNOT": {"num_tslots": 10, "evo_time": 1},
-                        "SWAP": {"num_tslots": 30, "evo_time": 3},
-                        "CNOT": {"num_tslots": 30, "evo_time": 3}}
-        tlist, coeffs = processor.load_circuit(qc, setting_args=setting_args,
-                                               merge_gates=False)
+            qc = QubitCircuit(N=1)
+            qc.add_gate("SNOT", 0)
+            num_tslots = 10
+            evo_time = 10
+            processor = OptPulseProcessor(N=1, drift=sigmaz(),
+                                          ctrls=[sigmax()])
+            # num_tslots and evo_time are two keyword arguments
+            tlist, coeffs = processor.load_circuit(
+                qc, num_tslots=num_tslots, evo_time=evo_time)
+
+        Different parameters for different gates:
+
+        .. code-block:: python
+
+            qc = QubitCircuit(N=2)
+            qc.add_gate("SNOT", 0)
+            qc.add_gate("SWAP", targets=[0, 1])
+            qc.add_gate('CNOT', controls=1, targets=[0])
+
+            processor = OptPulseProcessor(N=2, drift=tensor([sigmaz()]*2))
+            processor.add_control(sigmax(), cyclic_permutation=True)
+            processor.add_control(sigmay(), cyclic_permutation=True)
+            processor.add_control(tensor([sigmay(), sigmay()]))
+            setting_args = {"SNOT": {"num_tslots": 10, "evo_time": 1},
+                            "SWAP": {"num_tslots": 30, "evo_time": 3},
+                            "CNOT": {"num_tslots": 30, "evo_time": 3}}
+            tlist, coeffs = processor.load_circuit(qc,
+                                                   setting_args=setting_args,
+                                                   merge_gates=False)
 
         Parameters
         ----------
@@ -149,10 +157,11 @@ class OptPulseProcessor(Processor):
             It is a dictionary containing keyword arguments
             for different gates.
 
-            E.g:
-            setting_args = {"SNOT": {"num_tslots": 10, "evo_time": 1},
-                            "SWAP": {"num_tslots": 30, "evo_time": 3},
-                            "CNOT": {"num_tslots": 30, "evo_time": 3}}
+            E.g.: ::
+
+                setting_args = {"SNOT": {"num_tslots": 10, "evo_time": 1},
+                                "SWAP": {"num_tslots": 30, "evo_time": 3},
+                                "CNOT": {"num_tslots": 30, "evo_time": 3}}
 
         verbose: boolean, optional
             If true, the information for each decomposed gate
@@ -173,8 +182,8 @@ class OptPulseProcessor(Processor):
 
         Notes
         -----
-        len(tlist)-1=coeffs.shape[1] since tlist gives the beginning and the
-        end of the pulses
+        ``len(tlist) - 1 = coeffs.shape[1]`` since tlist gives the beginning
+        and the end of the pulses.
         """
         if setting_args is None:
             setting_args = {}

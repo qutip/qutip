@@ -206,12 +206,14 @@ class HEOMSolver(object):
         """
         Creates a new stats object suitable for use with this solver
         Note: this solver expects the stats object to have sections
-            config
-            integrate
+
+        - config
+        - integrate
         """
         stats = Stats(['config', 'run'])
         stats.header = "Hierarchy Solver Stats"
         return stats
+
 
 class HSolverDL(HEOMSolver):
     """

@@ -57,9 +57,9 @@ the maximum time allowed has been exceeded
 
 These function optimisation methods are so far from SciPy.optimize
 The two methods implemented are:
-    
+
     BFGS - Broyden–Fletcher–Goldfarb–Shanno algorithm
-        
+
         This a quasi second order Newton method. It uses successive calls to
         the gradient function to make an estimation of the curvature (Hessian)
         and hence direct its search for the function minima
@@ -68,7 +68,7 @@ The two methods implemented are:
         use subclass: OptimizerBFGS
 
     L-BFGS-B - Bounded, limited memory BFGS
-        
+
         This a version of the BFGS method where the Hessian approximation is
         only based on a set of the most recent gradient calls. It generally
         performs better where the are a large number of variables
@@ -121,41 +121,37 @@ def _is_string(var):
 class Optimizer(object):
     """
     Base class for all control pulse optimisers. This class should not be
-    instantiated, use its subclasses
-    This class implements the fidelity, gradient and interation callback
-    functions.
-    All subclass objects must be initialised with a
-        
-        OptimConfig instance - various configuration options
-        Dynamics instance - describes the dynamics of the (quantum) system
-                            to be control optimised
+    instantiated, use its subclasses.  This class implements the fidelity,
+    gradient and interation callback functions.  All subclass objects must be
+    initialised with a
+
+    - ``OptimConfig`` instance - various configuration options
+    - ``Dynamics`` instance - describes the dynamics of the (quantum) system
+      to be control optimised
 
     Attributes
     ----------
     log_level : integer
-        level of messaging output from the logger.
-        Options are attributes of qutip.logging_utils,
-        in decreasing levels of messaging, are:
+        level of messaging output from the logger.  Options are attributes of
+        qutip.logging_utils, in decreasing levels of messaging, are:
         DEBUG_INTENSE, DEBUG_VERBOSE, DEBUG, INFO, WARN, ERROR, CRITICAL
-        Anything WARN or above is effectively 'quiet' execution,
-        assuming everything runs as expected.
-        The default NOTSET implies that the level will be taken from
-        the QuTiP settings file, which by default is WARN
+        Anything WARN or above is effectively 'quiet' execution, assuming
+        everything runs as expected.  The default NOTSET implies that the level
+        will be taken from the QuTiP settings file, which by default is WARN.
 
     params:  Dictionary
-        The key value pairs are the attribute name and value
-        Note: attributes are created if they do not exist already,
-        and are overwritten if they do.
+        The key value pairs are the attribute name and value. Note: attributes
+        are created if they do not exist already, and are overwritten if they
+        do.
 
     alg : string
-        Algorithm to use in pulse optimisation.
-        Options are:
-            'GRAPE' (default) - GRadient Ascent Pulse Engineering
-            'CRAB' - Chopped RAndom Basis
+        Algorithm to use in pulse optimisation.  Options are:
+
+        - 'GRAPE' (default) - GRadient Ascent Pulse Engineering
+        - 'CRAB' - Chopped RAndom Basis
 
     alg_params : Dictionary
-        options that are specific to the pulse optim algorithm
-        that is GRAPE or CRAB
+        Options that are specific to the pulse optim algorithm ``alg``.
 
     disp_conv_msg : bool
         Set true to display a convergence message
@@ -243,7 +239,6 @@ class Optimizer(object):
     iter_summary : :class:`OptimIterSummary`
         Summary of the most recent iteration.
         Note this is only set if dummping is on
-    
     """
 
     def __init__(self, config, dyn, params=None):
@@ -324,10 +319,12 @@ class Optimizer(object):
     def dumping(self):
         """
         The level of data dumping that will occur during the optimisation
-         - NONE : No processing data dumped (Default)
-         - SUMMARY : A summary at each iteration will be recorded
-         - FULL : All logs will be generated and dumped
-         - CUSTOM : Some customised level of dumping
+
+        - NONE : No processing data dumped (Default)
+        - SUMMARY : A summary at each iteration will be recorded
+        - FULL : All logs will be generated and dumped
+        - CUSTOM : Some customised level of dumping
+
         When first set to CUSTOM this is equivalent to SUMMARY. It is then up
         to the user to specify which logs are dumped
         """
@@ -1155,18 +1152,18 @@ class OptimizerCrab(Optimizer):
 
 class OptimizerCrabFmin(OptimizerCrab):
     """
-    Optimises the pulse using the CRAB algorithm [1, 2].
-    It uses the scipy.optimize.fmin function which is effectively a wrapper
-    for the Nelder-mead method.
-    It minimises the fidelity error function with respect to the CRAB
-    basis function coefficients.
-    This is the default Optimizer for CRAB.
+    Optimises the pulse using the CRAB algorithm [1]_, [2]_.
+    It uses the ``scipy.optimize.fmin`` function which is effectively a wrapper
+    for the Nelder-Mead method.  It minimises the fidelity error function with
+    respect to the CRAB basis function coefficients.  This is the default
+    Optimizer for CRAB.
 
-    Notes
-    -----
-    [1] P. Doria, T. Calarco & S. Montangero. Phys. Rev. Lett. 106,
-        190501 (2011).
-    [2] T. Caneva, T. Calarco, & S. Montangero. Phys. Rev. A 84, 022326 (2011).
+    References
+    ----------
+    .. [1] P. Doria, T. Calarco & S. Montangero. Phys. Rev. Lett. 106, 190501
+       (2011).
+    .. [2] T. Caneva, T. Calarco, & S. Montangero. Phys. Rev. A 84, 022326
+       (2011).
     """
 
     def reset(self):

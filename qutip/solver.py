@@ -495,7 +495,7 @@ def _format_time(t, tt=None, ttt=None):
     return time_str
 
 
-class Stats(object):
+class Stats:
     """
     Statistical information on the solver performance
     Statistics can be grouped into sections.
@@ -524,23 +524,6 @@ class Stats(object):
     total_time : float
         Time in seconds for the solver to complete processing
         Can be None, meaning that total timing percentages will be reported
-
-    Methods
-    -------
-    add_section
-        Add another section
-
-    add_count
-        Add some stat that is an integer count
-
-    add_timing
-        Add some timing statistics
-
-    add_message
-        Add some text type for output in the report
-
-    report:
-        Output the statistics report to console or file.
     """
 
     def __init__(self, section_names=None):
@@ -584,7 +567,7 @@ class Stats(object):
 
         Returns
         -------
-        section : `class` : _StatsSection
+        section : :class:`_StatsSection`
             The new section
         """
         sect = _StatsSection(name, self)
@@ -607,7 +590,7 @@ class Stats(object):
         value : int
             Initial value of the count, or added to an existing count
 
-        section: string or `class` : _StatsSection
+        section : string or :class:`_StatsSection`
             Section which to add the count to.
             If None given, the default (first) section will be used
         """

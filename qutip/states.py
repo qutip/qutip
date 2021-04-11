@@ -521,7 +521,9 @@ shape = [3, 3], type = oper, isHerm = True
 # projection operator
 #
 def projection(N, n, m, offset=None):
-    """The projection operator that projects state :math:`|m>` on state :math:`|n>`.
+    r"""
+    The projection operator that projects state :math:`\lvert m\rangle` on
+    state :math:`\lvert n\rangle`.
 
     Parameters
     ----------
@@ -539,7 +541,6 @@ def projection(N, n, m, offset=None):
     -------
     oper : qobj
          Requested projection operator.
-
     """
     ket1 = basis(N, n, offset=offset)
     ket2 = basis(N, m, offset=offset)
@@ -551,8 +552,8 @@ def projection(N, n, m, offset=None):
 # composite qubit states
 #
 def qstate(string):
-    """Creates a tensor product for a set of qubits in either
-    the 'up' :math:`|0>` or 'down' :math:`|1>` state.
+    r"""Creates a tensor product for a set of qubits in either
+    the 'up' :math:`\lvert0\rangle` or 'down' :math:`\lvert1\rangle` state.
 
     Parameters
     ----------
@@ -582,7 +583,6 @@ def qstate(string):
      [ 1.]
      [ 0.]
      [ 0.]]
-
     """
     n = len(string)
     if n != (string.count('u') + string.count('d')):
@@ -712,9 +712,11 @@ def bra(seq, dim=2):
         Each element defines state of the respective particle.
         (e.g. [1,1,0,1] or a string "1101").
         For qubits it is also possible to use the following conventions:
+
         - 'g'/'e' (ground and excited state)
         - 'u'/'d' (spin up and down)
         - 'H'/'V' (horizontal and vertical polarization)
+
         Note: for dimension > 9 you need to use a list.
 
 
@@ -1088,8 +1090,8 @@ def zero_ket(N, dims=None):
 
 
 def spin_state(j, m, type='ket'):
-    """Generates the spin state |j, m>, i.e.  the eigenstate
-    of the spin-j Sz operator with eigenvalue m.
+    r"""Generates the spin state :math:`\lvert j, m\rangle`, i.e. the
+    eigenstate of the spin-j Sz operator with eigenvalue m.
 
     Parameters
     ----------
@@ -1106,7 +1108,6 @@ def spin_state(j, m, type='ket'):
     -------
     state : qobj
         Qobj quantum object for spin state
-
     """
     J = 2 * j + 1
 
@@ -1121,7 +1122,7 @@ def spin_state(j, m, type='ket'):
 
 
 def spin_coherent(j, theta, phi, type='ket'):
-    """Generate the coherent spin state |theta, phi>.
+    r"""Generate the coherent spin state :math:`\lvert \theta, \phi\rangle`.
 
     Parameters
     ----------
@@ -1141,7 +1142,6 @@ def spin_coherent(j, theta, phi, type='ket'):
     -------
     state : qobj
         Qobj quantum object for spin coherent state
-
     """
     Sp = jmat(j, '+')
     Sm = jmat(j, '-')
@@ -1159,19 +1159,26 @@ def spin_coherent(j, theta, phi, type='ket'):
 
 
 def bell_state(state='00'):
-    """
-    Returns the Bell state:
+    r"""
+    Returns the selected Bell state:
 
-        |B00> = 1 / sqrt(2)*[|0>|0>+|1>|1>]
-        |B01> = 1 / sqrt(2)*[|0>|0>-|1>|1>]
-        |B10> = 1 / sqrt(2)*[|0>|1>+|1>|0>]
-        |B11> = 1 / sqrt(2)*[|0>|1>-|1>|0>]
+    .. math::
+
+        \begin{aligned}
+        \lvert B_{00}\rangle &=
+            \frac1{\sqrt2}(\lvert00\rangle+\lvert11\rangle)\\
+        \lvert B_{01}\rangle &=
+            \frac1{\sqrt2}(\lvert00\rangle-\lvert11\rangle)\\
+        \lvert B_{10}\rangle &=
+            \frac1{\sqrt2}(\lvert01\rangle+\lvert10\rangle)\\
+        \lvert B_{11}\rangle &=
+            \frac1{\sqrt2}(\lvert01\rangle-\lvert10\rangle)\\
+        \end{aligned}
 
     Returns
     -------
     Bell_state : qobj
         Bell state
-
     """
     if state == '00':
         Bell_state = tensor(
@@ -1190,30 +1197,32 @@ def bell_state(state='00'):
 
 
 def singlet_state():
-    """
+    r"""
     Returns the two particle singlet-state:
 
-        |S>=1/sqrt(2)*[|0>|1>-|1>|0>]
+    .. math::
+
+        \lvert S\rangle = \frac1{\sqrt2}(\lvert01\rangle-\lvert10\rangle)
 
     that is identical to the fourth bell state.
 
     Returns
     -------
     Bell_state : qobj
-        |B11> Bell state
-
+        :math:`\lvert B_{11}\rangle` Bell state
     """
     return bell_state('11')
 
 
 def triplet_states():
-    """
-    Returns the two particle triplet-states:
+    r"""
+    Returns a list of the two particle triplet-states:
 
-        |T>= |1>|1>
-           = 1 / sqrt(2)*[|0>|1>-|1>|0>]
-           = |0>|0>
-    that is identical to the fourth bell state.
+    .. math::
+
+        \lvert T_1\rangle = \lvert11\rangle
+        \lvert T_2\rangle = \frac1{\sqrt2}(\lvert01\rangle - \lvert10\rangle)
+        \lvert T_3\rangle = \lvert00\rangle
 
     Returns
     -------

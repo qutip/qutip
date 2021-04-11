@@ -74,14 +74,14 @@ def plot_wigner_sphere(fig, ax, wigner, reflections):
 
     Parameters
     ----------
-        fig
-            An instance of matplotlib.pyplot.figure.
-        ax
-            An axes instance in fig.
-        wigner : list of float
-            the wigner transformation at `steps` different theta and phi.
-        reflections : bool
-            If the reflections of the sphere should be plotted as well.
+    fig : :obj:`matplotlib.figure.Figure`
+        An instance of :obj:`~matplotlib.figure.Figure`.
+    ax : :obj:`matplotlib.axes.Axes`
+        An axes instance in the given figure.
+    wigner : list of float
+        The wigner transformation at `steps` different theta and phi.
+    reflections : bool
+        If the reflections of the sphere should be plotted as well.
 
     Notes
     ------
@@ -305,8 +305,8 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
             _x = x + 1
             _y = y + 1
             if np.real(W[x, y]) > 0.0:
-                _blob(_x - 0.5, height - _y + 0.5, abs(W[x,
-                      y]), w_max, min(1, abs(W[x, y]) / w_max), cmap=cmap, ax=ax)
+                _blob(_x - 0.5, height - _y + 0.5, abs(W[x, y]), w_max,
+                      min(1, abs(W[x, y]) / w_max), cmap=cmap, ax=ax)
             else:
                 _blob(_x - 0.5, height - _y + 0.5, -abs(W[
                       x, y]), w_max, min(1, abs(W[x, y]) / w_max), cmap=cmap, ax=ax)
@@ -316,18 +316,25 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
     cax, kw = mpl.colorbar.make_axes(ax, shrink=0.75, pad=.1)
     mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cmap)
 
+    xtics = 0.5 + np.arange(width)
     # x axis
-    ax.xaxis.set_major_locator(plt.IndexLocator(1, 0.5))
-
+    ax.xaxis.set_major_locator(plt.FixedLocator(xtics))
     if xlabels:
+        nxlabels = len(xlabels)
+        if nxlabels != len(xtics):
+            raise ValueError(f"got {nxlabels} xlabels but needed {len(xtics)}")
         ax.set_xticklabels(xlabels)
         if label_top:
             ax.xaxis.tick_top()
     ax.tick_params(axis='x', labelsize=14)
 
     # y axis
-    ax.yaxis.set_major_locator(plt.IndexLocator(1, 0.5))
+    ytics = 0.5 + np.arange(height)
+    ax.yaxis.set_major_locator(plt.FixedLocator(ytics))
     if ylabels:
+        nylabels = len(ylabels)
+        if nylabels != len(ytics):
+            raise ValueError(f"got {nylabels} ylabels but needed {len(ytics)}")
         ax.set_yticklabels(list(reversed(ylabels)))
     ax.tick_params(axis='y', labelsize=14)
 
@@ -469,14 +476,22 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
         ax.set_title(title)
 
     # x axis
-    ax.axes.w_xaxis.set_major_locator(plt.IndexLocator(1, -0.5))
+    xtics = -0.5 + np.arange(M.shape[0])
+    ax.axes.w_xaxis.set_major_locator(plt.FixedLocator(xtics))
     if xlabels:
+        nxlabels = len(xlabels)
+        if nxlabels != len(xtics):
+            raise ValueError(f"got {nxlabels} xlabels but needed {len(xtics)}")
         ax.set_xticklabels(xlabels)
     ax.tick_params(axis='x', labelsize=14)
 
     # y axis
-    ax.axes.w_yaxis.set_major_locator(plt.IndexLocator(1, -0.5))
+    ytics = -0.5 + np.arange(M.shape[1])
+    ax.axes.w_yaxis.set_major_locator(plt.FixedLocator(ytics))
     if ylabels:
+        nylabels = len(ylabels)
+        if nylabels != len(ytics):
+            raise ValueError(f"got {nylabels} ylabels but needed {len(ytics)}")
         ax.set_yticklabels(ylabels)
     ax.tick_params(axis='y', labelsize=14)
 
@@ -582,14 +597,22 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None,
         ax.set_title(title)
 
     # x axis
-    ax.axes.w_xaxis.set_major_locator(plt.IndexLocator(1, -0.5))
+    xtics = -0.5 + np.arange(M.shape[0])
+    ax.axes.w_xaxis.set_major_locator(plt.FixedLocator(xtics))
     if xlabels:
+        nxlabels = len(xlabels)
+        if nxlabels != len(xtics):
+            raise ValueError(f"got {nxlabels} xlabels but needed {len(xtics)}")
         ax.set_xticklabels(xlabels)
     ax.tick_params(axis='x', labelsize=12)
 
     # y axis
-    ax.axes.w_yaxis.set_major_locator(plt.IndexLocator(1, -0.5))
+    ytics = -0.5 + np.arange(M.shape[1])
+    ax.axes.w_yaxis.set_major_locator(plt.FixedLocator(ytics))
     if ylabels:
+        nylabels = len(ylabels)
+        if nylabels != len(ytics):
+            raise ValueError(f"got {nylabels} ylabels but needed {len(ytics)}")
         ax.set_yticklabels(ylabels)
     ax.tick_params(axis='y', labelsize=12)
 
@@ -1316,18 +1339,9 @@ def plot_qubism(ket, theme='light', how='pairs',
                 grid_iteration=1, legend_iteration=0,
                 fig=None, ax=None, figsize=(6, 6)):
     """
-    Qubism plot for pure states of many qudits.
-    Works best for spin chains, especially with even number of particles
-    of the same dimension.
-    Allows to see entanglement between first 2*k particles and the rest.
-
-    More information:
-        
-        J. Rodriguez-Laguna, P. Migdal,
-        M. Ibanez Berganza, M. Lewenstein, G. Sierra,
-        "Qubism: self-similar visualization of many-body wavefunctions",
-        New J. Phys. 14 053028 (2012), arXiv:1112.3560,
-        http://dx.doi.org/10.1088/1367-2630/14/5/053028 (open access)
+    Qubism plot for pure states of many qudits.  Works best for spin chains,
+    especially with even number of particles of the same dimension.  Allows to
+    see entanglement between first 2k particles and the rest.
 
     Parameters
     ----------
@@ -1339,23 +1353,21 @@ def plot_qubism(ket, theme='light', how='pairs',
         See: complex_array_to_rgb.
 
     how : 'pairs' (default), 'pairs_skewed' or 'before_after'
-        Type of Qubism plotting.
-        Options:
-            
-            'pairs' - typical coordinates,
-            'pairs_skewed' - for ferromagnetic/antriferromagnetic plots,
-            'before_after' - related to Schmidt plot (see also: plot_schmidt).
+        Type of Qubism plotting.  Options:
+
+        - 'pairs' - typical coordinates,
+        - 'pairs_skewed' - for ferromagnetic/antriferromagnetic plots,
+        - 'before_after' - related to Schmidt plot (see also: plot_schmidt).
 
     grid_iteration : int (default 1)
         Helper lines to be drawn on plot.
         Show tiles for 2*grid_iteration particles vs all others.
 
     legend_iteration : int (default 0) or 'grid_iteration' or 'all'
-        Show labels for first 2*legend_iteration particles.
-        Option 'grid_iteration' sets the same number of particles
-            as for grid_iteration.
-        Option 'all' makes label for all particles.
-        Typically it should be 0, 1, 2 or perhaps 3.
+        Show labels for first ``2*legend_iteration`` particles.  Option
+        'grid_iteration' sets the same number of particles as for
+        grid_iteration.  Option 'all' makes label for all particles.  Typically
+        it should be 0, 1, 2 or perhaps 3.
 
     fig : a matplotlib figure instance
         The figure canvas on which the plot will be drawn.
@@ -1373,6 +1385,17 @@ def plot_qubism(ket, theme='light', how='pairs',
         A tuple of the matplotlib figure and axes instances used to produce
         the figure.
 
+    Notes
+    -----
+    See also [1]_.
+
+    References
+    ----------
+    .. [1] J. Rodriguez-Laguna, P. Migdal, M. Ibanez Berganza, M. Lewenstein
+       and G. Sierra, *Qubism: self-similar visualization of many-body
+       wavefunctions*, `New J. Phys. 14 053028
+       <http://dx.doi.org/10.1088/1367-2630/14/5/053028>`_, arXiv:1112.3560
+       (2012), open access.
     """
 
     if not isket(ket):

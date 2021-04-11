@@ -342,8 +342,8 @@ def purity_dicke(rho):
 class Dicke(object):
     """The Dicke class which builds the Lindbladian and Liouvillian matrix.
 
-    Example
-    -------
+    Examples
+    --------
     >>> from piqs import Dicke, jspin
     >>> N = 2
     >>> jx, jy, jz = jspin(N)
@@ -648,10 +648,10 @@ def energy_degeneracy(N, m):
 
 
 def state_degeneracy(N, j):
-    """Calculate the degeneracy of the Dicke state.
+    r"""Calculate the degeneracy of the Dicke state.
 
-    Each state :math:`|j, m\\rangle` includes D(N,j) irreducible
-    representations :math:`|j, m, \\alpha\\rangle`.
+    Each state :math:`\lvert j, m\rangle` includes D(N,j) irreducible
+    representations :math:`\lvert j, m, \alpha\rangle`.
 
     Uses Decimals to calculate higher numerator and denominators numbers.
 
@@ -679,7 +679,7 @@ def state_degeneracy(N, j):
 
 
 def m_degeneracy(N, m):
-    """Calculate the number of Dicke states :math:`|j, m\\rangle` with
+    r"""Calculate the number of Dicke states :math:`\lvert j, m\rangle` with
     same energy.
 
     Parameters
@@ -707,15 +707,16 @@ def m_degeneracy(N, m):
 
 
 def ap(j, m):
-    """Calculate the coefficient `ap` by applying J_+ |j, m>.
+    r"""
+    Calculate the coefficient ``ap`` by applying :math:`J_+\lvert j,m\rangle`.
 
     The action of ap is given by:
-    :math:`J_{+}|j, m\\rangle = A_{+}(j, m)|j, m+1\\rangle`
+    :math:`J_{+}\lvert j, m\rangle = A_{+}(j, m) \lvert j, m+1\rangle`
 
     Parameters
     ----------
     j, m: float
-        The value for j and m in the dicke basis |j,m>.
+        The value for j and m in the dicke basis :math:`\lvert j, m\rangle`.
 
     Returns
     -------
@@ -727,9 +728,10 @@ def ap(j, m):
 
 
 def am(j, m):
-    """Calculate the operator `am` used later.
+    r"""Calculate the operator ``am`` used later.
 
-    The action of ap is given by: J_{-}|j, m> = A_{-}(jm)|j, m-1>
+    The action of ``ap`` is given by:
+    :math:`J_{-}\lvert j,m\rangle = A_{-}(jm)\lvert j,m-1\rangle`
 
     Parameters
     ----------
@@ -878,10 +880,10 @@ def _jspin_uncoupled(N, op=None):
 
 
 def jspin(N, op=None, basis="dicke"):
-    """
+    r"""
     Calculate the list of collective operators of the total algebra.
 
-    The Dicke basis :math:`|j,m\\rangle\\langle j,m'|` is used by
+    The Dicke basis :math:`\lvert j,m\rangle\langle j,m'\rvert` is used by
     default. Otherwise with "uncoupled" the operators are in a
     :math:`2^N` space.
 
@@ -1052,15 +1054,15 @@ def collapse_uncoupled(
 
 # State definitions in the Dicke basis with an option for basis transformation
 def dicke_basis(N, jmm1=None):
-    """
+    r"""
     Initialize the density matrix of a Dicke state for several (j, m, m1).
 
     This function can be used to build arbitrary states in the Dicke basis
-    :math:`|j, m\\rangle \\langle j, m^{\\prime}|`. We create coefficients for each
-    (j, m, m1) value in the dictionary jmm1. The mapping for the (i, k)
-    index of the density matrix to the |j, m> values is given by the
-    cythonized function `jmm1_dictionary`. A density matrix is created from
-    the given dictionary of coefficients for each (j, m, m1).
+    :math:`\lvert j, m\rangle\langle j, m'\rvert`. We create coefficients for
+    each (j, m, m1) value in the dictionary jmm1. The mapping for the (i, k)
+    index of the density matrix to the :math:`\lvert j, m\rangle` values is
+    given by the cythonized function `jmm1_dictionary`. A density matrix is
+    created from the given dictionary of coefficients for each (j, m, m1).
 
     Parameters
     ----------
@@ -1092,11 +1094,11 @@ def dicke_basis(N, jmm1=None):
 
 
 def dicke(N, j, m):
-    """
+    r"""
     Generate a Dicke state as a pure density matrix in the Dicke basis.
 
     For instance, the superradiant state given by
-    :math:`|j, m\\rangle = |1, 0\\rangle` for N = 2,
+    :math:`\lvert  j, m\rangle = \lvert 1, 0\rangle` for N = 2,
     and the state is represented as a density matrix of size (nds, nds) or
     (4, 4), with the (1, 1) element set to 1.
 
@@ -1229,7 +1231,7 @@ def _uncoupled_css(N, a, b):
     dimensional Hilbert space.
 
     The CSS states are non-entangled states given by
-    :math:`|a, b\\rangle = \\prod_i (a|1\\rangle_i + b|0\\rangle_i)`.
+    :math:`\lvert a,b\rangle = \prod_i(a\lvert1\rangle_i + b\lvert0\rangle_i)`.
 
     Parameters
     ----------
@@ -1237,10 +1239,10 @@ def _uncoupled_css(N, a, b):
         The number of two-level systems.
 
     a: complex
-        The coefficient of the :math:`|1_i\rangle` state.
+        The coefficient of the :math:`\lvert1_i\rangle` state.
 
     b: complex
-        The coefficient of the :math:`|0_i\rangle` state.
+        The coefficient of the :math:`\lvert0_i\rangle` state.
 
     Returns
     -------
@@ -1344,17 +1346,17 @@ def css(
     basis="dicke",
     coordinates="cartesian",
 ):
-    """
+    r"""
     Generate the density matrix of the Coherent Spin State (CSS).
 
     It can be defined as,
-    :math:`|CSS \\rangle = \\prod_i^N(a|1\\rangle_i + b|0\\rangle_i)`
-    with :math:`a = sin(\\frac{\\theta}{2})`,
-    :math:`b = e^{i \\phi}\\cos(\\frac{\\theta}{2})`.
+    :math:`\lvert CSS\rangle = \prod_i^N(a\lvert1\rangle_i+b\lvert0\rangle_i)`
+    with :math:`a = sin(\frac{\theta}{2})`,
+    :math:`b = e^{i \phi}\cos(\frac{\theta}{2})`.
     The default basis is that of Dicke space
-    :math:`|j, m\\rangle \\langle j, m'|`.
+    :math:`\lvert j, m\rangle \langle j, m'\rvert`.
     The default state is the symmetric CSS,
-    :math:`|CSS\\rangle = |+\\rangle`.
+    :math:`\lvert CSS\rangle = \lvert+\rangle`.
 
     Parameters
     ----------

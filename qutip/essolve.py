@@ -77,6 +77,12 @@ def essolve(H, rho0, tlist, c_op_list, e_ops):
     the state vector at arbitrary points in time (`tlist`), or the
     expectation values of the supplied operators (`e_ops`).
 
+    .. deprecated:: 4.6.0
+        :obj:`~essolev` will be removed in QuTiP 5.  Please use :obj:`~sesolve`
+        or :obj:`~mesolve` for general-purpose integration of the
+        Schroedinger/Lindblad master equation.  This will likely be faster than
+        :obj:`~essolve` for you.
+
     Parameters
     ----------
     H : qobj/function_type
@@ -143,6 +149,11 @@ def ode2es(L, rho0):
     """Creates an exponential series that describes the time evolution for the
     initial density matrix (or state vector) `rho0`, given the Liouvillian
     (or Hamiltonian) `L`.
+
+    .. deprecated:: 4.6.0
+        :obj:`~ode2es` will be removed in QuTiP 5.  Please use
+        :obj:`Qobj.eigenstates` to get the eigenstates and -values, and use
+        :obj:`~QobjEvo` for general time-dependence.
 
     Parameters
     ----------

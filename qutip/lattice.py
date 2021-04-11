@@ -254,39 +254,6 @@ class Lattice1d():
         The list of coupling terms between unit cells of the lattice.
     is_real : bool
         Indicates if the Hamiltonian is real or not.
-
-    Methods
-    -------
-    Hamiltonian()
-        Hamiltonian of the crystal.
-    basis()
-        basis with the particle localized at a certain cell, site with
-        specified degree of freedom.
-    distribute_operator()
-        Distributes an input operator over all the cells.
-    x()
-        Position operator for the crystal.
-    k()
-        Crystal momentum operator for the crystal.
-    operator_at_cells()
-        Distributes an input operator over user specified cells .
-    operator_between_cells()
-        A function that returns an operator matrix that applies an operator
-        between a two specified cells.
-    plot_dispersion()
-        Plots dispersion relation of the crystal.
-    get_dispersion()
-        Returns the dispersion relation of the crystal.
-    bloch_wave_functions()
-        Returns the eigenstates of the Hamiltonian (which are Bloch
-        wavefunctions) for a translationally symmetric periodic lattice.
-    array_of_unk()
-        Returns eigenvectors of the bulk Hamiltonian, i.e. the cell periodic
-        part of the Bloch wavefunctios in a numpy.ndarray for translationally
-        symmetric lattices with periodic boundary condition.
-    bulk_Hamiltonians()
-        Returns the bulk Hamiltonian for the lattice at the good quantum
-        numbers of lattice momentum, k in a numpy ndarray of Qobj's.
     """
     def __init__(self, num_cell=10, boundary="periodic", cell_num_site=1,
                  cell_site_dof=[1], Hamiltonian_of_cell=None,
@@ -834,6 +801,7 @@ class Lattice1d():
 
         .. math::
             :nowrap:
+
             \begin{eqnarray}
             |\psi_n(k) \rangle = |k \rangle \otimes | u_{n}(k) \rangle   \\
             | u_{n}(k) \rangle = a_n(k)|a\rangle  + b_n(k)|b\rangle \\
@@ -870,6 +838,7 @@ class Lattice1d():
 
         .. math::
             :nowrap:
+
             \begin{eqnarray}
             |\psi_n(k) \rangle = |k \rangle \otimes | u_{n}(k) \rangle   \\
             | u_{n}(k) \rangle = a_n(k)|a\rangle  + b_n(k)|b\rangle \\

@@ -141,14 +141,13 @@ def rand_herm(N, density=0.75, dims=None, pos_def=False, seed=None):
     oper : qobj
         NxN Hermitian quantum operator.
 
-    Note
-    ----
+    Notes
+    -----
     If given a list/ndarray as input 'N', this function returns a
     random Hermitian object with eigenvalues given in the list/ndarray.
     This is accomplished via complex Jacobi rotations.  While this method
     is ~50% faster than the corresponding (real only) Matlab code, it should
     not be repeatedly used for generating matrices larger than ~1000x1000.
-
     """
     if seed is not None:
         np.random.seed(seed=seed)
