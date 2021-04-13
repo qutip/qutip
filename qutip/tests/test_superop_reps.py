@@ -79,6 +79,8 @@ class TestSuperopReps:
 
         # Assert both that the result is close to expected, and has the right
         # type.
+        
+
         assert (test_supe - superoperator).norm() < 1e-5
         assert choi_matrix.type == "super" and choi_matrix.superrep == "choi"
         assert chi_matrix.type == "super" and chi_matrix.superrep == "chi"
@@ -367,4 +369,5 @@ def test_chi_known():
         [0, 0, 0, 0],
         [0, 0, 0, 0]
     ])
+
 

@@ -63,10 +63,16 @@ else:
     os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 import platform
+import scipy
+import mkl
+from packaging import version
 from qutip.utilities import _blas_info
-qutip.settings.eigh_unsafe = (_blas_info() == "OPENBLAS" and
-                              platform.system() == 'Darwin')
-del platform, _blas_info
+qutip.settings.eigh_unsafe = ((_blas_info() == "OPENBLAS" and
+                              platform.system() == 'Darwin') or 
+                              (version.parse(scipy.__version__) < version.parse("1.5") 
+                              and (_blas_info() == 'INTEL MKL') )
+                              )
+del platform, _blas_info, scipy
 # -----------------------------------------------------------------------------
 # setup the cython environment
 #
