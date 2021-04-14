@@ -64,7 +64,6 @@ else:
 
 import platform
 import scipy
-import mkl
 from packaging import version
 from qutip.utilities import _blas_info
 is_old_scipy = version.parse(scipy.__version__) < version.parse("1.5")
