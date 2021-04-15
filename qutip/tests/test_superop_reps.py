@@ -84,7 +84,7 @@ class TestSuperopReps:
         assert choi_matrix.type == "super" and choi_matrix.superrep == "choi"
         assert chi_matrix.type == "super" and chi_matrix.superrep == "chi"
         assert test_supe.type == "super" and test_supe.superrep == "super" 
- 
+
 def test_SuperChoiSuper():
     """
     Superoperator: Converting superoperator to Choi matrix and back.
