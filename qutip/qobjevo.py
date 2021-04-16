@@ -313,7 +313,7 @@ class QobjEvo:
                     tlist=tlist)
 
     Mixing time formats is allowed.  It is not possible to create a single
-    :class:`~QobjEvo` that contains different ``tlist`` values, however.
+    :class:`QobjEvo` that contains different ``tlist`` values, however.
 
     **Passing arguments**
 
@@ -346,10 +346,10 @@ class QobjEvo:
     Q_object : list, :class:`~Qobj` or :class:`~QobjEvo`
         The time-dependent description of the quantum object.  This is of the
         same format as the first parameter to the general ODE solvers; in
-        general, it is a list of ``[:class:`~Qobj`, time_dependence]`` pairs that are
+        general, it is a list of ``[:class:`Qobj`, time_dependence]`` pairs that are
         summed to make the whole object.  The ``time_dependence`` can be any of
         the formats discussed in the previous section.  If a particular term
-        has no time-dependence, then you should just give the :class:`~Qobj` instead
+        has no time-dependence, then you should just give the :class:`Qobj` instead
         of the 2-element list.
 
     args : dict, optional
@@ -360,7 +360,7 @@ class QobjEvo:
 
     tlist : array_like, optional
         List of the times any numpy-array coefficients describe.  This is used
-        only in at least one of the time dependences in :attr:`~Q_object` is given
+        only in at least one of the time dependences in :attr:`Q_object` is given
         in Numpy-array format.  The times must be sorted, but need not be
         equidistant.  Values inbetween will be interpolated.
 
@@ -390,7 +390,7 @@ class QobjEvo:
         backing this object (may be empty).
 
     compiled_qobjevo : :class:`~CQobjCte` or :class:`~CQobjEvoTd`
-        Cython version of the QobjEvo.
+        Cython version of the :class:`QobjEvo`.
 
     coeff_get : callable
         Object called to obtain a list of all the coefficients at a particular
@@ -400,7 +400,7 @@ class QobjEvo:
         Runtime created files to delete with the instance.
 
     dummy_cte : bool
-        Is self.cte an empty Qobj
+        Is self.cte an empty :obj:`Qobj`
 
     const : bool
         Indicates if quantum object is constant
@@ -410,7 +410,7 @@ class QobjEvo:
         Information about the type of coefficients used in the entire object.
 
     num_obj : int
-        Number of :obj:`~Qobj` in the QobjEvo.
+        Number of :obj:`~Qobj` in the :class:`QobjEvo`.
 
     use_cython : bool
         Flag to compile string to Cython or Python
@@ -1229,8 +1229,8 @@ class QobjEvo:
 
     def apply(self, function, *args, **kw_args):
         """
-        Apply the linear function ``function`` to every ``Qobj`` included in
-        this time-dependent object, and return a new ``QobjEvo`` with the
+        Apply the linear function ``function`` to every :class:`Qobj` included in
+        this time-dependent object, and return a new :class:`QobjEvo` with the
         result.
 
         Any additional arguments or keyword arguments will be appended to every
@@ -1398,7 +1398,7 @@ class QobjEvo:
         t : float
             The time to evaluate this operator at.
 
-        state : Qobj or np.ndarray
+        state : :class:`Qobj` or np.ndarray
             The state to take the expectation value around.
 
         herm : bool, default False
@@ -1457,12 +1457,12 @@ class QobjEvo:
         t : float
             The time to evaluate this object at.
 
-        vec : Qobj or np.ndarray
+        vec : :class:`Qobj` or np.ndarray
             The state-vector to multiply this object by.
 
         Returns
         -------
-        vec: Qobj or np.ndarray
+        vec: :class:`Qobj` or np.ndarray
             The vector result in the same type as the input.
         """
         was_Qobj = False
