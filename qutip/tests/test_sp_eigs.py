@@ -233,5 +233,16 @@ def test_DenseValsOnly():
     spvals = U.eigenenergies(sparse=False, sort='high', eigvals=4)
     assert_equal(len(spvals), 4)
 
+def test_BigDenseValsOnly():
+    """
+    This checks eigenvalue calculation for
+    large dense matrices, which historically
+    have had instabilitus with MKL backend and
+    certain libraries.
+    """
+    H = rand_herm(2000)
+    spvals = H.eigenenergies(sparse=False)
+    np.testing.assert_allclose(H.tr(), spvals.sum())
+
 if __name__ == "__main__":
     run_module_suite()

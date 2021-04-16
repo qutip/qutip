@@ -43,8 +43,7 @@ from numpy import abs, pi, asarray, kron
 from numpy.linalg import norm
 from numpy.testing import assert_, assert_almost_equal, run_module_suite, assert_equal
 
-import pytest
-
+from unittest import expectedFailure
 
 from qutip.qobj import Qobj
 from qutip.states import basis
@@ -59,31 +58,11 @@ from qutip.superoperator import operator_to_vector, vector_to_operator, sprepost
 tol = 1e-9
 
 
-
-class TestSuperopReps:
+class TestSuperopReps(object):
     """
     A test class for the QuTiP function for applying superoperators to
     subsystems.
     """
-    @pytest.mark.parametrize('dimension', [2, 4, 8])
-    def test_SuperChoiChiSuper(self, dimension):
-        """
-        Superoperator: Converting two-qubit superoperator through
-        Choi and chi representations goes back to right superoperator.
-        """
-        superoperator = super_tensor(rand_super(dimension), rand_super(dimension))
-
-        choi_matrix = to_choi(superoperator)
-        chi_matrix = to_chi(choi_matrix)
-        test_supe = to_super(chi_matrix)
-
-        # Assert both that the result is close to expected, and has the right
-        # type.
-
-        assert (test_supe - superoperator).norm() < 1e-5
-        assert choi_matrix.type == "super" and choi_matrix.superrep == "choi"
-        assert chi_matrix.type == "super" and chi_matrix.superrep == "chi"
-        assert test_supe.type == "super" and test_supe.superrep == "super" 
 
     def test_SuperChoiSuper(self):
         """
@@ -242,7 +221,7 @@ class TestSuperopReps:
         # nor even HP.
         S = sprepost(a, a)
         case(S, False, False, False)
-
+        
         # Check that unitaries are CPTP and HP.
         case(identity(2), True, True, True)
         case(sigmax(), True, True, True)
@@ -367,3 +346,6 @@ class TestSuperopReps:
             [0, 0, 0, 0],
             [0, 0, 0, 0]
         ])
+
+if __name__ == "__main__":
+    run_module_suite()
