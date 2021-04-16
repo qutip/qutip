@@ -313,7 +313,7 @@ class QobjEvo:
                     tlist=tlist)
 
     Mixing time formats is allowed.  It is not possible to create a single
-    ``QobjEvo`` that contains different ``tlist`` values, however.
+    :class:`~QobjEvo` that contains different ``tlist`` values, however.
 
     **Passing arguments**
 
@@ -346,10 +346,10 @@ class QobjEvo:
     Q_object : list, :class:`~Qobj` or :class:`~QobjEvo`
         The time-dependent description of the quantum object.  This is of the
         same format as the first parameter to the general ODE solvers; in
-        general, it is a list of ``[Qobj, time_dependence]`` pairs that are
+        general, it is a list of ``[:class:`~Qobj`, time_dependence]`` pairs that are
         summed to make the whole object.  The ``time_dependence`` can be any of
         the formats discussed in the previous section.  If a particular term
-        has no time-dependence, then you should just give the ``Qobj`` instead
+        has no time-dependence, then you should just give the :class:`~Qobj` instead
         of the 2-element list.
 
     args : dict, optional
@@ -360,7 +360,7 @@ class QobjEvo:
 
     tlist : array_like, optional
         List of the times any numpy-array coefficients describe.  This is used
-        only in at least one of the time dependences in ``Q_object`` is given
+        only in at least one of the time dependences in :attr:`~Q_object` is given
         in Numpy-array format.  The times must be sorted, but need not be
         equidistant.  Values inbetween will be interpolated.
 
@@ -389,7 +389,7 @@ class QobjEvo:
         A string representing the properties of the low-level Cython class
         backing this object (may be empty).
 
-    compiled_qobjevo : ``CQobjCte`` or ``CQobjEvoTd``
+    compiled_qobjevo : :class:`~CQobjCte` or :class:`~CQobjEvoTd`
         Cython version of the QobjEvo.
 
     coeff_get : callable

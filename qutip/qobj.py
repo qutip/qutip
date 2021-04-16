@@ -1275,7 +1275,7 @@ class Qobj(object):
 
         Notes
         -----
-        Uses the Q.expm() method.
+        Uses the Q. :meth:`expm()` method.
 
         """
         if self.dims[0][0] == self.dims[1][0]:
