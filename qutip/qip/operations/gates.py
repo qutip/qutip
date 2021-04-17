@@ -533,7 +533,7 @@ shape = [4, 4], type = oper, isHerm = True
         N = 2
 
     if N is not None:
-        return gate_expand_2toN(cnot(), N, targets=targets)
+        return gate_expand_2toN(berkeley(), N, targets=targets)
     return Qobj([[np.cos(np.pi / 8), 0, 0, 1.0j * np.sin(np.pi / 8)],
                  [0, np.cos(3 * np.pi / 8), 1.0j *
                   np.sin(3 * np.pi / 8), 0],
@@ -568,7 +568,7 @@ shape = [4, 4], type = oper, isHerm = True
         N = 2
 
     if N is not None:
-        return gate_expand_2toN(cnot(), N, targets=targets)
+        return gate_expand_2toN(swapalpha(alpha), N, targets=targets)
     return Qobj([[1, 0, 0, 0],
                  [0, 0.5 * (1 + np.exp(1.0j * np.pi * alpha)),
                   0.5 * (1 - np.exp(1.0j * np.pi * alpha)), 0],
