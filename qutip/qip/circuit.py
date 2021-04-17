@@ -73,7 +73,7 @@ _single_qubit_gates = ["RX", "RY", "RZ", "SNOT", "SQRTNOT", "PHASEGATE",
 _para_gates = ["RX", "RY", "RZ", "CPHASE", "SWAPalpha", "PHASEGATE",
                "GLOBALPHASE", "CRX", "CRY", "CRZ", "QASMU"]
 _ctrl_gates = ["CNOT", "CSIGN", "CRX", "CRY", "CRZ", "CY", "CZ",
-               "CS", "CT"]
+               "CS", "CT", "CPHASE"]
 _swap_like = ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY",
               "SWAPalpha"]
 _toffoli_like = ["TOFFOLI"]
