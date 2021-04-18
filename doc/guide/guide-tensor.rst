@@ -438,4 +438,4 @@ operators:
 
 
 
-.. _channel contraction tutorial: http://nbviewer.ipython.org/github/qutip/qutip-notebooks/blob/master/examples/example-superop-contract.ipynb
+.. _channel contraction tutorial: http://nbviewer.ipython.org/github/qutip/qutip-notebooks/blob/master/examples/superop-contract.ipynb
