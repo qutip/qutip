@@ -233,5 +233,21 @@ def test_DenseValsOnly():
     spvals = U.eigenenergies(sparse=False, sort='high', eigvals=4)
     assert_equal(len(spvals), 4)
 
+
+def test_BigDenseValsOnly():
+    """
+    This checks eigenvalue calculation for large dense matrices, which
+    historically have had instabilities with certain OS and BLAS combinations
+    (see e.g. #1288 and #1495).
+    """
+    dimension = 2000
+    # Allow an average absolute tolerance for each eigenvalue; we expect
+    # uncertainty in the sum to add in quadrature.
+    tol = 1e-12 * np.sqrt(dimension)
+    H = rand_herm(dimension, density=1e-2)
+    spvals = H.eigenenergies()
+    assert abs(H.tr() - spvals.sum()) < tol
+
+
 if __name__ == "__main__":
     run_module_suite()
