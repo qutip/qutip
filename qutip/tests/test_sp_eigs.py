@@ -233,6 +233,7 @@ def test_DenseValsOnly():
     spvals = U.eigenenergies(sparse=False, sort='high', eigvals=4)
     assert_equal(len(spvals), 4)
 
+
 def test_BigDenseValsOnly():
     """
     This checks eigenvalue calculation for
@@ -240,9 +241,10 @@ def test_BigDenseValsOnly():
     have had instabilitus with MKL backend and
     certain libraries.
     """
-    H = rand_herm(2000)
-    spvals = H.eigenenergies(sparse=False)
-    np.testing.assert_allclose(H.tr(), spvals.sum())
+    H = rand_herm(2000, density=1e-3)
+    spvals = H.eigenenergies()
+    np.testing.assert_allclose(H.tr(), spvals.sum(), atol=1e-12)
+
 
 if __name__ == "__main__":
     run_module_suite()
