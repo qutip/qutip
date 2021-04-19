@@ -240,9 +240,13 @@ def test_BigDenseValsOnly():
     historically have had instabilities with certain OS and BLAS combinations
     (see e.g. #1288 and #1495).
     """
-    H = rand_herm(2000, density=1e-2)
+    dimension = 2000
+    # Allow an average absolute tolerance for each eigenvalue; we expect
+    # uncertainty in the sum to add in quadrature.
+    tol = 1e-12 * np.sqrt(dimension)
+    H = rand_herm(dimension, density=1e-2)
     spvals = H.eigenenergies()
-    assert abs(H.tr() - spvals.sum()) < 1e-12
+    assert abs(H.tr() - spvals.sum()) < tol
 
 
 if __name__ == "__main__":
