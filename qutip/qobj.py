@@ -95,6 +95,8 @@ class Qobj(object):
     operator/state operations.  The Qobj constructor optionally takes a
     dimension ``list`` and/or shape ``list`` as arguments.
 
+.._qobj_parameters:
+
     Parameters
     ----------
     inpt : array_like
