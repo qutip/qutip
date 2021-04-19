@@ -156,62 +156,6 @@ class Qobj(object):
         Indicates if the quantum object represents an operator in row vector
         form.
 
-    Methods
-    -------
-    copy()
-        Create copy of Qobj
-    conj()
-        Conjugate of quantum object.
-    cosm()
-        Cosine of quantum object.
-    dag()
-        Adjoint (dagger) of quantum object.
-    dnorm()
-        Diamond norm of quantum operator.
-    dual_chan()
-        Dual channel of quantum object representing a CP map.
-    eigenenergies(sparse=False, sort='low', eigvals=0, tol=0, maxiter=100000)
-        Returns eigenenergies (eigenvalues) of a quantum object.
-    eigenstates(sparse=False, sort='low', eigvals=0, tol=0, maxiter=100000)
-        Returns eigenenergies and eigenstates of quantum object.
-    :meth:`Qobj.expm`
-        Matrix exponential of quantum object.
-    full(order='C')
-        Returns dense array of quantum object `data` attribute.
-    groundstate(sparse=False, tol=0, maxiter=100000)
-        Returns eigenvalue and eigenket for the groundstate of a quantum
-        object.
-    inv()
-        Return a Qobj corresponding to the matrix inverse of the operator.
-    matrix_element(bra, ket)
-        Returns the matrix element of operator between `bra` and `ket` vectors.
-    norm(norm='tr', sparse=False, tol=0, maxiter=100000)
-        Returns norm of a ket or an operator.
-    permute(order)
-        Returns composite qobj with indices reordered.
-    proj()
-        Computes the projector for a ket or bra vector.
-    ptrace(sel)
-        Returns quantum object for selected dimensions after performing
-        partial trace.
-    sinm()
-        Sine of quantum object.
-    sqrtm()
-        Matrix square root of quantum object.
-    tidyup(atol=1e-12)
-        Removes small elements from quantum object.
-    tr()
-        Trace of quantum object.
-    trans()
-        Transpose of quantum object.
-    transform(inpt, inverse=False)
-        Performs a basis transformation defined by `inpt` matrix.
-    trunc_neg(method='clip')
-        Removes negative eigenvalues and returns a new Qobj that is
-        a valid density operator.
-    unit(norm='tr', sparse=False, tol=0, maxiter=100000)
-        Returns normalized quantum object.
-
     """
     __array_priority__ = 100  # sets Qobj priority above numpy arrays
     # Disable ufuncs from acting directly on Qobj. This is necessary because we
