@@ -95,8 +95,6 @@ class Qobj(object):
     operator/state operations.  The Qobj constructor optionally takes a
     dimension ``list`` and/or shape ``list`` as arguments.
 
-.._qobj_parameters:
-
     Parameters
     ----------
     inpt : array_like
@@ -2022,7 +2020,7 @@ class Qobj(object):
 
     def check_isunitary(self):
         """
-        Checks whether :class:`QobjEvo` is a unitary matrix
+        Checks whether :class:`QobjEvo`  is a unitary matrix
         """
         if self.isoper:
             eye_data = fast_identity(self.shape[0])
