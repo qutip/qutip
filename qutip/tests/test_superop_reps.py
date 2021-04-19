@@ -98,7 +98,7 @@ class TestSuperopReps:
         assert choi_matrix.type == "super" and choi_matrix.superrep == "choi"
         assert test_supe.type == "super" and test_supe.superrep == "super"
 
-    @pytest.mark.parametrize('dimension', [2, 4, 8])
+    @pytest.mark.parametrize('dimension', [2, 4])
     def test_SuperChoiChiSuper(self, dimension):
         """
         Superoperator: Converting two-qubit superoperator through
