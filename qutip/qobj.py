@@ -174,7 +174,7 @@ class Qobj(object):
         Returns eigenenergies (eigenvalues) of a quantum object.
     eigenstates(sparse=False, sort='low', eigvals=0, tol=0, maxiter=100000)
         Returns eigenenergies and eigenstates of quantum object.
-    expm()
+    :meth:`Qobj.expm`
         Matrix exponential of quantum object.
     full(order='C')
         Returns dense array of quantum object `data` attribute.
@@ -2020,7 +2020,7 @@ class Qobj(object):
 
     def check_isunitary(self):
         """
-        Checks whether qobj is a unitary matrix
+        Checks whether :class:`QobjEvo` is a unitary matrix
         """
         if self.isoper:
             eye_data = fast_identity(self.shape[0])
