@@ -246,7 +246,7 @@ class TestSuperopReps:
         """
         assert abs(to_choi(identity(dimension)).tr() - dimension) <= tol
 
-    @pytest.mark.repeat(4)
+    @pytest.mark.repeat(3)
     def test_stinespring_cp(self):
         """
         Stinespring: A and B match for CP maps.
@@ -256,8 +256,8 @@ class TestSuperopReps:
 
         assert norm((A - B).data.todense()) < tol
 
-    @pytest.mark.repeat(4)
-    @pytest.mark.parametrize('dimension', [2, 4, 8])
+    @pytest.mark.repeat(3)
+    @pytest.mark.parametrize('dimension', [2, 4])
     def test_stinespring_agrees(self, dimension):
         """
         Stinespring: Partial Tr over pair agrees w/ supermatrix.
