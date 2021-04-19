@@ -236,14 +236,13 @@ def test_DenseValsOnly():
 
 def test_BigDenseValsOnly():
     """
-    This checks eigenvalue calculation for
-    large dense matrices, which historically
-    have had instabilitus with MKL backend and
-    certain libraries.
+    This checks eigenvalue calculation for large dense matrices, which
+    historically have had instabilities with certain OS and BLAS combinations
+    (see e.g. #1288 and #1495).
     """
     H = rand_herm(2000, density=1e-2)
     spvals = H.eigenenergies()
-    np.testing.assert_allclose(H.tr(), spvals.sum(), atol=1e-12)
+    assert abs(H.tr() - spvals.sum()) < 1e-12
 
 
 if __name__ == "__main__":
