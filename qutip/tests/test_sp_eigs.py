@@ -241,7 +241,7 @@ def test_BigDenseValsOnly():
     have had instabilitus with MKL backend and
     certain libraries.
     """
-    H = rand_herm(2000, density=1e-3)
+    H = rand_herm(2000, density=1e-2)
     spvals = H.eigenenergies()
     np.testing.assert_allclose(H.tr(), spvals.sum(), atol=1e-12)
 
