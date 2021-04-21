@@ -134,7 +134,8 @@ class Qobj(object):
         Indicates if quantum object represents Hermitian operator via
         :func:`~qutip.qobj.isherm`.
     isunitary : bool
-        Indictaes if quantum object represents unitary operator via :func:`~qutip.qobj.check_isunitary`.
+        Indictaes if quantum object represents unitary operator via
+        :func:`~qutip.qobj.check_isunitary`.
     iscp : bool
         Indicates if the quantum object represents a map, and if that map is
         completely positive (CP).
