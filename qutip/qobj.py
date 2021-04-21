@@ -127,8 +127,9 @@ class Qobj(object):
         'operator-bra' (:func:`~qutip.qobj.isoperbra`), or 'super'
         (:func:`~qutip.qobj.issuper`).
     superrep : str
-        Representation used if ``type`` is 'super'(:func:`~qutip.qobj.issuper`).
-        One of 'super'(:func:`~qutip.superoperator.liouvillian` form) or 'choi'
+        Representation used if ``type`` is 'super'
+        (:func:`~qutip.qobj.issuper`). One of 'super'
+        (:func:`~qutip.superoperator.liouvillian` form) or 'choi'
         (Choi matrix with tr = dimension via :mod:`~qutip.superop_reps`).
     isherm : bool
         Indicates if quantum object represents Hermitian operator via
