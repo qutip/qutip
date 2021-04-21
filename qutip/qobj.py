@@ -121,15 +121,20 @@ class Qobj(object):
     shape : list
         Shape of the underlying `data` array.
     type : str
-        Type of quantum object: 'bra', 'ket', 'oper', 'operator-ket',
-        'operator-bra', or 'super'.
+        Type of quantum object: :func:`~qutip.states.bra`,
+        :func:`~qutip.states.ket`, 'oper' (:func:`~qutip.qobj.isoper`),
+        'operator-ket' (:func:`~qutip.qobj.isoperket`),
+        'operator-bra' (:func:`~qutip.qobj.isoperbra`), or 'super'
+        (:func:`~qutip.qobj.issuper`).
     superrep : str
-        Representation used if `type` is 'super'. One of 'super'
-        (Liouville form) or 'choi' (Choi matrix with tr = dimension).
+        Representation used if ``type`` is 'super' (:func:`~qutip.qobj.issuper`).
+        One of 'super' (:func:`~qutip.superoperator.liouvillian` form) or 'choi'
+        (Choi matrix with tr = dimension via :mod:`~qutip.superop_reps`).
     isherm : bool
-        Indicates if quantum object represents Hermitian operator.
+        Indicates if quantum object represents Hermitian operator via
+        :func:`~qutip.qobj.isherm`.
     isunitary : bool
-        Indictaes if quantum object represents unitary operator.
+        Indictaes if quantum object represents unitary operator via :func:`~qutip.qobj.check_isunitary`.
     iscp : bool
         Indicates if the quantum object represents a map, and if that map is
         completely positive (CP).
@@ -1787,7 +1792,7 @@ class Qobj(object):
             The states that should be kept.
 
         normalize : True / False
-            Weather or not the new Qobj instance should be normalized (default
+            Weather or not the new :class:`Qobj` instance should be normalized (default
             is False). For Qobjs that represents density matrices or state
             vectors normalized should probably be set to True, but for Qobjs
             that represents operators in for example an Hamiltonian, normalize
@@ -1797,7 +1802,7 @@ class Qobj(object):
         -------
         q : :class:`qutip.Qobj`
             A new instance of :class:`qutip.Qobj` that contains only the states
-            corresponding to the indices in `states_inds`.
+            corresponding to the indices in ``states_inds``.
 
         Notes
         -----
@@ -2060,10 +2065,11 @@ class Qobj(object):
             A nested list of Qobj instances and corresponding time-dependent
             coefficients.
         t : float
-            The time for which to evaluate the time-dependent Qobj instance.
+            The time for which to evaluate the time-dependent :class:`Qobj`
+            instance.
         args : dictionary
             A dictionary with parameter values required to evaluate the
-            time-dependent Qobj instance.
+            time-dependent :class:`Qobj` instance.
 
         Returns
         -------
