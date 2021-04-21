@@ -1523,7 +1523,7 @@ class Qobj(object):
         Parameters
         -----------
         bra : :class:`qutip.Qobj`
-            Quantum object of type 'bra' 
+            Quantum object of type 'bra'
 
         ket : :class:`qutip.Qobj`
             Quantum object of type 'ket'.
@@ -1825,11 +1825,11 @@ class Qobj(object):
             The states that should be removed.
 
         normalize : True / False
-            Weather or not the new :class:`Qobj` instance should be normalized (default
-            is False). For Qobjs that represents density matrices or state
-            vectors normalized should probably be set to True, but for Qobjs
-            that represents operators in for example an Hamiltonian, normalize
-            should be False.
+            Weather or not the new :class:`Qobj` instance should be normalized
+            (default is False). For Qobjs that represents density matrices or
+            state vectors normalized should probably be set to True, but for
+            Qobjs that represents operators in for example an Hamiltonian,
+            normalize should be False.
 
         Returns
         -------
