@@ -127,8 +127,8 @@ class Qobj(object):
         'operator-bra' (:func:`~qutip.qobj.isoperbra`), or 'super'
         (:func:`~qutip.qobj.issuper`).
     superrep : str
-        Representation used if ``type`` is 'super' (:func:`~qutip.qobj.issuper`).
-        One of 'super' (:func:`~qutip.superoperator.liouvillian` form) or 'choi'
+        Representation used if ``type`` is 'super'(:func:`~qutip.qobj.issuper`).
+        One of 'super'(:func:`~qutip.superoperator.liouvillian` form) or 'choi'
         (Choi matrix with tr = dimension via :mod:`~qutip.superop_reps`).
     isherm : bool
         Indicates if quantum object represents Hermitian operator via
@@ -1793,11 +1793,11 @@ class Qobj(object):
             The states that should be kept.
 
         normalize : True / False
-            Weather or not the new :class:`Qobj` instance should be normalized (default
-            is False). For Qobjs that represents density matrices or state
-            vectors normalized should probably be set to True, but for Qobjs
-            that represents operators in for example an Hamiltonian, normalize
-            should be False.
+            Weather or not the new :class:`Qobj` instance should be normalized
+            (default is False). For Qobjs that represents density matrices or
+            state vectors normalized should probably be set to True, but for
+            Qobjs that represents operators in for example an Hamiltonian,
+            normalize should be False.
 
         Returns
         -------
