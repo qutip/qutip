@@ -5,62 +5,34 @@ This repository contains the source files for the QuTiP documentation.
 
 For pre-built documentation, see http://www.qutip.org/documentation.html
 
-Build requirements
-------------------
+Building
+--------
 
-* Sphinx: http://sphinx-doc.org/
-* sphinx-gallery
-* sphinx_rtd_theme
-* LaTeX and pdflatex.
-* numpydoc
-* ipython
+The main Python requirements for the documentation are `sphinx`, `sphinx-gallery`, `sphinx_rtd_theme`, `numpydoc` and `ipython`.
+You should build or install the version of QuTiP you want to build the documentation against in the same environment.
+You will also need a sensible copy of `make`, and if you want to build the LaTeX documentation then also a `pdflatex` distribution.
+As of 2021-04-20, the `conda` recipe for `sphinx_rtd_theme` is rather old compared to the `pip` version, so it's recommended to use a mostly `pip`-managed environment to do the documentation build.
 
-In a conda environment use:
+The simplest way to get a functional build environment is to use the `requirements.txt` file in this repository, which completely defines a known-good `pip` environment (tested on Python 3.8, but not necessarily limited to it).
+If you typically use conda, the way to do this is
+```bash
+$ conda create -n qutip-doc-build python=3.8
+$ conda activate qutip-doc-build
+$ pip install -r /path/to/qutip-doc/requirements.txt
+```
+You will also need to build or install the main QuTiP library in the same environment.
+If you simply want to build the documentation without editing the main library, you can install a release version of QuTiP with `pip install qutip`.
+Otherwise, refer to [the main repository](https://github.com/qutip/qutip) for the current process to build from source.
+You need to have the optional QuTiP dependency `Cython` to build the documentation, but this is included in this repository's `requirements.txt` so you do not need to do anything separately.
 
-    $ conda install sphinx numpydoc sphinx_rtd_theme sphinx-gallery ipython
+After you have done this, you can effect the build with `make`.
+The targets you might want are `html`, `latexpdf` and `clean`, which build the HTML pages, build the PDFs, and delete all built files respectively.
+For example, to build the HTML files only, use
+```bash
+$ make html
+```
 
-2017-03-28: Successful building using:
-
-* sphinx v1.5.1
-* numpydoc v0.6.0
-* ipython 5.1.0
-
-Build
------
-2017-01-07:
-Thanks to some bug in ipython/ipython#8733 to do with the `ipython_savefig_dir` conf option,
-then note that this build directory structure must exist already:
-
-    _build/html/_images
-    _build/latex/_images
-
-To build the documentation on Linux or OS X run:
-
-    $ make html latexpdf
-
-To run doctest:
-
-    $ make doctest
-
-Building Documentation On Windows
----------------------------------
-
-Building the HTML documentation requires Sphinx and numpydoc, both of which can be installed using Anaconda:
-
-    > conda install sphinx numpydoc
-
-If you installed QuTiP using another distribution of Python, these dependencies can also be installed using either ``easy_install`` or ``pip``:
-
-    > easy_install install sphinx numpydoc
-    > pip install sphinx numpydoc
-
-To build the HTML documentation on Windows using ``cmd.exe``, run:
-
-    > make html
-
-From PowerShell, run:
-
-    PS> .\make html
+*Note (2021-04-20):* the documentation build is currently broken on Windows due to incompatibilities in the main library in multiprocessing components.
 
 Writing User Guides
 -------------------
