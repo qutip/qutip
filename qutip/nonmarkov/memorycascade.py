@@ -167,7 +167,7 @@ class MemoryCascade:
 
     def outfieldpropagator(self, blist, tlist, tau, c1=None, c2=None,
                            notrace=False):
-        """
+        r"""
         Compute propagator for computing output field expectation values
         <O_n(tn)...O_2(t2)O_1(t1)> for times t1,t2,... and
         O_i = I, b_out, b_out^\dagger, b_loop, b_loop^\dagger
@@ -297,7 +297,7 @@ class MemoryCascade:
         return qt.vector_to_operator(E*rhovec)
 
     def outfieldcorr(self, rho0, blist, tlist, tau, c1=None, c2=None):
-        """
+        r"""
         Compute output field expectation value
         <O_n(tn)...O_2(t2)O_1(t1)> for times t1,t2,... and
         O_i = I, b_out, b_out^\dagger, b_loop, b_loop^\dagger
