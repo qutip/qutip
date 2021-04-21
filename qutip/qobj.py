@@ -104,10 +104,11 @@ class Qobj(object):
     shape : list
         Shape of underlying data structure (matrix shape).
     copy : bool
-        Flag specifying whether Qobj should get a copy of the
+        Flag specifying whether :class:`Qobj` should get a copy of the
         input data, or use the original.
     fast : bool
-        Flag for fast qobj creation when running ode solvers.
+        Flag for fast :class:`Qobj` creation when running ODE solvers like
+        :func:`qutip.mesolve` and :func:`qutip.mcsolve`.
         This parameter is used internally only.
 
 
@@ -885,7 +886,7 @@ class Qobj(object):
         return s
 
     def dag(self):
-        """Adjoint operator of quantum object.
+        """Adjoint operator of quantum object (:class:`Qobj`).
         """
         out = Qobj()
         out.data = zcsr_adjoint(self.data)
@@ -912,7 +913,7 @@ class Qobj(object):
         return J_dual
 
     def conj(self):
-        """Conjugate operator of quantum object.
+        """Conjugate operator of quantum object (:class:`Qobj`).
         """
         out = Qobj()
         out.data = self.data.conj()
@@ -920,7 +921,7 @@ class Qobj(object):
         return out
 
     def norm(self, norm=None, sparse=False, tol=0, maxiter=100000):
-        """Norm of a quantum object.
+        """Norm of a quantum object (:class:`Qobj`).
 
         Default norm is L2-norm for kets and trace-norm for operators.
         Other ket and operator norms may be specified using the `norm` and
@@ -1051,7 +1052,7 @@ class Qobj(object):
         Returns
         -------
         data : array
-            Array of complex data from quantum objects `data` attribute.
+            Array of complex data from quantum object's ``data`` attribute.
         """
         if squeeze:
             return self.data.toarray(order=order).squeeze()
@@ -1065,7 +1066,7 @@ class Qobj(object):
         return self.full()
 
     def diag(self):
-        """Diagonal elements of quantum object.
+        """Diagonal elements of quantum object (:class:`Qobj`).
 
         Returns
         -------
@@ -1120,7 +1121,7 @@ class Qobj(object):
         return out.tidyup() if settings.auto_tidyup else out
 
     def check_herm(self):
-        """Check if the quantum object is hermitian.
+        """Check if the quantum object (:class:`Qobj`) is hermitian.
 
         Returns
         -------
@@ -1522,7 +1523,7 @@ class Qobj(object):
         Parameters
         -----------
         bra : :class:`qutip.Qobj`
-            Quantum object of type 'bra' or 'ket'
+            Quantum object of type 'bra' 
 
         ket : :class:`qutip.Qobj`
             Quantum object of type 'ket'.
@@ -1778,7 +1779,7 @@ class Qobj(object):
         return out
 
     def extract_states(self, states_inds, normalize=False):
-        """Qobj with states in state_inds only.
+        """:class:`Qobj` with states in ``states_inds`` only.
 
         Parameters
         ----------
@@ -1796,7 +1797,7 @@ class Qobj(object):
         -------
         q : :class:`qutip.Qobj`
             A new instance of :class:`qutip.Qobj` that contains only the states
-            corresponding to the indices in `state_inds`.
+            corresponding to the indices in `states_inds`.
 
         Notes
         -----
@@ -1816,7 +1817,7 @@ class Qobj(object):
         return q.unit() if normalize else q
 
     def eliminate_states(self, states_inds, normalize=False):
-        """Creates a new quantum object with states in state_inds eliminated.
+        """Creates a new quantum object with states in ``states_inds`` eliminated.
 
         Parameters
         ----------
@@ -1824,7 +1825,7 @@ class Qobj(object):
             The states that should be removed.
 
         normalize : True / False
-            Weather or not the new Qobj instance should be normalized (default
+            Weather or not the new :class:`Qobj` instance should be normalized (default
             is False). For Qobjs that represents density matrices or state
             vectors normalized should probably be set to True, but for Qobjs
             that represents operators in for example an Hamiltonian, normalize
@@ -1832,9 +1833,9 @@ class Qobj(object):
 
         Returns
         -------
-        q : :class:`qutip.Qobj`
-            A new instance of :class:`qutip.Qobj` that contains only the states
-            corresponding to indices that are **not** in `state_inds`.
+        q : :class:`Qobj`
+            A new instance of :class:`Qobj` that contains only the states
+            corresponding to indices that are **not** in ``states_inds``.
 
         Notes
         -----
@@ -1964,7 +1965,7 @@ class Qobj(object):
 
     def check_isunitary(self):
         """
-        Checks whether :class:`QobjEvo`  is a unitary matrix
+        Checks whether :class:`Qobj` is a unitary matrix
         """
         if self.isoper:
             eye_data = fast_identity(self.shape[0])
@@ -2062,11 +2063,11 @@ class Qobj(object):
             The time for which to evaluate the time-dependent Qobj instance.
         args : dictionary
             A dictionary with parameter values required to evaluate the
-            time-dependent Qobj intance.
+            time-dependent Qobj instance.
 
         Returns
         -------
-        output : :class:`qutip.Qobj`
+        output : :class:`Qobj`
             A Qobj instance that represents the value of qobj_list at time t.
 
         """
