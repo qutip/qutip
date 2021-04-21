@@ -14,6 +14,7 @@ a roadmap for upcoming releases and ideas for future improvements.
 .. toctree::
    :maxdepth: 3
 
+   contributing.rst
    roadmap.rst
    ideas.rst
    docs.rst
