@@ -161,7 +161,7 @@ def _one_subsystem_apply(state, channel, idx):
 
     blk_sz = state.shape[0] // n_blks
     # Apply channel to top subsystem of each block in matrix
-    full_data_matrix = state.data.todense()
+    full_data_matrix = state.full()
 
     if isreal(full_data_matrix).all():
         full_data_matrix = full_data_matrix.astype(complex)
@@ -221,14 +221,12 @@ def _top_apply_S(block, channel):
     n_v =  int(sqrt(channel.shape[0]))
     n_h =  int(sqrt(channel.shape[1]))
     column = _block_col(block, n_v, n_h)
-    chan_mat = channel.data.todense()
+    chan_mat = channel.full()
     temp_col = zeros(shape(column)).astype(complex)
-    # print chan_mat.shape
     for row_idx in range(len(chan_mat)):
         row = chan_mat[row_idx]
-        # print [scal[0,0]*mat for (scal,mat) in zip(transpose(row),column)]
-        temp_col[row_idx] = sum([s[0, 0] * mat
-                                 for (s, mat) in zip(transpose(row), column)])
+        temp_col[row_idx] = sum([s * mat
+                                 for s, mat in zip(row, column)])
     return _block_stack(temp_col, n_v, n_h)
 
 
@@ -277,7 +275,6 @@ def _subsystem_apply_reference(state, channel, mask):
         return full_oper * state * full_oper.dag()
     else:
         # Go to Choi, then Kraus
-        # chan_mat = array(channel.data.todense())
         choi_matrix = super_to_choi(channel)
         vals, vecs = eig(choi_matrix.full())
         vecs = list(map(array, zip(*vecs)))

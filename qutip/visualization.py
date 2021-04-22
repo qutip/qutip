@@ -294,7 +294,7 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
 
     height, width = W.shape
 
-    w_max = 1.25 * max(abs(np.diag(np.matrix(W))))
+    w_max = 1.25 * max(abs(np.diag(np.array(W))))
     if w_max <= 0.0:
         w_max = 1.0
 

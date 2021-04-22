@@ -472,8 +472,8 @@ def _steadystate_direct_sparse(L, ss_args):
 
 def _steadystate_direct_dense(L, ss_args):
     """
-    Direct solver that use numpy dense matrices. Suitable for
-    small system, with a few states.
+    Direct solver that uses numpy arrays. Suitable for small systems with few
+    states.
     """
     if settings.debug:
         logger.debug('Starting direct dense solver.')
@@ -483,14 +483,14 @@ def _steadystate_direct_dense(L, ss_args):
     b = np.zeros(n ** 2)
     b[0] = ss_args['weight']
 
-    L = L.data.todense()
+    L = L.full()
     L[0, :] = np.diag(ss_args['weight']*np.ones(n)).reshape((1, n ** 2))
     _dense_start = time.time()
     v = np.linalg.solve(L, b)
     _dense_end = time.time()
     ss_args['info']['solution_time'] = _dense_end-_dense_start
     if ss_args['return_info']:
-        ss_args['info']['residual_norm'] = la.norm(b - L*v, np.inf)
+        ss_args['info']['residual_norm'] = la.norm(b - L@v, np.inf)
     data = vec2mat(v)
     data = 0.5 * (data + data.conj().T)
 
