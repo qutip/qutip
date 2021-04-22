@@ -12,23 +12,23 @@ cimport cython
 import qutip
 
 cdef extern from "<complex>" namespace "std" nogil:
-    double complex cos(double complex x)
     double complex conj(double complex x)
     double         norm(double complex x)
-    double complex exp(double complex x)
+
 
 cdef class Coefficient:
     cdef double complex _call(self, double t) except *:
         return 0j
 
-    cpdef void arguments(self, dict args) except *:
-        self.args.update(args)
+    def replace(self, *, arguments=None, tlist=None):
+        """Return the Coefficient with args or tlist changed. """
+        # Cases where tlist or args are supported are managed in those classes
+        return self
 
     def __call__(self, double t, dict args={}):
-        """update args and return the
-        """
+        """Update args and return the coefficient value at `t`. """
         if args:
-            self.arguments(args)
+            return (<Coefficient> self.replace(arguments=args))._call(t)
         return self._call(t)
 
     def optstr(self):
@@ -50,17 +50,17 @@ cdef class Coefficient:
             return qutip.QobjEvo([right.copy(), left.copy()])
         return NotImplemented
 
-    def copy(self):
+    cpdef Coefficient copy(self):
         return pickle.loads(pickle.dumps(self))
 
     def conj(self):
-        return ConjCoefficient(self.copy())
+        return ConjCoefficient(self)
 
     def _cdc(self):
-        return NormCoefficient(self.copy())
+        return NormCoefficient(self)
 
     def _shift(self):
-        return ShiftCoefficient(self.copy(), 0)
+        return ShiftCoefficient(self, 0)
 
 
 @cython.auto_pickle(True)
@@ -74,8 +74,16 @@ cdef class FunctionCoefficient(Coefficient):
     cdef complex _call(self, double t) except *:
         return self.func(t, self.args)
 
-    def copy(self):
+    cpdef Coefficient copy(self):
         return FunctionCoefficient(self.func, self.args.copy())
+
+    def replace(self, *, arguments=None, tlist=None):
+            if arguments:
+                return FunctionCoefficient(
+                    self.func,
+                    {**self.args, **arguments}
+                )
+            return self.copy()
 
 
 def proj(x):
@@ -135,11 +143,19 @@ def coeff(t, args):
     cdef complex _call(self, double t) except *:
         return self.func(t, self.args)
 
-    def copy(self):
+    cpdef Coefficient copy(self):
         return StrFunctionCoefficient(self.base, self.args.copy())
 
     def __reduce__(self):
         return (StrFunctionCoefficient, (self.base, self.args))
+
+    def replace(self, *, arguments=None, tlist=None):
+        if arguments:
+            return StrFunctionCoefficient(
+                self.base,
+                {**self.args, **arguments}
+            )
+        return self
 
 
 cdef class InterpolateCoefficient(Coefficient):
@@ -152,7 +168,6 @@ cdef class InterpolateCoefficient(Coefficient):
         self.higher_bound = splineObj.b
         self.spline_data = splineObj.coeffs.astype(np.complex128)
         self.spline = splineObj
-        self.args = {}
 
     @cython.initializedcheck(False)
     cdef complex _call(self, double t) except *:
@@ -163,6 +178,12 @@ cdef class InterpolateCoefficient(Coefficient):
 
     def __reduce__(self):
         return InterpolateCoefficient, (self.spline,)
+
+    cpdef Coefficient copy(self):
+        return InterpolateCoefficient(self.spline)
+
+    def replace(self, *, arguments=None, tlist=None):
+        return self
 
 
 cdef class InterCoefficient(Coefficient):
@@ -184,7 +205,6 @@ cdef class InterCoefficient(Coefficient):
             self.cte = cte
         self.second_derr = self.second_np
         self.dt = tlist[1] - tlist[0]
-        self.args = {}
 
     @cython.initializedcheck(False)
     cdef complex _call(self, double t) except *:
@@ -204,6 +224,16 @@ cdef class InterCoefficient(Coefficient):
     def __reduce__(self):
         return (InterCoefficient,
                 (self.coeff_np, self.tlist_np, self.second_np, self.cte))
+
+    cpdef Coefficient copy(self):
+        return InterCoefficient(self.coeff_np, self.tlist_np,
+                                self.second_np, self.cte)
+
+    def replace(self, *, arguments=None, tlist=None):
+        if tlist:
+            return InterCoefficient(self.coeff_np, tlist)
+        else:
+            return self.copy()
 
     @property
     def array(self):
@@ -253,6 +283,15 @@ cdef class StepCoefficient(Coefficient):
     def __reduce__(self):
         return (StepCoefficient, (self.coeff_np, self.tlist_np, self.cte))
 
+    cpdef Coefficient copy(self):
+        return StepCoefficient(self.coeff_np, self.tlist_np, self.cte)
+
+    def replace(self, *, arguments=None, tlist=None):
+        if tlist:
+            return InterCoefficient(self.coeff_np, tlist)
+        else:
+            return self.copy()
+
     @property
     def array(self):
         # Fro QIP tests
@@ -282,8 +321,14 @@ cdef class SumCoefficient(Coefficient):
             return "({})+({})".format(str1, str2)
         return ""
 
-    def copy(self):
+    cpdef Coefficient copy(self):
         return SumCoefficient(self.first.copy(), self.second.copy())
+
+    def replace(self, *, arguments=None, tlist=None):
+        return SumCoefficient(
+            self.first.replace(arguments=arguments, tlist=tlist),
+            self.second.replace(arguments=arguments, tlist=tlist)
+        )
 
 
 @cython.auto_pickle(True)
@@ -295,10 +340,6 @@ cdef class MulCoefficient(Coefficient):
         self.first = first
         self.second = second
 
-    cpdef void arguments(self, dict args) except *:
-        self.first.arguments(args)
-        self.second.arguments(args)
-
     cdef complex _call(self, double t) except *:
         return self.first._call(t) * self.second._call(t)
 
@@ -309,8 +350,14 @@ cdef class MulCoefficient(Coefficient):
             return "({})*({})".format(str1, str2)
         return ""
 
-    def copy(self):
+    cpdef Coefficient copy(self):
         return MulCoefficient(self.first.copy(), self.second.copy())
+
+    def replace(self, *, arguments=None, tlist=None):
+        return MulCoefficient(
+            self.first.replace(arguments=arguments, tlist=tlist),
+            self.second.replace(arguments=arguments, tlist=tlist)
+        )
 
 
 @cython.auto_pickle(True)
@@ -319,9 +366,6 @@ cdef class ConjCoefficient(Coefficient):
 
     def __init__(self, Coefficient base):
         self.base = base
-
-    cpdef void arguments(self, dict args) except *:
-        self.base.arguments(args)
 
     cdef complex _call(self, double t) except *:
         return conj(self.base._call(t))
@@ -332,8 +376,13 @@ cdef class ConjCoefficient(Coefficient):
             return "conj({})".format(str1)
         return ""
 
-    def copy(self):
+    cpdef Coefficient copy(self):
         return ConjCoefficient(self.base.copy())
+
+    def replace(self, *, arguments=None, tlist=None):
+        return ConjCoefficient(
+            self.base.replace(arguments=arguments, tlist=tlist)
+        )
 
 
 @cython.auto_pickle(True)
@@ -343,8 +392,10 @@ cdef class NormCoefficient(Coefficient):
     def __init__(self, Coefficient base):
         self.base = base
 
-    cpdef void arguments(self, dict args) except *:
-        self.base.arguments(args)
+    def replace(self, *, arguments=None, tlist=None):
+        return NormCoefficient(
+            self.base.replace(arguments=arguments, tlist=tlist)
+        )
 
     cdef complex _call(self, double t) except *:
         return norm(self.base._call(t))
@@ -355,7 +406,7 @@ cdef class NormCoefficient(Coefficient):
             return "norm({})".format(str1)
         return ""
 
-    def copy(self):
+    cpdef Coefficient copy(self):
         return NormCoefficient(self.base.copy())
 
 
@@ -368,9 +419,11 @@ cdef class ShiftCoefficient(Coefficient):
         self.base = base
         self._t0 = _t0
 
-    cpdef void arguments(self, dict args) except *:
-        self._t0 = args["_t0"]
-        self.base.arguments(args)
+    def replace(self, *, arguments=None, tlist=None):
+        _t0 = arguments["_t0"] if "_t0" in arguments else self._t0
+        return ShiftCoefficient(
+            self.base.replace(arguments=arguments, tlist=tlist), _t0
+        )
 
     cdef complex _call(self, double t) except *:
         return self.base._call(t + self._t0)
@@ -383,5 +436,5 @@ cdef class ShiftCoefficient(Coefficient):
                        "(t+_t0)", " " + str1 + " ")
         return ""
 
-    def copy(self):
+    cpdef Coefficient copy(self):
         return ShiftCoefficient(self.base.copy(), self._t0)

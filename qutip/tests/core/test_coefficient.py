@@ -152,7 +152,7 @@ def test_CoeffCallArguments(base, tol):
     a = np.e
     expected = lambda t: a + 1 + t
     coeff = coefficient(base, args=args)
-    coeff.arguments({"a": a})
+    coeff = coeff.replace(arguments={"a": a})
     _assert_eq_over_interval(coeff, expected, rtol=tol)
 
 

@@ -103,8 +103,10 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
         return coeff_from_str(base, args, args_ctypes, compile_opt)
 
     elif callable(base):
-        # TODO add tests?
-        return FunctionCoefficient(base, args.copy())
+        op = FunctionCoefficient(base, args.copy())
+        if not isinstance(op(0), numbers.Number):
+            raise TypeError("The coefficient function must return a number")
+        return op
     else:
         raise ValueError("coefficient format not understood")
 
@@ -216,7 +218,7 @@ class CompilationOptions:
 
 
 # Version number of the Coefficient
-COEFF_VERSION = "1.0"
+COEFF_VERSION = "1.1"
 
 
 def get_root():
@@ -358,22 +360,29 @@ def make_cy_code(code, variables, constants, raw, compile_opt):
     """
     cdef_cte = ""
     init_cte = ""
+    copy_cte = ""
     for i, (name, val, ctype) in enumerate(constants):
         cdef_cte += "        {} {}\n".format(ctype, name[5:])
+        copy_cte += "        out.{} = {}\n".format(name[5:], name)
         init_cte += "        {} = cte[{}]\n".format(name, i)
     cdef_var = ""
     init_var = ""
+    init_arg = ""
     args_var = ""
     call_var = ""
+    copy_var = ""
     for i, (name, val, ctype) in enumerate(variables):
         cdef_var += "        str key{}\n".format(i)
         cdef_var += "        {} {}\n".format(ctype, name[5:])
+        copy_var += "        out.key{} = self.key{}\n".format(i, i)
+        copy_var += "        out.{} = {}\n".format(name[5:], name)
         if not raw:
             init_var += "        self.key{} = var[{}]\n".format(i, i)
         else:
             init_var += "        self.key{} = '{}'\n".format(i, val)
-        args_var += "        if self.key{} in args:\n".format(i)
-        args_var += "            {} = args[self.key{}]\n".format(name, i)
+        init_arg += "        {} = args[self.key{}]\n".format(name, i)
+        args_var += "            if self.key{} in arguments:\n".format(i)
+        args_var += "                out.{} = arguments[self.key{}]\n".format(name[5:], i)
         if raw:
             call_var += "        cdef {} {} = {}\n".format(ctype, val, name)
 
@@ -401,10 +410,21 @@ cdef class StrCoefficient(Coefficient):
 
     def __init__(self, base, var, cte, args):
         self.codeString = base
-{}{}        self.arguments(args)
+{}{}{}
 
-    cpdef void arguments(self, dict args) except *:
-{}        pass
+    cpdef Coefficient copy(self):
+        cdef StrCoefficient out = StrCoefficient.__new__(StrCoefficient)
+        out.codeString = self.codeString
+{}{}
+        return out
+
+    def replace(self, *, dict arguments=None, tlist=None):
+        cdef StrCoefficient out
+        if arguments:
+            out = self.copy()
+{}
+            return out
+        return self
 
     @cython.initializedcheck(False)
     @cython.cdivision(True)
@@ -413,8 +433,12 @@ cdef class StrCoefficient(Coefficient):
 
     def optstr(self):
         return self.codeString
-""".format(compile_opt['extra_import'], code, cdef_cte, cdef_var,
-           init_cte, init_var, args_var, call_var, code)
+""".format(compile_opt['extra_import'], code,
+           cdef_cte, cdef_var,
+           init_cte, init_var, init_arg,
+           copy_cte, copy_var,
+           args_var,
+           call_var, code)
     return code
 
 

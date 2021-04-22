@@ -30,8 +30,7 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-"""Time-dependent Quantum Object (Qobj) class.
-"""
+"""Time-dependent Quantum Object (Qobj) class."""
 __all__ = ['QobjEvo']
 
 import numbers
@@ -468,9 +467,10 @@ class QobjEvo(QobjEvoBase):
         if not isinstance(new_args, dict):
             raise TypeError("The new args must be in a dict")
         self.args.update(new_args)
-        for op in self.ops:
-            op.coeff.arguments(self.args)
-        return
+        self.ops = [EvoElement(op.qobj, op.coeff.replace(arguments=self.args))
+                    for op in self.ops]
+        self._compile()
+        return self
 
     def solver_set_args(self, args, state=None, e_ops=[]):
         # Todo: remove after transition
