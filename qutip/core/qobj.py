@@ -628,6 +628,7 @@ class Qobj:
         or by vectorization and devectorization, as
         appropriate.
         """
+        from qutip.core.superoperator import vector_to_operator, operator_to_vector
         if not isinstance(other, Qobj):
             raise TypeError("Only defined for quantum objects.")
         if (self.type, other.type) not in _CALL_ALLOWED:
@@ -682,6 +683,7 @@ class Qobj:
         Syntax shortcut for tensor:
         A & B ==> tensor(A, B)
         """
+        from qutip.core.tensor import tensor
         return tensor(self, other)
 
     def dag(self):
@@ -730,6 +732,8 @@ class Qobj:
         # is only valid for completely positive maps.
         if not self.iscp:
             raise ValueError("Dual channels are only implemented for CP maps.")
+        from qutip.core.tensor import tensor_swap
+        from qutip.core.superop_reps import to_choi
         J = to_choi(self)
         tensor_idxs = enumerate_flat(J.dims)
         J_dual = tensor_swap(J, *(
@@ -1106,6 +1110,7 @@ class Qobj:
             Quantum object representing partial trace with selected components
             remaining.
         """
+        from qutip.core.superoperator import vector_to_operator, operator_to_vector
         try:
             sel = sorted(sel)
         except TypeError:
@@ -1674,10 +1679,12 @@ class Qobj:
             from this operator to B.
 
         """
+        from qutip.core import metrics as mts
         return mts.dnorm(self, B)
 
     @property
     def ishp(self):
+        from qutip.core.superop_reps import to_choi
         # FIXME: this needs to be cached in the same ways as isherm.
         if self.type in ["super", "oper"]:
             try:
@@ -1690,6 +1697,7 @@ class Qobj:
 
     @property
     def iscp(self):
+        from qutip.core.superop_reps import to_choi
         # FIXME: this needs to be cached in the same ways as isherm.
         if self.type not in ["super", "oper"]:
             return False
@@ -1705,6 +1713,7 @@ class Qobj:
 
     @property
     def istp(self):
+        from qutip.core.superop_reps import to_choi
         if self.type not in ['super', 'oper']:
             return False
         # Normalize to a super of type choi or chi.
@@ -1734,6 +1743,7 @@ class Qobj:
 
     @property
     def iscptp(self):
+        from qutip.core.superop_reps import to_choi
         if not (self.issuper or self.isoper):
             return False
         reps = ('choi', 'chi')
@@ -1805,11 +1815,3 @@ def ptrace(Q, sel):
     if not isinstance(Q, Qobj):
         raise TypeError("Input is not a quantum object")
     return Q.ptrace(sel)
-
-
-# TRAILING IMPORTS
-# We do a few imports here to avoid circular dependencies.
-from qutip.core.superop_reps import to_choi
-from qutip.core.superoperator import vector_to_operator, operator_to_vector
-from qutip.core.tensor import tensor_swap, tensor
-from qutip.core import metrics as mts

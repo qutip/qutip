@@ -51,8 +51,6 @@ from .dimensions import (
 )
 from . import data as _data
 
-import qutip.core.superop_reps
-
 
 def tensor(*args):
     """Calculates the tensor product of input operators.
@@ -220,6 +218,7 @@ def composite(*args):
     while kets and bras are promoted by taking their projectors and
     using ``operator_to_vector(ket2dm(arg))``.
     """
+    import qutip.core.superop_reps
     # First step will be to ensure everything is a Qobj at all.
     if not all(isinstance(arg, Qobj) for arg in args):
         raise TypeError("All arguments must be Qobjs.")

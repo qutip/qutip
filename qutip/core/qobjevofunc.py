@@ -39,7 +39,6 @@ from .qobj import Qobj
 from .qobjevo import QobjEvo, QobjEvoBase
 import numpy as np
 from .cy.cqobjevo import CQobjFunc
-from .superoperator import *
 
 
 class QobjEvoFunc(QobjEvoBase):
@@ -537,6 +536,7 @@ class _Block_rmul_Qoe(_Block_transform):
 
 class _Block_tensor_l(_Block_transform):
     def __call__(self, obj, t, args={}):
+        from .tensor import tensor
         if isinstance(self.other, QobjEvoBase):
             return tensor(obj, self.other(t, args))
         return tensor(obj, self.other)
@@ -544,6 +544,7 @@ class _Block_tensor_l(_Block_transform):
 
 class _Block_tensor_r(_Block_transform):
     def __call__(self, obj, t, args={}):
+        from .tensor import tensor
         if isinstance(self.other, QobjEvoBase):
             return tensor(self.other(t, args), obj)
         return tensor(self.other, obj)
@@ -620,4 +621,4 @@ class _Block_to(_Block_transform):
     def __call__(self, obj, t, args={}):
         return obj.to(self.data_type)
 
-from .tensor import tensor
+from .superoperator import spre, spost, lindblad_dissipator
