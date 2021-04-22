@@ -218,7 +218,7 @@ class TestSuper_td:
     A test class for the QuTiP superoperator functions.
     """
 
-    def __init__(self):
+    def setup_method(self):
         N = 3
         self.t1 = QobjEvo([qeye(N)*(1.+0.1j),[create(N)*(1.-0.1j),f]])
         self.t2 = QobjEvo([destroy(N)*(1.-0.2j)])
