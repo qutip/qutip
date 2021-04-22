@@ -35,10 +35,10 @@ __all__ = ['wigner', 'qfunc', 'spin_q_function',
            'spin_wigner', 'wigner_transform']
 
 import numpy as np
-from numpy import (zeros, array, arange, exp, real, conj, pi,
-                   copy, sqrt, meshgrid, size, conjugate,
-                   cos, sin)
-from scipy import polyval, fliplr
+from numpy import (
+    zeros, array, arange, exp, real, conj, pi, copy, sqrt, meshgrid, size,
+    conjugate, cos, sin, polyval, fliplr,
+)
 import scipy.sparse as sp
 import scipy.fftpack as ft
 import scipy.linalg as la

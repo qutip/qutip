@@ -212,7 +212,7 @@ def ttmsolve(dynmaps, rho0, times, e_ops=[], learningtimes=None, tensors=None,
 
 
 def _generatetensors(dynmaps, learningtimes=None, **kwargs):
-    """
+    r"""
     Generate the tensors :math:`T_1,\dots,T_K` from the dynamical maps
     :math:`E(t_k)`.
 
