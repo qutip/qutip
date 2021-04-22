@@ -1226,7 +1226,7 @@ def _uncoupled_ghz(N):
 
 
 def _uncoupled_css(N, a, b):
-    """
+    r"""
     Generate the density matrix of the CSS state in the full 2^N
     dimensional Hilbert space.
 
