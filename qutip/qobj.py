@@ -100,15 +100,16 @@ class Qobj(object):
     inpt : array_like
         Data for vector/matrix representation of the quantum object.
     dims : list
-        Dimensions of object used for tensor products.
+        Dimensions of object used for :obj:`.tensor` products via :obj:`.dims`.
     shape : list
-        Shape of underlying data structure (matrix shape).
+        Shape of underlying data structure (matrix shape) via
+        :obj:`.dims_to_tensor_shape`.
     copy : bool
         Flag specifying whether :class:`Qobj` should get a copy of the
         input data, or use the original.
     fast : bool
         Flag for fast :class:`Qobj` creation when running ODE solvers like
-        :func:`qutip.mesolve` and :func:`qutip.mcsolve`.
+        :func:`~qutip.mesolve` and :func:`~qutip.mcsolve`.
         This parameter is used internally only.
 
 
@@ -117,26 +118,26 @@ class Qobj(object):
     data : array_like
         Sparse matrix characterizing the quantum object.
     dims : list
-        List of dimensions keeping track of the tensor structure.
+        List of dimensions keeping track of the :obj:`.tensor` structure.
     shape : list
         Shape of the underlying `data` array.
     type : str
         Type of quantum object: :func:`~qutip.states.bra`,
-        :func:`~qutip.states.ket`, 'oper' (:func:`~qutip.qobj.isoper`),
-        'operator-ket' (:func:`~qutip.qobj.isoperket`),
-        'operator-bra' (:func:`~qutip.qobj.isoperbra`), or 'super'
-        (:func:`~qutip.qobj.issuper`).
+        :func:`~qutip.states.ket`, 'oper' (:obj:`.isoper`),
+        'operator-ket' (:obj:`.isoperket`),
+        'operator-bra' (:obj:`.isoperbra`), or 'super'
+        (:obj:`.issuper`).
     superrep : str
         Representation used if ``type`` is 'super'
-        (:func:`~qutip.qobj.issuper`). One of 'super'
+        (:obj:`.issuper`). One of 'super'
         (:func:`~qutip.superoperator.liouvillian` form) or 'choi'
         (Choi matrix with tr = dimension via :mod:`~qutip.superop_reps`).
     isherm : bool
         Indicates if quantum object represents Hermitian operator via
-        :func:`~qutip.qobj.isherm`.
+        :obj:`.isherm`.
     isunitary : bool
-        Indictaes if quantum object represents unitary operator via
-        :func:`~qutip.qobj.check_isunitary`.
+        Indicates if quantum object represents unitary operator via
+        :meth:`check_isunitary`.
     iscp : bool
         Indicates if the quantum object represents a map, and if that map is
         completely positive (CP).
