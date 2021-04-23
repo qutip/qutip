@@ -100,7 +100,7 @@ class Qobj(object):
     inpt : array_like
         Data for vector/matrix representation of the quantum object.
     dims : list
-        Dimensions of object used for :obj:`.tensor` products via :obj:`.dims`.
+        Dimensions of object (:obj:`.dims`) used for :obj:`.tensor` products .
     shape : list
         Shape of underlying data structure (matrix shape) via
         :obj:`.dims_to_tensor_shape`.
@@ -108,9 +108,9 @@ class Qobj(object):
         Flag specifying whether :class:`Qobj` should get a copy of the
         input data, or use the original.
     fast : bool
-        Flag for fast :class:`Qobj` creation when running ODE solvers like
-        :func:`~qutip.mesolve` and :func:`~qutip.mcsolve`.
-        This parameter is used internally only.
+        Flag for fast :class:`Qobj` creation when running ODE solvers (
+        :func:`~qutip.mesolve`, :func:`~qutip.mcsolve`). This parameter
+        is used internally only.
 
 
     Attributes
@@ -123,21 +123,18 @@ class Qobj(object):
         Shape of the underlying `data` array.
     type : str
         Type of quantum object: :func:`~qutip.states.bra`,
-        :func:`~qutip.states.ket`, 'oper' (:obj:`.isoper`),
-        'operator-ket' (:obj:`.isoperket`),
-        'operator-bra' (:obj:`.isoperbra`), or 'super'
-        (:obj:`.issuper`).
+        :func:`~qutip.states.ket`, 'oper', 'operator-ket', 'operator-bra',
+        or 'super'.
     superrep : str
-        Representation used if ``type`` is 'super'
-        (:obj:`.issuper`). One of 'super'
+        Representation used if ``type`` is 'super'. One of 'super'
         (:func:`~qutip.superoperator.liouvillian` form) or 'choi'
         (Choi matrix with tr = dimension via :mod:`~qutip.superop_reps`).
     isherm : bool
-        Indicates if quantum object represents Hermitian operator via
-        :obj:`.isherm`.
+        :obj:`.isherm` indicates if quantum object represents Hermitian
+        operator.
     isunitary : bool
-        Indicates if quantum object represents unitary operator via
-        :meth:`check_isunitary`.
+        :meth:`check_isunitary` indicates if quantum object represents unitary
+        operator.
     iscp : bool
         Indicates if the quantum object represents a map, and if that map is
         completely positive (CP).
@@ -151,19 +148,20 @@ class Qobj(object):
         Indicates if the quantum object represents a map that is completely
         positive and trace preserving (CPTP).
     isket : bool
-        Indicates if the quantum object represents a ket.
+        :obj:`.isket` indicates if the quantum object represents a ket.
     isbra : bool
-        Indicates if the quantum object represents a bra.
+        :obj:`.isbra` indicates if the quantum object represents a bra.
     isoper : bool
-        Indicates if the quantum object represents an operator.
+        :obj:`.isoper` indicates if the quantum object represents an operator.
     issuper : bool
-        Indicates if the quantum object represents a superoperator.
+        :obj:`.issuper` indicates if the quantum object represents a
+        superoperator.
     isoperket : bool
-        Indicates if the quantum object represents an operator in column vector
-        form.
+        :obj:`.isoperket` indicates if the quantum object represents an operator
+        in column vector form.
     isoperbra : bool
-        Indicates if the quantum object represents an operator in row vector
-        form.
+        :obj:`.isoperbra` indicates if the quantum object represents an operator
+        in row vector form.
 
     """
     __array_priority__ = 100  # sets Qobj priority above numpy arrays
@@ -894,7 +892,13 @@ class Qobj(object):
         return s
 
     def dag(self):
-        """Adjoint operator of quantum object (:class:`Qobj`).
+        """Adjoint operator of :class:`Qobj`.
+
+        Returns
+        -------
+        dag : :class:`Qobj`
+            The requested adjoint of an operator or a quantum state as a
+            quantum object.
         """
         out = Qobj()
         out.data = zcsr_adjoint(self.data)
@@ -906,6 +910,12 @@ class Qobj(object):
     def dual_chan(self):
         """Dual channel of quantum object representing a completely positive
         map.
+
+        Raises
+        -------
+        ValueError
+            Dual channels are only implemented for CP maps.
+
         """
         # Uses the technique of Johnston and Kribs (arXiv:1102.0948), which
         # is only valid for completely positive maps.
@@ -921,7 +931,13 @@ class Qobj(object):
         return J_dual
 
     def conj(self):
-        """Conjugate operator of quantum object (:class:`Qobj`).
+        """Conjugate operator of quantum object.
+
+        Returns
+        -------
+        conj : :class:`Qobj`
+            The requested conjugate of an operator or a quantum state as a
+            quantum object.
         """
         out = Qobj()
         out.data = self.data.conj()
@@ -938,7 +954,8 @@ class Qobj(object):
         Parameters
         ----------
         norm : str
-            Which norm to use for ket/bra vectors: L2 'l2', max norm 'max',
+            Which norm to use for ket/bra vectors: L2
+            (:obj:`.sp_L2_norm`), max norm 'max',
             or for operators: trace 'tr', Frobius 'fro', one 'one', or max
             'max'.
 
@@ -958,6 +975,13 @@ class Qobj(object):
         -------
         norm : float
             The requested norm of the operator or state quantum object.
+
+        Raises
+        -------
+        ValueError
+            For matrices, norm must be 'tr', 'fro', 'one', or 'max'.
+
+            For vectors, norm must be 'l2', or 'max'.
 
 
         Notes
@@ -1074,7 +1098,7 @@ class Qobj(object):
         return self.full()
 
     def diag(self):
-        """Diagonal elements of quantum object (:class:`Qobj`).
+        """Diagonal elements of quantum object.
 
         Returns
         -------
@@ -1129,7 +1153,7 @@ class Qobj(object):
         return out.tidyup() if settings.auto_tidyup else out
 
     def check_herm(self):
-        """Check if the quantum object (:class:`Qobj`) is hermitian.
+        """Check if the quantum object is hermitian.
 
         Returns
         -------
