@@ -325,7 +325,7 @@ def rand_ket(N=0, density=1, dims=None, seed=None):
     if N and dims:
         _check_dims(dims, N, 1)
     elif dims:
-        N = prod(dims[0])
+        N = np.prod(dims[0])
         _check_dims(dims, N, 1)
     else:
         dims = [[N],[1]]
@@ -364,7 +364,7 @@ def rand_ket_haar(N=2, dims=None, seed=None):
     if N and dims:
         _check_dims(dims, N, 1)
     elif dims:
-        N = prod(dims[0])
+        N = np.prod(dims[0])
         _check_dims(dims, N, 1)
     else:
         dims = [[N],[1]]
