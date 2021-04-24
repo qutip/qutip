@@ -91,5 +91,23 @@ def test_rand_super_dims():
         check_func_dims(func, (7, ), {}, [[[7], [7]]] * 2)
         check_func_dims(func, (6, ), {'dims': [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]}, [[[2, 3], [2, 3]], [[2, 3], [2, 3]]])
 
+def test_rand_ket():
+    """
+    Random Qobjs: Tests that N and dims are determined as needed.
+    """
+    # when both N and dims are specified
+    test_both_N_dim = rand_ket(N=7,dims=[[7], [1]])
+    assert(np.shape(test_both_N_dim)==(7,1))
+
+    # when dims is specified and N has to be determined
+    test_only_dim = rand_ket(dims=[[7], [1]])
+    assert(np.shape(test_only_dim)==(7,1))
+
+    # when N is specified but dims has to be defined using default
+    test_only_N = rand_ket(N=7)
+    assert(np.shape(test_only_N)==(7,1))
+
+
+
 if __name__ == "__main__":
     run_module_suite()
