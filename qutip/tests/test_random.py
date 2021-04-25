@@ -34,7 +34,7 @@
 import scipy.sparse as sp
 import scipy.linalg as la
 import numpy as np
-from numpy.testing import assert_equal, assert_, run_module_suite
+from numpy.testing import assert_equal, assert_, run_module_suite, assert_raises
 
 from qutip.random_objects import (rand_ket, rand_dm, rand_herm, rand_unitary,
                                   rand_ket_haar, rand_dm_hs,
@@ -95,6 +95,9 @@ def test_rand_ket():
     """
     Random Qobjs: Tests that N and dims are determined as needed.
     """
+    # when neither N or dims are specified
+    assert_raises(ValueError,rand_ket, )
+
     # when both N and dims are specified
     test_both_N_dim = rand_ket(N=7,dims=[[7], [1]])
     assert(np.shape(test_both_N_dim)==(7,1))
