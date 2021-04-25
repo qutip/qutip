@@ -330,7 +330,7 @@ def rand_ket(N=None, density=1, dims=None, seed=None):
         np.random.seed(seed=seed)
     if N is None and dims is None:
         raise ValueError('Specify either the number of rows of operator'
-        '(N) or dimensions of quantum object (dims)')
+                         '(N) or dimensions of quantum object (dims)')
     elif N is not None and dims:
         _check_dims(dims, N, 1)
     elif dims:
