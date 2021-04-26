@@ -148,7 +148,7 @@ class TestRand:
         for i in range(5):
             A = Q[i].data.tocsc()
             for j in range(10):
-                assert_(np.abs(np.sum(A.getcol(j).todense().real)-1.0) < 1e-15)
+                assert_(np.abs(np.sum(A.getcol(j).toarray().real)-1.0) < 1e-15)
 
     def testRandStochasticLeftSeed(self):
         "Random: Stochastic - left with seed"
@@ -166,7 +166,7 @@ class TestRand:
         for i in range(5):
             A = Q[i].data
             for j in range(10):
-                assert_(np.abs(np.sum(A.getrow(j).todense().real)-1.0) < 1e-15)
+                assert_(np.abs(np.sum(A.getrow(j).toarray().real)-1.0) < 1e-15)
 
     def testRandStochasticRightSeed(self):
         "Random: Stochastic - right with seed"

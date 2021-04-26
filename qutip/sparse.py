@@ -406,7 +406,7 @@ def sp_eigs(data, isherm, vecs=True, sparse=False, sort='low',
         evals, evecs = _sp_eigs(data, isherm, vecs, N, eigvals, num_large,
                                 num_small, tol, maxiter)
     else:
-        evals, evecs = _dense_eigs(data.todense(), isherm, vecs, N, eigvals,
+        evals, evecs = _dense_eigs(data.toarray(), isherm, vecs, N, eigvals,
                                    num_large, num_small)
 
     if sort == 'high':  # flip arrays to largest values first

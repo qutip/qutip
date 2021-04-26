@@ -221,7 +221,7 @@ def ode2es(L, rho0):
 
         out = None
         for i in range(rlen):
-            qo = Qobj(np.matrix(vv[:, i]).T, dims=rho0.dims, shape=rho0.shape)
+            qo = Qobj(np.array(vv[:, i]).T, dims=rho0.dims, shape=rho0.shape)
             if out:
                 out += eseries(qo, -1.0j * w[i])
             else:
