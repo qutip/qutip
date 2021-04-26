@@ -386,7 +386,7 @@ def make_cy_code(code, variables, constants, raw, compile_opt):
         if raw:
             call_var += "        cdef {} {} = {}\n".format(ctype, val, name)
 
-    code = """#cython: language_level=3
+    code = f"""#cython: language_level=3
 # This file is generated automatically by QuTiP.
 
 import numpy as np
@@ -398,47 +398,42 @@ from qutip.core.cy.math cimport erf, zerf
 from qutip.core.cy.complex_math cimport *
 from qutip.core.data cimport Data
 cdef double pi = 3.14159265358979323
-{}
+{compile_opt['extra_import']}
 
-parsed_code = "{}"
+parsed_code = "{code}"
 
 @cython.auto_pickle(True)
 cdef class StrCoefficient(Coefficient):
     cdef:
         str codeString
-{}{}
+{cdef_cte}{cdef_var}
 
     def __init__(self, base, var, cte, args):
         self.codeString = base
-{}{}{}
+{init_cte}{init_var}{init_arg}
 
     cpdef Coefficient copy(self):
         cdef StrCoefficient out = StrCoefficient.__new__(StrCoefficient)
         out.codeString = self.codeString
-{}{}
+{copy_cte}{copy_var}
         return out
 
     def replace(self, *, dict arguments=None, tlist=None):
         cdef StrCoefficient out
         if arguments:
             out = self.copy()
-{}
+{args_var}
             return out
         return self
 
     @cython.initializedcheck(False)
     @cython.cdivision(True)
     cdef complex _call(self, double t) except *:
-{}        return {}
+{call_var}        return {code}
 
     def optstr(self):
         return self.codeString
-""".format(compile_opt['extra_import'], code,
-           cdef_cte, cdef_var,
-           init_cte, init_var, init_arg,
-           copy_cte, copy_var,
-           args_var,
-           call_var, code)
+"""
     return code
 
 

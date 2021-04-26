@@ -26,7 +26,7 @@ cdef class Coefficient:
         return self
 
     def __call__(self, double t, dict args={}):
-        """Update args and return the coefficient value at `t`. """
+        """Return the coefficient value at `t` with given `args`. """
         if args:
             return (<Coefficient> self.replace(arguments=args))._call(t)
         return self._call(t)
@@ -65,6 +65,9 @@ cdef class Coefficient:
 
 @cython.auto_pickle(True)
 cdef class FunctionCoefficient(Coefficient):
+    """
+    Coefficient wrapping a Python function.
+    """
     cdef object func
 
     def __init__(self, func, dict args):
@@ -94,6 +97,9 @@ def proj(x):
 
 
 cdef class StrFunctionCoefficient(Coefficient):
+    """
+    Coefficient build from a code string interpreted without cython.
+    """
     cdef object func
     cdef str base
 
@@ -159,6 +165,9 @@ def coeff(t, args):
 
 
 cdef class InterpolateCoefficient(Coefficient):
+    """
+    Coefficient build from a `qutip.Cubic_Spline` object.
+    """
     cdef double lower_bound, higher_bound
     cdef complex[::1] spline_data
     cdef object spline
@@ -187,6 +196,10 @@ cdef class InterpolateCoefficient(Coefficient):
 
 
 cdef class InterCoefficient(Coefficient):
+    """
+    Coefficient build array of time and coefficient interpolated using
+    cubic spline.
+    """
     cdef int n_t, cte
     cdef double dt
     cdef double[::1] tlist
@@ -253,6 +266,11 @@ cdef Coefficient add_inter(InterCoefficient left, InterCoefficient right):
 
 
 cdef class StepCoefficient(Coefficient):
+    """
+    Coefficient build array of time and coefficient interpolated using
+    previous value.
+    tlist[i] <= t < tlist[i+1] ==> coeff[i]
+    """
     cdef int n_t, cte
     cdef double dt
     cdef double[::1] tlist
@@ -288,7 +306,7 @@ cdef class StepCoefficient(Coefficient):
 
     def replace(self, *, arguments=None, tlist=None):
         if tlist:
-            return InterCoefficient(self.coeff_np, tlist)
+            return StepCoefficient(self.coeff_np, tlist)
         else:
             return self.copy()
 
@@ -300,6 +318,9 @@ cdef class StepCoefficient(Coefficient):
 
 @cython.auto_pickle(True)
 cdef class SumCoefficient(Coefficient):
+    """
+    Coefficient build from the sum of 2 other Coefficients
+    """
     cdef Coefficient first
     cdef Coefficient second
 
@@ -333,6 +354,9 @@ cdef class SumCoefficient(Coefficient):
 
 @cython.auto_pickle(True)
 cdef class MulCoefficient(Coefficient):
+    """
+    Coefficient build from the product of 2 other Coefficients
+    """
     cdef Coefficient first
     cdef Coefficient second
 
@@ -362,6 +386,9 @@ cdef class MulCoefficient(Coefficient):
 
 @cython.auto_pickle(True)
 cdef class ConjCoefficient(Coefficient):
+    """
+    Conjugate of a Coefficient.
+    """
     cdef Coefficient base
 
     def __init__(self, Coefficient base):
@@ -387,6 +414,10 @@ cdef class ConjCoefficient(Coefficient):
 
 @cython.auto_pickle(True)
 cdef class NormCoefficient(Coefficient):
+    """
+    Norm of a Coefficient.
+    Used as a shortcut of conj(coeff) * coeff
+    """
     cdef Coefficient base
 
     def __init__(self, Coefficient base):
@@ -412,6 +443,9 @@ cdef class NormCoefficient(Coefficient):
 
 @cython.auto_pickle(True)
 cdef class ShiftCoefficient(Coefficient):
+    """
+    Introduce a time shift in the Coefficient
+    """
     cdef Coefficient base
     cdef double _t0
 
