@@ -41,9 +41,7 @@ from __future__ import division
 
 from numpy import abs, pi, asarray, kron
 from numpy.linalg import norm
-from numpy.testing import assert_, assert_almost_equal, run_module_suite
 
-#from unittest import expectedFailure
 import pytest
 from qutip import composite
 from qutip.qobj import Qobj
@@ -58,7 +56,7 @@ from qutip.superoperator import operator_to_vector, vector_to_operator, sprepost
 
 tol = 1e-7
 
-#doing
+
 @pytest.fixture(scope="function", params=[2, 3, 7])
 def dimension(request):
     # There are also some cases in the file where this fixture is explicitly
@@ -74,8 +72,6 @@ def dimension(request):
 ])
 def superoperator(request, dimension):
     return request.param(dimension)
-
-right=left=superoperator
 
 
 class TestSuperopReps:
@@ -183,7 +179,7 @@ class TestSuperopReps:
         Superoperator: to_choi(q) returns q if q is already Choi.
         """
         choi = to_choi(superoperator)
-        assert_(choi is to_choi(choi))
+        assert choi is to_choi(choi)
 
     def test_random_iscptp(self, superoperator):
         """
@@ -239,7 +235,6 @@ class TestSuperopReps:
         assert tp == shouldtp
         assert cptp == shouldcptp
 
-    @pytest.mark.parametrize('dimension', [2, 3, 4])
     def test_choi_tr(self, dimension):
         """
         Superoperator: Trace returned by to_choi matches docstring.
