@@ -448,7 +448,7 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
         op = vector_to_operator(S_dual * vec_eye)
         # The 2-norm was not implemented for sparse matrices as of the time
         # of this writing. Thus, we must yet again go dense.
-        return la.norm(op.data.todense(), 2)
+        return la.norm(op.full(), 2)
 
     # If we're still here, we need to actually solve the problem.
 

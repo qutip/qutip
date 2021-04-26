@@ -173,7 +173,7 @@ class fast_csr_matrix(csr_matrix):
             elif other.size == 1:
                 return self._mul_scalar(other.flat[0])
         # Anything else.
-        return np.multiply(self.todense(), other)
+        return np.multiply(self.toarray(), other)
 
     def _mul_sparse_matrix(self, other):
         """
@@ -263,7 +263,7 @@ class fast_csr_matrix(csr_matrix):
                 return self._scalar_binopt(other, operator.eq)
         # Dense other.
         elif isdense(other):
-            return self.todense() == other
+            return self.toarray() == other
         # Sparse other.
         elif isspmatrix(other):
             warn("Comparing sparse matrices using == is inefficient, try using"
@@ -297,7 +297,7 @@ class fast_csr_matrix(csr_matrix):
                 return self._scalar_binopt(other, operator.ne)
         # Dense other.
         elif isdense(other):
-            return self.todense() != other
+            return self.toarray() != other
         # Sparse other.
         elif isspmatrix(other):
             #TODO sparse broadcasting
@@ -324,7 +324,7 @@ class fast_csr_matrix(csr_matrix):
                 return self._scalar_binopt(other, op)
         # Dense other.
         elif isdense(other):
-            return op(self.todense(), other)
+            return op(self.toarray(), other)
         # Sparse other.
         elif isspmatrix(other):
             #TODO sparse broadcasting

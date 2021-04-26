@@ -39,6 +39,7 @@ __all__ = ['correlation_2op_1t', 'correlation_2op_2t', 'correlation_3op_1t',
 
 from re import sub
 from warnings import warn
+import warnings
 import types
 
 import numpy as np
@@ -1153,12 +1154,18 @@ def _correlation_es_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op):
 
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
 
-    solES_t = ode2es(L, rho0)
-    # evaluate the correlation function
-    for t_idx in range(len(tlist)):
-        rho_t = esval(solES_t, [tlist[t_idx]])
-        solES_tau = ode2es(L, c_op * rho_t * a_op)
-        corr_mat[t_idx, :] = esval(expect(b_op, solES_tau), taulist)
+    # The user-facing eseries and ode2es are deprecated from QuTiP 4.6, pending
+    # removal in QuTiP 5.0, however they are being maintained for internal use
+    # in correlation, so should not raise warnings to the user not matter what
+    # their settings.
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        solES_t = ode2es(L, rho0)
+        # evaluate the correlation function
+        for t_idx in range(len(tlist)):
+            rho_t = esval(solES_t, [tlist[t_idx]])
+            solES_tau = ode2es(L, c_op * rho_t * a_op)
+            corr_mat[t_idx, :] = esval(expect(b_op, solES_tau), taulist)
     return corr_mat
 
 
@@ -1179,17 +1186,23 @@ def _spectrum_es(H, wlist, c_ops, a_op, b_op):
     a_op_ss = expect(a_op, rho0)
     b_op_ss = expect(b_op, rho0)
 
-    # eseries solution for (b * rho0)(t)
-    es = ode2es(L, b_op * rho0)
-    # correlation
-    corr_es = expect(a_op, es)
-    # covariance
-    cov_es = corr_es - a_op_ss * b_op_ss
-    # tidy up covariance (to combine, e.g., zero-frequency components that
-    # cancel)
-    cov_es.tidyup()
-    # spectrum
-    return esspec(cov_es, wlist)
+    # The user-facing eseries and ode2es are deprecated from QuTiP 4.6, pending
+    # removal in QuTiP 5.0, however they are being maintained for internal use
+    # in spectrum, so should not raise warnings to the user not matter what
+    # their settings.
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        # eseries solution for (b * rho0)(t)
+        es = ode2es(L, b_op * rho0)
+        # correlation
+        corr_es = expect(a_op, es)
+        # covariance
+        cov_es = corr_es - a_op_ss * b_op_ss
+        # tidy up covariance (to combine, e.g., zero-frequency components that
+        # cancel)
+        cov_es.tidyup()
+        # spectrum
+        return esspec(cov_es, wlist)
 
 
 # Monte Carlo solvers

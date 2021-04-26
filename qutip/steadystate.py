@@ -39,24 +39,23 @@ collapse operators.
 __all__ = ['steadystate', 'steady', 'build_preconditioner',
            'pseudo_inverse']
 
-import warnings
+import functools
 import time
-import scipy
+import warnings
+
+from packaging.version import parse as _parse_version
 import numpy as np
 from numpy.linalg import svd
-from scipy import prod
+import scipy
 import scipy.sparse as sp
 import scipy.linalg as la
-from scipy.sparse.linalg import (use_solver, splu, spilu, spsolve, eigs,
-                                 LinearOperator, gmres, lgmres, bicgstab)
+from scipy.sparse.linalg import (
+    use_solver, splu, spilu, eigs, LinearOperator, gmres, lgmres, bicgstab,
+)
 from qutip.qobj import Qobj, issuper, isoper
 
 from qutip.superoperator import liouvillian, vec2mat, spre
-from qutip.sparse import sp_permute, sp_bandwidth, sp_reshape, sp_profile
-
-from qutip.superoperator import liouvillian, vec2mat
-from qutip.sparse import (sp_permute, sp_bandwidth, sp_reshape,
-                          sp_profile)
+from qutip.sparse import sp_permute, sp_bandwidth, sp_profile
 from qutip.cy.spmath import zcsr_kron
 from qutip.graph import weighted_bipartite_matching
 from qutip import (mat2vec, tensor, identity, operator_to_vector)
@@ -70,6 +69,36 @@ logger.setLevel('DEBUG')
 # Load MKL spsolve if avaiable
 if settings.has_mkl:
     from qutip._mkl.spsolve import (mkl_splu, mkl_spsolve)
+
+
+def _eat_kwargs(function, names):
+    """
+    Return a wrapped version of `function` that simply removes any keyword
+    arguments with one of the given names.
+    """
+    @functools.wraps(function)
+    def out(*args, **kwargs):
+        for name in names:
+            if name in kwargs:
+                del kwargs[name]
+        return function(*args, **kwargs)
+    return out
+
+
+# From SciPy 1.4 onwards we need to pass the `callback_type='legacy'` argument
+# to gmres to maintain the same behaviour we used to have.  Since this should
+# be the default behaviour, we use that in the main code and just "eat" the
+# argument if passed to a lower version of SciPy that doesn't know about it.
+# Similarly, SciPy < 1.1 does not recognise the `atol` keyword.
+#
+# Respective checks can be removed when SciPy version requirements are raised.
+
+if _parse_version(scipy.__version__) < _parse_version("1.1"):
+    gmres = _eat_kwargs(gmres, ['atol', 'callback_type'])
+    lgmres = _eat_kwargs(lgmres, ['atol'])
+    bicgstab = _eat_kwargs(bicgstab, ['atol'])
+elif _parse_version(scipy.__version__) < _parse_version("1.4"):
+    gmres = _eat_kwargs(gmres, ['callback_type'])
 
 
 def _empty_info_dict():
@@ -472,8 +501,8 @@ def _steadystate_direct_sparse(L, ss_args):
 
 def _steadystate_direct_dense(L, ss_args):
     """
-    Direct solver that use numpy dense matrices. Suitable for
-    small system, with a few states.
+    Direct solver that uses numpy arrays. Suitable for small systems with few
+    states.
     """
     if settings.debug:
         logger.debug('Starting direct dense solver.')
@@ -483,14 +512,14 @@ def _steadystate_direct_dense(L, ss_args):
     b = np.zeros(n ** 2)
     b[0] = ss_args['weight']
 
-    L = L.data.todense()
+    L = L.full()
     L[0, :] = np.diag(ss_args['weight']*np.ones(n)).reshape((1, n ** 2))
     _dense_start = time.time()
     v = np.linalg.solve(L, b)
     _dense_end = time.time()
     ss_args['info']['solution_time'] = _dense_end-_dense_start
     if ss_args['return_info']:
-        ss_args['info']['residual_norm'] = la.norm(b - L*v, np.inf)
+        ss_args['info']['residual_norm'] = la.norm(b - L@v, np.inf)
     data = vec2mat(v)
     data = 0.5 * (data + data.conj().T)
 
@@ -628,50 +657,23 @@ def _steadystate_iterative(L, ss_args):
 
     # Select iterative solver type
     _iter_start = time.time()
-    # FIXME: These atol keyword except checks can be removed once scipy 1.1
-    # is a minimum requirement
-    extra = {"callback_type": 'legacy'} if scipy.__version__ >= "1.4" else {}
     if ss_args['method'] == 'iterative-gmres':
-        try:
-            v, check = gmres(L, b, tol=ss_args['tol'], atol=ss_args['matol'],
-                             M=ss_args['M'], x0=ss_args['x0'],
-                             restart=ss_args['restart'],
-                             maxiter=ss_args['maxiter'],
-                             callback=_iter_count, **extra)
-        except TypeError as e:
-            if "unexpected keyword argument 'atol'" in str(e):
-                v, check = gmres(L, b, tol=ss_args['tol'],
-                                 M=ss_args['M'], x0=ss_args['x0'],
-                                 restart=ss_args['restart'],
-                                 maxiter=ss_args['maxiter'],
-                                 callback=_iter_count)
-
+        v, check = gmres(L, b, tol=ss_args['tol'], atol=ss_args['matol'],
+                         M=ss_args['M'], x0=ss_args['x0'],
+                         restart=ss_args['restart'],
+                         maxiter=ss_args['maxiter'],
+                         callback=_iter_count, callback_type='legacy')
     elif ss_args['method'] == 'iterative-lgmres':
-        try:
-            v, check = lgmres(L, b, tol=ss_args['tol'], atol=ss_args['matol'],
-                              M=ss_args['M'], x0=ss_args['x0'],
-                              maxiter=ss_args['maxiter'],
-                              callback=_iter_count)
-        except TypeError as e:
-            if "unexpected keyword argument 'atol'" in str(e):
-                v, check = lgmres(L, b, tol=ss_args['tol'],
-                                  M=ss_args['M'], x0=ss_args['x0'],
-                                  maxiter=ss_args['maxiter'],
-                                  callback=_iter_count)
-
+        v, check = lgmres(L, b, tol=ss_args['tol'], atol=ss_args['matol'],
+                          M=ss_args['M'], x0=ss_args['x0'],
+                          maxiter=ss_args['maxiter'],
+                          callback=_iter_count)
     elif ss_args['method'] == 'iterative-bicgstab':
-        try:
-            v, check = bicgstab(L, b, tol=ss_args['tol'],
-                                atol=ss_args['matol'],
-                                M=ss_args['M'], x0=ss_args['x0'],
-                                maxiter=ss_args['maxiter'],
-                                callback=_iter_count)
-        except TypeError as e:
-            if "unexpected keyword argument 'atol'" in str(e):
-                v, check = bicgstab(L, b, tol=ss_args['tol'],
-                                    M=ss_args['M'], x0=ss_args['x0'],
-                                    maxiter=ss_args['maxiter'],
-                                    callback=_iter_count)
+        v, check = bicgstab(L, b, tol=ss_args['tol'],
+                            atol=ss_args['matol'],
+                            M=ss_args['M'], x0=ss_args['x0'],
+                            maxiter=ss_args['maxiter'],
+                            callback=_iter_count)
     else:
         raise Exception("Invalid iterative solver method.")
     _iter_end = time.time()
@@ -875,52 +877,26 @@ def _steadystate_power(L, ss_args):
                 logger.debug('Fill factor: %f' % ((L_nnz+U_nnz)/orig_nnz))
 
     it = 0
-    # FIXME: These atol keyword except checks can be removed once scipy 1.1
-    # is a minimum requirement
     while (la.norm(L * v, np.inf) > tol) and (it < maxiter):
         check = 0
         if ss_args['method'] == 'power':
             v = lu.solve(v)
         elif ss_args['method'] == 'power-gmres':
-            try:
-                v, check = gmres(L, v, tol=mtol, atol=ss_args['matol'],
-                                 M=ss_args['M'], x0=ss_args['x0'],
-                                 restart=ss_args['restart'],
-                                 maxiter=ss_args['maxiter'],
-                                 callback=_iter_count)
-            except TypeError as e:
-                if "unexpected keyword argument 'atol'" in str(e):
-                    v, check = gmres(L, v, tol=mtol,
-                                     M=ss_args['M'], x0=ss_args['x0'],
-                                     restart=ss_args['restart'],
-                                     maxiter=ss_args['maxiter'],
-                                     callback=_iter_count)
-
+            v, check = gmres(L, v, tol=mtol, atol=ss_args['matol'],
+                             M=ss_args['M'], x0=ss_args['x0'],
+                             restart=ss_args['restart'],
+                             maxiter=ss_args['maxiter'],
+                             callback=_iter_count, callback_type='legacy')
         elif ss_args['method'] == 'power-lgmres':
-            try:
-                v, check = lgmres(L, v, tol=mtol, atol=ss_args['matol'],
-                                  M=ss_args['M'], x0=ss_args['x0'],
-                                  maxiter=ss_args['maxiter'],
-                                  callback=_iter_count)
-            except TypeError as e:
-                if "unexpected keyword argument 'atol'" in str(e):
-                    v, check = lgmres(L, v, tol=mtol,
-                                      M=ss_args['M'], x0=ss_args['x0'],
-                                      maxiter=ss_args['maxiter'],
-                                      callback=_iter_count)
-
+            v, check = lgmres(L, v, tol=mtol, atol=ss_args['matol'],
+                              M=ss_args['M'], x0=ss_args['x0'],
+                              maxiter=ss_args['maxiter'],
+                              callback=_iter_count)
         elif ss_args['method'] == 'power-bicgstab':
-            try:
-                v, check = bicgstab(L, v, tol=mtol, atol=ss_args['matol'],
-                                    M=ss_args['M'], x0=ss_args['x0'],
-                                    maxiter=ss_args['maxiter'],
-                                    callback=_iter_count)
-            except TypeError as e:
-                if "unexpected keyword argument 'atol'" in str(e):
-                    v, check = bicgstab(L, v, tol=mtol,
-                                        M=ss_args['M'], x0=ss_args['x0'],
-                                        maxiter=ss_args['maxiter'],
-                                        callback=_iter_count)
+            v, check = bicgstab(L, v, tol=mtol, atol=ss_args['matol'],
+                                M=ss_args['M'], x0=ss_args['x0'],
+                                maxiter=ss_args['maxiter'],
+                                callback=_iter_count)
         else:
             raise Exception("Invalid iterative solver method.")
         if check > 0:

@@ -528,8 +528,7 @@ def rand_kraus_map(N, dims=None, seed=None):
         _check_dims(dims, N, N)
 
     # Random unitary (Stinespring Dilation)
-    big_unitary = rand_unitary(N ** 3, seed=seed).data.todense()
-    orthog_cols = np.array(big_unitary[:, :N])
+    orthog_cols = rand_unitary(N ** 3, seed=seed).full()[:, :N]
     oper_list = np.reshape(orthog_cols, (N ** 2, N, N))
     return list(map(lambda x: Qobj(inpt=x, dims=dims), oper_list))
 

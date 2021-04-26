@@ -122,7 +122,7 @@ def floquet_modes(H, T, args=None, sort=False, U=None):
     # prepare a list of kets for the floquet states
     new_dims = [U.dims[0], [1] * len(U.dims[0])]
     new_shape = [U.shape[0], 1]
-    kets_order = [Qobj(np.matrix(evecs[:, o]).T,
+    kets_order = [Qobj(np.array(evecs[:, o]).T,
                        dims=new_dims, shape=new_shape) for o in order]
 
     return kets_order, e_quasi[order]

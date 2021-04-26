@@ -40,7 +40,7 @@ before_script:
 
 script:
   - python -c "import qutip; qutip.about()"
-  - pytest --verbosity=1 --rootdir="${QUTIP_INSTALL}/tests" -c "${QUTIP_INSTALL}/tests/pytest.ini" --pyargs qutip
+  - pytest -We --verbosity=1 --rootdir="${QUTIP_INSTALL}/tests" -c "${QUTIP_INSTALL}/tests/pytest.ini" --pyargs qutip
 
 _mac_generic_setup: &mac_generic_setup
   os: osx
@@ -79,7 +79,7 @@ jobs:
         - export QUTIP_NUM_PROCESSES=2
       script:
         - python -c "import qutip; qutip.about()"
-        - pytest --verbosity=1 --cov=qutip --cov-config="${QUTIP_DOWNLOAD}/.coveragerc" --rootdir="${QUTIP_INSTALL}/tests" -c "${QUTIP_INSTALL}/tests/pytest.ini" --pyargs qutip
+        - pytest -We --verbosity=1 --cov=qutip --cov-config="${QUTIP_DOWNLOAD}/.coveragerc" --rootdir="${QUTIP_INSTALL}/tests" -c "${QUTIP_INSTALL}/tests/pytest.ini" --pyargs qutip
       after_success:
         - coveralls
 

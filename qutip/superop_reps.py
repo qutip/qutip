@@ -116,7 +116,7 @@ def _pauli_basis(nq=1):
     for idx, op in enumerate(starmap(tensor,
                                      product(_SINGLE_QUBIT_PAULI_BASIS,
                                              repeat=nq))):
-        B[:, idx] = operator_to_vector(op).dag().data.todense()
+        B[:, idx] = operator_to_vector(op).dag().full()
 
     return Qobj(B, dims=dims)
 
@@ -222,7 +222,7 @@ def choi_to_kraus(q_oper, tol=1e-9):
     TODO: Create a new class structure for quantum channels, perhaps as a
     strict sub-class of Qobj.
     """
-    vals, vecs = eig(q_oper.data.todense())
+    vals, vecs = eig(q_oper.full())
     vecs = [array(_) for _ in zip(*vecs)]
     shape = [np.prod(q_oper.dims[0][i]) for i in range(2)][::-1]
     return [Qobj(inpt=sqrt(val)*vec2mat(vec, shape=shape),
@@ -339,7 +339,7 @@ def _generalized_kraus(q_oper, thresh=1e-10):
     in_left, in_right = in_dims
 
     # Find the SVD.
-    U, S, V = svd(q_oper.data.todense())
+    U, S, V = svd(q_oper.full())
 
     # Truncate away the zero singular values, up to a threshold.
     nonzero_idxs = S > thresh
