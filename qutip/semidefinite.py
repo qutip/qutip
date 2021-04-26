@@ -169,7 +169,7 @@ def initialize_constraints_on_dnorm_problem(dim):
     # we need to swap the order in Rho0 and Rho1. This is not straightforward,
     # as CVXPY requires that the constant be the first argument. To solve this,
     # We conjugate by SWAP.
-    W = qudit_swap(dim).data.todense()
+    W = qudit_swap(dim).full()
     W = Complex(re=W.real, im=W.imag)
     Rho0 = conj(W, kron(np.eye(dim), rho0))
     Rho1 = conj(W, kron(np.eye(dim), rho1))

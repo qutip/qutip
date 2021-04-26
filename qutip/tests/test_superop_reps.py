@@ -262,7 +262,7 @@ class TestSuperopReps(object):
         """
         def case(map):
             A, B = to_stinespring(map)
-            assert_(norm((A - B).data.todense()) < thresh)
+            assert_(norm((A - B).full()) < thresh)
 
         for idx in range(4):
             case(rand_super_bcsz(7))

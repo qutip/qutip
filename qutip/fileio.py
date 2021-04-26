@@ -276,11 +276,11 @@ def qload(name):
         Object retrieved from requested file.
 
     """
-    fileObject = open(name + '.qu', 'rb')  # open the file for reading
-    if sys.version_info >= (3, 0):
-        out = pickle.load(fileObject, encoding='latin1')  # return the object from the file
-    else:
-        out = pickle.load(fileObject)
+    with open(name + ".qu", "rb") as fileObject:
+        if sys.version_info >= (3, 0):
+            out = pickle.load(fileObject, encoding='latin1')
+        else:
+            out = pickle.load(fileObject)
     if isinstance(out, Qobj):  # for quantum objects
         print('Loaded Qobj object:')
         str1 = "Quantum object: " + "dims = " + str(out.dims) \
