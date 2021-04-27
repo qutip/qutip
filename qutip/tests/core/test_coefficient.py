@@ -36,7 +36,7 @@ import qutip as qt
 import numpy as np
 from functools import partial
 from qutip.core.coefficient import (coefficient, norm, conj, shift,
-                                    reduce, CompilationOptions,
+                                    CompilationOptions,
                                     clean_compiled_coefficient
                                    )
 
@@ -295,14 +295,6 @@ from qutip.core.data.expect cimport expect_csr
                         args_ctypes={"op": "CSR"},
                         compile_opt=opt)
     assert coeff(0) == 5.
-
-
-@pytest.mark.requires_cython
-def test_CoeffReduce():
-    coeff = coefficient("exp(w * t * pi)", args={'w': 1.0j})
-    apad = coeff + conj(coeff)
-    reduced = reduce(apad, {'w': 1.0j})
-    _assert_eq_over_interval(apad, reduced)
 
 
 def _add(coeff):

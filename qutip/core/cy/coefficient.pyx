@@ -4,6 +4,7 @@ from .inter cimport (_spline_complex_cte_second,
                      _spline_complex_t_second,
                      _step_complex_t, _step_complex_cte)
 from .interpolate cimport interp, zinterp
+from ..interpolate import Cubic_Spline
 import pickle
 import scipy
 import numpy as np
@@ -17,11 +18,16 @@ cdef extern from "<complex>" namespace "std" nogil:
 
 
 cdef class Coefficient:
+    """`Coefficient` are the time-dependant scalar of a `[Qobj, coeff]` pair
+    composing time-dependant operator in list format for :obj:`QobjEvo`.
+
+    Coefficient are immutable.
+    """
     cdef double complex _call(self, double t) except *:
         return 0j
 
     def replace(self, *, arguments=None, tlist=None):
-        """Return the Coefficient with args or tlist changed. """
+        """Return a Coefficient with args or tlist changed. """
         # Cases where tlist or args are supported are managed in those classes
         return self
 
@@ -30,9 +36,6 @@ cdef class Coefficient:
         if args:
             return (<Coefficient> self.replace(arguments=args))._call(t)
         return self._call(t)
-
-    def optstr(self):
-        return ""
 
     def __add__(left, right):
         if (isinstance(left, InterCoefficient) and isinstance(right, InterCoefficient)):
@@ -54,12 +57,15 @@ cdef class Coefficient:
         return pickle.loads(pickle.dumps(self))
 
     def conj(self):
+        """ Return a conjugate Coefficient of this"""
         return ConjCoefficient(self)
 
     def _cdc(self):
+        """ Return a Coefficient being the norm of this"""
         return NormCoefficient(self)
 
     def _shift(self):
+        """ Return a Coefficient with a time shift"""
         return ShiftCoefficient(self, 0)
 
 
@@ -81,12 +87,12 @@ cdef class FunctionCoefficient(Coefficient):
         return FunctionCoefficient(self.func, self.args.copy())
 
     def replace(self, *, arguments=None, tlist=None):
-            if arguments:
-                return FunctionCoefficient(
-                    self.func,
-                    {**self.args, **arguments}
-                )
-            return self.copy()
+        if arguments:
+            return FunctionCoefficient(
+                self.func,
+                {**self.args, **arguments}
+            )
+        return self.copy()
 
 
 def proj(x):
@@ -192,7 +198,14 @@ cdef class InterpolateCoefficient(Coefficient):
         return InterpolateCoefficient(self.spline)
 
     def replace(self, *, arguments=None, tlist=None):
-        return self
+        if tlist is not None:
+            return InterpolateCoefficient(
+                Cubic_Spline(tlist[0], tlist[1],
+                             self.spline.array,
+                             *self.spline.bounds)
+                )
+        else:
+            return self
 
 
 cdef class InterCoefficient(Coefficient):
@@ -335,13 +348,6 @@ cdef class SumCoefficient(Coefficient):
     cdef complex _call(self, double t) except *:
         return self.first._call(t) + self.second._call(t)
 
-    def optstr(self):
-        str1 = self.first.optstr()
-        str2 = self.second.optstr()
-        if str1 and str2:
-            return "({})+({})".format(str1, str2)
-        return ""
-
     cpdef Coefficient copy(self):
         return SumCoefficient(self.first.copy(), self.second.copy())
 
@@ -367,13 +373,6 @@ cdef class MulCoefficient(Coefficient):
     cdef complex _call(self, double t) except *:
         return self.first._call(t) * self.second._call(t)
 
-    def optstr(self):
-        str1 = self.first.optstr()
-        str2 = self.second.optstr()
-        if str1 and str2:
-            return "({})*({})".format(str1, str2)
-        return ""
-
     cpdef Coefficient copy(self):
         return MulCoefficient(self.first.copy(), self.second.copy())
 
@@ -396,12 +395,6 @@ cdef class ConjCoefficient(Coefficient):
 
     cdef complex _call(self, double t) except *:
         return conj(self.base._call(t))
-
-    def optstr(self):
-        str1 = self.base.optstr()
-        if str1:
-            return "conj({})".format(str1)
-        return ""
 
     cpdef Coefficient copy(self):
         return ConjCoefficient(self.base.copy())
@@ -431,12 +424,6 @@ cdef class NormCoefficient(Coefficient):
     cdef complex _call(self, double t) except *:
         return norm(self.base._call(t))
 
-    def optstr(self):
-        str1 = self.base.optstr()
-        if str1:
-            return "norm({})".format(str1)
-        return ""
-
     cpdef Coefficient copy(self):
         return NormCoefficient(self.base.copy())
 
@@ -461,14 +448,6 @@ cdef class ShiftCoefficient(Coefficient):
 
     cdef complex _call(self, double t) except *:
         return self.base._call(t + self._t0)
-
-    def optstr(self):
-        from re import sub
-        str1 = self.base.optstr()
-        if str1:
-            return sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",
-                       "(t+_t0)", " " + str1 + " ")
-        return ""
 
     cpdef Coefficient copy(self):
         return ShiftCoefficient(self.base.copy(), self._t0)

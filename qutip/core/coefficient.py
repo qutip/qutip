@@ -129,18 +129,6 @@ def shift(coeff, _t0=0):
     return ShiftCoefficient(coeff, _t0)
 
 
-def reduce(coeff, args):
-    """ Reduce decorated string coefficient to 1 object:
-    c = coefficient("t")
-    optimize(c + conj(c)) => coefficient("t+conj(t)")
-    """
-    reduced = coeff.optstr()
-    if reduced:
-        return coefficient(reduced, args=args)
-    else:
-        return coeff
-
-
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%      Everything under this is for string compilation      %%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -430,9 +418,6 @@ cdef class StrCoefficient(Coefficient):
     @cython.cdivision(True)
     cdef complex _call(self, double t) except *:
 {call_var}        return {code}
-
-    def optstr(self):
-        return self.codeString
 """
     return code
 

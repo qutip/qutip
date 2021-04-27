@@ -112,6 +112,8 @@ class Cubic_Spline:
         self.b = b           # Uppser-bound of domain
         self.coeffs = coeff  # Spline coefficients
         self.is_complex = y.dtype == complex  # Tells which dtype solver to use
+        self.array = y
+        self.bounds = (alpha, beta)
 
     def __call__(self, pnts, *args):
         # If requesting a single return value
