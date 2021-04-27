@@ -114,6 +114,7 @@ def _determine_version(options):
     """
     Adds the 'short_version', 'version' and 'release' options.
 
+<<<<<<< HEAD
     Read from the VERSION file to discover the version.  This should be a
     single line file containing valid Python package public identifier (see PEP
     440), for example
@@ -151,6 +152,58 @@ def _determine_version(options):
             version_string += "nogit"
     options['version'] = version_string
     return options
+=======
+# Cython extensions to be compiled.  The key is the relative package name, the
+# value is a list of the Cython modules in that package.
+cy_exts = {
+    'core.data': [
+        'add',
+        'adjoint',
+        'base',
+        'convert',
+        'csr',
+        'dense',
+        'dispatch',
+        'expect',
+        'inner',
+        'kron',
+        'matmul',
+        'mul',
+        'norm',
+        'permute',
+        'pow',
+        'project',
+        'properties',
+        'ptrace',
+        'reshape',
+        'tidyup',
+        'trace',
+    ],
+    'core.cy': [
+        'coefficient',
+        'inter',
+        'interpolate',
+        'math',
+        'qobjevo',
+        '_element',
+    ],
+    'control': [
+        'cy_grape',
+    ],
+    'solve': [
+        '_brtensor',
+        '_brtools',
+        '_brtools_checks',
+        '_mcsolve',
+        '_piqs',
+        '_steadystate',
+        '_stochastic',
+    ],
+    'solve.nonmarkov': [
+        '_heom',
+    ],
+}
+>>>>>>> Create cython version of QobjEvo merging the previous python and cython objects
 
 
 def create_version_py_file(options):
