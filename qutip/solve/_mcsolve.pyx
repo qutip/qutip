@@ -46,7 +46,7 @@ from cpython.exc cimport PyErr_CheckSignals
 from qutip.core import Qobj
 from qutip.core import data as _data
 
-from qutip.core.cy.cqobjevo cimport CQobjEvo
+from qutip.core.cy.qobjevo cimport QobjEvo
 from qutip.core.data cimport Dense
 from qutip.core.data.norm cimport l2_dense
 
@@ -94,7 +94,7 @@ cdef class CyMcOde:
         self.steady_state = opt['steady_state_average']
         self.store_states = opt['store_states'] or opt['average_states']
         self.collapses = []
-        self.l_vec = self.c_ops[0].cte.shape[0]
+        self.l_vec = self.c_ops[0].shape[0]
         self.num_ops = len(ss.td_n_ops)
         self.n_dp = np.zeros(self.num_ops)
 
@@ -260,10 +260,10 @@ cdef class CyMcOde:
         # determine which operator does collapse
         cdef int ii, j = self.num_ops
         cdef double e, sum_ = 0
-        cdef CQobjEvo cobj
+        cdef QobjEvo cobj
         for ii in range(self.num_ops):
-            cobj = <CQobjEvo> self.n_ops[ii].compiled_qobjevo
-            e = cobj.expect(t, _data.dense.fast_from_numpy(y.base)).real
+            cobj = <QobjEvo> self.n_ops[ii]
+            e = cobj.expect_data(t, _data.dense.fast_from_numpy(y.base)).real
             self.n_dp[ii] = e
             sum_ += e
         rand *= sum_
@@ -279,10 +279,10 @@ cdef class CyMcOde:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef np.ndarray[complex, ndim=1] _collapse(self, double t, int j, complex[::1] y):
-        cdef CQobjEvo cobj
+        cdef QobjEvo cobj
         cdef Dense state
-        cobj = <CQobjEvo> self.c_ops[j].compiled_qobjevo
-        state = cobj.matmul(t, _data.dense.fast_from_numpy(y.base))
+        cobj = <QobjEvo> self.c_ops[j]
+        state = cobj.matmul_data(t, _data.dense.fast_from_numpy(y.base))
         state /= l2_dense(state)
         return state.as_ndarray()[:, 0]
 
@@ -306,7 +306,7 @@ cdef class CyMcOdeDiag(CyMcOde):
         self.steady_state = opt['steady_state_average']
         self.store_states = opt['store_states'] or opt['average_states']
         self.collapses = []
-        self.l_vec = self.c_ops[0].cte.shape[0]
+        self.l_vec = self.c_ops[0].shape[0]
         self.num_ops = len(ss.td_n_ops)
         self.n_dp = np.zeros(self.num_ops)
         self.col_args = 0

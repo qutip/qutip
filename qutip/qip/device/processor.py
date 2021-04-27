@@ -514,6 +514,8 @@ class Processor(object):
         c_ops: list of :class:`qutip.QobjEvo`
             A list of lindblad operators is also returned. if ``noisy==Flase``,
             it is always an empty list.
+        tlist: list of float
+            A list of the times from associated with the pulse.
         """
         # TODO test it for non array-like coeff
         # check validity
@@ -533,6 +535,7 @@ class Processor(object):
 
         qu_list = []
         c_ops = []
+        t_lists = []
         for pulse in dynamics:
             if noisy:
                 qu, new_c_ops = pulse.get_noisy_qobjevo(dims=self.dims)
@@ -540,9 +543,14 @@ class Processor(object):
             else:
                 qu = pulse.get_ideal_qobjevo(dims=self.dims)
             qu_list.append(qu)
+            tlist = pulse.get_full_tlist()
+            if tlist is not None:
+                t_lists.append(tlist)
 
         final_qu = _merge_qobjevo(qu_list)
-        final_qu.args.update(args)
+
+        self.tlist = np.unique(np.sort(np.hstack(t_lists)))
+        final_qu.arguments(args)
 
         if noisy:
             return final_qu, c_ops
@@ -700,7 +708,7 @@ class Processor(object):
 
         evo_result = solver(
             H=noisy_qobjevo, rho0=init_state,
-            tlist=noisy_qobjevo.tlist, **kwargs)
+            tlist=self.tlist, **kwargs)
         return evo_result
 
     def load_circuit(self, qc):

@@ -36,7 +36,7 @@ cimport numpy as np
 cimport cython
 from cpython.exc cimport PyErr_CheckSignals
 from libc.math cimport fabs
-from qutip.core.cy.cqobjevo cimport CQobjEvo
+from qutip.core.cy.qobjevo cimport QobjEvo
 from qutip.solve._brtools cimport ZHEEVR
 from .. import Qobj, unstack_columns
 import scipy.sparse as sp
@@ -537,7 +537,7 @@ cdef class StochasticSolver:
             PyErr_CheckSignals()
             if sso.ce_ops:
                 for e_idx, e in enumerate(sso.ce_ops):
-                    s = e.compiled_qobjevo.expect(t, _dense_wrap(rho_t))
+                    s = e.expect_data(t, _dense_wrap(rho_t))
                     expect[e_idx, t_idx] = s
             if sso.store_states or not sso.ce_ops:
                 if sso.me:
@@ -552,7 +552,7 @@ cdef class StochasticSolver:
 
             if sso.store_measurement:
                 for m_idx, m in enumerate(sso.cm_ops):
-                    m_expt = m.compiled_qobjevo.expect(t, _dense_wrap(rho_t))
+                    m_expt = m.expect_data(t, _dense_wrap(rho_t))
                     measurements[t_idx, m_idx] = m_expt + self.dW_factor[m_idx] * \
                         sum(noise[t_idx, :, m_idx]) / (self.dt * self.num_substeps)
 
@@ -1247,7 +1247,7 @@ cdef class StochasticSolver:
 
 cdef class SSESolver(StochasticSolver):
     """stochastic Schrodinger system"""
-    cdef CQobjEvo L
+    cdef QobjEvo L
     cdef object c_ops
     cdef object cpcd_ops
     cdef object imp
@@ -1256,14 +1256,14 @@ cdef class SSESolver(StochasticSolver):
     def set_data(self, sso):
         L = sso.LH
         c_ops = sso.sops
-        self.l_vec = L.cte.shape[0]
+        self.l_vec = L.shape[0]
         self.num_ops = len(c_ops)
-        self.L = L.compiled_qobjevo
+        self.L = L
         self.c_ops = []
         self.cpcd_ops = []
         for i, op in enumerate(c_ops):
-            self.c_ops.append(op[0].compiled_qobjevo)
-            self.cpcd_ops.append(op[1].compiled_qobjevo)
+            self.c_ops.append(op[0])
+            self.cpcd_ops.append(op[1])
         if sso.solver_code in [MILSTEIN_IMP_SOLVER, TAYLOR1_5_IMP_SOLVER]:
             self.tol = sso.tol
             self.imp = LinearOperator( (self.l_vec,self.l_vec),
@@ -1281,18 +1281,18 @@ cdef class SSESolver(StochasticSolver):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void d1(self, double t, complex[::1] vec, complex[::1] out):
-        self.L.matmul_dense(t, _dense_wrap(vec), out=_dense_wrap(out))
+        self.L.matmul_data(t, _dense_wrap(vec), out=_dense_wrap(out))
         cdef int i
         cdef complex e
-        cdef CQobjEvo c_op
+        cdef QobjEvo c_op
         cdef complex[::1] temp = self.func_buffer_1d[0,:]
         _zero(temp)
         for i in range(self.num_ops):
             c_op = self.cpcd_ops[i]
-            e = c_op.expect(t, _dense_wrap(vec))
+            e = c_op.expect_data(t, _dense_wrap(vec))
             _zero(temp)
             c_op = self.c_ops[i]
-            c_op.matmul_dense(t, _dense_wrap(vec), out=_dense_wrap(temp))
+            c_op.matmul_data(t, _dense_wrap(vec), out=_dense_wrap(temp))
             _axpy(-0.125 * e * e * self.dt, vec, out)
             _axpy(0.5 * e * self.dt, temp, out)
 
@@ -1301,13 +1301,13 @@ cdef class SSESolver(StochasticSolver):
     @cython.cdivision(True)
     cdef void d2(self, double t, complex[::1] vec, complex[:, ::1] out):
         cdef int i, k
-        cdef CQobjEvo c_op
+        cdef QobjEvo c_op
         cdef complex expect
         for i in range(self.num_ops):
             c_op = self.c_ops[i]
-            c_op.matmul_dense(t, _dense_wrap(vec), out=_dense_wrap(out[i, :]))
+            c_op.matmul_data(t, _dense_wrap(vec), out=_dense_wrap(out[i, :]))
             c_op = self.cpcd_ops[i]
-            expect = c_op.expect(t, _dense_wrap(vec))
+            expect = c_op.expect_data(t, _dense_wrap(vec))
             _axpy(-0.5*expect,vec,out[i,:])
 
     @cython.boundscheck(False)
@@ -1336,7 +1336,7 @@ cdef class SSESolver(StochasticSolver):
         """
         cdef int i, j, k, l
         cdef double dt = self.dt
-        cdef CQobjEvo c_op
+        cdef QobjEvo c_op
         cdef complex e, de_bb
 
         cdef complex[::1] e_real = self.expect_buffer_1d[0,:]
@@ -1354,10 +1354,10 @@ cdef class SSESolver(StochasticSolver):
         _zero_3d(Cb)
 
         # a b
-        self.L.matmul_dense(t, _dense_wrap(vec), _dense_wrap(a))
+        self.L.matmul_data(t, _dense_wrap(vec), _dense_wrap(a))
         for i in range(self.num_ops):
             c_op = self.c_ops[i]
-            c_op.matmul_dense(t, _dense_wrap(vec), _dense_wrap(Cvec[i, :]))
+            c_op.matmul_data(t, _dense_wrap(vec), _dense_wrap(Cvec[i, :]))
             e = _dotc(vec,Cvec[i,:])
             e_real[i] = e.real
             _axpy(1., Cvec[i,:], b[i,:])
@@ -1370,11 +1370,11 @@ cdef class SSESolver(StochasticSolver):
           for i in range(self.num_ops):
             c_op = self.c_ops[i]
             for j in range(self.num_ops):
-              c_op.matmul_dense(t, _dense_wrap(b[j, :]), _dense_wrap(Cb[i,j,:]))
+              c_op.matmul_data(t, _dense_wrap(b[j, :]), _dense_wrap(Cb[i,j,:]))
               for k in range(self.l_vec):
                   temp[k] = conj(b[j,k])
                   temp2[k] = 0.
-              c_op.matmul_dense(t, _dense_wrap(temp), _dense_wrap(temp2))
+              c_op.matmul_data(t, _dense_wrap(temp), _dense_wrap(temp2))
               de_b[i,j] = (_dotc(vec, Cb[i,j,:]) + _dot(b[j,:], Cvec[i,:]) + \
                           conj(_dotc(b[j,:], Cvec[i,:]) + _dotc(vec, temp2))) * 0.5
               _axpy(1., Cb[i,j,:], Lb[i,j,:])
@@ -1391,7 +1391,7 @@ cdef class SSESolver(StochasticSolver):
         if deg >= 2:
           for i in range(self.num_ops):
               #ba'
-              self.L.matmul_dense(t, _dense_wrap(b[i,:]), _dense_wrap(La[i,:]))
+              self.L.matmul_data(t, _dense_wrap(b[i,:]), _dense_wrap(La[i,:]))
               for j in range(self.num_ops):
                   _axpy(-0.5 * e_real[j] * e_real[j] * dt, b[i,:], La[i,:])
                   _axpy(-e_real[j] * de_b[i,j] * dt, vec, La[i,:])
@@ -1400,18 +1400,18 @@ cdef class SSESolver(StochasticSolver):
 
               #ab' + db/dt + bbb"/2
               c_op = self.c_ops[i]
-              c_op.matmul_dense(t, _dense_wrap(a), _dense_wrap(L0b[i,:]))
+              c_op.matmul_data(t, _dense_wrap(a), _dense_wrap(L0b[i,:]))
               for k in range(self.l_vec):
                   temp[k] = conj(a[k])
                   temp2[k] = 0.
-              c_op.matmul_dense(t, _dense_wrap(temp), _dense_wrap(temp2))
+              c_op.matmul_data(t, _dense_wrap(temp), _dense_wrap(temp2))
               de_a[i] = (_dotc(vec, L0b[i,:]) + _dot(a, Cvec[i,:]) + \
                         conj(_dotc(a, Cvec[i,:]) + _dotc(vec, temp2))) * 0.5
               _axpy(-e_real[i], a, L0b[i,:])
               _axpy(-de_a[i], vec, L0b[i,:])
 
               temp = np.zeros(self.l_vec, dtype=complex)
-              c_op.matmul_dense(t + self.dt, _dense_wrap(vec), _dense_wrap(temp))
+              c_op.matmul_data(t + self.dt, _dense_wrap(vec), _dense_wrap(temp))
               e = _dotc(vec,temp)
               _axpy(1., temp, L0b[i,:])
               _axpy(-e.real, vec, L0b[i,:])
@@ -1424,12 +1424,12 @@ cdef class SSESolver(StochasticSolver):
               #b(bb"+b'b')
               for j in range(i,self.num_ops):
                   for k in range(j, self.num_ops):
-                      c_op.matmul_dense(t, _dense_wrap(Lb[j,k,:]),
+                      c_op.matmul_data(t, _dense_wrap(Lb[j,k,:]),
                                   _dense_wrap(LLb[i,j,k,:]))
                       for l in range(self.l_vec):
                           temp[l] = conj(Lb[j,k,l])
                           temp2[l] = 0.
-                      c_op.matmul_dense(t, _dense_wrap(temp), _dense_wrap(temp2))
+                      c_op.matmul_data(t, _dense_wrap(temp), _dense_wrap(temp2))
                       de_bb = (_dotc(vec, LLb[i,j,k,:]) + \
                                _dot(Lb[j,k,:], Cvec[i,:]) + \
                                conj(_dotc(Lb[j,k,:], Cvec[i,:]) +\
@@ -1444,11 +1444,11 @@ cdef class SSESolver(StochasticSolver):
         if deg == 2:
           self.d1(t + dt, vec, L0a)
           _axpy(-1.0, a, L0a)
-          self.L.matmul_dense(t, _dense_wrap(a), _dense_wrap(L0a))
+          self.L.matmul_data(t, _dense_wrap(a), _dense_wrap(L0a))
           for j in range(self.num_ops):
               c_op = self.c_ops[j]
               temp = np.zeros(self.l_vec, dtype=complex)
-              c_op.matmul_dense(t, _dense_wrap(a), _dense_wrap(temp))
+              c_op.matmul_data(t, _dense_wrap(a), _dense_wrap(temp))
               _axpy(-0.5 * e_real[j] * e_real[j] * dt, a[:], L0a[:])
               _axpy(-e_real[j] * de_a[j] * dt, vec, L0a[:])
               _axpy(e_real[j] * dt, temp, L0a[:])
@@ -1462,14 +1462,14 @@ cdef class SSESolver(StochasticSolver):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef void _c_vec_conj(self, double t, CQobjEvo c_op,
+    cdef void _c_vec_conj(self, double t, QobjEvo c_op,
                          complex[::1] vec, complex[::1] out):
         cdef int k
         cdef complex[::1] temp = self.func_buffer_1d[13,:]
         for k in range(self.l_vec):
             temp[k] = conj(vec[k])
             out[k] = 0.
-        c_op.matmul_dense(t, _dense_wrap(temp), _dense_wrap(out))
+        c_op.matmul_data(t, _dense_wrap(temp), _dense_wrap(out))
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1500,7 +1500,7 @@ cdef class SSESolver(StochasticSolver):
         LLLb[:]  ...                      taylor2.0   dt^2/2
         """
         cdef double dt = self.dt
-        cdef CQobjEvo c_op = self.c_ops[0]
+        cdef QobjEvo c_op = self.c_ops[0]
         cdef complex e, de_b, de_Lb, de_LLb, dde_bb, dde_bLb
         cdef complex de_a, dde_ba, de_La, de_L0b
 
@@ -1526,13 +1526,13 @@ cdef class SSESolver(StochasticSolver):
         _zero(CL0b)
 
         # b
-        c_op.matmul_dense(t, _dense_wrap(psi), _dense_wrap(Cpsi))
+        c_op.matmul_data(t, _dense_wrap(psi), _dense_wrap(Cpsi))
         e = _dotc(psi, Cpsi).real
         _axpy(1., Cpsi, b)
         _axpy(-e, psi, b)
 
         # Lb
-        c_op.matmul_dense(t, _dense_wrap(b), _dense_wrap(Cb))
+        c_op.matmul_data(t, _dense_wrap(b), _dense_wrap(Cb))
         self._c_vec_conj(t, c_op, b, Cbc)
         de_b = (_dotc(psi, Cb) + _dot(b, Cpsi) + \
                 conj(_dotc(b, Cpsi) + _dotc(psi, Cbc))) * 0.5
@@ -1541,7 +1541,7 @@ cdef class SSESolver(StochasticSolver):
         _axpy(-de_b, psi, Lb)
 
         # LLb = b'b'b + b"bb
-        c_op.matmul_dense(t, _dense_wrap(Lb), _dense_wrap(CLb))
+        c_op.matmul_data(t, _dense_wrap(Lb), _dense_wrap(CLb))
         self._c_vec_conj(t, c_op, Lb, CLbc)
         de_Lb = (_dotc(psi, CLb) + _dot(Lb, Cpsi) + \
                  conj(_dotc(Lb, Cpsi) + _dotc(psi, CLbc)))*0.5
@@ -1553,7 +1553,7 @@ cdef class SSESolver(StochasticSolver):
         _axpy(-de_b*2, b, LLb)   # b"bb
 
         # LLLb = b"'bbb + 3* b"b'bb + b'(b"bb + b'b'b)
-        c_op.matmul_dense(t, _dense_wrap(LLb), _dense_wrap(CLLb))
+        c_op.matmul_data(t, _dense_wrap(LLb), _dense_wrap(CLLb))
         self._c_vec_conj(t, c_op, LLb, CLLbc)
         de_LLb = (_dotc(psi, CLLb) + _dot(LLb, Cpsi) + \
                   conj(_dotc(LLb, Cpsi) + _dotc(psi, CLLbc)))*0.5
@@ -1568,13 +1568,13 @@ cdef class SSESolver(StochasticSolver):
         _axpy(-dde_bb*3, b, LLLb)       # b"'bbb
 
         # a
-        self.L.matmul_dense(t, _dense_wrap(psi), _dense_wrap(a))
+        self.L.matmul_data(t, _dense_wrap(psi), _dense_wrap(a))
         _axpy(-0.5 * e * e * dt, psi, a)
         _axpy(e * dt, Cpsi, a)
         _axpy(-0.5 * dt, Lb, a)
 
         #La
-        self.L.matmul_dense(t, _dense_wrap(b), _dense_wrap(La))
+        self.L.matmul_data(t, _dense_wrap(b), _dense_wrap(La))
         _axpy(-0.5 * e * e * dt, b, La)
         _axpy(-e * de_b * dt, psi, La)
         _axpy(e * dt, Cb, La)
@@ -1588,7 +1588,7 @@ cdef class SSESolver(StochasticSolver):
         _axpy( 2 * de_b * dt, Cb, LLa)
         _axpy( dde_bb * dt, Cpsi, LLa)
 
-        self.L.matmul_dense(t, _dense_wrap(Lb), _dense_wrap(LLa))
+        self.L.matmul_data(t, _dense_wrap(Lb), _dense_wrap(LLa))
         _axpy(-de_Lb * e * dt, psi, LLa)
         _axpy(-0.5 * e * e * dt, Lb, LLa)
         _axpy( de_Lb * dt, Cpsi, LLa)
@@ -1597,7 +1597,7 @@ cdef class SSESolver(StochasticSolver):
         _axpy(-0.5 * dt, LLLb, LLa)
 
         # L0b = b'a
-        c_op.matmul_dense(t, _dense_wrap(a), _dense_wrap(Ca))
+        c_op.matmul_data(t, _dense_wrap(a), _dense_wrap(Ca))
         self._c_vec_conj(t, c_op, a, Cac)
         de_a = (_dotc(psi, Ca) + _dot(a, Cpsi) + \
                 conj(_dotc(a, Cpsi) + _dotc(psi, Cac))) * 0.5
@@ -1611,7 +1611,7 @@ cdef class SSESolver(StochasticSolver):
         _axpy(-dde_ba, psi, LL0b)
         _axpy(-de_a, b, LL0b)
         _axpy(-de_b, a, LL0b)
-        c_op.matmul_dense(t, _dense_wrap(La), _dense_wrap(CLa))
+        c_op.matmul_data(t, _dense_wrap(La), _dense_wrap(CLa))
         self._c_vec_conj(t, c_op, La, CLac)
         de_La = (_dotc(psi, CLa) + _dot(La, Cpsi) + \
                 conj(_dotc(La, Cpsi) + _dotc(psi, CLac))) * 0.5
@@ -1623,7 +1623,7 @@ cdef class SSESolver(StochasticSolver):
         _axpy(-dde_ba, psi, L0Lb)
         _axpy(-de_a, b, L0Lb)
         _axpy(-de_b, a, L0Lb)
-        c_op.matmul_dense(t, _dense_wrap(L0b), _dense_wrap(CL0b))
+        c_op.matmul_data(t, _dense_wrap(L0b), _dense_wrap(CL0b))
         self._c_vec_conj(t, c_op, L0b, CL0bc)
         de_L0b = (_dotc(psi, CL0b) + _dot(L0b, Cpsi) + \
                   conj(_dotc(L0b, Cpsi) + _dotc(psi, CL0bc))) * 0.5
@@ -1635,7 +1635,7 @@ cdef class SSESolver(StochasticSolver):
         self.d1(t + dt, psi, L0a) # da/dt
         _axpy(-0.5 * dt, Lb, L0a)  # da/dt
         _axpy(-1.0, a, L0a)        # da/dt
-        self.L.matmul_dense(t, _dense_wrap(a), _dense_wrap(L0a)) # a'_a_
+        self.L.matmul_data(t, _dense_wrap(a), _dense_wrap(L0a)) # a'_a_
         _axpy(-0.5 * e * e * dt, a, L0a)    # a'_a_
         _axpy(-e * de_a * dt, psi, L0a)     # a'_a_
         _axpy(e * dt, Ca, L0a)              # a'_a_
@@ -1656,7 +1656,7 @@ cdef class SSESolver(StochasticSolver):
 
 cdef class SMESolver(StochasticSolver):
     """stochastic master equation system"""
-    cdef CQobjEvo L
+    cdef QobjEvo L
     cdef object imp
     cdef object c_ops
     cdef int N_root
@@ -1665,13 +1665,13 @@ cdef class SMESolver(StochasticSolver):
     def set_data(self, sso):
         L = sso.LH
         c_ops = sso.sops
-        self.l_vec = L.cte.shape[0]
+        self.l_vec = L.shape[0]
         self.num_ops = len(c_ops)
-        self.L = L.compiled_qobjevo
+        self.L = L
         self.c_ops = []
         self.N_root = np.sqrt(self.l_vec)
         for i, op in enumerate(c_ops):
-            self.c_ops.append(op.compiled_qobjevo)
+            self.c_ops.append(op)
         if sso.solver_code in [MILSTEIN_IMP_SOLVER, TAYLOR1_5_IMP_SOLVER]:
             self.tol = sso.tol
             self.imp = sso.imp
@@ -1691,18 +1691,18 @@ cdef class SMESolver(StochasticSolver):
 
     @cython.boundscheck(False)
     cdef void d1(self, double t, complex[::1] rho, complex[::1] out):
-        self.L.matmul_dense(t, _dense_wrap(rho), _dense_wrap(out))
+        self.L.matmul_data(t, _dense_wrap(rho), _dense_wrap(out))
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void d2(self, double t, complex[::1] rho, complex[:, ::1] out):
         cdef int i, k
-        cdef CQobjEvo c_op
+        cdef QobjEvo c_op
         cdef complex expect
         for i in range(self.num_ops):
             c_op = self.c_ops[i]
-            c_op.matmul_dense(t, _dense_wrap(rho), _dense_wrap(out[i,:]))
+            c_op.matmul_data(t, _dense_wrap(rho), _dense_wrap(out[i,:]))
             expect = self.expect(out[i,:])
             _axpy(-expect, rho, out[i,:])
 
@@ -1730,8 +1730,8 @@ cdef class SMESolver(StochasticSolver):
         L0a[:]       aa' +da/dt +bba"/2    2    taylor15   dt^2/2
         """
         cdef int i, j, k
-        cdef CQobjEvo c_op
-        cdef CQobjEvo c_opj
+        cdef QobjEvo c_op
+        cdef QobjEvo c_opj
         cdef complex trApp, trAbb, trAa
         cdef complex[::1] trAp = self.expect_buffer_1d[0,:]
         cdef complex[:, ::1] trAb = self.expect_buffer_2d
@@ -1739,13 +1739,13 @@ cdef class SMESolver(StochasticSolver):
         #_zero(temp)
 
         # a
-        self.L.matmul_dense(t, _dense_wrap(rho), _dense_wrap(a))
+        self.L.matmul_data(t, _dense_wrap(rho), _dense_wrap(a))
 
         # b
         for i in range(self.num_ops):
             c_op = self.c_ops[i]
             # bi
-            c_op.matmul_dense(t, _dense_wrap(rho), _dense_wrap(b[i,:]))
+            c_op.matmul_data(t, _dense_wrap(rho), _dense_wrap(b[i,:]))
             trAp[i] = self.expect(b[i,:])
             _axpy(-trAp[i], rho, b[i,:])
 
@@ -1755,7 +1755,7 @@ cdef class SMESolver(StochasticSolver):
           for i in range(self.num_ops):
             c_op = self.c_ops[i]
             for j in range(i, self.num_ops):
-                c_op.matmul_dense(t, _dense_wrap(b[j,:]), _dense_wrap(Lb[i,j,:]))
+                c_op.matmul_data(t, _dense_wrap(b[j,:]), _dense_wrap(Lb[i,j,:]))
                 trAb[i,j] = self.expect(Lb[i,j,:])
                 _axpy(-trAp[i], b[j,:], Lb[i,j,:])
                 _axpy(-trAb[i,j], rho, Lb[i,j,:])
@@ -1765,17 +1765,17 @@ cdef class SMESolver(StochasticSolver):
           for i in range(self.num_ops):
             c_op = self.c_ops[i]
             # Lia = bia'
-            self.L.matmul_dense(t, _dense_wrap(b[i,:]), _dense_wrap(La[i,:]))
+            self.L.matmul_data(t, _dense_wrap(b[i,:]), _dense_wrap(La[i,:]))
 
             # L0bi = abi' + dbi/dt + Sum_j bjbjbi"/2
             # db/dt
-            c_op.matmul_dense(t + self.dt, _dense_wrap(rho), _dense_wrap(L0b[i,:]))
+            c_op.matmul_data(t + self.dt, _dense_wrap(rho), _dense_wrap(L0b[i,:]))
             trApp = self.expect(L0b[i,:])
             _axpy(-trApp, rho, L0b[i,:])
             _axpy(-1, b[i,:], L0b[i,:])
             # ab'
             _zero(temp) # = np.zeros((self.l_vec, ), dtype=complex)
-            c_op.matmul_dense(t, _dense_wrap(a), _dense_wrap(temp))
+            c_op.matmul_data(t, _dense_wrap(a), _dense_wrap(temp))
             trAa = self.expect(temp)
             _axpy(1., temp, L0b[i,:])
             _axpy(-trAp[i], a[:], L0b[i,:])
@@ -1791,7 +1791,7 @@ cdef class SMESolver(StochasticSolver):
             # sc_ops must commute (LiLjbk = LjLibk = LkLjbi)
             for j in range(i,self.num_ops):
               for k in range(j,self.num_ops):
-                c_op.matmul_dense(t, _dense_wrap(Lb[j,k,:]), _dense_wrap(LLb[i,j,k,:]))
+                c_op.matmul_data(t, _dense_wrap(Lb[j,k,:]), _dense_wrap(LLb[i,j,k,:]))
                 trAbb = self.expect(LLb[i,j,k,:])
                 _axpy(-trAp[i], Lb[j,k,:], LLb[i,j,k,:])
                 _axpy(-trAbb, rho, LLb[i,j,k,:])
@@ -1800,8 +1800,8 @@ cdef class SMESolver(StochasticSolver):
 
         # L0a = a'a + da/dt + bba"/2  (a" = 0)
         if deg == 2:
-            self.L.matmul_dense(t, _dense_wrap(a), _dense_wrap(L0a))
-            self.L.matmul_dense(t+self.dt, _dense_wrap(rho), _dense_wrap(L0a))
+            self.L.matmul_data(t, _dense_wrap(a), _dense_wrap(L0a))
+            self.L.matmul_data(t+self.dt, _dense_wrap(rho), _dense_wrap(L0a))
             _axpy(-1, a, L0a)
 
     @cython.boundscheck(False)
@@ -1833,8 +1833,8 @@ cdef class SMESolver(StochasticSolver):
         LLLb[:]  ...                      taylor2.0   dt^2/2
         """
         cdef int i, j, k
-        cdef CQobjEvo c_op = self.c_ops[0]
-        cdef CQobjEvo c_opj
+        cdef QobjEvo c_op = self.c_ops[0]
+        cdef QobjEvo c_opj
         cdef complex trAp, trApt
         cdef complex trAb, trALb, trALLb
         cdef complex trAa, trALa
@@ -1844,25 +1844,25 @@ cdef class SMESolver(StochasticSolver):
         cdef complex[::1] temp2 = self.func_buffer_1d[1,:]
 
         # b
-        c_op.matmul_dense(t, _dense_wrap(rho), _dense_wrap(b))
+        c_op.matmul_data(t, _dense_wrap(rho), _dense_wrap(b))
         trAp = self.expect(b)
         _axpy(-trAp, rho, b)
 
         # Lb = b'b
-        c_op.matmul_dense(t, _dense_wrap(b), _dense_wrap(Lb))
+        c_op.matmul_data(t, _dense_wrap(b), _dense_wrap(Lb))
         trAb = self.expect(Lb)
         _axpy(-trAp, b, Lb)
         _axpy(-trAb, rho, Lb)
 
         # LLb = b'Lb+b"bb
-        c_op.matmul_dense(t, _dense_wrap(Lb), _dense_wrap(LLb))
+        c_op.matmul_data(t, _dense_wrap(Lb), _dense_wrap(LLb))
         trALb = self.expect(LLb)
         _axpy(-trAp, Lb, LLb)
         _axpy(-trALb, rho, LLb)
         _axpy(-trAb*2, b, LLb)
 
         # LLLb = b'LLb + 3 b"bLb + b"'bbb
-        c_op.matmul_dense(t, _dense_wrap(LLb), _dense_wrap(LLLb))
+        c_op.matmul_data(t, _dense_wrap(LLb), _dense_wrap(LLLb))
         trALLb = self.expect(LLLb)
         _axpy(-trAp, LLb, LLLb)
         _axpy(-trALLb, rho, LLLb)
@@ -1870,25 +1870,25 @@ cdef class SMESolver(StochasticSolver):
         _axpy(-trAb*3, Lb, LLLb)
 
         # _a_ = a - Lb/2
-        self.L.matmul_dense(t, _dense_wrap(rho), _dense_wrap(a))
+        self.L.matmul_data(t, _dense_wrap(rho), _dense_wrap(a))
         _axpy(-0.5*self.dt, Lb, a)
 
         # L_a_ = ba' - LLb/2
-        self.L.matmul_dense(t, _dense_wrap(b), _dense_wrap(La))
+        self.L.matmul_data(t, _dense_wrap(b), _dense_wrap(La))
         _axpy(-0.5*self.dt, LLb, La)
 
         # LL_a_ = b(La)' - LLLb/2
-        self.L.matmul_dense(t, _dense_wrap(Lb), _dense_wrap(LLa))
+        self.L.matmul_data(t, _dense_wrap(Lb), _dense_wrap(LLa))
         _axpy(-0.5*self.dt, LLLb, LLa)
 
         # _L0_b = b'(_a_)
-        c_op.matmul_dense(t, _dense_wrap(a), _dense_wrap(L0b))
+        c_op.matmul_data(t, _dense_wrap(a), _dense_wrap(L0b))
         trAa = self.expect(L0b)
         _axpy(-trAp, a, L0b)
         _axpy(-trAa, rho, L0b)
 
         # _L0_Lb = b'(b'(_a_))+b"(_a_,b)
-        c_op.matmul_dense(t, _dense_wrap(L0b), _dense_wrap(L0Lb))
+        c_op.matmul_data(t, _dense_wrap(L0b), _dense_wrap(L0Lb))
         trAL0b = self.expect(L0Lb)
         _axpy(-trAp, L0b, L0Lb)
         _axpy(-trAL0b, rho, L0Lb)
@@ -1896,7 +1896,7 @@ cdef class SMESolver(StochasticSolver):
         _axpy(-trAb, a, L0Lb)
 
         # L_L0_b = b'(_a_'(b))+b"(_a_,b)
-        c_op.matmul_dense(t, _dense_wrap(La), _dense_wrap(LL0b))
+        c_op.matmul_data(t, _dense_wrap(La), _dense_wrap(LL0b))
         trAL0b = self.expect(LL0b)
         _axpy(-trAp, La, LL0b)
         _axpy(-trAL0b, rho, LL0b)
@@ -1904,8 +1904,8 @@ cdef class SMESolver(StochasticSolver):
         _axpy(-trAb, a, LL0b)
 
         # _L0_ _a_ = _L0_a - _L0_Lb/2 + da/dt
-        self.L.matmul_dense(t, _dense_wrap(a), _dense_wrap(L0a))
-        self.L.matmul_dense(t+self.dt, _dense_wrap(rho), _dense_wrap(L0a))
+        self.L.matmul_data(t, _dense_wrap(a), _dense_wrap(L0a))
+        self.L.matmul_data(t+self.dt, _dense_wrap(rho), _dense_wrap(L0a))
         _axpy(-0.5*self.dt, Lb, L0a) # _a_(t+dt) = a(t+dt)-0.5*Lb
         _axpy(-1, a, L0a)
         _axpy(-self.dt*0.5, L0Lb, L0a)
@@ -1916,35 +1916,36 @@ cdef class SMESolver(StochasticSolver):
                                         np.ndarray[complex, ndim=1] guess) except *:
         # np.ndarray to memoryview is OK but not the reverse
         # scipy function only take np array, not memoryview
-        spout, check = sp.linalg.bicgstab(self.imp(t, data=1).as_scipy(),
-                                          dvec, x0=guess, tol=self.tol, atol=1e-12)
+        spout, check = sp.linalg.bicgstab(self.imp(t).data.as_scipy(),
+                                          dvec, x0=guess,
+                                          tol=self.tol, atol=1e-12)
         cdef int i
         copy(spout,out)
 
 
 cdef class PcSSESolver(StochasticSolver):
     """photocurrent for Schrodinger equation"""
-    cdef CQobjEvo L
+    cdef QobjEvo L
     cdef object c_ops
     cdef object cdc_ops
 
     def set_data(self, sso):
         L = sso.LH
         c_ops = sso.sops
-        self.l_vec = L.cte.shape[0]
+        self.l_vec = L.shape[0]
         self.num_ops = len(c_ops)
-        self.L = L.compiled_qobjevo
+        self.L = L
         self.c_ops = []
         self.cdc_ops = []
         for i, op in enumerate(c_ops):
-            self.c_ops.append(op[0].compiled_qobjevo)
-            self.cdc_ops.append(op[1].compiled_qobjevo)
+            self.c_ops.append(op[0])
+            self.cdc_ops.append(op[1])
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef void photocurrent(self, double t, double dt, double[:] noise,
                            complex[::1] vec, complex[::1] out):
-        cdef CQobjEvo c_op
+        cdef QobjEvo c_op
         cdef double rand
         cdef int i, which = -1
         cdef complex[::1] expects = self.expect_buffer_1d[0,:]
@@ -1955,7 +1956,7 @@ cdef class PcSSESolver(StochasticSolver):
         rand = np.random.rand()
         for i in range(self.num_ops):
             c_op = self.cdc_ops[i]
-            expects[i] = c_op.expect(t, _dense_wrap(vec))
+            expects[i] = c_op.expect_data(t, _dense_wrap(vec))
             if expects[i].real * dt >= 1e-15:
                 rand -= expects[i].real *dt
             if rand < 0:
@@ -1973,7 +1974,7 @@ cdef class PcSSESolver(StochasticSolver):
     @cython.wraparound(False)
     cdef void photocurrent_pc(self, double t, double dt, double[:] noise,
                            complex[::1] vec, complex[::1] out):
-        cdef CQobjEvo c_op
+        cdef QobjEvo c_op
         cdef double expect
         cdef int i, which=0, num_coll=0, did_collapse=0
         cdef complex[::1] tmp = self.buffer_1d[0,:]
@@ -1983,7 +1984,7 @@ cdef class PcSSESolver(StochasticSolver):
         # Collapses are computed first
         for i in range(self.num_ops):
             c_op = self.cdc_ops[i]
-            expects[i] = c_op.expect(t, _dense_wrap(vec)).real
+            expects[i] = c_op.expect_data(t, _dense_wrap(vec)).real
             if expects[i].real > 0:
                 did_collapse = np.random.poisson(expects[i].real * dt)
                 num_coll += did_collapse
@@ -2004,7 +2005,7 @@ cdef class PcSSESolver(StochasticSolver):
             # Recompute the expectation value, but only to check for zero.
             c_op = self.cdc_ops[which]
             for i in range(num_coll):
-                expect = c_op.expect(t, _dense_wrap(vec)).real
+                expect = c_op.expect_data(t, _dense_wrap(vec)).real
                 if expect * dt >= 1e-15:
                     self.collapse(t, which, expect, vec, out)
                     copy(out,vec)
@@ -2017,7 +2018,7 @@ cdef class PcSSESolver(StochasticSolver):
             np.random.shuffle(coll)
             for i in coll:
                 c_op = self.cdc_ops[i]
-                expect = c_op.expect(t, _dense_wrap(vec)).real
+                expect = c_op.expect_data(t, _dense_wrap(vec)).real
                 if expect * dt >= 1e-15:
                     self.collapse(t, i, expect, vec, out)
                     copy(out,vec)
@@ -2032,15 +2033,15 @@ cdef class PcSSESolver(StochasticSolver):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void d1(self, double t, complex[::1] vec, complex[::1] out):
-        self.L.matmul_dense(t, _dense_wrap(vec), _dense_wrap(out))
+        self.L.matmul_data(t, _dense_wrap(vec), _dense_wrap(out))
         cdef int i
         cdef complex e
-        cdef CQobjEvo c_op
+        cdef QobjEvo c_op
         cdef complex[::1] temp = self.func_buffer_1d[0,:]
         for i in range(self.num_ops):
             _zero(temp)
             c_op = self.c_ops[i]
-            c_op.matmul_dense(t, _dense_wrap(vec), _dense_wrap(temp))
+            c_op.matmul_data(t, _dense_wrap(vec), _dense_wrap(temp))
             e = _dznrm2(temp)
             _axpy(0.5 * e * e * self.dt, vec, out)
 
@@ -2049,11 +2050,11 @@ cdef class PcSSESolver(StochasticSolver):
     @cython.cdivision(True)
     cdef void d2(self, double t, complex[::1] vec, complex[:, ::1] out):
         cdef int i
-        cdef CQobjEvo c_op
+        cdef QobjEvo c_op
         cdef complex expect
         for i in range(self.num_ops):
             c_op = self.c_ops[i]
-            c_op.matmul_dense(t, _dense_wrap(vec), _dense_wrap(out[i,:]))
+            c_op.matmul_data(t, _dense_wrap(vec), _dense_wrap(out[i,:]))
             expect = _dznrm2(out[i,:])
             if expect.real >= 1e-15:
                 _zscale(1/expect, out[i,:])
@@ -2066,16 +2067,16 @@ cdef class PcSSESolver(StochasticSolver):
     @cython.cdivision(True)
     cdef void collapse(self, double t, int which, double expect,
                        complex[::1] vec, complex[::1] out):
-        cdef CQobjEvo c_op
+        cdef QobjEvo c_op
         c_op = self.c_ops[which]
         _zero(out)
-        c_op.matmul_dense(t, _dense_wrap(vec), _dense_wrap(out))
+        c_op.matmul_data(t, _dense_wrap(vec), _dense_wrap(out))
         _zscale(1/expect, out)
 
 
 cdef class PcSMESolver(StochasticSolver):
     """photocurrent for master equation"""
-    cdef CQobjEvo L
+    cdef QobjEvo L
     cdef object cdcr_cdcl_ops
     cdef object cdcl_ops
     cdef object clcdr_ops
@@ -2084,17 +2085,17 @@ cdef class PcSMESolver(StochasticSolver):
     def set_data(self, sso):
         L = sso.LH
         c_ops = sso.sops
-        self.l_vec = L.cte.shape[0]
+        self.l_vec = L.shape[0]
         self.num_ops = len(c_ops)
-        self.L = L.compiled_qobjevo
+        self.L = L
         self.cdcr_cdcl_ops = []
         self.cdcl_ops = []
         self.clcdr_ops = []
         self.N_root = np.sqrt(self.l_vec)
         for i, op in enumerate(c_ops):
-            self.cdcr_cdcl_ops.append(op[0].compiled_qobjevo)
-            self.cdcl_ops.append(op[1].compiled_qobjevo)
-            self.clcdr_ops.append(op[2].compiled_qobjevo)
+            self.cdcr_cdcl_ops.append(op[0])
+            self.cdcl_ops.append(op[1])
+            self.clcdr_ops.append(op[2])
 
     cdef void _normalize_inplace(self, complex[::1] vec):
         _normalize_rho(vec)
@@ -2103,7 +2104,7 @@ cdef class PcSMESolver(StochasticSolver):
     @cython.wraparound(False)
     cdef void photocurrent(self, double t, double dt,  double[:] noise,
                            complex[::1] vec, complex[::1] out):
-        cdef CQobjEvo c_op
+        cdef QobjEvo c_op
         cdef double rand
         cdef int i, which = -1
         cdef complex[::1] expects = self.expect_buffer_1d[0,:]
@@ -2114,7 +2115,7 @@ cdef class PcSMESolver(StochasticSolver):
         rand = np.random.rand()
         for i in range(self.num_ops):
             c_op = self.clcdr_ops[i]
-            expects[i] = c_op.expect(t, _dense_wrap(vec))
+            expects[i] = c_op.expect_data(t, _dense_wrap(vec))
             if expects[i].real * dt >= 1e-15:
                 rand -= expects[i].real *dt
             if rand < 0:
@@ -2132,7 +2133,7 @@ cdef class PcSMESolver(StochasticSolver):
     @cython.wraparound(False)
     cdef void photocurrent_pc(self, double t, double dt,  double[:] noise,
                            complex[::1] vec, complex[::1] out):
-        cdef CQobjEvo c_op
+        cdef QobjEvo c_op
         cdef int i, which, num_coll=0, did_collapse
         cdef complex[::1] expects = self.expect_buffer_1d[0,:]
         cdef complex[::1] tmp = self.buffer_1d[0,:]
@@ -2142,7 +2143,7 @@ cdef class PcSMESolver(StochasticSolver):
         # Collapses are computed first
         for i in range(self.num_ops):
             c_op = self.clcdr_ops[i]
-            expects[i] = c_op.expect(t, _dense_wrap(vec)).real
+            expects[i] = c_op.expect_data(t, _dense_wrap(vec)).real
             if expects[i].real > 0:
                 did_collapse = np.random.poisson(expects[i].real* dt)
                 num_coll += did_collapse
@@ -2163,7 +2164,7 @@ cdef class PcSMESolver(StochasticSolver):
             # Recompute the expectation value, but only to check for zero.
             c_op = self.clcdr_ops[which]
             for i in range(num_coll):
-                expect = c_op.expect(t, _dense_wrap(vec)).real
+                expect = c_op.expect_data(t, _dense_wrap(vec)).real
                 if expect * dt >= 1e-15:
                     self.collapse(t, which, expect, vec, out)
                     copy(out,vec)
@@ -2176,7 +2177,7 @@ cdef class PcSMESolver(StochasticSolver):
             np.random.shuffle(coll)
             for i in coll:
                 c_op = self.clcdr_ops[i]
-                expect = c_op.expect(t, _dense_wrap(vec)).real
+                expect = c_op.expect_data(t, _dense_wrap(vec)).real
                 if expect * dt >= 1e-15:
                     self.collapse(t, i, expect, vec, out)
                     copy(out,vec)
@@ -2201,14 +2202,14 @@ cdef class PcSMESolver(StochasticSolver):
     @cython.boundscheck(False)
     cdef void d1(self, double t, complex[::1] rho, complex[::1] out):
         cdef int i
-        cdef CQobjEvo c_op
+        cdef QobjEvo c_op
         cdef complex[::1] crho = self.func_buffer_1d[0,:]
         cdef complex expect
-        self.L.matmul_dense(t, _dense_wrap(rho), _dense_wrap(out))
+        self.L.matmul_data(t, _dense_wrap(rho), _dense_wrap(out))
         for i in range(self.num_ops):
             c_op = self.cdcr_cdcl_ops[i]
             _zero(crho)
-            c_op.matmul_dense(t, _dense_wrap(rho), _dense_wrap(crho))
+            c_op.matmul_data(t, _dense_wrap(rho), _dense_wrap(crho))
             expect = self.expect(crho)
             _axpy(0.5*expect* self.dt, rho, out)
             _axpy(-0.5* self.dt, crho, out)
@@ -2218,11 +2219,11 @@ cdef class PcSMESolver(StochasticSolver):
     @cython.cdivision(True)
     cdef void d2(self, double t, complex[::1] rho, complex[:, ::1] out):
         cdef int i
-        cdef CQobjEvo c_op
+        cdef QobjEvo c_op
         cdef complex expect
         for i in range(self.num_ops):
             c_op = self.clcdr_ops[i]
-            c_op.matmul_dense(t, _dense_wrap(rho), _dense_wrap(out[i,:]))
+            c_op.matmul_data(t, _dense_wrap(rho), _dense_wrap(out[i,:]))
             expect = self.expect(out[i,:])
             if expect.real >= 1e-15:
                 _zscale((1.+0j)/expect, out[i,:])
@@ -2235,18 +2236,18 @@ cdef class PcSMESolver(StochasticSolver):
     @cython.cdivision(True)
     cdef void collapse(self, double t, int which, double expect,
                        complex[::1] vec, complex[::1] out):
-        cdef CQobjEvo c_op
+        cdef QobjEvo c_op
         c_op = self.clcdr_ops[which]
         _zero(out)
-        c_op.matmul_dense(t, _dense_wrap(vec), _dense_wrap(out))
+        c_op.matmul_data(t, _dense_wrap(vec), _dense_wrap(out))
         _zscale(1./expect, out)
 
 cdef class PmSMESolver(StochasticSolver):
     """positive map for master equation"""
     cdef object L
-    cdef CQobjEvo pp_ops
-    cdef CQobjEvo preLH
-    cdef CQobjEvo postLH
+    cdef QobjEvo pp_ops
+    cdef QobjEvo preLH
+    cdef QobjEvo postLH
     cdef object sops
     cdef object preops
     cdef object postops
@@ -2256,16 +2257,16 @@ cdef class PmSMESolver(StochasticSolver):
 
     def set_data(self, sso):
         c_ops = sso.sops
-        self.l_vec = sso.pp.cte.shape[0]
+        self.l_vec = sso.pp.shape[0]
         self.num_ops = len(c_ops)
-        self.preLH = sso.preLH.compiled_qobjevo
-        self.postLH = sso.postLH.compiled_qobjevo
-        self.pp_ops = sso.pp.compiled_qobjevo
-        self.sops = [op.compiled_qobjevo for op in sso.sops]
-        self.preops = [op.compiled_qobjevo for op in sso.preops]
-        self.postops = [op.compiled_qobjevo for op in sso.postops]
-        self.preops2 = [op.compiled_qobjevo for op in sso.preops2]
-        self.postops2 = [op.compiled_qobjevo for op in sso.postops2]
+        self.preLH = sso.preLH
+        self.postLH = sso.postLH
+        self.pp_ops = sso.pp
+        self.sops = [op for op in sso.sops]
+        self.preops = [op for op in sso.preops]
+        self.postops = [op for op in sso.postops]
+        self.preops2 = [op for op in sso.preops2]
+        self.postops2 = [op for op in sso.postops2]
         self.N_root = np.sqrt(self.l_vec)
 
     cdef void _normalize_inplace(self, complex[::1] vec):
@@ -2279,17 +2280,17 @@ cdef class PmSMESolver(StochasticSolver):
         cdef complex[::1] temp = self.buffer_1d[0,:]
         cdef complex[::1] temp2 = self.buffer_1d[1,:]
         cdef int i, j, k
-        cdef CQobjEvo c_op, c_opj
+        cdef QobjEvo c_op, c_opj
         cdef complex ddw, tr
         _zero(out)
         _zero(temp)
-        self.preLH.matmul_dense(t, _dense_wrap(vec), _dense_wrap(temp))
+        self.preLH.matmul_data(t, _dense_wrap(vec), _dense_wrap(temp))
         for i in range(self.num_ops):
             c_op = self.sops[i]
-            dy[i] = c_op.expect(t, _dense_wrap(vec)) + noise[i]
+            dy[i] = c_op.expect_data(t, _dense_wrap(vec)) + noise[i]
             c_op = self.preops[i]
             _zero(temp2)
-            c_op.matmul_dense(t, _dense_wrap(vec), _dense_wrap(temp2))
+            c_op.matmul_data(t, _dense_wrap(vec), _dense_wrap(temp2))
             _axpy(dy[i], temp2, temp)
 
         k = 0
@@ -2302,16 +2303,16 @@ cdef class PmSMESolver(StochasticSolver):
                     ddw = (dy[i]*dy[j])
 
                 _zero(temp2)
-                c_op.matmul_dense(t, _dense_wrap(vec), _dense_wrap(temp2))
+                c_op.matmul_data(t, _dense_wrap(vec), _dense_wrap(temp2))
                 _axpy(ddw, temp2, temp)
                 k += 1
 
-        self.postLH.matmul_dense(t, _dense_wrap(temp), _dense_wrap(out))
+        self.postLH.matmul_data(t, _dense_wrap(temp), _dense_wrap(out))
         for i in range(self.num_ops):
             dy[i] = conj(dy[i])
             c_op = self.postops[i]
             _zero(temp2)
-            c_op.matmul_dense(t, _dense_wrap(temp), _dense_wrap(temp2))
+            c_op.matmul_data(t, _dense_wrap(temp), _dense_wrap(temp2))
             _axpy(dy[i], temp2, out)
 
         k = 0
@@ -2323,11 +2324,11 @@ cdef class PmSMESolver(StochasticSolver):
                 else:
                     ddw = (dy[i]*dy[j])
                 _zero(temp2)
-                c_op.matmul_dense(t, _dense_wrap(temp), _dense_wrap(temp2))
+                c_op.matmul_data(t, _dense_wrap(temp), _dense_wrap(temp2))
                 _axpy(ddw, temp2, out)
                 k += 1
 
-        self.pp_ops.matmul_dense(t, _dense_wrap(vec), _dense_wrap(out))
+        self.pp_ops.matmul_data(t, _dense_wrap(vec), _dense_wrap(out))
         tr = self.expect(out)
         _zscale(1./tr, out)
 

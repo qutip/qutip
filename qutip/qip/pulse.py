@@ -4,7 +4,6 @@ from scipy.interpolate import CubicSpline
 from qutip import Qobj, QobjEvo, identity
 from qutip.qip.operations import expand_operator
 
-
 __all__ = ["Pulse", "Drift"]
 
 
@@ -360,6 +359,8 @@ class Pulse():
         -------
         ideal_evo: :class:`qutip.QobjEvo`
             A `QobjEvo` representing the ideal evolution.
+        tlist: list of float
+            A list of the times from associated with the pulse.
         """
         return self.ideal_pulse.get_qobjevo(self.spline_kind, dims)
 
@@ -519,6 +520,9 @@ class Drift():
         """
         return self.get_ideal_qobjevo(dims), []
 
+    def get_full_tlist(self):
+        return []
+
 
 def _find_common_tlist(qobjevo_list):
     """
@@ -541,40 +545,10 @@ def _merge_qobjevo(qobjevo_list, full_tlist=None):
     Combine a list of `:class:qutip.QobjEvo` into one,
     different tlist will be merged.
     """
-    # TODO This method can be eventually integrated into QobjEvo, for
-    # which a more thorough test is required
-
     # no qobjevo
     if not qobjevo_list:
         raise ValueError("qobjevo_list is empty.")
-
-    if full_tlist is None:
-        full_tlist = _find_common_tlist(qobjevo_list)
-    spline_types_num = set()
-    args = {}
-    for qu in qobjevo_list:
-        if isinstance(qu, QobjEvo):
-            try:
-                spline_types_num.add(qu.args["_step_func_coeff"])
-            except Exception:
-                pass
-            args.update(qu.args)
-    if len(spline_types_num) > 1:
-        raise ValueError("Cannot merge Qobjevo with different spline kinds.")
-
-    for i, qobjevo in enumerate(qobjevo_list):
-        if isinstance(qobjevo, Qobj):
-            qobjevo_list[i] = QobjEvo(qobjevo)
-            qobjevo = qobjevo_list[i]
-        for j, ele in enumerate(qobjevo.ops):
-            if isinstance(ele.coeff, np.ndarray):
-                new_coeff = _fill_coeff(
-                    ele.coeff, qobjevo.tlist, full_tlist, args)
-                qobjevo_list[i].ops[j].coeff = new_coeff
-        qobjevo_list[i].tlist = full_tlist
-
-    qobjevo = sum(qobjevo_list)
-    return qobjevo
+    return sum([op for op in qobjevo_list if isinstance(op, (Qobj, QobjEvo))])
 
 
 def _fill_coeff(old_coeffs, old_tlist, full_tlist, args=None):
