@@ -92,9 +92,7 @@ For more information, including technical advice, please see [Contributing to Qu
 Changelog
 ---------
 
-For release notes and a change log, see the
-[changelog](http://github.com/qutip/qutip-doc/blob/master/changelog.rst)
-section in the documentation.
+For release notes and a change log, see the [changelog](http://qutip.org/docs/latest/changelog.html) section in the documentation.
 
 License
 -------
