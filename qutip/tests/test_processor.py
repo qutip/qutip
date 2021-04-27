@@ -332,7 +332,7 @@ class TestCircuitProcessor:
         tlist = np.array([0., 1., 2.])
         processor.add_pulse(Pulse(identity(2), 0, tlist, False))
         ideal_qobjevo, _ = processor.get_qobjevo(noisy=True)
-        assert_equal(ideal_qobjevo.cte, sigmaz())
+        assert_equal(ideal_qobjevo(0), sigmaz())
 
     def TestChooseSolver(self):
         # setup and fidelity without noise

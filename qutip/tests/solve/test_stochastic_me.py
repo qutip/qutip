@@ -38,7 +38,7 @@ from qutip import (
     smesolve, mesolve, photocurrent_mesolve, liouvillian, QobjEvo, spre, spost,
     destroy, coherent, parallel_map, qeye, fock_dm, general_stochastic, num,
 )
-
+from qutip.core import data as _data
 def f(t, args):
     return args["a"] * t
 
@@ -262,13 +262,18 @@ def test_general_stochastic():
     e_opsM = [spre(op) for op in e_ops]
 
     def d1(t, vec):
-        return L.mul_vec(t,vec)
+        return L.matmul_data(t, _data.Dense(vec)).to_array().ravel()
 
     def d2(t, vec):
         out = []
+        vec_d = _data.Dense(vec)
         for op in sc_opsM:
-            out.append(op.mul_vec(t,vec)-op.expect(t,vec)*vec)
-        return np.stack(out)
+
+            out.append(
+                _data.add(op.matmul_data(t,vec_d),
+                          vec_d, -op.expect_data(t,vec_d))
+                )
+        return np.stack([o.to_array().ravel() for o in out])
 
     times = np.linspace(0, 0.5, 13)
     res_ref = mesolve(H, psi0, times, sc_ops, e_ops, args={"a":2})
