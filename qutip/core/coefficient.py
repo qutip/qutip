@@ -24,8 +24,7 @@ from .data import Data
 from .interpolate import Cubic_Spline
 from .cy.coefficient import (InterpolateCoefficient, InterCoefficient,
                              StepCoefficient, FunctionCoefficient,
-                             ConjCoefficient, NormCoefficient,
-                             ShiftCoefficient, StrFunctionCoefficient,
+                             ConjCoefficient, StrFunctionCoefficient,
                              Coefficient)
 
 
@@ -111,22 +110,10 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
         raise ValueError("coefficient format not understood")
 
 
-def norm(coeff):
-    """ return a Coefficient with is the norm: |c|^2.
-    """
-    return NormCoefficient(coeff)
-
-
 def conj(coeff):
     """ return a Coefficient with is the conjugate.
     """
     return ConjCoefficient(coeff)
-
-
-def shift(coeff, _t0=0):
-    """ return a Coefficient in which t is shifted by _t0.
-    """
-    return ShiftCoefficient(coeff, _t0)
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

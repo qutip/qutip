@@ -42,14 +42,21 @@ import numpy as np
 from functools import partial
 from .operators import qeye
 from .qobj import Qobj
-from .qobjevo import QobjEvo, QobjEvoBase
-from .qobjevofunc import QobjEvoFunc
+from .cy.qobjevo import QobjEvo
 from .superoperator import operator_to_vector, reshuffle
 from .dimensions import (
     flatten, enumerate_flat, unflatten, deep_remove, dims_to_tensor_shape,
     dims_idxs_to_tensor_idxs
 )
 from . import data as _data
+
+
+class _reverse_partial_tensor:
+    # Picklable lambda op: tensor(op, right)
+    def __init__(self, right):
+        self.right = right
+    def __call__(self, op):
+        return tensor(op, self.right)
 
 
 def tensor(*args):
@@ -78,36 +85,29 @@ shape = [4, 4], type = oper, isHerm = True
     """
     if not args:
         raise TypeError("Requires at least one input argument")
-    if len(args) == 1 and isinstance(args[0], (Qobj, QobjEvoBase)):
+    if len(args) == 1 and isinstance(args[0], (Qobj, QobjEvo)):
         return args[0].copy()
     if len(args) == 1:
         try:
             args = tuple(args[0])
         except TypeError:
             raise TypeError("requires Qobj or QobjEvo operands") from None
-    if not all(isinstance(q, (Qobj, QobjEvoBase)) for q in args):
+    if not all(isinstance(q, (Qobj, QobjEvo)) for q in args):
         raise TypeError("requires Qobj or QobjEvo operands")
-    if any(isinstance(q, QobjEvoBase) for q in args):
+    if any(isinstance(q, QobjEvo) for q in args):
         # First make tensor from pairs only
         if len(args) >= 3:
             return tensor(args[0], tensor(args[1:]))
-        # QobjEvoFunc: Add to operation stack
-        if isinstance(args[0], QobjEvoFunc):
-            return args[0]._tensor(args[1])
-        if isinstance(args[1], QobjEvoFunc):
-            return args[1]._tensor_left(args[0])
 
-        left = args[0]
-        right = args[1]
+        left, right = args
         if isinstance(left, Qobj):
             return right.linear_map(partial(tensor, left))
         if isinstance(right, Qobj):
-            return left.linear_map(lambda op: tensor(op, right))
-        id_like_left = qeye(left.dims[0])
-        id_like_right = qeye(right.dims[0])
-        left = left.linear_map(lambda op: tensor(op, id_like_right))
-        right = right.linear_map(partial(tensor, id_like_left))
-        return left * right
+            return left.linear_map(_reverse_partial_tensor(right))
+        left_t = left.linear_map(_reverse_partial_tensor(qeye(right.dims[1])))
+        right_t = right.linear_map(partial(tensor, qeye(left.dims[0])))
+        return left_t @ right_t
+
     if not all(q.superrep == args[0].superrep for q in args[1:]):
         raise TypeError("".join([
             "In tensor products of superroperators,",

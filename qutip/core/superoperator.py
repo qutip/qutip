@@ -43,7 +43,7 @@ import numpy as np
 
 from .qobj import Qobj
 from . import data as _data
-
+from .cy.qobjevo import QobjEvo
 
 def _map_over_compound_operators(f):
     """
@@ -52,27 +52,29 @@ def _map_over_compound_operators(f):
     """
     @functools.wraps(f)
     def out(qobj):
-        if isinstance(qobj, QobjEvoBase):
-            return qobj.linear_map(f)
+        if isinstance(qobj, QobjEvo):
+            return qobj.linear_map(f, _skip_check=True)
         if not isinstance(qobj, Qobj):
             raise TypeError("expected a quantum object")
         return f(qobj)
     return out
 
 
-def liouvillian(H, c_ops=[], data_only=False, chi=None):
+def liouvillian(H=None, c_ops=None, data_only=False, chi=None):
     """Assembles the Liouvillian superoperator from a Hamiltonian
-    and a ``list`` of collapse operators. Like liouvillian, but with an
-    experimental implementation which avoids creating extra Qobj instances,
-    which can be advantageous for large systems.
+    and a ``list`` of collapse operators.
 
     Parameters
     ----------
-    H : Qobj or QobjEvo
-        System Hamiltonian.
+    H : Qobj or QobjEvo (optional)
+        System Hamiltonian or Hamiltonian component of a Liouvillian.
+        Considered `0` if not given.
 
     c_ops : array_like of Qobj or QobjEvo
         A ``list`` or ``array`` of collapse operators.
+
+    data_only :  bool [False]
+        Return the data object instead of a Qobj
 
     Returns
     -------
@@ -80,141 +82,56 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
         Liouvillian superoperator.
 
     """
-    if isinstance(c_ops, (Qobj, QobjEvoBase)):
+    c_ops = c_ops or []
+    if isinstance(c_ops, (Qobj, QobjEvo)):
         c_ops = [c_ops]
     if chi and len(chi) != len(c_ops):
         raise ValueError('chi must be a list with same length as c_ops')
+    chi = chi or [0] * len(c_ops)
 
-    h = None
-    if H is not None:
-        if isinstance(H, QobjEvoBase):
-            h = H.cte
-        else:
-            h = H
-        if h.isoper:
-            op_dims = h.dims
-            op_shape = h.shape
-        elif h.issuper:
-            op_dims = h.dims[0]
-            op_shape = [np.prod(op_dims[0]), np.prod(op_dims[0])]
-        else:
-            raise TypeError("Invalid type for Hamiltonian.")
-    else:
-        # no hamiltonian given, pick system size from a collapse operator
-        if isinstance(c_ops, list) and len(c_ops) > 0:
-            if isinstance(c_ops[0], QobjEvo):
-                c = c_ops[0].cte
-            else:
-                c = c_ops[0]
-            if c.isoper:
-                op_dims = c.dims
-                op_shape = c.shape
-            elif c.issuper:
-                op_dims = c.dims[0]
-                op_shape = [np.prod(op_dims[0]), np.prod(op_dims[0])]
-            else:
-                raise TypeError("Invalid type for collapse operator.")
-        else:
-            raise TypeError("Either H or c_ops must be given.")
+    if H is None:
+        # No Hamiltonian, add the lindblad_dissipator of c_ops:
+        if not c_ops:
+            raise ValueError("The liouvillian need an Hamiltonian"
+                             " and/or c_ops")
+        out = sum(lindblad_dissipator(c_op, chi=chi_)
+                  for c_op, chi_ in zip(c_ops, chi))
+        return out.data if isinstance(out, Qobj) and data_only else out
+    elif not H.isoper:
+        raise TypeError("Invalid type for Hamiltonian.")
 
+    if isinstance(H, QobjEvo) or any(isinstance(op, QobjEvo) for op in c_ops):
+        # With QobjEvo, faster computation using Data is not used
+        L = -1.0j * (spre(H) - spost(H))
+        L += sum(lindblad_dissipator(c_op, chi=chi_)
+                 for c_op, chi_ in zip(c_ops, chi))
+        return L
+
+    op_dims = H.dims
+    op_shape = H.shape
     sop_dims = [[op_dims[0], op_dims[0]], [op_dims[1], op_dims[1]]]
     sop_shape = [np.prod(op_dims), np.prod(op_dims)]
-
     spI = _data.identity(op_shape[0])
 
-    td = False
-    L = None
-    if isinstance(H, QobjEvoFunc):
-        td = True
-        if H.cte.isoper:
-            L = H._liouvillian_h()
-        else:
-            L = H
-        data = L.cte.data * 0
-        data_empty = True
+    data = -1j * _data.kron(spI, H.data)
+    data = _data.add(data, _data.kron(H.data.transpose(), spI), scale=1j)
 
-    elif isinstance(H, QobjEvo):
-        td = True
-        if H.cte.isoper:
-            L = -1.0j * (spre(H) - spost(H))
-        else:
-            L = H
-        data = L.cte.data
-        data_empty = False
-        L.cte *= 0
+    for c_op, chi_ in zip(c_ops, chi):
+        c = c_op.data
+        cd = c.adjoint()
+        cdc = _data.matmul(cd, c)
+        data = _data.add(data, _data.kron(c.conj(), c), np.exp(1j*chi_))
+        data = _data.add(data, _data.kron(spI, cdc), -0.5)
+        data = _data.add(data, _data.kron(cdc.transpose(), spI), -0.5)
 
-    elif isinstance(H, Qobj):
-        if H.isoper:
-            data = -1j * _data.kron(spI, H.data)
-            data = _data.add(data, _data.kron(H.data.transpose(), spI),
-                             scale=1j)
-        else:
-            data = H.data
-        data_empty = False
-    else:
-        data = _data.zeros(*sop_shape)
-        data_empty = True
-
-    td_c_ops = []
-
-    for idx, c_op in enumerate(c_ops):
-        if isinstance(c_op, QobjEvoBase):
-            td = True
-            if c_op.const:
-                c_ = c_op.cte
-            elif c_op.issuper:
-                td_c_ops.append(c_op)
-                continue
-            elif chi:
-                td_c_ops.append(lindblad_dissipator(c_op, chi=chi[idx]))
-                continue
-            else:
-                td_c_ops.append(lindblad_dissipator(c_op))
-                continue
-        else:
-            c_ = c_op
-
-        if c_.issuper:
-            data = data + c_.data
-        else:
-            cd = c_.data.adjoint()
-            c = c_.data
-            if chi:
-                data += np.exp(1j*chi[idx]) * _data.kron(c.conj(), c)
-            else:
-                data += _data.kron(c.conj(), c)
-            cdc = cd @ c
-            data -= _data.kron(0.5*spI, cdc)
-            data -= _data.kron(cdc.transpose(), 0.5*spI)
-        data_empty = False
-
-    if data_only and not td:
+    if data_only:
         return data
-    if not td:
-        if data_only:
-            return data
-        else:
-            return Qobj(data,
-                        dims=sop_dims,
-                        type='super',
-                        superrep='super',
-                        copy=False)
     else:
-        if not L:
-            L = QobjEvo(Qobj(data,
-                             dims=sop_dims,
-                             type='super',
-                             superrep='super',
-                             copy=False))
-        elif not data_empty:
-            L += Qobj(data,
-                      dims=sop_dims,
-                      type='super',
-                      superrep='super',
-                      copy=False)
-        for c_op in td_c_ops:
-            L += c_op
-        return L
+        return Qobj(data,
+                    dims=sop_dims,
+                    type='super',
+                    superrep='super',
+                    copy=False)
 
 
 def lindblad_dissipator(a, b=None, data_only=False, chi=None):
@@ -235,6 +152,9 @@ def lindblad_dissipator(a, b=None, data_only=False, chi=None):
     b : Qobj or QobjEvo (optional)
         Right part of collapse operator. If not specified, b defaults to a.
 
+    data_only :  bool [False]
+        Return the data object instead of a Qobj
+
     Returns
     -------
     D : qobj, QobjEvo
@@ -242,8 +162,6 @@ def lindblad_dissipator(a, b=None, data_only=False, chi=None):
     """
     if b is None:
         b = a
-        if isinstance(a, QobjEvoFunc):
-            return a._lindblad_dissipator(chi)
     ad_b = a.dag() * b
     if chi:
         D = (
@@ -423,10 +341,7 @@ def sprepost(A, B):
     super : Qobj or QobjEvo
         Superoperator formed from input quantum objects.
     """
-    if (
-        isinstance(A, QobjEvoBase) or
-        isinstance(B, QobjEvoBase)
-    ):
+    if (isinstance(A, QobjEvo) or isinstance(B, QobjEvo)):
         return spre(A) * spost(B)
     dims = [[_drop_projected_dims(A.dims[0]),
              _drop_projected_dims(B.dims[1])],
@@ -463,7 +378,3 @@ def reshuffle(q_oper):
                     ].reshape((n_subsystems, n_indices))
                     )
     return q_oper.permute(list(perm_idxs))
-
-
-from .qobjevo import QobjEvo, QobjEvoBase
-from .qobjevofunc import QobjEvoFunc

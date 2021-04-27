@@ -14,8 +14,6 @@ import qutip
 
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
-    double         norm(double complex x)
-
 
 cdef class Coefficient:
     """
@@ -95,6 +93,7 @@ cdef class Coefficient:
         return pickle.loads(pickle.dumps(self))
 
     def conj(self):
+<<<<<<< HEAD
         """ Return a conjugate :obj:`Coefficient` of this"""
         return ConjCoefficient(self)
 
@@ -106,6 +105,10 @@ cdef class Coefficient:
         """ Return a :obj:`Coefficient` with a time shift"""
         return ShiftCoefficient(self, 0)
 
+=======
+        return ConjCoefficient(self)
+
+>>>>>>> 0c043936... replace the used version of QobjEvo in core
 
 @cython.auto_pickle(True)
 cdef class FunctionCoefficient(Coefficient):
@@ -363,11 +366,6 @@ cdef class InterCoefficient(Coefficient):
         return InterCoefficient(self.coeff_np, self.tlist_np,
                                 self.second_np, self.constant)
 
-    @property
-    def array(self):
-        # Fro QIP tests
-        return self.coeff_np
-
 
 cdef Coefficient add_inter(InterCoefficient left, InterCoefficient right):
     if np.array_equal(left.tlist_np, right.tlist_np):
@@ -429,11 +427,6 @@ cdef class StepCoefficient(Coefficient):
         """Return a copy of the :obj:`Coefficient`."""
         return StepCoefficient(self.coeff_np, self.tlist_np, self.constant)
 
-    @property
-    def array(self):
-        # Fro QIP tests
-        return np.array(self.coeff_arr)
-
 
 @cython.auto_pickle(True)
 cdef class SumCoefficient(Coefficient):
@@ -450,10 +443,6 @@ cdef class SumCoefficient(Coefficient):
     def __init__(self, Coefficient first, Coefficient second):
         self.first = first
         self.second = second
-
-    cpdef void arguments(self, dict args) except *:
-        self.first.arguments(args)
-        self.second.arguments(args)
 
     cdef complex _call(self, double t) except *:
         return self.first._call(t) + self.second._call(t)
