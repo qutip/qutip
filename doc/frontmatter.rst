@@ -172,7 +172,10 @@ Several libraries rely on QuTiP for quantum physics or quantum information proce
 
 Contributing to QuTiP
 =====================
-We welcome anyone who is interested in helping us make QuTiP the best package for simulating quantum systems. Anyone who contributes will be duly recognized.  Even small contributions are noted. See :ref:`developers-contributors` for a list of people who have helped in one way or another. If you are interested, please drop us a line at the `QuTiP discussion group webpage`_.
 
-
-.. _QuTiP discussion group webpage: http://groups.google.com/group/qutip.
+We welcome anyone who is interested in helping us make QuTiP the best package for simulating quantum systems.
+There are :ref:`detailed instructions on how to contribute code and documentation <development-contributing>` in the developers' section of this guide.
+You can also help out our users by answering questions in the `QuTiP discussion mailing list <https://groups.google.com/g/qutip>`_, or by raising issues in `the main GitHub repository <https://github.com/qutip/qutip>`_ if you find any bugs.
+Anyone who contributes code will be duly recognized.
+Even small contributions are noted.
+See :ref:`developers-contributors` for a list of people who have helped in one way or another.
