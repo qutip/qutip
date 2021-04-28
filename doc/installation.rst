@@ -71,6 +71,12 @@ In addition, there are several optional packages that provide additional functio
 |                          |              | nice circuit drawings in IPython.                   |
 +--------------------------+--------------+-----------------------------------------------------+
 
+In addition, there are several additional packages that are not dependencies, but may give you a better programming experience.
+`IPython <https://ipython.org/>`_ provides an improved text-based Python interpreter that is far more full-featured that the default interpreter, and runs in a terminal.
+If you prefer a more graphical set-up, `Jupyter <https://jupyter.org/>`_ provides a notebook-style interface to mix code and mathematical notes together.
+Alternatively, `Spyder <https://www.spyder-ide.org/>`_ is a free integrated development environment for Python, with several nice features for debugging code.
+QuTiP will detect if it is being used within one of these richer environments, and various outputs will have enhanced formatting.
+
 .. _install-with-conda:
 
 Installing with conda
@@ -87,46 +93,6 @@ If you already have your conda environment set up, and have the ``conda-forge`` 
 
 This will install the minimum set of dependences, but none of the optional packages.
 
-
-.. _building-conda-environment:
-
-Building your Conda environment
--------------------------------
-
-The default Anaconda environment has all the Python packages needed for running QuTiP.
-You may however wish to install QuTiP in a Conda environment (env) other than the default Anaconda environment.
-You may wish to install `Miniconda <https://docs.conda.io/en/latest/miniconda.html>`_ instead if you need to be economical with disk space.
-However, if you are not familiar with conda environments and only plan to use if for QuTiP, then you should probably work with a default Anaconda / Miniconda environment.
-
-To create a Conda env for QuTiP called ``qutip-env``:
-
-.. code-block:: bash
-
-   conda create -n qutip-env python
-
-If you have created a specific conda environment, or you have installed Miniconda, then you will need to install any optional packages for QuTiP.
-
-Recommended:
-
-.. code-block:: bash
-
-   conda install numpy scipy cython matplotlib pytest jupyter notebook spyder
-
-Minimum (recommended):
-
-.. code-block:: bash
-
-   conda install numpy scipy cython matplotlib
-
-Absolute minimum:
-
-.. code-block:: bash
-
-   conda install numpy scipy
-
-The ``jupyter`` and ``notebook`` packages are for working with `Jupyter <http://jupyter.org/>`_ notebooks (aka IPython notebooks).
-`Spyder <https://www.spyder-ide.org/>`_ is an IDE for scientific development with Python.
-
 .. _adding-conda-forge:
 
 Adding the conda-forge channel
@@ -141,6 +107,29 @@ The following command adds this channel with lowest priority, so conda will stil
 
 If you want to change the order of your channels later, you can edit your ``.condarc`` (user home folder) file manually, but it is recommended to keep ``defaults`` as the highest priority.
 
+
+.. _building-conda-environment:
+
+New conda environments
+----------------------
+
+The default Anaconda environment has all the Python packages needed for running QuTiP installed already, so you will only need to add the ``conda-forge`` channel and then install the package.
+If you have only installed Miniconda, or you want a completely clean virtual environment to install QuTiP in, the ``conda`` package manager provides a convenient way to do this.
+
+To create a conda environment for QuTiP called ``qutip-env``:
+
+.. code-block:: bash
+
+   conda create -n qutip-env python qutip
+
+This will automatically install all the necessary packages, and none of the optional packages.
+You activate the new environment by running
+
+.. code-block:: bash
+
+   conda activate qutip-env
+
+You can also install any more optional packages you want with ``conda install``, for example ``matplotlib``, ``ipython`` or ``jupyter``.
 
 .. _install-from-source:
 
