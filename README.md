@@ -13,8 +13,8 @@ QuTiP: Quantum Toolbox in Python
 [P. D. Nation](https://github.com/nonhermitian),
 and [J. R. Johansson](https://github.com/jrjohansson)
 
-[![Build Status](https://secure.travis-ci.org/qutip/qutip.svg?branch=master)](http://travis-ci.org/qutip/qutip)
-[![Coverage Status](https://img.shields.io/coveralls/qutip/qutip.svg)](https://coveralls.io/r/qutip/qutip)
+[![Build Status](https://img.shields.io/travis/qutip/qutip?logo=Travis)](http://travis-ci.org/qutip/qutip)
+[![Coverage Status](https://img.shields.io/coveralls/qutip/qutip.svg?logo=Coveralls)](https://coveralls.io/r/qutip/qutip)
 [![Maintainability](https://api.codeclimate.com/v1/badges/df502674f1dfa1f1b67a/maintainability)](https://codeclimate.com/github/qutip/qutip/maintainability)
 [![license](https://img.shields.io/badge/license-New%20BSD-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)  
 [![PyPi Downloads](https://img.shields.io/pypi/dm/qutip?label=downloads%20%7C%20pip&logo=PyPI)](https://pypi.org/project/qutip)
