@@ -134,7 +134,7 @@ Documentation build
 
 Documentation should be rebuilt for a minor or major release.
 If there have been any documentation updates as part of a micro release, then it should also be built for this.
-The documentation repository is ``qutip/qutip-doc``.
+The documentation repository is now inside ``qutip/qutip``, in the ``doc`` directory..
 
 Ensure that the following steps are complete:
 
@@ -143,7 +143,7 @@ Ensure that the following steps are complete:
 - Update ``api_doc/functions.rst`` for any new / deleted functions.
 - Update ``changelog.rst`` including all changes that are going into the new release.
 
-Then, fully rebuild the QuTiP documentation using `the guide in the documentation README <https://github.com/qutip/qutip-doc/blob/master/README.md>`_.
+Then, fully rebuild the QuTiP documentation using `the guide in the documentation README <https://github.com/qutip/qutip/blob/master/doc/README.md>`_.
 
 .. _deploy:
 
@@ -253,7 +253,7 @@ The latest version HTML documentation should be the folder ::
     docs/latest
     
 For any release which new documentation is included
-- copy the contents ``qutip-doc/_build/html`` into this folder. **Note that the underscores at start of the subfolder names will need to be removed, otherwise Jekyll will ignore the folders**. There is a script in the ``docs`` folder for this. 
+- copy the contents ``qutip/doc/_build/html`` into this folder. **Note that the underscores at start of the subfolder names will need to be removed, otherwise Jekyll will ignore the folders**. There is a script in the ``docs`` folder for this. 
 https://github.com/qutip/qutip.github.io/blob/master/docs/remove_leading_underscores.py
 
 

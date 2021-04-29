@@ -443,4 +443,4 @@ The code to directly generate an mp4 movie of the Qubit decay is as follows ::
                                  init_func=init, blit=True, repeat=False)
    ani.save('bloch_sphere.mp4', fps=20)
 
-The resulting movie may be viewed here: `bloch_decay.mp4 <https://github.com/qutip/qutip-doc/raw/master/figures/bloch_decay.mp4>`_
+The resulting movie may be viewed here: `bloch_decay.mp4 <https://raw.githubusercontent.com/qutip/qutip/master/doc/figures/bloch_decay.mp4>`_

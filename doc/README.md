@@ -18,7 +18,7 @@ If you typically use conda, the way to do this is
 ```bash
 $ conda create -n qutip-doc-build python=3.8
 $ conda activate qutip-doc-build
-$ pip install -r /path/to/qutip-doc/requirements.txt
+$ pip install -r /path/to/qutip/doc/requirements.txt
 ```
 You will also need to build or install the main QuTiP library in the same environment.
 If you simply want to build the documentation without editing the main library, you can install a release version of QuTiP with `pip install qutip`.

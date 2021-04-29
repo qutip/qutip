@@ -139,17 +139,17 @@ to run the tests of :meth:`Qobj.expm`.
 
 .. _contributing-docs:
 
-Documentation: qutip/qutip-doc
-==============================
+Documentation: qutip/qutip (doc directory)
+==========================================
 
-The core library is in the `qutip/qutip-doc repository on GitHub <https://github.com/qutip/qutip-doc>`_.
+The core library is in the `qutip/qutip repository on GitHub, inside the doc directory <https://github.com/qutip/qutip>`_.
 
 Building
 --------
 
 The documentation is built using ``sphinx``, ``matplotlib`` and ``numpydoc``, with several additional extensions including ``sphinx-gallery`` and ``sphinx-rtd-theme``.
-The most up-to-date instructions and dependencies will be in the ``README.md`` file of the documentation repository.
-You can see the rendered version of this file simply by going to the `documentation GitHub page <https://github.com/qutip/qutip-doc>`_ and scrolling down.
+The most up-to-date instructions and dependencies will be in the ``README.md`` file of the documentation directory.
+You can see the rendered version of this file simply by going to the `documentation GitHub page <https://github.com/qutip/qutip/tree/master/doc>`_ and scrolling down.
 
 Building the documentation can be a little finnicky on occasion.
 You likely will want to keep a separate Python environment to build the documentation in, because some of the dependencies can have tight requirements that may conflict with your favourite tools for Python development.

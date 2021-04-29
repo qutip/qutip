@@ -20,7 +20,7 @@ including but not limited to
 `autodoc <https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html>`_,
 `sphinx gallery <https://sphinx-gallery.github.io/stable/index.html>`_ and
 `plot <https://matplotlib.org/3.1.1/devel/plot_directive.html>`_.
-Additional extensions can be configured in the `conf.py <https://github.com/qutip/qutip-doc/blob/master/conf.py>`_ file.
+Additional extensions can be configured in the `conf.py <https://github.com/qutip/qutip/blob/master/doc/conf.py>`_ file.
 
 .. _directives.rst:
 
