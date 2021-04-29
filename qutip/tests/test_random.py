@@ -71,7 +71,7 @@ def check_func_dims(func, args, kwargs, dims):
     # TODO: promote this out of test_random, as it's generically useful
     #       in writing tests.
     resdims = func(*args, **kwargs).dims
-    assert_(resdims == dims, "Checking {}; epected dimensions of {}, got {}.".format(func.__name__, dims, resdims))
+    assert_(resdims == dims, "Checking {}; expected dimensions of {}, got {}.".format(func.__name__, dims, resdims))
 
 def test_rand_vector_dims():
     FUNCS = [rand_ket, rand_ket_haar]
