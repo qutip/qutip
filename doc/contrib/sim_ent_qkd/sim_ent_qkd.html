@@ -1,0 +1,344 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+   "http://www.w3.org/TR/html4/strict.dtd">
+
+<html>
+<head>
+  <title></title>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <style type="text/css">
+td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+body .hll { background-color: #ffffcc }
+body  { background: #f8f8f8; }
+body .c { color: #408080; font-style: italic } /* Comment */
+body .err { border: 1px solid #FF0000 } /* Error */
+body .k { color: #008000; font-weight: bold } /* Keyword */
+body .o { color: #666666 } /* Operator */
+body .cm { color: #408080; font-style: italic } /* Comment.Multiline */
+body .cp { color: #BC7A00 } /* Comment.Preproc */
+body .c1 { color: #408080; font-style: italic } /* Comment.Single */
+body .cs { color: #408080; font-style: italic } /* Comment.Special */
+body .gd { color: #A00000 } /* Generic.Deleted */
+body .ge { font-style: italic } /* Generic.Emph */
+body .gr { color: #FF0000 } /* Generic.Error */
+body .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+body .gi { color: #00A000 } /* Generic.Inserted */
+body .go { color: #808080 } /* Generic.Output */
+body .gp { color: #000080; font-weight: bold } /* Generic.Prompt */
+body .gs { font-weight: bold } /* Generic.Strong */
+body .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+body .gt { color: #0040D0 } /* Generic.Traceback */
+body .kc { color: #008000; font-weight: bold } /* Keyword.Constant */
+body .kd { color: #008000; font-weight: bold } /* Keyword.Declaration */
+body .kn { color: #008000; font-weight: bold } /* Keyword.Namespace */
+body .kp { color: #008000 } /* Keyword.Pseudo */
+body .kr { color: #008000; font-weight: bold } /* Keyword.Reserved */
+body .kt { color: #B00040 } /* Keyword.Type */
+body .m { color: #666666 } /* Literal.Number */
+body .s { color: #BA2121 } /* Literal.String */
+body .na { color: #7D9029 } /* Name.Attribute */
+body .nb { color: #008000 } /* Name.Builtin */
+body .nc { color: #0000FF; font-weight: bold } /* Name.Class */
+body .no { color: #880000 } /* Name.Constant */
+body .nd { color: #AA22FF } /* Name.Decorator */
+body .ni { color: #999999; font-weight: bold } /* Name.Entity */
+body .ne { color: #D2413A; font-weight: bold } /* Name.Exception */
+body .nf { color: #0000FF } /* Name.Function */
+body .nl { color: #A0A000 } /* Name.Label */
+body .nn { color: #0000FF; font-weight: bold } /* Name.Namespace */
+body .nt { color: #008000; font-weight: bold } /* Name.Tag */
+body .nv { color: #19177C } /* Name.Variable */
+body .ow { color: #AA22FF; font-weight: bold } /* Operator.Word */
+body .w { color: #bbbbbb } /* Text.Whitespace */
+body .mf { color: #666666 } /* Literal.Number.Float */
+body .mh { color: #666666 } /* Literal.Number.Hex */
+body .mi { color: #666666 } /* Literal.Number.Integer */
+body .mo { color: #666666 } /* Literal.Number.Oct */
+body .sb { color: #BA2121 } /* Literal.String.Backtick */
+body .sc { color: #BA2121 } /* Literal.String.Char */
+body .sd { color: #BA2121; font-style: italic } /* Literal.String.Doc */
+body .s2 { color: #BA2121 } /* Literal.String.Double */
+body .se { color: #BB6622; font-weight: bold } /* Literal.String.Escape */
+body .sh { color: #BA2121 } /* Literal.String.Heredoc */
+body .si { color: #BB6688; font-weight: bold } /* Literal.String.Interpol */
+body .sx { color: #008000 } /* Literal.String.Other */
+body .sr { color: #BB6688 } /* Literal.String.Regex */
+body .s1 { color: #BA2121 } /* Literal.String.Single */
+body .ss { color: #19177C } /* Literal.String.Symbol */
+body .bp { color: #008000 } /* Name.Builtin.Pseudo */
+body .vc { color: #19177C } /* Name.Variable.Class */
+body .vg { color: #19177C } /* Name.Variable.Global */
+body .vi { color: #19177C } /* Name.Variable.Instance */
+body .il { color: #666666 } /* Literal.Number.Integer.Long */
+
+  </style>
+</head>
+<body>
+<h2></h2>
+
+<div class="highlight"><pre><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Code for simulating secure key rate, twofolds, and quantum bit error rate</span>
+<span class="sd">Written in Python and QuTIP by Catherine Holloway (c2hollow@iqc.ca).</span>
+
+<span class="sd">Detector model and squashing functions by Catherine Holloway,</span>
+<span class="sd">based on code by Dr. Thomas Jennewein (tjennewe@iqc.ca).</span>
+
+<span class="sd">Contributed to the QuTiP project on June 06, 2012 by Catherine Holloway.</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="c">#imports</span>
+<span class="kn">from</span> <span class="nn">qutip</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">pylab</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">import</span> <span class="nn">matplotlib</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+
+
+<span class="k">def</span> <span class="nf">choose</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	Binomial coefficient function for the detector model.</span>
+<span class="sd">	</span>
+<span class="sd">	Parameters</span>
+<span class="sd">	----------</span>
+<span class="sd">	n : int</span>
+<span class="sd">	    Number of elements.</span>
+<span class="sd">	k : int</span>
+<span class="sd">	    Number of subelements.</span>
+<span class="sd">	</span>
+<span class="sd">	Returns</span>
+<span class="sd">	-------</span>
+<span class="sd">	coeff : int</span>
+<span class="sd">	    Binomial coefficient.</span>
+<span class="sd">	</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+	<span class="k">if</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">k</span> <span class="o">&lt;=</span> <span class="n">n</span><span class="p">:</span>
+		<span class="n">ntok</span> <span class="o">=</span> <span class="mi">1</span>
+		<span class="n">ktok</span> <span class="o">=</span> <span class="mi">1</span>
+		<span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">n</span> <span class="o">-</span> <span class="n">k</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+			<span class="n">ntok</span> <span class="o">*=</span> <span class="n">n</span>
+			<span class="n">ktok</span> <span class="o">*=</span> <span class="n">t</span>
+			<span class="n">n</span> <span class="o">-=</span> <span class="mi">1</span>
+		<span class="k">return</span> <span class="n">ntok</span> <span class="o">//</span> <span class="n">ktok</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="k">return</span> <span class="mi">0</span>
+
+
+<span class="k">def</span> <span class="nf">BucketDetector_realistic_detector</span><span class="p">(</span><span class="n">N</span><span class="p">,</span><span class="n">efficiency</span><span class="p">,</span><span class="n">n_factor</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	Bucket detector model based on H. Lee, U. Yurtsever, P. Kok, G. Hockney, C. Adami, S. Braunstein,</span>
+<span class="sd">	and J. Dowling, &quot;Towards photostatistics from photon-number discriminating detectors,&quot;</span>
+<span class="sd">	Journal of Modern Optics, vol. 51, p. 15171528, 2004.</span>
+<span class="sd">	</span>
+<span class="sd">	Parameters</span>
+<span class="sd">	----------</span>
+<span class="sd">	N : int </span>
+<span class="sd">	    The Fock Space dimension.</span>
+<span class="sd">	efficiency : float</span>
+<span class="sd">	    The channel efficiency.</span>
+<span class="sd">	n_factor : float</span>
+<span class="sd">	    The average number of dark counts per detection window APD (Bucket Detector).</span>
+<span class="sd">	</span>
+<span class="sd">	Returns</span>
+<span class="sd">	-------</span>
+<span class="sd">	[proj, un_proj] : list</span>
+<span class="sd">	    The projection and unprojection operators.</span>
+<span class="sd">	</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+	<span class="n">proj</span><span class="o">=</span><span class="n">zeros</span><span class="p">((</span><span class="n">N</span><span class="p">,</span><span class="n">N</span><span class="p">))</span>
+	<span class="c">#APD (Bucket Detector) un_detector (=gives probability for 0-detection)</span>
+	<span class="n">un_proj</span><span class="o">=</span><span class="n">identity</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+	<span class="c">#n_factor = 0;</span>
+	<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+	    <span class="n">probs</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+	    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">100</span><span class="p">):</span>
+	        <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+	            <span class="k">if</span> <span class="n">k</span><span class="o">-</span><span class="n">d</span><span class="o">&lt;=</span><span class="n">i</span><span class="p">:</span>
+	                <span class="n">probs</span><span class="o">=</span> <span class="n">probs</span><span class="o">+</span> <span class="p">(</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">n_factor</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">n_factor</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="n">d</span><span class="p">))</span><span class="o">/</span><span class="n">factorial</span><span class="p">(</span><span class="n">d</span><span class="p">)</span><span class="o">*</span><span class="n">choose</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">k</span><span class="o">-</span><span class="n">d</span><span class="p">)</span><span class="o">*</span><span class="n">efficiency</span><span class="o">**</span><span class="p">(</span><span class="n">k</span><span class="o">-</span><span class="n">d</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">efficiency</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="n">k</span><span class="o">+</span><span class="n">d</span><span class="p">)</span>
+	        
+	    <span class="n">proj</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">i</span><span class="p">]</span><span class="o">=</span><span class="n">probs</span>
+	   
+	
+	<span class="n">un_proj</span> <span class="o">=</span> <span class="n">un_proj</span><span class="o">-</span><span class="n">proj</span>
+	<span class="n">un_proj</span> <span class="o">=</span> <span class="n">Qobj</span><span class="p">(</span><span class="n">un_proj</span><span class="p">)</span>
+	<span class="n">proj</span> <span class="o">=</span> <span class="n">Qobj</span><span class="p">(</span><span class="n">proj</span><span class="p">)</span>
+	<span class="k">return</span> <span class="p">[</span><span class="n">proj</span><span class="p">,</span><span class="n">un_proj</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">measure_2folds_4modes_squashing</span><span class="p">(</span><span class="n">N</span><span class="p">,</span><span class="n">psi</span><span class="p">,</span><span class="n">proj</span><span class="p">,</span><span class="n">proj2</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	Determines the 2-fold count rate on the joint state </span>
+<span class="sd">	outputs for an array of double count probabilities.</span>
+<span class="sd">	</span>
+<span class="sd">	Parameters</span>
+<span class="sd">	----------</span>
+<span class="sd">	N : int</span>
+<span class="sd">	    The Fock Space dimension.</span>
+<span class="sd">	psi : qobj</span>
+<span class="sd">	    The entangled state to analyze</span>
+<span class="sd">	proj1 : qobj</span>
+<span class="sd">	    1st projection operator for the Channel between Alice and</span>
+<span class="sd">    	the Channel between Bob.</span>
+<span class="sd">	proj2 : qobj</span>
+<span class="sd">	    2nd projection operator for the Channel between Alice and </span>
+<span class="sd">	    the Channel between Bob.</span>
+<span class="sd">	</span>
+<span class="sd">	Returns</span>
+<span class="sd">	-------</span>
+<span class="sd">	[HH,HV,VH,VV] : list</span>
+<span class="sd">	    Two-fold probabilities.</span>
+<span class="sd">	</span>
+<span class="sd">	Notes</span>
+<span class="sd">	-----</span>
+<span class="sd">	The squashing (assigning double pairs to random bases) comes from two papers:</span>
+<span class="sd">	</span>
+<span class="sd">	    T. Moroder, O. Guhne, N. Beaudry, M. Piani, and N. Lutkenhaus,</span>
+<span class="sd">	    &quot;Entanglement verication with realistic measurement devices via squashing operations,&quot;</span>
+<span class="sd">	    Phys. Rev. A, vol. 81, p. 052342, May 2010.</span>
+<span class="sd">	</span>
+<span class="sd">	    N. Lutkenhaus, &quot;Estimates for practical quantum cryptography,&quot; Phys. Rev.A,</span>
+<span class="sd">	    vol. 59, pp. 3301-3319, May 1999.</span>
+<span class="sd">	</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+	<span class="n">ida</span><span class="o">=</span><span class="n">qeye</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+	<span class="n">final_state</span><span class="o">=</span><span class="n">psi</span>
+	<span class="n">det_exp</span> <span class="o">=</span> <span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
+
+	<span class="c">#i,j,k,l means Ha,Va,Hb,Vb, 0 means detector clicked, 1 means detector did not click</span>
+	<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+		<span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+			<span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+				<span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+					<span class="c">#expectation values for different detector configurations</span>
+					<span class="n">det_exp</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">][</span><span class="n">k</span><span class="p">][</span><span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">expect</span><span class="p">(</span><span class="n">tensor</span><span class="p">(</span><span class="n">proj</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="n">proj</span><span class="p">[</span><span class="n">j</span><span class="p">],</span><span class="n">proj2</span><span class="p">[</span><span class="n">k</span><span class="p">],</span><span class="n">proj</span><span class="p">[</span><span class="n">l</span><span class="p">]),</span><span class="n">final_state</span><span class="p">))</span>
+	<span class="c">#two fold probabilities</span>
+	<span class="n">HH</span> <span class="o">=</span> <span class="n">det_exp</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">det_exp</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="n">det_exp</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span><span class="o">+</span><span class="mf">0.25</span><span class="o">*</span><span class="n">det_exp</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+	<span class="n">VV</span> <span class="o">=</span> <span class="n">det_exp</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">det_exp</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="n">det_exp</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span><span class="o">+</span><span class="mf">0.25</span><span class="o">*</span><span class="n">det_exp</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+	<span class="n">HV</span> <span class="o">=</span> <span class="n">det_exp</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">det_exp</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="n">det_exp</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span><span class="o">+</span><span class="mf">0.25</span><span class="o">*</span><span class="n">det_exp</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+	<span class="n">VH</span> <span class="o">=</span> <span class="n">det_exp</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">det_exp</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="n">det_exp</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span><span class="o">+</span><span class="mf">0.25</span><span class="o">*</span><span class="n">det_exp</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+	<span class="k">return</span> <span class="p">[</span><span class="n">HH</span><span class="p">,</span><span class="n">HV</span><span class="p">,</span><span class="n">VH</span><span class="p">,</span><span class="n">VV</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">sim_qkd_entanglement</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span><span class="n">loss_a</span><span class="p">,</span><span class="n">loss_b</span><span class="p">,</span><span class="n">n_factor_a</span><span class="p">,</span><span class="n">n_factor_b</span><span class="p">,</span><span class="n">N</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	Simulate skr with an SPDC state.</span>
+<span class="sd">	</span>
+<span class="sd">	Parameters</span>
+<span class="sd">	----------</span>
+<span class="sd">	eps : float</span>
+<span class="sd">	    The squeezing factor, sort of analogous to the amount of </span>
+<span class="sd">	    pumping power to the spdc source, but not really.</span>
+<span class="sd">	loss_a : float</span>
+<span class="sd">	    Efficiency of the quantum channel going to Alice.</span>
+<span class="sd">	loss_b : float</span>
+<span class="sd">	    Efficiency of the quantum channel going to Bob. </span>
+<span class="sd">	n_factor_a : float</span>
+<span class="sd">	    Background noise in Alice&#39;s detection.</span>
+<span class="sd">	n_factor_b : float</span>
+<span class="sd">	    Background noise in Bob&#39;s detection.</span>
+<span class="sd">	N : int</span>
+<span class="sd">	    Size of the fock space that we allow for the states</span>
+<span class="sd">	</span>
+<span class="sd">	Returns</span>
+<span class="sd">	-------</span>
+<span class="sd">	qber : float</span>
+<span class="sd">	    The Quantum Bit Error Rate</span>
+<span class="sd">	twofolds : float</span>
+<span class="sd">	    Probability of Alice and Bob getting a simultaneous detection </span>
+<span class="sd">	    of a photon pair (also referred to as coincidences) within a </span>
+<span class="sd">	    timing window.</span>
+<span class="sd">	skr : float</span>
+<span class="sd">	    Probability of getting a secure key bit within a timing window, </span>
+<span class="sd">	    assuming error correction and privacy amplification, in the </span>
+<span class="sd">	    limit of many coincidences.</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+	<span class="c">#make vaccuum state</span>
+	<span class="n">vacc</span> <span class="o">=</span> <span class="n">basis</span><span class="p">(</span><span class="n">N</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
+
+	<span class="c">#make squeezing operator for SPDC</span>
+	<span class="n">H_sq</span> <span class="o">=</span> <span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="n">eps</span><span class="o">*</span><span class="p">(</span><span class="n">tensor</span><span class="p">(</span><span class="n">create</span><span class="p">(</span><span class="n">N</span><span class="p">),</span><span class="n">create</span><span class="p">(</span><span class="n">N</span><span class="p">))</span><span class="o">+</span><span class="n">tensor</span><span class="p">(</span><span class="n">destroy</span><span class="p">(</span><span class="n">N</span><span class="p">),</span><span class="n">destroy</span><span class="p">(</span><span class="n">N</span><span class="p">)))</span>
+	
+	<span class="c">#exponentiate hamiltonian and apply it to vaccuum state to make an SPDC state</span>
+	<span class="n">U_sq</span> <span class="o">=</span> <span class="n">H_sq</span><span class="o">.</span><span class="n">expm</span><span class="p">()</span>
+	<span class="n">spdc</span> <span class="o">=</span> <span class="n">U_sq</span><span class="o">*</span><span class="n">tensor</span><span class="p">(</span><span class="n">vacc</span><span class="p">,</span><span class="n">vacc</span><span class="p">)</span>
+	<span class="n">psi</span> <span class="o">=</span> <span class="n">tensor</span><span class="p">(</span><span class="n">spdc</span><span class="p">,</span><span class="n">spdc</span><span class="p">)</span>
+	<span class="c">#since qutip doesn&#39;t have a permute function, </span>
+	<span class="c">#we have to do a couple of steps in between</span>
+	<span class="c">#1. turn psi from a sparse matrix to a full matrix</span>
+	<span class="n">out</span> <span class="o">=</span> <span class="n">psi</span><span class="o">.</span><span class="n">full</span><span class="p">()</span>
+	<span class="c">#2. reshape psi into a 4-D matrix</span>
+	<span class="n">out</span> <span class="o">=</span> <span class="n">reshape</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="p">(</span><span class="n">N</span><span class="p">,</span><span class="n">N</span><span class="p">,</span><span class="n">N</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+	<span class="c">#3. permute the dimensions of our 4-D matrix</span>
+	<span class="n">out</span> <span class="o">=</span> <span class="n">transpose</span><span class="p">(</span><span class="n">out</span><span class="p">,(</span><span class="mi">0</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+	<span class="c">#4. turn the matrix back into a 1-D array </span>
+	<span class="n">out</span> <span class="o">=</span> <span class="n">reshape</span><span class="p">(</span><span class="n">out</span><span class="p">,(</span><span class="n">N</span><span class="o">*</span><span class="n">N</span><span class="o">*</span><span class="n">N</span><span class="o">*</span><span class="n">N</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+	<span class="c">#5. convert the matrix back into a quantum object</span>
+	<span class="n">psi</span> <span class="o">=</span> <span class="n">Qobj</span><span class="p">(</span><span class="n">out</span><span class="p">,</span><span class="n">dims</span> <span class="o">=</span> <span class="p">[[</span><span class="n">N</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">N</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]])</span>
+
+	<span class="c"># model detectors</span>
+	<span class="n">a_det</span> <span class="o">=</span> <span class="n">BucketDetector_realistic_detector</span><span class="p">(</span><span class="n">N</span><span class="p">,</span><span class="n">loss_a</span><span class="p">,</span><span class="n">n_factor_a</span><span class="p">)</span>
+	<span class="n">b_det</span> <span class="o">=</span> <span class="n">BucketDetector_realistic_detector</span><span class="p">(</span><span class="n">N</span><span class="p">,</span><span class="n">loss_b</span><span class="p">,</span><span class="n">n_factor_b</span><span class="p">)</span>
+	
+	<span class="c">#measure detection probabilities</span>
+	<span class="n">probs2f</span><span class="o">=</span><span class="n">measure_2folds_4modes_squashing</span><span class="p">(</span><span class="n">N</span><span class="p">,</span><span class="n">psi</span><span class="p">,</span><span class="n">a_det</span><span class="p">,</span><span class="n">b_det</span><span class="p">)</span>
+
+	<span class="c">#Rates returned are &#39;per pulse&#39;, so multiply by source rate</span>
+	<span class="n">twofolds</span><span class="o">=</span><span class="n">probs2f</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="n">probs2f</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="n">probs2f</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">+</span><span class="n">probs2f</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+	<span class="c">#Determine QBER from returned detection probabilities</span>
+	<span class="n">qber</span> <span class="o">=</span> <span class="p">(</span><span class="n">probs2f</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="n">probs2f</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span><span class="o">/</span><span class="n">twofolds</span>
+
+	<span class="c">#calculate the entropy of the qber  </span>
+	<span class="k">if</span> <span class="n">qber</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+		<span class="n">H2</span><span class="o">=-</span><span class="n">qber</span><span class="o">*</span><span class="n">log2</span><span class="p">(</span><span class="n">qber</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">qber</span><span class="p">)</span><span class="o">*</span><span class="n">log2</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">qber</span><span class="p">)</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="n">H2</span> <span class="o">=</span> <span class="mi">0</span>
+	<span class="c"># estimate error correction efficiency from the CASCADE algorithm </span>
+	<span class="n">f_e</span> <span class="o">=</span> <span class="mf">1.16904371810274</span> <span class="o">+</span> <span class="n">qber</span>
+	<span class="c">#security analysis - calculate skr in infinite key limit</span>
+	<span class="c">#See Chris Erven&#39;s PhD thesis or Xiongfeng Ma&#39;s paper </span>
+	<span class="c">#to understand where this equation comes from</span>
+	<span class="n">skr</span><span class="o">=</span><span class="n">real</span><span class="p">(</span><span class="n">twofolds</span><span class="o">*</span><span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="n">f_e</span><span class="p">)</span><span class="o">*</span><span class="n">H2</span><span class="p">))</span>
+	<span class="k">return</span> <span class="p">[</span><span class="n">qber</span><span class="p">,</span> <span class="n">skr</span><span class="p">,</span> <span class="n">twofolds</span><span class="p">]</span>
+
+
+<span class="k">if</span> <span class="n">__name__</span><span class="o">==</span><span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+	<span class="c">#Lets look at what happens to the secure key rate and </span>
+	<span class="c">#the quantum bit error rate as the loss gets worse.</span>
+	<span class="c">#Analogous to distance with fiber optic links.</span>
+	
+	<span class="c">#define the fock space</span>
+	<span class="n">N</span> <span class="o">=</span> <span class="mi">7</span>
+	<span class="c">#define the squeezing paramter</span>
+	<span class="n">eps</span> <span class="o">=</span> <span class="mf">0.2</span>
+	<span class="c">#define the noise factor</span>
+	<span class="n">n_factor</span> <span class="o">=</span> <span class="mf">4.0e-5</span>
+	<span class="c">#define the length of the coincidence window (in s)</span>
+	<span class="n">coinc_window</span> <span class="o">=</span> <span class="mf">2.0e-9</span>
+	<span class="n">loss_db</span> <span class="o">=</span> <span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">30</span><span class="p">)</span>
+	<span class="n">skr</span> <span class="o">=</span> <span class="n">zeros</span><span class="p">(</span><span class="mi">30</span><span class="p">)</span>
+	<span class="n">qber</span> <span class="o">=</span> <span class="n">zeros</span><span class="p">(</span><span class="mi">30</span><span class="p">)</span>
+	<span class="n">twofolds</span> <span class="o">=</span> <span class="n">zeros</span><span class="p">(</span><span class="mi">30</span><span class="p">)</span>
+    
+    <span class="c">#run calculation</span>
+	<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">30</span><span class="p">):</span>
+		<span class="n">exp_loss</span> <span class="o">=</span> <span class="mf">10.0</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="n">loss_db</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">/</span><span class="mf">10.0</span><span class="p">);</span>
+		<span class="p">[</span><span class="n">qber</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">skr</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">twofolds</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="n">sim_qkd_entanglement</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span><span class="n">exp_loss</span><span class="p">,</span><span class="n">exp_loss</span><span class="p">,</span><span class="n">n_factor</span><span class="p">,</span><span class="n">n_factor</span><span class="p">,</span><span class="n">N</span><span class="p">)</span>
+	<span class="n">skr</span> <span class="o">=</span> <span class="n">skr</span><span class="o">/</span><span class="n">coinc_window</span>
+	<span class="n">qber</span> <span class="o">=</span> <span class="n">qber</span><span class="o">*</span><span class="mi">100</span>
+    
+    <span class="c">#plot results</span>
+	<span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+	<span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">211</span><span class="p">)</span>
+	<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">loss_db</span><span class="p">,</span> <span class="n">skr</span><span class="p">,</span><span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+	<span class="n">ax</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s">&#39;log&#39;</span><span class="p">)</span>
+	<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s">&#39;Secure Key Rate (bits/s)&#39;</span><span class="p">)</span>
+	<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s">&#39;Loss (dB)&#39;</span><span class="p">)</span>
+	<span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">212</span><span class="p">)</span>
+	<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">loss_db</span><span class="p">,</span> <span class="n">qber</span><span class="p">,</span><span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+	<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s">&#39;Quantum Bit Error Rate (%)&#39;</span><span class="p">)</span>
+	<span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">15</span><span class="p">])</span>
+	<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s">&#39;Loss (dB)&#39;</span><span class="p">)</span>
+	<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
