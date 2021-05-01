@@ -61,7 +61,7 @@ Documentation
 -------------
 
 The documentation for official releases, in HTML and PDF formats, can be found in the [documentation section of the QuTiP website](http://qutip.org/documentation.html).
-The latest development documentation is available on GitHub in the [qutip/qutip-doc repository](https://github.com/qutip/qutip-doc).
+The latest development documentation is available in this repository in the `doc` folder.
 
 A [selection of demonstration notebooks is available](http://qutip.org/tutorials.html), which demonstrate some of the many features of QuTiP.
 These are stored in the [qutip/qutip-notebooks repository](https://github.com/qutip/qutip-notebooks) here on GitHub.
