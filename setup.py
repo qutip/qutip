@@ -144,7 +144,11 @@ def _determine_version(options):
             )
             git_hash = git_out.stdout.decode(sys.stdout.encoding).strip()
             version += git_hash or "nogit"
-        except subprocess.CalledProcessError:
+        # CalledProcessError is for if the git command fails for internal
+        # reasons (e.g. we're not in a git repository), OSError is for if
+        # something goes wrong when trying to run git (e.g. it's not installed,
+        # or a permission error).
+        except (subprocess.CalledProcessError, OSError):
             version += "nogit"
     options['version'] = version
     return options
