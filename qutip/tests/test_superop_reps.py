@@ -246,7 +246,7 @@ class TestSuperopReps:
         superop = rand_super_bcsz(dimension)
         A, B = to_stinespring(superop)
 
-        assert norm((A - B).data.todense()) < tol
+        assert norm((A - B).data.toarray()) < tol
 
     @pytest.mark.repeat(3)
     @pytest.mark.parametrize('dimension', [2, 4])
