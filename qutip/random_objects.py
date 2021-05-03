@@ -351,7 +351,7 @@ def rand_ket(N=None, density=1, dims=None, seed=None):
     return Qobj(X / X.norm(), dims=dims)
 
 
-def rand_ket_haar(N=2, dims=None, seed=None):
+def rand_ket_haar(N=None, dims=None, seed=None):
     """
     Returns a Haar random pure state of dimension ``dim`` by
     applying a Haar random unitary to a fixed pure state.
@@ -370,7 +370,10 @@ def rand_ket_haar(N=2, dims=None, seed=None):
     psi : Qobj
         A random state vector drawn from the Haar measure.
     """
-    if N and dims:
+    if N is None and dims is None:
+        raise ValueError('Specify either the number of rows of operator'
+                         '(N) or dimensions of quantum object (dims)')
+    elif N and dims:
         _check_dims(dims, N, 1)
     elif dims:
         N = np.prod(dims[0])
