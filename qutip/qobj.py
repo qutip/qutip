@@ -1216,14 +1216,12 @@ class Qobj(object):
             raise TypeError('Invalid operand for matrix square root')
 
     def cosm(self):
-        """Cosine of a quantum operator.
-
-        Operator must be square.
+        """Cosine of a square quantum operator.
 
         Returns
         -------
         oper : :class:`qutip.Qobj`
-            Matrix cosine of operator.
+            Matrix cosine of an operator.
 
         Raises
         ------
