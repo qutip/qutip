@@ -1071,7 +1071,7 @@ class Qobj(object):
         Raises
         -------
         TypeError
-            Purity is defined on a densoty matrix or state.
+            Purity is defined on a density matrix or state.
 
         """
         rho = self
@@ -1366,7 +1366,7 @@ class Qobj(object):
 
         Notes
         -----
-        This function is identical to the :obj:`.ptrace` function
+        This function is identical to the :func:`~qutip.ptrace` function
         that has been deprecated.
 
         """
@@ -2214,7 +2214,7 @@ def qobj_list_evaluate(qobj_list, t, args):
     """
     Deprecated: See Qobj.evaluate
     """
-    warnings.warn("Deprecated: Use Qobj.evaluate", DeprecationWarning)
+    warnings.warn("Deprecated: Use :obj:`.Qobj.evaluate`", DeprecationWarning)
     return Qobj.evaluate(qobj_list, t, args)
 
 
@@ -2345,7 +2345,7 @@ def dims(inpt):
 
     Notes
     -----
-    This function is for legacy compatibility only. Using the :obj:`.Qobj.dims`
+    This function is for legacy compatibility only. Using the :obj:`.Qobj.dims()`
     attribute is recommended.
 
     """
@@ -2430,7 +2430,7 @@ def isbra(Q):
 
     Notes
     -----
-    This function is for legacy compatibility only. Using the `:obj:`.Qobj.isbra`
+    This function is for legacy compatibility only. Using the :obj:`.Qobj.isbra`
     attribute is recommended.
 
     """
@@ -2453,7 +2453,7 @@ def isoperket(Q):
 
     Notes
     -----
-    This function is for legacy compatibility only. Using the `:obj:`.Qobj.isoperket`
+    This function is for legacy compatibility only. Using the :obj:`.Qobj.isoperket()`
     attribute is recommended.
 
     """
