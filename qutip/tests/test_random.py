@@ -78,12 +78,13 @@ def check_func_dims(func, args, kwargs, dims):
 def test_rand_vector_dims():
     FUNCS = [rand_ket, rand_ket_haar]
     for func in FUNCS:
-        # when neither N or dims are specified
+        # N or dims are not given
+        assert_raises(ValueError,check_func_dims,func,(),{},[])
         # both N and dims (named argument) are specified
         check_func_dims( func, (6, ), {'dims': [[2,3], [1,1]]}, [[2,3], [1,1]])
-        # only N is specified
+        # only N is specified and dims is defined via default
         check_func_dims( func, (7, ), {}, [[7], [1]])
-        # only dims is specified
+        # only dims is specified and N has to be determined
         check_func_dims( func, (), {'dims': [[2,3], [1,1]]},[[2,3], [1,1]])
 
 def test_rand_oper_dims():
@@ -97,26 +98,6 @@ def test_rand_super_dims():
     for func in FUNCS:
         check_func_dims(func, (7, ), {}, [[[7], [7]]] * 2)
         check_func_dims(func, (6, ), {'dims': [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]}, [[[2, 3], [2, 3]], [[2, 3], [2, 3]]])
-
-def test_rand_ket():
-    """
-    Random Qobjs: Tests that N and dims are determined as needed.
-    """
-    # when neither N or dims are specified
-    assert_raises(ValueError,rand_ket, )
-
-    # when both N and dims are specified
-    test_both_N_dim = rand_ket(N=7,dims=[[7], [1]])
-    assert(np.shape(test_both_N_dim)==(7,1))
-
-    # when dims is specified and N has to be determined
-    test_only_dim = rand_ket(dims=[[7], [1]]).shape
-    assert((test_only_dim)==(7,1))
-
-    # when N is specified but dims has to be defined using default
-    test_only_N = rand_ket(N=7)
-    assert(np.shape(test_only_N)==(7,1))
-
 
 
 if __name__ == "__main__":
