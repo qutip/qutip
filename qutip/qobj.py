@@ -2001,7 +2001,7 @@ class Qobj(object):
         Returns
         -------
         isunitary : bool
-        Returns the new value of isunitary property.
+            Returns the new value of isunitary property.
         """
         if self.isoper:
             eye_data = fast_identity(self.shape[0])
