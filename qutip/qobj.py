@@ -314,7 +314,13 @@ class Qobj(object):
         self._type = None
 
     def copy(self):
-        """Create identical copy"""
+        """Create identical copy
+        Returns
+        -------
+        :class:`Qobj`
+            The requested copy of an operator or a quantum state as a
+            quantum object.
+        """
         return Qobj(inpt=self)
 
     def get_data(self):
