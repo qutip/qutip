@@ -304,7 +304,7 @@ def chi_to_choi(q_oper):
     return Qobj((B * q_oper * B.dag()) / q_oper.shape[0], superrep='choi')
 
 
-def _svd_u_to_kraus(U, S, d, dK, indims, outdims):
+def _svd_u_to_kraus(U, S, d1, d2, dK, indims, outdims):
     """
     Given a partial isometry U and a vector of square-roots of singular values S
     obtained from an SVD, produces the Kraus operators represented by U.
@@ -316,7 +316,7 @@ def _svd_u_to_kraus(U, S, d, dK, indims, outdims):
     """
     # We use U * S since S is 1-index, such that this is equivalent to
     # U . diag(S), but easier to write down.
-    Ks = list(map(Qobj, array(U * S).reshape((d, d, dK), order='F').transpose((2, 0, 1))))
+    Ks = list(map(Qobj, array(U * S).reshape((d1, d2, dK), order='F').transpose((2, 0, 1))))
     for K in Ks:
         K.dims = [outdims, indims]
     return Ks
@@ -332,11 +332,16 @@ def _generalized_kraus(q_oper, thresh=1e-10):
 
     # Remember the shape of the underlying space,
     # as we'll need this to make Kraus operators later.
-    dL, dR = map(int, map(sqrt, q_oper.shape))
+    from math import ceil
+
     # Also remember the dims breakout.
     out_dims, in_dims = q_oper.dims
     out_left, out_right = out_dims
     in_left, in_right = in_dims
+
+    dL, dR = np.prod(in_left), np.prod(out_left)
+    dL2, dR2 = np.prod(in_right), np.prod(out_right)
+
 
     # Find the SVD.
     U, S, V = svd(q_oper.full())
@@ -362,8 +367,8 @@ def _generalized_kraus(q_oper, thresh=1e-10):
     # Next, we convert each of U and V into Kraus operators.
     # Finally, we want the Kraus index to be left-most so that we
     # can map over it when making Qobjs.
-    kU = _svd_u_to_kraus(U, S, dL, dK, out_right, out_left)
-    kV = _svd_u_to_kraus(V, S, dR, dK, in_right, in_left)
+    kU = _svd_u_to_kraus(U, S, dL, dL2, dK, out_right, out_left)
+    kV = _svd_u_to_kraus(V, S, dR, dR2, dK, in_right, in_left)
 
     return kU, kV
 
@@ -371,18 +376,20 @@ def _generalized_kraus(q_oper, thresh=1e-10):
 def choi_to_stinespring(q_oper, thresh=1e-10):
     # TODO: document!
     kU, kV = _generalized_kraus(q_oper, thresh=thresh)
+    #kU, kV = to_kraus(q_oper)#, thresh=thresh)
 
     assert(len(kU) == len(kV))
     dK = len(kU)
     dL = kU[0].shape[0]
     dR = kV[0].shape[1]
+
     # Also remember the dims breakout.
     out_dims, in_dims = q_oper.dims
     out_left, out_right = out_dims
     in_left, in_right = in_dims
 
-    A = Qobj(zeros((dK * dL, dL)), dims=[out_left + [dK], out_right + [1]])
-    B = Qobj(zeros((dK * dR, dR)), dims=[in_left + [dK], in_right + [1]])
+    A = Qobj(zeros((dK * dL, dR)), dims=[out_left + [dK], out_right + [1]])
+    B = Qobj(zeros((dK * dL, dR)), dims=[in_left + [dK], in_right + [1]])
 
     for idx_kraus, (KL, KR) in enumerate(zip(kU, kV)):
         A += tensor(KL, basis(dK, idx_kraus))

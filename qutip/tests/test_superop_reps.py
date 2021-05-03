@@ -60,10 +60,7 @@ tol = 1e-7
 @pytest.fixture(scope="function", params=[2, 3, 7])
 def dimension(request):
     # There are also some cases in the file where this fixture is explicitly
-    # overridden by a more local mark.  That is deliberate; this dimension is
-    # intended for non-superoperators, and may cause inordinantly long tests if
-    # (for example) something uses dimension=100 then makes a superoperator out
-    # of it.
+    # overridden by a more local mark.  That is deliberate.
     return request.param
 
 
@@ -137,9 +134,13 @@ class TestSuperopReps:
         one_log = kron(kron(one, one), one)
         # non-square Kraus operator (isometry)
         kraus = Qobj(zero_log @ zero.T + one_log @ one.T)
+        print(kraus.dims)
         super = sprepost(kraus, kraus.dag())
+        print(super.dims)
         choi = to_choi(super)
+        print(choi.dims)
         op1 = to_kraus(super)
+        print(op1)
         op2 = to_kraus(choi)
         op3 = to_super(choi)
         assert choi.type == "super" and choi.superrep == "choi"
@@ -197,7 +198,7 @@ class TestSuperopReps:
     # A single off-diagonal element 
     S_ = sprepost(a, a)
 
-    # Check that a linear combination of bipartitie unitaries is CPTP and HP.
+    # Check that a linear combination of bipartite unitaries is CPTP and HP.
     S_U = (
         to_super(tensor(sigmax(), identity(2))) + to_super(tensor(identity(2), sigmay()))
     ) / 2
@@ -287,26 +288,27 @@ class TestSuperopReps:
         Stinespring: Check that dims of channels are preserved.
         """
         chan = super_tensor(to_super(sigmax()), to_super(qeye(4)))
+
         A, B = to_stinespring(chan)
+
         assert A.dims == [[2, 4, 1], [2, 4]]
         assert B.dims == [[2, 4, 1], [2, 4]]
 
     @pytest.mark.parametrize(['dim1', 'dim2'],
-                            [pytest.param(4, 3),
-                            pytest.param(5, 7),
-                            pytest.param(3, 4)
+                            [pytest.param(3, 2),
+                            pytest.param(7, 5),
+                            pytest.param(4, 3)
                             ])
     def test_stinespring_general_rectangular_dims(self, dim1, dim2):
         """
         Stinespring: Check that dims of channels are preserved.
         """
         chan = tensor_contract(composite(to_super(qeye(dim1)),
-                                to_super(qeye(dim2))),(1, 5), (2, 6))
+                                to_super(qeye(dim2))),(1, 3), (4, 6))
 
         A, B = to_stinespring(chan)
 
-        assert A.dims == [[dim2, 1], [dim2]]
-        assert B.dims == [[dim1, 1], [dim1]]
+        assert (A*B.dag()).ptrace((0,)).dims == [[dim2], [dim2]]
 
 
     @pytest.mark.parametrize('dimension', [2, 4, 8])
@@ -360,7 +362,7 @@ class TestSuperopReps:
         """
         chi_actual = to_chi(superop)
         chiq = Qobj(chi_expected, dims=[[[2], [2]], [[2], [2]]], superrep='chi')
-        assert 0 == pytest.approx((chi_actual - chiq).norm('tr'), abs=1e-7)
+        assert (chi_actual - chiq).norm() < tol
 
 if __name__ == "__main__":
     run_module_suite()
