@@ -134,13 +134,9 @@ class TestSuperopReps:
         one_log = kron(kron(one, one), one)
         # non-square Kraus operator (isometry)
         kraus = Qobj(zero_log @ zero.T + one_log @ one.T)
-        print(kraus.dims)
         super = sprepost(kraus, kraus.dag())
-        print(super.dims)
         choi = to_choi(super)
-        print(choi.dims)
         op1 = to_kraus(super)
-        print(op1)
         op2 = to_kraus(choi)
         op3 = to_super(choi)
         assert choi.type == "super" and choi.superrep == "choi"
@@ -242,12 +238,12 @@ class TestSuperopReps:
         """
         assert abs(to_choi(identity(dimension)).tr() - dimension) <= tol
 
-    @pytest.mark.repeat(3)
-    def test_stinespring_cp(self):
+
+    def test_stinespring_cp(self,dimension):
         """
         Stinespring: A and B match for CP maps.
         """
-        superop = rand_super_bcsz(7)
+        superop = rand_super_bcsz(dimension)
         A, B = to_stinespring(superop)
 
         assert norm((A - B).data.todense()) < tol
@@ -274,25 +270,15 @@ class TestSuperopReps:
 
         assert (q1 - q2).norm('tr') <= tol
 
-    def test_stinespring_dims(self):
+    def test_stinespring_dims(self, dimension):
         """
         Stinespring: Check that dims of channels are preserved.
         """
-        chan = super_tensor(to_super(sigmax()), to_super(qeye(3)))
+        chan = super_tensor(to_super(sigmax()), to_super(qeye(dimension)))
         A, B = to_stinespring(chan)
-        assert A.dims == [[2, 3, 1], [2, 3]]
-        assert B.dims == [[2, 3, 1], [2, 3]]
+        assert A.dims == [[2, dimension, 1], [2, dimension]]
+        assert B.dims == [[2, dimension, 1], [2, dimension]]
 
-    def test_stinespring_general_dims(self):
-        """
-        Stinespring: Check that dims of channels are preserved.
-        """
-        chan = super_tensor(to_super(sigmax()), to_super(qeye(4)))
-
-        A, B = to_stinespring(chan)
-
-        assert A.dims == [[2, 4, 1], [2, 4]]
-        assert B.dims == [[2, 4, 1], [2, 4]]
 
     @pytest.mark.parametrize(['dim1', 'dim2'],
                             [pytest.param(3, 2),

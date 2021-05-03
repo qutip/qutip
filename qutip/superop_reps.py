@@ -316,7 +316,8 @@ def _svd_u_to_kraus(U, S, d1, d2, dK, indims, outdims):
     """
     # We use U * S since S is 1-index, such that this is equivalent to
     # U . diag(S), but easier to write down.
-    Ks = list(map(Qobj, array(U * S).reshape((d1, d2, dK), order='F').transpose((2, 0, 1))))
+    Kmat = array(U * S).reshape((d1, d2, dK), order='F').transpose((2, 0, 1))
+    Ks = list(map(Qobj, Kmat))
     for K in Ks:
         K.dims = [outdims, indims]
     return Ks
@@ -341,7 +342,6 @@ def _generalized_kraus(q_oper, thresh=1e-10):
 
     dL, dR = np.prod(in_left), np.prod(out_left)
     dL2, dR2 = np.prod(in_right), np.prod(out_right)
-
 
     # Find the SVD.
     U, S, V = svd(q_oper.full())
@@ -376,7 +376,6 @@ def _generalized_kraus(q_oper, thresh=1e-10):
 def choi_to_stinespring(q_oper, thresh=1e-10):
     # TODO: document!
     kU, kV = _generalized_kraus(q_oper, thresh=thresh)
-    #kU, kV = to_kraus(q_oper)#, thresh=thresh)
 
     assert(len(kU) == len(kV))
     dK = len(kU)
@@ -582,6 +581,7 @@ def to_kraus(q_oper, tol=1e-9):
             "and superrep = {0.superrep} to Kraus decomposition not "
             "supported.".format(q_oper)
         )
+
 
 def to_stinespring(q_oper):
     r"""
