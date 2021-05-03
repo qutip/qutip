@@ -74,6 +74,7 @@ def check_func_dims(func, args, kwargs, dims):
     resdims = func(*args, **kwargs).dims
     assert_(resdims == dims, "Checking {}; expected dimensions of {}, got {}.".format(func.__name__, dims, resdims))
 
+
 def test_rand_vector_dims():
     FUNCS = [rand_ket, rand_ket_haar]
     for func in FUNCS:
@@ -104,8 +105,8 @@ def test_rand_ket():
     assert(np.shape(test_both_N_dim)==(7,1))
 
     # when dims is specified and N has to be determined
-    test_only_dim = rand_ket(dims=[[7], [1]])
-    assert(np.shape(test_only_dim)==(7,1))
+    test_only_dim = rand_ket(dims=[[7], [1]]).shape
+    assert((test_only_dim)==(7,1))
 
     # when N is specified but dims has to be defined using default
     test_only_N = rand_ket(N=7)
