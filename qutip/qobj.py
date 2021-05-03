@@ -104,11 +104,11 @@ class Qobj(object):
     shape : list
         Shape of underlying data structure (matrix shape)
     copy : bool
-        Flag specifying whether :class:`Qobj` should get a copy of the
+        Flag specifying whether :obj:`.Qobj` should get a copy of the
         input data, or use the original.
     fast : bool
-        Flag for fast :class:`Qobj` creation when running ODE solvers (
-        :func:`~qutip.mesolve`, :func:`~qutip.mcsolve`). This parameter
+        Flag for fast :obj:`.Qobj` creation when running ODE solvers (
+        :obj:`.~qutip.mesolve`, :obj:`.qutip.mcsolve`). This parameter
         is used internally only.
 
 
@@ -897,7 +897,7 @@ class Qobj(object):
         return s
 
     def dag(self):
-        """Adjoint operator of :class:`Qobj`.
+        """Adjoint operator of quantum object.
 
         Returns
         -------
@@ -950,7 +950,7 @@ class Qobj(object):
         return out
 
     def norm(self, norm=None, sparse=False, tol=0, maxiter=100000):
-        """Norm of a quantum object (:class:`Qobj`).
+        """Norm of a quantum object.
 
         Default norm is L2-norm for kets and trace-norm for operators.
         Other ket and operator norms may be specified using the `norm` and
@@ -959,8 +959,7 @@ class Qobj(object):
         Parameters
         ----------
         norm : str
-            Which norm to use for ket/bra vectors: L2
-            (:obj:`.sp_L2_norm`), max norm 'max',
+            Which norm to use for ket/bra vectors: L2, max norm 'max',
             or for operators: trace 'tr', Frobius 'fro', one 'one', or max
             'max'.
 
@@ -1023,12 +1022,12 @@ class Qobj(object):
 
         Parameters
         ----------
-        Q : :class:`qutip.Qobj`
-            Input bra or ket vector
+        Q : :class:`Qobj`
+            Input :obj:`.bra` or :obj:`.ket` vector
 
         Returns
         -------
-        P : :class:`qutip.Qobj`
+        P : :class:`Qobj`
             Projection operator.
         """
         if self.isket:
@@ -1119,13 +1118,11 @@ class Qobj(object):
             return np.real(out)
 
     def expm(self, method='dense'):
-        """Matrix exponential of quantum operator.
-
-        Input operator must be square.
+        """Matrix exponential of a square quantum operator.
 
         Parameters
         ----------
-        method : str {'dense', 'sparse'}
+        method : ``str`` {'dense', 'sparse'}
             Use set method to use to calculate the matrix exponentiation. The
             available choices includes 'dense' and 'sparse'.  Since the
             exponential of a matrix is nearly always dense, method='dense'
@@ -1239,13 +1236,13 @@ class Qobj(object):
             raise TypeError('Invalid operand for matrix square root')
 
     def sinm(self):
-        """Sine of a quantum operator.
+        """Sine of a square quantum operator.
 
         Operator must be square.
 
         Returns
         -------
-        oper : :class:`qutip.Qobj`
+        oper : :class:`Qobj`
             Matrix sine of operator.
 
         Raises
@@ -1255,7 +1252,7 @@ class Qobj(object):
 
         Notes
         -----
-        Uses the Q. :meth:`expm()` method.
+        Uses the Q. :obj:`.expm()` method.
 
         """
         if self.dims[0][0] == self.dims[1][0]:
@@ -1264,7 +1261,7 @@ class Qobj(object):
             raise TypeError('Invalid operand for matrix square root')
 
     def inv(self, sparse=False):
-        """Matrix inverse of a quantum operator
+        """Matrix inverse of a square quantum operator.
 
         Operator must be square.
 
@@ -1291,7 +1288,7 @@ class Qobj(object):
              tol=0, maxiter=100000):
         """Operator or state normalized to unity.
 
-        Uses norm from Qobj.norm().
+        Uses norm from :obj:`.Qobj.norm()`.
 
         Parameters
         ----------
@@ -1308,7 +1305,7 @@ class Qobj(object):
 
         Returns
         -------
-        oper : :class:`qutip.Qobj`
+        oper : :class:`Qobj`
             Normalized quantum object if not in-place,
             else None.
 
@@ -1340,13 +1337,13 @@ class Qobj(object):
 
         Returns
         -------
-        oper : :class:`qutip.Qobj`
+        oper : :class:`Qobj`
             Quantum object representing partial trace with selected components
             remaining.
 
         Notes
         -----
-        This function is identical to the :func:`qutip.qobj.ptrace` function
+        This function is identical to the :obj:`.ptrace` function
         that has been deprecated.
 
         """
@@ -1372,7 +1369,7 @@ class Qobj(object):
 
         Returns
         -------
-        P : :class:`qutip.Qobj`
+        P : :class:`Qobj`
             Permuted quantum object.
 
         """
@@ -1392,7 +1389,7 @@ class Qobj(object):
 
         Returns
         -------
-        oper : :class:`qutip.Qobj`
+        oper : :class:`Qobj`
             Quantum object with small elements removed.
 
         """
@@ -1428,7 +1425,7 @@ class Qobj(object):
 
         Returns
         -------
-        oper : :class:`qutip.Qobj`
+        oper : :class:`Qobj`
             Operator in new basis.
 
         Notes
@@ -1505,8 +1502,8 @@ class Qobj(object):
 
         Returns
         -------
-        oper : :class:`qutip.Qobj`
-            A valid density operator.
+        oper : :class:`Qobj`
+            A valid density operator as a quantum object.
 
         """
         if not self.isherm:
@@ -1557,11 +1554,11 @@ class Qobj(object):
 
         Parameters
         -----------
-        bra : :class:`qutip.Qobj`
-            Quantum object of type 'bra'
+        bra : :class:`Qobj`
+            Quantum object of type :obj:`.bra`
 
-        ket : :class:`qutip.Qobj`
-            Quantum object of type 'ket'.
+        ket : :class:`Qobj`
+            Quantum object of type :obj:`.ket`.
 
         Returns
         -------
@@ -1570,7 +1567,7 @@ class Qobj(object):
 
         Notes
         -----
-        It is slightly more computationally efficient to use a ket
+        It is slightly more computationally efficient to use a `ket`
         vector for the 'bra' input.
         """
         if not self.isoper:
@@ -1597,7 +1594,7 @@ class Qobj(object):
         Parameters
         -----------
         other : :class:`qutip.Qobj`
-            Quantum object for a state vector of type 'ket', 'bra' or density
+            Quantum object for a state vector of type :obj:`.ket`, :obj:`.bra` or density
             matrix.
 
         Returns
@@ -1804,7 +1801,7 @@ class Qobj(object):
 
         Returns
         -------
-        oper : :class:`qutip.Qobj`
+        oper : :class:`Qobj`
             Transpose of input operator.
 
         """
@@ -1814,7 +1811,7 @@ class Qobj(object):
         return out
 
     def extract_states(self, states_inds, normalize=False):
-        """:class:`Qobj` with states in ``states_inds`` only.
+        """:obj:`.Qobj` with states in ``states_inds`` only.
 
         Parameters
         ----------
@@ -1824,9 +1821,9 @@ class Qobj(object):
         normalize : True / False
             Weather or not the new :class:`Qobj` instance should be normalized
             (default is False). For Qobjs that represents density matrices or
-            state vectors normalized should probably be set to True, but for
+            state vectors normalized should probably be set to ``True``, but for
             Qobjs that represents operators in for example an Hamiltonian,
-            normalize should be False.
+            normalize should be ``False``.
 
         Returns
         -------
@@ -2097,18 +2094,18 @@ class Qobj(object):
         Parameters
         ----------
         qobj_list : list
-            A nested list of Qobj instances and corresponding time-dependent
+            A nested list of :obj:`.Qobj` instances and corresponding time-dependent
             coefficients.
         t : float
-            The time for which to evaluate the time-dependent :class:`Qobj`
+            The time for which to evaluate the time-dependent :obj:`.Qobj`
             instance.
         args : dictionary
             A dictionary with parameter values required to evaluate the
-            time-dependent :class:`Qobj` instance.
+            time-dependent :obj:`.Qobj` instance.
 
         Returns
         -------
-        output : :class:`Qobj`
+        output : :obj:`.Qobj`
             A Qobj instance that represents the value of qobj_list at time t.
 
         """
