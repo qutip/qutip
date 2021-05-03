@@ -76,7 +76,7 @@ def check_func_dims(func, args, kwargs, dims):
 
 def check_func_shape(func, args, kwargs, shape):
     resdims = func(*args, **kwargs).dims
-    assert_(dims_to_tensor_shape(resdims)==shape)
+    assert_(dims_to_tensor_shape(resdims)==shape,"Checking {}; expected shape of {}, got {}.".format(func.__name__, shape, dims_to_tensor_shape(resdims)))
 
 def test_rand_vector_dims():
     FUNCS = [rand_ket, rand_ket_haar]
