@@ -369,6 +369,12 @@ def rand_ket_haar(N=None, dims=None, seed=None):
     -------
     psi : Qobj
         A random state vector drawn from the Haar measure.
+
+    Raises
+    -------
+    ValueError
+        Specify either the number of rows of operator (N) or
+        dimensions of quantum object (dims).
     """
     if N is None and dims is None:
         raise ValueError('Specify either the number of rows of operator'
