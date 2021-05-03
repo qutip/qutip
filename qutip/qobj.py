@@ -1028,8 +1028,13 @@ class Qobj(object):
 
         Returns
         -------
-        P : :class:`Qobj`
+        P : :obj:`.Qobj`
             Projection operator.
+
+        Raises
+        -------
+        TypeError
+            Projector can only be formed from a bra or ket.
         """
         if self.isket:
             _out = zcsr_proj(self.data, 1)
@@ -1142,10 +1147,12 @@ class Qobj(object):
         Raises
         ------
         TypeError
-            Invalid operand for matrix exponential.
+            Invalid operand for matrix exponential - when dimensions do not
+            match.
 
         ValueError
-            Method must be 'dense' or 'sparse'.
+            Method must be 'dense' or 'sparse' - when available method is not
+            chosen.
 
         """
         if self.dims[0][0] != self.dims[1][0]:
@@ -1158,7 +1165,7 @@ class Qobj(object):
             F = sp_expm(self.data, sparse=True)
 
         else:
-            raise ValueError("method must be 'dense' or 'sparse'.")
+            raise ValueError("Method must be 'dense' or 'sparse'.")
 
         out = Qobj(F, dims=self.dims)
         return out.tidyup() if settings.auto_tidyup else out
@@ -1190,13 +1197,13 @@ class Qobj(object):
 
         Returns
         -------
-        oper : :class:`qutip.Qobj`
+        oper : :obj:`.Qobj`
             Matrix square root of operator.
 
         Raises
         ------
         TypeError
-            Invalid operand for matrix square root.
+            Invalid operand for matrix square root - when input is not square.
 
         Notes
         -----
@@ -1234,7 +1241,7 @@ class Qobj(object):
         Raises
         ------
         TypeError
-            Invalid operand for matrix square root.
+            Invalid operand for matrix square root - when input is not square.
 
         Notes
         -----
@@ -1259,7 +1266,7 @@ class Qobj(object):
         Raises
         ------
         TypeError
-            Invalid operand for matrix square root.
+            Invalid operand for matrix square root - when input is not square.
 
         Notes
         -----
@@ -1284,7 +1291,7 @@ class Qobj(object):
         Raises
         ------
         TypeError
-            Invalid operand for matrix inverse.
+            Invalid operand for matrix inverse - when input is not square.
         """
         if self.shape[0] != self.shape[1]:
             raise TypeError('Invalid operand for matrix inverse')
@@ -1447,9 +1454,11 @@ class Qobj(object):
         Raises
         ------
         TypeError
-            Invalid size of ket list for basis transformation.
+            Invalid size of ket list for basis transformation - when input
+            is a list or array and the dimensions do not match.
 
-            Invalid operand for basis transformation.
+            Invalid operand for basis transformation - when input is not a
+            proper quantum object or operator.
 
         Notes
         -----
@@ -1531,9 +1540,11 @@ class Qobj(object):
         Raises
         ------
         ValueError
-            Must be a Hermitian operator to remove negative eigenvalues.
+            Must be a Hermitian operator to remove negative eigenvalues - when
+            operator is not Hermitian.
 
-            Method not recognized.
+            Method not recognized - if method other than 'clip' or 'sgs' is
+            specified.
 
         """
         if not self.isherm:
@@ -1598,9 +1609,11 @@ class Qobj(object):
         Raises
         -------
         TypeError
-            Can only get matrix elements for an operator.
+            Can only get matrix elements for an operator - when input
+            is not a valid operator.
 
-            Can only calculate matrix elements for bra  and ket vectors.
+            Can only calculate matrix elements for bra  and ket vectors -
+            when input is not a valid ket or bra vector.
 
         Notes
         -----
@@ -1844,7 +1857,7 @@ class Qobj(object):
 
         Returns
         -------
-        oper : :class:`Qobj`
+        oper : :obj:`.Qobj`
             Transpose of input operator.
 
         """
@@ -2159,7 +2172,7 @@ class Qobj(object):
         Raises
         ------
         TypeError
-            Unrecognized format for specification of time-dependent Qobj
+            Unrecognized format for specification of time-dependent Qobj.
 
         """
 
@@ -2231,7 +2244,7 @@ def dag(A):
     Notes
     -----
     This function is for legacy compatibility only. It is recommended to use
-    the :obj:`.dag()` Qobj method.
+    the :obj:`.Qobj.dag()` Qobj method.
 
     """
     if not isinstance(A, Qobj):
@@ -2245,14 +2258,14 @@ def ptrace(Q, sel):
 
     Parameters
     ----------
-    Q : :class:`qutip.Qobj`
+    Q : :obj:`.Qobj`
         Composite quantum object.
     sel : int/list
         An ``int`` or ``list`` of components to keep after partial trace.
 
     Returns
     -------
-    oper : :class:`qutip.Qobj`
+    oper : :obj:`.Qobj`
         Quantum object representing partial trace with selected components
         remaining.
 
@@ -2264,7 +2277,7 @@ def ptrace(Q, sel):
     Notes
     -----
     This function is for legacy compatibility only. It is recommended to use
-    the ``ptrace()`` Qobj method.
+    the :obj:`.Qobj.ptrace()` Qobj method.
 
     """
     if not isinstance(Q, Qobj):
@@ -2317,7 +2330,7 @@ def dims(inpt):
 
     Parameters
     ----------
-    inpt : :class:`qutip.Qobj`
+    inpt : :obj:`.Qobj`
         Input quantum object.
 
     Returns
@@ -2332,7 +2345,7 @@ def dims(inpt):
 
     Notes
     -----
-    This function is for legacy compatibility only. Using the `Qobj.dims`
+    This function is for legacy compatibility only. Using the :obj:`.Qobj.dims`
     attribute is recommended.
 
     """
@@ -2347,7 +2360,7 @@ def shape(inpt):
 
     Parameters
     ----------
-    inpt : :class:`qutip.Qobj`
+    inpt : :obj:`.Qobj`
         Input quantum object.
 
     Returns
@@ -2357,7 +2370,7 @@ def shape(inpt):
 
     Notes
     -----
-    This function is for legacy compatibility only. Using the `Qobj.shape`
+    This function is for legacy compatibility only. Using the :obj:`.Qobj.shape`
     attribute is recommended.
 
     """
@@ -2373,7 +2386,7 @@ def isket(Q):
 
     Parameters
     ----------
-    Q : :class:`qutip.Qobj`
+    Q : :obj:`.Qobj`
         Quantum object
 
     Returns
@@ -2389,7 +2402,7 @@ def isket(Q):
 
     Notes
     -----
-    This function is for legacy compatibility only. Using the `Qobj.isket`
+    This function is for legacy compatibility only. Using the :obj:`.Qobj.isket`
     attribute is recommended.
 
     """
@@ -2401,7 +2414,7 @@ def isbra(Q):
 
     Parameters
     ----------
-    Q : :class:`qutip.Qobj`
+    Q : :obj:`.Qobj`
         Quantum object
 
     Returns
@@ -2417,7 +2430,7 @@ def isbra(Q):
 
     Notes
     -----
-    This function is for legacy compatibility only. Using the `Qobj.isbra`
+    This function is for legacy compatibility only. Using the `:obj:`.Qobj.isbra`
     attribute is recommended.
 
     """
@@ -2430,7 +2443,7 @@ def isoperket(Q):
 
     Parameters
     ----------
-    Q : :class:`qutip.Qobj`
+    Q : :obj:`.Qobj`
         Quantum object
 
     Returns
@@ -2440,7 +2453,7 @@ def isoperket(Q):
 
     Notes
     -----
-    This function is for legacy compatibility only. Using the `Qobj.isoperket`
+    This function is for legacy compatibility only. Using the `:obj:`.Qobj.isoperket`
     attribute is recommended.
 
     """
@@ -2453,7 +2466,7 @@ def isoperbra(Q):
 
     Parameters
     ----------
-    Q : :class:`qutip.Qobj`
+    Q : :obj:`.Qobj`
         Quantum object
 
     Returns
@@ -2463,7 +2476,7 @@ def isoperbra(Q):
 
     Notes
     -----
-    This function is for legacy compatibility only. Using the `Qobj.isoperbra`
+    This function is for legacy compatibility only. Using the :obj:`.Qobj.isoperbra`
     attribute is recommended.
 
     """
@@ -2475,7 +2488,7 @@ def isoper(Q):
 
     Parameters
     ----------
-    Q : :class:`qutip.Qobj`
+    Q : :obj:`.Qobj`
         Quantum object
 
     Returns
@@ -2491,7 +2504,7 @@ def isoper(Q):
 
     Notes
     -----
-    This function is for legacy compatibility only. Using the `Qobj.isoper`
+    This function is for legacy compatibility only. Using the :obj:`.Qobj.isoper`
     attribute is recommended.
 
     """
@@ -2503,7 +2516,7 @@ def issuper(Q):
 
     Parameters
     ----------
-    Q : :class:`qutip.Qobj`
+    Q : :obj:`.Qobj`
         Quantum object
 
     Returns
@@ -2513,7 +2526,7 @@ def issuper(Q):
 
     Notes
     -----
-    This function is for legacy compatibility only. Using the `Qobj.issuper`
+    This function is for legacy compatibility only. Using the :obj:`.Qobj.issuper`
     attribute is recommended.
 
     """
@@ -2525,12 +2538,12 @@ def isequal(A, B, tol=None):
 
     Parameters
     ----------
-    A : :class:`qutip.Qobj`
+    A : :obj:`.Qobj`
         Qobj one
-    B : :class:`qutip.Qobj`
+    B : :obj:`.Qobj`
         Qobj two
     tol : float
-        Tolerence for equality to be valid
+        Tolerance for equality to be valid
 
     Returns
     -------
@@ -2566,7 +2579,7 @@ def isherm(Q):
 
     Parameters
     ----------
-    Q : :class:`qutip.Qobj`
+    Q : :obj:`.Qobj`
         Quantum object
 
     Returns
@@ -2582,7 +2595,7 @@ def isherm(Q):
 
     Notes
     -----
-    This function is for legacy compatibility only. Using the `Qobj.isherm`
+    This function is for legacy compatibility only. Using the :obj:`.Qobj.isherm`
     attribute is recommended.
 
     """
