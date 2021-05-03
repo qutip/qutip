@@ -102,8 +102,7 @@ class Qobj(object):
     dims : list
         Dimensions of object (:obj:`.dims`) used for :obj:`.tensor` products .
     shape : list
-        Shape of underlying data structure (matrix shape) via
-        :obj:`.dims_to_tensor_shape`.
+        Shape of underlying data structure (matrix shape)
     copy : bool
         Flag specifying whether :class:`Qobj` should get a copy of the
         input data, or use the original.
@@ -1998,6 +1997,11 @@ class Qobj(object):
     def check_isunitary(self):
         """
         Checks whether :class:`Qobj` is a unitary matrix
+
+        Returns
+        -------
+        isunitary : bool
+        Returns the new value of isunitary property.
         """
         if self.isoper:
             eye_data = fast_identity(self.shape[0])
