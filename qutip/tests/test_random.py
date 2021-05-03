@@ -41,6 +41,7 @@ from qutip.random_objects import (rand_ket, rand_dm, rand_herm, rand_unitary,
                                   rand_super, rand_unitary_haar, rand_dm_ginibre,
                                   rand_super_bcsz)
 from qutip.operators import qeye
+from qutip.dimensions import dims_to_tensor_shape
 
 def test_rand_unitary_haar_unitarity():
     """
