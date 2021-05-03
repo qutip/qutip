@@ -80,7 +80,7 @@ def check_func_shape(func, args, kwargs, shape):
 
 def check_func_N(func, args, kwargs, N):
     new_state_shape=func(*args, **kwargs).shape
-    assert_(new_state_shape[0]==N,"Checking {}; expected dimensions of {}, got {}.".format(func.__name__, N, new_state_shape[0]))
+    assert_(new_state_shape[0]==N,"Checking {}; expected N of {}, got {}.".format(func.__name__, N, new_state_shape[0]))
 
 
 def test_rand_vector_dims():
