@@ -316,7 +316,7 @@ def _svd_u_to_kraus(U, S, d1, d2, dK, indims, outdims):
     """
     # We use U * S since S is 1-index, such that this is equivalent to
     # U . diag(S), but easier to write down.
-    Kmat = array(U * S).reshape((d1, d2, dK), order='F').transpose((2, 0, 1))
+    Kmat = (U * S).reshape((d1, d2, dK), order='F').transpose((2, 0, 1))
     Ks = list(map(Qobj, Kmat))
     for K in Ks:
         K.dims = [outdims, indims]
@@ -352,17 +352,17 @@ def _generalized_kraus(q_oper, thresh=1e-10):
     dK = nonzero_idxs.sum()
     U_idxs = np.zeros(U.shape[0], dtype=bool)
     U_idxs[:nonzero_idxs.shape[0]] = nonzero_idxs
-    U = array(U)[:, U_idxs]
+    U = U[:, U_idxs]
     # We also want S to be a single index array, which np.matrix
     # doesn't allow for. This is stripped by calling array() on it.
-    S = sqrt(array(S)[nonzero_idxs])
+    S = sqrt(S[nonzero_idxs])
 
     # Since NumPy returns V and not V+, we need to take the dagger
     # to get back to quantum info notation for Stinespring pairs.
 
     V_idxs = np.zeros(V.shape[1], dtype=bool)
     V_idxs[:nonzero_idxs.shape[0]] = nonzero_idxs
-    V = array(V.conj().T)[:, V_idxs]
+    V = V.conj().T[:, V_idxs]
 
     # Next, we convert each of U and V into Kraus operators.
     # Finally, we want the Kraus index to be left-most so that we
