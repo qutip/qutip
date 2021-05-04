@@ -34,8 +34,6 @@
 import scipy.sparse as sp
 import scipy.linalg as la
 import numpy as np
-from numpy.testing import assert_equal, assert_, run_module_suite, assert_raises
-
 from qutip.random_objects import (rand_ket, rand_dm, rand_herm, rand_unitary,
                                   rand_ket_haar, rand_dm_hs,
                                   rand_super, rand_unitary_haar, rand_dm_ginibre,
