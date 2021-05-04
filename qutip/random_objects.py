@@ -322,8 +322,7 @@ def rand_ket(N=None, density=1, dims=None, seed=None):
     Raises
     -------
     ValueError
-        Specify either the number of rows of operator (N) or
-        dimensions of quantum object (dims).
+        If neither `N` or `dims` are not specified.
 
     """
     if seed is not None:
@@ -373,8 +372,7 @@ def rand_ket_haar(N=None, dims=None, seed=None):
     Raises
     -------
     ValueError
-        Specify either the number of rows of operator (N) or
-        dimensions of quantum object (dims).
+        If neither `N` or `dims` are not specified.
     """
     if N is None and dims is None:
         raise ValueError('Specify either the number of rows of operator'
