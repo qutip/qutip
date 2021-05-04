@@ -306,7 +306,7 @@ def rand_ket(N=None, density=1, dims=None, seed=None):
     Parameters
     ----------
     N : int
-        Number of rows for output quantum operator.
+        Number of rows for output quantum vector.
         If None or 0, N is deduced from dims.
     density : float
         Density between [0,1] of output ket state.
@@ -317,7 +317,7 @@ def rand_ket(N=None, density=1, dims=None, seed=None):
     Returns
     -------
     oper : qobj
-        Nx1 ket state quantum operator.
+        Nx1 ket quantum state vector.
 
     Raises
     -------
