@@ -41,6 +41,8 @@ This document contains a user guide and automatically generated API documentatio
 
 :Author: Jake Lishman
 
+:Author: Simon Cross
+
 :version: |version|
 
 :copyright: This documentation is licensed under the Creative Commons Attribution 3.0 Unported License.

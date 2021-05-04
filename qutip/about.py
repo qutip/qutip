@@ -58,7 +58,7 @@ def about():
     print(
         "Current admin team: Alexander Pitchford, "
         "Nathan Shammah, Shahnawaz Ahmed, Neill Lambert, Eric Giguère, "
-        "Boxi Li and Jake Lishman."
+        "Boxi Li, Jake Lishman and Simon Cross."
     )
     print(
         "Board members: Daniel Burgarth, Robert Johansson, Anton F. Kockum, "

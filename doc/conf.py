@@ -59,6 +59,7 @@ author = ', '.join([
     'N. Lambert',
     'B. Li',
     'J. Lishman',
+    'S. Cross',
     'and E. Giguère'
 ])
 
