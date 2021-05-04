@@ -389,7 +389,7 @@ class QobjEvo:
         A string representing the properties of the low-level Cython class
         backing this object (may be empty).
 
-    compiled_qobjevo : :obj:`.CQobjCte` or :obj:`.CQobjEvoTd`
+    compiled_qobjevo : `CQobjCte` or `CQobjEvoTd`
         Cython version of the :obj:`.QobjEvo`.
 
     coeff_get : callable
@@ -1261,7 +1261,7 @@ class QobjEvo:
         -------
         TypeError : The function must return a :obj:`.Qobj`
             After function acts on the quantum object, the output must be a
-            quantum object. 
+            quantum object.
         """
         self.compiled = ""
         res = self.copy()

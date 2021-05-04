@@ -1101,7 +1101,7 @@ class Qobj(object):
         Returns
         -------
         data : array
-            Array of complex data from quantum object's :obj:`.data` attribute.
+            Array of complex data from quantum object's `data` attribute.
         """
         if squeeze:
             return self.data.toarray(order=order).squeeze()
@@ -1541,8 +1541,7 @@ class Qobj(object):
 
         Raises
         ------
-        ValueError : Must be a Hermitian operator to remove negative
-        eigenvalues
+        ValueError : Must be a Hermitian operator
             When input operator is not Hermitian.
 
         ValueError : Method not recognized
@@ -1737,7 +1736,7 @@ class Qobj(object):
             Array of eigenvalues for operator.
 
         eigvecs : array
-            Array of quantum operators representing the oprator eigenkets.
+            Array of quantum operators representing the operator eigenkets.
             Order of eigenkets is determined by order of eigenvalues.
 
         Notes
@@ -1868,7 +1867,7 @@ class Qobj(object):
         return out
 
     def extract_states(self, states_inds, normalize=False):
-        """:obj:`.Qobj` with states in ``states_inds`` only.
+        """:obj:`.Qobj` with states in `states_inds` only.
 
         Parameters
         ----------
@@ -1886,12 +1885,12 @@ class Qobj(object):
         -------
         q : :obj:`.Qobj`
             A new instance of :obj:`.Qobj` that contains only the states
-            corresponding to the indices in ``states_inds``.
+            corresponding to the indices in `states_inds`.
 
         Raises
         -------
         TypeError : Can only eliminate states from operators or state vectors
-            If input is not ket, bra or an operator.
+            If input is not :obj:`.ket`, :obj:`.bra` or an :obj:`.operators`.
 
         Notes
         -----
@@ -1911,7 +1910,7 @@ class Qobj(object):
         return q.unit() if normalize else q
 
     def eliminate_states(self, states_inds, normalize=False):
-        """Creates a new quantum object with states in ``states_inds`` eliminated.
+        """Creates a new quantum object with states in `states_inds` eliminated.
 
         Parameters
         ----------
@@ -1929,7 +1928,7 @@ class Qobj(object):
         -------
         :obj:`.Qobj`
             A new instance of :obj:`.Qobj` that contains only the states
-            corresponding to indices that are **not** in ``states_inds``.
+            corresponding to indices that are **not** in `states_inds`.
 
         Notes
         -----
@@ -2172,8 +2171,7 @@ class Qobj(object):
 
         Raises
         ------
-        TypeError : Unrecognized format for specification of time-dependent
-        Qobj
+        TypeError : Unrecognized format for specification of time-dep Qobj
             When type of `qobj_list` cannot be recognized - :obj:`.Qobj` or
             list etc.
 
@@ -2345,7 +2343,7 @@ def dims(inpt):
     Raises
     -------
     TypeError : Input is not a quantum object
-        When input cannot be identified as :obj:`.Qobj`. 
+        When input cannot be identified as :obj:`.Qobj`.
 
     Notes
     -----
