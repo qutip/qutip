@@ -107,9 +107,8 @@ class Qobj(object):
         Flag specifying whether :obj:`.Qobj` should get a copy of the
         input data, or use the original.
     fast : bool
-        Flag for fast :obj:`.Qobj` creation when running ODE solvers (
-        :obj:`~qutip.mesolve`, :obj:`~qutip.mcsolve`). This parameter
-        is used internally only.
+        Flag for fast :obj:`.Qobj` creation when running ODE solvers. This
+        parameter is used internally only.
 
 
     Attributes
@@ -983,11 +982,11 @@ class Qobj(object):
 
         Raises
         -------
-        ValueError : For matrices, norm must be 'tr', 'fro', 'one', or 'max'.
-            When norm chosen is not from default types.
+        ValueError : For matrices, norm must be 'tr', 'fro', 'one', or 'max'
+            When norm chosen is not from default methods.
 
-        ValueError : For vectors, norm must be 'l2', or 'max'.
-            When norm chosen is not from default types.
+        ValueError : For vectors, norm must be 'l2', or 'max'
+            When norm chosen is not from default methods.
 
 
         Notes
@@ -1147,11 +1146,11 @@ class Qobj(object):
 
         Raises
         ------
-        TypeError : Invalid operand for matrix exponential.
-            when dimensions do not match i.e. input is not a square operator.
+        TypeError : Invalid operand for matrix exponential
+            When dimensions do not match i.e. input is not a square operator.
 
-        ValueError : Method must be 'dense' or 'sparse'.
-            when available deafult method is not chosen.
+        ValueError : Method must be 'dense' or 'sparse'
+            When available deafult method is not chosen.
 
         """
         if self.dims[0][0] != self.dims[1][0]:
@@ -1201,8 +1200,8 @@ class Qobj(object):
 
         Raises
         ------
-        TypeError : Invalid operand for matrix square root.
-            when input is not a square operator.
+        TypeError : Invalid operand for matrix square root
+            When input is not a square operator.
 
         Notes
         -----
@@ -1264,8 +1263,8 @@ class Qobj(object):
 
         Raises
         ------
-        TypeError : Invalid operand for matrix square root.
-            when input is not square.
+        TypeError : Invalid operand for matrix square root
+            When input is not a square operator.
 
         Notes
         -----
@@ -1289,8 +1288,8 @@ class Qobj(object):
 
         Raises
         ------
-        TypeError : Invalid operand for matrix inverse.
-            when input is not square.
+        TypeError : Invalid operand for matrix inverse
+            When input is not square.
         """
         if self.shape[0] != self.shape[1]:
             raise TypeError('Invalid operand for matrix inverse')
@@ -1365,7 +1364,7 @@ class Qobj(object):
 
         Notes
         -----
-        This function is identical to the :func:`~qutip.ptrace` function
+        This function is identical to the :obj:`~qutip.qobj.ptrace` function
         that has been deprecated.
 
         """
@@ -1452,11 +1451,11 @@ class Qobj(object):
 
         Raises
         ------
-        TypeError : Invalid size of ket list for basis transformation.
-            when input is a list or array and the dimensions do not match.
+        TypeError : Invalid size of ket list for basis transformation
+            When input is a list or array and the dimensions do not match.
 
-        TypeError : Invalid operand for basis transformation.
-            when input is not a proper quantum object or operator.
+        TypeError : Invalid operand for basis transformation
+            When input is not a proper quantum object or operator.
 
         Notes
         -----
@@ -1537,9 +1536,9 @@ class Qobj(object):
         Raises
         ------
         ValueError : Must be a Hermitian operator to remove negative eigenvalues
-            when operator is not Hermitian.
+            When input operator is not Hermitian.
 
-        ValueError : Method not recognized.
+        ValueError : Method not recognized
             If method other than 'clip' or 'sgs' is specified.
 
         """
@@ -1604,16 +1603,16 @@ class Qobj(object):
 
         Raises
         -------
-        TypeError : Can only get matrix elements for an operator.
-            when input is not a valid operator.
+        TypeError : Can only get matrix elements for an operator
+            When input is not a valid operator.
 
-        TypeError : Can only calculate matrix elements for bra  and ket vectors.
-            when input is not a valid ket or bra vector.
+        TypeError : Can only calculate matrix elements for bra  and ket vectors
+            When input is not a valid ket or bra vector.
 
         Notes
         -----
         It is slightly more computationally efficient to use a `ket`
-        vector for the 'bra' input.
+        vector for the `bra` input.
         """
         if not self.isoper:
             raise TypeError("Can only get matrix elements for an operator.")
@@ -2207,9 +2206,9 @@ class Qobj(object):
 #
 def qobj_list_evaluate(qobj_list, t, args):
     """
-    Deprecated: See Qobj.evaluate
+    Deprecated: See :obj:`.Qobj.evaluate`
     """
-    warnings.warn("Deprecated: Use :obj:`.Qobj.evaluate`", DeprecationWarning)
+    warnings.warn("Deprecated: Use Qobj.evaluate", DeprecationWarning)
     return Qobj.evaluate(qobj_list, t, args)
 
 

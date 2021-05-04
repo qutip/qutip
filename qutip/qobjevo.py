@@ -346,7 +346,7 @@ class QobjEvo:
     Q_object : list, :obj:`.Qobj` or :obj:`.QobjEvo`
         The time-dependent description of the quantum object.  This is of the
         same format as the first parameter to the general ODE solvers; in
-        general, it is a list of ``[:obj:`.Qobj`, time_dependence]`` pairs that are
+        general, it is a list of ``[Qobj, time_dependence]`` pairs that are
         summed to make the whole object.  The ``time_dependence`` can be any of
         the formats discussed in the previous section.  If a particular term
         has no time-dependence, then you should just give the :obj:`.Qobj` instead
@@ -360,7 +360,7 @@ class QobjEvo:
 
     tlist : array_like, optional
         List of the times any numpy-array coefficients describe.  This is used
-        only in at least one of the time dependences in :attr:`Q_object` is given
+        only in at least one of the time dependences in :obj:`.Q_object` is given
         in Numpy-array format.  The times must be sorted, but need not be
         equidistant.  Values inbetween will be interpolated.
 
@@ -421,17 +421,17 @@ class QobjEvo:
 
     Raises
     -------
-    Exception : The Qobj must not already be a function.
+    Exception : The Qobj must not already be a function
         When `op_type` is not a :obj:`.Qobj` type in `Q_object` list.
 
-    TypeError : Qobj not compatible.
+    TypeError : Qobj not compatible
         After a failed compatibility check of Qobj :obj:`.dims` and
         :obj:`.shape`.
 
-    TypeError : Incorrect Q_object specification.
+    TypeError : Incorrect Q_object specification
         Checks if `op_type` is a :obj:`.Qobj`.
 
-    TypeError : Time list does not match.
+    TypeError : Time list does not match
         Checks compatibility of `tlist` with `op_type`.
     """
 
@@ -1240,7 +1240,7 @@ class QobjEvo:
 
         See Also
         --------
-        :obj:`.permute` : the same operation on constant quantum objects.
+        :obj:`Qobj.permute` : the same operation on constant quantum objects.
         """
         res = self.copy()
         res.cte = res.cte.permute(order)
@@ -1433,22 +1433,22 @@ class QobjEvo:
 
         Raises
         --------
-        TypeError : The time needs to be a real scalar.
+        TypeError : The time needs to be a real scalar
             Input time `t` must be either ``int`` or ``float``
 
-        TypeError : The vector must be an array or :obj:`.Qobj`.
+        TypeError : The vector must be an array or :obj:`.Qobj`
             When input state is neither a quantum object or an array.
 
-        Exception : Dimensions do not fit.
+        Exception : Dimensions do not fit
             When input is a :obj:`.Qobj` and :obj:`.dims` check fails.
 
-        Exception : The shapes do not match.
+        Exception : The shapes do not match
             Shape of vector created from input must agree with expected value.
 
 
         See Also
         --------
-        :obj:`.expect` : General-purpose expectation values.
+        :obj:`qutip.expect` : General-purpose expectation values.
         """
         if not isinstance(t, (int, float)):
             raise TypeError("The time needs to be a real scalar")
@@ -1508,19 +1508,19 @@ class QobjEvo:
 
         Raises
         --------
-        TypeError : The time needs to be a real scalar.
+        TypeError : The time needs to be a real scalar
             Input time `t` must be either ``int`` or ``float``
 
-        TypeError : The vector must be an array or :obj:`.Qobj`.
+        TypeError : The vector must be an array or :obj:`.Qobj`
             When input vector is neither a quantum object or an array.
 
-        Exception : Dimensions do not fit.
+        Exception : Dimensions do not fit
             When input is a :obj:`.Qobj` and :obj:`.dims` check fails.
 
-        Exception : The vector must be 1d.
+        Exception : The vector must be 1d
             1-dimensional vector.
 
-        Exception : The lengths do not match.
+        Exception : The lengths do not match
             Shape of vector created from input must agree with expected value.
         """
         was_Qobj = False
@@ -1570,16 +1570,16 @@ class QobjEvo:
 
         Raises
         --------
-        TypeError : The time needs to be a real scalar.
+        TypeError : The time needs to be a real scalar
             Input time `t` must be either ``int`` or ``float``
 
-        TypeError : The matrix must be an array or :obj:`.Qobj`.
+        TypeError : The matrix must be an array or :obj:`.Qobj`
             When input matrix is neither a quantum object or an array.
 
-        Exception : Dimensions do not fit.
+        Exception : Dimensions do not fit
             When input is a :obj:`.Qobj` and :obj:`.dims` check fails.
 
-        Exception : The matrix must be 2d.
+        Exception : The matrix must be 2d
             2-dimensional matrix.
 
         Exception : The lengths do not match.
