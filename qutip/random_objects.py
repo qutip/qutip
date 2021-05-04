@@ -307,7 +307,7 @@ def rand_ket(N=None, density=1, dims=None, seed=None):
     ----------
     N : int
         Number of rows for output quantum vector.
-        If None or 0, N is deduced from dims.
+        If None, N is deduced from dims.
     density : float
         Density between [0,1] of output ket state.
     dims : list
@@ -359,7 +359,7 @@ def rand_ket_haar(N=None, dims=None, seed=None):
     ----------
     N : int
         Dimension of the state vector to be returned.
-        If None or 0, N is deduced from dims.
+        If None, N is deduced from dims.
     dims : list of ints, or None
         Dimensions of the resultant quantum object.
         If None, [[N],[1]] is used.
