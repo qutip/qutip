@@ -103,7 +103,3 @@ def test_rand_super_dims():
     for func in FUNCS:
         check_func_dims(func, (7, ), {}, [[[7], [7]]] * 2)
         check_func_dims(func, (6, ), {'dims': [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]}, [[[2, 3], [2, 3]], [[2, 3], [2, 3]]])
-
-
-if __name__ == "__main__":
-    run_module_suite()
