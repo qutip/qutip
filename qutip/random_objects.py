@@ -322,7 +322,7 @@ def rand_ket(N=None, density=1, dims=None, seed=None):
     Raises
     -------
     ValueError
-        If neither `N` or `dims` are not specified.
+        If neither `N` or `dims` are specified.
 
     """
     if seed is not None:
@@ -372,7 +372,7 @@ def rand_ket_haar(N=None, dims=None, seed=None):
     Raises
     -------
     ValueError
-        If neither `N` or `dims` are not specified.
+        If neither `N` or `dims` are specified.
     """
     if N is None and dims is None:
         raise ValueError('Specify either the number of rows of state vector'
