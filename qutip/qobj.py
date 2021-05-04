@@ -983,10 +983,11 @@ class Qobj(object):
 
         Raises
         -------
-        ValueError
-            For matrices, norm must be 'tr', 'fro', 'one', or 'max'.
+        ValueError : For matrices, norm must be 'tr', 'fro', 'one', or 'max'.
+            When norm chosen is not from default types.
 
-            For vectors, norm must be 'l2', or 'max'.
+        ValueError : For vectors, norm must be 'l2', or 'max'.
+            When norm chosen is not from default types.
 
 
         Notes
@@ -1146,13 +1147,11 @@ class Qobj(object):
 
         Raises
         ------
-        TypeError
-            Invalid operand for matrix exponential - when dimensions do not
-            match.
+        TypeError : Invalid operand for matrix exponential.
+            when dimensions do not match i.e. input is not a square operator.
 
-        ValueError
-            Method must be 'dense' or 'sparse' - when available method is not
-            chosen.
+        ValueError : Method must be 'dense' or 'sparse'.
+            when available deafult method is not chosen.
 
         """
         if self.dims[0][0] != self.dims[1][0]:
@@ -1202,8 +1201,8 @@ class Qobj(object):
 
         Raises
         ------
-        TypeError
-            Invalid operand for matrix square root - when input is not square.
+        TypeError : Invalid operand for matrix square root.
+            when input is not a square operator.
 
         Notes
         -----
@@ -1240,8 +1239,8 @@ class Qobj(object):
 
         Raises
         ------
-        TypeError
-            Invalid operand for matrix square root - when input is not square.
+        TypeError : Invalid operand for matrix square root.
+            when input is not square.
 
         Notes
         -----
@@ -1265,8 +1264,8 @@ class Qobj(object):
 
         Raises
         ------
-        TypeError
-            Invalid operand for matrix square root - when input is not square.
+        TypeError : Invalid operand for matrix square root.
+            when input is not square.
 
         Notes
         -----
@@ -1290,8 +1289,8 @@ class Qobj(object):
 
         Raises
         ------
-        TypeError
-            Invalid operand for matrix inverse - when input is not square.
+        TypeError : Invalid operand for matrix inverse.
+            when input is not square.
         """
         if self.shape[0] != self.shape[1]:
             raise TypeError('Invalid operand for matrix inverse')
@@ -1453,17 +1452,15 @@ class Qobj(object):
 
         Raises
         ------
-        TypeError
-            Invalid size of ket list for basis transformation - when input
-            is a list or array and the dimensions do not match.
+        TypeError : Invalid size of ket list for basis transformation.
+            when input is a list or array and the dimensions do not match.
 
-            Invalid operand for basis transformation - when input is not a
-            proper quantum object or operator.
+        TypeError : Invalid operand for basis transformation.
+            when input is not a proper quantum object or operator.
 
         Notes
         -----
         This function is still in development.
-
 
         """
         if isinstance(inpt, list) or (isinstance(inpt, np.ndarray) and
@@ -1539,12 +1536,11 @@ class Qobj(object):
 
         Raises
         ------
-        ValueError
-            Must be a Hermitian operator to remove negative eigenvalues - when
-            operator is not Hermitian.
+        ValueError : Must be a Hermitian operator to remove negative eigenvalues
+            when operator is not Hermitian.
 
-            Method not recognized - if method other than 'clip' or 'sgs' is
-            specified.
+        ValueError : Method not recognized.
+            If method other than 'clip' or 'sgs' is specified.
 
         """
         if not self.isherm:
@@ -1608,11 +1604,10 @@ class Qobj(object):
 
         Raises
         -------
-        TypeError
-            Can only get matrix elements for an operator - when input
-            is not a valid operator.
+        TypeError : Can only get matrix elements for an operator.
+            when input is not a valid operator.
 
-            Can only calculate matrix elements for bra  and ket vectors -
+        TypeError : Can only calculate matrix elements for bra  and ket vectors.
             when input is not a valid ket or bra vector.
 
         Notes

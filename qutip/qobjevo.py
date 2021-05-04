@@ -368,7 +368,7 @@ class QobjEvo:
     Attributes
     ----------
     cte : :obj:`.Qobj`
-        Constant part of the QobjEvo.
+        Constant part of the :obj:`.QobjEvo`.
 
     ops : list of :obj:`.EvoElement`
         Internal representation of the time-dependence structure of the
@@ -389,7 +389,7 @@ class QobjEvo:
         A string representing the properties of the low-level Cython class
         backing this object (may be empty).
 
-    compiled_qobjevo : :class:`~CQobjCte` or :class:`~CQobjEvoTd`
+    compiled_qobjevo : :obj:`.CQobjCte` or :obj:`.CQobjEvoTd`
         Cython version of the :obj:`.QobjEvo`.
 
     coeff_get : callable
@@ -400,7 +400,7 @@ class QobjEvo:
         Runtime created files to delete with the instance.
 
     dummy_cte : bool
-        Is self.cte an empty :obj:`.Qobj`
+        Is `self.cte` an empty :obj:`.Qobj`
 
     const : bool
         Indicates if quantum object is constant
@@ -418,6 +418,7 @@ class QobjEvo:
     safePickle : bool
         Flag to not share pointers between thread.
 
+
     Raises
     -------
     Exception : The Qobj must not already be a function.
@@ -431,7 +432,7 @@ class QobjEvo:
         Checks if `op_type` is a :obj:`.Qobj`.
 
     TypeError : Time list does not match.
-        Checks compatibility of `tlist` with `op_type`. 
+        Checks compatibility of `tlist` with `op_type`.
     """
 
     def __init__(self, Q_object=[], args={}, copy=True,
@@ -839,11 +840,6 @@ class QobjEvo:
         """
         Return this operator in the list-like form used to initialised it, like
         can be passed to :obj:`.mesolve`.
-
-        Raises
-        -------
-        Exception
-            tlist are not compatible.
         """
         list_qobj = []
         if not self.dummy_cte:
@@ -1264,7 +1260,7 @@ class QobjEvo:
         Raises
         -------
         TypeError
-            The function must return a Qobj.
+            The function must return a :obj:`.Qobj`.
         """
         self.compiled = ""
         res = self.copy()
@@ -1437,15 +1433,17 @@ class QobjEvo:
 
         Raises
         --------
-        TypeError
-            The time needs to be a real scalar.
+        TypeError : The time needs to be a real scalar.
+            Input time `t` must be either ``int`` or ``float``
 
-            The vector must be an array or Qobj.
+        TypeError : The vector must be an array or :obj:`.Qobj`.
+            When input state is neither a quantum object or an array.
 
-        Exception
-            Dimensions do not fit.
+        Exception : Dimensions do not fit.
+            When input is a :obj:`.Qobj` and :obj:`.dims` check fails.
 
-            The shapes do not match.
+        Exception : The shapes do not match.
+            Shape of vector created from input must agree with expected value.
 
 
         See Also
@@ -1510,17 +1508,20 @@ class QobjEvo:
 
         Raises
         --------
-        TypeError
-            The time needs to be a real scalar.
+        TypeError : The time needs to be a real scalar.
+            Input time `t` must be either ``int`` or ``float``
 
-            The vector must be an array or Qobj.
+        TypeError : The vector must be an array or :obj:`.Qobj`.
+            When input vector is neither a quantum object or an array.
 
-        Exception
-            Dimensions do not fit.
+        Exception : Dimensions do not fit.
+            When input is a :obj:`.Qobj` and :obj:`.dims` check fails.
 
-            The vector must be 1d.
+        Exception : The vector must be 1d.
+            1-dimensional vector.
 
-            The lengths do not match.
+        Exception : The lengths do not match.
+            Shape of vector created from input must agree with expected value.
         """
         was_Qobj = False
         if not isinstance(t, (int, float)):
@@ -1569,17 +1570,20 @@ class QobjEvo:
 
         Raises
         --------
-        TypeError
-            The time needs to be a real scalar.
+        TypeError : The time needs to be a real scalar.
+            Input time `t` must be either ``int`` or ``float``
 
-            The vector must be an array or Qobj.
+        TypeError : The matrix must be an array or :obj:`.Qobj`.
+            When input matrix is neither a quantum object or an array.
 
-        Exception
-            Dimensions do not fit.
+        Exception : Dimensions do not fit.
+            When input is a :obj:`.Qobj` and :obj:`.dims` check fails.
 
-            The vector must be 2d.
+        Exception : The matrix must be 2d.
+            2-dimensional matrix.
 
-            The lengths do not match.
+        Exception : The lengths do not match.
+            Shape of vector created from input must agree with expected value.
         """
         was_Qobj = False
         if not isinstance(t, (int, float)):
@@ -1593,7 +1597,7 @@ class QobjEvo:
         if not isinstance(mat, np.ndarray):
             raise TypeError("The vector must be an array or Qobj")
         if mat.ndim != 2:
-            raise Exception("The matrice must be 2d")
+            raise Exception("The matrix must be 2d")
         if mat.shape[0] != self.cte.shape[1]:
             raise Exception("The lengths do not match")
 
