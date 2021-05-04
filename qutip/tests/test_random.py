@@ -50,7 +50,7 @@ def test_rand_unitary_haar_unitarity():
     U = rand_unitary_haar(5)
     I = qeye(5)
 
-    assert_(U * U.dag() == I)
+    assert U * U.dag() == I
 
 def test_rand_dm_ginibre_rank():
     """
