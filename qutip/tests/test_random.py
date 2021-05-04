@@ -70,8 +70,7 @@ def check_func_dims(func, args, kwargs, dims):
     # TODO: promote this out of test_random, as it's generically useful
     #       in writing tests.
     resdims = func(*args, **kwargs).dims
-    assert resdims == dims, message = "Calculated value of dims (left) does \
-    not match with expected value (right)."
+    assert resdims == dims
 
 def check_func_N(func, args, kwargs, N):
     new_state_shape=func(*args, **kwargs).shape
