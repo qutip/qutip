@@ -34,6 +34,7 @@
 import scipy.sparse as sp
 import scipy.linalg as la
 import numpy as np
+from numpy.testing import run_module_suite
 from qutip.random_objects import (rand_ket, rand_dm, rand_herm, rand_unitary,
                                   rand_ket_haar, rand_dm_hs,
                                   rand_super, rand_unitary_haar, rand_dm_ginibre,
@@ -72,8 +73,6 @@ def check_func_dims(func, args, kwargs, dims):
     resdims = func(*args, **kwargs).dims
     assert resdims == dims
 
-
-
 def check_func_N(func, args, kwargs,expected_shape):
     # Here, expected_shape is supposed to be of form N X 1. When assigning
     # this to a tuple, value 1 cannot be used.
@@ -109,3 +108,7 @@ def test_rand_super_dims():
     for func in FUNCS:
         check_func_dims(func, (7, ), {}, [[[7], [7]]] * 2)
         check_func_dims(func, (6, ), {'dims': [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]}, [[[2, 3], [2, 3]], [[2, 3], [2, 3]]])
+
+if __name__ == "__main__":
+    import pytest
+    run_module_suite()
