@@ -131,7 +131,7 @@ class Qobj(object):
         :obj:`.isherm` indicates if quantum object represents Hermitian
         operator.
     isunitary : bool
-        :obj:`.check_isunitary` indicates if quantum object represents unitary
+        `isunitary` indicates if quantum object represents unitary
         operator.
     iscp : bool
         Indicates if the quantum object represents a map, and if that map is
@@ -901,7 +901,7 @@ class Qobj(object):
 
         Returns
         -------
-        dag : :obj:`.Qobj`
+        :obj:`.Qobj`
             The requested adjoint of an operator or a quantum state as a
             quantum object.
         """
@@ -918,8 +918,8 @@ class Qobj(object):
 
         Raises
         -------
-        ValueError
-            Dual channels are only implemented for CP maps.
+        ValueError : Dual channels are only implemented for CP maps.
+            If the input is not a completely positive map.
 
         """
         # Uses the technique of Johnston and Kribs (arXiv:1102.0948), which
@@ -940,7 +940,7 @@ class Qobj(object):
 
         Returns
         -------
-        conj : :obj:`.Qobj`
+        :obj:`.Qobj`
             The requested conjugate of an operator or a quantum state as a
             quantum object.
         """
@@ -959,9 +959,11 @@ class Qobj(object):
         Parameters
         ----------
         norm : str
-            Which norm to use for ket/bra vectors: L2, max norm 'max',
-            or for operators: trace 'tr', Frobius 'fro', one 'one', or max
-            'max'.
+            Norm to use for :obj:`.ket` or :obj:`.bra` vectors: L2,
+            max norm 'max',
+
+            Norm for :obj:`.operators` : trace 'tr', Frobius 'fro', one 'one',
+            or max 'max'.
 
         sparse : bool
             Use sparse eigenvalue solver for trace norm.  Other norms are not
@@ -977,16 +979,16 @@ class Qobj(object):
 
         Returns
         -------
-        norm : float
+        float
             The requested norm of the operator or state quantum object.
 
         Raises
         -------
         ValueError : For matrices, norm must be 'tr', 'fro', 'one', or 'max'
-            When norm chosen is not from default methods.
+            When norm chosen is not from default methods of operators.
 
         ValueError : For vectors, norm must be 'l2', or 'max'
-            When norm chosen is not from default methods.
+            When norm chosen is not from default methods of bra/kets.
 
 
         Notes
@@ -1028,13 +1030,13 @@ class Qobj(object):
 
         Returns
         -------
-        P : :obj:`.Qobj`
-            Projection operator.
+        :obj:`.Qobj`
+            Projection operator of a state vector.
 
         Raises
         -------
-        TypeError
-            Projector can only be formed from a bra or ket.
+        TypeError : Projector can only be formed from a bra or ket
+            If the input is not a ket or bra.
         """
         if self.isket:
             _out = zcsr_proj(self.data, 1)
@@ -1052,7 +1054,7 @@ class Qobj(object):
 
         Returns
         -------
-        trace : float
+        float
             Returns the trace of the quantum object.
 
         """
@@ -1070,8 +1072,8 @@ class Qobj(object):
 
         Raises
         -------
-        TypeError
-            Purity is defined on a density matrix or state.
+        TypeError : Purity is defined on a density matrix or state
+            If the input is a superoperator.
 
         """
         rho = self
@@ -1091,9 +1093,9 @@ class Qobj(object):
 
         Parameters
         ----------
-        order : ``str {'C', 'F'}``
+        order : str {'C', 'F'}
             Return array in C (default) or Fortran ordering.
-        squeeze : ``bool {False, True}``
+        squeeze : bool {False, True}
             Squeeze output array.
 
         Returns
@@ -1117,8 +1119,8 @@ class Qobj(object):
 
         Returns
         -------
-        diags : array
-            Returns array of ``real`` values if operators is Hermitian,
+        array
+            Returns array of ``real`` values if operator is Hermitian,
             otherwise ``complex`` values are returned.
 
         """
@@ -1133,7 +1135,7 @@ class Qobj(object):
 
         Parameters
         ----------
-        method : ``str {'dense', 'sparse'}``
+        method : str {'dense', 'sparse'}
             Use set method to use to calculate the matrix exponentiation. The
             available choices includes 'dense' and 'sparse'.  Since the
             exponential of a matrix is nearly always dense, method='dense'
@@ -1141,7 +1143,7 @@ class Qobj(object):
 
         Returns
         -------
-        oper : :obj:`.Qobj`
+        :obj:`.Qobj`
             Exponentiated quantum operator.
 
         Raises
@@ -1195,13 +1197,14 @@ class Qobj(object):
 
         Returns
         -------
-        oper : :obj:`.Qobj`
+        :obj:`.Qobj`
             Matrix square root of operator.
 
         Raises
         ------
         TypeError : Invalid operand for matrix square root
-            When input is not a square operator.
+            When input is not a square operator i.e. rows and columns are not
+            equal in size.
 
         Notes
         -----
@@ -1233,13 +1236,14 @@ class Qobj(object):
 
         Returns
         -------
-        oper : :obj:`.Qobj`
+        :obj:`.Qobj`
             Matrix cosine of an operator.
 
         Raises
         ------
         TypeError : Invalid operand for matrix square root.
-            when input is not square.
+            When input is not a square operator, number of rows and columns
+            do not match.
 
         Notes
         -----
@@ -1258,13 +1262,14 @@ class Qobj(object):
 
         Returns
         -------
-        oper : :class:`Qobj`
+        :class:`Qobj`
             Matrix sine of operator.
 
         Raises
         ------
         TypeError : Invalid operand for matrix square root
-            When input is not a square operator.
+            When input is not a square operator, number of rows and columns
+            do not match.
 
         Notes
         -----
@@ -1283,13 +1288,14 @@ class Qobj(object):
 
         Returns
         -------
-        oper : :obj:`.Qobj`
+        :obj:`.Qobj`
             Matrix inverse of operator.
 
         Raises
         ------
         TypeError : Invalid operand for matrix inverse
-            When input is not square.
+            When input is not square, number of rows and columns
+            do not match.
         """
         if self.shape[0] != self.shape[1]:
             raise TypeError('Invalid operand for matrix inverse')
@@ -1327,8 +1333,8 @@ class Qobj(object):
 
         Raises
         -------
-        Exception
-            Inplace kwarg must be bool.
+        Exception : inplace kwarg must be bool
+            Inplace must be True or False.
 
         """
         if inplace:
@@ -1358,7 +1364,7 @@ class Qobj(object):
 
         Returns
         -------
-        oper : :obj:`.Qobj`
+        :obj:`.Qobj`
             Quantum object representing partial trace with selected components
             remaining.
 
@@ -1390,7 +1396,7 @@ class Qobj(object):
 
         Returns
         -------
-        P : :obj:`.Qobj`
+        q : :obj:`.Qobj`
             Permuted quantum object.
 
         """
@@ -1410,7 +1416,7 @@ class Qobj(object):
 
         Returns
         -------
-        oper : :obj:`.Qobj`
+        :obj:`.Qobj`
             Quantum object with small elements removed.
 
         """
@@ -1446,7 +1452,7 @@ class Qobj(object):
 
         Returns
         -------
-        oper : :obj:`.Qobj`
+        :obj:`.Qobj`
             Operator in new basis.
 
         Raises
@@ -1455,7 +1461,7 @@ class Qobj(object):
             When input is a list or array and the dimensions do not match.
 
         TypeError : Invalid operand for basis transformation
-            When input is not a proper quantum object or operator.
+            When input is not a proper quantum object, array or operator.
 
         Notes
         -----
@@ -1530,13 +1536,14 @@ class Qobj(object):
 
         Returns
         -------
-        oper : :obj:`.Qobj`
+        :obj:`.Qobj`
             A valid density operator as a quantum object.
 
         Raises
         ------
         ValueError : Must be a Hermitian operator to remove negative
-        eigenvalues When input operator is not Hermitian.
+        eigenvalues
+            When input operator is not Hermitian.
 
         ValueError : Method not recognized
             If method other than 'clip' or 'sgs' is specified.
@@ -1598,7 +1605,7 @@ class Qobj(object):
 
         Returns
         -------
-        elem : complex
+        complex
             Complex valued matrix element.
 
         Raises
@@ -1643,7 +1650,7 @@ class Qobj(object):
 
         Returns
         -------
-        overlap : complex
+        complex
             Complex valued overlap.
 
         Raises
@@ -1771,7 +1778,7 @@ class Qobj(object):
         sparse : bool
             Use sparse Eigensolver
         sort : str
-            Sort eigenvalues 'low' to high, or 'high' to low.
+            Sort eigenvalues 'low' to 'high', or 'high' to 'low'.
         eigvals : int
             Number of requested eigenvalues. Default is all eigenvalues.
         tol : float
@@ -1820,8 +1827,8 @@ class Qobj(object):
 
         Raises
         -------
-        WARNING
-            Ground state may be degenerate. Use Q. :obj:`.eigenstates()`.
+        WARNING : Ground state may be degenerate.
+            Use Q. :obj:`.eigenstates()`
 
 
         Notes
@@ -1851,7 +1858,7 @@ class Qobj(object):
 
         Returns
         -------
-        oper : :obj:`.Qobj`
+        :obj:`.Qobj`
             Transpose of input operator.
 
         """
@@ -1883,8 +1890,8 @@ class Qobj(object):
 
         Raises
         -------
-        TypeError
-            Can only eliminate states from operators or state vectors.
+        TypeError : Can only eliminate states from operators or state vectors
+            If input is not ket, bra or an operator.
 
         Notes
         -----
@@ -1920,7 +1927,7 @@ class Qobj(object):
 
         Returns
         -------
-        q : :obj:`.Qobj`
+        :obj:`.Qobj`
             A new instance of :obj:`.Qobj` that contains only the states
             corresponding to indices that are **not** in ``states_inds``.
 
@@ -1947,7 +1954,7 @@ class Qobj(object):
 
         Returns
         -------
-        d : float
+        float
             Either the diamond norm of this operator, or the diamond distance
             from this operator to B.
 
@@ -2057,7 +2064,7 @@ class Qobj(object):
         Returns
         -------
         isunitary : bool
-            Returns the new value of :obj:`.isunitary` property.
+            Returns the new value of `isunitary` property.
         """
         if self.isoper:
             eye_data = fast_identity(self.shape[0])
@@ -2160,13 +2167,15 @@ class Qobj(object):
 
         Returns
         -------
-        output : :obj:`.Qobj`
+        :obj:`.Qobj`
             A Qobj instance that represents the value of qobj_list at time t.
 
         Raises
         ------
-        TypeError
-            Unrecognized format for specification of time-dependent Qobj.
+        TypeError : Unrecognized format for specification of time-dependent
+        Qobj
+            When type of `qobj_list` cannot be recognized - :obj:`.Qobj` or
+            list etc.
 
         """
 
@@ -2227,13 +2236,14 @@ def dag(A):
 
     Returns
     -------
-    oper : :obj:`.Qobj`
+    :obj:`.Qobj`
         Adjoint of input operator
 
     Raises
     -------
-    TypeError
-        Input is not a quantum object.
+    TypeError : Input is not a quantum object
+        When input cannot be identified as :obj:`.Qobj`.
+
 
     Notes
     -----
@@ -2265,8 +2275,8 @@ def ptrace(Q, sel):
 
     Raises
     -------
-    TypeError
-        Input is not a quantum object.
+    TypeError : Input is not a quantum object
+        When input cannot be identified as :obj:`.Qobj`.
 
     Notes
     -----
@@ -2334,8 +2344,8 @@ def dims(inpt):
 
     Raises
     -------
-    TypeError
-        Input is not a quantum object.
+    TypeError : Input is not a quantum object
+        When input cannot be identified as :obj:`.Qobj`. 
 
     Notes
     -----

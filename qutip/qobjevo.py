@@ -801,8 +801,8 @@ class QobjEvo:
 
         Raises
         -------
-        TypeError
-            The new args must be in a dict.
+        TypeError : The new args must be in a dict
+            When input arguments are not in a dictionary.
         """
         if not isinstance(new_args, dict):
             raise TypeError("The new args must be in a dict")
@@ -1259,8 +1259,9 @@ class QobjEvo:
 
         Raises
         -------
-        TypeError
-            The function must return a :obj:`.Qobj`.
+        TypeError : The function must return a :obj:`.Qobj`
+            After function acts on the quantum object, the output must be a
+            quantum object. 
         """
         self.compiled = ""
         res = self.copy()
