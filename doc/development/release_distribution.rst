@@ -103,9 +103,11 @@ Create a new branch from this, e.g. ::
 
     $ git checkout -b 4.1-release_ready qutip-4.1.X
 
-First change the ``VERSION`` file to contain the new version number.
+First change the ``VERSION`` file to contain the new version number, and remove any ``dev`` postfix if present.
 A major release increments the first number, while a minor release increments the second.
 All numbers after the change digit are reset to 0, so the next minor release after 4.5.3 is 4.6.0, and the next major release after either of these is 5.0.0.
+Alpha, beta and release-candidate releases have a postfix ``.a<n>``, ``.b<n>`` or ``.rc<n>`` repsectively, where ``<n>`` is a counter for the pre-release status, starting from 0.
+For example, the third beta release of version 5.2.1 would have a version of ``5.2.1.b2``.
 The file should contain only the version number in this format, with no extra characters (the automatic line-break at the end is fine).
 
 Next edit ``setup.cfg``.
@@ -124,7 +126,7 @@ The "Development Status" of ``master`` should remain ::
     Development Status :: 2 - Pre-Alpha
 
 because it is never directly released.
-The ``VERSION`` file on ``master`` should reflect the last major or minor release.
+The ``VERSION`` file on ``master`` should reflect the last major or minor release, with a trailing ``.dev`` to indicate that this is a development branch.
 
 
 .. _docbuild:
