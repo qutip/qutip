@@ -960,7 +960,7 @@ class Qobj(object):
         ----------
         norm : str
             Which norm to use for ket/bra vectors: L2, max norm 'max',
-            or for operators: trace `tr', Frobius 'fro', one 'one', or max
+            or for operators: trace 'tr', Frobius 'fro', one 'one', or max
             'max'.
 
         sparse : bool
