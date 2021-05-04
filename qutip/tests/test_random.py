@@ -41,7 +41,7 @@ from qutip.random_objects import (rand_ket, rand_dm, rand_herm, rand_unitary,
                                   rand_super, rand_unitary_haar, rand_dm_ginibre,
                                   rand_super_bcsz)
 from qutip.operators import qeye
-from qutip.dimensions import dims_to_tensor_shape
+from pytest import assert,
 
 def test_rand_unitary_haar_unitarity():
     """
@@ -72,7 +72,7 @@ def check_func_dims(func, args, kwargs, dims):
     # TODO: promote this out of test_random, as it's generically useful
     #       in writing tests.
     resdims = func(*args, **kwargs).dims
-    assert_(resdims == dims, "Checking {}; expected dimensions of {}, got {}.".format(func.__name__, dims, resdims))
+    assert resdims == dims, "Checking {}; expected dimensions of {}, got {}.".format(func.__name__, dims, resdims))
 
 def check_func_N(func, args, kwargs, N):
     new_state_shape=func(*args, **kwargs).shape
