@@ -74,8 +74,6 @@ def check_func_dims(func, args, kwargs, dims):
     assert resdims == dims
 
 def check_func_N(func, args, kwargs,N):
-    # Here, expected_shape is supposed to be of form N X 1. When assigning
-    # this to a tuple, value 1 cannot be used.
     new_state_shape=func(*args, **kwargs).shape
     assert new_state_shape==(N,1)
 
