@@ -1518,9 +1518,9 @@ class TestPim:
         """
         N = 2
         ensemble = Pim(N, emission=1)
-        test_matrix = ensemble.coefficient_matrix().todense()
+        test_matrix = ensemble.coefficient_matrix().toarray()
         ensemble2 = Dicke(N, emission=1)
-        test_matrix2 = ensemble.coefficient_matrix().todense()
+        test_matrix2 = ensemble.coefficient_matrix().toarray()
         true_matrix = [
             [-2, 0, 0, 0],
             [1, -1, 0, 0],

@@ -85,9 +85,12 @@ These are called from the within the SciPy optimisation functions.
 The subclasses implement the algorithm specific pulse optimisation function.
 """
 
-import os
+import functools
 import numpy as np
 import timeit
+import warnings
+from packaging.version import parse as _parse_version
+import scipy
 import scipy.optimize as spopt
 import copy
 import collections
@@ -103,6 +106,25 @@ import qutip.control.dynamics as dynamics
 import qutip.control.pulsegen as pulsegen
 import qutip.control.dump as qtrldump
 
+
+# Older versions of SciPy use the method numpy.ndarray.tostring(), which has
+# been deprecated since Numpy 1.19 in favour of the identical-in-all-but-name
+# tobytes() method.  This is simply a deprecated call in SciPy, there's nothing
+# we or our users can do about it, and the function shouldn't actually be
+# removed from Numpy until at least 1.22, by which point we'll have been able
+# to drop support for SciPy 1.4.
+if _parse_version(scipy.__version__) < _parse_version("1.5"):
+    @functools.wraps(spopt.fmin_l_bfgs_b)
+    def fmin_l_bfgs_b(*args, **kwargs):
+        with warnings.catch_warnings():
+            message = r"tostring\(\) is deprecated\. Use tobytes\(\) instead\."
+            warnings.filterwarnings("ignore", message=message,
+                                    category=DeprecationWarning)
+            return spopt.fmin_l_bfgs_b(*args, **kwargs)
+else:
+    fmin_l_bfgs_b = spopt.fmin_l_bfgs_b
+
+
 def _is_string(var):
     try:
         if isinstance(var, basestring):
@@ -117,6 +139,7 @@ def _is_string(var):
         return False
 
     return False
+
 
 class Optimizer(object):
     """
@@ -997,7 +1020,7 @@ class OptimizerLBFGSB(Optimizer):
                 msg += " (approx grad)"
             logger.info(msg)
         try:
-            optim_var_vals, fid, res_dict = spopt.fmin_l_bfgs_b(
+            optim_var_vals, fid, res_dict = fmin_l_bfgs_b(
                 self.fid_err_func_wrapper, self.optim_var_vals,
                 fprime=fprime,
                 approx_grad=self.approx_grad,

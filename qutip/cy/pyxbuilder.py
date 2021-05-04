@@ -32,9 +32,19 @@
 ###############################################################################
 import sys
 import os
+import warnings
 
 import numpy as np
-import pyximport
+
+with warnings.catch_warnings():
+    # TODO: pyximport loads the imp module, which is deprecated in favour of
+    # importlib and slated for removal in Python 3.12.  Our intent is to
+    # remove all usage of pyximport in QuTiP 5.0 with new Coefficient objects,
+    # before Python 3.12 is released.
+    warnings.filterwarnings(
+        "ignore", category=DeprecationWarning, module="pyximport",
+    )
+    import pyximport
 
 old_get_distutils_extension = pyximport.pyximport.get_distutils_extension
 

@@ -47,7 +47,7 @@ from decimal import Decimal
 
 import numpy as np
 from scipy.integrate import odeint
-from scipy.sparse.linalg import eigsh
+from scipy.linalg import eigvalsh
 from scipy.special import entr
 from scipy.sparse import dok_matrix, block_diag, lil_matrix
 from qutip.solver import Options, Result
@@ -291,7 +291,7 @@ def dicke_function_trace(f, rho):
     for i, block in enumerate(blocks):
         dj = state_degeneracies[i]
         normalized_block = block / dj
-        eigenvals_block = eigsh(normalized_block, return_eigenvectors=False)
+        eigenvals_block = eigvalsh(normalized_block)
         for val in eigenvals_block:
             eigenvals_degeneracy.append(val)
             deg.append(dj)
@@ -1226,7 +1226,7 @@ def _uncoupled_ghz(N):
 
 
 def _uncoupled_css(N, a, b):
-    """
+    r"""
     Generate the density matrix of the CSS state in the full 2^N
     dimensional Hilbert space.
 

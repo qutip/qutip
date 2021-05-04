@@ -1,0 +1,2 @@
+# Force Windows batch files to use \r\n.
+*.bat text eol=crlf

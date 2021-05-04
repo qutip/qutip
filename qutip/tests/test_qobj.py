@@ -76,8 +76,8 @@ def test_QobjData():
     q1 = Qobj(data1)
     # check if data is a csr_matrix if originally array
     assert sp.isspmatrix_csr(q1.data)
-    # check if dense ouput is equal to original data
-    assert np.all(q1.data.todense() - np.matrix(data1) == 0)
+    # check if dense ouput is exactly equal to original data
+    assert np.all(q1.full() == data1)
 
     data2 = _random_not_singular(N)
     data2 = sp.csr_matrix(data2)
@@ -89,13 +89,6 @@ def test_QobjData():
     q3 = Qobj(data3)
     # check if data is a csr_matrix if originally int
     assert sp.isspmatrix_csr(q3.data)
-
-    data4 = _random_not_singular(N)
-    data4 = np.matrix(data4)
-    q4 = Qobj(data4)
-    # check if data is a csr_matrix if originally csr_matrix
-    assert sp.isspmatrix_csr(q4.data)
-    assert np.all(q4.data.todense() - np.matrix(data4) == 0)
 
 
 def test_QobjType():
@@ -285,8 +278,8 @@ def test_QobjAddition():
     x2 = 5 + q
 
     data = data + np.eye(5) * 5
-    assert np.all(x1.data.todense() - np.matrix(data) == 0)
-    assert np.all(x2.data.todense() - np.matrix(data) == 0)
+    assert np.all(x1.full() == data)
+    assert np.all(x2.full() == data)
 
     data = np.random.random((5, 5))
     q = Qobj(data)
@@ -294,8 +287,8 @@ def test_QobjAddition():
     x4 = data + q
 
     data = 2.0 * data
-    assert np.all(x3.data.todense() - np.matrix(data) == 0)
-    assert np.all(x4.data.todense() - np.matrix(data) == 0)
+    assert np.all(x3.full() == data)
+    assert np.all(x4.full() == data)
 
 
 def test_QobjSubtraction():
@@ -309,12 +302,12 @@ def test_QobjSubtraction():
     q3 = q1 - q2
     data3 = data1 - data2
 
-    assert np.all(q3.data.todense() - np.matrix(data3) == 0)
+    assert np.all(q3.full() == data3)
 
     q4 = q2 - q1
     data4 = data2 - data1
 
-    assert np.all(q4.data.todense() - np.matrix(data4) == 0)
+    assert np.all(q4.full() == data4)
 
 
 def test_QobjMultiplication():
@@ -339,7 +332,7 @@ def test_QobjDivision():
     q = Qobj(data)
     randN = 10 * np.random.random()
     q = q / randN
-    assert np.allclose(q.data.todense(), np.matrix(data) / randN)
+    assert np.allclose(q.full(), data / randN)
 
 
 def test_QobjPower():
@@ -348,10 +341,10 @@ def test_QobjPower():
     q = Qobj(data)
 
     q2 = q ** 2
-    assert (q2.data.todense() - np.matrix(data)**2 < 1e-12).all()
+    assert (q2.full() - np.linalg.matrix_power(data, 2) < 1e-12).all()
 
     q3 = q ** 3
-    assert (q3.data.todense() - np.matrix(data)**3 < 1e-12).all()
+    assert (q3.full() - np.linalg.matrix_power(data, 3) < 1e-12).all()
 
 
 def test_QobjNeg():
@@ -359,7 +352,7 @@ def test_QobjNeg():
     data = _random_not_singular(5)
     q = Qobj(data)
     x = -q
-    assert np.all(x.data.todense() + np.matrix(data) == 0)
+    assert np.all(x.full() + data == 0)
     assert q.isherm == x.isherm
     assert q.type == x.type
 
@@ -465,7 +458,7 @@ def test_QobjConjugate():
     data = _random_not_singular(5)
     A = Qobj(data)
     B = A.conj()
-    assert np.all(B.data.todense() - np.matrix(data.conj()) == 0)
+    assert np.all(B.full() == data.conj())
     assert A.isherm == B.isherm
     assert A.type == B.type
     assert A.superrep == B.superrep
@@ -476,7 +469,7 @@ def test_QobjDagger():
     data = _random_not_singular(5)
     A = Qobj(data)
     B = A.dag()
-    assert np.all(B.data.todense() - np.matrix(data.conj().T) == 0)
+    assert np.all(B.full() == data.conj().T)
     assert A.isherm == B.isherm
     assert A.type == B.type
     assert A.superrep == B.superrep
@@ -526,7 +519,7 @@ def test_QobjExpm():
     data = _random_not_singular(15)
     A = Qobj(data)
     B = A.expm()
-    assert (B.data.todense() - np.matrix(la.expm(data)) < 1e-10).all()
+    assert (B.full() - la.expm(data) < 1e-10).all()
 
 
 def test_QobjExpmExplicitlySparse():
@@ -534,7 +527,7 @@ def test_QobjExpmExplicitlySparse():
     data = _random_not_singular(15)
     A = Qobj(data)
     B = A.expm(method='sparse')
-    assert (B.data.todense() - np.matrix(la.expm(data)) < 1e-10).all()
+    assert (B.full() - la.expm(data) < 1e-10).all()
 
 
 def test_QobjExpmZeroOper():
@@ -860,8 +853,8 @@ def trunc_neg_case(qobj, method, expected=None):
     assert all(energy > -1e-8 for energy in pos_qobj.eigenenergies())
     assert np.allclose(pos_qobj.tr(), 1)
     if expected is not None:
-        test_array = pos_qobj.data.todense()
-        exp_array = expected.data.todense()
+        test_array = pos_qobj.full()
+        exp_array = expected.full()
         assert np.allclose(test_array, exp_array)
 
 

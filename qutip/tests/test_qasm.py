@@ -73,7 +73,8 @@ def check_measurement_defn(gate, gate_name, targets, classical_store):
 def test_qasm_addcircuit():
     filename = "test_add.qasm"
     filepath = Path(__file__).parent / 'qasm_files' / filename
-    qc = read_qasm(filepath)
+    with pytest.warns(UserWarning, match="not preserved in QubitCircuit"):
+        qc = read_qasm(filepath)
     assert qc.N == 2
     assert qc.num_cbits == 2
     check_gate_defn(qc.gates[0], "X", [1])
@@ -100,7 +101,8 @@ def test_custom_gates():
 def test_qasm_teleportation():
     filename = "teleportation.qasm"
     filepath = Path(__file__).parent / 'qasm_files' / filename
-    teleportation = read_qasm(filepath)
+    with pytest.warns(UserWarning, match="not preserved in QubitCircuit"):
+        teleportation = read_qasm(filepath)
     final_measurement = Measurement("start", targets=[2])
     initial_measurement = Measurement("start", targets=[0])
 
