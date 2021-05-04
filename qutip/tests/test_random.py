@@ -72,11 +72,11 @@ def check_func_dims(func, args, kwargs, dims):
     # TODO: promote this out of test_random, as it's generically useful
     #       in writing tests.
     resdims = func(*args, **kwargs).dims
-    assert resdims == dims, "Checking {}; expected dimensions of {}, got {}.".format(func.__name__, dims, resdims)
+    assert resdims == dims
 
 def check_func_N(func, args, kwargs, N):
     new_state_shape=func(*args, **kwargs).shape
-    assert new_state_shape[0]==N,"Checking {}; expected N of {}, got {}.".format(func.__name__, N, new_state_shape[0])
+    assert new_state_shape[0]==N
 
 
 def test_rand_vector_dims():
