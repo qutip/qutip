@@ -330,13 +330,13 @@ def rand_ket(N=None, density=1, dims=None, seed=None):
     if N is None and dims is None:
         raise ValueError('Specify either the number of rows of state vector'
                          '(N) or dimensions of quantum object (dims)')
-    elif N is not None and dims:
+    if N is not None and dims:
         _check_dims(dims, N, 1)
     elif dims:
         N = np.prod(dims[0])
         _check_dims(dims, N, 1)
     else:
-        dims = [[N],[1]]
+        dims = [[N], [1]]
     X = sp.rand(N, 1, density, format='csr')
     while X.nnz == 0:
         # ensure that the ket is not all zeros.
@@ -377,13 +377,13 @@ def rand_ket_haar(N=None, dims=None, seed=None):
     if N is None and dims is None:
         raise ValueError('Specify either the number of rows of state vector'
                          '(N) or dimensions of quantum object (dims)')
-    elif N and dims:
+    if N and dims:
         _check_dims(dims, N, 1)
     elif dims:
         N = np.prod(dims[0])
         _check_dims(dims, N, 1)
     else:
-        dims = [[N],[1]]
+        dims = [[N], [1]]
     psi = rand_unitary_haar(N, seed=seed) * basis(N, 0)
     psi.dims = dims
     return psi
