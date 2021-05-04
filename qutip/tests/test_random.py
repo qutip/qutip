@@ -76,7 +76,7 @@ def check_func_dims(func, args, kwargs, dims):
 
 def check_func_N(func, args, kwargs,expected_shape):
     # Here, expected_shape is supposed to be of form N X 1. When assigning
-    # this to a tuple, value 1 cannot be used. 
+    # this to a tuple, value 1 cannot be used.
     number_of_rows , column_number = expected_shape
     new_state_shape=func(*args, **kwargs).shape
     assert new_state_shape==expected_shape
@@ -87,6 +87,7 @@ def test_rand_vector_dims():
     for func in FUNCS:
         # N or dims are not given
         assert pytest.raises(ValueError,check_func_dims,func,(),{},[])
+        assert pytest.raises(ValueError,check_func_N,func,(),{},[])
         # both N and dims (named argument) are specified
         check_func_dims( func, (6, ), {'dims': [[2,3], [1,1]]}, [[2,3], [1,1]])
         check_func_N(func,(6, ),{'dims': [[2,3], [1,1]]},(6,1))
