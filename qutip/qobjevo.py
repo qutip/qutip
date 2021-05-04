@@ -198,14 +198,14 @@ class StateArgs:
 class EvoElement:
     """
     Internal type used to represent the time-dependent parts of a
-    :class:`~QobjEvo`.
+    :obj:`.QobjEvo`.
 
     Availables "types" are
 
     1. function
     2. string
     3. ``np.ndarray``
-    4. :class:`.Cubic_Spline`
+    4. :obj:`.Cubic_Spline`
     """
 
     def __init__(self, qobj, get_coeff, coeff, type):
@@ -236,11 +236,11 @@ class QobjEvo:
 
     Basic math operations are defined:
 
-    - ``+``, ``-`` : :class:`~QobjEvo`, :class:`~Qobj`, scalars.
-    - ``*``: :class:`~Qobj`, C number
+    - ``+``, ``-`` : :obj:`.QobjEvo`, :obj:`.Qobj`, scalars.
+    - ``*``: :obj:`.Qobj`, C number
     - ``/`` : C number
 
-    This object is constructed by passing a list of :obj:`~Qobj` instances,
+    This object is constructed by passing a list of :obj:`.Qobj` instances,
     each of which *may* have an associated scalar time dependence.  The list is
     summed to produce the final result.  In other words, if an instance of this
     class is :math:`Q(t)`, then it is constructed from a set of constant
@@ -313,7 +313,7 @@ class QobjEvo:
                     tlist=tlist)
 
     Mixing time formats is allowed.  It is not possible to create a single
-    :class:`QobjEvo` that contains different ``tlist`` values, however.
+    :obj:`.QobjEvo` that contains different ``tlist`` values, however.
 
     **Passing arguments**
 
@@ -322,12 +322,12 @@ class QobjEvo:
     supported by the code to be compiled in the string.
 
     There are some "magic" names that can be specified, whose objects will be
-    overwritten when used within :func:`.sesolve`, :func:`.mesolve` and
-    :func:`.mcsolve`.  This allows access to the solvers' internal states, and
+    overwritten when used within :func:`.sesolve`, :obj:`.mesolve` and
+    :obj:`.mcsolve`.  This allows access to the solvers' internal states, and
     they are updated at every call.  The initial values of these dictionary
     elements is unimportant.  The magic names available are:
 
-    - ``"state"``: the current state as a :class:`~Qobj`
+    - ``"state"``: the current state as a :obj:`.Qobj`
     - ``"state_vec"``: the current state as a column-stacked 1D ``np.ndarray``
     - ``"state_mat"``: the current state as a 2D ``np.ndarray``
     - ``"expect_op_<n>"``: the current expectation value of the element
@@ -335,21 +335,21 @@ class QobjEvo:
       an integer literal, e.g. ``"expect_op_0"``.  This will be either real- or
       complex-valued, depending on whether the state and operator are both
       Hermitian or not.
-    - ``"collapse"``: (:func:`.mcsolve` only) a list of the collapses that have
+    - ``"collapse"``: (:obj:`.mcsolve` only) a list of the collapses that have
       occurred during the evolution.  Each element of the list is a 2-tuple
       ``(time: float, which: int)``, where ``time`` is the time this collapse
       happened, and ``which`` is an integer indexing the ``c_ops`` argument to
-      :func:`.mcsolve`.
+      :obj:`.mcsolve`.
 
     Parameters
     ----------
-    Q_object : list, :class:`~Qobj` or :class:`~QobjEvo`
+    Q_object : list, :obj:`.Qobj` or :obj:`.QobjEvo`
         The time-dependent description of the quantum object.  This is of the
         same format as the first parameter to the general ODE solvers; in
-        general, it is a list of ``[:class:`Qobj`, time_dependence]`` pairs that are
+        general, it is a list of ``[:obj:`.Qobj`, time_dependence]`` pairs that are
         summed to make the whole object.  The ``time_dependence`` can be any of
         the formats discussed in the previous section.  If a particular term
-        has no time-dependence, then you should just give the :class:`Qobj` instead
+        has no time-dependence, then you should just give the :obj:`.Qobj` instead
         of the 2-element list.
 
     args : dict, optional
@@ -367,10 +367,10 @@ class QobjEvo:
 
     Attributes
     ----------
-    cte : :class:`~Qobj`
+    cte : :obj:`.Qobj`
         Constant part of the QobjEvo.
 
-    ops : list of :class:`.EvoElement`
+    ops : list of :obj:`.EvoElement`
         Internal representation of the time-dependence structure of the
         elements.
 
@@ -390,7 +390,7 @@ class QobjEvo:
         backing this object (may be empty).
 
     compiled_qobjevo : :class:`~CQobjCte` or :class:`~CQobjEvoTd`
-        Cython version of the :class:`QobjEvo`.
+        Cython version of the :obj:`.QobjEvo`.
 
     coeff_get : callable
         Object called to obtain a list of all the coefficients at a particular
@@ -400,7 +400,7 @@ class QobjEvo:
         Runtime created files to delete with the instance.
 
     dummy_cte : bool
-        Is self.cte an empty :obj:`Qobj`
+        Is self.cte an empty :obj:`.Qobj`
 
     const : bool
         Indicates if quantum object is constant
@@ -410,13 +410,28 @@ class QobjEvo:
         Information about the type of coefficients used in the entire object.
 
     num_obj : int
-        Number of :obj:`~Qobj` in the :class:`QobjEvo`.
+        Number of :obj:`.Qobj` in the :obj:`.QobjEvo`.
 
     use_cython : bool
         Flag to compile string to Cython or Python
 
     safePickle : bool
         Flag to not share pointers between thread.
+
+    Raises
+    -------
+    Exception : The Qobj must not already be a function.
+        When `op_type` is not a :obj:`.Qobj` type in `Q_object` list.
+
+    TypeError : Qobj not compatible.
+        After a failed compatibility check of Qobj :obj:`.dims` and
+        :obj:`.shape`.
+
+    TypeError : Incorrect Q_object specification.
+        Checks if `op_type` is a :obj:`.Qobj`.
+
+    TypeError : Time list does not match.
+        Checks compatibility of `tlist` with `op_type`. 
     """
 
     def __init__(self, Q_object=[], args={}, copy=True,
@@ -782,6 +797,11 @@ class QobjEvo:
     def arguments(self, new_args):
         """
         Update the scoped variables that were passed as ``args`` to new values.
+
+        Raises
+        -------
+        TypeError
+            The new args must be in a dict.
         """
         if not isinstance(new_args, dict):
             raise TypeError("The new args must be in a dict")
@@ -818,7 +838,12 @@ class QobjEvo:
     def to_list(self):
         """
         Return this operator in the list-like form used to initialised it, like
-        can be passed to :func:`~mesolve`.
+        can be passed to :obj:`.mesolve`.
+
+        Raises
+        -------
+        Exception
+            tlist are not compatible.
         """
         list_qobj = []
         if not self.dummy_cte:
@@ -1214,12 +1239,12 @@ class QobjEvo:
 
     def permute(self, order):
         """
-        Permute the tensor structure of the underlying matrices into a new
+        Permute the :obj:`.tensor` structure of the underlying matrices into a new
         format.
 
         See Also
         --------
-        Qobj.permute : the same operation on constant quantum objects.
+        :obj:`.permute` : the same operation on constant quantum objects.
         """
         res = self.copy()
         res.cte = res.cte.permute(order)
@@ -1229,12 +1254,17 @@ class QobjEvo:
 
     def apply(self, function, *args, **kw_args):
         """
-        Apply the linear function ``function`` to every :class:`Qobj` included in
-        this time-dependent object, and return a new :class:`QobjEvo` with the
+        Apply the linear function ``function`` to every :obj:`.Qobj` included in
+        this time-dependent object, and return a new :obj:`.QobjEvo` with the
         result.
 
         Any additional arguments or keyword arguments will be appended to every
         function call.
+
+        Raises
+        -------
+        TypeError
+            The function must return a Qobj.
         """
         self.compiled = ""
         res = self.copy()
@@ -1398,19 +1428,32 @@ class QobjEvo:
         t : float
             The time to evaluate this operator at.
 
-        state : :class:`Qobj` or np.ndarray
+        state : :obj:`.Qobj` or ``np.ndarray``
             The state to take the expectation value around.
 
         herm : bool, default False
             Whether this operator and the state are both Hermitian.  If True,
             only the real part of the result will be returned.
 
+        Raises
+        --------
+        TypeError
+            The time needs to be a real scalar.
+
+            The vector must be an array or Qobj.
+
+        Exception
+            Dimensions do not fit.
+
+            The shapes do not match.
+
+
         See Also
         --------
-        expect : General-purpose expectation values.
+        :obj:`.expect` : General-purpose expectation values.
         """
         if not isinstance(t, (int, float)):
-            raise TypeError("The time need to be a real scalar")
+            raise TypeError("The time needs to be a real scalar")
         if isinstance(state, Qobj):
             if self.cte.dims[1] == state.dims[0]:
                 vec = state.full().ravel("F")
@@ -1457,17 +1500,31 @@ class QobjEvo:
         t : float
             The time to evaluate this object at.
 
-        vec : :class:`Qobj` or np.ndarray
+        vec : :obj:`.Qobj` or ``np.ndarray``
             The state-vector to multiply this object by.
 
         Returns
         -------
-        vec: :class:`Qobj` or np.ndarray
+        vec: :obj:`.Qobj` or ``np.ndarray``
             The vector result in the same type as the input.
+
+        Raises
+        --------
+        TypeError
+            The time needs to be a real scalar.
+
+            The vector must be an array or Qobj.
+
+        Exception
+            Dimensions do not fit.
+
+            The vector must be 1d.
+
+            The lengths do not match.
         """
         was_Qobj = False
         if not isinstance(t, (int, float)):
-            raise TypeError("the time need to be a real scalar")
+            raise TypeError("the time needs to be a real scalar")
         if isinstance(vec, Qobj):
             if self.cte.dims[1] != vec.dims[0]:
                 raise Exception("Dimensions do not fit")
@@ -1479,7 +1536,7 @@ class QobjEvo:
         if vec.ndim != 1:
             raise Exception("The vector must be 1d")
         if vec.shape[0] != self.cte.shape[1]:
-            raise Exception("The length do not match")
+            raise Exception("The lengths do not match")
 
         if self.compiled:
             out = self.compiled_qobjevo.mul_vec(t, vec)
@@ -1502,17 +1559,31 @@ class QobjEvo:
         t : float
             The time to evaluate this object at.
 
-        mat : Qobj or np.ndarray
+        mat : :obj:`.Qobj` or ``np.ndarray``
             The matrix that is multiplied by this object.
 
         Returns
         -------
-        mat: Qobj or np.ndarray
+        mat: :obj:`.Qobj` or ``np.ndarray``
             The matrix result in the same type as the input.
+
+        Raises
+        --------
+        TypeError
+            The time needs to be a real scalar.
+
+            The vector must be an array or Qobj.
+
+        Exception
+            Dimensions do not fit.
+
+            The vector must be 2d.
+
+            The lengths do not match.
         """
         was_Qobj = False
         if not isinstance(t, (int, float)):
-            raise TypeError("the time need to be a real scalar")
+            raise TypeError("the time needs to be a real scalar")
         if isinstance(mat, Qobj):
             if self.cte.dims[1] != mat.dims[0]:
                 raise Exception("Dimensions do not fit")
@@ -1524,7 +1595,7 @@ class QobjEvo:
         if mat.ndim != 2:
             raise Exception("The matrice must be 2d")
         if mat.shape[0] != self.cte.shape[1]:
-            raise Exception("The length do not match")
+            raise Exception("The lengths do not match")
 
         if self.compiled:
             out = self.compiled_qobjevo.mul_mat(t, mat)
