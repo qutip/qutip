@@ -75,6 +75,8 @@ def check_func_dims(func, args, kwargs, dims):
 
 
 def check_func_N(func, args, kwargs,expected_shape):
+    # Here, expected_shape is supposed to be of form N X 1. When assigning
+    # this to a tuple, value 1 cannot be used. 
     number_of_rows , column_number = expected_shape
     new_state_shape=func(*args, **kwargs).shape
     assert new_state_shape==expected_shape
