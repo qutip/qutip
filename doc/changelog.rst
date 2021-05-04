@@ -14,12 +14,12 @@ This minor release fixes bugs in QIP gate definitions, fixes building from
 the source tarball when git is not installed and works around an MKL
 bug in versions of SciPy <= 1.4.
 
-It also adds the `[full]` pip install target so that `pip install qutip[full]`
+It also adds the ``[full]`` pip install target so that ``pip install qutip[full]``
 installs qutip and all of its optional and developer dependencies.
 
 Improvements
 ------------
-- Add the "[full]" pip install target (by **Jake Lishman**)
+- Add the ``[full]`` pip install target (by **Jake Lishman**)
 
 Bug Fixes
 ---------
