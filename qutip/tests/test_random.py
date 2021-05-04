@@ -31,16 +31,13 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-import scipy.sparse as sp
-import scipy.linalg as la
 import numpy as np
-from numpy.testing import run_module_suite
-from qutip.random_objects import (rand_ket, rand_dm, rand_herm, rand_unitary,
-                                  rand_ket_haar, rand_dm_hs,
-                                  rand_super, rand_unitary_haar, rand_dm_ginibre,
-                                  rand_super_bcsz)
-from qutip.operators import qeye
+from qutip import (
+    rand_ket, rand_dm, rand_herm, rand_unitary, rand_ket_haar, rand_dm_hs,
+    rand_super, rand_unitary_haar, rand_dm_ginibre, rand_super_bcsz, qeye,
+)
 import pytest
+
 
 def test_rand_unitary_haar_unitarity():
     """
@@ -48,17 +45,17 @@ def test_rand_unitary_haar_unitarity():
     """
     U = rand_unitary_haar(5)
     I = qeye(5)
-
     assert U * U.dag() == I
+
 
 def test_rand_dm_ginibre_rank():
     """
     Random Qobjs: Ginibre-random density ops have correct rank.
     """
     rho = rand_dm_ginibre(5, rank=3)
-
     rank = sum([abs(E) >= 1e-10 for E in rho.eigenenergies()])
     assert rank == 3
+
 
 def test_rand_super_bcsz_cptp():
     """
@@ -67,50 +64,54 @@ def test_rand_super_bcsz_cptp():
     S = rand_super_bcsz(5)
     assert S.iscptp
 
-def check_func_dims(func, args, kwargs, dims):
-    # TODO: promote this out of test_random, as it's generically useful
-    #       in writing tests.
-    resdims = func(*args, **kwargs).dims
-    assert resdims == dims
 
-def check_func_N(func, args, kwargs,N):
-    new_state_shape=func(*args, **kwargs).shape
-    assert new_state_shape==(N,1)
-    assert new_state_shape[0]==N
+@pytest.mark.parametrize('func', [rand_ket, rand_ket_haar])
+@pytest.mark.parametrize(('args', 'kwargs', 'dims'), [
+    pytest.param((6,), {}, [[6], [1]], id="N"),
+    pytest.param((), {'dims': [[2, 3], [1, 1]]}, [[2, 3], [1, 1]], id="dims"),
+    pytest.param((6,), {'dims': [[2, 3], [1, 1]]}, [[2, 3], [1, 1]],
+                 id="both"),
+])
+def test_rand_vector_dims(func, args, kwargs, dims):
+    shape = np.prod(dims[0]), np.prod(dims[1])
+    output = func(*args, **kwargs)
+    assert output.shape == shape
+    assert output.dims == dims
 
 
-def test_rand_vector_dims():
-    FUNCS = [rand_ket, rand_ket_haar]
-    for func in FUNCS:
+@pytest.mark.parametrize('func', [rand_ket, rand_ket_haar])
+def test_rand_ket_raises_if_no_args(func):
+    with pytest.raises(ValueError):
+        func()
 
-        # N or dims are not provided
-        assert pytest.raises(ValueError,check_func_dims,func,(),{},[])
-        assert pytest.raises(ValueError,check_func_N,func,(),{},[])
 
-        # both N and dims (named argument) are specified
-        check_func_dims( func, (6, ), {'dims': [[2,3], [1,1]]}, [[2,3], [1,1]])
-        check_func_N(func,(6, ),{'dims': [[2,3], [1,1]]},6)
+@pytest.mark.parametrize('func', [
+    rand_unitary, rand_herm, rand_dm, rand_unitary_haar, rand_dm_ginibre,
+    rand_dm_hs,
+])
+@pytest.mark.parametrize(('args', 'kwargs', 'dims'), [
+    pytest.param((6,), {}, [[6], [6]], id="N"),
+    pytest.param((6,), {'dims': [[2, 3], [2, 3]]}, [[2, 3], [2, 3]],
+                 id="both"),
+])
+def test_rand_oper_dims(func, args, kwargs, dims):
+    shape = np.prod(dims[0]), np.prod(dims[1])
+    output = func(*args, **kwargs)
+    assert output.shape == shape
+    assert output.dims == dims
 
-        # only N is specified and dims is defined via default
-        check_func_dims( func, (7, ), {}, [[7], [1]])
-        check_func_N( func, (7, ),{},7)
 
-        # only dims is specified and N has to be determined
-        check_func_dims( func, (), {'dims': [[2,3], [1,1]]},[[2,3], [1,1]])
-        check_func_N( func, (), {'dims': [[2,3], [1,1]]},6)
+_super_dims = [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]
 
-def test_rand_oper_dims():
-    FUNCS = [rand_unitary, rand_herm, rand_dm, rand_unitary_haar, rand_dm_ginibre, rand_dm_hs]
-    for func in FUNCS:
-        check_func_dims( func, (7, ), {}, [[7], [7]])
-        check_func_dims( func, (6, ), {'dims': [[2, 3], [2, 3]]}, [[2, 3], [2, 3]])
 
-def test_rand_super_dims():
-    FUNCS = [rand_super, rand_super_bcsz]
-    for func in FUNCS:
-        check_func_dims(func, (7, ), {}, [[[7], [7]]] * 2)
-        check_func_dims(func, (6, ), {'dims': [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]}, [[[2, 3], [2, 3]], [[2, 3], [2, 3]]])
-
-if __name__ == "__main__":
-    import pytest
-    run_module_suite()
+@pytest.mark.parametrize('func', [rand_super, rand_super_bcsz])
+@pytest.mark.parametrize(('args', 'kwargs', 'dims'), [
+    pytest.param((6,), {}, [[[6]]*2]*2, id="N"),
+    pytest.param((6,), {'dims': _super_dims}, _super_dims,
+                 id="both"),
+])
+def test_rand_super_dims(func, args, kwargs, dims):
+    shape = np.prod(dims[0]), np.prod(dims[1])
+    output = func(*args, **kwargs)
+    assert output.shape == shape
+    assert output.dims == dims
