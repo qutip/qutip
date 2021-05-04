@@ -41,7 +41,7 @@ from qutip.random_objects import (rand_ket, rand_dm, rand_herm, rand_unitary,
                                   rand_super, rand_unitary_haar, rand_dm_ginibre,
                                   rand_super_bcsz)
 from qutip.operators import qeye
-from pytest import assert,
+import pytest
 
 def test_rand_unitary_haar_unitarity():
     """
@@ -72,18 +72,18 @@ def check_func_dims(func, args, kwargs, dims):
     # TODO: promote this out of test_random, as it's generically useful
     #       in writing tests.
     resdims = func(*args, **kwargs).dims
-    assert resdims == dims, "Checking {}; expected dimensions of {}, got {}.".format(func.__name__, dims, resdims))
+    assert resdims == dims, "Checking {}; expected dimensions of {}, got {}.".format(func.__name__, dims, resdims)
 
 def check_func_N(func, args, kwargs, N):
     new_state_shape=func(*args, **kwargs).shape
-    assert_(new_state_shape[0]==N,"Checking {}; expected N of {}, got {}.".format(func.__name__, N, new_state_shape[0]))
+    assert new_state_shape[0]==N,"Checking {}; expected N of {}, got {}.".format(func.__name__, N, new_state_shape[0])
 
 
 def test_rand_vector_dims():
     FUNCS = [rand_ket, rand_ket_haar]
     for func in FUNCS:
         # N or dims are not given
-        assert_raises(ValueError,check_func_dims,func,(),{},[])
+        assert pytest.raises(ValueError,check_func_dims,func,(),{},[])
         # both N and dims (named argument) are specified
         check_func_dims( func, (6, ), {'dims': [[2,3], [1,1]]}, [[2,3], [1,1]])
         check_func_N(func,(6, ),{'dims': [[2,3], [1,1]]},6)
