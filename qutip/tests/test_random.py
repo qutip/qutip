@@ -72,9 +72,12 @@ def check_func_dims(func, args, kwargs, dims):
     resdims = func(*args, **kwargs).dims
     assert resdims == dims
 
-def check_func_N(func, args, kwargs, N):
+
+
+def check_func_N(func, args, kwargs,expected_shape):
+    number_of_rows , column_number = expected_shape
     new_state_shape=func(*args, **kwargs).shape
-    assert new_state_shape[0]==N
+    assert new_state_shape==expected_shape
 
 
 def test_rand_vector_dims():
@@ -84,13 +87,13 @@ def test_rand_vector_dims():
         assert pytest.raises(ValueError,check_func_dims,func,(),{},[])
         # both N and dims (named argument) are specified
         check_func_dims( func, (6, ), {'dims': [[2,3], [1,1]]}, [[2,3], [1,1]])
-        check_func_N(func,(6, ),{'dims': [[2,3], [1,1]]},6)
+        check_func_N(func,(6, ),{'dims': [[2,3], [1,1]]},(6,1))
         # only N is specified and dims is defined via default
         check_func_dims( func, (7, ), {}, [[7], [1]])
-        check_func_N( func, (7, ), {}, 7)
+        check_func_N( func, (7, ), {}, (7,1))
         # only dims is specified and N has to be determined
         check_func_dims( func, (), {'dims': [[2,3], [1,1]]},[[2,3], [1,1]])
-        check_func_N( func, (), {'dims': [[2,3], [1,1]]},6)
+        check_func_N( func, (), {'dims': [[2,3], [1,1]]},(6,1))
 
 def test_rand_oper_dims():
     FUNCS = [rand_unitary, rand_herm, rand_dm, rand_unitary_haar, rand_dm_ginibre, rand_dm_hs]
