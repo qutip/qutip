@@ -328,7 +328,7 @@ def rand_ket(N=None, density=1, dims=None, seed=None):
     if seed is not None:
         np.random.seed(seed=seed)
     if N is None and dims is None:
-        raise ValueError('Specify either the number of rows of operator'
+        raise ValueError('Specify either the number of rows of state vector'
                          '(N) or dimensions of quantum object (dims)')
     elif N is not None and dims:
         _check_dims(dims, N, 1)
@@ -375,7 +375,7 @@ def rand_ket_haar(N=None, dims=None, seed=None):
         If neither `N` or `dims` are not specified.
     """
     if N is None and dims is None:
-        raise ValueError('Specify either the number of rows of operator'
+        raise ValueError('Specify either the number of rows of state vector'
                          '(N) or dimensions of quantum object (dims)')
     elif N and dims:
         _check_dims(dims, N, 1)
