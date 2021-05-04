@@ -76,6 +76,7 @@ def check_func_dims(func, args, kwargs, dims):
 def check_func_N(func, args, kwargs,N):
     new_state_shape=func(*args, **kwargs).shape
     assert new_state_shape==(N,1)
+    assert new_state_shape[0]==N
 
 
 def test_rand_vector_dims():
