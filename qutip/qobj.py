@@ -155,11 +155,11 @@ class Qobj(object):
         :obj:`.issuper` indicates if the quantum object represents a
         superoperator.
     isoperket : bool
-        :obj:`.isoperket` indicates if the quantum object represents an operator
-        in column vector form.
+        :obj:`.isoperket` indicates if the quantum object represents an
+        operator in column vector form.
     isoperbra : bool
-        :obj:`.isoperbra` indicates if the quantum object represents an operator
-        in row vector form.
+        :obj:`.isoperbra` indicates if the quantum object represents an
+        operator in row vector form.
 
     """
     __array_priority__ = 100  # sets Qobj priority above numpy arrays
@@ -953,8 +953,8 @@ class Qobj(object):
         """Norm of a quantum object.
 
         Default norm is `L2-norm` for kets and `trace-norm` for operators.
-        Other ket and operator norms may be specified using the :obj:`.norm` and
-        argument.
+        Other ket and operator norms may be specified using the :obj:`.norm`
+        and argument.
 
         Parameters
         ----------
@@ -1535,8 +1535,8 @@ class Qobj(object):
 
         Raises
         ------
-        ValueError : Must be a Hermitian operator to remove negative eigenvalues
-            When input operator is not Hermitian.
+        ValueError : Must be a Hermitian operator to remove negative
+        eigenvalues When input operator is not Hermitian.
 
         ValueError : Method not recognized
             If method other than 'clip' or 'sgs' is specified.
@@ -1638,8 +1638,8 @@ class Qobj(object):
         Parameters
         -----------
         other : :obj:`.Qobj`
-            Quantum object for a state vector of type :obj:`.ket`, :obj:`.bra` or density
-            matrix.
+            Quantum object for a state vector of type :obj:`.ket`, :obj:`.bra`
+            or density matrix.
 
         Returns
         -------
@@ -1871,8 +1871,8 @@ class Qobj(object):
         normalize : True / False
             Weather or not the new :class:`Qobj` instance should be normalized
             (default is False). For Qobjs that represents density matrices or
-            state vectors normalized should probably be set to ``True``, but for
-            Qobjs that represents operators in for example an Hamiltonian,
+            state vectors normalized should probably be set to ``True``, but
+            for Qobjs that represents operators in for example an Hamiltonian,
             normalize should be ``False``.
 
         Returns
@@ -2149,8 +2149,8 @@ class Qobj(object):
         Parameters
         ----------
         qobj_list : list
-            A nested list of :obj:`.Qobj` instances and corresponding time-dependent
-            coefficients.
+            A nested list of :obj:`.Qobj` instances and corresponding
+            time-dependent coefficients.
         t : float
             The time for which to evaluate the time-dependent :obj:`.Qobj`
             instance.
@@ -2339,8 +2339,8 @@ def dims(inpt):
 
     Notes
     -----
-    This function is for legacy compatibility only. Using the :obj:`.Qobj.dims()`
-    attribute is recommended.
+    This function is for legacy compatibility only. Using the
+    :obj:`.Qobj.dims()` attribute is recommended.
 
     """
     if isinstance(inpt, Qobj):
@@ -2364,8 +2364,8 @@ def shape(inpt):
 
     Notes
     -----
-    This function is for legacy compatibility only. Using the :obj:`.Qobj.shape`
-    attribute is recommended.
+    This function is for legacy compatibility only. Using the
+    :obj:`.Qobj.shape` attribute is recommended.
 
     """
     if isinstance(inpt, Qobj):
@@ -2396,8 +2396,8 @@ def isket(Q):
 
     Notes
     -----
-    This function is for legacy compatibility only. Using the :obj:`.Qobj.isket`
-    attribute is recommended.
+    This function is for legacy compatibility only. Using the
+    :obj:`.Qobj.isket` attribute is recommended.
 
     """
     return True if isinstance(Q, Qobj) and Q.isket else False
@@ -2424,8 +2424,8 @@ def isbra(Q):
 
     Notes
     -----
-    This function is for legacy compatibility only. Using the :obj:`.Qobj.isbra`
-    attribute is recommended.
+    This function is for legacy compatibility only. Using the
+    :obj:`.Qobj.isbra` attribute is recommended.
 
     """
     return True if isinstance(Q, Qobj) and Q.isbra else False
@@ -2447,8 +2447,8 @@ def isoperket(Q):
 
     Notes
     -----
-    This function is for legacy compatibility only. Using the :obj:`.Qobj.isoperket()`
-    attribute is recommended.
+    This function is for legacy compatibility only. Using the
+    :obj:`.Qobj.isoperket()` attribute is recommended.
 
     """
     return True if isinstance(Q, Qobj) and Q.isoperket else False
@@ -2470,8 +2470,8 @@ def isoperbra(Q):
 
     Notes
     -----
-    This function is for legacy compatibility only. Using the :obj:`.Qobj.isoperbra`
-    attribute is recommended.
+    This function is for legacy compatibility only. Using the
+    :obj:`.Qobj.isoperbra` attribute is recommended.
 
     """
     return True if isinstance(Q, Qobj) and Q.isoperbra else False
@@ -2498,8 +2498,8 @@ def isoper(Q):
 
     Notes
     -----
-    This function is for legacy compatibility only. Using the :obj:`.Qobj.isoper`
-    attribute is recommended.
+    This function is for legacy compatibility only. Using the
+    :obj:`.Qobj.isoper` attribute is recommended.
 
     """
     return True if isinstance(Q, Qobj) and Q.isoper else False
@@ -2520,8 +2520,8 @@ def issuper(Q):
 
     Notes
     -----
-    This function is for legacy compatibility only. Using the :obj:`.Qobj.issuper`
-    attribute is recommended.
+    This function is for legacy compatibility only. Using the
+    :obj:`.Qobj.issuper` attribute is recommended.
 
     """
     return True if isinstance(Q, Qobj) and Q.issuper else False
@@ -2589,8 +2589,8 @@ def isherm(Q):
 
     Notes
     -----
-    This function is for legacy compatibility only. Using the :obj:`.Qobj.isherm`
-    attribute is recommended.
+    This function is for legacy compatibility only. Using the
+    :obj:`.Qobj.isherm` attribute is recommended.
 
     """
     return True if isinstance(Q, Qobj) and Q.isherm else False

@@ -1235,8 +1235,8 @@ class QobjEvo:
 
     def permute(self, order):
         """
-        Permute the :obj:`.tensor` structure of the underlying matrices into a new
-        format.
+        Permute the :obj:`.tensor` structure of the underlying matrices into a
+        new format.
 
         See Also
         --------
@@ -1250,9 +1250,9 @@ class QobjEvo:
 
     def apply(self, function, *args, **kw_args):
         """
-        Apply the linear function ``function`` to every :obj:`.Qobj` included in
-        this time-dependent object, and return a new :obj:`.QobjEvo` with the
-        result.
+        Apply the linear function ``function`` to every :obj:`.Qobj` included
+        in this time-dependent object, and return a new :obj:`.QobjEvo` with
+        the result.
 
         Any additional arguments or keyword arguments will be appended to every
         function call.
