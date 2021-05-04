@@ -59,14 +59,14 @@ def test_rand_dm_ginibre_rank():
     rho = rand_dm_ginibre(5, rank=3)
 
     rank = sum([abs(E) >= 1e-10 for E in rho.eigenenergies()])
-    assert_(rank == 3)
+    assert rank == 3
 
 def test_rand_super_bcsz_cptp():
     """
     Random Qobjs: Tests that BCSZ-random superoperators are CPTP.
     """
     S = rand_super_bcsz(5)
-    assert_(S.iscptp)
+    assert S.iscptp
 
 def check_func_dims(func, args, kwargs, dims):
     # TODO: promote this out of test_random, as it's generically useful
