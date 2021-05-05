@@ -54,7 +54,7 @@ from qutip.superop_reps import (kraus_to_choi, to_super, to_choi, to_kraus,
                                 to_chi, to_stinespring)
 from qutip.superoperator import operator_to_vector, vector_to_operator, sprepost
 
-tol = 1e-7
+tol = 1e-9
 
 
 @pytest.fixture(scope="function", params=[2, 3, 7])
@@ -105,7 +105,7 @@ class TestSuperopReps:
 
         # Assert both that the result is close to expected, and has the right
         # type.
-        assert (test_supe - superoperator).norm() < 1e-5
+        assert (test_supe - superoperator).norm() < tol
         assert choi_matrix.type == "super" and choi_matrix.superrep == "choi"
         assert chi_matrix.type == "super" and chi_matrix.superrep == "chi"
         assert test_supe.type == "super" and test_supe.superrep == "super"
@@ -141,9 +141,9 @@ class TestSuperopReps:
         op3 = to_super(choi)
         assert choi.type == "super" and choi.superrep == "choi"
         assert super.type == "super" and super.superrep == "super"
-        assert (op1[0] - kraus).norm() < 1e-8
-        assert (op2[0] - kraus).norm() < 1e-8
-        assert (op3 - super).norm() < 1e-8
+        assert (op1[0] - kraus).norm() < tol
+        assert (op2[0] - kraus).norm() < tol
+        assert (op3 - super).norm() < tol
 
     def test_NeglectSmallKraus(self):
         """
