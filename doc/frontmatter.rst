@@ -43,8 +43,6 @@ This document contains a user guide and automatically generated API documentatio
 
 :Author: Simon Cross
 
-:version: |version|
-
 :release: |release|
 
 :copyright: This documentation is licensed under the Creative Commons Attribution 3.0 Unported License.
