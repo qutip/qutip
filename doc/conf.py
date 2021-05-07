@@ -67,24 +67,41 @@ author = ', '.join([
 copyright = '2011 and later, {}'.format(author)
 
 
-def qutip_version():
-    """ Retrieve, sanity check and return the version of QuTiP
-        the documentation is being built for.
+def _check_source_folder_and_imported_qutip_match():
+    """ Warn if the imported qutip and the source folder the documentation
+        is being built from don't match.
+
+        The generated documentation contains material from both the
+        source folder (e.g. ``.rst`` files) and from the imported qutip
+        (e.g. docstrings), so if the two don't match the generated
+        documentation will be a chimera.
     """
     import qutip
-    installed_qutip_version = qutip.__version__
-    src_folder_root = pathlib.Path(__file__).absolute().parent.parent
-    src_folder_version = src_folder_root.joinpath(
-        "VERSION"
-    ).read_text().strip()
-    if installed_qutip_version != src_folder_version:
+    qutip_folder = pathlib.Path(qutip.__file__).absolute().parent.parent
+    source_folder = pathlib.Path(__file__).absolute().parent.parent
+    if qutip_folder != source_folder:
         warnings.warn(
-            "QuTiP versions in qutip.__version__ ({!r})"
-            " and ../VERSION ({!r}) do not match.".format(
-                installed_qutip_version, src_folder_version
+            "The documentation source and imported qutip package are"
+            " not from the same source folder. This may result in the"
+            " documentation containing text from different sources."
+            " Documentation source: {!r}."
+            " Qutip package source: {!r}.".format(
+                str(source_folder), str(qutip_folder)
             )
         )
-    return src_folder_version
+
+
+_check_source_folder_and_imported_qutip_match()
+
+
+def qutip_version():
+    """ Retrieve the QuTiP version from ``../VERSION``.
+    """
+    src_folder_root = pathlib.Path(__file__).absolute().parent.parent
+    version = src_folder_root.joinpath(
+        "VERSION"
+    ).read_text().strip()
+    return version
 
 
 # The version info for the project you're documenting, acts as replacement for
