@@ -7,6 +7,35 @@
 Change Log
 **********
 
+Version 4.6.1 (May 4, 2021)
++++++++++++++++++++++++++++
+
+This minor release fixes bugs in QIP gate definitions, fixes building from
+the source tarball when git is not installed and works around an MKL
+bug in versions of SciPy <= 1.4.
+
+It also adds the ``[full]`` pip install target so that ``pip install qutip[full]``
+installs qutip and all of its optional and developer dependencies.
+
+Improvements
+------------
+- Add the ``[full]`` pip install target (by **Jake Lishman**)
+
+Bug Fixes
+---------
+- Work around pointer MKL eigh bug in SciPy <= 1.4 (by **Felipe Bivort Haiek**)
+- Fix berkeley, swapalpha and cz gate operations (by **Boxi Li**)
+- Expose the CPHASE control gate (by **Boxi Li**)
+- Fix building from the sdist when git is not installed (by **Jake Lishman**)
+
+Developer Changes
+-----------------
+- Move the qutip-doc documentation into the qutip repository (by **Jake Lishman**)
+- Fix warnings in documentation build (by **Jake Lishman**)
+- Fix warnings in pytest runs and make pytest treat warnings as errors (by **Jake Lishman**)
+- Add Simon Cross as author (by **Simon Cross**)
+
+
 Version 4.6.0 (April 11, 2021)
 ++++++++++++++++++++++++++++++
 
