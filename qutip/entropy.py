@@ -231,12 +231,15 @@ def entropy_relative(rho, sigma, base=e, sparse=False):
 
     Parameters
     ----------
-    rho : qobj
+    rho : :class:`qutip.Qobj`
         First density matrix.
-    sigma : qobj
+    sigma : :class:`qutip.Qobj`
         Second density matrix.
     base : {e,2}
-        Base of logarithm.
+        Base of logarithm. Defaults to e.
+    sparse : bool
+        Flag to use sparse solver when determining the eigenvectors
+        of the density matrices. Defaults to False.
 
     Returns
     -------
