@@ -76,3 +76,9 @@ You can also help out with users' questions, or discuss proposed changes in the 
 All code contributions are acknowledged in the [contributors](http://qutip.org/docs/latest/contributors.html) section in the documentation.
 
 For more information, including technical advice, please see the ["contributing to QuTiP development" section of the documentation](http://qutip.org/docs/latest/development/contributing.html).
+
+
+Citing QuTiP
+------------
+
+If you use QuTiP in your research, please cite the original QuTiP papers that are available [here](https://dml.riken.jp/?s=QuTiP).
