@@ -224,11 +224,10 @@ def entropy_mutual(rho, selA, selB, base=e, sparse=False):
     return out
 
 
-def entropy_relative(rho, sigma, base=e, sparse=False):
+def entropy_relative(rho, sigma, base=e, sparse=False, tol=1e-12):
     """
     Calculates the relative entropy S(rho||sigma) between two density
     matrices.
-
     Parameters
     ----------
     rho : :class:`qutip.Qobj`
@@ -242,6 +241,9 @@ def entropy_relative(rho, sigma, base=e, sparse=False):
     sparse : bool
         Flag to use sparse solver when determining the eigenvectors
         of the density matrices. Defaults to False.
+    tol : float
+        Tolerance to use to detect 0 eigenvalues or dot producted between
+        eigenvectors. Defaults to 1e-12.
 
     Returns
     -------
@@ -275,7 +277,7 @@ def entropy_relative(rho, sigma, base=e, sparse=False):
     # intersection with the support of rho (i.e. rvecs[rvals != 0]).
     rvals, rvecs = sp_eigs(rho.data, rho.isherm, vecs=True, sparse=sparse)
     svals, svecs = sp_eigs(sigma.data, sigma.isherm, vecs=True, sparse=sparse)
-    nzrvals = rvals[rvals != 0]
+    nzrvals = rvals[abs(rvals) >= tol]
     # Calculate S
     S = sum(nzrvals * log_base(nzrvals))
     for i in range(len(rvals)):
@@ -284,7 +286,8 @@ def entropy_relative(rho, sigma, base=e, sparse=False):
                 dot(rvecs[i], svecs[j].conjugate()) *
                 dot(svecs[j], rvecs[i].conjugate())
             )
-            if svals[j] == 0 and (rvals[i] * P_ij != 0):
+            if abs(svals[j]) < tol and not (
+                    abs(rvals[i]) < tol or abs(P_ij) < tol):
                 # kernel of sigma intersects support of rho
                 return inf
             if svals[j] != 0:
