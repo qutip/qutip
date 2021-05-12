@@ -135,6 +135,13 @@ class TestRelativeEntropy:
         )
         assert qutip.entropy_relative(rho, sigma, base=2) == pytest.approx(1)
 
+    def test_pure_vs_maximally_mixed_state(self):
+        rho = qutip.ket("00")
+        sigma = sum(
+            qutip.ket2dm(qutip.ket(psi)) for psi in ["00", "01", "10", "11"]
+        ).unit()
+        assert qutip.entropy_relative(rho, sigma, base=2) == pytest.approx(2)
+
     @pytest.mark.repeat(20)
     def test_random_dm_with_self(self):
         rho = qutip.rand_dm(8, pure=False)
