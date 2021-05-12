@@ -127,7 +127,7 @@ class TestRelativeEntropy:
         sigma = rho + qutip.ket2dm(qutip.ket("01"))
         sigma = sigma.unit()
         assert (
-            qutip.entropy_relative(rho, sigma) == pytest.approx(0.69314718)
+            qutip.entropy_relative(rho, sigma) == pytest.approx(np.log(2))
         )
         assert (
             qutip.entropy_relative(rho, sigma, base=np.e)
