@@ -250,7 +250,7 @@ def entropy_relative(rho, sigma, base=e, sparse=False):
     Section 11.3.1, pg. 511 for a detailed explanation of quantum relative
     entropy.
     """
-    if rho.type != 'oper' or sigma.type != 'oper':
+    if not rho.isoper or not sigma.isoper:
         raise TypeError("Inputs must be density matrices.")
     if base == 2:
         log_base = log2
