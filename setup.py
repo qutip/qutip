@@ -48,6 +48,19 @@ def process_options():
     return options
 
 
+def _get_environment_bool(var, default=False):
+    """
+    Get a boolean value from the environment variable `var`.  This evalutes to
+    `default` if the environment variable is not present.  The false-y values
+    are '0', 'false', 'none' and empty string, insensitive to case.  All other
+    values are truth-y.
+    """
+    from_env = os.environ.get(var)
+    if from_env is None:
+        return default
+    return from_env.lower() not in {'0', 'false', 'none', ''}
+
+
 def _determine_user_arguments(options):
     """
     Add the 'openmp' option to the collection, based on the passed command-line
@@ -55,7 +68,7 @@ def _determine_user_arguments(options):
     """
     options['openmp'] = (
         '--with-openmp' in sys.argv
-        or bool(os.environ.get('CI_QUTIP_WITH_OPENMP'))
+        or _get_environment_bool('CI_QUTIP_WITH_OPENMP')
     )
     if "--with-openmp" in sys.argv:
         sys.argv.remove("--with-openmp")

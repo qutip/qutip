@@ -310,7 +310,13 @@ def adc_choi(x):
 # is failing every time, but not penalise one-off failures.  As far as we know,
 # the failing tests always involve a random step, so triggering a re-run will
 # have them choose new variables as well.
+#
+# The warning filter is to account for cvxpy < 1.1.10 which uses np.complex,
+# which is deprecated as of numpy 1.20.
 @pytest.mark.flaky(reruns=2)
+@pytest.mark.filterwarnings(
+    "ignore:`np.complex` is a deprecated alias:DeprecationWarning:cvxpy"
+)
 class Test_dnorm:
     # Skip dnorm tests if we don't have cvxpy or cvxopt available, since it
     # depends on them.
