@@ -100,6 +100,13 @@ class TestRelativeEntropy:
             qutip.entropy_relative(rho, qutip.ket2dm(sigma))
         assert str(exc.value) == "Inputs must be density matrices."
 
+    def test_rho_and_sigma_have_different_shape_and_dims(self):
+        rho = qutip.ket2dm(qutip.ket("00"))
+        sigma = qutip.ket2dm(qutip.ket("0"))
+        with pytest.raises(ValueError) as exc:
+            qutip.entropy_relative(rho, sigma)
+        assert str(exc.value) == "Inputs must have the same shape and dims."
+
     def test_base_not_2_or_e(self):
         rho = qutip.ket2dm(qutip.ket("00"))
         sigma = qutip.ket2dm(qutip.ket("01"))

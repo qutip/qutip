@@ -252,6 +252,8 @@ def entropy_relative(rho, sigma, base=e, sparse=False):
     """
     if not rho.isoper or not sigma.isoper:
         raise TypeError("Inputs must be density matrices.")
+    if rho.shape != sigma.shape or rho.dims != sigma.dims:
+        raise ValueError("Inputs must have the same shape and dims.")
     if base == 2:
         log_base = log2
     elif base == e:
