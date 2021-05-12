@@ -35,7 +35,7 @@ __all__ = ['entropy_vn', 'entropy_linear', 'entropy_mutual', 'negativity',
            'concurrence', 'entropy_conditional', 'entangling_power',
            'entropy_relative']
 
-from numpy import dot, e, inf, real, sort, sqrt
+from numpy import dot, e, inf, real, sort, sqrt, vdot
 from numpy.lib.scimath import log, log2
 from qutip.qobj import ptrace
 from qutip.states import ket2dm
@@ -282,10 +282,8 @@ def entropy_relative(rho, sigma, base=e, sparse=False, tol=1e-12):
     S = sum(nzrvals * log_base(nzrvals))
     for i in range(len(rvals)):
         for j in range(len(svals)):
-            P_ij = (
-                dot(rvecs[i], svecs[j].conjugate()) *
-                dot(svecs[j], rvecs[i].conjugate())
-            )
+            ij_dot = vdot(rvecs[i], svecs[j])
+            P_ij = ij_dot * ij_dot.conjugate()
             if abs(svals[j]) < tol and not (
                     abs(rvals[i]) < tol or abs(P_ij) < tol):
                 # kernel of sigma intersects support of rho
