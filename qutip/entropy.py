@@ -232,9 +232,11 @@ def entropy_relative(rho, sigma, base=e, sparse=False):
     Parameters
     ----------
     rho : :class:`qutip.Qobj`
-        First density matrix.
+        First density matrix (or ket which will be converted to a density
+        matrix).
     sigma : :class:`qutip.Qobj`
-        Second density matrix.
+        Second density matrix (or ket which will be converted to a density
+        matrix).
     base : {e,2}
         Base of logarithm. Defaults to e.
     sparse : bool
@@ -253,6 +255,10 @@ def entropy_relative(rho, sigma, base=e, sparse=False):
     Section 11.3.1, pg. 511 for a detailed explanation of quantum relative
     entropy.
     """
+    if rho.isket:
+        rho = ket2dm(rho)
+    if sigma.isket:
+        sigma = ket2dm(sigma)
     if not rho.isoper or not sigma.isoper:
         raise TypeError("Inputs must be density matrices.")
     if rho.dims != sigma.dims:
