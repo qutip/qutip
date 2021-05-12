@@ -89,6 +89,56 @@ class TestMutualInformation:
         assert abs(qutip.entropy_mutual(dm, [0, 2], [1]) - expect) < 1e-13
 
 
+class TestRelativeEntropy:
+    def test_rho_or_sigma_not_oper(self):
+        rho = qutip.ket("00")
+        sigma = qutip.ket("01")
+        with pytest.raises(TypeError) as exc:
+            qutip.entropy_relative(qutip.ket2dm(rho), sigma)
+        assert str(exc.value) == "Inputs must be density matrices."
+        with pytest.raises(TypeError) as exc:
+            qutip.entropy_relative(rho, qutip.ket2dm(sigma))
+        assert str(exc.value) == "Inputs must be density matrices."
+
+    def test_base_not_2_or_e(self):
+        rho = qutip.ket2dm(qutip.ket("00"))
+        sigma = qutip.ket2dm(qutip.ket("01"))
+        with pytest.raises(ValueError) as exc:
+            qutip.entropy_relative(rho, sigma, base=3)
+        assert str(exc.value) == "Base must be 2 or e."
+
+    def test_infinite_relative_entropy(self):
+        rho = qutip.ket2dm(qutip.ket("00"))
+        sigma = qutip.ket2dm(qutip.ket("01"))
+        assert qutip.entropy_relative(rho, sigma) == np.inf
+
+    def test_base_2_or_e(self):
+        rho = qutip.ket2dm(qutip.ket("00"))
+        sigma = rho + qutip.ket2dm(qutip.ket("01"))
+        sigma = sigma.unit()
+        assert (
+            qutip.entropy_relative(rho, sigma) == pytest.approx(0.69314718)
+        )
+        assert (
+            qutip.entropy_relative(rho, sigma, base=np.e)
+            == pytest.approx(0.69314718)
+        )
+        assert qutip.entropy_relative(rho, sigma, base=2) == pytest.approx(1)
+
+    @pytest.mark.repeat(20)
+    def test_random_dm_with_self(self):
+        rho = qutip.rand_dm(8, pure=False)
+        rel = qutip.entropy_relative(rho, rho)
+        assert abs(rel) < 1e-13
+
+    @pytest.mark.repeat(20)
+    def test_random_rho_sigma(self):
+        rho = qutip.rand_dm(8, pure=False)
+        sigma = qutip.rand_dm(8, pure=False)
+        rel = qutip.entropy_relative(rho, sigma)
+        assert rel >= 0
+
+
 @pytest.mark.repeat(20)
 class TestConditionalEntropy:
     def test_inequality_3_qubits(self):

@@ -32,9 +32,10 @@
 ###############################################################################
 
 __all__ = ['entropy_vn', 'entropy_linear', 'entropy_mutual', 'negativity',
-           'concurrence', 'entropy_conditional', 'entangling_power']
+           'concurrence', 'entropy_conditional', 'entangling_power',
+           'entropy_relative']
 
-from numpy import e, real, sort, sqrt
+from numpy import dot, e, inf, real, sort, sqrt
 from numpy.lib.scimath import log, log2
 from qutip.qobj import ptrace
 from qutip.states import ket2dm
@@ -223,10 +224,8 @@ def entropy_mutual(rho, selA, selB, base=e, sparse=False):
     return out
 
 
-def _entropy_relative(rho, sigma, base=e, sparse=False):
+def entropy_relative(rho, sigma, base=e, sparse=False):
     """
-    ****NEEDS TO BE WORKED ON****
-
     Calculates the relative entropy S(rho||sigma) between two density
     matrices.
 
@@ -244,24 +243,42 @@ def _entropy_relative(rho, sigma, base=e, sparse=False):
     rel_ent : float
         Value of relative entropy.
 
+    References
+    ----------
+
+    See Nielsen & Chuang, "Quantum Computation and Quantum Information",
+    Section 11.3.1, pg. 511 for a detailed explanation of quantum relative
+    entropy.
     """
     if rho.type != 'oper' or sigma.type != 'oper':
-        raise TypeError("Inputs must be density matrices..")
-    # sigma terms
-    svals = sp_eigs(sigma.data, sigma.isherm, vecs=False, sparse=sparse)
-    snzvals = svals[svals != 0]
+        raise TypeError("Inputs must be density matrices.")
     if base == 2:
-        slogvals = log2(snzvals)
+        log_base = log2
     elif base == e:
-        slogvals = log(snzvals)
+        log_base = log
     else:
         raise ValueError("Base must be 2 or e.")
-    # rho terms
-    rvals = sp_eigs(rho.data, rho.isherm, vecs=False, sparse=sparse)
-    rnzvals = rvals[rvals != 0]
-    # calculate tr(rho*log sigma)
-    rel_trace = float(real(sum(rnzvals * slogvals)))
-    return -entropy_vn(rho, base, sparse) - rel_trace
+    # S(rho || sigma) = sum_i(p_i log p_i) - sum_ij(p_i P_ij log q_i)
+    #
+    # S is +inf if the kernel of sigma (i.e. svecs[svals == 0]) has non-trivial
+    # intersection with the support of rho (i.e. rvecs[rvals != 0]).
+    rvals, rvecs = sp_eigs(rho.data, rho.isherm, vecs=True, sparse=sparse)
+    svals, svecs = sp_eigs(sigma.data, sigma.isherm, vecs=True, sparse=sparse)
+    nzrvals = rvals[rvals != 0]
+    # Calculate S
+    S = sum(nzrvals * log_base(nzrvals))
+    for i in range(len(rvals)):
+        for j in range(len(svals)):
+            P_ij = (
+                dot(rvecs[i], svecs[j].conjugate()) *
+                dot(svecs[j], rvecs[i].conjugate())
+            )
+            if svals[j] == 0 and (rvals[i] * P_ij != 0):
+                # kernel of sigma intersects support of rho
+                return inf
+            if svals[j] != 0:
+                S -= rvals[i] * P_ij * log_base(svals[j])
+    return real(S)
 
 
 def entropy_conditional(rho, selB, base=e, sparse=False):
