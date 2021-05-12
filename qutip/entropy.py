@@ -292,7 +292,9 @@ def entropy_relative(rho, sigma, base=e, sparse=False, tol=1e-12):
                 return inf
             if svals[j] != 0:
                 S -= rvals[i] * P_ij * log_base(svals[j])
-    return real(S)
+    # the relative entropy is guaranteed to be >= 0, so we clamp the
+    # calculated value to 0 to avoid small violations of the lower bound.
+    return max(0, real(S))
 
 
 def entropy_conditional(rho, selB, base=e, sparse=False):
