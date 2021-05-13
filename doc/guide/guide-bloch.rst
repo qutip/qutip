@@ -421,11 +421,18 @@ Directly Generating an Animation
 
 The code to directly generate an mp4 movie of the Qubit decay is as follows ::
 
+   import matplotlib
+   from packaging.version import parse as parse_version  # For checking matplotlib version
    from matplotlib import pyplot, animation
    from mpl_toolkits.mplot3d import Axes3D
 
    fig = pyplot.figure()
-   ax = Axes3D(fig,azim=-40,elev=30)
+
+   if parse_version(matplotlib.__version__) >= parse_version('3.4'):
+      ax = Axes3D(fig,azim=-40,elev=30, auto_add_to_figure=False)
+      fig.add_axes(ax)
+   else:
+      ax = Axes3D(fig,azim=-40,elev=30)
    sphere = qutip.Bloch(axes=ax)
 
    def animate(i):
