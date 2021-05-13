@@ -35,8 +35,12 @@ __all__ = ['Bloch']
 
 import os
 
+import matplotlib
+
 from numpy import (ndarray, array, linspace, pi, outer, cos, sin, ones, size,
                    sqrt, real, mod, append, ceil, arange)
+
+from packaging.version import parse as parse_version
 
 from qutip.qobj import Qobj
 from qutip.expect import expect
@@ -56,7 +60,10 @@ try:
 
         def draw(self, renderer):
             xs3d, ys3d, zs3d = self._verts3d
-            xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
+            if parse_version(matplotlib.__version__) >= parse_version('3.4'):
+                xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, self.axes.M)
+            else:
+                xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
 
             self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
             FancyArrowPatch.draw(self, renderer)
@@ -448,7 +455,11 @@ class Bloch:
             self.fig = plt.figure(figsize=self.figsize)
 
         if not axes:
-            self.axes = Axes3D(self.fig, azim=self.view[0], elev=self.view[1])
+            if parse_version(matplotlib.__version__) >= parse_version('3.4'):
+               self.axes = Axes3D(self.fig, azim=self.view[0], elev=self.view[1], auto_add_to_figure=False)
+               self.fig.add_axes(self.axes)
+            else:
+                self.axes = Axes3D(self.fig, azim=self.view[0], elev=self.view[1])
 
         if self.background:
             self.axes.clear()
@@ -463,7 +474,10 @@ class Bloch:
             self.axes.set_zlim3d(-0.7, 0.7)
         # Manually set aspect ratio to fit a square bounding box.
         # Matplotlib did this stretching for < 3.3.0, but not above.
-        self.axes.set_box_aspect((1, 1, 1))
+        if parse_version(matplotlib.__version__) >= parse_version('3.3'):
+            self.axes.set_box_aspect((1, 1, 1))
+        else:
+            pass
 
         self.axes.grid(False)
         self.plot_back()
