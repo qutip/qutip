@@ -161,7 +161,7 @@ def sp_reshape(A, shape, format='csr'):
     References
     ----------
 
-        http://stackoverflow.com/questions/16511879/reshape-sparse-matrix-efficiently-python-scipy-0-12
+        https://stackoverflow.com/questions/16511879/reshape-sparse-matrix-efficiently-python-scipy-0-12
 
     """
     if not hasattr(shape, '__len__') or len(shape) != 2:

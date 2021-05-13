@@ -13,7 +13,7 @@ Manipulating States and Operators
 Introduction
 =================
 
-In the previous guide section :ref:`basics`, we saw how to create states and operators, using the functions built into QuTiP. In this portion of the guide, we will look at performing basic operations with states and operators.  For more detailed demonstrations on how to use and manipulate these objects, see the examples on the `tutorials <http://qutip.org/tutorials.html>`_ web page.
+In the previous guide section :ref:`basics`, we saw how to create states and operators, using the functions built into QuTiP. In this portion of the guide, we will look at performing basic operations with states and operators.  For more detailed demonstrations on how to use and manipulate these objects, see the examples on the `tutorials <https://qutip.org/tutorials.html>`_ web page.
 
 
 .. _states-vectors:
@@ -972,7 +972,7 @@ For qubits, a particularly useful way to visualize superoperators is to plot the
 such that :math:`S_{\mu,\nu} = \langle\!\langle \sigma_{\mu} | S[\sigma_{\nu}] \rangle\!\rangle`. Because
 the Pauli basis is Hermitian, :math:`S_{\mu,\nu}` is a real number for all Hermitian-preserving superoperators
 :math:`S`,
-allowing us to plot the elements of :math:`S` as a `Hinton diagram <http://matplotlib.org/examples/specialty_plots/hinton_demo.html>`_. In such diagrams, positive elements are indicated by white squares, and negative elements
+allowing us to plot the elements of :math:`S` as a `Hinton diagram <https://matplotlib.org/examples/specialty_plots/hinton_demo.html>`_. In such diagrams, positive elements are indicated by white squares, and negative elements
 by black squares. The size of each element is indicated by the size of the corresponding square. For instance,
 let :math:`S[\rho] = \sigma_x \rho \sigma_x^{\dagger}`. Then :math:`S[\sigma_{\mu}] = \sigma_{\mu} \cdot \begin{cases} +1 & \mu = 0, x \\ -1 & \mu = y, z \end{cases}`. We can quickly see this by noting that the :math:`Y` and :math:`Z` elements
 of the Hinton diagram for :math:`S` are negative:

@@ -3,7 +3,7 @@ Repository for QuTiP documentation
 
 This repository contains the source files for the QuTiP documentation.
 
-For pre-built documentation, see http://www.qutip.org/documentation.html
+For pre-built documentation, see https://www.qutip.org/documentation.html
 
 Building
 --------
@@ -40,7 +40,7 @@ Writing User Guides
 The user guide provides an overview of QuTiP's functionality. The guide is composed of individual reStructuredText (`.rst`) files which each get rendered as a webpage. Each page typically tackles one area of functionality. To learn more about how to write `.rst` files, it is useful to follow the [Sphinx Guide](https://www.sphinx-doc.org/en/master/usage/index.html).
 
 The documentation build also utilizes a number of [Sphinx Extensions](https://www.sphinx-doc.org/en/master/usage/extensions/index.html) including but not limited to
-[doctest](https://www.sphinx-doc.org/en/master/usage/extensions/doctest.html) , [autodoc](https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html) , [sphinx gallery](https://sphinx-gallery.github.io/stable/index.html) , [plot](http://matthew-brett.github.io/nb2plots/nbplots.html#module-nb2plots.nbplots) . Additional extensions can be configured in the `conf.py` file.
+[doctest](https://www.sphinx-doc.org/en/master/usage/extensions/doctest.html), [autodoc](https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html), [sphinx gallery](https://sphinx-gallery.github.io/stable/index.html), [plot](https://matthew-brett.github.io/nb2plots/nbplots.html#module-nb2plots.nbplots). Additional extensions can be configured in the `conf.py` file.
 
 Tests can also be run on examples in the documentation using the doctest extension
 and plots are generated using the `plot` directive. For more specific

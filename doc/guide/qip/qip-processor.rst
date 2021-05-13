@@ -376,7 +376,7 @@ Customize the simulator
 The number of predefined physical models and compilers are limited.
 However, it is designed for easy customization and one can easily build customized model and compiling routines.
 For guide and examples, please refer to the tutorial notebooks
-at http://qutip.org/tutorials.html
+at https://qutip.org/tutorials.html
 
 The workflow of the simulator
 -------------------------------

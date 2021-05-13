@@ -220,9 +220,9 @@ class Bloch:
             - "01"
             - "polarization jones"
             - "polarization jones letters"
-              see also: http://en.wikipedia.org/wiki/Jones_calculus
+              see also: https://en.wikipedia.org/wiki/Jones_calculus
             - "polarization stokes"
-              see also: http://en.wikipedia.org/wiki/Stokes_parameters
+              see also: https://en.wikipedia.org/wiki/Stokes_parameters
         """
         ketex = "$\\left.|%s\\right\\rangle$"
         # \left.| is on purpose, so that every ket has the same size

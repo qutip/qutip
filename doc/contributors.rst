@@ -25,7 +25,7 @@ Lead Developers
 Past Lead Developers
 ====================
 
-- `Robert Johansson <http://jrjohansson.github.io/research.html>`_ (RIKEN)
+- `Robert Johansson <https://jrjohansson.github.io/research.html>`_ (RIKEN)
 - `Paul Nation <http://nqdl.korea.ac.kr>`_ (Korea University)
 - `Chris Granade <https://www.cgranade.com>`_
 - `Arne Grimsmo <https://www.sydney.edu.au/science/about/our-people/academic-staff/arne-grimsmo.html>`_
