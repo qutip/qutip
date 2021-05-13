@@ -35,7 +35,7 @@ __all__ = ['entropy_vn', 'entropy_linear', 'entropy_mutual', 'negativity',
            'concurrence', 'entropy_conditional', 'entangling_power',
            'entropy_relative']
 
-from numpy import dot, e, inf, real, sort, sqrt, vdot
+from numpy import e, inf, real, sort, sqrt, vdot
 from numpy.lib.scimath import log, log2
 from qutip.qobj import ptrace
 from qutip.states import ket2dm
@@ -288,7 +288,7 @@ def entropy_relative(rho, sigma, base=e, sparse=False, tol=1e-12):
                     abs(rvals[i]) < tol or abs(P_ij) < tol):
                 # kernel of sigma intersects support of rho
                 return inf
-            if svals[j] != 0:
+            if svals[j] >= tol:
                 S -= rvals[i] * P_ij * log_base(svals[j])
     # the relative entropy is guaranteed to be >= 0, so we clamp the
     # calculated value to 0 to avoid small violations of the lower bound.
