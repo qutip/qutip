@@ -278,9 +278,11 @@ def entropy_relative(rho, sigma, base=e, sparse=False, tol=1e-12):
     rvals, rvecs = sp_eigs(rho.data, rho.isherm, vecs=True, sparse=sparse)
     if any(imag(rvals) >= tol):
         raise ValueError("Input rho has non-real eigenvalues.")
+    rvals = real(rvals)
     svals, svecs = sp_eigs(sigma.data, sigma.isherm, vecs=True, sparse=sparse)
     if any(imag(svals) >= tol):
         raise ValueError("Input sigma has non-real eigenvalues.")
+    svals = real(svals)
     nzrvals = rvals[abs(rvals) >= tol]
     # Calculate S
     S = sum(nzrvals * log_base(nzrvals))
@@ -295,7 +297,7 @@ def entropy_relative(rho, sigma, base=e, sparse=False, tol=1e-12):
                 S -= rvals[i] * P[i, j] * log_base(svals[j])
     # the relative entropy is guaranteed to be >= 0, so we clamp the
     # calculated value to 0 to avoid small violations of the lower bound.
-    return max(0, real(S))
+    return max(0, S)
 
 
 def entropy_conditional(rho, selB, base=e, sparse=False):
