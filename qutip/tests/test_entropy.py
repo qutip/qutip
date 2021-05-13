@@ -170,6 +170,16 @@ class TestRelativeEntropy:
         ).unit()
         assert qutip.entropy_relative(rho, sigma, base=2) == pytest.approx(2)
 
+    def test_density_matrices_with_non_real_eigenvalues(self):
+        rho = qutip.ket2dm(qutip.ket("00"))
+        sigma = qutip.ket2dm(qutip.ket("01"))
+        with pytest.raises(ValueError) as exc:
+            qutip.entropy_relative(rho + 1j, sigma)
+        assert str(exc.value) == "Input rho has non-real eigenvalues."
+        with pytest.raises(ValueError) as exc:
+            qutip.entropy_relative(rho, sigma + 1j)
+        assert str(exc.value) == "Input sigma has non-real eigenvalues."
+
     @pytest.mark.repeat(20)
     def test_random_dm_with_self(self):
         rho = qutip.rand_dm(8, pure=False)

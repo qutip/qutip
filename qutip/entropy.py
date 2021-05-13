@@ -35,7 +35,7 @@ __all__ = ['entropy_vn', 'entropy_linear', 'entropy_mutual', 'negativity',
            'concurrence', 'entropy_conditional', 'entangling_power',
            'entropy_relative']
 
-from numpy import conj, e, inf, inner, real, sort, sqrt, vdot
+from numpy import conj, e, inf, imag, inner, real, sort, sqrt
 from numpy.lib.scimath import log, log2
 from qutip.qobj import ptrace
 from qutip.states import ket2dm
@@ -276,7 +276,11 @@ def entropy_relative(rho, sigma, base=e, sparse=False, tol=1e-12):
     # S is +inf if the kernel of sigma (i.e. svecs[svals == 0]) has non-trivial
     # intersection with the support of rho (i.e. rvecs[rvals != 0]).
     rvals, rvecs = sp_eigs(rho.data, rho.isherm, vecs=True, sparse=sparse)
+    if any(imag(rvals) >= tol):
+        raise ValueError("Input rho has non-real eigenvalues.")
     svals, svecs = sp_eigs(sigma.data, sigma.isherm, vecs=True, sparse=sparse)
+    if any(imag(svals) >= tol):
+        raise ValueError("Input sigma has non-real eigenvalues.")
     nzrvals = rvals[abs(rvals) >= tol]
     # Calculate S
     S = sum(nzrvals * log_base(nzrvals))
