@@ -132,8 +132,15 @@ class TestRelativeEntropy:
         assert str(exc.value) == "Inputs must be density matrices."
 
     def test_rho_and_sigma_have_different_shape_and_dims(self):
+        # test different shape and dims
         rho = qutip.ket("00")
         sigma = qutip.ket("0")
+        with pytest.raises(ValueError) as exc:
+            qutip.entropy_relative(rho, sigma)
+        assert str(exc.value) == "Inputs must have the same shape and dims."
+        # test same shape, difference dims
+        rho = qutip.basis([2, 3], [0, 0])
+        sigma = qutip.basis([3, 2], [0, 0])
         with pytest.raises(ValueError) as exc:
             qutip.entropy_relative(rho, sigma)
         assert str(exc.value) == "Inputs must have the same shape and dims."
