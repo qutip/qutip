@@ -57,6 +57,8 @@ try:
 except:
     pass
 
+from packaging.version import parse as parse_version
+
 from qutip.qobj import Qobj, isket
 from qutip.states import ket2dm
 from qutip.wigner import wigner
@@ -372,7 +374,11 @@ def sphereplot(theta, phi, values, fig=None, ax=None, save=False):
     """
     if fig is None or ax is None:
         fig = plt.figure()
-        ax = Axes3D(fig)
+        if parse_version(matplotlib.__version__) >= parse_version('3.4'):
+            ax = Axes3D(fig, azim=-35, elev=35, auto_add_to_figure=False)
+            fig.add_axes(ax)
+        else:
+            ax = Axes3D(fig, azim=-35, elev=35)
 
     thetam, phim = np.meshgrid(theta, phi)
     xx = sin(thetam) * cos(phim)
@@ -468,7 +474,11 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
 
     if ax is None:
         fig = plt.figure()
-        ax = Axes3D(fig, azim=-35, elev=35)
+        if parse_version(matplotlib.__version__) >= parse_version('3.4'):
+            ax = Axes3D(fig, azim=-35, elev=35, auto_add_to_figure=False)
+            fig.add_axes(ax)
+        else:
+            ax = Axes3D(fig, azim=-35, elev=35)
 
     ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors)
 
@@ -589,7 +599,11 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None,
 
     if ax is None:
         fig = plt.figure()
-        ax = Axes3D(fig, azim=-35, elev=35)
+        if parse_version(matplotlib.__version__) >= parse_version('3.4'):
+            ax = Axes3D(fig, azim=-35, elev=35, auto_add_to_figure=False)
+            fig.add_axes(ax)
+        else:
+            ax = Axes3D(fig, azim=-35, elev=35)
 
     ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors)
 
@@ -1138,7 +1152,11 @@ def plot_spin_distribution_3d(P, THETA, PHI,
 
     if fig is None or ax is None:
         fig = plt.figure(figsize=figsize)
-        ax = Axes3D(fig, azim=-35, elev=35)
+        if parse_version(matplotlib.__version__) >= parse_version('3.4'):
+            ax = Axes3D(fig, azim=-35, elev=35, auto_add_to_figure=False)
+            fig.add_axes(ax)
+        else:
+            ax = Axes3D(fig, azim=-35, elev=35)
 
     xx = sin(THETA) * cos(PHI)
     yy = sin(THETA) * sin(PHI)
