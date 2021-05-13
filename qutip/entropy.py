@@ -249,7 +249,25 @@ def entropy_relative(rho, sigma, base=e, sparse=False, tol=1e-12):
     Returns
     -------
     rel_ent : float
-        Value of relative entropy.
+        Value of relative entropy. Guaranteed to be greater than zero
+        and should equal zero only when rho and sigma are identical.
+
+    Examples
+    --------
+
+    First we define two density matrices:
+
+    >>> rho = qutip.ket2dm(qutip.ket("00"))
+    >>> sigma = rho + qutip.ket2dm(qutip.ket("01"))
+    >>> sigma = sigma.unit()
+
+    Then we calculate their relative entropy using base 2 (i.e. ``log2``)
+    and base e (i.e. ``log``).
+
+    >>> qutip.entropy_relative(rho, sigma, base=2)
+    1.0
+    >>> qutip.entropy_relative(rho, sigma)
+    0.6931471805599453
 
     References
     ----------
