@@ -177,7 +177,13 @@ class TestRelativeEntropy:
             qutip.entropy_relative(rho + 1j, sigma)
         assert str(exc.value) == "Input rho has non-real eigenvalues."
         with pytest.raises(ValueError) as exc:
+            qutip.entropy_relative(rho - 1j, sigma)
+        assert str(exc.value) == "Input rho has non-real eigenvalues."
+        with pytest.raises(ValueError) as exc:
             qutip.entropy_relative(rho, sigma + 1j)
+        assert str(exc.value) == "Input sigma has non-real eigenvalues."
+        with pytest.raises(ValueError) as exc:
+            qutip.entropy_relative(rho, sigma - 1j)
         assert str(exc.value) == "Input sigma has non-real eigenvalues."
 
     @pytest.mark.repeat(20)

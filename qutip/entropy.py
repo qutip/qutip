@@ -277,11 +277,11 @@ def entropy_relative(rho, sigma, base=e, sparse=False, tol=1e-12):
     # S is +inf if the kernel of sigma (i.e. svecs[svals == 0]) has non-trivial
     # intersection with the support of rho (i.e. rvecs[rvals != 0]).
     rvals, rvecs = sp_eigs(rho.data, rho.isherm, vecs=True, sparse=sparse)
-    if any(imag(rvals) >= tol):
+    if any(abs(imag(rvals)) >= tol):
         raise ValueError("Input rho has non-real eigenvalues.")
     rvals = real(rvals)
     svals, svecs = sp_eigs(sigma.data, sigma.isherm, vecs=True, sparse=sparse)
-    if any(imag(svals) >= tol):
+    if any(abs(imag(svals)) >= tol):
         raise ValueError("Input sigma has non-real eigenvalues.")
     svals = real(svals)
     # Calculate inner products of eigenvectors and return +inf if kernel
