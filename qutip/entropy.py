@@ -294,7 +294,7 @@ def entropy_relative(rho, sigma, base=e, sparse=False, tol=1e-12):
     svals[abs(svals) < tol] = 1
     nzrvals = rvals[abs(rvals) >= tol]
     # Calculate S
-    S = nzrvals @ conj(log_base(nzrvals)) - rvals @ P @ log_base(svals)
+    S = nzrvals @ log_base(nzrvals) - rvals @ P @ log_base(svals)
     # the relative entropy is guaranteed to be >= 0, so we clamp the
     # calculated value to 0 to avoid small violations of the lower bound.
     return max(0, S)
