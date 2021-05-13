@@ -36,7 +36,7 @@ just solving dynamics (for instance partial trace computation).
 
 QuTiP is also an organisation, in the Github sense, and in the sense of a group
 of people working collaboratively towards common objectives, and also a web
-presence `qutip.org <http://qutip.org/>`_. The QuTiP Community includes all the
+presence `qutip.org <https://qutip.org/>`_. The QuTiP Community includes all the
 people who have supported the project since in conception in 2010, including
 manager, funders, developers, maintainers and users.
 

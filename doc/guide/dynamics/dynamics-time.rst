@@ -61,7 +61,7 @@ However, in contrast to the other options
 this method can be used in implementing time-dependent Hamiltonians that cannot be
 expressed as a function of constant operators with time-dependent coefficients.
 
-A collection of examples demonstrating the simulation of time-dependent problems can be found on the `tutorials <http://qutip.org/tutorials.html>`_ web page.
+A collection of examples demonstrating the simulation of time-dependent problems can be found on the `tutorials <https://qutip.org/tutorials.html>`_ web page.
 
 .. _time-function:
 

@@ -1210,7 +1210,7 @@ def qubit_clifford_group(N=None, target=0):
     """
     Generates the Clifford group on a single qubit,
     using the presentation of the group given by Ross and Selinger
-    (http://www.mathstat.dal.ca/~selinger/newsynth/).
+    (https://www.mathstat.dal.ca/~selinger/newsynth/).
 
     Parameters
     -----------

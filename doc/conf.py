@@ -241,7 +241,7 @@ htmlhelp_basename = 'QuTiPdoc'
 # meantime, we just have to define all the functions we're going to use.
 #
 # See:
-# - http://docs.mathjax.org/en/v3.0-latest/input/tex/extensions/physics.html
+# - https://docs.mathjax.org/en/v3.0-latest/input/tex/extensions/physics.html
 mathjax_config = {
     'TeX': {
         'Macros': {
@@ -351,8 +351,8 @@ autodoc_member_order = 'alphabetical'
 ## EXTLINKS CONFIGURATION ######################################################
 
 extlinks = {
-    'arxiv': ('http://arxiv.org/abs/%s', 'arXiv:'),
-    'doi': ('http://dx.doi.org/%s', 'doi:'),
+    'arxiv': ('https://arxiv.org/abs/%s', 'arXiv:'),
+    'doi': ('https://dx.doi.org/%s', 'doi:'),
 }
 
 # configuration declares the location of the examples directory for

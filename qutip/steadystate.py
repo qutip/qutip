@@ -1213,7 +1213,7 @@ def pseudo_inverse(L, rhoss=None, w=None, sparse=True,  **kwargs):
     cast the problem as an Ax=b type problem where the explicit calculation
     of the inverse is not required. See page 67 of "Electrons in
     nanostructures" C. Flindt, PhD Thesis available online:
-    http://orbit.dtu.dk/fedora/objects/orbit:82314/datastreams/
+    https://orbit.dtu.dk/fedora/objects/orbit:82314/datastreams/
     file_4732600/content
 
     Note also that the definition of the pseudo-inverse herein is different

@@ -1173,7 +1173,7 @@ def complex_array_to_rgb(X, theme='light', rmax=None):
     For more info on coloring, see:
         Emilia Petrisor,
         Visualizing complex-valued functions with Matplotlib and Mayavi
-        http://nbviewer.ipython.org/github/empet/Math/blob/master/DomainColoring.ipynb
+        https://nbviewer.ipython.org/github/empet/Math/blob/master/DomainColoring.ipynb
 
     Parameters
     ----------
@@ -1394,7 +1394,7 @@ def plot_qubism(ket, theme='light', how='pairs',
     .. [1] J. Rodriguez-Laguna, P. Migdal, M. Ibanez Berganza, M. Lewenstein
        and G. Sierra, *Qubism: self-similar visualization of many-body
        wavefunctions*, `New J. Phys. 14 053028
-       <http://dx.doi.org/10.1088/1367-2630/14/5/053028>`_, arXiv:1112.3560
+       <https://dx.doi.org/10.1088/1367-2630/14/5/053028>`_, arXiv:1112.3560
        (2012), open access.
     """
 
