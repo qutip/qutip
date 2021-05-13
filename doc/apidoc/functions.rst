@@ -99,7 +99,7 @@ Entropy Functions
 -----------------
 
 .. automodule:: qutip.entropy
-    :members: concurrence, entropy_conditional, entropy_linear, entropy_mutual, entropy_vn
+    :members: concurrence, entropy_conditional, entropy_linear, entropy_mutual, entropy_relative, entropy_vn
 
 
 Density Matrix Metrics
