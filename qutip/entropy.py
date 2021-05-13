@@ -283,18 +283,17 @@ def entropy_relative(rho, sigma, base=e, sparse=False, tol=1e-12):
     if any(imag(svals) >= tol):
         raise ValueError("Input sigma has non-real eigenvalues.")
     svals = real(svals)
+    # Calculate inner products of eigenvectors and return +inf if kernel
+    # of sigma overlaps with support of rho.
+    P = abs(inner(rvecs, conj(svecs))) ** 2
+    if (rvals >= tol) @ (P >= tol) @ (svals < tol):
+        return inf
+    # Avoid -inf from log(0) -- these terms will be multiplied by zero later
+    # anyway
+    svals[abs(svals) < tol] = 1
     nzrvals = rvals[abs(rvals) >= tol]
     # Calculate S
-    S = sum(nzrvals * log_base(nzrvals))
-    P = abs(inner(rvecs, conj(svecs))) ** 2
-    for i in range(len(rvals)):
-        for j in range(len(svals)):
-            if abs(svals[j]) < tol and not (
-                    abs(rvals[i]) < tol or abs(P[i, j]) < tol):
-                # kernel of sigma intersects support of rho
-                return inf
-            if svals[j] >= tol:
-                S -= rvals[i] * P[i, j] * log_base(svals[j])
+    S = nzrvals @ conj(log_base(nzrvals)) - rvals @ P @ log_base(svals)
     # the relative entropy is guaranteed to be >= 0, so we clamp the
     # calculated value to 0 to avoid small violations of the lower bound.
     return max(0, S)
