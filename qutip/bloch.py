@@ -61,9 +61,11 @@ try:
         def draw(self, renderer):
             xs3d, ys3d, zs3d = self._verts3d
             if parse_version(matplotlib.__version__) >= parse_version('3.4'):
-                xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, self.axes.M)
+                xs, ys, zs = proj3d.proj_transform(xs3d, ys3d,
+                                                   zs3d, self.axes.M)
             else:
-                xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
+                xs, ys, zs = proj3d.proj_transform(xs3d, ys3d,
+                                                   zs3d, renderer.M)
 
             self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
             FancyArrowPatch.draw(self, renderer)
@@ -456,10 +458,12 @@ class Bloch:
 
         if not axes:
             if parse_version(matplotlib.__version__) >= parse_version('3.4'):
-               self.axes = Axes3D(self.fig, azim=self.view[0], elev=self.view[1], auto_add_to_figure=False)
-               self.fig.add_axes(self.axes)
+                self.axes = Axes3D(self.fig, azim=self.view[0],
+                                   elev=self.view[1], auto_add_to_figure=False)
+                self.fig.add_axes(self.axes)
             else:
-                self.axes = Axes3D(self.fig, azim=self.view[0], elev=self.view[1])
+                self.axes = Axes3D(self.fig, azim=self.view[0],
+                                   elev=self.view[1])
 
         if self.background:
             self.axes.clear()
