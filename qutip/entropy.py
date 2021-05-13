@@ -228,6 +228,7 @@ def entropy_relative(rho, sigma, base=e, sparse=False, tol=1e-12):
     """
     Calculates the relative entropy S(rho||sigma) between two density
     matrices.
+
     Parameters
     ----------
     rho : :class:`qutip.Qobj`
