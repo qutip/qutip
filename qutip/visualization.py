@@ -55,14 +55,14 @@ try:
     from matplotlib import cm
     from mpl_toolkits.mplot3d import Axes3D
 
-    def matplotlib_version_gte(version='3.4'):
-        """
-        Checks if matplotlib version is greater than a specific version
-        """
-        if parse_version(mpl.__version__) >= parse_version(version):
-            return True
-        else:
-            return False
+    if parse_version(mpl.__version__) >= parse_version('3.4'):
+        def _axes3D(*args, **kwargs):
+            fig = args[0]
+            ax = Axes3D(*args, auto_add_to_figure=False, **kwargs)
+            return fig.add_axes(ax)
+    else:
+        def _axes3D(*args, **kwargs):
+            return Axes3D(*args, **kwargs)
 except:
     pass
 
@@ -383,11 +383,7 @@ def sphereplot(theta, phi, values, fig=None, ax=None, save=False):
     """
     if fig is None or ax is None:
         fig = plt.figure()
-        if matplotlib_version_gte():
-            ax = Axes3D(fig, azim=-35, elev=35, auto_add_to_figure=False)
-            fig.add_axes(ax)
-        else:
-            ax = Axes3D(fig, azim=-35, elev=35)
+        ax = _axes3D(fig, azim=-35, elev=35)
 
     thetam, phim = np.meshgrid(theta, phi)
     xx = sin(thetam) * cos(phim)
@@ -483,11 +479,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
 
     if ax is None:
         fig = plt.figure()
-        if matplotlib_version_gte():
-            ax = Axes3D(fig, azim=-35, elev=35, auto_add_to_figure=False)
-            fig.add_axes(ax)
-        else:
-            ax = Axes3D(fig, azim=-35, elev=35)
+        ax = _axes3D(fig, azim=-35, elev=35)
 
     ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors)
 
@@ -608,11 +600,7 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None,
 
     if ax is None:
         fig = plt.figure()
-        if matplotlib_version_gte():
-            ax = Axes3D(fig, azim=-35, elev=35, auto_add_to_figure=False)
-            fig.add_axes(ax)
-        else:
-            ax = Axes3D(fig, azim=-35, elev=35)
+        ax = _axes3D(fig, azim=-35, elev=35)
 
     ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors)
 
@@ -1161,11 +1149,7 @@ def plot_spin_distribution_3d(P, THETA, PHI,
 
     if fig is None or ax is None:
         fig = plt.figure(figsize=figsize)
-        if matplotlib_version_gte():
-            ax = Axes3D(fig, azim=-35, elev=35, auto_add_to_figure=False)
-            fig.add_axes(ax)
-        else:
-            ax = Axes3D(fig, azim=-35, elev=35)
+        ax = _axes3D(fig, azim=-35, elev=35)
 
     xx = sin(THETA) * cos(PHI)
     yy = sin(THETA) * sin(PHI)
