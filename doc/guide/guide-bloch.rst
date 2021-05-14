@@ -396,7 +396,7 @@ Generating Images for Animation
 An example of generating images for generating an animation outside of Python is given below::
 
      import numpy as np
-     b = Bloch()
+     b = qutip.Bloch()
      b.vector_color = ['r']
      b.view = [-40, 30]
      for i in range(len(sx)):
