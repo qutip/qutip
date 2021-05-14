@@ -35,8 +35,6 @@ __all__ = ['Bloch']
 
 import os
 
-import matplotlib
-
 from numpy import (ndarray, array, linspace, pi, outer, cos, sin, ones, size,
                    sqrt, real, mod, append, ceil, arange)
 
@@ -47,10 +45,20 @@ from qutip.expect import expect
 from qutip.operators import sigmax, sigmay, sigmaz
 
 try:
+    import matplotlib
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
     from matplotlib.patches import FancyArrowPatch
     from mpl_toolkits.mplot3d import proj3d
+
+    def matplotlib_version_gte(version='3.4'):
+        """
+        Checks if matplotlib version is greater than a specific version
+        """
+        if parse_version(matplotlib.__version__) >= parse_version(version):
+            return True
+        else:
+            return False
 
     class Arrow3D(FancyArrowPatch):
         def __init__(self, xs, ys, zs, *args, **kwargs):
@@ -60,7 +68,7 @@ try:
 
         def draw(self, renderer):
             xs3d, ys3d, zs3d = self._verts3d
-            if parse_version(matplotlib.__version__) >= parse_version('3.4'):
+            if matplotlib_version_gte():
                 xs, ys, zs = proj3d.proj_transform(xs3d, ys3d,
                                                    zs3d, self.axes.M)
             else:
@@ -457,7 +465,7 @@ class Bloch:
             self.fig = plt.figure(figsize=self.figsize)
 
         if not axes:
-            if parse_version(matplotlib.__version__) >= parse_version('3.4'):
+            if matplotlib_version_gte():
                 self.axes = Axes3D(self.fig, azim=self.view[0],
                                    elev=self.view[1], auto_add_to_figure=False)
                 self.fig.add_axes(self.axes)
@@ -478,10 +486,8 @@ class Bloch:
             self.axes.set_zlim3d(-0.7, 0.7)
         # Manually set aspect ratio to fit a square bounding box.
         # Matplotlib did this stretching for < 3.3.0, but not above.
-        if parse_version(matplotlib.__version__) >= parse_version('3.3'):
+        if matplotlib_version_gte(version='3.3'):
             self.axes.set_box_aspect((1, 1, 1))
-        else:
-            pass
 
         self.axes.grid(False)
         self.plot_back()
