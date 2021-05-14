@@ -407,7 +407,7 @@ An example of generating images for generating an animation outside of Python is
 
 Generating an animation using ffmpeg (for example) is fairly simple::
 
-   !ffmpeg -r 20 -i temp/bloch_%01d.png -b:v 1800 bloch.mp4
+   ffmpeg -i temp/bloch_%01d.png bloch.mp4
 
 .. _bloch-animate-decay-direct:
 
