@@ -440,7 +440,7 @@ The code to directly generate an mp4 movie of the Qubit decay is as follows ::
       return ax
 
    ani = animation.FuncAnimation(fig, animate, np.arange(len(sx)),
-                                 init_func=init, blit=True, repeat=False)
+                                 init_func=init, blit=False, repeat=False)
    ani.save('bloch_sphere.mp4', fps=20)
 
 The resulting movie may be viewed here: `bloch_decay.mp4 <https://raw.githubusercontent.com/qutip/qutip/master/doc/figures/bloch_decay.mp4>`_
