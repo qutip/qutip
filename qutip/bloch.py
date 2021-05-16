@@ -51,10 +51,11 @@ try:
     from matplotlib.patches import FancyArrowPatch
     from mpl_toolkits.mplot3d import proj3d
 
+    # Define a custom _axes3D function based on the matplotlib version.
+    # The auto_add_to_figure keyword is new for matplotlib>=3.4.
     if parse_version(matplotlib.__version__) >= parse_version('3.4'):
-        def _axes3D(*args, **kwargs):
-            fig = args[0]
-            ax = Axes3D(*args, auto_add_to_figure=False, **kwargs)
+        def _axes3D(fig, *args, **kwargs):
+            ax = Axes3D(fig, *args, auto_add_to_figure=False, **kwargs)
             return fig.add_axes(ax)
     else:
         def _axes3D(*args, **kwargs):
