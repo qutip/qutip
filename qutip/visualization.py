@@ -49,6 +49,19 @@ import itertools as it
 import numpy as np
 from numpy import pi, array, sin, cos, angle, log2, sqrt
 
+from packaging.version import parse as parse_version
+
+from qutip.qobj import Qobj, isket
+from qutip.states import ket2dm
+from qutip.wigner import wigner
+from qutip.tensor import tensor
+from qutip.matplotlib_utilities import complex_phase_cmap
+from qutip.superoperator import vector_to_operator
+from qutip.superop_reps import to_super, _super_to_superpauli, _isqubitdims, _pauli_basis
+from qutip.tensor import flatten
+
+from qutip import settings
+
 try:
     import matplotlib.pyplot as plt
     import matplotlib as mpl
@@ -66,19 +79,6 @@ try:
             return Axes3D(*args, **kwargs)
 except:
     pass
-
-from packaging.version import parse as parse_version
-
-from qutip.qobj import Qobj, isket
-from qutip.states import ket2dm
-from qutip.wigner import wigner
-from qutip.tensor import tensor
-from qutip.matplotlib_utilities import complex_phase_cmap
-from qutip.superoperator import vector_to_operator
-from qutip.superop_reps import to_super, _super_to_superpauli, _isqubitdims, _pauli_basis
-from qutip.tensor import flatten
-
-from qutip import settings
 
 
 def plot_wigner_sphere(fig, ax, wigner, reflections):
