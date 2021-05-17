@@ -425,7 +425,7 @@ The code to directly generate an mp4 movie of the Qubit decay is as follows ::
    from mpl_toolkits.mplot3d import Axes3D
 
    fig = pyplot.figure()
-   ax = Axes3D(fig,azim=-40,elev=30)
+   ax = Axes3D(fig, azim=-40, elev=30)
    sphere = qutip.Bloch(axes=ax)
 
    def animate(i):
