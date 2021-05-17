@@ -384,7 +384,7 @@ def sphereplot(theta, phi, values, fig=None, ax=None, save=False):
     """
     if fig is None or ax is None:
         fig = plt.figure()
-        ax = _axes3D(fig, azim=-35, elev=35)
+        ax = _axes3D(fig)
 
     thetam, phim = np.meshgrid(theta, phi)
     xx = sin(thetam) * cos(phim)
