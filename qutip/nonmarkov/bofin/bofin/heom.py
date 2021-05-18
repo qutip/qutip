@@ -94,8 +94,43 @@ def _heom_state_dictionaries(dims, excitations):
 
     return nstates, state2idx, idx2state
 
+def _check_Hsys(H_sys):
+    
+    if (
+        type(H_sys) != Qobj
+        and type(H_sys) != QobjEvo
+        and type(H_sys) != list
+    ):
+        raise RuntimeError("Hamiltonian format is incorrect.")
 
+    if type(H_sys) == list:
+        size = len(H_sys)
+        for i in range(0, size):
+            if i == 0:
+                if type(H_sys[i]) != Qobj:
+                    raise RuntimeError("Hamiltonian format is incorrect.")
+            else:
+                if (
+                    type(H_sys[i][0]) != Qobj
+                    and type(H_sys[i][1]) != function
+                ):
+                    raise RuntimeError("Hamiltonian format is incorrect.")
             
+def _check_coup_ops(coup_op, length):
+
+    if (type(coup_op) != Qobj) and (
+        type(coup_op) == list and type(coup_op[0]) != Qobj
+    ):
+        raise RuntimeError(
+            "Coupling operator must be a QObj or list " + " of QObjs."
+        )
+
+    if type(coup_op) == list:
+        if len(coup_op) != (length):
+            raise RuntimeError(
+                "Expected " + str(length) 
+                + " coupling operators."
+            )
 class BosonicHEOMSolver(object):
     """
     This is a class for solvers that use the HEOM method for
@@ -167,6 +202,8 @@ class BosonicHEOMSolver(object):
         self.options = None
         self.ode = None
 
+    
+                        
     def process_input(
         self, H_sys, coup_op, ckAR, ckAI, vkAR, vkAI, N_cut, options=None
         ):
@@ -177,41 +214,11 @@ class BosonicHEOMSolver(object):
 
         # Checks for Hamiltonian
 
-        if (
-            type(H_sys) != Qobj
-            and type(H_sys) != QobjEvo
-            and type(H_sys) != list
-        ):
-            raise RuntimeError("Hamiltonian format is incorrect.")
-
-        if type(H_sys) == list:
-            size = len(H_sys)
-            for i in range(0, size):
-                if i == 0:
-                    if type(H_sys[i]) != Qobj:
-                        raise RuntimeError("Hamiltonian format is incorrect.")
-                else:
-                    if (
-                        type(H_sys[i][0]) != Qobj
-                        and type(H_sys[i][1]) != function
-                    ):
-                        raise RuntimeError("Hamiltonian format is incorrect.")
+        _check_Hsys(H_sys)
 
         # Checks for coupling operator
+        _check_coup_ops(coup_op, len(ckAR) + len(ckAI))
 
-        if (type(coup_op) != Qobj) and (
-            type(coup_op) == list and type(coup_op[0]) != Qobj
-        ):
-            raise RuntimeError(
-                "Coupling operator must be a QObj or list " + " of QObjs."
-            )
-
-        if type(coup_op) == list:
-            if len(coup_op) != (len(ckAR) + len(ckAI)):
-                raise RuntimeError(
-                    "Expected " + str(len(ckAI) + len(ckAR)) 
-                    + " coupling operators."
-                )
 
         # Checks for ckAR, ckAI, vkAR, vkAI
 
@@ -1045,25 +1052,13 @@ class FermionicHEOMSolver(object):
 
         # Checks for Hamiltonian
 
-        if (
-            type(H_sys) != Qobj
-            and type(H_sys) != QobjEvo
-            and type(H_sys) != list
-        ):
-            raise RuntimeError("Hamiltonian format is incorrect.")
+        _check_Hsys(H_sys)
+            
+            
+        
+        # Checks for coupling operator
+        _check_coup_ops(coup_op,len(ck))
 
-        if type(H_sys) == list:
-            size = len(H_sys)
-            for i in range(0, size):
-                if i == 0:
-                    if type(H_sys[i]) != Qobj:
-                        raise RuntimeError("Hamiltonian format is incorrect.")
-                else:
-                    if (
-                        type(H_sys[i][0]) != Qobj
-                        and type(H_sys[i][1]) != function
-                    ):
-                        raise RuntimeError("Hamiltonian format is incorrect.")
 
         # Checks for cks and vks
 
@@ -1082,19 +1077,7 @@ class FermionicHEOMSolver(object):
             if len(ck[idx]) != len(vk[idx]):
                 raise RuntimeError("Exponents supplied incorrectly.")
 
-        # Checks for coupling operator
-
-        if (type(coup_op) != Qobj) and (
-            type(coup_op) == list and type(coup_op[0]) != Qobj
-        ):
-            raise RuntimeError(
-                "Coupling operator must be a QObj or list " + " of QObjs."
-            )
-
-        if type(coup_op) == list:
-            if len(coup_op) != len(ck):
-                raise RuntimeError("Expected " + str(len(ck)) 
-                                    + " coupling operators.")
+    
 
         # Make list of coupling operators
 
