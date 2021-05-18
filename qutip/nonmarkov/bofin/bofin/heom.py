@@ -95,7 +95,6 @@ def _heom_state_dictionaries(dims, excitations):
     return nstates, state2idx, idx2state
 
 
-            
 class BosonicHEOMSolver(object):
     """
     This is a class for solvers that use the HEOM method for
@@ -833,150 +832,15 @@ class BosonicHEOMSolver(object):
         
 
 
-class HSolverDL(BosonicHEOMSolver):
+def _dsuper_list_td(t, y, L_list):
     """
-    HEOM solver based on the Drude-Lorentz model for spectral density.
-    Drude-Lorentz bath the correlation functions can be exactly analytically
-    expressed as a sum of exponentials. 
-    This sub-class is included to give backwards compatability with the older
-    implentation in qutip.
-    
-  
-    Attributes
-    ----------
-    coup_strength : float
-        Coupling strength.
-    temperature : float
-        Bath temperature.
-    N_cut : int
-        Cutoff parameter for the bath
-    N_exp : int
-        Number of exponential terms used to approximate the bath correlation
-        functions
-    cut_freq : float
-        Bath spectral density cutoff frequency.
-    bnd_cut_approx : bool
-        Use boundary cut off approximation
-    options : :class:`qutip.solver.Options`
-        Generic solver options.
-        If set to None the default options will be used
-
-        
+    Auxiliary function for the integration.
+    Is called at every time step.
     """
-
-    def __init__(self, H_sys, coup_op, coup_strength, temperature,
-                     N_cut, N_exp, cut_freq, bnd_cut_approx = False,
-                     options = None):
-        self.reset()
-
-        if options is None:
-            self.options = Options()
-        else:
-            self.options = options
-
-        
-        self.progress_bar = BaseProgressBar()
-
-        # the other attributes will be set in the configure method
-        self.configure(H_sys, coup_op, coup_strength, temperature,
-                     N_cut, N_exp, cut_freq, 
-                     bnd_cut_approx = bnd_cut_approx)
-        
-    def reset(self):
-        """
-        Reset any attributes to default values
-        """
-        BosonicHEOMSolver.reset(self)
-        
-        self.coup_strength = 0.0
-        self.cut_freq = 0.0
-        self.temperature = 1.0      
-        self.N_exp = 2
-     
-        
-    def configure(self, H_sys, coup_op, coup_strength, temperature,
-                 N_cut, N_exp,  cut_freq, 
-                 bnd_cut_approx = None, options=None):
-        """
-        
-        Configure the correlation function parameters using the required decompostion,
-        and then use the parent class BosonicHEOMSolver to check input and construct RHS.
-        
-        The parameters are described in the class attributes, unless there
-        is some specific behaviour
-        
-        """
-        self.coup_strength = coup_strength
-        self.cut_freq = cut_freq 
-        self.temperature = temperature     
-        self.N_exp = N_exp
- 
-        
-        
-        if bnd_cut_approx is not None: self.bnd_cut_approx = bnd_cut_approx
-        
-        options = self.options            
-        progress_bar = self.progress_bar
-        
-        
-        ckAR, ckAI, vkAR, vkAI = self._calc_matsubara_params()
-       
-        Q = coup_op
-        
-        if bnd_cut_approx:
-            #do version with tanimura terminator
-            
-            
-            lam = self.coup_strength
-            gamma = self.cut_freq
-            T = self.temperature
-            beta = 1/T
-            Nk = self.N_exp
-            
-            op = -2*spre(Q)*spost(Q.dag()) + spre(Q.dag()*Q) + spost(Q.dag()*Q)
-            approx_factr = ((2 * lam / (beta * gamma)) - 1j*lam) 
-            approx_factr -=  lam * gamma * (-1.0j + 1/np.tan(gamma / (2 * T)))/gamma
-            
-            for k in range(1,Nk+1):
-                vk = 2 * np.pi * k * T
-                approx_factr -= ((4 * lam * gamma * T * vk / (vk**2 - gamma**2))/ vk)
-              
-            L_bnd = -approx_factr*op
-            H_sys = liouvillian(H_sys) + L_bnd
-
-        NR = len(ckAR)
-        NI = len(ckAI)
-        Q2 = [Q for kk in range(NR+NI)]
-        
-        BosonicHEOMSolver.configure(self, H_sys, Q2, ckAR, ckAI, vkAR, vkAI, N_cut, options)
-        
-    def _calc_matsubara_params(self):
-        """
-        Calculate the Matsubara coefficents and frequencies
-        Returns
-        -------
-        ckAR, ckAI, vkAR, vkAI: list(complex)
-        """
-      
-        lam = self.coup_strength
-        gamma = self.cut_freq                      
-        Nk = self.N_exp
-        T = self.temperature
-        
-        
-
-        ckAR = [ lam * gamma * (1/np.tan(gamma / (2 * T)))]
-        ckAR.extend([(4 * lam * gamma * T *  2 * np.pi * k * T / (( 2 * np.pi * k * T)**2 - gamma**2)) for k in range(1,Nk+1)])
-        vkAR = [gamma]
-        vkAR.extend([2 * np.pi * k * T for k in range(1,Nk+1)])
-
-        ckAI = [lam * gamma * (-1.0)]
-        vkAI = [gamma]
-
-        return ckAR, ckAI, vkAR, vkAI
-                    
-
-
+    L = L_list[0][0]
+    for n in range(1, len(L_list)):
+        L = L + L_list[n][0] * L_list[n][1](t)
+    return L * y
 
 
 class FermionicHEOMSolver(object):
