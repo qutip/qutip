@@ -4,11 +4,11 @@ Tests for the Bosonic HEOM solvers.
 import numpy as np
 from numpy.linalg import eigvalsh
 from scipy.integrate import quad
-from qutip import Qobj, sigmaz, sigmax, basis, expect, Options, destroy, basis
+from qutip import (Qobj, QobjEvo, sigmaz, sigmax, basis, expect, Options, destroy, basis)
 from bofin.heom import add_at_idx
 from bofin.heom import HSolverDL
 from bofin.heom import BosonicHEOMSolver
-from bofin.heom import _heom_state_dictionaries
+from bofin.heom import _heom_state_dictionaries, _check_Hsys
 import pytest
 from math import sqrt, factorial
 
@@ -41,7 +41,34 @@ def test_state_dictionaries():
         )
     assert nhe, total_nhe
         
-  
+def test_check_H():
+    """Tests the function for checking system Hamiltonian"""
+    assert(_check_Hsys(sigmax()))
+    assert(_check_Hsys([sigmax(), sigmaz()]))
+    assert(_check_Hsys([[sigmax(), np.sin], [sigmaz(), np.cos]]))
+    assert(_check_Hsys([[sigmax(), np.sin], [sigmaz(), np.cos]]))
+    assert(_check_Hsys(QobjEvo([sigmaz(), sigmax(), sigmaz()])))
+
+
+    err_msg = r"Hamiltonian format is incorrect."
+
+    with pytest.raises(RuntimeError, match=err_msg):
+       _check_Hsys(sigmax().full())
+
+    with pytest.raises(RuntimeError, match=err_msg):
+       _check_Hsys([[1 , 0], [0, 1]])
+
+    with pytest.raises(RuntimeError, match=err_msg):
+       _check_Hsys([sigmax(), [[1 , 0], [0, 1]]])
+
+    err_msg = r"Incorrect time dependent function for Hamiltonian."
+
+    with pytest.raises(RuntimeError, match=err_msg):
+       _check_Hsys([[sigmax(), [0, np.pi]]])
+
+    with pytest.raises(RuntimeError, match=err_msg):
+       _check_Hsys([[sigmax(), np.sin(0.5)]])
+
 
 @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
 @pytest.mark.parametrize(['bnd_cut_approx', 'tol'], [
