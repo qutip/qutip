@@ -95,26 +95,34 @@ def _heom_state_dictionaries(dims, excitations):
     return nstates, state2idx, idx2state
 
 def _check_Hsys(H_sys):
-    
-    if (
-        type(H_sys) != Qobj
-        and type(H_sys) != QobjEvo
-        and type(H_sys) != list
-    ):
-        raise RuntimeError("Hamiltonian format is incorrect.")
+    # Check if Hamiltonians are one of the allowed types
+    if not isinstance(H_sys, (Qobj, QobjEvo, list)):
+        msg = "Hamiltonian format is incorrect."
+        raise RuntimeError(msg)
 
-    if type(H_sys) == list:
-        size = len(H_sys)
-        for i in range(0, size):
-            if i == 0:
-                if type(H_sys[i]) != Qobj:
-                    raise RuntimeError("Hamiltonian format is incorrect.")
+    # Check if Hamiltonians supplied in the list are correct
+    if isinstance(H_sys, list):
+        for H in H_sys:
+            # If not a list of time dependent Hamiltonians
+            if not isinstance(H, list):
+                # Just check if it is a Qobj
+                _check_Hsys(H)
+
+            # Check if time dependent Hamiltonian terms are correct
+            # in the list fomat if it is a tuple of [H, callable]
+            elif isinstance(H[0], Qobj):
+                if not callable(H[1]):
+                    msg = "Incorrect time dependent function for Hamiltonian."
+                    raise RuntimeError(msg)
+
             else:
-                if (
-                    type(H_sys[i][0]) != Qobj
-                    and type(H_sys[i][1]) != function
-                ):
-                    raise RuntimeError("Hamiltonian format is incorrect.")
+                _check_Hsys(H[0])
+
+        return True
+
+    else:
+        return True
+
             
 def _check_coup_ops(coup_op, length):
 
