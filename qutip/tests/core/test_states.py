@@ -126,3 +126,50 @@ class TestStates:
 
 if __name__ == "__main__":
     run_module_suite()
+
+
+def _id_func(val):
+    "ids generated from the function only"
+    if isinstance(val, tuple):
+        return ""
+
+
+# random object accept `str` and base.Data
+# Obtain all valid dtype from `to`
+dtype_names = list(qutip.data.to._str2type.keys()) + list(qutip.data.to.dtypes)
+dtype_types = list(qutip.data.to._str2type.values()) + list(qutip.data.to.dtypes)
+@pytest.mark.parametrize(['alias', 'dtype'], zip(dtype_names, dtype_types),
+                         ids=[str(dtype) for dtype in dtype_names])
+@pytest.mark.parametrize(['func', 'args'], [
+    (qutip.basis, (5, 1)),
+    (qutip.fock, (5, 1)),
+    (qutip.fock_dm, (5, 1)),
+    (qutip.coherent, (5, 1)),
+    (qutip.coherent_dm, (5, 1)),
+    (qutip.thermal_dm, (5, 1)),
+    (qutip.maximally_mixed_dm, (5,)),
+    (qutip.phase_basis, (5, 1)),
+    (qutip.zero_ket, (5,)),
+    (qutip.spin_state, (5, 1)),
+    (qutip.spin_coherent, (5, 1, 0.5)),
+    (qutip.projection, (5, 1, 2)),
+    (qutip.ket, ("001",)),
+    (qutip.bra, ('010',)),
+    (qutip.qstate, ("uud",)),
+    (qutip.state_number_qobj, ([2, 2, 2], [1, 0, 1])),
+    (qutip.w_state, (5,)),
+    (qutip.ghz_state, (5,)),
+    (qutip.qutrit_basis, ()),
+    (qutip.triplet_states, ()),
+    (qutip.singlet_state, ()),
+    (qutip.bell_state, ('10',)),
+    (qutip.enr_fock, ([3, 3, 3], 4, [1, 1, 0])),
+    (qutip.enr_thermal_dm, ([3, 3, 3], 4, 2)),
+], ids=_id_func)
+def test_state_type(func, args, alias, dtype):
+    object = func(*args, dtype=alias)
+    if isinstance(object, qutip.Qobj):
+        assert isinstance(object.data, dtype)
+    else:
+        for obj in object:
+            assert isinstance(obj.data, dtype)
