@@ -31,14 +31,16 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+import pytest
 import scipy.sparse as sp
 import scipy.linalg as la
 import numpy as np
 from numpy.testing import assert_equal, assert_, run_module_suite
 
 from qutip import qeye
+from qutip import data as _data
 from qutip.random_objects import (rand_ket, rand_dm, rand_herm, rand_unitary,
-                                  rand_ket_haar, rand_dm_hs,
+                                  rand_ket_haar, rand_dm_hs, rand_stochastic,
                                   rand_super, rand_unitary_haar, rand_dm_ginibre,
                                   rand_super_bcsz)
 
@@ -93,3 +95,18 @@ def test_rand_super_dims():
 
 if __name__ == "__main__":
     run_module_suite()
+
+# random object accept `str` and base.Data
+# Obtain all valid dtype from `to`
+dtype_names = list(_data.to._str2type.keys()) + list(_data.to.dtypes)
+dtype_types = list(_data.to._str2type.values()) + list(_data.to.dtypes)
+@pytest.mark.parametrize(['alias', 'dtype'], zip(dtype_names, dtype_types),
+                         ids=[str(dtype) for dtype in dtype_names])
+@pytest.mark.parametrize('func', [
+    rand_dm, rand_dm_hs, rand_dm_ginibre,
+    rand_ket, rand_ket_haar, rand_herm, rand_unitary,
+    rand_super, rand_unitary_haar, rand_super_bcsz, rand_stochastic
+])
+def test_random_type(func, alias, dtype):
+    rand_qobj = func(5, dtype=alias)
+    assert isinstance(rand_qobj.data, dtype)
