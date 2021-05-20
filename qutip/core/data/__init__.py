@@ -14,6 +14,7 @@ from .expm import *
 from .inner import *
 from .kron import *
 from .matmul import *
+from .make import *
 from .mul import *
 from .pow import *
 from .project import *

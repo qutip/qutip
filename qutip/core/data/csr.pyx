@@ -75,7 +75,7 @@ cdef class CSR(base.Data):
         # single flag that is set as soon as the pointers are assigned.
         self._deallocate = True
 
-    def __init__(self, arg=None, shape=None, bint copy=False):
+    def __init__(self, arg=None, shape=None, bint copy=True):
         # This is the Python __init__ method, so we do not care that it is not
         # super-fast C access.  Typically Cython code will not call this, but
         # will use a factory method in this module or at worst, call
