@@ -428,11 +428,13 @@ class Qobj:
             A new `Qobj` if a type conversion took place with the data stored
             in the requested format, or `self` if not.
         """
-        if data_type not in _data.to.dtypes:
+        try:
+            converter = _data.to[data_type]
+        except (KeyError, TypeError):
             raise ValueError("Unknown conversion type: " + str(data_type))
         if type(self.data) is data_type:
             return self
-        return Qobj(_data.to(data_type, self._data),
+        return Qobj(converter(self._data),
                     dims=self.dims,
                     type=self.type,
                     superrep=self.superrep,

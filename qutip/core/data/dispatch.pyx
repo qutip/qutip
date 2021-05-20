@@ -552,8 +552,9 @@ cdef class Dispatcher:
         callable object which requires that the dispatched arguments match
         those specified in `types`.
         """
-        if isinstance(types, type):
+        if type(types) is not tuple:
             types = (types,)
+        types = tuple(_to.parse(arg) for arg in types)
         try:
             return self._lookup[types]
         except KeyError:
@@ -572,6 +573,7 @@ cdef class Dispatcher:
         args_, kwargs_ = self._parameters.bind(args, kwargs)
         dispatch = self._parameters.dispatch_types(args_, kwargs_)
         if self.output and dtype is not None:
+            dtype = _to.parse(dtype)
             dispatch.append(dtype)
         cdef _constructed_specialisation function
         try:

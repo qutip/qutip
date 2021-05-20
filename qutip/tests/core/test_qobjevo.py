@@ -369,7 +369,7 @@ class TestQobjevo:
     def test_tidyup(self):
         "QobjEvo tidyup"
         obj = self.qobjevos["no_args"]
-        obj *= 1e-10 * np.random.random()
+        obj = obj * 1e-10 * np.random.random()
         obj.tidyup(atol=1e-8)
         t = self._rand_t()
         # check that the Qobj are cleaned
