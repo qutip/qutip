@@ -349,11 +349,11 @@ def _generalized_kraus(q_oper, thresh=1e-10):
     # Truncate away the zero singular values, up to a threshold.
 
     dK = np.count_nonzero(S > thresh)
-    U = np.array(U)[:, :dK]
-    S = np.sqrt(np.array(S)[:dK])
+    U = U[:, :dK]
+    S = np.sqrt(S[:dK])
     # Since NumPy returns V and not V+, we need to take the dagger
     # to get back to quantum info notation for Stinespring pairs.
-    V = np.array(V).conj().T[:, :dK]
+    V = V.conj().T[:, :dK]
 
     # Next, we convert each of U and V into Kraus operators.
     # Finally, we want the Kraus index to be left-most so that we
