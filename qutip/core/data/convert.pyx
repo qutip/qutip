@@ -319,9 +319,7 @@ cdef class _to:
 
     def __call__(self, to_type, data):
         to_type = self.parse(to_type)
-        from_type = type(data)
-        if from_type not in self.dtypes:
-            raise TypeError("unknown input type: " + from_type.__name__)
+        from_type = self.parse(type(data))
         if to_type == from_type:
             return data
         return self._convert[to_type, from_type](data)
