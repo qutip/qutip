@@ -265,23 +265,41 @@ cdef class _to:
             self._str2type[dtype.__name__.lower()] = dtype
 
     def parse(self, dtype):
-        """Convert case-insensitive string name of the data-layer to the type
-        itself.
+        """
+        Return a data-layer type object given its name or the type itself.
 
         Parameters
         ----------
         dtype : type, str
-            string to read or type itself.
+            Either the (case-insensitive) name of a data-layer type or a type
+            itself.
+
+        Returns
+        -------
+        type
+            A data-layer type.
+
+        Raises
+        ------
+        TypeError
+            If ``dtype`` is neither a string nor a type.
+        ValueError
+            If ``dtype`` is a name, but no data-layer type of that name is
+            registered, or if ``dtype`` is a type, but not a known data-layer
+            type.
         """
         if type(dtype) is type:
             if dtype not in self.dtypes:
-                raise TypeError("Unsupported data type: " + dtype)
+                raise ValueError(
+                    "Type is not a data-layer type: " + repr(dtype))
             return dtype
         elif type(dtype) is str:
             if dtype.lower() not in self._str2type:
-                raise TypeError("Type name is not known: " + dtype)
+                raise ValueError(
+                    "Type name is not known to the data-layer: " + repr(dtype))
             return self._str2type[dtype.lower()]
-        raise TypeError("Invalid data-layer type: " + dtype)
+        raise TypeError(
+            "Invalid dtype is neither a type nor a type name: " + repr(dtype))
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
