@@ -334,34 +334,47 @@ cdef class _create:
     def add_creators(self, creators):
         """
         Add creation functions to make a data-layer object from an arbitrary
-        python object.
+        Python object.
 
         Parameters
         ----------
         creators : iterable of (condition, creator, [priority])
-            An iterable of 2- or 3-tuples describing all the new data layer
-            creation function.
+            An iterable of 2- or 3-tuples describing the new data layer
+            creation functions.
             Each element can individually be a 2- or 3-tuple; they do not need
             to be all one or the other.
 
             Elements
             ........
             condition : callable (object) -> Data
-                function determining if that object can be made to a data layer
-                using this creator.
+                function determining if the given object can be converted to a
+                data-layer type using this creator.
 
             creator function: callable (object, shape) -> Data
-                The creator function.  This should take an object and a shape
-                and output a data-layer object. The object can be anything that
-                The condition function returned `True` when tested.
+                The creator function. It should take an object and a shape
+                and return a data-layer type instance. The object may be
+                any object for which the condition function returned ``True``
+                when tested.
 
             priority : positive real, optional (1)
-                The priority associated with this creation. Higher priority
+                The priority associated with this creator. Higher priority
                 conditions will be tested first and the first valid creator
-                (condition(object) == True) will handle the creation.
-                Priority 100 is used for already data-layer entry.
-                80 for object that have a direct data-layer equivalent
-                (scipy.sparse.csr_matrix, numpy.ndarray)
+                (i.e. for which ``condition(object) == True``) will handle
+                the creation.
+
+        Notes
+        -----
+            Default creators are added with the following priorities:
+
+                * Objects that are instances of data-layer types are
+                  converted using ``.copy`` with priority ``100``.
+                * Objects that are ``numpy.ndarray`` instances or for
+                  which ``scipy.sparse.isspmatrix_csr`` is ``True`` are
+                  converted using an internal CSR converter with
+                  priority ``80``.
+                * Objects for which ``scipy.sparse.issparse`` is ``True``
+                  are converted using an internal CSR converter with
+                  priority ``10``.
         """
         _creators = []
         for creator in creators:
