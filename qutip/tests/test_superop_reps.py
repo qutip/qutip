@@ -139,6 +139,7 @@ class TestSuperopReps:
         op1 = to_kraus(super)
         op2 = to_kraus(choi)
         op3 = to_super(choi)
+
         assert choi.type == "super" and choi.superrep == "choi"
         assert super.type == "super" and super.superrep == "super"
         assert (op1[0] - kraus).norm() < tol
@@ -249,7 +250,6 @@ class TestSuperopReps:
         assert norm(A - B) < tol
 
     @pytest.mark.repeat(3)
-    @pytest.mark.parametrize('dimension', [2, 4])
     def test_stinespring_agrees(self, dimension):
         """
         Stinespring: Partial Tr over pair agrees w/ supermatrix.
