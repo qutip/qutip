@@ -239,7 +239,7 @@ class TestSuperopReps:
         assert abs(to_choi(identity(dimension)).tr() - dimension) <= tol
 
 
-    def test_stinespring_cp(self,dimension):
+    def test_stinespring_cp(self, dimension):
         """
         Stinespring: A and B match for CP maps.
         """
