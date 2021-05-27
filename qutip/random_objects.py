@@ -188,10 +188,12 @@ def _rand_herm_sparse(N, density, pos_def):
                                                  num_elems,
                                                  replace=False)])
     M = sp.coo_matrix((data, (row_idx, col_idx)),
-                      dtype=complex, shape=(N, N)).tocsr()
+                      dtype=complex, shape=(N, N))
     M = 0.5 * (M + M.conj().transpose())
     if pos_def:
+        M = M.tolil()
         M.setdiag(np.abs(M.diagonal()) + np.sqrt(2)*N)
+    M = M.tocsr()
     M.sort_indices()
     return M
 
