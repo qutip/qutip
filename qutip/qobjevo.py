@@ -442,7 +442,7 @@ class QobjEvo:
         self.args = args.copy()
         self.dynamics_args = []
         self.cte = None
-        self.tlist = tlist
+        self.tlist = np.asarray(tlist) if tlist is not None else None
         self.compiled = ""
         self.compiled_qobjevo = None
         self.coeff_get = None
@@ -452,13 +452,17 @@ class QobjEvo:
         self.use_cython = use_cython[0]
         self.safePickle = safePickle[0]
 
+        # Attempt to determine if a 2-element list is a single, time-dependent
+        # operator, or a list with 2 possibly time-dependent elements.
         if isinstance(Q_object, list) and len(Q_object) == 2:
-            if isinstance(Q_object[0], Qobj) and not isinstance(Q_object[1],
-                                                                (Qobj, list)):
-                # The format is [Qobj, f/str]
+            try:
+                # Test if parsing succeeds on this as a single element.
+                self._td_op_type(Q_object)
                 Q_object = [Q_object]
+            except (TypeError, ValueError):
+                pass
 
-        op_type = self._td_format_check_single(Q_object, tlist)
+        op_type = self._td_format_check(Q_object)
         self.ops = []
 
         if isinstance(op_type, int):
@@ -539,42 +543,39 @@ class QobjEvo:
         if state0 is not None:
             self._dynamics_args_update(0., state0)
 
-    def _td_format_check_single(self, Q_object, tlist=None):
-        op_type = []
-
+    def _td_format_check(self, Q_object):
         if isinstance(Q_object, Qobj):
-            op_type = 0
-        elif isinstance(Q_object, (FunctionType,
-                                   BuiltinFunctionType, partial)):
-            op_type = 1
-        elif isinstance(Q_object, list):
-            if (len(Q_object) == 0):
-                op_type = -1
-            for op_k in Q_object:
-                if isinstance(op_k, Qobj):
-                    op_type.append(0)
-                elif isinstance(op_k, list):
-                    if not isinstance(op_k[0], Qobj):
-                        raise TypeError("Incorrect Q_object specification")
-                    elif len(op_k) == 2:
-                        if isinstance(op_k[1], Cubic_Spline):
-                            op_type.append(4)
-                        elif callable(op_k[1]):
-                            op_type.append(1)
-                        elif isinstance(op_k[1], str):
-                            op_type.append(2)
-                        elif isinstance(op_k[1], np.ndarray):
-                            if not isinstance(tlist, np.ndarray) or not \
-                                        len(op_k[1]) == len(tlist):
-                                raise TypeError("Time lists do not match")
-                            op_type.append(3)
-                        else:
-                            raise TypeError("Incorrect Q_object specification")
-                    else:
-                        raise TypeError("Incorrect Q_object specification")
+            return 0
+        if isinstance(Q_object, (FunctionType, BuiltinFunctionType, partial)):
+            return 1
+        if isinstance(Q_object, list):
+            return [self._td_op_type(element) for element in Q_object] or -1
+        raise TypeError("Incorrect Q_object specification")
+
+    def _td_op_type(self, element):
+        if isinstance(element, Qobj):
+            return 0
+        try:
+            op, td = element
+        except (TypeError, ValueError) as exc:
+            raise TypeError("Incorrect Q_object specification") from exc
+        if (not isinstance(op, Qobj)) or isinstance(td, Qobj):
+            # Qobj is itself callable, so we need an extra check to make sure
+            # that we don't have a two-element list where both are Qobj.
+            raise TypeError("Incorrect Q_object specification")
+        if isinstance(td, Cubic_Spline):
+            out = 4
+        elif callable(td):
+            out = 1
+        elif isinstance(td, str):
+            out = 2
+        elif isinstance(td, np.ndarray):
+            if self.tlist is None or td.shape != self.tlist.shape:
+                raise ValueError("Time lists are not compatible")
+            out = 3
         else:
             raise TypeError("Incorrect Q_object specification")
-        return op_type
+        return out
 
     def _args_checks(self):
         statedims = [self.cte.dims[1],[1]]
