@@ -293,7 +293,17 @@ def _mesolve_QobjEvo(H, c_ops, tlist, args, opt):
     else:
         L_td = H_td
     for op in c_ops:
-        op_td = QobjEvo(op, args, tlist=tlist)
+        # We want to avoid passing tlist where it isn't necessary, to allow a
+        # Hamiltonian/Liouvillian which already _has_ time-dependence not equal
+        # to the mesolve evaluation times to be used in conjunction with
+        # time-independent c_ops.  If we _always_ pass it, it may appear to
+        # QobjEvo that there is a tlist mismatch, even though it is not used.
+        if isinstance(op, Qobj):
+            op_td = QobjEvo(op)
+        elif isinstance(op, QobjEvo):
+            op_td = QobjEvo(op, args)
+        else:
+            op_td = QobjEvo(op, args, tlist=tlist)
         if not issuper(op_td.cte):
             op_td = lindblad_dissipator(op_td)
         L_td += op_td

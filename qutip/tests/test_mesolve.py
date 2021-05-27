@@ -970,5 +970,37 @@ def test_non_hermitian_dm():
             "They should be imaginary.")
 
 
+def test_tlist_h_with_constant_c_ops():
+    """
+    Test that it's possible to mix a time-dependent Hamiltonian given as a
+    QobjEvo with interpolated coefficients with time-independent collapse
+    operators, if the solver times are not equal to the interpolation times of
+    the Hamiltonian.
+
+    See gh-1560.
+    """
+    state = basis(2, 0)
+    all_times = np.linspace(0, 1, 11)
+    few_times = np.linspace(0, 1, 3)
+    dependence = np.cos(2*np.pi * all_times)
+    hamiltonian = QobjEvo([[sigmax(), dependence]], tlist=all_times)
+    collapse = qeye(2)
+    result = mesolve(hamiltonian, state, few_times, c_ops=[collapse])
+    assert result.num_collapse == 1
+    assert len(result.states) == len(few_times)
+
+
+def test_tlist_h_with_other_tlist_c_ops_raises():
+    state = basis(2, 0)
+    all_times = np.linspace(0, 1, 11)
+    few_times = np.linspace(0, 1, 3)
+    dependence = np.cos(2*np.pi * all_times)
+    hamiltonian = QobjEvo([[sigmax(), dependence]], tlist=all_times)
+    collapse = [qeye(2), np.cos(2*np.pi * few_times)]
+    with pytest.raises(ValueError) as exc:
+        mesolve(hamiltonian, state, few_times, c_ops=[collapse])
+    assert str(exc.value) == "Time lists are not compatible"
+
+
 if __name__ == "__main__":
     run_module_suite()
