@@ -467,7 +467,7 @@ class QobjEvo:
                 self.const = True
                 self.type = "cte"
             elif op_type == 1:
-                raise Exception("The Qobj must not already be a function")
+                raise TypeError("The Qobj must not already be a function")
             elif op_type == -1:
                 pass
         else:
@@ -566,7 +566,7 @@ class QobjEvo:
                         elif isinstance(op_k[1], np.ndarray):
                             if not isinstance(tlist, np.ndarray) or not \
                                         len(op_k[1]) == len(tlist):
-                                raise TypeError("Time list does not match")
+                                raise TypeError("Time lists do not match")
                             op_type.append(3)
                         else:
                             raise TypeError("Incorrect Q_object specification")
@@ -633,7 +633,7 @@ class QobjEvo:
         try:
             t = float(t)
         except Exception as e:
-            raise TypeError("t should be a real scalar.") from e
+            raise TypeError("Time must be a real scalar.") from e
 
         if state is not None:
             self._dynamics_args_update(t, state)
@@ -871,7 +871,7 @@ class QobjEvo:
                     pass
                 elif len(other.tlist) != len(self.tlist) or \
                         other.tlist[-1] != self.tlist[-1]:
-                    raise Exception("tlist are not compatible")
+                    raise ValueError("Time lists are not compatible")
         else:
             self.cte += other
             self.dummy_cte = False
@@ -915,7 +915,8 @@ class QobjEvo:
             self.cte *= other
             for op in self.ops:
                 op.qobj *= other
-        elif isinstance(other, QobjEvo):
+            return self
+        if isinstance(other, QobjEvo):
             if other.const:
                 self.cte *= other.cte
                 for op in self.ops:
@@ -949,11 +950,8 @@ class QobjEvo:
                 self.num_obj = (len(self.ops) if
                               self.dummy_cte else len(self.ops) + 1)
             self._reset_type()
-
-        else:
-            raise TypeError("QobjEvo can only be multiplied"
-                            " with QobjEvo, Qobj or numbers")
-        return self
+            return self
+        return NotImplemented
 
     def __div__(self, other):
         if isinstance(other, (int, float, complex,
@@ -961,16 +959,14 @@ class QobjEvo:
             res = self.copy()
             res *= other**(-1)
             return res
-        else:
-            raise TypeError('Incompatible object for division')
+        return NotImplemented
 
     def __idiv__(self, other):
         if isinstance(other, (int, float, complex,
                               np.integer, np.floating, np.complexfloating)):
             self *= other**(-1)
-        else:
-            raise TypeError('Incompatible object for division')
-        return self
+            return self
+        return NotImplemented
 
     def __truediv__(self, other):
         return self.__div__(other)
@@ -1410,14 +1406,14 @@ class QobjEvo:
         expect : General-purpose expectation values.
         """
         if not isinstance(t, (int, float)):
-            raise TypeError("The time need to be a real scalar")
+            raise TypeError("Time must be a real scalar")
         if isinstance(state, Qobj):
             if self.cte.dims[1] == state.dims[0]:
                 vec = state.full().ravel("F")
             elif self.cte.dims[1] == state.dims:
                 vec = state.full().ravel("F")
             else:
-                raise Exception("Dimensions do not fit")
+                raise ValueError("Dimensions do not fit")
         elif isinstance(state, np.ndarray):
             vec = state.ravel("F")
         else:
@@ -1441,7 +1437,7 @@ class QobjEvo:
                        vec.reshape((self.cte.shape[1],
                                     self.cte.shape[1])).T).trace()
         else:
-            raise Exception("The shapes do not match")
+            raise ValueError("The shapes do not match")
 
         if herm:
             return exp.real
@@ -1467,19 +1463,19 @@ class QobjEvo:
         """
         was_Qobj = False
         if not isinstance(t, (int, float)):
-            raise TypeError("the time need to be a real scalar")
+            raise TypeError("Time must be a real scalar")
         if isinstance(vec, Qobj):
             if self.cte.dims[1] != vec.dims[0]:
-                raise Exception("Dimensions do not fit")
+                raise ValueError("Dimensions do not fit")
             was_Qobj = True
             dims = vec.dims
             vec = vec.full().ravel()
         elif not isinstance(vec, np.ndarray):
             raise TypeError("The vector must be an array or Qobj")
         if vec.ndim != 1:
-            raise Exception("The vector must be 1d")
+            raise ValueError(f"The vector must be 1d, but is {vec.ndim}d")
         if vec.shape[0] != self.cte.shape[1]:
-            raise Exception("The length do not match")
+            raise ValueError("The lengths do not match")
 
         if self.compiled:
             out = self.compiled_qobjevo.mul_vec(t, vec)
@@ -1512,19 +1508,19 @@ class QobjEvo:
         """
         was_Qobj = False
         if not isinstance(t, (int, float)):
-            raise TypeError("the time need to be a real scalar")
+            raise TypeError("Time must be a real scalar")
         if isinstance(mat, Qobj):
             if self.cte.dims[1] != mat.dims[0]:
-                raise Exception("Dimensions do not fit")
+                raise ValueError("Dimensions do not fit")
             was_Qobj = True
             dims = mat.dims
             mat = mat.full()
         if not isinstance(mat, np.ndarray):
             raise TypeError("The vector must be an array or Qobj")
         if mat.ndim != 2:
-            raise Exception("The matrice must be 2d")
+            raise ValueError(f"The matrix must be 2d, but is {mat.ndim}d")
         if mat.shape[0] != self.cte.shape[1]:
-            raise Exception("The length do not match")
+            raise ValueError("The lengths do not match")
 
         if self.compiled:
             out = self.compiled_qobjevo.mul_mat(t, mat)
