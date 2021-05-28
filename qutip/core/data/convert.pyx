@@ -261,8 +261,30 @@ cdef class _to:
                     _converter(convert[::-1], to_t, from_t)
         for dispatcher in self.dispatchers:
             dispatcher.rebuild_lookup()
-        for dtype in self.dtypes:
-            self._str2type[dtype.__name__.lower()] = dtype
+
+    def register_aliases(self, aliases, layer_type):
+        """
+        Register a user frendly name for a data-layer type to be recognized by
+        the :method:`parse` method.
+
+        Parameters
+        ----------
+        aliases : str or list of str
+            Name of list of names to be understood to represent the layer_type.
+
+        layer_type : type
+            Data-layer type, must have been registered with
+            :method:`add_conversions` first.
+        """
+        if layer_type not in self.dtypes:
+            raise ValueError(
+                "Type is not a data-layer type: " + repr(layer_type))
+        if isinstance(aliases, str):
+            aliases = [aliases]
+        for alias in aliases:
+            if type(alias) is not str:
+                raise TypeError("The alias must be a str")
+            self._str2type[alias] = layer_type
 
     def parse(self, dtype):
         """
@@ -271,8 +293,7 @@ cdef class _to:
         Parameters
         ----------
         dtype : type, str
-            Either the (case-insensitive) name of a data-layer type or a type
-            itself.
+            Either the name of a data-layer type or a type itself.
 
         Returns
         -------
@@ -294,10 +315,13 @@ cdef class _to:
                     "Type is not a data-layer type: " + repr(dtype))
             return dtype
         elif type(dtype) is str:
-            if dtype.lower() not in self._str2type:
+            try:
+                return self._str2type[dtype]
+            except KeyError:
                 raise ValueError(
-                    "Type name is not known to the data-layer: " + repr(dtype))
-            return self._str2type[dtype.lower()]
+                    "Type name is not known to the data-layer: " + repr(dtype)
+                    ) from None
+
         raise TypeError(
             "Invalid dtype is neither a type nor a type name: " + repr(dtype))
 
@@ -346,8 +370,8 @@ cdef class _create:
 
             Elements
             ........
-            condition : callable (object) -> Data
-                function determining if the given object can be converted to a
+            condition : callable (object) -> bool
+                Function determining if the given object can be converted to a
                 data-layer type using this creator.
 
             creator function: callable (object, shape) -> Data
@@ -356,7 +380,7 @@ cdef class _create:
                 any object for which the condition function returned ``True``
                 when tested.
 
-            priority : positive real, optional (1)
+            priority : real, optional (0)
                 The priority associated with this creator. Higher priority
                 conditions will be tested first and the first valid creator
                 (i.e. for which ``condition(object) == True``) will handle
@@ -364,68 +388,45 @@ cdef class _create:
 
         Notes
         -----
-            Default creators are added with the following priorities:
+        Default creators are added with the following priorities:
 
-                * Objects that are instances of data-layer types are
-                  converted using ``.copy`` with priority ``100``.
-                * Objects that are ``numpy.ndarray`` instances or for
-                  which ``scipy.sparse.isspmatrix_csr`` is ``True`` are
-                  converted using an internal CSR converter with
-                  priority ``80``.
-                * Objects for which ``scipy.sparse.issparse`` is ``True``
-                  are converted using an internal CSR converter with
-                  priority ``10``.
+        * Objects that are instances of data-layer types are
+          converted using ``.copy`` with priority 100.
+        * Objects that have a direct equivalent such as ``numpy.ndarray``
+          or ``scipy.sparse.csr_matrix`` are converted with priority 80.
+        * Objects for which ``scipy.sparse.issparse`` is ``True``
+          are converted using an internal CSR converter with
+          priority 20.
+        * If no condition are meet, ``numpy.array`` is used to try convert
+          the input to an array (priority -inf).
         """
-        _creators = []
-        for creator in creators:
-            if len(creator) == 2:
-                condition, create = creator
-                priority = 10
-            elif len(creator) == 3:
-                condition, create, priority = creator
+        for condition, creator, *priority in creators:
             if not callable(condition):
                 raise TypeError(str(condition) + " is not a callable")
             if not callable(create):
                 raise TypeError(str(create) + " is not a callable")
-            _creators.append((condition, create, priority))
-        self._creators = sorted(_creators,
-                                key=lambda creator: creator[2],
-                                reverse=True)
+            priority = float(priority[0] if priority else 0)
+            self._creators.append((condition, creator, priority))
+        self._creators.sort(key=lambda creator: creator[2], reverse=True)
 
-    def __call__(self, arg, shape=None):
+    def __call__(self, arg, shape=None, copy=True):
+        """
+        Build a :class:`qutip.data.Data` object from arg.
+
+        Parameters
+        ----------
+        arg : object
+            Object to be converted to `qutip.data.Data`. Anything that can be
+            converted to a numpy array are valid input.
+
+        shape : tuple, optional
+            The shape of the output as (``rows``, ``columns``).
+        """
         for condition, create, _ in self._creators:
             if condition(arg):
-                return create(arg, shape)
-        # Fallback on numpy if we don't have any matching creator method
-        return _data.Dense(np.array(arg, dtype=np.complex128),
-                           shape=shape, copy=False)
+                return create(arg, shape, copy)
+        raise TypeError("arg cannot be converted to qutip data format")
+
 
 to = _to()
 create = _create()
-
-import qutip.core.data as _data
-import numpy as np
-import scipy.sparse
-
-create.add_creators([
-    (
-        lambda arg: isinstance(arg, _data.base.Data),
-        lambda arg, shape: arg.copy(),
-        100
-    ),
-    (
-        lambda arg: scipy.sparse.isspmatrix_csr(arg),
-        lambda arg, shape: _data.CSR(arg, shape=shape),
-        80
-    ),
-    (
-        lambda arg: isinstance(arg, np.ndarray),
-        lambda arg, shape: _data.Dense(arg, shape=shape, copy=False),
-        80
-    ),
-    (
-        lambda arg: scipy.sparse.issparse(arg),
-        lambda arg, shape: _data.CSR(arg.tocsr(), shape=shape),
-        10
-    ),
-])
