@@ -18,24 +18,40 @@ cdef extern from "<complex>" namespace "std" nogil:
 
 
 cdef class Coefficient:
-    """`Coefficient` are the time-dependant scalar of a `[Qobj, coeff]` pair
+    """
+    `Coefficient` are the time-dependant scalar of a `[Qobj, coeff]` pair
     composing time-dependant operator in list format for :obj:`QobjEvo`.
 
-    Coefficient are immutable.
+    `Coefficient` are immutable.
     """
-    cdef double complex _call(self, double t) except *:
-        return 0j
+    def __init__(self):
+        raise NotImplementedError
 
     def replace(self, *, arguments=None, tlist=None):
-        """Return a Coefficient with args or tlist changed. """
-        # Cases where tlist or args are supported are managed in those classes
+        """
+        Return a `Coefficient` with args or tlist changed.
+
+        Parameters
+        ----------
+        arguments : dict
+            New arguments for function and str based `Coefficient`.
+            The dictionary do not need to include all keys, but only the items
+            that need to be updated.
+
+        tlist : np.array
+            New array of times for the array coefficients.
+        """
         return self
 
     def __call__(self, double t, dict args={}):
-        """Return the coefficient value at `t` with given `args`. """
+        """Return the coefficient value at `t` with given `args`."""
         if args:
             return (<Coefficient> self.replace(arguments=args))._call(t)
         return self._call(t)
+
+    cdef double complex _call(self, double t) except *:
+        """Core computation of the `Coefficient`."""
+        raise NotImplementedError
 
     def __add__(left, right):
         if (isinstance(left, InterCoefficient) and isinstance(right, InterCoefficient)):
@@ -54,25 +70,43 @@ cdef class Coefficient:
         return NotImplemented
 
     cpdef Coefficient copy(self):
+        """Return a copy of the `Coefficient`."""
         return pickle.loads(pickle.dumps(self))
 
     def conj(self):
-        """ Return a conjugate Coefficient of this"""
+        """ Return a conjugate `Coefficient` of this"""
         return ConjCoefficient(self)
 
     def _cdc(self):
-        """ Return a Coefficient being the norm of this"""
+        """ Return a `Coefficient` being the norm of this"""
         return NormCoefficient(self)
 
     def _shift(self):
-        """ Return a Coefficient with a time shift"""
+        """ Return a `Coefficient` with a time shift"""
         return ShiftCoefficient(self, 0)
 
 
 @cython.auto_pickle(True)
 cdef class FunctionCoefficient(Coefficient):
     """
-    Coefficient wrapping a Python function.
+    `Coefficient` wrapping a Python function.
+
+    Parameters
+    ----------
+    func : callable(t : float, args : dict) -> complex
+        Function computing the coefficient for a `QobjEvo`.
+
+    args : dict
+        Dictionary of variable to pass to `func`.
+
+    Methods
+    -------
+    conj():
+        Conjugate of the `Coefficient`.
+    copy():
+        Create a copy of the `Coefficient`.
+    replace(arguments, tlist):
+        Create a new `Coefficient` with updated arguments and/or tlist.
     """
     cdef object func
 
@@ -84,9 +118,23 @@ cdef class FunctionCoefficient(Coefficient):
         return self.func(t, self.args)
 
     cpdef Coefficient copy(self):
+        """Return a copy of the `Coefficient`."""
         return FunctionCoefficient(self.func, self.args.copy())
 
     def replace(self, *, arguments=None, tlist=None):
+        """
+        Return a `Coefficient` with args or tlist changed.
+
+        Parameters
+        ----------
+        arguments : dict
+            New arguments for function and str based `Coefficient`.
+            The dictionary do not need to include all keys, but only those
+            which need to be updated.
+
+        tlist : np.array
+            Not used
+        """
         if arguments:
             return FunctionCoefficient(
                 self.func,
@@ -104,7 +152,37 @@ def proj(x):
 
 cdef class StrFunctionCoefficient(Coefficient):
     """
-    Coefficient build from a code string interpreted without cython.
+    `Coefficient` wrapping a string into a python function.
+    The string must represent compilable python code resulting in a complex.
+    The time is available as the local variable `t` and the keys of `args`
+    are also available as local variables. The `args` dictionary itself is not
+    available.
+    The following symbols are defined:
+        `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `pi`,
+        `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh`,
+        `exp`, `log`, `log10`, `erf`, `zerf`, `sqrt`,
+        `real`, `imag`, `conj`, `abs`, `norm`, `arg`, `proj`,
+        `numpy` as `np` and `scipy.special` as `spe`.
+    *Examples*
+        StrFunctionCoefficient("sin(w*pi*t)", {'w': 1j})
+
+    Parameters
+    ----------
+    base : str
+        A string representing a compilable python code resulting in a complex.
+
+    args : dict
+        Dictionary of variable used in the code string. May include unused
+        variables.
+
+    Methods
+    -------
+    conj():
+        Conjugate of the `Coefficient`.
+    copy():
+        Create a copy of the `Coefficient`.
+    replace(arguments, tlist):
+        Create a new `Coefficient` with updated arguments and/or tlist.
     """
     cdef object func
     cdef str base
@@ -140,12 +218,12 @@ cdef class StrFunctionCoefficient(Coefficient):
         "spe": scipy.special}
 
     def __init__(self, base, dict args):
-        code = """
+        args2var = "\n".join(["    {} = args['{}']".format(key, key)
+                              for key in args])
+        code = f"""
 def coeff(t, args):
-{}
-    return {}""".format(
-            "\n".join(["    {} = args['{}']".format(key, key) for key in args]),
-            base)
+{args2var}
+    return {base}"""
         lc = {}
         exec(code, self.str_env, lc)
         self.base = base
@@ -156,12 +234,26 @@ def coeff(t, args):
         return self.func(t, self.args)
 
     cpdef Coefficient copy(self):
+        """Return a copy of the `Coefficient`."""
         return StrFunctionCoefficient(self.base, self.args.copy())
 
     def __reduce__(self):
         return (StrFunctionCoefficient, (self.base, self.args))
 
     def replace(self, *, arguments=None, tlist=None):
+        """
+        Return a `Coefficient` with args or tlist changed.
+
+        Parameters
+        ----------
+        arguments : dict
+            New arguments for function and str based `Coefficient`.
+            The dictionary do not need to include all keys, but only those
+            which need to be updated.
+
+        tlist : np.array
+            Not used
+        """
         if arguments:
             return StrFunctionCoefficient(
                 self.base,
@@ -172,8 +264,24 @@ def coeff(t, args):
 
 cdef class InterpolateCoefficient(Coefficient):
     """
-    Coefficient build from a `qutip.Cubic_Spline` object.
+    `Coefficient` build from a :class:`qutip.Cubic_Spline` object.
+
+    Parameters
+    ----------
+    splineObj : :class:`qutip.Cubic_Spline`
+        Spline interpolation object representing the coefficient as a function
+        of the time.
+
+    Methods
+    -------
+    conj():
+        Conjugate of the `Coefficient`.
+    copy():
+        Create a copy of the `Coefficient`.
+    replace(arguments, tlist):
+        Create a new `Coefficient` with updated arguments and/or tlist.
     """
+
     cdef double lower_bound, higher_bound
     cdef complex[::1] spline_data
     cdef object spline
@@ -195,9 +303,21 @@ cdef class InterpolateCoefficient(Coefficient):
         return InterpolateCoefficient, (self.spline,)
 
     cpdef Coefficient copy(self):
+        """Return a copy of the `Coefficient`."""
         return InterpolateCoefficient(self.spline)
 
     def replace(self, *, arguments=None, tlist=None):
+        """
+        Return a `Coefficient` with args or tlist changed.
+
+        Parameters
+        ----------
+        arguments : dict
+            Not used
+
+        tlist : np.array
+            New array of times for the array coefficients.
+        """
         if tlist is not None:
             return InterpolateCoefficient(
                 Cubic_Spline(tlist[0], tlist[1],
@@ -210,8 +330,25 @@ cdef class InterpolateCoefficient(Coefficient):
 
 cdef class InterCoefficient(Coefficient):
     """
-    Coefficient build array of time and coefficient interpolated using
-    cubic spline.
+    `Coefficient` build form a cubic spline interpolation of a numpy array.
+
+    Parameters
+    ----------
+    coeff_arr : np.ndarray
+        Array of coefficients to interpolate.
+
+    tlist : np.ndarray
+        Array of times corresponding to each coefficient. The time must be
+        inscreasing, but do not need to be uniformly spaced.
+
+    Methods
+    -------
+    conj():
+        Conjugate of the `Coefficient`.
+    copy():
+        Create a copy of the `Coefficient`.
+    replace(arguments, tlist):
+        Create a new `Coefficient` with updated arguments and/or tlist.
     """
     cdef int n_t, cte
     cdef double dt
@@ -219,16 +356,16 @@ cdef class InterCoefficient(Coefficient):
     cdef complex[::1] coeff_arr, second_derr
     cdef object tlist_np, coeff_np, second_np
 
-    def __init__(self, coeff_arr, tlist, second=None, cte=None):
+    def __init__(self, coeff_arr, tlist, _second=None, _cte=None):
         self.tlist_np = tlist
         self.tlist = tlist
         self.coeff_np = coeff_arr
         self.coeff_arr = coeff_arr
-        if second is None:
+        if _second is None:
             self.second_np, self.cte = _prep_cubic_spline(coeff_arr, tlist)
         else:
-            self.second_np = second
-            self.cte = cte
+            self.second_np = _second
+            self.cte = _cte
         self.second_derr = self.second_np
         self.dt = tlist[1] - tlist[0]
 
@@ -252,10 +389,22 @@ cdef class InterCoefficient(Coefficient):
                 (self.coeff_np, self.tlist_np, self.second_np, self.cte))
 
     cpdef Coefficient copy(self):
+        """Return a copy of the `Coefficient`."""
         return InterCoefficient(self.coeff_np, self.tlist_np,
                                 self.second_np, self.cte)
 
     def replace(self, *, arguments=None, tlist=None):
+        """
+        Return a `Coefficient` with args or tlist changed.
+
+        Parameters
+        ----------
+        arguments : dict
+            Not used
+
+        tlist : np.array
+            New array of times for the array coefficients.
+        """
         if tlist:
             return InterCoefficient(self.coeff_np, tlist)
         else:
@@ -280,9 +429,26 @@ cdef Coefficient add_inter(InterCoefficient left, InterCoefficient right):
 
 cdef class StepCoefficient(Coefficient):
     """
-    Coefficient build array of time and coefficient interpolated using
-    previous value.
-    tlist[i] <= t < tlist[i+1] ==> coeff[i]
+    `Coefficient` build from a numpy array interpolated using previous value:
+        For tlist[i] <= t < tlist[i+1]: return coeff[i]
+
+    Parameters
+    ----------
+    coeff_arr : np.ndarray
+        Array of coefficients to interpolate.
+
+    tlist : np.ndarray
+        Array of times corresponding to each coefficient. The time must be
+        inscreasing, but do not need to be uniformly spaced.
+
+    Methods
+    -------
+    conj():
+        Conjugate of the `Coefficient`.
+    copy():
+        Create a copy of the `Coefficient`.
+    replace(arguments, tlist):
+        Create a new `Coefficient` with updated arguments and/or tlist.
     """
     cdef int n_t, cte
     cdef double dt
@@ -290,15 +456,15 @@ cdef class StepCoefficient(Coefficient):
     cdef complex[::1] coeff_arr
     cdef object tlist_np, coeff_np
 
-    def __init__(self, coeff_arr, tlist, cte=None):
+    def __init__(self, coeff_arr, tlist, _cte=None):
         self.tlist_np = tlist
         self.tlist = self.tlist_np
         self.coeff_np = coeff_arr
         self.coeff_arr = self.coeff_np
-        if cte is None:
+        if _cte is None:
             self.cte = np.allclose(np.diff(tlist), tlist[1]-tlist[0])
         else:
-            self.cte = cte
+            self.cte = _cte
         self.dt = tlist[1] - tlist[0]
         self.args = {}
 
@@ -315,9 +481,21 @@ cdef class StepCoefficient(Coefficient):
         return (StepCoefficient, (self.coeff_np, self.tlist_np, self.cte))
 
     cpdef Coefficient copy(self):
+        """Return a copy of the `Coefficient`."""
         return StepCoefficient(self.coeff_np, self.tlist_np, self.cte)
 
     def replace(self, *, arguments=None, tlist=None):
+        """
+        Return a `Coefficient` with args or tlist changed.
+
+        Parameters
+        ----------
+        arguments : dict
+            Not used
+
+        tlist : np.array
+            New array of times for the array coefficients.
+        """
         if tlist:
             return StepCoefficient(self.coeff_np, tlist)
         else:
@@ -332,7 +510,17 @@ cdef class StepCoefficient(Coefficient):
 @cython.auto_pickle(True)
 cdef class SumCoefficient(Coefficient):
     """
-    Coefficient build from the sum of 2 other Coefficients
+    `Coefficient` build from the sum of 2 other Coefficients.
+    Result of `Coefficient` + `Coefficient`.
+
+    Methods
+    -------
+    conj():
+        Conjugate of the `Coefficient`.
+    copy():
+        Create a copy of the `Coefficient`.
+    replace(arguments, tlist):
+        Create a new `Coefficient` with updated arguments and/or tlist.
     """
     cdef Coefficient first
     cdef Coefficient second
@@ -349,9 +537,23 @@ cdef class SumCoefficient(Coefficient):
         return self.first._call(t) + self.second._call(t)
 
     cpdef Coefficient copy(self):
+        """Return a copy of the Coefficient."""
         return SumCoefficient(self.first.copy(), self.second.copy())
 
     def replace(self, *, arguments=None, tlist=None):
+        """
+        Return a `Coefficient` with args or tlist changed.
+
+        Parameters
+        ----------
+        arguments : dict
+            New arguments for function and str based `Coefficient`.
+            The dictionary do not need to include all keys, but only the items
+            that need to be updated.
+
+        tlist : np.array
+            New array of times for the array coefficients.
+        """
         return SumCoefficient(
             self.first.replace(arguments=arguments, tlist=tlist),
             self.second.replace(arguments=arguments, tlist=tlist)
@@ -361,7 +563,17 @@ cdef class SumCoefficient(Coefficient):
 @cython.auto_pickle(True)
 cdef class MulCoefficient(Coefficient):
     """
-    Coefficient build from the product of 2 other Coefficients
+    `Coefficient` build from the product of 2 other Coefficients.
+    Result of `Coefficient` * `Coefficient`.
+
+    Methods
+    -------
+    conj():
+        Conjugate of the `Coefficient`.
+    copy():
+        Create a copy of the `Coefficient`.
+    replace(arguments, tlist):
+        Create a new `Coefficient` with updated arguments and/or tlist.
     """
     cdef Coefficient first
     cdef Coefficient second
@@ -374,9 +586,23 @@ cdef class MulCoefficient(Coefficient):
         return self.first._call(t) * self.second._call(t)
 
     cpdef Coefficient copy(self):
+        """Return a copy of the Coefficient."""
         return MulCoefficient(self.first.copy(), self.second.copy())
 
     def replace(self, *, arguments=None, tlist=None):
+        """
+        Return a `Coefficient` with args or tlist changed.
+
+        Parameters
+        ----------
+        arguments : dict
+            New arguments for function and str based `Coefficient`.
+            The dictionary do not need to include all keys, but only the items
+            that need to be updated.
+
+        tlist : np.array
+            New array of times for the array coefficients.
+        """
         return MulCoefficient(
             self.first.replace(arguments=arguments, tlist=tlist),
             self.second.replace(arguments=arguments, tlist=tlist)
@@ -386,7 +612,18 @@ cdef class MulCoefficient(Coefficient):
 @cython.auto_pickle(True)
 cdef class ConjCoefficient(Coefficient):
     """
-    Conjugate of a Coefficient.
+    Conjugate of a `Coefficient`.
+
+    Result of `Coefficient.conj()` or `qutip.coefficent.conj(Coefficient)`.
+
+    Methods
+    -------
+    conj():
+        Conjugate of the `Coefficient`.
+    copy():
+        Create a copy of the `Coefficient`.
+    replace(arguments, tlist):
+        Create a new `Coefficient` with updated arguments and/or tlist.
     """
     cdef Coefficient base
 
@@ -397,9 +634,23 @@ cdef class ConjCoefficient(Coefficient):
         return conj(self.base._call(t))
 
     cpdef Coefficient copy(self):
+        """Return a copy of the `Coefficient`."""
         return ConjCoefficient(self.base.copy())
 
     def replace(self, *, arguments=None, tlist=None):
+        """
+        Return a `Coefficient` with args or tlist changed.
+
+        Parameters
+        ----------
+        arguments : dict
+            New arguments for function and str based `Coefficient`.
+            The dictionary do not need to include all keys, but only the items
+            that need to be updated.
+
+        tlist : np.array
+            New array of times for the array coefficients.
+        """
         return ConjCoefficient(
             self.base.replace(arguments=arguments, tlist=tlist)
         )
@@ -408,8 +659,18 @@ cdef class ConjCoefficient(Coefficient):
 @cython.auto_pickle(True)
 cdef class NormCoefficient(Coefficient):
     """
-    Norm of a Coefficient.
+    Norm of a `Coefficient`.
     Used as a shortcut of conj(coeff) * coeff
+    Result of `Coefficient._cdc()` or `qutip.coefficent.norm(Coefficient)`.
+
+    Methods
+    -------
+    conj():
+        Conjugate of the `Coefficient`.
+    copy():
+        Create a copy of the `Coefficient`.
+    replace(arguments, tlist):
+        Create a new `Coefficient` with updated arguments and/or tlist.
     """
     cdef Coefficient base
 
@@ -417,6 +678,19 @@ cdef class NormCoefficient(Coefficient):
         self.base = base
 
     def replace(self, *, arguments=None, tlist=None):
+        """
+        Return a `Coefficient` with args or tlist changed.
+
+        Parameters
+        ----------
+        arguments : dict
+            New arguments for function and str based `Coefficient`.
+            The dictionary do not need to include all keys, but only the items
+            that need to be updated.
+
+        tlist : np.array
+            New array of times for the array coefficients.
+        """
         return NormCoefficient(
             self.base.replace(arguments=arguments, tlist=tlist)
         )
@@ -425,13 +699,25 @@ cdef class NormCoefficient(Coefficient):
         return norm(self.base._call(t))
 
     cpdef Coefficient copy(self):
+        """Return a copy of the `Coefficient`."""
         return NormCoefficient(self.base.copy())
 
 
 @cython.auto_pickle(True)
 cdef class ShiftCoefficient(Coefficient):
     """
-    Introduce a time shift in the Coefficient
+    Introduce a time shift in the `Coefficient`.
+    Used intenally in correlation.
+    Result of `Coefficient._shift()` or `qutip.coefficent.shift(Coefficient)`.
+
+    Methods
+    -------
+    conj():
+        Conjugate of the `Coefficient`.
+    copy():
+        Create a copy of the `Coefficient`.
+    replace(arguments, tlist):
+        Create a new `Coefficient` with updated arguments and/or tlist.
     """
     cdef Coefficient base
     cdef double _t0
@@ -441,6 +727,19 @@ cdef class ShiftCoefficient(Coefficient):
         self._t0 = _t0
 
     def replace(self, *, arguments=None, tlist=None):
+        """
+        Return a `Coefficient` with args or tlist changed.
+
+        Parameters
+        ----------
+        arguments : dict
+            New arguments for function and str based `Coefficient`.
+            The dictionary do not need to include all keys, but only the items
+            that need to be updated.
+
+        tlist : np.array
+            New array of times for the array coefficients.
+        """
         _t0 = arguments["_t0"] if "_t0" in arguments else self._t0
         return ShiftCoefficient(
             self.base.replace(arguments=arguments, tlist=tlist), _t0
@@ -450,4 +749,5 @@ cdef class ShiftCoefficient(Coefficient):
         return self.base._call(t + self._t0)
 
     cpdef Coefficient copy(self):
+        """Return a copy of the `Coefficient`."""
         return ShiftCoefficient(self.base.copy(), self._t0)
