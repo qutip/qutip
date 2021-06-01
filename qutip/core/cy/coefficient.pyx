@@ -43,9 +43,9 @@ cdef class Coefficient:
         """
         return self
 
-    def __call__(self, double t, dict args={}):
+    def __call__(self, double t, dict args=None):
         """Return the coefficient value at `t` with given `args`."""
-        if args:
+        if args is not None:
             return (<Coefficient> self.replace(arguments=args))._call(t)
         return self._call(t)
 
@@ -89,24 +89,15 @@ cdef class Coefficient:
 @cython.auto_pickle(True)
 cdef class FunctionCoefficient(Coefficient):
     """
-    `Coefficient` wrapping a Python function.
+    :obj:`Coefficient` wrapping a Python function.
 
     Parameters
     ----------
     func : callable(t : float, args : dict) -> complex
-        Function computing the coefficient for a `QobjEvo`.
+        Function computing the coefficient for a :obj:`QobjEvo`.
 
     args : dict
         Dictionary of variable to pass to `func`.
-
-    Methods
-    -------
-    conj():
-        Conjugate of the `Coefficient`.
-    copy():
-        Create a copy of the `Coefficient`.
-    replace(arguments, tlist):
-        Create a new `Coefficient` with updated arguments and/or tlist.
     """
     cdef object func
 
@@ -163,8 +154,10 @@ cdef class StrFunctionCoefficient(Coefficient):
         `exp`, `log`, `log10`, `erf`, `zerf`, `sqrt`,
         `real`, `imag`, `conj`, `abs`, `norm`, `arg`, `proj`,
         `numpy` as `np` and `scipy.special` as `spe`.
-    *Examples*
-        StrFunctionCoefficient("sin(w*pi*t)", {'w': 1j})
+
+    Examples
+    --------
+    >>> StrFunctionCoefficient("sin(w*pi*t)", {'w': 1j})
 
     Parameters
     ----------
@@ -174,15 +167,6 @@ cdef class StrFunctionCoefficient(Coefficient):
     args : dict
         Dictionary of variable used in the code string. May include unused
         variables.
-
-    Methods
-    -------
-    conj():
-        Conjugate of the `Coefficient`.
-    copy():
-        Create a copy of the `Coefficient`.
-    replace(arguments, tlist):
-        Create a new `Coefficient` with updated arguments and/or tlist.
     """
     cdef object func
     cdef str base
@@ -271,15 +255,6 @@ cdef class InterpolateCoefficient(Coefficient):
     splineObj : :class:`qutip.Cubic_Spline`
         Spline interpolation object representing the coefficient as a function
         of the time.
-
-    Methods
-    -------
-    conj():
-        Conjugate of the `Coefficient`.
-    copy():
-        Create a copy of the `Coefficient`.
-    replace(arguments, tlist):
-        Create a new `Coefficient` with updated arguments and/or tlist.
     """
 
     cdef double lower_bound, higher_bound
@@ -330,7 +305,7 @@ cdef class InterpolateCoefficient(Coefficient):
 
 cdef class InterCoefficient(Coefficient):
     """
-    `Coefficient` build form a cubic spline interpolation of a numpy array.
+    ``Coefficient`` built from a cubic spline interpolation of a numpy array.
 
     Parameters
     ----------
@@ -340,15 +315,6 @@ cdef class InterCoefficient(Coefficient):
     tlist : np.ndarray
         Array of times corresponding to each coefficient. The time must be
         inscreasing, but do not need to be uniformly spaced.
-
-    Methods
-    -------
-    conj():
-        Conjugate of the `Coefficient`.
-    copy():
-        Create a copy of the `Coefficient`.
-    replace(arguments, tlist):
-        Create a new `Coefficient` with updated arguments and/or tlist.
     """
     cdef int n_t, cte
     cdef double dt
@@ -440,15 +406,6 @@ cdef class StepCoefficient(Coefficient):
     tlist : np.ndarray
         Array of times corresponding to each coefficient. The time must be
         inscreasing, but do not need to be uniformly spaced.
-
-    Methods
-    -------
-    conj():
-        Conjugate of the `Coefficient`.
-    copy():
-        Create a copy of the `Coefficient`.
-    replace(arguments, tlist):
-        Create a new `Coefficient` with updated arguments and/or tlist.
     """
     cdef int n_t, cte
     cdef double dt
@@ -512,15 +469,6 @@ cdef class SumCoefficient(Coefficient):
     """
     `Coefficient` build from the sum of 2 other Coefficients.
     Result of `Coefficient` + `Coefficient`.
-
-    Methods
-    -------
-    conj():
-        Conjugate of the `Coefficient`.
-    copy():
-        Create a copy of the `Coefficient`.
-    replace(arguments, tlist):
-        Create a new `Coefficient` with updated arguments and/or tlist.
     """
     cdef Coefficient first
     cdef Coefficient second
@@ -615,15 +563,6 @@ cdef class ConjCoefficient(Coefficient):
     Conjugate of a `Coefficient`.
 
     Result of `Coefficient.conj()` or `qutip.coefficent.conj(Coefficient)`.
-
-    Methods
-    -------
-    conj():
-        Conjugate of the `Coefficient`.
-    copy():
-        Create a copy of the `Coefficient`.
-    replace(arguments, tlist):
-        Create a new `Coefficient` with updated arguments and/or tlist.
     """
     cdef Coefficient base
 
@@ -662,15 +601,6 @@ cdef class NormCoefficient(Coefficient):
     Norm of a `Coefficient`.
     Used as a shortcut of conj(coeff) * coeff
     Result of `Coefficient._cdc()` or `qutip.coefficent.norm(Coefficient)`.
-
-    Methods
-    -------
-    conj():
-        Conjugate of the `Coefficient`.
-    copy():
-        Create a copy of the `Coefficient`.
-    replace(arguments, tlist):
-        Create a new `Coefficient` with updated arguments and/or tlist.
     """
     cdef Coefficient base
 
@@ -709,15 +639,6 @@ cdef class ShiftCoefficient(Coefficient):
     Introduce a time shift in the `Coefficient`.
     Used intenally in correlation.
     Result of `Coefficient._shift()` or `qutip.coefficent.shift(Coefficient)`.
-
-    Methods
-    -------
-    conj():
-        Conjugate of the `Coefficient`.
-    copy():
-        Create a copy of the `Coefficient`.
-    replace(arguments, tlist):
-        Create a new `Coefficient` with updated arguments and/or tlist.
     """
     cdef Coefficient base
     cdef double _t0
