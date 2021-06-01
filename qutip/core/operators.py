@@ -37,12 +37,10 @@ of commonly occuring quantum operators.
 
 __all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
            'spin_J_set', 'sigmap', 'sigmam', 'sigmax', 'sigmay', 'sigmaz',
-           'destroy', 'create',  'qeye', 'identity', 'num', 'charge',
-           'position', 'momentum', 'tunneling',
-           'qzero', 'squeeze', 'displace', 'phase',
-           'squeezing', 'commutator', 'qdiags',
-           'qutrit_ops', 'enr_destroy', 'enr_identity',
-          ]
+           'destroy', 'create', 'qeye', 'identity', 'position', 'momentum',
+           'num', 'squeeze', 'squeezing', 'displace', 'commutator',
+           'qutrit_ops', 'qdiags', 'phase', 'qzero', 'enr_destroy',
+           'enr_identity', 'charge', 'tunneling']
 
 import numbers
 
@@ -78,14 +76,6 @@ def qdiags(diagonals, offsets, dims=None, shape=None, *, dtype=_data.CSR):
     dtype : type or str
         Storage representation. Any data-layer known to `qutip.data.to` is
         accepted.
-
-    See Also
-    --------
-    scipy.sparse.diags : for usage information.
-
-    Notes
-    -----
-    This function requires SciPy 0.11+.
 
     Examples
     --------

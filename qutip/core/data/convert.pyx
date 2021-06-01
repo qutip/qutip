@@ -283,7 +283,7 @@ cdef class _to:
             aliases = [aliases]
         for alias in aliases:
             if type(alias) is not str:
-                raise TypeError("The alias must be a str")
+                raise TypeError("The alias must be a str : " + repr(alias))
             self._str2type[alias] = layer_type
 
     def parse(self, dtype):
@@ -374,11 +374,12 @@ cdef class _create:
                 Function determining if the given object can be converted to a
                 data-layer type using this creator.
 
-            creator function: callable (object, shape) -> Data
-                The creator function. It should take an object and a shape
-                and return a data-layer type instance. The object may be
-                any object for which the condition function returned ``True``
-                when tested.
+            creator function: callable (object, shape, copy=True) -> Data
+                The creator function. It should take an object and a shape and
+                return a data-layer type instance. The object may be any object
+                for which the condition function returned ``True`` when tested.
+                The ``object`` and ``shape`` parameters are passed positionally,
+                and the ``copy`` parameter is passed by keyword.
 
             priority : real, optional (0)
                 The priority associated with this creator. Higher priority
@@ -402,9 +403,12 @@ cdef class _create:
         """
         for condition, creator, *priority in creators:
             if not callable(condition):
-                raise TypeError(str(condition) + " is not a callable")
+                raise TypeError(repr(condition) + " is not a callable")
             if not callable(create):
-                raise TypeError(str(create) + " is not a callable")
+                raise TypeError(repr(create) + " is not a callable")
+            if len(priority) >= 2:
+                raise ValueError("Too many values to unpack for a creator, " +
+                                 "expected 2 or 3, got "+ str(2+len(priority)))
             priority = float(priority[0] if priority else 0)
             self._creators.append((condition, creator, priority))
         self._creators.sort(key=lambda creator: creator[2], reverse=True)
@@ -424,8 +428,9 @@ cdef class _create:
         """
         for condition, create, _ in self._creators:
             if condition(arg):
-                return create(arg, shape, copy)
-        raise TypeError("arg cannot be converted to qutip data format")
+                return create(arg, shape, copy=copy)
+        raise TypeError(f"arg `{repr(arg)}` cannot be converted to "
+                        "qutip data format")
 
 
 to = _to()

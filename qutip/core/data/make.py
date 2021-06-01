@@ -44,7 +44,7 @@ del _diag_signature
 
 def one_element_csr(shape, position, value=1.0):
     """
-    Create a matrix with only one non-null elements.
+    Create a matrix with only one nonzero element.
 
     Parameters
     ----------
@@ -71,7 +71,7 @@ def one_element_csr(shape, position, value=1.0):
 
 def one_element_dense(shape, position, value=1.0):
     """
-    Create a matrix with only one non-null elements.
+    Create a matrix with only one nonzero element.
 
     Parameters
     ----------

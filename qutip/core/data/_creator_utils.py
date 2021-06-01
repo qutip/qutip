@@ -24,4 +24,8 @@ def true(arg):
 
 
 def data_copy(arg, shape, copy=True):
+    if shape is not None and shape != arg.shape:
+        raise ValueError("".join([
+            "shapes do not match: ", str(shape), " and ", str(arg.shape),
+        ]))
     return arg.copy() if copy else arg
