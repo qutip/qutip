@@ -28,9 +28,6 @@ Bug Fixes
 - Removed blitting in Bloch sphere FuncAnimation example. (`#1558 <https://github.com/qutip/qutip/pull/1558>`_)
 - Added a version checking condition to handle specific functionalities depending on the matplotlib version. (`#1556 <https://github.com/qutip/qutip/pull/1556>`_)
 - Fixed `mesolve` handling of time-dependent Hamiltonian with a custom tlist and `c_ops`. (`#1561 <https://github.com/qutip/qutip/pull/1561>`_)
-	- Specialized exception types in `QobjEvo` failure paths.
-	- Fixed tlist QobjEvo with constant collapse operators in mesolve.
-	- 2-element list elements in QobjEvo specifiers can now be any iterable type, not just list.
 
 
 Version 4.6.1 (May 4, 2021)
