@@ -51,6 +51,7 @@ import numpy as np
 import scipy.linalg
 
 from . import data as _data
+from .data import matmul
 from .superoperator import stack_columns, unstack_columns, sprepost
 from .tensor import tensor
 from .dimensions import flatten
@@ -232,7 +233,7 @@ def _choi_to_chi(q_oper):
     """
     nq = _nq(q_oper.dims)
     B = _superpauli_basis(nq).data
-    return Qobj(B.adjoint() @ q_oper.data @ B,
+    return Qobj(matmul(matmul(B.adjoint(), q_oper.data), B),
                 dims=q_oper.dims,
                 type='super',
                 superrep='chi',
@@ -250,7 +251,7 @@ def _chi_to_choi(q_oper):
     B = _superpauli_basis(nq).data
     # The Chi matrix has tr(chi) == d², so we need to divide out
     # by that to get back to the Choi form.
-    return Qobj((B @ q_oper.data @ B.adjoint()) / q_oper.shape[0],
+    return Qobj(matmul(matmul(B, q_oper.data), B.adjoint()) / q_oper.shape[0],
                 dims=q_oper.dims,
                 type='super',
                 superrep='choi',

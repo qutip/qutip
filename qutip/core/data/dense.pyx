@@ -44,8 +44,15 @@ class OrderEfficiencyWarning(EfficiencyWarning):
 cdef class Dense(base.Data):
     def __init__(self, data, shape=None, copy=True):
         base = np.array(data, dtype=np.complex128, order='K', copy=copy)
+        # Ensure that the array is contiguous.
+        # Non contiguous array with copy=False would otherwise slip through
+        if not (cnp.PyArray_IS_C_CONTIGUOUS(base) or
+                cnp.PyArray_IS_F_CONTIGUOUS(base)):
+            base = base.copy()
         if shape is None:
             shape = base.shape
+            if len(shape) == 0:
+                shape = (1, 1)
             # Promote to a ket by default if passed 1D data.
             if len(shape) == 1:
                 shape = (shape[0], 1)
@@ -345,4 +352,110 @@ cpdef Dense from_csr(CSR matrix, bint fortran=False):
         for ptr_in in range(matrix.row_index[row], matrix.row_index[row + 1]):
             out.data[ptr_out + matrix.col_index[ptr_in]*col_stride] = matrix.data[ptr_in]
         ptr_out += row_stride
+    return out
+
+
+cdef inline base.idxint _diagonal_length(
+    base.idxint offset, base.idxint n_rows, base.idxint n_cols,
+) nogil:
+    if offset > 0:
+        return n_rows if offset <= n_cols - n_rows else n_cols - offset
+    return n_cols if offset > n_cols - n_rows else n_rows + offset
+
+
+@cython.wraparound(True)
+def diags(diagonals, offsets=None, shape=None):
+    """
+    Construct a matrix from diagonals and their offsets.  Using this
+    function in single-argument form produces a square matrix with the given
+    values on the main diagonal.
+    With lists of diagonals and offsets, the matrix will be the smallest
+    possible square matrix if shape is not given, but in all cases the
+    diagonals must fit exactly with no extra or missing elements. Duplicated
+    diagonals will be summed together in the output.
+
+    Parameters
+    ----------
+    diagonals : sequence of array_like of complex or array_like of complex
+        The entries (including zeros) that should be placed on the diagonals in
+        the output matrix.  Each entry must have enough entries in it to fill
+        the relevant diagonal and no more.
+    offsets : sequence of integer or integer, optional
+        The indices of the diagonals.  `offsets[i]` is the location of the
+        values `diagonals[i]`.  An offset of 0 is the main diagonal, positive
+        values are above the main diagonal and negative ones are below the main
+        diagonal.
+    shape : tuple, optional
+        The shape of the output as (``rows``, ``columns``).  The result does
+        not need to be square, but the diagonals must be of the correct length
+        to fit in exactly.
+    """
+    cdef base.idxint n_rows, n_cols, offset
+    try:
+        diagonals = list(diagonals)
+        if diagonals and np.isscalar(diagonals[0]):
+            # Catch the case where we're being called as (for example)
+            #   diags([1, 2, 3], 0)
+            # with a single diagonal and offset.
+            diagonals = [diagonals]
+    except TypeError:
+        raise TypeError("diagonals must be a list of arrays of complex") from None
+    if offsets is None:
+        if len(diagonals) == 0:
+            offsets = []
+        elif len(diagonals) == 1:
+            offsets = [0]
+        else:
+            raise TypeError("offsets must be supplied if passing more than one diagonal")
+    offsets = np.atleast_1d(offsets)
+    if offsets.ndim > 1:
+        raise ValueError("offsets must be a 1D array of integers")
+    if len(diagonals) != len(offsets):
+        raise ValueError("number of diagonals does not match number of offsets")
+    if len(diagonals) == 0:
+        if shape is None:
+            raise ValueError("cannot construct matrix with no diagonals without a shape")
+        else:
+            n_rows, n_cols = shape
+        return zeros(n_rows, n_cols)
+    order = np.argsort(offsets)
+    diagonals_ = []
+    offsets_ = []
+    prev, cur = None, None
+    for i in order:
+        cur = offsets[i]
+        if cur == prev:
+            diagonals_[-1] += np.asarray(diagonals[i], dtype=np.complex128)
+        else:
+            offsets_.append(cur)
+            diagonals_.append(np.asarray(diagonals[i], dtype=np.complex128))
+        prev = cur
+    if shape is None:
+        n_rows = n_cols = abs(offsets_[0]) + len(diagonals_[0])
+    else:
+        try:
+            n_rows, n_cols = shape
+        except (TypeError, ValueError):
+            raise TypeError("shape must be a 2-tuple of positive integers")
+        if n_rows < 0 or n_cols < 0:
+            raise ValueError("shape must be a 2-tuple of positive integers")
+    for i in range(len(diagonals_)):
+        offset = offsets_[i]
+        if len(diagonals_[i]) != _diagonal_length(offset, n_rows, n_cols):
+            raise ValueError("given diagonals do not have the correct lengths")
+    if n_rows == 0 and n_cols == 0:
+        raise ValueError("can't produce a 0x0 matrix")
+
+    out = zeros(n_rows, n_cols, fortran=True)
+
+    cdef size_t diag_idx, idx, n_diagonals = len(diagonals_)
+
+    for diag_idx in range(n_diagonals):
+        offset = offsets_[diag_idx]
+        if offset <= 0:
+            for idx in range(_diagonal_length(offset, n_rows, n_cols)):
+                out.data[idx*(n_rows+1) - offset] = diagonals_[diag_idx][idx]
+        else:
+            for idx in range(_diagonal_length(offset, n_rows, n_cols)):
+                out.data[idx*(n_rows+1) + offset*n_rows] = diagonals_[diag_idx][idx]
     return out

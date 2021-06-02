@@ -14,6 +14,7 @@ from .expm import *
 from .inner import *
 from .kron import *
 from .matmul import *
+from .make import *
 from .mul import *
 from .pow import *
 from .project import *
@@ -34,5 +35,20 @@ to.add_conversions([
     (Dense, CSR, dense.from_csr, 1),
     (CSR, Dense, csr.from_dense, 1.4),
 ])
+to.register_aliases(['csr', 'CSR'], CSR)
+to.register_aliases(['Dense', 'dense'], Dense)
+
+
+from . import _creator_utils
+import numpy as np
+create.add_creators([
+    (_creator_utils.is_data, _creator_utils.data_copy, 100),
+    (_creator_utils.isspmatrix_csr, CSR, 80),
+    (_creator_utils.is_nparray, Dense, 80),
+    (_creator_utils.issparse, CSR, 20),
+    (_creator_utils.true, Dense, -np.inf),
+])
+del _creator_utils
+del np
 
 from .dispatch import Dispatcher

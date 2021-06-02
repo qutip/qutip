@@ -214,8 +214,8 @@ def test_tunneling():
     N = 5
     tn = tunneling(2*N+1)
     tn_matrix = np.diag(np.ones(2*N),k=-1) + np.diag(np.ones(2*N),k=1)
-    assert_equal(np.allclose(tn.full(), tn_matrix), True) 
-    
+    assert_equal(np.allclose(tn.full(), tn_matrix), True)
+
     tn = tunneling(2*N+1,2)
     tn_matrix = np.diag(np.ones(2*N-1),k=-2) + np.diag(np.ones(2*N-1),k=2)
     assert_equal(np.allclose(tn.full(), tn_matrix), True)
@@ -223,3 +223,47 @@ def test_tunneling():
 
 if __name__ == "__main__":
     run_module_suite()
+
+
+def _id_func(val):
+    "ids generated from the function only"
+    if isinstance(val, tuple):
+        return ""
+
+
+# random object accept `str` and base.Data
+# Obtain all valid dtype from `to`
+dtype_names = list(qutip.data.to._str2type.keys()) + list(qutip.data.to.dtypes)
+dtype_types = list(qutip.data.to._str2type.values()) + list(qutip.data.to.dtypes)
+@pytest.mark.parametrize(['alias', 'dtype'], zip(dtype_names, dtype_types),
+                         ids=[str(dtype) for dtype in dtype_names])
+@pytest.mark.parametrize(['func', 'args'], [
+    (qutip.qdiags, ([0, 1, 2], 1)),
+    (qutip.jmat, (1,)),
+    (qutip.spin_Jx, (1,)),
+    (qutip.spin_Jy, (1,)),
+    (qutip.spin_Jz, (1,)),
+    (qutip.spin_Jp, (1,)),
+    (qutip.destroy, (5,)),
+    (qutip.create, (5,)),
+    (qutip.qzero, (5,)),
+    (qutip.qeye, (5,)),
+    (qutip.position, (5,)),
+    (qutip.momentum, (5,)),
+    (qutip.num, (5,)),
+    (qutip.squeeze, (5, 0.5)),
+    (qutip.displace, (5, 1.0)),
+    (qutip.qutrit_ops, ()),
+    (qutip.phase, (5,)),
+    (qutip.charge, (5,)),
+    (qutip.tunneling, (5,)),
+    (qutip.enr_destroy, ([3, 3, 3], 4)),
+    (qutip.enr_identity, ([3, 3, 3], 4)),
+], ids=_id_func)
+def test_operator_type(func, args, alias, dtype):
+    object = func(*args, dtype=alias)
+    if isinstance(object, qutip.Qobj):
+        assert isinstance(object.data, dtype)
+    else:
+        for obj in object:
+            assert isinstance(obj.data, dtype)

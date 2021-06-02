@@ -147,6 +147,7 @@ cdef class _to:
     cdef dict _direct_convert
     cdef dict _convert
     cdef readonly dict weight
+    cdef readonly dict _str2type
 
     def __init__(self):
         self._direct_convert = {}
@@ -154,6 +155,7 @@ cdef class _to:
         self.dtypes = set()
         self.weight = {}
         self.dispatchers = []
+        self._str2type = {}
 
     def add_conversions(self, converters):
         """
@@ -260,61 +262,175 @@ cdef class _to:
         for dispatcher in self.dispatchers:
             dispatcher.rebuild_lookup()
 
+    def register_aliases(self, aliases, layer_type):
+        """
+        Register a user frendly name for a data-layer type to be recognized by
+        the :method:`parse` method.
+
+        Parameters
+        ----------
+        aliases : str or list of str
+            Name of list of names to be understood to represent the layer_type.
+
+        layer_type : type
+            Data-layer type, must have been registered with
+            :method:`add_conversions` first.
+        """
+        if layer_type not in self.dtypes:
+            raise ValueError(
+                "Type is not a data-layer type: " + repr(layer_type))
+        if isinstance(aliases, str):
+            aliases = [aliases]
+        for alias in aliases:
+            if type(alias) is not str:
+                raise TypeError("The alias must be a str : " + repr(alias))
+            self._str2type[alias] = layer_type
+
+    def parse(self, dtype):
+        """
+        Return a data-layer type object given its name or the type itself.
+
+        Parameters
+        ----------
+        dtype : type, str
+            Either the name of a data-layer type or a type itself.
+
+        Returns
+        -------
+        type
+            A data-layer type.
+
+        Raises
+        ------
+        TypeError
+            If ``dtype`` is neither a string nor a type.
+        ValueError
+            If ``dtype`` is a name, but no data-layer type of that name is
+            registered, or if ``dtype`` is a type, but not a known data-layer
+            type.
+        """
+        if type(dtype) is type:
+            if dtype not in self.dtypes:
+                raise ValueError(
+                    "Type is not a data-layer type: " + repr(dtype))
+            return dtype
+        elif type(dtype) is str:
+            try:
+                return self._str2type[dtype]
+            except KeyError:
+                raise ValueError(
+                    "Type name is not known to the data-layer: " + repr(dtype)
+                    ) from None
+
+        raise TypeError(
+            "Invalid dtype is neither a type nor a type name: " + repr(dtype))
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def __getitem__(self, arg):
-        if isinstance(arg, type):
+        if type(arg) is not tuple:
             arg = (arg,)
-        if not isinstance(arg, tuple) or not arg or len(arg) > 2:
+        if not arg or len(arg) > 2:
             raise KeyError(arg)
-        to_t = arg[0]
-        if to_t not in self.dtypes:
-            raise TypeError("to_type is not known: " + str(to_t))
+        to_t = self.parse(arg[0])
         if len(arg) == 1:
             converters = {
                 from_t: self._convert[to_t, from_t] for from_t in self.dtypes
             }
             return _partial_converter(converters, to_t)
-        from_t = arg[1]
-        if from_t not in self.dtypes:
-            raise TypeError("from_type is not known: " + str(from_t))
+        from_t = self.parse(arg[1])
         return self._convert[to_t, from_t]
 
     def __call__(self, to_type, data):
-        if not isinstance(to_type, type):
-            raise TypeError(repr(to_type) + " is not a type object")
-        if to_type not in self.dtypes:
-            raise ValueError("unknown output type: " + to_type.__name__)
-        from_type = type(data)
-        if from_type not in self.dtypes:
-            raise TypeError("unknown input type: " + from_type.__name__)
+        to_type = self.parse(to_type)
+        from_type = self.parse(type(data))
         if to_type == from_type:
             return data
         return self._convert[to_type, from_type](data)
 
 
 cdef class _create:
+    cdef readonly list _creators
+
     def __init__(self):
-        pass
+        self._creators = []
 
     def add_creators(self, creators):
-        pass
+        """
+        Add creation functions to make a data-layer object from an arbitrary
+        Python object.
 
-    def __call__(self, arg, shape=None):
-        from qutip.core.data import CSR, csr, dense
-        import numpy as np
-        import scipy.sparse
-        if isinstance(arg, CSR):
-            return arg.copy()
-        if scipy.sparse.issparse(arg):
-            return CSR(arg.tocsr(), shape=shape)
-        # Promote 1D lists and arguments to kets, not bras by default.
-        arr = np.array(arg, dtype=np.complex128)
-        if arr.ndim == 1:
-            arr = arr[:, np.newaxis]
-        if arr.ndim != 2:
-            raise TypeError("input has incorrect dimensions: " + str(arr.shape))
-        return csr.from_dense(dense.fast_from_numpy(arr))
+        Parameters
+        ----------
+        creators : iterable of (condition, creator, [priority])
+            An iterable of 2- or 3-tuples describing the new data layer
+            creation functions.
+            Each element can individually be a 2- or 3-tuple; they do not need
+            to be all one or the other.
+
+            Elements
+            ........
+            condition : callable (object) -> bool
+                Function determining if the given object can be converted to a
+                data-layer type using this creator.
+
+            creator function: callable (object, shape, copy=True) -> Data
+                The creator function. It should take an object and a shape and
+                return a data-layer type instance. The object may be any object
+                for which the condition function returned ``True`` when tested.
+                The ``object`` and ``shape`` parameters are passed positionally,
+                and the ``copy`` parameter is passed by keyword.
+
+            priority : real, optional (0)
+                The priority associated with this creator. Higher priority
+                conditions will be tested first and the first valid creator
+                (i.e. for which ``condition(object) == True``) will handle
+                the creation.
+
+        Notes
+        -----
+        Default creators are added with the following priorities:
+
+        * Objects that are instances of data-layer types are
+          converted using ``.copy`` with priority 100.
+        * Objects that have a direct equivalent such as ``numpy.ndarray``
+          or ``scipy.sparse.csr_matrix`` are converted with priority 80.
+        * Objects for which ``scipy.sparse.issparse`` is ``True``
+          are converted using an internal CSR converter with
+          priority 20.
+        * If no condition are meet, ``numpy.array`` is used to try convert
+          the input to an array (priority -inf).
+        """
+        for condition, creator, *priority in creators:
+            if not callable(condition):
+                raise TypeError(repr(condition) + " is not a callable")
+            if not callable(create):
+                raise TypeError(repr(create) + " is not a callable")
+            if len(priority) >= 2:
+                raise ValueError("Too many values to unpack for a creator, " +
+                                 "expected 2 or 3, got "+ str(2+len(priority)))
+            priority = float(priority[0] if priority else 0)
+            self._creators.append((condition, creator, priority))
+        self._creators.sort(key=lambda creator: creator[2], reverse=True)
+
+    def __call__(self, arg, shape=None, copy=True):
+        """
+        Build a :class:`qutip.data.Data` object from arg.
+
+        Parameters
+        ----------
+        arg : object
+            Object to be converted to `qutip.data.Data`. Anything that can be
+            converted to a numpy array are valid input.
+
+        shape : tuple, optional
+            The shape of the output as (``rows``, ``columns``).
+        """
+        for condition, create, _ in self._creators:
+            if condition(arg):
+                return create(arg, shape, copy=copy)
+        raise TypeError(f"arg `{repr(arg)}` cannot be converted to "
+                        "qutip data format")
 
 
 to = _to()

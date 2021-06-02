@@ -724,6 +724,7 @@ class QobjEvo(QobjEvoBase):
         self.cte = self.cte.tidyup(atol)
         for op in self.ops:
             op.qobj = op.qobj.tidyup(atol)
+        self._compile()
         return self
 
     def permute(self, order):
@@ -768,7 +769,6 @@ class QobjEvo(QobjEvoBase):
         return res
 
     def _compile(self):
-        self.tidyup()
         self.compiled_qobjevo = CQobjEvo(self.cte, self.ops)
 
     def _compress_make_set(self):

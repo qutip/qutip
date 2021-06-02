@@ -65,7 +65,7 @@ class TestMatVec:
         N = 3
         rho1 = qutip.rand_dm(N)
         rho2 = qutip.vector_to_operator(qutip.operator_to_vector(rho1))
-        assert (rho1 - rho2).norm('max') < 1e-8
+        np.testing.assert_allclose(rho1.full(), rho2.full(), 1e-8)
 
     def testOperatorVectorTensor(self):
         """
@@ -77,7 +77,7 @@ class TestMatVec:
         rhob = qutip.rand_dm(Nb)
         rho1 = qutip.tensor(rhoa, rhob)
         rho2 = qutip.vector_to_operator(qutip.operator_to_vector(rho1))
-        assert (rho1 - rho2).norm('max') < 1e-8
+        np.testing.assert_allclose(rho1.full(), rho2.full(), 1e-8)
 
     def testOperatorVectorNotSquare(self):
         """
@@ -85,7 +85,7 @@ class TestMatVec:
         """
         op1 = qutip.Qobj(np.random.rand(6).reshape((3, 2)))
         op2 = qutip.vector_to_operator(qutip.operator_to_vector(op1))
-        assert (op1 - op2).norm('max') < 1e-8
+        np.testing.assert_allclose(op1.full(), op2.full(), 1e-8)
 
     def testOperatorSpreAppl(self):
         """
@@ -97,7 +97,7 @@ class TestMatVec:
         rho1 = U * rho
         rho2_vec = qutip.spre(U) * qutip.operator_to_vector(rho)
         rho2 = qutip.vector_to_operator(rho2_vec)
-        assert (rho1 - rho2).norm('max') < 1e-8
+        np.testing.assert_allclose(rho1.full(), rho2.full(), 1e-8)
 
     def testOperatorSpostAppl(self):
         """
@@ -109,7 +109,7 @@ class TestMatVec:
         rho1 = rho * U
         rho2_vec = qutip.spost(U) * qutip.operator_to_vector(rho)
         rho2 = qutip.vector_to_operator(rho2_vec)
-        assert (rho1 - rho2).norm('max') < 1e-8
+        np.testing.assert_allclose(rho1.full(), rho2.full(), 1e-8)
 
     def testOperatorUnitaryTransform(self):
         """
@@ -121,7 +121,7 @@ class TestMatVec:
         rho1 = U * rho * U.dag()
         rho2_vec = qutip.sprepost(U, U.dag()) * qutip.operator_to_vector(rho)
         rho2 = qutip.vector_to_operator(rho2_vec)
-        assert (rho1 - rho2).norm('max') < 1e-8
+        np.testing.assert_allclose(rho1.full(), rho2.full(), 1e-8)
 
     def testMatrixVecMat(self):
         """
@@ -130,7 +130,7 @@ class TestMatVec:
         M = _data.create(np.random.rand(10, 10))
         V = qutip.stack_columns(M)
         M2 = qutip.unstack_columns(V)
-        assert _data.csr.nnz(M - M2) == 0
+        np.testing.assert_allclose(M.to_array(), M2.to_array(), 1e-8)
 
     def testVecMatVec(self):
         """
@@ -139,7 +139,7 @@ class TestMatVec:
         V = _data.create(np.random.rand(100, 1))
         M = qutip.unstack_columns(V)
         V2 = qutip.stack_columns(M)
-        assert _data.csr.nnz(V - V2) == 0
+        np.testing.assert_allclose(V.to_array(), V2.to_array(), 1e-8)
 
     def testVecMatIndexConversion(self):
         """
@@ -195,7 +195,7 @@ class TestMatVec:
         c_ops = [np.sqrt(0.01) * a1, np.sqrt(0.025) * a2, np.sqrt(0.05) * a3]
         L1 = qutip.liouvillian(H, c_ops)
         L2 = liouvillian_ref(H, c_ops)
-        assert (L1 - L2).norm('max') < 1e-8
+        np.testing.assert_allclose(L1.full(), L2.full(), 1e-8)
 
 
 class TestSuper_td:

@@ -35,28 +35,17 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-from libc.math cimport sqrt, NAN
-from cpython.exc cimport PyErr_CheckSignals
-
 cimport numpy as cnp
 cnp.import_array()
 
 from ..qobj import Qobj
 from .. import data as _data
 
-from qutip.core.data cimport CSR, Dense, Data
-from qutip.core.data.add cimport iadd_dense
-from qutip.core.data.matmul cimport *
-#(matmul_csr, matmul_csr_dense_dense, matmul_dense, matmul_data_dense, imatmul_dense_dense)
-from qutip.core.data.expect cimport *
-#(expect_csr_dense, expect_super_csr_dense, expect_dense, expect_super_dense, expect_data_dense, expect_super_data_dense)
-from qutip.core.data.reshape cimport (column_stack_dense, column_unstack_dense)
+from qutip.core.data cimport Dense, dense
+from qutip.core.data.reshape cimport column_stack_dense, column_unstack_dense
+from qutip.core.data.expect cimport expect_super_data_dense, expect_data_dense
+from qutip.core.data.matmul cimport matmul_data_dense, imatmul_data_dense
 from qutip.core.cy.coefficient cimport Coefficient
-
-
-cdef extern from "<complex>" namespace "std" nogil:
-    double complex conj(double complex x)
-
 
 cdef class CQobjEvo:
     """
