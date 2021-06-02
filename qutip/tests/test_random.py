@@ -60,12 +60,12 @@ def test_rand_herm(density, pos_def):
     """
     random_qobj = rand_herm(5, density=density, pos_def=pos_def)
     if pos_def:
-        assert all(random_qobj.eigenenergies() > 0)
+        assert all(random_qobj.eigenenergies() > -1e14)
     assert random_qobj.isherm
 
 
 @pytest.mark.repeat(5)
-def test_rand_dm_Eigs():
+def test_rand_herm_Eigs():
     """
     Random Qobjs: Hermitian matrix - Eigs given
     """
@@ -73,7 +73,7 @@ def test_rand_dm_Eigs():
     eigs /= np.sum(eigs)
     eigs.sort()
     random_qobj = rand_herm(eigs)
-    assert np.allclose(random_qobj.eigenenergies(), eigs)
+    np.testing.assert_allclose(random_qobj.eigenenergies(), eigs)
     # verify hermitian
     assert random_qobj.isherm
 
@@ -101,8 +101,8 @@ def test_rand_dm_Eigs():
     eigs /= np.sum(eigs)
     eigs.sort()
     random_qobj = rand_dm(eigs)
-    assert random_qobj.tr() - 1.0 < 1e-15
-    assert np.allclose(random_qobj.eigenenergies(), eigs)
+    assert abs(random_qobj.tr() - 1.0) < 1e-15
+    np.testing.assert_allclose(random_qobj.eigenenergies(), eigs)
     # verify hermitian
     assert random_qobj.isherm
 
@@ -125,7 +125,8 @@ def test_rand_stochastic(kind):
     """
     random_qobj = rand_stochastic(5, kind=kind)
     axis = {"left":0, "right":1}[kind]
-    assert np.allclose(np.sum(random_qobj.full(), axis=axis), 1, atol=1e-15)
+    np.testing.assert_allclose(np.sum(random_qobj.full(), axis=axis), 1,
+                               atol=1e-15)
 
 
 @pytest.mark.repeat(5)
@@ -154,8 +155,8 @@ def test_rand_super_bcsz_cptp():
     Random Qobjs: Tests that BCSZ-random superoperators are CPTP.
     """
     random_qobj = rand_super_bcsz(5)
-    assert random_qobj.iscptp
     assert random_qobj.issuper
+    assert random_qobj.iscptp
 
 
 @pytest.mark.parametrize('func', [

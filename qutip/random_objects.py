@@ -191,7 +191,7 @@ def _rand_herm_sparse(N, density, pos_def):
                       dtype=complex, shape=(N, N))
     M = 0.5 * (M + M.conj().transpose())
     if pos_def:
-        M = M.tolil()
+        M = M.tocoo()
         M.setdiag(np.abs(M.diagonal()) + np.sqrt(2)*N)
     M = M.tocsr()
     M.sort_indices()
@@ -213,8 +213,7 @@ def _rand_herm_dense(N, density, pos_def):
         M[col, row] = 0
         M[row, col] = 0
     if pos_def:
-        as_vec = M.ravel()
-        as_vec[::N+1] = (np.abs(M.diagonal()) + np.sqrt(2)*N)
+        np.fill_diagonal(M, np.abs(M.diagonal()) + np.sqrt(2)*N)
     return M
 
 
