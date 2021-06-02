@@ -356,7 +356,7 @@ def make_cy_code(code, variables, constants, raw, compile_opt):
     cdef_var = ""
     init_var = ""
     init_arg = ""
-    args_var = ""
+    replace_var = ""
     call_var = ""
     copy_var = ""
     for i, (name, val, ctype) in enumerate(variables):
@@ -369,8 +369,9 @@ def make_cy_code(code, variables, constants, raw, compile_opt):
         else:
             init_var += "        self.key{} = '{}'\n".format(i, val)
         init_arg += "        {} = args[self.key{}]\n".format(name, i)
-        args_var += "            if self.key{} in arguments:\n".format(i)
-        args_var += "                out.{} = arguments[self.key{}]\n".format(name[5:], i)
+        replace_var += "            if self.key{} in arguments:\n".format(i)
+        replace_var += ("                out.{}"
+                        " = arguments[self.key{}]\n".format(name[5:], i))
         if raw:
             call_var += "        cdef {} {} = {}\n".format(ctype, val, name)
 
@@ -392,6 +393,9 @@ parsed_code = "{code}"
 
 @cython.auto_pickle(True)
 cdef class StrCoefficient(Coefficient):
+    \"\"\"
+    String compiled as a :obj:`Coefficient` using cython.
+    \"\"\"
     cdef:
         str codeString
 {cdef_cte}{cdef_var}
@@ -401,16 +405,27 @@ cdef class StrCoefficient(Coefficient):
 {init_cte}{init_var}{init_arg}
 
     cpdef Coefficient copy(self):
+        \"\"\"Return a copy of the :obj:`Coefficient`.\"\"\"
         cdef StrCoefficient out = StrCoefficient.__new__(StrCoefficient)
         out.codeString = self.codeString
 {copy_cte}{copy_var}
         return out
 
-    def replace(self, *, dict arguments=None, tlist=None):
+    def replace(self, *, dict arguments=None, **kwargs):
+        \"\"\"
+        Return a :obj:`Coefficient` with args or tlist changed.
+
+        Parameters
+        ----------
+        arguments : dict
+            New arguments for function and str based :obj:`Coefficient`.
+            The dictionary do not need to include all keys, but only those
+            which need to be updated.
+        \"\"\"
         cdef StrCoefficient out
         if arguments:
             out = self.copy()
-{args_var}
+{replace_var}
             return out
         return self
 
