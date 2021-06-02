@@ -7,6 +7,33 @@
 Change Log
 **********
 
+Version 4.6.2 (June 2, 2021)
+++++++++++++++++++++++++++++
+
+This minor release adds a function to calculate the quantum relative entropy, fixes a corner case in handling time-dependent Hamiltonians in ``mesolve`` and adds back support for a wider range of matplotlib versions when plotting or animating Bloch spheres.
+
+It also adds a section in the README listing the papers which should be referenced while citing QuTiP. 
+ 
+
+Improvements
+------------
+- Added a "Citing QuTiP" section to the README, containing a link to the QuTiP papers. (`#1554 <https://github.com/qutip/qutip/pull/1554>`_)
+- Added ``entropy_relative`` which returns the quantum relative entropy between two density matrices. (`#1553 <https://github.com/qutip/qutip/pull/1553>`_)
+
+Bug Fixes
+---------
+- Fixed Bloch sphere distortion when using Matplotlib >= 3.3.0. (`#1496  <https://github.com/qutip/qutip/pull/1496>`_)
+- Removed use of integer-like floats in math.factorial since it is deprecated as of Python 3.9. (`#1550 <https://github.com/qutip/qutip/pull/1550>`_)
+- Simplified call to ffmpeg used in the the Bloch sphere animation tutorial to work with recent versions of ffmpeg. (`#1557 <https://github.com/qutip/qutip/pull/1557>`_)
+- Removed blitting in Bloch sphere FuncAnimation example. (`#1558 <https://github.com/qutip/qutip/pull/1558>`_)
+- Added a version checking condition to handle specific functionalities depending on the matplotlib version. (`#1556 <https://github.com/qutip/qutip/pull/1556>`_)
+- Fixed ``mesolve`` handling of time-dependent Hamiltonian with a custom tlist and ``c_ops``. (`#1561 <https://github.com/qutip/qutip/pull/1561>`_)
+
+Developer Changes
+-----------------
+- Read documentation version and release from the VERSION file.
+
+
 Version 4.6.1 (May 4, 2021)
 +++++++++++++++++++++++++++
 
