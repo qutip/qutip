@@ -396,7 +396,7 @@ Generating Images for Animation
 An example of generating images for generating an animation outside of Python is given below::
 
      import numpy as np
-     b = Bloch()
+     b = qutip.Bloch()
      b.vector_color = ['r']
      b.view = [-40, 30]
      for i in range(len(sx)):
@@ -407,7 +407,7 @@ An example of generating images for generating an animation outside of Python is
 
 Generating an animation using ffmpeg (for example) is fairly simple::
 
-   ffmpeg -r 20 -b 1800 -i bloch_%01d.png bloch.mp4
+   ffmpeg -i temp/bloch_%01d.png bloch.mp4
 
 .. _bloch-animate-decay-direct:
 
@@ -425,7 +425,7 @@ The code to directly generate an mp4 movie of the Qubit decay is as follows ::
    from mpl_toolkits.mplot3d import Axes3D
 
    fig = pyplot.figure()
-   ax = Axes3D(fig,azim=-40,elev=30)
+   ax = Axes3D(fig, azim=-40, elev=30)
    sphere = qutip.Bloch(axes=ax)
 
    def animate(i):
@@ -440,7 +440,7 @@ The code to directly generate an mp4 movie of the Qubit decay is as follows ::
       return ax
 
    ani = animation.FuncAnimation(fig, animate, np.arange(len(sx)),
-                                 init_func=init, blit=True, repeat=False)
+                                 init_func=init, blit=False, repeat=False)
    ani.save('bloch_sphere.mp4', fps=20)
 
 The resulting movie may be viewed here: `bloch_decay.mp4 <https://raw.githubusercontent.com/qutip/qutip/master/doc/figures/bloch_decay.mp4>`_

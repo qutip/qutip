@@ -34,6 +34,7 @@
 import pytest
 import numpy as np
 import qutip
+from qutip.sparse import sp_eigs
 
 
 class TestVonNeumannEntropy:
@@ -87,6 +88,126 @@ class TestMutualInformation:
         expect = (qutip.entropy_vn(dm.ptrace([0, 2]))
                   + qutip.entropy_vn(dm.ptrace(1)))
         assert abs(qutip.entropy_mutual(dm, [0, 2], [1]) - expect) < 1e-13
+
+
+class TestRelativeEntropy:
+    def _simple_relative_entropy_implementation(
+            self, rho, sigma, log_base=np.log, tol=1e-12):
+        """ A simplified relative entropy implementation for use in
+            double-checking the optimised implementation within
+            QuTiP itself.
+        """
+        # S(rho || sigma) = sum_i(p_i log p_i) - sum_ij(p_i P_ij log q_i)
+        rvals, rvecs = sp_eigs(rho.data, rho.isherm, vecs=True)
+        svals, svecs = sp_eigs(sigma.data, sigma.isherm, vecs=True)
+        # Calculate S
+        S = 0
+        for i in range(len(rvals)):
+            if abs(rvals[i]) >= tol:
+                S += rvals[i] * log_base(rvals[i])
+            for j in range(len(svals)):
+                P_ij = (
+                    np.dot(rvecs[i], svecs[j].conjugate()) *
+                    np.dot(svecs[j], rvecs[i].conjugate())
+                )
+                if abs(svals[j]) < tol and not (
+                        abs(rvals[i]) < tol or abs(P_ij) < tol):
+                    # kernel of sigma intersects support of rho
+                    return np.inf
+                if abs(svals[j]) >= tol:
+                    S -= rvals[i] * P_ij * log_base(svals[j])
+        return np.real(S)
+
+    def test_rho_or_sigma_not_oper(self):
+        rho = qutip.bra("00")
+        sigma = qutip.bra("01")
+        with pytest.raises(TypeError) as exc:
+            qutip.entropy_relative(rho.dag(), sigma)
+        assert str(exc.value) == "Inputs must be density matrices."
+        with pytest.raises(TypeError) as exc:
+            qutip.entropy_relative(rho, sigma.dag())
+        assert str(exc.value) == "Inputs must be density matrices."
+        with pytest.raises(TypeError) as exc:
+            qutip.entropy_relative(rho, sigma)
+        assert str(exc.value) == "Inputs must be density matrices."
+
+    def test_rho_and_sigma_have_different_shape_and_dims(self):
+        # test different shape and dims
+        rho = qutip.ket("00")
+        sigma = qutip.ket("0")
+        with pytest.raises(ValueError) as exc:
+            qutip.entropy_relative(rho, sigma)
+        assert str(exc.value) == "Inputs must have the same shape and dims."
+        # test same shape, difference dims
+        rho = qutip.basis([2, 3], [0, 0])
+        sigma = qutip.basis([3, 2], [0, 0])
+        with pytest.raises(ValueError) as exc:
+            qutip.entropy_relative(rho, sigma)
+        assert str(exc.value) == "Inputs must have the same shape and dims."
+
+    def test_base_not_2_or_e(self):
+        rho = qutip.ket("00")
+        sigma = qutip.ket("01")
+        with pytest.raises(ValueError) as exc:
+            qutip.entropy_relative(rho, sigma, base=3)
+        assert str(exc.value) == "Base must be 2 or e."
+
+    def test_infinite_relative_entropy(self):
+        rho = qutip.ket("00")
+        sigma = qutip.ket("01")
+        assert qutip.entropy_relative(rho, sigma) == np.inf
+
+    def test_base_2_or_e(self):
+        rho = qutip.ket2dm(qutip.ket("00"))
+        sigma = rho + qutip.ket2dm(qutip.ket("01"))
+        sigma = sigma.unit()
+        assert (
+            qutip.entropy_relative(rho, sigma) == pytest.approx(np.log(2))
+        )
+        assert (
+            qutip.entropy_relative(rho, sigma, base=np.e)
+            == pytest.approx(0.69314718)
+        )
+        assert qutip.entropy_relative(rho, sigma, base=2) == pytest.approx(1)
+
+    def test_pure_vs_maximally_mixed_state(self):
+        rho = qutip.ket("00")
+        sigma = sum(
+            qutip.ket2dm(qutip.ket(psi)) for psi in ["00", "01", "10", "11"]
+        ).unit()
+        assert qutip.entropy_relative(rho, sigma, base=2) == pytest.approx(2)
+
+    def test_density_matrices_with_non_real_eigenvalues(self):
+        rho = qutip.ket2dm(qutip.ket("00"))
+        sigma = qutip.ket2dm(qutip.ket("01"))
+        with pytest.raises(ValueError) as exc:
+            qutip.entropy_relative(rho + 1j, sigma)
+        assert str(exc.value) == "Input rho has non-real eigenvalues."
+        with pytest.raises(ValueError) as exc:
+            qutip.entropy_relative(rho - 1j, sigma)
+        assert str(exc.value) == "Input rho has non-real eigenvalues."
+        with pytest.raises(ValueError) as exc:
+            qutip.entropy_relative(rho, sigma + 1j)
+        assert str(exc.value) == "Input sigma has non-real eigenvalues."
+        with pytest.raises(ValueError) as exc:
+            qutip.entropy_relative(rho, sigma - 1j)
+        assert str(exc.value) == "Input sigma has non-real eigenvalues."
+
+    @pytest.mark.repeat(20)
+    def test_random_dm_with_self(self):
+        rho = qutip.rand_dm(8, pure=False)
+        rel = qutip.entropy_relative(rho, rho)
+        assert abs(rel) < 1e-13
+
+    @pytest.mark.repeat(20)
+    def test_random_rho_sigma(self):
+        rho = qutip.rand_dm(8, pure=False)
+        sigma = qutip.rand_dm(8, pure=False)
+        rel = qutip.entropy_relative(rho, sigma)
+        assert rel >= 0
+        assert rel == pytest.approx(
+            self._simple_relative_entropy_implementation(rho, sigma, np.log)
+        )
 
 
 @pytest.mark.repeat(20)
