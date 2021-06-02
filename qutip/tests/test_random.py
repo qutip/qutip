@@ -85,9 +85,9 @@ def test_rand_dm(func):
     Random Qobjs: Density matrix
     """
     random_qobj = func(5)
-    assert abs(random_qobj.tr() - 1.0) < 1e-15
+    assert abs(random_qobj.tr() - 1.0) < 1e-14
     # verify all eigvals are >=0
-    assert all(random_qobj.eigenenergies() >= -1e-15)
+    assert all(random_qobj.eigenenergies() >= -1e-14)
     # verify hermitian
     assert random_qobj.isherm
 
@@ -101,7 +101,7 @@ def test_rand_dm_Eigs():
     eigs /= np.sum(eigs)
     eigs.sort()
     random_qobj = rand_dm(eigs)
-    assert abs(random_qobj.tr() - 1.0) < 1e-15
+    assert abs(random_qobj.tr() - 1.0) < 1e-14
     np.testing.assert_allclose(random_qobj.eigenenergies(), eigs)
     # verify hermitian
     assert random_qobj.isherm
@@ -126,7 +126,7 @@ def test_rand_stochastic(kind):
     random_qobj = rand_stochastic(5, kind=kind)
     axis = {"left":0, "right":1}[kind]
     np.testing.assert_allclose(np.sum(random_qobj.full(), axis=axis), 1,
-                               atol=1e-15)
+                               atol=1e-14)
 
 
 @pytest.mark.repeat(5)
