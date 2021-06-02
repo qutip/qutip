@@ -29,6 +29,10 @@ Bug Fixes
 - Added a version checking condition to handle specific functionalities depending on the matplotlib version. (`#1556 <https://github.com/qutip/qutip/pull/1556>`_)
 - Fixed `mesolve` handling of time-dependent Hamiltonian with a custom tlist and `c_ops`. (`#1561 <https://github.com/qutip/qutip/pull/1561>`_)
 
+Developer Changes
+-----------------
+- Read documentation version and release from the VERSION file.
+
 
 Version 4.6.1 (May 4, 2021)
 +++++++++++++++++++++++++++
