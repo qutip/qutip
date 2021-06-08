@@ -369,9 +369,9 @@ def make_cy_code(code, variables, constants, raw, compile_opt):
         else:
             init_var += "        self.key{} = '{}'\n".format(i, val)
         init_arg += "        {} = args[self.key{}]\n".format(name, i)
-        replace_var += "            if self.key{} in arguments:\n".format(i)
+        replace_var += "            if self.key{} in kwargs:\n".format(i)
         replace_var += ("                out.{}"
-                        " = arguments[self.key{}]\n".format(name[5:], i))
+                        " = kwargs[self.key{}]\n".format(name[5:], i))
         if raw:
             call_var += "        cdef {} {} = {}\n".format(ctype, val, name)
 
@@ -411,19 +411,26 @@ cdef class StrCoefficient(Coefficient):
 {copy_cte}{copy_var}
         return out
 
-    def replace(self, *, dict arguments=None, **kwargs):
+    def replace_arguments(self, _args=None, **kwargs):
         \"\"\"
-        Return a :obj:`Coefficient` with args or tlist changed.
+        Return a :obj:`Coefficient` with args changed for :obj:`Coefficient`
+        built from 'str' or a python function. Or a the :obj:`Coefficient`
+        itself if the :obj:`Coefficient` do not use arguments. New arguments
+        can be passed as a dict or as keywords.
 
         Parameters
         ----------
-        arguments : dict
-            New arguments for function and str based :obj:`Coefficient`.
-            The dictionary do not need to include all keys, but only those
-            which need to be updated.
+        _args : dict
+            Dictionary of arguments to replace.
+
+        **kwargs
+            Arguments to replace.
         \"\"\"
         cdef StrCoefficient out
-        if arguments:
+
+        if _args:
+            kwargs.update(_args)
+        if kwargs:
             out = self.copy()
 {replace_var}
             return out

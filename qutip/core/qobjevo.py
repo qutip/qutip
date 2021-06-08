@@ -467,7 +467,7 @@ class QobjEvo(QobjEvoBase):
         if not isinstance(new_args, dict):
             raise TypeError("The new args must be in a dict")
         self.args.update(new_args)
-        self.ops = [EvoElement(op.qobj, op.coeff.replace(arguments=self.args))
+        self.ops = [EvoElement(op.qobj, op.coeff.replace_arguments(self.args))
                     for op in self.ops]
         self._compile()
         return self

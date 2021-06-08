@@ -27,30 +27,42 @@ cdef class Coefficient:
     def __init__(self):
         raise NotImplementedError("Only sub-classes should be initiated.")
 
-    def replace(self, **kwargs):
+    def replace_arguments(self, _args=None, **kwargs):
         """
-        Return a :obj:`Coefficient` with args or tlist changed.
+        Return a :obj:`Coefficient` with args changed for :obj:`Coefficient`
+        built from 'str' or a python function. Or a the :obj:`Coefficient`
+        itself if the :obj:`Coefficient` do not use arguments. New arguments
+        can be passed as a dict or as keywords.
 
         Parameters
         ----------
-        **kwargs : dict
-            Attributes to change.
+        _args : dict
+            Dictionary of arguments to replace.
 
-            Keys
-            ----
-            arguments : dict
-                Can be replaced in str and function based coefficients.
-
-            tlist : np.array
-                Can be replaced array based coefficients.
-
+        **kwargs
+            Arguments to replace.
         """
         return self
 
-    def __call__(self, double t, dict args=None):
-        """Return the coefficient value at `t` with given `args`."""
-        if args is not None:
-            return (<Coefficient> self.replace(arguments=args))._call(t)
+    def __call__(self, double t, dict _args=None, **kwargs):
+        """
+        Return the coefficient value at time `t`.
+        Stored arguments can overwriten with `_args` or as keywords parameters.
+
+        Parameters
+        ----------
+        t : float
+            Time at which to evaluate the :obj:`Coefficient`.
+
+        _args : dict
+            Dictionary of arguments to use instead of the stored ones.
+
+        **kwargs
+            Arguments to overwrite for this call.
+        """
+        if _args is not None or kwargs:
+            return (<Coefficient> self.replace_arguments(_args,
+                                                         **kwargs))._call(t)
         return self._call(t)
 
     cdef double complex _call(self, double t) except *:
@@ -120,22 +132,25 @@ cdef class FunctionCoefficient(Coefficient):
         """Return a copy of the :obj:`Coefficient`."""
         return FunctionCoefficient(self.func, self.args.copy())
 
-    def replace(self, *, arguments=None, **kwargs):
+    def replace_arguments(self, _args=None, **kwargs):
         """
-        Return a :obj:`Coefficient` with args or tlist changed.
+        Return a :obj:`Coefficient` with args changed for :obj:`Coefficient`
+        built from 'str' or a python function. Or a the :obj:`Coefficient`
+        itself if the :obj:`Coefficient` do not use arguments. New arguments
+        can be passed as a dict or as keywords.
 
         Parameters
         ----------
-        arguments : dict
-            New arguments for function and str based :obj:`Coefficient`.
-            The dictionary do not need to include all keys, but only those
-            which need to be updated.
+        _args : dict
+            Dictionary of arguments to replace.
+
+        **kwargs
+            Arguments to replace.
         """
-        if arguments:
-            return FunctionCoefficient(
-                self.func,
-                {**self.args, **arguments}
-            )
+        if _args:
+            kwargs.update(_args)
+        if kwargs:
+            return FunctionCoefficient(self.func, {**self.args, **kwargs})
         return self
 
 
@@ -229,22 +244,25 @@ def coeff(t, args):
     def __reduce__(self):
         return (StrFunctionCoefficient, (self.base, self.args))
 
-    def replace(self, *, arguments=None, **kwargs):
+    def replace_arguments(self, _args=None, **kwargs):
         """
-        Return a :obj:`Coefficient` with args or tlist changed.
+        Return a :obj:`Coefficient` with args changed for :obj:`Coefficient`
+        built from 'str' or a python function. Or a the :obj:`Coefficient`
+        itself if the :obj:`Coefficient` do not use arguments. New arguments
+        can be passed as a dict or as keywords.
 
         Parameters
         ----------
-        arguments : dict
-            New arguments for function and str based :obj:`Coefficient`.
-            The dictionary do not need to include all keys, but only those
-            which need to be updated.
+        _args : dict
+            Dictionary of arguments to replace.
+
+        **kwargs
+            Arguments to replace.
         """
-        if arguments:
-            return StrFunctionCoefficient(
-                self.base,
-                {**self.args, **arguments}
-            )
+        if _args:
+            kwargs.update(_args)
+        if kwargs:
+            return StrFunctionCoefficient(self.base, {**self.args, **kwargs})
         return self
 
 
@@ -282,24 +300,6 @@ cdef class InterpolateCoefficient(Coefficient):
     cpdef Coefficient copy(self):
         """Return a copy of the :obj:`Coefficient`."""
         return InterpolateCoefficient(self.spline)
-
-    def replace(self, *, tlist=None, **kwargs):
-        """
-        Return a :obj:`Coefficient` with args or tlist changed.
-
-        Parameters
-        ----------
-        tlist : np.array
-            New array of times for the array coefficients.
-        """
-        if tlist is not None:
-            return InterpolateCoefficient(
-                Cubic_Spline(tlist[0], tlist[-1],
-                             self.spline.array,
-                             *self.spline.bounds)
-                )
-        else:
-            return self
 
 
 cdef class InterCoefficient(Coefficient):
@@ -358,20 +358,6 @@ cdef class InterCoefficient(Coefficient):
         """Return a copy of the :obj:`Coefficient`."""
         return InterCoefficient(self.coeff_np, self.tlist_np,
                                 self.second_np, self.constant)
-
-    def replace(self, *, tlist=None, **kwargs):
-        """
-        Return a :obj:`Coefficient` with args or tlist changed.
-
-        Parameters
-        ----------
-        tlist : np.array
-            New array of times for the array coefficients.
-        """
-        if tlist:
-            return InterCoefficient(self.coeff_np, tlist)
-        else:
-            return self
 
     @property
     def array(self):
@@ -438,20 +424,6 @@ cdef class StepCoefficient(Coefficient):
         """Return a copy of the :obj:`Coefficient`."""
         return StepCoefficient(self.coeff_np, self.tlist_np, self.constant)
 
-    def replace(self, *, tlist=None, **kwargs):
-        """
-        Return a :obj:`Coefficient` with args or tlist changed.
-
-        Parameters
-        ----------
-        tlist : np.array
-            New array of times for the array coefficients.
-        """
-        if tlist:
-            return StepCoefficient(self.coeff_np, tlist)
-        else:
-            return self
-
     @property
     def array(self):
         # Fro QIP tests
@@ -482,26 +454,24 @@ cdef class SumCoefficient(Coefficient):
         """Return a copy of the :obj:`Coefficient`."""
         return SumCoefficient(self.first.copy(), self.second.copy())
 
-    def replace(self, **kwargs):
+    def replace_arguments(self, _args=None, **kwargs):
         """
-        Return a :obj:`Coefficient` with args or tlist changed.
+        Return a :obj:`Coefficient` with args changed for :obj:`Coefficient`
+        built from 'str' or a python function. Or a the :obj:`Coefficient`
+        itself if the :obj:`Coefficient` do not use arguments. New arguments
+        can be passed as a dict or as keywords.
 
         Parameters
         ----------
-        **kwargs : dict
-            Attributes to change.
+        _args : dict
+            Dictionary of arguments to replace.
 
-            Keys
-            ----
-            arguments : dict
-                Can be replaced in str and function based coefficients.
-
-            tlist : np.array
-                Can be replaced array based coefficients.
+        **kwargs
+            Arguments to replace.
         """
         return SumCoefficient(
-            self.first.replace(**kwargs),
-            self.second.replace(**kwargs)
+            self.first.replace_arguments(_args, **kwargs),
+            self.second.replace_arguments(_args, **kwargs)
         )
 
 
@@ -510,15 +480,6 @@ cdef class MulCoefficient(Coefficient):
     """
     :obj:`Coefficient` built from the product of 2 other Coefficients.
     Result of :obj:`Coefficient` * :obj:`Coefficient`.
-
-    Methods
-    -------
-    conj():
-        Conjugate of the :obj:`Coefficient`.
-    copy():
-        Create a copy of the :obj:`Coefficient`.
-    replace(arguments, tlist):
-        Create a new :obj:`Coefficient` with updated arguments and/or tlist.
     """
     cdef Coefficient first
     cdef Coefficient second
@@ -534,26 +495,24 @@ cdef class MulCoefficient(Coefficient):
         """Return a copy of the :obj:`Coefficient`."""
         return MulCoefficient(self.first.copy(), self.second.copy())
 
-    def replace(self, **kwargs):
+    def replace_arguments(self, _args=None, **kwargs):
         """
-        Return a :obj:`Coefficient` with args or tlist changed.
+        Return a :obj:`Coefficient` with args changed for :obj:`Coefficient`
+        built from 'str' or a python function. Or a the :obj:`Coefficient`
+        itself if the :obj:`Coefficient` do not use arguments. New arguments
+        can be passed as a dict or as keywords.
 
         Parameters
         ----------
-        **kwargs : dict
-            Attributes to change.
+        _args : dict
+            Dictionary of arguments to replace.
 
-            Keys
-            ----
-            arguments : dict
-                Can be replaced in str and function based coefficients.
-
-            tlist : np.array
-                Can be replaced array based coefficients.
+        **kwargs
+            Arguments to replace.
         """
         return MulCoefficient(
-            self.first.replace(**kwargs),
-            self.second.replace(**kwargs)
+            self.first.replace_arguments(_args, **kwargs),
+            self.second.replace_arguments(_args, **kwargs)
         )
 
 
@@ -576,25 +535,23 @@ cdef class ConjCoefficient(Coefficient):
         """Return a copy of the :obj:`Coefficient`."""
         return ConjCoefficient(self.base.copy())
 
-    def replace(self, **kwargs):
+    def replace_arguments(self, _args=None, **kwargs):
         """
-        Return a :obj:`Coefficient` with args or tlist changed.
+        Return a :obj:`Coefficient` with args changed for :obj:`Coefficient`
+        built from 'str' or a python function. Or a the :obj:`Coefficient`
+        itself if the :obj:`Coefficient` do not use arguments. New arguments
+        can be passed as a dict or as keywords.
 
         Parameters
         ----------
-        **kwargs : dict
-            Attributes to change.
+        _args : dict
+            Dictionary of arguments to replace.
 
-            Keys
-            ----
-            arguments : dict
-                Can be replaced in str and function based coefficients.
-
-            tlist : np.array
-                Can be replaced array based coefficients.
+        **kwargs
+            Arguments to replace.
         """
         return ConjCoefficient(
-            self.base.replace(**kwargs)
+            self.base.replace_arguments(_args, **kwargs)
         )
 
 
@@ -610,25 +567,23 @@ cdef class NormCoefficient(Coefficient):
     def __init__(self, Coefficient base):
         self.base = base
 
-    def replace(self, **kwargs):
+    def replace_arguments(self, _args=None, **kwargs):
         """
-        Return a :obj:`Coefficient` with args or tlist changed.
+        Return a :obj:`Coefficient` with args changed for :obj:`Coefficient`
+        built from 'str' or a python function. Or a the :obj:`Coefficient`
+        itself if the :obj:`Coefficient` do not use arguments. New arguments
+        can be passed as a dict or as keywords.
 
         Parameters
         ----------
-        **kwargs : dict
-            Attributes to change.
+        _args : dict
+            Dictionary of arguments to replace.
 
-            Keys
-            ----
-            arguments : dict
-                Can be replaced in str and function based coefficients.
-
-            tlist : np.array
-                Can be replaced array based coefficients.
+        **kwargs
+            Arguments to replace.
         """
         return NormCoefficient(
-            self.base.replace(**kwargs)
+            self.base.replace_arguments(_args, **kwargs)
         )
 
     cdef complex _call(self, double t) except *:
@@ -654,28 +609,29 @@ cdef class ShiftCoefficient(Coefficient):
         self.base = base
         self._t0 = _t0
 
-    def replace(self, **kwargs):
+    def replace_arguments(self, _args=None, **kwargs):
         """
-        Return a :obj:`Coefficient` with args or tlist changed.
+        Return a :obj:`Coefficient` with args changed for :obj:`Coefficient`
+        built from 'str' or a python function. Or a the :obj:`Coefficient`
+        itself if the :obj:`Coefficient` do not use arguments. New arguments
+        can be passed as a dict or as keywords.
 
         Parameters
         ----------
-        **kwargs : dict
-            Attributes to change.
+        _args : dict
+            Dictionary of arguments to replace.
 
-            Keys
-            ----
-            arguments : dict
-                Can be replaced in str and function based coefficients.
-
-            tlist : np.array
-                Can be replaced array based coefficients.
+        **kwargs
+            Arguments to replace.
         """
+        if _args:
+            kwargs.update(_args)
         try:
-            _t0 = kwargs["arguments"]["_t0"]
+            _t0 = kwargs["_t0"]
+            del kwargs["_t0"]
         except KeyError:
             _t0 = self._t0
-        return ShiftCoefficient(self.base.replace(**kwargs), _t0)
+        return ShiftCoefficient(self.base.replace_arguments(**kwargs), _t0)
 
     cdef complex _call(self, double t) except *:
         return self.base._call(t + self._t0)
