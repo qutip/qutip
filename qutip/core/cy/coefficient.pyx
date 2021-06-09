@@ -135,10 +135,11 @@ cdef class FunctionCoefficient(Coefficient):
 
     def replace_arguments(self, _args=None, **kwargs):
         """
-        Return a :obj:`Coefficient` with args changed for :obj:`Coefficient`
-        built from 'str' or a python function. Or a the :obj:`Coefficient`
-        itself if the :obj:`Coefficient` do not use arguments. New arguments
-        can be passed as a dict or as keywords.
+        Replace the arguments (``args``) of a coefficient.
+        
+        Returns a new :obj:`Coefficient` if the coefficient has arguments, or the original coefficient if it does not.
+        Arguments to replace may be supplied either in a dictionary as the first position argument, or passed as
+        keywords, or as a combination of the two. Arguments not replaced retain their previous values.
 
         Parameters
         ----------
@@ -164,11 +165,12 @@ def proj(x):
 
 cdef class StrFunctionCoefficient(Coefficient):
     """
-    :obj:`Coefficient` wrapping a string into a python function.
-    The string must represent compilable python code resulting in a complex.
-    The time is available as the local variable `t` and the keys of `args`
-    are also available as local variables. The `args` dictionary itself is not
-    available.
+    A :obj:`Coefficient` defined by a string containing a simple Python expression.
+
+    The string should contain a compilable Python expression that results in a complex number.
+    The time ``t`` is available as a local variable, as are the individual arguments (i.e. the
+    keys of ``args``). The ``args`` dictionary itself is not accessible.
+
     The following symbols are defined:
         ``sin``, ``cos``, ``tan``, ``asin``, ``acos``, ``atan``, ``pi``,
         ``sinh``, ``cosh``, ``tanh``, ``asinh``, ``acosh``, ``atanh``,
@@ -247,10 +249,11 @@ def coeff(t, args):
 
     def replace_arguments(self, _args=None, **kwargs):
         """
-        Return a :obj:`Coefficient` with args changed for :obj:`Coefficient`
-        built from 'str' or a python function. Or a the :obj:`Coefficient`
-        itself if the :obj:`Coefficient` do not use arguments. New arguments
-        can be passed as a dict or as keywords.
+        Replace the arguments (``args``) of a coefficient.
+        
+        Returns a new :obj:`Coefficient` if the coefficient has arguments, or the original coefficient if it does not.
+        Arguments to replace may be supplied either in a dictionary as the first position argument, or passed as
+        keywords, or as a combination of the two. Arguments not replaced retain their previous values.
 
         Parameters
         ----------
@@ -435,8 +438,11 @@ cdef class StepCoefficient(Coefficient):
 @cython.auto_pickle(True)
 cdef class SumCoefficient(Coefficient):
     """
-    :obj:`Coefficient` built from the sum of 2 other Coefficients.
-    Result of :obj:`Coefficient` + :obj:`Coefficient`.
+    A :obj:`Coefficient` built from the sum of two other coefficients.
+    
+    A :obj:`SumCoefficient` is returned as the result of the addition of two coefficients, e.g. ::
+    
+        coefficient("t * t") + coefficient("t")  # SumCoefficient
     """
     cdef Coefficient first
     cdef Coefficient second
@@ -481,8 +487,11 @@ cdef class SumCoefficient(Coefficient):
 @cython.auto_pickle(True)
 cdef class MulCoefficient(Coefficient):
     """
-    :obj:`Coefficient` built from the product of 2 other Coefficients.
-    Result of :obj:`Coefficient` * :obj:`Coefficient`.
+    A :obj:`Coefficient` built from the product of two other coefficients.
+    
+    A :obj:`MulCoefficient` is returned as the result of the multiplication of two coefficients, e.g. ::
+    
+        coefficient("w * t", args={'w': 1}) * coefficient("t")  # MulCoefficient
     """
     cdef Coefficient first
     cdef Coefficient second
