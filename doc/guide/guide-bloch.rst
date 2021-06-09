@@ -12,7 +12,7 @@ Plotting on the Bloch Sphere
 Introduction
 ============
 
-When studying the dynamics of a two-level system, it is often convent to visualize the state of the system by plotting the state-vector or density matrix on the Bloch sphere.  In QuTiP, we have created two different classes to allow for easy creation and manipulation of data sets, both vectors and data points, on the Bloch sphere.  The :class:`qutip.Bloch` class, uses Matplotlib to render the Bloch sphere, where as :class:`qutip.Bloch3d` uses the Mayavi rendering engine to generate a more faithful 3D reconstruction of the Bloch sphere.
+When studying the dynamics of a two-level system, it is often convenient to visualize the state of the system by plotting the state-vector or density matrix on the Bloch sphere.  In QuTiP, we have created two different classes to allow for easy creation and manipulation of data sets, both vectors and data points, on the Bloch sphere.  The :class:`qutip.Bloch` class, uses Matplotlib to render the Bloch sphere, where as :class:`qutip.Bloch3d` uses the Mayavi rendering engine to generate a more faithful 3D reconstruction of the Bloch sphere.
 
 .. _bloch-class:
 
@@ -146,7 +146,7 @@ Adding multiple points to the Bloch sphere works slightly differently than addin
     b.add_points(pnts)
     b.render()
 
-Notice that, in contrast to states or vectors, each point remains the same color as the initial point.  This is because adding multiple data points using the add_points function is interpreted, by default, to correspond to a single data point (single qubit state) plotted at different times.  This is very useful when visualizing the dynamics of a qubit.  An example of this is given in the example .  If we want to plot additional qubit states we can call additional `add_points` functions:
+Notice that, in contrast to states or vectors, each point remains the same color as the initial point.  This is because adding multiple data points using the `add_points` function is interpreted, by default, to correspond to a single data point (single qubit state) plotted at different times.  This is very useful when visualizing the dynamics of a qubit.  An example of this is given in the example .  If we want to plot additional qubit states we can call additional `add_points` functions:
 
 .. plot::
     :context: close-figs
@@ -202,7 +202,7 @@ While in general the ``Bloch`` and ``Bloch3d`` classes are interchangeable, ther
 
 - Only the ``Bloch`` class can be embedded in a Matplotlib figure window.  Thus if you want to combine a Bloch sphere with another figure generated in QuTiP, you can not use ``Bloch3d``.  Of course you can always post-process your figures using other software to get the desired result.
 
-- Due to limitations in the rendering engine, the ``Bloch3d`` class does not support LaTex for text.  Again, you can get around this by post-processing.
+- Due to limitations in the rendering engine, the ``Bloch3d`` class does not support LaTeX for text.  Again, you can get around this by post-processing.
 
 - The user customizable attributes for the ``Bloch`` and ``Bloch3d`` classes are not identical.  Therefore, if you change the properties of one of the classes, these changes will cause an exception if the class is switched.
 
