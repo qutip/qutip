@@ -405,7 +405,7 @@ An example of generating images for generating an animation outside of Python is
          b.add_points([sx[:i+1], sy[:i+1], sz[:i+1]])
          b.save(dirc='temp')  # saving images to temp directory in current working directory
 
-Generating an animation using ffmpeg (for example) is fairly simple::
+Generating an animation using FFmpeg (for example) is fairly simple::
 
    ffmpeg -i temp/bloch_%01d.png bloch.mp4
 
@@ -415,8 +415,8 @@ Directly Generating an Animation
 ++++++++++++++++++++++++++++++++
 
 .. important::
-   Generating animations directly from Matplotlib requires installing either mencoder or ffmpeg.
-   While either choice works on linux, it is best to choose ffmpeg when running on the Mac.
+   Generating animations directly from Matplotlib requires installing either MEncoder or FFmpeg.
+   While either choice works on linux, it is best to choose FFmpeg when running on the Mac.
    If using macports just do: ``sudo port install ffmpeg``.
 
 The code to directly generate an mp4 movie of the Qubit decay is as follows ::
@@ -443,4 +443,4 @@ The code to directly generate an mp4 movie of the Qubit decay is as follows ::
                                  init_func=init, blit=False, repeat=False)
    ani.save('bloch_sphere.mp4', fps=20)
 
-The resulting movie may be viewed here: `bloch_decay.mp4 <https://raw.githubusercontent.com/qutip/qutip/master/doc/figures/bloch_decay.mp4>`_
+he resulting movie may be viewed here: `bloch_decay.mp4 <https://raw.githubusercontent.com/qutip/qutip/master/doc/figures/bloch_decay.mp4>`_
