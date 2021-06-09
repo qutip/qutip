@@ -392,7 +392,7 @@ Of course, displacing the vacuum gives a coherent state, which can also be gener
 Density matrices
 =================
 
-One of the main purpose of QuTiP is to explore the dynamics of **open** quantum systems, where the most general state of a system is not longer a state vector, but rather a density matrix.  Since operations on density matrices operate identically to those of vectors, we will just briefly highlight creating and using these structures.
+One of the main purpose of QuTiP is to explore the dynamics of **open** quantum systems, where the most general state of a system is no longer a state vector, but rather a density matrix.  Since operations on density matrices operate identically to those of vectors, we will just briefly highlight creating and using these structures.
 
 The simplest density matrix is created by forming the outer-product :math:`\left|\psi\right>\left<\psi\right|` of a ket vector:
 
@@ -795,7 +795,7 @@ Superoperators and Vectorized Operators
 In addition to state vectors and density operators, QuTiP allows for
 representing maps that act linearly on density operators using the Kraus,
 Liouville supermatrix and Choi matrix formalisms. This support is based on the
-correspondance between linear operators acting on a Hilbert space, and vectors
+correspondence between linear operators acting on a Hilbert space, and vectors
 in two copies of that Hilbert space,
 :math:`\mathrm{vec} : \mathcal{L}(\mathcal{H}) \to \mathcal{H} \otimes \mathcal{H}`
 [Hav03]_, [Wat13]_.
@@ -940,7 +940,7 @@ and :attr:`~qutip.Qobj.iscptp` attributes:
     True True True
 
 In addition, dynamical generators on this extended space, often called
-*Liouvillian superoperators*, can be created using the :func:`~qutip.superoperator.liouvillian` function. Each of these takes a Hamilonian along with
+*Liouvillian superoperators*, can be created using the :func:`~qutip.superoperator.liouvillian` function. Each of these takes a Hamiltonian along with
 a list of collapse operators, and returns a ``type="super"`` object that can
 be exponentiated to find the superoperator for that evolution.
 
