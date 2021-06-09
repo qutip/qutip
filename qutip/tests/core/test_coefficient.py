@@ -36,7 +36,7 @@ import qutip as qt
 import numpy as np
 from functools import partial
 from qutip.core.coefficient import (coefficient, norm, conj, shift,
-                                    reduce, CompilationOptions,
+                                    CompilationOptions,
                                     clean_compiled_coefficient
                                    )
 
@@ -139,7 +139,7 @@ def test_CoeffCallArgs(base, kwargs, tol):
     w = np.e + 0.5j
     expected = lambda t: np.exp(w * t * np.pi)
     coeff = coefficient(base, **kwargs)
-    _assert_eq_over_interval(partial(coeff, args={"w": w}), expected, rtol=tol)
+    _assert_eq_over_interval(partial(coeff, w=w), expected, rtol=tol)
 
 
 @pytest.mark.parametrize(['base', 'tol'], [
@@ -152,7 +152,11 @@ def test_CoeffCallArguments(base, tol):
     a = np.e
     expected = lambda t: a + 1 + t
     coeff = coefficient(base, args=args)
-    coeff.arguments({"a": a})
+    coeff = coeff.replace_arguments({"a": a})
+    _assert_eq_over_interval(coeff, expected, rtol=tol)
+    b = np.pi
+    expected = lambda t: a + b + t
+    coeff = coeff.replace_arguments(b=b)
     _assert_eq_over_interval(coeff, expected, rtol=tol)
 
 
@@ -295,14 +299,6 @@ from qutip.core.data.expect cimport expect_csr
                         args_ctypes={"op": "CSR"},
                         compile_opt=opt)
     assert coeff(0) == 5.
-
-
-@pytest.mark.requires_cython
-def test_CoeffReduce():
-    coeff = coefficient("exp(w * t * pi)", args={'w': 1.0j})
-    apad = coeff + conj(coeff)
-    reduced = reduce(apad, {'w': 1.0j})
-    _assert_eq_over_interval(apad, reduced)
 
 
 def _add(coeff):
