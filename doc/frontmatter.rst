@@ -169,6 +169,7 @@ Several libraries rely on QuTiP for quantum physics or quantum information proce
 
 :qupulse: `qupulse <https://qupulse.readthedocs.io/en/latest/>`_ is a toolkit to facilitate experiments involving pulse driven state manipulation of physical qubits
 
+:Pulser: `Pulser <https://pulser.readthedocs.io/en/latest/>`_ is a framework for composing, simulating and executing pulse sequences for neutral-atom quantum devices.
 
 
 
