@@ -29,10 +29,11 @@ cdef class Coefficient:
 
     def replace_arguments(self, _args=None, **kwargs):
         """
-        Return a :obj:`Coefficient` with args changed for :obj:`Coefficient`
-        built from 'str' or a python function. Or a the :obj:`Coefficient`
-        itself if the :obj:`Coefficient` do not use arguments. New arguments
-        can be passed as a dict or as keywords.
+        Replace the arguments (``args``) of a coefficient.
+        
+        Returns a new :obj:`Coefficient` if the coefficient has arguments, or the original coefficient if it does not.
+        Arguments to replace may be supplied either in a dictionary as the first position argument, or passed as
+        keywords, or as a combination of the two. Arguments not replaced retain their previous values.
 
         Parameters
         ----------
@@ -114,10 +115,10 @@ cdef class FunctionCoefficient(Coefficient):
     Parameters
     ----------
     func : callable(t : float, args : dict) -> complex
-        Function computing the coefficient for a :obj:`QobjEvo`.
+        Function computing the coefficient value.
 
     args : dict
-        Dictionary of variable to pass to `func`.
+        Values of the arguments to pass to `func`.
     """
     cdef object func
 
@@ -177,15 +178,15 @@ cdef class StrFunctionCoefficient(Coefficient):
 
     Examples
     --------
-    >>> StrFunctionCoefficient("sin(w*pi*t)", {'w': 1j})
+    >>> StrFunctionCoefficient("sin(w * pi * t)", {'w': 1j})
 
     Parameters
     ----------
     base : str
-        A string representing a compilable python code resulting in a complex.
+        A string representing a compilable Python expression that results in a complex number.
 
     args : dict
-        Dictionary of variable used in the code string. May include unused
+        A dictionary of variable used in the code string. It may include unused
         variables.
     """
     cdef object func
@@ -268,7 +269,7 @@ def coeff(t, args):
 
 cdef class InterpolateCoefficient(Coefficient):
     """
-    :obj:`Coefficient` built from a :class:`qutip.Cubic_Spline` object.
+    A :obj:`Coefficient` built from a :class:`qutip.Cubic_Spline` object.
 
     Parameters
     ----------
@@ -304,16 +305,16 @@ cdef class InterpolateCoefficient(Coefficient):
 
 cdef class InterCoefficient(Coefficient):
     """
-    :obj:`Coefficient` built from a cubic spline interpolation of a numpy array.
+    A :obj:`Coefficient` built from a cubic spline interpolation of a numpy array.
 
     Parameters
     ----------
     coeff_arr : np.ndarray
-        Array of coefficients to interpolate.
+        The array of coefficient values to interpolate.
 
     tlist : np.ndarray
-        Array of times corresponding to each coefficient. The time must be
-        inscreasing, but do not need to be uniformly spaced.
+        An array of times corresponding to each coefficient value. The times must be
+        increasing, but do not need to be uniformly spaced.
     """
     cdef int n_t, constant
     cdef double dt
@@ -378,17 +379,18 @@ cdef Coefficient add_inter(InterCoefficient left, InterCoefficient right):
 
 cdef class StepCoefficient(Coefficient):
     """
-    :obj:`Coefficient` built from a numpy array interpolated using previous
-    value.
+    A step function :obj:`Coefficient` whose values are specified in a numpy array.
+    
+    At each point in time, the value of the coefficient is the most recent previous value given in the numpy array.
 
     Parameters
     ----------
     coeff_arr : np.ndarray
-        Array of coefficients to interpolate.
+        The array of coefficient values to interpolate.
 
     tlist : np.ndarray
-        Array of times corresponding to each coefficient. The time must be
-        inscreasing, but do not need to be uniformly spaced.
+        An array of times corresponding to each coefficient value. The times must be
+        increasing, but do not need to be uniformly spaced.
     """
     cdef int n_t, constant
     cdef double dt
@@ -456,10 +458,11 @@ cdef class SumCoefficient(Coefficient):
 
     def replace_arguments(self, _args=None, **kwargs):
         """
-        Return a :obj:`Coefficient` with args changed for :obj:`Coefficient`
-        built from 'str' or a python function. Or a the :obj:`Coefficient`
-        itself if the :obj:`Coefficient` do not use arguments. New arguments
-        can be passed as a dict or as keywords.
+        Replace the arguments (``args``) of a coefficient.
+        
+        Returns a new :obj:`Coefficient` if the coefficient has arguments, or the original coefficient if it does not.
+        Arguments to replace may be supplied either in a dictionary as the first position argument, or passed as
+        keywords, or as a combination of the two. Arguments not replaced retain their previous values.
 
         Parameters
         ----------
@@ -497,10 +500,11 @@ cdef class MulCoefficient(Coefficient):
 
     def replace_arguments(self, _args=None, **kwargs):
         """
-        Return a :obj:`Coefficient` with args changed for :obj:`Coefficient`
-        built from 'str' or a python function. Or a the :obj:`Coefficient`
-        itself if the :obj:`Coefficient` do not use arguments. New arguments
-        can be passed as a dict or as keywords.
+        Replace the arguments (``args``) of a coefficient.
+        
+        Returns a new :obj:`Coefficient` if the coefficient has arguments, or the original coefficient if it does not.
+        Arguments to replace may be supplied either in a dictionary as the first position argument, or passed as
+        keywords, or as a combination of the two. Arguments not replaced retain their previous values.
 
         Parameters
         ----------
@@ -519,9 +523,9 @@ cdef class MulCoefficient(Coefficient):
 @cython.auto_pickle(True)
 cdef class ConjCoefficient(Coefficient):
     """
-    Conjugate of a :obj:`Coefficient`.
+    The conjugate of a :obj:`Coefficient`.
 
-    Result of ``Coefficient.conj()`` or ``qutip.coefficent.conj(Coefficient)``.
+    A :obj:`ConjCoefficient` is returned by ``Coefficient.conj()`` and ``qutip.coefficent.conj(Coefficient)``.
     """
     cdef Coefficient base
 
@@ -537,10 +541,11 @@ cdef class ConjCoefficient(Coefficient):
 
     def replace_arguments(self, _args=None, **kwargs):
         """
-        Return a :obj:`Coefficient` with args changed for :obj:`Coefficient`
-        built from 'str' or a python function. Or a the :obj:`Coefficient`
-        itself if the :obj:`Coefficient` do not use arguments. New arguments
-        can be passed as a dict or as keywords.
+        Replace the arguments (``args``) of a coefficient.
+        
+        Returns a new :obj:`Coefficient` if the coefficient has arguments, or the original coefficient if it does not.
+        Arguments to replace may be supplied either in a dictionary as the first position argument, or passed as
+        keywords, or as a combination of the two. Arguments not replaced retain their previous values.
 
         Parameters
         ----------
@@ -558,9 +563,9 @@ cdef class ConjCoefficient(Coefficient):
 @cython.auto_pickle(True)
 cdef class NormCoefficient(Coefficient):
     """
-    Norm of a :obj:`Coefficient`.
-    Used as a shortcut of conj(coeff) * coeff
-    Result of ``Coefficient._cdc()`` or ``qutip.coefficent.norm(Coefficient)``.
+    The L2 :func:`norm` of a :obj:`Coefficient`. A shortcut for ``conj(coeff) * coeff``.
+    
+    :obj:`NormCoefficient` is returned by ``qutip.coefficent.norm(Coefficient)``.
     """
     cdef Coefficient base
 
@@ -569,10 +574,11 @@ cdef class NormCoefficient(Coefficient):
 
     def replace_arguments(self, _args=None, **kwargs):
         """
-        Return a :obj:`Coefficient` with args changed for :obj:`Coefficient`
-        built from 'str' or a python function. Or a the :obj:`Coefficient`
-        itself if the :obj:`Coefficient` do not use arguments. New arguments
-        can be passed as a dict or as keywords.
+        Replace the arguments (``args``) of a coefficient.
+        
+        Returns a new :obj:`Coefficient` if the coefficient has arguments, or the original coefficient if it does not.
+        Arguments to replace may be supplied either in a dictionary as the first position argument, or passed as
+        keywords, or as a combination of the two. Arguments not replaced retain their previous values.
 
         Parameters
         ----------
@@ -597,10 +603,11 @@ cdef class NormCoefficient(Coefficient):
 @cython.auto_pickle(True)
 cdef class ShiftCoefficient(Coefficient):
     """
-    Introduce a time shift in the :obj:`Coefficient`.
-    Used intenally in correlation.
-    Result of ``Coefficient._shift()`` or
-    ``qutip.coefficent.shift(Coefficient)``.
+    Introduce a time shift into the :obj:`Coefficient`.
+    
+    Used internally within qutip when calculating correlations.
+    
+    :obj:ShiftCoefficient is returned by ``qutip.coefficent.shift(Coefficient)``.
     """
     cdef Coefficient base
     cdef double _t0
@@ -611,10 +618,11 @@ cdef class ShiftCoefficient(Coefficient):
 
     def replace_arguments(self, _args=None, **kwargs):
         """
-        Return a :obj:`Coefficient` with args changed for :obj:`Coefficient`
-        built from 'str' or a python function. Or a the :obj:`Coefficient`
-        itself if the :obj:`Coefficient` do not use arguments. New arguments
-        can be passed as a dict or as keywords.
+        Replace the arguments (``args``) of a coefficient.
+        
+        Returns a new :obj:`Coefficient` if the coefficient has arguments, or the original coefficient if it does not.
+        Arguments to replace may be supplied either in a dictionary as the first position argument, or passed as
+        keywords, or as a combination of the two. Arguments not replaced retain their previous values.
 
         Parameters
         ----------

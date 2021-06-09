@@ -415,7 +415,7 @@ cdef class StrCoefficient(Coefficient):
         \"\"\"
         Return a :obj:`Coefficient` with args changed for :obj:`Coefficient`
         built from 'str' or a python function. Or a the :obj:`Coefficient`
-        itself if the :obj:`Coefficient` do not use arguments. New arguments
+        itself if the :obj:`Coefficient` does not use arguments. New arguments
         can be passed as a dict or as keywords.
 
         Parameters
