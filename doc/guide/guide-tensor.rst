@@ -135,7 +135,7 @@ The :func:`qutip.tensor.tensor` function is extensively used when constructing H
 Two coupled qubits
 ------------------
 
-First, let's consider a system of two coupled qubits. Assume that both qubit has equal energy splitting, and that the qubits are coupled through a :math:`\sigma_x\otimes\sigma_x` interaction with strength g = 0.05 (in units where the bare qubit energy splitting is unity). The Hamiltonian describing this system is:
+First, let's consider a system of two coupled qubits. Assume that both the qubits have equal energy splitting, and that the qubits are coupled through a :math:`\sigma_x\otimes\sigma_x` interaction with strength g = 0.05 (in units where the bare qubit energy splitting is unity). The Hamiltonian describing this system is:
 
 .. testcode:: [tensor]
 
@@ -190,7 +190,7 @@ The two-qubit example is easily generalized to three coupled qubits:
 A two-level system coupled to a cavity: The Jaynes-Cummings model
 -------------------------------------------------------------------
 
-The simplest possible quantum mechanical description for light-matter interaction is encapsulated in the Jaynes-Cummings model, which describes the coupling between a two-level atom and a single-mode electromagnetic field (a cavity mode). Denoting the energy splitting of the atom and cavity ``omega_a`` and ``omega_c``, respectively, and the atom-cavity interaction strength ``g``, the Jaynes-Cumming Hamiltonian can be constructed as:
+The simplest possible quantum mechanical description for light-matter interaction is encapsulated in the Jaynes-Cummings model, which describes the coupling between a two-level atom and a single-mode electromagnetic field (a cavity mode). Denoting the energy splitting of the atom and cavity ``omega_a`` and ``omega_c``, respectively, and the atom-cavity interaction strength ``g``, the Jaynes-Cummings Hamiltonian can be constructed as:
 
 .. testcode:: [tensor]
 
