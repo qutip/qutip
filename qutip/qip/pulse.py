@@ -359,8 +359,6 @@ class Pulse():
         -------
         ideal_evo: :class:`qutip.QobjEvo`
             A `QobjEvo` representing the ideal evolution.
-        tlist: list of float
-            A list of the times from associated with the pulse.
         """
         return self.ideal_pulse.get_qobjevo(self.spline_kind, dims)
 
@@ -521,6 +519,16 @@ class Drift():
         return self.get_ideal_qobjevo(dims), []
 
     def get_full_tlist(self):
+        """
+        Return the full tlist of the pulses and noise.
+        It means that if different `tlist`s are present, they will be merged
+        to one with all time points stored in a sorted array.
+
+        Returns
+        -------
+        full_tlist: array-like 1d
+            The full time sequence for the nosiy evolution.
+        """
         return []
 
 

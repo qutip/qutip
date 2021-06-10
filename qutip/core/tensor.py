@@ -42,7 +42,6 @@ import numpy as np
 from functools import partial
 from .operators import qeye
 from .qobj import Qobj
-from .cy.qobjevo import QobjEvo
 from .superoperator import operator_to_vector, reshuffle
 from .dimensions import (
     flatten, enumerate_flat, unflatten, deep_remove, dims_to_tensor_shape,
@@ -83,6 +82,7 @@ shape = [4, 4], type = oper, isHerm = True
      [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j]
      [ 1.+0.j  0.+0.j  0.+0.j  0.+0.j]]
     """
+    from .cy.qobjevo import QobjEvo
     if not args:
         raise TypeError("Requires at least one input argument")
     if len(args) == 1 and isinstance(args[0], (Qobj, QobjEvo)):

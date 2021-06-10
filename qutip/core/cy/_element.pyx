@@ -36,20 +36,27 @@ cdef class _BaseElement:
     new instance.
     """
     cpdef Data data(self, double t):
-        """ Return the coefficient at `t`"""
+        """
+        Return the coefficient at `t`.
+        """
         return self._data
 
     cpdef object qobj(self, double t):
-        """ Return the Qobj at `t`"""
+        """
+        Return the Qobj at `t`.
+        """
         return self._qobj
 
     cpdef double complex coeff(self, double t) except *:
-        """ Return the Data at `t`"""
+        """
+        Return the Data at `t`.
+        """
         return self._coeff
 
     cdef Data matmul(_BaseElement self, double t, Data state, Data out):
-        """ out += Qobj(t) @ state * coeff(t) """
-
+        """
+        out += Qobj(t) @ state * coeff(t)
+        """
         # matmul is here instead of in QobjEvo.matmul_data to support
         # function element with fast matmul method.
         # TODO: fix to imatmul_data when c-dispatch with inplace support is
@@ -63,12 +70,16 @@ cdef class _BaseElement:
                 _data.matmul(self.data(t), state, self.coeff(t))
             )
 
-    def arguments(self, new_args, fElem_safe):
-        """make a copy with new args"""
+    def replace_arguments(self, new_args, fElem_safe=None):
+        """
+        Make a copy with new args.
+        """
         raise NotImplementedError
 
-    def linear_map(_CteElement self, function, conjugate=False):
-        """linear transformation of the Qobj"""
+    def linear_map(self, function, conjugate=False):
+        """
+        Linear transformation of the Qobj.
+        """
         raise NotImplementedError
 
 
@@ -103,11 +114,15 @@ cdef class _CteElement(_BaseElement):
         return NotImplemented
 
     def linear_map(_CteElement self, function, conjugate=False):
-        """linear transformation of the Qobj"""
+        """
+        Linear transformation of the Qobj.
+        """
         return _CteElement(function(self._qobj))
 
-    def arguments(self, new_args, fElem_safe):
-        """make a copy with new args"""
+    def replace_arguments(self, new_args, fElem_safe=None):
+        """
+        Make a copy with new args.
+        """
         return self
 
 
@@ -125,7 +140,9 @@ cdef class _EvoElement(_BaseElement):
         self.coefficient = coefficient
 
     cpdef double complex coeff(self, double t) except *:
-        """ Return the Coefficient at `t`"""
+        """
+        Return the Coefficient at `t`.
+        """
         return self.coefficient(t)
 
     def __mul__(left, right):
@@ -151,25 +168,26 @@ cdef class _EvoElement(_BaseElement):
         return _EvoElement(left._qobj * right._qobj, coefficient)
 
     def linear_map(_EvoElement self, function, conjugate=False):
-        """linear transformation of the Qobj"""
+        """
+        Linear transformation of the Qobj.
+        """
         return _EvoElement(function(self._qobj),
             self.coefficient.conj() if conjugate else self.coefficient)
 
-    def arguments(self, new_args, fElem_safe):
-        """make a copy with new args"""
+    def replace_arguments(self, new_args, fElem_safe=None):
+        """
+        Make a copy with new args.
+        """
         return _EvoElement(
             self._qobj.copy(),
-            self.coefficient.replace(arguments=new_args)
+            self.coefficient.replace_arguments(new_args)
         )
 
 
-#------------------------------------------------------------------------------
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # _FuncElement, _MapElement, _ProdElement : support for function based QobjEvo.
-# with `qevo = QobjEvo(f, args=args)`:
-# qevo.elements = [_FuncElement(H0, args)]
-# qevo.dag().elements = [_MapElement(_FuncElement(H0, args), [dag])]
-# (qevo * qevo).elements = [_ProdElement(_FuncElement(...), _FuncElement(...))]
-#------------------------------------------------------------------------------
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 cdef class _FuncElement(_BaseElement):
     """
     Used with :obj:`QobjEvo` to build a function with signature: ::
@@ -182,9 +200,7 @@ cdef class _FuncElement(_BaseElement):
       qevo = QobjEvo(func, args=args)
       qevo.elements = [_FuncElement(func, args)]
 
-    Each :obj:`_FuncElement` contain an immutable pair ``(func, args)``.
-
-    This class aas basic memoize capacity: it saves the last call so ::
+    This class has basic memoize capacity: it saves the last call ::
 
         op = QobjEvo(func, args=args)
         (op.dag() * op)(t)
@@ -198,11 +214,15 @@ cdef class _FuncElement(_BaseElement):
         self._previous = (Nan, None)
 
     cpdef Data data(self, double t):
-        """ Return the Data at `t`"""
+        """
+        Return the Data at `t`.
+        """
         return self.qobj(t).data
 
     cpdef object qobj(self, double t):
-        """ Return the Qobj at `t`"""
+        """
+        Return the Qobj at `t`.
+        """
         cdef double _t
         cdef object _qobj
         _t, _qobj = self._previous
@@ -224,31 +244,39 @@ cdef class _FuncElement(_BaseElement):
         return _ProdElement(left, right, [])
 
     def linear_map(_FuncElement self, function, conjugate=False):
-        """linear transformation of the Qobj"""
+        """
+        Linear transformation of the Qobj.
+        """
         return _MapElement(self, [function])
 
-    def arguments(_FuncElement self, new_args, fElem_safe):
+    def replace_arguments(_FuncElement self, new_args, fElem_safe=None):
         """
-        make a copy with new args
+        Make a copy with new args.
 
-        A QobjEvo can contain multiple elements with the same instance of
-        a `_FuncElement`. After updating the args, matching instance will
-        still be matching to keep the memoize capacity.
+        A :obj:`QobjEvo` can contain multiple elements with the same instance
+        of a :obj:`_FuncElement`. After updating the args, matching instance
+        will still be matching to keep the memoize capacity.
         `fElem_safe` is used to ensure this.
 
         Example::
+        With::
+        ```
+            op = QobjEvo(f, args)
+            op2 = op.dag() * op
+        ```
+        ``op2.elements`` is::
+            ``[_ProdElement(_MapElement(f1, [dag]), f1)]``
 
-          op = QobjEvo(f, args)
-          op2 = op.dag() * op
-          op2.elements = [_ProdElement(_MapElement(f1, [dag]), f1)]```
+        with ``f1`` one instance of ``_FuncElement(f, args)``, so after::
 
-        with `f1` one instance of `_FuncElement(f, args)`::
+            ``new_op = op2.replace_arguments(new_args)``
+        ``new_op.elements`` becomes::
+            ``_ProdElement(_MapElement(f2, [dag]), f2)``
 
-          op' = op2.arguments(new_args)
-          op'.elements = _ProdElement(_MapElement(f2, [dag]), f2)
-
-        Here, `f2` is still one instance.
+        Here, ``f2`` is still one instance.
         """
+        if fElem_safe is None:
+            return _FuncElement(self.func, {**self.args, **new_args})
         for old, new in fElem_safe:
             if old is self:
                 return new
@@ -263,10 +291,12 @@ cdef class _MapElement(_BaseElement):
 
     Linear tranformations available in :obj:`QobjEvo` include transpose,
     adjoint, conjugate, convertion and product with number::
-
-      op = QobjEvo(f, args=args)
-      op2 = op.conj().dag() * 2
-      op2.elements = [_MapElement(_FuncElement(f, args), [conj, dag], 2)]
+    ```
+        op = QobjEvo(f, args=args)
+        op2 = op.conj().dag() * 2
+    ```
+    Then ``op2.elements`` is::
+        ``[_MapElement(_FuncElement(f, args), [conj, dag], 2)]``
 
     """
     def __init__(self, _FuncElement base, transform, coeff=1.):
@@ -275,11 +305,15 @@ cdef class _MapElement(_BaseElement):
         self._coeff = coeff
 
     cpdef Data data(self, double t):
-        """ Return the Data at `t`"""
+        """
+        Return the Data at `t`.
+        """
         return self.qobj(t).data
 
     cpdef object qobj(self, double t):
-        """ Return the Qobj at `t`"""
+        """
+        Return the Qobj at `t`.
+        """
         out = self.base.qobj(t)
         for func in self.transform:
             out = func(out)
@@ -294,23 +328,31 @@ cdef class _MapElement(_BaseElement):
         elif type(right) is _MapElement:
             self = right
             factor = left
-        return _MapElement(self.base, self.transform.copy(), self._coeff*factor)
+        return _MapElement(
+            self.base,
+            self.transform.copy(),
+            self._coeff*factor
+        )
 
     def __matmul__(left, right):
         return _ProdElement(left, right, [])
 
     def linear_map(_MapElement self, function, conjugate=False):
-        """linear transformation of the Qobj"""
+        """
+        Linear transformation of the Qobj.
+        """
         return _MapElement(
             self.base,
             self.transform + [function],
             conj(self._coeff) if conjugate else self._coeff
         )
 
-    def arguments(_MapElement self, new_args, fElem_safe):
-        """make a copy with new args"""
+    def replace_arguments(_MapElement self, new_args, fElem_safe=None):
+        """
+        Make a copy with new args.
+        """
         return _MapElement(
-            self.base.arguments(new_args, fElem_safe),
+            self.base.replace_arguments(new_args, fElem_safe),
             self.transform.copy(),
             self._coeff
         )
@@ -322,8 +364,9 @@ cdef class _ProdElement(_BaseElement):
     :obj:`_BaseElement`. Include a stack of linear transformation to be
     applied after the product::
 
-    op = QobjEvo(f) * qobj1
-    op.elements = [_ProdElement(_FuncElement(f, {}), _CteElement(qobj1))]
+        ``op = QobjEvo(f) * qobj1``
+    Then ``op.elements`` is::
+        ``[_ProdElement(_FuncElement(f, {}), _CteElement(qobj1))]``
     """
     def __init__(self, left, right, transform, conj=False):
         self.left = left
@@ -332,18 +375,24 @@ cdef class _ProdElement(_BaseElement):
         self.transform = transform
 
     cpdef Data data(self, double t):
-        """ Return the Data at `t`"""
+        """
+        Return the Data at `t`.
+        """
         return self.qobj(t).data
 
     cpdef object qobj(self, double t):
-        """ Return the Qobj at `t`"""
+        """
+        Return the Qobj at `t`.
+        """
         out = self.left.qobj(t) @ self.right.qobj(t)
         for func in self.transform:
             out = func(out)
         return out
 
     cpdef double complex coeff(self, double t) except *:
-        """ Return the Coefficient at `t`"""
+        """
+        Return the Coefficient at `t`.
+        """
         cdef double complex out = self.left.coeff(t) * self.right.coeff(t)
         return conj(out) if self.conj else out
 
@@ -363,6 +412,9 @@ cdef class _ProdElement(_BaseElement):
         return _ProdElement(left, right, [])
 
     def linear_map(self, function, bool conjugate=False):
+        """
+        Linear transformation of the Qobj.
+        """
         return _ProdElement(
             self.left, self.right,
             self.transform + [function],
@@ -370,6 +422,9 @@ cdef class _ProdElement(_BaseElement):
         )
 
     cdef Data matmul(_ProdElement self, double t, Data state, Data out):
+        """
+        out += Qobj(t) @ state * coeff(t)
+        """
         cdef Data temp
         if not self.transform:
             shape_0 = self.left.qobj(t).shape[0]
@@ -390,10 +445,13 @@ cdef class _ProdElement(_BaseElement):
                 _data.matmul(self.data(t), state, self.coeff(t))
             )
 
-    def arguments(_ProdElement self, new_args, fElem_safe):
+    def replace_arguments(_ProdElement self, new_args, fElem_safe=None):
+        """
+        Make a copy with new args.
+        """
         return _ProdElement(
-            self.left.arguments(new_args, fElem_safe),
-            self.right.arguments(new_args, fElem_safe),
+            self.left.replace_arguments(new_args, fElem_safe),
+            self.right.replace_arguments(new_args, fElem_safe),
             self.transform.copy(),
             self.conj
         )

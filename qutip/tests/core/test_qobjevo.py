@@ -79,6 +79,9 @@ class Pseudo_qevo:
         args = args or self.args
         return self.cte + self.qobj * self.func(t, args)
 
+    def __getitem__(self, which):
+        return getattr(self, which)()
+
 N = 3
 args = {'w1': 1, "w2": 2}
 TESTTIMES = np.linspace(0.001, 1.0, 10)
@@ -126,13 +129,11 @@ def pseudo_qevo(request):
 
 @pytest.fixture
 def all_qevo(pseudo_qevo, coeff_type):
-    # QobjEvo(*all_qevo) builds the Qevo
-    return getattr(pseudo_qevo, coeff_type)()
+    return QobjEvo(*pseudo_qevo[coeff_type])
 
 
 @pytest.fixture
 def other_qevo(all_qevo):
-    # QobjEvo(*all_qevo) builds the Qevo
     return all_qevo
 
 
@@ -155,7 +156,7 @@ def _div(a, b):
 
 def test_call(pseudo_qevo, coeff_type):
     # test creation of QobjEvo and call
-    qevo = QobjEvo(*getattr(pseudo_qevo, coeff_type)())
+    qevo = QobjEvo(*pseudo_qevo[coeff_type])
     assert isinstance(qevo(0), Qobj)
     assert qevo.isoper
     assert not qevo.isconstant
@@ -168,7 +169,7 @@ def test_call(pseudo_qevo, coeff_type):
 def test_product_coeff(pseudo_qevo, coeff_type):
     # test creation of QobjEvo with Qobj * Coefficient
     # Skip pure func: QobjEvo(f(t, args) -> Qobj)
-    base = getattr(pseudo_qevo, coeff_type)()
+    base = pseudo_qevo[coeff_type]
     cte, [qobj, coeff] = base[0]
     args = base[1] if len(base) >= 2 else {}
     tlist = base[2] if len(base) >= 3 else None
@@ -177,7 +178,7 @@ def test_product_coeff(pseudo_qevo, coeff_type):
     _assert_qobjevo_equivalent(pseudo_qevo, created)
 
 def test_copy(all_qevo):
-    qevo = QobjEvo(*all_qevo)
+    qevo = all_qevo
     copy = qevo.copy()
     _assert_qobjevo_equivalent(copy, qevo)
     assert copy is not qevo
@@ -191,8 +192,8 @@ def test_copy(all_qevo):
 ])
 def test_binopt(all_qevo, other_qevo, bin_op):
     "QobjEvo arithmetic"
-    obj1 = QobjEvo(*all_qevo)
-    obj2 = QobjEvo(*other_qevo)
+    obj1 = all_qevo
+    obj2 = other_qevo
     for t in TESTTIMES:
         as_qevo = bin_op(obj1, obj2)(t)
         as_qobj = bin_op(obj1(t), obj2(t))
@@ -207,7 +208,7 @@ def test_binopt(all_qevo, other_qevo, bin_op):
 ])
 def test_binopt_qobj(all_qevo, bin_op):
     "QobjEvo arithmetic"
-    obj = QobjEvo(*all_qevo)
+    obj = all_qevo
     qobj = rand_herm(N)
     for t in TESTTIMES:
         as_qevo = bin_op(obj, qobj)(t)
@@ -226,7 +227,7 @@ def test_binopt_qobj(all_qevo, bin_op):
 ])
 def test_binopt_scalar(all_qevo, bin_op):
     "QobjEvo arithmetic"
-    obj = QobjEvo(*all_qevo)
+    obj = all_qevo
     scalar = 0.5 + 1j
     for t in TESTTIMES:
         as_qevo = bin_op(obj, scalar)(t)
@@ -239,7 +240,7 @@ def test_binopt_scalar(all_qevo, bin_op):
             _assert_qobj_almost_eq(as_qevo, as_qobj)
 
 def binop_coeff(all_qevo):
-    obj = QobjEvo(*all_qevo)
+    obj = all_qevo
     coeff = coeffient("t")
     created = obj * coeff_t
     for t in TESTTIMES:
@@ -253,7 +254,7 @@ def binop_coeff(all_qevo):
 ])
 def test_unary(all_qevo, unary_op):
     "QobjEvo arithmetic"
-    obj = QobjEvo(*all_qevo)
+    obj = all_qevo
     for t in TESTTIMES:
         as_qevo = unary_op(obj)(t)
         as_qobj = unary_op(obj(t))
@@ -262,7 +263,7 @@ def test_unary(all_qevo, unary_op):
 @pytest.mark.parametrize('args_coeff_type',
                          ['func_coeff', 'string', 'func_call'])
 def test_args(pseudo_qevo, args_coeff_type):
-    obj = QobjEvo(*getattr(pseudo_qevo, args_coeff_type)()).copy()
+    obj = QobjEvo(*pseudo_qevo[args_coeff_type])
     args = {'w1': 3, "w2": 3}
 
     for t in TESTTIMES:
@@ -278,7 +279,7 @@ def test_args(pseudo_qevo, args_coeff_type):
 
 def test_copy_side_effects(all_qevo):
     t = 0.2
-    qevo = QobjEvo(*all_qevo)
+    qevo = all_qevo
     copy = qevo.copy()
     before = qevo(t)
     # Ensure inplace modification of the copy do not affect the original
@@ -294,7 +295,7 @@ def test_copy_side_effects(all_qevo):
 )
 def test_tidyup(all_qevo):
     "QobjEvo tidyup"
-    obj = QobjEvo(*all_qevo)
+    obj = all_qevo
     obj *= 1e-12
     obj.tidyup(atol=1e-8)
     t = 0.2
@@ -305,14 +306,14 @@ def test_QobjEvo_pickle(all_qevo):
     "QobjEvo pickle"
     # used in parallel_map
     import pickle
-    obj = QobjEvo(*all_qevo)
+    obj = all_qevo
     pickled = pickle.dumps(obj, -1)
     recreated = pickle.loads(pickled)
     _assert_qobjevo_equivalent(recreated, obj)
 
 def test_shift(all_qevo):
     dt = 0.2
-    obj = QobjEvo(*all_qevo)
+    obj = all_qevo
     shited = obj._insert_time_shift(dt)
     for t in TESTTIMES:
         _assert_qobj_almost_eq(obj(t + dt), shited(t))
@@ -320,7 +321,7 @@ def test_shift(all_qevo):
 def test_mul_vec(all_qevo):
     "QobjEvo matmul ket"
     vec = Qobj(np.arange(N)*.5+.5j)
-    op = QobjEvo(*all_qevo)
+    op = all_qevo
     for t in TESTTIMES:
         assert_allclose((op(t) @ vec).full(),
                         op.matmul(t, vec).full(), atol=1e-14)
@@ -331,7 +332,7 @@ def test_matmul(all_qevo):
     matDense = Qobj(mat).to(_data.Dense)
     matF = Qobj(np.asfortranarray(mat)).to(_data.Dense)
     matCSR = Qobj(mat).to(_data.CSR)
-    op = QobjEvo(*all_qevo)
+    op = all_qevo
     for t in TESTTIMES:
         Qo1 = op(t)
         assert_allclose((Qo1 @ mat).full(),
@@ -345,7 +346,7 @@ def test_expect_psi(all_qevo):
     "QobjEvo expect psi"
     vec = _data.dense.fast_from_numpy(np.arange(N)*.5 + .5j)
     qobj = Qobj(vec)
-    op = QobjEvo(*all_qevo)
+    op = all_qevo
     for t in TESTTIMES:
         Qo1 = op(t)
         assert_allclose(_data.expect(Qo1.data, vec), op.expect(t, qobj),
@@ -357,7 +358,7 @@ def test_expect_rho(all_qevo):
                                       + 1j * np.random.rand(N*N))
     mat = _data.column_unstack_dense(vec, N)
     qobj = Qobj(mat)
-    op = liouvillian(QobjEvo(*all_qevo))
+    op = liouvillian(all_qevo)
     for t in TESTTIMES:
         Qo1 = op(t)
         assert abs(_data.expect_super(Qo1.data, vec)
@@ -368,7 +369,7 @@ def test_expect_rho(all_qevo):
      for dtype in core.data.to.dtypes])
 def test_convert(all_qevo, dtype):
     "QobjEvo expect rho"
-    op = QobjEvo(*all_qevo).to(dtype)
+    op = all_qevo.to(dtype)
     assert isinstance(op(0.5).data, dtype)
 
 def test_compress():

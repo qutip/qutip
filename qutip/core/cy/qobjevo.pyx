@@ -10,53 +10,31 @@ import qutip
 from .. import Qobj
 from .. import data as _data
 from ..coefficient import coefficient, CompilationOptions
+from ._element import *
+from ..dimensions import type_from_dims
+from qutip.settings import settings
 
-from qutip.core.dimensions import type_from_dims
-from qutip.core.cy._element import *
 from qutip.core.cy._element cimport _BaseElement
 from qutip.core.data cimport Dense, Data, dense
 from qutip.core.data.expect cimport *
 from qutip.core.data.reshape cimport (column_stack_dense, column_unstack_dense)
 from qutip.core.cy.coefficient cimport Coefficient
-from qutip import settings
-
 from libc.math cimport fabs
 
 __all__ = ['QobjEvo']
-
-# For linear_map: need function out of method
-def _qobjdag(qobj):
-    """Hermitian adjoint of the quantum object."""
-    return qobj.dag()
-
-
-def _qobjconj(qobj):
-    """Element-wise conjugation of the quantum object."""
-    return qobj.conj()
-
-
-def _qobjtrans(qobj):
-    """Matrix transpose of the quantum operator."""
-    return qobj.trans()
-
-
-def _qobjto(dtype, qobj):
-    """convert Qobj."""
-    return qobj.to(dtype)
-
 
 cdef class QobjEvo:
     """
     A class for representing time-dependent quantum objects,
     such as quantum operators and states.
 
-    The QobjEvo class is a representation of time-dependent Qutip quantum
-    objects (Qobj) for system accepted by solvers. The QobjEvo
+    The :obj:`QobjEvo` class is a representation of time-dependent Qutip quantum
+    objects (:obj:`Qobj`) for system accepted by solvers. The QobjEvo
     are constructed from a nested list of Qobj with their time-dependent
-    coefficients, or for function returning a `Qobj`.
+    coefficients, or for function returning a Qobj.
 
     For a QobjEvo based on a function, the function signature must be:
-        `f(t: double, args: dict) -> Qobj`.
+        ``f(t: double, args: dict) -> Qobj``.
 
     *Examples*
     ```
@@ -66,15 +44,15 @@ cdef class QobjEvo:
     QobjEvo(f, args={'w': 1j})
     ```
 
-    For list based QobjEvo, the list must be comprised of `Qobj` and pair
-    `[Qobj, coefficient]`.
+    For list based QobjEvo, the list must be comprised of ``Qobj`` and pair
+    ``[Qobj, coefficient]``.
     *Examples*
     ```
     QobjEvo([H0, [H1, coeff1], [H2, coeff2]], args=args)
     ```
 
     The time-dependent coefficients are either functions, strings, numpy arrays
-    or `Cubic_Spline`. For function format, the function signature
+    or :obj:``Cubic_Spline``. For function format, the function signature
     must be f(t, args).
     *Examples*
     ```
@@ -83,15 +61,15 @@ cdef class QobjEvo:
 
     QobjEvo([[H1, f1_t]], args={"w1":1.})
     ```
-modiffied
+
     With string based coeffients, the string must be a compilable python code
     resulting in a complex. The following symbols are defined:
-        `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `pi`,
-        `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh`,
-        `exp`, `log`, `log10`, `erf`, `zerf`, `sqrt`,
-        `real`, `imag`, `conj`, `abs`, `norm`, `arg`, `proj`,
-        numpy as `np`, scipy.special as `spe` and
-        `cython_special` (cython interface).
+        ``sin``, ``cos``, ``tan``, ``asin``, ``acos``, ``atan``, ``pi``,
+        ``sinh``, ``cosh``, ``tanh``, ``asinh``, ``acosh``, ``atanh``,
+        ``exp``, ``log``, ``log10``, ``erf``, ``zerf``, ``sqrt``,
+        ``real``, ``imag``, ``conj``, ``abs``, ``norm``, ``arg``, ``proj``,
+        numpy as ``np``, scipy.special as ``spe`` and
+        ``cython_special`` (cython interface).
     *Examples*
     ```
     H = QobjEvo([H0, [H1, 'exp(-1j*w1*t)'], [H2, 'cos(w2*t)']],
@@ -103,9 +81,8 @@ modiffied
     The coeffients array must have the same len as the tlist.
     The time of the tlist do not need to be equidistant, but must be sorted.
     By default, a cubic spline interpolation will be used for the coefficient
-    at time t.
-    If the coefficients are to be treated as step function, use the arguments
-    `args = {"_step_func_coeff": True}`
+    at time t. If the coefficients are to be treated as step function, use the
+    keyword `step_interpolation=True`.
     *Examples*
     ```
     tlist = np.logspace(-5,0,100)
@@ -120,7 +97,7 @@ modiffied
     `args` is a dict of (name:object).
     The name must be a valid variables string.
 
-    QobjEvo can also be build with the product of `Qobj` with `Coefficient`.
+    QobjEvo can also be built with the product of `Qobj` with `Coefficient`.
     *Examples*
     ```
     coeff = qutip.coefficient("exp(-1j*w1*t)", args={"w1":1})
@@ -143,6 +120,9 @@ modiffied
 
     copy : bool
         If Q_object is already a QobjEvo, return a copy.
+
+    step_interpolation : bool
+        For array :obj:`Coefficient`, use step interpolation instead of spline.
 
     Attributes
     ----------
@@ -220,19 +200,15 @@ modiffied
         Transform all component to a common data_type.
 
     """
-    def __init__(QobjEvo self, Q_object, args=None,
-                 tlist=None, deepcopy=False, copy=True):
+    def __init__(QobjEvo self, Q_object, args=None, tlist=None,
+                 step_interpolation=False, copy=True):
         if isinstance(Q_object, QobjEvo):
             self.dims = Q_object.dims.copy()
             self.shape = Q_object.shape
             self._shift_dt = (<QobjEvo> Q_object)._shift_dt
             self._issuper = (<QobjEvo> Q_object)._issuper
             self._isoper = (<QobjEvo> Q_object)._isoper
-            if deepcopy and not args:
-                # self.arguments while do the deepcopy
-                self.elements = [element.copy()
-                                 for element in (<QobjEvo> Q_object).elements]
-            elif copy or args:
+            if copy or args:
                 self.elements = (<QobjEvo> Q_object).elements.copy()
             else:
                 self.elements = (<QobjEvo> Q_object).elements
@@ -248,8 +224,7 @@ modiffied
         self._shift_dt = 0
         args = args or {}
 
-        use_step_func = args.get("_step_func_coeff", 0)
-        cte = None
+        use_step_func = args.get("_step_func_coeff", 0) or step_interpolation
 
         if (
             isinstance(Q_object, list)
@@ -267,34 +242,8 @@ modiffied
 
         elif isinstance(Q_object, list):
             for op in Q_object:
-                if isinstance(op, Qobj):
-                    if cte is None:
-                        cte = op
-                    else:
-                        cte += op
-                    _dims = op.dims
-                    _shape = op.shape
-                else:
-                    self.elements.append(_EvoElement(
-                        op[0],
-                        coefficient(op[1], tlist=tlist, args=args,
-                                    _stepInterpolation=use_step_func,
-                                    compile_opt=CompilationOptions())
-                    ))
-                    _dims = op[0].dims
-                    _shape = op[0].shape
-
-                if self.dims is None:
-                    self.dims = _dims
-                    self.shape = _shape
-
-                else:
-                    if self.dims != _dims:
-                        raise ValueError("incompatible dimensions " +
-                                         str(self.dims) + ", " + str(_dims))
-
-            if cte is not None:
-                self.elements = [_CteElement(cte)] + self.elements
+                self._read_element(op, copy, tlist, args, use_step_func)
+            self.compress()
 
         elif callable(Q_object):
             qobj = Q_object(0, args)
@@ -308,6 +257,33 @@ modiffied
 
         else:
             raise TypeError("Format not understood")
+
+    def _read_element(self, op, copy, tlist, args, use_step_func):
+        """ Read one value of the list format."""
+        if isinstance(op, Qobj):
+            self.elements.append(_CteElement(op.copy() if copy else op))
+            _dims = op.dims
+            _shape = op.shape
+        elif isinstance(op, list):
+            self.elements.append(_EvoElement(
+                op[0].copy() if copy else op[0],
+                coefficient(op[1], tlist=tlist, args=args,
+                            _stepInterpolation=use_step_func,
+                            compile_opt=CompilationOptions())
+            ))
+            _dims = op[0].dims
+            _shape = op[0].shape
+        else:
+            raise TypeError("List QobjEvo should be comprised of Qobj and"
+                            " list of `[Qobj, coefficient]`")
+
+        if self.dims is None:
+            self.dims = _dims
+            self.shape = _shape
+        else:
+            if self.dims != _dims:
+                raise ValueError("incompatible dimensions " +
+                                 str(self.dims) + ", " + str(_dims))
 
     def __call__(self, double t, dict args=None):
         if args:
@@ -332,14 +308,14 @@ modiffied
     cdef double _prepare(QobjEvo self, double t, Data state=None):
         return t + self._shift_dt
 
-    def copy(QobjEvo self, deepcopy=False):
+    def copy(QobjEvo self):
         """Return a copy of this `QobjEvo`"""
-        return QobjEvo(self, deepcopy)
+        return QobjEvo(self)
 
     def arguments(QobjEvo self, dict new_args):
         """Update the arguments"""
         safe = [] # storage for _FuncElement's instance management.
-        self.elements = [element.arguments(new_args, safe)
+        self.elements = [element.replace_arguments(new_args, safe)
                          for element in self.elements]
 
 
@@ -535,21 +511,21 @@ modiffied
     def trans(self):
         """ Transpose of the quantum object """
         cdef QobjEvo res = self.copy()
-        res.elements = [element.linear_map(_qobjtrans)
+        res.elements = [element.linear_map(Qobj.trans)
                         for element in res.elements]
         return res
 
     def conj(self):
-        """ Conjugate of the quantum object """
+        """Get the element-wise conjugation of the quantum object."""
         cdef QobjEvo res = self.copy()
-        res.elements = [element.linear_map(_qobjconj, True)
+        res.elements = [element.linear_map(Qobj.conj, True)
                         for element in res.elements]
         return res
 
     def dag(self):
-        """ Hermitian adjoint of the quantum object """
+        """Get the Hermitian adjoint of the quantum object."""
         cdef QobjEvo res = self.copy()
-        res.elements = [element.linear_map(_qobjdag, True)
+        res.elements = [element.linear_map(Qobj.dag, True)
                         for element in res.elements]
         return res
 
@@ -575,7 +551,8 @@ modiffied
         -------
         None
         """
-        return self.linear_map(partial(_qobjto, data_type), _skip_check=True)
+        return self.linear_map(partial(Qobj.to, data_type=data_type),
+                               _skip_check=True)
 
     def _insert_time_shift(QobjEvo self, dt):
         """
@@ -614,7 +591,7 @@ modiffied
         Notes
         -----
         Does not modify the coefficients, thus `linear_map(conj)` would not
-        give the the conjugate of the QobjEvo. Also it's only valid for linear
+        give the the conjugate of the QobjEvo. It's only valid for linear
         transformations.
         """
         if not _skip_check:

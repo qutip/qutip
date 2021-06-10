@@ -14,6 +14,7 @@ import qutip
 
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
+    double         norm(double complex x)
 
 cdef class Coefficient:
     """
@@ -93,7 +94,6 @@ cdef class Coefficient:
         return pickle.loads(pickle.dumps(self))
 
     def conj(self):
-<<<<<<< HEAD
         """ Return a conjugate :obj:`Coefficient` of this"""
         return ConjCoefficient(self)
 
@@ -104,11 +104,6 @@ cdef class Coefficient:
     def _shift(self):
         """ Return a :obj:`Coefficient` with a time shift"""
         return ShiftCoefficient(self, 0)
-
-=======
-        return ConjCoefficient(self)
-
->>>>>>> 0c043936... replace the used version of QobjEvo in core
 
 @cython.auto_pickle(True)
 cdef class FunctionCoefficient(Coefficient):

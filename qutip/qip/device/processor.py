@@ -514,8 +514,6 @@ class Processor(object):
         c_ops: list of :class:`qutip.QobjEvo`
             A list of lindblad operators is also returned. if ``noisy==Flase``,
             it is always an empty list.
-        tlist: list of float
-            A list of the times from associated with the pulse.
         """
         # TODO test it for non array-like coeff
         # check validity

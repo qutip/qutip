@@ -43,7 +43,6 @@ import numpy as np
 
 from .qobj import Qobj
 from . import data as _data
-from .cy.qobjevo import QobjEvo
 
 def _map_over_compound_operators(f):
     """
@@ -52,6 +51,7 @@ def _map_over_compound_operators(f):
     """
     @functools.wraps(f)
     def out(qobj):
+        from .cy.qobjevo import QobjEvo
         if isinstance(qobj, QobjEvo):
             return qobj.linear_map(f, _skip_check=True)
         if not isinstance(qobj, Qobj):
@@ -82,6 +82,7 @@ def liouvillian(H=None, c_ops=None, data_only=False, chi=None):
         Liouvillian superoperator.
 
     """
+    from .cy.qobjevo import QobjEvo
     c_ops = c_ops or []
     if isinstance(c_ops, (Qobj, QobjEvo)):
         c_ops = [c_ops]
@@ -160,6 +161,7 @@ def lindblad_dissipator(a, b=None, data_only=False, chi=None):
     D : qobj, QobjEvo
         Lindblad dissipator superoperator.
     """
+    from .cy.qobjevo import QobjEvo
     if b is None:
         b = a
     ad_b = a.dag() * b
@@ -341,6 +343,7 @@ def sprepost(A, B):
     super : Qobj or QobjEvo
         Superoperator formed from input quantum objects.
     """
+    from .cy.qobjevo import QobjEvo
     if (isinstance(A, QobjEvo) or isinstance(B, QobjEvo)):
         return spre(A) * spost(B)
     dims = [[_drop_projected_dims(A.dims[0]),

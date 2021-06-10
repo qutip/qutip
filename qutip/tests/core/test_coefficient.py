@@ -35,7 +35,8 @@ import pickle
 import qutip as qt
 import numpy as np
 from functools import partial
-from qutip.core.coefficient import (coefficient, conj, CompilationOptions,
+from qutip.core.coefficient import (coefficient, norm, conj, shift,
+                                    CompilationOptions,
                                     clean_compiled_coefficient
                                    )
 
@@ -168,9 +169,29 @@ def test_CoeffCallArguments(base, tol):
     pytest.param("steparray", id="steparray"),
     pytest.param("steparraylog", id="steparraylog")
 ])
-def test_CoeffConj(style):
+@pytest.mark.parametrize(['transform', 'expected'], [
+    pytest.param(norm, lambda val: np.abs(val)**2, id="norm"),
+    pytest.param(conj, lambda val: np.conj(val), id="conj"),
+])
+def test_CoeffUnitaryTransform(style, transform, expected):
     coeff = coeff_generator(style, "f")
-    _assert_eq_over_interval(conj(coeff), lambda t: np.conj(coeff(t)))
+    _assert_eq_over_interval(transform(coeff), lambda t: expected(coeff(t)))
+
+
+@pytest.mark.parametrize(['style'], [
+    pytest.param("func", id="func"),
+    pytest.param("array", id="array"),
+    pytest.param("arraylog", id="logarray"),
+    pytest.param("spline", id="Cubic_Spline"),
+    pytest.param("string", id="string"),
+    pytest.param("steparray", id="steparray"),
+    pytest.param("steparraylog", id="steparraylog")
+])
+def test_CoeffShift(style):
+    coeff = coeff_generator(style, "f")
+    dt = np.e / 30
+    _assert_eq_over_interval(shift(coeff, dt),
+                             lambda t: coeff(t + dt))
 
 
 @pytest.mark.parametrize(['style_left'], [
@@ -292,6 +313,10 @@ def _mul(coeff):
     return coeff * coeff
 
 
+def _shift(coeff):
+    return shift(coeff, 0.05)
+
+
 @pytest.mark.parametrize(['style'], [
     pytest.param("func", id="func"),
     pytest.param("array", id="array"),
@@ -305,7 +330,9 @@ def _mul(coeff):
     pytest.param(_pass, id="single"),
     pytest.param(_add, id="sum"),
     pytest.param(_mul, id="prod"),
+    pytest.param(norm, id="norm"),
     pytest.param(conj, id="conj"),
+    pytest.param(_shift, id="shift"),
 ])
 def test_Coeffpickle(style, transform):
     coeff = coeff_generator(style, "f")
@@ -327,7 +354,9 @@ def test_Coeffpickle(style, transform):
     pytest.param(_pass, id="single"),
     pytest.param(_add, id="sum"),
     pytest.param(_mul, id="prod"),
+    pytest.param(norm, id="norm"),
     pytest.param(conj, id="conj"),
+    pytest.param(_shift, id="shift"),
 ])
 def test_Coeffcopy(style, transform):
     coeff = coeff_generator(style, "f")
