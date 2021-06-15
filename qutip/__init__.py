@@ -30,103 +30,63 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-from __future__ import division, print_function, absolute_import
 import os
-import sys
 import warnings
 
-from .settings import settings
-from . import version
-from .version import version as __version__
-from .utilities import _version2int
+import qutip.settings
+import qutip.version
+from qutip.version import version as __version__
 
 # -----------------------------------------------------------------------------
-# Check for minimum requirements of dependencies, give the user a warning
-# if the requirements aren't fulfilled
-#
-
-numpy_requirement = "1.12.0"
+# Check if we're in IPython.
 try:
-    import numpy
-    if _version2int(numpy.__version__) < _version2int(numpy_requirement):
-        print("QuTiP warning: old version of numpy detected " +
-              ("(%s), requiring %s." %
-               (numpy.__version__, numpy_requirement)))
-except:
-    warnings.warn("numpy not found.")
+    __IPYTHON__
+    qutip.settings.ipython = True
+except NameError:
+    qutip.settings.ipython = False
 
-scipy_requirement = "1.0.0"
-try:
-    import scipy
-    if _version2int(scipy.__version__) < _version2int(scipy_requirement):
-        print("QuTiP warning: old version of scipy detected " +
-              ("(%s), requiring %s." %
-               (scipy.__version__, scipy_requirement)))
-except:
-    warnings.warn("scipy not found.")
 
 # -----------------------------------------------------------------------------
-# check to see if running from install directory for released versions.
+# Look to see if we are running with OPENMP
 #
-top_path = os.path.dirname(os.path.dirname(__file__))
+# Set environ variable to determin if running in parallel mode
+# (i.e. in parfor or parallel_map)
+os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
+
 try:
-    setup_file = open(top_path + '/setup.py', 'r')
-except:
-    pass
+    from qutip.cy.openmp.parfuncs import spmv_csr_openmp
+except ImportError:
+    qutip.settings.has_openmp = False
 else:
-    if ('QuTiP' in setup_file.readlines()[1][3:]) and version.release:
-        print("You are in the installation directory. " +
-              "Change directories before running QuTiP.")
-    setup_file.close()
+    qutip.settings.has_openmp = True
+    # See Pull #652 for why this is here.
+    os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
-del top_path
-
-
-
+import platform
+from .utilities import _blas_info
+qutip.settings.eigh_unsafe = (_blas_info() == "OPENBLAS" and
+                              platform.system() == 'Darwin')
+del platform
 # -----------------------------------------------------------------------------
 # setup the cython environment
 #
-_cython_requirement = "0.21.0"
 try:
-    import Cython
-    if _version2int(Cython.__version__) < _version2int(_cython_requirement):
-        print("QuTiP warning: old version of cython detected " +
-              ("(%s), requiring %s." %
-               (Cython.__version__, _cython_requirement)))
-    # Setup pyximport
-    from . import _pyxbuilder as pbldr
-    pbldr.install(setup_args={'include_dirs': [numpy.get_include()]})
-    del pbldr
-except Exception:
+    import Cython as _Cython
+except ImportError:
     pass
 else:
-    del Cython
+    from qutip.utilities import _version2int
+    _cy_require = "0.29.20"
+    if _version2int(_Cython.__version__) < _version2int(_cy_require):
+        warnings.warn(
+            "Old version of Cython detected: needed {}, got {}."
+            .format(_cy_require, _Cython.__version__)
+        )
+    # Setup pyximport
+    from qutip import _pyxbuilder
+    _pyxbuilder.install()
+    del _pyxbuilder, _Cython, _version2int
 
-
-# -----------------------------------------------------------------------------
-# cpu/process configuration
-#
-import multiprocessing
-
-"""
-# Check if environ flag for qutip processes is set
-if 'QUTIP_NUM_PROCESSES' in os.environ:
-    settings.num_cpus = int(os.environ['QUTIP_NUM_PROCESSES'])
-else:
-    os.environ['QUTIP_NUM_PROCESSES'] = str(settings.num_cpus)
-
-if settings.num_cpus == 0:
-    # if num_cpu is 0 set it to the available number of cores
-    from . import hardware_info
-    info = hardware_info.hardware_info()
-    if 'cpus' in info:
-        settings.num_cpus = info['cpus']
-    else:
-        try:
-            settings.num_cpus = multiprocessing.cpu_count()
-        except:
-            settings.num_cpus = 1
-"""
 
 
 # Find MKL library if it exists
@@ -141,7 +101,7 @@ from . import _mkl
 # Check for Matplotlib
 try:
     import matplotlib
-except:
+except ImportError:
     warnings.warn("matplotlib not found: Graphics will not work.")
 else:
     del matplotlib
@@ -188,13 +148,6 @@ from .fileio import *
 from .about import *
 from .cite import *
 
-# Remove -Wstrict-prototypes from cflags
-import setuptools
-import distutils.sysconfig
-cfg_vars = distutils.sysconfig.get_config_vars()
-if "CFLAGS" in cfg_vars:
-    cfg_vars["CFLAGS"] = cfg_vars["CFLAGS"].replace("-Wstrict-prototypes", "")
-
 # -----------------------------------------------------------------------------
 # Load user configuration if present: override defaults.
 #
@@ -205,4 +158,4 @@ if configrc.has_qutip_rc():
 # -----------------------------------------------------------------------------
 # Clean name space
 #
-del os, sys, numpy, scipy, multiprocessing, distutils, configrc, warnings
+del os, warnings

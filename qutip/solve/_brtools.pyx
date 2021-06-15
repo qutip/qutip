@@ -49,7 +49,7 @@ from qutip.core.data cimport CSR, csr, Dense, dense, idxint
 from qutip.core.data.add cimport add_csr
 from qutip.core.data.kron cimport kron_csr
 from qutip.core.data.matmul cimport matmul_csr, matmul_csr_dense_dense
-from qutip import settings
+from qutip.settings import settings
 eigh_unsafe = settings.install["eigh_unsafe"]
 
 cnp.import_array()
@@ -411,7 +411,7 @@ cdef cnp.ndarray[complex, ndim=1, mode='c'] vec_to_fockbasis(double complex * ei
     PyDataMem_FREE(temp1)
     cdef cnp.ndarray[complex, ndim=1, mode='c'] out = \
                 cnp.PyArray_SimpleNewFromData(1, &nrows2, cnp.NPY_COMPLEX128, fock_vec)
-    PyArray_ENABLEFLAGS(out, cnp.NPY_OWNDATA)
+    PyArray_ENABLEFLAGS(out, cnp.NPY_ARRAY_OWNDATA)
     return out
 
 

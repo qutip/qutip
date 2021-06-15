@@ -31,7 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 from .about import about
-from . import settings as qset
+from .settings import settings as qset
 
 def run(full=False):
     """

@@ -40,7 +40,7 @@ from __future__ import absolute_import
 import inspect
 import logging
 
-from qutip import settings
+from qutip.settings import settings
 
 # EXPORTS
 NOTSET = logging.NOTSET

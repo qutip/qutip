@@ -43,7 +43,7 @@ from ..core import (
     Qobj, spre, unstack_columns, stack_columns, expect, Cubic_Spline,
 )
 from ..core import data as _data
-from .. import settings as qset
+from ..settings import settings as qset
 from ..core.cy.openmp.utilities import check_use_openmp
 from ..ui.progressbar import BaseProgressBar, TextProgressBar
 from .br_codegen import BR_Codegen

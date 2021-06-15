@@ -43,7 +43,7 @@ import scipy
 import inspect
 import qutip
 from qutip.utilities import _blas_info
-from qutip import settings
+from qutip.settings import settings
 from qutip.hardware_info import hardware_info
 
 

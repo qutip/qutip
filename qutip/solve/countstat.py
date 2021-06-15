@@ -44,7 +44,7 @@ from ..core import (
 )
 from ..core import data as _data
 from .steadystate import pseudo_inverse, steadystate
-from .. import settings
+from ..settings import settings
 
 # Load MKL spsolve if avaiable
 if settings.install['has_mkl']:
