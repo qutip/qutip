@@ -165,8 +165,9 @@ def _extension_extra_sources():
     # For typing brevity we specify sources in Unix-style string form, then
     # normalise them into the OS-specific form later.
     extra_sources = {
-        'qutip.cy.spmatfuncs': ['qutip/cy/src/zspmv.cpp'],
-        'qutip.cy.openmp.parfuncs': ['qutip/cy/openmp/src/zspmv_openmp.cpp'],
+        'qutip.core.data.matmul': [
+            'qutip/core/data/src/matmul_csr_vector.cpp',
+        ],
     }
     out = collections.defaultdict(list)
     for module, sources in extra_sources.items():
