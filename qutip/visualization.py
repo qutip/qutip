@@ -416,7 +416,7 @@ def sphereplot(theta, phi, values, fig=None, ax=None, save=False):
 
 
 def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
-                      colorbar=True, fig=None, ax=None, options=None):
+                     colorbar=True, fig=None, ax=None, options=None):
     """
     Draw a histogram for the matrix M, with the given x and y labels and title.
 
