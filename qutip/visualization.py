@@ -549,11 +549,12 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
         Axis._get_coord_info = _get_coord_info_new
 
     # default options
-    default_opts = {'figsize':None, 'cmap':'jet', 'cmap_min':0., 'cmap_max':1.,
-            'zticks':None, 'bars_spacing':0.1, 'bars_alpha':1., 'bars_lw':0.5,
-            'bars_edgecolor':'k', 'shade':False, 'azim':65, 'elev':30,
-            'proj_type':'ortho', 'stick':False,
-            'cbar_pad':0.04, 'cbarmax_to_zmax':False}
+    default_opts = {'figsize': None, 'cmap': 'jet', 'cmap_min': 0.,
+                    'cmap_max': 1., 'zticks': None, 'bars_spacing': 0.1,
+                    'bars_alpha': 1., 'bars_lw': 0.5, 'bars_edgecolor': 'k',
+                    'shade': False, 'azim': 65, 'elev': 30,
+                    'proj_type': 'ortho', 'stick': False,
+                    'cbar_pad': 0.04, 'cbarmax_to_zmax': False}
 
     if options:
         # check if keys in option dict are valid
