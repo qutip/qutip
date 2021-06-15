@@ -50,9 +50,10 @@ from scipy.sparse.linalg import (
 
 from .. import (
     Qobj, liouvillian, unstack_columns, stack_columns, spre, tensor, identity,
-    operator_to_vector, settings,
+    operator_to_vector,
 )
 from ..core import data as _data
+from ..settings import settings
 from . import _steadystate
 
 import qutip.logging_utils

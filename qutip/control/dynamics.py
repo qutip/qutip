@@ -64,7 +64,7 @@ import scipy.sparse as sp
 from qutip import Qobj
 from qutip.core import data as _data
 from qutip.core.data.eigen import eigh
-from qutip import settings
+from qutip.settings import settings
 # QuTiP control modules
 import qutip.control.errors as errors
 import qutip.control.tslotcomp as tslotcomp

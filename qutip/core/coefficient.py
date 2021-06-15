@@ -18,7 +18,7 @@ except ImportError:
     pass
 from warnings import warn
 
-from .. import settings as qset
+from ..settings import settings as qset
 from ..optionsclass import optionsclass
 from .data import Data
 from .interpolate import Cubic_Spline
