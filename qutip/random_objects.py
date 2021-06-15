@@ -187,18 +187,20 @@ def _rand_herm_sparse(N, density, pos_def):
                              in np.random.choice(N*N,
                                                  num_elems,
                                                  replace=False)])
-    M = sp.coo_matrix((data, (row_idx,col_idx)),
-                      dtype=complex, shape=(N,N)).tocsr()
+    M = sp.coo_matrix((data, (row_idx, col_idx)),
+                      dtype=complex, shape=(N, N))
     M = 0.5 * (M + M.conj().transpose())
     if pos_def:
-        M.setdiag(np.abs(M.diagonal())+np.sqrt(2)*N)
+        M = M.tocoo()
+        M.setdiag(np.abs(M.diagonal()) + np.sqrt(2)*N)
+    M = M.tocsr()
     M.sort_indices()
     return M
 
 
 def _rand_herm_dense(N, density, pos_def):
-    M = (2 * np.random.rand(N,N) - 1) + \
-        (2 * np.random.rand(N,N) - 1) * 1j
+    M = (2 * np.random.rand(N, N) - 1) + \
+        (2 * np.random.rand(N, N) - 1) * 1j
     M = 0.5 * (M + M.conj().transpose())
     target = (1-(density)**0.5)
     num_remove = N * (N - 0.666) * target + 0.666 * N * (1 - density)
@@ -211,8 +213,7 @@ def _rand_herm_dense(N, density, pos_def):
         M[col, row] = 0
         M[row, col] = 0
     if pos_def:
-        as_vec = M.ravel()
-        M[::N+1] = (np.abs(M.diagonal())+np.sqrt(2)*N)
+        np.fill_diagonal(M, np.abs(M.diagonal()) + np.sqrt(2)*N)
     return M
 
 
