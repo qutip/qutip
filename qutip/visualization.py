@@ -415,12 +415,8 @@ def sphereplot(theta, phi, values, fig=None, ax=None, save=False):
     return fig, ax
 
 
-def matrix_histogram(M, xlabels=None, ylabels=None, zticks=None,
-                     title=None, limits=None, fig=None, ax=None, figsize=None,
-                     colorbar=True, cmap='jet', cmap_min=0., cmap_max=1.,
-                     bars_spacing=0.1, bars_alpha=1., bars_lw=0.5,
-                     bars_edgecolor='k', shade=False, azim=65, elev=30,
-                     proj_type='ortho', stick=False, cbar_pad=0.04):
+def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
+                      colorbar=True, fig=None, ax=None, options=None):
     """
     Draw a histogram for the matrix M, with the given x and y labels and title.
 
@@ -434,9 +430,6 @@ def matrix_histogram(M, xlabels=None, ylabels=None, zticks=None,
 
     ylabels : list of strings
         list of y labels
-    
-    zticks : list of numbers
-        list of z-axis ticks location
 
     title : string
         title of the plot (optional)
@@ -447,49 +440,63 @@ def matrix_histogram(M, xlabels=None, ylabels=None, zticks=None,
     ax : a matplotlib axes instance
         The axes context in which the plot will be drawn.
 
-    cmap : string (default: 'jet')
-        colormap name
+    colorbar : bool (default: True)
+        show colorbar
 
-    cmap_min : float (default: 0.0)
-        colormap truncation minimum, a value in range 0-1
+    options : dict
+        dictionary containing extra options
+        all keys are of type `str` and values have different types
+        key:value  pairs should be as follows:
 
-    cmap_max : float (default: 1.0)
-        colormap truncation maximum, a value in range 0-1
+        'zticks' : list of numbers
+            list of z-axis ticks location
 
-    bars_spacing : float (default: 0.1)
-        spacing between bars
+        'cmap' : string (default: 'jet')
+            colormap name
 
-    bars_alpha : float (default: 1.)
-        transparency of bars, should be in range 0-1
+        'cmap_min' : float (default: 0.0)
+            colormap truncation minimum, a value in range 0-1
 
-    bars_lw : float (default: 0.5)
-        linewidth of bars' edges
+        'cmap_max' : float (default: 1.0)
+            colormap truncation maximum, a value in range 0-1
 
-    bars_edgecolor : color (default: 'k')
-        color of bars' edges, examples: 'k', (0.1, 0.2, 0.5), '#0f0f0f80'
-    
-    shade : bool (default: True)
-        when True, this shades the dark sides of the bars (relative
-        to the plot's source of light).
+        'bars_spacing' : float (default: 0.1)
+            spacing between bars
 
-    azim : float
-        Azimuthal viewing angle.
+        'bars_alpha' : float (default: 1.)
+            transparency of bars, should be in range 0-1
 
-    elev : float
-        Elevation viewing angle.
+        'bars_lw' : float (default: 0.5)
+            linewidth of bars' edges
 
-    proj_type : string (default: 'ortho')
-        type of projection ('ortho' or 'persp')
+        'bars_edgecolor' : color (default: 'k')
+            color of bars' edges, examples: 'k', (0.1, 0.2, 0.5), '#0f0f0f80'
 
-    stick : bool (default: False)
-        works for Azimuthal viewing angles between -360 and +360
+        'shade' : bool (default: True)
+            when True, this shades the dark sides of the bars (relative
+            to the plot's source of light).
 
-    cbar_pad : float (default: 0.04)
-        fraction of original axes between colorbar and new image axes
-        (padding between 3D figure and colorbar).
+        'azim' : float
+            Azimuthal viewing angle.
 
-    figsize : tuple of two numbers
-        size of the figure
+        'elev' : float
+            Elevation viewing angle.
+
+        'proj_type' : string (default: 'ortho')
+            type of projection ('ortho' or 'persp')
+
+        'stick' : bool (default: False)
+            works for Azimuthal viewing angles between -360 and +360
+
+        'cbar_pad' : float (default: 0.04)
+            fraction of original axes between colorbar and new image axes
+            (padding between 3D figure and colorbar).
+
+        'cbarmax_to_zmax' : bool (default: False)
+            set color of maximum z-value to maximum color of colorbar
+
+        'figsize' : tuple of two numbers
+            size of the figure
 
     Returns :
     -------
@@ -541,6 +548,39 @@ def matrix_histogram(M, xlabels=None, ylabels=None, zticks=None,
         Axis._get_coord_info_old = Axis._get_coord_info
         Axis._get_coord_info = _get_coord_info_new
 
+    # default options
+    default_opts = {'figsize':None, 'cmap':'jet', 'cmap_min':0., 'cmap_max':1.,
+            'zticks':None, 'bars_spacing':0.1, 'bars_alpha':1., 'bars_lw':0.5,
+            'bars_edgecolor':'k', 'shade':False, 'azim':65, 'elev':30,
+            'proj_type':'ortho', 'stick':False,
+            'cbar_pad':0.04, 'cbarmax_to_zmax':False}
+
+    if options:
+        # check if keys in option dict are valid
+        for key in options:
+            if key not in default_opts:
+                raise ValueError(f"{key} is not a valid option")
+
+        # updating default options
+        default_opts.update(options)
+
+    figsize = default_opts['figsize']
+    cmap = default_opts['cmap']
+    cmap_min = default_opts['cmap_min']
+    cmap_max = default_opts['cmap_max']
+    zticks = default_opts['zticks']
+    bars_spacing = default_opts['bars_spacing']
+    bars_alpha = default_opts['bars_alpha']
+    bars_lw = default_opts['bars_lw']
+    bars_edgecolor = default_opts['bars_edgecolor']
+    shade = default_opts['shade']
+    azim = default_opts['azim']
+    elev = default_opts['elev']
+    proj_type = default_opts['proj_type']
+    stick = default_opts['stick']
+    cbar_pad = default_opts['cbar_pad']
+    cbarmax_to_zmax = default_opts['cbarmax_to_zmax']
+
     if isinstance(M, Qobj):
         # extract matrix data from Qobj
         M = M.full()
@@ -561,8 +601,12 @@ def matrix_histogram(M, xlabels=None, ylabels=None, zticks=None,
         z_min = limits[0]
         z_max = limits[1]
 
-    norm = mpl.colors.Normalize(z_min, z_max)
-    cmap = truncate_colormap(cmap, cmap_min, cmap_max)  # Spectral
+    if cbarmax_to_zmax:
+        norm = mpl.colors.Normalize(min(dz), max(dz))
+    else:
+        norm = mpl.colors.Normalize(z_min, z_max)
+    cmap = truncate_colormap(cmap, cmap_min, cmap_max)
+    # Spectral
     colors = cmap(norm(dz))
 
     if ax is None:
@@ -628,13 +672,13 @@ def matrix_histogram(M, xlabels=None, ylabels=None, zticks=None,
 
     # stick to xz and yz plane
     if stick is True:
-        if 0 < azim <= 90 or -360 <= azim <- 270 or azim == 0:
+        if 0 < azim <= 90 or -360 <= azim < -270 or azim == 0:
             ax.set_ylim(1-0.55,)
             ax.set_xlim(1-0.55,)
-        elif 90 < azim <= 180 or -270 <= azim <- 180:
+        elif 90 < azim <= 180 or -270 <= azim < -180:
             ax.set_ylim(1-0.55,)
             ax.set_xlim(0, M.shape[0]+(.5-bars_spacing))
-        elif 180 < azim <= 270 or -180 <= azim <- 90:
+        elif 180 < azim <= 270 or -180 <= azim < -90:
             ax.set_ylim(0, M.shape[1]+(.5-bars_spacing))
             ax.set_xlim(0, M.shape[0]+(.5-bars_spacing))
         elif 270 < azim <= 360 or -90 <= azim < 0:
