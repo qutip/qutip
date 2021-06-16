@@ -38,3 +38,9 @@ plugins:
     enabled: true
   pep8:
     enabled: true
+  duplication:
+    enabled: true
+    config:
+      languages:
+        python:
+          python_version: 3
