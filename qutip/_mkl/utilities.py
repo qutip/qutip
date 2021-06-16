@@ -31,7 +31,8 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-import os, sys
+import os
+import sys
 from qutip.utilities import _blas_info
 import qutip.settings as qset
 from ctypes import cdll
@@ -39,52 +40,42 @@ from ctypes import cdll
 
 def _set_mkl():
     """
-    Finds the MKL runtime library for the 
+    Finds the MKL runtime library for the
     Anaconda and Intel Python distributions.
-    
+
     """
-    if _blas_info() == 'INTEL MKL':
-        plat = sys.platform
-        python_dir = os.path.dirname(sys.executable)
-        if plat in ['darwin','linux2', 'linux']:
-            python_dir = os.path.dirname(python_dir)
+    if (
+        _blas_info() != 'INTEL MKL'
+        or sys.platform not in ['darwin', 'win32', 'linux', 'linux2']
+    ):
+        return
+    python_dir = os.path.dirname(sys.executable)
+    if sys.platform in ['darwin', 'linux2', 'linux']:
+        python_dir = os.path.dirname(python_dir)
+    library = {
+        'darwin': 'libmkl_rt.dylib',
+        'win32': 'mkl_rt.dll',
+        'linux': 'libmkl_rt.so',
+        'linux2': 'libmkl_rt.so',
+    }[sys.platform]
 
-        if plat == 'darwin':
-            lib = '/libmkl_rt.dylib'
-        elif plat == 'win32':
-            lib = r'\mkl_rt.dll'
-        elif plat in ['linux2', 'linux']:
-            lib = '/libmkl_rt.so'
-        else:
-            raise Exception('Unknown platfrom.')
-        
-        if plat in ['darwin','linux2', 'linux']:
-            lib_dir = '/lib'
-        else:
-            lib_dir = r'\Library\bin'
-        
-        # Try in default Anaconda location first
-        try:
-            qset.mkl_lib = cdll.LoadLibrary(python_dir+lib_dir+lib)
-            qset.has_mkl = True
-        except:
-            pass
-        
-        # Look in Intel Python distro location
-        if not qset.has_mkl:
-            if plat in ['darwin','linux2', 'linux']:
-                lib_dir = '/ext/lib'
-            else:
-                lib_dir = r'\ext\lib'
-            try:
-                qset.mkl_lib = cdll.LoadLibrary(python_dir+lib_dir+lib)
-                qset.has_mkl = True
-            except:
-                pass
+    if sys.platform in ['darwin', 'linux2', 'linux']:
+        locations = [
+            'lib',
+            os.path.join('ext', 'lib'),
+        ]
     else:
-        pass
+        locations = [
+            os.path.join('Library', 'bin'),
+            os.path.join('ext', 'lib'),
+        ]
 
-
-if __name__ == "__main__":
-    _set_mkl()
-    print(qset.has_mkl)
+    for location in locations:
+        try:
+            qset.mkl_lib = cdll.LoadLibrary(
+                os.path.join(python_dir, location, library)
+            )
+            qset.has_mkl = True
+            return
+        except Exception:
+            pass
