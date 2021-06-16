@@ -510,6 +510,7 @@ def _update_yaxis(bars_spacing, M, ax, ylabels):
     ax.set_yticks([y+(1-(bars_spacing/2)) for y in range(M.shape[1])])
     ax.set_yticklabels([str(i) for i in range(M.shape[1])])
 
+
 def _update_xaxis(bars_spacing, M, ax, xlabels):
     xtics = [x+(1-(bars_spacing/2)) for x in range(M.shape[1])]
     ax.axes.w_xaxis.set_major_locator(plt.FixedLocator(xtics))
@@ -520,10 +521,25 @@ def _update_xaxis(bars_spacing, M, ax, xlabels):
         ax.set_xticklabels(xlabels)
     else:
         ax.set_xticklabels([str(x+1) for x in range(M.shape[0])])
-
     ax.tick_params(axis='x', labelsize=14)
     ax.set_xticks([x+(1-(bars_spacing/2)) for x in range(M.shape[0])])
     ax.set_xticklabels([str(i) for i in range(M.shape[0])])
+
+
+def _update_zaxis(ax, z_min, z_max, zticks):
+    ax.axes.w_zaxis.set_major_locator(plt.IndexLocator(1, 0.5))
+    # ax.set_zlim3d([min(z_min, 0), z_max])
+    if z_min > 0 and z_max > 0:
+        ax.set_zlim3d([0, z_max])
+    elif z_min < 0 and z_max < 0:
+        ax.set_zlim3d([0, z_min])
+    else:
+        ax.set_zlim3d([z_min, z_max])
+
+    if zticks:
+        ax.set_zticks(zticks)
+    else:
+        ax.set_zticks([z_min+0.5*i for i in range(int((z_max-z_min)/0.5)+1)])
 
 
 def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
@@ -713,19 +729,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
     _update_yaxis(bars_spacing, M, ax, ylabels)
 
     # z axis
-    ax.axes.w_zaxis.set_major_locator(plt.IndexLocator(1, 0.5))
-    # ax.set_zlim3d([min(z_min, 0), z_max])
-    if z_min > 0 and z_max > 0:
-        ax.set_zlim3d([0, z_max])
-    elif z_min < 0 and z_max < 0:
-        ax.set_zlim3d([0, z_min])
-    else:
-        ax.set_zlim3d([z_min, z_max])
-
-    if zticks:
-        ax.set_zticks(zticks)
-    else:
-        ax.set_zticks([z_min+0.5*i for i in range(int((z_max-z_min)/0.5)+1)])
+    _update_zaxis(ax, z_min, z_max, zticks)
 
     # stick to xz and yz plane
     _stick_to_planes(stick, azim, ax, M, bars_spacing)
