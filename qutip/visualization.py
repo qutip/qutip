@@ -415,6 +415,88 @@ def sphereplot(theta, phi, values, fig=None, ax=None, save=False):
     return fig, ax
 
 
+def _limit_finder(z):
+    """Finds nearest proper 0.5 value
+    This funtion is used when limits is not passed to matrix_histogtam
+    examples:
+        if z=0.1 returns 0.0
+        if z=-0.1 returns -0.5
+        if z=-2.4 returns -2.5
+        if z=3.8  returns 4
+        if z=-5.0 returns -5.0
+
+    Parameters
+    ----------
+    z : float or int
+
+    Returns
+    -------
+    limit : float
+        nearest proper 0.5 value.
+    """
+    if z > 0:
+        if int(z+0.5) < z < int(z)+0.5 or z % 1 == 0.5:
+            limit = int(z)+0.5
+        else:
+            limit = int(z+0.5)
+    elif z < 0:
+        if int(z-0.5) > z > int(z)-0.5 or z % 1 == 0.5:
+            limit = int(z)-0.5
+        else:
+            limit = int(z-0.5)
+    else:
+        limit = 0
+    return limit
+
+
+def _remove_margins():
+    """
+    Removes margins about z=0 and improves the style
+    """
+    if not hasattr(Axis, "_get_coord_info_old"):
+        def _get_coord_info_new(self, renderer):
+            mins, maxs, centers, deltas, tc, highs = \
+                self._get_coord_info_old(renderer)
+            mins += deltas/4
+            maxs -= deltas/4
+            return mins, maxs, centers, deltas, tc, highs
+        Axis._get_coord_info_old = Axis._get_coord_info
+        Axis._get_coord_info = _get_coord_info_new
+
+
+def _truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
+    """
+    Truncates portion of a colormap and returns the new one
+    """
+    if isinstance(cmap, str):
+        cmap = plt.get_cmap(cmap)
+    new_cmap = mpl.colors.LinearSegmentedColormap.from_list(
+        'trunc({n},{a:.2f},{b:.2f})'.format(
+            n=cmap.name, a=minval, b=maxval),
+        cmap(np.linspace(minval, maxval, n)))
+    return new_cmap
+
+
+def _stick_to_planes(stick, azim, ax, M, bars_spacing):
+    """Adjusts xlim and ylim in way that bars will
+    Stick to xz and yz planes
+    """
+    if stick is True:
+        if 0 < azim <= 90 or -360 <= azim < -270 or azim == 0:
+            ax.set_ylim(1-0.55,)
+            ax.set_xlim(1-0.55,)
+        elif 90 < azim <= 180 or -270 <= azim < -180:
+            ax.set_ylim(1-0.55,)
+            ax.set_xlim(0, M.shape[0]+(.5-bars_spacing))
+        elif 180 < azim <= 270 or -180 <= azim < -90:
+            ax.set_ylim(0, M.shape[1]+(.5-bars_spacing))
+            ax.set_xlim(0, M.shape[0]+(.5-bars_spacing))
+        elif 270 < azim <= 360 or -90 <= azim < 0:
+            ax.set_ylim(0, M.shape[1]+(.5-bars_spacing))
+            ax.set_xlim(1-0.55,)
+
+
+
 def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
                      colorbar=True, fig=None, ax=None, options=None):
     """
@@ -511,42 +593,8 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
 
     """
 
-    # limit finder function
-    def lim_finder(z):
-        if z > 0:
-            if int(z+0.5) < z < int(z)+0.5 or z % 1 == 0.5:
-                limit = int(z)+0.5
-            else:
-                limit = int(z+0.5)
-        elif z < 0:
-            if int(z-0.5) > z > int(z)-0.5 or z % 1 == 0.5:
-                limit = int(z)-0.5
-            else:
-                limit = int(z-0.5)
-        else:
-            limit = 0
-        return limit
-
-    # colormap truncation function
-    def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
-        if isinstance(cmap, str):
-            cmap = plt.get_cmap(cmap)
-        new_cmap = mpl.colors.LinearSegmentedColormap.from_list(
-            'trunc({n},{a:.2f},{b:.2f})'.format(
-                n=cmap.name, a=minval, b=maxval),
-            cmap(np.linspace(minval, maxval, n)))
-        return new_cmap
-
     # patch
-    if not hasattr(Axis, "_get_coord_info_old"):
-        def _get_coord_info_new(self, renderer):
-            mins, maxs, centers, deltas, tc, highs = \
-                self._get_coord_info_old(renderer)
-            mins += deltas/4
-            maxs -= deltas/4
-            return mins, maxs, centers, deltas, tc, highs
-        Axis._get_coord_info_old = Axis._get_coord_info
-        Axis._get_coord_info = _get_coord_info_new
+    _remove_margins()
 
     # default options
     default_opts = {'figsize': None, 'cmap': 'jet', 'cmap_min': 0.,
@@ -556,6 +604,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
                     'proj_type': 'ortho', 'stick': False,
                     'cbar_pad': 0.04, 'cbarmax_to_zmax': False}
 
+    # update default_opts from input options
     if options:
         # check if keys in option dict are valid
         for key in options:
@@ -598,7 +647,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
         z_min = limits[0]
         z_max = limits[1]
     else:
-        limits = [lim_finder(min(dz)), lim_finder(max(dz))]
+        limits = [_limit_finder(min(dz)), _limit_finder(max(dz))]
         z_min = limits[0]
         z_max = limits[1]
 
@@ -606,7 +655,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
         norm = mpl.colors.Normalize(min(dz), max(dz))
     else:
         norm = mpl.colors.Normalize(z_min, z_max)
-    cmap = truncate_colormap(cmap, cmap_min, cmap_max)
+    cmap = _truncate_colormap(cmap, cmap_min, cmap_max)
     # Spectral
     colors = cmap(norm(dz))
 
@@ -638,6 +687,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
         ax.set_xticklabels(xlabels)
     else:
         ax.set_xticklabels([str(x+1) for x in range(M.shape[0])])
+
     ax.tick_params(axis='x', labelsize=14)
     ax.set_xticks([x+(1-(bars_spacing/2)) for x in range(M.shape[0])])
     ax.set_xticklabels([str(i) for i in range(M.shape[0])])
@@ -672,19 +722,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
         ax.set_zticks([z_min+0.5*i for i in range(int((z_max-z_min)/0.5)+1)])
 
     # stick to xz and yz plane
-    if stick is True:
-        if 0 < azim <= 90 or -360 <= azim < -270 or azim == 0:
-            ax.set_ylim(1-0.55,)
-            ax.set_xlim(1-0.55,)
-        elif 90 < azim <= 180 or -270 <= azim < -180:
-            ax.set_ylim(1-0.55,)
-            ax.set_xlim(0, M.shape[0]+(.5-bars_spacing))
-        elif 180 < azim <= 270 or -180 <= azim < -90:
-            ax.set_ylim(0, M.shape[1]+(.5-bars_spacing))
-            ax.set_xlim(0, M.shape[0]+(.5-bars_spacing))
-        elif 270 < azim <= 360 or -90 <= azim < 0:
-            ax.set_ylim(0, M.shape[1]+(.5-bars_spacing))
-            ax.set_xlim(1-0.55,)
+    _stick_to_planes(stick, azim, ax, M, bars_spacing)
 
     # color axis
     if colorbar:
