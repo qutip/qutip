@@ -146,7 +146,7 @@ Adding multiple points to the Bloch sphere works slightly differently than addin
     b.add_points(pnts)
     b.render()
 
-Notice that, in contrast to states or vectors, each point remains the same color as the initial point.  This is because adding multiple data points using the `add_points` function is interpreted, by default, to correspond to a single data point (single qubit state) plotted at different times.  This is very useful when visualizing the dynamics of a qubit.  An example of this is given in the example .  If we want to plot additional qubit states we can call additional `add_points` functions:
+Notice that, in contrast to states or vectors, each point remains the same color as the initial point.  This is because adding multiple data points using the ``add_points`` function is interpreted, by default, to correspond to a single data point (single qubit state) plotted at different times.  This is very useful when visualizing the dynamics of a qubit.  An example of this is given in the example .  If we want to plot additional qubit states we can call additional ``add_points`` functions:
 
 .. plot::
     :context: close-figs
