@@ -43,29 +43,34 @@ N = 5
 def test_jmat_12():
     spinhalf = qutip.jmat(1 / 2.)
 
-    paulix = np.array([[0.0 + 0.j, 0.5 + 0.j], [0.5 + 0.j, 0.0 + 0.j]])
-    pauliy = np.array([[0. + 0.j, 0. - 0.5j], [0. + 0.5j, 0. + 0.j]])
-    pauliz = np.array([[0.5 + 0.j, 0.0 + 0.j], [0.0 + 0.j, -0.5 + 0.j]])
+    paulix = np.array([[0. + 0.j, 1. + 0.j], [1. + 0.j, 0. + 0.j]])
+    pauliy = np.array([[0. + 0.j, 0. - 1.j], [0. + 1.j, 0. + 0.j]])
+    pauliz = np.array([[1. + 0.j, 0. + 0.j], [0. + 0.j, -1. + 0.j]])
     sigmap = np.array([[0. + 0.j, 1. + 0.j], [0. + 0.j, 0. + 0.j]])
     sigmam = np.array([[0. + 0.j, 0. + 0.j], [1. + 0.j, 0. + 0.j]])
 
-    np.testing.assert_allclose(spinhalf[0].full(), paulix)
-    np.testing.assert_allclose(spinhalf[1].full(), pauliy)
-    np.testing.assert_allclose(spinhalf[2].full(), pauliz)
+    np.testing.assert_allclose(spinhalf[0].full() * 2, paulix)
+    np.testing.assert_allclose(spinhalf[1].full() * 2, pauliy)
+    np.testing.assert_allclose(spinhalf[2].full() * 2, pauliz)
     np.testing.assert_allclose(qutip.jmat(1 / 2., '+').full(), sigmap)
     np.testing.assert_allclose(qutip.jmat(1 / 2., '-').full(), sigmam)
 
-    np.testing.assert_allclose(qutip.spin_Jx(1 / 2.).full(), paulix)
-    np.testing.assert_allclose(qutip.spin_Jy(1 / 2.).full(), pauliy)
-    np.testing.assert_allclose(qutip.spin_Jz(1 / 2.).full(), pauliz)
+    np.testing.assert_allclose(qutip.spin_Jx(1 / 2.).full() * 2, paulix)
+    np.testing.assert_allclose(qutip.spin_Jy(1 / 2.).full() * 2, pauliy)
+    np.testing.assert_allclose(qutip.spin_Jz(1 / 2.).full() * 2, pauliz)
     np.testing.assert_allclose(qutip.spin_Jp(1 / 2.).full(), sigmap)
     np.testing.assert_allclose(qutip.spin_Jm(1 / 2.).full(), sigmam)
 
-    np.testing.assert_allclose(qutip.sigmax().full(), paulix * 2)
-    np.testing.assert_allclose(qutip.sigmay().full(), pauliy * 2)
-    np.testing.assert_allclose(qutip.sigmaz().full(), pauliz * 2)
+    np.testing.assert_allclose(qutip.sigmax().full(), paulix)
+    np.testing.assert_allclose(qutip.sigmay().full(), pauliy)
+    np.testing.assert_allclose(qutip.sigmaz().full(), pauliz)
     np.testing.assert_allclose(qutip.sigmap().full(), sigmap)
     np.testing.assert_allclose(qutip.sigmam().full(), sigmam)
+
+    spin_set = qutip.spin_J_set(0.5)
+    for i in range(3):
+        assert spinhalf[i] == spin_set[i]
+
 
 
 def test_jmat_32():
@@ -104,7 +109,19 @@ def test_jmat_dims(spin, N):
     assert spin_mat.shape == (N, N)
 
 
+def test_jmat_raise():
+    with pytest.raises(TypeError) as e:
+        qutip.jmat(0.25)
+    assert str(e.value) == 'j must be a non-negative integer or half-integer'
+
+    with pytest.raises(TypeError) as e:
+        qutip.jmat(0.5, 'zx+')
+    assert str(e.value) == 'Invalid type'
+
+
 @pytest.mark.parametrize(['oper_func', 'diag', 'offset', 'args'], [
+    pytest.param(qutip.qeye, np.ones(N), 0, (), id="qeye"),
+    pytest.param(qutip.qzero, np.zeros(N), 0, (), id="zeros"),
     pytest.param(qutip.destroy, np.arange(1, N)**0.5, 1, (), id="destroy"),
     pytest.param(qutip.destroy, np.arange(6, N+5)**0.5, 1, (5,),
                  id="destroy_offset"),
@@ -117,7 +134,7 @@ def test_jmat_dims(spin, N):
     pytest.param(qutip.charge, np.arange(2, N+1)/3, 0, (2, 1/3),
                  id="charge_args"),
 ])
-def test_diagonal_oper(oper_func, diag, offset, args):
+def test_diagonal_operators(oper_func, diag, offset, args):
     oper = oper_func(N, *args)
     assert oper == qutip.Qobj(np.diag(diag, offset))
 
@@ -157,15 +174,17 @@ def test_super_operator_creation(to_test):
     assert implicit == explicit
 
 
-@pytest.mark.parametrize(["to_test", "factor", "phase"], [
-    (qutip.position, 1, 1),
-    (qutip.momentum, 1j, -1),
-])
-def test_bidiagonal(to_test, factor, phase):
-    N = 5
-    operator = to_test(N)
+def test_position():
+    operator = qutip.position(N)
     expected = (np.diag((np.arange(1, N) / 2)**0.5, k=-1) +
-                np.diag((np.arange(1, N) / 2)**0.5, k=1) * phase) * factor
+                np.diag((np.arange(1, N) / 2)**0.5, k=1))
+    np.testing.assert_allclose(operator.full(), expected)
+
+
+def test_momentum():
+    operator = qutip.momentum(N)
+    expected = (np.diag((np.arange(1, N) / 2)**0.5, k=-1) -
+                np.diag((np.arange(1, N) / 2)**0.5, k=1)) * 1j
     np.testing.assert_allclose(operator.full(), expected)
 
 
@@ -220,3 +239,23 @@ def test_commutator():
     sx = qutip.sigmax()
     sy = qutip.sigmay()
     assert qutip.commutator(sx, sy) / 2 == (qutip.sigmaz() * 1j)
+
+    A = qutip.qeye(N)
+    B = qutip.destroy(N)
+    assert qutip.commutator(A, B, 'anti') == qutip.destroy(N) * 2
+
+    sx = qutip.sigmax()
+    sy = qutip.sigmay()
+    assert qutip.commutator(sx, sy, 'anti') == qutip.qzero(2)
+
+    with pytest.raises(TypeError) as e:
+        qutip.commutator(sx, sy, 'something')
+    assert str(e.value).startswith("Unknown commutator kind")
+
+def test_qutrit_ops():
+    ops = qutip.qutrit_ops()
+    assert qutip.qeye(3) == sum(ops[:3])
+    np.testing.assert_allclose(np.diag([1, 1], k=1), sum(ops[3:5]).full())
+    expected = np.zeros((3, 3))
+    expected[2, 0] = 1
+    np.testing.assert_allclose(expected, ops[5].full())

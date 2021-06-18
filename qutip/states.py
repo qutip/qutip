@@ -291,17 +291,8 @@ shape = [3, 3], type = oper, isHerm = True
     but would in that case give more accurate coefficients.
 
     """
-    if method == "operator":
-        psi = coherent(N, alpha, offset=offset)
-        return psi * psi.dag()
-
-    elif method == "analytic":
-        psi = coherent(N, alpha, offset=offset, method='analytic')
-        return psi * psi.dag()
-
-    else:
-        raise TypeError(
-            "The method option can only take values 'operator' or 'analytic'")
+    psi = coherent(N, alpha, offset=offset, method=method)
+    return psi * psi.dag()
 
 
 def fock_dm(dimensions, n=None, offset=None):
@@ -1221,7 +1212,7 @@ def triplet_states():
     .. math::
 
         \lvert T_1\rangle = \lvert11\rangle
-        \lvert T_2\rangle = \frac1{\sqrt2}(\lvert01\rangle - \lvert10\rangle)
+        \lvert T_2\rangle = \frac1{\sqrt2}(\lvert01\rangle + \lvert10\rangle)
         \lvert T_3\rangle = \lvert00\rangle
 
     Returns
