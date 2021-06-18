@@ -41,7 +41,8 @@ import warnings
 
 _latex_template = r"""
 \documentclass{standalone}
-%s
+\usepackage[braket]{qcircuit}
+\renewcommand{\qswap}{*=<0em>{\times}}
 \begin{document}
 \Qcircuit @C=1cm @R=1cm {
 %s}
@@ -227,9 +228,17 @@ if _pdflatex is not None:
             try:
                 os.chdir(temporary_dir)
                 with open(filename + ".tex", "w") as file:
-                    file.write(_latex_template % (_qcircuit_latex_min, code))
-                _run_command((_pdflatex, '-interaction', 'batchmode',
-                              filename))
+                    file.write(_latex_template % code)
+                try:
+                    _run_command((_pdflatex, '-interaction', 'batchmode',
+                                  filename))
+                except RuntimeError as e:
+                    message = (
+                        "pdflatex failed."
+                        " Perhaps you do not have it installed, or you are"
+                        " missing the LaTeX package 'qcircuit'."
+                    )
+                    raise RuntimeError(message) from e
                 _crop_pdf(filename + ".pdf")
                 if file_type in _MISSING_CONVERTERS:
                     dependency = _MISSING_CONVERTERS[file_type]
@@ -251,50 +260,3 @@ if _pdflatex is not None:
 else:
     def image_from_latex(*args, **kwargs):
         raise RuntimeError("Could not find system 'pdflatex'.")
-
-
-_qcircuit_latex_min = r"""
-% Q-circuit version 2
-% Copyright (C) 2004 Steve Flammia & Bryan Eastin
-% Last modified on: 9/16/2011
-% License: https://www.gnu.org/licenses/gpl-2.0.html
-% Original file: https://physics.unm.edu/CQuIC/Qcircuit/Qcircuit.tex
-% Modified for QuTiP on: 2/19/2021
-\usepackage{xy}
-\xyoption{matrix}
-\xyoption{frame}
-\xyoption{arrow}
-\xyoption{arc}
-\usepackage{ifpdf}
-\entrymodifiers={!C\entrybox}
-\newcommand{\bra}[1]{{\left\langle{#1}\right\vert}}
-\newcommand{\ket}[1]{{\left\vert{#1}\right\rangle}}
-\newcommand{\qw}[1][-1]{\ar @{-} [0,#1]}
-\newcommand{\qwx}[1][-1]{\ar @{-} [#1,0]}
-\newcommand{\cw}[1][-1]{\ar @{=} [0,#1]}
-\newcommand{\cwx}[1][-1]{\ar @{=} [#1,0]}
-\newcommand{\gate}[1]{*+<.6em>{#1} \POS ="i","i"+UR;"i"+UL **\dir{-};"i"+DL **\dir{-};"i"+DR **\dir{-};"i"+UR **\dir{-},"i" \qw}
-\newcommand{\meter}{*=<1.8em,1.4em>{\xy ="j","j"-<.778em,.322em>;{"j"+<.778em,-.322em> \ellipse ur,_{}},"j"-<0em,.4em>;p+<.5em,.9em> **\dir{-},"j"+<2.2em,2.2em>*{},"j"-<2.2em,2.2em>*{} \endxy} \POS ="i","i"+UR;"i"+UL **\dir{-};"i"+DL **\dir{-};"i"+DR **\dir{-};"i"+UR **\dir{-},"i" \qw}
-\newcommand{\measure}[1]{*+[F-:<.9em>]{#1} \qw}
-\newcommand{\measuretab}[1]{*{\xy*+<.6em>{#1}="e";"e"+UL;"e"+UR **\dir{-};"e"+DR **\dir{-};"e"+DL **\dir{-};"e"+LC-<.5em,0em> **\dir{-};"e"+UL **\dir{-} \endxy} \qw}
-\newcommand{\measureD}[1]{*{\xy*+=<0em,.1em>{#1}="e";"e"+UR+<0em,.25em>;"e"+UL+<-.5em,.25em> **\dir{-};"e"+DL+<-.5em,-.25em> **\dir{-};"e"+DR+<0em,-.25em> **\dir{-};{"e"+UR+<0em,.25em>\ellipse^{}};"e"+C:,+(0,1)*{} \endxy} \qw}
-\newcommand{\multimeasure}[2]{*+<1em,.9em>{\hphantom{#2}} \qw \POS[0,0].[#1,0];p !C *{#2},p \drop\frm<.9em>{-}}
-\newcommand{\multimeasureD}[2]{*+<1em,.9em>{\hphantom{#2}} \POS [0,0]="i",[0,0].[#1,0]="e",!C *{#2},"e"+UR-<.8em,0em>;"e"+UL **\dir{-};"e"+DL **\dir{-};"e"+DR+<-.8em,0em> **\dir{-};{"e"+DR+<0em,.8em>\ellipse^{}};"e"+UR+<0em,-.8em> **\dir{-};{"e"+UR-<.8em,0em>\ellipse^{}},"i" \qw}
-\newcommand{\control}{*!<0em,.025em>-=-<.2em>{\bullet}}
-\newcommand{\controlo}{*+<.01em>{\xy -<.095em>*\xycircle<.19em>{} \endxy}}
-\newcommand{\ctrl}[1]{\control \qwx[#1] \qw}
-\newcommand{\ctrlo}[1]{\controlo \qwx[#1] \qw}
-\newcommand{\targ}{*+<.02em,.02em>{\xy ="i","i"-<.39em,0em>;"i"+<.39em,0em> **\dir{-}, "i"-<0em,.39em>;"i"+<0em,.39em> **\dir{-},"i"*\xycircle<.4em>{} \endxy} \qw}
-\newcommand{\qswap}{*=<0em>{\times}}
-\newcommand{\multigate}[2]{*+<1em,.9em>{\hphantom{#2}} \POS [0,0]="i",[0,0].[#1,0]="e",!C *{#2},"e"+UR;"e"+UL **\dir{-};"e"+DL **\dir{-};"e"+DR **\dir{-};"e"+UR **\dir{-},"i" \qw}
-\newcommand{\ghost}[1]{*+<1em,.9em>{\hphantom{#1}} \qw}
-\newcommand{\push}[1]{*{#1}}
-\newcommand{\gategroup}[6]{\POS"#1,#2"."#3,#2"."#1,#4"."#3,#4"!C*+<#5>\frm{#6}}
-\newcommand{\rstick}[1]{*!L!<-.5em,0em>=<0em>{#1}}
-\newcommand{\lstick}[1]{*!R!<.5em,0em>=<0em>{#1}}
-\newcommand{\ustick}[1]{*!D!<0em,-.5em>=<0em>{#1}}
-\newcommand{\dstick}[1]{*!U!<0em,.5em>=<0em>{#1}}
-\newcommand{\Qcircuit}{\xymatrix @*=<0em>}
-\newcommand{\link}[2]{\ar @{-} [#1,#2]}
-\newcommand{\pureghost}[1]{*+<1em,.9em>{\hphantom{#1}}}
-"""
