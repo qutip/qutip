@@ -32,9 +32,14 @@
 ###############################################################################
 import sys
 import os
+import warnings
 
 import numpy as np
-import pyximport
+
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    import pyximport
+
 
 old_get_distutils_extension = pyximport.pyximport.get_distutils_extension
 
