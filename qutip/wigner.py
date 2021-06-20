@@ -1,27 +1,21 @@
-__all__ = ['wigner', 'qfunc', 'spin_q_function',
+__all__ = ['wigner', 'qfunc', 'QFunc', 'spin_q_function',
            'spin_wigner', 'wigner_transform']
 
 import numpy as np
 import warnings
 from numpy import (
-    zeros, array, arange, exp, real, conj, pi, copy, sqrt, meshgrid, size,
-    conjugate, cos, sin, polyval, fliplr,
+    zeros, array, arange, exp, real, conj, pi, copy, sqrt, meshgrid, cos, sin,
 )
 import scipy.sparse as sp
 import scipy.fftpack as ft
 import scipy.linalg as la
-from scipy.special import genlaguerre
-from scipy.special import binom
-from scipy.special import sph_harm
+import scipy.special
+from scipy.special import genlaguerre, binom, sph_harm, factorial
 
-from qutip.qobj import Qobj, isket, isoper
-from qutip.states import ket2dm
+import qutip
+from qutip import Qobj, ket2dm, jmat
 from qutip.parallel import parfor
-from qutip.utilities import clebsch
-from qutip.operators import jmat
-from scipy.special import factorial
 from qutip.cy.sparse_utils import _csr_get_diag
-import qutip as qt
 from qutip.sparse import eigh
 
 
@@ -114,7 +108,7 @@ def _parity(N, j):
         foo = np.ones(mult)
         for n in np.arange(-j, j + 1, 1):
             for l in np.arange(0, mult, 1):
-                foo[l] = (2 * l + 1) * qt.clebsch(j, l, j, n, 0, n)
+                foo[l] = (2 * l + 1) * qutip.clebsch(j, l, j, n, 0, n)
             matrix[np.int32(n + j), np.int32(n + j)] = np.sum(foo)
         return matrix / mult
 
@@ -524,174 +518,294 @@ def _wig_laguerre_val(L, x, c):
 # -----------------------------------------------------------------------------
 # Q FUNCTION
 #
-def qfunc(state, xvec, yvec, g=sqrt(2), precompute=None):
-    """Q-function of a given state vector or density matrix
-    at points `xvec + i * yvec`.
+def _qfunc_check_state(state: Qobj):
+    if not isinstance(state, Qobj):
+        raise TypeError(f"state must be Qobj, but is {state}")
+    # This is only approximate, but it's enough for our purposes; doing more
+    # than this would take computational effort we don't _need_ to do.
+    isdm = (
+        state.isoper
+        and state.dims[0] == state.dims[1]
+        and state.isherm
+        and abs(state.tr() - 1) < qutip.settings.atol
+    )
+    if not (state.isket or isdm):
+        raise ValueError(
+            f"state must be a ket or density matrix, but is {state}"
+        )
+    if len(state.dims[0]) != 1:
+        raise ValueError(
+            "state must not have tensor structure, but has dimensions:"
+            f" {state.dims}"
+        )
+    return state
+
+
+def _qfunc_check_coordinates(xs, ys):
+    if np.isscalar(xs) or xs is None:
+        raise TypeError("xs must be array-like, but is " + repr(xs))
+    if np.isscalar(ys) or ys is None:
+        raise TypeError("ys must be array-like, but is " + repr(ys))
+    xs = np.asarray(xs, dtype=np.float64)
+    ys = np.asarray(ys, dtype=np.float64)
+    if xs.ndim != 1 or ys.ndim != 1:
+        raise ValueError(
+            f"xs and ys must be 1D, but have shapes {xs.shape} and {ys.shape}."
+        )
+    return xs, ys
+
+
+class _qfunc_alpha_matrix:
+    """
+    Internal class used to centrally manage the creation of tensors related to
+    coherent states used in the calculation of the Husimi-Q function.
+    """
+    def __init__(self, xs, ys, g: float):
+        self.xs, self.ys = _qfunc_check_coordinates(xs, ys)
+        x, y = np.meshgrid(0.5*g*self.xs, 0.5*g*self.ys)
+        self.conj = np.empty(x.shape, dtype=np.complex128)
+        self.conj.real = x
+        self.conj.imag = -y
+        self.prefactor = np.exp(-0.5 * (x*x + y*y)).astype(np.complex128)
+
+    def _start(self, first: int):
+        """
+        Get the coherent state matrix corresponding to the first needed Fock
+        state.
+        """
+        if first == 0:
+            return self.prefactor.copy()
+        out = np.power(self.conj, first)
+        out *= self.prefactor
+        return out
+
+    def __call__(self, first: int, last: int = None):
+        """
+        Get a 3D array of the coherent-state matrices for all the Fock states
+        in the range ``first`` to ``last`` (if ``last`` is not given, then from
+        ``0`` to ``first``), not including the last element (like ``range``).
+        The last axis of the array is the Fock-state axis.
+        """
+        ns = np.arange(first, last).reshape(1, 1, -1)
+        # Technically we could avoid hitting the limits of floating-point
+        # exponents for longer by doing all this in logarithmic space (using
+        # scipy.special.gammaln), but that ends up involving more
+        # floating-point operations overall, and needs special care around the
+        # point alpha = 0 to avoid nan appearing, due to how Python handles
+        # mixed-width arithmetic operations.
+        out = np.empty(
+            self.conj.shape + (ns.size,), dtype=np.complex128,
+        )
+        out[:, :, 0] = self._start(ns.flat[0])
+        for i in range(ns.size - 1):
+            out[:, :, i+1] = out[:, :, i] * self.conj
+        out /= np.sqrt(scipy.special.factorial(ns))
+        return out
+
+
+class QFunc:
+    r"""
+    Class-based method of calculating the Husimi-Q function of many different
+    quantum states at fixed points ``xs + i*ys``.  This class has slightly
+    higher first-usage costs than :obj:`.qfunc`, but subsequent operations will
+    be several times faster, and it can require quite a lot of memory.  Call
+    the created object as a function to retrieve the Husimi-Q function.
 
     Parameters
     ----------
-    state : qobj
-        A state vector or density matrix.
+    xs, ys : array_like
+        x- and y-coordinates at which to calculate the Husimi-Q function.
 
-    xvec : array_like
-        x-coordinates at which to calculate the Husimi-Q function.
+    g : float, default sqrt(2)
+        Scaling factor for ``a = 0.5 * g * (x + iy)``.  The value of `g` is
+        related to the value of `hbar` in the commutation relation
+        :math:`[x,\,y] = i\hbar` via :math:`\hbar=2/g^2`, so the default
+        corresponds to :math:`\hbar=1`.
 
-    yvec : array_like
-        y-coordinates at which to calculate the Husimi-Q function.
+    memory : real, default 1024
+        Size in MB that may be used internally as workspace.  This class will
+        raise ``MemoryError`` if subsequently passed a state of sufficiently
+        large dimension that this bound would be exceeded.  In those cases, use
+        :obj:`.qfunc` with ``precompute_memory=None`` instead to force using
+        the slower, more memory-efficient algorithm.
 
-    g : float
-        Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
-        The value of `g` is related to the value of `hbar` in the commutation
-        relation `[x, y] = 1j * hbar` via `hbar=2/g^2` giving the default
-        value `hbar=1`.
+    Examples
+    --------
+    Initialise the class for a square set of coordinates, with some states we
+    want to investigate.
+
+    >>> xs = np.linspace(-2, 2, 101)
+    >>> states = [qutip.rand_dm(10) for _ in [None]*10]
+    >>> qfunc = qutip.QFunc(xs, xs)
+
+    Now we can calculate the Husimi-Q function over each of the states more
+    efficiently with:
+
+    >>> husimiq = np.array([qfunc(state) for state in states])
+
+    See Also
+    --------
+    :obj:`.qfunc` :
+        a single function version, which will involve computing several
+        quantities multiple times in order to use less memory.
+    """
+    def __init__(self, xs, ys, g: float = np.sqrt(2), memory: float = 1024):
+        self._g = g
+        self._alpha_matrix = _qfunc_alpha_matrix(xs, ys, g)
+        # 16 bytes per complex, 1024**2 bytes per MB.
+        self._size_mb = self._alpha_matrix.conj.size * 16 / (1024**2)
+        self._memory_mb = memory
+        self._max_size = int(self._memory_mb // self._size_mb)
+        self._current_size = 0
+        self._cache = None
+
+    def _alphas(self, size: int):
+        r"""
+        Retrive the full tensor of (the conjugate of) coherent states over all
+        values of :math:`\alpha`, for states of dimension ``size``.
+        """
+        if self._current_size >= size:
+            return self._cache[:, :, :size]
+        if size > self._max_size:
+            requirement = self._size_mb * size
+            raise MemoryError(
+                f"Refusing to precompute up to {size} basis states."
+                f" This would require {requirement:.2f} MB,"
+                f" but only {self._memory_mb} MB is allowed."
+            )
+        if self._cache is None:
+            self._cache = self._alpha_matrix(self._current_size, size)
+        else:
+            self._cache = np.dstack([
+                self._cache,
+                self._alpha_matrix(self._current_size, size)
+            ])
+        self._current_size = size
+        return self._cache
+
+    def _single(self, vector: np.ndarray, alphas: np.ndarray):
+        r"""
+        Get the Q function (without the :math:`\pi` scaling factor) of a single
+        state vector.
+        """
+        return np.abs(np.dot(alphas, (self._g*0.5)*vector))**2
+
+    def __call__(self, state: Qobj):
+        """
+        Get the Husimi-Q function for the given state vector or density matrix,
+        over the coordinates used to initialise the class.  If called multiple
+        times, the states do not need to have the same dimensions, but none of
+        them can have tensor-product structure.
+        """
+        state = _qfunc_check_state(state)
+        alphas = self._alphas(state.shape[0])
+        if state.isket:
+            return self._single(state.full().ravel(), alphas) / np.pi
+        # We don't use Qobj.eigenstates() to avoid building many unnecessary
+        # CSR versions of dense matrices.
+        values, vectors = eigh(state.full())
+        vectors = vectors.T
+        out = values[0] * self._single(vectors[0], alphas)
+        for value, vector in zip(values[1:], vectors[1:]):
+            out += value * self._single(vector, alphas)
+        return out / np.pi
 
 
-    precompute : None (default), bool or array
-        Use precomputation to speed up the Husimi Q func.
+def _qfunc_iterative_single(
+        vector: np.ndarray,
+        alpha: _qfunc_alpha_matrix,
+        g: float,
+):
+    r"""
+    Get the Q function (without the :math:`\pi` scaling factor) of a single
+    state vector, using the iterative algorithm which recomputes the powers of
+    the coherent-state matrix.
+    """
+    ns = np.arange(vector.shape[0])
+    out = np.polyval(
+        (0.5*g * vector / np.sqrt(scipy.special.factorial(ns)))[::-1],
+        alpha.conj,
+    )
+    out *= alpha.prefactor
+    return np.abs(out)**2
 
-        None (default): True for density matrices, False for bras/kets
-        True / False: Always/Never use precomputation
-        array: The result of the precomputation can be given explicitly.
-               Useful if qfunc is called many times with the same
-               xvec, yvec and dimensions. The precomputed array is returned by
-               qfunc_precompute(xvec, yvec, n, g),
-               where xvec, yvec and g need to be the same as for qfunc,
-               and n is the dim of the chosen system.
+
+def qfunc(
+        state: Qobj,
+        xvec,
+        yvec,
+        g: float = sqrt(2),
+        precompute_memory: float = 1024,
+):
+    r"""
+    Husimi-Q function of a given state vector or density matrix at points
+    ``xvec + i*yvec``.
+
+    Parameters
+    ----------
+    state : :obj:`.Qobj`
+        A state vector or density matrix.  This cannot have tensor-product
+        structure.
+
+    xvec, yvec : array_like
+        x- and y-coordinates at which to calculate the Husimi-Q function.
+
+    g : float, default sqrt(2)
+        Scaling factor for ``a = 0.5 * g * (x + iy)``.  The value of `g` is
+        related to the value of :math:`\hbar` in the commutation relation
+        :math:`[x,\,y] = i\hbar` via :math:`\hbar=2/g^2`, so the default
+        corresponds to :math:`\hbar=1`.
+
+    precompute_memory : real, default 1024
+        Size in MB that may be used during calculations as working space when
+        dealing with density-matrix inputs.  This is ignored for state-vector
+        inputs.  The bound is not quite exact due to other, order-of-magnitude
+        smaller, intermediaries being necessary, but is a good approximation.
+        If you want to use the same iterative algorithm for density matrices
+        that is used for single kets, set ``precompute_memory=None``.
 
     Returns
     --------
-    Q : array
-        Values representing the Q-function calculated over the specified range
-        [xvec,yvec].
+    ndarray
+        Values representing the Husimi-Q function calculated over the specified
+        range ``[xvec, yvec]``.
 
+    See Also
+    --------
+    :obj:`.QFunc` :
+        a class-based version, more efficient if you want to calculate the
+        Husimi-Q function for several states over the same coordinates.
     """
-    X, Y = meshgrid(xvec, yvec)
-    amat = 0.5 * g * (X + Y * 1j)
-
-    if not (isoper(state) or isket(state)):
-        raise TypeError('Invalid state operand to qfunc.')
-
-    qmat = zeros(size(amat))
-
-    if precompute is None:
-        # Decide whether precomputation should be used, if not already set
-        precompute = isoper(state)
-
-    memory = len(xvec) * len(yvec) * state.shape[0] * 16 / 1024**2
-    if (precompute is True) and (memory > 1024):
-        # If too much memory would be used, do not precompute
+    state = _qfunc_check_state(state)
+    xs, ys = _qfunc_check_coordinates(xvec, yvec)
+    required_memory = state.shape[0] * xs.size * ys.size * 16 / (1024**2)
+    enough_memory = (
+        precompute_memory is not None
+        and precompute_memory > required_memory
+    )
+    if state.isoper and enough_memory:
+        return QFunc(xs, ys, g)(state)
+    if precompute_memory is not None and state.isoper:
         warnings.warn(
-            f"Precomputation uses {memory} MB memory, with a max of "
-            "1024 MB. Falling back to iterative Husimi function"
+            "Falling back to iterative algorithm due to lack of memory."
+            f" Needed {required_memory:.2f} MB, but only allowed to use"
+            f" {precompute_memory:.2f} MB.  Increase `precompute_memory` to"
+            " raise limit, or set to `None` to suppress warning."
         )
-        precompute = False
-
-    if precompute is True:
-        # If precomputation should be used but result not given, do it now
-        precompute = qfunc_precompute(xvec, yvec, state.shape[0], g)
-
-    if isket(state):
-        qmat = _qfunc_pure(state, amat, precompute)
-    elif isoper(state):
-        d, v = la.eig(state.full())
-        # d[i]   = eigenvalue i
-        # v[:,i] = eigenvector i
-
-        qmat = zeros(np.shape(amat))
-        for k in arange(0, len(d)):
-            qmat1 = _qfunc_pure(v[:, k], amat, precompute)
-            qmat += real(d[k] * qmat1)
-
-    qmat = 0.25 * qmat * g ** 2
-    return qmat
-
-
-#
-# Q-function for a pure state: Q = |<alpha|psi>|^2 / pi
-#
-# |psi>   = the state in fock basis
-# |alpha> = the coherent state with amplitude alpha
-#
-def _qfunc_pure(psi, alpha_mat, precompute=False):
-    """
-    Calculate the Q-function for a pure state.
-
-    If provided, precompute needs to be computed with
-    qfunc_amat(xvec, yvec, n, g), where xvec, yvec and g
-    need to be the same as for qfunc, and n = np.prod(state.shape) is the dim
-    of a pure state in the chosen system. This gives 3-10x speedup per call
-    """
-    n = np.prod(psi.shape)
-    if isinstance(psi, Qobj):
-        psi = psi.full().flatten()
-    else:
-        psi = psi.T
-
-    if isinstance(precompute, np.ndarray):
-        qmat = np.dot(precompute, psi)
-    else:
-        qmat = polyval(fliplr([psi / sqrt(factorial(arange(n)))])[0],
-                       conjugate(alpha_mat))
-
-    # faster than np.abs()**2 if len(xvec) >~ 10
-    qmat = qmat.real**2 + qmat.imag**2
-    if not isinstance(precompute, np.ndarray):
-        qmat *= exp(-abs(alpha_mat) ** 2)
-    return qmat / pi
-
-
-def qfunc_precompute(xvec, yvec, n, g=sqrt(2), max_memory=1024):
-    """Helper matrix for fast Q-function at points `xvec + i * yvec`.
-
-    Explanation: A lot of the cost of the Husimi Q function does not depend on
-    the state. If it is called many times (e.g. for a density matrix or when
-    doing multiple states), this can be used for a speedup. This function
-    precomputes everything that does not depend on the state and stores it as
-    a 3d array. The Q function itself is then a dot product between the last
-    axis of the precomputed array and a pure state.
-
-    Warning: The returned array has size
-             len(xvec) * len(yvec) * n * 16 Byte, can be large
-
-    Parameters
-    ----------
-    xvec : array_like
-        x-coordinates at which to calculate the Wigner function.
-
-    yvec : array_like
-        y-coordinates at which to calculate the Wigner function.
-
-    n : int
-        Dimension of the pure states of which the Q func will be evaluated
-
-    g : float
-        Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
-
-    max_memory : float
-        Maximal memory size in MB, default 1GB.
-
-    Returns
-    --------
-    precomputed : array
-        Precomputed array that contains everything in _qfunc_pure that is not
-        dependent on the state.
-
-    """
-    memory = len(xvec) * len(yvec) * n * 16 / 1024**2
-    if memory > max_memory:
-        raise MemoryError(
-            f"Precomputation uses {memory} MB memory, with a max of "
-            f"{max_memory} MB.Turn precomputation off with precompute=False "
-            "or use a larger max."
-        )
-    X, Y = meshgrid(xvec, yvec)
-    amat = 0.5 * g * (X - Y * 1j)
-
-    powers = np.arange(n)
-    precomputed = np.power(np.expand_dims(amat, axis=-1), powers)
-    precomputed /= sqrt(factorial(arange(n)))
-    precomputed *= np.expand_dims(exp(-abs(amat) ** 2 / 2), axis=-1)
-    return precomputed
+    alpha = _qfunc_alpha_matrix(xs, ys, g)
+    if state.isket:
+        out = _qfunc_iterative_single(state.full().ravel(), alpha, g)
+        out /= np.pi
+        return out
+    # We don't use Qobj.eigenstates() to avoid building many unnecessary CSR
+    # versions of dense matrices.
+    values, vectors = eigh(state.full())
+    vectors = vectors.T
+    out = values[0] * _qfunc_iterative_single(vectors[0], alpha, g)
+    for value, vector in zip(values[1:], vectors[1:]):
+        out += value * _qfunc_iterative_single(vector, alpha, g)
+    out /= np.pi
+    return out
 
 
 # -----------------------------------------------------------------------------
@@ -746,12 +860,13 @@ def spin_q_function(rho, theta, phi):
 
 def _rho_kq(rho, j, k, q):
     v = 0j
-
     for m1 in arange(-j, j+1):
         for m2 in arange(-j, j+1):
-            v += (-1)**(j - m1 - q) * clebsch(j, j, k, m1, -m2,
-                                              q) * rho.data[m1 + j, m2 + j]
-
+            v += (
+                (-1)**(j - m1 - q)
+                * qutip.clebsch(j, j, k, m1, -m2, q)
+                * rho.data[m1 + j, m2 + j]
+            )
     return v
 
 
