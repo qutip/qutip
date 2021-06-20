@@ -443,19 +443,20 @@ def _limit_finder(z):
     return limit
 
 
-def _remove_margins():
+def _remove_margins(axis):
     """
     Removes margins about z=0 and improves the style
+    by monkey patching
     """
-    if not hasattr(Axis, "_get_coord_info_old"):
-        def _get_coord_info_new(self, renderer):
-            mins, maxs, centers, deltas, tc, highs = \
-                self._get_coord_info_old(renderer)
-            mins += deltas/4
-            maxs -= deltas/4
-            return mins, maxs, centers, deltas, tc, highs
-        Axis._get_coord_info_old = Axis._get_coord_info
-        Axis._get_coord_info = _get_coord_info_new
+    def _get_coord_info_new(renderer):
+        mins, maxs, centers, deltas, tc, highs = \
+            _get_coord_info_old(renderer)
+        mins += deltas / 4
+        maxs -= deltas / 4
+        return mins, maxs, centers, deltas, tc, highs
+
+    _get_coord_info_old = axis._get_coord_info
+    axis._get_coord_info = _get_coord_info_new
 
 
 def _truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
@@ -642,9 +643,6 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
 
     """
 
-    # patch
-    _remove_margins()
-
     # default options
     default_opts = {'figsize': None, 'cmap': 'jet', 'cmap_min': 0.,
                     'cmap_max': 1., 'zticks': None, 'bars_spacing': 0.1,
@@ -657,7 +655,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
     if options:
         # check if keys in options dict are valid
         if set(options) - set(default_opts):
-            raise ValueError("invalid key(s) found in options: "+
+            raise ValueError("invalid key(s) found in options: " + \
                              f"{', '.join(set(options) - set(default_opts))}")
         else:
             # updating default options
@@ -731,6 +729,11 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
         cax, kw = mpl.colorbar.make_axes(ax, shrink=.75,
                                          pad=default_opts['cbar_pad'])
         mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
+
+    # removing margins
+    _remove_margins(ax.xaxis)
+    _remove_margins(ax.yaxis)
+    _remove_margins(ax.zaxis)
 
     return fig, ax
 
