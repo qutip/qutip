@@ -237,33 +237,35 @@ distribution for harmonic modes. It is defined as
 
 where :math:`\left|\alpha\right>` is a coherent state and
 :math:`\alpha = x + iy`. In QuTiP, the Husimi Q function can be computed given
-a state ket or density matrix using the function :func:`qutip.wigner.qfunc`, as
+a state ket or density matrix using the function :func:`.qfunc`, as
 demonstrated below.
 
 .. plot::
     :context: close-figs
 
     Q_coherent = qfunc(rho_coherent, xvec, xvec)
-
     Q_thermal = qfunc(rho_thermal, xvec, xvec)
-
     Q_fock = qfunc(rho_fock, xvec, xvec)
-
     fig, axes = plt.subplots(1, 3, figsize=(12,3))
-
     cont0 = axes[0].contourf(xvec, xvec, Q_coherent, 100)
-
     lbl0 = axes[0].set_title("Coherent state")
-
     cont1 = axes[1].contourf(xvec, xvec, Q_thermal, 100)
-
     lbl1 = axes[1].set_title("Thermal state")
-
     cont0 = axes[2].contourf(xvec, xvec, Q_fock, 100)
-
     lbl2 = axes[2].set_title("Fock state")
-
     plt.show()
+
+If you need to calculate the Q function for many states with the same
+phase-space coordinates, it is more efficient to use the :obj:`.QFunc` class.
+This stores various intermediary results to achieve an order-of-magnitude
+improvement compared to calling :obj:`.qfunc` in a loop.
+
+.. code-block:: python
+
+   xs = np.linspace(-1, 1, 101)
+   qfunc_calculator = qutip.QFunc(xs, xs)
+   q_state1 = qfunc_calculator(qutip.rand_dm(5))
+   q_state2 = qfunc_calculator(qutip.rand_ket(100))
 
 
 .. _visual-oper:

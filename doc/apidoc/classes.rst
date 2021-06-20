@@ -40,6 +40,13 @@ Bloch sphere
     :members:
 
 
+Distributions
+-------------
+
+.. autoclass:: qutip.QFunc
+    :members:
+
+
 Cubic Spline
 ---------------
 
