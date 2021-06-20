@@ -655,7 +655,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
     if options:
         # check if keys in options dict are valid
         if set(options) - set(default_opts):
-            raise ValueError("invalid key(s) found in options: " + \
+            raise ValueError("invalid key(s) found in options: "
                              f"{', '.join(set(options) - set(default_opts))}")
         else:
             # updating default options
