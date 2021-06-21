@@ -152,7 +152,7 @@ def test_CoherentState():
     c3 = qutip.coherent(N, alpha, offset=0, method="analytic")
     np.testing.assert_allclose(c1.full()[3:], c2.full(), atol=1e-7)
     np.testing.assert_allclose(c1.full(), c3.full(), atol=1e-7)
-    with pytest.raises(TypeError) as e:
+    with pytest.raises(ValueError) as e:
         qutip.coherent(N, alpha, method="other")
     assert str(e.value) == ("The method option can only take "
                             "values 'operator' or 'analytic'")
@@ -168,10 +168,10 @@ def test_thermal():
     np.testing.assert_allclose(thermal_operator.full(),
                                thermal_analytic.full(), atol=2e-5)
 
-    with pytest.raises(TypeError) as e:
+    with pytest.raises(ValueError) as e:
         qutip.thermal_dm(N, beta, method="other")
-    assert str(e.value) == ("'method' keyword argument must be "
-                            "'operator' or 'analytic'")
+    assert str(e.value) == ("The method option can only take "
+                            "values 'operator' or 'analytic'")
 
 
 @pytest.mark.parametrize('func', [

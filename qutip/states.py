@@ -238,7 +238,7 @@ def coherent(N, alpha, offset=0, method='operator'):
         return Qobj(sqrtn)
 
     else:
-        raise TypeError(
+        raise ValueError(
             "The method option can only take values 'operator' or 'analytic'")
 
 
@@ -445,8 +445,8 @@ shape = [5, 5], type = oper, isHerm = True
             rm = sp.spdiags((1.0 + n) ** (-1.0) * (n / (1.0 + n)) ** (i),
                             0, N, N, format='csr')
         else:
-            raise ValueError(
-                "'method' keyword argument must be 'operator' or 'analytic'")
+            raise ValueError("The method option can only take "
+                             "values 'operator' or 'analytic'")
     return Qobj(rm)
 
 
