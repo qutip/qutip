@@ -12,7 +12,7 @@ Plotting on the Bloch Sphere
 Introduction
 ============
 
-When studying the dynamics of a two-level system, it is often convent to visualize the state of the system by plotting the state-vector or density matrix on the Bloch sphere.  In QuTiP, we have created two different classes to allow for easy creation and manipulation of data sets, both vectors and data points, on the Bloch sphere.  The :class:`qutip.Bloch` class, uses Matplotlib to render the Bloch sphere, where as :class:`qutip.Bloch3d` uses the Mayavi rendering engine to generate a more faithful 3D reconstruction of the Bloch sphere.
+When studying the dynamics of a two-level system, it is often convenient to visualize the state of the system by plotting the state-vector or density matrix on the Bloch sphere.  In QuTiP, we have created two different classes to allow for easy creation and manipulation of data sets, both vectors and data points, on the Bloch sphere.  The :class:`qutip.Bloch` class, uses Matplotlib to render the Bloch sphere, where as :class:`qutip.Bloch3d` uses the Mayavi rendering engine to generate a more faithful 3D reconstruction of the Bloch sphere.
 
 .. _bloch-class:
 
@@ -146,7 +146,7 @@ Adding multiple points to the Bloch sphere works slightly differently than addin
     b.add_points(pnts)
     b.render()
 
-Notice that, in contrast to states or vectors, each point remains the same color as the initial point.  This is because adding multiple data points using the add_points function is interpreted, by default, to correspond to a single data point (single qubit state) plotted at different times.  This is very useful when visualizing the dynamics of a qubit.  An example of this is given in the example .  If we want to plot additional qubit states we can call additional `add_points` functions:
+Notice that, in contrast to states or vectors, each point remains the same color as the initial point.  This is because adding multiple data points using the ``add_points`` function is interpreted, by default, to correspond to a single data point (single qubit state) plotted at different times.  This is very useful when visualizing the dynamics of a qubit.  An example of this is given in the example .  If we want to plot additional qubit states we can call additional ``add_points`` functions:
 
 .. plot::
     :context: close-figs
@@ -202,7 +202,7 @@ While in general the ``Bloch`` and ``Bloch3d`` classes are interchangeable, ther
 
 - Only the ``Bloch`` class can be embedded in a Matplotlib figure window.  Thus if you want to combine a Bloch sphere with another figure generated in QuTiP, you can not use ``Bloch3d``.  Of course you can always post-process your figures using other software to get the desired result.
 
-- Due to limitations in the rendering engine, the ``Bloch3d`` class does not support LaTex for text.  Again, you can get around this by post-processing.
+- Due to limitations in the rendering engine, the ``Bloch3d`` class does not support LaTeX for text.  Again, you can get around this by post-processing.
 
 - The user customizable attributes for the ``Bloch`` and ``Bloch3d`` classes are not identical.  Therefore, if you change the properties of one of the classes, these changes will cause an exception if the class is switched.
 
@@ -405,7 +405,7 @@ An example of generating images for generating an animation outside of Python is
          b.add_points([sx[:i+1], sy[:i+1], sz[:i+1]])
          b.save(dirc='temp')  # saving images to temp directory in current working directory
 
-Generating an animation using ffmpeg (for example) is fairly simple::
+Generating an animation using FFmpeg (for example) is fairly simple::
 
    ffmpeg -i temp/bloch_%01d.png bloch.mp4
 
@@ -415,8 +415,8 @@ Directly Generating an Animation
 ++++++++++++++++++++++++++++++++
 
 .. important::
-   Generating animations directly from Matplotlib requires installing either mencoder or ffmpeg.
-   While either choice works on linux, it is best to choose ffmpeg when running on the Mac.
+   Generating animations directly from Matplotlib requires installing either MEncoder or FFmpeg.
+   While either choice works on linux, it is best to choose FFmpeg when running on the Mac.
    If using macports just do: ``sudo port install ffmpeg``.
 
 The code to directly generate an mp4 movie of the Qubit decay is as follows ::

@@ -151,4 +151,4 @@ Parallel processing is useful for repeated tasks such as generating plots corres
 IPython-based parallel_map
 --------------------------
 
-When QuTiP is used with IPython interpreter, there is an alternative parallel for-loop implementation in the QuTiP  module :func:`qutip.ipynbtools`, see :func:`qutip.ipynbtools.parallel_map`. The advantage of this parallel_map implementation is based on IPythons powerful framework for parallelization, so the compute processes are not confined to run on the same host as the main process.
+When QuTiP is used with IPython interpreter, there is an alternative parallel for-loop implementation in the QuTiP  module :func:`qutip.ipynbtools`, see :func:`qutip.ipynbtools.parallel_map`. The advantage of this parallel_map implementation is based on IPython's powerful framework for parallelization, so the compute processes are not confined to run on the same host as the main process.

@@ -58,7 +58,7 @@ x-component:
 How do we know what these operators measure? The answer lies in the measurement
 procedure itself:
 
-* A quantum measurement tranforms the state being measured by projecting it into
+* A quantum measurement transforms the state being measured by projecting it into
   one of the eigenvectors of the measurement operator.
 
 * Which eigenvector to project onto is chosen probabilistically according to the
@@ -186,7 +186,7 @@ and the state.
     measure(state_0plus, PZ1) == (0, state_0plus)
 
 The output of the measurement is the index of the measurement outcome as well
-as the output state on the full hilbert space of the input state. It is crucial to
+as the output state on the full Hilbert space of the input state. It is crucial to
 note that we do not discard the measured qubit after measurement (as opposed to
 when measuring on quantum hardware).
 
