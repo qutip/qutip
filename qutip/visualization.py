@@ -479,24 +479,24 @@ def _stick_to_planes(stick, azim, ax, M, spacing):
     if stick is True:
         azim = azim % 360
         if 0 <= azim <= 90:
-            ax.set_ylim(1-0.55,)
-            ax.set_xlim(1-0.55,)
+            ax.set_ylim(1 - .5,)
+            ax.set_xlim(1 - .5,)
         elif 90 < azim <= 180:
-            ax.set_ylim(1-0.55,)
-            ax.set_xlim(0, M.shape[0]+(.5-spacing))
+            ax.set_ylim(1 - .5,)
+            ax.set_xlim(0, M.shape[0]+(.5 - spacing))
         elif 180 < azim <= 270:
-            ax.set_ylim(0, M.shape[1]+(.5-spacing))
-            ax.set_xlim(0, M.shape[0]+(.5-spacing))
+            ax.set_ylim(0, M.shape[1]+(.5 - spacing))
+            ax.set_xlim(0, M.shape[0]+(.5 - spacing))
         elif 270 < azim < 360:
-            ax.set_ylim(0, M.shape[1]+(.5-spacing))
-            ax.set_xlim(1-0.55,)
+            ax.set_ylim(0, M.shape[1]+(.5 - spacing))
+            ax.set_xlim(1 - .5,)
 
 
 def _update_yaxis(spacing, M, ax, ylabels):
     """
     updates the y-axis
     """
-    ytics = [x+(1-(spacing/2)) for x in range(M.shape[1])]
+    ytics = [x+(1 - (spacing / 2)) for x in range(M.shape[1])]
     ax.axes.w_yaxis.set_major_locator(plt.FixedLocator(ytics))
     if ylabels:
         nylabels = len(ylabels)
@@ -504,17 +504,17 @@ def _update_yaxis(spacing, M, ax, ylabels):
             raise ValueError(f"got {nylabels} ylabels but needed {len(ytics)}")
         ax.set_yticklabels(ylabels)
     else:
-        ax.set_yticklabels([str(y+1) for y in range(M.shape[1])])
+        ax.set_yticklabels([str(y + 1) for y in range(M.shape[1])])
         ax.set_yticklabels([str(i) for i in range(M.shape[1])])
     ax.tick_params(axis='y', labelsize=14)
-    ax.set_yticks([y+(1-(spacing/2)) for y in range(M.shape[1])])
+    ax.set_yticks([y+(1 - (spacing / 2)) for y in range(M.shape[1])])
 
 
 def _update_xaxis(spacing, M, ax, xlabels):
     """
     updates the x-axis
     """
-    xtics = [x+(1-(spacing/2)) for x in range(M.shape[1])]
+    xtics = [x+(1 - (spacing / 2)) for x in range(M.shape[1])]
     ax.axes.w_xaxis.set_major_locator(plt.FixedLocator(xtics))
     if xlabels:
         nxlabels = len(xlabels)
@@ -522,10 +522,10 @@ def _update_xaxis(spacing, M, ax, xlabels):
             raise ValueError(f"got {nxlabels} xlabels but needed {len(xtics)}")
         ax.set_xticklabels(xlabels)
     else:
-        ax.set_xticklabels([str(x+1) for x in range(M.shape[0])])
+        ax.set_xticklabels([str(x + 1) for x in range(M.shape[0])])
         ax.set_xticklabels([str(i) for i in range(M.shape[0])])
     ax.tick_params(axis='x', labelsize=14)
-    ax.set_xticks([x+(1-(spacing/2)) for x in range(M.shape[0])])
+    ax.set_xticks([x+(1 - (spacing / 2)) for x in range(M.shape[0])])
 
 
 def _update_zaxis(ax, z_min, z_max, zticks):
@@ -544,7 +544,8 @@ def _update_zaxis(ax, z_min, z_max, zticks):
     if zticks:
         ax.set_zticks(zticks)
     else:
-        ax.set_zticks([z_min+0.5*i for i in range(int((z_max-z_min)/0.5)+1)])
+        ax.set_zticks([z_min + 0.5 * i for i in 
+                       range(int((z_max - z_min) / 0.5) + 1)])
 
 
 def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
@@ -647,7 +648,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
     default_opts = {'figsize': None, 'cmap': 'jet', 'cmap_min': 0.,
                     'cmap_max': 1., 'zticks': None, 'bars_spacing': 0.1,
                     'bars_alpha': 1., 'bars_lw': 0.5, 'bars_edgecolor': 'k',
-                    'shade': False, 'azim': 65, 'elev': 30,
+                    'shade': False, 'azim': -35, 'elev': 35,
                     'proj_type': 'ortho', 'stick': False,
                     'cbar_pad': 0.04, 'cbarmax_to_zmax': False}
 
@@ -696,7 +697,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
         ax = _axes3D(fig,
                      azim=default_opts['azim'] % 360,
                      elev=default_opts['elev'] % 360)
-    ax.set_proj_type(default_opts['proj_type'])
+        ax.set_proj_type(default_opts['proj_type'])
 
     ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors,
              edgecolors=default_opts['bars_edgecolor'],
