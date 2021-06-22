@@ -544,7 +544,7 @@ def _update_zaxis(ax, z_min, z_max, zticks):
     if zticks:
         ax.set_zticks(zticks)
     else:
-        ax.set_zticks([z_min + 0.5 * i for i in 
+        ax.set_zticks([z_min + 0.5 * i for i in
                        range(int((z_max - z_min) / 0.5) + 1)])
 
 
@@ -619,7 +619,9 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
             type of projection ('ortho' or 'persp')
 
         'stick' : bool (default: False)
-            works for Azimuthal viewing angles
+            changes xlim and ylim in a way that bars next to the
+            xz and yz planes will stick to those planes
+            works if ax is not passed to the function
 
         'cbar_pad' : float (default: 0.04)
             fraction of original axes between colorbar and new image axes
