@@ -416,16 +416,16 @@ def sphereplot(theta, phi, values, fig=None, ax=None, save=False):
 
 
 def _limit_finder(z):
-    """Finds nearest proper 0.5 value
-    This funtion is used when limits is not passed to matrix_histogtam
+    """finds nearest proper 0.5 value
+    funtion used when limits is not passed to matrix_histogtam
     If z > 0 it returns the higher half value
     If z < 0 it returns the lower half value
     examples:
-        if z=+0.1  returns 0.5
-        if z=-0.1 returns -0.5
-        if z=-2.4 returns -2.5
-        if z=+3.8  returns 4.0
-        if z=-5.0 returns -5.0
+        if z = +0.1 returns +0.5
+        if z = -0.1 returns -0.5
+        if z = -2.4 returns -2.5
+        if z = +3.8 returns +4.0
+        if z = -5.0 returns -5.0
 
     Parameters
     ----------
@@ -445,7 +445,7 @@ def _limit_finder(z):
 
 def _remove_margins(axis):
     """
-    Removes margins about z=0 and improves the style
+    removes margins about z = 0 and improves the style
     by monkey patching
     """
     def _get_coord_info_new(renderer):
@@ -461,7 +461,7 @@ def _remove_margins(axis):
 
 def _truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
     """
-    Truncates portion of a colormap and returns the new one
+    truncates portion of a colormap and returns the new one
     """
     if isinstance(cmap, str):
         cmap = plt.get_cmap(cmap)
@@ -473,7 +473,7 @@ def _truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
 
 
 def _stick_to_planes(stick, azim, ax, M, spacing):
-    """Adjusts xlim and ylim in way that bars will
+    """adjusts xlim and ylim in way that bars will
     Stick to xz and yz planes
     """
     if stick is True:
@@ -483,12 +483,12 @@ def _stick_to_planes(stick, azim, ax, M, spacing):
             ax.set_xlim(1 - .5,)
         elif 90 < azim <= 180:
             ax.set_ylim(1 - .5,)
-            ax.set_xlim(0, M.shape[0]+(.5 - spacing))
+            ax.set_xlim(0, M.shape[0] + (.5 - spacing))
         elif 180 < azim <= 270:
-            ax.set_ylim(0, M.shape[1]+(.5 - spacing))
-            ax.set_xlim(0, M.shape[0]+(.5 - spacing))
+            ax.set_ylim(0, M.shape[1] + (.5 - spacing))
+            ax.set_xlim(0, M.shape[0] + (.5 - spacing))
         elif 270 < azim < 360:
-            ax.set_ylim(0, M.shape[1]+(.5 - spacing))
+            ax.set_ylim(0, M.shape[1] + (.5 - spacing))
             ax.set_xlim(1 - .5,)
 
 
@@ -496,7 +496,7 @@ def _update_yaxis(spacing, M, ax, ylabels):
     """
     updates the y-axis
     """
-    ytics = [x+(1 - (spacing / 2)) for x in range(M.shape[1])]
+    ytics = [x + (1 - (spacing / 2)) for x in range(M.shape[1])]
     ax.axes.w_yaxis.set_major_locator(plt.FixedLocator(ytics))
     if ylabels:
         nylabels = len(ylabels)
@@ -507,14 +507,14 @@ def _update_yaxis(spacing, M, ax, ylabels):
         ax.set_yticklabels([str(y + 1) for y in range(M.shape[1])])
         ax.set_yticklabels([str(i) for i in range(M.shape[1])])
     ax.tick_params(axis='y', labelsize=14)
-    ax.set_yticks([y+(1 - (spacing / 2)) for y in range(M.shape[1])])
+    ax.set_yticks([y + (1 - (spacing / 2)) for y in range(M.shape[1])])
 
 
 def _update_xaxis(spacing, M, ax, xlabels):
     """
     updates the x-axis
     """
-    xtics = [x+(1 - (spacing / 2)) for x in range(M.shape[1])]
+    xtics = [x + (1 - (spacing / 2)) for x in range(M.shape[1])]
     ax.axes.w_xaxis.set_major_locator(plt.FixedLocator(xtics))
     if xlabels:
         nxlabels = len(xlabels)
@@ -525,7 +525,7 @@ def _update_xaxis(spacing, M, ax, xlabels):
         ax.set_xticklabels([str(x + 1) for x in range(M.shape[0])])
         ax.set_xticklabels([str(i) for i in range(M.shape[0])])
     ax.tick_params(axis='x', labelsize=14)
-    ax.set_xticks([x+(1 - (spacing / 2)) for x in range(M.shape[0])])
+    ax.set_xticks([x + (1 - (spacing / 2)) for x in range(M.shape[0])])
 
 
 def _update_zaxis(ax, z_min, z_max, zticks):
@@ -606,20 +606,20 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
             color of bars' edges, examples: 'k', (0.1, 0.2, 0.5), '#0f0f0f80'
 
         'shade' : bool (default: True)
-            when True, this shades the dark sides of the bars (relative
-            to the plot's source of light).
+            when True, this shades dark sides of the bars (relative
+            to plot's source of light).
 
         'azim' : float
-            Azimuthal viewing angle.
+            azimuthal viewing angle.
 
         'elev' : float
-            Elevation viewing angle.
+            elevation viewing angle.
 
-        'proj_type' : string (default: 'ortho')
+        'proj_type' : string (default: 'ortho' if ax is not passed)
             type of projection ('ortho' or 'persp')
 
         'stick' : bool (default: False)
-            changes xlim and ylim in a way that bars next to the
+            changes xlim and ylim in a way that bars next to
             xz and yz planes will stick to those planes
             works if ax is not passed to the function
 
@@ -648,7 +648,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
 
     # default options
     default_opts = {'figsize': None, 'cmap': 'jet', 'cmap_min': 0.,
-                    'cmap_max': 1., 'zticks': None, 'bars_spacing': 0.1,
+                    'cmap_max': 1., 'zticks': None, 'bars_spacing': 0.2,
                     'bars_alpha': 1., 'bars_lw': 0.5, 'bars_edgecolor': 'k',
                     'shade': False, 'azim': -35, 'elev': 35,
                     'proj_type': 'ortho', 'stick': False,
@@ -673,7 +673,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
     xpos = xpos.T.flatten() + 0.5
     ypos = ypos.T.flatten() + 0.5
     zpos = np.zeros(n)
-    dx = dy = (1-default_opts['bars_spacing']) * np.ones(n)
+    dx = dy = (1 - default_opts['bars_spacing']) * np.ones(n)
     dz = np.real(M.flatten())
 
     if isinstance(limits, list) and len(limits) == 2:
