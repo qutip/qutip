@@ -64,7 +64,7 @@ author = ', '.join([
     'and E. Giguère'
 ])
 
-copyright = '2011 and later, {}'.format(author)
+copyright = '2011 to 2021 inclusive, QuTiP developers and contributors'
 
 
 def _check_source_folder_and_imported_qutip_match():

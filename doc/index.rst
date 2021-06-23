@@ -19,6 +19,7 @@ QuTiP: Quantum Toolbox in Python
    contributors.rst
    development/development.rst
    biblio.rst
+   copyright.rst
 
 
 Indices and tables
