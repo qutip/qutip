@@ -1571,7 +1571,7 @@ class DynamicsUnitary(Dynamics):
             # and eigenvectors as a list of separate 2D kets
             _type = _data.CSR if self.sparse_eigen_decomp else _data.Dense
             eig_val, eig_vec = _data.eigs(_data.to(_type, H.data))
-            eig_vec = np.hstack(eig_vec)
+            eig_vec = eig_vec.to_array()
 
         else:
             H = self._dyn_gen[k]

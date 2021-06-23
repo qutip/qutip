@@ -936,24 +936,23 @@ class Qobj:
         """
         if self.dims[0] != self.dims[1]:
             raise TypeError('sqrt only valid on square matrices')
-        # TODO: consider another way of handling the dispatch here.
-        if sparse:
-            evals, evecs = _data.eigs_csr(_data.to(_data.CSR, self.data),
+        if isinstance(self.data, _data.CSR) and sparse and self.shape[0] > 3:
+            evals, evecs = _data.eigs_csr(self.data,
                                           isherm=self._isherm,
                                           tol=tol, maxiter=maxiter)
+        elif isinstance(self.data, _data.CSR):
+            evals, evecs = _data.eigs(_data.to(_data.Dense, self.data),
+                                      isherm=self._isherm)
         else:
-            evals, evecs = _data.eigs_dense(_data.to(_data.Dense, self.data),
-                                            isherm=self._isherm)
-        evecs = np.hstack(evecs)
+            evals, evecs = _data.eigs(self.data, isherm=self._isherm)
+
         numevals = len(evals)
-        dV = scipy.sparse.spdiags(np.sqrt(evals, dtype=complex), 0,
-                                  numevals, numevals,
-                                  format='csr')
+        dV = _data.diag([np.sqrt(evals, dtype=complex)], 0)
         if self.isherm:
-            spDv = dV.dot(evecs.conj().T)
+            spDv = _data.matmul(dV, evecs.conj().transpose())
         else:
-            spDv = dV.dot(np.linalg.inv(evecs))
-        return Qobj(evecs.dot(spDv),
+            spDv = _data.matmul(dV, _data.inv(evecs))
+        return Qobj(_data.matmul(evecs, spDv),
                     dims=self.dims,
                     type=self.type,
                     superrep=self.superrep,
@@ -1023,12 +1022,12 @@ class Qobj:
         """
         if self.data.shape[0] != self.data.shape[1]:
             raise TypeError('Invalid operand for matrix inverse')
-        if sparse:
-            _sci = _data.to(_data.CSR, self.data).as_scipy().tocsc()
-            inv_mat = scipy.sparse.linalg.inv(_sci)
+        if isinstance(self.data, _data.CSR) and not sparse:
+            data = _data.to(_data.Dense, self.data)
         else:
-            inv_mat = np.linalg.inv(self.data.to_array())
-        return Qobj(_data.create(inv_mat),
+            data = self.data
+
+        return Qobj(_data.inv(data),
                     dims=[self.dims[1], self.dims[0]],
                     type=self.type,
                     superrep=self.superrep,
@@ -1536,25 +1535,28 @@ class Qobj:
         Use sparse only if memory requirements demand it.
 
         """
-        # TODO: consider another way of handling the dispatch here.
-        if sparse:
-            evals, evecs = _data.eigs_csr(_data.to(_data.CSR, self.data),
+        if isinstance(self.data, _data.CSR) and sparse and self.shape[0] > 3:
+            evals, evecs = _data.eigs_csr(self.data,
                                           isherm=self._isherm,
                                           sort=sort, eigvals=eigvals, tol=tol,
                                           maxiter=maxiter)
+        elif isinstance(self.data, _data.CSR):
+            evals, evecs = _data.eigs(_data.to(_data.Dense, self.data),
+                                      isherm=self._isherm,
+                                      sort=sort, eigvals=eigvals)
         else:
-            evals, evecs = _data.eigs_dense(_data.to(_data.Dense, self.data),
-                                            isherm=self._isherm,
-                                            sort=sort, eigvals=eigvals)
+            evals, evecs = _data.eigs(self.data, isherm=self._isherm,
+                                      sort=sort, eigvals=eigvals)
+
         if self.type == 'super':
             new_dims = [self.dims[0], [1]]
             new_type = 'operator-ket'
         else:
             new_dims = [self.dims[0], [1]*len(self.dims[0])]
             new_type = 'ket'
-        ekets = np.empty((len(evecs),), dtype=object)
+        ekets = np.empty((evecs.shape[1],), dtype=object)
         ekets[:] = [Qobj(vec, dims=new_dims, type=new_type, copy=False)
-                    for vec in evecs]
+                    for vec in _data.split_columns(evecs, False)]
         norms = np.array([ket.norm() for ket in ekets])
         if phase_fix is None:
             phase = np.array([1] * len(ekets))
@@ -1597,15 +1599,20 @@ class Qobj:
 
         """
         # TODO: consider another way of handling the dispatch here.
-        if sparse:
-            return _data.eigs_csr(_data.to(_data.CSR, self.data),
+        if isinstance(self.data, _data.CSR) and sparse and self.shape[0] > 3:
+            return _data.eigs_csr(self.data,
                                   vecs=False,
                                   isherm=self._isherm,
                                   sort=sort, eigvals=eigvals,
                                   tol=tol, maxiter=maxiter)
-        return _data.eigs_dense(_data.to(_data.Dense, self.data),
-                                vecs=False,
-                                isherm=self._isherm, sort=sort, eigvals=eigvals)
+        elif isinstance(self.data, _data.CSR):
+            return _data.eigs(_data.to(_data.Dense, self.data),
+                              vecs=False, isherm=self._isherm,
+                              sort=sort, eigvals=eigvals)
+
+        return _data.eigs(self.data,
+                          vecs=False,
+                          isherm=self._isherm, sort=sort, eigvals=eigvals)
 
     def groundstate(self, sparse=False, tol=0, maxiter=100000, safe=True):
         """Ground state Eigenvalue and Eigenvector.
@@ -1637,16 +1644,20 @@ class Qobj:
         Use sparse only if memory requirements demand it.
         """
         eigvals = 2 if safe else 1
-        # TODO: consider another way of handling the dispatch here.
-        if sparse:
-            evals, evecs = _data.eigs_csr(_data.to(_data.CSR, self.data),
+        if isinstance(self.data, _data.CSR) and sparse and self.shape[0] > 3:
+            evals, evecs = _data.eigs_csr(self.data,
                                           isherm=self._isherm,
                                           eigvals=eigvals, tol=tol,
                                           maxiter=maxiter)
+        elif isinstance(self.data, _data.CSR):
+            evals, evecs = _data.eigs(_data.to(_data.Dense, self.data),
+                                      isherm=self._isherm,
+                                      eigvals=eigvals)
         else:
-            evals, evecs = _data.eigs_dense(_data.to(_data.Dense, self.data),
-                                            isherm=self._isherm,
-                                            eigvals=eigvals)
+            evals, evecs = _data.eigs(self.data,
+                                      isherm=self._isherm,
+                                      eigvals=eigvals)
+
         if safe:
             tol = tol or settings.core['atol']
             if (evals[1]-evals[0]) <= 10*tol:
