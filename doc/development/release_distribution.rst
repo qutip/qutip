@@ -1,6 +1,3 @@
-.. QuTiP
-   Copyright (C) 2011-2017, Alexander J. G. Pitchford, Paul D. Nation & Robert J. Johansson
-
 .. This file was created using retext 6.1 https://github.com/retext-project/retext
 
 .. _release_distribution:
