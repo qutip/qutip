@@ -381,6 +381,11 @@ class UnaryOpMixin(_GenericOpMixin):
         if issubclass(out_type, Data):
             assert test.shape == expected.shape
             np.testing.assert_allclose(test.to_array(), expected, self.tol)
+        elif out_type is list:
+            for test_, expected_ in zip(test, expected):
+                assert test_.shape == expected_.shape
+                np.testing.assert_allclose(test_.to_array(),
+                                           expected_, self.tol)
         else:
             assert abs(test - expected) < self.tol
 
@@ -793,4 +798,63 @@ class TestProject(UnaryOpMixin):
     specialisations = [
         pytest.param(data.project_csr, CSR, CSR),
         pytest.param(data.project_dense, Dense, Dense),
+    ]
+
+
+def _inv_dense(matrix):
+    # Add a diagonal so `matrix` is not singular
+    return data.inv_dense(
+        data.add(
+            matrix,
+            data.diag([1.1]*matrix.shape[0], shape=matrix.shape, dtype='dense')
+        )
+    )
+
+
+def _inv_csr(matrix):
+    # Add a diagonal so `matrix` is not singular
+    return data.inv_csr(
+        data.add(
+            matrix,
+            data.diag([1.1]*matrix.shape[0], shape=matrix.shape, dtype='csr')
+        )
+    )
+
+
+class TestInv(UnaryOpMixin):
+    def op_numpy(self, matrix):
+        return np.linalg.inv(matrix + np.eye(matrix.shape[0]) * 1.1)
+
+    shapes = [
+        (pytest.param((1, 1), id="scalar"),),
+        (pytest.param((10, 10), id="square"),),
+    ]
+    bad_shapes = [
+        (pytest.param((2, 10), id="nonsquare"),),
+        (pytest.param((1, 100), id="bra"),),
+        (pytest.param((100, 1), id="ket"),),
+    ]
+
+    specialisations = [
+        pytest.param(_inv_csr, CSR, CSR),
+        pytest.param(_inv_dense, Dense, Dense),
+    ]
+
+
+class TestSplitColumns(UnaryOpMixin):
+    # UnaryOpMixin
+    def op_numpy(self, matrix):
+        return [matrix[:, i].reshape((-1, 1)) for i in range(matrix.shape[1])]
+
+    shapes = [
+        (pytest.param((1, 1), id="scalar"),),
+        (pytest.param((10, 10), id="square"),),
+        (pytest.param((2, 10), id="nonsquare"),),
+        (pytest.param((1, 100), id="bra"),),
+        (pytest.param((100, 1), id="ket"),),
+    ]
+
+    specialisations = [
+        pytest.param(data.split_columns_csr, CSR, list),
+        pytest.param(data.split_columns_dense, Dense, list),
     ]
