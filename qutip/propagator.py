@@ -236,8 +236,12 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
             for n in range(N * N):
                 progress_bar.update(n)
                 col_idx, row_idx = np.unravel_index(n, (N, N))
-                rho0 = Qobj(sp.csr_matrix(([1], ([row_idx], [col_idx])),
-                                          shape=(N, N), dtype=complex))
+                rho0 = Qobj(
+                    sp.csr_matrix(
+                        ([1], ([row_idx], [col_idx])),
+                        shape=(N, N), dtype=complex),
+                    dims=H0.dims,
+                )
                 output = mesolve(H, rho0, tlist, c_op_list, [], args, options,
                                  _safe_mode=False)
                 for k, t in enumerate(tlist):
