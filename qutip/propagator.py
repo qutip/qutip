@@ -196,15 +196,16 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         sqrt_N = int(np.sqrt(N))
         dims = H0.dims
 
-        u = np.zeros([N, N, len(tlist)], dtype=complex)
-
         if parallel:
-            output = parallel_map(_parallel_mesolve, range(N * N),
+            output = parallel_map(_parallel_mesolve, range(N),
                                   task_args=(
                                       sqrt_N, H, tlist, c_op_list, args,
                                       options),
+                                  task_kwargs={"dims": H0.dims[0]},
                                   progress_bar=progress_bar, num_cpus=num_cpus)
-            for n in range(N * N):
+
+            u = np.zeros([N, N, len(tlist)], dtype=complex)
+            for n in range(N):
                 for k, t in enumerate(tlist):
                     u[:, n, k] = mat2vec(output[n].states[k].full()).T
         else:
@@ -226,6 +227,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
             output = parallel_map(_parallel_mesolve, range(N * N),
                                   task_args=(
                                       N, H, tlist, c_op_list, args, options),
+                                  task_kwargs={"dims": H0.dims},
                                   progress_bar=progress_bar, num_cpus=num_cpus)
             for n in range(N * N):
                 for k, t in enumerate(tlist):
@@ -305,10 +307,10 @@ def _parallel_sesolve(n, N, H, tlist, args, options):
     return output
 
 
-def _parallel_mesolve(n, N, H, tlist, c_op_list, args, options):
+def _parallel_mesolve(n, N, H, tlist, c_op_list, args, options, dims=None):
     col_idx, row_idx = np.unravel_index(n, (N, N))
     rho0 = Qobj(sp.csr_matrix(([1], ([row_idx], [col_idx])),
-                              shape=(N, N), dtype=complex))
+                              shape=(N, N), dtype=complex), dims=dims)
     output = mesolve(H, rho0, tlist, c_op_list, [], args, options,
                      _safe_mode=False)
     return output
