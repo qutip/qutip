@@ -128,6 +128,17 @@ def testPropHDims():
     assert_equal(U.dims,H.dims)
 
 
+def testPropHSuperWithoutCops():
+    "Propagator: super operator without collapse operators"
+    H = tensor(sigmaz(), qeye(2))
+    H = to_super(H)
+    tlist = np.linspace(0, 10, 11)
+    Fs = propagator(H, tlist)
+    rho0 = qeye([[2, 2], [2, 2]])
+    expected_Fs = mesolve(H, rho0, tlist).states
+    assert Fs == expected_Fs
+
+
 def testPropHWithCOps():
     "Propagator: with collapse operators"
     H = tensor(sigmaz(), qeye(2))
