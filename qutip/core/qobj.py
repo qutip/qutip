@@ -507,7 +507,7 @@ class Qobj:
                 " and ",
                 repr(other.dims),
             ]))
-        if self.issuper and other.issuper and self.superrep != other.superrep:
+        if self.superrep != other.superrep:
             raise TypeError("".join([
                 "incompatible superoperator representations ",
                 repr(self.superrep),
