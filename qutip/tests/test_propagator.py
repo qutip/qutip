@@ -132,12 +132,12 @@ def testPropHWithCOps():
     "Propagator: with collapse operators"
     H = tensor(sigmaz(), qeye(2))
     c_ops = [np.sqrt(1) * tensor(sigmam(), qeye(2))]
-    tlist = np.linspace(0, 10, 201)
+    tlist = np.linspace(0, 10, 11)
+    Fs = propagator(H, tlist, c_op_list=c_ops)
     rho0 = ket2dm(tensor(basis(2, 0), basis(2, 0))).unit()
-    F = propagator(H, tlist, c_op_list=c_ops)[-1]
-    rho_f = vector_to_operator(F * operator_to_vector(rho0))
-    expected_rho_f = mesolve(H, rho0, tlist, c_ops=c_ops).states[-1]
-    assert rho_f == expected_rho_f
+    rho_fs = [vector_to_operator(F * operator_to_vector(rho0)) for F in Fs]
+    expected_rho_fs = mesolve(H, rho0, tlist, c_ops=c_ops).states
+    assert rho_fs == expected_rho_fs
 
 
 if __name__ == "__main__":
