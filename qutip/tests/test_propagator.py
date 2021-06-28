@@ -139,7 +139,7 @@ def testPropHSuperWithoutCops():
     assert Fs == expected_Fs
 
 
-def testPropHWithCOps():
+def testPropHWithCops():
     "Propagator: with collapse operators"
     H = tensor(sigmaz(), qeye(2))
     c_ops = [np.sqrt(1) * tensor(sigmam(), qeye(2))]
