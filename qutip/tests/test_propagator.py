@@ -131,7 +131,7 @@ def testPropHDims():
 def testPropHSuperWithoutCops():
     "Propagator: super operator without collapse operators"
     H = tensor(sigmaz(), qeye(2))
-    H = to_super(H)
+    H = liouvillian(H)
     tlist = np.linspace(0, 10, 11)
     Fs = propagator(H, tlist)
     rho0 = qeye([[2, 2], [2, 2]])
