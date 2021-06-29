@@ -210,8 +210,9 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                     u[:, n, k] = mat2vec(output[n].states[k].full()).T
         else:
             rho0 = qeye(H0.dims[0])
-            output = mesolve(H, rho0, tlist, None, [], args, options,
-                             _safe_mode=False)
+            output = mesolve(
+                H, rho0, tlist, args=args, options=options,
+                _safe_mode=False)
             return output.states[-1] if len(tlist) == 2 else output.states
 
     else:
@@ -243,8 +244,9 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                         shape=(N, N), dtype=complex),
                     dims=H0.dims,
                 )
-                output = mesolve(H, rho0, tlist, c_op_list, [], args, options,
-                                 _safe_mode=False)
+                output = mesolve(
+                    H, rho0, tlist, c_ops=c_op_list, args=args,
+                    options=options, _safe_mode=False)
                 for k, t in enumerate(tlist):
                     u[:, n, k] = mat2vec(output.states[k].full()).T
             progress_bar.finished()
