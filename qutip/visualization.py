@@ -577,7 +577,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
 
     options : dict
         A dictionary containing extra options for the plot.
-        The names (keys) and values of the options are 
+        The names (keys) and values of the options are
         described below:
 
         'zticks' : list of numbers
