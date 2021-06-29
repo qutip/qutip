@@ -48,7 +48,7 @@ from qutip.sparse import sp_reshape
 from qutip.cy.sparse_utils import unit_row_norm
 from qutip.mesolve import mesolve
 from qutip.sesolve import sesolve
-from qutip.states import basis
+from qutip.states import basis, projection
 from qutip.solver import Options, _solver_safety_check, config
 from qutip.parallel import parallel_map, _default_kwargs
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
@@ -196,22 +196,23 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         sqrt_N = int(np.sqrt(N))
         dims = H0.dims
 
-        u = np.zeros([N, N, len(tlist)], dtype=complex)
-
         if parallel:
-            output = parallel_map(_parallel_mesolve, range(N * N),
+            output = parallel_map(_parallel_mesolve, range(N),
                                   task_args=(
                                       sqrt_N, H, tlist, c_op_list, args,
                                       options),
+                                  task_kwargs={"dims": H0.dims[0]},
                                   progress_bar=progress_bar, num_cpus=num_cpus)
-            for n in range(N * N):
+
+            u = np.zeros([N, N, len(tlist)], dtype=complex)
+            for n in range(N):
                 for k, t in enumerate(tlist):
                     u[:, n, k] = mat2vec(output[n].states[k].full()).T
         else:
-            rho0 = qeye(N, N)
-            rho0.dims = [[sqrt_N, sqrt_N], [sqrt_N, sqrt_N]]
-            output = mesolve(H, psi0, tlist, [], args, options,
-                             _safe_mode=False)
+            rho0 = qeye(H0.dims[0])
+            output = mesolve(
+                H, rho0, tlist, args=args, options=options,
+                _safe_mode=False)
             return output.states[-1] if len(tlist) == 2 else output.states
 
     else:
@@ -227,6 +228,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
             output = parallel_map(_parallel_mesolve, range(N * N),
                                   task_args=(
                                       N, H, tlist, c_op_list, args, options),
+                                  task_kwargs={"dims": H0.dims},
                                   progress_bar=progress_bar, num_cpus=num_cpus)
             for n in range(N * N):
                 for k, t in enumerate(tlist):
@@ -236,10 +238,11 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
             for n in range(N * N):
                 progress_bar.update(n)
                 col_idx, row_idx = np.unravel_index(n, (N, N))
-                rho0 = Qobj(sp.csr_matrix(([1], ([row_idx], [col_idx])),
-                                          shape=(N, N), dtype=complex))
-                output = mesolve(H, rho0, tlist, c_op_list, [], args, options,
-                                 _safe_mode=False)
+                rho0 = projection(N, row_idx, col_idx)
+                rho0.dims = H0.dims
+                output = mesolve(
+                    H, rho0, tlist, c_ops=c_op_list, args=args,
+                    options=options, _safe_mode=False)
                 for k, t in enumerate(tlist):
                     u[:, n, k] = mat2vec(output.states[k].full()).T
             progress_bar.finished()
@@ -302,10 +305,11 @@ def _parallel_sesolve(n, N, H, tlist, args, options):
     return output
 
 
-def _parallel_mesolve(n, N, H, tlist, c_op_list, args, options):
+def _parallel_mesolve(n, N, H, tlist, c_op_list, args, options, dims=None):
     col_idx, row_idx = np.unravel_index(n, (N, N))
-    rho0 = Qobj(sp.csr_matrix(([1], ([row_idx], [col_idx])),
-                              shape=(N, N), dtype=complex))
-    output = mesolve(H, rho0, tlist, c_op_list, [], args, options,
-                     _safe_mode=False)
+    rho0 = projection(N, row_idx, col_idx)
+    rho0.dims = dims
+    output = mesolve(
+        H, rho0, tlist, c_ops=c_op_list, args=args, options=options,
+        _safe_mode=False)
     return output
