@@ -127,5 +127,53 @@ def testPropHDims():
     U = propagator(H,1, unitary_mode='single')
     assert_equal(U.dims,H.dims)
 
+
+def testPropHSuperWithoutCops():
+    "Propagator: super operator without collapse operators"
+    H = tensor(sigmaz(), qeye(2))
+    H = liouvillian(H)
+    tlist = np.linspace(0, 10, 11)
+    Fs = propagator(H, tlist)
+    rho0 = qeye([[2, 2], [2, 2]])
+    expected_Fs = mesolve(H, rho0, tlist).states
+    assert Fs == expected_Fs
+
+
+def testPropHSuperWithoutCopsParallel():
+    "Propagator: super operator without collapse operators using parallel"
+    H = tensor(sigmaz(), qeye(2))
+    H = liouvillian(H)
+    tlist = np.linspace(0, 10, 11)
+    Fs = propagator(H, tlist, parallel=True)
+    rho0 = qeye([[2, 2], [2, 2]])
+    expected_Fs = mesolve(H, rho0, tlist).states
+    for k, _ in enumerate(tlist):
+        assert (Fs[k] - expected_Fs[k]).norm() < 1e-3
+
+
+def testPropHWithCops():
+    "Propagator: with collapse operators"
+    H = tensor(sigmaz(), qeye(2))
+    c_ops = [np.sqrt(1) * tensor(sigmam(), qeye(2))]
+    tlist = np.linspace(0, 10, 11)
+    Fs = propagator(H, tlist, c_op_list=c_ops)
+    rho0 = ket2dm(tensor(basis(2, 0), basis(2, 0))).unit()
+    rho_fs = [vector_to_operator(F * operator_to_vector(rho0)) for F in Fs]
+    expected_rho_fs = mesolve(H, rho0, tlist, c_ops=c_ops).states
+    assert rho_fs == expected_rho_fs
+
+
+def testPropHWithCopsParallel():
+    "Propagator: with collapse operators in parallel"
+    H = tensor(sigmaz(), qeye(2))
+    c_ops = [np.sqrt(1) * tensor(sigmam(), qeye(2))]
+    tlist = np.linspace(0, 10, 11)
+    Fs = propagator(H, tlist, c_op_list=c_ops, parallel=True)
+    rho0 = ket2dm(tensor(basis(2, 0), basis(2, 0))).unit()
+    rho_fs = [vector_to_operator(F * operator_to_vector(rho0)) for F in Fs]
+    expected_rho_fs = mesolve(H, rho0, tlist, c_ops=c_ops).states
+    assert rho_fs == expected_rho_fs
+
+
 if __name__ == "__main__":
     run_module_suite()
