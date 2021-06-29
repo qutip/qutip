@@ -311,6 +311,7 @@ def _parallel_mesolve(n, N, H, tlist, c_op_list, args, options, dims=None):
     col_idx, row_idx = np.unravel_index(n, (N, N))
     rho0 = Qobj(sp.csr_matrix(([1], ([row_idx], [col_idx])),
                               shape=(N, N), dtype=complex), dims=dims)
-    output = mesolve(H, rho0, tlist, c_op_list, [], args, options,
-                     _safe_mode=False)
+    output = mesolve(
+        H, rho0, tlist, c_ops=c_op_list, args=args, options=options,
+        _safe_mode=False)
     return output
