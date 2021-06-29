@@ -211,7 +211,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         else:
             rho0 = qeye(H0.dims[0])
             output = mesolve(H, rho0, tlist, None, [], args, options,
-                             _safe_mode=True)
+                             _safe_mode=False)
             return output.states[-1] if len(tlist) == 2 else output.states
 
     else:
