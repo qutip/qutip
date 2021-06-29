@@ -387,6 +387,17 @@ def test_CheckMulType():
     assert opbra2.dag() == opket2
 
 
+def test_operator_ket_superrep():
+    sop = qutip.to_super(qutip.sigmax())
+    opket1 = qutip.operator_to_vector(qutip.fock_dm(2, 0))
+    opket2 = sop * opket1
+    assert opket1.superrep == opket2.superrep
+
+    opbra1 = qutip.operator_to_vector(qutip.fock_dm(2, 0)).dag()
+    opbra2 = opbra1 * sop
+    assert opbra1.superrep == opbra2.superrep
+
+
 def test_QobjConjugate():
     "qutip.Qobj conjugate"
     data = _random_not_singular(5)
