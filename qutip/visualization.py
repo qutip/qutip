@@ -67,7 +67,6 @@ try:
     import matplotlib as mpl
     from matplotlib import cm
     from mpl_toolkits.mplot3d import Axes3D
-    from mpl_toolkits.mplot3d.axis3d import Axis
 
     # Define a custom _axes3D function based on the matplotlib version.
     # The auto_add_to_figure keyword is new for matplotlib>=3.4.
@@ -577,30 +576,34 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
         show colorbar
 
     options : dict
-        dictionary containing extra options
-        all keys are of type `str` and values have different types
-        key:value  pairs should be as follows:
+        A dictionary containing extra options for the plot.
+        The names (keys) and values of the options are 
+        described below:
 
         'zticks' : list of numbers
-            list of z-axis ticks location
+            A list of z-axis tick locations.
 
         'cmap' : string (default: 'jet')
-            colormap name
+            The name of the color map to use.
 
         'cmap_min' : float (default: 0.0)
-            colormap truncation minimum, a value in range 0-1
+            The lower bound to truncate the color map at.
+            A value in range 0 - 1. The default, 0, leaves the lower
+            bound of the map unchanged.
 
         'cmap_max' : float (default: 1.0)
-            colormap truncation maximum, a value in range 0-1
+            The upper bound to truncate the color map at.
+            A value in range 0 - 1. The default, 1, leaves the upper
+            bound of the map unchanged.
 
         'bars_spacing' : float (default: 0.1)
-            spacing between bars
+            spacing between bars.
 
         'bars_alpha' : float (default: 1.)
-            transparency of bars, should be in range 0-1
+            transparency of bars, should be in range 0 - 1
 
         'bars_lw' : float (default: 0.5)
-            linewidth of bars' edges
+            linewidth of bars' edges.
 
         'bars_edgecolor' : color (default: 'k')
             color of bars' edges, examples: 'k', (0.1, 0.2, 0.5), '#0f0f0f80'
@@ -616,22 +619,24 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
             elevation viewing angle.
 
         'proj_type' : string (default: 'ortho' if ax is not passed)
-            type of projection ('ortho' or 'persp')
+            The type of projection ('ortho' or 'persp')
 
         'stick' : bool (default: False)
-            changes xlim and ylim in a way that bars next to
-            xz and yz planes will stick to those planes
-            works if ax is not passed to the function
+            Changes xlim and ylim in such a way that bars next to
+            XZ and YZ planes will stick to those planes.
+            This option has no effect if ``ax`` is passed as a parameter.
 
         'cbar_pad' : float (default: 0.04)
-            fraction of original axes between colorbar and new image axes
-            (padding between 3D figure and colorbar).
+            The fraction of the original axes between the colorbar
+            and the new image axes.
+            (i.e. the padding between the 3D figure and the colorbar).
 
         'cbarmax_to_zmax' : bool (default: False)
-            set color of maximum z-value to maximum color of colorbar
+            Whether to set the color of maximum z-value to the maximum color
+            in the colorbar (True) or not (False).
 
         'figsize' : tuple of two numbers
-            size of the figure
+            The size of the figure.
 
     Returns :
     -------
