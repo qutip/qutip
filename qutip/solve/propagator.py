@@ -190,21 +190,22 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         sqrt_N = int(np.sqrt(N))
         dims = H0.dims
 
-        u = np.zeros([N, N, len(tlist)], dtype=complex)
-
         if parallel:
-            output = parallel_map(_parallel_mesolve, range(N * N),
+            output = parallel_map(_parallel_mesolve, range(N),
                                   task_args=(
                                       sqrt_N, H, tlist, c_op_list, args,
                                       options),
+                                  task_kwargs={"dims": H0.dims[0]},
                                   progress_bar=progress_bar, num_cpus=num_cpus)
-            for n in range(N * N):
+            u = np.zeros([N, N, len(tlist)], dtype=complex)
+            for n in range(N):
                 for k, state in enumerate(output[n].states):
                     u[:, n, k] = stack_columns(state.data).to_array()[:, 0]
         else:
-            rho0 = qeye([sqrt_N, sqrt_N])
-            output = mesolve(H, psi0, tlist, [], args, options,
-                             _safe_mode=False)
+            rho0 = qeye(H0.dims[0])
+            output = mesolve(
+                H, rho0, tlist, args=args, options=options,
+                _safe_mode=False)
             return output.states[-1] if len(tlist) == 2 else output.states
 
     else:
@@ -220,6 +221,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
             output = parallel_map(_parallel_mesolve, range(N * N),
                                   task_args=(
                                       N, H, tlist, c_op_list, args, options),
+                                  task_kwargs={"dims": H0.dims},
                                   progress_bar=progress_bar, num_cpus=num_cpus)
             for n in range(N * N):
                 for k, state in enumerate(output[n].states):
@@ -230,8 +232,10 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                 progress_bar.update(n)
                 col_idx, row_idx = np.unravel_index(n, (N, N))
                 rho0 = projection(N, row_idx, col_idx)
-                output = mesolve(H, rho0, tlist, c_op_list, [], args, options,
-                                 _safe_mode=False)
+                rho0.dims = H0.dims
+                output = mesolve(
+                    H, rho0, tlist, c_ops=c_op_list, args=args,
+                    options=options, _safe_mode=False)
                 for k, t in enumerate(tlist):
                     u[:, n, k] = stack_columns(output.states[k].data).to_array()[:, 0]
             progress_bar.finished()
@@ -292,9 +296,11 @@ def _parallel_sesolve(n, N, H, tlist, args, options):
     return output
 
 
-def _parallel_mesolve(n, N, H, tlist, c_op_list, args, options):
+def _parallel_mesolve(n, N, H, tlist, c_op_list, args, options, dims=None):
     col_idx, row_idx = np.unravel_index(n, (N, N))
     rho0 = projection(N, row_idx, col_idx)
-    output = mesolve(H, rho0, tlist, c_op_list, [], args, options,
-                     _safe_mode=False)
+    rho0.dims = dims
+    output = mesolve(
+        H, rho0, tlist, c_ops=c_op_list, args=args, options=options,
+        _safe_mode=False)
     return output
