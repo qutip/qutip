@@ -48,7 +48,7 @@ from qutip.sparse import sp_reshape
 from qutip.cy.sparse_utils import unit_row_norm
 from qutip.mesolve import mesolve
 from qutip.sesolve import sesolve
-from qutip.states import basis
+from qutip.states import basis, projection
 from qutip.solver import Options, _solver_safety_check, config
 from qutip.parallel import parallel_map, _default_kwargs
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
@@ -238,12 +238,8 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
             for n in range(N * N):
                 progress_bar.update(n)
                 col_idx, row_idx = np.unravel_index(n, (N, N))
-                rho0 = Qobj(
-                    sp.csr_matrix(
-                        ([1], ([row_idx], [col_idx])),
-                        shape=(N, N), dtype=complex),
-                    dims=H0.dims,
-                )
+                rho0 = projection(N, row_idx, col_idx)
+                rho0.dims = H0.dims
                 output = mesolve(
                     H, rho0, tlist, c_ops=c_op_list, args=args,
                     options=options, _safe_mode=False)
@@ -311,8 +307,8 @@ def _parallel_sesolve(n, N, H, tlist, args, options):
 
 def _parallel_mesolve(n, N, H, tlist, c_op_list, args, options, dims=None):
     col_idx, row_idx = np.unravel_index(n, (N, N))
-    rho0 = Qobj(sp.csr_matrix(([1], ([row_idx], [col_idx])),
-                              shape=(N, N), dtype=complex), dims=dims)
+    rho0 = projection(N, row_idx, col_idx)
+    rho0.dims = dims
     output = mesolve(
         H, rho0, tlist, c_ops=c_op_list, args=args, options=options,
         _safe_mode=False)
