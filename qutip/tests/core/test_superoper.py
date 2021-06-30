@@ -73,11 +73,18 @@ class TestMatVec:
         rho1 = qutip.rand_dm(N)
         as_vec = qutip.operator_to_vector(rho1)
         assert as_vec.superrep == 'super'
+
         with pytest.raises(TypeError) as err:
             as_vec.superrep = ""
             qutip.vector_to_operator(as_vec)
         assert err.value.args[0] == ("only defined for operator-kets "
                                      "in super format")
+
+        with pytest.raises(TypeError) as err:
+            qutip.operator_to_vector(as_vec)
+        assert err.value.args[0] == ("Cannot convert object already "
+                                     "in super representation")
+
 
     def testOperatorVectorTensor(self):
         """

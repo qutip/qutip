@@ -100,6 +100,19 @@ def test_QobjType():
     super_qobj = qutip.Qobj(super_data, dims=[[[3]], [[3]]])
     assert super_qobj.type == 'super'
     assert super_qobj.issuper
+    assert super_qobj.superrep == 'super'
+
+    super_data = np.random.random(N)
+    super_qobj = qutip.Qobj(super_data, dims=[[[3], [3]], [[1]]])
+    assert super_qobj.type == 'operator-ket'
+    assert super_qobj.isoperket
+    assert super_qobj.superrep == 'super'
+
+    super_data = np.random.random(N)
+    super_qobj = qutip.Qobj(super_data, dims=[[[1]], [[3], [3]]])
+    assert super_qobj.type == 'operator-bra'
+    assert super_qobj.isoperbra
+    assert super_qobj.superrep == 'super'
 
     operket_qobj = qutip.operator_to_vector(oper_qobj)
     assert operket_qobj.isoperket

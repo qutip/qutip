@@ -266,6 +266,9 @@ def operator_to_vector(op):
     representation.  Note that QuTiP uses the _column-stacking_ convention,
     which may be different to what you expect.
     """
+    if op.type in ['super', 'operator-ket', 'operator-bra']:
+        raise TypeError("Cannot convert object already "
+                        "in super representation")
     return Qobj(stack_columns(op.data),
                 dims=[op.dims, [1]],
                 type='operator-ket',

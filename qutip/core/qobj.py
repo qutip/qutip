@@ -377,7 +377,7 @@ class Qobj:
                     repr(self._data.shape[0]),
                 ]))
             self.dims = [[[root]]*2]*2
-        if self.type == 'super':
+        if self.type in ['super', 'operator-ket', 'operator-bra']:
             superrep = superrep or 'super'
         self.superrep = superrep
 
