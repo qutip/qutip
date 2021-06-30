@@ -757,7 +757,7 @@ def bra(seq, dim=2):
 #
 # quantum state number helper functions
 #
-def state_number_enumerate(dims, excitations=None, state=None, idx=0):
+def state_number_enumerate(dims, excitations=None, state=None, idx=0, nexc=0):
     """
     An iterator that enumerate all the state number arrays (quantum numbers on
     the form [n1, n2, n3, ...]) for a system with dimensions given by dims.
@@ -786,6 +786,9 @@ def state_number_enumerate(dims, excitations=None, state=None, idx=0):
     idx : integer
         Current index in the iteration. Used internally.
 
+    nexc : integer
+        Number of excitations in modes [0..idx-1]. Used internally.
+
     Returns
     -------
     state_number : list
@@ -797,17 +800,23 @@ def state_number_enumerate(dims, excitations=None, state=None, idx=0):
     if state is None:
         state = np.zeros(len(dims), dtype=int)
 
-    if excitations and sum(state[0:idx]) > excitations:
-        pass
-    elif idx == len(dims):
+    if idx == len(dims):
         if excitations is None:
             yield np.array(state)
         else:
             yield tuple(state)
     else:
-        for n in range(dims[idx]):
+        if excitations is None:
+            nlim = dims[idx]
+        else:
+            # modes [0..idx-1] have nexc excitations,
+            # so mode idx can have at most excitations-nexc excitations
+            nlim = min(dims[idx], 1 + excitations - nexc)
+
+        for n in range(nlim):
             state[idx] = n
-            for s in state_number_enumerate(dims, excitations, state, idx + 1):
+            for s in state_number_enumerate(dims, excitations,
+                                            state, idx + 1, nexc + n):
                 yield s
 
 
