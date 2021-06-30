@@ -380,12 +380,13 @@ class UnaryOpMixin(_GenericOpMixin):
         assert isinstance(test, out_type)
         if issubclass(out_type, Data):
             assert test.shape == expected.shape
-            np.testing.assert_allclose(test.to_array(), expected, self.tol)
+            np.testing.assert_allclose(test.to_array(), expected,
+                                       atol=self.tol)
         elif out_type is list:
             for test_, expected_ in zip(test, expected):
                 assert test_.shape == expected_.shape
                 np.testing.assert_allclose(test_.to_array(),
-                                           expected_, self.tol)
+                                           expected_, atol=self.tol)
         else:
             assert abs(test - expected) < self.tol
 
@@ -410,7 +411,8 @@ class UnaryScalarOpMixin(_GenericOpMixin):
         assert isinstance(test, out_type)
         if issubclass(out_type, Data):
             assert test.shape == expected.shape
-            np.testing.assert_allclose(test.to_array(), expected, self.tol)
+            np.testing.assert_allclose(test.to_array(), expected,
+                                       atol=self.tol)
         else:
             assert abs(test - expected) < self.tol
 
@@ -431,7 +433,8 @@ class BinaryOpMixin(_GenericOpMixin):
         assert isinstance(test, out_type)
         if issubclass(out_type, Data):
             assert test.shape == expected.shape
-            np.testing.assert_allclose(test.to_array(), expected, self.tol)
+            np.testing.assert_allclose(test.to_array(), expected,
+                                       atol=self.tol)
         else:
             assert abs(test - expected) < self.tol
 
@@ -464,7 +467,8 @@ class TernaryOpMixin(_GenericOpMixin):
         assert isinstance(test, out_type)
         if issubclass(out_type, Data):
             assert test.shape == expected.shape
-            np.testing.assert_allclose(test.to_array(), expected, self.tol)
+            np.testing.assert_allclose(test.to_array(), expected,
+                                       atol=self.tol)
         else:
             assert abs(test - expected) < self.tol
 
@@ -510,7 +514,8 @@ class TestAdd(BinaryOpMixin):
         assert isinstance(test, out_type)
         if issubclass(out_type, Data):
             assert test.shape == expected.shape
-            np.testing.assert_allclose(test.to_array(), expected, self.tol)
+            np.testing.assert_allclose(test.to_array(), expected,
+                                       atol=self.tol)
         else:
             assert abs(test - expected) < self.tol
 
@@ -598,7 +603,8 @@ class TestInner(BinaryOpMixin):
         assert isinstance(test, out_type)
         if issubclass(out_type, Data):
             assert test.shape == expected.shape
-            np.testing.assert_allclose(test.to_array(), expected, self.tol)
+            np.testing.assert_allclose(test.to_array(), expected,
+                                       atol=self.tol)
         else:
             assert abs(test - expected) < self.tol
 
@@ -664,7 +670,8 @@ class TestInnerOp(TernaryOpMixin):
         assert isinstance(test, out_type)
         if issubclass(out_type, Data):
             assert test.shape == expected.shape
-            np.testing.assert_allclose(test.to_array(), expected, self.tol)
+            np.testing.assert_allclose(test.to_array(), expected,
+                                       atol=self.tol)
         else:
             assert abs(test - expected) < self.tol
 
