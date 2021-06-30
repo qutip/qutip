@@ -36,6 +36,7 @@ import scipy.linalg
 
 import qutip
 from qutip.core import data as _data
+import pytest
 
 
 def f(t, args):
@@ -66,6 +67,17 @@ class TestMatVec:
         rho1 = qutip.rand_dm(N)
         rho2 = qutip.vector_to_operator(qutip.operator_to_vector(rho1))
         np.testing.assert_allclose(rho1.full(), rho2.full(), 1e-8)
+
+    def testsuperrep(self):
+        N = 3
+        rho1 = qutip.rand_dm(N)
+        as_vec = qutip.operator_to_vector(rho1)
+        assert as_vec.superrep == 'super'
+        with pytest.raises(TypeError) as err:
+            as_vec.superrep = ""
+            qutip.vector_to_operator(as_vec)
+        assert err.value.args[0] == ("only defined for operator-kets "
+                                     "in super format")
 
     def testOperatorVectorTensor(self):
         """
