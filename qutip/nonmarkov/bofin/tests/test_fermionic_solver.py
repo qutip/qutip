@@ -41,7 +41,7 @@ def test_discrete_level_model_FermionicHEOMSolver():
     """
     tol = 1e-3
     Gamma = 0.01  #coupling strength
-    W=1. #cut-off
+    W = 1. #cut-off
     T = 0.025851991 #temperature
     beta = 1./T
 
