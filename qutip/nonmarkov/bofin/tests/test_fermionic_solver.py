@@ -1,5 +1,5 @@
 """
-Tests for the Bosonic HEOM solvers.
+Tests for the Fermionic HEOM solvers.
 """
 import numpy as np
 from numpy.linalg import eigvalsh
