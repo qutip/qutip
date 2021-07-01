@@ -606,17 +606,17 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
             linewidth of bars' edges.
 
         'bars_edgecolor' : color (default: 'k')
-            color of bars' edges, examples: 'k', (0.1, 0.2, 0.5), '#0f0f0f80'
+            The colors of the bars' edges. For example: 'k', (0.1, 0.2, 0.5) or '#0f0f0f80'.
 
         'shade' : bool (default: True)
-            when True, this shades dark sides of the bars (relative
-            to plot's source of light).
+            Whether to shade the dark sides of the bars (True) or not (False). The shading is relative
+            to plot's source of light.
 
         'azim' : float
-            azimuthal viewing angle.
+            The azimuthal viewing angle.
 
         'elev' : float
-            elevation viewing angle.
+            The elevation viewing angle.
 
         'proj_type' : string (default: 'ortho' if ax is not passed)
             The type of projection ('ortho' or 'persp')
