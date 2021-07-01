@@ -17,7 +17,7 @@ def test_add_at_idx():
     Tests the function to add at hierarchy index.
     """
     seq = (2, 3, 4)
-    assert add_at_idx(seq, 2, 1), (2, 3, 5)
+    assert add_at_idx(seq, 2, 1) == (2, 3, 5)
 
     seq = (2, 3, 4)
     assert add_at_idx(seq, 0, -1), (1, 3, 4)
