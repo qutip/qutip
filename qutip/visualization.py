@@ -504,16 +504,9 @@ def _update_zaxis(ax, z_min, z_max, zticks):
     updates the z-axis
     """
     ax.axes.w_zaxis.set_major_locator(plt.IndexLocator(1, 0.5))
-    # ax.set_zlim3d([min(z_min, 0), z_max])
-    if z_min > 0 and z_max > 0:
-        ax.set_zlim3d([0, z_max])
-    elif z_min < 0 and z_max < 0:
-        ax.set_zlim3d([0, z_min])
-    else:
-        ax.set_zlim3d([z_min, z_max])
-
-    if zticks:
+    if isinstance(zticks, list):
         ax.set_zticks(zticks)
+    ax.set_zlim3d([min(z_min, 0), z_max])
 
 
 def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
