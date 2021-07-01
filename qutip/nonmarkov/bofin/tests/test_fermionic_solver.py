@@ -224,11 +224,6 @@ def test_discrete_level_model_FermionicHEOMSolver():
             aux.append(qlist)
         return aux, aux_heom_indices, idx2state
     
-    aux_1_list_list=[]
-    aux1_indices_list=[]
-    aux_2_list_list=[]
-    aux2_indices_list=[]
-
 
     K = Kk  
 
