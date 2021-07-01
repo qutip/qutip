@@ -115,7 +115,7 @@ def test_pure_dephasing_model_BosonicHEOMSolver():
     BosonicHEOMSolver: Compare with pure-dephasing analytical assert that the
     analytical result and HEOM produce the same time dephasing evoltion.
     """
-    tol=1e-3
+    tol = 1e-3
     gamma = 0.05
     lam = 0.025
     lam_c = lam / np.pi
