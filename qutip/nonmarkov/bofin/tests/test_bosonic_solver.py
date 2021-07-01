@@ -43,11 +43,11 @@ def test_state_dictionaries():
         
 def test_check_H():
     """Tests the function for checking system Hamiltonian"""
-    assert(_check_Hsys(sigmax()))
-    assert(_check_Hsys([sigmax(), sigmaz()]))
-    assert(_check_Hsys([[sigmax(), np.sin], [sigmaz(), np.cos]]))
-    assert(_check_Hsys([[sigmax(), np.sin], [sigmaz(), np.cos]]))
-    assert(_check_Hsys(QobjEvo([sigmaz(), sigmax(), sigmaz()])))
+    _check_Hsys(sigmax())
+    _check_Hsys([sigmax(), sigmaz()])
+    _check_Hsys([[sigmax(), np.sin], [sigmaz(), np.cos]])
+    _check_Hsys([[sigmax(), np.sin], [sigmaz(), np.cos]])
+    _check_Hsys(QobjEvo([sigmaz(), sigmax(), sigmaz()]))
 
 
     err_msg = r"Hamiltonian format is incorrect."
