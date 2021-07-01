@@ -414,34 +414,6 @@ def sphereplot(theta, phi, values, fig=None, ax=None, save=False):
     return fig, ax
 
 
-def _limit_finder(z):
-    """finds nearest proper 0.5 value
-    funtion used when limits is not passed to matrix_histogtam
-    If z > 0 it returns the higher half value
-    If z < 0 it returns the lower half value
-    examples:
-        if z = +0.1 returns +0.5
-        if z = -0.1 returns -0.5
-        if z = -2.4 returns -2.5
-        if z = +3.8 returns +4.0
-        if z = -5.0 returns -5.0
-
-    Parameters
-    ----------
-    z : float or int
-
-    Returns
-    -------
-    limit : float
-        nearest proper 0.5 value.
-    """
-    if z > 0:
-        limit = np.ceil(z * 2) / 2
-    else:
-        limit = np.floor(z * 2) / 2
-    return limit
-
-
 def _remove_margins(axis):
     """
     removes margins about z = 0 and improves the style
@@ -542,9 +514,6 @@ def _update_zaxis(ax, z_min, z_max, zticks):
 
     if zticks:
         ax.set_zticks(zticks)
-    else:
-        ax.set_zticks([z_min + 0.5 * i for i in
-                       range(int((z_max - z_min) / 0.5) + 1)])
 
 
 def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
@@ -632,9 +601,9 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
             and the new image axes.
             (i.e. the padding between the 3D figure and the colorbar).
 
-        'cbarmax_to_zmax' : bool (default: False)
-            Whether to set the color of maximum z-value to the maximum color
-            in the colorbar (True) or not (False).
+        'cbar_to_z' : bool (default: False)
+            Whether to set the color of maximum and minimum z-values to the
+            maximum and minimum colors in the colorbar (True) or not (False).
 
         'figsize' : tuple of two numbers
             The size of the figure.
@@ -658,7 +627,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
                     'bars_alpha': 1., 'bars_lw': 0.5, 'bars_edgecolor': 'k',
                     'shade': False, 'azim': -35, 'elev': 35,
                     'proj_type': 'ortho', 'stick': False,
-                    'cbar_pad': 0.04, 'cbarmax_to_zmax': False}
+                    'cbar_pad': 0.04, 'cbar_to_z': False}
 
     # update default_opts from input options
     if options:
@@ -686,11 +655,13 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
         z_min = limits[0]
         z_max = limits[1]
     else:
-        limits = [_limit_finder(min(dz)), _limit_finder(max(dz))]
-        z_min = limits[0]
-        z_max = limits[1]
+        z_min = min(dz)
+        z_max = max(dz)
+        if z_min == z_max:
+            z_min -= 0.1
+            z_max += 0.1
 
-    if default_opts['cbarmax_to_zmax']:
+    if default_opts['cbar_to_z']:
         norm = mpl.colors.Normalize(min(dz), max(dz))
     else:
         norm = mpl.colors.Normalize(z_min, z_max)
