@@ -39,7 +39,7 @@ def test_discrete_level_model_FermionicHEOMSolver():
     """
     FermionicHEOMSolver: compare to discrete-level current analytics
     """
-    tol=1e-3
+    tol = 1e-3
     Gamma = 0.01  #coupling strength
     W=1. #cut-off
     T = 0.025851991 #temperature
