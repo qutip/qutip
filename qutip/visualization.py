@@ -623,7 +623,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
                     'cbar_pad': 0.04, 'cbar_to_z': False}
 
     # update default_opts from input options
-    if options:
+    if isinstance(options, dict):
         # check if keys in options dict are valid
         if set(options) - set(default_opts):
             raise ValueError("invalid key(s) found in options: "
@@ -631,6 +631,8 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
         else:
             # updating default options
             default_opts.update(options)
+    else:
+        raise ValueError("options must be a dictionary")
 
     if isinstance(M, Qobj):
         # extract matrix data from Qobj
@@ -661,7 +663,6 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
     cmap = _truncate_colormap(default_opts['cmap'],
                               default_opts['cmap_min'],
                               default_opts['cmap_max'])
-    # Spectral
     colors = cmap(norm(dz))
 
     if ax is None:
