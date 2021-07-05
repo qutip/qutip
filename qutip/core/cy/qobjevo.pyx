@@ -236,7 +236,7 @@ cdef class QobjEvo:
             Q_object = [Q_object]
 
         if isinstance(Q_object, Qobj):
-            self.elements = [_CteElement(Q_object)]
+            self.elements = [_ConstantElement(Q_object)]
             self.dims = Q_object.dims
             self.shape = Q_object.shape
 
@@ -261,7 +261,7 @@ cdef class QobjEvo:
     def _read_element(self, op, copy, tlist, args, use_step_func):
         """ Read one value of the list format."""
         if isinstance(op, Qobj):
-            self.elements.append(_CteElement(op.copy() if copy else op))
+            self.elements.append(_ConstantElement(op.copy() if copy else op))
             _dims = op.dims
             _shape = op.shape
         elif isinstance(op, list):
@@ -354,12 +354,12 @@ cdef class QobjEvo:
             if other.dims != self.dims:
                 raise TypeError("incompatible dimensions" +
                                  str(self.dims) + ", " + str(other.dims))
-            self.elements.append(_CteElement(other))
+            self.elements.append(_ConstantElement(other))
         elif (
             isinstance(other, numbers.Number) and
             self.dims[0] == self.dims[1]
         ):
-            self.elements.append(_CteElement(other * qutip.qeye(self.dims[0])))
+            self.elements.append(_ConstantElement(other * qutip.qeye(self.dims[0])))
         else:
             return NotImplemented
         return self
@@ -399,7 +399,7 @@ cdef class QobjEvo:
             res = right.copy()
             res.dims = [left.dims[0], right.dims[1]]
             res.shape = (left.shape[0], right.shape[1])
-            left = _CteElement(left)
+            left = _ConstantElement(left)
             res.elements = [left @ element for element in res.elements]
             res._issuper = -1
             res._isoper = -1
@@ -416,7 +416,7 @@ cdef class QobjEvo:
             res = self.copy()
             res.dims = [other.dims[0], res.dims[1]]
             res.shape = (other.shape[0], res.shape[1])
-            other = _CteElement(other)
+            other = _ConstantElement(other)
             res.elements = [other @ element for element in res.elements]
             res._issuper = -1
             res._isoper = -1
@@ -435,7 +435,7 @@ cdef class QobjEvo:
             self._issuper = -1
             self._isoper = -1
             if isinstance(other, Qobj):
-                other = _CteElement(other)
+                other = _ConstantElement(other)
                 self.elements = [element @ other for element in self.elements]
 
             elif isinstance(other, QobjEvo):
@@ -567,11 +567,11 @@ cdef class QobjEvo:
     def tidyup(self, atol=1e-12):
         """Removes small elements from quantum object."""
         for element in self.elements:
-            if type(element) is _CteElement:
-                element = _CteElement(element.qobj(0).tidyup(atol))
+            if type(element) is _ConstantElement:
+                element = _ConstantElement(element.qobj(0).tidyup(atol))
             elif type(element) is _EvoElement:
                 element = _EvoElement(element.qobj(0).tidyup(atol),
-                                      element.coefficient)
+                                      element._coefficient)
         return self
 
     def linear_map(self, op_mapping, *, _skip_check=False):
@@ -622,11 +622,11 @@ cdef class QobjEvo:
         for element in coeff_elements:
             for i, qobj in enumerate(qobjs):
                 if element.qobj(0) == qobj:
-                    coeffs[i] = coeffs[i] + element.coefficient
+                    coeffs[i] = coeffs[i] + element._coefficient
                     break
             else:
                 qobjs.append(element.qobj(0))
-                coeffs.append(element.coefficient)
+                coeffs.append(element._coefficient)
         for qobj, coeff in zip(qobjs, coeffs):
             cleaned_elements.append(_EvoElement(qobj, coeff))
         return cleaned_elements
@@ -648,7 +648,7 @@ cdef class QobjEvo:
         coeff_elements = []
         func_elements = []
         for element in self.elements:
-            if type(element) is _CteElement:
+            if type(element) is _ConstantElement:
                 cte_elements.append(element)
             elif type(element) is _EvoElement:
                 coeff_elements.append(element)
@@ -658,7 +658,7 @@ cdef class QobjEvo:
         cleaned_elements = []
         if len(cte_elements) >= 2:
             # Multiple constant parts
-            cleaned_elements.append(_CteElement(
+            cleaned_elements.append(_ConstantElement(
                 sum(element.qobj(0) for element in cte_elements)))
         else:
             cleaned_elements += cte_elements
@@ -679,7 +679,7 @@ cdef class QobjEvo:
     @property
     def isconstant(self):
         """Does the system change depending on `t`"""
-        return not any(type(element) is not _CteElement for element in self.elements)
+        return not any(type(element) is not _ConstantElement for element in self.elements)
 
     @property
     def isoper(self):
@@ -821,8 +821,8 @@ cdef class QobjEvo:
 
     cpdef Data matmul_data(QobjEvo self, double t, Data state, Data out=None):
         """out += self(t) @ state"""
-        t = self._prepare(t, state)
         cdef _BaseElement part
+        t = self._prepare(t, state)
         if out is None and type(state) is Dense:
             out = dense.zeros(self.shape[0], state.shape[1],
                               (<Dense> state).fortran)
@@ -831,5 +831,5 @@ cdef class QobjEvo:
 
         for element in self.elements:
             part = (<_BaseElement> element)
-            out = part.matmul(t, state, out)
+            out = part.matmul_data_t(t, state, out)
         return out
