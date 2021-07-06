@@ -52,6 +52,15 @@ Cubic Spline
 Non-Markovian Solvers
 ---------------------
 
+.. autoclass:: qutip.nonmarkov.bofin.HSolverDL
+    :members:
+
+.. autoclass:: qutip.nonmarkov.bofin.BosonicHEOMSolver
+    :members:
+
+.. autoclass:: qutip.nonmarkov.bofin.FermionicHEOMSolver
+    :members:
+
 .. autoclass:: qutip.nonmarkov.heom.HEOMSolver
     :members:
 
