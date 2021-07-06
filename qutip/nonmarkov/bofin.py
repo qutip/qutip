@@ -530,7 +530,7 @@ class BosonicHEOMSolver(object):
 
         self.L_helems = sp.csr_matrix(
             (self.nhe * self.N ** 2, self.nhe * self.N ** 2),
-            dtype=np.complex,
+            dtype=np.complex128,
         )
 
         # Set coupling operators
@@ -1271,7 +1271,8 @@ class FermionicHEOMSolver(object):
                 self.L = self.H_sys.data
 
         self.L_helems = sp.csr_matrix(
-            (self.nhe * self.N ** 2, self.nhe * self.N ** 2), dtype=np.complex
+            (self.nhe * self.N ** 2, self.nhe * self.N ** 2),
+            dtype=np.complex128,
         )
         # Set coupling operators
         spreQ = []
