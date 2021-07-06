@@ -5,10 +5,13 @@ import numpy as np
 from numpy.linalg import eigvalsh
 from scipy.integrate import quad
 from qutip import (Qobj, QobjEvo, sigmaz, sigmax, basis, expect, Options, destroy, basis)
-from bofin.heom import add_at_idx
-from bofin.heom import HSolverDL
-from bofin.heom import BosonicHEOMSolver
-from bofin.heom import _heom_state_dictionaries, _check_Hsys
+from qutip.nonmarkov.bofin import (
+    _check_Hsys,
+    _heom_state_dictionaries,
+    add_at_idx,
+    BosonicHEOMSolver,
+    HSolverDL,
+)
 import pytest
 from math import sqrt, factorial
 
@@ -34,13 +37,13 @@ def test_state_dictionaries():
     nhe, he2idx, idx2he = _heom_state_dictionaries(
             [N_cut + 1] * kcut, N_cut
         )
-        
+
     total_nhe = int(
             factorial(N_cut + kcut)
             / (factorial(N_cut) * factorial(kcut))
         )
     assert nhe, total_nhe
-        
+
 def test_check_H():
     """Tests the function for checking system Hamiltonian"""
     _check_Hsys(sigmax())
@@ -73,7 +76,7 @@ def test_check_H():
 @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
 @pytest.mark.parametrize(['bnd_cut_approx', 'tol'], [
     pytest.param(True, 1e-4, id="bnd_cut_approx"),
-    pytest.param(False,  1e-3, id="no_bnd_cut_approx"),  
+    pytest.param(False,  1e-3, id="no_bnd_cut_approx"),
 ])
 def test_pure_dephasing_model_HSolverDL( bnd_cut_approx,  tol):
     """
@@ -105,7 +108,7 @@ def test_pure_dephasing_model_HSolverDL( bnd_cut_approx,  tol):
                         bnd_cut_approx=bnd_cut_approx,
                         options=options)
     test = expect(hsolver.run(initial_state, times).states, projector)
- 
+
     np.testing.assert_allclose(test, expected, atol=tol)
 
 
@@ -130,7 +133,7 @@ def test_pure_dephasing_model_BosonicHEOMSolver():
     # Calculate the analytical results by numerical integration
     expected = [0.5*np.exp(quad(_integrand, 0, np.inf, args=(t,))[0])
                 for t in times]
-    
+
     Nk=2
     ckAR = [ lam * gamma * (1/np.tan(gamma / (2 * T)))]
     ckAR.extend([(4 * lam * gamma * T *  2 * np.pi * k * T / (( 2 * np.pi * k * T)**2 - gamma**2)) for k in range(1,Nk+1)])
@@ -138,22 +141,18 @@ def test_pure_dephasing_model_BosonicHEOMSolver():
     vkAR.extend([2 * np.pi * k * T for k in range(1,Nk+1)])
     ckAI = [lam * gamma * (-1.0)]
     vkAI = [gamma]
-    
+
     H_sys = Qobj(np.zeros((2, 2)))
     Q = sigmaz()
-        
+
     NR = len(ckAR)
     NI = len(ckAI)
     Q2 = [Q for kk in range(NR+NI)]
     initial_state = 0.5*Qobj(np.ones((2, 2)))
     projector = basis(2, 0) * basis(2, 1).dag()
     options = Options(nsteps=15000, store_states=True)
-    hsolver =  BosonicHEOMSolver(H_sys, Q2, ckAR, ckAI, vkAR, vkAI, 
+    hsolver =  BosonicHEOMSolver(H_sys, Q2, ckAR, ckAI, vkAR, vkAI,
                 14, options=options)
     test = expect(hsolver.run(initial_state, times).states, projector)
- 
-    np.testing.assert_allclose(test, expected, atol=tol)
 
-    
-        
-    
+    np.testing.assert_allclose(test, expected, atol=tol)
