@@ -309,6 +309,8 @@ def rand_ket(N=None, density=1, dims=None, seed=None):
     dims : list
         Dimensions of quantum object.  Used for specifying
         tensor structure. Default is dims=[[N],[1]].
+    seed : int
+        Seed for the random number generator.
 
     Returns
     -------
@@ -398,6 +400,8 @@ def rand_dm(N, density=0.75, pure=False, dims=None, seed=None):
     dims : list
         Dimensions of quantum object.  Used for specifying
         tensor structure. Default is dims=[[N],[N]].
+    seed : int
+        Seed for the random number generator.
 
     Returns
     -------
@@ -428,7 +432,7 @@ def rand_dm(N, density=0.75, pure=False, dims=None, seed=None):
             _check_dims(dims, N, N)
         if pure:
             dm_density = np.sqrt(density)
-            psi = rand_ket(N, dm_density)
+            psi = rand_ket(N, dm_density, seed=seed)
             H = psi * psi.dag()
             H.data.sort_indices()
         else:
