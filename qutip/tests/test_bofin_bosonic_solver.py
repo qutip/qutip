@@ -106,10 +106,19 @@ def test_pure_dephasing_model_HSolverDL(bnd_cut_approx,  tol):
     initial_state = 0.5*Qobj(np.ones((2, 2)))
     projector = basis(2, 0) * basis(2, 1).dag()
     options = Options(nsteps=15_000, store_states=True)
-    hsolver = HSolverDL(H_sys, Q, coupling_strength, temperature,
-                        14, 2, cut_frequency,
-                        bnd_cut_approx=bnd_cut_approx,
-                        options=options)
+
+    with pytest.warns(
+        UserWarning,
+        match=(
+            "Two similar real and imag exponents have been collated"
+            " automatically"
+        ),
+    ):
+        hsolver = HSolverDL(H_sys, Q, coupling_strength, temperature,
+                            14, 2, cut_frequency,
+                            bnd_cut_approx=bnd_cut_approx,
+                            options=options)
+
     test = expect(hsolver.run(initial_state, times).states, projector)
 
     np.testing.assert_allclose(test, expected, atol=tol)
@@ -158,10 +167,19 @@ def test_pure_dephasing_model_BosonicHEOMSolver():
     initial_state = 0.5*Qobj(np.ones((2, 2)))
     projector = basis(2, 0) * basis(2, 1).dag()
     options = Options(nsteps=15000, store_states=True)
-    hsolver = BosonicHEOMSolver(
-        H_sys, Q2, ckAR, ckAI, vkAR, vkAI,
-        14, options=options,
-    )
+
+    with pytest.warns(
+        UserWarning,
+        match=(
+            "Two similar real and imag exponents have been collated"
+            " automatically"
+        ),
+    ):
+        hsolver = BosonicHEOMSolver(
+            H_sys, Q2, ckAR, ckAI, vkAR, vkAI,
+            14, options=options,
+        )
+
     test = expect(hsolver.run(initial_state, times).states, projector)
 
     np.testing.assert_allclose(test, expected, atol=tol)
