@@ -936,7 +936,7 @@ class Qobj:
         """
         if self.dims[0] != self.dims[1]:
             raise TypeError('sqrt only valid on square matrices')
-        if isinstance(self.data, _data.CSR) and sparse and self.shape[0] > 3:
+        if isinstance(self.data, _data.CSR) and sparse:
             evals, evecs = _data.eigs_csr(self.data,
                                           isherm=self._isherm,
                                           tol=tol, maxiter=maxiter)
@@ -1535,7 +1535,7 @@ class Qobj:
         Use sparse only if memory requirements demand it.
 
         """
-        if isinstance(self.data, _data.CSR) and sparse and self.shape[0] > 3:
+        if isinstance(self.data, _data.CSR) and sparse:
             evals, evecs = _data.eigs_csr(self.data,
                                           isherm=self._isherm,
                                           sort=sort, eigvals=eigvals, tol=tol,
@@ -1599,7 +1599,7 @@ class Qobj:
 
         """
         # TODO: consider another way of handling the dispatch here.
-        if isinstance(self.data, _data.CSR) and sparse and self.shape[0] > 3:
+        if isinstance(self.data, _data.CSR) and sparse:
             return _data.eigs_csr(self.data,
                                   vecs=False,
                                   isherm=self._isherm,
@@ -1644,7 +1644,7 @@ class Qobj:
         Use sparse only if memory requirements demand it.
         """
         eigvals = 2 if safe else 1
-        if isinstance(self.data, _data.CSR) and sparse and self.shape[0] > 3:
+        if isinstance(self.data, _data.CSR) and sparse:
             evals, evecs = _data.eigs_csr(self.data,
                                           isherm=self._isherm,
                                           eigvals=eigvals, tol=tol,
