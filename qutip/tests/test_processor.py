@@ -324,11 +324,19 @@ class TestCircuitProcessor:
         Test for the drift Hamiltonian
         """
         processor = Processor(N=1)
-        processor.add_drift(sigmaz(), 0)
-        tlist = np.array([0., 1., 2.])
-        processor.add_pulse(Pulse(identity(2), 0, tlist, False))
+        processor.add_drift(sigmax() / 2, 0)
+        tlist = np.array([0., np.pi, 2*np.pi, 3*np.pi])
+        processor.add_pulse(Pulse(None, None, tlist, False))
         ideal_qobjevo, _ = processor.get_qobjevo(noisy=True)
-        assert_equal(ideal_qobjevo.cte, sigmaz())
+        assert_equal(ideal_qobjevo.cte, sigmax() / 2)
+
+        init_state = basis(2)
+        propagators = processor.run_analytically()
+        analytical_result = init_state
+        for unitary in propagators:
+            analytical_result = unitary * analytical_result
+        fid = fidelity(sigmax() * init_state, analytical_result)
+        assert((1 - fid) < 1.0e-6)
 
     def testChooseSolver(self):
         # setup and fidelity without noise
