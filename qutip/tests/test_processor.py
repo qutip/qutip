@@ -325,7 +325,7 @@ class TestCircuitProcessor:
         """
         processor = Processor(N=1)
         processor.add_drift(sigmax() / 2, 0)
-        tlist = np.array([0., np.pi])
+        tlist = np.array([0., np.pi, 2*np.pi, 3*np.pi])
         processor.add_pulse(Pulse(None, None, tlist, False))
         ideal_qobjevo, _ = processor.get_qobjevo(noisy=True)
         assert_equal(ideal_qobjevo.cte, sigmax() / 2)

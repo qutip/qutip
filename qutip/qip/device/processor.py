@@ -648,13 +648,13 @@ class Processor(object):
         coeffs = self.get_full_coeffs()
 
         # Compute drift Hamiltonians
-        H = 0
+        H_drift = 0
         for drift_ham in self.drift.drift_hamiltonians:
-            H += drift_ham.get_qobj(self.dims)
+            H_drift += drift_ham.get_qobj(self.dims)
 
         # Compute control Hamiltonians
         for n in range(len(tlist)-1):
-            H += sum(
+            H = H_drift + sum(
                 [coeffs[m, n] * self.ctrls[m]
                     for m in range(len(self.ctrls))])
             dt = tlist[n + 1] - tlist[n]
