@@ -238,7 +238,7 @@ def coherent(N, alpha, offset=0, method='operator'):
         return Qobj(sqrtn)
 
     else:
-        raise TypeError(
+        raise ValueError(
             "The method option can only take values 'operator' or 'analytic'")
 
 
@@ -291,17 +291,8 @@ shape = [3, 3], type = oper, isHerm = True
     but would in that case give more accurate coefficients.
 
     """
-    if method == "operator":
-        psi = coherent(N, alpha, offset=offset)
-        return psi * psi.dag()
-
-    elif method == "analytic":
-        psi = coherent(N, alpha, offset=offset, method='analytic')
-        return psi * psi.dag()
-
-    else:
-        raise TypeError(
-            "The method option can only take values 'operator' or 'analytic'")
+    psi = coherent(N, alpha, offset=offset, method=method)
+    return psi * psi.dag()
 
 
 def fock_dm(dimensions, n=None, offset=None):
@@ -454,8 +445,8 @@ shape = [5, 5], type = oper, isHerm = True
             rm = sp.spdiags((1.0 + n) ** (-1.0) * (n / (1.0 + n)) ** (i),
                             0, N, N, format='csr')
         else:
-            raise ValueError(
-                "'method' keyword argument must be 'operator' or 'analytic'")
+            raise ValueError("The method option can only take "
+                             "values 'operator' or 'analytic'")
     return Qobj(rm)
 
 
@@ -1230,7 +1221,7 @@ def triplet_states():
     .. math::
 
         \lvert T_1\rangle = \lvert11\rangle
-        \lvert T_2\rangle = \frac1{\sqrt2}(\lvert01\rangle - \lvert10\rangle)
+        \lvert T_2\rangle = \frac1{\sqrt2}(\lvert01\rangle + \lvert10\rangle)
         \lvert T_3\rangle = \lvert00\rangle
 
     Returns
