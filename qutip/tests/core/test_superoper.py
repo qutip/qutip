@@ -75,8 +75,9 @@ class TestMatVec:
         assert as_vec.superrep == 'super'
 
         with pytest.raises(TypeError) as err:
-            as_vec.superrep = ""
-            qutip.vector_to_operator(as_vec)
+            bad_vec = as_vec.copy()
+            bad_vec.superrep = ""
+            qutip.vector_to_operator(bad_vec)
         assert err.value.args[0] == ("only defined for operator-kets "
                                      "in super format")
 
