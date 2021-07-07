@@ -106,8 +106,6 @@ cdef class QobjEvo:
 
     Parameters
     ----------
-    QobjEvo(Q_object=[], args={}, tlist=None, copy=True)
-
     Q_object : array_like
         Data for vector/matrix representation of the quantum object.
 
@@ -119,7 +117,7 @@ cdef class QobjEvo:
         coefficients are applied.
 
     copy : bool
-        If Q_object is already a QobjEvo, return a copy.
+        Make a copy of the Qobj composing the QobjEvo.
 
     step_interpolation : bool
         For array :obj:`Coefficient`, use step interpolation instead of spline.
@@ -145,60 +143,6 @@ cdef class QobjEvo:
 
     issuper:
         Indicates if the system represents an superoperator.
-
-    Methods
-    -------
-    copy() :
-        Create copy of Qobj
-
-    arguments(new_args):
-        Update the args of the object
-
-    Math:
-        +/- QobjEvo, Qobj, scalar:
-            Addition is possible between QobjEvo and with Qobj or scalar
-        -:
-            Negation operator
-        * Qobj, scalar:
-            Product is possible with Qobj or scalar
-        / scalar:
-            It is possible to divide by scalar only
-    conj()
-        Return the conjugate of quantum object.
-
-    dag()
-        Return the adjoint (dagger) of quantum object.
-
-    trans()
-        Return the transpose of quantum object.
-
-    &
-        tensor between Quantum Object
-
-    linear_map(op_mapping)
-        Apply the function f to every Qobj. f(Qobj) -> Qobj
-
-    tidyup(atol=1e-12)
-        Removes small elements from quantum object.
-
-    compress():
-        Merge ops which are based on the same quantum object and coeff type.
-
-    __call__(t, args={}):
-        Return the Qobj at time t.
-        args Overwrite the `args` for this call.
-
-    matmul(t, mat):
-        Product of this at t time with a Qobj.
-
-    expect(t, psi, herm=False):
-        Calculates the expectation value for the quantum object (if operator,
-            no check) and state psi.
-        Return only the real part if herm.
-
-    to(data_type):
-        Transform all component to a common data_type.
-
     """
     def __init__(QobjEvo self, Q_object, args=None, tlist=None,
                  step_interpolation=False, copy=True):
@@ -208,10 +152,7 @@ cdef class QobjEvo:
             self._shift_dt = (<QobjEvo> Q_object)._shift_dt
             self._issuper = (<QobjEvo> Q_object)._issuper
             self._isoper = (<QobjEvo> Q_object)._isoper
-            if copy or args:
-                self.elements = (<QobjEvo> Q_object).elements.copy()
-            else:
-                self.elements = (<QobjEvo> Q_object).elements
+            self.elements = (<QobjEvo> Q_object).elements.copy()
             if args:
                 self.arguments(args)
             return
@@ -236,13 +177,17 @@ cdef class QobjEvo:
             Q_object = [Q_object]
 
         if isinstance(Q_object, Qobj):
-            self.elements = [_ConstantElement(Q_object)]
+            self.elements = [
+                _ConstantElement(Q_object.copy() if copy else Q_object)
+            ]
             self.dims = Q_object.dims
             self.shape = Q_object.shape
 
         elif isinstance(Q_object, list):
             for op in Q_object:
-                self._read_element(op, copy, tlist, args, use_step_func)
+                self.elements.append(
+                    self._read_element(op, copy, tlist, args, use_step_func)
+                )
             self.compress()
 
         elif callable(Q_object):
@@ -261,16 +206,15 @@ cdef class QobjEvo:
     def _read_element(self, op, copy, tlist, args, use_step_func):
         """ Read one value of the list format."""
         if isinstance(op, Qobj):
-            self.elements.append(_ConstantElement(op.copy() if copy else op))
+            out = _ConstantElement(op.copy() if copy else op)
             _dims = op.dims
             _shape = op.shape
         elif isinstance(op, list):
-            self.elements.append(_EvoElement(
+            out = _EvoElement(
                 op[0].copy() if copy else op[0],
                 coefficient(op[1], tlist=tlist, args=args,
-                            _stepInterpolation=use_step_func,
-                            compile_opt=CompilationOptions())
-            ))
+                            _stepInterpolation=use_step_func)
+            )
             _dims = op[0].dims
             _shape = op[0].shape
         else:
@@ -284,6 +228,7 @@ cdef class QobjEvo:
             if self.dims != _dims:
                 raise ValueError("incompatible dimensions " +
                                  str(self.dims) + ", " + str(_dims))
+        return out
 
     def __call__(self, double t, dict args=None):
         if args:
@@ -306,6 +251,7 @@ cdef class QobjEvo:
         return out
 
     cdef double _prepare(QobjEvo self, double t, Data state=None):
+        """ Precomputation before computing getting the element at `t`"""
         return t + self._shift_dt
 
     def copy(QobjEvo self):
