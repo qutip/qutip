@@ -282,9 +282,11 @@ cdef class QobjEvo:
 
     def arguments(QobjEvo self, dict new_args):
         """Update the arguments"""
-        safe = [] # storage for _FuncElement's instance management.
-        self.elements = [element.replace_arguments(new_args, safe)
-                         for element in self.elements]
+        cache = []
+        self.elements = [
+            element.replace_arguments(new_args, cache=cache)
+            for element in self.elements
+        ]
 
 
     ###########################################################################
