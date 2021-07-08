@@ -203,13 +203,13 @@ class TestCircuitProcessor:
         processor.pulses[0].coeff = coeff
 
         ideal_qobjevo, _ = processor.get_qobjevo(noisy=False)
-        assert_(ideal_qobjevo.args["_step_func_coeff"])
+        assert_(ideal_qobjevo(0.2) == ideal_qobjevo(0.8))
         noisy_qobjevo, c_ops = processor.get_qobjevo(noisy=True)
-        assert_(noisy_qobjevo.args["_step_func_coeff"])
+        assert_(noisy_qobjevo(0.2) == noisy_qobjevo(0.8))
         processor.T1 = 100.
         processor.add_noise(ControlAmpNoise(coeff=coeff, tlist=tlist))
         noisy_qobjevo, c_ops = processor.get_qobjevo(noisy=True)
-        assert_(noisy_qobjevo.args["_step_func_coeff"])
+        assert_(noisy_qobjevo(0.2) == noisy_qobjevo(0.8))
 
         tlist = np.array([1, 2, 3, 4, 5, 6], dtype=float)
         coeff = np.array([1, 1, 1, 1, 1, 1], dtype=float)
@@ -219,13 +219,13 @@ class TestCircuitProcessor:
         processor.pulses[0].coeff = coeff
 
         ideal_qobjevo, _ = processor.get_qobjevo(noisy=False)
-        assert_(not ideal_qobjevo.args["_step_func_coeff"])
+        assert_(ideal_qobjevo(0.2) != ideal_qobjevo(0.8))
         noisy_qobjevo, c_ops = processor.get_qobjevo(noisy=True)
-        assert_(not noisy_qobjevo.args["_step_func_coeff"])
+        assert_(noisy_qobjevo(0.2) != noisy_qobjevo(0.8))
         processor.T1 = 100.
         processor.add_noise(ControlAmpNoise(coeff=coeff, tlist=tlist))
         noisy_qobjevo, c_ops = processor.get_qobjevo(noisy=True)
-        assert_(not noisy_qobjevo.args["_step_func_coeff"])
+        assert_(noisy_qobjevo(0.2) != noisy_qobjevo(0.8))
 
     def TestGetObjevo(self):
         tlist = np.array([1, 2, 3, 4, 5, 6], dtype=float)
@@ -241,8 +241,6 @@ class TestCircuitProcessor:
         assert_allclose(unitary_qobjevo.ops[0].qobj, sigmaz())
         assert_allclose(unitary_qobjevo.tlist, tlist)
         assert_allclose(unitary_qobjevo.ops[0].coeff, coeff[0])
-        assert_(unitary_qobjevo.args["test"],
-                msg="Arguments not correctly passed on")
 
         # with decoherence noise
         dec_noise = DecoherenceNoise(
@@ -253,10 +251,8 @@ class TestCircuitProcessor:
 
         noisy_qobjevo, c_ops = processor.get_qobjevo(
             args={"test": True}, noisy=True)
-        assert_(noisy_qobjevo.args["_step_func_coeff"],
+        assert_(noisy_qobjevo(0.2) == noisy_qobjevo(0.8),
                 msg="Spline type not correctly passed on")
-        assert_(noisy_qobjevo.args["test"],
-                msg="Arguments not correctly passed on")
         assert_(sigmaz() in [pair[0] for pair in noisy_qobjevo.to_list()])
         assert_equal(c_ops[0].ops[0].qobj, sigmax())
         assert_equal(c_ops[0].tlist, tlist)
@@ -273,7 +269,7 @@ class TestCircuitProcessor:
         processor.add_noise(amp_noise)
         noisy_qobjevo, c_ops = processor.get_qobjevo(
             args={"test": True}, noisy=True)
-        assert_(not noisy_qobjevo.args["_step_func_coeff"],
+        assert_(noisy_qobjevo(0.2) != noisy_qobjevo(0.8),
                 msg="Spline type not correctly passed on")
         assert_(noisy_qobjevo.args["test"],
                 msg="Arguments not correctly passed on")

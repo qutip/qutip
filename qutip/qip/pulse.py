@@ -68,16 +68,19 @@ class _EvoElement():
                 qu = QobjEvo(mat * 0., tlist=self.tlist)
         else:
             if spline_kind == "step_func":
-                args = {"_step_func_coeff": True}
+                step_interpolation = True
                 if len(self.coeff) == len(self.tlist) - 1:
                     self.coeff = np.concatenate([self.coeff, [0.]])
             elif spline_kind == "cubic":
-                args = {"_step_func_coeff": False}
+                step_interpolation = False
             else:
                 # The spline will follow other pulses or
                 # use the default value of QobjEvo
-                args = {}
-            qu = QobjEvo([mat, self.coeff], tlist=self.tlist, args=args)
+                step_interpolation = None
+            qu = QobjEvo(
+                [mat, self.coeff], tlist=self.tlist,
+                step_interpolation=step_interpolation
+            )
         return qu
 
     def get_qobjevo(self, spline_kind, dims):
@@ -559,7 +562,7 @@ def _merge_qobjevo(qobjevo_list, full_tlist=None):
     return sum([op for op in qobjevo_list if isinstance(op, (Qobj, QobjEvo))])
 
 
-def _fill_coeff(old_coeffs, old_tlist, full_tlist, args=None):
+def _fill_coeff(old_coeffs, old_tlist, full_tlist, step_interpolation=False):
     """
     Make a step function coefficients compatible with a longer `tlist` by
     filling the empty slot with the nearest left value.
@@ -567,9 +570,7 @@ def _fill_coeff(old_coeffs, old_tlist, full_tlist, args=None):
     The returned `coeff` always have the same size as the `tlist`.
     If `step_func`, the last element is 0.
     """
-    if args is None:
-        args = {}
-    if "_step_func_coeff" in args and args["_step_func_coeff"]:
+    if step_interpolation:
         if len(old_coeffs) == len(old_tlist) - 1:
             old_coeffs = np.concatenate([old_coeffs, [0]])
         new_n = len(full_tlist)

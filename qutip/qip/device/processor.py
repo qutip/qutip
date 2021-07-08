@@ -293,12 +293,11 @@ class Processor(object):
                 else:
                     coeffs_list.append(np.zeros(full_tlist))
             if self.spline_kind == "step_func":
-                arg = {"_step_func_coeff": True}
                 coeffs_list.append(
-                    _fill_coeff(pulse.coeff, pulse.tlist, full_tlist, arg))
+                    _fill_coeff(pulse.coeff, pulse.tlist, full_tlist, True))
             elif self.spline_kind == "cubic":
                 coeffs_list.append(
-                    _fill_coeff(pulse.coeff, pulse.tlist, full_tlist, {}))
+                    _fill_coeff(pulse.coeff, pulse.tlist, full_tlist, False))
             else:
                 raise ValueError("Unknown spline kind.")
         return np.array(coeffs_list)
