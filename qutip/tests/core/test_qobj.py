@@ -100,6 +100,19 @@ def test_QobjType():
     super_qobj = qutip.Qobj(super_data, dims=[[[3]], [[3]]])
     assert super_qobj.type == 'super'
     assert super_qobj.issuper
+    assert super_qobj.superrep == 'super'
+
+    super_data = np.random.random(N)
+    super_qobj = qutip.Qobj(super_data, dims=[[[3], [3]], [[1]]])
+    assert super_qobj.type == 'operator-ket'
+    assert super_qobj.isoperket
+    assert super_qobj.superrep == 'super'
+
+    super_data = np.random.random(N)
+    super_qobj = qutip.Qobj(super_data, dims=[[[1]], [[3], [3]]])
+    assert super_qobj.type == 'operator-bra'
+    assert super_qobj.isoperbra
+    assert super_qobj.superrep == 'super'
 
     operket_qobj = qutip.operator_to_vector(oper_qobj)
     assert operket_qobj.isoperket
@@ -385,6 +398,17 @@ def test_CheckMulType():
     assert opbra2.isoperbra
 
     assert opbra2.dag() == opket2
+
+
+def test_operator_ket_superrep():
+    sop = qutip.to_super(qutip.sigmax())
+    opket1 = qutip.operator_to_vector(qutip.fock_dm(2, 0))
+    opket2 = sop * opket1
+    assert opket1.superrep == opket2.superrep
+
+    opbra1 = qutip.operator_to_vector(qutip.fock_dm(2, 0)).dag()
+    opbra2 = opbra1 * sop
+    assert opbra1.superrep == opbra2.superrep
 
 
 def test_QobjConjugate():

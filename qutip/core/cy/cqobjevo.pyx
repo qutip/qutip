@@ -71,6 +71,7 @@ cdef class CQobjEvo:
         self.shape = constant.shape
         self.dims = constant.dims
         self.type = constant.type
+        self.superrep = constant.superrep
         self.issuper = constant.issuper
         self.constant = constant.data
         self.n_ops = 0 if ops is None else len(ops)
@@ -84,6 +85,7 @@ cdef class CQobjEvo:
             if (
                 qobj.shape != self.shape
                 or qobj.type != self.type
+                or qobj.superrep != self.superrep
                 or qobj.dims != self.dims
             ):
                 raise ValueError("not all inputs have the same structure")
