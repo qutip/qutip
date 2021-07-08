@@ -372,14 +372,21 @@ def test_convert(all_qevo, dtype):
     op = all_qevo.to(dtype)
     assert isinstance(op(0.5).data, dtype)
 
+
 def test_compress():
     "QobjEvo compress"
-    obj = QobjEvo([[qeye(N), "t"], [qeye(N), "t"], [qeye(N), "t"]])
-    before = obj.num_elements
-    obj2 = obj.copy()
-    obj2.compress()
-    assert before >= obj2.num_elements
-    _assert_qobjevo_equivalent(obj, obj2)
+    obj1 = QobjEvo(
+        [[qeye(N), "t"], [qeye(N), "t"], [qeye(N), "t"]])
+    assert obj1.num_elements == 1
+    obj2 = QobjEvo(
+        [[qeye(N), "t"], [qeye(N), "t"], [qeye(N), "t"]], compress=False)
+    assert obj2.num_elements == 3
+    _assert_qobjevo_equivalent(obj1, obj2)
+    obj3 = obj2.copy()
+    assert obj3.num_elements == 3
+    obj3.compress()
+    assert obj3.num_elements == 1
+    _assert_qobjevo_equivalent(obj2, obj3)
 
 
 @pytest.mark.parametrize(['qobjdtype'],

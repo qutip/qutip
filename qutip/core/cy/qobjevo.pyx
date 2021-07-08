@@ -79,8 +79,18 @@ cdef class QobjEvo:
         Pass ``True`` to use step interpolation instead.
 
     copy : bool, default=True
-        Wether to make a copy of the :obj:`Qobj` instances supplied in
+        Whether to make a copy of the :obj:`Qobj` instances supplied in
         the ``Q_object`` parameter.
+
+    compress : bool, default=True
+        Whether to compress the :obj:`QobjEvo` instance terms after the
+        instance has been created.
+
+        This sums the constant terms in a single term and combines
+        ``[Qobj, coefficient]`` pairs with the same :obj:`~Qobj` into a single
+        pair containing the sum of the coefficients.
+
+        See :meth:`compress`.
 
     Attributes
     ----------
@@ -168,7 +178,7 @@ cdef class QobjEvo:
     ```
     """
     def __init__(QobjEvo self, Q_object, args=None, tlist=None,
-                 step_interpolation=False, copy=True):
+                 step_interpolation=False, copy=True, compress=True):
         if isinstance(Q_object, QobjEvo):
             self.dims = Q_object.dims.copy()
             self.shape = Q_object.shape
@@ -178,6 +188,8 @@ cdef class QobjEvo:
             self.elements = (<QobjEvo> Q_object).elements.copy()
             if args:
                 self.arguments(args)
+            if compress:
+                self.compress()
             return
 
         self.elements = []
@@ -202,11 +214,13 @@ cdef class QobjEvo:
                 self.elements.append(
                     self._read_element(op, copy, tlist, args, step_interpolation)
                 )
-            self.compress()
         else:
             self.elements.append(
               self._read_element(Q_object, copy, tlist, args, step_interpolation)
             )
+
+        if compress:
+            self.compress()
 
     def _read_element(self, op, copy, tlist, args, use_step_func):
         """ Read a Q_object item and return an element for that item. """
@@ -278,7 +292,7 @@ cdef class QobjEvo:
 
     def copy(QobjEvo self):
         """Return a copy of this `QobjEvo`"""
-        return QobjEvo(self)
+        return QobjEvo(self, compress=False)
 
     def arguments(QobjEvo self, dict new_args):
         """Update the arguments"""
