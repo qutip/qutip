@@ -100,6 +100,14 @@ cdef class QobjEvo:
     shape : (int, int)
         List of dimensions keeping track of the tensor structure.
 
+    type : str
+        Type of quantum object: 'bra', 'ket', 'oper', 'operator-ket',
+        'operator-bra', or 'super'.
+
+    superrep : str
+        Representation used if `type` is 'super'. One of 'super'
+        (Liouville form) or 'choi' (Choi matrix with tr = dimension).
+
     Property
     --------
     num_elements
@@ -226,16 +234,14 @@ cdef class QobjEvo:
         """ Read a Q_object item and return an element for that item. """
         if isinstance(op, Qobj):
             out = _ConstantElement(op.copy() if copy else op)
-            _dims = op.dims
-            _shape = op.shape
+            qobj = op
         elif isinstance(op, list):
             out = _EvoElement(
                 op[0].copy() if copy else op[0],
                 coefficient(op[1], tlist=tlist, args=args,
                             _stepInterpolation=use_step_func)
             )
-            _dims = op[0].dims
-            _shape = op[0].shape
+            qobj = op[0]
         elif callable(op):
             qobj = op(0, args)
             if not isinstance(qobj, Qobj):
@@ -245,8 +251,6 @@ cdef class QobjEvo:
                     " {!r} returned: {!r}".format(op, qobj)
                 )
             out = _FuncElement(op, args)
-            _dims = qobj.dims
-            _shape = qobj.shape
         else:
             raise TypeError(
                 "QobjEvo terms should be Qobjs, a list of [Qobj, coefficient],"
@@ -255,13 +259,20 @@ cdef class QobjEvo:
             )
 
         if self.dims is None:
-            self.dims = _dims
-            self.shape = _shape
-        elif self.dims != _dims or self.shape != _shape:
+            self.dims = qobj.dims
+            self.shape = qobj.shape
+            self.type = qobj.type
+            self.superrep = qobj.superrep
+        elif self.dims != qobj.dims or self.shape != qobj.shape:
             raise ValueError(
-                f"QobjEvo term {op!r} has dims {_dims!r} and shape"
-                f" {_shape!r} but previous terms had dims {self.dims!r}"
+                f"QobjEvo term {op!r} has dims {qobj.dims!r} and shape"
+                f" {qobj.shape!r} but previous terms had dims {self.dims!r}"
                 f" and shape {self.shape!r}."
+            )
+        elif self.superrep != qobj.superrep:
+            raise ValueError(
+                f"QobjEvo term {op!r} has superrep {qobj.superrep!r} but "
+                f"previous terms had superrep {self.superrep!r}."
             )
 
         return out
@@ -269,7 +280,10 @@ cdef class QobjEvo:
     def __call__(self, double t, dict args=None):
         if args:
             return QobjEvo(self, args=args)(t)
-        return Qobj(self._call(t), dims=self.dims, copy=False)
+        return Qobj(
+            self._call(t), dims=self.dims, copy=False,
+            type=self.type, superrep=self.superrep
+        )
 
     cpdef Data _call(QobjEvo self, double t):
         t = self._prepare(t, None)
