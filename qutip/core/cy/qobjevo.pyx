@@ -25,102 +25,62 @@ __all__ = ['QobjEvo']
 
 cdef class QobjEvo:
     """
-    A class for representing time-dependent quantum objects,
-    such as quantum operators and states.
+    A class for representing time-dependent quantum objects, such as quantum
+    operators and states.
 
-    The :obj:`QobjEvo` class is a representation of time-dependent Qutip quantum
-    objects (:obj:`Qobj`) for system accepted by solvers. The QobjEvo
-    are constructed from a nested list of Qobj with their time-dependent
-    coefficients, or for function returning a Qobj.
+    Importantly, :obj:`~QobjEvo` instances are used to represent such
+    time-dependent quantum objects when working with QuTiP solvers.
 
-    For a QobjEvo based on a function, the function signature must be:
-        ``f(t: double, args: dict) -> Qobj``.
+    A :obj:`~QobjEvo` instance may be constructed from one of the following:
 
-    *Examples*
-    ```
-    def f(t, args):
-        return qutip.qeye(N) * np.exp(args['w'] * t)
+      * a callable ``f(t: double, args: dict) -> Qobj`` that returns the
+        value of the quantum object at time ``t``.
 
-    QobjEvo(f, args={'w': 1j})
-    ```
+      * a ``[Qobj, Coefficient]`` pair, where :obj:`~Coefficient` may also be
+        any item that can be used to construct a coefficient (e.g. a function,
+        a numpy array of coefficient values, a string expression).
 
-    For list based QobjEvo, the list must be comprised of ``Qobj`` and pair
-    ``[Qobj, coefficient]``.
-    *Examples*
-    ```
-    QobjEvo([H0, [H1, coeff1], [H2, coeff2]], args=args)
-    ```
+      * a :obj:`~Qobj` (which creates a constant :obj:`~QobjEvo` term).
 
-    The time-dependent coefficients are either functions, strings, numpy arrays
-    or :obj:``Cubic_Spline``. For function format, the function signature
-    must be f(t, args).
-    *Examples*
-    ```
-    def f1_t(t, args):
-        return np.exp(-1j * t * args["w1"])
+      * a list of such callables, pairs or :obj:`~Qobj`s.
 
-    QobjEvo([[H1, f1_t]], args={"w1":1.})
-    ```
-
-    With string based coeffients, the string must be a compilable python code
-    resulting in a complex. The following symbols are defined:
-        ``sin``, ``cos``, ``tan``, ``asin``, ``acos``, ``atan``, ``pi``,
-        ``sinh``, ``cosh``, ``tanh``, ``asinh``, ``acosh``, ``atanh``,
-        ``exp``, ``log``, ``log10``, ``erf``, ``zerf``, ``sqrt``,
-        ``real``, ``imag``, ``conj``, ``abs``, ``norm``, ``arg``, ``proj``,
-        numpy as ``np``, scipy.special as ``spe`` and
-        ``cython_special`` (cython interface).
-    *Examples*
-    ```
-    H = QobjEvo([H0, [H1, 'exp(-1j*w1*t)'], [H2, 'cos(w2*t)']],
-                    args={"w1":1.,"w2":2.})
-    ```
-
-    With numpy array, the array must be an 1d of dtype float or complex.
-    A list of times (float64) at which the coeffients must be given (tlist).
-    The coeffients array must have the same len as the tlist.
-    The time of the tlist do not need to be equidistant, but must be sorted.
-    By default, a cubic spline interpolation will be used for the coefficient
-    at time t. If the coefficients are to be treated as step function, use the
-    keyword `step_interpolation=True`.
-    *Examples*
-    ```
-    tlist = np.logspace(-5,0,100)
-    H = QobjEvo([H0, [H1, np.exp(-1j*tlist)], [H2, np.cos(2.*tlist)]],
-                    tlist=tlist)
-    ```
-
-    With `qutip.Cubic_Spline` are also valid coefficient.
-
-    See qutip.coefficient
-
-    `args` is a dict of (name:object).
-    The name must be a valid variables string.
-
-    QobjEvo can also be built with the product of `Qobj` with `Coefficient`.
-    *Examples*
-    ```
-    coeff = qutip.coefficient("exp(-1j*w1*t)", args={"w1":1})
-    qevo = H0 + H1 * coeff
-    ```
+      * a :obj:`~QobjEvo` (in which case a copy is created, all other arguments
+        are ignored except ``args`` which, if passed, replaces the existing
+        arguments).
 
     Parameters
     ----------
-    Q_object : array_like
-        Data for vector/matrix representation of the quantum object.
+    Q_object : callable, list or Qobj
+        A specification of the time-depedent quantum object. See the
+        paragraph above for a full description and the examples section below
+        for examples.
 
-    args : dict
-        dictionary that contain the arguments for the coefficients
+    args : dict, optional
+        A dictionary that contains the arguments for the coefficients.
+        Arguments may be omitted if no function or string coefficients that
+        require arguments are present.
 
-    tlist : array_like
-        List of times corresponding to the values of the numpy-array
-        coefficients are applied.
+    tlist : array-like, optional
+        A list of times corresponding to the values of the coefficients
+        supplied as numpy arrays. If no coefficients are supplied as numpy
+        arrays, ``tlist`` may be omitted, otherwise it is required.
 
-    copy : bool
-        Make a copy of the Qobj composing the QobjEvo.
+        The times in ``tlist`` do not need to be equidistant, but must
+        be sorted.
 
-    step_interpolation : bool
-        For array :obj:`Coefficient`, use step interpolation instead of spline.
+        By default, a cubic spline interpolation will be used to interpolate
+        the value of the (numpy array) coefficients at time ``t``. If the
+        coefficients are to be treated as step functions, pass the argument
+        ``step_interpolation=True`` (see below).
+
+    step_interpolation : bool, default=False
+        By default, a cubic spline interpolation will be used to interpolate
+        the value of the (numpy array) coefficients at time ``t``.
+        Pass ``True`` to use step interpolation instead.
+
+    copy : bool, default=True
+        Wether to make a copy of the :obj:`Qobj` instances supplied in
+        the ``Q_object`` parameter.
 
     Attributes
     ----------
@@ -132,7 +92,7 @@ cdef class QobjEvo:
 
     Property
     --------
-    num_obj
+    num_elements
         Number of parts composing the system.
 
     const:
@@ -143,6 +103,69 @@ cdef class QobjEvo:
 
     issuper:
         Indicates if the system represents an superoperator.
+
+    Examples
+    --------
+
+    A :obj:`~QobjEvo` constructed from a function:
+
+    ```
+    def f(t, args):
+        return qutip.qeye(N) * np.exp(args['w'] * t)
+
+    QobjEvo(f, args={'w': 1j})
+    ```
+
+    For list based :obj:`~QobjEvo`, the list must consist of :obj`~Qobj` or
+    ``[Qobj, Coefficient]`` pairs:
+
+    ```
+    QobjEvo([H0, [H1, coeff1], [H2, coeff2]], args=args)
+    ```
+
+    The coefficients may be specified either using a :obj:`~Coefficient`
+    object or by a function, string, numpy array or any object that
+    can be passed to the :func:`~coefficient` function. See the documentation
+    of :func:`coefficient` for a full description.
+
+    An example of a coefficient specified by a function:
+
+    ```
+    def f1_t(t, args):
+        return np.exp(-1j * t * args["w1"])
+
+    QobjEvo([[H1, f1_t]], args={"w1": 1.})
+    ```
+
+    And of coefficients specified by string expressions:
+
+    ```
+    H = QobjEvo(
+        [H0, [H1, 'exp(-1j*w1*t)'], [H2, 'cos(w2*t)']],
+        args={"w1": 1., "w2": 2.}
+    )
+    ```
+
+    Coefficients maybe also be expressed as numpy arrays giving a list
+    of the coefficient values:
+
+    ```
+    tlist = np.logspace(-5, 0, 100)
+    H = QobjEvo(
+        [H0, [H1, np.exp(-1j * tlist)], [H2, np.cos(2. * tlist)]],
+        tlist=tlist
+    )
+    ```
+
+    The coeffients array must have the same len as the tlist.
+
+    A :obj:`~QobjEvo` may also be built using simple arithmetic operations
+    combining :obj:`~Qobj` with :obj:`~Coefficient`, for example:
+
+    ```
+    coeff = qutip.coefficient("exp(-1j*w1*t)", args={"w1": 1})
+    qevo = H0 + H1 * coeff
+    ```
     """
     def __init__(QobjEvo self, Q_object, args=None, tlist=None,
                  step_interpolation=False, copy=True):
@@ -165,46 +188,28 @@ cdef class QobjEvo:
         self._shift_dt = 0
         args = args or {}
 
-        use_step_func = args.get("_step_func_coeff", 0) or step_interpolation
-
         if (
             isinstance(Q_object, list)
             and len(Q_object) == 2
             and isinstance(Q_object[0], Qobj)
             and not isinstance(Q_object[1], (Qobj, list))
         ):
-            # The format is [Qobj, f/str]
+            # The format is [Qobj, coefficient]
             Q_object = [Q_object]
 
-        if isinstance(Q_object, Qobj):
-            self.elements = [
-                _ConstantElement(Q_object.copy() if copy else Q_object)
-            ]
-            self.dims = Q_object.dims
-            self.shape = Q_object.shape
-
-        elif isinstance(Q_object, list):
+        if isinstance(Q_object, list):
             for op in Q_object:
                 self.elements.append(
-                    self._read_element(op, copy, tlist, args, use_step_func)
+                    self._read_element(op, copy, tlist, args, step_interpolation)
                 )
             self.compress()
-
-        elif callable(Q_object):
-            qobj = Q_object(0, args)
-            if not isinstance(qobj, Qobj):
-                raise ValueError("Function based time-dependent system must "
-                                 "have the signature "
-                                 "`f(t: double, args: dict) -> Qobj`")
-            self.dims = qobj.dims
-            self.shape = qobj.shape
-            self.elements.append(_FuncElement(Q_object, args))
-
         else:
-            raise TypeError("Format not understood")
+            self.elements.append(
+              self._read_element(Q_object, copy, tlist, args, step_interpolation)
+            )
 
     def _read_element(self, op, copy, tlist, args, use_step_func):
-        """ Read one value of the list format."""
+        """ Read a Q_object item and return an element for that item. """
         if isinstance(op, Qobj):
             out = _ConstantElement(op.copy() if copy else op)
             _dims = op.dims
@@ -217,17 +222,34 @@ cdef class QobjEvo:
             )
             _dims = op[0].dims
             _shape = op[0].shape
+        elif callable(op):
+            qobj = op(0, args)
+            if not isinstance(qobj, Qobj):
+                raise TypeError(
+                    "Function based time-dependent elements must have the"
+                    " signature f(t: double, args: dict) -> Qobj, but"
+                    " {!r} returned: {!r}".format(op, qobj)
+                )
+            out = _FuncElement(op, args)
+            _dims = qobj.dims
+            _shape = qobj.shape
         else:
-            raise TypeError("List QobjEvo should be comprised of Qobj and"
-                            " list of `[Qobj, coefficient]`")
+            raise TypeError(
+                "QobjEvo terms should be Qobjs, a list of [Qobj, coefficient],"
+                " or a function f(t: double, args: dict) -> Qobj, but"
+                " received: {!r}".format(op)
+            )
 
         if self.dims is None:
             self.dims = _dims
             self.shape = _shape
-        else:
-            if self.dims != _dims:
-                raise ValueError("incompatible dimensions " +
-                                 str(self.dims) + ", " + str(_dims))
+        elif self.dims != _dims or self.shape != _shape:
+            raise ValueError(
+                f"QobjEvo term {op!r} has dims {_dims!r} and shape"
+                f" {_shape!r} but previous terms had dims {self.dims!r}"
+                f" and shape {self.shape!r}."
+            )
+
         return out
 
     def __call__(self, double t, dict args=None):
