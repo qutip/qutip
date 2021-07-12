@@ -53,6 +53,14 @@ def g(t, args):
     return np.cos(args["w"] * t * np.pi)
 
 
+def f_kw(t, w, **args):
+    return np.exp(w * t * np.pi)
+
+
+def g_kw(t, w, **args):
+    return np.cos(w * t * np.pi)
+
+
 def h(t, args):
     return args["a"] + args["b"] + t
 
@@ -82,11 +90,15 @@ def coeff_generator(style, func):
     """Make a Coefficient"""
     if func == "f":
         base = f
+        base_kw = f_kw
     else:
         base = g
+        base_kw = g_kw
 
     if style == "func":
         return coefficient(base, args=args)
+    if style == "func_kw":
+        return coefficient(base_kw, args=args)
     if style == "array":
         return coefficient(base(tlist, args), tlist=tlist)
     if style == "arraylog":
@@ -108,6 +120,8 @@ def coeff_generator(style, func):
 @pytest.mark.parametrize(['base', 'kwargs', 'tol'], [
     pytest.param(f, {'args': args},
                  1e-10, id="func"),
+    pytest.param(f_kw, {'args': args},
+                 1e-10, id="func_kw"),
     pytest.param(f_asarray, {'tlist': tlist},
                  1e-6,  id="array"),
     pytest.param(f_asarray, {'tlist': tlist, '_stepInterpolation': True},
@@ -132,6 +146,8 @@ def test_CoeffCreationCall(base, kwargs, tol):
 @pytest.mark.parametrize(['base', 'kwargs', 'tol'], [
     pytest.param(f, {'args': args},
                  1e-10, id="func"),
+    pytest.param(f_kw, {'args': args},
+                 1e-10, id="func_kw"),
     pytest.param("exp(w * t * pi)", {'args': args},
                  1e-10, id="string")
 ])
@@ -162,6 +178,7 @@ def test_CoeffCallArguments(base, tol):
 
 @pytest.mark.parametrize(['style'], [
     pytest.param("func", id="func"),
+    pytest.param("func_kw", id="func_kw"),
     pytest.param("array", id="array"),
     pytest.param("arraylog", id="logarray"),
     pytest.param("spline", id="Cubic_Spline"),
@@ -180,6 +197,7 @@ def test_CoeffUnitaryTransform(style, transform, expected):
 
 @pytest.mark.parametrize(['style'], [
     pytest.param("func", id="func"),
+    pytest.param("func_kw", id="func_kw"),
     pytest.param("array", id="array"),
     pytest.param("arraylog", id="logarray"),
     pytest.param("spline", id="Cubic_Spline"),
@@ -196,6 +214,7 @@ def test_CoeffShift(style):
 
 @pytest.mark.parametrize(['style_left'], [
     pytest.param("func", id="func"),
+    pytest.param("func_kw", id="func_kw"),
     pytest.param("array", id="array"),
     pytest.param("arraylog", id="logarray"),
     pytest.param("spline", id="Cubic_Spline"),
@@ -205,6 +224,7 @@ def test_CoeffShift(style):
 ])
 @pytest.mark.parametrize(['style_right'], [
     pytest.param("func", id="func"),
+    pytest.param("func_kw", id="func_kw"),
     pytest.param("array", id="array"),
     pytest.param("arraylog", id="logarray"),
     pytest.param("spline", id="Cubic_Spline"),
@@ -319,6 +339,7 @@ def _shift(coeff):
 
 @pytest.mark.parametrize(['style'], [
     pytest.param("func", id="func"),
+    pytest.param("func_kw", id="func_kw"),
     pytest.param("array", id="array"),
     pytest.param("arraylog", id="logarray"),
     pytest.param("spline", id="Cubic_Spline"),
@@ -343,6 +364,7 @@ def test_Coeffpickle(style, transform):
 
 @pytest.mark.parametrize(['style'], [
     pytest.param("func", id="func"),
+    pytest.param("func_kw", id="func_kw"),
     pytest.param("array", id="array"),
     pytest.param("arraylog", id="logarray"),
     pytest.param("spline", id="Cubic_Spline"),
