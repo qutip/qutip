@@ -14,6 +14,7 @@ __all__ = [
     'reshape', 'reshape_csr', 'reshape_dense',
     'column_stack', 'column_stack_csr', 'column_stack_dense',
     'column_unstack', 'column_unstack_csr', 'column_unstack_dense',
+    'split_columns', 'split_columns_dense', 'split_columns_csr',
 ]
 
 
@@ -118,6 +119,15 @@ cpdef Dense column_unstack_dense(Dense matrix, idxint rows, bint inplace=False):
     out = dense.empty(rows, cols, fortran=True)
     memcpy(out.data, matrix.data, rows*cols * sizeof(double complex))
     return out
+
+
+cpdef list split_columns_dense(Dense matrix, copy=True):
+    return [Dense(matrix.as_ndarray()[:, k], copy=copy)
+            for k in range(matrix.shape[1])]
+
+cpdef list split_columns_csr(CSR matrix, copy=True):
+    return [CSR(matrix.as_scipy()[:, k], copy=copy)
+            for k in range(matrix.shape[1])]
 
 
 from .dispatch import Dispatcher as _Dispatcher
@@ -234,6 +244,42 @@ column_unstack.__doc__ =\
 column_unstack.add_specialisations([
     (CSR, CSR, column_unstack_csr),
     (Dense, Dense, column_unstack_dense),
+], _defer=True)
+
+
+split_columns = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('copy', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                           default=1),
+    ]),
+    name='split_columns',
+    module=__name__,
+    inputs=('matrix',),
+    out=False,
+)
+split_columns.__doc__ =\
+    """
+    Make a ket-shaped data out of each columns of the matrix.
+    This is used for to split the eigenvectors from :obj:`eigs`.
+
+    Arguments
+    ---------
+    matrix : Data
+        The matrix to unstack the columns of.
+
+    copy : bool, optional
+        The number of rows there should be in the output matrix.  This must
+        divide into the total number of elements in the input.
+
+    Returns
+    -------
+    kets : list
+        list of Data of each columns of the matrix.
+    """
+split_columns.add_specialisations([
+    (CSR, split_columns_csr),
+    (Dense, split_columns_dense),
 ], _defer=True)
 
 del _inspect, _Dispatcher
