@@ -716,7 +716,7 @@ def bra(seq, dim=2):
 #
 # quantum state number helper functions
 #
-def state_number_enumerate(dims, excitations=None, prevstate=()):
+def state_number_enumerate(dims, excitations=None):
     """
     An iterator that enumerates all the state number tuples (quantum numbers of
     the form (n1, n2, n3, ...)) for a system with dimensions given by dims.
@@ -739,9 +739,6 @@ def state_number_enumerate(dims, excitations=None, prevstate=()):
         Restrict state space to states with excitation numbers below or
         equal to this value.
 
-    prevstate : tuple
-        Previous state in the iteration. Used internally.
-
     Returns
     -------
     state_number : tuple
@@ -755,19 +752,26 @@ def state_number_enumerate(dims, excitations=None, prevstate=()):
         yield from itertools.product(*(range(d) for d in dims))
         return
 
-    # excitations is not None
-    nlim = min(dims[0], 1 + excitations)
-    for n in range(nlim):
-        # prevstate is the state for all previous dimensions
-        state = prevstate + (n,)
-        if len(dims) == 1:
-            # this is the last dimension, so the state tuple is finished
-            yield state
-        else:
-            # add the state numbers for the remaining dimensions. since we used
-            # n excitations in this mode, the remaining states can have only
-            # (excitations - n) total excitations
-            yield from state_number_enumerate(dims[1:], excitations - n, state)
+    # From here on, excitations is not None
+
+    # General idea of algorithm: add excitations one by one in last mode (idx =
+    # len(dims)-1), and carry over to the next index when the limit is reached.
+    # Keep track of the number of excitations while doing so to avoid having to
+    # do explicit sums over the states.
+    state = (0,)*len(dims)
+    nexc = 0
+    while True:
+        yield state
+        idx = len(dims) - 1
+        state = state[:idx] + (state[idx]+1,) + state[idx+1:]
+        nexc += 1
+        while nexc > excitations or state[idx] >= dims[idx]:
+            # remove all excitations in mode idx, add one in idx-1
+            idx -= 1
+            if idx < 0:
+                return
+            nexc -= state[idx+1] - 1
+            state = state[:idx] + (state[idx]+1, 0) + state[idx+2:]
 
 
 def state_number_index(dims, state):
