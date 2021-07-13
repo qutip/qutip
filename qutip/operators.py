@@ -859,7 +859,7 @@ def enr_destroy(dims, excitations):
     a_ops = [sp.lil_matrix((nstates, nstates), dtype=np.complex128)
              for _ in range(len(dims))]
 
-    for n1, state1 in idx2state.items():
+    for n1, state1 in enumerate(idx2state):
         for idx, s in enumerate(state1):
             # if s > 0, the annihilation operator of mode idx has a non-zero
             # entry with one less excitation in mode idx in the final state

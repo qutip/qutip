@@ -11,6 +11,7 @@ import numbers
 import numpy as np
 from numpy import arange, conj, prod
 import scipy.sparse as sp
+import itertools
 
 from qutip.qobj import Qobj
 from qutip.operators import destroy, jmat
@@ -715,67 +716,58 @@ def bra(seq, dim=2):
 #
 # quantum state number helper functions
 #
-def state_number_enumerate(dims, excitations=None, state=None, idx=0, nexc=0):
+def state_number_enumerate(dims, excitations=None, prevstate=()):
     """
-    An iterator that enumerate all the state number arrays (quantum numbers on
-    the form [n1, n2, n3, ...]) for a system with dimensions given by dims.
+    An iterator that enumerates all the state number tuples (quantum numbers of
+    the form (n1, n2, n3, ...)) for a system with dimensions given by dims.
 
     Example:
 
         >>> for state in state_number_enumerate([2,2]): # doctest: +SKIP
         >>>     print(state) # doctest: +SKIP
-        [ 0  0 ]
-        [ 0  1 ]
-        [ 1  0 ]
-        [ 1  1 ]
+        ( 0  0 )
+        ( 0  1 )
+        ( 1  0 )
+        ( 1  1 )
 
     Parameters
     ----------
     dims : list or array
         The quantum state dimensions array, as it would appear in a Qobj.
 
-    state : list
-        Current state in the iteration. Used internally.
-
     excitations : integer (None)
         Restrict state space to states with excitation numbers below or
         equal to this value.
 
-    idx : integer
-        Current index in the iteration. Used internally.
-
-    nexc : integer
-        Number of excitations in modes [0..idx-1]. Used internally.
+    prevstate : tuple
+        Previous state in the iteration. Used internally.
 
     Returns
     -------
-    state_number : list
-        Successive state number arrays that can be used in loops and other
+    state_number : tuple
+        Successive state number tuples that can be used in loops and other
         iterations, using standard state enumeration *by definition*.
 
     """
 
-    if state is None:
-        state = np.zeros(len(dims), dtype=int)
+    if excitations is None:
+        # in this case, state numbers are a direct product
+        yield from itertools.product(*(range(d) for d in dims))
+        return
 
-    if idx == len(dims):
-        if excitations is None:
-            yield np.array(state)
+    # excitations is not None
+    nlim = min(dims[0], 1 + excitations)
+    for n in range(nlim):
+        # prevstate is the state for all previous dimensions
+        state = prevstate + (n,)
+        if len(dims) == 1:
+            # this is the last dimension, so the state tuple is finished
+            yield state
         else:
-            yield tuple(state)
-    else:
-        if excitations is None:
-            nlim = dims[idx]
-        else:
-            # modes [0..idx-1] have nexc excitations,
-            # so mode idx can have at most excitations-nexc excitations
-            nlim = min(dims[idx], 1 + excitations - nexc)
-
-        for n in range(nlim):
-            state[idx] = n
-            for s in state_number_enumerate(dims, excitations,
-                                            state, idx + 1, nexc + n):
-                yield s
+            # add the state numbers for the remaining dimensions. since we used
+            # n excitations in this mode, the remaining states can have only
+            # (excitations - n) total excitations
+            yield from state_number_enumerate(dims[1:], excitations - n, state)
 
 
 def state_number_index(dims, state):
@@ -803,8 +795,7 @@ def state_number_index(dims, state):
         ordering.
 
     """
-    return int(
-        sum([state[i] * prod(dims[i + 1:]) for i, d in enumerate(dims)]))
+    return np.ravel_multi_index(state, dims)
 
 
 def state_index_number(dims, index):
@@ -827,20 +818,12 @@ def state_index_number(dims, index):
 
     Returns
     -------
-    state : list
-        The state number array corresponding to index `index` in standard
+    state : tuple
+        The state number tuple corresponding to index `index` in standard
         enumeration ordering.
 
     """
-    state = np.empty_like(dims)
-
-    D = np.concatenate([np.flipud(np.cumprod(np.flipud(dims[1:]))), [1]])
-
-    for n in range(len(dims)):
-        state[n] = index / D[n]
-        index -= state[n] * D[n]
-
-    return list(state)
+    return np.unravel_index(index, dims)
 
 
 def state_number_qobj(dims, state):
@@ -878,7 +861,8 @@ shape = [8, 1], type = ket
 
 
     """
-    return tensor([fock(dims[i], s) for i, s in enumerate(state)])
+    assert len(state) == len(dims)
+    return tensor([fock(d, s) for d, s in zip(dims, state)])
 
 
 #
@@ -900,19 +884,16 @@ def enr_state_dictionaries(dims, excitations):
 
     Returns
     -------
-    nstates, state2idx, idx2state: integer, dict, dict
+    nstates, state2idx, idx2state: integer, dict, list
         The number of states `nstates`, a dictionary for looking up state
-        indices from a state tuple, and a dictionary for looking up state
-        state tuples from state indices.
+        indices from a state tuple, and a list containing the state tuples
+        ordered by state indices. state2idx and idx2state are reverses of
+        each other, i.e., state2idx[idx2state[idx]] = idx and
+        idx2state[state2idx[state]] = state.
     """
-    nstates = 0
-    state2idx = {}
-    idx2state = {}
-
-    for state in state_number_enumerate(dims, excitations):
-        state2idx[state] = nstates
-        idx2state[nstates] = state
-        nstates += 1
+    idx2state = list(state_number_enumerate(dims, excitations))
+    state2idx = {state: idx for idx, state in enumerate(idx2state)}
+    nstates = len(idx2state)
 
     return nstates, state2idx, idx2state
 
@@ -996,8 +977,7 @@ def enr_thermal_dm(dims, excitations, n):
     else:
         n = np.asarray(n)
 
-    diags = [np.prod((n / (n + 1)) ** np.array(state))
-             for idx, state in idx2state.items()]
+    diags = [np.prod((n / (n + 1)) ** np.array(state)) for state in idx2state]
     diags /= np.sum(diags)
     data = sp.spdiags(diags, 0, nstates, nstates, format='csr')
 
