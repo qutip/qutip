@@ -126,7 +126,15 @@ def _tidyup(method):
     @functools.wraps(method)
     def out(*args, **kwargs):
         out = method(*args, **kwargs)
-        if isinstance(out, Qobj) and settings.core['auto_tidyup']:
+        tidy_type = []
+        if isinstance(settings.core['auto_tidyup'], list):
+            tidy_type = [_data.to.parse(_type)
+                         for _type in settings.core['auto_tidyup']]
+        if (
+            isinstance(out, Qobj) and
+            (settings.core['auto_tidyup'] is True
+            or type(out.data) in tidy_type)
+        ):
             out.tidyup()
         return out
     return out
@@ -1744,6 +1752,7 @@ class Qobj:
     def isherm(self):
         if self._isherm is not None:
             return self._isherm
+        self.tidyup()
         self._isherm = _data.isherm(self._data)
         return self._isherm
 

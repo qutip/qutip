@@ -1023,3 +1023,29 @@ def test_contract(expanded, contracted, inplace):
     assert out.dims == contracted
     assert out.shape == qobj.shape
     assert np.all(out.full() == qobj.full())
+
+
+@pytest.fixture(params=[
+    (True, {'CSR': True, 'dense': True}),
+    (False, {'CSR': False, 'dense': False}),
+    (['CSR'], {'CSR': True, 'dense': False}),
+    ([qutip.data.Dense], {'CSR': False, 'dense': True}),
+    (['dense', 'CSR'], {'CSR': True, 'dense': True}),
+], ids=["True", "False", "CSR", "Dense", "both"]
+)
+def auto_tidyup_dtypes(request):
+    # The test should leave the settings unchanged
+    old_options = qutip.settings.core['auto_tidyup']
+    qutip.settings.core['auto_tidyup'] = request.param[0]
+    yield request.param[1]
+    qutip.settings.core['auto_tidyup'] = old_options
+
+
+@pytest.mark.parametrize('dtype', ['CSR', 'dense'])
+def test_auto_tidyup(auto_tidyup_dtypes, dtype):
+    data = np.random.rand(2,2) + 1j*np.random.rand(2,2)
+    data_zeros = (np.random.rand(2,2) + 1j*np.random.rand(2,2)) * 1e-14
+    qobj = qutip.Qobj(data).to(dtype)
+    qobj_zeros = qutip.Qobj(data_zeros).to(dtype)
+    out = (qobj - qobj_zeros) - qobj
+    assert np.all(out.full() == 0) == auto_tidyup_dtypes[dtype]

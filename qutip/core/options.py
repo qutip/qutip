@@ -9,8 +9,8 @@ class CoreOptions:
 
     Options
     -------
-    auto_tidyup : bool
-        use auto tidyup
+    auto_tidyup : bool, list
+        Whether to auto tidyup Qobj, or a list of data types to be auto tidyup.
 
     auto_tidyup_dims : boolTrue
         use auto tidyup dims on multiplication
@@ -26,7 +26,7 @@ class CoreOptions:
     """
     options = {
         # use auto tidyup
-        "auto_tidyup": True,
+        "auto_tidyup": ['CSR'],
         # use auto tidyup dims on multiplication
         "auto_tidyup_dims": True,
         # detect hermiticity

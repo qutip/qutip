@@ -53,7 +53,7 @@ def _remove_global_phase(qobj):
     Return a new Qobj with the gauge fixed for the global phase.  Explicitly,
     we set the first non-zero element to be purely real-positive.
     """
-    flat = qobj.full().flat.copy()
+    flat = qobj.tidyup().full().flat.copy()
     for phase in flat:
         if phase != 0:
             # Fix the gauge for any global phase.
