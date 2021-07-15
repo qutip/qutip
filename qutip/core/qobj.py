@@ -499,7 +499,6 @@ class Qobj:
 
         return other.__matmul__(self)
 
-
     @_tidyup
     def __matmul__(self, other):
         if not isinstance(other, Qobj):

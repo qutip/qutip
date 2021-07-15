@@ -292,6 +292,7 @@ def test_QobjMultiplication():
 
     assert q3 == q4
 
+
 def test_QobjNumpyMultiplication():
     """qutip.Qobj multiplication times another object(ndarray). We test both
     left multiplication and right multiplication."""
@@ -311,10 +312,11 @@ def test_QobjNumpyMultiplication():
     assert result1 == expect1
     assert result2 == expect2
 
+
 def test_QobjMulNotImplmented():
-    """We test that if Qobj does not know how to handle an object it defaults to
-    the objects it raises NotImplmented, which in turn should raise TypeError as
-    DummyClass does not have __mul__ or __rmul__."""
+    """We test that if Qobj does not know how to handle an object it defaults
+    to the objects it raises NotImplmented, which in turn should raise
+    TypeError as DummyClass does not have __mul__ or __rmul__."""
     class DummyClass():
         pass
 
@@ -326,8 +328,6 @@ def test_QobjMulNotImplmented():
 
     with pytest.raises(TypeError):
         qobj * dummy_object
-
-
 
 
 def test_QobjDivision():
