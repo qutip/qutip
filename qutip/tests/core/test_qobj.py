@@ -81,24 +81,31 @@ def test_QobjData():
                             qutip.data.Dense(_random_not_singular(2)),
                             qutip.data.csr.identity(2),
                             qutip.Qobj(_random_not_singular(2)),
+                            _random_not_singular(2),
                          ],
                          ids=[
                              "Dense",
                              "CSR",
                              "Qobj",
+                             "Numpy",
                          ])
 @pytest.mark.parametrize("copy", [True, False])
 def test_QobjCopyArgument(data, copy):
     """Tests that Qobj copy argument works properly when instantiating Qobj."""
-    q = qutip.Qobj(data, copy=copy)
+    qobj_data = qutip.Qobj(data, copy=copy).data
 
     if isinstance(data, qutip.Qobj):
         data = data.data  # Qobj copies the data of another Qobj
 
+    # For numpy object we compare with data's data. This should be dense so we
+    # get its data as ndarray.
+    if isinstance(data, np.ndarray):
+        qobj_data = qobj_data.as_ndarray()
+
     if copy:
-        assert data is not q.data
+        assert data is not qobj_data
     else:
-        assert data is q.data
+        assert data is qobj_data
 
 
 def test_QobjType():
