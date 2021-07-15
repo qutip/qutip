@@ -487,11 +487,18 @@ class Qobj:
                     copy=False)
 
     def __rmul__(self, other):
-        # Shouldn't be here unless `other.__mul__` has already been tried, so
-        # we _shouldn't_ check that `other` is `Qobj`.
-        if not isinstance(other, numbers.Number):
+        if isinstance(other, numbers.Number):
+            return self.__mul__(complex(other))
+
+        # Try creating a Qobj with other. If not possible (TypeError) we raise
+        # NotImplemented so that other can try to handle __mul__.
+        try:
+            other = Qobj(other)
+        except TypeError:
             return NotImplemented
-        return self.__mul__(complex(other))
+
+        return other.__matmul__(self)
+
 
     @_tidyup
     def __matmul__(self, other):
