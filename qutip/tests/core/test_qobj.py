@@ -75,6 +75,29 @@ def test_QobjData():
     q2 = qutip.Qobj(data2)
     assert isinstance(q2.data, qutip.core.data.Data)
 
+@pytest.mark.parametrize("data",
+                         [
+                            qutip.data.Dense(_random_not_singular(2)),
+                            qutip.data.csr.identity(2),
+                            qutip.Qobj(_random_not_singular(2)),
+                         ],
+                         ids=[
+                             "Dense",
+                             "CSR",
+                             "Qobj",
+                         ])
+@pytest.mark.parametrize("copy", [True, False])
+def test_QobjCopyArgument(data, copy):
+    """Tests that Qobj copy argument works properly when instantiating Qobj."""
+    q = qutip.Qobj(data, copy=copy)
+
+    if isinstance(data, qutip.Qobj):
+        data = data.data  # Qobj copies the data of another Qobj
+
+    if copy:
+        assert data is not q.data
+    else:
+        assert data is q.data
 
 def test_QobjType():
     "qutip.Qobj type"
@@ -1023,3 +1046,4 @@ def test_contract(expanded, contracted, inplace):
     assert out.dims == contracted
     assert out.shape == qobj.shape
     assert np.all(out.full() == qobj.full())
+
