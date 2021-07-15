@@ -75,6 +75,7 @@ def test_QobjData():
     q2 = qutip.Qobj(data2)
     assert isinstance(q2.data, qutip.core.data.Data)
 
+
 @pytest.mark.parametrize("data",
                          [
                             qutip.data.Dense(_random_not_singular(2)),
@@ -98,6 +99,7 @@ def test_QobjCopyArgument(data, copy):
         assert data is not q.data
     else:
         assert data is q.data
+
 
 def test_QobjType():
     "qutip.Qobj type"
