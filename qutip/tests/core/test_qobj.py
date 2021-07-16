@@ -747,6 +747,11 @@ def test_isherm_skew():
     assert_hermicity(qutip.tensor(iH, iH), True)
 
 
+def test_isherm_unbalanced():
+    unbalanced = scipy.sparse.coo_matrix(([1,0,1], ((0,0,1), (0,1,1))))
+    assert qutip.Qobj(unbalanced).isherm == True
+
+
 def test_super_tensor_operket():
     """
     Tensor: Checks that super_tensor respects states.

@@ -1752,7 +1752,6 @@ class Qobj:
     def isherm(self):
         if self._isherm is not None:
             return self._isherm
-        self.tidyup()
         self._isherm = _data.isherm(self._data)
         return self._isherm
 

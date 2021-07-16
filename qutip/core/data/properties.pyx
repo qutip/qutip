@@ -51,13 +51,13 @@ cdef bint _isherm_csr_full(CSR matrix, double tol) except 2:
     cdef idxint row, ptr_a, ptr_b, col_a, col_b
     for row in range(matrix.shape[0]):
         ptr_a, ptr_a_end = matrix.row_index[row], matrix.row_index[row + 1]
-        ptr_b, ptr_b_end = transpose.indptr[row], transpose.indptr[row + 1]
+        ptr_b, ptr_b_end = transpose.row_index[row], transpose.row_index[row + 1]
         while ptr_a < ptr_a_end and ptr_b < ptr_b_end:
             # Doing this on every loop actually involves a few more
             # de-references than are strictly necessary, but just
             # simplifies the logic checking for the end of the row.
             col_a = matrix.col_index[ptr_a]
-            col_b = transpose.indices[ptr_b]
+            col_b = transpose.col_index[ptr_b]
             if col_a == col_b:
                 if not _conj_feq(matrix.data[ptr_a], transpose.data[ptr_b], tol):
                     return False
