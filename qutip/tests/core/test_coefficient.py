@@ -156,7 +156,6 @@ def test_CoeffCreationCall(base, kwargs, tol):
     _assert_eq_over_interval(coeff, expected, rtol=tol, inside=True)
 
 
-
 @pytest.mark.parametrize(['base', 'kwargs', 'tol'], [
     pytest.param(f, {'args': args},
                  1e-10, id="func"),
@@ -190,6 +189,16 @@ def test_CoeffCallArguments(base, tol):
     expected = lambda t: a + b + t
     coeff = coeff.replace_arguments({'dummy': None}, b=b)
     _assert_eq_over_interval(coeff, expected, rtol=tol)
+
+
+def test_CoeffFuncWithDefault():
+    def f(t, w, k=2):
+        return t + w + k
+
+    coeff = coefficient(f, args={'w':1})
+    assert coeff(1) == 4
+    coeff = coeff.replace_arguments({'k':3})
+    assert coeff(1) == 5
 
 
 @pytest.mark.parametrize(['style'], [

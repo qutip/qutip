@@ -189,7 +189,12 @@ cdef class KwFunctionCoefficient(Coefficient):
                 raise TypeError("Positional parameters are not supported")
             if parameters[key].kind is inspect._ParameterKind.VAR_KEYWORD:
                 continue
-            self.args[key] = args[key]
+            if key in args:
+                self.args[key] = args[key]
+            elif parameters[key].default != inspect._empty:
+                self.args[key] = parameters[key].default
+            else:
+                raise ValueError(f"argument '{key}' is missing")
 
     cdef complex _call(self, double t) except *:
         return self.func(t, **self.args)
