@@ -89,7 +89,8 @@ def test_QobjData():
                              "Qobj",
                              "Numpy",
                          ])
-@pytest.mark.parametrize("copy", [True, False])
+@pytest.mark.parametrize("copy", [True, False],
+                         ids=["copy=True", "copy=False"])
 def test_QobjCopyArgument(data, copy):
     """Tests that Qobj copy argument works properly when instantiating Qobj."""
     qobj_data = qutip.Qobj(data, copy=copy).data
@@ -97,15 +98,17 @@ def test_QobjCopyArgument(data, copy):
     if isinstance(data, qutip.Qobj):
         data = data.data  # Qobj copies the data of another Qobj
 
-    # For numpy object we compare with data's data. This should be dense so we
-    # get its data as ndarray.
     if isinstance(data, np.ndarray):
+        # For numpy object we compare with data's data. This should be dense so
+        # we get its data as ndarray.
         qobj_data = qobj_data.as_ndarray()
 
-    if copy:
-        assert data is not qobj_data
+        # We look at the memory and see if it is shared or not to asses wether 
+        # copy argument worked or not.
+        assert np.shares_memory(qobj_data, data) != copy
+
     else:
-        assert data is qobj_data
+        assert (data is qobj_data) != copy
 
 
 def test_QobjType():
