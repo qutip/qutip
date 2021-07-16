@@ -1060,4 +1060,3 @@ def test_contract(expanded, contracted, inplace):
     assert out.dims == contracted
     assert out.shape == qobj.shape
     assert np.all(out.full() == qobj.full())
-
