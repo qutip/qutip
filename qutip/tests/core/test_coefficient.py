@@ -61,6 +61,14 @@ def g_kw(t, w, **args):
     return np.cos(w * t * np.pi)
 
 
+def f_no_kwargs(t, w):
+    return np.exp(w * t * np.pi)
+
+
+def g_no_kwargs(t, w):
+    return np.cos(w * t * np.pi)
+
+
 def h(t, args):
     return args["a"] + args["b"] + t
 
@@ -91,14 +99,18 @@ def coeff_generator(style, func):
     if func == "f":
         base = f
         base_kw = f_kw
+        base_no_kwargs = f_no_kwargs
     else:
         base = g
         base_kw = g_kw
+        base_no_kwargs = g_no_kwargs
 
     if style == "func":
         return coefficient(base, args=args)
     if style == "func_kw":
         return coefficient(base_kw, args=args)
+    if style == "func_no_kwargs":
+        return coefficient(base_no_kwargs, args=args)
     if style == "array":
         return coefficient(base(tlist, args), tlist=tlist)
     if style == "arraylog":
@@ -122,6 +134,8 @@ def coeff_generator(style, func):
                  1e-10, id="func"),
     pytest.param(f_kw, {'args': args},
                  1e-10, id="func_kw"),
+    pytest.param(f_no_kwargs, {'args': args},
+                 1e-10, id="func_no_kwargs"),
     pytest.param(f_asarray, {'tlist': tlist},
                  1e-6,  id="array"),
     pytest.param(f_asarray, {'tlist': tlist, '_stepInterpolation': True},
@@ -148,6 +162,8 @@ def test_CoeffCreationCall(base, kwargs, tol):
                  1e-10, id="func"),
     pytest.param(f_kw, {'args': args},
                  1e-10, id="func_kw"),
+    pytest.param(f_no_kwargs, {'args': args},
+                 1e-10, id="func_no_kwargs"),
     pytest.param("exp(w * t * pi)", {'args': args},
                  1e-10, id="string")
 ])
@@ -172,13 +188,14 @@ def test_CoeffCallArguments(base, tol):
     _assert_eq_over_interval(coeff, expected, rtol=tol)
     b = np.pi
     expected = lambda t: a + b + t
-    coeff = coeff.replace_arguments(b=b)
+    coeff = coeff.replace_arguments({'dummy': None}, b=b)
     _assert_eq_over_interval(coeff, expected, rtol=tol)
 
 
 @pytest.mark.parametrize(['style'], [
     pytest.param("func", id="func"),
     pytest.param("func_kw", id="func_kw"),
+    pytest.param("func_no_kwargs", id="func_no_kwargs"),
     pytest.param("array", id="array"),
     pytest.param("arraylog", id="logarray"),
     pytest.param("spline", id="Cubic_Spline"),
@@ -198,6 +215,7 @@ def test_CoeffUnitaryTransform(style, transform, expected):
 @pytest.mark.parametrize(['style'], [
     pytest.param("func", id="func"),
     pytest.param("func_kw", id="func_kw"),
+    pytest.param("func_no_kwargs", id="func_no_kwargs"),
     pytest.param("array", id="array"),
     pytest.param("arraylog", id="logarray"),
     pytest.param("spline", id="Cubic_Spline"),
@@ -215,6 +233,7 @@ def test_CoeffShift(style):
 @pytest.mark.parametrize(['style_left'], [
     pytest.param("func", id="func"),
     pytest.param("func_kw", id="func_kw"),
+    pytest.param("func_no_kwargs", id="func_no_kwargs"),
     pytest.param("array", id="array"),
     pytest.param("arraylog", id="logarray"),
     pytest.param("spline", id="Cubic_Spline"),
@@ -225,6 +244,7 @@ def test_CoeffShift(style):
 @pytest.mark.parametrize(['style_right'], [
     pytest.param("func", id="func"),
     pytest.param("func_kw", id="func_kw"),
+    pytest.param("func_no_kwargs", id="func_no_kwargs"),
     pytest.param("array", id="array"),
     pytest.param("arraylog", id="logarray"),
     pytest.param("spline", id="Cubic_Spline"),
@@ -340,6 +360,7 @@ def _shift(coeff):
 @pytest.mark.parametrize(['style'], [
     pytest.param("func", id="func"),
     pytest.param("func_kw", id="func_kw"),
+    pytest.param("func_no_kwargs", id="func_no_kwargs"),
     pytest.param("array", id="array"),
     pytest.param("arraylog", id="logarray"),
     pytest.param("spline", id="Cubic_Spline"),
@@ -365,6 +386,7 @@ def test_Coeffpickle(style, transform):
 @pytest.mark.parametrize(['style'], [
     pytest.param("func", id="func"),
     pytest.param("func_kw", id="func_kw"),
+    pytest.param("func_no_kwargs", id="func_no_kwargs"),
     pytest.param("array", id="array"),
     pytest.param("arraylog", id="logarray"),
     pytest.param("spline", id="Cubic_Spline"),

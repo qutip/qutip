@@ -11,6 +11,7 @@ import numpy as np
 cimport numpy as cnp
 cimport cython
 import qutip
+import inspect
 
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
@@ -131,7 +132,7 @@ cdef class FunctionCoefficient(Coefficient):
 
     cpdef Coefficient copy(self):
         """Return a copy of the :obj:`Coefficient`."""
-        return self.__class__(self.func, self.args.copy())
+        return FunctionCoefficient(self.func, self.args.copy())
 
     def replace_arguments(self, _args=None, **kwargs):
         """
@@ -152,26 +153,74 @@ cdef class FunctionCoefficient(Coefficient):
         if _args:
             kwargs.update(_args)
         if kwargs:
-            return self.__class__(self.func, {**self.args, **kwargs})
+            return FunctionCoefficient(self.func, {**self.args, **kwargs})
         return self
 
 
 @cython.auto_pickle(True)
-cdef class KwFunctionCoefficient(FunctionCoefficient):
+cdef class KwFunctionCoefficient(Coefficient):
     """
     :obj:`Coefficient` wrapping a Python function.
     Use keywords argument.
 
     Parameters
     ----------
-    func : callable(t : float, **args) -> complex
+    func : callable(t : float, ...) -> complex
         Function computing the coefficient value.
+        Support any function that can be called with f(t, **args).
+        args are cleaned, so f(t), f(t, w), etc. are supported.
 
     args : dict
         Values of the arguments to pass to `func`.
     """
+    cdef object func
+    cdef list parameters
+
+    def __init__(self, func, dict args):
+        self.func = func
+        self.args = {}
+        parameters = inspect.signature(func).parameters
+        for i, key in enumerate(parameters):
+            if parameters[key].kind is inspect._ParameterKind.VAR_POSITIONAL:
+                raise TypeError("Positional parameters are not supported")
+            if i == 0:
+                continue
+            if parameters[key].kind is inspect._ParameterKind.POSITIONAL_ONLY:
+                raise TypeError("Positional parameters are not supported")
+            if parameters[key].kind is inspect._ParameterKind.VAR_KEYWORD:
+                continue
+            self.args[key] = args[key]
+
     cdef complex _call(self, double t) except *:
         return self.func(t, **self.args)
+
+    cpdef Coefficient copy(self):
+        cdef KwFunctionCoefficient out
+        # Parsing the signature in __init__ is slow.
+        out = KwFunctionCoefficient.__new__(KwFunctionCoefficient)
+        out.func = self.func
+        out.args = self.args.copy()
+        return out
+
+    def replace_arguments(self, _args=None, **kwargs):
+        cdef KwFunctionCoefficient out
+        if _args:
+            kwargs.update(_args)
+        if not kwargs:
+            return self
+
+        new_args = {}
+        for key in self.args:
+            if key in kwargs:
+                new_args[key] = kwargs[key]
+            else:
+                new_args[key] = self.args[key]
+
+        # Parsing the signature in __init__ is slow, thus the shortcut
+        out = KwFunctionCoefficient.__new__(KwFunctionCoefficient)
+        out.func = self.func
+        out.args = new_args
+        return out
 
 
 def proj(x):

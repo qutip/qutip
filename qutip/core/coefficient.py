@@ -105,12 +105,12 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
 
     elif callable(base):
         try:
-            # Try f(t, **kwargs)
-            base(0, **args, _checkkwargs=True)
-            op = KwFunctionCoefficient(base, args.copy())
+            # Try f(t, args)
+            base(0, args)
+            op = FunctionCoefficient(base, args.copy())
         except TypeError:
             # Fallback on f(t, args)
-            op = FunctionCoefficient(base, args.copy())
+            op = KwFunctionCoefficient(base, args)
         if not isinstance(op(0), numbers.Number):
             raise TypeError("The coefficient function must return a number")
         return op
