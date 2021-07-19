@@ -2,8 +2,10 @@
 #cython: boundscheck=False, wraparound=False, initializedcheck=False
 
 from libc.string cimport memset, memcpy
+from libc.math cimport fabs
 
 import warnings
+from qutip.settings import settings
 
 cimport cython
 
@@ -130,6 +132,9 @@ cpdef CSR matmul_csr(CSR left, CSR right, double complex scale=1, CSR out=None):
     cdef double complex val
     cdef double complex *sums
     cdef idxint *nxt
+    cdef double tol = 0
+    if settings.core['auto_tidyup']:
+        tol = settings.core['auto_tidyup_atol']
     sums = <double complex *> PyMem_Calloc(ncols, sizeof(double complex))
     nxt = <idxint *> mem.PyMem_Malloc(ncols * sizeof(idxint))
     with nogil:
@@ -152,7 +157,11 @@ cpdef CSR matmul_csr(CSR left, CSR right, double complex scale=1, CSR out=None):
                         head = col_r
                         length += 1
             for col_r in range(length):
-                if sums[head] != 0:
+                if (sums[head] != 0 and (
+                    tol == 0
+                    or fabs(sums[head].real) >= tol
+                    or fabs(sums[head].imag) >= tol
+                )):
                     out.col_index[nnz] = head
                     out.data[nnz] = scale * sums[head]
                     nnz += 1

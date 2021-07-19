@@ -5,6 +5,7 @@ cimport cython
 import numpy as np
 cimport numpy as cnp
 from scipy.linalg cimport cython_blas as blas
+from qutip.settings import settings
 
 from qutip.core.data.base cimport idxint, Data
 from qutip.core.data.dense cimport Dense
@@ -51,6 +52,10 @@ cdef idxint _add_csr(Accumulator *acc, CSR a, CSR b, CSR c) nogil:
     """
     cdef idxint row, ptr_a, ptr_b, ptr_a_max, ptr_b_max, nnz=0, col_a, col_b
     cdef idxint ncols = a.shape[1]
+    cdef double tol
+    with gil:
+        if settings.core['auto_tidyup']:
+            tol = settings.core['auto_tidyup_atol']
     c.row_index[0] = nnz
     ptr_a_max = ptr_b_max = 0
     for row in range(a.shape[0]):
@@ -76,7 +81,7 @@ cdef idxint _add_csr(Accumulator *acc, CSR a, CSR b, CSR c) nogil:
                 col_b = b.col_index[ptr_b] if ptr_b < ptr_b_max else ncols + 1
             # There's no need to test col_a == col_b because the Accumulator
             # already tests that in all scatters anyway.
-        nnz += acc_gather(acc, c.data + nnz, c.col_index + nnz)
+        nnz += acc_gather(acc, c.data + nnz, c.col_index + nnz, tol)
         acc_reset(acc)
         c.row_index[row + 1] = nnz
     return nnz
@@ -93,6 +98,10 @@ cdef idxint _add_csr_scale(Accumulator *acc, CSR a, CSR b, CSR c, double complex
     """
     cdef idxint row, ptr_a, ptr_b, ptr_a_max, ptr_b_max, nnz=0, col_a, col_b
     cdef idxint ncols = a.shape[1]
+    cdef double tol
+    with gil:
+        if settings.core['auto_tidyup']:
+            tol = settings.core['auto_tidyup_atol']
     c.row_index[0] = nnz
     ptr_a_max = ptr_b_max = 0
     for row in range(a.shape[0]):
@@ -111,7 +120,7 @@ cdef idxint _add_csr_scale(Accumulator *acc, CSR a, CSR b, CSR c, double complex
                 acc_scatter(acc, scale * b.data[ptr_b], col_b)
                 ptr_b += 1
                 col_b = b.col_index[ptr_b] if ptr_b < ptr_b_max else ncols + 1
-        nnz += acc_gather(acc, c.data + nnz, c.col_index + nnz)
+        nnz += acc_gather(acc, c.data + nnz, c.col_index + nnz, tol)
         acc_reset(acc)
         c.row_index[row + 1] = nnz
     return nnz

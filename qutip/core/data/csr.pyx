@@ -26,7 +26,9 @@ from qutip.core.data.adjoint cimport adjoint_csr, transpose_csr, conj_csr
 from qutip.core.data.mul cimport mul_csr, neg_csr
 from qutip.core.data.matmul cimport matmul_csr
 from qutip.core.data.trace cimport trace_csr
+from qutip.core.data.tidyup cimport tidyup_csr
 from .base import idxint_dtype
+from qutip.settings import settings
 
 cnp.import_array()
 
@@ -75,7 +77,7 @@ cdef class CSR(base.Data):
         # single flag that is set as soon as the pointers are assigned.
         self._deallocate = True
 
-    def __init__(self, arg=None, shape=None, bint copy=True):
+    def __init__(self, arg=None, shape=None, bint copy=True, bint tidyup=False):
         # This is the Python __init__ method, so we do not care that it is not
         # super-fast C access.  Typically Cython code will not call this, but
         # will use a factory method in this module or at worst, call
@@ -134,6 +136,8 @@ cdef class CSR(base.Data):
         # Store a reference to the backing scipy matrix so it doesn't get
         # deallocated before us.
         self._scipy = _csr_matrix(data, col_index, row_index, self.shape)
+        if tidyup:
+            tidyup_csr(self, settings.core['auto_tidyup_atol'], True)
 
     def __reduce__(self):
         return (fast_from_scipy, (self.as_scipy(),))
@@ -638,7 +642,7 @@ cpdef CSR from_dense(Dense matrix):
 
 cdef CSR from_coo_pointers(
     base.idxint *rows, base.idxint *cols, double complex *data,
-    base.idxint n_rows, base.idxint n_cols, base.idxint nnz,
+    base.idxint n_rows, base.idxint n_cols, base.idxint nnz, double tol=0
 ):
     # Note that COO pointers may not be sorted in row-major order, and that
     # they may contain duplicate entries which should be implicitly summed.
@@ -680,7 +684,7 @@ cdef CSR from_coo_pointers(
                 acc_scatter(&acc, data_tmp[ptr_in], cols_tmp[ptr_in])
             ptr_prev = out.row_index[row]
             out.row_index[row] = ptr_out
-            ptr_out += acc_gather(&acc, out.data + ptr_out, out.col_index + ptr_out)
+            ptr_out += acc_gather(&acc, out.data + ptr_out, out.col_index + ptr_out, tol)
             acc_reset(&acc)
         out.row_index[n_rows] = ptr_out
     mem.PyMem_Free(data_tmp)

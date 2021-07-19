@@ -2,6 +2,7 @@
 
 from cpython cimport mem
 from libcpp.algorithm cimport sort
+from libc.math cimport fabs
 
 cdef extern from *:
     void *PyMem_Calloc(size_t n, size_t elsize)
@@ -83,7 +84,7 @@ cdef inline void acc_scatter(Accumulator *acc, double complex value, base.idxint
         acc._sorted &= acc.nnz == 0 or acc.nonzero[acc.nnz - 1] < position
         acc.nnz += 1
 
-cdef inline base.idxint acc_gather(Accumulator *acc, double complex *values, base.idxint *indices) nogil:
+cdef inline base.idxint acc_gather(Accumulator *acc, double complex *values, base.idxint *indices, double tol=0) nogil:
     """
     Copy all the accumulated values into this row into the output pointers.
     This will always output its values in sorted order.  The pointers should
@@ -103,7 +104,10 @@ cdef inline base.idxint acc_gather(Accumulator *acc, double complex *values, bas
     for i in range(acc.nnz):
         position = acc.nonzero[i]
         value = acc.values[position]
-        if value != 0:
+        if (
+            value != 0 and
+            (tol == 0 or fabs(value.real) >= tol or fabs(value.imag) >= tol)
+        ):
             values[nnz] = value
             indices[nnz] = position
             nnz += 1
@@ -154,4 +158,5 @@ cpdef CSR identity(base.idxint dimension, double complex scale=*)
 
 cpdef CSR from_dense(Dense matrix)
 cdef CSR from_coo_pointers(base.idxint *rows, base.idxint *cols, double complex *data,
-                           base.idxint n_rows, base.idxint n_cols, base.idxint nnz)
+                           base.idxint n_rows, base.idxint n_cols, base.idxint nnz,
+                           double tol=*)

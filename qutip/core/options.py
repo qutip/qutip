@@ -10,7 +10,7 @@ class CoreOptions:
     Options
     -------
     auto_tidyup : bool
-        use auto tidyup
+        Whether to tidyup during sparse operations.
 
     auto_tidyup_dims : boolTrue
         use auto tidyup dims on multiplication
@@ -21,8 +21,8 @@ class CoreOptions:
     atol : float {1e-12}
         general absolute tolerance
 
-    auto_tidyup_atol : float {1e-12}
-        use auto tidyup absolute tolerance
+    auto_tidyup_atol : float {1e-14}
+        The absolute tolerance used in automatic tidyup.
     """
     options = {
         # use auto tidyup
@@ -34,5 +34,5 @@ class CoreOptions:
         # general absolute tolerance
         "atol": 1e-12,
         # use auto tidyup absolute tolerance
-        "auto_tidyup_atol": 1e-12
+        "auto_tidyup_atol": 1e-14
     }

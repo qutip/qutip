@@ -9,6 +9,7 @@ cimport numpy as cnp
 
 from qutip.core.data cimport csr, dense, idxint, CSR, Dense, Data
 from qutip.core.data.base import idxint_dtype
+from qutip.settings import settings
 
 cnp.import_array()
 
@@ -94,6 +95,9 @@ cpdef CSR ptrace_csr(CSR matrix, object dims, object sel):
     cdef cnp.ndarray[double complex, ndim=1, mode='c'] new_data = np.zeros(nnz, dtype=complex)
     cdef cnp.ndarray[idxint, ndim=1, mode='c'] new_col = np.zeros(nnz, dtype=idxint_dtype)
     cdef cnp.ndarray[idxint, ndim=1, mode='c'] new_row = np.zeros(nnz, dtype=idxint_dtype)
+    cdef double tol = 0
+    if settings.core['auto_tidyup']:
+        tol = settings.core['auto_tidyup_atol']
     for row in range(matrix.shape[0]):
         for ptr in range(matrix.row_index[row], matrix.row_index[row + 1]):
             _i2_k_t(matrix.col_index[ptr], tensor_table, pos_c)
@@ -104,7 +108,7 @@ cpdef CSR ptrace_csr(CSR matrix, object dims, object sel):
                 new_col[p] = pos_c[0]
                 p += 1
     return csr.from_coo_pointers(&new_row[0], &new_col[0], &new_data[0],
-                                 size, size, p)
+                                 size, size, p, tol)
 
 
 cpdef Dense ptrace_csr_dense(CSR matrix, object dims, object sel):

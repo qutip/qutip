@@ -4,6 +4,7 @@ import scipy.sparse.linalg
 from .dense import Dense
 from .csr import CSR
 from .properties import isdiag_csr
+from qutip.settings import settings
 
 __all__ = [
     'expm', 'expm_csr', 'expm_csr_dense',
@@ -21,7 +22,8 @@ def expm_csr(matrix: CSR) -> CSR:
     # The scipy solvers for the Pade approximant are more efficient with the
     # CSC format than the CSR one.
     csc = matrix.as_scipy().tocsc()
-    return CSR(scipy.sparse.linalg.expm(csc).tocsr())
+    return CSR(scipy.sparse.linalg.expm(csc).tocsr(),
+               tidyup=settings.core['auto_tidyup'])
 
 
 def expm_csr_dense(matrix: CSR) -> Dense:
@@ -32,6 +34,7 @@ def expm_csr_dense(matrix: CSR) -> Dense:
 
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
+
 
 expm = _Dispatcher(
     _inspect.Signature([
