@@ -353,7 +353,7 @@ class Qobj:
             else:
                 self._data = _data.identity(size, scale=complex(arg))
         else:
-            self._data = _data.create(arg)
+            self._data = _data.create(arg, copy=copy)
             self.dims = dims or [[self._data.shape[0]], [self._data.shape[1]]]
 
     def __init__(self, arg=None, dims=None, type=None,
