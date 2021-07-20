@@ -382,16 +382,16 @@ def test_povm():
     M = [M_1, M_2, M_3]
 
     _, probabilities = measurement_statistics_povm(ket1, M)
-    np.testing.assert_allclose(probabilities, [0, 0.293, 0.707], 0.001)
+    np.testing.assert_allclose(probabilities, [0, 0.293, 0.707], atol=0.001)
 
     _, probabilities = measurement_statistics_povm(ket2, M)
-    np.testing.assert_allclose(probabilities, [0.293, 0, 0.707], 0.001)
+    np.testing.assert_allclose(probabilities, [0.293, 0, 0.707], atol=0.001)
 
     _, probabilities = measurement_statistics_povm(dm1, M)
-    np.testing.assert_allclose(probabilities, [0, 0.293, 0.707], 0.001)
+    np.testing.assert_allclose(probabilities, [0, 0.293, 0.707], atol=0.001)
 
     _, probabilities = measurement_statistics_povm(dm2, M)
-    np.testing.assert_allclose(probabilities, [0.293, 0, 0.707], 0.001)
+    np.testing.assert_allclose(probabilities, [0.293, 0, 0.707], atol=0.001)
 
 
 @pytest.mark.repeat(10)
