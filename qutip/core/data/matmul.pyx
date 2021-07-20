@@ -157,11 +157,11 @@ cpdef CSR matmul_csr(CSR left, CSR right, double complex scale=1, CSR out=None):
                         head = col_r
                         length += 1
             for col_r in range(length):
-                if (sums[head] != 0 and (
-                    tol == 0
-                    or fabs(sums[head].real) >= tol
-                    or fabs(sums[head].imag) >= tol
-                )):
+                if fabs(sums[head].real) < tol:
+                    sums[head].real = 0
+                if fabs(sums[head].imag) < tol:
+                    sums[head].imag = 0
+                if sums[head] != 0:
                     out.col_index[nnz] = head
                     out.data[nnz] = scale * sums[head]
                     nnz += 1

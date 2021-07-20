@@ -104,10 +104,11 @@ cdef inline base.idxint acc_gather(Accumulator *acc, double complex *values, bas
     for i in range(acc.nnz):
         position = acc.nonzero[i]
         value = acc.values[position]
-        if (
-            value != 0 and
-            (tol == 0 or fabs(value.real) >= tol or fabs(value.imag) >= tol)
-        ):
+        if fabs(value.real) < tol:
+            value.real = 0
+        if fabs(value.imag) < tol:
+            value.imag = 0
+        if value != 0:
             values[nnz] = value
             indices[nnz] = position
             nnz += 1
