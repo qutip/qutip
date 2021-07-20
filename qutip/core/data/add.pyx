@@ -41,7 +41,7 @@ cdef void _check_shape(Data left, Data right) nogil except *:
         )
 
 
-cdef idxint _add_csr(Accumulator *acc, CSR a, CSR b, CSR c) nogil:
+cdef idxint _add_csr(Accumulator *acc, CSR a, CSR b, CSR c, double tol) nogil:
     """
     Perform the operation
         c := a + b
@@ -52,10 +52,6 @@ cdef idxint _add_csr(Accumulator *acc, CSR a, CSR b, CSR c) nogil:
     """
     cdef idxint row, ptr_a, ptr_b, ptr_a_max, ptr_b_max, nnz=0, col_a, col_b
     cdef idxint ncols = a.shape[1]
-    cdef double tol
-    with gil:
-        if settings.core['auto_tidyup']:
-            tol = settings.core['auto_tidyup_atol']
     c.row_index[0] = nnz
     ptr_a_max = ptr_b_max = 0
     for row in range(a.shape[0]):
@@ -87,7 +83,8 @@ cdef idxint _add_csr(Accumulator *acc, CSR a, CSR b, CSR c) nogil:
     return nnz
 
 
-cdef idxint _add_csr_scale(Accumulator *acc, CSR a, CSR b, CSR c, double complex scale) nogil:
+cdef idxint _add_csr_scale(Accumulator *acc, CSR a, CSR b, CSR c,
+                           double complex scale, double tol) nogil:
     """
     Perform the operation
         c := a + scale*b
@@ -98,10 +95,6 @@ cdef idxint _add_csr_scale(Accumulator *acc, CSR a, CSR b, CSR c, double complex
     """
     cdef idxint row, ptr_a, ptr_b, ptr_a_max, ptr_b_max, nnz=0, col_a, col_b
     cdef idxint ncols = a.shape[1]
-    cdef double tol
-    with gil:
-        if settings.core['auto_tidyup']:
-            tol = settings.core['auto_tidyup_atol']
     c.row_index[0] = nnz
     ptr_a_max = ptr_b_max = 0
     for row in range(a.shape[0]):
@@ -155,6 +148,9 @@ cpdef CSR add_csr(CSR left, CSR right, double complex scale=1):
     cdef idxint i
     cdef CSR out
     cdef Accumulator acc
+    cdef double tol = 0
+    if settings.core['auto_tidyup']:
+        tol = settings.core['auto_tidyup_atol']
     # Fast paths for zero matrices.
     if right_nnz == 0 or scale == 0:
         return left.copy()
@@ -169,9 +165,9 @@ cpdef CSR add_csr(CSR left, CSR right, double complex scale=1):
     out = csr.empty(left.shape[0], left.shape[1], worst_nnz)
     acc = acc_alloc(left.shape[1])
     if scale == 1:
-        _add_csr(&acc, left, right, out)
+        _add_csr(&acc, left, right, out, tol)
     else:
-        _add_csr_scale(&acc, left, right, out, scale)
+        _add_csr_scale(&acc, left, right, out, scale, tol)
     acc_free(&acc)
     return out
 

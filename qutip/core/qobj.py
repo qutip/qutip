@@ -1032,7 +1032,7 @@ class Qobj:
         """
         norm = self.norm(norm=norm, kwargs=kwargs)
         if inplace:
-            _data.imul(self.data, 1/norm)
+            self.data /= norm
             self._isherm = self._isherm if norm.imag == 0 else None
             self._isunitary = (self._isunitary
                                if abs(norm) - 1 < settings.core['atol']
