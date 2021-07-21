@@ -20,6 +20,7 @@ from qutip import state_number_enumerate
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
 from qutip.superoperator import liouvillian, spre, spost, vec2mat
+from qutip.cy.heom import cy_pad_csr
 from qutip.cy.spmatfuncs import cy_ode_rhs
 from qutip.solver import Options, Result
 from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
@@ -160,7 +161,6 @@ class BosonicHEOMSolver(object):
         [time_independent_part, [H1, time_dep_function1],
         [H2, time_dep_function2]]
 
-
     coup_op : Qobj or list
         Operator describing the coupling between system and bath.
         Could also be a list of operators, which needs to be the same length
@@ -169,8 +169,30 @@ class BosonicHEOMSolver(object):
     ckAR, ckAI, vkAR, vkAI : lists
         Lists containing coefficients for fitting spectral density correlation
 
+        # Expand bath correlation function as prefactors times exponentials.
+        # ck - prefactors
+        # vk - frequency of the exponential
+        #
+        # ck * exp (-vk * t)
+        #
+        # ckAR * exp (-vkR * t) + i * ckAI * exp (-vkI * t)
+
     N_cut : int
-        Cutoff parameter for the bath
+        # The number of auxiliary density operators (ADO) to retain within the
+        # hierarchy.
+        #
+        # For each exponential in the speci ADO
+        #
+        # Cutoff parameter for the bath
+        #
+        # Number of operators kept in the hierarhcy.
+        #
+        # For each exponential we have a certain number of terms in the
+        # hierarchy.
+        #
+        # Total number of exponentials kept in the hierarchy.
+        #
+        # A bit like having total number of shared excitations.
 
     options : :class:`qutip.solver.Options`
         Generic solver options.
@@ -181,7 +203,7 @@ class BosonicHEOMSolver(object):
         self, H_sys, coup_op, ckAR, ckAI, vkAR, vkAI, N_cut, options=None
     ):
 
-        self.reset()
+        self._reset()
         if options is None:
             self.options = Options()
         else:
@@ -189,9 +211,9 @@ class BosonicHEOMSolver(object):
 
         self.progress_bar = BaseProgressBar()
         # set other attributes
-        self.configure(H_sys, coup_op, ckAR, ckAI, vkAR, vkAI, N_cut, options)
+        self._configure(H_sys, coup_op, ckAR, ckAI, vkAR, vkAI, N_cut, options)
 
-    def reset(self):
+    def _reset(self):
         """
         Reset any attributes to default values
         """
@@ -205,7 +227,7 @@ class BosonicHEOMSolver(object):
         self.options = None
         self.ode = None
 
-    def process_input(
+    def _process_input(
         self, H_sys, coup_op, ckAR, ckAI, vkAR, vkAI, N_cut, options=None
     ):
         """
@@ -405,13 +427,7 @@ class BosonicHEOMSolver(object):
 
         # Fill into larger L
         nidx = self.he2idx[he_n]
-        block = self.N ** 2
-        pos = int(nidx * block)
-        # indlist = np.array(list(range(pos, pos+block)))
-        # self.L_helems[indlist[:, None], indlist] += L
-        pos = int(nidx * (block))
-        L_he_temp = _pad_csr(L, self.nhe, self.nhe, nidx, nidx)
-        # self.L_helems[pos : pos + block, pos : pos + block] += L
+        L_he_temp = cy_pad_csr(L, self.nhe, self.nhe, nidx, nidx)
         self.L_helems += L_he_temp
 
     def boson_grad_prev(self, he_n, k, prev_he):
@@ -444,13 +460,7 @@ class BosonicHEOMSolver(object):
         # Fill in larger L
         rowidx = self.he2idx[he_n]
         colidx = self.he2idx[prev_he]
-        block = self.N ** 2
-
-        rowpos = int(rowidx * (block))
-        colpos = int(colidx * (block))
-        L_he_temp = _pad_csr(op1, self.nhe, self.nhe, rowidx, colidx)
-        # self.L_helems[rowpos : rowpos + block, colpos : colpos + block] \
-        #     += op1
+        L_he_temp = cy_pad_csr(op1, self.nhe, self.nhe, rowidx, colidx)
         self.L_helems += L_he_temp
 
     def boson_grad_next(self, he_n, k, next_he):
@@ -463,15 +473,7 @@ class BosonicHEOMSolver(object):
         # Fill in larger L
         rowidx = self.he2idx[he_n]
         colidx = self.he2idx[next_he]
-        block = self.N ** 2
-        rowpos = int(rowidx * (block))
-        colpos = int(colidx * (block))
-
-        rowpos = int(rowidx * (block))
-        colpos = int(colidx * (block))
-        L_he_temp = _pad_csr(op2, self.nhe, self.nhe, rowidx, colidx)
-        # self.L_helems[rowpos : rowpos + block, colpos : colpos + block] \
-        #     += op2
+        L_he_temp = cy_pad_csr(op2, self.nhe, self.nhe, rowidx, colidx)
         self.L_helems += L_he_temp
 
     def boson_rhs(self):
@@ -507,6 +509,8 @@ class BosonicHEOMSolver(object):
             factorial(self.N_cut + self.kcut)
             / (factorial(self.N_cut) * factorial(self.kcut))
         )
+        # TODO: Move this assert to the docstring too
+        assert total_nhe == nhe
 
         # Separate cases for Hamiltonian and Liouvillian
         if self.isHamiltonian:
@@ -548,7 +552,7 @@ class BosonicHEOMSolver(object):
         # return output
         return self.L_helems, self.nhe
 
-    def configure(
+    def _configure(
         self, H_sys, coup_op, ckAR, ckAI, vkAR, vkAI, N_cut, options=None
     ):
         """
@@ -565,25 +569,17 @@ class BosonicHEOMSolver(object):
 
         # Type checks the input and truncates exponents if necessary
 
-        self.process_input(
+        self._process_input(
             H_sys, coup_op, ckAR, ckAI, vkAR, vkAI, N_cut, options=None)
 
         # Sets variables locally for configuring solver
 
         options = self.options
         H = self.H_sys
-        Q = self.coup_op
-        Nc = self.N_cut
         ckAR = self.ckAR
         ckAI = self.ckAI
         vkAR = self.vkAR
         vkAI = self.vkAI
-        common_ck = self.common_ck
-        common_vk = self.common_vk
-        NR = self.NR
-        NI = self.NI
-        ck = self.ck
-        vk = self.vk
 
         # Passing data to bosonic solver
 
@@ -597,6 +593,8 @@ class BosonicHEOMSolver(object):
         if self.isTimeDep:
 
             solver_params = []
+            # TODO: Does the solver require a constant_func still or can
+            #       we just add [RHSmat]?
             constant_func = lambda x: 1.0
             h_identity_mat = sp.identity(nstates, format="csr")
             solver_params.append([RHSmat, constant_func])
@@ -679,9 +677,7 @@ class BosonicHEOMSolver(object):
         nstates = self.nhe
         sup_dim = self._sup_dim
         n = int(np.sqrt(sup_dim))
-        unit_h_elems = sp.identity(nstates, format="csr")
-        L = deepcopy(self.RHSmat)  # + sp.kron(unit_h_elems,
-        # liouvillian(H).data)
+        L = deepcopy(self.RHSmat)
 
         b_mat = np.zeros(sup_dim * nstates, dtype=complex)
         b_mat[0] = 1.0
@@ -690,9 +686,11 @@ class BosonicHEOMSolver(object):
         L[0, 0: n ** 2 * nstates] = 0.0
         L = L.tocsr()
 
+        # TODO: Replace with the standard QuTiP configuration options for MKL.
         if settings.has_mkl & use_mkl:
+            # TODO: Replace with logging?
             print("Using Intel mkl solver")
-            from qutip._mkl.spsolve import mkl_splu, mkl_spsolve
+            from qutip._mkl.spsolve import mkl_spsolve
 
             L = L.tocsr() + sp.csr_matrix((
                 np.ones(n),
@@ -862,7 +860,7 @@ class HSolverDL(BosonicHEOMSolver):
         self, H_sys, coup_op, coup_strength, temperature,
         N_cut, N_exp, cut_freq, bnd_cut_approx=False, options=None,
     ):
-        self.reset()
+        self._reset()
 
         if options is None:
             self.options = Options()
@@ -872,24 +870,24 @@ class HSolverDL(BosonicHEOMSolver):
         self.progress_bar = BaseProgressBar()
 
         # the other attributes will be set in the configure method
-        self.configure(
+        self._configure(
             H_sys, coup_op, coup_strength, temperature,
             N_cut, N_exp, cut_freq,
             bnd_cut_approx=bnd_cut_approx,
         )
 
-    def reset(self):
+    def _reset(self):
         """
         Reset any attributes to default values
         """
-        BosonicHEOMSolver.reset(self)
+        BosonicHEOMSolver._reset(self)
 
         self.coup_strength = 0.0
         self.cut_freq = 0.0
         self.temperature = 1.0
         self.N_exp = 2
 
-    def configure(
+    def _configure(
         self, H_sys, coup_op, coup_strength, temperature,
         N_cut, N_exp,  cut_freq,
         bnd_cut_approx=None, options=None
@@ -911,7 +909,6 @@ class HSolverDL(BosonicHEOMSolver):
             self.bnd_cut_approx = bnd_cut_approx
 
         options = self.options
-        progress_bar = self.progress_bar
 
         ckAR, ckAI, vkAR, vkAI = self._calc_matsubara_params()
 
@@ -944,7 +941,7 @@ class HSolverDL(BosonicHEOMSolver):
         NI = len(ckAI)
         Q2 = [Q for kk in range(NR+NI)]
 
-        BosonicHEOMSolver.configure(
+        BosonicHEOMSolver._configure(
             self, H_sys, Q2, ckAR, ckAI, vkAR, vkAI, N_cut, options
         )
 
@@ -1011,16 +1008,16 @@ class FermionicHEOMSolver(object):
     """
 
     def __init__(self, H_sys, coup_op, ck, vk, N_cut, options=None):
-        self.reset()
+        self._reset()
         if options is None:
             self.options = Options()
         else:
             self.options = options
         # set other attributes
-        self.configure(H_sys, coup_op, ck, vk, N_cut, options)
+        self._configure(H_sys, coup_op, ck, vk, N_cut, options)
         self.progress_bar = BaseProgressBar()
 
-    def reset(self):
+    def _reset(self):
         """
         Reset any attributes to default values
         """
@@ -1032,7 +1029,7 @@ class FermionicHEOMSolver(object):
         self.options = None
         self.ode = None
 
-    def process_input(self, H_sys, coup_op, ck, vk, N_cut, options=None):
+    def _process_input(self, H_sys, coup_op, ck, vk, N_cut, options=None):
         """
         Type-checks provided input
 
@@ -1115,18 +1112,13 @@ class FermionicHEOMSolver(object):
 
         # Fill into larger L
         nidx = self.he2idx[he_n]
-        block = self.N ** 2
-        pos = int(nidx * block)
-
-        L_he_temp = _pad_csr(L, self.nhe, self.nhe, nidx, nidx)
-        # self.L_helems[pos : pos + block, pos : pos + block] += L
+        L_he_temp = cy_pad_csr(L, self.nhe, self.nhe, nidx, nidx)
         self.L_helems += L_he_temp
 
     def fermion_grad_prev(self, he_n, k, prev_he, idx):
         """
         Get next gradient
         """
-        nk = he_n[k]
         ck = self.flat_ck
 
         # sign1 is based on number of excitations
@@ -1167,23 +1159,13 @@ class FermionicHEOMSolver(object):
         # Fill in larger L
         rowidx = self.he2idx[he_n]
         colidx = self.he2idx[prev_he]
-        block = self.N ** 2
-        rowpos = int(rowidx * block)
-        colpos = int(colidx * block)
-        L_he_temp = _pad_csr(op1, self.nhe, self.nhe, rowidx, colidx)
-
+        L_he_temp = cy_pad_csr(op1, self.nhe, self.nhe, rowidx, colidx)
         self.L_helems += L_he_temp
-
-        # self.L_helems[rowpos : rowpos + block, colpos : colpos + block] \
-        #     += op1
 
     def fermion_grad_next(self, he_n, k, next_he, idx):
         """
         Get next gradient
         """
-        # nk = he_n[k]
-        ck = self.flat_ck
-
         # sign1 is based on number of excitations
         # the finicky notation is explicit and correct
         norm_next = 1
@@ -1209,14 +1191,8 @@ class FermionicHEOMSolver(object):
         op2 = pref * ((self.spreQdag[k]) + (sign1 * self.spostQdag[k]))
         rowidx = self.he2idx[he_n]
         colidx = self.he2idx[next_he]
-        block = self.N ** 2
-        rowpos = int(rowidx * block)
-        colpos = int(colidx * block)
-        L_he_temp = _pad_csr(op2, self.nhe, self.nhe, rowidx, colidx)
-
+        L_he_temp = cy_pad_csr(op2, self.nhe, self.nhe, rowidx, colidx)
         self.L_helems += L_he_temp
-        # self.L_helems[rowpos : rowpos + block, colpos : colpos + block] \
-        #     += op2
 
     def fermion_rhs(self):
         """
@@ -1295,7 +1271,7 @@ class FermionicHEOMSolver(object):
         # return output
         return self.L_helems, self.nhe
 
-    def configure(self, H_sys, coup_op, ck, vk, N_cut, options=None):
+    def _configure(self, H_sys, coup_op, ck, vk, N_cut, options=None):
         """
         Configure the solver using the passed parameters
         The parameters are described in the class attributes, unless there
@@ -1308,16 +1284,14 @@ class FermionicHEOMSolver(object):
             If set to None the default options will be used
         """
         # Type check input
-        self.process_input(H_sys, coup_op, ck, vk, N_cut, options)
+        self._process_input(H_sys, coup_op, ck, vk, N_cut, options)
 
         # Setting variables locally
 
         options = self.options
         H = self.H_sys
-        Q = self.coup_op
         ck = self.ck
         vk = self.vk
-        Nc = self.N_cut
 
         self.len_list = [len(elem) for elem in ck]
         self.flat_ck = [elem for row in self.ck for elem in row]
@@ -1422,9 +1396,7 @@ class FermionicHEOMSolver(object):
         nstates = self.nhe
         sup_dim = self._sup_dim
         n = int(np.sqrt(sup_dim))
-        unit_h_elems = sp.identity(nstates, format="csr")
-        L = deepcopy(self.RHSmat)  # + sp.kron(unit_h_elems,
-        # liouvillian(H).data)
+        L = deepcopy(self.RHSmat)
 
         b_mat = np.zeros(sup_dim * nstates, dtype=complex)
         b_mat[0] = 1.0
@@ -1433,9 +1405,10 @@ class FermionicHEOMSolver(object):
         L[0, 0: n ** 2 * nstates] = 0.0
         L = L.tocsr()
 
+        # TODO: Use the usual QuTiP MKL configuration here
         if settings.has_mkl & use_mkl:
             print("Using Intel mkl solver")
-            from qutip._mkl.spsolve import mkl_splu, mkl_spsolve
+            from qutip._mkl.spsolve import mkl_spsolve
 
             L = L.tocsr() + sp.csr_matrix((
                 np.ones(n),
@@ -1578,56 +1551,3 @@ def _dsuper_list_td(t, y, L_list):
     for n in range(1, len(L_list)):
         L = L + L_list[n][0] * L_list[n][1](t)
     return L * y
-
-
-def _pad_csr(A, row_scale, col_scale, insertrow=0, insertcol=0):
-    """
-    Expand the input csr_matrix to a greater space as given by the scale.
-    Effectively inserting A into a larger matrix
-         zeros([A.shape[0]*row_scale, A.shape[1]*col_scale]
-    at the position [A.shape[0]*insertrow, A.shape[1]*insertcol]
-    The same could be achieved through using a kron with a matrix with
-    one element set to 1. However, this is more efficient
-    """
-
-    # ajgpitch 2016-03-08:
-    # Clearly this is a very simple operation in dense matrices
-    # It seems strange that there is nothing equivalent in sparse however,
-    # after much searching most threads suggest directly addressing
-    # the underlying arrays, as done here.
-    # This certainly proved more efficient than other methods such as stacking
-    # TODO: Perhaps cythonize and move to spmatfuncs
-
-    if not isinstance(A, sp.csr_matrix):
-        raise TypeError("First parameter must be a csr matrix")
-    nrowin = A.shape[0]
-    ncolin = A.shape[1]
-    nrowout = nrowin*row_scale
-    ncolout = ncolin*col_scale
-
-    A._shape = (nrowout, ncolout)
-    if insertcol == 0:
-        pass
-    elif insertcol > 0 and insertcol < col_scale:
-        A.indices = A.indices + insertcol*ncolin
-    else:
-        raise ValueError("insertcol must be >= 0 and < col_scale")
-
-    if insertrow == 0:
-        A.indptr = np.concatenate((
-            A.indptr, np.array([A.indptr[-1]]*(row_scale-1)*nrowin)
-        ))
-    elif insertrow == row_scale-1:
-        A.indptr = np.concatenate((
-            np.array([0] * (row_scale - 1) * nrowin), A.indptr
-        ))
-    elif insertrow > 0 and insertrow < row_scale - 1:
-        A.indptr = np.concatenate((
-            np.array([0] * insertrow * nrowin),
-            A.indptr,
-            np.array([A.indptr[-1]] * (row_scale - insertrow - 1) * nrowin)
-        ))
-    else:
-        raise ValueError("insertrow must be >= 0 and < row_scale")
-
-    return A
