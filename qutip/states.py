@@ -763,7 +763,7 @@ def state_number_enumerate(dims, excitations=None):
     while True:
         yield state
         idx = len(dims) - 1
-        state = state[:idx] + (state[idx]+1,) + state[idx+1:]
+        state = state[:idx] + (state[idx]+1,)
         nexc += 1
         while nexc > excitations or state[idx] >= dims[idx]:
             # remove all excitations in mode idx, add one in idx-1
