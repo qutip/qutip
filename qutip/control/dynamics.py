@@ -185,9 +185,7 @@ class Dynamics(object):
 
     oper_dtype : type
         Data type for internal dynamics generators, propagators and time
-        evolution operators. This can be ndarray or Qobj, or (in theory) any
-        other representaion that supports typical matrix methods (e.g. dot)
-        ndarray performs best for smaller quantum systems.
+        evolution operators. This can be ndarray or Qobj.
         Qobj may perform better for larger systems, and will also
         perform better when (custom) fidelity measures use Qobj methods
         such as partial trace.
@@ -386,7 +384,7 @@ class Dynamics(object):
         self.time_depend_ctrl_dyn_gen = False
         # These internal attributes will be of the internal operator data type
         # used to compute the evolution
-        # Note this maybe ndarray, Qobj or some other depending on oper_dtype
+        # This will be either ndarray or Qobj
         self._drift_dyn_gen = None
         self._ctrl_dyn_gen = None
         self._phased_ctrl_dyn_gen = None
@@ -684,7 +682,7 @@ class Dynamics(object):
             else:
                 ctrls = self.ctrl_dyn_gen
             for c in ctrls:
-               dg = dg + c
+                dg = dg + c
 
             N = dg.data.shape[0]
             n = dg.data.nnz
@@ -724,7 +722,9 @@ class Dynamics(object):
         self.sys_shape = self.initial.shape
         # Set the phase application method
         self._init_phase()
+
         self._set_memory_optimizations()
+
         n_ts = self.num_tslots
         n_ctrls = self.num_ctrls
         if self.oper_dtype == Qobj:
@@ -748,26 +748,10 @@ class Dynamics(object):
             else:
                 self._ctrl_dyn_gen = [ctrl.full()
                                         for ctrl in self.ctrl_dyn_gen]
-        elif self.oper_dtype == sp.csr_matrix:
-            self._initial = self.initial.data
-            self._target = self.target.data
-            if self.time_depend_drift:
-                self._drift_dyn_gen = [d.data for d in self.drift_dyn_gen]
-            else:
-                self._drift_dyn_gen = self.drift_dyn_gen.data
-
-            if self.time_depend_ctrl_dyn_gen:
-                self._ctrl_dyn_gen = np.empty([n_ts, n_ctrls], dtype=object)
-                for k in range(n_ts):
-                    for j in range(n_ctrls):
-                        self._ctrl_dyn_gen[k, j] = \
-                                    self.ctrl_dyn_gen[k, j].data
-            else:
-                self._ctrl_dyn_gen = [ctrl.data for ctrl in self.ctrl_dyn_gen]
         else:
-            logger.warn("Unknown option '{}' for oper_dtype. "
-                "Assuming that internal drift, ctrls, initial and target "
-                "have been set correctly".format(self.oper_dtype))
+            raise ValueError(
+                "Unknown oper_dtype {!r}. The oper_dtype may be qutip.Qobj or"
+                " numpy.ndarray.".format(self.oper_dtype))
 
         if self.cache_phased_dyn_gen:
             if self.time_depend_ctrl_dyn_gen:
@@ -1152,21 +1136,15 @@ class Dynamics(object):
                 self._onto_evo_target = Qobj(targ)
             elif self.oper_dtype == np.ndarray:
                 self._onto_evo_target = targ
-            elif self.oper_dtype == sp.csr_matrix:
-                self._onto_evo_target = sp.csr_matrix(targ)
             else:
-                targ_cls = self._target.__class__
-                self._onto_evo_target = targ_cls(targ)
+                assert False, f"Unknown oper_dtype {self.oper_dtype!r}"
         else:
             if self.oper_dtype == Qobj:
                 self._onto_evo_target = self.target.dag()
             elif self.oper_dtype == np.ndarray:
                 self._onto_evo_target = self.target.dag().full()
-            elif self.oper_dtype == sp.csr_matrix:
-                self._onto_evo_target = self.target.dag().data
             else:
-                targ_cls = self._target.__class__
-                self._onto_evo_target = targ_cls(self.target.dag().full())
+                assert False, f"Unknown oper_dtype {self.oper_dtype!r}"
 
         return self._onto_evo_target
 
@@ -1575,13 +1553,9 @@ class DynamicsUnitary(Dynamics):
             H = self._dyn_gen[k]
             # returns row vector of eigenvals, columns with the eigenvecs
             eig_val, eig_vec = eigh(H)
+
         else:
-            if sparse:
-                H = self._dyn_gen[k].toarray()
-            else:
-                H = self._dyn_gen[k]
-            # returns row vector of eigenvals, columns with the eigenvecs
-            eig_val, eig_vec = eigh(H)
+            assert False, f"Unknown oper_dtype {self.oper_dtype!r}"
 
         # assuming H is an nxn matrix, find n
         n = self.get_drift_dim()
@@ -1630,7 +1604,7 @@ class DynamicsUnitary(Dynamics):
             if self._dyn_gen_eigenvectors_adj is not None:
                 self._dyn_gen_eigenvectors_adj[k] = \
                             self._dyn_gen_eigenvectors[k].dag()
-        else:
+        elif self.oper_dtype == np.ndarray:
             self._prop_eigen[k] = np.diagflat(prop_eig)
             self._dyn_gen_eigenvectors[k] = eig_vec
             # The _dyn_gen_eigenvectors_adj list is not used in
@@ -1638,6 +1612,8 @@ class DynamicsUnitary(Dynamics):
             if self._dyn_gen_eigenvectors_adj is not None:
                 self._dyn_gen_eigenvectors_adj[k] = \
                             self._dyn_gen_eigenvectors[k].conj().T
+        else:
+            assert False, f"Unknown oper_dtype {self.oper_dtype!r}"
 
     def _get_dyn_gen_eigenvectors_adj(self, k):
         # The _dyn_gen_eigenvectors_adj list is not used in
@@ -1736,10 +1712,8 @@ class DynamicsSymplectic(Dynamics):
             if self.oper_dtype == Qobj:
                 self._omega = Qobj(omg, dims=self.dyn_dims)
                 self._omega_qobj = self._omega
-            elif self.oper_dtype == sp.csr_matrix:
-                self._omega = sp.csr_matrix(omg)
             else:
-                 self._omega = omg
+                self._omega = omg
         return self._omega
 
     def _set_phase_application(self, value):
