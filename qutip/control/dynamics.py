@@ -1139,7 +1139,8 @@ class Dynamics(object):
             #Target is operator
             targ = la.inv(self.target.full())
             if self.oper_dtype == Qobj:
-                self._onto_evo_target = Qobj(targ)
+                rev_dims = [self.target.dims[1], self.target.dims[0]]
+                self._onto_evo_target = Qobj(targ, dims=rev_dims)
             elif self.oper_dtype == np.ndarray:
                 self._onto_evo_target = targ
             else:
