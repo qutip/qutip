@@ -724,6 +724,12 @@ class Dynamics(object):
         self._init_phase()
 
         self._set_memory_optimizations()
+        if self.sparse_eigen_decomp and self.sys_shape[0] <= 2:
+            raise ValueError(
+                "Single qubit pulse optimization dynamics cannot use sparse"
+                " eigenvector decomposition because of limitations in"
+                " scipy.linalg.eigsh. Pleae set sparse_eigen_decomp to False"
+                " or increase the size of the system.")
 
         n_ts = self.num_tslots
         n_ctrls = self.num_ctrls
