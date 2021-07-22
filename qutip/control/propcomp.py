@@ -306,16 +306,11 @@ class PropCompAugMat(PropagatorComputer):
             E = dyn._get_phased_ctrl_dyn_gen(k, j).data*dyn.tau[k]
             Z = sp.csr_matrix(dg.data.shape)
             aug = Qobj(sp.vstack([sp.hstack([A, E]), sp.hstack([Z, A])]))
-        elif dyn.oper_dtype == np.ndarray:
+        else:
             A = dg*dyn.tau[k]
             E = dyn._get_phased_ctrl_dyn_gen(k, j)*dyn.tau[k]
             Z = np.zeros(dg.shape)
             aug = np.vstack([np.hstack([A, E]), np.hstack([Z, A])])
-        else:
-            A = dg*dyn.tau[k]
-            E = dyn._get_phased_ctrl_dyn_gen(k, j)*dyn.tau[k]
-            Z = dg*0.0
-            aug = sp.vstack([sp.hstack([A, E]), sp.hstack([Z, A])])
         return aug
 
     def _compute_prop_grad(self, k, j, compute_prop=True):
@@ -388,7 +383,7 @@ class PropCompFrechet(PropagatorComputer):
                 prop_grad_dense = la.expm_frechet(A, E, compute_expm=False)
                 prop_grad = Qobj(prop_grad_dense,
                                             dims=dyn.dyn_dims)
-        elif dyn.oper_dtype == np.ndarray:
+        else:
             A = dyn._get_phased_dyn_gen(k)*dyn.tau[k]
             E = dyn._get_phased_ctrl_dyn_gen(k, j)*dyn.tau[k]
             if compute_prop:
@@ -396,19 +391,6 @@ class PropCompFrechet(PropagatorComputer):
             else:
                 prop_grad = la.expm_frechet(A, E,
                                                     compute_expm=False)
-        else:
-            # Assuming some sparse matrix
-            spcls = dyn._dyn_gen[k].__class__
-            A = (dyn._get_phased_dyn_gen(k)*dyn.tau[k]).toarray()
-            E = (dyn._get_phased_ctrl_dyn_gen(k, j)*dyn.tau[k]).toarray()
-            if compute_prop:
-                prop_dense, prop_grad_dense = la.expm_frechet(A, E)
-                prop = spcls(prop_dense)
-                prop_grad = spcls(prop_grad_dense)
-            else:
-                prop_grad_dense = la.expm_frechet(A, E, compute_expm=False)
-                prop_grad = spcls(prop_grad_dense)
-
         if compute_prop:
             return prop, prop_grad
         else:
