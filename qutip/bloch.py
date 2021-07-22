@@ -111,7 +111,13 @@ class Bloch:
     def __init__(self, fig=None, axes=None, view=None, figsize=None,
                  background=False):
         # Figure and axes
+        self._ext_fig = False
+        if fig is not None:
+            self._ext_fig = True
         self.fig = fig
+        self._ext_axes = False
+        if axes is not None:
+            self._ext_axes = True
         self.axes = axes
         # Background axes, default = False
         self.background = background
@@ -178,8 +184,6 @@ class Bloch:
         # Style of points, 'm' for multiple colors, 's' for single color
         self.point_style = []
 
-        # status of rendering
-        self._rendered = False
         # status of showing
         if fig is None:
             self._shown = False
@@ -405,7 +409,7 @@ class Bloch:
         """
         Plots Bloch sphere and data sets.
         """
-        self.render(self.fig, self.axes)
+        self.render()
 
     def run_from_ipython(self):
         try:
@@ -414,20 +418,21 @@ class Bloch:
         except NameError:
             return False
 
-    def render(self, fig=None, axes=None):
+    def render(self):
         """
         Render the Bloch sphere and its data sets in on given figure and axes.
         """
-        if self._rendered:
-            self.axes.clear()
+        if not self._ext_fig:
+            if self.fig is not None and not plt.fignum_exists(self.fig.number):
+                # a previous call to .rander() created the figure, but the
+                # figure not longer exists so we trigger recreating it:
+                self.fig = None
+                self.axes = None
 
-        self._rendered = True
-
-        # Figure instance for Bloch sphere plot
-        if not fig:
+        if not self._ext_fig and self.fig is None:
             self.fig = plt.figure(figsize=self.figsize)
 
-        if not axes:
+        if not self._ext_axes and self.axes is None:
             self.axes = _axes3D(self.fig, azim=self.view[0],
                                 elev=self.view[1])
 
@@ -437,6 +442,7 @@ class Bloch:
             self.axes.set_ylim3d(-1.3, 1.3)
             self.axes.set_zlim3d(-1.3, 1.3)
         else:
+            self.axes.clear()
             self.plot_axes()
             self.axes.set_axis_off()
             self.axes.set_xlim3d(-0.7, 0.7)
@@ -454,6 +460,8 @@ class Bloch:
         self.plot_front()
         self.plot_axes_labels()
         self.plot_annotations()
+        # Trigger an update of the Bloch sphere if it is already shown:
+        self.fig.canvas.draw()
 
     def plot_back(self):
         # back half of sphere
@@ -623,7 +631,7 @@ class Bloch:
         """
         Display Bloch sphere and corresponding data sets.
         """
-        self.render(self.fig, self.axes)
+        self.render()
         if self.run_from_ipython():
             if self._shown:
                 display(self.fig)
@@ -653,7 +661,7 @@ class Bloch:
         File containing plot of Bloch sphere.
 
         """
-        self.render(self.fig, self.axes)
+        self.render()
         # Conditional variable for first argument to savefig
         # that is set in subsequent if-elses
         complete_path = ""
