@@ -329,6 +329,43 @@ def test_QobjMultiplication():
 
     assert q3 == q4
 
+# Allowed mul operations (scalar)
+@pytest.mark.parametrize("scalar",
+                         [2+2j,  np.array(2+2j), np.array([2+2j])],
+                         ["python_number",
+                          "scalar_like_array_shape_0",
+                          "scalar_like_array_shape_1"])
+def test_QobjMulValidScalar(scalar):
+    "Tests multiplication of Qobj times scalar."
+    data = np.array([[1, 2], [3, 4]])
+    q = qutip.Qobj(data)
+    expect = data*(2+2j)
+
+    # Check __mul__
+    result= q*scalar
+    assert np.all(result.full()==expect)
+
+    # Check __rmul__
+    result= scalar*q
+    assert np.all(result.full()==expect)
+
+# Not allowed mul operations.
+class NoComplexClass():
+    """Class without __complex__."""
+    pass
+
+@pytest.mark.parametrize("scalar",
+                         [NoComplexClass(), np.array([2j, 1]),],
+                         ids=["object_without_complex", "not_scalar_like_array"])
+def test_QobjMulNotValidScalar(scalar):
+    q1 = qutip.Qobj(np.array([[1, 2], [3, 4]]))
+
+    with pytest.raises(TypeError):
+        scalar * q1
+
+    with pytest.raises(TypeError):
+        q1 * scalar
+
 
 def test_QobjDivision():
     "qutip.Qobj division"
