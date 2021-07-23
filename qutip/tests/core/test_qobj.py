@@ -332,7 +332,7 @@ def test_QobjMultiplication():
 # Allowed mul operations (scalar)
 @pytest.mark.parametrize("scalar",
                          [2+2j,  np.array(2+2j), np.array([2+2j])],
-                         ["python_number",
+                         ids=["python_number",
                           "scalar_like_array_shape_0",
                           "scalar_like_array_shape_1"])
 def test_QobjMulValidScalar(scalar):
