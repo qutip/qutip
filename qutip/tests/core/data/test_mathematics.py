@@ -91,11 +91,13 @@ def shapes_binary_bad_matmul(dim=100):
         if x.values[0][1] != y.values[0][0]
     ]
 
+
 def shapes_square(dim=100):
     return [
         (pytest.param((1, 1), id="1"),),
         (pytest.param((dim, dim), id="100"),),
     ]
+
 
 def shapes_bad_square(dim=100):
     return [
@@ -779,6 +781,7 @@ class TestTrace(UnaryOpMixin):
         with pytest.raises(ValueError):
             op(data_m())
 
+
 class TestPow(UnaryOpMixin):
     def op_numpy(self, matrix, n):
         return np.linalg.matrix_power(matrix, n)
@@ -789,7 +792,7 @@ class TestPow(UnaryOpMixin):
         pytest.param(data.pow_csr, CSR, CSR),
     ]
 
-    @pytest.mark.parametrize("n",[1,10], ids=["n_1", "n_10"])
+    @pytest.mark.parametrize("n", [1, 10], ids=["n_1", "n_10"])
     def test_mathematically_correct(self, op, data_m, out_type, n):
         matrix = data_m()
         expected = self.op_numpy(matrix.to_array(), n)
@@ -815,6 +818,7 @@ class TestPow(UnaryOpMixin):
         """
         with pytest.raises(ValueError):
             op(data_m(), 10)
+
 
 class TestTranspose(UnaryOpMixin):
     def op_numpy(self, matrix):
