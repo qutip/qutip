@@ -95,13 +95,13 @@ def shapes_binary_bad_matmul(dim=100):
 def shapes_square(dim=100):
     return [
         (pytest.param((1, 1), id="1"),),
-        (pytest.param((dim, dim), id="100"),),
+        (pytest.param((dim, dim), id=str(dim)),),
     ]
 
 
 def shapes_bad_square(dim=100):
     return [
-        (x,) for x in shapes_unary() if x.values[0][0] != x.values[0][1]
+        (x,) for x in shapes_unary(dim) if x.values[0][0] != x.values[0][1]
     ]
 
 # Set up the special cases for each type of matrix that will be tested.  These
