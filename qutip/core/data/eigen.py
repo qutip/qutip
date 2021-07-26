@@ -280,8 +280,9 @@ eigs.__doc__ =\
         Whether the eigenvectors should be returned as well.
     sort : {'low', 'high'}, optional
         Sort the output of the eigenvalues and -vectors ordered by the relevant
-        size of the real part of the eigenvalue.  If not all of the eigenvalues
-        are requested, this influences which eigenvalues will be found.
+        size of the real part of the eigenvalue from 'low' to high or from
+        'high' to low.  If not all of the eigenvalues are requested, this
+        influences which eigenvalues will be found.
     eigvals : int, optional
         Number of eigenvalues and -vectors to return.  If `0`, then returns
         all.
