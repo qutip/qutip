@@ -51,9 +51,10 @@ from . import data as _data
 
 
 class _reverse_partial_tensor:
-    # Picklable lambda op: tensor(op, right)
+    """ Picklable lambda op: tensor(op, right) """
     def __init__(self, right):
         self.right = right
+
     def __call__(self, op):
         return tensor(op, self.right)
 

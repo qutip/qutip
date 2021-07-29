@@ -631,12 +631,16 @@ cdef class QobjEvo:
 
     def compress(self):
         """
-        Look for redundance in the QobjEvo components, then merge them.
+        Look for redundance in the QobjEvo components:
+
+        Constant parts, (:class:`~Qobj` without :class:`~Coefficient`) will be
+        summed.
+        Pairs ``[Qobj, Coefficient]`` with the same :class:`~Qobj` are merged.
 
         Example:
-        `[[sigmax(), f1], [sigmax(), f2]]` -> `[[sigmax(), f1+f2]]`
+        ``[[sigmax(), f1], [sigmax(), f2]]``` -> ``[[sigmax(), f1+f2]]``
 
-        The `QobjEvo` is transformed inplace.
+        The :class:`~QobjEvo` is transformed inplace.
 
         Returns
         -------
@@ -779,6 +783,7 @@ cdef class QobjEvo:
                 part_data = part.data(t)
                 out += coeff * expect_super_data_dense(part_data, state)
             if state.fortran:
+                # if fortran, state was reshaped inplace, so we revert it.
                 column_unstack_dense(state, nrow, inplace=state.fortran)
         else:
             for element in self.elements:

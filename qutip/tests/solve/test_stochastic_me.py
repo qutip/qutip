@@ -268,10 +268,10 @@ def test_general_stochastic():
         out = []
         vec_d = _data.Dense(vec)
         for op in sc_opsM:
-
+            scale = -op.expect_data(t,vec_d)
             out.append(
                 _data.add(op.matmul_data(t,vec_d),
-                          vec_d, -op.expect_data(t,vec_d))
+                          vec_d, scale)
                 )
         return np.stack([o.to_array().ravel() for o in out])
 

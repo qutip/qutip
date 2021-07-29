@@ -51,6 +51,7 @@ def _map_over_compound_operators(f):
     """
     @functools.wraps(f)
     def out(qobj):
+        # To avoid circular dependencies
         from .cy.qobjevo import QobjEvo
         if isinstance(qobj, QobjEvo):
             return qobj.linear_map(f, _skip_check=True)
@@ -82,7 +83,16 @@ def liouvillian(H=None, c_ops=None, data_only=False, chi=None):
         Liouvillian superoperator.
 
     """
+    # To avoid circular dependencies
     from .cy.qobjevo import QobjEvo
+    if (
+        data_only
+        and (isinstance(H, QobjEvo)
+             or any(isinstance(op, QobjEvo) for op in c_ops))
+    ):
+        raise ValueError("Cannot return the data object when computing the"
+                         " liouvillian with QobjEvo")
+
     c_ops = c_ops or []
     if isinstance(c_ops, (Qobj, QobjEvo)):
         c_ops = [c_ops]
@@ -97,7 +107,7 @@ def liouvillian(H=None, c_ops=None, data_only=False, chi=None):
                              " and/or c_ops")
         out = sum(lindblad_dissipator(c_op, chi=chi_)
                   for c_op, chi_ in zip(c_ops, chi))
-        return out.data if isinstance(out, Qobj) and data_only else out
+        return out.data if data_only else out
     elif not H.isoper:
         raise TypeError("Invalid type for Hamiltonian.")
 
@@ -155,13 +165,17 @@ def lindblad_dissipator(a, b=None, data_only=False, chi=None):
 
     data_only :  bool [False]
         Return the data object instead of a Qobj
-
+        
     Returns
     -------
     D : qobj, QobjEvo
         Lindblad dissipator superoperator.
     """
+    # To avoid circular dependencies
     from .cy.qobjevo import QobjEvo
+    if data_only and (isinstance(a, QobjEvo) or isinstance(b, QobjEvo)):
+        raise ValueError("Cannot return the data object when computing the"
+                         " collapse of a QobjEvo")
     if b is None:
         b = a
     ad_b = a.dag() * b
@@ -174,8 +188,6 @@ def lindblad_dissipator(a, b=None, data_only=False, chi=None):
     else:
         D = spre(a) * spost(b.dag()) - 0.5 * spre(ad_b) - 0.5 * spost(ad_b)
 
-    if isinstance(a, QobjEvo) or isinstance(b, QobjEvo):
-        return D
     return D.data if data_only else D
 
 
@@ -343,6 +355,7 @@ def sprepost(A, B):
     super : Qobj or QobjEvo
         Superoperator formed from input quantum objects.
     """
+    # To avoid circular dependencies
     from .cy.qobjevo import QobjEvo
     if (isinstance(A, QobjEvo) or isinstance(B, QobjEvo)):
         return spre(A) * spost(B)

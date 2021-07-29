@@ -276,7 +276,7 @@ class _MC():
         ss.col_args = var
         for c in c_ops:
             cevo = QobjEvo(c, args, tlist=tlist)
-            cdc = cevo.dag() * cevo
+            cdc = cevo.dag() @ cevo
             ss.td_c_ops.append(cevo)
             ss.td_n_ops.append(cdc)
 
@@ -637,7 +637,7 @@ class _MC():
         H_ = H.copy()
         H_ *= -1j
         for c in c_ops:
-            H_ += -0.5 * c.dag() * c
+            H_ += -0.5 * c.dag() @ c
 
         w, v = np.linalg.eig(H_.full())
         arg = np.argsort(np.abs(w))
@@ -648,7 +648,7 @@ class _MC():
         for c in c_ops:
             c_diag = Qobj(Ud @ c.full() @ U, dims=c.dims)
             cevo = QobjEvo(c_diag)
-            cdc = cevo * cevo.dag()
+            cdc = cevo @ cevo.dag()
             ss.td_c_ops.append(cevo)
             ss.td_n_ops.append(cdc)
 
