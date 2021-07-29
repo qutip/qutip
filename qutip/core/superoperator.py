@@ -77,6 +77,14 @@ def liouvillian(H=None, c_ops=None, data_only=False, chi=None):
     data_only :  bool [False]
         Return the data object instead of a Qobj
 
+    chi : array_like of float [None]
+        In some systems it is possible to determine the statistical moments (mean, variance, etc) of the
+        probability distributions of occupation of various states by numerically evaluating the derivatives
+        of the steady state occupation probability as a function of artificial phase parameters ``chi``
+        which are included in the :func:`lindblad_dissipator` for each collapse operator. See
+        the documentation of :func:`lindblad_dissipator` for references and further details.
+        This parameter is deprecated and may be removed in QuTiP 5.
+
     Returns
     -------
     L : Qobj or QobjEvo
@@ -162,6 +170,16 @@ def lindblad_dissipator(a, b=None, data_only=False, chi=None):
 
     b : Qobj or QobjEvo (optional)
         Right part of collapse operator. If not specified, b defaults to a.
+
+    chi : float [None]
+        In some systems it is possible to determine the statistical moments (mean, variance, etc) of the
+        probability distribution of the occupation numbers of states by numerically evaluating the derivatives
+        of the steady state occupation probability as a function of an artificial phase parameter ``chi``
+        which multiplies the ``a \\rho a^dagger`` term of the dissipator by ``e ^ (i * chi)``. The factor ``e ^ (i * chi)``
+        is introduced via the generating function of the statistical moments. For examples of the technique,
+        see `Full counting statistics of nano-electromechanical systems <https://arxiv.org/abs/cond-mat/0410322>`_
+        and `Photon-mediated electron transport in hybrid circuit-QED <https://arxiv.org/abs/1303.7449>`_.
+        This parameter is deprecated and may be removed in QuTiP 5.
 
     data_only :  bool [False]
         Return the data object instead of a Qobj
