@@ -105,8 +105,8 @@ shape = [4, 4], type = oper, isHerm = True
             return right.linear_map(partial(tensor, left))
         if isinstance(right, Qobj):
             return left.linear_map(_reverse_partial_tensor(right))
-        left_t = left.linear_map(_reverse_partial_tensor(qeye(right.dims[1])))
-        right_t = right.linear_map(partial(tensor, qeye(left.dims[0])))
+        left_t = left.linear_map(_reverse_partial_tensor(qeye(right.dims[0])))
+        right_t = right.linear_map(partial(tensor, qeye(left.dims[1])))
         return left_t @ right_t
 
     if not all(q.superrep == args[0].superrep for q in args[1:]):
