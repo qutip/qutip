@@ -29,7 +29,7 @@ class TestExpect(BinaryOpMixin):
         (_op, _ket),
         (_op, _dm),
     ]
-    bad_shapes = list(product([_not_op], [_ket, _dm]))  # Bad op
+    bad_shapes = list(product(_not_op, [_ket, _dm]))  # Bad op
     bad_shapes += [
         (_op, _nonsquare),
         (_op, _bra),
