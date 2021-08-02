@@ -532,7 +532,7 @@ class Drift():
         full_tlist: array-like 1d
             The full time sequence for the nosiy evolution.
         """
-        return []
+        return None
 
 
 def _find_common_tlist(qobjevo_list):
