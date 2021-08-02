@@ -768,7 +768,8 @@ cdef class QobjEvo:
         return out
 
     cdef double complex _expect_dense(QobjEvo self, double t, Dense state):
-        "For Dense state, `column_stack_dense` can be done inplace."
+        """For Dense state, `column_stack_dense` can be done inplace if in
+        fortran format."""
         cdef size_t nrow = state.shape[0]
         cdef _BaseElement part
         cdef double complex out = 0., coeff
@@ -783,7 +784,7 @@ cdef class QobjEvo:
                 part_data = part.data(t)
                 out += coeff * expect_super_data_dense(part_data, state)
             if state.fortran:
-                # if fortran, state was reshaped inplace, so we revert it.
+                # `state` was reshaped inplace, restore it's original shape
                 column_unstack_dense(state, nrow, inplace=state.fortran)
         else:
             for element in self.elements:
