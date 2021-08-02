@@ -551,8 +551,12 @@ class Processor(object):
 
     def tlist(self, noisy):
         """
-        Get the merged tlist of all pulses.
-
+        Return the merged tlist of all the pulses.
+        
+        Parameters
+        ----------
+        noisy: bool, optional
+            If noise should be included. Default is False.
         """
         if not noisy:
             dynamics = self.pulses
