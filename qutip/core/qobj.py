@@ -377,7 +377,7 @@ class Qobj:
                     repr(self._data.shape[0]),
                 ]))
             self.dims = [[[root]]*2]*2
-        if self.type == 'super':
+        if self.type in ['super', 'operator-ket', 'operator-bra']:
             superrep = superrep or 'super'
         self.superrep = superrep
 
@@ -507,7 +507,7 @@ class Qobj:
                 " and ",
                 repr(other.dims),
             ]))
-        if self.issuper and other.issuper and self.superrep != other.superrep:
+        if self.superrep != other.superrep:
             raise TypeError("".join([
                 "incompatible superoperator representations ",
                 repr(self.superrep),

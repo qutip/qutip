@@ -4,6 +4,13 @@ from scipy import sparse
 from qutip import data
 
 
+def test_init_empty_data():
+    shape = (3, 3)
+    base_data = data.Data(shape)
+    assert base_data.shape[0] == shape[0]
+    assert base_data.shape[1] == shape[1]
+
+
 @pytest.mark.parametrize(['base', 'dtype'], [
     pytest.param(data.dense.zeros(2, 2), data.Dense, id='data.Dense'),
     pytest.param(data.csr.zeros(2, 2), data.CSR, id='data.CSR'),
