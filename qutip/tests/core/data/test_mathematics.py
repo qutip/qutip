@@ -93,13 +93,17 @@ def shapes_binary_bad_matmul(dim=100):
 
 
 def shapes_square(dim=100):
+    """Allowed shapes for operations that require square matrices. Examples of
+    these operations are trace, pow, expm and the trace norm."""
     return [
         (pytest.param((1, 1), id="1"),),
         (pytest.param((dim, dim), id=str(dim)),),
     ]
 
 
-def shapes_bad_square(dim=100):
+def shapes_not_square(dim=100):
+    """Disallowed shapes for operations that require square matrices. Examples of
+    these operations are trace, pow, expm and the trace norm."""
     return [
         (x,) for x in shapes_unary(dim) if x.values[0][0] != x.values[0][1]
     ]
@@ -766,7 +770,7 @@ class TestTrace(UnaryOpMixin):
         return np.sum(np.diag(matrix))
 
     shapes = shapes_square()
-    bad_shapes = shapes_bad_square()
+    bad_shapes = shapes_not_square()
     specialisations = [
         pytest.param(data.trace_csr, CSR, complex),
         pytest.param(data.trace_dense, Dense, complex),
@@ -787,7 +791,7 @@ class TestPow(UnaryOpMixin):
         return np.linalg.matrix_power(matrix, n)
 
     shapes = shapes_square()
-    bad_shapes = shapes_bad_square()
+    bad_shapes = shapes_not_square()
     specialisations = [
         pytest.param(data.pow_csr, CSR, CSR),
     ]
