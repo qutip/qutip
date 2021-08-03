@@ -188,7 +188,8 @@ cdef class KwFunctionCoefficient(Coefficient):
             if parameters[key].kind is inspect._ParameterKind.POSITIONAL_ONLY:
                 raise TypeError("Positional parameters are not supported")
             if parameters[key].kind is inspect._ParameterKind.VAR_KEYWORD:
-                continue
+                self.args = args
+                break
             if key in args:
                 self.args[key] = args[key]
             elif parameters[key].default != inspect._empty:

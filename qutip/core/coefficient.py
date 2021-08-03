@@ -9,6 +9,7 @@ import glob
 import importlib
 import shutil
 import numbers
+import inspect
 from contextlib import contextmanager
 from collections import defaultdict
 from setuptools import setup, Extension
@@ -28,6 +29,7 @@ from .cy.coefficient import (InterpolateCoefficient, InterCoefficient,
                              ConjCoefficient, NormCoefficient,
                              ShiftCoefficient, StrFunctionCoefficient,
                              Coefficient)
+from qutip.settings import settings
 
 
 __all__ = ["coefficient", "CompilationOptions", "Coefficient",
@@ -104,13 +106,11 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
         return coeff_from_str(base, args, args_ctypes, compile_opt)
 
     elif callable(base):
-        try:
-            # Try f(t, args)
-            base(0, args)
+        if _read_callable_signature(func):
+            op = KwFunctionCoefficient(base, args.copy())
+        else:
             op = FunctionCoefficient(base, args.copy())
-        except TypeError:
-            # Fallback on f(t, args)
-            op = KwFunctionCoefficient(base, args)
+
         if not isinstance(op(0), numbers.Number):
             raise TypeError("The coefficient function must return a number")
         return op
@@ -134,6 +134,38 @@ def shift(coeff, _t0=0):
     """ return a Coefficient in which t is shifted by _t0.
     """
     return ShiftCoefficient(coeff, _t0)
+
+
+def _read_callable_signature(func, args):
+    """
+    Read the callable signature and redirect it to :class:`FunctionCoefficient`
+    or :class:`KwFunctionCoefficient`.
+
+    Return the appropriate class
+
+    :class:`FunctionCoefficient` support callable with the signature
+    ``f(t : float, args : dict) -> Qobj`` previously required in Qutip.
+
+    :class:`KwFunctionCoefficient` support any callable that can be called with
+    ``f(t, **args)``.
+    """
+    parameters = inspect.signature(func).parameters
+    if len(parameters) != 2:
+        # f(t, args) always has 2 parameters => KwFunctionCoefficient
+        return True
+    name2nd = list(parameters)[1]
+    if parameters[name2nd].kind is _ParameterKind.VAR_KEYWORD:
+        # The signature is f(t, **kwargs) => KwFunctionCoefficient
+        return True
+    if parameters[name2nd] not in args:
+        # Calling f(t, **kwargs) will raise TypeError
+        return False
+    # We are left with ``f(t, a), {'a':...}`` so we expect
+    # a KwFunctionCoefficient but the function could still be something
+    # like ``lambda t, a: a['a']``. There is no clean way to determine it:
+    # ``lambda t, a: t if t<1 else f(a)`` would break any test we can do...
+    # Defer to a global setting.
+    return settings.core['new_coefficients_signature']
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
