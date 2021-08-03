@@ -802,17 +802,9 @@ class TestPow(UnaryOpMixin):
         expected = self.op_numpy(matrix.to_array(), n)
         test = op(matrix, n)
         assert isinstance(test, out_type)
-        if issubclass(out_type, Data):
-            assert test.shape == expected.shape
-            np.testing.assert_allclose(test.to_array(), expected,
-                                       atol=self.tol)
-        elif out_type is list:
-            for test_, expected_ in zip(test, expected):
-                assert test_.shape == expected_.shape
-                np.testing.assert_allclose(test_.to_array(),
-                                           expected_, atol=self.tol)
-        else:
-            assert abs(test - expected) < self.tol
+        assert test.shape == expected.shape
+        np.testing.assert_allclose(test.to_array(), expected,
+                                   atol=self.tol)
 
     # Pow actually does have bad shape, so we put that in too.
     def test_incorrect_shape_raises(self, op, data_m):
