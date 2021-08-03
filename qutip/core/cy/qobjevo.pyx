@@ -5,7 +5,6 @@ import numpy as np
 import numbers
 import itertools
 from functools import partial
-from cpython.exc cimport PyErr_CheckSignals
 
 import qutip
 from .. import Qobj
