@@ -92,6 +92,22 @@ def shapes_binary_bad_matmul(dim=100):
     ]
 
 
+def shapes_square(dim=100):
+    """Allowed shapes for operations that require square matrices. Examples of
+    these operations are trace, pow, expm and the trace norm."""
+    return [
+        (pytest.param((1, 1), id="1"),),
+        (pytest.param((dim, dim), id=str(dim)),),
+    ]
+
+
+def shapes_not_square(dim=100):
+    """Disallowed shapes for operations that require square matrices. Examples of
+    these operations are trace, pow, expm and the trace norm."""
+    return [
+        (x,) for x in shapes_unary(dim) if x.values[0][0] != x.values[0][1]
+    ]
+
 # Set up the special cases for each type of matrix that will be tested.  These
 # should be kept low, because mathematical operations will test a Cartesian
 # product of all the cases of the same order as the operation, which can get
@@ -753,13 +769,8 @@ class TestTrace(UnaryOpMixin):
     def op_numpy(self, matrix):
         return np.sum(np.diag(matrix))
 
-    shapes = [
-        (pytest.param((1, 1), id="1"),),
-        (pytest.param((100, 100), id="100"),),
-    ]
-    bad_shapes = [
-        (x,) for x in shapes_unary() if x.values[0][0] != x.values[0][1]
-    ]
+    shapes = shapes_square()
+    bad_shapes = shapes_not_square()
     specialisations = [
         pytest.param(data.trace_csr, CSR, complex),
         pytest.param(data.trace_dense, Dense, complex),
@@ -773,6 +784,36 @@ class TestTrace(UnaryOpMixin):
         """
         with pytest.raises(ValueError):
             op(data_m())
+
+
+class TestPow(UnaryOpMixin):
+    def op_numpy(self, matrix, n):
+        return np.linalg.matrix_power(matrix, n)
+
+    shapes = shapes_square()
+    bad_shapes = shapes_not_square()
+    specialisations = [
+        pytest.param(data.pow_csr, CSR, CSR),
+    ]
+
+    @pytest.mark.parametrize("n", [1, 10], ids=["n_1", "n_10"])
+    def test_mathematically_correct(self, op, data_m, out_type, n):
+        matrix = data_m()
+        expected = self.op_numpy(matrix.to_array(), n)
+        test = op(matrix, n)
+        assert isinstance(test, out_type)
+        assert test.shape == expected.shape
+        np.testing.assert_allclose(test.to_array(), expected,
+                                   atol=self.tol)
+
+    # Pow actually does have bad shape, so we put that in too.
+    def test_incorrect_shape_raises(self, op, data_m):
+        """
+        Test that the operation produces a suitable error if the shape is not a
+        square matrix.
+        """
+        with pytest.raises(ValueError):
+            op(data_m(), 10)
 
 
 class TestTranspose(UnaryOpMixin):

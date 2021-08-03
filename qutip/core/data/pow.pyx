@@ -16,7 +16,7 @@ __all__ = [
 @cython.cdivision(True)
 cpdef CSR pow_csr(CSR matrix, unsigned long long n):
     if matrix.shape[0] != matrix.shape[1]:
-        raise TypeError("matrix power only works with square matrices")
+        raise ValueError("matrix power only works with square matrices")
     if n == 0:
         return csr.identity(matrix.shape[0])
     if n == 1:
