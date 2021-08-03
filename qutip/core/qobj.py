@@ -480,17 +480,25 @@ class Qobj:
         if isinstance(other, Qobj):
             return self.__matmul__(other)
 
+        # We send other to mul instead of complex(other) to be more flexible. 
+        # The dispatcher can then decide how to handle other and return 
+        # TypeError if it does not know what to do with the type of other.
         try:
-            multiplier = complex(other)
+            out = _data.mul(self._data, other)
         except TypeError:
             return NotImplemented
 
-        isherm = (self._isherm and multiplier.imag == 0) or None
-        isunitary = (self._isunitary and abs(multiplier) == 1) or None
+        # Infer isherm and isunitary if possible
+        try:
+            multiplier = complex(other)
+            isherm = (self._isherm and multiplier.imag == 0) or None
+            isunitary = (self._isunitary and abs(multiplier) == 1) or None
+        except TypeError:
+            isherm = None
+            isunitary = None
 
-        # We send other to mul instead of multiplier to be more flexible. The
-        # dispatcher can then decide how to handle other.
-        return Qobj(_data.mul(self._data, other),
+
+        return Qobj(out,
                     dims=self.dims,
                     type=self.type,
                     superrep=self.superrep,
