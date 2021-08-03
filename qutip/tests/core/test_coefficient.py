@@ -39,7 +39,8 @@ from qutip.core.coefficient import (coefficient, norm, conj, shift,
                                     CompilationOptions,
                                     clean_compiled_coefficient
                                    )
-
+from qutip.core.cy.coefficient import (KwFunctionCoefficient,
+                                       FunctionCoefficient)
 
 # Ensure the latest version is tested
 clean_compiled_coefficient(True)
@@ -154,6 +155,55 @@ def test_CoeffCreationCall(base, kwargs, tol):
     expected = lambda t: np.exp(1j * t * np.pi)
     coeff = coefficient(base, **kwargs, compile_opt=opt)
     _assert_eq_over_interval(coeff, expected, rtol=tol, inside=True)
+
+
+class _cls:
+    def f(self, t):
+        return t
+
+    def f_2_par(self, t, w1=1):
+        return t * w1
+
+    def f_3_par(self, t, w1, w2=1):
+        return t * w1 * w2
+
+
+@pytest.mark.parametrize(['base', 'type_'], [
+    pytest.param(lambda t: t, KwFunctionCoefficient,
+                 id="new_t_only"),
+    pytest.param(_cls().f, KwFunctionCoefficient,
+                 id="method"),
+    pytest.param(lambda t, _: t, FunctionCoefficient,
+                 id="old_t_only"),
+    pytest.param(lambda t, args: t * args['a'], FunctionCoefficient,
+                 id="old"),
+    pytest.param(lambda t, **args: t * args['a'], KwFunctionCoefficient,
+                 id="2_parameter_kwargs"),
+    pytest.param(lambda t, w1=1: t*w1, KwFunctionCoefficient,
+                 id="2_parameter_default"),
+    pytest.param(lambda t, w2=1: t*w2, KwFunctionCoefficient,
+                 id="2_parameter_default_unknown"),
+    pytest.param(lambda t, *, w1: t, KwFunctionCoefficient,
+                 id="2_parameter_kwonly"),
+    pytest.param(lambda t, a, /: t, FunctionCoefficient,
+                 id="2_parameter_position_only"),
+    pytest.param(_cls().f_2_par, KwFunctionCoefficient,
+                 id="2_parameter_method"),
+    pytest.param(lambda t, a, w1: t*a*w1, KwFunctionCoefficient,
+                 id="3_parameter"),
+    pytest.param(lambda t, w1, **args: t * w1 * args['a'],
+                 KwFunctionCoefficient, id="3_parameter_&kwargs"),
+    pytest.param(lambda t, w2=1, **args: t * w2 * args['a'],
+                 KwFunctionCoefficient, id="kwargs&default"),
+    pytest.param(lambda t, a, w2=2: t,
+                 KwFunctionCoefficient, id="3_parameter_default"),
+    pytest.param(_cls().f_2_par, KwFunctionCoefficient,
+                 id="3_parameter_method"),
+])
+def test_callable_signatures(base, type_):
+    args = {'a': 2, 'w1': 3}
+    coeff = coefficient(base, args=args)
+    assert isinstance(coeff, type_)
 
 
 @pytest.mark.parametrize(['base', 'kwargs', 'tol'], [

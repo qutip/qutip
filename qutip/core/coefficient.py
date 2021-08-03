@@ -106,7 +106,7 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
         return coeff_from_str(base, args, args_ctypes, compile_opt)
 
     elif callable(base):
-        if _read_callable_signature(func):
+        if _read_callable_signature(base, args):
             op = KwFunctionCoefficient(base, args.copy())
         else:
             op = FunctionCoefficient(base, args.copy())
@@ -154,16 +154,25 @@ def _read_callable_signature(func, args):
         # f(t, args) always has 2 parameters => KwFunctionCoefficient
         return True
     name2nd = list(parameters)[1]
-    if parameters[name2nd].kind is _ParameterKind.VAR_KEYWORD:
-        # The signature is f(t, **kwargs) => KwFunctionCoefficient
+    kind = parameters[name2nd].kind
+    kinds = inspect._ParameterKind
+    default = parameters[name2nd].default
+    if kind is kinds.POSITIONAL_ONLY:
+        # The signature is f(t, args, /) => FunctionCoefficient
+        return False
+    if kind in [kinds.KEYWORD_ONLY, kinds.VAR_KEYWORD]:
+        # The signature is f(t, **kwargs) or f(t, *, a)=> KwFunctionCoefficient
         return True
-    if parameters[name2nd] not in args:
+    if default != inspect._empty and default not in [None, {}]:
+        # Has a default
+        return True
+    if name2nd not in args:
         # Calling f(t, **kwargs) will raise TypeError
         return False
-    # We are left with ``f(t, a), {'a':...}`` so we expect
-    # a KwFunctionCoefficient but the function could still be something
-    # like ``lambda t, a: a['a']``. There is no clean way to determine it:
-    # ``lambda t, a: t if t<1 else f(a)`` would break any test we can do...
+    # We are left with ``f(t, a), {'a':...}`` we expect a
+    # KwFunctionCoefficient but the function could still be something
+    # like ``lambda t, a: a['a']``. There is no way to determine it:
+    # ``lambda t, a: t if t<1 else f(a)`` would break any test we can do.
     # Defer to a global setting.
     return settings.core['new_coefficients_signature']
 
