@@ -18,8 +18,8 @@ cdef class QobjEvo:
 
     cdef double _prepare(QobjEvo self, double t, Data state=*)
 
-    cpdef double complex expect_data(QobjEvo self, double t, Data state)
+    cpdef double complex expect_data(QobjEvo self, double t, Data state) except *
 
-    cdef double complex _expect_dense(QobjEvo self, double t, Dense state)
+    cdef double complex _expect_dense(QobjEvo self, double t, Dense state) except *
 
     cpdef Data matmul_data(QobjEvo self, double t, Data state, Data out=*)

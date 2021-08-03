@@ -292,7 +292,7 @@ expect_super.add_specialisations([
 del _inspect, _Dispatcher
 
 
-cdef double complex expect_data_dense(Data op, Dense state):
+cdef double complex expect_data_dense(Data op, Dense state) except *:
     cdef double complex out
     if type(op) is CSR:
         out = expect_csr_dense(op, state)
@@ -303,7 +303,7 @@ cdef double complex expect_data_dense(Data op, Dense state):
     return out
 
 
-cdef double complex expect_super_data_dense(Data op, Dense state):
+cdef double complex expect_super_data_dense(Data op, Dense state) except *:
     cdef double complex out
     if type(op) is CSR:
         out = expect_super_csr_dense(op, state)

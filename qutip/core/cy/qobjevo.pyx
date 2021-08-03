@@ -5,6 +5,7 @@ import numpy as np
 import numbers
 import itertools
 from functools import partial
+from cpython.exc cimport PyErr_CheckSignals
 
 import qutip
 from .. import Qobj
@@ -739,7 +740,7 @@ cdef class QobjEvo:
             return out.real
         return out
 
-    cpdef double complex expect_data(QobjEvo self, double t, Data state):
+    cpdef double complex expect_data(QobjEvo self, double t, Data state) except *:
         """
         Expectation is defined as `state.adjoint() @ self @ state` if
         `state` is a vector, or `state` is an operator and `self` is a
@@ -767,7 +768,7 @@ cdef class QobjEvo:
             out += coeff * expect_func(part_data, state)
         return out
 
-    cdef double complex _expect_dense(QobjEvo self, double t, Dense state):
+    cdef double complex _expect_dense(QobjEvo self, double t, Dense state) except *:
         """For Dense state, `column_stack_dense` can be done inplace if in
         fortran format."""
         cdef size_t nrow = state.shape[0]
@@ -778,14 +779,16 @@ cdef class QobjEvo:
         if self.issuper:
             if state.shape[1] != 1:
                 state = column_stack_dense(state, inplace=state.fortran)
-            for element in self.elements:
-                part = (<_BaseElement> element)
-                coeff = part.coeff(t)
-                part_data = part.data(t)
-                out += coeff * expect_super_data_dense(part_data, state)
-            if state.fortran:
-                # `state` was reshaped inplace, restore it's original shape
-                column_unstack_dense(state, nrow, inplace=state.fortran)
+            try:
+                for element in self.elements:
+                    part = (<_BaseElement> element)
+                    coeff = part.coeff(t)
+                    part_data = part.data(t)
+                    out += coeff * expect_super_data_dense(part_data, state)
+            finally:
+                if state.fortran:
+                    # `state` was reshaped inplace, restore it's original shape
+                    column_unstack_dense(state, nrow, inplace=state.fortran)
         else:
             for element in self.elements:
                 part = (<_BaseElement> element)
