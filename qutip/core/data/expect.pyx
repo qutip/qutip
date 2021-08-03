@@ -29,9 +29,9 @@ cdef void _check_shape_ket(Data op, Data state) nogil except *:
                          + str(op.shape) + " and " + str(state.shape))
 
 cdef void _check_shape_dm(Data op, Data state) nogil except *:
-    if (op.shape[0] != op.shape[1]  # Matrix multiplication
+    if (op.shape[1] != state.shape[0]  # Matrix multiplication
         or state.shape[0] != state.shape[1]  # State is square 
-        or op.shape[1] != state.shape[0]  # Op is square
+        or op.shape[0] != op.shape[1]  # Op is square
        ):
         raise ValueError("incorrect input shapes "
                          + str(op.shape) + " and " + str(state.shape))
@@ -39,8 +39,8 @@ cdef void _check_shape_dm(Data op, Data state) nogil except *:
 cdef void _check_shape_super(Data op, Data state) nogil except *:
     if state.shape[1] != 1:
         raise ValueError("expected a column-stacked matrix")
-    if ( op.shape[1] != state.shape[0]  # Matrix multiplication
-       or op.shape[0] != op.shape[1]  # Square matrix
+    if (op.shape[1] != state.shape[0]  # Matrix multiplication
+        or op.shape[0] != op.shape[1]  # Square matrix
        ):
         raise ValueError("incompatible shapes " + str(op.shape) + ", " + str(state.shape))
 
