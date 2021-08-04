@@ -13,6 +13,7 @@ from .expect import *
 from .expm import *
 from .inner import *
 from .kron import *
+from .linalg import *
 from .matmul import *
 from .make import *
 from .mul import *

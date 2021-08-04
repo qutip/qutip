@@ -57,7 +57,7 @@ cpdef Dense mul_dense(Dense matrix, double complex value):
     return out
 
 cpdef Dense neg_dense(Dense matrix):
-    """Unary negation of this CSR `matrix`.  Return a new object."""
+    """Unary negation of this Dense `matrix`.  Return a new object."""
     cdef Dense out = dense.empty_like(matrix)
     cdef size_t ptr
     with nogil:

@@ -72,7 +72,7 @@ def _eigs_dense(data, isherm, vecs, eigvals, num_large, num_small):
     evals, perm = list(zip(*_zipped))
 
     if vecs:
-        evecs = np.array([evecs[:, k] for k in perm])
+        evecs = np.array([evecs[:, k] for k in perm]).T
 
     if not isherm and eigvals > 0:
         if vecs:
@@ -85,7 +85,6 @@ def _eigs_dense(data, isherm, vecs, eigvals, num_large, num_small):
                 evals = evals[:num_small]
             elif num_large > 0:
                 evals = evals[(N - num_large):]
-    evecs = [vec[:, None] for vec in evecs] if evecs is not None else None
     return np.array(evals), evecs
 
 
@@ -113,7 +112,6 @@ def _eigs_csr(data, isherm, vecs, eigvals, num_large, num_small, tol, maxiter):
                 big_vals, big_vecs = sp.linalg.eigsh(data, k=num_large,
                                                      which='LA', tol=tol,
                                                      maxiter=maxiter)
-                big_vecs = sp.csr_matrix(big_vecs, dtype=complex)
             if num_small > 0:
                 small_vals, small_vecs = sp.linalg.eigsh(
                     data, k=num_small, which='SA',
@@ -124,14 +122,13 @@ def _eigs_csr(data, isherm, vecs, eigvals, num_large, num_small, tol, maxiter):
                 big_vals, big_vecs = sp.linalg.eigs(data, k=num_large,
                                                     which='LR', tol=tol,
                                                     maxiter=maxiter)
-                big_vecs = sp.csr_matrix(big_vecs, dtype=complex)
             if num_small > 0:
                 small_vals, small_vecs = sp.linalg.eigs(
                     data, k=num_small, which='SR',
                     tol=tol, maxiter=maxiter)
 
         if num_large != 0 and num_small != 0:
-            evecs = sp.hstack([small_vecs, big_vecs], format='csr')
+            evecs = np.hstack([small_vecs, big_vecs])
         elif num_large != 0 and num_small == 0:
             evecs = big_vecs
         elif num_large == 0 and num_small != 0:
@@ -165,7 +162,7 @@ def _eigs_csr(data, isherm, vecs, eigvals, num_large, num_small, tol, maxiter):
     evals, perm = list(zip(*_zipped))
 
     if vecs:
-        evecs = np.array([evecs[:, k] for k in perm])
+        evecs = np.array([evecs[:, k] for k in perm]).T
 
     # remove last element if requesting N-1 eigs and using sparse
     if remove_one:
@@ -173,7 +170,7 @@ def _eigs_csr(data, isherm, vecs, eigvals, num_large, num_small, tol, maxiter):
         if vecs:
             evecs = np.delete(evecs, -1)
 
-    return np.array(evals), (np.array(evecs) if evecs is not None else None)
+    return np.array(evals), evecs
 
 
 def _eigs_check_shape(data):
@@ -220,6 +217,9 @@ def eigs_csr(data, isherm=None, vecs=True, sort='low', eigvals=0,
     if not isinstance(data, CSR):
         raise TypeError("expected data in CSR format but got "
                         + str(type(data)))
+    if data.shape[0] < 4:
+        # For small matrix, the sparse solver can't compute all eigenvalues.
+        return eigs_dense(data, isherm, vecs, sort, eigvals)
     _eigs_check_shape(data)
     eigvals, num_large, num_small = _eigs_fix_eigvals(data, eigvals, sort)
     isherm = isherm if isherm is not None else _isherm(data)
@@ -228,9 +228,9 @@ def eigs_csr(data, isherm=None, vecs=True, sort='low', eigvals=0,
     if sort == 'high':
         # Flip arrays around.
         if vecs:
-            evecs = np.flipud(evecs)
-        evals = np.flipud(evals)
-    return (evals, evecs) if vecs else evals
+            evecs = np.fliplr(evecs)
+        evals = evals[::-1]
+    return (evals, Dense(evecs, copy=False)) if vecs else evals
 
 
 def eigs_dense(data, isherm=None, vecs=True, sort='low', eigvals=0):
@@ -249,9 +249,9 @@ def eigs_dense(data, isherm=None, vecs=True, sort='low', eigvals=0):
     if sort == 'high':
         # Flip arrays around.
         if vecs:
-            evecs = np.flipud(evecs)
-        evals = np.flipud(evals)
-    return (evals, evecs) if vecs else evals
+            evecs = np.fliplr(evecs)
+        evals = evals[::-1]
+    return (evals, Dense(evecs, copy=False)) if vecs else evals
 
 
 from .dispatch import Dispatcher as _Dispatcher
@@ -280,8 +280,9 @@ eigs.__doc__ =\
         Whether the eigenvectors should be returned as well.
     sort : {'low', 'high'}, optional
         Sort the output of the eigenvalues and -vectors ordered by the relevant
-        size of the real part of the eigenvalue.  If not all of the eigenvalues
-        are requested, this influences which eigenvalues will be found.
+        size of the real part of the eigenvalue from 'low' to high or from
+        'high' to low.  If not all of the eigenvalues are requested, this
+        influences which eigenvalues will be found.
     eigvals : int, optional
         Number of eigenvalues and -vectors to return.  If `0`, then returns
         all.
@@ -292,7 +293,7 @@ eigs.__doc__ =\
         The requested eigenvalues, sorted in the expected order.  The dtype is
         `np.complex128`, unless `isherm=True`, in which case it will be
         `np.float64`.
-    eigenvectors : 2D np.ndarray
+    eigenvectors : Data
         Only if `vecs=True`.  An array of the eigenvectors corresponding to the
         order of the eigenvalues.
     """

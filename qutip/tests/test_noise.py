@@ -33,15 +33,13 @@ class TestNoise:
         decnoise = DecoherenceNoise(
             sigmaz(), coeff=coeff, tlist=tlist, targets=[1])
         noisy_qu, c_ops = decnoise.get_noisy_dynamics(2).get_noisy_qobjevo(dims=2)
-        assert_allclose(c_ops[0].ops[0].qobj.full(),
+        assert_allclose(c_ops[0](0).full(),
                         tensor(qeye(2), sigmaz()).full())
-        assert_allclose(c_ops[0].ops[0].coeff.array, coeff)
-        assert_allclose(c_ops[0].tlist, tlist)
 
         # Time-indenpendent and all qubits
         decnoise = DecoherenceNoise(sigmax(), all_qubits=True)
         noisy_qu, c_ops = decnoise.get_noisy_dynamics(2).get_noisy_qobjevo(dims=2)
-        c_ops = [qu.cte for qu in c_ops]
+        c_ops = [qu(0) for qu in c_ops]
         assert tensor([qeye(2), sigmax()]) in c_ops
         assert tensor([sigmax(), qeye(2)]) in c_ops
 
@@ -49,12 +47,10 @@ class TestNoise:
         decnoise = DecoherenceNoise(
             sigmax(), all_qubits=True, coeff=coeff*2, tlist=tlist)
         noisy_qu, c_ops = decnoise.get_noisy_dynamics(2).get_noisy_qobjevo(dims=2)
-        assert_allclose(c_ops[0].ops[0].qobj.full(),
-                        tensor(sigmax(), qeye(2)).full())
-        assert_allclose(c_ops[0].ops[0].coeff.array, coeff*2)
-        assert_allclose(c_ops[0].tlist, tlist)
-        assert_allclose(c_ops[1].ops[0].qobj.full(),
-                        tensor(qeye(2), sigmax()).full())
+        assert_allclose(c_ops[0](0).full(),
+                        tensor(sigmax(), qeye(2)).full() * 2)
+        assert_allclose(c_ops[1](0).full(),
+                        tensor(qeye(2), sigmax()).full() * 2)
 
     def test_RelaxationNoise(self):
         """
@@ -64,7 +60,7 @@ class TestNoise:
         relnoise = RelaxationNoise(t1=[1., 1., 1.], t2=None)
         noisy_qu, c_ops = relnoise.get_noisy_dynamics(3).get_noisy_qobjevo(dims=3)
         assert len(c_ops) == 3
-        assert_allclose(c_ops[1].cte.full(),
+        assert_allclose(c_ops[1](0).full(),
                         tensor([qeye(2), a, qeye(2)]).full())
 
         relnoise = RelaxationNoise(t1=None, t2=None)
