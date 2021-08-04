@@ -46,6 +46,10 @@ cpdef double one_csr(CSR matrix) except -1:
 cpdef double trace_csr(CSR matrix, sparse=False, tol=0, maxiter=None) except -1:
     # We use the general eigenvalue solver which involves a Python call, so
     # there's no point attempting to release the GIL.
+
+    if matrix.shape[0] != matrix.shape[1]:
+        raise ValueError(f"matrix shape {matrix.shape} is not square.")
+
     cdef CSR op = matmul_csr(matrix, adjoint_csr(matrix))
     cdef size_t i
     cdef double [::1] eigs
