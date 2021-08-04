@@ -93,7 +93,7 @@ def shapes_binary_bad_matmul(dim=100):
     ]
 
 
-def shapes_square(dim=10):
+def shapes_square(dim=100):
     """Allowed shapes for operations that require square matrices. Examples of
     these operations are trace, pow, expm and the trace norm."""
     return [
