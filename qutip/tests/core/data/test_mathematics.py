@@ -781,7 +781,7 @@ class TestPow(UnaryOpMixin):
         pytest.param(data.pow_csr, CSR, CSR),
     ]
 
-    @pytest.mark.parametrize("n", [0, 1, 10], ids=["n_1", "n_10"])
+    @pytest.mark.parametrize("n", [0, 1, 10], ids=["n_0", "n_1", "n_10"])
     def test_mathematically_correct(self, op, data_m, out_type, n):
         matrix = data_m()
         expected = self.op_numpy(matrix.to_array(), n)
