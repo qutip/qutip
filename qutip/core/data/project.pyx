@@ -87,7 +87,7 @@ cpdef CSR project_csr(CSR state):
         out = csr.empty(state.shape[1], state.shape[1], nnz_in*nnz_in)
         _project_bra_csr(state, out)
         return out
-    raise TypeError("state must be a ket or a bra.")
+    raise ValueError("state must be a ket or a bra.")
 
 cpdef Dense project_dense(Dense state):
     """
@@ -105,7 +105,7 @@ cpdef Dense project_dense(Dense state):
         size = state.shape[1]
         fortran = False
     else:
-        raise TypeError("state must be a ket or a bra.")
+        raise ValueError("state must be a ket or a bra.")
     out = dense.zeros(size, size, fortran)
     for i in range(size):
         for j in range(size):

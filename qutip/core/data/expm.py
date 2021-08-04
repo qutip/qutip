@@ -12,12 +12,16 @@ __all__ = [
 
 def expm_csr(matrix: CSR) -> CSR:
     if matrix.shape[0] != matrix.shape[1]:
-        raise TypeError("can only exponentiate square matrix")
+        raise ValueError("can only exponentiate square matrix")
     if isdiag_csr(matrix):
-        out = matrix.copy()
-        sci = out.as_scipy()
-        sci.data[:] = np.exp(sci.data)
-        return out
+        sci = matrix.as_scipy()
+        # Note that expm1 is an elemetwise operation that maps 0->0 which
+        # involves no operation at all. Since we know that the input is
+        # diagonal, elementwise expm1 in the whole matrix has the same
+        # computational cost as doing only a expm1 in the diagonal
+        # (elementwise).
+        sci = sci.expm1() + scipy.sparse.diags(np.ones(matrix.shape[0]))
+        return CSR(sci)
     # The scipy solvers for the Pade approximant are more efficient with the
     # CSC format than the CSR one.
     csc = matrix.as_scipy().tocsc()
@@ -26,7 +30,7 @@ def expm_csr(matrix: CSR) -> CSR:
 
 def expm_csr_dense(matrix: CSR) -> Dense:
     if matrix.shape[0] != matrix.shape[1]:
-        raise TypeError("can only exponentiate square matrix")
+        raise ValueError("can only exponentiate square matrix")
     return Dense(scipy.sparse.linalg.expm(matrix.to_array()))
 
 
