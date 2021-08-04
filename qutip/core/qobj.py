@@ -497,7 +497,6 @@ class Qobj:
             isherm = None
             isunitary = None
 
-
         return Qobj(out,
                     dims=self.dims,
                     type=self.type,
