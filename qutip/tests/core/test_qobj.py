@@ -185,8 +185,9 @@ class TestQobjHermicity:
 
 
 def assert_unitarity(oper, unitarity):
-    # Check the cached isunitary, if any exists.
+    # Check the cached isunitary.
     assert oper.isunitary == unitarity
+
     # Force a reset of the cached value for isunitary.
     oper._isunitary = None
     # Force a recalculation of isunitary.
@@ -211,6 +212,11 @@ def test_QobjUnitaryOper():
     assert_unitarity(Sx*4, False)
     assert_unitarity(4+Sx, False)
     assert_unitarity(Sx+4, False)
+    # Check that when multipliying scalar numbers with absolute value 1 we
+    # maintain unitarity.
+    assert_unitarity(Sx*np.exp(5j), True)
+    assert_unitarity(Sx*1j, True)
+    assert_unitarity(Sx*1, True)
 
 
 def test_QobjDimsShape():
