@@ -217,6 +217,12 @@ def test_QobjUnitaryOper():
     assert_unitarity(Sx*np.exp(5j), True)
     assert_unitarity(Sx*1j, True)
     assert_unitarity(Sx*1, True)
+    # Chech that if qobj is _not_ unitary, operation by scalar set it to `None`
+    # We do not know if it is unitary until we check the whole matrix again.
+    assert (qutip.sigmam()*4)._isunitary == None  # Non unitary 
+    # This may be removed in the future as if scalar has abs value of 1 and
+    # matrix is not unitary, output wont be unitary.
+    assert (qutip.sigmam()*1)._isunitary == None
 
 
 def test_QobjDimsShape():
