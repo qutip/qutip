@@ -385,10 +385,10 @@ class _GenericOpMixin:
 class UnaryOpMixin(_GenericOpMixin):
     """
     Mix-in for unary mathematical operations on Data instances (e.g. unary
-    negation).  Only generates the test `mathematically_correct`, since there
-    can't be a shape mismatch when there's only one argument.
+    negation).
     """
     shapes = [(x,) for x in shapes_unary()]
+    bad_shapes = []
 
     def test_mathematically_correct(self, op, data_m, out_type):
         matrix = data_m()
@@ -409,8 +409,9 @@ class UnaryOpMixin(_GenericOpMixin):
 
     def test_incorrect_shape_raises(self, op, data_m):
         """
-        Test that the operation produces a suitable error if the shape is not a
-        square matrix.
+        Test that the operation produces a suitable error if the shapes of the
+        given operand is not compatible with the operation. Useful for
+        operations that require square matrices (trace, pow, ...).
         """
         with pytest.raises(ValueError):
             op(data_m())
