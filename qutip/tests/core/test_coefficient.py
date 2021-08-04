@@ -185,8 +185,6 @@ class _cls:
                  id="2_parameter_default_unknown"),
     pytest.param(lambda t, *, w1: t, KwFunctionCoefficient,
                  id="2_parameter_kwonly"),
-    pytest.param(lambda t, a, /: t, FunctionCoefficient,
-                 id="2_parameter_position_only"),
     pytest.param(_cls().f_2_par, KwFunctionCoefficient,
                  id="2_parameter_method"),
     pytest.param(lambda t, a, w1: t*a*w1, KwFunctionCoefficient,

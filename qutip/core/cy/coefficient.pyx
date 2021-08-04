@@ -173,27 +173,12 @@ cdef class KwFunctionCoefficient(Coefficient):
     """
     cdef object func
     cdef list parameters
+    cdef bint _kwargs
 
-    def __init__(self, func, dict args):
+    def __init__(self, func, dict args, bint kwargs):
         self.func = func
-        self.args = {}
-        parameters = inspect.signature(func).parameters
-        for i, key in enumerate(parameters):
-            if parameters[key].kind is inspect._ParameterKind.VAR_POSITIONAL:
-                raise TypeError("Positional parameters are not supported")
-            if i == 0:
-                continue
-            if parameters[key].kind is inspect._ParameterKind.POSITIONAL_ONLY:
-                raise TypeError("Positional parameters are not supported")
-            if parameters[key].kind is inspect._ParameterKind.VAR_KEYWORD:
-                self.args = args
-                break
-            if key in args:
-                self.args[key] = args[key]
-            elif parameters[key].default != inspect._empty:
-                self.args[key] = parameters[key].default
-            else:
-                raise ValueError(f"argument '{key}' is missing")
+        self.args = args
+        self._kwargs = kwargs
 
     cdef complex _call(self, double t) except *:
         return self.func(t, **self.args)
@@ -204,6 +189,7 @@ cdef class KwFunctionCoefficient(Coefficient):
         out = KwFunctionCoefficient.__new__(KwFunctionCoefficient)
         out.func = self.func
         out.args = self.args.copy()
+        out._kwargs = self._kwargs
         return out
 
     def replace_arguments(self, _args=None, **kwargs):
@@ -213,12 +199,15 @@ cdef class KwFunctionCoefficient(Coefficient):
         if not kwargs:
             return self
 
-        new_args = {}
-        for key in self.args:
-            if key in kwargs:
-                new_args[key] = kwargs[key]
-            else:
-                new_args[key] = self.args[key]
+        if self._kwargs:
+            new_args = {**self.args, **kwargs}
+        else:
+            new_args = {}
+            for key in self.args:
+                if key in kwargs:
+                    new_args[key] = kwargs[key]
+                else:
+                    new_args[key] = self.args[key]
 
         # Parsing the signature in __init__ is slow, thus the shortcut
         out = KwFunctionCoefficient.__new__(KwFunctionCoefficient)

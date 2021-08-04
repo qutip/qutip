@@ -27,12 +27,6 @@ class CoreOptions:
 
     auto_tidyup_atol : float {1e-12}
         use auto tidyup absolute tolerance
-
-    new_coefficients_signature : bool {True}
-        Whether to expect functions of coefficients for time dependant systems
-        to be called with ``f(t, args)`` (``False``) or
-        ``f(t, **args)`` (``True``). Only used when the proper call cannot be
-        determined from the signature.
     """
     options = {
         # use auto tidyup
@@ -47,6 +41,4 @@ class CoreOptions:
         "rtol": 1e-12,
         # use auto tidyup absolute tolerance
         "auto_tidyup_atol": 1e-12,
-        # use auto tidyup absolute tolerance
-        "new_coefficients_signature": True,
     }

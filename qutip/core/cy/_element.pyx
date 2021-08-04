@@ -8,7 +8,7 @@ from math import nan as Nan
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
 
-__all__ = ['_ConstantElement', '_EvoElement',
+__all__ = ['_ConstantElement', '_EvoElement', '_KwFuncElement',
            '_FuncElement', '_MapElement', '_ProdElement']
 
 
@@ -400,9 +400,12 @@ cdef class _FuncElement(_BaseElement):
         _t, _qobj = self._previous
         if t == _t:
             return _qobj
-        _qobj = self._func(t, self._args)
+        _qobj = self._call(t)
         self._previous = (t, _qobj)
         return _qobj
+
+    cdef object _call(self, double t):
+        return self._func(t, self._args)
 
     cpdef double complex coeff(self, double t) except *:
         return 1.
@@ -410,15 +413,51 @@ cdef class _FuncElement(_BaseElement):
     def linear_map(self, f, anti=False):
         return _MapElement(self, [f])
 
-    def replace_arguments(_FuncElement self, args, cache=None):
+    def replace_arguments(self, args, cache=None):
         if cache is None:
-            return _FuncElement(self._func, {**self._args, **args})
+            return self.__class__(self._func, self._new_args(args))
         for old, new in cache:
             if old is self:
                 return new
-        new = _FuncElement(self._func, {**self._args, **args})
+        new = self.__class__(self._func, self._new_args(args))
         cache.append((self, new))
         return new
+
+    cdef dict _new_args(self, args):
+        """Get new args."""
+        return {**self._args, **args}
+
+
+cdef class _KwFuncElement(_FuncElement):
+    cdef bint _kwargs
+
+    def __init__(self, func, args, kwargs):
+        self._func = func
+        self._args = args
+        self._kwargs = kwargs
+        self._previous = (Nan, None)
+
+    def __mul__(left, right):
+        cdef _MapElement out
+        if type(left) is _KwFuncElement:
+            out = _MapElement(left, [], right)
+        if type(right) is _KwFuncElement:
+            out = _MapElement(right, [], left)
+        return out
+
+    cdef object _call(self, double t):
+        return self._func(t, **self._args)
+
+    cdef dict _new_args(self, args):
+        if self._kwargs:
+            return {**self._args, **args}
+        # If no **kwargs, must ensure no extra args are added.
+        new_args = {}
+        for key in self.args:
+            if key in args:
+                new_args[key] = args[key]
+            else:
+                new_args[key] = self.args[key]
 
 
 cdef class _MapElement(_BaseElement):

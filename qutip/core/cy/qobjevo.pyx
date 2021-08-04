@@ -9,7 +9,8 @@ from functools import partial
 import qutip
 from .. import Qobj
 from .. import data as _data
-from ..coefficient import coefficient, CompilationOptions
+from ..coefficient import (coefficient, CompilationOptions,
+                           _read_callable_signature)
 from ._element import *
 from ..dimensions import type_from_dims
 from qutip.settings import settings
@@ -243,14 +244,19 @@ cdef class QobjEvo:
             )
             qobj = op[0]
         elif callable(op):
-            qobj = op(0, args)
+            use_kw, args, kwargs = _read_callable_signature(op, args)
+            if use_kw:
+                out = _KwFuncElement(op, args, kwargs)
+            else:
+                out = _FuncElement(op, args)
+            qobj = out.qobj(0)
             if not isinstance(qobj, Qobj):
                 raise TypeError(
                     "Function based time-dependent elements must have the"
                     " signature f(t: double, args: dict) -> Qobj, but"
                     " {!r} returned: {!r}".format(op, qobj)
                 )
-            out = _FuncElement(op, args)
+
         else:
             raise TypeError(
                 "QobjEvo terms should be Qobjs, a list of [Qobj, coefficient],"

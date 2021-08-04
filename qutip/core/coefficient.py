@@ -29,7 +29,6 @@ from .cy.coefficient import (InterpolateCoefficient, InterCoefficient,
                              ConjCoefficient, NormCoefficient,
                              ShiftCoefficient, StrFunctionCoefficient,
                              Coefficient)
-from qutip.settings import settings
 
 
 __all__ = ["coefficient", "CompilationOptions", "Coefficient",
@@ -106,10 +105,11 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
         return coeff_from_str(base, args, args_ctypes, compile_opt)
 
     elif callable(base):
-        if _read_callable_signature(base, args):
-            op = KwFunctionCoefficient(base, args.copy())
+        use_kw, args, kwargs = _read_callable_signature(base, args)
+        if use_kw:
+            op = KwFunctionCoefficient(base, args, kwargs)
         else:
-            op = FunctionCoefficient(base, args.copy())
+            op = FunctionCoefficient(base, args)
 
         if not isinstance(op(0), numbers.Number):
             raise TypeError("The coefficient function must return a number")
@@ -138,43 +138,44 @@ def shift(coeff, _t0=0):
 
 def _read_callable_signature(func, args):
     """
-    Read the callable signature and redirect it to :class:`FunctionCoefficient`
-    or :class:`KwFunctionCoefficient`.
+    Read the callable signature and parse it for :obj:`KwFunctionCoefficient`.
 
-    Return the appropriate class
+    Return
+    ------
+    use_kw : bool
+        True for :obj:`KwFunctionCoefficient`, False for
+        :obj:`FunctionCoefficient`
+    args : dict
+        Cleaned args dictionary.
+    kwargs : bool
+        Whether :obj:`KwFunctionCoefficient` callable use ``**kwargs``.
 
-    :class:`FunctionCoefficient` support callable with the signature
-    ``f(t : float, args : dict) -> Qobj`` previously required in Qutip.
+    Raise an ValueError if neither can used.
 
-    :class:`KwFunctionCoefficient` support any callable that can be called with
-    ``f(t, **args)``.
+    Default to :obj:`KwFunctionCoefficient` if both could be possible.
     """
     parameters = inspect.signature(func).parameters
-    if len(parameters) != 2:
-        # f(t, args) always has 2 parameters => KwFunctionCoefficient
-        return True
-    name2nd = list(parameters)[1]
-    kind = parameters[name2nd].kind
+    used_args = {}
     kinds = inspect._ParameterKind
-    default = parameters[name2nd].default
-    if kind is kinds.POSITIONAL_ONLY:
-        # The signature is f(t, args, /) => FunctionCoefficient
-        return False
-    if kind in [kinds.KEYWORD_ONLY, kinds.VAR_KEYWORD]:
-        # The signature is f(t, **kwargs) or f(t, *, a)=> KwFunctionCoefficient
-        return True
-    if default != inspect._empty and default not in [None, {}]:
-        # Has a default
-        return True
-    if name2nd not in args:
-        # Calling f(t, **kwargs) will raise TypeError
-        return False
-    # We are left with ``f(t, a), {'a':...}`` we expect a
-    # KwFunctionCoefficient but the function could still be something
-    # like ``lambda t, a: a['a']``. There is no way to determine it:
-    # ``lambda t, a: t if t<1 else f(a)`` would break any test we can do.
-    # Defer to a global setting.
-    return settings.core['new_coefficients_signature']
+
+    for i, name in enumerate(parameters):
+        default = parameters[name].default
+        if i == 0:
+            continue
+
+        if parameters[name].kind is kinds.VAR_KEYWORD:
+            return True, args.copy(), True
+
+        if name in args:
+            used_args[name] = args[name]
+        elif i == 1 and default in [inspect._empty, {}]:
+            return False, args.copy(), None
+        elif default != inspect._empty:
+            used_args[name] = default
+        else:
+            raise ValueError(f"argument '{name}' is missing")
+
+    return True, used_args, False
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

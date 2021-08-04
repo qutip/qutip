@@ -25,6 +25,8 @@ cdef class _FuncElement(_BaseElement):
     cdef object _func
     cdef dict _args
     cdef tuple _previous
+    cdef object _call(self, double t)
+    cdef dict _new_args(self, args)
 
 
 cdef class _MapElement(_BaseElement):
