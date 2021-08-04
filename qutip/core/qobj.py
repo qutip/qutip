@@ -473,9 +473,11 @@ class Qobj:
 
     @_tidyup
     def __mul__(self, other):
-        """If other is a Qobj, we dispatch to __matmul__. If not, we
+        """
+        If other is a Qobj, we dispatch to __matmul__. If not, we
         check that other is a valid complex scalar, i.e., we can do
-        complex(other). Otherwise, we return NotImplemented."""
+        complex(other). Otherwise, we return NotImplemented.
+        """
 
         if isinstance(other, Qobj):
             return self.__matmul__(other)
