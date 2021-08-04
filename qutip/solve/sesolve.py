@@ -187,7 +187,7 @@ def _wrap_matmul(t, state, cqobj, oper):
     state = _data.dense.fast_from_numpy(state)
     if oper:
         state = _data.column_unstack_dense(state, cqobj.shape[1], inplace=True)
-    out = cqobj.matmul(t, state)
+    out = cqobj.matmul_data(t, state)
     if oper:
         out = _data.column_stack_dense(out, inplace=True)
     return out.as_ndarray()
@@ -198,9 +198,9 @@ def _qobjevo_set(HS, psi, args, e_ops, opt):
     From the system, get the ode function and args
     """
     H_td = HS.H
-    H_td.solver_set_args(args, psi.data, e_ops)
+    H_td.arguments(args)
     if psi.isket or psi.isunitary:
-        return _wrap_matmul, (H_td.compiled_qobjevo, psi.isunitary)
+        return _wrap_matmul, (H_td, psi.isunitary)
     raise TypeError("The unitary solver requires psi0 to be"
                     " a ket as initial state"
                     " or a unitary as initial operator.")

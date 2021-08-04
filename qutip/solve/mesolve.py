@@ -229,7 +229,7 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
         (c_ops and len(c_ops) > 0)
         or (not rho0.isket)
         or (isinstance(H, Qobj) and H.issuper)
-        or (isinstance(H, QobjEvo) and H.cte.issuper)
+        or (isinstance(H, QobjEvo) and H.issuper)
         or (isinstance(H, list) and isinstance(H[0], Qobj) and H[0].issuper)
         or (not isinstance(H, (Qobj, QobjEvo))
             and callable(H)
@@ -278,13 +278,13 @@ def _mesolve_QobjEvo(H, c_ops, tlist, args, opt):
     Prepare the system for the solver, H can be an QobjEvo.
     """
     H_td = QobjEvo(H, args, tlist=tlist)
-    if not issuper(H_td.cte):
+    if not H_td.issuper:
         L_td = liouvillian(H_td)
     else:
         L_td = H_td
     for op in c_ops:
         op_td = QobjEvo(op, args, tlist=tlist)
-        if not issuper(op_td.cte):
+        if not op_td.issuper:
             op_td = lindblad_dissipator(op_td)
         L_td += op_td
 
@@ -302,7 +302,7 @@ def _wrap_matmul(t, state, cqobj, unstack):
     data = _data.dense.fast_from_numpy(state)
     if unstack:
         data = _data.column_unstack_dense(data, cqobj.shape[1], inplace=True)
-    out = cqobj.matmul(t, data)
+    out = cqobj.matmul_data(t, data)
     if unstack:
         out = _data.column_stack_dense(out, inplace=True)
     return out.as_ndarray()
@@ -313,12 +313,12 @@ def _qobjevo_set(HS, rho0, args, e_ops, opt):
     From the system, get the ode function and args
     """
     H_td = HS.H
-    H_td.solver_set_args(args, rho0.data, e_ops)
+    H_td.arguments(args)
     if not (rho0.issuper or rho0.isoper or rho0.isket):
         raise TypeError("The unitary solver requires rho0 to be"
                         " a ket or dm as initial state"
                         " or a super operator as initial state.")
-    return _wrap_matmul, (H_td.compiled_qobjevo, rho0.issuper)
+    return _wrap_matmul, (H_td, rho0.issuper)
 
 
 # -----------------------------------------------------------------------------
@@ -364,7 +364,7 @@ def _mesolve_func_td(L_func, c_op_list, rho0, tlist, args, opt):
     c_ops = []
     for op in c_op_list:
         op_td = QobjEvo(op, args, tlist=tlist, copy=False)
-        if not issuper(op_td.cte):
+        if not op_td.issuper:
             c_ops += [lindblad_dissipator(op_td)]
         else:
             c_ops += [op_td]

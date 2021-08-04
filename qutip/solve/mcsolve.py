@@ -276,7 +276,7 @@ class _MC():
         ss.col_args = var
         for c in c_ops:
             cevo = QobjEvo(c, args, tlist=tlist)
-            cdc = cevo._cdc()
+            cdc = cevo.dag() @ cevo
             ss.td_c_ops.append(cevo)
             ss.td_n_ops.append(cdc)
 
@@ -309,13 +309,13 @@ class _MC():
     def run_test(self):
         try:
             for c_op in self.ss.td_c_ops:
-                c_op.mul_vec(0, self.psi0)
+                c_op.matmul(0, self.psi0)
         except:
             raise Exception("c_ops are not consistant with psi0")
 
         if self.ss.type == "QobjEvo":
             try:
-                self.ss.H_td.mul_vec(0., self.psi0)
+                self.ss.H_td.matmul(0., self.psi0)
             except:
                 raise Exception("Error calculating H")
         else:
@@ -637,7 +637,7 @@ class _MC():
         H_ = H.copy()
         H_ *= -1j
         for c in c_ops:
-            H_ += -0.5 * c.dag() * c
+            H_ += -0.5 * c.dag() @ c
 
         w, v = np.linalg.eig(H_.full())
         arg = np.argsort(np.abs(w))
@@ -648,7 +648,7 @@ class _MC():
         for c in c_ops:
             c_diag = Qobj(Ud @ c.full() @ U, dims=c.dims)
             cevo = QobjEvo(c_diag)
-            cdc = cevo._cdc()
+            cdc = cevo @ cevo.dag()
             ss.td_c_ops.append(cevo)
             ss.td_n_ops.append(cdc)
 
@@ -700,13 +700,13 @@ def _wrap_matmul(t, state, extras):
     # through a parallel mapping function, which does not unwrap additional
     # tuple arguments.  We have to do that here.
     cqobj, = extras
-    return cqobj.matmul(t, _data.dense.fast_from_numpy(state)).as_ndarray()
+    return cqobj.matmul_data(t, _data.dense.fast_from_numpy(state)).as_ndarray()
 
 
 def _qobjevo_set(ss, psi0=None, args={}, opt=None):
     if args:
         self.set_args(args)
-    return _wrap_matmul, (ss.H_td.compiled_qobjevo,)
+    return _wrap_matmul, (ss.H_td,)
 
 def _mc_dm_avg(psi_list):
     """

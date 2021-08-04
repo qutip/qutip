@@ -72,8 +72,8 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
     The time of the tlist do not need to be equidistant, but must be sorted.
     By default, a cubic spline interpolation will be used for the coefficient
     at time t.
-    If the coefficients are to be treated as step function, use the arguments
-    args = {"_step_func_coeff": True}
+    If the coefficients are to be treated as step function, use the arguments:
+    _stepInterpolation=True
     *Examples*
         tlist = np.logspace(-5,0,100)
         H = QobjEvo(np.exp(-1j*tlist), tlist=tlist)

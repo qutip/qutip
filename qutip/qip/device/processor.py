@@ -293,12 +293,11 @@ class Processor(object):
                 else:
                     coeffs_list.append(np.zeros(full_tlist))
             if self.spline_kind == "step_func":
-                arg = {"_step_func_coeff": True}
                 coeffs_list.append(
-                    _fill_coeff(pulse.coeff, pulse.tlist, full_tlist, arg))
+                    _fill_coeff(pulse.coeff, pulse.tlist, full_tlist, True))
             elif self.spline_kind == "cubic":
                 coeffs_list.append(
-                    _fill_coeff(pulse.coeff, pulse.tlist, full_tlist, {}))
+                    _fill_coeff(pulse.coeff, pulse.tlist, full_tlist, False))
             else:
                 raise ValueError("Unknown spline kind.")
         return np.array(coeffs_list)
@@ -542,12 +541,35 @@ class Processor(object):
             qu_list.append(qu)
 
         final_qu = _merge_qobjevo(qu_list)
-        final_qu.args.update(args)
+
+        final_qu.arguments(args)
 
         if noisy:
             return final_qu, c_ops
         else:
             return final_qu, []
+
+    def tlist(self, noisy):
+        """
+        Return the merged tlist of all the pulses.
+        
+        Parameters
+        ----------
+        noisy: bool, optional
+            If noise should be included. Default is False.
+        """
+        if not noisy:
+            dynamics = self.pulses
+        else:
+            dynamics = self.get_noisy_pulses(
+                device_noise=True, drift=True)
+
+        t_lists = []
+        for pulse in dynamics:
+            tlist = pulse.get_full_tlist()
+            if tlist is not None:
+                t_lists.append(tlist)
+        return np.unique(np.sort(np.hstack(t_lists)))
 
     def run_analytically(self, init_state=None, qc=None):
         """
@@ -700,7 +722,7 @@ class Processor(object):
 
         evo_result = solver(
             H=noisy_qobjevo, rho0=init_state,
-            tlist=noisy_qobjevo.tlist, **kwargs)
+            tlist=self.tlist(noisy), **kwargs)
         return evo_result
 
     def load_circuit(self, qc):

@@ -789,7 +789,7 @@ class TestMESolveStepFuncCoeff:
         rho0 = rand_ket(2)
         tlist = np.array([0, np.pi/2])
         qu = QobjEvo([[sigmax(), self.python_coeff]],
-                     tlist=tlist, args={"_step_func_coeff": 1})
+                     tlist=tlist, step_interpolation=True)
         result = mesolve(qu, rho0=rho0, tlist=tlist)
         assert_allclose(
             fidelity(result.states[-1], sigmax()*rho0), 1, rtol=1.e-7)
@@ -802,7 +802,7 @@ class TestMESolveStepFuncCoeff:
         tlist = np.array([0., np.pi/2, np.pi], dtype=float)
         npcoeff = np.array([0.25, 0.75, 0.75])
         qu = QobjEvo([[sigmax(), npcoeff]],
-                     tlist=tlist, args={"_step_func_coeff": 1})
+                     tlist=tlist, step_interpolation=True)
         result = mesolve(qu, rho0=rho0, tlist=tlist)
         assert_allclose(
             fidelity(result.states[-1], sigmax()*rho0), 1, rtol=1.e-7)
@@ -815,7 +815,7 @@ class TestMESolveStepFuncCoeff:
         tlist = np.array([0., np.pi/2, np.pi*3/2], dtype=float)
         npcoeff = np.array([0.5, 0.25, 0.25])
         qu = QobjEvo([[sigmax(), npcoeff]],
-                     tlist=tlist, args={"_step_func_coeff": 1})
+                     tlist=tlist, step_interpolation=True)
         result = mesolve(qu, rho0=rho0, tlist=tlist)
         assert_allclose(
             fidelity(result.states[-1], sigmax()*rho0), 1, rtol=1.e-7)
@@ -832,7 +832,7 @@ class TestMESolveStepFuncCoeff:
         strcoeff = "1."
         qu = QobjEvo(
             [[sigmax(), npcoeff1], [sigmax(), strcoeff], [sigmax(), npcoeff2]],
-            tlist=tlist, args={"_step_func_coeff": 1})
+            tlist=tlist, step_interpolation=True)
         result = mesolve(qu, rho0=rho0, tlist=tlist)
         assert_allclose(
             fidelity(result.states[-1], sigmax()*rho0), 1, rtol=1.e-7)
@@ -850,7 +850,7 @@ class TestMESolveStepFuncCoeff:
         qu = QobjEvo(
             [[sigmax(), npcoeff1], [sigmax(), npcoeff2],
              [sigmax(), self.python_coeff], [sigmax(), strcoeff]],
-            tlist=tlist, args={"_step_func_coeff": 1})
+            tlist=tlist, step_interpolation=True)
         result = mesolve(qu, rho0=rho0, tlist=tlist)
         assert_allclose(
             fidelity(result.states[-1], sigmax()*rho0), 1, rtol=3.e-7)

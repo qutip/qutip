@@ -2,8 +2,7 @@ from .options import *
 from .coefficient import *
 from .interpolate import *
 from .qobj import *
-from .qobjevo import *
-from .qobjevofunc import *
+from .cy.qobjevo import *
 from .expect import *
 from .tensor import *
 from .states import *
