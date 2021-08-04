@@ -591,7 +591,9 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
                     'cbar_pad': 0.04, 'cbar_to_z': False}
 
     # update default_opts from input options
-    if isinstance(options, dict):
+    if options is None:
+        pass
+    elif isinstance(options, dict):
         # check if keys in options dict are valid
         if set(options) - set(default_opts):
             raise ValueError("invalid key(s) found in options: "
