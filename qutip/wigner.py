@@ -890,15 +890,16 @@ def spin_q_function(rho, theta, phi):
     Q = np.zeros_like(THETA, dtype=complex)
 
     for m1 in arange(-j, j + 1):
-        Q += binom(2 * j, j + m1) * cos(THETA / 2) ** (2 * (j + m1)) * sin(THETA / 2) ** \
-             (2 * (j - m1)) * rho.data[int(j - m1), int(j - m1)]
+        Q += binom(2 * j, j + m1) * cos(THETA / 2) ** (2 * (j + m1)) * \
+             sin(THETA / 2) ** (2 * (j - m1)) * \
+             rho.data[int(j - m1), int(j - m1)]
 
         for m2 in arange(m1 + 1, j + 1):
             Q += (sqrt(binom(2 * j, j + m1)) * sqrt(binom(2 * j, j + m2)) *
-                  cos(THETA / 2) ** (2 * j + m1 + m2) * sin(THETA / 2) **
-                  (2 * j - m1 - m2)) * \
-                 (exp(1j * (m1 - m2) * PHI) * rho.data[int(j - m1), int(j - m2)] +
-                  exp(1j * (m2 - m1) * PHI) * rho.data[int(j - m2), int(j - m1)])
+                  cos(THETA / 2) ** (2 * j + m1 + m2) *
+                  sin(THETA / 2) ** (2 * j - m1 - m2)) * \
+             (exp(1j * (m1 - m2) * PHI) * rho.data[int(j - m1), int(j - m2)] +
+              exp(1j * (m2 - m1) * PHI) * rho.data[int(j - m2), int(j - m1)])
 
     return Q.real / pi, THETA, PHI
 
