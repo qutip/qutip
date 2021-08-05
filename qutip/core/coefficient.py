@@ -7,6 +7,7 @@ import dis
 import hashlib
 import glob
 import importlib
+import inspect
 import shutil
 import numbers
 from contextlib import contextmanager
@@ -103,7 +104,7 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
         return coeff_from_str(base, args, args_ctypes, compile_opt)
 
     elif callable(base):
-        op = FunctionCoefficient(base, args.copy())
+        op = FunctionCoefficient.by_inspection(base, args.copy())
         if not isinstance(op(0), numbers.Number):
             raise TypeError("The coefficient function must return a number")
         return op

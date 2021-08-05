@@ -5,6 +5,7 @@ from .inter cimport (_spline_complex_cte_second,
                      _step_complex_t, _step_complex_cte)
 from .interpolate cimport interp, zinterp
 from ..interpolate import Cubic_Spline
+import inspect
 import pickle
 import scipy
 import numpy as np
@@ -112,24 +113,57 @@ cdef class FunctionCoefficient(Coefficient):
 
     Parameters
     ----------
-    func : callable(t : float, args : dict) -> complex
-        Function computing the coefficient value.
+    func : callable(t : float, ...) -> complex
+        Function returning the coefficient value at time ``t``.
 
     args : dict
-        Values of the arguments to pass to `func`.
+        Values of the arguments to pass to ``func``.
+
+    f_is_t_args : bint
+        Set to true if ``func`` should be called in the old QuTiP 4 style
+        as ``func(t, args)`` where ``args`` is a dictionary that contains
+        all the arguments. Otherwise set to false and ``func`` will be
+        called as ``f(t, **args)``.
+
+    f_arg_names : set or None
+        The set of argument names ``func`` accepts or ``None`` is ``func``
+        accepts all possible arguments (e.g. via a ``**kw`` argument).
     """
     cdef object func
+    cdef bint _f_is_t_args
+    cdef object _f_arg_names
 
-    def __init__(self, func, dict args):
+    def __init__(self, func, dict args, bint f_is_t_args, f_arg_names):
         self.func = func
         self.args = args
+        self._f_is_t_args = f_is_t_args
+        self._f_arg_names = f_arg_names
+
+    @classmethod
+    def by_inspection(cls, func, args):
+        sig = inspect.signature(func)
+        f_is_kw = any(p.kind == p.VAR_KEYWORD for p in sig.parameters.values())
+        f_is_t_args = tuple(sig.parameters.keys()) == ("t", "args") and not f_is_kw
+        if f_is_kw or f_is_t_args:
+            f_arg_names = None
+        else:
+            f_arg_names = set(list(sig.parameters.keys())[0:])
+            args = {k: args[k] for k in f_arg_names & args.keys()}
+        return cls(func, args, f_is_t_args=f_is_t_args, f_arg_names=f_arg_names)
 
     cdef complex _call(self, double t) except *:
-        return self.func(t, self.args)
+        if self._f_is_t_args:
+            return self.func(t, self.args)
+        return self.func(t, **self.args)
 
     cpdef Coefficient copy(self):
         """Return a copy of the :obj:`Coefficient`."""
-        return FunctionCoefficient(self.func, self.args.copy())
+        return FunctionCoefficient(
+            self.func,
+            self.args.copy(),
+            f_is_t_args=self._f_is_t_args,
+            f_arg_names=self._f_arg_names,
+        )
 
     def replace_arguments(self, _args=None, **kwargs):
         """
@@ -149,9 +183,16 @@ cdef class FunctionCoefficient(Coefficient):
         """
         if _args:
             kwargs.update(_args)
-        if kwargs:
-            return FunctionCoefficient(self.func, {**self.args, **kwargs})
-        return self
+        if self._f_arg_names is not None:
+            kwargs = {k: kwargs[k] for k in self._f_arg_names & kwargs.keys()}
+        if not kwargs:
+            return self
+        return FunctionCoefficient(
+            self.func,
+            {**self.args, **kwargs},
+            f_is_t_args=self._f_is_t_args,
+            f_arg_names=self._f_arg_names,
+        )
 
 
 def proj(x):
