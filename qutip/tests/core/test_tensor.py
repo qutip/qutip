@@ -36,7 +36,7 @@ import numpy as np
 from numpy.testing import assert_equal, assert_
 
 from qutip import (
-    Qobj, identity, sigmax, to_super, to_choi, rand_super_bcsz,
+    Qobj, identity, sigmax, to_super, to_choi, rand_super_bcsz, basis,
     tensor_contract, tensor_swap, num, QobjEvo, destroy, tensor
 )
 
@@ -140,6 +140,25 @@ def test_tensor_qobjevo():
     assert tensor(left, right)(t) == tensor(left(t), right(t))
     assert tensor(left, sigmax())(t) == tensor(left(t), sigmax())
     assert tensor(num(N), right)(t) == tensor(num(N), right(t))
+
+
+def test_tensor_qobjevo_non_square():
+    N = 5
+    t = 1.5
+    left = QobjEvo([basis(N, 0), [basis(N, 1), "t"]])
+    right = QobjEvo([basis(2, 0).dag(), [basis(2, 1).dag(), "t"]])
+    assert tensor(left, right)(t) == tensor(left(t), right(t))
+
+
+def test_tensor_qobjevo_multiple():
+    N = 5
+    t = 1.5
+    left = QobjEvo([basis(N, 0), [basis(N, 1), "t"]])
+    center = QobjEvo([basis(2, 0).dag(), [basis(2, 1).dag(), "t"]])
+    right = QobjEvo([sigmax()])
+    as_QobjEvo = tensor(left, center, right)(t)
+    as_Qobj = tensor(left(t), center(t), right(t))
+    assert as_QobjEvo == as_Qobj
 
 
 def test_tensor_and():

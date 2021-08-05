@@ -46,6 +46,7 @@ from ._stochastic import (
 from .solver import Result, SolverOptions, _solver_safety_check
 from ..parallel import serial_map
 from ..ui.progressbar import TextProgressBar
+from qutip.core import data as _data
 
 __all__ = ['ssesolve', 'photocurrent_sesolve', 'smepdpsolve',
            'smesolve', 'photocurrent_mesolve', 'ssepdpsolve',
@@ -326,8 +327,7 @@ class StochasticSolverOptions:
         if H is not None:
             msg = "The Hamiltonian format is not valid. "
             try:
-                self.H = QobjEvo(H, args=args, tlist=times,
-                                 e_ops=e_ops, state0=state0)
+                self.H = QobjEvo(H, args=args, tlist=times)
             except Exception as e:
                 raise ValueError(msg + str(e)) from e
         else:
@@ -337,8 +337,7 @@ class StochasticSolverOptions:
             msg = ("The sc_ops format is not valid. Options are "
                    "[ Qobj / QobjEvo / [Qobj, coeff]]. ")
             try:
-                self.sc_ops = [QobjEvo(op, args=args, tlist=times,
-                                       e_ops=e_ops, state0=state0)
+                self.sc_ops = [QobjEvo(op, args=args, tlist=times)
                                for op in sc_ops]
             except Exception as e:
                 raise ValueError(msg + str(e)) from e
@@ -351,8 +350,7 @@ class StochasticSolverOptions:
             msg = ("The c_ops format is not valid. Options are "
                    "[ Qobj / QobjEvo / [Qobj, coeff]]. ")
             try:
-                self.c_ops = [QobjEvo(op, args=args, tlist=times,
-                                      e_ops=e_ops, state0=state0)
+                self.c_ops = [QobjEvo(op, args=args, tlist=times)
                               for op in c_ops]
             except Exception as e:
                 raise ValueError(msg + str(e)) from e
@@ -469,7 +467,7 @@ class StochasticSolverOptions:
         elif self.solver in ['Rouchon', 'rouchon', 120]:
             self.solver_code = 120
             self.solver = 'rouchon'
-            if not all((op.const for op in self.sc_ops)):
+            if not all((op.isconstant for op in self.sc_ops)):
                 raise ValueError("Rouchon only works with constant sc_ops")
         elif self.solver in ['platen15', 'explicit1.5', 'explicit15', 150]:
             self.solver_code = 150
@@ -484,7 +482,7 @@ class StochasticSolverOptions:
             self.solver_code = 202
             self.solver = 'taylor2.0'
             if not len(self.sc_ops) == 1 or \
-                    not self.sc_ops[0].const or \
+                    not self.sc_ops[0].isconstant or \
                     not self.method == "homodyne":
                 raise ValueError("Taylor2.0 only works with 1 constant " +
                                 "sc_ops and for homodyne method")
@@ -636,7 +634,7 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     sso.cm_ops = [QobjEvo(spre(op)) for op in sso.m_ops]
 
     if sso.solver_code in [103, 153]:
-        sso.imp = 1 - sso.LH * 0.5
+        sso.imp = (1 - sso.LH * 0.5).to(_data.CSR)
 
     sso.solver_obj = SMESolver
     sso.solver_name = "smesolve_" + sso.solver
@@ -750,9 +748,9 @@ def ssesolve(H, psi0, times, sc_ops=[], e_ops=[],
     else:
         raise Exception("The method must be one of None, homodyne, heterodyne")
 
-    sso.LH = sso.H * (-1j*sso.dt)
+    sso.LH = sso.H * (-1j * sso.dt)
     for ops in sso.sops:
-        sso.LH -= ops[0]._cdc()*0.5*sso.dt
+        sso.LH += (-0.5 * sso.dt) * ops[0].dag() @ ops[0]
 
     sso.ce_ops = [QobjEvo(op) for op in sso.e_ops]
     sso.cm_ops = [QobjEvo(op) for op in sso.m_ops]
@@ -812,11 +810,11 @@ def _positive_map(sso, e_ops_dict):
         return spre(op) * spost(op.dag())
 
     for op in sso.c_ops:
-        LH -= op._cdc() * sso.dt * 0.5
+        LH += op.dag() @ op * (-sso.dt * 0.5)
         sso.pp += spre(op) * spost(op.dag()) * sso.dt
 
     for i, op in enumerate(sops):
-        LH -= op._cdc() * sso.dt * 0.5
+        LH += (-sso.dt * 0.5) * op.dag() @ op
         sso.sops += [(spre(op) + spost(op.dag())) * sso.dt]
         sso.preops += [spre(op)]
         sso.postops += [spost(op.dag())]
@@ -915,8 +913,8 @@ def photocurrent_mesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     def _prespostdag(op):
         return spre(op) * spost(op.dag())
 
-    sso.sops = [[spre(op._cdc()) + spost(op._cdc()),
-                 spre(op._cdc()),
+    sso.sops = [[spre(op.dag() @ op) + spost(op.dag() @ op),
+                 spre(op.dag() @ op),
                  spre(op) * spost(op.dag())] for op in sso.sc_ops]
     sso.ce_ops = [QobjEvo(spre(op)) for op in sso.e_ops]
     sso.cm_ops = [QobjEvo(spre(op)) for op in sso.m_ops]
@@ -993,10 +991,10 @@ def photocurrent_sesolve(H, psi0, times, sc_ops=[], e_ops=[],
 
     sso.solver_obj = PcSSESolver
     sso.solver_name = "photocurrent_sesolve"
-    sso.sops = [[op, op._cdc()] for op in sso.sc_ops]
+    sso.sops = [[op, op.dag() @ op] for op in sso.sc_ops]
     sso.LH = sso.H * (-1j*sso.dt)
     for ops in sso.sops:
-        sso.LH -= ops[0]._cdc()*0.5*sso.dt
+        sso.LH += ops[0].dag() @ ops[0] * (-0.5 * sso.dt)
     sso.ce_ops = [QobjEvo(op) for op in sso.e_ops]
     sso.cm_ops = [QobjEvo(op) for op in sso.m_ops]
 
@@ -1164,15 +1162,15 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
 
 def _safety_checks(sso):
     l_vec = sso.rho0.shape[0]
-    if sso.H.cte.issuper:
+    if sso.H.issuper:
         if not sso.me:
             raise
-        shape_op = sso.H.cte.shape
+        shape_op = sso.H.shape
         if shape_op[0] != l_vec or shape_op[1] != l_vec:
             raise Exception("The size of the hamiltonian does "
                             "not fit the intial state")
     else:
-        shape_op = sso.H.cte.shape
+        shape_op = sso.H.shape
         if sso.me:
             if shape_op[0]**2 != l_vec or shape_op[1]**2 != l_vec:
                 raise Exception("The size of the hamiltonian does "
@@ -1183,15 +1181,15 @@ def _safety_checks(sso):
                                 "not fit the intial state")
 
     for op in sso.sc_ops:
-        if op.cte.issuper:
+        if op.issuper:
             if not sso.me:
                 raise
-            shape_op = op.cte.shape
+            shape_op = op.shape
             if shape_op[0] != l_vec or shape_op[1] != l_vec:
                 raise Exception("The size of the sc_ops does "
                                 "not fit the intial state")
         else:
-            shape_op = op.cte.shape
+            shape_op = op.shape
             if sso.me:
                 if shape_op[0]**2 != l_vec or shape_op[1]**2 != l_vec:
                     raise Exception("The size of the sc_ops does "
@@ -1202,15 +1200,15 @@ def _safety_checks(sso):
                                     "not fit the intial state")
 
     for op in sso.c_ops:
-        if op.cte.issuper:
+        if op.issuper:
             if not sso.me:
                 raise
-            shape_op = op.cte.shape
+            shape_op = op.shape
             if shape_op[0] != l_vec or shape_op[1] != l_vec:
                 raise Exception("The size of the c_ops does "
                                 "not fit the intial state")
         else:
-            shape_op = op.cte.shape
+            shape_op = op.shape
             if sso.me:
                 if shape_op[0]**2 != l_vec or shape_op[1]**2 != l_vec:
                     raise Exception("The size of the c_ops does "

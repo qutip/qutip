@@ -53,7 +53,7 @@ from ._rhs_generate import rhs_clear, td_wrap_array_str
 from ._utilities import cython_build_cleanup
 from .solver import SolverOptions, config
 from .steadystate import steadystate
-from ..settings import settings 
+from ..settings import settings
 debug = settings.install['debug']
 
 if debug:
@@ -634,23 +634,17 @@ def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
     rho_t = mesolve(H, rho0, tlist, c_ops, args=args, options=options).states
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
-    H_shifted, c_ops_shifted, _args = _transform_L_t_shift_new(H, c_ops, args)
-    if config.tdname:
-        cython_build_cleanup(config.tdname)
-    rhs_clear()
+    H = QobjEvo(H, args=args, tlist=tlist, copy=False)
+    c_ops = [QobjEvo(op, args=args, tlist=tlist, copy=False) for op in c_ops]
 
     for t_idx, rho in enumerate(rho_t):
-        if not isinstance(H, Qobj):
-            _args["_t0"] = tlist[t_idx]
+        H_shifted = H._insert_time_shift(tlist[t_idx])
+        c_ops_shifted = [op._insert_time_shift(tlist[t_idx]) for op in c_ops]
 
         corr_mat[t_idx, :] = mesolve(
             H_shifted, c_op * rho * a_op, taulist, c_ops_shifted,
-            [b_op], args=_args, options=options
+            [b_op], args=args, options=options
         ).expect[0]
-
-    if config.tdname:
-        cython_build_cleanup(config.tdname)
-    rhs_clear()
 
     return corr_mat
 
@@ -764,16 +758,14 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     ).states
 
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
-    H_shifted, c_ops_shifted, _args = _transform_L_t_shift_new(H, c_ops, args)
-    if config.tdname:
-        cython_build_cleanup(config.tdname)
-    rhs_clear()
+    H = QobjEvo(H, args=args, tlist=tlist, copy=False)
+    c_ops = [QobjEvo(op, args=args, tlist=tlist, copy=False) for op in c_ops]
 
     # calculation of <A(t)B(t+tau)C(t)> from only knowledge of psi0 requires
     # averaging over both t and tau
     for t_idx in range(np.size(tlist)):
-        if not isinstance(H, Qobj):
-            _args["_t0"] = tlist[t_idx]
+        H_shifted = H._insert_time_shift(tlist[t_idx])
+        c_ops_shifted = [op._insert_time_shift(tlist[t_idx]) for op in c_ops]
 
         for trial_idx in range(options['ntraj'][0]):
             if isinstance(a_op, Qobj) and isinstance(c_op, Qobj):
@@ -786,7 +778,7 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                     c_tau = chi_0.norm()**2 * mcsolve(
                         H_shifted, chi_0/chi_0.norm(), taulist, c_ops_shifted,
                         [b_op],
-                        args=_args, ntraj=options['ntraj'][1], options=options,
+                        args=args, ntraj=options['ntraj'][1], options=options,
                         progress_bar=None
                     ).expect[0]
 
@@ -813,7 +805,7 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                     chi.norm()**2 * mcsolve(
                         H_shifted, chi/chi.norm(), taulist, c_ops_shifted,
                         [b_op],
-                        args=_args, ntraj=options['ntraj'][1], options=options,
+                        args=args, ntraj=options['ntraj'][1], options=options,
                         progress_bar=None
                     ).expect[0]
                     for chi in chi_0
@@ -826,10 +818,6 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                     dtype=corr_mat.dtype
                 )
                 corr_mat[t_idx, :] += corr_mat_add
-
-    if config.tdname:
-        cython_build_cleanup(config.tdname)
-    rhs_clear()
 
     return corr_mat
 
@@ -867,55 +855,6 @@ def _spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
                    np.dot(a, np.dot(MMR, np.dot(b, np.transpose(rho)))))
         spectrum[idx] = -2 * np.real(s[0, 0])
     return spectrum
-
-
-# auxiliary
-def _transform_shift_one_coeff(op, args):
-    if isinstance(op, types.FunctionType):
-        # function-list based time-dependence
-        if isinstance(args, dict):
-            def fn(t, args_i):
-                return op(t + args_i["_t0"], args_i)
-        else:
-            def fn(t, args_i):
-                return op(t + args_i["_t0"], args_i["_user_args"])
-    else:
-        fn = sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",
-                 "(t+_t0)", " " + op + " ")
-    return fn
-
-
-def _transform_shift_one_op(op, args={}):
-    if isinstance(op, Qobj):
-        new_op = op
-    elif isinstance(op, QobjEvo):
-        new_op = op
-        new_op._shift
-    elif callable(op):
-        def new_op(t, args_i):
-            return op(t + args_i["_t0"], args_i)
-    elif isinstance(op, list):
-        new_op = []
-        for block in op:
-            if isinstance(block, list):
-                new_op.append([block[0],
-                               _transform_shift_one_coeff(block[1], args)])
-            else:
-                new_op.append(block)
-    return new_op
-
-
-def _transform_L_t_shift_new(H, c_ops, args={}):
-    H_shifted = _transform_shift_one_op(H, args)
-    c_ops_shifted = [_transform_shift_one_op(op, args) for op in c_ops]
-    if args is None:
-        _args = {"_t0": 0}
-    elif isinstance(args, dict):
-        _args = args.copy()
-        _args["_t0"] = 0
-    else:
-        _args = {"_user_args": args, "_t0": 0}
-    return H_shifted, c_ops_shifted, _args
 
 
 class _exponential_term:
