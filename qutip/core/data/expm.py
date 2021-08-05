@@ -4,6 +4,7 @@ import scipy.sparse.linalg
 from .dense import Dense
 from .csr import CSR
 from .properties import isdiag_csr
+from .base import idxint_dtype
 
 __all__ = [
     'expm', 'expm_csr', 'expm_csr_dense',
@@ -12,12 +13,20 @@ __all__ = [
 
 def expm_csr(matrix: CSR) -> CSR:
     if matrix.shape[0] != matrix.shape[1]:
-        raise TypeError("can only exponentiate square matrix")
+        raise ValueError("can only exponentiate square matrix")
     if isdiag_csr(matrix):
-        out = matrix.copy()
-        sci = out.as_scipy()
-        sci.data[:] = np.exp(sci.data)
-        return out
+        matrix_sci = matrix.as_scipy()
+        data = np.ones(matrix.shape[0], dtype=np.complex128)
+        data[matrix_sci.indices] += np.expm1(matrix_sci.data)
+        return CSR(
+            (
+                data,
+                np.arange(matrix.shape[0], dtype=idxint_dtype),
+                np.arange(matrix.shape[0] + 1, dtype=idxint_dtype),
+            ),
+            shape=matrix.shape,
+            copy=False,
+        )
     # The scipy solvers for the Pade approximant are more efficient with the
     # CSC format than the CSR one.
     csc = matrix.as_scipy().tocsc()
@@ -26,7 +35,7 @@ def expm_csr(matrix: CSR) -> CSR:
 
 def expm_csr_dense(matrix: CSR) -> Dense:
     if matrix.shape[0] != matrix.shape[1]:
-        raise TypeError("can only exponentiate square matrix")
+        raise ValueError("can only exponentiate square matrix")
     return Dense(scipy.sparse.linalg.expm(matrix.to_array()))
 
 

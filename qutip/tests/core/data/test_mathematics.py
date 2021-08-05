@@ -1,5 +1,6 @@
 import itertools
 import numpy as np
+import scipy as sc
 import pytest
 
 from qutip.core import data
@@ -384,10 +385,10 @@ class _GenericOpMixin:
 class UnaryOpMixin(_GenericOpMixin):
     """
     Mix-in for unary mathematical operations on Data instances (e.g. unary
-    negation).  Only generates the test `mathematically_correct`, since there
-    can't be a shape mismatch when there's only one argument.
+    negation).
     """
     shapes = [(x,) for x in shapes_unary()]
+    bad_shapes = []
 
     def test_mathematically_correct(self, op, data_m, out_type):
         matrix = data_m()
@@ -405,6 +406,16 @@ class UnaryOpMixin(_GenericOpMixin):
                                            expected_, atol=self.tol)
         else:
             assert abs(test - expected) < self.tol
+
+    def test_incorrect_shape_raises(self, op, data_m):
+        """
+        Test that the operation produces a suitable error if the shape of the
+        given operand is not compatible with the operation. Useful for
+        operations that require square matrices (trace, pow, ...).
+        """
+        with pytest.raises(ValueError):
+            op(data_m())
+
 
 class UnaryScalarOpMixin(_GenericOpMixin):
     """
@@ -737,22 +748,6 @@ class TestNeg(UnaryOpMixin):
     ]
 
 
-class TestProject(UnaryOpMixin):
-    def op_numpy(self, matrix):
-        if matrix.shape[1] == 1:
-            matrix = np.conj(matrix.T)
-        return np.conj(matrix.T) @ matrix
-
-    shapes = [
-        (pytest.param((1, 100), id='bra'),),
-        (pytest.param((100, 1), id='ket'),),
-        (pytest.param((1, 1), id='scalar'),),
-    ]
-    specialisations = [
-        pytest.param(data.project_csr, CSR, CSR),
-    ]
-
-
 class TestSub(BinaryOpMixin):
     def op_numpy(self, left, right):
         return left - right
@@ -776,15 +771,6 @@ class TestTrace(UnaryOpMixin):
         pytest.param(data.trace_dense, Dense, complex),
     ]
 
-    # Trace actually does have bad shape, so we put that in too.
-    def test_incorrect_shape_raises(self, op, data_m):
-        """
-        Test that the operation produces a suitable error if the shape is not a
-        square matrix.
-        """
-        with pytest.raises(ValueError):
-            op(data_m())
-
 
 class TestPow(UnaryOpMixin):
     def op_numpy(self, matrix, n):
@@ -796,7 +782,7 @@ class TestPow(UnaryOpMixin):
         pytest.param(data.pow_csr, CSR, CSR),
     ]
 
-    @pytest.mark.parametrize("n", [1, 10], ids=["n_1", "n_10"])
+    @pytest.mark.parametrize("n", [0, 1, 10], ids=["n_0", "n_1", "n_10"])
     def test_mathematically_correct(self, op, data_m, out_type, n):
         matrix = data_m()
         expected = self.op_numpy(matrix.to_array(), n)
@@ -814,6 +800,18 @@ class TestPow(UnaryOpMixin):
         """
         with pytest.raises(ValueError):
             op(data_m(), 10)
+
+
+class TestExpm(UnaryOpMixin):
+    def op_numpy(self, matrix):
+        return sc.sparse.linalg.expm(matrix)
+
+    shapes = shapes_square()
+    bad_shapes = shapes_not_square()
+    specialisations = [
+        pytest.param(data.expm_csr, CSR, CSR),
+        pytest.param(data.expm_csr_dense, CSR, Dense),
+    ]
 
 
 class TestTranspose(UnaryOpMixin):
