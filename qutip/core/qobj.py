@@ -473,12 +473,33 @@ class Qobj:
 
     @_tidyup
     def __mul__(self, other):
-        if not isinstance(other, numbers.Number):
+        """
+        If other is a Qobj, we dispatch to __matmul__. If not, we
+        check that other is a valid complex scalar, i.e., we can do
+        complex(other). Otherwise, we return NotImplemented.
+        """
+
+        if isinstance(other, Qobj):
             return self.__matmul__(other)
-        multiplier = complex(other)
-        isherm = (self._isherm and multiplier.imag == 0) or None
-        isunitary = (self._isunitary and abs(multiplier) == 1) or None
-        return Qobj(_data.mul(self._data, multiplier),
+
+        # We send other to mul instead of complex(other) to be more flexible. 
+        # The dispatcher can then decide how to handle other and return 
+        # TypeError if it does not know what to do with the type of other.
+        try:
+            out = _data.mul(self._data, other)
+        except TypeError:
+            return NotImplemented
+
+        # Infer isherm and isunitary if possible
+        try:
+            multiplier = complex(other)
+            isherm = (self._isherm and multiplier.imag == 0) or None
+            isunitary = abs(multiplier) == 1 if self._isunitary else None
+        except TypeError:
+            isherm = None
+            isunitary = None
+
+        return Qobj(out,
                     dims=self.dims,
                     type=self.type,
                     superrep=self.superrep,
@@ -489,9 +510,7 @@ class Qobj:
     def __rmul__(self, other):
         # Shouldn't be here unless `other.__mul__` has already been tried, so
         # we _shouldn't_ check that `other` is `Qobj`.
-        if not isinstance(other, numbers.Number):
-            return NotImplemented
-        return self.__mul__(complex(other))
+        return self.__mul__(other)
 
     @_tidyup
     def __matmul__(self, other):
@@ -519,6 +538,7 @@ class Qobj:
             or (self.isoperbra and other.isoperket)
         ):
             return _data.inner(self.data, other.data)
+
         try:
             type_ = _MATMUL_TYPE_LOOKUP[(self.type, other.type)]
         except KeyError:

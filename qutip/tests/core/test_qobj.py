@@ -185,8 +185,9 @@ class TestQobjHermicity:
 
 
 def assert_unitarity(oper, unitarity):
-    # Check the cached isunitary, if any exists.
+    # Check the cached isunitary.
     assert oper.isunitary == unitarity
+
     # Force a reset of the cached value for isunitary.
     oper._isunitary = None
     # Force a recalculation of isunitary.
@@ -211,6 +212,17 @@ def test_QobjUnitaryOper():
     assert_unitarity(Sx*4, False)
     assert_unitarity(4+Sx, False)
     assert_unitarity(Sx+4, False)
+    # Check that when multipliying scalar numbers with absolute value 1 we
+    # maintain unitarity.
+    assert_unitarity(Sx*np.exp(5j), True)
+    assert_unitarity(Sx*1j, True)
+    assert_unitarity(Sx*1, True)
+    # Chech that if qobj is _not_ unitary, operation by scalar set it to `None`
+    # We do not know if it is unitary until we check the whole matrix again.
+    assert (qutip.sigmam()*4)._isunitary == None  # Non unitary 
+    # This may be removed in the future as if scalar has abs value of 1 and
+    # matrix is not unitary, output wont be unitary.
+    assert (qutip.sigmam()*1)._isunitary == None
 
 
 def test_QobjDimsShape():
@@ -328,6 +340,48 @@ def test_QobjMultiplication():
     q4 = q1 * q2
 
     assert q3 == q4
+
+
+# Allowed mul operations (scalar)
+@pytest.mark.parametrize("scalar",
+                         [2+2j,  np.array(2+2j), np.array([2+2j])],
+                         ids=[
+                             "python_number",
+                             "scalar_like_array_shape_0",
+                             "scalar_like_array_shape_1",
+                         ])
+def test_QobjMulValidScalar(scalar):
+    "Tests multiplication of Qobj times scalar."
+    data = np.array([[1, 2], [3, 4]])
+    q = qutip.Qobj(data)
+    expect = data * (2+2j)
+
+    # Check __mul__
+    result = q * scalar
+    assert np.all(result.full() == expect)
+
+    # Check __rmul__
+    result = scalar * q
+    assert np.all(result.full() == expect)
+
+
+# We do not allow yet qobj being multiplied by a numpy array that does not
+# represent a scalar. If we include the feature of numpy broadcasting an qobj
+# as scalar, this test should be removed.
+@pytest.mark.parametrize("not_scalar",
+                         [np.array([2j, 1]), np.array([[1, 2], [3, 4]])],
+                         ids=[
+                             "not_scalar_like_vector",
+                             "not_scalar_like_matrix",
+                         ])
+def test_QobjMulNotValidScalar(not_scalar):
+    q1 = qutip.Qobj(np.array([[1, 2], [3, 4]]))
+
+    with pytest.raises(TypeError):
+        not_scalar * q1
+
+    with pytest.raises(TypeError):
+        q1 * not_scalar
 
 
 def test_QobjDivision():
