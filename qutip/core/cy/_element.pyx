@@ -1,6 +1,7 @@
 #cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False, cdvision=True
 
+import inspect
 from .. import data as _data
 from qutip.core.data cimport Dense, Data, dense
 from qutip.core.data.matmul cimport *
@@ -356,29 +357,71 @@ cdef class _EvoElement(_BaseElement):
 
 cdef class _FuncElement(_BaseElement):
     """
-    Used with :obj:`QobjEvo` to build a function with signature: ::
+    Used with :obj:`QobjEvo` to build an evolution term from a function with
+    either the signature: ::
 
-      func(t: float, args: dict) -> Qobj
+        func(t: float, ...) -> Qobj
 
-    :obj:`QobjEvo` created from such a function contian one
-    :obj:`_FuncElement`::
+    or the older QuTiP 4 style signature: ::
 
-      qevo = QobjEvo(func, args=args)
-      qevo.elements = [_FuncElement(func, args)]
+        func(t: float, args: dict) -> Qobj
 
-    Each :obj:`_FuncElement` contain an immutable pair ``(func, args)``.
+    In the new style, ``func`` may accept arbitrary named arguments and
+    is called as ``func(t, **args)``.
 
-    This class has basic memoize capacity: it saves the last call ::
+    A :obj:`QobjEvo` created from such a function contains one
+    :obj:`_FuncElement`: ::
+
+        qevo = QobjEvo(func, args=args)
+        qevo.elements = [_FuncElement(func, args)]
+
+    Each :obj:`_FuncElement` consists of an immutable pair ``(func, args)``
+    of function and argument.
+
+    This class has a basic capacity to memoize calls to ``func`` by saving the
+    result of the last call ::
 
         op = QobjEvo(func, args=args)
         (op.dag() * op)(t)
 
-    call the function `func` only once.
+    calls ``func`` only once.
+
+    Parameters
+    ----------
+    func : callable(t : float, ...) -> Qobj
+        Function returning the element value at time ``t``.
+
+    args : dict
+        Values of the arguments to pass to ``func``.
+
+    f_is_t_args : bint
+        Set to true if ``func`` should be called in the old QuTiP 4 style
+        as ``func(t, args)`` where ``args`` is a dictionary that contains
+        all the arguments. Otherwise set to false and ``func`` will be
+        called as ``f(t, **args)``.
+
+    f_arg_names : set or None
+        The set of argument names ``func`` accepts or ``None`` is ``func``
+        accepts all possible arguments (e.g. via a ``**kw`` argument).
     """
-    def __init__(self, func, args):
+    def __init__(self, func, args, bint f_is_t_args, f_arg_names):
         self._func = func
         self._args = args.copy()
+        self._f_is_t_args = f_is_t_args
+        self._f_arg_names = f_arg_names
         self._previous = (Nan, None)
+
+    @classmethod
+    def by_inspection(cls, func, args):
+        sig = inspect.signature(func)
+        f_is_kw = any(p.kind == p.VAR_KEYWORD for p in sig.parameters.values())
+        f_is_t_args = tuple(sig.parameters.keys()) == ("t", "args") and not f_is_kw
+        if f_is_kw or f_is_t_args:
+            f_arg_names = None
+        else:
+            f_arg_names = set(list(sig.parameters.keys())[0:])
+            args = {k: args[k] for k in f_arg_names & args.keys()}
+        return cls(func, args, f_is_t_args=f_is_t_args, f_arg_names=f_arg_names)
 
     def __mul__(left, right):
         cdef _MapElement out
@@ -400,7 +443,10 @@ cdef class _FuncElement(_BaseElement):
         _t, _qobj = self._previous
         if t == _t:
             return _qobj
-        _qobj = self._func(t, self._args)
+        if self._f_is_t_args:
+            _qobj = self._func(t, self._args)
+        else:
+            _qobj = self._func(t, **self._args)
         self._previous = (t, _qobj)
         return _qobj
 
@@ -411,13 +457,22 @@ cdef class _FuncElement(_BaseElement):
         return _MapElement(self, [f])
 
     def replace_arguments(_FuncElement self, args, cache=None):
-        if cache is None:
-            return _FuncElement(self._func, {**self._args, **args})
-        for old, new in cache:
-            if old is self:
-                return new
-        new = _FuncElement(self._func, {**self._args, **args})
-        cache.append((self, new))
+        if self._f_arg_names is not None:
+            args = {k: args[k] for k in self._f_arg_names & args.keys()}
+        if not args:
+            return self
+        if cache is not None:
+            for old, new in cache:
+                if old is self:
+                    return new
+        new = _FuncElement(
+                self._func,
+                {**self._args, **args},
+                f_is_t_args=self._f_is_t_args,
+                f_arg_names=self._f_arg_names,
+        )
+        if cache is not None:
+            cache.append((self, new))
         return new
 
 
