@@ -396,7 +396,7 @@ class TestMESolveTDDecay:
         H = num(N)
         psi0 = basis(N, 9)
         tlist = np.linspace(0, 10, 100)
-        c_ops = [[[a, partial(lambda t, args, k:
+        c_ops = [[[a, partial(lambda t, k:
                               np.sqrt(k * np.exp(-t)), k=kappa)]]
                  for kappa in [0.05, 0.1, 0.2]]
 
@@ -577,7 +577,7 @@ class TestMESolveSuperInit:
         rho0vec = operator_to_vector(psi0*psi0.dag())
         E0 = sprepost(qeye(N), qeye(N))
         tlist = np.linspace(0, 10, 100)
-        c_ops = [[[a, partial(lambda t, args, k:
+        c_ops = [[[a, partial(lambda t, k:
                               np.sqrt(k * np.exp(-t)), k=kappa)]]
                  for kappa in [0.05, 0.1, 0.2]]
 
