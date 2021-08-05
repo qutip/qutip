@@ -852,6 +852,12 @@ def qfunc(
 def spin_q_function(rho, theta, phi):
     """Husimi Q-function for spins.
 
+    The Husimi Q function for spins is defined as:
+        Q(theta, phi) = <s,theta,phi| rho |s,theta,phi>/pi
+    where |s,theta,phi> is the spin coherent state for a spin with length s and pointing
+    along (theta,phi). The Q function can be calculated using the elements of rho using
+    the definition of spin coherent states (e.g. Loh and Kim 2015 doi: 10.1119/1.4898595)
+
     Parameters
     ----------
     state : qobj
@@ -882,19 +888,19 @@ def spin_q_function(rho, theta, phi):
 
     Q = np.zeros_like(THETA, dtype=complex)
 
-    for m1 in arange(-j, j+1):
+    for m1 in arange(-j, j + 1):
+        Q += binom(2 * j, j + m1) * cos(THETA / 2) ** (2 * (j + m1)) * sin(THETA / 2) ** (
+                    2 * (j - m1)) * \
+             rho.data[int(j - m1), int(j - m1)]
 
-        Q += binom(2*j, j+m1) * cos(THETA/2) ** (2*(j+m1)) * sin(THETA/2) ** (2*(j-m1)) * \
-             rho.data[int(j-m1), int(j-m1)]
+        for m2 in arange(m1 + 1, j + 1):
+            Q += (sqrt(binom(2 * j, j + m1)) * sqrt(binom(2 * j, j + m2)) *
+                  cos(THETA / 2) ** (2 * j + m1 + m2) * sin(THETA / 2) ** (
+                              2 * j - m1 - m2)) * \
+                 (exp(1j * (m1 - m2) * PHI) * rho.data[int(j - m1), int(j - m2)] +
+                  exp(1j * (m2 - m1) * PHI) * rho.data[int(j - m2), int(j - m1)])
 
-        for m2 in arange(m1+1, j+1):
-
-            Q += (sqrt(binom(2*j, j+m1)) * sqrt(binom(2*j, j+m2)) *
-                  cos(THETA/2) ** (2*j+m1+m2) * sin(THETA/2) ** (2*j-m1-m2)) * \
-                (exp(1j * (m1 - m2) * PHI) * rho.data[int(j - m1), int(j - m2)] +
-                 exp(1j * (m2 - m1) * PHI) * rho.data[int(j - m2), int(j - m1)])
-
-    return Q.real/pi, THETA, PHI
+    return Q.real / pi, THETA, PHI
 
 def _rho_kq(rho, j, k, q):
     v = 0j
