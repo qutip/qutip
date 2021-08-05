@@ -409,7 +409,7 @@ class UnaryOpMixin(_GenericOpMixin):
 
     def test_incorrect_shape_raises(self, op, data_m):
         """
-        Test that the operation produces a suitable error if the shapes of the
+        Test that the operation produces a suitable error if the shape of the
         given operand is not compatible with the operation. Useful for
         operations that require square matrices (trace, pow, ...).
         """
