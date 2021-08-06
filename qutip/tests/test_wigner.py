@@ -1,8 +1,10 @@
 import pytest
 import numpy as np
+import itertools
 from scipy.special import laguerre
 from numpy.random import rand
-from numpy.testing import assert_, run_module_suite, assert_equal
+from numpy.testing import assert_, run_module_suite, assert_equal, \
+    assert_almost_equal
 
 import qutip
 from qutip.states import coherent, fock, ket, bell_state
@@ -593,6 +595,21 @@ def test_wigner_clenshaw_sp_iter_dm():
         Wdiff = abs(W - Wclen)
         assert_equal(np.sum(abs(Wdiff)) < 1e-7, True)
 
+@pytest.mark.slow
+def test_spin_q_function():
+    for spin in [1/2, 3, 11/2, 21]:
+        d = int(2*spin + 1)
+        rho = rand_dm(d)
 
+        # Points at which to evaluate the spin Q function
+        theta_prime = np.linspace(0, np.pi, 32, endpoint=True)
+        phi_prime = np.linspace(-np.pi, np.pi, 64, endpoint=True)
+        Q, _, _ = qutip.spin_q_function(rho, theta_prime, phi_prime)
+
+        Q = Q.transpose()
+        for k, (t, p) in enumerate(itertools.product(theta_prime, phi_prime)):
+            state = qutip.spin_coherent(spin, t, p)
+            direct_Q = (state.dag() * rho * state).norm() / np.pi
+            assert_almost_equal(direct_Q, Q.flat[k], decimal=9)
 if __name__ == "__main__":
     run_module_suite()
