@@ -27,6 +27,7 @@ class CoreOptions:
 
     auto_tidyup_atol : float {1e-14}
         The absolute tolerance used in automatic tidyup.
+        Also used as the default value do :method:`Qobj.tidyup`.
     """
     options = {
         # use auto tidyup
