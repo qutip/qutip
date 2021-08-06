@@ -26,8 +26,9 @@ class CoreOptions:
         Used to choose QobjEvo.expect output type
 
     auto_tidyup_atol : float {1e-14}
-        The absolute tolerance used in automatic tidyup.
-        Also used as the default value do :method:`Qobj.tidyup`.
+        The absolute tolerance used in automatic tidyup (see the ``auto_tidyup``
+        parameter above) and the default value of ``atol`` used in
+        :method:`Qobj.tidyup`.
     """
     options = {
         # use auto tidyup
