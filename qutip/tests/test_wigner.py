@@ -616,7 +616,7 @@ def test_spin_q_function(spin, pure):
 
     for k, (p, t) in enumerate(itertools.product(phi_prime, theta_prime)):
         state = qutip.spin_coherent(spin, t, p)
-        direct_Q = (state.dag() * rho * state).norm() * (2 * j + 1) / (4 * pi)
+        direct_Q = (state.dag() * rho * state).norm() * (2 * spin + 1) / (4 * np.pi)
         assert_almost_equal(Q.flat[k], direct_Q, decimal=9)
 
 @pytest.mark.parametrize(["spin"], [
