@@ -619,5 +619,32 @@ def test_spin_q_function(spin, pure):
             state = qutip.spin_coherent(spin, t, p)
             direct_Q = (state.dag() * rho * state).norm() / np.pi
             assert_almost_equal(direct_Q, Q.flat[k], decimal=9)
+@pytest.mark.parametrize(["spin"], [
+    pytest.param(1/2, id="spin-one-half"),
+    pytest.param(3, id="spin-three"),
+    pytest.param(13/2, id="spin-thirteen-half"),
+    pytest.param(7, id="spin-seven")
+])
+@pytest.mark.parametrize("pure", [
+    pytest.param(True, id="pure"),
+    pytest.param(False, id="mixed")
+])
+def test_spin_wigner_normalized_and_real(spin, pure):
+    d = int(2*spin + 1)
+    rho = rand_dm(d, pure=pure)
+
+    # Points at which to evaluate the spin Wigner function
+    theta_prime = np.linspace(0, np.pi, 128, endpoint=True)
+    phi_prime = np.linspace(-np.pi, np.pi, 256, endpoint=True)
+    W, THETA, PHI = qutip.spin_wigner(rho, theta_prime, phi_prime)
+
+    assert_allclose(W.imag, 0, atol=1e-9,
+                    err_msg=f"Wigner function is non-real with maximum "
+                            f"imaginary value {np.max(W.imag)}")
+
+    norm = np.trapz(np.trapz(W*np.sin(THETA), theta_prime), phi_prime)
+    assert_almost_equal(norm.real, 1, decimal=3,
+                        err_msg=f"Wigner function is not normalized.")
+
 if __name__ == "__main__":
     run_module_suite()
