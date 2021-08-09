@@ -939,7 +939,7 @@ def _rho_kq(rho, j, k, q):
                     (-1) ** (2 * j - k - m1 - m2)
                     * np.sqrt((2 * k + 1) / (2 * j + 1))
                     * qutip.clebsch(j, k, j, -m1, q, -m2)
-                    * rho.data[j - m1, j - m2]
+                    * rho.data[int(j - m1), int(j - m2)]
             )
     return v
 
