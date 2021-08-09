@@ -595,14 +595,22 @@ def test_wigner_clenshaw_sp_iter_dm():
         Wdiff = abs(W - Wclen)
         assert_equal(np.sum(abs(Wdiff)) < 1e-7, True)
 
-@pytest.mark.slow
-def test_spin_q_function():
-    for spin in [1/2, 3, 11/2, 21]:
-        d = int(2*spin + 1)
-        rho = rand_dm(d)
+@pytest.mark.parametrize(['spin'], [
+    pytest.param(1/2, id="spin-one-half"),
+    pytest.param(3, id="spin-three"),
+    pytest.param(13/2, id="spin-thirteen-half"),
+    pytest.param(7, id="spin-seven")
+])
+@pytest.mark.parametrize("pure", [
+    pytest.param(True, id="pure"),
+    pytest.param(False, id="mixed")
+])
+def test_spin_q_function(spin, pure):
+    d = int(2*spin + 1)
+    rho = rand_dm(d, pure=pure)
 
-        # Points at which to evaluate the spin Q function
-        theta_prime = np.linspace(0, np.pi, 32, endpoint=True)
+    # Points at which to evaluate the spin Q function
+    theta_prime = np.linspace(0, np.pi, 32, endpoint=True)
         phi_prime = np.linspace(-np.pi, np.pi, 64, endpoint=True)
         Q, _, _ = qutip.spin_q_function(rho, theta_prime, phi_prime)
 
