@@ -606,7 +606,7 @@ def test_wigner_clenshaw_sp_iter_dm():
     pytest.param(False, id="mixed")
 ])
 def test_spin_q_function(spin, pure):
-    d = int(2*spin + 1)
+    d = int(2 * spin + 1)
     rho = rand_dm(d, pure=pure)
 
     # Points at which to evaluate the spin Q function
@@ -616,7 +616,7 @@ def test_spin_q_function(spin, pure):
 
     for k, (p, t) in enumerate(itertools.product(phi_prime, theta_prime)):
         state = qutip.spin_coherent(spin, t, p)
-        direct_Q = (state.dag() * rho * state).norm() * (2 * j + 1) / (4*pi)
+        direct_Q = (state.dag() * rho * state).norm() * (2 * j + 1) / (4 * pi)
         assert_almost_equal(Q.flat[k], direct_Q, decimal=9)
 
 @pytest.mark.parametrize(["spin"], [
@@ -630,7 +630,7 @@ def test_spin_q_function(spin, pure):
     pytest.param(False, id="mixed")
 ])
 def test_spin_wigner_normalized_and_real(spin, pure):
-    d = int(2*spin + 1)
+    d = int(2 * spin + 1)
     rho = rand_dm(d, pure=pure)
 
     # Points at which to evaluate the spin Wigner function
@@ -642,7 +642,7 @@ def test_spin_wigner_normalized_and_real(spin, pure):
                     err_msg=f"Wigner function is non-real with maximum "
                             f"imaginary value {np.max(W.imag)}")
 
-    norm = np.trapz(np.trapz(W*np.sin(THETA), theta_prime), phi_prime)
+    norm = np.trapz(np.trapz(W * np.sin(THETA), theta_prime), phi_prime)
     assert_almost_equal(norm.real, 1, decimal=3,
                         err_msg=f"Wigner function is not normalized.")
 
