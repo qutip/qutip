@@ -611,8 +611,8 @@ def test_spin_q_function(spin, pure):
 
     # Points at which to evaluate the spin Q function
     theta_prime = np.linspace(0, np.pi, 32, endpoint=True)
-        phi_prime = np.linspace(-np.pi, np.pi, 64, endpoint=True)
-        Q, _, _ = qutip.spin_q_function(rho, theta_prime, phi_prime)
+    phi_prime = np.linspace(-np.pi, np.pi, 64, endpoint=True)
+    Q, _, _ = qutip.spin_q_function(rho, theta_prime, phi_prime)
 
     for k, (p, t) in enumerate(itertools.product(phi_prime, theta_prime)):
         state = qutip.spin_coherent(spin, t, p)
