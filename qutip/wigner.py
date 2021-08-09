@@ -514,9 +514,9 @@ def _wig_laguerre_val(L, x, c):
         y1 = c[-1]
         for i in range(3, len(c) + 1):
             k -= 1
-            y0, y1 = c[-i] - y1 * (
-                        float((k - 1) * (L + k - 1)) / ((L + k) * k)) ** 0.5, \
-                     y0 - y1 * ((L + 2 * k - 1) - x) * ((L + k) * k) ** -0.5
+            y0, y1 = c[-i] - y1 * (float((k - 1) * (L + k - 1)) / (
+                        (L + k) * k)) ** 0.5, y0 - y1 * (
+                                 (L + 2 * k - 1) - x) * ((L + k) * k) ** -0.5
 
     return y0 - y1 * ((L + 1) - x) * (L + 1) ** -0.5
 
