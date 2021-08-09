@@ -904,13 +904,35 @@ def spin_q_function(rho, theta, phi):
     return Q.real / pi, THETA, PHI
 
 def _rho_kq(rho, j, k, q):
+    """
+    This calculates the trace of the multipole operator T_kq and the density
+    matrix rho for use in the spin Wigner quasiprobability distribution.
+
+    Parameters
+    ----------
+    rho : qobj
+        A density matrix for a spin-j quantum system.
+    j : float
+        The spin length of the system.
+    k : int
+        Spherical harmonic degree
+    q : int
+        Spherical harmonic order
+
+    Returns
+    -------
+    v : float
+        Overlap of state with multipole operator T_kq
+    """
+
     v = 0j
     for m1 in arange(-j, j+1):
         for m2 in arange(-j, j+1):
             v += (
-                (-1)**(j - m1 - q)
-                * qutip.clebsch(j, j, k, m1, -m2, q)
-                * rho.data[m1 + j, m2 + j]
+                (-1)**(2*j - k - m1 - m2)
+                * np.sqrt((2*k+1)/(2*j+1))
+                * qutip.clebsch(j, k, j, -m1, q, -m2)
+                * rho.data[j - m1, j - m2]
             )
     return v
 
@@ -934,10 +956,13 @@ def spin_wigner(rho, theta, phi):
         Values representing the spin Wigner function at the values specified
         by THETA and PHI.
 
-    Notes
+    References
     -----
-    Experimental.
-
+    [1] Agarwal, G. S. (1981). Phys. Rev. A, 24(6), 2889–2896. https://doi.org/10.1103/PhysRevA.24.2889
+    [2] Dowling, J. P., Agarwal, G. S., & Schleich, W. P. (1994).
+    Phys. Rev. A, 49(5), 4101–4109. https://doi.org/10.1103/PhysRevA.49.4101
+    [3] Conversion between Wigner 3-j symbol and Clebsch-Gordan coefficients
+    taken from Wikipedia (https://en.wikipedia.org/wiki/3-j_symbol)
     """
 
     if rho.type == 'bra':
@@ -958,4 +983,4 @@ def spin_wigner(rho, theta, phi):
             # sph_harm takes azimuthal angle then polar angle as arguments
             W += _rho_kq(rho, j, k, q) * sph_harm(q, k, PHI, THETA)
 
-    return W, THETA, PHI
+    return W*np.sqrt((2*j + 1)/(4*pi)), THETA, PHI
