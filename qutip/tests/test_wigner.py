@@ -4,7 +4,7 @@ import itertools
 from scipy.special import laguerre
 from numpy.random import rand
 from numpy.testing import assert_, run_module_suite, assert_equal, \
-    assert_almost_equal
+    assert_almost_equal, assert_allclose
 
 import qutip
 from qutip.states import coherent, fock, ket, bell_state
@@ -614,11 +614,11 @@ def test_spin_q_function(spin, pure):
         phi_prime = np.linspace(-np.pi, np.pi, 64, endpoint=True)
         Q, _, _ = qutip.spin_q_function(rho, theta_prime, phi_prime)
 
-        Q = Q.transpose()
-        for k, (t, p) in enumerate(itertools.product(theta_prime, phi_prime)):
-            state = qutip.spin_coherent(spin, t, p)
-            direct_Q = (state.dag() * rho * state).norm() / np.pi
-            assert_almost_equal(direct_Q, Q.flat[k], decimal=9)
+    for k, (p, t) in enumerate(itertools.product(phi_prime, theta_prime)):
+        state = qutip.spin_coherent(spin, t, p)
+        direct_Q = (state.dag() * rho * state).norm() * (2 * j + 1) / (4*pi)
+        assert_almost_equal(Q.flat[k], direct_Q, decimal=9)
+
 @pytest.mark.parametrize(["spin"], [
     pytest.param(1/2, id="spin-one-half"),
     pytest.param(3, id="spin-three"),

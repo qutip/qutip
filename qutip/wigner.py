@@ -901,7 +901,8 @@ def spin_q_function(rho, theta, phi):
              (exp(1j * (m1 - m2) * PHI) * rho.data[int(j - m1), int(j - m2)] +
               exp(1j * (m2 - m1) * PHI) * rho.data[int(j - m2), int(j - m1)])
 
-    return Q.real / pi, THETA, PHI
+    return Q.real * (2 * j + 1) / (4*pi), THETA, PHI
+
 
 def _rho_kq(rho, j, k, q):
     """
