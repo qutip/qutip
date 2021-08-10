@@ -856,21 +856,17 @@ def qfunc(
 # PSEUDO DISTRIBUTION FUNCTIONS FOR SPINS
 #
 def spin_q_function(rho, theta, phi):
-    """Husimi Q-function for spins.
-
-    The Husimi Q function for spins is defined as:
-        Q(theta, phi) = <s,theta,phi| rho |s,theta,phi>/pi
-    where |s,theta,phi> is the spin coherent state for a spin with length s
-    and pointing along (theta,phi). The Q function can be calculated using
-    the elements of rho using the definition of spin coherent states (e.g.
-    Loh and Kim 2015 doi: 10.1119/1.4898595)
+    r"""The Husimi Q function for spins is defined as
+    ``Q(theta, phi) = SCS.dag()* rho * SCS*(2*j+1)/(4*pi)`` for the spin
+    coherent state ``SCS = spin_coherent(j, theta, phi)``.
+    The implementation here is more efficient (see references).
 
     Parameters
     ----------
     state : qobj
         A state vector or density matrix for a spin-j quantum system.
     theta : array_like
-        Polar angle at which to calculate the Husimi-Q function.
+        Polar (colatitude) angle at which to calculate the Husimi-Q function.
     phi : array_like
         Azimuthal angle at which to calculate the Husimi-Q function.
 
@@ -879,6 +875,11 @@ def spin_q_function(rho, theta, phi):
     Q, THETA, PHI : 2d-array
         Values representing the spin Husimi Q function at the values specified
         by THETA and PHI.
+
+    References
+    ----------
+    [1] Lee Loh, Y., & Kim, M. (2015). American J. of Phys., 83(1), 30–35.
+    https://doi.org/10.1119/1.4898595
 
     """
 
@@ -945,15 +946,14 @@ def _rho_kq(rho, j, k, q):
 
 
 def spin_wigner(rho, theta, phi):
-    """Wigner function for a spin-j system on the 2-sphere of radius j
-       (for j = 1/2 this is the Bloch sphere).
+    r"""Wigner function for a spin-j system.
 
     Parameters
     ----------
     state : qobj
         A state vector or density matrix for a spin-j quantum system.
     theta : array_like
-        Polar angle at which to calculate the W function.
+        Polar (colatitude) angle at which to calculate the W function.
     phi : array_like
         Azimuthal angle at which to calculate the W function.
 
@@ -964,13 +964,16 @@ def spin_wigner(rho, theta, phi):
         by THETA and PHI.
 
     References
-    -----
+    ----------
     [1] Agarwal, G. S. (1981). Phys. Rev. A, 24(6), 2889–2896.
     https://doi.org/10.1103/PhysRevA.24.2889
+
     [2] Dowling, J. P., Agarwal, G. S., & Schleich, W. P. (1994).
     Phys. Rev. A, 49(5), 4101–4109. https://doi.org/10.1103/PhysRevA.49.4101
+
     [3] Conversion between Wigner 3-j symbol and Clebsch-Gordan coefficients
     taken from Wikipedia (https://en.wikipedia.org/wiki/3-j_symbol)
+
     """
 
     if rho.type == 'bra':
