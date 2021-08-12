@@ -33,6 +33,8 @@
 
 __all__ = ['expect', 'variance']
 
+import numbers
+
 import numpy as np
 
 from .qobj import Qobj
@@ -77,6 +79,7 @@ def expect(oper, state):
             return np.array([_single_qobj_expect(op, state) for op in oper],
                             dtype=dtype)
         return [expect(op, state) for op in oper]
+
     elif isinstance(state, (list, np.ndarray)):
         dtype = np.complex128
         if oper.isherm and all(op.isherm or op.isket for op in state):
@@ -99,7 +102,12 @@ def _single_qobj_expect(oper, state):
         )
         raise ValueError(msg)
     out = _data.expect(oper.data, state.data)
-    return out.real if oper.isherm and (state.isket or state.isherm) else out
+
+    # This ensures that expect can return something that is not a number.
+    try:
+        return out.real if oper.isherm and (state.isket or state.isherm) else out
+    except AttributeError:
+        return out
 
 
 def variance(oper, state):
