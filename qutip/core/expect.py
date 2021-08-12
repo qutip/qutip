@@ -33,8 +33,6 @@
 
 __all__ = ['expect', 'variance']
 
-import numbers
-
 import numpy as np
 
 from .qobj import Qobj
