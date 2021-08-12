@@ -6,6 +6,7 @@ from qutip import data
 from qutip.core.data import CSR, Dense
 import numbers
 
+
 class TestOneNorm(testing.UnaryOpMixin):
     def op_numpy(self, matrix):
         return sc.linalg.norm(matrix, 1)
@@ -45,12 +46,12 @@ class TestL2Norm(testing.UnaryOpMixin):
     # These shapes correspond to kets or bras
     shapes = [
         (x,) for x in testing.shapes_unary() if (x.values[0][0] == 1
-                                         or x.values[0][1] == 1)
+                                                 or x.values[0][1] == 1)
     ]
     # These shapes are everything except for kets and bras
     bad_shapes = [
         (x,) for x in testing.shapes_unary() if not (x.values[0][0] == 1
-                                             or x.values[0][1] == 1)
+                                                     or x.values[0][1] == 1)
     ]
     specialisations = [
         pytest.param(data.norm.l2_csr, CSR, numbers.Number),
