@@ -3,7 +3,6 @@ import pytest
 import numpy as np
 from qutip import data
 from qutip.core.data import CSR, Dense
-from itertools import product
 
 
 class TestSplitColumns(UnaryOpMixin):
