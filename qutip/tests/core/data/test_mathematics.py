@@ -15,6 +15,7 @@ _ParameterSet = type(pytest.param())
 # First set up a bunch of allowable shapes, for different types of functions so
 # we don't have to respecify a whole lot of things on repeat.
 
+
 def shapes_unary(dim=100):
     """Base shapes to test for unary functions."""
     # Be sure to test a full spectrum bra-type, ket-type and square and
@@ -103,11 +104,12 @@ def shapes_square(dim=100):
 
 
 def shapes_not_square(dim=100):
-    """Disallowed shapes for operations that require square matrices. Examples of
-    these operations are trace, pow, expm and the trace norm."""
+    """Disallowed shapes for operations that require square matrices. Examples
+    of these operations are trace, pow, expm and the trace norm."""
     return [
         (x,) for x in shapes_unary(dim) if x.values[0][0] != x.values[0][1]
     ]
+
 
 # Set up the special cases for each type of matrix that will be tested.  These
 # should be kept low, because mathematical operations will test a Cartesian
