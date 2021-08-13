@@ -61,11 +61,8 @@ class TestL2Norm(testing.UnaryOpMixin):
 
 class TestTraceNorm(testing.UnaryOpMixin):
     def op_numpy(self, matrix):
-        matrix = matrix@np.conj(matrix.T)
-        return np.trace(sc.linalg.sqrtm(matrix))
+        return sc.linalg.norm(matrix, 'nuc')
 
-    # TraceNorm probaly needs lower tol due to how it is being computed with
-    # NumPy
     tol = 1e-5
 
     specialisations = [
