@@ -49,6 +49,11 @@ cpdef double trace_csr(CSR matrix, sparse=False, tol=0, maxiter=None) except -1:
     cdef CSR op = matmul_csr(matrix, adjoint_csr(matrix))
     cdef size_t i
     cdef double [::1] eigs
+
+    # For column and row vectors we simply use the l2 norm.
+    if matrix.shape[1]==1 or matrix.shape[0]==1:
+        return l2_csr(matrix)
+
     if sparse:
         eigs = eigs_csr(op, isherm=True, vecs=False, tol=tol, maxiter=maxiter)
     else:
