@@ -1,6 +1,6 @@
 from . import test_mathematics as testing
 import numpy as np
-import scipy as sc
+from scipy import linalg
 import pytest
 from qutip import data
 from qutip.core.data import CSR, Dense
@@ -9,7 +9,7 @@ import numbers
 
 class TestOneNorm(testing.UnaryOpMixin):
     def op_numpy(self, matrix):
-        return sc.linalg.norm(matrix, 1)
+        return linalg.norm(matrix, 1)
 
     specialisations = [
         pytest.param(data.norm.one_csr, CSR, numbers.Number),
@@ -19,7 +19,7 @@ class TestOneNorm(testing.UnaryOpMixin):
 
 class TestFrobeniusNorm(testing.UnaryOpMixin):
     def op_numpy(self, matrix):
-        return sc.linalg.norm(matrix, 'fro')
+        return linalg.norm(matrix, 'fro')
 
     specialisations = [
         pytest.param(data.norm.frobenius_csr, CSR, numbers.Number),
@@ -41,7 +41,7 @@ class TestMaxNorm(testing.UnaryOpMixin):
 
 class TestL2Norm(testing.UnaryOpMixin):
     def op_numpy(self, matrix):
-        return sc.linalg.norm(matrix, 'fro')
+        return linalg.norm(matrix, 'fro')
 
     # These shapes correspond to kets or bras
     shapes = [
@@ -61,7 +61,7 @@ class TestL2Norm(testing.UnaryOpMixin):
 
 class TestTraceNorm(testing.UnaryOpMixin):
     def op_numpy(self, matrix):
-        return sc.linalg.norm(matrix, 'nuc')
+        return linalg.norm(matrix, 'nuc')
 
     tol = 1e-5
 
