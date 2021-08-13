@@ -885,22 +885,3 @@ class TestInv(UnaryOpMixin):
         pytest.param(_inv_csr, CSR, CSR),
         pytest.param(_inv_dense, Dense, Dense),
     ]
-
-
-class TestSplitColumns(UnaryOpMixin):
-    # UnaryOpMixin
-    def op_numpy(self, matrix):
-        return [matrix[:, i].reshape((-1, 1)) for i in range(matrix.shape[1])]
-
-    shapes = [
-        (pytest.param((1, 1), id="scalar"),),
-        (pytest.param((10, 10), id="square"),),
-        (pytest.param((2, 10), id="nonsquare"),),
-        (pytest.param((1, 100), id="bra"),),
-        (pytest.param((100, 1), id="ket"),),
-    ]
-
-    specialisations = [
-        pytest.param(data.split_columns_csr, CSR, list),
-        pytest.param(data.split_columns_dense, Dense, list),
-    ]
