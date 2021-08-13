@@ -6,7 +6,6 @@ from qutip.core.data import CSR, Dense
 from itertools import product
 
 
-
 class TestSplitColumns(UnaryOpMixin):
     def op_numpy(self, matrix):
         return [matrix[:, i].reshape((-1, 1)) for i in range(matrix.shape[1])]
@@ -71,7 +70,6 @@ class TestColumnUnstack(UnaryOpMixin):
         with pytest.raises(ValueError):
             op(data_m(), 1)  # We set rows to one so that it is always valid
 
-
     # We also test that wrong value for `rows` raises ValueError We will
     # generate tests with valid data_m since we want to make sure that the
     # error is raised due to wrong `rows` value. For this we will make use of
@@ -84,8 +82,6 @@ class TestColumnUnstack(UnaryOpMixin):
     # To generate tests we simply call to getenerate_mathematically correct.
     def generate_incorrect_rows_raises(self, metafunc):
         self.generate_mathematically_correct(metafunc)
-
-
 
 
 class TestReshape(UnaryOpMixin):
