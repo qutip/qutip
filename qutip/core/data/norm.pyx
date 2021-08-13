@@ -68,7 +68,7 @@ cpdef double _trace_dense(Dense matrix) except -1:
 cpdef double trace_csr(CSR matrix, sparse=False, tol=0, maxiter=None) except -1:
     # For column and row vectors we simply use the l2 norm as it is equivalent
     # to the trace norm.
-    if matrix.shape[1]==1 or matrix.shape[0]==1:
+    if matrix.shape[0]==1 or matrix.shape[1]==1:
         return l2_csr(matrix)
 
     # For the sparse=False we default to scipy's nuclear norm but for
