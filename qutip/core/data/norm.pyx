@@ -6,6 +6,7 @@ from libc cimport math
 from cpython cimport mem
 
 from scipy.linalg cimport cython_blas as blas
+from scipy.linalg import norm
 
 from qutip.core.data cimport CSR, Dense, csr, dense, Data
 
@@ -43,21 +44,15 @@ cpdef double one_csr(CSR matrix) except -1:
     finally:
         mem.PyMem_Free(col)
 
-cpdef double trace_csr(CSR matrix, sparse=False, tol=0, maxiter=None) except -1:
-    # We use the general eigenvalue solver which involves a Python call, so
-    # there's no point attempting to release the GIL.
+cpdef double _trace_csr(CSR matrix, tol=0, maxiter=None) except -1:
+    """Compute the trace norm reliying only on sparse operations."""
+
     cdef CSR op = matmul_csr(matrix, adjoint_csr(matrix))
     cdef size_t i
     cdef double [::1] eigs
 
-    # For column and row vectors we simply use the l2 norm.
-    if matrix.shape[1]==1 or matrix.shape[0]==1:
-        return l2_csr(matrix)
+    eigs = eigs_csr(op, isherm=True, vecs=False, tol=tol, maxiter=maxiter)
 
-    if sparse:
-        eigs = eigs_csr(op, isherm=True, vecs=False, tol=tol, maxiter=maxiter)
-    else:
-        eigs = eigs_dense(dense.from_csr(op), isherm=True, vecs=False)
     cdef double total = 0
     for i in range(matrix.shape[0]):
         # The abs is technically not part of the definition, but since all
@@ -65,6 +60,23 @@ cpdef double trace_csr(CSR matrix, sparse=False, tol=0, maxiter=None) except -1:
         # which are lower will just be ~1e-15 due to numerical approximations.
         total += math.sqrt(abs(eigs[i]))
     return total
+
+cpdef double _trace_dense(Dense matrix) except -1:
+    """Compute the trace norm reliying scipy for dense operations."""
+    return norm(matrix.as_ndarray(), 'nuc')
+
+cpdef double trace_csr(CSR matrix, sparse=False, tol=0, maxiter=None) except -1:
+    # For column and row vectors we simply use the l2 norm as it is equivalent
+    # to the trace norm.
+    if matrix.shape[1]==1 or matrix.shape[0]==1:
+        return l2_csr(matrix)
+
+    # For the sparse=False we default to scipy's nuclear norm but for
+    # sparse=True we compute eigenvalues and get the norm from them.
+    if sparse:
+        return _trace_csr(matrix, tol=tol, maxiter=maxiter)
+    else:
+        return _trace_dense(dense.from_csr(matrix))
 
 cpdef double max_csr(CSR matrix) nogil:
     cdef size_t ptr

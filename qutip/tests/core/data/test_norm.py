@@ -59,13 +59,27 @@ class TestL2Norm(testing.UnaryOpMixin):
     ]
 
 
-# This tests sometimes fails for the case `CSR[square,sparse]->Number`
 class TestTraceNorm(testing.UnaryOpMixin):
     def op_numpy(self, matrix):
         return linalg.norm(matrix, 'nuc')
 
-    tol = 1e-7  # With this tol test fails less than 1/5
+    specialisations = [
+        pytest.param(data.norm.trace_csr, CSR, numbers.Number),
+    ]
+
+# This test tests the special case where the argument sparse in traces_csr is
+# set to True.
+class TestTraceNormSparseTrue(testing.UnaryOpMixin):
+    def op_numpy(self, matrix):
+        return linalg.norm(matrix, 'nuc')
 
     specialisations = [
         pytest.param(data.norm.trace_csr, CSR, numbers.Number),
     ]
+
+    def test_mathematically_correct(self, op, data_m, out_type):
+        matrix = data_m()
+        expected = self.op_numpy(matrix.to_array())
+        test = op(matrix, sparse=True)
+        assert isinstance(test, out_type)
+        np.testing.assert_allclose(test, expected, atol=self.tol)
