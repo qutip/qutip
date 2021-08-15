@@ -74,9 +74,11 @@ class TestColumnUnstack(UnaryOpMixin):
     # error is raised due to wrong `rows` value. For this we will make use of
     # the generate_mathematically_correct function. This is why out_type is
     # included although not used at all.
-    def test_incorrect_rows_raises(self, op, data_m, out_type):
+    @pytest.mark.parametrize('rows', [-1, 0, 3], ids=['negative', 'zero',
+                                                      'invalid'])
+    def test_incorrect_rows_raises(self, op, data_m, out_type, rows):
         with pytest.raises(ValueError):
-            op(data_m(), 3)
+            op(data_m(), rows)
 
     # To generate tests we simply call to getenerate_mathematically correct.
     def generate_incorrect_rows_raises(self, metafunc):
@@ -119,12 +121,14 @@ class TestReshape(UnaryOpMixin):
 
     # We also test that wrong value for `rows` or `columns` raises ValueError
     # We will generate tests with valid data_m since we want to make sure that
-    # the error is raised due to wrong `rows` value. For this we will make use
-    # of the generate_mathematically_correct function. This is why out_type is
-    # included although not used at all.
-    def test_incorrect_rows_raises(self, op, data_m, out_type):
+    # the error is raised due to wrong `rows` or columns value. For this we
+    # will make use of the generate_mathematically_correct function. This is
+    # why out_type is included although not used at all.
+    @pytest.mark.parametrize('rows, columns', [(-2, -50), (-50, -2), (3, 10)],
+                            ids=["negative1","negative2","invalid"])
+    def test_incorrect_rows_raises(self, op, data_m, out_type, rows, columns):
         with pytest.raises(ValueError):
-            op(data_m(), 3, 10)
+            op(data_m(), rows, columns)
 
     # To generate tests we simply call to getenerate_mathematically correct.
     def generate_incorrect_rows_raises(self, metafunc):
