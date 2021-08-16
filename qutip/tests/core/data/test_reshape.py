@@ -7,7 +7,7 @@ from qutip.core.data import CSR, Dense
 
 class TestSplitColumns(UnaryOpMixin):
     def op_numpy(self, matrix):
-       return [matrix[:, i].reshape((-1, 1)) for i in range(matrix.shape[1])]
+       return [column[:, np.newaxis] for column in matrix.T]
 
     specialisations = [
         pytest.param(data.split_columns_csr, CSR, list),
