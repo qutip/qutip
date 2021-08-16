@@ -7,7 +7,7 @@ from qutip.core.data import CSR, Dense
 
 class TestSplitColumns(UnaryOpMixin):
     def op_numpy(self, matrix):
-        return [matrix[:, i].reshape((-1, 1)) for i in range(matrix.shape[1])]
+       return [matrix[:, i].reshape((-1, 1)) for i in range(matrix.shape[1])]
 
     specialisations = [
         pytest.param(data.split_columns_csr, CSR, list),
@@ -16,7 +16,6 @@ class TestSplitColumns(UnaryOpMixin):
 
 
 class TestColumnStack(UnaryOpMixin):
-    # It seem column_stack assumes F ordered array?
     def op_numpy(self, matrix):
         out_shape = (matrix.shape[0]*matrix.shape[1], 1)
         return np.reshape(matrix, newshape=out_shape, order='F')
@@ -28,7 +27,6 @@ class TestColumnStack(UnaryOpMixin):
 
 
 class TestColumnUnstack(UnaryOpMixin):
-    # It seem column_unstack assumes F ordered array?
     def op_numpy(self, matrix, rows):
         out_shape = (rows, matrix.shape[0]*matrix.shape[1]//rows)
         return np.reshape(matrix, newshape=out_shape, order='F')
@@ -48,8 +46,6 @@ class TestColumnUnstack(UnaryOpMixin):
         pytest.param(data.column_unstack_dense, Dense, Dense),
     ]
 
-    # `ColumnUnstack` has an additional scalar parameters. This is why tests
-    # are a little bit more involved.
     @pytest.mark.parametrize('rows', [2, 5])
     def test_mathematically_correct(self, op, data_m, rows, out_type):
         """
@@ -63,35 +59,29 @@ class TestColumnUnstack(UnaryOpMixin):
         assert test.shape == expected.shape
         np.testing.assert_allclose(test.to_array(), expected, atol=self.tol)
 
-    # These tests will check that ValueError is raised when input matrices have
-    # invalid shape.
     def test_incorrect_shape_raises(self, op, data_m):
         with pytest.raises(ValueError):
             op(data_m(), 1)  # We set rows to one so that it is always valid
 
-    # We also test that wrong value for `rows` raises ValueError We will
-    # generate tests with valid data_m since we want to make sure that the
-    # error is raised due to wrong `rows` value. For this we will make use of
-    # the generate_mathematically_correct function. This is why out_type is
-    # included although not used at all.
+    # `out_type` is included but not used so that
+    # `generate_mathematically_correct` can be re-used.
     @pytest.mark.parametrize('rows', [-1, 0, 3], ids=['negative', 'zero',
                                                       'invalid'])
     def test_incorrect_rows_raises(self, op, data_m, out_type, rows):
         with pytest.raises(ValueError):
             op(data_m(), rows)
 
-    # To generate tests we simply call to getenerate_mathematically correct.
     def generate_incorrect_rows_raises(self, metafunc):
         self.generate_mathematically_correct(metafunc)
 
 
 class TestReshape(UnaryOpMixin):
     def op_numpy(self, matrix, rows, columns):
-        # It seem to_array returns F ordered numpy arrays.
         out_shape = (rows, columns)
         return np.reshape(matrix, newshape=out_shape, order='C')
 
-    # I use custom shapes so that they all have 100 elements.
+    # All matrices should have the same number of elements in total, so we can
+    # use the same (rows, columns) parametrisation for each input.
     shapes = [
         (pytest.param((1, 100), id="bra"), ),
         (pytest.param((100, 1), id="ket"), ),
@@ -104,8 +94,8 @@ class TestReshape(UnaryOpMixin):
         pytest.param(data.reshape_csr, CSR, CSR),
     ]
 
-    # `reshape` has an additional scalar parameters. This is why tests
-    # are a little bit more involved.
+    # `out_type` is included but not used so that
+    # `generate_mathematically_correct` can be re-used.
     @pytest.mark.parametrize('rows, columns', [(5, 20), (10, 10)])
     def test_mathematically_correct(self, op, data_m, rows, columns, out_type):
         """
@@ -119,17 +109,11 @@ class TestReshape(UnaryOpMixin):
         assert test.shape == expected.shape
         np.testing.assert_allclose(test.to_array(), expected, atol=self.tol)
 
-    # We also test that wrong value for `rows` or `columns` raises ValueError
-    # We will generate tests with valid data_m since we want to make sure that
-    # the error is raised due to wrong `rows` or columns value. For this we
-    # will make use of the generate_mathematically_correct function. This is
-    # why out_type is included although not used at all.
     @pytest.mark.parametrize('rows, columns', [(-2, -50), (-50, -2), (3, 10)],
                             ids=["negative1","negative2","invalid"])
     def test_incorrect_rows_raises(self, op, data_m, out_type, rows, columns):
         with pytest.raises(ValueError):
             op(data_m(), rows, columns)
 
-    # To generate tests we simply call to getenerate_mathematically correct.
     def generate_incorrect_rows_raises(self, metafunc):
         self.generate_mathematically_correct(metafunc)
