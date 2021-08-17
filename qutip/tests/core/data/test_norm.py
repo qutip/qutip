@@ -65,6 +65,7 @@ class TestTraceNorm(testing.UnaryOpMixin):
 
     specialisations = [
         pytest.param(data.norm.trace_csr, CSR, numbers.Number),
+        pytest.param(data.norm.trace_dense, Dense, numbers.Number),
     ]
 
 # This test tests the special case where the argument sparse in traces_csr is
