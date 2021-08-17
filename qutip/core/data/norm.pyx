@@ -6,7 +6,7 @@ from libc cimport math
 from cpython cimport mem
 
 from scipy.linalg cimport cython_blas as blas
-from scipy.linalg import norm
+import scipy
 
 from qutip.core.data cimport CSR, Dense, csr, dense, Data
 
@@ -65,7 +65,7 @@ cpdef double _trace_csr(CSR matrix, tol=0, maxiter=None) except -1:
 
 cpdef double trace_dense(Dense matrix) except -1:
     """Compute the trace norm relaying scipy for dense operations."""
-    return norm(matrix.as_ndarray(), 'nuc')
+    return scipy.linalg.norm(matrix.as_ndarray(), 'nuc')
 
 cpdef double trace_csr(CSR matrix, sparse=False, tol=0, maxiter=None) except -1:
     # For column and row vectors we simply use the l2 norm as it is equivalent
