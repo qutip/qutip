@@ -43,14 +43,25 @@ class ExpectOps:
         self.e_ops = e_ops
         if isinstance(e_ops, list):
             self.e_num = len(e_ops)
-            self.e_ops_isherm = [e.isherm for e in e_ops]
-            if not super_:
-                self.e_ops_qoevo = np.array([QobjEvo(e) for e in e_ops],
-                                            dtype=object)
-            else:
-                self.e_ops_qoevo = np.array([QobjEvo(spre(e)) for e in e_ops],
-                                            dtype=object)
-            [op.compile() for op in self.e_ops_qoevo]
+            e_ops_qoevo = []
+            e_ops_isherm = []
+            for e in e_ops:
+                if isinstance(e, (Qobj, QobjEvo)):
+                    e_ops_isherm.append(e.isherm)
+                    e_ops_qoevo_entry = None
+                    if not super_:
+                        e_ops_qoevo_entry = QobjEvo(e)
+                    else:
+                        e_ops_qoevo_entry = QobjEvo(spre(e))
+                    e_ops_qoevo_entry.compile()
+                    e_ops_qoevo.append(e_ops_qoevo_entry)
+                elif callable(e):
+                    e_ops_isherm.append(None)
+                    e_ops_qoevo.append(e)
+                else:
+                    raise TypeError("Expectation value list entry needs to be either a function either an operator")
+            self.e_ops_isherm = e_ops_isherm
+            self.e_ops_qoevo = np.array(e_ops_qoevo, dtype=object)
         elif callable(e_ops):
             self.isfunc = True
             self.e_num = 1
@@ -79,9 +90,12 @@ class ExpectOps:
         else:
             t = self.tlist[iter_]
             for ii in range(self.e_num):
-                self.raw_out[ii, iter_] = \
-                    self.e_ops_qoevo[ii].compiled_qobjevo.expect(t, state)
-
+                if isinstance(ii, (Qobj, QobjEvo)):
+                    self.raw_out[ii, iter_] = \
+                        self.e_ops_qoevo[ii].compiled_qobjevo.expect(t, state)
+                elif callable(ii):
+                    self.raw_out[ii, iter_] = \
+                        self.e_ops_qoevo[ii](t, state)
     def finish(self):
         if self.isfunc:
             result = self.raw_out
