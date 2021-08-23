@@ -6,8 +6,11 @@ __all__ = ['IntegratorScipyZvode', 'IntegratorScipyDop853',
 import numpy as np
 from scipy.integrate import ode
 from qutip.core import data as _data
+from ..options import SolverOdeOptions
 from qutip.core.data.reshape import column_unstack_dense, column_stack_dense
-from ..integrator import integrator_collection, IntegratorException, Integrator
+from ..integrator import (IntegratorException, Integrator, sesolve_integrators,
+                          mesolve_integrators, mcsolve_integrators,
+                          add_integrator)
 import warnings
 
 
@@ -19,7 +22,8 @@ class IntegratorScipyZvode(Integrator):
     """
     used_options = ['atol', 'rtol', 'nsteps', 'method', 'order',
                     'first_step', 'max_step', 'min_step']
-    description = "scipy.integrate.ode using zvode integrator"
+    support_time_dependant = True
+    use_QobjEvo_matmul = True
 
     def _prepare(self):
         """
@@ -139,9 +143,10 @@ class IntegratorScipyDop853(Integrator):
     Equations i. Nonstiff Problems. 2nd edition. Springer Series in
     Computational Mathematics, Springer-Verlag (1993)].
     """
-    description = "scipy.integrate.ode using dop853 integrator"
     used_options = ['atol', 'rtol', 'nsteps', 'first_step', 'max_step',
                     'ifactor', 'dfactor', 'beta']
+    support_time_dependant = True
+    use_QobjEvo_matmul = True
 
     def _prepare(self):
         """
@@ -228,7 +233,8 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
     """
     used_options = ['atol', 'rtol', 'nsteps', 'max_order_ns', 'max_order_s',
                     'first_step', 'max_step', 'min_step']
-    description = "scipy.integrate.ode using lsoda integrator"
+    support_time_dependant = True
+    use_QobjEvo_matmul = True
 
     def _prepare(self):
         """
@@ -306,15 +312,8 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         }
         raise IntegratorException(messages[self._ode_solver._integrator.istate])
 
-
-integrator_collection.add_method(IntegratorScipyZvode, keys=['adams', 'bdf'],
-                                 solver=['sesolve', 'mesolve', 'mcsolve'],
-                                 use_QobjEvo_matmul=True, time_dependent=True)
-
-integrator_collection.add_method(IntegratorScipyDop853, keys=['dop853'],
-                                 solver=['sesolve', 'mesolve', 'mcsolve'],
-                                 use_QobjEvo_matmul=True, time_dependent=True)
-
-integrator_collection.add_method(IntegratorScipylsoda, keys=['lsoda'],
-                                 solver=['sesolve', 'mesolve', 'mcsolve'],
-                                 use_QobjEvo_matmul=True, time_dependent=True)
+sets = [sesolve_integrators, mesolve_integrators, mcsolve_integrators]
+for integrator_set in sets:
+    add_integrator(IntegratorScipyZvode, ['adams', 'bdf'], integrator_set, SolverOdeOptions)
+    add_integrator(IntegratorScipyDop853, ['dop853'], integrator_set, SolverOdeOptions)
+    add_integrator(IntegratorScipylsoda, ['lsoda'], integrator_set, SolverOdeOptions)
