@@ -33,11 +33,11 @@
 """ Define `Integrator`: ODE solver wrapper to use in qutip's Solver """
 
 
-__all__ = ['Integrator', 'integrator_collection', 'IntegratorException']
+__all__ = ['Integrator', 'IntegratorException', 'add_integrator',
+           'sesolve_integrators', 'mesolve_integrators', 'mcsolve_integrators']
 
 
 from itertools import product
-from .options import SolverOdeOptions
 from qutip import QobjEvo, qeye, basis
 from functools import partial
 
@@ -61,8 +61,12 @@ class Integrator:
     options: qutip.SolverOptions
         Options for the solver.
     """
+    # Used options in qutip.SolverOdeOptions
     used_options = []
-    description = ""
+    # Can evolve time dependent system
+    support_time_dependant = None
+    # Use the QobjEvo's matmul_data method as the driving function
+    use_QobjEvo_matmul = None
 
     def __init__(self, system, options):
         self.system = system
@@ -168,248 +172,44 @@ class Integrator:
         self.reset()
 
 
-class _IntegratorCollection:
-    """
-    Collection of ODE :obj:`Integrator` available to Qutip's solvers.
+# TODO: These integrator set will be part of the solver classes
+# So sesolve will know which integrator it support etc.
+# `mesolve` and `sesolve` will use the same integrators, but some integrations
+# methods can not work for `mcsolve`.
+sesolve_integrators = {}
+mesolve_integrators = {}
+mcsolve_integrators = {}
 
-    :obj:`Integrator` are composed of 2 parts: `method` and `rhs`:
-    `method` are ODE integration method such as Runge-Kutta or Adams–Moulton.
-    `rhs` are options to control the :obj:`QobjEvo`'s matmul function.
+
+def add_integrator(integrator, keys, integrator_set, options_class=None):
+    """
+    Register an integrator.
 
     Parameters
     ----------
-    known_solvers : list of str
-        list of solver using this ensemble of integrator
+    integrator : Integrator
+        The ODE solver to register.
 
-    options_class : :func:optionsclass decorated class
-        Option object to add integrator's option to the accepted keys.
+    keys : list of str
+        Values of the method options that refer to this integrator.
+
+    integrator_set : dict
+        Group of integrators to which register the integrator.
+
+    options_class : SolverOptions
+        If given, will add the ODE options supported by this integrator to
+        those supported by the options_class. ie. If the integrator use a
+        `stiff` options that Qutip's `SolverOdeOptions` does not have, it will
+        add it support.
     """
-    def __init__(self, known_solvers, options_class):
-        self.known_solvers = known_solvers
-        self.options_class = options_class
-        # map from method key to integrator
-        self.method2integrator = {}
-        # map from rhs key to rhs function
-        self.rhs2system = {}
-        # methods's keys which support alternative rhs
-        self.base_methods = []
-        # Information about methods
-        self.method_data = {}
-        # Information about rhs
-        self.rhs_data = {}
-
-    def add_method(self, integrator, keys, solver,
-                   use_QobjEvo_matmul, time_dependent):
-        """
-        Add a new integrator to the set available to solvers.
-
-        Parameters
-        ----------
-
-        integrator : class derived from :obj:`Integrator`
-            New integrator to add.
-
-        keys : list of str
-            List of keys supported by the integrator.
-            When `options["methods"] in keys`, this integrator will be used.
-
-        solver : list of str
-            List of the [...]solve function that are supported by the
-            integrator.
-
-        use_QobjEvo_matmul : bool
-            Whether the Integrator use `QobjEvo.matmul` as the function of the
-            ODE. When `False`, rhs cannot be used.
-
-        time_dependent : bool
-            Whether integrator support time-dependent system.
-        """
-        if not isinstance(keys, list):
-            keys = [keys]
-        for key in keys:
-            if key in self.method2integrator:
-                raise ValueError("method '{}' already used".format(key))
-
-        integrator_data = self._complete_data(integrator, solver,
-                                              use_QobjEvo_matmul,
-                                              time_dependent)
-        for key in keys:
-            self.method2integrator[key] = integrator
-            self.method_data[key] = integrator_data
-        if use_QobjEvo_matmul:
-            self.base_methods += keys
-
-    def add_rhs(self, integrator, keys, solver, time_dependent):
-        """
-        Add a new rhs to the set available to solvers.
-
-        Parameters
-        ----------
-
-        integrator : callable
-            Function with the signature::
-
-                rhs(
-                    integrator: class,
-                    system: QobjEvo,
-                    options: SolverOptions
-                ) -> Integrator
-
-            that create the :obj:`Integrator` instance. The integrator can be
-            any integrator registered that has `"use_QobjEvo_matmul" == True`.
-            `system` is the :obj:`QobjEvo` driving the ODE: 'L', '-i*H', etc.
-            `options` is the :obj:`SolverOptions` of the solver.
-
-        keys : list of str
-            List of keys supported by the integrator.
-            When `options["methods"] in keys`, this integrator will be used.
-
-        solver : list of str
-            List of the [...]solve function that are supported by the
-            integrator.
-
-        time_dependent : bool
-            True if the integrator can solve time dependent systems.
-        """
-        if not isinstance(keys, list):
-            keys = [keys]
-        for key in keys:
-            if key in self.rhs2system:
-                raise ValueError("rhs keyword '{}' already used")
-        integrator_data = self._complete_data(integrator, solver,
-                                              True,
-                                              time_dependent)
-        for key in keys:
-            self.rhs2system[key] = integrator
-            self.rhs_data[key] = integrator_data
-
-    def _complete_data(self, integrator, solver, use_QobjEvo_matmul, td):
-        """
-        Get the information for the integrator.
-        """
-        integrator_data = {
-            "integrator": integrator,
-            "description": "",
-            # options used by the integrator, to add to the accepted option
-            # by the SolverOptions object.
-            "options": [],
-            # list of supported solver, sesolve, mesolve, etc.
-            "solver": [],
-            # The `method` use QobjEvo's matmul.
-            # If False, refuse `rhs` option.
-            "use_QobjEvo_matmul": use_QobjEvo_matmul,
-            # Support of time-dependent system
-            "time_dependent": td,
-        }
-        for sol in solver:
-            if sol not in self.known_solvers:
-                raise ValueError(f"Unknown solver '{sol}', known solver are"
-                                 + str(self.known_solvers))
-            integrator_data["solver"].append(sol)
-
-        if hasattr(integrator, 'description'):
-            integrator_data['description'] = integrator.description
-
-        if hasattr(integrator, 'used_options'):
-            integrator_data['options'] = integrator.used_options
-            for opt in integrator.used_options:
-                self.options_class.extra_options.add(opt)
-
-        return integrator_data
-
-    def __getitem__(self, key):
-        """
-        Obtain the integrator from the (method, rhs) key pair.
-        """
-        method, rhs = key
-        try:
-            integrator = self.method2integrator[method]
-        except KeyError:
-            raise KeyError(f"ode method {method} not found")
-        if rhs == "":
-            build_func = prepare_integrator
-        elif self.method_data[method]["use_QobjEvo_matmul"]:
-            try:
-                build_func = self.rhs2system[rhs]
-            except KeyError:
-                raise KeyError(f"ode rhs {rhs} not found")
-        else:
-            raise KeyError(f"ode method {method} does not support rhs")
-        return partial(build_func, integrator)
-
-    def _list_keys(self, keytype="methods", solver="",
-                   use_QobjEvo_matmul=None, time_dependent=None):
-        """
-        List integrators available corresponding to the conditions given.
-        Used in test.
-        """
-        if keytype == "methods":
-            names = [method for method in self.method2integrator
-                     if self._check_condition(method, "", solver,
-                                             use_QobjEvo_matmul,
-                                             time_dependent)]
-        elif keytype == "rhs":
-            names = [rhs for rhs in self.rhs2system
-                     if self._check_condition("", rhs, solver,
-                                             use_QobjEvo_matmul,
-                                             time_dependent)]
-        elif keytype == "pairs":
-            names = [(method, "") for method in self.method2integrator
-                     if self._check_condition(method, "", solver,
-                                             use_QobjEvo_matmul,
-                                             time_dependent)]
-            names += [(method, rhs)
-                for method, rhs in product(self.base_methods, self.rhs2system)
-                if rhs and self._check_condition(method, rhs, solver,
-                    use_QobjEvo_matmul, time_dependent)
-            ]
-        else:
-            raise ValueError("keytype must be one of "
-                             "'rhs', 'methods' or 'pairs'")
-        return names
-
-    def _check_condition(self, method, rhs, solver="",
-                         use_QobjEvo_matmul=None, time_dependent=None):
-        """
-        Verify if the pair (method, rhs) can be used for the given solver
-        and whether it support the desired capacities.
-        """
-        if method in self.method_data:
-            data = self.method_data[method]
-            if solver and solver not in data['solver']:
-                return False
-            if (
-                use_QobjEvo_matmul is not None and
-                use_QobjEvo_matmul != data['use_QobjEvo_matmul']
-            ):
-                return False
-            if (
-                time_dependent is not None and
-                time_dependent != data['time_dependent']
-            ):
-                return False
-
-        if rhs in self.rhs_data:
-            data = self.rhs_data[rhs]
-            if solver and solver not in data['solver']:
-                return False
-            if (
-                time_dependent is not None and
-                time_dependent != data['time_dependent']
-            ):
-                return False
-
-        return True
-
-
-integrator_collection = _IntegratorCollection(
-    ['sesolve', 'mesolve', 'mcsolve'],
-    SolverOdeOptions
-)
-
-def prepare_integrator(integrator, system, options):
-    """Default rhs function"""
-    return integrator(system, options)
-
-integrator_collection.add_rhs(prepare_integrator, "",
-                              ['sesolve', 'mesolve', 'mcsolve'], True)
+    # TODO: Insert in Solvers as a classmethod.
+    if not issubclass(integrator, Integrator):
+        raise TypeError(f"The integrator {integrator} must be a subclass"
+                        " of `qutip.solver.Integrator`")
+    if not isinstance(keys, list):
+        keys = [keys]
+    for key in keys:
+        integrator_set[key] = integrator
+    if integrator.used_options and options_class:
+        for opt in integrator.used_options:
+            options_class.extra_options.add(opt)

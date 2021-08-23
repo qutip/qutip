@@ -1,62 +1,46 @@
-from qutip.solver.integrator import *
+from qutip.solver.integrator import (sesolve_integrators,
+                                     mesolve_integrators, mcsolve_integrators)
 from qutip.solver.options import SolverOptions
 from qutip.core import QobjEvo, liouvillian
-import qutip as qt
+import qutip
 import numpy as np
 from numpy.testing import assert_allclose
 import pytest
 
 
-def id_from_keys(keys):
-    if keys[1] == "":
-        return keys[0]
-    else:
-        return keys[0] + "_" + keys[1]
-
-
 class TestIntegratorCte():
     _analytical_se = lambda _, t: np.cos(t * np.pi)
-    se_system = QobjEvo(-1j * qt.sigmax() * np.pi)
+    se_system = qutip.QobjEvo(-1j * qutip.sigmax() * np.pi)
     _analytical_me = lambda _, t: 1 - np.exp(-t)
-    me_system = liouvillian(QobjEvo(qt.qeye(2)), c_ops=[qt.destroy(2)])
+    me_system = qutip.liouvillian(qutip.QobjEvo(qutip.qeye(2)),
+                                  c_ops=[qutip.destroy(2)])
 
-    @pytest.fixture(
-        params=integrator_collection._list_keys('pairs', solver="sesolve"),
-        ids=id_from_keys
-    )
-    def se_keys(self, request):
+    @pytest.fixture(params=list(sesolve_integrators.keys()))
+    def se_method(self, request):
         return request.param
 
-    @pytest.fixture(
-        params=integrator_collection._list_keys('pairs', solver="mesolve"),
-        ids=id_from_keys
-    )
-    def me_keys(self, request):
+    @pytest.fixture(params=list(mesolve_integrators.keys()))
+    def me_method(self, request):
         return request.param
 
-    @pytest.fixture(
-        params=integrator_collection._list_keys('pairs', solver="mcsolve"),
-        ids=id_from_keys
-    )
-    def mc_keys(self, request):
+    @pytest.fixture(params=list(mcsolve_integrators.keys()))
+    def mc_method(self, request):
         return request.param
 
-    def test_se_integration(self, se_keys):
-        method, rhs = se_keys
-        opt = SolverOptions(method=method, rhs=rhs)
-        evol = integrator_collection[method, rhs](self.se_system, opt)
-        state0 = qt.core.unstack_columns(qt.basis(6,0).data, (2, 3))
+    def test_se_integration(self, se_method):
+        opt = SolverOptions(method=se_method)
+        evol = sesolve_integrators[se_method](self.se_system, opt)
+        state0 = qutip.core.unstack_columns(qutip.basis(6,0).data, (2, 3))
         evol.set_state(0, state0)
         for t, state in evol.run(np.linspace(0, 2, 21)):
             assert_allclose(self._analytical_se(t),
                             state.to_array()[0, 0], atol=2e-5)
             assert state.shape == (2, 3)
 
-    def test_me_integration(self, me_keys):
-        method, rhs = me_keys
-        opt = SolverOptions(method=method, rhs=rhs)
-        evol = integrator_collection[method, rhs](self.me_system, opt)
-        state0 = qt.operator_to_vector(qt.fock_dm(2,1)).data
+    def test_me_integration(self, me_method):
+        opt = SolverOptions(method=me_method)
+        evol = mesolve_integrators[me_method](self.me_system, opt)
+        state0 = qutip.operator_to_vector(qutip.fock_dm(2,1)).data
         evol.set_state(0, state0)
         for t in np.linspace(0, 2, 21):
             t_, state = evol.integrate(t)
@@ -64,11 +48,10 @@ class TestIntegratorCte():
             assert_allclose(self._analytical_me(t),
                             state.to_array()[0, 0], atol=2e-5)
 
-    def test_mc_integration(self, mc_keys):
-        method, rhs = mc_keys
-        opt = SolverOptions(method=method, rhs=rhs)
-        evol = integrator_collection[method, rhs](self.se_system, opt)
-        state = qt.basis(2,0).data
+    def test_mc_integration(self, mc_method):
+        opt = SolverOptions(method=mc_method)
+        evol = mcsolve_integrators[mc_method](self.se_system, opt)
+        state = qutip.basis(2,0).data
         evol.set_state(0, state)
         t = 0
         for i in range(1, 21):
@@ -90,31 +73,30 @@ class TestIntegratorCte():
 
 class TestIntegrator(TestIntegratorCte):
     _analytical_se = lambda _, t: np.cos(t**2/2 * np.pi)
-    se_system = QobjEvo([-1j * qt.sigmax() * np.pi, "t"])
+    se_system = qutip.QobjEvo([-1j * qutip.sigmax() * np.pi, "t"])
     _analytical_me = lambda _, t: 1 - np.exp(-(t**3) / 3)
-    me_system = liouvillian(QobjEvo(qt.qeye(2)),
-                            c_ops=[QobjEvo([qt.destroy(2), 't'])])
+    me_system = qutip.liouvillian(
+        qutip.QobjEvo(qutip.qeye(2)),
+        c_ops=[qutip.QobjEvo([qutip.destroy(2), 't'])]
+    )
 
     @pytest.fixture(
-        params=integrator_collection._list_keys('pairs', solver="sesolve",
-                                                time_dependent=True),
-        ids=id_from_keys
+        params=[key for key, integrator in sesolve_integrators.items()
+                if integrator.support_time_dependant]
     )
-    def se_keys(self, request):
+    def se_method(self, request):
         return request.param
 
     @pytest.fixture(
-        params=integrator_collection._list_keys('pairs', solver="mesolve",
-                                                time_dependent=True),
-        ids=id_from_keys
+        params=[key for key, integrator in mesolve_integrators.items()
+                if integrator.support_time_dependant]
     )
-    def me_keys(self, request):
+    def me_method(self, request):
         return request.param
 
     @pytest.fixture(
-        params=integrator_collection._list_keys('pairs', solver="mcsolve",
-                                                time_dependent=True),
-        ids=id_from_keys
+        params=[key for key, integrator in mcsolve_integrators.items()
+                if integrator.support_time_dependant]
     )
-    def mc_keys(self, request):
+    def mc_method(self, request):
         return request.param
