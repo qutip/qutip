@@ -219,7 +219,6 @@ def eigs_csr(data, isherm=None, vecs=True, sort='low', eigvals=0,
                         + str(type(data)))
     if data.shape[0] < 4:
         # For small matrix, the sparse solver can't compute all eigenvalues.
-        # return eigs_dense(from_csr(data), isherm, vecs, sort, eigvals)
         return eigs_dense(from_csr(data), isherm, vecs, sort, eigvals)
     _eigs_check_shape(data)
     eigvals, num_large, num_small = _eigs_fix_eigvals(data, eigvals, sort)
