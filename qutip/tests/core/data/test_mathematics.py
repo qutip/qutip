@@ -806,7 +806,7 @@ class TestPow(UnaryOpMixin):
 
 class TestExpm(UnaryOpMixin):
     def op_numpy(self, matrix):
-        return sc.sparse.linalg.expm(matrix)
+        return sc.linalg.expm(matrix)
 
     shapes = shapes_square()
     bad_shapes = shapes_not_square()
