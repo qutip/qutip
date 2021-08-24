@@ -209,12 +209,6 @@ one.add_specialisations([
 trace = _Dispatcher(
     _inspect.Signature([
         _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
-        _inspect.Parameter('sparse', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                           default=False),
-        _inspect.Parameter('tol', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                           default=0),
-        _inspect.Parameter('maxiter', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                           default=None),
     ]),
     inputs=('matrix',),
     name='trace',
