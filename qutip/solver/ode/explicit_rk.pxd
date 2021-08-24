@@ -8,16 +8,17 @@ cdef class Explicit_RungeKutta:
     # Ode state data, set in set_initial_value
     cdef list k
     cdef Data _y_temp, _y, _y_prev, _y_front
-    cdef double norm_front, norm_tmp, _t, _t_prev, _t_front, dt_safe, dt_int
+    cdef double _norm_front, _norm_prev, _dt_safe, _dt_int
+    cdef double _t, _t_prev, _t_front
     cdef int _status
 
     # options: set in init
-    cdef double rtol, atol, first_step, min_step, max_step
-    cdef int max_numsteps
-    cdef bint interpolate
-    cdef str method
+    cdef readonly double rtol, atol, first_step, min_step, max_step
+    cdef readonly int max_numsteps
+    cdef readonly bint interpolate
+    cdef readonly object method
 
-    # runge Kutta tableau and info, set in cinit
+    # Runge Kutta tableau and info
     cdef int rk_step, rk_extra_step,  order, denseout_order
     cdef bint adaptative_step, can_interpolate
     cdef object b_factor_np
@@ -25,27 +26,28 @@ cdef class Explicit_RungeKutta:
     cdef double [:] b_factor
     cdef double [:] c
     cdef double [:] e
-    cdef double [:,::1] a
-    # dense out factors: set in cinit
-    cdef double [:,::1] bi
+    cdef double [:, ::1] a
+    cdef double [:, ::1] bi
 
     cpdef integrate(Explicit_RungeKutta self, double t, bint step=*)
 
     cpdef void set_initial_value(self, Data y0, double t)
 
-    cdef double compute_step(self, double dt)
+    cdef int _step_in_err(self, double t, int max_step)
 
-    cdef double error(self, Data y_new, double dt)
+    cdef double _compute_step(self, double dt)
 
-    cdef void prep_dense_out(self)
+    cdef double _error(self, Data y_new, double dt)
 
-    cdef Data interpolate_step(self, double t, Data out)
+    cdef void _prep_dense_out(self)
 
-    cdef Data accumulate(self, Data target, double[:] factors,
-                         double dt, int size)
+    cdef Data _interpolate_step(self, double t, Data out)
 
-    cdef double estimate_first_step(self, double t, Data y0)
+    cdef inline Data _accumulate(self, Data target, double[:] factors,
+                                 double dt, int size)
 
-    cdef double get_timestep(self, double t)
+    cdef double _estimate_first_step(self, double t, Data y0)
 
-    cdef double recompute_safe_step(self, double err, double dt)
+    cdef double _get_timestep(self, double t)
+
+    cdef double _recompute_safe_step(self, double err, double dt)

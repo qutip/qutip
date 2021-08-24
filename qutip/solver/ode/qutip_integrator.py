@@ -62,7 +62,7 @@ class IntegratorVern(Integrator):
             -1: 'Too much work done in one call. Try to increase the nsteps '
                 'parameter or increasing the tolerance.',
             -2: 'Step size becomes too small. Try increasing tolerance',
-            -3: 'Etep outside available range.',
+            -3: 'Step outside available range.',
         }
         raise IntegratorException(messages[self._ode_solver.status])
 
