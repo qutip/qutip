@@ -92,10 +92,9 @@ class IntegratorDiag(Integrator):
         """
         Initialize the solver
         """
-        self.diag, self.U = self.system(0).eigenstates()
+        self.diag, self.U = _data.eigs(self.system(0).data, False)
         self.diag = self.diag.reshape((-1,1))
-        self.U = np.hstack([eket.full() for eket in self.U])
-        self.Uinv = np.linalg.inv(self.U)
+        self.Uinv = _data.inv(self.U)
         self.name = "qutip diagonalized"
 
     def integrate(self, t, step=False, copy=True):
@@ -114,15 +113,14 @@ class IntegratorDiag(Integrator):
         """
         Obtain the state of the solver as a pair t, state
         """
-        y = self.U @ self._y
-        return self._t, _data.dense.Dense(y, copy=copy)
+        return self._t, _data.matmul(self.U, _data.dense.Dense(self._y))
 
     def set_state(self, t, state0):
         """
         Set the state of the ODE solver.
         """
         self._t = t
-        self._y = (self.Uinv @ state0.to_array())
+        self._y = _data.matmul(self.Uinv, state0).to_array()
 
 
 sets = [sesolve_integrators, mesolve_integrators, mcsolve_integrators]
