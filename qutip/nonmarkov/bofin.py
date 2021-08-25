@@ -725,7 +725,7 @@ class BosonicHEOMSolver(object):
         data = dense2D_to_fastcsr_fmode(vec2mat(solution[:sup_dim]), n, n)
         data = 0.5 * (data + data.H)
 
-        solution = solution.reshape((nstates, self.H_sys.shape[0] ** 2))
+        solution = solution.reshape((nstates, sup_dim))
 
         return Qobj(data, dims=dims), solution
 
@@ -1443,7 +1443,7 @@ class FermionicHEOMSolver(object):
         data = dense2D_to_fastcsr_fmode(vec2mat(solution[:sup_dim]), n, n)
         data = 0.5 * (data + data.H)
 
-        solution = solution.reshape((nstates, self.H_sys.shape[0] ** 2))
+        solution = solution.reshape((nstates, sup_dim))
 
         return Qobj(data, dims=dims), solution
 
