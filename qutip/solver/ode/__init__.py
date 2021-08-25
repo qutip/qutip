@@ -1,1 +1,1 @@
-from . scipy_integrator import *
+from .scipy_integrator import *

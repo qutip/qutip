@@ -7,7 +7,7 @@ from .csr cimport CSR
 
 cdef class Dense(base.Data):
     cdef double complex *data
-    cdef readonly bint fortran
+    cdef bint fortran
     cdef object _np
     cdef bint _deallocate
     cdef void _fix_flags(Dense self, object array, bint make_owner=*)

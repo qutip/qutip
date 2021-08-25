@@ -1,7 +1,6 @@
 from qutip.solver.integrator import (sesolve_integrators,
                                      mesolve_integrators, mcsolve_integrators)
 from qutip.solver.options import SolverOptions
-from qutip.core import QobjEvo, liouvillian
 import qutip
 import numpy as np
 from numpy.testing import assert_allclose

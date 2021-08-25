@@ -42,8 +42,7 @@ class IntegratorScipyZvode(Integrator):
         """
         state = _data.dense.fast_from_numpy(vec)
         column_unstack_dense(state, self._size, inplace=True)
-        out = _data.dense.zeros(state.shape[0], state.shape[1], state.fortran)
-        out = self.system.matmul_data(t, state, out)
+        out = self.system.matmul_data(t, state)
         column_stack_dense(out, inplace=True)
         return out.as_ndarray().ravel()
 
@@ -165,8 +164,7 @@ class IntegratorScipyDop853(Integrator):
         """
         state = _data.dense.fast_from_numpy(vec.view(np.complex128))
         column_unstack_dense(state, self._size, inplace=True)
-        out = _data.dense.zeros(state.shape[0], state.shape[1], state.fortran)
-        out = self.system.matmul_data(t, state, out)
+        out = self.system.matmul_data(t, state)
         column_stack_dense(out, inplace=True)
         return out.as_ndarray().ravel().view(np.float64)
 
@@ -311,6 +309,7 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
             -7: "Internal workspace insufficient to finish (internal error)."
         }
         raise IntegratorException(messages[self._ode_solver._integrator.istate])
+
 
 sets = [sesolve_integrators, mesolve_integrators, mcsolve_integrators]
 for integrator_set in sets:
