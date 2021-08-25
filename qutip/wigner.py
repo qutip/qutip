@@ -72,7 +72,7 @@ def wigner_transform(psi, j, fullparity, steps, slicearray):
     else:
         rho = psi
 
-    sun = 2  # The order of the SU group
+    sun = 2   # The order of the SU group
 
     # calculate total number of particles in quantum state:
     N = np.int32(np.log(np.shape(rho)[0]) / np.log(2 * j + 1))
@@ -88,7 +88,7 @@ def wigner_transform(psi, j, fullparity, steps, slicearray):
 
     wigner = np.zeros((steps, steps))
     if fullparity:
-        pari = _parity(sun ** N, j)
+        pari = _parity(sun**N, j)
     else:
         pari = _parity(sun, j)
     for t in range(steps):
@@ -131,7 +131,7 @@ def _kernelsu2(theta, phi, N, j, parity, fullparity):
     for i in range(0, N):
         U = np.kron(U, _rotation_matrix(theta[i], phi[i], j))
     if not fullparity:
-        op_parity = parity  # The parity for a one particle system
+        op_parity = parity   # The parity for a one particle system
         for i in range(1, N):
             parity = np.kron(parity, op_parity)
     matrix = U @ parity @ U.conj().T
@@ -184,17 +184,16 @@ def wigner(psi, xvec, yvec, method='clenshaw', g=sqrt(2),
         value `hbar=1`.
 
     method : string {'clenshaw', 'iterative', 'laguerre', 'fft'}
-        Select method 'clenshaw' 'iterative', 'laguerre', or 'fft',
-        where 'clenshaw' and 'iterative' use an iterative method to evaluate
-        the Wigner functions for density matrices :math:`|m><n|`,
-        while 'laguerre' uses the Laguerre polynomials in scipy for the same
-        task. The 'fft' method evaluates the Fourier transform of the density
-        matrix. The 'iterative' method is default, and in general
-        recommended, but the 'laguerre' method is more efficient for very
-        sparse density matrices (e.g., superpositions of Fock states in a
-        large Hilbert space). The 'clenshaw' method is the preferred method
-        for dealing with density matrices that have a large number of
-        excitations (>~50). 'clenshaw' is a fast and numerically stable method.
+        Select method 'clenshaw' 'iterative', 'laguerre', or 'fft', where 'clenshaw'
+        and 'iterative' use an iterative method to evaluate the Wigner functions for density
+        matrices :math:`|m><n|`, while 'laguerre' uses the Laguerre polynomials
+        in scipy for the same task. The 'fft' method evaluates the Fourier
+        transform of the density matrix. The 'iterative' method is default, and
+        in general recommended, but the 'laguerre' method is more efficient for
+        very sparse density matrices (e.g., superpositions of Fock states in a
+        large Hilbert space). The 'clenshaw' method is the preferred method for
+        dealing with density matrices that have a large number of excitations
+        (>~50). 'clenshaw' is a fast and numerically stable method.
 
     sparse : bool {False, True}
         Tells the default solver whether or not to keep the input density
@@ -408,19 +407,18 @@ def _wigner_fft(psi, xvec):
     Evaluates the Fourier transformation of a given state vector.
     Returns the corresponding density matrix and range
     """
-    n = 2 * len(psi.T)
+    n = 2*len(psi.T)
     r1 = np.concatenate((np.array([[0]]),
-                         np.fliplr(psi.conj()),
-                         np.zeros((1, n // 2 - 1))), axis=1)
+                        np.fliplr(psi.conj()),
+                        np.zeros((1, n//2 - 1))), axis=1)
     r2 = np.concatenate((np.array([[0]]), psi,
-                         np.zeros((1, n // 2 - 1))), axis=1)
-    w = la.toeplitz(np.zeros((n // 2, 1)), r1) * \
-        np.flipud(la.toeplitz(np.zeros((n // 2, 1)), r2))
-    w = np.concatenate((w[:, n // 2:n], w[:, 0:n // 2]), axis=1)
+                        np.zeros((1, n//2 - 1))), axis=1)
+    w = la.toeplitz(np.zeros((n//2, 1)), r1) * \
+        np.flipud(la.toeplitz(np.zeros((n//2, 1)), r2))
+    w = np.concatenate((w[:, n//2:n], w[:, 0:n//2]), axis=1)
     w = ft.fft(w)
-    w = np.real(
-        np.concatenate((w[:, 3 * n // 4:n + 1], w[:, 0:n // 4]), axis=1))
-    p = np.arange(-n / 4, n / 4) * np.pi / (n * (xvec[1] - xvec[0]))
+    w = np.real(np.concatenate((w[:, 3*n//4:n+1], w[:, 0:n//4]), axis=1))
+    p = np.arange(-n/4, n/4)*np.pi / (n*(xvec[1] - xvec[0]))
     w = w / (p[1] - p[0]) / n
     return w, p
 
@@ -440,7 +438,7 @@ def _osc_eigen(N, pnts):
         A[1, :] = np.sqrt(2) * pnts * A[0, :]
         for k in range(2, N):
             A[k, :] = np.sqrt(2.0 / k) * pnts * A[k - 1, :] - \
-                      np.sqrt((k - 1.0) / k) * A[k - 2, :]
+                np.sqrt((k - 1.0) / k) * A[k - 2, :]
         return A
 
 
@@ -456,34 +454,33 @@ def _wigner_clenshaw(rho, xvec, yvec, g=sqrt(2), sparse=False):
     """
 
     M = np.prod(rho.shape[0])
-    X, Y = np.meshgrid(xvec, yvec)
-    # A = 0.5 * g * (X + 1.0j * Y)
-    A2 = g * (X + 1.0j * Y)  # this is A2 = 2*A
+    X,Y = np.meshgrid(xvec, yvec)
+    #A = 0.5 * g * (X + 1.0j * Y)
+    A2 = g * (X + 1.0j * Y) #this is A2 = 2*A
 
     B = np.abs(A2)
     B *= B
-    w0 = (2 * rho.data[0, -1]) * np.ones_like(A2)
-    L = M - 1
-    # calculation of \sum_{L} c_L (2x)^L / \sqrt(L!)
-    # using Horner's method
+    w0 = (2*rho.data[0,-1])*np.ones_like(A2)
+    L = M-1
+    #calculation of \sum_{L} c_L (2x)^L / \sqrt(L!)
+    #using Horner's method
     if not sparse:
-        rho = rho.full() * (2 * np.ones((M, M)) - np.diag(np.ones(M)))
+        rho = rho.full() * (2*np.ones((M,M)) - np.diag(np.ones(M)))
         while L > 0:
             L -= 1
-            # here c_L = _wig_laguerre_val(L, B, np.diag(rho, L))
-            w0 = _wig_laguerre_val(L, B, np.diag(rho, L)) + w0 * A2 * (
-                        L + 1) ** -0.5
+            #here c_L = _wig_laguerre_val(L, B, np.diag(rho, L))
+            w0 = _wig_laguerre_val(L, B, np.diag(rho, L)) + w0 * A2 * (L+1)**-0.5
     else:
         while L > 0:
             L -= 1
-            diag = _csr_get_diag(rho.data.data, rho.data.indices,
-                                 rho.data.indptr, L)
+            diag = _csr_get_diag(rho.data.data,rho.data.indices,
+                                rho.data.indptr,L)
             if L != 0:
                 diag *= 2
-            # here c_L = _wig_laguerre_val(L, B, np.diag(rho, L))
-            w0 = _wig_laguerre_val(L, B, diag) + w0 * A2 * (L + 1) ** -0.5
+            #here c_L = _wig_laguerre_val(L, B, np.diag(rho, L))
+            w0 = _wig_laguerre_val(L, B, diag) + w0 * A2 * (L+1)**-0.5
 
-    return w0.real * np.exp(-B * 0.5) * (g * g * 0.5 / pi)
+    return w0.real * np.exp(-B*0.5) * (g*g*0.5 / pi)
 
 
 def _wig_laguerre_val(L, x, c):
@@ -514,11 +511,10 @@ def _wig_laguerre_val(L, x, c):
         y1 = c[-1]
         for i in range(3, len(c) + 1):
             k -= 1
-            y0, y1 = c[-i] - y1 * (float((k - 1) * (L + k - 1)) / (
-                        (L + k) * k)) ** 0.5, y0 - y1 * (
-                                 (L + 2 * k - 1) - x) * ((L + k) * k) ** -0.5
+            y0,    y1 = c[-i] - y1 * (float((k - 1)*(L + k - 1))/((L+k)*k))**0.5, \
+            y0 - y1 * ((L + 2*k -1) - x) * ((L+k)*k)**-0.5
 
-    return y0 - y1 * ((L + 1) - x) * (L + 1) ** -0.5
+    return y0 - y1 * ((L + 1) - x) * (L + 1)**-0.5
 
 
 # -----------------------------------------------------------------------------
@@ -530,10 +526,10 @@ def _qfunc_check_state(state: Qobj):
     # This is only approximate, but it's enough for our purposes; doing more
     # than this would take computational effort we don't _need_ to do.
     isdm = (
-            state.isoper
-            and state.dims[0] == state.dims[1]
-            and state.isherm
-            and abs(state.tr() - 1) < qutip.settings.atol
+        state.isoper
+        and state.dims[0] == state.dims[1]
+        and state.isherm
+        and abs(state.tr() - 1) < qutip.settings.atol
     )
     if not (state.isket or isdm):
         raise ValueError(
@@ -556,8 +552,7 @@ def _qfunc_check_coordinates(xvec, yvec):
     yvec = np.asarray(yvec, dtype=np.float64)
     if xvec.ndim != 1 or yvec.ndim != 1:
         raise ValueError(
-            f"xvec and yvec must be 1D, but have shapes {xvec.shape} and "
-            f"{yvec.shape}."
+            f"xvec and yvec must be 1D, but have shapes {xvec.shape} and {yvec.shape}."
         )
     return xvec, yvec
 
@@ -600,7 +595,6 @@ class _QFuncCoherentGrid:
     >>> np.allclose(naive[:, :, 4:7], grid(4, 7))
     True
     """
-
     def __init__(self, xvec, yvec, g: float):
         self.xvec, self.yvec = _qfunc_check_coordinates(xvec, yvec)
         x, y = np.meshgrid(0.5 * g * self.xvec, 0.5 * g * self.yvec)
@@ -641,7 +635,7 @@ class _QFuncCoherentGrid:
         out = np.empty(self.grid.shape + (ns.size,), dtype=np.complex128)
         out[:, :, 0] = self._start(ns.flat[0])
         for i in range(ns.size - 1):
-            out[:, :, i + 1] = out[:, :, i] * self.grid
+            out[:, :, i+1] = out[:, :, i] * self.grid
         out /= np.sqrt(scipy.special.factorial(ns))
         return out
 
@@ -695,7 +689,7 @@ class QFunc:
     """
 
     def __init__(
-            self, xvec, yvec, g: float = np.sqrt(2), memory: float = 1024
+        self, xvec, yvec, g: float = np.sqrt(2), memory: float = 1024
     ):
         self._g = g
         self._coherent_grid = _QFuncCoherentGrid(xvec, yvec, g)
@@ -758,7 +752,7 @@ class QFunc:
 
 
 def _qfunc_iterative_single(
-        vector: np.ndarray, alpha_grid: _QFuncCoherentGrid, g: float,
+    vector: np.ndarray, alpha_grid: _QFuncCoherentGrid, g: float,
 ):
     r"""
     Get the Q function (without the :math:`\pi` scaling factor) of a single
@@ -767,19 +761,19 @@ def _qfunc_iterative_single(
     """
     ns = np.arange(vector.shape[0])
     out = np.polyval(
-        (0.5 * g * vector / np.sqrt(scipy.special.factorial(ns)))[::-1],
+        (0.5*g * vector / np.sqrt(scipy.special.factorial(ns)))[::-1],
         alpha_grid.grid,
     )
     out *= alpha_grid.prefactor
-    return np.abs(out) ** 2
+    return np.abs(out)**2
 
 
 def qfunc(
-        state: Qobj,
-        xvec,
-        yvec,
-        g: float = sqrt(2),
-        precompute_memory: float = 1024,
+    state: Qobj,
+    xvec,
+    yvec,
+    g: float = sqrt(2),
+    precompute_memory: float = 1024,
 ):
     r"""
     Husimi-Q function of a given state vector or density matrix at phase-space
@@ -824,8 +818,8 @@ def qfunc(
     xvec, yvec = _qfunc_check_coordinates(xvec, yvec)
     required_memory = state.shape[0] * xvec.size * yvec.size * 16 / (1024 ** 2)
     enough_memory = (
-            precompute_memory is not None
-            and precompute_memory > required_memory
+        precompute_memory is not None
+        and precompute_memory > required_memory
     )
     if state.isoper and enough_memory:
         return QFunc(xvec, yvec, g)(state)
@@ -908,7 +902,7 @@ def spin_q_function(rho, theta, phi):
              (exp(1j * (m1 - m2) * PHI) * rho.data[int(j - m1), int(j - m2)] +
               exp(1j * (m2 - m1) * PHI) * rho.data[int(j - m2), int(j - m1)])
 
-    return Q.real * (2 * j + 1) / (4 * pi), THETA, PHI
+    return Q.real * (2 * j + 1) / (4*pi), THETA, PHI
 
 
 def _rho_kq(rho, j, k, q):
@@ -934,8 +928,8 @@ def _rho_kq(rho, j, k, q):
     """
 
     v = 0j
-    for m1 in arange(-j, j + 1):
-        for m2 in arange(-j, j + 1):
+    for m1 in arange(-j, j+1):
+        for m2 in arange(-j, j+1):
             v += (
                     (-1) ** (2 * j - k - m1 - m2)
                     * np.sqrt((2 * k + 1) / (2 * j + 1))
@@ -989,9 +983,9 @@ def spin_wigner(rho, theta, phi):
 
     W = np.zeros_like(THETA, dtype=complex)
 
-    for k in range(int(2 * j) + 1):
-        for q in arange(-k, k + 1):
+    for k in range(int(2 * j)+1):
+        for q in arange(-k, k+1):
             # sph_harm takes azimuthal angle then polar angle as arguments
             W += _rho_kq(rho, j, k, q) * sph_harm(q, k, PHI, THETA)
 
-    return W * np.sqrt((2 * j + 1) / (4 * pi)), THETA, PHI
+    return W*np.sqrt((2*j + 1)/(4*pi)), THETA, PHI

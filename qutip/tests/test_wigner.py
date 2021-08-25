@@ -606,7 +606,7 @@ def test_wigner_clenshaw_sp_iter_dm():
     pytest.param(False, id="mixed")
 ])
 def test_spin_q_function(spin, pure):
-    d = int(2 * spin + 1)
+    d = int(2*spin + 1)
     rho = rand_dm(d, pure=pure)
 
     # Points at which to evaluate the spin Q function
@@ -653,7 +653,7 @@ def test_spin_q_function_normalized(spin, pure):
     pytest.param(False, id="mixed")
 ])
 def test_spin_wigner_normalized_and_real(spin, pure):
-    d = int(2 * spin + 1)
+    d = int(2*spin + 1)
     rho = rand_dm(d, pure=pure)
 
     # Points at which to evaluate the spin Wigner function
