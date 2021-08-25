@@ -1,6 +1,6 @@
 from . import test_mathematics as testing
 import numpy as np
-from scipy import linalg
+import scipy.linalg
 import pytest
 from qutip import data
 from qutip.core.data import CSR, Dense
