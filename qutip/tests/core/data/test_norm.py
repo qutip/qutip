@@ -9,7 +9,7 @@ import numbers
 
 class TestOneNorm(testing.UnaryOpMixin):
     def op_numpy(self, matrix):
-        return linalg.norm(matrix, 1)
+        return scipy.linalg.norm(matrix, 1)
 
     specialisations = [
         pytest.param(data.norm.one_csr, CSR, numbers.Number),
@@ -19,7 +19,7 @@ class TestOneNorm(testing.UnaryOpMixin):
 
 class TestFrobeniusNorm(testing.UnaryOpMixin):
     def op_numpy(self, matrix):
-        return linalg.norm(matrix, 'fro')
+        return scipy.linalg.norm(matrix, 'fro')
 
     specialisations = [
         pytest.param(data.norm.frobenius_csr, CSR, numbers.Number),
@@ -41,7 +41,7 @@ class TestMaxNorm(testing.UnaryOpMixin):
 
 class TestL2Norm(testing.UnaryOpMixin):
     def op_numpy(self, matrix):
-        return linalg.norm(matrix, 'fro')
+        return scipy.linalg.norm(matrix, 'fro')
 
     # These shapes correspond to kets or bras
     shapes = [
@@ -61,7 +61,7 @@ class TestL2Norm(testing.UnaryOpMixin):
 
 class TestTraceNorm(testing.UnaryOpMixin):
     def op_numpy(self, matrix):
-        return linalg.norm(matrix, 'nuc')
+        return scipy.linalg.norm(matrix, 'nuc')
 
     specialisations = [
         pytest.param(data.norm.trace_csr, CSR, numbers.Number),
@@ -72,7 +72,7 @@ class TestTraceNorm(testing.UnaryOpMixin):
 # set to True.
 class TestTraceNormSparseTrue(testing.UnaryOpMixin):
     def op_numpy(self, matrix):
-        return linalg.norm(matrix, 'nuc')
+        return scipy.linalg.norm(matrix, 'nuc')
 
     specialisations = [
         pytest.param(data.norm.trace_csr, CSR, numbers.Number),
