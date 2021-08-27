@@ -78,7 +78,7 @@ def _parametrize_solver_coefficients(metafunc):
     """
     size = 10
     times = np.linspace(0, 5, 50)
-    c_ops = [qutip.qzero(size)]
+    c_ops = [qutip.qeye(size)]
     solvers = [
         (qutip.sesolve, 'sesolve'),
         (functools.partial(qutip.mesolve, c_ops=c_ops), 'mesolve'),
