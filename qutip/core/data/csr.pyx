@@ -232,12 +232,12 @@ cdef class CSR(base.Data):
 
     def __add__(left, right):
         if not isinstance(left, CSR) or not isinstance(right, CSR):
-            return NotImplemented
+            return base.Data.__add__(left, right)
         return add_csr(left, right)
 
     def __matmul__(left, right):
         if not isinstance(left, CSR) or not isinstance(right, CSR):
-            return NotImplemented
+            return base.Data.__matmul__(left, right)
         return matmul_csr(left, right)
 
     def __mul__(left, right):
@@ -276,7 +276,7 @@ cdef class CSR(base.Data):
 
     def __sub__(left, right):
         if not isinstance(left, CSR) or not isinstance(right, CSR):
-            return NotImplemented
+            return base.Data.__sub__(left, right)
         return sub_csr(left, right)
 
     cpdef double complex trace(self):

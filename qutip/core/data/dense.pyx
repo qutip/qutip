@@ -209,12 +209,12 @@ cdef class Dense(base.Data):
 
     def __add__(left, right):
         if not isinstance(left, Dense) or not isinstance(right, Dense):
-            return NotImplemented
+            return base.Data.__add__(left, right)
         return add_dense(left, right)
 
     def __matmul__(left, right):
         if not isinstance(left, Dense) or not isinstance(right, Dense):
-            return NotImplemented
+            return base.Data.__matmul__(left, right)
         return matmul_dense(left, right)
 
     def __mul__(left, right):
@@ -253,7 +253,7 @@ cdef class Dense(base.Data):
 
     def __sub__(left, right):
         if not isinstance(left, Dense) or not isinstance(right, Dense):
-            return NotImplemented
+            return base.Data.__sub__(left, right)
         return sub_dense(left, right)
 
     def __dealloc__(self):

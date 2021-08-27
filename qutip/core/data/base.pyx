@@ -2,6 +2,7 @@
 
 import numpy as np
 cimport numpy as cnp
+import qutip.core.data as _data
 
 __all__ = [
     'idxint_dtype', 'Data', 'EfficiencyWarning',
@@ -33,6 +34,50 @@ cdef class Data:
 
     cpdef Data copy(self):
         raise NotImplementedError
+
+    def __add__(left, right):
+        if isinstance(left, Data) and isinstance(right, Data):
+            return _data.add(left, right)
+        return NotImplemented
+
+    def __sub__(left, right):
+        if isinstance(left, Data) and isinstance(right, Data):
+            return _data.sub(left, right)
+        return NotImplemented
+
+    def __matmul__(left, right):
+        if isinstance(left, Data) and isinstance(right, Data):
+            return _data.matmul(left, right)
+        return NotImplemented
+
+    def __mul__(left, right):
+        data, number = (left, right) if isinstance(left, Data) else (right, left)
+        try:
+            return _data.mul(data, number)
+        except TypeError:
+            return NotImplemented
+
+    def __imul__(self, other):
+        try:
+            return _data.imul(self, other)
+        except TypeError:
+            return NotImplemented
+
+    def __truediv__(left, right):
+        data, number = (left, right) if isinstance(left, Data) else (right, left)
+        try:
+            return _data.mul(data, 1/number)
+        except TypeError:
+            return NotImplemented
+
+    def __itruediv__(self, other):
+        try:
+            return _data.imul(self, 1/other)
+        except TypeError:
+            return NotImplemented
+
+    def __neg__(self):
+        return _data.neg(self)
 
 
 class EfficiencyWarning(Warning):
