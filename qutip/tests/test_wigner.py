@@ -1,44 +1,233 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
 import pytest
 import numpy as np
 from scipy.special import laguerre
 from numpy.random import rand
 from numpy.testing import assert_, run_module_suite, assert_equal
 
+import qutip
 from qutip.states import coherent, fock, ket, bell_state
 from qutip.wigner import wigner, wigner_transform, _parity
 from qutip.random_objects import rand_dm, rand_ket
+
+
+class TestHusimiQ:
+    @pytest.mark.parametrize('xs', ["", 1, None], ids=['str', 'int', 'none'])
+    def test_failure_if_non_arraylike_coordinates(self, xs):
+        state = qutip.rand_ket(4)
+        valid = np.linspace(-1, 1, 5)
+        with pytest.raises(TypeError) as e:
+            qutip.qfunc(state, xs, valid)
+        assert "must be array-like" in e.value.args[0]
+        with pytest.raises(TypeError) as e:
+            qutip.qfunc(state, valid, xs)
+        assert "must be array-like" in e.value.args[0]
+        with pytest.raises(TypeError) as e:
+            qutip.QFunc(xs, valid)
+        assert "must be array-like" in e.value.args[0]
+        with pytest.raises(TypeError) as e:
+            qutip.QFunc(valid, xs)
+        assert "must be array-like" in e.value.args[0]
+
+    @pytest.mark.parametrize('ndim', [2, 3])
+    def test_failure_if_coordinates_not_1d(self, ndim):
+        state = qutip.rand_ket(4)
+        valid = np.linspace(-1, 1, 5)
+        bad = valid.reshape((-1,) + (1,)*(ndim - 1))
+        with pytest.raises(ValueError) as e:
+            qutip.qfunc(state, bad, valid)
+        assert "must be 1D" in e.value.args[0]
+        with pytest.raises(ValueError) as e:
+            qutip.qfunc(state, valid, bad)
+        assert "must be 1D" in e.value.args[0]
+        with pytest.raises(ValueError) as e:
+            qutip.QFunc(bad, valid)
+        assert "must be 1D" in e.value.args[0]
+        with pytest.raises(ValueError) as e:
+            qutip.QFunc(valid, bad)
+        assert "must be 1D" in e.value.args[0]
+
+    @pytest.mark.parametrize('dm', [True, False], ids=['dm', 'ket'])
+    def test_failure_if_tensor_hilbert_space(self, dm):
+        if dm:
+            state = qutip.rand_dm(4, dims=[[2, 2], [2, 2]])
+        else:
+            state = qutip.rand_ket(4, dims=[[2, 2], [1, 1]])
+        xs = np.linspace(-1, 1, 5)
+        with pytest.raises(ValueError) as e:
+            qutip.qfunc(state, xs, xs)
+        assert "must not have tensor structure" in e.value.args[0]
+        with pytest.raises(ValueError) as e:
+            qutip.QFunc(xs, xs)(state)
+        assert "must not have tensor structure" in e.value.args[0]
+
+    def test_QFunc_raises_if_insufficient_memory(self):
+        xs = np.linspace(-1, 1, 11)
+        state = qutip.rand_ket(4)
+        qfunc = qutip.QFunc(xs, xs, memory=0)
+        with pytest.raises(MemoryError) as e:
+            qfunc(state)
+        assert e.value.args[0].startswith("Refusing to precompute")
+
+    def test_qfunc_warns_if_insufficient_memory(self):
+        xs = np.linspace(-1, 1, 11)
+        state = qutip.rand_dm(4)
+        with pytest.warns(UserWarning) as e:
+            qutip.qfunc(state, xs, xs, precompute_memory=0)
+        assert (
+            e[0].message.args[0]
+            .startswith("Falling back to iterative algorithm")
+        )
+
+    @pytest.mark.parametrize('obj', [
+        pytest.param(np.eye(2, dtype=np.complex128), id='ndarray'),
+        pytest.param([[1, 0], [0, 1]], id='list'),
+        pytest.param(1, id='int'),
+    ])
+    def test_failure_if_not_a_Qobj(self, obj):
+        xs = np.linspace(-1, 1, 11)
+        with pytest.raises(TypeError) as e:
+            qutip.qfunc(obj, xs, xs)
+        assert e.value.args[0].startswith("state must be Qobj")
+        qfunc = qutip.QFunc(xs, xs)
+        with pytest.raises(TypeError) as e:
+            qfunc(obj)
+        assert e.value.args[0].startswith("state must be Qobj")
+
+    # Use indirection so that the tests can still be collected if there's a bug
+    # in the generating QuTiP functions.
+    @pytest.mark.parametrize('state', [
+        pytest.param(lambda: qutip.rand_super(2), id='super'),
+        pytest.param(lambda: qutip.rand_ket(2).dag(), id='bra'),
+        pytest.param(lambda: 1j*qutip.rand_dm(2), id='non-dm operator'),
+        pytest.param(lambda: qutip.Qobj([[1, 0], [0, 0]], dims=[[2], [2, 1]]),
+                     id='nonsquare dm'),
+        pytest.param(lambda: qutip.operator_to_vector(qutip.qeye(2)),
+                     id='operator-ket'),
+        pytest.param(lambda: qutip.operator_to_vector(qutip.qeye(2)).dag(),
+                     id='operator-bra'),
+    ])
+    def test_failure_if_not_a_state(self, state):
+        xs = np.linspace(-1, 1, 11)
+        state = state()
+        with pytest.raises(ValueError) as e:
+            qutip.qfunc(state, xs, xs)
+        assert (
+            e.value.args[0].startswith("state must be a ket or density matrix")
+        )
+        qfunc = qutip.QFunc(xs, xs)
+        with pytest.raises(ValueError) as e:
+            qfunc(state)
+        assert (
+            e.value.args[0].startswith("state must be a ket or density matrix")
+        )
+
+    @pytest.mark.parametrize('g', [
+        pytest.param(np.sqrt(2), id='natural units'),
+        pytest.param(1, id='arb units'),
+    ])
+    @pytest.mark.parametrize('n_ys', [5, 101])
+    @pytest.mark.parametrize('n_xs', [5, 101])
+    @pytest.mark.parametrize('dm', [True, False], ids=['dm', 'ket'])
+    @pytest.mark.parametrize('size', [5, 32])
+    def test_function_and_class_are_equivalent(self, size, dm, n_xs, n_ys, g):
+        xs = np.linspace(-1, 1, n_xs)
+        ys = np.linspace(0, 2, n_ys)
+        state = qutip.rand_dm(size) if dm else qutip.rand_ket(size)
+        function = qutip.qfunc(state, xs, ys, g)
+        class_ = qutip.QFunc(xs, ys, g)(state)
+        np.testing.assert_allclose(function, class_)
+
+    @pytest.mark.parametrize('g', [
+        pytest.param(np.sqrt(2), id='natural units'),
+        pytest.param(1, id='arb units'),
+    ])
+    @pytest.mark.parametrize('n_ys', [5, 101])
+    @pytest.mark.parametrize('n_xs', [5, 101])
+    @pytest.mark.parametrize('size', [5, 32])
+    def test_iterate_and_precompute_are_equivalent(self, size, n_xs, n_ys, g):
+        xs = np.linspace(-1, 1, n_xs)
+        ys = np.linspace(0, 2, n_ys)
+        state = qutip.rand_dm(size)
+        iterate = qutip.qfunc(state, xs, ys, g, precompute_memory=None)
+        precompute = qutip.qfunc(state, xs, ys, g, precompute_memory=np.inf)
+        np.testing.assert_allclose(iterate, precompute)
+
+    @pytest.mark.parametrize('initial_size', [5, 8])
+    @pytest.mark.parametrize('dm', [True, False], ids=['dm', 'ket'])
+    def test_same_class_can_take_many_sizes(self, dm, initial_size):
+        xs = np.linspace(-1, 1, 11)
+        ys = np.linspace(0, 2, 11)
+        shape = np.meshgrid(xs, ys)[0].shape
+        sizes = initial_size + np.array([0, 1, -1, 4])
+        qfunc = qutip.QFunc(xs, ys)
+        for size in sizes:
+            state = qutip.rand_dm(size) if dm else qutip.rand_ket(size)
+            out = qfunc(state)
+            assert isinstance(out, np.ndarray)
+            assert out.shape == shape
+
+    @pytest.mark.parametrize('dm_first', [True, False])
+    def test_same_class_can_mix_ket_and_dm(self, dm_first):
+        dms = [True, False, True, False]
+        if not dm_first:
+            dms = dms[::-1]
+        xs = np.linspace(-1, 1, 11)
+        ys = np.linspace(0, 2, 11)
+        shape = np.meshgrid(xs, ys)[0].shape
+        qfunc = qutip.QFunc(xs, ys)
+        for dm in dms:
+            state = qutip.rand_dm(4) if dm else qutip.rand_ket(4)
+            out = qfunc(state)
+            assert isinstance(out, np.ndarray)
+            assert out.shape == shape
+
+    @pytest.mark.parametrize('n_ys', [5, 101])
+    @pytest.mark.parametrize('n_xs', [5, 101])
+    @pytest.mark.parametrize('mix', [0.1, 0.5])
+    def test_qfunc_is_linear(self, n_xs, n_ys, mix):
+        xs = np.linspace(-1, 1, n_xs)
+        ys = np.linspace(-1, 1, n_ys)
+        qfunc = qutip.QFunc(xs, ys)
+        left, right = qutip.rand_dm(5), qutip.rand_dm(5)
+        qleft, qright = qfunc(left), qfunc(right)
+        qboth = qfunc(mix*left + (1-mix)*right)
+        np.testing.assert_allclose(mix*qleft + (1-mix)*qright, qboth)
+
+    @pytest.mark.parametrize('n_ys', [5, 101])
+    @pytest.mark.parametrize('n_xs', [5, 101])
+    @pytest.mark.parametrize('size', [5, 32])
+    def test_ket_and_dm_give_same_result(self, n_xs, n_ys, size):
+        xs = np.linspace(-1, 1, n_xs)
+        ys = np.linspace(-1, 1, n_ys)
+        state = qutip.rand_ket(size)
+        qfunc = qutip.QFunc(xs, ys)
+        np.testing.assert_allclose(qfunc(state), qfunc(state.proj()))
+
+    @pytest.mark.parametrize('g', [
+        pytest.param(np.sqrt(2), id='natural units'),
+        pytest.param(1, id='arb units'),
+    ])
+    @pytest.mark.parametrize('ys', [
+        pytest.param(np.linspace(-1, 1, 5), id='(-1,1,5)'),
+        pytest.param(np.linspace(0, 2, 3), id='(0,2,3)'),
+    ])
+    @pytest.mark.parametrize('xs', [
+        pytest.param(np.linspace(-1, 1, 5), id='(-1,1,5)'),
+        pytest.param(np.linspace(0, 2, 3), id='(0,2,3)'),
+    ])
+    @pytest.mark.parametrize('size', [3, 5])
+    def test_against_naive_implementation(self, xs, ys, g, size):
+        state = qutip.rand_dm(size)
+        state_np = state.full()
+        x, y = np.meshgrid(xs, ys)
+        alphas = 0.5*g * (x + 1j*y)
+        naive = np.empty(alphas.shape, dtype=np.float64)
+        for i, alpha in enumerate(alphas.flat):
+            coh = qutip.coherent(size, alpha, method='analytic').full()
+            naive.flat[i] = (coh.conj().T @ state_np @ coh).real
+        naive *= (0.5*g)**2 / np.pi
+        np.testing.assert_allclose(naive, qutip.qfunc(state, xs, ys, g))
+        np.testing.assert_allclose(naive, qutip.QFunc(xs, ys, g)(state))
 
 
 def test_wigner_bell1_su2parity():

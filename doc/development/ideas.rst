@@ -1,7 +1,3 @@
-.. QuTiP
-   Copyright (C) 2011-2021, Paul D. Nation, Robert J. Johansson & other
-                            contributors.
-
 .. _development_ideas:
 
 **********************************

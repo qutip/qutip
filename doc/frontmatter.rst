@@ -1,6 +1,3 @@
-.. QuTiP
-   Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
-
 .. _frontmatter:
 
 *************
@@ -45,7 +42,10 @@ This document contains a user guide and automatically generated API documentatio
 
 :release: |release|
 
-:copyright: This documentation is licensed under the Creative Commons Attribution 3.0 Unported License.
+:copyright:
+   The text of this documentation is licensed under the Creative Commons Attribution 3.0 Unported License.
+   All contained code samples, and the source code of QuTiP, are licensed under the 3-clause BSD licence.
+   Full details of the copyright notices can be found on the `Copyright and Licensing <copyright>`_ page of this documentation.
 
 .. _citing-qutip:
 

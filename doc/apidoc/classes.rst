@@ -1,6 +1,3 @@
-.. QuTiP
-   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
-
 .. _classes:
 
 ***************
@@ -37,6 +34,13 @@ Bloch sphere
 ---------------
 
 .. autoclass:: qutip.bloch.Bloch
+    :members:
+
+
+Distributions
+-------------
+
+.. autoclass:: qutip.QFunc
     :members:
 
 

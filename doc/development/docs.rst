@@ -1,6 +1,3 @@
-.. QuTiP
-   Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
-
 .. _user_guide.rst:
 
 ************************************

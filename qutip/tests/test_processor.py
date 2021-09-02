@@ -1,35 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
 import os
 
 from numpy.testing import (
@@ -174,8 +142,10 @@ class TestCircuitProcessor:
         processor.add_control(sigmaz())
         processor.pulses[0].tlist = tlist
         processor.pulses[0].coeff = np.array([np.sin(t) for t in tlist])
-        processor.plot_pulses()
-        plt.clf()
+        fig, _ = processor.plot_pulses()
+        # testing under Xvfb with pytest-xvfb complains if figure windows are
+        # left open, so we politely close it:
+        plt.close(fig)
 
         # cubic spline
         tlist = np.linspace(0., 2*np.pi, 20)
@@ -183,8 +153,10 @@ class TestCircuitProcessor:
         processor.add_control(sigmaz())
         processor.pulses[0].tlist = tlist
         processor.pulses[0].coeff = np.array([np.sin(t) for t in tlist])
-        processor.plot_pulses()
-        plt.clf()
+        fig, _ = processor.plot_pulses()
+        # testing under Xvfb with pytest-xvfb complains if figure windows are
+        # left open, so we politely close it:
+        plt.close(fig)
 
     def testSpline(self):
         """
@@ -324,11 +296,19 @@ class TestCircuitProcessor:
         Test for the drift Hamiltonian
         """
         processor = Processor(N=1)
-        processor.add_drift(sigmaz(), 0)
-        tlist = np.array([0., 1., 2.])
-        processor.add_pulse(Pulse(identity(2), 0, tlist, False))
+        processor.add_drift(sigmax() / 2, 0)
+        tlist = np.array([0., np.pi, 2*np.pi, 3*np.pi])
+        processor.add_pulse(Pulse(None, None, tlist, False))
         ideal_qobjevo, _ = processor.get_qobjevo(noisy=True)
-        assert_equal(ideal_qobjevo.cte, sigmaz())
+        assert_equal(ideal_qobjevo.cte, sigmax() / 2)
+
+        init_state = basis(2)
+        propagators = processor.run_analytically()
+        analytical_result = init_state
+        for unitary in propagators:
+            analytical_result = unitary * analytical_result
+        fid = fidelity(sigmax() * init_state, analytical_result)
+        assert((1 - fid) < 1.0e-6)
 
     def testChooseSolver(self):
         # setup and fidelity without noise
