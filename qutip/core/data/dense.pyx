@@ -207,55 +207,6 @@ cdef class Dense(base.Data):
     cpdef Dense transpose(self):
         return transpose_dense(self)
 
-    def __add__(left, right):
-        if not isinstance(left, Dense) or not isinstance(right, Dense):
-            return NotImplemented
-        return add_dense(left, right)
-
-    def __matmul__(left, right):
-        if not isinstance(left, Dense) or not isinstance(right, Dense):
-            return NotImplemented
-        return matmul_dense(left, right)
-
-    def __mul__(left, right):
-        dense, number = (left, right) if isinstance(left, Dense) else (right, left)
-        if not isinstance(number, numbers.Number):
-            return NotImplemented
-        return mul_dense(dense, complex(number))
-
-    def __imul__(self, other):
-        if not isinstance(other, numbers.Number):
-            return NotImplemented
-        cdef int size = self.shape[0]*self.shape[1]
-        cdef double complex mul = complex(other)
-        blas.zscal(&size, &mul, self.data, &_ONE)
-        return self
-
-    def __truediv__(left, right):
-        dense, number = (left, right) if isinstance(left, Dense) else (right, left)
-        if not isinstance(number, numbers.Number):
-            return NotImplemented
-        # Technically `(1 / x) * y` doesn't necessarily equal `y / x` in
-        # floating point, but multiplication is faster than division, and we
-        # don't really care _that_ much anyway.
-        return mul_dense(dense, 1 / complex(number))
-
-    def __itruediv__(self, other):
-        if not isinstance(other, numbers.Number):
-            return NotImplemented
-        cdef int size = self.shape[0]*self.shape[1]
-        cdef double complex mul = 1 / complex(other)
-        blas.zscal(&size, &mul, self.data, &_ONE)
-        return self
-
-    def __neg__(self):
-        return neg_dense(self)
-
-    def __sub__(left, right):
-        if not isinstance(left, Dense) or not isinstance(right, Dense):
-            return NotImplemented
-        return sub_dense(left, right)
-
     def __dealloc__(self):
         if self._deallocate and self.data != NULL:
             PyDataMem_FREE(self.data)
