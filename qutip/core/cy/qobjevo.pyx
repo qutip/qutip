@@ -242,6 +242,9 @@ cdef class QobjEvo:
                             _stepInterpolation=use_step_func)
             )
             qobj = op[0]
+        elif isinstance(op, _BaseElement):
+            out = op
+            qobj = op.qobj(0)
         elif callable(op):
             qobj = op(0, args)
             if not isinstance(qobj, Qobj):
