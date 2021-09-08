@@ -90,7 +90,7 @@ class ExpectOps:
         else:
             t = self.tlist[iter_]
             for ii in range(self.e_num):
-                if isinstance(ii, (Qobj, QobjEvo)):
+                if isinstance(ii, (Qobj, QobjEvo, int)):
                     self.raw_out[ii, iter_] = \
                         self.e_ops_qoevo[ii].compiled_qobjevo.expect(t, state)
                 elif callable(ii):
