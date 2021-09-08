@@ -23,36 +23,8 @@ cpdef Data _br_term_data(Data A, double[:, ::1] spectrum,
                          double[:, ::1] skew, double cutoff):
     # TODO:
     #    Working with Data would allow brmesolve to run on gpu etc.
-    #    But it need the equivalent to einsum("ij,jk,jk->ik")...
+    #    But it need point wise product.
     raise NotImplementedError
-    """
-    cdef Data B, C, AB, id
-    cdef double complex cutoff_arr
-    cdef int nrow = A.shape[0]
-    B = _data.element_wise_multiply(
-        A,
-        _data.to(A.__class__, _data.Dense(spectrum, copy=False))
-    )
-    cdef Data out = _data.kron(A.transpose(), B)
-    out = _data.add(_data.kron(B.transpose(), A), out)
-    AB = _data.matmul(A, B)
-    id = _data.identity[A.__class__](*A.shape)
-    out = _data.add(out, _data.kron(AB.transpose(), id), 0.5)
-    out = _data.add(out, _data.kron(id, AB), 0.5)
-
-    if cutoff != DBL_MAX:
-        cutoff_arr = np.zeros((nrow*nrow, nrow*nrow), dtype=np.complex128)
-        for a in prange(nrows, nogil=True, schedule='dynamic'):
-            for b in range(nrows):
-                for c in range(nrows):
-                    for d in range(nrows):
-                        if fabs(skew[a, b] - skew[c, d]) < cutoff:
-                            cutoff_arr[a * nrows + b, c * nrows + d] = 1.
-        C = A.__class__(_data.Dense(cutoff_arr, copy=False))
-        return _data.element_wise_multiply(out, C)
-    else:
-        return out
-    """
 
 
 @cython.boundscheck(False)
@@ -215,13 +187,7 @@ cdef class _BlochRedfieldElement(_BaseElement):
         return dw_min
 
     cdef Data _br_term(self, Data A_eig, double cutoff):
-        # TODO: better swapping.
-        # dense can run in parallel,
-        # sparse can be great when cutoff is small and output is sparse.
-        # Data could be good for gpu implemenations.
-        if False and type(A_eig) is not Dense:
-            return _br_term_data(A_eig, self.spectrum, self.skew, cutoff)
-        elif self.sec_cutoff >= DBL_MAX:
+        if self.sec_cutoff >= DBL_MAX:
             return _br_term_dense(A_eig, self.spectrum, self.skew, cutoff)
         else:
             return _br_term_sparse(A_eig, self.spectrum, self.skew, cutoff)
