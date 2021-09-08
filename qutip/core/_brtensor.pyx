@@ -10,7 +10,7 @@ from qutip.core._brtools cimport SpectraCoefficient, _EigenBasisTransform
 from qutip import Qobj
 
 import numpy as np
-from cython.parallel import prange
+#from cython.parallel import prange
 cimport openmp
 from libcpp.vector cimport vector
 from libc.float cimport DBL_MAX
