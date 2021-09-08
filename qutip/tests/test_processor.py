@@ -142,8 +142,10 @@ class TestCircuitProcessor:
         processor.add_control(sigmaz())
         processor.pulses[0].tlist = tlist
         processor.pulses[0].coeff = np.array([np.sin(t) for t in tlist])
-        processor.plot_pulses()
-        plt.clf()
+        fig, _ = processor.plot_pulses()
+        # testing under Xvfb with pytest-xvfb complains if figure windows are
+        # left open, so we politely close it:
+        plt.close(fig)
 
         # cubic spline
         tlist = np.linspace(0., 2*np.pi, 20)
@@ -151,8 +153,10 @@ class TestCircuitProcessor:
         processor.add_control(sigmaz())
         processor.pulses[0].tlist = tlist
         processor.pulses[0].coeff = np.array([np.sin(t) for t in tlist])
-        processor.plot_pulses()
-        plt.clf()
+        fig, _ = processor.plot_pulses()
+        # testing under Xvfb with pytest-xvfb complains if figure windows are
+        # left open, so we politely close it:
+        plt.close(fig)
 
     def testSpline(self):
         """

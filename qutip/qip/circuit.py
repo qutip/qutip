@@ -364,6 +364,8 @@ class QubitCircuit:
         A list of integer for the dimension of each composite system.
         e.g [2,2,2,2,2] for 5 qubits system. If None, qubits system
         will be the default option.
+    num_cbits : int
+        Number of classical bits in the system.
 
     Examples
     --------
