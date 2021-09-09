@@ -38,9 +38,9 @@ __all__ = ['Solver']
 # from ..core import data as _data
 
 from .. import Qobj, QobjEvo
-from .options import SolverOptions
+from .options import SolverOptions, SolverOdeOptions
 from .result import Result
-from .integrator import integrator_collection
+from .integrator import Integrator
 from ..ui.progressbar import get_progess_bar
 from ..core.data import to
 from time import time
@@ -53,20 +53,6 @@ class Solver:
     evolver which deal in data and the Result which use Qobj.
     It's children (SeSolver, McSolver) are responsible with building the system
     (-1j*H).
-
-    methods
-    -------
-    run(state0, tlist, args={}):
-        Do an evolution starting with `state0` at `tlist[0]` and obtain a
-        result for each time in `tlist`.
-        The system's arguments can be changed with `args`.
-
-    start(state0, t0):
-        Set the initial values for an evolution by steps
-
-    step(t, args={}):
-        Do a step to `t`. The system arguments for this step can be updated
-        with `args`
 
     attributes
     ----------
@@ -89,90 +75,116 @@ class Solver:
     _t = 0
     _state = None
     _integrator = False
+    _avail_integrators = {}
 
     # Class of option used by the solver
     optionsclass = SolverOptions
+    odeoptionsclass = SolverOdeOptions
 
-    def __init__(self, e_ops, args, feedback_args):
+    def __init__(self):
         raise NotImplementedError
 
     def _prepare_state(self, state):
+        """ Extract the data and metadata of the Qobj state """
         # Do the dims checks
-        # prepare the data from the Qobj (reshape, update type)
-        # return state.data, info
+        # prepare the data from the Qobj (reshape, update type, ...)
+        # metadata pass dims, type, etc., from _prepare_state to _restore_state
+        # return state.data, metadata
         raise NotImplementedError
 
-    def _restore_state(self, state, info, copy=True):
-        # rebuild the Qobj from the state's data
-        # info pass dims, type, etc., from _prepare_state to _restore_state
+    def _restore_state(self, state, metadata, copy=True):
+        """ Retore the Qobj state from the data and metadata """
         raise NotImplementedError
 
     def run(self, state0, tlist, args={}):
-        _data0, info = self._prepare_state(state0)
+        """
+        Do the evolution of the Quantum system.
+
+        Parameters
+        ----------
+        state0 : :class:`Qobj`
+            Initial state of the evolution.
+
+        tlist : list of double
+            Time for which to save the results (state and/or expect) of the
+            evolution. The first element of the list is the initial time of the
+            evolution. Each times of the list must be increasing, but does not
+            need to be uniformy distributed.
+
+        args : dict, optional {None}
+            Set the ``args`` of the system for the evolution.
+
+        Return
+        ------
+        results : :class:`qutip.solver.Result`
+            Results of the evolution. States and/or expect will be saved. You
+            can control the saved data in the options.
+        """
+        _data0, state_metadata = self._prepare_state(state0)
         _integrator = self._get_integrator()
         if args:
             _integrator.update_args(args)
         _time_start = time()
         _integrator.set_state(tlist[0], _data0)
         self.stats["preparation time"] += time() - _time_start
-        res = Result(self.e_ops, self.options.results, state0)
-        res.add(tlist[0], state0)
+        results = Result(self.e_ops, self.options.results, state0)
+        results.add(tlist[0], state0)
 
         progress_bar = get_progess_bar(self.options['progress_bar'])
         progress_bar.start(len(tlist)-1, **self.options['progress_kwargs'])
         for t, state in _integrator.run(tlist):
             progress_bar.update()
-            res.add(t, self._restore_state(state, info, False))
+            results.add(t, self._restore_state(state, state_metadata, False))
         progress_bar.finished()
 
         self.stats['run time'] = progress_bar.total_time()
         self.stats.update(_integrator.stats)
         self.stats["method"] = _integrator.name
-        res.stats = self.stats.copy()
-        return res
+        results.stats = self.stats.copy()
+        return results
 
     def start(self, state0, t0):
+        """
+        Set the initial state of the evolution.
+
+        Parameters
+        ----------
+        state0 : :class:`Qobj`
+            Initial state of the evolution.
+
+        t0 : double
+            Initial time of the evolution.
+        """
         _time_start = time()
-        self._state, self.info = self._prepare_state(state0)
+        self._state, self.state_metadata = self._prepare_state(state0)
         self._t = t0
         self._integrator = self._get_integrator()
         self._integrator.set_state(self._t, self._state)
         self.stats["preparation time"] += time() - _time_start
 
-    def step(self, t, args={}):
+    def step(self, t, args=None):
+        """
+        Evolve the state to ``t`` and return the state as a :class:`Qobj`.
+
+        Parameters
+        ----------
+        t : double
+            Time to evolve to, must be higher than the last call.
+
+        args : dict, optional {None}
+            Update the ``args`` of the system.
+            The change is effective from the time of the last call.
+            Changing ``args`` can slow the evolution.
+        """
         if not self._integrator:
             raise RuntimeError("The `start` method must called first")
         if args:
             self._integrator.update_args(args)
-            self._integrator.set_state(self._t, self._state)
-        self._t, self._state = self._integrator.step(t, copy=False)
-        return self._restore_state(self._state, self.info)
-
-    def _get_integrator(self):
-        method = self.options.ode["method"]
-        rhs = self.options.ode["rhs"]
-        td_system = not self._system.isconstant or None
-        op_type = self.options.ode["Operator_data_type"]
-        # TODO: with #1420, it should be changed to `in to._str2type`
-        if op_type in to.dtypes:
-            self._system = self._system.to(op_type)
-        integrator = integrator_collection[method, rhs]
-        # Check if the solver is supported by the integrator
-        if not integrator_collection.check_condition(
-            method, "", solver=self.name, time_dependent=td_system
-        ):
-            raise ValueError(f"ODE integrator method {method} not supported "
-                f"by {self.name}" +
-                ("for time dependent system" if td_system else "")
-            )
-        if not integrator_collection.check_condition(
-            "", rhs, solver=self.name, time_dependent=td_system
-        ):
-            raise ValueError(f"ODE integrator rhs {rhs} not supported by " +
-                f"{self.name}" +
-                ("for time dependent system" if td_system else "")
-            )
-        return integrator(self._system, self.options)
+            self._integrator.reset()
+        _time_start = time()
+        self._t, self._state = self._integrator.integrate(t, copy=False)
+        self.stats["run time"] += time() - _time_start
+        return self._restore_state(self._state, self.state_metadata)
 
     @property
     def options(self):
@@ -183,6 +195,50 @@ class Solver:
         if new is None:
             new = self.optionsclass()
         if not isinstance(new, self.optionsclass):
-            raise TypeError("options must be an instance of",
-                            self.optionsclass)
+            raise TypeError("options must be an instance of" +
+                            str(self.optionsclass))
         self._options = new
+
+    @property
+    def avail_integrators(self):
+        if type(self) is Solver:
+            return self._avail_integrators.copy()
+        return {**self._avail_integrators,
+                **super(self.__class__, self)._avail_integrators}
+
+    @classmethod
+    def add_integrator(cls, integrator, keys):
+        """
+        Register an integrator.
+
+        Parameters
+        ----------
+        integrator : Integrator
+            The ODE solver to register.
+
+        keys : list of str
+            Values of the method options that refer to this integrator.
+        """
+        if not issubclass(integrator, Integrator):
+            raise TypeError(f"The integrator {integrator} must be a subclass"
+                            " of `qutip.solver.Integrator`")
+        if not isinstance(keys, list):
+            keys = [keys]
+        for key in keys:
+            cls._avail_integrators[key] = integrator
+        if integrator.used_options:
+            for opt in integrator.used_options:
+                cls.odeoptionsclass.extra_options.add(opt)
+
+    def _get_integrator(self):
+        """ Return the initialted integrator. """
+        method = self.options.ode["method"]
+        time_dependent = not self._system.isconstant or None
+
+        if self.options.ode["Operator_data_type"]:
+            self._system = self._system.to(
+                self.options.ode["Operator_data_type"]
+            )
+
+        integrator = self.avail_integrators[method]
+        return integrator(self._system, self.options)

@@ -223,6 +223,7 @@ class MeSolver(Solver):
 
     """
     name = "mesolve"
+    _avail_integrators = {}
 
     def __init__(self, H, c_ops, e_ops=None, options=None,
                  times=None, args=None):
@@ -248,12 +249,12 @@ class MeSolver(Solver):
 
         if self.options.ode["State_data_type"]:
             state = state.to(self.options.ode["State_data_type"])
-        info = state.dims, state.type, state.isherm
+        metadata = state.dims, state.type, state.isherm
 
         if self._system.dims[1] == state.dims:
-            return stack_columns(state.data), info
+            return stack_columns(state.data), metadata
         elif self._system.dims[1] == state.dims[0]:
-            return state.data, info
+            return state.data, metadata
         else:
             raise TypeError("".join([
                             "incompatible dimensions ",
@@ -262,10 +263,10 @@ class MeSolver(Solver):
                             repr(state.dims),])
                            )
 
-    def _restore_state(self, state, info, copy=True):
-        dims, type, herm = info
+    def _restore_state(self, state, metadata, copy=True):
+        dims, type_, herm = metadata
         if state.shape[1] == 1:
             return Qobj(unstack_columns(state),
-                        dims=dims, type=type, isherm=herm, copy=False)
+                        dims=dims, type=type_, isherm=herm, copy=False)
         else:
-            return Qobj(state, dims=dims, type=type, copy=copy)
+            return Qobj(state, dims=dims, type=type_, copy=copy)

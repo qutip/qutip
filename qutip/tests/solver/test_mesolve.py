@@ -35,25 +35,26 @@ import numpy as np
 from numpy.testing import assert_allclose
 from types import FunctionType
 
-from qutip import *
-from qutip.solver import *
-from qutip.random_objects import rand_ket
+import qutip
+from qutip.solver.mesolve import mesolve, MeSolver
+from qutip.solver.solver_base import Solver
+from qutip.solver.options import SolverOptions
 import pickle
 import pytest
-all_ode_method = integrator_collection.list_keys('methods', time_dependent=True)
+all_ode_method = Solver._avail_integrators.keys()
 
 
 def fidelitycheck(out1, out2, rho0vec):
     fid = np.zeros(len(out1.states))
     for i, E in enumerate(out2.states):
-        rhot = vector_to_operator(E*rho0vec)
-        fid[i] = fidelity(out1.states[i], rhot)
+        rhot = qutip.vector_to_operator(E*rho0vec)
+        fid[i] = qutip.fidelity(out1.states[i], rhot)
     return fid
 
 
 class TestMESolveDecay:
     N = 10
-    a = destroy(N)
+    a = qutip.destroy(N)
     kappa = 0.2
     tlist = np.linspace(0, 10, 201)
     ada = a.dag() * a
@@ -61,11 +62,11 @@ class TestMESolveDecay:
     @pytest.fixture(params=[
         pytest.param([ada, lambda t, args: 1], id='Hlist_func'),
         pytest.param([ada, '1'], id='Hlist_str'),
-        pytest.param([ada, Cubic_Spline(0, 10, np.ones_like(tlist))],
+        pytest.param([ada, qutip.Cubic_Spline(0, 10, np.ones_like(tlist))],
                       id='Hlist_cubic_spline'),
         pytest.param([ada, np.ones_like(tlist)], id='Hlist_array'),
-        pytest.param(QobjEvo([ada, '1']), id='HQobjEvo'),
-        pytest.param(lambda t, args: create(10) * destroy(10),
+        pytest.param(qutip.QobjEvo([ada, '1']), id='HQobjEvo'),
+        pytest.param(lambda t, args: qutip.create(10) * qutip.destroy(10),
                      id='func'),
     ])
     def H(self, request):
@@ -80,12 +81,12 @@ class TestMESolveDecay:
                   id='list_func'),
         pytest.param([a, 'sqrt(kappa)'],
                   id='list_str'),
-        pytest.param([a, Cubic_Spline(0, 10, np.sqrt(kappa) *
+        pytest.param([a, qutip.Cubic_Spline(0, 10, np.sqrt(kappa) *
                                       np.ones_like(tlist))],
                   id='list_cubic_spline'),
         pytest.param([a, np.sqrt(kappa) * np.ones_like(tlist)],
                   id='list_array'),
-        pytest.param(QobjEvo([a, 'sqrt(kappa)'], args={'kappa': kappa}),
+        pytest.param(qutip.QobjEvo([a, 'sqrt(kappa)'], args={'kappa': kappa}),
                   id='QobjEvo'),
     ])
     def cte_c_ops(self, request):
@@ -96,11 +97,11 @@ class TestMESolveDecay:
                   id='list_func'),
         pytest.param([a, 'sqrt(kappa * exp(-t))'],
                   id='list_str'),
-        pytest.param([a, Cubic_Spline(0, 10, np.sqrt(kappa * np.exp(-tlist)))],
+        pytest.param([a, qutip.Cubic_Spline(0, 10, np.sqrt(kappa * np.exp(-tlist)))],
                   id='list_cubic_spline'),
         pytest.param([a, np.sqrt(kappa * np.exp(-tlist))],
                   id='list_array'),
-        pytest.param(QobjEvo([a, 'sqrt(kappa * exp(-t))'],
+        pytest.param(qutip.QobjEvo([a, 'sqrt(kappa * exp(-t))'],
                           args={'kappa': kappa}),
                   id='QobjEvo'),
         pytest.param(lambda t, args: (np.sqrt(args['kappa'] * np.exp(-t)) *
@@ -116,7 +117,7 @@ class TestMESolveDecay:
         "mesolve: simple constant decay"
         me_error = 1e-6
         H = self.a.dag() * self.a
-        psi0 = basis(self.N, 9)  # initial state
+        psi0 = qutip.basis(self.N, 9)  # initial state
         c_op_list = [cte_c_ops]
         options = SolverOptions(progress_bar=None)
         medata = mesolve(H, psi0, self.tlist, c_op_list, [H],
@@ -132,7 +133,7 @@ class TestMESolveDecay:
         "mesolve: time-dependence as function list"
         me_error = 1e-5
         H = self.a.dag() * self.a
-        psi0 = basis(self.N, 9)  # initial state
+        psi0 = qutip.basis(self.N, 9)  # initial state
         c_op_list = [c_ops]
         options = SolverOptions(method=method, progress_bar=None)
         medata = mesolve(H, psi0, self.tlist, c_op_list, [H],
@@ -145,7 +146,7 @@ class TestMESolveDecay:
         "mesolve: time-dependence as function list"
         me_error = 1e-5
         H = self.a.dag() * self.a
-        psi0 = basis(self.N, 9)  # initial state
+        psi0 = qutip.basis(self.N, 9)  # initial state
         c_op_list = [c_ops, c_ops_1]
         options = SolverOptions(progress_bar=None)
         medata = mesolve(H, psi0, self.tlist, c_op_list, [H],
@@ -159,7 +160,7 @@ class TestMESolveDecay:
     def testME_TDH_TDDecay(self, H, c_ops):
         "mesolve: time-dependence as function list"
         me_error = 5e-6
-        psi0 = basis(self.N, 9)  # initial state
+        psi0 = qutip.basis(self.N, 9)  # initial state
         c_op_list = [c_ops]
         options = SolverOptions(progress_bar=None)
         medata = mesolve(H, psi0, self.tlist, c_op_list, [self.ada],
@@ -176,7 +177,7 @@ class TestMESolveDecay:
         psi0 = basis(self.N, 9)  # initial state
         if isinstance(c_ops, FunctionType):
             return
-        if isinstance(c_ops, QobjEvo):
+        if isinstance(c_ops, qutip.QobjEvo):
             c_op_list = [c_ops + c_ops]
         else:
             c_op_list = [[c_ops, c_ops]]
@@ -194,9 +195,9 @@ class TestMESolveDecay:
         me_error = 5e-6
 
         H = self.ada
-        psi0 = basis(self.N, 9)  # initial state
-        rho0vec = operator_to_vector(psi0*psi0.dag())
-        E0 = sprepost(qeye(self.N), qeye(self.N))
+        psi0 = qutip.basis(self.N, 9)  # initial state
+        rho0vec = qutip.operator_to_vector(psi0*psi0.dag())
+        E0 = qutip.sprepost(qeye(self.N), qeye(self.N))
         options = SolverOptions(progress_bar=None)
         c_op_list = [c_ops]
         out1 = mesolve(H, psi0, self.tlist, c_op_list, [],
@@ -214,10 +215,10 @@ class TestMESolveDecay:
         me_error = 5e-6
 
         H = self.ada
-        L = liouvillian(H)
-        psi0 = basis(self.N, 9)  # initial state
-        rho0vec = operator_to_vector(psi0*psi0.dag())
-        E0 = sprepost(qeye(self.N), qeye(self.N))
+        L = qutip.liouvillian(H)
+        psi0 = qutip.basis(self.N, 9)  # initial state
+        rho0vec = qutip.operator_to_vector(psi0*psi0.dag())
+        E0 = qutip.sprepost(qeye(self.N), qeye(self.N))
         options = SolverOptions(progress_bar=None)
         c_op_list = [c_ops]
         out1 = mesolve(L, psi0, self.tlist, c_op_list, [],
@@ -235,8 +236,8 @@ class TestMESolveDecay:
         solver_obj = MeSolver(self.ada, c_ops=[self.a], e_ops=[self.ada],
                               options=options)
         copy = pickle.loads(pickle.dumps(solver_obj))
-        e1 = solver_obj.run(basis(self.N, 9), [0, 1, 2, 3], {}).expect
-        e2 = solver_obj.run(basis(self.N, 9), [0, 1, 2, 3], {}).expect
+        e1 = solver_obj.run(qutip.basis(self.N, 9), [0, 1, 2, 3], {}).expect
+        e2 = solver_obj.run(qutip.basis(self.N, 9), [0, 1, 2, 3], {}).expect
         assert_allclose(e1, e2)
 
     @pytest.mark.parametrize('method',
@@ -248,12 +249,12 @@ class TestMESolveDecay:
                                      lambda t, args: np.sqrt(args['kappa'] *
                                                      np.exp(-t))]],
                               args={"kappa":1.}, options=options)
-        solver_obj.start(basis(self.N, 9), 0)
+        solver_obj.start(qutip.basis(self.N, 9), 0)
         state1 = solver_obj.step(1)
-        assert expect(self.ada, state1) != expect(self.ada, basis(self.N, 9))
+        assert qutip.expect(self.ada, state1) != qutip.expect(self.ada, basis(self.N, 9))
         state2 = solver_obj.step(2, {"kappa":0.})
-        assert_allclose(expect(self.ada, state1),
-                        expect(self.ada, state2), 1e-6)
+        assert_allclose(qutip.expect(self.ada, state1),
+                        qutip.expect(self.ada, state2), 1e-6)
 
 
 @pytest.mark.parametrize('super_', ["ket", "dm", "liouvillian"],
@@ -261,17 +262,17 @@ class TestMESolveDecay:
 def testME_SesolveFallback(super_):
     "mesolve: final_state has correct dims"
     N = 5
-    a = tensor(destroy(N+1), qeye(N+1), qeye(N+1))
-    b = tensor(qeye(N+1), destroy(N+1), qeye(N+1))
-    c = tensor(qeye(N+1), qeye(N+1), destroy(N+1))
-    psi0 = tensor(basis(N+1,0), basis(N+1,0), basis(N+1,N))
+    a = tensor(qutip.destroy(N+1), qutip.qeye(N+1), qutip.qeye(N+1))
+    b = tensor(qutip.qeye(N+1), qutip.destroy(N+1), qutip.qeye(N+1))
+    c = tensor(qutip.qeye(N+1), qutip.qeye(N+1), qutip.destroy(N+1))
+    psi0 = tensor(qutip.basis(N+1,0), qutip.basis(N+1,0), qutip.basis(N+1,N))
     H = a * b * c.dag() * c.dag() + a.dag() * b.dag() * c * c
     if super_ == "dm":
-        state0 = ket2dm(psi0)
+        state0 = qutip.ket2dm(psi0)
     else:
         state0 = psi0
     if super_ == "liouvillian":
-        H = liouvillian(H)
+        H = qutip.liouvillian(H)
 
     times = np.linspace(0.0, 0.1, 3)
     options = SolverOptions(store_states=False, store_final_state=True,
@@ -280,7 +281,7 @@ def testME_SesolveFallback(super_):
     if super_ == "ket":
         assert result.final_state.dims == psi0.dims
     else:
-        assert result.final_state.dims == ket2dm(psi0).dims
+        assert result.final_state.dims == qutip.ket2dm(psi0).dims
 
 
 class TestJCModelEvolution:
@@ -289,7 +290,7 @@ class TestJCModelEvolution:
     """
     def qubit_integrate(self, tlist, psi0, epsilon, delta, g1, g2):
 
-        H = epsilon / 2.0 * sigmaz() + delta / 2.0 * sigmax()
+        H = epsilon / 2.0 * qutip.sigmaz() + delta / 2.0 * qutip.sigmax()
 
         c_op_list = []
 
@@ -302,7 +303,7 @@ class TestJCModelEvolution:
             c_op_list.append(np.sqrt(rate) * sigmaz())
 
         output = mesolve(H, psi0, tlist, c_op_list,
-                         e_ops=[sigmax(), sigmay(), sigmaz()])
+                         e_ops=[qutip.sigmax(), qutip.sigmay(), qutip.sigmaz()])
 
         return output.expect[0], output.expect[1], output.expect[2]
 
@@ -310,8 +311,8 @@ class TestJCModelEvolution:
                        pump, psi0, use_rwa, tlist):
 
         # Hamiltonian
-        a = tensor(destroy(N), identity(2))
-        sm = tensor(identity(N), destroy(2))
+        a = qutip.tensor(destroy(N), identity(2))
+        sm = qutip.tensor(identity(N), destroy(2))
 
         if use_rwa:
             # use the rotating wave approxiation
@@ -342,19 +343,19 @@ class TestJCModelEvolution:
             c_op_list.append(np.sqrt(rate) * sm.dag())
 
         # find the steady state
-        rho_ss = steadystate(H, c_op_list)
+        rho_ss = qutip.steadystate(H, c_op_list)
 
-        return expect(a.dag() * a, rho_ss), expect(sm.dag() * sm, rho_ss)
+        return qutip.expect(a.dag() * a, rho_ss), qutip.expect(sm.dag() * sm, rho_ss)
 
     def jc_integrate(self, N, wc, wa, g, kappa, gamma,
                      pump, psi0, use_rwa, tlist, oper_evo=False):
 
         # Hamiltonian
-        a = tensor(destroy(N), identity(2))
-        sm = tensor(identity(N), destroy(2))
+        a = qutip.tensor(destroy(N), identity(2))
+        sm = qutip.tensor(identity(N), destroy(2))
 
         # Identity super-operator
-        E0 = sprepost(tensor(qeye(N), qeye(2)), tensor(qeye(N), qeye(2)))
+        E0 = qutip.sprepost(tensor(qeye(N), qeye(2)), tensor(qeye(N), qeye(2)))
 
         if use_rwa:
             # use the rotating wave approxiation
@@ -410,14 +411,14 @@ class TestJCModelEvolution:
 
         # start with an excited atom and maximum number of photons
         n = N - 2
-        psi0 = basis([N, 2], [n, 1])
-        rho0vec = operator_to_vector(psi0.proj())
+        psi0 = qutip.basis([N, 2], [n, 1])
+        rho0vec = qutip.operator_to_vector(psi0.proj())
         tlist = np.linspace(0, 100, 50)
 
         out1, out2 = self.jc_integrate(
             N, wc, wa, g, kappa, gamma, pump, psi0, use_rwa, tlist, True)
 
-        fid = fidelitycheck(out1, out2, rho0vec)
+        fid = qutip.fidelitycheck(out1, out2, rho0vec)
         assert np.max(np.abs(1.0 - fid)) < me_error
 
     def testQubitDynamics1(self):
@@ -474,7 +475,7 @@ class TestJCModelEvolution:
 
         # start with an excited atom and maximum number of photons
         n = N - 2
-        psi0 = tensor(basis(N, n), basis(2, 1))
+        psi0 = qutip.tensor(basis(N, n), basis(2, 1))
         tlist = np.linspace(0, 1000, 2000)
 
         nc, na = self.jc_integrate(
@@ -500,7 +501,7 @@ class TestJCModelEvolution:
 
         # start with an excited atom and maximum number of photons
         n = N - 2
-        psi0 = tensor(basis(N, n), basis(2, 1))
+        psi0 = qutip.tensor(basis(N, n), basis(2, 1))
         tlist = np.linspace(0, 1000, 2000)
 
         nc, na = self.jc_integrate(
@@ -528,7 +529,7 @@ class TestJCModelEvolution:
 
         # start with an excited atom and maximum number of photons
         n = N - 2
-        psi0 = tensor(basis(N, n), basis(2, 1))
+        psi0 = qutip.tensor(basis(N, n), basis(2, 1))
         tlist = np.linspace(0, 200, 500)
 
         nc, na = self.jc_integrate(
@@ -570,82 +571,82 @@ class TestMESolveStepFuncCoeff:
         rho0 = rand_ket(2)
         tlist = np.array([0, np.pi/2])
         options = SolverOptions(method=method, nsteps=1e5)
-        qu = QobjEvo([[sigmax(), self.python_coeff]],
+        qu = QobjEvo([[qutip.sigmax(), self.python_coeff]],
                      tlist=tlist, args={"_step_func_coeff": 1})
         result = mesolve(qu, rho0=rho0, tlist=tlist, options=options)
         assert_allclose(
-            fidelity(result.states[-1], sigmax()*rho0), 1, rtol=1.e-6)
+            qutip.fidelity(result.states[-1], qutip.sigmax()*rho0), 1, rtol=1.e-6)
 
     def test_array_cte_coeff(self):
         """
         Test for Array coefficient with uniform tlist as step function coeff
         """
-        rho0 = rand_ket(2)
+        rho0 = qutip.rand_ket(2)
         tlist = np.array([0., np.pi/2, np.pi], dtype=float)
         npcoeff = np.array([0.25, 0.75, 0.75])
-        qu = QobjEvo([[sigmax(), npcoeff]],
+        qu = qutip.QobjEvo([[sigmax(), npcoeff]],
                      tlist=tlist, args={"_step_func_coeff": 1})
         result = mesolve(qu, rho0=rho0, tlist=tlist, options=self.options)
         assert_allclose(
-            fidelity(result.states[-1], sigmax()*rho0), 1, rtol=1.e-6)
+            qutip.fidelity(result.states[-1], qutip.sigmax()*rho0), 1, rtol=1.e-6)
 
     def test_array_t_coeff(self):
         """
         Test for Array with non-uniform tlist as step function coeff
         """
-        rho0 = rand_ket(2)
+        rho0 = qutip.rand_ket(2)
         tlist = np.array([0., np.pi/2, np.pi*3/2], dtype=float)
         npcoeff = np.array([0.5, 0.25, 0.25])
-        qu = QobjEvo([[sigmax(), npcoeff]],
+        qu = qutip.QobjEvo([[qutip.sigmax(), npcoeff]],
                      tlist=tlist, args={"_step_func_coeff": 1})
         result = mesolve(qu, rho0=rho0, tlist=tlist, options=self.options)
         assert_allclose(
-            fidelity(result.states[-1], sigmax()*rho0), 1, rtol=1.e-6)
+            qutip.fidelity(result.states[-1], qutip.sigmax()*rho0), 1, rtol=1.e-6)
 
     def test_array_str_coeff(self):
         """
         Test for Array and string as step function coeff.
         qobjevo_codegen is used and uniform tlist
         """
-        rho0 = rand_ket(2)
+        rho0 = qutip.rand_ket(2)
         tlist = np.array([0., np.pi/2, np.pi], dtype=float)
         npcoeff1 = np.array([0.25, 0.75, 0.75], dtype=complex)
         npcoeff2 = np.array([0.5, 1.5, 1.5], dtype=float)
         strcoeff = "1."
-        qu = QobjEvo(
-            [[sigmax(), npcoeff1], [sigmax(), strcoeff], [sigmax(), npcoeff2]],
+        qu = qutip.QobjEvo(
+            [[qutip.sigmax(), npcoeff1], [qutip.sigmax(), strcoeff], [qutip.sigmax(), npcoeff2]],
             tlist=tlist, args={"_step_func_coeff": 1})
         result = mesolve(qu, rho0=rho0, tlist=tlist, options=self.options)
         assert_allclose(
-            fidelity(result.states[-1], sigmax()*rho0), 1, rtol=1.e-6)
+            qutip.fidelity(result.states[-1], qutip.sigmax()*rho0), 1, rtol=1.e-6)
 
     def test_array_str_py_coeff(self):
         """
         Test for Array, string and Python function as step function coeff.
         qobjevo_codegen is used and non non-uniform tlist
         """
-        rho0 = rand_ket(2)
+        rho0 = qutip.rand_ket(2)
         tlist = np.array([0., np.pi/4, np.pi/2, np.pi], dtype=float)
         npcoeff1 = np.array([0.4, 1.6, 1.0, 1.0], dtype=complex)
         npcoeff2 = np.array([0.4, 1.6, 1.0, 1.0], dtype=float)
         strcoeff = "1."
-        qu = QobjEvo(
-            [[sigmax(), npcoeff1], [sigmax(), npcoeff2],
-             [sigmax(), self.python_coeff], [sigmax(), strcoeff]],
+        qu = qutip.QobjEvo(
+            [[qutip.sigmax(), npcoeff1], [qutip.sigmax(), npcoeff2],
+             [qutip.sigmax(), self.python_coeff], [qutip.sigmax(), strcoeff]],
             tlist=tlist, args={"_step_func_coeff": 1})
         result = mesolve(qu, rho0=rho0, tlist=tlist, options=self.options)
         assert_allclose(
-            fidelity(result.states[-1], sigmax()*rho0), 1, rtol=1.e-6)
+            qutip.fidelity(result.states[-1], qutip.sigmax()*rho0), 1, rtol=1.e-6)
 
 
 def test_num_collapse_set():
-    H = sigmaz()
-    psi = (basis(2, 0) + basis(2, 1)).unit()
+    H = qutip.sigmaz()
+    psi = (qutip.basis(2, 0) + qutip.basis(2, 1)).unit()
     ts = [0, 1]
     for c_ops in (
-        sigmax(),
-        [sigmax()],
-        [sigmay(), sigmax()],
+        qutip.sigmax(),
+        [qutip.sigmax()],
+        [qutip.sigmay(), qutip.sigmax()],
     ):
         res = mesolve(H, psi, ts, c_ops=c_ops)
         if not isinstance(c_ops, list):

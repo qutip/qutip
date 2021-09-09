@@ -94,14 +94,17 @@ class Result:
             self._store_states = self._e_num == 0
         self._store_final_state = options['store_final_state']
         if self._super:
-            self._normalize_outputs = options['normalize_output'] in ['dm', True, 'all']
+            self._normalize_outputs = \
+                options['normalize_output'] in ['dm', True, 'all']
         else:
-            self._normalize_outputs = options['normalize_output'] in ['ket', True, 'all']
+            self._normalize_outputs = \
+                options['normalize_output'] in ['ket', True, 'all']
 
     def _normalize(self, state):
-        if state.shape[1] == 1:
-            return state * (1/state.norm())
-        elif state.shape[1] == state.shape[0] and self._super:
+        if (
+            state.shape[1] == 1
+            or state.shape[1] == state.shape[0] and self._super
+        ):
             return state * (1/state.norm())
         else:
             # TODO add normalization for propagator evolution.

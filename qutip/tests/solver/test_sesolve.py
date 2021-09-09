@@ -39,10 +39,12 @@ from qutip import (
     sigmax, sigmay, sigmaz, qeye, basis, expect, num, destroy, create,
     Cubic_Spline, QobjEvo, Qobj
 )
-from qutip.solver import SolverOptions, sesolve, SeSolver
+from qutip.solver.sesolve import sesolve, SeSolver
+from qutip.solver.options import SolverOptions
+from qutip.solver.solver_base import Solver
 from qutip.solver.integrator import *
 
-all_ode_method = integrator_collection.list_keys('methods', time_dependent=True)
+all_ode_method = Solver._avail_integrators.keys()
 
 
 class TestSeSolve():

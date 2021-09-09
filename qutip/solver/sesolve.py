@@ -121,30 +121,9 @@ class SeSolver(Solver):
     options : :class:`SolverOptions`
         Options for the solver
 
-    times : array_like
-        List of times at which the numpy-array coefficients are applied.
-        Used when the hamiltonian is passed as a list with array for coeffients.
-
-    args : dict
-        dictionary that contain the arguments for the coeffients
-        Used when the hamiltonian is passed as a list or callable.
-
-    methods
-    -------
-    run(state, tlist, args)
-        Evolve the state vector (`psi0`) using a given
-        Hamiltonian (`H`), by integrating the set of ordinary differential
-        equations that define the system. Alternatively evolve a unitary
-        matrix in solving the Schrodinger operator equation.
-        return a Result object
-
-    start(state0, t0):
-        Set the initial values for an evolution by steps
-
-    step(t, args={}):
-        Evolve to `t`. The system arguments for this step can be updated
-        with `args`.
-        return the state at t (Qobj), does not compute the expectation values.
+    **kwargs :
+        Extra parameters to pass to the QobjEvo creation, such as ``args``.
+        See :class:`QobjEvo` for more information.
 
     attributes
     ----------
@@ -158,14 +137,18 @@ class SeSolver(Solver):
         Alternatively, function[s] with the signature f(t, state) -> expect
         can be used.
 
+    stats: dict
+        Diverse statistics of the evolution.
+
     """
     name = "sesolve"
+    _avail_integrators = {}
 
-    def __init__(self, H, e_ops=None, options=None, times=None, args=None):
+    def __init__(self, H, e_ops=None, options=None, **kwargs):
         _time_start = time()
         self.e_ops = e_ops
         self.options = options
-        self._system = -1j * QobjEvo(H, args=args, tlist=times)
+        self._system = -1j * QobjEvo(H, **kwargs)
         if not self._system.isoper:
             raise ValueError("The hamiltonian must be an operator")
 
@@ -189,11 +172,7 @@ class SeSolver(Solver):
 
         if self.options.ode["State_data_type"]:
             state = state.to(self.options.ode["State_data_type"])
-        return state.data, (state.dims, state.type)
+        return state.data, {'dims': state.dims, 'type': state.type}
 
-    def _restore_state(self, state, info, copy=True):
-        dims, type = info
-        return Qobj(state,
-                    dims=dims,
-                    type=type,
-                    copy=copy)
+    def _restore_state(self, state, state_metadata, copy=True):
+        return Qobj(state, **state_metadata, copy=copy)
