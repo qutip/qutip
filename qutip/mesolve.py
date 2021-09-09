@@ -458,6 +458,9 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
             opt.store_states = True
         else:
             for op in e_ops:
+                if not isinstance(op, (Qobj, QobjEvo)) and callable(op):
+                    output.expect.append(np.zeros(n_tsteps, dtype=complex))
+                    continue
                 e_ops_data.append(spre(op).data)
                 if op.isherm and rho0.isherm:
                     output.expect.append(np.zeros(n_tsteps))
@@ -504,6 +507,9 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
             output.expect.append(e_ops(t, rho_t))
 
         for m in range(n_expt_op):
+            if not isinstance(e_ops[m], (Qobj, QobjEvo)) and callable(e_ops[m]):
+                output.expect[m][t_idx] = e_ops[m](t, rho_t)
+                continue
             output.expect[m][t_idx] = expect_rho_vec(e_ops_data[m], r.y,
                                                      e_ops[m].isherm
                                                      and rho0.isherm)

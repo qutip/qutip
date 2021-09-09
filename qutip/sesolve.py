@@ -275,16 +275,25 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
             opt.store_states = True
         else:
             for op in e_ops:
+                if not isinstance(op, (Qobj, QobjEvo)) and callable(op):
+                    output.expect.append(np.zeros(n_tsteps, dtype=complex))
+                    continue
                 if op.isherm:
                     output.expect.append(np.zeros(n_tsteps))
                 else:
                     output.expect.append(np.zeros(n_tsteps, dtype=complex))
         if oper_evo:
             for e in e_ops:
-                e_ops_data.append(e.dag().data)
+                if isinstance(e, (Qobj, QobjEvo)):
+                    e_ops_data.append(e.dag().data)
+                    continue
+                e_ops_data.append(e)
         else:
             for e in e_ops:
-                e_ops_data.append(e.data)
+                if isinstance(e, (Qobj, QobjEvo)):
+                    e_ops_data.append(e.data)
+                    continue
+                e_ops_data.append(e)
     else:
         raise TypeError("Expectation parameter must be a list or a function")
 
@@ -343,9 +352,15 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
 
         if oper_evo:
             for m in range(n_expt_op):
+                if callable(e_ops_data[m]):
+                    output.expect[m][t_idx] = e_ops_data[m](t, Qobj(cdata, dims=dims))
+                    continue
                 output.expect[m][t_idx] = (e_ops_data[m] * cdata).trace()
         else:
             for m in range(n_expt_op):
+                if callable(e_ops_data[m]):
+                    output.expect[m][t_idx] = e_ops_data[m](t, Qobj(cdata, dims=dims))
+                    continue
                 output.expect[m][t_idx] = cy_expect_psi(e_ops_data[m], cdata,
                                                         e_ops[m].isherm)
 
