@@ -4,7 +4,7 @@ open quantum systems defined by a Liouvillian or Hamiltonian and a list of
 collapse operators.
 """
 
-__all__ = ['steadystate', 'steady', 'build_preconditioner',
+__all__ = ['steadystate', 'steady', 'steadystate_floquet', 'build_preconditioner',
            'pseudo_inverse']
 
 import functools
@@ -912,6 +912,87 @@ def _steadystate_power(L, ss_args):
         return rhoss, ss_args['info']
     else:
         return rhoss
+        
+
+def steadystate_floquet(H_0, c_ops, Op_t, w_d = 1.0, nmax = 3, sparse = False):
+    """
+    Calculates the effective steady state for a driven system with a time-dependent cosinusoidal term:
+    
+    .. math::
+
+        \\mathcal{\\hat{H}}(t) = \\hat{H}_0 + \\mathcal{\\hat{O}} \\cos(\\omega_d t)
+    
+    Parameters
+    ----------
+    H_0 : :obj:`~Qobj`
+        A Hamiltonian or Liouvillian operator.
+
+    c_ops : list
+        A list of collapse operators.
+        
+    Op_t : :obj:`~Qobj`
+        The the interaction operator which is multiplied by the cosine
+        
+    w_d : float, default 1.0
+        The frequency of the drive
+        
+    nmax : int, default 3
+        The maximum number of iteration for the solver
+        
+    sparse : bool, default False
+        Solve for the steady state using sparse algorithms. Actually, dense seems to be faster.
+        
+    Returns
+    -------
+    dm : qobj
+        Steady state density matrix.
+    """
+    if sparse:
+        N = H_0.shape[0]
+
+        L_0 = liouvillian(H_0, c_ops).data.tocsc()
+        L_t = liouvillian(Op_t)
+        L_p = (0.5 * L_t).data.tocsc()
+        L_m = L_p #(0.5 * A_l * L_t).data
+        L_p_array = L_p.todense()
+        L_m_array = L_m.todense()
+
+        Id = sp.eye(N ** 2, format = "csc", dtype = np.complex128)
+        S, T = sp.csc_matrix((N ** 2, N ** 2), dtype = np.complex128), sp.csc_matrix((N ** 2, N ** 2), dtype = np.complex128)
+
+        for n_i in np.arange(nmax, 0, -1):
+            L = sp.csc_matrix( L_0 - 1j * n_i * w_d * Id + L_m.dot(S) )
+            L.sort_indices()
+            LU = splu( L )
+            S = - LU.solve(L_p_array)
+
+            L = sp.csc_matrix( L_0 + 1j * n_i * w_d * Id + L_p.dot(T) )
+            L.sort_indices()
+            LU = splu( L )
+            T = - LU.solve(L_m_array)
+
+        M_subs = L_0 + L_m.dot(S) + L_p.dot(T)
+    else:
+        N = H_0.shape[0]
+
+        L_0 = liouvillian(H_0, c_ops).full()
+        L_t = liouvillian(Op_t)
+        L_p = (0.5 * L_t).full()
+        L_m = (0.5 * L_t).full()
+
+        Id = np.eye(N ** 2) #qeye(N ** 2).full()
+        S, T = np.zeros((N ** 2, N ** 2)), np.zeros((N ** 2, N ** 2))
+
+        for n_i in np.arange(nmax, 0, -1):
+            lu, piv = la.lu_factor(L_0 - 1j * n_i * w_d * Id + np.matmul(L_m, S))
+            S = - la.lu_solve((lu, piv), L_p)
+
+            lu, piv = la.lu_factor(L_0 + 1j * n_i * w_d * Id + np.matmul(L_p, T))
+            T = - la.lu_solve((lu, piv), L_m)
+
+        M_subs = L_0 + np.matmul(L_m, S) + np.matmul(L_p, T)
+    
+    return steadystate(Qobj(M_subs, type = "super", dims = L_t.dims))
 
 
 def build_preconditioner(A, c_op_list=[], **kwargs):
