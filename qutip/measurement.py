@@ -38,6 +38,7 @@ import numpy as np
 
 from . import Qobj, expect, identity
 from .qip.operations.gates import expand_operator
+from .settings import settings
 
 
 def _verify_input(op, state):
@@ -93,7 +94,7 @@ def _measurement_statistics_povm_ket(state, ops):
     for i, op in enumerate(ops):
         p = np.absolute((state.dag() * op.dag() * op * state))
         probabilities.append(p)
-        if p != 0:
+        if p >= settings.core['min_probability']:
             collapsed_states.append((op * state) / np.sqrt(p))
         else:
             collapsed_states.append(None)
@@ -135,7 +136,7 @@ def _measurement_statistics_povm_dm(density_mat, ops):
         st = op * density_mat * op.dag()
         p = st.tr()
         probabilities.append(p)
-        if p != 0:
+        if p >= settings.core['min_probability']:
             collapsed_states.append(st/p)
         else:
             collapsed_states.append(None)

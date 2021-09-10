@@ -29,6 +29,10 @@ class CoreOptions:
         The absolute tolerance used in automatic tidyup (see the ``auto_tidyup``
         parameter above) and the default value of ``atol`` used in
         :method:`Qobj.tidyup`.
+
+    min_probability : float {1e-30}
+        The minimun probability for measurement considered to be possible in
+        :func:`measurement_statistics_povm`.
     """
     options = {
         # use auto tidyup
@@ -42,5 +46,7 @@ class CoreOptions:
         # general relative tolerance
         "rtol": 1e-12,
         # use auto tidyup absolute tolerance
-        "auto_tidyup_atol": 1e-14
+        "auto_tidyup_atol": 1e-14,
+        # cutoff for impossible collapse in measurment
+        "min_probability": 1e-30
     }
