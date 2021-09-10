@@ -260,7 +260,7 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
                         X_rho_vec_i = _data.dense.fast_from_numpy(X_rho_vec_i)
                         S[j, i, k] -= (
                             _data.expect_super(_data.matmul(Jj, Q), X_rho_vec_i)
-                            + _data.expect_super(_data.matmul(Jj, Q), X_rho_vec_j)
+                            + _data.expect_super(_data.matmul(Ji, Q), X_rho_vec_j)
                         ).real
 
         else:
