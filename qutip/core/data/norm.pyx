@@ -45,9 +45,8 @@ cpdef double one_csr(CSR matrix) except -1:
         mem.PyMem_Free(col)
 
 cpdef double _trace_csr(CSR matrix, tol=0, maxiter=None) except -1:
-    """Compute the trace norm relaying only on sparse operations. This consists
-    on a digitalization of `matrix@matrix.adjoint()` to obtain the result from
-    the diagonals."""
+    """Compute the trace norm using only sparse operations. These consist
+    of determining the eigenvalues of `matrix @ matrix.adjoint()` and summing their square roots."""
 
     cdef CSR op = matmul_csr(matrix, adjoint_csr(matrix))
     cdef size_t i
