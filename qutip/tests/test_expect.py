@@ -132,7 +132,7 @@ def test_equivalent_to_matrix_element(hermitian):
 ])
 def test_compatibility_with_solver(solve):
     e_ops = [getattr(qutip, 'sigma'+x)() for x in 'xyzmp']
-    e_ops += [lambda t, psi: qutip.basis(2, 0).overlap(psi)]
+    e_ops += [lambda t, psi: np.sin(t)]
     h = qutip.sigmax()
     state = qutip.basis(2, 0)
     times = np.linspace(0, 10, 101)
@@ -147,12 +147,14 @@ def test_compatibility_with_solver(solve):
         assert isinstance(direct_, np.ndarray)
         assert isinstance(indirect_, np.ndarray)
         assert direct_.dtype == indirect_.dtype
+        np.testing.assert_allclose(direct_, indirect_, atol=1e-12)
     # test measurement operators based on lambda functions
     direct_ = direct[-1]
-    indirect_ = np.sin(times)
+    # by design, lambda measurements are of complex type
+    indirect_ = np.sin(times, dtype=complex)
     assert len(direct_) == len(indirect_)
     assert isinstance(direct_, np.ndarray)
     assert isinstance(indirect_, np.ndarray)
-    # by design, lambda measurements are of complex type
-    assert direct_.dtype != indirect_.dtype
+    assert direct_.dtype == indirect_.dtype
+    np.testing.assert_allclose(direct_, indirect_, atol=1e-12)
 

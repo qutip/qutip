@@ -460,7 +460,7 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
             opt.store_states = True
         else:
             for op in e_ops:
-                if not isinstance(op, (Qobj, QobjEvo)) and callable(op):
+                if not isinstance(op, Qobj) and callable(op):
                     output.expect.append(np.zeros(n_tsteps, dtype=complex))
                     continue
                 e_ops_data.append(spre(op).data)
