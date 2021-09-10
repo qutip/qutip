@@ -714,6 +714,7 @@ class TestKron(BinaryOpMixin):
     bad_shapes = shapes_binary_bad_unrestricted(dim=5)
     specialisations = [
         pytest.param(data.kron_csr, CSR, CSR, CSR),
+        pytest.param(data.kron_dense, Dense, Dense, Dense),
     ]
 
 
