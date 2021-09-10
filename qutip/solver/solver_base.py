@@ -46,6 +46,13 @@ from ..core.data import to
 from time import time
 
 
+# SeSolver.avail_integrators should return SeSolver and Solver's integrators.
+# Thus a property definied and classmethod
+class ClassProperty(property):
+    def __get__(self, cls, owner):
+        return self.fget.__get__(None, owner)()
+
+
 class Solver:
     """
     Main class of the solvers.
@@ -199,12 +206,13 @@ class Solver:
                             str(self.optionsclass))
         self._options = new
 
-    @property
-    def avail_integrators(self):
-        if type(self) is Solver:
-            return self._avail_integrators.copy()
-        return {**self._avail_integrators,
-                **super(self.__class__, self)._avail_integrators}
+    @ClassProperty
+    @classmethod
+    def avail_integrators(cls):
+        if cls is Solver:
+            return cls._avail_integrators.copy()
+        return {**cls._avail_integrators,
+                **Solver._avail_integrators}
 
     @classmethod
     def add_integrator(cls, integrator, keys):

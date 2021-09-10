@@ -44,7 +44,7 @@ from qutip.solver.options import SolverOptions
 from qutip.solver.solver_base import Solver
 from qutip.solver.integrator import *
 
-all_ode_method = Solver._avail_integrators.keys()
+all_ode_method = SeSolver.avail_integrators.keys()
 
 
 class TestSeSolve():

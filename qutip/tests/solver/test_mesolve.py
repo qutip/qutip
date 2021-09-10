@@ -41,7 +41,8 @@ from qutip.solver.solver_base import Solver
 from qutip.solver.options import SolverOptions
 import pickle
 import pytest
-all_ode_method = Solver._avail_integrators.keys()
+
+all_ode_method = MeSolver.avail_integrators.keys()
 
 
 def fidelitycheck(out1, out2, rho0vec):
@@ -75,7 +76,7 @@ class TestMESolveDecay:
     @pytest.fixture(params=[
         pytest.param(np.sqrt(kappa) * a,
                   id='const'),
-        pytest.param(lambda t, args: np.sqrt(args['kappa']) * destroy(10),
+        pytest.param(lambda t, args: np.sqrt(args['kappa']) * qutip.destroy(10),
                      id='func'),
         pytest.param([a, lambda t, args: np.sqrt(args['kappa'])],
                   id='list_func'),
