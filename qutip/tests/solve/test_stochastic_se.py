@@ -90,6 +90,7 @@ def test_ssesolve_homodyne_methods():
                         ['explicit1.5', 5e-4],
                         ['taylor2.0', 5e-4]]
     for n_method in list_methods_tol:
+        np.random.seed(1)
         sol = ssesolve(H, rho0, tlist, sc_op, e_op,
                        nsubsteps=Nsub, method='homodyne', solver=n_method[0])
         sol2 = ssesolve(H, rho0, tlist, sc_op, e_op, store_measurement=0,

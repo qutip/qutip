@@ -92,6 +92,7 @@ def test_smesolve_homodyne_methods():
                         ['explicit1.5', 1e-4],
                         ['taylor2.0', 1e-4]]
     for n_method in list_methods_tol:
+        np.random.seed(1)
         sol = smesolve(H, rho0, tlist, c_op, sc_op, e_op,
                        nsubsteps=Nsub, method='homodyne', solver = n_method[0])
         sol2 = smesolve(H, rho0, tlist, c_op, sc_op, e_op, store_measurement=0,
