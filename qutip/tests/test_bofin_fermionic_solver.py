@@ -27,7 +27,7 @@ def test_state_dictionaries():
         [2] * kcut, N_cut
     )
     total_nhe = int(2**kcut)
-    assert nhe, total_nhe
+    assert nhe == total_nhe
 
 
 @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")

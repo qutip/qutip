@@ -45,7 +45,7 @@ def test_state_dictionaries():
             factorial(N_cut + kcut)
             / (factorial(N_cut) * factorial(kcut))
         )
-    assert nhe, total_nhe
+    assert nhe == total_nhe
 
 
 def test_check_H():
