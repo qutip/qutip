@@ -118,20 +118,6 @@ def isherm(x):
     return isinstance(x, Qobj) and x.isherm
 
 
-def _tidyup(method):
-    """
-    Wrap the input method to automatically tidy up small values in the output,
-    if the relevant QuTiP global setting is there.
-    """
-    @functools.wraps(method)
-    def out(*args, **kwargs):
-        out = method(*args, **kwargs)
-        if isinstance(out, Qobj) and settings.core['auto_tidyup']:
-            out.tidyup()
-        return out
-    return out
-
-
 def _require_equal_type(method):
     """
     Decorate a binary Qobj method to ensure both operands are Qobj and of the
@@ -443,7 +429,6 @@ class Qobj:
                     isunitary=self._isunitary,
                     copy=False)
 
-    @_tidyup
     @_require_equal_type
     def __add__(self, other):
         isherm = (self._isherm and other._isherm) or None
@@ -457,7 +442,6 @@ class Qobj:
     def __radd__(self, other):
         return self.__add__(other)
 
-    @_tidyup
     @_require_equal_type
     def __sub__(self, other):
         isherm = (self._isherm and other._isherm) or None
@@ -471,7 +455,6 @@ class Qobj:
     def __rsub__(self, other):
         return self.__neg__().__add__(other)
 
-    @_tidyup
     def __mul__(self, other):
         """
         If other is a Qobj, we dispatch to __matmul__. If not, we
@@ -512,7 +495,6 @@ class Qobj:
         # we _shouldn't_ check that `other` is `Qobj`.
         return self.__mul__(other)
 
-    @_tidyup
     def __matmul__(self, other):
         if not isinstance(other, Qobj):
             try:
@@ -553,13 +535,11 @@ class Qobj:
                     superrep=self.superrep,
                     copy=False)
 
-    @_tidyup
     def __truediv__(self, other):
         if not isinstance(other, numbers.Number):
             return NotImplemented
         return self.__mul__(1 / complex(other))
 
-    @_tidyup
     def __neg__(self):
         return Qobj(_data.neg(self._data),
                     dims=self.dims.copy(),
@@ -593,7 +573,6 @@ class Qobj:
         return _data.iszero(_data.sub(self._data, other._data),
                             tol=settings.core['atol'])
 
-    @_tidyup
     def __pow__(self, n, m=None):  # calculates powers of Qobj
         if (
             self.type not in ('oper', 'super')
@@ -883,7 +862,6 @@ class Qobj:
         else:
             return np.real(out)
 
-    @_tidyup
     def expm(self, dtype=_data.Dense):
         """Matrix exponential of quantum operator.
 
@@ -1053,7 +1031,6 @@ class Qobj:
                     superrep=self.superrep,
                     copy=False)
 
-    @_tidyup
     def unit(self, inplace=False, norm=None, kwargs=None):
         """
         Operator or state normalized to unity.  Uses norm from Qobj.norm().
@@ -1085,7 +1062,6 @@ class Qobj:
             out = self / norm
         return out
 
-    @_tidyup
     def ptrace(self, sel, dtype=None):
         """
         Take the partial trace of the quantum object leaving the selected
