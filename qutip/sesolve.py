@@ -322,7 +322,8 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
                             "the allowed number of substeps by increasing "
                             "the nsteps parameter in the Options class.")
         # get the current state / oper data if needed
-        if opt.store_states or opt.normalize_output or n_expt_op > 0 or expt_callback:
+        if opt.store_states or opt.normalize_output \
+           or n_expt_op > 0 or expt_callback:
             cdata = get_curr_state_data(r)
 
         if opt.normalize_output:
@@ -355,13 +356,15 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
         if oper_evo:
             for m in range(n_expt_op):
                 if callable(e_ops_data[m]):
-                    output.expect[m][t_idx] = e_ops_data[m](t, Qobj(cdata, dims=dims))
+                    func = e_ops_data[m]
+                    output.expect[m][t_idx] = func(t, Qobj(cdata, dims=dims))
                     continue
                 output.expect[m][t_idx] = (e_ops_data[m] * cdata).trace()
         else:
             for m in range(n_expt_op):
                 if callable(e_ops_data[m]):
-                    output.expect[m][t_idx] = e_ops_data[m](t, Qobj(cdata, dims=dims))
+                    func = e_ops_data[m]
+                    output.expect[m][t_idx] = func(t, Qobj(cdata, dims=dims))
                     continue
                 output.expect[m][t_idx] = cy_expect_psi(e_ops_data[m], cdata,
                                                         e_ops[m].isherm)

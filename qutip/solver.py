@@ -59,7 +59,8 @@ class ExpectOps:
                     e_ops_isherm.append(None)
                     e_ops_qoevo.append(e)
                 else:
-                    raise TypeError("Expectation value list entry needs to be either a function either an operator")
+                    raise TypeError("Expectation value list entry needs to be "
+                                    "either a function either an operator")
             self.e_ops_isherm = e_ops_isherm
             self.e_ops_qoevo = np.array(e_ops_qoevo, dtype=object)
         elif callable(e_ops):
@@ -96,6 +97,7 @@ class ExpectOps:
                 elif callable(ii):
                     self.raw_out[ii, iter_] = \
                         self.e_ops_qoevo[ii](t, state)
+
     def finish(self):
         if self.isfunc:
             result = self.raw_out
