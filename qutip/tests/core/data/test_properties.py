@@ -64,7 +64,7 @@ class Test_isherm:
         n = 10
         base = _data.to(datatype, _data.create(np.diag(np.random.rand(n))))
         assert _data.isherm(base, tol=self.tol)
-        assert not _data.isherm(base * 1j, tol=self.tol)
+        assert not _data.isherm(_data.mul(base, 1j), tol=self.tol)
 
     def test_compare_implicit_zero_structure(self, datatype):
         """

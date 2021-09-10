@@ -331,29 +331,29 @@ class _LiouvillianFromFunc:
 
     def H2L(self, t, rho, args):
         Ht = self.f(t, args)
-        Lt = -1.0j * (spre(Ht) - spost(Ht)).data
+        Lt = -1.0j * (spre(Ht) - spost(Ht))
         for op in self.c_ops:
-            Lt += op(t).data
-        return Lt
+            Lt += op(t)
+        return Lt.data
 
     def H2L_with_state(self, t, rho, args):
         Ht = self.f(t, rho, args)
-        Lt = -1.0j * (spre(Ht) - spost(Ht)).data
+        Lt = -1.0j * (spre(Ht) - spost(Ht))
         for op in self.c_ops:
-            Lt += op(t).data
-        return Lt
+            Lt += op(t)
+        return Lt.data
 
     def L(self, t, rho, args):
-        Lt = self.f(t, args).data
+        Lt = self.f(t, args)
         for op in self.c_ops:
-            Lt += op(t).data
-        return Lt
+            Lt += op(t)
+        return Lt.data
 
     def L_with_state(self, t, rho, args):
-        Lt = self.f(t, rho, args).data
+        Lt = self.f(t, rho, args)
         for op in self.c_ops:
-            Lt += op(t).data
-        return Lt
+            Lt += op(t)
+        return Lt.data
 
 
 def _mesolve_func_td(L_func, c_op_list, rho0, tlist, args, opt):

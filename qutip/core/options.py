@@ -10,7 +10,7 @@ class CoreOptions:
     Options
     -------
     auto_tidyup : bool
-        use auto tidyup
+        Whether to tidyup during sparse operations.
 
     auto_tidyup_dims : boolTrue
         use auto tidyup dims on multiplication
@@ -25,8 +25,10 @@ class CoreOptions:
         general relative tolerance
         Used to choose QobjEvo.expect output type
 
-    auto_tidyup_atol : float {1e-12}
-        use auto tidyup absolute tolerance
+    auto_tidyup_atol : float {1e-14}
+        The absolute tolerance used in automatic tidyup (see the ``auto_tidyup``
+        parameter above) and the default value of ``atol`` used in
+        :method:`Qobj.tidyup`.
     """
     options = {
         # use auto tidyup
@@ -40,5 +42,5 @@ class CoreOptions:
         # general relative tolerance
         "rtol": 1e-12,
         # use auto tidyup absolute tolerance
-        "auto_tidyup_atol": 1e-12
+        "auto_tidyup_atol": 1e-14
     }
