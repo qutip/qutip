@@ -228,61 +228,6 @@ cdef class CSR(base.Data):
             sort.inplace(self, ptr, diff)
         return self
 
-    # Beware: before Cython 3, mathematical operator overrides follow the C
-    # API, _not_ the Python one.  This means the first argument is _not_
-    # guaranteed to be `self`, and methods like `__rmul__` don't exist.  This
-    # does not affect in place operations like `__imul__`, since we can always
-    # guarantee the one on the left is `self`.
-
-    def __add__(left, right):
-        if not isinstance(left, CSR) or not isinstance(right, CSR):
-            return NotImplemented
-        return add_csr(left, right)
-
-    def __matmul__(left, right):
-        if not isinstance(left, CSR) or not isinstance(right, CSR):
-            return NotImplemented
-        return matmul_csr(left, right)
-
-    def __mul__(left, right):
-        csr, number = (left, right) if isinstance(left, CSR) else (right, left)
-        if not isinstance(number, numbers.Number):
-            return NotImplemented
-        return mul_csr(csr, complex(number))
-
-    def __imul__(self, other):
-        if not isinstance(other, numbers.Number):
-            return NotImplemented
-        cdef int nnz_ = nnz(self)
-        cdef double complex mul = other
-        blas.zscal(&nnz_, &mul, self.data, &_ONE)
-        return self
-
-    def __truediv__(left, right):
-        csr, number = (left, right) if isinstance(left, CSR) else (right, left)
-        if not isinstance(number, numbers.Number):
-            return NotImplemented
-        # Technically `(1 / x) * y` doesn't necessarily equal `y / x` in
-        # floating point, but multiplication is faster than division, and we
-        # don't really care _that_ much anyway.
-        return mul_csr(csr, 1 / complex(number))
-
-    def __itruediv__(self, other):
-        if not isinstance(other, numbers.Number):
-            return NotImplemented
-        cdef int nnz_ = nnz(self)
-        cdef double complex mul = 1 / other
-        blas.zscal(&nnz_, &mul, self.data, &_ONE)
-        return self
-
-    def __neg__(self):
-        return neg_csr(self)
-
-    def __sub__(left, right):
-        if not isinstance(left, CSR) or not isinstance(right, CSR):
-            return NotImplemented
-        return sub_csr(left, right)
-
     cpdef double complex trace(self):
         return trace_csr(self)
 

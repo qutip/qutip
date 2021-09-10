@@ -465,8 +465,8 @@ class Qobj:
         if isinstance(other, Qobj):
             return self.__matmul__(other)
 
-        # We send other to mul instead of complex(other) to be more flexible. 
-        # The dispatcher can then decide how to handle other and return 
+        # We send other to mul instead of complex(other) to be more flexible.
+        # The dispatcher can then decide how to handle other and return
         # TypeError if it does not know what to do with the type of other.
         try:
             out = _data.mul(self._data, other)
@@ -826,7 +826,7 @@ class Qobj:
             raise TypeError('purity is only defined for states.')
         if self.isket or self.isbra:
             return _data.norm.l2(self.data)**2
-        return _data.trace(self.data @ self.data).real
+        return _data.trace(_data.matmul(self.data, self.data)).real
 
     def full(self, order='C', squeeze=False):
         """Dense array from quantum object.
@@ -1052,7 +1052,7 @@ class Qobj:
         """
         norm = self.norm(norm=norm, kwargs=kwargs)
         if inplace:
-            self.data /= norm
+            self.data = _data.mul(self.data, 1 / norm)
             self._isherm = self._isherm if norm.imag == 0 else None
             self._isunitary = (self._isunitary
                                if abs(norm) - 1 < settings.core['atol']
@@ -1392,7 +1392,7 @@ class Qobj:
                 out_data = _data.add(out_data,
                                      _data.project(state.data),
                                      value)
-        out_data /= _data.norm.trace(out_data)
+        out_data = _data.mul(out_data, 1/_data.norm.trace(out_data))
         return Qobj(out_data,
                     dims=self.dims.copy(),
                     type=self.type,
