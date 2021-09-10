@@ -5,6 +5,7 @@ cimport cython
 import numpy as np
 cimport numpy as cnp
 from scipy.linalg cimport cython_blas as blas
+from qutip.settings import settings
 
 from qutip.core.data.base cimport idxint, Data
 from qutip.core.data.dense cimport Dense
@@ -40,7 +41,7 @@ cdef void _check_shape(Data left, Data right) nogil except *:
         )
 
 
-cdef idxint _add_csr(Accumulator *acc, CSR a, CSR b, CSR c) nogil:
+cdef idxint _add_csr(Accumulator *acc, CSR a, CSR b, CSR c, double tol) nogil:
     """
     Perform the operation
         c := a + b
@@ -76,13 +77,14 @@ cdef idxint _add_csr(Accumulator *acc, CSR a, CSR b, CSR c) nogil:
                 col_b = b.col_index[ptr_b] if ptr_b < ptr_b_max else ncols + 1
             # There's no need to test col_a == col_b because the Accumulator
             # already tests that in all scatters anyway.
-        nnz += acc_gather(acc, c.data + nnz, c.col_index + nnz)
+        nnz += acc_gather(acc, c.data + nnz, c.col_index + nnz, tol)
         acc_reset(acc)
         c.row_index[row + 1] = nnz
     return nnz
 
 
-cdef idxint _add_csr_scale(Accumulator *acc, CSR a, CSR b, CSR c, double complex scale) nogil:
+cdef idxint _add_csr_scale(Accumulator *acc, CSR a, CSR b, CSR c,
+                           double complex scale, double tol) nogil:
     """
     Perform the operation
         c := a + scale*b
@@ -111,7 +113,7 @@ cdef idxint _add_csr_scale(Accumulator *acc, CSR a, CSR b, CSR c, double complex
                 acc_scatter(acc, scale * b.data[ptr_b], col_b)
                 ptr_b += 1
                 col_b = b.col_index[ptr_b] if ptr_b < ptr_b_max else ncols + 1
-        nnz += acc_gather(acc, c.data + nnz, c.col_index + nnz)
+        nnz += acc_gather(acc, c.data + nnz, c.col_index + nnz, tol)
         acc_reset(acc)
         c.row_index[row + 1] = nnz
     return nnz
@@ -146,6 +148,9 @@ cpdef CSR add_csr(CSR left, CSR right, double complex scale=1):
     cdef idxint i
     cdef CSR out
     cdef Accumulator acc
+    cdef double tol = 0
+    if settings.core['auto_tidyup']:
+        tol = settings.core['auto_tidyup_atol']
     # Fast paths for zero matrices.
     if right_nnz == 0 or scale == 0:
         return left.copy()
@@ -160,9 +165,9 @@ cpdef CSR add_csr(CSR left, CSR right, double complex scale=1):
     out = csr.empty(left.shape[0], left.shape[1], worst_nnz)
     acc = acc_alloc(left.shape[1])
     if scale == 1:
-        _add_csr(&acc, left, right, out)
+        _add_csr(&acc, left, right, out, tol)
     else:
-        _add_csr_scale(&acc, left, right, out, scale)
+        _add_csr_scale(&acc, left, right, out, scale, tol)
     acc_free(&acc)
     return out
 

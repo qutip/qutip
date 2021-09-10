@@ -64,7 +64,7 @@ class IntegratorScipyZvode(Integrator):
                 inplace=True)
         else:
             state = _data.dense.Dense(self._ode_solver._y, copy=False)
-        return t, state.copy() if copy else state
+        return t, (state.copy() if copy else state)
 
     def integrate(self, t, step=False, copy=True):
         if step:
@@ -200,7 +200,7 @@ class IntegratorScipyDop853(Integrator):
         else:
             state = _data.dense.Dense(self._ode_solver._y.view(np.complex128),
                                       copy=False)
-        return t, state.copy() if copy else state
+        return t, (state.copy() if copy else state)
 
     def set_state(self, t, state0):
         self._mat_state = state0.shape[1] > 1

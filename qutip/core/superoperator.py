@@ -132,7 +132,7 @@ def liouvillian(H=None, c_ops=None, data_only=False, chi=None):
     sop_shape = [np.prod(op_dims), np.prod(op_dims)]
     spI = _data.identity(op_shape[0])
 
-    data = -1j * _data.kron(spI, H.data)
+    data = _data.mul(_data.kron(spI, H.data), -1j)
     data = _data.add(data, _data.kron(H.data.transpose(), spI), scale=1j)
 
     for c_op, chi_ in zip(c_ops, chi):
@@ -183,7 +183,7 @@ def lindblad_dissipator(a, b=None, data_only=False, chi=None):
 
     data_only :  bool [False]
         Return the data object instead of a Qobj
-        
+
     Returns
     -------
     D : qobj, QobjEvo
