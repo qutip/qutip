@@ -616,7 +616,7 @@ def test_spin_q_function(spin, pure):
 
     for k, (phi_prime, theta_prime) in enumerate(itertools.product(phi, theta)):
         state = qutip.spin_coherent(spin, theta_prime, phi_prime)
-        direct_Q = (2 * spin + 1) / (4 * np.pi) * (state.dag() * rho * state).norm()
+        direct_Q = (state.dag() * rho * state).norm()
         assert_almost_equal(Q.flat[k], direct_Q, decimal=9)
 
 @pytest.mark.parametrize(['spin'], [
@@ -638,7 +638,7 @@ def test_spin_q_function_normalized(spin, pure):
     phi = np.linspace(-np.pi, np.pi, 1024, endpoint=True)
     Q, THETA, _ = qutip.spin_q_function(rho, theta, phi)
 
-    norm = np.trapz(np.trapz(Q * np.sin(THETA), theta), phi)
+    norm = d / (4 * np.pi) * np.trapz(np.trapz(Q * np.sin(THETA), theta), phi)
     assert_almost_equal(norm, 1, decimal=5)
 
 
@@ -652,7 +652,7 @@ def test_spin_q_function_normalized(spin, pure):
     pytest.param(True, id="pure"),
     pytest.param(False, id="mixed")
 ])
-def test_spin_wigner_normalized_and_real(spin, pure):
+def test_spin_wigner_normalized(spin, pure):
     d = int(2*spin + 1)
     rho = rand_dm(d, pure=pure)
 
@@ -661,9 +661,7 @@ def test_spin_wigner_normalized_and_real(spin, pure):
     phi = np.linspace(-np.pi, np.pi, 512, endpoint=True)
     W, THETA, PHI = qutip.spin_wigner(rho, theta, phi)
 
-    assert_allclose(W.imag, 0, atol=1e-9)
-
-    norm = np.trapz(np.trapz(W * np.sin(THETA), theta), phi)
+    norm = np.trapz(np.trapz(W * np.sin(THETA) * np.sqrt(d / (4*np.pi)), theta), phi)
     assert_almost_equal(norm, 1, decimal=4)
 
 @pytest.mark.parametrize(['spin'], [
@@ -690,7 +688,7 @@ def test_spin_wigner_overlap(spin, pure, n=10):
         state_overlap = (test_state*rho).tr().real
 
         W_state, _, _ = qutip.spin_wigner(test_state, theta, phi)
-        W_overlap = (4 * np.pi / (2 * spin + 1)) * np.trapz(
+        W_overlap = np.trapz(
             np.trapz(W_state * W * np.sin(THETA), theta), phi).real
         assert_almost_equal(W_overlap, state_overlap, decimal=4)
 

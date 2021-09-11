@@ -850,10 +850,16 @@ def qfunc(
 # PSEUDO DISTRIBUTION FUNCTIONS FOR SPINS
 #
 def spin_q_function(rho, theta, phi):
-    r"""The Husimi Q function for spins is defined as
-    ``Q(theta, phi) = SCS.dag()* rho * SCS*(2*j+1)/(4*pi)`` for the spin
-    coherent state ``SCS = spin_coherent(j, theta, phi)``.
-    The implementation here is more efficient (see references).
+    r"""The Husimi Q function for spins is defined as ``Q(theta, phi) =
+    SCS.dag() * rho * SCS`` for the spin coherent state ``SCS = spin_coherent(
+    j, theta, phi)`` where j is the spin length.
+    The implementation here is more efficient as it doesn't
+    generate all of the SCS at theta and phi (see references).
+
+    The spin Q function is normal when integrated over the surface of the sphere
+
+    .. math:: \frac{4 \pi}{2j + 1}\int_\phi \int_\theta
+              Q(\theta, \phi) \sin(\theta) d\theta d\phi = 1
 
     Parameters
     ----------
@@ -902,7 +908,7 @@ def spin_q_function(rho, theta, phi):
              (exp(1j * (m1 - m2) * PHI) * rho.data[int(j - m1), int(j - m2)] +
               exp(1j * (m2 - m1) * PHI) * rho.data[int(j - m2), int(j - m1)])
 
-    return Q.real * (2 * j + 1) / (4*pi), THETA, PHI
+    return Q.real, THETA, PHI
 
 
 def _rho_kq(rho, j, k, q):
@@ -941,6 +947,12 @@ def _rho_kq(rho, j, k, q):
 
 def spin_wigner(rho, theta, phi):
     r"""Wigner function for a spin-j system.
+
+    The spin W function is normal when integrated over the surface of the sphere
+
+    .. math:: \sqrt{\frac{4 \pi}{2j + 1}}\int_\phi \int_\theta
+              W(\theta,\phi) \sin(\theta) d\theta d\phi = 1
+
 
     Parameters
     ----------
@@ -988,4 +1000,4 @@ def spin_wigner(rho, theta, phi):
             # sph_harm takes azimuthal angle then polar angle as arguments
             W += _rho_kq(rho, j, k, q) * sph_harm(q, k, PHI, THETA)
 
-    return W*np.sqrt((2*j + 1)/(4*pi)), THETA, PHI
+    return W.real, THETA, PHI
