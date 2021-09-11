@@ -856,7 +856,8 @@ def spin_q_function(rho, theta, phi):
     The implementation here is more efficient as it doesn't
     generate all of the SCS at theta and phi (see references).
 
-    The spin Q function is normal when integrated over the surface of the sphere
+    The spin Q function is normal when integrated over the surface of the
+    sphere
 
     .. math:: \frac{4 \pi}{2j + 1}\int_\phi \int_\theta
               Q(\theta, \phi) \sin(\theta) d\theta d\phi = 1
@@ -948,7 +949,8 @@ def _rho_kq(rho, j, k, q):
 def spin_wigner(rho, theta, phi):
     r"""Wigner function for a spin-j system.
 
-    The spin W function is normal when integrated over the surface of the sphere
+    The spin W function is normal when integrated over the surface of the
+    sphere
 
     .. math:: \sqrt{\frac{4 \pi}{2j + 1}}\int_\phi \int_\theta
               W(\theta,\phi) \sin(\theta) d\theta d\phi = 1
