@@ -610,8 +610,8 @@ def test_spin_q_function(spin, pure):
     rho = rand_dm(d, pure=pure)
 
     # Points at which to evaluate the spin Q function
-    theta = np.linspace(0, np.pi, 32, endpoint=True)
-    phi = np.linspace(-np.pi, np.pi, 64, endpoint=True)
+    theta = np.linspace(0, np.pi, 16, endpoint=True)
+    phi = np.linspace(-np.pi, np.pi, 32, endpoint=True)
     Q, _, _ = qutip.spin_q_function(rho, theta, phi)
 
     for k, (phi_prime, theta_prime) in enumerate(itertools.product(phi, theta)):
@@ -634,19 +634,19 @@ def test_spin_q_function_normalized(spin, pure):
     rho = rand_dm(d, pure=pure)
 
     # Points at which to evaluate the spin Q function
-    theta = np.linspace(0, np.pi, 512, endpoint=True)
-    phi = np.linspace(-np.pi, np.pi, 1024, endpoint=True)
+    theta = np.linspace(0, np.pi, 128, endpoint=True)
+    phi = np.linspace(-np.pi, np.pi, 256, endpoint=True)
     Q, THETA, _ = qutip.spin_q_function(rho, theta, phi)
 
     norm = d / (4 * np.pi) * np.trapz(np.trapz(Q * np.sin(THETA), theta), phi)
-    assert_almost_equal(norm, 1, decimal=5)
+    assert_almost_equal(norm, 1, decimal=4)
 
 
 @pytest.mark.parametrize(["spin"], [
     pytest.param(1/2, id="spin-one-half"),
-    pytest.param(3, id="spin-three"),
-    pytest.param(13/2, id="spin-thirteen-half"),
-    pytest.param(7, id="spin-seven")
+    pytest.param(1, id="spin-one"),
+    pytest.param(3/2, id="spin-three-half"),
+    pytest.param(2, id="spin-two")
 ])
 @pytest.mark.parametrize("pure", [
     pytest.param(True, id="pure"),
@@ -665,16 +665,16 @@ def test_spin_wigner_normalized(spin, pure):
     assert_almost_equal(norm, 1, decimal=4)
 
 @pytest.mark.parametrize(['spin'], [
-    pytest.param(1/2, id="spin-one-half"),
-    pytest.param(3, id="spin-three"),
-    pytest.param(13/2, id="spin-thirteen-half"),
-    pytest.param(7, id="spin-seven")
+    pytest.param(1 / 2, id="spin-one-half"),
+    pytest.param(1, id="spin-one"),
+    pytest.param(3 / 2, id="spin-three-half"),
+    pytest.param(2, id="spin-two")
 ])
 @pytest.mark.parametrize("pure", [
     pytest.param(True, id="pure"),
     pytest.param(False, id="mixed")
 ])
-def test_spin_wigner_overlap(spin, pure, n=10):
+def test_spin_wigner_overlap(spin, pure, n=5):
     d = int(2*spin + 1)
     rho = rand_dm(d, pure=pure)
 
