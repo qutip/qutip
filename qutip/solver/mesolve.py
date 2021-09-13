@@ -145,7 +145,7 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
     if not use_mesolve:
         return sesolve(H, rho0, tlist, e_ops=e_ops, args=args, options=options)
 
-    solver = MeSolver(H, c_ops, e_ops, options, tlist, args)
+    solver = MeSolver(H, c_ops, e_ops, options, tlist=tlist, args=args)
 
     return solver.run(rho0, tlist, args)
 
@@ -226,13 +226,13 @@ class MeSolver(Solver):
     _avail_integrators = {}
 
     def __init__(self, H, c_ops, e_ops=None, options=None,
-                 times=None, args=None):
+                 **kwargs):
         _time_start = time()
         self.e_ops = e_ops
         self.options = options
 
-        H = QobjEvo(H, args=args, tlist=times)
-        c_evos = [QobjEvo(op, args=args, tlist=times) for op in c_ops]
+        H = QobjEvo(H, **kwargs)
+        c_evos = [QobjEvo(op, **kwargs) for op in c_ops]
 
         self._system = H if H.issuper else liouvillian(H)
         self._system += sum(c_op if c_op.issuper else lindblad_dissipator(c_op)

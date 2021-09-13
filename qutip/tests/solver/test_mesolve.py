@@ -106,7 +106,7 @@ class TestMESolveDecay:
                           args={'kappa': kappa}),
                   id='QobjEvo'),
         pytest.param(lambda t, args: (np.sqrt(args['kappa'] * np.exp(-t)) *
-                                      destroy(10)),
+                                      qutip.destroy(10)),
                      id='func'),
     ])
     def c_ops(self, request):
@@ -175,7 +175,7 @@ class TestMESolveDecay:
     def testME_TDH_longTDDecay(self, H, c_ops):
         "mesolve: time-dependence as function list"
         me_error = 2e-5
-        psi0 = basis(self.N, 9)  # initial state
+        psi0 = qutip.basis(self.N, 9)  # initial state
         if isinstance(c_ops, FunctionType):
             return
         if isinstance(c_ops, qutip.QobjEvo):
@@ -198,7 +198,7 @@ class TestMESolveDecay:
         H = self.ada
         psi0 = qutip.basis(self.N, 9)  # initial state
         rho0vec = qutip.operator_to_vector(psi0*psi0.dag())
-        E0 = qutip.sprepost(qeye(self.N), qeye(self.N))
+        E0 = qutip.sprepost(qutip.qeye(self.N), qutip.qeye(self.N))
         options = SolverOptions(progress_bar=None)
         c_op_list = [c_ops]
         out1 = mesolve(H, psi0, self.tlist, c_op_list, [],
@@ -219,7 +219,7 @@ class TestMESolveDecay:
         L = qutip.liouvillian(H)
         psi0 = qutip.basis(self.N, 9)  # initial state
         rho0vec = qutip.operator_to_vector(psi0*psi0.dag())
-        E0 = qutip.sprepost(qeye(self.N), qeye(self.N))
+        E0 = qutip.sprepost(qutip.qeye(self.N), qutip.qeye(self.N))
         options = SolverOptions(progress_bar=None)
         c_op_list = [c_ops]
         out1 = mesolve(L, psi0, self.tlist, c_op_list, [],
@@ -252,7 +252,7 @@ class TestMESolveDecay:
                               args={"kappa":1.}, options=options)
         solver_obj.start(qutip.basis(self.N, 9), 0)
         state1 = solver_obj.step(1)
-        assert qutip.expect(self.ada, state1) != qutip.expect(self.ada, basis(self.N, 9))
+        assert qutip.expect(self.ada, state1) != qutip.expect(self.ada, qutip.basis(self.N, 9))
         state2 = solver_obj.step(2, {"kappa":0.})
         assert_allclose(qutip.expect(self.ada, state1),
                         qutip.expect(self.ada, state2), 1e-6)
@@ -263,10 +263,10 @@ class TestMESolveDecay:
 def testME_SesolveFallback(super_):
     "mesolve: final_state has correct dims"
     N = 5
-    a = tensor(qutip.destroy(N+1), qutip.qeye(N+1), qutip.qeye(N+1))
-    b = tensor(qutip.qeye(N+1), qutip.destroy(N+1), qutip.qeye(N+1))
-    c = tensor(qutip.qeye(N+1), qutip.qeye(N+1), qutip.destroy(N+1))
-    psi0 = tensor(qutip.basis(N+1,0), qutip.basis(N+1,0), qutip.basis(N+1,N))
+    a = qutip.tensor(qutip.destroy(N+1), qutip.qeye(N+1), qutip.qeye(N+1))
+    b = qutip.tensor(qutip.qeye(N+1), qutip.destroy(N+1), qutip.qeye(N+1))
+    c = qutip.tensor(qutip.qeye(N+1), qutip.qeye(N+1), qutip.destroy(N+1))
+    psi0 = qutip.tensor(qutip.basis(N+1,0), qutip.basis(N+1,0), qutip.basis(N+1,N))
     H = a * b * c.dag() * c.dag() + a.dag() * b.dag() * c * c
     if super_ == "dm":
         state0 = qutip.ket2dm(psi0)
@@ -312,8 +312,8 @@ class TestJCModelEvolution:
                        pump, psi0, use_rwa, tlist):
 
         # Hamiltonian
-        a = qutip.tensor(destroy(N), identity(2))
-        sm = qutip.tensor(identity(N), destroy(2))
+        a = qutip.tensor(qutip.destroy(N), qutip.identity(2))
+        sm = qutip.tensor(qutip.identity(N), qutip.destroy(2))
 
         if use_rwa:
             # use the rotating wave approxiation
@@ -352,11 +352,11 @@ class TestJCModelEvolution:
                      pump, psi0, use_rwa, tlist, oper_evo=False):
 
         # Hamiltonian
-        a = qutip.tensor(destroy(N), identity(2))
-        sm = qutip.tensor(identity(N), destroy(2))
+        a = qutip.tensor(qutip.destroy(N), qutip.identity(2))
+        sm = qutip.tensor(qutip.identity(N), qutip.destroy(2))
 
         # Identity super-operator
-        E0 = qutip.sprepost(tensor(qeye(N), qeye(2)), tensor(qeye(N), qeye(2)))
+        E0 = qutip.sprepost(qutip.tensor(qutip.qeye(N), qutip.qeye(2)), qutip.tensor(qutip.qeye(N), qutip.qeye(2)))
 
         if use_rwa:
             # use the rotating wave approxiation
@@ -429,7 +429,7 @@ class TestJCModelEvolution:
         delta = 1.0 * 2 * np.pi   # atom frequency
         g2 = 0.1
         g1 = 0.0
-        psi0 = basis(2, 0)        # initial state
+        psi0 = qutip.basis(2, 0)        # initial state
         tlist = np.linspace(0, 5, 200)
 
         sx, sy, sz = self.qubit_integrate(tlist, psi0, epsilon, delta, g1, g2)
@@ -449,7 +449,7 @@ class TestJCModelEvolution:
         delta = 1.0 * 2 * np.pi   # atom frequency
         g2 = 0.0
         g1 = 0.0
-        psi0 = basis(2, 0)        # initial state
+        psi0 = qutip.basis(2, 0)        # initial state
         tlist = np.linspace(0, 5, 200)
 
         sx, sy, sz = self.qubit_integrate(tlist, psi0, epsilon, delta, g1, g2)
@@ -476,7 +476,7 @@ class TestJCModelEvolution:
 
         # start with an excited atom and maximum number of photons
         n = N - 2
-        psi0 = qutip.tensor(basis(N, n), basis(2, 1))
+        psi0 = qutip.tensor(qutip.basis(N, n), qutip.basis(2, 1))
         tlist = np.linspace(0, 1000, 2000)
 
         nc, na = self.jc_integrate(
@@ -502,7 +502,7 @@ class TestJCModelEvolution:
 
         # start with an excited atom and maximum number of photons
         n = N - 2
-        psi0 = qutip.tensor(basis(N, n), basis(2, 1))
+        psi0 = qutip.tensor(qutip.basis(N, n), qutip.basis(2, 1))
         tlist = np.linspace(0, 1000, 2000)
 
         nc, na = self.jc_integrate(
@@ -530,7 +530,7 @@ class TestJCModelEvolution:
 
         # start with an excited atom and maximum number of photons
         n = N - 2
-        psi0 = qutip.tensor(basis(N, n), basis(2, 1))
+        psi0 = qutip.tensor(qutip.basis(N, n), qutip.basis(2, 1))
         tlist = np.linspace(0, 200, 500)
 
         nc, na = self.jc_integrate(
