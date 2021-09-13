@@ -47,6 +47,7 @@ class IntegratorScipyZvode(Integrator):
         return out.as_ndarray().ravel()
 
     def set_state(self, t, state0):
+        self._is_set = True
         self._mat_state = state0.shape[1] > 1
         self._size = state0.shape[0]
         self._ode_solver.set_initial_value(
@@ -55,6 +56,8 @@ class IntegratorScipyZvode(Integrator):
         )
 
     def get_state(self, copy=True):
+        if not self._is_set:
+            raise RuntimeError("The state is not initialted")
         t = self._ode_solver.t
         if self._mat_state:
             state = _data.column_unstack_dense(
@@ -189,6 +192,8 @@ class IntegratorScipyDop853(Integrator):
         return self.get_state(copy)
 
     def get_state(self, copy=True):
+        if not self._is_set:
+            raise RuntimeError("The state is not initialted")
         t = self._ode_solver.t
         if self._mat_state:
             state = _data.column_unstack_dense(
@@ -202,6 +207,7 @@ class IntegratorScipyDop853(Integrator):
         return t, (state.copy() if copy else state)
 
     def set_state(self, t, state0):
+        self._is_set = True
         self._mat_state = state0.shape[1] > 1
         self._size = state0.shape[0]
         self._ode_solver.set_initial_value(

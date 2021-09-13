@@ -40,6 +40,7 @@ class Integrator:
         self.system = system
         self._stats = {}
         self.options = options
+        self._is_set = False
         self._prepare()
 
     def _prepare(self):
@@ -124,7 +125,8 @@ class Integrator:
 
     def reset(self):
         """Reset internal state of the ODE solver."""
-        self.set_state(*self.get_state)
+        if self._is_set:
+            self.set_state(*self.get_state())
 
     def update_args(self, args):
         """
