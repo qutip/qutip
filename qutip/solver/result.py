@@ -44,17 +44,16 @@ class Result:
     num_collapse : int
         Number of collapse operators in simualation.
 """
-    def __init__(self, e_ops, options, super_):
-        self.e_ops = e_ops
+    def __init__(self, e_ops, options, state0):
         self.times = []
 
         self._raw_e_ops = e_ops
         self._states = []
         self._expects = []
         self._last_state = None
-        self._super = super_
+        self._super = state0.issuper
 
-        self._read_e_ops(super_)
+        self._read_e_ops(state0.issuper)
         self._read_options(options)
         self.collapse = None
         self.stats = {"num_expect": self._e_num}
@@ -71,6 +70,8 @@ class Result:
             e_ops = [e for e in self._raw_e_ops.values()]
         elif callable(self._raw_e_ops):
             e_ops = [self._raw_e_ops]
+        elif self._raw_e_ops is None:
+            e_ops = []
         else:
             e_ops = self._raw_e_ops
 
@@ -103,7 +104,7 @@ class Result:
     def _normalize(self, state):
         if (
             state.shape[1] == 1
-            or state.shape[1] == state.shape[0] and self._super
+            or (state.shape[1] == state.shape[0] and self._super)
         ):
             return state * (1/state.norm())
         else:

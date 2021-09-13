@@ -145,7 +145,8 @@ class Solver:
         progress_bar.finished()
 
         self.stats['run time'] = progress_bar.total_time()
-        self.stats.update(_integrator.stats)
+        # TODO: It would be nice if integrator could give evolution statistics
+        # self.stats.update(_integrator.stats)
         self.stats["method"] = _integrator.name
         results.stats = self.stats.copy()
         return results

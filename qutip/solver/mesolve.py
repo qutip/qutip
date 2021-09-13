@@ -242,6 +242,7 @@ class MeSolver(Solver):
         self.stats['solver'] = "Master Equation Evolution"
         self.stats['num_collapse'] = len(c_ops)
         self.stats["preparation time"] = time() - _time_start
+        self.stats["run time"] = 0
 
     def _prepare_state(self, state):
         if isket(state):

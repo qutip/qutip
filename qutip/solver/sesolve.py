@@ -96,7 +96,7 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None):
         or density matrices corresponding to the times in `tlist` [if `e_ops`
         is an empty list of `store_states=True` in options].
     """
-    solver = SeSolver(H, e_ops, options, tlist, args)
+    solver = SeSolver(H, e_ops, options, tlist=tlist, args=args)
     return solver.run(psi0, tlist, args)
 
 
@@ -155,6 +155,7 @@ class SeSolver(Solver):
         self.stats = {}
         self.stats['solver'] = "Schrodinger Evolution"
         self.stats["preparation time"] = time() - _time_start
+        self.stats["run time"] = 0
 
     def _prepare_state(self, state):
         if not (state.isket or state.isunitary):

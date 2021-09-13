@@ -297,11 +297,11 @@ class TestJCModelEvolution:
 
         rate = g1
         if rate > 0.0:
-            c_op_list.append(np.sqrt(rate) * sigmam())
+            c_op_list.append(np.sqrt(rate) * qutip.sigmam())
 
         rate = g2
         if rate > 0.0:
-            c_op_list.append(np.sqrt(rate) * sigmaz())
+            c_op_list.append(np.sqrt(rate) * qutip.sigmaz())
 
         output = mesolve(H, psi0, tlist, c_op_list,
                          e_ops=[qutip.sigmax(), qutip.sigmay(), qutip.sigmaz()])
@@ -419,7 +419,7 @@ class TestJCModelEvolution:
         out1, out2 = self.jc_integrate(
             N, wc, wa, g, kappa, gamma, pump, psi0, use_rwa, tlist, True)
 
-        fid = qutip.fidelitycheck(out1, out2, rho0vec)
+        fid = fidelitycheck(out1, out2, rho0vec)
         assert np.max(np.abs(1.0 - fid)) < me_error
 
     def testQubitDynamics1(self):
@@ -569,10 +569,10 @@ class TestMESolveStepFuncCoeff:
         """
         Test for Python function as coefficient as step function coeff
         """
-        rho0 = rand_ket(2)
+        rho0 = qutip.rand_ket(2)
         tlist = np.array([0, np.pi/2])
-        options = SolverOptions(method=method, nsteps=1e5)
-        qu = QobjEvo([[qutip.sigmax(), self.python_coeff]],
+        options = SolverOptions(method=method, nsteps=1e5, rtol=1e-7)
+        qu = qutip.QobjEvo([[qutip.sigmax(), self.python_coeff]],
                      tlist=tlist, args={"_step_func_coeff": 1})
         result = mesolve(qu, rho0=rho0, tlist=tlist, options=options)
         assert_allclose(
@@ -585,8 +585,8 @@ class TestMESolveStepFuncCoeff:
         rho0 = qutip.rand_ket(2)
         tlist = np.array([0., np.pi/2, np.pi], dtype=float)
         npcoeff = np.array([0.25, 0.75, 0.75])
-        qu = qutip.QobjEvo([[sigmax(), npcoeff]],
-                     tlist=tlist, args={"_step_func_coeff": 1})
+        qu = qutip.QobjEvo([[qutip.sigmax(), npcoeff]],
+                     tlist=tlist, step_interpolation=True)
         result = mesolve(qu, rho0=rho0, tlist=tlist, options=self.options)
         assert_allclose(
             qutip.fidelity(result.states[-1], qutip.sigmax()*rho0), 1, rtol=1.e-6)
@@ -599,7 +599,7 @@ class TestMESolveStepFuncCoeff:
         tlist = np.array([0., np.pi/2, np.pi*3/2], dtype=float)
         npcoeff = np.array([0.5, 0.25, 0.25])
         qu = qutip.QobjEvo([[qutip.sigmax(), npcoeff]],
-                     tlist=tlist, args={"_step_func_coeff": 1})
+                     tlist=tlist, step_interpolation=True)
         result = mesolve(qu, rho0=rho0, tlist=tlist, options=self.options)
         assert_allclose(
             qutip.fidelity(result.states[-1], qutip.sigmax()*rho0), 1, rtol=1.e-6)
@@ -616,7 +616,7 @@ class TestMESolveStepFuncCoeff:
         strcoeff = "1."
         qu = qutip.QobjEvo(
             [[qutip.sigmax(), npcoeff1], [qutip.sigmax(), strcoeff], [qutip.sigmax(), npcoeff2]],
-            tlist=tlist, args={"_step_func_coeff": 1})
+            tlist=tlist, step_interpolation=True)
         result = mesolve(qu, rho0=rho0, tlist=tlist, options=self.options)
         assert_allclose(
             qutip.fidelity(result.states[-1], qutip.sigmax()*rho0), 1, rtol=1.e-6)
@@ -634,7 +634,7 @@ class TestMESolveStepFuncCoeff:
         qu = qutip.QobjEvo(
             [[qutip.sigmax(), npcoeff1], [qutip.sigmax(), npcoeff2],
              [qutip.sigmax(), self.python_coeff], [qutip.sigmax(), strcoeff]],
-            tlist=tlist, args={"_step_func_coeff": 1})
+            tlist=tlist, step_interpolation=True)
         result = mesolve(qu, rho0=rho0, tlist=tlist, options=self.options)
         assert_allclose(
             qutip.fidelity(result.states[-1], qutip.sigmax()*rho0), 1, rtol=1.e-6)

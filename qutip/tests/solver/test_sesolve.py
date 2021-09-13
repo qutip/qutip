@@ -42,7 +42,6 @@ from qutip import (
 from qutip.solver.sesolve import sesolve, SeSolver
 from qutip.solver.options import SolverOptions
 from qutip.solver.solver_base import Solver
-from qutip.solver.integrator import *
 
 all_ode_method = SeSolver.avail_integrators.keys()
 
