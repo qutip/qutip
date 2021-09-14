@@ -17,7 +17,7 @@ class IntegratorException(Exception):
 class Integrator:
     """
     A wrapper around ODE solvers.
-    It ensure a common interface for Solver usage.
+    It ensures a common interface for Solver usage.
     It takes and return states as :class:`qutip.core.data.Data`, it may return
     a different data-type than the input type.
 
