@@ -30,12 +30,7 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-from __future__ import print_function
-
 __all__ = ['Solver']
-
-# import numpy as np
-# from ..core import data as _data
 
 from .. import Qobj, QobjEvo
 from .options import SolverOptions, SolverOdeOptions
@@ -47,7 +42,7 @@ from time import time
 
 
 # SeSolver.avail_integrators should return SeSolver and Solver's integrators.
-# Thus a property definied and classmethod
+# Thus we want a property and classmethod
 class ClassProperty(property):
     def __get__(self, cls, owner):
         return self.fget.__get__(None, owner)()

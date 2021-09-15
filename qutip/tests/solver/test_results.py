@@ -4,7 +4,7 @@ import numpy as np
 
 def test_result_states():
     N = 10
-    res = Result([], qt.solver.SolverResultsOptions(), False)
+    res = Result([], qt.solver.SolverResultsOptions(), qt.basis(N, 0))
     for i in range(N):
         res.add(i, qt.basis(N,i))
     for i in range(N):
@@ -16,7 +16,8 @@ def test_result_expect():
     N = 10
     res = Result([qt.num(N), qt.qeye(N)],
                  qt.solver.SolverResultsOptions(store_final_state=False,
-                                                store_states=False), False)
+                                                store_states=False),
+                 qt.basis(N, 0))
     for i in range(N):
         res.add(i, qt.basis(N,i))
     np.testing.assert_allclose(res.expect[0], np.arange(N))
@@ -28,7 +29,8 @@ def test_result_normalize():
     N = 10
     res = Result([qt.num(N), qt.qeye(N)],
                  qt.solver.SolverResultsOptions(store_states=True,
-                                                normalize_output=True), False)
+                                                normalize_output=True),
+                 qt.basis(N, 0))
     for i in range(N):
         res.add(i, qt.basis(N,i)/2)
     np.testing.assert_allclose(res.expect[0], np.arange(N))
@@ -44,7 +46,7 @@ def test_multitraj_results():
     opt = qt.solver.SolverResultsOptions(store_states=True,
                                          normalize_output=True)
     for _ in range(5):
-        res = Result(e_ops, opt, False)
+        res = Result(e_ops, opt, qt.basis(N, 0))
         res.collapse = []
         for i in range(N):
             res.add(i, qt.basis(N,i)/2)
@@ -70,7 +72,7 @@ def test_multitrajavg_results():
     opt = qt.solver.SolverResultsOptions(store_final_state=True,
                                          normalize_output=True)
     for _ in range(5):
-        res = Result(e_ops, opt, False)
+        res = Result(e_ops, opt, qt.basis(N, 0))
         res.collapse = []
         for i in range(N):
             res.add(i, qt.basis(N,i)/2)
