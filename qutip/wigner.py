@@ -881,14 +881,24 @@ def qfunc(
 # PSEUDO DISTRIBUTION FUNCTIONS FOR SPINS
 #
 def spin_q_function(rho, theta, phi):
-    """Husimi Q-function for spins.
+    r"""The Husimi Q function for spins is defined as ``Q(theta, phi) =
+    SCS.dag() * rho * SCS`` for the spin coherent state ``SCS = spin_coherent(
+    j, theta, phi)`` where j is the spin length.
+    The implementation here is more efficient as it doesn't
+    generate all of the SCS at theta and phi (see references).
+
+    The spin Q function is normal when integrated over the surface of the
+    sphere
+
+    .. math:: \frac{4 \pi}{2j + 1}\int_\phi \int_\theta
+              Q(\theta, \phi) \sin(\theta) d\theta d\phi = 1
 
     Parameters
     ----------
     state : qobj
         A state vector or density matrix for a spin-j quantum system.
     theta : array_like
-        Polar angle at which to calculate the Husimi-Q function.
+        Polar (colatitude) angle at which to calculate the Husimi-Q function.
     phi : array_like
         Azimuthal angle at which to calculate the Husimi-Q function.
 
@@ -897,6 +907,11 @@ def spin_q_function(rho, theta, phi):
     Q, THETA, PHI : 2d-array
         Values representing the spin Husimi Q function at the values specified
         by THETA and PHI.
+
+    References
+    ----------
+    [1] Lee Loh, Y., & Kim, M. (2015). American J. of Phys., 83(1), 30–35.
+    https://doi.org/10.1119/1.4898595
 
     """
 
@@ -913,42 +928,71 @@ def spin_q_function(rho, theta, phi):
 
     Q = np.zeros_like(THETA, dtype=complex)
 
-    for m1 in arange(-j, j+1):
+    for m1 in arange(-j, j + 1):
+        Q += binom(2 * j, j + m1) * cos(THETA / 2) ** (2 * (j + m1)) * \
+             sin(THETA / 2) ** (2 * (j - m1)) * \
+             rho.data[int(j - m1), int(j - m1)]
 
-        Q += binom(2*j, j+m1) * cos(THETA/2) ** (2*(j-m1)) * sin(THETA/2) ** (2*(j+m1)) * \
-             rho.data[int(j-m1), int(j-m1)]
+        for m2 in arange(m1 + 1, j + 1):
+            Q += (sqrt(binom(2 * j, j + m1)) * sqrt(binom(2 * j, j + m2)) *
+                  cos(THETA / 2) ** (2 * j + m1 + m2) *
+                  sin(THETA / 2) ** (2 * j - m1 - m2)) * \
+             (exp(1j * (m1 - m2) * PHI) * rho.data[int(j - m1), int(j - m2)] +
+              exp(1j * (m2 - m1) * PHI) * rho.data[int(j - m2), int(j - m1)])
 
-        for m2 in arange(m1+1, j+1):
+    return Q.real, THETA, PHI
 
-            Q += (sqrt(binom(2*j, j+m1)) * sqrt(binom(2*j, j+m2)) *
-                  cos(THETA/2) ** (2*j-m1-m2) * sin(THETA/2) ** (2*j+m1+m2)) * \
-                  (exp(1j * (m2-m1) * PHI) * rho.data[int(j-m1), int(j-m2)] +
-                   exp(1j * (m1-m2) * PHI) * rho.data[int(j-m2), int(j-m1)])
-
-    return Q.real/pi, THETA, PHI
 
 def _rho_kq(rho, j, k, q):
+    """
+    This calculates the trace of the multipole operator T_kq and the density
+    matrix rho for use in the spin Wigner quasiprobability distribution.
+
+    Parameters
+    ----------
+    rho : qobj
+        A density matrix for a spin-j quantum system.
+    j : float
+        The spin length of the system.
+    k : int
+        Spherical harmonic degree
+    q : int
+        Spherical harmonic order
+
+    Returns
+    -------
+    v : float
+        Overlap of state with multipole operator T_kq
+    """
+
     v = 0j
     for m1 in arange(-j, j+1):
         for m2 in arange(-j, j+1):
             v += (
-                (-1)**(j - m1 - q)
-                * qutip.clebsch(j, j, k, m1, -m2, q)
-                * rho.data[m1 + j, m2 + j]
+                    (-1) ** (2 * j - k - m1 - m2)
+                    * np.sqrt((2 * k + 1) / (2 * j + 1))
+                    * qutip.clebsch(j, k, j, -m1, q, -m2)
+                    * rho.data[int(j - m1), int(j - m2)]
             )
     return v
 
 
 def spin_wigner(rho, theta, phi):
-    """Wigner function for a spin-j system on the 2-sphere of radius j
-       (for j = 1/2 this is the Bloch sphere).
+    r"""Wigner function for a spin-j system.
+
+    The spin W function is normal when integrated over the surface of the
+    sphere
+
+    .. math:: \sqrt{\frac{4 \pi}{2j + 1}}\int_\phi \int_\theta
+              W(\theta,\phi) \sin(\theta) d\theta d\phi = 1
+
 
     Parameters
     ----------
     state : qobj
         A state vector or density matrix for a spin-j quantum system.
     theta : array_like
-        Polar angle at which to calculate the W function.
+        Polar (colatitude) angle at which to calculate the W function.
     phi : array_like
         Azimuthal angle at which to calculate the W function.
 
@@ -958,9 +1002,16 @@ def spin_wigner(rho, theta, phi):
         Values representing the spin Wigner function at the values specified
         by THETA and PHI.
 
-    Notes
-    -----
-    Experimental.
+    References
+    ----------
+    [1] Agarwal, G. S. (1981). Phys. Rev. A, 24(6), 2889–2896.
+    https://doi.org/10.1103/PhysRevA.24.2889
+
+    [2] Dowling, J. P., Agarwal, G. S., & Schleich, W. P. (1994).
+    Phys. Rev. A, 49(5), 4101–4109. https://doi.org/10.1103/PhysRevA.49.4101
+
+    [3] Conversion between Wigner 3-j symbol and Clebsch-Gordan coefficients
+    taken from Wikipedia (https://en.wikipedia.org/wiki/3-j_symbol)
 
     """
 
@@ -982,4 +1033,4 @@ def spin_wigner(rho, theta, phi):
             # sph_harm takes azimuthal angle then polar angle as arguments
             W += _rho_kq(rho, j, k, q) * sph_harm(q, k, PHI, THETA)
 
-    return W, THETA, PHI
+    return W.real, THETA, PHI
