@@ -90,6 +90,8 @@ def test_ssesolve_homodyne_methods():
                         ['explicit1.5', 5e-4],
                         ['taylor2.0', 5e-4]]
     for n_method in list_methods_tol:
+        # Comparisons of error between sol and sol3 depend on the stochastic
+        # noise, thus the seed, fixing the seed remove random fails.
         np.random.seed(1)
         sol = ssesolve(H, rho0, tlist, sc_op, e_op,
                        nsubsteps=Nsub, method='homodyne', solver=n_method[0])
