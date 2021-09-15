@@ -94,7 +94,7 @@ class ExpectOps:
                 if isinstance(self.e_ops_qoevo[ii], QobjEvo):
                     self.raw_out[ii, iter_] = \
                         self.e_ops_qoevo[ii].compiled_qobjevo.expect(t, state)
-                elif callable(ii):
+                elif callable(self.e_ops_qoevo[ii]):
                     self.raw_out[ii, iter_] = \
                         self.e_ops_qoevo[ii](t, state)
 
