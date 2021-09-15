@@ -54,7 +54,7 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
 
     By default the signature style is controlled by the
     ``qutip.settings.core["function_coefficient_style"]`` setting, but it
-    may be overriden here by specifying either ``function_style="pythonc"``
+    may be overriden here by specifying either ``function_style="pythonic"``
     or ``function_style="dict"``.
 
     *Examples*
