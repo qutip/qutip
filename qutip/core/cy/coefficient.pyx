@@ -17,6 +17,61 @@ cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
     double         norm(double complex x)
 
+
+def coefficient_function_parameters(func, style=None):
+    """
+    Return the function style (either "pythonic" or not) and a list of
+    additional parameters accepted. Used by :obj:`FunctionCoefficient`
+    and :obj:`_FuncElement` to determine the call signature of the
+    supplied function based on the
+    :obj:`qutip.core.settings.function_coefficient_signature` setting and
+    the supplied function signature.
+
+    Parameters
+    ----------
+    func: function
+        The :obj:`FunctionCoefficient` to inspect. The first argument
+        of the function is assumed to be ``t`` (the time at which to
+        evaluate the coefficient). The remaining arguments depend on
+        the signature style (see below).
+
+    style: {None, "pythonic", "dict", "auto"}
+        The style of the signature used. If style is ``None``,
+        the value of :obj:`qutip.core.settings.function_coefficient_signature`
+        is used. Otherwise the supplied value overrides the global setting.
+
+    Return
+    ------
+    (f_is_pythonic, f_parameters)
+
+    f_is_pythonic: bool
+        True if the function should be called as ``f(t, **kw)`` and False
+        if the function should be called as ``f(t, kw_dict)``.
+
+    f_parameters: set or None
+        The set of parameters (other than ``t``) of the function or
+        ``None`` if the function accepts arbitrary parameters.
+    """
+    sig = inspect.signature(func)
+    f_has_kw = any(p.kind == p.VAR_KEYWORD for p in sig.parameters.values())
+    if style is None:
+        style = qutip.settings.core["function_coefficient_signature"]
+    if style == "auto":
+        if tuple(sig.parameters.keys()) == ("t", "args") and not f_has_kw:
+            # if the signature is exactly f(t, args), then assume parameters
+            # are supplied in an argument dictionary
+            style = "dict"
+        else:
+            style = "pythonic"
+    if style == "dict" or f_has_kw:
+        # f might accept any parameter
+        f_parameters = None
+    else:
+        # f accepts only t and the named parameters
+        f_parameters = set(list(sig.parameters.keys())[1:])
+    return (style == "pythonic", f_parameters)
+
+
 cdef class Coefficient:
     """
     `Coefficient` are the time-dependant scalar of a `[Qobj, coeff]` pair
@@ -130,39 +185,35 @@ cdef class FunctionCoefficient(Coefficient):
         accepts all possible arguments (e.g. via a ``**kw`` argument).
     """
     cdef object func
-    cdef bint _f_is_t_args
-    cdef object _f_arg_names
+    cdef bint _f_is_pythonic
+    cdef object _f_parameters
 
-    def __init__(self, func, dict args, bint f_is_t_args, f_arg_names):
+    def __init__(self, func, dict args, bint f_is_pythonic, f_parameters):
         self.func = func
         self.args = args
-        self._f_is_t_args = f_is_t_args
-        self._f_arg_names = f_arg_names
+        self._f_is_pythonic = f_is_pythonic
+        self._f_parameters = f_parameters
 
     @classmethod
     def by_inspection(cls, func, args):
-        sig = inspect.signature(func)
-        f_is_kw = any(p.kind == p.VAR_KEYWORD for p in sig.parameters.values())
-        f_is_t_args = tuple(sig.parameters.keys()) == ("t", "args") and not f_is_kw
-        if f_is_kw or f_is_t_args:
-            f_arg_names = None
-        else:
-            f_arg_names = set(list(sig.parameters.keys())[0:])
-            args = {k: args[k] for k in f_arg_names & args.keys()}
-        return cls(func, args, f_is_t_args=f_is_t_args, f_arg_names=f_arg_names)
+        f_is_pythonic, f_parameters = coefficient_function_parameters(func)
+        if f_parameters is not None:
+            args = {k: args[k] for k in f_parameters & args.keys()}
+        return cls(
+            func, args, f_is_pythonic=f_is_pythonic, f_parameters=f_parameters)
 
     cdef complex _call(self, double t) except *:
-        if self._f_is_t_args:
-            return self.func(t, self.args)
-        return self.func(t, **self.args)
+        if self._f_is_pythonic:
+            return self.func(t, **self.args)
+        return self.func(t, self.args)
 
     cpdef Coefficient copy(self):
         """Return a copy of the :obj:`Coefficient`."""
         return FunctionCoefficient(
             self.func,
             self.args.copy(),
-            f_is_t_args=self._f_is_t_args,
-            f_arg_names=self._f_arg_names,
+            f_is_pythonic=self._f_is_pythonic,
+            f_parameters=self._f_parameters,
         )
 
     def replace_arguments(self, _args=None, **kwargs):
@@ -183,15 +234,15 @@ cdef class FunctionCoefficient(Coefficient):
         """
         if _args:
             kwargs.update(_args)
-        if self._f_arg_names is not None:
-            kwargs = {k: kwargs[k] for k in self._f_arg_names & kwargs.keys()}
+        if self._f_parameters is not None:
+            kwargs = {k: kwargs[k] for k in self._f_parameters & kwargs.keys()}
         if not kwargs:
             return self
         return FunctionCoefficient(
             self.func,
             {**self.args, **kwargs},
-            f_is_t_args=self._f_is_t_args,
-            f_arg_names=self._f_arg_names,
+            f_is_pythonic=self._f_is_pythonic,
+            f_parameters=self._f_parameters,
         )
 
 

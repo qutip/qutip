@@ -1,8 +1,8 @@
 #cython: language_level=3
 #cython: boundscheck=False, wraparound=False, initializedcheck=False, cdvision=True
 
-import inspect
 from .. import data as _data
+from qutip.core.cy.coefficient import coefficient_function_parameters
 from qutip.core.data cimport Dense, Data, dense
 from qutip.core.data.matmul cimport *
 from math import nan as Nan
@@ -394,34 +394,30 @@ cdef class _FuncElement(_BaseElement):
     args : dict
         Values of the arguments to pass to ``func``.
 
-    f_is_t_args : bint
+    f_is_pythonic : bint
         Set to true if ``func`` should be called in the old QuTiP 4 style
         as ``func(t, args)`` where ``args`` is a dictionary that contains
         all the arguments. Otherwise set to false and ``func`` will be
         called as ``f(t, **args)``.
 
-    f_arg_names : set or None
+    f_parameters : set or None
         The set of argument names ``func`` accepts or ``None`` is ``func``
         accepts all possible arguments (e.g. via a ``**kw`` argument).
     """
-    def __init__(self, func, args, bint f_is_t_args, f_arg_names):
+    def __init__(self, func, args, bint f_is_pythonic, f_parameters):
         self._func = func
         self._args = args.copy()
-        self._f_is_t_args = f_is_t_args
-        self._f_arg_names = f_arg_names
+        self._f_is_pythonic = f_is_pythonic
+        self._f_parameters = f_parameters
         self._previous = (Nan, None)
 
     @classmethod
     def by_inspection(cls, func, args):
-        sig = inspect.signature(func)
-        f_is_kw = any(p.kind == p.VAR_KEYWORD for p in sig.parameters.values())
-        f_is_t_args = tuple(sig.parameters.keys()) == ("t", "args") and not f_is_kw
-        if f_is_kw or f_is_t_args:
-            f_arg_names = None
-        else:
-            f_arg_names = set(list(sig.parameters.keys())[0:])
-            args = {k: args[k] for k in f_arg_names & args.keys()}
-        return cls(func, args, f_is_t_args=f_is_t_args, f_arg_names=f_arg_names)
+        f_is_pythonic, f_parameters = coefficient_function_parameters(func)
+        if f_parameters is not None:
+            args = {k: args[k] for k in f_parameters & args.keys()}
+        return cls(
+            func, args, f_is_pythonic=f_is_pythonic, f_parameters=f_parameters)
 
     def __mul__(left, right):
         cdef _MapElement out
@@ -443,10 +439,10 @@ cdef class _FuncElement(_BaseElement):
         _t, _qobj = self._previous
         if t == _t:
             return _qobj
-        if self._f_is_t_args:
-            _qobj = self._func(t, self._args)
-        else:
+        if self._f_is_pythonic:
             _qobj = self._func(t, **self._args)
+        else:
+            _qobj = self._func(t, self._args)
         self._previous = (t, _qobj)
         return _qobj
 
@@ -457,8 +453,8 @@ cdef class _FuncElement(_BaseElement):
         return _MapElement(self, [f])
 
     def replace_arguments(_FuncElement self, args, cache=None):
-        if self._f_arg_names is not None:
-            args = {k: args[k] for k in self._f_arg_names & args.keys()}
+        if self._f_parameters is not None:
+            args = {k: args[k] for k in self._f_parameters & args.keys()}
         if not args:
             return self
         if cache is not None:
@@ -468,8 +464,8 @@ cdef class _FuncElement(_BaseElement):
         new = _FuncElement(
                 self._func,
                 {**self._args, **args},
-                f_is_t_args=self._f_is_t_args,
-                f_arg_names=self._f_arg_names,
+                f_is_pythonic=self._f_is_pythonic,
+                f_parameters=self._f_parameters,
         )
         if cache is not None:
             cache.append((self, new))
