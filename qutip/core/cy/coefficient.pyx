@@ -21,11 +21,12 @@ cdef extern from "<complex>" namespace "std" nogil:
 def coefficient_function_parameters(func, style=None):
     """
     Return the function style (either "pythonic" or not) and a list of
-    additional parameters accepted. Used by :obj:`FunctionCoefficient`
-    and :obj:`_FuncElement` to determine the call signature of the
-    supplied function based on the
-    :obj:`qutip.core.settings.function_coefficient_signature` setting and
-    the supplied function signature.
+    additional parameters accepted.
+
+    Used by :obj:`FunctionCoefficient` and :obj:`_FuncElement` to determine the
+    call signature of the supplied function based on the given style (or
+    ``qutip.settings.core["function_coefficient_style"]`` if no style is given)
+    and the signature of the given function.
 
     Parameters
     ----------
@@ -37,7 +38,7 @@ def coefficient_function_parameters(func, style=None):
 
     style : {None, "pythonic", "dict", "auto"}
         The style of the signature used. If style is ``None``,
-        the value of :obj:`qutip.core.settings.function_coefficient_style`
+        the value of ``qutip.settings.core["function_coefficient_style"]``
         is used. Otherwise the supplied value overrides the global setting.
 
     Returns
@@ -176,7 +177,7 @@ cdef class FunctionCoefficient(Coefficient):
 
     style : {None, "pythonic", "dict", "auto"}
         The style of function signature used. If style is ``None``,
-        the value of :obj:`qutip.core.settings.function_coefficient_style`
+        the value of ``qutip.settings.core["function_coefficient_style"]``
         is used. Otherwise the supplied value overrides the global setting.
 
     The parameters ``_f_pythonic`` and ``_f_parameters`` override function

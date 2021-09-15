@@ -396,7 +396,7 @@ cdef class _FuncElement(_BaseElement):
 
     style : {None, "pythonic", "dict", "auto"}
         The style of the signature used. If style is ``None``,
-        the value of :obj:`qutip.core.settings.function_coefficient_style`
+        the value of ``qutip.settings.core["function_coefficient_style"]``
         is used. Otherwise the supplied value overrides the global setting.
 
     The parameters ``_f_pythonic`` and ``_f_parameters`` override function

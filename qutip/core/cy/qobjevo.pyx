@@ -95,7 +95,7 @@ cdef class QobjEvo:
     function_style : {None, "pythonic", "dict", "auto"}
         The style of function signature used by callables in ``Q_object``.
         If style is ``None``, the value of
-        :obj:`qutip.core.settings.function_coefficient_style`
+        ``qutip.settings.core["function_coefficient_style"]``
         is used. Otherwise the supplied value overrides the global setting.
 
     Attributes

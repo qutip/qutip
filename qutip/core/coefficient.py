@@ -53,7 +53,7 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
       ``args``
 
     By default the signature style is controlled by the
-    :obj:`qutip.core.settings.function_coefficient_style` setting, but it
+    ``qutip.settings.core["function_coefficient_style"]`` setting, but it
     may be overriden here by specifying either ``function_style="pythonc"``
     or ``function_style="dict"``.
 
