@@ -54,11 +54,10 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
     tlist : array_like of float
         List of times for :math:`t`.
 
-    e_ops : list of :class:`~Qobj` or list of callback functions or
-    a single callback function, optional
-        Single operator, list of operators or list of callable functions
-        for which to evaluate expectation
-        values.  For operator evolution, the overlap is computed: ::
+    e_ops : None / list of :class:`qutip.Qobj` and callback functions, optional
+        single operator, list of operators and callable functions
+        for which to evaluate expectation values. For operator evolution,
+        the overlap is computed: ::
 
             (e_ops[i].dag() * op(t)).tr()
 

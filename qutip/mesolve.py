@@ -127,11 +127,9 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
         single collapse operator, or list of collapse operators, or a list
         of Liouvillian superoperators.
 
-    e_ops : None / list of :class:`qutip.Qobj` / list of callback functions
-    / callback function
-        single operator, list of operators or list of callable functions
-        for which to evaluate
-        expectation values.
+    e_ops : None / list of :class:`qutip.Qobj` and callback functions
+        single operator, list of operators and callable functions
+        for which to evaluate expectation values.
 
     args : None / *dictionary*
         dictionary of parameters for time-dependent Hamiltonians and
