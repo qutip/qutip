@@ -37,14 +37,14 @@ def coefficient_function_parameters(func, style=None):
 
     style : {None, "pythonic", "dict", "auto"}
         The style of the signature used. If style is ``None``,
-        the value of :obj:`qutip.core.settings.function_coefficient_signature`
+        the value of :obj:`qutip.core.settings.function_coefficient_style`
         is used. Otherwise the supplied value overrides the global setting.
 
     Returns
     -------
-    (f_is_pythonic, f_parameters)
+    (f_pythonic, f_parameters)
 
-    f_is_pythonic : bool
+    f_pythonic : bool
         True if the function should be called as ``f(t, **kw)`` and False
         if the function should be called as ``f(t, kw_dict)``.
 
@@ -55,7 +55,7 @@ def coefficient_function_parameters(func, style=None):
     sig = inspect.signature(func)
     f_has_kw = any(p.kind == p.VAR_KEYWORD for p in sig.parameters.values())
     if style is None:
-        style = qutip.settings.core["function_coefficient_signature"]
+        style = qutip.settings.core["function_coefficient_style"]
     if style == "auto":
         if tuple(sig.parameters.keys()) == ("t", "args") and not f_has_kw:
             # if the signature is exactly f(t, args), then assume parameters
@@ -174,36 +174,34 @@ cdef class FunctionCoefficient(Coefficient):
     args : dict
         Values of the arguments to pass to ``func``.
 
-    f_is_pythonic : bint
-        Set to true if ``func`` should be called in the old QuTiP 4 style
-        as ``func(t, args)`` where ``args`` is a dictionary that contains
-        all the arguments. Otherwise set to false and ``func`` will be
-        called as ``f(t, **args)``.
+    style : {None, "pythonic", "dict", "auto"}
+        The style of function signature used. If style is ``None``,
+        the value of :obj:`qutip.core.settings.function_coefficient_style`
+        is used. Otherwise the supplied value overrides the global setting.
 
-    f_parameters : set or None
-        The set of argument names ``func`` accepts or ``None`` is ``func``
-        accepts all possible arguments (e.g. via a ``**kw`` argument).
+    The parameters ``_f_pythonic`` and ``_f_parameters`` override function
+    style and parameter detection and are not intended to be part of
+    the public interface.
     """
     cdef object func
-    cdef bint _f_is_pythonic
+    cdef object _f_pythonic
     cdef object _f_parameters
 
-    def __init__(self, func, dict args, bint f_is_pythonic, f_parameters):
+    _UNSET = object()
+
+    def __init__(self, func, dict args, style=None, _f_pythonic=_UNSET, _f_parameters=_UNSET):
+        if _f_pythonic is self._UNSET or _f_parameters is self._UNSET:
+            _f_pythonic, _f_parameters = coefficient_function_parameters(
+                func, style=style)
+        if _f_parameters is not None:
+            args = {k: args[k] for k in _f_parameters & args.keys()}
         self.func = func
         self.args = args
-        self._f_is_pythonic = f_is_pythonic
-        self._f_parameters = f_parameters
-
-    @classmethod
-    def by_inspection(cls, func, args):
-        f_is_pythonic, f_parameters = coefficient_function_parameters(func)
-        if f_parameters is not None:
-            args = {k: args[k] for k in f_parameters & args.keys()}
-        return cls(
-            func, args, f_is_pythonic=f_is_pythonic, f_parameters=f_parameters)
+        self._f_pythonic = _f_pythonic
+        self._f_parameters = _f_parameters
 
     cdef complex _call(self, double t) except *:
-        if self._f_is_pythonic:
+        if self._f_pythonic:
             return self.func(t, **self.args)
         return self.func(t, self.args)
 
@@ -212,8 +210,8 @@ cdef class FunctionCoefficient(Coefficient):
         return FunctionCoefficient(
             self.func,
             self.args.copy(),
-            f_is_pythonic=self._f_is_pythonic,
-            f_parameters=self._f_parameters,
+            _f_pythonic=self._f_pythonic,
+            _f_parameters=self._f_parameters,
         )
 
     def replace_arguments(self, _args=None, **kwargs):
@@ -241,8 +239,8 @@ cdef class FunctionCoefficient(Coefficient):
         return FunctionCoefficient(
             self.func,
             {**self.args, **kwargs},
-            f_is_pythonic=self._f_is_pythonic,
-            f_parameters=self._f_parameters,
+            _f_pythonic=self._f_pythonic,
+            _f_parameters=self._f_parameters,
         )
 
 

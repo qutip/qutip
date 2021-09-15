@@ -394,30 +394,31 @@ cdef class _FuncElement(_BaseElement):
     args : dict
         Values of the arguments to pass to ``func``.
 
-    f_is_pythonic : bint
-        Set to true if ``func`` should be called in the old QuTiP 4 style
-        as ``func(t, args)`` where ``args`` is a dictionary that contains
-        all the arguments. Otherwise set to false and ``func`` will be
-        called as ``f(t, **args)``.
+    style : {None, "pythonic", "dict", "auto"}
+        The style of the signature used. If style is ``None``,
+        the value of :obj:`qutip.core.settings.function_coefficient_style`
+        is used. Otherwise the supplied value overrides the global setting.
 
-    f_parameters : set or None
-        The set of argument names ``func`` accepts or ``None`` is ``func``
-        accepts all possible arguments (e.g. via a ``**kw`` argument).
+    The parameters ``_f_pythonic`` and ``_f_parameters`` override function
+    style and parameter detection and are not intended to be part of
+    the public interface.
     """
-    def __init__(self, func, args, bint f_is_pythonic, f_parameters):
-        self._func = func
-        self._args = args.copy()
-        self._f_is_pythonic = f_is_pythonic
-        self._f_parameters = f_parameters
-        self._previous = (Nan, None)
 
-    @classmethod
-    def by_inspection(cls, func, args):
-        f_is_pythonic, f_parameters = coefficient_function_parameters(func)
-        if f_parameters is not None:
-            args = {k: args[k] for k in f_parameters & args.keys()}
-        return cls(
-            func, args, f_is_pythonic=f_is_pythonic, f_parameters=f_parameters)
+    _UNSET = object()
+
+    def __init__(self, func, args, style=None, bint _f_pythonic=_UNSET, _f_parameters=_UNSET):
+        if _f_pythonic is self._UNSET or _f_parameters is self._UNSET:
+            _f_pythonic, _f_parameters = coefficient_function_parameters(
+                func, style=style)
+        if _f_parameters is not None:
+            args = {k: args[k] for k in _f_parameters & args.keys()}
+        else:
+            args = args.copy()
+        self._func = func
+        self._args = args
+        self._f_pythonic = _f_pythonic
+        self._f_parameters = _f_parameters
+        self._previous = (Nan, None)
 
     def __mul__(left, right):
         cdef _MapElement out
@@ -439,7 +440,7 @@ cdef class _FuncElement(_BaseElement):
         _t, _qobj = self._previous
         if t == _t:
             return _qobj
-        if self._f_is_pythonic:
+        if self._f_pythonic:
             _qobj = self._func(t, **self._args)
         else:
             _qobj = self._func(t, self._args)
@@ -464,8 +465,8 @@ cdef class _FuncElement(_BaseElement):
         new = _FuncElement(
                 self._func,
                 {**self._args, **args},
-                f_is_pythonic=self._f_is_pythonic,
-                f_parameters=self._f_parameters,
+                _f_pythonic=self._f_pythonic,
+                _f_parameters=self._f_parameters,
         )
         if cache is not None:
             cache.append((self, new))

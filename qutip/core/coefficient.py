@@ -39,7 +39,8 @@ class StringParsingWarning(Warning):
 
 
 def coefficient(base, *, tlist=None, args={}, args_ctypes={},
-                _stepInterpolation=False, compile_opt=None):
+                _stepInterpolation=False, compile_opt=None,
+                function_style=None):
     """Coefficient for Qutip time dependent systems.
     The coefficients are either a function, a string or a numpy array.
 
@@ -104,7 +105,7 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
         return coeff_from_str(base, args, args_ctypes, compile_opt)
 
     elif callable(base):
-        op = FunctionCoefficient.by_inspection(base, args.copy())
+        op = FunctionCoefficient(base, args.copy(), style=function_style)
         if not isinstance(op(0), numbers.Number):
             raise TypeError("The coefficient function must return a number")
         return op

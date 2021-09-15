@@ -25,7 +25,7 @@ cdef class _FuncElement(_BaseElement):
     cdef object _func
     cdef dict _args
     cdef tuple _previous
-    cdef bint _f_is_pythonic
+    cdef object _f_pythonic
     cdef object _f_parameters
 
 

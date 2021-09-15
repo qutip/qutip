@@ -30,7 +30,7 @@ class CoreOptions:
         parameter above) and the default value of ``atol`` used in
         :method:`Qobj.tidyup`.
 
-    function_coefficient_signature : str {"auto"}
+    function_coefficient_style : str {"auto"}
         The signature expected by function coefficients. The options are:
 
         - "pythonic": the signature should be ``f(t, ...)`` where ``t``
@@ -42,7 +42,7 @@ class CoreOptions:
           E.g. ``f(t, {"w": w, "b": 5})``.
 
         - "auto": select automatically between the two options above based
-          on signature of the supplied function. If the function signature
+          on the signature of the supplied function. If the function signature
           is exactly ``f(t, args)`` then ``dict`` is used. Otherwise
           ``pythonic`` is used.
     """
@@ -60,5 +60,5 @@ class CoreOptions:
         # use auto tidyup absolute tolerance
         "auto_tidyup_atol": 1e-14,
         # signature style expected by function coefficients
-        "function_coefficient_signature": "auto",
+        "function_coefficient_style": "auto",
     }
