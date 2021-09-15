@@ -584,4 +584,5 @@ class TestQubitCircuit:
             for i, final_state in enumerate(final_states):
                 _, probs_final = fourth.measurement_comp_basis(final_state)
                 np.testing.assert_allclose(probs_initial, probs_final)
-                assert sum(result_cbits[i]) == 1
+                if result.get_probabilities(i) > 1e-30:
+                    assert sum(result_cbits[i]) == 1
