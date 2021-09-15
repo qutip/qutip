@@ -29,26 +29,26 @@ def coefficient_function_parameters(func, style=None):
 
     Parameters
     ----------
-    func: function
+    func : function
         The :obj:`FunctionCoefficient` to inspect. The first argument
         of the function is assumed to be ``t`` (the time at which to
         evaluate the coefficient). The remaining arguments depend on
         the signature style (see below).
 
-    style: {None, "pythonic", "dict", "auto"}
+    style : {None, "pythonic", "dict", "auto"}
         The style of the signature used. If style is ``None``,
         the value of :obj:`qutip.core.settings.function_coefficient_signature`
         is used. Otherwise the supplied value overrides the global setting.
 
-    Return
-    ------
+    Returns
+    -------
     (f_is_pythonic, f_parameters)
 
-    f_is_pythonic: bool
+    f_is_pythonic : bool
         True if the function should be called as ``f(t, **kw)`` and False
         if the function should be called as ``f(t, kw_dict)``.
 
-    f_parameters: set or None
+    f_parameters : set or None
         The set of parameters (other than ``t``) of the function or
         ``None`` if the function accepts arbitrary parameters.
     """
@@ -174,13 +174,13 @@ cdef class FunctionCoefficient(Coefficient):
     args : dict
         Values of the arguments to pass to ``func``.
 
-    f_is_t_args : bint
+    f_is_pythonic : bint
         Set to true if ``func`` should be called in the old QuTiP 4 style
         as ``func(t, args)`` where ``args`` is a dictionary that contains
         all the arguments. Otherwise set to false and ``func`` will be
         called as ``f(t, **args)``.
 
-    f_arg_names : set or None
+    f_parameters : set or None
         The set of argument names ``func`` accepts or ``None`` is ``func``
         accepts all possible arguments (e.g. via a ``**kw`` argument).
     """
