@@ -224,6 +224,7 @@ class MeSolver(Solver):
     """
     name = "mesolve"
     _avail_integrators = {}
+    _avail_rhs = {}
 
     def __init__(self, H, c_ops, e_ops=None, options=None,
                  **kwargs):

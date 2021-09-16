@@ -41,6 +41,11 @@ from ..core.data import to
 from time import time
 
 
+def _rhs(integrator, system, options):
+    # Construct the integrator
+    return integrator(system, options)
+
+
 # SeSolver.avail_integrators should return SeSolver and Solver's integrators.
 # Thus we want a property and classmethod
 class ClassProperty(property):
@@ -78,6 +83,7 @@ class Solver:
     _state = None
     _integrator = False
     _avail_integrators = {}
+    _avail_rhs = {"": _rhs}
 
     # Class of option used by the solver
     optionsclass = SolverOptions
@@ -210,6 +216,14 @@ class Solver:
         return {**cls._avail_integrators,
                 **Solver._avail_integrators}
 
+    @ClassProperty
+    @classmethod
+    def avail_rhs(cls):
+        if cls is Solver:
+            return cls._avail_rhs.copy()
+        return {**cls._avail_rhs,
+                **Solver._avail_rhs}
+
     @classmethod
     def add_integrator(cls, integrator, keys):
         """
@@ -234,6 +248,32 @@ class Solver:
             for opt in integrator.used_options:
                 cls.odeoptionsclass.extra_options.add(opt)
 
+    @classmethod
+    def add_rhs(cls, rhs, key):
+        """
+        Register an right hand side(rhs) option. _rhs_ are modifications to the
+        system-state product to use during the evolution.
+
+        The _rhs_ is a function taking an Integrator subclass, system (QobjEvo)
+        and options that return an Integrator instance.
+
+        Parameters
+        ----------
+        integrator : callable
+            Function instanciating the integrator.
+
+        key : str
+            Value of the rhs options to use this function.
+        """
+        if callable(rhs):
+            raise TypeError("The rhs must be a function taking "
+                            "(intagrator subclass, QobjEvo, SolverOdeOptions)")
+        for key in keys:
+            cls._avail_rhs[key] = rhs
+        if hasattr(rhs, 'used_options'):
+            for opt in rhs.used_options:
+                cls.odeoptionsclass.extra_options.add(opt)
+
     def _get_integrator(self):
         """ Return the initialted integrator. """
         method = self.options.ode["method"]
@@ -245,4 +285,5 @@ class Solver:
             )
 
         integrator = self.avail_integrators[method]
-        return integrator(self._system, self.options)
+        rhs = self.avail_rhs[method]
+        return rhs(integrator, self._system, self.options)

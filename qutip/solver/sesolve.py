@@ -143,6 +143,7 @@ class SeSolver(Solver):
     """
     name = "sesolve"
     _avail_integrators = {}
+    _avail_rhs = {}
 
     def __init__(self, H, e_ops=None, options=None, **kwargs):
         _time_start = time()
