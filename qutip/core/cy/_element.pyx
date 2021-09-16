@@ -414,10 +414,8 @@ cdef class _FuncElement(_BaseElement):
                 )
             _f_pythonic, _f_parameters = coefficient_function_parameters(
                 func, style=style)
-        if _f_parameters is not None:
-            args = {k: args[k] for k in _f_parameters & args.keys()}
-        else:
-            args = args.copy()
+            if _f_parameters is not None:
+                args = {k: args[k] for k in _f_parameters & args.keys()}
         self._func = func
         self._args = args
         self._f_pythonic = _f_pythonic

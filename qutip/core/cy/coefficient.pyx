@@ -198,8 +198,8 @@ cdef class FunctionCoefficient(Coefficient):
                 )
             _f_pythonic, _f_parameters = coefficient_function_parameters(
                 func, style=style)
-        if _f_parameters is not None:
-            args = {k: args[k] for k in _f_parameters & args.keys()}
+            if _f_parameters is not None:
+                args = {k: args[k] for k in _f_parameters & args.keys()}
         self.func = func
         self.args = args
         self._f_pythonic = _f_pythonic
