@@ -416,6 +416,8 @@ cdef class _FuncElement(_BaseElement):
                 func, style=style)
             if _f_parameters is not None:
                 args = {k: args[k] for k in _f_parameters & args.keys()}
+            else:
+                args = args.copy()
         self._func = func
         self._args = args
         self._f_pythonic = _f_pythonic
