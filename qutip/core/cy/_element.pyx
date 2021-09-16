@@ -406,8 +406,12 @@ cdef class _FuncElement(_BaseElement):
 
     _UNSET = object()
 
-    def __init__(self, func, args, style=None, bint _f_pythonic=_UNSET, _f_parameters=_UNSET):
+    def __init__(self, func, args, style=None, _f_pythonic=_UNSET, _f_parameters=_UNSET):
         if _f_pythonic is self._UNSET or _f_parameters is self._UNSET:
+            if not (_f_pythonic is self._UNSET and _f_parameters is self._UNSET):
+                raise TypeError(
+                    "_f_pythonic and _f_parameters should always be given together."
+                )
             _f_pythonic, _f_parameters = coefficient_function_parameters(
                 func, style=style)
         if _f_parameters is not None:
