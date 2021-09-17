@@ -88,51 +88,158 @@ def _heom_state_dictionaries(dims, excitations):
     return nstates, state2idx, idx2state
 
 
-def _check_Hsys(H_sys):
-    # Check if Hamiltonians are one of the allowed types
-    if not isinstance(H_sys, (Qobj, QobjEvo, list)):
-        msg = "Hamiltonian format is incorrect."
-        raise RuntimeError(msg)
-
-    # Check if Hamiltonians supplied in the list are correct
-    if isinstance(H_sys, list):
-        for H in H_sys:
-            # If not a list of time dependent Hamiltonians
-            if not isinstance(H, list):
-                # Just check if it is a Qobj
-                _check_Hsys(H)
-
-            # Check if time dependent Hamiltonian terms are correct
-            # in the list fomat if it is a tuple of [H, callable]
-            elif isinstance(H[0], Qobj):
-                if not callable(H[1]):
-                    msg = "Incorrect time dependent function for Hamiltonian."
-                    raise RuntimeError(msg)
-
-            else:
-                _check_Hsys(H[0])
-
-        return True
-
+def _convert_h_sys(H_sys):
+    """ Process input system Hamiltonian, converting and raising as needed.
+    """
+    if isinstance(H_sys, (Qobj, QobjEvo)):
+        pass
+    elif isinstance(H_sys, list):
+        try:
+            H_sys = QobjEvo(H_sys)
+        except Exception as err:
+            raise ValueError(
+                "Hamiltonian (H_sys) of type list cannot be converted to"
+                " QObjEvo"
+            ) from err
     else:
-        return True
+        raise TypeError(
+            f"Hamiltonian (H_sys) has unsupported type: {type(H_sys)!r}")
+    return H_sys
 
 
-def _check_coup_ops(coup_op, length):
-
-    if (type(coup_op) != Qobj) and (
-        type(coup_op) == list and type(coup_op[0]) != Qobj
-    ):
-        raise RuntimeError(
-            "Coupling operator must be a QObj or list " + " of QObjs."
+def _convert_coup_op(coup_op, coup_op_len):
+    """ Convert coup_op to a list of the appropriate length. """
+    if isinstance(coup_op, Qobj):
+        coup_op = [coup_op] * coup_op_len
+    elif (isinstance(coup_op, list)
+            and all(isinstance(x, Qobj) for x in coup_op)):
+        if len(coup_op) != coup_op_len:
+            raise ValueError(
+                f"Expected {coup_op_len} coupling operators.")
+    else:
+        raise TypeError(
+            "Coupling operator (coup_op) must be a Qobj or a list of Qobjs"
         )
+    return coup_op
 
-    if type(coup_op) == list:
-        if len(coup_op) != (length):
-            raise RuntimeError(
-                "Expected " + str(length)
-                + " coupling operators."
-            )
+
+def _convert_bath_exponents_bosonic(ckAI, ckAR, vkAI, vkAR):
+    all_k = (ckAI, ckAR, vkAI, vkAR)
+    if any(not isinstance(k, list) for k in all_k):
+        raise TypeError(
+            "The bath exponents ckAI, ckAR, vkAI and vkAR must all be lists")
+    if len(ckAI) != len(vkAI) or len(ckAR) != len(vkAR):
+        raise ValueError(
+            "The bath exponent lists ckAI and vkAI, and ckAR and vkAR must"
+            " be the same length"
+        )
+    if any(isinstance(x, list) for k in all_k for x in k):
+        raise ValueError(
+            "The bath exponent lists ckAI, ckAR, vkAI and vkAR should not"
+            " themselves contain lists"
+        )
+    # warn if any of the vkAR's are close
+    for i in range(len(vkAR)):
+        for j in range(i + 1, len(vkAR)):
+            if np.isclose(vkAR[i], vkAR[j], rtol=1e-5, atol=1e-7):
+                warnings.warn(
+                    "Expected simplified input. "
+                    "Consider collating equal frequency parameters."
+                )
+    # warn if any of the vkAR's are close
+    for i in range(len(vkAI)):
+        for j in range(i + 1, len(vkAI)):
+            if np.isclose(vkAI[i], vkAI[j], rtol=1e-5, atol=1e-7):
+                warnings.warn(
+                    "Expected simplified input.  "
+                    "Consider collating equal frequency parameters."
+                )
+    return ckAI, ckAR, vkAI, vkAR
+
+
+def _mangle_bath_exponents_bosonic(coup_op, ckAR, ckAI, vkAR, vkAI):
+    """ Mangle bath exponents by combining similar vkAR and vkAI. """
+
+    common_ck = []
+    real_indices = []
+    common_vk = []
+    img_indices = []
+    common_coup_op = []
+    coup_op = deepcopy(coup_op)
+    nr = len(ckAR)
+
+    for i in range(len(vkAR)):
+        for j in range(len(vkAI)):
+            if np.isclose(
+                vkAR[i], vkAI[j], rtol=1e-5, atol=1e-7) and np.allclose(
+                coup_op[i], coup_op[nr + j], rtol=1e-5, atol=1e-7
+            ):
+                warnings.warn(
+                    "Two similar real and imag exponents have been "
+                    "collated automatically."
+                )
+                common_ck.append(ckAR[i])
+                common_ck.append(ckAI[j])
+                common_vk.append(vkAR[i])
+                common_vk.append(vkAI[j])
+                real_indices.append(i)
+                img_indices.append(j)
+                common_coup_op.append(coup_op[i])
+
+    for i in sorted(real_indices, reverse=True):
+        ckAR.pop(i)
+        vkAR.pop(i)
+
+    for i in sorted(img_indices, reverse=True):
+        ckAI.pop(i)
+        vkAI.pop(i)
+
+    img_coup_ops = [x + nr for x in img_indices]
+    coup_op_indices = real_indices + sorted(img_coup_ops)
+    for i in sorted(coup_op_indices, reverse=True):
+        coup_op.pop(i)
+
+    coup_op += common_coup_op
+
+    ck = np.array(ckAR + ckAI + common_ck).astype(complex)
+    vk = np.array(vkAR + vkAI + common_vk).astype(complex)
+    NR = len(ckAR)
+    NI = len(ckAI)
+
+    return coup_op, ck, vk, NR, NI
+
+
+def _convert_bath_exponents_fermionic(ck, vk):
+    """ Check the bath exponents for the fermionic solver. """
+    if (type(ck) != list or not all(isinstance(x, list) for x in ck)):
+        raise TypeError("The bath exponents ck must be a list or lists.")
+    if (type(vk) != list or not all(isinstance(x, list) for x in vk)):
+        raise TypeError("The bath exponents vk must be a list or lists.")
+    if (len(ck) != len(vk)
+            or any(len(ck[i]) != len(vk[i]) for i in range(len(ck)))):
+        raise ValueError("Exponents ck and vk must be the same length.")
+    return ck, vk
+
+
+def _h_sys_is_hamiltonian(H_sys):
+    """ Return True if H_sys is a Hamiltonian and False if it is a Liouvillian.
+    """
+    if type(H_sys) is QobjEvo:
+        H_sys_list = H_sys.to_list()
+        H_sys = H_sys_list[0]
+    return H_sys.type == "oper"
+
+
+def _h_sup_dim(H_sys, isHamiltonian):
+    """ Return the super operator dimension for the given hamiltonian.
+    """
+    if type(H_sys) is QobjEvo:
+        H_sys_list = H_sys.to_list()
+        H_shape = H_sys_list[0].shape
+    else:
+        H_shape = H_sys.shape
+    H_sup_dim = H_shape[0] ** 2 if isHamiltonian else H_shape[0]
+    return H_sup_dim
 
 
 class BosonicHEOMSolver(object):
@@ -202,191 +309,21 @@ class BosonicHEOMSolver(object):
     def __init__(
         self, H_sys, coup_op, ckAR, ckAI, vkAR, vkAI, N_cut, options=None
     ):
-
-        self._reset()
-        if options is None:
-            self.options = Options()
-        else:
-            self.options = options
-
+        self.H_sys = _convert_h_sys(H_sys)
+        self.options = Options() if options is None else options
+        self.isTimeDep = isinstance(self.H_sys, QobjEvo)
+        self.isHamiltonian = _h_sys_is_hamiltonian(self.H_sys)
+        self._sup_dim = _h_sup_dim(self.H_sys, self.isHamiltonian)
+        self.N_cut = N_cut
+        coup_op = _convert_coup_op(coup_op, len(ckAR) + len(ckAI))
+        ckAR, ckAI, vkAR, vkAI = _convert_bath_exponents_bosonic(
+            ckAR, ckAI, vkAR, vkAI)
+        self.coup_op, self.ck, self.vk, self.NR, self.NI = (
+            _mangle_bath_exponents_bosonic(coup_op, ckAR, ckAI, vkAR, vkAI)
+        )
         self.progress_bar = BaseProgressBar()
-        # set other attributes
-        self._configure(H_sys, coup_op, ckAR, ckAI, vkAR, vkAI, N_cut, options)
 
-    def _reset(self):
-        """
-        Reset any attributes to default values
-        """
-        self.H_sys = None
-        self.coup_op = None
-        self.ckAR = []
-        self.ckAI = []
-        self.vkAR = []
-        self.vkAI = []
-        self.N_cut = 5
-        self.options = None
-        self.ode = None
-
-    def _process_input(
-        self, H_sys, coup_op, ckAR, ckAI, vkAR, vkAI, N_cut, options=None
-    ):
-        """
-        Type-checks provided input
-        Merges certain bath properties if conditions are met.
-        """
-
-        # Checks for Hamiltonian
-
-        _check_Hsys(H_sys)
-
-        # Checks for coupling operator
-        _check_coup_ops(coup_op, len(ckAR) + len(ckAI))
-
-        # Checks for ckAR, ckAI, vkAR, vkAI
-
-        if (
-            type(ckAR) != list
-            or type(vkAR) != list
-            or type(ckAR) != list
-            or type(ckAI) != list
-        ):
-            raise RuntimeError("Expected list for coefficients.")
-
-        if (
-            type(ckAR[0]) == list
-            or type(vkAR[0]) == list
-            or type(ckAR[0]) == list
-            or type(ckAI[0]) == list
-        ):
-            raise RuntimeError(
-                "Lists of coefficients should be one dimensional."
-            )
-
-        if len(ckAR) != len(vkAR) or len(ckAI) != len(vkAI):
-            raise RuntimeError(
-                "Spectral density correlation coefficients not "
-                + "specified correctly."
-            )
-
-        # Check for close vk's.
-        # Just gives warning, and continues.
-        for i in range(len(vkAR)):
-            for j in range(i + 1, len(vkAR)):
-                if np.isclose(vkAR[i], vkAR[j], rtol=1e-5, atol=1e-7):
-                    warnings.warn(
-                        "Expected simplified input. "
-                        "Consider collating equal frequency parameters."
-                    )
-
-        for i in range(len(vkAI)):
-            for j in range(i + 1, len(vkAI)):
-                if np.isclose(vkAI[i], vkAI[j], rtol=1e-5, atol=1e-7):
-                    warnings.warn(
-                        "Expected simplified input.  "
-                        "Consider collating equal frequency parameters."
-                    )
-
-        if type(H_sys) == list:
-            self.H_sys = QobjEvo(H_sys)
-        else:
-            self.H_sys = H_sys
-
-        nr = len(ckAR)
-        ni = len(ckAI)
-        ckAR = list(ckAR)
-        ckAI = list(ckAI)
-        vkAR = list(vkAR)
-        vkAI = list(vkAI)
-        coup_op = deepcopy(coup_op)
-
-        # Check to make list of coupling operators
-
-        if type(coup_op) != list:
-            coup_op = [coup_op for i in range(nr + ni)]
-
-        # Check for handling the case where real and imaginary exponents
-        # are close.
-        # This happens in the normal overdamped drude-lorentz case.
-        # We give a warning to tell the user this collation is being done
-        # automatically.
-        common_ck = []
-        real_indices = []
-        common_vk = []
-        img_indices = []
-        common_coup_op = []
-        for i in range(len(vkAR)):
-            for j in range(len(vkAI)):
-                if np.isclose(
-                    vkAR[i], vkAI[j], rtol=1e-5, atol=1e-7) and np.allclose(
-                    coup_op[i], coup_op[nr + j], rtol=1e-5, atol=1e-7
-                ):
-                    warnings.warn(
-                        "Two similar real and imag exponents have been "
-                        "collated automatically."
-                    )
-                    common_ck.append(ckAR[i])
-                    common_ck.append(ckAI[j])
-                    common_vk.append(vkAR[i])
-                    common_vk.append(vkAI[j])
-                    real_indices.append(i)
-                    img_indices.append(j)
-                    common_coup_op.append(coup_op[i])
-
-        for i in sorted(real_indices, reverse=True):
-            ckAR.pop(i)
-            vkAR.pop(i)
-
-        for i in sorted(img_indices, reverse=True):
-            ckAI.pop(i)
-            vkAI.pop(i)
-
-        # Check to similarly truncate coupling operators
-
-        img_coup_ops = [x + nr for x in img_indices]
-        coup_op_indices = real_indices + sorted(img_coup_ops)
-        for i in sorted(coup_op_indices, reverse=True):
-            coup_op.pop(i)
-
-        coup_op += common_coup_op
-
-        # Assigns to attributes
-
-        self.coup_op = coup_op
-        self.ckAR = ckAR
-        self.ckAI = ckAI
-        self.vkAR = vkAR
-        self.vkAI = vkAI
-        self.common_ck = common_ck
-        self.common_vk = common_vk
-        self.N_cut = int(N_cut)
-        self.ck = np.array(ckAR + ckAI + common_ck).astype(complex)
-        self.vk = np.array(vkAR + vkAI + common_vk).astype(complex)
-        self.NR = len(ckAR)
-        self.NI = len(ckAI)
-
-        # Checks and sets flags for Hamiltonian type
-
-        self.isHamiltonian = True
-        self.isTimeDep = False
-
-        if type(self.H_sys) is QobjEvo:
-            self.H_sys_list = self.H_sys.to_list()
-
-            if self.H_sys_list[0].type == "oper":
-                self.isHamiltonian = True
-            else:
-                self.isHamiltonian = False
-
-            self.isTimeDep = True
-
-        else:
-            if self.H_sys.type == "oper":
-                self.isHamiltonian = True
-            else:
-                self.isHamiltonian = False
-
-        if isinstance(options, Options):
-            self.options = options
+        self._configure_solver()
 
     def boson_grad_n(self, he_n):
         """
@@ -516,8 +453,9 @@ class BosonicHEOMSolver(object):
         if self.isHamiltonian:
 
             if self.isTimeDep:
-                self.N = self.H_sys_list[0].shape[0]
-                self.L = liouvillian(self.H_sys_list[0], []).data
+                H_sys_list = self.H_sys.to_list()
+                self.N = H_sys_list[0].shape[0]
+                self.L = liouvillian(H_sys_list[0], []).data
 
             else:
                 self.N = self.H_sys.shape[0]
@@ -525,8 +463,9 @@ class BosonicHEOMSolver(object):
 
         else:
             if self.isTimeDep:
-                self.N = int(np.sqrt(self.H_sys_list[0].shape[0]))
-                self.L = self.H_sys_list[0].data
+                H_sys_list = self.H_sys.to_list()
+                self.N = int(np.sqrt(H_sys_list[0].shape[0]))
+                self.L = H_sys_list[0].data
 
             else:
                 self.N = int(np.sqrt(self.H_sys.shape[0]))
@@ -552,53 +491,19 @@ class BosonicHEOMSolver(object):
         # return output
         return self.L_helems, self.nhe
 
-    def _configure(
-        self, H_sys, coup_op, ckAR, ckAI, vkAR, vkAI, N_cut, options=None
-    ):
-        """
-        Configure the solver using the passed parameters
-        The parameters are described in the class attributes, unless there
-        is some specific behaviour
-
-        Parameters
-        ----------
-        options : :class:`qutip.solver.Options`
-            Generic solver options.
-            If set to None the default options will be used
-        """
-
-        # Type checks the input and truncates exponents if necessary
-
-        self._process_input(
-            H_sys, coup_op, ckAR, ckAI, vkAR, vkAI, N_cut, options=None)
-
-        # Sets variables locally for configuring solver
-
-        options = self.options
-        H = self.H_sys
-        ckAR = self.ckAR
-        ckAI = self.ckAI
-        vkAR = self.vkAR
-        vkAI = self.vkAI
-
-        # Passing data to bosonic solver
-
+    def _configure_solver(self):
+        """ Set up the solver. """
         RHSmat, nstates = self._boson_solver()
         RHSmat = RHSmat.tocsr()
 
-        # Setting up solver
-
-        solver = None
-
         if self.isTimeDep:
-
             solver_params = []
             # TODO: Does the solver require a constant_func still or can
             #       we just add [RHSmat]?
             constant_func = lambda x: 1.0
             h_identity_mat = sp.identity(nstates, format="csr")
             solver_params.append([RHSmat, constant_func])
-            H_list = self.H_sys_list
+            H_list = self.H_sys.to_list()
 
             # Store each time dependent component
             for idx in range(1, len(H_list)):
@@ -609,46 +514,24 @@ class BosonicHEOMSolver(object):
 
             solver = scipy.integrate.ode(_dsuper_list_td)
             solver.set_f_params(solver_params)
-
         else:
-
             solver = scipy.integrate.ode(cy_ode_rhs)
             solver.set_f_params(RHSmat.data, RHSmat.indices, RHSmat.indptr)
 
-        # Sets options for solver
-
         solver.set_integrator(
             "zvode",
-            method=options.method,
-            order=options.order,
-            atol=options.atol,
-            rtol=options.rtol,
-            nsteps=options.nsteps,
-            first_step=options.first_step,
-            min_step=options.min_step,
-            max_step=options.max_step,
+            method=self.options.method,
+            order=self.options.order,
+            atol=self.options.atol,
+            rtol=self.options.rtol,
+            nsteps=self.options.nsteps,
+            first_step=self.options.first_step,
+            min_step=self.options.min_step,
+            max_step=self.options.max_step,
         )
-
-        # Sets attributes related to solver
 
         self._ode = solver
         self.RHSmat = RHSmat
-        self._configured = True
-
-        if self.isHamiltonian:
-            if self.isTimeDep:
-                self._sup_dim = (
-                    self.H_sys_list[0].shape[0] * self.H_sys_list[0].shape[0]
-                )
-            else:
-                self._sup_dim = H.shape[0] * H.shape[0]
-        else:
-            if self.isTimeDep:
-                self._sup_dim = (
-                    self.H_sys_list[0].shape[0]
-                )
-            else:
-                self._sup_dim = H.shape[0]
 
     def steady_state(
         self, max_iter_refine=100, use_mkl=False, weighted_matching=False
@@ -767,9 +650,6 @@ class BosonicHEOMSolver(object):
         dims = self.coup_op[0].dims
         shape = self.coup_op[0].shape
 
-        if not self._configured:
-            raise RuntimeError("Solver must be configured before it is run")
-
         output = Result()
         output.solver = "hsolve"
         output.times = tlist
@@ -830,9 +710,9 @@ class HSolverDL(BosonicHEOMSolver):
     HEOM solver based on the Drude-Lorentz model for spectral density.
     Drude-Lorentz bath the correlation functions can be exactly analytically
     expressed as a sum of exponentials.
-    This sub-class is included to give backwards compatability with the older
-    implentation in qutip.
 
+    This sub-class is included to give backwards compatability with the older
+    implentation in qutip.nonmarkov.heom.
 
     Attributes
     ----------
@@ -852,111 +732,65 @@ class HSolverDL(BosonicHEOMSolver):
     options : :class:`qutip.solver.Options`
         Generic solver options.
         If set to None the default options will be used
-
-
     """
 
     def __init__(
         self, H_sys, coup_op, coup_strength, temperature,
         N_cut, N_exp, cut_freq, bnd_cut_approx=False, options=None,
     ):
-        self._reset()
-
-        if options is None:
-            self.options = Options()
-        else:
-            self.options = options
-
-        self.progress_bar = BaseProgressBar()
-
-        # the other attributes will be set in the configure method
-        self._configure(
-            H_sys, coup_op, coup_strength, temperature,
-            N_cut, N_exp, cut_freq,
-            bnd_cut_approx=bnd_cut_approx,
+        ckAR, ckAI, vkAR, vkAI = self._calc_matsubara_params(
+            lam=coup_strength,
+            gamma=cut_freq,
+            Nk=N_exp,
+            T=temperature
         )
 
-    def _reset(self):
-        """
-        Reset any attributes to default values
-        """
-        BosonicHEOMSolver._reset(self)
+        if bnd_cut_approx:
+            L_bnd = self._calc_bound_cut_liouvillian(
+                Q=coup_op,
+                lam=coup_strength,
+                gamma=cut_freq,
+                Nk=N_exp,
+                T=temperature
+            )
+            H_sys = _convert_h_sys(H_sys)
+            H_sys = liouvillian(H_sys) + L_bnd
 
-        self.coup_strength = 0.0
-        self.cut_freq = 0.0
-        self.temperature = 1.0
-        self.N_exp = 2
+        super().__init__(
+            H_sys,
+            coup_op=coup_op,
+            ckAR=ckAR, ckAI=ckAI, vkAR=vkAR, vkAI=vkAI,
+            N_cut=N_cut,
+        )
 
-    def _configure(
-        self, H_sys, coup_op, coup_strength, temperature,
-        N_cut, N_exp,  cut_freq,
-        bnd_cut_approx=None, options=None
-    ):
-        """
-        Configure the correlation function parameters using the required
-        decompostion, and then use the parent class BosonicHEOMSolver to check
-        input and construct RHS.
-
-        The parameters are described in the class attributes, unless there
-        is some specific behaviour
-        """
+        # store input parameters as attributes for politeness
         self.coup_strength = coup_strength
         self.cut_freq = cut_freq
         self.temperature = temperature
         self.N_exp = N_exp
+        self.bnd_cut_approx = bnd_cut_approx
 
-        if bnd_cut_approx is not None:
-            self.bnd_cut_approx = bnd_cut_approx
+    def _calc_bound_cut_liouvillian(self, Q, lam, gamma, Nk, T):
+        """ Calculate the hierarchy terminator term for the Liouvillian. """
+        beta = 1 / T
 
-        options = self.options
-
-        ckAR, ckAI, vkAR, vkAI = self._calc_matsubara_params()
-
-        Q = coup_op
-
-        if bnd_cut_approx:
-            # do version with tanimura terminator
-            lam = self.coup_strength
-            gamma = self.cut_freq
-            T = self.temperature
-            beta = 1/T
-            Nk = self.N_exp
-
-            op = -2*spre(Q)*spost(Q.dag()) + spre(Q.dag()*Q) + spost(Q.dag()*Q)
-            approx_factr = ((2 * lam / (beta * gamma)) - 1j*lam)
-            approx_factr -= (
-                lam * gamma * (-1.0j + 1 / np.tan(gamma / (2 * T))) / gamma
-            )
-
-            for k in range(1, Nk + 1):
-                vk = 2 * np.pi * k * T
-                approx_factr -= (
-                    (4 * lam * gamma * T * vk / (vk**2 - gamma**2)) / vk
-                )
-
-            L_bnd = -approx_factr*op
-            H_sys = liouvillian(H_sys) + L_bnd
-
-        NR = len(ckAR)
-        NI = len(ckAI)
-        Q2 = [Q for kk in range(NR+NI)]
-
-        BosonicHEOMSolver._configure(
-            self, H_sys, Q2, ckAR, ckAI, vkAR, vkAI, N_cut, options
+        op = -2*spre(Q)*spost(Q.dag()) + spre(Q.dag()*Q) + spost(Q.dag()*Q)
+        approx_factr = ((2 * lam / (beta * gamma)) - 1j * lam)
+        approx_factr -= (
+            lam * gamma * (-1.0j + 1 / np.tan(gamma / (2 * T))) / gamma
         )
 
-    def _calc_matsubara_params(self):
-        """
-        Calculate the Matsubara coefficents and frequencies
-        Returns
-        -------
-        ckAR, ckAI, vkAR, vkAI: list(complex)
-        """
-        lam = self.coup_strength
-        gamma = self.cut_freq
-        Nk = self.N_exp
-        T = self.temperature
+        for k in range(1, Nk + 1):
+            vk = 2 * np.pi * k * T
+            approx_factr -= (
+                (4 * lam * gamma * T * vk / (vk**2 - gamma**2)) / vk
+            )
 
+        L_bnd = -approx_factr * op
+        return L_bnd
+
+    def _calc_matsubara_params(self, lam, gamma, Nk, T):
+        """ Calculate the Matsubara coefficents and frequencies. """
         ckAR = [lam * gamma * (1/np.tan(gamma / (2 * T)))]
         ckAR.extend([
             (4 * lam * gamma * T * 2 * np.pi * k * T /
@@ -1008,91 +842,17 @@ class FermionicHEOMSolver(object):
     """
 
     def __init__(self, H_sys, coup_op, ck, vk, N_cut, options=None):
-        self._reset()
-        if options is None:
-            self.options = Options()
-        else:
-            self.options = options
-        # set other attributes
-        self._configure(H_sys, coup_op, ck, vk, N_cut, options)
+        self.H_sys = _convert_h_sys(H_sys)
+        self.options = Options() if options is None else options
+        self.isTimeDep = isinstance(self.H_sys, QobjEvo)
+        self.isHamiltonian = _h_sys_is_hamiltonian(self.H_sys)
+        self._sup_dim = _h_sup_dim(self.H_sys, self.isHamiltonian)
+        self.N_cut = N_cut
+        self.ck, self.vk = _convert_bath_exponents_fermionic(ck, vk)
+        self.coup_op = _convert_coup_op(coup_op, len(ck))
         self.progress_bar = BaseProgressBar()
 
-    def _reset(self):
-        """
-        Reset any attributes to default values
-        """
-        self.H_sys = None
-        self.coup_op = None
-        self.ck = []
-        self.vk = []
-        self.N_cut = 5
-        self.options = None
-        self.ode = None
-
-    def _process_input(self, H_sys, coup_op, ck, vk, N_cut, options=None):
-        """
-        Type-checks provided input
-
-        """
-        # Checks for Hamiltonian
-        _check_Hsys(H_sys)
-
-        # Checks for coupling operator
-        _check_coup_ops(coup_op, len(ck))
-
-        # Checks for cks and vks
-        if (
-            type(ck) != list
-            or type(vk) != list
-            or type(ck[0]) != list
-            or type(vk[0]) != list
-        ):
-            raise RuntimeError("Expected list of lists.")
-
-        if len(ck) != len(vk):
-            raise RuntimeError("Exponents supplied incorrectly.")
-
-        for idx in range(len(ck)):
-            if len(ck[idx]) != len(vk[idx]):
-                raise RuntimeError("Exponents supplied incorrectly.")
-
-        # Make list of coupling operators
-        if type(coup_op) != list:
-            coup_op = [coup_op for elem in range(len(ck))]
-
-        if type(H_sys) == list:
-            self.H_sys = QobjEvo(H_sys)
-        else:
-            self.H_sys = H_sys
-
-        self.coup_op = coup_op
-        self.ck = ck
-        self.vk = vk
-        self.N_cut = int(N_cut)
-
-        # Checks and sets flags for Hamiltonian type
-
-        self.isHamiltonian = True
-        self.isTimeDep = False
-
-        if type(self.H_sys) is QobjEvo:
-            self.H_sys_list = self.H_sys.to_list()
-
-            if self.H_sys_list[0].type == "oper":
-                self.isHamiltonian = True
-            else:
-                self.isHamiltonian = False
-
-            self.isTimeDep = True
-
-        else:
-            if self.H_sys.type == "oper":
-                self.isHamiltonian = True
-            else:
-                self.isHamiltonian = False
-
-        if isinstance(options, Options):
-            self.options = options
+        self._configure_solver()
 
     def fermion_grad_n(self, he_n):
         """
@@ -1229,8 +989,9 @@ class FermionicHEOMSolver(object):
         # Separate cases for Hamiltonian and Liouvillian
         if self.isHamiltonian:
             if self.isTimeDep:
-                self.N = self.H_sys_list.shape[0]
-                self.L = liouvillian(self.H_sys_list[0], []).data
+                H_sys_list = self.H_sys.to_list()
+                self.N = H_sys_list[0].shape[0]
+                self.L = liouvillian(H_sys_list[0], []).data
 
             else:
                 self.N = self.H_sys.shape[0]
@@ -1239,8 +1000,9 @@ class FermionicHEOMSolver(object):
         else:
 
             if self.isTimeDep:
-                self.N = int(np.sqrt(self.H_sys_list[0].shape[0]))
-                self.L = self.H_sys_list[0].data
+                H_sys_list = self.H_sys.to_list()
+                self.N = int(np.sqrt(H_sys_list[0].shape[0]))
+                self.L = H_sys_list[0].data
 
             else:
                 self.N = int(np.sqrt(self.H_sys.shape[0]))
@@ -1271,29 +1033,9 @@ class FermionicHEOMSolver(object):
         # return output
         return self.L_helems, self.nhe
 
-    def _configure(self, H_sys, coup_op, ck, vk, N_cut, options=None):
-        """
-        Configure the solver using the passed parameters
-        The parameters are described in the class attributes, unless there
-        is some specific behaviour
-
-        Parameters
-        ----------
-        options : :class:`qutip.solver.Options`
-            Generic solver options.
-            If set to None the default options will be used
-        """
-        # Type check input
-        self._process_input(H_sys, coup_op, ck, vk, N_cut, options)
-
-        # Setting variables locally
-
-        options = self.options
-        H = self.H_sys
-        ck = self.ck
-        vk = self.vk
-
-        self.len_list = [len(elem) for elem in ck]
+    def _configure_solver(self):
+        """ Configure the solver """
+        self.len_list = [len(elem) for elem in self.ck]
         self.flat_ck = [elem for row in self.ck for elem in row]
         self.flat_vk = [elem for row in self.vk for elem in row]
         self.offsets = [0]
@@ -1302,21 +1044,13 @@ class FermionicHEOMSolver(object):
             self.offsets.append(curr_sum + self.len_list[i])
             curr_sum += self.len_list[i]
 
-        # Passing Hamiltonian
-        # Passing data to fermionic solver
-
         RHSmat, nstates = self._fermion_solver()
         RHSmat = RHSmat.tocsr()
 
-        # Setting up solver
-
-        solver = None
-
         if self.isTimeDep:
-
             solver_params = []
             h_identity_mat = sp.identity(nstates, format="csr")
-            H_list = self.H_sys_list
+            H_list = self.H_sys.to_list()
 
             # Store each time dependent component
             for idx in range(1, len(H_list)):
@@ -1329,45 +1063,24 @@ class FermionicHEOMSolver(object):
 
             solver = scipy.integrate.ode(_dsuper_list_td)
             solver.set_f_params(solver_params)
-
         else:
-
             solver = scipy.integrate.ode(cy_ode_rhs)
             solver.set_f_params(RHSmat.data, RHSmat.indices, RHSmat.indptr)
 
-        # Sets options for solver
-
         solver.set_integrator(
             "zvode",
-            method=options.method,
-            order=options.order,
-            atol=options.atol,
-            rtol=options.rtol,
-            nsteps=options.nsteps,
-            first_step=options.first_step,
-            min_step=options.min_step,
-            max_step=options.max_step,
+            method=self.options.method,
+            order=self.options.order,
+            atol=self.options.atol,
+            rtol=self.options.rtol,
+            nsteps=self.options.nsteps,
+            first_step=self.options.first_step,
+            min_step=self.options.min_step,
+            max_step=self.options.max_step,
         )
-
-        # Sets attributes related to solver
 
         self._ode = solver
         self.RHSmat = RHSmat
-        self._configured = True
-        if self.isHamiltonian:
-            if self.isTimeDep:
-                self._sup_dim = (
-                    self.H_sys_list[0].shape[0] * self.H_sys_list[0].shape[0]
-                )
-            else:
-                self._sup_dim = H.shape[0] * H.shape[0]
-        else:
-            if self.isTimeDep:
-                self._sup_dim = (
-                    self.H_sys_list[0].shape[0]
-                )
-            else:
-                self._sup_dim = H.shape[0]
 
     def steady_state(
         self, max_iter_refine=100, use_mkl=False, weighted_matching=False
@@ -1439,7 +1152,11 @@ class FermionicHEOMSolver(object):
             LU = splu(L)
             solution = LU.solve(b_mat)
 
-        dims = self.H_sys.dims
+        if self.isTimeDep:
+            H_sys_list = self.H_sys.to_list()
+            dims = H_sys_list[0].dims
+        else:
+            dims = self.H_sys.dims
         data = dense2D_to_fastcsr_fmode(vec2mat(solution[:sup_dim]), n, n)
         data = 0.5 * (data + data.H)
 
@@ -1483,9 +1200,6 @@ class FermionicHEOMSolver(object):
         solver = self._ode
         dims = self.coup_op[0].dims
         shape = self.coup_op[0].shape
-
-        if not self._configured:
-            raise RuntimeError("Solver must be configured before it is run")
 
         output = Result()
         output.solver = "hsolve"
