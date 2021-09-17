@@ -31,7 +31,11 @@ def test_state_dictionaries():
 
 
 @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
-def test_discrete_level_model_FermionicHEOMSolver():
+@pytest.mark.parametrize(['fake_timedep'], [
+    pytest.param(False, id="static"),
+    pytest.param(True, id="timedep"),
+])
+def test_discrete_level_model_FermionicHEOMSolver(fake_timedep):
     """
     FermionicHEOMSolver: compare to discrete-level current analytics
     """
@@ -140,6 +144,12 @@ def test_discrete_level_model_FermionicHEOMSolver():
 
     H0 = e1 * d1.dag() * d1
 
+    shape = H0.shape[0]
+    dims = H0.dims
+
+    if fake_timedep:
+        H0 = [H0]
+
     # There are two leads, but we seperate the interaction into two terms,
     # labelled with \sigma=\pm such that there are 4 interaction operators
     # (See paper)
@@ -208,9 +218,6 @@ def test_discrete_level_model_FermionicHEOMSolver():
         return aux, aux_heom_indices, idx2state
 
     K = Kk
-
-    shape = H0.shape[0]
-    dims = H0.dims
 
     aux_1_list, aux1_indices, idx2state = get_aux_matrices(
         [fullssP2], 1, 4, K, Ncc, shape, dims)

@@ -12,7 +12,7 @@ from qutip import (
     Qobj, QobjEvo, sigmaz, sigmax, basis, expect, Options
 )
 from qutip.nonmarkov.bofin import (
-    _check_Hsys,
+    _convert_h_sys,
     _heom_state_dictionaries,
     add_at_idx,
     BosonicHEOMSolver,
@@ -48,40 +48,37 @@ def test_state_dictionaries():
     assert nhe == total_nhe
 
 
-def test_check_H():
+def test_convert_h_sys():
     """Tests the function for checking system Hamiltonian"""
-    _check_Hsys(sigmax())
-    _check_Hsys([sigmax(), sigmaz()])
-    _check_Hsys([[sigmax(), np.sin], [sigmaz(), np.cos]])
-    _check_Hsys([[sigmax(), np.sin], [sigmaz(), np.cos]])
-    _check_Hsys(QobjEvo([sigmaz(), sigmax(), sigmaz()]))
+    _convert_h_sys(sigmax())
+    _convert_h_sys([sigmax(), sigmaz()])
+    _convert_h_sys([[sigmax(), np.sin], [sigmaz(), np.cos]])
+    _convert_h_sys([[sigmax(), np.sin], [sigmaz(), np.cos]])
+    _convert_h_sys(QobjEvo([sigmaz(), sigmax(), sigmaz()]))
 
-    err_msg = r"Hamiltonian format is incorrect."
+    with pytest.raises(TypeError) as err:
+        _convert_h_sys(sigmax().full())
+    assert str(err.value) == (
+        "Hamiltonian (H_sys) has unsupported type: <class 'numpy.ndarray'>"
+    )
 
-    with pytest.raises(RuntimeError, match=err_msg):
-        _check_Hsys(sigmax().full())
-
-    with pytest.raises(RuntimeError, match=err_msg):
-        _check_Hsys([[1, 0], [0, 1]])
-
-    with pytest.raises(RuntimeError, match=err_msg):
-        _check_Hsys([sigmax(), [[1, 0], [0, 1]]])
-
-    err_msg = r"Incorrect time dependent function for Hamiltonian."
-
-    with pytest.raises(RuntimeError, match=err_msg):
-        _check_Hsys([[sigmax(), [0, np.pi]]])
-
-    with pytest.raises(RuntimeError, match=err_msg):
-        _check_Hsys([[sigmax(), np.sin(0.5)]])
+    with pytest.raises(ValueError) as err:
+        _convert_h_sys([[1, 0], [0, 1]])
+    assert str(err.value) == (
+        "Hamiltonian (H_sys) of type list cannot be converted to QObjEvo"
+    )
+    assert isinstance(err.value.__cause__, TypeError)
+    assert str(err.value.__cause__) == "Incorrect Q_object specification"
 
 
 @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
-@pytest.mark.parametrize(['bnd_cut_approx', 'tol'], [
-    pytest.param(True, 1e-4, id="bnd_cut_approx"),
-    pytest.param(False,  1e-3, id="no_bnd_cut_approx"),
+@pytest.mark.parametrize(['bnd_cut_approx', 'tol', 'fake_timedep'], [
+    pytest.param(True, 1e-4, False, id="bnd_cut_approx_static"),
+    pytest.param(False,  1e-3, False, id="no_bnd_cut_approx_static"),
+    pytest.param(True, 1e-4, True, id="bnd_cut_approx_timedep"),
+    pytest.param(False,  1e-3, True, id="no_bnd_cut_approx_timedep"),
 ])
-def test_pure_dephasing_model_HSolverDL(bnd_cut_approx,  tol):
+def test_pure_dephasing_model_HSolverDL(bnd_cut_approx, tol, fake_timedep):
     """
     HSolverDL: Compare with pure-dephasing analytical assert that the
     analytical result and HEOM produce the same time dephasing evoltion.
@@ -102,6 +99,8 @@ def test_pure_dephasing_model_HSolverDL(bnd_cut_approx,  tol):
                 for t in times]
 
     H_sys = Qobj(np.zeros((2, 2)))
+    if fake_timedep:
+        H_sys = [H_sys]
     Q = sigmaz()
     initial_state = 0.5*Qobj(np.ones((2, 2)))
     projector = basis(2, 0) * basis(2, 1).dag()
@@ -125,7 +124,11 @@ def test_pure_dephasing_model_HSolverDL(bnd_cut_approx,  tol):
 
 
 @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
-def test_pure_dephasing_model_BosonicHEOMSolver():
+@pytest.mark.parametrize(['fake_timedep'], [
+    pytest.param(False, id="static"),
+    pytest.param(True, id="timedep"),
+])
+def test_pure_dephasing_model_BosonicHEOMSolver(fake_timedep):
     """
     BosonicHEOMSolver: Compare with pure-dephasing analytical assert that the
     analytical result and HEOM produce the same time dephasing evoltion.
@@ -159,6 +162,8 @@ def test_pure_dephasing_model_BosonicHEOMSolver():
     vkAI = [gamma]
 
     H_sys = Qobj(np.zeros((2, 2)))
+    if fake_timedep:
+        H_sys = [H_sys]
     Q = sigmaz()
 
     NR = len(ckAR)
