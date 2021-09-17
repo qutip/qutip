@@ -38,6 +38,7 @@ cdef extern from "src/matmul_csr_vector.hpp" nogil:
 
 __all__ = [
     'matmul', 'matmul_csr', 'matmul_dense', 'matmul_csr_dense_dense',
+    'element_wise_multiply', 'element_wise_multiply_csr', 'element_wise_multiply_dense',
 ]
 
 
@@ -289,6 +290,61 @@ cpdef Dense matmul_dense(Dense left, Dense right, double complex scale=1, Dense 
     return out
 
 
+cpdef CSR element_wise_multiply_csr(CSR left, CSR right):
+    """Element-wise multiplication of CSR matrices."""
+    if left.shape[0] != right.shape[0] or left.shape[1] != right.shape[1]:
+        raise ValueError(
+            "incompatible matrix shapes "
+            + str(left.shape)
+            + " and "
+            + str(right.shape)
+        )
+    cdef idxint col_left, left_nnz = csr.nnz(left)
+    cdef idxint col_right, right_nnz = csr.nnz(right)
+    cdef idxint ptr_left, ptr_right, ptr_left_max, ptr_right_max
+    cdef idxint row, nnz=0, ncols=left.shape[1]
+    cdef CSR out
+    # Fast paths for zero matrices.
+    if right_nnz == 0 or left_nnz == 0:
+        return csr.zeros(left.shape[0], left.shape[1])
+    # Main path.
+    out = csr.empty(left.shape[0], left.shape[1], max(left_nnz, right_nnz))
+    out.row_index[0] = nnz
+    ptr_left_max = ptr_right_max = 0
+    for row in range(left.shape[0]):
+        ptr_left = ptr_left_max
+        ptr_left_max = left.row_index[row + 1]
+        ptr_right = ptr_right_max
+        ptr_right_max = right.row_index[row + 1]
+        while ptr_left < ptr_left_max and ptr_right < ptr_right_max:
+            col_left = left.col_index[ptr_left] if ptr_left < ptr_left_max else ncols + 1
+            col_right = right.col_index[ptr_right] if ptr_right < ptr_right_max else ncols + 1
+            if col_left == col_right:
+                out.col_index[nnz] = col_left
+                out.data[nnz] = left.data[ptr_left] * right.data[ptr_right]
+                ptr_left += 1
+                ptr_right += 1
+                nnz += 1
+            elif col_left <= col_right:
+                ptr_left += 1
+            else:
+                ptr_right += 1
+        out.row_index[row + 1] = nnz
+    return out
+
+
+cpdef Dense element_wise_multiply_dense(Dense left, Dense right):
+    """Element-wise multiplication of Dense matrices."""
+    if left.shape[0] != right.shape[0] or left.shape[1] != right.shape[1]:
+        raise ValueError(
+            "incompatible matrix shapes "
+            + str(left.shape)
+            + " and "
+            + str(right.shape)
+        )
+    return Dense(left.as_ndarray() * right.as_ndarray())
+
+
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
 
@@ -336,6 +392,25 @@ matmul.add_specialisations([
     (CSR, Dense, Dense, matmul_csr_dense_dense),
     (Dense, Dense, Dense, matmul_dense),
 ], _defer=True)
+
+
+element_wise_multiply = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    ]),
+    name='element_wise_multiply',
+    module=__name__,
+    inputs=('left', 'right'),
+    out=True,
+)
+element_wise_multiply.__doc__ =\
+    """Element-wise multiplication of matrices."""
+element_wise_multiply.add_specialisations([
+    (CSR, CSR, CSR, element_wise_multiply_csr),
+    (Dense, Dense, Dense, element_wise_multiply_dense),
+], _defer=True)
+
 
 del _inspect, _Dispatcher
 
