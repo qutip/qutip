@@ -497,19 +497,15 @@ class BosonicHEOMSolver(object):
         RHSmat = RHSmat.tocsr()
 
         if self.isTimeDep:
-            solver_params = []
-            # TODO: Does the solver require a constant_func still or can
-            #       we just add [RHSmat]?
-            constant_func = lambda x: 1.0
             h_identity_mat = sp.identity(nstates, format="csr")
-            solver_params.append([RHSmat, constant_func])
             H_list = self.H_sys.to_list()
 
-            # Store each time dependent component
+            # store each time dependent component
+            solver_params = [[RHSmat]]
             for idx in range(1, len(H_list)):
                 temp_mat = sp.kron(
                     h_identity_mat, liouvillian(H_list[idx][0])
-                    )
+                )
                 solver_params.append([temp_mat, H_list[idx][1]])
 
             solver = scipy.integrate.ode(_dsuper_list_td)
@@ -1048,17 +1044,16 @@ class FermionicHEOMSolver(object):
         RHSmat = RHSmat.tocsr()
 
         if self.isTimeDep:
-            solver_params = []
             h_identity_mat = sp.identity(nstates, format="csr")
             H_list = self.H_sys.to_list()
 
-            # Store each time dependent component
+            # store each time dependent component
+            solver_params = [[RHSmat]]
             for idx in range(1, len(H_list)):
                 temp_mat = sp.kron(
                     h_identity_mat,
                     liouvillian(H_list[idx][0])
                 )
-
                 solver_params.append([temp_mat, H_list[idx][1]])
 
             solver = scipy.integrate.ode(_dsuper_list_td)
