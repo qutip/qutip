@@ -32,15 +32,15 @@ cdef np.ndarray[complex, ndim=1] normalize(complex[::1] psi):
 
 cdef class CyMcOde:
     cdef:
-        int steady_state, store_states, col_args
+        int steady_state, store_states, col_args, store_final_state
         int norm_steps, l_vec, num_ops
         double norm_t_tol, norm_tol
         list collapses
         list collapses_args
         list c_ops
         list n_ops
-        complex[:,::1] states_out
-        complex[:,::1] ss_out
+        object states_out
+        object ss_out
         double[::1] n_dp
 
     def __init__(self, ss, opt):
@@ -51,6 +51,7 @@ cdef class CyMcOde:
         self.norm_tol = opt.norm_tol
         self.steady_state = opt.steady_state_average
         self.store_states = opt.store_states or opt.average_states
+        self.store_final_state = opt.store_final_state
         self.collapses = []
         self.l_vec = self.c_ops[0].cte.shape[0]
         self.num_ops = len(ss.td_n_ops)
@@ -77,10 +78,11 @@ cdef class CyMcOde:
     @cython.wraparound(False)
     cdef void sumsteadystate(self, complex[::1] state):
         cdef int ii, jj, l_vec
+        cdef complex [:, ::1] _ss_out = self.ss_out
         l_vec = state.shape[0]
         for ii in range(l_vec):
-          for jj in range(l_vec):
-            self.ss_out[ii,jj] += state[ii]*conj(state[jj])
+            for jj in range(l_vec):
+                _ss_out[ii,jj] += state[ii] * conj(state[jj])
 
 
     @cython.boundscheck(False)
@@ -94,6 +96,7 @@ cdef class CyMcOde:
         cdef int ii, which, k
         cdef double norm2_prev, norm2_psi
         cdef double t_prev
+        cdef complex [:, ::1] _states_out
 
         if self.steady_state:
             self.sumsteadystate(out_psi)
@@ -102,8 +105,9 @@ cdef class CyMcOde:
             self.states_out = np.zeros((num_times, self.l_vec), dtype=complex)
             for ii in range(self.l_vec):
                 self.states_out[0, ii] = out_psi[ii]
-        else:
+        elif self.store_final_state:
             self.states_out = np.zeros((1, self.l_vec), dtype=complex)
+        _states_out = self.states_out
 
         e_call.step(0, out_psi)
         rand_vals = prng.rand(2)
@@ -152,11 +156,11 @@ cdef class CyMcOde:
                 self.sumsteadystate(out_psi)
             if self.store_states:
                 for ii in range(self.l_vec):
-                    self.states_out[k, ii] = out_psi[ii]
-        if not self.store_states:
+                    _states_out[k, ii] = out_psi[ii]
+        if not self.store_states and self.store_final_state:
             for ii in range(self.l_vec):
-                self.states_out[0, ii] = out_psi[ii]
-        return np.array(self.states_out), np.array(self.ss_out), self.collapses
+                _states_out[0, ii] = out_psi[ii]
+        return self.states_out, self.ss_out, self.collapses
 
 
     @cython.cdivision(True)
@@ -341,7 +345,7 @@ cdef class CyMcOdeDiag(CyMcOde):
             self.states_out = np.zeros((num_times, self.l_vec), dtype=complex)
             for ii in range(self.l_vec):
                 self.states_out[0, ii] = out_psi[ii]
-        else:
+        elif self.store_final_state:
             self.states_out = np.zeros((1, self.l_vec), dtype=complex)
 
         e_call.step(0, out_psi)
@@ -367,10 +371,10 @@ cdef class CyMcOdeDiag(CyMcOde):
             if self.store_states:
                 for ii in range(self.l_vec):
                     self.states_out[k, ii] = out_psi[ii]
-        if not self.store_states:
+        if not self.store_states and self.store_final_state:
             for ii in range(self.l_vec):
                 self.states_out[0, ii] = out_psi[ii]
-        return np.array(self.states_out), np.array(self.ss_out), self.collapses
+        return self.states_out, self.ss_out, self.collapses
 
     @cython.cdivision(True)
     @cython.boundscheck(False)
