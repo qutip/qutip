@@ -8,7 +8,6 @@ hierarchy equations of motion (HEOM).
 
 import warnings
 from copy import deepcopy
-from math import factorial
 
 import numpy as np
 import scipy.sparse as sp
@@ -27,65 +26,97 @@ from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
 from qutip.ui.progressbar import BaseProgressBar
 
 
-def add_at_idx(seq, k, val):
+class BathStates:
     """
-    Add (subtract) a value in the tuple at position k
-    """
-    list_seq = list(seq)
-    list_seq[k] += val
-    return tuple(list_seq)
+    A description of bath states coupled to quantum system in the hierarchical
+    equations of motion formulation.
 
-
-def prevhe(current_he, k, ncut):
-    """
-    Calculate the previous heirarchy index
-    for the current index `n`.
-    """
-    nprev = add_at_idx(current_he, k, -1)
-    if nprev[k] < 0:
-        return False
-    return nprev
-
-
-def nexthe(current_he, k, ncut):
-    """
-    Calculate the next heirarchy index
-    for the current index `n`.
-    """
-    nnext = add_at_idx(current_he, k, 1)
-    if sum(nnext) > ncut:
-        return False
-    return nnext
-
-
-def _heom_state_dictionaries(dims, excitations):
-    """
-    Return the number of states, and lookup-dictionaries for translating
-    a state tuple to a state index, and vice versa, for a system with a given
-    number of components and maximum number of excitations.
     Parameters
     ----------
-    dims: list
-        A list with the number of states in each sub-system.
-    excitations : integer
-        The maximum numbers of dimension
-    Returns
-    -------
-    nstates, state2idx, idx2state: integer, dict, dict
-        The number of states `nstates`, a dictionary for looking up state
-        indices from a state tuple, and a dictionary for looking up state
-        state tuples from state indices.
+    cutoff : int
+        The maximum number of excitations.
+    dims : list of int
+        The dimensions of each compontent system within the bath.
+
+    Attributes
+    ----------
+    cutoff : int
+        The maximum number of excitations.
+    dims : list of int
+        The dimensions of each compontent system within the bath.
+    states: list of tuples
+        A list of the state vectors within the bath.
+    n_states: int
+        Total number of states. Equivalent to ``len(bath.states)``.
     """
-    nstates = 0
-    state2idx = {}
-    idx2state = {}
+    def __init__(self, dims, cutoff):
+        self.cutoff = cutoff
+        self.dims = dims
+        self.states = list(state_number_enumerate(dims, cutoff))
+        self.n_states = len(self.states)
+        self._state_idx = {s: i for i, s in enumerate(self.states)}
 
-    for state in state_number_enumerate(dims, excitations):
-        state2idx[state] = nstates
-        idx2state[nstates] = state
-        nstates += 1
+    def idx(self, state):
+        """
+        Return the index of the state within the list of bath states,
+        i.e. within ``self.states``.
 
-    return nstates, state2idx, idx2state
+        Parameters
+        ----------
+        state : tuple
+            The state to look up.
+
+        Returns
+        -------
+        int
+            The index of the state within the list of bath states.
+        """
+        return self._state_idx[state]
+
+    def next(self, state, k):
+        """
+        Return the state with one more excitation in the k'th bath dimension
+        or ``None`` if adding the excitation would exceed the dimension or
+        bath cutoff.
+
+        Parameters
+        ----------
+        state : tuple
+            The state to add an excitation to.
+        k : int
+            The bath dimension to add the excitation to.
+
+        Returns
+        -------
+        tuple or None
+            The next state.
+        """
+        if state[k] >= self.dims[k] - 1:
+            return None
+        if sum(state) >= self.cutoff:
+            return None
+        return state[:k] + (state[k] + 1,) + state[k + 1:]
+
+    def prev(self, state, k):
+        """
+        Return the state with one fewer excitation in the k'th bath dimension
+        or ``None`` if the state has no exciations in the k'th bath dimension.
+
+        Parameters
+        ----------
+        state : tuple
+            The state to remove the excitation from.
+        k : int
+            The bath dimension to remove the excitation from.
+
+        Returns
+        -------
+        tuple or None
+            The previous state.
+        """
+        if state[k] <= 0:
+            return None
+        return state[:k] + (state[k] - 1,) + state[k + 1:]
 
 
 def _convert_h_sys(H_sys):
@@ -321,9 +352,23 @@ class BosonicHEOMSolver(object):
         self.coup_op, self.ck, self.vk, self.NR, self.NI = (
             _mangle_bath_exponents_bosonic(coup_op, ckAR, ckAI, vkAR, vkAI)
         )
+
         self.progress_bar = BaseProgressBar()
 
+        self.kcut = len(self.coup_op)
+        self.bath = BathStates([self.N_cut + 1] * self.kcut, self.N_cut)
+
         self._configure_solver()
+
+    def _pad_op(self, op, row_he, col_he):
+        """
+        Pad op into its correct position within the larger HEOM liouvillian
+        for the given row and column bath states.
+        """
+        nhe = self.bath.n_states
+        rowidx = self.bath.idx(row_he)
+        colidx = self.bath.idx(col_he)
+        return cy_pad_csr(op, nhe, nhe, rowidx, colidx)
 
     def boson_grad_n(self, he_n):
         """
@@ -362,10 +407,7 @@ class BosonicHEOMSolver(object):
             self.L.shape[0], dtype=complex, format="csr")
         L += sum_op
 
-        # Fill into larger L
-        nidx = self.he2idx[he_n]
-        L_he_temp = cy_pad_csr(L, self.nhe, self.nhe, nidx, nidx)
-        self.L_helems += L_he_temp
+        return self._pad_op(L, he_n, he_n)
 
     def boson_grad_prev(self, he_n, k, prev_he):
         """
@@ -394,11 +436,7 @@ class BosonicHEOMSolver(object):
             term2 = self.ck[k1 + 1] * (self.spreQ[k] + self.spostQ[k])
             op1 = norm_prev * (term1 + term2)
 
-        # Fill in larger L
-        rowidx = self.he2idx[he_n]
-        colidx = self.he2idx[prev_he]
-        L_he_temp = cy_pad_csr(op1, self.nhe, self.nhe, rowidx, colidx)
-        self.L_helems += L_he_temp
+        return self._pad_op(op1, he_n, prev_he)
 
     def boson_grad_next(self, he_n, k, next_he):
         """
@@ -407,48 +445,34 @@ class BosonicHEOMSolver(object):
         norm_next = 1
         op2 = -1j * norm_next * (self.spreQ[k] - self.spostQ[k])
 
-        # Fill in larger L
-        rowidx = self.he2idx[he_n]
-        colidx = self.he2idx[next_he]
-        L_he_temp = cy_pad_csr(op2, self.nhe, self.nhe, rowidx, colidx)
-        self.L_helems += L_he_temp
+        return self._pad_op(op2, he_n, next_he)
 
-    def boson_rhs(self):
+    def boson_rhs(self, N):
         """
         Make the RHS for bosonic case
         """
-        for n in self.idx2he:
-            he_n = self.idx2he[n]
-            self.boson_grad_n(he_n)
-            for k in range(self.kcut):
-                next_he = nexthe(he_n, k, self.N_cut)
-                prev_he = prevhe(he_n, k, self.N_cut)
-                if next_he and (next_he in self.he2idx):
-                    self.boson_grad_next(he_n, k, next_he)
-                if prev_he and (prev_he in self.he2idx):
-                    self.boson_grad_prev(he_n, k, prev_he)
+        nhe = len(self.bath.states)
+        RHS = sp.csr_matrix(
+            (nhe * N ** 2, nhe * N ** 2),
+            dtype=np.complex128,
+        )
+
+        for he_n in self.bath.states:
+            RHS += self.boson_grad_n(he_n)
+            for k in range(len(self.bath.dims)):
+                next_he = self.bath.next(he_n, k)
+                if next_he is not None:
+                    RHS += self.boson_grad_next(he_n, k, next_he)
+                prev_he = self.bath.prev(he_n, k)
+                if prev_he is not None:
+                    RHS += self.boson_grad_prev(he_n, k, prev_he)
+
+        return RHS
 
     def _boson_solver(self):
         """
         Utility function for bosonic solver.
         """
-        # Initialize liouvillians and others using inputs
-        self.kcut = int(
-            self.NR + self.NI + (len(self.ck) - self.NR - self.NI) / 2
-        )
-        nhe, he2idx, idx2he = _heom_state_dictionaries(
-            [self.N_cut + 1] * self.kcut, self.N_cut
-        )
-        self.nhe = nhe
-        self.he2idx = he2idx
-        self.idx2he = idx2he
-        total_nhe = int(
-            factorial(self.N_cut + self.kcut)
-            / (factorial(self.N_cut) * factorial(self.kcut))
-        )
-        # TODO: Move this assert to the docstring too
-        assert total_nhe == nhe
-
         # Separate cases for Hamiltonian and Liouvillian
         if self.isHamiltonian:
 
@@ -471,11 +495,6 @@ class BosonicHEOMSolver(object):
                 self.N = int(np.sqrt(self.H_sys.shape[0]))
                 self.L = self.H_sys.data
 
-        self.L_helems = sp.csr_matrix(
-            (self.nhe * self.N ** 2, self.nhe * self.N ** 2),
-            dtype=np.complex128,
-        )
-
         # Set coupling operators
         spreQ = []
         spostQ = []
@@ -485,19 +504,15 @@ class BosonicHEOMSolver(object):
         self.spreQ = spreQ
         self.spostQ = spostQ
 
-        # make right hand side
-        self.boson_rhs()
-
-        # return output
-        return self.L_helems, self.nhe
+        return self.boson_rhs(self.N)
 
     def _configure_solver(self):
         """ Set up the solver. """
-        RHSmat, nstates = self._boson_solver()
-        RHSmat = RHSmat.tocsr()
+        RHSmat = self._boson_solver()
+        assert isinstance(RHSmat, sp.csr_matrix)
 
         if self.isTimeDep:
-            h_identity_mat = sp.identity(nstates, format="csr")
+            h_identity_mat = sp.identity(self.bath.n_states, format="csr")
             H_list = self.H_sys.to_list()
 
             # store each time dependent component
@@ -553,7 +568,7 @@ class BosonicHEOMSolver(object):
             Further processing of this can be done with functions provided in
             example notebooks.
         """
-        nstates = self.nhe
+        nstates = self.bath.n_states
         sup_dim = self._sup_dim
         n = int(np.sqrt(sup_dim))
         L = deepcopy(self.RHSmat)
@@ -639,7 +654,7 @@ class BosonicHEOMSolver(object):
             If return_full == True, also returns ADOs as an additional
             numpy array.
         """
-
+        nstates = self.bath.n_states
         sup_dim = self._sup_dim
 
         solver = self._ode
@@ -653,7 +668,7 @@ class BosonicHEOMSolver(object):
         if not full_init:
             output.states.append(Qobj(rho0))
             rho0_flat = rho0.full().ravel('F')
-            rho0_he = np.zeros([sup_dim*self.nhe], dtype=complex)
+            rho0_he = np.zeros([sup_dim * nstates], dtype=complex)
             rho0_he[:sup_dim] = rho0_flat
             solver.set_initial_value(rho0_he, tlist[0])
         else:
@@ -683,9 +698,8 @@ class BosonicHEOMSolver(object):
 
         else:
             self.progress_bar.start(n_tsteps)
-            N_he = self.nhe
             N = shape[0]
-            hshape = (N_he, N**2)
+            hshape = (self.bath.n_states, N**2)
             full_hierarchy = [rho0.reshape(hshape)]
             for t_idx, t in enumerate(tlist):
                 if t_idx < n_tsteps - 1:
@@ -846,9 +860,23 @@ class FermionicHEOMSolver(object):
         self.N_cut = N_cut
         self.ck, self.vk = _convert_bath_exponents_fermionic(ck, vk)
         self.coup_op = _convert_coup_op(coup_op, len(ck))
+
         self.progress_bar = BaseProgressBar()
 
+        self.kcut = sum(len(cks) for cks in self.ck)
+        self.bath = BathStates([2] * self.kcut, self.N_cut)
+
         self._configure_solver()
+
+    def _pad_op(self, op, row_he, col_he):
+        """
+        Pad op into its correct position within the larger HEOM liouvillian
+        for the given row and column bath states.
+        """
+        nhe = self.bath.n_states
+        rowidx = self.bath.idx(row_he)
+        colidx = self.bath.idx(col_he)
+        return cy_pad_csr(op, nhe, nhe, rowidx, colidx)
 
     def fermion_grad_n(self, he_n):
         """
@@ -866,10 +894,7 @@ class FermionicHEOMSolver(object):
             self.L.shape[0], dtype=complex, format="csr")
         L += sum_op
 
-        # Fill into larger L
-        nidx = self.he2idx[he_n]
-        L_he_temp = cy_pad_csr(L, self.nhe, self.nhe, nidx, nidx)
-        self.L_helems += L_he_temp
+        return self._pad_op(L, he_n, he_n)
 
     def fermion_grad_prev(self, he_n, k, prev_he, idx):
         """
@@ -912,11 +937,8 @@ class FermionicHEOMSolver(object):
                 - (sign1 * np.conj(ck[self.offsets[k + 1] + idx]
                    * self.spostQ[k]))
             )
-        # Fill in larger L
-        rowidx = self.he2idx[he_n]
-        colidx = self.he2idx[prev_he]
-        L_he_temp = cy_pad_csr(op1, self.nhe, self.nhe, rowidx, colidx)
-        self.L_helems += L_he_temp
+
+        return self._pad_op(op1, he_n, prev_he)
 
     def fermion_grad_next(self, he_n, k, next_he, idx):
         """
@@ -945,43 +967,37 @@ class FermionicHEOMSolver(object):
         pref = sign2 * -1j * norm_next
 
         op2 = pref * ((self.spreQdag[k]) + (sign1 * self.spostQdag[k]))
-        rowidx = self.he2idx[he_n]
-        colidx = self.he2idx[next_he]
-        L_he_temp = cy_pad_csr(op2, self.nhe, self.nhe, rowidx, colidx)
-        self.L_helems += L_he_temp
+        return self._pad_op(op2, he_n, next_he)
 
-    def fermion_rhs(self):
+    def fermion_rhs(self, N):
         """
         Make the RHS for fermionic case
         """
-        for n in self.idx2he:
-            he_n = self.idx2he[n]
-            self.fermion_grad_n(he_n)
-            for k in range(self.kcut):
+        nhe = len(self.bath.states)
+        RHS = sp.csr_matrix(
+            (nhe * N ** 2, nhe * N ** 2),
+            dtype=np.complex128,
+        )
+
+        for he_n in self.bath.states:
+            RHS += self.fermion_grad_n(he_n)
+            for k in range(len(self.offsets) - 1):
                 start = self.offsets[k]
                 end = self.offsets[k + 1]
-                num_elems = end - start
-                for m in range(num_elems):
-                    next_he = nexthe(he_n, self.offsets[k] + m, self.N_cut)
-                    prev_he = prevhe(he_n, self.offsets[k] + m, self.N_cut)
-                    if next_he and (next_he in self.he2idx):
-                        self.fermion_grad_next(he_n, k, next_he, m)
-                    if prev_he and (prev_he in self.he2idx):
-                        self.fermion_grad_prev(he_n, k, prev_he, m)
+                for m in range(end - start):
+                    next_he = self.bath.next(he_n, self.offsets[k] + m)
+                    if next_he is not None:
+                        RHS += self.fermion_grad_next(he_n, k, next_he, m)
+                    prev_he = self.bath.prev(he_n, self.offsets[k] + m)
+                    if prev_he is not None:
+                        RHS += self.fermion_grad_prev(he_n, k, prev_he, m)
+
+        return RHS
 
     def _fermion_solver(self):
         """
         Utility function for fermionic solver.
         """
-        self.kcut = len(self.offsets) - 1
-
-        nhe, he2idx, idx2he = _heom_state_dictionaries(
-            [2] * len(self.flat_ck), self.N_cut
-        )
-        self.nhe = nhe
-        self.he2idx = he2idx
-        self.idx2he = idx2he
-
         # Separate cases for Hamiltonian and Liouvillian
         if self.isHamiltonian:
             if self.isTimeDep:
@@ -1004,10 +1020,6 @@ class FermionicHEOMSolver(object):
                 self.N = int(np.sqrt(self.H_sys.shape[0]))
                 self.L = self.H_sys.data
 
-        self.L_helems = sp.csr_matrix(
-            (self.nhe * self.N ** 2, self.nhe * self.N ** 2),
-            dtype=np.complex128,
-        )
         # Set coupling operators
         spreQ = []
         spostQ = []
@@ -1023,11 +1035,8 @@ class FermionicHEOMSolver(object):
         self.spostQ = spostQ
         self.spreQdag = spreQdag
         self.spostQdag = spostQdag
-        # make right hand side
-        self.fermion_rhs()
 
-        # return output
-        return self.L_helems, self.nhe
+        return self.fermion_rhs(self.N)
 
     def _configure_solver(self):
         """ Configure the solver """
@@ -1040,11 +1049,11 @@ class FermionicHEOMSolver(object):
             self.offsets.append(curr_sum + self.len_list[i])
             curr_sum += self.len_list[i]
 
-        RHSmat, nstates = self._fermion_solver()
-        RHSmat = RHSmat.tocsr()
+        RHSmat = self._fermion_solver()
+        assert isinstance(RHSmat, sp.csr_matrix)
 
         if self.isTimeDep:
-            h_identity_mat = sp.identity(nstates, format="csr")
+            h_identity_mat = sp.identity(len(self.bath.states), format="csr")
             H_list = self.H_sys.to_list()
 
             # store each time dependent component
@@ -1101,7 +1110,7 @@ class FermionicHEOMSolver(object):
             Further processing of this can be done with functions provided in
             example notebooks.
         """
-        nstates = self.nhe
+        nstates = self.bath.n_states
         sup_dim = self._sup_dim
         n = int(np.sqrt(sup_dim))
         L = deepcopy(self.RHSmat)
@@ -1190,6 +1199,7 @@ class FermionicHEOMSolver(object):
             If return_full == True, also returns ADOs as an additional
             numpy array.
         """
+        nstates = self.bath.n_states
         sup_dim = self._sup_dim
 
         solver = self._ode
@@ -1204,7 +1214,7 @@ class FermionicHEOMSolver(object):
         if not full_init:
             output.states.append(Qobj(rho0))
             rho0_flat = rho0.full().ravel('F')
-            rho0_he = np.zeros([sup_dim*self.nhe], dtype=complex)
+            rho0_he = np.zeros([sup_dim * nstates], dtype=complex)
             rho0_he[:sup_dim] = rho0_flat
             solver.set_initial_value(rho0_he, tlist[0])
         else:
@@ -1234,9 +1244,8 @@ class FermionicHEOMSolver(object):
 
         else:
             self.progress_bar.start(n_tsteps)
-            N_he = self.nhe
             N = shape[0]
-            hshape = (N_he, N**2)
+            hshape = (self.bath.n_states, N**2)
             full_hierarchy = [rho0.reshape(hshape)]
             for t_idx, t in enumerate(tlist):
                 if t_idx < n_tsteps - 1:

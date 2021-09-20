@@ -12,22 +12,8 @@ from scipy.integrate import quad
 from qutip import Qobj, Options, destroy
 from qutip.states import enr_state_dictionaries
 from qutip.nonmarkov.bofin import (
-    _heom_state_dictionaries,
     FermionicHEOMSolver
 )
-
-
-def test_state_dictionaries():
-    """
-    Tests the _heom_state_dictionaries.
-    """
-    kcut = 6
-    N_cut = 6
-    nhe, he2idx, idx2he = _heom_state_dictionaries(
-        [2] * kcut, N_cut
-    )
-    total_nhe = int(2**kcut)
-    assert nhe == total_nhe
 
 
 @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")

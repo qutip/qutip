@@ -2,8 +2,6 @@
 Tests for the Bosonic HEOM solvers.
 """
 
-from math import factorial
-
 import numpy as np
 import pytest
 from scipy.integrate import quad
@@ -13,39 +11,46 @@ from qutip import (
 )
 from qutip.nonmarkov.bofin import (
     _convert_h_sys,
-    _heom_state_dictionaries,
-    add_at_idx,
+    BathStates,
     BosonicHEOMSolver,
     HSolverDL,
 )
 
 
-def test_add_at_idx():
-    """
-    Tests the function to add at hierarchy index.
-    """
-    seq = (2, 3, 4)
-    assert add_at_idx(seq, 2, 1) == (2, 3, 5)
+class TestBathStates:
+    def test_create(self):
+        bath = BathStates([2, 3], cutoff=2)
+        assert bath.dims == [2, 3]
+        assert bath.cutoff == 2
+        assert bath.states == [
+            (0, 0), (0, 1), (0, 2), (1, 0), (1, 1),
+        ]
+        assert bath.n_states == 5
 
-    seq = (2, 3, 4)
-    assert add_at_idx(seq, 0, -1) == (1, 3, 4)
+    def test_state_idx(self):
+        bath = BathStates([2, 3], cutoff=2)
+        assert bath.idx((0, 0)) == 0
+        assert bath.idx((0, 1)) == 1
+        assert bath.idx((0, 2)) == 2
+        assert bath.idx((1, 0)) == 3
+        assert bath.idx((1, 1)) == 4
 
+    def test_next(self):
+        bath = BathStates([2, 3], cutoff=2)
+        assert bath.next((0, 0), 0) == (1, 0)
+        assert bath.next((0, 0), 1) == (0, 1)
+        assert bath.next((1, 0), 0) is None
+        assert bath.next((1, 0), 1) == (1, 1)
+        assert bath.next((1, 1), 1) is None
 
-def test_state_dictionaries():
-    """
-    Tests the _heom_state_dictionaries.
-    """
-    kcut = 6
-    N_cut = 4
-    nhe, he2idx, idx2he = _heom_state_dictionaries(
-            [N_cut + 1] * kcut, N_cut
-        )
-
-    total_nhe = int(
-            factorial(N_cut + kcut)
-            / (factorial(N_cut) * factorial(kcut))
-        )
-    assert nhe == total_nhe
+    def test_prev(self):
+        bath = BathStates([2, 3], cutoff=2)
+        assert bath.prev((0, 0), 0) is None
+        assert bath.prev((0, 0), 1) is None
+        assert bath.prev((1, 0), 0) == (0, 0)
+        assert bath.prev((0, 1), 1) == (0, 0)
+        assert bath.prev((1, 1), 1) == (1, 0)
+        assert bath.prev((0, 2), 1) == (0, 1)
 
 
 def test_convert_h_sys():
