@@ -261,8 +261,21 @@ def _h_sys_is_hamiltonian(H_sys):
     return H_sys.type == "oper"
 
 
+def _h_sys_dim(H_sys, isHamiltonian):
+    """ Return the system dimension for the given system.
+    """
+    if type(H_sys) is QobjEvo:
+        H_sys_list = H_sys.to_list()
+        H_shape = H_sys_list[0].shape
+    else:
+        H_shape = H_sys.shape
+
+    H_sys_dim = H_shape[0] if isHamiltonian else int(np.sqrt(H_shape[0]))
+    return H_sys_dim
+
+
 def _h_sup_dim(H_sys, isHamiltonian):
-    """ Return the super operator dimension for the given hamiltonian.
+    """ Return the super operator dimension for the given system.
     """
     if type(H_sys) is QobjEvo:
         H_sys_list = H_sys.to_list()
@@ -271,6 +284,16 @@ def _h_sup_dim(H_sys, isHamiltonian):
         H_shape = H_sys.shape
     H_sup_dim = H_shape[0] ** 2 if isHamiltonian else H_shape[0]
     return H_sup_dim
+
+
+def _h_sys_liouvillian(H_sys, isHamiltonian):
+    """ Return the Liouvillian dimension for the given system.
+    """
+    if type(H_sys) is QobjEvo:
+        H_sys_list = H_sys.to_list()
+        H_sys = H_sys_list[0]
+    L = liouvillian(H_sys) if isHamiltonian else H_sys
+    return L.data
 
 
 class BosonicHEOMSolver(object):
@@ -345,6 +368,9 @@ class BosonicHEOMSolver(object):
         self.isTimeDep = isinstance(self.H_sys, QobjEvo)
         self.isHamiltonian = _h_sys_is_hamiltonian(self.H_sys)
         self._sup_dim = _h_sup_dim(self.H_sys, self.isHamiltonian)
+        self._sys_dim = _h_sys_dim(self.H_sys, self.isHamiltonian)
+        self._h_sys_dims = self.H_sys.dims if not self.isTimeDep else self.H_sys.to_list()[0].dims
+        self.L = _h_sys_liouvillian(self.H_sys, self.isHamiltonian)
         self.N_cut = N_cut
         coup_op = _convert_coup_op(coup_op, len(ckAR) + len(ckAI))
         ckAR, ckAI, vkAR, vkAI = _convert_bath_exponents_bosonic(
@@ -354,6 +380,9 @@ class BosonicHEOMSolver(object):
         )
 
         self.progress_bar = BaseProgressBar()
+
+        self.spreQ = [spre(op).data for op in self.coup_op]
+        self.spostQ = [spost(op).data for op in self.coup_op]
 
         self.kcut = len(self.coup_op)
         self.bath = BathStates([self.N_cut + 1] * self.kcut, self.N_cut)
@@ -469,46 +498,9 @@ class BosonicHEOMSolver(object):
 
         return RHS
 
-    def _boson_solver(self):
-        """
-        Utility function for bosonic solver.
-        """
-        # Separate cases for Hamiltonian and Liouvillian
-        if self.isHamiltonian:
-
-            if self.isTimeDep:
-                H_sys_list = self.H_sys.to_list()
-                self.N = H_sys_list[0].shape[0]
-                self.L = liouvillian(H_sys_list[0], []).data
-
-            else:
-                self.N = self.H_sys.shape[0]
-                self.L = liouvillian(self.H_sys, []).data
-
-        else:
-            if self.isTimeDep:
-                H_sys_list = self.H_sys.to_list()
-                self.N = int(np.sqrt(H_sys_list[0].shape[0]))
-                self.L = H_sys_list[0].data
-
-            else:
-                self.N = int(np.sqrt(self.H_sys.shape[0]))
-                self.L = self.H_sys.data
-
-        # Set coupling operators
-        spreQ = []
-        spostQ = []
-        for coupOp in self.coup_op:
-            spreQ.append(spre(coupOp).data)
-            spostQ.append(spost(coupOp).data)
-        self.spreQ = spreQ
-        self.spostQ = spostQ
-
-        return self.boson_rhs(self.N)
-
     def _configure_solver(self):
         """ Set up the solver. """
-        RHSmat = self._boson_solver()
+        RHSmat = self.boson_rhs(self._sys_dim)
         assert isinstance(RHSmat, sp.csr_matrix)
 
         if self.isTimeDep:
@@ -615,13 +607,12 @@ class BosonicHEOMSolver(object):
             LU = splu(L)
             solution = LU.solve(b_mat)
 
-        dims = self.H_sys.dims
         data = dense2D_to_fastcsr_fmode(vec2mat(solution[:sup_dim]), n, n)
         data = 0.5 * (data + data.H)
 
         solution = solution.reshape((nstates, sup_dim))
 
-        return Qobj(data, dims=dims), solution
+        return Qobj(data, dims=self._h_sys_dims), solution
 
     def run(self, rho0, tlist, full_init=False, return_full=False):
         """
@@ -856,12 +847,20 @@ class FermionicHEOMSolver(object):
         self.options = Options() if options is None else options
         self.isTimeDep = isinstance(self.H_sys, QobjEvo)
         self.isHamiltonian = _h_sys_is_hamiltonian(self.H_sys)
+        self._sys_dim = _h_sys_dim(self.H_sys, self.isHamiltonian)
         self._sup_dim = _h_sup_dim(self.H_sys, self.isHamiltonian)
+        self._h_sys_dims = self.H_sys.dims if not self.isTimeDep else self.H_sys.to_list()[0].dims
+        self.L = _h_sys_liouvillian(self.H_sys, self.isHamiltonian)
         self.N_cut = N_cut
         self.ck, self.vk = _convert_bath_exponents_fermionic(ck, vk)
         self.coup_op = _convert_coup_op(coup_op, len(ck))
 
         self.progress_bar = BaseProgressBar()
+
+        self.spreQ = [spre(op).data for op in self.coup_op]
+        self.spostQ = [spost(op).data for op in self.coup_op]
+        self.spreQdag = [spre(op.dag()).data for op in self.coup_op]
+        self.spostQdag = [spost(op.dag()).data for op in self.coup_op]
 
         self.kcut = sum(len(cks) for cks in self.ck)
         self.bath = BathStates([2] * self.kcut, self.N_cut)
@@ -994,50 +993,6 @@ class FermionicHEOMSolver(object):
 
         return RHS
 
-    def _fermion_solver(self):
-        """
-        Utility function for fermionic solver.
-        """
-        # Separate cases for Hamiltonian and Liouvillian
-        if self.isHamiltonian:
-            if self.isTimeDep:
-                H_sys_list = self.H_sys.to_list()
-                self.N = H_sys_list[0].shape[0]
-                self.L = liouvillian(H_sys_list[0], []).data
-
-            else:
-                self.N = self.H_sys.shape[0]
-                self.L = liouvillian(self.H_sys, []).data
-
-        else:
-
-            if self.isTimeDep:
-                H_sys_list = self.H_sys.to_list()
-                self.N = int(np.sqrt(H_sys_list[0].shape[0]))
-                self.L = H_sys_list[0].data
-
-            else:
-                self.N = int(np.sqrt(self.H_sys.shape[0]))
-                self.L = self.H_sys.data
-
-        # Set coupling operators
-        spreQ = []
-        spostQ = []
-        spreQdag = []
-        spostQdag = []
-        for coupOp in self.coup_op:
-            spreQ.append(spre(coupOp).data)
-            spostQ.append(spost(coupOp).data)
-            spreQdag.append(spre(coupOp.dag()).data)
-            spostQdag.append(spost(coupOp.dag()).data)
-
-        self.spreQ = spreQ
-        self.spostQ = spostQ
-        self.spreQdag = spreQdag
-        self.spostQdag = spostQdag
-
-        return self.fermion_rhs(self.N)
-
     def _configure_solver(self):
         """ Configure the solver """
         self.len_list = [len(elem) for elem in self.ck]
@@ -1049,7 +1004,7 @@ class FermionicHEOMSolver(object):
             self.offsets.append(curr_sum + self.len_list[i])
             curr_sum += self.len_list[i]
 
-        RHSmat = self._fermion_solver()
+        RHSmat = self.fermion_rhs(self._sys_dim)
         assert isinstance(RHSmat, sp.csr_matrix)
 
         if self.isTimeDep:
@@ -1112,14 +1067,14 @@ class FermionicHEOMSolver(object):
         """
         nstates = self.bath.n_states
         sup_dim = self._sup_dim
-        n = int(np.sqrt(sup_dim))
+        n = self._sys_dim
         L = deepcopy(self.RHSmat)
 
         b_mat = np.zeros(sup_dim * nstates, dtype=complex)
         b_mat[0] = 1.0
 
         L = L.tolil()
-        L[0, 0: n ** 2 * nstates] = 0.0
+        L[0, 0: sup_dim * nstates] = 0.0
         L = L.tocsr()
 
         # TODO: Use the usual QuTiP MKL configuration here
@@ -1156,17 +1111,12 @@ class FermionicHEOMSolver(object):
             LU = splu(L)
             solution = LU.solve(b_mat)
 
-        if self.isTimeDep:
-            H_sys_list = self.H_sys.to_list()
-            dims = H_sys_list[0].dims
-        else:
-            dims = self.H_sys.dims
         data = dense2D_to_fastcsr_fmode(vec2mat(solution[:sup_dim]), n, n)
         data = 0.5 * (data + data.H)
 
         solution = solution.reshape((nstates, sup_dim))
 
-        return Qobj(data, dims=dims), solution
+        return Qobj(data, dims=self._h_sys_dims), solution
 
     def run(self, rho0, tlist, full_init=False, return_full=False):
         """
