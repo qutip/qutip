@@ -399,19 +399,18 @@ class BosonicHEOMSolver(object):
         colidx = self.bath.idx(col_he)
         return cy_pad_csr(op, nhe, nhe, rowidx, colidx)
 
-    def boson_grad_n(self, he_n):
+    def boson_grad_n(self, L, he_n):
         """
         Get the gradient term for the hierarchy ADM at
         level n
         """
-
         # skip variable adjusts for common gammas that
         # are passed at the end by process_input
         # by only processing alternate values
         skip = 0
 
         gradient_sum = 0
-        L = self.L.copy()
+        L = L.copy()
 
         for i in range(len(self.vk)):
             # the initial values have different gammas
@@ -432,8 +431,7 @@ class BosonicHEOMSolver(object):
                     skip = 1
 
         gradient_sum = -1 * gradient_sum
-        sum_op = gradient_sum * sp.eye(
-            self.L.shape[0], dtype=complex, format="csr")
+        sum_op = gradient_sum * sp.eye(L.shape[0], dtype=complex, format="csr")
         L += sum_op
 
         return self._pad_op(L, he_n, he_n)
@@ -476,7 +474,7 @@ class BosonicHEOMSolver(object):
 
         return self._pad_op(op2, he_n, next_he)
 
-    def boson_rhs(self, N):
+    def boson_rhs(self, L, N):
         """
         Make the RHS for bosonic case
         """
@@ -487,7 +485,7 @@ class BosonicHEOMSolver(object):
         )
 
         for he_n in self.bath.states:
-            RHS += self.boson_grad_n(he_n)
+            RHS += self.boson_grad_n(L, he_n)
             for k in range(len(self.bath.dims)):
                 next_he = self.bath.next(he_n, k)
                 if next_he is not None:
@@ -500,7 +498,7 @@ class BosonicHEOMSolver(object):
 
     def _configure_solver(self):
         """ Set up the solver. """
-        RHSmat = self.boson_rhs(self._sys_dim)
+        RHSmat = self.boson_rhs(self.L, self._sys_dim)
         assert isinstance(RHSmat, sp.csr_matrix)
 
         if self.isTimeDep:
@@ -877,20 +875,19 @@ class FermionicHEOMSolver(object):
         colidx = self.bath.idx(col_he)
         return cy_pad_csr(op, nhe, nhe, rowidx, colidx)
 
-    def fermion_grad_n(self, he_n):
+    def fermion_grad_n(self, L, he_n):
         """
         Get the gradient term for the hierarchy ADM at
         level n
         """
         gradient_sum = 0
-        L = self.L.copy()
+        L = L.copy()
 
         for i in range(len(self.flat_vk)):
             gradient_sum += he_n[i] * self.flat_vk[i]
 
         gradient_sum = -1 * gradient_sum
-        sum_op = gradient_sum * sp.eye(
-            self.L.shape[0], dtype=complex, format="csr")
+        sum_op = gradient_sum * sp.eye(L.shape[0], dtype=complex, format="csr")
         L += sum_op
 
         return self._pad_op(L, he_n, he_n)
@@ -968,7 +965,7 @@ class FermionicHEOMSolver(object):
         op2 = pref * ((self.spreQdag[k]) + (sign1 * self.spostQdag[k]))
         return self._pad_op(op2, he_n, next_he)
 
-    def fermion_rhs(self, N):
+    def fermion_rhs(self, L, N):
         """
         Make the RHS for fermionic case
         """
@@ -979,7 +976,7 @@ class FermionicHEOMSolver(object):
         )
 
         for he_n in self.bath.states:
-            RHS += self.fermion_grad_n(he_n)
+            RHS += self.fermion_grad_n(L, he_n)
             for k in range(len(self.offsets) - 1):
                 start = self.offsets[k]
                 end = self.offsets[k + 1]
@@ -1004,7 +1001,7 @@ class FermionicHEOMSolver(object):
             self.offsets.append(curr_sum + self.len_list[i])
             curr_sum += self.len_list[i]
 
-        RHSmat = self.fermion_rhs(self._sys_dim)
+        RHSmat = self.fermion_rhs(self.L, self._sys_dim)
         assert isinstance(RHSmat, sp.csr_matrix)
 
         if self.isTimeDep:
