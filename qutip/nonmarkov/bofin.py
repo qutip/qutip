@@ -369,7 +369,10 @@ class BosonicHEOMSolver(object):
         self.isHamiltonian = _h_sys_is_hamiltonian(self.H_sys)
         self._sup_dim = _h_sup_dim(self.H_sys, self.isHamiltonian)
         self._sys_dim = _h_sys_dim(self.H_sys, self.isHamiltonian)
-        self._h_sys_dims = self.H_sys.dims if not self.isTimeDep else self.H_sys.to_list()[0].dims
+        self._h_sys_dims = (
+            self.H_sys.dims if not self.isTimeDep
+            else self.H_sys.to_list()[0].dims
+        )
         self.L = _h_sys_liouvillian(self.H_sys, self.isHamiltonian)
         self.N_cut = N_cut
         coup_op = _convert_coup_op(coup_op, len(ckAR) + len(ckAI))
@@ -847,7 +850,10 @@ class FermionicHEOMSolver(object):
         self.isHamiltonian = _h_sys_is_hamiltonian(self.H_sys)
         self._sys_dim = _h_sys_dim(self.H_sys, self.isHamiltonian)
         self._sup_dim = _h_sup_dim(self.H_sys, self.isHamiltonian)
-        self._h_sys_dims = self.H_sys.dims if not self.isTimeDep else self.H_sys.to_list()[0].dims
+        self._h_sys_dims = (
+            self.H_sys.dims if not self.isTimeDep
+            else self.H_sys.to_list()[0].dims
+        )
         self.L = _h_sys_liouvillian(self.H_sys, self.isHamiltonian)
         self.N_cut = N_cut
         self.ck, self.vk = _convert_bath_exponents_fermionic(ck, vk)
