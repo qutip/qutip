@@ -407,32 +407,19 @@ class BosonicHEOMSolver(object):
         Get the gradient term for the hierarchy ADM at
         level n
         """
-        # skip variable adjusts for common gammas that
-        # are passed at the end by process_input
-        # by only processing alternate values
-        skip = 0
+        vk = self.vk
+        NRI = self.NR + self.NI
+        NC = len(he_n) - NRI
 
-        gradient_sum = 0
+        vk_sum = sum(he_n[i] * vk[i] for i in range(NRI))
+        # include only half of the "common" vk[i]'s added during the common
+        # exponent collapsing in _mangle_bath_exponents_bosonic.
+        vk_sum += sum(
+            he_n[i] * vk[j]
+            for i, j in zip(range(NRI, NRI + NC), range(NRI, NRI + 2 * NC, 2))
+        )
 
-        for i in range(len(self.vk)):
-            # the initial values have different gammas
-            # so are processed normally
-            if i < self.NR + self.NI:
-                gradient_sum += he_n[i] * self.vk[i]
-
-            # the last few values are duplicate so only half need be processed
-            else:
-                if skip:
-                    skip = 0
-                    continue
-                else:
-                    tot_fixed = self.NR + self.NI
-                    extra = i + 1 - tot_fixed
-                    idx = int(tot_fixed + (extra / 2) + (extra % 2)) - 1
-                    gradient_sum += he_n[idx] * self.vk[i]
-                    skip = 1
-
-        op = L - gradient_sum * sp.eye(L.shape[0], dtype=complex, format="csr")
+        op = L - vk_sum * sp.eye(L.shape[0], dtype=complex, format="csr")
 
         return self._pad_op(op, he_n, he_n)
 
@@ -878,12 +865,9 @@ class FermionicHEOMSolver(object):
         Get the gradient term for the hierarchy ADM at
         level n
         """
-        gradient_sum = 0
-        for i in range(len(self.flat_vk)):
-            gradient_sum += he_n[i] * self.flat_vk[i]
-
-        op = L - gradient_sum * sp.eye(L.shape[0], dtype=complex, format="csr")
-
+        vk = self.flat_vk
+        vk_sum = sum(he_n[i] * vk[i] for i in range(len(vk)))
+        op = L - vk_sum * sp.eye(L.shape[0], dtype=complex, format="csr")
         return self._pad_op(op, he_n, he_n)
 
     def fermion_grad_prev(self, he_n, k, prev_he, idx):
