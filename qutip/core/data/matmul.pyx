@@ -342,7 +342,7 @@ cpdef Dense element_wise_multiply_dense(Dense left, Dense right):
             + " and "
             + str(right.shape)
         )
-    return Dense(left.as_ndarray() * right.as_ndarray())
+    return Dense(left.as_ndarray() * right.as_ndarray(), copy=False)
 
 
 from .dispatch import Dispatcher as _Dispatcher
