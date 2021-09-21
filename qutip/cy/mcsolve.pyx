@@ -107,6 +107,8 @@ cdef class CyMcOde:
                 self.states_out[0, ii] = out_psi[ii]
         elif self.store_final_state:
             self.states_out = np.zeros((1, self.l_vec), dtype=complex)
+        else:
+            self.states_out = None
         _states_out = self.states_out
 
         e_call.step(0, out_psi)
@@ -347,6 +349,8 @@ cdef class CyMcOdeDiag(CyMcOde):
                 self.states_out[0, ii] = out_psi[ii]
         elif self.store_final_state:
             self.states_out = np.zeros((1, self.l_vec), dtype=complex)
+        else:
+            self.states_out = None
 
         e_call.step(0, out_psi)
         rand_vals = prng.rand(2)
