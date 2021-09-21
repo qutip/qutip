@@ -201,9 +201,9 @@ def _mangle_bath_exponents_bosonic(coup_op, ckAR, ckAI, vkAR, vkAI):
 
     for i in range(len(vkAR)):
         for j in range(len(vkAI)):
-            if np.isclose(
-                vkAR[i], vkAI[j], rtol=1e-5, atol=1e-7) and np.allclose(
-                coup_op[i], coup_op[nr + j], rtol=1e-5, atol=1e-7
+            if (
+                np.isclose(vkAR[i], vkAI[j], rtol=1e-5, atol=1e-7) and
+                np.allclose(coup_op[i], coup_op[nr + j], rtol=1e-5, atol=1e-7)
             ):
                 warnings.warn(
                     "Two similar real and imag exponents have been "
@@ -387,8 +387,8 @@ class BosonicHEOMSolver(object):
         self.spreQ = [spre(op).data for op in self.coup_op]
         self.spostQ = [spost(op).data for op in self.coup_op]
 
-        self.kcut = len(self.coup_op)
-        self.bath = BathStates([self.N_cut + 1] * self.kcut, self.N_cut)
+        kcut = len(self.coup_op)
+        self.bath = BathStates([self.N_cut + 1] * kcut, self.N_cut)
 
         self._configure_solver()
 
@@ -413,7 +413,6 @@ class BosonicHEOMSolver(object):
         skip = 0
 
         gradient_sum = 0
-        L = L.copy()
 
         for i in range(len(self.vk)):
             # the initial values have different gammas
@@ -433,34 +432,29 @@ class BosonicHEOMSolver(object):
                     gradient_sum += he_n[idx] * self.vk[i]
                     skip = 1
 
-        gradient_sum = -1 * gradient_sum
-        sum_op = gradient_sum * sp.eye(L.shape[0], dtype=complex, format="csr")
-        L += sum_op
+        op = L - gradient_sum * sp.eye(L.shape[0], dtype=complex, format="csr")
 
-        return self._pad_op(L, he_n, he_n)
+        return self._pad_op(op, he_n, he_n)
 
     def boson_grad_prev(self, he_n, k, prev_he):
         """
         Get the previous gradient
         """
-        nk = he_n[k]
+        norm_prev = he_n[k]
         ck = self.ck
 
         # processes according to whether index into gammas
         # is in the part of the list with duplicate gammas
         # as processed by process_input
         if k < self.NR:
-            norm_prev = nk
             op1 = -1j * norm_prev * ck[k] * (
                 self.spreQ[k] - self.spostQ[k]
                 )
         elif k >= self.NR and k < self.NR + self.NI:
-            norm_prev = nk
             op1 = -1j * norm_prev * 1j * self.ck[k] * (
                 self.spreQ[k] + self.spostQ[k]
                 )
         else:
-            norm_prev = nk
             k1 = self.NR + self.NI + 2 * (k - self.NR - self.NI)
             term1 = -1j * self.ck[k1] * (self.spreQ[k] - self.spostQ[k])
             term2 = self.ck[k1 + 1] * (self.spreQ[k] + self.spostQ[k])
@@ -472,10 +466,8 @@ class BosonicHEOMSolver(object):
         """
         Get the next gradient
         """
-        norm_next = 1
-        op2 = -1j * norm_next * (self.spreQ[k] - self.spostQ[k])
-
-        return self._pad_op(op2, he_n, next_he)
+        op = -1j * (self.spreQ[k] - self.spostQ[k])
+        return self._pad_op(op, he_n, next_he)
 
     def boson_rhs(self, L, N):
         """
@@ -866,8 +858,8 @@ class FermionicHEOMSolver(object):
         self.spreQdag = [spre(op.dag()).data for op in self.coup_op]
         self.spostQdag = [spost(op.dag()).data for op in self.coup_op]
 
-        self.kcut = sum(len(cks) for cks in self.ck)
-        self.bath = BathStates([2] * self.kcut, self.N_cut)
+        kcut = sum(len(cks) for cks in self.ck)
+        self.bath = BathStates([2] * kcut, self.N_cut)
 
         self._configure_solver()
 
@@ -887,16 +879,12 @@ class FermionicHEOMSolver(object):
         level n
         """
         gradient_sum = 0
-        L = L.copy()
-
         for i in range(len(self.flat_vk)):
             gradient_sum += he_n[i] * self.flat_vk[i]
 
-        gradient_sum = -1 * gradient_sum
-        sum_op = gradient_sum * sp.eye(L.shape[0], dtype=complex, format="csr")
-        L += sum_op
+        op = L - gradient_sum * sp.eye(L.shape[0], dtype=complex, format="csr")
 
-        return self._pad_op(L, he_n, he_n)
+        return self._pad_op(op, he_n, he_n)
 
     def fermion_grad_prev(self, he_n, k, prev_he, idx):
         """
