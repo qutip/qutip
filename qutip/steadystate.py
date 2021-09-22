@@ -914,7 +914,7 @@ def _steadystate_power(L, ss_args):
         return rhoss
 
 
-def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, nmax=3, sparse=False):
+def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False):
     """
     Calculates the effective steady state for a driven
      system with a time-dependent cosinusoidal term:
@@ -938,8 +938,8 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, nmax=3, sparse=False):
     w_d : float, default 1.0
         The frequency of the drive
 
-    nmax : int, default 3
-        The maximum number of iteration for the solver
+    n_it : int, default 3
+        The number of iterations for the solver
 
     sparse : bool, default False
         Solve for the steady state using sparse algorithms.
@@ -956,14 +956,14 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, nmax=3, sparse=False):
         L_0 = liouvillian(H_0, c_ops).data.tocsc()
         L_t = liouvillian(Op_t)
         L_p = (0.5 * L_t).data.tocsc()
-        L_m = L_p  # (0.5 * A_l * L_t).data
+        L_m = L_p
         L_p_array = L_p.todense()
         L_m_array = L_m.todense()
 
         Id = sp.eye(N ** 2, format="csc", dtype=np.complex128)
         S = T = sp.csc_matrix((N ** 2, N ** 2), dtype=np.complex128)
 
-        for n_i in np.arange(nmax, 0, -1):
+        for n_i in np.arange(n_it, 0, -1):
             L = sp.csc_matrix(L_0 - 1j * n_i * w_d * Id + L_m.dot(S))
             L.sort_indices()
             LU = splu(L)
@@ -986,7 +986,7 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, nmax=3, sparse=False):
         Id = np.eye(N ** 2)
         S, T = np.zeros((N ** 2, N ** 2)), np.zeros((N ** 2, N ** 2))
 
-        for n_i in np.arange(nmax, 0, -1):
+        for n_i in np.arange(n_it, 0, -1):
             L = L_0 - 1j * n_i * w_d * Id + np.matmul(L_m, S)
             lu, piv = la.lu_factor(L)
             S = - la.lu_solve((lu, piv), L_p)
