@@ -544,7 +544,7 @@ def test_steadystate_floquet_sparse():
                         c_ops, [a_d * a], args=args).expect[0]
 
     rho_ss = steadystate_floquet(H, c_ops,
-                                 A_l * X_c, w_l, nmax=3, sparse=True)
+                                 A_l * X_c, w_l, n_it=3, sparse=True)
     expect_ss = expect(a_d * a, rho_ss)
 
     np.testing.assert_allclose(expect_me[-20:], expect_ss, atol=1e-3)
@@ -584,7 +584,7 @@ def test_steadystate_floquet_dense():
                         c_ops, [a_d * a], args=args).expect[0]
 
     rho_ss = steadystate_floquet(H, c_ops,
-                                 A_l * X_c, w_l, nmax=3, sparse=False)
+                                 A_l * X_c, w_l, n_it=3, sparse=False)
     expect_ss = expect(a_d * a, rho_ss)
 
     np.testing.assert_allclose(expect_me[-20:], expect_ss, atol=1e-3)
