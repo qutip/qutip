@@ -127,9 +127,12 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
         single collapse operator, or list of collapse operators, or a list
         of Liouvillian superoperators.
 
-    e_ops : None / list of :class:`qutip.Qobj` and callback functions
-        single operator, list of operators and callable functions
-        for which to evaluate expectation values.
+    e_ops : None / list / callback function, optional
+        A list of operators as `Qobj` and/or callable functions (can be mixed)
+        or a single callable function. For operators, the result's expect will be  computed by :func:`qutip.expect`.
+        For callable functions, they are called as ``f(t, state)`` and return the expectation value.
+        A single callback's expectation value can be any type, but a callback part of a list must return
+        a number as the expectation value.
 
     args : None / *dictionary*
         dictionary of parameters for time-dependent Hamiltonians and
@@ -507,8 +510,7 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
             output.expect.append(e_ops(t, rho_t))
 
         for m in range(n_expt_op):
-            if not isinstance(e_ops[m], (Qobj, QobjEvo)) \
-               and callable(e_ops[m]):
+            if not isinstance(e_ops[m], Qobj) and callable(e_ops[m]):
                 output.expect[m][t_idx] = e_ops[m](t, rho_t)
                 continue
             output.expect[m][t_idx] = expect_rho_vec(e_ops_data[m], r.y,
