@@ -39,6 +39,7 @@ class Integrator:
     support_time_dependant = None
     # Use the QobjEvo's matmul_data method as the driving function
     use_QobjEvo_matmul = None
+    name = ""
 
     def __init__(self, system, options):
         self.system = system
@@ -51,6 +52,7 @@ class Integrator:
     def _prepare(self):
         """
         Initialize the solver
+        It should also set the name of the solver to be displayed in Result.
         """
         raise NotImplementedError
 
@@ -106,6 +108,11 @@ class Integrator:
     def get_state(self, copy=True):
         """
         Obtain the state of the solver as a pair (t, state).
+
+        Parameters
+        ----------
+        copy : bool (True)
+            Whether to return the data stored in the Integrator or a copy.
 
         Return
         ------

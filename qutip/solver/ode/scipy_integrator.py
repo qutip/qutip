@@ -32,6 +32,7 @@ class IntegratorScipyZvode(Integrator):
         self._ode_solver = ode(self._mul_np_vec)
         self._ode_solver.set_integrator('zvode', **self.options)
         self.name = "scipy zvode " + self.options['method']
+        self._back = (np.inf, None)
 
     def _mul_np_vec(self, t, vec):
         """
@@ -58,12 +59,12 @@ class IntegratorScipyZvode(Integrator):
         t = self._ode_solver.t
         if self._mat_state:
             state = _data.column_unstack_dense(
-                _data.dense.Dense(self._ode_solver._y, copy=False),
+                _data.dense.Dense(self._ode_solver._y, copy=copy),
                 self._size,
                 inplace=True)
         else:
-            state = _data.dense.Dense(self._ode_solver._y, copy=False)
-        return t, (state.copy() if copy else state)
+            state = _data.dense.Dense(self._ode_solver._y, copy=copy)
+        return t, state
 
     def integrate(self, t, step=False, copy=True):
         if step:
@@ -84,7 +85,7 @@ class IntegratorScipyZvode(Integrator):
         # integrate(t, step=True) ignore the time and advance one step.
         # Here we want to advance up to t doing maximum one step.
         # So we check if a new step is really needed.
-        self.back = self.get_state(copy=True)
+        self._back = self.get_state(copy=True)
         t_front = self._ode_solver._integrator.rwork[12]
         t_ode = self._ode_solver.t
         if t > t_front and t_ode >= t_front:
@@ -110,11 +111,16 @@ class IntegratorScipyZvode(Integrator):
         # but not over all the step interval.
         # About 90% of the last step interval?
         # Scipy raise a warning, not an Error.
+        t_prev, _ = self._back
+        if t < t_prev:
+            raise IntegratorException(
+                "Cannot integrate to previous times without using integrate "
+                "with step=True first.")
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self._ode_solver.integrate(t)
         if not self._ode_solver.successful():
-            self.set_state(*self.back)
+            self.set_state(*self._back)
             self._ode_solver.integrate(t)
 
     def _check_failed_integration(self):
@@ -192,13 +198,13 @@ class IntegratorScipyDop853(Integrator):
         if self._mat_state:
             state = _data.column_unstack_dense(
                 _data.dense.Dense(self._ode_solver._y.view(np.complex128),
-                                  copy=False),
+                                  copy=copy),
                 self._size,
                 inplace=True)
         else:
             state = _data.dense.Dense(self._ode_solver._y.view(np.complex128),
-                                      copy=False)
-        return t, (state.copy() if copy else state)
+                                      copy=copy)
+        return t, state
 
     def set_state(self, t, state0):
         self._is_set = True
@@ -241,6 +247,7 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         self._ode_solver = ode(self._mul_np_vec)
         self._ode_solver.set_integrator('lsoda', **self.options)
         self.name = "scipy lsoda"
+        self._back = (np.inf, None)
 
     def integrate(self, t, step=False, copy=True):
         if step:
@@ -261,7 +268,7 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         # integrate(t, step=True) ignore the time and advance one step.
         # Here we want to advance up to t doing maximum one step.
         # So we check if a new step is really needed.
-        self.back = self.get_state(copy=True)
+        self._back = self.get_state(copy=True)
         t_front = self._ode_solver._integrator.rwork[12]
         t_ode = self._ode_solver.t
         if t > t_front and t_ode >= t_front:
@@ -285,11 +292,16 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         """
         # like zvode, lsoda can step with time lower than the most recent.
         # But not all the step interval.
+        t_prev, _ = self._back
+        if t < t_prev:
+            raise IntegratorException(
+                "Cannot integrate to previous times without using integrate "
+                "with step=True first.")
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             self._ode_solver.integrate(t)
         if not self._ode_solver.successful():
-            self.set_state(*self.back)
+            self.set_state(*self._back)
             self._ode_solver.integrate(t)
 
     def _check_failed_integration(self):
