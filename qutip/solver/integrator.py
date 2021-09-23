@@ -100,7 +100,7 @@ class Integrator:
         Return
         ------
         (t, state) : (float, qutip.Data)
-            The state of the solver at ``t``. The returned this can differ from
+            The state of the solver at ``t``. The returned time ``t`` can differ from
             the input time only when ``step=True``.
         """
         raise NotImplementedError
