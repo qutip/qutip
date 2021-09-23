@@ -753,28 +753,17 @@ def floquet_master_equation_tensor(Alist, f_energies):
     # Here there were transposition errors because the paper used in
     # the documentation has typos.
     ###
-
-    R = np.zeros((N, N, N, N))
     AsumList = [np.sum(A, axis=1) for A in Alist]
 
     for k in range(len(Alist)):
-        dR = np.zeros((N, N, N, N))
         for i in range(N):
-            dR[i, i, i, i] -= -Alist[k][i, i]+AsumList[k][i]
+            Rdata_lil[i+N*i, i+N*i] -= -Alist[k][i, i] + AsumList[k][i]
             for j in range(i+1, N):
-                dR[i, i, j, j] += Alist[k][j, i]
-                dR[j, j, i, i] += Alist[k][i, j]
-                dR[i, j, i, j] += -(1/2)*(AsumList[k][i]+AsumList[k][j])
-                dR[j, i, j, i] += dR[i, j, i, j]
-        R += dR
-
-    R_temp = np.zeros((N*N, N, N))
-    for i in range(N):
-        for j in range(N):
-            R_temp[i+N*j, :, :] += R[i, j, :, :]
-    for i in range(N):
-        for j in range(N):
-            Rdata_lil[:, i+N*j] += R_temp[:, i, j].reshape((-1, 1))
+                Rdata_lil[i+N*i, j+N*j] += Alist[k][j, i]
+                Rdata_lil[j+N*j, i+N*i] += Alist[k][i, j]
+                a_term = -(1/2)*(AsumList[k][i] + AsumList[k][j])
+                Rdata_lil[i+N*j, i+N*j] += a_term
+                Rdata_lil[j+N*i, j+N*i] += a_term
 
     return Qobj(Rdata_lil, [[N, N], [N, N]], [N*N, N*N])
 
