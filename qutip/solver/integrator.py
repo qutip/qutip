@@ -73,13 +73,38 @@ class Integrator:
         """
         raise NotImplementedError
 
-    def integrate(self, t, step=False, copy=True):
+    def integrate(self, t, copy=True):
         """
         Evolve to t.
 
-        If `step` advance up to t by one internal solver step.
-        Should be able to retreive the state at any time between the present
-        time and the resulting time with subsequent calls.
+        Before calling `integrate` for the first time, the initial state should
+        be set with `set_state`.
+
+        Parameters
+        ----------
+        t : float
+            Time to integrate to, should be larger than the previous time.
+
+        copy : bool [True]
+            Whether to return a copy of the state or the state itself.
+
+        Return
+        ------
+        (t, state) : (float, qutip.Data)
+            The state of the solver at ``t``.
+        """
+        raise NotImplementedError
+
+    def mcstep(self, t, copy=True):
+        """
+        Evolve toward the time ``t``.
+
+        If ``t`` is larger than the present state's ``t``, advance the internal
+        state toward ``t``. If  ``t`` is smaller than the present ``t``, but
+        larger than the precious one, it does an interpolation step and return
+        the state at that time. When advancing the state, it may return it at a
+        time between present time and the asked ``t`` if more efficent for
+        subsequent interpolation step.
 
         Before calling `integrate` for the first time, the initial step should
         be set with `set_state`.
@@ -91,17 +116,18 @@ class Integrator:
             the last integrate call was use with ``step=True``, the time can be
             between the time at the start of the last call and now.
 
-        step : bool [False]
-            When True, integrate for a one internal step of the ODE solver.
-
         copy : bool [True]
             Whether to return a copy of the state or the state itself.
 
         Return
         ------
         (t, state) : (float, qutip.Data)
-            The state of the solver at ``t``. The returned time ``t`` can differ from
-            the input time only when ``step=True``.
+            The state of the solver at ``t``. The returned time ``t`` can
+            differ from the input time only when ``step=True``.
+
+        .. note:
+            Does not need to be implemented it the Integrator does not support
+            :func:`mcsovle`
         """
         raise NotImplementedError
 

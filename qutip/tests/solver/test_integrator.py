@@ -57,17 +57,17 @@ class TestIntegratorCte():
             t_target = i * 0.05
             while t < t_target:
                 t_old, y_old = evol.get_state()
-                t, state = evol.integrate(t_target, step=True)
+                t, state = evol.mcstep(t_target)
                 assert t <= t_target
                 assert t > t_old
                 assert_allclose(self._analytical_se(t),
                                 state.to_array()[0, 0], atol=2e-5)
                 t_back = (t + t_old) / 2
-                t_got, bstate = evol.integrate(t_back)
+                t_got, bstate = evol.mcstep(t_back)
                 assert t_back == t_got
                 assert_allclose(self._analytical_se(t),
                                 state.to_array()[0, 0], atol=2e-5)
-                t, state = evol.integrate(t)
+                t, state = evol.mcstep(t)
 
 
 class TestIntegrator(TestIntegratorCte):
