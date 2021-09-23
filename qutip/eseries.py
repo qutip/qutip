@@ -1,47 +1,20 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
 __all__ = ['eseries', 'esval', 'esspec', 'estidy']
 
 import numpy as np
 import scipy.sparse as sp
 from qutip.qobj import Qobj
 
+import warnings
+
 
 class eseries():
     """
     Class representation of an exponential-series expansion of
     time-dependent quantum objects.
+
+    .. deprecated:: 4.6.0
+        :obj:`~eseries` will be removed in QuTiP 5.  Please use :obj:`~QobjEvo`
+        for general time-dependence.
 
     Attributes
     ----------
@@ -67,6 +40,11 @@ class eseries():
     __array_priority__ = 101
 
     def __init__(self, q=None, s=np.array([])):
+        warnings.warn(
+            "eseries is to be removed in QuTiP 5.0,"
+            " consider swapping to QobjEvo for general time dependence.",
+            DeprecationWarning, stacklevel=2,
+        )
 
         if isinstance(s, (int, float, complex)):
             s = np.array([s])
@@ -84,18 +62,18 @@ class eseries():
                 self.dims = q.dims
                 self.shape = q.shape
             elif isinstance(q, (np.ndarray, list)):
-                q = np.asarray(q, dtype=object)
-                ind = np.shape(q)
-                num = ind[0]  # number of elements in q
+                num = len(q)  # number of elements in q
                 if any([Qobj(x).shape != Qobj(q[0]).shape for x in q]):
                     raise TypeError('All amplitudes must have same dimension.')
-                self.ampl = np.array([x for x in q], dtype=object)
-                self.rates = np.zeros(ind)
+                self.ampl = np.empty((num,), dtype=object)
+                self.ampl[:] = q
+                self.rates = np.zeros((num,))
                 self.dims = self.ampl[0].dims
                 self.shape = self.ampl[0].shape
             elif isinstance(q, Qobj):
                 qo = Qobj(q)
-                self.ampl = np.array([qo], dtype=object)
+                self.ampl = np.empty((1,), dtype=object)
+                self.ampl[0] = qo
                 self.rates = np.array([0])
                 self.dims = qo.dims
                 self.shape = qo.shape
@@ -107,18 +85,17 @@ class eseries():
 
         elif len(s) != 0:
             if isinstance(q, (np.ndarray, list)):
-                q = np.asarray(q, dtype=object)
-                ind = np.shape(q)
-                num = ind[0]
+                num = len(q)
                 if any([Qobj(x).shape != Qobj(q[0]).shape for x in q]):
                     raise TypeError('All amplitudes must have same dimension.')
-                self.ampl = np.array([Qobj(q[x]) for x in range(0, num)],
-                                     dtype=object)
+                self.ampl = np.empty((num,), dtype=object)
+                self.ampl[:] = [Qobj(qq) for qq in q]
                 self.dims = self.ampl[0].dims
                 self.shape = self.ampl[0].shape
             else:
                 num = 1
-                self.ampl = np.array([Qobj(q)], dtype=object)
+                self.ampl = np.empty((num,), dtype=object)
+                self.ampl[0] = Qobj(q)
                 self.dims = self.ampl[0].dims
                 self.shape = self.ampl[0].shape
 
@@ -134,13 +111,9 @@ class eseries():
                 self.rates = np.array(s)
 
         if len(self.ampl) != 0:
-            # combine arrays so that they can be sorted together
-            zipped = list(zip(self.rates, self.ampl))
-            zipped.sort()  # sort rates from lowest to highest
-            rates, ampl = list(zip(*zipped))  # get back rates and ampl
-            self.ampl = np.array(ampl, dtype=object)
-            self.rates = np.array(rates)
-
+            # Sort rates from lowest to highest.
+            order = np.argsort(self.rates)
+            self.ampl, self.rates = self.ampl[order], self.rates[order]
 
     def __str__(self):  # string of ESERIES information
         self.tidyup()
@@ -255,22 +228,17 @@ class eseries():
 
         if isinstance(self.ampl[0], Qobj):
             # amplitude vector contains quantum objects
-            val_list = []
+            val_list = np.empty((len(tlist),), dtype=object)
 
             for j in range(len(tlist)):
                 exp_factors = np.exp(np.array(self.rates) * tlist[j])
-
                 val = 0
                 for i in range(len(self.ampl)):
                     val += self.ampl[i] * exp_factors[i]
-
-                val_list.append(val)
-
-            val_list = np.array(val_list, dtype=object)
+                val_list[j] = val
         else:
             # the amplitude vector contains c numbers
             val_list = np.zeros(np.size(tlist), dtype=complex)
-
             for j in range(len(tlist)):
                 exp_factors = np.exp(np.array(self.rates) * tlist[j])
                 val_list[j] = np.sum(np.dot(self.ampl, exp_factors))
@@ -320,14 +288,12 @@ class eseries():
         ur_len = 0
 
         for r_idx in range(len(self.rates)):
-
             # look for a matching rate in the list of unique rates
             idx = -1
             for ur_key in unique_rates.keys():
                 if abs(self.rates[r_idx] - unique_rates[ur_key]) < rate_tol:
                     idx = ur_key
                     break
-
             if idx == -1:
                 # no matching rate, add it
                 unique_rates[ur_len] = self.rates[r_idx]
@@ -339,23 +305,21 @@ class eseries():
 
         # create new amplitude and rate list with only unique rates, and
         # nonzero amplitudes
-        self.rates = np.array([])
-        self.ampl = np.array([])
+        rates, ampl = [], []
         for ur_key in unique_rates.keys():
-            total_ampl = np.sum(np.asarray(ampl_dict[ur_key], dtype=object))
-
+            total_ampl = sum(ampl_dict[ur_key])
             if (isinstance(total_ampl, float) or
                     isinstance(total_ampl, complex)):
                 if abs(total_ampl) > ampl_tol:
-                    self.rates = np.append(self.rates, unique_rates[ur_key])
-                    self.ampl = np.append(self.ampl, total_ampl)
+                    rates.append(unique_rates[ur_key])
+                    ampl.append(total_ampl)
             else:
                 if abs(total_ampl.full()).max() > ampl_tol:
-                    self.rates = np.append(self.rates, unique_rates[ur_key])
-                    self.ampl = np.append(self.ampl,
-                                          np.asarray([total_ampl],
-                                                     dtype=object))
-
+                    rates.append(unique_rates[ur_key])
+                    ampl.append(total_ampl)
+        self.rates = np.array(rates)
+        self.ampl = np.empty((len(ampl),), dtype=object)
+        self.ampl[:] = ampl
         return self
 
 

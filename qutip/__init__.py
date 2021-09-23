@@ -1,93 +1,17 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-from __future__ import division, print_function, absolute_import
 import os
-import sys
 import warnings
 
 import qutip.settings
 import qutip.version
 from qutip.version import version as __version__
-from qutip.utilities import _version2int
 
 # -----------------------------------------------------------------------------
 # Check if we're in IPython.
 try:
     __IPYTHON__
     qutip.settings.ipython = True
-except:
+except NameError:
     qutip.settings.ipython = False
-
-# -----------------------------------------------------------------------------
-# Check for minimum requirements of dependencies, give the user a warning
-# if the requirements aren't fulfilled
-#
-
-numpy_requirement = "1.12.0"
-try:
-    import numpy
-    if _version2int(numpy.__version__) < _version2int(numpy_requirement):
-        print("QuTiP warning: old version of numpy detected " +
-              ("(%s), requiring %s." %
-               (numpy.__version__, numpy_requirement)))
-except:
-    warnings.warn("numpy not found.")
-
-scipy_requirement = "1.0.0"
-try:
-    import scipy
-    if _version2int(scipy.__version__) < _version2int(scipy_requirement):
-        print("QuTiP warning: old version of scipy detected " +
-              ("(%s), requiring %s." %
-               (scipy.__version__, scipy_requirement)))
-except:
-    warnings.warn("scipy not found.")
-
-# -----------------------------------------------------------------------------
-# check to see if running from install directory for released versions.
-#
-top_path = os.path.dirname(os.path.dirname(__file__))
-try:
-    setup_file = open(top_path + '/setup.py', 'r')
-except:
-    pass
-else:
-    if ('QuTiP' in setup_file.readlines()[1][3:]) and qutip.version.release:
-        print("You are in the installation directory. " +
-              "Change directories before running QuTiP.")
-    setup_file.close()
-
-del top_path
 
 
 # -----------------------------------------------------------------------------
@@ -99,7 +23,7 @@ os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
 
 try:
     from qutip.cy.openmp.parfuncs import spmv_csr_openmp
-except:
+except ImportError:
     qutip.settings.has_openmp = False
 else:
     qutip.settings.has_openmp = True
@@ -107,27 +31,39 @@ else:
     os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 import platform
-from .utilities import _blas_info
-qutip.settings.eigh_unsafe = (_blas_info() == "OPENBLAS" and
-                              platform.system() == 'Darwin')
+import scipy
+from packaging import version as pac_version
+from qutip.utilities import _blas_info
+
+is_old_scipy = pac_version.parse(scipy.__version__) < pac_version.parse("1.5")
+qutip.settings.eigh_unsafe = (
+    # macOS OpenBLAS eigh is unstable, see #1288
+    (_blas_info() == "OPENBLAS" and platform.system() == 'Darwin')
+    # The combination of scipy<1.5 and MKL causes wrong results when calling
+    # eigh for big matrices.  See #1495, #1491 and #1498.
+    or (is_old_scipy and (_blas_info() == 'INTEL MKL'))
+)
+
+del platform, _blas_info, scipy, pac_version, is_old_scipy
 # -----------------------------------------------------------------------------
 # setup the cython environment
 #
-_cython_requirement = "0.21.0"
 try:
-    import Cython
-    if _version2int(Cython.__version__) < _version2int(_cython_requirement):
-        print("QuTiP warning: old version of cython detected " +
-              ("(%s), requiring %s." %
-               (Cython.__version__, _cython_requirement)))
-    # Setup pyximport
-    import qutip.cy.pyxbuilder as pbldr
-    pbldr.install(setup_args={'include_dirs': [numpy.get_include()]})
-    del pbldr
-except Exception as e:
+    import Cython as _Cython
+except ImportError:
     pass
 else:
-    del Cython
+    from qutip.utilities import _version2int
+    _cy_require = "0.29.20"
+    if _version2int(_Cython.__version__) < _version2int(_cy_require):
+        warnings.warn(
+            "Old version of Cython detected: needed {}, got {}."
+            .format(_cy_require, _Cython.__version__)
+        )
+    # Setup pyximport
+    import qutip.cy.pyxbuilder as _pyxbuilder
+    _pyxbuilder.install()
+    del _pyxbuilder, _Cython, _version2int
 
 
 # -----------------------------------------------------------------------------
@@ -144,14 +80,16 @@ else:
 if qutip.settings.num_cpus == 0:
     # if num_cpu is 0 set it to the available number of cores
     import qutip.hardware_info
-    info =  qutip.hardware_info.hardware_info()
+    info = qutip.hardware_info.hardware_info()
     if 'cpus' in info:
         qutip.settings.num_cpus = info['cpus']
     else:
         try:
             qutip.settings.num_cpus = multiprocessing.cpu_count()
-        except:
+        except NotImplementedError:
             qutip.settings.num_cpus = 1
+
+del multiprocessing
 
 
 # Find MKL library if it exists
@@ -165,7 +103,7 @@ import qutip._mkl
 # Check for Matplotlib
 try:
     import matplotlib
-except:
+except ImportError:
     warnings.warn("matplotlib not found: Graphics will not work.")
 else:
     del matplotlib
@@ -247,36 +185,30 @@ from qutip.fileio import *
 from qutip.about import *
 from qutip.cite import *
 
-# Remove -Wstrict-prototypes from cflags
-import distutils.sysconfig
-cfg_vars = distutils.sysconfig.get_config_vars()
-if "CFLAGS" in cfg_vars:
-    cfg_vars["CFLAGS"] = cfg_vars["CFLAGS"].replace("-Wstrict-prototypes", "")
-
 # -----------------------------------------------------------------------------
 # Load user configuration if present: override defaults.
 #
 import qutip.configrc
 has_rc, rc_file = qutip.configrc.has_qutip_rc()
 
-# Make qutiprc and benchmark OPENMP if has_rc = False
-if qutip.settings.has_openmp and (not has_rc):
-    qutip.configrc.generate_qutiprc()
-    has_rc, rc_file = qutip.configrc.has_qutip_rc()
-    if has_rc and qutip.settings.num_cpus > 1:
+# Read the OpenMP threshold out if it already exists, or calibrate and save it
+# if it doesn't.
+if qutip.settings.has_openmp:
+    _calibrate_openmp = qutip.settings.num_cpus > 1
+    if has_rc:
+        _calibrate_openmp = (
+            _calibrate_openmp
+            and not qutip.configrc.has_rc_key('openmp_thresh', rc_file=rc_file)
+        )
+    else:
+        qutip.configrc.generate_qutiprc()
+        has_rc, rc_file = qutip.configrc.has_qutip_rc()
+    if _calibrate_openmp:
+        print('Calibrating OpenMP threshold...')
         from qutip.cy.openmp.bench_openmp import calculate_openmp_thresh
-        #bench OPENMP
-        print('Calibrating OPENMP threshold...')
-        thrsh = calculate_openmp_thresh()
-        qutip.configrc.write_rc_key(rc_file, 'openmp_thresh', thrsh)
-# Make OPENMP if has_rc but 'openmp_thresh' not in keys
-elif qutip.settings.has_openmp and has_rc:
-    has_omp_key = qutip.configrc.has_rc_key(rc_file, 'openmp_thresh')
-    if not has_omp_key and qutip.settings.num_cpus > 1:
-        from qutip.cy.openmp.bench_openmp import calculate_openmp_thresh
-        print('Calibrating OPENMP threshold...')
-        thrsh = calculate_openmp_thresh()
-        qutip.configrc.write_rc_key(rc_file, 'openmp_thresh', thrsh)
+        thresh = calculate_openmp_thresh()
+        qutip.configrc.write_rc_key('openmp_thresh', thresh, rc_file=rc_file)
+        del calculate_openmp_thresh
 
 # Load the config file
 if has_rc:
@@ -285,4 +217,4 @@ if has_rc:
 # -----------------------------------------------------------------------------
 # Clean name space
 #
-del os, sys, numpy, scipy, multiprocessing, distutils
+del os, warnings

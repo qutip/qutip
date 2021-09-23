@@ -1,36 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
 __all__ = ['Bloch']
 
 import os
@@ -38,15 +5,28 @@ import os
 from numpy import (ndarray, array, linspace, pi, outer, cos, sin, ones, size,
                    sqrt, real, mod, append, ceil, arange)
 
+from packaging.version import parse as parse_version
+
 from qutip.qobj import Qobj
 from qutip.expect import expect
 from qutip.operators import sigmax, sigmay, sigmaz
 
 try:
+    import matplotlib
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
     from matplotlib.patches import FancyArrowPatch
     from mpl_toolkits.mplot3d import proj3d
+
+    # Define a custom _axes3D function based on the matplotlib version.
+    # The auto_add_to_figure keyword is new for matplotlib>=3.4.
+    if parse_version(matplotlib.__version__) >= parse_version('3.4'):
+        def _axes3D(fig, *args, **kwargs):
+            ax = Axes3D(fig, *args, auto_add_to_figure=False, **kwargs)
+            return fig.add_axes(ax)
+    else:
+        def _axes3D(*args, **kwargs):
+            return Axes3D(*args, **kwargs)
 
     class Arrow3D(FancyArrowPatch):
         def __init__(self, xs, ys, zs, *args, **kwargs):
@@ -56,7 +36,7 @@ try:
 
         def draw(self, renderer):
             xs3d, ys3d, zs3d = self._verts3d
-            xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
+            xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, self.axes.M)
 
             self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
             FancyArrowPatch.draw(self, renderer)
@@ -69,69 +49,67 @@ except:
     pass
 
 
-class Bloch():
-    """Class for plotting data on the Bloch sphere.  Valid data can be
-    either points, vectors, or qobj objects.
+class Bloch:
+    r"""
+    Class for plotting data on the Bloch sphere.  Valid data can be either
+    points, vectors, or Qobj objects.
 
     Attributes
     ----------
-
-    axes : instance {None}
+    axes : matplotlib.axes.Axes
         User supplied Matplotlib axes for Bloch sphere animation.
-    fig : instance {None}
+    fig : matplotlib.figure.Figure
         User supplied Matplotlib Figure instance for plotting Bloch sphere.
-    font_color : str {'black'}
+    font_color : str, default 'black'
         Color of font used for Bloch sphere labels.
-    font_size : int {20}
+    font_size : int, default 20
         Size of font used for Bloch sphere labels.
-    frame_alpha : float {0.1}
+    frame_alpha : float, default 0.1
         Sets transparency of Bloch sphere frame.
-    frame_color : str {'gray'}
+    frame_color : str, default 'gray'
         Color of sphere wireframe.
-    frame_width : int {1}
+    frame_width : int, default 1
         Width of wireframe.
-    point_color : list {["b","r","g","#CC6600"]}
-        List of colors for Bloch sphere point markers to cycle through.
-        i.e. By default, points 0 and 4 will both be blue ('b').
-    point_marker : list {["o","s","d","^"]}
+    point_color : list, default ["b", "r", "g", "#CC6600"]
+        List of colors for Bloch sphere point markers to cycle through, i.e.
+        by default, points 0 and 4 will both be blue ('b').
+    point_marker : list, default ["o", "s", "d", "^"]
         List of point marker shapes to cycle through.
-    point_size : list {[25,32,35,45]}
-        List of point marker sizes. Note, not all point markers look
-        the same size when plotted!
-    sphere_alpha : float {0.2}
+    point_size : list, default [25, 32, 35, 45]
+        List of point marker sizes. Note, not all point markers look the same
+        size when plotted!
+    sphere_alpha : float, default 0.2
         Transparency of Bloch sphere itself.
-    sphere_color : str {'#FFDDDD'}
+    sphere_color : str, default '#FFDDDD'
         Color of Bloch sphere.
-    figsize : list {[7,7]}
+    figsize : list, default [7, 7]
         Figure size of Bloch sphere plot.  Best to have both numbers the same;
         otherwise you will have a Bloch sphere that looks like a football.
-    vector_color : list {["g","#CC6600","b","r"]}
+    vector_color : list, ["g", "#CC6600", "b", "r"]
         List of vector colors to cycle through.
-    vector_width : int {5}
+    vector_width : int, default 5
         Width of displayed vectors.
-    vector_style : str {'-|>', 'simple', 'fancy', ''}
+    vector_style : str, default '-\|>'
         Vector arrowhead style (from matplotlib's arrow style).
-    vector_mutation : int {20}
+    vector_mutation : int, default 20
         Width of vectors arrowhead.
-    view : list {[-60,30]}
+    view : list, default [-60, 30]
         Azimuthal and Elevation viewing angles.
-    xlabel : list {["$x$",""]}
+    xlabel : list, default ["$x$", ""]
         List of strings corresponding to +x and -x axes labels, respectively.
-    xlpos : list {[1.1,-1.1]}
+    xlpos : list, default [1.1, -1.1]
         Positions of +x and -x labels respectively.
-    ylabel : list {["$y$",""]}
+    ylabel : list, default ["$y$", ""]
         List of strings corresponding to +y and -y axes labels, respectively.
-    ylpos : list {[1.2,-1.2]}
+    ylpos : list, default [1.2, -1.2]
         Positions of +y and -y labels respectively.
-    zlabel : list {[r'$\\left|0\\right>$',r'$\\left|1\\right>$']}
+    zlabel : list, default ['$\\left\|0\\right>$', '$\\left\|1\\right>$']
         List of strings corresponding to +z and -z axes labels, respectively.
-    zlpos : list {[1.2,-1.2]}
+    zlpos : list, default [1.2, -1.2]
         Positions of +z and -z labels respectively.
-
     """
     def __init__(self, fig=None, axes=None, view=None, figsize=None,
                  background=False):
-
         # Figure and axes
         self.fig = fig
         self.axes = axes
@@ -160,7 +138,7 @@ class Bloch():
         # Position of y-axis labels, default = [1.1, -1.1]
         self.ylpos = [1.2, -1.2]
         # Labels for z-axis (in LaTex),
-        # default = [r'$\left|0\right>$', r'$\left|1\right>$']
+        # default = [r'$\left\|0\right>$', r'$\left|1\right>$']
         self.zlabel = [r'$\left|0\right>$', r'$\left|1\right>$']
         # Position of z-axis labels, default = [1.2, -1.2]
         self.zlpos = [1.2, -1.2]
@@ -175,7 +153,7 @@ class Bloch():
         self.vector_color = ['g', '#CC6600', 'b', 'r']
         #: Width of Bloch vectors, default = 5
         self.vector_width = 3
-        #: Style of Bloch vectors, default = '-|>' (or 'simple')
+        #: Style of Bloch vectors, default = '-\|>' (or 'simple')
         self.vector_style = '-|>'
         #: Sets the width of the vectors arrowhead
         self.vector_mutation = 20
@@ -216,16 +194,15 @@ class Bloch():
         convention : string
             One of the following:
 
-                - "original"
-                - "xyz"
-                - "sx sy sz"
-                - "01"
-                - "polarization jones"
-                - "polarization jones letters"
-                  see also: http://en.wikipedia.org/wiki/Jones_calculus
-                - "polarization stokes"
-                  see also: http://en.wikipedia.org/wiki/Stokes_parameters
-
+            - "original"
+            - "xyz"
+            - "sx sy sz"
+            - "01"
+            - "polarization jones"
+            - "polarization jones letters"
+              see also: https://en.wikipedia.org/wiki/Jones_calculus
+            - "polarization stokes"
+              see also: https://en.wikipedia.org/wiki/Stokes_parameters
         """
         ketex = "$\\left.|%s\\right\\rangle$"
         # \left.| is on purpose, so that every ket has the same size
@@ -324,13 +301,12 @@ class Bloch():
 
         Parameters
         ----------
-        points : array/list
+        points : array_like
             Collection of data points.
 
-        meth : str {'s', 'm', 'l'}
+        meth : {'s', 'm', 'l'}
             Type of points to plot, use 'm' for multicolored, 'l' for points
             connected with a line.
-
         """
         if not isinstance(points[0], (list, ndarray)):
             points = [[points[0]], [points[1]], [points[2]]]
@@ -355,12 +331,11 @@ class Bloch():
 
         Parameters
         ----------
-        state : qobj
+        state : Qobj
             Input state vector.
 
-        kind : str {'vector','point'}
+        kind : {'vector', 'point'}
             Type of object to plot.
-
         """
         if isinstance(state, Qobj):
             state = [state]
@@ -382,7 +357,6 @@ class Bloch():
         ----------
         vectors : array_like
             Array with vectors of unit length or smaller.
-
         """
         if isinstance(vectors[0], (list, ndarray)):
             for vec in vectors:
@@ -391,8 +365,9 @@ class Bloch():
             self.vectors.append(vectors)
 
     def add_annotation(self, state_or_vector, text, **kwargs):
-        """Add a text or LaTeX annotation to Bloch sphere,
-        parametrized by a qubit state or a vector.
+        """
+        Add a text or LaTeX annotation to Bloch sphere, parametrized by a qubit
+        state or a vector.
 
         Parameters
         ----------
@@ -400,14 +375,14 @@ class Bloch():
             Position for the annotaion.
             Qobj of a qubit or a vector of 3 elements.
 
-        text : str/unicode
+        text : str
             Annotation text.
             You can use LaTeX, but remember to use raw string
             e.g. r"$\\langle x \\rangle$"
             or escape backslashes
             e.g. "$\\\\langle x \\\\rangle$".
 
-        **kwargs :
+        kwargs :
             Options as for mplot3d.axes3d.text, including:
             fontsize, color, horizontalalignment, verticalalignment.
 
@@ -453,7 +428,8 @@ class Bloch():
             self.fig = plt.figure(figsize=self.figsize)
 
         if not axes:
-            self.axes = Axes3D(self.fig, azim=self.view[0], elev=self.view[1])
+            self.axes = _axes3D(self.fig, azim=self.view[0],
+                                elev=self.view[1])
 
         if self.background:
             self.axes.clear()
@@ -466,6 +442,10 @@ class Bloch():
             self.axes.set_xlim3d(-0.7, 0.7)
             self.axes.set_ylim3d(-0.7, 0.7)
             self.axes.set_zlim3d(-0.7, 0.7)
+        # Manually set aspect ratio to fit a square bounding box.
+        # Matplotlib did this stretching for < 3.3.0, but not above.
+        if parse_version(matplotlib.__version__) >= parse_version('3.3'):
+            self.axes.set_box_aspect((1, 1, 1))
 
         self.axes.grid(False)
         self.plot_back()
