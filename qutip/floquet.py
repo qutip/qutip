@@ -188,7 +188,7 @@ def floquet_modes_t(f_modes_0, f_energies, t, H, T, args=None,
 
 
 def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args=None,
-                        options=Options()):
+                        options=None):
     """
     Pre-calculate the Floquet modes for a range of times spanning the floquet
     period. Can later be used as a table to look up the floquet modes for
@@ -226,6 +226,7 @@ def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args=None,
         A nested list of Floquet modes as kets for each time in `tlist`
 
     """
+    options = options or Options()
     # truncate tlist to the driving period
     tlist_period = tlist[np.where(tlist <= T)]
 
