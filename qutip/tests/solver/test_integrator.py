@@ -1,6 +1,6 @@
 from qutip.solver.integrator import (sesolve_integrators,
                                      mesolve_integrators, mcsolve_integrators)
-from qutip.solver.options import SolverOptions
+from qutip.solver.options import SolverOdeOptions
 import qutip
 import numpy as np
 from numpy.testing import assert_allclose
@@ -27,7 +27,7 @@ class TestIntegratorCte():
         return request.param
 
     def test_se_integration(self, se_method):
-        opt = SolverOptions(method=se_method)
+        opt = SolverOdeOptions(method=se_method)
         evol = sesolve_integrators[se_method](self.se_system, opt)
         state0 = qutip.core.unstack_columns(qutip.basis(6,0).data, (2, 3))
         evol.set_state(0, state0)
@@ -37,7 +37,7 @@ class TestIntegratorCte():
             assert state.shape == (2, 3)
 
     def test_me_integration(self, me_method):
-        opt = SolverOptions(method=me_method)
+        opt = SolverOdeOptions(method=me_method)
         evol = mesolve_integrators[me_method](self.me_system, opt)
         state0 = qutip.operator_to_vector(qutip.fock_dm(2,1)).data
         evol.set_state(0, state0)
@@ -48,7 +48,7 @@ class TestIntegratorCte():
                             state.to_array()[0, 0], atol=2e-5)
 
     def test_mc_integration(self, mc_method):
-        opt = SolverOptions(method=mc_method)
+        opt = SolverOdeOptions(method=mc_method)
         evol = mcsolve_integrators[mc_method](self.se_system, opt)
         state = qutip.basis(2,0).data
         evol.set_state(0, state)

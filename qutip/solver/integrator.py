@@ -5,12 +5,16 @@ __all__ = ['Integrator', 'IntegratorException', 'add_integrator',
            'sesolve_integrators', 'mesolve_integrators', 'mcsolve_integrators']
 
 
-from itertools import product
-from qutip import QobjEvo, qeye, basis
-from functools import partial
-
-
 class IntegratorException(Exception):
+    """Error from the ODE solver being unable to integrate with the given
+    parameters.
+
+    Exemple
+    -------
+    - The solver cannot reach the desired tolerance within the maximum number
+    of steps.
+    - The step needed to be within desired tolerance is too small.
+    """
     pass
 
 
@@ -26,7 +30,7 @@ class Integrator:
     sytem: qutip.QobjEvo
         Quantum system in which states evolve.
 
-    options: qutip.SolverOptions
+    options: qutip.SolverOdeOptions
         Options for the solver.
     """
     # Used options in qutip.SolverOdeOptions
@@ -38,9 +42,10 @@ class Integrator:
 
     def __init__(self, system, options):
         self.system = system
-        self._stats = {}
-        self.options = options
-        self._is_set = False
+        self.options = {key: options[key]
+                        for key in self.used_options
+                        if key in options}
+        self._is_set = False  # get_state can be used and return a valid state.
         self._prepare()
 
     def _prepare(self):
@@ -60,6 +65,9 @@ class Integrator:
 
         state0 : qutip.Data
             Initial state.
+
+        .. note:
+            It should set the flags `_is_set` to True.
         """
         raise NotImplementedError
 
@@ -128,7 +136,7 @@ class Integrator:
         if self._is_set:
             self.set_state(*self.get_state())
 
-    def update_args(self, args):
+    def arguments(self, args):
         """
         Change the argument of the system.
         Reset the ODE solver to ensure numerical validity.
@@ -166,7 +174,7 @@ def add_integrator(integrator, keys, integrator_set, options_class=None):
     integrator_set : dict
         Group of integrators to which register the integrator.
 
-    options_class : SolverOptions
+    options_class : SolverOdeOptions
         If given, will add the ODE options supported by this integrator to
         those supported by the options_class. ie. If the integrator use a
         `stiff` options that Qutip's `SolverOdeOptions` does not have, it will

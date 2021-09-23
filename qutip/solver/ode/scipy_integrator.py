@@ -30,11 +30,8 @@ class IntegratorScipyZvode(Integrator):
         Initialize the solver
         """
         self._ode_solver = ode(self._mul_np_vec)
-        opt = {key: self.options.ode[key]
-               for key in self.used_options
-               if key in self.options.ode}
-        self._ode_solver.set_integrator('zvode', **opt)
-        self.name = "scipy zvode " + opt["method"]
+        self._ode_solver.set_integrator('zvode', **self.options)
+        self.name = "scipy zvode " + self.options['method']
 
     def _mul_np_vec(self, t, vec):
         """
@@ -155,10 +152,7 @@ class IntegratorScipyDop853(Integrator):
         Initialize the solver
         """
         self._ode_solver = ode(self._mul_np_vec)
-        opt = {key: self.options.ode[key]
-               for key in self.used_options
-               if key in self.options.ode}
-        self._ode_solver.set_integrator('dop853', **opt)
+        self._ode_solver.set_integrator('dop853', **self.options)
         self.name = "scipy ode dop853"
 
     def _mul_np_vec(self, t, vec):
@@ -245,10 +239,7 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         Initialize the solver
         """
         self._ode_solver = ode(self._mul_np_vec)
-        opt = {key: self.options.ode[key]
-               for key in self.used_options
-               if key in self.options.ode}
-        self._ode_solver.set_integrator('lsoda', **opt)
+        self._ode_solver.set_integrator('lsoda', **self.options)
         self.name = "scipy lsoda"
 
     def integrate(self, t, step=False, copy=True):
