@@ -1,38 +1,4 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
 import numpy as np
-from numpy.testing import assert_, run_module_suite
 from qutip import fsesolve, sigmax, sigmaz, rand_ket, num, mesolve
 from qutip import sigmap, sigmam, floquet_master_equation_rates, expect, Qobj
 from qutip import floquet_modes, floquet_modes_table, fmmesolve
@@ -68,7 +34,7 @@ class TestFloquet:
         # Compare with results from standard schrodinger equation
         sol_ref = mesolve(H, psi0, tlist, [], e_ops, args)
 
-        assert_(max(abs(sol.expect[0] - sol_ref.expect[0])) < 1e-4)
+        np.testing.assert_allclose(sol.expect[0], sol_ref.expect[0], atol=1e-4)
 
     def testFloquetMasterEquation1(self):
         """
@@ -142,7 +108,7 @@ class TestFloquet:
         output2 = mesolve(H, psi0, tlist, c_op_mesolve, [], args)
         p_ex_ref = expect(num(2), output2.states)
 
-        assert_(max(abs(np.real(p_ex)-np.real(p_ex_ref))) < 1e-4)
+        np.testing.assert_allclose(np.real(p_ex), np.real(p_ex_ref), atol=1e-4)
 
     def testFloquetMasterEquation2(self):
         """
@@ -223,7 +189,7 @@ class TestFloquet:
         output2 = mesolve(H, psi0, tlist, c_op_mesolve, [], args)
         p_ex_ref = expect(num(2), output2.states)
 
-        assert_(max(abs(np.real(p_ex)-np.real(p_ex_ref))) < 1e-4)
+        np.testing.assert_allclose(np.real(p_ex), np.real(p_ex_ref), atol=1e-4)
 
     def testFloquetRates(self):
         """
@@ -275,7 +241,8 @@ class TestFloquet:
             # Check energies
             deltas = np.ndarray.flatten(DeltaMatrix)
 
-            assert_(min(abs(deltas-array_ana_delta[idx])) < 1e-4)
+            # deltas and array_ana_delta have at least 1 value in common.
+            assert (min(abs(deltas-array_ana_delta[idx])) < 1e-4)
 
             # Check matrix elements
             Xs = np.ndarray.flatten(X)
@@ -284,15 +251,15 @@ class TestFloquet:
             normMinus = np.sqrt(a**2 + (array_ana_E0[idx] - delta/2)**2)
 
             Xpp_p1 = (a/normPlus**2)*(array_ana_E1[idx]-delta/2)
-            assert_(min(abs(Xs-Xpp_p1)) < 1e-4)
+            assert (min(abs(Xs-Xpp_p1)) < 1e-4)
             Xpp_m1 = (a/normPlus**2)*(array_ana_E1[idx]-delta/2)
-            assert_(min(abs(Xs-Xpp_m1)) < 1e-4)
+            assert (min(abs(Xs-Xpp_m1)) < 1e-4)
             Xmm_p1 = (a/normMinus**2)*(array_ana_E0[idx]-delta/2)
-            assert_(min(abs(Xs-Xmm_p1)) < 1e-4)
+            assert (min(abs(Xs-Xmm_p1)) < 1e-4)
             Xmm_m1 = (a/normMinus**2)*(array_ana_E0[idx]-delta/2)
-            assert_(min(abs(Xs-Xmm_m1)) < 1e-4)
+            assert (min(abs(Xs-Xmm_m1)) < 1e-4)
             Xpm_p1 = (a/(normMinus*normPlus))*(array_ana_E0[idx]-delta/2)
-            assert_(min(abs(Xs-Xmm_p1)) < 1e-4)
+            assert (min(abs(Xs-Xmm_p1)) < 1e-4)
             Xpm_m1 = (a/(normMinus*normPlus))*(array_ana_E1[idx]-delta/2)
-            assert_(min(abs(Xs-Xpm_m1)) < 1e-4)
+            assert (min(abs(Xs-Xpm_m1)) < 1e-4)
             idx += 1
