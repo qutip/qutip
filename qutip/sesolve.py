@@ -56,11 +56,12 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
 
     e_ops : None / list / callback function, optional
         A list of operators as `Qobj` and/or callable functions (can be mixed)
-        or a single callable function. For callable functions, they are called as ``f(t, state)`` 
-        and return the expectation value. A single callback's expectation value can be any type, 
-        but a callback part of a list must return a number as the expectation value. For operators, 
-        the result's expect will be  computed by :func:`qutip.expect` when the state is a ``ket``.
-        For operator evolution, the overlap is computed by: ::
+        or a single callable function. For callable functions, they are called
+        as ``f(t, state)`` and return the expectation value. A single
+        callback's expectation value can be any type, but a callback part of a
+        list must return a number as the expectation value. For operators, the
+        result's expect will be computed by :func:`qutip.expect` when the state
+        is a ``ket``. For operator evolution, the overlap is computed by: ::
 
             (e_ops[i].dag() * op(t)).tr()
 

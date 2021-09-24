@@ -129,10 +129,11 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
 
     e_ops : None / list / callback function, optional
         A list of operators as `Qobj` and/or callable functions (can be mixed)
-        or a single callable function. For operators, the result's expect will be  computed by :func:`qutip.expect`.
-        For callable functions, they are called as ``f(t, state)`` and return the expectation value.
-        A single callback's expectation value can be any type, but a callback part of a list must return
-        a number as the expectation value.
+        or a single callable function. For operators, the result's expect will
+        be  computed by :func:`qutip.expect`. For callable functions, they are
+        called as ``f(t, state)`` and return the expectation value.
+        A single callback's expectation value can be any type, but a callback
+        part of a list must return a number as the expectation value.
 
     args : None / *dictionary*
         dictionary of parameters for time-dependent Hamiltonians and
