@@ -397,79 +397,19 @@ def _h_sys_liouvillian(H_sys, isHamiltonian):
     return L.data
 
 
-class BosonicHEOMSolver(object):
+class HEOMSolver:
     """
-    This is a class for solvers that use the HEOM method for
-    calculating the dynamics evolution.
-    The method can compute open system dynamics without using any Markovian
-    or rotating wave approximations (RWA) for systems where the bath
-    correlations can be approximated to a sum of complex exponentials.
-    The method builds a matrix of linked differential equations, which are
-    then solved used the same ODE solvers as other qutip solvers
-    (e.g. mesolve)
-
-    Attributes
-    ----------
-    H_sys : Qobj or list
-        System Hamiltonian
-        Or
-        Liouvillian
-        Or
-        QobjEvo
-        Or
-        list of Hamiltonians with time dependence
-
-        Format for input (if list):
-        [time_independent_part, [H1, time_dep_function1],
-        [H2, time_dep_function2]]
-
-    coup_op : Qobj or list
-        Operator describing the coupling between system and bath.
-        Could also be a list of operators, which needs to be the same length
-        as ck's and vk's.
-
-    ckAR, ckAI, vkAR, vkAI : lists
-        Lists containing coefficients for fitting spectral density correlation
-
-        # Expand bath correlation function as prefactors times exponentials.
-        # ck - prefactors
-        # vk - frequency of the exponential
-        #
-        # ck * exp (-vk * t)
-        #
-        # ckAR * exp (-vkR * t) + i * ckAI * exp (-vkI * t)
-
-    N_cut : int
-        # The number of auxiliary density operators (ADO) to retain within the
-        # hierarchy.
-        #
-        # For each exponential in the speci ADO
-        #
-        # Cutoff parameter for the bath
-        #
-        # Number of operators kept in the hierarhcy.
-        #
-        # For each exponential we have a certain number of terms in the
-        # hierarchy.
-        #
-        # Total number of exponentials kept in the hierarchy.
-        #
-        # A bit like having total number of shared excitations.
-
-    options : :class:`qutip.solver.Options`
-        Generic solver options.
-        If set to None the default options will be used
+    HEOM solver that supports a single bath which may be either bosonic or
+    fermionic.
     """
 
-    def __init__(
-        self, H_sys, coup_op, ckAR, ckAI, vkAR, vkAI, N_cut, options=None
-    ):
+    def __init__(self, H_sys, bath, N_cut, options=None):
         self.H_sys = _convert_h_sys(H_sys)
         self.options = Options() if options is None else options
         self.isTimeDep = isinstance(self.H_sys, QobjEvo)
         self.isHamiltonian = _h_sys_is_hamiltonian(self.H_sys)
-        self._sup_dim = _h_sup_dim(self.H_sys, self.isHamiltonian)
         self._sys_dim = _h_sys_dim(self.H_sys, self.isHamiltonian)
+        self._sup_dim = _h_sup_dim(self.H_sys, self.isHamiltonian)
         self._h_sys_dims = (
             self.H_sys.dims if not self.isTimeDep
             else self.H_sys.to_list()[0].dims
@@ -477,12 +417,13 @@ class BosonicHEOMSolver(object):
         self.L = _h_sys_liouvillian(self.H_sys, self.isHamiltonian)
         self.N_cut = N_cut
 
-        bath = BosonicBath(coup_op, ckAR, vkAR, ckAI, vkAI)
-
         self.bath = BathStates(bath.modes, self.N_cut)
-        self.coup_op = [mode.Q for mode in bath.modes]
+
+        self.coup_op = [mode.Q for mode in self.bath.modes]
         self.spreQ = [spre(op).data for op in self.coup_op]
         self.spostQ = [spost(op).data for op in self.coup_op]
+        self.spreQdag = [spre(op.dag()).data for op in self.coup_op]
+        self.spostQdag = [spost(op.dag()).data for op in self.coup_op]
 
         self.progress_bar = BaseProgressBar()
 
@@ -498,20 +439,33 @@ class BosonicHEOMSolver(object):
         colidx = self.bath.idx(col_he)
         return cy_pad_csr(op, nhe, nhe, rowidx, colidx)
 
-    def boson_grad_n(self, L, he_n):
-        """
-        Get the gradient term for the hierarchy ADM at
-        level n
-        """
+    def _dsuper_list_td(self, t, y, L_list):
+        """ Auxiliary function for the integration. Called every time step. """
+        L = L_list[0][0]
+        for n in range(1, len(L_list)):
+            L = L + L_list[n][0] * L_list[n][1](t)
+        return L * y
+
+    def _grad_n(self, L, he_n):
+        """ Get the gradient for the hierarchy ADO at level n. """
         vk = self.bath.vk
         vk_sum = sum(he_n[i] * vk[i] for i in range(len(vk)))
         op = L - vk_sum * sp.eye(L.shape[0], dtype=complex, format="csr")
         return self._pad_op(op, he_n, he_n)
 
-    def boson_grad_prev(self, he_n, k, prev_he):
-        """
-        Get the previous gradient
-        """
+    def _grad_prev(self, he_n, k, prev_he):
+        """ Get the previous gradient. """
+        if self.bath.modes[k].type in (
+                BathMode.types.R, BathMode.types.I, BathMode.types.RI):
+            return self._grad_prev_bosonic(he_n, k, prev_he)
+        elif self.bath.modes[k].type in (
+                BathMode.types["+"], BathMode.types["-"]):
+            return self._grad_prev_fermionic(he_n, k, prev_he)
+        else:
+            raise ValueError(
+                f"Mode {k} has unsupported type {self.bath.modes[k].type}")
+
+    def _grad_prev_bosonic(self, he_n, k, prev_he):
         if self.bath.modes[k].type == BathMode.types.R:
             op = -1j * he_n[k] * self.bath.ck[k] * (
                 self.spreQ[k] - self.spostQ[k]
@@ -530,17 +484,56 @@ class BosonicHEOMSolver(object):
             )
         return self._pad_op(op, he_n, prev_he)
 
-    def boson_grad_next(self, he_n, k, next_he):
-        """
-        Get the next gradient
-        """
+    def _grad_prev_fermionic(self, he_n, k, prev_he):
+        ck = self.bath.ck
+
+        n_excite = sum(he_n)
+        sign1 = (-1) ** (n_excite + 1)
+
+        n_excite_before_m = sum(he_n[:k])
+        sign2 = (-1) ** (n_excite_before_m)
+
+        sigma_bar_k = k + self.bath.sigma_bar_k_offset[k]
+
+        op = -1j * sign2 * (
+            (ck[k] * self.spreQ[k]) -
+            (sign1 * np.conj(ck[sigma_bar_k] * self.spostQ[k]))
+        )
+
+        return self._pad_op(op, he_n, prev_he)
+
+    def _grad_next(self, he_n, k, prev_he):
+        """ Get the previous gradient. """
+        if self.bath.modes[k].type in (
+                BathMode.types.R, BathMode.types.I, BathMode.types.RI):
+            return self._grad_next_bosonic(he_n, k, prev_he)
+        elif self.bath.modes[k].type in (
+                BathMode.types["+"], BathMode.types["-"]):
+            return self._grad_next_fermionic(he_n, k, prev_he)
+        else:
+            raise ValueError(
+                f"Mode {k} has unsupported type {self.bath.modes[k].type}")
+
+    def _grad_next_bosonic(self, he_n, k, next_he):
         op = -1j * (self.spreQ[k] - self.spostQ[k])
         return self._pad_op(op, he_n, next_he)
 
-    def boson_rhs(self, L, N):
-        """
-        Make the RHS for bosonic case
-        """
+    def _grad_next_fermionic(self, he_n, k, next_he):
+        n_excite = sum(he_n)
+        sign1 = (-1) ** (n_excite + 1)
+
+        n_excite_before_m = sum(he_n[:k])
+        sign2 = (-1) ** (n_excite_before_m)
+
+        op = -1j * sign2 * (
+            (self.spreQdag[k]) +
+            (sign1 * self.spostQdag[k])
+        )
+
+        return self._pad_op(op, he_n, next_he)
+
+    def _rhs(self, L, N):
+        """ Make the RHS for the HEOM. """
         nhe = len(self.bath.states)
         RHS = sp.csr_matrix(
             (nhe * N ** 2, nhe * N ** 2),
@@ -548,20 +541,20 @@ class BosonicHEOMSolver(object):
         )
 
         for he_n in self.bath.states:
-            RHS += self.boson_grad_n(L, he_n)
+            RHS += self._grad_n(L, he_n)
             for k in range(len(self.bath.dims)):
                 next_he = self.bath.next(he_n, k)
                 if next_he is not None:
-                    RHS += self.boson_grad_next(he_n, k, next_he)
+                    RHS += self._grad_next(he_n, k, next_he)
                 prev_he = self.bath.prev(he_n, k)
                 if prev_he is not None:
-                    RHS += self.boson_grad_prev(he_n, k, prev_he)
+                    RHS += self._grad_prev(he_n, k, prev_he)
 
         return RHS
 
     def _configure_solver(self):
         """ Set up the solver. """
-        RHSmat = self.boson_rhs(self.L, self._sys_dim)
+        RHSmat = self._rhs(self.L, self._sys_dim)
         assert isinstance(RHSmat, sp.csr_matrix)
 
         if self.isTimeDep:
@@ -576,7 +569,7 @@ class BosonicHEOMSolver(object):
                 )
                 solver_params.append([temp_mat, H_list[idx][1]])
 
-            solver = scipy.integrate.ode(_dsuper_list_td)
+            solver = scipy.integrate.ode(self._dsuper_list_td)
             solver.set_f_params(solver_params)
         else:
             solver = scipy.integrate.ode(cy_ode_rhs)
@@ -623,7 +616,7 @@ class BosonicHEOMSolver(object):
         """
         nstates = self.bath.n_states
         sup_dim = self._sup_dim
-        n = int(np.sqrt(sup_dim))
+        n = self._sys_dim
         L = deepcopy(self.RHSmat)
 
         b_mat = np.zeros(sup_dim * nstates, dtype=complex)
@@ -636,457 +629,6 @@ class BosonicHEOMSolver(object):
         # TODO: Replace with the standard QuTiP configuration options for MKL.
         if settings.has_mkl & use_mkl:
             # TODO: Replace with logging?
-            print("Using Intel mkl solver")
-            from qutip._mkl.spsolve import mkl_spsolve
-
-            L = L.tocsr() + sp.csr_matrix((
-                np.ones(n),
-                (np.zeros(n), [num * (n + 1) for num in range(n)])
-            ), shape=(n ** 2 * nstates, n ** 2 * nstates))
-
-            L.sort_indices()
-
-            solution = mkl_spsolve(
-                L,
-                b_mat,
-                perm=None,
-                verbose=True,
-                max_iter_refine=max_iter_refine,
-                scaling_vectors=True,
-                weighted_matching=weighted_matching,
-            )
-
-        else:
-
-            L = L.tocsc() + sp.csc_matrix((
-                np.ones(n),
-                (np.zeros(n), [num * (n + 1) for num in range(n)])
-            ), shape=(n ** 2 * nstates, n ** 2 * nstates))
-
-            # Use superLU solver
-
-            LU = splu(L)
-            solution = LU.solve(b_mat)
-
-        data = dense2D_to_fastcsr_fmode(vec2mat(solution[:sup_dim]), n, n)
-        data = 0.5 * (data + data.H)
-
-        solution = solution.reshape((nstates, sup_dim))
-
-        return Qobj(data, dims=self._h_sys_dims), solution
-
-    def run(self, rho0, tlist, full_init=False, return_full=False):
-        """
-        Function to solve the time dependent evolution of the ODE given
-        an initial condition and set of time steps.
-
-        Parameters
-        ----------
-        rho0 : Qobj
-            Initial state (density matrix) of the system
-            (if full_init==False).
-            If full_init = True, then rho0 should be a numpy array of
-            initial state and all ADOs.
-
-        tlist : list
-            Time over which system evolves.
-
-        full_init: Boolean
-            Indicates if initial condition is just the system Qobj, or a
-            numpy array including all ADOs.
-
-        return_full: Boolean
-
-            Whether to also return as output the full state of all ADOs.
-
-        Returns
-        -------
-        results : :class:`qutip.solver.Result`
-            Object storing all results from the simulation.
-            If return_full == True, also returns ADOs as an additional
-            numpy array.
-        """
-        nstates = self.bath.n_states
-        sup_dim = self._sup_dim
-
-        solver = self._ode
-        dims = self.coup_op[0].dims
-        shape = self.coup_op[0].shape
-
-        output = Result()
-        output.solver = "hsolve"
-        output.times = tlist
-        output.states = []
-        if not full_init:
-            output.states.append(Qobj(rho0))
-            rho0_flat = rho0.full().ravel('F')
-            rho0_he = np.zeros([sup_dim * nstates], dtype=complex)
-            rho0_he[:sup_dim] = rho0_flat
-            solver.set_initial_value(rho0_he, tlist[0])
-        else:
-            output.states.append(Qobj(
-                rho0[:sup_dim].reshape(shape, order='F'), dims=dims,
-            ))
-            rho0_he = rho0
-            solver.set_initial_value(rho0_he, tlist[0])
-
-        dt = np.diff(tlist)
-        n_tsteps = len(tlist)
-
-        if not return_full:
-            self.progress_bar.start(n_tsteps)
-            for t_idx, t in enumerate(tlist):
-                self.progress_bar.update(t_idx)
-                if t_idx < n_tsteps - 1:
-                    solver.integrate(solver.t + dt[t_idx])
-                    rho = Qobj(
-                        solver.y[:sup_dim].reshape(shape, order="F"),
-                        dims=dims
-                    )
-                    output.states.append(rho)
-
-            self.progress_bar.finished()
-            return output
-
-        else:
-            self.progress_bar.start(n_tsteps)
-            N = shape[0]
-            hshape = (self.bath.n_states, N**2)
-            full_hierarchy = [rho0.reshape(hshape)]
-            for t_idx, t in enumerate(tlist):
-                if t_idx < n_tsteps - 1:
-                    solver.integrate(solver.t + dt[t_idx])
-
-                    rho = Qobj(
-                        solver.y[:sup_dim].reshape(shape, order='F'),
-                        dims=dims
-                    )
-                    full_hierarchy.append(solver.y.reshape(hshape))
-                    output.states.append(rho)
-            self.progress_bar.finished()
-            return output, full_hierarchy
-
-
-class HSolverDL(BosonicHEOMSolver):
-    """
-    HEOM solver based on the Drude-Lorentz model for spectral density.
-    Drude-Lorentz bath the correlation functions can be exactly analytically
-    expressed as a sum of exponentials.
-
-    This sub-class is included to give backwards compatability with the older
-    implentation in qutip.nonmarkov.heom.
-
-    Attributes
-    ----------
-    coup_strength : float
-        Coupling strength.
-    temperature : float
-        Bath temperature.
-    N_cut : int
-        Cutoff parameter for the bath
-    N_exp : int
-        Number of exponential terms used to approximate the bath correlation
-        functions
-    cut_freq : float
-        Bath spectral density cutoff frequency.
-    bnd_cut_approx : bool
-        Use boundary cut off approximation
-    options : :class:`qutip.solver.Options`
-        Generic solver options.
-        If set to None the default options will be used
-    """
-
-    def __init__(
-        self, H_sys, coup_op, coup_strength, temperature,
-        N_cut, N_exp, cut_freq, bnd_cut_approx=False, options=None,
-    ):
-        ckAR, ckAI, vkAR, vkAI = self._calc_matsubara_params(
-            lam=coup_strength,
-            gamma=cut_freq,
-            Nk=N_exp,
-            T=temperature
-        )
-
-        if bnd_cut_approx:
-            L_bnd = self._calc_bound_cut_liouvillian(
-                Q=coup_op,
-                lam=coup_strength,
-                gamma=cut_freq,
-                Nk=N_exp,
-                T=temperature
-            )
-            H_sys = _convert_h_sys(H_sys)
-            H_sys = liouvillian(H_sys) + L_bnd
-
-        super().__init__(
-            H_sys,
-            coup_op=coup_op,
-            ckAR=ckAR, ckAI=ckAI, vkAR=vkAR, vkAI=vkAI,
-            N_cut=N_cut,
-        )
-
-        # store input parameters as attributes for politeness
-        self.coup_strength = coup_strength
-        self.cut_freq = cut_freq
-        self.temperature = temperature
-        self.N_exp = N_exp
-        self.bnd_cut_approx = bnd_cut_approx
-
-    def _calc_bound_cut_liouvillian(self, Q, lam, gamma, Nk, T):
-        """ Calculate the hierarchy terminator term for the Liouvillian. """
-        beta = 1 / T
-
-        op = -2*spre(Q)*spost(Q.dag()) + spre(Q.dag()*Q) + spost(Q.dag()*Q)
-        approx_factr = ((2 * lam / (beta * gamma)) - 1j * lam)
-        approx_factr -= (
-            lam * gamma * (-1.0j + 1 / np.tan(gamma / (2 * T))) / gamma
-        )
-
-        for k in range(1, Nk + 1):
-            vk = 2 * np.pi * k * T
-            approx_factr -= (
-                (4 * lam * gamma * T * vk / (vk**2 - gamma**2)) / vk
-            )
-
-        L_bnd = -approx_factr * op
-        return L_bnd
-
-    def _calc_matsubara_params(self, lam, gamma, Nk, T):
-        """ Calculate the Matsubara coefficents and frequencies. """
-        ckAR = [lam * gamma * (1/np.tan(gamma / (2 * T)))]
-        ckAR.extend([
-            (4 * lam * gamma * T * 2 * np.pi * k * T /
-                ((2 * np.pi * k * T)**2 - gamma**2))
-            for k in range(1, Nk + 1)
-        ])
-        vkAR = [gamma]
-        vkAR.extend([2 * np.pi * k * T for k in range(1, Nk + 1)])
-
-        ckAI = [lam * gamma * (-1.0)]
-        vkAI = [gamma]
-
-        return ckAR, ckAI, vkAR, vkAI
-
-
-class FermionicHEOMSolver(object):
-    """
-    Same as BosonicHEOMSolver, but with Fermionic baths.
-
-    Attributes
-    ----------
-    H_sys : Qobj or list
-        System Hamiltonian
-        Or
-        Liouvillian
-        Or
-        QobjEvo
-        Or
-        list of Hamiltonians with time dependence
-
-        Format for input (if list):
-        [time_independent_part, [H1, time_dep_function1],
-        [H2, time_dep_function2]]
-
-    coup_op : Qobj or list
-        Operator describing the coupling between system and bath.
-        Could also be a list of operators, which needs to be the
-        same length as ck's and vk's.
-
-    ck, vk : lists
-        Lists containing spectral density correlation
-
-    N_cut : int
-        Cutoff parameter for the bath
-
-    options : :class:`qutip.solver.Options`
-        Generic solver options.
-        If set to None the default options will be used
-    """
-
-    def __init__(self, H_sys, coup_op, ck, vk, N_cut, options=None):
-        self.H_sys = _convert_h_sys(H_sys)
-        self.options = Options() if options is None else options
-        self.isTimeDep = isinstance(self.H_sys, QobjEvo)
-        self.isHamiltonian = _h_sys_is_hamiltonian(self.H_sys)
-        self._sys_dim = _h_sys_dim(self.H_sys, self.isHamiltonian)
-        self._sup_dim = _h_sup_dim(self.H_sys, self.isHamiltonian)
-        self._h_sys_dims = (
-            self.H_sys.dims if not self.isTimeDep
-            else self.H_sys.to_list()[0].dims
-        )
-        self.L = _h_sys_liouvillian(self.H_sys, self.isHamiltonian)
-        self.N_cut = N_cut
-
-        bath = FermionicBath(coup_op, ck, vk)
-        self.bath = BathStates(bath.modes, self.N_cut)
-
-        self.coup_op = [mode.Q for mode in self.bath.modes]
-        self.spreQ = [spre(op).data for op in self.coup_op]
-        self.spostQ = [spost(op).data for op in self.coup_op]
-        self.spreQdag = [spre(op.dag()).data for op in self.coup_op]
-        self.spostQdag = [spost(op.dag()).data for op in self.coup_op]
-
-        self.progress_bar = BaseProgressBar()
-
-        self._configure_solver()
-
-    def _pad_op(self, op, row_he, col_he):
-        """
-        Pad op into its correct position within the larger HEOM liouvillian
-        for the given row and column bath states.
-        """
-        nhe = self.bath.n_states
-        rowidx = self.bath.idx(row_he)
-        colidx = self.bath.idx(col_he)
-        return cy_pad_csr(op, nhe, nhe, rowidx, colidx)
-
-    def fermion_grad_n(self, L, he_n):
-        """
-        Get the gradient term for the hierarchy ADM at
-        level n
-        """
-        vk = self.bath.vk
-        vk_sum = sum(he_n[i] * vk[i] for i in range(len(vk)))
-        op = L - vk_sum * sp.eye(L.shape[0], dtype=complex, format="csr")
-        return self._pad_op(op, he_n, he_n)
-
-    def fermion_grad_prev(self, he_n, k, prev_he):
-        """
-        Get previous gradient
-        """
-        ck = self.bath.ck
-
-        n_excite = sum(he_n)
-        sign1 = (-1) ** (n_excite + 1)
-
-        n_excite_before_m = sum(he_n[:k])
-        sign2 = (-1) ** (n_excite_before_m)
-
-        sigma_bar_k = k + self.bath.sigma_bar_k_offset[k]
-
-        op = -1j * sign2 * (
-            (ck[k] * self.spreQ[k]) -
-            (sign1 * np.conj(ck[sigma_bar_k] * self.spostQ[k]))
-        )
-
-        return self._pad_op(op, he_n, prev_he)
-
-    def fermion_grad_next(self, he_n, k, next_he):
-        """
-        Get next gradient
-        """
-        n_excite = sum(he_n)
-        sign1 = (-1) ** (n_excite + 1)
-
-        n_excite_before_m = sum(he_n[:k])
-        sign2 = (-1) ** (n_excite_before_m)
-
-        op = -1j * sign2 * (
-            (self.spreQdag[k]) +
-            (sign1 * self.spostQdag[k])
-        )
-
-        return self._pad_op(op, he_n, next_he)
-
-    def fermion_rhs(self, L, N):
-        """
-        Make the RHS for fermionic case
-        """
-        nhe = len(self.bath.states)
-        RHS = sp.csr_matrix(
-            (nhe * N ** 2, nhe * N ** 2),
-            dtype=np.complex128,
-        )
-
-        for he_n in self.bath.states:
-            RHS += self.fermion_grad_n(L, he_n)
-            for k in range(len(he_n)):
-                next_he = self.bath.next(he_n, k)
-                if next_he is not None:
-                    RHS += self.fermion_grad_next(he_n, k, next_he)
-                prev_he = self.bath.prev(he_n, k)
-                if prev_he is not None:
-                    RHS += self.fermion_grad_prev(he_n, k, prev_he)
-
-        return RHS
-
-    def _configure_solver(self):
-        """ Configure the solver """
-        RHSmat = self.fermion_rhs(self.L, self._sys_dim)
-        assert isinstance(RHSmat, sp.csr_matrix)
-
-        if self.isTimeDep:
-            h_identity_mat = sp.identity(len(self.bath.states), format="csr")
-            H_list = self.H_sys.to_list()
-
-            # store each time dependent component
-            solver_params = [[RHSmat]]
-            for idx in range(1, len(H_list)):
-                temp_mat = sp.kron(
-                    h_identity_mat,
-                    liouvillian(H_list[idx][0])
-                )
-                solver_params.append([temp_mat, H_list[idx][1]])
-
-            solver = scipy.integrate.ode(_dsuper_list_td)
-            solver.set_f_params(solver_params)
-        else:
-            solver = scipy.integrate.ode(cy_ode_rhs)
-            solver.set_f_params(RHSmat.data, RHSmat.indices, RHSmat.indptr)
-
-        solver.set_integrator(
-            "zvode",
-            method=self.options.method,
-            order=self.options.order,
-            atol=self.options.atol,
-            rtol=self.options.rtol,
-            nsteps=self.options.nsteps,
-            first_step=self.options.first_step,
-            min_step=self.options.min_step,
-            max_step=self.options.max_step,
-        )
-
-        self._ode = solver
-        self.RHSmat = RHSmat
-
-    def steady_state(
-        self, max_iter_refine=100, use_mkl=False, weighted_matching=False
-    ):
-        """
-        Computes steady state dynamics
-
-        max_iter_refine : Int
-            Parameter for the mkl LU solver. If pardiso errors are returned
-            this should be increased.
-        use_mkl : Boolean
-            Optional override default use of mkl if mkl is installed.
-        weighted_matching : Boolean
-            Setting this true may increase run time, but reduce stability
-            (pardisio may not converge).
-
-        Returns
-        -------
-        steady state :  Qobj
-            The steady state density matrix of the system
-        solution    :   Numpy array
-            Array of the the steady-state and all ADOs.
-            Further processing of this can be done with functions provided in
-            example notebooks.
-        """
-        nstates = self.bath.n_states
-        sup_dim = self._sup_dim
-        n = self._sys_dim
-        L = deepcopy(self.RHSmat)
-
-        b_mat = np.zeros(sup_dim * nstates, dtype=complex)
-        b_mat[0] = 1.0
-
-        L = L.tolil()
-        L[0, 0: sup_dim * nstates] = 0.0
-        L = L.tocsr()
-
-        # TODO: Use the usual QuTiP MKL configuration here
-        if settings.has_mkl & use_mkl:
             print("Using Intel mkl solver")
             from qutip._mkl.spsolve import mkl_spsolve
 
@@ -1177,7 +719,7 @@ class FermionicHEOMSolver(object):
             solver.set_initial_value(rho0_he, tlist[0])
         else:
             output.states.append(Qobj(
-                rho0[:sup_dim].reshape(shape, order='F'), dims=dims
+                rho0[:sup_dim].reshape(shape, order='F'), dims=dims,
             ))
             rho0_he = rho0
             solver.set_initial_value(rho0_he, tlist[0])
@@ -1193,7 +735,7 @@ class FermionicHEOMSolver(object):
                     solver.integrate(solver.t + dt[t_idx])
                     rho = Qobj(
                         solver.y[:sup_dim].reshape(shape, order="F"),
-                        dims=dims
+                        dims=dims,
                     )
                     output.states.append(rho)
 
@@ -1218,12 +760,212 @@ class FermionicHEOMSolver(object):
             return output, full_hierarchy
 
 
-def _dsuper_list_td(t, y, L_list):
+class BosonicHEOMSolver(HEOMSolver):
     """
-    Auxiliary function for the integration.
-    Is called at every time step.
+    This is a class for solvers that use the HEOM method for
+    calculating the dynamics evolution.
+    The method can compute open system dynamics without using any Markovian
+    or rotating wave approximations (RWA) for systems where the bath
+    correlations can be approximated to a sum of complex exponentials.
+    The method builds a matrix of linked differential equations, which are
+    then solved used the same ODE solvers as other qutip solvers
+    (e.g. mesolve)
+
+    Parameters
+    ----------
+    H_sys : Qobj or QobjEvo or list
+        System Hamiltonian
+        Or
+        Liouvillian
+        Or
+        QobjEvo
+        Or
+        list of Hamiltonians with time dependence
+
+        Format for input (if list):
+        [time_independent_part, [H1, time_dep_function1],
+        [H2, time_dep_function2]]
+
+    coup_op : Qobj or list
+        Operator describing the coupling between system and bath.
+        Could also be a list of operators, which needs to be the same length
+        as ck's and vk's.
+
+    ckAR, ckAI, vkAR, vkAI : lists
+        Lists containing coefficients for fitting spectral density correlation
+
+    N_cut : int
+        The maximum depth of the heirarchy (i.e. the maximum number of bath
+        excitations to retain).
+
+    options : :class:`qutip.solver.Options`
+        Generic solver options.
+        If set to None the default options will be used
     """
-    L = L_list[0][0]
-    for n in range(1, len(L_list)):
-        L = L + L_list[n][0] * L_list[n][1](t)
-    return L * y
+
+    def __init__(
+        self, H_sys, coup_op, ckAR, ckAI, vkAR, vkAI, N_cut, options=None
+    ):
+        bath = BosonicBath(coup_op, ckAR, vkAR, ckAI, vkAI)
+        super().__init__(H_sys, bath, N_cut, options=options)
+
+
+class HSolverDL(HEOMSolver):
+    """
+    HEOM solver based on the Drude-Lorentz model for spectral density.
+    Drude-Lorentz bath the correlation functions can be exactly analytically
+    expressed as a sum of exponentials.
+
+    This sub-class is included to give backwards compatability with the older
+    implentation in qutip.nonmarkov.heom.
+
+    Parameters
+    ----------
+    H_sys : Qobj or QobjEvo or list
+        System Hamiltonian
+        Or
+        Liouvillian
+        Or
+        QobjEvo
+        Or
+        list of Hamiltonians with time dependence
+
+        Format for input (if list):
+        [time_independent_part, [H1, time_dep_function1],
+        [H2, time_dep_function2]]
+
+    coup_op : Qobj or list
+        Operator describing the coupling between system and bath.
+        Could also be a list of operators, which needs to be the same length
+        as ck's and vk's.
+
+    coup_strength : float
+        Coupling strength.
+
+    temperature : float
+        Bath temperature.
+
+    N_cut : int
+        Cutoff parameter for the bath
+
+    N_exp : int
+        Number of exponential terms used to approximate the bath correlation
+        functions
+
+    cut_freq : float
+        Bath spectral density cutoff frequency.
+
+    bnd_cut_approx : bool
+        Use boundary cut off approximation
+
+    options : :class:`qutip.solver.Options`
+        Generic solver options.
+        If set to None the default options will be used
+    """
+
+    def __init__(
+        self, H_sys, coup_op, coup_strength, temperature,
+        N_cut, N_exp, cut_freq, bnd_cut_approx=False, options=None,
+    ):
+        ckAR, ckAI, vkAR, vkAI = self._calc_matsubara_params(
+            lam=coup_strength,
+            gamma=cut_freq,
+            Nk=N_exp,
+            T=temperature
+        )
+
+        if bnd_cut_approx:
+            L_bnd = self._calc_bound_cut_liouvillian(
+                Q=coup_op,
+                lam=coup_strength,
+                gamma=cut_freq,
+                Nk=N_exp,
+                T=temperature
+            )
+            H_sys = _convert_h_sys(H_sys)
+            H_sys = liouvillian(H_sys) + L_bnd
+
+        bath = BosonicBath(coup_op, ckAR, vkAR, ckAI, vkAI)
+        super().__init__(H_sys, bath, N_cut, options=options)
+
+        # store input parameters as attributes for politeness
+        self.coup_strength = coup_strength
+        self.cut_freq = cut_freq
+        self.temperature = temperature
+        self.N_exp = N_exp
+        self.bnd_cut_approx = bnd_cut_approx
+
+    def _calc_bound_cut_liouvillian(self, Q, lam, gamma, Nk, T):
+        """ Calculate the hierarchy terminator term for the Liouvillian. """
+        beta = 1 / T
+
+        op = -2*spre(Q)*spost(Q.dag()) + spre(Q.dag()*Q) + spost(Q.dag()*Q)
+        approx_factr = ((2 * lam / (beta * gamma)) - 1j * lam)
+        approx_factr -= (
+            lam * gamma * (-1.0j + 1 / np.tan(gamma / (2 * T))) / gamma
+        )
+
+        for k in range(1, Nk + 1):
+            vk = 2 * np.pi * k * T
+            approx_factr -= (
+                (4 * lam * gamma * T * vk / (vk**2 - gamma**2)) / vk
+            )
+
+        L_bnd = -approx_factr * op
+        return L_bnd
+
+    def _calc_matsubara_params(self, lam, gamma, Nk, T):
+        """ Calculate the Matsubara coefficents and frequencies. """
+        ckAR = [lam * gamma * (1/np.tan(gamma / (2 * T)))]
+        ckAR.extend([
+            (4 * lam * gamma * T * 2 * np.pi * k * T /
+                ((2 * np.pi * k * T)**2 - gamma**2))
+            for k in range(1, Nk + 1)
+        ])
+        vkAR = [gamma]
+        vkAR.extend([2 * np.pi * k * T for k in range(1, Nk + 1)])
+
+        ckAI = [lam * gamma * (-1.0)]
+        vkAI = [gamma]
+
+        return ckAR, ckAI, vkAR, vkAI
+
+
+class FermionicHEOMSolver(HEOMSolver):
+    """
+    Same as BosonicHEOMSolver, but with Fermionic baths.
+
+    Attributes
+    ----------
+    H_sys : Qobj or QobjEvo or list
+        System Hamiltonian
+        Or
+        Liouvillian
+        Or
+        QobjEvo
+        Or
+        list of Hamiltonians with time dependence
+
+        Format for input (if list):
+        [time_independent_part, [H1, time_dep_function1],
+        [H2, time_dep_function2]]
+
+    coup_op : Qobj or list
+        Operator describing the coupling between system and bath.
+        Could also be a list of operators, which needs to be the
+        same length as ck's and vk's.
+
+    ck, vk : lists
+        Lists containing spectral density correlation
+
+    N_cut : int
+        Cutoff parameter for the bath
+
+    options : :class:`qutip.solver.Options`
+        Generic solver options.
+        If set to None the default options will be used
+    """
+
+    def __init__(self, H_sys, coup_op, ck, vk, N_cut, options=None):
+        bath = FermionicBath(coup_op, ck, vk)
+        super().__init__(H_sys, bath, N_cut, options=options)
