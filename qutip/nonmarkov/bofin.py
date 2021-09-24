@@ -876,37 +876,21 @@ class FermionicHEOMSolver(object):
         """
         ck = self.flat_ck
 
-        # sign1 is based on number of excitations
-        # the finicky notation is explicit and correct
+        n_excite = sum(he_n)
+        sign1 = (-1) ** (n_excite + 1)
 
-        norm_prev = 1
-        sign1 = 0
-        n_excite = 2
-        for i in range(len(he_n)):
-            if he_n[i] == 1:
-                n_excite += 1
-        sign1 = (-1) ** (n_excite - 1)
         upto = self.offsets[k] + idx
+        n_excite_before_m = sum(he_n[:upto])
+        sign2 = (-1) ** (n_excite_before_m)
 
-        # sign2 is another prefix which looks ugly
-        # but is written out explicitly to
-        # ensure correctness
-
-        sign2 = 1
-        for i in range(upto):
-            if prev_he[i]:
-                sign2 *= -1
-        pref = sign2 * -1j * norm_prev
-
-        op1 = 0
         if k % 2 == 1:
-            op1 = pref * (
+            op1 = -1j * sign2 * (
                 (ck[self.offsets[k] + idx] * self.spreQ[k])
                 - (sign1 * np.conj(ck[self.offsets[k - 1] + idx]
                    * self.spostQ[k]))
             )
         else:
-            op1 = pref * (
+            op1 = -1j * sign2 * (
                 (ck[self.offsets[k] + idx] * self.spreQ[k])
                 - (sign1 * np.conj(ck[self.offsets[k + 1] + idx]
                    * self.spostQ[k]))
@@ -918,29 +902,14 @@ class FermionicHEOMSolver(object):
         """
         Get next gradient
         """
-        # sign1 is based on number of excitations
-        # the finicky notation is explicit and correct
-        norm_next = 1
-        sign1 = 0
-        n_excite = 2
-        for i in range(len(he_n)):
-            if he_n[i] == 1:
-                n_excite += 1
+        n_excite = sum(he_n)
+        sign1 = (-1) ** (n_excite + 1)
 
-        sign1 = (-1) ** (n_excite - 1)
         upto = self.offsets[k] + idx
+        n_excite_before_m = sum(he_n[:upto])
+        sign2 = (-1) ** (n_excite_before_m)
 
-        # sign2 is another prefix which looks ugly
-        # but is written out explicitly to
-        # ensure correctness
-
-        sign2 = 1
-        for i in range(upto):
-            if next_he[i]:
-                sign2 *= -1
-        pref = sign2 * -1j * norm_next
-
-        op2 = pref * ((self.spreQdag[k]) + (sign1 * self.spostQdag[k]))
+        op2 = -1j * sign2 * ((self.spreQdag[k]) + (sign1 * self.spostQdag[k]))
         return self._pad_op(op2, he_n, next_he)
 
     def fermion_rhs(self, L, N):
