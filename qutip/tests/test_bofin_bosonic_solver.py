@@ -11,6 +11,7 @@ from qutip import (
 )
 from qutip.nonmarkov.bofin import (
     _convert_h_sys,
+    BathMode,
     BathStates,
     BosonicHEOMSolver,
     HSolverDL,
@@ -18,8 +19,13 @@ from qutip.nonmarkov.bofin import (
 
 
 class TestBathStates:
+    def mk_modes(self, dims):
+        return [
+            BathMode("I", dim, Q=None, ck=1.0, vk=2.0) for dim in dims
+        ]
+
     def test_create(self):
-        bath = BathStates([2, 3], cutoff=2)
+        bath = BathStates(self.mk_modes([2, 3]), cutoff=2)
         assert bath.dims == [2, 3]
         assert bath.cutoff == 2
         assert bath.states == [
@@ -28,7 +34,7 @@ class TestBathStates:
         assert bath.n_states == 5
 
     def test_state_idx(self):
-        bath = BathStates([2, 3], cutoff=2)
+        bath = BathStates(self.mk_modes([2, 3]), cutoff=2)
         assert bath.idx((0, 0)) == 0
         assert bath.idx((0, 1)) == 1
         assert bath.idx((0, 2)) == 2
@@ -36,7 +42,7 @@ class TestBathStates:
         assert bath.idx((1, 1)) == 4
 
     def test_next(self):
-        bath = BathStates([2, 3], cutoff=2)
+        bath = BathStates(self.mk_modes([2, 3]), cutoff=2)
         assert bath.next((0, 0), 0) == (1, 0)
         assert bath.next((0, 0), 1) == (0, 1)
         assert bath.next((1, 0), 0) is None
@@ -44,7 +50,7 @@ class TestBathStates:
         assert bath.next((1, 1), 1) is None
 
     def test_prev(self):
-        bath = BathStates([2, 3], cutoff=2)
+        bath = BathStates(self.mk_modes([2, 3]), cutoff=2)
         assert bath.prev((0, 0), 0) is None
         assert bath.prev((0, 0), 1) is None
         assert bath.prev((1, 0), 0) == (0, 0)
