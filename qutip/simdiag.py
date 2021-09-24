@@ -1,36 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
 __all__ = ['simdiag']
 
 import numpy as np
@@ -97,15 +64,15 @@ def simdiag(ops, evals=True):
         inds = np.array(abs(ds - ds[k]) < max(tol, tol * abs(ds[k])))
         inds = rng[inds]
         if len(inds) > 1:  # if at least 2 eigvals are degenerate
-            eigvecs_array[inds] = degen(
-                tol, eigvecs_array[inds],
-                np.array([ops[kk] for kk in range(1, num_ops)], dtype=object))
+            eigvecs_array[inds] = degen(tol, eigvecs_array[inds], ops[1:])
         k = max(inds) + 1
-    eigvals_out = np.zeros((num_ops, len(ds)), dtype=float)
-    kets_out = np.array([Qobj(eigvecs_array[j] / la.norm(eigvecs_array[j]),
-                              dims=[ops[0].dims[0], [1]],
-                              shape=[ops[0].shape[0], 1])
-                         for j in range(len(ds))], dtype=object)
+    eigvals_out = np.zeros((num_ops, len(ds)), dtype=np.float64)
+    kets_out = np.empty((len(ds),), dtype=object)
+    kets_out[:] = [
+        Qobj(eigvecs_array[j] / la.norm(eigvecs_array[j]),
+             dims=[ops[0].dims[0], [1]], shape=[ops[0].shape[0], 1])
+        for j in range(len(ds))
+    ]
     if not evals:
         return kets_out
     else:
@@ -147,8 +114,6 @@ def degen(tol, in_vecs, ops):
             tol, tol * abs(ds[k])))  # get indicies of degenerate eigvals
         inds = rng[inds]
         if len(inds) > 1:  # if at least 2 eigvals are degenerate
-            vecs_out[inds] = degen(tol, vecs_out[inds],
-                                   np.array([ops[jj] for jj in range(1, n)],
-                                            dtype=object))
+            vecs_out[inds] = degen(tol, vecs_out[inds], ops[1:n])
         k = max(inds) + 1
     return vecs_out

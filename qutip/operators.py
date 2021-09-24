@@ -1,35 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
 """
 This module contains functions for generating Qobj representation of a variety
 of commonly occuring quantum operators.
@@ -44,7 +12,6 @@ __all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
 
 import numbers
 import numpy as np
-import scipy
 import scipy.sparse as sp
 from qutip.qobj import Qobj
 from qutip.fastsparse import fast_csr_matrix, fast_identity
@@ -308,7 +275,7 @@ shape = [2, 2], type = oper, isHerm = False
      [ 1.  0.]]
 
     """
-    return 2.0 * jmat(1.0 / 2, 'x')
+    return 2 * jmat(1 / 2, 'x')
 
 
 def sigmay():
@@ -324,7 +291,7 @@ shape = [2, 2], type = oper, isHerm = True
      [ 0.+1.j  0.+0.j]]
 
     """
-    return 2.0 * jmat(1.0 / 2, 'y')
+    return 2 * jmat(1 / 2, 'y')
 
 
 def sigmaz():
@@ -340,7 +307,7 @@ shape = [2, 2], type = oper, isHerm = True
      [ 0. -1.]]
 
     """
-    return 2.0 * jmat(1.0 / 2, 'z')
+    return 2 * jmat(1 / 2, 'z')
 
 
 #
@@ -759,16 +726,15 @@ def qutrit_ops():
 
     """
     from qutip.states import qutrit_basis
-
+    out = np.empty((6,), dtype=object)
     one, two, three = qutrit_basis()
-    sig11 = one * one.dag()
-    sig22 = two * two.dag()
-    sig33 = three * three.dag()
-    sig12 = one * two.dag()
-    sig23 = two * three.dag()
-    sig31 = three * one.dag()
-    return np.array([sig11, sig22, sig33, sig12, sig23, sig31],
-                    dtype=object)
+    out[0] = one * one.dag()
+    out[1] = two * two.dag()
+    out[2] = three * three.dag()
+    out[3] = one * two.dag()
+    out[4] = two * three.dag()
+    out[5] = three * one.dag()
+    return out
 
 
 def qdiags(diagonals, offsets, dims=None, shape=None):
@@ -813,11 +779,7 @@ shape = [4, 4], type = oper, isherm = False
 
     """
     data = sp.diags(diagonals, offsets, shape, format='csr', dtype=complex)
-    if not dims:
-        dims = [[], []]
-    if not shape:
-        shape = []
-    return Qobj(data, dims, list(shape))
+    return Qobj(data, dims, shape)
 
 
 def phase(N, phi0=0):
@@ -894,16 +856,17 @@ def enr_destroy(dims, excitations):
 
     nstates, state2idx, idx2state = enr_state_dictionaries(dims, excitations)
 
-    a_ops = [sp.lil_matrix((nstates, nstates), dtype=np.complex)
+    a_ops = [sp.lil_matrix((nstates, nstates), dtype=np.complex128)
              for _ in range(len(dims))]
 
-    for n1, state1 in idx2state.items():
-        for n2, state2 in idx2state.items():
-            for idx, a in enumerate(a_ops):
-                s1 = [s for idx2, s in enumerate(state1) if idx != idx2]
-                s2 = [s for idx2, s in enumerate(state2) if idx != idx2]
-                if (state1[idx] == state2[idx] - 1) and (s1 == s2):
-                    a_ops[idx][n1, n2] = np.sqrt(state2[idx])
+    for n1, state1 in enumerate(idx2state):
+        for idx, s in enumerate(state1):
+            # if s > 0, the annihilation operator of mode idx has a non-zero
+            # entry with one less excitation in mode idx in the final state
+            if s > 0:
+                state2 = state1[:idx] + (s-1,) + state1[idx+1:]
+                n2 = state2idx[state2]
+                a_ops[idx][n2, n1] = np.sqrt(s)
 
     return [Qobj(a, dims=[dims, dims]) for a in a_ops]
 
@@ -937,7 +900,7 @@ def enr_identity(dims, excitations):
     from qutip.states import enr_state_dictionaries
 
     nstates, _, _ = enr_state_dictionaries(dims, excitations)
-    data = sp.eye(nstates, nstates, dtype=np.complex)
+    data = sp.eye(nstates, nstates, dtype=np.complex128)
     return Qobj(data, dims=[dims, dims])
 
 

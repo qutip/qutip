@@ -1,37 +1,4 @@
 # -*- coding: utf-8 -*-
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2014 and later, Alexander J G Pitchford
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
 # @author: Alexander Pitchford
 # @email1: agp1@aber.ac.uk
 # @email2: alex.pitchford@gmail.com
@@ -339,16 +306,11 @@ class PropCompAugMat(PropagatorComputer):
             E = dyn._get_phased_ctrl_dyn_gen(k, j).data*dyn.tau[k]
             Z = sp.csr_matrix(dg.data.shape)
             aug = Qobj(sp.vstack([sp.hstack([A, E]), sp.hstack([Z, A])]))
-        elif dyn.oper_dtype == np.ndarray:
+        else:
             A = dg*dyn.tau[k]
             E = dyn._get_phased_ctrl_dyn_gen(k, j)*dyn.tau[k]
             Z = np.zeros(dg.shape)
             aug = np.vstack([np.hstack([A, E]), np.hstack([Z, A])])
-        else:
-            A = dg*dyn.tau[k]
-            E = dyn._get_phased_ctrl_dyn_gen(k, j)*dyn.tau[k]
-            Z = dg*0.0
-            aug = sp.vstack([sp.hstack([A, E]), sp.hstack([Z, A])])
         return aug
 
     def _compute_prop_grad(self, k, j, compute_prop=True):
@@ -387,11 +349,10 @@ class PropCompAugMat(PropagatorComputer):
 
 class PropCompFrechet(PropagatorComputer):
     """
-    Frechet method for calculating the propagator:
-        exponentiating the combined dynamics generator
-    and the propagator gradient
-    It should work for all systems, e.g. unitary, open, symplectic
-    There are other PropagatorComputer subclasses that may be more efficient
+    Frechet method for calculating the propagator: exponentiating the combined
+    dynamics generator and the propagator gradient. It should work for all
+    systems, e.g. unitary, open, symplectic. There are other
+    :obj:`PropagatorComputer` subclasses that may be more efficient.
     """
     def reset(self):
         PropagatorComputer.reset(self)
@@ -422,7 +383,7 @@ class PropCompFrechet(PropagatorComputer):
                 prop_grad_dense = la.expm_frechet(A, E, compute_expm=False)
                 prop_grad = Qobj(prop_grad_dense,
                                             dims=dyn.dyn_dims)
-        elif dyn.oper_dtype == np.ndarray:
+        else:
             A = dyn._get_phased_dyn_gen(k)*dyn.tau[k]
             E = dyn._get_phased_ctrl_dyn_gen(k, j)*dyn.tau[k]
             if compute_prop:
@@ -430,19 +391,6 @@ class PropCompFrechet(PropagatorComputer):
             else:
                 prop_grad = la.expm_frechet(A, E,
                                                     compute_expm=False)
-        else:
-            # Assuming some sparse matrix
-            spcls = dyn._dyn_gen[k].__class__
-            A = (dyn._get_phased_dyn_gen(k)*dyn.tau[k]).toarray()
-            E = (dyn._get_phased_ctrl_dyn_gen(k, j)*dyn.tau[k]).toarray()
-            if compute_prop:
-                prop_dense, prop_grad_dense = la.expm_frechet(A, E)
-                prop = spcls(prop_dense)
-                prop_grad = spcls(prop_grad_dense)
-            else:
-                prop_grad_dense = la.expm_frechet(A, E, compute_expm=False)
-                prop_grad = spcls(prop_grad_dense)
-
         if compute_prop:
             return prop, prop_grad
         else:

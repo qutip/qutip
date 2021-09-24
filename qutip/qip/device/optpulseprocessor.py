@@ -1,35 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
 from collections.abc import Iterable
 import warnings
 import numbers
@@ -58,7 +26,7 @@ class OptPulseProcessor(Processor):
     The processor can simulate the evolution under the given
     control pulses using :func:`qutip.mesolve`.
     (For attributes documentation, please
-    refer to the parent class :class:`qutip.qip.device.Processor`)
+    refer to the parent class :class:`.Processor`)
 
     Parameters
     ----------
@@ -91,7 +59,8 @@ class OptPulseProcessor(Processor):
     def load_circuit(self, qc, min_fid_err=np.inf, merge_gates=True,
                      setting_args=None, verbose=False, **kwargs):
         """
-        Find the pulses realizing a given :class:`qutip.qip.Circuit` using
+        Find the pulses realizing a given
+        :class:`.QubitCircuit` using
         `qutip.control.optimize_pulse_unitary`. Further parameter for
         for `qutip.control.optimize_pulse_unitary` needs to be given as
         keyword arguments. By default, it first merge all the gates
@@ -101,36 +70,44 @@ class OptPulseProcessor(Processor):
 
         Examples
         --------
-        # Same parameter for all the gates
-        qc = QubitCircuit(N=1)
-        qc.add_gate("SNOT", 0)
 
-        num_tslots = 10
-        evo_time = 10
-        processor = OptPulseProcessor(N=1, drift=sigmaz(), ctrls=[sigmax()])
-        # num_tslots and evo_time are two keyword arguments
-        tlist, coeffs = processor.load_circuit(
-            qc, num_tslots=num_tslots, evo_time=evo_time)
+        Same parameter for all the gates:
 
-        # Different parameters for different gates
-        qc = QubitCircuit(N=2)
-        qc.add_gate("SNOT", 0)
-        qc.add_gate("SWAP", targets=[0, 1])
-        qc.add_gate('CNOT', controls=1, targets=[0])
+        .. code-block:: python
 
-        processor = OptPulseProcessor(N=2, drift=tensor([sigmaz()]*2))
-        processor.add_control(sigmax(), cyclic_permutation=True)
-        processor.add_control(sigmay(), cyclic_permutation=True)
-        processor.add_control(tensor([sigmay(), sigmay()]))
-        setting_args = {"SNOT": {"num_tslots": 10, "evo_time": 1},
-                        "SWAP": {"num_tslots": 30, "evo_time": 3},
-                        "CNOT": {"num_tslots": 30, "evo_time": 3}}
-        tlist, coeffs = processor.load_circuit(qc, setting_args=setting_args,
-                                               merge_gates=False)
+            qc = QubitCircuit(N=1)
+            qc.add_gate("SNOT", 0)
+            num_tslots = 10
+            evo_time = 10
+            processor = OptPulseProcessor(N=1, drift=sigmaz(),
+                                          ctrls=[sigmax()])
+            # num_tslots and evo_time are two keyword arguments
+            tlist, coeffs = processor.load_circuit(
+                qc, num_tslots=num_tslots, evo_time=evo_time)
+
+        Different parameters for different gates:
+
+        .. code-block:: python
+
+            qc = QubitCircuit(N=2)
+            qc.add_gate("SNOT", 0)
+            qc.add_gate("SWAP", targets=[0, 1])
+            qc.add_gate('CNOT', controls=1, targets=[0])
+
+            processor = OptPulseProcessor(N=2, drift=tensor([sigmaz()]*2))
+            processor.add_control(sigmax(), cyclic_permutation=True)
+            processor.add_control(sigmay(), cyclic_permutation=True)
+            processor.add_control(tensor([sigmay(), sigmay()]))
+            setting_args = {"SNOT": {"num_tslots": 10, "evo_time": 1},
+                            "SWAP": {"num_tslots": 30, "evo_time": 3},
+                            "CNOT": {"num_tslots": 30, "evo_time": 3}}
+            tlist, coeffs = processor.load_circuit(qc,
+                                                   setting_args=setting_args,
+                                                   merge_gates=False)
 
         Parameters
         ----------
-        qc: :class:`qutip.QubitCircuit` or list of Qobj
+        qc: :class:`.QubitCircuit` or list of Qobj
             The quantum circuit to be translated.
 
         min_fid_err: float, optional
@@ -148,10 +125,11 @@ class OptPulseProcessor(Processor):
             It is a dictionary containing keyword arguments
             for different gates.
 
-            E.g:
-            setting_args = {"SNOT": {"num_tslots": 10, "evo_time": 1},
-                            "SWAP": {"num_tslots": 30, "evo_time": 3},
-                            "CNOT": {"num_tslots": 30, "evo_time": 3}}
+            E.g.: ::
+
+                setting_args = {"SNOT": {"num_tslots": 10, "evo_time": 1},
+                                "SWAP": {"num_tslots": 30, "evo_time": 3},
+                                "CNOT": {"num_tslots": 30, "evo_time": 3}}
 
         verbose: boolean, optional
             If true, the information for each decomposed gate
@@ -172,8 +150,8 @@ class OptPulseProcessor(Processor):
 
         Notes
         -----
-        len(tlist)-1=coeffs.shape[1] since tlist gives the beginning and the
-        end of the pulses
+        ``len(tlist) - 1 = coeffs.shape[1]`` since tlist gives the beginning
+        and the end of the pulses.
         """
         if setting_args is None:
             setting_args = {}

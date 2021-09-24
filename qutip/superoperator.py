@@ -1,36 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
 __all__ = ['liouvillian', 'liouvillian_ref', 'lindblad_dissipator',
            'operator_to_vector', 'vector_to_operator', 'mat2vec', 'vec2mat',
            'vec2mat_index', 'mat2vec_index', 'spost', 'spre', 'sprepost']
@@ -252,32 +219,64 @@ def lindblad_dissipator(a, b=None, data_only=False, chi=None):
 
 def operator_to_vector(op):
     """
-    Create a vector representation of a quantum operator given
-    the matrix representation.
+    Create a vector representation given a quantum operator in matrix form.
+    The passed object should have a ``Qobj.type`` of 'oper' or 'super'; this
+    function is not designed for general-purpose matrix reshaping.
+
+    Parameters
+    ----------
+    op : Qobj or QobjEvo
+        Quantum operator in matrix form.  This must have a type of 'oper' or
+        'super'.
+
+    Returns
+    -------
+    Qobj or QobjEvo
+        The same object, but re-cast into a column-stacked-vector form of type
+        'operator-ket'.  The output is the same type as the passed object.
     """
     if isinstance(op, QobjEvo):
         return op.apply(operator_to_vector)
-
-    q = Qobj()
-    q.dims = [op.dims, [1]]
-    q.data = sp_reshape(op.data.T, (np.prod(op.shape), 1))
-    return q
+    if not (op.isoper or op.issuper):
+        raise ValueError("only valid for operator matrices")
+    size = op.shape[0] * op.shape[1]
+    return Qobj(
+        sp_reshape(op.data.T, (size, 1)),
+        dims=[op.dims, [1]], shape=(size, 1), type='operator-ket', copy=False,
+    )
 
 
 def vector_to_operator(op):
     """
-    Create a matrix representation given a quantum operator in
-    vector form.
+    Create a matrix representation given a quantum operator in vector form.
+    The passed object should have a ``Qobj.type`` of 'operator-ket'; this
+    function is not designed for general-purpose matrix reshaping.
+
+    Parameters
+    ----------
+    op : Qobj or QobjEvo
+        Quantum operator in column-stacked-vector form.  This must have a type
+        of 'operator-ket'.
+
+    Returns
+    -------
+    Qobj or QobjEvo
+        The same object, but re-cast into "standard" operator form.  The output
+        is the same type as the passed object.
     """
     if isinstance(op, QobjEvo):
         return op.apply(vector_to_operator)
-
-    q = Qobj()
+    if not op.isoperket:
+        raise ValueError(
+            "only valid for operators in column-stacked 'operator-ket' format"
+        )
     # e.g. op.dims = [ [[rows], [cols]], [1]]
-    q.dims = op.dims[0]
-    shape = (np.prod(q.dims[0]), np.prod(q.dims[1]))
-    q.data = sp_reshape(op.data.T, shape[::-1]).T
-    return q
+    dims = op.dims[0]
+    shape = (np.prod(dims[0]), np.prod(dims[1]))
+    return Qobj(
+        sp_reshape(op.data.T, shape[::-1]).T,
+        dims=dims, shape=shape, copy=False,
+    )
 
 
 def mat2vec(mat):

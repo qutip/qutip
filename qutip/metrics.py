@@ -1,36 +1,5 @@
 # -*- coding: utf-8 -*-
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
+
 """
 This module contains a collection of functions for calculating metrics
 (distance measures) between states and operators.
@@ -48,7 +17,7 @@ from qutip.states import ket2dm
 from qutip.superop_reps import to_kraus, to_stinespring, to_choi, _super_to_superpauli, to_super
 from qutip.superoperator import operator_to_vector, vector_to_operator
 from qutip.operators import qeye
-from qutip.semidefinite import dnorm_problem
+from qutip.semidefinite import dnorm_problem, dnorm_sparse_problem
 import qutip.settings as settings
 
 import qutip.logging_utils as logging
@@ -56,7 +25,7 @@ logger = logging.get_logger()
 
 try:
     import cvxpy
-except:
+except ImportError:
     cvxpy = None
 
 
@@ -321,9 +290,6 @@ def hellinger_dist(A, B, sparse=False, tol=0):
     >>> y=coherent_dm(5,1)
     >>> np.testing.assert_almost_equal(hellinger_dist(x,y), 1.3725145002591095)
     """
-    if A.dims != B.dims:
-        raise TypeError("A and B do not have same dimensions.")
-
     if A.isket or A.isbra:
         sqrtmA = ket2dm(A)
     else:
@@ -333,17 +299,20 @@ def hellinger_dist(A, B, sparse=False, tol=0):
     else:
         sqrtmB = B.sqrtm(sparse=sparse, tol=tol)
 
-    product = sqrtmA*sqrtmB
+    if sqrtmA.dims != sqrtmB.dims:
+        raise TypeError("A and B do not have compatible dimensions.")
 
+    product = sqrtmA*sqrtmB
     eigs = sp_eigs(product.data,
                    isherm=product.isherm, vecs=False, sparse=sparse, tol=tol)
-    #np.maximum() is to avoid nan appearing sometimes due to numerical
-    #instabilities causing np.sum(eigs) slightly (~1e-8) larger than 1
-    #when hellinger_dist(A, B) is called for A=B
+    # np.maximum() is to avoid nan appearing sometimes due to numerical
+    # instabilities causing np.sum(eigs) slightly (~1e-8) larger than 1
+    # when hellinger_dist(A, B) is called for A=B
     return np.sqrt(2.0 * np.maximum(0., (1.0 - np.real(np.sum(eigs)))))
 
 
-def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
+def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
+          sparse=True):
     """
     Calculates the diamond norm of the quantum map q_oper, using
     the simplified semidefinite program of [Wat12]_.
@@ -355,18 +324,18 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
     A : Qobj
         Quantum map to take the diamond norm of.
     B : Qobj or None
-        If provided, the diamond norm of :math:`A - B` is
-        taken instead.
+        If provided, the diamond norm of :math:`A - B` is taken instead.
     solver : str
-        Solver to use with CVXPY. One of "CVXOPT" (default)
-        or "SCS". The latter tends to be significantly faster,
-        but somewhat less accurate.
+        Solver to use with CVXPY. One of "CVXOPT" (default) or "SCS". The
+        latter tends to be significantly faster, but somewhat less accurate.
     verbose : bool
-        If True, prints additional information about the
-        solution.
+        If True, prints additional information about the solution.
     force_solve : bool
         If True, forces dnorm to solve the associated SDP, even if a special
         case is known for the argument.
+    sparse : bool
+        Whether to use sparse matrices in the convex optimisation problem.
+        Default True.
 
     Returns
     -------
@@ -378,7 +347,7 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
     ImportError
         If CVXPY cannot be imported.
 
-    .. _cvxpy: http://www.cvxpy.org/en/latest/
+    .. _cvxpy: https://www.cvxpy.org/en/latest/
     """
     if cvxpy is None:  # pragma: no cover
         raise ImportError("dnorm() requires CVXPY to be installed.")
@@ -448,26 +417,34 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
         op = vector_to_operator(S_dual * vec_eye)
         # The 2-norm was not implemented for sparse matrices as of the time
         # of this writing. Thus, we must yet again go dense.
-        return la.norm(op.data.todense(), 2)
+        return la.norm(op.full(), 2)
 
     # If we're still here, we need to actually solve the problem.
 
     # Assume square...
     dim = np.prod(J.dims[0][0])
 
-    # The constraints only depend on the dimension, so
-    # we can cache them efficiently.
-    problem, Jr, Ji, X, rho0, rho1 = dnorm_problem(dim)
-
-    # Load the parameters with the Choi matrix passed in.
     J_dat = J.data
 
-    Jr.value = sp.csr_matrix((J_dat.data.real, J_dat.indices, J_dat.indptr),
-                             shape=J_dat.shape)
+    if not sparse:
+        # The parameters and constraints only depend on the dimension, so
+        # we can cache them efficiently.
+        problem, Jr, Ji = dnorm_problem(dim)
 
-    Ji.value = sp.csr_matrix((J_dat.data.imag, J_dat.indices, J_dat.indptr),
-                             shape=J_dat.shape)
-    # Finally, set up and run the problem.
+        # Load the parameters with the Choi matrix passed in.
+        Jr.value = sp.csr_matrix((J_dat.data.real, J_dat.indices,
+                                  J_dat.indptr),
+                                 shape=J_dat.shape).toarray()
+
+        Ji.value = sp.csr_matrix((J_dat.data.imag, J_dat.indices,
+                                  J_dat.indptr),
+                                 shape=J_dat.shape).toarray()
+    else:
+
+        # The parameters do not depend solely on the dimension,
+        # so we can not cache them efficiently.
+        problem = dnorm_sparse_problem(dim, J_dat)
+
     problem.solve(solver=solver, verbose=verbose)
 
     return problem.value

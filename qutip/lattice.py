@@ -1,37 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, The QuTiP Project.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
-
 __all__ = ['Lattice1d', 'cell_structures']
 
 from scipy.sparse import (csr_matrix)
@@ -254,39 +220,6 @@ class Lattice1d():
         The list of coupling terms between unit cells of the lattice.
     is_real : bool
         Indicates if the Hamiltonian is real or not.
-
-    Methods
-    -------
-    Hamiltonian()
-        Hamiltonian of the crystal.
-    basis()
-        basis with the particle localized at a certain cell, site with
-        specified degree of freedom.
-    distribute_operator()
-        Distributes an input operator over all the cells.
-    x()
-        Position operator for the crystal.
-    k()
-        Crystal momentum operator for the crystal.
-    operator_at_cells()
-        Distributes an input operator over user specified cells .
-    operator_between_cells()
-        A function that returns an operator matrix that applies an operator
-        between a two specified cells.
-    plot_dispersion()
-        Plots dispersion relation of the crystal.
-    get_dispersion()
-        Returns the dispersion relation of the crystal.
-    bloch_wave_functions()
-        Returns the eigenstates of the Hamiltonian (which are Bloch
-        wavefunctions) for a translationally symmetric periodic lattice.
-    array_of_unk()
-        Returns eigenvectors of the bulk Hamiltonian, i.e. the cell periodic
-        part of the Bloch wavefunctios in a numpy.ndarray for translationally
-        symmetric lattices with periodic boundary condition.
-    bulk_Hamiltonians()
-        Returns the bulk Hamiltonian for the lattice at the good quantum
-        numbers of lattice momentum, k in a numpy ndarray of Qobj's.
     """
     def __init__(self, num_cell=10, boundary="periodic", cell_num_site=1,
                  cell_site_dof=[1], Hamiltonian_of_cell=None,
@@ -376,7 +309,7 @@ class Lattice1d():
                 raise Exception("Hamiltonian_of_cell does not have a shape \
                             consistent with cell_num_site and cell_site_dof.")
             self._H_intra = Qobj(Hamiltonian_of_cell, dims=dim_ih, type='oper')
-        is_real = np.isreal(self._H_intra).all()
+        is_real = np.isreal(self._H_intra.full()).all()
         if not isherm(self._H_intra):
             raise Exception("Hamiltonian_of_cell is required to be Hermitian.")
 
@@ -396,7 +329,7 @@ class Lattice1d():
                 else:    # inter_hop[i] has the right shape, now confirmed,
                     inter_hop[i] = Qobj(inter_hop[i], dims=dim_ih)
                     inter_hop_sum = inter_hop_sum + inter_hop[i]
-                    is_real = is_real and np.isreal(inter_hop[i]).all()
+                    is_real = is_real and np.isreal(inter_hop[i].full()).all()
             self._H_inter_list = inter_hop    # The user input list was correct
             # we store it in _H_inter_list
             self._H_inter = Qobj(inter_hop_sum, dims=dim_ih, type='oper')
@@ -410,7 +343,7 @@ class Lattice1d():
                 inter_hop = Qobj(inter_hop, dims=dim_ih, type='oper')
             self._H_inter_list = [inter_hop]
             self._H_inter = inter_hop
-            is_real = is_real and np.isreal(inter_hop).all()
+            is_real = is_real and np.isreal(inter_hop.full()).all()
 
         elif inter_hop is None:      # inter_hop is the default None)
             # So, we set self._H_inter_list from cell_num_site and
@@ -668,7 +601,7 @@ class Lattice1d():
             raise Exception("op in operstor_at_cells() is required to \
                             be dimensionaly the same as Hamiltonian_of_cell.")
 
-        (xx, yy) = np.shape(op)
+        (xx, yy) = op.shape
         row_ind = np.array([])
         col_ind = np.array([])
         data = np.array([])
@@ -685,7 +618,8 @@ class Lattice1d():
                         data = np.append(data, [op[k, l]])
 
         m = nx_units*ny_units*nS
-        op_H = csr_matrix((data, (row_ind, col_ind)), [m, m], dtype=np.complex)
+        op_H = csr_matrix((data, (row_ind, col_ind)), [m, m],
+                          dtype=np.complex128)
         dim_op = [self.lattice_tensor_config, self.lattice_tensor_config]
         return Qobj(op_H, dims=dim_op)
 
@@ -833,6 +767,7 @@ class Lattice1d():
 
         .. math::
             :nowrap:
+
             \begin{eqnarray}
             |\psi_n(k) \rangle = |k \rangle \otimes | u_{n}(k) \rangle   \\
             | u_{n}(k) \rangle = a_n(k)|a\rangle  + b_n(k)|b\rangle \\
@@ -869,6 +804,7 @@ class Lattice1d():
 
         .. math::
             :nowrap:
+
             \begin{eqnarray}
             |\psi_n(k) \rangle = |k \rangle \otimes | u_{n}(k) \rangle   \\
             | u_{n}(k) \rangle = a_n(k)|a\rangle  + b_n(k)|b\rangle \\
@@ -1029,7 +965,7 @@ class Lattice1d():
         chiral_op = self.distribute_operator(sigmaz())
         Hamt = self.Hamiltonian()
         anti_commutator_chi_H = chiral_op * Hamt + Hamt * chiral_op
-        is_null = (np.abs(anti_commutator_chi_H) < 1E-10).all()
+        is_null = (np.abs(anti_commutator_chi_H.full()) < 1E-10).all()
 
         if not is_null:
             raise Exception("The Hamiltonian does not have chiral symmetry!")
@@ -1076,9 +1012,9 @@ class Lattice1d():
                     ddk_Phi_m_k[knpoints//2:knpoints])
             winding_number = intg_over_k/(2*np.pi)
 
-            X_lim = 1.125 * np.abs(self._H_intra[1, 0])
+            X_lim = 1.125 * np.abs(self._H_intra.full()[1, 0])
             for i in range(len(self._H_inter_list)):
-                X_lim = X_lim + np.abs(self._H_inter_list[i][1, 0])
+                X_lim = X_lim + np.abs(self._H_inter_list[i].full()[1, 0])
             plt.figure(figsize=(3*X_lim, 3*X_lim))
             plt.plot(mx_k, my_k)
             plt.plot(0, 0, 'ro')

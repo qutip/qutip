@@ -1,5 +1,3 @@
-from copy import deepcopy
-
 import numpy as np
 from scipy.interpolate import CubicSpline
 
@@ -19,7 +17,7 @@ class _EvoElement():
     `qobj`, `targets`, `tlist` and `coeff`.
 
     For documentation and use instruction of the attributes, please
-    refer to :class:`qutip.qip.Pulse`.
+    refer to :class:`.Pulse`.
     """
     def __init__(self, qobj, targets, tlist=None, coeff=None):
         self.qobj = qobj
@@ -181,12 +179,12 @@ class Pulse():
 
     Attributes
     ----------
-    ideal_pulse: :class:`qutip.qip.pulse._EvoElement`
+    ideal_pulse: :class:`._EvoElement`
         The ideal dynamic of the control pulse.
-    coherent_noise: list of :class:`qutip.qip.pulse._EvoElement`
+    coherent_noise: list of :class:`._EvoElement`
         The coherent noise caused by the control pulse. Each dynamic element is
         still characterized by a time-dependent Hamiltonian.
-    lindblad_noise: list of :class:`qutip.qip.pulse._EvoElement`
+    lindblad_noise: list of :class:`._EvoElement`
         The dissipative noise of the control pulse. Each dynamic element
         will be treated as a (time-dependent) lindblad operator in the
         master equation.
@@ -291,16 +289,19 @@ class Pulse():
             `tlist` does not have to be equidistant, but must have the same
             length
             or one element shorter compared to `coeff`. See documentation for
-            the parameter `spline_kind` of :class:`qutip.qip.Pulse`.
+            the parameter `spline_kind` of :class:`.Pulse`.
         coeff: array-like or bool, optional
             Time-dependent coefficients of the pulse noise.
             If an array, the length
             must be the same or one element longer compared to `tlist`.
             See documentation for
-            the parameter `spline_kind` of :class:`qutip.qip.Pulse`.
+            the parameter `spline_kind` of :class:`.Pulse`.
             If a bool, the coefficient is a constant 1 or 0.
         """
         self.coherent_noise.append(_EvoElement(qobj, targets, tlist, coeff))
+
+    def add_control_noise(self, qobj, targets, tlist=None, coeff=None):
+        self.add_coherent_noise(qobj, targets, tlist=tlist, coeff=coeff)
 
     def add_lindblad_noise(self, qobj, targets, tlist=None, coeff=None):
         """
@@ -320,13 +321,13 @@ class Pulse():
             length
             or one element shorter compared to `coeff`.
             See documentation for
-            the parameter `spline_kind` of :class:`qutip.qip.Pulse`.
+            the parameter `spline_kind` of :class:`.Pulse`.
         coeff: array-like or bool, optional
             Time-dependent coefficients of the pulse noise.
             If an array, the length
             must be the same or one element longer compared to `tlist`.
             See documentation for
-            the parameter `spline_kind` of :class:`qutip.qip.Pulse`.
+            the parameter `spline_kind` of :class:`.Pulse`.
             If a bool, the coefficient is a constant 1 or 0.
         """
         self.lindblad_noise.append(_EvoElement(qobj, targets, tlist, coeff))
@@ -369,8 +370,8 @@ class Pulse():
 
     def get_noisy_qobjevo(self, dims):
         """
-        Get the `QobjEvo` representation of the noisy evolution. The result
-        can be used directly as input for the qutip solvers.
+        Get the :obj:`.QobjEvo` representation of the noisy evolution. The
+        result can be used directly as input for the qutip solvers.
 
         Parameters
         ----------
@@ -382,7 +383,7 @@ class Pulse():
         Returns
         -------
         noisy_evo: :class:`qutip.QobjEvo`
-            A `QobjEvo` representing the ideal evolution and coherent noise.
+            A ``QobjEvo`` representing the ideal evolution and coherent noise.
         c_ops: list of :class:`qutip.QobjEvo`
             A list of (time-dependent) lindbald operators.
         """
@@ -398,16 +399,16 @@ class Pulse():
             c_ops[i] = _merge_qobjevo([c_op], full_tlist)
         return qu, c_ops
 
-    def get_full_tlist(self):
+    def get_full_tlist(self, tol=1.0e-10):
         """
-        Return the full tlist of the pulses and noise.
-        It means that if different `tlist`s are present, they will be merged
-        to one with all time points stored in a sorted array.
+        Return the full tlist of the pulses and noise.  It means that if
+        different ``tlist`` are present, they will be merged to one with all
+        time points stored in a sorted array.
 
         Returns
         -------
         full_tlist: array-like 1d
-            The full time sequence for the nosiy evolution.
+            The full time sequence for the noisy evolution.
         """
         # TODO add test
         all_tlists = []
@@ -420,6 +421,8 @@ class Pulse():
         if not all_tlists:
             return None
         full_tlist = np.unique(np.sort(np.hstack(all_tlists)))
+        full_tlist = np.concatenate(
+            (full_tlist[:1], full_tlist[1:][np.diff(full_tlist) > tol]))
         return full_tlist
 
     def print_info(self):
@@ -524,7 +527,7 @@ class Drift():
         return self.get_ideal_qobjevo(dims), []
 
 
-def _find_common_tlist(qobjevo_list):
+def _find_common_tlist(qobjevo_list, tol=1.0e-10):
     """
     Find the common `tlist` of a list of :class:`qutip.QobjEvo`.
     """
@@ -533,6 +536,8 @@ def _find_common_tlist(qobjevo_list):
     if not all_tlists:
         return None
     full_tlist = np.unique(np.sort(np.hstack(all_tlists)))
+    full_tlist = np.concatenate(
+        (full_tlist[:1], full_tlist[1:][np.diff(full_tlist) > tol]))
     return full_tlist
 
 ########################################################################
@@ -581,7 +586,7 @@ def _merge_qobjevo(qobjevo_list, full_tlist=None):
     return qobjevo
 
 
-def _fill_coeff(old_coeffs, old_tlist, full_tlist, args=None):
+def _fill_coeff(old_coeffs, old_tlist, full_tlist, args=None, tol=1.0e-10):
     """
     Make a step function coefficients compatible with a longer `tlist` by
     filling the empty slot with the nearest left value.
@@ -599,13 +604,14 @@ def _fill_coeff(old_coeffs, old_tlist, full_tlist, args=None):
         new_coeff = np.zeros(new_n)
         for new_ind in range(new_n):
             t = full_tlist[new_ind]
-            if t < old_tlist[0]:
+            if old_tlist[0] - t > tol:
                 new_coeff[new_ind] = 0.
                 continue
-            if t > old_tlist[-1]:
+            if t - old_tlist[-1] > tol:
                 new_coeff[new_ind] = 0.
                 continue
-            if old_tlist[old_ind+1] <= t:
+            # tol is required because of the floating-point error
+            if old_tlist[old_ind+1] <= t + tol:
                 old_ind += 1
             new_coeff[new_ind] = old_coeffs[old_ind]
     else:

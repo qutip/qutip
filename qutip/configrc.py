@@ -1,43 +1,32 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, QuSTaR.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
 import os
 import qutip
 import qutip.settings as qset
+import qutip.solver as def_options
 import warnings
 try:
     import ConfigParser as configparser #py27
 except:
     import configparser #py3x
+from functools import partial
+
+
+def getcomplex(self, section, option):
+    return complex(self.get(section, option))
+
+
+configparser.ConfigParser.getcomplex = getcomplex
+
+
+sections = [('qutip', qset)]
+
+
+def full_path(rc_file):
+    rc_file = os.path.expanduser(rc_file)
+    if os.path.isabs(rc_file):
+        return rc_file
+    qutip_conf_dir = os.path.join(os.path.expanduser("~"), '.qutip')
+    return os.path.join(qutip_conf_dir, rc_file)
+
 
 def has_qutip_rc():
     """
@@ -46,8 +35,8 @@ def has_qutip_rc():
     """
     qutip_conf_dir = os.path.join(os.path.expanduser("~"), '.qutip')
     if os.path.exists(qutip_conf_dir):
-        qutip_rc_file = os.path.join(qutip_conf_dir,'qutiprc')
-        qrc_exists = os.path.isfile(qutip_rc_file) 
+        qutip_rc_file = os.path.join(qutip_conf_dir, "qutiprc")
+        qrc_exists = os.path.isfile(qutip_rc_file)
         if qrc_exists:
             return True, qutip_rc_file
         else:
@@ -56,34 +45,234 @@ def has_qutip_rc():
         return False, ''
 
 
-def generate_qutiprc():
+def generate_qutiprc(rc_file="qutiprc"):
     """
     Generate a blank qutiprc file.
     """
     # Check for write access to home dir
-    if not os.access(os.path.expanduser("~"), os.W_OK):
-        return False
-    qutip_conf_dir = os.path.join(os.path.expanduser("~"), '.qutip')
-    if not os.path.exists(qutip_conf_dir):
-        try:
-            os.mkdir(qutip_conf_dir)
-        except:
-            warnings.warn('Cannot write config file to user home dir.')
-            return False
-    qutip_rc_file = os.path.join(qutip_conf_dir,'qutiprc')
-    qrc_exists = os.path.isfile(qutip_rc_file)
-    if qrc_exists:
-        #Do not overwrite
-        return False
-    else:
-        #Write a basic file with qutip section
-        cfgfile = open(qutip_rc_file,'w')
+    qutip_rc_file = full_path(rc_file)
+    qutip_conf_dir = os.path.dirname(qutip_rc_file)
+    os.makedirs(qutip_conf_dir, exist_ok=True)
+
+    if os.path.isfile(qutip_rc_file):
         config = configparser.ConfigParser()
-        config.add_section('qutip')
+        config.read(qutip_rc_file)
+        modified = False
+        for section, settings_object in sections:
+            if not config.has_section(section):
+                config.add_section(section)
+                modified = True
+        if modified:
+            with open(qutip_rc_file, 'w') as cfgfile:
+                config.write(cfgfile)
+
+        return modified
+
+    with open(qutip_rc_file,'w') as cfgfile:
+        config = configparser.ConfigParser()
+        for section, settings_object in sections:
+            config.add_section(section)
         config.write(cfgfile)
-        cfgfile.close()
-        return True 
-        
+    return True
+
+
+def get_reader(val, config):
+    # The type of the read value is the same as the one presently loaded.
+    if isinstance(val, bool):
+        reader = config.getboolean
+    elif isinstance(val, int):
+        reader = config.getint
+    elif isinstance(val, float):
+        reader = config.getfloat
+    elif isinstance(val, complex):
+        reader = config.getcomplex
+    elif isinstance(val, str):
+        reader = config.get
+    return reader
+
+
+def has_rc_key(key, section=None, rc_file="qutiprc"):
+    """
+    Verify if key exist in section of rc_file
+    """
+    rc_file = full_path(rc_file)
+    if not os.path.isfile(rc_file):
+        return False
+    config = configparser.ConfigParser()
+    config.read(rc_file)
+    if section is None:
+        search_sections = [section for section, _ in sections]
+    else:
+        search_sections = [section]
+    for section in search_sections:
+        if config.has_section(section):
+            opts = config.options(section)
+            if key in opts:
+                return True
+    return False
+
+
+def write_rc_key(key, value, section='qutip', rc_file="qutiprc"):
+    """
+    Writes a single key value to the qutiprc file
+
+    Parameters
+    ----------
+    key : str
+        The key name to be written.
+    value : int/float/bool
+        Value corresponding to given key.
+    section : str
+        String for which settings object the key belong to.
+        Default : qutip
+    rc_file : str
+        String specifying file location.
+        Default : qutiprc
+    """
+    rc_file = full_path(rc_file)
+    if not os.access(rc_file, os.W_OK):
+        warnings.warn("Does not have permissions to write config file")
+        return
+    config = configparser.ConfigParser()
+    config.read(rc_file)
+    if not config.has_section(section):
+        config.add_section(section)
+    config.set(section, key, str(value))
+
+    with open(rc_file, 'w') as cfgfile:
+        config.write(cfgfile)
+
+
+def read_rc_key(key, datatype, section='qutip', rc_file="qutiprc"):
+    """
+    Writes a single key value to the qutiprc file
+
+    Parameters
+    ----------
+    key : str
+        The key name to be written.
+    datatype :
+        Type of the value corresponding to given key.
+        One of [int, float, bool, complex, str]
+    section : str
+        String for which settings object the key belong to.
+    rc_file : str
+        String specifying file location.
+    """
+    rc_file = full_path(rc_file)
+    config = configparser.ConfigParser()
+    config.read(rc_file)
+    if not config.has_section(section):
+        raise ValueError("key not found")
+    reader = get_reader(datatype(0), config)
+    opts = config.options(section)
+    if key not in opts:
+        raise ValueError("key not found")
+    return reader(section, key)
+
+
+def write_rc_object(rc_file, section, object):
+    """
+    Writes all keys and values corresponding to one object qutiprc file.
+
+    Parameters
+    ----------
+    rc_file : str
+        String specifying file location.
+    section : str
+        Tags for the saved data.
+    object : Object
+        Object to save. All attribute's type must be one of bool, int, float,
+        complex, str.
+    """
+    generate_qutiprc(rc_file)
+    config = configparser.ConfigParser()
+    config.read(full_path(rc_file))
+    if not config.has_section(section):
+        config.add_section(section)
+    keys = object.__all
+    for key in keys:
+        config.set(section, key, str(getattr(object, key)))
+    with open(full_path(rc_file), 'w') as cfgfile:
+        config.write(cfgfile)
+    return
+
+
+def load_rc_object(rc_file, section, object):
+    """
+    Read keys and values corresponding to one settings location
+    to the qutiprc file.
+
+    Parameters
+    ----------
+    rc_file : str
+        String specifying file location.
+    section : str
+        Tags for the saved data.
+    object : Object
+        Object to overwrite. All attribute's type must be one of bool, int,
+        float, complex, str.
+    """
+    config = configparser.ConfigParser()
+    config.read(full_path(rc_file))
+    if not config.has_section(section):
+        raise configparser.NoSectionError(section)
+    keys = object.__all
+    opts = config.options(section)
+    for op in opts:
+        if op in keys:
+            reader = get_reader(getattr(object, op), config)
+            setattr(object, op, reader(section, op))
+        else:
+            warnings.warn("Invalid qutip config variable in qutiprc: " + op)
+
+
+def write_rc_qset(rc_file):
+    """
+    Writes qutip.settings in a qutiprc file.
+
+    Parameters
+    ----------
+    rc_file : str
+        String specifying file location.
+    """
+    write_rc_object(rc_file, "qutip", qset)
+
+
+def load_rc_qset(rc_file):
+    """
+    Read qutip.settings to a qutiprc file.
+
+    Parameters
+    ----------
+    rc_file : str
+        String specifying file location.
+    """
+    load_rc_object(rc_file, "qutip", qset)
+
+
+def write_rc_config(rc_file):
+    """
+    Writes all keys and values to the qutiprc file.
+
+    Parameters
+    ----------
+    rc_file : str
+        String specifying file location.
+    """
+    generate_qutiprc(rc_file)
+
+    config = configparser.ConfigParser()
+    config.read(full_path(rc_file))
+    for section, settings_object in sections:
+        keys = settings_object.__all
+        for key in keys:
+            config.set(section, key, str(getattr(settings_object, key)))
+
+    with open(full_path(rc_file), 'w') as cfgfile:
+        config.write(cfgfile)
+    return
+
 
 def load_rc_config(rc_file):
     """
@@ -91,22 +280,24 @@ def load_rc_config(rc_file):
     qutiprc file
     """
     config = configparser.ConfigParser()
-    _valid_keys ={'auto_tidyup' : config.getboolean, 'auto_herm' : config.getboolean, 
-            'atol': config.getfloat, 'auto_tidyup_atol' : config.getfloat,
-            'num_cpus' : config.getint, 'debug' : config.getboolean, 
-            'log_handler' : config.getboolean, 'colorblind_safe' : config.getboolean,
-            'openmp_thresh': config.getint}
-    config.read(rc_file)
-    if config.has_section('qutip'):
-        opts = config.options('qutip')
-        for op in opts:
-            if op in _valid_keys.keys():
-                setattr(qset, op, _valid_keys[op]('qutip',op))
-            else:
-                raise Exception('Invalid config variable in qutiprc.')
-    else:
-        raise configparser.NoSectionError('qutip')
-        
+    config.read(full_path(rc_file))
+    for section, settings_object in sections:
+        if config.has_section(section):
+            keys = settings_object.__all
+            opts = config.options(section)
+            for op in opts:
+                if op in keys:
+                    reader = get_reader(getattr(settings_object, op), config)
+                    setattr(settings_object, op,
+                            reader(section, op))
+                else:
+                    warnings.warn("Invalid qutip config variable in qutiprc: "
+                                  + op)
+                    # raise Exception('Invalid config variable in qutiprc.')
+        else:
+            warnings.warn("Section " + section + " not found ")
+            # raise configparser.NoSectionError('qutip')
+
     if config.has_section('compiler'):
         _valid_keys = ['CC', 'CXX']
         opts = config.options('compiler')
@@ -115,42 +306,6 @@ def load_rc_config(rc_file):
             if up_op in _valid_keys:
                 os.environ[up_op] = config.get('compiler', op)
             else:
-                raise Exception('Invalid config variable in qutiprc.')
- 
- 
-def has_rc_key(rc_file, key):
-    config = configparser.ConfigParser()
-    config.read(rc_file)
-    if config.has_section('qutip'):
-        opts = config.options('qutip')
-        if key in opts:
-            return True
-        else:
-            return False
-    else:
-        raise configparser.NoSectionError('qutip')
-       
-        
-def write_rc_key(rc_file, key, value):
-    """
-    Writes a single key value to the qutiprc file
-    
-    Parameters
-    ----------
-    rc_file : str
-        String specifying file location.
-    key : str
-        The key name to be written.
-    value : int/float/bool
-        Value corresponding to given key.
-    """
-    if not os.access(os.path.expanduser("~"), os.W_OK):
-        return
-    cfgfile = open(rc_file,'w')
-    config = configparser.ConfigParser()
-    if not config.has_section('qutip'):
-        config.add_section('qutip')
-    config.set('qutip',key,str(value))
-    config.write(cfgfile)
-    cfgfile.close()
-    
+                # raise Exception('Invalid config variable in qutiprc.')
+                warnings.warn("Invalid compiler config variable in qutiprc: "
+                              + op)
