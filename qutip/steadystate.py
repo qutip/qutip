@@ -987,7 +987,7 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False):
         L_0 = liouvillian(H_0, c_ops).full()
         L_t = liouvillian(Op_t)
         L_p = (0.5 * L_t).full()
-        L_m = (0.5 * L_t).full()
+        L_m = L_p
 
         Id = np.eye(N ** 2)
         S, T = np.zeros((N ** 2, N ** 2)), np.zeros((N ** 2, N ** 2))
