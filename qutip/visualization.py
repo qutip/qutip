@@ -126,7 +126,7 @@ def plot_wigner_sphere(fig, ax, wigner, reflections):
 
 
 # Adopted from the SciPy Cookbook.
-def _blob(x, y, w, w_max, area, cmap=None, ax=None):
+def _blob(x, y, w, w_max, area, color_fn, ax=None):
     """
     Draws a square-shaped blob with the given area (< 1) at
     the given coordinates.
@@ -141,7 +141,7 @@ def _blob(x, y, w, w_max, area, cmap=None, ax=None):
         handle = plt
 
     handle.fill(xcorners, ycorners,
-             color=cmap(int((w + w_max) * 256 / (2 * w_max))))
+             color=color_fn(w))
 
 
 def _cb_labels(left_dims):
@@ -175,7 +175,7 @@ def _cb_labels(left_dims):
 
 # Adopted from the SciPy Cookbook.
 def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
-           label_top=True):
+           label_top=True, color_style="threshold"):
     """Draws a Hinton diagram for visualizing a density matrix or superoperator.
 
     Parameters
@@ -201,6 +201,15 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
     label_top : bool
         If True, x-axis labels will be placed on top, otherwise
         they will appear below the plot.
+
+    color_style : string
+        Determines how colors are assigned to each square. If set to
+        `"threshold"` (default), each square is plotted as the maximum of
+        `cmap` for positive numbers and as the minimum for minimum. If set to
+        `"scaled"`, each color is chosen by passing the magnitude of the
+        corresponding matrix element into `cmap`. If set to `"phase"`, each
+        color is chosen according to the argument of the corresponding matrix
+        element; note that this generalizes `"threshold"` to complex numbers.
 
     Returns
     -------
@@ -278,6 +287,16 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
     if w_max <= 0.0:
         w_max = 1.0
 
+    # Set color_fn here.
+    if color_style == "scaled":
+        color_fn = lambda w: cmap(int((w + w_max) * 256 / (2 * w_max)))
+    elif color_style == "threshold":
+        color_fn = lambda w: cmap(255 if w > 0 else 0)
+    elif color_style == "phase":
+        color_fn = lambda w: cmap(int(255 * np.mod(1 - np.angle(w) / np.pi, 2)))
+    else:
+        raise ValueError("Unknown color style {} for Hinton diagrams.".format(color_style))
+
     ax.fill(array([0, width, width, 0]), array([0, 0, height, height]),
             color=cmap(128))
     for x in range(width):
@@ -286,10 +305,10 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
             _y = y + 1
             if np.real(W[x, y]) > 0.0:
                 _blob(_x - 0.5, height - _y + 0.5, abs(W[x, y]), w_max,
-                      min(1, abs(W[x, y]) / w_max), cmap=cmap, ax=ax)
+                      min(1, abs(W[x, y]) / w_max), color_fn=color_fn, ax=ax)
             else:
                 _blob(_x - 0.5, height - _y + 0.5, -abs(W[
-                      x, y]), w_max, min(1, abs(W[x, y]) / w_max), cmap=cmap, ax=ax)
+                      x, y]), w_max, min(1, abs(W[x, y]) / w_max), color_fn=color_fn, ax=ax)
 
     # color axis
     norm = mpl.colors.Normalize(-abs(W).max(), abs(W).max())
