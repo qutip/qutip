@@ -289,13 +289,18 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
 
     # Set color_fn here.
     if color_style == "scaled":
-        color_fn = lambda w: cmap(int((w + w_max) * 256 / (2 * w_max)))
+        def color_fn(w):
+            return cmap(int((w + w_max) * 256 / (2 * w_max)))
     elif color_style == "threshold":
-        color_fn = lambda w: cmap(255 if w > 0 else 0)
+        def color_fn(w):
+            return cmap(255 if w > 0 else 0)
     elif color_style == "phase":
-        color_fn = lambda w: cmap(int(255 * np.mod(1 - np.angle(w) / np.pi, 2)))
+        def color_fn(w):
+            return cmap(int(255 * np.mod(1 - np.angle(w) / np.pi, 2)))
     else:
-        raise ValueError("Unknown color style {} for Hinton diagrams.".format(color_style))
+        raise ValueError(
+            "Unknown color style {} for Hinton diagrams.".format(color_style)
+        )
 
     ax.fill(array([0, width, width, 0]), array([0, 0, height, height]),
             color=cmap(128))
@@ -307,8 +312,11 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
                 _blob(_x - 0.5, height - _y + 0.5, abs(W[x, y]), w_max,
                       min(1, abs(W[x, y]) / w_max), color_fn=color_fn, ax=ax)
             else:
-                _blob(_x - 0.5, height - _y + 0.5, -abs(W[
-                      x, y]), w_max, min(1, abs(W[x, y]) / w_max), color_fn=color_fn, ax=ax)
+                _blob(
+                    _x - 0.5, height - _y + 0.5,
+                    -abs(W[x, y]), w_max,
+                    min(1, abs(W[x, y]) / w_max), color_fn=color_fn, ax=ax
+                )
 
     # color axis
     norm = mpl.colors.Normalize(-abs(W).max(), abs(W).max())
