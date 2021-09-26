@@ -951,9 +951,9 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False):
         Steady state density matrix.
 
     .. note::
-    	See: Sze Meng Tan,
-    	https://copilot.caltech.edu/documents/16743/qousersguide.pdf,
-    	Section (10.16)
+        See: Sze Meng Tan,
+        https://copilot.caltech.edu/documents/16743/qousersguide.pdf,
+        Section (10.16)
     """
     if sparse:
         N = H_0.shape[0]
