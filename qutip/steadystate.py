@@ -951,8 +951,9 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False):
         Steady state density matrix.
 
     .. note::
-    See: Sze Meng Tan, https://copilot.caltech.edu/documents/16743/qousersguide.pdf, Section (10.16)
-
+    	See: Sze Meng Tan,
+    	https://copilot.caltech.edu/documents/16743/qousersguide.pdf,
+    	Section (10.16)
     """
     if sparse:
         N = H_0.shape[0]
@@ -960,7 +961,8 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False):
         L_0 = liouvillian(H_0, c_ops).data.tocsc()
         L_t = liouvillian(Op_t)
         L_p = (0.5 * L_t).data.tocsc()
-        # L_p and L_m correspond to the positive and negative frequency terms respectively.
+        # L_p and L_m correspond to the positive and negative
+        # frequency terms respectively.
         # They are independent in the model, so we keep both names.
         L_m = L_p
         L_p_array = L_p.todense()
