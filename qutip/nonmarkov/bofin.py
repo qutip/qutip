@@ -521,6 +521,16 @@ class HEOMSolver:
         colidx = self.bath.idx(col_he)
         return cy_pad_csr(op, nhe, nhe, rowidx, colidx)
 
+    def _inplace_add_op(self, L, op, row_he, col_he):
+        """
+        Add the operation ``op`` to its correct position within the
+        larger HEOM liouvillian for the given row and column bath states.
+        """
+        block = self._sup_dim
+        rowpos = self.bath.idx(row_he) * block
+        colpos = self.bath.idx(col_he) * block
+        L[rowpos: rowpos + block, colpos: colpos + block] += op
+
     def _dsuper_list_td(self, t, y, L_list):
         """ Auxiliary function for the integration. Called every time step. """
         L = L_list[0][0]
@@ -533,7 +543,7 @@ class HEOMSolver:
         vk = self.bath.vk
         vk_sum = sum(he_n[i] * vk[i] for i in range(len(vk)))
         op = L - vk_sum * sp.eye(L.shape[0], dtype=complex, format="csr")
-        return self._pad_op(op, he_n, he_n)
+        return op
 
     def _grad_prev(self, he_n, k, prev_he):
         """ Get the previous gradient. """
@@ -567,7 +577,7 @@ class HEOMSolver:
             raise ValueError(
                 f"Unsupported type {self.bath.modes[k].type} for mode {k}"
             )
-        return self._pad_op(op, he_n, prev_he)
+        return op
 
     def _grad_prev_fermionic(self, he_n, k, prev_he):
         ck = self.bath.ck
@@ -585,7 +595,7 @@ class HEOMSolver:
             (sign1 * np.conj(ck[sigma_bar_k] * self.spostQ[k]))
         )
 
-        return self._pad_op(op, he_n, prev_he)
+        return op
 
     def _grad_next(self, he_n, k, prev_he):
         """ Get the previous gradient. """
@@ -604,7 +614,7 @@ class HEOMSolver:
 
     def _grad_next_bosonic(self, he_n, k, next_he):
         op = -1j * (self.spreQ[k] - self.spostQ[k])
-        return self._pad_op(op, he_n, next_he)
+        return op
 
     def _grad_next_fermionic(self, he_n, k, next_he):
         n_excite = sum(he_n)
@@ -618,27 +628,46 @@ class HEOMSolver:
             (sign1 * self.spostQdag[k])
         )
 
-        return self._pad_op(op, he_n, next_he)
+        return op
 
-    def _rhs(self, L, N):
+    def _rhs(self, L, N, _use_pad=False):
         """ Make the RHS for the HEOM. """
         nhe = len(self.bath.states)
-        RHS = sp.csr_matrix(
-            (nhe * N ** 2, nhe * N ** 2),
-            dtype=np.complex128,
-        )
+
+        # temporary optional use of either _pad_op or _inplace_add_op for
+        # performance testing
+        if _use_pad:
+            RHS = sp.csr_matrix(
+                (nhe * N ** 2, nhe * N ** 2),
+                dtype=np.complex128,
+            )
+
+            def _add_rhs(row_he, col_he, f, *params):
+                nonlocal RHS
+                op = f(*params)
+                RHS += self._pad_op(op, row_he, col_he)
+        else:
+            RHS = sp.lil_matrix(
+                (nhe * N ** 2, nhe * N ** 2),
+                dtype=np.complex128,
+            )
+
+            def _add_rhs(row_he, col_he, f, *params):
+                nonlocal RHS
+                op = f(*params)
+                self._inplace_add_op(RHS, op, row_he, col_he)
 
         for he_n in self.bath.states:
-            RHS += self._grad_n(L, he_n)
+            _add_rhs(he_n, he_n, self._grad_n, L, he_n)
             for k in range(len(self.bath.dims)):
                 next_he = self.bath.next(he_n, k)
                 if next_he is not None:
-                    RHS += self._grad_next(he_n, k, next_he)
+                    _add_rhs(he_n, next_he, self._grad_next, he_n, k, next_he)
                 prev_he = self.bath.prev(he_n, k)
                 if prev_he is not None:
-                    RHS += self._grad_prev(he_n, k, prev_he)
+                    _add_rhs(he_n, prev_he, self._grad_prev, he_n, k, prev_he)
 
-        return RHS
+        return RHS.tocsr()
 
     def _configure_solver(self):
         """ Set up the solver. """
