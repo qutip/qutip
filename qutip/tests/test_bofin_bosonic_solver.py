@@ -11,7 +11,7 @@ from qutip import (
 )
 from qutip.nonmarkov.bofin import (
     _convert_h_sys,
-    BathMode,
+    BathExponent,
     BathStates,
     BosonicHEOMSolver,
     HSolverDL,
@@ -21,7 +21,7 @@ from qutip.nonmarkov.bofin import (
 class TestBathStates:
     def mk_modes(self, dims):
         return [
-            BathMode("I", dim, Q=None, ck=1.0, vk=2.0) for dim in dims
+            BathExponent("I", dim, Q=None, ck=1.0, vk=2.0) for dim in dims
         ]
 
     def test_create(self):

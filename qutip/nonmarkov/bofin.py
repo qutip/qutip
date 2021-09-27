@@ -27,12 +27,13 @@ from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
 from qutip.ui.progressbar import BaseProgressBar
 
 
-class BathMode:
+class BathExponent:
     """
-    Represents a single excitation mode within a bath.
+    Represents a single exponent (naively, an excitation mode) within the
+    decomposition of the correlation functions of a bath.
     """
 
-    types = enum.Enum("BathModeTypes", ["R", "I", "RI", "+", "-"])
+    types = enum.Enum("ExponentTypes", ["R", "I", "RI", "+", "-"])
 
     def __init__(
             self, type, dim, Q, ck, vk, ck2=None, sigma_bar_k_offset=None):
@@ -80,13 +81,13 @@ class BosonicBath(Bath):
 
         modes = []
         modes.extend(
-            BathMode("R", None, Q[i], ck[i], vk[i])
+            BathExponent("R", None, Q[i], ck[i], vk[i])
             for i in range(0, NR))
         modes.extend(
-            BathMode("I", None, Q[i], ck[i], vk[i])
+            BathExponent("I", None, Q[i], ck[i], vk[i])
             for i in range(NR, NR + NI))
         modes.extend(
-            BathMode("RI", None, Q[i], ck[i], vk[i], ck2=ck[i+1])
+            BathExponent("RI", None, Q[i], ck[i], vk[i], ck2=ck[i+1])
             for i in range(NR + NI, len(ck), 2))
         super().__init__(modes)
 
@@ -108,7 +109,7 @@ class FermionicBath(Bath):
                 type = "-"
                 sbk_offset = -len(ck[i - 1])
             modes.extend(
-                BathMode(
+                BathExponent(
                     type, 2, Q[i], ck[i][j], vk[i][j],
                     sigma_bar_k_offset=sbk_offset
                 )
@@ -456,25 +457,28 @@ class HEOMSolver:
     def _grad_prev(self, he_n, k, prev_he):
         """ Get the previous gradient. """
         if self.bath.modes[k].type in (
-                BathMode.types.R, BathMode.types.I, BathMode.types.RI):
+                BathExponent.types.R, BathExponent.types.I,
+                BathExponent.types.RI
+        ):
             return self._grad_prev_bosonic(he_n, k, prev_he)
         elif self.bath.modes[k].type in (
-                BathMode.types["+"], BathMode.types["-"]):
+                BathExponent.types["+"], BathExponent.types["-"]
+        ):
             return self._grad_prev_fermionic(he_n, k, prev_he)
         else:
             raise ValueError(
                 f"Mode {k} has unsupported type {self.bath.modes[k].type}")
 
     def _grad_prev_bosonic(self, he_n, k, prev_he):
-        if self.bath.modes[k].type == BathMode.types.R:
+        if self.bath.modes[k].type == BathExponent.types.R:
             op = -1j * he_n[k] * self.bath.ck[k] * (
                 self.spreQ[k] - self.spostQ[k]
                 )
-        elif self.bath.modes[k].type == BathMode.types.I:
+        elif self.bath.modes[k].type == BathExponent.types.I:
             op = -1j * he_n[k] * 1j * self.bath.ck[k] * (
                 self.spreQ[k] + self.spostQ[k]
                 )
-        elif self.bath.modes[k].type == BathMode.types.RI:
+        elif self.bath.modes[k].type == BathExponent.types.RI:
             term1 = -1j * self.bath.ck[k] * (self.spreQ[k] - self.spostQ[k])
             term2 = self.bath.ck2[k] * (self.spreQ[k] + self.spostQ[k])
             op = he_n[k] * (term1 + term2)
@@ -505,10 +509,13 @@ class HEOMSolver:
     def _grad_next(self, he_n, k, prev_he):
         """ Get the previous gradient. """
         if self.bath.modes[k].type in (
-                BathMode.types.R, BathMode.types.I, BathMode.types.RI):
+                BathExponent.types.R, BathExponent.types.I,
+                BathExponent.types.RI
+        ):
             return self._grad_next_bosonic(he_n, k, prev_he)
         elif self.bath.modes[k].type in (
-                BathMode.types["+"], BathMode.types["-"]):
+                BathExponent.types["+"], BathExponent.types["-"]
+        ):
             return self._grad_next_fermionic(he_n, k, prev_he)
         else:
             raise ValueError(
