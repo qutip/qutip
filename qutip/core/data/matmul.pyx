@@ -15,11 +15,12 @@ import numpy as np
 cimport numpy as cnp
 from scipy.linalg cimport cython_blas as blas
 
+from qutip.core.data.base import idxint_dtype
 from qutip.core.data.base cimport idxint, Data
 from qutip.core.data.dense cimport Dense
 from qutip.core.data.csr cimport CSR
 from qutip.core.data cimport csr, dense
-from qutip.core.data.add cimport iadd_dense
+from qutip.core.data.add cimport iadd_dense, add_csr
 
 cnp.import_array()
 
@@ -38,7 +39,7 @@ cdef extern from "src/matmul_csr_vector.hpp" nogil:
 
 __all__ = [
     'matmul', 'matmul_csr', 'matmul_dense', 'matmul_csr_dense_dense',
-    'element_wise_multiply', 'element_wise_multiply_csr', 'element_wise_multiply_dense',
+    'multiply', 'multiply_csr', 'multiply_dense',
 ]
 
 
@@ -290,7 +291,7 @@ cpdef Dense matmul_dense(Dense left, Dense right, double complex scale=1, Dense 
     return out
 
 
-cpdef CSR element_wise_multiply_csr(CSR left, CSR right):
+cpdef CSR multiply_csr(CSR left, CSR right):
     """Element-wise multiplication of CSR matrices."""
     if left.shape[0] != right.shape[0] or left.shape[1] != right.shape[1]:
         raise ValueError(
@@ -304,6 +305,7 @@ cpdef CSR element_wise_multiply_csr(CSR left, CSR right):
     cdef idxint ptr_left, ptr_right, ptr_left_max, ptr_right_max
     cdef idxint row, nnz=0, ncols=left.shape[1]
     cdef CSR out
+    cdef list nans=[]
     # Fast paths for zero matrices.
     if right_nnz == 0 or left_nnz == 0:
         return csr.zeros(left.shape[0], left.shape[1])
@@ -311,12 +313,13 @@ cpdef CSR element_wise_multiply_csr(CSR left, CSR right):
     out = csr.empty(left.shape[0], left.shape[1], max(left_nnz, right_nnz))
     out.row_index[0] = nnz
     ptr_left_max = ptr_right_max = 0
+
     for row in range(left.shape[0]):
         ptr_left = ptr_left_max
         ptr_left_max = left.row_index[row + 1]
         ptr_right = ptr_right_max
         ptr_right_max = right.row_index[row + 1]
-        while ptr_left < ptr_left_max and ptr_right < ptr_right_max:
+        while ptr_left < ptr_left_max or ptr_right < ptr_right_max:
             col_left = left.col_index[ptr_left] if ptr_left < ptr_left_max else ncols + 1
             col_right = right.col_index[ptr_right] if ptr_right < ptr_right_max else ncols + 1
             if col_left == col_right:
@@ -326,14 +329,32 @@ cpdef CSR element_wise_multiply_csr(CSR left, CSR right):
                 ptr_right += 1
                 nnz += 1
             elif col_left <= col_right:
+                if left.data[ptr_left] is np.nan:
+                    # Test for NaN since `NaN * 0 = NaN`
+                    nans.append((row, col_left))
                 ptr_left += 1
             else:
+                if right.data[ptr_right] != right.data[ptr_right]:
+                    nans.append((row, col_right))
                 ptr_right += 1
         out.row_index[row + 1] = nnz
+    if nans:
+        # We expect Nan to be rare enough that we don't allocate memory for
+        # them, but add them here after the loop.
+        nans_pos = np.array(nans, order='F', dtype=idxint_dtype)
+        nnz = nans_pos.shape[0]
+        nans_csr = csr.from_coo_pointers(
+            <idxint *> cnp.PyArray_GETPTR2(nans_pos, 0, 0),
+            <idxint *> cnp.PyArray_GETPTR2(nans_pos, 0, 1),
+            <double complex *> cnp.PyArray_GETPTR1(
+                np.array([np.nan]*nnz, dtype=np.complex128), 0),
+            left.shape[0], left.shape[1], nnz
+        )
+        out = add_csr(out, nans_csr)
     return out
 
 
-cpdef Dense element_wise_multiply_dense(Dense left, Dense right):
+cpdef Dense multiply_dense(Dense left, Dense right):
     """Element-wise multiplication of Dense matrices."""
     if left.shape[0] != right.shape[0] or left.shape[1] != right.shape[1]:
         raise ValueError(
@@ -394,21 +415,21 @@ matmul.add_specialisations([
 ], _defer=True)
 
 
-element_wise_multiply = _Dispatcher(
+multiply = _Dispatcher(
     _inspect.Signature([
         _inspect.Parameter('left', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
         _inspect.Parameter('right', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
     ]),
-    name='element_wise_multiply',
+    name='multiply',
     module=__name__,
     inputs=('left', 'right'),
     out=True,
 )
-element_wise_multiply.__doc__ =\
+multiply.__doc__ =\
     """Element-wise multiplication of matrices."""
-element_wise_multiply.add_specialisations([
-    (CSR, CSR, CSR, element_wise_multiply_csr),
-    (Dense, Dense, Dense, element_wise_multiply_dense),
+multiply.add_specialisations([
+    (CSR, CSR, CSR, multiply_csr),
+    (Dense, Dense, Dense, multiply_dense),
 ], _defer=True)
 
 
