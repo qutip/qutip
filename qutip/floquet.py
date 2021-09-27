@@ -837,7 +837,7 @@ def floquet_markov_mesolve(
     output.times = tlist
     if isinstance(e_ops, FunctionType):
         expt_callback = True
-        store_states = options.store_states or False
+        store_states = opt.store_states or False
     else:
         expt_callback = False
         try:
@@ -853,7 +853,7 @@ def floquet_markov_mesolve(
             for op in e_ops:
                 dtype = np.float64 if op.isherm else np.complex128
                 output.expect.append(np.zeros(len(tlist), dtype=dtype))
-        store_states = options.store_states or (n_expt_op == 0)
+        store_states = opt.store_states or (n_expt_op == 0)
     if store_states:
         output.states = []
 
