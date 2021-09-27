@@ -731,15 +731,15 @@ class TestMatmul(BinaryOpMixin):
     ]
 
 
-class TestElement_wise_multiply(BinaryOpMixin):
+class TestMultiply(BinaryOpMixin):
     def op_numpy(self, left, right):
         return left * right
 
     shapes = shapes_binary_identical()
     bad_shapes = shapes_binary_bad_identical()
     specialisations = [
-        pytest.param(data.element_wise_multiply_csr, CSR, CSR, CSR),
-        pytest.param(data.element_wise_multiply_dense, Dense, Dense, Dense),
+        pytest.param(data.multiply_csr, CSR, CSR, CSR),
+        pytest.param(data.multiply_dense, Dense, Dense, Dense),
     ]
 
 
