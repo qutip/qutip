@@ -31,9 +31,58 @@ class BathExponent:
     """
     Represents a single exponent (naively, an excitation mode) within the
     decomposition of the correlation functions of a bath.
+
+    Parameters
+    ----------
+    type : {"R", "I", "RI", "+", "-"} or BathExponent.ExponentType
+        The type of bath exponent.
+
+        "R" and "I" are bosonic bath exponents that appear in the real and
+        imaginary parts of the correlation expansion.
+
+        "RI" is combined bosonic bath exponent that appears in both the real
+        and imaginary parts of the correlation expansion. The combined exponent
+        has a single ``vk``. The ``ck`` is the coefficient in the real
+        expansion and ``ck2`` is the coefficient in the imaginary expansion.
+
+        "+" and "-" are fermionic bath exponents. These fermionic bath
+        exponents must specify ``sigma_bar_k_offset`` which specifies
+        the amount to add to ``k`` (the exponent index within the bath of this
+        exponent) to determine the ``k`` of the corresponding exponent with
+        the opposite sign (i.e. "-" or "+").
+
+    dim : int or None
+        The dimension (i.e. maximum number of excitations for this exponent).
+        Usually ``2`` for fermionic exponents or ``None`` (i.e. unlimited) for
+        bosonic exponents.
+
+    Q : Qobj
+        The coupling operator for this excitation mode.
+
+    vk : complex
+        The frequency of the exponent of the excitation term.
+
+    ck : complex
+        The coefficient of the excitation term.
+
+    ck2 : optional, complex
+        For exponents of type "RI" this is the coefficient of the term in the
+        imaginary expansion (and ``ck`` is the coefficient in the real
+        expansion).
+
+    sigma_bar_k_offset : optional, int
+        For exponents of type "+" this gives the offset (within the list of
+        exponents within the bath) of the corresponding "-" bath exponent.
+        For exponents of type "-" it gives the offset of the corresponding
+        "+" exponent.
+
+    Attributes
+    ----------
+
+    All of the parameters are available as attributes.
     """
 
-    types = enum.Enum("ExponentTypes", ["R", "I", "RI", "+", "-"])
+    types = enum.Enum("ExponentType", ["R", "I", "RI", "+", "-"])
 
     def __init__(
             self, type, dim, Q, ck, vk, ck2=None, sigma_bar_k_offset=None):
