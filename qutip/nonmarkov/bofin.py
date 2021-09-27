@@ -106,7 +106,17 @@ class BathExponent:
 
 class Bath:
     """
-    Represents a bath (i.e. a list of modes).
+    Represents a list of bath expansion exponents.
+
+    Parameter
+    ---------
+    modes : list of BathExponent
+        The exponents of the correlation function describing the bath.
+
+    Attributes
+    ----------
+
+    All of the parameters are available as attributes.
     """
     def __init__(self, modes):
         self.modes = modes
@@ -175,19 +185,41 @@ class BathStates:
 
     Parameters
     ----------
+    modes : list of BathExponent
+        The exponents of the correlation function describing the bath.
+
     cutoff : int
         The maximum number of excitations.
-    dims : list of int
-        The dimensions of each compontent system within the bath.
 
     Attributes
     ----------
+    modes : list of BathExponent
+        The exponents of the correlation function describing the bath.
+
     cutoff : int
         The maximum number of excitations.
+
     dims : list of int
         The dimensions of each compontent system within the bath.
+
+    vk : list of complex
+        The frequency of each exponent within the bath.
+
+    ck : list of complex
+        The coefficient of each exponent within the bath.
+
+    ck2: list of complex
+        For exponents of type "RI", the coefficient of the exponent within
+        the imaginary expansion. For other exponent types, the entry is None.
+
+    sigma_bar_k_offset: list of int
+        For exponents of type "+" or "-" the offset within the list of modes
+        of the corresponding "-" or "+" exponent. For other exponent types,
+        the entry is None.
+
     states: list of tuples
         A list of the state vectors within the bath.
+
     n_states: int
         Total number of states. Equivalent to ``len(bath.states)``.
     """
