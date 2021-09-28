@@ -67,20 +67,3 @@ class TestTraceNorm(testing.UnaryOpMixin):
         pytest.param(data.norm.trace_csr, CSR, numbers.Number),
         pytest.param(data.norm.trace_dense, Dense, numbers.Number),
     ]
-
-# This test tests the special case where the argument sparse in traces_csr is
-# set to True.
-class TestTraceNormSparseTrue(testing.UnaryOpMixin):
-    def op_numpy(self, matrix):
-        return scipy.linalg.norm(matrix, 'nuc')
-
-    specialisations = [
-        pytest.param(data.norm.trace_csr, CSR, numbers.Number),
-    ]
-
-    def test_mathematically_correct(self, op, data_m, out_type):
-        matrix = data_m()
-        expected = self.op_numpy(matrix.to_array())
-        test = op(matrix, sparse=True)
-        assert isinstance(test, out_type)
-        np.testing.assert_allclose(test, expected, atol=self.tol)

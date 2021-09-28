@@ -44,9 +44,20 @@ cpdef double one_csr(CSR matrix) except -1:
     finally:
         mem.PyMem_Free(col)
 
-cpdef double _trace_csr(CSR matrix, tol=0, maxiter=None) except -1:
+
+cpdef double trace_dense(Dense matrix) except -1:
+    """Compute the trace norm relaying scipy for dense operations."""
+    return scipy.linalg.norm(matrix.as_ndarray(), 'nuc')
+
+
+cpdef double trace_csr(CSR matrix, tol=0, maxiter=None) except -1:
     """Compute the trace norm using only sparse operations. These consist
-    of determining the eigenvalues of `matrix @ matrix.adjoint()` and summing their square roots."""
+    of determining the eigenvalues of `matrix @ matrix.adjoint()` and summing
+    their square roots."""
+    # For column and row vectors we simply use the l2 norm as it is equivalent
+    # to the trace norm.
+    if matrix.shape[0]==1 or matrix.shape[1]==1:
+        return l2_csr(matrix)
 
     cdef CSR op = matmul_csr(matrix, adjoint_csr(matrix))
     cdef size_t i
@@ -62,20 +73,6 @@ cpdef double _trace_csr(CSR matrix, tol=0, maxiter=None) except -1:
         total += math.sqrt(abs(eigs[i]))
     return total
 
-cpdef double trace_dense(Dense matrix) except -1:
-    """Compute the trace norm relaying scipy for dense operations."""
-    return scipy.linalg.norm(matrix.as_ndarray(), 'nuc')
-
-cpdef double trace_csr(CSR matrix, sparse=False, tol=0, maxiter=None) except -1:
-    # For column and row vectors we simply use the l2 norm as it is equivalent
-    # to the trace norm.
-    if matrix.shape[0]==1 or matrix.shape[1]==1:
-        return l2_csr(matrix)
-
-    if sparse:
-        return _trace_csr(matrix, tol=tol, maxiter=maxiter)
-    else:
-        return trace_dense(dense.from_csr(matrix))
 
 cpdef double max_csr(CSR matrix) nogil:
     cdef size_t ptr
@@ -201,9 +198,6 @@ one.add_specialisations([
     (CSR, one_csr),
 ], _defer=True)
 
-
-# TODO: sort out how the trace norm is handled with regards to the `sparse`
-# keyword argument and add a Dense method.
 
 trace = _Dispatcher(
     _inspect.Signature([
