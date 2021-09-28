@@ -1,8 +1,8 @@
 import numpy as np
 from numpy.testing import assert_, assert_equal, run_module_suite
 
-from qutip import (sigmaz, destroy, steadystate, expect, coherent_dm,
-                    build_preconditioner)
+from qutip import (sigmaz, destroy, steadystate, steadystate_floquet,
+		   expect, coherent_dm, fock, mesolve, build_preconditioner)
 
 
 def test_qubit_direct():
@@ -509,6 +509,85 @@ def test_driven_cavity_bicgstab():
 
     assert_((rho_ss - rho_ss_analytic).norm() < 1e-4)
 
+
+def test_steadystate_floquet_sparse():
+    """
+    Test the steadystate solution for a periodically
+    driven system.
+    """
+    N_c = 20
+
+    a = destroy(N_c)
+    a_d = a.dag()
+    X_c = a + a_d
+
+    w_c = 1
+
+    A_l = 0.001
+    w_l = w_c
+    gam = 0.01
+
+    H = w_c * a_d * a
+
+    H_t = [H, [X_c, lambda t, args: args["A_l"] * np.cos(args["w_l"] * t)]]
+
+    psi0 = fock(N_c, 0)
+
+    args = {"A_l": A_l, "w_l": w_l}
+
+    c_ops = []
+    c_ops.append(np.sqrt(gam) * a)
+
+    t_l = np.linspace(0, 20 / gam, 2000)
+
+    expect_me = mesolve(H_t, psi0, t_l,
+                        c_ops, [a_d * a], args=args).expect[0]
+
+    rho_ss = steadystate_floquet(H, c_ops,
+                                 A_l * X_c, w_l, n_it=3, sparse=True)
+    expect_ss = expect(a_d * a, rho_ss)
+
+    np.testing.assert_allclose(expect_me[-20:], expect_ss, atol=1e-3)
+
+
+def test_steadystate_floquet_dense():
+    """
+    Test the steadystate solution for a periodically
+    driven system.
+    """
+    N_c = 20
+
+    a = destroy(N_c)
+    a_d = a.dag()
+    X_c = a + a_d
+
+    w_c = 1
+
+    A_l = 0.001
+    w_l = w_c
+    gam = 0.01
+
+    H = w_c * a_d * a
+
+    H_t = [H, [X_c, lambda t, args: args["A_l"] * np.cos(args["w_l"] * t)]]
+
+    psi0 = fock(N_c, 0)
+
+    args = {"A_l": A_l, "w_l": w_l}
+
+    c_ops = []
+    c_ops.append(np.sqrt(gam) * a)
+
+    t_l = np.linspace(0, 20 / gam, 2000)
+
+    expect_me = mesolve(H_t, psi0, t_l,
+                        c_ops, [a_d * a], args=args).expect[0]
+
+    rho_ss = steadystate_floquet(H, c_ops,
+                                 A_l * X_c, w_l, n_it=3, sparse=False)
+    expect_ss = expect(a_d * a, rho_ss)
+
+    np.testing.assert_allclose(expect_me[-20:], expect_ss, atol=1e-3)
 
 
 if __name__ == "__main__":
