@@ -79,7 +79,7 @@ Contributors
 - Louis Tessler
 - Lucas Verney
 - Marco David
-- Marek
+- Marek Narozniak
 - Markus Baden
 - Martín Sande
 - Mateo Laguna
