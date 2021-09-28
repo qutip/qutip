@@ -63,6 +63,9 @@ class TestTraceNorm(testing.UnaryOpMixin):
     def op_numpy(self, matrix):
         return scipy.linalg.norm(matrix, 'nuc')
 
+    # CSR[square,sparse] fails if tol is larger.
+    tol = 1e-8
+
     specialisations = [
         pytest.param(data.norm.trace_csr, CSR, numbers.Number),
         pytest.param(data.norm.trace_dense, Dense, numbers.Number),
