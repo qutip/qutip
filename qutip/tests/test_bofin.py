@@ -102,9 +102,18 @@ class TestBathStates:
         ]
 
     def test_create(self):
-        bath = BathStates(self.mk_modes([2, 3]), cutoff=2)
-        assert bath.dims == [2, 3]
+        modes = self.mk_modes([2, 3])
+        bath = BathStates(modes, cutoff=2)
+
+        assert bath.modes == modes
         assert bath.cutoff == 2
+
+        assert bath.dims == [2, 3]
+        assert bath.vk == [2.0, 2.0]
+        assert bath.ck == [1.0, 1.0]
+        assert bath.ck2 == [None, None]
+        assert bath.sigma_bar_k_offset == [None, None]
+
         assert bath.states == [
             (0, 0), (0, 1), (0, 2), (1, 0), (1, 1),
         ]
