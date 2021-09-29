@@ -26,6 +26,12 @@ from qutip.solver import Options, Result
 from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
 from qutip.ui.progressbar import BaseProgressBar
 
+# Load MKL spsolve if avaiable
+if settings.has_mkl:
+    from qutip._mkl.spsolve import mkl_spsolve
+else:
+    mkl_spsolve = None
+
 
 class BathExponent:
     """
@@ -435,50 +441,6 @@ def _convert_bath_exponents_fermionic(ck, vk):
     return ck, vk
 
 
-def _h_sys_is_hamiltonian(H_sys):
-    """ Return True if H_sys is a Hamiltonian and False if it is a Liouvillian.
-    """
-    if type(H_sys) is QobjEvo:
-        H_sys_list = H_sys.to_list()
-        H_sys = H_sys_list[0]
-    return H_sys.type == "oper"
-
-
-def _h_sys_dim(H_sys, isHamiltonian):
-    """ Return the system dimension for the given system.
-    """
-    if type(H_sys) is QobjEvo:
-        H_sys_list = H_sys.to_list()
-        H_shape = H_sys_list[0].shape
-    else:
-        H_shape = H_sys.shape
-
-    H_sys_dim = H_shape[0] if isHamiltonian else int(np.sqrt(H_shape[0]))
-    return H_sys_dim
-
-
-def _h_sup_dim(H_sys, isHamiltonian):
-    """ Return the super operator dimension for the given system.
-    """
-    if type(H_sys) is QobjEvo:
-        H_sys_list = H_sys.to_list()
-        H_shape = H_sys_list[0].shape
-    else:
-        H_shape = H_sys.shape
-    H_sup_dim = H_shape[0] ** 2 if isHamiltonian else H_shape[0]
-    return H_sup_dim
-
-
-def _h_sys_liouvillian(H_sys, isHamiltonian):
-    """ Return the Liouvillian dimension for the given system.
-    """
-    if type(H_sys) is QobjEvo:
-        H_sys_list = H_sys.to_list()
-        H_sys = H_sys_list[0]
-    L = liouvillian(H_sys) if isHamiltonian else H_sys
-    return L.data
-
-
 class HEOMSolver:
     """
     HEOM solver that supports a single bath which may be either bosonic or
@@ -488,18 +450,18 @@ class HEOMSolver:
     def __init__(self, H_sys, bath, N_cut, options=None):
         self.H_sys = _convert_h_sys(H_sys)
         self.options = Options() if options is None else options
-        self.isTimeDep = isinstance(self.H_sys, QobjEvo)
-        self.isHamiltonian = _h_sys_is_hamiltonian(self.H_sys)
-        self._sys_dim = _h_sys_dim(self.H_sys, self.isHamiltonian)
-        self._sup_dim = _h_sup_dim(self.H_sys, self.isHamiltonian)
-        self._h_sys_dims = (
-            self.H_sys.dims if not self.isTimeDep
-            else self.H_sys.to_list()[0].dims
-        )
-        self.L = _h_sys_liouvillian(self.H_sys, self.isHamiltonian)
-        self.N_cut = N_cut
+        self.is_timedep = isinstance(self.H_sys, QobjEvo)
+        self.H0 = self.H_sys.to_list()[0] if self.is_timedep else self.H_sys
+        self.is_hamiltonian = self.H0.type == "oper"
+        self.L0 = liouvillian(self.H0) if self.is_hamiltonian else self.H0
 
-        self.bath = BathStates(bath.modes, self.N_cut)
+        self._sys_shape = (
+            self.H0.shape[0] if self.is_hamiltonian
+            else int(np.sqrt(self.H0.shape[0]))
+        )
+        self._sup_shape = self.L0.shape[0]
+
+        self.bath = BathStates(bath.modes, N_cut)
 
         self.coup_op = [mode.Q for mode in self.bath.modes]
         self.spreQ = [spre(op).data for op in self.coup_op]
@@ -526,7 +488,7 @@ class HEOMSolver:
         Add the operation ``op`` to its correct position within the
         larger HEOM liouvillian for the given row and column bath states.
         """
-        block = self._sup_dim
+        block = self._sup_shape
         rowpos = self.bath.idx(row_he) * block
         colpos = self.bath.idx(col_he) * block
         L[rowpos: rowpos + block, colpos: colpos + block] += op
@@ -630,15 +592,16 @@ class HEOMSolver:
 
         return op
 
-    def _rhs(self, L, N, _use_pad=False):
+    def _rhs(self, L, _use_pad=False):
         """ Make the RHS for the HEOM. """
         nhe = len(self.bath.states)
+        L_shape = L.shape[0]
 
         # temporary optional use of either _pad_op or _inplace_add_op for
         # performance testing
         if _use_pad:
             RHS = sp.csr_matrix(
-                (nhe * N ** 2, nhe * N ** 2),
+                (nhe * L_shape, nhe * L_shape),
                 dtype=np.complex128,
             )
 
@@ -648,7 +611,7 @@ class HEOMSolver:
                 RHS += self._pad_op(op, row_he, col_he)
         else:
             RHS = sp.lil_matrix(
-                (nhe * N ** 2, nhe * N ** 2),
+                (nhe * L_shape, nhe * L_shape),
                 dtype=np.complex128,
             )
 
@@ -671,10 +634,10 @@ class HEOMSolver:
 
     def _configure_solver(self):
         """ Set up the solver. """
-        RHSmat = self._rhs(self.L, self._sys_dim)
+        RHSmat = self._rhs(self.L0.data)
         assert isinstance(RHSmat, sp.csr_matrix)
 
-        if self.isTimeDep:
+        if self.is_timedep:
             h_identity_mat = sp.identity(self.bath.n_states, format="csr")
             H_list = self.H_sys.to_list()
 
@@ -708,52 +671,52 @@ class HEOMSolver:
         self.RHSmat = RHSmat
 
     def steady_state(
-        self, max_iter_refine=100, use_mkl=False, weighted_matching=False
+        self,
+        use_mkl=False, mkl_max_iter_refine=100, mkl_weighted_matching=False
     ):
         """
-        Computes steady state dynamics
-        parameters:
-        max_iter_refine : Int
+        Compute the steady state of the system.
+
+        Parameters
+        ----------
+        use_mkl : bool, default=False
+            Whether to use mkl or not. If mkl is not installed or if
+            this is false, use the scipy splu solver instead.
+
+        mkl_max_iter_refine : Int
             Parameter for the mkl LU solver. If pardiso errors are returned
             this should be increased.
-        use_mkl : Boolean
-            Optional override default use of mkl if mkl is installed.
-        weighted_matching : Boolean
+
+        mkl_weighted_matching : Boolean
             Setting this true may increase run time, but reduce stability
             (pardisio may not converge).
 
         Returns
         -------
-        steady state :  Qobj
-            The steady state density matrix of the system
-        solution    :   Numpy array
+        steady_state : Qobj
+            The steady state density matrix of the system.
+
+        solution : Numpy array
             Array of the the steady-state and all ADOs.
             Further processing of this can be done with functions provided in
             example notebooks.
         """
         nstates = self.bath.n_states
-        sup_dim = self._sup_dim
-        n = self._sys_dim
-        L = deepcopy(self.RHSmat)
+        n = self._sys_shape
 
-        b_mat = np.zeros(sup_dim * nstates, dtype=complex)
+        b_mat = np.zeros(n ** 2 * nstates, dtype=complex)
         b_mat[0] = 1.0
 
+        L = deepcopy(self.RHSmat)
         L = L.tolil()
         L[0, 0: n ** 2 * nstates] = 0.0
         L = L.tocsr()
 
-        # TODO: Replace with the standard QuTiP configuration options for MKL.
-        if settings.has_mkl & use_mkl:
-            # TODO: Replace with logging?
-            print("Using Intel mkl solver")
-            from qutip._mkl.spsolve import mkl_spsolve
-
+        if mkl_spsolve is not None and use_mkl:
             L = L.tocsr() + sp.csr_matrix((
                 np.ones(n),
                 (np.zeros(n), [num * (n + 1) for num in range(n)])
             ), shape=(n ** 2 * nstates, n ** 2 * nstates))
-
             L.sort_indices()
 
             solution = mkl_spsolve(
@@ -761,31 +724,27 @@ class HEOMSolver:
                 b_mat,
                 perm=None,
                 verbose=True,
-                max_iter_refine=max_iter_refine,
+                max_iter_refine=mkl_max_iter_refine,
                 scaling_vectors=True,
-                weighted_matching=weighted_matching,
+                weighted_matching=mkl_weighted_matching,
             )
-
         else:
-
             L = L.tocsc() + sp.csc_matrix((
                 np.ones(n),
                 (np.zeros(n), [num * (n + 1) for num in range(n)])
             ), shape=(n ** 2 * nstates, n ** 2 * nstates))
 
-            # Use superLU solver
-
             LU = splu(L)
             solution = LU.solve(b_mat)
 
-        data = dense2D_to_fastcsr_fmode(vec2mat(solution[:sup_dim]), n, n)
+        data = dense2D_to_fastcsr_fmode(vec2mat(solution[:n ** 2]), n, n)
         data = 0.5 * (data + data.H)
 
-        solution = solution.reshape((nstates, sup_dim))
+        solution = solution.reshape((nstates, n ** 2))
 
-        return Qobj(data, dims=self._h_sys_dims), solution
+        return Qobj(data, dims=self.H0.dims), solution
 
-    def run(self, rho0, tlist, full_init=False, return_full=False):
+    def run(self, rho0, tlist, full_init=False, full_return=False):
         """
         Function to solve for an open quantum system using the
         HEOM model.
@@ -805,76 +764,55 @@ class HEOMSolver:
             Indicates if initial condition is just the system Qobj, or a
             numpy array including all ADOs.
 
-        return_full: Boolean
-
+        full_return: Boolean
             Whether to also return as output the full state of all ADOs.
 
         Returns
         -------
-        results : :class:`qutip.solver.Result`
-            Object storing all results from the simulation.
-            If return_full == True, also returns ADOs as an additional
-            numpy array.
+        :class:`qutip.solver.Result`
+            The results of the simulation run.
+            The times (tlist) are stored in ``result.times``.
+            The state at each time is stored in ``result.states``.
+            If ``full_return`` is ``True``, then the ADOs at each
+            time are stored in ``result.ados``.
         """
         nstates = self.bath.n_states
-        sup_dim = self._sup_dim
-
-        solver = self._ode
-        dims = self.coup_op[0].dims
-        shape = self.coup_op[0].shape
+        n = self._sys_shape
+        rho_shape = (n, n)
+        rho_dims = self.coup_op[0].dims
+        hierarchy_shape = (self.bath.n_states, n ** 2)
 
         output = Result()
-        output.solver = "hsolve"
+        output.solver = "HEOMSolver"
         output.times = tlist
         output.states = []
 
-        if not full_init:
-            output.states.append(Qobj(rho0))
-            rho0_flat = rho0.full().ravel('F')
-            rho0_he = np.zeros([sup_dim * nstates], dtype=complex)
-            rho0_he[:sup_dim] = rho0_flat
-            solver.set_initial_value(rho0_he, tlist[0])
-        else:
-            output.states.append(Qobj(
-                rho0[:sup_dim].reshape(shape, order='F'), dims=dims,
-            ))
+        if full_init:
             rho0_he = rho0
-            solver.set_initial_value(rho0_he, tlist[0])
-
-        dt = np.diff(tlist)
-        n_tsteps = len(tlist)
-
-        if not return_full:
-            self.progress_bar.start(n_tsteps)
-            for t_idx, t in enumerate(tlist):
-                self.progress_bar.update(t_idx)
-                if t_idx < n_tsteps - 1:
-                    solver.integrate(solver.t + dt[t_idx])
-                    rho = Qobj(
-                        solver.y[:sup_dim].reshape(shape, order="F"),
-                        dims=dims,
-                    )
-                    output.states.append(rho)
-
-            self.progress_bar.finished()
-            return output
-
         else:
-            self.progress_bar.start(n_tsteps)
-            N = shape[0]
-            hshape = (self.bath.n_states, N**2)
-            full_hierarchy = [rho0.reshape(hshape)]
-            for t_idx, t in enumerate(tlist):
-                if t_idx < n_tsteps - 1:
-                    solver.integrate(solver.t + dt[t_idx])
-                    rho = Qobj(
-                               solver.y[:sup_dim].reshape(shape, order='F'),
-                               dims=dims
-                    )
-                    full_hierarchy.append(solver.y.reshape(hshape))
-                    output.states.append(rho)
-            self.progress_bar.finished()
-            return output, full_hierarchy
+            rho0_he = np.zeros([n ** 2 * nstates], dtype=complex)
+            rho0_he[:n ** 2] = rho0.full().ravel('F')
+
+        if full_return:
+            output.ados = []
+
+        solver = self._ode
+        solver.set_initial_value(rho0_he, tlist[0])
+
+        self.progress_bar.start(len(tlist))
+        for t_idx, t in enumerate(tlist):
+            self.progress_bar.update(t_idx)
+            if t_idx != 0:
+                solver.integrate(t)
+            rho = Qobj(
+                solver.y[:n ** 2].reshape(rho_shape, order='F'),
+                dims=rho_dims,
+            )
+            output.states.append(rho)
+            if full_return:
+                output.ados.append(solver.y.reshape(hierarchy_shape))
+        self.progress_bar.finished()
+        return output
 
 
 class BosonicHEOMSolver(HEOMSolver):
