@@ -21,6 +21,71 @@ from qutip.nonmarkov.bofin import (
 from qutip.states import enr_state_dictionaries
 
 
+def check_exponent(
+    exp, type, dim, Q, ck, vk, ck2=None, sigma_bar_k_offset=None,
+):
+    """ Check the attributes of a BathExponent. """
+    assert exp.type is BathExponent.types[type]
+    assert exp.dim == dim
+    assert exp.Q == Q
+    assert exp.ck == ck
+    assert exp.vk == vk
+    assert exp.ck2 == ck2
+    assert exp.sigma_bar_k_offset == sigma_bar_k_offset
+
+
+class TestBathExponent:
+    def test_create(self):
+        exp_r = BathExponent("R", None, Q=None, ck=1.0, vk=2.0)
+        check_exponent(exp_r, "R", None, Q=None, ck=1.0, vk=2.0)
+
+        exp_i = BathExponent("I", None, Q=None, ck=1.0, vk=2.0)
+        check_exponent(exp_i, "I", None, Q=None, ck=1.0, vk=2.0)
+
+        exp_i = BathExponent("RI", None, Q=None, ck=1.0, vk=2.0, ck2=3.0)
+        check_exponent(exp_i, "RI", None, Q=None, ck=1.0, vk=2.0, ck2=3.0)
+
+        exp_p = BathExponent(
+            "+", 2, Q=None, ck=1.0, vk=2.0, sigma_bar_k_offset=-1,
+        )
+        check_exponent(
+            exp_p, "+", 2, Q=None, ck=1.0, vk=2.0, sigma_bar_k_offset=-1,
+        )
+
+        exp_m = BathExponent(
+            "-", 2, Q=None, ck=1.0, vk=2.0, sigma_bar_k_offset=+1,
+        )
+        check_exponent(
+            exp_m, "-", 2, Q=None, ck=1.0, vk=2.0, sigma_bar_k_offset=+1,
+        )
+
+        for exp_type, kw in [
+            ("R", {}),
+            ("I", {}),
+            ("+", {"sigma_bar_k_offset": 1}),
+            ("-", {"sigma_bar_k_offset": -1}),
+        ]:
+            with pytest.raises(ValueError) as err:
+                BathExponent(
+                    exp_type, None, Q=None, ck=1.0, vk=2.0, ck2=3.0, **kw,
+                )
+            assert str(err.value) == (
+                "Second co-efficient (ck2) should only be specified for RI"
+                " bath exponents"
+            )
+
+        for exp_type, kw in [("R", {}), ("I", {}), ("RI", {"ck2": 3.0})]:
+            with pytest.raises(ValueError) as err:
+                BathExponent(
+                    exp_type, None, Q=None, ck=1.0, vk=2.0,
+                    sigma_bar_k_offset=1, **kw,
+                )
+            assert str(err.value) == (
+                "Offset of sigma bar (sigma_bar_k_offset) should only be"
+                " specified for + and - bath exponents"
+            )
+
+
 class TestBathStates:
     def mk_modes(self, dims):
         return [

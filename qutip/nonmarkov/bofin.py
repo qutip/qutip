@@ -90,17 +90,34 @@ class BathExponent:
 
     types = enum.Enum("ExponentType", ["R", "I", "RI", "+", "-"])
 
+    def _check_ck2(self, type, ck2):
+        if type == self.types["RI"]:
+            if ck2 is None:
+                raise ValueError("RI bath modes require ck2")
+        else:
+            if ck2 is not None:
+                raise ValueError(
+                    "Second co-efficient (ck2) should only be specified for RI"
+                    " bath exponents"
+                )
+
+    def _check_sigma_bar_k_offset(self, type, offset):
+        if type in (self.types["+"], self.types["-"]):
+            if offset is None:
+                raise ValueError("+ and - bath modes require sigma_bar_k")
+        else:
+            if offset is not None:
+                raise ValueError(
+                    "Offset of sigma bar (sigma_bar_k_offset) should only be"
+                    " specified for + and - bath exponents"
+                )
+
     def __init__(
             self, type, dim, Q, ck, vk, ck2=None, sigma_bar_k_offset=None):
         if not isinstance(type, self.types):
             type = self.types[type]
-        if type == self.types["RI"] and ck2 is None:
-            raise ValueError("RI bath modes require ck2")
-        if (
-                type in (self.types["+"], self.types["-"]) and
-                sigma_bar_k_offset is None
-        ):
-            raise ValueError("+ and - bath modes require sigma_bar_k")
+        self._check_ck2(type, ck2)
+        self._check_sigma_bar_k_offset(type, sigma_bar_k_offset)
         self.type = type
         self.dim = dim
         self.Q = Q
