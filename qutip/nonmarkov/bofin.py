@@ -352,7 +352,7 @@ def _convert_coup_op(coup_op, coup_op_len):
             and all(isinstance(x, Qobj) for x in coup_op)):
         if len(coup_op) != coup_op_len:
             raise ValueError(
-                f"Expected {coup_op_len} coupling operators.")
+                f"Expected {coup_op_len} coupling operators")
     else:
         raise TypeError(
             "Coupling operator (coup_op) must be a Qobj or a list of Qobjs"
