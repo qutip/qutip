@@ -13,6 +13,7 @@ from qutip import (
 from qutip.nonmarkov.bofin import (
     _convert_h_sys,
     BathExponent,
+    Bath,
     BathStates,
     BosonicHEOMSolver,
     FermionicHEOMSolver,
@@ -84,6 +85,14 @@ class TestBathExponent:
                 "Offset of sigma bar (sigma_bar_k_offset) should only be"
                 " specified for + and - bath exponents"
             )
+
+
+class TestBath:
+    def test_create(self):
+        exp_r = BathExponent("R", None, Q=None, ck=1.0, vk=2.0)
+        exp_i = BathExponent("I", None, Q=None, ck=1.0, vk=2.0)
+        bath = Bath([exp_r, exp_i])
+        assert bath.modes == [exp_r, exp_i]
 
 
 class TestBathStates:
