@@ -728,14 +728,13 @@ class HEOMSolver:
         L = L.tolil()
         L[0, 0: n ** 2 * nstates] = 0.0
         L = L.tocsr()
+        L += sp.csr_matrix((
+            np.ones(n),
+            (np.zeros(n), [num * (n + 1) for num in range(n)])
+        ), shape=(n ** 2 * nstates, n ** 2 * nstates))
 
         if mkl_spsolve is not None and use_mkl:
-            L = L.tocsr() + sp.csr_matrix((
-                np.ones(n),
-                (np.zeros(n), [num * (n + 1) for num in range(n)])
-            ), shape=(n ** 2 * nstates, n ** 2 * nstates))
             L.sort_indices()
-
             solution = mkl_spsolve(
                 L,
                 b_mat,
@@ -746,11 +745,7 @@ class HEOMSolver:
                 weighted_matching=mkl_weighted_matching,
             )
         else:
-            L = L.tocsc() + sp.csc_matrix((
-                np.ones(n),
-                (np.zeros(n), [num * (n + 1) for num in range(n)])
-            ), shape=(n ** 2 * nstates, n ** 2 * nstates))
-
+            L = L.tocsc()
             LU = splu(L)
             solution = LU.solve(b_mat)
 
