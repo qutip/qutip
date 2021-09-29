@@ -198,12 +198,8 @@ class TestBosonicHEOMSolver:
         pytest.param(False, id="static"),
         pytest.param(True, id="timedep"),
     ])
-    def test_pure_dephasing_model(self, fake_timedep):
-        """
-        BosonicHEOMSolver: Compare with pure-dephasing analytical assert that
-        the analytical result and HEOM produce the same time dephasing
-        evoltion.
-        """
+    def test_run_pure_dephasing_model(self, fake_timedep):
+        """ Compare with pure-dephasing analytical result. """
         tol = 1e-3
         gamma = 0.05
         lam = 0.025
@@ -269,11 +265,8 @@ class TestHSolverDL:
         pytest.param(True, 1e-4, True, id="bnd_cut_approx_timedep"),
         pytest.param(False,  1e-3, True, id="no_bnd_cut_approx_timedep"),
     ])
-    def test_pure_dephasing_model(self, bnd_cut_approx, tol, fake_timedep):
-        """
-        HSolverDL: Compare with pure-dephasing analytical assert that the
-        analytical result and HEOM produce the same time dephasing evoltion.
-        """
+    def test_run_pure_dephasing_model(self, bnd_cut_approx, tol, fake_timedep):
+        """ Compare with pure-dephasing analytical result. """
         cut_frequency = 0.05
         coupling_strength = 0.025
         lam_c = coupling_strength / np.pi
@@ -320,10 +313,8 @@ class TestFermionicHEOMSolver:
         pytest.param(False, id="static"),
         pytest.param(True, id="timedep"),
     ])
-    def test_discrete_level_model(self, fake_timedep):
-        """
-        FermionicHEOMSolver: compare to discrete-level current analytics
-        """
+    def test_steady_state_discrete_level_model(self, fake_timedep):
+        """ Compare to discrete-level current analytics. """
         tol = 1e-3
         Gamma = 0.01  # coupling strength
         W = 1.  # cut-off
