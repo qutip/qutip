@@ -488,7 +488,7 @@ class HEOMSolver:
 
         self.progress_bar = BaseProgressBar()
 
-        self._configure_solver()
+        self._mode = "gather-ops"  # pad-op, inplace-add-op, gather-ops
 
     def _pad_op(self, op, row_he, col_he):
         """
@@ -510,6 +510,61 @@ class HEOMSolver:
         colpos = self.bath.idx(col_he) * block
         L[rowpos: rowpos + block, colpos: colpos + block] += op
 
+    def _gather_ops(self, ops, shape):
+        """ Create the HEOM liouvillian from a list of smaller CSR
+        """
+        # csr_matrix((data, indices, indptr), [shape=(M, N)])
+        #
+        # is the standard CSR representation where the column indices for row i
+        # are stored in indices[indptr[i]:indptr[i+1]] and their corresponding
+        # values are stored in data[indptr[i]:indptr[i+1]].
+        if not ops:
+            return sp.csr_matrix(shape, dtype=np.complex128)
+        ops = sorted(
+            (self.bath.idx(row_he), self.bath.idx(col_he), op)
+            for op, row_he, col_he in ops
+        )
+        block = self._sup_shape
+        nnz = sum(op.nnz for _, _, op in ops)
+        indptr = np.zeros(shape[0] + 1, dtype=np.int32)
+        indices = np.zeros(nnz, dtype=np.int32)
+        data = np.zeros(nnz, dtype=np.complex128)
+        end = 0
+        op_idx = 0
+        op_len = len(ops)
+
+        for row_idx in range(self.bath.n_states):
+            prev_op_idx = op_idx
+            while op_idx < op_len:
+                if ops[op_idx][0] != row_idx:
+                    break
+                op_idx += 1
+
+            row_ops = ops[prev_op_idx: op_idx]
+            rowpos = row_idx * block
+            for op_row in range(block):
+                for _, col_idx, op in row_ops:
+                    colpos = col_idx * block
+                    op_row_start = op.indptr[op_row]
+                    op_row_end = op.indptr[op_row + 1]
+                    op_row_len = op_row_end - op_row_start
+                    assert op_row_len == op[op_row, :].nnz
+                    if op_row_len == 0:
+                        continue
+                    indices[end: end + op_row_len] = (
+                        op.indices[op_row_start: op_row_end] + colpos
+                    )
+                    assert all(op.data[op_row_start: op_row_end] != 0)
+                    data[end: end + op_row_len] = (
+                        op.data[op_row_start: op_row_end]
+                    )
+                    assert all(data[end: end + op_row_len] != 0)
+                    end += op_row_len
+                indptr[rowpos + op_row + 1] = end
+        return sp.csr_matrix(
+            (data, indices, indptr), shape=shape, dtype=np.complex128,
+        )
+
     def _dsuper_list_td(self, t, y, L_list):
         """ Auxiliary function for the integration. Called every time step. """
         L = L_list[0][0]
@@ -524,22 +579,22 @@ class HEOMSolver:
         op = L - vk_sum * sp.eye(L.shape[0], dtype=complex, format="csr")
         return op
 
-    def _grad_prev(self, he_n, k, prev_he):
+    def _grad_prev(self, he_n, k):
         """ Get the previous gradient. """
         if self.bath.modes[k].type in (
                 BathExponent.types.R, BathExponent.types.I,
                 BathExponent.types.RI
         ):
-            return self._grad_prev_bosonic(he_n, k, prev_he)
+            return self._grad_prev_bosonic(he_n, k)
         elif self.bath.modes[k].type in (
                 BathExponent.types["+"], BathExponent.types["-"]
         ):
-            return self._grad_prev_fermionic(he_n, k, prev_he)
+            return self._grad_prev_fermionic(he_n, k)
         else:
             raise ValueError(
                 f"Mode {k} has unsupported type {self.bath.modes[k].type}")
 
-    def _grad_prev_bosonic(self, he_n, k, prev_he):
+    def _grad_prev_bosonic(self, he_n, k):
         if self.bath.modes[k].type == BathExponent.types.R:
             op = -1j * he_n[k] * self.bath.ck[k] * (
                 self.spreQ[k] - self.spostQ[k]
@@ -558,7 +613,7 @@ class HEOMSolver:
             )
         return op
 
-    def _grad_prev_fermionic(self, he_n, k, prev_he):
+    def _grad_prev_fermionic(self, he_n, k):
         ck = self.bath.ck
 
         n_excite = sum(he_n)
@@ -576,26 +631,26 @@ class HEOMSolver:
 
         return op
 
-    def _grad_next(self, he_n, k, prev_he):
+    def _grad_next(self, he_n, k):
         """ Get the previous gradient. """
         if self.bath.modes[k].type in (
                 BathExponent.types.R, BathExponent.types.I,
                 BathExponent.types.RI
         ):
-            return self._grad_next_bosonic(he_n, k, prev_he)
+            return self._grad_next_bosonic(he_n, k)
         elif self.bath.modes[k].type in (
                 BathExponent.types["+"], BathExponent.types["-"]
         ):
-            return self._grad_next_fermionic(he_n, k, prev_he)
+            return self._grad_next_fermionic(he_n, k)
         else:
             raise ValueError(
                 f"Mode {k} has unsupported type {self.bath.modes[k].type}")
 
-    def _grad_next_bosonic(self, he_n, k, next_he):
+    def _grad_next_bosonic(self, he_n, k):
         op = -1j * (self.spreQ[k] - self.spostQ[k])
         return op
 
-    def _grad_next_fermionic(self, he_n, k, next_he):
+    def _grad_next_fermionic(self, he_n, k):
         n_excite = sum(he_n)
         sign1 = (-1) ** (n_excite + 1)
 
@@ -609,45 +664,62 @@ class HEOMSolver:
 
         return op
 
-    def _rhs(self, L, _use_pad=False):
+    def _rhs(self, L):
         """ Make the RHS for the HEOM. """
         nhe = len(self.bath.states)
         L_shape = L.shape[0]
 
-        # temporary optional use of either _pad_op or _inplace_add_op for
-        # performance testing
-        if _use_pad:
+        # Temporary _mode option to experiment with different methods for
+        # assembling the RHS while we determine which is best:
+        #
+        # _pad_op: RHS += cy_pad_csr(op)
+        # _inplace_add_op: RHS[r: r + block, c: c + block] = op
+        # _gather_ops: store ops in a list and then assemble the RHS at the end
+        if self._mode == "pad-op":
             RHS = sp.csr_matrix(
                 (nhe * L_shape, nhe * L_shape),
                 dtype=np.complex128,
             )
 
-            def _add_rhs(row_he, col_he, f, *params):
+            def _add_rhs(row_he, col_he, op):
                 nonlocal RHS
-                op = f(*params)
-                RHS += self._pad_op(op, row_he, col_he)
-        else:
+                RHS += self._pad_op(op.copy(), row_he, col_he)
+        elif self._mode == "inplace-add-op":
             RHS = sp.lil_matrix(
                 (nhe * L_shape, nhe * L_shape),
                 dtype=np.complex128,
             )
 
-            def _add_rhs(row_he, col_he, f, *params):
+            def _add_rhs(row_he, col_he, op):
                 nonlocal RHS
-                op = f(*params)
                 self._inplace_add_op(RHS, op, row_he, col_he)
+        elif self._mode == "gather-ops":
+            ALL_OPS = []
+
+            def _add_rhs(row_he, col_he, op):
+                ALL_OPS.append((op, row_he, col_he))
+        else:
+            raise ValueError(f"Unknown RHS construction _mode: {self._mode!r}")
 
         for he_n in self.bath.states:
-            _add_rhs(he_n, he_n, self._grad_n, L, he_n)
+            op = self._grad_n(L, he_n)
+            _add_rhs(he_n, he_n, op)
             for k in range(len(self.bath.dims)):
                 next_he = self.bath.next(he_n, k)
                 if next_he is not None:
-                    _add_rhs(he_n, next_he, self._grad_next, he_n, k, next_he)
+                    op = self._grad_next(he_n, k)
+                    _add_rhs(he_n, next_he, op)
                 prev_he = self.bath.prev(he_n, k)
                 if prev_he is not None:
-                    _add_rhs(he_n, prev_he, self._grad_prev, he_n, k, prev_he)
+                    op = self._grad_prev(he_n, k)
+                    _add_rhs(he_n, prev_he, op)
 
-        return RHS.tocsr()
+        if self._mode == "inplace-add-op":
+            RHS = RHS.tocsr()
+        elif self._mode == "gather-ops":
+            RHS = self._gather_ops(ALL_OPS, (nhe * L_shape, nhe * L_shape))
+
+        return RHS
 
     def _configure_solver(self):
         """ Set up the solver. """
