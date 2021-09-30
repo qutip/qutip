@@ -1229,7 +1229,8 @@ def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
     return Qobj(R, dims=L.dims)
 
 
-def pseudo_inverse(L, rhoss=None, w=None, sparse=True, method='splu', **kwargs):
+def pseudo_inverse(L, rhoss=None, w=None, sparse=True,
+                   method='splu', **kwargs):
     """
     Compute the pseudo inverse for a Liouvillian superoperator, optionally
     given its steady state density matrix (which will be computed if not
