@@ -510,21 +510,21 @@ class HEOMSolver:
         colpos = self.bath.idx(col_he) * block
         L[rowpos: rowpos + block, colpos: colpos + block] += op
 
-    def _gather_ops(self, ops, shape):
-        """ Create the HEOM liouvillian from a list of smaller CSR
+    def _gather_ops(self, ops, block, nhe):
+        """ Create the HEOM liouvillian from a list of smaller CSRs.
+
+            Parameters
+            ----------
+            ops : list of (row_idx, col_idx, op)
+                Operators to combine.
+            block : int
+                The size of a single Liovillian operator in the hierarchy.
+            nhe : int
+                The number of ADOs in the hierarchy.
         """
-        # csr_matrix((data, indices, indptr), [shape=(M, N)])
-        #
-        # is the standard CSR representation where the column indices for row i
-        # are stored in indices[indptr[i]:indptr[i+1]] and their corresponding
-        # values are stored in data[indptr[i]:indptr[i+1]].
+        shape = (block * nhe, block * nhe)
         if not ops:
             return sp.csr_matrix(shape, dtype=np.complex128)
-        ops = sorted(
-            (self.bath.idx(row_he), self.bath.idx(col_he), op)
-            for op, row_he, col_he in ops
-        )
-        block = self._sup_shape
         nnz = sum(op.nnz for _, _, op in ops)
         indptr = np.zeros(shape[0] + 1, dtype=np.int32)
         indices = np.zeros(nnz, dtype=np.int32)
@@ -533,7 +533,7 @@ class HEOMSolver:
         op_idx = 0
         op_len = len(ops)
 
-        for row_idx in range(self.bath.n_states):
+        for row_idx in range(nhe):
             prev_op_idx = op_idx
             while op_idx < op_len:
                 if ops[op_idx][0] != row_idx:
@@ -548,17 +548,14 @@ class HEOMSolver:
                     op_row_start = op.indptr[op_row]
                     op_row_end = op.indptr[op_row + 1]
                     op_row_len = op_row_end - op_row_start
-                    assert op_row_len == op[op_row, :].nnz
                     if op_row_len == 0:
                         continue
                     indices[end: end + op_row_len] = (
                         op.indices[op_row_start: op_row_end] + colpos
                     )
-                    assert all(op.data[op_row_start: op_row_end] != 0)
                     data[end: end + op_row_len] = (
                         op.data[op_row_start: op_row_end]
                     )
-                    assert all(data[end: end + op_row_len] != 0)
                     end += op_row_len
                 indptr[rowpos + op_row + 1] = end
         return sp.csr_matrix(
@@ -672,9 +669,9 @@ class HEOMSolver:
         # Temporary _mode option to experiment with different methods for
         # assembling the RHS while we determine which is best:
         #
-        # _pad_op: RHS += cy_pad_csr(op)
-        # _inplace_add_op: RHS[r: r + block, c: c + block] = op
-        # _gather_ops: store ops in a list and then assemble the RHS at the end
+        # pad-op: RHS += cy_pad_csr(op)
+        # inplace-add-op: RHS[r: r + block, c: c + block] = op
+        # gather-ops: store ops in a list and then assemble the RHS at the end
         if self._mode == "pad-op":
             RHS = sp.csr_matrix(
                 (nhe * L_shape, nhe * L_shape),
@@ -697,7 +694,9 @@ class HEOMSolver:
             ALL_OPS = []
 
             def _add_rhs(row_he, col_he, op):
-                ALL_OPS.append((op, row_he, col_he))
+                ALL_OPS.append(
+                    (self.bath.idx(row_he), self.bath.idx(col_he), op)
+                )
         else:
             raise ValueError(f"Unknown RHS construction _mode: {self._mode!r}")
 
@@ -717,7 +716,8 @@ class HEOMSolver:
         if self._mode == "inplace-add-op":
             RHS = RHS.tocsr()
         elif self._mode == "gather-ops":
-            RHS = self._gather_ops(ALL_OPS, (nhe * L_shape, nhe * L_shape))
+            ALL_OPS.sort()
+            RHS = self._gather_ops(ALL_OPS, block=L_shape, nhe=nhe)
 
         return RHS
 
