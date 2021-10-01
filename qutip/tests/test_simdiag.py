@@ -33,6 +33,19 @@ def test_simdiag_no_evals(num_mat):
             assert matrix * evec == evec * eval
 
 
+def test_simdiag_degen():
+    N = 10
+    U = qutip.rand_unitary(N)
+    matrices = [
+        U * qutip.qdiags([0,0,0,1,1,1,2,2,3,4], 0) * U.dag(),
+        U * qutip.qdiags([1,3,4,2,4,0,0,3,0,1], 0) * U.dag(),
+    ]
+    evals, evecs = qutip.simdiag(matrices)
+
+    for eval, evec in zip(evals[0], evecs):
+        assert matrix * evec == evec * eval
+
+
 def test_simdiag_no_input():
     with pytest.raises(ValueError):
         qutip.simdiag([])
