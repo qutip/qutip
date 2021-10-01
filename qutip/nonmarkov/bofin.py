@@ -490,6 +490,8 @@ class HEOMSolver:
 
         self._mode = "gather-ops"  # pad-op, inplace-add-op, gather-ops
 
+        self._configure_solver()
+
     def _pad_op(self, op, row_he, col_he):
         """
         Pad op into its correct position within the larger HEOM liouvillian
