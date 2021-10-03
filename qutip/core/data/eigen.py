@@ -2,7 +2,7 @@ import numpy as np
 import scipy.linalg
 import scipy.sparse as sp
 
-from .dense import Dense
+from .dense import Dense, from_csr
 from .csr import CSR
 from .properties import isherm as _isherm
 from qutip.settings import settings
@@ -219,7 +219,7 @@ def eigs_csr(data, isherm=None, vecs=True, sort='low', eigvals=0,
                         + str(type(data)))
     if data.shape[0] < 4:
         # For small matrix, the sparse solver can't compute all eigenvalues.
-        return eigs_dense(data, isherm, vecs, sort, eigvals)
+        return eigs_dense(from_csr(data), isherm, vecs, sort, eigvals)
     _eigs_check_shape(data)
     eigvals, num_large, num_small = _eigs_fix_eigvals(data, eigvals, sort)
     isherm = isherm if isherm is not None else _isherm(data)
