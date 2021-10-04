@@ -3,7 +3,7 @@ __all__ = ['Bloch']
 import os
 
 from numpy import (ndarray, array, linspace, pi, outer, cos, sin, ones, size,
-                   sqrt, real, mod, append, ceil, arange)
+                   sqrt, real, mod, append, ceil, arange, arccos, arctan,arcsin)
 
 from packaging.version import parse as parse_version
 
