@@ -15,8 +15,9 @@ try:
     import matplotlib
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
-    from matplotlib.patches import FancyArrowPatch
+    from matplotlib.patches import FancyArrowPatch, Arc
     from mpl_toolkits.mplot3d import proj3d
+    from scipy.spatial.transform import Rotation as R
 
     # Define a custom _axes3D function based on the matplotlib version.
     # The auto_add_to_figure keyword is new for matplotlib>=3.4.
@@ -177,6 +178,11 @@ class Bloch:
         self.savenum = 0
         # Style of points, 'm' for multiple colors, 's' for single color
         self.point_style = []
+        # Data for arcs
+        self.arcs_x = []
+        self.arcs_y= []
+        self.arcs_z = []
+        self.line_segment = []
 
         # status of rendering
         self._rendered = False
@@ -295,6 +301,10 @@ class Bloch:
         self.vectors = []
         self.point_style = []
         self.annotations = []
+        self.arcs_x = []
+        self.arcs_y= []
+        self.arcs_z = []
+        self.line_segment = []
 
     def add_points(self, points, meth='s'):
         """Add a list of data points to bloch sphere.
@@ -401,6 +411,178 @@ class Bloch:
                                  'text': text,
                                  'opts': kwargs})
 
+    def add_latitude(self, init_pt, fin_pt): 
+        # connects two points with an arc on a same latitude. Inputs have to be in sphereical coordinates.
+        # Used in the function add_arc
+        
+        if abs(init_pt[2]-fin_pt[2])> pi:
+            if init_pt[2] <= fin_pt[2]:
+                init_pt[2] = 2*pi + init_pt[2]
+            else:
+                fin_pt[2] = 2*pi + fin_pt[2]
+        
+        phi = linspace(init_pt[2],fin_pt[2], 200)
+        
+        r = init_pt[0]
+        theta = linspace(init_pt[1],init_pt[1],200)
+        
+        arc_x = r*sin(theta)*cos(phi)
+        arc_y = r*sin(theta)*sin(phi)
+        arc_z = r*cos(theta)
+        
+        self.arcs_x.append(arc_x)
+        self.arcs_y.append(arc_y)
+        self.arcs_z.append(arc_z)
+    
+    def add_longitude(self, init_pt, fin_pt): 
+        # connects two points with an arc on a same longitude. Inputs have to be in sphereical coordinates.
+        # Used in the function add_arc
+        
+        r = init_pt[0]
+        phi = linspace(fin_pt[2],fin_pt[2],200)
+        theta = linspace(init_pt[1],fin_pt[1], 200)
+        
+        arc_x = r*sin(theta)*cos(phi)
+        arc_y = r*sin(theta)*sin(phi)
+        arc_z = r*cos(theta)
+       
+        self.arcs_x.append(arc_x)
+        self.arcs_y.append(arc_y)
+        self.arcs_z.append(arc_z)
+        
+    def cart_to_sph(self, cart_cord):
+        # converts cartesian coordinates to spherical
+        r = 0
+        for i in cart_cord:
+            r += i**2
+        r = sqrt(r)
+        
+        if r == 0:
+            print("Polar and azimuthal points not defined for origin")
+            return
+        
+        theta = arccos(cart_cord[2]/r)
+        
+        if theta < 1e-12 or abs(theta - pi) < 1e-12:
+            phi = 0
+        else:
+            x = cart_cord[0]
+            y = cart_cord[1]
+            if x == 0:
+                if y > 0:
+                    phi = pi/2
+                else:
+                    phi = pi + pi/2
+            elif x > 0 and y >= 0:
+                phi = arctan(y/x)
+            elif x < 0 and y >=0:
+                phi = pi - arctan(abs(y)/abs(x))
+            elif x < 0 and y < 0:
+                phi = pi + arctan(abs(y)/abs(x))
+            else:
+                 phi = 2*pi - arctan(abs(y)/abs(x))
+        return [r,theta, phi]
+    
+    
+    def rot_matz(self,angle):
+        # Rotation matrix about z-axis
+        rot_matz_ = R.from_matrix([[cos(angle), -sin(angle), 0],
+                                   [sin(angle),  cos(angle), 0],
+                                   [            0,              0, 1]])
+        return rot_matz_
+
+    def rot_maty(self, angle):
+        # Rotation matrix about y-axis
+        rot_maty_ = R.from_matrix([[cos(angle), 0, -sin(angle)],
+                                  [            0, 1,              0],
+                                  [sin(angle), 0,  cos(angle)]])
+        return rot_maty_
+    
+    def add_arc(self, init_pt, fin_pt):
+        """Add an arc connecting two points on the bloch sphere.
+        Parameters
+        ----------
+        init_pt : array_like
+            Array with cartesian coordinates of initial point on the Bloch sphere
+        
+        fin_pt : array_like
+            Array with cartesian coordinates of final point on the Bloch sphere
+        """
+        [r_init, theta_init, phi_init] = self.cart_to_sph(init_pt)
+        [r_fin,  theta_fin,  phi_fin ] = self.cart_to_sph(fin_pt)
+        
+        init_pt_sph = [r_init, theta_init, phi_init]
+        fin_pt_sph  = [r_fin,  theta_fin,  phi_fin ]
+        
+        if theta_init < 1e-12 or abs(theta_init - pi) < 1e-12:
+            phi_init = phi_fin
+        if theta_fin < 1e-12 or abs(theta_fin - pi) < 1e-12:
+            phi_fin = phi_init
+            
+        init_pt_sph = [r_init,theta_init,phi_init]
+        fin_pt_sph  = [r_fin, theta_fin, phi_fin ]
+        
+        if abs(r_init - r_fin) > 1e-12:
+            print("points not on the same sphere")
+        elif abs(abs(theta_init) - abs(theta_fin)) < 1e-12:
+            if theta_init < 1e-12 or abs(theta_init - pi) < 1e-12 or abs(phi_init - phi_fin) <= 1e-12:
+                print("No Arc can be formed using ", init_pt," and ", fin_pt)
+            else:
+                self.add_latitude(init_pt_sph, fin_pt_sph)
+        elif abs(abs(phi_init) - abs(phi_fin)) < 1e-12:
+            self.add_longitude(init_pt_sph, fin_pt_sph)
+        else:
+            init_pt = self.rot_matz(-phi_init).apply(init_pt)
+            init_pt = self.rot_maty(theta_init).apply(init_pt)
+            fin_pt  = self.rot_matz(-phi_init).apply(fin_pt)
+            fin_pt  = self.rot_maty(theta_init).apply(fin_pt)
+            
+            [r_init_new, theta_init_new, phi_init_new] = self.cart_to_sph(init_pt)
+            [r_fin_new , theta_fin_new , phi_fin_new ] = self.cart_to_sph(fin_pt)
+            
+            phi_init_new = phi_fin_new                
+            r = r_init_new
+            phi = linspace(phi_init_new,phi_init_new,200)
+            theta = linspace(theta_init_new,theta_fin_new, 200)
+            
+            arc_x = r*sin(theta)*cos(phi)
+            arc_y = r*sin(theta)*sin(phi)
+            arc_z = r*cos(theta)
+            
+            arc_ptx = []
+            arc_pty = []
+            arc_ptz = []
+           
+            for i in range(len(arc_x)):
+                arc_pt = [arc_x[i],arc_y[i], arc_z[i]] 
+                [ptx,pty,ptz] = self.rot_maty(-theta_init).apply(arc_pt)
+                arc_ptx.append(ptx)
+                arc_pty.append(pty)
+                arc_ptz.append(ptz)
+                [arc_ptx[i],arc_pty[i],arc_ptz[i]] = self.rot_matz(phi_init).apply([arc_ptx[i],arc_pty[i],arc_ptz[i]])
+            
+            self.arcs_x.append(arc_ptx)
+            self.arcs_y.append(arc_pty)
+            self.arcs_z.append(arc_ptz)   
+
+    def add_line(self, point1, point2):
+        """Add a line segment connecting two points on the bloch sphere.
+
+        Parameters
+        ----------
+        point1 : array_like
+            Array with cartesian coordinates of a point on the Bloch sphere
+        
+        point2 : array_like
+            Array with cartesian coordinates of another point on the Bloch sphere
+
+        """
+        x = [point1[1],point2[1]]
+        y = [-point1[0],-point2[0]]
+        z = [point1[2],point2[2]]
+        v = [x,y,z]
+        self.line_segment.append(v)
+
     def make_sphere(self):
         """
         Plots Bloch sphere and data sets.
@@ -454,6 +636,8 @@ class Bloch:
         self.plot_front()
         self.plot_axes_labels()
         self.plot_annotations()
+        self.plot_arc()
+        self.plot_line()
 
     def plot_back(self):
         # back half of sphere
@@ -619,16 +803,30 @@ class Bloch:
             self.axes.text(vec[1], -vec[0], vec[2],
                            annotation['text'], **opts)
 
+    def plot_arc(self):
+        # plots a red arc
+        for i in range(len(self.arcs_x)):
+            for j in range(len(self.arcs_x[i])):
+                [self.arcs_x[i][j], self.arcs_y[i][j], self.arcs_z[i][j]] = self.rot_matz(-pi/2).apply([self.arcs_x[i][j], self.arcs_y[i][j], self.arcs_z[i][j]])
+            self.axes.plot3D(self.arcs_x[i], self.arcs_y[i], self.arcs_z[i], 'r')
+        
+    def plot_line(self):
+        # plots a black dashed line segment between two points
+        for line in self.line_segment:
+            self.axes.plot(line[0],line[1],line[2],'k--')
+
     def show(self):
         """
         Display Bloch sphere and corresponding data sets.
         """
         self.render(self.fig, self.axes)
-        if self.run_from_ipython():
-            if self._shown:
-                display(self.fig)
-        else:
-            self.fig.show()
+        if self.fig:
+            plt.show(self.fig)
+#         if self.run_from_ipython():
+#             if self._shown:
+#                 display(self.fig)
+#         else:
+#             self.fig.show()
         self._shown = True
 
     def save(self, name=None, format='png', dirc=None, dpin=None):
