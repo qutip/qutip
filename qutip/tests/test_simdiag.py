@@ -29,7 +29,7 @@ def test_simdiag_no_evals(num_mat):
     for matrix in commuting_matrices:
         for evec in evecs:
             Mvec = matrix * evec
-            eval = Mvec.full()[0,0] / evec.full()[0,0]
+            eval = Mvec.norm() / evec.norm()
             assert matrix * evec == evec * eval
 
 
