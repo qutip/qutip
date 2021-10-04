@@ -9,13 +9,12 @@ class IntegratorException(Exception):
     """Error from the ODE solver being unable to integrate with the given
     parameters.
 
-    Exemple
+    Example
     -------
     - The solver cannot reach the desired tolerance within the maximum number
     of steps.
     - The step needed to be within desired tolerance is too small.
     """
-    pass
 
 
 class Integrator:
@@ -27,11 +26,25 @@ class Integrator:
 
     Parameters
     ----------
-    sytem: qutip.QobjEvo
+    system: qutip.QobjEvo
         Quantum system in which states evolve.
 
     options: qutip.SolverOdeOptions
         Options for the solver.
+
+    Class Attributes
+    ---------------------
+    supports_blackbox : bool
+          If True, then the integrator calls only ``system.matmul``, ``system.matmul_data``, ``system.expect``, 
+          ``system.expect_data`` and ``isconstant``, ``isoper`` or ``issuper``. This allows the solver using the integrator
+          to modify the system in creative ways. In particular, the solver may modify the system depending on *both*
+          the time ``t`` *and* the current ``state`` the system is being applied to.
+        
+          If the integrator calls any other methods, set to False.
+          
+    supports_time_dependent : bool
+        If True, then the integrator supports time dependent systems. If False, ``supports_blackbox`` should usually be
+        ``False`` too.
     """
     # Used options in qutip.SolverOdeOptions
     used_options = []
@@ -101,7 +114,7 @@ class Integrator:
 
         If ``t`` is larger than the present state's ``t``, advance the internal
         state toward ``t``. If  ``t`` is smaller than the present ``t``, but
-        larger than the precious one, it does an interpolation step and return
+        larger than the previous one, it does an interpolation step and returns
         the state at that time. When advancing the state, it may return it at a
         time between present time and the asked ``t`` if more efficent for
         subsequent interpolation step.
@@ -127,7 +140,7 @@ class Integrator:
 
         .. note:
             Does not need to be implemented it the Integrator does not support
-            :func:`mcsovle`
+            :func:`mcsolve`
         """
         raise NotImplementedError
 
