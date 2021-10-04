@@ -1,15 +1,39 @@
 import numpy as np
-from numpy.testing import assert_, assert_equal, run_module_suite
+import pytest
+import qutip
+import warnings
 
-from qutip import (sigmaz, destroy, steadystate, steadystate_floquet,
-		   expect, coherent_dm, fock, mesolve, build_preconditioner)
 
-
-def test_qubit_direct():
-    "Steady state: Thermal qubit - direct solver"
+@pytest.mark.parametrize(['method', 'kwargs'], [
+    pytest.param('direct', {}, id="direct"),
+    pytest.param('direct', {'solver':'mkl'}, id="direct_mkl",
+                 marks=pytest.mark.skipif(not qutip.settings.has_mkl,
+                                          reason='MKL extensions not found.')),
+    pytest.param('direct', {'return_info':True}, id="direct_info"),
+    pytest.param('direct', {'sparse':False}, id="direct_dense"),
+    pytest.param('direct', {'use_rcm':True}, id="direct_rcm"),
+    pytest.param('direct', {'use_wbm':True}, id="direct_wbm"),
+    pytest.param('eigen', {}, id="eigen"),
+    pytest.param('eigen', {'use_rcm':True},  id="eigen_rcm"),
+    pytest.param('svd', {}, id="svd"),
+    pytest.param('power', {'mtol':1e-5}, id="power"),
+    pytest.param('power', {'mtol':1e-5, 'solver':'mkl'}, id="power_mkl",
+                 marks=pytest.mark.skipif(not qutip.settings.has_mkl,
+                                          reason='MKL extensions not found.')),
+    pytest.param('power-gmres', {'mtol':1e-1}, id="power-gmres"),
+    pytest.param('power-gmres', {'mtol':1e-1, 'use_rcm':True, 'use_wbm':True},
+                 id="power-gmres_perm"),
+    pytest.param('power-bicgstab', {'use_precond':1}, id="power-bicgstab"),
+    pytest.param('iterative-gmres', {}, id="iterative-gmres"),
+    pytest.param('iterative-gmres', {'use_rcm':True, 'use_wbm':True},
+                 id="iterative-gmres_perm"),
+    pytest.param('iterative-bicgstab', {'return_info':True},
+                 id="iterative-bicgstab"),
+])
+def test_qubit(method, kwargs):
     # thermal steadystate of a qubit: compare numerics with analytical formula
-    sz = sigmaz()
-    sm = destroy(2)
+    sz = qutip.sigmaz()
+    sm = qutip.destroy(2)
 
     H = 0.5 * 2 * np.pi * sz
     gamma1 = 0.05
@@ -17,195 +41,43 @@ def test_qubit_direct():
     wth_vec = np.linspace(0.1, 3, 20)
     p_ss = np.zeros(np.shape(wth_vec))
 
-    for idx, wth in enumerate(wth_vec):
+    with warnings.catch_warnings():
+        if 'use_wbm' in kwargs:
+            # The deprecation has been fixed in dev.major
+            warnings.simplefilter("ignore", category=DeprecationWarning)
 
-        n_th = 1.0 / (np.exp(1.0 / wth) - 1)  # bath temperature
-        c_op_list = []
-        rate = gamma1 * (1 + n_th)
-        c_op_list.append(np.sqrt(rate) * sm)
-        rate = gamma1 * n_th
-        c_op_list.append(np.sqrt(rate) * sm.dag())
-        rho_ss = steadystate(H, c_op_list, method='direct')
-        p_ss[idx] = expect(sm.dag() * sm, rho_ss)
-
-    p_ss_analytic = np.exp(-1.0 / wth_vec) / (1 + np.exp(-1.0 / wth_vec))
-    delta = sum(abs(p_ss_analytic - p_ss))
-    assert_equal(delta < 1e-5, True)
-
-
-def test_qubit_eigen():
-    "Steady state: Thermal qubit - eigen solver"
-    # thermal steadystate of a qubit: compare numerics with analytical formula
-    sz = sigmaz()
-    sm = destroy(2)
-
-    H = 0.5 * 2 * np.pi * sz
-    gamma1 = 0.05
-
-    wth_vec = np.linspace(0.1, 3, 20)
-    p_ss = np.zeros(np.shape(wth_vec))
-
-    for idx, wth in enumerate(wth_vec):
-
-        n_th = 1.0 / (np.exp(1.0 / wth) - 1)  # bath temperature
-        c_op_list = []
-        rate = gamma1 * (1 + n_th)
-        c_op_list.append(np.sqrt(rate) * sm)
-        rate = gamma1 * n_th
-        c_op_list.append(np.sqrt(rate) * sm.dag())
-        rho_ss = steadystate(H, c_op_list, method='eigen')
-        p_ss[idx] = expect(sm.dag() * sm, rho_ss)
+        for idx, wth in enumerate(wth_vec):
+            n_th = 1.0 / (np.exp(1.0 / wth) - 1)  # bath temperature
+            c_op_list = []
+            rate = gamma1 * (1 + n_th)
+            c_op_list.append(np.sqrt(rate) * sm)
+            rate = gamma1 * n_th
+            c_op_list.append(np.sqrt(rate) * sm.dag())
+            rho_ss = qutip.steadystate(H, c_op_list, method=method, **kwargs)
+            if 'return_info' in kwargs:
+                rho_ss, info = rho_ss
+                assert isinstance(info, dict)
+            p_ss[idx] = qutip.expect(sm.dag() * sm, rho_ss)
 
     p_ss_analytic = np.exp(-1.0 / wth_vec) / (1 + np.exp(-1.0 / wth_vec))
-    delta = sum(abs(p_ss_analytic - p_ss))
-    assert_equal(delta < 1e-5, True)
+    np.testing.assert_allclose(p_ss_analytic, p_ss, atol=1e-5)
 
 
-def test_qubit_power():
-    "Steady state: Thermal qubit - power solver"
-    # thermal steadystate of a qubit: compare numerics with analytical formula
-    sz = sigmaz()
-    sm = destroy(2)
-
-    H = 0.5 * 2 * np.pi * sz
-    gamma1 = 0.05
-
-    wth_vec = np.linspace(0.1, 3, 20)
-    p_ss = np.zeros(np.shape(wth_vec))
-
-    for idx, wth in enumerate(wth_vec):
-
-        n_th = 1.0 / (np.exp(1.0 / wth) - 1)  # bath temperature
-        c_op_list = []
-        rate = gamma1 * (1 + n_th)
-        c_op_list.append(np.sqrt(rate) * sm)
-        rate = gamma1 * n_th
-        c_op_list.append(np.sqrt(rate) * sm.dag())
-        rho_ss = steadystate(H, c_op_list, method='power', mtol=1e-5)
-        p_ss[idx] = expect(sm.dag() * sm, rho_ss)
-
-    p_ss_analytic = np.exp(-1.0 / wth_vec) / (1 + np.exp(-1.0 / wth_vec))
-    delta = sum(abs(p_ss_analytic - p_ss))
-    assert_equal(delta < 1e-5, True)
-
-
-def test_qubit_power_gmres():
-    "Steady state: Thermal qubit - power-gmres solver"
-    # thermal steadystate of a qubit: compare numerics with analytical formula
-    sz = sigmaz()
-    sm = destroy(2)
-
-    H = 0.5 * 2 * np.pi * sz
-    gamma1 = 0.05
-
-    wth_vec = np.linspace(0.1, 3, 20)
-    p_ss = np.zeros(np.shape(wth_vec))
-
-    for idx, wth in enumerate(wth_vec):
-        n_th = 1.0 / (np.exp(1.0 / wth) - 1)  # bath temperature
-        c_op_list = []
-        rate = gamma1 * (1 + n_th)
-        c_op_list.append(np.sqrt(rate) * sm)
-        rate = gamma1 * n_th
-        c_op_list.append(np.sqrt(rate) * sm.dag())
-        rho_ss = steadystate(H, c_op_list, method='power-gmres', mtol=1e-1)
-        p_ss[idx] = expect(sm.dag() * sm, rho_ss)
-
-    p_ss_analytic = np.exp(-1.0 / wth_vec) / (1 + np.exp(-1.0 / wth_vec))
-    delta = sum(abs(p_ss_analytic - p_ss))
-    assert_equal(delta < 1e-5, True)
-
-
-def test_qubit_power_bicgstab():
-    "Steady state: Thermal qubit - power-bicgstab solver"
-    # thermal steadystate of a qubit: compare numerics with analytical formula
-    sz = sigmaz()
-    sm = destroy(2)
-
-    H = 0.5 * 2 * np.pi * sz
-    gamma1 = 0.05
-
-    wth_vec = np.linspace(0.1, 3, 20)
-    p_ss = np.zeros(np.shape(wth_vec))
-
-    for idx, wth in enumerate(wth_vec):
-
-        n_th = 1.0 / (np.exp(1.0 / wth) - 1)  # bath temperature
-        c_op_list = []
-        rate = gamma1 * (1 + n_th)
-        c_op_list.append(np.sqrt(rate) * sm)
-        rate = gamma1 * n_th
-        c_op_list.append(np.sqrt(rate) * sm.dag())
-        rho_ss = steadystate(H, c_op_list, method='power-bicgstab', use_precond=1)
-        p_ss[idx] = expect(sm.dag() * sm, rho_ss)
-
-    p_ss_analytic = np.exp(-1.0 / wth_vec) / (1 + np.exp(-1.0 / wth_vec))
-    delta = sum(abs(p_ss_analytic - p_ss))
-    assert_equal(delta < 1e-5, True)
-
-
-
-def test_qubit_gmres():
-    "Steady state: Thermal qubit - iterative-gmres solver"
-    # thermal steadystate of a qubit: compare numerics with analytical formula
-    sz = sigmaz()
-    sm = destroy(2)
-
-    H = 0.5 * 2 * np.pi * sz
-    gamma1 = 0.05
-
-    wth_vec = np.linspace(0.1, 3, 20)
-    p_ss = np.zeros(np.shape(wth_vec))
-
-    for idx, wth in enumerate(wth_vec):
-
-        n_th = 1.0 / (np.exp(1.0 / wth) - 1)  # bath temperature
-        c_op_list = []
-        rate = gamma1 * (1 + n_th)
-        c_op_list.append(np.sqrt(rate) * sm)
-        rate = gamma1 * n_th
-        c_op_list.append(np.sqrt(rate) * sm.dag())
-        rho_ss = steadystate(H, c_op_list, method='iterative-gmres')
-        p_ss[idx] = expect(sm.dag() * sm, rho_ss)
-
-    p_ss_analytic = np.exp(-1.0 / wth_vec) / (1 + np.exp(-1.0 / wth_vec))
-    delta = sum(abs(p_ss_analytic - p_ss))
-    assert_equal(delta < 1e-5, True)
-
-
-def test_qubit_bicgstab():
-    "Steady state: Thermal qubit - iterative-bicgstab solver"
-    # thermal steadystate of a qubit: compare numerics with analytical formula
-    sz = sigmaz()
-    sm = destroy(2)
-
-    H = 0.5 * 2 * np.pi * sz
-    gamma1 = 0.05
-
-    wth_vec = np.linspace(0.1, 3, 20)
-    p_ss = np.zeros(np.shape(wth_vec))
-
-    for idx, wth in enumerate(wth_vec):
-
-        n_th = 1.0 / (np.exp(1.0 / wth) - 1)  # bath temperature
-        c_op_list = []
-        rate = gamma1 * (1 + n_th)
-        c_op_list.append(np.sqrt(rate) * sm)
-        rate = gamma1 * n_th
-        c_op_list.append(np.sqrt(rate) * sm.dag())
-        rho_ss = steadystate(H, c_op_list, method='iterative-bicgstab')
-        p_ss[idx] = expect(sm.dag() * sm, rho_ss)
-
-    p_ss_analytic = np.exp(-1.0 / wth_vec) / (1 + np.exp(-1.0 / wth_vec))
-    delta = sum(abs(p_ss_analytic - p_ss))
-    assert_equal(delta < 1e-5, True)
-
-
-def test_ho_direct():
-    "Steady state: Thermal HO - direct solver"
+@pytest.mark.parametrize(['method', 'kwargs'], [
+    pytest.param('direct', {}, id="direct"),
+    pytest.param('direct', {'sparse':False}, id="direct_dense"),
+    pytest.param('eigen', {}, id="eigen"),
+    pytest.param('power', {'mtol':1e-5}, id="power"),
+    pytest.param('power-gmres', {'mtol':1e-1, 'use_precond':1}, id="power-gmres"),
+    pytest.param('power-bicgstab', {'use_precond':1}, id="power-bicgstab"),
+    pytest.param('iterative-lgmres', {'use_precond':1}, id="iterative-lgmres"),
+    pytest.param('iterative-gmres', {}, id="iterative-gmres"),
+    pytest.param('iterative-bicgstab', {}, id="iterative-bicgstab"),
+])
+def test_ho(method, kwargs):
     # thermal steadystate of an oscillator: compare numerics with analytical
     # formula
-    a = destroy(40)
+    a = qutip.destroy(35)
     H = 0.5 * 2 * np.pi * a.dag() * a
     gamma1 = 0.05
 
@@ -220,304 +92,69 @@ def test_ho_direct():
         c_op_list.append(np.sqrt(rate) * a)
         rate = gamma1 * n_th
         c_op_list.append(np.sqrt(rate) * a.dag())
-        rho_ss = steadystate(H, c_op_list, method='direct')
-        p_ss[idx] = np.real(expect(a.dag() * a, rho_ss))
+        rho_ss = qutip.steadystate(H, c_op_list, method=method, **kwargs)
+        p_ss[idx] = np.real(qutip.expect(a.dag() * a, rho_ss))
 
     p_ss_analytic = 1.0 / (np.exp(1.0 / wth_vec) - 1)
-    delta = sum(abs(p_ss_analytic - p_ss))
-    assert_equal(delta < 1e-3, True)
+    np.testing.assert_allclose(p_ss_analytic, p_ss, atol=1e-3)
 
 
-def test_ho_eigen():
-    "Steady state: Thermal HO - eigen solver"
-    # thermal steadystate of an oscillator: compare numerics with analytical
-    # formula
-    a = destroy(40)
-    H = 0.5 * 2 * np.pi * a.dag() * a
-    gamma1 = 0.05
-
-    wth_vec = np.linspace(0.1, 3, 20)
-    p_ss = np.zeros(np.shape(wth_vec))
-
-    for idx, wth in enumerate(wth_vec):
-
-        n_th = 1.0 / (np.exp(1.0 / wth) - 1)  # bath temperature
-        c_op_list = []
-        rate = gamma1 * (1 + n_th)
-        c_op_list.append(np.sqrt(rate) * a)
-        rate = gamma1 * n_th
-        c_op_list.append(np.sqrt(rate) * a.dag())
-        rho_ss = steadystate(H, c_op_list, method='eigen')
-        p_ss[idx] = np.real(expect(a.dag() * a, rho_ss))
-
-    p_ss_analytic = 1.0 / (np.exp(1.0 / wth_vec) - 1)
-    delta = sum(abs(p_ss_analytic - p_ss))
-    assert_equal(delta < 1e-3, True)
-
-
-def test_ho_power():
-    "Steady state: Thermal HO - power solver"
-    # thermal steadystate of an oscillator: compare numerics with analytical
-    # formula
-    a = destroy(40)
-    H = 0.5 * 2 * np.pi * a.dag() * a
-    gamma1 = 0.05
-
-    wth_vec = np.linspace(0.1, 3, 20)
-    p_ss = np.zeros(np.shape(wth_vec))
-
-    for idx, wth in enumerate(wth_vec):
-
-        n_th = 1.0 / (np.exp(1.0 / wth) - 1)  # bath temperature
-        c_op_list = []
-        rate = gamma1 * (1 + n_th)
-        c_op_list.append(np.sqrt(rate) * a)
-        rate = gamma1 * n_th
-        c_op_list.append(np.sqrt(rate) * a.dag())
-        rho_ss = steadystate(H, c_op_list, method='power', mtol=1e-5)
-        p_ss[idx] = np.real(expect(a.dag() * a, rho_ss))
-
-    p_ss_analytic = 1.0 / (np.exp(1.0 / wth_vec) - 1)
-    delta = sum(abs(p_ss_analytic - p_ss))
-    assert_equal(delta < 1e-3, True)
-
-def test_ho_power_gmres():
-    "Steady state: Thermal HO - power-gmres solver"
-    # thermal steadystate of an oscillator: compare numerics with analytical
-    # formula
-    a = destroy(40)
-    H = 0.5 * 2 * np.pi * a.dag() * a
-    gamma1 = 0.05
-
-    wth_vec = np.linspace(0.1, 3, 20)
-    p_ss = np.zeros(np.shape(wth_vec))
-
-    for idx, wth in enumerate(wth_vec):
-
-        n_th = 1.0 / (np.exp(1.0 / wth) - 1)  # bath temperature
-        c_op_list = []
-        rate = gamma1 * (1 + n_th)
-        c_op_list.append(np.sqrt(rate) * a)
-        rate = gamma1 * n_th
-        c_op_list.append(np.sqrt(rate) * a.dag())
-        rho_ss = steadystate(H, c_op_list, method='power-gmres', mtol=1e-1,
-                             use_precond=1)
-        p_ss[idx] = np.real(expect(a.dag() * a, rho_ss))
-
-    p_ss_analytic = 1.0 / (np.exp(1.0 / wth_vec) - 1)
-    delta = sum(abs(p_ss_analytic - p_ss))
-    assert_equal(delta < 1e-3, True)
-
-
-def test_ho_power_bicgstab():
-    "Steady state: Thermal HO - power-bicgstab solver"
-    # thermal steadystate of an oscillator: compare numerics with analytical
-    # formula
-    a = destroy(40)
-    H = 0.5 * 2 * np.pi * a.dag() * a
-    gamma1 = 0.05
-
-    wth_vec = np.linspace(0.1, 3, 20)
-    p_ss = np.zeros(np.shape(wth_vec))
-
-    for idx, wth in enumerate(wth_vec):
-
-        n_th = 1.0 / (np.exp(1.0 / wth) - 1)  # bath temperature
-        c_op_list = []
-        rate = gamma1 * (1 + n_th)
-        c_op_list.append(np.sqrt(rate) * a)
-        rate = gamma1 * n_th
-        c_op_list.append(np.sqrt(rate) * a.dag())
-        rho_ss = steadystate(H, c_op_list, method='power-bicgstab',use_precond=1)
-        p_ss[idx] = np.real(expect(a.dag() * a, rho_ss))
-
-    p_ss_analytic = 1.0 / (np.exp(1.0 / wth_vec) - 1)
-    delta = sum(abs(p_ss_analytic - p_ss))
-    assert_equal(delta < 1e-3, True)
-
-
-def test_ho_gmres():
-    "Steady state: Thermal HO - iterative-gmres solver"
-    # thermal steadystate of an oscillator: compare numerics with analytical
-    # formula
-    a = destroy(40)
-    H = 0.5 * 2 * np.pi * a.dag() * a
-    gamma1 = 0.05
-
-    wth_vec = np.linspace(0.1, 3, 20)
-    p_ss = np.zeros(np.shape(wth_vec))
-
-    for idx, wth in enumerate(wth_vec):
-
-        n_th = 1.0 / (np.exp(1.0 / wth) - 1)  # bath temperature
-        c_op_list = []
-        rate = gamma1 * (1 + n_th)
-        c_op_list.append(np.sqrt(rate) * a)
-        rate = gamma1 * n_th
-        c_op_list.append(np.sqrt(rate) * a.dag())
-        rho_ss = steadystate(H, c_op_list, method='iterative-gmres')
-        p_ss[idx] = np.real(expect(a.dag() * a, rho_ss))
-
-    p_ss_analytic = 1.0 / (np.exp(1.0 / wth_vec) - 1)
-    delta = sum(abs(p_ss_analytic - p_ss))
-    assert_equal(delta < 1e-3, True)
-
-
-def test_ho_bicgstab():
-    "Steady state: Thermal HO - iterative-bicgstab solver"
-    # thermal steadystate of an oscillator: compare numerics with analytical
-    # formula
-    a = destroy(40)
-    H = 0.5 * 2 * np.pi * a.dag() * a
-    gamma1 = 0.05
-
-    wth_vec = np.linspace(0.1, 3, 20)
-    p_ss = np.zeros(np.shape(wth_vec))
-
-    for idx, wth in enumerate(wth_vec):
-
-        n_th = 1.0 / (np.exp(1.0 / wth) - 1)  # bath temperature
-        c_op_list = []
-        rate = gamma1 * (1 + n_th)
-        c_op_list.append(np.sqrt(rate) * a)
-        rate = gamma1 * n_th
-        c_op_list.append(np.sqrt(rate) * a.dag())
-        rho_ss = steadystate(H, c_op_list, method='iterative-bicgstab')
-        p_ss[idx] = np.real(expect(a.dag() * a, rho_ss))
-
-    p_ss_analytic = 1.0 / (np.exp(1.0 / wth_vec) - 1)
-    delta = sum(abs(p_ss_analytic - p_ss))
-    assert_equal(delta < 1e-3, True)
-
-
-
-def test_driven_cavity_direct():
-    "Steady state: Driven cavity - direct solver"
-
+@pytest.mark.parametrize(['method', 'kwargs'], [
+    pytest.param('direct', {}, id="direct"),
+    pytest.param('direct', {'sparse':False}, id="direct_dense"),
+    pytest.param('eigen', {}, id="eigen"),
+    pytest.param('svd', {}, id="svd"),
+    pytest.param('power', {'mtol':1e-5}, id="power"),
+    pytest.param('power-gmres', {'mtol':1e-1, 'use_precond':1, 'M':'iterative'},
+                 id="power-gmres"),
+    pytest.param('power-bicgstab', {'use_precond':1, 'M':'power'},
+                 id="power-bicgstab"),
+    pytest.param('iterative-gmres', {}, id="iterative-gmres"),
+    pytest.param('iterative-bicgstab', {}, id="iterative-bicgstab"),
+])
+def test_driven_cavity(method, kwargs):
     N = 30
     Omega = 0.01 * 2 * np.pi
     Gamma = 0.05
 
-    a = destroy(N)
+    a = qutip.destroy(N)
     H = Omega * (a.dag() + a)
     c_ops = [np.sqrt(Gamma) * a]
+    if 'use_precond' in kwargs:
+        kwargs['M'] = qutip.build_preconditioner(H, c_ops, method=kwargs['M'])
+    rho_ss = qutip.steadystate(H, c_ops, method=method, **kwargs)
+    rho_ss_analytic = qutip.coherent_dm(N, -1.0j * (Omega)/(Gamma/2))
 
-    rho_ss = steadystate(H, c_ops, method='direct')
-    rho_ss_analytic = coherent_dm(N, -1.0j * (Omega)/(Gamma/2))
-
-    assert_((rho_ss - rho_ss_analytic).norm() < 1e-4)
-
-
-def test_driven_cavity_eigen():
-    "Steady state: Driven cavity - eigen solver"
-
-    N = 30
-    Omega = 0.01 * 2 * np.pi
-    Gamma = 0.05
-
-    a = destroy(N)
-    H = Omega * (a.dag() + a)
-    c_ops = [np.sqrt(Gamma) * a]
-
-    rho_ss = steadystate(H, c_ops, method='eigen')
-    rho_ss_analytic = coherent_dm(N, -1.0j * (Omega)/(Gamma/2))
-
-    assert_((rho_ss - rho_ss_analytic).norm() < 1e-4)
+    np.testing.assert_allclose(rho_ss, rho_ss_analytic, atol=1e-4)
 
 
-def test_driven_cavity_power():
-    "Steady state: Driven cavity - power solver"
-
-    N = 30
-    Omega = 0.01 * 2 * np.pi
-    Gamma = 0.05
-
-    a = destroy(N)
-    H = Omega * (a.dag() + a)
-    c_ops = [np.sqrt(Gamma) * a]
-
-    rho_ss = steadystate(H, c_ops, method='power', mtol=1e-5,)
-    rho_ss_analytic = coherent_dm(N, -1.0j * (Omega)/(Gamma/2))
-
-    assert_((rho_ss - rho_ss_analytic).norm() < 1e-4)
-
-
-def test_driven_cavity_power_gmres():
-    "Steady state: Driven cavity - power-gmres solver"
-
-    N = 30
-    Omega = 0.01 * 2 * np.pi
-    Gamma = 0.05
-
-    a = destroy(N)
-    H = Omega * (a.dag() + a)
-    c_ops = [np.sqrt(Gamma) * a]
-    M = build_preconditioner(H, c_ops, method='power')
-    rho_ss = steadystate(H, c_ops, method='power-gmres', M=M, mtol=1e-1,
-                         use_precond=1)
-    rho_ss_analytic = coherent_dm(N, -1.0j * (Omega)/(Gamma/2))
-    assert_((rho_ss - rho_ss_analytic).norm() < 1e-4)
+@pytest.mark.parametrize(['method', 'kwargs'], [
+    pytest.param('splu', {'sparse':False}, id="dense_direct"),
+    pytest.param('numpy', {'sparse':False}, id="dense_numpy"),
+    pytest.param('scipy', {'sparse':False}, id="dense_scipy"),
+    pytest.param('splu', {}, id="splu"),
+    pytest.param('spilu', {},  id="spilu"),
+])
+def test_pseudo_inverse(method, kwargs):
+    N = 4
+    a = qutip.destroy(N)
+    H = (a.dag() + a)
+    L = qutip.liouvillian(H, [a])
+    rho = qutip.steadystate(L)
+    Lpinv = qutip.pseudo_inverse(L, rho, method=method, **kwargs)
+    np.testing.assert_allclose((L * Lpinv * L).full(), L.full())
+    np.testing.assert_allclose((Lpinv * L * Lpinv).full(), Lpinv.full())
 
 
-
-def test_driven_cavity_power_bicgstab():
-    "Steady state: Driven cavity - power-bicgstab solver"
-
-    N = 30
-    Omega = 0.01 * 2 * np.pi
-    Gamma = 0.05
-
-    a = destroy(N)
-    H = Omega * (a.dag() + a)
-    c_ops = [np.sqrt(Gamma) * a]
-    M = build_preconditioner(H, c_ops, method='power')
-    rho_ss = steadystate(H, c_ops, method='power-bicgstab', M=M, use_precond=1)
-    rho_ss_analytic = coherent_dm(N, -1.0j * (Omega)/(Gamma/2))
-    assert_((rho_ss - rho_ss_analytic).norm() < 1e-4)
-
-
-def test_driven_cavity_gmres():
-    "Steady state: Driven cavity - iterative-gmres solver"
-
-    N = 30
-    Omega = 0.01 * 2 * np.pi
-    Gamma = 0.05
-
-    a = destroy(N)
-    H = Omega * (a.dag() + a)
-    c_ops = [np.sqrt(Gamma) * a]
-
-    rho_ss = steadystate(H, c_ops, method='iterative-gmres')
-    rho_ss_analytic = coherent_dm(N, -1.0j * (Omega)/(Gamma/2))
-
-    assert_((rho_ss - rho_ss_analytic).norm() < 1e-4)
-
-
-def test_driven_cavity_bicgstab():
-    "Steady state: Driven cavity - iterative-bicgstab solver"
-
-    N = 30
-    Omega = 0.01 * 2 * np.pi
-    Gamma = 0.05
-
-    a = destroy(N)
-    H = Omega * (a.dag() + a)
-    c_ops = [np.sqrt(Gamma) * a]
-
-    rho_ss = steadystate(H, c_ops, method='iterative-bicgstab')
-    rho_ss_analytic = coherent_dm(N, -1.0j * (Omega)/(Gamma/2))
-
-    assert_((rho_ss - rho_ss_analytic).norm() < 1e-4)
-
-
-def test_steadystate_floquet_sparse():
+@pytest.mark.parametrize('sparse', [True, False])
+def test_steadystate_floquet(sparse):
     """
     Test the steadystate solution for a periodically
     driven system.
     """
     N_c = 20
 
-    a = destroy(N_c)
+    a = qutip.destroy(N_c)
     a_d = a.dag()
     X_c = a + a_d
 
@@ -531,7 +168,7 @@ def test_steadystate_floquet_sparse():
 
     H_t = [H, [X_c, lambda t, args: args["A_l"] * np.cos(args["w_l"] * t)]]
 
-    psi0 = fock(N_c, 0)
+    psi0 = qutip.fock(N_c, 0)
 
     args = {"A_l": A_l, "w_l": w_l}
 
@@ -540,55 +177,59 @@ def test_steadystate_floquet_sparse():
 
     t_l = np.linspace(0, 20 / gam, 2000)
 
-    expect_me = mesolve(H_t, psi0, t_l,
+    expect_me = qutip.mesolve(H_t, psi0, t_l,
                         c_ops, [a_d * a], args=args).expect[0]
 
-    rho_ss = steadystate_floquet(H, c_ops,
-                                 A_l * X_c, w_l, n_it=3, sparse=True)
-    expect_ss = expect(a_d * a, rho_ss)
+    rho_ss = qutip.steadystate_floquet(H, c_ops,
+                                       A_l * X_c, w_l, n_it=3, sparse=sparse)
+    expect_ss = qutip.expect(a_d * a, rho_ss)
 
     np.testing.assert_allclose(expect_me[-20:], expect_ss, atol=1e-3)
 
 
-def test_steadystate_floquet_dense():
-    """
-    Test the steadystate solution for a periodically
-    driven system.
-    """
-    N_c = 20
-
-    a = destroy(N_c)
-    a_d = a.dag()
-    X_c = a + a_d
-
-    w_c = 1
-
-    A_l = 0.001
-    w_l = w_c
-    gam = 0.01
-
-    H = w_c * a_d * a
-
-    H_t = [H, [X_c, lambda t, args: args["A_l"] * np.cos(args["w_l"] * t)]]
-
-    psi0 = fock(N_c, 0)
-
-    args = {"A_l": A_l, "w_l": w_l}
-
-    c_ops = []
-    c_ops.append(np.sqrt(gam) * a)
-
-    t_l = np.linspace(0, 20 / gam, 2000)
-
-    expect_me = mesolve(H_t, psi0, t_l,
-                        c_ops, [a_d * a], args=args).expect[0]
-
-    rho_ss = steadystate_floquet(H, c_ops,
-                                 A_l * X_c, w_l, n_it=3, sparse=False)
-    expect_ss = expect(a_d * a, rho_ss)
-
-    np.testing.assert_allclose(expect_me[-20:], expect_ss, atol=1e-3)
+def test_bad_options_steadystate():
+    N = 4
+    a = qutip.destroy(N)
+    H = (a.dag() + a)
+    c_ops = [a]
+    with pytest.raises(ValueError):
+        rho_ss = qutip.steadystate(H, c_ops, method='not a method')
+    with pytest.raises(TypeError):
+        rho_ss = qutip.steadystate(H, c_ops, method='direct', bad_opt=True)
+    with pytest.raises(ValueError):
+        rho_ss = qutip.steadystate(H, c_ops, method='direct', solver='Error')
 
 
-if __name__ == "__main__":
-    run_module_suite()
+def test_bad_options_pseudo_inverse():
+    N = 4
+    a = qutip.destroy(N)
+    H = (a.dag() + a)
+    L = qutip.liouvillian(H, [a])
+    with pytest.raises(TypeError):
+        qutip.pseudo_inverse(L, method='splu', bad_opt=True)
+    with pytest.raises(ValueError):
+        qutip.pseudo_inverse(L, method='not a method', sparse=False)
+    with pytest.raises(ValueError):
+        qutip.pseudo_inverse(L, method='not a method')
+
+
+def test_bad_options_build_preconditioner():
+    N = 4
+    a = qutip.destroy(N)
+    H = (a.dag() + a)
+    c_ops = [a]
+    with pytest.raises(TypeError):
+        qutip.build_preconditioner(H, c_ops, method='power', bad_opt=True)
+    with pytest.raises(ValueError):
+        qutip.build_preconditioner(H, c_ops, method='not a method')
+
+
+def test_bad_system():
+    N = 4
+    a = qutip.destroy(N)
+    H = (a.dag() + a)
+    c_ops = [a]
+    with pytest.raises(TypeError) as err:
+        rho_ss = qutip.steadystate(H, [], method='direct')
+    with pytest.raises(TypeError) as err:
+        rho_ss = qutip.steadystate(qutip.basis(N, N-1), [], method='direct')
