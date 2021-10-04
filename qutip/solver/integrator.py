@@ -1,5 +1,5 @@
 """ `Integrator`: ODE solver wrapper to use in qutip's Solver """
-
+import numpy as np
 
 __all__ = ['Integrator', 'IntegratorException', 'add_integrator',
            'sesolve_integrators', 'mesolve_integrators', 'mcsolve_integrators']
@@ -35,19 +35,21 @@ class Integrator:
     Class Attributes
     ---------------------
     supports_blackbox : bool
-          If True, then the integrator calls only ``system.matmul``, ``system.matmul_data``, ``system.expect``, 
-          ``system.expect_data`` and ``isconstant``, ``isoper`` or ``issuper``. This allows the solver using the integrator
-          to modify the system in creative ways. In particular, the solver may modify the system depending on *both*
-          the time ``t`` *and* the current ``state`` the system is being applied to.
-        
-          If the integrator calls any other methods, set to False.
-          
+        If True, then the integrator calls only ``system.matmul``,
+        ``system.matmul_data``, ``system.expect``, ``system.expect_data`` and
+        ``isconstant``, ``isoper`` or ``issuper``. This allows the solver using
+        the integrator to modify the system in creative ways. In particular,
+        the solver may modify the system depending on *both* the time ``t``
+        *and* the current ``state`` the system is being applied to.
+
+        If the integrator calls any other methods, set to False.
+
     supports_time_dependent : bool
-        If True, then the integrator supports time dependent systems. If False, ``supports_blackbox`` should usually be
-        ``False`` too.
+        If True, then the integrator supports time dependent systems. If False,
+        ``supports_blackbox`` should usually be ``False`` too.
     """
     # Used options in qutip.SolverOdeOptions
-    used_options = []
+    integrator_options = {}
     # Can evolve time dependent system
     support_time_dependant = None
     # Use the QobjEvo's matmul_data method as the driving function
@@ -56,10 +58,14 @@ class Integrator:
 
     def __init__(self, system, options):
         self.system = system
-        self.options = {key: options[key]
-                        for key in self.used_options
-                        if key in options}
+        self.options = {
+            **self.integrator_options,
+            **{ key: options[key]
+                for key in self.integrator_options.keys()
+                if key in options and options[key] is not None}
+        }
         self._is_set = False  # get_state can be used and return a valid state.
+        self._back = (np.inf, None)
         self._prepare()
 
     def _prepare(self):
@@ -119,7 +125,7 @@ class Integrator:
         time between present time and the asked ``t`` if more efficent for
         subsequent interpolation step.
 
-        Before calling `integrate` for the first time, the initial step should
+        Before calling `mcstep` for the first time, the initial state should
         be set with `set_state`.
 
         Parameters
@@ -142,7 +148,18 @@ class Integrator:
             Does not need to be implemented it the Integrator does not support
             :func:`mcsolve`
         """
-        raise NotImplementedError
+        t_last, state = self.get_state()
+        if t > t_last:
+            self._back = t_last, state
+        elif t > self._back[0]:
+            self.set_state(*self._back)
+        else:
+            raise IntegratorException(
+                "`t` is outside the integration range: "
+                f"{self._back[0]}..{t_last}."
+            )
+        return self.integrate(t, copy)
+
 
     def get_state(self, copy=True):
         """
@@ -234,6 +251,6 @@ def add_integrator(integrator, keys, integrator_set, options_class=None):
         keys = [keys]
     for key in keys:
         integrator_set[key] = integrator
-    if integrator.used_options and options_class:
-        for opt in integrator.used_options:
+    if integrator.integrator_options and options_class:
+        for opt in integrator.integrator_options:
             options_class.extra_options.add(opt)

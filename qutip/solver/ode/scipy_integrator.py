@@ -5,6 +5,7 @@ __all__ = ['IntegratorScipyZvode', 'IntegratorScipyDop853',
 
 import numpy as np
 from scipy.integrate import ode
+from scipy.integrate._ode import zvode
 from qutip.core import data as _data
 from ..options import SolverOdeOptions
 from qutip.core.data.reshape import column_unstack_dense, column_stack_dense
@@ -13,6 +14,16 @@ from ..integrator import (IntegratorException, Integrator, sesolve_integrators,
                           add_integrator)
 import warnings
 
+class qutip_zvode(zvode):
+    """ Overwrite the scipy's zvode to advance to max to ``t`` with step"""
+    def step(self, *args):
+        itask = self.call_args[2]
+        self.rwork[0] = args[4]
+        self.call_args[2] = 5
+        r = self.run(*args)
+        self.call_args[2] = itask
+        return r
+
 
 class IntegratorScipyZvode(Integrator):
     """
@@ -20,8 +31,16 @@ class IntegratorScipyZvode(Integrator):
     Equation solver by netlib (http://www.netlib.org/odepack). Support 'Adams'
     and 'BDF' methods for non-stiff and stiff systems respectively.
     """
-    used_options = ['atol', 'rtol', 'nsteps', 'method', 'order',
-                    'first_step', 'max_step', 'min_step']
+    integrator_options = {
+        'atol': 1e-8,
+        'rtol': 1e-6,
+        'nsteps': 2500,
+        'method': 'adams',
+        'order': 12,
+        'first_step': 0,
+        'max_step': 0,
+        'min_step': 0,
+    }
     support_time_dependant = True
     use_QobjEvo_matmul = True
 
@@ -30,9 +49,9 @@ class IntegratorScipyZvode(Integrator):
         Initialize the solver
         """
         self._ode_solver = ode(self._mul_np_vec)
-        self._ode_solver.set_integrator('zvode', **self.options)
+        self._ode_solver.set_integrator('zvode')
+        self._ode_solver._integrator = qutip_zvode(**self.options)
         self.name = "scipy zvode " + self.options['method']
-        self._back = (np.inf, None)
 
     def _mul_np_vec(self, t, vec):
         """
@@ -46,6 +65,7 @@ class IntegratorScipyZvode(Integrator):
 
     def set_state(self, t, state0):
         self._is_set = True
+        self._back = t
         self._mat_state = state0.shape[1] > 1
         self._size = state0.shape[0]
         self._ode_solver.set_initial_value(
@@ -73,57 +93,19 @@ class IntegratorScipyZvode(Integrator):
         return self.get_state(copy)
 
     def mcstep(self, t, copy=True):
-        if self._ode_solver.t < t:
-            self._back = self.get_state(copy=True)
-            self._one_step(t)
-        elif self._back[0] <= t:
-            self._backstep(t)
+        if self._ode_solver.t == t:
+            pass
+        elif self._ode_solver.t < t:
+            self._back = self._ode_solver.t
+            self._ode_solver.integrate(t, step=True)
+        elif self._back <= t:
+            self._ode_solver.integrate(t)
         else:
             raise IntegratorException(
                 "`t` is outside the integration range: "
                 f"{self._back[0]}..{self._ode_solver.t}."
             )
         return self.get_state(copy)
-
-    def _one_step(self, t):
-        """
-        Advance up to t by one internal solver step.
-        Should be able to retreive the state at any time between the present
-        time and the resulting time using `backstep`.
-        """
-        # Here we want to advance up to t doing maximum one step.
-        # We check if a new step is needed.
-        t_front = self._ode_solver._integrator.rwork[12]
-        t_ode = self._ode_solver.t
-        if t > t_front and t_ode >= t_front:
-            # The state is at t_front, do a step
-            self._ode_solver.integrate(t, step=True)
-            t_front = self._ode_solver._integrator.rwork[12]
-        elif t > t_front:
-            # The state is at a time before t_front, advance to t_front
-            t = t_front
-        else:
-            # t is inside the already computed integration range.
-            pass
-        if t_front >= t:
-            self._ode_solver.integrate(t)
-
-    def _backstep(self, t):
-        """
-        Retreive the state at time t, with t smaller than present ODE time.
-        The time t will always be between the last calls of `one_step`.
-        return the pair t, state.
-        """
-        # zvode can integrate with time lower than the most recent time
-        # but not over all the step interval.
-        # About 90% of the last step interval?
-        # Scipy raise a warning, not an Error.
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore")
-            self._ode_solver.integrate(t)
-        if not self._ode_solver.successful():
-            self.set_state(*self._back)
-            self._ode_solver.integrate(t)
 
     def _check_failed_integration(self):
         if self._ode_solver.successful():
@@ -152,8 +134,16 @@ class IntegratorScipyDop853(Integrator):
     Equations i. Nonstiff Problems. 2nd edition. Springer Series in
     Computational Mathematics, Springer-Verlag (1993)].
     """
-    used_options = ['atol', 'rtol', 'nsteps', 'first_step', 'max_step',
-                    'ifactor', 'dfactor', 'beta']
+    integrator_options = {
+        'atol': 1e-8,
+        'rtol': 1e-6,
+        'nsteps': 2500,
+        'first_step': 0,
+        'max_step': 0,
+        'ifactor': 6.0,
+        'dfactor': 0.3,
+        'beta': 0.0,
+    }
     support_time_dependant = True
     use_QobjEvo_matmul = True
 
@@ -235,14 +225,22 @@ class IntegratorScipyDop853(Integrator):
         raise IntegratorException(messages[self._ode_solver._integrator.istate])
 
 
-class IntegratorScipylsoda(IntegratorScipyZvode):
+class IntegratorScipylsoda(IntegratorScipyDop853):
     """
     Integrator using Scipy `ode` with lsoda integrator. ODE solver by netlib
     (http://www.netlib.org/odepack) Automatically choose between 'Adams' and
     'BDF' methods to solve both stiff and non-stiff systems.
     """
-    used_options = ['atol', 'rtol', 'nsteps', 'max_order_ns', 'max_order_s',
-                    'first_step', 'max_step', 'min_step']
+    integrator_options = {
+        'atol': 1e-8,
+        'rtol': 1e-6,
+        'nsteps': 2500,
+        'max_order_ns': 12,
+        'max_order_s': 5,
+        'first_step': 0.0,
+        'max_step': 0.0,
+        'min_step': 0.0,
+    }
     support_time_dependant = True
     use_QobjEvo_matmul = True
 
@@ -253,17 +251,15 @@ class IntegratorScipylsoda(IntegratorScipyZvode):
         self._ode_solver = ode(self._mul_np_vec)
         self._ode_solver.set_integrator('lsoda', **self.options)
         self.name = "scipy lsoda"
-        self._back = (np.inf, None)
 
+    """
     def _mul_np_vec(self, t, vec):
-        """
-        Interface between scipy which use numpy and the driver, which use data.
-        """
         state = _data.dense.fast_from_numpy(vec.view(np.complex128))
         column_unstack_dense(state, self._size, inplace=True)
         out = self.system.matmul_data(t, state)
         column_stack_dense(out, inplace=True)
         return out.as_ndarray().ravel().view(np.float64)
+
 
     def get_state(self, copy=True):
         if not self._is_set:
@@ -289,6 +285,61 @@ class IntegratorScipylsoda(IntegratorScipyZvode):
             _data.column_stack(state0).to_array().ravel().view(np.float64),
             t
         )
+    """
+
+    def mcstep(self, t, copy=True):
+        if self._ode_solver.t == t:
+            pass
+        elif self._ode_solver.t < t:
+            self._back = self.get_state(copy=True)
+            self._one_step(t)
+        elif self._back[0] <= t:
+            self._backstep(t)
+        else:
+            raise IntegratorException(
+                f"`t`={t} is outside the integration range: "
+                f"{self._back[0]}..{self._ode_solver.t}."
+            )
+        return self.get_state(copy)
+
+    def _one_step(self, t):
+        """
+        Advance up to t by one internal solver step.
+        Should be able to retreive the state at any time between the present
+        time and the resulting time using `backstep`.
+        """
+        # Here we want to advance up to t doing maximum one step.
+        # We check if a new step is needed.
+        t_front = self._ode_solver._integrator.rwork[12]
+        t_ode = self._ode_solver.t
+        if t > t_front and t_ode >= t_front:
+            # The state is at t_front, do a step
+            self._ode_solver.integrate(t, step=True)
+        elif t > t_front:
+            # The state is at a time before t_front, advance to t_front
+            t = t_front
+        else:
+            # t is inside the already computed integration range.
+            pass
+        if t_front >= t:
+            self._ode_solver.integrate(t)
+
+    def _backstep(self, t):
+        """
+        Retreive the state at time t, with t smaller than present ODE time.
+        The time t will always be between the last calls of `one_step`.
+        return the pair t, state.
+        """
+        # zvode can integrate with time lower than the most recent time
+        # but not over all the step interval.
+        # About 90% of the last step interval?
+        # Scipy raise a warning, not an Error.
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            self._ode_solver.integrate(t)
+        if not self._ode_solver.successful():
+            self.set_state(*self._back)
+            self._ode_solver.integrate(t)
 
     def _check_failed_integration(self):
         if self._ode_solver.successful():
