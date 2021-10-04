@@ -33,7 +33,7 @@ class Integrator:
         Options for the solver.
 
     Class Attributes
-    ---------------------
+    ----------------
     supports_blackbox : bool
         If True, then the integrator calls only ``system.matmul``,
         ``system.matmul_data``, ``system.expect``, ``system.expect_data`` and
@@ -47,13 +47,19 @@ class Integrator:
     supports_time_dependent : bool
         If True, then the integrator supports time dependent systems. If False,
         ``supports_blackbox`` should usually be ``False`` too.
+
+    integrator_options : dict
+        A dictionary of options used by the integrator and their default
+        values. Once initiated, ``self.options`` will be a dict with the same
+        keys, not the full options object passed to the solver. Options' keys
+        included here will be supported by the :cls:SolverOdeOptions.
     """
     # Used options in qutip.SolverOdeOptions
     integrator_options = {}
     # Can evolve time dependent system
     support_time_dependant = None
     # Use the QobjEvo's matmul_data method as the driving function
-    use_QobjEvo_matmul = None
+    supports_blackbox = None
     name = ""
 
     def __init__(self, system, options):

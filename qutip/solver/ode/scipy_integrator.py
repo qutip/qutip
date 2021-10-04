@@ -32,7 +32,7 @@ class IntegratorScipyZvode(Integrator):
         'min_step': 0,
     }
     support_time_dependant = True
-    use_QobjEvo_matmul = True
+    supports_blackbox = True
 
     class qutip_zvode(zvode):
         """Overwrite the scipy's zvode to advance to max to ``t`` with step."""
@@ -145,7 +145,7 @@ class IntegratorScipyDop853(Integrator):
         'beta': 0.0,
     }
     support_time_dependant = True
-    use_QobjEvo_matmul = True
+    supports_blackbox = True
 
     def _prepare(self):
         """
@@ -244,7 +244,7 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         'min_step': 0.0,
     }
     support_time_dependant = True
-    use_QobjEvo_matmul = True
+    supports_blackbox = True
 
     def _prepare(self):
         """
