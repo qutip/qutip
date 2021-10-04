@@ -8,11 +8,11 @@ def test_simdiag(num_mat):
     N = 10
 
     U = qutip.rand_unitary(N)
-    cummuting_matrices = [U * qutip.qdiags(np.random.rand(N), 0) * U.dag()
+    commuting_matrices = [U * qutip.qdiags(np.random.rand(N), 0) * U.dag()
                           for _ in range(num_mat)]
-    all_evals, evecs = qutip.simdiag(cummuting_matrices)
+    all_evals, evecs = qutip.simdiag(commuting_matrices)
 
-    for matrix, evals in zip(cummuting_matrices, all_evals):
+    for matrix, evals in zip(commuting_matrices, all_evals):
         for eval, evec in zip(evals, evecs):
             assert matrix * evec == evec * eval
 
@@ -22,11 +22,11 @@ def test_simdiag_no_evals(num_mat):
     N = 10
 
     U = qutip.rand_unitary(N)
-    cummuting_matrices = [U * qutip.qdiags(np.random.rand(N), 0) * U.dag()
+    commuting_matrices = [U * qutip.qdiags(np.random.rand(N), 0) * U.dag()
                           for _ in range(num_mat)]
-    evecs = qutip.simdiag(cummuting_matrices, evals=False)
+    evecs = qutip.simdiag(commuting_matrices, evals=False)
 
-    for matrix in cummuting_matrices:
+    for matrix in commuting_matrices:
         for evec in evecs:
             Mvec = matrix * evec
             eval = Mvec.full()[0,0] / evec.full()[0,0]
@@ -52,7 +52,7 @@ def test_simdiag_no_input():
     pytest.param([qutip.basis(5,0)], 'square', id="Not square"),
     pytest.param([qutip.qeye(5), qutip.qeye(3)], 'shape', id="shape mismatch"),
     pytest.param([qutip.destroy(5)], 'Hermitian', id="Non Hermitian"),
-    pytest.param([qutip.sigmax(), qutip.sigmay()], 'commut', id="Not commuting"),
+    pytest.param([qutip.sigmax(), qutip.sigmay()], 'commute', id="Not commuting"),
 ])
 def test_simdiag_errors(ops, error):
     with pytest.raises(TypeError) as err:
