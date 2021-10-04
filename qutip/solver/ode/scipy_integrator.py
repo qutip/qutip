@@ -14,16 +14,6 @@ from ..integrator import (IntegratorException, Integrator, sesolve_integrators,
                           add_integrator)
 import warnings
 
-class qutip_zvode(zvode):
-    """ Overwrite the scipy's zvode to advance to max to ``t`` with step"""
-    def step(self, *args):
-        itask = self.call_args[2]
-        self.rwork[0] = args[4]
-        self.call_args[2] = 5
-        r = self.run(*args)
-        self.call_args[2] = itask
-        return r
-
 
 class IntegratorScipyZvode(Integrator):
     """
@@ -44,13 +34,23 @@ class IntegratorScipyZvode(Integrator):
     support_time_dependant = True
     use_QobjEvo_matmul = True
 
+    class qutip_zvode(zvode):
+        """Overwrite the scipy's zvode to advance to max to ``t`` with step."""
+        def step(self, *args):
+            itask = self.call_args[2]
+            self.rwork[0] = args[4]
+            self.call_args[2] = 5
+            r = self.run(*args)
+            self.call_args[2] = itask
+            return r
+
     def _prepare(self):
         """
         Initialize the solver
         """
         self._ode_solver = ode(self._mul_np_vec)
         self._ode_solver.set_integrator('zvode')
-        self._ode_solver._integrator = qutip_zvode(**self.options)
+        self._ode_solver._integrator = self.qutip_zvode(**self.options)
         self.name = "scipy zvode " + self.options['method']
 
     def _mul_np_vec(self, t, vec):
@@ -75,7 +75,7 @@ class IntegratorScipyZvode(Integrator):
 
     def get_state(self, copy=True):
         if not self._is_set:
-            raise RuntimeError("The state is not initialted")
+            raise IntegratorException("The state is not initialted")
         self._check_failed_integration()
         t = self._ode_solver.t
         if self._mat_state:
@@ -102,7 +102,7 @@ class IntegratorScipyZvode(Integrator):
             self._ode_solver.integrate(t)
         else:
             raise IntegratorException(
-                "`t` is outside the integration range: "
+                f"`t`={t} is outside the integration range: "
                 f"{self._back[0]}..{self._ode_solver.t}."
             )
         return self.get_state(copy)
@@ -188,7 +188,7 @@ class IntegratorScipyDop853(Integrator):
 
     def get_state(self, copy=True):
         if not self._is_set:
-            raise RuntimeError("The state is not initialted")
+            raise IntegratorException("The state is not initialted")
         self._check_failed_integration()
         t = self._ode_solver.t
         if self._mat_state:
@@ -222,7 +222,9 @@ class IntegratorScipyDop853(Integrator):
             -4: 'problem is probably stiff (interrupted), try "bdf" '
                 'method instead',
         }
-        raise IntegratorException(messages[self._ode_solver._integrator.istate])
+        raise IntegratorException(
+            messages[self._ode_solver._integrator.istate]
+        )
 
 
 class IntegratorScipylsoda(IntegratorScipyDop853):
@@ -251,41 +253,6 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         self._ode_solver = ode(self._mul_np_vec)
         self._ode_solver.set_integrator('lsoda', **self.options)
         self.name = "scipy lsoda"
-
-    """
-    def _mul_np_vec(self, t, vec):
-        state = _data.dense.fast_from_numpy(vec.view(np.complex128))
-        column_unstack_dense(state, self._size, inplace=True)
-        out = self.system.matmul_data(t, state)
-        column_stack_dense(out, inplace=True)
-        return out.as_ndarray().ravel().view(np.float64)
-
-
-    def get_state(self, copy=True):
-        if not self._is_set:
-            raise RuntimeError("The state is not initialted")
-        self._check_failed_integration()
-        t = self._ode_solver.t
-        if self._mat_state:
-            state = _data.column_unstack_dense(
-                _data.dense.Dense(self._ode_solver._y.view(np.complex128),
-                                  copy=copy),
-                self._size,
-                inplace=True)
-        else:
-            state = _data.dense.Dense(self._ode_solver._y.view(np.complex128),
-                                      copy=copy)
-        return t, state
-
-    def set_state(self, t, state0):
-        self._is_set = True
-        self._mat_state = state0.shape[1] > 1
-        self._size = state0.shape[0]
-        self._ode_solver.set_initial_value(
-            _data.column_stack(state0).to_array().ravel().view(np.float64),
-            t
-        )
-    """
 
     def mcstep(self, t, copy=True):
         if self._ode_solver.t == t:
