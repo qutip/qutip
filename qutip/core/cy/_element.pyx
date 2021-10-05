@@ -2,6 +2,7 @@
 #cython: boundscheck=False, wraparound=False, initializedcheck=False, cdvision=True
 
 from .. import data as _data
+from qutip.core.cy.coefficient import coefficient_function_parameters
 from qutip.core.data cimport Dense, Data, dense
 from qutip.core.data.matmul cimport *
 from math import nan as Nan
@@ -356,28 +357,71 @@ cdef class _EvoElement(_BaseElement):
 
 cdef class _FuncElement(_BaseElement):
     """
-    Used with :obj:`QobjEvo` to build a function with signature: ::
+    Used with :obj:`QobjEvo` to build an evolution term from a function with
+    either the signature: ::
 
-      func(t: float, args: dict) -> Qobj
+        func(t: float, ...) -> Qobj
 
-    :obj:`QobjEvo` created from such a function contian one
-    :obj:`_FuncElement`::
+    or the older QuTiP 4 style signature: ::
 
-      qevo = QobjEvo(func, args=args)
-      qevo.elements = [_FuncElement(func, args)]
+        func(t: float, args: dict) -> Qobj
 
-    Each :obj:`_FuncElement` contain an immutable pair ``(func, args)``.
+    In the new style, ``func`` may accept arbitrary named arguments and
+    is called as ``func(t, **args)``.
 
-    This class has basic memoize capacity: it saves the last call ::
+    A :obj:`QobjEvo` created from such a function contains one
+    :obj:`_FuncElement`: ::
+
+        qevo = QobjEvo(func, args=args)
+        qevo.elements = [_FuncElement(func, args)]
+
+    Each :obj:`_FuncElement` consists of an immutable pair ``(func, args)``
+    of function and argument.
+
+    This class has a basic capacity to memoize calls to ``func`` by saving the
+    result of the last call ::
 
         op = QobjEvo(func, args=args)
         (op.dag() * op)(t)
 
-    call the function `func` only once.
+    calls ``func`` only once.
+
+    Parameters
+    ----------
+    func : callable(t : float, ...) -> Qobj
+        Function returning the element value at time ``t``.
+
+    args : dict
+        Values of the arguments to pass to ``func``.
+
+    style : {None, "pythonic", "dict", "auto"}
+        The style of the signature used. If style is ``None``,
+        the value of ``qutip.settings.core["function_coefficient_style"]``
+        is used. Otherwise the supplied value overrides the global setting.
+
+    The parameters ``_f_pythonic`` and ``_f_parameters`` override function
+    style and parameter detection and are not intended to be part of
+    the public interface.
     """
-    def __init__(self, func, args):
+
+    _UNSET = object()
+
+    def __init__(self, func, args, style=None, _f_pythonic=_UNSET, _f_parameters=_UNSET):
+        if _f_pythonic is self._UNSET or _f_parameters is self._UNSET:
+            if not (_f_pythonic is self._UNSET and _f_parameters is self._UNSET):
+                raise TypeError(
+                    "_f_pythonic and _f_parameters should always be given together."
+                )
+            _f_pythonic, _f_parameters = coefficient_function_parameters(
+                func, style=style)
+            if _f_parameters is not None:
+                args = {k: args[k] for k in _f_parameters & args.keys()}
+            else:
+                args = args.copy()
         self._func = func
-        self._args = args.copy()
+        self._args = args
+        self._f_pythonic = _f_pythonic
+        self._f_parameters = _f_parameters
         self._previous = (Nan, None)
 
     def __mul__(left, right):
@@ -400,7 +444,10 @@ cdef class _FuncElement(_BaseElement):
         _t, _qobj = self._previous
         if t == _t:
             return _qobj
-        _qobj = self._func(t, self._args)
+        if self._f_pythonic:
+            _qobj = self._func(t, **self._args)
+        else:
+            _qobj = self._func(t, self._args)
         self._previous = (t, _qobj)
         return _qobj
 
@@ -411,13 +458,22 @@ cdef class _FuncElement(_BaseElement):
         return _MapElement(self, [f])
 
     def replace_arguments(_FuncElement self, args, cache=None):
-        if cache is None:
-            return _FuncElement(self._func, {**self._args, **args})
-        for old, new in cache:
-            if old is self:
-                return new
-        new = _FuncElement(self._func, {**self._args, **args})
-        cache.append((self, new))
+        if self._f_parameters is not None:
+            args = {k: args[k] for k in self._f_parameters & args.keys()}
+        if not args:
+            return self
+        if cache is not None:
+            for old, new in cache:
+                if old is self:
+                    return new
+        new = _FuncElement(
+                self._func,
+                {**self._args, **args},
+                _f_pythonic=self._f_pythonic,
+                _f_parameters=self._f_parameters,
+        )
+        if cache is not None:
+            cache.append((self, new))
         return new
 
 

@@ -382,7 +382,7 @@ def rand_ket(N=0, density=1, dims=None, *, seed=None, dtype=_data.Dense):
     Y = X.copy()
     Y.data = 1.0j * (np.random.random(len(X.data)) - 0.5)
     X = _data.csr.CSR(X + Y)
-    return Qobj(X / _data.norm.l2(X),
+    return Qobj(_data.mul(X, 1 / _data.norm.l2(X)),
                 dims=dims,
                 copy=False,
                 type='ket',
@@ -495,8 +495,9 @@ def rand_dm(N, density=0.75, pure=False, dims=None, *,
             if tries >= 10:
                 raise ValueError(
                     "Requested density is too low to generate density matrix.")
-            H = H.data
             H /= trace
+            H = H.data
+
     else:
         raise TypeError('Input N must be an integer or array_like.')
     return Qobj(H, dims=dims, type='oper', isherm=True, copy=False).to(dtype)

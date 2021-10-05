@@ -161,12 +161,12 @@ shape = [3, 3], type = oper, isHerm = True
         return Qobj(_jplus(j, dtype=dtype).adjoint(), dims=dims, type='oper',
                     isherm=False, isunitary=False, copy=False)
     if which == 'x':
-        A = 0.5 * _jplus(j, dtype=dtype)
-        return Qobj(A + A.adjoint(), dims=dims, type='oper',
-                    isherm=True, isunitary=False, copy=False)
+        A =  _jplus(j, dtype=dtype)
+        return Qobj(_data.add(A, A.adjoint()), dims=dims, type='oper',
+                    isherm=True, isunitary=False, copy=False) * 0.5
     if which == 'y':
-        A = -0.5j * _jplus(j, dtype=dtype)
-        return Qobj(A + A.adjoint(), dims=dims, type='oper',
+        A =  _data.mul(_jplus(j, dtype=dtype), -0.5j)
+        return Qobj(_data.add(A, A.adjoint()), dims=dims, type='oper',
                     isherm=True, isunitary=False, copy=False)
     if which == 'z':
         return Qobj(_jz(j, dtype=dtype), dims=dims, type='oper',

@@ -714,6 +714,7 @@ class TestKron(BinaryOpMixin):
     bad_shapes = shapes_binary_bad_unrestricted(dim=5)
     specialisations = [
         pytest.param(data.kron_csr, CSR, CSR, CSR),
+        pytest.param(data.kron_dense, Dense, Dense, Dense),
     ]
 
 
@@ -727,6 +728,18 @@ class TestMatmul(BinaryOpMixin):
         pytest.param(data.matmul_csr, CSR, CSR, CSR),
         pytest.param(data.matmul_csr_dense_dense, CSR, Dense, Dense),
         pytest.param(data.matmul_dense, Dense, Dense, Dense),
+    ]
+
+
+class TestMultiply(BinaryOpMixin):
+    def op_numpy(self, left, right):
+        return left * right
+
+    shapes = shapes_binary_identical()
+    bad_shapes = shapes_binary_bad_identical()
+    specialisations = [
+        pytest.param(data.multiply_csr, CSR, CSR, CSR),
+        pytest.param(data.multiply_dense, Dense, Dense, Dense),
     ]
 
 

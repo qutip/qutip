@@ -45,16 +45,40 @@ from qutip.core.coefficient import (coefficient, norm, conj, shift,
 clean_compiled_coefficient(True)
 
 
-def f(t, args):
-    return np.exp(args["w"] * t * np.pi)
+def f(t, w):
+    return np.exp(w * t * np.pi)
 
 
-def g(t, args):
-    return np.cos(args["w"] * t * np.pi)
+def g(t, w):
+    return np.cos(w * t * np.pi)
 
 
-def h(t, args):
-    return args["a"] + args["b"] + t
+def h(t, a, b):
+    return a + b + t
+
+
+def f_kw(t, w, **args):
+    return f(t, w)
+
+
+def g_kw(t, w, **args):
+    return g(t, w)
+
+
+def h_kw(t, a, b, **args):
+    return h(t, a, b)
+
+
+def f_qtv4(t, args):
+    return f(t, args["w"])
+
+
+def g_qtv4(t, args):
+    return g(t, args["w"])
+
+
+def h_qtv4(t, args):
+    return h(t, args["a"], args["b"])
 
 
 def _assert_eq_over_interval(coeff1, coeff2, rtol=1e-12, inside=False):
@@ -72,10 +96,10 @@ def _assert_eq_over_interval(coeff1, coeff2, rtol=1e-12, inside=False):
 
 args = {"w": 1j}
 tlist = np.linspace(0, 1, 101)
-f_asarray = f(tlist, args)
-g_asarray = g(tlist, args)
+f_asarray = f(tlist, **args)
+g_asarray = g(tlist, **args)
 tlistlog = np.logspace(-2, 0, 501)
-f_asarraylog = f(tlistlog, args)
+f_asarraylog = f(tlistlog, **args)
 
 
 def coeff_generator(style, func):
@@ -88,26 +112,30 @@ def coeff_generator(style, func):
     if style == "func":
         return coefficient(base, args=args)
     if style == "array":
-        return coefficient(base(tlist, args), tlist=tlist)
+        return coefficient(base(tlist, **args), tlist=tlist)
     if style == "arraylog":
-        return coefficient(base(tlistlog, args), tlist=tlistlog)
+        return coefficient(base(tlistlog, **args), tlist=tlistlog)
     if style == "spline":
-        return coefficient(qt.Cubic_Spline(0, 1, base(tlist, args)))
+        return coefficient(qt.Cubic_Spline(0, 1, base(tlist, **args)))
     if style == "string" and func == "f":
         return coefficient("exp(w * t * pi)", args=args)
     if style == "string" and func == "g":
         return coefficient("cos(w * t * pi)", args=args)
     if style == "steparray":
-        return coefficient(base(tlist, args), tlist=tlist,
+        return coefficient(base(tlist, **args), tlist=tlist,
                            _stepInterpolation=True)
     if style == "steparraylog":
-        return coefficient(base(tlistlog, args), tlist=tlistlog,
+        return coefficient(base(tlistlog, **args), tlist=tlistlog,
                            _stepInterpolation=True)
 
 
 @pytest.mark.parametrize(['base', 'kwargs', 'tol'], [
     pytest.param(f, {'args': args},
                  1e-10, id="func"),
+    pytest.param(f_kw, {'args': args},
+                 1e-10, id="func_keywords"),
+    pytest.param(f_qtv4, {'args': args},
+                 1e-10, id="func_qutip_v4"),
     pytest.param(f_asarray, {'tlist': tlist},
                  1e-6,  id="array"),
     pytest.param(f_asarray, {'tlist': tlist, '_stepInterpolation': True},
@@ -132,6 +160,10 @@ def test_CoeffCreationCall(base, kwargs, tol):
 @pytest.mark.parametrize(['base', 'kwargs', 'tol'], [
     pytest.param(f, {'args': args},
                  1e-10, id="func"),
+    pytest.param(f_kw, {'args': args},
+                 1e-10, id="func_keywords"),
+    pytest.param(f_qtv4, {'args': args},
+                 1e-10, id="func_qutip_v4"),
     pytest.param("exp(w * t * pi)", {'args': args},
                  1e-10, id="string")
 ])
@@ -144,6 +176,8 @@ def test_CoeffCallArgs(base, kwargs, tol):
 
 @pytest.mark.parametrize(['base', 'tol'], [
     pytest.param(h, 1e-10, id="func"),
+    pytest.param(h_kw, 1e-10, id="func_keywords"),
+    pytest.param(h_qtv4, 1e-10, id="func_qutip_v4"),
     pytest.param("a + b + t", 1e-10, id="string")
 ])
 def test_CoeffCallArguments(base, tol):

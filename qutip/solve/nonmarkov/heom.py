@@ -338,7 +338,7 @@ class HSolverDL(HEOMSolver):
             approx_factr = ((2*lam0 / (beta*gam*hbar)) - 1j*lam0) / hbar
             for k in range(N_m):
                 approx_factr -= (c[k] / nu[k])
-            L_bnd = -approx_factr*op.data
+            L_bnd = (-approx_factr*op).data
             L_helems = _data.kron(unit_helems, L_bnd)
         else:
             L_helems = _data.zeros(N_he*sup_dim, N_he*sup_dim)
@@ -363,7 +363,8 @@ class HSolverDL(HEOMSolver):
             for k in range(N_m):
                 sum_n_m_freq += he_state[k]*nu[k]
 
-            L_he = pad(-sum_n_m_freq*unit_sup, N_he, N_he, he_idx, he_idx)
+            L_he = pad(_data.mul(unit_sup, -sum_n_m_freq),
+                       N_he, N_he, he_idx, he_idx)
             L_helems = _data.add(L_helems, L_he)
 
             # Add the neighour interations
@@ -377,11 +378,11 @@ class HSolverDL(HEOMSolver):
                     he_state_neigh[k] = n_k - 1
                     he_idx_neigh = he2idx[tuple(he_state_neigh)]
 
-                    op = c[k]*spreQ - np.conj(c[k])*spostQ
+                    op = _data.sub(_data.mul(spreQ, c[k]), _data.mul(spostQ, np.conj(c[k])))
                     if renorm:
-                        op *= -1j*norm_minus[n_k, k]
+                        op = _data.mul(op, -1j*norm_minus[n_k, k])
                     else:
-                        op *= -1j*n_k
+                        op = _data.mul(op, -1j*n_k)
 
                     L_he = pad(op, N_he, N_he, he_idx, he_idx_neigh)
                     L_helems = _data.add(L_helems, L_he)
@@ -396,9 +397,9 @@ class HSolverDL(HEOMSolver):
                     he_idx_neigh = he2idx[tuple(he_state_neigh)]
 
                     if renorm:
-                        op = -1j*norm_plus[n_k, k] * commQ
+                        op = _data.mul(commQ, -1j*norm_plus[n_k, k])
                     else:
-                        op = -1j * commQ
+                        op = _data.mul(commQ, -1j)
 
                     L_he = pad(op, N_he, N_he, he_idx, he_idx_neigh)
                     L_helems = _data.add(L_helems, L_he)

@@ -707,7 +707,10 @@ class Dynamics(object):
                 dg = dg + c
 
             N = dg.shape[0]
-            n = _data.csr.nnz(dg.data)
+            if isinstance(dg.data, _data.CSR):
+                n = _data.csr.nnz(dg.data)
+            else:
+                n = N**2
 
             if N ** 2 < 100 * n:
                 # large number of nonzero elements, revert to dense solver
