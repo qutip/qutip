@@ -34,7 +34,7 @@ class IntegratorScipyZvode(Integrator):
     support_time_dependant = True
     supports_blackbox = True
 
-    class qutip_zvode(zvode):
+    class _zvode(zvode):
         """Overwrite the scipy's zvode to advance to max to ``t`` with step."""
         def step(self, *args):
             itask = self.call_args[2]
@@ -50,7 +50,7 @@ class IntegratorScipyZvode(Integrator):
         """
         self._ode_solver = ode(self._mul_np_vec)
         self._ode_solver.set_integrator('zvode')
-        self._ode_solver._integrator = self.qutip_zvode(**self.options)
+        self._ode_solver._integrator = self._zvode(**self.options)
         self.name = "scipy zvode " + self.options['method']
 
     def _mul_np_vec(self, t, vec):
