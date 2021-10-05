@@ -7,7 +7,7 @@ from qutip.core.cy.qobjevo cimport QobjEvo
 from qutip.core.cy.coefficient cimport Coefficient
 from qutip.core.cy._element cimport _BaseElement, _MapElement, _ProdElement
 from qutip.core._brtools cimport SpectraCoefficient, _EigenBasisTransform
-from qutip import Qobj
+from qutip.core.qobj import Qobj
 
 import numpy as np
 #from cython.parallel import prange
@@ -17,14 +17,49 @@ from libc.float cimport DBL_MAX
 from libc.math cimport fabs, fmin
 
 
+__all__ = []
+
+
+cpdef enum TensorType:
+    SPARSE = 0
+    DENSE = 1
+    DATA = 2
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef Data _br_term_data(Data A, double[:, ::1] spectrum,
                          double[:, ::1] skew, double cutoff):
-    # TODO:
-    #    Working with Data would allow brmesolve to run on gpu etc.
-    #    But it need point wise product.
-    raise NotImplementedError
+    cdef object cutoff_arr
+    cdef int nrow = A.shape[0], a, b, c, d
+    cdef Data S, I, AS, AST, out, C
+    cdef type cls = type(A)
+
+    S = _data.to(cls, _data.mul(_data.Dense(spectrum, copy=False), 0.5))
+    I = _data.identity[cls](*A.shape)
+    AS = _data.multiply(A, S)
+    AST = _data.multiply(A, _data.transpose(S))
+
+    out = _data.kron(AST, _data.transpose(A))
+    out = _data.add(out, _data.kron(A, _data.transpose(AS)))
+    out = _data.add(out, _data.kron(I, _data.transpose(_data.matmul(AS, A))), -1/3)
+    out = _data.add(out, _data.kron(_data.matmul(A, AST), I), -1/3)
+
+    if cutoff == DBL_MAX:
+        return out
+
+    # The cutoff_arr should be sparse, but it depend on the cutoff so we cannot
+    # easily guess a nnz to make it efficiently...
+    # But there is probably room from improvement.
+    cutoff_arr = np.zeros((nrow*nrow, nrow*nrow), dtype=np.complex128)
+    for a in range(nrow):
+        for b in range(nrow):
+            for c in range(nrow):
+                for d in range(nrow):
+                    if fabs(skew[a, b] - skew[c, d]) < cutoff:
+                        cutoff_arr[a * nrow + b, c * nrow + d] = 1.
+    C = _data.to(cls, _data.Dense(cutoff_arr, copy=False))
+    return _data.multiply(out, C)
 
 
 @cython.boundscheck(False)
@@ -144,10 +179,12 @@ cdef class _BlochRedfieldElement(_BaseElement):
     cdef readonly double[:, ::1] skew
     cdef readonly double[:, ::1] spectrum
     cdef readonly bint eig_basis
+    cdef readonly TensorType tensortype
 
     cdef readonly Dense evecs, out, eig_vec, temp, op_eig
 
-    def __init__(self, H, a_op, spectra, sec_cutoff, eig_basis=False):
+    def __init__(self, H, a_op, spectra, sec_cutoff, eig_basis=False,
+                 dtype=None):
         if isinstance(H, _EigenBasisTransform):
             self.H = H
         else:
@@ -160,6 +197,13 @@ cdef class _BlochRedfieldElement(_BaseElement):
         self.spectra = spectra
         self.sec_cutoff = sec_cutoff
         self.eig_basis = eig_basis
+
+        dtype = dtype or ('dense' if sec_cutoff >= DBL_MAX else 'sparse')
+        self.tensortype = {
+            'sparse': SPARSE,
+            'dense': DENSE,
+            'data': DATA
+        }[dtype]
 
         # Allocate some array
         # Let numpy manage memory
@@ -187,10 +231,13 @@ cdef class _BlochRedfieldElement(_BaseElement):
         return dw_min
 
     cdef Data _br_term(self, Data A_eig, double cutoff):
-        if self.sec_cutoff >= DBL_MAX:
+        if self.tensortype == DENSE:
             return _br_term_dense(A_eig, self.spectrum, self.skew, cutoff)
-        else:
+        elif self.tensortype == SPARSE:
             return _br_term_sparse(A_eig, self.spectrum, self.skew, cutoff)
+        elif self.tensortype == DATA:
+            return _br_term_data(A_eig, self.spectrum, self.skew, cutoff)
+        raise RuntimeError('Wrong tensortype')
 
     cpdef object qobj(self, double t):
         return Qobj(self.data(t), dims=self.dims, type="super",

@@ -11,3 +11,4 @@ from .metrics import *
 from .superoperator import *
 from .superop_reps import *
 from .subsystem_apply import *
+from .blochredfield import *
