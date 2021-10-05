@@ -34,6 +34,9 @@ class Integrator:
 
     Class Attributes
     ----------------
+    name : str
+        The name of the integrator.
+
     supports_blackbox : bool
         If True, then the integrator calls only ``system.matmul``,
         ``system.matmul_data``, ``system.expect``, ``system.expect_data`` and
@@ -58,9 +61,10 @@ class Integrator:
     integrator_options = {}
     # Can evolve time dependent system
     support_time_dependant = None
-    # Use the QobjEvo's matmul_data method as the driving function
+    # Whether the integrator used the system QobjEvo as a blackbox
     supports_blackbox = None
-    name = ""
+    # The name of the integrator
+    name = None
 
     def __init__(self, system, options):
         self.system = system
@@ -151,8 +155,7 @@ class Integrator:
             differ from the input time only when ``step=True``.
 
         .. note:
-            Does not need to be implemented it the Integrator does not support
-            :func:`mcsolve`
+            The default implementation may be overridden by integrators that can provide a more efficient one.
         """
         t_last, state = self.get_state()
         if t > t_last:
