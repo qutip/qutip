@@ -237,23 +237,28 @@ class TestMESolveDecay:
         solver_obj = MeSolver(self.ada, c_ops=[self.a], e_ops=[self.ada],
                               options=options)
         copy = pickle.loads(pickle.dumps(solver_obj))
-        e1 = solver_obj.run(qutip.basis(self.N, 9), [0, 1, 2, 3], {}).expect
-        e2 = solver_obj.run(qutip.basis(self.N, 9), [0, 1, 2, 3], {}).expect
+        e1 = solver_obj.run(qutip.basis(self.N, 9), [0, 1, 2, 3]).expect
+        e2 = solver_obj.run(qutip.basis(self.N, 9), [0, 1, 2, 3]).expect
         assert_allclose(e1, e2)
 
     @pytest.mark.parametrize('method',
                              all_ode_method, ids=all_ode_method)
     def test_mesolver_steping(self, method):
         options = SolverOptions(method=method, progress_bar=None)
-        solver_obj = MeSolver(self.ada,
-                              c_ops=[[self.a,
-                                     lambda t, args: np.sqrt(args['kappa'] *
-                                                     np.exp(-t))]],
-                              args={"kappa":1.}, options=options)
+        solver_obj = MeSolver(
+            self.ada,
+            c_ops=qutip.QobjEvo(
+                [self.a, lambda t, kappa: np.sqrt(kappa * np.exp(-t))],
+                args={'kappa': 1.}
+            ),
+            options=options
+        )
         solver_obj.start(qutip.basis(self.N, 9), 0)
         state1 = solver_obj.step(1)
-        assert qutip.expect(self.ada, state1) != qutip.expect(self.ada, qutip.basis(self.N, 9))
-        state2 = solver_obj.step(2, {"kappa":0.})
+        assert qutip.expect(self.ada, state1) != (
+            qutip.expect(self.ada, qutip.basis(self.N, 9))
+        )
+        state2 = solver_obj.step(2, args={"kappa":0.})
         assert_allclose(qutip.expect(self.ada, state1),
                         qutip.expect(self.ada, state2), 1e-6)
 

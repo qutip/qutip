@@ -41,14 +41,9 @@ from ..core.data import to
 from time import time
 
 
-def _rhs(integrator, system, options):
-    # Construct the integrator
-    return integrator(system, options)
-
-
 # SeSolver.avail_integrators should return SeSolver and Solver's integrators.
 # Thus we want a property and classmethod
-class ClassProperty(property):
+class classproperty(property):
     def __get__(self, cls, owner):
         return self.fget.__get__(None, owner)()
 
@@ -76,35 +71,50 @@ class Solver:
 
     """
     # sesolve, mesolve, etc. used when choosing the
-    name = ""
+    name = None
+    _system = None
 
     # State, time and Integrator of the stepper functionnality
     _t = 0
     _state = None
     _integrator = False
     _avail_integrators = {}
-    _avail_rhs = {"": _rhs}
 
     # Class of option used by the solver
     optionsclass = SolverOptions
     odeoptionsclass = SolverOdeOptions
 
-    def __init__(self):
-        raise NotImplementedError
+    def __init__(self, *, e_ops=None, options=None):
+        """
+        Is responsible for creating ``_system`` as a QobjEvo.
+        It can expect the input Hamiltonian, etc, to be :cls:`Qobj` or
+        :cls:`QobjEvo`, list format are not accepted.
+
+        A ``stats`` dict should be created and ``e_ops`` and ``options`` need
+        to be stored.
+        """
+        self.stats = {}
+        self.e_ops = e_ops
+        self.options = options
 
     def _prepare_state(self, state):
-        """ Extract the data and metadata of the Qobj state """
-        # Do the dims checks
-        # prepare the data from the Qobj (reshape, update type, ...)
-        # metadata pass dims, type, etc., from _prepare_state to _restore_state
-        # return state.data, metadata
+        """
+        Extract the data of the Qobj state.
+
+        Is responsible for dims checks, preparing the data (stack columns, ...)
+        determining the dims of the output for :method:`_restore_state`.
+
+        Should return the state's data such that it can be used by Integrators.
+        """
         raise NotImplementedError
 
-    def _restore_state(self, state, metadata, copy=True):
-        """ Retore the Qobj state from the data and metadata """
+    def _restore_state(self, state, *, copy=True):
+        """
+        Retore the Qobj state from the it's data.
+        """
         raise NotImplementedError
 
-    def run(self, state0, tlist, args={}):
+    def run(self, state0, tlist, *, args={}):
         """
         Do the evolution of the Quantum system.
 
@@ -128,21 +138,22 @@ class Solver:
             Results of the evolution. States and/or expect will be saved. You
             can control the saved data in the options.
         """
-        _data0, state_metadata = self._prepare_state(state0)
+        _data0 = self._prepare_state(state0)
         _integrator = self._get_integrator()
         if args:
-            _integrator.update_args(args)
+            _integrator.arguments(args)
         _time_start = time()
         _integrator.set_state(tlist[0], _data0)
         self.stats["preparation time"] += time() - _time_start
-        results = Result(self.e_ops, self.options.results, state0)
+        results = Result(self.e_ops, self.options.results,
+                         self._system.issuper, _data0.shape[1]!=1)
         results.add(tlist[0], state0)
 
         progress_bar = get_progess_bar(self.options['progress_bar'])
         progress_bar.start(len(tlist)-1, **self.options['progress_kwargs'])
         for t, state in _integrator.run(tlist):
             progress_bar.update()
-            results.add(t, self._restore_state(state, state_metadata, False))
+            results.add(t, self._restore_state(state, False))
         progress_bar.finished()
 
         self.stats['run time'] = progress_bar.total_time()
@@ -165,13 +176,13 @@ class Solver:
             Initial time of the evolution.
         """
         _time_start = time()
-        self._state, self.state_metadata = self._prepare_state(state0)
         self._t = t0
+        self._state = self._prepare_state(state0)
         self._integrator = self._get_integrator()
         self._integrator.set_state(self._t, self._state)
         self.stats["preparation time"] += time() - _time_start
 
-    def step(self, t, args=None):
+    def step(self, t, *, args=None, options=None, copy=True):
         """
         Evolve the state to ``t`` and return the state as a :class:`Qobj`.
 
@@ -182,18 +193,30 @@ class Solver:
 
         args : dict, optional {None}
             Update the ``args`` of the system.
-            The change is effective from the time of the last call.
+            The change is effective from the beginning of the interval.
             Changing ``args`` can slow the evolution.
+
+        options : SolverOptions, optional {None}
+            Update the ``options`` of the system.
+            The change is effective from the beginning of the interval.
+            Changing ``optional`` can slow the evolution.
+
+        copy : bool, optional {True}
+            Whether to return a copy of the data or the data in the ODE solver.
         """
         if not self._integrator:
             raise RuntimeError("The `start` method must called first")
+        if options:
+            self.options
+            self._integrator = self._get_integrator()
+            self._integrator.set_state(self._t, self._state)
         if args:
-            self._integrator.update_args(args)
+            self._integrator.arguments(args)
             self._integrator.reset()
         _time_start = time()
         self._t, self._state = self._integrator.integrate(t, copy=False)
         self.stats["run time"] += time() - _time_start
-        return self._restore_state(self._state, self.state_metadata)
+        return self._restore_state(self._state, copy=copy)
 
     @property
     def options(self):
@@ -208,21 +231,13 @@ class Solver:
                             str(self.optionsclass))
         self._options = new
 
-    @ClassProperty
+    @classproperty
     @classmethod
     def avail_integrators(cls):
         if cls is Solver:
             return cls._avail_integrators.copy()
         return {**cls._avail_integrators,
                 **Solver._avail_integrators}
-
-    @ClassProperty
-    @classmethod
-    def avail_rhs(cls):
-        if cls is Solver:
-            return cls._avail_rhs.copy()
-        return {**cls._avail_rhs,
-                **Solver._avail_rhs}
 
     @classmethod
     def add_integrator(cls, integrator, keys):
@@ -244,46 +259,16 @@ class Solver:
             keys = [keys]
         for key in keys:
             cls._avail_integrators[key] = integrator
-        if integrator.used_options:
-            for opt in integrator.used_options:
-                cls.odeoptionsclass.extra_options.add(opt)
-
-    @classmethod
-    def add_rhs(cls, rhs, key):
-        """
-        Register an right hand side(rhs) option. _rhs_ are modifications to the
-        system-state product to use during the evolution.
-
-        The _rhs_ is a function taking an Integrator subclass, system (QobjEvo)
-        and options that return an Integrator instance.
-
-        Parameters
-        ----------
-        integrator : callable
-            Function instanciating the integrator.
-
-        key : str
-            Value of the rhs options to use this function.
-        """
-        if callable(rhs):
-            raise TypeError("The rhs must be a function taking "
-                            "(intagrator subclass, QobjEvo, SolverOdeOptions)")
-        for key in keys:
-            cls._avail_rhs[key] = rhs
-        if hasattr(rhs, 'used_options'):
-            for opt in rhs.used_options:
+        if integrator.integrator_options:
+            for opt in integrator.integrator_options:
                 cls.odeoptionsclass.extra_options.add(opt)
 
     def _get_integrator(self):
         """ Return the initialted integrator. """
-        method = self.options.ode["method"]
-        time_dependent = not self._system.isconstant or None
-
         if self.options.ode["Operator_data_type"]:
             self._system = self._system.to(
                 self.options.ode["Operator_data_type"]
             )
 
-        integrator = self.avail_integrators[method]
-        rhs = self.avail_rhs[method]
-        return rhs(integrator, self._system, self.options)
+        integrator = self.avail_integrators[self.options.ode["method"]]
+        return integrator(self._system, self.options.ode)

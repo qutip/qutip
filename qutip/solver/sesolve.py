@@ -60,9 +60,15 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None):
     does not use any return values. e_ops cannot be used in conjunction
     with solving the Schrodinger operator equation
 
+    **Time-dependent operators**
+
+    For time-dependent problems, `H` and `c_ops` can be a :class:`QobjEvo` or
+    object that can be interpreted as :class:`QobjEvo` such as a list of
+    (Qobj, Coefficient) pairs or a function.
+
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`
+    H : :class:`Qobj`, :class:`QobjEvo`, :class:`QobjEvo` compatible format.
         System Hamiltonian as a Qobj or QobjEvo for time-dependent Hamiltonians.
         list of [:class:`Qobj`, :class:`Coefficient`] or callable that can be
         made into :class:`QobjEvo` are also accepted.
@@ -96,8 +102,9 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None):
         or density matrices corresponding to the times in `tlist` [if `e_ops`
         is an empty list of `store_states=True` in options].
     """
-    solver = SeSolver(H, e_ops, options, tlist=tlist, args=args)
-    return solver.run(psi0, tlist, args)
+    H = QobjEvo(H, args=args, tlist=tlist)
+    solver = SeSolver(H, e_ops=e_ops, options=options)
+    return solver.run(psi0, tlist)
 
 
 class SeSolver(Solver):
@@ -121,10 +128,6 @@ class SeSolver(Solver):
     options : :class:`SolverOptions`
         Options for the solver
 
-    **kwargs :
-        Extra parameters to pass to the QobjEvo creation, such as ``args``.
-        See :class:`QobjEvo` for more information.
-
     attributes
     ----------
     options : SolverOptions
@@ -139,21 +142,22 @@ class SeSolver(Solver):
 
     stats: dict
         Diverse statistics of the evolution.
-
     """
     name = "sesolve"
     _avail_integrators = {}
-    _avail_rhs = {}
 
-    def __init__(self, H, e_ops=None, options=None, **kwargs):
+    def __init__(self, H, *, e_ops=None, options=None):
         _time_start = time()
-        self.e_ops = e_ops
-        self.options = options
-        self._system = -1j * QobjEvo(H, **kwargs)
+        super().__init__(e_ops=e_ops, options=options)
+
+        if not isinstance(H, (Qobj, QobjEvo)):
+            raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
+
+        self._system = -1j * QobjEvo(H)
         if not self._system.isoper:
             raise ValueError("The hamiltonian must be an operator")
+        self.state_metadata = {}
 
-        self.stats = {}
         self.stats['solver'] = "Schrodinger Evolution"
         self.stats["preparation time"] = time() - _time_start
         self.stats["run time"] = 0
@@ -165,16 +169,13 @@ class SeSolver(Solver):
                             " or a unitary as initial operator.")
 
         if self._system.dims[1] != state.dims[0]:
-            raise TypeError("".join([
-                            "incompatible dimensions ",
-                            repr(self._system.dims),
-                            " and ",
-                            repr(state.dims),])
-                           )
+            raise TypeError(f"incompatible dimensions {self._system.dims}"
+                            f" and {state.dims}")
 
         if self.options.ode["State_data_type"]:
             state = state.to(self.options.ode["State_data_type"])
-        return state.data, {'dims': state.dims, 'type': state.type}
+        self.state_metadata = {'dims': state.dims, 'type': state.type}
+        return state.data
 
-    def _restore_state(self, state, state_metadata, copy=True):
-        return Qobj(state, **state_metadata, copy=copy)
+    def _restore_state(self, state, copy=True):
+        return Qobj(state, **self.state_metadata, copy=copy)

@@ -75,7 +75,9 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
 
     **Time-dependent operators**
 
-    For time-dependent problems, `H` and `c_ops` can be a QobjEvo
+    For time-dependent problems, `H` and `c_ops` can be a :class:`QobjEvo` or
+    object that can be interpreted as :class:`QobjEvo` such as a list of
+    (Qobj, Coefficient) pairs or a function.
 
     **Additional options**
 
@@ -96,22 +98,22 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
     Parameters
     ----------
 
-    H : :class:`Qobj`, :class:`QobjEvo`
+    H : :class:`Qobj`, :class:`QobjEvo`, :class:`QobjEvo` compatible format.
         System Hamiltonian as a Qobj or QobjEvo for time-dependent Hamiltonians.
         list of [:class:`Qobj`, :class:`Coefficient`] or callable that can be
         made into :class:`QobjEvo` are also accepted.
 
-    rho0 : :class:`qutip.Qobj`
+    rho0 : :class:`Qobj`
         initial density matrix or state vector (ket).
 
     tlist : *list* / *array*
         list of times for :math:`t`.
 
-    c_ops : list of :class:`qutip.Qobj`, :class:`QobjEvo`
+    c_ops : list of (:class:`QobjEvo`, :class:`QobjEvo` compatible format)
         Single collapse operator, or list of collapse operators, or a list
         of Liouvillian superoperators. If none are needed, use an empty list.
 
-    e_ops : list of :class:`qutip.Qobj` / callback function
+    e_ops : list of :class:`Qobj` / callback function
         Single operator or list of operators for which to evaluate
         expectation values or callable or list of callable.
         Callable signature must be, `f(t: float, state: Qobj)`.
@@ -135,19 +137,21 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
         is an empty list of `store_states=True` in options].
 
     """
+    H = QobjEvo(H, args=args, tlist=tlist)
+
     c_ops = c_ops if c_ops is not None else []
     if not isinstance(c_ops, list):
         c_ops = [c_ops]
-    H = QobjEvo(H, args=args, tlist=tlist)
+    c_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in c_ops]
 
     use_mesolve = len(c_ops) > 0 or (not rho0.isket) or H.issuper
 
     if not use_mesolve:
         return sesolve(H, rho0, tlist, e_ops=e_ops, args=args, options=options)
 
-    solver = MeSolver(H, c_ops, e_ops, options, tlist=tlist, args=args)
+    solver = MeSolver(H, c_ops, e_ops=e_ops, options=options)
 
-    return solver.run(rho0, tlist, args)
+    return solver.run(rho0, tlist)
 
 
 class MeSolver(Solver):
@@ -172,11 +176,11 @@ class MeSolver(Solver):
         list of [:class:`Qobj`, :class:`Coefficient`] or callable that can be
         made into :class:`QobjEvo` are also accepted.
 
-    c_ops : list of :class:`qutip.Qobj`, :class:`QobjEvo`
+    c_ops : list of :class:`Qobj`, :class:`QobjEvo`
         Single collapse operator, or list of collapse operators, or a list
         of Liouvillian superoperators. If none are needed, use an empty list.
 
-    e_ops : :class:`qutip.qobj`, callable, or list.
+    e_ops : :class:`Qobj`, callable, or list.
         Single operator or list of operators for which to evaluate
         expectation values or callable or list of callable.
         Callable signature must be, `f(t: float, state: Qobj)`.
@@ -184,14 +188,6 @@ class MeSolver(Solver):
 
     options : SolverOptions
         Options for the solver
-
-    times : array_like
-        List of times at which the numpy-array coefficients are applied.
-        Used when the hamiltonian is passed as a list with array for coeffients.
-
-    args : dict
-        dictionary that contain the arguments for the coeffients
-        Used when the hamiltonian is passed as a list or callable.
 
     methods
     -------
@@ -221,25 +217,29 @@ class MeSolver(Solver):
         Alternatively, function[s] with the signature f(t, state) -> expect
         can be used.
 
+    stats: dict
+        Diverse statistics of the evolution.
     """
     name = "mesolve"
     _avail_integrators = {}
-    _avail_rhs = {}
 
-    def __init__(self, H, c_ops, e_ops=None, options=None,
-                 **kwargs):
+    def __init__(self, H, c_ops, *, e_ops=None, options=None):
         _time_start = time()
-        self.e_ops = e_ops
-        self.options = options
+        super().__init__(e_ops=e_ops, options=options)
 
-        H = QobjEvo(H, **kwargs)
-        c_evos = [QobjEvo(op, **kwargs) for op in c_ops]
+        if not isinstance(H, (Qobj, QobjEvo)):
+            raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
+        c_ops = [c_ops] if isinstance(c_ops, (Qobj, QobjEvo)) else c_ops
+        for c_op in c_ops:
+            if not isinstance(c_op, (Qobj, QobjEvo)):
+                raise TypeError("All `c_ops` must be a Qobj or QobjEvo")
 
+        H = QobjEvo(H)
         self._system = H if H.issuper else liouvillian(H)
         self._system += sum(c_op if c_op.issuper else lindblad_dissipator(c_op)
-                            for c_op in c_evos )
+                            for c_op in c_ops )
+        self.state_metadata = ()
 
-        self.stats = {}
         self.stats['solver'] = "Master Equation Evolution"
         self.stats['num_collapse'] = len(c_ops)
         self.stats["preparation time"] = time() - _time_start
@@ -251,22 +251,18 @@ class MeSolver(Solver):
 
         if self.options.ode["State_data_type"]:
             state = state.to(self.options.ode["State_data_type"])
-        metadata = state.dims, state.type, state.isherm
+        self.state_metadata = state.dims, state.type, state.isherm
 
         if self._system.dims[1] == state.dims:
-            return stack_columns(state.data), metadata
+            return stack_columns(state.data)
         elif self._system.dims[1] == state.dims[0]:
-            return state.data, metadata
+            return state.data
         else:
-            raise TypeError("".join([
-                            "incompatible dimensions ",
-                            repr(self._system.dims),
-                            " and ",
-                            repr(state.dims),])
-                           )
+            raise TypeError(f"incompatible dimensions {self._system.dims}"
+                            f" and {state.dims}")
 
-    def _restore_state(self, state, metadata, copy=True):
-        dims, type_, herm = metadata
+    def _restore_state(self, state, copy=True):
+        dims, type_, herm = self.state_metadata
         if state.shape[1] == 1:
             return Qobj(unstack_columns(state),
                         dims=dims, type=type_, isherm=herm, copy=False)
