@@ -731,6 +731,18 @@ class TestMatmul(BinaryOpMixin):
     ]
 
 
+class TestMultiply(BinaryOpMixin):
+    def op_numpy(self, left, right):
+        return left * right
+
+    shapes = shapes_binary_identical()
+    bad_shapes = shapes_binary_bad_identical()
+    specialisations = [
+        pytest.param(data.multiply_csr, CSR, CSR, CSR),
+        pytest.param(data.multiply_dense, Dense, Dense, Dense),
+    ]
+
+
 class TestMul(UnaryScalarOpMixin):
     def op_numpy(self, matrix, scalar):
         return scalar * matrix

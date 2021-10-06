@@ -7,6 +7,7 @@ import dis
 import hashlib
 import glob
 import importlib
+import inspect
 import shutil
 import numbers
 from contextlib import contextmanager
@@ -38,16 +39,38 @@ class StringParsingWarning(Warning):
 
 
 def coefficient(base, *, tlist=None, args={}, args_ctypes={},
-                _stepInterpolation=False, compile_opt=None):
-    """Coefficient for Qutip time dependent systems.
+                _stepInterpolation=False, compile_opt=None,
+                function_style=None):
+    """Coefficient for time dependent systems.
+
     The coefficients are either a function, a string or a numpy array.
 
-    For function format, the function signature must be f(t, args).
-    *Examples*
-        def f1_t(t, args):
-            return np.exp(-1j * t * args["w1"])
+    For function based coefficients, the function signature must be either:
 
-        coeff = coefficient(f1_t, args={"w1":1.})
+    * ``f(t, ...)`` where the other arguments are supplied as ordinary
+      "pythonic" arguments (e.g. ``f(t, w, a=5))
+    * ``f(t, args)`` where the arguments are supplied in a "dict" named
+      ``args``
+
+    By default the signature style is controlled by the
+    ``qutip.settings.core["function_coefficient_style"]`` setting, but it
+    may be overriden here by specifying either ``function_style="pythonic"``
+    or ``function_style="dict"``.
+
+    *Examples*
+        # pythonic style function signature
+
+        def f1_t(t, w):
+            return np.exp(-1j * t * w)
+
+        coeff1 = coefficient(f1_t, args={"w": 1.})
+
+        # dict style function signature
+
+        def f2_t(t, args):
+            return np.exp(-1j * t * args["w"])
+
+        coeff2 = coefficient(f2_t, args={"w": 1.})
 
     For string based coeffients, the string must be a compilable python code
     resulting in a complex. The following symbols are defined:
@@ -59,6 +82,7 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
         scipy.special as spe (python interface)
         and cython_special (cython interface)
         [https://docs.scipy.org/doc/scipy/reference/special.cython_special.html].
+
     *Examples*
         coeff = coefficient('exp(-1j*w1*t)', args={"w1":1.})
     'args' is needed for string coefficient at compilation.
@@ -74,6 +98,7 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
     at time t.
     If the coefficients are to be treated as step function, use the arguments:
     _stepInterpolation=True
+
     *Examples*
         tlist = np.logspace(-5,0,100)
         H = QobjEvo(np.exp(-1j*tlist), tlist=tlist)
@@ -103,7 +128,7 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
         return coeff_from_str(base, args, args_ctypes, compile_opt)
 
     elif callable(base):
-        op = FunctionCoefficient(base, args.copy())
+        op = FunctionCoefficient(base, args.copy(), style=function_style)
         if not isinstance(op(0), numbers.Number):
             raise TypeError("The coefficient function must return a number")
         return op

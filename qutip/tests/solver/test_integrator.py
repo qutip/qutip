@@ -1,6 +1,6 @@
 from qutip.solver.integrator import (sesolve_integrators,
                                      mesolve_integrators, mcsolve_integrators)
-from qutip.solver.options import SolverOptions
+from qutip.solver.options import SolverOdeOptions
 import qutip
 import numpy as np
 from numpy.testing import assert_allclose
@@ -27,7 +27,7 @@ class TestIntegratorCte():
         return request.param
 
     def test_se_integration(self, se_method):
-        opt = SolverOptions(method=se_method)
+        opt = SolverOdeOptions(method=se_method)
         evol = sesolve_integrators[se_method](self.se_system, opt)
         state0 = qutip.core.unstack_columns(qutip.basis(6,0).data, (2, 3))
         evol.set_state(0, state0)
@@ -37,7 +37,7 @@ class TestIntegratorCte():
             assert state.shape == (2, 3)
 
     def test_me_integration(self, me_method):
-        opt = SolverOptions(method=me_method)
+        opt = SolverOdeOptions(method=me_method)
         evol = mesolve_integrators[me_method](self.me_system, opt)
         state0 = qutip.operator_to_vector(qutip.fock_dm(2,1)).data
         evol.set_state(0, state0)
@@ -48,7 +48,7 @@ class TestIntegratorCte():
                             state.to_array()[0, 0], atol=2e-5)
 
     def test_mc_integration(self, mc_method):
-        opt = SolverOptions(method=mc_method)
+        opt = SolverOdeOptions(method=mc_method)
         evol = mcsolve_integrators[mc_method](self.se_system, opt)
         state = qutip.basis(2,0).data
         evol.set_state(0, state)
@@ -57,17 +57,17 @@ class TestIntegratorCte():
             t_target = i * 0.05
             while t < t_target:
                 t_old, y_old = evol.get_state()
-                t, state = evol.integrate(t_target, step=True)
+                t, state = evol.mcstep(t_target)
                 assert t <= t_target
                 assert t > t_old
                 assert_allclose(self._analytical_se(t),
                                 state.to_array()[0, 0], atol=2e-5)
                 t_back = (t + t_old) / 2
-                t_got, bstate = evol.integrate(t_back)
+                t_got, bstate = evol.mcstep(t_back)
                 assert t_back == t_got
                 assert_allclose(self._analytical_se(t),
                                 state.to_array()[0, 0], atol=2e-5)
-                t, state = evol.integrate(t)
+                t, state = evol.mcstep(t)
 
 
 class TestIntegrator(TestIntegratorCte):
