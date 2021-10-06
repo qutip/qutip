@@ -13,7 +13,6 @@ import numpy as np
 #from cython.parallel import prange
 cimport openmp
 from libcpp.vector cimport vector
-from libc.float cimport DBL_MAX
 from libc.math cimport fabs, fmin
 
 
@@ -36,20 +35,20 @@ cpdef Data _br_term_data(Data A, double[:, ::1] spectrum,
     cdef type cls = type(A)
 
     S = _data.to(cls, _data.mul(_data.Dense(spectrum, copy=False), 0.5))
-    I = _data.identity[cls](*A.shape)
+    I = _data.identity[cls](nrow)
     AS = _data.multiply(A, S)
     AST = _data.multiply(A, _data.transpose(S))
 
     out = _data.kron(AST, _data.transpose(A))
     out = _data.add(out, _data.kron(A, _data.transpose(AS)))
-    out = _data.add(out, _data.kron(I, _data.transpose(_data.matmul(AS, A))), -1/3)
-    out = _data.add(out, _data.kron(_data.matmul(A, AST), I), -1/3)
+    out = _data.sub(out, _data.kron(I, _data.transpose(_data.matmul(AS, A))))
+    out = _data.sub(out, _data.kron(_data.matmul(A, AST), I))
 
-    if cutoff == DBL_MAX:
+    if cutoff == np.inf:
         return out
 
-    # The cutoff_arr should be sparse, but it depend on the cutoff so we cannot
-    # easily guess a nnz to make it efficiently...
+    # The cutoff_arr should be sparse most of the time, but it depend on the
+    # cutoff and we cannot easily guess a nnz to make it efficiently...
     # But there is probably room from improvement.
     cutoff_arr = np.zeros((nrow*nrow, nrow*nrow), dtype=np.complex128)
     for a in range(nrow):
@@ -198,7 +197,7 @@ cdef class _BlochRedfieldElement(_BaseElement):
         self.sec_cutoff = sec_cutoff
         self.eig_basis = eig_basis
 
-        dtype = dtype or ('dense' if sec_cutoff >= DBL_MAX else 'sparse')
+        dtype = dtype or ('dense' if sec_cutoff >= np.inf else 'sparse')
         self.tensortype = {
             'sparse': SPARSE,
             'dense': DENSE,
@@ -214,7 +213,7 @@ cdef class _BlochRedfieldElement(_BaseElement):
 
     cpdef double _compute_spectrum(self, double t) except *:
         cdef Coefficient spec
-        cdef double dw_min = DBL_MAX
+        cdef double dw_min = np.inf
         eigvals = self.H.eigenvalues(t)
 
         for col in range(0, self.nrows):
