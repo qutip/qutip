@@ -12,7 +12,6 @@ from qutip.core.cy.coefficient cimport Coefficient
 from qutip.core.data cimport Data, Dense, idxint
 import qutip.core.data as _data
 from qutip.core import Qobj
-from qutip.core.data.eigen import eigs
 from scipy.linalg cimport cython_blas as blas
 
 
@@ -22,7 +21,7 @@ __all__ = ['SpectraCoefficient']
 cdef class SpectraCoefficient(Coefficient):
     """
     Change a Coefficient with `t` dependence to one with `w` dependence to use
-    in bloch redfield tensor. Allow array based coefficients to be used as
+    in Bloch-Redfield tensor to allow array based coefficients to be used as
     spectrum function.
     If 2 coefficients are passed, the first one is the frequence response and
     the second is the time response.
@@ -41,13 +40,17 @@ cdef class SpectraCoefficient(Coefficient):
         """Return a copy of the :obj:`Coefficient`."""
         return SpectraCoefficient(self.coeff_t, self.coeff_w, self.w)
 
-    def replace(self, *, _args=None, w=None, **kwargs):
-        if w is not None:
-            return SpectraCoefficient(self.coeff_t, self.coeff_w, w)
+    def replace(self, *, w=None, _args=None, **kwargs):
         if _args:
             kwargs.update(_args)
-        if 'w' in kwargs:
-            return SpectraCoefficient(self.coeff_t, self.coeff_w, kwargs['w'])
+        if kwargs:
+            return SpectraCoefficient(
+                self.coeff_w.replace(**kwargs),
+                self.coeff_t.replace(**kwargs) if self.coeff_t else None,
+                kwargs.get('w', w or 0.)
+              )
+        if w is not None:
+            return SpectraCoefficient(self.coeff_w, self.coeff_t, w)
         return self
 
 
@@ -57,6 +60,7 @@ cdef size_t _mul_checked(size_t a, size_t b) except? -1:
 
 
 cdef Data _apply_trans(Data original, int trans):
+    """helper function for matmul_var_data, apply transform."""
     cdef Data out
     if trans == 0:
         out = original
@@ -70,6 +74,7 @@ cdef Data _apply_trans(Data original, int trans):
 
 
 cdef char _fetch_trans_code(int trans):
+    """helper function for matmul_var_Dense, fetch the blas flag byte"""
     if trans == 0:
         return b'N'
     elif trans == 1:
@@ -110,7 +115,18 @@ cpdef Data matmul_var_data(Data left, Data right,
 
 cdef Dense matmul_var_Dense(Dense left, Dense right,
                             int transleft, int transright):
-    # The present implementation only support square matrices.
+    """
+    matmul which input matrices can be transposed or adjoint.
+    out = transleft(left) @ transright(right)
+
+    with trans[left, right]:
+       0 : Normal
+       1 : Transpose
+       2 : Conjugate
+       3 : Adjoint
+    """
+    # blas support matmul for normal, transpose, adjoint for fortran ordered
+    # matrices.
     if not (
         left.shape[0] == left.shape[1]
         and left.shape[0] == right.shape[0]
@@ -127,11 +143,12 @@ cdef Dense matmul_var_Dense(Dense left, Dense right,
 
     # blas.zgemm does not support adjoint.
     if tleft + tright == 5:
-        # adjoint and conjugate, we can't use transpose to use zgemm
+        # adjoint and conjugate, we can't transpose the output to use zgemm
         out = matmul_var_data(left, right, transleft-2, transright-2)
         return out.conj()
     if tleft == 2 or tright == 2:
-        # A.dag @ B^op -> (B^T^op @ A.conj)^T
+        # Need a conjugate, we compute the transpose of the desired results.
+        # A.conj @ B^op -> (B^T^op @ A.dag)^T
         out = _data.dense.empty(left.shape[0], right.shape[1], False)
         a, b = right, left
         tleft, tright = tright ^ 1, tleft ^ 1
@@ -149,6 +166,10 @@ cdef Dense matmul_var_Dense(Dense left, Dense right,
 
 
 class _eigen_qevo:
+    """
+    Callable function to represent the eigenvectors of a QobjEvo at a time
+    ``t``.
+    """
     def __init__(self, qevo):
         self.qevo = qevo
         self.args = None
@@ -157,7 +178,7 @@ class _eigen_qevo:
         if args != self.args:
             self.args = args
             self.qevo = QobjEvo(self.qevo, args=args)
-        _, data = eigs(self.qevo._call(t), True, True)
+        _, data = _data.eigs(self.qevo._call(t), True, True)
         return Qobj(data, copy=False, dims=self.qevo.dims)
 
 
@@ -184,7 +205,7 @@ cdef class _EigenBasisTransform:
         self.size = oper.shape[0]
 
         if oper.isconstant:
-            self._eigvals, self._evecs = eigs(self.oper._call(0), True, True)
+            self._eigvals, self._evecs = _data.eigs(self.oper._call(0), True, True)
         else:
             self._evecs = None
             self._eigvals = None
@@ -203,18 +224,18 @@ cdef class _EigenBasisTransform:
         if self._t != t and not self.isconstant:
             self._t = t
             self._evecs_inv = None
-            self._eigvals, self._evecs = eigs(self.oper._call(t), True, True)
+            self._eigvals, self._evecs = _data.eigs(self.oper._call(t), True, True)
 
     cpdef object eigenvalues(self, double t):
         """
-        Return the diagonal of the diagonalized operation: the eigenvalues.
+        Return the eigenvalues at ``t``.
         """
         self._compute_eigen(t)
         return self._eigvals
 
     cpdef Data evecs(self, double t):
         """
-        Return the eigenstates of the diagonalized operation.
+        Return the eigenstates at ``t``.
         """
         self._compute_eigen(t)
         return self._evecs
@@ -231,6 +252,10 @@ cdef class _EigenBasisTransform:
         return _data.kron(self._inv(t).transpose(), self.evecs(t))
 
     cpdef Data to_eigbasis(self, double t, Data fock):
+        """
+        Do the transformation of the :cls:`Qobj` ``fock`` to the basis where
+        ``oper(t)`` is diagonalized.
+        """
         # For Hermitian operator, the inverse of evecs is the adjoint matrix.
         # Blas include A.dag @ B in one operation. We use it if we can so we
         # don't make unneeded copy of evecs.
@@ -263,6 +288,10 @@ cdef class _EigenBasisTransform:
         raise ValueError
 
     cpdef Data from_eigbasis(self, double t, Data eig):
+        """
+        Do the transformation of the :cls:`Qobj` ``eig`` in the basis where
+        ``oper(t)`` is diagonalized to the outside basis.
+        """
         cdef Data temp
         if eig.shape[0] == self.size and eig.shape[1] == 1:
             return _data.matmul(self.evecs(t), eig)

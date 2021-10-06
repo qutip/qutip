@@ -42,47 +42,9 @@ from ._brtensor import _BlochRedfieldElement
 __all__ = ['bloch_redfield_tensor', 'brterm']
 
 
-def _read_legacy_a_ops(a_op):
-    constant = coefficient("1")
-    parsed_a_op
-    op, spec = a_op
-    if isinstance(op, Qobj):
-        if isinstance(spec, str):
-            parsed_a_op = (op, coefficient(spec, args={'w':0}))
-        elif callable(spec):
-            parsed_a_op =(op, coefficient(lambda t, args: spec(args['w'])))
-        elif isinstance(spec, tuple):
-            if isinstance(spec[0], str):
-                freq_responce = coefficient(spec[0], args={'w':0})
-            elif isinstance(spec[0], Cubic_Spline):
-                freq_responce = SpectraCoefficient(coefficient(spec[0]))
-            else:
-                raise Exception('Invalid bath-coupling specification.')
-            if isinstance(spec[1], str):
-                time_responce = coefficient(spec[1], args={'w':0})
-            elif isinstance(spec[1], Cubic_Spline):
-                time_responce = coefficient(spec[1])
-            else:
-                raise Exception('Invalid bath-coupling specification.')
-            parsed_a_op = (op, freq_coeff * time_coeff)
-    elif isinstance(op, tuple):
-        qobj1, qobj2 = op
-        if isinstance(spec[0], str):
-            freq_responce = coefficient(spec[0], args={'w':0})
-        elif isinstance(spec[0], Cubic_Spline):
-            freq_responce = SpectraCoefficient(coefficient(spec[0]))
-        else:
-            raise Exception('Invalid bath-coupling specification.')
-        parsed_a_op =  (
-            QobjEvo([[qobj1, spec[1]], [qobj1, spec[2]]]),
-            freq_responce
-        )
-    return parsed_a_op
-
-
-def bloch_redfield_tensor(H, a_ops, c_ops=[],
-                          use_secular=True, sec_cutoff=0.1,
-                          fock_basis=False, legacy_a_ops=False, sparse=False):
+def bloch_redfield_tensor(H, a_ops, c_ops=[], use_secular=True, sec_cutoff=0.1,
+                          fock_basis=False, sparse_eigensolver=False,
+                          br_dtype='sparse'):
     """
     Calculates the Bloch-Redfield tensor for a system given
     a set of operators and corresponding spectral functions that describes the
@@ -105,9 +67,10 @@ def bloch_redfield_tensor(H, a_ops, c_ops=[],
             The corresponding bath spectra.
             Can be a `Coefficient` using an 'w' args or a function of the
             frequence. The `SpectraCoefficient` can be used to use array based
-            coefficient.
-            Example:
+            coefficient. They can also depend on ``t`` if the corresponding
+            ``a_op`` is a :cls:`QobjEvo`.
 
+        Example:
             a_ops = [
                 (a+a.dag(), coefficient('w>0', args={"w": 0})),
                 (QobjEvo([b+b.dag(), f(t)]), g(w)),
@@ -128,15 +91,15 @@ def bloch_redfield_tensor(H, a_ops, c_ops=[],
         Whether to return the tensor in the input basis or the diagonalized
         basis.
 
-    legacy_a_ops : bool {False}
-        Whether to use the v4's brmesolve's a_ops specification.
+    sparse_eigensolver : bool {False}
+        Whether to use the sparse eigensolver
 
-    sparse : bool {False}
-        Whether to use the sparse eigensolver if
+    br_dtype : ['sparse', 'dense', 'data']
+        Which data type to use when computing the brtensor.
+        With a cutoff 'sparse' is usually the most efficient.
 
     Returns
     -------
-
     R, [evecs]: :class:`qutip.Qobj`, tuple of :class:`qutip.Qobj`
         If ``fock_basis``, return the Bloch Redfield tensor in the outside
         basis. Otherwise return the Bloch Redfield tensor in the diagonalized
@@ -146,12 +109,10 @@ def bloch_redfield_tensor(H, a_ops, c_ops=[],
     R = liouvillian(H, c_ops)
     H_transform = _EigenBasisTransform(QobjEvo(H), sparse)
 
-    if legacy_a_ops:
-        a_ops = [_read_legacy_a_ops(a_op) for a_op in a_ops]
-
     if fock_basis:
         for a_op in a_ops:
-            R += brterm(H_transform, *a_op, use_secular, sec_cutoff, fock_basis)
+            R += brterm(H_transform, *a_op, use_secular, sec_cutoff, True,
+                        br_dtype=br_dtype)
         return R
     else:
         # When the Hamiltonian is time-dependent, the transformation of `L` to
@@ -164,13 +125,12 @@ def bloch_redfield_tensor(H, a_ops, c_ops=[],
         R = sprepost(evec, evec.dag()) @ R @ sprepost(evec.dag(), evec)
         for a_op in a_ops:
             R += brterm(H_transform, *a_op,
-                        use_secular, sec_cutoff, fock_basis)[0]
+                        use_secular, sec_cutoff, False, br_dtype=br_dtype)[0]
         return R, H_transform.as_Qobj()
 
 
-def brterm(H, a_op, spectra, use_secular=True,
-           sec_cutoff=0.1, fock_basis=False,
-           sparse=False):
+def brterm(H, a_op, spectra, use_secular=True, sec_cutoff=0.1,
+           fock_basis=False, sparse_eigensolver=False, br_dtype='sparse'):
     """
     Calculates the contribution of one coupling operator to the Bloch-Redfield
     tensor.
@@ -186,8 +146,9 @@ def brterm(H, a_op, spectra, use_secular=True,
 
     spectra : :class:`Coefficient`
         The corresponding bath spectra.
-        Must be a `Coefficient` using an 'w' args. The `SpectraCoefficient`
-        can be used to use array based coefficient.
+        Must be a :cls:`Coefficient` using an 'w' args. The
+        :cls:`SpectraCoefficient` can be used to use array based coefficient.
+        It can also depend on ``t`` if ``a_op`` is a :cls:`QobjEvo`.
 
         Example:
 
@@ -205,12 +166,15 @@ def brterm(H, a_op, spectra, use_secular=True,
         Whether to return the tensor in the input basis or the diagonalized
         basis.
 
-    sparse : bool {False}
+    sparse_eigensolver : bool {False}
         Whether to use the sparse eigensolver on the Hamiltonian.
+
+    br_dtype : ['sparse', 'dense', 'data']
+        Which data type to use when computing the brtensor.
+        With a cutoff 'sparse' is usually the most efficient.
 
     Returns
     -------
-
     R, [evecs]: :class:`~Qobj`, :class:`~QobjEvo` or tuple
         If ``fock_basis``, return the Bloch Redfield tensor in the outside
         basis. Otherwise return the Bloch Redfield tensor in the diagonalized
@@ -218,18 +182,15 @@ def brterm(H, a_op, spectra, use_secular=True,
         column. The tensors and, if given, evecs, will be :obj:`~QobjEvo` if
         the ``H`` and ``a_op`` is time dependent, :obj:`Qobj` otherwise.
     """
-    if isinstance(H, Qobj):
-        H = QobjEvo(H)
-
     if isinstance(H, _EigenBasisTransform):
         Hdiag = H
     else:
-        Hdiag = _EigenBasisTransform(H, sparse=sparse)
+        Hdiag = _EigenBasisTransform(QobjEvo(H), sparse=sparse)
 
     sec_cutoff = sec_cutoff if use_secular else np.inf
     R = QobjEvo(_BlochRedfieldElement(Hdiag, QobjEvo(a_op), spectra,
-                sec_cutoff, not fock_basis))
+                sec_cutoff, not fock_basis, dtype=br_dtype))
 
-    if Hdiag.isconstant and isinstance(a_op, Qobj):
+    if isinstance(H, Qobj) and isinstance(a_op, Qobj):
         R = R(0)
     return R if fock_basis else (R, Hdiag.as_Qobj())

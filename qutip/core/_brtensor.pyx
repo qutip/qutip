@@ -6,15 +6,12 @@ from qutip.core.data cimport Dense, CSR, Data, idxint, csr
 from qutip.core.cy.qobjevo cimport QobjEvo
 from qutip.core.cy.coefficient cimport Coefficient
 from qutip.core.cy._element cimport _BaseElement, _MapElement, _ProdElement
-from qutip.core._brtools cimport SpectraCoefficient, _EigenBasisTransform
+from qutip.core._brtools cimport _EigenBasisTransform
 from qutip.core.qobj import Qobj
 
 import numpy as np
-#from cython.parallel import prange
-cimport openmp
 from libcpp.vector cimport vector
 from libc.math cimport fabs, fmin
-
 
 __all__ = []
 
@@ -29,6 +26,7 @@ cpdef enum TensorType:
 @cython.wraparound(False)
 cpdef Data _br_term_data(Data A, double[:, ::1] spectrum,
                          double[:, ::1] skew, double cutoff):
+    """ Compute the contribution of A to the Bloch Redfield tensor."""
     cdef object cutoff_arr
     cdef int nrow = A.shape[0], a, b, c, d
     cdef Data S, I, AS, AST, out, C
@@ -65,7 +63,6 @@ cpdef Data _br_term_data(Data A, double[:, ::1] spectrum,
 @cython.wraparound(False)
 cpdef Dense _br_term_dense(Data A, double[:, ::1] spectrum,
                            double[:, ::1] skew, double cutoff):
-
     cdef size_t nrows = A.shape[0]
     cdef size_t a, b, c, d, k # matrix indexing variables
     cdef double complex elem
@@ -86,6 +83,7 @@ cpdef Dense _br_term_dense(Data A, double[:, ::1] spectrum,
     ac_term = np2term[:, :, 0]
     bd_term = np2term[:, :, 1]
 
+    # TODO: we could use openmp to speed up.
     for a in range(nrows):
         for b in range(nrows):
             if fabs(skew[a, b]) < cutoff:
@@ -93,7 +91,7 @@ cpdef Dense _br_term_dense(Data A, double[:, ::1] spectrum,
                     ac_term[a, b] += A_mat[a, k] * A_mat[k, b] * spectrum[a, k]
                     bd_term[a, b] += A_mat[a, k] * A_mat[k, b] * spectrum[b, k]
 
-    for a in range(nrows): # prange(nrows, nogil=True, schedule='dynamic'):
+    for a in range(nrows):
         for b in range(nrows):
             for c in range(nrows):
                 for d in range(nrows):
@@ -167,6 +165,19 @@ cpdef CSR _br_term_sparse(Data A, double[:, :] spectrum,
 
 
 cdef class _BlochRedfieldElement(_BaseElement):
+    """
+    Element for individual Bloch Redfield collapse term.
+
+    The tensor is computed in the ``eig_basis``, but is returned in the outside
+    basis unless ``eig_basis`` is True. The ``matmul_data_t`` method also act
+    on a state expected to be in that basis. It transform the state instead of
+    the tensor as it is usually faster, the state being a density matrix in
+    most cases.
+
+    Diffenrent term can share a same instance of the eigen transform tool
+    (``H`` as _EigenBasisTransform) so that the Hamiltonian is diagonalized
+    only once even when needed by multiple terms.
+    """
     cdef readonly _EigenBasisTransform H
     cdef readonly QobjEvo a_op
     cdef readonly Coefficient spectra
@@ -180,22 +191,19 @@ cdef class _BlochRedfieldElement(_BaseElement):
     cdef readonly bint eig_basis
     cdef readonly TensorType tensortype
 
-    cdef readonly Dense evecs, out, eig_vec, temp, op_eig
-
     def __init__(self, H, a_op, spectra, sec_cutoff, eig_basis=False,
                  dtype=None):
         if isinstance(H, _EigenBasisTransform):
             self.H = H
         else:
             self.H = _EigenBasisTransform(H)
-        self.a_op = a_op
-        self.nrows = a_op.shape[0]
-        self.shape = (self.nrows * self.nrows, self.nrows * self.nrows)
-        self.dims = [a_op.dims, a_op.dims]
 
+        self.a_op = a_op
         self.spectra = spectra
         self.sec_cutoff = sec_cutoff
         self.eig_basis = eig_basis
+        self.nrows = a_op.shape[0]
+        self.dims = [a_op.dims, a_op.dims]
 
         dtype = dtype or ('dense' if sec_cutoff >= np.inf else 'sparse')
         self.tensortype = {
@@ -212,6 +220,7 @@ cdef class _BlochRedfieldElement(_BaseElement):
         self.spectrum = self.np_datas[1]
 
     cpdef double _compute_spectrum(self, double t) except *:
+        "Compute the skew, spectrum and dw_min"
         cdef Coefficient spec
         cdef double dw_min = np.inf
         eigvals = self.H.eigenvalues(t)
