@@ -52,8 +52,6 @@ cpdef Data _br_term_data(Data A, double[:, ::1] spectrum,
     # cutoff and we cannot easily guess a nnz to make it efficiently...
     # But there is probably room from improvement.
     cutoff_arr = np.zeros((nrows*nrows, nrows*nrows), dtype=np.complex128)
-    # skew[a,b] = w[a] - w[b]
-    # cutoff_arr[a,b,c,d] = (w[a] - w[b] - w[c] + w[d]) < cutoff
     for a in range(nrows):
         for b in range(nrows):
             for c in range(nrows):
@@ -92,7 +90,7 @@ cpdef Dense _br_term_dense(Data A, double[:, ::1] spectrum,
     ac_term = np2term[:, :, 0]
     bd_term = np2term[:, :, 1]
 
-    # TODO: we could use openmp to speed up.
+
     for a in range(nrows):
         for b in range(nrows-1, -1, -1):
             if fabs(skew[a, b]) < cutoff:
@@ -100,9 +98,10 @@ cpdef Dense _br_term_dense(Data A, double[:, ::1] spectrum,
                     ac_term[a, b] += A_mat[a, k] * A_mat[k, b] * spectrum[a, k]
                     bd_term[a, b] += A_mat[a, k] * A_mat[k, b] * spectrum[b, k]
 
+    # TODO: we could use openmp to speed up.
     for a in range(nrows):
-        for b in range(nrows-1, -1, -1):
-            for c in range(nrows-1, -1, -1):
+        for b in range(nrows):
+            for c in range(nrows):
                 for d in range(nrows):
                     if fabs(skew[a, b] - skew[c, d]) < cutoff:
                         elem = A_mat[a, c] * A_mat[d, b] * 0.5
@@ -150,6 +149,9 @@ cpdef CSR _br_term_sparse(Data A, double[:, :] spectrum,
             elif skew[a, b] > cutoff:
                 break
 
+    # skew[a,b] = w[a] - w[b]
+    # (w[a] - w[b] - w[c] + w[d]) < cutoff
+    # w's are sorted so we can skip part of the loop.
     for a in range(nrows):
         for b in range(nrows):
             d_min = 0
