@@ -1,38 +1,4 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
 import numpy as np
-from numpy.testing import assert_allclose
 from types import FunctionType
 
 import qutip
@@ -75,20 +41,22 @@ class TestMESolveDecay:
 
     @pytest.fixture(params=[
         pytest.param(np.sqrt(kappa) * a,
-                  id='const'),
-        pytest.param(lambda t, args: np.sqrt(args['kappa']) * qutip.destroy(10),
+                     id='const'),
+        pytest.param(lambda t, args: (np.sqrt(args['kappa'])
+                                      * qutip.destroy(10)),
                      id='func'),
         pytest.param([a, lambda t, args: np.sqrt(args['kappa'])],
-                  id='list_func'),
+                     id='list_func'),
         pytest.param([a, 'sqrt(kappa)'],
-                  id='list_str'),
-        pytest.param([a, qutip.Cubic_Spline(0, 10, np.sqrt(kappa) *
-                                      np.ones_like(tlist))],
-                  id='list_cubic_spline'),
+                     id='list_str'),
+        pytest.param([a, qutip.Cubic_Spline(0, 10,
+                             np.sqrt(kappa) * np.ones_like(tlist)
+                         )],
+                     id='list_cubic_spline'),
         pytest.param([a, np.sqrt(kappa) * np.ones_like(tlist)],
-                  id='list_array'),
+                     id='list_array'),
         pytest.param(qutip.QobjEvo([a, 'sqrt(kappa)'], args={'kappa': kappa}),
-                  id='QobjEvo'),
+                     id='QobjEvo'),
     ])
     def cte_c_ops(self, request):
         return request.param
@@ -98,7 +66,8 @@ class TestMESolveDecay:
                   id='list_func'),
         pytest.param([a, 'sqrt(kappa * exp(-t))'],
                   id='list_str'),
-        pytest.param([a, qutip.Cubic_Spline(0, 10, np.sqrt(kappa * np.exp(-tlist)))],
+        pytest.param([a, qutip.Cubic_Spline(0, 10,
+                                            np.sqrt(kappa * np.exp(-tlist)))],
                   id='list_cubic_spline'),
         pytest.param([a, np.sqrt(kappa * np.exp(-tlist))],
                   id='list_array'),
@@ -126,7 +95,7 @@ class TestMESolveDecay:
                          options=options)
         expt = medata.expect[0]
         actual_answer = 9.0 * np.exp(-self.kappa * self.tlist)
-        assert_allclose(actual_answer, expt, me_error)
+        np.testing.assert_allclose(actual_answer, expt, atol=me_error)
 
     @pytest.mark.parametrize('method',
                              all_ode_method, ids=all_ode_method)
@@ -141,7 +110,7 @@ class TestMESolveDecay:
                          args={"kappa": self.kappa}, options=options)
         expt = medata.expect[0]
         actual_answer = 9.0 * np.exp(-self.kappa * (1.0 - np.exp(-self.tlist)))
-        assert_allclose(actual_answer, expt, me_error)
+        np.testing.assert_allclose(actual_answer, expt, rtol=me_error)
 
     def testME_2TDDecay(self, c_ops, c_ops_1):
         "mesolve: time-dependence as function list"
@@ -156,7 +125,7 @@ class TestMESolveDecay:
         expt = medata.expect[0]
         actual_answer = 9.0 * np.exp(-2 * self.kappa *
                                      (1.0 - np.exp(-self.tlist)))
-        assert_allclose(actual_answer, expt, me_error)
+        np.testing.assert_allclose(actual_answer, expt, atol=me_error)
 
     def testME_TDH_TDDecay(self, H, c_ops):
         "mesolve: time-dependence as function list"
@@ -170,7 +139,7 @@ class TestMESolveDecay:
         expt = medata.expect[0]
         actual_answer = 9.0 * np.exp(-self.kappa *
                                      (1.0 - np.exp(-self.tlist)))
-        np.testing.assert_allclose(actual_answer, expt, me_error)
+        np.testing.assert_allclose(actual_answer, expt, atol=me_error)
 
     def testME_TDH_longTDDecay(self, H, c_ops):
         "mesolve: time-dependence as function list"
@@ -189,7 +158,7 @@ class TestMESolveDecay:
         expt = medata.expect[0]
         actual_answer = 9.0 * np.exp(-4 * self.kappa *
                                      (1.0 - np.exp(-self.tlist)))
-        np.testing.assert_allclose(actual_answer, expt, me_error)
+        np.testing.assert_allclose(actual_answer, expt, atol=me_error)
 
     def testME_TDDecayUnitary(self, c_ops):
         "mesolve: time-dependence as function list with super as init cond"
@@ -209,7 +178,7 @@ class TestMESolveDecay:
                        options=options)
 
         fid = fidelitycheck(out1, out2, rho0vec)
-        assert max(abs(1.0-fid)) < me_error
+        assert fid == pytest.approx(1., abs=me_error)
 
     def testME_TDDecayliouvillian(self, c_ops):
         "mesolve: time-dependence as function list with super as init cond"
@@ -230,7 +199,7 @@ class TestMESolveDecay:
                        options=options)
 
         fid = fidelitycheck(out1, out2, rho0vec)
-        assert max(abs(1.0-fid)) < me_error
+        assert fid == pytest.approx(1., abs=me_error)
 
     def test_mesolver_pickling(self):
         options = SolverOptions(progress_bar=None)
@@ -239,7 +208,7 @@ class TestMESolveDecay:
         copy = pickle.loads(pickle.dumps(solver_obj))
         e1 = solver_obj.run(qutip.basis(self.N, 9), [0, 1, 2, 3]).expect
         e2 = solver_obj.run(qutip.basis(self.N, 9), [0, 1, 2, 3]).expect
-        assert_allclose(e1, e2)
+        np.testing.assert_allclose(e1, e2)
 
     @pytest.mark.parametrize('method',
                              all_ode_method, ids=all_ode_method)
@@ -259,8 +228,8 @@ class TestMESolveDecay:
             qutip.expect(self.ada, qutip.basis(self.N, 9))
         )
         state2 = solver_obj.step(2, args={"kappa":0.})
-        assert_allclose(qutip.expect(self.ada, state1),
-                        qutip.expect(self.ada, state2), 1e-6)
+        np.testing.assert_allclose(qutip.expect(self.ada, state1),
+                                   qutip.expect(self.ada, state2), 1e-6)
 
 
 @pytest.mark.parametrize('super_', ["ket", "dm", "liouvillian"],
@@ -271,7 +240,9 @@ def testME_SesolveFallback(super_):
     a = qutip.tensor(qutip.destroy(N+1), qutip.qeye(N+1), qutip.qeye(N+1))
     b = qutip.tensor(qutip.qeye(N+1), qutip.destroy(N+1), qutip.qeye(N+1))
     c = qutip.tensor(qutip.qeye(N+1), qutip.qeye(N+1), qutip.destroy(N+1))
-    psi0 = qutip.tensor(qutip.basis(N+1,0), qutip.basis(N+1,0), qutip.basis(N+1,N))
+    psi0 = qutip.tensor(qutip.basis(N+1,0),
+                        qutip.basis(N+1,0),
+                        qutip.basis(N+1,N))
     H = a * b * c.dag() * c.dag() + a.dag() * b.dag() * c * c
     if super_ == "dm":
         state0 = qutip.ket2dm(psi0)
@@ -309,7 +280,8 @@ class TestJCModelEvolution:
             c_op_list.append(np.sqrt(rate) * qutip.sigmaz())
 
         output = mesolve(H, psi0, tlist, c_op_list,
-                         e_ops=[qutip.sigmax(), qutip.sigmay(), qutip.sigmaz()])
+            e_ops=[qutip.sigmax(), qutip.sigmay(), qutip.sigmaz()]
+        )
 
         return output.expect[0], output.expect[1], output.expect[2]
 
@@ -351,7 +323,8 @@ class TestJCModelEvolution:
         # find the steady state
         rho_ss = qutip.steadystate(H, c_op_list)
 
-        return qutip.expect(a.dag() * a, rho_ss), qutip.expect(sm.dag() * sm, rho_ss)
+        return (qutip.expect(a.dag() * a, rho_ss),
+                qutip.expect(sm.dag() * sm, rho_ss))
 
     def jc_integrate(self, N, wc, wa, g, kappa, gamma,
                      pump, psi0, use_rwa, tlist, oper_evo=False):
@@ -361,7 +334,10 @@ class TestJCModelEvolution:
         sm = qutip.tensor(qutip.identity(N), qutip.destroy(2))
 
         # Identity super-operator
-        E0 = qutip.sprepost(qutip.tensor(qutip.qeye(N), qutip.qeye(2)), qutip.tensor(qutip.qeye(N), qutip.qeye(2)))
+        E0 = qutip.sprepost(
+            qutip.tensor(qutip.qeye(N), qutip.qeye(2)),
+            qutip.tensor(qutip.qeye(N), qutip.qeye(2))
+        )
 
         if use_rwa:
             # use the rotating wave approxiation
@@ -425,7 +401,7 @@ class TestJCModelEvolution:
             N, wc, wa, g, kappa, gamma, pump, psi0, use_rwa, tlist, True)
 
         fid = fidelitycheck(out1, out2, rho0vec)
-        assert np.max(np.abs(1.0 - fid)) < me_error
+        assert fid == pytest.approx(1., abs=me_error)
 
     def testQubitDynamics1(self):
         "mesolve: qubit with dissipation"
@@ -443,9 +419,9 @@ class TestJCModelEvolution:
         sy_analytic = -np.sin(2 * np.pi * tlist) * np.exp(-tlist * g2)
         sz_analytic = np.cos(2 * np.pi * tlist) * np.exp(-tlist * g2)
 
-        assert np.max(np.abs(sx - sx_analytic)) < 0.05
-        assert np.max(np.abs(sy - sy_analytic)) < 0.05
-        assert np.max(np.abs(sz - sz_analytic)) < 0.05
+        np.testing.assert_allclose(sx, sx_analytic, atol=0.05)
+        np.testing.assert_allclose(sy, sy_analytic, atol=0.05)
+        np.testing.assert_allclose(sz, sz_analytic, atol=0.05)
 
     def testQubitDynamics2(self):
         "mesolve: qubit without dissipation"
@@ -463,9 +439,9 @@ class TestJCModelEvolution:
         sy_analytic = -np.sin(2 * np.pi * tlist) * np.exp(-tlist * g2)
         sz_analytic = np.cos(2 * np.pi * tlist) * np.exp(-tlist * g2)
 
-        assert np.max(np.abs(sx - sx_analytic)) < 0.05
-        assert np.max(np.abs(sy - sy_analytic)) < 0.05
-        assert np.max(np.abs(sz - sz_analytic)) < 0.05
+        np.testing.assert_allclose(sx, sx_analytic, atol=0.05)
+        np.testing.assert_allclose(sy, sy_analytic, atol=0.05)
+        np.testing.assert_allclose(sz, sz_analytic, atol=0.05)
 
     def testCase1(self):
         "mesolve: cavity-qubit interaction, no dissipation"
@@ -490,8 +466,8 @@ class TestJCModelEvolution:
         nc_ex = 0.5 * (1 - np.cos(2 * g * np.sqrt(n + 1) * tlist)) + n
         na_ex = 0.5 * (1 + np.cos(2 * g * np.sqrt(n + 1) * tlist))
 
-        assert np.max(np.abs(nc - nc_ex)) < 0.005
-        assert np.max(np.abs(na - na_ex)) < 0.005
+        np.testing.assert_allclose(nc[-1], nc_ex[-1], atol=0.005)
+        np.testing.assert_allclose(na[-1], na_ex[-1], atol=0.005)
 
     def testCase2(self):
         "mesolve: cavity-qubit without interaction, decay"
@@ -518,8 +494,8 @@ class TestJCModelEvolution:
         na_ex = 0.5 * (1 + np.cos(2 * g * np.sqrt(n + 1) * tlist)) * \
             np.exp(-gamma * tlist)
 
-        assert np.max(np.abs(nc - nc_ex)) < 0.005
-        assert np.max(np.abs(na - na_ex)) < 0.005
+        np.testing.assert_allclose(nc[-1], nc_ex[-1], atol=0.005)
+        np.testing.assert_allclose(na[-1], na_ex[-1], atol=0.005)
 
     def testCase3(self):
         "mesolve: cavity-qubit with interaction, decay"
@@ -549,8 +525,8 @@ class TestJCModelEvolution:
         nc_ss = nc_ss * np.ones(np.shape(nc))
         na_ss = na_ss * np.ones(np.shape(na))
 
-        assert abs(nc[-1] - nc_ss[-1]) < 0.005
-        assert abs(na[-1] - na_ss[-1]) < 0.005
+        np.testing.assert_allclose(nc[-1], nc_ss[-1], atol=0.005)
+        np.testing.assert_allclose(na[-1], na_ss[-1], atol=0.005)
 
 
 class TestMESolveStepFuncCoeff:
@@ -580,8 +556,8 @@ class TestMESolveStepFuncCoeff:
         qu = qutip.QobjEvo([[qutip.sigmax(), self.python_coeff]],
                      tlist=tlist, args={"_step_func_coeff": 1})
         result = mesolve(qu, rho0=rho0, tlist=tlist, options=options)
-        assert_allclose(
-            qutip.fidelity(result.states[-1], qutip.sigmax()*rho0), 1, rtol=1.e-6)
+        fid = qutip.fidelity(result.states[-1], qutip.sigmax()*rho0)
+        assert fid == pytest.approx(1)
 
     def test_array_cte_coeff(self):
         """
@@ -593,8 +569,8 @@ class TestMESolveStepFuncCoeff:
         qu = qutip.QobjEvo([[qutip.sigmax(), npcoeff]],
                      tlist=tlist, step_interpolation=True)
         result = mesolve(qu, rho0=rho0, tlist=tlist, options=self.options)
-        assert_allclose(
-            qutip.fidelity(result.states[-1], qutip.sigmax()*rho0), 1, rtol=1.e-6)
+        fid = qutip.fidelity(result.states[-1], qutip.sigmax()*rho0)
+        assert fid == pytest.approx(1)
 
     def test_array_t_coeff(self):
         """
@@ -606,8 +582,8 @@ class TestMESolveStepFuncCoeff:
         qu = qutip.QobjEvo([[qutip.sigmax(), npcoeff]],
                      tlist=tlist, step_interpolation=True)
         result = mesolve(qu, rho0=rho0, tlist=tlist, options=self.options)
-        assert_allclose(
-            qutip.fidelity(result.states[-1], qutip.sigmax()*rho0), 1, rtol=1.e-6)
+        fid = qutip.fidelity(result.states[-1], qutip.sigmax()*rho0)
+        assert fid == pytest.approx(1)
 
     def test_array_str_coeff(self):
         """
@@ -620,11 +596,13 @@ class TestMESolveStepFuncCoeff:
         npcoeff2 = np.array([0.5, 1.5, 1.5], dtype=float)
         strcoeff = "1."
         qu = qutip.QobjEvo(
-            [[qutip.sigmax(), npcoeff1], [qutip.sigmax(), strcoeff], [qutip.sigmax(), npcoeff2]],
+            [[qutip.sigmax(), npcoeff1],
+             [qutip.sigmax(), strcoeff],
+             [qutip.sigmax(), npcoeff2]],
             tlist=tlist, step_interpolation=True)
         result = mesolve(qu, rho0=rho0, tlist=tlist, options=self.options)
-        assert_allclose(
-            qutip.fidelity(result.states[-1], qutip.sigmax()*rho0), 1, rtol=1.e-6)
+        fid = qutip.fidelity(result.states[-1], qutip.sigmax()*rho0)
+        assert fid == pytest.approx(1)
 
     def test_array_str_py_coeff(self):
         """
@@ -641,8 +619,8 @@ class TestMESolveStepFuncCoeff:
              [qutip.sigmax(), self.python_coeff], [qutip.sigmax(), strcoeff]],
             tlist=tlist, step_interpolation=True)
         result = mesolve(qu, rho0=rho0, tlist=tlist, options=self.options)
-        assert_allclose(
-            qutip.fidelity(result.states[-1], qutip.sigmax()*rho0), 1, rtol=1.e-6)
+        fid = qutip.fidelity(result.states[-1], qutip.sigmax()*rho0)
+        assert fid == pytest.approx(1)
 
 
 def test_num_collapse_set():
@@ -658,3 +636,21 @@ def test_num_collapse_set():
         if not isinstance(c_ops, list):
             c_ops = [c_ops]
         assert res.num_collapse == len(c_ops)
+
+
+def test_mesolve_bad_H():
+    with pytest.raises(TypeError):
+        MeSolver([qutip.qeye(3), 't'], [])
+    with pytest.raises(TypeError):
+        MeSolver(qutip.qeye(3), [[qutip.qeye(3), 't']])
+
+
+def test_mesolve_bad_state():
+    solver = MeSolver(qutip.qeye(4), [])
+    with pytest.raises(TypeError):
+        solver.start(qutip.basis(2,1) & qutip.basis(2,0), 0)
+
+
+def test_mesolve_bad_options():
+    with pytest.raises(TypeError):
+        MeSolver(qutip.qeye(4), [], options={method='adams'})

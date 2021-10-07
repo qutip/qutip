@@ -9,9 +9,7 @@ from scipy.integrate._ode import zvode
 from qutip.core import data as _data
 from ..options import SolverOdeOptions
 from qutip.core.data.reshape import column_unstack_dense, column_stack_dense
-from ..integrator import (IntegratorException, Integrator, sesolve_integrators,
-                          mesolve_integrators, mcsolve_integrators,
-                          add_integrator)
+from ..integrator import IntegratorException, Integrator
 from ..solver_base import Solver
 import warnings
 
@@ -329,5 +327,5 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
 
 
 Solver.add_integrator(IntegratorScipyZvode, ['adams', 'bdf'])
-Solver.add_integrator(IntegratorScipyDop853, ['dop853'])
-Solver.add_integrator(IntegratorScipylsoda, ['lsoda'])
+Solver.add_integrator(IntegratorScipyDop853, 'dop853')
+Solver.add_integrator(IntegratorScipylsoda, 'lsoda')
