@@ -26,14 +26,17 @@ cpdef enum TensorType:
 @cython.wraparound(False)
 cpdef Data _br_term_data(Data A, double[:, ::1] spectrum,
                          double[:, ::1] skew, double cutoff):
-    """ Compute the contribution of A to the Bloch Redfield tensor."""
+    """
+    Compute the contribution of A to the Bloch Redfield tensor.
+    Computation are done using dispatched function.
+    """
     cdef object cutoff_arr
-    cdef int nrow = A.shape[0], a, b, c, d
+    cdef int nrows = A.shape[0], a, b, c, d
     cdef Data S, I, AS, AST, out, C
     cdef type cls = type(A)
 
     S = _data.to(cls, _data.mul(_data.Dense(spectrum, copy=False), 0.5))
-    I = _data.identity[cls](nrow)
+    I = _data.identity[cls](nrows)
     AS = _data.multiply(A, S)
     AST = _data.multiply(A, _data.transpose(S))
 
@@ -48,13 +51,15 @@ cpdef Data _br_term_data(Data A, double[:, ::1] spectrum,
     # The cutoff_arr should be sparse most of the time, but it depend on the
     # cutoff and we cannot easily guess a nnz to make it efficiently...
     # But there is probably room from improvement.
-    cutoff_arr = np.zeros((nrow*nrow, nrow*nrow), dtype=np.complex128)
-    for a in range(nrow):
-        for b in range(nrow):
-            for c in range(nrow):
-                for d in range(nrow):
+    cutoff_arr = np.zeros((nrows*nrows, nrows*nrows), dtype=np.complex128)
+    # skew[a,b] = w[a] - w[b]
+    # cutoff_arr[a,b,c,d] = (w[a] - w[b] - w[c] + w[d]) < cutoff
+    for a in range(nrows):
+        for b in range(nrows):
+            for c in range(nrows):
+                for d in range(nrows):
                     if fabs(skew[a, b] - skew[c, d]) < cutoff:
-                        cutoff_arr[a * nrow + b, c * nrow + d] = 1.
+                        cutoff_arr[a * nrows + b, c * nrows + d] = 1.
     C = _data.to(cls, _data.Dense(cutoff_arr, copy=False))
     return _data.multiply(out, C)
 
@@ -63,6 +68,10 @@ cpdef Data _br_term_data(Data A, double[:, ::1] spectrum,
 @cython.wraparound(False)
 cpdef Dense _br_term_dense(Data A, double[:, ::1] spectrum,
                            double[:, ::1] skew, double cutoff):
+    """
+    Compute the contribution of A to the Bloch Redfield tensor.
+    Allocate a Dense array and fill it.
+    """
     cdef size_t nrows = A.shape[0]
     cdef size_t a, b, c, d, k # matrix indexing variables
     cdef double complex elem
@@ -85,28 +94,24 @@ cpdef Dense _br_term_dense(Data A, double[:, ::1] spectrum,
 
     # TODO: we could use openmp to speed up.
     for a in range(nrows):
-        for b in range(nrows):
+        for b in range(nrows-1, -1, -1):
             if fabs(skew[a, b]) < cutoff:
                 for k in range(nrows):
                     ac_term[a, b] += A_mat[a, k] * A_mat[k, b] * spectrum[a, k]
                     bd_term[a, b] += A_mat[a, k] * A_mat[k, b] * spectrum[b, k]
 
     for a in range(nrows):
-        for b in range(nrows):
-            for c in range(nrows):
+        for b in range(nrows-1, -1, -1):
+            for c in range(nrows-1, -1, -1):
                 for d in range(nrows):
-                    elem = 0.
                     if fabs(skew[a, b] - skew[c, d]) < cutoff:
-                        elem = (A_mat[a, c] * A_mat[d, b] * 0.5 *
-                                (spectrum[c, a] + spectrum[d, b]))
-
-                    if a == c:
-                        elem = elem - 0.5 * ac_term[d, b]
-
-                    if b == d:
-                        elem = elem - 0.5 * bd_term[a, c]
-
-                    out_array[a * nrows + b, c * nrows + d] = elem
+                        elem = A_mat[a, c] * A_mat[d, b] * 0.5
+                        elem *= (spectrum[c, a] + spectrum[d, b])
+                        if a == c:
+                            elem = elem - 0.5 * ac_term[d, b]
+                        if b == d:
+                            elem = elem - 0.5 * bd_term[a, c]
+                        out_array[a * nrows + b, c * nrows + d] = elem
     return out
 
 
@@ -114,11 +119,15 @@ cpdef Dense _br_term_dense(Data A, double[:, ::1] spectrum,
 @cython.wraparound(False)
 cpdef CSR _br_term_sparse(Data A, double[:, :] spectrum,
                           double[:, ::1] skew, double cutoff):
-
+    """
+    Compute the contribution of A to the Bloch Redfield tensor.
+    Create it as coo pointers and return as CSR.
+    """
     cdef size_t nrows = A.shape[0]
-    cdef size_t a, b, c, d, k # matrix indexing variables
+    cdef size_t a, b, c, d, k, d_min # matrix indexing variables
     cdef double complex elem, ac_elem, bd_elem
     cdef double complex[:,:] A_mat, ac_term, bd_term
+    cdef double dskew
     cdef object np2term
     cdef vector[idxint] coo_rows, coo_cols
     cdef vector[double complex] coo_data
@@ -133,30 +142,37 @@ cpdef CSR _br_term_sparse(Data A, double[:, :] spectrum,
     bd_term = np2term[:, :, 1]
 
     for a in range(nrows):
-        for b in range(nrows):
-            if fabs(skew[a,b]) < cutoff:
+        for b in range(nrows-1, -1, -1):
+            if fabs(skew[a, b]) < cutoff:
                 for k in range(nrows):
                     ac_term[a, b] += A_mat[a, k] * A_mat[k, b] * spectrum[a, k]
                     bd_term[a, b] += A_mat[a, k] * A_mat[k, b] * spectrum[b, k]
+            elif skew[a, b] > cutoff:
+                break
 
     for a in range(nrows):
         for b in range(nrows):
+            d_min = 0
             for c in range(nrows):
-                for d in range(nrows):
-                    if fabs(skew[a,b] - skew[c,d]) < cutoff:
+                if skew[a, b] - skew[c, nrows-1] <= -cutoff:
+                    break
+                for d in range(d_min, nrows):
+                    dskew = skew[a, b] - skew[c, d]
+                    if -dskew > cutoff:
+                        d_min = d
+                    elif fabs(dskew) < cutoff:
                         elem = (A_mat[a, c] * A_mat[d, b]) * 0.5
                         elem *= (spectrum[c, a] + spectrum[d, b])
-
                         if a == c:
                             elem -= 0.5 * ac_term[d, b]
-
                         if b == d:
                             elem -= 0.5 * bd_term[a, c]
-
                         if elem != 0:
                             coo_rows.push_back(a * nrows + b)
                             coo_cols.push_back(c * nrows + d)
                             coo_data.push_back(elem)
+                    elif dskew >= cutoff:
+                        break
 
     return csr.from_coo_pointers(
         coo_rows.data(), coo_cols.data(), coo_data.data(),
