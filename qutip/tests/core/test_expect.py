@@ -194,10 +194,10 @@ def test_no_real_attribute(monkeypatch):
         """
         We simply return None which does not have the `real` attribute.
         """
-        return None
+        return "object without .real"
 
     monkeypatch.setattr(_data, "expect", mocker_expect_return)
 
     sz = qutip.sigmaz() # the choice of the matrix does not matter
-    assert None==qutip.expect(sz, sz)
+    assert "object without .real" == qutip.expect(sz, sz)
 
