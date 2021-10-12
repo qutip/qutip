@@ -653,4 +653,4 @@ def test_mesolve_bad_state():
 
 def test_mesolve_bad_options():
     with pytest.raises(TypeError):
-        MeSolver(qutip.qeye(4), [], options={method:'adams'})
+        MeSolver(qutip.qeye(4), [], options={'method':'adams'})

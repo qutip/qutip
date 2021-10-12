@@ -1,10 +1,11 @@
 __all__ = ['Solver']
 
-from .. import Qobj, QobjEvo
+from .. import Qobj, QobjEvo, ket2dm
 from .options import SolverOptions, SolverOdeOptions
+from ..core import stack_columns, unstack_columns
 from .result import Result
 from .integrator import Integrator
-from ..ui.progressbar import get_progess_bar
+from ..ui.progressbar import progess_bars
 from ..core.data import to
 from time import time
 
@@ -40,7 +41,6 @@ class Solver:
     """
     # sesolve, mesolve, etc. used when choosing the
     name = None
-    _system = None
 
     # State, time and Integrator of the stepper functionnality
     _t = 0
@@ -52,18 +52,20 @@ class Solver:
     optionsclass = SolverOptions
     odeoptionsclass = SolverOdeOptions
 
-    def __init__(self, *, e_ops=None, options=None):
+    def __init__(self, rhs, *, e_ops=None, options=None):
         """
-        Is responsible for creating ``_system`` as a QobjEvo.
+        Is responsible for creating ``rhs`` as a QobjEvo.
         It can expect the input Hamiltonian, etc, to be :cls:`Qobj` or
         :cls:`QobjEvo`, list format are not accepted.
 
         A ``stats`` dict should be created and ``e_ops`` and ``options`` need
         to be stored.
         """
+        self.rhs = rhs if isinstance(rhs, QobjEvo) else QobjEvo(rhs)
         self.stats = {}
         self.e_ops = e_ops
         self.options = options
+        self.state_metadata = {}
 
     def _prepare_state(self, state):
         """
@@ -74,13 +76,37 @@ class Solver:
 
         Should return the state's data such that it can be used by Integrators.
         """
-        raise NotImplementedError
+        if self.rhs.issuper and state.isket:
+            state = ket2dm(state)
+
+        if (
+            self.rhs.dims[1] != state.dims[0]
+            and self.rhs.dims[1] != state.dims
+        ):
+            raise TypeError(f"incompatible dimensions {self.rhs.dims}"
+                            f" and {state.dims}")
+
+        if self.options.ode["State_data_type"]:
+            state = state.to(self.options.ode["State_data_type"])
+
+        self.state_metadata = {
+            'dims': state.dims,
+            'type': state.type,
+            'isherm': state.isherm
+        }
+        if self.rhs.dims[1] == state.dims:
+            return stack_columns(state.data)
+        return state.data
 
     def _restore_state(self, state, *, copy=True):
         """
         Retore the Qobj state from the it's data.
         """
-        raise NotImplementedError
+        if self.state_metadata['dims'] == self.rhs.dims[1]:
+            return Qobj(unstack_columns(state),
+                        **self.state_metadata, copy=False)
+        else:
+            return Qobj(state, **self.state_metadata, copy=copy)
 
     def run(self, state0, tlist, *, args={}):
         """
@@ -114,10 +140,10 @@ class Solver:
         _integrator.set_state(tlist[0], _data0)
         self.stats["preparation time"] += time() - _time_start
         results = Result(self.e_ops, self.options.results,
-                         self._system.issuper, _data0.shape[1]!=1)
+                         self.rhs.issuper, _data0.shape[1]!=1)
         results.add(tlist[0], state0)
 
-        progress_bar = get_progess_bar(self.options['progress_bar'])
+        progress_bar = progess_bars[self.options['progress_bar']]()
         progress_bar.start(len(tlist)-1, **self.options['progress_kwargs'])
         for t, state in _integrator.run(tlist):
             progress_bar.update()
@@ -186,6 +212,16 @@ class Solver:
         self.stats["run time"] += time() - _time_start
         return self._restore_state(self._state, copy=copy)
 
+    def _get_integrator(self):
+        """ Return the initialted integrator. """
+        if self.options.ode["Operator_data_type"]:
+            self.rhs = self.rhs.to(
+                self.options.ode["Operator_data_type"]
+            )
+
+        integrator = self.avail_integrators[self.options.ode["method"]]
+        return integrator(self.rhs, self.options.ode)
+
     @property
     def options(self):
         return self._options
@@ -230,13 +266,3 @@ class Solver:
         if integrator.integrator_options:
             for opt in integrator.integrator_options:
                 cls.odeoptionsclass.extra_options.add(opt)
-
-    def _get_integrator(self):
-        """ Return the initialted integrator. """
-        if self.options.ode["Operator_data_type"]:
-            self._system = self._system.to(
-                self.options.ode["Operator_data_type"]
-            )
-
-        integrator = self.avail_integrators[self.options.ode["method"]]
-        return integrator(self._system, self.options.ode)

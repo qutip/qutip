@@ -116,14 +116,15 @@ class SeSolver(Solver):
 
     def __init__(self, H, *, e_ops=None, options=None):
         _time_start = time()
-        super().__init__(e_ops=e_ops, options=options)
+
 
         if not isinstance(H, (Qobj, QobjEvo)):
             raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
 
-        self._system = -1j * QobjEvo(H)
-        if not self._system.isoper:
+        rhs = -1j * QobjEvo(H)
+        if not rhs.isoper:
             raise ValueError("The hamiltonian must be an operator")
+        super().__init__(rhs, e_ops=e_ops, options=options)
         self.state_metadata = {}
 
         self.stats['solver'] = "Schrodinger Evolution"
@@ -136,8 +137,8 @@ class SeSolver(Solver):
                             " a ket as initial state"
                             " or a unitary as initial operator.")
 
-        if self._system.dims[1] != state.dims[0]:
-            raise TypeError(f"incompatible dimensions {self._system.dims}"
+        if self.rhs.dims[1] != state.dims[0]:
+            raise TypeError(f"incompatible dimensions {self.rhs.dims}"
                             f" and {state.dims}")
 
         if self.options.ode["State_data_type"]:

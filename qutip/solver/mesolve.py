@@ -193,7 +193,6 @@ class MeSolver(Solver):
 
     def __init__(self, H, c_ops, *, e_ops=None, options=None):
         _time_start = time()
-        super().__init__(e_ops=e_ops, options=options)
 
         if not isinstance(H, (Qobj, QobjEvo)):
             raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
@@ -203,9 +202,10 @@ class MeSolver(Solver):
                 raise TypeError("All `c_ops` must be a Qobj or QobjEvo")
 
         H = QobjEvo(H)
-        self._system = H if H.issuper else liouvillian(H)
-        self._system += sum(c_op if c_op.issuper else lindblad_dissipator(c_op)
-                            for c_op in c_ops )
+        rhs = H if H.issuper else liouvillian(H)
+        rhs += sum(c_op if c_op.issuper else lindblad_dissipator(c_op)
+                            for c_op in c_ops)
+        super().__init__(rhs, e_ops=e_ops, options=options)
         self.state_metadata = ()
 
         self.stats['solver'] = "Master Equation Evolution"
@@ -221,12 +221,12 @@ class MeSolver(Solver):
             state = state.to(self.options.ode["State_data_type"])
         self.state_metadata = state.dims, state.type, state.isherm
 
-        if self._system.dims[1] == state.dims:
+        if self.rhs.dims[1] == state.dims:
             return stack_columns(state.data)
-        elif self._system.dims[1] == state.dims[0]:
+        elif self.rhs.dims[1] == state.dims[0]:
             return state.data
         else:
-            raise TypeError(f"incompatible dimensions {self._system.dims}"
+            raise TypeError(f"incompatible dimensions {self.rhs.dims}"
                             f" and {state.dims}")
 
     def _restore_state(self, state, copy=True):
