@@ -189,7 +189,7 @@ def _normalize_as_instrument(instrument_like):
         # Qobj instances, but that the labels may not be tuples, and the Qobj
         # values may need to be promoted to super.
         return {
-            label if isinstance(label, tuple) else (label, ):
+            label if isinstance(label, Seq) else Seq(label, ):
                 value if value.type == "super" else sr.to_super(value)
             for label, value in instrument_like.items()
         }
@@ -430,6 +430,26 @@ class QInstrument(object):
         return type(self)({
             label: eta * process + eye
             for label, process in self._processes.items()
+        })
+
+    def complete(self):
+        if self.istp:
+            return type(self)(self._processes)
+
+        if Seq("⊥") in self._processes:
+            raise ValueError("Instrument already has a ⊥ outcome.")
+
+        shape = next(iter(self._processes.values())).shape
+        eye = Qobj(np.eye(*shape), dims=self.dims)
+        processes = self._processes.copy()
+        processes[Seq("⊥")] = eye - self.nonselective_process
+        return type(self)(processes)
+
+    def reindex(self):
+        return type(self)({
+            Seq(idx): process
+            for (idx, (label, process)) in
+            enumerate(sorted(self._processes.items(), key=lambda item: item[0]))
         })
 
     # CLASS METHODS
