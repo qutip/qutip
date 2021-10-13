@@ -227,6 +227,10 @@ html_show_copyright = True
 # This is the file name suffix for HTML files (e.g. ".xhtml").
 #html_file_suffix = None
 
+html_css_files = [
+    'site.css',
+]
+
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
