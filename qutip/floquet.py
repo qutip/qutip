@@ -71,7 +71,7 @@ def floquet_modes(H, T, args=None, sort=False, U=None, options=None):
 
     if U is None:
         # get the unitary propagator
-        U = propagator(H, T, [], args, options)
+        U = propagator(H, T, [], args=args, options=options)
 
     # find the eigenstates for the propagator
     evals, evecs = la.eig(U.full())
@@ -717,10 +717,6 @@ def floquet_master_equation_tensor(Alist, f_energies):
 
     Rdata_lil = scipy.sparse.lil_matrix((N * N, N * N), dtype=complex)
 
-    ###
-    # Here there were transposition errors because the paper used in
-    # the documentation has typos.
-    ###
     AsumList = [np.sum(A, axis=1) for A in Alist]
 
     for k in range(len(Alist)):
