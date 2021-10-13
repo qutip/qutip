@@ -892,8 +892,7 @@ def hadamard_transform(N=1):
         Quantum object representation of the N-qubit Hadamard gate.
 
     """
-    data = [[1, 1], [1, -1]]
-    H = Qobj(data)/np.sqrt(2)
+    H = Qobj([[1, 1], [1, -1]]) / np.sqrt(2)
 
     return tensor([H]*N)
 
