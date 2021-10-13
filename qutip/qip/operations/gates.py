@@ -894,7 +894,7 @@ def hadamard_transform(N=1):
     """
     H = Qobj([[1, 1], [1, -1]]) / np.sqrt(2)
 
-    return tensor([H]*N)
+    return tensor([H] * N)
 
 
 def _flatten(lst):
