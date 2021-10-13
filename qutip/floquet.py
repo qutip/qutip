@@ -11,6 +11,7 @@ import numpy as np
 import scipy.linalg as la
 import scipy
 import warnings
+from copy import copy
 from numpy import angle, pi, exp, sqrt
 from types import FunctionType
 from qutip.qobj import Qobj, isket
@@ -71,7 +72,7 @@ def floquet_modes(H, T, args=None, sort=False, U=None, options=None):
 
     if U is None:
         # get the unitary propagator
-        U = propagator(H, T, [], args=args, options=options)
+        U = propagator(H, T, [], args=args, options=copy(options))
 
     # find the eigenstates for the propagator
     evals, evecs = la.eig(U.full())
@@ -144,7 +145,7 @@ def floquet_modes_t(f_modes_0, f_energies, t, H, T, args=None,
 
     # get the unitary propagator from 0 to t
     if t > 0.0:
-        U = propagator(H, t, [], args, options=options)
+        U = propagator(H, t, [], args, options=copy(options))
 
         for n in np.arange(len(f_modes_0)):
             f_modes_t.append(U * f_modes_0[n] * exp(1j * f_energies[n] * t))
@@ -193,7 +194,7 @@ def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args=None,
         A nested list of Floquet modes as kets for each time in `tlist`
 
     """
-    options = options or Options()
+    options = copy(options) or Options()
     # truncate tlist to the driving period
     tlist_period = tlist[np.where(tlist <= T)]
 
