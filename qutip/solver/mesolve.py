@@ -206,33 +206,8 @@ class MeSolver(Solver):
         rhs += sum(c_op if c_op.issuper else lindblad_dissipator(c_op)
                             for c_op in c_ops)
         super().__init__(rhs, e_ops=e_ops, options=options)
-        self.state_metadata = ()
 
         self.stats['solver'] = "Master Equation Evolution"
         self.stats['num_collapse'] = len(c_ops)
         self.stats["preparation time"] = time() - _time_start
         self.stats["run time"] = 0
-
-    def _prepare_state(self, state):
-        if isket(state):
-            state = ket2dm(state)
-
-        if self.options.ode["State_data_type"]:
-            state = state.to(self.options.ode["State_data_type"])
-        self.state_metadata = state.dims, state.type, state.isherm
-
-        if self.rhs.dims[1] == state.dims:
-            return stack_columns(state.data)
-        elif self.rhs.dims[1] == state.dims[0]:
-            return state.data
-        else:
-            raise TypeError(f"incompatible dimensions {self.rhs.dims}"
-                            f" and {state.dims}")
-
-    def _restore_state(self, state, copy=True):
-        dims, type_, herm = self.state_metadata
-        if state.shape[1] == 1:
-            return Qobj(unstack_columns(state),
-                        dims=dims, type=type_, isherm=herm, copy=False)
-        else:
-            return Qobj(state, dims=dims, type=type_, copy=copy)

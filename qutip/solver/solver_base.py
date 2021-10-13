@@ -22,11 +22,13 @@ class Solver:
     Main class of the solvers.
     Do the loop over each times in tlist and does the interface between the
     evolver which deal in data and the Result which use Qobj.
-    It's children (SeSolver, McSolver) are responsible with building the system
-    (-1j*H).
 
     attributes
     ----------
+    rhs : Qobj, QobjEvo
+        Right hand side of the evolution::
+            d state / dt = rhs @ state
+
     options : SolverOptions
         Options for the solver
 
@@ -53,19 +55,14 @@ class Solver:
     odeoptionsclass = SolverOdeOptions
 
     def __init__(self, rhs, *, e_ops=None, options=None):
-        """
-        Is responsible for creating ``rhs`` as a QobjEvo.
-        It can expect the input Hamiltonian, etc, to be :cls:`Qobj` or
-        :cls:`QobjEvo`, list format are not accepted.
-
-        A ``stats`` dict should be created and ``e_ops`` and ``options`` need
-        to be stored.
-        """
-        self.rhs = rhs if isinstance(rhs, QobjEvo) else QobjEvo(rhs)
-        self.stats = {}
+        if isinstance(rhs, (QobjEvo, Qobj)):
+            self.rhs = QobjEvo(rhs)
+        else:
+            TypeError("The rhs must be a QobjEvo")
         self.e_ops = e_ops
         self.options = options
-        self.state_metadata = {}
+        self.stats = {}
+        self._state_metadata = {}
 
     def _prepare_state(self, state):
         """
@@ -89,7 +86,7 @@ class Solver:
         if self.options.ode["State_data_type"]:
             state = state.to(self.options.ode["State_data_type"])
 
-        self.state_metadata = {
+        self._state_metadata = {
             'dims': state.dims,
             'type': state.type,
             'isherm': state.isherm
@@ -102,15 +99,20 @@ class Solver:
         """
         Retore the Qobj state from the it's data.
         """
-        if self.state_metadata['dims'] == self.rhs.dims[1]:
+        if self._state_metadata['dims'] == self.rhs.dims[1]:
             return Qobj(unstack_columns(state),
-                        **self.state_metadata, copy=False)
+                        **self._state_metadata, copy=False)
         else:
-            return Qobj(state, **self.state_metadata, copy=copy)
+            return Qobj(state, **self._state_metadata, copy=copy)
 
     def run(self, state0, tlist, *, args={}):
         """
         Do the evolution of the Quantum system.
+
+        For a ``state0`` at time ``tlist[0]`` do the evolution as directed by
+        ``rhs`` and for each time in ``tlist`` store the state and/or
+        expectation values in a :cls:`Result`. The evolution method and stored
+        results are determined by ``options``.
 
         Parameters
         ----------
@@ -124,7 +126,7 @@ class Solver:
             need to be uniformy distributed.
 
         args : dict, optional {None}
-            Set the ``args`` of the system for the evolution.
+            Change the ``args`` of the rhs for the evolution.
 
         Return
         ------
@@ -147,7 +149,7 @@ class Solver:
         progress_bar.start(len(tlist)-1, **self.options['progress_kwargs'])
         for t, state in _integrator.run(tlist):
             progress_bar.update()
-            results.add(t, self._restore_state(state, False))
+            results.add(t, self._restore_state(state, copy=False))
         progress_bar.finished()
 
         self.stats['run time'] = progress_bar.total_time()
@@ -159,7 +161,8 @@ class Solver:
 
     def start(self, state0, t0):
         """
-        Set the initial state of the evolution.
+        Set the initial state and time for a step evolution.
+        ``options`` for the evolutions are read at this step.
 
         Parameters
         ----------
@@ -193,7 +196,7 @@ class Solver:
         options : SolverOptions, optional {None}
             Update the ``options`` of the system.
             The change is effective from the beginning of the interval.
-            Changing ``optional`` can slow the evolution.
+            Changing ``options`` can slow the evolution.
 
         copy : bool, optional {True}
             Whether to return a copy of the data or the data in the ODE solver.
