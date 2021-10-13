@@ -51,7 +51,6 @@ import numpy as np
 import scipy.linalg
 
 from . import data as _data
-from .data import matmul
 from .superoperator import stack_columns, unstack_columns, sprepost
 from .tensor import tensor
 from .dimensions import flatten
@@ -164,7 +163,7 @@ def _choi_to_kraus(q_oper, tol=1e-9):
     vals, vecs = q_oper.eigenstates()
     dims = [q_oper.dims[0][1], q_oper.dims[0][0]]
     shape = (np.prod(q_oper.dims[0][1]), np.prod(q_oper.dims[0][0]))
-    return [Qobj(np.sqrt(val) * unstack_columns(vec.data, shape=shape),
+    return [Qobj(_data.mul(unstack_columns(vec.data, shape=shape), np.sqrt(val)),
                  dims=dims, type='oper', copy='False')
             for val, vec in zip(vals, vecs) if abs(val) >= tol]
 
@@ -233,7 +232,7 @@ def _choi_to_chi(q_oper):
     """
     nq = _nq(q_oper.dims)
     B = _superpauli_basis(nq).data
-    return Qobj(matmul(matmul(B.adjoint(), q_oper.data), B),
+    return Qobj(_data.matmul(_data.matmul(B.adjoint(), q_oper.data), B),
                 dims=q_oper.dims,
                 type='super',
                 superrep='chi',
@@ -251,7 +250,10 @@ def _chi_to_choi(q_oper):
     B = _superpauli_basis(nq).data
     # The Chi matrix has tr(chi) == d², so we need to divide out
     # by that to get back to the Choi form.
-    return Qobj(matmul(matmul(B, q_oper.data), B.adjoint()) / q_oper.shape[0],
+    return Qobj(_data.mul(
+                    _data.matmul(_data.matmul(B, q_oper.data), B.adjoint()),
+                    1 / q_oper.shape[0]
+                ),
                 dims=q_oper.dims,
                 type='super',
                 superrep='choi',

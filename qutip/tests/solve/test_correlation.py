@@ -239,8 +239,8 @@ def _step(t):
 def test_hamiltonian_order_unimportant():
     # Testing for regression on issue 1048.
     sp = qutip.sigmap()
-    H = [[qutip.sigmax(), lambda t, _: _step(t-2)],
-         [qutip.qeye(2), lambda t, _: _step(-(t-2))]]
+    H = [[qutip.sigmax(), lambda t: _step(t-2)],
+         [qutip.qeye(2), lambda t: _step(-(t-2))]]
     start = qutip.basis(2, 0)
     times = np.linspace(0, 5, 6)
     forwards = qutip.correlation_2op_2t(H, start, times, times, [sp],

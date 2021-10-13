@@ -26,7 +26,9 @@ from qutip.core.data.adjoint cimport adjoint_csr, transpose_csr, conj_csr
 from qutip.core.data.mul cimport mul_csr, neg_csr
 from qutip.core.data.matmul cimport matmul_csr
 from qutip.core.data.trace cimport trace_csr
+from qutip.core.data.tidyup cimport tidyup_csr
 from .base import idxint_dtype
+from qutip.settings import settings
 
 cnp.import_array()
 
@@ -75,7 +77,7 @@ cdef class CSR(base.Data):
         # single flag that is set as soon as the pointers are assigned.
         self._deallocate = True
 
-    def __init__(self, arg=None, shape=None, bint copy=True):
+    def __init__(self, arg=None, shape=None, bint copy=True, bint tidyup=False):
         # This is the Python __init__ method, so we do not care that it is not
         # super-fast C access.  Typically Cython code will not call this, but
         # will use a factory method in this module or at worst, call
@@ -134,6 +136,8 @@ cdef class CSR(base.Data):
         # Store a reference to the backing scipy matrix so it doesn't get
         # deallocated before us.
         self._scipy = _csr_matrix(data, col_index, row_index, self.shape)
+        if tidyup:
+            tidyup_csr(self, settings.core['auto_tidyup_atol'], True)
 
     def __reduce__(self):
         return (fast_from_scipy, (self.as_scipy(),))
@@ -223,61 +227,6 @@ cdef class CSR(base.Data):
             diff = self.row_index[row + 1] - ptr
             sort.inplace(self, ptr, diff)
         return self
-
-    # Beware: before Cython 3, mathematical operator overrides follow the C
-    # API, _not_ the Python one.  This means the first argument is _not_
-    # guaranteed to be `self`, and methods like `__rmul__` don't exist.  This
-    # does not affect in place operations like `__imul__`, since we can always
-    # guarantee the one on the left is `self`.
-
-    def __add__(left, right):
-        if not isinstance(left, CSR) or not isinstance(right, CSR):
-            return NotImplemented
-        return add_csr(left, right)
-
-    def __matmul__(left, right):
-        if not isinstance(left, CSR) or not isinstance(right, CSR):
-            return NotImplemented
-        return matmul_csr(left, right)
-
-    def __mul__(left, right):
-        csr, number = (left, right) if isinstance(left, CSR) else (right, left)
-        if not isinstance(number, numbers.Number):
-            return NotImplemented
-        return mul_csr(csr, complex(number))
-
-    def __imul__(self, other):
-        if not isinstance(other, numbers.Number):
-            return NotImplemented
-        cdef int nnz_ = nnz(self)
-        cdef double complex mul = other
-        blas.zscal(&nnz_, &mul, self.data, &_ONE)
-        return self
-
-    def __truediv__(left, right):
-        csr, number = (left, right) if isinstance(left, CSR) else (right, left)
-        if not isinstance(number, numbers.Number):
-            return NotImplemented
-        # Technically `(1 / x) * y` doesn't necessarily equal `y / x` in
-        # floating point, but multiplication is faster than division, and we
-        # don't really care _that_ much anyway.
-        return mul_csr(csr, 1 / complex(number))
-
-    def __itruediv__(self, other):
-        if not isinstance(other, numbers.Number):
-            return NotImplemented
-        cdef int nnz_ = nnz(self)
-        cdef double complex mul = 1 / other
-        blas.zscal(&nnz_, &mul, self.data, &_ONE)
-        return self
-
-    def __neg__(self):
-        return neg_csr(self)
-
-    def __sub__(left, right):
-        if not isinstance(left, CSR) or not isinstance(right, CSR):
-            return NotImplemented
-        return sub_csr(left, right)
 
     cpdef double complex trace(self):
         return trace_csr(self)
@@ -638,7 +587,7 @@ cpdef CSR from_dense(Dense matrix):
 
 cdef CSR from_coo_pointers(
     base.idxint *rows, base.idxint *cols, double complex *data,
-    base.idxint n_rows, base.idxint n_cols, base.idxint nnz,
+    base.idxint n_rows, base.idxint n_cols, base.idxint nnz, double tol=0
 ):
     # Note that COO pointers may not be sorted in row-major order, and that
     # they may contain duplicate entries which should be implicitly summed.
@@ -680,7 +629,7 @@ cdef CSR from_coo_pointers(
                 acc_scatter(&acc, data_tmp[ptr_in], cols_tmp[ptr_in])
             ptr_prev = out.row_index[row]
             out.row_index[row] = ptr_out
-            ptr_out += acc_gather(&acc, out.data + ptr_out, out.col_index + ptr_out)
+            ptr_out += acc_gather(&acc, out.data + ptr_out, out.col_index + ptr_out, tol)
             acc_reset(&acc)
         out.row_index[n_rows] = ptr_out
     mem.PyMem_Free(data_tmp)

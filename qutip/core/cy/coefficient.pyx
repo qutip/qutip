@@ -5,6 +5,7 @@ from .inter cimport (_spline_complex_cte_second,
                      _step_complex_t, _step_complex_cte)
 from .interpolate cimport interp, zinterp
 from ..interpolate import Cubic_Spline
+import inspect
 import pickle
 import scipy
 import numpy as np
@@ -15,6 +16,62 @@ import qutip
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
     double         norm(double complex x)
+
+
+def coefficient_function_parameters(func, style=None):
+    """
+    Return the function style (either "pythonic" or not) and a list of
+    additional parameters accepted.
+
+    Used by :obj:`FunctionCoefficient` and :obj:`_FuncElement` to determine the
+    call signature of the supplied function based on the given style (or
+    ``qutip.settings.core["function_coefficient_style"]`` if no style is given)
+    and the signature of the given function.
+
+    Parameters
+    ----------
+    func : function
+        The :obj:`FunctionCoefficient` to inspect. The first argument
+        of the function is assumed to be ``t`` (the time at which to
+        evaluate the coefficient). The remaining arguments depend on
+        the signature style (see below).
+
+    style : {None, "pythonic", "dict", "auto"}
+        The style of the signature used. If style is ``None``,
+        the value of ``qutip.settings.core["function_coefficient_style"]``
+        is used. Otherwise the supplied value overrides the global setting.
+
+    Returns
+    -------
+    (f_pythonic, f_parameters)
+
+    f_pythonic : bool
+        True if the function should be called as ``f(t, **kw)`` and False
+        if the function should be called as ``f(t, kw_dict)``.
+
+    f_parameters : set or None
+        The set of parameters (other than ``t``) of the function or
+        ``None`` if the function accepts arbitrary parameters.
+    """
+    sig = inspect.signature(func)
+    f_has_kw = any(p.kind == p.VAR_KEYWORD for p in sig.parameters.values())
+    if style is None:
+        style = qutip.settings.core["function_coefficient_style"]
+    if style == "auto":
+        if tuple(sig.parameters.keys()) == ("t", "args") and not f_has_kw:
+            # if the signature is exactly f(t, args), then assume parameters
+            # are supplied in an argument dictionary
+            style = "dict"
+        else:
+            style = "pythonic"
+    if style == "dict" or f_has_kw:
+        # f might accept any parameter
+        f_parameters = None
+    else:
+        # f accepts only t and the named parameters
+        f_parameters = set(list(sig.parameters.keys())[1:])
+    return (style == "pythonic", f_parameters)
+
 
 cdef class Coefficient:
     """
@@ -112,24 +169,57 @@ cdef class FunctionCoefficient(Coefficient):
 
     Parameters
     ----------
-    func : callable(t : float, args : dict) -> complex
-        Function computing the coefficient value.
+    func : callable(t : float, ...) -> complex
+        Function returning the coefficient value at time ``t``.
 
     args : dict
-        Values of the arguments to pass to `func`.
+        Values of the arguments to pass to ``func``.
+
+    style : {None, "pythonic", "dict", "auto"}
+        The style of function signature used. If style is ``None``,
+        the value of ``qutip.settings.core["function_coefficient_style"]``
+        is used. Otherwise the supplied value overrides the global setting.
+
+    The parameters ``_f_pythonic`` and ``_f_parameters`` override function
+    style and parameter detection and are not intended to be part of
+    the public interface.
     """
     cdef object func
+    cdef bint _f_pythonic
+    cdef set _f_parameters
 
-    def __init__(self, func, dict args):
+    _UNSET = object()
+
+    def __init__(self, func, dict args, style=None, _f_pythonic=_UNSET, _f_parameters=_UNSET):
+        if _f_pythonic is self._UNSET or _f_parameters is self._UNSET:
+            if not (_f_pythonic is self._UNSET and _f_parameters is self._UNSET):
+                raise TypeError(
+                    "_f_pythonic and _f_parameters should always be given together."
+                )
+            _f_pythonic, _f_parameters = coefficient_function_parameters(
+                func, style=style)
+            if _f_parameters is not None:
+                args = {k: args[k] for k in _f_parameters & args.keys()}
+            else:
+                args = args.copy()
         self.func = func
         self.args = args
+        self._f_pythonic = _f_pythonic
+        self._f_parameters = _f_parameters
 
     cdef complex _call(self, double t) except *:
+        if self._f_pythonic:
+            return self.func(t, **self.args)
         return self.func(t, self.args)
 
     cpdef Coefficient copy(self):
         """Return a copy of the :obj:`Coefficient`."""
-        return FunctionCoefficient(self.func, self.args.copy())
+        return FunctionCoefficient(
+            self.func,
+            self.args.copy(),
+            _f_pythonic=self._f_pythonic,
+            _f_parameters=self._f_parameters,
+        )
 
     def replace_arguments(self, _args=None, **kwargs):
         """
@@ -149,9 +239,16 @@ cdef class FunctionCoefficient(Coefficient):
         """
         if _args:
             kwargs.update(_args)
-        if kwargs:
-            return FunctionCoefficient(self.func, {**self.args, **kwargs})
-        return self
+        if self._f_parameters is not None:
+            kwargs = {k: kwargs[k] for k in self._f_parameters & kwargs.keys()}
+        if not kwargs:
+            return self
+        return FunctionCoefficient(
+            self.func,
+            {**self.args, **kwargs},
+            _f_pythonic=self._f_pythonic,
+            _f_parameters=self._f_parameters,
+        )
 
 
 def proj(x):

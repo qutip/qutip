@@ -351,7 +351,7 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
                 norm = _data.norm.l2(cdata)
                 if abs(norm - 1) > 1e-12:
                     # only reset the solver if state changed
-                    cdata /= norm
+                    cdata = _data.mul(cdata, 1/norm)
                     r.set_initial_value(cdata.as_ndarray(), r.t)
                 else:
                     r._y = cdata.as_ndarray()
@@ -379,8 +379,8 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
     if opt['store_final_state']:
         cdata = get_curr_state_data(r)
         if opt['normalize_output']:
-            cdata_nd = cdata.as_ndarray()
-            cdata_nd /= la_norm(cdata_nd, axis=0)
+            cdata = cdata.as_ndarray()
+            cdata /= la_norm(cdata, axis=0)
         output.final_state = Qobj(cdata, dims=dims)
 
     return output
