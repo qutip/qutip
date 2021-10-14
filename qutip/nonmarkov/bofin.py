@@ -174,6 +174,93 @@ class BosonicBath(Bath):
         super().__init__(modes)
 
 
+class DrudeLorentzBath(BosonicBath):
+    """
+    HEOM solver based on the Drude-Lorentz model for spectral density.
+    Drude-Lorentz bath the correlation functions can be exactly analytically
+    expressed as a sum of exponentials.
+
+    This sub-class is included to give backwards compatability with the older
+    implentation in qutip.nonmarkov.heom.
+
+    Parameters
+    ----------
+    Q : Qobj
+        Operator describing the coupling between system and bath.
+
+    lam : float
+        Coupling strength.
+
+    T : float
+        Bath temperature.
+
+    Nk : int
+        Number of exponential terms used to approximate the bath correlation
+        functions
+
+    gamma : float
+        Bath spectral density cutoff frequency.
+
+    terminator : bool, default False
+        Whether to calculate the Matsubara terminator for the bath. If
+        true, the calculate terminator is provided via the ``.terminator``
+        attibute. Otherwise, ``.terminator`` is set to ``None``. The
+        terminator is a Liouvillian term, so it's dimensions are those of
+        a superoperator of ``Q``.
+    """
+    def __init__(
+        self, Q, lam, T, Nk, gamma, terminator=False,
+    ):
+        ckAR, vkAR, ckAI, vkAI = self._matsubara_params(
+            lam=lam,
+            gamma=gamma,
+            Nk=Nk,
+            T=T,
+        )
+        if terminator:
+            self.terminator = self._matsubara_terminator(
+                Q=Q, lam=lam, gamma=gamma, Nk=Nk, T=T
+            )
+        else:
+            self.terminator = None
+        super().__init__(Q, ckAR, vkAR, ckAI, vkAI)
+
+    def _matsubara_terminator(self, Q, lam, gamma, Nk, T):
+        """ Calculate the hierarchy terminator term for the Liouvillian. """
+        beta = 1 / T
+
+        op = -2*spre(Q)*spost(Q.dag()) + spre(Q.dag()*Q) + spost(Q.dag()*Q)
+        approx_factr = ((2 * lam / (beta * gamma)) - 1j * lam)
+        approx_factr -= (
+            lam * gamma * (-1.0j + 1 / np.tan(gamma / (2 * T))) / gamma
+        )
+
+        for k in range(1, Nk):
+            vk = 2 * np.pi * k * T
+            approx_factr -= (
+                (4 * lam * gamma * T * vk / (vk**2 - gamma**2)) / vk
+            )
+
+        L_bnd = -approx_factr * op
+        return L_bnd
+
+    def _matsubara_params(self, lam, gamma, Nk, T):
+        """ Calculate the Matsubara coefficents and frequencies. """
+        ckAR = [lam * gamma * (1/np.tan(gamma / (2 * T)))]
+        ckAR.extend([
+            (4 * lam * gamma * T * 2 * np.pi * k * T /
+                ((2 * np.pi * k * T)**2 - gamma**2))
+            for k in range(1, Nk)
+        ])
+        vkAR = [gamma]
+        vkAR.extend([2 * np.pi * k * T for k in range(1, Nk)])
+
+        ckAI = [lam * gamma * (-1.0)]
+        vkAI = [gamma]
+
+        return ckAR, vkAR, ckAI, vkAI
+
+
 class FermionicBath(Bath):
     def __init__(self, Q, ck, vk):
         ck, vk = _convert_bath_exponents_fermionic(ck, vk)
@@ -902,25 +989,19 @@ class HSolverDL(HEOMSolver):
         self, H_sys, coup_op, coup_strength, temperature,
         N_cut, N_exp, cut_freq, bnd_cut_approx=False, options=None,
     ):
-        ckAR, ckAI, vkAR, vkAI = self._calc_matsubara_params(
+        bath = DrudeLorentzBath(
+            Q=coup_op,
             lam=coup_strength,
             gamma=cut_freq,
             Nk=N_exp,
-            T=temperature
+            T=temperature,
+            terminator=bnd_cut_approx,
         )
 
         if bnd_cut_approx:
-            L_bnd = self._calc_bound_cut_liouvillian(
-                Q=coup_op,
-                lam=coup_strength,
-                gamma=cut_freq,
-                Nk=N_exp,
-                T=temperature
-            )
             H_sys = _convert_h_sys(H_sys)
-            H_sys = liouvillian(H_sys) + L_bnd
+            H_sys = liouvillian(H_sys) + bath.terminator
 
-        bath = BosonicBath(coup_op, ckAR, vkAR, ckAI, vkAI)
         super().__init__(H_sys, bath, N_cut, options=options)
 
         # store input parameters as attributes for politeness
@@ -929,41 +1010,6 @@ class HSolverDL(HEOMSolver):
         self.temperature = temperature
         self.N_exp = N_exp
         self.bnd_cut_approx = bnd_cut_approx
-
-    def _calc_bound_cut_liouvillian(self, Q, lam, gamma, Nk, T):
-        """ Calculate the hierarchy terminator term for the Liouvillian. """
-        beta = 1 / T
-
-        op = -2*spre(Q)*spost(Q.dag()) + spre(Q.dag()*Q) + spost(Q.dag()*Q)
-        approx_factr = ((2 * lam / (beta * gamma)) - 1j * lam)
-        approx_factr -= (
-            lam * gamma * (-1.0j + 1 / np.tan(gamma / (2 * T))) / gamma
-        )
-
-        for k in range(1, Nk):
-            vk = 2 * np.pi * k * T
-            approx_factr -= (
-                (4 * lam * gamma * T * vk / (vk**2 - gamma**2)) / vk
-            )
-
-        L_bnd = -approx_factr * op
-        return L_bnd
-
-    def _calc_matsubara_params(self, lam, gamma, Nk, T):
-        """ Calculate the Matsubara coefficents and frequencies. """
-        ckAR = [lam * gamma * (1/np.tan(gamma / (2 * T)))]
-        ckAR.extend([
-            (4 * lam * gamma * T * 2 * np.pi * k * T /
-                ((2 * np.pi * k * T)**2 - gamma**2))
-            for k in range(1, Nk)
-        ])
-        vkAR = [gamma]
-        vkAR.extend([2 * np.pi * k * T for k in range(1, Nk)])
-
-        ckAI = [lam * gamma * (-1.0)]
-        vkAI = [gamma]
-
-        return ckAR, ckAI, vkAR, vkAI
 
 
 class FermionicHEOMSolver(HEOMSolver):
