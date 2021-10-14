@@ -14,6 +14,7 @@ import numpy as np
 import scipy.sparse as sp
 import scipy.integrate
 from scipy.sparse.linalg import splu
+from scipy.linalg import eigvalsh
 
 from qutip import settings
 from qutip import state_number_enumerate
@@ -259,6 +260,123 @@ class DrudeLorentzBath(BosonicBath):
         vkAI = [gamma]
 
         return ckAR, vkAR, ckAI, vkAI
+
+
+class DrudeLorentzPadeBath(BosonicBath):
+    """
+    HEOM solver based on the Drude-Lorentz model for spectral density.
+    Drude-Lorentz bath the correlation functions can be exactly analytically
+    expressed as a sum of exponentials.
+
+    This sub-class is included to give backwards compatability with the older
+    implentation in qutip.nonmarkov.heom.
+
+    Parameters
+    ----------
+    Q : Qobj
+        Operator describing the coupling between system and bath.
+
+    lam : float
+        Coupling strength.
+
+    T : float
+        Bath temperature.
+
+    Nk : int
+        Number of exponential terms used to approximate the bath correlation
+        functions
+
+    gamma : float
+        Bath spectral density cutoff frequency.
+
+    lmax : int, default: 2
+        FIXME: Some kind of cut off. Default to 2?
+
+    Attributes
+    ----------
+    eta_p : list of complex
+        FIXME: Some parameters of some sort.
+
+    gamma_p: list of complex
+        FIXME: Another list of paramaters of some sort.
+    """
+    def __init__(self, Q, lam, T, Nk, gamma, lmax):
+        eta_p, gamma_p = self._pade_corr(lam=lam, gamma=gamma, T=T, lmax=lmax)
+
+        ckAR = [np.real(eta) for eta in eta_p]
+        vkAR = [gam for gam in gamma_p]
+        ckAI = [np.imag(eta_p[0])]
+        vkAI = [gamma_p[0]]
+
+        super().__init__(Q, ckAR, vkAR, ckAI, vkAI)
+        self.eta_p = eta_p
+        self.gamma_p = gamma_p
+
+    def _delta(self, i, j):
+        return 1.0 if i == j else 0.0
+
+    def _cot(self, x):
+        return 1. / np.tan(x)
+
+    def _corr(self, lam, gamma, T, lmax):
+        beta = 1. / T
+        kappa, epsilon = self._kappa_epsilon(lmax)
+
+        eta_p = [lam * gamma * (self._cot(gamma * beta / 2.0) - 1.0j)]
+        gamma_p = [gamma]
+
+        if lmax > 0:
+            for ll in range(1, lmax + 1):
+                eta_p.append(
+                    (kappa[ll] / beta) * 4 * lam * gamma * (epsilon[ll] / beta)
+                    / ((epsilon[ll]**2 / beta**2) - gamma**2)
+                )
+                gamma_p.append(epsilon[ll] / beta)
+
+        return eta_p, gamma_p
+
+    def _kappa_epsilon(self, lmax):
+        eps = self._calc_eps(lmax)
+        chi = self._calc_chi(lmax)
+
+        kappa = [0]
+        prefactor = 0.5 * lmax * (2 * (lmax + 1) + 1)
+        for j in range(lmax):
+            term = prefactor
+            for k in range(lmax - 1):
+                term *= (
+                    (chi[k]**2 - eps[j]**2) /
+                    (eps[k]**2 - eps[j]**2 + self._delta(j, k))
+                )
+            for k in range(lmax - 1, lmax):
+                term /= (eps[k]**2 - eps[j]**2 + self._delta(j, k))
+            kappa.append(term)
+
+        epsilon = [0] + eps
+
+        return kappa, epsilon
+
+    def _calc_eps(self, lmax):
+        alpha = np.zeros((2 * lmax, 2 * lmax))
+        for j in range(2 * lmax):
+            for k in range(2 * lmax):
+                alpha[j][k] = (
+                    self._delta(j, k + 1) + self._delta(j, k - 1)
+                ) / np.sqrt((2 * (j + 1) + 1) * (2 * (k + 1) + 1))
+        evals = eigvalsh(alpha)
+        eps = [-2. / val for val in evals[0: lmax]]
+        return eps
+
+    def _calc_chi(self, lmax):
+        alpha_p = np.zeros((2 * lmax - 1, 2 * lmax - 1))
+        for j in range(2 * lmax - 1):
+            for k in range(2 * lmax - 1):
+                alpha_p[j][k] = (
+                    self._delta(j, k + 1) + self._delta(j, k - 1)
+                ) / np.sqrt((2 * (j + 1) + 3) * (2 * (k + 1) + 3))
+        evals = eigvalsh(alpha_p)
+        chi = [-2. / val for val in evals[0: lmax - 1]]
+        return chi
 
 
 class FermionicBath(Bath):
