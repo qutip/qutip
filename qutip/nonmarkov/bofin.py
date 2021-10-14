@@ -1055,7 +1055,7 @@ class HSolverDL(HEOMSolver):
             lam * gamma * (-1.0j + 1 / np.tan(gamma / (2 * T))) / gamma
         )
 
-        for k in range(1, Nk + 1):
+        for k in range(1, Nk):
             vk = 2 * np.pi * k * T
             approx_factr -= (
                 (4 * lam * gamma * T * vk / (vk**2 - gamma**2)) / vk
@@ -1070,10 +1070,10 @@ class HSolverDL(HEOMSolver):
         ckAR.extend([
             (4 * lam * gamma * T * 2 * np.pi * k * T /
                 ((2 * np.pi * k * T)**2 - gamma**2))
-            for k in range(1, Nk + 1)
+            for k in range(1, Nk)
         ])
         vkAR = [gamma]
-        vkAR.extend([2 * np.pi * k * T for k in range(1, Nk + 1)])
+        vkAR.extend([2 * np.pi * k * T for k in range(1, Nk)])
 
         ckAI = [lam * gamma * (-1.0)]
         vkAI = [gamma]
