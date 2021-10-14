@@ -20,7 +20,6 @@ from qutip import state_number_enumerate
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
 from qutip.superoperator import liouvillian, spre, spost, vec2mat
-from qutip.cy.heom import cy_pad_csr
 from qutip.cy.spmatfuncs import cy_ode_rhs
 from qutip.solver import Options, Result
 from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
@@ -497,81 +496,7 @@ class HEOMSolver:
 
         self.progress_bar = BaseProgressBar()
 
-        self._mode = "gather-ops"  # pad-op, inplace-add-op, gather-ops
-
         self._configure_solver()
-
-    def _pad_op(self, op, row_he, col_he):
-        """
-        Pad op into its correct position within the larger HEOM liouvillian
-        for the given row and column bath states.
-        """
-        nhe = self.bath.n_states
-        rowidx = self.bath.idx(row_he)
-        colidx = self.bath.idx(col_he)
-        return cy_pad_csr(op, nhe, nhe, rowidx, colidx)
-
-    def _inplace_add_op(self, L, op, row_he, col_he):
-        """
-        Add the operation ``op`` to its correct position within the
-        larger HEOM liouvillian for the given row and column bath states.
-        """
-        block = self._sup_shape
-        rowpos = self.bath.idx(row_he) * block
-        colpos = self.bath.idx(col_he) * block
-        L[rowpos: rowpos + block, colpos: colpos + block] += op
-
-    def _gather_ops(self, ops, block, nhe):
-        """ Create the HEOM liouvillian from a list of smaller CSRs.
-
-            Parameters
-            ----------
-            ops : list of (row_idx, col_idx, op)
-                Operators to combine.
-            block : int
-                The size of a single Liovillian operator in the hierarchy.
-            nhe : int
-                The number of ADOs in the hierarchy.
-        """
-        shape = (block * nhe, block * nhe)
-        if not ops:
-            return sp.csr_matrix(shape, dtype=np.complex128)
-        nnz = sum(op.nnz for _, _, op in ops)
-        indptr = np.zeros(shape[0] + 1, dtype=np.int32)
-        indices = np.zeros(nnz, dtype=np.int32)
-        data = np.zeros(nnz, dtype=np.complex128)
-        end = 0
-        op_idx = 0
-        op_len = len(ops)
-
-        for row_idx in range(nhe):
-            prev_op_idx = op_idx
-            while op_idx < op_len:
-                if ops[op_idx][0] != row_idx:
-                    break
-                op_idx += 1
-
-            row_ops = ops[prev_op_idx: op_idx]
-            rowpos = row_idx * block
-            for op_row in range(block):
-                for _, col_idx, op in row_ops:
-                    colpos = col_idx * block
-                    op_row_start = op.indptr[op_row]
-                    op_row_end = op.indptr[op_row + 1]
-                    op_row_len = op_row_end - op_row_start
-                    if op_row_len == 0:
-                        continue
-                    indices[end: end + op_row_len] = (
-                        op.indices[op_row_start: op_row_end] + colpos
-                    )
-                    data[end: end + op_row_len] = (
-                        op.data[op_row_start: op_row_end]
-                    )
-                    end += op_row_len
-                indptr[rowpos + op_row + 1] = end
-        return fast_csr_matrix(
-            (data, indices, indptr), shape=shape, dtype=np.complex128,
-        )
 
     def _dsuper_list_td(self, t, y, L_list):
         """ Auxiliary function for the integration. Called every time step. """
@@ -675,62 +600,22 @@ class HEOMSolver:
     def _rhs(self, L):
         """ Make the RHS for the HEOM. """
         nhe = len(self.bath.states)
-        L_shape = L.shape[0]
-
-        # Temporary _mode option to experiment with different methods for
-        # assembling the RHS while we determine which is best:
-        #
-        # pad-op: RHS += cy_pad_csr(op)
-        # inplace-add-op: RHS[r: r + block, c: c + block] = op
-        # gather-ops: store ops in a list and then assemble the RHS at the end
-        if self._mode == "pad-op":
-            RHS = fast_csr_matrix(
-                shape=(nhe * L_shape, nhe * L_shape),
-                dtype=np.complex128,
-            )
-
-            def _add_rhs(row_he, col_he, op):
-                nonlocal RHS
-                RHS += self._pad_op(op.copy(), row_he, col_he)
-        elif self._mode == "inplace-add-op":
-            RHS = sp.lil_matrix(
-                (nhe * L_shape, nhe * L_shape),
-                dtype=np.complex128,
-            )
-
-            def _add_rhs(row_he, col_he, op):
-                nonlocal RHS
-                self._inplace_add_op(RHS, op, row_he, col_he)
-        elif self._mode == "gather-ops":
-            ALL_OPS = []
-
-            def _add_rhs(row_he, col_he, op):
-                ALL_OPS.append(
-                    (self.bath.idx(row_he), self.bath.idx(col_he), op)
-                )
-        else:
-            raise ValueError(f"Unknown RHS construction _mode: {self._mode!r}")
+        ops = _GatherHEOMRHS(self.bath.idx, block=L.shape[0], nhe=nhe)
 
         for he_n in self.bath.states:
             op = self._grad_n(L, he_n)
-            _add_rhs(he_n, he_n, op)
+            ops.add_op(he_n, he_n, op)
             for k in range(len(self.bath.dims)):
                 next_he = self.bath.next(he_n, k)
                 if next_he is not None:
                     op = self._grad_next(he_n, k)
-                    _add_rhs(he_n, next_he, op)
+                    ops.add_op(he_n, next_he, op)
                 prev_he = self.bath.prev(he_n, k)
                 if prev_he is not None:
                     op = self._grad_prev(he_n, k)
-                    _add_rhs(he_n, prev_he, op)
+                    ops.add_op(he_n, prev_he, op)
 
-        if self._mode == "inplace-add-op":
-            RHS = RHS.tocsr()
-        elif self._mode == "gather-ops":
-            ALL_OPS.sort()
-            RHS = self._gather_ops(ALL_OPS, block=L_shape, nhe=nhe)
-
-        return RHS
+        return ops.gather()
 
     def _configure_solver(self):
         """ Set up the solver. """
@@ -1119,3 +1004,92 @@ class FermionicHEOMSolver(HEOMSolver):
     def __init__(self, H_sys, coup_op, ck, vk, N_cut, options=None):
         bath = FermionicBath(coup_op, ck, vk)
         super().__init__(H_sys, bath, N_cut, options=options)
+
+
+class _GatherHEOMRHS:
+    """ A class for collecting elements of the right-hand side matrix
+        of the HEOM.
+
+        Parameters
+        ----------
+        f_idx: function(he_state) -> he_idx
+            A function that returns the index of a hierarchy state
+            (i.e. an ADO label).
+        block : int
+            The size of a single ADO Liovillian operator in the hierarchy.
+        nhe : int
+            The number of ADOs in the hierarchy.
+    """
+    def __init__(self, f_idx, block, nhe):
+        self._block = block
+        self._nhe = nhe
+        self._f_idx = f_idx
+        self._ops = []
+
+    def add_op(self, row_he, col_he, op):
+        """ Add an block operator to the list. """
+        self._ops.append(
+            (self._f_idx(row_he), self._f_idx(col_he), op)
+        )
+
+    def gather(self):
+        """ Create the HEOM liouvillian from a sorted list of smaller (fast) CSR
+            matrices.
+
+            .. note::
+
+                The list of operators contains tuples of the form
+                ``(row_idx, col_idx, op)``. The row_idx and col_idx give the
+                *block* row and column for each op. An operator with
+                block indices ``(N, M)`` is placed at position
+                ``[N * block: (N + 1) * block, M * block: (M + 1) * block]``
+                in the output matrix.
+
+            Returns
+            -------
+            rhs : :obj:`qutip.fastsparse.fast_csr_matrix`
+                A combined matrix of shape ``(block * nhe, block * ne)``.
+        """
+        block = self._block
+        nhe = self._nhe
+        ops = self._ops
+        shape = (block * nhe, block * nhe)
+        if not ops:
+            return sp.csr_matrix(shape, dtype=np.complex128)
+        ops.sort()
+        nnz = sum(op.nnz for _, _, op in ops)
+        indptr = np.zeros(shape[0] + 1, dtype=np.int32)
+        indices = np.zeros(nnz, dtype=np.int32)
+        data = np.zeros(nnz, dtype=np.complex128)
+        end = 0
+        op_idx = 0
+        op_len = len(ops)
+
+        for row_idx in range(nhe):
+            prev_op_idx = op_idx
+            while op_idx < op_len:
+                if ops[op_idx][0] != row_idx:
+                    break
+                op_idx += 1
+
+            row_ops = ops[prev_op_idx: op_idx]
+            rowpos = row_idx * block
+            for op_row in range(block):
+                for _, col_idx, op in row_ops:
+                    colpos = col_idx * block
+                    op_row_start = op.indptr[op_row]
+                    op_row_end = op.indptr[op_row + 1]
+                    op_row_len = op_row_end - op_row_start
+                    if op_row_len == 0:
+                        continue
+                    indices[end: end + op_row_len] = (
+                        op.indices[op_row_start: op_row_end] + colpos
+                    )
+                    data[end: end + op_row_len] = (
+                        op.data[op_row_start: op_row_end]
+                    )
+                    end += op_row_len
+                indptr[rowpos + op_row + 1] = end
+        return fast_csr_matrix(
+            (data, indices, indptr), shape=shape, dtype=np.complex128,
+        )
