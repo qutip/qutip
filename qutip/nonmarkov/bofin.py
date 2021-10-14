@@ -25,6 +25,7 @@ from qutip.cy.spmatfuncs import cy_ode_rhs
 from qutip.solver import Options, Result
 from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
 from qutip.ui.progressbar import BaseProgressBar
+from qutip.fastsparse import fast_identity, fast_csr_matrix
 
 # Load MKL spsolve if avaiable
 if settings.has_mkl:
@@ -486,6 +487,14 @@ class HEOMSolver:
         self.spreQdag = [spre(op.dag()).data for op in self.coup_op]
         self.spostQdag = [spost(op.dag()).data for op in self.coup_op]
 
+        self.sId = fast_identity(self._sup_shape)
+        self.s_pre_minus_post_Q = [
+            self.spreQ[k] - self.spostQ[k] for k in range(len(self.coup_op))
+        ]
+        self.s_pre_plus_post_Q = [
+            self.spreQ[k] + self.spostQ[k] for k in range(len(self.coup_op))
+        ]
+
         self.progress_bar = BaseProgressBar()
 
         self._mode = "gather-ops"  # pad-op, inplace-add-op, gather-ops
@@ -560,7 +569,7 @@ class HEOMSolver:
                     )
                     end += op_row_len
                 indptr[rowpos + op_row + 1] = end
-        return sp.csr_matrix(
+        return fast_csr_matrix(
             (data, indices, indptr), shape=shape, dtype=np.complex128,
         )
 
@@ -575,7 +584,7 @@ class HEOMSolver:
         """ Get the gradient for the hierarchy ADO at level n. """
         vk = self.bath.vk
         vk_sum = sum(he_n[i] * vk[i] for i in range(len(vk)))
-        op = L - vk_sum * sp.eye(L.shape[0], dtype=complex, format="csr")
+        op = L - vk_sum * self.sId
         return op
 
     def _grad_prev(self, he_n, k):
@@ -595,17 +604,17 @@ class HEOMSolver:
 
     def _grad_prev_bosonic(self, he_n, k):
         if self.bath.modes[k].type == BathExponent.types.R:
-            op = -1j * he_n[k] * self.bath.ck[k] * (
-                self.spreQ[k] - self.spostQ[k]
-                )
+            op = (-1j * he_n[k] * self.bath.ck[k]) * self.s_pre_minus_post_Q[k]
         elif self.bath.modes[k].type == BathExponent.types.I:
-            op = -1j * he_n[k] * 1j * self.bath.ck[k] * (
-                self.spreQ[k] + self.spostQ[k]
+            op = (-1j * he_n[k] * 1j * self.bath.ck[k]) * (
+                    self.s_pre_plus_post_Q[k]
                 )
         elif self.bath.modes[k].type == BathExponent.types.RI:
-            term1 = -1j * self.bath.ck[k] * (self.spreQ[k] - self.spostQ[k])
-            term2 = self.bath.ck2[k] * (self.spreQ[k] + self.spostQ[k])
-            op = he_n[k] * (term1 + term2)
+            term1 = (he_n[k] * -1j * self.bath.ck[k]) * (
+                self.s_pre_minus_post_Q[k]
+            )
+            term2 = (he_n[k] * self.bath.ck2[k]) * self.s_pre_plus_post_Q[k]
+            op = term1 + term2
         else:
             raise ValueError(
                 f"Unsupported type {self.bath.modes[k].type} for mode {k}"
@@ -646,7 +655,7 @@ class HEOMSolver:
                 f"Mode {k} has unsupported type {self.bath.modes[k].type}")
 
     def _grad_next_bosonic(self, he_n, k):
-        op = -1j * (self.spreQ[k] - self.spostQ[k])
+        op = -1j * self.s_pre_minus_post_Q[k]
         return op
 
     def _grad_next_fermionic(self, he_n, k):
@@ -656,10 +665,10 @@ class HEOMSolver:
         n_excite_before_m = sum(he_n[:k])
         sign2 = (-1) ** (n_excite_before_m)
 
-        op = -1j * sign2 * (
-            (self.spreQdag[k]) +
-            (sign1 * self.spostQdag[k])
-        )
+        if sign1 == -1:
+            op = (-1j * sign2) * self.s_pre_minus_post_Q[k]
+        else:
+            op = (-1j * sign2) * self.s_pre_plus_post_Q[k]
 
         return op
 
@@ -675,8 +684,8 @@ class HEOMSolver:
         # inplace-add-op: RHS[r: r + block, c: c + block] = op
         # gather-ops: store ops in a list and then assemble the RHS at the end
         if self._mode == "pad-op":
-            RHS = sp.csr_matrix(
-                (nhe * L_shape, nhe * L_shape),
+            RHS = fast_csr_matrix(
+                shape=(nhe * L_shape, nhe * L_shape),
                 dtype=np.complex128,
             )
 
