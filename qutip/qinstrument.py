@@ -2,7 +2,7 @@
 general form of discrete-time evolution in open quantum systems.
 """
 
-__all__ = ['QInstrument', 'Seq', 'Par', 'Pauli']
+__all__ = ['QInstrument', 'Seq', 'Par', 'Pauli', 'PauliString']
 
 # # Design notes
 #
@@ -98,6 +98,14 @@ class PauliString:
     def __neg__(self):
         return replace(self, phase=self.phase + 2)
 
+    def __eq__(self, other):
+        if isinstance(other, PauliString):
+            return self.phase % 4 == other.phase % 4 and self.op == other.op
+        elif isinstance(other, str):
+            return self == PauliString(other)
+        else:
+            return NotImplemented
+
 # TODO: Need better names for these two classes as well!
 def _flatten_nested(t, items):
     return sum(
@@ -109,10 +117,27 @@ def _flatten_nested(t, items):
     )
 
 def _flatten_singletons(t, items):
+    empty = t()
     return [
         item[0] if isinstance(item, t) and len(item) == 1 else item
         for item in items
+        if item != empty
     ]
+
+def _normalize_seq_par_args(args, inner, outer):
+    if len(args) == 0:
+        return ()
+
+    args = tuple(args)
+    new_args = None
+    while hash(args) != hash(new_args):
+        if new_args is not None:
+            args = new_args
+        new_args = tuple(
+            _flatten_singletons(inner, _flatten_nested(outer, args))
+        )
+
+    return new_args
 
 class Seq(tuple):
     """
@@ -124,7 +149,7 @@ class Seq(tuple):
     """
     def __new__(cls, *iterable):
         return super().__new__(cls,
-            _flatten_singletons(Par, _flatten_nested(Seq, iterable))
+            _normalize_seq_par_args(iterable, Par, Seq)
         )
 
     def __repr__(self) -> str:
@@ -146,7 +171,7 @@ class Par(tuple):
     """
     def __new__(cls, *iterable):
         return super().__new__(cls,
-            _flatten_singletons(Seq, _flatten_nested(Par, iterable))
+            _normalize_seq_par_args(iterable, Seq, Par)
         )
 
     def __repr__(self) -> str:
@@ -183,16 +208,23 @@ def _normalize_as_instrument(instrument_like):
         return instrument_like._processes
 
     # Is the instrument already in the right form (that is, dictionary from
-    # tuples to Qobj instances)?
+    # tuples to [Qobj | QInstrument] instances)?
     elif isinstance(instrument_like, dict):
         # Assume that the input is already a dict from measurement labels to
         # Qobj instances, but that the labels may not be tuples, and the Qobj
         # values may need to be promoted to super.
-        return {
-            label if isinstance(label, Seq) else Seq(label, ):
-                value if value.type == "super" else sr.to_super(value)
-            for label, value in instrument_like.items()
-        }
+        processes = {}
+        for label, value in instrument_like.items():
+            label = label if isinstance(label, Seq) else Seq(label, )
+            if isinstance(value, QInstrument):
+                for inner_label, inner_value in value._processes.items():
+                    processes[Seq(label, inner_label)] = inner_value
+            else:
+                if isinstance(value, Qobj) and not value.type == "super":
+                    value = sr.to_super(value)
+                processes[label] = value
+
+        return processes
 
     # If we have a single Qobj, promote it to super if needed.
     elif isinstance(instrument_like, Qobj):
@@ -378,7 +410,7 @@ class QInstrument(object):
     def sample(self, other):
         pr_table = list(self(other).items())
         idx_outcome = np.random.choice(len(pr_table), p=[outcome.probability for (label, outcome) in pr_table])
-        return pr_table[idx_outcome]
+        return pr_table[idx_outcome][0], pr_table[idx_outcome][1].output_state
 
     def __getstate__(self):
         # defines what happens when Qobj object gets pickled
@@ -450,6 +482,38 @@ class QInstrument(object):
             Seq(idx): process
             for (idx, (label, process)) in
             enumerate(sorted(self._processes.items(), key=lambda item: item[0]))
+        })
+
+    def if_(self, conditions: Dict):
+        """
+        Returns a new instrument that applies one of a given set of instruments
+        conditioned on the outcome of this instrument.
+        """
+        # Normalize conditions to use Seq(label).
+        conditions = {
+            Seq(label): condition
+            for label, condition in conditions.items()
+        }
+
+        processes = {}
+        for label, process in self._processes.items():
+            label = Seq(label)
+            if label in conditions:
+                processes[label] = conditions[label] * process
+            else:
+                # Fall back to using __eq__.
+                matches = [cond_label for cond_label in conditions.keys() if cond_label == label]
+                if len(matches) == 1:
+                    processes[label] = conditions[matches[0]] * process
+                else:
+                    processes[label] = process
+
+        return type(self)(processes)
+
+    def ptrace(self, sel, sparse=None):
+        return type(self)({
+            label: process.ptrace(sel, sparse)
+            for label, process in self._processes.items()
         })
 
     # CLASS METHODS
