@@ -177,6 +177,8 @@ class Bloch:
         self.savenum = 0
         # Style of points, 'm' for multiple colors, 's' for single color
         self.point_style = []
+        # Data for line segment
+        self.line_segment = []
 
         # status of rendering
         self._rendered = False
@@ -401,6 +403,46 @@ class Bloch:
                                  'text': text,
                                  'opts': kwargs})
 
+    def add_arc(self, init_pt, fin_pt):
+        pt1 = np.array(init_pt)
+        pt2 = np.array(fin_pt)
+        rad1 = np.linalg.norm(pt1, axis=0)
+        rad2 = np.linalg.norm(pt2, axis=0)
+        if rad1 < 1e-12 or rad2 < 1e-12:
+            raise ValueError('Polar and azimuthal points not defined for origin')
+        elif abs(rad1 - rad2) > 1e-12:
+            print(rad1, rad2)
+            raise Exception("Points not on the same sphere.")
+        elif (pt1 == pt2).all():
+            raise Exception("Points same, no arc can be formed.")
+        elif (pt1 == -pt2).all():
+            raise Exception("Points diagonally opposite, infinite arcs possible.")
+        else:
+            t = np.linspace(0,1,360) # Parametrization
+            # All the points in this line are contained in the plane defined by r1
+            # and r2.
+            line = pt1[:, np.newaxis]*t + pt2[:, np.newaxis]*(1-t)
+
+            # This will normalize all the points in the line such that 
+            # they now have are at rad1 distance from the origin.
+            #arc = line*rad1/np.linalg.norm(line, axis=0)
+            b.add_points([arc[0,:], arc[1,:], arc[2,:]], meth='l')
+
+    def add_line(self, point1, point2):
+        """Add a line segment connecting two points on the bloch sphere.
+        Parameters
+        ----------
+        point1 : array_like
+            Array with cartesian coordinates of a point on Bloch sphere
+        point2 : array_like
+            Array with cartesian coordinates of second point on Bloch sphere
+        """
+        x = [point1[1], point2[1]]
+        y = [-point1[0], -point2[0]]
+        z = [point1[2], point2[2]]
+        v = [x, y, z]
+        self.line_segment.append(v)
+
     def make_sphere(self):
         """
         Plots Bloch sphere and data sets.
@@ -454,6 +496,7 @@ class Bloch:
         self.plot_front()
         self.plot_axes_labels()
         self.plot_annotations()
+        self.plot_line()
 
     def plot_back(self):
         # back half of sphere
@@ -619,16 +662,23 @@ class Bloch:
             self.axes.text(vec[1], -vec[0], vec[2],
                            annotation['text'], **opts)
 
+    def plot_line(self):
+        # plots a black dashed line segment between two points
+        for line in self.line_segment:
+            self.axes.plot(line[0], line[1], line[2], 'k--')
+    
     def show(self):
         """
         Display Bloch sphere and corresponding data sets.
         """
         self.render(self.fig, self.axes)
-        if self.run_from_ipython():
-            if self._shown:
-                display(self.fig)
-        else:
-            self.fig.show()
+        if self.fig:
+            plt.show(self.fig)
+#         if self.run_from_ipython():
+#             if self._shown:
+#                 display(self.fig)
+#         else:
+#             self.fig.show()
         self._shown = True
 
     def save(self, name=None, format='png', dirc=None, dpin=None):
@@ -677,7 +727,6 @@ class Bloch:
         self.savenum += 1
         if self.fig:
             plt.close(self.fig)
-
 
 def _hide_tick_lines_and_labels(axis):
     '''
