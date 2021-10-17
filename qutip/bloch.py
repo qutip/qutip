@@ -426,8 +426,8 @@ class Bloch:
 
             # This will normalize all the points in the line such that 
             # they now have are at rad1 distance from the origin.
-            #arc = line*rad1/np.linalg.norm(line, axis=0)
-            b.add_points([arc[0,:], arc[1,:], arc[2,:]], meth='l')
+            arc = line*rad1/np.linalg.norm(line, axis=0)
+            self.add_points([arc[0,:], arc[1,:], arc[2,:]], 'l')
 
     def add_line(self, point1, point2):
         """Add a line segment connecting two points on the bloch sphere.
