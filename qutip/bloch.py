@@ -4,6 +4,7 @@ import os
 
 from numpy import (ndarray, array, linspace, pi, outer, cos, sin, ones, size,
                    sqrt, real, mod, append, ceil, arange)
+import numpy as np
 
 from packaging.version import parse as parse_version
 
