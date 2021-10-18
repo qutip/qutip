@@ -442,12 +442,14 @@ class Bloch:
 
     def add_line(self, point1, point2):
         """Add a line segment connecting two points on the bloch sphere.
+        
         Parameters
         ----------
+        
         point1 : array_like
-            Array with cartesian coordinates of a point on Bloch sphere
+            Array with cartesian coordinates of the first point.
         point2 : array_like
-            Array with cartesian coordinates of second point on Bloch sphere
+            Array with cartesian coordinates of the second point.
         """
         x = [point1[1], point2[1]]
         y = [-point1[0], -point2[0]]
