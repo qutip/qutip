@@ -405,8 +405,7 @@ class Bloch:
                                  'opts': kwargs})
 
     def add_arc(self, init_pt, fin_pt):
-        """
-        Add an arc between two two points on a sphere.
+        """Add an arc between two two points on a sphere.
         Parameters
         ----------
         point1 : array_like
