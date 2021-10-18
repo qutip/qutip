@@ -405,29 +405,38 @@ class Bloch:
                                  'opts': kwargs})
 
     def add_arc(self, init_pt, fin_pt):
+        """
+        Add an arc between two two points on a sphere.
+        Parameters
+        ----------
+        point1 : array_like
+            Array with cartesian coordinates of a point on Bloch sphere
+        point2 : array_like
+            Array with cartesian coordinates of second point on Bloch sphere
+        """
         pt1 = np.array(init_pt)
         pt2 = np.array(fin_pt)
         rad1 = np.linalg.norm(pt1, axis=0)
         rad2 = np.linalg.norm(pt2, axis=0)
         if rad1 < 1e-12 or rad2 < 1e-12:
-            raise ValueError('Polar and azimuthal points not defined for origin')
+            raise ValueError('Polar and azimuthal angles undefined at origin.')
         elif abs(rad1 - rad2) > 1e-12:
             print(rad1, rad2)
             raise Exception("Points not on the same sphere.")
         elif (pt1 == pt2).all():
             raise Exception("Points same, no arc can be formed.")
         elif (pt1 == -pt2).all():
-            raise Exception("Points diagonally opposite, infinite arcs possible.")
+            raise Exception("Points diagonally opposite, no unique arc.")
         else:
-            t = np.linspace(0,1,360) # Parametrization
-            # All the points in this line are contained in the plane defined by r1
-            # and r2.
+            t = np.linspace(0, 1, 360)  #Parametrization
+            # All the points in this line are contained in the plane defined
+            # by r1 and r2.
             line = pt1[:, np.newaxis]*t + pt2[:, np.newaxis]*(1-t)
 
-            # This will normalize all the points in the line such that 
+            # This will normalize all the points in the line such that
             # they now have are at rad1 distance from the origin.
             arc = line*rad1/np.linalg.norm(line, axis=0)
-            self.add_points([arc[0,:], arc[1,:], arc[2,:]], 'l')
+            self.add_points([arc[0, :], arc[1, :], arc[2, :]], 'l')
 
     def add_line(self, point1, point2):
         """Add a line segment connecting two points on the bloch sphere.
@@ -667,7 +676,7 @@ class Bloch:
         # plots a black dashed line segment between two points
         for line in self.line_segment:
             self.axes.plot(line[0], line[1], line[2], 'k--')
-    
+
     def show(self):
         """
         Display Bloch sphere and corresponding data sets.
@@ -728,6 +737,7 @@ class Bloch:
         self.savenum += 1
         if self.fig:
             plt.close(self.fig)
+
 
 def _hide_tick_lines_and_labels(axis):
     '''
