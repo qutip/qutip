@@ -428,7 +428,8 @@ class Bloch:
         elif (pt1 == -pt2).all():
             raise Exception("Points diagonally opposite, no unique arc.")
         else:
-            t = np.linspace(0, 1, 360)  #Parametrization
+            # Parametrization
+            t = np.linspace(0, 1, 360)
             # All the points in this line are contained in the plane defined
             # by r1 and r2.
             line = pt1[:, np.newaxis]*t + pt2[:, np.newaxis]*(1-t)
