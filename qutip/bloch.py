@@ -406,12 +406,14 @@ class Bloch:
 
     def add_arc(self, init_pt, fin_pt):
         """Add an arc between two two points on a sphere.
+
         Parameters
         ----------
+        
         point1 : array_like
-            Array with cartesian coordinates of a point on Bloch sphere
+            Array with cartesian coordinates of the first point.
         point2 : array_like
-            Array with cartesian coordinates of second point on Bloch sphere
+            Array with cartesian coordinates of the second point.
         """
         pt1 = np.array(init_pt)
         pt2 = np.array(fin_pt)
