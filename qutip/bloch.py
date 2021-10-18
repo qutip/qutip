@@ -432,7 +432,7 @@ class Bloch:
             # Parametrization
             t = np.linspace(0, 1, 360)
             # All the points in this line are contained in the plane defined
-            # by r1 and r2.
+            # by pt1, pt2 and the origin.
             line = pt1[:, np.newaxis]*t + pt2[:, np.newaxis]*(1-t)
 
             # This will normalize all the points in the line such that
