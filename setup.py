@@ -107,9 +107,6 @@ def _determine_compilation_options(options):
         # These are needed for compiling on OSX 10.14+
         options['cflags'].append('-mmacosx-version-min=10.9')
         options['ldflags'].append('-mmacosx-version-min=10.9')
-        if options['openmp']:
-            options['cflags'].append('-fopenmp')
-            options['ldflags'].append('-fopenmp')
     return options
 
 
