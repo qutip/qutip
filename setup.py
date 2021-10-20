@@ -100,6 +100,9 @@ def _determine_compilation_options(options):
     else:
         # Everything else
         options['cflags'].extend(['-w', '-O3', '-funroll-loops'])
+        if options['openmp']:
+            options['cflags'].append('-fopenmp')
+            options['ldflags'].append('-fopenmp')
     if sysconfig.get_platform().startswith("macos"):
         # These are needed for compiling on OSX 10.14+
         options['cflags'].append('-mmacosx-version-min=10.9')
