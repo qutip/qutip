@@ -188,11 +188,16 @@ def coherent(N, alpha, offset=0, method='operator'):
     """
     if method == "operator" and offset == 0:
 
+        assert not np.isnan(alpha)
         x = basis(N, 0)
         assert not np.isnan(x.data.data).any()
         a = destroy(N)
         assert not np.isnan(a.data.data).any()
-        D = (alpha * a.dag() - conj(alpha) * a).expm()
+        a_dag = a.dag()
+        assert not np.isnan(a_dag.data.data).any()
+        D_1 = (alpha * a_dag - conj(alpha) * a)
+        assert not np.isnan(D_1.data.data).any()
+        D = D_1.expm()
         assert not np.isnan(D.data.data).any()
         return D * x
 
