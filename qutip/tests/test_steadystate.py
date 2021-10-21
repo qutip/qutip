@@ -1,9 +1,10 @@
 import numpy as np
 import pytest
 import qutip
-import warnings
 
 
+# Deprecation warning raised in use_webm=True case is fixed in dev.major
+@pytest.mark.filterwarnings("ignore::DeprecationWarning")
 @pytest.mark.parametrize(['method', 'kwargs'], [
     pytest.param('direct', {}, id="direct"),
     pytest.param('direct', {'solver':'mkl'}, id="direct_mkl",
@@ -41,23 +42,18 @@ def test_qubit(method, kwargs):
     wth_vec = np.linspace(0.1, 3, 20)
     p_ss = np.zeros(np.shape(wth_vec))
 
-    with warnings.catch_warnings():
-        if 'use_wbm' in kwargs:
-            # The deprecation has been fixed in dev.major
-            warnings.simplefilter("ignore", category=DeprecationWarning)
-
-        for idx, wth in enumerate(wth_vec):
-            n_th = 1.0 / (np.exp(1.0 / wth) - 1)  # bath temperature
-            c_op_list = []
-            rate = gamma1 * (1 + n_th)
-            c_op_list.append(np.sqrt(rate) * sm)
-            rate = gamma1 * n_th
-            c_op_list.append(np.sqrt(rate) * sm.dag())
-            rho_ss = qutip.steadystate(H, c_op_list, method=method, **kwargs)
-            if 'return_info' in kwargs:
-                rho_ss, info = rho_ss
-                assert isinstance(info, dict)
-            p_ss[idx] = qutip.expect(sm.dag() * sm, rho_ss)
+    for idx, wth in enumerate(wth_vec):
+        n_th = 1.0 / (np.exp(1.0 / wth) - 1)  # bath temperature
+        c_op_list = []
+        rate = gamma1 * (1 + n_th)
+        c_op_list.append(np.sqrt(rate) * sm)
+        rate = gamma1 * n_th
+        c_op_list.append(np.sqrt(rate) * sm.dag())
+        rho_ss = qutip.steadystate(H, c_op_list, method=method, **kwargs)
+        if 'return_info' in kwargs:
+            rho_ss, info = rho_ss
+            assert isinstance(info, dict)
+        p_ss[idx] = qutip.expect(sm.dag() * sm, rho_ss)
 
     p_ss_analytic = np.exp(-1.0 / wth_vec) / (1 + np.exp(-1.0 / wth_vec))
     np.testing.assert_allclose(p_ss_analytic, p_ss, atol=1e-5)
