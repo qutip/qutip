@@ -121,6 +121,7 @@ def test_driven_cavity(method, kwargs):
     H = Omega * (a.dag() + a)
     c_ops = [np.sqrt(Gamma) * a]
     if 'use_precond' in kwargs:
+        kwargs = kwargs.copy()
         kwargs['M'] = qutip.build_preconditioner(H, c_ops, method=kwargs['M'])
     rho_ss = qutip.steadystate(H, c_ops, method=method, **kwargs)
     rho_ss_analytic = qutip.coherent_dm(N, -1.0j * (Omega)/(Gamma/2))
