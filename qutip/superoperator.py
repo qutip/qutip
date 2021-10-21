@@ -11,7 +11,7 @@ from qutip.cy.spmath import zcsr_kron
 from functools import partial
 
 
-def liouvillian(H, c_ops=[], data_only=False, chi=None):
+def liouvillian(H, c_ops=None, data_only=False, chi=None):
     """Assembles the Liouvillian superoperator from a Hamiltonian
     and a ``list`` of collapse operators. Like liouvillian, but with an
     experimental implementation which avoids creating extra Qobj instances,
@@ -31,6 +31,8 @@ def liouvillian(H, c_ops=[], data_only=False, chi=None):
         Liouvillian superoperator.
 
     """
+    if c_ops is None:
+        c_ops = []
     if isinstance(c_ops, (Qobj, QobjEvo)):
         c_ops = [c_ops]
     if chi and len(chi) != len(c_ops):
