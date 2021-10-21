@@ -1220,7 +1220,7 @@ def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
         LIQ = lu.solve(Q.toarray())
 
     else:
-        raise ValueError("unsupported method '%s'" % method)
+        raise ValueError("unsupported method '%s'" % pseudo_args['method'])
 
     R = sp.csr_matrix(Q * LIQ)
 
