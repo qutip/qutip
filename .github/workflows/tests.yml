@@ -94,6 +94,10 @@ jobs:
         run: |
           conda list
           python -c "import qutip; qutip.about()"
+          uname -r
+          hostnamectl
+          free -h
+          lscpu
 
       - name: Run tests
         # If our tests are running for longer than an hour, _something_ is wrong
