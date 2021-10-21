@@ -107,6 +107,7 @@ def test_diverse_basis(base, operator, args, opargs, eigenval):
 def test_dm(dm):
     N = 5
     rho = dm(N)
+    assert not np.isnan(rho.data.data).any()
     # make sure rho has trace close to 1.0
     assert rho.tr() == pytest.approx(1.0)
 

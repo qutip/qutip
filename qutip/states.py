@@ -189,8 +189,11 @@ def coherent(N, alpha, offset=0, method='operator'):
     if method == "operator" and offset == 0:
 
         x = basis(N, 0)
+        assert not np.isnan(x.data.data).any()
         a = destroy(N)
+        assert not np.isnan(a.data.data).any()
         D = (alpha * a.dag() - conj(alpha) * a).expm()
+        assert not np.isnan(D.data.data).any()
         return D * x
 
     elif method == "analytic" or offset > 0:
@@ -260,6 +263,7 @@ shape = [3, 3], type = oper, isHerm = True
 
     """
     psi = coherent(N, alpha, offset=offset, method=method)
+    assert not np.isnan(psi.data.data).any()
     return psi * psi.dag()
 
 
