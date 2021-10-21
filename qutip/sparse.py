@@ -393,7 +393,7 @@ def sp_expm(A, sparse=False):
     if _isdiag(A.indices, A.indptr, A.shape[0]):
         A = sp.diags(np.exp(A.diagonal()), shape=A.shape,
                     format='csr', dtype=complex)
-        assert not np.isnan(A).any()
+        assert not np.isnan(A.data).any()
         return A
     if sparse:
         E = spla.expm(A.tocsc())
