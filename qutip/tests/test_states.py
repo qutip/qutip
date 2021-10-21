@@ -104,8 +104,9 @@ def test_diverse_basis(base, operator, args, opargs, eigenval):
     'thermal_dm', 'maximally_mixed_dm', 'coherent_dm',
     'fock_dm', 'spin_state', 'spin_coherent'
 ])
-def test_dm(dm):
-    N = 5
+@pytest.mark.parametrize('N', [2, 5, 10, 25, 100])
+@pytest.mark.repeat(5)
+def test_dm(dm, N):
     rho = dm(N)
     assert not np.isnan(rho.data.data).any()
     # make sure rho has trace close to 1.0
