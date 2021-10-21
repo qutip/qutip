@@ -1232,7 +1232,7 @@ def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
 
 
 def pseudo_inverse(L, rhoss=None, w=None, sparse=True,
-                   method=None, **kwargs):
+                   method='splu', **kwargs):
     """
     Compute the pseudo inverse for a Liouvillian superoperator, optionally
     given its steady state density matrix (which will be computed if not
@@ -1292,8 +1292,7 @@ def pseudo_inverse(L, rhoss=None, w=None, sparse=True,
         else:
             raise TypeError(
                 "Invalid keyword argument '"+key+"' passed to pseudo_inverse.")
-    if method is not None:
-        pseudo_args['method'] = method
+    pseudo_args['method'] = method
 
     # Set column perm to NATURAL if using RCM and not specified by user
     if pseudo_args['use_rcm'] and ('permc_spec' not in kwargs.keys()):
