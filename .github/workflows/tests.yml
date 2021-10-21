@@ -34,16 +34,16 @@ jobs:
         include:
           # Needs an older version of Python because conda doesn't build old
           # SciPy versions for Python 3.9.
-          - case-name: old SciPy
+          - case-name: old Numpy
             os: ubuntu-latest
-            python-version: 3.6
-            scipy-requirement: ">=1.4,<1.5"
+            python-version: 3.9
+            numpy-requirement: ">=1.20,<1.21"
 
           # No MKL runs.  MKL is now the default for conda installations, but
           # not necessarily for pip.
           - case-name: no MKL
             os: ubuntu-latest
-            python-version: 3.7
+            python-version: 3.9
             nomkl: 1
 
           # OpenMP runs.  We only really care about getting OpenMP working
@@ -57,7 +57,7 @@ jobs:
           # everything should be able to run this.
           - case-name: no Cython
             os: ubuntu-latest
-            python-version: 3.8
+            python-version: 3.9
             nocython: 1
 
     steps:
@@ -79,13 +79,13 @@ jobs:
           fi
           export CI_QUTIP_WITH_OPENMP=${{ matrix.openmp }}
           if [[ -z "${{ matrix.nomkl }}" ]]; then
-            conda install blas=*=mkl numpy "scipy${{ matrix.scipy-requirement }}"
+            conda install blas=*=mkl "numpy${{ matrix.numpy-requirement }}" scipy
           elif [[ "${{ matrix.os }}" =~ ^windows.*$ ]]; then
             # Conda doesn't supply forced nomkl builds on Windows, so we rely on
             # pip not automatically linking to MKL.
-            pip install numpy "scipy${{ matrix.scipy-requirement }}"
+            pip install "numpy${{ matrix.numpy-requirement }}" scipy
           else
-            conda install nomkl numpy "scipy${{ matrix.scipy-requirement }}"
+            conda install nomkl "numpy${{ matrix.numpy-requirement }}" scipy
           fi
           python -m pip install -e .[$QUTIP_TARGET]
           python -m pip install pytest-cov coveralls
