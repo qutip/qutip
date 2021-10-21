@@ -93,7 +93,7 @@ def _default_steadystate_args():
     return def_args
 
 
-def steadystate(A, c_op_list=None, method='direct', solver=None, **kwargs):
+def steadystate(A, c_op_list=[], method='direct', solver=None, **kwargs):
     """
     Calculates the steady state for quantum evolution subject to the supplied
     Hamiltonian or Liouvillian operator and (if given a Hamiltonian) a list of
@@ -1092,8 +1092,6 @@ def build_preconditioner(A, c_op_list=[], **kwargs):
     if ss_args['use_rcm'] and ('permc_spec' not in kwargs.keys()):
         ss_args['permc_spec'] = 'NATURAL'
 
-    if c_op_list is None:
-        c_op_list = []
     L = _steadystate_setup(A, c_op_list)
     # Set weight parameter to avg abs val in L if not set explicitly
     if 'weight' not in kwargs.keys():
