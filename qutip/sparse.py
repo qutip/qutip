@@ -389,15 +389,21 @@ def sp_expm(A, sparse=False):
     """
     Sparse matrix exponential.
     """
+    assert not np.isnan(A.data).any()
     if _isdiag(A.indices, A.indptr, A.shape[0]):
         A = sp.diags(np.exp(A.diagonal()), shape=A.shape,
                     format='csr', dtype=complex)
+        assert not np.isnan(A).any()
         return A
     if sparse:
         E = spla.expm(A.tocsc())
+        assert not np.isnan(E.data).any()
     else:
         E = spla.expm(A.toarray())
-    return sp.csr_matrix(E)
+        assert not np.isnan(E).any()
+    X = sp.csr_matrix(E)
+    assert not np.isnan(X.data).any()
+    return X
 
 
 
