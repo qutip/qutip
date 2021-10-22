@@ -64,6 +64,7 @@ jobs:
           # numpy 1.21.X on the Intel 8171 and 8272 Azure VMs.
           - case-name: numpy-1.20
             os: ubuntu-latest
+            python-version: 3.9
             numpy-requirement: ">=1.20,<1.21"
 
     steps:
