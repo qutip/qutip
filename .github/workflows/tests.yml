@@ -27,7 +27,7 @@ jobs:
         # matrix size; make sure to test all supported versions in some form.
         python-version: [3.9]
         case-name: [defaults]
-        numpy-requirement: ["==1.21.0"]
+        numpy-requirement: [">=1.20,<1.21"]
         # Extra special cases.  In these, the new variable defined should always
         # be a truth-y value (hence 'nomkl: 1' rather than 'mkl: 0'), because
         # the lack of a variable is _always_ false-y, and the defaults lack all
@@ -52,6 +52,7 @@ jobs:
           - case-name: OpenMP
             os: ubuntu-latest
             python-version: 3.9
+            numpy-requirement: ">=1.20,<1.21"
             openmp: 1
 
           # Builds without Cython at runtime.  This is a core feature;
@@ -60,13 +61,6 @@ jobs:
             os: ubuntu-latest
             python-version: 3.8
             nocython: 1
-
-          # Numpy 1.21.0 run. Builds currently fail with Python 3.9 and
-          # numpy 1.21.X on the Intel 8171 and 8272 Azure VMs.
-          - case-name: numpy-1.20
-            os: ubuntu-latest
-            python-version: 3.9
-            numpy-requirement: ">=1.20,<1.21"
 
     steps:
       - uses: actions/checkout@v2
