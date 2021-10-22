@@ -99,10 +99,12 @@ jobs:
 
       - name: Environment information
         run: |
-          uname -r
-          hostnamectl
+          uname -a
+          if [[ "ubuntu-latest" == "${{ matrix.os }}" ]]; then
+              hostnamectl
+              lscpu
+          fi
           free -h
-          lscpu
 
       - name: Run tests
         # If our tests are running for longer than an hour, _something_ is wrong
