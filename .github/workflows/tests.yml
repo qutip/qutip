@@ -97,6 +97,13 @@ jobs:
           conda list
           python -c "import qutip; qutip.about()"
 
+      - name: Environment information
+        run: |
+          uname -r
+          hostnamectl
+          free -h
+          lscpu
+
       - name: Run tests
         # If our tests are running for longer than an hour, _something_ is wrong
         # somewhere.  The GitHub default is 6 hours, which is a bit long to wait
