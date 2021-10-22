@@ -52,7 +52,6 @@ jobs:
           - case-name: OpenMP
             os: ubuntu-latest
             python-version: 3.9
-            numpy-requirement: ">=1.20,<1.21"
             openmp: 1
 
           # Builds without Cython at runtime.  This is a core feature;
