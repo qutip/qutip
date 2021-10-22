@@ -60,6 +60,12 @@ jobs:
             python-version: 3.8
             nocython: 1
 
+          # Numpy 1.21.0 run. Builds currently fail with Python 3.9 and
+          # numpy 1.21.X on the Intel 8171 and 8272 Azure VMs.
+          - case-name: numpy-1.20
+            os: ubuntu-latest
+            numpy-requirement: ">=1.20,<1.21"
+
     steps:
       - uses: actions/checkout@v2
 
@@ -79,7 +85,7 @@ jobs:
           fi
           export CI_QUTIP_WITH_OPENMP=${{ matrix.openmp }}
           if [[ -z "${{ matrix.nomkl }}" ]]; then
-            conda install blas=*=mkl numpy "scipy${{ matrix.scipy-requirement }}"
+            conda install blas=*=mkl "numpy${{ matrix.numpy-requirement }}" "scipy${{ matrix.scipy-requirement }}"
           elif [[ "${{ matrix.os }}" =~ ^windows.*$ ]]; then
             # Conda doesn't supply forced nomkl builds on Windows, so we rely on
             # pip not automatically linking to MKL.
