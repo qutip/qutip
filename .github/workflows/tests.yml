@@ -39,6 +39,8 @@ jobs:
             os: ubuntu-latest
             python-version: 3.6
             scipy-requirement: ">=1.4,<1.5"
+            # let the old SciPy version select an appropriate numpy version:
+            numpy-requirement: ""
 
           # No MKL runs.  MKL is now the default for conda installations, but
           # not necessarily for pip.
@@ -84,9 +86,9 @@ jobs:
           elif [[ "${{ matrix.os }}" =~ ^windows.*$ ]]; then
             # Conda doesn't supply forced nomkl builds on Windows, so we rely on
             # pip not automatically linking to MKL.
-            pip install numpy "scipy${{ matrix.scipy-requirement }}"
+            pip install "numpy${{ matrix.numpy-requirement }}" "scipy${{ matrix.scipy-requirement }}"
           else
-            conda install nomkl numpy "scipy${{ matrix.scipy-requirement }}"
+            conda install nomkl "numpy${{ matrix.numpy-requirement }}" "scipy${{ matrix.scipy-requirement }}"
           fi
           python -m pip install -e .[$QUTIP_TARGET]
           python -m pip install pytest-cov coveralls
