@@ -104,8 +104,8 @@ jobs:
           if [[ "ubuntu-latest" == "${{ matrix.os }}" ]]; then
               hostnamectl
               lscpu
+              free -h
           fi
-          free -h
 
       - name: Run tests
         # If our tests are running for longer than an hour, _something_ is wrong
