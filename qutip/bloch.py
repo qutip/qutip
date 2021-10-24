@@ -40,12 +40,12 @@ try:
 
             self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
             FancyArrowPatch.draw(self, renderer)
-except:
+except ImportError:
     pass
 
 try:
     from IPython.display import display
-except:
+except ImportError:
     pass
 
 
