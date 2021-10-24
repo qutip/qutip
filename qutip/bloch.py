@@ -111,14 +111,10 @@ class Bloch:
     def __init__(self, fig=None, axes=None, view=None, figsize=None,
                  background=False):
         # Figure and axes
-        self._ext_fig = False
-        if fig is not None:
-            self._ext_fig = True
         self.fig = fig
-        self._ext_axes = False
-        if axes is not None:
-            self._ext_axes = True
+        self._ext_fig = fig is not None
         self.axes = axes
+        self._ext_axes = axes is not None
         # Background axes, default = False
         self.background = background
         # The size of the figure in inches, default = [5,5].
