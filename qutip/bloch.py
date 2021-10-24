@@ -423,18 +423,18 @@ class Bloch:
         Render the Bloch sphere and its data sets in on given figure and axes.
         """
         if not self._ext_fig:
+            # If no external figure was supplied, we check to see if the
+            # figure we created in a previous call to .render() has been
+            # closed, and trigger recreating the figure and axis if it has.
             if self.fig is not None and not plt.fignum_exists(self.fig.number):
-                # a previous call to .rander() created the figure, but the
-                # figure not longer exists so we trigger recreating it:
                 self.fig = None
                 self.axes = None
 
-        if not self._ext_fig and self.fig is None:
+        if self.fig is None:
             self.fig = plt.figure(figsize=self.figsize)
 
-        if not self._ext_axes and self.axes is None:
-            self.axes = _axes3D(self.fig, azim=self.view[0],
-                                elev=self.view[1])
+        if self.axes is None:
+            self.axes = _axes3D(self.fig, azim=self.view[0], elev=self.view[1])
 
         if self.background:
             self.axes.clear()
@@ -448,6 +448,7 @@ class Bloch:
             self.axes.set_xlim3d(-0.7, 0.7)
             self.axes.set_ylim3d(-0.7, 0.7)
             self.axes.set_zlim3d(-0.7, 0.7)
+
         # Manually set aspect ratio to fit a square bounding box.
         # Matplotlib did this stretching for < 3.3.0, but not above.
         if parse_version(matplotlib.__version__) >= parse_version('3.3'):
