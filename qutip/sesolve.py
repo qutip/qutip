@@ -54,9 +54,14 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
     tlist : array_like of float
         List of times for :math:`t`.
 
-    e_ops : list of :class:`~Qobj` or callback function, optional
-        Single operator or list of operators for which to evaluate expectation
-        values.  For operator evolution, the overlap is computed: ::
+    e_ops : None / list / callback function, optional
+        A list of operators as `Qobj` and/or callable functions (can be mixed)
+        or a single callable function. For callable functions, they are called
+        as ``f(t, state)`` and return the expectation value. A single
+        callback's expectation value can be any type, but a callback part of a
+        list must return a number as the expectation value. For operators, the
+        result's expect will be computed by :func:`qutip.expect` when the state
+        is a ``ket``. For operator evolution, the overlap is computed by: ::
 
             (e_ops[i].dag() * op(t)).tr()
 
@@ -275,16 +280,25 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
             opt.store_states = True
         else:
             for op in e_ops:
+                if not isinstance(op, Qobj) and callable(op):
+                    output.expect.append(np.zeros(n_tsteps, dtype=complex))
+                    continue
                 if op.isherm:
                     output.expect.append(np.zeros(n_tsteps))
                 else:
                     output.expect.append(np.zeros(n_tsteps, dtype=complex))
         if oper_evo:
             for e in e_ops:
-                e_ops_data.append(e.dag().data)
+                if isinstance(e, Qobj):
+                    e_ops_data.append(e.dag().data)
+                    continue
+                e_ops_data.append(e)
         else:
             for e in e_ops:
-                e_ops_data.append(e.data)
+                if isinstance(e, Qobj):
+                    e_ops_data.append(e.data)
+                    continue
+                e_ops_data.append(e)
     else:
         raise TypeError("Expectation parameter must be a list or a function")
 
@@ -311,7 +325,8 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
                             "the allowed number of substeps by increasing "
                             "the nsteps parameter in the Options class.")
         # get the current state / oper data if needed
-        if opt.store_states or opt.normalize_output or n_expt_op > 0 or expt_callback:
+        if opt.store_states or opt.normalize_output \
+           or n_expt_op > 0 or expt_callback:
             cdata = get_curr_state_data(r)
 
         if opt.normalize_output:
@@ -343,9 +358,17 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
 
         if oper_evo:
             for m in range(n_expt_op):
+                if callable(e_ops_data[m]):
+                    func = e_ops_data[m]
+                    output.expect[m][t_idx] = func(t, Qobj(cdata, dims=dims))
+                    continue
                 output.expect[m][t_idx] = (e_ops_data[m] * cdata).trace()
         else:
             for m in range(n_expt_op):
+                if callable(e_ops_data[m]):
+                    func = e_ops_data[m]
+                    output.expect[m][t_idx] = func(t, Qobj(cdata, dims=dims))
+                    continue
                 output.expect[m][t_idx] = cy_expect_psi(e_ops_data[m], cdata,
                                                         e_ops[m].isherm)
 

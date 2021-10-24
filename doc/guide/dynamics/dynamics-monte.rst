@@ -39,16 +39,18 @@ If more than a single collapse operator is present in Eq. :eq:`heff`, the probab
 
 Evaluating the MC evolution to first-order in time is quite tedious.  Instead, QuTiP uses the following algorithm to simulate a single realization of a quantum system.  Starting from a pure state :math:`\left|\psi(0)\right>`:
 
-- **I:** Choose a random number :math:`r` between zero and one, representing the probability that a quantum jump occurs.
+- **Ia:** Choose a random number :math:`r_1` between zero and one, representing the probability that a quantum jump occurs.
 
-- **II:** Integrate the Schrödinger equation, using the effective Hamiltonian :eq:`heff` until a time :math:`\tau` such that the norm of the wave function satisfies :math:`\left<\psi(\tau)\right.\left|\psi(\tau)\right>=r`, at which point a jump occurs.
+- **Ib:** Choose a random number :math:`r_2` between zero and one, used to select which collapse operator was responsible for the jump.
+
+- **II:** Integrate the Schrödinger equation, using the effective Hamiltonian :eq:`heff` until a time :math:`\tau` such that the norm of the wave function satisfies :math:`\left<\psi(\tau)\right.\left|\psi(\tau)\right> = r_1`, at which point a jump occurs.
 
 - **III:** The resultant jump projects the system at time :math:`\tau` into one of the renormalized states given by Eq. :eq:`project`.  The corresponding collapse operator :math:`C_{n}` is chosen such that :math:`n` is the smallest integer satisfying:
 
 .. math::
     :label: mc3
 
-    \sum_{i=1}^{n} P_{n}(\tau) \ge r
+    \sum_{i=1}^{n} P_{n}(\tau) \ge r_2
 
 where the individual :math:`P_{n}` are given by Eq. :eq:`pcn`.  Note that the left hand side of Eq. :eq:`mc3` is, by definition, normalized to unity.
 

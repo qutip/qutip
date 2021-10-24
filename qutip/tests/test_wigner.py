@@ -1,8 +1,10 @@
 import pytest
 import numpy as np
+import itertools
 from scipy.special import laguerre
 from numpy.random import rand
-from numpy.testing import assert_, run_module_suite, assert_equal
+from numpy.testing import assert_, run_module_suite, assert_equal, \
+    assert_almost_equal, assert_allclose
 
 import qutip
 from qutip.states import coherent, fock, ket, bell_state
@@ -593,6 +595,102 @@ def test_wigner_clenshaw_sp_iter_dm():
         Wdiff = abs(W - Wclen)
         assert_equal(np.sum(abs(Wdiff)) < 1e-7, True)
 
+@pytest.mark.parametrize(['spin'], [
+    pytest.param(1/2, id="spin-one-half"),
+    pytest.param(3, id="spin-three"),
+    pytest.param(13/2, id="spin-thirteen-half"),
+    pytest.param(7, id="spin-seven")
+])
+@pytest.mark.parametrize("pure", [
+    pytest.param(True, id="pure"),
+    pytest.param(False, id="mixed")
+])
+def test_spin_q_function(spin, pure):
+    d = int(2*spin + 1)
+    rho = rand_dm(d, pure=pure)
+
+    # Points at which to evaluate the spin Q function
+    theta = np.linspace(0, np.pi, 16, endpoint=True)
+    phi = np.linspace(-np.pi, np.pi, 32, endpoint=True)
+    Q, _, _ = qutip.spin_q_function(rho, theta, phi)
+
+    for k, (phi_prime, theta_prime) in enumerate(itertools.product(phi, theta)):
+        state = qutip.spin_coherent(spin, theta_prime, phi_prime)
+        direct_Q = (state.dag() * rho * state).norm()
+        assert_almost_equal(Q.flat[k], direct_Q, decimal=9)
+
+@pytest.mark.parametrize(['spin'], [
+    pytest.param(1/2, id="spin-one-half"),
+    pytest.param(3, id="spin-three"),
+    pytest.param(13/2, id="spin-thirteen-half"),
+    pytest.param(7, id="spin-seven")
+])
+@pytest.mark.parametrize("pure", [
+    pytest.param(True, id="pure"),
+    pytest.param(False, id="mixed")
+])
+def test_spin_q_function_normalized(spin, pure):
+    d = int(2 * spin + 1)
+    rho = rand_dm(d, pure=pure)
+
+    # Points at which to evaluate the spin Q function
+    theta = np.linspace(0, np.pi, 128, endpoint=True)
+    phi = np.linspace(-np.pi, np.pi, 256, endpoint=True)
+    Q, THETA, _ = qutip.spin_q_function(rho, theta, phi)
+
+    norm = d / (4 * np.pi) * np.trapz(np.trapz(Q * np.sin(THETA), theta), phi)
+    assert_almost_equal(norm, 1, decimal=4)
+
+
+@pytest.mark.parametrize(["spin"], [
+    pytest.param(1/2, id="spin-one-half"),
+    pytest.param(1, id="spin-one"),
+    pytest.param(3/2, id="spin-three-half"),
+    pytest.param(2, id="spin-two")
+])
+@pytest.mark.parametrize("pure", [
+    pytest.param(True, id="pure"),
+    pytest.param(False, id="mixed")
+])
+def test_spin_wigner_normalized(spin, pure):
+    d = int(2*spin + 1)
+    rho = rand_dm(d, pure=pure)
+
+    # Points at which to evaluate the spin Wigner function
+    theta = np.linspace(0, np.pi, 256, endpoint=True)
+    phi = np.linspace(-np.pi, np.pi, 512, endpoint=True)
+    W, THETA, PHI = qutip.spin_wigner(rho, theta, phi)
+
+    norm = np.trapz(np.trapz(W * np.sin(THETA) * np.sqrt(d / (4*np.pi)), theta), phi)
+    assert_almost_equal(norm, 1, decimal=4)
+
+@pytest.mark.parametrize(['spin'], [
+    pytest.param(1 / 2, id="spin-one-half"),
+    pytest.param(1, id="spin-one"),
+    pytest.param(3 / 2, id="spin-three-half"),
+    pytest.param(2, id="spin-two")
+])
+@pytest.mark.parametrize("pure", [
+    pytest.param(True, id="pure"),
+    pytest.param(False, id="mixed")
+])
+def test_spin_wigner_overlap(spin, pure, n=5):
+    d = int(2*spin + 1)
+    rho = rand_dm(d, pure=pure)
+
+    # Points at which to evaluate the spin Wigner function
+    theta = np.linspace(0, np.pi, 256, endpoint=True)
+    phi = np.linspace(-np.pi, np.pi, 512, endpoint=True)
+    W, THETA, _ = qutip.spin_wigner(rho, theta, phi)
+
+    for k in range(n):
+        test_state = rand_dm(d)
+        state_overlap = (test_state*rho).tr().real
+
+        W_state, _, _ = qutip.spin_wigner(test_state, theta, phi)
+        W_overlap = np.trapz(
+            np.trapz(W_state * W * np.sin(THETA), theta), phi).real
+        assert_almost_equal(W_overlap, state_overlap, decimal=4)
 
 if __name__ == "__main__":
     run_module_suite()
