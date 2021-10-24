@@ -180,12 +180,6 @@ class Bloch:
         # Style of points, 'm' for multiple colors, 's' for single color
         self.point_style = []
 
-        # status of showing
-        if fig is None:
-            self._shown = False
-        else:
-            self._shown = True
-
     def set_label_convention(self, convention):
         """Set x, y and z labels according to one of conventions.
 
@@ -630,11 +624,9 @@ class Bloch:
         """
         self.render()
         if self.run_from_ipython():
-            if self._shown:
-                display(self.fig)
+            display(self.fig)
         else:
             self.fig.show()
-        self._shown = True
 
     def save(self, name=None, format='png', dirc=None, dpin=None):
         """Saves Bloch sphere to file of type ``format`` in directory ``dirc``.
