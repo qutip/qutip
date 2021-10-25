@@ -19,9 +19,9 @@ class classproperty(property):
 
 class Solver:
     """
-    Main class of the solvers.
-    Do the loop over each times in tlist and does the interface between the
-    evolver which deal in data and the Result which use Qobj.
+    Runner for an evolution.
+    Can run the evolution at once using :method:`run` or step by step using
+    :method:`start` and :method:`step`.
 
     attributes
     ----------
@@ -39,9 +39,7 @@ class Solver:
 
     stats: dict
         Diverse statistics of the evolution.
-
     """
-    # sesolve, mesolve, etc. used when choosing the
     name = None
 
     # State, time and Integrator of the stepper functionnality
