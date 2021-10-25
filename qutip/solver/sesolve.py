@@ -107,7 +107,10 @@ class SeSolver(Solver):
     def __init__(self, H, *, e_ops=None, options=None):
         _time_start = time()
 
-        rhs = -1j * QobjEvo(H)
+        if not isinstance(H, (Qobj, QobjEvo)):
+            raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
+
+        rhs = -1j * H
         if not rhs.isoper:
             raise ValueError("The hamiltonian must be an operator")
         super().__init__(rhs, e_ops=e_ops, options=options)

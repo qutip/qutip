@@ -168,7 +168,13 @@ class MeSolver(Solver):
     def __init__(self, H, c_ops, *, e_ops=None, options=None):
         _time_start = time()
 
-        H = QobjEvo(H)
+        if not isinstance(H, (Qobj, QobjEvo)):
+            raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
+        c_ops = [c_ops] if isinstance(c_ops, (Qobj, QobjEvo)) else c_ops
+        for c_op in c_ops:
+            if not isinstance(c_op, (Qobj, QobjEvo)):
+                raise TypeError("All `c_ops` must be a Qobj or QobjEvo")
+
         rhs = H if H.issuper else liouvillian(H)
         rhs += sum(c_op if c_op.issuper else lindblad_dissipator(c_op)
                    for c_op in c_ops)

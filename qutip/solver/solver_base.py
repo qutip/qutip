@@ -153,7 +153,8 @@ class Solver:
         """
         _data0 = self._prepare_state(state0)
         _integrator = self._get_integrator()
-        self.options = options
+        if options is not None:
+            self.options = options
         if args:
             _integrator.arguments(args)
         _time_start = time()
@@ -222,7 +223,7 @@ class Solver:
         """
         if not self._integrator:
             raise RuntimeError("The `start` method must called first")
-        if options:
+        if options is not None:
             self.options = options
             self._integrator = self._get_integrator()
             self._integrator.set_state(self._t, self._state)
