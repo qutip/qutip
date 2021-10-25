@@ -313,6 +313,11 @@ def test_QobjPower():
     q3 = q ** 3
     assert (q3.full() - np.linalg.matrix_power(data, 3) < 1e-12).all()
 
+def test_QobjPowerScalar():
+    """Check that scalars obtained from bra*ket can be exponentiated. (#1691)
+    """
+    ket = basis(2, 0)
+    assert (ket.dag()*ket)**2 == Qobj(1)
 
 def test_QobjNeg():
     "Qobj negation"

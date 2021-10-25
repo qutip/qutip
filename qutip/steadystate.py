@@ -242,10 +242,10 @@ def steadystate(A, c_op_list=[], method='direct', solver=None, **kwargs):
                 solver = 'mkl'
     elif solver == 'mkl' and \
             (method not in ['direct', 'power']):
-        raise Exception('MKL solver only for direct or power methods.')
+        raise ValueError('MKL solver only for direct or power methods.')
 
     elif solver not in ['scipy', 'mkl']:
-        raise Exception('Invalid solver kwarg.')
+        raise ValueError('Invalid solver kwarg.')
 
     ss_args = _default_steadystate_args()
     ss_args['method'] = method
@@ -258,7 +258,7 @@ def steadystate(A, c_op_list=[], method='direct', solver=None, **kwargs):
         if key in ss_args.keys():
             ss_args[key] = kwargs[key]
         else:
-            raise Exception(
+            raise TypeError(
                 "Invalid keyword argument '"+key+"' passed to steadystate.")
 
     # Set column perm to NATURAL if using RCM and not specified by user
@@ -1085,7 +1085,7 @@ def build_preconditioner(A, c_op_list=[], **kwargs):
         if key in ss_args.keys():
             ss_args[key] = kwargs[key]
         else:
-            raise Exception("Invalid keyword argument '" + key +
+            raise TypeError("Invalid keyword argument '" + key +
                             "' passed to steadystate.")
 
     # Set column perm to NATURAL if using RCM and not specified by user
@@ -1106,7 +1106,7 @@ def build_preconditioner(A, c_op_list=[], **kwargs):
         ss_list = _steadystate_power_liouvillian(L, ss_args)
         L, perm, perm2, rev_perm, ss_args = ss_list
     else:
-        raise Exception("Invalid preconditioning method.")
+        raise ValueError("Invalid preconditioning method.")
 
     M, ss_args = _iterative_precondition(L, n, ss_args)
 
@@ -1194,7 +1194,7 @@ def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
         A = sp_permute(L.data, perm, perm)
         Q = sp_permute(Q, perm, perm)
     else:
-        if ss_args['solver'] == 'scipy':
+        if pseudo_args['solver'] == 'scipy':
             A = L.data.tocsc()
             A.sort_indices()
 
@@ -1206,10 +1206,9 @@ def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
         else:
             pspec = pseudo_args['permc_spec']
             diag_p_thresh = pseudo_args['diag_pivot_thresh']
-            pseudo_args = pseudo_args['ILU_MILU']
             lu = sp.linalg.splu(A, permc_spec=pspec,
                                 diag_pivot_thresh=diag_p_thresh,
-                                options=dict(ILU_MILU=pseudo_args))
+                                options=dict(ILU_MILU=pseudo_args['ILU_MILU']))
             LIQ = lu.solve(Q.toarray())
 
     elif pseudo_args['method'] == 'spilu':
@@ -1230,7 +1229,8 @@ def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
     return Qobj(R, dims=L.dims)
 
 
-def pseudo_inverse(L, rhoss=None, w=None, sparse=True,  **kwargs):
+def pseudo_inverse(L, rhoss=None, w=None, sparse=True,
+                   method='splu', **kwargs):
     """
     Compute the pseudo inverse for a Liouvillian superoperator, optionally
     given its steady state density matrix (which will be computed if not
@@ -1288,10 +1288,9 @@ def pseudo_inverse(L, rhoss=None, w=None, sparse=True,  **kwargs):
         if key in pseudo_args.keys():
             pseudo_args[key] = kwargs[key]
         else:
-            raise Exception(
+            raise TypeError(
                 "Invalid keyword argument '"+key+"' passed to pseudo_inverse.")
-    if 'method' not in kwargs.keys():
-        pseudo_args['method'] = 'splu'
+    pseudo_args['method'] = method
 
     # Set column perm to NATURAL if using RCM and not specified by user
     if pseudo_args['use_rcm'] and ('permc_spec' not in kwargs.keys()):

@@ -334,7 +334,7 @@ Utility Functions
 -----------------
 
 .. automodule:: qutip.utilities
-    :members: n_thermal, linspace_with, clebsch, convert_unit
+    :members: n_thermal, clebsch, convert_unit
 
 
 .. _functions-fileio:
