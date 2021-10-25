@@ -7,7 +7,7 @@ import numpy as np
 
 try:
     import matplotlib.pyplot as plt
-except:
+except ImportError:
     pass
 
 
@@ -1052,8 +1052,7 @@ class Lattice1d():
                         Qin[i, j] = self._H_intra[
                                 i0*self._length_for_site+i,
                                 j0*self._length_for_site+j]
-                dim_site = list(np.delete(self.cell_tensor_config, [0], None))
-                dims_site = [dim_site, dim_site]
+                dims_site = [self.cell_site_dof, self.cell_site_dof]
                 Hcell[i0][j0] = Qobj(Qin, dims=dims_site)
 
         fig = plt.figure(figsize=[CNS*2, CNS*2.5])
@@ -1152,8 +1151,7 @@ class Lattice1d():
                         Qin[i, j] = self._H_intra[
                                 i0*self._length_for_site+i,
                                 j0*self._length_for_site+j]
-                dim_site = list(np.delete(self.cell_tensor_config, [0], None))
-                dims_site = [dim_site, dim_site]
+                dims_site = [self.cell_site_dof, self.cell_site_dof]
                 Hcell[i0][j0] = Qobj(Qin, dims=dims_site)
 
         j0 = 0
@@ -1242,6 +1240,5 @@ class Lattice1d():
         plt.axis('off')
         plt.show()
         plt.close()
-        dim_site = list(np.delete(self.cell_tensor_config, [0], None))
-        dims_site = [dim_site, dim_site]
+        dims_site = [self.cell_site_dof, self.cell_site_dof]
         return Qobj(inter_T, dims=dims_site)
