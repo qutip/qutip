@@ -693,7 +693,7 @@ class Qobj(object):
         """
         POWER operation.
         """
-        if self.type not in ['oper', 'super']:
+        if self.shape[0] != self.shape[1]:
             raise Exception("Raising a qobj to some power works only for " +
                             "operators and super-operators (square matrices).")
 
