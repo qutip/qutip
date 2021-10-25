@@ -23,6 +23,20 @@ class Solver:
     Can run the evolution at once using :method:`run` or step by step using
     :method:`start` and :method:`step`.
 
+    Parameters
+    ----------
+    rhs : Qobj, QobjEvo
+        Right hand side of the evolution::
+            d state / dt = rhs @ state
+
+    options : SolverOptions
+        Options for the solver
+
+    e_ops : list
+        list of Qobj or QobjEvo to compute the expectation values.
+        Alternatively, function[s] with the signature f(t, state) -> expect
+        can be used.
+
     attributes
     ----------
     rhs : Qobj, QobjEvo
@@ -40,7 +54,7 @@ class Solver:
     stats: dict
         Diverse statistics of the evolution.
     """
-    name = None
+    name = "generic"
 
     # State, time and Integrator of the stepper functionnality
     _t = 0
@@ -103,7 +117,7 @@ class Solver:
         else:
             return Qobj(state, **self._state_metadata, copy=copy)
 
-    def run(self, state0, tlist, *, args=None, e_ops=None):
+    def run(self, state0, tlist, *, args=None, e_ops=None, options=None):
         """
         Do the evolution of the Quantum system.
 
@@ -139,6 +153,7 @@ class Solver:
         """
         _data0 = self._prepare_state(state0)
         _integrator = self._get_integrator()
+        self.options = options
         if args:
             _integrator.arguments(args)
         _time_start = time()
@@ -160,6 +175,7 @@ class Solver:
         # self.stats.update(_integrator.stats)
         self.stats["method"] = _integrator.name
         results.stats = self.stats.copy()
+        results.solver = self.name
         return results
 
     def start(self, state0, t0):
@@ -207,7 +223,7 @@ class Solver:
         if not self._integrator:
             raise RuntimeError("The `start` method must called first")
         if options:
-            self.options
+            self.options = options
             self._integrator = self._get_integrator()
             self._integrator.set_state(self._t, self._state)
         if args:
@@ -225,7 +241,13 @@ class Solver:
                 self.options.ode["Operator_data_type"]
             )
 
-        integrator = self.avail_integrators[self.options.ode["method"]]
+        method = self.options.ode["method"]
+        if method in self.avail_integrators:
+            integrator = self.avail_integrators[method]
+        elif issubclass(method, Integrator):
+            integrator = method
+        else:
+            raise ValueError("Integrator method not supported.")
         return integrator(self.rhs, self.options.ode)
 
     @property

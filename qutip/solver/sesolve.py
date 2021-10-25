@@ -98,14 +98,6 @@ class SeSolver(Solver):
 
     attributes
     ----------
-    options : SolverOptions
-        Options for the solver.
-
-    e_ops : list
-        List of Qobj or QobjEvo to compute the expectation values.
-        Alternatively, function[s] with the signature f(t, state) -> expect
-        can be used.
-
     stats: dict
         Diverse statistics of the evolution.
     """
@@ -114,9 +106,6 @@ class SeSolver(Solver):
 
     def __init__(self, H, *, e_ops=None, options=None):
         _time_start = time()
-
-        if not isinstance(H, (Qobj, QobjEvo)):
-            raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
 
         rhs = -1j * QobjEvo(H)
         if not rhs.isoper:

@@ -157,32 +157,8 @@ class MeSolver(Solver):
     options : SolverOptions
         Options for the solver
 
-    methods
-    -------
-    run(state, tlist, args)
-        Evolve the density matrix (`rho0`) using a given
-        Hamiltonian (`H`) or Liouvillian (`H`), Alternatively evolve a unitary
-        matrix.
-        return a Result object
-
-    start(state0, t0):
-        Set the initial values for an evolution by steps
-
-    step(t, args={}):
-        Evolve to `t`. The system arguments for this step can be updated
-        with `args`.
-        return the state at t (Qobj), does not compute the expectation values.
-
     attributes
     ----------
-    options : SolverOptions
-        Options for the solver
-
-    e_ops : list
-        list of Qobj or QobjEvo to compute the expectation values.
-        Alternatively, function[s] with the signature f(t, state) -> expect
-        can be used.
-
     stats: dict
         Diverse statistics of the evolution.
     """
@@ -191,13 +167,6 @@ class MeSolver(Solver):
 
     def __init__(self, H, c_ops, *, e_ops=None, options=None):
         _time_start = time()
-
-        if not isinstance(H, (Qobj, QobjEvo)):
-            raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
-        c_ops = [c_ops] if isinstance(c_ops, (Qobj, QobjEvo)) else c_ops
-        for c_op in c_ops:
-            if not isinstance(c_op, (Qobj, QobjEvo)):
-                raise TypeError("All `c_ops` must be a Qobj or QobjEvo")
 
         H = QobjEvo(H)
         rhs = H if H.issuper else liouvillian(H)
