@@ -177,8 +177,6 @@ class MeSolver(Solver):
     ----------
     options : SolverOptions
         Options for the solver
-        options can be changed between evolution (before `run` and `start`),
-        but not between `step`.
 
     e_ops : list
         list of Qobj or QobjEvo to compute the expectation values.
@@ -204,7 +202,7 @@ class MeSolver(Solver):
         H = QobjEvo(H)
         rhs = H if H.issuper else liouvillian(H)
         rhs += sum(c_op if c_op.issuper else lindblad_dissipator(c_op)
-                            for c_op in c_ops)
+                   for c_op in c_ops)
         super().__init__(rhs, e_ops=e_ops, options=options)
 
         self.stats['solver'] = "Master Equation Evolution"

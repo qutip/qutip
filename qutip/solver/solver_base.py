@@ -61,7 +61,7 @@ class Solver:
             TypeError("The rhs must be a QobjEvo")
         self.e_ops = e_ops
         self.options = options
-        self.stats = {}
+        self.stats = {"preparation time": 0}
         self._state_metadata = {}
 
     def _prepare_state(self, state):
@@ -105,7 +105,7 @@ class Solver:
         else:
             return Qobj(state, **self._state_metadata, copy=copy)
 
-    def run(self, state0, tlist, *, args={}):
+    def run(self, state0, tlist, *, args=None, e_ops=None):
         """
         Do the evolution of the Quantum system.
 
@@ -128,6 +128,11 @@ class Solver:
         args : dict, optional {None}
             Change the ``args`` of the rhs for the evolution.
 
+        e_ops : list
+            list of Qobj or QobjEvo to compute the expectation values.
+            Alternatively, function[s] with the signature f(t, state) -> expect
+            can be used.
+
         Return
         ------
         results : :class:`qutip.solver.Result`
@@ -141,7 +146,7 @@ class Solver:
         _time_start = time()
         _integrator.set_state(tlist[0], _data0)
         self.stats["preparation time"] += time() - _time_start
-        results = Result(self.e_ops, self.options.results,
+        results = Result(e_ops or self.e_ops, self.options.results,
                          self.rhs.issuper, _data0.shape[1]!=1)
         results.add(tlist[0], state0)
 
@@ -233,7 +238,9 @@ class Solver:
     def options(self, new):
         if new is None:
             new = self.optionsclass()
-        if not isinstance(new, self.optionsclass):
+        elif isinstance(new, dict):
+            new = self.optionsclass(**new)
+        elif not isinstance(new, self.optionsclass):
             raise TypeError("options must be an instance of" +
                             str(self.optionsclass))
         self._options = new

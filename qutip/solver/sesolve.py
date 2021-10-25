@@ -99,12 +99,10 @@ class SeSolver(Solver):
     attributes
     ----------
     options : SolverOptions
-        Options for the solver
-        options can be changed between evolution (before `run` and `start`),
-        but not between `step`.
+        Options for the solver.
 
     e_ops : list
-        list of Qobj or QobjEvo to compute the expectation values.
+        List of Qobj or QobjEvo to compute the expectation values.
         Alternatively, function[s] with the signature f(t, state) -> expect
         can be used.
 
