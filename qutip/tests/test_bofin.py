@@ -93,7 +93,7 @@ class TestBath:
         exp_r = BathExponent("R", None, Q=None, ck=1.0, vk=2.0)
         exp_i = BathExponent("I", None, Q=None, ck=1.0, vk=2.0)
         bath = Bath([exp_r, exp_i])
-        assert bath.modes == [exp_r, exp_i]
+        assert bath.exponents == [exp_r, exp_i]
 
 
 class TestBathStates:

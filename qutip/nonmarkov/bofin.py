@@ -135,9 +135,9 @@ class Bath:
     """
     Represents a list of bath expansion exponents.
 
-    Parameter
-    ---------
-    modes : list of BathExponent
+    Parameters
+    ----------
+    exponents : list of BathExponent
         The exponents of the correlation function describing the bath.
 
     Attributes
@@ -145,82 +145,145 @@ class Bath:
 
     All of the parameters are available as attributes.
     """
-    def __init__(self, modes):
-        self.modes = modes
+    def __init__(self, exponents):
+        self.exponents = exponents
 
 
 class BosonicBath(Bath):
-    def __init__(self, Q, ckAR, vkAR, ckAI, vkAI, combine=True):
+    """
+    A helper class for constructing a bosonic bath from the expansion
+    coefficients and frequencies for the real and imaginary parts of
+    the bath correlation function.
+
+    Parameters
+    ----------
+    Q : Qobj or list of Qobj
+        The coupling operator for the bath. If a list is provided, it
+        represents the coupling operators of the ckAR exponents, followed
+        by the operators for the ckAI exponents.
+
+        FIXME: Separate the real and imaginary coupling operators.
+
+    ckAR : list of complex
+        The coefficients of the expansion terms for the real part of the
+        correlation function. The corresponding frequencies are passed as
+        vkAR.
+
+    vkAR : list of complex
+        The frequencies (exponents) of the expansion terms for the real part of
+        the correlation function. The corresponding ceofficients are passed as
+        ckAR.
+
+    ckAI : list of complex
+        The coefficients of the expansion terms in the imaginary part of the
+        correlation function. The corresponding frequencies are passed as
+        vkAI.
+
+    vkAI : list of complex
+        The frequencies (exponents) of the expansion terms for the imaginary
+        part of the correlation function. The corresponding ceofficients are
+        passed as ckAI.
+
+    combine : bool, default True
+        Whether to combine exponents with the same frequency (and coupling
+        operator). See :meth:`combine` for details.
+    """
+    def _check_cks_and_vks(self, ckAR, vkAR, ckAI, vkAI):
         if len(ckAI) != len(vkAI) or len(ckAR) != len(vkAR):
             raise ValueError(
                 "The bath exponent lists ckAI and vkAI, and ckAR and vkAR must"
                 " be the same length."
             )
+
+    def __init__(self, Q, ckAR, vkAR, ckAI, vkAI, combine=True):
+        self._check_cks_and_vks(ckAR, vkAR, ckAI, vkAI)
         Q = _convert_coup_op(Q, len(ckAR) + len(ckAI))
 
-        modes = []
-        modes.extend(
+        exponents = []
+        exponents.extend(
             BathExponent("R", None, Qk, ck, vk)
             for Qk, ck, vk in zip(Q[:len(ckAR)], ckAR, vkAR))
-        modes.extend(
+        exponents.extend(
             BathExponent("I", None, Qk, ck, vk)
             for Qk, ck, vk in zip(Q[len(ckAR):], ckAI, vkAI))
 
         if combine:
-            modes = self._combine(modes)
+            exponents = self.combine(exponents)
 
-        super().__init__(modes)
+        super().__init__(exponents)
 
-    def _combine(self, modes):
+    @classmethod
+    def combine(cls, exponents, rtol=1e-5, atol=1e-7):
+        """
+        Group bosonic exponents with the same frequency and return a
+        single exponent for each frequency present.
+
+        Exponents with the same frequency are only combined if they share the
+        same coupling operator ``.Q``.
+
+        Parameters
+        ----------
+        exponents : list of BathExponent
+            The list of exponents to combine.
+
+        rtol : float, default 1e-5
+            The relative tolerance to use to when comparing frequencies and
+            coupling operators.
+
+        atol : float, default 1e-7
+            The absolute tolerance to use to when comparing frequencies and
+            coupling operators.
+
+        Return
+        ------
+        list of BathExponent
+            The new reduced list of exponents.
+        """
         groups = []
-        remaining = modes[:]
+        remaining = exponents[:]
 
         while remaining:
-            m1 = remaining.pop(0)
-            group = [m1]
-            for m2 in remaining[:]:
+            e1 = remaining.pop(0)
+            group = [e1]
+            for e2 in remaining[:]:
                 if (
-                    np.isclose(m1.vk, m2.vk, rtol=1e-5, atol=1e-7) and
-                    np.allclose(m1.Q, m2.Q, rtol=1e-5, atol=1e-7)
+                    np.isclose(e1.vk, e2.vk, rtol=rtol, atol=atol) and
+                    np.allclose(e1.Q, e2.Q, rtol=rtol, atol=atol)
                 ):
-                    group.append(m2)
-                    remaining.remove(m2)
+                    group.append(e2)
+                    remaining.remove(e2)
             groups.append(group)
 
-        assert len(modes) == sum(len(g) for g in groups)
-
-        new_modes = []
+        new_exponents = []
         for combine in groups:
-            m1 = combine[0]
+            exp1 = combine[0]
             if len(combine) == 1:
-                new_modes.append(m1)
-            elif all(m2.type == m1.type for m2 in combine):
-                ck = sum(m2.ck for m2 in combine)
-                new_modes.append(BathExponent(m1.type, None, m1.Q, ck, m1.vk))
+                new_exponents.append(exp1)
+            elif all(exp2.type == exp1.type for exp2 in combine):
+                ck = sum(exp.ck for exp in combine)
+                new_exponents.append(
+                    BathExponent(e1.type, None, e1.Q, ck, e1.vk)
+                )
             else:
                 ck_R = (
-                    sum(m.ck for m in combine if m.type == m.types.R) +
-                    sum(m.ck for m in combine if m.type == m.types.RI)
+                    sum(exp.ck for exp in combine if exp.type == exp.types.R) +
+                    sum(exp.ck for exp in combine if exp.type == exp.types.RI)
                 )
                 ck_I = (
-                    sum(m.ck for m in combine if m.type == m.types.I) +
-                    sum(m.ck2 for m in combine if m.type == m.types.RI)
+                    sum(exp.ck for exp in combine if exp.type == exp.types.I) +
+                    sum(exp.ck2 for exp in combine if exp.type == exp.types.RI)
                 )
-                new_modes.append(
-                    BathExponent("RI", None, m1.Q, ck_R, m1.vk, ck2=ck_I)
+                new_exponents.append(
+                    BathExponent("RI", None, exp1.Q, ck_R, exp1.vk, ck2=ck_I)
                 )
 
-        return new_modes
+        return new_exponents
 
 
 class DrudeLorentzBath(BosonicBath):
     """
-    HEOM solver based on the Drude-Lorentz model for spectral density.
-    Drude-Lorentz bath the correlation functions can be exactly analytically
-    expressed as a sum of exponentials.
-
-    This sub-class is included to give backwards compatability with the older
-    implentation in qutip.nonmarkov.heom.
+    A helper class for constructing a Drude-Lorentz bosonic bath from the
+    bath parameters (see parameters below).
 
     Parameters
     ----------
@@ -235,7 +298,7 @@ class DrudeLorentzBath(BosonicBath):
 
     Nk : int
         Number of exponential terms used to approximate the bath correlation
-        functions
+        functions.
 
     gamma : float
         Bath spectral density cutoff frequency.
@@ -246,6 +309,14 @@ class DrudeLorentzBath(BosonicBath):
         attibute. Otherwise, ``.terminator`` is set to ``None``. The
         terminator is a Liouvillian term, so it's dimensions are those of
         a superoperator of ``Q``.
+
+    Attributes
+    ----------
+    terminator : Qobj
+        The Matsubara terminator -- i.e. a liouvillian term representing the
+        contribution to the system-bath dynamics of all exponential expansion
+        terms beyond Nk. It should be used by adding it to the system
+        liouvillian (i.e. ``liouvillian(H_sys)``).
     """
     def __init__(
         self, Q, lam, T, Nk, gamma, terminator=False,
@@ -302,12 +373,11 @@ class DrudeLorentzBath(BosonicBath):
 
 class DrudeLorentzPadeBath(BosonicBath):
     """
-    HEOM solver based on the Drude-Lorentz model for spectral density.
-    Drude-Lorentz bath the correlation functions can be exactly analytically
-    expressed as a sum of exponentials.
+    A helper class for constructing a Padé expansion for a Drude-Lorentz
+    bosonic bath from the bath parameters (see parameters below).
 
-    This sub-class is included to give backwards compatability with the older
-    implentation in qutip.nonmarkov.heom.
+    This is an alternative to the :class:`DrudeLorentzBath` which constructs
+    a simpler exponential expansion.
 
     Parameters
     ----------
@@ -363,13 +433,12 @@ class DrudeLorentzPadeBath(BosonicBath):
         eta_p = [lam * gamma * (self._cot(gamma * beta / 2.0) - 1.0j)]
         gamma_p = [gamma]
 
-        if lmax > 0:
-            for ll in range(1, lmax + 1):
-                eta_p.append(
-                    (kappa[ll] / beta) * 4 * lam * gamma * (epsilon[ll] / beta)
-                    / ((epsilon[ll]**2 / beta**2) - gamma**2)
-                )
-                gamma_p.append(epsilon[ll] / beta)
+        for ll in range(1, lmax + 1):
+            eta_p.append(
+                (kappa[ll] / beta) * 4 * lam * gamma * (epsilon[ll] / beta)
+                / ((epsilon[ll]**2 / beta**2) - gamma**2)
+            )
+            gamma_p.append(epsilon[ll] / beta)
 
         return eta_p, gamma_p
 
@@ -418,15 +487,48 @@ class DrudeLorentzPadeBath(BosonicBath):
 
 
 class FermionicBath(Bath):
-    def __init__(self, Q, ck, vk):
+    """
+    A helper class for constructing a fermionic bath from the expansion
+    coefficients and frequencies for the + and - modes of
+    the bath correlation function.
+
+    Parameters
+    ----------
+    Q : Qobj or list of Qobj
+        The coupling operator for the bath. If a list is provided, it
+        represents the coupling operators for each exponent in the expansion
+        and the list should contain one operator per element of ``ck`` /
+        ``vk``. If the operator for a ``+`` mode term is ``Q``, the
+        operator for the corresponding ``-`` mode term is typically
+        ``Q.dag()``.
+
+    ck : list of complex
+        The coefficients of the expansion terms. The even elements of the
+        list are coefficients for ``+`` modes and the odd elements are
+        coefficients for the ``-`` modes. The corresponding frequencies
+        are passed as ``vk``.
+
+        FIXME: Move the + and - modes into separate lists.
+
+    vk : list of complex
+        The frequencies (exponents) of the expansion terms. The even elements
+        of the list are frequencies for ``+`` modes and the odd elements are
+        frequencies for the ``-`` modes. The corresponding coefficients
+        are passed as ``ck``.
+    """
+
+    def _check_ck_and_vk(self, ck, vk):
         if (len(ck) != len(vk)
                 or any(len(ck[i]) != len(vk[i]) for i in range(len(ck)))):
             raise ValueError("Exponents ck and vk must be the same length.")
+
+    def __init__(self, Q, ck, vk):
+        self._check_ck_and_vk(ck, vk)
         Q = _convert_coup_op(Q, len(ck))
 
-        modes = []
+        exponents = []
         for i in range(len(ck)):
-            # currently "-" modes are generated by adding extra
+            # FIXME: currently "-" modes are generated by adding extra
             # baths outside with Q == Q.dag() when calling
             # FermionicHEOMSolver
             if i % 2 == 0:
@@ -435,7 +537,7 @@ class FermionicBath(Bath):
             else:
                 type = "-"
                 sbk_offset = -len(ck[i - 1])
-            modes.extend(
+            exponents.extend(
                 BathExponent(
                     type, 2, Q[i], ck[i][j], vk[i][j],
                     sigma_bar_k_offset=sbk_offset
@@ -443,7 +545,7 @@ class FermionicBath(Bath):
                 for j in range(len(ck[i]))
             )
 
-        super().__init__(modes)
+        super().__init__(exponents)
 
 
 class BathStates:
@@ -625,7 +727,7 @@ class HEOMSolver:
         )
         self._sup_shape = self.L0.shape[0]
 
-        self.bath = BathStates(bath.modes, N_cut)
+        self.bath = BathStates(bath.exponents, N_cut)
 
         self.coup_op = [mode.Q for mode in self.bath.modes]
         self.spreQ = [spre(op).data for op in self.coup_op]
@@ -1064,7 +1166,8 @@ class HSolverDL(HEOMSolver):
 
         super().__init__(H_sys, bath, N_cut, options=options)
 
-        # store input parameters as attributes for politeness
+        # store input parameters as attributes for politeness and compatibility
+        # with HSolverDL in QuTiP 4.6 and below.
         self.coup_strength = coup_strength
         self.cut_freq = cut_freq
         self.temperature = temperature
