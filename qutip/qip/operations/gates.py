@@ -892,11 +892,9 @@ def hadamard_transform(N=1):
         Quantum object representation of the N-qubit Hadamard gate.
 
     """
-    data = 2 ** (-N / 2) * np.array([[(-1) ** _hamming_distance(i & j)
-                                      for i in range(2 ** N)]
-                                     for j in range(2 ** N)])
+    H = Qobj([[1, 1], [1, -1]]) / np.sqrt(2)
 
-    return Qobj(data, dims=[[2] * N, [2] * N])
+    return tensor([H] * N)
 
 
 def _flatten(lst):
