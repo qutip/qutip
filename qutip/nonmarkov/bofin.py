@@ -576,7 +576,7 @@ class HierarchyADOs:
 
     cutoff : int
         The maximum depth of the hierarchy (i.e. the maximum sum of
-        "excitations" in the hierarchy ADO labels).
+        "excitations" in the hierarchy ADO labels or maximum ADO level).
 
     Attributes
     ----------
@@ -727,9 +727,36 @@ class HEOMSolver:
     """
     HEOM solver that supports a single bath which may be either bosonic or
     fermionic.
-    """
 
-    def __init__(self, H_sys, bath, N_cut, options=None):
+    Parameters
+    ----------
+    H_sys : QObj, QobjEvo or a list
+        The system Hamiltonian or Liouvillian specified as either a
+        :obj:`Qobj`, a :obj:`QobjEvo`, or a list of elements that may
+        be converted to a :obj:`ObjEvo`.
+
+    bath : Bath
+        A :obj:`Bath` containing the exponents of the expansion of the
+        bath correlation funcion and their associated coefficients
+        and coupling operators.
+
+    max_depth : int
+        The maximum depth of the heirarchy (i.e. the maximum number of bath
+        exponent "excitations" to retain).
+
+    options : :class:`qutip.solver.Options`
+        Generic solver options. If set to None the default options will be
+        used.
+
+    Attributes
+    ----------
+    ados : :obj:`HierarchyADOs`
+        The description of the hierarchy constructed from the given bath
+        and maximum depth.
+
+    FIXME: Add _ to the names of the non-public interface.
+    """
+    def __init__(self, H_sys, bath, max_depth, options=None):
         self.H_sys = _convert_h_sys(H_sys)
         self.options = Options() if options is None else options
         self.is_timedep = isinstance(self.H_sys, QobjEvo)
@@ -743,7 +770,7 @@ class HEOMSolver:
         )
         self._sup_shape = self.L0.shape[0]
 
-        self.ados = HierarchyADOs(bath.exponents, N_cut)
+        self.ados = HierarchyADOs(bath.exponents, max_depth)
         self.n_ados = len(self.ados.labels)
 
         self.coup_op = [mode.Q for mode in self.ados.exponents]
@@ -950,8 +977,8 @@ class HEOMSolver:
 
         solution : Numpy array
             Array of the the steady-state and all ADOs.
-            Further processing of this can be done with functions provided in
-            example notebooks.
+
+            FIXME: Describe how to use the returned ADOs.
         """
         n = self._sys_shape
 
@@ -999,9 +1026,9 @@ class HEOMSolver:
         ----------
         rho0 : Qobj
             Initial state (density matrix) of the system
-            (if full_init==False).
-            If full_init = True, then rho0 should be a numpy array of
-            initial state and all ADOs.
+            (if ``full_init`` is ``False``).
+            If ``full_init`` is ``True``, then ``rho0`` should be a numpy array
+            of the initial state and all ADOs.
 
         tlist : list
             Time over which system evolves.
@@ -1094,9 +1121,9 @@ class BosonicHEOMSolver(HEOMSolver):
     ckAR, ckAI, vkAR, vkAI : lists
         Lists containing coefficients for fitting spectral density correlation
 
-    N_cut : int
+    max_depth : int
         The maximum depth of the heirarchy (i.e. the maximum number of bath
-        excitations to retain).
+        exponent "excitations" to retain).
 
     options : :class:`qutip.solver.Options`
         Generic solver options.
@@ -1104,10 +1131,12 @@ class BosonicHEOMSolver(HEOMSolver):
     """
 
     def __init__(
-        self, H_sys, coup_op, ckAR, ckAI, vkAR, vkAI, N_cut, options=None
+        self, H_sys, coup_op, ckAR, ckAI, vkAR, vkAI, max_depth, options=None
     ):
         bath = BosonicBath(coup_op, ckAR, vkAR, ckAI, vkAI)
-        super().__init__(H_sys, bath, N_cut, options=options)
+        super().__init__(
+            H_sys=H_sys, bath=bath, max_depth=max_depth, options=options,
+        )
 
 
 class HSolverDL(HEOMSolver):
@@ -1180,7 +1209,7 @@ class HSolverDL(HEOMSolver):
             H_sys = _convert_h_sys(H_sys)
             H_sys = liouvillian(H_sys) + bath.terminator
 
-        super().__init__(H_sys, bath, N_cut, options=options)
+        super().__init__(H_sys, bath=bath, max_depth=N_cut, options=options)
 
         # store input parameters as attributes for politeness and compatibility
         # with HSolverDL in QuTiP 4.6 and below.
@@ -1218,17 +1247,20 @@ class FermionicHEOMSolver(HEOMSolver):
     ck, vk : lists
         Lists containing spectral density correlation
 
-    N_cut : int
-        Cutoff parameter for the bath
+    max_depth : int
+        The maximum depth of the heirarchy (i.e. the maximum number of bath
+        exponent "excitations" to retain).
 
     options : :class:`qutip.solver.Options`
         Generic solver options.
         If set to None the default options will be used
     """
 
-    def __init__(self, H_sys, coup_op, ck, vk, N_cut, options=None):
+    def __init__(self, H_sys, coup_op, ck, vk, max_depth, options=None):
         bath = FermionicBath(coup_op, ck, vk)
-        super().__init__(H_sys, bath, N_cut, options=options)
+        super().__init__(
+            H_sys, bath=bath, max_depth=max_depth, options=options
+        )
 
 
 class _GatherHEOMRHS:
