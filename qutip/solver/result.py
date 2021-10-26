@@ -44,7 +44,6 @@ class Result:
     num_collapse : int
         Number of collapse operators in simualation.
 """
-    def __init__(self, e_ops, options, _super, oper_state):
         self.times = []
 
         self._raw_e_ops = e_ops
@@ -52,12 +51,9 @@ class Result:
         self._expects = []
         self._last_state = None
 
-        self._read_e_ops()
-        self._read_options(options, _super, oper_state)
         self.collapse = None
         self.stats = {"num_expect": self._e_num}
 
-    def _read_e_ops(self):
         self._e_ops_dict = False
         self._e_num = 0
         self._e_ops = []
@@ -256,7 +252,7 @@ class MultiTrajResult:
         Standard derivation of expectation values over `ntraj` trajectories.
         Last state of each trajectories. (ket)
     """
-    def __init__(self, num_c_ops=0):
+    def __init__(self):
         """
         Parameters:
         -----------
@@ -265,11 +261,77 @@ class MultiTrajResult:
         """
         self.trajectories = []
         self._to_dm = True # MCsolve
-        self.num_c_ops = num_c_ops
+        #self.num_c_ops = num_c_ops
+        #self.num_e_ops = num_e_ops
         self.tlist = None
+        self._target_tols = None
 
     def add(self, one_traj):
+        """
+        Add a trajectory.
+        Return the number of trajectories still needed to reach the desired
+        tolerance.
+        """
         self.trajectories.append(one_traj)
+        if self._target_tols is not None:
+            return self._check_expect_tol()
+        else:
+            return np.inf
+
+    def _set_check_expect_tol(self, target_tol):
+        """
+        Set the capacity to stop the map when the estimated error on the
+        expectation values is within given tolerance.
+
+        Error estimation is done with jackknife resampling.
+
+        target_tol : float, list
+            If a float, it is read as absolute tolerance.
+            If a pair of float: absolute and relative tolerance in that order.
+            Lastly, target_tol can be a list of pairs of (atol, rtol) for each
+            e_ops.
+        """
+        if not target_tol:
+            return
+        if not self.num_e_ops:
+            raise ValueError("Cannot target a tolerance without e_ops")
+
+        targets = np.array(target_tol)
+        if targets.ndim == 0:
+            self._target_tols = np.array([(target_tol, 0.)] * self.num_e_ops)
+        elif targets.shape = (2,):
+            self._target_tols = np.ones((self.num_e_ops, 2)) * targets
+        elif targets.shape = (self.num_e_ops, 2):
+            self._target_tols = targets
+        else:
+            raise ValueError("target_tol must be a number, a pair of (atol, "
+                             "rtol) or a list of (atol, rtol) for each e_ops")
+
+    def _check_expect_tol(self):
+        """
+        Compute the error on the expectation values using jackknife resampling.
+        Return the approximate number of trajectories needed to reach the
+        desired tolerance.
+        """
+        num_traj = len(self.trajectories)
+        if num_traj <= 1:
+            return np.inf
+        num_e = self.trajectories[0]._e_num
+
+        avg = np.array([np.mean(
+            np.stack([traj._expects[i] for traj in self.trajectories]),
+            axis=0
+        ) for i in range(num_e)])
+
+        std = np.array([np.std(
+            np.stack([traj._expects[i] for traj in self.trajectories]),
+            axis=0
+        ) for i in range(num_e)])
+
+        target = [atol + rtol * mean
+                  for mean, (atol, rtol) in zip(avg, self._target_tols)]
+
+        return np.max(std**2 / target**2 - num_traj + 1)
 
     @property
     def runs_states(self):
@@ -563,6 +625,51 @@ class MultiTrajResultAveraged:
                                      zip(one_traj._expects, self._sum2_expect)]
         self._collapse.append(one_traj.collapse)
         self._num += 1
+        if self._compute_target_tol:
+            return self._check_expect_tol()
+        else:
+            return np.inf
+
+    def _set_check_expect_tol(self, target_tol):
+        """
+        Set the capacity to stop the map when the estimated error on the
+        expectation values is within given tolerance.
+
+        Error estimation is done with jackknife resampling.
+
+        target_tol : float, list
+            If a float, it is read as absolute tolerance.
+            If a pair of float: absolute and relative tolerance in that order.
+            Lastly, target_tol can be a list of pairs of (atol, rtol) for each
+            e_ops.
+        """
+        self._target_tols = None
+        if not target_tol:
+            return
+        if not self.num_e_ops:
+            raise ValueError("Cannot target a tolerance without e_ops")
+
+        targets = np.array(target_tol)
+        if targets.ndim == 0:
+            self._target_tols = np.array([(target_tol, 0.)] * self.num_e_ops)
+        elif targets.shape = (2,):
+            self._target_tols = np.ones((self.num_e_ops, 2)) * targets
+        elif targets.shape = (self.num_e_ops, 2):
+            self._target_tols = targets
+        else:
+            raise ValueError("target_tol must be a number, a pair of (atol, "
+                             "rtol) or a list of (atol, rtol) for each e_ops")
+
+    def _check_expect_tol(self):
+        num_traj = len(self.trajectories)
+        if num_traj <= 1:
+            return False
+        num_e = self.trajectories[0]._e_num
+        avg = [sum_expect / num_traj for sum_expect in self._sum_expect]
+        avg2 = [sum_expect / num_traj for sum_expect in self._sum2_expect]
+        target = [atol + rtol * mean
+                  for mean, (atol, rtol) in zip(avg, self._target_tols)]
+        return np.max((avg2 - avg**2)**2 / target**2 - num_traj + 1)
 
     @property
     def runs_states(self):

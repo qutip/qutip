@@ -32,7 +32,8 @@
 ###############################################################################
 """
 This module provides functions for parallel execution of loops and function
-mappings, using the builtin Python module multiprocessing or the loky parallel execution library.
+mappings, using the builtin Python module multiprocessing or the loky parallel
+execution library.
 """
 __all__ = ['parallel_map', 'serial_map', 'loky_pmap', 'get_map']
 
@@ -54,7 +55,7 @@ map_kw = {
 }
 
 
-def serial_map(task, values, task_args=None, task_kwargs=None,
+def serial_map(task, values, task_args=None, task_kwargs=None, *,
                reduce_func=None, map_kw=map_kw,
                progress_bar=None, progress_bar_kwargs={}):
     """
@@ -96,25 +97,28 @@ def serial_map(task, values, task_args=None, task_kwargs=None,
         task_args = ()
     if task_kwargs is None:
         task_kwargs = {}
-    progress_bar = progess_bars[progress_bar]()
+    progress_bar = progess_bars[progress_bar]
     progress_bar.start(len(values), **progress_bar_kwargs)
+    remaining_ntraj = len(values)
     end_time = map_kw['timeout'] + time.time()
     results = []
     for n, value in enumerate(values):
         if time.time() > end_time:
             break
-        progress_bar.update(n)
         result = task(value, *task_args, **task_kwargs)
         if reduce_func is not None:
-            reduce_func(result)
+            remaining_ntraj = reduce_func(result)
         else:
             results.append(result)
+        if remaining_ntraj <= 0:
+            end_time = 0
+        progress_bar.update(n)
     progress_bar.finished()
 
     return results
 
 
-def parallel_map(task, values, task_args=None, task_kwargs=None,
+def parallel_map(task, values, task_args=None, task_kwargs=None, *,
                  reduce_func=None, map_kw=map_kw,
                  progress_bar=None, progress_bar_kwargs={}):
     """
@@ -157,8 +161,9 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
     end_time = map_kw['timeout'] + time.time()
     job_time = map_kw['job_timeout']
 
-    progress_bar = progess_bars[progress_bar]()
+    progress_bar = progess_bars[progress_bar]
     progress_bar.start(len(values), **progress_bar_kwargs)
+    remaining_ntraj = len(values)
 
     results = []
     try:
@@ -171,9 +176,11 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
             remaining_time = min(end_time - time.time(), job_time)
             result = job.get(remaining_time)
             if reduce_func is not None:
-                reduce_func(result)
+                remaining_ntraj = reduce_func(result)
             else:
                 results.append(result)
+            if remaining_ntraj <= 0:
+                job_time = 0
             progress_bar.update()
 
     except KeyboardInterrupt as e:
@@ -191,7 +198,7 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
     return results
 
 
-def loky_pmap(task, values, task_args=None, task_kwargs=None,
+def loky_pmap(task, values, task_args=None, task_kwargs=None, *,
               reduce_func=None, map_kw=map_kw,
               progress_bar=None, progress_bar_kwargs={}):
     """
@@ -237,13 +244,14 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
 
     kw = map_kw
 
-    progress_bar = progess_bars[progress_bar]()
+    progress_bar = progess_bars[progress_bar]
     progress_bar.start(len(values), **progress_bar_kwargs)
 
     executor = get_reusable_executor(max_workers=kw['num_cpus'])
     end_time = kw['timeout'] + time.time()
     job_time = kw['job_timeout']
     results = []
+    remaining_ntraj = len(values)
 
     try:
         jobs = [executor.submit(task, value, *task_args, **task_kwargs)
@@ -253,9 +261,11 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
             remaining_time = min(end_time - time.time(), job_time)
             result = job.result(remaining_time)
             if reduce_func is not None:
-                reduce_func(result)
+                remaining_ntraj = reduce_func(result)
             else:
                 results.append(result)
+            if remaining_ntraj <= 0:
+                job_time = 0
             progress_bar.update()
 
     except KeyboardInterrupt as e:
@@ -272,13 +282,13 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
     return results
 
 
-def get_map(options):
-    if "parallel" in options['map']:
-        return parallel_map
-    elif "serial" in options['map']:
-        return serial_map
-    elif "loky" in options['map']:
-        return loky_pmap
-    else:
-        raise ValueError("map not found, available options are 'parallel',"
-                         " 'serial' and 'loky'")
+get_map = {
+    True: parallel_map,
+    'True': parallel_map,
+    "parallel": parallel_map,
+    None: serial_map,
+    False: serial_map,
+    "False": serial_map,
+    "serial": serial_map,
+    "loky": loky_pmap,
+}
