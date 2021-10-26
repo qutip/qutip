@@ -15,7 +15,7 @@ from qutip.nonmarkov.bofin import (
     _convert_coup_op,
     BathExponent,
     Bath,
-    BathStates,
+    HierarchyADOs,
     BosonicHEOMSolver,
     FermionicHEOMSolver,
     HSolverDL,
@@ -96,54 +96,53 @@ class TestBath:
         assert bath.exponents == [exp_r, exp_i]
 
 
-class TestBathStates:
-    def mk_modes(self, dims):
+class TestHierarchyADOs:
+    def mk_exponents(self, dims):
         return [
             BathExponent("I", dim, Q=None, ck=1.0, vk=2.0) for dim in dims
         ]
 
     def test_create(self):
-        modes = self.mk_modes([2, 3])
-        bath = BathStates(modes, cutoff=2)
+        exponents = self.mk_exponents([2, 3])
+        ados = HierarchyADOs(exponents, cutoff=2)
 
-        assert bath.modes == modes
-        assert bath.cutoff == 2
+        assert ados.exponents == exponents
+        assert ados.cutoff == 2
 
-        assert bath.dims == [2, 3]
-        assert bath.vk == [2.0, 2.0]
-        assert bath.ck == [1.0, 1.0]
-        assert bath.ck2 == [None, None]
-        assert bath.sigma_bar_k_offset == [None, None]
+        assert ados.dims == [2, 3]
+        assert ados.vk == [2.0, 2.0]
+        assert ados.ck == [1.0, 1.0]
+        assert ados.ck2 == [None, None]
+        assert ados.sigma_bar_k_offset == [None, None]
 
-        assert bath.states == [
+        assert ados.labels == [
             (0, 0), (0, 1), (0, 2), (1, 0), (1, 1),
         ]
-        assert bath.n_states == 5
 
     def test_state_idx(self):
-        bath = BathStates(self.mk_modes([2, 3]), cutoff=2)
-        assert bath.idx((0, 0)) == 0
-        assert bath.idx((0, 1)) == 1
-        assert bath.idx((0, 2)) == 2
-        assert bath.idx((1, 0)) == 3
-        assert bath.idx((1, 1)) == 4
+        ados = HierarchyADOs(self.mk_exponents([2, 3]), cutoff=2)
+        assert ados.idx((0, 0)) == 0
+        assert ados.idx((0, 1)) == 1
+        assert ados.idx((0, 2)) == 2
+        assert ados.idx((1, 0)) == 3
+        assert ados.idx((1, 1)) == 4
 
     def test_next(self):
-        bath = BathStates(self.mk_modes([2, 3]), cutoff=2)
-        assert bath.next((0, 0), 0) == (1, 0)
-        assert bath.next((0, 0), 1) == (0, 1)
-        assert bath.next((1, 0), 0) is None
-        assert bath.next((1, 0), 1) == (1, 1)
-        assert bath.next((1, 1), 1) is None
+        ados = HierarchyADOs(self.mk_exponents([2, 3]), cutoff=2)
+        assert ados.next((0, 0), 0) == (1, 0)
+        assert ados.next((0, 0), 1) == (0, 1)
+        assert ados.next((1, 0), 0) is None
+        assert ados.next((1, 0), 1) == (1, 1)
+        assert ados.next((1, 1), 1) is None
 
     def test_prev(self):
-        bath = BathStates(self.mk_modes([2, 3]), cutoff=2)
-        assert bath.prev((0, 0), 0) is None
-        assert bath.prev((0, 0), 1) is None
-        assert bath.prev((1, 0), 0) == (0, 0)
-        assert bath.prev((0, 1), 1) == (0, 0)
-        assert bath.prev((1, 1), 1) == (1, 0)
-        assert bath.prev((0, 2), 1) == (0, 1)
+        ados = HierarchyADOs(self.mk_exponents([2, 3]), cutoff=2)
+        assert ados.prev((0, 0), 0) is None
+        assert ados.prev((0, 0), 1) is None
+        assert ados.prev((1, 0), 0) == (0, 0)
+        assert ados.prev((0, 1), 1) == (0, 0)
+        assert ados.prev((1, 1), 1) == (1, 0)
+        assert ados.prev((0, 2), 1) == (0, 1)
 
 
 class TestParameterConversionUtilities:

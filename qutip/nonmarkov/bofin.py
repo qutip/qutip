@@ -97,7 +97,7 @@ class BathExponent:
     def _check_ck2(self, type, ck2):
         if type == self.types["RI"]:
             if ck2 is None:
-                raise ValueError("RI bath modes require ck2")
+                raise ValueError("RI bath exponents require ck2")
         else:
             if ck2 is not None:
                 raise ValueError(
@@ -108,7 +108,7 @@ class BathExponent:
     def _check_sigma_bar_k_offset(self, type, offset):
         if type in (self.types["+"], self.types["-"]):
             if offset is None:
-                raise ValueError("+ and - bath modes require sigma_bar_k")
+                raise ValueError("+ and - bath exponents require sigma_bar_k")
         else:
             if offset is not None:
                 raise ValueError(
@@ -548,35 +548,54 @@ class FermionicBath(Bath):
         super().__init__(exponents)
 
 
-class BathStates:
+class HierarchyADOs:
     """
-    A description of bath states coupled to quantum system in the hierarchical
-    equations of motion formulation.
+    A description of ADOs (auxilliary density operators) with the
+    hierarchical equations of motion.
+
+    The list of ADOs is constructed from a list of bath exponents
+    (corresponding to one or more baths). Each ADO is referred to by a label
+    that lists the number of "excitations" of each bath exponent. The
+    level of a label within the hierarchy is the sum of the "excitations"
+    within the label.
+
+    For example the label ``(0, 0, ..., 0)`` represents the density matrix
+    of the system being solved and is the only 0th level label.
+
+    The labels with a single 1, i.e. ``(1, 0, ..., 0)``, ``(0, 1, 0, ... 0)``,
+    etc. are the 1st level labels.
+
+    The second level labels all have either two 1s or a single 2, and so on
+    for the third and higher levels of the hierarchy.
 
     Parameters
     ----------
-    modes : list of BathExponent
-        The exponents of the correlation function describing the bath.
+    exponents : list of BathExponent
+        The exponents of the correlation function describing the bath or
+        baths.
 
     cutoff : int
-        The maximum number of excitations.
+        The maximum depth of the hierarchy (i.e. the maximum sum of
+        "excitations" in the hierarchy ADO labels).
 
     Attributes
     ----------
-    modes : list of BathExponent
-        The exponents of the correlation function describing the bath.
+    exponents : list of BathExponent
+        The exponents of the correlation function describing the bath or
+        baths.
 
     cutoff : int
-        The maximum number of excitations.
+        The maximum depth of the hierarchy (i.e. the maximum sum of
+        "excitations" in the hierarchy ADO labels).
 
     dims : list of int
-        The dimensions of each compontent system within the bath.
+        The dimensions of each exponent within the bath(s).
 
     vk : list of complex
-        The frequency of each exponent within the bath.
+        The frequency of each exponent within the bath(s).
 
     ck : list of complex
-        The coefficient of each exponent within the bath.
+        The coefficient of each exponent within the bath(s).
 
     ck2: list of complex
         For exponents of type "RI", the coefficient of the exponent within
@@ -587,89 +606,86 @@ class BathStates:
         of the corresponding "-" or "+" exponent. For other exponent types,
         the entry is None.
 
-    states: list of tuples
-        A list of the state vectors within the bath.
-
-    n_states: int
-        Total number of states. Equivalent to ``len(bath.states)``.
+    labels: list of tuples
+        A list of the state labels within the bath.
     """
-    def __init__(self, modes, cutoff):
-        self.modes = modes
+    def __init__(self, exponents, cutoff):
+        self.exponents = exponents
         self.cutoff = cutoff
 
-        self.dims = [mode.dim or (cutoff + 1) for mode in self.modes]
-        self.vk = [mode.vk for mode in self.modes]
-        self.ck = [mode.ck for mode in self.modes]
-        self.ck2 = [mode.ck2 for mode in self.modes]
+        self.dims = [exp.dim or (cutoff + 1) for exp in self.exponents]
+        self.vk = [exp.vk for exp in self.exponents]
+        self.ck = [exp.ck for exp in self.exponents]
+        self.ck2 = [exp.ck2 for exp in self.exponents]
         self.sigma_bar_k_offset = [
-            mode.sigma_bar_k_offset for mode in self.modes
+            exp.sigma_bar_k_offset for exp in self.exponents
         ]
 
-        self.states = list(state_number_enumerate(self.dims, cutoff))
-        self.n_states = len(self.states)
-        self._state_idx = {s: i for i, s in enumerate(self.states)}
+        self.labels = list(state_number_enumerate(self.dims, cutoff))
+        self._label_idx = {s: i for i, s in enumerate(self.labels)}
 
-    def idx(self, state):
+    def idx(self, label):
         """
-        Return the index of the state within the list of bath states,
-        i.e. within ``self.states``.
+        Return the index of the ADO label within the list of labels,
+        i.e. within ``self.labels``.
 
         Parameters
         ----------
-        state : tuple
-            The state to look up.
+        label : tuple
+            The label to look up.
 
         Returns
         -------
         int
-            The index of the state within the list of bath states.
+            The index of the label within the list of ADO labels.
         """
-        return self._state_idx[state]
+        return self._label_idx[label]
 
-    def next(self, state, k):
+    def next(self, label, k):
         """
-        Return the state with one more excitation in the k'th bath dimension
-        or ``None`` if adding the excitation would exceed the dimension or
-        bath cutoff.
+        Return the ADO label with one more excitation in the k'th exponent
+        dimension or ``None`` if adding the excitation would exceed the
+        dimension or bath cutoff.
 
         Parameters
         ----------
-        state : tuple
-            The state to add an excitation to.
+        label : tuple
+            The ADO label to add an excitation to.
         k : int
-            The bath dimension to add the excitation to.
+            The exponent to add the excitation to.
 
         Returns
         -------
         tuple or None
-            The next state.
+            The next label.
         """
-        if state[k] >= self.dims[k] - 1:
+        if label[k] >= self.dims[k] - 1:
             return None
-        if sum(state) >= self.cutoff:
+        if sum(label) >= self.cutoff:
             return None
-        return state[:k] + (state[k] + 1,) + state[k + 1:]
+        return label[:k] + (label[k] + 1,) + label[k + 1:]
 
-    def prev(self, state, k):
+    def prev(self, label, k):
         """
-        Return the state with one fewer excitation in the k'th bath dimension
-        or ``None`` if the state has no exciations in the k'th bath dimension.
+        Return the ADO label with one fewer excitation in the k'th
+        exponent dimension or ``None`` if the label has no exciations in the
+        k'th exponent.
 
         Parameters
         ----------
-        state : tuple
-            The state to remove the excitation from.
+        label : tuple
+            The ADO label to remove the excitation from.
         k : int
-            The bath dimension to remove the excitation from.
+            The exponent to remove the excitation from.
 
         Returns
         -------
         tuple or None
-            The previous state.
+            The previous label.
         """
-        if state[k] <= 0:
+        if label[k] <= 0:
             return None
-        return state[:k] + (state[k] - 1,) + state[k + 1:]
+        return label[:k] + (label[k] - 1,) + label[k + 1:]
 
 
 def _convert_h_sys(H_sys):
@@ -727,9 +743,10 @@ class HEOMSolver:
         )
         self._sup_shape = self.L0.shape[0]
 
-        self.bath = BathStates(bath.exponents, N_cut)
+        self.ados = HierarchyADOs(bath.exponents, N_cut)
+        self.n_ados = len(self.ados.labels)
 
-        self.coup_op = [mode.Q for mode in self.bath.modes]
+        self.coup_op = [mode.Q for mode in self.ados.exponents]
         self.spreQ = [spre(op).data for op in self.coup_op]
         self.spostQ = [spost(op).data for op in self.coup_op]
         self.spreQdag = [spre(op.dag()).data for op in self.coup_op]
@@ -756,47 +773,48 @@ class HEOMSolver:
 
     def _grad_n(self, L, he_n):
         """ Get the gradient for the hierarchy ADO at level n. """
-        vk = self.bath.vk
+        vk = self.ados.vk
         vk_sum = sum(he_n[i] * vk[i] for i in range(len(vk)))
         op = L - vk_sum * self.sId
         return op
 
     def _grad_prev(self, he_n, k):
         """ Get the previous gradient. """
-        if self.bath.modes[k].type in (
+        if self.ados.exponents[k].type in (
                 BathExponent.types.R, BathExponent.types.I,
                 BathExponent.types.RI
         ):
             return self._grad_prev_bosonic(he_n, k)
-        elif self.bath.modes[k].type in (
+        elif self.ados.exponents[k].type in (
                 BathExponent.types["+"], BathExponent.types["-"]
         ):
             return self._grad_prev_fermionic(he_n, k)
         else:
             raise ValueError(
-                f"Mode {k} has unsupported type {self.bath.modes[k].type}")
+                f"Mode {k} has unsupported type {self.ados.exponents[k].type}")
 
     def _grad_prev_bosonic(self, he_n, k):
-        if self.bath.modes[k].type == BathExponent.types.R:
-            op = (-1j * he_n[k] * self.bath.ck[k]) * self.s_pre_minus_post_Q[k]
-        elif self.bath.modes[k].type == BathExponent.types.I:
-            op = (-1j * he_n[k] * 1j * self.bath.ck[k]) * (
+        if self.ados.exponents[k].type == BathExponent.types.R:
+            op = (-1j * he_n[k] * self.ados.ck[k]) * self.s_pre_minus_post_Q[k]
+        elif self.ados.exponents[k].type == BathExponent.types.I:
+            op = (-1j * he_n[k] * 1j * self.ados.ck[k]) * (
                     self.s_pre_plus_post_Q[k]
                 )
-        elif self.bath.modes[k].type == BathExponent.types.RI:
-            term1 = (he_n[k] * -1j * self.bath.ck[k]) * (
+        elif self.ados.exponents[k].type == BathExponent.types.RI:
+            term1 = (he_n[k] * -1j * self.ados.ck[k]) * (
                 self.s_pre_minus_post_Q[k]
             )
-            term2 = (he_n[k] * self.bath.ck2[k]) * self.s_pre_plus_post_Q[k]
+            term2 = (he_n[k] * self.ados.ck2[k]) * self.s_pre_plus_post_Q[k]
             op = term1 + term2
         else:
             raise ValueError(
-                f"Unsupported type {self.bath.modes[k].type} for mode {k}"
+                f"Unsupported type {self.ados.exponents[k].type}"
+                f" for exponent {k}"
             )
         return op
 
     def _grad_prev_fermionic(self, he_n, k):
-        ck = self.bath.ck
+        ck = self.ados.ck
 
         n_excite = sum(he_n)
         sign1 = (-1) ** (n_excite + 1)
@@ -804,7 +822,7 @@ class HEOMSolver:
         n_excite_before_m = sum(he_n[:k])
         sign2 = (-1) ** (n_excite_before_m)
 
-        sigma_bar_k = k + self.bath.sigma_bar_k_offset[k]
+        sigma_bar_k = k + self.ados.sigma_bar_k_offset[k]
 
         op = -1j * sign2 * (
             (ck[k] * self.spreQ[k]) -
@@ -815,18 +833,18 @@ class HEOMSolver:
 
     def _grad_next(self, he_n, k):
         """ Get the previous gradient. """
-        if self.bath.modes[k].type in (
+        if self.ados.exponents[k].type in (
                 BathExponent.types.R, BathExponent.types.I,
                 BathExponent.types.RI
         ):
             return self._grad_next_bosonic(he_n, k)
-        elif self.bath.modes[k].type in (
+        elif self.ados.exponents[k].type in (
                 BathExponent.types["+"], BathExponent.types["-"]
         ):
             return self._grad_next_fermionic(he_n, k)
         else:
             raise ValueError(
-                f"Mode {k} has unsupported type {self.bath.modes[k].type}")
+                f"Mode {k} has unsupported type {self.ados.exponents[k].type}")
 
     def _grad_next_bosonic(self, he_n, k):
         op = -1j * self.s_pre_minus_post_Q[k]
@@ -848,18 +866,18 @@ class HEOMSolver:
 
     def _rhs(self, L):
         """ Make the RHS for the HEOM. """
-        nhe = len(self.bath.states)
-        ops = _GatherHEOMRHS(self.bath.idx, block=L.shape[0], nhe=nhe)
+        nhe = len(self.ados.labels)
+        ops = _GatherHEOMRHS(self.ados.idx, block=L.shape[0], nhe=nhe)
 
-        for he_n in self.bath.states:
+        for he_n in self.ados.labels:
             op = self._grad_n(L, he_n)
             ops.add_op(he_n, he_n, op)
-            for k in range(len(self.bath.dims)):
-                next_he = self.bath.next(he_n, k)
+            for k in range(len(self.ados.dims)):
+                next_he = self.ados.next(he_n, k)
                 if next_he is not None:
                     op = self._grad_next(he_n, k)
                     ops.add_op(he_n, next_he, op)
-                prev_he = self.bath.prev(he_n, k)
+                prev_he = self.ados.prev(he_n, k)
                 if prev_he is not None:
                     op = self._grad_prev(he_n, k)
                     ops.add_op(he_n, prev_he, op)
@@ -872,7 +890,7 @@ class HEOMSolver:
         assert isinstance(RHSmat, sp.csr_matrix)
 
         if self.is_timedep:
-            h_identity_mat = sp.identity(self.bath.n_states, format="csr")
+            h_identity_mat = sp.identity(self.n_ados, format="csr")
             H_list = self.H_sys.to_list()
 
             # store each time dependent component
@@ -935,20 +953,19 @@ class HEOMSolver:
             Further processing of this can be done with functions provided in
             example notebooks.
         """
-        nstates = self.bath.n_states
         n = self._sys_shape
 
-        b_mat = np.zeros(n ** 2 * nstates, dtype=complex)
+        b_mat = np.zeros(n ** 2 * self.n_ados, dtype=complex)
         b_mat[0] = 1.0
 
         L = deepcopy(self.RHSmat)
         L = L.tolil()
-        L[0, 0: n ** 2 * nstates] = 0.0
+        L[0, 0: n ** 2 * self.n_ados] = 0.0
         L = L.tocsr()
         L += sp.csr_matrix((
             np.ones(n),
             (np.zeros(n), [num * (n + 1) for num in range(n)])
-        ), shape=(n ** 2 * nstates, n ** 2 * nstates))
+        ), shape=(n ** 2 * self.n_ados, n ** 2 * self.n_ados))
 
         if mkl_spsolve is not None and use_mkl:
             L.sort_indices()
@@ -969,7 +986,7 @@ class HEOMSolver:
         data = dense2D_to_fastcsr_fmode(vec2mat(solution[:n ** 2]), n, n)
         data = 0.5 * (data + data.H)
 
-        solution = solution.reshape((nstates, n ** 2))
+        solution = solution.reshape((self.n_ados, n ** 2))
 
         return Qobj(data, dims=self.H0.dims), solution
 
@@ -1005,11 +1022,10 @@ class HEOMSolver:
             If ``full_return`` is ``True``, then the ADOs at each
             time are stored in ``result.ados``.
         """
-        nstates = self.bath.n_states
         n = self._sys_shape
         rho_shape = (n, n)
         rho_dims = self.coup_op[0].dims
-        hierarchy_shape = (self.bath.n_states, n ** 2)
+        hierarchy_shape = (self.n_ados, n ** 2)
 
         output = Result()
         output.solver = "HEOMSolver"
@@ -1019,7 +1035,7 @@ class HEOMSolver:
         if full_init:
             rho0_he = rho0
         else:
-            rho0_he = np.zeros([n ** 2 * nstates], dtype=complex)
+            rho0_he = np.zeros([n ** 2 * self.n_ados], dtype=complex)
             rho0_he[:n ** 2] = rho0.full().ravel('F')
 
         if full_return:
