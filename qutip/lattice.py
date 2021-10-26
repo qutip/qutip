@@ -1054,7 +1054,6 @@ class Lattice1d():
                                 j0*self._length_for_site+j]
                 if len(self.cell_tensor_config) > 1:
                     dim_site = list(filter(lambda a: a != 1, self.cell_tensor_config))
-#                dim_site = list(np.delete(self.cell_tensor_config, [0], None))
                 dim_site = self.cell_tensor_config
                 dims_site = [dim_site, dim_site]
                 Hcell[i0][j0] = Qobj(Qin, dims=dims_site)
@@ -1157,7 +1156,6 @@ class Lattice1d():
                                 j0*self._length_for_site+j]
                 if len(self.cell_tensor_config) > 1:
                     dim_site = list(filter(lambda a: a != 1, self.cell_tensor_config))
-#                dim_site = list(np.delete(self.cell_tensor_config, [0], None))
                 dim_site = self.cell_tensor_config
                 dims_site = [dim_site, dim_site]
                 Hcell[i0][j0] = Qobj(Qin, dims=dims_site)
@@ -1250,6 +1248,5 @@ class Lattice1d():
         plt.close()
         if len(self.cell_tensor_config) > 1:
             dim_site = list(filter(lambda a: a != 1, self.cell_tensor_config))
-#        dim_site = list(np.delete(self.cell_tensor_config, [0], None))
         dims_site = [dim_site, dim_site]
         return Qobj(inter_T, dims=dims_site)
