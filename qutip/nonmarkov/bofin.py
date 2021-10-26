@@ -7,7 +7,6 @@ hierarchy equations of motion (HEOM).
 # Contact: nwlambert@gmail.com
 
 import enum
-import warnings
 from copy import deepcopy
 
 import numpy as np
@@ -148,31 +147,66 @@ class Bath:
 
 class BosonicBath(Bath):
     def __init__(self, Q, ckAR, vkAR, ckAI, vkAI, combine=True):
-        Q = _convert_coup_op(Q, len(ckAR) + len(ckAI))
-        ckAR, ckAI, vkAR, vkAI = _convert_bath_exponents_bosonic(
-            ckAR, ckAI, vkAR, vkAI)
-
-        if combine:
-            Q, ck, vk, NR, NI = (
-                _mangle_bath_exponents_bosonic(Q, ckAR, ckAI, vkAR, vkAI)
+        if len(ckAI) != len(vkAI) or len(ckAR) != len(vkAR):
+            raise ValueError(
+                "The bath exponent lists ckAI and vkAI, and ckAR and vkAR must"
+                " be the same length."
             )
-        else:
-            ck = ckAR + ckAI
-            vk = vkAR + vkAI
-            NR = len(ckAR)
-            NI = len(ckAI)
+        Q = _convert_coup_op(Q, len(ckAR) + len(ckAI))
 
         modes = []
         modes.extend(
-            BathExponent("R", None, Q[i], ck[i], vk[i])
-            for i in range(0, NR))
+            BathExponent("R", None, Qk, ck, vk)
+            for Qk, ck, vk in zip(Q[:len(ckAR)], ckAR, vkAR))
         modes.extend(
-            BathExponent("I", None, Q[i], ck[i], vk[i])
-            for i in range(NR, NR + NI))
-        modes.extend(
-            BathExponent("RI", None, Q[i], ck[i], vk[i], ck2=ck[i+1])
-            for i in range(NR + NI, len(ck), 2))
+            BathExponent("I", None, Qk, ck, vk)
+            for Qk, ck, vk in zip(Q[len(ckAR):], ckAI, vkAI))
+
+        if combine:
+            modes = self._combine(modes)
+
         super().__init__(modes)
+
+    def _combine(self, modes):
+        groups = []
+        remaining = modes[:]
+
+        while remaining:
+            m1 = remaining.pop(0)
+            group = [m1]
+            for m2 in remaining[:]:
+                if (
+                    np.isclose(m1.vk, m2.vk, rtol=1e-5, atol=1e-7) and
+                    np.allclose(m1.Q, m2.Q, rtol=1e-5, atol=1e-7)
+                ):
+                    group.append(m2)
+                    remaining.remove(m2)
+            groups.append(group)
+
+        assert len(modes) == sum(len(g) for g in groups)
+
+        new_modes = []
+        for combine in groups:
+            m1 = combine[0]
+            if len(combine) == 1:
+                new_modes.append(m1)
+            elif all(m2.type == m1.type for m2 in combine):
+                ck = sum(m2.ck for m2 in combine)
+                new_modes.append(BathExponent(m1.type, None, m1.Q, ck, m1.vk))
+            else:
+                ck_R = (
+                    sum(m.ck for m in combine if m.type == m.types.R) +
+                    sum(m.ck for m in combine if m.type == m.types.RI)
+                )
+                ck_I = (
+                    sum(m.ck for m in combine if m.type == m.types.I) +
+                    sum(m.ck2 for m in combine if m.type == m.types.RI)
+                )
+                new_modes.append(
+                    BathExponent("RI", None, m1.Q, ck_R, m1.vk, ck2=ck_I)
+                )
+
+        return new_modes
 
 
 class DrudeLorentzBath(BosonicBath):
@@ -381,7 +415,9 @@ class DrudeLorentzPadeBath(BosonicBath):
 
 class FermionicBath(Bath):
     def __init__(self, Q, ck, vk):
-        ck, vk = _convert_bath_exponents_fermionic(ck, vk)
+        if (len(ck) != len(vk)
+                or any(len(ck[i]) != len(vk[i]) for i in range(len(ck)))):
+            raise ValueError("Exponents ck and vk must be the same length.")
         Q = _convert_coup_op(Q, len(ck))
 
         modes = []
@@ -563,104 +599,6 @@ def _convert_coup_op(coup_op, coup_op_len):
             "Coupling operator (coup_op) must be a Qobj or a list of Qobjs"
         )
     return coup_op
-
-
-def _convert_bath_exponents_bosonic(ckAI, ckAR, vkAI, vkAR):
-    all_k = (ckAI, ckAR, vkAI, vkAR)
-    if any(not isinstance(k, list) for k in all_k):
-        raise TypeError(
-            "The bath exponents ckAI, ckAR, vkAI and vkAR must all be lists")
-    if len(ckAI) != len(vkAI) or len(ckAR) != len(vkAR):
-        raise ValueError(
-            "The bath exponent lists ckAI and vkAI, and ckAR and vkAR must"
-            " be the same length"
-        )
-    if any(isinstance(x, list) for k in all_k for x in k):
-        raise ValueError(
-            "The bath exponent lists ckAI, ckAR, vkAI and vkAR should not"
-            " themselves contain lists"
-        )
-    # warn if any of the vkAR's are close
-    for i in range(len(vkAR)):
-        for j in range(i + 1, len(vkAR)):
-            if np.isclose(vkAR[i], vkAR[j], rtol=1e-5, atol=1e-7):
-                warnings.warn(
-                    "Expected simplified input. "
-                    "Consider collating equal frequency parameters."
-                )
-    # warn if any of the vkAR's are close
-    for i in range(len(vkAI)):
-        for j in range(i + 1, len(vkAI)):
-            if np.isclose(vkAI[i], vkAI[j], rtol=1e-5, atol=1e-7):
-                warnings.warn(
-                    "Expected simplified input.  "
-                    "Consider collating equal frequency parameters."
-                )
-    return ckAI, ckAR, vkAI, vkAR
-
-
-def _mangle_bath_exponents_bosonic(coup_op, ckAR, ckAI, vkAR, vkAI):
-    """ Mangle bath exponents by combining similar vkAR and vkAI. """
-
-    common_ck = []
-    real_indices = []
-    common_vk = []
-    img_indices = []
-    common_coup_op = []
-    coup_op = deepcopy(coup_op)
-    nr = len(ckAR)
-
-    for i in range(len(vkAR)):
-        for j in range(len(vkAI)):
-            if (
-                np.isclose(vkAR[i], vkAI[j], rtol=1e-5, atol=1e-7) and
-                np.allclose(coup_op[i], coup_op[nr + j], rtol=1e-5, atol=1e-7)
-            ):
-                warnings.warn(
-                    "Two similar real and imag exponents have been "
-                    "collated automatically."
-                )
-                common_ck.append(ckAR[i])
-                common_ck.append(ckAI[j])
-                common_vk.append(vkAR[i])
-                common_vk.append(vkAI[j])
-                real_indices.append(i)
-                img_indices.append(j)
-                common_coup_op.append(coup_op[i])
-
-    for i in sorted(real_indices, reverse=True):
-        ckAR.pop(i)
-        vkAR.pop(i)
-
-    for i in sorted(img_indices, reverse=True):
-        ckAI.pop(i)
-        vkAI.pop(i)
-
-    img_coup_ops = [x + nr for x in img_indices]
-    coup_op_indices = real_indices + sorted(img_coup_ops)
-    for i in sorted(coup_op_indices, reverse=True):
-        coup_op.pop(i)
-
-    coup_op += common_coup_op
-
-    ck = np.array(ckAR + ckAI + common_ck).astype(complex)
-    vk = np.array(vkAR + vkAI + common_vk).astype(complex)
-    NR = len(ckAR)
-    NI = len(ckAI)
-
-    return coup_op, ck, vk, NR, NI
-
-
-def _convert_bath_exponents_fermionic(ck, vk):
-    """ Check the bath exponents for the fermionic solver. """
-    if (type(ck) != list or not all(isinstance(x, list) for x in ck)):
-        raise TypeError("The bath exponents ck must be a list or lists.")
-    if (type(vk) != list or not all(isinstance(x, list) for x in vk)):
-        raise TypeError("The bath exponents vk must be a list or lists.")
-    if (len(ck) != len(vk)
-            or any(len(ck[i]) != len(vk[i]) for i in range(len(ck)))):
-        raise ValueError("Exponents ck and vk must be the same length.")
-    return ck, vk
 
 
 class HEOMSolver:
