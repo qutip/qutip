@@ -91,7 +91,6 @@ class BathExponent:
 
     All of the parameters are available as attributes.
     """
-
     types = enum.Enum("ExponentType", ["R", "I", "RI", "+", "-"])
 
     def _check_ck2(self, type, ck2):
@@ -893,8 +892,7 @@ class HEOMSolver:
 
     def _rhs(self, L):
         """ Make the RHS for the HEOM. """
-        nhe = len(self.ados.labels)
-        ops = _GatherHEOMRHS(self.ados.idx, block=L.shape[0], nhe=nhe)
+        ops = _GatherHEOMRHS(self.ados.idx, block=L.shape[0], nhe=self.n_ados)
 
         for he_n in self.ados.labels:
             op = self._grad_n(L, he_n)
@@ -1019,25 +1017,26 @@ class HEOMSolver:
 
     def run(self, rho0, tlist, full_init=False, full_return=False):
         """
-        Function to solve for an open quantum system using the
-        HEOM model.
+        Solve for the time evolution of the system.
 
         Parameters
         ----------
-        rho0 : Qobj
+        rho0 : Qobj or numpy.array
             Initial state (density matrix) of the system
-            (if ``full_init`` is ``False``).
+            if ``full_init`` is ``False``.
             If ``full_init`` is ``True``, then ``rho0`` should be a numpy array
-            of the initial state and all ADOs.
+            of the initial state and the initial state of all ADOs. Usually
+            the state of the ADOs would be determine from a previous call
+            to ``.run(..., full_return=True)``.
 
         tlist : list
-            Time over which system evolves.
+            An ordered list of times at which to return the value of the state.
 
-        full_init: Boolean
-            Indicates if initial condition is just the system Qobj, or a
+        full_init: bool, default False
+            Indicates if initial condition is just the system state, or a
             numpy array including all ADOs.
 
-        full_return: Boolean
+        full_return: bool, default True
             Whether to also return as output the full state of all ADOs.
 
         Returns
@@ -1089,47 +1088,34 @@ class HEOMSolver:
 
 class BosonicHEOMSolver(HEOMSolver):
     """
-    This is a class for solvers that use the HEOM method for
-    calculating the dynamics evolution.
-    The method can compute open system dynamics without using any Markovian
-    or rotating wave approximations (RWA) for systems where the bath
-    correlations can be approximated to a sum of complex exponentials.
-    The method builds a matrix of linked differential equations, which are
-    then solved used the same ODE solvers as other qutip solvers
-    (e.g. mesolve)
+    A helper class for creating an :class:`HEOMSolver` for a bosonic bath.
+
+    See :class:`HEOMSolver` and :class:`BosonicBath` for more detailed
+    descriptions of the solver and bath parameters.
 
     Parameters
     ----------
     H_sys : Qobj or QobjEvo or list
-        System Hamiltonian
-        Or
-        Liouvillian
-        Or
-        QobjEvo
-        Or
-        list of Hamiltonians with time dependence
-
-        Format for input (if list):
-        [time_independent_part, [H1, time_dep_function1],
-        [H2, time_dep_function2]]
+        The system Hamiltonian or Liouvillian. See :class:`HEOMSolver` for
+        a complete description.
 
     coup_op : Qobj or list
         Operator describing the coupling between system and bath.
-        Could also be a list of operators, which needs to be the same length
-        as ck's and vk's.
+        See :class:`BosonicBath` for a complete description.
 
     ckAR, ckAI, vkAR, vkAI : lists
-        Lists containing coefficients for fitting spectral density correlation
+        Lists containing coefficients of the fitted bath correlation
+        functions. See :class:`BosonicBath` for a complete description.
 
     max_depth : int
         The maximum depth of the heirarchy (i.e. the maximum number of bath
-        exponent "excitations" to retain).
+        exponent "excitations" to retain). See :class:`HEOMSolver` for
+        a complete description.
 
     options : :class:`qutip.solver.Options`
-        Generic solver options.
-        If set to None the default options will be used
+        Generic solver options. If set to None the default options will be
+        used. See :class:`HEOMSolver` for a complete description.
     """
-
     def __init__(
         self, H_sys, coup_op, ckAR, ckAI, vkAR, vkAI, max_depth, options=None
     ):
@@ -1148,6 +1134,12 @@ class HSolverDL(HEOMSolver):
     This sub-class is included to give backwards compatability with the older
     implentation in qutip.nonmarkov.heom.
 
+    FIXME: Clean up the description above and the parameter descriptions below.
+    FIXME: Decide whether coup_op is really allowed to be a list or not. If
+           not, assert that it is a Qobj.
+    FIXME: Clarify whether H_sys is allowed to be time-dependent or a
+           Liouvillian here. If so, fix the code so that works and add tests.
+
     Parameters
     ----------
     H_sys : Qobj or QobjEvo or list
@@ -1163,10 +1155,8 @@ class HSolverDL(HEOMSolver):
         [time_independent_part, [H1, time_dep_function1],
         [H2, time_dep_function2]]
 
-    coup_op : Qobj or list
+    coup_op : Qobj
         Operator describing the coupling between system and bath.
-        Could also be a list of operators, which needs to be the same length
-        as ck's and vk's.
 
     coup_strength : float
         Coupling strength.
@@ -1175,23 +1165,22 @@ class HSolverDL(HEOMSolver):
         Bath temperature.
 
     N_cut : int
-        Cutoff parameter for the bath
+        Cutoff parameter for the bath.
 
     N_exp : int
         Number of exponential terms used to approximate the bath correlation
-        functions
+        functions.
 
     cut_freq : float
         Bath spectral density cutoff frequency.
 
     bnd_cut_approx : bool
-        Use boundary cut off approximation
+        Use boundary cut off approximation.
 
     options : :class:`qutip.solver.Options`
         Generic solver options.
-        If set to None the default options will be used
+        If set to None the default options will be used.
     """
-
     def __init__(
         self, H_sys, coup_op, coup_strength, temperature,
         N_cut, N_exp, cut_freq, bnd_cut_approx=False, options=None,
@@ -1222,40 +1211,34 @@ class HSolverDL(HEOMSolver):
 
 class FermionicHEOMSolver(HEOMSolver):
     """
-    Same as BosonicHEOMSolver, but with Fermionic baths.
+    A helper class for creating an :class:`HEOMSolver` for a fermionic bath.
+
+    See :class:`HEOMSolver` and :class:`FermionicBath` for more detailed
+    descriptions of the solver and bath parameters.
 
     Attributes
     ----------
     H_sys : Qobj or QobjEvo or list
-        System Hamiltonian
-        Or
-        Liouvillian
-        Or
-        QobjEvo
-        Or
-        list of Hamiltonians with time dependence
-
-        Format for input (if list):
-        [time_independent_part, [H1, time_dep_function1],
-        [H2, time_dep_function2]]
+        The system Hamiltonian or Liouvillian. See :class:`HEOMSolver` for
+        a complete description.
 
     coup_op : Qobj or list
         Operator describing the coupling between system and bath.
-        Could also be a list of operators, which needs to be the
-        same length as ck's and vk's.
+        See :class:`FermionicBath` for a complete description.
 
     ck, vk : lists
-        Lists containing spectral density correlation
+        Lists containing coefficients of the fitted bath correlation
+        functions. See :class:`FermionicBath` for a complete description.
 
     max_depth : int
         The maximum depth of the heirarchy (i.e. the maximum number of bath
-        exponent "excitations" to retain).
+        exponent "excitations" to retain). See :class:`HEOMSolver` for
+        a complete description.
 
     options : :class:`qutip.solver.Options`
-        Generic solver options.
-        If set to None the default options will be used
+        Generic solver options. If set to None the default options will be
+        used. See :class:`HEOMSolver` for a complete description.
     """
-
     def __init__(self, H_sys, coup_op, ck, vk, max_depth, options=None):
         bath = FermionicBath(coup_op, ck, vk)
         super().__init__(
