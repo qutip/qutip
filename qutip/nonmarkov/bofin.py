@@ -1135,10 +1135,12 @@ class HSolverDL(HEOMSolver):
     implentation in qutip.nonmarkov.heom.
 
     FIXME: Clean up the description above and the parameter descriptions below.
+
     FIXME: Decide whether coup_op is really allowed to be a list or not. If
-           not, assert that it is a Qobj.
+    not, assert that it is a Qobj.
+
     FIXME: Clarify whether H_sys is allowed to be time-dependent or a
-           Liouvillian here. If so, fix the code so that works and add tests.
+    Liouvillian here. If so, fix the code so that works and add tests.
 
     Parameters
     ----------
