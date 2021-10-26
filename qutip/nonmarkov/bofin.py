@@ -1,10 +1,14 @@
 """
-This module provides exact solvers for a system-bath setup using the
-hierarchy equations of motion (HEOM).
-"""
+This module provides solvers for system-bath evoluation using the
+HEOM (hierarchy equations of motion).
 
-# Authors: Neill Lambert, Tarun Raheja, Shahnawaz Ahmed
-# Contact: nwlambert@gmail.com
+See https://en.wikipedia.org/wiki/Hierarchical_equations_of_motion for a very
+basic introduction to the technique.
+
+The implementation is derived from the BoFiN library (see
+https://github.com/tehruhn/bofin) which was itself derived from an earlier
+implementation in QuTiP itself.
+"""
 
 import enum
 from copy import deepcopy
