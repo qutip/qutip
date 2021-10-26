@@ -1,0 +1,184 @@
+# After changing this file, check it on:
+#   http://lint.travis-ci.org/
+
+_stage_generic_linux: &stage_generic_linux
+  os: linux
+  language: python
+  # change dir
+  before_script:
+    - mkdir qutip_testing
+    - cd qutip_testing
+  # command to run tests
+  script:
+    - python -m qutip.about
+    - pytest --verbosity=1 --disable-pytest-warnings --cov=qutip --pyargs qutip
+  install:
+    - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+    - bash miniconda.sh -b -p $HOME/miniconda
+    - export PATH="$HOME/miniconda/bin:$PATH"
+    - hash -r
+    - conda config --set always_yes yes --set changeps1 no
+    - conda info -a
+    - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
+    - source activate test-environment
+    - conda install mkl blas=*=mkl numpy scipy pytest pytest-cov cython coveralls
+    - python setup.py install
+
+_stage_linux_36: &stage_linux_36
+  <<: *stage_generic_linux
+  name: "Python 3.6"
+  dist: trusty
+  python: 3.6
+  script:
+    - python -m qutip.about
+    - pytest --verbosity=1 --disable-pytest-warnings --cov=qutip --pyargs qutip -m "not slow"
+
+_stage_linux_37: &stage_linux_37
+  <<: *stage_generic_linux
+  name: "Python 3.7"
+  dist: xenial
+  python: 3.7
+  script:
+    - python -m qutip.about
+    - pytest --verbosity=1 --disable-pytest-warnings --cov=qutip --pyargs qutip -m "not slow"
+
+_stage_linux_38: &stage_linux_38
+  <<: *stage_generic_linux
+  name: "Python 3.8"
+  dist: xenial
+  python: 3.8
+  install:
+    - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+    - bash miniconda.sh -b -p $HOME/miniconda
+    - export PATH="$HOME/miniconda/bin:$PATH"
+    - hash -r
+    - conda config --set always_yes yes --set changeps1 no
+    - conda info -a
+    - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
+    - source activate test-environment
+    - conda install numpy scipy pytest pytest-cov cython coveralls
+    - python setup.py install
+
+_stage_linux_no_cython: &stage_linux_no_cython
+  <<: *stage_generic_linux
+  name: "Python 3.6 no cython, openblas"
+  dist: xenial
+  python: 3.6
+  install:
+    - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+    - bash miniconda.sh -b -p $HOME/miniconda
+    - export PATH="$HOME/miniconda/bin:$PATH"
+    - hash -r
+    - conda config --set always_yes yes --set changeps1 no
+    - conda info -a
+    - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
+    - source activate test-environment
+    - conda install -c conda-forge nomkl blas=*=openblas numpy scipy pytest pytest-cov
+    - conda install -c conda-forge cython --freeze-installed
+    - conda list
+    - python setup.py install
+    - conda uninstall cython
+
+_stage_linux_38_openblas: &stage_linux_38_openblas
+  <<: *stage_generic_linux
+  name: "Python 3.8 OpenBLAS"
+  dist: xenial
+  python: 3.8
+  install:
+    - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+    - bash miniconda.sh -b -p $HOME/miniconda
+    - export PATH="$HOME/miniconda/bin:$PATH"
+    - hash -r
+    - conda config --set always_yes yes --set changeps1 no
+    - conda info -a
+    - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
+    - source activate test-environment
+    - conda install nomkl blas=*=openblas numpy scipy pytest pytest-cov cython
+    - python setup.py install
+
+_stage_linux_omp: &stage_linux_omp
+  <<: *stage_generic_linux
+  name: "Python 3.7 OpenMP, mkl, scipy<1.5"
+  dist: xenial
+  python: 3.7
+  install:
+    - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+    - bash miniconda.sh -b -p $HOME/miniconda
+    - export PATH="$HOME/miniconda/bin:$PATH"
+    - hash -r
+    - conda config --set always_yes yes --set changeps1 no
+    - conda info -a
+    - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
+    - source activate test-environment
+    - conda install mkl blas=*=mkl numpy 'scipy<1.5' pytest pytest-cov cython coveralls
+    - python setup.py install --with-openmp
+  after_success:
+    - coveralls
+
+_stage_osx_37: &stage_osx_37
+  os: osx
+  name: "Python 3.7, OSX 10.13, XCode 10"
+  osx_image: xcode10
+  language: generic
+  # change dir
+  before_script:
+    - mkdir qutip_testing
+    - cd qutip_testing
+  # command to run tests
+  script:
+    - python -m qutip.about
+    - pytest --verbosity=1 --disable-pytest-warnings --cov=qutip --pyargs qutip
+  install:
+    - wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh
+    - bash miniconda.sh -b -p $HOME/miniconda
+    - export PATH="$HOME/miniconda/bin:$PATH"
+    - hash -r
+    - conda config --set always_yes yes --set changeps1 no
+    - conda info -a
+    - conda create -q -n test-environment python=3.7
+    - source activate test-environment
+    # - conda install mkl blas=*=mkl numpy scipy pytest pytest-cov cython coveralls
+    - conda install nomkl blas=*=openblas numpy scipy pytest pytest-cov cython
+    - python setup.py install
+
+_stage_osx_38: &stage_osx_38
+  os: osx
+  name: "Python 3.8, OSX 10.13, XCode 10"
+  osx_image: xcode10
+  language: generic
+  # change dir
+  before_script:
+    - mkdir qutip_testing
+    - cd qutip_testing
+  # command to run tests
+  script:
+    - python -m qutip.about
+    - pytest --verbosity=1 --disable-pytest-warnings --cov=qutip --pyargs qutip -m "not slow"
+  install:
+    - wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh
+    - bash miniconda.sh -b -p $HOME/miniconda
+    - export PATH="$HOME/miniconda/bin:$PATH"
+    - hash -r
+    - conda config --set always_yes yes --set changeps1 no
+    - conda info -a
+    - conda create -q -n test-environment python=3.8
+    - source activate test-environment
+    # - conda install mkl blas=*=mkl numpy scipy pytest pytest-cov cython coveralls
+    - conda install nomkl blas=*=openblas numpy scipy pytest pytest-cov cython
+    - python setup.py install
+
+stages:
+  - test
+
+jobs:
+  include:
+    - stage: test
+      <<: *stage_linux_38
+    - stage: test
+      <<: *stage_linux_omp
+    - stage: test
+      <<: *stage_linux_no_cython
+    - stage: test
+      <<: *stage_osx_37
+    - stage: test
+      <<: *stage_osx_38
