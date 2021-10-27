@@ -43,7 +43,8 @@ class Result:
 
     num_collapse : int
         Number of collapse operators in simualation.
-"""
+    """
+    def __init__(self, e_ops, options, _super, oper_state):
         self.times = []
 
         self._raw_e_ops = e_ops
@@ -52,11 +53,13 @@ class Result:
         self._last_state = None
 
         self.collapse = None
-        self.stats = {"num_expect": self._e_num}
 
         self._e_ops_dict = False
         self._e_num = 0
         self._e_ops = []
+        self.stats = {"num_expect": self._e_num}
+
+        self._read_options(options, _super, oper_state)
 
         if isinstance(self._raw_e_ops, (Qobj, QobjEvo)):
             e_ops = [self._raw_e_ops]
@@ -252,7 +255,7 @@ class MultiTrajResult:
         Standard derivation of expectation values over `ntraj` trajectories.
         Last state of each trajectories. (ket)
     """
-    def __init__(self):
+    def __init__(self, e_ops, target_tol=None):
         """
         Parameters:
         -----------
@@ -260,11 +263,9 @@ class MultiTrajResult:
             Number of collapses operator used in the McSolver
         """
         self.trajectories = []
-        self._to_dm = True # MCsolve
-        #self.num_c_ops = num_c_ops
-        #self.num_e_ops = num_e_ops
+        self.num_e_ops = len(e_ops)
         self.tlist = None
-        self._target_tols = None
+        self._set_expect_tol(target_tol)
 
     def add(self, one_traj):
         """
@@ -278,7 +279,7 @@ class MultiTrajResult:
         else:
             return np.inf
 
-    def _set_check_expect_tol(self, target_tol):
+    def _set_expect_tol(self, target_tol):
         """
         Set the capacity to stop the map when the estimated error on the
         expectation values is within given tolerance.
@@ -291,6 +292,7 @@ class MultiTrajResult:
             Lastly, target_tol can be a list of pairs of (atol, rtol) for each
             e_ops.
         """
+        self._target_tols = None
         if not target_tol:
             return
         if not self.num_e_ops:
@@ -299,9 +301,9 @@ class MultiTrajResult:
         targets = np.array(target_tol)
         if targets.ndim == 0:
             self._target_tols = np.array([(target_tol, 0.)] * self.num_e_ops)
-        elif targets.shape = (2,):
+        elif targets.shape == (2,):
             self._target_tols = np.ones((self.num_e_ops, 2)) * targets
-        elif targets.shape = (self.num_e_ops, 2):
+        elif targets.shape == (self.num_e_ops, 2):
             self._target_tols = targets
         else:
             raise ValueError("target_tol must be a number, a pair of (atol, "
@@ -328,8 +330,8 @@ class MultiTrajResult:
             axis=0
         ) for i in range(num_e)])
 
-        target = [atol + rtol * mean
-                  for mean, (atol, rtol) in zip(avg, self._target_tols)]
+        target = np.array([atol + rtol * mean
+                  for mean, (atol, rtol) in zip(avg, self._target_tols)])
 
         return np.max(std**2 / target**2 - num_traj + 1)
 
@@ -339,7 +341,7 @@ class MultiTrajResult:
 
     @property
     def average_states(self):
-        if self._to_dm:
+        if self.trajectories[0].states[0].isket:
             finals = [state.proj() for state in self.trajectories[0].states]
             for i in range(1, len(self.trajectories)):
                 finals = [state.proj() + final for final, state
@@ -357,7 +359,7 @@ class MultiTrajResult:
 
     @property
     def average_final_state(self):
-        if self._to_dm:
+        if self.trajectories[0].states[0].isket:
             final = sum(traj.final_state.proj() for traj in self.trajectories)
         else:
             final = sum(traj.final_state for traj in self.trajectories)
@@ -575,7 +577,7 @@ class MultiTrajResultAveraged:
         photocurrent corresponding to each collapse operator.
 
     """
-    def __init__(self, num_c_ops=0):
+    def __init__(self, e_ops, target_tol=None):
         """
         Parameters:
         -----------
@@ -587,26 +589,28 @@ class MultiTrajResultAveraged:
         self._sum_last_states = None
         self._sum_expect = None
         self._sum2_expect = None
-        self._to_dm = True # MCsolve
-        self.num_c_ops = num_c_ops
+        self.num_e_ops = len(e_ops)
         self._num = 0
         self._collapse = []
+        self._set_expect_tol(target_tol)
+
 
     def add(self, one_traj):
+        _to_dm = one_traj.states and one_traj.states[0].isket
         if self._num == 0:
             self.trajectories = one_traj
-            if self._to_dm and one_traj.states:
+            if _to_dm and one_traj.states:
                 self._sum_states = [state.proj() for state in one_traj.states]
             else:
                 self._sum_states = one_traj.states
-            if self._to_dm and one_traj.final_state:
+            if _to_dm and one_traj.final_state:
                 self._sum_last_states = one_traj.final_state.proj()
             else:
                 self._sum_last_states = one_traj.final_state
             self._sum_expect = [np.array(expect) for expect in one_traj._expects]
             self._sum2_expect = [np.array(expect)**2 for expect in one_traj._expects]
         else:
-            if self._to_dm:
+            if _to_dm:
                 if self._sum_states:
                     self._sum_states = [state.proj() + accu for accu, state
                                     in zip(self._sum_states, one_traj.states)]
@@ -625,12 +629,12 @@ class MultiTrajResultAveraged:
                                      zip(one_traj._expects, self._sum2_expect)]
         self._collapse.append(one_traj.collapse)
         self._num += 1
-        if self._compute_target_tol:
+        if self._target_tols is not None:
             return self._check_expect_tol()
         else:
             return np.inf
 
-    def _set_check_expect_tol(self, target_tol):
+    def _set_expect_tol(self, target_tol=None):
         """
         Set the capacity to stop the map when the estimated error on the
         expectation values is within given tolerance.
@@ -652,24 +656,22 @@ class MultiTrajResultAveraged:
         targets = np.array(target_tol)
         if targets.ndim == 0:
             self._target_tols = np.array([(target_tol, 0.)] * self.num_e_ops)
-        elif targets.shape = (2,):
+        elif targets.shape == (2,):
             self._target_tols = np.ones((self.num_e_ops, 2)) * targets
-        elif targets.shape = (self.num_e_ops, 2):
+        elif targets.shape == (self.num_e_ops, 2):
             self._target_tols = targets
         else:
             raise ValueError("target_tol must be a number, a pair of (atol, "
                              "rtol) or a list of (atol, rtol) for each e_ops")
 
     def _check_expect_tol(self):
-        num_traj = len(self.trajectories)
-        if num_traj <= 1:
+        if self._num <= 1:
             return False
-        num_e = self.trajectories[0]._e_num
-        avg = [sum_expect / num_traj for sum_expect in self._sum_expect]
-        avg2 = [sum_expect / num_traj for sum_expect in self._sum2_expect]
-        target = [atol + rtol * mean
-                  for mean, (atol, rtol) in zip(avg, self._target_tols)]
-        return np.max((avg2 - avg**2)**2 / target**2 - num_traj + 1)
+        avg = np.array([sum_expect / self._num for sum_expect in self._sum_expect])
+        avg2 = np.array([sum_expect / self._num for sum_expect in self._sum2_expect])
+        target = np.array([atol + rtol * mean
+                  for mean, (atol, rtol) in zip(avg, self._target_tols)])
+        return np.max((avg2 - avg**2) / target**2 - self._num + 1)
 
     @property
     def runs_states(self):
