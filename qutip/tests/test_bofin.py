@@ -216,31 +216,28 @@ class TestBosonicHEOMSolver:
                     for t in times]
 
         Nk = 2
-        ckAR = [lam * gamma * (1/np.tan(gamma / (2 * T)))]
-        ckAR.extend([
+        ck_real = [lam * gamma * (1/np.tan(gamma / (2 * T)))]
+        ck_real.extend([
             (4 * lam * gamma * T * 2 * np.pi * k * T /
                 ((2 * np.pi * k * T)**2 - gamma**2))
             for k in range(1, Nk + 1)
         ])
-        vkAR = [gamma]
-        vkAR.extend([2 * np.pi * k * T for k in range(1, Nk + 1)])
-        ckAI = [lam * gamma * (-1.0)]
-        vkAI = [gamma]
+        vk_real = [gamma]
+        vk_real.extend([2 * np.pi * k * T for k in range(1, Nk + 1)])
+        ck_imag = [lam * gamma * (-1.0)]
+        vk_imag = [gamma]
 
         H_sys = Qobj(np.zeros((2, 2)))
         if fake_timedep:
             H_sys = [H_sys]
         Q = sigmaz()
 
-        NR = len(ckAR)
-        NI = len(ckAI)
-        Q2 = [Q for kk in range(NR+NI)]
         initial_state = 0.5*Qobj(np.ones((2, 2)))
         projector = basis(2, 0) * basis(2, 1).dag()
         options = Options(nsteps=15000, store_states=True)
 
         hsolver = BosonicHEOMSolver(
-            H_sys, Q2, ckAR, ckAI, vkAR, vkAI,
+            H_sys, Q, ck_real, vk_real, ck_imag, vk_imag,
             14, options=options,
         )
         test = expect(hsolver.run(initial_state, times).states, projector)
@@ -405,6 +402,7 @@ class TestFermionicHEOMSolver:
         e1 = 1.
 
         H0 = e1 * d1.dag() * d1
+        Q = d1
 
         shape = H0.shape[0]
         dims = H0.dims
@@ -412,20 +410,14 @@ class TestFermionicHEOMSolver:
         if fake_timedep:
             H0 = [H0]
 
-        # There are two leads, but we seperate the interaction into two terms,
-        # labelled with \sigma=\pm such that there are 4 interaction operators
-        # (See paper)
-        Qops = [d1.dag(), d1, d1.dag(), d1]
-
         Kk = lmax + 1
         Ncc = 2  # For a single impurity we converge with Ncc = 2
 
         eta_list = [etapR, etamR, etapL, etamL]
         gamma_list = [gampR, gammR, gampL, gammL]
-        Qops = [d1.dag(), d1, d1.dag(), d1]
 
         resultHEOM2 = FermionicHEOMSolver(
-            H0, Qops,  eta_list, gamma_list, Ncc, options=options)
+            H0, Q,  eta_list, gamma_list, Ncc, options=options)
 
         rhossHP2, fullssP2 = resultHEOM2.steady_state()
 

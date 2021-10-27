@@ -154,57 +154,62 @@ class BosonicBath(Bath):
     coefficients and frequencies for the real and imaginary parts of
     the bath correlation function.
 
+    FIXME: Add support for multiple baths of the same kind to HEOMSolver
+    FIXME: Check that exponents are the same kind.
+
     Parameters
     ----------
-    Q : Qobj or list of Qobj
-        The coupling operator for the bath. If a list is provided, it
-        represents the coupling operators of the ckAR exponents, followed
-        by the operators for the ckAI exponents.
+    Q : Qobj
+        The coupling operator for the bath.
 
-        FIXME: Separate the real and imaginary coupling operators.
-
-    ckAR : list of complex
+    ck_real : list of complex
         The coefficients of the expansion terms for the real part of the
         correlation function. The corresponding frequencies are passed as
-        vkAR.
+        vk_real.
 
-    vkAR : list of complex
+    vk_real : list of complex
         The frequencies (exponents) of the expansion terms for the real part of
         the correlation function. The corresponding ceofficients are passed as
-        ckAR.
+        ck_real.
 
-    ckAI : list of complex
+    ck_imag : list of complex
         The coefficients of the expansion terms in the imaginary part of the
         correlation function. The corresponding frequencies are passed as
-        vkAI.
+        vk_imag.
 
-    vkAI : list of complex
+    vk_imag : list of complex
         The frequencies (exponents) of the expansion terms for the imaginary
         part of the correlation function. The corresponding ceofficients are
-        passed as ckAI.
+        passed as ck_imag.
 
     combine : bool, default True
         Whether to combine exponents with the same frequency (and coupling
         operator). See :meth:`combine` for details.
     """
-    def _check_cks_and_vks(self, ckAR, vkAR, ckAI, vkAI):
-        if len(ckAI) != len(vkAI) or len(ckAR) != len(vkAR):
+    def _check_cks_and_vks(self, ck_real, vk_real, ck_imag, vk_imag):
+        if len(ck_real) != len(vk_real) or len(ck_imag) != len(vk_imag):
             raise ValueError(
-                "The bath exponent lists ckAI and vkAI, and ckAR and vkAR must"
-                " be the same length."
+                "The bath exponent lists ck_real and vk_real, and ck_imag and"
+                " vk_imag must be the same length."
             )
 
-    def __init__(self, Q, ckAR, vkAR, ckAI, vkAI, combine=True):
-        self._check_cks_and_vks(ckAR, vkAR, ckAI, vkAI)
-        Q = _convert_coup_op(Q, len(ckAR) + len(ckAI))
+    def _check_coup_op(self, Q):
+        if not isinstance(Q, Qobj):
+            raise ValueError("The coupling operator Q must be a Qobj.")
+
+    def __init__(self, Q, ck_real, vk_real, ck_imag, vk_imag, combine=True):
+        self._check_cks_and_vks(ck_real, vk_real, ck_imag, vk_imag)
+        self._check_coup_op(Q)
 
         exponents = []
         exponents.extend(
-            BathExponent("R", None, Qk, ck, vk)
-            for Qk, ck, vk in zip(Q[:len(ckAR)], ckAR, vkAR))
+            BathExponent("R", None, Q, ck, vk)
+            for ck, vk in zip(ck_real, vk_real)
+        )
         exponents.extend(
-            BathExponent("I", None, Qk, ck, vk)
-            for Qk, ck, vk in zip(Q[len(ckAR):], ckAI, vkAI))
+            BathExponent("I", None, Q, ck, vk)
+            for ck, vk in zip(ck_imag, vk_imag)
+        )
 
         if combine:
             exponents = self.combine(exponents)
@@ -256,14 +261,16 @@ class BosonicBath(Bath):
         new_exponents = []
         for combine in groups:
             exp1 = combine[0]
-            if len(combine) == 1:
-                new_exponents.append(exp1)
-            elif all(exp2.type == exp1.type for exp2 in combine):
+            if (exp1.type != exp1.types.RI) and all(
+                exp2.type == exp1.type for exp2 in combine
+            ):
+                # the group is either type I or R
                 ck = sum(exp.ck for exp in combine)
                 new_exponents.append(
                     BathExponent(e1.type, None, e1.Q, ck, e1.vk)
                 )
             else:
+                # the group includes both type I and R exponents
                 ck_R = (
                     sum(exp.ck for exp in combine if exp.type == exp.types.R) +
                     sum(exp.ck for exp in combine if exp.type == exp.types.RI)
@@ -320,7 +327,7 @@ class DrudeLorentzBath(BosonicBath):
     def __init__(
         self, Q, lam, T, Nk, gamma, terminator=False,
     ):
-        ckAR, vkAR, ckAI, vkAI = self._matsubara_params(
+        ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(
             lam=lam,
             gamma=gamma,
             Nk=Nk,
@@ -332,7 +339,7 @@ class DrudeLorentzBath(BosonicBath):
             )
         else:
             self.terminator = None
-        super().__init__(Q, ckAR, vkAR, ckAI, vkAI)
+        super().__init__(Q, ck_real, vk_real, ck_imag, vk_imag)
 
     def _matsubara_terminator(self, Q, lam, gamma, Nk, T):
         """ Calculate the hierarchy terminator term for the Liouvillian. """
@@ -344,7 +351,7 @@ class DrudeLorentzBath(BosonicBath):
             lam * gamma * (-1.0j + 1 / np.tan(gamma / (2 * T))) / gamma
         )
 
-        for k in range(1, Nk):
+        for k in range(1, Nk + 1):
             vk = 2 * np.pi * k * T
             approx_factr -= (
                 (4 * lam * gamma * T * vk / (vk**2 - gamma**2)) / vk
@@ -355,25 +362,28 @@ class DrudeLorentzBath(BosonicBath):
 
     def _matsubara_params(self, lam, gamma, Nk, T):
         """ Calculate the Matsubara coefficents and frequencies. """
-        ckAR = [lam * gamma * (1/np.tan(gamma / (2 * T)))]
-        ckAR.extend([
+        ck_real = [lam * gamma * (1/np.tan(gamma / (2 * T)))]
+        ck_real.extend([
             (4 * lam * gamma * T * 2 * np.pi * k * T /
                 ((2 * np.pi * k * T)**2 - gamma**2))
-            for k in range(1, Nk)
+            for k in range(1, Nk + 1)
         ])
-        vkAR = [gamma]
-        vkAR.extend([2 * np.pi * k * T for k in range(1, Nk)])
+        vk_real = [gamma]
+        vk_real.extend([2 * np.pi * k * T for k in range(1, Nk + 1)])
 
-        ckAI = [lam * gamma * (-1.0)]
-        vkAI = [gamma]
+        ck_imag = [lam * gamma * (-1.0)]
+        vk_imag = [gamma]
 
-        return ckAR, vkAR, ckAI, vkAI
+        return ck_real, vk_real, ck_imag, vk_imag
 
 
 class DrudeLorentzPadeBath(BosonicBath):
     """
     A helper class for constructing a Padé expansion for a Drude-Lorentz
     bosonic bath from the bath parameters (see parameters below).
+
+    FIXME: Cite Padé paper: https://aip.scitation.org/doi/10.1063/1.3602466
+    FIXME: Add title of paper.
 
     This is an alternative to the :class:`DrudeLorentzBath` which constructs
     a simpler exponential expansion.
@@ -390,34 +400,24 @@ class DrudeLorentzPadeBath(BosonicBath):
         Bath temperature.
 
     Nk : int
-        Number of exponential terms used to approximate the bath correlation
-        functions
+        Number of Padé exponentials terms used to approximate the bath
+        correlation functions.
 
     gamma : float
         Bath spectral density cutoff frequency.
-
-    lmax : int, default: 2
-        FIXME: Some kind of cut off. Default to 2?
-
-    Attributes
-    ----------
-    eta_p : list of complex
-        FIXME: Some parameters of some sort.
-
-    gamma_p: list of complex
-        FIXME: Another list of paramaters of some sort.
     """
-    def __init__(self, Q, lam, T, Nk, gamma, lmax):
-        eta_p, gamma_p = self._pade_corr(lam=lam, gamma=gamma, T=T, lmax=lmax)
+    def __init__(self, Q, lam, T, Nk, gamma):
+        eta_p, gamma_p = self._corr(lam=lam, gamma=gamma, T=T, Nk=Nk)
+        # FIXME: rename lmax everywhere
 
-        ckAR = [np.real(eta) for eta in eta_p]
-        vkAR = [gam for gam in gamma_p]
-        ckAI = [np.imag(eta_p[0])]
-        vkAI = [gamma_p[0]]
+        ck_real = [np.real(eta) for eta in eta_p]
+        vk_real = [gam for gam in gamma_p]
+        # There is only one term in the expansion of the imaginary part of the
+        # Drude-Lorentz correlation function.
+        ck_imag = [np.imag(eta_p[0])]
+        vk_imag = [gamma_p[0]]
 
-        super().__init__(Q, ckAR, vkAR, ckAI, vkAI)
-        self.eta_p = eta_p
-        self.gamma_p = gamma_p
+        super().__init__(Q, ck_real, vk_real, ck_imag, vk_imag)
 
     def _delta(self, i, j):
         return 1.0 if i == j else 0.0
@@ -425,14 +425,14 @@ class DrudeLorentzPadeBath(BosonicBath):
     def _cot(self, x):
         return 1. / np.tan(x)
 
-    def _corr(self, lam, gamma, T, lmax):
+    def _corr(self, lam, gamma, T, Nk):
         beta = 1. / T
-        kappa, epsilon = self._kappa_epsilon(lmax)
+        kappa, epsilon = self._kappa_epsilon(Nk)
 
         eta_p = [lam * gamma * (self._cot(gamma * beta / 2.0) - 1.0j)]
         gamma_p = [gamma]
 
-        for ll in range(1, lmax + 1):
+        for ll in range(1, Nk + 1):
             eta_p.append(
                 (kappa[ll] / beta) * 4 * lam * gamma * (epsilon[ll] / beta)
                 / ((epsilon[ll]**2 / beta**2) - gamma**2)
@@ -441,20 +441,20 @@ class DrudeLorentzPadeBath(BosonicBath):
 
         return eta_p, gamma_p
 
-    def _kappa_epsilon(self, lmax):
-        eps = self._calc_eps(lmax)
-        chi = self._calc_chi(lmax)
+    def _kappa_epsilon(self, Nk):
+        eps = self._calc_eps(Nk)
+        chi = self._calc_chi(Nk)
 
         kappa = [0]
-        prefactor = 0.5 * lmax * (2 * (lmax + 1) + 1)
-        for j in range(lmax):
+        prefactor = 0.5 * Nk * (2 * (Nk + 1) + 1)
+        for j in range(Nk):
             term = prefactor
-            for k in range(lmax - 1):
+            for k in range(Nk - 1):
                 term *= (
                     (chi[k]**2 - eps[j]**2) /
                     (eps[k]**2 - eps[j]**2 + self._delta(j, k))
                 )
-            for k in range(lmax - 1, lmax):
+            for k in range(Nk - 1, Nk):
                 term /= (eps[k]**2 - eps[j]**2 + self._delta(j, k))
             kappa.append(term)
 
@@ -462,26 +462,26 @@ class DrudeLorentzPadeBath(BosonicBath):
 
         return kappa, epsilon
 
-    def _calc_eps(self, lmax):
-        alpha = np.zeros((2 * lmax, 2 * lmax))
-        for j in range(2 * lmax):
-            for k in range(2 * lmax):
+    def _calc_eps(self, Nk):
+        alpha = np.zeros((2 * Nk, 2 * Nk))
+        for j in range(2 * Nk):
+            for k in range(2 * Nk):
                 alpha[j][k] = (
                     self._delta(j, k + 1) + self._delta(j, k - 1)
                 ) / np.sqrt((2 * (j + 1) + 1) * (2 * (k + 1) + 1))
         evals = eigvalsh(alpha)
-        eps = [-2. / val for val in evals[0: lmax]]
+        eps = [-2. / val for val in evals[0: Nk]]
         return eps
 
-    def _calc_chi(self, lmax):
-        alpha_p = np.zeros((2 * lmax - 1, 2 * lmax - 1))
-        for j in range(2 * lmax - 1):
-            for k in range(2 * lmax - 1):
+    def _calc_chi(self, Nk):
+        alpha_p = np.zeros((2 * Nk - 1, 2 * Nk - 1))
+        for j in range(2 * Nk - 1):
+            for k in range(2 * Nk - 1):
                 alpha_p[j][k] = (
                     self._delta(j, k + 1) + self._delta(j, k - 1)
                 ) / np.sqrt((2 * (j + 1) + 3) * (2 * (k + 1) + 3))
         evals = eigvalsh(alpha_p)
-        chi = [-2. / val for val in evals[0: lmax - 1]]
+        chi = [-2. / val for val in evals[0: Nk - 1]]
         return chi
 
 
@@ -493,21 +493,19 @@ class FermionicBath(Bath):
 
     Parameters
     ----------
-    Q : Qobj or list of Qobj
-        The coupling operator for the bath. If a list is provided, it
-        represents the coupling operators for each exponent in the expansion
-        and the list should contain one operator per element of ``ck`` /
-        ``vk``. If the operator for a ``+`` mode term is ``Q``, the
-        operator for the corresponding ``-`` mode term is typically
-        ``Q.dag()``.
+    Q : Qobj
+        The coupling operator for the bath. ``Q.dag()`` is used as the coupling
+        operator for ``+`` mode terms and ``Q`` for the ``-`` mode terms.
+
+    FIXME: Change to ck_plus, vk_plus, ck_minus, vk_minus.
+    FIXME: Assert that lists are the same length & remind user that the
+    plusses and minuses should be in the same order.
 
     ck : list of complex
         The coefficients of the expansion terms. The even elements of the
         list are coefficients for ``+`` modes and the odd elements are
         coefficients for the ``-`` modes. The corresponding frequencies
         are passed as ``vk``.
-
-        FIXME: Move the + and - modes into separate lists.
 
     vk : list of complex
         The frequencies (exponents) of the expansion terms. The even elements
@@ -521,24 +519,28 @@ class FermionicBath(Bath):
                 or any(len(ck[i]) != len(vk[i]) for i in range(len(ck)))):
             raise ValueError("Exponents ck and vk must be the same length.")
 
+    def _check_coup_op(self, Q):
+        if not isinstance(Q, Qobj):
+            raise ValueError("The coupling operator Q must be a Qobj.")
+
     def __init__(self, Q, ck, vk):
         self._check_ck_and_vk(ck, vk)
-        Q = _convert_coup_op(Q, len(ck))
+        self._check_coup_op(Q)
+        Qdag = Q.dag()
 
         exponents = []
         for i in range(len(ck)):
-            # FIXME: currently "-" modes are generated by adding extra
-            # baths outside with Q == Q.dag() when calling
-            # FermionicHEOMSolver
             if i % 2 == 0:
                 type = "+"
+                op = Qdag
                 sbk_offset = len(ck[i])
             else:
                 type = "-"
+                op = Q
                 sbk_offset = -len(ck[i - 1])
             exponents.extend(
                 BathExponent(
-                    type, 2, Q[i], ck[i][j], vk[i][j],
+                    type, 2, op, ck[i][j], vk[i][j],
                     sigma_bar_k_offset=sbk_offset
                 )
                 for j in range(len(ck[i]))
@@ -606,7 +608,7 @@ class HierarchyADOs:
         the entry is None.
 
     labels: list of tuples
-        A list of the state labels within the bath.
+        A list of the ADO labels within the hierarchy.
     """
     def __init__(self, exponents, cutoff):
         self.exponents = exponents
@@ -758,32 +760,35 @@ class HEOMSolver:
     def __init__(self, H_sys, bath, max_depth, options=None):
         self.H_sys = _convert_h_sys(H_sys)
         self.options = Options() if options is None else options
-        self.is_timedep = isinstance(self.H_sys, QobjEvo)
-        self.H0 = self.H_sys.to_list()[0] if self.is_timedep else self.H_sys
-        self.is_hamiltonian = self.H0.type == "oper"
-        self.L0 = liouvillian(self.H0) if self.is_hamiltonian else self.H0
+        self._is_timedep = isinstance(self.H_sys, QobjEvo)
+        # FIXME: Can we get rid of self._H0 and self._is_hamiltonian?
+        self._H0 = self.H_sys.to_list()[0] if self._is_timedep else self.H_sys
+        self._is_hamiltonian = self._H0.type == "oper"
+        self._L0 = liouvillian(self._H0) if self._is_hamiltonian else self._H0
 
         self._sys_shape = (
-            self.H0.shape[0] if self.is_hamiltonian
-            else int(np.sqrt(self.H0.shape[0]))
+            self._H0.shape[0] if self._is_hamiltonian
+            else int(np.sqrt(self._H0.shape[0]))
         )
-        self._sup_shape = self.L0.shape[0]
+        self._sup_shape = self._L0.shape[0]
 
         self.ados = HierarchyADOs(bath.exponents, max_depth)
-        self.n_ados = len(self.ados.labels)
+        self._n_ados = len(self.ados.labels)
 
-        self.coup_op = [mode.Q for mode in self.ados.exponents]
-        self.spreQ = [spre(op).data for op in self.coup_op]
-        self.spostQ = [spost(op).data for op in self.coup_op]
-        self.spreQdag = [spre(op.dag()).data for op in self.coup_op]
-        self.spostQdag = [spost(op.dag()).data for op in self.coup_op]
+        # FIXME: We probably don't need to store any of these permanently
+        #        only the _s_pre_minus_ and _s_pre_plus
+        self._coup_op = [mode.Q for mode in self.ados.exponents]
+        self._spreQ = [spre(op).data for op in self._coup_op]
+        self._spostQ = [spost(op).data for op in self._coup_op]
+        self._spreQdag = [spre(op.dag()).data for op in self._coup_op]
+        self._spostQdag = [spost(op.dag()).data for op in self._coup_op]
 
-        self.sId = fast_identity(self._sup_shape)
-        self.s_pre_minus_post_Q = [
-            self.spreQ[k] - self.spostQ[k] for k in range(len(self.coup_op))
+        self._sId = fast_identity(self._sup_shape)
+        self._s_pre_minus_post_Q = [
+            self._spreQ[k] - self._spostQ[k] for k in range(len(self._coup_op))
         ]
-        self.s_pre_plus_post_Q = [
-            self.spreQ[k] + self.spostQ[k] for k in range(len(self.coup_op))
+        self._s_pre_plus_post_Q = [
+            self._spreQ[k] + self._spostQ[k] for k in range(len(self._coup_op))
         ]
 
         self.progress_bar = BaseProgressBar()
@@ -791,9 +796,13 @@ class HEOMSolver:
         self._configure_solver()
 
     def _dsuper_list_td(self, t, y, L_list):
-        """ Auxiliary function for the integration. Called every time step. """
+        """ Auxiliary function for the time-dependent integration. Called every
+            time step.
+        """
         L = L_list[0][0]
         for n in range(1, len(L_list)):
+            # FIXME: write a note about how this relies on the time-dependent
+            # part only occuring in _grad_n.
             L = L + L_list[n][0] * L_list[n][1](t)
         return L * y
 
@@ -801,7 +810,7 @@ class HEOMSolver:
         """ Get the gradient for the hierarchy ADO at level n. """
         vk = self.ados.vk
         vk_sum = sum(he_n[i] * vk[i] for i in range(len(vk)))
-        op = L - vk_sum * self.sId
+        op = L - vk_sum * self._sId
         return op
 
     def _grad_prev(self, he_n, k):
@@ -821,16 +830,18 @@ class HEOMSolver:
 
     def _grad_prev_bosonic(self, he_n, k):
         if self.ados.exponents[k].type == BathExponent.types.R:
-            op = (-1j * he_n[k] * self.ados.ck[k]) * self.s_pre_minus_post_Q[k]
+            op = (-1j * he_n[k] * self.ados.ck[k]) * (
+                self._s_pre_minus_post_Q[k]
+            )
         elif self.ados.exponents[k].type == BathExponent.types.I:
             op = (-1j * he_n[k] * 1j * self.ados.ck[k]) * (
-                    self.s_pre_plus_post_Q[k]
-                )
+                self._s_pre_plus_post_Q[k]
+            )
         elif self.ados.exponents[k].type == BathExponent.types.RI:
             term1 = (he_n[k] * -1j * self.ados.ck[k]) * (
-                self.s_pre_minus_post_Q[k]
+                self._s_pre_minus_post_Q[k]
             )
-            term2 = (he_n[k] * self.ados.ck2[k]) * self.s_pre_plus_post_Q[k]
+            term2 = (he_n[k] * self.ados.ck2[k]) * self._s_pre_plus_post_Q[k]
             op = term1 + term2
         else:
             raise ValueError(
@@ -851,8 +862,8 @@ class HEOMSolver:
         sigma_bar_k = k + self.ados.sigma_bar_k_offset[k]
 
         op = -1j * sign2 * (
-            (ck[k] * self.spreQ[k]) -
-            (sign1 * np.conj(ck[sigma_bar_k] * self.spostQ[k]))
+            (ck[k] * self._spreQ[k]) -
+            (sign1 * np.conj(ck[sigma_bar_k] * self._spostQ[k]))
         )
 
         return op
@@ -873,7 +884,7 @@ class HEOMSolver:
                 f"Mode {k} has unsupported type {self.ados.exponents[k].type}")
 
     def _grad_next_bosonic(self, he_n, k):
-        op = -1j * self.s_pre_minus_post_Q[k]
+        op = -1j * self._s_pre_minus_post_Q[k]
         return op
 
     def _grad_next_fermionic(self, he_n, k):
@@ -884,15 +895,15 @@ class HEOMSolver:
         sign2 = (-1) ** (n_excite_before_m)
 
         if sign1 == -1:
-            op = (-1j * sign2) * self.s_pre_minus_post_Q[k]
+            op = (-1j * sign2) * self._s_pre_minus_post_Q[k]
         else:
-            op = (-1j * sign2) * self.s_pre_plus_post_Q[k]
+            op = (-1j * sign2) * self._s_pre_plus_post_Q[k]
 
         return op
 
     def _rhs(self, L):
         """ Make the RHS for the HEOM. """
-        ops = _GatherHEOMRHS(self.ados.idx, block=L.shape[0], nhe=self.n_ados)
+        ops = _GatherHEOMRHS(self.ados.idx, block=L.shape[0], nhe=self._n_ados)
 
         for he_n in self.ados.labels:
             op = self._grad_n(L, he_n)
@@ -911,11 +922,11 @@ class HEOMSolver:
 
     def _configure_solver(self):
         """ Set up the solver. """
-        RHSmat = self._rhs(self.L0.data)
+        RHSmat = self._rhs(self._L0.data)
         assert isinstance(RHSmat, sp.csr_matrix)
 
-        if self.is_timedep:
-            h_identity_mat = sp.identity(self.n_ados, format="csr")
+        if self._is_timedep:
+            h_identity_mat = sp.identity(self._n_ados, format="csr")
             H_list = self.H_sys.to_list()
 
             # store each time dependent component
@@ -977,20 +988,22 @@ class HEOMSolver:
             Array of the the steady-state and all ADOs.
 
             FIXME: Describe how to use the returned ADOs.
+            FIXME: Ensure ADOs are returned in the same format as for
+            .run().
         """
         n = self._sys_shape
 
-        b_mat = np.zeros(n ** 2 * self.n_ados, dtype=complex)
+        b_mat = np.zeros(n ** 2 * self._n_ados, dtype=complex)
         b_mat[0] = 1.0
 
         L = deepcopy(self.RHSmat)
         L = L.tolil()
-        L[0, 0: n ** 2 * self.n_ados] = 0.0
+        L[0, 0: n ** 2 * self._n_ados] = 0.0
         L = L.tocsr()
         L += sp.csr_matrix((
             np.ones(n),
             (np.zeros(n), [num * (n + 1) for num in range(n)])
-        ), shape=(n ** 2 * self.n_ados, n ** 2 * self.n_ados))
+        ), shape=(n ** 2 * self._n_ados, n ** 2 * self._n_ados))
 
         if mkl_spsolve is not None and use_mkl:
             L.sort_indices()
@@ -1011,9 +1024,9 @@ class HEOMSolver:
         data = dense2D_to_fastcsr_fmode(vec2mat(solution[:n ** 2]), n, n)
         data = 0.5 * (data + data.H)
 
-        solution = solution.reshape((self.n_ados, n ** 2))
+        solution = solution.reshape((self._n_ados, n ** 2))
 
-        return Qobj(data, dims=self.H0.dims), solution
+        return Qobj(data, dims=self._H0.dims), solution
 
     def run(self, rho0, tlist, full_init=False, full_return=False):
         """
@@ -1050,8 +1063,8 @@ class HEOMSolver:
         """
         n = self._sys_shape
         rho_shape = (n, n)
-        rho_dims = self.coup_op[0].dims
-        hierarchy_shape = (self.n_ados, n ** 2)
+        rho_dims = self._coup_op[0].dims  # FIXME: don't use coup_op[0].dims
+        hierarchy_shape = (self._n_ados, n ** 2)
 
         output = Result()
         output.solver = "HEOMSolver"
@@ -1061,7 +1074,7 @@ class HEOMSolver:
         if full_init:
             rho0_he = rho0
         else:
-            rho0_he = np.zeros([n ** 2 * self.n_ados], dtype=complex)
+            rho0_he = np.zeros([n ** 2 * self._n_ados], dtype=complex)
             rho0_he[:n ** 2] = rho0.full().ravel('F')
 
         if full_return:
@@ -1099,11 +1112,11 @@ class BosonicHEOMSolver(HEOMSolver):
         The system Hamiltonian or Liouvillian. See :class:`HEOMSolver` for
         a complete description.
 
-    coup_op : Qobj or list
+    coup_op : Qobj
         Operator describing the coupling between system and bath.
         See :class:`BosonicBath` for a complete description.
 
-    ckAR, ckAI, vkAR, vkAI : lists
+    ck_real, vk_real, ck_imag, vk_imag : lists
         Lists containing coefficients of the fitted bath correlation
         functions. See :class:`BosonicBath` for a complete description.
 
@@ -1117,9 +1130,10 @@ class BosonicHEOMSolver(HEOMSolver):
         used. See :class:`HEOMSolver` for a complete description.
     """
     def __init__(
-        self, H_sys, coup_op, ckAR, ckAI, vkAR, vkAI, max_depth, options=None
+        self, H_sys, coup_op, ck_real, vk_real, ck_imag, vk_imag, max_depth,
+        options=None,
     ):
-        bath = BosonicBath(coup_op, ckAR, vkAR, ckAI, vkAI)
+        bath = BosonicBath(coup_op, ck_real, vk_real, ck_imag, vk_imag)
         super().__init__(
             H_sys=H_sys, bath=bath, max_depth=max_depth, options=options,
         )
@@ -1137,10 +1151,12 @@ class HSolverDL(HEOMSolver):
     FIXME: Clean up the description above and the parameter descriptions below.
 
     FIXME: Decide whether coup_op is really allowed to be a list or not. If
-    not, assert that it is a Qobj.
+    not, assert that it is a Qobj. Decision: Just be a Qobj.
 
     FIXME: Clarify whether H_sys is allowed to be time-dependent or a
     Liouvillian here. If so, fix the code so that works and add tests.
+    Decision: Support QobjEvo and Liouvillian. Document that this is an
+    extension of the QuTiP 4.6 functionality.
 
     Parameters
     ----------
@@ -1191,7 +1207,7 @@ class HSolverDL(HEOMSolver):
             Q=coup_op,
             lam=coup_strength,
             gamma=cut_freq,
-            Nk=N_exp,
+            Nk=N_exp - 1,  # FIXME: Explain the -1 here or in docstring
             T=temperature,
             terminator=bnd_cut_approx,
         )
@@ -1224,7 +1240,7 @@ class FermionicHEOMSolver(HEOMSolver):
         The system Hamiltonian or Liouvillian. See :class:`HEOMSolver` for
         a complete description.
 
-    coup_op : Qobj or list
+    coup_op : Qobj
         Operator describing the coupling between system and bath.
         See :class:`FermionicBath` for a complete description.
 
@@ -1332,6 +1348,7 @@ class _GatherHEOMRHS:
                     )
                     end += op_row_len
                 indptr[rowpos + op_row + 1] = end
+
         return fast_csr_matrix(
             (data, indices, indptr), shape=shape, dtype=np.complex128,
         )
