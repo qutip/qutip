@@ -1219,17 +1219,17 @@ class BosonicHEOMSolver(HEOMSolver):
 
 class HSolverDL(HEOMSolver):
     """
-    HEOM solver based on the Drude-Lorentz model for spectral density.
-    Drude-Lorentz bath the correlation functions can be exactly analytically
-    expressed as a sum of exponentials.
+    A helper class for creating an :class:`HEOMSolver` that is backwards
+    compatible with the ``HSolverDL`` provided in ``qutip.nonmarkov.heom``
+    in QuTiP 4.6 and below.
 
-    This sub-class is included to give backwards compatability with the older
-    implentation in qutip.nonmarkov.heom.
+    See :class:`HEOMSolver` and :class:`DrudeLorentzBath` for more
+    descriptions of the underlying solver and bath construction.
 
-    FIXME: Clarify whether H_sys is allowed to be time-dependent or a
-    Liouvillian here. If so, fix the code so that works and add tests.
-    Decision: Support QobjEvo and Liouvillian. Document that this is an
-    extension of the QuTiP 4.6 functionality.
+    .. note::
+
+       Unlike the version of ``HSolverDL`` in QuTiP 4.6, this solver
+       supports supplying a time-dependent or Liouvillian ``H_sys``.
 
     .. note::
 
@@ -1293,8 +1293,15 @@ class HSolverDL(HEOMSolver):
         )
 
         if bnd_cut_approx:
+            # upgrade H_sys to a Liouvillian if needed and add the
+            # bath terminator
             H_sys = self._convert_h_sys(H_sys)
-            H_sys = liouvillian(H_sys) + bath.terminator
+            is_timedep = isinstance(H_sys, QobjEvo)
+            H0 = H_sys.to_list()[0] if is_timedep else H_sys
+            is_hamiltonian = H0.type == "oper"
+            if is_hamiltonian:
+                H_sys = liouvillian(H_sys)
+            H_sys = H_sys + bath.terminator
 
         super().__init__(H_sys, bath=bath, max_depth=N_cut, options=options)
 
