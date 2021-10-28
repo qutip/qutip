@@ -724,39 +724,6 @@ class HierarchyADOs:
         return results
 
 
-def _convert_h_sys(H_sys):
-    """ Process input system Hamiltonian, converting and raising as needed.
-    """
-    if isinstance(H_sys, (Qobj, QobjEvo)):
-        pass
-    elif isinstance(H_sys, list):
-        try:
-            H_sys = QobjEvo(H_sys)
-        except Exception as err:
-            raise ValueError(
-                "Hamiltonian (H_sys) of type list cannot be converted to"
-                " QObjEvo"
-            ) from err
-    else:
-        raise TypeError(
-            f"Hamiltonian (H_sys) has unsupported type: {type(H_sys)!r}")
-    return H_sys
-
-
-def _convert_coup_op(coup_op, coup_op_len):
-    """ Convert coup_op to a list of the appropriate length. """
-    if isinstance(coup_op, Qobj):
-        coup_op = [coup_op] * coup_op_len
-    elif (isinstance(coup_op, list)
-            and all(isinstance(x, Qobj) for x in coup_op)):
-        if len(coup_op) != coup_op_len:
-            raise ValueError(
-                f"Expected {coup_op_len} coupling operators")
-    else:
-        raise TypeError(
-            "Coupling operator (coup_op) must be a Qobj or a list of Qobjs"
-        )
-    return coup_op
 
 
 class HEOMSolver:
@@ -795,10 +762,9 @@ class HEOMSolver:
         and maximum depth.
     """
     def __init__(self, H_sys, bath, max_depth, options=None):
-        self.H_sys = _convert_h_sys(H_sys)
+        self.H_sys = self._convert_h_sys(H_sys)
         self.options = Options() if options is None else options
         self._is_timedep = isinstance(self.H_sys, QobjEvo)
-        # FIXME: Can we get rid of self._H0 and self._is_hamiltonian?
         self._H0 = self.H_sys.to_list()[0] if self._is_timedep else self.H_sys
         self._is_hamiltonian = self._H0.type == "oper"
         self._L0 = liouvillian(self._H0) if self._is_hamiltonian else self._H0
@@ -808,31 +774,52 @@ class HEOMSolver:
             else int(np.sqrt(self._H0.shape[0]))
         )
         self._sup_shape = self._L0.shape[0]
+        self._sys_dims = (
+            self._H0.dims if self._is_hamiltonian
+            else self._H0.dims[0]
+        )
 
         self.ados = HierarchyADOs(
             self._combine_bath_exponents(bath), max_depth,
         )
         self._n_ados = len(self.ados.labels)
+        self._n_exponents = len(self.ados.exponents)
 
-        # FIXME: We probably don't need to store any of these permanently
-        #        only the _s_pre_minus_ and _s_pre_plus
-        self._coup_op = [mode.Q for mode in self.ados.exponents]
-        self._spreQ = [spre(op).data for op in self._coup_op]
-        self._spostQ = [spost(op).data for op in self._coup_op]
-        self._spreQdag = [spre(op.dag()).data for op in self._coup_op]
-        self._spostQdag = [spost(op.dag()).data for op in self._coup_op]
-
+        # pre-calculate identity matrix required by _grad_n
         self._sId = fast_identity(self._sup_shape)
+
+        # pre-calculate superoperators required by _grad_prev and _grad_next:
+        Qs = [exp.Q for exp in self.ados.exponents]
+        self._spreQ = [spre(op).data for op in Qs]
+        self._spostQ = [spost(op).data for op in Qs]
         self._s_pre_minus_post_Q = [
-            self._spreQ[k] - self._spostQ[k] for k in range(len(self._coup_op))
+            self._spreQ[k] - self._spostQ[k] for k in range(self._n_exponents)
         ]
         self._s_pre_plus_post_Q = [
-            self._spreQ[k] + self._spostQ[k] for k in range(len(self._coup_op))
+            self._spreQ[k] + self._spostQ[k] for k in range(self._n_exponents)
         ]
 
         self.progress_bar = BaseProgressBar()
 
         self._configure_solver()
+
+    def _convert_h_sys(self, H_sys):
+        """ Process input system Hamiltonian, converting and raising as needed.
+        """
+        if isinstance(H_sys, (Qobj, QobjEvo)):
+            pass
+        elif isinstance(H_sys, list):
+            try:
+                H_sys = QobjEvo(H_sys)
+            except Exception as err:
+                raise ValueError(
+                    "Hamiltonian (H_sys) of type list cannot be converted to"
+                    " QObjEvo"
+                ) from err
+        else:
+            raise TypeError(
+                f"Hamiltonian (H_sys) has unsupported type: {type(H_sys)!r}")
+        return H_sys
 
     def _combine_bath_exponents(self, bath):
         """ Combine the exponents for the specified baths. """
@@ -854,7 +841,13 @@ class HEOMSolver:
             raise ValueError(
                 "Bath exponents are currently restricted to being either"
                 " all bosonic or all fermionic, but a mixture of bath"
-                " exponents was given"
+                " exponents was given."
+            )
+        if not all(exp.Q.dims == exponents[0].Q.dims for exp in exponents):
+            raise ValueError(
+                "All bath exponents must have system coupling operators"
+                " with the same dimensions but a mixture of dimensions"
+                " was given."
             )
         return exponents
 
@@ -1042,10 +1035,7 @@ class HEOMSolver:
         Qobj
             A :obj:`Qobj` representing the state of the specified ADO.
         """
-        # This is a slightly hacky way to determine the dims, but the dims
-        # for all coupling operators within the hierarchy must be the same
-        dims = self._coup_op[0].dims
-        return Qobj(ado_state[idx, :].T, dims=dims)
+        return Qobj(ado_state[idx, :].T, dims=self._sys_dims)
 
     def steady_state(
         self,
@@ -1152,7 +1142,7 @@ class HEOMSolver:
         """
         n = self._sys_shape
         rho_shape = (n, n)
-        rho_dims = self._coup_op[0].dims  # FIXME: don't use coup_op[0].dims
+        rho_dims = self._sys_dims
         hierarchy_shape = (self._n_ados, n, n)
 
         output = Result()
@@ -1313,7 +1303,7 @@ class HSolverDL(HEOMSolver):
         )
 
         if bnd_cut_approx:
-            H_sys = _convert_h_sys(H_sys)
+            H_sys = self._convert_h_sys(H_sys)
             H_sys = liouvillian(H_sys) + bath.terminator
 
         super().__init__(H_sys, bath=bath, max_depth=N_cut, options=options)

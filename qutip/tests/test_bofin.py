@@ -8,11 +8,9 @@ from numpy.linalg import eigvalsh
 from scipy.integrate import quad
 
 from qutip import (
-    Qobj, QobjEvo, sigmaz, sigmax, basis, destroy, expect, Options
-)
+    Qobj, sigmaz, basis, destroy, expect, Options
+)  # FIXME: Add tests system specified using QobjEvo
 from qutip.nonmarkov.bofin import (
-    _convert_h_sys,
-    _convert_coup_op,
     BathExponent,
     Bath,
     HierarchyADOs,
@@ -20,7 +18,6 @@ from qutip.nonmarkov.bofin import (
     FermionicHEOMSolver,
     HSolverDL,
 )
-from qutip.states import enr_state_dictionaries
 
 
 def check_exponent(
@@ -143,52 +140,6 @@ class TestHierarchyADOs:
         assert ados.prev((0, 1), 1) == (0, 0)
         assert ados.prev((1, 1), 1) == (1, 0)
         assert ados.prev((0, 2), 1) == (0, 1)
-
-
-class TestParameterConversionUtilities:
-    def test_convert_h_sys(self):
-        """Tests the function for checking system Hamiltonian"""
-        _convert_h_sys(sigmax())
-        _convert_h_sys([sigmax(), sigmaz()])
-        _convert_h_sys([[sigmax(), np.sin], [sigmaz(), np.cos]])
-        _convert_h_sys([[sigmax(), np.sin], [sigmaz(), np.cos]])
-        _convert_h_sys(QobjEvo([sigmaz(), sigmax(), sigmaz()]))
-
-        with pytest.raises(TypeError) as err:
-            _convert_h_sys(sigmax().full())
-        assert str(err.value) == (
-            "Hamiltonian (H_sys) has unsupported type: <class 'numpy.ndarray'>"
-        )
-
-        with pytest.raises(ValueError) as err:
-            _convert_h_sys([[1, 0], [0, 1]])
-        assert str(err.value) == (
-            "Hamiltonian (H_sys) of type list cannot be converted to QObjEvo"
-        )
-        assert isinstance(err.value.__cause__, TypeError)
-        assert str(err.value.__cause__) == "Incorrect Q_object specification"
-
-    def test_convert_coup_op(self):
-        sx = sigmax()
-        sz = sigmaz()
-        assert _convert_coup_op(sx, 2) == [sx, sx]
-        assert _convert_coup_op([sx, sz], 2) == [sx, sz]
-
-        with pytest.raises(TypeError) as err:
-            _convert_coup_op(3, 1)
-        assert str(err.value) == (
-            "Coupling operator (coup_op) must be a Qobj or a list of Qobjs"
-        )
-
-        with pytest.raises(TypeError) as err:
-            _convert_coup_op([sx, 1], 2)
-        assert str(err.value) == (
-            "Coupling operator (coup_op) must be a Qobj or a list of Qobjs"
-        )
-
-        with pytest.raises(ValueError) as err:
-            _convert_coup_op([sx, sz], 3)
-        assert str(err.value) == "Expected 3 coupling operators"
 
 
 class TestBosonicHEOMSolver:
@@ -403,9 +354,6 @@ class TestFermionicHEOMSolver:
 
         H0 = e1 * d1.dag() * d1
         Q = d1
-
-        shape = H0.shape[0]
-        dims = H0.dims
 
         if fake_timedep:
             H0 = [H0]
