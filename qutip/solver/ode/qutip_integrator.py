@@ -86,7 +86,7 @@ class IntegratorDiag(Integrator):
 
     def _prepare(self):
         self.diag, self.U = _data.eigs(self.system(0).data, False)
-        self.diag = self.diag.reshape((-1,1))
+        self.diag = self.diag.reshape((-1, 1))
         self.Uinv = _data.inv(self.U)
         self.name = "qutip diagonalized"
 
@@ -114,5 +114,6 @@ class IntegratorDiag(Integrator):
 
 sets = [sesolve_integrators, mesolve_integrators, mcsolve_integrators]
 for integrator_set in sets:
-    add_integrator(IntegratorVern, ['vern7', 'vern9'], integrator_set, SolverOdeOptions)
+    add_integrator(IntegratorVern, ['vern7', 'vern9'],
+                   integrator_set, SolverOdeOptions)
     add_integrator(IntegratorDiag, 'diag', integrator_set, SolverOdeOptions)
