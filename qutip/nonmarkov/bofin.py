@@ -1210,6 +1210,16 @@ class HSolverDL(HEOMSolver):
     Decision: Support QobjEvo and Liouvillian. Document that this is an
     extension of the QuTiP 4.6 functionality.
 
+    .. note::
+
+        For compatibility with ``HSolverDL`` in QuTiP 4.6 and below, the
+        parameter ``N_exp`` specifying the number of exponents to keep in
+        the expansion of the bath correlation function is one more than
+        the equivalent ``Nk`` used in the :class:`DrudeLorentzBath`. I.e.,
+        ``Nk = N_exp - 1``. The ``Nk`` parameter in the
+        :class:`DrudeLorentzBath` does not count the zeroeth exponent in
+        order to better match common usage in the literature.
+
     Parameters
     ----------
     H_sys : Qobj or QobjEvo or list
@@ -1259,7 +1269,7 @@ class HSolverDL(HEOMSolver):
             Q=coup_op,
             lam=coup_strength,
             gamma=cut_freq,
-            Nk=N_exp - 1,  # FIXME: Explain the -1 here or in docstring
+            Nk=N_exp - 1,
             T=temperature,
             terminator=bnd_cut_approx,
         )
