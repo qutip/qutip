@@ -408,7 +408,6 @@ class DrudeLorentzPadeBath(BosonicBath):
     """
     def __init__(self, Q, lam, T, Nk, gamma):
         eta_p, gamma_p = self._corr(lam=lam, gamma=gamma, T=T, Nk=Nk)
-        # FIXME: rename lmax everywhere
 
         ck_real = [np.real(eta) for eta in eta_p]
         vk_real = [gam for gam in gamma_p]
