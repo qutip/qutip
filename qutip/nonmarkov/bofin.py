@@ -154,9 +154,6 @@ class BosonicBath(Bath):
     coefficients and frequencies for the real and imaginary parts of
     the bath correlation function.
 
-    FIXME: Add support for multiple baths of the same kind to HEOMSolver
-    FIXME: Check that exponents are the same kind.
-
     Parameters
     ----------
     Q : Qobj
@@ -764,8 +761,9 @@ def _convert_coup_op(coup_op, coup_op_len):
 
 class HEOMSolver:
     """
-    HEOM solver that supports a single bath which may be either bosonic or
-    fermionic.
+    HEOM solver that supports multiple baths.
+
+    The baths must be all either bosonic or fermionic baths.
 
     Parameters
     ----------
@@ -774,10 +772,13 @@ class HEOMSolver:
         :obj:`Qobj`, a :obj:`QobjEvo`, or a list of elements that may
         be converted to a :obj:`ObjEvo`.
 
-    bath : Bath
+    baths : Bath or list of Bath
         A :obj:`Bath` containing the exponents of the expansion of the
         bath correlation funcion and their associated coefficients
         and coupling operators.
+
+        If multiple baths are given, they must all be either fermionic
+        or bosonic baths.
 
     max_depth : int
         The maximum depth of the heirarchy (i.e. the maximum number of bath
@@ -808,7 +809,9 @@ class HEOMSolver:
         )
         self._sup_shape = self._L0.shape[0]
 
-        self.ados = HierarchyADOs(bath.exponents, max_depth)
+        self.ados = HierarchyADOs(
+            self._combine_bath_exponents(bath), max_depth,
+        )
         self._n_ados = len(self.ados.labels)
 
         # FIXME: We probably don't need to store any of these permanently
@@ -830,6 +833,30 @@ class HEOMSolver:
         self.progress_bar = BaseProgressBar()
 
         self._configure_solver()
+
+    def _combine_bath_exponents(self, bath):
+        """ Combine the exponents for the specified baths. """
+        if not isinstance(bath, (list, tuple)):
+            exponents = bath.exponents
+        else:
+            exponents = []
+            for b in bath:
+                exponents.extend(bath.exponents)
+        all_bosonic = all(
+            exp.type in (exp.types.R, exp.types.I, exp.types.RI)
+            for exp in exponents
+        )
+        all_fermionic = all(
+            exp.type in (exp.types["+"], exp.types["-"])
+            for exp in exponents
+        )
+        if not (all_bosonic or all_fermionic):
+            raise ValueError(
+                "Bath exponents are currently restricted to being either"
+                " all bosonic or all fermionic, but a mixture of bath"
+                " exponents was given"
+            )
+        return exponents
 
     def _dsuper_list_td(self, t, y, L_list):
         """ Auxiliary function for the time-dependent integration. Called every
@@ -1163,7 +1190,8 @@ class HEOMSolver:
 
 class BosonicHEOMSolver(HEOMSolver):
     """
-    A helper class for creating an :class:`HEOMSolver` for a bosonic bath.
+    A helper class for creating an :class:`HEOMSolver` for a single
+    bosonic bath.
 
     See :class:`HEOMSolver` and :class:`BosonicBath` for more detailed
     descriptions of the solver and bath parameters.
@@ -1301,7 +1329,8 @@ class HSolverDL(HEOMSolver):
 
 class FermionicHEOMSolver(HEOMSolver):
     """
-    A helper class for creating an :class:`HEOMSolver` for a fermionic bath.
+    A helper class for creating an :class:`HEOMSolver` for a single
+    fermionic bath.
 
     See :class:`HEOMSolver` and :class:`FermionicBath` for more detailed
     descriptions of the solver and bath parameters.
