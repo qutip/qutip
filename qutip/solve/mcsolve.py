@@ -714,10 +714,7 @@ def _mc_dm_avg(psi_list):
     over all trajectories for a single time using parfor.
     """
     ln = len(psi_list)
-    dims = psi_list[0].dims
-    shape = psi_list[0].shape
-    out_data = sum([psi.data for psi in psi_list]) / ln
-    return Qobj(out_data, dims=dims, shape=shape, fast='mc-dm')
+    return sum(psi_list) / ln
 
 def _collapse_args(args):
     for key in args:

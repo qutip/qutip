@@ -283,7 +283,7 @@ cdef class CyMcOde:
         cdef Dense state
         cobj = <QobjEvo> self.c_ops[j]
         state = cobj.matmul_data(t, _data.dense.fast_from_numpy(y.base))
-        state /= l2_dense(state)
+        state = _data.mul(state, 1/l2_dense(state))
         return state.as_ndarray()[:, 0]
 
 

@@ -92,6 +92,12 @@ cdef class QobjEvo:
 
         See :meth:`compress`.
 
+    function_style : {None, "pythonic", "dict", "auto"}
+        The style of function signature used by callables in ``Q_object``.
+        If style is ``None``, the value of
+        ``qutip.settings.core["function_coefficient_style"]``
+        is used. Otherwise the supplied value overrides the global setting.
+
     Attributes
     ----------
     dims : list
@@ -186,7 +192,8 @@ cdef class QobjEvo:
     ```
     """
     def __init__(QobjEvo self, Q_object, args=None, tlist=None,
-                 step_interpolation=False, copy=True, compress=True):
+                 step_interpolation=False, copy=True, compress=True,
+                 function_style=None):
         if isinstance(Q_object, QobjEvo):
             self.dims = Q_object.dims.copy()
             self.shape = Q_object.shape
@@ -220,17 +227,25 @@ cdef class QobjEvo:
         if isinstance(Q_object, list):
             for op in Q_object:
                 self.elements.append(
-                    self._read_element(op, copy, tlist, args, step_interpolation)
+                    self._read_element(
+                        op, copy=copy, tlist=tlist, args=args,
+                        use_step_func=step_interpolation,
+                        function_style=function_style
+                    )
                 )
         else:
             self.elements.append(
-              self._read_element(Q_object, copy, tlist, args, step_interpolation)
+                self._read_element(
+                    Q_object, copy=copy, tlist=tlist, args=args,
+                    use_step_func=step_interpolation,
+                    function_style=function_style
+                )
             )
 
         if compress:
             self.compress()
 
-    def _read_element(self, op, copy, tlist, args, use_step_func):
+    def _read_element(self, op, copy, tlist, args, use_step_func, function_style):
         """ Read a Q_object item and return an element for that item. """
         if isinstance(op, Qobj):
             out = _ConstantElement(op.copy() if copy else op)
@@ -243,14 +258,14 @@ cdef class QobjEvo:
             )
             qobj = op[0]
         elif callable(op):
-            qobj = op(0, args)
+            out = _FuncElement(op, args, style=function_style)
+            qobj = out.qobj(0)
             if not isinstance(qobj, Qobj):
                 raise TypeError(
                     "Function based time-dependent elements must have the"
                     " signature f(t: double, args: dict) -> Qobj, but"
                     " {!r} returned: {!r}".format(op, qobj)
                 )
-            out = _FuncElement(op, args)
         else:
             raise TypeError(
                 "QobjEvo terms should be Qobjs, a list of [Qobj, coefficient],"

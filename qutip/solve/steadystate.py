@@ -826,7 +826,7 @@ def _steadystate_power_liouvillian(L, ss_args, has_mkl=0):
     perm2 = None
     rev_perm = None
     n = L.shape[0]
-    L = _data.to(_data.CSR, L.data) - _data.identity(n, 1e-15, dtype=_data.CSR)
+    L = _data.sub(L.data, _data.identity(n, 1e-15))
     if ss_args['solver'] == 'mkl':
         kind = 'csr'
     else:

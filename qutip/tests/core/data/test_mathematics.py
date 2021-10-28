@@ -1,6 +1,6 @@
 import itertools
 import numpy as np
-import scipy as sc
+import scipy
 import pytest
 
 from qutip.core import data
@@ -14,6 +14,7 @@ _ParameterSet = type(pytest.param())
 
 # First set up a bunch of allowable shapes, for different types of functions so
 # we don't have to respecify a whole lot of things on repeat.
+
 
 def shapes_unary(dim=100):
     """Base shapes to test for unary functions."""
@@ -103,11 +104,12 @@ def shapes_square(dim=100):
 
 
 def shapes_not_square(dim=100):
-    """Disallowed shapes for operations that require square matrices. Examples of
-    these operations are trace, pow, expm and the trace norm."""
+    """Disallowed shapes for operations that require square matrices. Examples
+    of these operations are trace, pow, expm and the trace norm."""
     return [
         (x,) for x in shapes_unary(dim) if x.values[0][0] != x.values[0][1]
     ]
+
 
 # Set up the special cases for each type of matrix that will be tested.  These
 # should be kept low, because mathematical operations will test a Cartesian
@@ -712,6 +714,7 @@ class TestKron(BinaryOpMixin):
     bad_shapes = shapes_binary_bad_unrestricted(dim=5)
     specialisations = [
         pytest.param(data.kron_csr, CSR, CSR, CSR),
+        pytest.param(data.kron_dense, Dense, Dense, Dense),
     ]
 
 
@@ -725,6 +728,18 @@ class TestMatmul(BinaryOpMixin):
         pytest.param(data.matmul_csr, CSR, CSR, CSR),
         pytest.param(data.matmul_csr_dense_dense, CSR, Dense, Dense),
         pytest.param(data.matmul_dense, Dense, Dense, Dense),
+    ]
+
+
+class TestMultiply(BinaryOpMixin):
+    def op_numpy(self, left, right):
+        return left * right
+
+    shapes = shapes_binary_identical()
+    bad_shapes = shapes_binary_bad_identical()
+    specialisations = [
+        pytest.param(data.multiply_csr, CSR, CSR, CSR),
+        pytest.param(data.multiply_dense, Dense, Dense, Dense),
     ]
 
 
@@ -804,7 +819,7 @@ class TestPow(UnaryOpMixin):
 
 class TestExpm(UnaryOpMixin):
     def op_numpy(self, matrix):
-        return sc.sparse.linalg.expm(matrix)
+        return scipy.linalg.expm(matrix)
 
     shapes = shapes_square()
     bad_shapes = shapes_not_square()
@@ -884,23 +899,4 @@ class TestInv(UnaryOpMixin):
     specialisations = [
         pytest.param(_inv_csr, CSR, CSR),
         pytest.param(_inv_dense, Dense, Dense),
-    ]
-
-
-class TestSplitColumns(UnaryOpMixin):
-    # UnaryOpMixin
-    def op_numpy(self, matrix):
-        return [matrix[:, i].reshape((-1, 1)) for i in range(matrix.shape[1])]
-
-    shapes = [
-        (pytest.param((1, 1), id="scalar"),),
-        (pytest.param((10, 10), id="square"),),
-        (pytest.param((2, 10), id="nonsquare"),),
-        (pytest.param((1, 100), id="bra"),),
-        (pytest.param((100, 1), id="ket"),),
-    ]
-
-    specialisations = [
-        pytest.param(data.split_columns_csr, CSR, list),
-        pytest.param(data.split_columns_dense, Dense, list),
     ]
