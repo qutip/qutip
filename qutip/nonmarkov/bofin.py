@@ -488,8 +488,13 @@ class DrudeLorentzPadeBath(BosonicBath):
 class FermionicBath(Bath):
     """
     A helper class for constructing a fermionic bath from the expansion
-    coefficients and frequencies for the + and - modes of
+    coefficients and frequencies for the ``+`` and ``-`` modes of
     the bath correlation function.
+
+    There must be the same number of ``+`` and ``-`` modes and their
+    coefficients must be specified in the same order so that ``ck_plus[i],
+    vk_plus[i]`` are the plus coefficient and frequency corresponding
+    to the minus mode ``ck_minus[i], vk_minus[i]``.
 
     Parameters
     ----------
@@ -497,55 +502,58 @@ class FermionicBath(Bath):
         The coupling operator for the bath. ``Q.dag()`` is used as the coupling
         operator for ``+`` mode terms and ``Q`` for the ``-`` mode terms.
 
-    FIXME: Change to ck_plus, vk_plus, ck_minus, vk_minus.
-    FIXME: Assert that lists are the same length & remind user that the
-    plusses and minuses should be in the same order.
+    ck_plus : list of complex
+        The coefficients of the expansion terms for the ``+`` part of the
+        correlation function. The corresponding frequencies are passed as
+        vk_plus.
 
-    ck : list of complex
-        The coefficients of the expansion terms. The even elements of the
-        list are coefficients for ``+`` modes and the odd elements are
-        coefficients for the ``-`` modes. The corresponding frequencies
-        are passed as ``vk``.
+    vk_plus : list of complex
+        The frequencies (exponents) of the expansion terms for the ``+`` part
+        of the correlation function. The corresponding ceofficients are passed
+        as ck_plus.
 
-    vk : list of complex
-        The frequencies (exponents) of the expansion terms. The even elements
-        of the list are frequencies for ``+`` modes and the odd elements are
-        frequencies for the ``-`` modes. The corresponding coefficients
-        are passed as ``ck``.
+    ck_minus : list of complex
+        The coefficients of the expansion terms for the ``-`` part of the
+        correlation function. The corresponding frequencies are passed as
+        vk_minus.
+
+    vk_minus : list of complex
+        The frequencies (exponents) of the expansion terms for the ``-`` part
+        of the correlation function. The corresponding ceofficients are passed
+        as ck_minus.
     """
 
-    def _check_ck_and_vk(self, ck, vk):
-        if (len(ck) != len(vk)
-                or any(len(ck[i]) != len(vk[i]) for i in range(len(ck)))):
-            raise ValueError("Exponents ck and vk must be the same length.")
+    def _check_cks_and_vks(self, ck_plus, vk_plus, ck_minus, vk_minus):
+        if len(ck_plus) != len(vk_plus) or len(ck_minus) != len(vk_minus):
+            raise ValueError(
+                "The bath exponent lists ck_plus and vk_plus, and ck_minus and"
+                " vk_minus must be the same length."
+            )
+        if len(ck_plus) != len(ck_minus):
+            raise ValueError(
+                "The must be the same number of plus and minus exponents"
+                " in the bath, and elements of plus and minus arrays"
+                " should be arranged so that ck_plus[i] is the plus mode"
+                " corresponding to ck_minus[i]."
+            )
 
     def _check_coup_op(self, Q):
         if not isinstance(Q, Qobj):
             raise ValueError("The coupling operator Q must be a Qobj.")
 
-    def __init__(self, Q, ck, vk):
-        self._check_ck_and_vk(ck, vk)
+    def __init__(self, Q, ck_plus, vk_plus, ck_minus, vk_minus):
+        self._check_cks_and_vks(ck_plus, vk_plus, ck_minus, vk_minus)
         self._check_coup_op(Q)
         Qdag = Q.dag()
 
         exponents = []
-        for i in range(len(ck)):
-            if i % 2 == 0:
-                type = "+"
-                op = Qdag
-                sbk_offset = len(ck[i])
-            else:
-                type = "-"
-                op = Q
-                sbk_offset = -len(ck[i - 1])
-            exponents.extend(
-                BathExponent(
-                    type, 2, op, ck[i][j], vk[i][j],
-                    sigma_bar_k_offset=sbk_offset
-                )
-                for j in range(len(ck[i]))
-            )
-
+        for ckp, vkp, ckm, vkm in zip(ck_plus, vk_plus, ck_minus, vk_minus):
+            exponents.append(BathExponent(
+                "+", 2, Qdag, ckp, vkp, sigma_bar_k_offset=1,
+            ))
+            exponents.append(BathExponent(
+                "-", 2, Q, ckm, vkm, sigma_bar_k_offset=-1,
+            ))
         super().__init__(exponents)
 
 
@@ -687,6 +695,28 @@ class HierarchyADOs:
         if label[k] <= 0:
             return None
         return label[:k] + (label[k] - 1,) + label[k + 1:]
+
+    def filter_by_level(self, level):
+        """
+        Return a list of ADO indexes and labels for ADOs at the
+        given level. An ADO is at a particular level if
+        the sum of the "excitations" in its label equals the level.
+
+        Parameters
+        ----------
+        level : int
+            The hierarchy depth to return ADOs from.
+
+        Returns
+        -------
+        list of (idx, label)
+            The ADO index and lable for each ADO.
+        """
+        results = []
+        for idx, label in enumerate(self.labels):
+            if sum(label) == level:
+                results.append((idx, label))
+        return results
 
 
 def _convert_h_sys(H_sys):
@@ -958,6 +988,28 @@ class HEOMSolver:
         self._ode = solver
         self.RHSmat = RHSmat
 
+    def extract_ado(self, full, idx):
+        """
+        Extract a Qobj representing specified ADO from a full representation of
+        the ADO states, as returned by :meth:`.steady_state` or :meth:`.run`.
+
+        Parameters
+        ----------
+        full : numpy array
+            A full representation of the ADO states.
+        idx : int
+            The index of the ADO to extract.
+
+        Returns
+        -------
+        Qobj
+            A :obj:`Qobj` representing the state of the specified ADO.
+        """
+        # This is a slightly hacky way to determine the dims, but the dims
+        # for all coupling operators within the hierarchy must be the same
+        dims = self._coup_op[0].dims
+        return Qobj(full[idx, :].T, dims=dims)
+
     def steady_state(
         self,
         use_mkl=False, mkl_max_iter_refine=100, mkl_weighted_matching=False
@@ -1024,7 +1076,7 @@ class HEOMSolver:
         data = dense2D_to_fastcsr_fmode(vec2mat(solution[:n ** 2]), n, n)
         data = 0.5 * (data + data.H)
 
-        solution = solution.reshape((self._n_ados, n ** 2))
+        solution = solution.reshape((self._n_ados, n, n))
 
         return Qobj(data, dims=self._H0.dims), solution
 
@@ -1064,7 +1116,7 @@ class HEOMSolver:
         n = self._sys_shape
         rho_shape = (n, n)
         rho_dims = self._coup_op[0].dims  # FIXME: don't use coup_op[0].dims
-        hierarchy_shape = (self._n_ados, n ** 2)
+        hierarchy_shape = (self._n_ados, n, n)
 
         output = Result()
         output.solver = "HEOMSolver"
@@ -1244,7 +1296,7 @@ class FermionicHEOMSolver(HEOMSolver):
         Operator describing the coupling between system and bath.
         See :class:`FermionicBath` for a complete description.
 
-    ck, vk : lists
+    ck_plus, vk_plus, ck_minus, vk_minus : lists
         Lists containing coefficients of the fitted bath correlation
         functions. See :class:`FermionicBath` for a complete description.
 
@@ -1257,8 +1309,11 @@ class FermionicHEOMSolver(HEOMSolver):
         Generic solver options. If set to None the default options will be
         used. See :class:`HEOMSolver` for a complete description.
     """
-    def __init__(self, H_sys, coup_op, ck, vk, max_depth, options=None):
-        bath = FermionicBath(coup_op, ck, vk)
+    def __init__(
+        self, H_sys, coup_op, ck_plus, vk_plus, ck_minus, vk_minus, max_depth,
+        options=None,
+    ):
+        bath = FermionicBath(coup_op, ck_plus, vk_plus, ck_minus, vk_minus)
         super().__init__(
             H_sys, bath=bath, max_depth=max_depth, options=options
         )

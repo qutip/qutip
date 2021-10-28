@@ -413,76 +413,34 @@ class TestFermionicHEOMSolver:
         Kk = lmax + 1
         Ncc = 2  # For a single impurity we converge with Ncc = 2
 
-        eta_list = [etapR, etamR, etapL, etamL]
-        gamma_list = [gampR, gammR, gampL, gammL]
+        ck_plus = etapR + etapL
+        vk_plus = gampR + gampL
+        ck_minus = etamR + etamL
+        vk_minus = gammR + gammL
 
         resultHEOM2 = FermionicHEOMSolver(
-            H0, Q,  eta_list, gamma_list, Ncc, options=options)
+            H0, Q,  ck_plus, vk_plus, ck_minus, vk_minus, Ncc, options=options)
 
         rhossHP2, fullssP2 = resultHEOM2.steady_state()
 
-        def get_aux_matrices(full, level, N_baths, Nk, N_cut, shape, dims):
-            """
-            Extracts the auxiliary matrices at a particular level
-            from the full hierarchy ADOs.
+        def level_one_auxillaries(heom, full):
+            results = [None] * len(heom.ados.exponents)
+            for idx, label in heom.ados.filter_by_level(level=1):
+                aux = heom.extract_ado(full, idx)
+                k = label.index(1)
+                exp = heom.ados.exponents[k]
+                results[k] = (aux, exp)
+            return results
 
-            Parameters
-            ----------
-            full: ndarray
-                A 2D array of the time evolution of the ADOs.
+        l1_aux = level_one_auxillaries(resultHEOM2, fullssP2)
 
-            level: int
-                The level of the hierarchy to get the ADOs.
+        # right hand modes are the first Kk modes in ck/vk_plus and ck/vk_minus
+        # and thus the first 2 * Kk exponents
+        def exp_sign(exp):
+            return 1 if exp.type == exp.types["+"] else -1
 
-            N_cut: int
-                The hierarchy cutoff.
-
-            k: int
-                The total number of exponentials used in each bath (assumed
-                equal).
-
-            N_baths: int
-                The number of baths.
-
-            shape : int
-                the size of the ''system'' hilbert space
-
-            dims : list
-                the dimensions of the system hilbert space
-            """
-            # Note: Max N_cut is Nk*N_baths
-            nstates, state2idx, idx2state = enr_state_dictionaries(
-                [2] * (Nk * N_baths), N_cut,
-            )  # _heom_state_dictionaries([Nc + 1] * (Nk), Nc)
-            aux_indices = []
-
-            aux_heom_indices = []
-            for stateid in state2idx:
-                if np.sum(stateid) == level:
-                    aux_indices.append(state2idx[stateid])
-                    aux_heom_indices.append(stateid)
-            full = np.array(full)
-            aux = []
-
-            for i in aux_indices:
-                qlist = [
-                    Qobj(full[k, i, :].reshape(shape, shape).T, dims=dims)
-                    for k in range(len(full))
-                ]
-                aux.append(qlist)
-            return aux, aux_heom_indices, idx2state
-
-        K = Kk
-
-        aux_1_list, aux1_indices, idx2state = get_aux_matrices(
-            [fullssP2], 1, 4, K, Ncc, shape, dims)
-        aux_2_list, aux2_indices, idx2state = get_aux_matrices(
-            [fullssP2], 2, 4, K, Ncc, shape, dims)
-
-        d1 = destroy(2)  # Kk to 2*Kk
-        currP = -1.0j * (
-            sum([(d1 * aux_1_list[gg][0]).tr() for gg in range(Kk, 2 * Kk)]) -
-            sum([(d1.dag() * aux_1_list[gg][0]).tr() for gg in range(Kk)])
+        currP = -1.0j * sum(
+            exp_sign(exp) * (exp.Q * aux).tr() for aux, exp in l1_aux[:2 * Kk]
         )
 
         def CurrFunc():
