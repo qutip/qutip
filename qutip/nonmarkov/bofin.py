@@ -988,15 +988,15 @@ class HEOMSolver:
         self._ode = solver
         self.RHSmat = RHSmat
 
-    def extract_ado(self, full, idx):
+    def extract_ado(self, ado_state, idx):
         """
         Extract a Qobj representing specified ADO from a full representation of
         the ADO states, as returned by :meth:`.steady_state` or :meth:`.run`.
 
         Parameters
         ----------
-        full : numpy array
-            A full representation of the ADO states.
+        ado_state : numpy array
+            A full representation of the ADO state.
         idx : int
             The index of the ADO to extract.
 
@@ -1008,7 +1008,7 @@ class HEOMSolver:
         # This is a slightly hacky way to determine the dims, but the dims
         # for all coupling operators within the hierarchy must be the same
         dims = self._coup_op[0].dims
-        return Qobj(full[idx, :].T, dims=dims)
+        return Qobj(ado_state[idx, :].T, dims=dims)
 
     def steady_state(
         self,
@@ -1036,12 +1036,10 @@ class HEOMSolver:
         steady_state : Qobj
             The steady state density matrix of the system.
 
-        solution : Numpy array
+        full_ado_state : Numpy array
             Array of the the steady-state and all ADOs.
-
-            FIXME: Describe how to use the returned ADOs.
-            FIXME: Ensure ADOs are returned in the same format as for
-            .run().
+            The state of a particular ADO may be extracted from the
+            full state by calling :meth:`.extract_ado`.
         """
         n = self._sys_shape
 
@@ -1080,7 +1078,7 @@ class HEOMSolver:
 
         return Qobj(data, dims=self._H0.dims), solution
 
-    def run(self, rho0, tlist, full_init=False, full_return=False):
+    def run(self, rho0, tlist, ado_init=False, ado_return=False):
         """
         Solve for the time evolution of the system.
 
@@ -1097,11 +1095,11 @@ class HEOMSolver:
         tlist : list
             An ordered list of times at which to return the value of the state.
 
-        full_init: bool, default False
+        ado_init: bool, default False
             Indicates if initial condition is just the system state, or a
             numpy array including all ADOs.
 
-        full_return: bool, default True
+        ado_return: bool, default True
             Whether to also return as output the full state of all ADOs.
 
         Returns
@@ -1110,8 +1108,10 @@ class HEOMSolver:
             The results of the simulation run.
             The times (tlist) are stored in ``result.times``.
             The state at each time is stored in ``result.states``.
-            If ``full_return`` is ``True``, then the ADOs at each
-            time are stored in ``result.ados``.
+            If ``ado_return`` is ``True``, then the full ADO state at each
+            time is stored in ``result.ado_states``.
+            The state of a particular ADO may be extracted from
+            ``result.ado_states[i]`` by calling :meth:`.extract_ado`.
         """
         n = self._sys_shape
         rho_shape = (n, n)
@@ -1123,14 +1123,14 @@ class HEOMSolver:
         output.times = tlist
         output.states = []
 
-        if full_init:
+        if ado_init:
             rho0_he = rho0
         else:
             rho0_he = np.zeros([n ** 2 * self._n_ados], dtype=complex)
             rho0_he[:n ** 2] = rho0.full().ravel('F')
 
-        if full_return:
-            output.ados = []
+        if ado_return:
+            output.ado_states = []
 
         solver = self._ode
         solver.set_initial_value(rho0_he, tlist[0])
@@ -1145,8 +1145,8 @@ class HEOMSolver:
                 dims=rho_dims,
             )
             output.states.append(rho)
-            if full_return:
-                output.ados.append(solver.y.reshape(hierarchy_shape))
+            if ado_return:
+                output.ado_states.append(solver.y.reshape(hierarchy_shape))
         self.progress_bar.finished()
         return output
 
