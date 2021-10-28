@@ -192,9 +192,35 @@ class MultiTrajSolver:
 
 
 class _TrajectorySolver(Solver):
+    """
+    :cls:`Solver` for trajectory of a multi-trajectory evolution (``mcsolve``,
+    ``photocurrent``, etc.).
+
+    :method:`start`, and :method:`run` take and extra ``seed`` keyword
+    argument to initiate the random number generator.
+
+    Evolution between times is done by the :method:`_step` which need to be
+    implemented for the solver problem (indclude collapse in mcsolve, etc.).
+    An :class:`Integrator` is initiated using `rhs` before calling `_step`.
+
+    A new :method:`_argument` is used to update the args in `rhs` and other
+    :class:`QobjEvo` and need to be overloaded if other operators are used.
+    """
+
+    def __init__(self, mcsolver, e_ops=None, options=None):
+        super().__init__(mcsolver.rhs, e_ops=e_ops, options=options)
+        self._c_ops = mcsolver._c_ops
+        self._n_ops = mcsolver._n_ops
+        self.norm_steps = self.options.mcsolve['norm_steps']
+        self.norm_t_tol = self.options.mcsolve['norm_t_tol']
+        self.norm_tol = self.options.mcsolve['norm_tol']
+        self.mc_corr_eps = self.options.mcsolve['mc_corr_eps']
+        self.collapses = []
+        self.norm_func = _data.norm.l2
+
     def start(self, state0, t0, seed=None):
         _time_start = time()
-        self.generator = Generator(self.bit_gen(seed))
+        self._set_generator(seed)
         self._state = self._prepare_state(state0)
         self._t = t0
         self._integrator = self._get_integrator()
@@ -209,9 +235,7 @@ class _TrajectorySolver(Solver):
             self._integrator = self._get_integrator()
             self._integrator.set_state(self._t, self._state)
         if args:
-            self._integrator.arguments(args)
-            [op.arguments(args) for op in self.c_ops]
-            [op.arguments(args) for op in self.n_ops]
+            self._argument(args)
             self._integrator.reset()
         self._t, self._state = self._step(t, copy=copy)
         return self._restore_state(self._state)
@@ -219,20 +243,17 @@ class _TrajectorySolver(Solver):
     def run(self, state0, tlist, *,
             args=None, e_ops=None, options=None, seed=None):
         _time_start = time()
-        if not isinstance(seed, SeedSequence):
-            seed = SeedSequence(seed)
-        self.generator = Generator(self.bit_gen(seed))
+        self._set_generator(seed)
         if options is not None:
             self.options = options
         if args:
-            self._integrator.arguments(args)
-            [op.arguments(args) for op in self.c_ops]
-            [op.arguments(args) for op in self.n_ops]
+            self._argument(args)
 
         _state = self._prepare_state(state0)
         self._integrator.set_state(tlist[0], _state)
 
-        result = Result(self.e_ops, self.options.results, state0)
+        result = Result(self.e_ops, self.options.results,
+                        self.rhs.issuper, _state.shape[1]!=1)
         result.add(tlist[0], state0)
         for t in tlist[1:]:
             t, state = self._step(t)
@@ -246,6 +267,25 @@ class _TrajectorySolver(Solver):
         results.solver = self.name
         return result
 
+    def _set_generator(self, seed):
+        """
+        Read the seed and create the random number generator.
+        If the ``seed`` has a ``random`` method, it will be used as the
+        generator.
+        """
+        if hasattr(seed, 'random'):
+            # We check for the method, not the type to accept pseudo non-random
+            # generator for debug purpose.
+            self.generator = seed
+        if isinstance(seed, int):
+            seed = SeedSequence(seed)
+        self.generator = Generator(self.bit_gen(seed))
+
     def _step(self, t, copy=True):
         """Evolve to t, including jumps."""
         raise NotImplementedError
+
+    def _argument(self, args):
+        """Update the args, for the `rhs` and `c_ops` and other operators."""
+        if self._integrator is not None:
+            self._integrator.arguments(args)

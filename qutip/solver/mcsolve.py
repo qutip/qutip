@@ -223,16 +223,16 @@ class _OneTrajMcSolver(_OneTraj):
     _super = False
     name = "mcsolve"
 
-    def __init__(self, mcsolver):
-        self._system = mcsolver._system
-        self._c_ops = mcsolver._c_ops
-        self._n_ops = mcsolver._n_ops
+    def __init__(self, rhs, *, e_ops=None, options=None):
+        if isinstance(rhs, (QobjEvo, Qobj)):
+            self.rhs = QobjEvo(rhs)
+        else:
+            TypeError("The rhs must be a QobjEvo")
+        self.e_ops = e_ops
+        self.options = options
+        self.stats = {"preparation time": 0}
+        self._state_metadata = {}
 
-        options = mcsolver.options
-        self.norm_steps = options.mcsolve['norm_steps']
-        self.norm_t_tol = options.mcsolve['norm_t_tol']
-        self.norm_tol = options.mcsolve['norm_tol']
-        self.mc_corr_eps = options.mcsolve['mc_corr_eps']
         if options.mcsolve['BitGenerator']:
             if hasattr(np_rng, options.mcsolve['BitGenerator']):
                 self.bit_gen = getattr(np_rng, options.mcsolve['BitGenerator'])
@@ -241,41 +241,11 @@ class _OneTrajMcSolver(_OneTraj):
         else:
             self.bit_gen = np_rng.PCG64
 
-        self._integrator = self._get_integrator(options)
+    def run(self, state0, tlist, *,
+            args=None, e_ops=None, options=None, seed=None):
         self.collapses = []
-        self.norm_func = _data.norm.l2
-
-    def _prepare_state(self, state):
-        if not state.isket:
-            raise TypeError("The unitary solver requires psi0 to be "
-                            "a ket as initial state "
-                            "or a unitary as initial operator.")
-
-        if self._system.dims[1] != state.dims[0]:
-            raise TypeError("".join([
-                            "incompatible dimensions ",
-                            repr(self._system.dims),
-                            " and ",
-                            repr(state.dims),])
-                           )
-        self._state_metadata = {'dims': state.dims, 'type': state.type}
-
-        try:
-            state = state.to(self.options.ode["State_data_type"])
-        expect (ValueError, TypeError):
-            pass
-        self._state0 = state.data
-        self.target_norm = self.generator.random()
-        return state.data
-
-    def _restore_state(self, state, copy=False):
-        norm = 1/_data.norm.l2(state)
-        state = _data.mul(state, norm)
-        qobj = Qobj(state, **self._state_metadata, copy=copy)
-        return qobj
-
-    def run(self, state0, tlist, args=None, seed=None):
-        result = super().run(state0, tlist, args, seed)
+        result = super().run(state0, tlist, args=args,
+                             e_ops=e_ops, options=options, seed=seed)
         result.collapse = list(self.collapses)
         return result
 
@@ -287,10 +257,10 @@ class _OneTrajMcSolver(_OneTraj):
         t_old, y_old = self.get_state(copy=False)
         norm_old = self.prob_func(y_old)
         while t_old < t:
-            t_step, state = self._integrator.step(t, copy=False, step=True)
+            t_step, state = self._integrator.mcstep(t, copy=False)
             norm = self.prob_func(state)
             if norm <= self.target_norm:
-                self.do_collapse(norm_old, norm, t_old)
+                self._do_collapse(norm_old, norm, t_old)
                 t_old, y_old = self.get_state(copy=False)
                 norm_old = self.prob_func(y_old)
             else:
@@ -300,7 +270,7 @@ class _OneTrajMcSolver(_OneTraj):
 
         return t_old, _data.mul(y_old, 1 / self.norm_func(y_old))
 
-    def do_collapse(self, norm_old, norm, t_prev):
+    def _do_collapse(self, norm_old, norm, t_prev):
         t_final, _ = self._integrator.get_state()
         tries = 0
         while tries < self.norm_steps:
@@ -317,7 +287,7 @@ class _OneTrajMcSolver(_OneTraj):
             )
             if (t_guess - t_prev) < self.norm_t_tol:
                 t_guess = t_prev + self.norm_t_tol
-            _, state = self._integrator.integrate(t_guess)
+            _, state = self._integrator.mcstep(t, copy=False)
             norm2_guess = self.prob_func(state)
             if (
                 np.abs(self.target_norm - norm2_guess) <
@@ -355,3 +325,13 @@ class _OneTrajMcSolver(_OneTraj):
             self.collapses.append((t_guess, which))
             self.target_norm = self.generator.random()
         self._integrator.set_state(t_guess, state_new)
+
+    def _argument(self, args):
+        if self._integrator is not None:
+            self._integrator.arguments(args)
+        else:
+            self.rhs.arguments(args)
+        for c_op in self._c_ops:
+            c_op.arguments(args)
+        for n_op in self._n_ops:
+            n_op.arguments(args)
