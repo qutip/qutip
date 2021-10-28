@@ -724,8 +724,6 @@ class HierarchyADOs:
         return results
 
 
-
-
 class HEOMSolver:
     """
     HEOM solver that supports multiple baths.
@@ -1192,7 +1190,7 @@ class BosonicHEOMSolver(HEOMSolver):
         The system Hamiltonian or Liouvillian. See :class:`HEOMSolver` for
         a complete description.
 
-    coup_op : Qobj
+    Q : Qobj
         Operator describing the coupling between system and bath.
         See :class:`BosonicBath` for a complete description.
 
@@ -1210,10 +1208,10 @@ class BosonicHEOMSolver(HEOMSolver):
         used. See :class:`HEOMSolver` for a complete description.
     """
     def __init__(
-        self, H_sys, coup_op, ck_real, vk_real, ck_imag, vk_imag, max_depth,
+        self, H_sys, Q, ck_real, vk_real, ck_imag, vk_imag, max_depth,
         options=None,
     ):
-        bath = BosonicBath(coup_op, ck_real, vk_real, ck_imag, vk_imag)
+        bath = BosonicBath(Q, ck_real, vk_real, ck_imag, vk_imag)
         super().__init__(
             H_sys=H_sys, bath=bath, max_depth=max_depth, options=options,
         )
@@ -1227,11 +1225,6 @@ class HSolverDL(HEOMSolver):
 
     This sub-class is included to give backwards compatability with the older
     implentation in qutip.nonmarkov.heom.
-
-    FIXME: Clean up the description above and the parameter descriptions below.
-
-    FIXME: Decide whether coup_op is really allowed to be a list or not. If
-    not, assert that it is a Qobj. Decision: Just be a Qobj.
 
     FIXME: Clarify whether H_sys is allowed to be time-dependent or a
     Liouvillian here. If so, fix the code so that works and add tests.
@@ -1251,39 +1244,36 @@ class HSolverDL(HEOMSolver):
     Parameters
     ----------
     H_sys : Qobj or QobjEvo or list
-        System Hamiltonian
-        Or
-        Liouvillian
-        Or
-        QobjEvo
-        Or
-        list of Hamiltonians with time dependence
-
-        Format for input (if list):
-        [time_independent_part, [H1, time_dep_function1],
-        [H2, time_dep_function2]]
+        The system Hamiltonian or Liouvillian. See :class:`HEOMSolver` for
+        a complete description.
 
     coup_op : Qobj
         Operator describing the coupling between system and bath.
+        See parameter ``Q`` in :class:`BosonicBath` for a complete description.
 
     coup_strength : float
-        Coupling strength.
+        Coupling strength. Referred to as ``lam`` in :class:`DrudeLorentzBath`.
 
     temperature : float
-        Bath temperature.
+        Bath temperature. Referred to as ``T`` in :class:`DrudeLorentzBath`.
 
     N_cut : int
-        Cutoff parameter for the bath.
+        The maximum depth of the hierarchy. See ``max_depth`` in
+        :class:`HEOMSolver` for a full description.
 
     N_exp : int
         Number of exponential terms used to approximate the bath correlation
-        functions.
+        functions. The equivalent ``Nk`` in :class:`DrudeLorentzBath` is one
+        less than ``N_exp`` (see note above).
 
     cut_freq : float
-        Bath spectral density cutoff frequency.
+        Bath spectral density cutoff frequency. Referred to as ``gamma`` in
+        :class:`DrudeLorentzBath`.
 
     bnd_cut_approx : bool
-        Use boundary cut off approximation.
+        Use boundary cut off approximation. If true, the Matsubara
+        terminator is added to the system Liouvillian (and H_sys is
+        promoted to a Liouvillian if it was a Hamiltonian).
 
     options : :class:`qutip.solver.Options`
         Generic solver options.
@@ -1331,7 +1321,7 @@ class FermionicHEOMSolver(HEOMSolver):
         The system Hamiltonian or Liouvillian. See :class:`HEOMSolver` for
         a complete description.
 
-    coup_op : Qobj
+    Q : Qobj
         Operator describing the coupling between system and bath.
         See :class:`FermionicBath` for a complete description.
 
@@ -1349,10 +1339,10 @@ class FermionicHEOMSolver(HEOMSolver):
         used. See :class:`HEOMSolver` for a complete description.
     """
     def __init__(
-        self, H_sys, coup_op, ck_plus, vk_plus, ck_minus, vk_minus, max_depth,
+        self, H_sys, Q, ck_plus, vk_plus, ck_minus, vk_minus, max_depth,
         options=None,
     ):
-        bath = FermionicBath(coup_op, ck_plus, vk_plus, ck_minus, vk_minus)
+        bath = FermionicBath(Q, ck_plus, vk_plus, ck_minus, vk_minus)
         super().__init__(
             H_sys, bath=bath, max_depth=max_depth, options=options
         )
