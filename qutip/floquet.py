@@ -730,7 +730,7 @@ def floquet_master_equation_tensor(Alist, f_energies):
                 Rdata_lil[i+N*j, i+N*j] += a_term
                 Rdata_lil[j+N*i, j+N*i] += a_term
 
-    return Qobj(Rdata_lil, [[N, N], [N, N]], [N*N, N*N])
+    return Qobj(Rdata_lil, dims=[[N, N], [N, N]], shape=(N*N, N*N))
 
 
 def floquet_master_equation_steadystate(H, A):
