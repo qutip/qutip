@@ -382,8 +382,17 @@ class DrudeLorentzPadeBath(BosonicBath):
     A helper class for constructing a Padé expansion for a Drude-Lorentz
     bosonic bath from the bath parameters (see parameters below).
 
-    FIXME: Cite Padé paper: https://aip.scitation.org/doi/10.1063/1.3602466
-    FIXME: Add title of paper.
+    A Padé approximant is a sum-over-poles expansion (
+    see `https://en.wikipedia.org/wiki/Pad%C3%A9_approximant`_).
+
+    The application of the Padé method to spectrum decompoisitions is described
+    in "Padé spectrum decompositions of quantum distribution functions and
+    optimal hierarchical equations of motion construction for quantum open
+    systems" [1].
+
+    The implementation here follows the approach in the paper.
+
+    [1] J. Chem. Phys. 134, 244106 (2011); https://doi.org/10.1063/1.3602466
 
     This is an alternative to the :class:`DrudeLorentzBath` which constructs
     a simpler exponential expansion.
@@ -783,8 +792,6 @@ class HEOMSolver:
     ados : :obj:`HierarchyADOs`
         The description of the hierarchy constructed from the given bath
         and maximum depth.
-
-    FIXME: Add _ to the names of the non-public interface.
     """
     def __init__(self, H_sys, bath, max_depth, options=None):
         self.H_sys = _convert_h_sys(H_sys)
@@ -830,8 +837,6 @@ class HEOMSolver:
         """
         L = L_list[0][0]
         for n in range(1, len(L_list)):
-            # FIXME: write a note about how this relies on the time-dependent
-            # part only occuring in _grad_n.
             L = L + L_list[n][0] * L_list[n][1](t)
         return L * y
 
@@ -955,10 +960,16 @@ class HEOMSolver:
         assert isinstance(RHSmat, sp.csr_matrix)
 
         if self._is_timedep:
+            # In the time dependent case, we construct the parameters
+            # for the ODE gradient function _dsuper_list_td under the
+            # assumption that RHSmat(t) = RHSmat + time dependent terms
+            # that only affect the diagonal blocks of the RHS matrix.
+            # This assumption holds because only _grad_n dependents on
+            # the system Liovillian (and not _grad_prev or _grad_next).
+
             h_identity_mat = sp.identity(self._n_ados, format="csr")
             H_list = self.H_sys.to_list()
 
-            # store each time dependent component
             solver_params = [[RHSmat]]
             for idx in range(1, len(H_list)):
                 temp_mat = sp.kron(
