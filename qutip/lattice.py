@@ -255,7 +255,7 @@ class Lattice1d():
         self.cell_tensor_config = [self.cell_num_site] + self.cell_site_dof
         self.lattice_tensor_config = [self.num_cell] + self.cell_tensor_config
         # remove any 1 present in self.cell_tensor_config and
-        # self.lattice_tensor_config unless all the eleents are 1
+        # self.lattice_tensor_config unless all the elements are 1
 
         if all(x == 1 for x in self.cell_tensor_config):
             self.cell_tensor_config = [1]
@@ -1064,7 +1064,8 @@ class Lattice1d():
                                 i0*self._length_for_site+i,
                                 j0*self._length_for_site+j]
                 if len(self.cell_tensor_config) > 1:
-                    dim_site = list(filter(lambda a: a != 1, self.cell_tensor_config))
+                    dim_site = list(filter(lambda a: a != 1,
+                                           self.cell_tensor_config))
                 dim_site = self.cell_tensor_config
                 dims_site = [dim_site, dim_site]
                 Hcell[i0][j0] = Qobj(Qin, dims=dims_site)
@@ -1154,7 +1155,7 @@ class Lattice1d():
         return Hcell
 
     def display_lattice(self):
-        r"""
+        """
         Produces a graphic portraying the lattice symbolically with a unit cell
         marked in it.
 
