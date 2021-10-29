@@ -7,7 +7,7 @@ import numpy as np
 
 try:
     import matplotlib.pyplot as plt
-except:
+except ImportError:
     pass
 
 
@@ -1028,17 +1028,28 @@ class Lattice1d():
             plt.close()
         return winding_number
 
-    def display_unit_cell(self, label_on=False):
+    def _unit_cell_H(self, knpoints=0):
         """
-        Produces a graphic displaying the unit cell features with labels on if
-        defined by user. Also returns a dict of Qobj's corresponding to the
-        labeled elements on the display.
+        Returns bulk Hamiltonian, its eigenvectors and eigenvectors of the
+        space Hamiltonian at all the good quantum numbers of a periodic
+        translationally invariant lattice.
 
         Returns
         -------
-        Hcell : dict
-            Hcell[i][j] is the Hamiltonian segment for $H_{i,j}$ labeled on the
-            graphic.
+        knxa : np.array
+            knxA[j][0] is the jth good Quantum number k.
+
+        qH_ks : np.ndarray of Qobj's
+            qH_ks[j] is the Oobj of type oper that holds a bulk Hamiltonian
+            for a good quantum number k.
+
+        vec_xs : np.ndarray of Qobj's
+            vec_xs[j] is the Oobj of type ket that holds an eigenvector of the
+            Hamiltonian of the lattice.
+
+        vec_kns : np.ndarray of Qobj's
+            vec_kns[j] is the Oobj of type ket that holds an eigenvector of the
+            bulk Hamiltonian of the lattice.
         """
         CNS = self.cell_num_site
         Hcell = [[{} for i in range(CNS)] for j in range(CNS)]
@@ -1058,10 +1069,29 @@ class Lattice1d():
                 dims_site = [dim_site, dim_site]
                 Hcell[i0][j0] = Qobj(Qin, dims=dims_site)
 
+        return Hcell
+
+    def display_unit_cell(self, label_on=False):
+        """
+        Produces a graphic displaying the unit cell features with labels on if
+        defined by user. Also returns a dict of Qobj's corresponding to the
+        labeled elements on the display.
+
+        Returns
+        -------
+        Hcell : dict
+            Hcell[i][j] is the Hamiltonian segment for $H_{i,j}$ labeled on the
+            graphic.
+        """
+        CNS = self.cell_num_site
+        Hcell = self._unit_cell_H()
+        dims_site = Hcell[0][0].dims
+
         fig = plt.figure(figsize=[CNS*2, CNS*2.5])
         ax = fig.add_subplot(111, aspect='equal')
         plt.rc('text', usetex=True)
         plt.rc('font', family='serif')
+        i = self._length_for_site
         if (CNS == 1):
             ax.plot([self.positions_of_sites[0]], [0], "o", c="b", mec="w",
                     mew=0.0, zorder=10, ms=8.0)
@@ -1135,30 +1165,17 @@ class Lattice1d():
             coupling between the two boundary sites of the two unit cells i and
             i+1.
         """
+        Hcell = self._unit_cell_H()
+        dims_site = Hcell[0][0].dims
+
         dim_I = [self.cell_tensor_config, self.cell_tensor_config]
+        csn = self.cell_num_site
         H_inter = Qobj(np.zeros((self._length_of_unit_cell,
                                  self._length_of_unit_cell)), dims=dim_I)
         for no, inter_hop_no in enumerate(self._H_inter_list):
             H_inter = H_inter + inter_hop_no
 
         H_inter = np.array(H_inter)
-        csn = self.cell_num_site
-        Hcell = [[{} for i in range(csn)] for j in range(csn)]
-
-        for i0 in range(csn):
-            for j0 in range(csn):
-                Qin = np.zeros((self._length_for_site, self._length_for_site),
-                               dtype=complex)
-                for i in range(self._length_for_site):
-                    for j in range(self._length_for_site):
-                        Qin[i, j] = self._H_intra[
-                                i0*self._length_for_site+i,
-                                j0*self._length_for_site+j]
-                if len(self.cell_tensor_config) > 1:
-                    dim_site = list(filter(lambda a: a != 1, self.cell_tensor_config))
-                dim_site = self.cell_tensor_config
-                dims_site = [dim_site, dim_site]
-                Hcell[i0][j0] = Qobj(Qin, dims=dims_site)
 
         j0 = 0
         i0 = csn-1
@@ -1246,7 +1263,5 @@ class Lattice1d():
         plt.axis('off')
         plt.show()
         plt.close()
-        if len(self.cell_tensor_config) > 1:
-            dim_site = list(filter(lambda a: a != 1, self.cell_tensor_config))
-        dims_site = [dim_site, dim_site]
+
         return Qobj(inter_T, dims=dims_site)
