@@ -1028,28 +1028,14 @@ class Lattice1d():
             plt.close()
         return winding_number
 
-    def _unit_cell_H(self, knpoints=0):
+    def _unit_cell_H(self):
         """
-        Returns bulk Hamiltonian, its eigenvectors and eigenvectors of the
-        space Hamiltonian at all the good quantum numbers of a periodic
-        translationally invariant lattice.
+        Returns a site's Hamiltonian part.
 
         Returns
         -------
-        knxa : np.array
-            knxA[j][0] is the jth good Quantum number k.
-
-        qH_ks : np.ndarray of Qobj's
-            qH_ks[j] is the Oobj of type oper that holds a bulk Hamiltonian
-            for a good quantum number k.
-
-        vec_xs : np.ndarray of Qobj's
-            vec_xs[j] is the Oobj of type ket that holds an eigenvector of the
-            Hamiltonian of the lattice.
-
-        vec_kns : np.ndarray of Qobj's
-            vec_kns[j] is the Oobj of type ket that holds an eigenvector of the
-            bulk Hamiltonian of the lattice.
+        Hcell : list of Qobj's'
+            Hcell[i][j] is the site's Hamiltonian part.
         """
         CNS = self.cell_num_site
         Hcell = [[{} for i in range(CNS)] for j in range(CNS)]
@@ -1086,7 +1072,6 @@ class Lattice1d():
         """
         CNS = self.cell_num_site
         Hcell = self._unit_cell_H()
-        dims_site = Hcell[0][0].dims
 
         fig = plt.figure(figsize=[CNS*2, CNS*2.5])
         ax = fig.add_subplot(111, aspect='equal')
