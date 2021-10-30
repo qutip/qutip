@@ -1028,7 +1028,7 @@ class Lattice1d():
             plt.close()
         return winding_number
 
-    def _unit_cell_H(self):
+    def _unit_site_H(self):
         """
         Returns a site's Hamiltonian part.
 
@@ -1071,7 +1071,7 @@ class Lattice1d():
             graphic.
         """
         CNS = self.cell_num_site
-        Hcell = self._unit_cell_H()
+        Hcell = self._unit_site_H()
 
         fig = plt.figure(figsize=[CNS*2, CNS*2.5])
         ax = fig.add_subplot(111, aspect='equal')
@@ -1151,7 +1151,7 @@ class Lattice1d():
             coupling between the two boundary sites of the two unit cells i and
             i+1.
         """
-        Hcell = self._unit_cell_H()
+        Hcell = self._unit_site_H()
         dims_site = Hcell[0][0].dims
 
         dim_I = [self.cell_tensor_config, self.cell_tensor_config]
