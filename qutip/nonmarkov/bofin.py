@@ -1103,7 +1103,7 @@ class HEOMSolver:
 
         return Qobj(data, dims=self._H0.dims), solution
 
-    def run(self, rho0, tlist, ado_init=False, ado_return=False):
+    def run(self, rho0, tlist, e_ops=None, ado_init=False, ado_return=False):
         """
         Solve for the time evolution of the system.
 
@@ -1138,6 +1138,30 @@ class HEOMSolver:
             The state of a particular ADO may be extracted from
             ``result.ado_states[i]`` by calling :meth:`.extract_ado`.
         """
+
+        if e_ops is None:
+            e_ops = []
+
+        if isinstance(e_ops, dict):
+            e_ops_dict = e_ops
+            e_ops = [e for e in e_ops.values()]
+        else:
+            e_ops_dict = None
+
+        if isinstance(e_ops, Qobj):
+            e_ops = [e_ops]
+        try:
+            _ = iter(e_ops)
+        except TypeError:
+            e_ops = [e_ops]
+
+        ado_states_required = ado_return
+        for e_op in e_ops:
+            if not callable(e_op):
+                raise ValueError("The e_ops list must only contain QObj objects or callback functions")
+            if not isinstance(e_op, Qobj): # callable but not QObj -> callback function
+                ado_states_required = True
+
         n = self._sys_shape
         rho_shape = (n, n)
         rho_dims = self._sys_dims
@@ -1146,6 +1170,9 @@ class HEOMSolver:
         output = Result()
         output.solver = "HEOMSolver"
         output.times = tlist
+        output.num_expect = len(e_ops)
+        if output.num_expect > 0:
+            output.expect = [[] for _ in range(output.num_expect)]
         if self.options.store_states:
             output.states = []
 
@@ -1172,8 +1199,21 @@ class HEOMSolver:
             )
             if self.options.store_states:
                 output.states.append(rho)
+            if ado_states_required:
+                ado_state = solver.y.reshape(hierarchy_shape)
             if ado_return:
-                output.ado_states.append(solver.y.reshape(hierarchy_shape))
+                output.ado_states.append(ado_state)
+
+            for cnt, e_op in enumerate(e_ops):
+                if isinstance(e_op, Qobj):
+                    output.expect[cnt].append((rho * e_op).tr())
+                else:
+                    output.expect[cnt].append(e_op(self, t, ado_state))
+
+        if e_ops_dict:
+            output.expect = {e: output.expect[n]
+                             for n, e in enumerate(e_ops_dict.keys())}
+
         self.progress_bar.finished()
         return output
 
