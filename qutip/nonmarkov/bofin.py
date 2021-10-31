@@ -1146,7 +1146,8 @@ class HEOMSolver:
         output = Result()
         output.solver = "HEOMSolver"
         output.times = tlist
-        output.states = []
+        if self.options.store_states:
+            output.states = []
 
         if ado_init:
             rho0_he = rho0
@@ -1169,7 +1170,8 @@ class HEOMSolver:
                 solver.y[:n ** 2].reshape(rho_shape, order='F'),
                 dims=rho_dims,
             )
-            output.states.append(rho)
+            if self.options.store_states:
+                output.states.append(rho)
             if ado_return:
                 output.ado_states.append(solver.y.reshape(hierarchy_shape))
         self.progress_bar.finished()
