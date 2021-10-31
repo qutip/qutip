@@ -264,7 +264,7 @@ class BosonicBath(Bath):
                 # the group is either type I or R
                 ck = sum(exp.ck for exp in combine)
                 new_exponents.append(
-                    BathExponent(e1.type, None, e1.Q, ck, e1.vk)
+                    BathExponent(exp1.type, None, exp1.Q, ck, exp1.vk)
                 )
             else:
                 # the group includes both type I and R exponents
