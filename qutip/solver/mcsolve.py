@@ -46,10 +46,10 @@ from ..core.data import to
 from ..core import data as _data
 from .options import SolverOptions
 from .result import Result, MultiTrajResult, MultiTrajResultAveraged
-from .solver_base import Solver, _to_qevo
+from .solver_base import Solver
+from .multitraj import MultiTrajSolver, _TrajectorySolver
 from .sesolve import sesolve
-from .mesolve import mesolve
-from .evolver import *
+from .integrator import Integrator
 from time import time
 
 
@@ -161,112 +161,58 @@ def mcsolve(H, psi0, tlist, c_ops=None, e_ops=None, ntraj=1,
     return mc.run(psi0, tlist=tlist, ntraj=ntraj)
 
 
-
-
-# -----------------------------------------------------------------------------
-# MONTE CARLO CLASS
-# -----------------------------------------------------------------------------
-class McSolver(MultiTrajSolver):
+class _McTrajectorySolver(_TrajectorySolver):
     """
     ... TODO
     """
-    _traj_solver_class = _OneTrajMcSolver
-    _super = False
-    name = "mcsolve"
-    optionsclass = SolverOptions
-
-    def __init__(self, H, c_ops, e_ops=None, options=None,
-                 times=None, args=None, seed=None):
-        _time_start = time()
-        self.stats = {}
-        if not isinstance(options, SolverOptions):
-            raise ValueError("options must be an instance of "
-                             "qutip.solver.SolverOptions")
-
-        self.seed_sequence = SeedSequence(seed)
-        self.traj_solvers = []
-        self.result = None
-
-        self.e_ops = e_ops or []
-        self.options = options
-
-        self._c_ops = [QobjEvo(op, args=args, tlist=times) for c_op in c_ops]
-        self._n_ops = [c_op.dag() * c_op for c_op in self._c_ops]
-        self._system = -1j* QobjEvo(H, args=args, tlist=times)
-        for n_evo in self._n_ops:
-            self._system -= 0.5 * n_evo
-
-        self.stats['solver'] = "MonteCarlo Evolution"
-        self.stats['num_collapse'] = len(c_ops)
-        self.stats["preparation time"] = time() - _time_start
-
-    def _check_state_dims(self, state):
-        if not state.isket:
-            raise TypeError("The unitary solver requires psi0 to be "
-                            "a ket as initial state "
-                            "or a unitary as initial operator.")
-
-        if self._system.dims[1] != state.dims[0]:
-            raise TypeError("".join([
-                            "incompatible dimensions ",
-                            repr(self._system.dims),
-                            " and ",
-                            repr(state.dims),])
-                           )
-
-
-
-class _OneTrajMcSolver(_OneTraj):
-    """
-    ... TODO
-    """
-    _super = False
     name = "mcsolve"
 
-    def __init__(self, rhs, *, e_ops=None, options=None):
-        if isinstance(rhs, (QobjEvo, Qobj)):
-            self.rhs = QobjEvo(rhs)
-        else:
-            TypeError("The rhs must be a QobjEvo")
-        self.e_ops = e_ops
-        self.options = options
-        self.stats = {"preparation time": 0}
-        self._state_metadata = {}
-
-        if options.mcsolve['BitGenerator']:
-            if hasattr(np_rng, options.mcsolve['BitGenerator']):
-                self.bit_gen = getattr(np_rng, options.mcsolve['BitGenerator'])
-            else:
-                raise ValueError("BitGenerator is not know to numpy.random")
-        else:
-            self.bit_gen = np_rng.PCG64
+    def __init__(self, parent, *, e_ops=None, options=None):
+        rhs = parent.rhs
+        self._c_ops = parent._c_ops
+        self._n_ops = parent._n_ops
+        super().__init__(rhs, e_ops=e_ops, options=options)
+        self.norm_steps = self.options.mcsolve['norm_steps']
+        self.norm_t_tol = self.options.mcsolve['norm_t_tol']
+        self.norm_tol = self.options.mcsolve['norm_tol']
+        self.mc_corr_eps = self.options.mcsolve['mc_corr_eps']
 
     def run(self, state0, tlist, *,
             args=None, e_ops=None, options=None, seed=None):
         self.collapses = []
+        self._set_generator(seed)
+        self.target_norm = self.generator.random()
         result = super().run(state0, tlist, args=args,
-                             e_ops=e_ops, options=options, seed=seed)
+                             e_ops=e_ops, options=options, seed=self.generator)
         result.collapse = list(self.collapses)
         return result
+
+    def start(self, state0, t0, seed=None):
+        self.collapses = []
+        self._set_generator(seed)
+        self.target_norm = self.generator.random()
+        super().start(state0, t0, seed=self.generator)
 
     def prob_func(self, state):
         return _data.norm.l2(state)**2
 
+    def norm_func(self, state):
+        return _data.norm.l2(state)
+
     def _step(self, t, copy=True):
         """Evolve to t, including jumps."""
-        t_old, y_old = self.get_state(copy=False)
+        t_old, y_old = self._integrator.get_state(copy=False)
         norm_old = self.prob_func(y_old)
         while t_old < t:
             t_step, state = self._integrator.mcstep(t, copy=False)
             norm = self.prob_func(state)
             if norm <= self.target_norm:
                 self._do_collapse(norm_old, norm, t_old)
-                t_old, y_old = self.get_state(copy=False)
-                norm_old = self.prob_func(y_old)
+                t_old, y_old = self._integrator.get_state(copy=False)
+                norm_old = 1.
             else:
-                t_old = t_step
+                t_old, y_old = t_step, state
                 norm_old = norm
-                y_old = state
 
         return t_old, _data.mul(y_old, 1 / self.norm_func(y_old))
 
@@ -287,7 +233,7 @@ class _OneTrajMcSolver(_OneTraj):
             )
             if (t_guess - t_prev) < self.norm_t_tol:
                 t_guess = t_prev + self.norm_t_tol
-            _, state = self._integrator.mcstep(t, copy=False)
+            _, state = self._integrator.mcstep(t_guess, copy=False)
             norm2_guess = self.prob_func(state)
             if (
                 np.abs(self.target_norm - norm2_guess) <
@@ -309,14 +255,14 @@ class _OneTrajMcSolver(_OneTraj):
                             "SolverOptions.mcsolve['norm_steps'].")
 
         # t_guess, state is at the collapse
-        probs = np.zeros(len(self.n_ops))
-        for i, n_op in enumerate(self.n_ops):
-            probs[i] = n_op.expect(t, state, 1)
+        probs = np.zeros(len(self._n_ops))
+        for i, n_op in enumerate(self._n_ops):
+            probs[i] = n_op.expect_data(t_guess, state).real
         probs = np.cumsum(probs)
         which = np.searchsorted(probs, probs[-1] * self.generator.random())
 
-        state_new = self.c_ops[which].matmul_data(t_guess, state)
-        new_norm = self.prob_func(state_new)
+        state_new = self._c_ops[which].matmul_data(t_guess, state)
+        new_norm = self.norm_func(state_new)
         if new_norm < self.mc_corr_eps:
             # This happen when the collapse is caused by numerical error
             state_new = _data.mul(state, 1 / self.norm_func(state))
@@ -329,9 +275,43 @@ class _OneTrajMcSolver(_OneTraj):
     def _argument(self, args):
         if self._integrator is not None:
             self._integrator.arguments(args)
-        else:
-            self.rhs.arguments(args)
+        self.rhs.arguments(args)
         for c_op in self._c_ops:
             c_op.arguments(args)
         for n_op in self._n_ops:
             n_op.arguments(args)
+
+
+# -----------------------------------------------------------------------------
+# MONTE CARLO CLASS
+# -----------------------------------------------------------------------------
+class McSolver(MultiTrajSolver):
+    """
+    ... TODO
+    """
+    _traj_solver_class = _McTrajectorySolver
+    name = "mcsolve"
+    optionsclass = SolverOptions
+
+    def __init__(self, H, c_ops, e_ops=None, options=None,
+                 times=None, args=None, seed=None):
+        _time_start = time()
+        self.stats = {}
+        self.options = options
+
+        self.seed_sequence = SeedSequence(seed)
+        self.traj_solvers = []
+        self.result = None
+
+        self.e_ops = e_ops or []
+        self.options = options
+
+        self._c_ops = [QobjEvo(c_op, args=args, tlist=times) for c_op in c_ops]
+        self._n_ops = [c_op.dag() * c_op for c_op in self._c_ops]
+        self.rhs = -1j* QobjEvo(H, args=args, tlist=times)
+        for n_evo in self._n_ops:
+            self.rhs -= 0.5 * n_evo
+
+        self.stats['solver'] = "MonteCarlo Evolution"
+        self.stats['num_collapse'] = len(c_ops)
+        self.stats["preparation time"] = time() - _time_start

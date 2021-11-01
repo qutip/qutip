@@ -57,7 +57,11 @@ class Result:
         self._e_ops_dict = False
         self._e_num = 0
         self._e_ops = []
-        self.stats = {"num_expect": self._e_num}
+        self.stats = {
+            "num_expect": self._e_num,
+            "solver": "",
+            "method": "",
+        }
 
         self._read_options(options, _super, oper_state)
 
@@ -265,6 +269,7 @@ class MultiTrajResult:
         self.trajectories = []
         self.num_e_ops = len(e_ops)
         self.tlist = None
+        self.stats = {}
         self._set_expect_tol(target_tol)
 
     def add(self, one_traj):
@@ -592,6 +597,7 @@ class MultiTrajResultAveraged:
         self.num_e_ops = len(e_ops)
         self._num = 0
         self._collapse = []
+        self.stats = {}
         self._set_expect_tol(target_tol)
 
 

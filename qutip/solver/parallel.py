@@ -97,7 +97,7 @@ def serial_map(task, values, task_args=None, task_kwargs=None, *,
         task_args = ()
     if task_kwargs is None:
         task_kwargs = {}
-    progress_bar = progess_bars[progress_bar]
+    progress_bar = progess_bars[progress_bar]()
     progress_bar.start(len(values), **progress_bar_kwargs)
     remaining_ntraj = len(values)
     end_time = map_kw['timeout'] + time.time()
@@ -161,7 +161,7 @@ def parallel_map(task, values, task_args=None, task_kwargs=None, *,
     end_time = map_kw['timeout'] + time.time()
     job_time = map_kw['job_timeout']
 
-    progress_bar = progess_bars[progress_bar]
+    progress_bar = progess_bars[progress_bar]()
     progress_bar.start(len(values), **progress_bar_kwargs)
     remaining_ntraj = len(values)
 
@@ -244,7 +244,7 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None, *,
 
     kw = map_kw
 
-    progress_bar = progess_bars[progress_bar]
+    progress_bar = progess_bars[progress_bar]()
     progress_bar.start(len(values), **progress_bar_kwargs)
 
     executor = get_reusable_executor(max_workers=kw['num_cpus'])
@@ -286,9 +286,11 @@ get_map = {
     True: parallel_map,
     'True': parallel_map,
     "parallel": parallel_map,
+    "parallel_map": parallel_map,
     None: serial_map,
     False: serial_map,
     "False": serial_map,
     "serial": serial_map,
+    "serial_map": serial_map,
     "loky": loky_pmap,
 }

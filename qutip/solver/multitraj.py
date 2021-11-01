@@ -1,3 +1,13 @@
+from .. import Qobj, QobjEvo
+from .options import SolverOptions, SolverOdeOptions
+from .result import Result, MultiTrajResult, MultiTrajResultAveraged
+from ..ui.progressbar import progess_bars
+from ..core.data import to
+from .parallel import get_map
+from time import time
+from .solver_base import Solver, classproperty
+import numpy as np
+
 
 class MultiTrajSolver:
     """
@@ -36,14 +46,15 @@ class MultiTrajSolver:
         self.traj_solvers = []
 
         for seed in seeds:
-            traj_solver = self._traj_solver_class(self)
+            traj_solver = self._traj_solver_class(self, e_ops=self.e_ops,
+                                                  options=self.options)
             traj_solver.start(state0, t0, seed)
             self.traj_solvers.append(traj_solver)
 
     def step(self, t, args=None):
         if not self.traj_solvers:
             raise RuntimeError("The `start` method must called first.")
-        multi = len(self.traj_solvers) = 1
+        multi = len(self.traj_solvers) == 1
         out = [traj_solver.step(t, args, safe=multi)
                for traj_solver in self.traj_solvers]
         return out if len(out) > 1 else out[0]
@@ -52,9 +63,10 @@ class MultiTrajSolver:
         """
         Get a :cls:`Solver` for a single trajectory.
         """
-        return sefl._traj_solver_class(self)
+        return self._traj_solver_class(self, e_ops=self.e_ops,
+                                       options=self.options)
 
-    def run(self, state0, tlist, ntraj=1, * args=None, options=None,
+    def run(self, state0, tlist, ntraj=1, *, args=None, options=None,
             e_ops=None, timeout=0, target_tol=None, seed=None):
         """
         Do the evolution of the Quantum system.
@@ -111,9 +123,9 @@ class MultiTrajSolver:
         if options is not None:
             self.options = options
 
-        self.result = (MultiTrajResult()
+        self.result = (MultiTrajResult(e_ops or self.e_ops)
                        if self.options.mcsolve['keep_runs_results']
-                       else MultiTrajResultAveraged())
+                       else MultiTrajResultAveraged(e_ops or self.e_ops))
         self._run_args = state0, tlist
         self._run_kwargs = {'args': args, 'e_ops': e_ops or self.e_ops}
         self.result.stats['run time'] = 0
@@ -158,14 +170,14 @@ class MultiTrajSolver:
             raise RuntimeError("No previous computation, use `run` first.")
         start_time = time()
         seeds = self._read_seed(seed, ntraj)
-        map_func = get_map[self.options.mcsolve]
+        map_func = get_map[self.options.mcsolve['map']]
         map_kw = self.options.mcsolve['map_options']
         if timeout:
             map_kw['job_timeout'] = timeout
         if target_tol:
             self.result._set_check_expect_tol(target_tol)
         map_func(
-            self._traj_solver_class(self).run, seeds,
+            self._traj_solver_class(self)._run, seeds,
             self._run_args, self._run_kwargs,
             reduce_func=self.result.add, map_kw=map_kw,
             progress_bar=self.options["progress_bar"],
@@ -176,7 +188,7 @@ class MultiTrajSolver:
         return self.result
 
     @property
-    def option(self):
+    def options(self):
         return self._options
 
     @options.setter
@@ -206,17 +218,25 @@ class _TrajectorySolver(Solver):
     A new :method:`_argument` is used to update the args in `rhs` and other
     :class:`QobjEvo` and need to be overloaded if other operators are used.
     """
+    name = "Generic trajectory solver"
+    def __init__(self, rhs, *, e_ops=None, options=None):
+        if isinstance(rhs, (QobjEvo, Qobj)):
+            self.rhs = QobjEvo(rhs)
+        else:
+            TypeError("The rhs must be a QobjEvo")
+        self.e_ops = e_ops
+        self.options = options
+        self.stats = {"preparation time": 0}
+        self._state_metadata = {}
 
-    def __init__(self, mcsolver, e_ops=None, options=None):
-        super().__init__(mcsolver.rhs, e_ops=e_ops, options=options)
-        self._c_ops = mcsolver._c_ops
-        self._n_ops = mcsolver._n_ops
-        self.norm_steps = self.options.mcsolve['norm_steps']
-        self.norm_t_tol = self.options.mcsolve['norm_t_tol']
-        self.norm_tol = self.options.mcsolve['norm_tol']
-        self.mc_corr_eps = self.options.mcsolve['mc_corr_eps']
-        self.collapses = []
-        self.norm_func = _data.norm.l2
+        if self.options.mcsolve['BitGenerator']:
+            if hasattr(np_rng, self.options.mcsolve['BitGenerator']):
+                self.bit_gen = getattr(np.random,
+                                       self.options.mcsolve['BitGenerator'])
+            else:
+                raise ValueError("BitGenerator is not know to numpy.random")
+        else:
+            self.bit_gen = np.random.PCG64DXSM
 
     def start(self, state0, t0, seed=None):
         _time_start = time()
@@ -238,7 +258,7 @@ class _TrajectorySolver(Solver):
             self._argument(args)
             self._integrator.reset()
         self._t, self._state = self._step(t, copy=copy)
-        return self._restore_state(self._state)
+        return self._restore_state(self._state, copy=copy)
 
     def run(self, state0, tlist, *,
             args=None, e_ops=None, options=None, seed=None):
@@ -250,22 +270,25 @@ class _TrajectorySolver(Solver):
             self._argument(args)
 
         _state = self._prepare_state(state0)
+        self._integrator = self._get_integrator()
         self._integrator.set_state(tlist[0], _state)
 
-        result = Result(self.e_ops, self.options.results,
+        result = Result(e_ops or self.e_ops, self.options.results,
                         self.rhs.issuper, _state.shape[1]!=1)
         result.add(tlist[0], state0)
         for t in tlist[1:]:
             t, state = self._step(t)
-            state_qobj = self._restore_state(state, False)
+            state_qobj = self._restore_state(state, copy=False)
             result.add(t, state_qobj)
 
         result.seed = seed
-        result.stats = {}
         result.stats['run time'] = time() - _time_start
         result.stats.update(self.stats)
-        results.solver = self.name
+        result.solver = self.name
         return result
+
+    def _run(self, seed, state0, tlist, *, args=None, e_ops=None):
+        return self.run(state0, tlist, args=args, e_ops=e_ops, seed=seed)
 
     def _set_generator(self, seed):
         """
@@ -277,9 +300,10 @@ class _TrajectorySolver(Solver):
             # We check for the method, not the type to accept pseudo non-random
             # generator for debug purpose.
             self.generator = seed
+            return
         if isinstance(seed, int):
-            seed = SeedSequence(seed)
-        self.generator = Generator(self.bit_gen(seed))
+            seed = np.random.SeedSequence(seed)
+        self.generator = np.random.Generator(self.bit_gen(seed))
 
     def _step(self, t, copy=True):
         """Evolve to t, including jumps."""
@@ -289,3 +313,4 @@ class _TrajectorySolver(Solver):
         """Update the args, for the `rhs` and `c_ops` and other operators."""
         if self._integrator is not None:
             self._integrator.arguments(args)
+        self.rhs.arguments(args)

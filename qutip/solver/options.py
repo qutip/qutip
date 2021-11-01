@@ -256,6 +256,8 @@ class McOptions:
 
         "mc_corr_eps": 1e-10,
 
+        "BitGenerator": False,
+
         "map_options": {
             'num_cpus': multiprocessing.cpu_count(),
             'timeout':1e8,
