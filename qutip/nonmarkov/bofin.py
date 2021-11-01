@@ -826,7 +826,7 @@ class HEOMSolver:
         else:
             exponents = []
             for b in bath:
-                exponents.extend(bath.exponents)
+                exponents.extend(b.exponents)
         all_bosonic = all(
             exp.type in (exp.types.R, exp.types.I, exp.types.RI)
             for exp in exponents
