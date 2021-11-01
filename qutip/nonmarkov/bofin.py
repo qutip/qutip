@@ -1120,6 +1120,13 @@ class HEOMSolver:
         tlist : list
             An ordered list of times at which to return the value of the state.
 
+        e_ops : Qobj / callable / list / None, optional
+            A list of operators as `Qobj` and/or callable functions (can be
+            mixed) or a single operator or callable function. For operators op,
+            the result's expect will be computed by ``(state * op).tr()``. For
+            callable functions, they are called as ``f(solver, t, state)`` and
+            return the expectation value.
+
         ado_init: bool, default False
             Indicates if initial condition is just the system state, or a
             numpy array including all ADOs.
