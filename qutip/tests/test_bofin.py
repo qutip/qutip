@@ -374,7 +374,7 @@ class TestFermionicHEOMSolver:
         def level_one_auxillaries(heom, full):
             results = [None] * len(heom.ados.exponents)
             for idx, label in heom.ados.filter_by_level(level=1):
-                aux = heom.extract_ado(full, idx)
+                aux = full.extract(idx)
                 k = label.index(1)
                 exp = heom.ados.exponents[k]
                 results[k] = (aux, exp)

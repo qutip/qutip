@@ -86,6 +86,10 @@ class BathExponent:
         For exponents of type "-" it gives the offset of the corresponding
         "+" exponent.
 
+    label : optional, str
+        A label for the exponent (often the name of the bath). It
+        defaults to None.
+
     Attributes
     ----------
 
@@ -116,7 +120,9 @@ class BathExponent:
                 )
 
     def __init__(
-            self, type, dim, Q, ck, vk, ck2=None, sigma_bar_k_offset=None):
+            self, type, dim, Q, ck, vk, ck2=None, sigma_bar_k_offset=None,
+            label=None,
+    ):
         if not isinstance(type, self.types):
             type = self.types[type]
         self._check_ck2(type, ck2)
@@ -128,6 +134,7 @@ class BathExponent:
         self.vk = vk
         self.ck2 = ck2
         self.sigma_bar_k_offset = sigma_bar_k_offset
+        self.label = label
 
 
 class Bath:
@@ -182,6 +189,11 @@ class BosonicBath(Bath):
     combine : bool, default True
         Whether to combine exponents with the same frequency (and coupling
         operator). See :meth:`combine` for details.
+
+    label : optional, str
+        A label for the bath exponents (for example, the name of the
+        bath). It defaults to None but can be set to help identify which
+        bath an exponent is from.
     """
     def _check_cks_and_vks(self, ck_real, vk_real, ck_imag, vk_imag):
         if len(ck_real) != len(vk_real) or len(ck_imag) != len(vk_imag):
@@ -194,17 +206,20 @@ class BosonicBath(Bath):
         if not isinstance(Q, Qobj):
             raise ValueError("The coupling operator Q must be a Qobj.")
 
-    def __init__(self, Q, ck_real, vk_real, ck_imag, vk_imag, combine=True):
+    def __init__(
+            self, Q, ck_real, vk_real, ck_imag, vk_imag, combine=True,
+            label=None,
+    ):
         self._check_cks_and_vks(ck_real, vk_real, ck_imag, vk_imag)
         self._check_coup_op(Q)
 
         exponents = []
         exponents.extend(
-            BathExponent("R", None, Q, ck, vk)
+            BathExponent("R", None, Q, ck, vk, label=label)
             for ck, vk in zip(ck_real, vk_real)
         )
         exponents.extend(
-            BathExponent("I", None, Q, ck, vk)
+            BathExponent("I", None, Q, ck, vk, label=label)
             for ck, vk in zip(ck_imag, vk_imag)
         )
 
@@ -221,6 +236,10 @@ class BosonicBath(Bath):
 
         Exponents with the same frequency are only combined if they share the
         same coupling operator ``.Q``.
+
+        Note that combined exponents take their label from the first
+        exponent in the group being combined (i.e. the one that occurs first
+        in the given exponents list).
 
         Parameters
         ----------
@@ -263,9 +282,9 @@ class BosonicBath(Bath):
             ):
                 # the group is either type I or R
                 ck = sum(exp.ck for exp in combine)
-                new_exponents.append(
-                    BathExponent(exp1.type, None, exp1.Q, ck, exp1.vk)
-                )
+                new_exponents.append(BathExponent(
+                    exp1.type, None, exp1.Q, ck, exp1.vk, label=exp1.label,
+                ))
             else:
                 # the group includes both type I and R exponents
                 ck_R = (
@@ -276,9 +295,10 @@ class BosonicBath(Bath):
                     sum(exp.ck for exp in combine if exp.type == exp.types.I) +
                     sum(exp.ck2 for exp in combine if exp.type == exp.types.RI)
                 )
-                new_exponents.append(
-                    BathExponent("RI", None, exp1.Q, ck_R, exp1.vk, ck2=ck_I)
-                )
+                new_exponents.append(BathExponent(
+                    "RI", None, exp1.Q, ck_R, exp1.vk, ck2=ck_I,
+                    label=exp1.label,
+                ))
 
         return new_exponents
 
@@ -313,6 +333,11 @@ class DrudeLorentzBath(BosonicBath):
         terminator is a Liouvillian term, so it's dimensions are those of
         a superoperator of ``Q``.
 
+    label : optional, str
+        A label for the bath exponents (for example, the name of the
+        bath). It defaults to None but can be set to help identify which
+        bath an exponent is from.
+
     Attributes
     ----------
     terminator : Qobj
@@ -322,7 +347,7 @@ class DrudeLorentzBath(BosonicBath):
         liouvillian (i.e. ``liouvillian(H_sys)``).
     """
     def __init__(
-        self, Q, lam, T, Nk, gamma, terminator=False,
+        self, Q, lam, T, Nk, gamma, terminator=False, label=None,
     ):
         ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(
             lam=lam,
@@ -336,7 +361,7 @@ class DrudeLorentzBath(BosonicBath):
             )
         else:
             self.terminator = None
-        super().__init__(Q, ck_real, vk_real, ck_imag, vk_imag)
+        super().__init__(Q, ck_real, vk_real, ck_imag, vk_imag, label=label)
 
     def _matsubara_terminator(self, Q, lam, gamma, Nk, T):
         """ Calculate the hierarchy terminator term for the Liouvillian. """
@@ -411,8 +436,13 @@ class DrudeLorentzPadeBath(BosonicBath):
 
     gamma : float
         Bath spectral density cutoff frequency.
+
+    label : optional, str
+        A label for the bath exponents (for example, the name of the
+        bath). It defaults to None but can be set to help identify which
+        bath an exponent is from.
     """
-    def __init__(self, Q, lam, T, Nk, gamma):
+    def __init__(self, Q, lam, T, Nk, gamma, label=None):
         eta_p, gamma_p = self._corr(lam=lam, gamma=gamma, T=T, Nk=Nk)
 
         ck_real = [np.real(eta) for eta in eta_p]
@@ -422,7 +452,7 @@ class DrudeLorentzPadeBath(BosonicBath):
         ck_imag = [np.imag(eta_p[0])]
         vk_imag = [gamma_p[0]]
 
-        super().__init__(Q, ck_real, vk_real, ck_imag, vk_imag)
+        super().__init__(Q, ck_real, vk_real, ck_imag, vk_imag, label=label)
 
     def _delta(self, i, j):
         return 1.0 if i == j else 0.0
@@ -526,6 +556,11 @@ class FermionicBath(Bath):
         The frequencies (exponents) of the expansion terms for the ``-`` part
         of the correlation function. The corresponding ceofficients are passed
         as ck_minus.
+
+    label : optional, str
+        A label for the bath exponents (for example, the name of the
+        bath). It defaults to None but can be set to help identify which
+        bath an exponent is from.
     """
 
     def _check_cks_and_vks(self, ck_plus, vk_plus, ck_minus, vk_minus):
@@ -546,7 +581,7 @@ class FermionicBath(Bath):
         if not isinstance(Q, Qobj):
             raise ValueError("The coupling operator Q must be a Qobj.")
 
-    def __init__(self, Q, ck_plus, vk_plus, ck_minus, vk_minus):
+    def __init__(self, Q, ck_plus, vk_plus, ck_minus, vk_minus, label=None):
         self._check_cks_and_vks(ck_plus, vk_plus, ck_minus, vk_minus)
         self._check_coup_op(Q)
         Qdag = Q.dag()
@@ -554,10 +589,10 @@ class FermionicBath(Bath):
         exponents = []
         for ckp, vkp, ckm, vkm in zip(ck_plus, vk_plus, ck_minus, vk_minus):
             exponents.append(BathExponent(
-                "+", 2, Qdag, ckp, vkp, sigma_bar_k_offset=1,
+                "+", 2, Qdag, ckp, vkp, sigma_bar_k_offset=1, label=label,
             ))
             exponents.append(BathExponent(
-                "-", 2, Q, ckm, vkm, sigma_bar_k_offset=-1,
+                "-", 2, Q, ckm, vkm, sigma_bar_k_offset=-1, label=label,
             ))
         super().__init__(exponents)
 
@@ -722,6 +757,66 @@ class HierarchyADOs:
             if sum(label) == level:
                 results.append((idx, label))
         return results
+
+
+class FullADOState:
+    """
+    Provides convenient access to the full hierarchy ADO state at a particular
+    point in time, ``t``.
+
+    Parameters
+    ----------
+    rho : Qobj
+        The current state of the system (i.e. the 0th component of the
+        hierarchy).
+    ados : HierarchyADOs
+        The description of the hierarchy.
+    ado_state : numpy.array
+        The full state of the hierarchy.
+
+    Attributes
+    ----------
+    rho : Qobj
+        The system state.
+
+    In addition, all of the attributes of the hierarchy description,
+    i.e. ``HierarchyADOs``, are provided directly on this class for
+    convenience. E.g. one can access ``.labels``, or ``.exponents`` or
+    call ``.idx(label)`` directly.
+
+    See :class:`HierarchyADOs` for a full list of the available attributes
+    and methods.
+    """
+    def __init__(self, rho, ados, ado_state):
+        self.rho = rho
+        self._ado_state = ado_state
+        self._ados = ados
+
+    def __getattr__(self, name):
+        return getattr(self._ados, name)
+
+    def extract(self, idx_or_label):
+        """
+        Extract a Qobj representing specified ADO from a full representation of
+        the ADO states.
+
+        Parameters
+        ----------
+        idx : int or label
+            The index of the ADO to extract. If an ADO label, e.g.
+            ``(0, 1, 0, ...)`` is supplied instead, then the ADO
+            is extracted by label instead.
+
+        Returns
+        -------
+        Qobj
+            A :obj:`Qobj` representing the state of the specified ADO.
+        """
+        if isinstance(idx_or_label, int):
+            idx = idx_or_label
+        else:
+            idx = self._ados.idx(idx_or_label)
+        return Qobj(self._ado_state[idx, :].T, dims=self.rho.dims)
 
 
 class HEOMSolver:
@@ -1016,25 +1111,6 @@ class HEOMSolver:
         self._ode = solver
         self.RHSmat = RHSmat
 
-    def extract_ado(self, ado_state, idx):
-        """
-        Extract a Qobj representing specified ADO from a full representation of
-        the ADO states, as returned by :meth:`.steady_state` or :meth:`.run`.
-
-        Parameters
-        ----------
-        ado_state : numpy array
-            A full representation of the ADO state.
-        idx : int
-            The index of the ADO to extract.
-
-        Returns
-        -------
-        Qobj
-            A :obj:`Qobj` representing the state of the specified ADO.
-        """
-        return Qobj(ado_state[idx, :].T, dims=self._sys_dims)
-
     def steady_state(
         self,
         use_mkl=False, mkl_max_iter_refine=100, mkl_weighted_matching=False
@@ -1061,10 +1137,9 @@ class HEOMSolver:
         steady_state : Qobj
             The steady state density matrix of the system.
 
-        full_ado_state : Numpy array
-            Array of the the steady-state and all ADOs.
-            The state of a particular ADO may be extracted from the
-            full state by calling :meth:`.extract_ado`.
+        steady_ados : :class:`FullADOState`
+            The steady state of the full ADO hierarchy. A particular ADO may be
+            extracted from the full state by calling :meth:`.extract`.
         """
         n = self._sys_shape
 
@@ -1098,10 +1173,12 @@ class HEOMSolver:
 
         data = dense2D_to_fastcsr_fmode(vec2mat(solution[:n ** 2]), n, n)
         data = 0.5 * (data + data.H)
+        steady_state = Qobj(data, dims=self._H0.dims)
 
         solution = solution.reshape((self._n_ados, n, n))
+        steady_ados = FullADOState(steady_state, self.ados, solution)
 
-        return Qobj(data, dims=self._H0.dims), solution
+        return steady_state, steady_ados
 
     def _convert_e_ops(self, e_ops):
         """
@@ -1187,9 +1264,10 @@ class HEOMSolver:
             The times (tlist) are stored in ``result.times``.
             The state at each time is stored in ``result.states``.
             If ``ado_return`` is ``True``, then the full ADO state at each
-            time is stored in ``result.ado_states``.
+            time is stored in ``result.ado_states`` as an instance of
+            :class:`FullADOState`.
             The state of a particular ADO may be extracted from
-            ``result.ado_states[i]`` by calling :meth:`.extract_ado`.
+            ``result.ado_states[i]`` by calling :meth:`.extract`.
         """
         e_ops, expected = self._convert_e_ops(e_ops)
         e_ops_callables = any(
@@ -1233,14 +1311,16 @@ class HEOMSolver:
             if self.options.store_states:
                 output.states.append(rho)
             if ado_return or e_ops_callables:
-                ado_state = solver.y.reshape(hierarchy_shape)
+                ado_state = FullADOState(
+                    rho, self.ados, solver.y.reshape(hierarchy_shape)
+                )
             if ado_return:
                 output.ado_states.append(ado_state)
             for e_key, e_op in e_ops.items():
                 if isinstance(e_op, Qobj):
                     e_result = (rho * e_op).tr()
                 else:
-                    e_result = e_op(self, t, ado_state)
+                    e_result = e_op(t, ado_state)
                 output.expect[e_key].append(e_result)
 
         self.progress_bar.finished()
