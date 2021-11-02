@@ -1103,6 +1103,52 @@ class HEOMSolver:
 
         return Qobj(data, dims=self._H0.dims), solution
 
+    def _convert_e_ops(self, e_ops):
+        """
+        Parse and convert a dictionary or list of e_ops.
+
+        Returns
+        -------
+        e_ops, expected : tuple
+            If the input ``e_ops`` was a list or scalar, ``expected`` is a list
+            with one item for each element of the original e_ops.
+
+            If the input ``e_ops`` was a dictionary, ``expected`` is a
+            dictionary with the same keys.
+
+            The output ``e_ops`` is always a dictionary. Its keys are the
+            keys or indexes for ``expected`` and its elements are the e_ops
+            functions or callables.
+        """
+        if isinstance(e_ops, (list, dict)):
+            pass
+        elif e_ops is None:
+            e_ops = []
+        elif isinstance(e_ops, Qobj):
+            e_ops = [e_ops]
+        elif callable(e_ops):
+            e_ops = [e_ops]
+        else:
+            try:
+                e_ops = list(e_ops)
+            except Exception as err:
+                raise TypeError(
+                    "e_ops must be an iterable, Qobj or function"
+                ) from err
+
+        if isinstance(e_ops, dict):
+            expected = {k: [] for k in e_ops}
+        else:
+            expected = [[] for _ in e_ops]
+            e_ops = {i: op for i, op in enumerate(e_ops)}
+
+        if not all(
+            callable(op) or isinstance(op, Qobj) for op in e_ops.values()
+        ):
+            raise TypeError("e_ops must only contain Qobj or functions")
+
+        return e_ops, expected
+
     def run(self, rho0, tlist, e_ops=None, ado_init=False, ado_return=False):
         """
         Solve for the time evolution of the system.
@@ -1115,7 +1161,7 @@ class HEOMSolver:
             If ``full_init`` is ``True``, then ``rho0`` should be a numpy array
             of the initial state and the initial state of all ADOs. Usually
             the state of the ADOs would be determine from a previous call
-            to ``.run(..., full_return=True)``.
+            to ``.run(..., ado_return=True)``.
 
         tlist : list
             An ordered list of times at which to return the value of the state.
@@ -1145,29 +1191,10 @@ class HEOMSolver:
             The state of a particular ADO may be extracted from
             ``result.ado_states[i]`` by calling :meth:`.extract_ado`.
         """
-
-        if e_ops is None:
-            e_ops = []
-
-        if isinstance(e_ops, dict):
-            e_ops_dict = e_ops
-            e_ops = [e for e in e_ops.values()]
-        else:
-            e_ops_dict = None
-
-        if isinstance(e_ops, Qobj):
-            e_ops = [e_ops]
-        try:
-            _ = iter(e_ops)
-        except TypeError:
-            e_ops = [e_ops]
-
-        ado_states_required = ado_return
-        for e_op in e_ops:
-            if not callable(e_op):
-                raise ValueError("The e_ops list must only contain QObj objects or callback functions")
-            if not isinstance(e_op, Qobj): # callable but not QObj -> callback function
-                ado_states_required = True
+        e_ops, expected = self._convert_e_ops(e_ops)
+        e_ops_callables = any(
+            not isinstance(op, Qobj) for op in e_ops.values()
+        )
 
         n = self._sys_shape
         rho_shape = (n, n)
@@ -1177,10 +1204,9 @@ class HEOMSolver:
         output = Result()
         output.solver = "HEOMSolver"
         output.times = tlist
-        output.num_expect = len(e_ops)
-        if output.num_expect > 0:
-            output.expect = [[] for _ in range(output.num_expect)]
-        if self.options.store_states:
+        if e_ops:
+            output.expect = expected
+        if not e_ops or self.options.store_states:
             output.states = []
 
         if ado_init:
@@ -1206,20 +1232,16 @@ class HEOMSolver:
             )
             if self.options.store_states:
                 output.states.append(rho)
-            if ado_states_required:
+            if ado_return or e_ops_callables:
                 ado_state = solver.y.reshape(hierarchy_shape)
             if ado_return:
                 output.ado_states.append(ado_state)
-
-            for cnt, e_op in enumerate(e_ops):
+            for e_key, e_op in e_ops.items():
                 if isinstance(e_op, Qobj):
-                    output.expect[cnt].append((rho * e_op).tr())
+                    e_result = (rho * e_op).tr()
                 else:
-                    output.expect[cnt].append(e_op(self, t, ado_state))
-
-        if e_ops_dict:
-            output.expect = {e: output.expect[n]
-                             for n, e in enumerate(e_ops_dict.keys())}
+                    e_result = e_op(self, t, ado_state)
+                output.expect[e_key].append(e_result)
 
         self.progress_bar.finished()
         return output
