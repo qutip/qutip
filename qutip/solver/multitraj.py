@@ -1,21 +1,39 @@
 from .. import Qobj, QobjEvo
 from .options import SolverOptions, SolverOdeOptions
 from .result import Result, MultiTrajResult, MultiTrajResultAveraged
-from ..ui.progressbar import progess_bars
-from ..core.data import to
 from .parallel import get_map
 from time import time
-from .solver_base import Solver, classproperty
+from .solver_base import Solver
 import numpy as np
 
 
 class MultiTrajSolver:
     """
-    ... TODO
+    Basic class for multi-trajectories evolutions.
+
+    As :class:`Solver` it can ``run`` or ``step`` evolution.
+    It manage the random seed for each trajectory.
+
+    The actual evolution is done by a single trajectory solver::
+        ``_traj_solver_class``
+
+    Parameters
+    ----------
+    rhs : Qobj, QobjEvo
+        Right hand side of the evolution::
+            d state / dt = rhs @ state
+
+    options : SolverOptions
+        Options for the solver
+
+    e_ops : list
+        list of Qobj or QobjEvo to compute the expectation values.
+        Alternatively, function[s] with the signature f(t, state) -> expect
+        can be used.
     """
     _traj_solver_class = None
     name = "generic multi trajectory"
-    optionsclass = None
+    optionsclass = SolverOptions
     odeoptionsclass = SolverOdeOptions
 
     def __init__(self, rhs, *, e_ops=None, options=None):
@@ -44,21 +62,69 @@ class MultiTrajSolver:
             raise ValueError("A seed list must be longer than ntraj")
         return seeds
 
-    def start(self, state0, t0, *, ntraj=1, seed=None):
+    def start(self, state0, t0, ntraj=1, seed=None, *, safe_ODE=None):
+        """
+        Set the initial state and time for a step evolution.
+        ``options`` for the evolutions are read at this step.
+
+        Parameters
+        ----------
+        state0 : :class:`Qobj`
+            Initial state of the evolution.
+
+        t0 : double
+            Initial time of the evolution.
+
+        ntraj : int {1}
+            Number of trajectories to compute with each step. The
+            :method:`step` will return a list of ``ntraj`` state when greater
+            than 1.
+
+        seed : int, SeedSequence, list, {None}
+            Seed for the random number generator. It can be a single seed used
+            to spawn seeds for each trajectories or a list of seed, one for
+            each trajectories.
+
+        safe_ODE : bool {None}
+            Whether to safe the states in the ODE solver or in the solver.
+            Many ODE solver are not re-entrant, thus must be used with
+            `safe_ODE` if multiple trajectory are to be ran in parallel.
+        """
         seeds = self._read_seed(seed, ntraj)
         self.traj_solvers = []
 
         for seed in seeds:
             traj_solver = self._traj_solver_class(self, e_ops=self.e_ops,
                                                   options=self.options)
-            traj_solver.start(state0, t0, seed)
+            traj_solver.start(state0, t0, seed=seed, safe_ODE=safe_ODE)
             self.traj_solvers.append(traj_solver)
 
-    def step(self, t, args=None):
+    def step(self, t, *, args=None, options=None, copy=True):
+        """
+        Evolve the state to ``t`` and return the state as a :class:`Qobj`.
+
+        Parameters
+        ----------
+        t : double
+            Time to evolve to, must be higher than the last call.
+
+        args : dict, optional {None}
+            Update the ``args`` of the system.
+            The change is effective from the beginning of the interval.
+            Changing ``args`` can slow the evolution.
+
+        options : SolverOptions, optional {None}
+            Update the ``options`` of the system.
+            The change is effective from the beginning of the interval.
+            Changing ``options`` can slow the evolution.
+
+        copy : bool, optional {True}
+            Whether to return a copy of the data or the data in the ODE solver.
+        """
         if not self.traj_solvers:
             raise RuntimeError("The `start` method must called first.")
-        multi = len(self.traj_solvers) == 1
-        out = [traj_solver.step(t, args, safe=multi)
+        # TODO: could be done with parallel_map, but it's probably not worth it
+        out = [traj_solver.step(t, args=args, options=options, copy=copy)
                for traj_solver in self.traj_solvers]
         return out if len(out) > 1 else out[0]
 
@@ -245,9 +311,29 @@ class _TrajectorySolver(Solver):
         else:
             self.bit_gen = np.random.PCG64DXSM
 
-    def start(self, state0, t0, seed=None):
+    def start(self, state0, t0, seed=None *, safe_ODE=False):
+        """
+        Set the initial state and time for a step evolution.
+        ``options`` for the evolutions are read at this step.
+
+        Parameters
+        ----------
+        state0 : :class:`Qobj`
+            Initial state of the evolution.
+
+        t0 : double
+            Initial time of the evolution.
+
+        seed : int, SeedSequence
+            Seed for the random number generator.
+
+        safe_ODE : bool {False}
+            Whether to save the state locally. Set to ``True`` if using
+            multiple solvers for step evolution at once.
+        """
         _time_start = time()
         self._set_generator(seed)
+        self.safe_ODE = safe_ODE
         self._state = self._prepare_state(state0)
         self._t = t0
         self._integrator = self._get_integrator()
@@ -264,11 +350,52 @@ class _TrajectorySolver(Solver):
         if args:
             self._argument(args)
             self._integrator.reset()
-        self._t, self._state = self._step(t, copy=copy)
+        if self.safe_ODE:
+            self._integrator.set_state(self._t, self._state)
+        self._t, self._state = self._step(t, copy=self.safe_ODE)
         return self._restore_state(self._state, copy=copy)
 
     def run(self, state0, tlist, *,
             args=None, e_ops=None, options=None, seed=None):
+            """
+            Do the evolution of the Quantum system.
+
+            For a ``state0`` at time ``tlist[0]`` do the evolution as directed
+            by ``rhs`` and for each time in ``tlist`` store the state and/or
+            expectation values in a :cls:`Result`. The evolution method and
+            stored results are determined by ``options``.
+
+            Parameters
+            ----------
+            state0 : :class:`Qobj`
+                Initial state of the evolution.
+
+            tlist : list of double
+                Time for which to save the results (state and/or expect) of the
+                evolution. The first element of the list is the initial time of
+                the evolution. Each times of the list must be increasing, but
+                does not need to be uniformy distributed.
+
+            args : dict, optional {None}
+                Change the ``args`` of the rhs for the evolution.
+
+            e_ops : list {None}
+                List of Qobj, QobjEvo or callable to compute the expectation
+                values. Function[s] must have the signature
+                f(t : float, state : Qobj) -> expect.
+
+            options : SolverOptions {None}
+                Options for the solver
+
+            seed : int, SeedSequence
+                Seed for the random number generator.
+
+            Return
+            ------
+            results : :class:`qutip.solver.Result`
+                Results of the evolution. States and/or expect will be saved. You
+                can control the saved data in the options.
+            """
         _time_start = time()
         self._set_generator(seed)
         if options is not None:

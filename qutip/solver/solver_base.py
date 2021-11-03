@@ -6,7 +6,6 @@ from ..core import stack_columns, unstack_columns
 from .result import Result
 from .integrator import Integrator
 from ..ui.progressbar import progess_bars
-from ..core.data import to
 from time import time
 
 
@@ -140,10 +139,13 @@ class Solver:
         args : dict, optional {None}
             Change the ``args`` of the rhs for the evolution.
 
-        e_ops : list
-            list of Qobj or QobjEvo to compute the expectation values.
-            Alternatively, function[s] with the signature f(t, state) -> expect
-            can be used.
+        e_ops : list {None}
+            List of Qobj, QobjEvo or callable to compute the expectation
+            values. Function[s] must have the signature
+            f(t : float, state : Qobj) -> expect.
+
+        options : SolverOptions {None}
+            Options for the solver
 
         Return
         ------

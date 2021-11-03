@@ -259,7 +259,7 @@ class MultiTrajResult:
         Standard derivation of expectation values over `ntraj` trajectories.
         Last state of each trajectories. (ket)
     """
-    def __init__(self, e_ops, c_ops, target_tol=None):
+    def __init__(self, ntraj, e_ops=(), c_ops=(), target_tol=None):
         """
         Parameters:
         -----------
@@ -270,6 +270,7 @@ class MultiTrajResult:
         self.num_e_ops = len(e_ops)
         self.num_c_ops = len(c_ops)
         self.tlist = None
+        self._target_ntraj = ntraj
         self.stats = {
             "num_expect": self.num_e_ops,
             "solver": "",
@@ -289,7 +290,7 @@ class MultiTrajResult:
             if num_traj >= self.next_check:
                 traj_left = self._check_expect_tol()
                 target = traj_left + num_traj
-                confidence = 0.5 * (1-3/num_traj)
+                confidence = 0.5 * (1 - 3 / num_traj)
                 confidence += 0.5 * min(1 / abs(target - self.last_target), 1)
                 self.next_check = int(traj_left * confidence + num_traj)
                 self.last_target = target
@@ -313,6 +314,7 @@ class MultiTrajResult:
             e_ops.
         """
         self._target_tols = None
+        self._tol_reached = False
         if not target_tol:
             return
         if not self.num_e_ops:
@@ -354,8 +356,9 @@ class MultiTrajResult:
 
         target = np.array([atol + rtol * mean
                   for mean, (atol, rtol) in zip(avg, self._target_tols)])
-
-        return np.max(std**2 / target**2 - num_traj + 1)
+        traj_left = np.max(std**2 / target**2 - num_traj + 1)
+        self._tol_reached = traj_left < 0
+        return traj_left
 
     @property
     def runs_states(self):
@@ -541,6 +544,14 @@ class MultiTrajResult:
     def num_collapse(self):
         return self.trajectories[0].num_collapse
 
+    @property
+    def end_condition(self):
+        if self._target_tols is not None and self._tol_reached:
+            return "target tolerance reached"
+        elif self._target_ntraj == len(self.trajectories):
+            return "ntraj reached"
+        else:
+            return "Max time reached"
 
 class MultiTrajResultAveraged:
     """
@@ -599,7 +610,7 @@ class MultiTrajResultAveraged:
         photocurrent corresponding to each collapse operator.
 
     """
-    def __init__(self, e_ops, c_ops, target_tol=None):
+    def __init__(self, ntraj, e_ops=(), c_ops=(), target_tol=None):
         """
         Parameters:
         -----------
@@ -613,6 +624,7 @@ class MultiTrajResultAveraged:
         self._sum2_expect = None
         self.num_e_ops = len(e_ops)
         self.num_c_ops = len(c_ops)
+        self._target_ntraj = ntraj
         self._num = 0
         self._collapse = []
         self.seeds = []
@@ -679,6 +691,7 @@ class MultiTrajResultAveraged:
             e_ops.
         """
         self._target_tols = None
+        self._tol_reached = False
         if not target_tol:
             return
         if not self.num_e_ops:
@@ -702,7 +715,9 @@ class MultiTrajResultAveraged:
         avg2 = np.array([sum_expect / self._num for sum_expect in self._sum2_expect])
         target = np.array([atol + rtol * mean
                   for mean, (atol, rtol) in zip(avg, self._target_tols)])
-        return np.max((avg2 - avg**2) / target**2 - self._num + 1)
+        traj_left = np.max((avg2 - avg**2) / target**2 - self._num + 1)
+        self._tol_reached = traj_left < 0
+        return traj_left
 
     @property
     def runs_states(self):
@@ -845,3 +860,12 @@ class MultiTrajResultAveraged:
     @property
     def num_collapse(self):
         return self.trajectories.num_collapse
+
+    @property
+    def end_condition(self):
+        if self._target_tols is not None and self._tol_reached:
+            return "target tolerance reached"
+        elif self._target_ntraj == self._num:
+            return "ntraj reached"
+        else:
+            return "Max time reached"
