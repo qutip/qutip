@@ -759,17 +759,17 @@ class HierarchyADOs:
         return results
 
 
-class FullADOState:
+class HierarchyADOsState:
     """
     Provides convenient access to the full hierarchy ADO state at a particular
     point in time, ``t``.
 
     Parameters
     ----------
-    rho : Qobj
+    rho : :class:`Qobj`
         The current state of the system (i.e. the 0th component of the
         hierarchy).
-    ados : HierarchyADOs
+    ados : :class:`HierarchyADOs`
         The description of the hierarchy.
     ado_state : numpy.array
         The full state of the hierarchy.
@@ -1137,7 +1137,7 @@ class HEOMSolver:
         steady_state : Qobj
             The steady state density matrix of the system.
 
-        steady_ados : :class:`FullADOState`
+        steady_ados : :class:`HierarchyADOsState`
             The steady state of the full ADO hierarchy. A particular ADO may be
             extracted from the full state by calling :meth:`.extract`.
         """
@@ -1176,7 +1176,7 @@ class HEOMSolver:
         steady_state = Qobj(data, dims=self._H0.dims)
 
         solution = solution.reshape((self._n_ados, n, n))
-        steady_ados = FullADOState(steady_state, self.ados, solution)
+        steady_ados = HierarchyADOsState(steady_state, self.ados, solution)
 
         return steady_state, steady_ados
 
@@ -1265,7 +1265,7 @@ class HEOMSolver:
             The state at each time is stored in ``result.states``.
             If ``ado_return`` is ``True``, then the full ADO state at each
             time is stored in ``result.ado_states`` as an instance of
-            :class:`FullADOState`.
+            :class:`HierarchyADOsState`.
             The state of a particular ADO may be extracted from
             ``result.ado_states[i]`` by calling :meth:`.extract`.
         """
@@ -1311,7 +1311,7 @@ class HEOMSolver:
             if self.options.store_states:
                 output.states.append(rho)
             if ado_return or e_ops_callables:
-                ado_state = FullADOState(
+                ado_state = HierarchyADOsState(
                     rho, self.ados, solver.y.reshape(hierarchy_shape)
                 )
             if ado_return:
