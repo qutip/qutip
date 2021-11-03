@@ -86,7 +86,7 @@ class BathExponent:
         For exponents of type "-" it gives the offset of the corresponding
         "+" exponent.
 
-    label : optional, str
+    tag : optional, str, tuple or any other object
         A label for the exponent (often the name of the bath). It
         defaults to None.
 
@@ -121,7 +121,7 @@ class BathExponent:
 
     def __init__(
             self, type, dim, Q, ck, vk, ck2=None, sigma_bar_k_offset=None,
-            label=None,
+            tag=None,
     ):
         if not isinstance(type, self.types):
             type = self.types[type]
@@ -134,7 +134,7 @@ class BathExponent:
         self.vk = vk
         self.ck2 = ck2
         self.sigma_bar_k_offset = sigma_bar_k_offset
-        self.label = label
+        self.tag = tag
 
 
 class Bath:
@@ -190,7 +190,7 @@ class BosonicBath(Bath):
         Whether to combine exponents with the same frequency (and coupling
         operator). See :meth:`combine` for details.
 
-    label : optional, str
+    tag : optional, str, tuple or any other object
         A label for the bath exponents (for example, the name of the
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
@@ -208,18 +208,18 @@ class BosonicBath(Bath):
 
     def __init__(
             self, Q, ck_real, vk_real, ck_imag, vk_imag, combine=True,
-            label=None,
+            tag=None,
     ):
         self._check_cks_and_vks(ck_real, vk_real, ck_imag, vk_imag)
         self._check_coup_op(Q)
 
         exponents = []
         exponents.extend(
-            BathExponent("R", None, Q, ck, vk, label=label)
+            BathExponent("R", None, Q, ck, vk, tag=tag)
             for ck, vk in zip(ck_real, vk_real)
         )
         exponents.extend(
-            BathExponent("I", None, Q, ck, vk, label=label)
+            BathExponent("I", None, Q, ck, vk, tag=tag)
             for ck, vk in zip(ck_imag, vk_imag)
         )
 
@@ -237,7 +237,7 @@ class BosonicBath(Bath):
         Exponents with the same frequency are only combined if they share the
         same coupling operator ``.Q``.
 
-        Note that combined exponents take their label from the first
+        Note that combined exponents take their tag from the first
         exponent in the group being combined (i.e. the one that occurs first
         in the given exponents list).
 
@@ -283,7 +283,7 @@ class BosonicBath(Bath):
                 # the group is either type I or R
                 ck = sum(exp.ck for exp in combine)
                 new_exponents.append(BathExponent(
-                    exp1.type, None, exp1.Q, ck, exp1.vk, label=exp1.label,
+                    exp1.type, None, exp1.Q, ck, exp1.vk, tag=exp1.tag,
                 ))
             else:
                 # the group includes both type I and R exponents
@@ -297,7 +297,7 @@ class BosonicBath(Bath):
                 )
                 new_exponents.append(BathExponent(
                     "RI", None, exp1.Q, ck_R, exp1.vk, ck2=ck_I,
-                    label=exp1.label,
+                    tag=exp1.tag,
                 ))
 
         return new_exponents
@@ -333,7 +333,7 @@ class DrudeLorentzBath(BosonicBath):
         terminator is a Liouvillian term, so it's dimensions are those of
         a superoperator of ``Q``.
 
-    label : optional, str
+    tag : optional, str, tuple or any other object
         A label for the bath exponents (for example, the name of the
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
@@ -347,7 +347,7 @@ class DrudeLorentzBath(BosonicBath):
         liouvillian (i.e. ``liouvillian(H_sys)``).
     """
     def __init__(
-        self, Q, lam, T, Nk, gamma, terminator=False, label=None,
+        self, Q, lam, T, Nk, gamma, terminator=False, tag=None,
     ):
         ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(
             lam=lam,
@@ -361,7 +361,7 @@ class DrudeLorentzBath(BosonicBath):
             )
         else:
             self.terminator = None
-        super().__init__(Q, ck_real, vk_real, ck_imag, vk_imag, label=label)
+        super().__init__(Q, ck_real, vk_real, ck_imag, vk_imag, tag=tag)
 
     def _matsubara_terminator(self, Q, lam, gamma, Nk, T):
         """ Calculate the hierarchy terminator term for the Liouvillian. """
@@ -437,12 +437,12 @@ class DrudeLorentzPadeBath(BosonicBath):
     gamma : float
         Bath spectral density cutoff frequency.
 
-    label : optional, str
+    tag : optional, str, tuple or any other object
         A label for the bath exponents (for example, the name of the
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
-    def __init__(self, Q, lam, T, Nk, gamma, label=None):
+    def __init__(self, Q, lam, T, Nk, gamma, tag=None):
         eta_p, gamma_p = self._corr(lam=lam, gamma=gamma, T=T, Nk=Nk)
 
         ck_real = [np.real(eta) for eta in eta_p]
@@ -452,7 +452,7 @@ class DrudeLorentzPadeBath(BosonicBath):
         ck_imag = [np.imag(eta_p[0])]
         vk_imag = [gamma_p[0]]
 
-        super().__init__(Q, ck_real, vk_real, ck_imag, vk_imag, label=label)
+        super().__init__(Q, ck_real, vk_real, ck_imag, vk_imag, tag=tag)
 
     def _delta(self, i, j):
         return 1.0 if i == j else 0.0
@@ -557,7 +557,7 @@ class FermionicBath(Bath):
         of the correlation function. The corresponding ceofficients are passed
         as ck_minus.
 
-    label : optional, str
+    tag : optional, str, tuple or any other object
         A label for the bath exponents (for example, the name of the
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
@@ -581,7 +581,7 @@ class FermionicBath(Bath):
         if not isinstance(Q, Qobj):
             raise ValueError("The coupling operator Q must be a Qobj.")
 
-    def __init__(self, Q, ck_plus, vk_plus, ck_minus, vk_minus, label=None):
+    def __init__(self, Q, ck_plus, vk_plus, ck_minus, vk_minus, tag=None):
         self._check_cks_and_vks(ck_plus, vk_plus, ck_minus, vk_minus)
         self._check_coup_op(Q)
         Qdag = Q.dag()
@@ -589,10 +589,10 @@ class FermionicBath(Bath):
         exponents = []
         for ckp, vkp, ckm, vkm in zip(ck_plus, vk_plus, ck_minus, vk_minus):
             exponents.append(BathExponent(
-                "+", 2, Qdag, ckp, vkp, sigma_bar_k_offset=1, label=label,
+                "+", 2, Qdag, ckp, vkp, sigma_bar_k_offset=1, tag=tag,
             ))
             exponents.append(BathExponent(
-                "-", 2, Q, ckm, vkm, sigma_bar_k_offset=-1, label=label,
+                "-", 2, Q, ckm, vkm, sigma_bar_k_offset=-1, tag=tag,
             ))
         super().__init__(exponents)
 
