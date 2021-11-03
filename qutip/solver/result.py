@@ -259,7 +259,7 @@ class MultiTrajResult:
         Standard derivation of expectation values over `ntraj` trajectories.
         Last state of each trajectories. (ket)
     """
-    def __init__(self, e_ops, target_tol=None):
+    def __init__(self, e_ops, c_ops, target_tol=None):
         """
         Parameters:
         -----------
@@ -268,8 +268,13 @@ class MultiTrajResult:
         """
         self.trajectories = []
         self.num_e_ops = len(e_ops)
+        self.num_c_ops = len(c_ops)
         self.tlist = None
-        self.stats = {}
+        self.stats = {
+            "num_expect": self.num_e_ops,
+            "solver": "",
+            "method": "",
+        }
         self._set_expect_tol(target_tol)
 
     def add(self, one_traj):
@@ -280,7 +285,17 @@ class MultiTrajResult:
         """
         self.trajectories.append(one_traj)
         if self._target_tols is not None:
-            return self._check_expect_tol()
+            num_traj = len(self.trajectories)
+            if num_traj >= self.next_check:
+                traj_left = self._check_expect_tol()
+                target = traj_left + num_traj
+                confidence = 0.5 * (1-3/num_traj)
+                confidence += 0.5 * min(1 / abs(target - self.last_target), 1)
+                self.next_check = int(traj_left * confidence + num_traj)
+                self.last_target = target
+                return traj_left
+            else:
+                return max(self.last_target - len(self.trajectories), 1)
         else:
             return np.inf
 
@@ -302,6 +317,8 @@ class MultiTrajResult:
             return
         if not self.num_e_ops:
             raise ValueError("Cannot target a tolerance without e_ops")
+        self.next_check = 5
+        self.last_target = np.inf
 
         targets = np.array(target_tol)
         if targets.ndim == 0:
@@ -582,7 +599,7 @@ class MultiTrajResultAveraged:
         photocurrent corresponding to each collapse operator.
 
     """
-    def __init__(self, e_ops, target_tol=None):
+    def __init__(self, e_ops, c_ops, target_tol=None):
         """
         Parameters:
         -----------
@@ -595,9 +612,15 @@ class MultiTrajResultAveraged:
         self._sum_expect = None
         self._sum2_expect = None
         self.num_e_ops = len(e_ops)
+        self.num_c_ops = len(c_ops)
         self._num = 0
         self._collapse = []
-        self.stats = {}
+        self.seeds = []
+        self.stats = {
+            "num_expect": self.num_e_ops,
+            "solver": "",
+            "method": "",
+        }
         self._set_expect_tol(target_tol)
 
 
@@ -634,6 +657,8 @@ class MultiTrajResultAveraged:
                 self._sum2_expect = [np.array(one)**2 + accu for one, accu in
                                      zip(one_traj._expects, self._sum2_expect)]
         self._collapse.append(one_traj.collapse)
+        if hasattr(one_traj, 'seed'):
+            self.seeds.append(one_traj.seed)
         self._num += 1
         if self._target_tols is not None:
             return self._check_expect_tol()
@@ -672,7 +697,7 @@ class MultiTrajResultAveraged:
 
     def _check_expect_tol(self):
         if self._num <= 1:
-            return False
+            return np.inf
         avg = np.array([sum_expect / self._num for sum_expect in self._sum_expect])
         avg2 = np.array([sum_expect / self._num for sum_expect in self._sum2_expect])
         target = np.array([atol + rtol * mean

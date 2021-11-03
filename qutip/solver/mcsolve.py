@@ -31,7 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-__all__ = ['mcsolve', "McSolver", "MeMcSolver"]
+__all__ = ['mcsolve', "McSolver"]
 
 import warnings
 
@@ -54,54 +54,19 @@ from time import time
 
 
 def mcsolve(H, psi0, tlist, c_ops=None, e_ops=None, ntraj=1,
-            args=None, options=None, seeds=None):
-    r"""Monte Carlo evolution of a state vector :math:`|\psi \rangle` for a
-    given Hamiltonian and sets of collapse operators, and possibly, operators
-    for calculating expectation values. Options for the underlying ODE solver
-    are given by the Options class.
-
-    mcsolve supports time-dependent Hamiltonians and collapse operators using
-    either Python functions of strings to represent time-dependent
-    coefficients. Note that, the system Hamiltonian MUST have at least one
-    constant term.
-
-    As an example of a time-dependent problem, consider a Hamiltonian with two
-    terms ``H0`` and ``H1``, where ``H1`` is time-dependent with coefficient
-    ``sin(w*t)``, and collapse operators ``C0`` and ``C1``, where ``C1`` is
-    time-dependent with coeffcient ``exp(-a*t)``.  Here, w and a are constant
-    arguments with values ``W`` and ``A``.
-
-    Using the Python function time-dependent format requires two Python
-    functions, one for each collapse coefficient. Therefore, this problem could
-    be expressed as::
-
-        def H1_coeff(t,args):
-            return sin(args['w']*t)
-
-        def C1_coeff(t,args):
-            return exp(-args['a']*t)
-
-        H = [H0, [H1, H1_coeff]]
-
-        c_ops = [C0, [C1, C1_coeff]]
-
-        args={'a': A, 'w': W}
-
-    or in String (Cython) format we could write::
-
-        H = [H0, [H1, 'sin(w*t)']]
-
-        c_ops = [C0, [C1, 'exp(-a*t)']]
-
-        args={'a': A, 'w': W}
-
-    Constant terms are preferably placed first in the Hamiltonian and collapse
-    operator lists.
+            args=None, options=None, seeds=None, target_tol=None):
+    r"""
+    Monte Carlo evolution of a state vector :math:`|\psi \rangle` for a
+    given Hamiltonian and sets of collapse operators. Options for the
+    underlying ODE solver are given by the Options class.
 
     Parameters
     ----------
-    H : :class:`qutip.Qobj`, ``list``
-        System Hamiltonian.
+    H : :class:`qutip.Qobj`, :class:`qutip.QobjEvo`, ``list``, callable.
+        System Hamiltonian as a Qobj, QobjEvo, can also be a function or list
+        that can be made into a Qobjevo. (See :class:`qutip.QobjEvo`'s
+        documentation). ``H`` can be a superoperator (liouvillian) if some
+        collapse operators are to be treated deterministicly.
 
     psi0 : :class:`qutip.Qobj`
         Initial state vector
@@ -110,55 +75,59 @@ def mcsolve(H, psi0, tlist, c_ops=None, e_ops=None, ntraj=1,
         Times at which results are recorded.
 
     ntraj : int
-        Number of trajectories to run.
+        Maximum number of trajectories to run. Can be cut short if a time limit
+        is passed in options (per default, mcsolve will stop after 1e8 sec)::
+            ``options.mcsolve['map_options']['timeout'] = max_sec``
+        Or if the target tolerance is reached, see ``target_tol``.
 
-    c_ops : :class:`qutip.Qobj`, ``list``
-        single collapse operator or a ``list`` of collapse operators.
+    c_ops : ``list``
+        A ``list`` of collapse operators. They must be operators even if ``H``
+        is a superoperator.
 
-    e_ops : :class:`qutip.Qobj`, ``list``
-        single operator as Qobj or ``list`` or equivalent of Qobj operators
-        for calculating expectation values.
+    e_ops : ``list``, [optional]
+        A ``list`` of operator as Qobj, QobjEvo or callable with signature of
+        (t, state: Qobj) for calculating expectation values. When no ``e_ops``
+        are given, the solver will default to save the states.
 
-    args : dict
+    args : dict, [optional]
         Arguments for time-dependent Hamiltonian and collapse operator terms.
 
-    options : SolverOptions
-        Instance of ODE solver options.
+    options : SolverOptions, [optional]
+        Options for the evolution.
+
+    seeds : int, SeedSequence, list, [optional]
+        Seed for the random number generator. It can be a single seed used to
+        spawn seeds for each trajectories or a list of seed, one for each
+        trajectories. Seed are saved in the result, they can be reused with::
+            seeds=prev_result.seeds
+
+    target_tol : float, list, [optional]
+        Target tolerance of the evolution. The evolution will compute
+        trajectories until the error on the expectation values is lower than
+        this tolerance. The error is computed using jackknife resampling.
+        ``target_tol`` can be an absolute tolerance, a pair of absolute and
+        relative tolerance, in that order. Lastly, it can be a list of pairs of
+        (atol, rtol) for each e_ops.
 
     Returns
     -------
     results : :class:`qutip.solver.Result`
-        Object storing all results from the simulation.
-
-    .. note::
-
-        It is possible to reuse the random number seeds from a previous run
-        of the mcsolver by passing the output Result object seeds via the
-        Options class, i.e. SolverOptions(seeds=prev_result.seeds).
+        Object storing all results from the simulation. Which results is saved
+        depend on the presence of ``e_ops`` and the options used. ``collapse``
+        and ``photocurrent`` is available to Monte Carlo simulation results.
     """
-    args = args or {}
-    feedback_args = feedback_args or {}
-    options = options if options is not None else SolverOptions()
+    H = QobjEvo(H, args=args, tlist=tlist)
+    c_ops = c_ops if c_ops is not None else []
+    if not isinstance(c_ops, list):
+        c_ops = [c_ops]
+    c_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in c_ops]
 
-    # set the physics
-    if not psi0.isket:
-        raise ValueError("Initial state must be a state vector.")
-
-    if c_ops is None:
-        c_ops = []
     if len(c_ops) == 0:
-        warnings.warn("No c_ops, using sesolve")
-        return sesolve(H, psi0, tlist, e_ops=e_ops, args=args,
-                       options=options, _safe_mode=_safe_mode)
+        return mesolve(H, psi0, tlist, e_ops=e_ops, args=args, options=options)
 
-    # load monte carlo class
-    mc = McSolver(H, c_ops, e_ops, options, tlist,
-                  args, feedback_args, _safe_mode)
-    if seeds is not None:
-        mc.seed(ntraj, seeds)
-
-    # Run the simulation
-    return mc.run(psi0, tlist=tlist, ntraj=ntraj)
+    mc = McSolver(H, c_ops, e_ops=e_ops, options=options)
+    return mc.run(psi0, tlist=tlist, ntraj=ntraj,
+                  seed=seeds, target_tol=target_tol)
 
 
 class _McTrajectorySolver(_TrajectorySolver):
@@ -185,6 +154,7 @@ class _McTrajectorySolver(_TrajectorySolver):
         result = super().run(state0, tlist, args=args,
                              e_ops=e_ops, options=options, seed=self.generator)
         result.collapse = list(self.collapses)
+        result.seed = seed
         return result
 
     def start(self, state0, t0, seed=None):
@@ -194,9 +164,13 @@ class _McTrajectorySolver(_TrajectorySolver):
         super().start(state0, t0, seed=self.generator)
 
     def prob_func(self, state):
+        if self.rhs.issuper:
+            return _data.norm.trace(unstack_columns(state))
         return _data.norm.l2(state)**2
 
     def norm_func(self, state):
+        if self.rhs.issuper:
+            return _data.norm.trace(unstack_columns(state))
         return _data.norm.l2(state)
 
     def _step(self, t, copy=True):
@@ -287,30 +261,59 @@ class _McTrajectorySolver(_TrajectorySolver):
 # -----------------------------------------------------------------------------
 class McSolver(MultiTrajSolver):
     """
-    ... TODO
+    Monte Carlo Solver of a state vector :math:`|\psi \rangle` for a
+    given Hamiltonian and sets of collapse operators. Options for the
+    underlying ODE solver are given by the Options class.
+
+    Parameters
+    ----------
+    H : :class:`qutip.Qobj`, :class:`qutip.QobjEvo`, ``list``, callable.
+        System Hamiltonian as a Qobj, QobjEvo, can also be a function or list
+        that can be made into a Qobjevo. (See :class:`qutip.QobjEvo`'s
+        documentation). ``H`` can be a superoperator (liouvillian) if some
+        collapse operators are to be treated deterministicly.
+
+    c_ops : ``list``
+        A ``list`` of collapse operators. They must be operators even if ``H``
+        is a superoperator.
+
+    e_ops : ``list``, [optional]
+        A ``list`` of operator as Qobj, QobjEvo or callable with signature of
+        (t, state: Qobj) for calculating expectation values. When no ``e_ops``
+        are given, the solver will default to save the states.
+
+    options : SolverOptions, [optional]
+        Options for the evolution.
+
+    seed : int, SeedSequence, list, [optional]
+        Seed for the random number generator. It can be a single seed used to
+        spawn seeds for each trajectories or a list of seed, one for each
+        trajectories. Seed are saved in the result, they can be reused with::
+            seeds=prev_result.seeds
     """
     _traj_solver_class = _McTrajectorySolver
     name = "mcsolve"
     optionsclass = SolverOptions
 
-    def __init__(self, H, c_ops, e_ops=None, options=None,
-                 times=None, args=None, seed=None):
+    def __init__(self, H, c_ops, *, e_ops=None, options=None, seed=None):
         _time_start = time()
-        self.stats = {}
-        self.options = options
 
-        self.seed_sequence = SeedSequence(seed)
-        self.traj_solvers = []
-        self.result = None
+        c_ops = [QobjEvo(c_op) for c_op in c_ops]
+        if H.issuper:
+            self._c_ops = [spre(op) * spost(op.dag()) for op in c_ops]
+            self._n_ops = self._c_ops
+            rhs = QobjEvo(H)
+            for c_op in c_ops:
+                cdc = c_op.dag() @ c_op
+                rhs -= 0.5 * (spre(cdc) + spost(cdc))
+        else:
+            self._c_ops = c_ops
+            self._n_ops = [c_op.dag() * c_op for c_op in c_ops]
+            rhs = -1j* QobjEvo(H)
+            for n_op in self._n_ops:
+                rhs -= 0.5 * n_op
 
-        self.e_ops = e_ops or []
-        self.options = options
-
-        self._c_ops = [QobjEvo(c_op, args=args, tlist=times) for c_op in c_ops]
-        self._n_ops = [c_op.dag() * c_op for c_op in self._c_ops]
-        self.rhs = -1j* QobjEvo(H, args=args, tlist=times)
-        for n_evo in self._n_ops:
-            self.rhs -= 0.5 * n_evo
+        super().__init__(rhs, e_ops=e_ops, options=options)
 
         self.stats['solver'] = "MonteCarlo Evolution"
         self.stats['num_collapse'] = len(c_ops)

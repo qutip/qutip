@@ -18,11 +18,14 @@ class MultiTrajSolver:
     optionsclass = None
     odeoptionsclass = SolverOdeOptions
 
-    def __init__(self):
+    def __init__(self, rhs, *, e_ops=None, options=None):
+        self.rhs = rhs
+        self.stats = {}
+        self.options = options
+        self.e_ops = e_ops
         self.seed_sequence = np.random.SeedSequence()
         self.traj_solver = False
         self.result = None
-        raise NotImplementedError
 
     def _read_seed(self, seed, ntraj):
         """
@@ -123,14 +126,18 @@ class MultiTrajSolver:
         if options is not None:
             self.options = options
 
-        self.result = (MultiTrajResult(e_ops or self.e_ops)
-                       if self.options.mcsolve['keep_runs_results']
-                       else MultiTrajResultAveraged(e_ops or self.e_ops))
+        result_cls = (MultiTrajResult
+            if self.options.mcsolve['keep_runs_results']
+            else MultiTrajResultAveraged)
+
+        self.result = result_cls(
+            e_ops or self.e_ops, self._c_ops, target_tol=target_tol
+        )
+
         self._run_args = state0, tlist
         self._run_kwargs = {'args': args, 'e_ops': e_ops or self.e_ops}
         self.result.stats['run time'] = 0
-        self.add_trajectories(ntraj, timeout=timeout,
-                              target_tol=target_tol, seed=seed)
+        self.add_trajectories(ntraj, timeout=timeout, seed=seed)
         return self.result
 
     def add_trajectories(self, ntraj, *,
@@ -175,7 +182,7 @@ class MultiTrajSolver:
         if timeout:
             map_kw['job_timeout'] = timeout
         if target_tol:
-            self.result._set_check_expect_tol(target_tol)
+            self.result._set_expect_tol(target_tol)
         map_func(
             self._traj_solver_class(self)._run, seeds,
             self._run_args, self._run_kwargs,
