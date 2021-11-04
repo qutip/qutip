@@ -136,6 +136,17 @@ class BathExponent:
         self.sigma_bar_k_offset = sigma_bar_k_offset
         self.tag = tag
 
+    def __repr__(self):
+        dims = getattr(self.Q, "dims", None)
+        return (
+            f"<{self.__class__.__name__} type={self.type.name}"
+            f" dim={self.dim!r}"
+            f" Q.dims={dims!r}"
+            f" ck={self.ck!r} vk={self.vk!r} ck2={self.ck2!r}"
+            f" sigma_bar_k_offset={self.sigma_bar_k_offset!r}"
+            f" tag={self.tag!r}>"
+        )
+
 
 class Bath:
     """
@@ -333,6 +344,10 @@ class DrudeLorentzBath(BosonicBath):
         terminator is a Liouvillian term, so it's dimensions are those of
         a superoperator of ``Q``.
 
+    combine : bool, default True
+        Whether to combine exponents with the same frequency (and coupling
+        operator). See :meth:`BosonicBath.combine` for details.
+
     tag : optional, str, tuple or any other object
         A label for the bath exponents (for example, the name of the
         bath). It defaults to None but can be set to help identify which
@@ -347,7 +362,7 @@ class DrudeLorentzBath(BosonicBath):
         liouvillian (i.e. ``liouvillian(H_sys)``).
     """
     def __init__(
-        self, Q, lam, T, Nk, gamma, terminator=False, tag=None,
+        self, Q, lam, T, Nk, gamma, terminator=False, combine=True, tag=None,
     ):
         ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(
             lam=lam,
@@ -361,7 +376,9 @@ class DrudeLorentzBath(BosonicBath):
             )
         else:
             self.terminator = None
-        super().__init__(Q, ck_real, vk_real, ck_imag, vk_imag, tag=tag)
+        super().__init__(
+            Q, ck_real, vk_real, ck_imag, vk_imag, combine=combine, tag=tag,
+        )
 
     def _matsubara_terminator(self, Q, lam, gamma, Nk, T):
         """ Calculate the hierarchy terminator term for the Liouvillian. """
@@ -437,12 +454,16 @@ class DrudeLorentzPadeBath(BosonicBath):
     gamma : float
         Bath spectral density cutoff frequency.
 
+    combine : bool, default True
+        Whether to combine exponents with the same frequency (and coupling
+        operator). See :meth:`BosonicBath.combine` for details.
+
     tag : optional, str, tuple or any other object
         A label for the bath exponents (for example, the name of the
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
-    def __init__(self, Q, lam, T, Nk, gamma, tag=None):
+    def __init__(self, Q, lam, T, Nk, gamma, combine=True, tag=None):
         eta_p, gamma_p = self._corr(lam=lam, gamma=gamma, T=T, Nk=Nk)
 
         ck_real = [np.real(eta) for eta in eta_p]
@@ -452,7 +473,9 @@ class DrudeLorentzPadeBath(BosonicBath):
         ck_imag = [np.imag(eta_p[0])]
         vk_imag = [gamma_p[0]]
 
-        super().__init__(Q, ck_real, vk_real, ck_imag, vk_imag, tag=tag)
+        super().__init__(
+            Q, ck_real, vk_real, ck_imag, vk_imag, combine=combine, tag=tag,
+        )
 
     def _delta(self, i, j):
         return 1.0 if i == j else 0.0
