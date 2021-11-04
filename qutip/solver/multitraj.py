@@ -5,6 +5,7 @@ from .parallel import get_map
 from time import time
 from .solver_base import Solver
 import numpy as np
+from copy import copy
 
 
 class MultiTrajSolver:
@@ -53,11 +54,15 @@ class MultiTrajSolver:
         if seed is None:
             seeds = self.seed_sequence.spawn(ntraj)
         elif isinstance(seed, np.random.SeedSequence):
-            seeds = seed.spawn(ntraj)
+            seeds = copy(seed).spawn(ntraj)
         elif not isinstance(seed, list):
             seeds = np.random.SeedSequence(seed).spawn(ntraj)
         elif isinstance(seed, list) and len(seed) >= ntraj:
-            seeds = [np.random.SeedSequence(seed_) for seed_ in seed[:ntraj]]
+            seeds = [
+                seed_  if isinstance(seed_, np.random.SeedSequence)
+                else np.random.SeedSequence(seed_)
+                for seed_ in seed[:ntraj]
+            ]
         else:
             raise ValueError("A seed list must be longer than ntraj")
         return seeds
@@ -250,7 +255,7 @@ class MultiTrajSolver:
         if target_tol:
             self.result._set_expect_tol(target_tol)
         map_func(
-            self._traj_solver_class(self)._run, seeds,
+            self._traj_solver_class(self, options=self.options)._run, seeds,
             self._run_args, self._run_kwargs,
             reduce_func=self.result.add, map_kw=map_kw,
             progress_bar=self.options["progress_bar"],
@@ -301,9 +306,8 @@ class _TrajectorySolver(Solver):
         self.options = options
         self.stats = {"preparation time": 0}
         self._state_metadata = {}
-
         if self.options.mcsolve['BitGenerator']:
-            if hasattr(np_rng, self.options.mcsolve['BitGenerator']):
+            if hasattr(np.random, self.options.mcsolve['BitGenerator']):
                 self.bit_gen = getattr(np.random,
                                        self.options.mcsolve['BitGenerator'])
             else:
@@ -435,7 +439,7 @@ class _TrajectorySolver(Solver):
             # generator for debug purpose.
             self.generator = seed
             return
-        if isinstance(seed, int):
+        if not isinstance(seed, np.random.SeedSequence):
             seed = np.random.SeedSequence(seed)
         self.generator = np.random.Generator(self.bit_gen(seed))
 

@@ -94,7 +94,7 @@ class IntegratorScipyZvode(Integrator):
     def mcstep(self, t, copy=True):
         if self._ode_solver.t == t:
             pass
-        elif self._ode_solver.t < t:
+        elif self._ode_solver._integrator.rwork[12] < t:
             self._back = self._ode_solver.t
             self._ode_solver.integrate(t, step=True)
         elif self._back <= t:

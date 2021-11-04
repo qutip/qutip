@@ -8,6 +8,7 @@ from ..core import QobjEvo, spre, spost
 from .options import SolverOptions
 from .multitraj import MultiTrajSolver, _TrajectorySolver
 from .mesolve import mesolve
+import qutip.core.data as _data
 from time import time
 
 
@@ -84,15 +85,17 @@ def mcsolve(H, psi0, tlist, c_ops=None, e_ops=None, ntraj=1,
         return mesolve(H, psi0, tlist, e_ops=e_ops, args=args, options=options)
 
     if isinstance(ntraj, list):
-        options = copy(options) or SolverOptions
+        options = copy(options) or SolverOptions()
         options.mcsolve['keep_runs_results'] = True
-    max_ntraj = max(ntraj)
+        max_ntraj = max(ntraj)
+    else:
+        max_ntraj = ntraj
 
     mc = McSolver(H, c_ops, e_ops=e_ops, options=options)
     result = mc.run(psi0, tlist=tlist, ntraj=max_ntraj,
                    seed=seeds, target_tol=target_tol)
     if isinstance(ntraj, list):
-        result.expect = [expect_traj_avg(N) for N in ntraj]
+        result.traj_batch = ntraj
     return result
 
 

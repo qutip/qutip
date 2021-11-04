@@ -78,7 +78,7 @@ def serial_map(task, values, task_args=None, task_kwargs=None, *,
             remaining_ntraj = reduce_func(result)
         else:
             results.append(result)
-        if remaining_ntraj <= 0:
+        if remaining_ntraj is not None and remaining_ntraj <= 0:
             end_time = 0
         progress_bar.update(n)
     progress_bar.finished()
@@ -147,7 +147,7 @@ def parallel_map(task, values, task_args=None, task_kwargs=None, *,
                 remaining_ntraj = reduce_func(result)
             else:
                 results.append(result)
-            if remaining_ntraj <= 0:
+            if remaining_ntraj is not None and remaining_ntraj <= 0:
                 job_time = 0
             progress_bar.update()
 
@@ -232,7 +232,7 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None, *,
                 remaining_ntraj = reduce_func(result)
             else:
                 results.append(result)
-            if remaining_ntraj <= 0:
+            if remaining_ntraj is not None and remaining_ntraj <= 0:
                 job_time = 0
             progress_bar.update()
 

@@ -53,7 +53,7 @@ class StatesAndExpectOutputCase:
         options = SolverOptions(store_states=True)
         result = mcsolve(hamiltonian, self.state, self.times, args=args,
                                c_ops=c_ops, e_ops=self.e_ops, ntraj=self.ntraj,
-                               options=options, target_tol=0.01)
+                               options=options, target_tol=0.05)
         self._assert_expect(result, expected, tol)
         self._assert_states(result, expected, tol)
 
@@ -70,7 +70,8 @@ class TestNoCollapse(StatesAndExpectOutputCase):
         hamiltonian_types = [
             (self.h, "Qobj"),
             ([self.h], "list"),
-            (qutip.QobjEvo([self.h, [self.h, '0']]), "QobjEvo"),
+            (qutip.QobjEvo([self.h, [self.h, _return_constant]],
+                           args= {'constant': 0}), "QobjEvo"),
             (callable_qobj(self.h), "callable"),
         ]
         cases = [pytest.param(hamiltonian, {}, [], [expect], tol, id=id)
@@ -104,7 +105,7 @@ class TestConstantCollapse(StatesAndExpectOutputCase):
     collapse operator.
     """
     def pytest_generate_tests(self, metafunc):
-        tol = 0.05
+        tol = 0.25
         coupling = 0.2
         expect = (qutip.expect(self.e_ops[0], self.state)
                   * np.exp(-coupling * self.times))
@@ -128,7 +129,7 @@ class TestTimeDependentCollapse(StatesAndExpectOutputCase):
     are time-dependent.
     """
     def pytest_generate_tests(self, metafunc):
-        tol = 0.05
+        tol = 0.25
         coupling = 0.2
         expect = (qutip.expect(self.e_ops[0], self.state)
                   * np.exp(-coupling * (1 - np.exp(-self.times))))
@@ -163,7 +164,7 @@ def test_stored_collapse_operators_and_times():
     assert all(col in [0, 1] for col in result.col_which[0])
 
 
-def test_expectation_dtype(options):
+def test_expectation_dtype():
     # We're just testing the output value, so it's important whether certain
     # things are complex or real, but not what the magnitudes of constants are.
     focks = 5
@@ -198,13 +199,11 @@ class TestSeeds:
         np.sqrt(2*dampings[2]) * qutip.tensor(qutip.qeye(sizes[:2]), a[2]),
     ]
 
-    @pytest.mark.xfail(reason="current limitation of SolverOptions")
     def test_seeds_can_be_reused(self):
         args = (self.H, self.state, self.times)
         kwargs = {'c_ops': self.c_ops, 'ntraj': self.ntraj}
         first = mcsolve(*args, **kwargs)
-        options = SolverOptions(seeds=first.seeds)
-        second = mcsolve(*args, options=options, **kwargs)
+        second = mcsolve(*args, seeds=first.seeds, **kwargs)
         for first_t, second_t in zip(first.col_times, second.col_times):
             np.testing.assert_equal(first_t, second_t)
         for first_w, second_w in zip(first.col_which, second.col_which):
@@ -215,6 +214,36 @@ class TestSeeds:
         kwargs = {'c_ops': self.c_ops, 'ntraj': self.ntraj}
         first = mcsolve(*args, **kwargs)
         second = mcsolve(*args, **kwargs)
+        assert not all(np.array_equal(first_t, second_t)
+                       for first_t, second_t in zip(first.col_times,
+                                                    second.col_times))
+        assert not all(np.array_equal(first_w, second_w)
+                       for first_w, second_w in zip(first.col_which,
+                                                    second.col_which))
+
+    @pytest.mark.parametrize('seed', [1, np.random.SeedSequence(2)])
+    def test_seed_type(self, seed):
+        args = (self.H, self.state, self.times)
+        kwargs = {'c_ops': self.c_ops, 'ntraj': self.ntraj}
+        first = mcsolve(*args, seeds=seed, **kwargs)
+        second = mcsolve(*args, seeds=seed, **kwargs)
+        for f_seed, s_seed in zip(first.seeds, second.seeds):
+            assert f_seed.state == s_seed.state
+
+    def test_bad_seed(self):
+        args = (self.H, self.state, self.times)
+        kwargs = {'c_ops': self.c_ops, 'ntraj': self.ntraj}
+        with pytest.raises(ValueError):
+            first = mcsolve(*args, seeds=[1], **kwargs)
+
+    def test_alternative_generator(self):
+        args = (self.H, self.state, self.times)
+        kwargs = {'c_ops': self.c_ops, 'ntraj': self.ntraj}
+        first = mcsolve(*args, seeds=1, options={'BitGenerator': 'MT19937'},
+                        **kwargs)
+        second = mcsolve(*args, seeds=1, **kwargs)
+        for f_seed, s_seed in zip(first.seeds, second.seeds):
+            assert f_seed.state == s_seed.state
         assert not all(np.array_equal(first_t, second_t)
                        for first_t, second_t in zip(first.col_times,
                                                     second.col_times))

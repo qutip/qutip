@@ -271,6 +271,8 @@ class MultiTrajResult:
         self.num_c_ops = len(c_ops)
         self.tlist = None
         self._target_ntraj = ntraj
+        self.traj_batch = 0
+        self.seeds = []
         self.stats = {
             "num_expect": self.num_e_ops,
             "solver": "",
@@ -285,6 +287,8 @@ class MultiTrajResult:
         tolerance.
         """
         self.trajectories.append(one_traj)
+        if hasattr(one_traj, 'seed'):
+            self.seeds.append(one_traj.seed)
         if self._target_tols is not None:
             num_traj = len(self.trajectories)
             if num_traj >= self.next_check:
@@ -526,7 +530,10 @@ class MultiTrajResult:
 
     @property
     def expect(self):
-        return self.average_expect
+        if self.traj_batch:
+            return [self.expect_traj_avg(N) for N in self.traj_batch]
+        else:
+            return self.average_expect
 
     @property
     def final_state(self):
@@ -628,6 +635,7 @@ class MultiTrajResultAveraged:
         self._num = 0
         self._collapse = []
         self.seeds = []
+        self.traj_batch = 0
         self.stats = {
             "num_expect": self.num_e_ops,
             "solver": "",
@@ -843,7 +851,10 @@ class MultiTrajResultAveraged:
 
     @property
     def expect(self):
-        return self.average_expect
+        if self.traj_batch:
+            return [self.expect_traj_avg(N) for N in self.traj_batch]
+        else:
+            return self.average_expect
 
     @property
     def final_state(self):
