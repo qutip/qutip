@@ -19,7 +19,7 @@ class callable_qobj:
         self.coeff = coeff
 
     def __call__(self, t, args):
-        if coeff is not None:
+        if self.coeff is not None:
             return self.oper * self.coeff(t, args)
         return self.oper
 
@@ -50,7 +50,7 @@ class StatesAndExpectOutputCase:
             np.testing.assert_allclose(test, expected_part, rtol=tol)
 
     def test_states_and_expect(self, hamiltonian, args, c_ops, expected, tol):
-        options = qutip.SolverOptions(store_states=True)
+        options = SolverOptions(store_states=True)
         result = mcsolve(hamiltonian, self.state, self.times, args=args,
                                c_ops=c_ops, e_ops=self.e_ops, ntraj=self.ntraj,
                                options=options, target_tol=0.01)
@@ -86,7 +86,7 @@ class TestNoCollapse(StatesAndExpectOutputCase):
     # test cases, this is just testing the single-output behaviour.
 
     def test_states_only(self, hamiltonian, args, c_ops, expected, tol):
-        options = qutip.SolverOptions(store_states=None)
+        options = SolverOptions(store_states=None)
         result = mcsolve(hamiltonian, self.state, self.times, args=args,
                                c_ops=c_ops, e_ops=[], ntraj=self.ntraj,
                                options=options)
@@ -163,12 +163,6 @@ def test_stored_collapse_operators_and_times():
     assert all(col in [0, 1] for col in result.col_which[0])
 
 
-@pytest.mark.parametrize('options', [
-    pytest.param(qutip.SolverOptions(average_expect=True),
-                 id="average_expect=True"),
-    pytest.param(qutip.SolverOptions(average_states=False),
-                 id="average_states=False"),
-])
 def test_expectation_dtype(options):
     # We're just testing the output value, so it's important whether certain
     # things are complex or real, but not what the magnitudes of constants are.
@@ -181,8 +175,7 @@ def test_expectation_dtype(options):
     times = np.linspace(0, 10, 5)
     c_ops = [a, sm]
     e_ops = [a.dag()*a, sm.dag()*sm, a]
-    data = mcsolve(H, state, times, c_ops, e_ops, ntraj=5,
-                         options=options)
+    data = mcsolve(H, state, times, c_ops, e_ops, ntraj=5)
     assert isinstance(data.expect[0][1], float)
     assert isinstance(data.expect[1][1], float)
     assert isinstance(data.expect[2][1], complex)
@@ -210,7 +203,7 @@ class TestSeeds:
         args = (self.H, self.state, self.times)
         kwargs = {'c_ops': self.c_ops, 'ntraj': self.ntraj}
         first = mcsolve(*args, **kwargs)
-        options = qutip.SolverOptions(seeds=first.seeds)
+        options = SolverOptions(seeds=first.seeds)
         second = mcsolve(*args, options=options, **kwargs)
         for first_t, second_t in zip(first.col_times, second.col_times):
             np.testing.assert_equal(first_t, second_t)

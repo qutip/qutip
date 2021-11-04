@@ -311,7 +311,7 @@ class _TrajectorySolver(Solver):
         else:
             self.bit_gen = np.random.PCG64DXSM
 
-    def start(self, state0, t0, seed=None *, safe_ODE=False):
+    def start(self, state0, t0, seed=None, *, safe_ODE=False):
         """
         Set the initial state and time for a step evolution.
         ``options`` for the evolutions are read at this step.
@@ -357,45 +357,45 @@ class _TrajectorySolver(Solver):
 
     def run(self, state0, tlist, *,
             args=None, e_ops=None, options=None, seed=None):
-            """
-            Do the evolution of the Quantum system.
+        """
+        Do the evolution of the Quantum system.
 
-            For a ``state0`` at time ``tlist[0]`` do the evolution as directed
-            by ``rhs`` and for each time in ``tlist`` store the state and/or
-            expectation values in a :cls:`Result`. The evolution method and
-            stored results are determined by ``options``.
+        For a ``state0`` at time ``tlist[0]`` do the evolution as directed
+        by ``rhs`` and for each time in ``tlist`` store the state and/or
+        expectation values in a :cls:`Result`. The evolution method and
+        stored results are determined by ``options``.
 
-            Parameters
-            ----------
-            state0 : :class:`Qobj`
-                Initial state of the evolution.
+        Parameters
+        ----------
+        state0 : :class:`Qobj`
+            Initial state of the evolution.
 
-            tlist : list of double
-                Time for which to save the results (state and/or expect) of the
-                evolution. The first element of the list is the initial time of
-                the evolution. Each times of the list must be increasing, but
-                does not need to be uniformy distributed.
+        tlist : list of double
+            Time for which to save the results (state and/or expect) of the
+            evolution. The first element of the list is the initial time of
+            the evolution. Each times of the list must be increasing, but
+            does not need to be uniformy distributed.
 
-            args : dict, optional {None}
-                Change the ``args`` of the rhs for the evolution.
+        args : dict, optional {None}
+            Change the ``args`` of the rhs for the evolution.
 
-            e_ops : list {None}
-                List of Qobj, QobjEvo or callable to compute the expectation
-                values. Function[s] must have the signature
+        e_ops : list {None}
+            List of Qobj, QobjEvo or callable to compute the expectation
+            values. Function[s] must have the signature
                 f(t : float, state : Qobj) -> expect.
 
-            options : SolverOptions {None}
-                Options for the solver
+        options : SolverOptions {None}
+            Options for the solver
 
-            seed : int, SeedSequence
-                Seed for the random number generator.
+        seed : int, SeedSequence
+            Seed for the random number generator.
 
-            Return
-            ------
-            results : :class:`qutip.solver.Result`
-                Results of the evolution. States and/or expect will be saved. You
-                can control the saved data in the options.
-            """
+        Return
+        ------
+        results : :class:`qutip.solver.Result`
+            Results of the evolution. States and/or expect will be saved. You
+            can control the saved data in the options.
+        """
         _time_start = time()
         self._set_generator(seed)
         if options is not None:

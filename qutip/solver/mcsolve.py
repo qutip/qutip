@@ -3,20 +3,11 @@ __all__ = ['mcsolve', "McSolver"]
 import warnings
 
 import numpy as np
-import numpy.random as np_rng
-from numpy.random import Generator, SeedSequence
-from scipy.integrate import ode
-from scipy.integrate._ode import zvode
-from ..core import (Qobj, QobjEvo, spre, spost, liouvillian, isket, ket2dm,
-                    stack_columns, unstack_columns)
-from ..core.data import to
-from ..core import data as _data
+from copy import copy
+from ..core import QobjEvo, spre, spost
 from .options import SolverOptions
-from .result import Result, MultiTrajResult, MultiTrajResultAveraged
-from .solver_base import Solver
 from .multitraj import MultiTrajSolver, _TrajectorySolver
-from .sesolve import sesolve
-from .integrator import Integrator
+from .mesolve import mesolve
 from time import time
 
 
@@ -92,9 +83,17 @@ def mcsolve(H, psi0, tlist, c_ops=None, e_ops=None, ntraj=1,
     if len(c_ops) == 0:
         return mesolve(H, psi0, tlist, e_ops=e_ops, args=args, options=options)
 
+    if isinstance(ntraj, list):
+        options = copy(options) or SolverOptions
+        options.mcsolve['keep_runs_results'] = True
+    max_ntraj = max(ntraj)
+
     mc = McSolver(H, c_ops, e_ops=e_ops, options=options)
-    return mc.run(psi0, tlist=tlist, ntraj=ntraj,
-                  seed=seeds, target_tol=target_tol)
+    result = mc.run(psi0, tlist=tlist, ntraj=max_ntraj,
+                   seed=seeds, target_tol=target_tol)
+    if isinstance(ntraj, list):
+        result.expect = [expect_traj_avg(N) for N in ntraj]
+    return result
 
 
 class _McTrajectorySolver(_TrajectorySolver):
