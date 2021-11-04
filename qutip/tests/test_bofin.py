@@ -346,6 +346,21 @@ class TestHierarchyADOs:
         assert ados.prev((1, 1), 1) == (1, 0)
         assert ados.prev((0, 2), 1) == (0, 1)
 
+    def test_filter_by_level(self):
+        ados = HierarchyADOs(self.mk_exponents([2, 3]), cutoff=2)
+        assert ados.filter_by_level(0) == [
+            (0, (0, 0)),
+        ]
+        assert ados.filter_by_level(1) == [
+            (1, (0, 1)),
+            (3, (1, 0)),
+        ]
+        assert ados.filter_by_level(2) == [
+            (2, (0, 2)),
+            (4, (1, 1))
+        ]
+        assert ados.filter_by_level(3) == []
+
 
 class TestBosonicHEOMSolver:
     @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
