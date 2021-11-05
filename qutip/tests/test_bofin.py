@@ -375,10 +375,16 @@ class TestHierarchyADOs:
         assert ados.filter(dims=[2]) == [
             (1, 0),
         ]
+        assert ados.filter(level=1, dims=[2]) == [
+            (1, 0),
+        ]
         assert ados.filter(dims=[3]) == [
             (0, 1),
         ]
         assert ados.filter(dims=[2, 3]) == [
+            (1, 1),
+        ]
+        assert ados.filter(level=2, dims=[2, 3]) == [
             (1, 1),
         ]
         assert ados.filter(dims=[3, 3]) == [
