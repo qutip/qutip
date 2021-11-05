@@ -772,14 +772,86 @@ class HierarchyADOs:
 
         Returns
         -------
-        list of (idx, label)
-            The ADO index and lable for each ADO.
+        list of tuple
+            The ADO lable for each ADO.
         """
-        results = []
-        for idx, label in enumerate(self.labels):
-            if sum(label) == level:
-                results.append((idx, label))
-        return results
+        return [
+            label for label in self.labels
+            if sum(label) == level
+        ]
+
+    def filter_by_exponents(self, tags=None, dims=None, types=None):
+        """
+        Return a list of ADO indexes and labels for ADOs whose "excitations"
+        match the given patterns.
+
+        Each of the filter parameters (tags, dims, types) may be either
+        unspecified (None) or a list. Unspecified parameters are excluded
+        from the filtering.
+
+        All specified filter parameters must be lists of the same length.
+        Each position in the lists describes a particular excitation and
+        any exponent that matches the filters may supply that excitation.
+        The level of all labels returned is thus equal to the length of
+        the filter parameter lists.
+
+        Within a filter parameter list, items that are None represent
+        wildcards and match any value of that exponent attribute
+
+        Parameters
+        ----------
+        tags : list of object or None
+            Filter parameter that matches the ``.tag`` attribute of
+            exponents.
+        dims : list of int
+            Filter parameter that matches the ``.dim`` attribute of
+            exponents.
+        types : list of BathExponent types or list of str
+            Filter parameter that matches the ``.type`` attribute
+            of exponents. Types may be supplied by name (e.g. "R", "I", "+")
+            instead of by the actual type (e.g. ``BathExponent.types.R``).
+
+        Returns
+        -------
+        list of tuple
+            The ADO label for each ADO whose exponent excitations
+            (i.e. label) match the given filters.
+        """
+        if types is not None:
+            types = [
+                t if t is None or isinstance(t, BathExponent.types)
+                else BathExponent.types[t]
+                for t in types
+            ]
+        filters = [("tag", tags), ("type", types), ("dim", dims)]
+        filters = [(attr, f) for attr, f in filters if f is not None]
+        n = max((len(f) for _, f in filters), default=0)
+        if any(len(f) != n for _, f in filters):
+            raise ValueError(
+                "The tags, dims and types filters must all be the same length."
+            )
+        if n > self.cutoff:
+            raise ValueError(
+                f"The cutoff for the hiearchy is {self.cutoff} but {n} levels"
+                " of excitation filters were given."
+            )
+
+        filtered_dims = [1] * len(self.exponents)
+        for lvl in range(n):
+            level_filters = [
+                (attr, f[lvl]) for attr, f in filters
+                if f[lvl] is not None
+            ]
+            for j, exp in enumerate(self.exponents):
+                if any(getattr(exp, attr) != f for attr, f in level_filters):
+                    continue
+                filtered_dims[j] += 1
+                filtered_dims[j] = min(self.dims[j], filtered_dims[j])
+
+        return [
+            label for label in state_number_enumerate(filtered_dims, n)
+            if sum(label) == n
+        ]
 
 
 class HierarchyADOsState:

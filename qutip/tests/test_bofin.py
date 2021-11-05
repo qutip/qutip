@@ -349,17 +349,56 @@ class TestHierarchyADOs:
     def test_filter_by_level(self):
         ados = HierarchyADOs(self.mk_exponents([2, 3]), cutoff=2)
         assert ados.filter_by_level(0) == [
-            (0, (0, 0)),
+            (0, 0),
         ]
         assert ados.filter_by_level(1) == [
-            (1, (0, 1)),
-            (3, (1, 0)),
+            (0, 1),
+            (1, 0),
         ]
         assert ados.filter_by_level(2) == [
-            (2, (0, 2)),
-            (4, (1, 1))
+            (0, 2),
+            (1, 1),
         ]
         assert ados.filter_by_level(3) == []
+
+    def test_filter_by_exponents(self):
+        ados = HierarchyADOs(self.mk_exponents([2, 3]), cutoff=2)
+        assert ados.filter_by_exponents() == [
+            (0, 0),
+        ]
+        assert ados.filter_by_exponents(dims=[2]) == [
+            (1, 0),
+        ]
+        assert ados.filter_by_exponents(dims=[3]) == [
+            (0, 1),
+        ]
+        assert ados.filter_by_exponents(dims=[2, 3]) == [
+            (1, 1),
+        ]
+        assert ados.filter_by_exponents(dims=[3, 3]) == [
+            (0, 2),
+        ]
+        assert ados.filter_by_exponents(types=["I"]) == [
+            (0, 1),
+            (1, 0),
+        ]
+        assert ados.filter_by_exponents(types=["I", "I"]) == [
+            (0, 2),
+            (1, 1),
+        ]
+
+        with pytest.raises(ValueError) as err:
+            ados.filter_by_exponents(types=[], dims=[2])
+        assert str(err.value) == (
+            "The tags, dims and types filters must all be the same length."
+        )
+
+        with pytest.raises(ValueError) as err:
+            ados.filter_by_exponents(dims=[2, 2, 2])
+        assert str(err.value) == (
+            "The cutoff for the hiearchy is 2 but 3 levels of excitation"
+            " filters were given."
+        )
 
 
 class TestBosonicHEOMSolver:
@@ -591,16 +630,16 @@ class TestFermionicHEOMSolver:
 
         rhossHP2, fullssP2 = resultHEOM2.steady_state()
 
-        def level_one_auxillaries(heom, full):
-            results = [None] * len(heom.ados.exponents)
-            for idx, label in heom.ados.filter_by_level(level=1):
-                aux = full.extract(idx)
+        def level_one_auxillaries(full):
+            results = [None] * len(full.exponents)
+            for label in full.filter_by_level(level=1):
+                aux = full.extract(label)
                 k = label.index(1)
-                exp = heom.ados.exponents[k]
+                exp = full.exponents[k]
                 results[k] = (aux, exp)
             return results
 
-        l1_aux = level_one_auxillaries(resultHEOM2, fullssP2)
+        l1_aux = level_one_auxillaries(fullssP2)
 
         # right hand modes are the first Kk modes in ck/vk_plus and ck/vk_minus
         # and thus the first 2 * Kk exponents
