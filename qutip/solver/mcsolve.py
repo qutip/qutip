@@ -91,8 +91,8 @@ def mcsolve(H, psi0, tlist, c_ops=None, e_ops=None, ntraj=1,
     else:
         max_ntraj = ntraj
 
-    mc = McSolver(H, c_ops, e_ops=e_ops, options=options)
-    result = mc.run(psi0, tlist=tlist, ntraj=max_ntraj,
+    mc = McSolver(H, c_ops, options=options)
+    result = mc.run(psi0, tlist=tlist, ntraj=max_ntraj, e_ops=e_ops,
                    seed=seeds, target_tol=target_tol)
     if isinstance(ntraj, list):
         result.traj_batch = ntraj
@@ -106,11 +106,11 @@ class _McTrajectorySolver(_TrajectorySolver):
     name = "mcsolve"
     _avail_integrators = {}
 
-    def __init__(self, parent, *, e_ops=None, options=None):
+    def __init__(self, parent, *, options=None):
         rhs = parent.rhs
         self._c_ops = parent._c_ops
         self._n_ops = parent._n_ops
-        super().__init__(rhs, e_ops=e_ops, options=options)
+        super().__init__(rhs, options=options)
         self.norm_steps = self.options.mcsolve['norm_steps']
         self.norm_t_tol = self.options.mcsolve['norm_t_tol']
         self.norm_tol = self.options.mcsolve['norm_tol']
@@ -247,11 +247,6 @@ class McSolver(MultiTrajSolver):
         A ``list`` of collapse operators. They must be operators even if ``H``
         is a superoperator.
 
-    e_ops : ``list``, [optional]
-        A ``list`` of operator as Qobj, QobjEvo or callable with signature of
-        (t, state: Qobj) for calculating expectation values. When no ``e_ops``
-        are given, the solver will default to save the states.
-
     options : SolverOptions, [optional]
         Options for the evolution.
 
@@ -265,7 +260,7 @@ class McSolver(MultiTrajSolver):
     name = "mcsolve"
     optionsclass = SolverOptions
 
-    def __init__(self, H, c_ops, *, e_ops=None, options=None, seed=None):
+    def __init__(self, H, c_ops, *, options=None, seed=None):
         _time_start = time()
 
         c_ops = [QobjEvo(c_op) for c_op in c_ops]
@@ -283,7 +278,7 @@ class McSolver(MultiTrajSolver):
             for n_op in self._n_ops:
                 rhs -= 0.5 * n_op
 
-        super().__init__(rhs, e_ops=e_ops, options=options)
+        super().__init__(rhs, options=options)
 
         self.stats['solver'] = "MonteCarlo Evolution"
         self.stats['num_collapse'] = len(c_ops)

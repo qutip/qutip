@@ -164,10 +164,68 @@ def test_stored_collapse_operators_and_times():
     assert all(col in [0, 1] for col in result.col_which[0])
 
 
-def test_expectation_dtype():
+@pytest.mark.parametrize('keep_runs_results', [True, False])
+def test_states_outputs(keep_runs_results):
     # We're just testing the output value, so it's important whether certain
     # things are complex or real, but not what the magnitudes of constants are.
     focks = 5
+    ntraj = 5
+    a = qutip.tensor(qutip.destroy(focks), qutip.qeye(2))
+    sm = qutip.tensor(qutip.qeye(focks), qutip.sigmam())
+    H = 1j*a.dag()*sm + a
+    H = H + H.dag()
+    state = qutip.basis([focks, 2], [0, 1])
+    times = np.linspace(0, 10, 21)
+    c_ops = [a, sm]
+    data = mcsolve(H, state, times, c_ops, ntraj=ntraj,
+                   options={"keep_runs_results": keep_runs_results})
+
+    assert len(data.states) == len(times)
+    assert isinstance(data.states[0], qutip.Qobj)
+    assert data.states[0].norm() == pytest.approx(1.)
+    assert data.states[0].isoper
+
+    assert len(data.average_states) == len(times)
+    assert isinstance(data.average_states[0], qutip.Qobj)
+    assert data.average_states[0].norm() == pytest.approx(1.)
+    assert data.average_states[0].isoper
+
+    assert isinstance(data.final_state, qutip.Qobj)
+    assert data.final_state.norm() == pytest.approx(1.)
+    assert data.final_state.isoper
+
+    assert isinstance(data.average_final_state, qutip.Qobj)
+    assert data.average_final_state.norm() == pytest.approx(1.)
+    assert data.average_final_state.isoper
+
+    if keep_runs_results:
+        assert len(data.runs_states) == ntraj
+        assert len(data.runs_states[0]) == len(times)
+        assert isinstance(data.runs_states[0][0], qutip.Qobj)
+        assert data.runs_states[0][0].norm() == pytest.approx(1.)
+        assert data.runs_states[0][0].isket
+
+        assert len(data.runs_final_states) == ntraj
+        assert isinstance(data.runs_final_states[0], qutip.Qobj)
+        assert data.runs_final_states[0].norm() == pytest.approx(1.)
+        assert data.runs_final_states[0].isket
+
+    assert isinstance(data.steady_state, qutip.Qobj)
+    assert data.steady_state.norm() == pytest.approx(1.)
+    assert data.steady_state.isoper
+
+    np.testing.assert_allclose(times, data.times)
+    assert data.num_traj == ntraj
+    assert data.num_expect == 0
+    assert data.num_collapse == len(c_ops)
+
+
+@pytest.mark.parametrize('keep_runs_results', [True, False])
+def test_expectation_outputs(keep_runs_results):
+    # We're just testing the output value, so it's important whether certain
+    # things are complex or real, but not what the magnitudes of constants are.
+    focks = 5
+    ntraj = 5
     a = qutip.tensor(qutip.destroy(focks), qutip.qeye(2))
     sm = qutip.tensor(qutip.qeye(focks), qutip.sigmam())
     H = 1j*a.dag()*sm + a
@@ -176,10 +234,31 @@ def test_expectation_dtype():
     times = np.linspace(0, 10, 5)
     c_ops = [a, sm]
     e_ops = [a.dag()*a, sm.dag()*sm, a]
-    data = mcsolve(H, state, times, c_ops, e_ops, ntraj=5)
+    data = mcsolve(H, state, times, c_ops, e_ops, ntraj=ntraj,
+                   options={"keep_runs_results": keep_runs_results})
     assert isinstance(data.expect[0][1], float)
     assert isinstance(data.expect[1][1], float)
     assert isinstance(data.expect[2][1], complex)
+    assert isinstance(data.std_expect[0][1], float)
+    assert isinstance(data.std_expect[1][1], float)
+    assert isinstance(data.std_expect[2][1], float)
+    assert isinstance(data.average_expect[0][1], float)
+    assert isinstance(data.average_expect[1][1], float)
+    assert isinstance(data.average_expect[2][1], complex)
+    if keep_runs_results:
+        assert len(data.runs_expect) == ntraj
+        assert isinstance(data.runs_expect[0][0][1], float)
+        assert isinstance(data.runs_expect[0][1][1], float)
+        assert isinstance(data.runs_expect[0][2][1], complex)
+        assert not np.all_close(data.std_expect[0][1],
+                                data.expect_traj_std(3)[0][1])
+    assert isinstance(data.photocurrent[0][1], float)
+    assert isinstance(data.photocurrent[1][1], float)
+    assert isinstance(data.photocurrent[2][1], float)
+    np.testing.assert_allclose(times, data.times)
+    assert data.num_traj == ntraj
+    assert data.num_expect == len(e_ops)
+    assert data.num_collapse == len(c_ops)
 
 
 class TestSeeds:

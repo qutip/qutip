@@ -55,7 +55,7 @@ class Result:
         self.collapse = None
 
         self._e_ops_dict = False
-        self._e_num = len(self._raw_e_ops)
+        self._e_num = len(self._raw_e_ops) if self._raw_e_ops else 0
         self._e_ops = []
         self.stats = {
             "num_expect": self._e_num,

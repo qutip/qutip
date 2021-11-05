@@ -26,22 +26,16 @@ class MultiTrajSolver:
 
     options : SolverOptions
         Options for the solver
-
-    e_ops : list
-        list of Qobj or QobjEvo to compute the expectation values.
-        Alternatively, function[s] with the signature f(t, state) -> expect
-        can be used.
     """
     _traj_solver_class = None
     name = "generic multi trajectory"
     optionsclass = SolverOptions
     odeoptionsclass = SolverOdeOptions
 
-    def __init__(self, rhs, *, e_ops=None, options=None):
+    def __init__(self, rhs, *, options=None):
         self.rhs = rhs
         self.stats = {}
         self.options = options
-        self.e_ops = e_ops
         self.seed_sequence = np.random.SeedSequence()
         self.traj_solver = False
         self.result = None
@@ -99,8 +93,7 @@ class MultiTrajSolver:
         self.traj_solvers = []
 
         for seed in seeds:
-            traj_solver = self._traj_solver_class(self, e_ops=self.e_ops,
-                                                  options=self.options)
+            traj_solver = self._traj_solver_class(self, options=self.options)
             traj_solver.start(state0, t0, seed=seed, safe_ODE=safe_ODE)
             self.traj_solvers.append(traj_solver)
 
@@ -137,8 +130,7 @@ class MultiTrajSolver:
         """
         Get a :cls:`Solver` for a single trajectory.
         """
-        return self._traj_solver_class(self, e_ops=self.e_ops,
-                                       options=self.options)
+        return self._traj_solver_class(self, options=self.options)
 
     def run(self, state0, tlist, ntraj=1, *, args=None, options=None,
             e_ops=None, timeout=0, target_tol=None, seed=None):
@@ -201,12 +193,10 @@ class MultiTrajSolver:
             if self.options.mcsolve['keep_runs_results']
             else MultiTrajResultAveraged)
 
-        self.result = result_cls(
-            e_ops or self.e_ops, self._c_ops, target_tol=target_tol
-        )
+        self.result = result_cls(e_ops, self._c_ops, target_tol=target_tol)
 
         self._run_args = state0, tlist
-        self._run_kwargs = {'args': args, 'e_ops': e_ops or self.e_ops}
+        self._run_kwargs = {'args': args, 'e_ops': e_ops}
         self.result.stats['run time'] = 0
         self.add_trajectories(ntraj, timeout=timeout, seed=seed)
         return self.result
@@ -298,12 +288,11 @@ class _TrajectorySolver(Solver):
     """
     name = "Generic trajectory solver"
 
-    def __init__(self, rhs, *, e_ops=None, options=None):
+    def __init__(self, rhs, *, options=None):
         if isinstance(rhs, (QobjEvo, Qobj)):
             self.rhs = QobjEvo(rhs)
         else:
             TypeError("The rhs must be a QobjEvo")
-        self.e_ops = e_ops
         self.options = options
         self.stats = {"preparation time": 0}
         self._state_metadata = {}
@@ -412,7 +401,7 @@ class _TrajectorySolver(Solver):
         self._integrator = self._get_integrator()
         self._integrator.set_state(tlist[0], _state)
 
-        result = Result(e_ops or self.e_ops, self.options.results,
+        result = Result(e_ops, self.options.results,
                         self.rhs.issuper, _state.shape[1]!=1)
         result.add(tlist[0], state0)
         for t in tlist[1:]:
