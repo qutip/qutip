@@ -174,21 +174,21 @@ class TestSeSolve():
         options = SolverOptions(progress_bar=None)
         solver_obj = SeSolver(qutip.QobjEvo([self.H0, [self.H1,'a']],
                                             args={'a': 1}),
-                              e_ops=[qutip.num(2)],
                               options=options)
-        res = solver_obj.run(qutip.basis(2,1), [0, 1, 2, 3], args={'a':0})
+        res = solver_obj.run(qutip.basis(2,1), [0, 1, 2, 3],
+                             e_ops=[qutip.num(2)], args={'a':0})
         np.testing.assert_allclose(res.expect[0], 1)
 
     def test_sesolver_pickling(self):
+        e_ops = [qutip.sigmax(), qutip.sigmay(), qutip.sigmaz()]
         options = SolverOptions(progress_bar=None)
         solver_obj = SeSolver(self.H0 + self.H1,
-                              e_ops=[qutip.sigmax(),
-                                     qutip.sigmay(),
-                                     qutip.sigmaz()],
                               options=options)
         copy = pickle.loads(pickle.dumps(solver_obj))
-        sx, sy, sz = solver_obj.run(qutip.basis(2,1), [0, 1, 2, 3]).expect
-        csx, csy, csz = solver_obj.run(qutip.basis(2,1), [0, 1, 2, 3]).expect
+        sx, sy, sz = solver_obj.run(qutip.basis(2,1), [0, 1, 2, 3],
+                                    e_ops=e_ops).expect
+        csx, csy, csz = solver_obj.run(qutip.basis(2,1), [0, 1, 2, 3],
+                                       e_ops=e_ops).expect
         np.testing.assert_allclose(sx, csx)
         np.testing.assert_allclose(sy, csy)
         np.testing.assert_allclose(sz, csz)
