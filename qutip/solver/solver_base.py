@@ -31,11 +31,6 @@ class Solver:
     options : SolverOptions
         Options for the solver
 
-    e_ops : list
-        list of Qobj or QobjEvo to compute the expectation values.
-        Alternatively, function[s] with the signature f(t, state) -> expect
-        can be used.
-
     attributes
     ----------
     rhs : Qobj, QobjEvo
@@ -44,11 +39,6 @@ class Solver:
 
     options : SolverOptions
         Options for the solver
-
-    e_ops : list
-        list of Qobj or QobjEvo to compute the expectation values.
-        Alternatively, function[s] with the signature f(t, state) -> expect
-        can be used.
 
     stats: dict
         Diverse statistics of the evolution.
@@ -65,12 +55,11 @@ class Solver:
     optionsclass = SolverOptions
     odeoptionsclass = SolverOdeOptions
 
-    def __init__(self, rhs, *, e_ops=None, options=None):
+    def __init__(self, rhs, *, options=None):
         if isinstance(rhs, (QobjEvo, Qobj)):
             self.rhs = QobjEvo(rhs)
         else:
             TypeError("The rhs must be a QobjEvo")
-        self.e_ops = e_ops
         self.options = options
         self.stats = {"preparation time": 0}
         self._state_metadata = {}
@@ -94,8 +83,8 @@ class Solver:
             raise TypeError(f"incompatible dimensions {self.rhs.dims}"
                             f" and {state.dims}")
 
-        if self.options.ode["State_data_type"]:
-            state = state.to(self.options.ode["State_data_type"])
+        if self.options.ode["state_data_type"]:
+            state = state.to(self.options.ode["state_data_type"])
 
         self._state_metadata = {
             'dims': state.dims,
@@ -162,7 +151,7 @@ class Solver:
         _time_start = time()
         _integrator.set_state(tlist[0], _data0)
         self.stats["preparation time"] += time() - _time_start
-        results = Result(e_ops or self.e_ops, self.options.results,
+        results = Result(e_ops, self.options.results,
                          self.rhs.issuper, _data0.shape[1]!=1)
         results.add(tlist[0], state0)
 
@@ -239,9 +228,9 @@ class Solver:
 
     def _get_integrator(self):
         """ Return the initialted integrator. """
-        if self.options.ode["Operator_data_type"]:
+        if self.options.ode["operator_data_type"]:
             self.rhs = self.rhs.to(
-                self.options.ode["Operator_data_type"]
+                self.options.ode["operator_data_type"]
             )
 
         method = self.options.ode["method"]

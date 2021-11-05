@@ -55,7 +55,7 @@ class Result:
         self.collapse = None
 
         self._e_ops_dict = False
-        self._e_num = 0
+        self._e_num = len(self._raw_e_ops)
         self._e_ops = []
         self.stats = {
             "num_expect": self._e_num,
@@ -85,8 +85,6 @@ class Result:
             elif callable(e):
                 self._e_ops.append(e)
             self._expects.append([])
-
-        self._e_num = len(e_ops)
 
     def _read_options(self, options, _super, oper_state):
         if options['store_states'] is not None:

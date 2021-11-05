@@ -71,8 +71,8 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None):
         is an empty list of `store_states=True` in options].
     """
     H = QobjEvo(H, args=args, tlist=tlist)
-    solver = SeSolver(H, e_ops=e_ops, options=options)
-    return solver.run(psi0, tlist)
+    solver = SeSolver(H, options=options)
+    return solver.run(psi0, tlist, e_ops=e_ops)
 
 
 class SeSolver(Solver):
@@ -87,12 +87,6 @@ class SeSolver(Solver):
         list of [:class:`Qobj`, :class:`Coefficient`] or callable that can be
         made into :class:`QobjEvo` are also accepted.
 
-    e_ops : :class:`qutip.qobj`, callable, or list.
-        Single operator or list of operators for which to evaluate
-        expectation values or callable or list of callable.
-        Callable signature must be, `f(t: float, state: Qobj)`.
-        See :func:`expect` for more detail of operator expectation.
-
     options : :class:`SolverOptions`
         Options for the solver
 
@@ -104,7 +98,7 @@ class SeSolver(Solver):
     name = "sesolve"
     _avail_integrators = {}
 
-    def __init__(self, H, *, e_ops=None, options=None):
+    def __init__(self, H, *, options=None):
         _time_start = time()
 
         if not isinstance(H, (Qobj, QobjEvo)):
@@ -113,7 +107,7 @@ class SeSolver(Solver):
         rhs = -1j * H
         if not rhs.isoper:
             raise ValueError("The hamiltonian must be an operator")
-        super().__init__(rhs, e_ops=e_ops, options=options)
+        super().__init__(rhs, options=options)
 
         self.stats['solver'] = "Schrodinger Evolution"
         self.stats["preparation time"] = time() - _time_start

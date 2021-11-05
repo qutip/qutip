@@ -203,11 +203,12 @@ class TestMESolveDecay:
 
     def test_mesolver_pickling(self):
         options = SolverOptions(progress_bar=None)
-        solver_obj = MeSolver(self.ada, c_ops=[self.a], e_ops=[self.ada],
-                              options=options)
+        solver_obj = MeSolver(self.ada, c_ops=[self.a], options=options)
         copy = pickle.loads(pickle.dumps(solver_obj))
-        e1 = solver_obj.run(qutip.basis(self.N, 9), [0, 1, 2, 3]).expect
-        e2 = solver_obj.run(qutip.basis(self.N, 9), [0, 1, 2, 3]).expect
+        e1 = solver_obj.run(qutip.basis(self.N, 9), [0, 1, 2, 3],
+                            e_ops=[self.ada]).expect
+        e2 = solver_obj.run(qutip.basis(self.N, 9), [0, 1, 2, 3],
+                            e_ops=[self.ada]).expect
         np.testing.assert_allclose(e1, e2)
 
     @pytest.mark.parametrize('method',

@@ -95,12 +95,12 @@ class SolverOdeOptions:
     tidy: bool {True}
         tidyup Hamiltonian before calculation
 
-    Operator_data_type: type or str {""}
+    operator_data_type: type or str {""}
         Data type of the operator used during the ODE evolution, as a subclass
         of :class:`qutip.data.Data` or an alias of such. Use an empty string to
         keep the input state type. Most solver can only work with `Dense`.
 
-    State_data_type: type or str {'dense'}
+    state_data_type: type or str {'dense'}
         Data type of the state used during the ODE evolution, as a subclass of
         :class:`qutip.data.Data` or an alias of such. Use an empty string to
         keep the input state type. Most solver can only work with `Dense`.
@@ -132,9 +132,9 @@ class SolverOdeOptions:
         # tidyup Hamiltonian before calculation (default = True)
         "tidy": True,
 
-        "Operator_data_type": "",
+        "operator_data_type": "",
 
-        "State_data_type": "dense",
+        "state_data_type": "dense",
         # Normalize the states received in feedback_args
         "feedback_normalize": True,
     }
