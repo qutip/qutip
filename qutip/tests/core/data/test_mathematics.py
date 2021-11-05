@@ -328,7 +328,7 @@ class _GenericOpMixin:
     # produce slightly different results to sparse algebra, since the order of
     # multiplications and additions will be different.
     tol = 1e-10
-    rtol = 1e-7 # Same default as numpy
+    rtol = 1e-7  # Same default as numpy
     shapes = []
     bad_shapes = []
     specialisations = []
@@ -649,6 +649,7 @@ class TestInner(BinaryOpMixin):
                                        rtol=self.rtol)
         else:
             assert abs(test - expected) < self.tol + self.rtol*abs(expected)
+
 
 class TestInnerOp(TernaryOpMixin):
     # This is very very similar to TestInner.
