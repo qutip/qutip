@@ -297,6 +297,7 @@ class _TrajectorySolver(Solver):
     :class:`QobjEvo` and need to be overloaded if other operators are used.
     """
     name = "Generic trajectory solver"
+
     def __init__(self, rhs, *, e_ops=None, options=None):
         if isinstance(rhs, (QobjEvo, Qobj)):
             self.rhs = QobjEvo(rhs)

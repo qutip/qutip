@@ -104,6 +104,7 @@ class _McTrajectorySolver(_TrajectorySolver):
     Solver for one mcsolve trajectory. Created by a :class:`McSolver`.
     """
     name = "mcsolve"
+    _avail_integrators = {}
 
     def __init__(self, parent, *, e_ops=None, options=None):
         rhs = parent.rhs
