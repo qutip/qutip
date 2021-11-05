@@ -57,7 +57,8 @@ class TestColumnUnstack(UnaryOpMixin):
         test = op(matrix, rows)
         assert isinstance(test, out_type)
         assert test.shape == expected.shape
-        np.testing.assert_allclose(test.to_array(), expected, atol=self.tol)
+        np.testing.assert_allclose(test.to_array(), expected, atol=self.tol,
+                                   rtol=self.rtol)
 
     def test_incorrect_shape_raises(self, op, data_m):
         with pytest.raises(ValueError):
@@ -107,7 +108,8 @@ class TestReshape(UnaryOpMixin):
         test = op(matrix, rows, columns)
         assert isinstance(test, out_type)
         assert test.shape == expected.shape
-        np.testing.assert_allclose(test.to_array(), expected, atol=self.tol)
+        np.testing.assert_allclose(test.to_array(), expected, atol=self.tol,
+                                   rtol=self.rtol)
 
     @pytest.mark.parametrize('rows, columns', [(-2, -50), (-50, -2), (3, 10)],
                             ids=["negative1","negative2","invalid"])
