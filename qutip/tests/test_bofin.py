@@ -346,58 +346,71 @@ class TestHierarchyADOs:
         assert ados.prev((1, 1), 1) == (1, 0)
         assert ados.prev((0, 2), 1) == (0, 1)
 
+    def test_filter_by_nothing(self):
+        ados = HierarchyADOs(self.mk_exponents([2, 3]), cutoff=2)
+        assert ados.filter() == [
+            (0, 0), (0, 1), (0, 2), (1, 0), (1, 1),
+        ]
+
     def test_filter_by_level(self):
         ados = HierarchyADOs(self.mk_exponents([2, 3]), cutoff=2)
-        assert ados.filter_by_level(0) == [
+        assert ados.filter(level=0) == [
             (0, 0),
         ]
-        assert ados.filter_by_level(1) == [
+        assert ados.filter(level=1) == [
             (0, 1),
             (1, 0),
         ]
-        assert ados.filter_by_level(2) == [
+        assert ados.filter(level=2) == [
             (0, 2),
             (1, 1),
         ]
-        assert ados.filter_by_level(3) == []
+        assert ados.filter(level=3) == []
 
     def test_filter_by_exponents(self):
         ados = HierarchyADOs(self.mk_exponents([2, 3]), cutoff=2)
-        assert ados.filter_by_exponents() == [
+        assert ados.filter(dims=[]) == [
             (0, 0),
         ]
-        assert ados.filter_by_exponents(dims=[2]) == [
+        assert ados.filter(dims=[2]) == [
             (1, 0),
         ]
-        assert ados.filter_by_exponents(dims=[3]) == [
+        assert ados.filter(dims=[3]) == [
             (0, 1),
         ]
-        assert ados.filter_by_exponents(dims=[2, 3]) == [
+        assert ados.filter(dims=[2, 3]) == [
             (1, 1),
         ]
-        assert ados.filter_by_exponents(dims=[3, 3]) == [
+        assert ados.filter(dims=[3, 3]) == [
             (0, 2),
         ]
-        assert ados.filter_by_exponents(types=["I"]) == [
+        assert ados.filter(types=["I"]) == [
             (0, 1),
             (1, 0),
         ]
-        assert ados.filter_by_exponents(types=["I", "I"]) == [
+        assert ados.filter(types=["I", "I"]) == [
             (0, 2),
             (1, 1),
         ]
 
         with pytest.raises(ValueError) as err:
-            ados.filter_by_exponents(types=[], dims=[2])
+            ados.filter(types=[], dims=[2])
         assert str(err.value) == (
             "The tags, dims and types filters must all be the same length."
         )
 
         with pytest.raises(ValueError) as err:
-            ados.filter_by_exponents(dims=[2, 2, 2])
+            ados.filter(dims=[2, 2, 2])
         assert str(err.value) == (
             "The cutoff for the hiearchy is 2 but 3 levels of excitation"
             " filters were given."
+        )
+
+        with pytest.raises(ValueError) as err:
+            ados.filter(level=0, dims=[2])
+        assert str(err.value) == (
+            "The level parameter is 0 but 1 levels of excitation filters"
+            " were given."
         )
 
 
@@ -632,7 +645,7 @@ class TestFermionicHEOMSolver:
 
         def level_one_auxillaries(full):
             results = [None] * len(full.exponents)
-            for label in full.filter_by_level(level=1):
+            for label in full.filter(level=1):
                 aux = full.extract(label)
                 k = label.index(1)
                 exp = full.exponents[k]

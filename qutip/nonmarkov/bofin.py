@@ -759,28 +759,7 @@ class HierarchyADOs:
             return None
         return label[:k] + (label[k] - 1,) + label[k + 1:]
 
-    def filter_by_level(self, level):
-        """
-        Return a list of ADO indexes and labels for ADOs at the
-        given level. An ADO is at a particular level if
-        the sum of the "excitations" in its label equals the level.
-
-        Parameters
-        ----------
-        level : int
-            The hierarchy depth to return ADOs from.
-
-        Returns
-        -------
-        list of tuple
-            The ADO lable for each ADO.
-        """
-        return [
-            label for label in self.labels
-            if sum(label) == level
-        ]
-
-    def filter_by_exponents(self, tags=None, dims=None, types=None):
+    def filter(self, level=None, tags=None, dims=None, types=None):
         """
         Return a list of ADO indexes and labels for ADOs whose "excitations"
         match the given patterns.
@@ -800,12 +779,17 @@ class HierarchyADOs:
 
         Parameters
         ----------
+        level : int
+            The hierarchy depth to return ADOs from.
+
         tags : list of object or None
             Filter parameter that matches the ``.tag`` attribute of
             exponents.
+
         dims : list of int
             Filter parameter that matches the ``.dim`` attribute of
             exponents.
+
         types : list of BathExponent types or list of str
             Filter parameter that matches the ``.type`` attribute
             of exponents. Types may be supplied by name (e.g. "R", "I", "+")
@@ -815,7 +799,7 @@ class HierarchyADOs:
         -------
         list of tuple
             The ADO label for each ADO whose exponent excitations
-            (i.e. label) match the given filters.
+            (i.e. label) match the given filters or level.
         """
         if types is not None:
             types = [
@@ -835,6 +819,19 @@ class HierarchyADOs:
                 f"The cutoff for the hiearchy is {self.cutoff} but {n} levels"
                 " of excitation filters were given."
             )
+        if level is None:
+            if not filters:
+                # fast path for when there are no excitation filters
+                return self.labels[:]
+        else:
+            if not filters:
+                # fast path for when there are no excitation filters
+                return [label for label in self.labels if sum(label) == level]
+            if level != n:
+                raise ValueError(
+                    f"The level parameter is {level} but {n} levels of"
+                    " excitation filters were given."
+                )
 
         filtered_dims = [1] * len(self.exponents)
         for lvl in range(n):
