@@ -55,7 +55,11 @@ class Result:
         self._read_e_ops()
         self._read_options(options, _super, oper_state)
         self.collapse = None
-        self.stats = {"num_expect": self._e_num}
+        self.stats = {
+            "num_expect": self._e_num,
+            "solver": "",
+            "method": "",
+        }
 
     def _read_e_ops(self):
         self._e_ops_dict = False

@@ -117,9 +117,9 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
     if not use_mesolve:
         return sesolve(H, rho0, tlist, e_ops=e_ops, args=args, options=options)
 
-    solver = MeSolver(H, c_ops, e_ops=e_ops, options=options)
+    solver = MeSolver(H, c_ops, options=options)
 
-    return solver.run(rho0, tlist)
+    return solver.run(rho0, tlist, e_ops=e_ops)
 
 
 class MeSolver(Solver):
@@ -148,12 +148,6 @@ class MeSolver(Solver):
         Single collapse operator, or list of collapse operators, or a list
         of Liouvillian superoperators. If none are needed, use an empty list.
 
-    e_ops : :class:`Qobj`, callable, or list.
-        Single operator or list of operators for which to evaluate
-        expectation values or callable or list of callable.
-        Callable signature must be, `f(t: float, state: Qobj)`.
-        See :func:`expect` for more detail of operator expectation.
-
     options : SolverOptions
         Options for the solver
 
@@ -165,7 +159,7 @@ class MeSolver(Solver):
     name = "mesolve"
     _avail_integrators = {}
 
-    def __init__(self, H, c_ops, *, e_ops=None, options=None):
+    def __init__(self, H, c_ops, *, options=None):
         _time_start = time()
 
         if not isinstance(H, (Qobj, QobjEvo)):
@@ -178,7 +172,7 @@ class MeSolver(Solver):
         rhs = H if H.issuper else liouvillian(H)
         rhs += sum(c_op if c_op.issuper else lindblad_dissipator(c_op)
                    for c_op in c_ops)
-        super().__init__(rhs, e_ops=e_ops, options=options)
+        super().__init__(rhs, options=options)
 
         self.stats['solver'] = "Master Equation Evolution"
         self.stats['num_collapse'] = len(c_ops)
