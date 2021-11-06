@@ -15,7 +15,7 @@ __all__ = ['hinton', 'sphereplot', 'energy_level_diagram',
 import warnings
 import itertools as it
 import numpy as np
-from numpy import pi, array, sin, cos, angle, log2, sqrt
+from numpy import pi, array, sin, cos, angle, log2
 
 from packaging.version import parse as parse_version
 
@@ -25,8 +25,7 @@ from qutip.wigner import wigner
 from qutip.tensor import tensor
 from qutip.matplotlib_utilities import complex_phase_cmap
 from qutip.superoperator import vector_to_operator
-from qutip.superop_reps import to_super, _super_to_superpauli, _isqubitdims, _pauli_basis
-from qutip.tensor import flatten
+from qutip.superop_reps import _super_to_superpauli, _isqubitdims
 
 from qutip import settings
 
