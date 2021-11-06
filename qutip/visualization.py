@@ -651,8 +651,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
     ax.yaxis._axinfo["grid"]['linewidth'] = 0
     ax.xaxis._axinfo["grid"]['linewidth'] = 0
 
-    if title and fig:
-        ax.set_title(title)
+    ax.set_title(title)
 
     # x axis
     _update_xaxis(default_opts['bars_spacing'], M, ax, xlabels)
