@@ -140,7 +140,7 @@ def _blob(x, y, w, w_max, area, cmap=None, ax=None):
         handle = plt
 
     handle.fill(xcorners, ycorners,
-             color=cmap(int((w + w_max) * 256 / (2 * w_max))))
+                color=cmap(int((w + w_max) * 256 / (2 * w_max))))
 
 
 def _cb_labels(left_dims):
