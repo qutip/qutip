@@ -767,8 +767,7 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None,
 
     ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors)
 
-    if title and fig:
-        ax.set_title(title)
+    ax.set_title(title)
 
     # x axis
     xtics = -0.5 + np.arange(M.shape[0])
@@ -966,8 +965,7 @@ def plot_fock_distribution(rho, offset=0, fig=None, ax=None,
     ax.set_xlabel('Fock number', fontsize=12)
     ax.set_ylabel('Occupation probability', fontsize=12)
 
-    if title:
-        ax.set_title(title)
+    ax.set_title(title)
 
     return fig, ax
 
