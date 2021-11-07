@@ -291,8 +291,6 @@ def adc_choi(x):
 # 
 # Skip dnorm tests if we don't have cvxpy or cvxopt available, since dnorm 
 # depends on them.
-
-
 @pytest.mark.skipif(cvxpy is None or cvxopt is None,
                     reason="Skipping dnorm tests because dnorm requires cvxpy"
                     " and cvxopt which are not installed.")
