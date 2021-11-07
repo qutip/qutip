@@ -14,7 +14,9 @@ from scipy import linalg as la
 import scipy.sparse as sp
 from qutip.sparse import sp_eigs
 from qutip.states import ket2dm
-from qutip.superop_reps import to_kraus, to_stinespring, to_choi, _super_to_superpauli, to_super
+from qutip.superop_reps import (to_kraus, to_stinespring, to_choi,
+                                _super_to_superpauli, to_super,
+                                kraus_to_choi)
 from qutip.superoperator import operator_to_vector, vector_to_operator
 from qutip.operators import qeye
 from qutip.semidefinite import dnorm_problem, dnorm_sparse_problem
@@ -80,14 +82,90 @@ def fidelity(A, B):
     return float(np.real(np.sqrt(eig_vals[eig_vals > 0]).sum()))
 
 
-def process_fidelity(U1, U2, normalize=True):
+def process_fidelity(oper, target=None):
     """
-    Calculate the process fidelity given two process operators.
+    Returns the process fidelity of a quantum channel to the target
+    channel, or to the identity channel if no target is given.
+    The process fidelity between two channels is defined as the state
+    fidelity between their normalized Choi matrices.
+
+    Parameters
+    ----------
+    oper : :class:`qutip.Qobj`/list
+        A unitary operator, or a superoperator in supermatrix, Choi or
+        chi-matrix form, or a list of Kraus operators
+    target : :class:`qutip.Qobj`/list
+        A unitary operator, or a superoperator in supermatrix, Choi or
+        chi-matrix form, or a list of Kraus operators
+
+    Returns
+    -------
+    fid : float
+        Process fidelity between oper and target,
+        or between oper and identity.
+
+    Notes
+    -----
+    See, for example: A. Gilchrist, N.K. Langford, M.A. Nielsen,
+    Phys. Rev. A 71, 062310 (2005).
+    The definition of state fidelity that the process fidelity is based on
+    is the one from R. Jozsa, Journal of Modern Optics, 41:12, 2315 (1994).
+    It is the square of the one implemented in
+    :func:`qutip.metrics.fidelity` which follows Nielsen & Chuang,
+    "Quantum Computation and Quantum Information"
     """
-    if normalize:
-        return (U1 * U2).tr() / (U1.tr() * U2.tr())
-    else:
-        return (U1 * U2).tr()
+    if target is None:
+        if isinstance(oper, list):  # oper is a list of Kraus operators
+            d = oper[0].shape[0]
+            if oper[0].shape[1] != d:
+                raise TypeError(
+                    'The process fidelity to identity is only defined for '
+                    'dimension preserving channels.')
+            return np.sum([np.abs(k.tr()) ** 2 for k in oper]) / d ** 2
+        elif oper.type=='oper':  # interpret as unitary
+            d = oper.shape[0]
+            if oper.shape[1] != d:
+                raise TypeError(
+                    'The process fidelity to identity is only defined for '
+                    'dimension preserving channels.')
+            return np.abs(oper.tr()) ** 2 / d ** 2
+        elif oper.type=='super':
+            d = np.prod(oper.dims[0][0])
+            if np.prod(oper.dims[1][0]) != d:
+                raise TypeError(
+                    'The process fidelity to identity is only defined for '
+                    'dimension preserving channels.')
+            if oper.superrep=='super':
+                return oper.tr().real / d**2
+            elif oper.superrep=='chi':
+                return oper[0, 0].real / d**2
+            elif oper.superrep=='choi':
+                return process_fidelity(to_super(oper))
+    elif isinstance(target, list):  # target is a list of Kraus operators
+        if isinstance(oper, list):
+            return process_fidelity(kraus_to_choi(oper),
+                                    kraus_to_choi(target))
+        else:
+            return process_fidelity(target, oper)  # reverse order
+    elif target.type=='oper':  # interpret as unitary
+        if isinstance(oper, list):  # oper is a list of Kraus operators
+            return process_fidelity([k * target.dag() for k in oper])
+        elif oper.type=='oper':
+            return process_fidelity(oper*target.dag())
+        elif oper.type=='super':
+            return process_fidelity(to_super(oper)*to_super(target.dag()))
+    elif target.type=='super':
+        if not isinstance(oper, list) and oper.type=='oper':
+            return process_fidelity(target, oper)  # reverse order
+        if isinstance(oper, list):
+            oper_choi = kraus_to_choi(oper)
+        else:
+            oper_choi = to_choi(oper)
+        d = np.prod(oper_choi.dims[0][0])
+        return fidelity(oper_choi / d, to_choi(target) / d)**2
+    # If we're still here something went wrong
+    raise TypeError(f'Cannot compute the process fidelity between a '
+                    f'{type(oper)} and a {type(target)}')
 
 
 def average_gate_fidelity(oper, target=None):

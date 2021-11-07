@@ -8,7 +8,8 @@ import pytest
 from qutip import (
     Qobj, tensor, fock_dm, basis, destroy, qdiags, sigmax, sigmay, sigmaz,
     qeye, rand_ket, rand_super_bcsz, rand_ket_haar, rand_dm_ginibre, rand_dm,
-    rand_unitary, rand_unitary_haar, to_super, to_choi, kraus_to_choi,
+    rand_unitary, rand_unitary_haar, to_super, to_choi, kraus_to_choi, to_kraus,
+    to_chi
 )
 from qutip.qip.operations import (
     hadamard_transform, swap,
@@ -16,7 +17,7 @@ from qutip.qip.operations import (
 # These ones are the metrics functions that we actually want to test.
 from qutip import (
     fidelity, tracedist, hellinger_dist, dnorm, average_gate_fidelity,
-    unitarity, hilbert_dist, bures_dist,
+    unitarity, hilbert_dist, bures_dist, process_fidelity
 )
 
 
@@ -171,6 +172,75 @@ class Test_hellinger_dist:
         dist = hellinger_dist(rhoA, sigmaA)
         assert hellinger_dist(rho, sigma) + tol > dist
         assert hellinger_dist(rho_sim, sigma) == pytest.approx(dist, abs=tol)
+
+
+class Test_process_fidelity:
+    @pytest.mark.parametrize('num_qubits', [1, 2, 3, 4])
+    # tensor product of two-level systems so we can test chi
+    @pytest.mark.parametrize('oper_type',
+                             ['oper', 'super', 'choi', 'chi', 'kraus'])
+    def test_identity(self, oper_type, num_qubits):
+        """
+        Test that the process fidelity of the identity map, in various
+        representations, is 1.
+        """
+        oper = qeye(num_qubits*[2])
+        if oper_type == 'super':
+            oper = to_super(oper)
+        elif oper_type == 'choi':
+            oper = to_choi(oper)
+        elif oper_type == 'chi':
+            oper = to_chi(oper)
+        elif oper_type == 'kraus':
+            oper = to_kraus(oper)
+        f = process_fidelity(oper)
+        assert np.isrealobj(f)
+        assert f == pytest.approx(1, 1e-12)
+
+    @pytest.mark.parametrize('num_qubits', [1, 2, 3])
+    @pytest.mark.parametrize('oper_type',
+                             ['oper', 'super', 'choi', 'chi', 'kraus'])
+    def test_identical(self, oper_type, num_qubits):
+        """
+        Test that the process fidelity of a map in various representations
+        to itself is 1.
+        """
+        if oper_type == 'oper':
+            oper = rand_unitary(2**num_qubits, dims=2*[num_qubits*[2]])
+        else:
+            oper = rand_super_bcsz(2**num_qubits, dims=2*[2*[num_qubits*[2]]])
+            if oper_type=='choi':
+                oper = to_choi(oper)
+            elif oper_type=='chi':
+                oper = to_chi(oper)
+            elif oper_type == 'kraus':
+                oper = to_kraus(oper)
+        f = process_fidelity(oper, oper)
+        assert np.isrealobj(f)
+        assert f == pytest.approx(1, 1e-10)
+        # the process fidelity between two superoperators involves
+        # diagonalization, so some numerical error is expected here
+
+    @pytest.mark.parametrize('num_qubits', [1, 2, 3])
+    def test_consistency(self, num_qubits):
+        """
+        Test that the process fidelity between two maps is the same,
+        regardless of the representation of the maps.
+        """
+        fidelities_u_to_u = []
+        fidelities_u_to_id = []
+        u1 = rand_unitary(2**num_qubits, dims=2*[num_qubits*[2]])
+        u2 = rand_unitary(2**num_qubits, dims=2*[num_qubits*[2]])
+        for map1 in [lambda x:x, to_super, to_choi, to_chi, to_kraus]:
+            fidelities_u_to_id.append(process_fidelity(map1(u1)))
+            for map2 in [lambda x:x, to_super, to_choi, to_chi, to_kraus]:
+                fidelities_u_to_u.append(process_fidelity(map1(u1), map2(u2)))
+        assert np.allclose(fidelities_u_to_id, fidelities_u_to_id[0],
+                           atol=1e-10, rtol=0)
+        assert np.allclose(fidelities_u_to_u, fidelities_u_to_u[0],
+                           atol=10**(-(8-num_qubits)), rtol=0)
+        # using a more generous tolerance for larger sizes, because
+        # super-to-super process fidelity involves diagonalization
 
 
 # TODO: resolve the Mac failures.

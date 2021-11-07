@@ -4,7 +4,7 @@ from copy import deepcopy
 from qutip.qip.circuit import QubitCircuit
 from qutip.qip.compiler import Instruction, Scheduler
 from qutip.qip.operations.gates import gate_sequence_product
-from qutip import process_fidelity, qeye, tracedist
+from qutip import qeye, tracedist
 from qutip.qip.circuit import Gate
 
 
