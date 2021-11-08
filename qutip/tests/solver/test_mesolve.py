@@ -444,7 +444,7 @@ class TestJCModelEvolution:
         np.testing.assert_allclose(sy, sy_analytic, atol=0.05)
         np.testing.assert_allclose(sz, sz_analytic, atol=0.05)
 
-    def testCase1(self):
+    def testCavity1(self):
         "mesolve: cavity-qubit interaction, no dissipation"
 
         use_rwa = True
@@ -470,7 +470,7 @@ class TestJCModelEvolution:
         np.testing.assert_allclose(nc[-1], nc_ex[-1], atol=0.005)
         np.testing.assert_allclose(na[-1], na_ex[-1], atol=0.005)
 
-    def testCase2(self):
+    def testCavity2(self):
         "mesolve: cavity-qubit without interaction, decay"
 
         use_rwa = True
@@ -498,7 +498,7 @@ class TestJCModelEvolution:
         np.testing.assert_allclose(nc[-1], nc_ex[-1], atol=0.005)
         np.testing.assert_allclose(na[-1], na_ex[-1], atol=0.005)
 
-    def testCase3(self):
+    def testCavity3(self):
         "mesolve: cavity-qubit with interaction, decay"
 
         use_rwa = True

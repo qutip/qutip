@@ -57,11 +57,8 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
 
     .. note::
 
-        If an element in the list-specification of the Hamiltonian or
-        the list of collapse operators are in superoperator form it will be
-        added to the total Liouvillian of the problem without further
-        transformation. This allows for using mesolve for solving master
-        equations that are not in standard Lindblad form.
+        When no collapse operator are given and the `H` is not a superoperator,
+        it will defer to :func:`sesolve`.
 
     Parameters
     ----------

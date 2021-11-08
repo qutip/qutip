@@ -10,13 +10,6 @@ from ..core.data import to
 from time import time
 
 
-# SeSolver.avail_integrators should return SeSolver and Solver's integrators.
-# Thus we want a property and classmethod
-class classproperty(property):
-    def __get__(self, cls, owner):
-        return self.fget.__get__(None, owner)()
-
-
 class Solver:
     """
     Runner for an evolution.
@@ -235,8 +228,8 @@ class Solver:
             )
 
         method = self.options.ode["method"]
-        if method in self.avail_integrators:
-            integrator = self.avail_integrators[method]
+        if method in self.avail_integrators():
+            integrator = self.avail_integrators()[method]
         elif issubclass(method, Integrator):
             integrator = method
         else:
@@ -258,13 +251,14 @@ class Solver:
                             str(self.optionsclass))
         self._options = new
 
-    @classproperty
     @classmethod
     def avail_integrators(cls):
         if cls is Solver:
             return cls._avail_integrators.copy()
-        return {**cls._avail_integrators,
-                **Solver._avail_integrators}
+        return {
+            **super().avail_integrators(),
+            **cls._avail_integrators,
+        }
 
     @classmethod
     def add_integrator(cls, integrator, keys):
