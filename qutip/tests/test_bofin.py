@@ -207,6 +207,7 @@ class TestDrudeLorentzBath:
             ck=ck_real[1], vk=vk_real[1],
             tag="bath1",
         )
+        assert bath.delta is None
         assert bath.terminator is None
 
         bath = DrudeLorentzBath(
@@ -221,6 +222,7 @@ class TestDrudeLorentzBath:
             Q=Q, lam=0.025, T=1 / 0.95, Nk=1, gamma=0.05, terminator=True,
         )
         op = -2*spre(Q)*spost(Q.dag()) + spre(Q.dag()*Q) + spost(Q.dag()*Q)
+        assert np.abs(bath.delta - (0.00031039 / 4.0)) < 1e-8
         assert isequal(bath.terminator, - (0.00031039 / 4.0) * op, tol=1e-8)
 
 

@@ -339,10 +339,11 @@ class DrudeLorentzBath(BosonicBath):
 
     terminator : bool, default False
         Whether to calculate the Matsubara terminator for the bath. If
-        true, the calculate terminator is provided via the ``.terminator``
-        attibute. Otherwise, ``.terminator`` is set to ``None``. The
-        terminator is a Liouvillian term, so it's dimensions are those of
-        a superoperator of ``Q``.
+        true, the calculated terminator and the calculated approximation
+        discrepancy are provided via the ``.terminator`` and ``.delta``
+        attributes, respectively. Otherwise, ``.terminator`` and ``.delta`` are
+        both set to ``None``. The terminator is a Liouvillian term, so it's
+        dimensions are those of a superoperator of ``Q``.
 
     combine : bool, default True
         Whether to combine exponents with the same frequency (and coupling
@@ -360,6 +361,12 @@ class DrudeLorentzBath(BosonicBath):
         contribution to the system-bath dynamics of all exponential expansion
         terms beyond Nk. It should be used by adding it to the system
         liouvillian (i.e. ``liouvillian(H_sys)``).
+
+    delta : float
+        The approximation discrepancy. That is, the difference between the true
+        correlation function of the Drude bath and the correlation function
+        represented by this object is approximately ``2 delta * dirac(t)``,
+        where ``dirac(t)`` denotes the Dirac delta function.
     """
     def __init__(
         self, Q, lam, T, Nk, gamma, terminator=False, combine=True, tag=None,
@@ -370,29 +377,33 @@ class DrudeLorentzBath(BosonicBath):
             Nk=Nk,
             T=T,
         )
-        if terminator:
-            self.terminator = self._matsubara_terminator(
-                Q=Q, lam=lam, gamma=gamma, Nk=Nk, T=T
-            )
-        else:
-            self.terminator = None
+
         super().__init__(
             Q, ck_real, vk_real, ck_imag, vk_imag, combine=combine, tag=tag,
         )
 
-    def _matsubara_terminator(self, Q, lam, gamma, Nk, T):
+        if terminator:
+            self.delta, self.terminator = DrudeLorentzBath._terminator(
+                Q, lam, gamma, T, self.exponents
+            )
+        else:
+            self.delta = None
+            self.terminator = None
+
+    @staticmethod
+    def _terminator(Q, lam, gamma, T, exponents):
         """ Calculate the hierarchy terminator term for the Liouvillian. """
         beta = 1 / T
 
         op = -2*spre(Q)*spost(Q.dag()) + spre(Q.dag()*Q) + spost(Q.dag()*Q)
         delta = 2 * lam / (beta * gamma) - lam / np.tan(beta * gamma / 2)
 
-        for k in range(1, Nk + 1):
-            vk = 2 * np.pi * k * T
-            delta -= (4 * lam * gamma * T / (vk**2 - gamma**2))
+        for exp in exponents:
+            if exp.type == BathExponent.types["R"]:
+                delta -= exp.ck / exp.vk
 
         L_bnd = -delta * op
-        return L_bnd
+        return delta, L_bnd
 
     def _matsubara_params(self, lam, gamma, Nk, T):
         """ Calculate the Matsubara coefficents and frequencies. """
@@ -449,6 +460,14 @@ class DrudeLorentzPadeBath(BosonicBath):
     gamma : float
         Bath spectral density cutoff frequency.
 
+    terminator : bool, default False
+        Whether to calculate the Padé terminator for the bath. If true, the
+        calculated terminator and the calculated approximation discrepancy are
+        provided via the ``.terminator`` and ``.delta`` attributes,
+        respectively. Otherwise, ``.terminator`` and ``.delta`` are both set to
+        ``None``. The terminator is a Liouvillian term, so it's dimensions are
+        those of a superoperator of ``Q``.
+
     combine : bool, default True
         Whether to combine exponents with the same frequency (and coupling
         operator). See :meth:`BosonicBath.combine` for details.
@@ -457,8 +476,24 @@ class DrudeLorentzPadeBath(BosonicBath):
         A label for the bath exponents (for example, the name of the
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
+
+    Attributes
+    ----------
+    terminator : Qobj
+        The Padé terminator -- i.e. a liouvillian term representing the
+        contribution to the system-bath dynamics of all exponential expansion
+        terms beyond Nk. It should be used by adding it to the system
+        liouvillian (i.e. ``liouvillian(H_sys)``).
+
+    delta : float
+        The approximation discrepancy. That is, the difference between the true
+        correlation function of the Drude bath and the correlation function
+        represented by this object is approximately ``2 delta * dirac(t)``,
+        where ``dirac(t)`` denotes the Dirac delta function.
     """
-    def __init__(self, Q, lam, T, Nk, gamma, combine=True, tag=None):
+    def __init__(
+        self, Q, lam, T, Nk, gamma, terminator=False, combine=True, tag=None
+    ):
         eta_p, gamma_p = self._corr(lam=lam, gamma=gamma, T=T, Nk=Nk)
 
         ck_real = [np.real(eta) for eta in eta_p]
@@ -471,6 +506,14 @@ class DrudeLorentzPadeBath(BosonicBath):
         super().__init__(
             Q, ck_real, vk_real, ck_imag, vk_imag, combine=combine, tag=tag,
         )
+
+        if terminator:
+            self.delta, self.terminator = DrudeLorentzBath._terminator(
+                Q, lam, gamma, T, self.exponents
+            )
+        else:
+            self.delta = None
+            self.terminator = None
 
     def _delta(self, i, j):
         return 1.0 if i == j else 0.0
