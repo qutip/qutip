@@ -1253,7 +1253,7 @@ class HEOMSolver:
                 L,
                 b_mat,
                 perm=None,
-                verbose=True,
+                verbose=False,
                 max_iter_refine=mkl_max_iter_refine,
                 scaling_vectors=True,
                 weighted_matching=mkl_weighted_matching,
