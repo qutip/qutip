@@ -67,7 +67,7 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
     ----------
 
     H : :class:`Qobj`, :class:`QobjEvo`, :class:`QobjEvo` compatible format.
-        System Hamiltonian as a Qobj or QobjEvo for time-dependent Hamiltonians.
+        Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or QobjEvo.
         list of [:class:`Qobj`, :class:`Coefficient`] or callable that can be
         made into :class:`QobjEvo` are also accepted.
 
@@ -79,7 +79,7 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
 
     c_ops : list of (:class:`QobjEvo`, :class:`QobjEvo` compatible format)
         Single collapse operator, or list of collapse operators, or a list
-        of Liouvillian superoperators. If none are needed, use an empty list.
+        of Liouvillian superoperators. None is equivalent to an empty list.
 
     e_ops : list of :class:`Qobj` / callback function
         Single operator or list of operators for which to evaluate
@@ -108,7 +108,7 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
     H = QobjEvo(H, args=args, tlist=tlist)
 
     c_ops = c_ops if c_ops is not None else []
-    if not isinstance(c_ops, list):
+    if not isinstance(c_ops, (list, tuple)):
         c_ops = [c_ops]
     c_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in c_ops]
 
@@ -140,13 +140,13 @@ class MeSolver(Solver):
     Parameters
     ----------
     H : :class:`Qobj`, :class:`QobjEvo`
-        System Hamiltonian as a Qobj or QobjEvo for time-dependent Hamiltonians.
+        Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or QobjEvo.
         list of [:class:`Qobj`, :class:`Coefficient`] or callable that can be
         made into :class:`QobjEvo` are also accepted.
 
     c_ops : list of :class:`Qobj`, :class:`QobjEvo`
         Single collapse operator, or list of collapse operators, or a list
-        of Liouvillian superoperators. If none are needed, use an empty list.
+        of Liouvillian superoperators. None is equivalent to an empty list.
 
     options : SolverOptions
         Options for the solver
@@ -154,7 +154,7 @@ class MeSolver(Solver):
     attributes
     ----------
     stats: dict
-        Diverse statistics of the evolution.
+        Diverse diagnostic statistics of the evolution.
     """
     name = "mesolve"
     _avail_integrators = {}

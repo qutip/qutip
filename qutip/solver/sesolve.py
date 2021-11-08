@@ -93,7 +93,7 @@ class SeSolver(Solver):
     attributes
     ----------
     stats: dict
-        Diverse statistics of the evolution.
+        Diverse diagnostic statistics of the evolution.
     """
     name = "sesolve"
     _avail_integrators = {}
