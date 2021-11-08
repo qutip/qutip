@@ -1260,7 +1260,7 @@ class HEOMSolver:
 
         data = dense2D_to_fastcsr_fmode(vec2mat(solution[:n ** 2]), n, n)
         data = 0.5 * (data + data.H)
-        steady_state = Qobj(data, dims=self._H0.dims)
+        steady_state = Qobj(data, dims=self._sys_dims)
 
         solution = solution.reshape((self._n_ados, n, n))
         steady_ados = HierarchyADOsState(steady_state, self.ados, solution)
