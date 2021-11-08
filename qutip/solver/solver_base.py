@@ -256,7 +256,7 @@ class Solver:
         if cls is Solver:
             return cls._avail_integrators.copy()
         return {
-            **super().avail_integrators(),
+            **Solver.avail_integrators(),
             **cls._avail_integrators,
         }
 

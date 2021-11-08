@@ -6,7 +6,7 @@ from qutip.solver.sesolve import sesolve, SeSolver
 from qutip.solver.options import SolverOptions
 from qutip.solver.solver_base import Solver
 
-all_ode_method = SeSolver.avail_integrators.keys()
+all_ode_method = SeSolver.avail_integrators().keys()
 
 
 def _analytic(t, alpha):

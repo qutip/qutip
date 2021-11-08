@@ -8,7 +8,7 @@ from qutip.solver.options import SolverOptions
 import pickle
 import pytest
 
-all_ode_method = MeSolver.avail_integrators.keys()
+all_ode_method = MeSolver.avail_integrators().keys()
 
 
 def fidelitycheck(out1, out2, rho0vec):

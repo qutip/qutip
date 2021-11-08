@@ -156,11 +156,12 @@ class MeSolver(Solver):
     name = "mesolve"
     _avail_integrators = {}
 
-    def __init__(self, H, c_ops, *, options=None):
+    def __init__(self, H, c_ops=None, *, options=None):
         _time_start = time()
 
         if not isinstance(H, (Qobj, QobjEvo)):
             raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
+        c_ops = c_ops or []
         c_ops = [c_ops] if isinstance(c_ops, (Qobj, QobjEvo)) else c_ops
         for c_op in c_ops:
             if not isinstance(c_op, (Qobj, QobjEvo)):
