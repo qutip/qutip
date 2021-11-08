@@ -213,7 +213,7 @@ class TestMESolveDecay:
 
     @pytest.mark.parametrize('method',
                              all_ode_method, ids=all_ode_method)
-    def test_mesolver_steping(self, method):
+    def test_mesolver_stepping(self, method):
         options = SolverOptions(method=method, progress_bar=None)
         solver_obj = MeSolver(
             self.ada,
