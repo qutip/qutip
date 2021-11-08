@@ -385,25 +385,20 @@ class DrudeLorentzBath(BosonicBath):
         beta = 1 / T
 
         op = -2*spre(Q)*spost(Q.dag()) + spre(Q.dag()*Q) + spost(Q.dag()*Q)
-        approx_factr = ((2 * lam / (beta * gamma)) - 1j * lam)
-        approx_factr -= (
-            lam * gamma * (-1.0j + 1 / np.tan(gamma / (2 * T))) / gamma
-        )
+        delta = 2 * lam / (beta * gamma) - lam / np.tan(beta * gamma / 2)
 
         for k in range(1, Nk + 1):
             vk = 2 * np.pi * k * T
-            approx_factr -= (
-                (4 * lam * gamma * T * vk / (vk**2 - gamma**2)) / vk
-            )
+            delta -= (4 * lam * gamma * T / (vk**2 - gamma**2))
 
-        L_bnd = -approx_factr * op
+        L_bnd = -delta * op
         return L_bnd
 
     def _matsubara_params(self, lam, gamma, Nk, T):
         """ Calculate the Matsubara coefficents and frequencies. """
-        ck_real = [lam * gamma * (1/np.tan(gamma / (2 * T)))]
+        ck_real = [lam * gamma / np.tan(gamma / (2 * T))]
         ck_real.extend([
-            (4 * lam * gamma * T * 2 * np.pi * k * T /
+            (8 * lam * gamma * T * np.pi * k * T /
                 ((2 * np.pi * k * T)**2 - gamma**2))
             for k in range(1, Nk + 1)
         ])
