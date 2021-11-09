@@ -384,7 +384,7 @@ class DrudeLorentzBath(BosonicBath):
 
         if terminator:
             self.delta, self.terminator = DrudeLorentzBath._terminator(
-                Q, lam, gamma, T, self.exponents
+                Q=Q, lam=lam, gamma=gamma, T=T, exponents=self.exponents,
             )
         else:
             self.delta = None
@@ -509,7 +509,7 @@ class DrudeLorentzPadeBath(BosonicBath):
 
         if terminator:
             self.delta, self.terminator = DrudeLorentzBath._terminator(
-                Q, lam, gamma, T, self.exponents
+                Q=Q, lam=lam, gamma=gamma, T=T, exponents=self.exponents,
             )
         else:
             self.delta = None
