@@ -32,7 +32,7 @@
 ###############################################################################
 """
 This module provides functions for parallel execution of loops and function
-mappings, using the builtin Python module multiprocessing or the loky parallel execution library. 
+mappings, using the builtin Python module multiprocessing or the loky parallel execution library.
 """
 __all__ = ['parallel_map', 'serial_map', 'loky_pmap', 'get_map']
 
@@ -40,7 +40,7 @@ import multiprocessing
 import os
 import sys
 import time
-from qutip.ui.progressbar import get_progess_bar
+from qutip.ui.progressbar import progess_bars
 
 if sys.platform == 'darwin':
     Pool = multiprocessing.get_context('fork').Pool
@@ -96,7 +96,7 @@ def serial_map(task, values, task_args=None, task_kwargs=None,
         task_args = ()
     if task_kwargs is None:
         task_kwargs = {}
-    progress_bar = get_progess_bar(progress_bar)
+    progress_bar = progess_bars[progress_bar]()
     progress_bar.start(len(values), **progress_bar_kwargs)
     end_time = map_kw['timeout'] + time.time()
     results = []
@@ -157,7 +157,7 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
     end_time = map_kw['timeout'] + time.time()
     job_time = map_kw['job_timeout']
 
-    progress_bar = get_progess_bar(progress_bar)
+    progress_bar = progess_bars[progress_bar]()
     progress_bar.start(len(values), **progress_bar_kwargs)
 
     results = []
@@ -237,7 +237,7 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
 
     kw = map_kw
 
-    progress_bar = get_progess_bar(progress_bar)
+    progress_bar = progess_bars[progress_bar]()
     progress_bar.start(len(values), **progress_bar_kwargs)
 
     executor = get_reusable_executor(max_workers=kw['num_cpus'])

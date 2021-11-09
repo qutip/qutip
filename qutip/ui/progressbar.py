@@ -32,7 +32,7 @@
 ###############################################################################
 __all__ = ['BaseProgressBar', 'TextProgressBar',
            'EnhancedTextProgressBar', 'TqdmProgressBar',
-           'get_progess_bar']
+           'progess_bars']
 
 import time
 import datetime
@@ -177,17 +177,15 @@ class TqdmProgressBar(BaseProgressBar):
         self.t_done = time.time()
 
 
-def get_progess_bar(opt):
-    if isinstance(opt, BaseProgressBar):
-        return opt
-    if opt in ["Enhanced", "enhanced"]:
-        progress_bar = EnhancedTextProgressBar()
-    elif opt in [True, "Text", "text"]:
-        progress_bar = TextProgressBar()
-    elif opt in ["Tqdm", "tqdm"]:
-        progress_bar = TqdmProgressBar()
-    elif opt in [False, "", None]:
-        progress_bar = BaseProgressBar()
-    else:
-        raise ValueError("Progress Bar not understood")
-    return progress_bar
+progess_bars = {
+    "Enhanced": EnhancedTextProgressBar,
+    "enhanced": EnhancedTextProgressBar,
+    "Text": TextProgressBar,
+    "text": TextProgressBar,
+    True: TextProgressBar,
+    "Tqdm": TqdmProgressBar,
+    "tqdm": TqdmProgressBar,
+    "": BaseProgressBar,
+    False: BaseProgressBar,
+    None: BaseProgressBar,
+}
