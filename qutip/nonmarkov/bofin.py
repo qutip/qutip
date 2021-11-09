@@ -396,11 +396,15 @@ class DrudeLorentzBath(BosonicBath):
         beta = 1 / T
 
         op = -2*spre(Q)*spost(Q.dag()) + spre(Q.dag()*Q) + spost(Q.dag()*Q)
-        delta = 2 * lam / (beta * gamma) - lam / np.tan(beta * gamma / 2)
+        delta = 2 * lam / (beta * gamma) - 1j * lam
 
         for exp in exponents:
             if exp.type == BathExponent.types["R"]:
                 delta -= exp.ck / exp.vk
+            elif exp.type == BathExponent.types["RI"]:
+                delta -= (exp.ck + 1j * exp.ck2) / exp.vk
+            else:
+                delta -= 1j * exp.ck / exp.vk
 
         L_bnd = -delta * op
         return delta, L_bnd

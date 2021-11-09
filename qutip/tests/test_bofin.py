@@ -221,9 +221,16 @@ class TestDrudeLorentzBath:
         bath = DrudeLorentzBath(
             Q=Q, lam=0.025, T=1 / 0.95, Nk=1, gamma=0.05, terminator=True,
         )
+        bath2 = DrudeLorentzBath(
+            Q=Q, lam=0.025, T=1 / 0.95, Nk=1, gamma=0.05, terminator=True, combine=False,
+        )
         op = -2*spre(Q)*spost(Q.dag()) + spre(Q.dag()*Q) + spost(Q.dag()*Q)
+
         assert np.abs(bath.delta - (0.00031039 / 4.0)) < 1e-8
+        assert np.abs(bath2.delta - (0.00031039 / 4.0)) < 1e-8
+
         assert isequal(bath.terminator, - (0.00031039 / 4.0) * op, tol=1e-8)
+        assert isequal(bath2.terminator, - (0.00031039 / 4.0) * op, tol=1e-8)
 
 
 class TestDrudeLorentzPadeBath:
