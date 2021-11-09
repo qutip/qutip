@@ -1255,12 +1255,19 @@ class HEOMSolver:
             this is false, use the scipy splu solver instead.
 
         mkl_max_iter_refine : Int
-            Parameter for the mkl LU solver. If pardiso errors are returned
-            this should be increased.
+            Specifies the the maximum number of iterative refinement steps that
+            the MKL PARDISO solver performs.
+
+            For a complete description, see iparm(8) in
+            http://cali2.unilim.fr/intel-xe/mkl/mklman/GUID-264E311E-ACED-4D56-AC31-E9D3B11D1CBF.htm.
 
         mkl_weighted_matching : Boolean
-            Setting this true may increase run time, but reduce stability
-            (pardisio may not converge).
+            MKL PARDISO can use a maximum weighted matching algorithm to
+            permute large elements close the diagonal. This strategy adds an
+            additional level of reliability to the factorization methods.
+
+            For a complete description, see iparm(13) in
+            http://cali2.unilim.fr/intel-xe/mkl/mklman/GUID-264E311E-ACED-4D56-AC31-E9D3B11D1CBF.htm.
 
         Returns
         -------
