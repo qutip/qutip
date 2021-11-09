@@ -797,9 +797,45 @@ class HierarchyADOs:
             return None
         return label[:k] + (label[k] - 1,) + label[k + 1:]
 
+    def exps(self, label):
+        """
+        Converts an ADO label into a tuple of exponents, with one exponent
+        for each "excitation" within the label.
+
+        The number of exponents returned is always equal to the level of the
+        label within the hierarchy (i.e. the sum of the indices within the
+        label).
+
+        Parameters
+        ----------
+        label : tuple
+            The ADO label to convert to a list of exponents.
+
+        Returns
+        -------
+        tuple of BathExponent
+            A tuple of BathExponents.
+
+        Examples
+        --------
+
+        ``ados.exps((1, 0, 0))`` would return ``[ados.exponents[0]]``
+
+        ``ados.exps((2, 0, 0))`` would return
+        ``[ados.exponents[0], ados.exponents[0]]``.
+
+        ``ados.exps((1, 2, 1))`` would return
+        ``[ados.exponents[0], ados.exponents[1], ados.exponents[1], \
+           ados.exponents[2]]``.
+        """
+        return sum(
+            ((exp,) * n for (n, exp) in zip(label, self.exponents) if n > 0),
+            start=(),
+        )
+
     def filter(self, level=None, tags=None, dims=None, types=None):
         """
-        Return a list of ADO indexes and labels for ADOs whose "excitations"
+        Return a list of ADO labels for ADOs whose "excitations"
         match the given patterns.
 
         Each of the filter parameters (tags, dims, types) may be either

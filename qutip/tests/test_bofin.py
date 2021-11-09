@@ -348,6 +348,19 @@ class TestHierarchyADOs:
         assert ados.prev((1, 1), 1) == (1, 0)
         assert ados.prev((0, 2), 1) == (0, 1)
 
+    def test_exps(self):
+        ados = HierarchyADOs(self.mk_exponents([3, 3, 2]), cutoff=4)
+        assert ados.exps((0, 0, 0)) == ()
+        assert ados.exps((1, 0, 0)) == (ados.exponents[0],)
+        assert ados.exps((2, 0, 0)) == (
+            ados.exponents[0], ados.exponents[0],
+        )
+        assert ados.exps((1, 2, 1)) == (
+            ados.exponents[0],
+            ados.exponents[1], ados.exponents[1],
+            ados.exponents[2],
+        )
+
     def test_filter_by_nothing(self):
         ados = HierarchyADOs(self.mk_exponents([2, 3]), cutoff=2)
         assert ados.filter() == [
