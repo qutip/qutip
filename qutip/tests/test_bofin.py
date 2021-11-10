@@ -8,8 +8,9 @@ from numpy.linalg import eigvalsh
 from scipy.integrate import quad
 
 from qutip import (
-    Qobj, spre, spost, sigmax, sigmaz, basis, destroy, expect, isequal, Options
-)  # FIXME: Add tests system specified using QobjEvo
+    basis, destroy, expect, isequal, liouvillian, spre, spost, sigmax, sigmaz,
+    Qobj, QobjEvo, Options,
+)
 from qutip.nonmarkov.bofin import (
     BathExponent,
     Bath,
@@ -477,32 +478,45 @@ class TestHierarchyADOsState:
         ado_state.extract(1) == Qobj(ado_soln[1, :], dims=rho.dims)
 
 
-class TestBosonicHEOMSolver:
-    @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
-    @pytest.mark.parametrize(['fake_timedep'], [
-        pytest.param(False, id="static"),
-        pytest.param(True, id="timedep"),
-    ])
-    def test_run_pure_dephasing_model(self, fake_timedep):
-        """ Compare with pure-dephasing analytical result. """
-        tol = 1e-3
-        gamma = 0.05
-        lam = 0.025
+class DrudeLorentzPureDephasingModel:
+    """ Analytic model for testing the HEOM solver. """
+    def __init__(self, lam, gamma, T, Nk):
+        self.lam = lam
+        self.gamma = gamma
+        self.T = T
+        self.Nk = Nk
+        self.H = Qobj(np.zeros((2, 2)))
+        self.Q = sigmaz()
+
+    def rho(self):
+        """ Initial state. """
+        return 0.5 * Qobj(np.ones((2, 2)))
+
+    def state_results(self, states):
+        projector = basis(2, 0) * basis(2, 1).dag()
+        return expect(states, projector)
+
+    def analytic_results(self, tlist):
+        lam, gamma, T = self.lam, self.gamma, self.T
         lam_c = lam / np.pi
-        T = 1 / 0.95
-        times = np.linspace(0, 10, 21)
 
         def _integrand(omega, t):
-            J = 2*lam_c * omega * gamma / (omega**2 + gamma**2)
+            J = 2 * lam_c * omega * gamma / (omega**2 + gamma**2)
             return (-4 * J * (1 - np.cos(omega*t))
                     / (np.tanh(0.5*omega / T) * omega**2))
 
         # Calculate the analytical results by numerical integration
-        expected = [0.5*np.exp(quad(_integrand, 0, np.inf, args=(t,))[0])
-                    for t in times]
+        return [
+            0.5 * np.exp(quad(_integrand, 0, np.inf, args=(t,))[0])
+            for t in tlist
+        ]
 
-        Nk = 2
-        ck_real = [lam * gamma * (1/np.tan(gamma / (2 * T)))]
+    def bath_coefficients(self):
+        """ Correlation function expansion coefficients for the Drude-Lorentz bath.
+        """
+        lam, gamma, T = self.lam, self.gamma, self.T
+        Nk = self.Nk
+        ck_real = [lam * gamma * (1 / np.tan(gamma / (2 * T)))]
         ck_real.extend([
             (4 * lam * gamma * T * 2 * np.pi * k * T /
                 ((2 * np.pi * k * T)**2 - gamma**2))
@@ -512,66 +526,107 @@ class TestBosonicHEOMSolver:
         vk_real.extend([2 * np.pi * k * T for k in range(1, Nk + 1)])
         ck_imag = [lam * gamma * (-1.0)]
         vk_imag = [gamma]
+        return ck_real, vk_real, ck_imag, vk_imag
 
-        H_sys = Qobj(np.zeros((2, 2)))
-        if fake_timedep:
-            H_sys = [H_sys]
-        Q = sigmaz()
 
-        initial_state = 0.5*Qobj(np.ones((2, 2)))
-        projector = basis(2, 0) * basis(2, 1).dag()
-        options = Options(nsteps=15000, store_states=True)
+_HAMILTONIAN_EVO_KINDS = {
+    "qobj": lambda H: H,
+    "qobjevo": lambda H: QobjEvo([H]),
+    "listevo": lambda H: [H],
+}
 
-        hsolver = BosonicHEOMSolver(
-            H_sys, Q, ck_real, vk_real, ck_imag, vk_imag,
-            14, options=options,
+
+def hamiltonian_to_sys(H, evo, liouvillianize):
+    if liouvillianize:
+        H = liouvillian(H)
+    H = _HAMILTONIAN_EVO_KINDS[evo](H)
+    return H
+
+
+class TestBosonicHEOMSolver:
+    @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
+    @pytest.mark.parametrize(['evo', 'combine'], [
+        pytest.param("qobj", True, id="qobj-combined"),
+        pytest.param("qobjevo", True, id="qobjevo-combined"),
+        pytest.param("listevo", True, id="listevo-combined"),
+        pytest.param("qobj", False, id="qobj-uncombined"),
+    ])
+    @pytest.mark.parametrize(['liouvillianize'], [
+        pytest.param(False, id="hamiltonian"),
+        pytest.param(True, id="liouvillian"),
+    ])
+    def test_pure_dephasing_model(
+        self, evo, combine, liouvillianize, atol=1e-3
+    ):
+        dlm = DrudeLorentzPureDephasingModel(
+            lam=0.025, gamma=0.05, T=1/0.95, Nk=2,
         )
-        test = expect(hsolver.run(initial_state, times).states, projector)
+        ck_real, vk_real, ck_imag, vk_imag = dlm.bath_coefficients()
+        H_sys = hamiltonian_to_sys(dlm.H, evo, liouvillianize)
 
-        np.testing.assert_allclose(test, expected, atol=tol)
+        options = Options(nsteps=15000, store_states=True)
+        hsolver = BosonicHEOMSolver(
+            H_sys, dlm.Q, ck_real, vk_real, ck_imag, vk_imag,
+            14, combine=combine, options=options,
+        )
+
+        tlist = np.linspace(0, 10, 21)
+        result = hsolver.run(dlm.rho(), tlist)
+
+        test = dlm.state_results(result.states)
+        expected = dlm.analytic_results(tlist)
+        np.testing.assert_allclose(test, expected, atol=atol)
+
+        rho_final, ado_state = hsolver.steady_state()
+        test = dlm.state_results([rho_final])
+        expected = dlm.analytic_results([100])
+        np.testing.assert_allclose(test, expected, atol=atol)
+        assert rho_final == ado_state.extract(0)
 
 
 class TestHSolverDL:
     @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
-    @pytest.mark.parametrize(['bnd_cut_approx', 'tol', 'fake_timedep'], [
-        pytest.param(True, 1e-4, False, id="bnd_cut_approx_static"),
-        pytest.param(False,  1e-3, False, id="no_bnd_cut_approx_static"),
-        pytest.param(True, 1e-4, True, id="bnd_cut_approx_timedep"),
-        pytest.param(False,  1e-3, True, id="no_bnd_cut_approx_timedep"),
+    @pytest.mark.parametrize(['bnd_cut_approx', 'atol'], [
+        pytest.param(True, 1e-4, id="bnd_cut_approx"),
+        pytest.param(False,  1e-3, id="no_bnd_cut_approx"),
     ])
-    def test_run_pure_dephasing_model(self, bnd_cut_approx, tol, fake_timedep):
-        """ Compare with pure-dephasing analytical result. """
-        cut_frequency = 0.05
-        coupling_strength = 0.025
-        lam_c = coupling_strength / np.pi
-        temperature = 1 / 0.95
-        times = np.linspace(0, 10, 21)
+    @pytest.mark.parametrize(['evo', 'combine'], [
+        pytest.param("qobj", True, id="qobj-combined"),
+        pytest.param("qobjevo", True, id="qobjevo-combined"),
+        pytest.param("listevo", True, id="listevo-combined"),
+        pytest.param("qobj", False, id="qobj-uncombined"),
+    ])
+    @pytest.mark.parametrize(['liouvillianize'], [
+        pytest.param(False, id="hamiltonian"),
+        pytest.param(True, id="liouvillian"),
+    ])
+    def test_pure_dephasing_model(
+        self, bnd_cut_approx, atol, evo, combine, liouvillianize,
+    ):
+        dlm = DrudeLorentzPureDephasingModel(
+            lam=0.025, gamma=0.05, T=1/0.95, Nk=2,
+        )
+        ck_real, vk_real, ck_imag, vk_imag = dlm.bath_coefficients()
+        H_sys = hamiltonian_to_sys(dlm.H, evo, liouvillianize)
 
-        def _integrand(omega, t):
-            J = 2*lam_c * omega * cut_frequency / (omega**2 + cut_frequency**2)
-            return (-4 * J * (1 - np.cos(omega*t))
-                    / (np.tanh(0.5*omega / temperature) * omega**2))
-
-        # Calculate the analytical results by numerical integration
-        expected = [0.5*np.exp(quad(_integrand, 0, np.inf, args=(t,))[0])
-                    for t in times]
-
-        H_sys = Qobj(np.zeros((2, 2)))
-        if fake_timedep:
-            H_sys = [H_sys]
-        Q = sigmaz()
-        initial_state = 0.5*Qobj(np.ones((2, 2)))
-        projector = basis(2, 0) * basis(2, 1).dag()
         options = Options(nsteps=15_000, store_states=True)
-
-        hsolver = HSolverDL(H_sys, Q, coupling_strength, temperature,
-                            14, 2, cut_frequency,
+        hsolver = HSolverDL(H_sys, dlm.Q, dlm.lam, dlm.T,
+                            14, 2, dlm.gamma,
                             bnd_cut_approx=bnd_cut_approx,
-                            options=options)
+                            options=options, combine=combine)
 
-        test = expect(hsolver.run(initial_state, times).states, projector)
+        tlist = np.linspace(0, 10, 21)
+        result = hsolver.run(dlm.rho(), tlist)
 
-        np.testing.assert_allclose(test, expected, atol=tol)
+        test = dlm.state_results(result.states)
+        expected = dlm.analytic_results(tlist)
+        np.testing.assert_allclose(test, expected, atol=atol)
+
+        rho_final, ado_state = hsolver.steady_state()
+        test = dlm.state_results([rho_final])
+        expected = dlm.analytic_results([100])
+        np.testing.assert_allclose(test, expected, atol=atol)
+        assert rho_final == ado_state.extract(0)
 
 
 class TestFermionicHEOMSolver:
