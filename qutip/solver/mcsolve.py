@@ -265,7 +265,10 @@ class McSolver(MultiTrajSolver):
 
         c_ops = [QobjEvo(c_op) for c_op in c_ops]
         if H.issuper:
-            self._c_ops = [spre(c_op) * spost(c_op.dag()) for c_op in c_ops]
+            self._c_ops = [
+                spre(c_op) * spost(c_op.dag()) if c_op.isoper else c_op
+                for c_op in c_ops
+            ]
             self._n_ops = self._c_ops
             rhs = QobjEvo(H)
             for c_op in c_ops:
@@ -278,7 +281,7 @@ class McSolver(MultiTrajSolver):
             for n_op in self._n_ops:
                 rhs -= 0.5 * n_op
 
-        super().__init__(rhs, options=options)
+        super().__init__(rhs, self._c_ops, options=options)
 
         self.stats['solver'] = "MonteCarlo Evolution"
         self.stats['num_collapse'] = len(c_ops)

@@ -246,7 +246,10 @@ class MultiTrajResult:
         Each collapse per trajectory as a (time, which_oper)
 
     photocurrent : list
-        photocurrent corresponding to each collapse operator.
+        Average photocurrent corresponding to each collapse operator.
+
+    measurements : list
+        The photocurrent measurement of each trajectories.
 
     Methods
     -------
@@ -498,6 +501,19 @@ class MultiTrajResult:
         return mesurement
 
     @property
+    def measurements(self):
+        tlist = self.trajectories[0].times
+        measurements = []
+        for collapses in self.collapse:
+            cols = [[] for _ in range(self.num_c_ops)]
+            for t, which in collapses:
+                cols[which].append(t)
+            measurement = [(np.histogram(cols[i], tlist)[0] / np.diff(tlist))
+                          for i in range(self.num_c_ops)]
+            measurements.append(measurement)
+        return measurements
+
+    @property
     def run_stats(self):
         return self.trajectories[0].stats
 
@@ -547,7 +563,7 @@ class MultiTrajResult:
 
     @property
     def num_collapse(self):
-        return self.trajectories[0].num_collapse
+        return self.num_c_ops
 
     @property
     def end_condition(self):
@@ -609,10 +625,13 @@ class MultiTrajResultAveraged:
         ``col_times``. Only for Monte Carlo solver.
 
     collapse : list
-        Each collapse per trajectory as a (time, which_oper)
+        Each collapse per trajectory as a (time, which_oper).
 
     photocurrent : list
-        photocurrent corresponding to each collapse operator.
+        Averaged photocurrent corresponding to each collapse operator.
+
+    measurements : list
+        The photocurrent measurement of each trajectories.
 
     """
     def __init__(self, ntraj, e_ops=(), c_ops=(), target_tol=None):
@@ -643,37 +662,41 @@ class MultiTrajResultAveraged:
 
 
     def add(self, one_traj):
-        _to_dm = one_traj.states and one_traj.states[0].isket
+        _to_dm = one_traj.states
         if self._num == 0:
             self.trajectories = one_traj
-            if _to_dm and one_traj.states:
+            if one_traj.states and one_traj.states[0].isket:
                 self._sum_states = [state.proj() for state in one_traj.states]
             else:
                 self._sum_states = one_traj.states
-            if _to_dm and one_traj.final_state:
+            if one_traj.final_state and one_traj.final_state.isket:
                 self._sum_last_states = one_traj.final_state.proj()
             else:
                 self._sum_last_states = one_traj.final_state
             self._sum_expect = [np.array(expect) for expect in one_traj._expects]
-            self._sum2_expect = [np.array(expect)**2 for expect in one_traj._expects]
+            self._sum2_expect = [np.abs(np.array(expect))**2
+                                 for expect in one_traj._expects]
         else:
-            if _to_dm:
-                if self._sum_states:
-                    self._sum_states = [state.proj() + accu for accu, state
+            if self._sum_states and one_traj.states[0].isket:
+                self._sum_states = [state.proj() + accu for accu, state
                                     in zip(self._sum_states, one_traj.states)]
-                if self._sum_last_states:
-                    self._sum_last_states += one_traj.final_state.proj()
-            else:
-                if self._sum_states:
-                    self._sum_states = [state + accu for accu, state
-                                    in zip(self._sum_states, one_traj.states)]
-                if self._sum_last_states:
-                    self._sum_last_states += one_traj.final_state
+            elif self._sum_states:
+                self._sum_states = [state + accu
+                    for accu, state in zip(self._sum_states, one_traj.states)
+                ]
+
+            if self._sum_last_states and one_traj.final_state.isket:
+                self._sum_last_states += one_traj.final_state.proj()
+            elif self._sum_last_states:
+                self._sum_last_states += one_traj.final_state
+
             if self._sum_expect:
                 self._sum_expect = [np.array(one) + accu for one, accu in
                                     zip(one_traj._expects, self._sum_expect)]
-                self._sum2_expect = [np.array(one)**2 + accu for one, accu in
-                                     zip(one_traj._expects, self._sum2_expect)]
+                self._sum2_expect = [
+                    np.abs(np.array(one))**2 + accu
+                    for one, accu in zip(one_traj._expects, self._sum2_expect)
+                ]
         self._collapse.append(one_traj.collapse)
         if hasattr(one_traj, 'seed'):
             self.seeds.append(one_traj.seed)
@@ -744,7 +767,7 @@ class MultiTrajResultAveraged:
     @property
     def steady_state(self):
         avg = self._sum_states
-        return sum(avg) / len(avg)
+        return sum(avg) / len(avg) / self._num
 
     @property
     def average_expect(self):
@@ -763,7 +786,7 @@ class MultiTrajResultAveraged:
         _e_ops_dict = self.trajectories._e_ops_dict
         avg = [_sum / self._num for _sum in self._sum_expect]
         avg2 = [_sum2 / self._num for _sum2 in self._sum2_expect]
-        result = [np.sqrt(a2 - a*a) for a, a2 in zip(avg, avg2)]
+        result = [np.sqrt(a2 - abs(a*a)) for a, a2 in zip(avg, avg2)]
 
         if _e_ops_dict:
             result = {e: result[n]
@@ -819,6 +842,20 @@ class MultiTrajResultAveraged:
         return mesurement
 
     @property
+    def measurements(self):
+        cols = {}
+        tlist = self.trajectories.times
+        measurements = []
+        for collapses in self.collapse:
+            cols = [[] for _ in range(self.num_c_ops)]
+            for t, which in collapses:
+                cols[which].append(t)
+            measurement = [(np.histogram(cols[i], tlist)[0] / np.diff(tlist))
+                          for i in range(self.num_c_ops)]
+            measurements.append(measurement)
+        return measurements
+
+    @property
     def run_stats(self):
         return self.trajectories.stats
 
@@ -868,7 +905,7 @@ class MultiTrajResultAveraged:
 
     @property
     def num_collapse(self):
-        return self.trajectories.num_collapse
+        return self.num_c_ops
 
     @property
     def end_condition(self):

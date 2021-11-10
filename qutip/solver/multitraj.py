@@ -32,8 +32,9 @@ class MultiTrajSolver:
     optionsclass = SolverOptions
     odeoptionsclass = SolverOdeOptions
 
-    def __init__(self, rhs, *, options=None):
+    def __init__(self, rhs, c_ops=(), *, options=None):
         self.rhs = rhs
+        self._c_ops = c_ops
         self.stats = {}
         self.options = options
         self.seed_sequence = np.random.SeedSequence()
@@ -193,7 +194,8 @@ class MultiTrajSolver:
             if self.options.mcsolve['keep_runs_results']
             else MultiTrajResultAveraged)
 
-        self.result = result_cls(e_ops, self._c_ops, target_tol=target_tol)
+        self.result = result_cls(ntraj, e_ops or [],
+                                 self._c_ops, target_tol=target_tol)
 
         self._run_args = state0, tlist
         self._run_kwargs = {'args': args, 'e_ops': e_ops}
