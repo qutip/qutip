@@ -894,7 +894,7 @@ class HierarchyADOs:
             )
         if n > self.cutoff:
             raise ValueError(
-                f"The cutoff for the hiearchy is {self.cutoff} but {n} levels"
+                f"The cutoff for the hierarchy is {self.cutoff} but {n} levels"
                 " of excitation filters were given."
             )
         if level is None:

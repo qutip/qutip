@@ -18,6 +18,7 @@ from qutip.nonmarkov.bofin import (
     DrudeLorentzPadeBath,
     FermionicBath,
     HierarchyADOs,
+    HierarchyADOsState,
     BosonicHEOMSolver,
     FermionicHEOMSolver,
     HSolverDL,
@@ -430,7 +431,7 @@ class TestHierarchyADOs:
         with pytest.raises(ValueError) as err:
             ados.filter(dims=[2, 2, 2])
         assert str(err.value) == (
-            "The cutoff for the hiearchy is 2 but 3 levels of excitation"
+            "The cutoff for the hierarchy is 2 but 3 levels of excitation"
             " filters were given."
         )
 
@@ -440,6 +441,40 @@ class TestHierarchyADOs:
             "The level parameter is 0 but 1 levels of excitation filters"
             " were given."
         )
+
+
+class TestHierarchyADOsState:
+    def mk_ados(self, bath_dims, cutoff):
+        exponents = [
+            BathExponent("I", dim, Q=None, ck=1.0, vk=2.0) for dim in bath_dims
+        ]
+        ados = HierarchyADOs(exponents, cutoff=cutoff)
+        return ados
+
+    def mk_rho_and_soln(self, ados, rho_dims):
+        n_ados = len(ados.labels)
+        ado_soln = np.random.rand(n_ados, *[2**d for d in rho_dims])
+        rho = Qobj(ado_soln[0, :], dims=[2, 2])
+        return rho, ado_soln
+
+    def test_create(self):
+        ados = self.mk_ados([2, 3], cutoff=2)
+        rho, ado_soln = self.mk_rho_and_soln(ados, [2, 2])
+        ado_state = HierarchyADOsState(rho, ados, ado_soln)
+        assert ado_state.rho == rho
+        assert ado_state.labels == ados.labels
+        assert ado_state.exponents == ados.exponents
+        assert ado_state.idx((0, 0)) == ados.idx((0, 0))
+        assert ado_state.idx((0, 1)) == ados.idx((0, 1))
+
+    def test_extract(self):
+        ados = self.mk_ados([2, 3], cutoff=2)
+        rho, ado_soln = self.mk_rho_and_soln(ados, [2, 2])
+        ado_state = HierarchyADOsState(rho, ados, ado_soln)
+        ado_state.extract((0, 0)) == rho
+        ado_state.extract(0) == rho
+        ado_state.extract((0, 1)) == Qobj(ado_soln[1, :], dims=rho.dims)
+        ado_state.extract(1) == Qobj(ado_soln[1, :], dims=rho.dims)
 
 
 class TestBosonicHEOMSolver:
