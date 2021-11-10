@@ -16,7 +16,7 @@ from copy import deepcopy
 import numpy as np
 import scipy.sparse as sp
 import scipy.integrate
-from scipy.sparse.linalg import splu
+from scipy.sparse.linalg import spsolve
 from scipy.linalg import eigvalsh
 
 from qutip import settings
@@ -1345,8 +1345,7 @@ class HEOMSolver:
             )
         else:
             L = L.tocsc()
-            LU = splu(L)
-            solution = LU.solve(b_mat)
+            solution = spsolve(L, b_mat)
 
         data = dense2D_to_fastcsr_fmode(vec2mat(solution[:n ** 2]), n, n)
         data = 0.5 * (data + data.H)
