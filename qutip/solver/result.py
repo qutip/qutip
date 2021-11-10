@@ -100,10 +100,10 @@ class Result:
         elif _super:
             # Normalization of density matrix only fix the trace to ``1``.
             self._normalize_outputs = \
-                options['normalize_output'] in ['dm', True, 'all']
+                options['normalize_output'] in {'dm', True, 'all'}
         else:
             self._normalize_outputs = \
-                options['normalize_output'] in ['ket', True, 'all']
+                options['normalize_output'] in {'ket', True, 'all'}
 
     def _normalize(self, state):
         return state * (1/state.norm())
