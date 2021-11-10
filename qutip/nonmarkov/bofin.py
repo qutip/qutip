@@ -1531,15 +1531,21 @@ class BosonicHEOMSolver(HEOMSolver):
         exponent "excitations" to retain). See :class:`HEOMSolver` for
         a complete description.
 
+    combine : bool, default True
+        Whether to combine exponents with the same frequency (and coupling
+        operator). See :meth:`combine` for details.
+
     options : :class:`qutip.solver.Options`
         Generic solver options. If set to None the default options will be
         used. See :class:`HEOMSolver` for a complete description.
     """
     def __init__(
         self, H_sys, Q, ck_real, vk_real, ck_imag, vk_imag, max_depth,
-        options=None,
+        combine=True, options=None,
     ):
-        bath = BosonicBath(Q, ck_real, vk_real, ck_imag, vk_imag)
+        bath = BosonicBath(
+            Q, ck_real, vk_real, ck_imag, vk_imag, combine=combine,
+        )
         super().__init__(
             H_sys=H_sys, bath=bath, max_depth=max_depth, options=options,
         )
@@ -1606,10 +1612,15 @@ class HSolverDL(HEOMSolver):
     options : :class:`qutip.solver.Options`
         Generic solver options.
         If set to None the default options will be used.
+
+    combine : bool, default True
+        Whether to combine exponents with the same frequency (and coupling
+        operator). See :meth:`BosonicBath.combine` for details.
     """
     def __init__(
         self, H_sys, coup_op, coup_strength, temperature,
         N_cut, N_exp, cut_freq, bnd_cut_approx=False, options=None,
+        combine=True,
     ):
         bath = DrudeLorentzBath(
             Q=coup_op,
@@ -1617,6 +1628,7 @@ class HSolverDL(HEOMSolver):
             gamma=cut_freq,
             Nk=N_exp - 1,
             T=temperature,
+            combine=combine,
             terminator=bnd_cut_approx,
         )
 
