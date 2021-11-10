@@ -77,7 +77,7 @@ def mcsolve(H, psi0, tlist, c_ops=None, e_ops=None, ntraj=1,
     """
     H = QobjEvo(H, args=args, tlist=tlist)
     c_ops = c_ops if c_ops is not None else []
-    if not isinstance(c_ops, list):
+    if not isinstance(c_ops, (list, dict)):
         c_ops = [c_ops]
     c_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in c_ops]
 
@@ -93,7 +93,7 @@ def mcsolve(H, psi0, tlist, c_ops=None, e_ops=None, ntraj=1,
 
     mc = McSolver(H, c_ops, options=options)
     result = mc.run(psi0, tlist=tlist, ntraj=max_ntraj, e_ops=e_ops,
-                   seed=seeds, target_tol=target_tol)
+                    seed=seeds, target_tol=target_tol)
     if isinstance(ntraj, list):
         result.traj_batch = ntraj
     return result

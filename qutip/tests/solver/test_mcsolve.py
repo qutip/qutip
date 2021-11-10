@@ -223,6 +223,9 @@ def test_states_outputs(keep_runs_results):
     assert data.num_traj == ntraj
     assert data.num_expect == 0
     assert data.num_collapse == len(c_ops)
+    assert len(data.col_times) == ntraj
+    assert np.max(col_which) <= len(c_ops)
+    assert data.end_condition == "ntraj reached"
 
 
 @pytest.mark.parametrize('keep_runs_results', [True, False])
@@ -266,6 +269,9 @@ def test_expectation_outputs(keep_runs_results):
     assert data.num_traj == ntraj
     assert data.num_expect == len(e_ops)
     assert data.num_collapse == len(c_ops)
+    assert len(data.col_times) == ntraj
+    assert np.max(col_which) <= len(c_ops)
+    assert data.end_condition == "ntraj reached"
 
 
 class TestSeeds:
