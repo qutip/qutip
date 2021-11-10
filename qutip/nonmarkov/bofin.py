@@ -834,7 +834,7 @@ class HierarchyADOs:
         """
         return sum(
             ((exp,) * n for (n, exp) in zip(label, self.exponents) if n > 0),
-            start=(),
+            (),
         )
 
     def filter(self, level=None, tags=None, dims=None, types=None):
