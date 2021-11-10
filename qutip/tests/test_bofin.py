@@ -631,13 +631,19 @@ class TestHSolverDL:
 
 class TestFermionicHEOMSolver:
     @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
-    @pytest.mark.parametrize(['fake_timedep'], [
-        pytest.param(False, id="static"),
-        pytest.param(True, id="timedep"),
+    @pytest.mark.parametrize(['evo'], [
+        pytest.param("qobj"),
+        pytest.param("qobjevo"),
+        pytest.param("listevo"),
+        pytest.param("qobj"),
     ])
-    def test_steady_state_discrete_level_model(self, fake_timedep):
+    @pytest.mark.parametrize(['liouvillianize'], [
+        pytest.param(False, id="hamiltonian"),
+        pytest.param(True, id="liouvillian"),
+    ])
+    def test_discrete_level_model(self, evo, liouvillianize):
         """ Compare to discrete-level current analytics. """
-        tol = 1e-3
+        atol = 1e-3
         Gamma = 0.01  # coupling strength
         W = 1.  # cut-off
         T = 0.025851991  # temperature
@@ -745,8 +751,7 @@ class TestFermionicHEOMSolver:
         H0 = e1 * d1.dag() * d1
         Q = d1
 
-        if fake_timedep:
-            H0 = [H0]
+        H0 = hamiltonian_to_sys(H0, evo, liouvillianize)
 
         Kk = lmax + 1
         Ncc = 2  # For a single impurity we converge with Ncc = 2
@@ -809,4 +814,4 @@ class TestFermionicHEOMSolver:
             return real_integral[0] + 1.0j * imag_integral[0]
 
         curr_ana = CurrFunc()
-        np.testing.assert_allclose(curr_ana, -currP, atol=tol)
+        np.testing.assert_allclose(curr_ana, -currP, atol=atol)
