@@ -479,7 +479,8 @@ class TestHierarchyADOsState:
 
 
 class DrudeLorentzPureDephasingModel:
-    """ Analytic model for testing the HEOM solver. """
+    """ Analytic Drude-Lorentz pure-dephasing model for testing the HEOM solver.
+    """
     def __init__(self, lam, gamma, T, Nk):
         self.lam = lam
         self.gamma = gamma
@@ -629,46 +630,95 @@ class TestHSolverDL:
         assert rho_final == ado_state.extract(0)
 
 
-class TestFermionicHEOMSolver:
-    @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
-    @pytest.mark.parametrize(['evo'], [
-        pytest.param("qobj"),
-        pytest.param("qobjevo"),
-        pytest.param("listevo"),
-        pytest.param("qobj"),
-    ])
-    @pytest.mark.parametrize(['liouvillianize'], [
-        pytest.param(False, id="hamiltonian"),
-        pytest.param(True, id="liouvillian"),
-    ])
-    def test_discrete_level_model(self, evo, liouvillianize):
-        """ Compare to discrete-level current analytics. """
-        atol = 1e-3
-        Gamma = 0.01  # coupling strength
-        W = 1.  # cut-off
-        T = 0.025851991  # temperature
-        beta = 1. / T
+class DiscreteLevelCurrentModel:
+    """ Analytic discrete level current model for testing the HEOM solver.
+    """
+    def __init__(self, gamma, W, T, lmax):
+        self.gamma = gamma
+        self.W = W
+        self.T = T
+        self.lmax = lmax  # Pade cut-off
+        self.beta = 1. / T
 
-        theta = 2.  # Bias
-        mu_l = theta/2.
-        mu_r = -theta/2.
+        # single fermion
+        self.e1 = 1.
+        d1 = destroy(2)
+        self.H = self.e1 * d1.dag() * d1
+        self.Q = d1
 
-        lmax = 10  # Pade cut-off
+        # bias
+        self.theta = 2.
+
+    def rho(self):
+        """ Initial state. """
+        return 0.5 * Qobj(np.ones((2, 2)))
+
+    def state_current(self, ado_state):
+        level_1_aux = [
+            (ado_state.extract(label), ado_state.exps(label)[0])
+            for label in ado_state.filter(level=1)
+        ]
+
+        def exp_sign(exp):
+            return 1 if exp.type == exp.types["+"] else -1
+
+        # right hand modes are the first k modes in ck/vk_plus and ck/vk_minus
+        # and thus the first 2 * k exponents
+        k = self.lmax + 1
+        return 1.0j * sum(
+            exp_sign(exp) * (exp.Q * aux).tr()
+            for aux, exp in level_1_aux[:2 * k]
+        )
+
+    def analytic_current(self):
+        Gamma, W, beta, e1 = self.gamma, self.W, self.beta, self.e1
+        mu_l = self.theta / 2.
+        mu_r = - self.theta / 2.
+
+        def f(x):
+            return 1 / (np.exp(x) + 1.)
+
+        def Gamma_w(w, mu):
+            return Gamma * W**2 / ((w-mu)**2 + W**2)
+
+        def lamshift(w, mu):
+            return (w-mu)*Gamma_w(w, mu)/(2*W)
+
+        def integrand(w):
+            return (
+                ((2 / (np.pi)) * Gamma_w(w, mu_l) * Gamma_w(w, mu_r) *
+                    (f(beta * (w - mu_l)) - f(beta * (w - mu_r)))) /
+                ((Gamma_w(w, mu_l) + Gamma_w(w, mu_r))**2 + 4 *
+                    (w - e1 - lamshift(w, mu_l) - lamshift(w, mu_r))**2)
+            )
+
+        def real_func(x):
+            return np.real(integrand(x))
+
+        def imag_func(x):
+            return np.imag(integrand(x))
+
+        # These integral bounds should be checked to be wide enough if the
+        # parameters are changed
+        a = -2
+        b = 2
+        real_integral = quad(real_func, a, b)
+        imag_integral = quad(imag_func, a, b)
+
+        return real_integral[0] + 1.0j * imag_integral[0]
+
+    def bath_coefficients(self):
+        """ Correlation function expansion coefficients for the fermionic bath.
+        """
+        Gamma, W, beta, lmax = self.gamma, self.W, self.beta, self.lmax
+        mu_l = self.theta / 2.
+        mu_r = - self.theta / 2.
 
         def deltafun(j, k):
             if j == k:
                 return 1.
             else:
                 return 0.
-
-        def Gamma_L_w(w):
-            return Gamma * W**2 / ((w-mu_l)**2 + W**2)
-
-        def Gamma_w(w, mu):
-            return Gamma * W**2 / ((w-mu)**2 + W**2)
-
-        def f(x):
-            return 1 / (np.exp(x) + 1.)
 
         Alpha = np.zeros((2 * lmax, 2 * lmax))
         for j in range(2*lmax):
@@ -737,81 +787,49 @@ class TestFermionicHEOMSolver:
         etapR, gampR = C(1.0, mu_r)
         etamR, gammR = C(-1.0, mu_r)
 
-        # heom simulation with above params (Pade)
-        options = Options(
-            nsteps=15000, store_states=True, rtol=1e-14, atol=1e-14,
-        )
-
-        # Single fermion.
-        d1 = destroy(2)
-
-        # Site energy
-        e1 = 1.
-
-        H0 = e1 * d1.dag() * d1
-        Q = d1
-
-        H0 = hamiltonian_to_sys(H0, evo, liouvillianize)
-
-        Kk = lmax + 1
-        Ncc = 2  # For a single impurity we converge with Ncc = 2
-
         ck_plus = etapR + etapL
         vk_plus = gampR + gampL
         ck_minus = etamR + etamL
         vk_minus = gammR + gammL
 
-        resultHEOM2 = FermionicHEOMSolver(
-            H0, Q,  ck_plus, vk_plus, ck_minus, vk_minus, Ncc, options=options)
+        return ck_plus, vk_plus, ck_minus, vk_minus
 
-        rhossHP2, fullssP2 = resultHEOM2.steady_state()
 
-        def level_one_auxillaries(full):
-            results = [None] * len(full.exponents)
-            for label in full.filter(level=1):
-                aux = full.extract(label)
-                k = label.index(1)
-                exp = full.exponents[k]
-                results[k] = (aux, exp)
-            return results
+class TestFermionicHEOMSolver:
+    @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
+    @pytest.mark.parametrize(['evo'], [
+        pytest.param("qobj"),
+        pytest.param("qobjevo"),
+        pytest.param("listevo"),
+    ])
+    @pytest.mark.parametrize(['liouvillianize'], [
+        pytest.param(False, id="hamiltonian"),
+        pytest.param(True, id="liouvillian"),
+    ])
+    def test_discrete_level_model(self, evo, liouvillianize, atol=1e-3):
+        """ Compare to discrete-level current analytics. """
+        dlm = DiscreteLevelCurrentModel(
+            gamma=0.01, W=1, T=0.025851991, lmax=10,
+        )
+        H_sys = hamiltonian_to_sys(dlm.H, evo, liouvillianize)
+        ck_plus, vk_plus, ck_minus, vk_minus = dlm.bath_coefficients()
 
-        l1_aux = level_one_auxillaries(fullssP2)
-
-        # right hand modes are the first Kk modes in ck/vk_plus and ck/vk_minus
-        # and thus the first 2 * Kk exponents
-        def exp_sign(exp):
-            return 1 if exp.type == exp.types["+"] else -1
-
-        currP = -1.0j * sum(
-            exp_sign(exp) * (exp.Q * aux).tr() for aux, exp in l1_aux[:2 * Kk]
+        options = Options(
+            nsteps=15_000, store_states=True, rtol=1e-14, atol=1e-14,
+        )
+        Ncc = 2  # For a single impurity we converge with Ncc = 2
+        hsolver = FermionicHEOMSolver(
+            H_sys, dlm.Q, ck_plus, vk_plus, ck_minus, vk_minus, Ncc,
+            options=options,
         )
 
-        def CurrFunc():
-            def lamshift(w, mu):
-                return (w-mu)*Gamma_w(w, mu)/(2*W)
+        tlist = [0, 10]
+        result = hsolver.run(dlm.rho(), tlist, ado_return=True)
+        current = dlm.state_current(result.ado_states[-1])
+        analytic_current = dlm.analytic_current()
+        np.testing.assert_allclose(analytic_current, current, atol=atol)
 
-            def integrand(w):
-                return (
-                    ((2 / (np.pi)) * Gamma_w(w, mu_l) * Gamma_w(w, mu_r) *
-                        (f(beta * (w - mu_l)) - f(beta * (w - mu_r)))) /
-                    ((Gamma_w(w, mu_l) + Gamma_w(w, mu_r))**2 + 4 *
-                        (w - e1 - lamshift(w, mu_l) - lamshift(w, mu_r))**2)
-                )
-
-            def real_func(x):
-                return np.real(integrand(x))
-
-            def imag_func(x):
-                return np.imag(integrand(x))
-
-            # These integral bounds should be checked to be wide enough if the
-            # parameters are changed
-            a = -2
-            b = 2
-            real_integral = quad(real_func, a, b)
-            imag_integral = quad(imag_func, a, b)
-
-            return real_integral[0] + 1.0j * imag_integral[0]
-
-        curr_ana = CurrFunc()
-        np.testing.assert_allclose(curr_ana, -currP, atol=atol)
+        rho_final, ado_state = hsolver.steady_state()
+        current = dlm.state_current(ado_state)
+        analytic_current = dlm.analytic_current()
+        np.testing.assert_allclose(analytic_current, current, atol=atol)
