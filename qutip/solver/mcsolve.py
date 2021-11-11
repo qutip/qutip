@@ -111,10 +111,6 @@ class _McTrajectorySolver(_TrajectorySolver):
         self._c_ops = parent._c_ops
         self._n_ops = parent._n_ops
         super().__init__(rhs, options=options)
-        self.norm_steps = self.options.mcsolve['norm_steps']
-        self.norm_t_tol = self.options.mcsolve['norm_t_tol']
-        self.norm_tol = self.options.mcsolve['norm_tol']
-        self.mc_corr_eps = self.options.mcsolve['mc_corr_eps']
 
     def run(self, state0, tlist, *,
             args=None, e_ops=None, options=None, seed=None):
@@ -163,9 +159,9 @@ class _McTrajectorySolver(_TrajectorySolver):
         """Find and apply a collapse."""
         t_final, _ = self._integrator.get_state()
         tries = 0
-        while tries < self.norm_steps:
+        while tries < self.options.mcsolve['norm_steps']:
             tries += 1
-            if (t_final - t_prev) < self.norm_t_tol:
+            if (t_final - t_prev) < self.options.mcsolve['norm_t_tol']:
                 t_guess = t_final
                 _, state = self._integrator.get_state()
                 break
@@ -175,13 +171,13 @@ class _McTrajectorySolver(_TrajectorySolver):
                    * np.log(norm_old / self.target_norm)
                    / np.log(norm_old / norm))
             )
-            if (t_guess - t_prev) < self.norm_t_tol:
-                t_guess = t_prev + self.norm_t_tol
+            if (t_guess - t_prev) < self.options.mcsolve['norm_t_tol']:
+                t_guess = t_prev + self.options.mcsolve['norm_t_tol']
             _, state = self._integrator.mcstep(t_guess, copy=False)
             norm2_guess = self.prob_func(state)
             if (
                 np.abs(self.target_norm - norm2_guess) <
-                self.norm_tol * self.target_norm
+                self.options.mcsolve['norm_tol'] * self.target_norm
             ):
                 break
             elif (norm2_guess < self.target_norm):
@@ -193,7 +189,7 @@ class _McTrajectorySolver(_TrajectorySolver):
                 t_prev = t_guess
                 norm_old = norm2_guess
 
-        if tries >= self.norm_steps:
+        if tries >= self.options.mcsolve['norm_steps']:
             raise Exception("Norm tolerance not reached. " +
                             "Increase accuracy of ODE solver or " +
                             "SolverOptions.mcsolve['norm_steps'].")
@@ -207,7 +203,7 @@ class _McTrajectorySolver(_TrajectorySolver):
 
         state_new = self._c_ops[which].matmul_data(t_guess, state)
         new_norm = self.norm_func(state_new)
-        if new_norm < self.mc_corr_eps:
+        if new_norm < self.options.mcsolve['mc_corr_eps']:
             # This happen when the collapse is caused by numerical error
             state_new = _data.mul(state, 1 / self.norm_func(state))
         else:
