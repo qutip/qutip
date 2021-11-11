@@ -111,7 +111,9 @@ class BathExponent:
     def _check_sigma_bar_k_offset(self, type, offset):
         if type in (self.types["+"], self.types["-"]):
             if offset is None:
-                raise ValueError("+ and - bath exponents require sigma_bar_k")
+                raise ValueError(
+                    "+ and - bath exponents require sigma_bar_k_offset"
+                )
         else:
             if offset is not None:
                 raise ValueError(
@@ -688,7 +690,7 @@ class HierarchyADOs:
         The exponents of the correlation function describing the bath or
         baths.
 
-    cutoff : int
+    max_depth : int
         The maximum depth of the hierarchy (i.e. the maximum sum of
         "excitations" in the hierarchy ADO labels or maximum ADO level).
 
@@ -698,7 +700,7 @@ class HierarchyADOs:
         The exponents of the correlation function describing the bath or
         baths.
 
-    cutoff : int
+    max_depth : int
         The maximum depth of the hierarchy (i.e. the maximum sum of
         "excitations" in the hierarchy ADO labels).
 
@@ -723,11 +725,11 @@ class HierarchyADOs:
     labels: list of tuples
         A list of the ADO labels within the hierarchy.
     """
-    def __init__(self, exponents, cutoff):
+    def __init__(self, exponents, max_depth):
         self.exponents = exponents
-        self.cutoff = cutoff
+        self.max_depth = max_depth
 
-        self.dims = [exp.dim or (cutoff + 1) for exp in self.exponents]
+        self.dims = [exp.dim or (max_depth + 1) for exp in self.exponents]
         self.vk = [exp.vk for exp in self.exponents]
         self.ck = [exp.ck for exp in self.exponents]
         self.ck2 = [exp.ck2 for exp in self.exponents]
@@ -735,7 +737,7 @@ class HierarchyADOs:
             exp.sigma_bar_k_offset for exp in self.exponents
         ]
 
-        self.labels = list(state_number_enumerate(self.dims, cutoff))
+        self.labels = list(state_number_enumerate(self.dims, max_depth))
         self._label_idx = {s: i for i, s in enumerate(self.labels)}
 
     def idx(self, label):
@@ -759,7 +761,7 @@ class HierarchyADOs:
         """
         Return the ADO label with one more excitation in the k'th exponent
         dimension or ``None`` if adding the excitation would exceed the
-        dimension or bath cutoff.
+        dimension or maximum depth of the hierarchy.
 
         Parameters
         ----------
@@ -775,7 +777,7 @@ class HierarchyADOs:
         """
         if label[k] >= self.dims[k] - 1:
             return None
-        if sum(label) >= self.cutoff:
+        if sum(label) >= self.max_depth:
             return None
         return label[:k] + (label[k] + 1,) + label[k + 1:]
 
@@ -892,10 +894,10 @@ class HierarchyADOs:
             raise ValueError(
                 "The tags, dims and types filters must all be the same length."
             )
-        if n > self.cutoff:
+        if n > self.max_depth:
             raise ValueError(
-                f"The cutoff for the hierarchy is {self.cutoff} but {n} levels"
-                " of excitation filters were given."
+                f"The maximum depth for the hierarchy is {self.max_depth} but"
+                f" {n} levels of excitation filters were given."
             )
         if level is None:
             if not filters:
@@ -1002,10 +1004,10 @@ class HEOMSolver:
         :obj:`Qobj`, a :obj:`QobjEvo`, or a list of elements that may
         be converted to a :obj:`ObjEvo`.
 
-    baths : Bath or list of Bath
+    bath : Bath or list of Bath
         A :obj:`Bath` containing the exponents of the expansion of the
         bath correlation funcion and their associated coefficients
-        and coupling operators.
+        and coupling operators, or a list of baths.
 
         If multiple baths are given, they must all be either fermionic
         or bosonic baths.
