@@ -9,7 +9,7 @@ from scipy.integrate import quad
 
 from qutip import (
     basis, destroy, expect, isequal, liouvillian, spre, spost, sigmax, sigmaz,
-    Qobj, QobjEvo, Options,
+    tensor, Qobj, QobjEvo, Options,
 )
 from qutip.nonmarkov.bofin import (
     BathExponent,
@@ -20,6 +20,7 @@ from qutip.nonmarkov.bofin import (
     FermionicBath,
     HierarchyADOs,
     HierarchyADOsState,
+    HEOMSolver,
     BosonicHEOMSolver,
     FermionicHEOMSolver,
     HSolverDL,
@@ -317,10 +318,10 @@ class TestHierarchyADOs:
 
     def test_create(self):
         exponents = self.mk_exponents([2, 3])
-        ados = HierarchyADOs(exponents, cutoff=2)
+        ados = HierarchyADOs(exponents, max_depth=2)
 
         assert ados.exponents == exponents
-        assert ados.cutoff == 2
+        assert ados.max_depth == 2
 
         assert ados.dims == [2, 3]
         assert ados.vk == [2.0, 2.0]
@@ -333,7 +334,7 @@ class TestHierarchyADOs:
         ]
 
     def test_state_idx(self):
-        ados = HierarchyADOs(self.mk_exponents([2, 3]), cutoff=2)
+        ados = HierarchyADOs(self.mk_exponents([2, 3]), max_depth=2)
         assert ados.idx((0, 0)) == 0
         assert ados.idx((0, 1)) == 1
         assert ados.idx((0, 2)) == 2
@@ -341,7 +342,7 @@ class TestHierarchyADOs:
         assert ados.idx((1, 1)) == 4
 
     def test_next(self):
-        ados = HierarchyADOs(self.mk_exponents([2, 3]), cutoff=2)
+        ados = HierarchyADOs(self.mk_exponents([2, 3]), max_depth=2)
         assert ados.next((0, 0), 0) == (1, 0)
         assert ados.next((0, 0), 1) == (0, 1)
         assert ados.next((1, 0), 0) is None
@@ -349,7 +350,7 @@ class TestHierarchyADOs:
         assert ados.next((1, 1), 1) is None
 
     def test_prev(self):
-        ados = HierarchyADOs(self.mk_exponents([2, 3]), cutoff=2)
+        ados = HierarchyADOs(self.mk_exponents([2, 3]), max_depth=2)
         assert ados.prev((0, 0), 0) is None
         assert ados.prev((0, 0), 1) is None
         assert ados.prev((1, 0), 0) == (0, 0)
@@ -358,7 +359,7 @@ class TestHierarchyADOs:
         assert ados.prev((0, 2), 1) == (0, 1)
 
     def test_exps(self):
-        ados = HierarchyADOs(self.mk_exponents([3, 3, 2]), cutoff=4)
+        ados = HierarchyADOs(self.mk_exponents([3, 3, 2]), max_depth=4)
         assert ados.exps((0, 0, 0)) == ()
         assert ados.exps((1, 0, 0)) == (ados.exponents[0],)
         assert ados.exps((2, 0, 0)) == (
@@ -371,13 +372,13 @@ class TestHierarchyADOs:
         )
 
     def test_filter_by_nothing(self):
-        ados = HierarchyADOs(self.mk_exponents([2, 3]), cutoff=2)
+        ados = HierarchyADOs(self.mk_exponents([2, 3]), max_depth=2)
         assert ados.filter() == [
             (0, 0), (0, 1), (0, 2), (1, 0), (1, 1),
         ]
 
     def test_filter_by_level(self):
-        ados = HierarchyADOs(self.mk_exponents([2, 3]), cutoff=2)
+        ados = HierarchyADOs(self.mk_exponents([2, 3]), max_depth=2)
         assert ados.filter(level=0) == [
             (0, 0),
         ]
@@ -392,7 +393,7 @@ class TestHierarchyADOs:
         assert ados.filter(level=3) == []
 
     def test_filter_by_exponents(self):
-        ados = HierarchyADOs(self.mk_exponents([2, 3]), cutoff=2)
+        ados = HierarchyADOs(self.mk_exponents([2, 3]), max_depth=2)
         assert ados.filter(dims=[]) == [
             (0, 0),
         ]
@@ -432,8 +433,8 @@ class TestHierarchyADOs:
         with pytest.raises(ValueError) as err:
             ados.filter(dims=[2, 2, 2])
         assert str(err.value) == (
-            "The cutoff for the hierarchy is 2 but 3 levels of excitation"
-            " filters were given."
+            "The maximum depth for the hierarchy is 2 but 3 levels of"
+            " excitation filters were given."
         )
 
         with pytest.raises(ValueError) as err:
@@ -445,11 +446,11 @@ class TestHierarchyADOs:
 
 
 class TestHierarchyADOsState:
-    def mk_ados(self, bath_dims, cutoff):
+    def mk_ados(self, bath_dims, max_depth):
         exponents = [
             BathExponent("I", dim, Q=None, ck=1.0, vk=2.0) for dim in bath_dims
         ]
-        ados = HierarchyADOs(exponents, cutoff=cutoff)
+        ados = HierarchyADOs(exponents, max_depth=max_depth)
         return ados
 
     def mk_rho_and_soln(self, ados, rho_dims):
@@ -459,7 +460,7 @@ class TestHierarchyADOsState:
         return rho, ado_soln
 
     def test_create(self):
-        ados = self.mk_ados([2, 3], cutoff=2)
+        ados = self.mk_ados([2, 3], max_depth=2)
         rho, ado_soln = self.mk_rho_and_soln(ados, [2, 2])
         ado_state = HierarchyADOsState(rho, ados, ado_soln)
         assert ado_state.rho == rho
@@ -469,7 +470,7 @@ class TestHierarchyADOsState:
         assert ado_state.idx((0, 1)) == ados.idx((0, 1))
 
     def test_extract(self):
-        ados = self.mk_ados([2, 3], cutoff=2)
+        ados = self.mk_ados([2, 3], max_depth=2)
         rho, ado_soln = self.mk_rho_and_soln(ados, [2, 2])
         ado_state = HierarchyADOsState(rho, ados, ado_soln)
         ado_state.extract((0, 0)) == rho
@@ -545,6 +546,159 @@ def hamiltonian_to_sys(H, evo, liouvillianize):
         H = liouvillian(H)
     H = _HAMILTONIAN_EVO_KINDS[evo](H)
     return H
+
+
+class TestHEOMSolver:
+    def test_create_bosonic(self):
+        Q = sigmaz()
+        H = sigmax()
+        exponents = [
+            BathExponent("R", None, Q=Q, ck=1.1, vk=2.1),
+            BathExponent("I", None, Q=Q, ck=1.2, vk=2.2),
+            BathExponent("RI", None, Q=Q, ck=1.3, vk=2.3, ck2=3.3),
+        ]
+        bath = Bath(exponents)
+
+        hsolver = HEOMSolver(H, bath, 2)
+        assert hsolver.ados.exponents == exponents
+        assert hsolver.ados.max_depth == 2
+
+        hsolver = HEOMSolver(H, [bath] * 3, 2)
+        assert hsolver.ados.exponents == exponents * 3
+        assert hsolver.ados.max_depth == 2
+
+    def test_create_fermionic(self):
+        Q = sigmaz()
+        H = sigmax()
+        exponents = [
+            BathExponent("+", 2, Q=Q, ck=1.1, vk=2.1, sigma_bar_k_offset=1),
+            BathExponent("-", 2, Q=Q, ck=1.2, vk=2.2, sigma_bar_k_offset=-1),
+        ]
+        bath = Bath(exponents)
+
+        hsolver = HEOMSolver(H, bath, 2)
+        assert hsolver.ados.exponents == exponents
+        assert hsolver.ados.max_depth == 2
+
+        hsolver = HEOMSolver(H, [bath] * 3, 2)
+        assert hsolver.ados.exponents == exponents * 3
+        assert hsolver.ados.max_depth == 2
+
+    def test_create_bath_errors(self):
+        Q = sigmaz()
+        H = sigmax()
+        mixed_types = [
+            BathExponent("+", 2, Q=Q, ck=1.1, vk=2.1, sigma_bar_k_offset=1),
+            BathExponent("-", 2, Q=Q, ck=1.2, vk=2.2, sigma_bar_k_offset=-1),
+            BathExponent("R", 2, Q=Q, ck=1.2, vk=2.2),
+        ]
+        mixed_q_dims = [
+            BathExponent("I", 2, Q=tensor(Q, Q), ck=1.2, vk=2.2),
+            BathExponent("R", 2, Q=Q, ck=1.2, vk=2.2),
+        ]
+
+        with pytest.raises(ValueError) as err:
+            HEOMSolver(H, Bath(mixed_types), 2)
+        assert str(err.value) == (
+            "Bath exponents are currently restricted to being either all"
+            " bosonic or all fermionic, but a mixture of bath exponents was"
+            " given."
+        )
+
+        with pytest.raises(ValueError) as err:
+            HEOMSolver(H, Bath(mixed_q_dims), 2)
+        assert str(err.value) == (
+            "All bath exponents must have system coupling operators with the"
+            " same dimensions but a mixture of dimensions was given."
+        )
+
+    def test_create_h_sys_errors(self):
+        H = object()
+
+        with pytest.raises(TypeError) as err:
+            HEOMSolver(H, Bath([]), 2)
+        assert str(err.value) == (
+            "Hamiltonian (H_sys) has unsupported type: <class 'object'>"
+        )
+
+        with pytest.raises(ValueError) as err:
+            HEOMSolver([H], Bath([]), 2)
+        assert str(err.value) == (
+            "Hamiltonian (H_sys) of type list cannot be converted to QObjEvo"
+        )
+
+    @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
+    @pytest.mark.parametrize(['evo', 'combine'], [
+        pytest.param("qobj", True, id="qobj"),
+        pytest.param("qobjevo", True, id="qobjevo"),
+        pytest.param("listevo", True, id="listevo"),
+    ])
+    @pytest.mark.parametrize(['liouvillianize'], [
+        pytest.param(False, id="hamiltonian"),
+        pytest.param(True, id="liouvillian"),
+    ])
+    def test_bosonic_pure_dephasing_model(
+        self, evo, combine, liouvillianize, atol=1e-3
+    ):
+        dlm = DrudeLorentzPureDephasingModel(
+            lam=0.025, gamma=0.05, T=1/0.95, Nk=2,
+        )
+        ck_real, vk_real, ck_imag, vk_imag = dlm.bath_coefficients()
+        H_sys = hamiltonian_to_sys(dlm.H, evo, liouvillianize)
+
+        bath = BosonicBath(dlm.Q, ck_real, vk_real, ck_imag, vk_imag)
+        options = Options(nsteps=15000, store_states=True)
+        hsolver = HEOMSolver(H_sys, bath, 14, options=options)
+
+        tlist = np.linspace(0, 10, 21)
+        result = hsolver.run(dlm.rho(), tlist)
+
+        test = dlm.state_results(result.states)
+        expected = dlm.analytic_results(tlist)
+        np.testing.assert_allclose(test, expected, atol=atol)
+
+        rho_final, ado_state = hsolver.steady_state()
+        test = dlm.state_results([rho_final])
+        expected = dlm.analytic_results([100])
+        np.testing.assert_allclose(test, expected, atol=atol)
+        assert rho_final == ado_state.extract(0)
+
+    @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
+    @pytest.mark.parametrize(['evo'], [
+        pytest.param("qobj"),
+        pytest.param("qobjevo"),
+        pytest.param("listevo"),
+    ])
+    @pytest.mark.parametrize(['liouvillianize'], [
+        pytest.param(False, id="hamiltonian"),
+        pytest.param(True, id="liouvillian"),
+    ])
+    def test_fermionic_discrete_level_model(
+        self, evo, liouvillianize, atol=1e-3
+    ):
+        dlm = DiscreteLevelCurrentModel(
+            gamma=0.01, W=1, T=0.025851991, lmax=10,
+        )
+        H_sys = hamiltonian_to_sys(dlm.H, evo, liouvillianize)
+        ck_plus, vk_plus, ck_minus, vk_minus = dlm.bath_coefficients()
+
+        options = Options(
+            nsteps=15_000, store_states=True, rtol=1e-14, atol=1e-14,
+        )
+        bath = FermionicBath(dlm.Q, ck_plus, vk_plus, ck_minus, vk_minus)
+        # for a single impurity we converge with max_depth = 2
+        hsolver = HEOMSolver(H_sys, bath, 2, options=options)
+
+        tlist = [0, 10]
+        result = hsolver.run(dlm.rho(), tlist, ado_return=True)
+        current = dlm.state_current(result.ado_states[-1])
+        analytic_current = dlm.analytic_current()
+        np.testing.assert_allclose(analytic_current, current, atol=atol)
+
+        rho_final, ado_state = hsolver.steady_state()
+        current = dlm.state_current(ado_state)
+        analytic_current = dlm.analytic_current()
+        np.testing.assert_allclose(analytic_current, current, atol=atol)
 
 
 class TestBosonicHEOMSolver:
@@ -810,7 +964,6 @@ class TestFermionicHEOMSolver:
         pytest.param(True, id="liouvillian"),
     ])
     def test_discrete_level_model(self, evo, liouvillianize, atol=1e-3):
-        """ Compare to discrete-level current analytics. """
         dlm = DiscreteLevelCurrentModel(
             gamma=0.01, W=1, T=0.025851991, lmax=10,
         )
