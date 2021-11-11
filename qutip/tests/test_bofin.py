@@ -486,7 +486,10 @@ class DrudeLorentzPureDephasingModel:
         self.gamma = gamma
         self.T = T
         self.Nk = Nk
-        self.H = Qobj(np.zeros((2, 2)))
+        # we add a very weak system hamiltonian here to avoid having
+        # singular system that causes problems for the scipy.sparse.linalg
+        # superLU solver used in spsolve.
+        self.H = Qobj(1e-5 * np.ones((2, 2)))
         self.Q = sigmaz()
 
     def rho(self):
