@@ -1,6 +1,6 @@
 from .. import Qobj, QobjEvo
 from .options import SolverOptions, SolverOdeOptions
-from .result import Result, MultiTrajResult, MultiTrajResultAveraged
+from .result import Result, MultiTrajResult
 from .parallel import get_map
 from time import time
 from .solver_base import Solver
@@ -190,12 +190,9 @@ class MultiTrajSolver:
         if options is not None:
             self.options = options
 
-        result_cls = (MultiTrajResult
-            if self.options.mcsolve['keep_runs_results']
-            else MultiTrajResultAveraged)
-
-        self.result = result_cls(ntraj, e_ops or [],
-                                 self._c_ops, target_tol=target_tol)
+        self.result = MultiTrajResult(ntraj, e_ops or [], self._c_ops,
+                                      options=self.options.results,
+                                      target_tol=target_tol)
 
         self._run_args = state0, tlist
         self._run_kwargs = {'args': args, 'e_ops': e_ops}
@@ -298,14 +295,15 @@ class _TrajectorySolver(Solver):
         self.options = options
         self.stats = {"preparation time": 0}
         self._state_metadata = {}
-        if self.options.mcsolve['BitGenerator']:
-            if hasattr(np.random, self.options.mcsolve['BitGenerator']):
+        if self.options.mcsolve['bitgenerator']:
+            if hasattr(np.random, self.options.mcsolve['bitgenerator']):
                 self.bit_gen = getattr(np.random,
-                                       self.options.mcsolve['BitGenerator'])
+                                       self.options.mcsolve['bitgenerator'])
             else:
                 raise ValueError("BitGenerator is not know to numpy.random")
         else:
-            self.bit_gen = np.random.PCG64DXSM
+            # We use default_rng so we don't fix a default bit_generator.
+            self.bit_gen = np.random.default_rng().bit_generator.__class__
 
     def start(self, state0, t0, seed=None, *, safe_ODE=False):
         """

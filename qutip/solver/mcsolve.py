@@ -85,8 +85,10 @@ def mcsolve(H, psi0, tlist, c_ops=None, e_ops=None, ntraj=1,
         return mesolve(H, psi0, tlist, e_ops=e_ops, args=args, options=options)
 
     if isinstance(ntraj, list):
+        if isinstance(options, dict):
+            options = SolverOptions(**options)
         options = copy(options) or SolverOptions()
-        options.mcsolve['keep_runs_results'] = True
+        options.results['keep_runs_results'] = True
         max_ntraj = max(ntraj)
     else:
         max_ntraj = ntraj

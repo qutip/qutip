@@ -224,7 +224,7 @@ def test_states_outputs(keep_runs_results):
     assert data.num_expect == 0
     assert data.num_collapse == len(c_ops)
     assert len(data.col_times) == ntraj
-    assert np.max(col_which) <= len(c_ops)
+    assert np.max(np.hstack(data.col_which)) <= len(c_ops)
     assert data.end_condition == "ntraj reached"
 
 
@@ -270,7 +270,7 @@ def test_expectation_outputs(keep_runs_results):
     assert data.num_expect == len(e_ops)
     assert data.num_collapse == len(c_ops)
     assert len(data.col_times) == ntraj
-    assert np.max(col_which) <= len(c_ops)
+    assert np.max(np.hstack(data.col_which)) <= len(c_ops)
     assert data.end_condition == "ntraj reached"
 
 
@@ -331,7 +331,7 @@ class TestSeeds:
     def test_alternative_generator(self):
         args = (self.H, self.state, self.times)
         kwargs = {'c_ops': self.c_ops, 'ntraj': self.ntraj}
-        first = mcsolve(*args, seeds=1, options={'BitGenerator': 'MT19937'},
+        first = mcsolve(*args, seeds=1, options={'bitgenerator': 'MT19937'},
                         **kwargs)
         second = mcsolve(*args, seeds=1, **kwargs)
         for f_seed, s_seed in zip(first.seeds, second.seeds):
