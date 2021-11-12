@@ -556,7 +556,7 @@ class DrudeLorentzPadeBath(BosonicBath):
                     (chi[k]**2 - eps[j]**2) /
                     (eps[k]**2 - eps[j]**2 + self._delta(j, k))
                 )
-            for k in range(Nk - 1, Nk):
+            for k in [Nk - 1]:
                 term /= (eps[k]**2 - eps[j]**2 + self._delta(j, k))
             kappa.append(term)
 
