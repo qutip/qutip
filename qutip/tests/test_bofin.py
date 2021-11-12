@@ -664,6 +664,46 @@ class TestHEOMSolver:
         assert rho_final == ado_state.extract(0)
 
     @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
+    @pytest.mark.parametrize(['terminator'], [
+        pytest.param(True, id="terminator"),
+        pytest.param(False, id="noterminator"),
+    ])
+    @pytest.mark.parametrize(['bath_cls'], [
+        pytest.param(DrudeLorentzBath, id="matsubara"),
+        pytest.param(DrudeLorentzPadeBath, id="pade"),
+    ])
+    def test_bosonic_pure_dephasing_model_drude_lorentz_baths(
+        self, terminator, bath_cls, atol=1e-3
+    ):
+        dlm = DrudeLorentzPureDephasingModel(
+            lam=0.025, gamma=0.05, T=1/0.95, Nk=2,
+        )
+        bath = bath_cls(
+            Q=dlm.Q, lam=dlm.lam, gamma=dlm.gamma, T=dlm.T, Nk=dlm.Nk,
+            terminator=terminator,
+        )
+        if terminator:
+            H_sys = liouvillian(dlm.H) + bath.terminator
+        else:
+            H_sys = dlm.H
+
+        options = Options(nsteps=15000, store_states=True)
+        hsolver = HEOMSolver(H_sys, bath, 14, options=options)
+
+        tlist = np.linspace(0, 10, 21)
+        result = hsolver.run(dlm.rho(), tlist)
+
+        test = dlm.state_results(result.states)
+        expected = dlm.analytic_results(tlist)
+        np.testing.assert_allclose(test, expected, atol=atol)
+
+        rho_final, ado_state = hsolver.steady_state()
+        test = dlm.state_results([rho_final])
+        expected = dlm.analytic_results([100])
+        np.testing.assert_allclose(test, expected, atol=atol)
+        assert rho_final == ado_state.extract(0)
+
+    @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
     @pytest.mark.parametrize(['evo'], [
         pytest.param("qobj"),
         pytest.param("qobjevo"),
