@@ -476,6 +476,8 @@ class MultiTrajResult:
 
     @property
     def average_final_state(self):
+        if self.trajectories[0].final_state is None:
+            return None
         if not self._save_traj:
             final = self._sum_last_states
         elif self.trajectories[0].states[0].isket:
@@ -488,24 +490,23 @@ class MultiTrajResult:
     def steady_state(self):
         return sum(self.average_states) / len(self.times)
 
+    def _format_expect(self, expect):
+        if self._e_ops_dict:
+            expect = {e: expect[n]
+                      for n, e in enumerate(self._e_ops_dict.keys())}
+        return expect
+
     @property
     def average_expect(self):
         result = self.mean_expect
-        if self._e_ops_dict:
-            result = {e: result[n]
-                      for n, e in enumerate(self._e_ops_dict.keys())}
-        return result
+        return self._format_expect(result)
 
     @property
     def std_expect(self):
         avg = self.mean_expect
         avg2 = self.mean_expect2
         result = [np.sqrt(a2 - abs(a*a)) for a, a2 in zip(avg, avg2)]
-
-        if self._e_ops_dict:
-            result = {e: result[n]
-                      for n, e in enumerate(self._e_ops_dict.keys())}
-        return result
+        return self._format_expect(result)
 
     @property
     def runs_expect(self):
@@ -513,10 +514,7 @@ class MultiTrajResult:
             return None
         result = [np.stack([traj._expects[i] for traj in self.trajectories])
                for i in range(self.num_e_ops)]
-        if self._e_ops_dict:
-            result = {e: result[n]
-                      for n, e in enumerate(self._e_ops_dict.keys())}
-        return result
+        return self._format_expect(result)
 
     def expect_traj_avg(self, ntraj=-1):
         if not self._save_traj:
@@ -528,11 +526,7 @@ class MultiTrajResult:
             ]), axis=0)
             for i in range(self.num_e_ops)
         ]
-
-        if self._e_ops_dict:
-            result = {e: result[n]
-                      for n, e in enumerate(self._e_ops_dict.keys())}
-        return result
+        return self._format_expect(result)
 
     def expect_traj_std(self, ntraj=-1):
         if not self._save_traj:
@@ -544,11 +538,7 @@ class MultiTrajResult:
             ]), axis=0)
             for i in range(self.num_e_ops)
         ]
-
-        if self._e_ops_dict:
-            result = {e: result[n]
-                      for n, e in enumerate(self._e_ops_dict.keys())}
-        return result
+        return self._format_expect(result)
 
     @property
     def collapse(self):

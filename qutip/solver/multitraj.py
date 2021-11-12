@@ -93,6 +93,9 @@ class MultiTrajSolver:
         seeds = self._read_seed(seed, ntraj)
         self.traj_solvers = []
 
+        if safe_ODE is None:
+            safe_ODE = ntraj != 1
+
         for seed in seeds:
             traj_solver = self._traj_solver_class(self, options=self.options)
             traj_solver.start(state0, t0, seed=seed, safe_ODE=safe_ODE)
@@ -238,9 +241,11 @@ class MultiTrajSolver:
         start_time = time()
         seeds = self._read_seed(seed, ntraj)
         map_func = get_map[self.options.mcsolve['map']]
-        map_kw = self.options.mcsolve['map_options']
-        if timeout:
-            map_kw['job_timeout'] = timeout
+        map_kw = {
+            'timeout': timeout or self.options.mcsolve['timeout'],
+            'job_timeout': self.options.mcsolve['job_timeout'],
+            'num_cpus': self.options.mcsolve['num_cpus'],
+        }
         if target_tol:
             self.result._set_expect_tol(target_tol)
         map_func(

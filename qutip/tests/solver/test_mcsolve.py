@@ -50,10 +50,10 @@ class StatesAndExpectOutputCase:
             np.testing.assert_allclose(test, expected_part, rtol=tol)
 
     def test_states_and_expect(self, hamiltonian, args, c_ops, expected, tol):
-        options = SolverOptions(store_states=True)
+        options = SolverOptions(store_states=True, map='serial')
         result = mcsolve(hamiltonian, self.state, self.times, args=args,
-                               c_ops=c_ops, e_ops=self.e_ops, ntraj=self.ntraj,
-                               options=options, target_tol=0.05)
+                         c_ops=c_ops, e_ops=self.e_ops, ntraj=self.ntraj,
+                         options=options, target_tol=0.05)
         self._assert_expect(result, expected, tol)
         self._assert_states(result, expected, tol)
 
@@ -87,15 +87,16 @@ class TestNoCollapse(StatesAndExpectOutputCase):
     # test cases, this is just testing the single-output behaviour.
 
     def test_states_only(self, hamiltonian, args, c_ops, expected, tol):
-        options = SolverOptions(store_states=None)
+        options = SolverOptions(store_states=None, map='serial')
         result = mcsolve(hamiltonian, self.state, self.times, args=args,
-                               c_ops=c_ops, e_ops=[], ntraj=self.ntraj,
-                               options=options)
+                         c_ops=c_ops, e_ops=[], ntraj=self.ntraj,
+                         options=options)
         self._assert_states(result, expected, tol)
 
     def test_expect_only(self, hamiltonian, args, c_ops, expected, tol):
         result = mcsolve(hamiltonian, self.state, self.times, args=args,
-                               c_ops=c_ops, e_ops=self.e_ops, ntraj=self.ntraj)
+                         c_ops=c_ops, e_ops=self.e_ops, ntraj=self.ntraj,
+                         options={'map': 'serial'})
         self._assert_expect(result, expected, tol)
 
 
@@ -158,7 +159,8 @@ def test_stored_collapse_operators_and_times():
     state = qutip.basis(size, size-1)
     times = np.linspace(0, 10, 100)
     c_ops = [a, a]
-    result = mcsolve(H, state, times, c_ops, ntraj=3)
+    result = mcsolve(H, state, times, c_ops, ntraj=3,
+                     options={'map': 'serial'})
     assert len(result.col_times[0]) > 0
     assert len(result.col_which) == len(result.col_times)
     assert all(col in [0, 1] for col in result.col_which[0])
@@ -178,7 +180,8 @@ def test_states_outputs(keep_runs_results):
     times = np.linspace(0, 10, 21)
     c_ops = [a, sm]
     data = mcsolve(H, state, times, c_ops, ntraj=ntraj,
-                   options={"keep_runs_results": keep_runs_results})
+                   options={"keep_runs_results": keep_runs_results,
+                            'map': 'serial'})
 
     assert len(data.states) == len(times)
     assert isinstance(data.states[0], qutip.Qobj)
@@ -243,7 +246,8 @@ def test_expectation_outputs(keep_runs_results):
     c_ops = [a, sm]
     e_ops = [a.dag()*a, sm.dag()*sm, a]
     data = mcsolve(H, state, times, c_ops, e_ops, ntraj=ntraj,
-                   options={"keep_runs_results": keep_runs_results})
+                   options={"keep_runs_results": keep_runs_results,
+                            'map': 'serial'})
     assert isinstance(data.expect[0][1], float)
     assert isinstance(data.expect[1][1], float)
     assert isinstance(data.expect[2][1], complex)
@@ -356,15 +360,105 @@ def test_list_ntraj():
     n_th = 0.063
     c_ops = [np.sqrt(coupling * (n_th + 1)) * a,
              np.sqrt(coupling * n_th) * a.dag()]
-    e_ops = [qutip.num(size)]
+    e_ops = {0: qutip.num(size)}
     ntraj = [1, 5, 15, 100]
-    mc = mcsolve(H, state, times, c_ops, e_ops, ntraj=ntraj)
+    mc = mcsolve(H, state, times, c_ops, e_ops, ntraj=ntraj,
+                 options={'map': 'serial'})
     assert len(ntraj) == len(mc.expect)
+    assert isinstance(mc.expect[0], dict)
+
+
+def test_timeout():
+    size = 10
+    ntraj = 1000
+    a = qutip.destroy(size)
+    H = qutip.num(size)
+    state = qutip.basis(size, size-1)
+    times = np.linspace(0, 1.0, 100)
+    coupling = 0.5
+    n_th = 0.05
+    c_ops = np.sqrt(coupling * (n_th + 1)) * a
+    e_ops = [qutip.num(size)]
+    res = mcsolve(H, state, times, c_ops, e_ops, ntraj=ntraj,
+                  options={'map': 'serial'}, timeout=1e-6)
+    assert res.end_condition == 'timeout'
+
+
+def test_super_H():
+    size = 10
+    ntraj = 1000
+    a = qutip.destroy(size)
+    H = qutip.num(size)
+    state = qutip.basis(size, size-1)
+    times = np.linspace(0, 1.0, 100)
+    # Arbitrary coupling and bath temperature.
+    coupling = 0.5
+    n_th = 0.05
+    c_ops = np.sqrt(coupling * (n_th + 1)) * a
+    e_ops = [qutip.num(size)]
+    mc_expected = mcsolve(H, state, times, c_ops, e_ops, ntraj=ntraj,
+                          target_tol=0.1, options={'map': 'serial'})
+    mc = mcsolve(qutip.liouvillian(H), state, times, c_ops, e_ops, ntraj=ntraj,
+                 target_tol=0.1, options={'map': 'serial'})
+    np.testing.assert_allclose(mc_expected.expect[0], mc.expect[0], atol=0.5)
+
+
+def test_McSolver_run():
+    size = 10
+    a = qutip.QobjEvo([qutip.destroy(size), 'coupling'], args={'coupling':0})
+    H = qutip.num(size)
+    solver = McSolver(H, a, seed=1)
+    res = solver.run(qutip.basis(size, size-1), np.linspace(0, 5.0, 11),
+                     e_ops=[qutip.qeye(size)],
+                     args={'coupling': 1}, options={'store_final_state': True})
+    assert res.final_state is not None
+    assert len(res.collapse[0]) != 0
+    assert res.num_traj == 1
+    np.testing.assert_allclose(res.expect[0], np.ones(11))
+    res = solver.add_trajectories(ntraj=1000, target_tol=0.1)
+    assert res.num_traj > 1
+    assert res.num_traj < 1000
+
+
+def test_McSolver_stepping():
+    size = 10
+    a = qutip.QobjEvo([qutip.destroy(size), 'coupling'], args={'coupling':0})
+    H = qutip.num(size)
+    solver = McSolver(H, a)
+    solver.start(qutip.basis(size, size-1), 0, ntraj=3, seed=[0, 0, 1])
+    states = solver.step(1, options={'method': 'lsoda'})
+    assert len(states) == 3
+    for state in states:
+        assert qutip.expect(qutip.qeye(size), state) == pytest.approx(1)
+        assert qutip.expect(qutip.num(size), state) == pytest.approx(size - 1)
+        assert state.isket
+    states = solver.step(5, args={'coupling': 5})
+    for state in states:
+        assert qutip.expect(qutip.qeye(size), state) == pytest.approx(1)
+        assert qutip.expect(qutip.num(size), state) <= size - 1
+        assert state.isket
+    assert states[0] == states[1]
+
+
+def test_McSolver_traj_stepping():
+    size = 10
+    a = qutip.QobjEvo([qutip.destroy(size), 'coupling'], args={'coupling':0})
+    H = qutip.num(size)
+    mtsolver = McSolver(H, a, seed=1, options={'map': 'serial'})
+    solver1 = mtsolver.get_single_trajectory_solver()
+    solver1.start(qutip.basis(size, size-1), 0, seed=5)
+    state_1 = solver1.step(1, args={'coupling':1})
+
+    solver2 = mtsolver.get_single_trajectory_solver()
+    solver2.start(qutip.basis(size, size-1), 0, seed=5)
+    state_2 = solver2.step(1, args={'coupling':1})
+    assert state_1 == state_2
 
 
 # Defined in module-scope so it's pickleable.
 def _dynamic(t, args):
     return 0 if args["collapse"] else 1
+
 
 @pytest.mark.xfail(reason="current limitation of SolverOptions")
 def test_dynamic_arguments():

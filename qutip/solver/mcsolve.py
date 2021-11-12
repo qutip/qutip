@@ -4,7 +4,7 @@ import warnings
 
 import numpy as np
 from copy import copy
-from ..core import QobjEvo, spre, spost
+from ..core import QobjEvo, spre, spost, Qobj, unstack_columns
 from .options import SolverOptions
 from .multitraj import MultiTrajSolver, _TrajectorySolver
 from .mesolve import mesolve
@@ -13,7 +13,7 @@ from time import time
 
 
 def mcsolve(H, psi0, tlist, c_ops=None, e_ops=None, ntraj=1,
-            args=None, options=None, seeds=None, target_tol=None):
+            args=None, options=None, seeds=None, target_tol=None, timeout=0):
     r"""
     Monte Carlo evolution of a state vector :math:`|\psi \rangle` for a
     given Hamiltonian and sets of collapse operators. Options for the
@@ -77,7 +77,7 @@ def mcsolve(H, psi0, tlist, c_ops=None, e_ops=None, ntraj=1,
     """
     H = QobjEvo(H, args=args, tlist=tlist)
     c_ops = c_ops if c_ops is not None else []
-    if not isinstance(c_ops, (list, dict)):
+    if not isinstance(c_ops, (list, tuple)):
         c_ops = [c_ops]
     c_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in c_ops]
 
@@ -95,7 +95,7 @@ def mcsolve(H, psi0, tlist, c_ops=None, e_ops=None, ntraj=1,
 
     mc = McSolver(H, c_ops, options=options)
     result = mc.run(psi0, tlist=tlist, ntraj=max_ntraj, e_ops=e_ops,
-                    seed=seeds, target_tol=target_tol)
+                    seed=seeds, target_tol=target_tol, timeout=timeout)
     if isinstance(ntraj, list):
         result.traj_batch = ntraj
     return result
@@ -125,11 +125,11 @@ class _McTrajectorySolver(_TrajectorySolver):
         result.seed = seed
         return result
 
-    def start(self, state0, t0, seed=None):
+    def start(self, state0, t0, seed=None, *, safe_ODE=None):
         self.collapses = []
         self._set_generator(seed)
         self.target_norm = self.generator.random()
-        super().start(state0, t0, seed=self.generator)
+        super().start(state0, t0, seed=self.generator, safe_ODE=safe_ODE)
 
     def prob_func(self, state):
         if self.rhs.issuper:
@@ -161,6 +161,8 @@ class _McTrajectorySolver(_TrajectorySolver):
         """Find and apply a collapse."""
         t_final, _ = self._integrator.get_state()
         tries = 0
+        #print(self.target_norm)
+        #print(self.rhs(0))
         while tries < self.options.mcsolve['norm_steps']:
             tries += 1
             if (t_final - t_prev) < self.options.mcsolve['norm_t_tol']:
@@ -177,6 +179,9 @@ class _McTrajectorySolver(_TrajectorySolver):
                 t_guess = t_prev + self.options.mcsolve['norm_t_tol']
             _, state = self._integrator.mcstep(t_guess, copy=False)
             norm2_guess = self.prob_func(state)
+            #print(t_prev, t_guess, t_final)
+            #print(norm_old, norm2_guess, norm)
+            #print(state.to_array())
             if (
                 np.abs(self.target_norm - norm2_guess) <
                 self.options.mcsolve['norm_tol'] * self.target_norm
@@ -215,7 +220,7 @@ class _McTrajectorySolver(_TrajectorySolver):
         self._integrator.set_state(t_guess, state_new)
 
     def _argument(self, args):
-        if self._integrator is not None:
+        if self._integrator:
             self._integrator.arguments(args)
         self.rhs.arguments(args)
         for c_op in self._c_ops:
@@ -261,6 +266,8 @@ class McSolver(MultiTrajSolver):
     def __init__(self, H, c_ops, *, options=None, seed=None):
         _time_start = time()
 
+        if isinstance(c_ops, (Qobj, QobjEvo)):
+            c_ops = [c_ops]
         c_ops = [QobjEvo(c_op) for c_op in c_ops]
         if H.issuper:
             self._c_ops = [

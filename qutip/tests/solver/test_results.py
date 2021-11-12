@@ -109,7 +109,8 @@ def test_result_normalize():
 
 
 @pytest.mark.parametrize('keep_runs_results', [True, False])
-def test_multitraj_results(keep_runs_results):
+@pytest.mark.parametrize('format', ['dm', 'ket'])
+def test_multitraj_results(format, keep_runs_results):
     N = 10
     ntraj = 5
     e_ops = [qutip.num(N), qutip.qeye(N)]
@@ -122,7 +123,10 @@ def test_multitraj_results(keep_runs_results):
         res = m_res.spawn(_super=False, oper_state=False)
         res.collapse = []
         for i in range(N):
-            res.add(i, qutip.basis(N, i) / 2)
+            state = qutip.basis(N, i) / 2
+            if format == 'dm':
+                state = qutip.ket2dm(state)
+            res.add(i, state)
             res.collapse.append((i+0.5, i%2))
         m_res.add(res)
 
@@ -136,7 +140,13 @@ def test_multitraj_results(keep_runs_results):
         assert len(m_res.runs_states) == 5
         assert len(m_res.runs_states[0]) == N
         for i in range(ntraj):
-            assert m_res.runs_final_states[i] == qutip.basis(N, N-1)
+            target = qutip.basis(N, N-1)
+            if format == 'dm':
+                target = target.proj()
+            assert m_res.runs_final_states[i] == target
+    else:
+        assert m_res.runs_states is None
+        assert m_res.runs_final_states is None
     assert np.all(np.array(m_res.col_which) < 2)
     np.testing.assert_allclose(np.array(m_res.times), np.arange(N))
     assert m_res.end_condition == "ntraj reached"
@@ -170,7 +180,9 @@ def test_multitraj_expect(keep_runs_results, e_ops):
             np.testing.assert_allclose(m_res.runs_expect[0][i],
                                        np.arange(N))
             if isinstance(e_ops, dict):
-                assert isinstance(m_res.average_expect[i], dict)
+                assert isinstance(m_res.runs_expect, dict)
+    else:
+        assert m_res.runs_expect is None
     assert m_res.end_condition == "timeout"
 
 

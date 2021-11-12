@@ -16,7 +16,7 @@ if sys.platform == 'darwin':
 else:
     Pool = multiprocessing.Pool
 
-map_kw = {
+default_map_kw = {
     'job_timeout': 1e8,
     'timeout': 1e8,
     'num_cpus': multiprocessing.cpu_count(),
@@ -24,7 +24,7 @@ map_kw = {
 
 
 def serial_map(task, values, task_args=None, task_kwargs=None, *,
-               reduce_func=None, map_kw=map_kw,
+               reduce_func=None, map_kw=None,
                progress_bar=None, progress_bar_kwargs={}):
     """
     Serial mapping function with the same call signature as parallel_map, for
@@ -68,7 +68,10 @@ def serial_map(task, values, task_args=None, task_kwargs=None, *,
     progress_bar = progess_bars[progress_bar]()
     progress_bar.start(len(values), **progress_bar_kwargs)
     remaining_ntraj = len(values)
-    end_time = map_kw['timeout'] + time.time()
+    map_kwargs = default_map_kw.copy()
+    if isinstance(map_kw, dict):
+        map_kwargs.update(map_kw)
+    end_time = map_kwargs['timeout'] + time.time()
     results = []
     for n, value in enumerate(values):
         if time.time() > end_time:
@@ -87,7 +90,7 @@ def serial_map(task, values, task_args=None, task_kwargs=None, *,
 
 
 def parallel_map(task, values, task_args=None, task_kwargs=None, *,
-                 reduce_func=None, map_kw=map_kw,
+                 reduce_func=None, map_kw=None,
                  progress_bar=None, progress_bar_kwargs={}):
     """
     Parallel execution of a mapping of `values` to the function `task`. This
@@ -126,8 +129,11 @@ def parallel_map(task, values, task_args=None, task_kwargs=None, *,
     if task_kwargs is None:
         task_kwargs = {}
     os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
-    end_time = map_kw['timeout'] + time.time()
-    job_time = map_kw['job_timeout']
+    map_kwargs = default_map_kw.copy()
+    if isinstance(map_kw, dict):
+        map_kwargs.update(map_kw)
+    end_time = map_kwargs['timeout'] + time.time()
+    job_time = map_kwargs['job_timeout']
 
     progress_bar = progess_bars[progress_bar]()
     progress_bar.start(len(values), **progress_bar_kwargs)
@@ -135,7 +141,7 @@ def parallel_map(task, values, task_args=None, task_kwargs=None, *,
 
     results = []
     try:
-        pool = Pool(processes=map_kw['num_cpus'])
+        pool = Pool(processes=map_kwargs['num_cpus'])
 
         async_res = [pool.apply_async(task, (value,) + task_args, task_kwargs)
                      for value in values]
@@ -167,7 +173,7 @@ def parallel_map(task, values, task_args=None, task_kwargs=None, *,
 
 
 def loky_pmap(task, values, task_args=None, task_kwargs=None, *,
-              reduce_func=None, map_kw=map_kw,
+              reduce_func=None, map_kw=None,
               progress_bar=None, progress_bar_kwargs={}):
     """
     Parallel execution of a mapping of `values` to the function `task`. This
@@ -210,14 +216,16 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None, *,
     os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
     from loky import get_reusable_executor, TimeoutError
 
-    kw = map_kw
+    map_kwargs = default_map_kw.copy()
+    if isinstance(map_kw, dict):
+        map_kwargs.update(map_kw)
 
     progress_bar = progess_bars[progress_bar]()
     progress_bar.start(len(values), **progress_bar_kwargs)
 
-    executor = get_reusable_executor(max_workers=kw['num_cpus'])
-    end_time = kw['timeout'] + time.time()
-    job_time = kw['job_timeout']
+    executor = get_reusable_executor(max_workers=map_kwargs['num_cpus'])
+    end_time = map_kwargs['timeout'] + time.time()
+    job_time = map_kwargs['job_timeout']
     results = []
     remaining_ntraj = len(values)
 
