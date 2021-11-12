@@ -567,7 +567,7 @@ class DrudeLorentzPadeBath(BosonicBath):
     def _calc_eps(self, Nk):
         alpha = np.diag([
                 1. / np.sqrt((2 * k + 5) * (2 * k + 3))
-                for k in range(0, 2 * Nk - 1)
+                for k in range(2 * Nk - 1)
         ], k=1)
         alpha += alpha.transpose()
         evals = eigvalsh(alpha)
@@ -575,12 +575,11 @@ class DrudeLorentzPadeBath(BosonicBath):
         return eps
 
     def _calc_chi(self, Nk):
-        alpha_p = np.zeros((2 * Nk - 1, 2 * Nk - 1))
-        for j in range(2 * Nk - 1):
-            for k in range(2 * Nk - 1):
-                alpha_p[j][k] = (
-                    self._delta(j, k + 1) + self._delta(j, k - 1)
-                ) / np.sqrt((2 * (j + 1) + 3) * (2 * (k + 1) + 3))
+        alpha_p = np.diag([
+                1. / np.sqrt((2 * k + 7) * (2 * k + 5))
+                for k in range(2 * Nk - 2)
+        ], k=1)
+        alpha_p += alpha_p.transpose()
         evals = eigvalsh(alpha_p)
         chi = [-2. / val for val in evals[0: Nk - 1]]
         return chi
