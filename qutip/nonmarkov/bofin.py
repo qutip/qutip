@@ -565,12 +565,11 @@ class DrudeLorentzPadeBath(BosonicBath):
         return kappa, epsilon
 
     def _calc_eps(self, Nk):
-        alpha = np.zeros((2 * Nk, 2 * Nk))
-        for j in range(2 * Nk):
-            for k in range(2 * Nk):
-                alpha[j][k] = (
-                    self._delta(j, k + 1) + self._delta(j, k - 1)
-                ) / np.sqrt((2 * (j + 1) + 1) * (2 * (k + 1) + 1))
+        alpha = np.diag([
+                1. / np.sqrt((2 * k + 5) * (2 * k + 3))
+                for k in range(0, 2 * Nk - 1)
+        ], k=1)
+        alpha += alpha.transpose()
         evals = eigvalsh(alpha)
         eps = [-2. / val for val in evals[0: Nk]]
         return eps
