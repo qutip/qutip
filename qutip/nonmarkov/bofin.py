@@ -1419,12 +1419,14 @@ class HEOMSolver:
         tlist : list
             An ordered list of times at which to return the value of the state.
 
-        e_ops : Qobj / callable / list / None, optional
-            A list of operators as `Qobj` and/or callable functions (can be
-            mixed) or a single operator or callable function. For operators op,
-            the result's expect will be computed by ``(state * op).tr()``. For
-            callable functions, they are called as ``f(solver, t, state)`` and
-            return the expectation value.
+        e_ops : Qobj / callable / list / dict / None, optional
+            A list or dictionary of operators as `Qobj` and/or callable
+            functions (they can be mixed) or a single operator or callable
+            function. For an operator ``op``, the result will be computed
+            using ``(state * op).tr()`` and the state at each time ``t``. For
+            callable functions, ``f``, the result is computed using
+            ``f(t, ado_state)``. The values are stored in ``expect`` on
+            (see the return section below).
 
         ado_init: bool, default False
             Indicates if initial condition is just the system state, or a
@@ -1436,14 +1438,25 @@ class HEOMSolver:
         Returns
         -------
         :class:`qutip.solver.Result`
-            The results of the simulation run.
-            The times (tlist) are stored in ``result.times``.
-            The state at each time is stored in ``result.states``.
-            If ``ado_return`` is ``True``, then the full ADO state at each
-            time is stored in ``result.ado_states`` as an instance of
-            :class:`HierarchyADOsState`.
-            The state of a particular ADO may be extracted from
-            ``result.ado_states[i]`` by calling :meth:`.extract`.
+            The results of the simulation run, with the following attributes:
+
+            * ``times``: the times ``t`` (i.e. the ``tlist``).
+
+            * ``states``: the system state at each time ``t`` (only available
+              if ``e_ops`` was ``None`` or if the solver option
+              ``store_states`` was set to ``True``).
+
+            * ``ado_states``: the full ADO state at each time (only available
+              if ``ado_return`` was set to ``True``). Each element is an
+              instance of :class:`HierarchyADOsState`.            .
+              The state of a particular ADO may be extracted from
+              ``result.ado_states[i]`` by calling :meth:`.extract`.
+
+            * ``expect``: the value of each ``e_ops`` at time ``t`` (only
+              available if ``e_ops`` were given). If ``e_ops`` was passed
+              as a dictionary, then ``expect`` will be a dictionary with
+              the same keys as ``e_ops`` and values giving the list of
+              outcomes for the corresponding key.
         """
         e_ops, expected = self._convert_e_ops(e_ops)
         e_ops_callables = any(
