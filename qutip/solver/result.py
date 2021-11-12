@@ -184,16 +184,41 @@ class MultiTrajResult:
 
     Parameters
     ----------
+    ntraj : int
+        Number of trajectories expected.
 
+    e_ops : Qobj, QobjEvo, callable or iterable of these.
+        list of Qobj or QobjEvo to compute the expectation values.
+        Alternatively, function[s] with the signature f(t, state) -> expect
+        can be used.
+
+    c_ops : list [optional]
+        Collapse operator if used. Used to compute the photocurrent.
+
+    target_tol : float, list, [optional]
+        Target tolerance of the evolution. The evolution will compute
+        trajectories until the error on the expectation values is lower than
+        this tolerance. The error is computed using jackknife resampling.
+        ``target_tol`` can be an absolute tolerance, a pair of absolute and
+        relative tolerance, in that order. Lastly, it can be a list of pairs of
+        (atol, rtol) for each e_ops.
+
+    options : SolverResultsOptions
+        Options conserning result to save.
 
     Property
     --------
+    states : list of Qobj
+        Average state for each time. (density matrix)
 
     runs_states : list of list of Qobj
         Every state of the evolution for each trajectories. (ket)
 
     average_states : list of Qobj
         Average state for each time. (density matrix)
+
+    final_state : Qobj
+        Average last state. (density matrix)
 
     runs_final_states : Qobj
         Average last state for each trajectories. (ket)
@@ -204,6 +229,9 @@ class MultiTrajResult:
     steady_state : Qobj
         Average state of each time and trajectories. (density matrix)
 
+    expect : list, dict
+        List or dict of list of averaged expectation values.
+
     runs_expect : list of list of list of number
         Expectation values for each [e_ops, trajectory, time]
 
@@ -213,11 +241,8 @@ class MultiTrajResult:
     std_expect : list of list of number
         Standard derivation of each averaged expectation values.
 
-    expect : list
-        list of list of averaged expectation values.
-
     times : list
-        list of the times at which the expectation values and
+        List of the times at which the expectation values and
         states where taken.
 
     stats :
@@ -250,6 +275,10 @@ class MultiTrajResult:
     measurements : list
         The photocurrent measurement of each trajectories.
 
+    end_condition : string
+        Indication on how the evolution ended, whether the desired number of
+        trajectories where computed, the tolerance was reached or it timed out.
+
     Methods
     -------
     expect_traj_avg(ntraj):
@@ -259,7 +288,8 @@ class MultiTrajResult:
         Standard derivation of expectation values over `ntraj` trajectories.
         Last state of each trajectories. (ket)
     """
-    def __init__(self, ntraj, e_ops=None, c_ops=None, target_tol=None, options=None):
+    def __init__(self, ntraj, e_ops=None, c_ops=None,
+                 target_tol=None, options=None):
         """
         Parameters:
         -----------
@@ -639,7 +669,7 @@ class MultiTrajResult:
 
     @property
     def num_traj(self):
-        return self._num
+        return self.traj_batch or self._num
 
     @property
     def num_expect(self):

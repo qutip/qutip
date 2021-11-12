@@ -157,16 +157,21 @@ class MultiTrajSolver:
             evolution. Each times of the list must be increasing, but does not
             need to be uniformy distributed.
 
+        ntraj : int
+            Number of trajectories to add.
+
         args : dict, optional {None}
             Change the ``args`` of the rhs for the evolution.
+
+        options : SolverOptions, optional {None}
+            Update the ``options`` of the system.
+            The change is effective from the beginning of the interval.
+            Changing ``options`` can slow the evolution.
 
         e_ops : list
             list of Qobj or QobjEvo to compute the expectation values.
             Alternatively, function[s] with the signature f(t, state) -> expect
             can be used.
-
-        ntraj : int
-            Number of trajectories to add.
 
         timeout : float, optional
             Maximum time in second for the trajectories to run. Once this time
@@ -246,6 +251,7 @@ class MultiTrajSolver:
             'job_timeout': self.options.mcsolve['job_timeout'],
             'num_cpus': self.options.mcsolve['num_cpus'],
         }
+        self.result._target_ntraj = ntraj + self.result.num_traj
         if target_tol:
             self.result._set_expect_tol(target_tol)
         map_func(

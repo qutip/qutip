@@ -178,7 +178,6 @@ class SolverResultsOptions:
         On "ket", only 'ket' output are normalized.
         Leave empty for no normalization.
 
-
     keep_runs_results: bool
         Keep all trajectories results or save only the average.
     """
@@ -233,12 +232,15 @@ class McOptions:
         'parallel' use python's multiprocessing.
         'loky' use the pyhon module of the same name (not installed with qutip).
 
-    map_options: dict
-        keys:
-            'num_cpus': number of cpus to use.
-            'timeout': maximum time for all trajectories. (sec)
-            'job_timeout': maximum time per trajectory. (sec)
+    num_cpus : int
+        Number of cpus to use when running in parallel.
+
+    timeout : float {1e8}
+        Maximum time for all trajectories in seconds.
         Only finished trajectories will be returned when timeout is reached.
+
+    job_timeout: float {1e8}
+        Maximum time per trajectory in seconds.
 
     mc_corr_eps : float {1e-10}
         Arbitrarily small value for eliminating any divide-by-zero errors in
@@ -261,7 +263,7 @@ class McOptions:
 
         'num_cpus': multiprocessing.cpu_count(),
 
-        'timeout':1e8,
+        'timeout': 1e8,
 
-        'job_timeout':1e8,
+        'job_timeout': 1e8,
     }

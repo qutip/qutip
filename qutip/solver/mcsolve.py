@@ -4,7 +4,7 @@ import warnings
 
 import numpy as np
 from copy import copy
-from ..core import QobjEvo, spre, spost, Qobj, unstack_columns
+from ..core import QobjEvo, spre, spost, Qobj, unstack_columns, liouvillian
 from .options import SolverOptions
 from .multitraj import MultiTrajSolver, _TrajectorySolver
 from .mesolve import mesolve
@@ -12,7 +12,7 @@ import qutip.core.data as _data
 from time import time
 
 
-def mcsolve(H, psi0, tlist, c_ops=None, e_ops=None, ntraj=1,
+def mcsolve(H, psi0, tlist, c_ops=None, e_ops=None, ntraj=1, *,
             args=None, options=None, seeds=None, target_tol=None, timeout=0):
     r"""
     Monte Carlo evolution of a state vector :math:`|\psi \rangle` for a
@@ -25,7 +25,7 @@ def mcsolve(H, psi0, tlist, c_ops=None, e_ops=None, ntraj=1,
         System Hamiltonian as a Qobj, QobjEvo, can also be a function or list
         that can be made into a Qobjevo. (See :class:`qutip.QobjEvo`'s
         documentation). ``H`` can be a superoperator (liouvillian) if some
-        collapse operators are to be treated deterministicly.
+        collapse operators are to be treated deterministically.
 
     psi0 : :class:`qutip.Qobj`
         Initial state vector
@@ -67,6 +67,10 @@ def mcsolve(H, psi0, tlist, c_ops=None, e_ops=None, ntraj=1,
         ``target_tol`` can be an absolute tolerance, a pair of absolute and
         relative tolerance, in that order. Lastly, it can be a list of pairs of
         (atol, rtol) for each e_ops.
+
+    timeout : float [optional]
+        Maximum time for the evolution in second. When reached, no more
+        trajectories will be computed. Overwrite the option of the same name.
 
     Returns
     -------
