@@ -27,7 +27,7 @@ from qutip.superoperator import liouvillian, spre, spost, vec2mat
 from qutip.cy.spmatfuncs import cy_ode_rhs
 from qutip.solver import Options, Result
 from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
-from qutip.ui.progressbar import BaseProgressBar
+from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 from qutip.fastsparse import fast_identity, fast_csr_matrix
 
 # Load MKL spsolve if avaiable
@@ -1018,13 +1018,20 @@ class HEOMSolver:
         Generic solver options. If set to None the default options will be
         used.
 
+    progress_bar : None, True or :class:`BaseProgressBar`
+        Optional instance of BaseProgressBar, or a subclass thereof, for
+        showing the progress of the solver. If True, an instance of
+        :class:`TextProgressBar` is used instead.
+
     Attributes
     ----------
     ados : :obj:`HierarchyADOs`
         The description of the hierarchy constructed from the given bath
         and maximum depth.
     """
-    def __init__(self, H_sys, bath, max_depth, options=None):
+    def __init__(
+        self, H_sys, bath, max_depth, options=None, progress_bar=None,
+    ):
         self.H_sys = self._convert_h_sys(H_sys)
         self.options = Options() if options is None else options
         self._is_timedep = isinstance(self.H_sys, QobjEvo)
@@ -1062,7 +1069,10 @@ class HEOMSolver:
             self._spreQ[k] + self._spostQ[k] for k in range(self._n_exponents)
         ]
 
-        self.progress_bar = BaseProgressBar()
+        if progress_bar is None:
+            self.progress_bar = BaseProgressBar()
+        if progress_bar is True:
+            self.progress_bar = TextProgressBar()
 
         self._configure_solver()
 
@@ -1547,19 +1557,25 @@ class BosonicHEOMSolver(HEOMSolver):
         Whether to combine exponents with the same frequency (and coupling
         operator). See :meth:`combine` for details.
 
+    progress_bar : None, True or :class:`BaseProgressBar`
+        Optional instance of BaseProgressBar, or a subclass thereof, for
+        showing the progress of the solver. If True, an instance of
+        :class:`TextProgressBar` is used instead.
+
     options : :class:`qutip.solver.Options`
         Generic solver options. If set to None the default options will be
         used. See :class:`HEOMSolver` for a complete description.
     """
     def __init__(
         self, H_sys, Q, ck_real, vk_real, ck_imag, vk_imag, max_depth,
-        combine=True, options=None,
+        combine=True, options=None, progress_bar=None,
     ):
         bath = BosonicBath(
             Q, ck_real, vk_real, ck_imag, vk_imag, combine=combine,
         )
         super().__init__(
-            H_sys=H_sys, bath=bath, max_depth=max_depth, options=options,
+            H_sys=H_sys, bath=bath, max_depth=max_depth,
+            options=options, progress_bar=progress_bar,
         )
 
 
@@ -1621,9 +1637,19 @@ class HSolverDL(HEOMSolver):
         terminator is added to the system Liouvillian (and H_sys is
         promoted to a Liouvillian if it was a Hamiltonian).
 
+    progress_bar : None, True or :class:`BaseProgressBar`
+        Optional instance of BaseProgressBar, or a subclass thereof, for
+        showing the progress of the solver. If True, an instance of
+        :class:`TextProgressBar` is used instead.
+
     options : :class:`qutip.solver.Options`
         Generic solver options.
         If set to None the default options will be used.
+
+    progress_bar : None, True or :class:`BaseProgressBar`
+        Optional instance of BaseProgressBar, or a subclass thereof, for
+        showing the progress of the solver. If True, an instance of
+        :class:`TextProgressBar` is used instead.
 
     combine : bool, default True
         Whether to combine exponents with the same frequency (and coupling
@@ -1632,7 +1658,7 @@ class HSolverDL(HEOMSolver):
     def __init__(
         self, H_sys, coup_op, coup_strength, temperature,
         N_cut, N_exp, cut_freq, bnd_cut_approx=False, options=None,
-        combine=True,
+        progress_bar=None, combine=True,
     ):
         bath = DrudeLorentzBath(
             Q=coup_op,
@@ -1655,7 +1681,10 @@ class HSolverDL(HEOMSolver):
                 H_sys = liouvillian(H_sys)
             H_sys = H_sys + bath.terminator
 
-        super().__init__(H_sys, bath=bath, max_depth=N_cut, options=options)
+        super().__init__(
+            H_sys, bath=bath, max_depth=N_cut, options=options,
+            progress_bar=progress_bar,
+        )
 
         # store input parameters as attributes for politeness and compatibility
         # with HSolverDL in QuTiP 4.6 and below.
@@ -1696,14 +1725,20 @@ class FermionicHEOMSolver(HEOMSolver):
     options : :class:`qutip.solver.Options`
         Generic solver options. If set to None the default options will be
         used. See :class:`HEOMSolver` for a complete description.
+
+    progress_bar : None, True or :class:`BaseProgressBar`
+        Optional instance of BaseProgressBar, or a subclass thereof, for
+        showing the progress of the solver. If True, an instance of
+        :class:`TextProgressBar` is used instead.
     """
     def __init__(
         self, H_sys, Q, ck_plus, vk_plus, ck_minus, vk_minus, max_depth,
-        options=None,
+        options=None, progress_bar=None
     ):
         bath = FermionicBath(Q, ck_plus, vk_plus, ck_minus, vk_minus)
         super().__init__(
-            H_sys, bath=bath, max_depth=max_depth, options=options
+            H_sys, bath=bath, max_depth=max_depth, options=options,
+            progress_bar=progress_bar,
         )
 
 
