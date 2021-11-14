@@ -964,10 +964,15 @@ class HSolverDL(HEOMSolver):
     See :class:`HEOMSolver` and :class:`DrudeLorentzBath` for more
     descriptions of the underlying solver and bath construction.
 
+    An exact copy of the QuTiP 4.6 HSolverDL is provided in
+    ``qutip.nonmarkov.dlheom_solver`` for cases where the functionality of
+    the older solver is required. The older solver will be completely
+    removed in QuTiP 5.
+
     .. note::
 
-       Unlike the version of ``HSolverDL`` in QuTiP 4.6, this solver
-       supports supplying a time-dependent or Liouvillian ``H_sys``.
+        Unlike the version of ``HSolverDL`` in QuTiP 4.6, this solver
+        supports supplying a time-dependent or Liouvillian ``H_sys``.
 
     .. note::
 
