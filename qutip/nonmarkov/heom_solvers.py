@@ -979,6 +979,11 @@ class HSolverDL(HEOMSolver):
         :class:`DrudeLorentzBath` does not count the zeroeth exponent in
         order to better match common usage in the literature.
 
+    .. note::
+
+        The ``stats`` and ``renorm`` arguments accepted in QuTiP 4.6 and below
+        are no longer supported.
+
     Parameters
     ----------
     H_sys : Qobj or QobjEvo or list

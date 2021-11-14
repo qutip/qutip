@@ -1,5 +1,5 @@
 """
-Tests for qutip.nonmarkov.bofin.
+Tests for qutip.nonmarkov.heom_solvers.
 """
 
 import numpy as np
@@ -19,7 +19,7 @@ from qutip.nonmarkov.heom_baths import (
     DrudeLorentzPadeBath,
     FermionicBath,
 )
-from qutip.nonmarkov.bofin import (
+from qutip.nonmarkov.heom_solvers import (
     HierarchyADOs,
     HierarchyADOsState,
     HEOMSolver,
@@ -558,6 +558,42 @@ class TestHSolverDL:
         expected = dlm.analytic_results([100])
         np.testing.assert_allclose(test, expected, atol=atol)
         assert rho_final == ado_state.extract(0)
+
+    @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
+    @pytest.mark.parametrize(['bnd_cut_approx', 'tol'], [
+        pytest.param(True, 1e-4, id="bnd_cut_approx"),
+        pytest.param(False, 1e-3, id="renorm"),
+    ])
+    def test_hsolverdl_backwards_compatibility(self, bnd_cut_approx, tol):
+        # This is an exact copy of the pre-4.7 QuTiP HSolverDL test and
+        # is repeated here to ensure the new HSolverDL remains compatibile
+        # with the old one until it is removed.
+        cut_frequency = 0.05
+        coupling_strength = 0.025
+        lam_c = coupling_strength / np.pi
+        temperature = 1 / 0.95
+        times = np.linspace(0, 10, 21)
+
+        def _integrand(omega, t):
+            J = 2*lam_c * omega * cut_frequency / (omega**2 + cut_frequency**2)
+            return (-4 * J * (1 - np.cos(omega*t))
+                    / (np.tanh(0.5*omega / temperature) * omega**2))
+
+        # Calculate the analytical results by numerical integration
+        expected = [0.5*np.exp(quad(_integrand, 0, np.inf, args=(t,))[0])
+                    for t in times]
+
+        H_sys = Qobj(np.zeros((2, 2)))
+        Q = sigmaz()
+        initial_state = 0.5*Qobj(np.ones((2, 2)))
+        projector = basis(2, 0) * basis(2, 1).dag()
+        options = Options(nsteps=15_000, store_states=True)
+        hsolver = HSolverDL(H_sys, Q, coupling_strength, temperature,
+                            20, 2, cut_frequency,
+                            bnd_cut_approx=bnd_cut_approx,
+                            options=options)
+        test = expect(hsolver.run(initial_state, times).states, projector)
+        np.testing.assert_allclose(test, expected, atol=tol)
 
 
 class DiscreteLevelCurrentModel:
