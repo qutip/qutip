@@ -8,7 +8,7 @@ import numpy as np
 from scipy.integrate import quad
 import pytest
 import qutip
-from qutip.nonmarkov.heom import HSolverDL
+from qutip.nonmarkov.dlheom_solver import HSolverDL
 
 
 @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
