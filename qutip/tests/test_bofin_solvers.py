@@ -1,5 +1,5 @@
 """
-Tests for qutip.nonmarkov.heom_solvers.
+Tests for qutip.nonmarkov.bofin_solvers.
 """
 
 import numpy as np
@@ -11,7 +11,7 @@ from qutip import (
     basis, destroy, expect, liouvillian, sigmax, sigmaz,
     tensor, Qobj, QobjEvo, Options,
 )
-from qutip.nonmarkov.heom_baths import (
+from qutip.nonmarkov.bofin_baths import (
     BathExponent,
     Bath,
     BosonicBath,
@@ -19,7 +19,7 @@ from qutip.nonmarkov.heom_baths import (
     DrudeLorentzPadeBath,
     FermionicBath,
 )
-from qutip.nonmarkov.heom_solvers import (
+from qutip.nonmarkov.bofin_solvers import (
     HierarchyADOs,
     HierarchyADOsState,
     HEOMSolver,

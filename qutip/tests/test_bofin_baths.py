@@ -1,12 +1,12 @@
 """
-Tests for qutip.nonmarkov.heom_baths.
+Tests for qutip.nonmarkov.bofin_baths.
 """
 
 import numpy as np
 import pytest
 
 from qutip import isequal, spre, spost, sigmax, sigmaz
-from qutip.nonmarkov.heom_baths import (
+from qutip.nonmarkov.bofin_baths import (
     BathExponent,
     Bath,
     BosonicBath,

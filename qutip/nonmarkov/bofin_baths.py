@@ -2,7 +2,7 @@
 This module provides utilities for describing baths when using the
 HEOM (hierarchy equations of motion) to model system-bath interactions.
 
-See the ``qutip.nonmarkov.heom_solvers`` module for the associated solver.
+See the ``qutip.nonmarkov.bofin_solvers`` module for the associated solver.
 
 The implementation is derived from the BoFiN library (see
 https://github.com/tehruhn/bofin) which was itself derived from an earlier

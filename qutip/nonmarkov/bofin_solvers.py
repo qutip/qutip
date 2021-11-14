@@ -27,7 +27,7 @@ from qutip.solver import Options, Result
 from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 from qutip.fastsparse import fast_identity, fast_csr_matrix
-from qutip.nonmarkov.heom_baths import (
+from qutip.nonmarkov.bofin_baths import (
     BathExponent, BosonicBath, DrudeLorentzBath, FermionicBath,
 )
 
