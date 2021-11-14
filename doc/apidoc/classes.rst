@@ -56,19 +56,40 @@ Cubic Spline
 Non-Markovian Solvers
 ---------------------
 
-.. autoclass:: qutip.nonmarkov.bofin.HSolverDL
-    :members:
-
-.. autoclass:: qutip.nonmarkov.bofin.BosonicHEOMSolver
-    :members:
-
-.. autoclass:: qutip.nonmarkov.bofin.FermionicHEOMSolver
-    :members:
-
 .. autoclass:: qutip.nonmarkov.heom.HEOMSolver
     :members:
 
+.. autoclass:: qutip.nonmarkov.heom.BosonicHEOMSolver
+    :members:
+
+.. autoclass:: qutip.nonmarkov.heom.FermionicHEOMSolver
+    :members:
+
 .. autoclass:: qutip.nonmarkov.heom.HSolverDL
+    :members:
+
+.. autoclass:: qutip.nonmarkov.heom.BathExponent
+    :members:
+
+.. autoclass:: qutip.nonmarkov.heom.Bath
+    :members:
+
+.. autoclass:: qutip.nonmarkov.heom.BosonicBath
+    :members:
+
+.. autoclass:: qutip.nonmarkov.heom.DrudeLorentzBath
+    :members:
+
+.. autoclass:: qutip.nonmarkov.heom.DrudeLorentzPadeBath
+    :members:
+
+.. autoclass:: qutip.nonmarkov.heom.FermionicBath
+    :members:
+
+.. autoclass:: qutip.nonmarkov.dlheom_solver.HSolverDL
+    :members:
+
+.. autoclass:: qutip.nonmarkov.dlheom_solver.HEOMSolver
     :members:
 
 .. autoclass:: qutip.nonmarkov.memorycascade.MemoryCascade
@@ -76,6 +97,7 @@ Non-Markovian Solvers
 
 .. autoclass:: qutip.nonmarkov.transfertensor.TTMSolverOptions
     :members:
+
 
 .. _classes-odeoptions:
 
