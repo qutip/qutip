@@ -415,7 +415,7 @@ class DrudeLorentzPadeBath(BosonicBath):
     bosonic bath from the bath parameters (see parameters below).
 
     A Padé approximant is a sum-over-poles expansion (
-    see `https://en.wikipedia.org/wiki/Pad%C3%A9_approximant`_).
+    see https://en.wikipedia.org/wiki/Pad%C3%A9_approximant).
 
     The application of the Padé method to spectrum decompoisitions is described
     in "Padé spectrum decompositions of quantum distribution functions and
