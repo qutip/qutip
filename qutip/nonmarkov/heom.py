@@ -26,6 +26,7 @@ __all__ = [
     "BosonicBath",
     "DrudeLorentzBath",
     "DrudeLorentzPadeBath",
+    "UnderDampedBath",
     "FermionicBath",
     "HEOMSolver",
     "BosonicHEOMSolver",
@@ -39,6 +40,7 @@ from .bofin_baths import (
     BosonicBath,
     DrudeLorentzBath,
     DrudeLorentzPadeBath,
+    UnderDampedBath,
     FermionicBath,
 )
 

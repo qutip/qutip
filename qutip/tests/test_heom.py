@@ -8,6 +8,7 @@ from qutip.nonmarkov.heom import (
     BosonicBath,
     DrudeLorentzBath,
     DrudeLorentzPadeBath,
+    UnderDampedBath,
     FermionicBath,
     HEOMSolver,
     BosonicHEOMSolver,
@@ -24,6 +25,7 @@ class TestBathAPI:
         assert BosonicBath
         assert DrudeLorentzBath
         assert DrudeLorentzPadeBath
+        assert UnderDampedBath
         assert FermionicBath
 
 
