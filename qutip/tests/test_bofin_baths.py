@@ -24,9 +24,9 @@ def check_exponent(
     assert exp.type is BathExponent.types[type]
     assert exp.dim == dim
     assert exp.Q == Q
-    assert exp.ck == ck
-    assert exp.vk == vk
-    assert exp.ck2 == ck2
+    assert exp.ck == pytest.approx(ck)
+    assert exp.vk == pytest.approx(vk)
+    assert exp.ck2 == pytest.approx(ck2)
     assert exp.sigma_bar_k_offset == sigma_bar_k_offset
     assert exp.tag == tag
 
