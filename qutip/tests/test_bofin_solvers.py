@@ -6,11 +6,13 @@ import numpy as np
 import pytest
 from numpy.linalg import eigvalsh
 from scipy.integrate import quad
+from scipy.sparse import csr_matrix
 
 from qutip import (
     basis, destroy, expect, liouvillian, sigmax, sigmaz,
     tensor, Qobj, QobjEvo, Options,
 )
+from qutip.fastsparse import fast_csr_matrix
 from qutip.nonmarkov.bofin_baths import (
     BathExponent,
     Bath,
@@ -26,6 +28,7 @@ from qutip.nonmarkov.bofin_solvers import (
     BosonicHEOMSolver,
     FermionicHEOMSolver,
     HSolverDL,
+    _GatherHEOMRHS,
 )
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 
@@ -798,3 +801,30 @@ class TestFermionicHEOMSolver:
         current = dlm.state_current(ado_state)
         analytic_current = dlm.analytic_current()
         np.testing.assert_allclose(analytic_current, current, atol=atol)
+
+
+class Test_GatherHEOMRHS:
+    def test_simple_gather(self):
+        def f(label):
+            return int(label.lstrip("o"))
+
+        gather_heoms = _GatherHEOMRHS(f, block=2, nhe=3)
+
+        for i in range(3):
+            for j in range(3):
+                base = 10 * (j * 2) + (i * 2)
+                block_op = csr_matrix(np.array([
+                    [base, base + 10],
+                    [base + 1, base + 11],
+                ], dtype=np.complex128))
+                gather_heoms.add_op(f"o{i}", f"o{j}", block_op)
+
+        op = gather_heoms.gather()
+
+        expected_op = np.array([
+            [10 * i + j for i in range(2 * 3)]
+            for j in range(2 * 3)
+        ], dtype=np.complex128)
+
+        np.testing.assert_array_equal(op.toarray(), expected_op)
+        assert isinstance(op, fast_csr_matrix)
