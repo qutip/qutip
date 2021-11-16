@@ -248,8 +248,8 @@ class BosonicBath(Bath):
             The absolute tolerance to use to when comparing frequencies and
             coupling operators.
 
-        Return
-        ------
+        Returns
+        -------
         list of BathExponent
             The new reduced list of exponents.
         """
