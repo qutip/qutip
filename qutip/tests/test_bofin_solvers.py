@@ -19,6 +19,7 @@ from qutip.nonmarkov.bofin_baths import (
     BosonicBath,
     DrudeLorentzBath,
     DrudeLorentzPadeBath,
+    UnderDampedBath,
     FermionicBath,
 )
 from qutip.nonmarkov.bofin_solvers import (
@@ -257,6 +258,47 @@ class DrudeLorentzPureDephasingModel:
         return ck_real, vk_real, ck_imag, vk_imag
 
 
+class UnderdampedPureDephasingModel:
+    """ Analytic Drude-Lorentz pure-dephasing model for testing the HEOM solver.
+    """
+    def __init__(self, lam,  gamma, w0, T, Nk):
+        self.lam = lam
+        self.gamma = gamma
+        self.w0 = w0
+        self.T = T
+        self.Nk = Nk
+        # we add a very weak system hamiltonian here to avoid having
+        # singular system that causes problems for the scipy.sparse.linalg
+        # superLU solver used in spsolve.
+        self.H = Qobj(1e-5 * np.ones((2, 2)))
+        self.Q = sigmaz()
+
+    def rho(self):
+        """ Initial state. """
+        return 0.5 * Qobj(np.ones((2, 2)))
+
+    def state_results(self, states):
+        projector = basis(2, 0) * basis(2, 1).dag()
+        return expect(states, projector)
+
+    def analytic_results(self, tlist):
+        lam, gamma, w0, T = self.lam, self.gamma, self.w0, self.T
+        lam_c = lam**2 / np.pi
+
+        def _integrand(omega, t):
+            Jw = (
+                lam_c * omega * gamma /
+                ((w0**2 - omega**2)**2 + gamma**2 * omega**2)
+            )
+            return (-4 * Jw * (1 - np.cos(omega*t))
+                    / (np.tanh(0.5*omega / T) * omega**2))
+
+        return [
+            0.5 * np.exp(quad(_integrand, 0, np.inf, args=(t,), limit=200)[0])
+            for t in tlist
+        ]
+
+
 _HAMILTONIAN_EVO_KINDS = {
     "qobj": lambda H: H,
     "qobjevo": lambda H: QobjEvo([H]),
@@ -436,6 +478,34 @@ class TestHEOMSolver:
         rho_final, ado_state = hsolver.steady_state()
         test = dlm.state_results([rho_final])
         expected = dlm.analytic_results([100])
+        np.testing.assert_allclose(test, expected, atol=atol)
+        assert rho_final == ado_state.extract(0)
+
+    @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
+    def test_underdamped_pure_dephasing_model(
+        self, atol=1e-3
+    ):
+        udm = UnderdampedPureDephasingModel(
+            lam=0.1, gamma=0.05, w0=1, T=1/0.95, Nk=2,
+        )
+        bath = UnderDampedBath(
+            Q=udm.Q, lam=udm.lam, T=udm.T, Nk=udm.Nk, gamma=udm.gamma,
+            w0=udm.w0,
+        )
+
+        options = Options(nsteps=15000, store_states=True)
+        hsolver = HEOMSolver(udm.H, bath, 14, options=options)
+
+        tlist = np.linspace(0, 10, 21)
+        result = hsolver.run(udm.rho(), tlist)
+
+        test = udm.state_results(result.states)
+        expected = udm.analytic_results(tlist)
+        np.testing.assert_allclose(test, expected, atol=atol)
+
+        rho_final, ado_state = hsolver.steady_state()
+        test = udm.state_results([rho_final])
+        expected = udm.analytic_results([5000])
         np.testing.assert_allclose(test, expected, atol=atol)
         assert rho_final == ado_state.extract(0)
 
