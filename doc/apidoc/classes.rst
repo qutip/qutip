@@ -83,6 +83,9 @@ Non-Markovian Solvers
 .. autoclass:: qutip.nonmarkov.heom.DrudeLorentzPadeBath
     :members:
 
+.. autoclass:: qutip.nonmarkov.heom.UnderDampedBath
+    :members:
+
 .. autoclass:: qutip.nonmarkov.heom.FermionicBath
     :members:
 

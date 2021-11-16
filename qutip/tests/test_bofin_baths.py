@@ -12,6 +12,7 @@ from qutip.nonmarkov.bofin_baths import (
     BosonicBath,
     DrudeLorentzBath,
     DrudeLorentzPadeBath,
+    UnderDampedBath,
     FermionicBath,
 )
 
@@ -256,6 +257,56 @@ class TestDrudeLorentzPadeBath:
         check_exponent(exp1, "R", dim=None, Q=Q, ck=ck_real[0], vk=vk_real[0])
         check_exponent(exp2, "R", dim=None, Q=Q, ck=ck_real[1], vk=vk_real[1])
         check_exponent(exp3, "I", dim=None, Q=Q, ck=ck_imag[0], vk=vk_imag[0])
+
+
+class TestUnderDampedBath:
+    def test_create(self):
+        Q = sigmaz()
+        ck_real = [
+            0.0003533235200322013-7.634500355085952e-06j,
+            0.0003533235200322013+7.634500355085952e-06j,
+            -2.173594134367819e-07+0j,
+        ]
+        vk_real = [
+            0.025-0.9996874511566103j,
+            0.025+0.9996874511566103j,
+            6.613879270715354,
+        ]
+        ck_imag = [0.00015629885102511106j, -0.00015629885102511106j]
+        vk_imag = [
+            0.025-0.9996874511566103j,
+            0.025+0.9996874511566103j,
+        ]
+
+        bath = UnderDampedBath(
+            Q=Q, lam=0.025, T=1 / 0.95, Nk=1, gamma=0.05, w0=1, tag="bath1",
+        )
+        [exp1, exp2, exp3] = bath.exponents
+        check_exponent(
+            exp1, "RI", dim=None, Q=Q,
+            ck=ck_real[0], vk=vk_real[0], ck2=ck_imag[0],
+            tag="bath1",
+        )
+        check_exponent(
+            exp2, "RI", dim=None, Q=Q,
+            ck=ck_real[1], vk=vk_real[1], ck2=ck_imag[1],
+            tag="bath1",
+        )
+        check_exponent(
+            exp3, "R", dim=None, Q=Q,
+            ck=ck_real[2], vk=vk_real[2],
+            tag="bath1",
+        )
+
+        bath = UnderDampedBath(
+            Q=Q, lam=0.025, T=1 / 0.95, Nk=1, gamma=0.05, w0=1, combine=False,
+        )
+        [exp1, exp2, exp3, exp4, exp5] = bath.exponents
+        check_exponent(exp1, "R", dim=None, Q=Q, ck=ck_real[0], vk=vk_real[0])
+        check_exponent(exp2, "R", dim=None, Q=Q, ck=ck_real[1], vk=vk_real[1])
+        check_exponent(exp3, "R", dim=None, Q=Q, ck=ck_real[2], vk=vk_real[2])
+        check_exponent(exp4, "I", dim=None, Q=Q, ck=ck_imag[0], vk=vk_imag[0])
+        check_exponent(exp5, "I", dim=None, Q=Q, ck=ck_imag[1], vk=vk_imag[1])
 
 
 class TestFermionicBath:

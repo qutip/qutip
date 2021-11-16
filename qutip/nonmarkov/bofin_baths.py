@@ -566,6 +566,94 @@ class DrudeLorentzPadeBath(BosonicBath):
         return chi
 
 
+class UnderDampedBath(BosonicBath):
+    """
+    A helper class for constructing an under-damped bosonic bath from the
+    bath parameters (see parameters below).
+
+    Parameters
+    ----------
+    Q : Qobj
+        Operator describing the coupling between system and bath.
+
+    lam : float
+        Coupling strength.
+
+    T : float
+        Bath temperature.
+
+    Nk : int
+        Number of exponential terms used to approximate the bath correlation
+        functions.
+
+    gamma : float
+        Bath spectral density cutoff frequency.
+
+    w0 : float
+        Bath spectral density resonance frequency.
+
+    combine : bool, default True
+        Whether to combine exponents with the same frequency (and coupling
+        operator). See :meth:`BosonicBath.combine` for details.
+
+    tag : optional, str, tuple or any other object
+        A label for the bath exponents (for example, the name of the
+        bath). It defaults to None but can be set to help identify which
+        bath an exponent is from.
+    """
+    def __init__(
+        self, Q, lam, T, Nk, gamma, w0, combine=True, tag=None,
+    ):
+        ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(
+            lam=lam,
+            gamma=gamma,
+            w0=w0,
+            Nk=Nk,
+            T=T,
+        )
+
+        super().__init__(
+            Q, ck_real, vk_real, ck_imag, vk_imag, combine=combine, tag=tag,
+        )
+
+    def _matsubara_params(self, lam, gamma, w0, Nk, T):
+        """ Calculate the Matsubara coefficents and frequencies. """
+        beta = 1/T
+        Om = np.sqrt(w0**2 - (gamma/2)**2)
+        Gamma = gamma/2.
+
+        ck_real = ([
+            (lam**2 / (4 * Om))
+            * (1 / np.tanh(beta * (Om + 1.0j * Gamma) / 2)),
+            (lam**2 / (4*Om))
+            * (1 / np.tanh(beta * (Om - 1.0j * Gamma) / 2)),
+        ])
+
+        ck_real.extend([
+            (-2 * lam**2 * gamma / beta) * (2 * np.pi * k / beta)
+            / (
+                ((Om + 1.0j * Gamma)**2 + (2 * np.pi * k/beta)**2)
+                * ((Om - 1.0j * Gamma)**2 + (2 * np.pi * k / beta)**2)
+            )
+            for k in range(1, Nk + 1)
+        ])
+
+        vk_real = [-1.0j * Om + Gamma, 1.0j * Om + Gamma]
+        vk_real.extend([
+            2 * np.pi * k * T
+            for k in range(1, Nk + 1)
+        ])
+
+        ck_imag = [
+            1.0j * lam**2 / (4 * Om),
+            -1.0j * lam**2 / (4 * Om),
+        ]
+
+        vk_imag = [-1.0j * Om + Gamma, 1.0j * Om + Gamma]
+
+        return ck_real, vk_real, ck_imag, vk_imag
+
+
 class FermionicBath(Bath):
     """
     A helper class for constructing a fermionic bath from the expansion
