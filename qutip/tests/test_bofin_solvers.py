@@ -703,7 +703,7 @@ class DiscreteLevelCurrentModel:
         # and thus the first 2 * k exponents
         k = self.lmax + 1
         return 1.0j * sum(
-            exp_sign(exp) * (exp.Q * aux).tr()
+            exp_sign(exp) * (exp.Q.dag() * aux).tr()
             for aux, exp in level_1_aux[:2 * k]
         )
 
