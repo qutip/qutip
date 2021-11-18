@@ -444,6 +444,16 @@ class HEOMSolver:
         self._s_pre_plus_post_Q = [
             self._spreQ[k] + self._spostQ[k] for k in range(self._n_exponents)
         ]
+        self._spreQdag = [spre(op.dag()).data for op in Qs]
+        self._spostQdag = [spost(op.dag()).data for op in Qs]
+        self._s_pre_minus_post_Qdag = [
+            self._spreQdag[k] - self._spostQdag[k]
+            for k in range(self._n_exponents)
+        ]
+        self._s_pre_plus_post_Qdag = [
+            self._spreQdag[k] + self._spostQdag[k]
+            for k in range(self._n_exponents)
+        ]
 
         if progress_bar is None:
             self.progress_bar = BaseProgressBar()
@@ -598,9 +608,9 @@ class HEOMSolver:
         sign2 = (-1) ** (n_excite_before_m)
 
         if sign1 == -1:
-            op = (-1j * sign2) * self._s_pre_minus_post_Q[k]
+            op = (-1j * sign2) * self._s_pre_minus_post_Qdag[k]
         else:
-            op = (-1j * sign2) * self._s_pre_plus_post_Q[k]
+            op = (-1j * sign2) * self._s_pre_plus_post_Qdag[k]
 
         return op
 
