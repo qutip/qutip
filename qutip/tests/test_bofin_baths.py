@@ -311,7 +311,7 @@ class TestUnderDampedBath:
 
 class TestFermionicBath:
     def test_create(self):
-        Q = sigmaz()
+        Q = 1j * sigmaz()
         bath = FermionicBath(Q, [1.], [0.5], [2.], [0.6])
         exp_p, exp_m = bath.exponents
         check_exponent(
