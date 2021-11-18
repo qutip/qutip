@@ -161,6 +161,7 @@ cdef class Coefficient:
         """ Return a :obj:`Coefficient` with a time shift"""
         return ShiftCoefficient(self, 0)
 
+
 @cython.auto_pickle(True)
 cdef class FunctionCoefficient(Coefficient):
     """
@@ -192,9 +193,11 @@ cdef class FunctionCoefficient(Coefficient):
     def __init__(self, func, dict args, style=None, _f_pythonic=_UNSET,
                  _f_parameters=_UNSET):
         if _f_pythonic is self._UNSET or _f_parameters is self._UNSET:
-            if not (_f_pythonic is self._UNSET and _f_parameters is self._UNSET):
+            if not (_f_pythonic is self._UNSET
+                    and _f_parameters is self._UNSET):
                 raise TypeError(
-                    "_f_pythonic and _f_parameters should always be given together."
+                    "_f_pythonic and _f_parameters should "
+                    "always be given together."
                 )
             _f_pythonic, _f_parameters = coefficient_function_parameters(
                 func, style=style)
@@ -262,11 +265,13 @@ def proj(x):
 
 cdef class StrFunctionCoefficient(Coefficient):
     """
-    A :obj:`Coefficient` defined by a string containing a simple Python expression.
+    A :obj:`Coefficient` defined by a string containing a simple Python
+    expression.
 
-    The string should contain a compilable Python expression that results in a complex number.
-    The time ``t`` is available as a local variable, as are the individual arguments (i.e. the
-    keys of ``args``). The ``args`` dictionary itself is not accessible.
+    The string should contain a compilable Python expression that results in a
+    complex number. The time ``t`` is available as a local variable, as are the
+    individual arguments (i.e. the keys of ``args``). The ``args`` dictionary
+    itself is not accessible.
 
     The following symbols are defined:
         ``sin``, ``cos``, ``tan``, ``asin``, ``acos``, ``atan``, ``pi``,
@@ -282,7 +287,8 @@ cdef class StrFunctionCoefficient(Coefficient):
     Parameters
     ----------
     base : str
-        A string representing a compilable Python expression that results in a complex number.
+        A string representing a compilable Python expression that results in a
+        complex number.
 
     args : dict
         A dictionary of variable used in the code string. It may include unused
@@ -435,7 +441,7 @@ cdef class InterCoefficient(Coefficient):
             raise ValueError("tlist must be the same len "
                              "as the array to interpolate")
         if order < 0:
-             raise ValueError("order must be a positive integer")
+            raise ValueError("order must be a positive integer")
 
         order = min(order, len(tlist) - 1)
 
@@ -453,9 +459,9 @@ cdef class InterCoefficient(Coefficient):
             # as used in scipy's PPoly which is easier for us to use.
             spline = interp1d(tlist, coeff_arr, kind=order)._spline
             ts = np.unique(spline.t)
-            fact = [1,1,2,6]
+            fact = [1, 1, 2, 6]
             poly = np.hstack([spline(ts, i) / fact[i]
-                              for i in range(3,-1,-1)]).T
+                              for i in range(3, -1, -1)]).T
             self.np_arrays = (ts, poly)
 
         self._prepare()
@@ -491,7 +497,8 @@ cdef class InterCoefficient(Coefficient):
             count += 1
         return low
 
-    #@cython.initializedcheck(False)
+    @cython.initializedcheck(False)
+    @cython.cdivision(True)
     cdef double complex _call(self, double t) except *:
         cdef size_t idx, i
         cdef double factor
@@ -533,9 +540,9 @@ cdef class InterCoefficient(Coefficient):
     @classmethod
     def from_Bspline(cls, spline):
         tlist = np.unique(spline.t)
-        fact = [1,1,2,6]
+        fact = [1, 1, 2, 6]
         poly = np.hstack([spline(tlist, i) / fact[i]
-                          for i in range(3,-1,-1)]).T
+                          for i in range(3, -1, -1)]).T
         return cls.restore((tlist, poly))
 
     cpdef Coefficient copy(self):

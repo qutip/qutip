@@ -495,12 +495,14 @@ def compile_code(code, file_name, parsed, c_opt):
         oldargs = sys.argv
         try:
             sys.argv = ["setup.py", "build_ext", "--inplace"]
-            coeff_file = Extension(file_name,
-                                   sources=[full_file_name + ".pyx"],
-                                   extra_compile_args=c_opt['compiler_flags'].split(),
-                                   extra_link_args=c_opt['link_flags'].split(),
-                                   include_dirs=[np.get_include()],
-                                   language='c++')
+            coeff_file = Extension(
+                file_name,
+                sources=[full_file_name + ".pyx"],
+                extra_compile_args=c_opt['compiler_flags'].split(),
+                extra_link_args=c_opt['link_flags'].split(),
+                include_dirs=[np.get_include()],
+                language='c++'
+            )
             setup(ext_modules=cythonize(coeff_file, force=c_opt['recompile']))
         except Exception as e:
             raise Exception("Could not compile") from e
@@ -701,7 +703,7 @@ def try_parse(code, args, args_ctypes, compile_opt):
     ncode, variables = use_hinted_type(variables, ncode, args_ctypes)
     if (
         (compile_opt['extra_import']
-        and not compile_opt['extra_import'].isspace())
+         and not compile_opt['extra_import'].isspace())
         or test_parsed(ncode, variables, constants, args)
     ):
         return ncode, variables, constants, False
