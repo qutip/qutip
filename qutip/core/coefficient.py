@@ -1,5 +1,6 @@
 import numpy as np
 import scipy
+import scipy.interpolate
 import os
 import sys
 import re
@@ -37,10 +38,17 @@ class StringParsingWarning(Warning):
     pass
 
 
+"""
+Dict of object types we support as Coefficient.
+For a type, a function that create a Coefficient from it and a set of kwargs
+that function support.
+"""
 coefficient_types = {
     Coefficient: (lambda x: x, set()),
     Cubic_Spline: (InterpolateCoefficient, set()),
     np.ndarray: (InterCoefficient, {'order', 'tlist'}),
+    scipy.interpolate.PPoly: (InterCoefficient.from_PPoly, {}),
+    scipy.interpolate.BSpline: (InterCoefficient.from_Bspline, {}),
 }
 
 
@@ -100,14 +108,18 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
     A list of times (float64) at which the coeffients must be given (tlist).
     The coeffients array must have the same len as the tlist.
     The time of the tlist do not need to be equidistant, but must be sorted.
-    By default, a cubic spline interpolation will be used for the coefficient
-    at time t.
-    If the coefficients are to be treated as step function, use the arguments:
-    _stepInterpolation=True
+    By default, a cubic spline interpolation will be used to compute the
+    coefficient at time t. The keyword ``order`` set the order of the
+    interpolation. When ``order = 0`` it interpolate in a step function to the
+    previous or last value.
 
     *Examples*
         tlist = np.logspace(-5,0,100)
         H = QobjEvo(np.exp(-1j*tlist), tlist=tlist)
+
+    `scipy.interpolate`'s `CubicSpline`, PPoly` and `Bspline` are also accepted
+    as array `Coefficient`. Other interpolation method from scipy are usually
+    accepted as functions based coefficient.
     """
     kwargs['tlist'] = tlist
     kwargs['args'] = args
@@ -119,7 +131,7 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
     for supported_type in coefficient_types:
         if isinstance(base, supported_type):
             maker, keys = coefficient_types[supported_type]
-            kwargs = {key: kwargs[key] for key in keys}
+            kwargs = {key: kwargs.get(key, None) for key in keys}
             return maker(base, **kwargs)
 
     if callable(base):

@@ -251,10 +251,10 @@ cdef class QobjEvo:
             out = _ConstantElement(op.copy() if copy else op)
             qobj = op
         elif isinstance(op, list):
+            order = 0 if use_step_func else 3
             out = _EvoElement(
                 op[0].copy() if copy else op[0],
-                coefficient(op[1], tlist=tlist, args=args,
-                            _stepInterpolation=use_step_func)
+                coefficient(op[1], tlist=tlist, args=args, order=order)
             )
             qobj = op[0]
         elif callable(op):

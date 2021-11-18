@@ -1,8 +1,4 @@
 #cython: language_level=3
-from .inter import _prep_cubic_spline
-from .inter cimport (_spline_complex_cte_second,
-                     _spline_complex_t_second,
-                     _step_complex_t, _step_complex_cte)
 from .interpolate cimport interp, zinterp
 from ..interpolate import Cubic_Spline
 import inspect
@@ -193,7 +189,8 @@ cdef class FunctionCoefficient(Coefficient):
 
     _UNSET = object()
 
-    def __init__(self, func, dict args, style=None, _f_pythonic=_UNSET, _f_parameters=_UNSET):
+    def __init__(self, func, dict args, style=None, _f_pythonic=_UNSET,
+                 _f_parameters=_UNSET):
         if _f_pythonic is self._UNSET or _f_parameters is self._UNSET:
             if not (_f_pythonic is self._UNSET and _f_parameters is self._UNSET):
                 raise TypeError(
@@ -228,9 +225,11 @@ cdef class FunctionCoefficient(Coefficient):
         """
         Replace the arguments (``args``) of a coefficient.
 
-        Returns a new :obj:`Coefficient` if the coefficient has arguments, or the original coefficient if it does not.
-        Arguments to replace may be supplied either in a dictionary as the first position argument, or passed as
-        keywords, or as a combination of the two. Arguments not replaced retain their previous values.
+        Returns a new :obj:`Coefficient` if the coefficient has arguments, or
+        the original coefficient if it does not. Arguments to replace may be
+        supplied either in a dictionary as the first position argument, or
+        passed as keywords, or as a combination of the two. Arguments not
+        replaced retain their previous values.
 
         Parameters
         ----------
@@ -427,6 +426,9 @@ cdef class InterCoefficient(Coefficient):
     cdef object np_arrays
 
     def __init__(self, coeff_arr, tlist, int order):
+        tlist = np.array(tlist, dtype=np.float64)
+        coeff_arr = coeff_arr.astype(np.complex128)
+
         if coeff_arr.ndim != 1:
             raise ValueError("The array to interpolate must be a 1D array")
         if coeff_arr.shape != tlist.shape:
@@ -435,9 +437,7 @@ cdef class InterCoefficient(Coefficient):
         if order < 0:
              raise ValueError("order must be a positive integer")
 
-        tlist = np.array(tlist, dtype=np.float64)
-        coeff_arr = coeff_arr.astype(np.complex128)
-        self.order = order
+        order = min(order, len(tlist) - 1)
 
         if order == 0:
             self.np_arrays = (tlist, coeff_arr.reshape((1, -1)))
@@ -458,17 +458,23 @@ cdef class InterCoefficient(Coefficient):
                               for i in range(3,-1,-1)]).T
             self.np_arrays = (ts, poly)
 
+        self._prepare()
+
+    def _prepare(self, dt=None):
         self.tlist = self.np_arrays[0]
         self.poly = self.np_arrays[1]
+        self.order = self.poly.shape[0]
         diff = np.diff(self.np_arrays[0])
-        if np.allclose(diff[0], diff):
+        if dt is not None:
+            self.dt = dt
+        elif len(diff) >= 1 and np.allclose(diff[0], diff):
             self.dt = diff[0]
         else:
             self.dt = 0
 
     @cython.wraparound(False)
-    #@cython.boundscheck(False)
-    #@cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.cdivision(True)
     cdef size_t _binary_search(self, double x):
         # Binary search for the interval
         # return the indice of the of the biggest element where t <= x
@@ -511,24 +517,30 @@ cdef class InterCoefficient(Coefficient):
         return out
 
     def __reduce__(self):
-        return (InterCoefficient.from_poly,
-                (self.dt, self.order, self.np_arrays))
+        return (InterCoefficient.restore, (self.np_arrays, self.dt))
 
     @classmethod
-    def from_poly(cls, dt, order, np_arrays):
+    def restore(cls, np_arrays, dt=None):
         cdef InterCoefficient out = cls.__new__(cls)
-        out.dt = dt
-        out.order = order
         out.np_arrays = np_arrays
-        out.tlist = out.np_arrays[0]
-        out.poly = out.np_arrays[1]
+        out._prepare(dt)
         return out
+
+    @classmethod
+    def from_PPoly(cls, ppoly):
+        return cls.restore((ppoly.x, ppoly.c))
+
+    @classmethod
+    def from_Bspline(cls, spline):
+        tlist = np.unique(spline.t)
+        fact = [1,1,2,6]
+        poly = np.hstack([spline(tlist, i) / fact[i]
+                          for i in range(3,-1,-1)]).T
+        return cls.restore((tlist, poly))
 
     cpdef Coefficient copy(self):
         """Return a copy of the :obj:`Coefficient`."""
-        return InterCoefficient.from_poly(
-            self.dt, self.order, self.np_arrays
-        )
+        return InterCoefficient.restore(self.np_arrays, self.dt)
 
 
 cdef Coefficient add_inter(InterCoefficient left, InterCoefficient right):
@@ -536,7 +548,7 @@ cdef Coefficient add_inter(InterCoefficient left, InterCoefficient right):
         np.array_equal(left.np_arrays[0], right.np_arrays[0])
         and (left.order == right.order)
     ):
-        return InterCoefficient.from_poly(
+        return InterCoefficient.restore(
             left.dt, left.order,
             (left.np_arrays[0], left.np_arrays[1] + right.np_arrays[1])
         )
