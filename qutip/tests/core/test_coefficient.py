@@ -405,28 +405,30 @@ def test_CoeffArray(order):
     y = np.exp((-1 + 1j) * tlist)
     coeff = coefficient(y, tlist=tlist, order=order)
     expected = coefficient(lambda t: np.exp((-1 + 1j) * t))
-    _assert_eq_over_interval(coeff, expected, rtol=0.01**(order+1))
-    dt = 1e-6
-    t = 0.025
+    _assert_eq_over_interval(coeff, expected, rtol=0.01**(order+0.8),
+                             inside=True)
+    dt = 1e-4
+    t = 0.0225
     derr = (coeff(t+dt) - coeff(t-dt)) / (2*dt)
-    deff2 = (coeff(t+dt) + coeff(t-dt) - 2 * coeff(t)) / (dt**2)
-    deff3 = (coeff(t + 2*dt) - 2*coeff(t + dt)
-             + 2*coeff(t + dt) -coeff(t - 2*dt)) / (12 * dt**3)
+    derr2 = (coeff(t+dt) + coeff(t-dt) - 2 * coeff(t)) / (dt**2)
+    derr3 = (coeff(t + 2*dt) - 2*coeff(t + dt)
+             + 2*coeff(t - dt) -coeff(t - 2*dt)) / (12 * dt**3)
     derrs = [derr, derr2, derr3]
+    print(order, derrs)
     for i in range(order):
         assert derrs[i] != 0
-    for i in range(order, 4):
-        assert derrs[i] == pytest.approx(0.0)
+    for i in range(order, 3):
+        assert derrs[i] == pytest.approx(0.0,  abs=0.0001)
 
 
 def test_CoeffFromScipy():
-    tlist = np.linspace(0, 1, 101)
-    x = np.exp((-1 + 1j) * t)
+    tlist = np.linspace(0, 1.01, 101)
+    y = np.exp((-1 + 1j) * tlist)
 
-    coeff = coefficient(x, tlist=tlist, order=order)
+    coeff = coefficient(y, tlist=tlist, order=3)
     from_scipy = coefficient(interp.CubicSpline(tlist, y))
     _assert_eq_over_interval(coeff, from_scipy, rtol=1e-8, inside=True)
 
-    coeff = coefficient(x, tlist=tlist, order=order)
+    coeff = coefficient(y, tlist=tlist, order=3)
     from_scipy = coefficient(interp.interp1d(tlist, y, kind=3)._spline)
     _assert_eq_over_interval(coeff, from_scipy, rtol=1e-8, inside=True)

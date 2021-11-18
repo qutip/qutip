@@ -444,10 +444,10 @@ cdef class InterCoefficient(Coefficient):
         elif order == 1:
             self.np_arrays = (
                 tlist,
-                np.hstack([
+                np.vstack([
                     np.diff(coeff_arr, append=-1) / np.diff(tlist, append=-1),
                     coeff_arr
-                ]).T)
+                ]))
         elif order >= 2:
             # Use scipy to compute the spline and transform it to polynomes
             # as used in scipy's PPoly which is easier for us to use.
@@ -463,7 +463,7 @@ cdef class InterCoefficient(Coefficient):
     def _prepare(self, dt=None):
         self.tlist = self.np_arrays[0]
         self.poly = self.np_arrays[1]
-        self.order = self.poly.shape[0]
+        self.order = self.poly.shape[0] - 1
         diff = np.diff(self.np_arrays[0])
         if dt is not None:
             self.dt = dt
@@ -549,8 +549,8 @@ cdef Coefficient add_inter(InterCoefficient left, InterCoefficient right):
         and (left.order == right.order)
     ):
         return InterCoefficient.restore(
-            left.dt, left.order,
-            (left.np_arrays[0], left.np_arrays[1] + right.np_arrays[1])
+            (left.np_arrays[0], left.np_arrays[1] + right.np_arrays[1]),
+            left.dt
         )
     else:
         return SumCoefficient(left.copy(), right.copy())
@@ -612,7 +612,7 @@ cdef class MulCoefficient(Coefficient):
     A :obj:`MulCoefficient` is returned as the result of the multiplication of
     two coefficients, e.g. ::
 
-        coefficient("w * t", args={'w': 1}) * coefficient("t")  # MulCoefficient
+        coefficient("w * t", args={'w': 1}) * coefficient("t")
     """
     cdef Coefficient first
     cdef Coefficient second
