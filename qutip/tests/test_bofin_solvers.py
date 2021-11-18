@@ -699,11 +699,14 @@ class DiscreteLevelCurrentModel:
         def exp_sign(exp):
             return 1 if exp.type == exp.types["+"] else -1
 
+        def exp_op(exp):
+            return exp.Q if exp.type == exp.types["+"] else exp.Q.dag()
+
         # right hand modes are the first k modes in ck/vk_plus and ck/vk_minus
         # and thus the first 2 * k exponents
         k = self.lmax + 1
         return 1.0j * sum(
-            exp_sign(exp) * (exp.Q.dag() * aux).tr()
+            exp_sign(exp) * (exp_op(exp) * aux).tr()
             for aux, exp in level_1_aux[:2 * k]
         )
 

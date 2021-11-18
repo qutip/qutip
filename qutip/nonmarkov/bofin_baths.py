@@ -668,8 +668,7 @@ class FermionicBath(Bath):
     Parameters
     ----------
     Q : Qobj
-        The coupling operator for the bath. ``Q.dag()`` is used as the coupling
-        operator for ``+`` mode terms and ``Q`` for the ``-`` mode terms.
+        The coupling operator for the bath.
 
     ck_plus : list of complex
         The coefficients of the expansion terms for the ``+`` part of the
@@ -718,12 +717,11 @@ class FermionicBath(Bath):
     def __init__(self, Q, ck_plus, vk_plus, ck_minus, vk_minus, tag=None):
         self._check_cks_and_vks(ck_plus, vk_plus, ck_minus, vk_minus)
         self._check_coup_op(Q)
-        Qdag = Q.dag()
 
         exponents = []
         for ckp, vkp, ckm, vkm in zip(ck_plus, vk_plus, ck_minus, vk_minus):
             exponents.append(BathExponent(
-                "+", 2, Qdag, ckp, vkp, sigma_bar_k_offset=1, tag=tag,
+                "+", 2, Q, ckp, vkp, sigma_bar_k_offset=1, tag=tag,
             ))
             exponents.append(BathExponent(
                 "-", 2, Q, ckm, vkm, sigma_bar_k_offset=-1, tag=tag,

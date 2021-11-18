@@ -574,11 +574,21 @@ class HEOMSolver:
 
         sigma_bar_k = k + self.ados.sigma_bar_k_offset[k]
 
-        op = -1j * sign2 * (
-            (ck[k] * self._spreQ[k]) -
-            (sign1 * np.conj(ck[sigma_bar_k] * self._spostQ[k]))
-        )
-
+        if self.ados.exponents[k].type == BathExponent.types["+"]:
+            op = -1j * sign2 * (
+                (ck[k] * self._spreQdag[k]) -
+                (sign1 * np.conj(ck[sigma_bar_k]) * self._spostQdag[k])
+            )
+        elif self.ados.exponents[k].type == BathExponent.types["-"]:
+            op = -1j * sign2 * (
+                (ck[k] * self._spreQ[k]) -
+                (sign1 * np.conj(ck[sigma_bar_k]) * self._spostQ[k])
+            )
+        else:
+            raise ValueError(
+                f"Unsupported type {self.ados.exponents[k].type}"
+                f" for exponent {k}"
+            )
         return op
 
     def _grad_next(self, he_n, k):
@@ -607,10 +617,23 @@ class HEOMSolver:
         n_excite_before_m = sum(he_n[:k])
         sign2 = (-1) ** (n_excite_before_m)
 
-        if sign1 == -1:
-            op = (-1j * sign2) * self._s_pre_minus_post_Qdag[k]
+        if self.ados.exponents[k].type == BathExponent.types["+"]:
+            if sign1 == -1:
+                op = (-1j * sign2) * self._s_pre_minus_post_Q[k]
+            else:
+                op = (-1j * sign2) * self._s_pre_plus_post_Q[k]
+        elif self.ados.exponents[k].type == BathExponent.types["-"]:
+            if sign1 == -1:
+                op = (-1j * sign2) * self._s_pre_minus_post_Qdag[k]
+            else:
+                op = (-1j * sign2) * self._s_pre_plus_post_Qdag[k]
         else:
-            op = (-1j * sign2) * self._s_pre_plus_post_Qdag[k]
+            raise ValueError(
+                f"Unsupported type {self.ados.exponents[k].type}"
+                f" for exponent {k}"
+            )
+        return op
+
 
         return op
 
