@@ -519,9 +519,7 @@ class TestHEOMSolver:
         pytest.param(False, id="hamiltonian"),
         pytest.param(True, id="liouvillian"),
     ])
-    def test_fermionic_discrete_level_model(
-        self, evo, liouvillianize, atol=1e-3
-    ):
+    def test_fermionic_discrete_level_model(self, evo, liouvillianize):
         dlm = DiscreteLevelCurrentModel(
             gamma=0.01, W=1, T=0.025851991, lmax=10,
         )
@@ -529,22 +527,22 @@ class TestHEOMSolver:
         ck_plus, vk_plus, ck_minus, vk_minus = dlm.bath_coefficients()
 
         options = Options(
-            nsteps=15_000, store_states=True, rtol=1e-14, atol=1e-14,
+            nsteps=15_000, store_states=True, rtol=1e-7, atol=1e-7,
         )
         bath = FermionicBath(dlm.Q, ck_plus, vk_plus, ck_minus, vk_minus)
         # for a single impurity we converge with max_depth = 2
         hsolver = HEOMSolver(H_sys, bath, 2, options=options)
 
-        tlist = [0, 10]
+        tlist = [0, 600]
         result = hsolver.run(dlm.rho(), tlist, ado_return=True)
         current = dlm.state_current(result.ado_states[-1])
         analytic_current = dlm.analytic_current()
-        np.testing.assert_allclose(analytic_current, current, atol=atol)
+        np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
 
         rho_final, ado_state = hsolver.steady_state()
         current = dlm.state_current(ado_state)
         analytic_current = dlm.analytic_current()
-        np.testing.assert_allclose(analytic_current, current, atol=atol)
+        np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
 
 
 class TestBosonicHEOMSolver:
@@ -845,7 +843,7 @@ class TestFermionicHEOMSolver:
         pytest.param(False, id="hamiltonian"),
         pytest.param(True, id="liouvillian"),
     ])
-    def test_discrete_level_model(self, evo, liouvillianize, atol=1e-3):
+    def test_discrete_level_model(self, evo, liouvillianize):
         dlm = DiscreteLevelCurrentModel(
             gamma=0.01, W=1, T=0.025851991, lmax=10,
         )
@@ -853,24 +851,23 @@ class TestFermionicHEOMSolver:
         ck_plus, vk_plus, ck_minus, vk_minus = dlm.bath_coefficients()
 
         options = Options(
-            nsteps=15_000, store_states=True, rtol=1e-14, atol=1e-14,
+            nsteps=15_000, store_states=True, rtol=1e-7, atol=1e-7,
         )
         Ncc = 2  # For a single impurity we converge with Ncc = 2
         hsolver = FermionicHEOMSolver(
             H_sys, dlm.Q, ck_plus, vk_plus, ck_minus, vk_minus, Ncc,
             options=options,
         )
-
-        tlist = [0, 10]
+        tlist = [0, 600]
         result = hsolver.run(dlm.rho(), tlist, ado_return=True)
         current = dlm.state_current(result.ado_states[-1])
         analytic_current = dlm.analytic_current()
-        np.testing.assert_allclose(analytic_current, current, atol=atol)
+        np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
 
         rho_final, ado_state = hsolver.steady_state()
         current = dlm.state_current(ado_state)
         analytic_current = dlm.analytic_current()
-        np.testing.assert_allclose(analytic_current, current, atol=atol)
+        np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
 
 
 class Test_GatherHEOMRHS:
