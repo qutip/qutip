@@ -634,9 +634,6 @@ class HEOMSolver:
             )
         return op
 
-
-        return op
-
     def _rhs(self, L):
         """ Make the RHS for the HEOM. """
         ops = _GatherHEOMRHS(self.ados.idx, block=L.shape[0], nhe=self._n_ados)
