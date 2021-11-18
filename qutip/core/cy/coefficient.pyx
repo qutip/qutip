@@ -413,8 +413,7 @@ cdef class InterpolateCoefficient(Coefficient):
 
 cdef class InterCoefficient(Coefficient):
     """
-    A :obj:`Coefficient` built from a cubic spline interpolation of a numpy
-    array.
+    A :obj:`Coefficient` built from an interpolation of a numpy array.
 
     Parameters
     ----------
@@ -424,6 +423,9 @@ cdef class InterCoefficient(Coefficient):
     tlist : np.ndarray
         An array of times corresponding to each coefficient value. The times
         must be increasing, but do not need to be uniformly spaced.
+
+    order : int
+        Order of the interpolation. ``0`` use previous or left value.
     """
     cdef int order
     cdef double dt
