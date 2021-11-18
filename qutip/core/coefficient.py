@@ -24,10 +24,9 @@ from ..optionsclass import optionsclass
 from .data import Data
 from .interpolate import Cubic_Spline
 from .cy.coefficient import (InterpolateCoefficient, InterCoefficient,
-                             StepCoefficient, FunctionCoefficient,
-                             ConjCoefficient, NormCoefficient,
-                             ShiftCoefficient, StrFunctionCoefficient,
-                             Coefficient)
+                             FunctionCoefficient, ConjCoefficient,
+                             NormCoefficient, ShiftCoefficient,
+                             StrFunctionCoefficient, Coefficient)
 
 
 __all__ = ["coefficient", "CompilationOptions", "Coefficient",
@@ -38,9 +37,16 @@ class StringParsingWarning(Warning):
     pass
 
 
+coefficient_types = {
+    Coefficient: (lambda x: x, set()),
+    Cubic_Spline: (InterpolateCoefficient, set()),
+    np.ndarray: (InterCoefficient, {'order', 'tlist'}),
+}
+
+
 def coefficient(base, *, tlist=None, args={}, args_ctypes={},
-                _stepInterpolation=False, compile_opt=None,
-                function_style=None):
+                order=3, compile_opt=None,
+                function_style=None, **kwargs):
     """Coefficient for time dependent systems.
 
     The coefficients are either a function, a string or a numpy array.
@@ -103,31 +109,20 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
         tlist = np.logspace(-5,0,100)
         H = QobjEvo(np.exp(-1j*tlist), tlist=tlist)
     """
-    if isinstance(base, Coefficient):
-        return base
+    kwargs['tlist'] = tlist
+    kwargs['args'] = args
+    kwargs['args_ctypes'] = args_ctypes
+    kwargs['order'] = order
+    kwargs['compile_opt'] = compile_opt
+    kwargs['function_style'] = function_style
 
-    if isinstance(base, Cubic_Spline):
-        return InterpolateCoefficient(base)
+    for supported_type in coefficient_types:
+        if isinstance(base, supported_type):
+            maker, keys = coefficient_types[supported_type]
+            kwargs = {key: kwargs[key] for key in keys}
+            return maker(base, **kwargs)
 
-    elif isinstance(base, np.ndarray):
-        if len(base.shape) != 1:
-            raise ValueError("The array to interpolate must be a 1D array")
-        if base.shape != tlist.shape:
-            raise ValueError("tlist must be the same len "
-                             "as the array to interpolate")
-        base = base.astype(np.complex128)
-        tlist = tlist.astype(np.float64)
-        if not _stepInterpolation:
-            return InterCoefficient(base, tlist)
-        else:
-            return StepCoefficient(base, tlist)
-
-    elif isinstance(base, str):
-        if compile_opt is None:
-            compile_opt = CompilationOptions()
-        return coeff_from_str(base, args, args_ctypes, compile_opt)
-
-    elif callable(base):
+    if callable(base):
         op = FunctionCoefficient(base, args.copy(), style=function_style)
         if not isinstance(op(0), numbers.Number):
             raise TypeError("The coefficient function must return a number")
@@ -272,7 +267,6 @@ def clean_compiled_coefficient(all=False):
             shutil.rmtree(folder)
 
 
-
 def proj(x):
     if np.isfinite(x):
         return (x)
@@ -311,7 +305,7 @@ str_env = {
     "spe": scipy.special}
 
 
-def coeff_from_str(base, args, args_ctypes, compile_opt):
+def coeff_from_str(base, args, args_ctypes, compile_opt=None):
     """
     Entry point for string based coefficients
     - Test if the string is valid
@@ -320,6 +314,8 @@ def coeff_from_str(base, args, args_ctypes, compile_opt):
     - Verify if already compiled and compile if not
     """
     # First, a sanity check before thinking of compiling
+    if compile_opt is None:
+        compile_opt = CompilationOptions()
     if not compile_opt['extra_import']:
         try:
             env = {"t": 0}
@@ -345,6 +341,11 @@ def coeff_from_str(base, args, args_ctypes, compile_opt):
     keys = [key for _, key, _ in variables]
     const = [fromstr(val) for _, val, _ in constants]
     return coeff(base, keys, const, args)
+
+
+coefficient_types[str] = (
+    coeff_from_str, {'args', 'args_ctypes', 'compile_opt'}
+)
 
 
 def try_import(file_name, parsed_in):

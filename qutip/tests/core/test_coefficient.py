@@ -123,10 +123,10 @@ def coeff_generator(style, func):
         return coefficient("cos(w * t * pi)", args=args)
     if style == "steparray":
         return coefficient(base(tlist, **args), tlist=tlist,
-                           _stepInterpolation=True)
+                           order=0)
     if style == "steparraylog":
         return coefficient(base(tlistlog, **args), tlist=tlistlog,
-                           _stepInterpolation=True)
+                           order=0)
 
 
 @pytest.mark.parametrize(['base', 'kwargs', 'tol'], [
@@ -138,11 +138,11 @@ def coeff_generator(style, func):
                  1e-10, id="func_qutip_v4"),
     pytest.param(f_asarray, {'tlist': tlist},
                  1e-6,  id="array"),
-    pytest.param(f_asarray, {'tlist': tlist, '_stepInterpolation': True},
+    pytest.param(f_asarray, {'tlist': tlist, 'order': 0},
                  1e-1, id="step_array"),
     pytest.param(f_asarraylog, {'tlist': tlistlog},
                  1e-6, id="nonlinear_array"),
-    pytest.param(f_asarraylog, {'tlist': tlistlog, '_stepInterpolation': True},
+    pytest.param(f_asarraylog, {'tlist': tlistlog, 'order': 0},
                  1e-1, id="nonlinear_step_array"),
     pytest.param(qt.Cubic_Spline(0, 1, f_asarray), {},
                  1e-6, id="Cubic_Spline"),

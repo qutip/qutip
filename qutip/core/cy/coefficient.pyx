@@ -8,6 +8,7 @@ from ..interpolate import Cubic_Spline
 import inspect
 import pickle
 import scipy
+from scipy.interpolate import interp1d
 import numpy as np
 cimport numpy as cnp
 cimport cython
@@ -87,9 +88,11 @@ cdef class Coefficient:
         """
         Replace the arguments (``args``) of a coefficient.
 
-        Returns a new :obj:`Coefficient` if the coefficient has arguments, or the original coefficient if it does not.
-        Arguments to replace may be supplied either in a dictionary as the first position argument, or passed as
-        keywords, or as a combination of the two. Arguments not replaced retain their previous values.
+        Returns a new :obj:`Coefficient` if the coefficient has arguments, or
+        the original coefficient if it does not. Arguments to replace may be
+        supplied either in a dictionary as the first position argument, or
+        passed as keywords, or as a combination of the two. Arguments not
+        replaced retain their previous values.
 
         Parameters
         ----------
@@ -346,9 +349,11 @@ def coeff(t, args):
         """
         Replace the arguments (``args``) of a coefficient.
 
-        Returns a new :obj:`Coefficient` if the coefficient has arguments, or the original coefficient if it does not.
-        Arguments to replace may be supplied either in a dictionary as the first position argument, or passed as
-        keywords, or as a combination of the two. Arguments not replaced retain their previous values.
+        Returns a new :obj:`Coefficient` if the coefficient has arguments, or
+        the original coefficient if it does not. Arguments to replace may be
+        supplied either in a dictionary as the first position argument, or
+        passed as keywords, or as a combination of the two. Arguments not
+        replaced retain their previous values.
 
         Parameters
         ----------
@@ -403,7 +408,8 @@ cdef class InterpolateCoefficient(Coefficient):
 
 cdef class InterCoefficient(Coefficient):
     """
-    A :obj:`Coefficient` built from a cubic spline interpolation of a numpy array.
+    A :obj:`Coefficient` built from a cubic spline interpolation of a numpy
+    array.
 
     Parameters
     ----------
@@ -411,113 +417,131 @@ cdef class InterCoefficient(Coefficient):
         The array of coefficient values to interpolate.
 
     tlist : np.ndarray
-        An array of times corresponding to each coefficient value. The times must be
-        increasing, but do not need to be uniformly spaced.
+        An array of times corresponding to each coefficient value. The times
+        must be increasing, but do not need to be uniformly spaced.
     """
-    cdef int n_t, constant
+    cdef int order
     cdef double dt
     cdef double[::1] tlist
-    cdef complex[::1] coeff_arr, second_derr
-    cdef object tlist_np, coeff_np, second_np
+    cdef complex[:, :] poly
+    cdef object np_arrays
 
-    def __init__(self, coeff_arr, tlist, _second=None, _constant=None):
-        self.tlist_np = tlist
-        self.tlist = tlist
-        self.coeff_np = coeff_arr
-        self.coeff_arr = coeff_arr
-        if _second is None:
-            self.second_np, self.constant = _prep_cubic_spline(coeff_arr,
-                                                                tlist)
-        else:
-            self.second_np = _second
-            self.constant = _constant
-        self.second_derr = self.second_np
-        self.dt = tlist[1] - tlist[0]
+    def __init__(self, coeff_arr, tlist, int order):
+        if coeff_arr.ndim != 1:
+            raise ValueError("The array to interpolate must be a 1D array")
+        if coeff_arr.shape != tlist.shape:
+            raise ValueError("tlist must be the same len "
+                             "as the array to interpolate")
+        if order < 0:
+             raise ValueError("order must be a positive integer")
 
-    @cython.initializedcheck(False)
-    cdef complex _call(self, double t) except *:
-        cdef complex coeff
-        if self.constant:
-            coeff = _spline_complex_cte_second(t,
-                                               self.tlist,
-                                               self.coeff_arr,
-                                               self.second_derr)
+        tlist = np.array(tlist, dtype=np.float64)
+        coeff_arr = coeff_arr.astype(np.complex128)
+        self.order = order
+
+        if order == 0:
+            self.np_arrays = (tlist, coeff_arr.reshape((1, -1)))
+        elif order == 1:
+            self.np_arrays = (
+                tlist,
+                np.hstack([
+                    np.diff(coeff_arr, append=-1) / np.diff(tlist, append=-1),
+                    coeff_arr
+                ]).T)
+        elif order >= 2:
+            # Use scipy to compute the spline and transform it to polynomes
+            # as used in scipy's PPoly which is easier for us to use.
+            spline = interp1d(tlist, coeff_arr, kind=order)._spline
+            ts = np.unique(spline.t)
+            fact = [1,1,2,6]
+            poly = np.hstack([spline(ts, i) / fact[i]
+                              for i in range(3,-1,-1)]).T
+            self.np_arrays = (ts, poly)
+
+        self.tlist = self.np_arrays[0]
+        self.poly = self.np_arrays[1]
+        diff = np.diff(self.np_arrays[0])
+        if np.allclose(diff[0], diff):
+            self.dt = diff[0]
         else:
-            coeff = _spline_complex_t_second(t,
-                                             self.tlist,
-                                             self.coeff_arr,
-                                             self.second_derr)
-        return coeff
+            self.dt = 0
+
+    @cython.wraparound(False)
+    #@cython.boundscheck(False)
+    #@cython.cdivision(True)
+    cdef size_t _binary_search(self, double x):
+        # Binary search for the interval
+        # return the indice of the of the biggest element where t <= x
+        cdef size_t low = 0
+        cdef size_t high = self.tlist.shape[0]
+        cdef size_t middle
+        cdef size_t count = 0
+        while low+1 != high and count < 30:
+            middle = (low + high)//2
+            if x < self.tlist[middle]:
+                high = middle
+            else:
+                low = middle
+            count += 1
+        return low
+
+    #@cython.initializedcheck(False)
+    cdef double complex _call(self, double t) except *:
+        cdef size_t idx, i
+        cdef double factor
+        cdef double complex out
+        cdef double complex[:] slice
+        if t <= self.tlist[0]:
+            return self.poly[-1, 0]
+        elif t >= self.tlist[-1]:
+            return self.poly[-1, -1]
+        if self.dt:
+            idx = <size_t>((t - self.tlist[0]) / self.dt)
+        else:
+            idx = self._binary_search(t)
+        if self.order == 0:
+            out = self.poly[0, idx]
+        else:
+            factor = t - self.tlist[idx]
+            slice = self.poly[:, idx]
+            out = 0.
+            for i in range(self.order+1):
+                out *= factor
+                out += slice[i]
+        return out
 
     def __reduce__(self):
-        return (InterCoefficient,
-                (self.coeff_np, self.tlist_np, self.second_np, self.constant))
+        return (InterCoefficient.from_poly,
+                (self.dt, self.order, self.np_arrays))
+
+    @classmethod
+    def from_poly(cls, dt, order, np_arrays):
+        cdef InterCoefficient out = cls.__new__(cls)
+        out.dt = dt
+        out.order = order
+        out.np_arrays = np_arrays
+        out.tlist = out.np_arrays[0]
+        out.poly = out.np_arrays[1]
+        return out
 
     cpdef Coefficient copy(self):
         """Return a copy of the :obj:`Coefficient`."""
-        return InterCoefficient(self.coeff_np, self.tlist_np,
-                                self.second_np, self.constant)
+        return InterCoefficient.from_poly(
+            self.dt, self.order, self.np_arrays
+        )
 
 
 cdef Coefficient add_inter(InterCoefficient left, InterCoefficient right):
-    if np.array_equal(left.tlist_np, right.tlist_np):
-        return InterCoefficient(left.coeff_np + right.coeff_np,
-                                left.tlist_np,
-                                left.second_np + right.second_np,
-                                left.constant
-                               )
+    if (
+        np.array_equal(left.np_arrays[0], right.np_arrays[0])
+        and (left.order == right.order)
+    ):
+        return InterCoefficient.from_poly(
+            left.dt, left.order,
+            (left.np_arrays[0], left.np_arrays[1] + right.np_arrays[1])
+        )
     else:
         return SumCoefficient(left.copy(), right.copy())
-
-
-cdef class StepCoefficient(Coefficient):
-    """
-    A step function :obj:`Coefficient` whose values are specified in a numpy array.
-
-    At each point in time, the value of the coefficient is the most recent previous value given in the numpy array.
-
-    Parameters
-    ----------
-    coeff_arr : np.ndarray
-        The array of coefficient values to interpolate.
-
-    tlist : np.ndarray
-        An array of times corresponding to each coefficient value. The times must be
-        increasing, but do not need to be uniformly spaced.
-    """
-    cdef int n_t, constant
-    cdef double dt
-    cdef double[::1] tlist
-    cdef complex[::1] coeff_arr
-    cdef object tlist_np, coeff_np
-
-    def __init__(self, coeff_arr, tlist, _constant=None):
-        self.tlist_np = tlist
-        self.tlist = self.tlist_np
-        self.coeff_np = coeff_arr
-        self.coeff_arr = self.coeff_np
-        if _constant is None:
-            self.constant = np.allclose(np.diff(tlist), tlist[1]-tlist[0])
-        else:
-            self.constant = _constant
-        self.dt = tlist[1] - tlist[0]
-        self.args = {}
-
-    @cython.initializedcheck(False)
-    cdef complex _call(self, double t) except *:
-        cdef complex coeff
-        if self.constant:
-            coeff = _step_complex_cte(t, self.tlist, self.coeff_arr)
-        else:
-            coeff = _step_complex_t(t, self.tlist, self.coeff_arr)
-        return coeff
-
-    def __reduce__(self):
-        return (StepCoefficient, (self.coeff_np, self.tlist_np, self.constant))
-
-    cpdef Coefficient copy(self):
-        """Return a copy of the :obj:`Coefficient`."""
-        return StepCoefficient(self.coeff_np, self.tlist_np, self.constant)
 
 
 @cython.auto_pickle(True)
@@ -525,7 +549,8 @@ cdef class SumCoefficient(Coefficient):
     """
     A :obj:`Coefficient` built from the sum of two other coefficients.
 
-    A :obj:`SumCoefficient` is returned as the result of the addition of two coefficients, e.g. ::
+    A :obj:`SumCoefficient` is returned as the result of the addition of two
+    coefficients, e.g. ::
 
         coefficient("t * t") + coefficient("t")  # SumCoefficient
     """
@@ -547,9 +572,11 @@ cdef class SumCoefficient(Coefficient):
         """
         Replace the arguments (``args``) of a coefficient.
 
-        Returns a new :obj:`Coefficient` if the coefficient has arguments, or the original coefficient if it does not.
-        Arguments to replace may be supplied either in a dictionary as the first position argument, or passed as
-        keywords, or as a combination of the two. Arguments not replaced retain their previous values.
+        Returns a new :obj:`Coefficient` if the coefficient has arguments, or
+        the original coefficient if it does not. Arguments to replace may be
+        supplied either in a dictionary as the first position argument, or
+        passed as keywords, or as a combination of the two. Arguments not
+        replaced retain their previous values.
 
         Parameters
         ----------
@@ -570,7 +597,8 @@ cdef class MulCoefficient(Coefficient):
     """
     A :obj:`Coefficient` built from the product of two other coefficients.
 
-    A :obj:`MulCoefficient` is returned as the result of the multiplication of two coefficients, e.g. ::
+    A :obj:`MulCoefficient` is returned as the result of the multiplication of
+    two coefficients, e.g. ::
 
         coefficient("w * t", args={'w': 1}) * coefficient("t")  # MulCoefficient
     """
@@ -592,9 +620,11 @@ cdef class MulCoefficient(Coefficient):
         """
         Replace the arguments (``args``) of a coefficient.
 
-        Returns a new :obj:`Coefficient` if the coefficient has arguments, or the original coefficient if it does not.
-        Arguments to replace may be supplied either in a dictionary as the first position argument, or passed as
-        keywords, or as a combination of the two. Arguments not replaced retain their previous values.
+        Returns a new :obj:`Coefficient` if the coefficient has arguments, or
+        the original coefficient if it does not. Arguments to replace may be
+        supplied either in a dictionary as the first position argument, or
+        passed as keywords, or as a combination of the two. Arguments not
+        replaced retain their previous values.
 
         Parameters
         ----------
@@ -615,7 +645,8 @@ cdef class ConjCoefficient(Coefficient):
     """
     The conjugate of a :obj:`Coefficient`.
 
-    A :obj:`ConjCoefficient` is returned by ``Coefficient.conj()`` and ``qutip.coefficent.conj(Coefficient)``.
+    A :obj:`ConjCoefficient` is returned by ``Coefficient.conj()`` and
+    ``qutip.coefficent.conj(Coefficient)``.
     """
     cdef Coefficient base
 
@@ -633,9 +664,11 @@ cdef class ConjCoefficient(Coefficient):
         """
         Replace the arguments (``args``) of a coefficient.
 
-        Returns a new :obj:`Coefficient` if the coefficient has arguments, or the original coefficient if it does not.
-        Arguments to replace may be supplied either in a dictionary as the first position argument, or passed as
-        keywords, or as a combination of the two. Arguments not replaced retain their previous values.
+        Returns a new :obj:`Coefficient` if the coefficient has arguments, or
+        the original coefficient if it does not. Arguments to replace may be
+        supplied either in a dictionary as the first position argument, or
+        passed as keywords, or as a combination of the two. Arguments not
+        replaced retain their previous values.
 
         Parameters
         ----------
@@ -653,9 +686,11 @@ cdef class ConjCoefficient(Coefficient):
 @cython.auto_pickle(True)
 cdef class NormCoefficient(Coefficient):
     """
-    The L2 :func:`norm` of a :obj:`Coefficient`. A shortcut for ``conj(coeff) * coeff``.
+    The L2 :func:`norm` of a :obj:`Coefficient`. A shortcut for
+    ``conj(coeff) * coeff``.
 
-    :obj:`NormCoefficient` is returned by ``qutip.coefficent.norm(Coefficient)``.
+    :obj:`NormCoefficient` is returned by
+    ``qutip.coefficent.norm(Coefficient)``.
     """
     cdef Coefficient base
 
@@ -666,9 +701,11 @@ cdef class NormCoefficient(Coefficient):
         """
         Replace the arguments (``args``) of a coefficient.
 
-        Returns a new :obj:`Coefficient` if the coefficient has arguments, or the original coefficient if it does not.
-        Arguments to replace may be supplied either in a dictionary as the first position argument, or passed as
-        keywords, or as a combination of the two. Arguments not replaced retain their previous values.
+        Returns a new :obj:`Coefficient` if the coefficient has arguments, or
+        the original coefficient if it does not. Arguments to replace may be
+        supplied either in a dictionary as the first position argument, or
+        passed as keywords, or as a combination of the two. Arguments not
+        replaced retain their previous values.
 
         Parameters
         ----------
@@ -697,7 +734,8 @@ cdef class ShiftCoefficient(Coefficient):
 
     Used internally within qutip when calculating correlations.
 
-    :obj:ShiftCoefficient is returned by ``qutip.coefficent.shift(Coefficient)``.
+    :obj:ShiftCoefficient is returned by
+    ``qutip.coefficent.shift(Coefficient)``.
     """
     cdef Coefficient base
     cdef double _t0
@@ -710,9 +748,11 @@ cdef class ShiftCoefficient(Coefficient):
         """
         Replace the arguments (``args``) of a coefficient.
 
-        Returns a new :obj:`Coefficient` if the coefficient has arguments, or the original coefficient if it does not.
-        Arguments to replace may be supplied either in a dictionary as the first position argument, or passed as
-        keywords, or as a combination of the two. Arguments not replaced retain their previous values.
+        Returns a new :obj:`Coefficient` if the coefficient has arguments, or
+        the original coefficient if it does not. Arguments to replace may be
+        supplied either in a dictionary as the first position argument, or
+        passed as keywords, or as a combination of the two. Arguments not
+        replaced retain their previous values.
 
         Parameters
         ----------
