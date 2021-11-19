@@ -7,7 +7,7 @@ from qutip.core.data import CSR, Dense
 
 class TestSplitColumns(UnaryOpMixin):
     def op_numpy(self, matrix):
-       return [column[:, np.newaxis] for column in matrix.T]
+        return [column[:, np.newaxis] for column in matrix.T]
 
     specialisations = [
         pytest.param(data.split_columns_csr, CSR, list),
@@ -57,7 +57,8 @@ class TestColumnUnstack(UnaryOpMixin):
         test = op(matrix, rows)
         assert isinstance(test, out_type)
         assert test.shape == expected.shape
-        np.testing.assert_allclose(test.to_array(), expected, atol=self.tol)
+        np.testing.assert_allclose(test.to_array(), expected, atol=self.atol,
+                                   rtol=self.rtol)
 
     def test_incorrect_shape_raises(self, op, data_m):
         with pytest.raises(ValueError):
@@ -107,10 +108,11 @@ class TestReshape(UnaryOpMixin):
         test = op(matrix, rows, columns)
         assert isinstance(test, out_type)
         assert test.shape == expected.shape
-        np.testing.assert_allclose(test.to_array(), expected, atol=self.tol)
+        np.testing.assert_allclose(test.to_array(), expected, atol=self.atol,
+                                   rtol=self.rtol)
 
     @pytest.mark.parametrize('rows, columns', [(-2, -50), (-50, -2), (3, 10)],
-                            ids=["negative1","negative2","invalid"])
+                             ids=["negative1", "negative2", "invalid"])
     def test_incorrect_rows_raises(self, op, data_m, out_type, rows, columns):
         with pytest.raises(ValueError):
             op(data_m(), rows, columns)
