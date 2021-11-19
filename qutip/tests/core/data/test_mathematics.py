@@ -416,7 +416,7 @@ class UnaryOpMixin(_GenericOpMixin):
                                            rtol=self.rtol)
         else:
             np.testing.assert_allclose(test, expected, atol=self.atol,
-                                              rtol=self.rtol)
+                                       rtol=self.rtol)
 
     def test_incorrect_shape_raises(self, op, data_m):
         """
@@ -454,7 +454,7 @@ class UnaryScalarOpMixin(_GenericOpMixin):
                                        rtol=self.rtol)
         else:
             np.testing.assert_allclose(test, expected, atol=self.atol,
-                                              rtol=self.rtol)
+                                       rtol=self.rtol)
 
 
 class BinaryOpMixin(_GenericOpMixin):
@@ -478,7 +478,7 @@ class BinaryOpMixin(_GenericOpMixin):
                                        rtol=self.rtol)
         else:
             np.testing.assert_allclose(test, expected, atol=self.atol,
-                                              rtol=self.rtol)
+                                       rtol=self.rtol)
 
     def test_incorrect_shape_raises(self, op, data_l, data_r):
         """
@@ -514,7 +514,7 @@ class TernaryOpMixin(_GenericOpMixin):
                                        rtol=self.rtol)
         else:
             np.testing.assert_allclose(test, expected, atol=self.atol,
-                                              rtol=self.rtol)
+                                       rtol=self.rtol)
 
     def test_incorrect_shape_raises(self, op, data_l, data_m, data_r):
         """
@@ -563,7 +563,7 @@ class TestAdd(BinaryOpMixin):
                                        rtol=self.rtol)
         else:
             np.testing.assert_allclose(test, expected, atol=self.atol,
-                                              rtol=self.rtol)
+                                       rtol=self.rtol)
 
 
 class TestAdjoint(UnaryOpMixin):
@@ -654,7 +654,7 @@ class TestInner(BinaryOpMixin):
                                        rtol=self.rtol)
         else:
             np.testing.assert_allclose(test, expected, atol=self.atol,
-                                              rtol=self.rtol)
+                                       rtol=self.rtol)
 
 
 class TestInnerOp(TernaryOpMixin):
@@ -723,7 +723,7 @@ class TestInnerOp(TernaryOpMixin):
                                        rtol=self.rtol)
         else:
             np.testing.assert_allclose(test, expected, atol=self.atol,
-                                              rtol=self.rtol)
+                                       rtol=self.rtol)
 
 
 class TestKron(BinaryOpMixin):
