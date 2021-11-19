@@ -406,14 +406,12 @@ class UnaryOpMixin(_GenericOpMixin):
         if issubclass(out_type, Data):
             assert test.shape == expected.shape
             np.testing.assert_allclose(test.to_array(), expected,
-                                       atol=self.atol,
-                                       rtol=self.rtol)
+                                       atol=self.atol, rtol=self.rtol)
         elif out_type is list:
             for test_, expected_ in zip(test, expected):
                 assert test_.shape == expected_.shape
-                np.testing.assert_allclose(test_.to_array(),
-                                           expected_, atol=self.atol,
-                                           rtol=self.rtol)
+                np.testing.assert_allclose(test_.to_array(), expected_,
+                                           atol=self.atol, rtol=self.rtol)
         else:
             np.testing.assert_allclose(test, expected, atol=self.atol,
                                        rtol=self.rtol)
@@ -474,8 +472,7 @@ class BinaryOpMixin(_GenericOpMixin):
         if issubclass(out_type, Data):
             assert test.shape == expected.shape
             np.testing.assert_allclose(test.to_array(), expected,
-                                       atol=self.atol,
-                                       rtol=self.rtol)
+                                       atol=self.atol, rtol=self.rtol)
         else:
             np.testing.assert_allclose(test, expected, atol=self.atol,
                                        rtol=self.rtol)
@@ -510,8 +507,7 @@ class TernaryOpMixin(_GenericOpMixin):
         if issubclass(out_type, Data):
             assert test.shape == expected.shape
             np.testing.assert_allclose(test.to_array(), expected,
-                                       atol=self.atol,
-                                       rtol=self.rtol)
+                                       atol=self.atol, rtol=self.rtol)
         else:
             np.testing.assert_allclose(test, expected, atol=self.atol,
                                        rtol=self.rtol)
@@ -559,8 +555,7 @@ class TestAdd(BinaryOpMixin):
         if issubclass(out_type, Data):
             assert test.shape == expected.shape
             np.testing.assert_allclose(test.to_array(), expected,
-                                       atol=self.atol,
-                                       rtol=self.rtol)
+                                       atol=self.atol, rtol=self.rtol)
         else:
             np.testing.assert_allclose(test, expected, atol=self.atol,
                                        rtol=self.rtol)
@@ -650,8 +645,7 @@ class TestInner(BinaryOpMixin):
         if issubclass(out_type, Data):
             assert test.shape == expected.shape
             np.testing.assert_allclose(test.to_array(), expected,
-                                       atol=self.atol,
-                                       rtol=self.rtol)
+                                       atol=self.atol, rtol=self.rtol)
         else:
             np.testing.assert_allclose(test, expected, atol=self.atol,
                                        rtol=self.rtol)
@@ -825,8 +819,7 @@ class TestPow(UnaryOpMixin):
         test = op(matrix, n)
         assert isinstance(test, out_type)
         assert test.shape == expected.shape
-        np.testing.assert_allclose(test.to_array(), expected,
-                                   atol=self.atol,
+        np.testing.assert_allclose(test.to_array(), expected, atol=self.atol,
                                    rtol=self.rtol)
 
     # Pow actually does have bad shape, so we put that in too.
