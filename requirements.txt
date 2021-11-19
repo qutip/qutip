@@ -1,4 +1,4 @@
-cython>=0.21
-numpy>=1.12
+cython>=0.29.20
+numpy>=1.16.6
 scipy>=1.0
 packaging
