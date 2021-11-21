@@ -205,7 +205,7 @@ def process_fidelity(oper, target=None):
         if oper_choi.dims != target_choi.dims:
             raise TypeError('Dimensions of oper and target do not match')
         d = np.prod(oper_choi.dims[0][0])
-        return (fidelity(oper_choi, target_choi )/d)**2
+        return (fidelity(oper_choi, target_choi)/d)**2
 
 
 def average_gate_fidelity(oper, target=None):
