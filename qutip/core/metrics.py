@@ -40,6 +40,8 @@ __all__ = ['fidelity', 'tracedist', 'bures_dist', 'bures_angle',
            'hellinger_dist', 'hilbert_dist', 'average_gate_fidelity',
            'process_fidelity', 'unitarity', 'dnorm']
 
+import warnings
+
 import numpy as np
 from scipy import linalg as la
 import scipy.sparse as sp
@@ -165,8 +167,7 @@ def process_fidelity(oper, target=None):
     Returns
     -------
     fid : float
-        Process fidelity between oper and target,
-        or between oper and identity.
+        Process fidelity between oper and target, or between oper and identity.
     Notes
     -----
     See, for example: A. Gilchrist, N.K. Langford, M.A. Nielsen,
@@ -177,6 +178,7 @@ def process_fidelity(oper, target=None):
     :func:`qutip.metrics.fidelity` which follows Nielsen & Chuang,
     "Quantum Computation and Quantum Information"
     """
+    warnings.warn("Caution: Behavior of process_fidelity changed in Qutip 5.0")
     if target is None:
         return _process_fidelity_to_id(oper)
     elif not isinstance(target, list) and target.type == 'oper':
@@ -203,7 +205,7 @@ def process_fidelity(oper, target=None):
         if oper_choi.dims != target_choi.dims:
             raise TypeError('Dimensions of oper and target do not match')
         d = np.prod(oper_choi.dims[0][0])
-        return fidelity(oper_choi / d, target_choi / d)**2
+        return (fidelity(oper_choi, target_choi )/d)**2
 
 
 def average_gate_fidelity(oper, target=None):

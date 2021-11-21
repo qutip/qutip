@@ -205,39 +205,47 @@ def test_fidelity_overlap():
         )
 
 
-def test_process_fidelity_of_identity():
+@pytest.mark.parametrize('superrep_conversion',
+                         [lambda x: x, to_super, to_choi, to_chi, to_kraus])
+def test_process_fidelity_of_identity(superrep_conversion):
     """
     Metrics: process fidelity of identity map is 1
     """
     num_qubits = 3
     oper = qeye(num_qubits*[2])
-    for superrep_conversion in [
-            lambda x:x, to_super, to_choi, to_chi, to_kraus]:
-        f = process_fidelity(superrep_conversion(oper))
-        assert_(np.isrealobj(f))
-        assert_almost_equal(f, 1)
+    f = process_fidelity(superrep_conversion(oper))
+    assert_(np.isrealobj(f))
+    assert_almost_equal(f, 1)
 
 
-def test_process_fidelity_identical_maps():
+@pytest.mark.parametrize('superrep_conversion',
+                         [to_super, to_choi, to_chi, to_kraus])
+def test_process_fidelity_identical_channels(superrep_conversion):
     """
     Metrics: process fidelity of a map to itself is 1
     """
     num_qubits = 2
     for k in range(10):
+        oper = rand_super_bcsz(2**num_qubits, dims=2*[2*[num_qubits*[2]]])
+        oper = superrep_conversion(oper)
+        f = process_fidelity(oper, oper)
+        assert_almost_equal(f, 1)
+
+
+def test_process_fidelity_identical_unitaries():
+    """
+    Metrics: process fidelity of a unitary to itself is 1
+    """
+    num_qubits = 3
+    for k in range(10):
         oper = rand_unitary(2**num_qubits, dims=2*[num_qubits*[2]])
         f = process_fidelity(oper, oper)
         assert_almost_equal(f, 1)
-        oper = rand_super_bcsz(2**num_qubits, dims=2*[2*[num_qubits*[2]]])
-        for superrep_conversion in [
-                lambda x: x, to_choi, to_chi, to_kraus]:
-            oper_converted = superrep_conversion(oper)
-            f = process_fidelity(oper_converted, oper_converted)
-            assert_almost_equal(f, 1)
 
 
 def test_process_fidelity_consistency():
     """
-    Metrics: process fidelity independent of channel representation
+    Metrics: process fidelity independent of how channels are represented
     """
     num_qubits = 2
     for k in range(10):
