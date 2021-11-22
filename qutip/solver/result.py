@@ -1,5 +1,6 @@
 """ Class for solve function results"""
 import numpy as np
+from copy import copy
 from ..core import Qobj, QobjEvo, spre, issuper, expect
 
 __all__ = ["Result", "MultiTrajResult"]
@@ -104,7 +105,7 @@ class Result:
     def _normalize(self, state):
         return state * (1/state.norm())
 
-    def add(self, t, state, last=True):
+    def add(self, t, state, last=True, copy=True):
         """
         Add a state to the results for the time t of the evolution.
         The state is expected to be a Qobj with the right dims.
@@ -115,17 +116,18 @@ class Result:
         self.times.append(t)
         # this is so we don't make a copy if normalize is
         # false and states are not stored
-        state_norm = False
         if self._normalize_outputs:
-            state_norm = self._normalize(state)
+            state = self._normalize(state)
+        elif copy:
+            state = state.copy()
 
         if self._store_states:
-            self._states.append(state_norm or state.copy())
+            self._states.append(state)
         elif self._store_final_state and last:
-            self._last_state = state_norm or state.copy()
+            self._last_state = state
 
         for i, e_call in enumerate(self._e_ops):
-            self._expects[i].append(e_call(t, state_norm or state))
+            self._expects[i].append(e_call(t, state))
 
     @property
     def states(self):
@@ -296,7 +298,7 @@ class MultiTrajResult:
         num_c_ops: int
             Number of collapses operator used in the McSolver
         """
-        self.options = options or SolverResultsOptions()
+        self.options = copy(options) or SolverResultsOptions()
         self._save_traj = self.options['keep_runs_results']
         self.trajectories = []
         self._sum_states = None
@@ -631,7 +633,7 @@ class MultiTrajResult:
 
     def __repr__(self):
         out = ""
-        out += self.run_stats['solver'] + "\n"
+        out += self.stats['solver'] + "\n"
         out += "solver : " + self.stats['method'] + "\n"
         if self._save_traj:
             out += "{} runs saved\n".format(self.num_traj)

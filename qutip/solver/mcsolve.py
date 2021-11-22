@@ -118,13 +118,11 @@ class _McTrajectorySolver(_TrajectorySolver):
         self._n_ops = parent._n_ops
         super().__init__(rhs, options=options)
 
-    def run(self, state0, tlist, *,
-            args=None, e_ops=None, options=None, seed=None):
+    def _run(self, seed, state0, tlist, e_ops):
         self.collapses = []
         self._set_generator(seed)
         self.target_norm = self.generator.random()
-        result = super().run(state0, tlist, args=args,
-                             e_ops=e_ops, options=options, seed=self.generator)
+        result = super()._run(self.generator, state0, tlist, e_ops)
         result.collapse = list(self.collapses)
         result.seed = seed
         return result
@@ -295,3 +293,26 @@ class McSolver(MultiTrajSolver):
         self.stats['solver'] = "MonteCarlo Evolution"
         self.stats['num_collapse'] = len(c_ops)
         self.stats["preparation time"] = time() - _time_start
+
+    @property
+    def options(self):
+        return self._options
+
+    @options.setter
+    def options(self, new):
+        if new is None:
+            new = self.optionsclass()
+        elif isinstance(new, dict):
+            new = self.optionsclass(**new)
+        elif not isinstance(new, self.optionsclass):
+            raise TypeError("options must be an instance of" +
+                            str(self.optionsclass))
+        new.results['normalize_output'] = False
+        self._options = new
+
+    def _argument(self, args):
+        self.rhs.arguments(args)
+        for c_op in self._c_ops:
+            c_op.arguments(args)
+        for n_op in self._n_ops:
+            n_op.arguments(args)

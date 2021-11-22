@@ -197,14 +197,17 @@ class MultiTrajSolver:
         """
         if options is not None:
             self.options = options
+        if args is not None:
+            self._argument(args)
 
         self.result = MultiTrajResult(ntraj, e_ops or [], self._c_ops,
                                       options=self.options.results,
                                       target_tol=target_tol)
 
-        self._run_args = state0, tlist
-        self._run_kwargs = {'args': args, 'e_ops': e_ops}
+        self._run_args = state0, tlist, e_ops
         self.result.stats['run time'] = 0
+        self._traj_solver = self._traj_solver_class(self, options=self.options)
+        self._traj_solver._integrator = self._traj_solver._get_integrator()
         self.add_trajectories(ntraj, timeout=timeout, seed=seed)
         return self.result
 
@@ -252,11 +255,11 @@ class MultiTrajSolver:
             'num_cpus': self.options.mcsolve['num_cpus'],
         }
         self.result._target_ntraj = ntraj + self.result.num_traj
+
         if target_tol:
             self.result._set_expect_tol(target_tol)
         map_func(
-            self._traj_solver_class(self, options=self.options)._run, seeds,
-            self._run_args, self._run_kwargs,
+            self._traj_solver._run, seeds, self._run_args,
             reduce_func=self.result.add, map_kw=map_kw,
             progress_bar=self.options["progress_bar"],
             progress_bar_kwargs=self.options["progress_kwargs"]
@@ -279,6 +282,10 @@ class MultiTrajSolver:
             raise TypeError("options must be an instance of" +
                             str(self.optionsclass))
         self._options = new
+
+    def _argument(self, args):
+        """Update the args, for the `rhs` and `c_ops` and other operators."""
+        self.rhs.arguments(args)
 
 
 class _TrajectorySolver(Solver):
@@ -401,15 +408,20 @@ class _TrajectorySolver(Solver):
             Results of the evolution. States and/or expect will be saved. You
             can control the saved data in the options.
         """
-        _time_start = time()
-        self._set_generator(seed)
         if options is not None:
             self.options = options
         if args:
             self._argument(args)
 
-        _state = self._prepare_state(state0)
         self._integrator = self._get_integrator()
+        return self._run(seed, state0, tlist, e_ops)
+
+    def _run(self, seed, state0, tlist, e_ops):
+        """ Core loop of run for the parallel map"""
+        _time_start = time()
+        self._set_generator(seed)
+
+        _state = self._prepare_state(state0)
         self._integrator.set_state(tlist[0], _state)
 
         result = Result(e_ops, self.options.results,
@@ -418,16 +430,13 @@ class _TrajectorySolver(Solver):
         for t in tlist[1:]:
             t, state = self._step(t)
             state_qobj = self._restore_state(state, copy=False)
-            result.add(t, state_qobj)
+            result.add(t, state_qobj, copy=False)
 
         result.seed = seed
         result.stats['run time'] = time() - _time_start
         result.stats.update(self.stats)
         result.solver = self.name
         return result
-
-    def _run(self, seed, state0, tlist, *, args=None, e_ops=None):
-        return self.run(state0, tlist, args=args, e_ops=e_ops, seed=seed)
 
     def _set_generator(self, seed):
         """

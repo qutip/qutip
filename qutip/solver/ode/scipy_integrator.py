@@ -67,10 +67,16 @@ class IntegratorScipyZvode(Integrator):
         self._back = t
         self._mat_state = state0.shape[1] > 1
         self._size = state0.shape[0]
-        self._ode_solver.set_initial_value(
-            _data.column_stack(state0).to_array().ravel(),
-            t
-        )
+        if self._mat_state:
+            self._ode_solver.set_initial_value(
+                _data.column_stack(state0).to_array().ravel(),
+                t
+            )
+        else:
+            self._ode_solver.set_initial_value(
+                state0.to_array().ravel(),
+                t
+            )
 
     def get_state(self, copy=True):
         if not self._is_set:
