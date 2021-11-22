@@ -347,8 +347,8 @@ class DrudeLorentzBath(BosonicBath):
 
     delta : float
         The approximation discrepancy. That is, the difference between the true
-        correlation function of the Drude bath and the correlation function
-        represented by this object is approximately ``2 delta * dirac(t)``,
+        correlation function of the Drude-Lorentz bath and the sum of the
+        ``Nk`` exponential terms is approximately ``2 * delta * dirac(t)``,
         where ``dirac(t)`` denotes the Dirac delta function.
     """
     def __init__(
