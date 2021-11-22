@@ -34,8 +34,10 @@ def test_pure_dephasing_model(renorm, bnd_cut_approx, stats, tol):
                 / (np.tanh(0.5*omega / temperature) * omega**2))
 
     # Calculate the analytical results by numerical integration
-    expected = [0.5*np.exp(quad(_integrand, 0, np.inf, args=(t,))[0])
-                for t in times]
+    expected = [
+        0.5*np.exp(quad(_integrand, 0, np.inf, args=(t,), limit=5000)[0])
+        for t in times
+    ]
 
     H_sys = qutip.Qobj(np.zeros((2, 2)))
     Q = qutip.sigmaz()
@@ -54,7 +56,7 @@ def test_pure_dephasing_model(renorm, bnd_cut_approx, stats, tol):
     np.testing.assert_allclose(test, expected, atol=tol)
 
 
-@pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
+@pytest.mark.filterwarnings("ignore:zvode.*Excess work done:UserWarning")
 def test_integration_error():
     cut_frequency = 0.05
     coupling_strength = 0.025

@@ -234,7 +234,7 @@ class DrudeLorentzPureDephasingModel:
 
         # Calculate the analytical results by numerical integration
         return [
-            0.5 * np.exp(quad(_integrand, 0, np.inf, args=(t,))[0])
+            0.5 * np.exp(quad(_integrand, 0, np.inf, args=(t,), limit=5000)[0])
             for t in tlist
         ]
 
@@ -292,7 +292,7 @@ class UnderdampedPureDephasingModel:
                     / (np.tanh(0.5*omega / T) * omega**2))
 
         return [
-            0.5 * np.exp(quad(_integrand, 0, np.inf, args=(t,), limit=200)[0])
+            0.5 * np.exp(quad(_integrand, 0, np.inf, args=(t,), limit=5000)[0])
             for t in tlist
         ]
 
@@ -572,7 +572,6 @@ class TestHEOMSolver:
             "Hamiltonian (H_sys) of type list cannot be converted to QObjEvo"
         )
 
-    @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
     @pytest.mark.parametrize(['evo', 'combine'], [
         pytest.param("qobj", True, id="qobj"),
         pytest.param("qobjevo", True, id="qobjevo"),
@@ -608,7 +607,6 @@ class TestHEOMSolver:
         np.testing.assert_allclose(test, expected, atol=atol)
         assert rho_final == ado_state.extract(0)
 
-    @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
     @pytest.mark.parametrize(['terminator'], [
         pytest.param(True, id="terminator"),
         pytest.param(False, id="noterminator"),
@@ -648,7 +646,6 @@ class TestHEOMSolver:
         np.testing.assert_allclose(test, expected, atol=atol)
         assert rho_final == ado_state.extract(0)
 
-    @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
     def test_underdamped_pure_dephasing_model_underdamped_bath(
         self, atol=1e-3
     ):
@@ -676,7 +673,6 @@ class TestHEOMSolver:
         np.testing.assert_allclose(test, expected, atol=atol)
         assert rho_final == ado_state.extract(0)
 
-    @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
     @pytest.mark.parametrize(['evo'], [
         pytest.param("qobj"),
         pytest.param("qobjevo"),
@@ -713,7 +709,6 @@ class TestHEOMSolver:
 
 
 class TestHSolverDL:
-    @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
     @pytest.mark.parametrize(['bnd_cut_approx', 'atol'], [
         pytest.param(True, 1e-4, id="bnd_cut_approx"),
         pytest.param(False,  1e-3, id="no_bnd_cut_approx"),
@@ -756,7 +751,6 @@ class TestHSolverDL:
         np.testing.assert_allclose(test, expected, atol=atol)
         assert rho_final == ado_state.extract(0)
 
-    @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
     @pytest.mark.parametrize(['bnd_cut_approx', 'tol'], [
         pytest.param(True, 1e-4, id="bnd_cut_approx"),
         pytest.param(False, 1e-3, id="renorm"),
@@ -777,8 +771,10 @@ class TestHSolverDL:
                     / (np.tanh(0.5*omega / temperature) * omega**2))
 
         # Calculate the analytical results by numerical integration
-        expected = [0.5*np.exp(quad(_integrand, 0, np.inf, args=(t,))[0])
-                    for t in times]
+        expected = [
+            0.5*np.exp(quad(_integrand, 0, np.inf, args=(t,), limit=5000)[0])
+            for t in times
+        ]
 
         H_sys = Qobj(np.zeros((2, 2)))
         Q = sigmaz()
@@ -792,7 +788,7 @@ class TestHSolverDL:
         test = expect(hsolver.run(initial_state, times).states, projector)
         np.testing.assert_allclose(test, expected, atol=tol)
 
-    @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
+    @pytest.mark.filterwarnings("ignore:zvode.*Excess work done:UserWarning")
     def test_integration_error(self):
         dlm = DrudeLorentzPureDephasingModel(
             lam=0.025, gamma=0.05, T=1/0.95, Nk=2,
