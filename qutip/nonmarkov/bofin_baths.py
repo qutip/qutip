@@ -155,6 +155,21 @@ class BosonicBath(Bath):
     coefficients and frequencies for the real and imaginary parts of
     the bath correlation function.
 
+    If the correlation functions ``C(t)`` is split into real and imaginary
+    parts::
+
+        C(t) = C_real(t) + i * C_imag(t)
+
+    then::
+
+        C_real(t) = sum(ck_real * exp(- vk_real * t))
+        C_imag(t) = sum(ck_imag * exp(- vk_imag * t))
+
+    Defines the coefficients ``ck`` and the frequencies ``vk``.
+
+    Note that the ``ck`` and ``vk`` may be complex, even through ``C_real(t)``
+    and ``C_imag(t)`` (i.e. the sum) is real.
+
     Parameters
     ----------
     Q : Qobj
@@ -664,6 +679,16 @@ class FermionicBath(Bath):
     coefficients must be specified in the same order so that ``ck_plus[i],
     vk_plus[i]`` are the plus coefficient and frequency corresponding
     to the minus mode ``ck_minus[i], vk_minus[i]``.
+
+    In the fermionic case the order in which excitations are created or
+    destroyed is important, resulting in two different correlation functions
+    labelled ``C_plus(t)`` and ``C_plus(t)``::
+
+        C_plus(t) = sum(ck_plus * exp(- vk_plus * t))
+        C_minus(t) = sum(ck_minus * exp(- vk_minus * t))
+
+    where the expansions above define the coeffiients ``ck`` and the
+    frequencies ``vk``.
 
     Parameters
     ----------
