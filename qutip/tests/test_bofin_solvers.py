@@ -792,6 +792,26 @@ class TestHSolverDL:
         test = expect(hsolver.run(initial_state, times).states, projector)
         np.testing.assert_allclose(test, expected, atol=tol)
 
+    @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
+    def test_integration_error(self):
+        dlm = DrudeLorentzPureDephasingModel(
+            lam=0.025, gamma=0.05, T=1/0.95, Nk=2,
+        )
+        ck_real, vk_real, ck_imag, vk_imag = dlm.bath_coefficients()
+
+        bath = BosonicBath(dlm.Q, ck_real, vk_real, ck_imag, vk_imag)
+        options = Options(nsteps=10)
+        hsolver = HEOMSolver(dlm.H, bath, 14, options=options)
+
+        with pytest.raises(RuntimeError) as err:
+            hsolver.run(dlm.rho(), tlist=[0, 10])
+
+        assert str(err.value) == (
+            "HEOMSolver ODE integration error. Try increasing the nsteps given"
+            " in the HEOMSolver options (which increases the allowed substeps"
+            " in each step between times given in tlist)."
+        )
+
 
 class Test_GatherHEOMRHS:
     def test_simple_gather(self):

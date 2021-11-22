@@ -478,6 +478,12 @@ class HSolverDL(HEOMSolver):
         for t_idx, t in enumerate(tlist):
             if t_idx < n_tsteps - 1:
                 r.integrate(r.t + dt[t_idx])
+                if not r.successful():
+                    raise RuntimeError(
+                        "HSolverDL ODE integration error. Try increasing"
+                        " the nsteps given in the HSolverDL options"
+                        " (which increases the allowed substeps in each"
+                        " step between times given in tlist).")
                 rho = Qobj(r.y[:sup_dim].reshape(rho0.shape), dims=rho0.dims)
                 output.states.append(rho)
 

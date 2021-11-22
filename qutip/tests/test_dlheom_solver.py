@@ -54,6 +54,31 @@ def test_pure_dephasing_model(renorm, bnd_cut_approx, stats, tol):
     np.testing.assert_allclose(test, expected, atol=tol)
 
 
+@pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
+def test_integration_error():
+    cut_frequency = 0.05
+    coupling_strength = 0.025
+    temperature = 1 / 0.95
+
+    H_sys = qutip.Qobj(np.zeros((2, 2)))
+    Q = qutip.sigmaz()
+    initial_state = 0.5 * qutip.Qobj(np.ones((2, 2)))
+    options = qutip.Options(nsteps=10)
+    hsolver = HSolverDL(
+        H_sys, Q, coupling_strength, temperature, 20, 2, cut_frequency,
+        options=options,
+    )
+
+    with pytest.raises(RuntimeError) as err:
+        hsolver.run(initial_state, [0, 10])
+
+    assert str(err.value) == (
+        "HSolverDL ODE integration error. Try increasing the nsteps given"
+        " in the HSolverDL options (which increases the allowed substeps"
+        " in each step between times given in tlist)."
+    )
+
+
 def test_set_unset_stats():
     # Arbitrary system, just checking that stats can be unset by `configure`
     args = [qutip.qeye(2), qutip.sigmaz(),

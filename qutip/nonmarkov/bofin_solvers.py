@@ -909,6 +909,13 @@ class HEOMSolver:
             self.progress_bar.update(t_idx)
             if t_idx != 0:
                 solver.integrate(t)
+                if not solver.successful():
+                    raise RuntimeError(
+                        "HEOMSolver ODE integration error. Try increasing"
+                        " the nsteps given in the HEOMSolver options"
+                        " (which increases the allowed substeps in each"
+                        " step between times given in tlist).")
+
             rho = Qobj(
                 solver.y[:n ** 2].reshape(rho_shape, order='F'),
                 dims=rho_dims,
