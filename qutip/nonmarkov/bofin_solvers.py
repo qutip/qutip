@@ -28,7 +28,7 @@ from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 from qutip.fastsparse import fast_identity, fast_csr_matrix
 from qutip.nonmarkov.bofin_baths import (
-    BathExponent, BosonicBath, DrudeLorentzBath, FermionicBath,
+    BathExponent, DrudeLorentzBath,
 )
 
 # Load MKL spsolve if avaiable
@@ -932,59 +932,6 @@ class HEOMSolver:
         return output
 
 
-class BosonicHEOMSolver(HEOMSolver):
-    """
-    A helper class for creating an :class:`HEOMSolver` for a single
-    bosonic bath.
-
-    See :class:`HEOMSolver` and :class:`BosonicBath` for more detailed
-    descriptions of the solver and bath parameters.
-
-    Parameters
-    ----------
-    H_sys : Qobj or QobjEvo or list
-        The system Hamiltonian or Liouvillian. See :class:`HEOMSolver` for
-        a complete description.
-
-    Q : Qobj
-        Operator describing the coupling between system and bath.
-        See :class:`BosonicBath` for a complete description.
-
-    ck_real, vk_real, ck_imag, vk_imag : lists
-        Lists containing coefficients of the fitted bath correlation
-        functions. See :class:`BosonicBath` for a complete description.
-
-    max_depth : int
-        The maximum depth of the heirarchy (i.e. the maximum number of bath
-        exponent "excitations" to retain). See :class:`HEOMSolver` for
-        a complete description.
-
-    combine : bool, default True
-        Whether to combine exponents with the same frequency (and coupling
-        operator). See :meth:`combine` for details.
-
-    progress_bar : None, True or :class:`BaseProgressBar`
-        Optional instance of BaseProgressBar, or a subclass thereof, for
-        showing the progress of the solver. If True, an instance of
-        :class:`TextProgressBar` is used instead.
-
-    options : :class:`qutip.solver.Options`
-        Generic solver options. If set to None the default options will be
-        used. See :class:`HEOMSolver` for a complete description.
-    """
-    def __init__(
-        self, H_sys, Q, ck_real, vk_real, ck_imag, vk_imag, max_depth,
-        combine=True, options=None, progress_bar=None,
-    ):
-        bath = BosonicBath(
-            Q, ck_real, vk_real, ck_imag, vk_imag, combine=combine,
-        )
-        super().__init__(
-            H_sys=H_sys, bath=bath, max_depth=max_depth,
-            options=options, progress_bar=progress_bar,
-        )
-
-
 class HSolverDL(HEOMSolver):
     """
     A helper class for creating an :class:`HEOMSolver` that is backwards
@@ -1109,53 +1056,6 @@ class HSolverDL(HEOMSolver):
         self.temperature = temperature
         self.N_exp = N_exp
         self.bnd_cut_approx = bnd_cut_approx
-
-
-class FermionicHEOMSolver(HEOMSolver):
-    """
-    A helper class for creating an :class:`HEOMSolver` for a single
-    fermionic bath.
-
-    See :class:`HEOMSolver` and :class:`FermionicBath` for more detailed
-    descriptions of the solver and bath parameters.
-
-    Attributes
-    ----------
-    H_sys : Qobj or QobjEvo or list
-        The system Hamiltonian or Liouvillian. See :class:`HEOMSolver` for
-        a complete description.
-
-    Q : Qobj
-        Operator describing the coupling between system and bath.
-        See :class:`FermionicBath` for a complete description.
-
-    ck_plus, vk_plus, ck_minus, vk_minus : lists
-        Lists containing coefficients of the fitted bath correlation
-        functions. See :class:`FermionicBath` for a complete description.
-
-    max_depth : int
-        The maximum depth of the heirarchy (i.e. the maximum number of bath
-        exponent "excitations" to retain). See :class:`HEOMSolver` for
-        a complete description.
-
-    options : :class:`qutip.solver.Options`
-        Generic solver options. If set to None the default options will be
-        used. See :class:`HEOMSolver` for a complete description.
-
-    progress_bar : None, True or :class:`BaseProgressBar`
-        Optional instance of BaseProgressBar, or a subclass thereof, for
-        showing the progress of the solver. If True, an instance of
-        :class:`TextProgressBar` is used instead.
-    """
-    def __init__(
-        self, H_sys, Q, ck_plus, vk_plus, ck_minus, vk_minus, max_depth,
-        options=None, progress_bar=None
-    ):
-        bath = FermionicBath(Q, ck_plus, vk_plus, ck_minus, vk_minus)
-        super().__init__(
-            H_sys, bath=bath, max_depth=max_depth, options=options,
-            progress_bar=progress_bar,
-        )
 
 
 class _GatherHEOMRHS:

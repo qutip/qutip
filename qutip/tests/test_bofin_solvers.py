@@ -26,8 +26,6 @@ from qutip.nonmarkov.bofin_solvers import (
     HierarchyADOs,
     HierarchyADOsState,
     HEOMSolver,
-    BosonicHEOMSolver,
-    FermionicHEOMSolver,
     HSolverDL,
     _GatherHEOMRHS,
 )
@@ -299,376 +297,9 @@ class UnderdampedPureDephasingModel:
         ]
 
 
-_HAMILTONIAN_EVO_KINDS = {
-    "qobj": lambda H: H,
-    "qobjevo": lambda H: QobjEvo([H]),
-    "listevo": lambda H: [H],
-}
-
-
-def hamiltonian_to_sys(H, evo, liouvillianize):
-    if liouvillianize:
-        H = liouvillian(H)
-    H = _HAMILTONIAN_EVO_KINDS[evo](H)
-    return H
-
-
-class TestHEOMSolver:
-    def test_create_bosonic(self):
-        Q = sigmaz()
-        H = sigmax()
-        exponents = [
-            BathExponent("R", None, Q=Q, ck=1.1, vk=2.1),
-            BathExponent("I", None, Q=Q, ck=1.2, vk=2.2),
-            BathExponent("RI", None, Q=Q, ck=1.3, vk=2.3, ck2=3.3),
-        ]
-        bath = Bath(exponents)
-
-        hsolver = HEOMSolver(H, bath, 2)
-        assert hsolver.ados.exponents == exponents
-        assert hsolver.ados.max_depth == 2
-
-        hsolver = HEOMSolver(H, [bath] * 3, 2)
-        assert hsolver.ados.exponents == exponents * 3
-        assert hsolver.ados.max_depth == 2
-
-    def test_create_fermionic(self):
-        Q = sigmaz()
-        H = sigmax()
-        exponents = [
-            BathExponent("+", 2, Q=Q, ck=1.1, vk=2.1, sigma_bar_k_offset=1),
-            BathExponent("-", 2, Q=Q, ck=1.2, vk=2.2, sigma_bar_k_offset=-1),
-        ]
-        bath = Bath(exponents)
-
-        hsolver = HEOMSolver(H, bath, 2)
-        assert hsolver.ados.exponents == exponents
-        assert hsolver.ados.max_depth == 2
-
-        hsolver = HEOMSolver(H, [bath] * 3, 2)
-        assert hsolver.ados.exponents == exponents * 3
-        assert hsolver.ados.max_depth == 2
-
-    def test_create_progress_bar(self):
-        Q = sigmaz()
-        H = sigmax()
-        bath = Bath([
-            BathExponent("R", None, Q=Q, ck=1.1, vk=2.1),
-        ])
-
-        hsolver = HEOMSolver(H, bath, 2)
-        assert isinstance(hsolver.progress_bar, BaseProgressBar)
-
-        hsolver = HEOMSolver(H, bath, 2, progress_bar=True)
-        assert isinstance(hsolver.progress_bar, TextProgressBar)
-
-    def test_create_bath_errors(self):
-        Q = sigmaz()
-        H = sigmax()
-        mixed_types = [
-            BathExponent("+", 2, Q=Q, ck=1.1, vk=2.1, sigma_bar_k_offset=1),
-            BathExponent("-", 2, Q=Q, ck=1.2, vk=2.2, sigma_bar_k_offset=-1),
-            BathExponent("R", 2, Q=Q, ck=1.2, vk=2.2),
-        ]
-        mixed_q_dims = [
-            BathExponent("I", 2, Q=tensor(Q, Q), ck=1.2, vk=2.2),
-            BathExponent("R", 2, Q=Q, ck=1.2, vk=2.2),
-        ]
-
-        with pytest.raises(ValueError) as err:
-            HEOMSolver(H, Bath(mixed_types), 2)
-        assert str(err.value) == (
-            "Bath exponents are currently restricted to being either all"
-            " bosonic or all fermionic, but a mixture of bath exponents was"
-            " given."
-        )
-
-        with pytest.raises(ValueError) as err:
-            HEOMSolver(H, Bath(mixed_q_dims), 2)
-        assert str(err.value) == (
-            "All bath exponents must have system coupling operators with the"
-            " same dimensions but a mixture of dimensions was given."
-        )
-
-    def test_create_h_sys_errors(self):
-        H = object()
-
-        with pytest.raises(TypeError) as err:
-            HEOMSolver(H, Bath([]), 2)
-        assert str(err.value) == (
-            "Hamiltonian (H_sys) has unsupported type: <class 'object'>"
-        )
-
-        with pytest.raises(ValueError) as err:
-            HEOMSolver([H], Bath([]), 2)
-        assert str(err.value) == (
-            "Hamiltonian (H_sys) of type list cannot be converted to QObjEvo"
-        )
-
-    @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
-    @pytest.mark.parametrize(['evo', 'combine'], [
-        pytest.param("qobj", True, id="qobj"),
-        pytest.param("qobjevo", True, id="qobjevo"),
-        pytest.param("listevo", True, id="listevo"),
-    ])
-    @pytest.mark.parametrize(['liouvillianize'], [
-        pytest.param(False, id="hamiltonian"),
-        pytest.param(True, id="liouvillian"),
-    ])
-    def test_bosonic_pure_dephasing_model(
-        self, evo, combine, liouvillianize, atol=1e-3
-    ):
-        dlm = DrudeLorentzPureDephasingModel(
-            lam=0.025, gamma=0.05, T=1/0.95, Nk=2,
-        )
-        ck_real, vk_real, ck_imag, vk_imag = dlm.bath_coefficients()
-        H_sys = hamiltonian_to_sys(dlm.H, evo, liouvillianize)
-
-        bath = BosonicBath(dlm.Q, ck_real, vk_real, ck_imag, vk_imag)
-        options = Options(nsteps=15000, store_states=True)
-        hsolver = HEOMSolver(H_sys, bath, 14, options=options)
-
-        tlist = np.linspace(0, 10, 21)
-        result = hsolver.run(dlm.rho(), tlist)
-
-        test = dlm.state_results(result.states)
-        expected = dlm.analytic_results(tlist)
-        np.testing.assert_allclose(test, expected, atol=atol)
-
-        rho_final, ado_state = hsolver.steady_state()
-        test = dlm.state_results([rho_final])
-        expected = dlm.analytic_results([100])
-        np.testing.assert_allclose(test, expected, atol=atol)
-        assert rho_final == ado_state.extract(0)
-
-    @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
-    @pytest.mark.parametrize(['terminator'], [
-        pytest.param(True, id="terminator"),
-        pytest.param(False, id="noterminator"),
-    ])
-    @pytest.mark.parametrize(['bath_cls'], [
-        pytest.param(DrudeLorentzBath, id="matsubara"),
-        pytest.param(DrudeLorentzPadeBath, id="pade"),
-    ])
-    def test_bosonic_pure_dephasing_model_drude_lorentz_baths(
-        self, terminator, bath_cls, atol=1e-3
-    ):
-        dlm = DrudeLorentzPureDephasingModel(
-            lam=0.025, gamma=0.05, T=1/0.95, Nk=2,
-        )
-        bath = bath_cls(
-            Q=dlm.Q, lam=dlm.lam, gamma=dlm.gamma, T=dlm.T, Nk=dlm.Nk,
-            terminator=terminator,
-        )
-        if terminator:
-            H_sys = liouvillian(dlm.H) + bath.terminator
-        else:
-            H_sys = dlm.H
-
-        options = Options(nsteps=15000, store_states=True)
-        hsolver = HEOMSolver(H_sys, bath, 14, options=options)
-
-        tlist = np.linspace(0, 10, 21)
-        result = hsolver.run(dlm.rho(), tlist)
-
-        test = dlm.state_results(result.states)
-        expected = dlm.analytic_results(tlist)
-        np.testing.assert_allclose(test, expected, atol=atol)
-
-        rho_final, ado_state = hsolver.steady_state()
-        test = dlm.state_results([rho_final])
-        expected = dlm.analytic_results([100])
-        np.testing.assert_allclose(test, expected, atol=atol)
-        assert rho_final == ado_state.extract(0)
-
-    @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
-    def test_underdamped_pure_dephasing_model(
-        self, atol=1e-3
-    ):
-        udm = UnderdampedPureDephasingModel(
-            lam=0.1, gamma=0.05, w0=1, T=1/0.95, Nk=2,
-        )
-        bath = UnderDampedBath(
-            Q=udm.Q, lam=udm.lam, T=udm.T, Nk=udm.Nk, gamma=udm.gamma,
-            w0=udm.w0,
-        )
-
-        options = Options(nsteps=15000, store_states=True)
-        hsolver = HEOMSolver(udm.H, bath, 14, options=options)
-
-        tlist = np.linspace(0, 10, 21)
-        result = hsolver.run(udm.rho(), tlist)
-
-        test = udm.state_results(result.states)
-        expected = udm.analytic_results(tlist)
-        np.testing.assert_allclose(test, expected, atol=atol)
-
-        rho_final, ado_state = hsolver.steady_state()
-        test = udm.state_results([rho_final])
-        expected = udm.analytic_results([5000])
-        np.testing.assert_allclose(test, expected, atol=atol)
-        assert rho_final == ado_state.extract(0)
-
-    @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
-    @pytest.mark.parametrize(['evo'], [
-        pytest.param("qobj"),
-        pytest.param("qobjevo"),
-        pytest.param("listevo"),
-    ])
-    @pytest.mark.parametrize(['liouvillianize'], [
-        pytest.param(False, id="hamiltonian"),
-        pytest.param(True, id="liouvillian"),
-    ])
-    def test_fermionic_discrete_level_model(self, evo, liouvillianize):
-        dlm = DiscreteLevelCurrentModel(
-            gamma=0.01, W=1, T=0.025851991, lmax=10,
-        )
-        H_sys = hamiltonian_to_sys(dlm.H, evo, liouvillianize)
-        ck_plus, vk_plus, ck_minus, vk_minus = dlm.bath_coefficients()
-
-        options = Options(
-            nsteps=15_000, store_states=True, rtol=1e-7, atol=1e-7,
-        )
-        bath = FermionicBath(dlm.Q, ck_plus, vk_plus, ck_minus, vk_minus)
-        # for a single impurity we converge with max_depth = 2
-        hsolver = HEOMSolver(H_sys, bath, 2, options=options)
-
-        tlist = [0, 600]
-        result = hsolver.run(dlm.rho(), tlist, ado_return=True)
-        current = dlm.state_current(result.ado_states[-1])
-        analytic_current = dlm.analytic_current()
-        np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
-
-        rho_final, ado_state = hsolver.steady_state()
-        current = dlm.state_current(ado_state)
-        analytic_current = dlm.analytic_current()
-        np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
-
-
-class TestBosonicHEOMSolver:
-    @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
-    @pytest.mark.parametrize(['evo', 'combine'], [
-        pytest.param("qobj", True, id="qobj-combined"),
-        pytest.param("qobjevo", True, id="qobjevo-combined"),
-        pytest.param("listevo", True, id="listevo-combined"),
-        pytest.param("qobj", False, id="qobj-uncombined"),
-    ])
-    @pytest.mark.parametrize(['liouvillianize'], [
-        pytest.param(False, id="hamiltonian"),
-        pytest.param(True, id="liouvillian"),
-    ])
-    def test_pure_dephasing_model(
-        self, evo, combine, liouvillianize, atol=1e-3
-    ):
-        dlm = DrudeLorentzPureDephasingModel(
-            lam=0.025, gamma=0.05, T=1/0.95, Nk=2,
-        )
-        ck_real, vk_real, ck_imag, vk_imag = dlm.bath_coefficients()
-        H_sys = hamiltonian_to_sys(dlm.H, evo, liouvillianize)
-
-        options = Options(nsteps=15000, store_states=True)
-        hsolver = BosonicHEOMSolver(
-            H_sys, dlm.Q, ck_real, vk_real, ck_imag, vk_imag,
-            14, combine=combine, options=options,
-        )
-
-        tlist = np.linspace(0, 10, 21)
-        result = hsolver.run(dlm.rho(), tlist)
-
-        test = dlm.state_results(result.states)
-        expected = dlm.analytic_results(tlist)
-        np.testing.assert_allclose(test, expected, atol=atol)
-
-        rho_final, ado_state = hsolver.steady_state()
-        test = dlm.state_results([rho_final])
-        expected = dlm.analytic_results([100])
-        np.testing.assert_allclose(test, expected, atol=atol)
-        assert rho_final == ado_state.extract(0)
-
-
-class TestHSolverDL:
-    @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
-    @pytest.mark.parametrize(['bnd_cut_approx', 'atol'], [
-        pytest.param(True, 1e-4, id="bnd_cut_approx"),
-        pytest.param(False,  1e-3, id="no_bnd_cut_approx"),
-    ])
-    @pytest.mark.parametrize(['evo', 'combine'], [
-        pytest.param("qobj", True, id="qobj-combined"),
-        pytest.param("qobjevo", True, id="qobjevo-combined"),
-        pytest.param("listevo", True, id="listevo-combined"),
-        pytest.param("qobj", False, id="qobj-uncombined"),
-    ])
-    @pytest.mark.parametrize(['liouvillianize'], [
-        pytest.param(False, id="hamiltonian"),
-        pytest.param(True, id="liouvillian"),
-    ])
-    def test_pure_dephasing_model(
-        self, bnd_cut_approx, atol, evo, combine, liouvillianize,
-    ):
-        dlm = DrudeLorentzPureDephasingModel(
-            lam=0.025, gamma=0.05, T=1/0.95, Nk=2,
-        )
-        ck_real, vk_real, ck_imag, vk_imag = dlm.bath_coefficients()
-        H_sys = hamiltonian_to_sys(dlm.H, evo, liouvillianize)
-
-        options = Options(nsteps=15_000, store_states=True)
-        hsolver = HSolverDL(H_sys, dlm.Q, dlm.lam, dlm.T,
-                            14, 2, dlm.gamma,
-                            bnd_cut_approx=bnd_cut_approx,
-                            options=options, combine=combine)
-
-        tlist = np.linspace(0, 10, 21)
-        result = hsolver.run(dlm.rho(), tlist)
-
-        test = dlm.state_results(result.states)
-        expected = dlm.analytic_results(tlist)
-        np.testing.assert_allclose(test, expected, atol=atol)
-
-        rho_final, ado_state = hsolver.steady_state()
-        test = dlm.state_results([rho_final])
-        expected = dlm.analytic_results([100])
-        np.testing.assert_allclose(test, expected, atol=atol)
-        assert rho_final == ado_state.extract(0)
-
-    @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
-    @pytest.mark.parametrize(['bnd_cut_approx', 'tol'], [
-        pytest.param(True, 1e-4, id="bnd_cut_approx"),
-        pytest.param(False, 1e-3, id="renorm"),
-    ])
-    def test_hsolverdl_backwards_compatibility(self, bnd_cut_approx, tol):
-        # This is an exact copy of the pre-4.7 QuTiP HSolverDL test and
-        # is repeated here to ensure the new HSolverDL remains compatibile
-        # with the old one until it is removed.
-        cut_frequency = 0.05
-        coupling_strength = 0.025
-        lam_c = coupling_strength / np.pi
-        temperature = 1 / 0.95
-        times = np.linspace(0, 10, 21)
-
-        def _integrand(omega, t):
-            J = 2*lam_c * omega * cut_frequency / (omega**2 + cut_frequency**2)
-            return (-4 * J * (1 - np.cos(omega*t))
-                    / (np.tanh(0.5*omega / temperature) * omega**2))
-
-        # Calculate the analytical results by numerical integration
-        expected = [0.5*np.exp(quad(_integrand, 0, np.inf, args=(t,))[0])
-                    for t in times]
-
-        H_sys = Qobj(np.zeros((2, 2)))
-        Q = sigmaz()
-        initial_state = 0.5*Qobj(np.ones((2, 2)))
-        projector = basis(2, 0) * basis(2, 1).dag()
-        options = Options(nsteps=15_000, store_states=True)
-        hsolver = HSolverDL(H_sys, Q, coupling_strength, temperature,
-                            20, 2, cut_frequency,
-                            bnd_cut_approx=bnd_cut_approx,
-                            options=options)
-        test = expect(hsolver.run(initial_state, times).states, projector)
-        np.testing.assert_allclose(test, expected, atol=tol)
-
-
 class DiscreteLevelCurrentModel:
-    """ Analytic discrete level current model for testing the HEOM solver.
+    """ Analytic discrete level current model for testing the HEOM solver
+        with a fermionic bath.
     """
     def __init__(self, gamma, W, T, lmax):
         self.gamma = gamma
@@ -835,7 +466,216 @@ class DiscreteLevelCurrentModel:
         return ck_plus, vk_plus, ck_minus, vk_minus
 
 
-class TestFermionicHEOMSolver:
+_HAMILTONIAN_EVO_KINDS = {
+    "qobj": lambda H: H,
+    "qobjevo": lambda H: QobjEvo([H]),
+    "listevo": lambda H: [H],
+}
+
+
+def hamiltonian_to_sys(H, evo, liouvillianize):
+    if liouvillianize:
+        H = liouvillian(H)
+    H = _HAMILTONIAN_EVO_KINDS[evo](H)
+    return H
+
+
+class TestHEOMSolver:
+    def test_create_bosonic(self):
+        Q = sigmaz()
+        H = sigmax()
+        exponents = [
+            BathExponent("R", None, Q=Q, ck=1.1, vk=2.1),
+            BathExponent("I", None, Q=Q, ck=1.2, vk=2.2),
+            BathExponent("RI", None, Q=Q, ck=1.3, vk=2.3, ck2=3.3),
+        ]
+        bath = Bath(exponents)
+
+        hsolver = HEOMSolver(H, bath, 2)
+        assert hsolver.ados.exponents == exponents
+        assert hsolver.ados.max_depth == 2
+
+        hsolver = HEOMSolver(H, [bath] * 3, 2)
+        assert hsolver.ados.exponents == exponents * 3
+        assert hsolver.ados.max_depth == 2
+
+    def test_create_fermionic(self):
+        Q = sigmaz()
+        H = sigmax()
+        exponents = [
+            BathExponent("+", 2, Q=Q, ck=1.1, vk=2.1, sigma_bar_k_offset=1),
+            BathExponent("-", 2, Q=Q, ck=1.2, vk=2.2, sigma_bar_k_offset=-1),
+        ]
+        bath = Bath(exponents)
+
+        hsolver = HEOMSolver(H, bath, 2)
+        assert hsolver.ados.exponents == exponents
+        assert hsolver.ados.max_depth == 2
+
+        hsolver = HEOMSolver(H, [bath] * 3, 2)
+        assert hsolver.ados.exponents == exponents * 3
+        assert hsolver.ados.max_depth == 2
+
+    def test_create_progress_bar(self):
+        Q = sigmaz()
+        H = sigmax()
+        bath = Bath([
+            BathExponent("R", None, Q=Q, ck=1.1, vk=2.1),
+        ])
+
+        hsolver = HEOMSolver(H, bath, 2)
+        assert isinstance(hsolver.progress_bar, BaseProgressBar)
+
+        hsolver = HEOMSolver(H, bath, 2, progress_bar=True)
+        assert isinstance(hsolver.progress_bar, TextProgressBar)
+
+    def test_create_bath_errors(self):
+        Q = sigmaz()
+        H = sigmax()
+        mixed_types = [
+            BathExponent("+", 2, Q=Q, ck=1.1, vk=2.1, sigma_bar_k_offset=1),
+            BathExponent("-", 2, Q=Q, ck=1.2, vk=2.2, sigma_bar_k_offset=-1),
+            BathExponent("R", 2, Q=Q, ck=1.2, vk=2.2),
+        ]
+        mixed_q_dims = [
+            BathExponent("I", 2, Q=tensor(Q, Q), ck=1.2, vk=2.2),
+            BathExponent("R", 2, Q=Q, ck=1.2, vk=2.2),
+        ]
+
+        with pytest.raises(ValueError) as err:
+            HEOMSolver(H, Bath(mixed_types), 2)
+        assert str(err.value) == (
+            "Bath exponents are currently restricted to being either all"
+            " bosonic or all fermionic, but a mixture of bath exponents was"
+            " given."
+        )
+
+        with pytest.raises(ValueError) as err:
+            HEOMSolver(H, Bath(mixed_q_dims), 2)
+        assert str(err.value) == (
+            "All bath exponents must have system coupling operators with the"
+            " same dimensions but a mixture of dimensions was given."
+        )
+
+    def test_create_h_sys_errors(self):
+        H = object()
+
+        with pytest.raises(TypeError) as err:
+            HEOMSolver(H, Bath([]), 2)
+        assert str(err.value) == (
+            "Hamiltonian (H_sys) has unsupported type: <class 'object'>"
+        )
+
+        with pytest.raises(ValueError) as err:
+            HEOMSolver([H], Bath([]), 2)
+        assert str(err.value) == (
+            "Hamiltonian (H_sys) of type list cannot be converted to QObjEvo"
+        )
+
+    @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
+    @pytest.mark.parametrize(['evo', 'combine'], [
+        pytest.param("qobj", True, id="qobj"),
+        pytest.param("qobjevo", True, id="qobjevo"),
+        pytest.param("listevo", True, id="listevo"),
+    ])
+    @pytest.mark.parametrize(['liouvillianize'], [
+        pytest.param(False, id="hamiltonian"),
+        pytest.param(True, id="liouvillian"),
+    ])
+    def test_pure_dephasing_model_bosonic_bath(
+        self, evo, combine, liouvillianize, atol=1e-3
+    ):
+        dlm = DrudeLorentzPureDephasingModel(
+            lam=0.025, gamma=0.05, T=1/0.95, Nk=2,
+        )
+        ck_real, vk_real, ck_imag, vk_imag = dlm.bath_coefficients()
+        H_sys = hamiltonian_to_sys(dlm.H, evo, liouvillianize)
+
+        bath = BosonicBath(dlm.Q, ck_real, vk_real, ck_imag, vk_imag)
+        options = Options(nsteps=15000, store_states=True)
+        hsolver = HEOMSolver(H_sys, bath, 14, options=options)
+
+        tlist = np.linspace(0, 10, 21)
+        result = hsolver.run(dlm.rho(), tlist)
+
+        test = dlm.state_results(result.states)
+        expected = dlm.analytic_results(tlist)
+        np.testing.assert_allclose(test, expected, atol=atol)
+
+        rho_final, ado_state = hsolver.steady_state()
+        test = dlm.state_results([rho_final])
+        expected = dlm.analytic_results([100])
+        np.testing.assert_allclose(test, expected, atol=atol)
+        assert rho_final == ado_state.extract(0)
+
+    @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
+    @pytest.mark.parametrize(['terminator'], [
+        pytest.param(True, id="terminator"),
+        pytest.param(False, id="noterminator"),
+    ])
+    @pytest.mark.parametrize(['bath_cls'], [
+        pytest.param(DrudeLorentzBath, id="matsubara"),
+        pytest.param(DrudeLorentzPadeBath, id="pade"),
+    ])
+    def test_pure_dephasing_model_drude_lorentz_baths(
+        self, terminator, bath_cls, atol=1e-3
+    ):
+        dlm = DrudeLorentzPureDephasingModel(
+            lam=0.025, gamma=0.05, T=1/0.95, Nk=2,
+        )
+        bath = bath_cls(
+            Q=dlm.Q, lam=dlm.lam, gamma=dlm.gamma, T=dlm.T, Nk=dlm.Nk,
+            terminator=terminator,
+        )
+        if terminator:
+            H_sys = liouvillian(dlm.H) + bath.terminator
+        else:
+            H_sys = dlm.H
+
+        options = Options(nsteps=15000, store_states=True)
+        hsolver = HEOMSolver(H_sys, bath, 14, options=options)
+
+        tlist = np.linspace(0, 10, 21)
+        result = hsolver.run(dlm.rho(), tlist)
+
+        test = dlm.state_results(result.states)
+        expected = dlm.analytic_results(tlist)
+        np.testing.assert_allclose(test, expected, atol=atol)
+
+        rho_final, ado_state = hsolver.steady_state()
+        test = dlm.state_results([rho_final])
+        expected = dlm.analytic_results([100])
+        np.testing.assert_allclose(test, expected, atol=atol)
+        assert rho_final == ado_state.extract(0)
+
+    @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
+    def test_underdamped_pure_dephasing_model_underdamped_bath(
+        self, atol=1e-3
+    ):
+        udm = UnderdampedPureDephasingModel(
+            lam=0.1, gamma=0.05, w0=1, T=1/0.95, Nk=2,
+        )
+        bath = UnderDampedBath(
+            Q=udm.Q, lam=udm.lam, T=udm.T, Nk=udm.Nk, gamma=udm.gamma,
+            w0=udm.w0,
+        )
+
+        options = Options(nsteps=15000, store_states=True)
+        hsolver = HEOMSolver(udm.H, bath, 14, options=options)
+
+        tlist = np.linspace(0, 10, 21)
+        result = hsolver.run(udm.rho(), tlist)
+
+        test = udm.state_results(result.states)
+        expected = udm.analytic_results(tlist)
+        np.testing.assert_allclose(test, expected, atol=atol)
+
+        rho_final, ado_state = hsolver.steady_state()
+        test = udm.state_results([rho_final])
+        expected = udm.analytic_results([5000])
+        np.testing.assert_allclose(test, expected, atol=atol)
+        assert rho_final == ado_state.extract(0)
+
     @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
     @pytest.mark.parametrize(['evo'], [
         pytest.param("qobj"),
@@ -846,7 +686,7 @@ class TestFermionicHEOMSolver:
         pytest.param(False, id="hamiltonian"),
         pytest.param(True, id="liouvillian"),
     ])
-    def test_discrete_level_model(self, evo, liouvillianize):
+    def test_discrete_level_model_fermionic_bath(self, evo, liouvillianize):
         dlm = DiscreteLevelCurrentModel(
             gamma=0.01, W=1, T=0.025851991, lmax=10,
         )
@@ -856,11 +696,10 @@ class TestFermionicHEOMSolver:
         options = Options(
             nsteps=15_000, store_states=True, rtol=1e-7, atol=1e-7,
         )
-        Ncc = 2  # For a single impurity we converge with Ncc = 2
-        hsolver = FermionicHEOMSolver(
-            H_sys, dlm.Q, ck_plus, vk_plus, ck_minus, vk_minus, Ncc,
-            options=options,
-        )
+        bath = FermionicBath(dlm.Q, ck_plus, vk_plus, ck_minus, vk_minus)
+        # for a single impurity we converge with max_depth = 2
+        hsolver = HEOMSolver(H_sys, bath, 2, options=options)
+
         tlist = [0, 600]
         result = hsolver.run(dlm.rho(), tlist, ado_return=True)
         current = dlm.state_current(result.ado_states[-1])
@@ -871,6 +710,87 @@ class TestFermionicHEOMSolver:
         current = dlm.state_current(ado_state)
         analytic_current = dlm.analytic_current()
         np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
+
+
+class TestHSolverDL:
+    @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
+    @pytest.mark.parametrize(['bnd_cut_approx', 'atol'], [
+        pytest.param(True, 1e-4, id="bnd_cut_approx"),
+        pytest.param(False,  1e-3, id="no_bnd_cut_approx"),
+    ])
+    @pytest.mark.parametrize(['evo', 'combine'], [
+        pytest.param("qobj", True, id="qobj-combined"),
+        pytest.param("qobjevo", True, id="qobjevo-combined"),
+        pytest.param("listevo", True, id="listevo-combined"),
+        pytest.param("qobj", False, id="qobj-uncombined"),
+    ])
+    @pytest.mark.parametrize(['liouvillianize'], [
+        pytest.param(False, id="hamiltonian"),
+        pytest.param(True, id="liouvillian"),
+    ])
+    def test_pure_dephasing_model(
+        self, bnd_cut_approx, atol, evo, combine, liouvillianize,
+    ):
+        dlm = DrudeLorentzPureDephasingModel(
+            lam=0.025, gamma=0.05, T=1/0.95, Nk=2,
+        )
+        ck_real, vk_real, ck_imag, vk_imag = dlm.bath_coefficients()
+        H_sys = hamiltonian_to_sys(dlm.H, evo, liouvillianize)
+
+        options = Options(nsteps=15_000, store_states=True)
+        hsolver = HSolverDL(H_sys, dlm.Q, dlm.lam, dlm.T,
+                            14, 2, dlm.gamma,
+                            bnd_cut_approx=bnd_cut_approx,
+                            options=options, combine=combine)
+
+        tlist = np.linspace(0, 10, 21)
+        result = hsolver.run(dlm.rho(), tlist)
+
+        test = dlm.state_results(result.states)
+        expected = dlm.analytic_results(tlist)
+        np.testing.assert_allclose(test, expected, atol=atol)
+
+        rho_final, ado_state = hsolver.steady_state()
+        test = dlm.state_results([rho_final])
+        expected = dlm.analytic_results([100])
+        np.testing.assert_allclose(test, expected, atol=atol)
+        assert rho_final == ado_state.extract(0)
+
+    @pytest.mark.filterwarnings("ignore::scipy.integrate.IntegrationWarning")
+    @pytest.mark.parametrize(['bnd_cut_approx', 'tol'], [
+        pytest.param(True, 1e-4, id="bnd_cut_approx"),
+        pytest.param(False, 1e-3, id="renorm"),
+    ])
+    def test_hsolverdl_backwards_compatibility(self, bnd_cut_approx, tol):
+        # This is an exact copy of the pre-4.7 QuTiP HSolverDL test and
+        # is repeated here to ensure the new HSolverDL remains compatibile
+        # with the old one until it is removed.
+        cut_frequency = 0.05
+        coupling_strength = 0.025
+        lam_c = coupling_strength / np.pi
+        temperature = 1 / 0.95
+        times = np.linspace(0, 10, 21)
+
+        def _integrand(omega, t):
+            J = 2*lam_c * omega * cut_frequency / (omega**2 + cut_frequency**2)
+            return (-4 * J * (1 - np.cos(omega*t))
+                    / (np.tanh(0.5*omega / temperature) * omega**2))
+
+        # Calculate the analytical results by numerical integration
+        expected = [0.5*np.exp(quad(_integrand, 0, np.inf, args=(t,))[0])
+                    for t in times]
+
+        H_sys = Qobj(np.zeros((2, 2)))
+        Q = sigmaz()
+        initial_state = 0.5*Qobj(np.ones((2, 2)))
+        projector = basis(2, 0) * basis(2, 1).dag()
+        options = Options(nsteps=15_000, store_states=True)
+        hsolver = HSolverDL(H_sys, Q, coupling_strength, temperature,
+                            20, 2, cut_frequency,
+                            bnd_cut_approx=bnd_cut_approx,
+                            options=options)
+        test = expect(hsolver.run(initial_state, times).states, projector)
+        np.testing.assert_allclose(test, expected, atol=tol)
 
 
 class Test_GatherHEOMRHS:

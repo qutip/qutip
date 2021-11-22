@@ -59,12 +59,6 @@ Non-Markovian Solvers
 .. autoclass:: qutip.nonmarkov.heom.HEOMSolver
     :members:
 
-.. autoclass:: qutip.nonmarkov.heom.BosonicHEOMSolver
-    :members:
-
-.. autoclass:: qutip.nonmarkov.heom.FermionicHEOMSolver
-    :members:
-
 .. autoclass:: qutip.nonmarkov.heom.HSolverDL
     :members:
 

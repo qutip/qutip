@@ -11,8 +11,6 @@ from qutip.nonmarkov.heom import (
     UnderDampedBath,
     FermionicBath,
     HEOMSolver,
-    BosonicHEOMSolver,
-    FermionicHEOMSolver,
     HSolverDL,
 )
 
@@ -31,8 +29,6 @@ class TestBathAPI:
 
 class TestSolverAPI:
     def test_api(self):
-        # just assert that the baths are importable
+        # just assert that the solvers are importable
         assert HEOMSolver
-        assert BosonicHEOMSolver
-        assert FermionicHEOMSolver
         assert HSolverDL
