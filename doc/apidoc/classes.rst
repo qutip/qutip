@@ -62,11 +62,39 @@ Non-Markovian Solvers
 .. autoclass:: qutip.nonmarkov.heom.HSolverDL
     :members:
 
+.. autoclass:: qutip.nonmarkov.heom.BathExponent
+    :members:
+
+.. autoclass:: qutip.nonmarkov.heom.Bath
+    :members:
+
+.. autoclass:: qutip.nonmarkov.heom.BosonicBath
+    :members:
+
+.. autoclass:: qutip.nonmarkov.heom.DrudeLorentzBath
+    :members:
+
+.. autoclass:: qutip.nonmarkov.heom.DrudeLorentzPadeBath
+    :members:
+
+.. autoclass:: qutip.nonmarkov.heom.UnderDampedBath
+    :members:
+
+.. autoclass:: qutip.nonmarkov.heom.FermionicBath
+    :members:
+
+.. autoclass:: qutip.nonmarkov.dlheom_solver.HSolverDL
+    :members:
+
+.. autoclass:: qutip.nonmarkov.dlheom_solver.HEOMSolver
+    :members:
+
 .. autoclass:: qutip.nonmarkov.memorycascade.MemoryCascade
     :members:
 
 .. autoclass:: qutip.nonmarkov.transfertensor.TTMSolverOptions
     :members:
+
 
 .. _classes-odeoptions:
 
