@@ -657,7 +657,7 @@ class TestMESolveSuperInit:
         a = destroy(N)
         H = a.dag() * a
         psi0 = basis(N, 9)  # initial state
-        S = Cubic_Spline(tlist[0],tlist[-1], np.sqrt(kappa*np.exp(-tlist)))
+        S = core.coefficient(np.sqrt(kappa*np.exp(-tlist)), tlist=tlist)
         c_op_list = [[a, S]]
         medata = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a])
         expt = medata.expect[0]
@@ -671,8 +671,8 @@ class TestMESolveSuperInit:
          N = 10  # number of basis states to consider
          kappa = 0.2  # coupling to oscillator
          tlist = np.linspace(0, 10, 100)
-         C = Cubic_Spline(tlist[0], tlist[-1], np.ones_like(tlist))
-         S = Cubic_Spline(tlist[0],tlist[-1], np.sqrt(kappa*np.exp(-tlist)))
+         C = core.coefficient(np.ones_like(tlist), tlist=tlist)
+         S = core.coefficient(np.sqrt(kappa*np.exp(-tlist)), tlist=tlist)
          a = destroy(N)
          H = [[a.dag() * a, C]]
          psi0 = basis(N, 9)  # initial state
@@ -689,8 +689,8 @@ class TestMESolveSuperInit:
         N = 10  # number of basis states to consider
         kappa = 0.2  # coupling to oscillator
         tlist = np.linspace(0, 10, 100)
-        C = Cubic_Spline(tlist[0], tlist[-1], np.ones_like(tlist))
-        S = Cubic_Spline(tlist[0],tlist[-1], np.sqrt(kappa*np.exp(-tlist)))
+        C = core.coefficient(np.ones_like(tlist), tlist=tlist)
+        S = core.coefficient(np.sqrt(kappa*np.exp(-tlist)), tlist=tlist)
         a = destroy(N)
         H = [a.dag() * a, [a.dag() * a, C]]
         psi0 = basis(N, 9)  # initial state
@@ -707,8 +707,8 @@ class TestMESolveSuperInit:
         N = 10  # number of basis states to consider
         kappa = 0.2  # coupling to oscillator
         tlist = np.linspace(0, 10, 100)
-        C = Cubic_Spline(tlist[0], tlist[-1], np.ones_like(tlist))
-        S = Cubic_Spline(tlist[0],tlist[-1], np.sqrt(kappa*np.exp(-tlist)))
+        C = core.coefficient(np.ones_like(tlist), tlist=tlist)
+        S = core.coefficient(np.sqrt(kappa*np.exp(-tlist)), tlist=tlist)
         a = destroy(N)
         H = [a.dag() * a, [a.dag() * a, C]]
         psi0 = basis(N, 9)  # initial state

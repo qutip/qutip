@@ -116,8 +116,6 @@ def coeff_generator(style, func):
         return coefficient(base(tlist, **args), tlist=tlist)
     if style == "arraylog":
         return coefficient(base(tlistlog, **args), tlist=tlistlog)
-    if style == "spline":
-        return coefficient(qutip.Cubic_Spline(0, 1, base(tlist, **args)))
     if style == "string" and func == "f":
         return coefficient("exp(w * t * pi)", args=args)
     if style == "string" and func == "g":
@@ -145,8 +143,6 @@ def coeff_generator(style, func):
                  1e-6, id="nonlinear_array"),
     pytest.param(f_asarraylog, {'tlist': tlistlog, 'order': 0},
                  1e-1, id="nonlinear_step_array"),
-    pytest.param(qutip.Cubic_Spline(0, 1, f_asarray), {},
-                 1e-6, id="Cubic_Spline"),
     pytest.param("exp(w * t * pi)", {'args': args},
                  1e-10, id="string")
 ])
@@ -198,7 +194,6 @@ def test_CoeffCallArguments(base, tol):
     pytest.param("func", id="func"),
     pytest.param("array", id="array"),
     pytest.param("arraylog", id="logarray"),
-    pytest.param("spline", id="Cubic_Spline"),
     pytest.param("string", id="string"),
     pytest.param("steparray", id="steparray"),
     pytest.param("steparraylog", id="steparraylog")
@@ -216,7 +211,6 @@ def test_CoeffUnitaryTransform(style, transform, expected):
     pytest.param("func", id="func"),
     pytest.param("array", id="array"),
     pytest.param("arraylog", id="logarray"),
-    pytest.param("spline", id="Cubic_Spline"),
     pytest.param("string", id="string"),
     pytest.param("steparray", id="steparray"),
     pytest.param("steparraylog", id="steparraylog")
@@ -232,7 +226,6 @@ def test_CoeffShift(style):
     pytest.param("func", id="func"),
     pytest.param("array", id="array"),
     pytest.param("arraylog", id="logarray"),
-    pytest.param("spline", id="Cubic_Spline"),
     pytest.param("string", id="string"),
     pytest.param("steparray", id="steparray"),
     pytest.param("steparraylog", id="steparraylog")
@@ -241,7 +234,6 @@ def test_CoeffShift(style):
     pytest.param("func", id="func"),
     pytest.param("array", id="array"),
     pytest.param("arraylog", id="logarray"),
-    pytest.param("spline", id="Cubic_Spline"),
     pytest.param("string", id="string"),
     pytest.param("steparray", id="steparray"),
     pytest.param("steparraylog", id="steparraylog")
@@ -355,7 +347,6 @@ def _shift(coeff):
     pytest.param("func", id="func"),
     pytest.param("array", id="array"),
     pytest.param("arraylog", id="logarray"),
-    pytest.param("spline", id="Cubic_Spline"),
     pytest.param("string", id="string"),
     pytest.param("steparray", id="steparray"),
     pytest.param("steparraylog", id="steparraylog")
@@ -379,7 +370,6 @@ def test_Coeffpickle(style, transform):
     pytest.param("func", id="func"),
     pytest.param("array", id="array"),
     pytest.param("arraylog", id="logarray"),
-    pytest.param("spline", id="Cubic_Spline"),
     pytest.param("string", id="string"),
     pytest.param("steparray", id="steparray"),
     pytest.param("steparraylog", id="steparraylog")

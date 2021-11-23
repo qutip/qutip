@@ -23,7 +23,6 @@ from warnings import warn
 from ..settings import settings as qset
 from ..optionsclass import optionsclass
 from .data import Data
-from .interpolate import Cubic_Spline
 from .cy.coefficient import (InterpolateCoefficient, InterCoefficient,
                              FunctionCoefficient, ConjCoefficient,
                              NormCoefficient, ShiftCoefficient,
@@ -45,7 +44,6 @@ that function support.
 """
 coefficient_types = {
     Coefficient: (lambda x: x, set()),
-    Cubic_Spline: (InterpolateCoefficient, set()),
     np.ndarray: (InterCoefficient, {'order', 'tlist'}),
     scipy.interpolate.PPoly: (InterCoefficient.from_PPoly, {}),
     scipy.interpolate.BSpline: (InterCoefficient.from_Bspline, {}),

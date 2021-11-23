@@ -1,6 +1,5 @@
 #cython: language_level=3
 from .interpolate cimport interp, zinterp
-from ..interpolate import Cubic_Spline
 import inspect
 import pickle
 import scipy
@@ -373,42 +372,6 @@ def coeff(t, args):
         if kwargs:
             return StrFunctionCoefficient(self.base, {**self.args, **kwargs})
         return self
-
-
-cdef class InterpolateCoefficient(Coefficient):
-    """
-    A :obj:`Coefficient` built from a :class:`qutip.Cubic_Spline` object.
-
-    Parameters
-    ----------
-    splineObj : :class:`qutip.Cubic_Spline`
-        Spline interpolation object representing the coefficient as a function
-        of the time.
-    """
-
-    cdef double lower_bound, higher_bound
-    cdef complex[::1] spline_data
-    cdef object spline
-
-    def __init__(self, splineObj):
-        self.lower_bound = splineObj.a
-        self.higher_bound = splineObj.b
-        self.spline_data = splineObj.coeffs.astype(np.complex128)
-        self.spline = splineObj
-
-    @cython.initializedcheck(False)
-    cdef complex _call(self, double t) except *:
-        return zinterp(t,
-                       self.lower_bound,
-                       self.higher_bound,
-                       self.spline_data)
-
-    def __reduce__(self):
-        return InterpolateCoefficient, (self.spline,)
-
-    cpdef Coefficient copy(self):
-        """Return a copy of the :obj:`Coefficient`."""
-        return InterpolateCoefficient(self.spline)
 
 
 cdef class InterCoefficient(Coefficient):
