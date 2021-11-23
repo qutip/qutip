@@ -29,7 +29,8 @@ extensions = ['sphinx.ext.mathjax',
               'sphinx.ext.viewcode',
               'sphinx.ext.ifconfig',
               'sphinx.ext.napoleon',
-              'sphinx_gallery.gen_gallery']
+              'sphinx_gallery.gen_gallery',
+              'sphinxcontrib.bibtex']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['templates']
@@ -152,6 +153,11 @@ todo_include_todos = True
 numpydoc_show_class_members = False
 napoleon_numpy_docstring = True
 napoleon_use_admonition_for_notes = True
+
+# sphinxcontrib.bixtex options
+bibtex_bibfiles = [
+    "guide/heom/heom.bib",
+]
 
 # -- Options for HTML output ----------------------------------------------
 

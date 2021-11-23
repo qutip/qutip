@@ -1,5 +1,5 @@
 References
 ==========
 
-.. bibliography:: main.bib
+.. bibliography:: heom.bib
     :all:
