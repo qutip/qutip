@@ -8,6 +8,7 @@ from qutip import data
 from qutip.core.data import CSR, Dense
 from itertools import product
 
+__all__ = ['TestExpect', 'TestExpectSuper']
 
 class TestExpect(BinaryOpMixin):
     def op_numpy(self, op, state):

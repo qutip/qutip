@@ -4,6 +4,8 @@ import numpy as np
 from qutip import data
 from qutip.core.data import CSR, Dense
 
+__all__ = ['TestSplitColumns', 'TestColumnStack', 'TestColumnUnstack',
+           'TestReshape']
 
 class TestSplitColumns(UnaryOpMixin):
     def op_numpy(self, matrix):

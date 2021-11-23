@@ -8,6 +8,11 @@ from qutip.core.data import Data, Dense, CSR
 
 from . import conftest
 
+__all__ = ['TestAdd', 'TestAdjoint', 'TestConj', 'TestExpm', 'TestInner',
+          'TestTranspose', 'TestInnerOp', 'TestInv', 'TestKron', 'TestMatmul',
+          'TestMul', 'TestTrace', 'TestSub', 'TestProject', 'TestPow',
+          'TestNeg', 'TestMultiply', 'TestMultiply']
+
 # The ParameterSet is actually a pretty hidden type, so it's easiest to access
 # it like this.
 _ParameterSet = type(pytest.param())
