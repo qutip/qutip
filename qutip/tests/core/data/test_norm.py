@@ -7,7 +7,8 @@ from qutip.core.data import CSR, Dense
 import numbers
 
 __all__ = ['TestOneNorm', 'TestFrobeniusNorm', 'TestMaxNorm', 'TestL2Norm',
-          'TestTraceNorm']
+           'TestTraceNorm', ]
+
 
 class TestOneNorm(testing.UnaryOpMixin):
     def op_numpy(self, matrix):

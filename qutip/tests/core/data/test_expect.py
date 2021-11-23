@@ -10,6 +10,7 @@ from itertools import product
 
 __all__ = ['TestExpect', 'TestExpectSuper']
 
+
 class TestExpect(BinaryOpMixin):
     def op_numpy(self, op, state):
         is_ket = state.shape[1] == 1
