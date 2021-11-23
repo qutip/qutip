@@ -37,21 +37,8 @@ class StringParsingWarning(Warning):
     pass
 
 
-"""
-Dict of object types we support as Coefficient.
-For a type, a function that create a Coefficient from it and a set of kwargs
-that function support.
-"""
-coefficient_types = {
-    np.ndarray: (InterCoefficient, {'order', 'tlist'}),
-    scipy.interpolate.PPoly: (InterCoefficient.from_PPoly, {}),
-    scipy.interpolate.BSpline: (InterCoefficient.from_Bspline, {}),
-}
-
-
 def coefficient(base, *, tlist=None, args={}, args_ctypes={},
-                order=3, compile_opt=None,
-                function_style=None, **kwargs):
+                order=3, compile_opt=None, function_style=None):
     """Coefficient for time dependent systems.
 
     The coefficients are either a function, a string or a numpy array.
@@ -118,23 +105,22 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
     also accepted as array ``Coefficient``. Other interpolation method from
     scipy are usually accepted as functions based coefficient.
     """
-    kwargs['tlist'] = tlist
-    kwargs['args'] = args
-    kwargs['args_ctypes'] = args_ctypes
-    kwargs['order'] = order
-    kwargs['compile_opt'] = compile_opt
-    kwargs['function_style'] = function_style
-
     if isinstance(base, Coefficient):
         return base
 
-    for supported_type in coefficient_types:
-        if isinstance(base, supported_type):
-            maker, keys = coefficient_types[supported_type]
-            kwargs = {key: kwargs.get(key, None) for key in keys}
-            return maker(base, **kwargs)
+    elif isinstance(base, np.ndarray):
+        return InterCoefficient(base, tlist, order)
 
-    if callable(base):
+    elif isinstance(base, scipy.interpolate.PPoly):
+        return InterCoefficient.from_PPoly(base)
+
+    elif isinstance(base, scipy.interpolate.BSpline):
+        return InterCoefficient.from_Bspline(base)
+
+    elif isinstance(base, str):
+        return coeff_from_str(base, args, args_ctypes, compile_opt)
+
+    elif callable(base):
         op = FunctionCoefficient(base, args.copy(), style=function_style)
         if not isinstance(op(0), numbers.Number):
             raise TypeError("The coefficient function must return a number")
@@ -353,11 +339,6 @@ def coeff_from_str(base, args, args_ctypes, compile_opt=None):
     keys = [key for _, key, _ in variables]
     const = [fromstr(val) for _, val, _ in constants]
     return coeff(base, keys, const, args)
-
-
-coefficient_types[str] = (
-    coeff_from_str, {'args', 'args_ctypes', 'compile_opt'}
-)
 
 
 def try_import(file_name, parsed_in):
