@@ -23,10 +23,10 @@ from warnings import warn
 from ..settings import settings as qset
 from ..optionsclass import optionsclass
 from .data import Data
-from .cy.coefficient import (InterpolateCoefficient, InterCoefficient,
-                             FunctionCoefficient, ConjCoefficient,
-                             NormCoefficient, ShiftCoefficient,
-                             StrFunctionCoefficient, Coefficient)
+from .cy.coefficient import (
+    Coefficient, InterCoefficient, FunctionCoefficient, StrFunctionCoefficient,
+    ConjCoefficient, NormCoefficient, ShiftCoefficient
+)
 
 
 __all__ = ["coefficient", "CompilationOptions", "Coefficient",
@@ -43,7 +43,6 @@ For a type, a function that create a Coefficient from it and a set of kwargs
 that function support.
 """
 coefficient_types = {
-    Coefficient: (lambda x: x, set()),
     np.ndarray: (InterCoefficient, {'order', 'tlist'}),
     scipy.interpolate.PPoly: (InterCoefficient.from_PPoly, {}),
     scipy.interpolate.BSpline: (InterCoefficient.from_Bspline, {}),
@@ -108,16 +107,16 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
     The time of the tlist do not need to be equidistant, but must be sorted.
     By default, a cubic spline interpolation will be used to compute the
     coefficient at time t. The keyword ``order`` set the order of the
-    interpolation. When ``order = 0`` it interpolate in a step function to the
+    interpolation. When ``order = 0`` it interpolate as a step function to the
     previous or last value.
 
     *Examples*
         tlist = np.logspace(-5,0,100)
         H = QobjEvo(np.exp(-1j*tlist), tlist=tlist)
 
-    `scipy.interpolate`'s `CubicSpline`, PPoly` and `Bspline` are also accepted
-    as array `Coefficient`. Other interpolation method from scipy are usually
-    accepted as functions based coefficient.
+    ``scipy.interpolate``'s ``CubicSpline``, ``PPoly`` and ``Bspline`` are
+    also accepted as array ``Coefficient``. Other interpolation method from
+    scipy are usually accepted as functions based coefficient.
     """
     kwargs['tlist'] = tlist
     kwargs['args'] = args
@@ -125,6 +124,9 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
     kwargs['order'] = order
     kwargs['compile_opt'] = compile_opt
     kwargs['function_style'] = function_style
+
+    if isinstance(base, Coefficient):
+        return base
 
     for supported_type in coefficient_types:
         if isinstance(base, supported_type):

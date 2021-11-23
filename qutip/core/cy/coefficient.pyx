@@ -3,7 +3,7 @@ from .interpolate cimport interp, zinterp
 import inspect
 import pickle
 import scipy
-from scipy.interpolate import interp1d
+from scipy.interpolate import make_interp_spline
 import numpy as np
 cimport numpy as cnp
 cimport cython
@@ -422,11 +422,16 @@ cdef class InterCoefficient(Coefficient):
         elif order >= 2:
             # Use scipy to compute the spline and transform it to polynomes
             # as used in scipy's PPoly which is easier for us to use.
-            spline = interp1d(tlist, coeff_arr, kind=order)._spline
-            ts = np.unique(spline.t)
-            fact = [1, 1, 2, 6]
-            poly = np.hstack([spline(ts, i) / fact[i]
-                              for i in range(3, -1, -1)]).T
+            spline = make_interp_spline(tlist, coeff_arr, k=order)
+            # Scipy can move knots, we add them to tlist
+            ts = np.sort(np.unique(np.concatenate([spline.t, tlist])))
+            a = np.arange(spline.k+1)
+            a[0] = 1
+            fact = np.cumprod(a)
+            poly = np.concatenate([
+                spline(ts, i) / fact[i]
+                for i in range(spline.k, -1, -1)
+            ]).reshape((spline.k+1, -1))
             self.np_arrays = (ts, poly)
 
         self._prepare()
@@ -505,9 +510,13 @@ cdef class InterCoefficient(Coefficient):
     @classmethod
     def from_Bspline(cls, spline):
         tlist = np.unique(spline.t)
-        fact = [1, 1, 2, 6]
-        poly = np.hstack([spline(tlist, i) / fact[i]
-                          for i in range(3, -1, -1)]).T
+        a = np.arange(spline.k+1)
+        a[0] = 1
+        fact = np.cumprod(a) + 0j
+        poly = np.concatenate([
+            spline(tlist, i) / fact[i]
+            for i in range(spline.k, -1, -1)
+        ]).reshape((spline.k+1, -1))
         return cls.restore((tlist, poly))
 
     cpdef Coefficient copy(self):
@@ -516,8 +525,11 @@ cdef class InterCoefficient(Coefficient):
 
 
 cdef Coefficient add_inter(InterCoefficient left, InterCoefficient right):
+    """ Add two array coefficient with matching tlist into one."""
     if (
-        np.array_equal(left.np_arrays[0], right.np_arrays[0])
+        left.np_arrays[0].shape == right.np_arrays[0].shape
+        and np.allclose(left.np_arrays[0], right.np_arrays[0],
+                        rtol=1e-15, atol=1e-15)
         and (left.order == right.order)
     ):
         return InterCoefficient.restore(
@@ -525,7 +537,8 @@ cdef Coefficient add_inter(InterCoefficient left, InterCoefficient right):
             left.dt
         )
     else:
-        return SumCoefficient(left.copy(), right.copy())
+        # TODO: It would be possible to add them by merging tlist.
+        return SumCoefficient(left, right)
 
 
 @cython.auto_pickle(True)
