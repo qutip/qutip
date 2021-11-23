@@ -1,5 +1,4 @@
 #cython: language_level=3
-from .interpolate cimport interp, zinterp
 import inspect
 import pickle
 import scipy
