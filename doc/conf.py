@@ -343,6 +343,7 @@ plt.close("all")
 """
 plot_include_source = True
 plot_html_show_source_link = False
+plot_html_show_formats = False
 
 # -- Options for Texinfo output -------------------------------------------
 
