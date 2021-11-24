@@ -3,14 +3,14 @@ Bosonic Environments
 ####################
 
 In this section we consider a simple two-level system coupled to a
-Drude-Lorentz bosonic bath. The system Hamiltonian, $H_{sys}$, and the bath
-spectral density, $J_D$, are
+Drude-Lorentz bosonic bath. The system Hamiltonian, :math:`H_{sys}`, and the bath
+spectral density, :math:`J_D`, are
 
 .. math::
 
-    H_{sys} = \frac{\epsilon \sigma_z}{2} + \frac{\Delta \sigma_x}{2}
+    H_{sys} &= \frac{\epsilon \sigma_z}{2} + \frac{\Delta \sigma_x}{2}
 
-    J_D = \frac{2\lambda \gamma \omega}{(\gamma^2 + \omega^2)},
+    J_D &= \frac{2\lambda \gamma \omega}{(\gamma^2 + \omega^2)},
 
 We will demonstrate how to describe the bath using two different expansions
 of the spectral density correlation function (Matsubara's expansion and
@@ -25,21 +25,20 @@ Afterwards, we will show how to calculate the bath expansion coefficients and to
 use those coefficients to construct your own bath description so that you can
 implement your own bosonic baths.
 
-A notebook containing a complete example similar to this one can be found in
-`example notebook 1a <FIXME>`__).
-
-.. todo::
-
-    Fix notebook link above.
+A notebook containing a complete example similar to this one implemented in
+BoFiN can be found in
+`example notebook 1a <https://github.com/tehruhn/bofin/blob/main/examples/example-1a-Spin-bath-model-basic.ipynb>`__).
 
 
 Describing the system and bath
 ------------------------------
 
-First, let us construct the system Hamiltonian, $H_{sys}$, and the initial
-system state, $rho0$:
+First, let us construct the system Hamiltonian, :math:`H_{sys}`, and the initial
+system state, ``rho0``:
 
-.. code-block:: python
+.. plot::
+    :context: reset
+    :nofigs:
 
     from qutip import basis, sigmax, sigmaz
 
@@ -53,7 +52,9 @@ system state, $rho0$:
 
 Now let us describe the bath properties:
 
-.. code-block:: python
+.. plot::
+    :context:
+    :nofigs:
 
     # Bath properties:
     gamma = 0.5  # cut off frequency
@@ -63,14 +64,16 @@ Now let us describe the bath properties:
     # System-bath coupling operator:
     Q = sigmaz()
 
-where $\gamma$ (``gamma``), $\lambda$ (``lam``) and $T$ are the parameters
-of a Drude-Lorentz bath, and ``Q`` is the coupling operator between the system
-and the bath.
+where :math:`\gamma` (``gamma``), :math:`\lambda` (``lam``) and :math:`T` are
+the parameters of a Drude-Lorentz bath, and ``Q`` is the coupling operator
+between the system and the bath.
 
 We may the pass these parameters to either ``DrudeLorentzBath`` or
 ``DrudeLorentzPadeBath`` to construct an expansion of the bath correlations:
 
-.. code-block:: python
+.. plot::
+    :context:
+    :nofigs:
 
     from qutip.nonmarkov.heom import DrudeLorentzBath
     from qutip.nonmarkov.heom import DrudeLorentzPadeBath
@@ -93,7 +96,9 @@ System and bath dynamics
 
 Now we are ready to construct a solver:
 
-.. code-block:: python
+.. plot::
+    :context:
+    :nofigs:
 
     from qutip.nonmarkov.heom import HEOMSolver
     from qutip import Options
@@ -125,7 +130,8 @@ The ``result`` is a standard QuTiP results object with the attributes:
 If ``ado_return=True`` is passed to ``.run(...)`` the full set of auxilliary
 density operators (ADOs) that make up the hierarchy at each time will be
 returned as ``.ado_states``. We will describe how to use these to determine
-other properties, such as system-bath currents, later in the guide.
+other properties, such as system-bath currents, later in the guide
+(see :ref:`heom-ado-states`).
 
 If one has a full set of ADOs from a previous call of ``.run(...)`` you may
 supply it as the initial state of the solver by calling
@@ -135,29 +141,31 @@ As with other QuTiP solvers, if expectation operators or functions are supplied
 using ``.run(..., e_ops=[...])`` the expectation values are available in
 ``result.expect``.
 
-.. todo::
+Below we run the solver again, but use ``e_ops`` to store the expectation
+values of the population of the system states and the coherence:
 
-    # Add some e_ops and display some results:
+.. plot::
+    :context:
 
-    # Define some operators with which we will measure the system
-    # Populations
-    P11p=basis(2,0) * basis(2,0).dag()
-    P22p=basis(2,1) * basis(2,1).dag()
-    # 1,2 element of density matrix  - corresonding to coherence
-    P12p=basis(2,0) * basis(2,1).dag()
-    # Calculate expectation values in the bases
-    P11exp = expect(resultMats.states, P11p)
-    P22exp = expect(resultMats.states, P22p)
-    P12exp = expect(resultMats.states, P12p)
+    # Define the operators that measure the populations of the two
+    # system states:
+    P11p = basis(2,0) * basis(2,0).dag()
+    P22p = basis(2,1) * basis(2,1).dag()
 
-    # Plot the results
+    # Define the operator that measures the 0, 1 element of density matrix
+    # (corresonding to coherence):
+    P12p = basis(2,0) * basis(2,1).dag()
+
+    # Run the solver:
+    tlist = np.linspace(0, 20, 101)
+    result = solver.run(rho0, tlist, e_ops={"11": P11p, "22": P22p, "12": P12p})
+
+    # Plot the results:
     fig, axes = plt.subplots(1, 1, sharex=True, figsize=(8,8))
-    axes.plot(tlist, np.real(P11exp), 'b', linewidth=2, label="P11 Mats")
-    axes.plot(tlist, np.real(P12exp), 'r', linewidth=2, label="P12 Mats")
+    axes.plot(result.times, result.expect["11"], 'b', linewidth=2, label="P11")
+    axes.plot(result.times, result.expect["12"], 'r', linewidth=2, label="P12")
     axes.set_xlabel(r't', fontsize=28)
     axes.legend(loc=0, fontsize=12)
-
-.. image:: figures/docsfig1.png
 
 
 Steady-state
@@ -166,44 +174,146 @@ Steady-state
 Using the same solver, we can also determine the steady state of the
 combined system and bath using:
 
-.. code-block:: python
+.. plot::
+    :context:
+    :nofigs:
 
-   steady_state, steady_ados = solver.steady_state()
+    steady_state, steady_ados = solver.steady_state()
 
 where ``steady_state`` is the steady state of the system and ``steady_ados``
-if the steady state of the full hierarchy, which will examine shortly.
+if the steady state of the full hierarchy. The ADO states are
+described more fully in :ref:`heom-ado-states`.
 
 
-Calculating system-bath currents
---------------------------------
+Matsubara Terminator
+--------------------
 
-.. todo::
+When constructing the Drude-Lorentz bath we have truncated the expansion at
+``Nk = 2`` terms and ignore the remaining terms.
 
-   Show how to calculate currents from the ADOs.
+However, since the coupling to these higher order terms is comparatively weak,
+we may consider the interaction with them to be Markovian, and construct an
+additional Lindbladian term that captures their interaction with the system and
+the lower order terms in the expansion.
+
+This additional term is called the ``terminator`` because it terminates the
+expansion.
+
+The :class:`DrudeLorentzBath` and :class:`DrudeLorentzPadeBath` both provide
+a means of calculating the terminator for a given expansion:
+
+.. plot::
+    :context:
+    :nofigs:
+
+    # Matsubara expansion:
+    bath = DrudeLorentzBath(Q, lam, T, Nk, gamma, terminator=True)
+
+    # Padé expansion:
+    bath = DrudeLorentzPadeBath(Q, lam, T, Nk, gamma, terminator=True)
+
+    # Add terminator to the system Liouvillian:
+    HL = liouvillian(H_sys) + bath.terminator
+
+    # Construct solver:
+    solver = HEOMSolver(HL, bath, max_depth=max_depth, options=options)
+
+This captures the Markovian effect of the remaining terms in the expansion
+without having to fully model many more terms.
 
 
 Matsubara expansion coefficients
 --------------------------------
 
-.. todo::
+So far we have relied on the built-in :class:`DrudeLorentzBath` to construct
+the Drude-Lorentz bath expansion for us. Now we will calculate the coefficients
+ourselves and construct a :class:`BosonicBath` directly. A similar procedure
+can be used to apply :class:`HEOMSolver` to any bosonic bath for which we
+can calculate the expansion coefficients.
 
-   Clean up this section.
+The real and imaginary parts of the correlation function, :math:`C(t)`, for the
+bosonic bath is expanded in an expontential series:
 
-.. code-block:: python
+.. math::
 
-   def cot(x):
-       return 1./np.tan(x)
+      C(t) &= C_{real}(t) + i C_{imag}(t)
 
-   beta = 1./T
+      C_{real}(t) &= \sum_{k=0}^{\infty} c_{k,real} e^{- \nu_{k,real} t}
 
-   # HEOM parameters
-   Nk = 2 # number of Matsubara terms
-   ckAR = [ lam * gamma * (cot(gamma / (2 * T)))]
-   ckAR.extend([(4 * lam * gamma * T *  2 * np.pi * k * T / (( 2 * np.pi * k * T)**2 - gamma**2)) for k in range(1,Nk+1)])
-   vkAR = [gamma]
-   vkAR.extend([2 * np.pi * k * T for k in range(1,Nk+1)])
-   ckAI = [lam * gamma * (-1.0)]
-   vkAI = [gamma]
+      C_{imag}(t) &= \sum_{k=0}^{\infty} c_{k,imag} e^{- \nu_{k,imag} t}
+
+In the specific case of Matsubara expansion for the Drude-Lorentz bath, the
+coefficients of this expansion are, for the real part, :math:`C_{real}(t)`:
+
+.. math::
+
+    \nu_{k,real} &= \begin{cases}
+        \gamma                & k = 0\\
+        {2 \pi k} / {\beta }  & k \geq 1\\
+    \end{cases}
+
+    c_{k,real} &= \begin{cases}
+        \lambda \gamma [\cot(\beta \gamma / 2) - i]             & k = 0\\
+        \frac{4 \lambda \gamma \nu_k }{ (\nu_k^2 - \gamma^2)\beta}    & k \geq 1\\
+    \end{cases}
+
+and the imaginary part, :math:`C_{imag}(t)`:
+
+.. math::
+
+    \nu_{k,imag} &= \begin{cases}
+        \gamma                & k = 0\\
+        0                     & k \geq 1\\
+    \end{cases}
+
+    c_{k,imag} &= \begin{cases}
+        - \lambda \gamma      & k = 0\\
+        0                     & k \geq 1\\
+    \end{cases}
+
+And now the same numbers calculated in Python:
+
+.. plot::
+    :context:
+    :nofigs:
+
+    # Convenience functions and parameters:
+
+    def cot(x):
+        return 1. / np.tan(x)
+
+    beta = 1. / T
+
+    # Number of expansion terms to calculate:
+    Nk = 2
+
+    # C_real expansion terms:
+    ck_real = [lam * gamma / np.tan(gamma / (2 * T))]
+    ck_real.extend([
+        (8 * lam * gamma * T * np.pi * k * T /
+            ((2 * np.pi * k * T)**2 - gamma**2))
+        for k in range(1, Nk + 1)
+    ])
+    vk_real = [gamma]
+    vk_real.extend([2 * np.pi * k * T for k in range(1, Nk + 1)])
+
+    # C_imag expansion terms (this is the full expansion):
+    ck_imag = [lam * gamma * (-1.0)]
+    vk_imag = [gamma]
+
+After all that, constructing the bath is very straight forward:
+
+.. plot::
+    :context:
+    :nofigs:
+
+    bath = BosonicBath(Q, ck_real, vk_real, ck_imag, vk_imag)
+
+And we're done!
+
+The :class:`BosonicBath` can be used with the :class:`HEOMSolver` in exactly
+the same way as the baths we constructed previously using the built-in
+Drude-Lorentz bath expansions.
 
 
 Multiple baths
@@ -260,3 +370,9 @@ unique coupling operator defined by a projector onto a single state:
         Q2.extend([ basis(7,m)*basis(7,m).dag() for kk in range(NI)])
         ckAI2.extend(ckAI)
         vkAI2.extend(vkAI)
+
+.. plot::
+    :context: reset
+    :nofigs:
+
+    # reset the context at the end
