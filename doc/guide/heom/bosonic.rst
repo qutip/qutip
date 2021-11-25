@@ -326,13 +326,16 @@ environments. All that is needed is to supply a list of baths instead
 of a singe bath.
 
 In the example below we calculate the evolution of a small system where
-each energy eigenstate of the system interacts with a separate bath.
+each energy eigenstate of the system interacts with a separate bath. Such
+as arrangement can model, for example, Fenna–Matthews–Olson (FMO)
+pigment-protein complex which plays an important role in photosynthesis.
 
 For each bath expansion, we also include the terminator in the system
 Liouvillian.
 
 At the end, we plot the populations of the system states as a function of
-time:
+time, and show the long-time beating of quantum state coherence that
+occurs:
 
 .. plot::
     :context: close-figs
