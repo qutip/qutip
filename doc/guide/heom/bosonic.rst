@@ -19,15 +19,20 @@ the steady state.
 
 First we will do this in the simplest way, using the built-in implementations of
 the two bath expansions, :class:`DrudeLorentzBath` and
-:class:`DrudeLorentzPadeBath`.
+:class:`DrudeLorentzPadeBath`. We will do this both with a truncated expansion
+and show how to include an approximation to all of the remaining terms in
+the bath expansion.
 
 Afterwards, we will show how to calculate the bath expansion coefficients and to
 use those coefficients to construct your own bath description so that you can
 implement your own bosonic baths.
 
+Finally, we will demonstrate how to simulate a system coupled to multiple
+independent baths, as occurs, for example, in certain photosynthesis processes.
+
 A notebook containing a complete example similar to this one implemented in
 BoFiN can be found in
-`example notebook 1a <https://github.com/tehruhn/bofin/blob/main/examples/example-1a-Spin-bath-model-basic.ipynb>`__).
+`example notebook 1a <https://github.com/tehruhn/bofin/blob/main/examples/example-1a-Spin-bath-model-basic.ipynb>`__.
 
 
 Describing the system and bath
