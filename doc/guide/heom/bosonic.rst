@@ -45,7 +45,7 @@ system state, ``rho0``:
     # The system Hamiltonian:
     eps = 0.5  # energy of the 2-level system
     Del = 1.0  # tunnelling term
-    H_sys = 0.5 * eps * sigmaz() + 0.5 * Del* sigmax()
+    H_sys = 0.5 * eps * sigmaz() + 0.5 * Del * sigmax()
 
     # Initial state of the system:
     rho0 = basis(2,0) * basis(2,0).dag()
@@ -307,6 +307,8 @@ After all that, constructing the bath is very straight forward:
     :context:
     :nofigs:
 
+    from qutip.nonmarkov.heom import BosonicBath
+
     bath = BosonicBath(Q, ck_real, vk_real, ck_imag, vk_imag)
 
 And we're done!
@@ -319,60 +321,69 @@ Drude-Lorentz bath expansions.
 Multiple baths
 --------------
 
-.. todo::
+The :class:`HEOMSolver` supports having a system interact with multiple
+environments. All that is needed is to supply a list of baths instead
+of a singe bath.
 
-    Clean up this section to use the new multiple baths feature.
+In the example below we calculate the evolution of a small system where
+each energy eigenstate of the system interacts with a separate bath.
 
+For each bath expansion, we also include the terminator in the system
+Liouvillian.
 
-The above example describes a single environment parameterized by the lists of
-coefficients and frequencies in the correlation functions.
+At the end, we plot the populations of the system states as a function of
+time:
 
-For multiple environments, the list of coupling operators and bath properties
-must all be extended in a particular way.  Note this functionality differs in
-the case of the Fermionic solver.
+.. plot::
+    :context: close-figs
 
-For the Bosonic solver, for ``N`` baths, each ``ckAR``, ``vkAR``, ``ckAI``, and
-``vkAI`` are extended ``N`` times with the appropriate number of terms of that
-bath.
+    # The size of the system:
+    N_sys = 3
 
-On the other hand, the list of coupling operators is defined in such a way that
-the terms corresponding to the real cooefficients are **given first**, and the
-imaginary terms after. Thus if each bath has :math:`N_k` coefficients, the list
-of coupling operators is of length :math:`N_k \times (N_R + N_I)`.
+    def proj(i, j):
+        """ A helper function for creating an interaction operator. """
+        return basis(N_sys, i) * basis(N_sys, j).dag()
 
-This is best illustrated by the example in `example notebook 2
-<https://github.com/tehruhn/bofin/blob/main/examples/example-2-FMO-example.ipynb>`_.
-In that case each bath is identical, and there are seven baths, each with a
-unique coupling operator defined by a projector onto a single state:
+    # Construct one bath for each system state:
+    baths = []
+    for i in range(N_sys):
+        Q = proj(i, i)
+        baths.append(DrudeLorentzBath(Q, lam, T, Nk, gamma, terminator=True))
 
-.. code-block:: python
+    # Construct the system Liouvillian from the system Hamiltonian and
+    # bath expansion terminators:
+    H_sys = sum((i + 0.5) * eps * proj(i, i) for i in range(N_sys))
+    H_sys += sum(
+      (i + j + 0.5) * Del * proj(i, j)
+      for i in range(N_sys) for j in range(N_sys)
+      if i != j
+    )
+    HL = liouvillian(H_sys) + sum(bath.terminator for bath in baths)
 
-    ckAR = [pref * lam * gamma * (cot(gamma / (2 * T))) + 0.j]
-    ckAR.extend([(pref * 4 * lam * gamma * T *  2 * np.pi * k * T / (( 2 * np.pi * k * T)**2 - gamma**2))+0.j for k in range(1,Nk+1)])
-    vkAR = [gamma+0.j]
-    vkAR.extend([2 * np.pi * k * T + 0.j for k in range(1,Nk+1)])
-    ckAI = [pref * lam * gamma * (-1.0) + 0.j]
-    vkAI = [gamma+0.j]
+    # Construct the solver (pass a list of baths):
+    solver = HEOMSolver(HL, baths, max_depth=max_depth, options=options)
 
-    NR = len(ckAR)
-    NI = len(ckAI)
-    Q2 = []
-    ckAR2 = []
-    ckAI2 = []
-    vkAR2 = []
-    vkAI2 = []
-    for m in range(7):
-        Q2.extend([ basis(7,m)*basis(7,m).dag() for kk in range(NR)])
-        ckAR2.extend(ckAR)
-        vkAR2.extend(vkAR)
+    # Run the solver:
+    rho0 = basis(N_sys, 0) * basis(N_sys, 0).dag()
+    tlist = np.linspace(0, 5, 200)
+    e_ops = {
+        f"P{i}": proj(i, i)
+        for i in range(N_sys)
+    }
+    result = solver.run(rho0, tlist, e_ops=e_ops)
 
-    for m in range(7):
-        Q2.extend([ basis(7,m)*basis(7,m).dag() for kk in range(NI)])
-        ckAI2.extend(ckAI)
-        vkAI2.extend(vkAI)
+    # Plot populations:
+    fig, axes = plt.subplots(1, 1, sharex=True, figsize=(8,8))
+    for label, values in result.expect.items():
+        axes.plot(result.times, values, label=label)
+    axes.set_xlabel(r't', fontsize=28)
+    axes.set_ylabel(r"Population", fontsize=28)
+    axes.legend(loc=0, fontsize=12)
+
 
 .. plot::
     :context: reset
+    :include-source: false
     :nofigs:
 
     # reset the context at the end
