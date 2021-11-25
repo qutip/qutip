@@ -45,6 +45,13 @@ from qutip import (
 from qutip.qip.operations import (
     hadamard_transform, swap,
 )
+
+try:
+    import cvxpy
+    import cvxopt
+except ImportError:
+    cvxpy, cvxopt = None, None
+
 # These ones are the metrics functions that we actually want to test.
 from qutip import (
     fidelity, tracedist, hellinger_dist, dnorm, average_gate_fidelity,
@@ -310,13 +317,17 @@ def adc_choi(x):
 # is failing every time, but not penalise one-off failures.  As far as we know,
 # the failing tests always involve a random step, so triggering a re-run will
 # have them choose new variables as well.
+#
+# The warning filter is to account for cvxpy < 1.1.10 which uses np.complex,
+# which is deprecated as of numpy 1.20.
+#
+# Skip dnorm tests if we don't have cvxpy or cvxopt available, since dnorm
+# depends on them.
+@pytest.mark.skipif(cvxpy is None or cvxopt is None,
+                    reason="Skipping dnorm tests because dnorm requires cvxpy"
+                    " and cvxopt which are not installed.")
 @pytest.mark.flaky(reruns=2)
 class Test_dnorm:
-    # Skip dnorm tests if we don't have cvxpy or cvxopt available, since it
-    # depends on them.
-    cvxpy = pytest.importorskip("cvxpy")
-    cvxopt = pytest.importorskip("cvxopt")
-
     @pytest.fixture(params=[2, 3])
     def dimension(self, request):
         return request.param
