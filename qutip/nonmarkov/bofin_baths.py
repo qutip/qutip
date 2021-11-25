@@ -517,12 +517,6 @@ class DrudeLorentzPadeBath(BosonicBath):
             self.delta = None
             self.terminator = None
 
-    def _delta(self, i, j):
-        return 1.0 if i == j else 0.0
-
-    def _cot(self, x):
-        return 1. / np.tan(x)
-
     def _corr(self, lam, gamma, T, Nk):
         beta = 1. / T
         kappa, epsilon = self._kappa_epsilon(Nk)
@@ -538,6 +532,9 @@ class DrudeLorentzPadeBath(BosonicBath):
             gamma_p.append(epsilon[ll] / beta)
 
         return eta_p, gamma_p
+
+    def _cot(self, x):
+        return 1. / np.tan(x)
 
     def _kappa_epsilon(self, Nk):
         eps = self._calc_eps(Nk)
@@ -559,6 +556,9 @@ class DrudeLorentzPadeBath(BosonicBath):
         epsilon = [0] + eps
 
         return kappa, epsilon
+
+    def _delta(self, i, j):
+        return 1.0 if i == j else 0.0
 
     def _calc_eps(self, Nk):
         alpha = np.diag([
@@ -752,3 +752,167 @@ class FermionicBath(Bath):
                 "-", 2, Q, ckm, vkm, sigma_bar_k_offset=-1, tag=tag,
             ))
         super().__init__(exponents)
+
+
+class LorentzianBath(FermionicBath):
+    def __init__(self, Q, gamma, w, T, theta, lmax, tag=None):
+        mu_l = theta / 2.0
+        mu_r = - theta / 2.0
+
+        etapL, gampL = self._corr(gamma, w, T, lmax, 1.0, mu_l)
+        etamL, gammL = self._corr(gamma, w, T, lmax, -1.0, mu_l)
+        etapR, gampR = self._corr(gamma, w, T, lmax, 1.0, mu_r)
+        etamR, gammR = self._corr(gamma, w, T, lmax, -1.0, mu_r)
+
+        ck_plus = etapR + etapL
+        vk_plus = gampR + gampL
+        ck_minus = etamR + etamL
+        vk_minus = gammR + gammL
+
+        super().__init__(
+            Q, ck_plus, vk_plus, ck_minus, vk_minus, tag=tag,
+        )
+
+    def _corr(self, gamma, w, T, lmax, sigma, mu):
+        beta = 1. / T
+        kappa = [0.]
+        kappa.extend([1. for _ in range(1, lmax + 1)])
+        epsilon = [0]
+        epsilon.extend([(2 * ll - 1) * np.pi for ll in range(1, lmax + 1)])
+
+        def f(x):
+            # kB = 1.0
+            return 1 / (np.exp(x) + 1)
+
+        eta_list = [0.5 * gamma * w * f(1.0j * beta * w)]
+        gamma_list = [w - sigma * 1.0j * mu]
+
+        for ll in range(1, lmax + 1):
+            eta_list.append(
+                -1.0j * (kappa[ll] / beta) * gamma * w**2 /
+                (-(epsilon[ll]**2 / beta**2) + w**2)
+            )
+            gamma_list.append(epsilon[ll] / beta - sigma * 1.0j * mu)
+
+        return eta_list, gamma_list
+
+
+class LorentzianPadeBath(FermionicBath):
+    def __init__(self, Q, gamma, w, T, theta, lmax, tag=None):
+        mu_l = theta / 2.0
+        mu_r = - theta / 2.0
+
+        etapL, gampL = self._corr(gamma, w, T, lmax, 1.0, mu_l)
+        etamL, gammL = self._corr(gamma, w, T, lmax, -1.0, mu_l)
+        etapR, gampR = self._corr(gamma, w, T, lmax, 1.0, mu_r)
+        etamR, gammR = self._corr(gamma, w, T, lmax, -1.0, mu_r)
+
+        ck_plus = etapR + etapL
+        vk_plus = gampR + gampL
+        ck_minus = etamR + etamL
+        vk_minus = gammR + gammL
+
+        super().__init__(
+            Q, ck_plus, vk_plus, ck_minus, vk_minus, tag=tag,
+        )
+
+    def _corr(self, gamma, w, T, lmax, sigma, mu):
+        beta = 1. / T
+        kappa, epsilon = self._kappa_epsilon(lmax)
+
+        def f_approx(x):
+            f = 0.5
+            for ll in range(1, lmax + 1):
+                f = f - 2 * kappa[ll] * x / (x**2 + epsilon[ll]**2)
+            return f
+
+        eta_list = [0.5 * gamma * w * f_approx(1.0j * beta * w)]
+        gamma_list = [w - sigma * 1.0j * mu]
+
+        for ll in range(1, lmax + 1):
+            eta_list.append(
+                -1.0j * (kappa[ll] / beta) * gamma * w**2
+                / (-(epsilon[ll]**2 / beta**2) + w**2)
+            )
+            gamma_list.append(epsilon[ll] / beta - sigma * 1.0j * mu)
+
+        return eta_list, gamma_list
+
+    def _kappa_epsilon(self, Nk):
+        eps = self._calc_eps(Nk)
+        chi = self._calc_chi(Nk)
+        lmax = Nk
+
+        eta_list = [
+            0.5 * lmax * (2 * (lmax + 1) - 1) * (
+                np.prod([chi[k]**2 - eps[j]**2 for k in range(lmax - 1)]) /
+                np.prod([
+                    eps[k]**2 - eps[j]**2 + self._delta(j, k)
+                    for k in range(lmax)
+                ])
+            )
+            for j in range(lmax)
+        ]
+
+        kappa = [0] + eta_list
+        epsilon = [0] + eps
+
+        # kappa = [0]
+        # prefactor = 0.5 * Nk * (2 * (Nk + 1) + 1)
+        # for j in range(Nk):
+        #     term = prefactor
+        #     for k in range(Nk - 1):
+        #         term *= (
+        #             (chi[k]**2 - eps[j]**2) /
+        #             (eps[k]**2 - eps[j]**2 + self._delta(j, k))
+        #         )
+        #     for k in [Nk - 1]:
+        #         term /= (eps[k]**2 - eps[j]**2 + self._delta(j, k))
+        #     kappa.append(term)
+        #
+        # epsilon = [0] + eps
+
+        return kappa, epsilon
+
+    def _delta(self, i, j):
+        return 1.0 if i == j else 0.0
+
+    def _calc_eps(self, Nk):
+        lmax = Nk
+
+        alpha = np.zeros((2 * lmax, 2 * lmax))
+        for j in range(2*lmax):
+            for k in range(2*lmax):
+                alpha[j][k] = (
+                    (self._delta(j, k + 1) + self._delta(j, k - 1))
+                    / np.sqrt((2 * (j + 1) - 1) * (2 * (k + 1) - 1))
+                )
+
+        # alpha = np.diag([
+        #         1. / np.sqrt((2 * k + 5) * (2 * k + 3))
+        #         for k in range(2 * Nk - 1)
+        # ], k=1)
+        # alpha += alpha.transpose()
+        evals = eigvalsh(alpha)
+        eps = [-2. / val for val in evals[0: Nk]]
+        return eps
+
+    def _calc_chi(self, Nk):
+        lmax = Nk
+
+        alpha_p = np.zeros((2 * lmax - 1, 2 * lmax - 1))
+        for j in range(2 * lmax - 1):
+            for k in range(2 * lmax - 1):
+                alpha_p[j][k] = (
+                    (self._delta(j, k + 1) + self._delta(j, k - 1))
+                    / np.sqrt((2 * (j + 1) + 1) * (2 * (k + 1) + 1))
+                )
+
+        # alpha_p = np.diag([
+        #         1. / np.sqrt((2 * k + 7) * (2 * k + 5))
+        #         for k in range(2 * Nk - 2)
+        # ], k=1)
+        # alpha_p += alpha_p.transpose()
+        evals = eigvalsh(alpha_p)
+        chi = [-2. / val for val in evals[0: Nk - 1]]
+        return chi
