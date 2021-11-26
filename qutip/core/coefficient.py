@@ -7,10 +7,7 @@ import dis
 import hashlib
 import glob
 import importlib
-import inspect
-import shutil
 import numbers
-from contextlib import contextmanager
 from collections import defaultdict
 from setuptools import setup, Extension
 try:
@@ -22,6 +19,7 @@ from warnings import warn
 from ..settings import settings as qset
 from ..optionsclass import optionsclass
 from .data import Data
+from .data.base import idxint_dtype
 from .interpolate import Cubic_Spline
 from .cy.coefficient import (InterpolateCoefficient, InterCoefficient,
                              StepCoefficient, FunctionCoefficient,
@@ -488,7 +486,15 @@ def compile_code(code, file_name, parsed, c_opt):
                                    extra_link_args=c_opt['link_flags'].split(),
                                    include_dirs=[np.get_include()],
                                    language='c++')
-            setup(ext_modules=cythonize(coeff_file, force=c_opt['recompile']))
+            compile_time_env = {
+                "QUTIP_IDXINT_64": idxint_dtype is np.int64,
+            }
+            ext_modules = cythonize(
+                coeff_file,
+                compile_time_env=compile_time_env,
+                force=c_opt['recompile'],
+            )
+            setup(ext_modules=ext_modules)
         except Exception as e:
             raise Exception("Could not compile") from e
         finally:
