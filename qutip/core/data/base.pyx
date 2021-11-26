@@ -7,7 +7,7 @@ __all__ = [
     'idxint_dtype', 'Data', 'EfficiencyWarning',
 ]
 
-IF QUTIP_INTIDX_64:
+IF QUTIP_IDXINT_64:
     idxint_dtype = np.int64
     idxint_DTYPE = cnp.NPY_INT64
 ELSE:
