@@ -72,6 +72,12 @@ def _determine_user_arguments(options):
     )
     if "--with-openmp" in sys.argv:
         sys.argv.remove("--with-openmp")
+    options['intidx_64'] = (
+        '--with-intidx-64' in sys.argv
+        or _get_environment_bool('CI_QUTIP_WITH_INTIDX_64')
+    )
+    if "--with-intidx-64" in sys.argv:
+        sys.argv.remove("--with-intidx-64")
     return options
 
 
@@ -227,7 +233,10 @@ def create_extension_modules(options):
                              extra_compile_args=options['cflags'],
                              extra_link_args=options['ldflags'],
                              language='c++'))
-    return cythonize(out)
+    compile_time_env = {
+        "QUTIP_INTIDX_64": options["intidx_64"],
+    }
+    return cythonize(out, compile_time_env=compile_time_env)
 
 
 def print_epilogue():

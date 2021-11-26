@@ -7,8 +7,12 @@ __all__ = [
     'idxint_dtype', 'Data', 'EfficiencyWarning',
 ]
 
-idxint_dtype = np.int32
-idxint_DTYPE = cnp.NPY_INT32
+IF QUTIP_INTIDX_64:
+    idxint_dtype = np.int64
+    idxint_DTYPE = cnp.NPY_INT64
+ELSE:
+    idxint_dtype = np.int32
+    idxint_DTYPE = cnp.NPY_INT32
 
 # As this is an abstract base class with C entry points, we have to explicitly
 # stub out methods since we can't mark them as abstract.
