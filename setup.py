@@ -61,23 +61,28 @@ def _get_environment_bool(var, default=False):
     return from_env.lower() not in {'0', 'false', 'none', ''}
 
 
+def _parse_bool_user_argument(options, name):
+    """
+    Parse a single boolean option from the commandline or environment.
+    """
+    cmd_flag = "--with-" + name.lower().replace("_", "-")
+    env_var = "CI_QUTIP_WITH_" + name.upper()
+    options[name] = (
+        cmd_flag in sys.argv
+        or _get_environment_bool(env_var)
+    )
+    if cmd_flag in sys.argv:
+        sys.argv.remove(cmd_flag)
+    return options
+
+
 def _determine_user_arguments(options):
     """
     Add the 'openmp' option to the collection, based on the passed command-line
     arguments or environment variables.
     """
-    options['openmp'] = (
-        '--with-openmp' in sys.argv
-        or _get_environment_bool('CI_QUTIP_WITH_OPENMP')
-    )
-    if "--with-openmp" in sys.argv:
-        sys.argv.remove("--with-openmp")
-    options['idxint_64'] = (
-        '--with-idxint-64' in sys.argv
-        or _get_environment_bool('CI_QUTIP_WITH_IDXINT_64')
-    )
-    if "--with-idxint-64" in sys.argv:
-        sys.argv.remove("--with-idxint-64")
+    options = _parse_bool_user_argument(options, 'openmp')
+    options = _parse_bool_user_argument(options, 'idxint_64')
     return options
 
 
