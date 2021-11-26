@@ -37,6 +37,7 @@ import functools
 import numpy as np
 import qutip
 from qutip.core.data import CSR, Dense
+import qutip.core.data as _data
 
 # We want to test the broadcasting rules for `qutip.expect` for a whole bunch
 # of different systems, without having to repeatedly specify the systems over
@@ -182,3 +183,21 @@ def test_compatibility_with_solver(solve):
         assert isinstance(indirect_, np.ndarray)
         assert direct_.dtype == indirect_.dtype
         np.testing.assert_allclose(direct_, indirect_, atol=1e-12)
+
+
+def test_no_real_attribute(monkeypatch):
+    """This tests ensures that expect still works even if the output of a
+    specialisation does not have the ``real`` attribute. This is the case for
+    the tensorflow and cupy data layers."""
+
+    def mocker_expect_return(oper, state):
+        """
+        We simply return None which does not have the `real` attribute.
+        """
+        return "object without .real"
+
+    monkeypatch.setattr(_data, "expect", mocker_expect_return)
+
+    sz = qutip.sigmaz() # the choice of the matrix does not matter
+    assert "object without .real" == qutip.expect(sz, sz)
+
