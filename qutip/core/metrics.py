@@ -156,6 +156,7 @@ def process_fidelity(oper, target=None):
     channel, or to the identity channel if no target is given.
     The process fidelity between two channels is defined as the state
     fidelity between their normalized Choi matrices.
+
     Parameters
     ----------
     oper : :class:`qutip.Qobj`/list
