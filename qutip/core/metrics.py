@@ -165,6 +165,7 @@ def process_fidelity(oper, target=None):
     target : :class:`qutip.Qobj`/list
         A unitary operator, or a superoperator in supermatrix, Choi or
         chi-matrix form, or a list of Kraus operators
+
     Returns
     -------
     fid : float
