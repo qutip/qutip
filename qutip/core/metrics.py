@@ -169,6 +169,7 @@ def process_fidelity(oper, target=None):
     -------
     fid : float
         Process fidelity between oper and target, or between oper and identity.
+
     Notes
     -----
     See, for example: A. Gilchrist, N.K. Langford, M.A. Nielsen,
