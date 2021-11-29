@@ -318,7 +318,8 @@ cdef class _BlochRedfieldElement(_BaseElement):
             H = _EigenBasisTransform(QobjEvo(self.H.oper, args=args),
                                      type(self.H.oper) is CSR)
         new = _BlochRedfieldElement(
-            H, QobjEvo(self.a_op, args=args), self.spectra, self.sec_cutoff
+            H, QobjEvo(self.a_op, args=args),
+            self.spectra.replace_arguments(**args), self.sec_cutoff
         )
         cache.append((self, new))
         cache.append((self.H, H))

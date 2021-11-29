@@ -31,7 +31,7 @@ def bloch_redfield_tensor(H, a_ops, c_ops=[], use_secular=True, sec_cutoff=0.1,
         a_op : :class:`qutip.Qobj`, :class:`qutip.QobjEvo`
             The operator coupling to the environment. Must be hermitian.
 
-        spectra : :class:`Coefficient`, callable
+        spectra : :class:`Coefficient`
             The corresponding bath spectra.
             Can be a `Coefficient` using an 'w' args or a function of the
             frequence. The `SpectraCoefficient` can be used to use array based
