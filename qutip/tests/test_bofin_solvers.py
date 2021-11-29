@@ -720,12 +720,16 @@ class TestHEOMSolver:
         options = Options(
             nsteps=15_000, store_states=True, rtol=1e-7, atol=1e-7,
         )
-        bath = bath_cls(
-            dlm.Q, gamma=dlm.gamma, w=dlm.W, T=dlm.T, theta=dlm.theta,
+        bath_l = bath_cls(
+            dlm.Q, gamma=dlm.gamma, w=dlm.W, T=dlm.T, mu=dlm.theta / 2,
+            lmax=dlm.lmax,
+        )
+        bath_r = bath_cls(
+            dlm.Q, gamma=dlm.gamma, w=dlm.W, T=dlm.T, mu=- dlm.theta / 2,
             lmax=dlm.lmax,
         )
         # for a single impurity we converge with max_depth = 2
-        hsolver = HEOMSolver(dlm.H, bath, 2, options=options)
+        hsolver = HEOMSolver(dlm.H, [bath_r, bath_l], 2, options=options)
 
         tlist = [0, 600]
         result = hsolver.run(dlm.rho(), tlist, ado_return=True)

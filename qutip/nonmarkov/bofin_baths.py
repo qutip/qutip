@@ -755,19 +755,9 @@ class FermionicBath(Bath):
 
 
 class LorentzianBath(FermionicBath):
-    def __init__(self, Q, gamma, w, T, theta, lmax, tag=None):
-        mu_l = theta / 2.0
-        mu_r = - theta / 2.0
-
-        etapL, gampL = self._corr(gamma, w, T, lmax, 1.0, mu_l)
-        etamL, gammL = self._corr(gamma, w, T, lmax, -1.0, mu_l)
-        etapR, gampR = self._corr(gamma, w, T, lmax, 1.0, mu_r)
-        etamR, gammR = self._corr(gamma, w, T, lmax, -1.0, mu_r)
-
-        ck_plus = etapR + etapL
-        vk_plus = gampR + gampL
-        ck_minus = etamR + etamL
-        vk_minus = gammR + gammL
+    def __init__(self, Q, gamma, w, T, mu, lmax, tag=None):
+        ck_plus, vk_plus = self._corr(gamma, w, T, lmax, 1.0, mu)
+        ck_minus, vk_minus = self._corr(gamma, w, T, lmax, -1.0, mu)
 
         super().__init__(
             Q, ck_plus, vk_plus, ck_minus, vk_minus, tag=tag,
@@ -798,19 +788,9 @@ class LorentzianBath(FermionicBath):
 
 
 class LorentzianPadeBath(FermionicBath):
-    def __init__(self, Q, gamma, w, T, theta, lmax, tag=None):
-        mu_l = theta / 2.0
-        mu_r = - theta / 2.0
-
-        etapL, gampL = self._corr(gamma, w, T, lmax, 1.0, mu_l)
-        etamL, gammL = self._corr(gamma, w, T, lmax, -1.0, mu_l)
-        etapR, gampR = self._corr(gamma, w, T, lmax, 1.0, mu_r)
-        etamR, gammR = self._corr(gamma, w, T, lmax, -1.0, mu_r)
-
-        ck_plus = etapR + etapL
-        vk_plus = gampR + gampL
-        ck_minus = etamR + etamL
-        vk_minus = gammR + gammL
+    def __init__(self, Q, gamma, w, T, mu, lmax, tag=None):
+        ck_plus, vk_plus = self._corr(gamma, w, T, lmax, 1.0, mu)
+        ck_minus, vk_minus = self._corr(gamma, w, T, lmax, -1.0, mu)
 
         super().__init__(
             Q, ck_plus, vk_plus, ck_minus, vk_minus, tag=tag,
