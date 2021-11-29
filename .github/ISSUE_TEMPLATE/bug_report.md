@@ -37,6 +37,20 @@ Qobj data =
 <!-- Please use `qutip.about()` to get the information about your environment and paste it here. -->
 Output of `qutip.about()` -  
 
+```
+QuTiP Version:      ***
+Numpy Version:      ***
+Scipy Version:      ***
+Cython Version:     ***
+Matplotlib Version: ***
+Python Version:     ***
+Number of CPUs:     ***
+BLAS Info:          ***
+OPENMP Installed:   ***
+INTEL MKL Ext:      ***
+Platform Info:      ***
+```
+
 
 **Additional context**
 <!-- Add any other context about the problem here -->
