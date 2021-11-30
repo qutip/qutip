@@ -250,7 +250,7 @@ def choi_to_chi(q_oper):
 
 def chi_to_choi(q_oper):
     """
-    Converts a Choi matrix to a Chi matrix in the Pauli basis.
+    Converts a Chi matrix to a Choi matrix in the Pauli basis.
 
     NOTE: this is only supported for qubits right now. Need to extend to
     Heisenberg-Weyl for other subsystem dimensions.
