@@ -51,7 +51,7 @@ class MultiTrajSolver:
             seeds = np.random.SeedSequence(seed).spawn(ntraj)
         elif isinstance(seed, list) and len(seed) >= ntraj:
             seeds = [
-                seed_  if isinstance(seed_, np.random.SeedSequence)
+                seed_ if isinstance(seed_, np.random.SeedSequence)
                 else np.random.SeedSequence(seed_)
                 for seed_ in seed[:ntraj]
             ]
@@ -78,9 +78,9 @@ class MultiTrajSolver:
             than 1.
 
         seed : int, SeedSequence, list, {None}
-            Seed for the random number generator. It can be a single seed used to
-            spawn seeds for each trajectory or a list of seed, one for each
-            trajectory. 
+            Seed for the random number generator. It can be a single seed used
+            to spawn seeds for each trajectory or a list of seed, one for each
+            trajectory.
 
         safe_ODE : bool {None}
             Whether to safe the states in the ODE solver or in the solver.
@@ -162,8 +162,8 @@ class MultiTrajSolver:
         tlist : list of double
             Time for which to save the results (state and/or expect) of the
             evolution. The first element of the list is the initial time of the
-            evolution. Time in the list must be in increasing order, but does not
-            need to be uniformly distributed.
+            evolution. Time in the list must be in increasing order, but does
+            not need to be uniformly distributed.
 
         ntraj : int
             Number of trajectories to add.
@@ -183,7 +183,7 @@ class MultiTrajSolver:
 
         timeout : float, optional
             Maximum time in seconds for the trajectories to run. Once this time
-            is reached, the simulation will end even if the number 
+            is reached, the simulation will end even if the number
             of trajectories is less than ``ntraj``. The map function, set in
             options, can interupt the running trajectory or wait for it to
             finish. Set to ``0`` to disable.
@@ -240,7 +240,7 @@ class MultiTrajSolver:
 
         timeout : float, optional
             Maximum time in seconds for the trajectories to run. Once this time
-            is reached, the simulation will end even if the number 
+            is reached, the simulation will end even if the number
             of trajectories is less than ``ntraj``. The map function, set in
             options, can interupt the running trajectory or wait for it to
             finish. Set to ``0`` to disable
@@ -456,7 +456,7 @@ class _TrajectorySolver(Solver):
         self._integrator.set_state(tlist[0], _state)
 
         result = Result(e_ops, self.options.results,
-                        self.rhs.issuper, _state.shape[1]!=1)
+                        self.rhs.issuper, _state.shape[1] != 1)
         result.add(tlist[0], state)
         for t in tlist[1:]:
             t, state = self._step(t)

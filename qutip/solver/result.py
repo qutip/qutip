@@ -333,11 +333,11 @@ class MultiTrajResult:
 
         target_tol : float, list, [optional]
             Target tolerance of the evolution. The evolution will compute
-            trajectories until the error on the expectation values is lower than
-            this tolerance. The error is computed using jackknife resampling.
-            ``target_tol`` can be an absolute tolerance, a pair of absolute and
-            relative tolerance, in that order. Lastly, it can be a list of pairs of
-            (atol, rtol) for each e_ops.
+            trajectories until the error on the expectation values is lower
+            than this tolerance. The error is computed using jackknife
+            resampling. ``target_tol`` can be an absolute tolerance, a pair of
+            absolute and relative tolerance, in that order. Lastly, it can be a
+            list of pairs of (atol, rtol) for each e_ops.
         """
         self._target_tols = None
         self._tol_reached = False
@@ -399,7 +399,8 @@ class MultiTrajResult:
         avg = np.array(self.mean_expect)
         avg2 = np.array(self.mean_expect2)
         target = np.array([atol + rtol * mean
-                  for mean, (atol, rtol) in zip(avg, self._target_tols)])
+                          for mean, (atol, rtol)
+                          in zip(avg, self._target_tols)])
         traj_left = np.max((avg2 - abs(avg)**2) / target**2 - self._num + 1)
         self._tol_reached = traj_left < 0
         return traj_left
@@ -473,7 +474,7 @@ class MultiTrajResult:
         if not self._save_traj:
             return None
         result = [np.stack([traj._expects[i] for traj in self.trajectories])
-               for i in range(self.num_e_ops)]
+                  for i in range(self.num_e_ops)]
         return self._format_expect(result)
 
     def expect_traj_avg(self, ntraj=-1):
@@ -540,8 +541,8 @@ class MultiTrajResult:
                     cols[which] = [t]
         mesurement = []
         for i in range(self.num_c_ops):
-            mesurement += [(np.histogram(cols.get(i,[]), tlist)[0]
-                          / np.diff(tlist) / self._num)]
+            mesurement += [(np.histogram(cols.get(i, []), tlist)[0]
+                           / np.diff(tlist) / self._num)]
         return mesurement
 
     @property
@@ -555,7 +556,7 @@ class MultiTrajResult:
             for t, which in collapses:
                 cols[which].append(t)
             measurement = [(np.histogram(cols[i], tlist)[0] / np.diff(tlist))
-                          for i in range(self.num_c_ops)]
+                           for i in range(self.num_c_ops)]
             measurements.append(measurement)
         return measurements
 
