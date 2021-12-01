@@ -13,7 +13,7 @@ class MultiTrajSolver:
     Basic class for multi-trajectories evolutions.
 
     As :class:`Solver` it can ``run`` or ``step`` evolution.
-    It manage the random seed for each trajectory.
+    It manages the random seed for each trajectory.
 
     The actual evolution is done by a single trajectory solver::
         ``_traj_solver_class``
@@ -25,7 +25,7 @@ class MultiTrajSolver:
             d state / dt = rhs @ state
 
     options : SolverOptions
-        Options for the solver
+        Options for the solver.
     """
     _traj_solver_class = None
     name = "generic multi trajectory"
@@ -43,8 +43,8 @@ class MultiTrajSolver:
 
     def _read_seed(self, seed, ntraj):
         """
-        Read user provided seed(s) and produce one for each trajectories.
-        Let numpy raise error for input that cannot be seeds.
+        Read user provided seed(s) and produce one for each trajectory.
+        Let numpy raise error for inputs that cannot be seeds.
         """
         if seed is None:
             seeds = self.seed_sequence.spawn(ntraj)
@@ -81,9 +81,9 @@ class MultiTrajSolver:
             than 1.
 
         seed : int, SeedSequence, list, {None}
-            Seed for the random number generator. It can be a single seed used
-            to spawn seeds for each trajectories or a list of seed, one for
-            each trajectories.
+            Seed for the random number generator. It can be a single seed used to
+            spawn seeds for each trajectory or a list of seed, one for each
+            trajectory. 
 
         safe_ODE : bool {None}
             Whether to safe the states in the ODE solver or in the solver.
@@ -154,8 +154,8 @@ class MultiTrajSolver:
         tlist : list of double
             Time for which to save the results (state and/or expect) of the
             evolution. The first element of the list is the initial time of the
-            evolution. Each times of the list must be increasing, but does not
-            need to be uniformy distributed.
+            evolution. Time in the list must be in increasing order, but does not
+            need to be uniformly distributed.
 
         ntraj : int
             Number of trajectories to add.
@@ -174,9 +174,9 @@ class MultiTrajSolver:
             can be used.
 
         timeout : float, optional
-            Maximum time in second for the trajectories to run. Once this time
-            is reached, the simulation will end even if ``ntraj`` new
-            trajectories have not been computed. The map function, set in
+            Maximum time in seconds for the trajectories to run. Once this time
+            is reached, the simulation will end even if the number 
+            of trajectories is less than ``ntraj``. The map function, set in
             options, can interupt the running trajectory or wait for it to
             finish. Set to ``0`` to disable.
 
@@ -223,11 +223,11 @@ class MultiTrajSolver:
             Number of trajectories to add.
 
         timeout : float, optional
-            Maximum time in second for the trajectories to run. Once this time
-            is reached, the simulation will end even if ``ntraj`` new
-            trajectories have not been computed. The map function, set in
+            Maximum time in seconds for the trajectories to run. Once this time
+            is reached, the simulation will end even if the number 
+            of trajectories is less than ``ntraj``. The map function, set in
             options, can interupt the running trajectory or wait for it to
-            finish. Set to ``0`` to disable.
+            finish. Set to ``0`` to disable
 
         target_tol : {float, tuple, list}, optional
             If a float, it is read as absolute tolerance.
@@ -296,8 +296,8 @@ class _TrajectorySolver(Solver):
     :method:`start`, and :method:`run` take and extra ``seed`` keyword
     argument to initiate the random number generator.
 
-    Evolution between times is done by the :method:`_step` which need to be
-    implemented for the solver problem (indclude collapse in mcsolve, etc.).
+    Evolution between times is done by the :method:`_step` which needs to be
+    implemented for the solver problem (include collapse in mcsolve, etc.).
     An :class:`Integrator` is initiated using `rhs` before calling `_step`.
 
     A new :method:`_argument` is used to update the args in `rhs` and other
