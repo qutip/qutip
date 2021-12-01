@@ -189,109 +189,24 @@ class MultiTrajResult:
     ntraj : int
         Number of trajectories expected.
 
+    state : Qobj
+        Initial state of the evolution.
+
+    tlist : array_like
+        Times at which the expectation results are desired.
+
     e_ops : Qobj, QobjEvo, callable or iterable of these.
         list of Qobj or QobjEvo to compute the expectation values.
         Alternatively, function[s] with the signature f(t, state) -> expect
         can be used.
 
-    c_ops : list [optional]
-        Collapse operator if used. Used to compute the photocurrent.
+    solver_id : int, [optional]
+        Identifier of the Solver creating the object.
 
-    target_tol : float, list, [optional]
-        Target tolerance of the evolution. The evolution will compute
-        trajectories until the error on the expectation values is lower than
-        this tolerance. The error is computed using jackknife resampling.
-        ``target_tol`` can be an absolute tolerance, a pair of absolute and
-        relative tolerance, in that order. Lastly, it can be a list of pairs of
-        (atol, rtol) for each e_ops.
-
-    options : SolverResultsOptions
+    options : SolverResultsOptions, [optional]
         Options conserning result to save.
-
-    Property
-    --------
-    states : list of Qobj
-        Average state for each time. (density matrix)
-
-    runs_states : list of list of Qobj
-        Every state of the evolution for each trajectories. (ket)
-
-    average_states : list of Qobj
-        Average state for each time. (density matrix)
-
-    final_state : Qobj
-        Average last state. (density matrix)
-
-    runs_final_states : Qobj
-        Average last state for each trajectories. (ket)
-
-    average_final_state : Qobj
-        Average last state. (density matrix)
-
-    steady_state : Qobj
-        Average state of each time and trajectories. (density matrix)
-
-    expect : list, dict
-        List or dict of list of averaged expectation values.
-
-    runs_expect : list of list of list of number
-        Expectation values for each [e_ops, trajectory, time]
-
-    average_expect : list of list of number
-        Averaged expectation values over trajectories.
-
-    std_expect : list of list of number
-        Standard derivation of each averaged expectation values.
-
-    times : list
-        List of the times at which the expectation values and
-        states where taken.
-
-    stats :
-        Diverse statistics of the evolution.
-
-    num_expect : int
-        Number of expectation value operators in simulation.
-
-    num_collapse : int
-        Number of collapse operators in simualation.
-
-    num_traj : int/list
-        Number of trajectories (for stochastic solvers). A list indicates
-        that averaging of expectation values was done over a subset of total
-        number of trajectories.
-
-    col_times : list
-        Times at which state collpase occurred. Only for Monte Carlo solver.
-
-    col_which : list
-        Which collapse operator was responsible for each collapse in
-        ``col_times``. Only for Monte Carlo solver.
-
-    collapse : list
-        Each collapse per trajectory as a (time, which_oper)
-
-    photocurrent : list
-        Average photocurrent corresponding to each collapse operator.
-
-    measurements : list
-        The photocurrent measurement of each trajectories.
-
-    end_condition : string
-        Indication on how the evolution ended, whether the desired number of
-        trajectories where computed, the tolerance was reached or it timed out.
-
-    Methods
-    -------
-    expect_traj_avg(ntraj):
-        Averaged expectation values over `ntraj` trajectories.
-
-    expect_traj_std(ntraj):
-        Standard derivation of expectation values over `ntraj` trajectories.
-        Last state of each trajectories. (ket)
     """
-    def __init__(self, ntraj, e_ops=None, c_ops=None,
-                 target_tol=None, options=None):
+    def __init__(self, ntraj, state, tlist, e_ops, solver_id=0, options=None):
         """
         Parameters:
         -----------
@@ -299,6 +214,9 @@ class MultiTrajResult:
             Number of collapses operator used in the McSolver
         """
         self.options = copy(options) or SolverResultsOptions()
+        self.initial_state = state
+        self.tlist = tlist
+        self.solver_id = solver_id
         self._save_traj = self.options['keep_runs_results']
         self.trajectories = []
         self._sum_states = None
@@ -311,18 +229,18 @@ class MultiTrajResult:
         self.num_e_ops = len(e_ops or ())
         self.e_ops = e_ops
         self._e_ops_dict = e_ops if isinstance(e_ops, dict) else False
-        self.num_c_ops = len(c_ops or ())
+        self.num_c_ops = 0
         self._target_ntraj = ntraj
         self._num = 0
         self._collapse = []
-        self.traj_batch = 0
         self.seeds = []
         self.stats = {
             "num_expect": self.num_e_ops,
             "solver": "",
             "method": "",
         }
-        self._set_expect_tol(target_tol)
+        self._target_tols = None
+        self._tol_reached = False
 
     def add(self, one_traj):
         """
@@ -398,7 +316,7 @@ class MultiTrajResult:
         else:
             return np.inf
 
-    def _set_expect_tol(self, target_tol):
+    def set_expect_tol(self, target_tol):
         """
         Set the capacity to stop the map when the estimated error on the
         expectation values is within given tolerance.
@@ -410,6 +328,16 @@ class MultiTrajResult:
             If a pair of float: absolute and relative tolerance in that order.
             Lastly, target_tol can be a list of pairs of (atol, rtol) for each
             e_ops.
+
+
+
+        target_tol : float, list, [optional]
+            Target tolerance of the evolution. The evolution will compute
+            trajectories until the error on the expectation values is lower than
+            this tolerance. The error is computed using jackknife resampling.
+            ``target_tol`` can be an absolute tolerance, a pair of absolute and
+            relative tolerance, in that order. Lastly, it can be a list of pairs of
+            (atol, rtol) for each e_ops.
         """
         self._target_tols = None
         self._tol_reached = False
@@ -652,7 +580,7 @@ class MultiTrajResult:
 
     @property
     def times(self):
-        return self.trajectories[0].times
+        return self.tlist
 
     @property
     def states(self):
@@ -660,10 +588,7 @@ class MultiTrajResult:
 
     @property
     def expect(self):
-        if self.traj_batch and self._save_traj:
-            return [self.expect_traj_avg(N) for N in self.traj_batch]
-        else:
-            return self.average_expect
+        return self.average_expect
 
     @property
     def final_state(self):
@@ -671,7 +596,7 @@ class MultiTrajResult:
 
     @property
     def num_traj(self):
-        return self.traj_batch or self._num
+        return self._num
 
     @property
     def num_expect(self):

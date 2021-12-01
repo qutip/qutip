@@ -172,7 +172,7 @@ class SolverResultsOptions:
         On `None` the states will be saved if no expectation operators are
         given.
 
-    normalize_output : str {"", "ket", "all"}
+    normalize_output : bool, str {"", "ket", "all"}
         normalize output state to hide ODE numerical errors.
         "all" will normalize both ket and dm.
         On "ket", only 'ket' output are normalized.

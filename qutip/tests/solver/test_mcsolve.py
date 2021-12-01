@@ -348,26 +348,6 @@ class TestSeeds:
                                                     second.col_which))
 
 
-def test_list_ntraj():
-    """Test that `ntraj` can be a list."""
-    size = 5
-    a = qutip.destroy(size)
-    H = qutip.num(size)
-    state = qutip.basis(size, 1)
-    times = np.linspace(0, 0.8, 100)
-    # Arbitrary coupling and bath temperature.
-    coupling = 1 / 0.129
-    n_th = 0.063
-    c_ops = [np.sqrt(coupling * (n_th + 1)) * a,
-             np.sqrt(coupling * n_th) * a.dag()]
-    e_ops = {0: qutip.num(size)}
-    ntraj = [1, 5, 15, 100]
-    mc = mcsolve(H, state, times, c_ops, e_ops, ntraj=ntraj,
-                 options={'map': 'serial'})
-    assert len(ntraj) == len(mc.expect)
-    assert isinstance(mc.expect[0], dict)
-
-
 def test_timeout():
     size = 10
     ntraj = 1000
@@ -415,7 +395,7 @@ def test_McSolver_run():
     assert len(res.collapse[0]) != 0
     assert res.num_traj == 1
     np.testing.assert_allclose(res.expect[0], np.ones(11))
-    res = solver.add_trajectories(ntraj=1000, target_tol=0.1)
+    res = solver.add_trajectories(res, ntraj=1000, target_tol=0.1)
     assert res.num_traj > 1
     assert res.num_traj < 1000
 

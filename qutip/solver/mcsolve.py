@@ -12,7 +12,7 @@ import qutip.core.data as _data
 from time import time
 
 
-def mcsolve(H, psi0, tlist, c_ops=None, e_ops=None, ntraj=1, *,
+def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=1, *,
             args=None, options=None, seeds=None, target_tol=None, timeout=0):
     r"""
     Monte Carlo evolution of a state vector :math:`|\psi \rangle` for a
@@ -27,26 +27,28 @@ def mcsolve(H, psi0, tlist, c_ops=None, e_ops=None, ntraj=1, *,
         documentation). ``H`` can be a superoperator (liouvillian) if some
         collapse operators are to be treated deterministically.
 
-    psi0 : :class:`qutip.Qobj`
+    state : :class:`qutip.Qobj`
         Initial state vector
 
     tlist : array_like
         Times at which results are recorded.
+
+    c_ops : list
+        A ``list`` of collapse operators in any input type that QobjEvo accepts
+        (see :class:`qutip.QobjEvo`'s documentation). They must be operators
+        even if ``H`` is a superoperator. If none are given, the solver will
+        defer to ``sesolve`` or ``mesolve``.
+
+    e_ops : list, [optional]
+        A ``list`` of operator as Qobj, QobjEvo or callable with signature of
+        (t, state: Qobj) for calculating expectation values. When no ``e_ops``
+        are given, the solver will default to save the states.
 
     ntraj : int
         Maximum number of trajectories to run. Can be cut short if a time limit
         is passed in options (per default, mcsolve will stop after 1e8 sec)::
             ``options.mcsolve['map_options']['timeout'] = max_sec``
         Or if the target tolerance is reached, see ``target_tol``.
-
-    c_ops : ``list``
-        A ``list`` of collapse operators. They must be operators even if ``H``
-        is a superoperator.
-
-    e_ops : ``list``, [optional]
-        A ``list`` of operator as Qobj, QobjEvo or callable with signature of
-        (t, state: Qobj) for calculating expectation values. When no ``e_ops``
-        are given, the solver will default to save the states.
 
     args : dict, [optional]
         Arguments for time-dependent Hamiltonian and collapse operator terms.
@@ -80,28 +82,21 @@ def mcsolve(H, psi0, tlist, c_ops=None, e_ops=None, ntraj=1, *,
         and ``photocurrent`` is available to Monte Carlo simulation results.
     """
     H = QobjEvo(H, args=args, tlist=tlist)
-    c_ops = c_ops if c_ops is not None else []
     if not isinstance(c_ops, (list, tuple)):
         c_ops = [c_ops]
     c_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in c_ops]
 
     if len(c_ops) == 0:
-        return mesolve(H, psi0, tlist, e_ops=e_ops, args=args, options=options)
+        return mesolve(H, state, tlist, e_ops=e_ops, args=args,
+                       options=options)
 
     if isinstance(ntraj, list):
-        if isinstance(options, dict):
-            options = SolverOptions(**options)
-        options = copy(options) or SolverOptions()
-        options.results['keep_runs_results'] = True
-        max_ntraj = max(ntraj)
-    else:
-        max_ntraj = ntraj
+        raise TypeError("No longer supported, use `result.expect_traj_avg`"
+                        "with the options `keep_runs_results=True`.")
 
     mc = McSolver(H, c_ops, options=options)
-    result = mc.run(psi0, tlist=tlist, ntraj=max_ntraj, e_ops=e_ops,
+    result = mc.run(state, tlist=tlist, ntraj=ntraj, e_ops=e_ops,
                     seed=seeds, target_tol=target_tol, timeout=timeout)
-    if isinstance(ntraj, list):
-        result.traj_batch = ntraj
     return result
 
 
@@ -112,26 +107,25 @@ class _McTrajectorySolver(_TrajectorySolver):
     name = "mcsolve"
     _avail_integrators = {}
 
-    def __init__(self, parent, *, options=None):
-        rhs = parent.rhs
-        self._c_ops = parent._c_ops
-        self._n_ops = parent._n_ops
-        super().__init__(rhs, options=options)
+    def __init__(self, rhs, c_ops, n_ops, *, options=None, _prepare=False):
+        self._c_ops = c_ops
+        self._n_ops = n_ops
+        super().__init__(rhs, options=options, _prepare=_prepare)
 
-    def _run(self, seed, state0, tlist, e_ops):
+    def _run(self, seed, state, tlist, e_ops):
         self.collapses = []
-        self._set_generator(seed)
+        self.generator = self.get_generator(seed)
         self.target_norm = self.generator.random()
-        result = super()._run(self.generator, state0, tlist, e_ops)
+        result = super()._run(self.generator, state, tlist, e_ops)
         result.collapse = list(self.collapses)
         result.seed = seed
         return result
 
-    def start(self, state0, t0, seed=None, *, safe_ODE=None):
+    def start(self, state, t0, seed=None, *, safe_ODE=None):
         self.collapses = []
-        self._set_generator(seed)
+        self.generator = self.get_generator(seed)
         self.target_norm = self.generator.random()
-        super().start(state0, t0, seed=self.generator, safe_ODE=safe_ODE)
+        super().start(state, t0, seed=self.generator, safe_ODE=safe_ODE)
 
     def prob_func(self, state):
         if self.rhs.issuper:
@@ -163,8 +157,6 @@ class _McTrajectorySolver(_TrajectorySolver):
         """Find and apply a collapse."""
         t_final, _ = self._integrator.get_state()
         tries = 0
-        #print(self.target_norm)
-        #print(self.rhs(0))
         while tries < self.options.mcsolve['norm_steps']:
             tries += 1
             if (t_final - t_prev) < self.options.mcsolve['norm_t_tol']:
@@ -181,9 +173,6 @@ class _McTrajectorySolver(_TrajectorySolver):
                 t_guess = t_prev + self.options.mcsolve['norm_t_tol']
             _, state = self._integrator.mcstep(t_guess, copy=False)
             norm2_guess = self.prob_func(state)
-            #print(t_prev, t_guess, t_final)
-            #print(norm_old, norm2_guess, norm)
-            #print(state.to_array())
             if (
                 np.abs(self.target_norm - norm2_guess) <
                 self.options.mcsolve['norm_tol'] * self.target_norm
@@ -243,14 +232,15 @@ class McSolver(MultiTrajSolver):
     Parameters
     ----------
     H : :class:`qutip.Qobj`, :class:`qutip.QobjEvo`, ``list``, callable.
-        System Hamiltonian as a Qobj, QobjEvo, can also be a function or list
-        that can be made into a Qobjevo. (See :class:`qutip.QobjEvo`'s
-        documentation). ``H`` can be a superoperator (liouvillian) if some
-        collapse operators are to be treated deterministicly.
+        System Hamiltonian as a Qobj, QobjEvo. It can also be any input type
+        that QobjEvo accepts (see :class:`qutip.QobjEvo`'s documentation).
+        ``H`` can also be a superoperator (liouvillian) if some collapse
+        operators are to be treated deterministically.
 
-    c_ops : ``list``
-        A ``list`` of collapse operators. They must be operators even if ``H``
-        is a superoperator.
+    c_ops : list
+        A ``list`` of collapse operators in any input type that QobjEvo accepts
+        (see :class:`qutip.QobjEvo`'s documentation). They must be operators
+        even if ``H`` is a superoperator.
 
     options : SolverOptions, [optional]
         Options for the evolution.
@@ -288,27 +278,16 @@ class McSolver(MultiTrajSolver):
             for n_op in self._n_ops:
                 rhs -= 0.5 * n_op
 
-        super().__init__(rhs, self._c_ops, options=options)
+        super().__init__(rhs, options=options)
 
         self.stats['solver'] = "MonteCarlo Evolution"
         self.stats['num_collapse'] = len(c_ops)
         self.stats["preparation time"] = time() - _time_start
 
-    @property
-    def options(self):
-        return self._options
-
-    @options.setter
+    @MultiTrajSolver.options.setter
     def options(self, new):
-        if new is None:
-            new = self.optionsclass()
-        elif isinstance(new, dict):
-            new = self.optionsclass(**new)
-        elif not isinstance(new, self.optionsclass):
-            raise TypeError("options must be an instance of" +
-                            str(self.optionsclass))
-        new.results['normalize_output'] = False
-        self._options = new
+        super(McSolver, self.__class__).options.fset(self, new)
+        self.options.results['normalize_output'] = False
 
     def _argument(self, args):
         self.rhs.arguments(args)
@@ -316,3 +295,17 @@ class McSolver(MultiTrajSolver):
             c_op.arguments(args)
         for n_op in self._n_ops:
             n_op.arguments(args)
+
+    @property
+    def traj_args(self):
+        return (self.rhs, self._c_ops, self._n_ops)
+
+    def run(self, state, tlist, ntraj=1, *, args=None, options=None,
+            e_ops=(), timeout=0, target_tol=None, seed=None):
+        result = super().run(
+            state, tlist, ntraj, e_ops=e_ops,
+            args=args, options=options, seed=seed,
+            timeout=timeout, target_tol=target_tol,
+        )
+        result.num_c_ops = len(self._c_ops)
+        return result
