@@ -22,13 +22,13 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=1, *,
     Parameters
     ----------
     H : :class:`qutip.Qobj`, :class:`qutip.QobjEvo`, ``list``, callable.
-        System Hamiltonian as a Qobj, QobjEvo, can also be a function or list
-        that can be made into a Qobjevo. (See :class:`qutip.QobjEvo`'s
-        documentation). ``H`` can be a superoperator (liouvillian) if some
-        collapse operators are to be treated deterministically.
+        System Hamiltonian as a Qobj, QobjEvo. It can also be any input type
+        that QobjEvo accepts (see :class:`qutip.QobjEvo`'s documentation).
+        ``H`` can also be a superoperator (liouvillian) if some collapse
+        operators are to be treated deterministically.
 
     state : :class:`qutip.Qobj`
-        Initial state vector
+        Initial state vector.
 
     tlist : array_like
         Times at which results are recorded.
@@ -58,15 +58,15 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=1, *,
 
     seeds : int, SeedSequence, list, [optional]
         Seed for the random number generator. It can be a single seed used to
-        spawn seeds for each trajectories or a list of seed, one for each
-        trajectories. Seed are saved in the result, they can be reused with::
+        spawn seeds for each trajectory or a list of seeds, one for each
+        trajectory. Seeds are saved in the result and they can be reused with::
             seeds=prev_result.seeds
 
     target_tol : float, list, [optional]
         Target tolerance of the evolution. The evolution will compute
         trajectories until the error on the expectation values is lower than
         this tolerance. The error is computed using jackknife resampling.
-        ``target_tol`` can be an absolute tolerance, a pair of absolute and
+        ``target_tol`` can be an absolute tolerance or a pair of absolute and
         relative tolerance, in that order. Lastly, it can be a list of pairs of
         (atol, rtol) for each e_ops.
 
@@ -78,7 +78,7 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=1, *,
     -------
     results : :class:`qutip.solver.Result`
         Object storing all results from the simulation. Which results is saved
-        depend on the presence of ``e_ops`` and the options used. ``collapse``
+        depends on the presence of ``e_ops`` and the options used. ``collapse``
         and ``photocurrent`` is available to Monte Carlo simulation results.
     """
     H = QobjEvo(H, args=args, tlist=tlist)
@@ -224,7 +224,7 @@ class _McTrajectorySolver(_TrajectorySolver):
 # MONTE CARLO CLASS
 # -----------------------------------------------------------------------------
 class McSolver(MultiTrajSolver):
-    """
+    r"""
     Monte Carlo Solver of a state vector :math:`|\psi \rangle` for a
     given Hamiltonian and sets of collapse operators. Options for the
     underlying ODE solver are given by the Options class.
@@ -247,8 +247,8 @@ class McSolver(MultiTrajSolver):
 
     seed : int, SeedSequence, list, [optional]
         Seed for the random number generator. It can be a single seed used to
-        spawn seeds for each trajectories or a list of seed, one for each
-        trajectories. Seed are saved in the result, they can be reused with::
+        spawn seeds for each trajectory or a list of seed, one for each
+        trajectory. Seeds are saved in the result and can be reused with::
             seeds=prev_result.seeds
     """
     _traj_solver_class = _McTrajectorySolver
@@ -274,7 +274,7 @@ class McSolver(MultiTrajSolver):
         else:
             self._c_ops = c_ops
             self._n_ops = [c_op.dag() * c_op for c_op in c_ops]
-            rhs = -1j* QobjEvo(H)
+            rhs = -1j * QobjEvo(H)
             for n_op in self._n_ops:
                 rhs -= 0.5 * n_op
 
