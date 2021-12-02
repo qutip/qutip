@@ -87,10 +87,10 @@ We may the pass these parameters to either ``DrudeLorentzBath`` or
     Nk = 2
 
     # Matsubara expansion:
-    bath = DrudeLorentzBath(Q, lam, T, Nk, gamma)
+    bath = DrudeLorentzBath(Q, lam, gamma, T, Nk)
 
     # Padé expansion:
-    bath = DrudeLorentzPadeBath(Q, lam, T, Nk, gamma)
+    bath = DrudeLorentzPadeBath(Q, lam, gamma, T, Nk)
 
 Where ``Nk`` is the number of terms to retain within the expansion of the
 bath.
@@ -212,19 +212,24 @@ a means of calculating the terminator for a given expansion:
     :nofigs:
 
     # Matsubara expansion:
-    bath = DrudeLorentzBath(Q, lam, T, Nk, gamma, terminator=True)
+    bath = DrudeLorentzBath(Q, lam, gamma, T, Nk)
 
     # Padé expansion:
-    bath = DrudeLorentzPadeBath(Q, lam, T, Nk, gamma, terminator=True)
+    bath = DrudeLorentzPadeBath(Q, lam, gamma, T, Nk)
 
     # Add terminator to the system Liouvillian:
-    HL = liouvillian(H_sys) + bath.terminator
+    delta, terminator = bath.terminator()
+    HL = liouvillian(H_sys) + terminator
 
     # Construct solver:
     solver = HEOMSolver(HL, bath, max_depth=max_depth, options=options)
 
 This captures the Markovian effect of the remaining terms in the expansion
 without having to fully model many more terms.
+
+The value ``delta`` is an approximation to the strength of the effect of
+the remaining terms in the expansion (i.e. how strongly the terminator is
+coupled to the rest of the system).
 
 
 Matsubara expansion coefficients
@@ -356,7 +361,7 @@ occurs:
     baths = []
     for i in range(N_sys):
         Q = proj(i, i)
-        baths.append(DrudeLorentzBath(Q, lam, T, Nk, gamma, terminator=True))
+        baths.append(DrudeLorentzBath(Q, lam, gamma, T, Nk))
 
     # Construct the system Liouvillian from the system Hamiltonian and
     # bath expansion terminators:
@@ -366,7 +371,7 @@ occurs:
       for i in range(N_sys) for j in range(N_sys)
       if i != j
     )
-    HL = liouvillian(H_sys) + sum(bath.terminator for bath in baths)
+    HL = liouvillian(H_sys) + sum(bath.terminator()[1] for bath in baths)
 
     # Construct the solver (pass a list of baths):
     solver = HEOMSolver(HL, baths, max_depth=max_depth, options=options)
