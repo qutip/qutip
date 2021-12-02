@@ -325,15 +325,15 @@ class DrudeLorentzBath(BosonicBath):
     lam : float
         Coupling strength.
 
+    gamma : float
+        Bath spectral density cutoff frequency.
+
     T : float
         Bath temperature.
 
     Nk : int
         Number of exponential terms used to approximate the bath correlation
         functions.
-
-    gamma : float
-        Bath spectral density cutoff frequency.
 
     terminator : bool, default False
         Whether to calculate the Matsubara terminator for the bath. If
@@ -367,13 +367,13 @@ class DrudeLorentzBath(BosonicBath):
         where ``dirac(t)`` denotes the Dirac delta function.
     """
     def __init__(
-        self, Q, lam, T, Nk, gamma, terminator=False, combine=True, tag=None,
+        self, Q, lam, gamma, T, Nk, terminator=False, combine=True, tag=None,
     ):
         ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(
             lam=lam,
             gamma=gamma,
-            Nk=Nk,
             T=T,
+            Nk=Nk,
         )
 
         super().__init__(
@@ -407,7 +407,7 @@ class DrudeLorentzBath(BosonicBath):
         L_bnd = -delta * op
         return delta, L_bnd
 
-    def _matsubara_params(self, lam, gamma, Nk, T):
+    def _matsubara_params(self, lam, gamma, T, Nk):
         """ Calculate the Matsubara coefficents and frequencies. """
         ck_real = [lam * gamma / np.tan(gamma / (2 * T))]
         ck_real.extend([
@@ -452,15 +452,15 @@ class DrudeLorentzPadeBath(BosonicBath):
     lam : float
         Coupling strength.
 
+    gamma : float
+        Bath spectral density cutoff frequency.
+
     T : float
         Bath temperature.
 
     Nk : int
         Number of Padé exponentials terms used to approximate the bath
         correlation functions.
-
-    gamma : float
-        Bath spectral density cutoff frequency.
 
     terminator : bool, default False
         Whether to calculate the Padé terminator for the bath. If true, the
@@ -494,7 +494,7 @@ class DrudeLorentzPadeBath(BosonicBath):
         where ``dirac(t)`` denotes the Dirac delta function.
     """
     def __init__(
-        self, Q, lam, T, Nk, gamma, terminator=False, combine=True, tag=None
+        self, Q, lam, gamma, T, Nk, terminator=False, combine=True, tag=None
     ):
         eta_p, gamma_p = self._corr(lam=lam, gamma=gamma, T=T, Nk=Nk)
 
@@ -594,18 +594,18 @@ class UnderDampedBath(BosonicBath):
     lam : float
         Coupling strength.
 
+    gamma : float
+        Bath spectral density cutoff frequency.
+
+    w0 : float
+        Bath spectral density resonance frequency.
+
     T : float
         Bath temperature.
 
     Nk : int
         Number of exponential terms used to approximate the bath correlation
         functions.
-
-    gamma : float
-        Bath spectral density cutoff frequency.
-
-    w0 : float
-        Bath spectral density resonance frequency.
 
     combine : bool, default True
         Whether to combine exponents with the same frequency (and coupling
@@ -617,21 +617,21 @@ class UnderDampedBath(BosonicBath):
         bath an exponent is from.
     """
     def __init__(
-        self, Q, lam, T, Nk, gamma, w0, combine=True, tag=None,
+        self, Q, lam, gamma, w0, T, Nk, combine=True, tag=None,
     ):
         ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(
             lam=lam,
             gamma=gamma,
             w0=w0,
-            Nk=Nk,
             T=T,
+            Nk=Nk,
         )
 
         super().__init__(
             Q, ck_real, vk_real, ck_imag, vk_imag, combine=combine, tag=tag,
         )
 
-    def _matsubara_params(self, lam, gamma, w0, Nk, T):
+    def _matsubara_params(self, lam, gamma, w0, T, Nk):
         """ Calculate the Matsubara coefficents and frequencies. """
         beta = 1/T
         Om = np.sqrt(w0**2 - (gamma/2)**2)
@@ -777,11 +777,11 @@ class LorentzianBath(FermionicBath):
     w : float
         The width of the environment.
 
-    T : float
-        Bath temperature.
-
     mu : float
         The chemical potential of the bath.
+
+    T : float
+        Bath temperature.
 
     Nk : int
         Number of exponential terms used to approximate the bath correlation
@@ -792,15 +792,15 @@ class LorentzianBath(FermionicBath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
-    def __init__(self, Q, gamma, w, T, mu, Nk, tag=None):
-        ck_plus, vk_plus = self._corr(gamma, w, T, Nk, 1.0, mu)
-        ck_minus, vk_minus = self._corr(gamma, w, T, Nk, -1.0, mu)
+    def __init__(self, Q, gamma, w, mu, T, Nk, tag=None):
+        ck_plus, vk_plus = self._corr(gamma, w, mu, T, Nk, sigma=1.0)
+        ck_minus, vk_minus = self._corr(gamma, w, mu, T, Nk, sigma=-1.0)
 
         super().__init__(
             Q, ck_plus, vk_plus, ck_minus, vk_minus, tag=tag,
         )
 
-    def _corr(self, gamma, w, T, Nk, sigma, mu):
+    def _corr(self, gamma, w, mu, T, Nk, sigma):
         beta = 1. / T
         kappa = [0.]
         kappa.extend([1. for _ in range(1, Nk + 1)])
@@ -808,7 +808,6 @@ class LorentzianBath(FermionicBath):
         epsilon.extend([(2 * ll - 1) * np.pi for ll in range(1, Nk + 1)])
 
         def f(x):
-            # kB = 1.0
             return 1 / (np.exp(x) + 1)
 
         eta_list = [0.5 * gamma * w * f(1.0j * beta * w)]
@@ -856,11 +855,11 @@ class LorentzianPadeBath(FermionicBath):
     w : float
         The width of the environment.
 
-    T : float
-        Bath temperature.
-
     mu : float
         The chemical potential of the bath.
+
+    T : float
+        Bath temperature.
 
     Nk : int
         Number of exponential terms used to approximate the bath correlation
@@ -871,15 +870,15 @@ class LorentzianPadeBath(FermionicBath):
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
     """
-    def __init__(self, Q, gamma, w, T, mu, Nk, tag=None):
-        ck_plus, vk_plus = self._corr(gamma, w, T, Nk, 1.0, mu)
-        ck_minus, vk_minus = self._corr(gamma, w, T, Nk, -1.0, mu)
+    def __init__(self, Q, gamma, w, mu, T, Nk, tag=None):
+        ck_plus, vk_plus = self._corr(gamma, w, mu, T, Nk, sigma=1.0)
+        ck_minus, vk_minus = self._corr(gamma, w, mu, T, Nk, sigma=-1.0)
 
         super().__init__(
             Q, ck_plus, vk_plus, ck_minus, vk_minus, tag=tag,
         )
 
-    def _corr(self, gamma, w, T, Nk, sigma, mu):
+    def _corr(self, gamma, w, mu, T, Nk, sigma):
         beta = 1. / T
         kappa, epsilon = self._kappa_epsilon(Nk)
 
