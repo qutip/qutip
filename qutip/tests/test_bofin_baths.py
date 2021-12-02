@@ -14,6 +14,8 @@ from qutip.nonmarkov.bofin_baths import (
     DrudeLorentzPadeBath,
     UnderDampedBath,
     FermionicBath,
+    LorentzianBath,
+    LorentzianPadeBath,
 )
 
 
@@ -349,3 +351,93 @@ class TestFermionicBath:
             "The bath exponent lists ck_plus and vk_plus, and ck_minus and"
             " vk_minus must be the same length."
         )
+
+
+class TestLorentzianBath:
+    def test_create(self):
+        Q = sigmaz()
+        ck_plus = [
+            0.0025-0.0013376935246402686j,
+            -0.00026023645770006167j,
+            -0.0002748355116913478j,
+        ]
+        vk_plus = [
+            1+1j,
+            0.08121642500626945+1j,
+            0.24364927501880834+1j,
+        ]
+        ck_minus = [
+            0.0025-0.0013376935246402686j,
+            -0.00026023645770006167j,
+            -0.0002748355116913478j,
+        ]
+        vk_minus = [
+            1-1j,
+            0.08121642500626945-1j,
+            0.24364927501880834-1j,
+        ]
+
+        bath = LorentzianBath(
+            Q=Q, gamma=0.01, w=1, mu=-1, T=0.025851991, Nk=2, tag="bath1",
+        )
+        assert len(bath.exponents) == 6
+        for i in range(len(ck_plus)):
+            exp_p = bath.exponents[2 * i]
+            exp_m = bath.exponents[2 * i + 1]
+            check_exponent(
+                exp_p, "+", dim=2, Q=Q,
+                ck=ck_plus[i], vk=vk_plus[i],
+                sigma_bar_k_offset=1,
+                tag="bath1",
+            )
+            check_exponent(
+                exp_m, "-", dim=2, Q=Q,
+                ck=ck_minus[i], vk=vk_minus[i],
+                sigma_bar_k_offset=-1,
+                tag="bath1",
+            )
+
+
+class TestLorentzianPadeBath:
+    def test_create(self):
+        Q = sigmaz()
+        ck_plus = [
+            0.0025+0.0014269000277373958j,
+            -0.0002608459250597002j,
+            -0.0011660541026776957j,
+        ]
+        vk_plus = [
+            1+1j,
+            0.08123902308117874+1j,
+            0.3371925267385835+1j,
+        ]
+        ck_minus = [
+            0.0025+0.0014269000277373958j,
+            -0.0002608459250597002j,
+            -0.0011660541026776957j,
+        ]
+        vk_minus = [
+            1-1j,
+            0.08123902308117874-1j,
+            0.3371925267385835-1j,
+        ]
+
+        bath = LorentzianPadeBath(
+            Q=Q, gamma=0.01, w=1, mu=-1, T=0.025851991, Nk=2, tag="bath1",
+        )
+        assert len(bath.exponents) == 6
+        for i in range(len(ck_plus)):
+            exp_p = bath.exponents[2 * i]
+            exp_m = bath.exponents[2 * i + 1]
+            check_exponent(
+                exp_p, "+", dim=2, Q=Q,
+                ck=ck_plus[i], vk=vk_plus[i],
+                sigma_bar_k_offset=1,
+                tag="bath1",
+            )
+            check_exponent(
+                exp_m, "-", dim=2, Q=Q,
+                ck=ck_minus[i], vk=vk_minus[i],
+                sigma_bar_k_offset=-1,
+                tag="bath1",
+            )
