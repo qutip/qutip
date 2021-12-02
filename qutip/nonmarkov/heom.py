@@ -28,6 +28,8 @@ __all__ = [
     "DrudeLorentzPadeBath",
     "UnderDampedBath",
     "FermionicBath",
+    "LorentzianBath",
+    "LorentzianPadeBath",
     "HEOMSolver",
     "HSolverDL",
 ]
@@ -40,6 +42,8 @@ from .bofin_baths import (
     DrudeLorentzPadeBath,
     UnderDampedBath,
     FermionicBath,
+    LorentzianBath,
+    LorentzianPadeBath,
 )
 
 from .bofin_solvers import (
