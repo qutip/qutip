@@ -11,7 +11,7 @@ are
 
     H_{sys} &= c^{\dagger} c
 
-    J_D &= \frac{\gamma W^2}{(w - \mu)^2 + W^2},
+    J_D &= \frac{\Gamma W^2}{(w - \mu)^2 + W^2},
 
 We will demonstrate how to describe the bath using two different expansions
 of the spectral density correlation function (Matsubara's expansion and
@@ -68,7 +68,7 @@ Now let us describe the bath properties:
     :nofigs:
 
     # Shared bath properties:
-    Gamma = 0.01   # coupling strength
+    gamma = 0.01   # coupling strength
     W = 1.0  # cut-off
     T = 0.025851991  # temperature
     beta = 1. / T
@@ -80,7 +80,7 @@ Now let us describe the bath properties:
     # System-bath coupling operator:
     Q = destroy(2)
 
-where :math:`\gamma` (``gamma``), :math:`W` and :math:`T` are the parameters of
+where :math:`\Gamma` (``gamma``), :math:`W` and :math:`T` are the parameters of
 an Lorentzian bath, :math:`\mu_L` (``mu_L``) and :math:`\mu_R` (``mu_R``) are
 the chemical potentials of the left and right baths, and ``Q`` is the coupling
 operator between the system and the bath.
@@ -99,12 +99,12 @@ We may the pass these parameters to either ``LorentzianBath`` or
     Nk = 2
 
     # Matsubara expansion:
-    bath_L = LorentzianBath(Q, gamma, mu_L, T, Nk)
-    bath_R = LorentzianBath(Q, gamma, mu_R, T, Nk)
+    bath_L = LorentzianBath(Q, gamma, W, mu_L, T, Nk)
+    bath_R = LorentzianBath(Q, gamma, W, mu_R, T, Nk)
 
     # Padé expansion:
-    bath_L = LorentzianPadeBath(Q, gamma, mu_L, T, Nk)
-    bath_R = LorentzianPadeBath(Q, gamma, mu_R, T, Nk)
+    bath_L = LorentzianPadeBath(Q, gamma, W, mu_L, T, Nk)
+    bath_R = LorentzianPadeBath(Q, gamma, W, mu_R, T, Nk)
 
 Where ``Nk`` is the number of terms to retain within the expansion of the
 bath.
@@ -258,14 +258,14 @@ And now the same numbers calculated in Python:
         return f
 
     def C(sigma, mu):
-        eta_0 = 0.5 * Gamma * W * f_approx(1.0j * beta * W)
+        eta_0 = 0.5 * gamma * W * f_approx(1.0j * beta * W)
         gamma_0 = W - sigma*1.0j*mu
         eta_list = [eta_0]
         gamma_list = [gamma_0]
         if lmax > 0:
             for ll in range(1, lmax + 1):
                 eta_list.append(
-                    -1.0j * (kappa[ll] / beta) * Gamma * W**2
+                    -1.0j * (kappa[ll] / beta) * gamma * W**2
                     / (-(epsilon[ll]**2 / beta**2) + W**2)
                 )
                 gamma_list.append(epsilon[ll]/beta - sigma*1.0j*mu)
@@ -451,7 +451,7 @@ XXX: make lmax below less invisible
 
     fig, axes = plt.subplots(figsize=(8, 8))
 
-    axes.plot(theta_list, 2.434e-4 * 1e6 * array(curranalist), color="black", linewidth=3, label= r"Analytical")
+    axes.plot(theta_list, 2.434e-4 * 1e6 * np.array(curranalist), color="black", linewidth=3, label= r"Analytical")
     axes.plot(theta_list, -2.434e-4 * 1e6 * array(currPlist), 'r--', linewidth=3, label= r"HEOM $l_{\mathrm{max}}=10$, $n_{\mathrm{max}}=2$")
 
     axes.locator_params(axis='y', nbins=4)
