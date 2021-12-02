@@ -21,6 +21,8 @@ from qutip.nonmarkov.bofin_baths import (
     DrudeLorentzPadeBath,
     UnderDampedBath,
     FermionicBath,
+    LorentzianBath,
+    LorentzianPadeBath,
 )
 from qutip.nonmarkov.bofin_solvers import (
     HierarchyADOs,
@@ -386,10 +388,7 @@ class DiscreteLevelCurrentModel:
         mu_r = - self.theta / 2.
 
         def deltafun(j, k):
-            if j == k:
-                return 1.
-            else:
-                return 0.
+            return 1. if j == k else 0.
 
         Alpha = np.zeros((2 * lmax, 2 * lmax))
         for j in range(2*lmax):
@@ -623,10 +622,10 @@ class TestHEOMSolver:
         )
         bath = bath_cls(
             Q=dlm.Q, lam=dlm.lam, gamma=dlm.gamma, T=dlm.T, Nk=dlm.Nk,
-            terminator=terminator,
         )
         if terminator:
-            H_sys = liouvillian(dlm.H) + bath.terminator
+            _, terminator_op = bath.terminator()
+            H_sys = liouvillian(dlm.H) + terminator_op
         else:
             H_sys = dlm.H
 
@@ -705,6 +704,42 @@ class TestHEOMSolver:
         rho_final, ado_state = hsolver.steady_state()
         current = dlm.state_current(ado_state)
         analytic_current = dlm.analytic_current()
+        np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
+
+    @pytest.mark.parametrize(['bath_cls', 'analytic_current'], [
+        pytest.param(LorentzianBath, 0.001101, id="matsubara"),
+        pytest.param(LorentzianPadeBath, 0.000813, id="pade"),
+    ])
+    def test_discrete_level_model_lorentzian_baths(
+        self, bath_cls, analytic_current, atol=1e-3
+    ):
+        dlm = DiscreteLevelCurrentModel(
+            gamma=0.01, W=1, T=0.025851991, lmax=10,
+        )
+
+        options = Options(
+            nsteps=15_000, store_states=True, rtol=1e-7, atol=1e-7,
+        )
+        bath_l = bath_cls(
+            dlm.Q, gamma=dlm.gamma, w=dlm.W, T=dlm.T, mu=dlm.theta / 2,
+            Nk=dlm.lmax,
+        )
+        bath_r = bath_cls(
+            dlm.Q, gamma=dlm.gamma, w=dlm.W, T=dlm.T, mu=- dlm.theta / 2,
+            Nk=dlm.lmax,
+        )
+        # for a single impurity we converge with max_depth = 2
+        hsolver = HEOMSolver(dlm.H, [bath_r, bath_l], 2, options=options)
+
+        tlist = [0, 600]
+        result = hsolver.run(dlm.rho(), tlist, ado_return=True)
+        current = dlm.state_current(result.ado_states[-1])
+        # analytic_current = dlm.analytic_current()
+        np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
+
+        rho_final, ado_state = hsolver.steady_state()
+        current = dlm.state_current(ado_state)
+        # analytic_current = dlm.analytic_current()
         np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
 
 
