@@ -404,7 +404,6 @@ def test_CoeffArray(order):
     derr3 = (coeff(t + 2*dt) - 2*coeff(t + dt)
              + 2*coeff(t - dt) -coeff(t - 2*dt)) / (12 * dt**3)
     derrs = [derr, derr2, derr3]
-    print(order, derrs)
     for i in range(order):
         assert derrs[i] != 0
     for i in range(order, 3):
@@ -420,5 +419,5 @@ def test_CoeffFromScipy():
     _assert_eq_over_interval(coeff, from_scipy, rtol=1e-8, inside=True)
 
     coeff = coefficient(y, tlist=tlist, order=3)
-    from_scipy = coefficient(interp.interp1d(tlist, y, kind=3)._spline)
+    from_scipy = coefficient(interp.make_interp_spline(tlist, y, k=3))
     _assert_eq_over_interval(coeff, from_scipy, rtol=1e-8, inside=True)

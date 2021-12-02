@@ -94,8 +94,8 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
     The time of the tlist do not need to be equidistant, but must be sorted.
     By default, a cubic spline interpolation will be used to compute the
     coefficient at time t. The keyword ``order`` sets the order of the
-    interpolation. When ``order = 0``, the interpolation is step function that evaluates to the
-    most recent value.
+    interpolation. When ``order = 0``, the interpolation is step function that
+    evaluates to the most recent value.
 
     *Examples*
         tlist = np.logspace(-5,0,100)

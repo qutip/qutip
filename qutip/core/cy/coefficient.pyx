@@ -411,34 +411,32 @@ cdef class InterCoefficient(Coefficient):
         order = min(order, len(tlist) - 1)
 
         if order == 0:
-            self.np_arrays = (tlist, coeff_arr.reshape((1, -1)))
+            coeff_arr = coeff_arr.reshape((1, -1))
         elif order == 1:
-            self.np_arrays = (
-                tlist,
-                np.vstack([
+            coeff_arr = np.vstack([
                     np.diff(coeff_arr, append=-1) / np.diff(tlist, append=-1),
                     coeff_arr
-                ]))
+                ])
         elif order >= 2:
             # Use scipy to compute the spline and transform it to polynomes
             # as used in scipy's PPoly which is easier for us to use.
             spline = make_interp_spline(tlist, coeff_arr, k=order)
             # Scipy can move knots, we add them to tlist
-            ts = np.sort(np.unique(np.concatenate([spline.t, tlist])))
+            tlist = np.sort(np.unique(np.concatenate([spline.t, tlist])))
             a = np.arange(spline.k+1)
             a[0] = 1
             fact = np.cumprod(a)
-            poly = np.concatenate([
-                spline(ts, i) / fact[i]
+            coeff_arr = np.concatenate([
+                spline(tlist, i) / fact[i]
                 for i in range(spline.k, -1, -1)
             ]).reshape((spline.k+1, -1))
-            self.np_arrays = (ts, poly)
 
-        self._prepare()
+        self._prepare(tlist, coeff_arr)
 
-    def _prepare(self, dt=None):
-        self.tlist = self.np_arrays[0]
-        self.poly = self.np_arrays[1]
+    def _prepare(self, np_tlist, np_poly, dt=None):
+        self.np_arrays = (np_tlist, np_poly)
+        self.tlist = np_tlist
+        self.poly = np_poly
         self.order = self.poly.shape[0] - 1
         diff = np.diff(self.np_arrays[0])
         if dt is not None:
@@ -494,18 +492,17 @@ cdef class InterCoefficient(Coefficient):
         return out
 
     def __reduce__(self):
-        return (InterCoefficient.restore, (self.np_arrays, self.dt))
+        return (InterCoefficient.restore, (*self.np_arrays, self.dt))
 
     @classmethod
-    def restore(cls, np_arrays, dt=None):
+    def restore(cls, np_tlist, np_poly, dt=None):
         cdef InterCoefficient out = cls.__new__(cls)
-        out.np_arrays = np_arrays
-        out._prepare(dt)
+        out._prepare(np_tlist, np_poly, dt)
         return out
 
     @classmethod
     def from_PPoly(cls, ppoly):
-        return cls.restore((ppoly.x, ppoly.c))
+        return cls.restore(ppoly.x, ppoly.c)
 
     @classmethod
     def from_Bspline(cls, spline):
@@ -517,11 +514,11 @@ cdef class InterCoefficient(Coefficient):
             spline(tlist, i) / fact[i]
             for i in range(spline.k, -1, -1)
         ]).reshape((spline.k+1, -1))
-        return cls.restore((tlist, poly))
+        return cls.restore(tlist, poly)
 
     cpdef Coefficient copy(self):
         """Return a copy of the :obj:`Coefficient`."""
-        return InterCoefficient.restore(self.np_arrays, self.dt)
+        return InterCoefficient.restore(*self.np_arrays, self.dt)
 
 
 cdef Coefficient add_inter(InterCoefficient left, InterCoefficient right):
@@ -533,7 +530,7 @@ cdef Coefficient add_inter(InterCoefficient left, InterCoefficient right):
         and (left.order == right.order)
     ):
         return InterCoefficient.restore(
-            (left.np_arrays[0], left.np_arrays[1] + right.np_arrays[1]),
+            left.np_arrays[0], left.np_arrays[1] + right.np_arrays[1],
             left.dt
         )
     else:
