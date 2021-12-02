@@ -622,10 +622,10 @@ class TestHEOMSolver:
         )
         bath = bath_cls(
             Q=dlm.Q, lam=dlm.lam, gamma=dlm.gamma, T=dlm.T, Nk=dlm.Nk,
-            terminator=terminator,
         )
         if terminator:
-            H_sys = liouvillian(dlm.H) + bath.terminator
+            _, terminator_op = bath.terminator()
+            H_sys = liouvillian(dlm.H) + terminator_op
         else:
             H_sys = dlm.H
 

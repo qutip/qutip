@@ -202,8 +202,6 @@ class TestDrudeLorentzBath:
             ck=ck_real[1], vk=vk_real[1],
             tag="bath1",
         )
-        assert bath.delta is None
-        assert bath.terminator is None
 
         bath = DrudeLorentzBath(
             Q=Q, lam=0.025, T=1 / 0.95, Nk=1, gamma=0.05, combine=False,
@@ -213,20 +211,21 @@ class TestDrudeLorentzBath:
         check_exponent(exp2, "R", dim=None, Q=Q, ck=ck_real[1], vk=vk_real[1])
         check_exponent(exp3, "I", dim=None, Q=Q, ck=ck_imag[0], vk=vk_imag[0])
 
-        bath = DrudeLorentzBath(
-            Q=Q, lam=0.025, T=1 / 0.95, Nk=1, gamma=0.05, terminator=True,
-        )
-        bath2 = DrudeLorentzBath(
-            Q=Q, lam=0.025, T=1 / 0.95, Nk=1, gamma=0.05, terminator=True,
-            combine=False,
-        )
+    @pytest.mark.parametrize(['combine'], [
+        pytest.param(True, id="combine"),
+        pytest.param(False, id="no-combine"),
+    ])
+    def test_terminator(self, combine):
+        Q = sigmaz()
         op = -2*spre(Q)*spost(Q.dag()) + spre(Q.dag()*Q) + spost(Q.dag()*Q)
 
-        assert np.abs(bath.delta - (0.00031039 / 4.0)) < 1e-8
-        assert np.abs(bath2.delta - (0.00031039 / 4.0)) < 1e-8
+        bath = DrudeLorentzBath(
+            Q=Q, lam=0.025, T=1 / 0.95, Nk=1, gamma=0.05, combine=combine,
+        )
+        delta, terminator = bath.terminator()
 
-        assert isequal(bath.terminator, - (0.00031039 / 4.0) * op, tol=1e-8)
-        assert isequal(bath2.terminator, - (0.00031039 / 4.0) * op, tol=1e-8)
+        assert np.abs(delta - (0.00031039 / 4.0)) < 1e-8
+        assert isequal(terminator, - (0.00031039 / 4.0) * op, tol=1e-8)
 
 
 class TestDrudeLorentzPadeBath:
@@ -259,6 +258,22 @@ class TestDrudeLorentzPadeBath:
         check_exponent(exp1, "R", dim=None, Q=Q, ck=ck_real[0], vk=vk_real[0])
         check_exponent(exp2, "R", dim=None, Q=Q, ck=ck_real[1], vk=vk_real[1])
         check_exponent(exp3, "I", dim=None, Q=Q, ck=ck_imag[0], vk=vk_imag[0])
+
+    @pytest.mark.parametrize(['combine'], [
+        pytest.param(True, id="combine"),
+        pytest.param(False, id="no-combine"),
+    ])
+    def test_terminator(self, combine):
+        Q = sigmaz()
+        op = -2*spre(Q)*spost(Q.dag()) + spre(Q.dag()*Q) + spost(Q.dag()*Q)
+
+        bath = DrudeLorentzPadeBath(
+            Q=Q, lam=0.025, T=1 / 0.95, Nk=1, gamma=0.05, combine=combine,
+        )
+        delta, terminator = bath.terminator()
+
+        assert np.abs(delta - (0.0 / 4.0)) < 1e-8
+        assert isequal(terminator, - (0.0 / 4.0) * op, tol=1e-8)
 
 
 class TestUnderDampedBath:
