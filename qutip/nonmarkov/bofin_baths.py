@@ -800,12 +800,12 @@ class LorentzianBath(FermionicBath):
             Q, ck_plus, vk_plus, ck_minus, vk_minus, tag=tag,
         )
 
-    def _corr(self, gamma, w, T, lmax, sigma, mu):
+    def _corr(self, gamma, w, T, Nk, sigma, mu):
         beta = 1. / T
         kappa = [0.]
-        kappa.extend([1. for _ in range(1, lmax + 1)])
+        kappa.extend([1. for _ in range(1, Nk + 1)])
         epsilon = [0]
-        epsilon.extend([(2 * ll - 1) * np.pi for ll in range(1, lmax + 1)])
+        epsilon.extend([(2 * ll - 1) * np.pi for ll in range(1, Nk + 1)])
 
         def f(x):
             # kB = 1.0
@@ -814,7 +814,7 @@ class LorentzianBath(FermionicBath):
         eta_list = [0.5 * gamma * w * f(1.0j * beta * w)]
         gamma_list = [w - sigma * 1.0j * mu]
 
-        for ll in range(1, lmax + 1):
+        for ll in range(1, Nk + 1):
             eta_list.append(
                 -1.0j * (kappa[ll] / beta) * gamma * w**2 /
                 (-(epsilon[ll]**2 / beta**2) + w**2)
@@ -879,20 +879,20 @@ class LorentzianPadeBath(FermionicBath):
             Q, ck_plus, vk_plus, ck_minus, vk_minus, tag=tag,
         )
 
-    def _corr(self, gamma, w, T, lmax, sigma, mu):
+    def _corr(self, gamma, w, T, Nk, sigma, mu):
         beta = 1. / T
-        kappa, epsilon = self._kappa_epsilon(lmax)
+        kappa, epsilon = self._kappa_epsilon(Nk)
 
         def f_approx(x):
             f = 0.5
-            for ll in range(1, lmax + 1):
+            for ll in range(1, Nk + 1):
                 f = f - 2 * kappa[ll] * x / (x**2 + epsilon[ll]**2)
             return f
 
         eta_list = [0.5 * gamma * w * f_approx(1.0j * beta * w)]
         gamma_list = [w - sigma * 1.0j * mu]
 
-        for ll in range(1, lmax + 1):
+        for ll in range(1, Nk + 1):
             eta_list.append(
                 -1.0j * (kappa[ll] / beta) * gamma * w**2
                 / (-(epsilon[ll]**2 / beta**2) + w**2)
