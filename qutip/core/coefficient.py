@@ -93,17 +93,19 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
     The coeffients array must have the same len as the tlist.
     The time of the tlist do not need to be equidistant, but must be sorted.
     By default, a cubic spline interpolation will be used to compute the
-    coefficient at time t. The keyword ``order`` set the order of the
-    interpolation. When ``order = 0`` it interpolate as a step function to the
-    previous or last value.
+    coefficient at time t. The keyword ``order`` sets the order of the
+    interpolation. When ``order = 0``, the interpolation is step function that evaluates to the
+    most recent value.
 
     *Examples*
         tlist = np.logspace(-5,0,100)
         H = QobjEvo(np.exp(-1j*tlist), tlist=tlist)
 
     ``scipy.interpolate``'s ``CubicSpline``, ``PPoly`` and ``Bspline`` are
-    also accepted as array ``Coefficient``. Other interpolation method from
-    scipy are usually accepted as functions based coefficient.
+    also converted to interpolated coefficients (the same kind of coefficient
+    created from ``ndarray``). Other interpolation methods from
+    scipy are converted to function-based coefficient (the same kind of
+    coefficient created from callables).
     """
     if isinstance(base, Coefficient):
         return base
