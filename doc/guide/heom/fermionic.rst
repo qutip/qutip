@@ -2,10 +2,44 @@
 Fermionic Environments
 ######################
 
-Here we model a single fermion coupled to two electronic leads or reservoirs (e.g.,  this can describe a single quantum dot, a molecular transistor, etc).  Note that in this implementation we primarily follow the definitions used by Christian Schinabeck in his Dissertation https://opus4.kobv.de/opus4-fau/files/10984/DissertationChristianSchinabeck.pdf and related publications.
+Here we model a single fermion coupled to two electronic leads or reservoirs
+(e.g.,  this can describe a single quantum dot, a molecular transistor, etc).
+The system hamiltonian, :math:`H_{sys}`, and bath spectral density, :math:`J_D`,
+are
+
+.. math::
+
+    H_{sys} &= c^{\dagger} c
+
+    J_D &= \frac{\gamma W^2}{(w - \mu)^2 + W^2},
+
+We will demonstrate how to describe the bath using two different expansions
+of the spectral density correlation function (Matsubara's expansion and
+a Padé expansion), how to evolve the system in time and how to calculate
+the steady state.
+
+Since our fermion is coupled to two reservoirs, we will construct two baths
+-- one for each reservoir or lead -- in each case and call them the
+left (:math:`L`) and right (:math:`R`) baths for convenience. Each bath will
+have a different chemical potential :math:`\mu` which we will label
+:math:`\mu_L` and :math:`\mu_R`.
+
+First we will do this using the built-in implementations of
+the bath expansions, :class:`LorentzianBath` and
+:class:`LorentzianPadeBath`.
+
+Afterwards, we will show how to calculate the bath expansion coefficients and to
+use those coefficients to construct your own bath description so that you can
+implement your own fermionic baths.
+
+Our implementation of fermionic baths primarily follows the definitions used by
+Christian Schinabeck in his Dissertation
+https://opus4.kobv.de/opus4-fau/files/10984/DissertationChristianSchinabeck.pdf
+and related publications.
 
 A notebook containing a complete example similar to this one implemented in
-BoFiN can be found in `example notebook 4b <https://github.com/tehruhn/bofin/blob/main/examples/example-4b-fermions-single-impurity-model.ipynb>`__.
+BoFiN can be found in `example notebook 4b
+<https://github.com/tehruhn/bofin/blob/main/examples/example-4b-fermions-single-impurity-model.ipynb>`__.
 
 
 Describing the system and bath
@@ -33,18 +67,77 @@ Now let us describe the bath properties:
     :context:
     :nofigs:
 
-    # Bath properties:
+    # Shared bath properties:
     Gamma = 0.01   # coupling strength
     W = 1.0  # cut-off
     T = 0.025851991  # temperature
     beta = 1. / T
 
+    # Chemical potentials for the two baths:
+    mu_L = 1.
+    mu_R = -1.
+
     # System-bath coupling operator:
     Q = destroy(2)
 
 where :math:`\gamma` (``gamma``), :math:`W` and :math:`T` are the parameters of
-an XXX bath, and ``Q`` is the coupling operator between the system and
-the bath.
+an Lorentzian bath, :math:`\mu_L` (``mu_L``) and :math:`\mu_R` (``mu_R``) are
+the chemical potentials of the left and right baths, and ``Q`` is the coupling
+operator between the system and the bath.
+
+We may the pass these parameters to either ``LorentzianBath`` or
+``LorentzianPadeBath`` to construct an expansion of the bath correlations:
+
+.. plot::
+    :context:
+    :nofigs:
+
+    from qutip.nonmarkov.heom import LorentzianBath
+    from qutip.nonmarkov.heom import LorentzianPadeBath
+
+    # Number of expansion terms to retain:
+    Nk = 2
+
+    # Matsubara expansion:
+    bath_L = LorentzianBath(Q, gamma, mu_L, T, Nk)
+    bath_R = LorentzianBath(Q, gamma, mu_R, T, Nk)
+
+    # Padé expansion:
+    bath_L = LorentzianPadeBath(Q, gamma, mu_L, T, Nk)
+    bath_R = LorentzianPadeBath(Q, gamma, mu_R, T, Nk)
+
+Where ``Nk`` is the number of terms to retain within the expansion of the
+bath.
+
+
+System and bath dynamics
+------------------------
+
+Now we are ready to construct a solver:
+
+.. plot::
+    :context:
+    :nofigs:
+
+    from qutip.nonmarkov.heom import HEOMSolver
+    from qutip import Options
+
+    max_depth = 5  # maximum hierarchy depth to retain
+    options = Options(nsteps=15_000)
+    baths = [bath_L, bath_R]
+
+    solver = HEOMSolver(H_sys, baths, max_depth=max_depth, options=options)
+
+and to calculate the system evolution as a function of time:
+
+.. code-block:: python
+
+    tlist = [0, 10, 20]  # times to evaluate the system state at
+    result = solver.run(rho0, tlist)
+
+As in the bosonic case, the ``max_depth`` parameter determines how many levels
+of the hierarchy to retain.
+
 
 Calculating the bath expansion coefficients
 -------------------------------------------
@@ -273,7 +366,7 @@ XXX: Pass in Gamma, W, beta etc as parameters
 
     def analytic_current(theta):
         # Gamma, W, beta, e1
-        e1 = destroy(2)
+        e1 = 1.
 
         mu_l = theta / 2.
         mu_r = - theta / 2.
