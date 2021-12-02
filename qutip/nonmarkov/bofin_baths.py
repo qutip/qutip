@@ -755,9 +755,46 @@ class FermionicBath(Bath):
 
 
 class LorentzianBath(FermionicBath):
-    def __init__(self, Q, gamma, w, T, mu, lmax, tag=None):
-        ck_plus, vk_plus = self._corr(gamma, w, T, lmax, 1.0, mu)
-        ck_minus, vk_minus = self._corr(gamma, w, T, lmax, -1.0, mu)
+    """
+    A helper class for constructing a Lorentzian fermionic bath from the
+    bath parameters (see parameters below).
+
+    .. note::
+
+        This Matsubara expansion used in this bath converges very slowly
+        and ``Nk > 20`` may be required to get good convergence. The
+        Padé expansion used by :class:`LorentzianPadeBath` converges much
+        more quickly.
+
+    Parameters
+    ----------
+    Q : Qobj
+        Operator describing the coupling between system and bath.
+
+    gamma : float
+        The coupling strength between the system and the bath.
+
+    w : float
+        The width of the environment.
+
+    T : float
+        Bath temperature.
+
+    mu : float
+        The chemical potential of the bath.
+
+    Nk : int
+        Number of exponential terms used to approximate the bath correlation
+        functions.
+
+    tag : optional, str, tuple or any other object
+        A label for the bath exponents (for example, the name of the
+        bath). It defaults to None but can be set to help identify which
+        bath an exponent is from.
+    """
+    def __init__(self, Q, gamma, w, T, mu, Nk, tag=None):
+        ck_plus, vk_plus = self._corr(gamma, w, T, Nk, 1.0, mu)
+        ck_minus, vk_minus = self._corr(gamma, w, T, Nk, -1.0, mu)
 
         super().__init__(
             Q, ck_plus, vk_plus, ck_minus, vk_minus, tag=tag,
@@ -788,9 +825,55 @@ class LorentzianBath(FermionicBath):
 
 
 class LorentzianPadeBath(FermionicBath):
-    def __init__(self, Q, gamma, w, T, mu, lmax, tag=None):
-        ck_plus, vk_plus = self._corr(gamma, w, T, lmax, 1.0, mu)
-        ck_minus, vk_minus = self._corr(gamma, w, T, lmax, -1.0, mu)
+    """
+    A helper class for constructing a Padé expansion for Lorentzian fermionic
+    bath from the bath parameters (see parameters below).
+
+    A Padé approximant is a sum-over-poles expansion (
+    see https://en.wikipedia.org/wiki/Pad%C3%A9_approximant).
+
+    The application of the Padé method to spectrum decompoisitions is described
+    in "Padé spectrum decompositions of quantum distribution functions and
+    optimal hierarchical equations of motion construction for quantum open
+    systems" [1].
+
+    The implementation here follows the approach in the paper.
+
+    [1] J. Chem. Phys. 134, 244106 (2011); https://doi.org/10.1063/1.3602466
+
+    This is an alternative to the :class:`LorentzianBath` which constructs
+    a simpler exponential expansion that converges much more slowly in
+    this particular case.
+
+    Parameters
+    ----------
+    Q : Qobj
+        Operator describing the coupling between system and bath.
+
+    gamma : float
+        The coupling strength between the system and the bath.
+
+    w : float
+        The width of the environment.
+
+    T : float
+        Bath temperature.
+
+    mu : float
+        The chemical potential of the bath.
+
+    Nk : int
+        Number of exponential terms used to approximate the bath correlation
+        functions.
+
+    tag : optional, str, tuple or any other object
+        A label for the bath exponents (for example, the name of the
+        bath). It defaults to None but can be set to help identify which
+        bath an exponent is from.
+    """
+    def __init__(self, Q, gamma, w, T, mu, Nk, tag=None):
+        ck_plus, vk_plus = self._corr(gamma, w, T, Nk, 1.0, mu)
+        ck_minus, vk_minus = self._corr(gamma, w, T, Nk, -1.0, mu)
 
         super().__init__(
             Q, ck_plus, vk_plus, ck_minus, vk_minus, tag=tag,
