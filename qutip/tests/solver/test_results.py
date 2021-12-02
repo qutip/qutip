@@ -118,7 +118,7 @@ def test_multitraj_results(format, keep_runs_results):
         keep_runs_results=keep_runs_results,
         store_states=True, normalize_output=True
     )
-    m_res = MultiTrajResult(ntraj, e_ops, options=opt)
+    m_res = MultiTrajResult(ntraj, None, np.arange(N), e_ops, options=opt)
     for _ in range(ntraj):
         res = m_res.spawn(_super=False, oper_state=False)
         res.collapse = []
@@ -162,7 +162,8 @@ def test_multitraj_expect(keep_runs_results, e_ops):
         keep_runs_results=keep_runs_results,
         store_states=True, normalize_output=True
     )
-    m_res = MultiTrajResult(ntraj+1, _make_e_ops(N, e_ops), options=opt)
+    m_res = MultiTrajResult(ntraj+1, None, np.arange(N),
+                            _make_e_ops(N, e_ops), options=opt)
     for _ in range(ntraj):
         res = m_res.spawn(_super=False, oper_state=False)
         res.collapse = []
@@ -199,8 +200,10 @@ def test_multitraj_targettol(keep_runs_results, ttol):
         keep_runs_results=keep_runs_results,
         store_states=True, normalize_output=False
     )
-    m_res = MultiTrajResult(ntraj, [qutip.num(N), qutip.qeye(N)],
-                            target_tol=ttol, options=opt)
+    m_res = MultiTrajResult(ntraj, None, np.arange(N),
+                            [qutip.num(N), qutip.qeye(N)],
+                            options=opt)
+    m_res.set_expect_tol(ttol)
     for _ in range(ntraj):
         res = m_res.spawn(_super=False, oper_state=False)
         res.collapse = []
