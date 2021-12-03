@@ -116,7 +116,7 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
             new_a_ops.append((a_op, spectra))
         elif callable(spectra):
             sig = inspect.signature(spectra)
-            if tuple(sig.parameters.keys()) == ("w"):
+            if tuple(sig.parameters.keys()) == ("w",):
                 spec = SpectraCoefficient(coefficient(spectra))
             else:
                 spec = coefficient(spectra, args={**args, 'w':0})
