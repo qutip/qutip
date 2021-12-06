@@ -558,8 +558,7 @@ class TestMESolveStepFuncCoeff:
         rho0 = qutip.rand_ket(2)
         tlist = np.array([0., np.pi/2, np.pi], dtype=float)
         npcoeff = np.array([0.25, 0.75, 0.75])
-        qu = qutip.QobjEvo([[qutip.sigmax(), npcoeff]],
-                     tlist=tlist, step_interpolation=True)
+        qu = qutip.QobjEvo([[qutip.sigmax(), npcoeff]], tlist=tlist, order=0)
         result = mesolve(qu, rho0=rho0, tlist=tlist, options=self.options)
         fid = qutip.fidelity(result.states[-1], qutip.sigmax()*rho0)
         assert fid == pytest.approx(1)
@@ -571,8 +570,7 @@ class TestMESolveStepFuncCoeff:
         rho0 = qutip.rand_ket(2)
         tlist = np.array([0., np.pi/2, np.pi*3/2], dtype=float)
         npcoeff = np.array([0.5, 0.25, 0.25])
-        qu = qutip.QobjEvo([[qutip.sigmax(), npcoeff]],
-                     tlist=tlist, step_interpolation=True)
+        qu = qutip.QobjEvo([[qutip.sigmax(), npcoeff]], tlist=tlist, order=0)
         result = mesolve(qu, rho0=rho0, tlist=tlist, options=self.options)
         fid = qutip.fidelity(result.states[-1], qutip.sigmax()*rho0)
         assert fid == pytest.approx(1)
@@ -591,7 +589,7 @@ class TestMESolveStepFuncCoeff:
             [[qutip.sigmax(), npcoeff1],
              [qutip.sigmax(), strcoeff],
              [qutip.sigmax(), npcoeff2]],
-            tlist=tlist, step_interpolation=True)
+            tlist=tlist, order=0)
         result = mesolve(qu, rho0=rho0, tlist=tlist, options=self.options)
         fid = qutip.fidelity(result.states[-1], qutip.sigmax()*rho0)
         assert fid == pytest.approx(1)
@@ -609,7 +607,7 @@ class TestMESolveStepFuncCoeff:
         qu = qutip.QobjEvo(
             [[qutip.sigmax(), npcoeff1], [qutip.sigmax(), npcoeff2],
              [qutip.sigmax(), self.python_coeff], [qutip.sigmax(), strcoeff]],
-            tlist=tlist, step_interpolation=True)
+            tlist=tlist, order=0)
         result = mesolve(qu, rho0=rho0, tlist=tlist, options=self.options)
         fid = qutip.fidelity(result.states[-1], qutip.sigmax()*rho0)
         assert fid == pytest.approx(1)
