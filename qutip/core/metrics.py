@@ -173,15 +173,18 @@ def process_fidelity(oper, target=None):
 
     Notes
     -----
-    See, for example: A. Gilchrist, N.K. Langford, M.A. Nielsen,
-    Phys. Rev. A 71, 062310 (2005).
+    Since Qutip 5.0, this function computes the process fidelity as defined
+    for example in: A. Gilchrist, N.K. Langford, M.A. Nielsen,
+    Phys. Rev. A 71, 062310 (2005). Previously, it computed a function
+    that is now implemented in
+    :func:`control.fidcomp.FidCompUnitary.get_fidelity`.
     The definition of state fidelity that the process fidelity is based on
     is the one from R. Jozsa, Journal of Modern Optics, 41:12, 2315 (1994).
     It is the square of the one implemented in
     :func:`qutip.metrics.fidelity` which follows Nielsen & Chuang,
     "Quantum Computation and Quantum Information"
+
     """
-    warnings.warn("Caution: Behavior of process_fidelity changed in Qutip 5.0")
     if target is None:
         return _process_fidelity_to_id(oper)
     elif not isinstance(target, list) and target.type == 'oper':
