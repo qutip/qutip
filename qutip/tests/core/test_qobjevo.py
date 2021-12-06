@@ -410,7 +410,7 @@ def test_QobjEvo_step_coeff():
     # uniform t
     tlist = np.array([2, 3, 4, 5, 6, 7], dtype=float)
     qobjevo = QobjEvo([[sigmaz(), coeff1], [sigmax(), coeff2]],
-                      tlist=tlist, step_interpolation=True)
+                      tlist=tlist, order=0)
     assert qobjevo(2.0)[0,0] == coeff1[0]
     assert qobjevo(7.0)[0,0] == coeff1[5]
     assert qobjevo(5.0001)[0,0] == coeff1[3]
@@ -424,7 +424,7 @@ def test_QobjEvo_step_coeff():
     # non-uniform t
     tlist = np.array([1, 2, 4, 5, 6, 8], dtype=float)
     qobjevo = QobjEvo([[sigmaz(), coeff1], [sigmax(), coeff2]],
-        tlist=tlist, step_interpolation=True)
+        tlist=tlist, order=0)
     assert qobjevo(1.0)[0,0] == coeff1[0]
     assert qobjevo(8.0)[0,0] == coeff1[5]
     assert qobjevo(3.9999)[0,0] == coeff1[1]

@@ -398,7 +398,7 @@ cdef class InterCoefficient(Coefficient):
 
     def __init__(self, coeff_arr, tlist, int order):
         tlist = np.array(tlist, dtype=np.float64)
-        coeff_arr = coeff_arr.astype(np.complex128)
+        coeff_arr = np.array(coeff_arr, dtype=np.complex128)
 
         if coeff_arr.ndim != 1:
             raise ValueError("The array to interpolate must be a 1D array")
