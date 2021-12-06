@@ -456,12 +456,14 @@ cdef class InterCoefficient(Coefficient):
         cdef size_t high = self.tlist.shape[0]
         cdef size_t middle
         cdef size_t count = 0
-        while low+1 != high and count < 30:
+        while low+1 != high and count < 64:
             middle = (low + high)//2
             if x < self.tlist[middle]:
                 high = middle
             else:
                 low = middle
+            # We keep a count to be sure that it never get into an infinit loop
+            # even if tlist has an unexpected format.
             count += 1
         return low
 
