@@ -23,9 +23,9 @@ one for each reservoir or lead -- and call them the left (:math:`L`) and right
 (:math:`R`) baths for convenience. Each bath will have a different chemical
 potential :math:`\mu` which we will label :math:`\mu_L` and :math:`\mu_R`.
 
-First we will do this using the built-in implementations of
-the bath expansions, :class:`LorentzianBath` and
-:class:`LorentzianPadeBath`.
+First we will do this using the built-in implementations of the bath expansions,
+:class:`~qutip.nonmarkov.heom.LorentzianBath` and
+:class:`~qutip.nonmarkov.heom.LorentzianPadeBath`.
 
 Afterwards, we will show how to calculate the bath expansion coefficients and to
 use those coefficients to construct your own bath description so that you can
@@ -143,7 +143,7 @@ of the hierarchy to retain.
 
 As in the bosonic case, we can specify ``e_ops`` in order to retrieve the
 expectation values of operators at each given time. See
-:ref:`guide/heom/bosonic:System and bath dynamics` for a fuller description of
+:ref:`heom-bosonic-system-and-bath-dynamics` for a fuller description of
 the returned ``result`` object.
 
 Below we run the solver again, but use ``e_ops`` to store the expectation
@@ -174,6 +174,8 @@ these in the next section using the auxiliary density operators (ADOs)
 returned by the solver.
 
 
+.. _heom-determining-currents:
+
 Determining currents
 --------------------
 
@@ -188,15 +190,15 @@ The current for each exponent is given by:
     \mathrm{Current} = \pm i \mathrm{Tr}(Q^\pm \cdot A)
 
 where the :math:`\pm` sign is the sign of the exponent (see the
-description later in :ref:`Padé expansion coefficients`) and
+description later in :ref:`heom-fermionic-pade-expansion-coefficients`) and
 :math:`Q^\pm` is :math:`Q` for ``+`` exponents and :math:`Q^{\dagger}` for
 ``-`` exponents.
 
 The first-level exponents for the left bath are retrieved by calling
 ``.filter(tags=["L"])`` on ``ado_state`` which is an instance of
-:class:`HierarchyADOsState` and also provides access to the methods
-of :class:`HierarchyADOs` which describes the structure of the hierarchy for
-a given problem.
+:class:`~qutip.nonmarkov.heom.HierarchyADOsState` and also provides access to
+the methods of :class:`~qutip.nonmarkov.heom.HierarchyADOs` which describes the
+structure of the hierarchy for a given problem.
 
 Here the tag "L" matches the tag passed when constructing ``bath_L`` earlier
 in this example.
@@ -313,14 +315,17 @@ As you can see, there is still some way to go beyond ``t = 100`` before the
 steady state is reached!
 
 
+.. _heom-fermionic-pade-expansion-coefficients:
+
 Padé expansion coefficients
 ---------------------------
 
-We now look at how to calculate the correlation expansion coefficients
-for the Lorentzian spectral density ourselves. Once we have calculated
-the coefficients we can construct a :class:`FermionicBath` directly from them.
-A similar procedure can be used to apply :class:`HEOMSolver` to any fermionic
-bath for which we can calculate the expansion coefficients.
+We now look at how to calculate the correlation expansion coefficients for the
+Lorentzian spectral density ourselves. Once we have calculated the coefficients
+we can construct a :class:`~qutip.nonmarkov.heom.FermionicBath` directly from
+them. A similar procedure can be used to apply
+:class:`~qutip.nonmarkov.heom.HEOMSolver` to any fermionic bath for which we can
+calculate the expansion coefficients.
 
 In the fermionic case we must descriminate between the order in which
 excitations are created within the bath, so we define two different correlation
@@ -460,7 +465,8 @@ And now we calculate the same numbers in Python:
     ck_plus_R, vk_plus_R = C(1.0, mu_R, Nk)  # C_+, right bath
     ck_minus_R, vk_minus_R = C(-1.0, mu_R, Nk)  # C_-, right bath
 
-Finally we are ready to construct the :class:`FermionicBath`:
+Finally we are ready to construct the
+:class:`~qutip.nonmarkov.heom.FermionicBath`:
 
 .. plot::
     :context:
@@ -474,9 +480,9 @@ Finally we are ready to construct the :class:`FermionicBath`:
 
 And we're done!
 
-The :class:`FermionicBath` can be used with the :class:`HEOMSolver` in exactly
-the same way as the baths we constructed previously using the built-in
-Lorentzian bath expansions.
+The :class:`~qutip.nonmarkov.heom.FermionicBath` can be used with the
+:class:`~qutip.nonmarkov.heom.HEOMSolver` in exactly the same way as the baths
+we constructed previously using the built-in Lorentzian bath expansions.
 
 
 .. plot::
