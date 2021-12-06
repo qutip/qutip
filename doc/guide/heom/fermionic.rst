@@ -185,12 +185,12 @@ The current for each exponent is given by:
 
 .. math::
 
-    Current &= \pm i Tr(Q^\pm \cdot A)
+    \mathrm{Current} = \pm i \mathrm{Tr}(Q^\pm \cdot A)
 
-where the :math:`pm` sign is the sign of the exponent (see the
-description later in :ref:`Calculating the bath expansion coefficients`) and
-:math:`Q^\pm` is :math:`Q` for :math:`+` exponents and :math:`Q.dag()` for
-:math:`-` exponents.
+where the :math:`\pm` sign is the sign of the exponent (see the
+description later in :ref:`Padé expansion coefficients`) and
+:math:`Q^\pm` is :math:`Q` for ``+`` exponents and :math:`Q^{\dagger}` for
+``-`` exponents.
 
 The first-level exponents for the left bath are retrieved by calling
 ``.filter(tags=["L"])`` on ``ado_state`` which is an instance of
@@ -313,60 +313,70 @@ As you can see, there is still some way to go beyond ``t = 100`` before the
 steady state is reached!
 
 
-Calculating the bath expansion coefficients
--------------------------------------------
+Padé expansion coefficients
+---------------------------
 
-We choose a Lorentzian spectral density for the leads, with a peak at the
-chemical potential. The latter simplifies a little the notation required for the
-correlation functions, but can be relaxed if neccessary.
+We now look at how to calculate the correlation expansion coefficients
+for the Lorentzian spectral density ourselves. Once we have calculated
+the coefficients we can construct a :class:`FermionicBath` directly from them.
+A similar procedure can be used to apply :class:`HEOMSolver` to any fermionic
+bath for which we can calculate the expansion coefficients.
+
+In the fermionic case we must descriminate between the order in which
+excitations are created within the bath, so we define two different correlation
+functions, :math:`C_{+}(t)`, and :math:`C_{-}(t)`:
 
 .. math::
 
-    J(\omega) = \frac{\Gamma W^2}{((\omega - \mu_K)^2 + W^2)}
+    C^{\sigma}(t) = \frac{1}{2\pi} \int_{-\infty}^{\infty} d\omega e^{\sigma i \omega t} J(\omega) f_F[\sigma\beta(\omega - \mu)]
 
-Fermi distribution is:
+where :math:`\sigma` is either ``+`` or ``-`` and, :math:`f_F` is the Fermi
+distribution function, and :math:`J(\omega)` is the Lorentzian spectral density
+we defined at the start.
+
+The Fermi distribution function is:
 
 .. math::
 
     f_F (x) = (\exp(x) + 1)^{-1}
 
-gives correlation functions:
+As in the bosonic case we can approximate this integral with a Matsubara or
+Padé expansion. For the Lorentzian bath the Padé expansion converges much
+more quickly, so we will calculate the Padé expansion coefficients here.
+
+The Padé decomposition approximates the Fermi distubition as:
 
 .. math::
 
-    C^{\sigma}_K(t) = \frac{1}{2\pi} \int_{-\infty}^{\infty} d\omega e^{\sigma i \omega t} \Gamma_K(\omega) f_F[\sigma\beta(\omega - \mu)]
+    f_F(x) \approx f_F^{\mathrm{approx}}(x) = \frac{1}{2} - \sum_{l=0}^{Nk} \frac{2k_l x}{x^2 + \epsilon_l^2}
 
-As with the Bosonic case we can treat these with Matsubara, Pade, or fitting
-approaches.
-
-The Pade decomposition approximates the Fermi distubition as:
-
-.. math::
-
-    f_F(x) \approx f_F^{\mathrm{approx}}(x) = \frac{1}{2} - \sum_l^{l_{max}} \frac{2k_l x}{x^2 + \epsilon_l^2}
-
-where :math:`k_l` and :math:`\epsilon_l` are coefficients defined in J. Chem
-Phys 133,10106.
+where :math:`k_l` and :math:`\epsilon_l` are coefficients defined in
+`J. Chem Phys 133, "Efficient on the fly calculation of time correlation functions in computer simulations" <https://doi.org/10.1063/1.3491098>`_,
+and :math:`Nk` specifies the cut-off in the expansion.
 
 Evaluating the integral for the correlation functions gives:
 
 .. math::
 
-    C_K^{\sigma}(t) \approx \sum_{l=0}^{l_{max}} \eta_K^{\sigma_l} e^{-\gamma_{K,\sigma,l}t}
+    C^{\sigma}(t) \approx \sum_{l=0}^{Nk} \eta^{\sigma,l} e^{-\gamma_{\sigma,l}t}
 
 where:
 
 .. math::
 
-    \eta_{K,0} &= \frac{\Gamma_KW_K}{2} f_F^{approx}(i\beta_K W)
+    \eta_{\sigma, l} &= \begin{cases}
+        \frac{\Gamma W}{2} f_F^{approx}(i\beta W)  & l = 0\\
+        -i\cdot \frac{k_l}{\beta} \cdot \frac{\Gamma W^2}{-\frac{\epsilon^2_l}{\beta^2} + W^2}  & l \neq 0\\
+    \end{cases}
 
-    \gamma_{K,\sigma,0} &= W_K - \sigma i\mu_K
+    \gamma_{\sigma,l} &= \begin{cases}
+        W - \sigma i\mu  & l = 0\\
+        \frac{\epsilon_l}{\beta} - \sigma i \mu  & l \neq 0\\
+    \end{cases}
 
-    \eta_{K,l \neq 0} &= -i\cdot \frac{k_m}{\beta_K} \cdot \frac{\Gamma_K W_K^2}{-\frac{\epsilon^2_m}{\beta_K^2} + W_K^2}
+and :math:`\beta = \frac{1}{T}`.
 
-    \gamma_{K,\sigma,l \neq 0} &= \frac{\epsilon_m}{\beta_K} - \sigma i \mu_K
-
-And now the same numbers calculated in Python:
+And now we calculate the same numbers in Python:
 
 .. plot::
     :context:
@@ -376,87 +386,81 @@ And now the same numbers calculated in Python:
     from numpy.linalg import eigvalsh
 
     # Convenience functions and parameters:
-    def deltafun(j,k):
+    def deltafun(j, k):
+        """ Kronecker delta function. """
         return 1.0 if j == k else 0.
 
-    lmax = 10  # number of expansion terms to calculate
-    theta = 2.0  # bias
-    mu_l = theta / 2.
-    mu_r = -theta / 2.
-
-    Alpha = np.zeros((2 * lmax, 2 * lmax))
-    for j in range(2*lmax):
-        for k in range(2*lmax):
-            Alpha[j][k] = (
-                (deltafun(j, k + 1) + deltafun(j, k - 1))
-                / np.sqrt((2 * (j + 1) - 1) * (2 * (k + 1) - 1))
-            )
-
-    eigvalsA = eigvalsh(Alpha)
-
-    eps = []
-    for val in eigvalsA[0:lmax]:
-        eps.append(-2 / val)
-
-    AlphaP = np.zeros((2 * lmax - 1, 2 * lmax - 1))
-    for j in range(2 * lmax - 1):
-        for k in range(2 * lmax - 1):
-            AlphaP[j][k] = (
-                (deltafun(j, k + 1) + deltafun(j, k - 1))
-                / np.sqrt((2 * (j + 1) + 1) * (2 * (k + 1) + 1))
-            )
-
-    eigvalsAP = eigvalsh(AlphaP)
-
-    chi = []
-    for val in eigvalsAP[0:lmax - 1]:
-        chi.append(-2/val)
-
-    eta_list = [
-        0.5 * lmax * (2 * (lmax + 1) - 1) * (
-            np.prod([chi[k]**2 - eps[j]**2 for k in range(lmax - 1)]) /
-            np.prod([
-                eps[k]**2 - eps[j]**2 + deltafun(j, k) for k in range(lmax)
-            ])
-        )
-        for j in range(lmax)
-    ]
-
-    kappa = [0] + eta_list
-    epsilon = [0] + eps
-
-    def f_approx(x):
+    def f_approx(x, Nk):
+        """ Padé approxmation to Fermi distribution. """
         f = 0.5
-        for ll in range(1, lmax + 1):
+        for ll in range(1, Nk + 1):
+            # kappa and epsilon are calculated further down
             f = f - 2 * kappa[ll] * x / (x**2 + epsilon[ll]**2)
         return f
 
-    def C(sigma, mu):
-        eta_0 = 0.5 * gamma * W * f_approx(1.0j * beta * W)
-        gamma_0 = W - sigma*1.0j*mu
-        eta_list = [eta_0]
-        gamma_list = [gamma_0]
-        if lmax > 0:
-            for ll in range(1, lmax + 1):
-                eta_list.append(
-                    -1.0j * (kappa[ll] / beta) * gamma * W**2
-                    / (-(epsilon[ll]**2 / beta**2) + W**2)
+    def kappa_epsilon(Nk):
+        """ Calculate kappa and epsilon coefficients. """
+
+        alpha = np.zeros((2 * Nk, 2 * Nk))
+        for j in range(2 * Nk):
+            for k in range(2 * Nk):
+                alpha[j][k] = (
+                    (deltafun(j, k + 1) + deltafun(j, k - 1))
+                    / np.sqrt((2 * (j + 1) - 1) * (2 * (k + 1) - 1))
                 )
-                gamma_list.append(epsilon[ll]/beta - sigma*1.0j*mu)
-        return eta_list, gamma_list
 
-    etapL, gampL = C(1.0, mu_l)
-    etamL, gammL = C(-1.0, mu_l)
+        eps = [-2. / val for val in eigvalsh(alpha)[:Nk]]
 
-    etapR, gampR = C(1.0, mu_r)
-    etamR, gammR = C(-1.0, mu_r)
+        alpha_p = np.zeros((2 * Nk - 1, 2 * Nk - 1))
+        for j in range(2 * Nk - 1):
+            for k in range(2 * Nk - 1):
+                alpha_p[j][k] = (
+                    (deltafun(j, k + 1) + deltafun(j, k - 1))
+                    / np.sqrt((2 * (j + 1) + 1) * (2 * (k + 1) + 1))
+                )
 
-    ck_plus = etapR + etapL
-    vk_plus = gampR + gampL
-    ck_minus = etamR + etamL
-    vk_minus = gammR + gammL
+        chi = [-2. / val for val in eigvalsh(alpha_p)[:Nk - 1]]
 
-And finally we are ready to construct the :class:`FermionicBath`:
+        eta_list = [
+            0.5 * Nk * (2 * (Nk + 1) - 1) * (
+                np.prod([chi[k]**2 - eps[j]**2 for k in range(Nk - 1)]) /
+                np.prod([
+                    eps[k]**2 - eps[j]**2 + deltafun(j, k) for k in range(Nk)
+                ])
+            )
+            for j in range(Nk)
+        ]
+
+        kappa = [0] + eta_list
+        epsilon = [0] + eps
+
+        return kappa, epsilon
+
+    kappa, epsilon = kappa_epsilon(Nk)
+
+    # Phew, we made it to function that calculates the coefficients for the
+    # correlation function expansions:
+
+    def C(sigma, mu, Nk):
+        """ Calculate the expansion coefficients for C_\sigma. """
+        beta = 1. / T
+        ck = [0.5 * gamma * W * f_approx(1.0j * beta * W, Nk)]
+        vk = [W - sigma * 1.0j * mu]
+        for ll in range(1, Nk + 1):
+            ck.append(
+                -1.0j * (kappa[ll] / beta) * gamma * W**2
+                / (-(epsilon[ll]**2 / beta**2) + W**2)
+            )
+            vk.append(epsilon[ll] / beta - sigma * 1.0j * mu)
+        return ck, vk
+
+    ck_plus_L, vk_plus_L = C(1.0, mu_L, Nk)  # C_+, left bath
+    ck_minus_L, vk_minus_L = C(-1.0, mu_L, Nk)  # C_-, left bath
+
+    ck_plus_R, vk_plus_R = C(1.0, mu_R, Nk)  # C_+, right bath
+    ck_minus_R, vk_minus_R = C(-1.0, mu_R, Nk)  # C_-, right bath
+
+Finally we are ready to construct the :class:`FermionicBath`:
 
 .. plot::
     :context:
@@ -465,7 +469,14 @@ And finally we are ready to construct the :class:`FermionicBath`:
     from qutip.nonmarkov.heom import FermionicBath
 
     # Padé expansion:
-    bath = FermionicBath(Q, ck_plus, vk_plus, ck_minus, vk_minus)
+    bath_L = FermionicBath(Q, ck_plus_L, vk_plus_L, ck_minus_L, vk_minus_L)
+    bath_R = FermionicBath(Q, ck_plus_R, vk_plus_R, ck_minus_R, vk_minus_R)
+
+And we're done!
+
+The :class:`FermionicBath` can be used with the :class:`HEOMSolver` in exactly
+the same way as the baths we constructed previously using the built-in
+Lorentzian bath expansions.
 
 
 .. plot::
