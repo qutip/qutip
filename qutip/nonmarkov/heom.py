@@ -32,6 +32,8 @@ __all__ = [
     "LorentzianPadeBath",
     "HEOMSolver",
     "HSolverDL",
+    "HierarchyADOs",
+    "HierarchyADOsState",
 ]
 
 from .bofin_baths import (
@@ -49,4 +51,6 @@ from .bofin_baths import (
 from .bofin_solvers import (
     HEOMSolver,
     HSolverDL,
+    HierarchyADOs,
+    HierarchyADOsState,
 )
