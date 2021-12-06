@@ -15,14 +15,13 @@ are
 
 We will demonstrate how to describe the bath using two different expansions
 of the spectral density correlation function (Matsubara's expansion and
-a Padé expansion), how to evolve the system in time and how to calculate
+a Padé expansion), how to evolve the system in time, and how to calculate
 the steady state.
 
-Since our fermion is coupled to two reservoirs, we will construct two baths
--- one for each reservoir or lead -- in each case and call them the
-left (:math:`L`) and right (:math:`R`) baths for convenience. Each bath will
-have a different chemical potential :math:`\mu` which we will label
-:math:`\mu_L` and :math:`\mu_R`.
+Since our fermion is coupled to two reservoirs, we will construct two baths --
+one for each reservoir or lead -- and call them the left (:math:`L`) and right
+(:math:`R`) baths for convenience. Each bath will have a different chemical
+potential :math:`\mu` which we will label :math:`\mu_L` and :math:`\mu_R`.
 
 First we will do this using the built-in implementations of
 the bath expansions, :class:`LorentzianBath` and
@@ -33,9 +32,9 @@ use those coefficients to construct your own bath description so that you can
 implement your own fermionic baths.
 
 Our implementation of fermionic baths primarily follows the definitions used by
-Christian Schinabeck in his Dissertation
+Christian Schinabeck in his dissertation (
 https://opus4.kobv.de/opus4-fau/files/10984/DissertationChristianSchinabeck.pdf
-and related publications.
+) and related publications.
 
 A notebook containing a complete example similar to this one implemented in
 BoFiN can be found in `example notebook 4b
@@ -83,7 +82,7 @@ Now let us describe the bath properties:
 where :math:`\Gamma` (``gamma``), :math:`W` and :math:`T` are the parameters of
 an Lorentzian bath, :math:`\mu_L` (``mu_L``) and :math:`\mu_R` (``mu_R``) are
 the chemical potentials of the left and right baths, and ``Q`` is the coupling
-operator between the system and the bath.
+operator between the system and the baths.
 
 We may the pass these parameters to either ``LorentzianBath`` or
 ``LorentzianPadeBath`` to construct an expansion of the bath correlations:
@@ -99,15 +98,19 @@ We may the pass these parameters to either ``LorentzianBath`` or
     Nk = 2
 
     # Matsubara expansion:
-    bath_L = LorentzianBath(Q, gamma, W, mu_L, T, Nk)
-    bath_R = LorentzianBath(Q, gamma, W, mu_R, T, Nk)
+    bath_L = LorentzianBath(Q, gamma, W, mu_L, T, Nk, tag="L")
+    bath_R = LorentzianBath(Q, gamma, W, mu_R, T, Nk, tag="R")
 
     # Padé expansion:
-    bath_L = LorentzianPadeBath(Q, gamma, W, mu_L, T, Nk)
-    bath_R = LorentzianPadeBath(Q, gamma, W, mu_R, T, Nk)
+    bath_L = LorentzianPadeBath(Q, gamma, W, mu_L, T, Nk, tag="L")
+    bath_R = LorentzianPadeBath(Q, gamma, W, mu_R, T, Nk, tag="R")
 
 Where ``Nk`` is the number of terms to retain within the expansion of the
 bath.
+
+Note that we haved labelled each bath with a tag (either "L" or "R") so that
+we can identify the exponents from individual baths later when calculating
+the currents between the system and the bath.
 
 
 System and bath dynamics
@@ -137,6 +140,177 @@ and to calculate the system evolution as a function of time:
 
 As in the bosonic case, the ``max_depth`` parameter determines how many levels
 of the hierarchy to retain.
+
+As in the bosonic case, we can specify ``e_ops`` in order to retrieve the
+expectation values of operators at each given time. See
+:ref:`guide/heom/bosonic:System and bath dynamics` for a fuller description of
+the returned ``result`` object.
+
+Below we run the solver again, but use ``e_ops`` to store the expectation
+values of the population of the system states:
+
+.. plot::
+    :context:
+
+    # Define the operators that measure the populations of the two
+    # system states:
+    P11p = basis(2,0) * basis(2,0).dag()
+    P22p = basis(2,1) * basis(2,1).dag()
+
+    # Run the solver:
+    tlist = np.linspace(0, 500, 101)
+    result = solver.run(rho0, tlist, e_ops={"11": P11p, "22": P22p})
+
+    # Plot the results:
+    fig, axes = plt.subplots(1, 1, sharex=True, figsize=(8,8))
+    axes.plot(result.times, result.expect["11"], 'b', linewidth=2, label="P11")
+    axes.plot(result.times, result.expect["22"], 'r', linewidth=2, label="P22")
+    axes.set_xlabel(r't', fontsize=28)
+    axes.legend(loc=0, fontsize=12)
+
+The plot above is not very exciting. What we would really like to see in
+this case are the currents between the system and the two baths. We will plot
+these in the next section using the auxiliary density operators (ADOs)
+returned by the solver.
+
+
+Determining currents
+--------------------
+
+The currents between the system and a fermionic bath may be calculated from the
+first level auxiliary density operators (ADOs) associated with the exponents
+of that bath.
+
+The current for each exponent is given by:
+
+.. math::
+
+    Current &= \pm i Tr(Q^\pm \cdot A)
+
+where the :math:`pm` sign is the sign of the exponent (see the
+description later in :ref:`Calculating the bath expansion coefficients`) and
+:math:`Q^\pm` is :math:`Q` for :math:`+` exponents and :math:`Q.dag()` for
+:math:`-` exponents.
+
+The first-level exponents for the left bath are retrieved by calling
+``.filter(tags=["L"])`` on ``ado_state`` which is an instance of
+:class:`HierarchyADOsState` and also provides access to the methods
+of :class:`HierarchyADOs` which describes the structure of the hierarchy for
+a given problem.
+
+Here the tag "L" matches the tag passed when constructing ``bath_L`` earlier
+in this example.
+
+Similarly, we may calculate the current to the right bath from the exponents
+tagged with "R".
+
+.. plot::
+    :context:
+    :nofigs:
+
+    def exp_current(aux, exp):
+        """ Calculate the current for a single exponent. """
+        sign = 1 if exp.type == exp.types["+"] else -1
+        op = exp.Q if exp.type == exp.types["+"] else exp.Q.dag()
+        return 1j * sign * (op * aux).tr()
+
+    def heom_current(tag, ado_state):
+        """ Calculate the current between the system and the given bath. """
+        level_1_ados = [
+            (ado_state.extract(label), ado_state.exps(label)[0])
+            for label in ado_state.filter(tags=[tag])
+        ]
+        return np.real(sum(exp_current(aux, exp) for aux, exp in level_1_ados))
+
+    heom_left_current = lambda t, ado_state: heom_current("L", ado_state)
+    heom_right_current = lambda t, ado_state: heom_current("R", ado_state)
+
+Once we have defined functions for retrieving the currents for the
+baths, we can pass them to ``e_ops`` and plot the results:
+
+.. plot::
+    :context: close-figs
+
+    # Run the solver (returning ADO states):
+    tlist = np.linspace(0, 100, 201)
+    result = solver.run(rho0, tlist, e_ops={
+        "left_currents": heom_left_current,
+        "right_currents": heom_right_current,
+    })
+
+    # Plot the results:
+    fig, axes = plt.subplots(1, 1, sharex=True, figsize=(8,8))
+    axes.plot(
+        result.times, result.expect["left_currents"], 'b',
+        linewidth=2, label=r"Bath L",
+    )
+    axes.plot(
+        result.times, result.expect["right_currents"], 'r',
+        linewidth=2, label="Bath R",
+    )
+    axes.set_xlabel(r't', fontsize=28)
+    axes.set_ylabel(r'Current', fontsize=20)
+    axes.set_title(r'System to Bath Currents', fontsize=20)
+    axes.legend(loc=0, fontsize=12)
+
+And now we have a more interesting plot that shows the currents to the
+left and right baths decaying towards their steady states!
+
+In the next section, we will calculate the steady state currents directly.
+
+
+Steady state currents
+---------------------
+
+Using the same solver, we can also determine the steady state of the
+combined system and bath using:
+
+.. plot::
+    :context:
+    :nofigs:
+
+    steady_state, steady_ados = solver.steady_state()
+
+and calculate the steady state currents to the two baths from ``steady_ados``
+using the same ``heom_current`` function we defined previously:
+
+.. plot::
+    :context:
+    :nofigs:
+
+    steady_state_current_left = heom_current("L", steady_ados)
+    steady_state_current_right = heom_current("R", steady_ados)
+
+Now we can add the steady state currents to the previous plot:
+
+.. plot::
+    :context: close-figs
+
+    # Plot the results and steady state currents:
+    fig, axes = plt.subplots(1, 1, sharex=True, figsize=(8,8))
+    axes.plot(
+        result.times, result.expect["left_currents"], 'b',
+        linewidth=2, label=r"Bath L",
+    )
+    axes.plot(
+        result.times, [steady_state_current_left] * len(result.times), 'b:',
+        linewidth=2, label=r"Bath L (steady state)",
+    )
+    axes.plot(
+        result.times, result.expect["right_currents"], 'r',
+        linewidth=2, label="Bath R",
+    )
+    axes.plot(
+        result.times, [steady_state_current_right] * len(result.times), 'r:',
+        linewidth=2, label=r"Bath R (steady state)",
+    )
+    axes.set_xlabel(r't', fontsize=28)
+    axes.set_ylabel(r'Current', fontsize=20)
+    axes.set_title(r'System to Bath Currents (with steady states)', fontsize=20)
+    axes.legend(loc=0, fontsize=12)
+
+As you can see, there is still some way to go beyond ``t = 100`` before the
+steady state is reached!
 
 
 Calculating the bath expansion coefficients
@@ -293,184 +467,6 @@ And finally we are ready to construct the :class:`FermionicBath`:
     # Padé expansion:
     bath = FermionicBath(Q, ck_plus, vk_plus, ck_minus, vk_minus)
 
-
-System and bath dynamics
-------------------------
-
-Now we are ready to construct a solver:
-
-.. plot::
-    :context:
-    :nofigs:
-
-    from qutip.nonmarkov.heom import HEOMSolver
-    from qutip import Options
-
-    max_depth = 2  # maximum hierarchy depth to retain
-    options = Options(nsteps=15_000)
-
-    solver = HEOMSolver(H_sys, bath, max_depth=max_depth, options=options)
-
-XXX: Add a note referencing the bosonic description of the returned result.
-
-Below we run the solver again, but use ``e_ops`` to store the expectation
-values of the population of the system states and the coherence:
-
-.. plot::
-    :context:
-
-    # Define the operators that measure the populations of the two
-    # system states:
-    P11p = basis(2,0) * basis(2,0).dag()
-    P22p = basis(2,1) * basis(2,1).dag()
-
-    # Define the operator that measures the 0, 1 element of density matrix
-    # (corresonding to coherence):
-    P12p = basis(2,0) * basis(2,1).dag()
-
-    # Run the solver:
-    tlist = np.linspace(0, 500, 101)
-    result = solver.run(rho0, tlist, e_ops={"11": P11p, "22": P22p, "12": P12p})
-
-    # Plot the results:
-    fig, axes = plt.subplots(1, 1, sharex=True, figsize=(8,8))
-    axes.plot(result.times, result.expect["11"], 'b', linewidth=2, label="P11")
-    axes.plot(result.times, result.expect["22"], 'r', linewidth=2, label="P22")
-    axes.set_xlabel(r't', fontsize=28)
-    axes.legend(loc=0, fontsize=12)
-
-
-Steady state
-------------
-
-Using the same solver, we can also determine the steady state of the
-combined system and bath using:
-
-.. plot::
-    :context:
-    :nofigs:
-
-    steady_state, steady_ados = solver.steady_state()
-
-
-Plotting system currents
-------------------------
-
-XXX: Pass in Gamma, W, beta etc as parameters
-
-.. plot::
-    :context:
-    :nofigs:
-
-    from scipy.integrate import quad
-
-    def analytic_current(theta):
-        # Gamma, W, beta, e1
-        e1 = 1.
-
-        mu_l = theta / 2.
-        mu_r = - theta / 2.
-
-        def f(x):
-            return 1 / (np.exp(x) + 1.)
-
-        def Gamma_w(w, mu):
-            return Gamma * W**2 / ((w-mu)**2 + W**2)
-
-        def lamshift(w, mu):
-            return (w-mu)*Gamma_w(w, mu)/(2*W)
-
-        def integrand(w):
-            return (
-                ((2 / (np.pi)) * Gamma_w(w, mu_l) * Gamma_w(w, mu_r) *
-                    (f(beta * (w - mu_l)) - f(beta * (w - mu_r)))) /
-                ((Gamma_w(w, mu_l) + Gamma_w(w, mu_r))**2 + 4 *
-                    (w - e1 - lamshift(w, mu_l) - lamshift(w, mu_r))**2)
-            )
-
-        def real_func(x):
-            return np.real(integrand(x))
-
-        def imag_func(x):
-            return np.imag(integrand(x))
-
-        # These integral bounds should be checked to be wide enough if the
-        # parameters are changed
-        a = -2
-        b = 2
-        real_integral = quad(real_func, a, b)
-        imag_integral = quad(imag_func, a, b)
-
-
-XXX: make lmax below less invisible
-
-.. plot::
-    :context:
-    :nofigs:
-
-    def state_current(ado_state):
-        level_1_aux = [
-            (ado_state.extract(label), ado_state.exps(label)[0])
-            for label in ado_state.filter(level=1)
-        ]
-
-        def exp_sign(exp):
-            return 1 if exp.type == exp.types["+"] else -1
-
-        def exp_op(exp):
-            return exp.Q if exp.type == exp.types["+"] else exp.Q.dag()
-
-        # right hand modes are the first k modes in ck/vk_plus and ck/vk_minus
-        # and thus the first 2 * k exponents
-        k = lmax + 1
-        return 1.0j * sum(
-            exp_sign(exp) * (exp_op(exp) * aux).tr()
-            for aux, exp in level_1_aux[:2 * k]
-        )
-
-.. plot::
-    :context:
-    :nofigs:
-
-    theta_list = np.linspace(-4, 4, 100)
-    current_analytical = []
-    current_heom = []
-
-    for theta in theta_list:
-        ck_plus, vk_plus, ck_minus, vk_minus = XXX
-        bath = FermionicBath(Q, ck_plus, vk_plus, ck_minus, vk_minus)
-        solver = HEOMSOlver(H_sys, bath, max_depth=2)
-        steady_state, steady_ados = solver.steady_state()
-
-        current_analytical.append(analytic_current(theta))
-        current_heom.append(state_current(steady_ados))
-
-
-.. plot::
-    :context:
-
-    fig, axes = plt.subplots(figsize=(8, 8))
-
-    axes.plot(theta_list, 2.434e-4 * 1e6 * np.array(curranalist), color="black", linewidth=3, label= r"Analytical")
-    axes.plot(theta_list, -2.434e-4 * 1e6 * array(currPlist), 'r--', linewidth=3, label= r"HEOM $l_{\mathrm{max}}=10$, $n_{\mathrm{max}}=2$")
-
-    axes.locator_params(axis='y', nbins=4)
-    axes.locator_params(axis='x', nbins=4)
-
-    axes.set_xticks([-2.5,0.,2.5])
-    axes.set_xticklabels([-2.5,0,2.5])
-
-    axes.set_xlabel(r"Bias voltage $\Delta \mu$ ($V$)",fontsize=28)
-    axes.set_ylabel(r"Current ($\mu A$)",fontsize=28)
-    axes.legend(fontsize=25)
-
-
-Multiple baths
---------------
-
-As for bosonic baths, the :class:`HEOMSolver` supports having a system interact
-with multiple fermionic environments. All that is needed is to supply a list of
-baths instead of a singe bath.
 
 .. plot::
     :context: reset
