@@ -14,7 +14,7 @@ spectral density, :math:`J_D`, are
 
 We will demonstrate how to describe the bath using two different expansions
 of the spectral density correlation function (Matsubara's expansion and
-a Padé expansion), how to evolve the system in time and how to calculate
+a Padé expansion), how to evolve the system in time, and how to calculate
 the steady state.
 
 First we will do this in the simplest way, using the built-in implementations of
