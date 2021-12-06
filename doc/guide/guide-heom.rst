@@ -10,4 +10,5 @@ Hierarchical Equations of Motion
    heom/intro.rst
    heom/bosonic.rst
    heom/fermionic.rst
+   heom/history.rst
    heom/references.rst
