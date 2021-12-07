@@ -742,7 +742,12 @@ class TestHEOMSolver:
         # analytic_current = dlm.analytic_current()
         np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
 
-    def test_ado_return_and_ado_init(self):
+
+    @pytest.mark.parametrize(['ado_format'], [
+        pytest.param("hierarchy-ados-state", id="hierarchy-ados-state"),
+        pytest.param("numpy", id="numpy"),
+    ])
+    def test_ado_return_and_ado_init(self, ado_format):
         dlm = DrudeLorentzPureDephasingModel(
             lam=0.025, gamma=0.05, T=1/0.95, Nk=2,
         )
@@ -756,8 +761,11 @@ class TestHEOMSolver:
         result_1 = hsolver.run(dlm.rho(), tlist_1, ado_return=True)
 
         tlist_2 = [2, 3, 4]
+        rho0 = result_1.ado_states[-1]
+        if ado_format == "numpy":
+            rho0 = rho0._ado_state  # extract the raw numpy array
         result_2 = hsolver.run(
-            result_1.ado_states[-1], tlist_2, ado_return=True, ado_init=True,
+            rho0, tlist_2, ado_return=True, ado_init=True,
         )
 
         tlist_full = tlist_1 + tlist_2[1:]
