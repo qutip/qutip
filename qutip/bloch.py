@@ -114,7 +114,6 @@ class Bloch:
         self.fig = fig
         self._ext_fig = fig is not None
         self.axes = axes
-        self._ext_axes = axes is not None
         # Background axes, default = False
         self.background = background
         # The size of the figure in inches, default = [5,5].
