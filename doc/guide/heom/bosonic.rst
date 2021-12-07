@@ -344,7 +344,7 @@ with multiple environments. All that is needed is to supply a list of baths
 instead of a single bath.
 
 In the example below we calculate the evolution of a small system where
-each energy eigenstate of the system interacts with a separate bath. Such
+each basis state of the system interacts with a separate bath. Such
 an arrangement can model, for example, the Fenna–Matthews–Olson (FMO)
 pigment-protein complex which plays an important role in photosynthesis (
 for a full FMO example see the notebook
