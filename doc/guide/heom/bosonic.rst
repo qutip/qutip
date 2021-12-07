@@ -345,8 +345,11 @@ instead of a single bath.
 
 In the example below we calculate the evolution of a small system where
 each energy eigenstate of the system interacts with a separate bath. Such
-as arrangement can model, for example, Fenna–Matthews–Olson (FMO)
-pigment-protein complex which plays an important role in photosynthesis.
+an arrangement can model, for example, the Fenna–Matthews–Olson (FMO)
+pigment-protein complex which plays an important role in photosynthesis (
+for a full FMO example see the notebook
+https://github.com/tehruhn/bofin/blob/main/examples/example-2-FMO-example.ipynb
+).
 
 For each bath expansion, we also include the terminator in the system
 Liouvillian.
