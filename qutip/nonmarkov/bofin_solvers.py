@@ -1037,7 +1037,6 @@ class HSolverDL(HEOMSolver):
             Nk=N_exp - 1,
             T=temperature,
             combine=combine,
-            terminator=bnd_cut_approx,
         )
 
         if bnd_cut_approx:
@@ -1049,7 +1048,8 @@ class HSolverDL(HEOMSolver):
             is_hamiltonian = H0.type == "oper"
             if is_hamiltonian:
                 H_sys = liouvillian(H_sys)
-            H_sys = H_sys + bath.terminator
+            _, terminator = bath.terminator()
+            H_sys = H_sys + terminator
 
         super().__init__(
             H_sys, bath=bath, max_depth=N_cut, options=options,

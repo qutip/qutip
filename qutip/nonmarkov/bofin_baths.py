@@ -325,23 +325,15 @@ class DrudeLorentzBath(BosonicBath):
     lam : float
         Coupling strength.
 
+    gamma : float
+        Bath spectral density cutoff frequency.
+
     T : float
         Bath temperature.
 
     Nk : int
         Number of exponential terms used to approximate the bath correlation
         functions.
-
-    gamma : float
-        Bath spectral density cutoff frequency.
-
-    terminator : bool, default False
-        Whether to calculate the Matsubara terminator for the bath. If
-        true, the calculated terminator and the calculated approximation
-        discrepancy are provided via the ``.terminator`` and ``.delta``
-        attributes, respectively. Otherwise, ``.terminator`` and ``.delta`` are
-        both set to ``None``. The terminator is a Liouvillian term, so it's
-        dimensions are those of a superoperator of ``Q``.
 
     combine : bool, default True
         Whether to combine exponents with the same frequency (and coupling
@@ -351,63 +343,50 @@ class DrudeLorentzBath(BosonicBath):
         A label for the bath exponents (for example, the name of the
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
-
-    Attributes
-    ----------
-    terminator : Qobj
-        The Matsubara terminator -- i.e. a liouvillian term representing the
-        contribution to the system-bath dynamics of all exponential expansion
-        terms beyond Nk. It should be used by adding it to the system
-        liouvillian (i.e. ``liouvillian(H_sys)``).
-
-    delta : float
-        The approximation discrepancy. That is, the difference between the true
-        correlation function of the Drude-Lorentz bath and the sum of the
-        ``Nk`` exponential terms is approximately ``2 * delta * dirac(t)``,
-        where ``dirac(t)`` denotes the Dirac delta function.
     """
     def __init__(
-        self, Q, lam, T, Nk, gamma, terminator=False, combine=True, tag=None,
+        self, Q, lam, gamma, T, Nk, combine=True, tag=None,
     ):
         ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(
             lam=lam,
             gamma=gamma,
-            Nk=Nk,
             T=T,
+            Nk=Nk,
         )
 
         super().__init__(
             Q, ck_real, vk_real, ck_imag, vk_imag, combine=combine, tag=tag,
         )
 
-        if terminator:
-            self.delta, self.terminator = DrudeLorentzBath._terminator(
-                Q=Q, lam=lam, gamma=gamma, T=T, exponents=self.exponents,
-            )
-        else:
-            self.delta = None
-            self.terminator = None
+        self._dl_terminator = _DrudeLorentzTerminator(
+            Q=Q, lam=lam, gamma=gamma, T=T,
+        )
 
-    @staticmethod
-    def _terminator(Q, lam, gamma, T, exponents):
-        """ Calculate the hierarchy terminator term for the Liouvillian. """
-        beta = 1 / T
+    def terminator(self):
+        """
+        Return the Matsubara terminator for the bath and the calculated
+        approximation discrepancy.
 
-        op = -2*spre(Q)*spost(Q.dag()) + spre(Q.dag()*Q) + spost(Q.dag()*Q)
-        delta = 2 * lam / (beta * gamma) - 1j * lam
+        Returns
+        -------
+        delta: float
 
-        for exp in exponents:
-            if exp.type == BathExponent.types["R"]:
-                delta -= exp.ck / exp.vk
-            elif exp.type == BathExponent.types["RI"]:
-                delta -= (exp.ck + 1j * exp.ck2) / exp.vk
-            else:
-                delta -= 1j * exp.ck / exp.vk
+            The approximation discrepancy. That is, the difference between the
+            true correlation function of the Drude-Lorentz bath and the sum of
+            the ``Nk`` exponential terms is approximately ``2 * delta *
+            dirac(t)``, where ``dirac(t)`` denotes the Dirac delta function.
 
-        L_bnd = -delta * op
-        return delta, L_bnd
+        terminator : Qobj
 
-    def _matsubara_params(self, lam, gamma, Nk, T):
+            The Matsubara terminator -- i.e. a liouvillian term representing
+            the contribution to the system-bath dynamics of all exponential
+            expansion terms beyond ``Nk``. It should be used by adding it to
+            the system liouvillian (i.e. ``liouvillian(H_sys)``).
+        """
+        delta, L = self._dl_terminator.terminator(self.exponents)
+        return delta, L
+
+    def _matsubara_params(self, lam, gamma, T, Nk):
         """ Calculate the Matsubara coefficents and frequencies. """
         ck_real = [lam * gamma / np.tan(gamma / (2 * T))]
         ck_real.extend([
@@ -452,23 +431,15 @@ class DrudeLorentzPadeBath(BosonicBath):
     lam : float
         Coupling strength.
 
+    gamma : float
+        Bath spectral density cutoff frequency.
+
     T : float
         Bath temperature.
 
     Nk : int
         Number of Padé exponentials terms used to approximate the bath
         correlation functions.
-
-    gamma : float
-        Bath spectral density cutoff frequency.
-
-    terminator : bool, default False
-        Whether to calculate the Padé terminator for the bath. If true, the
-        calculated terminator and the calculated approximation discrepancy are
-        provided via the ``.terminator`` and ``.delta`` attributes,
-        respectively. Otherwise, ``.terminator`` and ``.delta`` are both set to
-        ``None``. The terminator is a Liouvillian term, so it's dimensions are
-        those of a superoperator of ``Q``.
 
     combine : bool, default True
         Whether to combine exponents with the same frequency (and coupling
@@ -478,23 +449,9 @@ class DrudeLorentzPadeBath(BosonicBath):
         A label for the bath exponents (for example, the name of the
         bath). It defaults to None but can be set to help identify which
         bath an exponent is from.
-
-    Attributes
-    ----------
-    terminator : Qobj
-        The Padé terminator -- i.e. a liouvillian term representing the
-        contribution to the system-bath dynamics of all exponential expansion
-        terms beyond Nk. It should be used by adding it to the system
-        liouvillian (i.e. ``liouvillian(H_sys)``).
-
-    delta : float
-        The approximation discrepancy. That is, the difference between the true
-        correlation function of the Drude bath and the correlation function
-        represented by this object is approximately ``2 delta * dirac(t)``,
-        where ``dirac(t)`` denotes the Dirac delta function.
     """
     def __init__(
-        self, Q, lam, T, Nk, gamma, terminator=False, combine=True, tag=None
+        self, Q, lam, gamma, T, Nk, combine=True, tag=None
     ):
         eta_p, gamma_p = self._corr(lam=lam, gamma=gamma, T=T, Nk=Nk)
 
@@ -509,19 +466,33 @@ class DrudeLorentzPadeBath(BosonicBath):
             Q, ck_real, vk_real, ck_imag, vk_imag, combine=combine, tag=tag,
         )
 
-        if terminator:
-            self.delta, self.terminator = DrudeLorentzBath._terminator(
-                Q=Q, lam=lam, gamma=gamma, T=T, exponents=self.exponents,
-            )
-        else:
-            self.delta = None
-            self.terminator = None
+        self._dl_terminator = _DrudeLorentzTerminator(
+            Q=Q, lam=lam, gamma=gamma, T=T,
+        )
 
-    def _delta(self, i, j):
-        return 1.0 if i == j else 0.0
+    def terminator(self):
+        """
+        Return the Padé terminator for the bath and the calculated
+        approximation discrepancy.
 
-    def _cot(self, x):
-        return 1. / np.tan(x)
+        Returns
+        -------
+        delta: float
+
+            The approximation discrepancy. That is, the difference between the
+            true correlation function of the Drude-Lorentz bath and the sum of
+            the ``Nk`` exponential terms is approximately ``2 * delta *
+            dirac(t)``, where ``dirac(t)`` denotes the Dirac delta function.
+
+        terminator : Qobj
+
+            The Padé terminator -- i.e. a liouvillian term representing
+            the contribution to the system-bath dynamics of all exponential
+            expansion terms beyond ``Nk``. It should be used by adding it to
+            the system liouvillian (i.e. ``liouvillian(H_sys)``).
+        """
+        delta, L = self._dl_terminator.terminator(self.exponents)
+        return delta, L
 
     def _corr(self, lam, gamma, T, Nk):
         beta = 1. / T
@@ -538,6 +509,9 @@ class DrudeLorentzPadeBath(BosonicBath):
             gamma_p.append(epsilon[ll] / beta)
 
         return eta_p, gamma_p
+
+    def _cot(self, x):
+        return 1. / np.tan(x)
 
     def _kappa_epsilon(self, Nk):
         eps = self._calc_eps(Nk)
@@ -560,6 +534,9 @@ class DrudeLorentzPadeBath(BosonicBath):
 
         return kappa, epsilon
 
+    def _delta(self, i, j):
+        return 1.0 if i == j else 0.0
+
     def _calc_eps(self, Nk):
         alpha = np.diag([
                 1. / np.sqrt((2 * k + 5) * (2 * k + 3))
@@ -581,6 +558,39 @@ class DrudeLorentzPadeBath(BosonicBath):
         return chi
 
 
+class _DrudeLorentzTerminator:
+    """ A class for calculating the terminator of a Drude-Lorentz bath
+        expansion.
+    """
+    def __init__(self, Q, lam, gamma, T):
+        self.Q = Q
+        self.lam = lam
+        self.gamma = gamma
+        self.T = T
+
+    def terminator(self, exponents):
+        """ Calculate the terminator for a Drude-Lorentz bath. """
+        Q = self.Q
+        lam = self.lam
+        gamma = self.gamma
+        beta = 1 / self.T
+
+        delta = 2 * lam / (beta * gamma) - 1j * lam
+
+        for exp in exponents:
+            if exp.type == BathExponent.types["R"]:
+                delta -= exp.ck / exp.vk
+            elif exp.type == BathExponent.types["RI"]:
+                delta -= (exp.ck + 1j * exp.ck2) / exp.vk
+            else:
+                delta -= 1j * exp.ck / exp.vk
+
+        op = -2*spre(Q)*spost(Q.dag()) + spre(Q.dag()*Q) + spost(Q.dag()*Q)
+        L_bnd = -delta * op
+
+        return delta, L_bnd
+
+
 class UnderDampedBath(BosonicBath):
     """
     A helper class for constructing an under-damped bosonic bath from the
@@ -594,18 +604,18 @@ class UnderDampedBath(BosonicBath):
     lam : float
         Coupling strength.
 
+    gamma : float
+        Bath spectral density cutoff frequency.
+
+    w0 : float
+        Bath spectral density resonance frequency.
+
     T : float
         Bath temperature.
 
     Nk : int
         Number of exponential terms used to approximate the bath correlation
         functions.
-
-    gamma : float
-        Bath spectral density cutoff frequency.
-
-    w0 : float
-        Bath spectral density resonance frequency.
 
     combine : bool, default True
         Whether to combine exponents with the same frequency (and coupling
@@ -617,21 +627,21 @@ class UnderDampedBath(BosonicBath):
         bath an exponent is from.
     """
     def __init__(
-        self, Q, lam, T, Nk, gamma, w0, combine=True, tag=None,
+        self, Q, lam, gamma, w0, T, Nk, combine=True, tag=None,
     ):
         ck_real, vk_real, ck_imag, vk_imag = self._matsubara_params(
             lam=lam,
             gamma=gamma,
             w0=w0,
-            Nk=Nk,
             T=T,
+            Nk=Nk,
         )
 
         super().__init__(
             Q, ck_real, vk_real, ck_imag, vk_imag, combine=combine, tag=tag,
         )
 
-    def _matsubara_params(self, lam, gamma, w0, Nk, T):
+    def _matsubara_params(self, lam, gamma, w0, T, Nk):
         """ Calculate the Matsubara coefficents and frequencies. """
         beta = 1/T
         Om = np.sqrt(w0**2 - (gamma/2)**2)
@@ -752,3 +762,195 @@ class FermionicBath(Bath):
                 "-", 2, Q, ckm, vkm, sigma_bar_k_offset=-1, tag=tag,
             ))
         super().__init__(exponents)
+
+
+class LorentzianBath(FermionicBath):
+    """
+    A helper class for constructing a Lorentzian fermionic bath from the
+    bath parameters (see parameters below).
+
+    .. note::
+
+        This Matsubara expansion used in this bath converges very slowly
+        and ``Nk > 20`` may be required to get good convergence. The
+        Padé expansion used by :class:`LorentzianPadeBath` converges much
+        more quickly.
+
+    Parameters
+    ----------
+    Q : Qobj
+        Operator describing the coupling between system and bath.
+
+    gamma : float
+        The coupling strength between the system and the bath.
+
+    w : float
+        The width of the environment.
+
+    mu : float
+        The chemical potential of the bath.
+
+    T : float
+        Bath temperature.
+
+    Nk : int
+        Number of exponential terms used to approximate the bath correlation
+        functions.
+
+    tag : optional, str, tuple or any other object
+        A label for the bath exponents (for example, the name of the
+        bath). It defaults to None but can be set to help identify which
+        bath an exponent is from.
+    """
+    def __init__(self, Q, gamma, w, mu, T, Nk, tag=None):
+        ck_plus, vk_plus = self._corr(gamma, w, mu, T, Nk, sigma=1.0)
+        ck_minus, vk_minus = self._corr(gamma, w, mu, T, Nk, sigma=-1.0)
+
+        super().__init__(
+            Q, ck_plus, vk_plus, ck_minus, vk_minus, tag=tag,
+        )
+
+    def _corr(self, gamma, w, mu, T, Nk, sigma):
+        beta = 1. / T
+        kappa = [0.]
+        kappa.extend([1. for _ in range(1, Nk + 1)])
+        epsilon = [0]
+        epsilon.extend([(2 * ll - 1) * np.pi for ll in range(1, Nk + 1)])
+
+        def f(x):
+            return 1 / (np.exp(x) + 1)
+
+        eta_list = [0.5 * gamma * w * f(1.0j * beta * w)]
+        gamma_list = [w - sigma * 1.0j * mu]
+
+        for ll in range(1, Nk + 1):
+            eta_list.append(
+                -1.0j * (kappa[ll] / beta) * gamma * w**2 /
+                (-(epsilon[ll]**2 / beta**2) + w**2)
+            )
+            gamma_list.append(epsilon[ll] / beta - sigma * 1.0j * mu)
+
+        return eta_list, gamma_list
+
+
+class LorentzianPadeBath(FermionicBath):
+    """
+    A helper class for constructing a Padé expansion for Lorentzian fermionic
+    bath from the bath parameters (see parameters below).
+
+    A Padé approximant is a sum-over-poles expansion (
+    see https://en.wikipedia.org/wiki/Pad%C3%A9_approximant).
+
+    The application of the Padé method to spectrum decompoisitions is described
+    in "Padé spectrum decompositions of quantum distribution functions and
+    optimal hierarchical equations of motion construction for quantum open
+    systems" [1].
+
+    The implementation here follows the approach in the paper.
+
+    [1] J. Chem. Phys. 134, 244106 (2011); https://doi.org/10.1063/1.3602466
+
+    This is an alternative to the :class:`LorentzianBath` which constructs
+    a simpler exponential expansion that converges much more slowly in
+    this particular case.
+
+    Parameters
+    ----------
+    Q : Qobj
+        Operator describing the coupling between system and bath.
+
+    gamma : float
+        The coupling strength between the system and the bath.
+
+    w : float
+        The width of the environment.
+
+    mu : float
+        The chemical potential of the bath.
+
+    T : float
+        Bath temperature.
+
+    Nk : int
+        Number of exponential terms used to approximate the bath correlation
+        functions.
+
+    tag : optional, str, tuple or any other object
+        A label for the bath exponents (for example, the name of the
+        bath). It defaults to None but can be set to help identify which
+        bath an exponent is from.
+    """
+    def __init__(self, Q, gamma, w, mu, T, Nk, tag=None):
+        ck_plus, vk_plus = self._corr(gamma, w, mu, T, Nk, sigma=1.0)
+        ck_minus, vk_minus = self._corr(gamma, w, mu, T, Nk, sigma=-1.0)
+
+        super().__init__(
+            Q, ck_plus, vk_plus, ck_minus, vk_minus, tag=tag,
+        )
+
+    def _corr(self, gamma, w, mu, T, Nk, sigma):
+        beta = 1. / T
+        kappa, epsilon = self._kappa_epsilon(Nk)
+
+        def f_approx(x):
+            f = 0.5
+            for ll in range(1, Nk + 1):
+                f = f - 2 * kappa[ll] * x / (x**2 + epsilon[ll]**2)
+            return f
+
+        eta_list = [0.5 * gamma * w * f_approx(1.0j * beta * w)]
+        gamma_list = [w - sigma * 1.0j * mu]
+
+        for ll in range(1, Nk + 1):
+            eta_list.append(
+                -1.0j * (kappa[ll] / beta) * gamma * w**2
+                / (-(epsilon[ll]**2 / beta**2) + w**2)
+            )
+            gamma_list.append(epsilon[ll] / beta - sigma * 1.0j * mu)
+
+        return eta_list, gamma_list
+
+    def _kappa_epsilon(self, Nk):
+        eps = self._calc_eps(Nk)
+        chi = self._calc_chi(Nk)
+
+        kappa = [0]
+        prefactor = 0.5 * Nk * (2 * (Nk + 1) - 1)
+        for j in range(Nk):
+            term = prefactor
+            for k in range(Nk - 1):
+                term *= (
+                    (chi[k]**2 - eps[j]**2) /
+                    (eps[k]**2 - eps[j]**2 + self._delta(j, k))
+                )
+            for k in [Nk - 1]:
+                term /= (eps[k]**2 - eps[j]**2 + self._delta(j, k))
+            kappa.append(term)
+
+        epsilon = [0] + eps
+
+        return kappa, epsilon
+
+    def _delta(self, i, j):
+        return 1.0 if i == j else 0.0
+
+    def _calc_eps(self, Nk):
+        alpha = np.diag([
+                1. / np.sqrt((2 * k + 3) * (2 * k + 1))
+                for k in range(2 * Nk - 1)
+        ], k=1)
+        alpha += alpha.transpose()
+
+        evals = eigvalsh(alpha)
+        eps = [-2. / val for val in evals[0: Nk]]
+        return eps
+
+    def _calc_chi(self, Nk):
+        alpha_p = np.diag([
+                1. / np.sqrt((2 * k + 5) * (2 * k + 3))
+                for k in range(2 * Nk - 2)
+        ], k=1)
+        alpha_p += alpha_p.transpose()
+        evals = eigvalsh(alpha_p)
+        chi = [-2. / val for val in evals[0: Nk - 1]]
+        return chi
