@@ -341,7 +341,7 @@ Multiple baths
 
 The :class:`~qutip.nonmarkov.heom.HEOMSolver` supports having a system interact
 with multiple environments. All that is needed is to supply a list of baths
-instead of a singe bath.
+instead of a single bath.
 
 In the example below we calculate the evolution of a small system where
 each energy eigenstate of the system interacts with a separate bath. Such

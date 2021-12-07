@@ -183,11 +183,12 @@ The currents between the system and a fermionic bath may be calculated from the
 first level auxiliary density operators (ADOs) associated with the exponents
 of that bath.
 
-The current for each exponent is given by:
+The contribution to the current into a given bath from each exponent in that
+bath is:
 
 .. math::
 
-    \mathrm{Current} = \pm i \mathrm{Tr}(Q^\pm \cdot A)
+    \mathrm{Contribution from Exponent} = \pm i \mathrm{Tr}(Q^\pm \cdot A)
 
 where the :math:`\pm` sign is the sign of the exponent (see the
 description later in :ref:`heom-fermionic-pade-expansion-coefficients`) and
@@ -349,7 +350,7 @@ As in the bosonic case we can approximate this integral with a Matsubara or
 Padé expansion. For the Lorentzian bath the Padé expansion converges much
 more quickly, so we will calculate the Padé expansion coefficients here.
 
-The Padé decomposition approximates the Fermi distubition as:
+The Padé decomposition approximates the Fermi distribution as:
 
 .. math::
 
