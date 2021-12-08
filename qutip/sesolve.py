@@ -138,7 +138,6 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
     if e_ops_dict:
         res.expect = {e: res.expect[n]
                       for n, e in enumerate(e_ops_dict.keys())}
-    res.SolverSystem = ss
     return res
 
 
