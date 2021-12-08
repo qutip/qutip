@@ -407,43 +407,61 @@ class Bloch:
         except NameError:
             return False
 
+    def _is_inline_backend(self):
+        backend = matplotlib.get_backend()
+        return backend == "module://matplotlib_inline.backend_inline"
+
     def render(self):
         """
         Render the Bloch sphere and its data sets in on given figure and axes.
         """
-        if not self._ext_fig:
+        if not self._ext_fig and not self._is_inline_backend():
             # If no external figure was supplied, we check to see if the
             # figure we created in a previous call to .render() has been
-            # closed, and trigger recreating the figure and axis if it has.
-            if self.fig is not None and not plt.fignum_exists(self.fig.number):
+            # closed, and re-create if has been. This has the unfortunate
+            # side effect of losing any modifications made to the axes or
+            # figure, but the alternative is to crash the matplotlib backend.
+            #
+            # The inline backend used by, e.g. jupyter notebooks, is happy to
+            # use closed figures so we leave those figures intact.
+            if (
+                self.fig is not None and
+                not plt.fignum_exists(self.fig.number)
+            ):
                 self.fig = None
                 self.axes = None
 
         if self.fig is None:
             self.fig = plt.figure(figsize=self.figsize)
+            if self._is_inline_backend():
+                # We immediately close the inline figure do avoid displaying
+                # the figure twice when .show() calls display.
+                plt.close(self.fig)
 
         if self.axes is None:
             self.axes = _axes3D(self.fig, azim=self.view[0], elev=self.view[1])
 
+        # Clearing the axes is horrifically slow and loses a lot of the
+        # axes state, but matplotlib doesn't seem to provide a better way
+        # to redraw Axes3D. :/
+        self.axes.clear()
+        self.axes.grid(False)
         if self.background:
-            self.axes.clear()
             self.axes.set_xlim3d(-1.3, 1.3)
             self.axes.set_ylim3d(-1.3, 1.3)
             self.axes.set_zlim3d(-1.3, 1.3)
         else:
-            self.axes.clear()
-            self.plot_axes()
             self.axes.set_axis_off()
             self.axes.set_xlim3d(-0.7, 0.7)
             self.axes.set_ylim3d(-0.7, 0.7)
             self.axes.set_zlim3d(-0.7, 0.7)
-
         # Manually set aspect ratio to fit a square bounding box.
         # Matplotlib did this stretching for < 3.3.0, but not above.
         if parse_version(matplotlib.__version__) >= parse_version('3.3'):
             self.axes.set_box_aspect((1, 1, 1))
+        if not self.background:
+            self.plot_axes()
 
-        self.axes.grid(False)
         self.plot_back()
         self.plot_points()
         self.plot_vectors()
