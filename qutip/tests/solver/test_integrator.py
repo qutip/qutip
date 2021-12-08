@@ -2,6 +2,8 @@ from qutip.solver.options import SolverOdeOptions
 from qutip.solver.sesolve import SeSolver
 from qutip.solver.mesolve import MeSolver
 from qutip.solver.solver_base import Solver
+from qutip.solver.ode.scipy_integrator import (IntegratorScipyZvode,
+                                               IntegratorScipylsoda)
 import qutip
 import numpy as np
 from numpy.testing import assert_allclose
@@ -101,3 +103,21 @@ class TestIntegrator(TestIntegratorCte):
     )
     def mc_method(self, request):
         return request.param
+
+
+@pytest.mark.parametrize('integrator',
+    [IntegratorScipyZvode, IntegratorScipylsoda], ids=["zvode", "lsoda"])
+def test_concurent_usage(integrator):
+    sys = qutip.QobjEvo(qutip.qeye(1))
+    opt = SolverOdeOptions()
+    sys = qutip.QobjEvo(0.5*qutip.qeye(1))
+    inter1 = integrator(sys, opt)
+    inter1.set_state(0, qutip.basis(1,0).data)
+    sys = qutip.QobjEvo(-0.5*qutip.qeye(1))
+    inter2 = integrator(sys, opt)
+    inter2.set_state(0, qutip.basis(1,0).data)
+    for t in np.linspace(0,1,6):
+        expected = pytest.approx(np.exp(t/2), abs=1e-5)
+        assert inter1.integrate(t)[1].to_array()[0, 0] == expected
+        expected = pytest.approx(np.exp(-t/2), abs=1e-5)
+        assert inter2.integrate(t)[1].to_array()[0, 0] == expected

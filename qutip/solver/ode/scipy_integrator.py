@@ -86,28 +86,27 @@ class IntegratorScipyZvode(Integrator):
             state = _data.dense.Dense(self._ode_solver._y, copy=copy)
         return t, state
 
-    def integrate(self, t, copy=True):
-        if (
-            self._ode_solver._integrator.initialized
-            and (self._ode_solver._integrator.handle !=
-                 self._ode_solver._integrator.__class__.active_global_handle)
-        ):
-            self._ode_solver._integrator.reset(
-                len(self._ode_solver._y), self._ode_solver.jac is not None)
+    def _check_handle(self):
+        """
+        Do the check for concurrent use of the integrator and reset if used
+        elsewhere.
+        """
+        if self._ode_solver._integrator.initialized:
+            if (
+                self._ode_solver._integrator.handle !=
+                self._ode_solver._integrator.__class__.active_global_handle
+            ):
+                self._ode_solver._integrator.reset(
+                    len(self._ode_solver._y), False)
 
+    def integrate(self, t, copy=True):
+        self._check_handle()
         if t != self._ode_solver.t:
             self._ode_solver.integrate(t)
         return self.get_state(copy)
 
     def mcstep(self, t, copy=True):
-        if (
-            self._ode_solver._integrator.initialized
-            and (self._ode_solver._integrator.handle !=
-                 self._ode_solver._integrator.__class__.active_global_handle)
-        ):
-            self._ode_solver._integrator.reset(
-                len(self._ode_solver._y), self._ode_solver.jac is not None)
-
+        self._check_handle()
         if t == self._ode_solver.t:
             pass
         elif self._ode_solver.t < t:
@@ -269,15 +268,27 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         self._ode_solver.set_integrator('lsoda', **self.options)
         self.name = "scipy lsoda"
 
-    def mcstep(self, t, copy=True):
-        if (
-            self._ode_solver._integrator.initialized
-            and (self._ode_solver._integrator.handle !=
-                 self._ode_solver._integrator.__class__.active_global_handle)
-        ):
-            self._ode_solver._integrator.reset(
-                len(self._ode_solver._y), self._ode_solver.jac is not None)
+    def _check_handle(self):
+        """
+        Do the check for concurrent use of the integrator and reset if used
+        elsewhere.
+        """
+        if self._ode_solver._integrator.initialized:
+            if (
+                self._ode_solver._integrator.handle !=
+                self._ode_solver._integrator.__class__.active_global_handle
+            ):
+                self._ode_solver._integrator.reset(
+                    len(self._ode_solver._y), False)
 
+    def integrate(self, t, copy=True):
+        self._check_handle()
+        if t != self._ode_solver.t:
+            self._ode_solver.integrate(t)
+        return self.get_state(copy)
+
+    def mcstep(self, t, copy=True):
+        self._check_handle()
         if self._ode_solver.t == t:
             pass
         elif self._ode_solver.t < t:
