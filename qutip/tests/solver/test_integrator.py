@@ -108,16 +108,18 @@ class TestIntegrator(TestIntegratorCte):
 @pytest.mark.parametrize('integrator',
     [IntegratorScipyZvode, IntegratorScipylsoda], ids=["zvode", "lsoda"])
 def test_concurent_usage(integrator):
-    sys = qutip.QobjEvo(qutip.qeye(1))
     opt = SolverOdeOptions()
-    sys = qutip.QobjEvo(0.5*qutip.qeye(1))
-    inter1 = integrator(sys, opt)
+
+    sys1 = qutip.QobjEvo(0.5*qutip.qeye(1))
+    inter1 = integrator(sys1, opt)
     inter1.set_state(0, qutip.basis(1,0).data)
-    sys = qutip.QobjEvo(-0.5*qutip.qeye(1))
-    inter2 = integrator(sys, opt)
+
+    sys2 = qutip.QobjEvo(-0.5*qutip.qeye(1))
+    inter2 = integrator(sys2, opt)
     inter2.set_state(0, qutip.basis(1,0).data)
+
     for t in np.linspace(0,1,6):
-        expected = pytest.approx(np.exp(t/2), abs=1e-5)
-        assert inter1.integrate(t)[1].to_array()[0, 0] == expected
-        expected = pytest.approx(np.exp(-t/2), abs=1e-5)
-        assert inter2.integrate(t)[1].to_array()[0, 0] == expected
+        expected1 = pytest.approx(np.exp(t/2), abs=1e-5)
+        assert inter1.integrate(t)[1].to_array()[0, 0] == expected1
+        expected2 = pytest.approx(np.exp(-t/2), abs=1e-5)
+        assert inter2.integrate(t)[1].to_array()[0, 0] == expected2
