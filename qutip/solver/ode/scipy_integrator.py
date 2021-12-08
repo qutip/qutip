@@ -91,13 +91,10 @@ class IntegratorScipyZvode(Integrator):
         Do the check for concurrent use of the integrator and reset if used
         elsewhere.
         """
-        if self._ode_solver._integrator.initialized:
-            if (
-                self._ode_solver._integrator.handle !=
-                self._ode_solver._integrator.__class__.active_global_handle
-            ):
-                self._ode_solver._integrator.reset(
-                    len(self._ode_solver._y), False)
+        integrator = self._ode_solver._integrator
+        if integrator.initialized:
+            if integrator.handle != integrator.__class__.active_global_handle:
+                integrator.reset(len(self._ode_solver._y), False)
 
     def integrate(self, t, copy=True):
         self._check_handle()
@@ -107,7 +104,7 @@ class IntegratorScipyZvode(Integrator):
 
     def mcstep(self, t, copy=True):
         self._check_handle()
-        if t == self._ode_solver.t:
+        if self._ode_solver.t == t:
             pass
         elif self._ode_solver.t < t:
             self._back = self._ode_solver.t
@@ -273,19 +270,14 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         Do the check for concurrent use of the integrator and reset if used
         elsewhere.
         """
-        if self._ode_solver._integrator.initialized:
-            if (
-                self._ode_solver._integrator.handle !=
-                self._ode_solver._integrator.__class__.active_global_handle
-            ):
-                self._ode_solver._integrator.reset(
-                    len(self._ode_solver._y), False)
+        integrator = self._ode_solver._integrator
+        if integrator.initialized:
+            if integrator.handle != integrator.__class__.active_global_handle:
+                integrator.reset(len(self._ode_solver._y), False)
 
     def integrate(self, t, copy=True):
         self._check_handle()
-        if t != self._ode_solver.t:
-            self._ode_solver.integrate(t)
-        return self.get_state(copy)
+        return super().integrate(t, copy)
 
     def mcstep(self, t, copy=True):
         self._check_handle()
