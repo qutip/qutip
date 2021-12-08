@@ -743,6 +743,67 @@ class TestHEOMSolver:
         np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
 
 
+    @pytest.mark.parametrize(['ado_format'], [
+        pytest.param("hierarchy-ados-state", id="hierarchy-ados-state"),
+        pytest.param("numpy", id="numpy"),
+    ])
+    def test_ado_return_and_ado_init(self, ado_format):
+        dlm = DrudeLorentzPureDephasingModel(
+            lam=0.025, gamma=0.05, T=1/0.95, Nk=2,
+        )
+        ck_real, vk_real, ck_imag, vk_imag = dlm.bath_coefficients()
+
+        bath = BosonicBath(dlm.Q, ck_real, vk_real, ck_imag, vk_imag)
+        options = Options(nsteps=15_000, store_states=True)
+        hsolver = HEOMSolver(dlm.H, bath, 6, options=options)
+
+        tlist_1 = [0, 1, 2]
+        result_1 = hsolver.run(dlm.rho(), tlist_1, ado_return=True)
+
+        tlist_2 = [2, 3, 4]
+        rho0 = result_1.ado_states[-1]
+        if ado_format == "numpy":
+            rho0 = rho0._ado_state  # extract the raw numpy array
+        result_2 = hsolver.run(
+            rho0, tlist_2, ado_return=True, ado_init=True,
+        )
+
+        tlist_full = tlist_1 + tlist_2[1:]
+        result_full = hsolver.run(dlm.rho(), tlist_full, ado_return=True)
+
+        times_12 = result_1.times + result_2.times[1:]
+        times_full = result_full.times
+        assert times_12 == tlist_full
+        assert times_full == tlist_full
+
+        ado_states_12 = result_1.ado_states + result_2.ado_states[1:]
+        ado_states_full = result_full.ado_states
+        assert len(ado_states_12) == len(tlist_full)
+        assert len(ado_states_full) == len(tlist_full)
+        for ado_12, ado_full in zip(ado_states_12, ado_states_full):
+            for label in hsolver.ados.labels:
+                np.testing.assert_allclose(
+                    ado_12.extract(label).full(),
+                    ado_full.extract(label).full(),
+                    atol=1e-6,
+                )
+
+        states_12 = result_1.states + result_2.states[1:]
+        states_full = result_full.states
+        assert len(states_12) == len(tlist_full)
+        assert len(states_full) == len(tlist_full)
+        for ado_12, state_12 in zip(ado_states_12, states_12):
+            assert ado_12.rho == state_12
+        for ado_full, state_full in zip(ado_states_full, states_full):
+            assert ado_full.rho == state_full
+
+        expected = dlm.analytic_results(tlist_full)
+        test_12 = dlm.state_results(states_12)
+        np.testing.assert_allclose(test_12, expected, atol=1e-3)
+        test_full = dlm.state_results(states_full)
+        np.testing.assert_allclose(test_full, expected, atol=1e-3)
+
+
 class TestHSolverDL:
     @pytest.mark.parametrize(['bnd_cut_approx', 'atol'], [
         pytest.param(True, 1e-4, id="bnd_cut_approx"),

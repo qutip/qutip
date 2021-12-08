@@ -824,13 +824,22 @@ class HEOMSolver:
 
         Parameters
         ----------
-        rho0 : Qobj or numpy.array
-            Initial state (density matrix) of the system
-            if ``full_init`` is ``False``.
-            If ``full_init`` is ``True``, then ``rho0`` should be a numpy array
-            of the initial state and the initial state of all ADOs. Usually
+        rho0 : Qobj or HierarchyADOsState or numpy.array
+            Initial state (:obj:`~Qobj` density matrix) of the system
+            if ``ado_init`` is ``False``.
+
+            If ``ado_init`` is ``True``, then ``rho0`` should be an
+            instance of :obj:`~HierarchyADOsState` or a numpy array
+            giving the initial state of all ADOs. Usually
             the state of the ADOs would be determine from a previous call
-            to ``.run(..., ado_return=True)``.
+            to ``.run(..., ado_return=True)``. For example,
+            ``result = solver.run(..., ado_return=True)`` could be followed
+            by ``solver.run(result.ado_states[-1], tlist, ado_init=True)``.
+
+            If a numpy array is passed its shape must be
+            ``(number_of_ados, n, n)`` where ``(n, n)`` is the system shape
+            (i.e. shape of the system density matrix) and the ADOs must be
+            in the same order as in ``.ados.labels``.
 
         tlist : list
             An ordered list of times at which to return the value of the state.
@@ -893,7 +902,16 @@ class HEOMSolver:
             output.states = []
 
         if ado_init:
-            rho0_he = rho0
+            if isinstance(rho0, HierarchyADOsState):
+                rho0_he = rho0._ado_state
+            else:
+                rho0_he = rho0
+            if rho0_he.shape != hierarchy_shape:
+                raise ValueError(
+                    f"ADOs passed with ado_init have shape {rho0_he.shape}"
+                    f"but the solver hierarchy shape is {hierarchy_shape}"
+                )
+            rho0_he = rho0_he.reshape(n ** 2 * self._n_ados)
         else:
             rho0_he = np.zeros([n ** 2 * self._n_ados], dtype=complex)
             rho0_he[:n ** 2] = rho0.full().ravel('F')
