@@ -267,7 +267,8 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
 
     if not (xlabels or ylabels):
         ax.axis('off')
-    ax.set_title(title)
+    if title:
+        ax.set_title(title)
 
     ax.axis('equal')
     ax.set_frame_on(False)
