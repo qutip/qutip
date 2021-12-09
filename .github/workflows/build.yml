@@ -104,8 +104,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     env:
-      # Set up wheels matrix.  This is CPython 3.6--3.9 for all OS targets.
-      CIBW_BUILD: "cp3[6-9]-*"
+      # Set up wheels matrix.  This is CPython 3.6--3.10 for all OS targets.
+      CIBW_BUILD: "cp36-* cp37-* cp38-* cp39-* cp310-*"
       # cibuildwheel 2.3.0 changed the default manylinux image to 2014, but
       # for now we continue to build against manylinux 2010.
       CIBW_MANYLINUX_X86_64_IMAGE: "manylinux2010"
