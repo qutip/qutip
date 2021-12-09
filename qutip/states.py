@@ -219,7 +219,7 @@ def coherent(N, alpha, offset=0, method=None):
 
     """
     if offset < 0:
-        raise ValueError('Offset must me non-negative')
+        raise ValueError('Offset must be non-negative')
 
     if method is None:
         method = "operator" if offset == 0 else "analytic"
@@ -296,7 +296,7 @@ shape = [3, 3], type = oper, isHerm = True
     but would in that case give more accurate coefficients.
 
     """
-    psi = coherent(N, alpha, offset=offset)
+    psi = coherent(N, alpha, offset=offset, method=method)
     return psi * psi.dag()
 
 
