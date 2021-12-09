@@ -638,6 +638,17 @@ class Bloch:
     def show(self):
         """
         Display Bloch sphere and corresponding data sets.
+
+        Notes
+        -----
+
+        When using inline plotting in Jupyter notebooks, any figure created
+        in a notebook cell is displayed after the cell executes. Thus if you
+        create a figure yourself and pass it to with
+        ``b = Bloch(..., fig=fig)`` and then call ``b.show()`` in the same
+        cell, then the figure will be displayed twice. If you do create your
+        own figure, the simplest solution to this is to not call ``.show()``
+        in the cell you create the figure in.
         """
         self.render()
         if self.run_from_ipython():
