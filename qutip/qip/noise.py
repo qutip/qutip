@@ -22,9 +22,9 @@ def process_noise(pulses, noise_list, dims, t1=None, t2=None,
 
     Parameters
     ----------
-    pulses: list of :class:`qutip.qip.Pulse`
+    pulses: list of :class:`.Pulse`
         The input pulses, on which the noise object will be applied.
-    noise_list: list of :class:`qutip.qip.noise`
+    noise_list: list of :class:`.Noise`
         A list of noise objects.
     dims: int or list
         Dimension of the system.
@@ -69,7 +69,7 @@ def process_noise(pulses, noise_list, dims, t1=None, t2=None,
 class Noise(object):
     """
     The base class representing noise in a processor.
-    The noise object can be added to :class:`qutip.qip.device.Processor` and
+    The noise object can be added to :class:`.Processor` and
     contributes to evolution.
     """
     def __init__(self):
@@ -86,18 +86,18 @@ class Noise(object):
             The dimension of the components system, the default value is
             [2,2...,2] for qubits system.
 
-        pulses: list of :class:`~qutip.qip.pulse.Pulse`
+        pulses: list of :class:`.Pulse`
             The input pulses, on which the noise object is to be applied.
 
-        systematic_noise: :class:`~qutip.qip.pulse.Pulse`
+        systematic_noise: :class:`.Pulse`
             The dummy pulse with no ideal control element.
 
         Returns
         -------
-        noisy_pulses: list of :class:`~qutip.qip.pulse.Pulse`
+        noisy_pulses: list of :class:`.Pulse`
             Noisy pulses.
 
-        systematic_noise: :class:`~qutip.qip.pulse.Pulse`
+        systematic_noise: :class:`.Pulse`
             The dummy pulse representing pulse independent noise.
         """
         raise NotImplementedError(
@@ -358,7 +358,7 @@ class RandomNoise(ControlAmpNoise):
         parameter as the size of random numbers in the output array.
     indices: list of int, optional
         The indices of target pulse in the list of pulses.
-    kwargs:
+    **kwargs:
         Key word arguments for the random number generator.
 
     Attributes
@@ -371,7 +371,7 @@ class RandomNoise(ControlAmpNoise):
         parameter.
     indices: list of int
         The indices of target pulse in the list of pulses.
-    kwargs:
+    **kwargs:
         Key word arguments for the random number generator.
 
     Examples

@@ -1,36 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
 from functools import partial
 
 import numpy as np
@@ -918,6 +885,88 @@ class TestMESolveStepFuncCoeff:
                       e_ops=[num(2)], args={"expect_op_0":num(2)})
         assert_(max(abs(res.expect[0][5:])) < tol,
             msg="evolution with feedback not proceding as expected")
+
+
+def test_non_hermitian_dm():
+    """Test that mesolve works correctly for density matrices that are
+    not Hermitian.
+    See Issue #1460
+    """
+    N = 2
+    a = destroy(N)
+    x = (a + a.dag())/np.sqrt(2)
+    H = a.dag() * a
+
+    # Create non-Hermitian initial state.
+    rho0 = x*fock_dm(N, 0)
+
+    tlist = np.linspace(0, 0.1, 2)
+
+    options = Options()
+    options.store_final_state = True
+    options.store_states = True
+
+    result = mesolve(H, rho0, tlist, e_ops=[x], options=options)
+
+    msg = ('Mesolve is not working properly with a non Hermitian density' +
+       ' matrix as input. Check computation of '
+      )
+
+    imag_part = np.abs(np.imag(result.expect[0][-1]))
+    # Since we used an initial state that is not Hermitian, the expectation of
+    # x must be imaginary for t>0.
+    assert_(imag_part > 0,
+            msg + "expectation values. They should be imaginary")
+
+    # Check that the output state is not hermitian since the input was not
+    # Hermitian either.
+    assert_(not result.final_state.isherm,
+            msg + " final density  matrix. It should not be hermitian")
+    assert_(not result.states[-1].isherm,
+            msg + " states. They should not be hermitian.")
+
+    # Check that when suing a callable we get imaginary expectation values.
+    def callable_x(t, rho):
+        "Dummy callable_x expectation operator."
+        return expect(rho, x)
+    result = mesolve(H, rho0, tlist, e_ops=callable_x)
+
+    imag_part = np.abs(np.imag(result.expect[-1]))
+    assert_(imag_part > 0,
+            msg + "expectation values when using callable operator." +
+            "They should be imaginary.")
+
+
+def test_tlist_h_with_constant_c_ops():
+    """
+    Test that it's possible to mix a time-dependent Hamiltonian given as a
+    QobjEvo with interpolated coefficients with time-independent collapse
+    operators, if the solver times are not equal to the interpolation times of
+    the Hamiltonian.
+
+    See gh-1560.
+    """
+    state = basis(2, 0)
+    all_times = np.linspace(0, 1, 11)
+    few_times = np.linspace(0, 1, 3)
+    dependence = np.cos(2*np.pi * all_times)
+    hamiltonian = QobjEvo([[sigmax(), dependence]], tlist=all_times)
+    collapse = qeye(2)
+    result = mesolve(hamiltonian, state, few_times, c_ops=[collapse])
+    assert result.num_collapse == 1
+    assert len(result.states) == len(few_times)
+
+
+def test_tlist_h_with_other_tlist_c_ops_raises():
+    state = basis(2, 0)
+    all_times = np.linspace(0, 1, 11)
+    few_times = np.linspace(0, 1, 3)
+    dependence = np.cos(2*np.pi * all_times)
+    hamiltonian = QobjEvo([[sigmax(), dependence]], tlist=all_times)
+    collapse = [qeye(2), np.cos(2*np.pi * few_times)]
+    with pytest.raises(ValueError) as exc:
+        mesolve(hamiltonian, state, few_times, c_ops=[collapse])
+    assert str(exc.value) == "Time lists are not compatible"
 
 
 if __name__ == "__main__":

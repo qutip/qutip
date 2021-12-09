@@ -10,8 +10,9 @@ import sysconfig
 import warnings
 
 # Required third-party imports, must be specified in pyproject.toml.
+import packaging.version
 from setuptools import setup, Extension
-from distutils import sysconfig
+import distutils.sysconfig
 import numpy as np
 from Cython.Build import cythonize
 from Cython.Distutils import build_ext
@@ -47,20 +48,27 @@ def process_options():
     return options
 
 
+def _get_environment_bool(var, default=False):
+    """
+    Get a boolean value from the environment variable `var`.  This evalutes to
+    `default` if the environment variable is not present.  The false-y values
+    are '0', 'false', 'none' and empty string, insensitive to case.  All other
+    values are truth-y.
+    """
+    from_env = os.environ.get(var)
+    if from_env is None:
+        return default
+    return from_env.lower() not in {'0', 'false', 'none', ''}
+
+
 def _determine_user_arguments(options):
     """
-    Add the 'release' and 'openmp' options to the collection, based on the
-    passed command-line arguments or environment variables.
+    Add the 'openmp' option to the collection, based on the passed command-line
+    arguments or environment variables.
     """
-    options['release'] = (
-        '--release' in sys.argv
-        or bool(os.environ.get('CI_QUTIP_RELEASE'))
-    )
-    if '--release' in sys.argv:
-        sys.argv.remove('--release')
     options['openmp'] = (
         '--with-openmp' in sys.argv
-        or bool(os.environ.get('CI_QUTIP_WITH_OPENMP'))
+        or _get_environment_bool('CI_QUTIP_WITH_OPENMP')
     )
     if "--with-openmp" in sys.argv:
         sys.argv.remove("--with-openmp")
@@ -75,14 +83,14 @@ def _determine_compilation_options(options):
     # Remove -Wstrict-prototypes from the CFLAGS variable that the Python build
     # process uses in addition to user-specified ones; the flag is not valid
     # for C++ compiles, but CFLAGS gets appended to those compiles anyway.
-    config = sysconfig.get_config_vars()
+    config = distutils.sysconfig.get_config_vars()
     if "CFLAGS" in config:
         config["CFLAGS"] = config["CFLAGS"].replace("-Wstrict-prototypes", "")
     options['cflags'] = []
     options['ldflags'] = []
     options['include'] = [np.get_include()]
     if (
-        sys.platform == 'win32'
+        sysconfig.get_platform().startswith("win")
         and os.environ.get('MSYSTEM') is None
     ):
         # Visual Studio
@@ -92,19 +100,19 @@ def _determine_compilation_options(options):
     else:
         # Everything else
         options['cflags'].extend(['-w', '-O3', '-funroll-loops'])
-    if sys.platform == 'darwin':
-        # These are needed for compiling on OSX 10.14+
-        options['cflags'].append('-mmacosx-version-min=10.9')
-        options['ldflags'].append('-mmacosx-version-min=10.9')
         if options['openmp']:
             options['cflags'].append('-fopenmp')
             options['ldflags'].append('-fopenmp')
+    if sysconfig.get_platform().startswith("macos"):
+        # These are needed for compiling on OSX 10.14+
+        options['cflags'].append('-mmacosx-version-min=10.9')
+        options['ldflags'].append('-mmacosx-version-min=10.9')
     return options
 
 
 def _determine_version(options):
     """
-    Adds the 'short_version' and 'version' options.
+    Adds the 'short_version', 'version' and 'release' options.
 
     Read from the VERSION file to discover the version.  This should be a
     single line file containing valid Python package public identifier (see PEP
@@ -117,12 +125,16 @@ def _determine_version(options):
     """
     version_filename = os.path.join(options['rootdir'], 'VERSION')
     with open(version_filename, "r") as version_file:
-        version = options['short_version'] = version_file.read().strip()
-    VERSION_RE = r'\d+(\.\d+)*((a|b|rc)\d+)?(\.post\d+)?(\.dev\d+)?'
-    if re.fullmatch(VERSION_RE, version, re.A) is None:
-        raise ValueError("invalid version: " + version)
+        version_string = version_file.read().strip()
+    version = packaging.version.parse(version_string)
+    if isinstance(version, packaging.version.LegacyVersion):
+        raise ValueError("invalid version: " + version_string)
+    options['short_version'] = str(version.public)
+    options['release'] = not version.is_devrelease
     if not options['release']:
-        version += "+"
+        # Put the version string into canonical form, if it wasn't already.
+        version_string = str(version)
+        version_string += "+"
         try:
             git_out = subprocess.run(
                 ('git', 'rev-parse', '--verify', '--short=7', 'HEAD'),
@@ -130,10 +142,14 @@ def _determine_version(options):
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             )
             git_hash = git_out.stdout.decode(sys.stdout.encoding).strip()
-            version += git_hash or "nogit"
-        except subprocess.CalledProcessError:
-            version += "nogit"
-    options['version'] = version
+            version_string += git_hash or "nogit"
+        # CalledProcessError is for if the git command fails for internal
+        # reasons (e.g. we're not in a git repository), OSError is for if
+        # something goes wrong when trying to run git (e.g. it's not installed,
+        # or a permission error).
+        except (subprocess.CalledProcessError, OSError):
+            version_string += "nogit"
+    options['version'] = version_string
     return options
 
 

@@ -1,36 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
 __all__ = ['essolve', 'ode2es']
 
 import numpy as np
@@ -44,11 +11,31 @@ from qutip.superoperator import liouvillian, mat2vec, vec2mat
 from qutip.solver import Result
 from qutip.operators import qzero
 
+# Only used for deprecation warnings.
+import functools
+import warnings
+
+
+def _deprecate(alternative):
+    def decorated(f):
+        message = (
+            f"{f.__name__} is to be removed in QuTiP 5.0"
+            f", consider swapping to {alternative}."
+        )
+
+        @functools.wraps(f)
+        def out(*args, **kwargs):
+            warnings.warn(message, DeprecationWarning, stacklevel=2)
+            return f(*args, **kwargs)
+        return out
+    return decorated
+
 
 # -----------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
 # any collapse operators were given.
 #
+@_deprecate("mesolve")
 def essolve(H, rho0, tlist, c_op_list, e_ops):
     """
     Evolution of a state vector or density matrix (`rho0`) for a given
@@ -56,6 +43,12 @@ def essolve(H, rho0, tlist, c_op_list, e_ops):
     expressing the ODE as an exponential series. The output is either
     the state vector at arbitrary points in time (`tlist`), or the
     expectation values of the supplied operators (`e_ops`).
+
+    .. deprecated:: 4.6.0
+        :obj:`~essolev` will be removed in QuTiP 5.  Please use :obj:`~sesolve`
+        or :obj:`~mesolve` for general-purpose integration of the
+        Schroedinger/Lindblad master equation.  This will likely be faster than
+        :obj:`~essolve` for you.
 
     Parameters
     ----------
@@ -118,10 +111,16 @@ def essolve(H, rho0, tlist, c_op_list, e_ops):
 # -----------------------------------------------------------------------------
 #
 #
+@_deprecate("direct eigenstate and -value calculation")
 def ode2es(L, rho0):
     """Creates an exponential series that describes the time evolution for the
     initial density matrix (or state vector) `rho0`, given the Liouvillian
     (or Hamiltonian) `L`.
+
+    .. deprecated:: 4.6.0
+        :obj:`~ode2es` will be removed in QuTiP 5.  Please use
+        :obj:`Qobj.eigenstates` to get the eigenstates and -values, and use
+        :obj:`~QobjEvo` for general time-dependence.
 
     Parameters
     ----------
@@ -189,7 +188,7 @@ def ode2es(L, rho0):
 
         out = None
         for i in range(rlen):
-            qo = Qobj(np.matrix(vv[:, i]).T, dims=rho0.dims, shape=rho0.shape)
+            qo = Qobj(np.array(vv[:, i]).T, dims=rho0.dims, shape=rho0.shape)
             if out:
                 out += eseries(qo, -1.0j * w[i])
             else:

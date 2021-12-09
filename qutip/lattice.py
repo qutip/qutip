@@ -1,37 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, The QuTiP Project.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
-
 __all__ = ['Lattice1d', 'cell_structures']
 
 from scipy.sparse import (csr_matrix)
@@ -254,39 +220,6 @@ class Lattice1d():
         The list of coupling terms between unit cells of the lattice.
     is_real : bool
         Indicates if the Hamiltonian is real or not.
-
-    Methods
-    -------
-    Hamiltonian()
-        Hamiltonian of the crystal.
-    basis()
-        basis with the particle localized at a certain cell, site with
-        specified degree of freedom.
-    distribute_operator()
-        Distributes an input operator over all the cells.
-    x()
-        Position operator for the crystal.
-    k()
-        Crystal momentum operator for the crystal.
-    operator_at_cells()
-        Distributes an input operator over user specified cells .
-    operator_between_cells()
-        A function that returns an operator matrix that applies an operator
-        between a two specified cells.
-    plot_dispersion()
-        Plots dispersion relation of the crystal.
-    get_dispersion()
-        Returns the dispersion relation of the crystal.
-    bloch_wave_functions()
-        Returns the eigenstates of the Hamiltonian (which are Bloch
-        wavefunctions) for a translationally symmetric periodic lattice.
-    array_of_unk()
-        Returns eigenvectors of the bulk Hamiltonian, i.e. the cell periodic
-        part of the Bloch wavefunctios in a numpy.ndarray for translationally
-        symmetric lattices with periodic boundary condition.
-    bulk_Hamiltonians()
-        Returns the bulk Hamiltonian for the lattice at the good quantum
-        numbers of lattice momentum, k in a numpy ndarray of Qobj's.
     """
     def __init__(self, num_cell=10, boundary="periodic", cell_num_site=1,
                  cell_site_dof=[1], Hamiltonian_of_cell=None,
@@ -834,6 +767,7 @@ class Lattice1d():
 
         .. math::
             :nowrap:
+
             \begin{eqnarray}
             |\psi_n(k) \rangle = |k \rangle \otimes | u_{n}(k) \rangle   \\
             | u_{n}(k) \rangle = a_n(k)|a\rangle  + b_n(k)|b\rangle \\
@@ -870,6 +804,7 @@ class Lattice1d():
 
         .. math::
             :nowrap:
+
             \begin{eqnarray}
             |\psi_n(k) \rangle = |k \rangle \otimes | u_{n}(k) \rangle   \\
             | u_{n}(k) \rangle = a_n(k)|a\rangle  + b_n(k)|b\rangle \\

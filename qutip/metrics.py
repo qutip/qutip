@@ -1,36 +1,5 @@
 # -*- coding: utf-8 -*-
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
+
 """
 This module contains a collection of functions for calculating metrics
 (distance measures) between states and operators.
@@ -321,9 +290,6 @@ def hellinger_dist(A, B, sparse=False, tol=0):
     >>> y=coherent_dm(5,1)
     >>> np.testing.assert_almost_equal(hellinger_dist(x,y), 1.3725145002591095)
     """
-    if A.dims != B.dims:
-        raise TypeError("A and B do not have same dimensions.")
-
     if A.isket or A.isbra:
         sqrtmA = ket2dm(A)
     else:
@@ -333,13 +299,15 @@ def hellinger_dist(A, B, sparse=False, tol=0):
     else:
         sqrtmB = B.sqrtm(sparse=sparse, tol=tol)
 
-    product = sqrtmA*sqrtmB
+    if sqrtmA.dims != sqrtmB.dims:
+        raise TypeError("A and B do not have compatible dimensions.")
 
+    product = sqrtmA*sqrtmB
     eigs = sp_eigs(product.data,
                    isherm=product.isherm, vecs=False, sparse=sparse, tol=tol)
-    #np.maximum() is to avoid nan appearing sometimes due to numerical
-    #instabilities causing np.sum(eigs) slightly (~1e-8) larger than 1
-    #when hellinger_dist(A, B) is called for A=B
+    # np.maximum() is to avoid nan appearing sometimes due to numerical
+    # instabilities causing np.sum(eigs) slightly (~1e-8) larger than 1
+    # when hellinger_dist(A, B) is called for A=B
     return np.sqrt(2.0 * np.maximum(0., (1.0 - np.real(np.sum(eigs)))))
 
 
@@ -379,7 +347,7 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
     ImportError
         If CVXPY cannot be imported.
 
-    .. _cvxpy: http://www.cvxpy.org/en/latest/
+    .. _cvxpy: https://www.cvxpy.org/en/latest/
     """
     if cvxpy is None:  # pragma: no cover
         raise ImportError("dnorm() requires CVXPY to be installed.")
@@ -449,7 +417,7 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
         op = vector_to_operator(S_dual * vec_eye)
         # The 2-norm was not implemented for sparse matrices as of the time
         # of this writing. Thus, we must yet again go dense.
-        return la.norm(op.data.todense(), 2)
+        return la.norm(op.full(), 2)
 
     # If we're still here, we need to actually solve the problem.
 

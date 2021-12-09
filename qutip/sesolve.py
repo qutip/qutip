@@ -1,35 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
 """
 This module provides solvers for the unitary Schrodinger equation.
 """
@@ -56,64 +24,67 @@ from qutip.cy.openmp.utilities import check_use_openmp, openmp_components
 def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
             progress_bar=None, _safe_mode=True):
     """
-    Schrodinger equation evolution of a state vector or unitary matrix
-    for a given Hamiltonian.
+    Schrödinger equation evolution of a state vector or unitary matrix for a
+    given Hamiltonian.
 
-    Evolve the state vector (`psi0`) using a given
-    Hamiltonian (`H`), by integrating the set of ordinary differential
-    equations that define the system. Alternatively evolve a unitary matrix in
-    solving the Schrodinger operator equation.
+    Evolve the state vector (``psi0``) using a given Hamiltonian (``H``), by
+    integrating the set of ordinary differential equations that define the
+    system. Alternatively evolve a unitary matrix in solving the Schrodinger
+    operator equation.
 
     The output is either the state vector or unitary matrix at arbitrary points
-    in time (`tlist`), or the expectation values of the supplied operators
-    (`e_ops`). If e_ops is a callback function, it is invoked for each
-    time in `tlist` with time and the state as arguments, and the function
-    does not use any return values. e_ops cannot be used in conjunction
+    in time (``tlist``), or the expectation values of the supplied operators
+    (``e_ops``). If ``e_ops`` is a callback function, it is invoked for each
+    time in ``tlist`` with time and the state as arguments, and the function
+    does not use any return values. ``e_ops`` cannot be used in conjunction
     with solving the Schrodinger operator equation
 
     Parameters
     ----------
 
-    H : :class:`qutip.qobj`, :class:`qutip.qobjevo`, *list*, *callable*
-        system Hamiltonian as a Qobj, list of Qobj and coefficient, QobjEvo,
-        or a callback function for time-dependent Hamiltonians.
-        list format and options can be found in QobjEvo's description.
+    H : :class:`~Qobj`, :class:`~QobjEvo`, list, or callable
+        System Hamiltonian as a :obj:`~Qobj , list of :obj:`Qobj` and
+        coefficient, :obj:`~QObjEvo`, or a callback function for time-dependent
+        Hamiltonians.  List format and options can be found in QobjEvo's
+        description.
 
-    psi0 : :class:`qutip.qobj`
-        initial state vector (ket)
-        or initial unitary operator `psi0 = U`
+    psi0 : :class:`~Qobj`
+        Initial state vector (ket) or initial unitary operator ``psi0 = U``.
 
-    tlist : *list* / *array*
-        list of times for :math:`t`.
+    tlist : array_like of float
+        List of times for :math:`t`.
 
-    e_ops : None / list of :class:`qutip.qobj` / callback function
-        single operator or list of operators for which to evaluate
-        expectation values.
-        For list operator evolution, the overlapse is computed:
-            tr(e_ops[i].dag()*op(t))
+    e_ops : None / list / callback function, optional
+        A list of operators as `Qobj` and/or callable functions (can be mixed)
+        or a single callable function. For callable functions, they are called
+        as ``f(t, state)`` and return the expectation value. A single
+        callback's expectation value can be any type, but a callback part of a
+        list must return a number as the expectation value. For operators, the
+        result's expect will be computed by :func:`qutip.expect` when the state
+        is a ``ket``. For operator evolution, the overlap is computed by: ::
 
-    args : None / *dictionary*
-        dictionary of parameters for time-dependent Hamiltonians
+            (e_ops[i].dag() * op(t)).tr()
 
-    options : None / :class:`qutip.Qdeoptions`
-        with options for the ODE solver.
+    args : dict, optional
+        Dictionary of scope parameters for time-dependent Hamiltonians.
 
-    progress_bar : None / BaseProgressBar
-        Optional instance of BaseProgressBar, or a subclass thereof, for
-        showing the progress of the simulation.
+    options : :obj:`~solver.Options`, optional
+        Options for the ODE solver.
+
+    progress_bar : :obj:`~BaseProgressBar`, optional
+        Optional instance of :obj:`~BaseProgressBar`, or a subclass thereof,
+        for showing the progress of the simulation.
 
     Returns
     -------
 
-    output: :class:`qutip.solver`
-
-        An instance of the class :class:`qutip.solver`, which contains either
-        an *array* of expectation values for the times specified by `tlist`, or
-        an *array* or state vectors corresponding to the
-        times in `tlist` [if `e_ops` is an empty list], or
-        nothing if a callback function was given inplace of operators for
-        which to calculate the expectation values.
-
+    output: :class:`~solver.Result`
+        An instance of the class :class:`~solver.Result`, which contains either
+        an array of expectation values for the times specified by ``tlist``, or
+        an array or state vectors corresponding to the times in ``tlist`` (if
+        ``e_ops`` is an empty list), or nothing if a callback function was
+        given inplace of operators for which to calculate the expectation
+        values.
     """
     if e_ops is None:
         e_ops = []
@@ -140,11 +111,7 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
     if options.rhs_reuse and not isinstance(H, SolverSystem):
         # TODO: deprecate when going to class based solver.
         if "sesolve" in solver_safe:
-            # print(" ")
             H = solver_safe["sesolve"]
-        else:
-            pass
-            # raise Exception("Could not find the Hamiltonian to reuse.")
 
     if args is None:
         args = {}
@@ -171,7 +138,6 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
     if e_ops_dict:
         res.expect = {e: res.expect[n]
                       for n, e in enumerate(e_ops_dict.keys())}
-    res.SolverSystem = ss
     return res
 
 
@@ -313,16 +279,25 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
             opt.store_states = True
         else:
             for op in e_ops:
+                if not isinstance(op, Qobj) and callable(op):
+                    output.expect.append(np.zeros(n_tsteps, dtype=complex))
+                    continue
                 if op.isherm:
                     output.expect.append(np.zeros(n_tsteps))
                 else:
                     output.expect.append(np.zeros(n_tsteps, dtype=complex))
         if oper_evo:
             for e in e_ops:
-                e_ops_data.append(e.dag().data)
+                if isinstance(e, Qobj):
+                    e_ops_data.append(e.dag().data)
+                    continue
+                e_ops_data.append(e)
         else:
             for e in e_ops:
-                e_ops_data.append(e.data)
+                if isinstance(e, Qobj):
+                    e_ops_data.append(e.data)
+                    continue
+                e_ops_data.append(e)
     else:
         raise TypeError("Expectation parameter must be a list or a function")
 
@@ -349,7 +324,8 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
                             "the allowed number of substeps by increasing "
                             "the nsteps parameter in the Options class.")
         # get the current state / oper data if needed
-        if opt.store_states or opt.normalize_output or n_expt_op > 0 or expt_callback:
+        if opt.store_states or opt.normalize_output \
+           or n_expt_op > 0 or expt_callback:
             cdata = get_curr_state_data(r)
 
         if opt.normalize_output:
@@ -381,9 +357,17 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
 
         if oper_evo:
             for m in range(n_expt_op):
+                if callable(e_ops_data[m]):
+                    func = e_ops_data[m]
+                    output.expect[m][t_idx] = func(t, Qobj(cdata, dims=dims))
+                    continue
                 output.expect[m][t_idx] = (e_ops_data[m] * cdata).trace()
         else:
             for m in range(n_expt_op):
+                if callable(e_ops_data[m]):
+                    func = e_ops_data[m]
+                    output.expect[m][t_idx] = func(t, Qobj(cdata, dims=dims))
+                    continue
                 output.expect[m][t_idx] = cy_expect_psi(e_ops_data[m], cdata,
                                                         e_ops[m].isherm)
 

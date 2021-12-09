@@ -1,36 +1,4 @@
 # -*- coding: utf-8 -*-
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
 #
 # This module was initially contributed by Ben Criger.
 #
@@ -116,7 +84,7 @@ def _pauli_basis(nq=1):
     for idx, op in enumerate(starmap(tensor,
                                      product(_SINGLE_QUBIT_PAULI_BASIS,
                                              repeat=nq))):
-        B[:, idx] = operator_to_vector(op).dag().data.todense()
+        B[:, idx] = operator_to_vector(op).dag().full()
 
     return Qobj(B, dims=dims)
 
@@ -222,7 +190,7 @@ def choi_to_kraus(q_oper, tol=1e-9):
     TODO: Create a new class structure for quantum channels, perhaps as a
     strict sub-class of Qobj.
     """
-    vals, vecs = eig(q_oper.data.todense())
+    vals, vecs = eig(q_oper.full())
     vecs = [array(_) for _ in zip(*vecs)]
     shape = [np.prod(q_oper.dims[0][i]) for i in range(2)][::-1]
     return [Qobj(inpt=sqrt(val)*vec2mat(vec, shape=shape),
@@ -282,7 +250,7 @@ def choi_to_chi(q_oper):
 
 def chi_to_choi(q_oper):
     """
-    Converts a Choi matrix to a Chi matrix in the Pauli basis.
+    Converts a Chi matrix to a Choi matrix.
 
     NOTE: this is only supported for qubits right now. Need to extend to
     Heisenberg-Weyl for other subsystem dimensions.
@@ -328,7 +296,7 @@ def _generalized_kraus(q_oper, thresh=1e-10):
     #       diamond norm differences between two CP maps.
     if q_oper.type != "super" or q_oper.superrep != "choi":
         raise ValueError("Expected a Choi matrix, got a {} (superrep {}).".format(q_oper.type, q_oper.superrep))
-    
+
     # Remember the shape of the underlying space,
     # as we'll need this to make Kraus operators later.
     dL, dR = map(int, map(sqrt, q_oper.shape))
@@ -338,18 +306,16 @@ def _generalized_kraus(q_oper, thresh=1e-10):
     in_left, in_right = in_dims
 
     # Find the SVD.
-    U, S, V = svd(q_oper.data.todense())
+    U, S, V = svd(q_oper.full())
 
     # Truncate away the zero singular values, up to a threshold.
     nonzero_idxs = S > thresh
     dK = nonzero_idxs.sum()
-    U = array(U)[:, nonzero_idxs]
-    # We also want S to be a single index array, which np.matrix
-    # doesn't allow for. This is stripped by calling array() on it.
-    S = sqrt(array(S)[nonzero_idxs])
+    U = U[:, nonzero_idxs]
+    S = sqrt(S[nonzero_idxs])
     # Since NumPy returns V and not V+, we need to take the dagger
     # to get back to quantum info notation for Stinespring pairs.
-    V = array(V.conj().T)[:, nonzero_idxs]
+    V = V.conj().T[:, nonzero_idxs]
 
     # Next, we convert each of U and V into Kraus operators.
     # Finally, we want the Kraus index to be left-most so that we
@@ -380,7 +346,7 @@ def choi_to_stinespring(q_oper, thresh=1e-10):
     for idx_kraus, (KL, KR) in enumerate(zip(kU, kV)):
         A += tensor(KL, basis(dK, idx_kraus))
         B += tensor(KR, basis(dK, idx_kraus))
-        
+
     # There is no input (right) Kraus index, so strip that off.
     del A.dims[1][-1]
     del B.dims[1][-1]

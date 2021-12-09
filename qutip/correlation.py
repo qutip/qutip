@@ -1,36 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
 __all__ = ['correlation_2op_1t', 'correlation_2op_2t', 'correlation_3op_1t',
            'correlation_3op_2t', 'coherence_function_g1',
            'coherence_function_g2', 'spectrum', 'spectrum_correlation_fft',
@@ -39,6 +6,7 @@ __all__ = ['correlation_2op_1t', 'correlation_2op_2t', 'correlation_3op_1t',
 
 from re import sub
 from warnings import warn
+import warnings
 import types
 
 import numpy as np
@@ -116,7 +84,7 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
     Returns
     -------
     corr_vec : ndarray
-        An array of correlation values for the times specified by `tlist`.
+        An array of correlation values for the times specified by `taulist`.
 
     References
     ----------
@@ -1152,14 +1120,19 @@ def _correlation_es_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op):
     L = liouvillian(H, c_ops)
 
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
-    solES_t = ode2es(L, rho0)
 
-    # evaluate the correlation function
-    for t_idx in range(len(tlist)):
-        rho_t = esval(solES_t, [tlist[t_idx]])
-        solES_tau = ode2es(L, c_op * rho_t * a_op)
-        corr_mat[t_idx, :] = esval(expect(b_op, solES_tau), taulist)
-
+    # The user-facing eseries and ode2es are deprecated from QuTiP 4.6, pending
+    # removal in QuTiP 5.0, however they are being maintained for internal use
+    # in correlation, so should not raise warnings to the user not matter what
+    # their settings.
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        solES_t = ode2es(L, rho0)
+        # evaluate the correlation function
+        for t_idx in range(len(tlist)):
+            rho_t = esval(solES_t, [tlist[t_idx]])
+            solES_tau = ode2es(L, c_op * rho_t * a_op)
+            corr_mat[t_idx, :] = esval(expect(b_op, solES_tau), taulist)
     return corr_mat
 
 
@@ -1180,21 +1153,23 @@ def _spectrum_es(H, wlist, c_ops, a_op, b_op):
     a_op_ss = expect(a_op, rho0)
     b_op_ss = expect(b_op, rho0)
 
-    # eseries solution for (b * rho0)(t)
-    es = ode2es(L, b_op * rho0)
-
-    # correlation
-    corr_es = expect(a_op, es)
-
-    # covariance
-    cov_es = corr_es - a_op_ss * b_op_ss
-    # tidy up covariance (to combine, e.g., zero-frequency components that cancel)
-    cov_es.tidyup()
-
-    # spectrum
-    spectrum = esspec(cov_es, wlist)
-
-    return spectrum
+    # The user-facing eseries and ode2es are deprecated from QuTiP 4.6, pending
+    # removal in QuTiP 5.0, however they are being maintained for internal use
+    # in spectrum, so should not raise warnings to the user not matter what
+    # their settings.
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        # eseries solution for (b * rho0)(t)
+        es = ode2es(L, b_op * rho0)
+        # correlation
+        corr_es = expect(a_op, es)
+        # covariance
+        cov_es = corr_es - a_op_ss * b_op_ss
+        # tidy up covariance (to combine, e.g., zero-frequency components that
+        # cancel)
+        cov_es.tidyup()
+        # spectrum
+        return esspec(cov_es, wlist)
 
 
 # Monte Carlo solvers
