@@ -145,7 +145,7 @@ jobs:
       - name: Install cibuildwheel
         run: |
           # cibuildwheel does the heavy lifting for us. Originally tested on
-          # 2.3.0, but should be fine at least up to any major new release.
+          # 2.3.0, but should be fine at least up to any minor new release.
           python -m pip install 'cibuildwheel<2.4'
 
       - name: Build wheels
