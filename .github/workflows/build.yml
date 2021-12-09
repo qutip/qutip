@@ -106,6 +106,9 @@ jobs:
     env:
       # Set up wheels matrix.  This is CPython 3.6--3.10 for all OS targets.
       CIBW_BUILD: "cp36-* cp37-* cp38-* cp39-* cp310-*"
+      # We build with oldest-supported-numpy, see:
+      # https://github.com/scipy/oldest-supported-numpy/blob/master/setup.cfg
+      CIBW_BEFORE_BUILD: "pip install oldest-supported-numpy"
       # Explicitly specify the build frontend. We should change this to
       # "build" when we release QuTiP 4.7.
       CIBW_BUILD_FRONTEND: "pip"
