@@ -769,7 +769,8 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None,
 
     ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors)
 
-    ax.set_title(title)
+    if title:
+        ax.set_title(title)
 
     # x axis
     xtics = -0.5 + np.arange(M.shape[0])
