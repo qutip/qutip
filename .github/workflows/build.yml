@@ -106,8 +106,12 @@ jobs:
     env:
       # Set up wheels matrix.  This is CPython 3.6--3.10 for all OS targets.
       CIBW_BUILD: "cp36-* cp37-* cp38-* cp39-* cp310-*"
+      # Explicitly specify the build frontend. We should change this to
+      # "build" when we release QuTiP 4.7.
+      CIBW_BUILD_FRONTEND: "pip"
       # cibuildwheel 2.3.0 changed the default manylinux image to 2014, but
-      # for now we continue to build against manylinux 2010.
+      # for now we continue to build against manylinux 2010. When we switch
+      # to 2014, we should also switch to the manylinux_2_17_{arch} tags.
       CIBW_MANYLINUX_X86_64_IMAGE: "manylinux2010"
       CIBW_MANYLINUX_I686_IMAGE: "manylinux2010"
       CIBW_MANYLINUX_PYPY_X86_64_IMAGE: "manylinux2010"
