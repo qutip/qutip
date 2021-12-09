@@ -64,6 +64,13 @@ jobs:
             python-version: "3.8"
             nocython: 1
 
+          # Build with Python 3.10
+          - case-name: Python 3.10
+            os: ubuntu-latest
+            python-version: "3.10"
+            # use the latest numpy available for Python 3.10:
+            numpy-requirement: ""
+
     steps:
       - uses: actions/checkout@v2
 
