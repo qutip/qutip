@@ -250,7 +250,7 @@ def choi_to_chi(q_oper):
 
 def chi_to_choi(q_oper):
     """
-    Converts a Choi matrix to a Chi matrix in the Pauli basis.
+    Converts a Chi matrix to a Choi matrix.
 
     NOTE: this is only supported for qubits right now. Need to extend to
     Heisenberg-Weyl for other subsystem dimensions.
@@ -296,7 +296,7 @@ def _generalized_kraus(q_oper, thresh=1e-10):
     #       diamond norm differences between two CP maps.
     if q_oper.type != "super" or q_oper.superrep != "choi":
         raise ValueError("Expected a Choi matrix, got a {} (superrep {}).".format(q_oper.type, q_oper.superrep))
-    
+
     # Remember the shape of the underlying space,
     # as we'll need this to make Kraus operators later.
     dL, dR = map(int, map(sqrt, q_oper.shape))
@@ -346,7 +346,7 @@ def choi_to_stinespring(q_oper, thresh=1e-10):
     for idx_kraus, (KL, KR) in enumerate(zip(kU, kV)):
         A += tensor(KL, basis(dK, idx_kraus))
         B += tensor(KR, basis(dK, idx_kraus))
-        
+
     # There is no input (right) Kraus index, so strip that off.
     del A.dims[1][-1]
     del B.dims[1][-1]

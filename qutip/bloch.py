@@ -41,12 +41,12 @@ try:
 
             self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
             FancyArrowPatch.draw(self, renderer)
-except:
+except ImportError:
     pass
 
 try:
     from IPython.display import display
-except:
+except ImportError:
     pass
 
 
@@ -113,6 +113,7 @@ class Bloch:
                  background=False):
         # Figure and axes
         self.fig = fig
+        self._ext_fig = fig is not None
         self.axes = axes
         # Background axes, default = False
         self.background = background
@@ -180,14 +181,6 @@ class Bloch:
         self.point_style = []
         # Data for line segment
         self.line_segment = []
-
-        # status of rendering
-        self._rendered = False
-        # status of showing
-        if fig is None:
-            self._shown = False
-        else:
-            self._shown = True
 
     def set_label_convention(self, convention):
         """Set x, y and z labels according to one of conventions.
@@ -461,7 +454,7 @@ class Bloch:
         """
         Plots Bloch sphere and data sets.
         """
-        self.render(self.fig, self.axes)
+        self.render()
 
     def run_from_ipython(self):
         try:
@@ -470,30 +463,50 @@ class Bloch:
         except NameError:
             return False
 
-    def render(self, fig=None, axes=None):
+    def _is_inline_backend(self):
+        backend = matplotlib.get_backend()
+        return backend == "module://matplotlib_inline.backend_inline"
+
+    def render(self):
         """
         Render the Bloch sphere and its data sets in on given figure and axes.
         """
-        if self._rendered:
-            self.axes.clear()
+        if not self._ext_fig and not self._is_inline_backend():
+            # If no external figure was supplied, we check to see if the
+            # figure we created in a previous call to .render() has been
+            # closed, and re-create if has been. This has the unfortunate
+            # side effect of losing any modifications made to the axes or
+            # figure, but the alternative is to crash the matplotlib backend.
+            #
+            # The inline backend used by, e.g. jupyter notebooks, is happy to
+            # use closed figures so we leave those figures intact.
+            if (
+                self.fig is not None and
+                not plt.fignum_exists(self.fig.number)
+            ):
+                self.fig = None
+                self.axes = None
 
-        self._rendered = True
-
-        # Figure instance for Bloch sphere plot
-        if not fig:
+        if self.fig is None:
             self.fig = plt.figure(figsize=self.figsize)
+            if self._is_inline_backend():
+                # We immediately close the inline figure do avoid displaying
+                # the figure twice when .show() calls display.
+                plt.close(self.fig)
 
-        if not axes:
-            self.axes = _axes3D(self.fig, azim=self.view[0],
-                                elev=self.view[1])
+        if self.axes is None:
+            self.axes = _axes3D(self.fig, azim=self.view[0], elev=self.view[1])
 
+        # Clearing the axes is horrifically slow and loses a lot of the
+        # axes state, but matplotlib doesn't seem to provide a better way
+        # to redraw Axes3D. :/
+        self.axes.clear()
+        self.axes.grid(False)
         if self.background:
-            self.axes.clear()
             self.axes.set_xlim3d(-1.3, 1.3)
             self.axes.set_ylim3d(-1.3, 1.3)
             self.axes.set_zlim3d(-1.3, 1.3)
         else:
-            self.plot_axes()
             self.axes.set_axis_off()
             self.axes.set_xlim3d(-0.7, 0.7)
             self.axes.set_ylim3d(-0.7, 0.7)
@@ -502,8 +515,9 @@ class Bloch:
         # Matplotlib did this stretching for < 3.3.0, but not above.
         if parse_version(matplotlib.__version__) >= parse_version('3.3'):
             self.axes.set_box_aspect((1, 1, 1))
+        if not self.background:
+            self.plot_axes()
 
-        self.axes.grid(False)
         self.plot_back()
         self.plot_points()
         self.plot_vectors()
@@ -511,6 +525,8 @@ class Bloch:
         self.plot_axes_labels()
         self.plot_annotations()
         self.plot_line()
+        # Trigger an update of the Bloch sphere if it is already shown:
+        self.fig.canvas.draw()
 
     def plot_back(self):
         # back half of sphere
@@ -684,16 +700,23 @@ class Bloch:
     def show(self):
         """
         Display Bloch sphere and corresponding data sets.
+
+        Notes
+        -----
+
+        When using inline plotting in Jupyter notebooks, any figure created
+        in a notebook cell is displayed after the cell executes. Thus if you
+        create a figure yourself and use it create a Bloch sphere with
+        ``b = Bloch(..., fig=fig)`` and then call ``b.show()`` in the same
+        cell, then the figure will be displayed twice. If you do create your
+        own figure, the simplest solution to this is to not call ``.show()``
+        in the cell you create the figure in.
         """
-        self.render(self.fig, self.axes)
-        if self.fig:
-            plt.show(self.fig)
-#         if self.run_from_ipython():
-#             if self._shown:
-#                 display(self.fig)
-#         else:
-#             self.fig.show()
-        self._shown = True
+        self.render()
+        if self.run_from_ipython():
+            display(self.fig)
+        else:
+            self.fig.show()
 
     def save(self, name=None, format='png', dirc=None, dpin=None):
         """Saves Bloch sphere to file of type ``format`` in directory ``dirc``.
@@ -717,7 +740,7 @@ class Bloch:
         File containing plot of Bloch sphere.
 
         """
-        self.render(self.fig, self.axes)
+        self.render()
         # Conditional variable for first argument to savefig
         # that is set in subsequent if-elses
         complete_path = ""

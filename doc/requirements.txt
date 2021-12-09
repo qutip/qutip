@@ -1,6 +1,6 @@
 alabaster==0.7.12
 appnope==0.1.2
-Babel==2.9.0
+Babel==2.9.1
 backcall==0.2.0
 certifi==2020.12.5
 chardet==4.0.0
@@ -38,6 +38,7 @@ Sphinx==3.5.4
 sphinx-gallery==0.8.2
 sphinx-rtd-theme==0.5.2
 sphinxcontrib-applehelp==1.0.2
+sphinxcontrib-bibtex==2.4.1
 sphinxcontrib-devhelp==1.0.2
 sphinxcontrib-htmlhelp==1.0.3
 sphinxcontrib-jsmath==1.0.1
