@@ -59,7 +59,7 @@ class MultiTrajSolver:
             raise ValueError("A seed list must be longer than ntraj")
         return seeds
 
-    def start(self, state, t0, ntraj=1, seed=None, *, safe_ODE=None):
+    def start(self, state, t0, ntraj=1, seed=None):
         """
         Set the initial state and time for a step evolution.
         ``options`` for the evolutions are read at this step.
@@ -82,11 +82,6 @@ class MultiTrajSolver:
             to spawn seeds for each trajectory or a list of seed, one for each
             trajectory.
 
-        safe_ODE : bool {None}
-            Whether to safe the states in the ODE solver or in the solver.
-            Many ODE solver are not re-entrant, thus must be used with
-            `safe_ODE` if multiple trajectory are to be ran in parallel.
-
         .. note ::
             Using the solver with ``start``, ``step`` is independent to use
             with ``run``. Calling ``run`` between ``step`` will not affect
@@ -95,13 +90,10 @@ class MultiTrajSolver:
         seeds = self._read_seed(seed, ntraj)
         self.traj_solvers = []
 
-        if safe_ODE is None:
-            safe_ODE = ntraj != 1
-
         for seed in seeds:
             traj_solver = self._traj_solver_class(*self.traj_args,
                                                   options=self.options)
-            traj_solver.start(state, t0, seed=seed, safe_ODE=safe_ODE)
+            traj_solver.start(state, t0, seed=seed)
             self.traj_solvers.append(traj_solver)
 
     def step(self, t, *, args=None, options=None, copy=True):
@@ -347,7 +339,7 @@ class _TrajectorySolver(Solver):
         else:
             self._integrator = None
 
-    def start(self, state, t0, seed=None, *, safe_ODE=False):
+    def start(self, state, t0, seed=None):
         """
         Set the initial state and time for a step evolution.
         ``options`` for the evolutions are read at this step.
@@ -363,10 +355,6 @@ class _TrajectorySolver(Solver):
         seed : int, SeedSequence
             Seed for the random number generator.
 
-        safe_ODE : bool {False}
-            Whether to save the state locally. Set to ``True`` if using
-            multiple solvers for step evolution at once.
-
         .. note ::
             Using the solver with ``start``, ``step`` is independent to use
             with ``run``. Calling ``run`` between ``step`` will not affect
@@ -375,7 +363,6 @@ class _TrajectorySolver(Solver):
         """
         _time_start = time()
         self.generator = self.get_generator(seed)
-        self.safe_ODE = safe_ODE
         self._state = self._prepare_state(state)
         self._t = t0
         if not self._integrator:
@@ -393,9 +380,7 @@ class _TrajectorySolver(Solver):
         if args:
             self._argument(args)
             self._integrator.reset()
-        if self.safe_ODE:
-            self._integrator.set_state(self._t, self._state)
-        self._t, self._state = self._step(t, copy=self.safe_ODE)
+        self._t, self._state = self._step(t)
         return self._restore_state(self._state, copy=copy)
 
     def run(self, state, tlist, *,
