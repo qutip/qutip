@@ -1205,7 +1205,8 @@ def plot_expectation_values(results, ylabels=[], title=None, show_legend=False,
             axes[e_idx, 0].plot(result.times, e,
                                 label="%s [%d]" % (result.solver, e_idx))
 
-    fig.suptitle(title)
+    if title:
+        fig.suptitle(title)
 
     axes[n_e_ops - 1, 0].set_xlabel("time", fontsize=12)
     for n in range(n_e_ops):
