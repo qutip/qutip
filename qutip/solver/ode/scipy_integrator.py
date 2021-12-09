@@ -184,7 +184,7 @@ class IntegratorScipyDop853(Integrator):
     def mcstep(self, t, copy=True):
         if self._ode_solver.t <= t:
             # Scipy's DOP853 does not have a step function.
-            # It has a safe step lengh, but can be 0 if unknown.
+            # It has a safe step length, but can be 0 if unknown.
             dt = self._ode_solver._integrator.work[6]
             if dt:
                 t = min(self._ode_solver.t + dt, t)
@@ -304,11 +304,20 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         # Here we want to advance up to t doing maximum one step.
         # We check if a new step is needed.
         t_front = self._ode_solver._integrator.rwork[12]
-        safe_delta = self._ode_solver._integrator.rwork[11]/10 + 1e-15
+        # lsoda officially support step, but sometime it does more work than
+        # needed, so we ask it to advance a fraction of the last step, where it
+        # will advance one internal step of length allowed by the tolerance and
+        # interpolate back to the asked time, effictively getting the single
+        # integration step we want. The first step and abrupt changes in the
+        # `rhs` can cause exceptions to this, but _backstep catch those cases.
+        safe_delta = self._ode_solver._integrator.rwork[11]/100 + 1e-15
         t_ode = self._ode_solver.t
         if t > t_front and t_ode >= t_front:
             # The state is at t_front, do a step
             self._ode_solver.integrate(min(t_front + safe_delta, t))
+            new_t_front = self._ode_solver._integrator.rwork[12]
+            # We asked for a fraction of a step, now complete it.
+            self._ode_solver.integrate(min(new_t_front, t))
         elif t > t_front:
             # The state is at a time before t_front, advance to t_front
             self._ode_solver.integrate(t_front)
