@@ -91,6 +91,7 @@ jobs:
           else
             conda install nomkl "numpy${{ matrix.numpy-requirement }}" "scipy${{ matrix.scipy-requirement }}"
           fi
+          conda install packaging cython
           python -m pip install -e .[$QUTIP_TARGET] --no-build-isolation
           python -m pip install pytest-cov coveralls
 
