@@ -22,48 +22,19 @@ requires = [
     "packaging",
     "wheel",
     "cython>=0.29.20",
+    "oldest-supported-numpy",
     "scipy>=1.0",
-    # numpy requirements:
-    # NOTE: platform_system 'AIX' and platform_machine 'aarch64' are mutually
-    #       exclusive so they are specified by themself when setting their
-    #       numpy version.
-
-    # AIX requires fixes contained in numpy 1.16
-    "numpy==1.16.6; python_version=='3.6' and platform_system=='AIX'",
-    "numpy==1.16.6; python_version=='3.7' and platform_system=='AIX'",
-
-    # numpy 1.19 was the first minor release to provide aarch64 wheels, but
-    # wheels require fixes contained in numpy 1.19.2 (For Python 3.5: support
-    # was dropped in 1.19 so numpy 1.18.5 can be built from source instead).
-    "numpy==1.19.2; python_version=='3.6' and platform_machine=='aarch64'",
-    "numpy==1.19.2; python_version=='3.7' and platform_machine=='aarch64'",
-    "numpy==1.19.2; python_version=='3.8' and platform_machine=='aarch64'",
-
-    # arm64 on Darwin supports Python 3.8 and above requires numpy>=1.21.0
-    # (first version with universal2 wheels available)
-    "numpy==1.21.0; python_version=='3.8' and platform_machine=='arm64' and platform_system=='Darwin'",
-    "numpy==1.21.0; python_version=='3.9' and platform_machine=='arm64' and platform_system=='Darwin'",
-
-    # Python 3.8 on s390x requires at least 1.17.5, see gh-29
-    "numpy==1.17.5; python_version=='3.8' and platform_machine=='s390x' and platform_python_implementation != 'PyPy'",
-
-    # default numpy requirements
-    "numpy==1.16.6; python_version=='3.6' and platform_machine!='aarch64' and platform_system!='AIX' and platform_python_implementation != 'PyPy'",
-    "numpy==1.16.6; python_version=='3.7' and platform_machine!='aarch64' and platform_system!='AIX' and platform_python_implementation != 'PyPy'",
-    "numpy==1.16.6; python_version=='3.8' and (platform_machine!='arm64' or platform_system!='Darwin') and platform_machine!='aarch64' and platform_python_implementation != 'PyPy'",
-    "numpy==1.19.3; python_version=='3.9' and (platform_machine!='arm64' or platform_system!='Darwin') and platform_python_implementation != 'PyPy'",
-    # Note that 1.21.3 was the first version with a complete set of 3.10 wheels,
-    # however macOS was broken and it's safe to build against 1.21.4 on all platforms (see gh-28)
-    "numpy==1.21.4; python_version=='3.10' and platform_python_implementation != 'PyPy'",
-
-    "numpy==1.19.0; python_version=='3.6' and platform_python_implementation=='PyPy'",
-    "numpy==1.20.0; python_version=='3.7' and platform_python_implementation=='PyPy'",
-
-    # For Python versions which aren't yet officially supported,
-    # we specify an unpinned Numpy which allows source distributions
-    # to be used and allows wheels to be used as soon as they
-    # become available.
-    "numpy; python_version>='3.11'",
-    "numpy; python_version>='3.8' and platform_python_implementation=='PyPy'",
 ]
 build-backend = "setuptools.build_meta"
+
+[tool.cibuildwheel]
+manylinux-x86_64-image = "manylinux2014"
+manylinux-i686-image = "manylinux2014"
+# Change in future version to "build"
+build-frontend = "pip"
+
+[tool.cibuildwheel.override]
+# NumPy support manylinux2010 on CPython 3.6-3.9
+select = "cp3?-*"
+manylinux-x86_64-image = "manylinux2010"
+manylinux-i686-image = "manylinux2010"

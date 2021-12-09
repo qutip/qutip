@@ -105,31 +105,9 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     env:
       # Set up wheels matrix.  This is CPython 3.6--3.10 for all OS targets.
-      CIBW_BUILD: "cp36-* cp37-* cp38-* cp39-* cp310-*"
-      # We build with oldest-supported-numpy, see:
-      # https://github.com/scipy/oldest-supported-numpy/blob/master/setup.cfg
+      CIBW_BUILD: "cp3{6,7,8,9,10}-*"
+      # Copy across the pyproject.toml for the PyPI builds:
       CIBW_BEFORE_BUILD: "cp pypi-pyproject.toml pyproject.toml"
-      # Explicitly specify the build frontend. We should change this to
-      # "build" when we release QuTiP 4.7.
-      CIBW_BUILD_FRONTEND: "pip"
-      # cibuildwheel 2.3.0 changed the default manylinux image to 2014, but
-      # for now we continue to build against manylinux 2010. When we switch
-      # to 2014, we should also switch to the manylinux_2_17_{arch} tags.
-      CIBW_MANYLINUX_X86_64_IMAGE: "manylinux2010"
-      CIBW_MANYLINUX_I686_IMAGE: "manylinux2010"
-      CIBW_MANYLINUX_PYPY_X86_64_IMAGE: "manylinux2010"
-      CIBW_MANYLINUX_AARCH64_IMAGE: "manylinux2010"
-      CIBW_MANYLINUX_PPC64LE_IMAGE: "manylinux2010"
-      CIBW_MANYLINUX_S390X_IMAGE: "manylinux2010"
-      CIBW_MANYLINUX_PYPY_AARCH64_IMAGE: "manylinux2010"
-      CIBW_MANYLINUX_PYPY_I686_IMAGE: "manylinux2010"
-      # cibuildwheel 2.2.0 added support for musllinux, we expliciting build
-      # against musllinux 1.1.
-      CIBW_MUSLLINUX_X86_64_IMAGE: "musllinux_1_1"
-      CIBW_MUSLLINUX_I686_IMAGE: "musllinux_1_1"
-      CIBW_MUSLLINUX_AARCH64_IMAGE: "musllinux_1_1"
-      CIBW_MUSLLINUX_PPC64LE_IMAGE: "musllinux_1_1"
-      CIBW_MUSLLINUX_S390X_IMAGE: "musllinux_1_1"
       # QuTiP version override (if any):
       OVERRIDE_VERSION: ${{ github.event.inputs.override_version }}
 
