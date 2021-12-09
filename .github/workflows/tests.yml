@@ -25,7 +25,7 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         # Test other versions of Python in special cases to avoid exploding the
         # matrix size; make sure to test all supported versions in some form.
-        python-version: [3.10]
+        python-version: ["3.10"]
         case-name: [defaults]
         numpy-requirement: [">=1.20,<1.21"]
         # Extra special cases.  In these, the new variable defined should always
@@ -37,7 +37,7 @@ jobs:
           # SciPy versions for Python 3.9.
           - case-name: old SciPy
             os: ubuntu-latest
-            python-version: 3.6
+            python-version: "3.6"
             scipy-requirement: ">=1.4,<1.5"
             # let the old SciPy version select an appropriate numpy version:
             numpy-requirement: ""
@@ -46,14 +46,14 @@ jobs:
           # not necessarily for pip.
           - case-name: no MKL
             os: ubuntu-latest
-            python-version: 3.7
+            python-version: "3.7"
             nomkl: 1
 
           # OpenMP runs.  We only really care about getting OpenMP working
           # properly on Linux at the moment.
           - case-name: OpenMP
             os: ubuntu-latest
-            python-version: 3.9
+            python-version: "3.9"
             numpy-requirement: ">=1.20,<1.21"
             openmp: 1
 
@@ -61,7 +61,7 @@ jobs:
           # everything should be able to run this.
           - case-name: no Cython
             os: ubuntu-latest
-            python-version: 3.8
+            python-version: "3.8"
             nocython: 1
 
     steps:
