@@ -25,7 +25,7 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         # Test other versions of Python in special cases to avoid exploding the
         # matrix size; make sure to test all supported versions in some form.
-        python-version: ["3.10"]
+        python-version: ["3.9"]
         case-name: [defaults]
         numpy-requirement: [">=1.20,<1.21"]
         # Extra special cases.  In these, the new variable defined should always
