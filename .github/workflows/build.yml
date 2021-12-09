@@ -106,6 +106,24 @@ jobs:
     env:
       # Set up wheels matrix.  This is CPython 3.6--3.9 for all OS targets.
       CIBW_BUILD: "cp3[6-9]-*"
+      # cibuildwheel 2.3.0 changed the default manylinux image to 2014, but
+      # for now we continue to build against manylinux 2010.
+      CIBW_MANYLINUX_X86_64_IMAGE: "manylinux2010"
+      CIBW_MANYLINUX_I686_IMAGE: "manylinux2010"
+      CIBW_MANYLINUX_PYPY_X86_64_IMAGE: "manylinux2010"
+      CIBW_MANYLINUX_AARCH64_IMAGE: "manylinux2010"
+      CIBW_MANYLINUX_PPC64LE_IMAGE: "manylinux2010"
+      CIBW_MANYLINUX_S390X_IMAGE: "manylinux2010"
+      CIBW_MANYLINUX_PYPY_AARCH64_IMAGE: "manylinux2010"
+      CIBW_MANYLINUX_PYPY_I686_IMAGE: "manylinux2010"
+      # cibuildwheel 2.2.0 added support for musllinux, we expliciting build
+      # against musllinux 1.1.
+      CIBW_MUSLLINUX_X86_64_IMAGE: "musllinux_1_1"
+      CIBW_MUSLLINUX_I686_IMAGE: "musllinux_1_1"
+      CIBW_MUSLLINUX_AARCH64_IMAGE: "musllinux_1_1"
+      CIBW_MUSLLINUX_PPC64LE_IMAGE: "musllinux_1_1"
+      CIBW_MUSLLINUX_S390X_IMAGE: "musllinux_1_1"
+      # QuTiP version override (if any):
       OVERRIDE_VERSION: ${{ github.event.inputs.override_version }}
 
     steps:
@@ -120,8 +138,8 @@ jobs:
       - name: Install cibuildwheel
         run: |
           # cibuildwheel does the heavy lifting for us. Originally tested on
-          # 1.8.0, but should be fine at least up to any major new release.
-          python -m pip install 'cibuildwheel<2.0'
+          # 2.3.0, but should be fine at least up to any major new release.
+          python -m pip install 'cibuildwheel<2.4'
 
       - name: Build wheels
         shell: bash
