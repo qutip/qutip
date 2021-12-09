@@ -5,17 +5,13 @@
 # version of Python and each platform so that our built wheels work with
 # any version of numpy supported by that platform and later than our own
 # numpy version requirement. At the same time, we don't want to fix the
-# version of numpy in the main pyproject.toml file because that prevent
+# version of numpy in the main pyproject.toml file because that would prevent
 # users installing QuTiP with the latest numpy.
 #
 # See cibuildwheel issue: https://github.com/pypa/cibuildwheel/issues/955
 #
-# The numpy requirements are taken from
+# The oldest-support-numpy versions can be found in:
 # https://github.com/scipy/oldest-supported-numpy/blob/master/setup.cfg
-# and then:
-#
-# * updated to at least numpy>=1.16.6 (QuTiP's own minimum numpy version)
-# * requirements for Python < 3.6 are removed (QuTiP's minimum Python version)
 [build-system]
 requires = [
     "setuptools",
