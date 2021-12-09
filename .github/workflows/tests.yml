@@ -89,6 +89,10 @@ jobs:
             QUTIP_TARGET="$QUTIP_TARGET,runtime_compilation"
           fi
           export CI_QUTIP_WITH_OPENMP=${{ matrix.openmp }}
+          if [[ "${{ matrix.python-version }}" = "3.10" ]]; then
+            # scipy is only available for python 3.10 via conda-forge currently
+            conda config --add channels conda-forge
+          fi
           if [[ -z "${{ matrix.nomkl }}" ]]; then
             conda install blas=*=mkl "numpy${{ matrix.numpy-requirement }}" "scipy${{ matrix.scipy-requirement }}"
           elif [[ "${{ matrix.os }}" =~ ^windows.*$ ]]; then
