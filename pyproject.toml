@@ -4,7 +4,19 @@ requires = [
     "packaging",
     "wheel",
     "cython>=0.29.20",
-    "numpy>=1.16.6,<1.20",
+    "oldest-supported-numpy",
     "scipy>=1.0",
 ]
 build-backend = "setuptools.build_meta"
+
+[tool.cibuildwheel]
+manylinux-x86_64-image: "manylinux2014"
+manylinux-i686-image = "manylinux2014"
+# Change in future version to "build"
+build-frontend = "pip"
+
+[tool.cibuildwheel.override]
+# NumPy support manylinux2010 on CPython 3.6-3.9
+select = "cp3?-*"
+manylinux-x86_64-image: "manylinux2010"
+manylinux-i686-image = "manylinux2010"
