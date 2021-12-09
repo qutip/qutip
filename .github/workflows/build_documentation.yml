@@ -22,7 +22,8 @@ jobs:
 
       - name: Install QuTiP from GitHub
         run: |
-          python -mpip install -e .[full] -c doc/requirements.txt
+          cp doc/doc-pyproject.toml pyproject.toml
+          python -mpip install -e .[full]
           # Install in editable mode so it doesn't matter if we import from
           # inside the installation directory, otherwise we can get some errors
           # because we're importing from the wrong location.
