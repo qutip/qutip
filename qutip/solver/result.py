@@ -182,7 +182,7 @@ class Result:
 
 class MultiTrajResult:
     """
-    Contain result of simulations with multiple trajectories.
+    It contains the results of simulations with multiple trajectories.
 
     Parameters
     ----------
