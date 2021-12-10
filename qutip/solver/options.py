@@ -218,14 +218,18 @@ class McOptions:
     -------
 
     norm_tol : float {1e-4}
-        Tolerance used when finding wavefunction norm in mcsolve.
+        When a collapse happen, ``mcsolve`` will seek to find the time where
+        the collapse happened by matching the state norm to a random number.
+        It consider the time found when the norm match the targer up to a
+        relative tolerance of ``norm_tol``.
 
     norm_t_tol : float {1e-6}
-        Tolerance used when finding wavefunction time in mcsolve.
+        When a collapse happen, ``mcsolve`` will consider the collapse time
+        found when it boxed it between times at most ``norm_t_tol`` appart.
 
     norm_steps : int {5}
-        Max. number of steps used to find wavefunction norm to within norm_tol
-        in mcsolve.
+        Max. number of steps used to find the collapse time to within the
+        desired tolerance as defined above.
 
     map : str  {'parallel', 'serial', 'loky'}
         How to run the trajectories.

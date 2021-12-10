@@ -141,10 +141,12 @@ class _McTrajectorySolver(_TrajectorySolver):
         norm_old = self._prob_func(y_old)
         while t_old < t:
             t_step, state = self._integrator.mcstep(t, copy=False)
+            print(t_old, t_step, t)
             norm = self._prob_func(state)
             if norm <= self.target_norm:
-                t_col = self._find_collapse_time(norm_old, norm, t_old, t_step)
-                self._do_collapse(t_col, )
+                t_col, state = self._find_collapse_time(norm_old, norm,
+                                                        t_old, t_step)
+                self._do_collapse(t_col, state)
                 t_old, y_old = self._integrator.get_state(copy=False)
                 norm_old = 1.
             else:
@@ -187,19 +189,23 @@ class _McTrajectorySolver(_TrajectorySolver):
                 norm_old = norm2_guess
 
         if tries >= self.options.mcsolve['norm_steps']:
-            raise Exception("Norm tolerance not reached. " +
-                            "Increase accuracy of ODE solver or " +
-                            "SolverOptions.mcsolve['norm_steps'].")
+            raise RuntimeError(
+                "Could not find the collapse time within desired tolerance. "
+                "Increase accuracy of the ODE solver or lower the tolerance "
+                "with the options 'norm_steps', 'norm_tol', 'norm_t_tol'.")
 
-        return t_guess
+        return t_guess, state
 
-    def _do_collapse(self, collapse_time):
-        # t_guess, state is at the collapse
-        probs = np.zeros(len(self._n_ops))
-        for i, n_op in enumerate(self._n_ops):
-            probs[i] = n_op.expect_data(collapse_time, state).real
-        probs = np.cumsum(probs)
-        which = np.searchsorted(probs, probs[-1] * self.generator.random())
+    def _do_collapse(self, collapse_time, state):
+        # collapse_time, state is at the collapse
+        if len(self._n_ops) == 1:
+            which = 0
+        else:
+            probs = np.zeros(len(self._n_ops))
+            for i, n_op in enumerate(self._n_ops):
+                probs[i] = n_op.expect_data(collapse_time, state).real
+            probs = np.cumsum(probs)
+            which = np.searchsorted(probs, probs[-1] * self.generator.random())
 
         state_new = self._c_ops[which].matmul_data(collapse_time, state)
         new_norm = self._norm_func(state_new)

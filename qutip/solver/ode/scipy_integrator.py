@@ -309,7 +309,8 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         """
         # Here we want to advance up to t doing maximum one step.
         # We check if a new step is needed.
-        t_front = self._ode_solver._integrator.rwork[12]
+        t_front = max(self._ode_solver._integrator.rwork[12],
+                      self._ode_solver.t)
         # lsoda officially support step, but sometime it does more work than
         # needed, so we ask it to advance a fraction of the last step, where it
         # will advance one internal step of length allowed by the tolerance and
