@@ -37,23 +37,15 @@ def krylovsolve(
      the time evolution operator on a set of small dimensional Krylov
      subspaces (m<<dim(H)).
      The output is either the state vector or the expectation values of
-     supplied operators ("e_ops") at arbitrary points in a time range built
-     from inputs "t0", "tf" and "dt". Optionally, a custom ("tlist") without an
-     even time stepping between times can be provided, but the algorithm
-     will become slower.
+     supplied operators ("e_ops") at arbitrary points at ("tlist").
+
      **Additional options**
      Additional options to krylovsolve can be set with the following:
      "store_states": stores states even though expectation values are
      requested via the "e_ops" argument.
      "store_final_state": store final state even though expectation values are
      requested via the "e_ops" argument.
-     "krylov_algorithm": default behavior uses lanczos algorithm to
-     calculate the different Krylov subspaces, and it is only valid for
-     self-adjoint operators. If by any chance you decide to use this evolution
-     on a non self-adjoint Hamiltonian, Arnoldi iteration (slower than
-     lanczos but does not require self-adjoint) can be enabled.
-     Another alternative is to use Krylov subspaces obtained from Taylor
-     expansion of the Hamiltonian.
+
     Parameters
     -------------
      H : :class:`qutip.Qobj`
@@ -61,7 +53,8 @@ def krylovsolve(
      psi0 : :class: `qutip.Qobj`
          initial state vector (ket).
      tlist : None / *list* / *array*
-        List of times on which to evolve the initial state.
+        List of times on which to evolve the initial state. If None, nothing
+        happens but the code won't break.
      krylov_dim: int
          Dimension of Krylov approximation subspaces used for the time
          evolution approximation.
