@@ -92,12 +92,24 @@ class IntegratorScipyZvode(Integrator):
             state = _data.dense.Dense(self._ode_solver._y, copy=copy)
         return t, state
 
+    def _check_handle(self):
+        """
+        Do the check for concurrent use of the integrator and reset if used
+        elsewhere.
+        """
+        integrator = self._ode_solver._integrator
+        if integrator.initialized:
+            if integrator.handle != integrator.__class__.active_global_handle:
+                integrator.reset(len(self._ode_solver._y), False)
+
     def integrate(self, t, copy=True):
+        self._check_handle()
         if t != self._ode_solver.t:
             self._ode_solver.integrate(t)
         return self.get_state(copy)
 
     def mcstep(self, t, copy=True):
+        self._check_handle()
         if self._ode_solver.t == t:
             pass
         elif self._ode_solver._integrator.rwork[12] < t:
@@ -178,7 +190,7 @@ class IntegratorScipyDop853(Integrator):
     def mcstep(self, t, copy=True):
         if self._ode_solver.t <= t:
             # Scipy's DOP853 does not have a step function.
-            # It has a safe step lengh, but can be 0 if unknown.
+            # It has a safe step length, but can be 0 if unknown.
             dt = self._ode_solver._integrator.work[6]
             if dt:
                 t = min(self._ode_solver.t + dt, t)
@@ -259,11 +271,26 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         self._ode_solver.set_integrator('lsoda', **self.options)
         self.name = "scipy lsoda"
 
+    def _check_handle(self):
+        """
+        Do the check for concurrent use of the integrator and reset if used
+        elsewhere.
+        """
+        integrator = self._ode_solver._integrator
+        if integrator.initialized:
+            if integrator.handle != integrator.__class__.active_global_handle:
+                integrator.reset(len(self._ode_solver._y), False)
+
+    def integrate(self, t, copy=True):
+        self._check_handle()
+        return super().integrate(t, copy)
+
     def mcstep(self, t, copy=True):
+        self._check_handle()
         if self._ode_solver.t == t:
             pass
         elif self._ode_solver.t < t:
-            self._back = self.get_state(copy=True)
+            self._back = self.get_state(copy=False)
             self._one_step(t)
         elif self._back[0] <= t:
             self._backstep(t)
@@ -283,17 +310,25 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         # Here we want to advance up to t doing maximum one step.
         # We check if a new step is needed.
         t_front = self._ode_solver._integrator.rwork[12]
+        # lsoda officially support step, but sometime it does more work than
+        # needed, so we ask it to advance a fraction of the last step, where it
+        # will advance one internal step of length allowed by the tolerance and
+        # interpolate back to the asked time, effictively getting the single
+        # integration step we want. The first step and abrupt changes in the
+        # `rhs` can cause exceptions to this, but _backstep catch those cases.
+        safe_delta = self._ode_solver._integrator.rwork[11]/100 + 1e-15
         t_ode = self._ode_solver.t
         if t > t_front and t_ode >= t_front:
             # The state is at t_front, do a step
-            self._ode_solver.integrate(t, step=True)
+            self._ode_solver.integrate(min(t_front + safe_delta, t))
+            new_t_front = self._ode_solver._integrator.rwork[12]
+            # We asked for a fraction of a step, now complete it.
+            self._ode_solver.integrate(min(new_t_front, t))
         elif t > t_front:
             # The state is at a time before t_front, advance to t_front
-            t = t_front
-        else:
+            self._ode_solver.integrate(t_front)
+        elif t != t_ode:
             # t is inside the already computed integration range.
-            pass
-        if t_front >= t:
             self._ode_solver.integrate(t)
 
     def _backstep(self, t):
@@ -302,14 +337,13 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         The time t will always be between the last calls of `one_step`.
         return the pair t, state.
         """
-        # zvode can integrate with time lower than the most recent time
-        # but not over all the step interval.
-        # About 90% of the last step interval?
-        # Scipy raise a warning, not an Error.
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore")
+        t_front = self._ode_solver._integrator.rwork[12]
+        delta = self._ode_solver._integrator.rwork[11]
+        if t == self._ode_solver.t:
+            pass
+        elif t_front - delta <= t:
             self._ode_solver.integrate(t)
-        if not self._ode_solver.successful():
+        else:
             self.set_state(*self._back)
             self._ode_solver.integrate(t)
 

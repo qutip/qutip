@@ -52,8 +52,8 @@ from qutip.random_objects import (
     rand_ket_haar, rand_dm_ginibre, rand_unitary_haar
 )
 from qutip import (
-    Qobj, to_super, to_choi, tensor, create, destroy, jmat, identity, qdiags,
-    sigmax, sigmay, sigmaz, qeye, fock_dm, basis,
+    Qobj, to_super, to_choi, to_chi, to_kraus, tensor, create, destroy, jmat,
+    identity, qdiags, sigmax, sigmay, sigmaz, qeye, fock_dm, basis,
 )
 from qutip.core.metrics import *
 from qutip.qip.operations.gates import hadamard_transform, swap
@@ -203,6 +203,75 @@ def test_fidelity_overlap():
             fidelity(psi, phi),
             np.abs(psi.dag() * phi)
         )
+
+
+@pytest.mark.parametrize('superrep_conversion',
+                         [lambda x: x, to_super, to_choi, to_chi, to_kraus])
+def test_process_fidelity_of_identity(superrep_conversion):
+    """
+    Metrics: process fidelity of identity map is 1
+    """
+    num_qubits = 3
+    oper = qeye(num_qubits*[2])
+    f = process_fidelity(superrep_conversion(oper))
+    assert_(np.isrealobj(f))
+    assert_almost_equal(f, 1)
+
+
+@pytest.mark.parametrize('superrep_conversion',
+                         [to_super, to_choi, to_chi, to_kraus])
+def test_process_fidelity_identical_channels(superrep_conversion):
+    """
+    Metrics: process fidelity of a map to itself is 1
+    """
+    num_qubits = 2
+    for k in range(10):
+        oper = rand_super_bcsz(2**num_qubits, dims=2*[2*[num_qubits*[2]]])
+        oper = superrep_conversion(oper)
+        f = process_fidelity(oper, oper)
+        assert_almost_equal(f, 1)
+
+
+def test_process_fidelity_identical_unitaries():
+    """
+    Metrics: process fidelity of a unitary to itself is 1
+    """
+    num_qubits = 3
+    for k in range(10):
+        oper = rand_unitary(2**num_qubits, dims=2*[num_qubits*[2]])
+        f = process_fidelity(oper, oper)
+        assert_almost_equal(f, 1)
+
+
+def test_process_fidelity_consistency():
+    """
+    Metrics: process fidelity independent of how channels are represented
+    """
+    num_qubits = 2
+    for k in range(10):
+        fidelities_u_to_u = []
+        fidelities_u_to_id = []
+        u1 = rand_unitary(2**num_qubits, dims=2*[num_qubits*[2]])
+        u2 = rand_unitary(2**num_qubits, dims=2*[num_qubits*[2]])
+        for map1 in [lambda x:x, to_super, to_choi, to_chi, to_kraus]:
+            fidelities_u_to_id.append(process_fidelity(map1(u1)))
+            for map2 in [lambda x:x, to_super, to_choi, to_chi, to_kraus]:
+                fidelities_u_to_u.append(process_fidelity(map1(u1), map2(u2)))
+        assert_almost_equal(fidelities_u_to_id, fidelities_u_to_id[0])
+        assert_almost_equal(fidelities_u_to_u, fidelities_u_to_u[0])
+
+
+def test_process_fidelity_unitary_invariance():
+    """
+    Metrics: process fidelity, invariance under unitary trans.
+    """
+    for k in range(10):
+        op1 = rand_super_bcsz(10)
+        op2 = rand_super_bcsz(10)
+        u = to_super(rand_unitary(10))
+        assert_almost_equal(process_fidelity(op1, op2),
+                            process_fidelity(u*op1, u*op2))
+
 
 def test_tracedist1():
     """

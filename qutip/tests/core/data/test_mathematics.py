@@ -297,8 +297,13 @@ class _GenericOpMixin:
         but with all data arguments numpy arrays, and returns the expected
         result.
 
-    tol: float
+    atol: float
         The absolute tolerance to use when comparing the test value with the
+        expected value.  If the output is a Data type, the tolerance is
+        per-element of the output.
+
+    rtol: float
+        The relative tolerance to use when comparing the test value with the
         expected value.  If the output is a Data type, the tolerance is
         per-element of the output.
 
@@ -322,7 +327,8 @@ class _GenericOpMixin:
     # addition not being associative; the maths on full numpy arrays will often
     # produce slightly different results to sparse algebra, since the order of
     # multiplications and additions will be different.
-    tol = 1e-10
+    atol = 1e-10
+    rtol = 1e-7  # Same default as numpy
     shapes = []
     bad_shapes = []
     specialisations = []
@@ -400,14 +406,15 @@ class UnaryOpMixin(_GenericOpMixin):
         if issubclass(out_type, Data):
             assert test.shape == expected.shape
             np.testing.assert_allclose(test.to_array(), expected,
-                                       atol=self.tol)
+                                       atol=self.atol, rtol=self.rtol)
         elif out_type is list:
             for test_, expected_ in zip(test, expected):
                 assert test_.shape == expected_.shape
-                np.testing.assert_allclose(test_.to_array(),
-                                           expected_, atol=self.tol)
+                np.testing.assert_allclose(test_.to_array(), expected_,
+                                           atol=self.atol, rtol=self.rtol)
         else:
-            assert abs(test - expected) < self.tol
+            np.testing.assert_allclose(test, expected, atol=self.atol,
+                                       rtol=self.rtol)
 
     def test_incorrect_shape_raises(self, op, data_m):
         """
@@ -441,9 +448,11 @@ class UnaryScalarOpMixin(_GenericOpMixin):
         if issubclass(out_type, Data):
             assert test.shape == expected.shape
             np.testing.assert_allclose(test.to_array(), expected,
-                                       atol=self.tol)
+                                       atol=self.atol,
+                                       rtol=self.rtol)
         else:
-            assert abs(test - expected) < self.tol
+            np.testing.assert_allclose(test, expected, atol=self.atol,
+                                       rtol=self.rtol)
 
 
 class BinaryOpMixin(_GenericOpMixin):
@@ -463,9 +472,10 @@ class BinaryOpMixin(_GenericOpMixin):
         if issubclass(out_type, Data):
             assert test.shape == expected.shape
             np.testing.assert_allclose(test.to_array(), expected,
-                                       atol=self.tol)
+                                       atol=self.atol, rtol=self.rtol)
         else:
-            assert abs(test - expected) < self.tol
+            np.testing.assert_allclose(test, expected, atol=self.atol,
+                                       rtol=self.rtol)
 
     def test_incorrect_shape_raises(self, op, data_l, data_r):
         """
@@ -497,9 +507,10 @@ class TernaryOpMixin(_GenericOpMixin):
         if issubclass(out_type, Data):
             assert test.shape == expected.shape
             np.testing.assert_allclose(test.to_array(), expected,
-                                       atol=self.tol)
+                                       atol=self.atol, rtol=self.rtol)
         else:
-            assert abs(test - expected) < self.tol
+            np.testing.assert_allclose(test, expected, atol=self.atol,
+                                       rtol=self.rtol)
 
     def test_incorrect_shape_raises(self, op, data_l, data_m, data_r):
         """
@@ -544,9 +555,10 @@ class TestAdd(BinaryOpMixin):
         if issubclass(out_type, Data):
             assert test.shape == expected.shape
             np.testing.assert_allclose(test.to_array(), expected,
-                                       atol=self.tol)
+                                       atol=self.atol, rtol=self.rtol)
         else:
-            assert abs(test - expected) < self.tol
+            np.testing.assert_allclose(test, expected, atol=self.atol,
+                                       rtol=self.rtol)
 
 
 class TestAdjoint(UnaryOpMixin):
@@ -633,9 +645,10 @@ class TestInner(BinaryOpMixin):
         if issubclass(out_type, Data):
             assert test.shape == expected.shape
             np.testing.assert_allclose(test.to_array(), expected,
-                                       atol=self.tol)
+                                       atol=self.atol, rtol=self.rtol)
         else:
-            assert abs(test - expected) < self.tol
+            np.testing.assert_allclose(test, expected, atol=self.atol,
+                                       rtol=self.rtol)
 
 
 class TestInnerOp(TernaryOpMixin):
@@ -700,9 +713,11 @@ class TestInnerOp(TernaryOpMixin):
         if issubclass(out_type, Data):
             assert test.shape == expected.shape
             np.testing.assert_allclose(test.to_array(), expected,
-                                       atol=self.tol)
+                                       atol=self.atol,
+                                       rtol=self.rtol)
         else:
-            assert abs(test - expected) < self.tol
+            np.testing.assert_allclose(test, expected, atol=self.atol,
+                                       rtol=self.rtol)
 
 
 class TestKron(BinaryOpMixin):
@@ -804,8 +819,8 @@ class TestPow(UnaryOpMixin):
         test = op(matrix, n)
         assert isinstance(test, out_type)
         assert test.shape == expected.shape
-        np.testing.assert_allclose(test.to_array(), expected,
-                                   atol=self.tol)
+        np.testing.assert_allclose(test.to_array(), expected, atol=self.atol,
+                                   rtol=self.rtol)
 
     # Pow actually does have bad shape, so we put that in too.
     def test_incorrect_shape_raises(self, op, data_m):
