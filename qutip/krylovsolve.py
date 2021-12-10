@@ -87,9 +87,8 @@ def krylovsolve(
       result: :class:`qutip.Result`
          An instance of the class :class:`qutip.Result`, which contains
          either an *array* `result.expect` of expectation values for the times
-         specified by range('t0', 'tf', 'dt') or `tlist`, or an *array* `result.states`
-         of state vectors corresponding to the times in range('t0', 'tf', 'dt') or
-         `tlist` [if `e_ops` is an empty list].
+         `tlist`, or an *array* `result.states` of state vectors corresponding
+         to the times `tlist` [if `e_ops` is an empty list].
     """
 
     # list of expectation values operators
@@ -122,9 +121,9 @@ def krylovsolve(
 
     if isinstance(H, Qobj):
         if sparse:
-            _H = H.get_data()  #  -> (fast_) csr_matrix
+            _H = H.get_data()  # -> (fast_) csr_matrix
         else:
-            _H = H.full().copy()  #  -> np.ndarray
+            _H = H.full().copy()  # -> np.ndarray
     else:
         _H = H
 
@@ -174,7 +173,7 @@ def krylovsolve(
     # create output container
     krylov_results = Result()
 
-    # if there is a unique time-step in tlist, the initial state (or its expectation value) is returned.
+    # if len(tlist)=1, the initial state (or its expectation value) is returned
     if len(tlist) < 1:
         if e_ops:
             for idx, op in enumerate(e_ops):
@@ -483,6 +482,7 @@ def _evolve_krylov_tlist(
 
 # ----------------------------------------------------------------------
 # Auxiliar functions
+
 
 def _make_partitions(tlist, n_timesteps):
     if n_timesteps == 1:
