@@ -124,8 +124,8 @@ def test_CoherentState():
     assert str(e.value) == ("The method option can only take "
                             "values 'operator' or 'analytic'")
     with pytest.raises(ValueError) as e:
-        qutip.coherent(N, -1)
-    assert str(e.value) == ("XXX")
+        qutip.coherent(N, alpha, offset=-1)
+    assert str(e.value) == ("Offset must be non-negative")
 
     
 def test_CoherentDensityMatrix():
@@ -137,8 +137,8 @@ def test_CoherentDensityMatrix():
     assert str(e.value) == ("The method option can only take "
                             "values 'operator' or 'analytic'")
     with pytest.raises(ValueError) as e:
-        qutip.coherent_dm(N, -1)
-    assert str(e.value) == ("XXX")
+        qutip.coherent_dm(N, 1, offset=-1)
+    assert str(e.value) == ("Offset must be non-negative")
 
 
 def test_thermal():
