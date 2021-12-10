@@ -121,41 +121,40 @@ class _McTrajectorySolver(_TrajectorySolver):
         result.seed = seed
         return result
 
-    def start(self, state, t0, seed=None, *, safe_ODE=None):
-        self.collapses = []
-        self.generator = self.get_generator(seed)
+    def start(self, state, t0, seed=None):
+        super().start(state, t0, seed=seed)
         self.target_norm = self.generator.random()
-        super().start(state, t0, seed=self.generator, safe_ODE=safe_ODE)
+        self.collapses = []
 
-    def prob_func(self, state):
+    def _prob_func(self, state):
         if self.rhs.issuper:
             return _data.norm.trace(unstack_columns(state))
         return _data.norm.l2(state)**2
 
-    def norm_func(self, state):
+    def _norm_func(self, state):
         if self.rhs.issuper:
             return _data.norm.trace(unstack_columns(state))
         return _data.norm.l2(state)
 
     def _step(self, t, copy=True):
         t_old, y_old = self._integrator.get_state(copy=False)
-        norm_old = self.prob_func(y_old)
+        norm_old = self._prob_func(y_old)
         while t_old < t:
             t_step, state = self._integrator.mcstep(t, copy=False)
-            norm = self.prob_func(state)
+            norm = self._prob_func(state)
             if norm <= self.target_norm:
-                self._do_collapse(norm_old, norm, t_old)
+                t_col = self._find_collapse_time(norm_old, norm, t_old, t_step)
+                self._do_collapse(t_col, )
                 t_old, y_old = self._integrator.get_state(copy=False)
                 norm_old = 1.
             else:
                 t_old, y_old = t_step, state
                 norm_old = norm
 
-        return t_old, _data.mul(y_old, 1 / self.norm_func(y_old))
+        return t_old, _data.mul(y_old, 1 / self._norm_func(y_old))
 
-    def _do_collapse(self, norm_old, norm, t_prev):
+    def _find_collapse_time(self, norm_old, norm, t_prev, t_final):
         """Find and apply a collapse."""
-        t_final, _ = self._integrator.get_state()
         tries = 0
         while tries < self.options.mcsolve['norm_steps']:
             tries += 1
@@ -172,7 +171,7 @@ class _McTrajectorySolver(_TrajectorySolver):
             if (t_guess - t_prev) < self.options.mcsolve['norm_t_tol']:
                 t_guess = t_prev + self.options.mcsolve['norm_t_tol']
             _, state = self._integrator.mcstep(t_guess, copy=False)
-            norm2_guess = self.prob_func(state)
+            norm2_guess = self._prob_func(state)
             if (
                 np.abs(self.target_norm - norm2_guess) <
                 self.options.mcsolve['norm_tol'] * self.target_norm
@@ -192,23 +191,26 @@ class _McTrajectorySolver(_TrajectorySolver):
                             "Increase accuracy of ODE solver or " +
                             "SolverOptions.mcsolve['norm_steps'].")
 
+        return t_guess
+
+    def _do_collapse(self, collapse_time):
         # t_guess, state is at the collapse
         probs = np.zeros(len(self._n_ops))
         for i, n_op in enumerate(self._n_ops):
-            probs[i] = n_op.expect_data(t_guess, state).real
+            probs[i] = n_op.expect_data(collapse_time, state).real
         probs = np.cumsum(probs)
         which = np.searchsorted(probs, probs[-1] * self.generator.random())
 
-        state_new = self._c_ops[which].matmul_data(t_guess, state)
-        new_norm = self.norm_func(state_new)
+        state_new = self._c_ops[which].matmul_data(collapse_time, state)
+        new_norm = self._norm_func(state_new)
         if new_norm < self.options.mcsolve['mc_corr_eps']:
             # This happen when the collapse is caused by numerical error
-            state_new = _data.mul(state, 1 / self.norm_func(state))
+            state_new = _data.mul(state, 1 / self._norm_func(state))
         else:
             state_new = _data.mul(state_new, 1 / new_norm)
-            self.collapses.append((t_guess, which))
+            self.collapses.append((collapse_time, which))
             self.target_norm = self.generator.random()
-        self._integrator.set_state(t_guess, state_new)
+        self._integrator.set_state(collapse_time, state_new)
 
     def _argument(self, args):
         if self._integrator:
