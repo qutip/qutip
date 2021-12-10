@@ -136,7 +136,7 @@ def qutrit_basis():
     return out
 
 
-def coherent(N, alpha, offset=0, method='operator'):
+def coherent(N, alpha, offset=0, method=None):
     """Generates a coherent state with eigenvalue alpha.
 
     Constructed using displacement operator on vacuum state.
@@ -186,14 +186,19 @@ def coherent(N, alpha, offset=0, method='operator'):
     but would in that case give more accurate coefficients.
 
     """
-    if method == "operator" and offset == 0:
+    if offset < 0:
+        raise ValueError('Offset must be non-negative')
 
+    if method is None:
+        method = "operator" if offset == 0 else "analytic"
+
+    if method == "operator":
         x = basis(N, 0)
         a = destroy(N)
         D = (alpha * a.dag() - conj(alpha) * a).expm()
         return D * x
 
-    elif method == "analytic" or offset > 0:
+    elif method == "analytic":
         sqrtn = np.sqrt(np.arange(offset, offset+N, dtype=complex))
         sqrtn[0] = 1  # Get rid of divide by zero warning
         data = alpha/sqrtn
@@ -210,7 +215,7 @@ def coherent(N, alpha, offset=0, method='operator'):
             "The method option can only take values 'operator' or 'analytic'")
 
 
-def coherent_dm(N, alpha, offset=0, method='operator'):
+def coherent_dm(N, alpha, offset=0, method=None):
     """Density matrix representation of a coherent state.
 
     Constructed via outer product of :func:`qutip.states.coherent`
