@@ -175,7 +175,7 @@ def _cb_labels(left_dims):
 
 # Adopted from the SciPy Cookbook.
 def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
-           label_top=True, color_style="threshold"):
+           label_top=True, color_style="scaled"):
     """Draws a Hinton diagram for visualizing a density matrix or superoperator.
 
     Parameters
@@ -203,13 +203,16 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
         they will appear below the plot.
 
     color_style : string
-        Determines how colors are assigned to each square. If set to
-        `"threshold"` (default), each square is plotted as the maximum of
-        `cmap` for positive numbers and as the minimum for minimum. If set to
-        `"scaled"`, each color is chosen by passing the magnitude of the
-        corresponding matrix element into `cmap`. If set to `"phase"`, each
-        color is chosen according to the argument of the corresponding matrix
-        element; note that this generalizes `"threshold"` to complex numbers.
+        Determines how colors are assigned to each square:
+        - If set to `"scaled"` (default), each color is chosen by
+          passing the absolute value of the corresponding matrix
+          element into `cmap` with the sign of the real part.
+        - If set to `"threshold"`, each square is plotted as
+          the maximum of `cmap` for the positive real part and as
+          the minimum for the negative part of the matrix element;
+          note that this generalizes `"threshold"` to complex numbers.
+        - If set to `"phase"`, each color is chosen according to
+          the angle of the corresponding matrix element.
 
     Returns
     -------
