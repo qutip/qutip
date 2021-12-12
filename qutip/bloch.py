@@ -180,7 +180,10 @@ class Bloch:
         # Style of points, 'm' for multiple colors, 's' for single color
         self.point_style = []
         # Data for line segment
-        self.line_segment = []
+        self._lines = []
+        # Data for arcs and arc style
+        self._arcs = []
+        self.arc_style = []
 
     def set_label_convention(self, convention):
         """Set x, y and z labels according to one of conventions.
@@ -291,6 +294,9 @@ class Bloch:
         self.vectors = []
         self.point_style = []
         self.annotations = []
+        self._lines = []
+        self._arcs = []
+        self.arc_style = []
 
     def add_points(self, points, meth='s'):
         """Add a list of data points to bloch sphere.
@@ -397,25 +403,42 @@ class Bloch:
                                  'text': text,
                                  'opts': kwargs})
 
-    def add_arc(self, init_pt, fin_pt):
-        """Add an arc between two two points on a sphere.
-
+    def add_arc(self, start, end, fmt = "b", steps = None, **kwargs):
+        """Adds an arc between two points on a sphere. The arc is set to be
+        blue solid curve by default.
+        
         Parameters
         ----------
-        
         point1 : array_like
             Array with cartesian coordinates of the first point.
         point2 : array_like
             Array with cartesian coordinates of the second point.
         """
-        pt1 = np.array(init_pt)
-        pt2 = np.array(fin_pt)
-        rad1 = np.linalg.norm(pt1, axis=0)
-        rad2 = np.linalg.norm(pt2, axis=0)
-        if rad1 < 1e-12 or rad2 < 1e-12:
+        if isinstance(start, Qobj):
+            start = [start]
+            for st in start:
+                pt1 = [expect(sigmax(), st),
+                           expect(sigmay(), st),
+                           expect(sigmaz(), st)]
+        else:
+            pt1 = start
+
+        if isinstance(end, Qobj):
+            end = [end]
+            for en in end:
+                pt2 = [expect(sigmax(), en),
+                          expect(sigmay(), en),
+                          expect(sigmaz(), en)]
+        else:
+            pt2 = end
+        pt1 = np.asarray(pt1)
+        pt2 = np.asarray(pt2)
+        
+        len1 = np.linalg.norm(pt1)
+        len2 = np.linalg.norm(pt2)
+        if len1 < 1e-12 or len2 < 1e-12:
             raise ValueError('Polar and azimuthal angles undefined at origin.')
-        elif abs(rad1 - rad2) > 1e-12:
-            print(rad1, rad2)
+        elif abs(len1 - len2) > 1e-12:
             raise Exception("Points not on the same sphere.")
         elif (pt1 == pt2).all():
             raise Exception("Points same, no arc can be formed.")
@@ -423,32 +446,53 @@ class Bloch:
             raise Exception("Points diagonally opposite, no unique arc.")
         else:
             # Parametrization
-            t = np.linspace(0, 1, 360)
+            if steps == None:
+                steps = int(np.linalg.norm(pt1 - pt2)/(np.pi/(2*360)))
+            t = np.linspace(0, 1, steps)
             # All the points in this line are contained in the plane defined
             # by pt1, pt2 and the origin.
             line = pt1[:, np.newaxis]*t + pt2[:, np.newaxis]*(1-t)
-
             # This will normalize all the points in the line such that
-            # they now have are at rad1 distance from the origin.
-            arc = line*rad1/np.linalg.norm(line, axis=0)
-            self.add_points([arc[0, :], arc[1, :], arc[2, :]], 'l')
+            # they now have are at len1 distance from the origin.
+            arc = line*len1/np.linalg.norm(line, axis=0)
+            self._arcs.append([arc,fmt, kwargs])
 
-    def add_line(self, point1, point2):
-        """Add a line segment connecting two points on the bloch sphere.
+    def add_line(self, start, end, fmt = "k", **kwargs):
+        """Adds a line segment connecting two points on the bloch sphere.
+        The line segment is set to be a black solid line by default.
         
         Parameters
         ----------
-        
         point1 : array_like
             Array with cartesian coordinates of the first point.
         point2 : array_like
             Array with cartesian coordinates of the second point.
         """
-        x = [point1[1], point2[1]]
-        y = [-point1[0], -point2[0]]
-        z = [point1[2], point2[2]]
+        if isinstance(start, Qobj):
+            start = [start]
+            for st in start:
+                pt1 = [expect(sigmax(), st),
+                           expect(sigmay(), st),
+                           expect(sigmaz(), st)]
+        else:
+            pt1 = start
+
+        if isinstance(end, Qobj):
+            end = [end]
+            for en in end:
+                pt2 = [expect(sigmax(), en),
+                          expect(sigmay(), en),
+                          expect(sigmaz(), en)]
+        else:
+            pt2 = end
+        pt1 = np.asarray(pt1)
+        pt2 = np.asarray(pt2)
+        
+        x = [pt1[1], pt2[1]]
+        y = [-pt1[0], -pt2[0]]
+        z = [pt1[2], pt2[2]]
         v = [x, y, z]
-        self.line_segment.append(v)
+        self._lines.append([v, fmt, kwargs])
 
     def make_sphere(self):
         """
@@ -525,6 +569,7 @@ class Bloch:
         self.plot_axes_labels()
         self.plot_annotations()
         self.plot_line()
+        self.plot_arc()
         # Trigger an update of the Bloch sphere if it is already shown:
         self.fig.canvas.draw()
 
@@ -693,9 +738,12 @@ class Bloch:
                            annotation['text'], **opts)
 
     def plot_line(self):
-        # plots a black dashed line segment between two points
-        for line in self.line_segment:
-            self.axes.plot(line[0], line[1], line[2], 'k--')
+        for line in self._lines:
+            self.axes.plot(line[0][0], line[0][1], line[0][2], line[1], **line[2])
+    
+    def plot_arc(self):
+        for val in self._arcs:
+            self.axes.plot(val[0][1,:],-val[0][0,:],val[0][2,:], val[1], **val[2])
 
     def show(self):
         """
