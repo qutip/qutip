@@ -439,7 +439,7 @@ class Bloch:
         if len1 < 1e-12 or len2 < 1e-12:
             raise ValueError('Polar and azimuthal angles undefined at origin.')
         elif abs(len1 - len2) > 1e-12:
-            raise Exception("Points not on the same sphere.")
+            raise ValueError("Points not on the same sphere.")
         elif (pt1 == pt2).all():
             raise Exception("Points same, no arc can be formed.")
         elif (pt1 == -pt2).all():
