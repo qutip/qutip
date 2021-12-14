@@ -443,7 +443,7 @@ class Bloch:
         elif (pt1 == pt2).all():
             raise ValueError("Start and end represent the same point. No arc can be formed.")
         elif (pt1 == -pt2).all():
-            raise Exception("Points diagonally opposite, no unique arc.")
+            raise ValueError("Start and end are diagonally opposite, no unique arc is possible.")
         else:
             # Parametrization
             if steps == None:
