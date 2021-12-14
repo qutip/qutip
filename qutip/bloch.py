@@ -441,7 +441,7 @@ class Bloch:
         elif abs(len1 - len2) > 1e-12:
             raise ValueError("Points not on the same sphere.")
         elif (pt1 == pt2).all():
-            raise Exception("Points same, no arc can be formed.")
+            raise ValueError("Start and end represent the same point. No arc can be formed.")
         elif (pt1 == -pt2).all():
             raise Exception("Points diagonally opposite, no unique arc.")
         else:
