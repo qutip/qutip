@@ -9,7 +9,7 @@ __all__ = ['basis', 'qutrit_basis', 'coherent', 'coherent_dm', 'fock_dm',
 
 import numbers
 import numpy as np
-from numpy import arange, conj, prod
+from numpy import arange, conj
 import scipy.sparse as sp
 import itertools
 
@@ -193,6 +193,11 @@ def coherent(N, alpha, offset=0, method=None):
         method = "operator" if offset == 0 else "analytic"
 
     if method == "operator":
+        if offset != 0:
+            raise ValueError(
+                "The method 'operator' does not support offset != 0. Please"
+                " select another method or set the offset to zero."
+            )
         x = basis(N, 0)
         a = destroy(N)
         D = (alpha * a.dag() - conj(alpha) * a).expm()
@@ -943,7 +948,7 @@ def enr_fock(dims, excitations, state):
 
     try:
         data[state2idx[tuple(state)], 0] = 1
-    except:
+    except Exception:
         raise ValueError("The state tuple %s is not in the restricted "
                          "state space" % str(tuple(state)))
 
