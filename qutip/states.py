@@ -193,6 +193,11 @@ def coherent(N, alpha, offset=0, method=None):
         method = "operator" if offset == 0 else "analytic"
 
     if method == "operator":
+        if offset != 0:
+            raise ValueError(
+                "The method 'operator' does not support offset != 0. Please"
+                " select another method or set the offset to zero."
+            )
         x = basis(N, 0)
         a = destroy(N)
         D = (alpha * a.dag() - conj(alpha) * a).expm()
