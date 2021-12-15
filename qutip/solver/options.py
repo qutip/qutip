@@ -269,5 +269,5 @@ class McOptions:
 
         'timeout': 1e8,
 
-        'job_timeout': 1e8,
+        'job_timeout': 1e8,  # Effectively infinite
     }

@@ -17,8 +17,8 @@ else:
     Pool = multiprocessing.Pool
 
 default_map_kw = {
-    'job_timeout': 1e8,
-    'timeout': 1e8,
+    'job_timeout': 1e32,  # Effectively infinite
+    'timeout': 1e32,  # Effectively infinite
     'num_cpus': multiprocessing.cpu_count(),
 }
 

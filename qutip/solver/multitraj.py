@@ -137,7 +137,7 @@ class MultiTrajSolver:
         return self._traj_solver_class(*self.traj_args, options=self.options)
 
     def run(self, state, tlist, ntraj=1, *, args=None, options=None,
-            e_ops=(), timeout=0, target_tol=None, seed=None):
+            e_ops=(), timeout=1e8, target_tol=None, seed=None):
         """
         Do the evolution of the Quantum system.
 
@@ -173,18 +173,18 @@ class MultiTrajSolver:
             Alternatively, function[s] with the signature f(t, state) -> expect
             can be used.
 
-        timeout : float, optional
+        timeout : float, optional [1e8]
             Maximum time in seconds for the trajectories to run. Once this time
             is reached, the simulation will end even if the number
             of trajectories is less than ``ntraj``. The map function, set in
             options, can interupt the running trajectory or wait for it to
-            finish. Set to ``0`` to disable.
+            finish. Set to an arbitrary high number to disable.
 
-        target_tol : {float, tuple, list}, optional
+        target_tol : {float, tuple, list}, optional [None]
             If a float, it is read as absolute tolerance.
             If a pair of float: absolute and relative tolerance in that order.
             Lastly, target_tol can be a list of pairs of (atol, rtol) for each
-            e_ops.
+            e_ops. Set to ``None`` to disable.
 
         seed : {int, list(int)} optional
             Seed or list of seeds for each trajectories.
@@ -194,6 +194,10 @@ class MultiTrajSolver:
         results : :class:`qutip.solver.MultiTrajResult`
             Results of the evolution. States and/or expect will be saved. You
             can control the saved data in the options.
+
+        .. note:
+            The simulation will end when the first end condition is reached
+            between ``ntraj``, ``timeout`` and ``target_tol``.
         """
         if options is not None:
             self.options = options
@@ -230,18 +234,18 @@ class MultiTrajSolver:
         ntraj : int
             Number of trajectories to add.
 
-        timeout : float, optional
+        timeout : float, optional [1e8]
             Maximum time in seconds for the trajectories to run. Once this time
             is reached, the simulation will end even if the number
             of trajectories is less than ``ntraj``. The map function, set in
             options, can interupt the running trajectory or wait for it to
-            finish. Set to ``0`` to disable
+            finish. Set to an arbitrary high number to disable.
 
-        target_tol : {float, tuple, list}, optional
+        target_tol : {float, tuple, list}, optional [None]
             If a float, it is read as absolute tolerance.
             If a pair of float: absolute and relative tolerance in that order.
             Lastly, target_tol can be a list of pairs of (atol, rtol) for each
-            e_ops.
+            e_ops. Set to ``None`` to disable.
 
         seed : {int, list(int)} optional
             Seed or list of seeds for each trajectories.
@@ -251,6 +255,10 @@ class MultiTrajSolver:
         results : :class:`qutip.solver.MultiTrajResult`
             Results of the evolution. States and/or expect will be saved. You
             can control the saved data in the options.
+
+        .. note:
+            The simulation will end when the first end condition is reached
+            between ``ntraj``, ``timeout`` and ``target_tol``.
         """
         start_time = time()
         if result.solver_id != id(self):

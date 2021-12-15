@@ -13,7 +13,7 @@ from time import time
 
 
 def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=1, *,
-            args=None, options=None, seeds=None, target_tol=None, timeout=0):
+            args=None, options=None, seeds=None, target_tol=None, timeout=1e8):
     r"""
     Monte Carlo evolution of a state vector :math:`|\psi \rangle` for a
     given Hamiltonian and sets of collapse operators. Options for the
@@ -46,9 +46,8 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=1, *,
 
     ntraj : int
         Maximum number of trajectories to run. Can be cut short if a time limit
-        is passed in options (per default, mcsolve will stop after 1e8 sec)::
-            ``options.mcsolve['map_options']['timeout'] = max_sec``
-        Or if the target tolerance is reached, see ``target_tol``.
+        is passed with the ``timeout`` keyword or if the target tolerance is
+        reached, see ``target_tol``.
 
     args : dict, [optional]
         Arguments for time-dependent Hamiltonian and collapse operator terms.
@@ -62,7 +61,7 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=1, *,
         trajectory. Seeds are saved in the result and they can be reused with::
             seeds=prev_result.seeds
 
-    target_tol : float, list, [optional]
+    target_tol : float, list, [optional] {None}
         Target tolerance of the evolution. The evolution will compute
         trajectories until the error on the expectation values is lower than
         this tolerance. The error is computed using jackknife resampling.
@@ -70,7 +69,7 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=1, *,
         relative tolerance, in that order. Lastly, it can be a list of pairs of
         (atol, rtol) for each e_ops.
 
-    timeout : float [optional]
+    timeout : float [optional] {1e8}
         Maximum time for the evolution in second. When reached, no more
         trajectories will be computed. Overwrite the option of the same name.
 
@@ -80,6 +79,10 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=1, *,
         Object storing all results from the simulation. Which results is saved
         depends on the presence of ``e_ops`` and the options used. ``collapse``
         and ``photocurrent`` is available to Monte Carlo simulation results.
+
+    .. note:
+        The simulation will end when the first end condition is reached between
+        ``ntraj``, ``timeout`` and ``target_tol``.
     """
     H = QobjEvo(H, args=args, tlist=tlist)
     if not isinstance(c_ops, (list, tuple)):
@@ -141,7 +144,6 @@ class _McTrajectorySolver(_TrajectorySolver):
         norm_old = self._prob_func(y_old)
         while t_old < t:
             t_step, state = self._integrator.mcstep(t, copy=False)
-            print(t_old, t_step, t)
             norm = self._prob_func(state)
             if norm <= self.target_norm:
                 t_col, state = self._find_collapse_time(norm_old, norm,
@@ -309,7 +311,7 @@ class McSolver(MultiTrajSolver):
         return (self.rhs, self._c_ops, self._n_ops)
 
     def run(self, state, tlist, ntraj=1, *, args=None, options=None,
-            e_ops=(), timeout=0, target_tol=None, seed=None):
+            e_ops=(), timeout=1e8, target_tol=None, seed=None):
         result = super().run(
             state, tlist, ntraj, e_ops=e_ops,
             args=args, options=options, seed=seed,
