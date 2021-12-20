@@ -6,7 +6,7 @@ Stochastic Solver
 
 .. _stochastic-intro:
 
-When a quantum system is subjected to continuous measurement, through homodyne detection for example, it is possible to simulate the conditional quantum state using stochastic Schrodinger and master equations. The solution of these stochastic equations are quantum trajectories, which represent the conditioned evolution of the system given a specific measurement record was registered.
+When a quantum system is subjected to continuous measurement, through homodyne detection for example, it is possible to simulate the conditional quantum state using stochastic Schrodinger and master equations. The solution of these stochastic equations are quantum trajectories, which represent the conditioned evolution of the system given a specific measurement record.
 
 In general, the stochastic evolution of a quantum state is calculated in
 QuTiP by solving the general equation
@@ -58,7 +58,7 @@ The solver :func:`qutip.ssesolve` will construct the operators :math:`d_1` and :
 
 Additionally, homodyne and heterodyne detections can be easily simulated by passing the arguments ``method='homodyne'`` or ``method='heterodyne'`` to :func:`qutip.ssesolve`.
 
-For more examples, see this `notebook <https://nbviewer.ipython.org/github/qutip/qutip-notebooks/blob/master/development/development-ssesolve-tests.ipynb>`_.
+Examples of how to solve the stochastic Schrodinger equation using QuTiP can be found in this `development notebook <https://nbviewer.ipython.org/github/qutip/qutip-notebooks/blob/master/development/development-ssesolve-tests.ipynb>`_.
 
 Stochastic Master Equation
 ==========================
@@ -109,5 +109,48 @@ The stochastic part, :math:`d_{2,n}`, is given solely by the operators :math:`S_
 
 As in the stochastic Schrodinger equation, the detection method can be specified using the ``method`` argument.
 
+Example
+-------
 
-For more examples, see the `following notebook <https://nbviewer.ipython.org/github/qutip/qutip-notebooks/blob/master/development/development-smesolve-tests.ipynb>`_.
+Below, we solve the dynamics for an optical cavity at 0K whose output is monitored using homodyne detections. The cavity decay rate is given by :math:`\kappa`.
+
+.. plot::
+    :context: close-figs
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import qutip as qt
+
+    # parameters
+    DIM = 20             # Hilbert space dimension
+    DELTA = 5*2*np.pi    # cavity detuning
+    KAPPA = 2            # cavity decay rate
+    INTENSITY = 4        # intensity of initial state
+    NUMBER_OF_TRAJECTORIES = 100
+
+    # operators
+    a = qt.destroy(DIM)
+    x = a + a.dag()
+    H = DELTA*a.dag()* a
+
+    rho_0 = qt.coherent(DIM, np.sqrt(INTENSITY))
+    times = np.arange(0, 1, 0.0025)
+
+    me_solution = qt.mesolve(H, rho_0, times, c_ops = [np.sqrt(KAPPA) * a ], e_ops = [x])
+    stoc_solution = qt.smesolve(H, rho_0, times,
+                                c_ops=[],
+                                sc_ops=[np.sqrt(KAPPA) * a],
+                                e_ops=[x],
+                                ntraj=NUMBER_OF_TRAJECTORIES,
+                                nsubsteps=10,
+                                store_measurement=True,
+                                method='homodyne')
+
+    fig, ax = plt.subplots()
+    ax.plot(times, np.array(stoc_solution.measurement).mean(axis=0)[:].real, 'r', lw=2)
+    ax.plot(times, me_solution.expect[0], 'k', lw=2)
+    ax.set_xlabel('Time')
+    ax.legend(['Master Equation', 'Stochastic'])
+
+
+For other examples on :func:`qutip.smesolve`, see the `following notebook <https://nbviewer.ipython.org/github/qutip/qutip-notebooks/blob/master/development/development-smesolve-tests.ipynb>`_, as well as these notebooks available at `QuTiP Tutorials page <https://qutip.org/tutorials.html>`_: `heterodyne detection <https://nbviewer.ipython.org/github/qutip/qutip-notebooks/blob/master/examples/smesolve-heterodyne.ipynb>`_, `Inneficient detection <https://nbviewer.ipython.org/github/qutip/qutip-notebooks/blob/master/examples/smesolve-inefficient-detection.ipynb>`_, and `Feedback Control <https://nbviewer.ipython.org/github/jrjohansson/reproduced-papers/blob/master/Reproduce-SIAM-JCO-46-445-2007-Mirrahimi.ipynb>`_.
