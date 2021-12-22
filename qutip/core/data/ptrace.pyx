@@ -17,17 +17,28 @@ __all__ = [
     'ptrace', 'ptrace_csr', 'ptrace_dense', 'ptrace_csr_dense',
 ]
 
-cdef void _check_shape(Data matrix) except *:
+cdef void _check_shape(Data matrix, object dims) except *:
     if matrix.shape[0] != matrix.shape[1]:
         raise ValueError("ptrace is only defined for square density matrices")
+
+    if matrix.shape[0] != np.prod(dims, dtype=int):
+        raise ValueError(f"the input matrix shape, {matrix.shape} and the"
+                         f" dimension argument, {dims}, are not compatible.")
 
 cdef tuple _prepare_inputs(object dims, object sel):
     cdef Py_ssize_t i
     dims = np.atleast_1d(dims).astype(idxint_dtype).ravel()
     sel = np.atleast_1d(sel).astype(idxint_dtype)
+    sel.sort()
+
     if sel.ndim != 1:
         raise ValueError("Selection must be one-dimensional")
-    sel.sort()
+
+    for d in dims:
+        if d<1:
+            raise ValueError("dimensions must be greated than zero but where"
+                             f" dims={dims}")
+
     for i in range(sel.shape[0]):
         if sel[i] < 0 or sel[i] >= dims.size:
             raise IndexError("Invalid selection index in ptrace.")
@@ -82,7 +93,7 @@ cdef inline void _i2_k_t(idxint N, idxint[:, ::1] tensor_table, idxint out[2]):
 
 
 cpdef CSR ptrace_csr(CSR matrix, object dims, object sel):
-    _check_shape(matrix)
+    _check_shape(matrix, dims)
     dims, sel = _prepare_inputs(dims, sel)
     if len(sel) == len(dims):
         return matrix.copy()
@@ -112,7 +123,7 @@ cpdef CSR ptrace_csr(CSR matrix, object dims, object sel):
 
 
 cpdef Dense ptrace_csr_dense(CSR matrix, object dims, object sel):
-    _check_shape(matrix)
+    _check_shape(matrix, dims)
     dims, sel = _prepare_inputs(dims, sel)
     if len(sel) == len(dims):
         return dense.from_csr(matrix)
@@ -133,7 +144,7 @@ cpdef Dense ptrace_csr_dense(CSR matrix, object dims, object sel):
 
 
 cpdef Dense ptrace_dense(Dense matrix, object dims, object sel):
-    _check_shape(matrix)
+    _check_shape(matrix, dims)
     dims, sel = _prepare_inputs(dims, sel)
     if len(sel) == len(dims):
         return matrix.copy()

@@ -8,6 +8,7 @@ from qutip.core.data import CSR, Dense
 
 class TestPtrace(testing.UnaryOpMixin):
     def op_numpy(self, matrix, dims, sel):
+        sel.sort()
         ndims = len(dims)
         dkeep = [dims[x] for x in sel]
         qtrace = list(set(range(ndims)) - set(sel))
@@ -34,9 +35,16 @@ class TestPtrace(testing.UnaryOpMixin):
         pytest.param(data.ptrace_dense, Dense, Dense),
     ]
 
-    @pytest.mark.parametrize('sel', [[0], [0, 3, 6], list(range(len(dims))), []],
-                             ids=['keep_one', 'keep_multiple',
-                                  'trace_none', 'trace_all'])
+    @pytest.mark.parametrize('sel', [[0],
+                                     [0, 3, 6],
+                                     [0, 6, 3],
+                                     list(range(len(dims))),
+                                     []],
+                             ids=['keep_one',
+                                  'keep_multiple_sorted',
+                                  'keep_multiple_unsorted',
+                                  'trace_none',
+                                  'trace_all'])
     def test_mathematically_correct(self, op, data_m, out_type, sel):
         """
         Test that the unary operation is mathematically correct for all the
@@ -58,3 +66,31 @@ class TestPtrace(testing.UnaryOpMixin):
         """
         with pytest.raises(ValueError):
             op(data_m(), self.dims, sel=[0, 1])
+
+    # `out_type` is included but not used so that
+    # `generate_mathematically_correct` can be re-used.
+    @pytest.mark.parametrize('dims',
+                             [[2], [0], [-2, -2]+[2]*5, [1.2]],
+                             ids=['dims_different_to_shape',
+                                  'dims_0',
+                                  'dims_prod_is_shape_but_negative',
+                                  'dims_is_not_int',
+                                 ])
+    def test_incorrect_dims_raises(self, op, data_m, out_type, dims):
+        with pytest.raises(ValueError):
+            op(data_m(), dims, sel=[0,1])
+
+    def generate_incorrect_dims_raises(self, metafunc):
+        self.generate_mathematically_correct(metafunc)
+
+    @pytest.mark.parametrize('sel',
+                             [[2, 10], [-1, 2]],
+                             ids=['sel_value_larger_than_dims',
+                                  'sel_value_negative',
+                                 ])
+    def test_incorrect_sel_raises(self, op, data_m, out_type, sel):
+        with pytest.raises(IndexError):
+            op(data_m(), dims=self.dims, sel=sel)
+
+    def generate_incorrect_sel_raises(self, metafunc):
+        self.generate_mathematically_correct(metafunc)
