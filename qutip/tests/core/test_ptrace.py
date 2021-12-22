@@ -144,5 +144,5 @@ def test_ptrace_rand(dtype):
             assert A.ptrace(sel) == expected(A, sel)
 
         A = qutip.rand_dm(64, 0.5, dims=[[4, 4, 4], [4, 4, 4]]).to(dtype)
-        for sel in ([0], [1], [0, 2]):
+        for sel in ([], [0], [1], [0, 2]):
             assert A.ptrace(sel) == expected(A, sel)
