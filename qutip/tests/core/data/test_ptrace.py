@@ -46,12 +46,6 @@ class TestPtrace(testing.UnaryOpMixin):
         expected = self.op_numpy(matrix.to_array(), self.dims, sel)
         test = op(matrix, self.dims, sel)
         assert isinstance(test, out_type)
-        if issubclass(out_type, data.Data):
-            assert test.shape == expected.shape
-            np.testing.assert_allclose(test.to_array(), expected,
-                                       atol=self.atol, rtol=self.rtol)
-        else:
-            np.testing.assert_allclose(test, expected, atol=self.atol,
-                                       rtol=self.rtol)
-
-
+        assert test.shape == expected.shape
+        np.testing.assert_allclose(test.to_array(), expected,
+                                   atol=self.atol, rtol=self.rtol)
