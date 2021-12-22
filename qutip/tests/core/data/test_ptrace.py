@@ -26,7 +26,7 @@ class TestPtrace(testing.UnaryOpMixin):
     # These values should not be changed.
     dims = [2]*7
     shapes = [(pytest.param((np.prod(dims), np.prod(dims))),)]
-    # bad_shapes = testing.shapes_not_square(np.prod(dims))
+    bad_shapes = testing.shapes_not_square(np.prod(dims))
 
     specialisations = [
         pytest.param(data.ptrace_csr, CSR, CSR),
@@ -49,3 +49,12 @@ class TestPtrace(testing.UnaryOpMixin):
         assert test.shape == expected.shape
         np.testing.assert_allclose(test.to_array(), expected,
                                    atol=self.atol, rtol=self.rtol)
+
+
+    def test_incorrect_shape_raises(self, op, data_m):
+        """
+        Test that the operation produces a suitable error if the shape of the
+        operand is not square.
+        """
+        with pytest.raises(ValueError):
+            op(data_m(), self.dims, sel=[0, 1])
