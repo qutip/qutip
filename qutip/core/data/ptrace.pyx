@@ -147,10 +147,10 @@ cpdef Dense ptrace_dense(Dense matrix, object dims, object sel):
                       .reshape(dims + dims)
                       .transpose(qtrace + [nd + q for q in qtrace] +
                                  sel + [nd + q for q in sel])
-                      .reshape([np.prod(dtrace),
-                                np.prod(dtrace),
-                                np.prod(dkeep),
-                                np.prod(dkeep)]))
+                      .reshape([np.prod(dtrace, dtype=int),
+                                np.prod(dtrace, dtype=int),
+                                np.prod(dkeep, dtype=int),
+                                np.prod(dkeep, dtype=int)]))
     return dense.fast_from_numpy(rhomat)
 
 
