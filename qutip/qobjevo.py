@@ -1,35 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
 """Time-dependent Quantum Object (Qobj) class.
 """
 __all__ = ['QobjEvo']
@@ -442,7 +410,7 @@ class QobjEvo:
         self.args = args.copy()
         self.dynamics_args = []
         self.cte = None
-        self.tlist = tlist
+        self.tlist = np.asarray(tlist) if tlist is not None else None
         self.compiled = ""
         self.compiled_qobjevo = None
         self.coeff_get = None
@@ -452,13 +420,17 @@ class QobjEvo:
         self.use_cython = use_cython[0]
         self.safePickle = safePickle[0]
 
+        # Attempt to determine if a 2-element list is a single, time-dependent
+        # operator, or a list with 2 possibly time-dependent elements.
         if isinstance(Q_object, list) and len(Q_object) == 2:
-            if isinstance(Q_object[0], Qobj) and not isinstance(Q_object[1],
-                                                                (Qobj, list)):
-                # The format is [Qobj, f/str]
+            try:
+                # Test if parsing succeeds on this as a single element.
+                self._td_op_type(Q_object)
                 Q_object = [Q_object]
+            except (TypeError, ValueError):
+                pass
 
-        op_type = self._td_format_check_single(Q_object, tlist)
+        op_type = self._td_format_check(Q_object)
         self.ops = []
 
         if isinstance(op_type, int):
@@ -467,7 +439,7 @@ class QobjEvo:
                 self.const = True
                 self.type = "cte"
             elif op_type == 1:
-                raise Exception("The Qobj must not already be a function")
+                raise TypeError("The Qobj must not already be a function")
             elif op_type == -1:
                 pass
         else:
@@ -539,42 +511,39 @@ class QobjEvo:
         if state0 is not None:
             self._dynamics_args_update(0., state0)
 
-    def _td_format_check_single(self, Q_object, tlist=None):
-        op_type = []
-
+    def _td_format_check(self, Q_object):
         if isinstance(Q_object, Qobj):
-            op_type = 0
-        elif isinstance(Q_object, (FunctionType,
-                                   BuiltinFunctionType, partial)):
-            op_type = 1
-        elif isinstance(Q_object, list):
-            if (len(Q_object) == 0):
-                op_type = -1
-            for op_k in Q_object:
-                if isinstance(op_k, Qobj):
-                    op_type.append(0)
-                elif isinstance(op_k, list):
-                    if not isinstance(op_k[0], Qobj):
-                        raise TypeError("Incorrect Q_object specification")
-                    elif len(op_k) == 2:
-                        if isinstance(op_k[1], Cubic_Spline):
-                            op_type.append(4)
-                        elif callable(op_k[1]):
-                            op_type.append(1)
-                        elif isinstance(op_k[1], str):
-                            op_type.append(2)
-                        elif isinstance(op_k[1], np.ndarray):
-                            if not isinstance(tlist, np.ndarray) or not \
-                                        len(op_k[1]) == len(tlist):
-                                raise TypeError("Time list does not match")
-                            op_type.append(3)
-                        else:
-                            raise TypeError("Incorrect Q_object specification")
-                    else:
-                        raise TypeError("Incorrect Q_object specification")
+            return 0
+        if isinstance(Q_object, (FunctionType, BuiltinFunctionType, partial)):
+            return 1
+        if isinstance(Q_object, list):
+            return [self._td_op_type(element) for element in Q_object] or -1
+        raise TypeError("Incorrect Q_object specification")
+
+    def _td_op_type(self, element):
+        if isinstance(element, Qobj):
+            return 0
+        try:
+            op, td = element
+        except (TypeError, ValueError) as exc:
+            raise TypeError("Incorrect Q_object specification") from exc
+        if (not isinstance(op, Qobj)) or isinstance(td, Qobj):
+            # Qobj is itself callable, so we need an extra check to make sure
+            # that we don't have a two-element list where both are Qobj.
+            raise TypeError("Incorrect Q_object specification")
+        if isinstance(td, Cubic_Spline):
+            out = 4
+        elif callable(td):
+            out = 1
+        elif isinstance(td, str):
+            out = 2
+        elif isinstance(td, np.ndarray):
+            if self.tlist is None or td.shape != self.tlist.shape:
+                raise ValueError("Time lists are not compatible")
+            out = 3
         else:
             raise TypeError("Incorrect Q_object specification")
-        return op_type
+        return out
 
     def _args_checks(self):
         statedims = [self.cte.dims[1],[1]]
@@ -633,7 +602,7 @@ class QobjEvo:
         try:
             t = float(t)
         except Exception as e:
-            raise TypeError("t should be a real scalar.") from e
+            raise TypeError("Time must be a real scalar.") from e
 
         if state is not None:
             self._dynamics_args_update(t, state)
@@ -871,7 +840,7 @@ class QobjEvo:
                     pass
                 elif len(other.tlist) != len(self.tlist) or \
                         other.tlist[-1] != self.tlist[-1]:
-                    raise Exception("tlist are not compatible")
+                    raise ValueError("Time lists are not compatible")
         else:
             self.cte += other
             self.dummy_cte = False
@@ -915,7 +884,8 @@ class QobjEvo:
             self.cte *= other
             for op in self.ops:
                 op.qobj *= other
-        elif isinstance(other, QobjEvo):
+            return self
+        if isinstance(other, QobjEvo):
             if other.const:
                 self.cte *= other.cte
                 for op in self.ops:
@@ -949,11 +919,8 @@ class QobjEvo:
                 self.num_obj = (len(self.ops) if
                               self.dummy_cte else len(self.ops) + 1)
             self._reset_type()
-
-        else:
-            raise TypeError("QobjEvo can only be multiplied"
-                            " with QobjEvo, Qobj or numbers")
-        return self
+            return self
+        return NotImplemented
 
     def __div__(self, other):
         if isinstance(other, (int, float, complex,
@@ -961,16 +928,14 @@ class QobjEvo:
             res = self.copy()
             res *= other**(-1)
             return res
-        else:
-            raise TypeError('Incompatible object for division')
+        return NotImplemented
 
     def __idiv__(self, other):
         if isinstance(other, (int, float, complex,
                               np.integer, np.floating, np.complexfloating)):
             self *= other**(-1)
-        else:
-            raise TypeError('Incompatible object for division')
-        return self
+            return self
+        return NotImplemented
 
     def __truediv__(self, other):
         return self.__div__(other)
@@ -1410,14 +1375,14 @@ class QobjEvo:
         expect : General-purpose expectation values.
         """
         if not isinstance(t, (int, float)):
-            raise TypeError("The time need to be a real scalar")
+            raise TypeError("Time must be a real scalar")
         if isinstance(state, Qobj):
             if self.cte.dims[1] == state.dims[0]:
                 vec = state.full().ravel("F")
             elif self.cte.dims[1] == state.dims:
                 vec = state.full().ravel("F")
             else:
-                raise Exception("Dimensions do not fit")
+                raise ValueError("Dimensions do not fit")
         elif isinstance(state, np.ndarray):
             vec = state.ravel("F")
         else:
@@ -1441,7 +1406,7 @@ class QobjEvo:
                        vec.reshape((self.cte.shape[1],
                                     self.cte.shape[1])).T).trace()
         else:
-            raise Exception("The shapes do not match")
+            raise ValueError("The shapes do not match")
 
         if herm:
             return exp.real
@@ -1467,19 +1432,19 @@ class QobjEvo:
         """
         was_Qobj = False
         if not isinstance(t, (int, float)):
-            raise TypeError("the time need to be a real scalar")
+            raise TypeError("Time must be a real scalar")
         if isinstance(vec, Qobj):
             if self.cte.dims[1] != vec.dims[0]:
-                raise Exception("Dimensions do not fit")
+                raise ValueError("Dimensions do not fit")
             was_Qobj = True
             dims = vec.dims
             vec = vec.full().ravel()
         elif not isinstance(vec, np.ndarray):
             raise TypeError("The vector must be an array or Qobj")
         if vec.ndim != 1:
-            raise Exception("The vector must be 1d")
+            raise ValueError(f"The vector must be 1d, but is {vec.ndim}d")
         if vec.shape[0] != self.cte.shape[1]:
-            raise Exception("The length do not match")
+            raise ValueError("The lengths do not match")
 
         if self.compiled:
             out = self.compiled_qobjevo.mul_vec(t, vec)
@@ -1512,19 +1477,19 @@ class QobjEvo:
         """
         was_Qobj = False
         if not isinstance(t, (int, float)):
-            raise TypeError("the time need to be a real scalar")
+            raise TypeError("Time must be a real scalar")
         if isinstance(mat, Qobj):
             if self.cte.dims[1] != mat.dims[0]:
-                raise Exception("Dimensions do not fit")
+                raise ValueError("Dimensions do not fit")
             was_Qobj = True
             dims = mat.dims
             mat = mat.full()
         if not isinstance(mat, np.ndarray):
             raise TypeError("The vector must be an array or Qobj")
         if mat.ndim != 2:
-            raise Exception("The matrice must be 2d")
+            raise ValueError(f"The matrix must be 2d, but is {mat.ndim}d")
         if mat.shape[0] != self.cte.shape[1]:
-            raise Exception("The length do not match")
+            raise ValueError("The lengths do not match")
 
         if self.compiled:
             out = self.compiled_qobjevo.mul_mat(t, mat)

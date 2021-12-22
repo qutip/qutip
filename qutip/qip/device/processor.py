@@ -1,35 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
 from collections.abc import Iterable
 import warnings
 from copy import deepcopy
@@ -637,19 +605,25 @@ class Processor(object):
 
         Returns
         -------
-        evo_result: :class:`qutip.Result`
-            An instance of the class
-            :class:`qutip.Result` will be returned.
+        U_list: list
+            A list of propagators obtained for the physical implementation.
         """
         if init_state is not None:
             U_list = [init_state]
         else:
             U_list = []
         tlist = self.get_full_tlist()
-        # TODO replace this by get_complete_coeff
         coeffs = self.get_full_coeffs()
+
+        # Compute drift Hamiltonians
+        H_drift = 0
+        for drift_ham in self.drift.drift_hamiltonians:
+            H_drift += drift_ham.get_qobj(self.dims)
+
+        # Compute control Hamiltonians
         for n in range(len(tlist)-1):
-            H = sum([coeffs[m, n] * self.ctrls[m]
+            H = H_drift + sum(
+                [coeffs[m, n] * self.ctrls[m]
                     for m in range(len(self.ctrls))])
             dt = tlist[n + 1] - tlist[n]
             U = (-1j * H * dt).expm()
@@ -658,7 +632,9 @@ class Processor(object):
 
         try:  # correct_global_phase are defined for ModelProcessor
             if self.correct_global_phase and self.global_phase != 0:
-                U_list.append(globalphase(self.global_phase, N=self.N))
+                U_list.append(globalphase(
+                    self.global_phase, N=self.num_qubits)
+                )
         except AttributeError:
             pass
 

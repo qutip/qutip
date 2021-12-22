@@ -1,6 +1,3 @@
-.. QuTiP
-   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
-
 .. _floquet:
 
 *****************
@@ -126,7 +123,7 @@ The :math:`t=0` Floquet modes corresponding to the Hamiltonian :eq:`eq_driven_qu
    [[0.39993746+0.554682j]
     [0.72964231+0.j      ]]]
 
-For some problems interesting observations can be draw from the quasienergy levels alone. Consider for example the quasienergies for the driven two-level system introduced above as a function of the driving amplitude, calculated and plotted in the following example. For certain driving amplitudes the quasienergy levels cross. Since the the quasienergies can be associated with the time-scale of the long-term dynamics due that the driving, degenerate quasienergies indicates a "freezing" of the dynamics (sometimes known as coherent destruction of tunneling).
+For some problems interesting observations can be draw from the quasienergy levels alone. Consider for example the quasienergies for the driven two-level system introduced above as a function of the driving amplitude, calculated and plotted in the following example. For certain driving amplitudes the quasienergy levels cross. Since the quasienergies can be associated with the time-scale of the long-term dynamics due that the driving, degenerate quasienergies indicates a "freezing" of the dynamics (sometimes known as coherent destruction of tunneling).
 
 .. plot::
    :context:
@@ -209,7 +206,7 @@ For convenience, all the steps described above for calculating the evolution of 
 
 .. code-block:: python
 
-    output = fsesolve(H, psi0, times, [num(2)], args)
+    output = fsesolve(H, psi0=psi0, tlist=tlist, e_ops=[qutip.num(2)], args=args)
     p_ex = output.expect[0]
 
 .. _floquet-dissipative:
@@ -223,7 +220,7 @@ A driven system that is interacting with its environment is not necessarily well
 The Floquet-Markov master equation in QuTiP
 -------------------------------------------
 
-The QuTiP function :func:`qutip.floquet.fmmesolve` implements the Floquet-Markov master equation. It calculates the dynamics of a system given its initial state, a time-dependent hamiltonian, a list of operators through which the system couples to its environment and a list of corresponding spectral-density functions that describes the environment. In contrast to the :func:`qutip.mesolve` and :func:`qutip.mcsolve`, and the :func:`qutip.floquet.fmmesolve` does characterize the environment with dissipation rates, but extract the strength of the coupling to the environment from the noise spectral-density functions and the instantaneous Hamiltonian parameters (similar to the Bloch-Redfield master equation solver :func:`qutip.bloch_redfield.brmesolve`).
+The QuTiP function :func:`qutip.floquet.fmmesolve` implements the Floquet-Markov master equation. It calculates the dynamics of a system given its initial state, a time-dependent Hamiltonian, a list of operators through which the system couples to its environment and a list of corresponding spectral-density functions that describes the environment. In contrast to the :func:`qutip.mesolve` and :func:`qutip.mcsolve`, and the :func:`qutip.floquet.fmmesolve` does characterize the environment with dissipation rates, but extract the strength of the coupling to the environment from the noise spectral-density functions and the instantaneous Hamiltonian parameters (similar to the Bloch-Redfield master equation solver :func:`qutip.bloch_redfield.brmesolve`).
 
 .. note::
 

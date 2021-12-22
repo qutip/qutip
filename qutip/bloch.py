@@ -1,36 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
 __all__ = ['Bloch']
 
 import os
@@ -38,15 +5,28 @@ import os
 from numpy import (ndarray, array, linspace, pi, outer, cos, sin, ones, size,
                    sqrt, real, mod, append, ceil, arange)
 
+from packaging.version import parse as parse_version
+
 from qutip.qobj import Qobj
 from qutip.expect import expect
 from qutip.operators import sigmax, sigmay, sigmaz
 
 try:
+    import matplotlib
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
     from matplotlib.patches import FancyArrowPatch
     from mpl_toolkits.mplot3d import proj3d
+
+    # Define a custom _axes3D function based on the matplotlib version.
+    # The auto_add_to_figure keyword is new for matplotlib>=3.4.
+    if parse_version(matplotlib.__version__) >= parse_version('3.4'):
+        def _axes3D(fig, *args, **kwargs):
+            ax = Axes3D(fig, *args, auto_add_to_figure=False, **kwargs)
+            return fig.add_axes(ax)
+    else:
+        def _axes3D(*args, **kwargs):
+            return Axes3D(*args, **kwargs)
 
     class Arrow3D(FancyArrowPatch):
         def __init__(self, xs, ys, zs, *args, **kwargs):
@@ -56,16 +36,16 @@ try:
 
         def draw(self, renderer):
             xs3d, ys3d, zs3d = self._verts3d
-            xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
+            xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, self.axes.M)
 
             self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
             FancyArrowPatch.draw(self, renderer)
-except:
+except ImportError:
     pass
 
 try:
     from IPython.display import display
-except:
+except ImportError:
     pass
 
 
@@ -132,6 +112,7 @@ class Bloch:
                  background=False):
         # Figure and axes
         self.fig = fig
+        self._ext_fig = fig is not None
         self.axes = axes
         # Background axes, default = False
         self.background = background
@@ -198,14 +179,6 @@ class Bloch:
         # Style of points, 'm' for multiple colors, 's' for single color
         self.point_style = []
 
-        # status of rendering
-        self._rendered = False
-        # status of showing
-        if fig is None:
-            self._shown = False
-        else:
-            self._shown = True
-
     def set_label_convention(self, convention):
         """Set x, y and z labels according to one of conventions.
 
@@ -220,9 +193,9 @@ class Bloch:
             - "01"
             - "polarization jones"
             - "polarization jones letters"
-              see also: http://en.wikipedia.org/wiki/Jones_calculus
+              see also: https://en.wikipedia.org/wiki/Jones_calculus
             - "polarization stokes"
-              see also: http://en.wikipedia.org/wiki/Stokes_parameters
+              see also: https://en.wikipedia.org/wiki/Stokes_parameters
         """
         ketex = "$\\left.|%s\\right\\rangle$"
         # \left.| is on purpose, so that every ket has the same size
@@ -425,7 +398,7 @@ class Bloch:
         """
         Plots Bloch sphere and data sets.
         """
-        self.render(self.fig, self.axes)
+        self.render()
 
     def run_from_ipython(self):
         try:
@@ -434,44 +407,69 @@ class Bloch:
         except NameError:
             return False
 
-    def render(self, fig=None, axes=None):
+    def _is_inline_backend(self):
+        backend = matplotlib.get_backend()
+        return backend == "module://matplotlib_inline.backend_inline"
+
+    def render(self):
         """
         Render the Bloch sphere and its data sets in on given figure and axes.
         """
-        if self._rendered:
-            self.axes.clear()
+        if not self._ext_fig and not self._is_inline_backend():
+            # If no external figure was supplied, we check to see if the
+            # figure we created in a previous call to .render() has been
+            # closed, and re-create if has been. This has the unfortunate
+            # side effect of losing any modifications made to the axes or
+            # figure, but the alternative is to crash the matplotlib backend.
+            #
+            # The inline backend used by, e.g. jupyter notebooks, is happy to
+            # use closed figures so we leave those figures intact.
+            if (
+                self.fig is not None and
+                not plt.fignum_exists(self.fig.number)
+            ):
+                self.fig = None
+                self.axes = None
 
-        self._rendered = True
-
-        # Figure instance for Bloch sphere plot
-        if not fig:
+        if self.fig is None:
             self.fig = plt.figure(figsize=self.figsize)
+            if self._is_inline_backend():
+                # We immediately close the inline figure do avoid displaying
+                # the figure twice when .show() calls display.
+                plt.close(self.fig)
 
-        if not axes:
-            self.axes = Axes3D(self.fig, azim=self.view[0], elev=self.view[1])
+        if self.axes is None:
+            self.axes = _axes3D(self.fig, azim=self.view[0], elev=self.view[1])
 
+        # Clearing the axes is horrifically slow and loses a lot of the
+        # axes state, but matplotlib doesn't seem to provide a better way
+        # to redraw Axes3D. :/
+        self.axes.clear()
+        self.axes.grid(False)
         if self.background:
-            self.axes.clear()
             self.axes.set_xlim3d(-1.3, 1.3)
             self.axes.set_ylim3d(-1.3, 1.3)
             self.axes.set_zlim3d(-1.3, 1.3)
         else:
-            self.plot_axes()
             self.axes.set_axis_off()
             self.axes.set_xlim3d(-0.7, 0.7)
             self.axes.set_ylim3d(-0.7, 0.7)
             self.axes.set_zlim3d(-0.7, 0.7)
         # Manually set aspect ratio to fit a square bounding box.
         # Matplotlib did this stretching for < 3.3.0, but not above.
-        self.axes.set_box_aspect((1, 1, 1))
+        if parse_version(matplotlib.__version__) >= parse_version('3.3'):
+            self.axes.set_box_aspect((1, 1, 1))
+        if not self.background:
+            self.plot_axes()
 
-        self.axes.grid(False)
         self.plot_back()
         self.plot_points()
         self.plot_vectors()
         self.plot_front()
         self.plot_axes_labels()
         self.plot_annotations()
+        # Trigger an update of the Bloch sphere if it is already shown:
+        self.fig.canvas.draw()
 
     def plot_back(self):
         # back half of sphere
@@ -640,14 +638,23 @@ class Bloch:
     def show(self):
         """
         Display Bloch sphere and corresponding data sets.
+
+        Notes
+        -----
+
+        When using inline plotting in Jupyter notebooks, any figure created
+        in a notebook cell is displayed after the cell executes. Thus if you
+        create a figure yourself and use it create a Bloch sphere with
+        ``b = Bloch(..., fig=fig)`` and then call ``b.show()`` in the same
+        cell, then the figure will be displayed twice. If you do create your
+        own figure, the simplest solution to this is to not call ``.show()``
+        in the cell you create the figure in.
         """
-        self.render(self.fig, self.axes)
+        self.render()
         if self.run_from_ipython():
-            if self._shown:
-                display(self.fig)
+            display(self.fig)
         else:
             self.fig.show()
-        self._shown = True
 
     def save(self, name=None, format='png', dirc=None, dpin=None):
         """Saves Bloch sphere to file of type ``format`` in directory ``dirc``.
@@ -671,7 +678,7 @@ class Bloch:
         File containing plot of Bloch sphere.
 
         """
-        self.render(self.fig, self.axes)
+        self.render()
         # Conditional variable for first argument to savefig
         # that is set in subsequent if-elses
         complete_path = ""

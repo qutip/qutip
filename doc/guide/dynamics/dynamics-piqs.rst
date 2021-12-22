@@ -1,6 +1,3 @@
-.. QuTiP
-   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
-
 .. _master-piqs:
 
 *********************************
@@ -63,7 +60,7 @@ The system's Liouvillian can be built using :code:`system.liouvillian()`. The pr
     L = system.liouvillian()
     steady = steadystate(L)
 
-For more example of use, see the "Permutational Invariant Lindblad Dynamics" section in the tutorials section of the website, `http://qutip.org/tutorials.html <http://qutip.org/tutorials.html>`_.
+For more example of use, see the "Permutational Invariant Lindblad Dynamics" section in the tutorials section of the website, `https://qutip.org/tutorials.html <https://qutip.org/tutorials.html>`_.
 
 .. list-table:: Useful PIQS functions.
    :widths: 25 25 50

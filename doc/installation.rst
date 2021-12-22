@@ -1,6 +1,3 @@
-.. QuTiP 
-   Copyright (C) 2011 and later, Paul D. Nation, Robert J. Johansson & Alexander Pitchford
-
 .. This file can be edited using retext 6.1 https://github.com/retext-project/retext
 
 .. _install:
@@ -136,7 +133,7 @@ You can also install any more optional packages you want with ``conda install``,
 Installing from Source
 ======================
 
-Official releases of QuTiP are available from the download section on `the project's web pages <http://qutip.org/download.html>`_, and the latest source code is available in `our GitHub repository <https://github.com/qutip/qutip>`_.
+Official releases of QuTiP are available from the download section on `the project's web pages <https://qutip.org/download.html>`_, and the latest source code is available in `our GitHub repository <https://github.com/qutip/qutip>`_.
 In general we recommend users to use the latest stable release of QuTiP, but if you are interested in helping us out with development or wish to submit bug fixes, then use the latest development version from the GitHub repository.
 
 You can install from source by using the `Python-recommended PEP 517 procedure <build-pep517_>`_, or if you want more control or to have a development version, you can use the `low-level build procedure with setuptools <build-setuptools_>`_.
@@ -174,7 +171,7 @@ As of the 4.6.0 release, the build requirements can be installed with
 
 .. code-block:: bash
 
-   pip install setuptools wheel 'cython>=0.29.20' 'numpy>=1.16.6,<1.20' 'scipy>=1.0'
+   pip install setuptools wheel packaging 'cython>=0.29.20' 'numpy>=1.16.6,<1.20' 'scipy>=1.0'
 
 or similar with ``conda`` if you prefer.
 You will also need to have a functional C++ compiler installed on your system.
@@ -252,7 +249,7 @@ At the end, the testing report should report a success; it is normal for some te
 Skips may be tests that do not run on your operating system, or tests of optional components that you have not installed the dependencies for.
 If any failures or errors occur, please check that you have installed all of the required modules.
 See the next section on how to check the installed versions of the QuTiP dependencies.
-If these tests still fail, then head on over to the `QuTiP Discussion Board <http://groups.google.com/group/qutip>`_ or `the GitHub issues page <https://github.com/qutip/qutip/issues>`_ and post a message detailing your particular issue.
+If these tests still fail, then head on over to the `QuTiP Discussion Board <https://groups.google.com/group/qutip>`_ or `the GitHub issues page <https://github.com/qutip/qutip/issues>`_ and post a message detailing your particular issue.
 
 .. _install-about:
 

@@ -1,6 +1,3 @@
-.. QuTiP
-   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
-
 .. _correlation:
 
 ******************************
@@ -97,7 +94,7 @@ The following example demonstrates how these two functions can be used to obtain
 Non-steadystate correlation function
 ====================================
 
-More generally, we can also calculate correlation functions of the kind :math:`\left<A(t_1+t_2)B(t_1)\right>`, i.e., the correlation function of a system that is not in its steadystate. In QuTiP, we can evoluate such correlation functions using the function :func:`qutip.correlation.correlation_2op_2t`. The default behavior of this function is to return a matrix with the correlations as a function of the two time coordinates (:math:`t_1` and :math:`t_2`).
+More generally, we can also calculate correlation functions of the kind :math:`\left<A(t_1+t_2)B(t_1)\right>`, i.e., the correlation function of a system that is not in its steady state. In QuTiP, we can evaluate such correlation functions using the function :func:`qutip.correlation.correlation_2op_2t`. The default behavior of this function is to return a matrix with the correlations as a function of the two time coordinates (:math:`t_1` and :math:`t_2`).
 
 .. plot:: guide/scripts/correlation_ex2.py
    :width: 5.0in
@@ -130,7 +127,7 @@ For a coherent state :math:`g^{(2)}(\tau) = 1`, for a thermal state :math:`g^{(2
 To calculate this type of correlation function with QuTiP, we can use :func:`qutip.correlation.correlation_3op_1t`, which computes a correlation function on the form :math:`\left<A(0)B(\tau)C(0)\right>` (three operators, one delay-time vector).
 We first have to combine the central two operators into one single one as they are evaluated at the same time, e.g. here we do :math:`a^\dagger(\tau)a(\tau) = (a^\dagger a)(\tau)`.
 
-The following code calculates and plots :math:`g^{(2)}(\tau)` as a function of :math:`\tau` for a coherent, thermal and fock state.
+The following code calculates and plots :math:`g^{(2)}(\tau)` as a function of :math:`\tau` for a coherent, thermal and Fock state.
 
 .. plot:: guide/scripts/correlation_ex4.py
    :width: 5.0in

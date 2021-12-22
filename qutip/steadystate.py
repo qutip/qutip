@@ -1,43 +1,11 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
 """
 Module contains functions for solving for the steady state density matrix of
 open quantum systems defined by a Liouvillian or Hamiltonian and a list of
 collapse operators.
 """
 
-__all__ = ['steadystate', 'steady', 'build_preconditioner',
-           'pseudo_inverse']
+__all__ = ['steadystate', 'steady', 'steadystate_floquet',
+           'build_preconditioner', 'pseudo_inverse']
 
 import functools
 import time
@@ -274,10 +242,10 @@ def steadystate(A, c_op_list=[], method='direct', solver=None, **kwargs):
                 solver = 'mkl'
     elif solver == 'mkl' and \
             (method not in ['direct', 'power']):
-        raise Exception('MKL solver only for direct or power methods.')
+        raise ValueError('MKL solver only for direct or power methods.')
 
     elif solver not in ['scipy', 'mkl']:
-        raise Exception('Invalid solver kwarg.')
+        raise ValueError('Invalid solver kwarg.')
 
     ss_args = _default_steadystate_args()
     ss_args['method'] = method
@@ -290,7 +258,7 @@ def steadystate(A, c_op_list=[], method='direct', solver=None, **kwargs):
         if key in ss_args.keys():
             ss_args[key] = kwargs[key]
         else:
-            raise Exception(
+            raise TypeError(
                 "Invalid keyword argument '"+key+"' passed to steadystate.")
 
     # Set column perm to NATURAL if using RCM and not specified by user
@@ -946,6 +914,100 @@ def _steadystate_power(L, ss_args):
         return rhoss
 
 
+def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False):
+    """
+    Calculates the effective steady state for a driven
+     system with a time-dependent cosinusoidal term:
+
+    .. math::
+
+        \\mathcal{\\hat{H}}(t) = \\hat{H}_0 +
+         \\mathcal{\\hat{O}} \\cos(\\omega_d t)
+
+    Parameters
+    ----------
+    H_0 : :obj:`~Qobj`
+        A Hamiltonian or Liouvillian operator.
+
+    c_ops : list
+        A list of collapse operators.
+
+    Op_t : :obj:`~Qobj`
+        The the interaction operator which is multiplied by the cosine
+
+    w_d : float, default 1.0
+        The frequency of the drive
+
+    n_it : int, default 3
+        The number of iterations for the solver
+
+    sparse : bool, default False
+        Solve for the steady state using sparse algorithms.
+        Actually, dense seems to be faster.
+
+    Returns
+    -------
+    dm : qobj
+        Steady state density matrix.
+
+    .. note::
+        See: Sze Meng Tan,
+        https://copilot.caltech.edu/documents/16743/qousersguide.pdf,
+        Section (10.16)
+    """
+    if sparse:
+        N = H_0.shape[0]
+
+        L_0 = liouvillian(H_0, c_ops).data.tocsc()
+        L_t = liouvillian(Op_t)
+        L_p = (0.5 * L_t).data.tocsc()
+        # L_p and L_m correspond to the positive and negative
+        # frequency terms respectively.
+        # They are independent in the model, so we keep both names.
+        L_m = L_p
+        L_p_array = L_p.todense()
+        L_m_array = L_p_array
+
+        Id = sp.eye(N ** 2, format="csc", dtype=np.complex128)
+        S = T = sp.csc_matrix((N ** 2, N ** 2), dtype=np.complex128)
+
+        for n_i in np.arange(n_it, 0, -1):
+            L = sp.csc_matrix(L_0 - 1j * n_i * w_d * Id + L_m.dot(S))
+            L.sort_indices()
+            LU = splu(L)
+            S = - LU.solve(L_p_array)
+
+            L = sp.csc_matrix(L_0 + 1j * n_i * w_d * Id + L_p.dot(T))
+            L.sort_indices()
+            LU = splu(L)
+            T = - LU.solve(L_m_array)
+
+        M_subs = L_0 + L_m.dot(S) + L_p.dot(T)
+    else:
+        N = H_0.shape[0]
+
+        L_0 = liouvillian(H_0, c_ops).full()
+        L_t = liouvillian(Op_t)
+        L_p = (0.5 * L_t).full()
+        L_m = L_p
+
+        Id = np.eye(N ** 2)
+        S, T = np.zeros((N ** 2, N ** 2)), np.zeros((N ** 2, N ** 2))
+
+        for n_i in np.arange(n_it, 0, -1):
+            L = L_0 - 1j * n_i * w_d * Id + np.matmul(L_m, S)
+            lu, piv = la.lu_factor(L)
+            S = - la.lu_solve((lu, piv), L_p)
+
+            L = L_0 + 1j * n_i * w_d * Id + np.matmul(L_p, T)
+            lu, piv = la.lu_factor(L)
+            T = - la.lu_solve((lu, piv), L_m)
+
+        M_subs = L_0 + np.matmul(L_m, S) + np.matmul(L_p, T)
+
+    return steadystate(Qobj(M_subs, type="super", dims=L_t.dims))
+
+
 def build_preconditioner(A, c_op_list=[], **kwargs):
     """Constructs a iLU preconditioner necessary for solving for
     the steady state density matrix using the iterative linear solvers
@@ -1023,7 +1085,7 @@ def build_preconditioner(A, c_op_list=[], **kwargs):
         if key in ss_args.keys():
             ss_args[key] = kwargs[key]
         else:
-            raise Exception("Invalid keyword argument '" + key +
+            raise TypeError("Invalid keyword argument '" + key +
                             "' passed to steadystate.")
 
     # Set column perm to NATURAL if using RCM and not specified by user
@@ -1044,7 +1106,7 @@ def build_preconditioner(A, c_op_list=[], **kwargs):
         ss_list = _steadystate_power_liouvillian(L, ss_args)
         L, perm, perm2, rev_perm, ss_args = ss_list
     else:
-        raise Exception("Invalid preconditioning method.")
+        raise ValueError("Invalid preconditioning method.")
 
     M, ss_args = _iterative_precondition(L, n, ss_args)
 
@@ -1132,7 +1194,7 @@ def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
         A = sp_permute(L.data, perm, perm)
         Q = sp_permute(Q, perm, perm)
     else:
-        if ss_args['solver'] == 'scipy':
+        if pseudo_args['solver'] == 'scipy':
             A = L.data.tocsc()
             A.sort_indices()
 
@@ -1144,10 +1206,9 @@ def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
         else:
             pspec = pseudo_args['permc_spec']
             diag_p_thresh = pseudo_args['diag_pivot_thresh']
-            pseudo_args = pseudo_args['ILU_MILU']
             lu = sp.linalg.splu(A, permc_spec=pspec,
                                 diag_pivot_thresh=diag_p_thresh,
-                                options=dict(ILU_MILU=pseudo_args))
+                                options=dict(ILU_MILU=pseudo_args['ILU_MILU']))
             LIQ = lu.solve(Q.toarray())
 
     elif pseudo_args['method'] == 'spilu':
@@ -1168,7 +1229,8 @@ def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
     return Qobj(R, dims=L.dims)
 
 
-def pseudo_inverse(L, rhoss=None, w=None, sparse=True,  **kwargs):
+def pseudo_inverse(L, rhoss=None, w=None, sparse=True,
+                   method='splu', **kwargs):
     """
     Compute the pseudo inverse for a Liouvillian superoperator, optionally
     given its steady state density matrix (which will be computed if not
@@ -1213,7 +1275,7 @@ def pseudo_inverse(L, rhoss=None, w=None, sparse=True,  **kwargs):
     cast the problem as an Ax=b type problem where the explicit calculation
     of the inverse is not required. See page 67 of "Electrons in
     nanostructures" C. Flindt, PhD Thesis available online:
-    http://orbit.dtu.dk/fedora/objects/orbit:82314/datastreams/
+    https://orbit.dtu.dk/fedora/objects/orbit:82314/datastreams/
     file_4732600/content
 
     Note also that the definition of the pseudo-inverse herein is different
@@ -1226,10 +1288,9 @@ def pseudo_inverse(L, rhoss=None, w=None, sparse=True,  **kwargs):
         if key in pseudo_args.keys():
             pseudo_args[key] = kwargs[key]
         else:
-            raise Exception(
+            raise TypeError(
                 "Invalid keyword argument '"+key+"' passed to pseudo_inverse.")
-    if 'method' not in kwargs.keys():
-        pseudo_args['method'] = 'splu'
+    pseudo_args['method'] = method
 
     # Set column perm to NATURAL if using RCM and not specified by user
     if pseudo_args['use_rcm'] and ('permc_spec' not in kwargs.keys()):

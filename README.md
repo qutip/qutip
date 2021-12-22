@@ -10,10 +10,11 @@ QuTiP: Quantum Toolbox in Python
 [E. Giguère](https://github.com/ericgig),
 [B. Li](https://github.com/boxili),
 [J. Lishman](https://github.com/jakelishman),
+[S. Cross](https://github.com/hodgestar),
 [P. D. Nation](https://github.com/nonhermitian),
 and [J. R. Johansson](https://github.com/jrjohansson)
 
-[![Build Status](https://img.shields.io/travis/qutip/qutip?logo=Travis)](http://travis-ci.org/qutip/qutip)
+[![Build Status](https://github.com/qutip/qutip/actions/workflows/tests.yml/badge.svg?branch=master)](https://github.com/qutip/qutip/actions/workflows/tests.yml)
 [![Coverage Status](https://img.shields.io/coveralls/qutip/qutip.svg?logo=Coveralls)](https://coveralls.io/r/qutip/qutip)
 [![Maintainability](https://api.codeclimate.com/v1/badges/df502674f1dfa1f1b67a/maintainability)](https://codeclimate.com/github/qutip/qutip/maintainability)
 [![license](https://img.shields.io/badge/license-New%20BSD-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)  
@@ -33,7 +34,7 @@ Support
 [![Powered by NumFOCUS](https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)](https://numfocus.org)
 
 We are proud to be affiliated with [Unitary Fund](https://unitary.fund) and [numFOCUS](https://numfocus.org).
-QuTiP development is supported by [Nori's lab](http://dml.riken.jp/) at RIKEN, by the University of Sherbrooke, and by Aberystwyth University, [among other supporting organizations](http://qutip.org/#supporting-organizations).
+QuTiP development is supported by [Nori's lab](https://dml.riken.jp/) at RIKEN, by the University of Sherbrooke, and by Aberystwyth University, [among other supporting organizations](https://qutip.org/#supporting-organizations).
 
 
 Installation
@@ -51,19 +52,19 @@ pip install qutip
 
 to get the minimal installation.
 You can instead use the target `qutip[full]` to install QuTiP with all its optional dependencies.
-For more details, including instructions on how to build from source, see [the detailed installation guide in the documentation](http://qutip.org/docs/latest/installation.html).
+For more details, including instructions on how to build from source, see [the detailed installation guide in the documentation](https://qutip.org/docs/latest/installation.html).
 
 All back releases are also available for download in the [releases section of this repository](https://github.com/qutip/qutip/releases), where you can also find per-version changelogs.
-For the most complete set of release notes and changelogs for historic versions, see the [changelog](http://qutip.org/docs/latest/changelog.html) section in the documentation.
+For the most complete set of release notes and changelogs for historic versions, see the [changelog](https://qutip.org/docs/latest/changelog.html) section in the documentation.
 
 
 Documentation
 -------------
 
-The documentation for official releases, in HTML and PDF formats, can be found in the [documentation section of the QuTiP website](http://qutip.org/documentation.html).
+The documentation for official releases, in HTML and PDF formats, can be found in the [documentation section of the QuTiP website](https://qutip.org/documentation.html).
 The latest development documentation is available in this repository in the `doc` folder.
 
-A [selection of demonstration notebooks is available](http://qutip.org/tutorials.html), which demonstrate some of the many features of QuTiP.
+A [selection of demonstration notebooks is available](https://qutip.org/tutorials.html), which demonstrate some of the many features of QuTiP.
 These are stored in the [qutip/qutip-notebooks repository](https://github.com/qutip/qutip-notebooks) here on GitHub.
 You can run the notebooks online using myBinder: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/qutip/qutip-notebooks/master?filepath=index.ipynb)
 
@@ -72,6 +73,12 @@ Contribute
 
 You are most welcome to contribute to QuTiP development by forking this repository and sending pull requests, or filing bug reports at the [issues page](https://github.com/qutip/qutip/issues).
 You can also help out with users' questions, or discuss proposed changes in the [QuTiP discussion group](https://groups.google.com/g/qutip).
-All code contributions are acknowledged in the [contributors](http://qutip.org/docs/latest/contributors.html) section in the documentation.
+All code contributions are acknowledged in the [contributors](https://qutip.org/docs/latest/contributors.html) section in the documentation.
 
-For more information, including technical advice, please see the ["contributing to QuTiP development" section of the documentation](http://qutip.org/docs/latest/development/contributing.html).
+For more information, including technical advice, please see the ["contributing to QuTiP development" section of the documentation](https://qutip.org/docs/latest/development/contributing.html).
+
+
+Citing QuTiP
+------------
+
+If you use QuTiP in your research, please cite the original QuTiP papers that are available [here](https://dml.riken.jp/?s=QuTiP).

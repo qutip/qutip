@@ -13,7 +13,7 @@ Bibliography
     Watrous, J. |theory-qi|_, lecture notes.
 
 ..  The trick with |text|_ is to get an italic link, and is described in the
-    Docutils FAQ at http://docutils.sourceforge.net/FAQ.html#is-nested-inline-markup-possible.
+    Docutils FAQ at https://docutils.sourceforge.net/FAQ.html#is-nested-inline-markup-possible.
     
 .. |theory-qi| replace:: *Theory of Quantum Information*
 .. _theory-qi: https://cs.uwaterloo.ca/~watrous/CS766/

@@ -1,6 +1,3 @@
-.. QuTiP
-   Copyright (C) 2011-2017, Alexander J. G. Pitchford, Paul D. Nation & Robert J. Johansson
-
 .. This file was created using retext 6.1 https://github.com/retext-project/retext
 
 .. _release_distribution:
@@ -15,145 +12,159 @@ Preamble
 This document covers the process for managing updates to the current minor release and making new releases.
 Within this document, the git remote ``upstream`` refers to the main QuTiP organsiation repository, and ``origin`` refers to your personal fork.
 
-Instructions on how to backport bugfixes to a release branch are detailed in bugfix_.
-You need to do this to make changes to a current release that cannot wait until the next minor release, but need to go out in a micro release as soon as possible.
+In short, the steps you need to take are:
 
-Follow either release_ if you are making a major or minor release, or microrelease_ instead if it is only a bugfix patch to a current release.
-For both, then do the following steps in order:
-
-1. docbuild_, to build the documentation
-2. deploy_, to build the binary and source versions of the package, and deploy it to PyPI (``pip``)
-3. github_, to release the files on the QuTiP GitHub page
-4. web_, to update `qutip.org <http://qutip.org/>`_ with the new links and documentation
-5. cforge_, to update the conda feedstock, deploying the package to ``conda``
+1. Prepare the release branch (see git_).
+2. Run the "Build wheels, optionally deploy to PyPI" GitHub action to build binary and source packages and upload them to PyPI (see deploy_).
+3. Retrieve the built documentation from GitHub (see docbuild_).
+4. Create a GitHub release and uploaded the built files to it (see github_).
+5. Update `qutip.org <https://qutip.org/>`_ with the new links and documentation (web_).
+6. Update the conda feedstock, deploying the package to ``conda`` (cforge_).
 
 
-.. _gitwf:
 
-Git workflow
-++++++++++++
+.. _git:
 
-.. _bugfix:
+Setting Up The Release Branch
++++++++++++++++++++++++++++++
 
-Apply bug fix to latest release
--------------------------------
-Assuming that the bug(s) has been fixed in some commit on the master,
-then this bug(s) fix should now be applied to the latest release.
-First checkout ``master``, use ``$ git log`` to list the commits,
-and copy the hash(es) for the bug fix commit(s) to some temporary file or similar.
+In this step you will prepare a git branch on the main QuTiP repository that has the state of the code that is going to be released.
+This procedure is quite different if you are releasing a new minor or major version compared to if you are making a bugfix patch release.
+For a new minor or major version, do update-changelog_ and then jump to release_.
+For a bug fix to an existing release, do update-changelog_ and then jump to bugfix_.
 
-Now check out latest version branch, e.g.
+Changes that are not backwards-compatible may only be made in a major release.
+New features that do not affect backwards-compatibility can be made in a minor release.
+Bug fix releases should be small, only fix bugs, and not introduce any new features.
 
-If you have checked out this branch previously, then ::
+There are a few steps that *should* have been kept up-to-date during day-to-day development, but might not be quite accurate.
+For every change that is going to be part of your release, make sure that:
 
-    $ git checkout qutip-4.0.X
-    $ git pull upstream qutip-4.0.X
+- The user guide in the documentation is updated with any new features, or changes to existing features.
+- Any new API classes or functions have entries in a suitable RST file in ``doc/apidoc``.
+- Any new or changed docstrings are up-to-date and render correctly in the API documentation.
 
-Otherwise ::
+Please make a normal PR to ``master`` correcting anything missing from these points and have it merged before you begin the release, if necessary.
 
-    $ git fetch upstream
-    $ git checkout -b qutip-4.0.X upstream/qutip-4.0.X
-    $ git push -u origin qutip-4.0.X
+.. _update-changelog:
 
-Create a branch for the patch ::
+Updating the Changelog
+----------------------
 
-    $ git checkout -b patch4.0-fix_bug123 qutip-4.0.X
+This needs to be done no matter what type of release is being made.
 
-Pick the commit(s) to be applied to the release.
-Using the commit hash(es) copied earlier, cherry pick them into the current bug fix branch, e.g. ::
+#. Create a new branch to use to make a pull request.
+#. Write the changelog for this version in ``doc/changelog.rst``.
+   Look at recent entries in that file to get a feel for the style.
+   In general, the format is one or two paragraphs written in regular prose describing the major new features of the version, and anything that needs special attention.
+   After that, in suitable headings, list all the changes and who made them.
+   Headings you may want to have include "Features", "Improvements", "Bug Fixes", "Deprecations", "Removals" and "Developer Changes", but feel free to use anything sensible.
+#. Make a pull request on the main ``qutip/qutip`` repository with this changelog, and get other members of the admin team to approve it.
+#. Merge this into ``master``.
 
-    $ git cherry-pick 69d1641239b897eeca158a93b121553284a29ee1
-
-for further info see https://www.kernel.org/pub/software/scm/git/docs/git-cherry-pick.html
-
-push changes to your fork ::
-
-    $ git push --set-upstream origin patch4.0-fix_bug123
-
-Make a Pull Request to the latest release branch on Github. 
-That is make a PR from the bug fix branch to the release branch (not the master), e.g. `qutip-4.0.X`
-
-Merge this PR when the tests have passed.
-
-.. _microrelease:
-
-Create a new micro release
---------------------------
-
-Commit a change to the ``VERSION`` file, setting it to the new version.
-The only change should be in the third identifier, i.e. if the previous version was 4.5.2, then the next micro release must be 4.5.3.
-It is ok to have two-digit identifiers; 4.6.10 is the next number after 4.6.9.
-The file should contain only the version number in this format, with no extra characters (the automatic line-break at the end is fine).
+Now jump to release_ if you are making a major or minor release, or bugfix_ if you are only fixing bugs in a previous release.
 
 .. _release:
 
-Create a new minor or major release
+Create a New Minor or Major Release
 -----------------------------------
 
-Create a new branch on the ``qutip/qutip`` repository using GitHub, e.g. 'qutip-4.1.X', beginning at the commit you want to use as the base of the release.
-This will likely be something fairly recent on the ``master`` branch.
-See `the GitHub help pages <https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/creating-and-deleting-branches-within-your-repository#creating-a-branch>`_ for more information.
-Checkout the branch and push to your fork ::
+This involves making a new branch to hold the release and adding some commits to set the code into "release" mode.
+This release should be done by branching directly off the ``master`` branch at its current head.
 
-    $ git fetch upstream
-    $ git checkout -b qutip-4.1.X upstream/qutip-4.1.X
-    $ git push -u origin qutip-4.1.X
+#. On your machine, make sure your copy of ``master`` is up-to-date (``git checkout master; git pull upstream master``).
+   This should at least involve fetching the changelog PR that you just made.
+   Now create a new branch off a commit in ``master`` that has the state of the code you want to release.
+   The command is ``git checkout -b qutip-<major>.<minor>.X``, for example ``qutip-4.7.X``.
+   This branch name will be public, and must follow this format.
+#. Push the new branch (with no commits in it relative to ``master``) to the main ``qutip/qutip`` repository (``git push upstream qutip-4.7.X``).
+   Creating a branch is one of the only situations in which it is ok to push to ``qutip/qutip`` without making a pull request.
+#. Create a second new branch, which will be pushed to your fork and used to make a pull request against the ``qutip-<major>.<minor>.X`` branch on ``qutip/qutip`` you just created.
+   You can call this branch whatever you like because it is not going to the main repository, for example ``git checkout -b prepare-qutip-4.7.0``.
+#. - Change the ``VERSION`` file to contain the new version number exactly, removing the ``.dev`` suffix.
+     For example, if you are releasing the first release of the minor 4.7 track, set ``VERSION`` to contain the string ``4.7.0``.
+     (*Special circumstances*: if you are making an alpha, beta or release candidate release, append a ``.a<n>``, ``.b<n>`` or ``.rc<n>`` to the version string, where ``<n>`` is an integer starting from 0 that counts how many of that pre-release track there have been.)
+   - Edit ``setup.cfg`` by changing the "Development Status" line in the ``classifiers`` section to ::
 
-Create a new branch from this, e.g. ::
+        Development Status :: 5 - Production/Stable
 
-    $ git checkout -b 4.1-release_ready qutip-4.1.X
+   Commit both changes (``git add VERSION setup.cfg; git commit -m "Set release mode for 4.7.0"``), and then push them to your fork (``git push -u origin prepare-qutip-4.7.0``)
+#. Using GitHub, make a pull request to the release branch (e.g. ``qutip-4.7.X``) using this branch that you just created.
+   You will need to change the "base branch" in the pull request, because GitHub will always try to make the PR against ``master`` at first.
+   When the tests have passed, merge this in.
+#. Finally, back on ``master``, make a new pull request that changes the ``VERSION`` file to be ``<next-expected-version>.dev``, for example ``4.8.0.dev``.
+   The "Development Status" in ``setup.cfg`` on ``master`` should not have changed, and should be ::
 
-First change the ``VERSION`` file to contain the new version number.
-A major release increments the first number, while a minor release increments the second.
-All numbers after the change digit are reset to 0, so the next minor release after 4.5.3 is 4.6.0, and the next major release after either of these is 5.0.0.
-The file should contain only the version number in this format, with no extra characters (the automatic line-break at the end is fine).
+       Development Status :: 2 - Pre-Alpha
 
-Next edit ``setup.cfg``.
-Change the "Development Status" line in the ``classifiers`` section to ::
+   because ``master`` is never directly released.
 
-    Development Status :: 5 - Production/Stable
+You should now have a branch that you can see on the GitHub website that is called ``qutip-4.7.X`` (or whatever minor version), and the state of the code in it should be exactly what you want to release as the new minor release.
+If you notice you have made a mistake, you can make additional pull requests to the release branch to fix it.
+``master`` should look pretty similar, except the ``VERSION`` will be higher and have a ``.dev`` suffix, and the "Development Status" in ``setup.cfg`` will be different.
 
-Commit both changes, and then push them to your fork ::
-
-    $ git push --set-upstream origin 4.1-release_ready
-
-Make a Pull Request to the release branch.
-
-The "Development Status" of ``master`` should remain ::
-
-    Development Status :: 2 - Pre-Alpha
-
-because it is never directly released.
-The ``VERSION`` file on ``master`` should reflect the last major or minor release.
+You are now ready to actually perform the release.
+Go to deploy_. 
 
 
-.. _docbuild:
 
-Documentation build
-+++++++++++++++++++
+.. _bugfix:
 
-Documentation should be rebuilt for a minor or major release.
-If there have been any documentation updates as part of a micro release, then it should also be built for this.
-The documentation repository is now inside ``qutip/qutip``, in the ``doc`` directory..
+Create a Bug Fix Release
+------------------------
 
-Ensure that the following steps are complete:
+In this you will modify an already-released branch by "cherry-picking" one or more pull requests that have been merged to ``master`` (including your new changelog), and bump the "patch" part of the version number.
 
-- The version should be changed in ``conf.py``.
-- Update ``api_doc/classes.rst`` for any new / deleted classes.
-- Update ``api_doc/functions.rst`` for any new / deleted functions.
-- Update ``changelog.rst`` including all changes that are going into the new release.
+#. On your machine, make sure your copy of ``master`` is up-to-date (``git checkout master; git pull upstream master``).
+   In particular, make sure the changelog you wrote in the first step is visible.
+#. Find the branch of the release that you will be modifying.
+   This should already exist on the ``qutip/qutip`` repository, and be called ``qutip-<major>.<minor>.X`` (e.g. ``qutip-4.6.X``).
+   If you cannot see it, run ``git fetch upstream`` to update all the branch references from the main repository.
+   Checkout a new private branch, starting from the head of the release branch (``git checkout -b prepare-qutip-4.6.1 upstream/qutip-4.6.X``).
+   You can call this branch whatever you like (in the example it is ``prepare-qutip-4.6.1``), because it will only be used to make a pull request.
+#. Cherry-pick all the commits that will be added to this release in order, including your PR that wrote the new changelog entries (this will be the last one you cherry-pick).
+   You will want to use ``git log`` to find the relevant commits, going from **oldest to newest** (their "age" is when they were merged into ``master``, not when the PR was first opened).
+   The command is slightly different depending on which merge strategy was used for a particular PR:
 
-Then, fully rebuild the QuTiP documentation using `the guide in the documentation README <https://github.com/qutip/qutip/blob/master/doc/README.md>`_.
+   - "merge": you only need to find one commit though the log will have included several; there will be an entry in ``git log`` with a title such as "Merge pull request #1000 from <...>".
+     Note the first 7 characters of its hash.
+     Cherry-pick this by ``git cherry-pick --mainline 1 <hash>``.
+   - "squash and merge": there will only be a single commit for the entire PR.
+     Its name will be "<Name of the pull request> (#1000)".
+     Note the first 7 characters of its hash.
+     Cherry-pick this by ``git cherry-pick <hash>``.
+   - "rebase and merge": this is the most difficult, because there will be many commits that you will have to find manually, and cherry-pick all of them.
+     Go to the GitHub page for this PR, and go to the "Commits" tab.
+     Using your local ``git log`` (you may find ``git log --oneline`` useful), find the hash for every single commit that is listed on the GitHub page, in order from **oldest to newest** (top-to-bottom in the GitHub view, which is bottom-to-top in ``git log``).
+     You will need to use the commit message to do this; the hashes that GitHub reports will probably not be the same as how they appear locally.
+     Find the first 7 characters of each of the hashes.
+     Cherry-pick these all in one go by ``git cherry-pick <hash1> <hash2> ... <hash10>``, where ``<hash1>`` is the oldest.
+
+   If any of the cherry-picks have merge conflicts, first verify that you are cherry-picking in order from oldest to newest.
+   If you still have merge conflicts, you will either need to manually fix them (if it is a *very* simple fix), or else you will need to find which additional PR this patch depends on, and restart the bug fix process including this additional patch.
+   This generally should not happen if you are sticking to very small bug fixes; if the fixes had far-reaching changes, a new minor release may be more appropriate.
+#. Change the ``VERSION`` file by bumping the last number up by one (double-digit numbers are fine, so ``4.6.10`` comes after ``4.6.9``), and commit the change.
+#. Push this branch to your fork, and make a pull request against the release branch.
+   On GitHub in the PR screen, you will need to change the "Base" branch to ``qutip-4.6.X`` (or whatever version), because GitHub will default to making it against ``master``.
+   It should be quite clear if you have forgotten to do this, because there will probably be many merge conflicts.
+   Once the tests have passed and you have another admin's approval, merge the PR.
+
+You should now see that the ``qutip-4.6.X`` (or whatever) branch on GitHub has been updated, and now includes all the changes you have just made.
+If you have made a mistake, feel free to make additonal PRs to rectify the situation.
+
+You are now ready to actually perform the release.
+Go to deploy_. 
+
 
 .. _deploy:
 
-Build release distribution and deploy
+Build Release Distribution and Deploy
 +++++++++++++++++++++++++++++++++++++
 
 This step builds the source (sdist) and binary (wheel) distributions, and uploads them to PyPI (pip).
 You will also be able to download the built files yourself in order to upload them to the QuTiP website.
 
-Build and deploy
+Build and Deploy
 ----------------
 
 This is handled entirely by a GitHub Action.
@@ -178,7 +189,7 @@ At this point, the deployment will take care of itself.
 It should take between 30 minutes and an hour, after which the new version will be available for install by ``pip install qutip``.
 You should see the new version appear on `QuTiP's PyPI page <https://pypi.org/project/qutip>`_.
 
-Download built files
+Download Built Files
 --------------------
 
 When the build is complete, click into its summary screen.
@@ -192,7 +203,7 @@ Save them on your computer, and unzip both files; you should have many wheel ``q
 These are the same files that have just been uploaded to PyPI.
 
 
-Monitoring progress (optional)
+Monitoring Progress (optional)
 ------------------------------
 
 While the build is in progress, you can monitor its progress by clicking on its entry in the list below the "Run workflow" button.
@@ -205,9 +216,23 @@ You will see a message saying "Built wheels will be deployed" if you typed in th
 If you see "Only building wheels" but you meant to deploy the release to PyPI, you can cancel the workflow and re-run it after typing the confirmation.
 
 
+.. _docbuild:
+
+Getting the Built Documentation
++++++++++++++++++++++++++++++++
+
+The documentation will have been built automatically for you by a GitHub Action when you merged the final pull request into the release branch before building the wheels.
+You do not need to re-release the documentation on either GitHub or the website if this is a patch release, unless there were changes within it.
+
+Go to the "Actions" tab at the top of the ``qutip/qutip`` repository, and click the "Build HTML documentation" heading in the left column.
+You should see a list of times this action has run; click the most recent one whose name is exactly "Build HTML documentation", with the release branch name next to it (e.g. ``qutip-4.6.X``).
+Download the ``qutip_html_docs`` artifact to your local machine and unzip it somewhere safe.
+These are all the HTML files for the built documentation; you should be able to open ``index.html`` in your own web browser and check that everything is working.
+
+
 .. _github:
 
-Making a release on GitHub
+Making a Release on GitHub
 ++++++++++++++++++++++++++
 
 This is all done through `the "Releases" section <https://github.com/qutip/qutip/releases>`_ of the ``qutip/qutip`` repository on GitHub.
@@ -216,10 +241,10 @@ This is all done through `the "Releases" section <https://github.com/qutip/qutip
 - Choose the correct branch for your release (e.g. ``qutip-4.5.X``) in the drop-down.
 - For the tag name, use ``v<your-version>``, where the version matches the contents of the ``VERSION`` file.
   In other words, if you are releasing a micro version 4.5.3, use ``v4.5.3`` as the tag, or if you are releasing major version 5.0.0, use ``v5.0.0``.
-- The title is "QuTiP <your-version", e.g. "QuTiP 4.6.0".
-- For the description, write a short (~two-line for a micro release) summary of the reason for this release, and note down any particular user-facing changes that need special attention.
+- The title is "QuTiP <your-version>", e.g. "QuTiP 4.6.0".
+- For the description, write a short (~two-line for a patch release) summary of the reason for this release, and note down any particular user-facing changes that need special attention.
   Underneath, put the changelog you wrote when you did the documentation release.
-  Note that there may be some syntax differences between the ``.rst`` file of the changelog and the Markdown of this description field.
+  Note that there may be some syntax differences between the ``.rst`` file of the changelog and the Markdown of this description field (for example, GitHub's markdown typically maintains hard-wrap linebreaks, which is probably not what you wanted).
 - Drag-and-drop all the ``qutip-*.whl``, ``qutip-*.tar.gz`` and ``qutip-*.zip`` files you got after the build step into the assets box.
   You may need to unzip the files ``wheels.zip`` and ``sdist.zip`` to find them if you haven't already; **don't** upload those two zip files.
 
@@ -232,9 +257,9 @@ Website
 +++++++
 
 This assumes that qutip.github.io has already been forked and familiarity with the website updating workflow.
-The documentation need not be updated for every micro release.
+The documentation need not be updated for every patch release.
 
-Copying new files
+Copying New Files
 -----------------
 
 You only need to copy in new documentation to the website repository.
@@ -257,7 +282,7 @@ For any release which new documentation is included
 https://github.com/qutip/qutip.github.io/blob/master/docs/remove_leading_underscores.py
 
 
-HTML file updates
+HTML File Updates
 -----------------
 
 - Edit ``download.html``
@@ -279,23 +304,24 @@ HTML file updates
 
 .. _cforge:
 
-Conda-forge
+Conda Forge
 +++++++++++
 
-If not done previously then fork the qutip-feedstock:
-https://github.com/conda-forge/qutip-feedstock
+If not done previously then fork the `qutip-feedstock <https://github.com/conda-forge/qutip-feedstock_>`_.
 
 Checkout a new branch on your fork, e.g. ::
 
     $ git checkout -b version-4.0.2
 
-Generate a new sha256 code from the gztar for this version, e.g. ::
+Find the sha256 checksum for the tarball that the GitHub web interface generated when you produced the release called "Source code".
+This is *not* the sdist that you downloaded earlier, it's a new file that GitHub labels "Source code".
+When you download it, though, it will have a name that *looks* like it's the sdist ::
 
     $ openssl sha256 qutip-4.0.2.tar.gz
 
 Edit the ``recipe/meta.yaml`` file.
-Change the version. Update the sha256 code. 
-Check that the recipe package version requirements at least match those in the setup.cfg. 
+Change the version at the top of the file, and update the sha256 checksum.
+Check that the recipe package version requirements at least match those in ``setup.cfg``, and that any changes to the build process are reflected in ``meta.yml``.
 Also ensure that the build number is reset ::
 
     build:

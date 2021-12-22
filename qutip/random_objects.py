@@ -1,38 +1,4 @@
 # -*- coding: utf-8 -*-
-# The above line is so that UTF-8 comments won't break Py2.
-
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
 """
 This module is a collection of random state and operator generators.
 The sparsity of the ouput Qobj's is controlled by varing the
@@ -45,10 +11,8 @@ __all__ = [
     'rand_dm_hs', 'rand_super_bcsz', 'rand_stochastic', 'rand_super'
 ]
 
-from numpy import arcsin, sqrt, pi
-from scipy.linalg import sqrtm
 import numpy as np
-import numpy.linalg as la
+import scipy.linalg as la
 import scipy.sparse as sp
 from qutip.qobj import Qobj
 from qutip.operators import create, destroy, jmat
@@ -74,24 +38,27 @@ def rand_jacobi_rotation(A, seed=None):
     """
     if seed is not None:
         np.random.seed(seed=seed)
-    if A.shape[0]!=A.shape[1]:
-        raise Exception('Input matrix must be square.')
+    if A.shape[0] != A.shape[1]:
+        raise ValueError('Input matrix must be square.')
     n = A.shape[0]
     angle = 2*np.random.random()*np.pi
     a = 1.0/np.sqrt(2)*np.exp(-1j*angle)
     b = 1.0/np.sqrt(2)*np.exp(1j*angle)
     i = int(np.floor(np.random.random()*n))
     j = i
-    while (i == j):
+    while i == j:
         j = int(np.floor(np.random.random()*n))
-    data = np.hstack((np.array([a,-b,a,b], dtype=complex),
+    data = np.hstack((np.array([a, -b, a, b], dtype=complex),
                       np.ones(n-2, dtype=complex)))
-    diag = np.delete(np.arange(n), [i,j])
-    rows = np.hstack(([i,i,j,j], diag))
-    cols = np.hstack(([i,j,i,j], diag))
-    R = sp.coo_matrix((data,(rows,cols)), shape=[n,n], dtype=complex).tocsr()
+    diag = np.delete(np.arange(n), [i, j])
+    rows = np.hstack(([i, i, j, j], diag))
+    cols = np.hstack(([i, j, i, j], diag))
+    R = sp.coo_matrix(
+        (data, (rows, cols)), shape=(n, n), dtype=complex,
+    ).tocsr()
     A = R*A*R.conj().transpose()
     return A
+
 
 def randnz(shape, norm=1 / np.sqrt(2), seed=None):
     # This function is intended for internal use.
@@ -151,8 +118,8 @@ def rand_herm(N, density=0.75, dims=None, pos_def=False, seed=None):
     """
     if seed is not None:
         np.random.seed(seed=seed)
-    if isinstance(N, (np.ndarray,list)):
-        M = sp.diags(N,0, dtype=complex, format='csr')
+    if isinstance(N, (np.ndarray, list)):
+        M = sp.diags(N, 0, dtype=complex, format='csr')
         N = len(N)
         if dims:
             _check_dims(dims, N, N)
@@ -170,10 +137,7 @@ def rand_herm(N, density=0.75, dims=None, pos_def=False, seed=None):
             M = _rand_herm_dense(N, density, pos_def)
     else:
         raise TypeError('Input N must be an integer or array_like.')
-    if dims:
-        return Qobj(M, dims=dims)
-    else:
-        return Qobj(M)
+    return Qobj(M, dims=dims)
 
 
 def _rand_herm_sparse(N, density, pos_def):
@@ -183,36 +147,37 @@ def _rand_herm_sparse(N, density, pos_def):
     num_elems = int(num_elems)
     data = (2 * np.random.rand(num_elems) - 1) + \
            (2 * np.random.rand(num_elems) - 1) * 1j
-    row_idx, col_idx = zip(*[divmod(index, N) for index
-                             in np.random.choice(N*N,
-                                                 num_elems,
-                                                 replace=False)])
-    M = sp.coo_matrix((data, (row_idx,col_idx)),
-                      dtype=complex, shape=(N,N)).tocsr()
+    row_idx, col_idx = zip(*[
+        divmod(index, N)
+        for index in np.random.choice(N*N, num_elems, replace=False)
+    ])
+    M = sp.coo_matrix((data, (row_idx, col_idx)),
+                      dtype=complex, shape=(N, N))
     M = 0.5 * (M + M.conj().transpose())
     if pos_def:
-        M.setdiag(np.abs(M.diagonal())+np.sqrt(2)*N)
+        M = M.tocoo()
+        M.setdiag(np.abs(M.diagonal()) + np.sqrt(2)*N)
+    M = M.tocsr()
     M.sort_indices()
     return M
 
 
 def _rand_herm_dense(N, density, pos_def):
-    M = (2 * np.random.rand(N,N) - 1) + \
-        (2 * np.random.rand(N,N) - 1) * 1j
+    M = (
+        (2*np.random.rand(N, N) - 1)
+        + 1j*(2*np.random.rand(N, N) - 1)
+    )
     M = 0.5 * (M + M.conj().transpose())
-    target = (1-(density)**0.5)
+    target = 1 - density**0.5
     num_remove = N * (N - 0.666) * target + 0.666 * N * (1 - density)
     num_remove = max([num_remove, 1])
     num_remove = int(num_remove)
-    for row, col in [divmod(index, N)
-                     for index in np.random.choice(N*N,
-                                                   num_remove,
-                                                   replace=False)]:
+    for index in np.random.choice(N*N, num_remove, replace=False):
+        row, col = divmod(index, N)
         M[col, row] = 0
         M[row, col] = 0
     if pos_def:
-        as_vec = M.ravel()
-        M[::N+1] = (np.abs(M.diagonal())+np.sqrt(2)*N)
+        np.fill_diagonal(M, np.abs(M.diagonal()) + np.sqrt(2)*N)
     return M
 
 
@@ -242,10 +207,7 @@ def rand_unitary(N, density=0.75, dims=None, seed=None):
         _check_dims(dims, N, N)
     U = (-1.0j * rand_herm(N, density, seed=seed)).expm()
     U.data.sort_indices()
-    if dims:
-        return Qobj(U, dims=dims, shape=[N, N])
-    else:
-        return Qobj(U)
+    return Qobj(U, dims=dims, shape=[N, N])
 
 
 def rand_unitary_haar(N=2, dims=None, seed=None):
@@ -300,35 +262,45 @@ def rand_unitary_haar(N=2, dims=None, seed=None):
     return U
 
 
-def rand_ket(N=0, density=1, dims=None, seed=None):
+def rand_ket(N=None, density=1, dims=None, seed=None):
     """Creates a random Nx1 sparse ket vector.
 
     Parameters
     ----------
     N : int
-        Number of rows for output quantum operator.
-        If None or 0, N is deduced from dims.
+        Number of rows for output quantum vector.
+        If None, N is deduced from dims.
     density : float
         Density between [0,1] of output ket state.
     dims : list
         Dimensions of quantum object.  Used for specifying
         tensor structure. Default is dims=[[N],[1]].
+    seed : int
+        Seed for the random number generator.
 
     Returns
     -------
     oper : qobj
-        Nx1 ket state quantum operator.
+        Nx1 ket quantum state vector.
+
+    Raises
+    -------
+    ValueError
+        If neither `N` or `dims` are specified.
 
     """
     if seed is not None:
         np.random.seed(seed=seed)
-    if N and dims:
+    if N is None and dims is None:
+        raise ValueError('Specify either the number of rows of state vector'
+                         '(N) or dimensions of quantum object (dims)')
+    if N is not None and dims:
         _check_dims(dims, N, 1)
     elif dims:
-        N = prod(dims[0])
+        N = np.prod(dims[0])
         _check_dims(dims, N, 1)
     else:
-        dims = [[N],[1]]
+        dims = [[N], [1]]
     X = sp.rand(N, 1, density, format='csr')
     while X.nnz == 0:
         # ensure that the ket is not all zeros.
@@ -342,7 +314,7 @@ def rand_ket(N=0, density=1, dims=None, seed=None):
     return Qobj(X / X.norm(), dims=dims)
 
 
-def rand_ket_haar(N=2, dims=None, seed=None):
+def rand_ket_haar(N=None, dims=None, seed=None):
     """
     Returns a Haar random pure state of dimension ``dim`` by
     applying a Haar random unitary to a fixed pure state.
@@ -351,7 +323,7 @@ def rand_ket_haar(N=2, dims=None, seed=None):
     ----------
     N : int
         Dimension of the state vector to be returned.
-        If None or 0, N is deduced from dims.
+        If None, N is deduced from dims.
     dims : list of ints, or None
         Dimensions of the resultant quantum object.
         If None, [[N],[1]] is used.
@@ -360,14 +332,22 @@ def rand_ket_haar(N=2, dims=None, seed=None):
     -------
     psi : Qobj
         A random state vector drawn from the Haar measure.
+
+    Raises
+    -------
+    ValueError
+        If neither `N` or `dims` are specified.
     """
+    if N is None and dims is None:
+        raise ValueError('Specify either the number of rows of state vector'
+                         '(N) or dimensions of quantum object (dims)')
     if N and dims:
         _check_dims(dims, N, 1)
     elif dims:
-        N = prod(dims[0])
+        N = np.prod(dims[0])
         _check_dims(dims, N, 1)
     else:
-        dims = [[N],[1]]
+        dims = [[N], [1]]
     psi = rand_unitary_haar(N, seed=seed) * basis(N, 0)
     psi.dims = dims
     return psi
@@ -386,6 +366,8 @@ def rand_dm(N, density=0.75, pure=False, dims=None, seed=None):
     dims : list
         Dimensions of quantum object.  Used for specifying
         tensor structure. Default is dims=[[N],[N]].
+    seed : int
+        Seed for the random number generator.
 
     Returns
     -------
@@ -415,8 +397,8 @@ def rand_dm(N, density=0.75, pure=False, dims=None, seed=None):
         if dims:
             _check_dims(dims, N, N)
         if pure:
-            dm_density = sqrt(density)
-            psi = rand_ket(N, dm_density)
+            dm_density = np.sqrt(density)
+            psi = rand_ket(N, dm_density, seed=seed)
             H = psi * psi.dag()
             H.data.sort_indices()
         else:
@@ -434,10 +416,7 @@ def rand_dm(N, density=0.75, pure=False, dims=None, seed=None):
             H.data.sort_indices()
     else:
         raise TypeError('Input N must be an integer or array_like.')
-    if dims:
-        return Qobj(H, dims=dims)
-    else:
-        return Qobj(H)
+    return Qobj(H, dims=dims)
 
 
 def rand_dm_ginibre(N=2, rank=None, dims=None, seed=None):
@@ -546,11 +525,12 @@ def rand_super(N=5, dims=None, seed=None):
         Dimensions of quantum object.  Used for specifying
         tensor structure. Default is dims=[[[N],[N]], [[N],[N]]].
     """
+    from .propagator import propagator
     if dims is not None:
         # TODO: check!
         pass
     else:
-        dims = [[[N],[N]], [[N],[N]]]
+        dims = [[[N], [N]], [[N], [N]]]
     H = rand_herm(N, seed=seed)
     S = propagator(H, np.random.rand(), [
         create(N), destroy(N), jmat(float(N - 1) / 2.0, 'z')
@@ -592,7 +572,7 @@ def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None, seed=None):
         # TODO: check!
         pass
     else:
-        dims = [[[N],[N]], [[N],[N]]]
+        dims = [[[N], [N]], [[N], [N]]]
 
     if rank is None:
         rank = N**2
@@ -622,7 +602,7 @@ def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None, seed=None):
         # matrices directly, as this is important in statistics.
         Z = np.kron(
             np.eye(N),
-            sqrtm(la.inv(Y))
+            la.sqrtm(la.inv(Y))
         )
 
         # Finally, we dot everything together and pack it into a Qobj,
@@ -684,7 +664,7 @@ def rand_stochastic(N, density=0.75, kind='left', dims=None, seed=None):
     col_idx = np.hstack([np.random.permutation(N),
                          np.random.choice(N, num_elems-N)])
     M = sp.coo_matrix((data, (row_idx, col_idx)),
-                      dtype=float, shape=(N,N)).tocsr()
+                      dtype=float, shape=(N, N)).tocsr()
     M = 0.5 * (M + M.conj().transpose())
     num_rows = M.indptr.shape[0]-1
     for row in range(num_rows):
@@ -692,12 +672,9 @@ def rand_stochastic(N, density=0.75, kind='left', dims=None, seed=None):
         row_end = M.indptr[row+1]
         row_sum = np.sum(M.data[row_start:row_end])
         M.data[row_start:row_end] /= row_sum
-    if kind=='left':
+    if kind == 'left':
         M = M.transpose()
-    if dims:
-        return Qobj(M, dims=dims, shape=[N, N])
-    else:
-        return Qobj(M)
+    return Qobj(M, dims=dims, shape=(N, N))
 
 
 def _check_dims(dims, N1, N2):
@@ -710,7 +687,3 @@ def _check_dims(dims, N1, N2):
         raise ValueError("Qobj dimensions must match matrix shape.")
     if len(dims[0]) != len(dims[1]):
         raise TypeError("Qobj dimension components must have same length.")
-
-# TRAILING IMPORTS
-# qutip.propagator depends on rand_dm, so we need to put this import last.
-from qutip.propagator import propagator

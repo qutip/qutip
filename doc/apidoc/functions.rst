@@ -1,6 +1,3 @@
-.. QuTiP
-   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
-
 .. _functions:
 
 ***************
@@ -99,7 +96,7 @@ Entropy Functions
 -----------------
 
 .. automodule:: qutip.entropy
-    :members: concurrence, entropy_conditional, entropy_linear, entropy_mutual, entropy_vn
+    :members: concurrence, entropy_conditional, entropy_linear, entropy_mutual, entropy_relative, entropy_vn
 
 
 Density Matrix Metrics
@@ -337,7 +334,7 @@ Utility Functions
 -----------------
 
 .. automodule:: qutip.utilities
-    :members: n_thermal, linspace_with, clebsch, convert_unit
+    :members: n_thermal, clebsch, convert_unit
 
 
 .. _functions-fileio:

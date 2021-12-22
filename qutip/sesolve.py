@@ -1,35 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
 """
 This module provides solvers for the unitary Schrodinger equation.
 """
@@ -86,9 +54,14 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
     tlist : array_like of float
         List of times for :math:`t`.
 
-    e_ops : list of :class:`~Qobj` or callback function, optional
-        Single operator or list of operators for which to evaluate expectation
-        values.  For operator evolution, the overlap is computed: ::
+    e_ops : None / list / callback function, optional
+        A list of operators as `Qobj` and/or callable functions (can be mixed)
+        or a single callable function. For callable functions, they are called
+        as ``f(t, state)`` and return the expectation value. A single
+        callback's expectation value can be any type, but a callback part of a
+        list must return a number as the expectation value. For operators, the
+        result's expect will be computed by :func:`qutip.expect` when the state
+        is a ``ket``. For operator evolution, the overlap is computed by: ::
 
             (e_ops[i].dag() * op(t)).tr()
 
@@ -165,7 +138,6 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
     if e_ops_dict:
         res.expect = {e: res.expect[n]
                       for n, e in enumerate(e_ops_dict.keys())}
-    res.SolverSystem = ss
     return res
 
 
@@ -307,16 +279,25 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
             opt.store_states = True
         else:
             for op in e_ops:
+                if not isinstance(op, Qobj) and callable(op):
+                    output.expect.append(np.zeros(n_tsteps, dtype=complex))
+                    continue
                 if op.isherm:
                     output.expect.append(np.zeros(n_tsteps))
                 else:
                     output.expect.append(np.zeros(n_tsteps, dtype=complex))
         if oper_evo:
             for e in e_ops:
-                e_ops_data.append(e.dag().data)
+                if isinstance(e, Qobj):
+                    e_ops_data.append(e.dag().data)
+                    continue
+                e_ops_data.append(e)
         else:
             for e in e_ops:
-                e_ops_data.append(e.data)
+                if isinstance(e, Qobj):
+                    e_ops_data.append(e.data)
+                    continue
+                e_ops_data.append(e)
     else:
         raise TypeError("Expectation parameter must be a list or a function")
 
@@ -343,7 +324,8 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
                             "the allowed number of substeps by increasing "
                             "the nsteps parameter in the Options class.")
         # get the current state / oper data if needed
-        if opt.store_states or opt.normalize_output or n_expt_op > 0 or expt_callback:
+        if opt.store_states or opt.normalize_output \
+           or n_expt_op > 0 or expt_callback:
             cdata = get_curr_state_data(r)
 
         if opt.normalize_output:
@@ -375,9 +357,17 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
 
         if oper_evo:
             for m in range(n_expt_op):
+                if callable(e_ops_data[m]):
+                    func = e_ops_data[m]
+                    output.expect[m][t_idx] = func(t, Qobj(cdata, dims=dims))
+                    continue
                 output.expect[m][t_idx] = (e_ops_data[m] * cdata).trace()
         else:
             for m in range(n_expt_op):
+                if callable(e_ops_data[m]):
+                    func = e_ops_data[m]
+                    output.expect[m][t_idx] = func(t, Qobj(cdata, dims=dims))
+                    continue
                 output.expect[m][t_idx] = cy_expect_psi(e_ops_data[m], cdata,
                                                         e_ops[m].isherm)
 

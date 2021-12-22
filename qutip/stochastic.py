@@ -1,37 +1,5 @@
 # -*- coding: utf-8 -*-
-#
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
+
 import numpy as np
 from qutip.cy.stochastic import (
     SSESolver, SMESolver, PcSSESolver, PcSMESolver, PmSMESolver,
@@ -358,8 +326,6 @@ class StochasticSolverOptions:
                                for op in sc_ops]
             except Exception as e:
                 raise ValueError(msg + str(e)) from e
-            except:
-                raise ValueError(msg)
         else:
             self.sc_ops = sc_ops
 
@@ -372,8 +338,6 @@ class StochasticSolverOptions:
                               for op in c_ops]
             except Exception as e:
                 raise ValueError(msg + str(e)) from e
-            except:
-                raise ValueError(msg)
         else:
             self.c_ops = c_ops
 
@@ -502,16 +466,17 @@ class StochasticSolverOptions:
             if not len(self.sc_ops) == 1 or \
                     not self.sc_ops[0].const or \
                     not self.method == "homodyne":
-                raise ValueError("Taylor2.0 only works with 1 constant " +
-                                "sc_ops and for homodyne method")
+                raise ValueError(
+                    "Taylor2.0 only works with 1 constant sc_ops and for"
+                    " homodyne method"
+                )
         else:
-            raise ValueError((
-                    "The solver should be one of "
-                    "[None, 'euler-maruyama', 'platen', 'pc-euler', "
-                    "'pc-euler-imp', 'milstein', 'milstein-imp', "
-                    "'rouchon', "
-                    "'taylor1.5', 'taylor1.5-imp', 'explicit1.5' "
-                    "'taylor2.0']"))
+            known = [
+                None, 'euler-maruyama', 'platen', 'pc-euler', 'pc-euler-imp',
+                'milstein', 'milstein-imp', 'rouchon', 'taylor1.5',
+                'taylor1.5-imp', 'explicit1.5', 'taylor2.0',
+            ]
+            raise ValueError("The solver should be one of {!r}".format(known))
 
 
 class StochasticSolverOptionsPhoto(StochasticSolverOptions):
@@ -589,8 +554,8 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
         print("stochastic solver with photocurrent method has been moved to "
               "it's own function: photocurrent_mesolve")
         return photocurrent_mesolve(H, rho0, times, c_ops=c_ops, sc_ops=sc_ops,
-                                   e_ops=e_ops, _safe_mode=_safe_mode,
-                                   args=args, **kwargs)
+                                    e_ops=e_ops, _safe_mode=_safe_mode,
+                                    args=args, **kwargs)
     if isket(rho0):
         rho0 = ket2dm(rho0)
 
@@ -716,8 +681,8 @@ def ssesolve(H, psi0, times, sc_ops=[], e_ops=[],
         print("stochastic solver with photocurrent method has been moved to "
               "it's own function: photocurrent_sesolve")
         return photocurrent_sesolve(H, psi0, times, c_ops=c_ops,
-                                   e_ops=e_ops, _safe_mode=_safe_mode,
-                                   args=args, **kwargs)
+                                    e_ops=e_ops, _safe_mode=_safe_mode,
+                                    args=args, **kwargs)
 
     if isinstance(e_ops, dict):
         e_ops_dict = e_ops
@@ -879,7 +844,7 @@ def _positive_map(sso, e_ops_dict):
 
 
 def photocurrent_mesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
-                        _safe_mode=True, args={}, **kwargs):
+                         _safe_mode=True, args={}, **kwargs):
     """
     Solve stochastic master equation using the photocurrent method.
 
@@ -975,7 +940,7 @@ def photocurrent_mesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
 
 
 def photocurrent_sesolve(H, psi0, times, sc_ops=[], e_ops=[],
-                        _safe_mode=True, args={}, **kwargs):
+                         _safe_mode=True, args={}, **kwargs):
     """
     Solve stochastic schrodinger equation using the photocurrent method.
 
@@ -1016,7 +981,7 @@ def photocurrent_sesolve(H, psi0, times, sc_ops=[], e_ops=[],
     """
     if isinstance(e_ops, dict):
         e_ops_dict = e_ops
-        e_ops = [e for e in e_ops.values()]
+        e_ops = list(e_ops.values())
     else:
         e_ops_dict = None
 
@@ -1132,15 +1097,11 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
         except Exception as e:
             raise RuntimeError("Safety check: d1(0., state0_vec) failed.:\n" +
                                str(e)) from e
-        except:
-            raise RuntimeError("Safety check: d1(0., state0_vec) failed.")
         try:
             out_d2 = d2(0., sso.rho0)
         except Exception as e:
             raise RuntimeError("Safety check: d2(0., state0_vec) failed:\n" +
                                str(e)) from e
-        except:
-            raise RuntimeError("Safety check: d2(0., state0_vec) failed.")
 
         msg_d1 = ("d1 must return an 1d numpy array with the same number "
                   "of elements as the initial state as a vector.")
@@ -1185,7 +1146,7 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
         if sso.dW_factors is None:
             sso.dW_factors = [1.] * len(sso.m_ops)
         elif len(sso.dW_factors) == 1:
-                sso.dW_factors = sso.dW_factors * len(sso.m_ops)
+            sso.dW_factors = sso.dW_factors * len(sso.m_ops)
         elif len(sso.dW_factors) != len(sso.m_ops):
             raise ValueError("The number of dW_factors must fit" +
                              " the number of m_ops.")
@@ -1194,7 +1155,8 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
         sso.dW_factors = [1.] * len_d2
     sso.sops = [None] * len_d2
     sso.ce_ops = [QobjEvo(op) for op in sso.e_ops]
-    [op.compile() for op in sso.ce_ops]
+    for op in sso.ce_ops:
+        op.compile()
 
     sso.solver_obj = GenericSSolver
     sso.solver_name = "general_stochastic_solver_" + sso.solver
@@ -1216,7 +1178,9 @@ def _safety_checks(sso):
     l_vec = sso.rho0.shape[0]
     if sso.H.cte.issuper:
         if not sso.me:
-            raise
+            raise ValueError(
+                "Given a Liouvillian for a Schrödinger equation problem."
+            )
         shape_op = sso.H.cte.shape
         if shape_op[0] != l_vec or shape_op[1] != l_vec:
             raise Exception("The size of the hamiltonian does "
@@ -1235,7 +1199,9 @@ def _safety_checks(sso):
     for op in sso.sc_ops:
         if op.cte.issuper:
             if not sso.me:
-                raise
+                raise ValueError(
+                    "Given a Liouvillian for a Schrödinger equation problem."
+                )
             shape_op = op.cte.shape
             if shape_op[0] != l_vec or shape_op[1] != l_vec:
                 raise Exception("The size of the sc_ops does "
@@ -1254,7 +1220,9 @@ def _safety_checks(sso):
     for op in sso.c_ops:
         if op.cte.issuper:
             if not sso.me:
-                raise
+                raise ValueError(
+                    "Given a Liouvillian for a Schrödinger equation problem."
+                )
             shape_op = op.cte.shape
             if shape_op[0] != l_vec or shape_op[1] != l_vec:
                 raise Exception("The size of the c_ops does "
@@ -1369,9 +1337,8 @@ def _sesolve_generic(sso, options, progress_bar):
 def _single_trajectory(i, sso):
     # Only one step?
     ssolver = sso.solver_obj()
-    #ssolver.set_data(sso)
     ssolver.set_solver(sso)
-    result = ssolver.cy_sesolve_single_trajectory(i)#, sso)
+    result = ssolver.cy_sesolve_single_trajectory(i)
     return result
 
 

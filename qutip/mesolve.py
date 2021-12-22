@@ -1,35 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
 """
 This module provides solvers for the Lindblad master equation and von Neumann
 equation.
@@ -159,9 +127,13 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
         single collapse operator, or list of collapse operators, or a list
         of Liouvillian superoperators.
 
-    e_ops : None / list of :class:`qutip.Qobj` / callback function single
-        single operator or list of operators for which to evaluate
-        expectation values.
+    e_ops : None / list / callback function, optional
+        A list of operators as `Qobj` and/or callable functions (can be mixed)
+        or a single callable function. For operators, the result's expect will
+        be  computed by :func:`qutip.expect`. For callable functions, they are
+        called as ``f(t, state)`` and return the expectation value.
+        A single callback's expectation value can be any type, but a callback
+        part of a list must return a number as the expectation value.
 
     args : None / *dictionary*
         dictionary of parameters for time-dependent Hamiltonians and
@@ -293,7 +265,17 @@ def _mesolve_QobjEvo(H, c_ops, tlist, args, opt):
     else:
         L_td = H_td
     for op in c_ops:
-        op_td = QobjEvo(op, args, tlist=tlist)
+        # We want to avoid passing tlist where it isn't necessary, to allow a
+        # Hamiltonian/Liouvillian which already _has_ time-dependence not equal
+        # to the mesolve evaluation times to be used in conjunction with
+        # time-independent c_ops.  If we _always_ pass it, it may appear to
+        # QobjEvo that there is a tlist mismatch, even though it is not used.
+        if isinstance(op, Qobj):
+            op_td = QobjEvo(op)
+        elif isinstance(op, QobjEvo):
+            op_td = QobjEvo(op, args)
+        else:
+            op_td = QobjEvo(op, args, tlist=tlist)
         if not issuper(op_td.cte):
             op_td = lindblad_dissipator(op_td)
         L_td += op_td
@@ -480,6 +462,9 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
             opt.store_states = True
         else:
             for op in e_ops:
+                if not isinstance(op, Qobj) and callable(op):
+                    output.expect.append(np.zeros(n_tsteps, dtype=complex))
+                    continue
                 e_ops_data.append(spre(op).data)
                 if op.isherm and rho0.isherm:
                     output.expect.append(np.zeros(n_tsteps))
@@ -526,6 +511,9 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
             output.expect.append(e_ops(t, rho_t))
 
         for m in range(n_expt_op):
+            if not isinstance(e_ops[m], Qobj) and callable(e_ops[m]):
+                output.expect[m][t_idx] = e_ops[m](t, rho_t)
+                continue
             output.expect[m][t_idx] = expect_rho_vec(e_ops_data[m], r.y,
                                                      e_ops[m].isherm
                                                      and rho0.isherm)

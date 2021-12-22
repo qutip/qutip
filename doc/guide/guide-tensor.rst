@@ -1,6 +1,3 @@
-.. QuTiP
-   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
-
 .. _tensor:
 
 ******************************************
@@ -23,7 +20,7 @@ or a ``list``::
 
 >>> tensor([op1, op2, op3]) # doctest: +SKIP
 
-of state vectors *or* operators and returns a composite quantum object for the combined Hilbert space. The function accepts an arbitray number of states or operators as argument. The type returned quantum object is the same as that of the input(s).
+of state vectors *or* operators and returns a composite quantum object for the combined Hilbert space. The function accepts an arbitrary number of states or operators as argument. The type returned quantum object is the same as that of the input(s).
 
 For example, the state vector describing two qubits in their ground states is formed by taking the tensor product of the two single-qubit ground state vectors:
 
@@ -104,7 +101,7 @@ To construct operators that act on an extended Hilbert space of a combined syste
      [0. 1. 0. 0.]
      [1. 0. 0. 0.]]
 
-To create operators in a combined Hilbert space that only act only on a single component, we take the tensor product of the operator acting on the subspace of interest, with the identity operators corresponding to the components that are to be unchanged. For example, the operator that represents :math:`\sigma_z` on the first qubit in a two-qubit system, while leaving the second qubit unaffected:
+To create operators in a combined Hilbert space that only act on a single component, we take the tensor product of the operator acting on the subspace of interest, with the identity operators corresponding to the components that are to be unchanged. For example, the operator that represents :math:`\sigma_z` on the first qubit in a two-qubit system, while leaving the second qubit unaffected:
 
 .. testcode:: [tensor]
 
@@ -135,7 +132,7 @@ The :func:`qutip.tensor.tensor` function is extensively used when constructing H
 Two coupled qubits
 ------------------
 
-First, let's consider a system of two coupled qubits. Assume that both qubit has equal energy splitting, and that the qubits are coupled through a :math:`\sigma_x\otimes\sigma_x` interaction with strength g = 0.05 (in units where the bare qubit energy splitting is unity). The Hamiltonian describing this system is:
+First, let's consider a system of two coupled qubits. Assume that both the qubits have equal energy splitting, and that the qubits are coupled through a :math:`\sigma_x\otimes\sigma_x` interaction with strength g = 0.05 (in units where the bare qubit energy splitting is unity). The Hamiltonian describing this system is:
 
 .. testcode:: [tensor]
 
@@ -190,7 +187,7 @@ The two-qubit example is easily generalized to three coupled qubits:
 A two-level system coupled to a cavity: The Jaynes-Cummings model
 -------------------------------------------------------------------
 
-The simplest possible quantum mechanical description for light-matter interaction is encapsulated in the Jaynes-Cummings model, which describes the coupling between a two-level atom and a single-mode electromagnetic field (a cavity mode). Denoting the energy splitting of the atom and cavity ``omega_a`` and ``omega_c``, respectively, and the atom-cavity interaction strength ``g``, the Jaynes-Cumming Hamiltonian can be constructed as:
+The simplest possible quantum mechanical description for light-matter interaction is encapsulated in the Jaynes-Cummings model, which describes the coupling between a two-level atom and a single-mode electromagnetic field (a cavity mode). Denoting the energy splitting of the atom and cavity ``omega_a`` and ``omega_c``, respectively, and the atom-cavity interaction strength ``g``, the Jaynes-Cummings Hamiltonian can be constructed as:
 
 .. testcode:: [tensor]
 
@@ -438,4 +435,4 @@ operators:
 
 
 
-.. _channel contraction tutorial: http://nbviewer.ipython.org/github/qutip/qutip-notebooks/blob/master/examples/superop-contract.ipynb
+.. _channel contraction tutorial: https://nbviewer.ipython.org/github/qutip/qutip-notebooks/blob/master/examples/superop-contract.ipynb

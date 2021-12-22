@@ -1,6 +1,3 @@
-.. QuTiP
-   Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
-
 .. _frontmatter:
 
 *************
@@ -12,11 +9,11 @@ Frontmatter
 About This Documentation
 ==========================
 
-This document contains a user guide and automatically generated API documentation for QuTiP. A PDF version of this text is available at the `documentation page <http://www.qutip.org/documentation.html>`_.
+This document contains a user guide and automatically generated API documentation for QuTiP. A PDF version of this text is available at the `documentation page <https://www.qutip.org/documentation.html>`_.
 
 **For more information see the** `QuTiP project web page`_.
 
-.. _QuTiP project web page: http://www.qutip.org
+.. _QuTiP project web page: https://www.qutip.org
 
 
 :Author: J.R. Johansson
@@ -41,9 +38,14 @@ This document contains a user guide and automatically generated API documentatio
 
 :Author: Jake Lishman
 
-:version: |version|
+:Author: Simon Cross
 
-:copyright: This documentation is licensed under the Creative Commons Attribution 3.0 Unported License.
+:release: |release|
+
+:copyright:
+   The text of this documentation is licensed under the Creative Commons Attribution 3.0 Unported License.
+   All contained code samples, and the source code of QuTiP, are licensed under the 3-clause BSD licence.
+   Full details of the copyright notices can be found on the `Copyright and Licensing <copyright>`_ page of this documentation.
 
 .. _citing-qutip:
 
@@ -59,7 +61,7 @@ or
 .. centered:: J. R. Johansson, P.D. Nation, and F. Nori, "QuTiP: An open-source Python framework for the dynamics of open quantum systems", Comp. Phys. Comm. **183**, 1760 (2012).
 
 
-which may also be downloaded from http://arxiv.org/abs/1211.6518 or http://arxiv.org/abs/1110.0573, respectively.
+which may also be downloaded from https://arxiv.org/abs/1211.6518 or https://arxiv.org/abs/1110.0573, respectively.
 
 .. _funding-qutip:
 
@@ -118,7 +120,7 @@ The Quantum Toolbox in Python, or QuTiP, is an open-source framework written in 
 
 * QuTiP is based on the Python scripting language, providing easy to read, fast code generation without the need to compile after modification.
 
-* The numerics underlying QuTiP are time-tested algorithms that run at C-code speeds, thanks to the `Numpy <http://numpy.scipy.org/>`_, `Scipy <http://www.scipy.org/scipylib>`_, and `Cython <http://cython.org>`_ libraries, and are based on many of the same algorithms used in propriety software.
+* The numerics underlying QuTiP are time-tested algorithms that run at C-code speeds, thanks to the `Numpy <https://numpy.org>`_, `Scipy <https://scipy.org>`_, and `Cython <https://cython.org>`_ libraries, and are based on many of the same algorithms used in propriety software.
 
 * QuTiP allows for solving the dynamics of Hamiltonians with (almost) arbitrary time-dependence, including collapse operators.
 
@@ -128,7 +130,7 @@ The Quantum Toolbox in Python, or QuTiP, is an open-source framework written in 
 
 * QuTiP was designed from the start to require a minimal learning curve for those users who have experience using the popular quantum optics toolbox by Sze M. Tan.
 
-* Includes the ability to create high-quality plots, and animations, using the excellent `Matplotlib <http://matplotlib.sourceforge.net/>`_ package.
+* Includes the ability to create high-quality plots, and animations, using the excellent `Matplotlib <https://matplotlib.org>`_ package.
 
 
 For detailed information about new features of each release of QuTiP, see the :ref:`changelog`.
@@ -167,6 +169,7 @@ Several libraries rely on QuTiP for quantum physics or quantum information proce
 
 :qupulse: `qupulse <https://qupulse.readthedocs.io/en/latest/>`_ is a toolkit to facilitate experiments involving pulse driven state manipulation of physical qubits
 
+:Pulser: `Pulser <https://pulser.readthedocs.io/en/latest/>`_ is a framework for composing, simulating and executing pulse sequences for neutral-atom quantum devices.
 
 
 

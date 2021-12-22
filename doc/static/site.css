@@ -1,64 +1,19 @@
-@import url('http://fonts.googleapis.com/css?family=Source+Code+Pro');
-
-
-.navbar-text {
-    color: #e8e8e8 !important;
+/* Fix for: https://github.com/readthedocs/sphinx_rtd_theme/issues/301 */
+/* Fix taken from: https://github.com/readthedocs/sphinx_rtd_theme/pull/383/ */
+span.eqno {
+  margin-left: 5px;
+  float: right;
+  /* position the number above the equation so that :hover is activated */
+  z-index: 1;
+  position: relative;
 }
 
-a {
-  color: #599AD3;
-  text-decoration: none;
+span.eqno .headerlink {
+  display: none;
+  visibility: hidden;
 }
 
-a:hover,
-a:focus {
-  color: #8C0028;
-  text-decoration: underline;
-}
-
-a:focus {
-  outline: thin dotted #333;
-  outline: 5px auto -webkit-focus-ring-color;
-  outline-offset: -2px;
-}
-
-code,
-pre {
-  padding: 0 3px 2px;
-  font-family: "Source Code Pro", Monaco, Menlo, Consolas, "Courier New", monospace;
-  font-size: 12px;
-  color: #333333;
-  -webkit-border-radius: 3px;
-     -moz-border-radius: 3px;
-          border-radius: 3px;
-}
-
-.alert {
-  border-width: 2px;
-  color: #09224F;
-  font-weight: bold;
-  -webkit-border-radius: 3px;
-  -moz-border-radius: 3px;
-       border-radius: 3px;
-  }
-
-.alert-success {
-  background-color: #B9E0B0;
-  border-color: #79C36A;
-}
-
-
-.alert-info {
-  background-color: #A6CBE9;
-  border-color: #599AD3;
-}
-
-.alert-warning {
- background-color: #FBD1A7;
-   border-color: #F9A65A;
-}
-
-.alert-danger {
-background-color: #F7A7AA;
-  border-color: #F1595F;
+span.eqno:hover .headerlink {
+  display: inline-block;
+  visibility: visible;
 }

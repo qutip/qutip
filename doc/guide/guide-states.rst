@@ -1,7 +1,3 @@
-.. QuTiP
-   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
-
-
 .. _states:
 
 *************************************
@@ -13,7 +9,7 @@ Manipulating States and Operators
 Introduction
 =================
 
-In the previous guide section :ref:`basics`, we saw how to create states and operators, using the functions built into QuTiP. In this portion of the guide, we will look at performing basic operations with states and operators.  For more detailed demonstrations on how to use and manipulate these objects, see the examples on the `tutorials <http://qutip.org/tutorials.html>`_ web page.
+In the previous guide section :ref:`basics`, we saw how to create states and operators, using the functions built into QuTiP. In this portion of the guide, we will look at performing basic operations with states and operators.  For more detailed demonstrations on how to use and manipulate these objects, see the examples on the `tutorials <https://qutip.org/tutorials.html>`_ web page.
 
 
 .. _states-vectors:
@@ -392,7 +388,7 @@ Of course, displacing the vacuum gives a coherent state, which can also be gener
 Density matrices
 =================
 
-One of the main purpose of QuTiP is to explore the dynamics of **open** quantum systems, where the most general state of a system is not longer a state vector, but rather a density matrix.  Since operations on density matrices operate identically to those of vectors, we will just briefly highlight creating and using these structures.
+One of the main purpose of QuTiP is to explore the dynamics of **open** quantum systems, where the most general state of a system is no longer a state vector, but rather a density matrix.  Since operations on density matrices operate identically to those of vectors, we will just briefly highlight creating and using these structures.
 
 The simplest density matrix is created by forming the outer-product :math:`\left|\psi\right>\left<\psi\right|` of a ket vector:
 
@@ -753,7 +749,7 @@ The :func:`qutip.expect` function also accepts lists or arrays of state vectors 
 
     [ 0.+0.j  0.+1.j -1.+0.j  0.-1.j]
 
-Notice how in this last example, all of the return values are complex numbers.  This is because the :func:`qutip.expect` function looks to see whether the operator is Hermitian or not.  If the operator is Hermitian, than the output will always be real.  In the case of non-Hermitian operators, the return values may be complex.  Therefore, the :func:`qutip.expect` function will return an array of complex values for non-Hermitian operators when the input is a list/array of states or density matrices.
+Notice how in this last example, all of the return values are complex numbers.  This is because the :func:`qutip.expect` function looks to see whether the operator is Hermitian or not.  If the operator is Hermitian, then the output will always be real.  In the case of non-Hermitian operators, the return values may be complex.  Therefore, the :func:`qutip.expect` function will return an array of complex values for non-Hermitian operators when the input is a list/array of states or density matrices.
 
 Of course, the :func:`qutip.expect` function works for spin states and operators:
 
@@ -795,7 +791,7 @@ Superoperators and Vectorized Operators
 In addition to state vectors and density operators, QuTiP allows for
 representing maps that act linearly on density operators using the Kraus,
 Liouville supermatrix and Choi matrix formalisms. This support is based on the
-correspondance between linear operators acting on a Hilbert space, and vectors
+correspondence between linear operators acting on a Hilbert space, and vectors
 in two copies of that Hilbert space,
 :math:`\mathrm{vec} : \mathcal{L}(\mathcal{H}) \to \mathcal{H} \otimes \mathcal{H}`
 [Hav03]_, [Wat13]_.
@@ -940,7 +936,7 @@ and :attr:`~qutip.Qobj.iscptp` attributes:
     True True True
 
 In addition, dynamical generators on this extended space, often called
-*Liouvillian superoperators*, can be created using the :func:`~qutip.superoperator.liouvillian` function. Each of these takes a Hamilonian along with
+*Liouvillian superoperators*, can be created using the :func:`~qutip.superoperator.liouvillian` function. Each of these takes a Hamiltonian along with
 a list of collapse operators, and returns a ``type="super"`` object that can
 be exponentiated to find the superoperator for that evolution.
 
@@ -972,7 +968,7 @@ For qubits, a particularly useful way to visualize superoperators is to plot the
 such that :math:`S_{\mu,\nu} = \langle\!\langle \sigma_{\mu} | S[\sigma_{\nu}] \rangle\!\rangle`. Because
 the Pauli basis is Hermitian, :math:`S_{\mu,\nu}` is a real number for all Hermitian-preserving superoperators
 :math:`S`,
-allowing us to plot the elements of :math:`S` as a `Hinton diagram <http://matplotlib.org/examples/specialty_plots/hinton_demo.html>`_. In such diagrams, positive elements are indicated by white squares, and negative elements
+allowing us to plot the elements of :math:`S` as a `Hinton diagram <https://matplotlib.org/examples/specialty_plots/hinton_demo.html>`_. In such diagrams, positive elements are indicated by white squares, and negative elements
 by black squares. The size of each element is indicated by the size of the corresponding square. For instance,
 let :math:`S[\rho] = \sigma_x \rho \sigma_x^{\dagger}`. Then :math:`S[\sigma_{\mu}] = \sigma_{\mu} \cdot \begin{cases} +1 & \mu = 0, x \\ -1 & \mu = y, z \end{cases}`. We can quickly see this by noting that the :math:`Y` and :math:`Z` elements
 of the Hinton diagram for :math:`S` are negative:
