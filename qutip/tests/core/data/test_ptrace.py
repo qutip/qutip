@@ -14,18 +14,23 @@ class TestPtrace(testing.UnaryOpMixin):
         qtrace = list(set(range(ndims)) - set(sel))
         dtrace = [dims[x] for x in qtrace]
 
-        matrix = matrix.reshape(dims+dims)
-        matrix = matrix.transpose(qtrace + [ndims + i for i in qtrace] +
-                                  sel + [ndims + i for i in sel])
-        matrix = matrix.reshape([np.prod(dtrace, dtype=int),
-                                 np.prod(dtrace, dtype=int),
-                                 np.prod(dkeep, dtype=int),
-                                 np.prod(dkeep, dtype=int)])
+        matrix = matrix.reshape(dims + dims)
+        matrix = matrix.transpose(
+            qtrace + [ndims + i for i in qtrace] + sel + [ndims + i for i in sel]
+        )
+        matrix = matrix.reshape(
+            [
+                np.prod(dtrace, dtype=int),
+                np.prod(dtrace, dtype=int),
+                np.prod(dkeep, dtype=int),
+                np.prod(dkeep, dtype=int),
+            ]
+        )
         return np.trace(matrix)
 
     # Custom shapes to have also custom dims and sel arguments.
     # These values should not be changed.
-    dims = [2]*7
+    dims = [2] * 7
     shapes = [(pytest.param((np.prod(dims), np.prod(dims))),)]
     bad_shapes = testing.shapes_not_square(np.prod(dims))
 
@@ -35,16 +40,17 @@ class TestPtrace(testing.UnaryOpMixin):
         pytest.param(data.ptrace_dense, Dense, Dense),
     ]
 
-    @pytest.mark.parametrize('sel', [[0],
-                                     [0, 3, 6],
-                                     [0, 6, 3],
-                                     list(range(len(dims))),
-                                     []],
-                             ids=['keep_one',
-                                  'keep_multiple_sorted',
-                                  'keep_multiple_unsorted',
-                                  'trace_none',
-                                  'trace_all'])
+    @pytest.mark.parametrize(
+        "sel",
+        [[0], [0, 3, 6], [0, 6, 3], list(range(len(dims))), []],
+        ids=[
+            "keep_one",
+            "keep_multiple_sorted",
+            "keep_multiple_unsorted",
+            "trace_none",
+            "trace_all",
+        ],
+    )
     def test_mathematically_correct(self, op, data_m, out_type, sel):
         """
         Test that the unary operation is mathematically correct for all the
@@ -55,9 +61,9 @@ class TestPtrace(testing.UnaryOpMixin):
         test = op(matrix, self.dims, sel)
         assert isinstance(test, out_type)
         assert test.shape == expected.shape
-        np.testing.assert_allclose(test.to_array(), expected,
-                                   atol=self.atol, rtol=self.rtol)
-
+        np.testing.assert_allclose(
+            test.to_array(), expected, atol=self.atol, rtol=self.rtol
+        )
 
     def test_incorrect_shape_raises(self, op, data_m):
         """
@@ -69,25 +75,31 @@ class TestPtrace(testing.UnaryOpMixin):
 
     # `out_type` is included but not used so that
     # `generate_mathematically_correct` can be re-used.
-    @pytest.mark.parametrize('dims',
-                             [[2], [0], [-2, -2]+[2]*5, [1.2]],
-                             ids=['dims_different_to_shape',
-                                  'dims_0',
-                                  'dims_prod_is_shape_but_negative',
-                                  'dims_is_not_int',
-                                 ])
+    @pytest.mark.parametrize(
+        "dims",
+        [[2], [0], [-2, -2] + [2] * 5, [1.2]],
+        ids=[
+            "dims_different_to_shape",
+            "dims_0",
+            "dims_prod_is_shape_but_negative",
+            "dims_is_not_int",
+        ],
+    )
     def test_incorrect_dims_raises(self, op, data_m, out_type, dims):
         with pytest.raises(ValueError):
-            op(data_m(), dims, sel=[0,1])
+            op(data_m(), dims, sel=[0, 1])
 
     def generate_incorrect_dims_raises(self, metafunc):
         self.generate_mathematically_correct(metafunc)
 
-    @pytest.mark.parametrize('sel',
-                             [[2, 10], [-1, 2]],
-                             ids=['sel_value_larger_than_dims',
-                                  'sel_value_negative',
-                                 ])
+    @pytest.mark.parametrize(
+        "sel",
+        [[2, 10], [-1, 2]],
+        ids=[
+            "sel_value_larger_than_dims",
+            "sel_value_negative",
+        ],
+    )
     def test_incorrect_sel_raises(self, op, data_m, out_type, sel):
         with pytest.raises(IndexError):
             op(data_m(), dims=self.dims, sel=sel)
