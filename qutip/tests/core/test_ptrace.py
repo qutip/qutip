@@ -142,7 +142,7 @@ def test_ptrace_rand_ket(dtype, dims, sel):
                              'trace_multiple',
                              'trace_multiple_not_sorted',
                             ])
-def test_ptrace_dm(dtype, sel):
+def test_ptrace_rand_dm(dtype, sel):
     A = qutip.rand_dm(64, 0.5, dims=[[4, 4, 4], [4, 4, 4]]).to(dtype)
     assert A.ptrace(sel) == expected(A, sel)
 
