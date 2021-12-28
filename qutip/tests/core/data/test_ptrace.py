@@ -77,7 +77,7 @@ class TestPtrace(testing.UnaryOpMixin):
     # `generate_mathematically_correct` can be re-used.
     @pytest.mark.parametrize(
         "dims",
-        [[2], [0], [-2, -2] + [2] * 5, [1.2]],
+        [[2], [0], [-2, -2] + [2] * 5, [1.2, 2.2, 3.3]],
         ids=[
             "dims_different_to_shape",
             "dims_0",
