@@ -29,10 +29,9 @@ cdef tuple _check_inputs(tuple shape, object dims, object sel):
     if sel.ndim != 1:
         raise ValueError("Selection must be one-dimensional")
 
-    for d in dims:
-        if d<1:
-            raise ValueError("dimensions must be greated than zero but where"
-                             f" dims={dims}.")
+    if any(d < 1 for d in dims):
+        raise ValueError("dimensions must be greated than zero but where"
+                         f" dims={dims}.")
 
     for i in range(sel.shape[0]):
         if sel[i] < 0 or sel[i] >= dims.size:
