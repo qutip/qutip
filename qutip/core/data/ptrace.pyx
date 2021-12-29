@@ -17,8 +17,12 @@ __all__ = [
     'ptrace', 'ptrace_csr', 'ptrace_dense', 'ptrace_csr_dense',
 ]
 
-cdef tuple _check_inputs(tuple shape, object dims, object sel):
+cdef tuple _parse_inputs(object dims, object sel, tuple shape):
     cdef Py_ssize_t i
+
+    dims = np.atleast_1d(dims).astype(idxint_dtype).ravel()
+    sel = np.atleast_1d(sel).astype(idxint_dtype)
+    sel.sort()
 
     if shape[0] != shape[1]:
         raise ValueError("ptrace is only defined for square density matrices")
@@ -39,6 +43,8 @@ cdef tuple _check_inputs(tuple shape, object dims, object sel):
             raise IndexError("Invalid selection index in ptrace.")
         if i > 0 and sel[i] == sel[i - 1]:
             raise ValueError("Duplicate selection index in ptrace.")
+
+    return dims, sel
 
 cdef idxint _populate_tensor_table(dims, sel, idxint[:, ::1] tensor_table) except -1:
     """
@@ -87,11 +93,7 @@ cdef inline void _i2_k_t(idxint N, idxint[:, ::1] tensor_table, idxint out[2]):
 
 
 cpdef CSR ptrace_csr(CSR matrix, object dims, object sel):
-    dims = np.atleast_1d(dims).astype(idxint_dtype).ravel()
-    sel = np.atleast_1d(sel).astype(idxint_dtype)
-    sel.sort()
-
-    _check_inputs(matrix.shape, dims, sel)
+    dims, sel = _parse_inputs(dims, sel, matrix.shape)
 
     if len(sel) == len(dims):
         return matrix.copy()
@@ -121,11 +123,7 @@ cpdef CSR ptrace_csr(CSR matrix, object dims, object sel):
 
 
 cpdef Dense ptrace_csr_dense(CSR matrix, object dims, object sel):
-    dims = np.atleast_1d(dims).astype(idxint_dtype).ravel()
-    sel = np.atleast_1d(sel).astype(idxint_dtype)
-    sel.sort()
-
-    _check_inputs(matrix.shape, dims, sel)
+    dims, sel = _parse_inputs(dims, sel, matrix.shape)
 
     if len(sel) == len(dims):
         return dense.from_csr(matrix)
@@ -146,11 +144,7 @@ cpdef Dense ptrace_csr_dense(CSR matrix, object dims, object sel):
 
 
 cpdef Dense ptrace_dense(Dense matrix, object dims, object sel):
-    dims = np.atleast_1d(dims).astype(idxint_dtype).ravel()
-    sel = np.atleast_1d(sel).astype(idxint_dtype)
-    sel.sort()
-
-    _check_inputs(matrix.shape, dims, sel)
+    dims, sel = _parse_inputs(dims, sel, matrix.shape)
 
     if len(sel) == len(dims):
         return matrix.copy()
