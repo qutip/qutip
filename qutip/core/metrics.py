@@ -108,6 +108,32 @@ def fidelity(A, B):
     return float(np.real(np.sqrt(eig_vals[eig_vals > 0]).sum()))
 
 
+def _hilbert_space_dims(oper):
+    """
+    For a quantum channel `oper`, return the dimensions `[dims_out, dims_in]`
+    of the output Hilbert space and the input Hilbert space.
+    - If oper is a unitary, then `oper.dims == [dims_out, dims_in]`.
+    - If oper is a list of Kraus operators, then
+     `oper[0].dims == [dims_out, dims_in]`.
+    - If oper is a superoperator with `oper.superrep == 'super'`:
+     `oper.dims == [[dims_out, dims_out], [dims_in, dims_in]]`
+    - If oper is a superoperator with `oper.superrep == 'choi'`:
+     `oper.dims == [[dims_in, dims_out], [dims_in, dims_out]]`
+    - If oper is a superoperator with `oper.superrep == 'chi', then
+      `dims_out == dims_in` and
+      `oper.dims == [[dims_out, dims_out], [dims_out, dims_out]]`.
+    :param oper: A quantum channel, represented by a unitary, a list of Kraus
+    operators, or a superoperator
+    :return: `[dims_out, dims_in]`, where `dims_out` and `dims_in` are lists
+     of integers
+    """
+    if isinstance(oper, list):
+        return oper[0].dims
+    if oper.type == 'oper':
+        return oper.dims
+    return [oper.dims[0][1], oper.dims[1][0]]  # for Choi, chi, or super
+
+
 def _process_fidelity_to_id(oper):
     """
     Internal function returning the process fidelity of a quantum channel
@@ -121,22 +147,16 @@ def _process_fidelity_to_id(oper):
     -------
     fid : float
     """
-    msg = 'The process fidelity to identity is only defined for ' \
-          'dimension preserving channels.'
+    dims_out, dims_in = _hilbert_space_dims(oper)
+    if dims_out != dims_in:
+        raise TypeError('The process fidelity to identity is only defined '
+                        'for dimension preserving channels.')
+    d = np.prod(dims_in)
     if isinstance(oper, list):  # oper is a list of Kraus operators
-        d = oper[0].shape[0]
-        if oper[0].shape[1] != d:
-            raise TypeError(msg)
         return np.sum([np.abs(k.tr()) ** 2 for k in oper]) / d ** 2
     elif oper.type == 'oper':  # interpret as unitary
-        d = oper.shape[0]
-        if oper.shape[1] != d:
-            raise TypeError(msg)
         return np.abs(oper.tr()) ** 2 / d ** 2
     elif oper.type == 'super':
-        d = np.prod(oper.dims[0][0])
-        if np.prod(oper.dims[1][0]) != d:
-            raise TypeError(msg)
         if oper.superrep == 'chi':
             return oper[0, 0].real / d ** 2
         else:  # oper.superrep is either 'super' or 'choi':
@@ -187,30 +207,28 @@ def process_fidelity(oper, target=None):
     """
     if target is None:
         return _process_fidelity_to_id(oper)
-    elif not isinstance(target, list) and target.type == 'oper':
+
+    dims_out, dims_in = _hilbert_space_dims(oper)
+    dims_out_target, dims_in_target = _hilbert_space_dims(target)
+    if [dims_out, dims_in] != [dims_out_target, dims_in_target]:
+        raise TypeError('Dimensions of oper and target do not match')
+
+    if not isinstance(target, list) and target.type == 'oper':
         # interpret target as unitary.
         if isinstance(oper, list):  # oper is a list of Kraus operators
-            if oper[0].dims != target.dims:
-                raise TypeError('Dimensions of oper and target do not match')
             return _process_fidelity_to_id([k * target.dag() for k in oper])
         elif oper.type == 'oper':
-            if oper.dims != target.dims:
-                raise TypeError('Dimensions of oper and target do not match')
             return _process_fidelity_to_id(oper*target.dag())
         elif oper.type == 'super':
             oper_super = to_super(oper)
             target_dag_super = to_super(target.dag())
-            if oper_super.dims != target_dag_super.dims:
-                raise TypeError('Dimensions of oper and target do not match')
             return _process_fidelity_to_id(oper_super * target_dag_super)
     else:  # target is a list of Kraus operators or a superoperator
         if not isinstance(oper, list) and oper.type == 'oper':
             return process_fidelity(target, oper)  # reverse order
         oper_choi = _kraus_or_qobj_to_choi(oper)
         target_choi = _kraus_or_qobj_to_choi(target)
-        if oper_choi.dims != target_choi.dims:
-            raise TypeError('Dimensions of oper and target do not match')
-        d = np.prod(oper_choi.dims[0][0])
+        d = np.prod(dims_in)
         return (fidelity(oper_choi, target_choi)/d)**2
 
 

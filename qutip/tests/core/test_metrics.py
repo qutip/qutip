@@ -56,6 +56,7 @@ from qutip import (
     identity, qdiags, sigmax, sigmay, sigmaz, qeye, fock_dm, basis,
 )
 from qutip.core.metrics import *
+from qutip.core.metrics import _hilbert_space_dims
 from qutip.qip.operations.gates import hadamard_transform, swap
 
 from qutip.settings import settings
@@ -394,6 +395,26 @@ def rand_super():
     return propagator(h_5, rand(), [
         create(5), destroy(5), jmat(2, 'z')
     ])
+
+
+@pytest.mark.parametrize('superrep_conversion',
+                         [lambda x: x, to_super, to_choi, to_kraus])
+def test__hilbert_space_dims(superrep_conversion):
+    """
+    Metrics: check _hilbert_space_dims
+    """
+    dims = [[2, 3], [4, 5]]
+    u = Qobj(np.ones((np.prod(dims[0]), np.prod(dims[1]))), dims=dims)
+    assert_(_hilbert_space_dims(superrep_conversion(u)) == dims)
+
+
+def test__hilbert_space_dims_chi():
+    """
+    Metrics: check _hilbert_space_dims for a chi channel
+    """
+    dims = [[2, 2], [2, 2]]
+    u = Qobj(np.ones((np.prod(dims[0]), np.prod(dims[1]))), dims=dims)
+    assert_(_hilbert_space_dims(to_chi(u)) == dims)
 
 
 @avg_gate_fidelity_test
