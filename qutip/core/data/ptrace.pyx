@@ -17,22 +17,32 @@ __all__ = [
     'ptrace', 'ptrace_csr', 'ptrace_dense', 'ptrace_csr_dense',
 ]
 
-cdef void _check_shape(Data matrix) except *:
-    if matrix.shape[0] != matrix.shape[1]:
-        raise ValueError("ptrace is only defined for square density matrices")
-
-cdef tuple _prepare_inputs(object dims, object sel):
+cdef tuple _parse_inputs(object dims, object sel, tuple shape):
     cdef Py_ssize_t i
+
     dims = np.atleast_1d(dims).astype(idxint_dtype).ravel()
     sel = np.atleast_1d(sel).astype(idxint_dtype)
+    sel.sort()
+
+    if shape[0] != shape[1]:
+        raise ValueError("ptrace is only defined for square density matrices")
+
+    if shape[0] != np.prod(dims, dtype=int):
+        raise ValueError(f"the input matrix shape, {shape} and the"
+                         f" dimension argument, {dims}, are not compatible.")
     if sel.ndim != 1:
         raise ValueError("Selection must be one-dimensional")
-    sel.sort()
+
+    if any(d < 1 for d in dims):
+        raise ValueError("dimensions must be greated than zero but where"
+                         f" dims={dims}.")
+
     for i in range(sel.shape[0]):
         if sel[i] < 0 or sel[i] >= dims.size:
             raise IndexError("Invalid selection index in ptrace.")
         if i > 0 and sel[i] == sel[i - 1]:
             raise ValueError("Duplicate selection index in ptrace.")
+
     return dims, sel
 
 cdef idxint _populate_tensor_table(dims, sel, idxint[:, ::1] tensor_table) except -1:
@@ -82,8 +92,8 @@ cdef inline void _i2_k_t(idxint N, idxint[:, ::1] tensor_table, idxint out[2]):
 
 
 cpdef CSR ptrace_csr(CSR matrix, object dims, object sel):
-    _check_shape(matrix)
-    dims, sel = _prepare_inputs(dims, sel)
+    dims, sel = _parse_inputs(dims, sel, matrix.shape)
+
     if len(sel) == len(dims):
         return matrix.copy()
     cdef idxint[:, ::1] tensor_table = np.zeros((dims.shape[0], 3), dtype=idxint_dtype)
@@ -112,8 +122,8 @@ cpdef CSR ptrace_csr(CSR matrix, object dims, object sel):
 
 
 cpdef Dense ptrace_csr_dense(CSR matrix, object dims, object sel):
-    _check_shape(matrix)
-    dims, sel = _prepare_inputs(dims, sel)
+    dims, sel = _parse_inputs(dims, sel, matrix.shape)
+
     if len(sel) == len(dims):
         return dense.from_csr(matrix)
     cdef idxint[:, ::1] tensor_table = np.zeros((dims.shape[0], 3), dtype=idxint_dtype)
@@ -133,8 +143,8 @@ cpdef Dense ptrace_csr_dense(CSR matrix, object dims, object sel):
 
 
 cpdef Dense ptrace_dense(Dense matrix, object dims, object sel):
-    _check_shape(matrix)
-    dims, sel = _prepare_inputs(dims, sel)
+    dims, sel = _parse_inputs(dims, sel, matrix.shape)
+
     if len(sel) == len(dims):
         return matrix.copy()
     nd = dims.shape[0]
@@ -147,10 +157,10 @@ cpdef Dense ptrace_dense(Dense matrix, object dims, object sel):
                       .reshape(dims + dims)
                       .transpose(qtrace + [nd + q for q in qtrace] +
                                  sel + [nd + q for q in sel])
-                      .reshape([np.prod(dtrace),
-                                np.prod(dtrace),
-                                np.prod(dkeep),
-                                np.prod(dkeep)]))
+                      .reshape([np.prod(dtrace, dtype=int),
+                                np.prod(dtrace, dtype=int),
+                                np.prod(dkeep, dtype=int),
+                                np.prod(dkeep, dtype=int)]))
     return dense.fast_from_numpy(rhomat)
 
 
