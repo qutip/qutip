@@ -129,9 +129,12 @@ def _hilbert_space_dims(oper):
     """
     if isinstance(oper, list):
         return oper[0].dims
-    if oper.type == 'oper':
+    elif oper.type == 'oper':  # interpret as unitary quantum channel
         return oper.dims
-    return [oper.dims[0][1], oper.dims[1][0]]  # for Choi, chi, or super
+    elif oper.type=='super' and oper.superrep in ['choi', 'chi', 'super']:
+        return [oper.dims[0][1], oper.dims[1][0]]
+    else:
+        raise TypeError('oper is not a valid quantum channel!')
 
 
 def _process_fidelity_to_id(oper):
