@@ -399,7 +399,7 @@ def rand_super():
 
 @pytest.mark.parametrize('superrep_conversion',
                          [lambda x: x, to_super, to_choi, to_kraus])
-def test__hilbert_space_dims(superrep_conversion):
+def test_hilbert_space_dims(superrep_conversion):
     """
     Metrics: check _hilbert_space_dims
     """
@@ -408,7 +408,7 @@ def test__hilbert_space_dims(superrep_conversion):
     assert_(_hilbert_space_dims(superrep_conversion(u)) == dims)
 
 
-def test__hilbert_space_dims_chi():
+def test_hilbert_space_dims_chi():
     """
     Metrics: check _hilbert_space_dims for a chi channel
     """
