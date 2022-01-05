@@ -22,7 +22,9 @@ jobs:
 
       - name: Install QuTiP from GitHub
         run: |
-          python -mpip install -e .[full]
+          # Build without build isolation so that we use the build
+          # dependencies already installed from doc/requirements.txt.
+          python -m pip install -e .[full] --no-build-isolation
           # Install in editable mode so it doesn't matter if we import from
           # inside the installation directory, otherwise we can get some errors
           # because we're importing from the wrong location.
