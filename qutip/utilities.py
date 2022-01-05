@@ -334,7 +334,12 @@ def _version2int(version_string):
 
 def _blas_info():
     config = np.__config__
-    blas_info = config.blas_opt_info
+    if hasattr(config, 'blas_ilp64_opt_info'):
+        blas_info = config.blas_ilp64_opt_info
+    elif hasattr(config, 'blas_opt_info'):
+        blas_info = config.blas_opt_info
+    else:
+        blas_info = {}
     _has_lib_key = 'libraries' in blas_info.keys()
     blas = None
     if hasattr(config,'mkl_info') or \
