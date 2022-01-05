@@ -46,3 +46,4 @@ sphinxcontrib-serializinghtml==1.1.4
 traitlets==5.0.5
 urllib3==1.26.4
 wcwidth==0.2.5
+wheel==0.37.0
