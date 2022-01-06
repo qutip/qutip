@@ -17,7 +17,7 @@ manylinux-i686-image = "manylinux2014"
 # Change in future version to "build"
 build-frontend = "pip"
 
-[tool.cibuildwheel.override]
+[[tool.cibuildwheel.overrides]]
 # NumPy support manylinux2010 on CPython 3.6-3.9
 select = "cp3?-*"
 manylinux-x86_64-image = "manylinux2010"
