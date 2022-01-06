@@ -14,9 +14,16 @@ def _mac_hardware_info():
         info[l[0].strip(' "').replace(' ', '_').lower().strip('hw.')] = \
             l[1].strip('.\n ')
     results.update({'cpus': int(info['physicalcpu'])})
-    results.update({'cpu_freq': int(float(os.popen('sysctl hw.cpufrequency')
-                                          .readlines()[0].split(':')[
-                                              1]) / 1000000)})
+    # Mac OS currently doesn't not provide hw.cpufrequency on the M1
+    cpu_freq_lines = os.popen('sysctl hw.cpufrequency').readlines()
+    if cpu_freq_lines:
+        # Yay, hw.cpufrequency present
+        results.update({'cpu_freq': int(float(
+            cpu_freq_lines[0].split(':')[1]) / 1000000)
+        })
+    else:
+        # No hw.cpufrequency, assume Apple M1 CPU (all are 3.2 GHz currently)
+        results['cpu_freq'] = 3.2
     results.update({'memsize': int(int(info['memsize']) / (1024 ** 2))})
     # add OS information
     results.update({'os': 'Mac OSX'})
