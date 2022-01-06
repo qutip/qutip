@@ -8,15 +8,27 @@ import numpy as np
 
 
 def _mac_hardware_info():
-    info = dict()
-    results = dict()
-    for l in [l.split(':') for l in os.popen('sysctl hw').readlines()[1:]]:
-        info[l[0].strip(' "').replace(' ', '_').lower().strip('hw.')] = \
-            l[1].strip('.\n ')
+    info = {}
+    results = {}
+    with os.popen('sysctl hw') as f:
+        lines = f.readlines()
+    for line in lines[1:]:
+        key, _, value = line.partition(':')
+        key = key.strip(' "').replace(' ', '_').lower().strip('hw.')
+        value = value.strip('.\n ')
+        info[key] = value
     results.update({'cpus': int(info['physicalcpu'])})
-    results.update({'cpu_freq': int(float(os.popen('sysctl hw.cpufrequency')
-                                          .readlines()[0].split(':')[
-                                              1]) / 1000000)})
+    # Mac OS currently doesn't not provide hw.cpufrequency on the M1
+    with os.popen('sysctl hw.cpufrequency') as f:
+        cpu_freq_lines = f.readlines()
+    if cpu_freq_lines:
+        # Yay, hw.cpufrequency present
+        results.update({
+            'cpu_freq': float(cpu_freq_lines[0].split(':')[1]) / 1000000,
+        })
+    else:
+        # No hw.cpufrequency, assume Apple M1 CPU (all are 3.2 GHz currently)
+        results['cpu_freq'] = 3.2
     results.update({'memsize': int(int(info['memsize']) / (1024 ** 2))})
     # add OS information
     results.update({'os': 'Mac OSX'})
@@ -32,19 +44,19 @@ def _linux_hardware_info():
     with open("/proc/cpuinfo") as f:
         for l in [l.split(':') for l in f.readlines()]:
             if (l[0].strip() == "physical id"):
-                sockets = np.maximum(sockets,int(l[1].strip())+1)
+                sockets = np.maximum(sockets, int(l[1].strip()) + 1)
             if (l[0].strip() == "cpu cores"):
                 cores_per_socket = int(l[1].strip())
             if (l[0].strip() == "cpu MHz"):
                 frequency = float(l[1].strip()) / 1000.
-    results.update({'cpus': sockets * cores_per_socket})
+    results.update({'cpus': int(sockets * cores_per_socket)})
     # get cpu frequency directly (bypasses freq scaling)
     try:
         with open(
                 "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq") as f:
             line = f.readlines()[0]
         frequency = float(line.strip('\n')) / 1000000.
-    except:
+    except Exception:
         pass
     results.update({'cpu_freq': frequency})
 
@@ -78,7 +90,7 @@ def _win_hardware_info():
         ncpus = 0
         for cpu in cpus:
             ncpus += int(cpu.Properties_['NumberOfCores'].Value)
-    except:
+    except Exception:
         ncpus = int(multiprocessing.cpu_count())
     return {'os': 'Windows', 'cpus': ncpus}
 
