@@ -8,11 +8,15 @@ import numpy as np
 
 
 def _mac_hardware_info():
-    info = dict()
-    results = dict()
-    for l in [l.split(':') for l in os.popen('sysctl hw').readlines()[1:]]:
-        info[l[0].strip(' "').replace(' ', '_').lower().strip('hw.')] = \
-            l[1].strip('.\n ')
+    info = {}
+    results = {}
+    with os.popen('sysctl hw') as f:
+        lines = f.readlines()
+    for line in lines[1:]:
+        key, _, value = line.partition(':')
+        key = key.strip(' "').replace(' ', '_').lower().strip('hw.')
+        value = value.strip('.\n ')
+        info[key] = value
     results.update({'cpus': int(info['physicalcpu'])})
     # Mac OS currently doesn't not provide hw.cpufrequency on the M1
     with os.popen('sysctl hw.cpufrequency') as f:
