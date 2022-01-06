@@ -15,7 +15,8 @@ def _mac_hardware_info():
             l[1].strip('.\n ')
     results.update({'cpus': int(info['physicalcpu'])})
     # Mac OS currently doesn't not provide hw.cpufrequency on the M1
-    cpu_freq_lines = os.popen('sysctl hw.cpufrequency').readlines()
+    with os.popen('sysctl hw.cpufrequency') as f:
+        cpu_freq_lines = f.readlines()
     if cpu_freq_lines:
         # Yay, hw.cpufrequency present
         results.update({
