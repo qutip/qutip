@@ -226,6 +226,21 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
     ValueError
         Input argument is not a quantum object.
 
+    Examples
+    --------
+    >>> import qutip
+    >>>
+    >>> dm = qutip.rand_dm(4)
+    >>> fig, ax = qutip.hinton(dm)
+    >>> fig.show()
+    >>>
+    >>> qutip.settings.colorblind_safe = True
+    >>> fig, ax = qutip.hinton(dm, color_style="threshold")
+    >>> fig.show()
+    >>> qutip.settings.colorblind_safe = False
+    >>>
+    >>> fig, ax = qutip.hinton(dm, color_style="phase")
+    >>> fig.show()
     """
 
     # Apply default colormaps.
