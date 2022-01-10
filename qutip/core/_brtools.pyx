@@ -22,7 +22,7 @@ cdef class SpectraCoefficient(Coefficient):
     """
     Change a Coefficient with `t` dependence to one with `w` dependence to use
     in Bloch-Redfield tensor to allow array based coefficients to be used as
-    spectrum function.
+    spectral functions.
     If 2 coefficients are passed, the first one is the frequence response and
     the second is the time response.
     """
@@ -277,7 +277,7 @@ cdef class _EigenBasisTransform:
                 return _data.column_stack_dense(temp, True)
             return _data.column_stack(temp)
 
-        if fock.shape[0] == self.size and fock.shape[0] == fock.shape[1]:
+        elif fock.shape[0] == self.size and fock.shape[0] == fock.shape[1]:
             return _data.matmul(matmul_var_data(self.evecs(t), fock, 3, 0),
                                 self.evecs(t))
 
