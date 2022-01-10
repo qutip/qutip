@@ -104,7 +104,7 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
     ``scipy.interpolate``'s ``CubicSpline``, ``PPoly`` and ``Bspline`` are
     also converted to interpolated coefficients (the same kind of coefficient
     created from ``ndarray``). Other interpolation methods from
-    scipy are converted to function-based coefficient (the same kind of
+    scipy are converted to a function-based coefficient (the same kind of
     coefficient created from callables).
     """
     if isinstance(base, Coefficient):

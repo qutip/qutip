@@ -387,7 +387,7 @@ cdef class InterCoefficient(Coefficient):
         must be increasing, but do not need to be uniformly spaced.
 
     order : int
-        Order of the interpolation. ``0`` use previous or left value. The order
+        Order of the interpolation. Order ``0`` uses the previous (i.e. left) value. The order
         will be reduced to ``len(tlist) - 1`` if it is larger.
     """
     cdef int order
