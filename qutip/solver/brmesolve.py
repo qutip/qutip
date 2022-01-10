@@ -107,20 +107,21 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
 
     new_a_ops = []
     for (a_op, spectra) in a_ops:
+        aop = QobjEvo(a_op, args=args, tlist=tlist)
         if isinstance(spectra, str):
             new_a_ops.append(
-                (a_op, coefficient(spectra, args={**args, 'w':0})))
+                (aop, coefficient(spectra, args={**args, 'w':0})))
         elif isinstance(spectra, InterCoefficient):
-            new_a_ops.append((a_op, SpectraCoefficient(spectra)))
+            new_a_ops.append((aop, SpectraCoefficient(spectra)))
         elif isinstance(spectra, Coefficient):
-            new_a_ops.append((a_op, spectra))
+            new_a_ops.append((aop, spectra))
         elif callable(spectra):
             sig = inspect.signature(spectra)
             if tuple(sig.parameters.keys()) == ("w",):
                 spec = SpectraCoefficient(coefficient(spectra))
             else:
                 spec = coefficient(spectra, args={**args, 'w':0})
-            new_a_ops.append((a_op, spec))
+            new_a_ops.append((aop, spec))
         else:
             raise TypeError("a_ops's spectra not known")
 

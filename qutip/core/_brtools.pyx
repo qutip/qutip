@@ -47,7 +47,7 @@ cdef class SpectraCoefficient(Coefficient):
             return SpectraCoefficient(
                 self.coeff_w.replace(**kwargs),
                 self.coeff_t.replace(**kwargs) if self.coeff_t else None,
-                kwargs.get('w', w or 0.)
+                kwargs.get('w', w or self.w)
               )
         if w is not None:
             return SpectraCoefficient(self.coeff_w, self.coeff_t, w)
@@ -171,15 +171,18 @@ class _eigen_qevo:
     ``t``.
     """
     def __init__(self, qevo):
-        self.qevo = qevo
+        self.qevo = QobjEvo(qevo)  # Force a copy
         self.args = None
+        # This is a base conversion operator, the eigen basis part of the dims
+        # are flat.
+        self.out_dims = [qevo.dims[0], [qevo.shape[1]]]
 
     def __call__(self, t, args):
-        if args != self.args:
+        if args is not self.args:
             self.args = args
-            self.qevo = QobjEvo(self.qevo, args=args)
+            self.qevo.arguments(self.args)
         _, data = _data.eigs(self.qevo._call(t), True, True)
-        return Qobj(data, copy=False, dims=self.qevo.dims)
+        return Qobj(data, copy=False, dims=self.out_dims)
 
 
 cdef class _EigenBasisTransform:
@@ -198,14 +201,15 @@ cdef class _EigenBasisTransform:
     def __init__(self, QobjEvo oper, bint sparse=False):
         if oper.dims[0] != oper.dims[1]:
             raise ValueError
-        if type(oper(0).data) == _data.CSR and not sparse:
+        if type(oper(0).data) is _data.CSR and not sparse:
             oper = oper.to(Dense)
         self.oper = oper
         self.isconstant = oper.isconstant
         self.size = oper.shape[0]
 
         if oper.isconstant:
-            self._eigvals, self._evecs = _data.eigs(self.oper._call(0), True, True)
+            self._eigvals, self._evecs = _data.eigs(self.oper._call(0),
+                                                    True, True)
         else:
             self._evecs = None
             self._eigvals = None
@@ -285,7 +289,8 @@ cdef class _EigenBasisTransform:
             temp = self._S_converter_inverse(t)
             return _data.matmul(matmul_var_data(temp, fock, 3, 0), temp)
 
-        raise ValueError
+        raise ValueError("Could not convert the Qobj's data to eigenbasis: "
+                         "can't guess type from shape.")
 
     cpdef Data from_eigbasis(self, double t, Data eig):
         """
@@ -318,4 +323,5 @@ cdef class _EigenBasisTransform:
             temp = self._S_converter_inverse(t)
             return _data.matmul(temp, matmul_var_data(eig, temp, 0, 3))
 
-        raise ValueError
+        raise ValueError("Could not convert the Qobj's data from eigenbasis: "
+                         "can't guess type from shape.")
