@@ -173,16 +173,15 @@ def test_br_term(cutoff, spectra):
     np.testing.assert_allclose(R_dense, R_data, rtol=1e-14, atol=1e-14)
 
 
-@pytest.mark.parametrize('cutoff', [0, 0.1, 1, 3, np.inf])
+@pytest.mark.parametrize('cutoff', [0, 0.1, 1, 3, -1])
 def test_brterm(cutoff):
     N = 5
     H = qutip.num(N)
     a = qutip.destroy(N)
     A_op = a + a.dag()
     spectra = qutip.coefficient("(w>0)*0.5", args={'w':0})
-    R = brterm(H, A_op, spectra, cutoff<1e15, cutoff, fock_basis=True)
-    R_eigs, evecs = brterm(H, A_op, spectra, cutoff<1e15, cutoff,
-                             fock_basis=False)
+    R = brterm(H, A_op, spectra, cutoff, fock_basis=True)
+    R_eigs, evecs = brterm(H, A_op, spectra, cutoff, fock_basis=False)
     assert isinstance(R, qutip.Qobj)
     assert isinstance(R_eigs, qutip.Qobj)
     assert isinstance(evecs, qutip.Qobj)
@@ -194,16 +193,15 @@ def test_brterm(cutoff):
                                rtol=1e-14, atol=1e-14)
 
 
-@pytest.mark.parametrize('cutoff', [0, 0.1, 1, 3, np.inf])
+@pytest.mark.parametrize('cutoff', [0, 0.1, 1, 3, -1])
 def test_td_brterm(cutoff):
     N = 5
     H = qutip.QobjEvo([qutip.num(N), "0.5+t**2"])
     a = qutip.destroy(N)
     A_op = qutip.QobjEvo([a + a.dag(), "t"])
     spectra = qutip.coefficient("(w>0)*0.5", args={'w':0})
-    R = brterm(H, A_op, spectra, cutoff<1e15, cutoff, fock_basis=True)
-    R_eigs, evecs = brterm(H, A_op, spectra, cutoff<1e15, cutoff,
-                             fock_basis=False)
+    R = brterm(H, A_op, spectra, cutoff, fock_basis=True)
+    R_eigs, evecs = brterm(H, A_op, spectra, cutoff, fock_basis=False)
     assert isinstance(R, qutip.QobjEvo)
     assert isinstance(R_eigs, qutip.QobjEvo)
     assert isinstance(evecs, qutip.QobjEvo)
@@ -222,7 +220,7 @@ def test_td_brterm(cutoff):
                                    rtol=1e-14, atol=1e-14)
 
 
-@pytest.mark.parametrize('cutoff', [0, 0.1, 1, 3, np.inf])
+@pytest.mark.parametrize('cutoff', [0, 0.1, 1, 3, -1])
 def test_bloch_redfield_tensor_basis(cutoff):
     N = 5
     H = qutip.num(N)
@@ -233,7 +231,6 @@ def test_bloch_redfield_tensor_basis(cutoff):
         H=H,
         a_ops=[(A_op, spectra)],
         c_ops=[a**2],
-        use_secular=cutoff<1e15,
         sec_cutoff=cutoff,
         fock_basis=True
     )
@@ -241,7 +238,6 @@ def test_bloch_redfield_tensor_basis(cutoff):
         H=H,
         a_ops=[(A_op, spectra)],
         c_ops=[a**2],
-        use_secular=cutoff<1e15,
         sec_cutoff=cutoff,
         fock_basis=False
     )
@@ -256,7 +252,7 @@ def test_bloch_redfield_tensor_basis(cutoff):
                                rtol=1e-14, atol=1e-14)
 
 
-@pytest.mark.parametrize('cutoff', [0, 0.1, 1, 3, np.inf])
+@pytest.mark.parametrize('cutoff', [0, 0.1, 1, 3, -1])
 def test_bloch_redfield_tensor(cutoff):
     N = 5
     H = qutip.num(N)
@@ -267,13 +263,11 @@ def test_bloch_redfield_tensor(cutoff):
         H=H,
         a_ops=[(A_op, spectra)],
         c_ops=[a**2],
-        use_secular=cutoff<1e15,
         sec_cutoff=cutoff,
         fock_basis=True
     )
     R_expected = qutip.liouvillian(H, [a**2])
-    R_expected += brterm(H, A_op, spectra,
-                         cutoff<1e15, cutoff, fock_basis=True)
+    R_expected += brterm(H, A_op, spectra, cutoff, fock_basis=True)
 
     assert isinstance(R, qutip.Qobj)
     assert isinstance(R_expected, qutip.Qobj)
@@ -281,8 +275,9 @@ def test_bloch_redfield_tensor(cutoff):
                                rtol=1e-14, atol=1e-14)
 
 
-@pytest.mark.parametrize('cutoff', [0, 0.1, 1, 3, np.inf])
-def test_bloch_redfield_tensor_time_dependence(cutoff):
+@pytest.mark.parametrize('fock_basis', [True, False])
+@pytest.mark.parametrize('cutoff', [0, 0.1, 1, 3, -1])
+def test_bloch_redfield_tensor_time_dependence(cutoff, fock_basis):
     N = 3
     H = qutip.QobjEvo([qutip.num(N), "t"])
     a = qutip.QobjEvo([qutip.destroy(N), "t/2+0.5"])
@@ -292,19 +287,19 @@ def test_bloch_redfield_tensor_time_dependence(cutoff):
         H=H,
         a_ops=[(A_op, spectra)],
         c_ops=[qutip.destroy(N)],
-        use_secular=cutoff<1e15,
         sec_cutoff=cutoff,
-        fock_basis=True
+        fock_basis=fock_basis
     )
+    R = R[0] if not fock_basis else R
     assert isinstance(R, qutip.QobjEvo)
     for t in [0, 0.5, 1.0, 1.5]:
         R_expected = bloch_redfield_tensor(
             H=H(t),
             a_ops=[(A_op(t), spectra)],
             c_ops=[qutip.destroy(N)],
-            use_secular=cutoff<1e15,
             sec_cutoff=cutoff,
-            fock_basis=True
+            fock_basis=fock_basis
         )
+        R_expected = R_expected[0] if not fock_basis else R_expected
         np.testing.assert_allclose(R(t).full(), R_expected.full(),
                                    rtol=1e-14, atol=1e-14)

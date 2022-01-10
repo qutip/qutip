@@ -26,9 +26,10 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
 
     Parameters
     ----------
-    H : Qobj / list
-        System Hamiltonian given as a Qobj or
-        nested list in string-based format.
+    H : :class:`Qobj`, :class:`QobjEvo`
+        Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or
+        QobjEvo. list of [:class:`Qobj`, :class:`Coefficient`] or callable that
+        can be made into :class:`QobjEvo` are also accepted.
 
     psi0: Qobj
         Initial density matrix or state vector (ket).
@@ -126,8 +127,7 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
             raise TypeError("a_ops's spectra not known")
 
     solver = BRSolver(
-        H, new_a_ops, c_ops, options=options,
-        use_secular=(sec_cutoff>=0.), sec_cutoff=sec_cutoff,
+        H, new_a_ops, c_ops, options=options, sec_cutoff=sec_cutoff,
     )
 
     return solver.run(psi0, tlist, e_ops=e_ops)
@@ -141,9 +141,9 @@ class BRSolver(Solver):
     Parameters
     ----------
     H : :class:`Qobj`, :class:`QobjEvo`
-        Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or QobjEvo.
-        list of [:class:`Qobj`, :class:`Coefficient`] or callable that can be
-        made into :class:`QobjEvo` are also accepted.
+        Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or
+        QobjEvo. list of [:class:`Qobj`, :class:`Coefficient`] or callable that
+        can be made into :class:`QobjEvo` are also accepted.
 
     a_ops : list of (a_op, spectra)
         Nested list of system operators that couple to the environment,
@@ -172,6 +172,10 @@ class BRSolver(Solver):
     options : SolverOptions
         Options for the solver
 
+    sec_cutoff : float {0.1}
+        Cutoff for secular approximation. Use ``-1`` if secular approximation
+        is not used when evaluating bath-coupling terms.
+
     attributes
     ----------
     stats: dict
@@ -180,8 +184,7 @@ class BRSolver(Solver):
     name = "brmesolve"
     _avail_integrators = {}
 
-    def __init__(self, H, a_ops, c_ops=None, *,
-                 use_secular=True, sec_cutoff=0.1, options=None):
+    def __init__(self, H, a_ops, c_ops=None, *, sec_cutoff=0.1, options=None):
         _time_start = time()
 
         self.options = options
@@ -203,7 +206,7 @@ class BRSolver(Solver):
         }.get(self.options.ode['operator_data_type'], 'data')
 
         rhs = bloch_redfield_tensor(
-            H, a_ops, c_ops, use_secular=use_secular, sec_cutoff=sec_cutoff,
+            H, a_ops, c_ops, sec_cutoff=sec_cutoff,
             fock_basis=True, sparse_eigensolver=False, br_dtype=tensor_type)
         super().__init__(rhs, options=self.options)
 

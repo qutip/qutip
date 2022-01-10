@@ -33,10 +33,9 @@ def test_simple_qubit_system(me_c_ops, brme_c_ops, brme_a_ops):
     H = delta * 0.5 * qutip.sigmax() + epsilon * 0.5 * qutip.sigmaz()
     psi0 = (2 * qutip.basis(2, 0) + qutip.basis(2, 1)).unit()
     times = np.linspace(0, 10, 100)
-    me = qutip.mesolve(H, psi0, times, c_ops=me_c_ops, e_ops=e_ops).expect
-    brme = brmesolve(H, psi0, times, brme_a_ops,
-                     e_ops=e_ops, c_ops=brme_c_ops).expect
-    for me_expectation, brme_expectation in zip(me, brme):
+    me = qutip.mesolve(H, psi0, times, c_ops=me_c_ops, e_ops=e_ops)
+    brme = brmesolve(H, psi0, times, brme_a_ops, e_ops=e_ops, c_ops=brme_c_ops)
+    for me_expectation, brme_expectation in zip(me.expect, brme.expect):
         np.testing.assert_allclose(me_expectation, brme_expectation, atol=1e-2)
 
 

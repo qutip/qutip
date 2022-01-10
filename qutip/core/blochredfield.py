@@ -10,7 +10,7 @@ from ._brtensor import _BlochRedfieldElement
 __all__ = ['bloch_redfield_tensor', 'brterm']
 
 
-def bloch_redfield_tensor(H, a_ops, c_ops=[], use_secular=True, sec_cutoff=0.1,
+def bloch_redfield_tensor(H, a_ops, c_ops=[], sec_cutoff=0.1,
                           fock_basis=False, sparse_eigensolver=False,
                           br_dtype='sparse'):
     """
@@ -48,12 +48,9 @@ def bloch_redfield_tensor(H, a_ops, c_ops=[], use_secular=True, sec_cutoff=0.1,
     c_ops : list
         List of system collapse operators.
 
-    use_secular : bool {True}
-        Flag that indicates if the secular approximation should
-        be used.
-
     sec_cutoff : float {0.1}
-        Threshold for secular approximation.
+        Cutoff for secular approximation. Use ``-1`` if secular approximation
+        is not used when evaluating bath-coupling terms.
 
     fock_basis : bool {False}
         Whether to return the tensor in the input basis or the diagonalized
@@ -79,7 +76,7 @@ def bloch_redfield_tensor(H, a_ops, c_ops=[], use_secular=True, sec_cutoff=0.1,
 
     if fock_basis:
         for a_op in a_ops:
-            R += brterm(H_transform, *a_op, use_secular, sec_cutoff, True,
+            R += brterm(H_transform, *a_op, sec_cutoff, True,
                         br_dtype=br_dtype)
         return R
     else:
@@ -92,12 +89,12 @@ def bloch_redfield_tensor(H, a_ops, c_ops=[], use_secular=True, sec_cutoff=0.1,
         evec = H_transform.as_Qobj()
         R = sprepost(evec, evec.dag()) @ R @ sprepost(evec.dag(), evec)
         for a_op in a_ops:
-            R += brterm(H_transform, *a_op,
-                        use_secular, sec_cutoff, False, br_dtype=br_dtype)[0]
+            R += brterm(H_transform, *a_op, sec_cutoff,
+                        False, br_dtype=br_dtype)[0]
         return R, H_transform.as_Qobj()
 
 
-def brterm(H, a_op, spectra, use_secular=True, sec_cutoff=0.1,
+def brterm(H, a_op, spectra, sec_cutoff=0.1,
            fock_basis=False, sparse_eigensolver=False, br_dtype='sparse'):
     """
     Calculates the contribution of one coupling operator to the Bloch-Redfield
@@ -123,12 +120,9 @@ def brterm(H, a_op, spectra, use_secular=True, sec_cutoff=0.1,
             coefficient('w>0', args={"w": 0})
             SpectraCoefficient(coefficient(Cubic_Spline))
 
-    use_secular : bool {True}
-        Flag that indicates if the secular approximation should
-        be used.
-
     sec_cutoff : float {0.1}
-        Threshold for secular approximation.
+        Cutoff for secular approximation. Use ``-1`` if secular approximation
+        is not used when evaluating bath-coupling terms.
 
     fock_basis : bool {False}
         Whether to return the tensor in the input basis or the diagonalized
@@ -155,7 +149,7 @@ def brterm(H, a_op, spectra, use_secular=True, sec_cutoff=0.1,
     else:
         Hdiag = _EigenBasisTransform(QobjEvo(H), sparse=sparse_eigensolver)
 
-    sec_cutoff = sec_cutoff if use_secular else np.inf
+    sec_cutoff = sec_cutoff if sec_cutoff >= 0 else np.inf
     R = QobjEvo(_BlochRedfieldElement(Hdiag, QobjEvo(a_op), spectra,
                 sec_cutoff, not fock_basis, dtype=br_dtype))
 
