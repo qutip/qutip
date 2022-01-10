@@ -21,7 +21,7 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
     """
     Solves for the dynamics of a system using the Bloch-Redfield master
     equation, given an input Hamiltonian, Hermitian bath-coupling terms and
-    their associated spectrum functions, as well as possible Lindblad collapse
+    their associated spectral functions, as well as possible Lindblad collapse
     operators.
 
     Parameters
@@ -131,6 +131,7 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
     )
 
     return solver.run(psi0, tlist, e_ops=e_ops)
+
 
 class BRSolver(Solver):
     """

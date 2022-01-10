@@ -263,7 +263,7 @@ cdef class _BlochRedfieldElement(_BaseElement):
             return _br_term_sparse(A_eig, self.spectrum, self.skew, cutoff)
         elif self.tensortype == DATA:
             return _br_term_data(A_eig, self.spectrum, self.skew, cutoff)
-        raise RuntimeError('Wrong tensortype')
+        raise ValueError('Invalid tensortype')
 
     cpdef object qobj(self, double t):
         return Qobj(self.data(t), dims=self.dims, type="super",

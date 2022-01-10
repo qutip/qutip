@@ -34,7 +34,7 @@ def bloch_redfield_tensor(H, a_ops, c_ops=[], use_secular=True, sec_cutoff=0.1,
         spectra : :class:`Coefficient`
             The corresponding bath spectra.
             Can be a `Coefficient` using an 'w' args or a function of the
-            frequence. The `SpectraCoefficient` can be used to use array based
+            frequency. The `SpectraCoefficient` can be used to use array based
             coefficient. They can also depend on ``t`` if the corresponding
             ``a_op`` is a :cls:`QobjEvo`.
 
@@ -69,7 +69,7 @@ def bloch_redfield_tensor(H, a_ops, c_ops=[], use_secular=True, sec_cutoff=0.1,
     Returns
     -------
     R, [evecs]: :class:`qutip.Qobj`, tuple of :class:`qutip.Qobj`
-        If ``fock_basis``, return the Bloch Redfield tensor in the outside
+        If ``fock_basis``, return the Bloch Redfield tensor in the laboratory
         basis. Otherwise return the Bloch Redfield tensor in the diagonalized
         Hamiltonian basis and the eigenvectors of the Hamiltonian as hstacked
         column.

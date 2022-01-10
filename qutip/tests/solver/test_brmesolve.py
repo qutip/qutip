@@ -167,8 +167,6 @@ def test_solver_accepts_list_hamiltonian():
         np.testing.assert_allclose(me_expectation, brme_expectation, atol=1e-8)
 
 
-# test_time_dependence
-
 def test_jaynes_cummings_zero_temperature():
     N = 10
     a = qutip.tensor(qutip.destroy(N), qutip.qeye(2))
