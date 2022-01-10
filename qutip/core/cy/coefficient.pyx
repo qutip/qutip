@@ -387,8 +387,8 @@ cdef class InterCoefficient(Coefficient):
         must be increasing, but do not need to be uniformly spaced.
 
     order : int
-        Order of the interpolation. Order ``0`` uses the previous (i.e. left) value. The order
-        will be reduced to ``len(tlist) - 1`` if it is larger.
+        Order of the interpolation. Order ``0`` uses the previous (i.e. left)
+        value. The order will be reduced to ``len(tlist) - 1`` if it is larger.
     """
     cdef int order
     cdef double dt
@@ -536,7 +536,7 @@ cdef Coefficient add_inter(InterCoefficient left, InterCoefficient right):
             left.dt
         )
     else:
-        # TODO: It would be possible to add them by merging tlist.
+        # It would be possible to add them by merging tlist.
         return SumCoefficient(left, right)
 
 
