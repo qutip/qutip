@@ -1,9 +1,14 @@
+# Needed to defer evaluating type hints so that we don't need forward
+# references and can hide type hint–only imports from runtime usage.
+from __future__ import annotations
+
 from base64 import b64decode
 from enum import Enum, auto
+import os
+from tempfile import NamedTemporaryFile
 from typing import Union, overload, TYPE_CHECKING
 if TYPE_CHECKING:
     from typing_extensions import Literal
-
 
 try:
     import pyqir_generator as pqg
@@ -12,6 +17,15 @@ except ImportError:
         import pyqir.generator as pqg
     except ImportError as ex:
         raise ImportError("qutip.qip.qir depends on PyQIR") from ex
+
+try:
+    import pyqir_parser as pqp
+except ImportError:
+    try:
+        import pyqir.pyqir_parser as pqp
+    except ImportError as ex:
+        raise ImportError("qutip.qip.qir depends on PyQIR") from ex
+
 
 from qutip.qip.circuit import Gate, Measurement, QubitCircuit
 
@@ -33,9 +47,11 @@ class QirFormat(Enum):
     #: Specifies that QIR should be encoded as plain text (typicaly, files
     #: ending in `.ll`).
     TEXT = auto()
+    #: Specifies that QIR should be encoded as a PyQIR module object.
+    MODULE = auto()
 
     @classmethod
-    def ensure(cls, val : Union[Literal["bitcode", "text"], "QirFormat"]) -> "QirFormat":
+    def ensure(cls, val : Union[Literal["bitcode", "text", "module"], QirFormat]) -> QirFormat:
         """
         Given a value, returns a value ensured to be of type `QirFormat`,
         attempting to convert if needed.
@@ -47,11 +63,15 @@ class QirFormat(Enum):
 
         return cls(val)
 
+# Specify return types for each different format, so that IDE tooling and type
+# checkers can resolve the return type based on arguments.
 @overload
 def circuit_to_qir(circuit : QubitCircuit, format : Literal[QirFormat.BITCODE, "bitcode"], module_name : str = "qutip_circuit") -> bytes: ...
 @overload
 def circuit_to_qir(circuit : QubitCircuit, format : Literal[QirFormat.TEXT, "text"], module_name : str = "qutip_circuit") -> str: ...
-def circuit_to_qir(circuit : QubitCircuit, format : Union[QirFormat, Literal["bitcode", "text"]] = QirFormat.BITCODE, module_name : str = "qutip_circuit") -> Union[str, bytes]:
+@overload
+def circuit_to_qir(circuit : QubitCircuit, format : Literal[QirFormat.MODULE, "module"], module_name : str = "qutip_circuit") -> pqp.QirModule: ...
+def circuit_to_qir(circuit : QubitCircuit, format : Union[QirFormat, Literal["bitcode", "text"]] = QirFormat.BITCODE, module_name : str = "qutip_circuit") -> Union[str, bytes, pqp.QirModule]:
     fmt = QirFormat.ensure(format)
 
     builder = pqg.QirBuilder(module_name)
@@ -112,5 +132,18 @@ def circuit_to_qir(circuit : QubitCircuit, format : Union[QirFormat, Literal["bi
         return builder.get_ir_string()
     elif fmt == QirFormat.BITCODE:
         return b64decode(builder.get_bitcode_base64_string())
+    elif fmt == QirFormat.MODULE:
+        bitcode = b64decode(builder.get_bitcode_base64_string())
+        f = NamedTemporaryFile(suffix='.bc', delete=False)
+        try:
+            f.write(bitcode)
+        finally:
+            f.close()
+        module = pqp.QirModule(f.name)
+        try:
+            os.unlink(f.name)
+        except:
+            pass
+        return module
     else:
         assert False, "Internal error; should have caught invalid format enum earlier."
