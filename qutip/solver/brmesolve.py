@@ -97,7 +97,11 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         or a list of states for the times specified by `tlist`.
 
     .. note:
-        operator_data_type
+        The option ``operator_data_type`` is used to determine in which format
+        the bloch redfield tensor is computed. Use 'csr' for sparse and 'dense'
+        for dense array. With 'data', it will try to use the same data type as
+        the ``a_ops``, but it is usually less efficient than manually choosing
+        it.
     """
     H = QobjEvo(H, args=args, tlist=tlist)
 
