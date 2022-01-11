@@ -353,3 +353,39 @@ def _blas_info():
     else:
         blas = 'Generic'
     return blas
+
+
+def available_cpu_count():
+    """
+    Get the number of cpus.
+    It tries to only get the number available to qutip.
+    """
+    import os
+    import multiprocessing
+    if 'QUTIP_NUM_PROCESSES' in os.environ:
+        num_cpu = int(os.environ['QUTIP_NUM_PROCESSES'])
+        if num_cpu != 0:
+            return num_cpu
+
+    elif 'SLURM_CPUS_PER_TASK' in os.environ:
+        return int(os.environ['SLURM_CPUS_PER_TASK'])
+
+    try:
+        import psutil
+        # cpu_affinity detect the actual number of cpus that can be used by the
+        # process, with limitation set by the os.
+        num_cpus = len(psutil.Process().cpu_affinity())
+    except ImportError:
+        pass
+
+    try:
+        return len(os.sched_getaffinity(0))
+    except Exception:
+        pass
+
+    try:
+        return multiprocessing.cpu_count()
+    except NotImplementedError:
+        pass
+
+    return 1

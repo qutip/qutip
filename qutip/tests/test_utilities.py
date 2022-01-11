@@ -1,6 +1,7 @@
 import numpy as np
 from qutip import convert_unit, clebsch, n_thermal
 import qutip.utilities as utils
+from qutip.utilities import available_cpu_count
 from functools import partial
 import pytest
 
@@ -105,3 +106,8 @@ def test_unit_clebsch_delta_m(j1, j2):
                 sum_differ += c1*c2
         assert sum_match == pytest.approx(1)
         assert sum_differ == pytest.approx(int(m1 == m1p and m2 == m2p))
+
+def test_cpu_count():
+    ncpus = available_cpu_count()
+    assert isinstance(ncpus, int)
+    assert ncpus >= 1
