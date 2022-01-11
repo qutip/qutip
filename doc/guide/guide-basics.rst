@@ -269,7 +269,7 @@ We have seen that a quantum object has several internal attributes, such as data
    >>> q.shape
    (4, 4)
 
-In general, the attributes (properties) of a ``Qobj`` object (or any Python class) can be retrieved using the `Q.attribute` notation.  In addition to the attributes shown with the ``print`` function, the ``Qobj`` class also has the following:
+In general, the attributes (properties) of a ``Qobj`` object (or any Python class) can be retrieved using the `Q.attribute` notation.  In addition to the attributes shown with the ``print`` function, the ``Qobj`` class also has the following attributes:
 
 .. cssclass:: table-striped
 
@@ -295,7 +295,7 @@ In general, the attributes (properties) of a ``Qobj`` object (or any Python clas
    :align: center
    :width: 3.5in
 
-   The ``Qobj`` Class viewed as a container for the properties need to characterize a quantum operator or state vector.
+   The ``Qobj`` Class viewed as a container for the properties needed to characterize a quantum operator or state vector.
 
 
 For the destruction operator above:
