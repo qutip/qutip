@@ -57,7 +57,7 @@ To begin, let us create a blank ``Qobj``:
 
 where we see the blank ``Qobj`` object with dimensions, shape, and data. Here the data corresponds to a 1x1-dimensional matrix consisting of a single zero entry.
 
-.. Hint:: By convention, the names of Python classes Python, such as ``Qobj()``, are capitalized and the names of functions are not.
+.. Hint:: By convention, the names of Python classes, such as ``Qobj()``, are capitalized and the names of functions are not.
 
 We can create a ``Qobj`` with a user defined data set by passing a list or array of data into the ``Qobj``:
 
@@ -114,7 +114,9 @@ We can create a ``Qobj`` with a user defined data set by passing a list or array
      [0.60111501 0.70807258 0.02058449 0.96990985]
      [0.83244264 0.21233911 0.18182497 0.18340451]]
 
-Notice how both the dims and shape change according to the input data.  Although dims and shape appear to be the same, dims keep track of the shapes for individual components of a multipartite system, while shape does not. See the section on :ref:`tensor products and partial traces <tensor>` and the table below.
+Notice how both the dims and shape change according to the input data.  Although dims and shape appear to be the same, 
+dims keep track of the shapes for individual components of a multipartite system, while shape does not. See the section 
+on :ref:`tensor products and partial traces <tensor>`.
 
 .. note:: If you are running QuTiP from a python script you must use the :func:`print` function to view the Qobj attributes.
 
