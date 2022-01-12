@@ -750,7 +750,8 @@ The :func:`qutip.expect` function also accepts lists or arrays of state vectors 
 
     [ 0.+0.j  0.+1.j -1.+0.j  0.-1.j]
 
-Notice how in this last example, all of the return values are complex numbers.  This is because the :func:`qutip.expect` function looks to see whether the operator is Hermitian or not.  If the operator is Hermitian, then the output will always be real.  In the case of non-Hermitian operators, the return values may be complex.  Therefore, the :func:`qutip.expect` function will return an array of complex values for non-Hermitian operators when the input is a list/array of states or density matrices.
+Notice how in this last example, all of the return values are complex numbers.  This is because the :func:`qutip.expect` 
+function looks to see whether the operator is Hermitian or not.  If the operator is Hermitian, then the output will always be real.  In the case of non-Hermitian operators, the return values may be complex.  Therefore, the :func:`qutip.expect` function will return an array of complex values for non-Hermitian operators when the input is a list/array of states or density matrices.
 
 Of course, the :func:`qutip.expect` function works for spin states and operators:
 
@@ -843,8 +844,8 @@ This isomorphism is implemented in QuTiP by the
 
     np.testing.assert_almost_equal((rho - rho2).norm(), 0)
 
-The :attr:`~qutip.Qobj.type` attribute indicates whether a quantum object is
-a vector corresponding to an operator (``operator-ket``), or to its Hermitian
+There a several types of quantum objects: bra (``bra``) and ket (``ket``) state vectors, operators (``operator``) , ket and bra vectors corresponding to operators (``operator-ket``) and (``operator-bra``) and superoperators (``super``) . 
+The :attr:`~qutip.Qobj.type` attribute indicates to which type the object belongs.  (``operator-ket``), or to its Hermitian
 conjugate (``operator-bra``).
 
 QuTiP uses the *column-stacking* convention for the isomorphism
