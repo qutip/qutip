@@ -33,7 +33,8 @@ def dimension(request):
 
 
 @pytest.fixture(scope="function", params=[
-    pytest.param(rand_super, id="super")
+    pytest.param(rand_super, id="super"),
+    pytest.param(rand_super_bcsz, id="super_bcz")
 ])
 def superoperator(request, dimension):
     return request.param(dimension)
