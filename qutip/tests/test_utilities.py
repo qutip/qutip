@@ -61,7 +61,6 @@ def test_unit_conversions_bad_unit():
         convert_unit(10, orig="J", to="bad")
 
 
-
 @pytest.mark.parametrize('j1', [0.5, 1.0, 1.5, 2.0, 5, 7.5, 10, 12.5])
 @pytest.mark.parametrize('j2', [0.5, 1.0, 1.5, 2.0, 5, 7.5, 10, 12.5])
 def test_unit_clebsch_delta_j(j1, j2):
@@ -106,6 +105,7 @@ def test_unit_clebsch_delta_m(j1, j2):
                 sum_differ += c1*c2
         assert sum_match == pytest.approx(1)
         assert sum_differ == pytest.approx(int(m1 == m1p and m2 == m2p))
+
 
 def test_cpu_count():
     ncpus = available_cpu_count()
