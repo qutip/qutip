@@ -516,32 +516,31 @@ class QInstrument(object):
             for label, process in self._processes.items()
         })
 
-    # CLASS METHODS
-    # Factory methods to help quickly construct new instruments.
+## FACTORY FUNCTIONS ##
 
-    @classmethod
-    def basis_measurement(cls, N=2):
-        return cls([
-            qutip.states.projection(N, idx, idx)
-            for idx in range(N)
-        ])
+def basis_measurement(N=2):
+    return QInstrument([
+        qutip.states.projection(N, idx, idx)
+        for idx in range(N)
+    ])
 
-    @classmethod
-    # TODO: Change to list[Pauli], use _ensure_pauli to promote to string.
-    def pauli_measurement(cls, pauli: Optional[Union[PauliString, str]] = None):
-        """
-        Returns an instrument that performs a half-space measurement on a
-        given Pauli operator.
-        """
-        # If pauli isn't an instance of PauliString, try to promote it.
-        pauli = PauliString(pauli) if isinstance(pauli, str) else pauli
-        pauli = replace(pauli if pauli is not None else PauliString("+Z"), phase=0)
-        op = (pauli).as_qobj()
-        eye = ops.qeye(op.dims[0])
-        return QInstrument({
-            Seq(pauli): (op + eye) / 2,
-            Seq(-pauli): (op - eye) / 2
-        })
+# TODO: Change to list[Pauli], use _ensure_pauli to promote to string.
+def pauli_measurement(pauli: Optional[Union[PauliString, str]] = None):
+    """
+    Returns an instrument that performs a half-space measurement on a
+    given Pauli operator.
+    """
+    # If pauli isn't an instance of PauliString, try to promote it.
+    pauli = PauliString(pauli) if isinstance(pauli, str) else pauli
+    pauli = replace(pauli if pauli is not None else PauliString("+Z"), phase=0)
+    op = (pauli).as_qobj()
+    eye = ops.qeye(op.dims[0])
+    return QInstrument({
+        Seq(pauli): (op + eye) / 2,
+        Seq(-pauli): (op - eye) / 2
+    })
+
+## INTERNAL UTILITY FUNCTIONS ##
 
 def _instrument_tensor(qlist):
     terms = list(itertools.product(*[_ensure_instrument(q)._processes.items() for q in qlist]))
