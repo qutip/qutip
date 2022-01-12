@@ -2,7 +2,7 @@
 general form of discrete-time evolution in open quantum systems.
 """
 
-__all__ = ['QInstrument', 'Seq', 'Tens']
+__all__ = ['QInstrument', 'Seq', 'Par', 'Pauli']
 
 # # Design notes
 #
@@ -19,12 +19,13 @@ __all__ = ['QInstrument', 'Seq', 'Tens']
 # measurement may be represented by tuples such as `(0,)`, `(1,)`, and so
 # forth.
 
+from enum import IntEnum
 import itertools
 import warnings
 import types
 import numbers
-from typing import Dict, Iterable, TypeVar, Union, Optional, Generic
-from dataclasses import dataclass
+from typing import Dict, Iterable, List, Tuple, TypeVar, Union, Optional, Generic
+from dataclasses import dataclass, replace
 from qutip.core import Qobj
 
 @dataclass
@@ -37,6 +38,67 @@ class Outcome:
         return cls(probability=qobj.tr(), output_state=qobj.unit())
 
 # TODO: Need better names for these two classes!
+class Pauli(IntEnum):
+    I = 0
+    X = 1
+    Y = 3
+    Z = 2
+
+    def as_qobj(self):
+        if self == Pauli.I:
+            return ops.qeye(2)
+        elif self == Pauli.X:
+            return ops.sigmax()
+        elif self == Pauli.Y:
+            return ops.sigmay()
+        elif self == Pauli.Z:
+            return ops.sigmaz()
+
+# FIXME: This is a hack, since the metaclass for IntEnum adds a __new__
+#        only if we don't have one already.
+__orig_pauli_new = Pauli.__new__
+def __pauli_new(cls, value):
+    if isinstance(value, str):
+        return Pauli[value]
+    return __orig_pauli_new(cls, value)
+Pauli.__new__ = __pauli_new
+
+_PHASES = ["+", "+i", "-", "-i"]
+
+@dataclass(frozen=True)
+class PauliString:
+    phase: int # Factor of 𝑖
+    op: Tuple[Pauli]
+
+    def __init__(self, phase: Union[int, str, "PauliString"], op: Optional[List[Pauli]] = None):
+        if isinstance(phase, str):
+            value = type(self).parse(phase)
+        elif isinstance(phase, PauliString):
+            value = phase
+        else:
+            value = None
+
+        object.__setattr__(self, "phase", value.phase if value is not None else phase)
+        object.__setattr__(self, "op", tuple(value.op if value is not None else op))
+
+    @classmethod
+    def parse(cls, s):
+        sign, s = (s[0] == "-", s[1:]) if s[0] in "+-" else (False, s)
+        imag, s = (True, s[1:]) if s[0] == "i" else (False, s)
+        phase = (2 if sign else 0) + (1 if imag else 0)
+        op = list(map(Pauli, s))
+        return cls(phase, op)
+
+    def as_qobj(self):
+        return (1j ** self.phase) * tensor([P.as_qobj() for P in self.op])
+
+    def __repr__(self):
+        return _PHASES[self.phase % 4] + "".join(P.name for P in self.op)
+
+    def __neg__(self):
+        return replace(self, phase=self.phase + 2)
+
+# TODO: Need better names for these two classes as well!
 def _flatten_nested(t, items):
     return sum(
         (
@@ -57,12 +119,12 @@ class Seq(tuple):
     A sequence of measurement outcomes.
 
     Automatically flattens nested levels of `Seq`; e.g.: `Seq(Seq(1, 2), 3)`
-    is identical to `Seq(1, 2, 3)`. Nested singletons of `Tens` are implied;
-    e.g.: `Seq(Tens(1,), 2)` is identical to `Seq(1, 2)`.
+    is identical to `Seq(1, 2, 3)`. Nested singletons of `Par` are implied;
+    e.g.: `Seq(Par(1,), 2)` is identical to `Seq(1, 2)`.
     """
     def __new__(cls, *iterable):
         return super().__new__(cls,
-            _flatten_singletons(Tens, _flatten_nested(Seq, iterable))
+            _flatten_singletons(Par, _flatten_nested(Seq, iterable))
         )
 
     def __repr__(self) -> str:
@@ -73,28 +135,27 @@ class Seq(tuple):
     def __radd__(self, other):
         return Seq(*(super().__radd__(other)))
 
-class Tens(tuple):
+class Par(tuple):
     """
     A list of measurement outcomes extracted in parallel on distinct
     subsystems.
 
-    Automatically flattens nested levels of `Tens`; e.g.: `Tens(Tens(1, 2), 3)`
-    is identical to `Tens(1, 2, 3)`. Nested singletons of `Seq` are implied;
-    e.g.: `Tens(Seq(1,), 2)` is identical to `Tens(1, 2)`.
+    Automatically flattens nested levels of `Par`; e.g.: `Par(Par(1, 2), 3)`
+    is identical to `Par(1, 2, 3)`. Nested singletons of `Seq` are implied;
+    e.g.: `Par(Seq(1,), 2)` is identical to `Par(1, 2)`.
     """
     def __new__(cls, *iterable):
         return super().__new__(cls,
-            _flatten_singletons(Seq, _flatten_nested(Tens, iterable))
+            _flatten_singletons(Seq, _flatten_nested(Par, iterable))
         )
 
     def __repr__(self) -> str:
-        return f"Tens{super().__repr__()}"
+        return f"Par{super().__repr__()}"
 
     def __add__(self, other):
-        return Tens(*(super().__add__(other)))
+        return Par(*(super().__add__(other)))
     def __radd__(self, other):
-        return Tens(*(super().__radd__(other)))
-
+        return Par(*(super().__radd__(other)))
 
 
 try:
@@ -363,8 +424,16 @@ class QInstrument(object):
         """
         # TODO
 
+    def with_finite_visibility(self, eta):
+        shape = next(iter(self._processes.values())).shape
+        eye = (1 - eta) * Qobj(np.eye(*shape), dims=self.dims) / self.n_outcomes
+        return type(self)({
+            label: eta * process + eye
+            for label, process in self._processes.items()
+        })
+
     # CLASS METHODS
-    # Mostly factory methods to help quickly construct new instruments.
+    # Factory methods to help quickly construct new instruments.
 
     @classmethod
     def basis_measurement(cls, N=2):
@@ -373,11 +442,28 @@ class QInstrument(object):
             for idx in range(N)
         ])
 
+    @classmethod
+    # TODO: Change to list[Pauli], use _ensure_pauli to promote to string.
+    def pauli_measurement(cls, pauli: Optional[Union[PauliString, str]] = None):
+        """
+        Returns an instrument that performs a half-space measurement on a
+        given Pauli operator.
+        """
+        # If pauli isn't an instance of PauliString, try to promote it.
+        pauli = PauliString(pauli) if isinstance(pauli, str) else pauli
+        pauli = replace(pauli if pauli is not None else PauliString("+Z"), phase=0)
+        op = (pauli).as_qobj()
+        eye = ops.qeye(op.dims[0])
+        return QInstrument({
+            Seq(pauli): (op + eye) / 2,
+            Seq(-pauli): (op - eye) / 2
+        })
+
 def _instrument_tensor(qlist):
     terms = list(itertools.product(*[_ensure_instrument(q)._processes.items() for q in qlist]))
 
     return QInstrument({
-        Tens(*labels): super_tensor(*processes)
+        Par(*labels): super_tensor(*processes)
         for labels, processes in
         itertools.starmap(zip, terms)
     })
