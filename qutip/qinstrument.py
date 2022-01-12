@@ -1,3 +1,4 @@
+from __future__ import annotations
 """The Quantum instrument (QInstrument) class, for representing the most
 general form of discrete-time evolution in open quantum systems.
 """
@@ -37,7 +38,6 @@ class Outcome:
     def _from_qobj(cls, qobj):
         return cls(probability=qobj.tr(), output_state=qobj.unit())
 
-# TODO: Need better names for these two classes!
 class Pauli(IntEnum):
     I = 0
     X = 1
@@ -54,8 +54,8 @@ class Pauli(IntEnum):
         elif self == Pauli.Z:
             return ops.sigmaz()
 
-# FIXME: This is a hack, since the metaclass for IntEnum adds a __new__
-#        only if we don't have one already.
+# NB: This is a hack, since the metaclass for IntEnum adds a __new__
+#     only if we don't have one already.
 __orig_pauli_new = Pauli.__new__
 def __pauli_new(cls, value):
     if isinstance(value, str):
@@ -106,7 +106,6 @@ class PauliString:
         else:
             return NotImplemented
 
-# TODO: Need better names for these two classes as well!
 def _flatten_nested(t, items):
     return sum(
         (
@@ -160,6 +159,22 @@ class Seq(tuple):
     def __radd__(self, other):
         return Seq(*(super().__radd__(other)))
 
+    @classmethod
+    def parse(cls, value : str) -> cls:
+        def try_int(x):
+            try:
+                return int(x)
+            except ValueError:
+                return x.strip()
+
+        return cls(
+            Par(*(
+                Seq(*map(try_int, seq.split(",")))
+                for seq in value.split(";")
+            ))
+        )
+
+
 class Par(tuple):
     """
     A list of measurement outcomes extracted in parallel on distinct
@@ -199,7 +214,7 @@ def _is_iterable(value):
     except:
         return False
 
-def _normalize_as_instrument(instrument_like):
+def _normalize_as_instrument(instrument_like, parse : bool = True):
     """
     """
     # Is the input already literally an instrument? Then copy and return its
@@ -215,7 +230,10 @@ def _normalize_as_instrument(instrument_like):
         # values may need to be promoted to super.
         processes = {}
         for label, value in instrument_like.items():
-            label = label if isinstance(label, Seq) else Seq(label, )
+            if parse and isinstance(label, str):
+                label = Seq.parse(label)
+            else:
+                label = label if isinstance(label, Seq) else Seq(label, )
             if isinstance(value, QInstrument):
                 for inner_label, inner_value in value._processes.items():
                     processes[Seq(label, inner_label)] = inner_value
@@ -274,11 +292,14 @@ class QInstrument(object):
     # define __array__.
     __array_ufunc__ = None
 
-    def __init__(self, input=None):
+    def __init__(self, input=None, parse : bool = True):
         """
-        TODO
+        :param parse: If `True`, string labels will be parsed, with `,` implying
+            sequences and `;` implying parallel. For example, `0,1,2;3,4` is
+            equivalent to `Seq(Par(Seq(0, 1, 2), Seq(3, 4)))`. More general
+            cases can be constructed by using `Seq` and `Par` directly.
         """
-        self._processes = _normalize_as_instrument(input)
+        self._processes = _normalize_as_instrument(input, parse)
         _require_consistant_dims(self._processes.values())
 
     @property
