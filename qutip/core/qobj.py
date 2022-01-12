@@ -549,6 +549,17 @@ class Qobj:
                     isunitary=self._isunitary,
                     copy=False)
 
+    # The next few operator overload methods allow `A & B` to mean
+    # 𝐴 ⊗ 𝐵 and `A ^ n` to mean ⊗ᵢ₌₁ⁿ 𝐴.
+    def __and__(self, other):
+        return tensor.tensor(self, other)
+
+    def __rand__(self, other):
+        return tensor.tensor(other, self)
+
+    def __xor__(self, n):
+        return tensor.tensor([self] * n)
+
     def __getitem__(self, ind):
         # TODO: should we require that data-layer types implement this?  This
         # isn't the right way of handling it, for sure.
@@ -1746,6 +1757,34 @@ class Qobj:
         reps = ('choi', 'chi')
         q_oper = to_choi(self) if self.superrep not in reps else self
         return q_oper.iscp and q_oper.istp
+
+    @property
+    def is_trace_annhilating(self):
+        import qutip.core.superop_reps as sr
+        import qutip.core.operators as ops
+        if self.type in ["super", "oper"]:
+            try:
+                # TODO: Consolidate with istp.
+                if self.type == "super" and self.superrep in ('choi', 'chi'):
+                    qobj = self
+                else:
+                    qobj = sr.to_choi(self)
+
+                # Possibly collapse dims.
+                if any(
+                    len(index) > 1
+                    for super_index in qobj.dims for index in super_index
+                ):
+                    qobj = Qobj(qobj, dims=collapse_dims_super(qobj.dims))
+                else:
+                    qobj = qobj
+
+                tr_oper = qobj.ptrace([0])
+                return tr_oper.norm('one') <= 1e-10
+            except TypeError:
+                return False
+        else:
+            return False
 
     @property
     def isherm(self):

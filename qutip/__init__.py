@@ -132,6 +132,7 @@ from .partial_transpose import *
 from .continuous_variables import *
 from .distributions import *
 from .three_level_atom import *
+from .qinstrument import *
 
 ########################################################################
 # This section exists only for the deprecation warning of qip importation.

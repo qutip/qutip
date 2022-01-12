@@ -84,6 +84,7 @@ shape = [4, 4], type = oper, isHerm = True
      [ 1.+0.j  0.+0.j  0.+0.j  0.+0.j]]
     """
     from .cy.qobjevo import QobjEvo
+    from ..qinstrument import QInstrument, _instrument_tensor
     if not args:
         raise TypeError("Requires at least one input argument")
     if len(args) == 1 and isinstance(args[0], (Qobj, QobjEvo)):
@@ -93,7 +94,7 @@ shape = [4, 4], type = oper, isHerm = True
             args = tuple(args[0])
         except TypeError:
             raise TypeError("requires Qobj or QobjEvo operands") from None
-    if not all(isinstance(q, (Qobj, QobjEvo)) for q in args):
+    if not all(isinstance(q, (Qobj, QobjEvo, QInstrument)) for q in args):
         raise TypeError("requires Qobj or QobjEvo operands")
     if any(isinstance(q, QobjEvo) for q in args):
         # First make tensor from pairs only
@@ -108,6 +109,11 @@ shape = [4, 4], type = oper, isHerm = True
         left_t = left.linear_map(_reverse_partial_tensor(qeye(right.dims[0])))
         right_t = right.linear_map(partial(tensor, qeye(left.dims[1])))
         return left_t @ right_t
+
+    # If anything is an instrument, delegate to the implementation in
+    # qinstrument.py.
+    if any(isinstance(q, QInstrument) for q in args):
+        return _instrument_tensor(args)
 
     if not all(q.superrep == args[0].superrep for q in args[1:]):
         raise TypeError("".join([
