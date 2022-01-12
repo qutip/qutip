@@ -301,7 +301,6 @@ def _generalized_kraus(q_oper, thresh=1e-10):
 
     # Remember the shape of the underlying space,
     # as we'll need this to make Kraus operators later.
-
     # Also remember the dims breakout.
     out_dims, in_dims = q_oper.dims
     out_left, out_right = out_dims
