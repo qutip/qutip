@@ -297,7 +297,8 @@ class QInstrument(object):
 
     @property
     def nonselective_process(self):
-        return sum(self._processes.values())
+        values = list(self._processes.values())
+        return sum(values[1:], values[0])
 
     @property
     def iscp(self):

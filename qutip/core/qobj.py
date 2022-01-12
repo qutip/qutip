@@ -552,13 +552,13 @@ class Qobj:
     # The next few operator overload methods allow `A & B` to mean
     # 𝐴 ⊗ 𝐵 and `A ^ n` to mean ⊗ᵢ₌₁ⁿ 𝐴.
     def __and__(self, other):
-        return tensor.tensor(self, other)
+        return tensor(self, other)
 
     def __rand__(self, other):
-        return tensor.tensor(other, self)
+        return tensor(other, self)
 
     def __xor__(self, n):
-        return tensor.tensor([self] * n)
+        return tensor([self] * n)
 
     def __getitem__(self, ind):
         # TODO: should we require that data-layer types implement this?  This
