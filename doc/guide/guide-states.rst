@@ -844,7 +844,7 @@ This isomorphism is implemented in QuTiP by the
 
     np.testing.assert_almost_equal((rho - rho2).norm(), 0)
 
-There a several types of quantum objects: bra (``bra``) and ket (``ket``) state vectors, operators (``operator``) , ket and bra vectors corresponding to operators (``operator-ket``) and (``operator-bra``) and superoperators (``super``) . 
+There a several types of quantum objects: bra (``bra``) and ket (``ket``) state vectors, operators (``oper``) , ket and bra vectors corresponding to operators (``operator-ket``) and (``operator-bra``) and superoperators (``super``) . 
 The :attr:`~qutip.Qobj.type` attribute indicates to which type the object belongs.  (``operator-ket``), or to its Hermitian
 conjugate (``operator-bra``).
 
