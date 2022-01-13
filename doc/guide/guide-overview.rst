@@ -12,4 +12,6 @@ The goal of this guide is to introduce you to the basic structures and functions
 Organization
 =============
 
-QuTiP is a general framework for solving quantum mechanics problems such as systems composed of few-level quantum systems and harmonic oscillators. To this end, QuTiP is built from a large (and ever growing) library of functions and classes; from :func:`qutip.states.basis` to :func:`qutip.wigner`.  The general organization of QuTiP, highlighting the important API available to the user, is shown in the figure below.
+QuTiP is a general framework for solving quantum mechanics problems such as systems composed of few-level quantum systems and 
+harmonic oscillators. To this end, QuTiP is built from a large (and ever growing) library of functions and classes; 
+from :func:`qutip.states.basis` to :func:`qutip.wigner`.  The QuTip API consists of a set of classes and a set of functions.
