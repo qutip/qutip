@@ -374,8 +374,10 @@ def available_cpu_count():
         import psutil
         # cpu_affinity detect the actual number of cpus that can be used by the
         # process, with limitation set by the os.
-        return len(psutil.Process().cpu_affinity())
-    except ImportError:
+        _proc = psutil.Process()
+        if hasattr(_proc. "cpu_affinity":)
+            return len(psutil.Process().cpu_affinity())
+    except Exception:
         pass
 
     try:
