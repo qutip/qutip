@@ -7,7 +7,6 @@ Time Evolution and Quantum System Dynamics
 .. toctree::
    :maxdepth: 2
 
-   dynamics/dynamics-intro.rst
    dynamics/dynamics-data.rst
    dynamics/dynamics-master.rst
    dynamics/dynamics-monte.rst
