@@ -6,6 +6,7 @@ from functools import partial
 import pytest
 
 
+
 @pytest.mark.parametrize(['w', 'w_th', 'expected'], [
     pytest.param(np.log(2), 1, 1, id='log(2)'),
     pytest.param(np.log(2)*5, 5, 1, id='5*log(2)'),
@@ -107,7 +108,11 @@ def test_unit_clebsch_delta_m(j1, j2):
         assert sum_differ == pytest.approx(int(m1 == m1p and m2 == m2p))
 
 
-def test_cpu_count():
+def test_cpu_count(monkeypatch):
     ncpus = available_cpu_count()
     assert isinstance(ncpus, int)
     assert ncpus >= 1
+
+    monkeypatch.setenv("QUTIP_NUM_PROCESSES", str(ncpus + 2))
+    new_ncpus = available_cpu_count()
+    assert new_ncpus == ncpus + 2
