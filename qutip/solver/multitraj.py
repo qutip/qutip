@@ -31,6 +31,7 @@ class MultiTrajSolver:
     name = "generic multi trajectory"
     optionsclass = SolverOptions
     odeoptionsclass = SolverOdeOptions
+    resultclass = MultiTrajResult
 
     def __init__(self, rhs, *, options=None):
         self.rhs = rhs
@@ -136,7 +137,7 @@ class MultiTrajSolver:
         """
         return self._traj_solver_class(*self.traj_args, options=self.options)
 
-    def run(self, state, tlist, ntraj=1, *, args=None, options=None,
+    def run(self, state, tlist, ntraj=1, *, args=None,
             e_ops=(), timeout=1e8, target_tol=None, seed=None):
         """
         Do the evolution of the Quantum system.
@@ -199,18 +200,15 @@ class MultiTrajSolver:
             The simulation will end when the first end condition is reached
             between ``ntraj``, ``timeout`` and ``target_tol``.
         """
-        if options is not None:
-            self.options = options
-        if args is not None:
-            self._argument(args)
+        self._argument(args)
 
-        result = MultiTrajResult(
+        result = self.resultclass(
             ntraj, state, tlist, e_ops, id(self), options=self.options.results,
         )
 
         result.stats['run time'] = 0
         self._traj_solver = self._traj_solver_class(
-            *self.traj_args, options=self.options, _prepare=True
+            *self.traj_args, options=self.options,
         )
         self.add_trajectories(
             result, ntraj, target_tol=target_tol,
@@ -304,7 +302,8 @@ class MultiTrajSolver:
 
     def _argument(self, args):
         """Update the args, for the `rhs` and `c_ops` and other operators."""
-        self.rhs.arguments(args)
+        if args:
+            self.rhs.arguments(args)
 
     @property
     def traj_args(self):
@@ -328,7 +327,7 @@ class _TrajectorySolver(Solver):
     """
     name = "Generic trajectory solver"
 
-    def __init__(self, rhs, *, options=None, _prepare=False):
+    def __init__(self, rhs, *, options=None):
         super().__init__(rhs, options=options)
         if self.options.mcsolve['bitgenerator']:
             if hasattr(np.random, self.options.mcsolve['bitgenerator']):
@@ -339,13 +338,6 @@ class _TrajectorySolver(Solver):
         else:
             # We use default_rng so we don't fix a default bit_generator.
             self.bit_gen = np.random.default_rng().bit_generator.__class__
-        if _prepare:
-            # We allow the preparation of the integrator here to allow it to be
-            # initialised once for all trajectories. This speed up integrator
-            # which do heavy precomputation.
-            self._integrator = self._get_integrator()
-        else:
-            self._integrator = None
 
     def start(self, state, t0, seed=None):
         """
@@ -362,37 +354,22 @@ class _TrajectorySolver(Solver):
 
         seed : int, SeedSequence
             Seed for the random number generator.
-
-        .. note ::
-            Using the solver with ``start``, ``step`` is independent to use
-            with ``run``. Calling ``run`` between ``step`` will not affect
-            ``step``'s result.
-
         """
         _time_start = time()
         self.generator = self.get_generator(seed)
         self._state = self._prepare_state(state)
         self._t = t0
-        if not self._integrator:
-            self._integrator = self._get_integrator()
         self._integrator.set_state(self._t, self._state)
         self.stats["preparation time"] += time() - _time_start
 
-    def step(self, t, *, args=None, options=None, copy=True):
+    def step(self, t, *, args=None, copy=True):
         if not self._integrator:
             raise RuntimeError("The `start` method must called first")
-        if options is not None:
-            self.options = options
-            self._integrator = self._get_integrator()
-            self._integrator.set_state(self._t, self._state)
-        if args:
-            self._argument(args)
-            self._integrator.reset()
+        self._argument(args)
         self._t, self._state = self._step(t)
         return self._restore_state(self._state, copy=copy)
 
-    def run(self, state, tlist, *,
-            args=None, e_ops=(), options=None, seed=None):
+    def run(self, state, tlist, *, args=None, e_ops=(), seed=None):
         """
         Do the evolution of the Quantum system.
 
@@ -432,22 +409,13 @@ class _TrajectorySolver(Solver):
             Results of the evolution. States and/or expect will be saved. You
             can control the saved data in the options.
         """
-        if options is not None:
-            self.options = options
-        if args:
-            self._argument(args)
-        if not self._integrator:
-            self._integrator = self._get_integrator()
-        return self._run(seed, state, tlist, e_ops)
+        self._argument(args)
+        self.start(state, tlist[0], seed)
+        return self._run(state, tlist, e_ops)
 
-    def _run(self, seed, state, tlist, e_ops):
+    def _run(self, state, tlist, e_ops):
         """ Core loop of run for the parallel map"""
         _time_start = time()
-        self.generator = self.get_generator(seed)
-
-        _state = self._prepare_state(state)
-        self._integrator.set_state(tlist[0], _state)
-
         result = Result(e_ops, self.options.results,
                         self.rhs.issuper, _state.shape[1] != 1)
         result.add(tlist[0], state)
@@ -482,6 +450,6 @@ class _TrajectorySolver(Solver):
 
     def _argument(self, args):
         """Update the args, for the `rhs` and `c_ops` and other operators."""
-        if self._integrator is not None:
+        if args:
             self._integrator.arguments(args)
-        self.rhs.arguments(args)
+            self.rhs.arguments(args)

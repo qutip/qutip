@@ -7,6 +7,7 @@ from copy import copy
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns, liouvillian
 from .options import SolverOptions
 from .multitraj import MultiTrajSolver, _TrajectorySolver
+from .result import McResult
 from .mesolve import mesolve
 import qutip.core.data as _data
 from time import time
@@ -110,16 +111,13 @@ class _McTrajectorySolver(_TrajectorySolver):
     name = "mcsolve"
     _avail_integrators = {}
 
-    def __init__(self, rhs, c_ops, n_ops, *, options=None, _prepare=False):
+    def __init__(self, rhs, c_ops, n_ops, *, options=None):
         self._c_ops = c_ops
         self._n_ops = n_ops
-        super().__init__(rhs, options=options, _prepare=_prepare)
+        super().__init__(rhs, options=options)
 
-    def _run(self, seed, state, tlist, e_ops):
-        self.collapses = []
-        self.generator = self.get_generator(seed)
-        self.target_norm = self.generator.random()
-        result = super()._run(self.generator, state, tlist, e_ops)
+    def run(self, state, tlist, *, args=None, e_ops=(), seed=None):
+        result = super().run(state, tlist, args=args, e_ops=e_ops, seed=seed)
         result.collapse = list(self.collapses)
         result.seed = seed
         return result
@@ -221,13 +219,13 @@ class _McTrajectorySolver(_TrajectorySolver):
         self._integrator.set_state(collapse_time, state_new)
 
     def _argument(self, args):
-        if self._integrator:
+        if args:
             self._integrator.arguments(args)
-        self.rhs.arguments(args)
-        for c_op in self._c_ops:
-            c_op.arguments(args)
-        for n_op in self._n_ops:
-            n_op.arguments(args)
+            self.rhs.arguments(args)
+            for c_op in self._c_ops:
+                c_op.arguments(args)
+            for n_op in self._n_ops:
+                n_op.arguments(args)
 
 
 # -----------------------------------------------------------------------------
@@ -264,6 +262,7 @@ class McSolver(MultiTrajSolver):
     _traj_solver_class = _McTrajectorySolver
     name = "mcsolve"
     optionsclass = SolverOptions
+    resultclass = McResult
 
     def __init__(self, H, c_ops, *, options=None, seed=None):
         _time_start = time()
@@ -310,11 +309,11 @@ class McSolver(MultiTrajSolver):
     def traj_args(self):
         return (self.rhs, self._c_ops, self._n_ops)
 
-    def run(self, state, tlist, ntraj=1, *, args=None, options=None,
+    def run(self, state, tlist, ntraj=1, *, args=None,
             e_ops=(), timeout=1e8, target_tol=None, seed=None):
         result = super().run(
             state, tlist, ntraj, e_ops=e_ops,
-            args=args, options=options, seed=seed,
+            args=args, seed=seed,
             timeout=timeout, target_tol=target_tol,
         )
         result.num_c_ops = len(self._c_ops)

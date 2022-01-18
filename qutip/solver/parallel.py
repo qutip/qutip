@@ -10,17 +10,23 @@ import os
 import sys
 import time
 from qutip.ui.progressbar import progess_bars
+from qutip.solver.options import McOptions
 
 if sys.platform == 'darwin':
     Pool = multiprocessing.get_context('fork').Pool
 else:
     Pool = multiprocessing.Pool
 
-default_map_kw = {
-    'job_timeout': 1e32,  # Effectively infinite
-    'timeout': 1e32,  # Effectively infinite
-    'num_cpus': multiprocessing.cpu_count(),
-}
+
+def _read_map_kw(map_kw):
+    map_kw = map_kw or {}
+    default = McOptions()
+    return {
+        'job_timeout': map_kw.get('job_timeout', default['job_timeout']),
+        'timeout': map_kw.get('timeout', default['timeout']),
+        'num_cpus': map_kw.get('num_cpus', default['num_cpus'])
+    }
+
 
 
 def serial_map(task, values, task_args=None, task_kwargs=None, *,
@@ -68,9 +74,7 @@ def serial_map(task, values, task_args=None, task_kwargs=None, *,
     progress_bar = progess_bars[progress_bar]()
     progress_bar.start(len(values), **progress_bar_kwargs)
     remaining_ntraj = len(values)
-    map_kwargs = default_map_kw.copy()
-    if isinstance(map_kw, dict):
-        map_kwargs.update(map_kw)
+    map_kwargs = _read_map_kw(map_kw)
     end_time = map_kwargs['timeout'] + time.time()
     results = []
     for n, value in enumerate(values):
@@ -129,9 +133,7 @@ def parallel_map(task, values, task_args=None, task_kwargs=None, *,
     if task_kwargs is None:
         task_kwargs = {}
     os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
-    map_kwargs = default_map_kw.copy()
-    if isinstance(map_kw, dict):
-        map_kwargs.update(map_kw)
+    map_kwargs = _read_map_kw(map_kw)
     end_time = map_kwargs['timeout'] + time.time()
     job_time = map_kwargs['job_timeout']
 
@@ -216,9 +218,7 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None, *,
     os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
     from loky import get_reusable_executor, TimeoutError
 
-    map_kwargs = default_map_kw.copy()
-    if isinstance(map_kw, dict):
-        map_kwargs.update(map_kw)
+    map_kwargs = _read_map_kw(map_kw)
 
     progress_bar = progess_bars[progress_bar]()
     progress_bar.start(len(values), **progress_bar_kwargs)

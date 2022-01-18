@@ -53,6 +53,7 @@ class Solver:
             self.rhs = QobjEvo(rhs)
         else:
             TypeError("The rhs must be a QobjEvo")
+        self._t, self._state = None, None
         self.options = options
         self.stats = {"preparation time": 0}
         self._state_metadata = {}
@@ -98,7 +99,7 @@ class Solver:
         else:
             return Qobj(state, **self._state_metadata, copy=copy)
 
-    def run(self, state0, tlist, *, args=None, e_ops=None, options=None):
+    def run(self, state0, tlist, *, args=None, e_ops=None):
         """
         Do the evolution of the Quantum system.
 
@@ -126,9 +127,6 @@ class Solver:
             values. Function[s] must have the signature
             f(t : float, state : Qobj) -> expect.
 
-        options : SolverOptions {None}
-            Options for the solver
-
         Return
         ------
         results : :class:`qutip.solver.Result`
@@ -136,13 +134,10 @@ class Solver:
             can control the saved data in the options.
         """
         _data0 = self._prepare_state(state0)
-        _integrator = self._get_integrator()
-        if options is not None:
-            self.options = options
         if args:
-            _integrator.arguments(args)
+            self._integrator.arguments(args)
         _time_start = time()
-        _integrator.set_state(tlist[0], _data0)
+        self._integrator.set_state(tlist[0], _data0)
         self.stats["preparation time"] += time() - _time_start
         results = Result(e_ops, self.options.results,
                          self.rhs.issuper, _data0.shape[1]!=1)
@@ -150,7 +145,7 @@ class Solver:
 
         progress_bar = progess_bars[self.options['progress_bar']]()
         progress_bar.start(len(tlist)-1, **self.options['progress_kwargs'])
-        for t, state in _integrator.run(tlist):
+        for t, state in self._integrator.run(tlist):
             progress_bar.update()
             results.add(t, self._restore_state(state, copy=False))
         progress_bar.finished()
@@ -158,7 +153,7 @@ class Solver:
         self.stats['run time'] = progress_bar.total_time()
         # TODO: It would be nice if integrator could give evolution statistics
         # self.stats.update(_integrator.stats)
-        self.stats["method"] = _integrator.name
+        self.stats["method"] = self._integrator.name
         results.stats = self.stats.copy()
         results.solver = self.name
         return results
@@ -179,11 +174,10 @@ class Solver:
         _time_start = time()
         self._t = t0
         self._state = self._prepare_state(state0)
-        self._integrator = self._get_integrator()
         self._integrator.set_state(self._t, self._state)
         self.stats["preparation time"] += time() - _time_start
 
-    def step(self, t, *, args=None, options=None, copy=True):
+    def step(self, t, *, args=None, copy=True):
         """
         Evolve the state to ``t`` and return the state as a :class:`Qobj`.
 
@@ -197,23 +191,13 @@ class Solver:
             The change is effective from the beginning of the interval.
             Changing ``args`` can slow the evolution.
 
-        options : SolverOptions, optional {None}
-            Update the ``options`` of the system.
-            The change is effective from the beginning of the interval.
-            Changing ``options`` can slow the evolution.
-
         copy : bool, optional {True}
             Whether to return a copy of the data or the data in the ODE solver.
         """
-        if not self._integrator:
+        if not self._state:
             raise RuntimeError("The `start` method must called first")
-        if options is not None:
-            self.options = options
-            self._integrator = self._get_integrator()
-            self._integrator.set_state(self._t, self._state)
         if args:
             self._integrator.arguments(args)
-            self._integrator.reset()
         _time_start = time()
         self._t, self._state = self._integrator.integrate(t, copy=False)
         self.stats["run time"] += time() - _time_start
@@ -225,7 +209,6 @@ class Solver:
             self.rhs = self.rhs.to(
                 self.options.ode["operator_data_type"]
             )
-
         method = self.options.ode["method"]
         if method in self.avail_integrators():
             integrator = self.avail_integrators()[method]
@@ -249,6 +232,9 @@ class Solver:
             raise TypeError("options must be an instance of" +
                             str(self.optionsclass))
         self._options = new
+        self._integrator = self._get_integrator()
+        if self._state:
+            self._integrator.set_state(self._t, self._state)
 
     @classmethod
     def avail_integrators(cls):

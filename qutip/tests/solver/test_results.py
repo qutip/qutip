@@ -118,7 +118,7 @@ def test_multitraj_results(format, keep_runs_results):
         keep_runs_results=keep_runs_results,
         store_states=True, normalize_output=True
     )
-    m_res = MultiTrajResult(ntraj, None, np.arange(N), e_ops, options=opt)
+    m_res = McResult(ntraj, None, np.arange(N), e_ops, options=opt)
     for _ in range(ntraj):
         res = m_res.spawn(_super=False, oper_state=False)
         res.collapse = []
@@ -150,6 +150,8 @@ def test_multitraj_results(format, keep_runs_results):
     assert np.all(np.array(m_res.col_which) < 2)
     np.testing.assert_allclose(np.array(m_res.times), np.arange(N))
     assert m_res.end_condition == "ntraj reached"
+    assert isinstance(m_res.collapse, list)
+    assert len(m_res.col_which[0]) == len(m_res.col_times[0])
 
 
 @pytest.mark.parametrize('keep_runs_results', [True, False])
@@ -166,10 +168,8 @@ def test_multitraj_expect(keep_runs_results, e_ops):
                             _make_e_ops(N, e_ops), options=opt)
     for _ in range(ntraj):
         res = m_res.spawn(_super=False, oper_state=False)
-        res.collapse = []
         for i in range(N):
             res.add(i, qutip.basis(N, i) / 2)
-            res.collapse.append((i+0.5, i%2))
         m_res.add(res)
 
     if isinstance(e_ops, dict):
@@ -206,10 +206,8 @@ def test_multitraj_targettol(keep_runs_results, ttol):
     m_res.set_expect_tol(ttol)
     for _ in range(ntraj):
         res = m_res.spawn(_super=False, oper_state=False)
-        res.collapse = []
         for i in range(N):
             res.add(i, qutip.basis(N, i) * (1 - 0.5*np.random.rand()))
-            res.collapse.append((i+0.5, i%2))
         if m_res.add(res) <= 0:
             break
 

@@ -2,8 +2,9 @@
 import numpy as np
 from copy import copy
 from ..core import Qobj, QobjEvo, spre, issuper, expect
+from . import SolverResultsOptions
 
-__all__ = ["Result", "MultiTrajResult"]
+__all__ = ["Result", "MultiTrajResult", "McResult"]
 
 
 class _Expect_Caller:
@@ -91,6 +92,9 @@ class Result:
 
         self._store_final_state = options['store_final_state']
 
+        # TODO: Reminder for when reworking options
+        # By having separate option for mesolve and sesolve, we could simplify
+        # the way we decide whether to normalize the state.
         if oper_state:
             # No normalization method (yet?) for operator state (propagators).
             self._normalize_outputs = False
@@ -232,7 +236,6 @@ class MultiTrajResult:
         self.num_c_ops = 0
         self._target_ntraj = ntraj
         self._num = 0
-        self._collapse = []
         self.seeds = []
         self.stats = {
             "num_expect": self.num_e_ops,
@@ -296,8 +299,6 @@ class MultiTrajResult:
                         in zip(one_traj._expects, self._sum2_expect)
                     ]
         self._num += 1
-        if hasattr(one_traj, 'collapse'):
-            self._collapse.append(one_traj.collapse)
         if hasattr(one_traj, 'seed'):
             self.seeds.append(one_traj.seed)
 
@@ -365,29 +366,6 @@ class MultiTrajResult:
         """
         return Result(self.e_ops, self.options, _super, oper_state)
 
-    @property
-    def mean_expect(self):
-        if self._save_traj:
-            return [np.mean(
-                np.stack([traj._expects[i] for traj in self.trajectories]),
-                axis=0
-            ) for i in range(self.num_e_ops)]
-        else:
-            return [sum_expect / self._num
-                    for sum_expect in self._sum_expect]
-
-    @property
-    def mean_expect2(self):
-        if self._save_traj:
-            return [np.mean(
-                np.stack([np.abs(traj._expects[i])**2
-                          for traj in self.trajectories]),
-                axis=0
-            ) for i in range(self.num_e_ops)]
-        else:
-            return [sum_expect / self._num
-                    for sum_expect in self._sum2_expect]
-
     def _check_expect_tol(self):
         """
         Compute the error on the expectation values using jackknife resampling.
@@ -396,17 +374,20 @@ class MultiTrajResult:
         """
         if self._num <= 1:
             return np.inf
-        avg = np.array(self.mean_expect)
-        avg2 = np.array(self.mean_expect2)
+        avg = np.array(self._mean_expect())
+        avg2 = np.array(self._mean_expect2())
         target = np.array([atol + rtol * mean
-                          for mean, (atol, rtol)
-                          in zip(avg, self._target_tols)])
+                           for mean, (atol, rtol)
+                           in zip(avg, self._target_tols)])
         traj_left = np.max((avg2 - abs(avg)**2) / target**2 - self._num + 1)
         self._tol_reached = traj_left < 0
         return traj_left
 
     @property
     def runs_states(self):
+        """
+        States of every runs as ``states[run][t]``.
+        """
         if self._save_traj:
             return [traj.states for traj in self.trajectories]
         else:
@@ -414,6 +395,9 @@ class MultiTrajResult:
 
     @property
     def average_states(self):
+        """
+        States averages as density matrices.
+        """
         if not self._save_traj:
             finals = self._sum_states
         elif self.trajectories[0].states[0].isket:
@@ -429,7 +413,19 @@ class MultiTrajResult:
         return [final / self._num for final in finals]
 
     @property
+    def states(self):
+        """
+        Runs final states if available, average otherwise.
+        This imitate v4's behaviour, expect for the steady state which must be
+        obtained directly.
+        """
+        return self.runs_states or self.average_states
+
+    @property
     def runs_final_states(self):
+        """
+        Last states of each trajectories.
+        """
         if self._save_traj:
             return [traj.final_state for traj in self.trajectories]
         else:
@@ -437,6 +433,9 @@ class MultiTrajResult:
 
     @property
     def average_final_state(self):
+        """
+        Last states of each trajectories averaged into a density matrix.
+        """
         if self.trajectories[0].final_state is None:
             return None
         if not self._save_traj:
@@ -448,29 +447,84 @@ class MultiTrajResult:
         return final / self._num
 
     @property
+    def final_state(self):
+        """
+        Runs final states if available, average otherwise.
+        This imitate v4's behaviour.
+        """
+        return self.runs_final_states or self.average_final_state
+
+    @property
     def steady_state(self):
+        """
+        Average the states at all times of every runs as a density matrix.
+        Should converge to the steady state with long times.
+        """
         return sum(self.average_states) / len(self.times)
 
     def _format_expect(self, expect):
+        """
+        Restore the dict format when needed.
+        """
         if self._e_ops_dict:
             expect = {e: expect[n]
                       for n, e in enumerate(self._e_ops_dict.keys())}
         return expect
 
+    def _mean_expect(self):
+        """
+        Average of expectation values as list of numpy array.
+        """
+        if self._save_traj:
+            return [np.mean(
+                np.stack([traj._expects[i] for traj in self.trajectories]),
+                axis=0
+            ) for i in range(self.num_e_ops)]
+        else:
+            return [sum_expect / self._num
+                    for sum_expect in self._sum_expect]
+
+    def _mean_expect2(self):
+        """
+        Average of the square of expectation values as list of numpy array.
+        """
+        if self._save_traj:
+            return [np.mean(
+                np.stack([np.abs(traj._expects[i])**2
+                          for traj in self.trajectories]),
+                axis=0
+            ) for i in range(self.num_e_ops)]
+        else:
+            return [sum_expect / self._num
+                    for sum_expect in self._sum2_expect]
+
     @property
     def average_expect(self):
-        result = self.mean_expect
+        """
+        Average of the expectation values.
+        Return a ``dict`` if ``e_ops`` was one.
+        """
+        result = self._mean_expect()
         return self._format_expect(result)
 
     @property
     def std_expect(self):
-        avg = self.mean_expect
-        avg2 = self.mean_expect2
+        """
+        Standard derivation of the expectation values.
+        Return a ``dict`` if ``e_ops`` was one.
+        """
+        avg = self._mean_expect()
+        avg2 = self._mean_expect2()
         result = [np.sqrt(a2 - abs(a*a)) for a, a2 in zip(avg, avg2)]
         return self._format_expect(result)
 
     @property
     def runs_expect(self):
+        """
+        Expectation values for each trajectories as ``expect[e_op][run][t]``.
+        Return ``None`` is run data is not saved.
+        Return a ``dict`` if ``e_ops`` was one.
+        """
         if not self._save_traj:
             return None
         result = [np.stack([traj._expects[i] for traj in self.trajectories])
@@ -478,6 +532,10 @@ class MultiTrajResult:
         return self._format_expect(result)
 
     def expect_traj_avg(self, ntraj=-1):
+        """
+        Average of the expectation values for the ``ntraj`` first runs.
+        Return a ``dict`` if ``e_ops`` was one.
+        """
         if not self._save_traj:
             return None
         result = [
@@ -490,6 +548,11 @@ class MultiTrajResult:
         return self._format_expect(result)
 
     def expect_traj_std(self, ntraj=-1):
+        """
+        Standard derivation of the expectation values for the ``ntraj``
+        first runs.
+        Return a ``dict`` if ``e_ops`` was one.
+        """
         if not self._save_traj:
             return None
         result = [
@@ -502,63 +565,12 @@ class MultiTrajResult:
         return self._format_expect(result)
 
     @property
-    def collapse(self):
-        return self._collapse
-
-    @property
-    def col_times(self):
-        if self._collapse is None:
-            return None
-        out = []
-        for col_ in self.collapse:
-            col = list(zip(*col_))
-            col = ([] if len(col) == 0 else col[0])
-            out.append(col)
-        return out
-
-    @property
-    def col_which(self):
-        if self._collapse is None:
-            return None
-        out = []
-        for col_ in self.collapse:
-            col = list(zip(*col_))
-            col = ([] if len(col) == 0 else col[1])
-            out.append(col)
-        return out
-
-    @property
-    def photocurrent(self):
-        if self._collapse is None:
-            return None
-        cols = {}
-        tlist = self.times
-        for traj in self.trajectories:
-            for t, which in traj.collapse:
-                if which in cols:
-                    cols[which].append(t)
-                else:
-                    cols[which] = [t]
-        mesurement = []
-        for i in range(self.num_c_ops):
-            mesurement += [(np.histogram(cols.get(i, []), tlist)[0]
-                           / np.diff(tlist) / self._num)]
-        return mesurement
-
-    @property
-    def measurements(self):
-        if self._collapse is None:
-            return None
-        tlist = self.times
-        measurements = []
-        for collapses in self.collapse:
-            cols = [[] for _ in range(self.num_c_ops)]
-            for t, which in collapses:
-                cols[which].append(t)
-            measurement = [(np.histogram(cols[i], tlist)[0] / np.diff(tlist))
-                           for i in range(self.num_c_ops)]
-            measurements.append(measurement)
-        return measurements
+    def expect(self):
+        """
+        Runs expectation values if available, average otherwise.
+        This imitate v4's behaviour.
+        """
+        return self.runs_expect or self.average_expect
 
     def __repr__(self):
         out = ""
@@ -584,18 +596,6 @@ class MultiTrajResult:
         return self.tlist
 
     @property
-    def states(self):
-        return self.average_states
-
-    @property
-    def expect(self):
-        return self.average_expect
-
-    @property
-    def final_state(self):
-        return self.average_final_state
-
-    @property
     def num_traj(self):
         return self._num
 
@@ -615,3 +615,89 @@ class MultiTrajResult:
             return "ntraj reached"
         else:
             return "timeout"
+
+
+class McResult(MultiTrajResult):
+    # Collapse are only produced by mcsolve.
+    def __init__(self, ntraj, state, tlist, e_ops, solver_id=0, options=None):
+        super().__init__(ntraj, state, tlist,
+                         e_ops, solver_id=solver_id, options=options)
+        self._collapse = []
+
+    def add(self, one_traj):
+        super().add(one_traj)
+        if hasattr(one_traj, 'collapse'):
+            self._collapse.append(one_traj.collapse)
+
+    @property
+    def collapse(self):
+        """
+        For each runs, a list of every collapse as a tuple of the time it
+        happened and the corresponding ``c_ops`` index.
+        """
+        return self._collapse
+
+    @property
+    def col_times(self):
+        """
+        List of the times of the collapses for each runs.
+        """
+        if self._collapse is None:
+            return None
+        out = []
+        for col_ in self.collapse:
+            col = list(zip(*col_))
+            col = ([] if len(col) == 0 else col[0])
+            out.append(col)
+        return out
+
+    @property
+    def col_which(self):
+        """
+        List of the indexes of the collapses for each runs.
+        """
+        if self._collapse is None:
+            return None
+        out = []
+        for col_ in self.collapse:
+            col = list(zip(*col_))
+            col = ([] if len(col) == 0 else col[1])
+            out.append(col)
+        return out
+
+    @property
+    def photocurrent(self):
+        """
+        Average photocurrent or measurement of the evolution.
+        """
+        if self._collapse is None:
+            return None
+        cols = [[] for _ in range(self.num_c_ops)]
+        tlist = self.times
+        for collapses in self.collapse:
+            for t, which in collapses:
+                cols[which].append(t)
+        mesurement = [
+            np.histogram(cols[i], tlist)[0] / np.diff(tlist) / self._num
+            for i in range(self.num_c_ops)
+        ]
+        return mesurement
+
+    @property
+    def runs_photocurrent(self):
+        """
+        Photocurrent or measurement of each runs.
+        """
+        if self._collapse is None:
+            return None
+        tlist = self.times
+        measurements = []
+        for collapses in self.collapse:
+            cols = [[] for _ in range(self.num_c_ops)]
+            for t, which in collapses:
+                cols[which].append(t)
+            measurements.append([
+                np.histogram(cols[i], tlist)[0] / np.diff(tlist)
+                for i in range(self.num_c_ops)
+            ])
+        return measurements
