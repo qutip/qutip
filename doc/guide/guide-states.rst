@@ -388,9 +388,9 @@ Of course, displacing the vacuum gives a coherent state, which can also be gener
 Density matrices
 =================
 
-One of the main purposes of QuTiP is to explore the dynamics of **open** quantum systems, in which the state of the system can be a mixture of multiple pure states. The state of such a system is no longer represented by a single state vector, but rather by a density matrix.  Since operations on density matrices operate identically to those of vectors, we will just briefly highlight creating and using these structures.
+One of the main purpose of QuTiP is to explore the dynamics of **open** quantum systems, where the most general state of a system is no longer a state vector, but rather a density matrix.  Since operations on density matrices operate identically to those of vectors, we will just briefly highlight creating and using these structures.
 
-The density matrix corresponding to a pure state is created by forming the outer product :math:`\left|\psi\right>\left<\psi\right|` of a ket vector:
+The simplest density matrix is created by forming the outer-product :math:`\left|\psi\right>\left<\psi\right|` of a ket vector:
 
 .. testcode:: [states]
 
@@ -503,7 +503,7 @@ or use ``0.5 * fock_dm(5, 2) + 0.5 * fock_dm(5, 4)``. There are also several oth
      [0.         0.         0.         0.08046635 0.        ]
      [0.         0.         0.         0.         0.04470353]]
 
-QuTiP provides a set of distance metrics for determining how close two density matrix distributions are to each other. Included are the trace distance :func:`qutip.metrics.tracedist`, fidelity :func:`qutip.metrics.fidelity`, Hilbert-Schmidt distance :func:`qutip.metrics.hilbert_dist`, Bures distance :func:`qutip.metrics.bures_dist`, Bures angle :func:`qutip.metrics.bures_angle`, and quantum Hellinger distance :func:`qutip.metrics.hellinger_dist`.
+QuTiP also provides a set of distance metrics for determining how close two density matrix distributions are to each other. Included are the trace distance :func:`qutip.metrics.tracedist`, fidelity :func:`qutip.metrics.fidelity`, Hilbert-Schmidt distance :func:`qutip.metrics.hilbert_dist`, Bures distance :func:`qutip.metrics.bures_dist`, Bures angle :func:`qutip.metrics.bures_angle`, and quantum Hellinger distance :func:`qutip.metrics.hellinger_dist`.
 
 .. testcode:: [states]
 
@@ -517,7 +517,7 @@ QuTiP provides a set of distance metrics for determining how close two density m
 
     np.testing.assert_almost_equal(hellinger_dist(x, y), 1.3819080728932833)
 
-For two pure states, the trace distance (T) and the fidelity (F) are related by :math:`T = \sqrt{1 - F^{2}}`, while the quantum Hellinger distance (QHE) between two pure states :math:`\left|\psi\right>` and :math:`\left|\phi\right>` is given by :math:`QHE = \sqrt{2 - 2\left|\left<\psi | \phi\right>\right|^2}`.
+We also know that for two pure states, the trace distance (T) and the fidelity (F) are related by :math:`T = \sqrt{1 - F^{2}}`, while the quantum Hellinger distance (QHE) between two pure states :math:`\left|\psi\right>` and :math:`\left|\phi\right>` is given by :math:`QHE = \sqrt{2 - 2\left|\left<\psi | \phi\right>\right|^2}`.
 
 .. testcode:: [states]
 
@@ -687,8 +687,7 @@ While at first glance this convention might seem somewhat odd, it is in fact qui
   [[1.]
    [0.]]
 
-the non-zero component is the zeroth-element of the underlying matrix (remember that Python uses c-indexing, and matrices start with the zeroth element).  The :math:`\left|\downarrow\right>` state therefore has a non-zero entry in the first index position. This corresponds nicely with the quantum information definitions of qubit states, 
-where the excited :math:`\left|\uparrow\right>` state is labeled as :math:`\left|0\right>`, and the :math:`\left|\downarrow\right>` state by :math:`\left|1\right>`.
+the non-zero component is the zeroth-element of the underlying matrix (remember that python uses c-indexing, and matrices start with the zeroth element).  The :math:`\left|\downarrow\right>` state therefore has a non-zero entry in the first index position. This corresponds nicely with the quantum information definitions of qubit states, where the excited :math:`\left|\uparrow\right>` state is label as :math:`\left|0\right>`, and the :math:`\left|\downarrow\right>` state by :math:`\left|1\right>`.
 
 If one wants to create spin operators for higher spin systems, then the :func:`qutip.operators.jmat` function comes in handy.
 
@@ -697,7 +696,7 @@ If one wants to create spin operators for higher spin systems, then the :func:`q
 Expectation values
 ===================
 
-The expectation value represents the expected average of the outcome of many measurements performed on the same state. Some of the most important information about quantum systems comes from calculating the expectation value of operators, both Hermitian and non-Hermitian, as the state or density matrix of the system varies in time.  Therefore, in this section we demonstrate the use of the :func:`qutip.expect` function.  To begin:
+Some of the most important information about quantum systems comes from calculating the expectation value of operators, both Hermitian and non-Hermitian, as the state or density matrix of the system varies in time.  Therefore, in this section we demonstrate the use of the :func:`qutip.expect` function.  To begin:
 
 .. testcode:: [states]
 
@@ -750,8 +749,7 @@ The :func:`qutip.expect` function also accepts lists or arrays of state vectors 
 
     [ 0.+0.j  0.+1.j -1.+0.j  0.-1.j]
 
-Notice how in this last example, all of the return values are complex numbers.  This is because the :func:`qutip.expect` 
-function looks to see whether the operator is Hermitian or not.  If the operator is Hermitian, then the output will always be real.  In the case of non-Hermitian operators, the return values may be complex.  Therefore, the :func:`qutip.expect` function will return an array of complex values for non-Hermitian operators when the input is a list/array of states or density matrices.
+Notice how in this last example, all of the return values are complex numbers.  This is because the :func:`qutip.expect` function looks to see whether the operator is Hermitian or not.  If the operator is Hermitian, then the output will always be real.  In the case of non-Hermitian operators, the return values may be complex.  Therefore, the :func:`qutip.expect` function will return an array of complex values for non-Hermitian operators when the input is a list/array of states or density matrices.
 
 Of course, the :func:`qutip.expect` function works for spin states and operators:
 
@@ -767,7 +765,7 @@ Of course, the :func:`qutip.expect` function works for spin states and operators
     np.testing.assert_almost_equal(expect(sigmaz(), down), -1)
 
 
-as well as the composite objects discussed in the next section, :ref:`tensor`:
+as well as the composite objects discussed in the next section :ref:`tensor`:
 
 .. testcode:: [states]
 
@@ -794,7 +792,7 @@ In addition to state vectors and density operators, QuTiP allows for
 representing maps that act linearly on density operators using the Kraus,
 Liouville supermatrix and Choi matrix formalisms. This support is based on the
 correspondence between linear operators acting on a Hilbert space, and vectors
-in the product of two copies of that Hilbert space,
+in two copies of that Hilbert space,
 :math:`\mathrm{vec} : \mathcal{L}(\mathcal{H}) \to \mathcal{H} \otimes \mathcal{H}`
 [Hav03]_, [Wat13]_.
 
@@ -844,11 +842,11 @@ This isomorphism is implemented in QuTiP by the
 
     np.testing.assert_almost_equal((rho - rho2).norm(), 0)
 
-There a several types of quantum objects: bra (``bra``) and ket (``ket``) state vectors, operators (``oper``) , ket and bra vectors corresponding to operators (``operator-ket``) and (``operator-bra``) and superoperators (``super``) . 
-The :attr:`~qutip.Qobj.type` attribute indicates to which type the object belongs.  (``operator-ket``), or to its Hermitian
+The :attr:`~qutip.Qobj.type` attribute indicates whether a quantum object is
+a vector corresponding to an operator (``operator-ket``), or its Hermitian
 conjugate (``operator-bra``).
 
-QuTiP uses the *column-stacking* convention for the isomorphism
+Note that QuTiP uses the *column-stacking* convention for the isomorphism
 between :math:`\mathcal{L}(\mathcal{H})` and :math:`\mathcal{H} \otimes \mathcal{H}`:
 
 .. testcode:: [states]
