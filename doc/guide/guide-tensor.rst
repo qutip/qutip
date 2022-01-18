@@ -10,17 +10,23 @@ Using Tensor Products and Partial Traces
 Tensor products
 ===============
 
-To describe the states of multipartite quantum systems - such as two coupled qubits, a qubit coupled to an oscillator, etc. - we need to expand the Hilbert space by taking the tensor product of the state vectors for each of the system components. Similarly, the operators acting on the state vectors in the combined Hilbert space (describing the coupled system) are formed by taking the tensor product of the individual operators.
+To describe the states of multipartite quantum systems - such as a pair of coupled qubits, a qubit coupled to an oscillator, etc. - 
+we need to extend the Hilbert space. The states in the extended space are tensor products of the corresponding states for 
+individual components. The operators acting on these states are formed by taking the tensor products of operators 
+acting on the states of the individual components.
 
-In QuTiP the function :func:`qutip.tensor.tensor` is used to accomplish this task. This function takes as argument a collection::
+In QuTiP the function :func:`qutip.tensor.tensor` is used to accomplish this. This function takes as argument a collection of states,
+a collection of operators, a list of states or a list of operators::
 
 >>> tensor(op1, op2, op3) # doctest: +SKIP
 
-or a ``list``::
+*or*
 
 >>> tensor([op1, op2, op3]) # doctest: +SKIP
 
-of state vectors *or* operators and returns a composite quantum object for the combined Hilbert space. The function accepts an arbitrary number of states or operators as argument. The type returned quantum object is the same as that of the input(s).
+The function returns a composite quantum object for the combined Hilbert space. 
+The function accepts an arbitrary number of states or operators as argument. The type of the returned quantum object is the 
+same as that of the input(s).
 
 For example, the state vector describing two qubits in their ground states is formed by taking the tensor product of the two single-qubit ground state vectors:
 
@@ -101,7 +107,11 @@ To construct operators that act on an extended Hilbert space of a combined syste
      [0. 1. 0. 0.]
      [1. 0. 0. 0.]]
 
-To create operators in a combined Hilbert space that only act on a single component, we take the tensor product of the operator acting on the subspace of interest, with the identity operators corresponding to the components that are to be unchanged. For example, the operator that represents :math:`\sigma_z` on the first qubit in a two-qubit system, while leaving the second qubit unaffected:
+To create operators in a combined Hilbert space that only act on a single component, 
+we take the tensor product of the operator acting on the subspace of interest with the identity operators 
+corresponding to the components that are to be unchanged. 
+For example, the operator that represents :math:`\sigma_z` on the first qubit in a two-qubit system, 
+while leaving the second qubit unaffected is:
 
 .. testcode:: [tensor]
 
@@ -305,7 +315,14 @@ Here ``N`` is the number of Fock states included in the cavity mode.
 Partial trace
 =============
 
-The partial trace is an operation that reduces the dimension of a Hilbert space by eliminating some degrees of freedom by averaging (tracing). In this sense it is therefore the converse of the tensor product. It is useful when one is interested in only a part of a coupled quantum system.  For open quantum systems, this typically involves tracing over the environment leaving only the system of interest.  In QuTiP the class method  :func:`qutip.Qobj.ptrace` is used to take partial traces. :func:`qutip.Qobj.ptrace` acts on the :class:`qutip.Qobj` instance for which it is called, and it takes one argument ``sel``, which is a ``list`` of integers that mark the component systems that should be **kept**. All other components are traced out.
+The partial trace operation reduces the dimension of a Hilbert space by eliminating some degrees of freedom by averaging (tracing). 
+In this sense, it is therefore the converse of the tensor product. It is useful when one is interested in only a part of a 
+coupled quantum system.  For open quantum systems, this typically involves tracing over the environment,
+leaving only the system of interest.  In QuTiP the class method  :func:`qutip.Qobj.ptrace` is used to take partial traces.
+:func:`qutip.Qobj.ptrace` acts on the :class:`qutip.Qobj` instance for which it is called, and it takes one argument, ``sel``, 
+which is a ``list`` of integers that mark the component systems that should be **kept**. 
+  
+All other components are traced out.
 
 For example, the density matrix describing a single qubit obtained from a coupled two-qubit system is obtained via:
 
@@ -326,7 +343,7 @@ For example, the density matrix describing a single qubit obtained from a couple
   [[0. 0.]
    [0. 1.]]
 
-Note that the partial trace always results in a density matrix (mixed state), regardless of whether the composite system is a pure state (described by a state vector) or a mixed state (described by a density matrix):
+Density matrices can represent pure states or mixed states, but the partial trace always results in the density matrix for a mixed state.
 
 .. doctest:: [tensor]
   :options: +NORMALIZE_WHITESPACE
@@ -367,7 +384,8 @@ Superoperators and Tensor Manipulations
 =======================================
 
 As described in :ref:`states-super`, *superoperators* are operators
-that act on Liouville space, the vectorspace of linear operators.
+that act on Liouville space, the vector space of linear operators. That is, a superoperator acts on an operator to 
+produce another operator. For example, a superoperator may act on a density matrix to produce another density matrix.
 Superoperators can be represented
 using the isomorphism
 :math:`\mathrm{vec} : \mathcal{L}(\mathcal{H}) \to \mathcal{H} \otimes \mathcal{H}` [Hav03]_, [Wat13]_.
