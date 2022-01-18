@@ -324,14 +324,6 @@ class MultiTrajResult:
 
         Error estimation is done with jackknife resampling.
 
-        target_tol : float, list
-            If a float, it is read as absolute tolerance.
-            If a pair of float: absolute and relative tolerance in that order.
-            Lastly, target_tol can be a list of pairs of (atol, rtol) for each
-            e_ops.
-
-
-
         target_tol : float, list, [optional]
             Target tolerance of the evolution. The evolution will compute
             trajectories until the error on the expectation values is lower
@@ -625,9 +617,10 @@ class McResult(MultiTrajResult):
         self._collapse = []
 
     def add(self, one_traj):
-        super().add(one_traj)
+        out = super().add(one_traj)
         if hasattr(one_traj, 'collapse'):
             self._collapse.append(one_traj.collapse)
+        return out
 
     @property
     def collapse(self):

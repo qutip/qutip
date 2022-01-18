@@ -183,19 +183,10 @@ def test_states_outputs(keep_runs_results):
                    options={"keep_runs_results": keep_runs_results,
                             'map': 'serial'})
 
-    assert len(data.states) == len(times)
-    assert isinstance(data.states[0], qutip.Qobj)
-    assert data.states[0].norm() == pytest.approx(1.)
-    assert data.states[0].isoper
-
     assert len(data.average_states) == len(times)
     assert isinstance(data.average_states[0], qutip.Qobj)
     assert data.average_states[0].norm() == pytest.approx(1.)
     assert data.average_states[0].isoper
-
-    assert isinstance(data.final_state, qutip.Qobj)
-    assert data.final_state.norm() == pytest.approx(1.)
-    assert data.final_state.isoper
 
     assert isinstance(data.average_final_state, qutip.Qobj)
     assert data.average_final_state.norm() == pytest.approx(1.)
@@ -203,7 +194,7 @@ def test_states_outputs(keep_runs_results):
 
     assert isinstance(data.photocurrent[0][1], float)
     assert isinstance(data.photocurrent[1][1], float)
-    assert (np.array(data.measurements).shape
+    assert (np.array(data.runs_photocurrent).shape
         == (ntraj, len(c_ops), len(times)-1))
 
     if keep_runs_results:
@@ -248,9 +239,6 @@ def test_expectation_outputs(keep_runs_results):
     data = mcsolve(H, state, times, c_ops, e_ops, ntraj=ntraj,
                    options={"keep_runs_results": keep_runs_results,
                             'map': 'serial'})
-    assert isinstance(data.expect[0][1], float)
-    assert isinstance(data.expect[1][1], float)
-    assert isinstance(data.expect[2][1], complex)
     assert isinstance(data.std_expect[0][1], float)
     assert isinstance(data.std_expect[1][1], float)
     assert isinstance(data.std_expect[2][1], float)
@@ -267,7 +255,7 @@ def test_expectation_outputs(keep_runs_results):
                                data.expect_traj_std(3)[0][1])
     assert isinstance(data.photocurrent[0][0], float)
     assert isinstance(data.photocurrent[1][0], float)
-    assert (np.array(data.measurements).shape
+    assert (np.array(data.runs_photocurrent).shape
             == (ntraj, len(c_ops), len(times)-1))
     np.testing.assert_allclose(times, data.times)
     assert data.num_traj == ntraj
@@ -388,9 +376,9 @@ def test_McSolver_run():
     a = qutip.QobjEvo([qutip.destroy(size), 'coupling'], args={'coupling':0})
     H = qutip.num(size)
     solver = McSolver(H, a, seed=1)
+    solver.options = {'store_final_state': True}
     res = solver.run(qutip.basis(size, size-1), np.linspace(0, 5.0, 11),
-                     e_ops=[qutip.qeye(size)],
-                     args={'coupling': 1}, options={'store_final_state': True})
+                     e_ops=[qutip.qeye(size)], args={'coupling': 1})
     assert res.final_state is not None
     assert len(res.collapse[0]) != 0
     assert res.num_traj == 1
@@ -406,7 +394,8 @@ def test_McSolver_stepping():
     H = qutip.num(size)
     solver = McSolver(H, a)
     solver.start(qutip.basis(size, size-1), 0, ntraj=3, seed=[0, 0, 1])
-    states = solver.step(1, options={'method': 'lsoda'})
+    solver.options = {'method': 'lsoda'}
+    states = solver.step(1)
     assert len(states) == 3
     for state in states:
         assert qutip.expect(qutip.qeye(size), state) == pytest.approx(1)

@@ -97,7 +97,7 @@ class MultiTrajSolver:
             traj_solver.start(state, t0, seed=seed)
             self.traj_solvers.append(traj_solver)
 
-    def step(self, t, *, args=None, options=None, copy=True):
+    def step(self, t, *, args=None, copy=True):
         """
         Evolve the state to ``t`` and return the state as a :class:`Qobj`.
 
@@ -111,11 +111,6 @@ class MultiTrajSolver:
             The change is effective from the beginning of the interval.
             Changing ``args`` can slow the evolution.
 
-        options : SolverOptions, optional {None}
-            Update the ``options`` of the system.
-            The change is effective from the beginning of the interval.
-            Changing ``options`` can slow the evolution.
-
         copy : bool, optional {True}
             Whether to return a copy of the data or the data in the ODE solver.
 
@@ -127,7 +122,7 @@ class MultiTrajSolver:
         if not self.traj_solvers:
             raise RuntimeError("The `start` method must called first.")
         # TODO: could be done with parallel_map, but it's probably not worth it
-        out = [traj_solver.step(t, args=args, options=options, copy=copy)
+        out = [traj_solver.step(t, args=args, copy=copy)
                for traj_solver in self.traj_solvers]
         return out if len(out) > 1 else out[0]
 
@@ -273,7 +268,7 @@ class MultiTrajSolver:
         if target_tol:
             result.set_expect_tol(target_tol)
         map_func(
-            self._traj_solver._run, seeds,
+            self._traj_solver._run_map, seeds,
             (result.initial_state, result.tlist, result.e_ops),
             reduce_func=result.add, map_kw=map_kw,
             progress_bar=self.options["progress_bar"],
@@ -411,13 +406,9 @@ class _TrajectorySolver(Solver):
         """
         self._argument(args)
         self.start(state, tlist[0], seed)
-        return self._run(state, tlist, e_ops)
-
-    def _run(self, state, tlist, e_ops):
-        """ Core loop of run for the parallel map"""
         _time_start = time()
         result = Result(e_ops, self.options.results,
-                        self.rhs.issuper, _state.shape[1] != 1)
+                        self.rhs.issuper, state.shape[1] != 1)
         result.add(tlist[0], state)
         for t in tlist[1:]:
             t, state = self._step(t)
@@ -429,6 +420,13 @@ class _TrajectorySolver(Solver):
         result.stats.update(self.stats)
         result.solver = self.name
         return result
+
+    def _run_map(self, seed, state, tlist, e_ops):
+        """
+        Our parallel map functions pass the varying variable (seed) as the
+        first parameter.
+        """
+        return self.run(state, tlist, e_ops=e_ops, seed=seed)
 
     def get_generator(self, seed):
         """
