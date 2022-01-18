@@ -362,32 +362,33 @@ def available_cpu_count():
     """
     import os
     import multiprocessing
-    if 'QUTIP_NUM_PROCESSES' in os.environ:
-        num_cpu = int(os.environ['QUTIP_NUM_PROCESSES'])
-        if num_cpu != 0:
-            return num_cpu
-
-    if 'SLURM_CPUS_PER_TASK' in os.environ:
-        return int(os.environ['SLURM_CPUS_PER_TASK'])
-
     try:
         import psutil
-        # cpu_affinity detect the actual number of cpus that can be used by the
-        # process, with limitation set by the os.
-        _proc = psutil.Process()
-        if hasattr(_proc. "cpu_affinity":)
-            return len(psutil.Process().cpu_affinity())
-    except Exception:
-        pass
+    except ImportError:
+        psutil = None
+    num_cpu = 0
 
-    try:
-        return len(os.sched_getaffinity(0))
-    except Exception:
-        pass
+    if 'QUTIP_NUM_PROCESSES' in os.environ:
+        # We consider QUTIP_NUM_PROCESSES=0 as unset.
+        num_cpu = int(os.environ['QUTIP_NUM_PROCESSES'])
 
-    try:
-        return multiprocessing.cpu_count()
-    except NotImplementedError:
-        pass
+    if num_cpu == 0 and 'SLURM_CPUS_PER_TASK' in os.environ:
+        num_cpu = int(os.environ['SLURM_CPUS_PER_TASK'])
 
-    return 1
+    if num_cpu == 0 and hasattr(os, 'sched_getaffinity'):
+        num_cpu = len(os.sched_getaffinity(0))
+
+    if (
+        num_cpu == 0
+        and psutil is not None
+        and hasattr(psutil.Process(), "cpu_affinity")
+    ):
+        num_cpu = len(psutil.Process().cpu_affinity())
+
+    if num_cpu == 0:
+        try:
+            num_cpu = multiprocessing.cpu_count()
+        except NotImplementedError:
+            pass
+
+    return num_cpu or 1
