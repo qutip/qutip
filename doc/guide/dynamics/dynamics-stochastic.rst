@@ -45,14 +45,14 @@ In QuTiP, this equation can be solved using the function :func:`qutip.stochastic
 .. math::
     :label: d1_def
 
-    d_1 = -iH - \frac{1}{2} \left(S_n^\dagger S_n - e_n S_n + \frac{e_i^2}{4}  \right),
+    d_1 = -iH -  \frac{1}{2} \sum_n \left(S_n^\dagger S_n - e_n S_n + \frac{e_i^2}{4}  \right),
 
 and
 
 .. math::
     :label: d2_def
 
-    d_2 = S_n - \frac{e_n}{2}.
+    d_{2, n} = S_n - \frac{e_n}{2}.
 
 The solver :func:`qutip.stochastic.ssesolve` will construct the operators :math:`d_1` and :math:`d_{2,n}` once the user passes the Hamiltonian (``H``) and the stochastic operator list (``sc_ops``). As with the :func:`qutip.mcsolve`, the number of trajectories and the seed for the noise realisation can be fixed using the arguments: ``ntraj`` and ``noise``, respectively. If the user also requires the measurement output, the argument ``store_measurement=True`` should be included.
 
@@ -77,7 +77,7 @@ where
 .. math::
     :label: dissipator
 
-    D[A] \rho = \frac{1}{2} \left[2 A \rho C^\dagger
+    D[A] \rho = \frac{1}{2} \left[2 A \rho A^\dagger
                - \rho A^\dagger A - A^\dagger A \rho \right],
 
 and
@@ -88,7 +88,7 @@ and
     \mathcal{H}[A]\rho = A\rho(t) + \rho(t) A^\dagger - \tr[A\rho(t) + \rho(t) A^\dagger].
 
 
-In QuTiP, solutions for the stochastic master equation are obtained using the solver :func:`qutip.stochastic.smesolve`. The implementation takes into account 2 types of collapse operators. :math:`C_i` (``c_ops``) represent the dissipation in the environment, while :math:`S_i` (``sc_ops``) are monitored operators. The deterministic part of the evolution, described by the :math:`d_1` in Equation :eq:`general_form`, takes into account all operators :math:`C_i` and :math:`S_n`:
+In QuTiP, solutions for the stochastic master equation are obtained using the solver :func:`qutip.stochastic.smesolve`. The implementation takes into account 2 types of collapse operators. :math:`C_i` (``c_ops``) represent the dissipation in the environment, while :math:`S_n` (``sc_ops``) are monitored operators. The deterministic part of the evolution, described by the :math:`d_1` in Equation :eq:`general_form`, takes into account all operators :math:`C_i` and :math:`S_n`:
 
 .. math::
     :label: liouvillian
