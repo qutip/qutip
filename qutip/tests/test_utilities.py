@@ -119,4 +119,4 @@ def test_cpu_count(monkeypatch):
 
     monkeypatch.setenv("QUTIP_NUM_PROCESSES", str(0))
     new_ncpus = available_cpu_count()
-    assert ncpus >= 1
+    assert new_ncpus >= 1
