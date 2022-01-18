@@ -367,14 +367,14 @@ def available_cpu_count():
         if num_cpu != 0:
             return num_cpu
 
-    elif 'SLURM_CPUS_PER_TASK' in os.environ:
+    if 'SLURM_CPUS_PER_TASK' in os.environ:
         return int(os.environ['SLURM_CPUS_PER_TASK'])
 
     try:
         import psutil
         # cpu_affinity detect the actual number of cpus that can be used by the
         # process, with limitation set by the os.
-        num_cpus = len(psutil.Process().cpu_affinity())
+        return len(psutil.Process().cpu_affinity())
     except ImportError:
         pass
 
