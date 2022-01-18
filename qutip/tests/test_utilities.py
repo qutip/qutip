@@ -6,7 +6,6 @@ from functools import partial
 import pytest
 
 
-
 @pytest.mark.parametrize(['w', 'w_th', 'expected'], [
     pytest.param(np.log(2), 1, 1, id='log(2)'),
     pytest.param(np.log(2)*5, 5, 1, id='5*log(2)'),
