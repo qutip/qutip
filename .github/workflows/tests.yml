@@ -73,7 +73,7 @@ jobs:
             os: ubuntu-latest
             python-version: "3.10"
             condaforge: 1
-            pytest-extra-options: "-W ignore::ImportWarnng"
+            pytest-extra-options: "-W ignore::ImportWarning"
 
     steps:
       - uses: actions/checkout@v2
