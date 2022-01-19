@@ -2,7 +2,7 @@ import os
 import numpy as np
 from qutip.settings import settings as qset
 
-from . import Qobj, QobjEvo, liouvillian, Cubic_Spline, coefficient, sprepost
+from . import Qobj, QobjEvo, liouvillian, coefficient, sprepost
 from ._brtools import SpectraCoefficient, _EigenBasisTransform
 from ._brtensor import _BlochRedfieldElement
 
@@ -41,8 +41,9 @@ def bloch_redfield_tensor(H, a_ops, c_ops=[], sec_cutoff=0.1,
         Example:
             a_ops = [
                 (a+a.dag(), coefficient('w>0', args={"w": 0})),
-                (QobjEvo([b+b.dag(), f(t)]), g(w)),
-                (c+c.dag(), SpectraCoefficient(coefficient(Cubic_Spline))),
+                (a+a.dag(), coefficient(lambda _, w: w>0, args={"w": 0}),
+                (QobjEvo([b+b.dag(), f(t)]), coefficient(g(t, w))),
+                (c+c.dag(), SpectraCoefficient(coefficient(array, tlist=...))),
             ]
 
     c_ops : list
@@ -118,7 +119,7 @@ def brterm(H, a_op, spectra, sec_cutoff=0.1,
         Example:
 
             coefficient('w>0', args={"w": 0})
-            SpectraCoefficient(coefficient(Cubic_Spline))
+            SpectraCoefficient(coefficient(array, tlist=...))
 
     sec_cutoff : float {0.1}
         Cutoff for secular approximation. Use ``-1`` if secular approximation

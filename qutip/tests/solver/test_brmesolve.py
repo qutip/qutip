@@ -198,7 +198,7 @@ def _separate_strings(kappa, _):
 
 
 def _string_w_interpolating_t(kappa, times):
-    spline = qutip.Cubic_Spline(times[0], times[-1], np.exp(-times/2))
+    spline = qutip.coefficient(np.exp(-times/2), tlist=times)
     return ("{kappa} * (w >= 0)".format(kappa=kappa), spline)
 
 
