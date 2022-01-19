@@ -42,7 +42,8 @@ def bloch_redfield_tensor(H, a_ops, c_ops=[], sec_cutoff=0.1,
             a_ops = [
                 (a+a.dag(), coefficient('w>0', args={"w": 0})),
                 (a+a.dag(), coefficient(lambda _, w: w>0, args={"w": 0}),
-                (QobjEvo([b+b.dag(), f(t)]), coefficient(g(t, w))),
+                (QobjEvo([b+b.dag(), lambda t: ...]),
+                 coefficient(lambda t, w: ...), args={"w": 0}),
                 (c+c.dag(), SpectraCoefficient(coefficient(array, tlist=...))),
             ]
 

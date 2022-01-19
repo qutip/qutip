@@ -58,7 +58,7 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
             a_ops = [
                 (a+a.dag(), ('w>0', args={"w": 0})),
                 (QobjEvo(a+a.dag()), 'w > exp(-t)'),
-                (QobjEvo([b+b.dag(), f(t)]), g(w)),
+                (QobjEvo([b+b.dag(), lambda t: ...]), lambda w: ...)),
                 (c+c.dag(), SpectraCoefficient(coefficient(array, tlist=ws))),
             ]
 
@@ -166,7 +166,8 @@ class BRSolver(Solver):
         Example:
             a_ops = [
                 (a+a.dag(), coefficient('w>0', args={'w':0})),
-                (QobjEvo([b+b.dag(), f(t)]), coefficient(g(t, w))),
+                (QobjEvo([b+b.dag(), lambda t: ...]),
+                 coefficient(lambda t, w: ...), args={"w": 0}),
                 (c+c.dag(), SpectraCoefficient(coefficient(array, tlist=ws))),
             ]
 
