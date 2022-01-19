@@ -27,7 +27,7 @@ jobs:
         # matrix size; make sure to test all supported versions in some form.
         python-version: ["3.9"]
         case-name: [defaults]
-        numpy-requirement: ["=1.22"]
+        numpy-requirement: ["==1.22"]
         # Extra special cases.  In these, the new variable defined should always
         # be a truth-y value (hence 'nomkl: 1' rather than 'mkl: 0'), because
         # the lack of a variable is _always_ false-y, and the defaults lack all
@@ -71,6 +71,11 @@ jobs:
         with:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
+
+      - name: Add conda-forge
+        run: |
+          conda config --prepend channels conda-forge
+          conda config --set channel_priority strict
 
       - name: Install QuTiP and dependencies
         # In the run, first we handle any special cases.  We do this in bash
