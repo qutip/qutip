@@ -125,13 +125,11 @@ def _trapz_2d(z, xy):
     return dx*dx * np.trapz(np.trapz(z, axis=0))
 
 
-def _n_correlation(times, n_expectation):
+def _n_correlation(times, n):
     """
     Numerical integration of the correlation function given an array of
     expectation values.
     """
-    interp = qutip.Cubic_Spline(times[0], times[-1], n_expectation)
-    n = interp(np.concatenate([times, times[1:] + times[-1]]))
     return np.array([[n[t] * n[t+tau] for tau in range(times.shape[0])]
                      for t in range(times.shape[0])])
 
@@ -218,14 +216,17 @@ class TestTimeDependence:
         population_1 = qutip.projection(dimension, 1, 1)
         # Define the pi pulse to be when 99% of the population is transferred.
         rabi = np.sqrt(-np.log(0.01) / (_3ls_args['tp']*np.sqrt(np.pi)))
-        c_ops = [project_0_1, [rabi*project_1_2, dependence_3ls]]
+        coeff_3ls = qutip.coefficient(dependence_3ls, tlist=times,
+                                      args=_3ls_args)
+        c_ops = [project_0_1, [rabi*project_1_2, coeff_3ls]]
         forwards = qutip.correlation_2op_2t(H, start, times, times, c_ops,
                                             project_0_1.dag(), project_0_1,
                                             args=_3ls_args)
         backwards = qutip.correlation_2op_2t(H, start, times, times, c_ops,
                                              project_0_1.dag(), project_0_1,
                                              args=_3ls_args, reverse=True)
-        n_expect = qutip.mesolve(H, start, times, c_ops, args=_3ls_args,
+        times2 = np.concatenate([times, times[1:] + times[-1]])
+        n_expect = qutip.mesolve(H, start, times2, c_ops, args=_3ls_args,
                                  e_ops=[population_1]).expect[0]
         correlation_ab = -forwards*backwards + _n_correlation(times, n_expect)
         g2_ab_0 = _trapz_2d(np.real(correlation_ab), times)

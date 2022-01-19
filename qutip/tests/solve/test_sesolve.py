@@ -39,7 +39,7 @@ import os
 
 from qutip import (
     sigmax, sigmay, sigmaz, qeye, basis, expect, num, destroy, create,
-    Cubic_Spline, sesolve,
+    sesolve, coefficient
 )
 from qutip.solve import SolverOptions
 
@@ -214,7 +214,7 @@ class TestSESolve:
         alpha = 0.1
         td_args = {'alpha':alpha}
         tcub = np.linspace(0, 20, 50)
-        S = Cubic_Spline(0, 20, np.exp(-alpha*tcub))
+        S = coefficient(np.exp(-alpha*tcub), tlist=tcub)
         H = [[H1, S]]
         analytic_func = lambda t, args: ((1 - np.exp(-args['alpha']*t))
                                         /args['alpha'])
@@ -233,7 +233,7 @@ class TestSESolve:
         alpha = 0.1
         td_args = {'alpha':alpha}
         tcub = np.linspace(0, 20, 50)
-        S = Cubic_Spline(0, 20, np.exp(-alpha*tcub))
+        S = coefficient(np.exp(-alpha*tcub), tlist=tcub)
         H = [[H1, S]]
         analytic_func = lambda t, args: ((1 - np.exp(-args['alpha']*t))
                                         /args['alpha'])
