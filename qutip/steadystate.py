@@ -81,7 +81,7 @@ def _default_steadystate_args():
     def_args = {'sparse': True, 'use_rcm': False,
                 'use_wbm': False, 'use_precond': False,
                 'all_states': False, 'M': None, 'x0': None, 'drop_tol': 1e-4,
-                'fill_factor': 100, 'diag_pivot_thresh': None, 'maxiter': 1000,
+                'fill_factor': 100, 'diag_pivot_thresh': 0.1, 'maxiter': 1000,
                 'permc_spec': 'COLAMD', 'ILU_MILU': 'smilu_2',
                 'restart': 20,
                 'max_iter_refine': 10,
@@ -1218,7 +1218,7 @@ def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
         LIQ = lu.solve(Q.toarray())
 
     else:
-        raise ValueError("unsupported method '%s'" % method)
+        raise ValueError("unsupported method '%s'" % pseudo_args['method'])
 
     R = sp.csr_matrix(Q * LIQ)
 
