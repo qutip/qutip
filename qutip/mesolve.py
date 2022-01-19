@@ -465,6 +465,9 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
                 if not isinstance(op, Qobj) and callable(op):
                     output.expect.append(np.zeros(n_tsteps, dtype=complex))
                     continue
+                if op.dims != rho0.dims:
+                    raise TypeError('e_ops dims are not compatible with '
+                                    'the state')
                 e_ops_data.append(spre(op).data)
                 if op.isherm and rho0.isherm:
                     output.expect.append(np.zeros(n_tsteps))

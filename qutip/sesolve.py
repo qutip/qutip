@@ -289,12 +289,18 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
         if oper_evo:
             for e in e_ops:
                 if isinstance(e, Qobj):
+                    if e.dims[1] != psi0b[0]:
+                        raise TypeError('e_ops dims are not compatible with '
+                                        'the state')
                     e_ops_data.append(e.dag().data)
                     continue
                 e_ops_data.append(e)
         else:
             for e in e_ops:
                 if isinstance(e, Qobj):
+                    if e.dims[1] != psi0.dims[0]:
+                        raise TypeError('e_ops dims are not compatible with '
+                                        'the state')
                     e_ops_data.append(e.data)
                     continue
                 e_ops_data.append(e)

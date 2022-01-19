@@ -345,6 +345,15 @@ class StochasticSolverOptions:
         self.rho0 = mat2vec(state0.full()).ravel()
 
         # Observation
+
+        for e_op in e_ops:
+            if (
+                isinstance(e_op, Qobj)
+                and self.H is not None
+                and e_op.dims[1] != self.H.cte.dims[0]
+            ):
+                raise TypeError('e_ops dims are not compatible with '
+                                'the state')
         self.e_ops = e_ops
         self.m_ops = m_ops
         self.store_measurement = store_measurement
