@@ -105,7 +105,8 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     env:
       # Set up wheels matrix.  This is CPython 3.6--3.9 for all OS targets.
-      CIBW_BUILD: "cp3[6-9]-*"
+      CIBW_BUILD: "cp3{6,7,8,9}-*"
+      CIBW_SKIP: "*-musllinux*"
       OVERRIDE_VERSION: ${{ github.event.inputs.override_version }}
 
     steps:
@@ -120,8 +121,8 @@ jobs:
       - name: Install cibuildwheel
         run: |
           # cibuildwheel does the heavy lifting for us. Originally tested on
-          # 1.8.0, but should be fine at least up to any major new release.
-          python -m pip install 'cibuildwheel<2.0'
+          # 2.3.0, but should be fine at least up to any minor new release.
+          python -m pip install 'cibuildwheel==2.3.*'
 
       - name: Build wheels
         shell: bash

@@ -12,6 +12,7 @@ Users Guide
    guide-states.rst
    guide-tensor.rst
    guide-dynamics.rst
+   guide-heom.rst
    guide-steady.rst
    guide-correlation.rst
    guide-control.rst

@@ -123,6 +123,34 @@ def test_CoherentState():
         qutip.coherent(N, alpha, method="other")
     assert str(e.value) == ("The method option can only take "
                             "values 'operator' or 'analytic'")
+    with pytest.raises(ValueError) as e:
+        qutip.coherent(N, alpha, offset=-1)
+    assert str(e.value) == ("Offset must be non-negative")
+    with pytest.raises(ValueError) as e:
+        qutip.coherent(N, alpha, offset=1, method="operator")
+    assert str(e.value) == (
+        "The method 'operator' does not support offset != 0. Please"
+        " select another method or set the offset to zero."
+    )
+
+
+def test_CoherentDensityMatrix():
+    N = 10
+    rho = qutip.coherent_dm(N, 1)
+    assert rho.tr() == pytest.approx(1.0)
+    with pytest.raises(ValueError) as e:
+        qutip.coherent_dm(N, 1, method="other")
+    assert str(e.value) == ("The method option can only take "
+                            "values 'operator' or 'analytic'")
+    with pytest.raises(ValueError) as e:
+        qutip.coherent_dm(N, 1, offset=-1)
+    assert str(e.value) == ("Offset must be non-negative")
+    with pytest.raises(ValueError) as e:
+        qutip.coherent_dm(N, 1, offset=1, method="operator")
+    assert str(e.value) == (
+        "The method 'operator' does not support offset != 0. Please"
+        " select another method or set the offset to zero."
+    )
 
 
 def test_thermal():

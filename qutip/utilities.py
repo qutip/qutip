@@ -334,7 +334,12 @@ def _version2int(version_string):
 
 def _blas_info():
     config = np.__config__
-    blas_info = config.blas_opt_info
+    if hasattr(config, 'blas_ilp64_opt_info'):
+        blas_info = config.blas_ilp64_opt_info
+    elif hasattr(config, 'blas_opt_info'):
+        blas_info = config.blas_opt_info
+    else:
+        blas_info = {}
     _has_lib_key = 'libraries' in blas_info.keys()
     blas = None
     if hasattr(config,'mkl_info') or \
@@ -348,3 +353,42 @@ def _blas_info():
     else:
         blas = 'Generic'
     return blas
+
+
+def available_cpu_count():
+    """
+    Get the number of cpus.
+    It tries to only get the number available to qutip.
+    """
+    import os
+    import multiprocessing
+    try:
+        import psutil
+    except ImportError:
+        psutil = None
+    num_cpu = 0
+
+    if 'QUTIP_NUM_PROCESSES' in os.environ:
+        # We consider QUTIP_NUM_PROCESSES=0 as unset.
+        num_cpu = int(os.environ['QUTIP_NUM_PROCESSES'])
+
+    if num_cpu == 0 and 'SLURM_CPUS_PER_TASK' in os.environ:
+        num_cpu = int(os.environ['SLURM_CPUS_PER_TASK'])
+
+    if num_cpu == 0 and hasattr(os, 'sched_getaffinity'):
+        num_cpu = len(os.sched_getaffinity(0))
+
+    if (
+        num_cpu == 0
+        and psutil is not None
+        and hasattr(psutil.Process(), "cpu_affinity")
+    ):
+        num_cpu = len(psutil.Process().cpu_affinity())
+
+    if num_cpu == 0:
+        try:
+            num_cpu = multiprocessing.cpu_count()
+        except NotImplementedError:
+            pass
+
+    return num_cpu or 1
