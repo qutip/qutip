@@ -65,7 +65,8 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=1, *,
     target_tol : float, list, [optional] {None}
         Target tolerance of the evolution. The evolution will compute
         trajectories until the error on the expectation values is lower than
-        this tolerance. The error is computed using jackknife resampling.
+        this tolerance. The maximum number of trajectories employed is 
+        given by ``ntraj``. The error is computed using jackknife resampling.
         ``target_tol`` can be an absolute tolerance or a pair of absolute and
         relative tolerance, in that order. Lastly, it can be a list of pairs of
         (atol, rtol) for each e_ops.
