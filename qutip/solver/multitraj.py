@@ -124,7 +124,7 @@ class MultiTrajSolver:
         # TODO: could be done with parallel_map, but it's probably not worth it
         out = [traj_solver.step(t, args=args, copy=copy)
                for traj_solver in self.traj_solvers]
-        return out if len(out) > 1 else out[0]
+        return out
 
     def get_single_trajectory_solver(self):
         """
@@ -177,10 +177,13 @@ class MultiTrajSolver:
             finish. Set to an arbitrary high number to disable.
 
         target_tol : {float, tuple, list}, optional [None]
-            If a float, it is read as absolute tolerance.
-            If a pair of float: absolute and relative tolerance in that order.
-            Lastly, target_tol can be a list of pairs of (atol, rtol) for each
-            e_ops. Set to ``None`` to disable.
+            Target tolerance of the evolution. The evolution will compute
+            trajectories until the error on the expectation values is lower
+            than this tolerance. The maximum number of trajectories employed is
+            given by ``ntraj``. The error is computed using jackknife
+            resampling. ``target_tol`` can be an absolute tolerance or a pair
+            of absolute and relative tolerance, in that order. Lastly, it can
+            be a list of pairs of (atol, rtol) for each e_ops.
 
         seed : {int, list(int)} optional
             Seed or list of seeds for each trajectories.
@@ -235,10 +238,13 @@ class MultiTrajSolver:
             finish. Set to an arbitrary high number to disable.
 
         target_tol : {float, tuple, list}, optional [None]
-            If a float, it is read as absolute tolerance.
-            If a pair of float: absolute and relative tolerance in that order.
-            Lastly, target_tol can be a list of pairs of (atol, rtol) for each
-            e_ops. Set to ``None`` to disable.
+            Target tolerance of the evolution. The evolution will compute
+            trajectories until the error on the expectation values is lower
+            than this tolerance. The maximum number of trajectories employed is
+            given by ``ntraj``. The error is computed using jackknife
+            resampling. ``target_tol`` can be an absolute tolerance or a pair
+            of absolute and relative tolerance, in that order. Lastly, it can
+            be a list of pairs of (atol, rtol) for each e_ops.
 
         seed : {int, list(int)} optional
             Seed or list of seeds for each trajectories.
@@ -352,17 +358,15 @@ class _TrajectorySolver(Solver):
         """
         _time_start = time()
         self.generator = self.get_generator(seed)
-        self._state = self._prepare_state(state)
-        self._t = t0
-        self._integrator.set_state(self._t, self._state)
+        self._integrator.set_state(t0, self._prepare_state(state))
         self.stats["preparation time"] += time() - _time_start
 
     def step(self, t, *, args=None, copy=True):
         if not self._integrator:
             raise RuntimeError("The `start` method must called first")
         self._argument(args)
-        self._t, self._state = self._step(t)
-        return self._restore_state(self._state, copy=copy)
+        _, state = self._step(t)
+        return self._restore_state(state, copy=copy)
 
     def run(self, state, tlist, *, args=None, e_ops=(), seed=None):
         """

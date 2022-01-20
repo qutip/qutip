@@ -39,8 +39,7 @@ class Solver:
     name = "generic"
 
     # State, time and Integrator of the stepper functionnality
-    _t = 0
-    _state = None
+    is_set = False
     _integrator = False
     _avail_integrators = {}
 
@@ -53,7 +52,6 @@ class Solver:
             self.rhs = QobjEvo(rhs)
         else:
             TypeError("The rhs must be a QobjEvo")
-        self._t, self._state = None, None
         self.options = options
         self.stats = {"preparation time": 0}
         self._state_metadata = {}
@@ -137,6 +135,7 @@ class Solver:
         if args:
             self._integrator.arguments(args)
         _time_start = time()
+        self.is_set = True
         self._integrator.set_state(tlist[0], _data0)
         self.stats["preparation time"] += time() - _time_start
         results = Result(e_ops, self.options.results,
@@ -172,9 +171,8 @@ class Solver:
             Initial time of the evolution.
         """
         _time_start = time()
-        self._t = t0
-        self._state = self._prepare_state(state0)
-        self._integrator.set_state(self._t, self._state)
+        self._integrator.set_state(t0, self._prepare_state(state0))
+        self.is_set = True
         self.stats["preparation time"] += time() - _time_start
 
     def step(self, t, *, args=None, copy=True):
@@ -194,14 +192,14 @@ class Solver:
         copy : bool, optional {True}
             Whether to return a copy of the data or the data in the ODE solver.
         """
-        if not self._state:
+        if not self._integrator or not self._integrator._is_set:
             raise RuntimeError("The `start` method must called first")
         if args:
             self._integrator.arguments(args)
         _time_start = time()
-        self._t, self._state = self._integrator.integrate(t, copy=False)
+        _, state = self._integrator.integrate(t, copy=False)
         self.stats["run time"] += time() - _time_start
-        return self._restore_state(self._state, copy=copy)
+        return self._restore_state(state, copy=copy)
 
     def _get_integrator(self):
         """ Return the initialted integrator. """
@@ -232,9 +230,13 @@ class Solver:
             raise TypeError("options must be an instance of" +
                             str(self.optionsclass))
         self._options = new
+        if self.is_set:
+            state = self._integrator.get_state()
+        else:
+            state = False
         self._integrator = self._get_integrator()
-        if self._state:
-            self._integrator.set_state(self._t, self._state)
+        if state:
+            self._integrator.set_state(*state)
 
     @classmethod
     def avail_integrators(cls):

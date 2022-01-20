@@ -13,7 +13,7 @@ import qutip.core.data as _data
 from time import time
 
 
-def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=1, *,
+def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
             args=None, options=None, seeds=None, target_tol=None, timeout=1e8):
     r"""
     Monte Carlo evolution of a state vector :math:`|\psi \rangle` for a
@@ -62,10 +62,10 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=1, *,
         trajectory. Seeds are saved in the result and they can be reused with::
             seeds=prev_result.seeds
 
-    target_tol : float, list, [optional] {None}
+    target_tol : {float, tuple, list}, optional [None]
         Target tolerance of the evolution. The evolution will compute
         trajectories until the error on the expectation values is lower than
-        this tolerance. The maximum number of trajectories employed is 
+        this tolerance. The maximum number of trajectories employed is
         given by ``ntraj``. The error is computed using jackknife resampling.
         ``target_tol`` can be an absolute tolerance or a pair of absolute and
         relative tolerance, in that order. Lastly, it can be a list of pairs of
