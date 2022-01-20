@@ -10,7 +10,7 @@ from copy import copy
 
 class MultiTrajSolver:
     """
-    Basic class for multi-trajectories evolutions.
+    Basic class for multi-trajectory evolutions.
 
     As :class:`Solver` it can ``run`` or ``step`` evolution.
     It manages the random seed for each trajectory.
