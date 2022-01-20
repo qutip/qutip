@@ -32,8 +32,9 @@
 ###############################################################################
 import pytest
 import pickle
-import qutip as qt
+import qutip
 import numpy as np
+import scipy.interpolate as interp
 from functools import partial
 from qutip.core.coefficient import (coefficient, norm, conj, shift,
                                     CompilationOptions,
@@ -115,18 +116,16 @@ def coeff_generator(style, func):
         return coefficient(base(tlist, **args), tlist=tlist)
     if style == "arraylog":
         return coefficient(base(tlistlog, **args), tlist=tlistlog)
-    if style == "spline":
-        return coefficient(qt.Cubic_Spline(0, 1, base(tlist, **args)))
     if style == "string" and func == "f":
         return coefficient("exp(w * t * pi)", args=args)
     if style == "string" and func == "g":
         return coefficient("cos(w * t * pi)", args=args)
     if style == "steparray":
         return coefficient(base(tlist, **args), tlist=tlist,
-                           _stepInterpolation=True)
+                           order=0)
     if style == "steparraylog":
         return coefficient(base(tlistlog, **args), tlist=tlistlog,
-                           _stepInterpolation=True)
+                           order=0)
 
 
 @pytest.mark.parametrize(['base', 'kwargs', 'tol'], [
@@ -138,14 +137,12 @@ def coeff_generator(style, func):
                  1e-10, id="func_qutip_v4"),
     pytest.param(f_asarray, {'tlist': tlist},
                  1e-6,  id="array"),
-    pytest.param(f_asarray, {'tlist': tlist, '_stepInterpolation': True},
+    pytest.param(f_asarray, {'tlist': tlist, 'order': 0},
                  1e-1, id="step_array"),
     pytest.param(f_asarraylog, {'tlist': tlistlog},
                  1e-6, id="nonlinear_array"),
-    pytest.param(f_asarraylog, {'tlist': tlistlog, '_stepInterpolation': True},
+    pytest.param(f_asarraylog, {'tlist': tlistlog, 'order': 0},
                  1e-1, id="nonlinear_step_array"),
-    pytest.param(qt.Cubic_Spline(0, 1, f_asarray), {},
-                 1e-6, id="Cubic_Spline"),
     pytest.param("exp(w * t * pi)", {'args': args},
                  1e-10, id="string")
 ])
@@ -154,7 +151,6 @@ def test_CoeffCreationCall(base, kwargs, tol):
     expected = lambda t: np.exp(1j * t * np.pi)
     coeff = coefficient(base, **kwargs, compile_opt=opt)
     _assert_eq_over_interval(coeff, expected, rtol=tol, inside=True)
-
 
 
 @pytest.mark.parametrize(['base', 'kwargs', 'tol'], [
@@ -198,7 +194,6 @@ def test_CoeffCallArguments(base, tol):
     pytest.param("func", id="func"),
     pytest.param("array", id="array"),
     pytest.param("arraylog", id="logarray"),
-    pytest.param("spline", id="Cubic_Spline"),
     pytest.param("string", id="string"),
     pytest.param("steparray", id="steparray"),
     pytest.param("steparraylog", id="steparraylog")
@@ -216,7 +211,6 @@ def test_CoeffUnitaryTransform(style, transform, expected):
     pytest.param("func", id="func"),
     pytest.param("array", id="array"),
     pytest.param("arraylog", id="logarray"),
-    pytest.param("spline", id="Cubic_Spline"),
     pytest.param("string", id="string"),
     pytest.param("steparray", id="steparray"),
     pytest.param("steparraylog", id="steparraylog")
@@ -232,7 +226,6 @@ def test_CoeffShift(style):
     pytest.param("func", id="func"),
     pytest.param("array", id="array"),
     pytest.param("arraylog", id="logarray"),
-    pytest.param("spline", id="Cubic_Spline"),
     pytest.param("string", id="string"),
     pytest.param("steparray", id="steparray"),
     pytest.param("steparraylog", id="steparraylog")
@@ -241,7 +234,6 @@ def test_CoeffShift(style):
     pytest.param("func", id="func"),
     pytest.param("array", id="array"),
     pytest.param("arraylog", id="logarray"),
-    pytest.param("spline", id="Cubic_Spline"),
     pytest.param("string", id="string"),
     pytest.param("steparray", id="steparray"),
     pytest.param("steparraylog", id="steparraylog")
@@ -327,7 +319,7 @@ from qutip import basis
 from qutip.core.data cimport CSR
 from qutip.core.data.expect cimport expect_csr
 """)
-    csr = qt.num(3).data
+    csr = qutip.num(3).data
     coeff = coefficient("expect_csr(op, op)",
                         args={"op": csr},
                         args_ctypes={"op": "CSR"},
@@ -355,7 +347,6 @@ def _shift(coeff):
     pytest.param("func", id="func"),
     pytest.param("array", id="array"),
     pytest.param("arraylog", id="logarray"),
-    pytest.param("spline", id="Cubic_Spline"),
     pytest.param("string", id="string"),
     pytest.param("steparray", id="steparray"),
     pytest.param("steparraylog", id="steparraylog")
@@ -379,7 +370,6 @@ def test_Coeffpickle(style, transform):
     pytest.param("func", id="func"),
     pytest.param("array", id="array"),
     pytest.param("arraylog", id="logarray"),
-    pytest.param("spline", id="Cubic_Spline"),
     pytest.param("string", id="string"),
     pytest.param("steparray", id="steparray"),
     pytest.param("steparraylog", id="steparraylog")
@@ -397,3 +387,37 @@ def test_Coeffcopy(style, transform):
     coeff = transform(coeff)
     coeff_cp = coeff.copy()
     _assert_eq_over_interval(coeff, coeff_cp)
+
+
+@pytest.mark.parametrize('order', [0, 1, 2, 3])
+def test_CoeffArray(order):
+    tlist = np.linspace(0, 1, 101)
+    y = np.exp((-1 + 1j) * tlist)
+    coeff = coefficient(y, tlist=tlist, order=order)
+    expected = coefficient(lambda t: np.exp((-1 + 1j) * t))
+    _assert_eq_over_interval(coeff, expected, rtol=0.01**(order+0.8),
+                             inside=True)
+    dt = 1e-4
+    t = 0.0225
+    derr = (coeff(t+dt) - coeff(t-dt)) / (2*dt)
+    derr2 = (coeff(t+dt) + coeff(t-dt) - 2 * coeff(t)) / (dt**2)
+    derr3 = (coeff(t + 2*dt) - 2*coeff(t + dt)
+             + 2*coeff(t - dt) -coeff(t - 2*dt)) / (12 * dt**3)
+    derrs = [derr, derr2, derr3]
+    for i in range(order):
+        assert derrs[i] != 0
+    for i in range(order, 3):
+        assert derrs[i] == pytest.approx(0.0,  abs=0.0001)
+
+
+def test_CoeffFromScipy():
+    tlist = np.linspace(0, 1.01, 101)
+    y = np.exp((-1 + 1j) * tlist)
+
+    coeff = coefficient(y, tlist=tlist, order=3)
+    from_scipy = coefficient(interp.CubicSpline(tlist, y))
+    _assert_eq_over_interval(coeff, from_scipy, rtol=1e-8, inside=True)
+
+    coeff = coefficient(y, tlist=tlist, order=3)
+    from_scipy = coefficient(interp.make_interp_spline(tlist, y, k=3))
+    _assert_eq_over_interval(coeff, from_scipy, rtol=1e-8, inside=True)

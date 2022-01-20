@@ -29,8 +29,6 @@ class TestMESolveDecay:
     @pytest.fixture(params=[
         pytest.param([ada, lambda t, args: 1], id='Hlist_func'),
         pytest.param([ada, '1'], id='Hlist_str'),
-        pytest.param([ada, qutip.Cubic_Spline(0, 10, np.ones_like(tlist))],
-                      id='Hlist_cubic_spline'),
         pytest.param([ada, np.ones_like(tlist)], id='Hlist_array'),
         pytest.param(qutip.QobjEvo([ada, '1']), id='HQobjEvo'),
         pytest.param(lambda t, args: qutip.create(10) * qutip.destroy(10),
@@ -49,10 +47,6 @@ class TestMESolveDecay:
                      id='list_func'),
         pytest.param([a, 'sqrt(kappa)'],
                      id='list_str'),
-        pytest.param([a, qutip.Cubic_Spline(0, 10,
-                             np.sqrt(kappa) * np.ones_like(tlist)
-                         )],
-                     id='list_cubic_spline'),
         pytest.param([a, np.sqrt(kappa) * np.ones_like(tlist)],
                      id='list_array'),
         pytest.param(qutip.QobjEvo([a, 'sqrt(kappa)'], args={'kappa': kappa}),
@@ -66,9 +60,6 @@ class TestMESolveDecay:
                   id='list_func'),
         pytest.param([a, 'sqrt(kappa * exp(-t))'],
                   id='list_str'),
-        pytest.param([a, qutip.Cubic_Spline(0, 10,
-                                            np.sqrt(kappa * np.exp(-tlist)))],
-                  id='list_cubic_spline'),
         pytest.param([a, np.sqrt(kappa * np.exp(-tlist))],
                   id='list_array'),
         pytest.param(qutip.QobjEvo([a, 'sqrt(kappa * exp(-t))'],
@@ -567,8 +558,7 @@ class TestMESolveStepFuncCoeff:
         rho0 = qutip.rand_ket(2)
         tlist = np.array([0., np.pi/2, np.pi], dtype=float)
         npcoeff = np.array([0.25, 0.75, 0.75])
-        qu = qutip.QobjEvo([[qutip.sigmax(), npcoeff]],
-                     tlist=tlist, step_interpolation=True)
+        qu = qutip.QobjEvo([[qutip.sigmax(), npcoeff]], tlist=tlist, order=0)
         result = mesolve(qu, rho0=rho0, tlist=tlist, options=self.options)
         fid = qutip.fidelity(result.states[-1], qutip.sigmax()*rho0)
         assert fid == pytest.approx(1)
@@ -580,8 +570,7 @@ class TestMESolveStepFuncCoeff:
         rho0 = qutip.rand_ket(2)
         tlist = np.array([0., np.pi/2, np.pi*3/2], dtype=float)
         npcoeff = np.array([0.5, 0.25, 0.25])
-        qu = qutip.QobjEvo([[qutip.sigmax(), npcoeff]],
-                     tlist=tlist, step_interpolation=True)
+        qu = qutip.QobjEvo([[qutip.sigmax(), npcoeff]], tlist=tlist, order=0)
         result = mesolve(qu, rho0=rho0, tlist=tlist, options=self.options)
         fid = qutip.fidelity(result.states[-1], qutip.sigmax()*rho0)
         assert fid == pytest.approx(1)
@@ -600,7 +589,7 @@ class TestMESolveStepFuncCoeff:
             [[qutip.sigmax(), npcoeff1],
              [qutip.sigmax(), strcoeff],
              [qutip.sigmax(), npcoeff2]],
-            tlist=tlist, step_interpolation=True)
+            tlist=tlist, order=0)
         result = mesolve(qu, rho0=rho0, tlist=tlist, options=self.options)
         fid = qutip.fidelity(result.states[-1], qutip.sigmax()*rho0)
         assert fid == pytest.approx(1)
@@ -618,7 +607,7 @@ class TestMESolveStepFuncCoeff:
         qu = qutip.QobjEvo(
             [[qutip.sigmax(), npcoeff1], [qutip.sigmax(), npcoeff2],
              [qutip.sigmax(), self.python_coeff], [qutip.sigmax(), strcoeff]],
-            tlist=tlist, step_interpolation=True)
+            tlist=tlist, order=0)
         result = mesolve(qu, rho0=rho0, tlist=tlist, options=self.options)
         fid = qutip.fidelity(result.states[-1], qutip.sigmax()*rho0)
         assert fid == pytest.approx(1)

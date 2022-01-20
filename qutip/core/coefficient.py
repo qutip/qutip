@@ -1,5 +1,6 @@
 import numpy as np
 import scipy
+import scipy.interpolate
 import os
 import sys
 import re
@@ -20,12 +21,10 @@ from ..settings import settings as qset
 from ..optionsclass import optionsclass
 from .data import Data
 from .data.base import idxint_dtype
-from .interpolate import Cubic_Spline
-from .cy.coefficient import (InterpolateCoefficient, InterCoefficient,
-                             StepCoefficient, FunctionCoefficient,
-                             ConjCoefficient, NormCoefficient,
-                             ShiftCoefficient, StrFunctionCoefficient,
-                             Coefficient)
+from .cy.coefficient import (
+    Coefficient, InterCoefficient, FunctionCoefficient, StrFunctionCoefficient,
+    ConjCoefficient, NormCoefficient, ShiftCoefficient
+)
 
 
 __all__ = ["coefficient", "CompilationOptions", "Coefficient",
@@ -37,8 +36,7 @@ class StringParsingWarning(Warning):
 
 
 def coefficient(base, *, tlist=None, args={}, args_ctypes={},
-                _stepInterpolation=False, compile_opt=None,
-                function_style=None):
+                order=3, compile_opt=None, function_style=None):
     """Coefficient for time dependent systems.
 
     The coefficients are either a function, a string or a numpy array.
@@ -92,37 +90,34 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
     A list of times (float64) at which the coeffients must be given (tlist).
     The coeffients array must have the same len as the tlist.
     The time of the tlist do not need to be equidistant, but must be sorted.
-    By default, a cubic spline interpolation will be used for the coefficient
-    at time t.
-    If the coefficients are to be treated as step function, use the arguments:
-    _stepInterpolation=True
+    By default, a cubic spline interpolation will be used to compute the
+    coefficient at time t. The keyword ``order`` sets the order of the
+    interpolation. When ``order = 0``, the interpolation is step function that
+    evaluates to the most recent value.
 
     *Examples*
         tlist = np.logspace(-5,0,100)
         H = QobjEvo(np.exp(-1j*tlist), tlist=tlist)
+
+    ``scipy.interpolate``'s ``CubicSpline``, ``PPoly`` and ``Bspline`` are
+    also converted to interpolated coefficients (the same kind of coefficient
+    created from ``ndarray``). Other interpolation methods from
+    scipy are converted to a function-based coefficient (the same kind of
+    coefficient created from callables).
     """
     if isinstance(base, Coefficient):
         return base
 
-    if isinstance(base, Cubic_Spline):
-        return InterpolateCoefficient(base)
-
     elif isinstance(base, np.ndarray):
-        if len(base.shape) != 1:
-            raise ValueError("The array to interpolate must be a 1D array")
-        if base.shape != tlist.shape:
-            raise ValueError("tlist must be the same len "
-                             "as the array to interpolate")
-        base = base.astype(np.complex128)
-        tlist = tlist.astype(np.float64)
-        if not _stepInterpolation:
-            return InterCoefficient(base, tlist)
-        else:
-            return StepCoefficient(base, tlist)
+        return InterCoefficient(base, tlist, order)
+
+    elif isinstance(base, scipy.interpolate.PPoly):
+        return InterCoefficient.from_PPoly(base)
+
+    elif isinstance(base, scipy.interpolate.BSpline):
+        return InterCoefficient.from_Bspline(base)
 
     elif isinstance(base, str):
-        if compile_opt is None:
-            compile_opt = CompilationOptions()
         return coeff_from_str(base, args, args_ctypes, compile_opt)
 
     elif callable(base):
@@ -270,7 +265,6 @@ def clean_compiled_coefficient(all=False):
             shutil.rmtree(folder)
 
 
-
 def proj(x):
     if np.isfinite(x):
         return (x)
@@ -309,7 +303,7 @@ str_env = {
     "spe": scipy.special}
 
 
-def coeff_from_str(base, args, args_ctypes, compile_opt):
+def coeff_from_str(base, args, args_ctypes, compile_opt=None):
     """
     Entry point for string based coefficients
     - Test if the string is valid
@@ -318,6 +312,8 @@ def coeff_from_str(base, args, args_ctypes, compile_opt):
     - Verify if already compiled and compile if not
     """
     # First, a sanity check before thinking of compiling
+    if compile_opt is None:
+        compile_opt = CompilationOptions()
     if not compile_opt['extra_import']:
         try:
             env = {"t": 0}
@@ -480,12 +476,14 @@ def compile_code(code, file_name, parsed, c_opt):
         oldargs = sys.argv
         try:
             sys.argv = ["setup.py", "build_ext", "--inplace"]
-            coeff_file = Extension(file_name,
-                                   sources=[full_file_name + ".pyx"],
-                                   extra_compile_args=c_opt['compiler_flags'].split(),
-                                   extra_link_args=c_opt['link_flags'].split(),
-                                   include_dirs=[np.get_include()],
-                                   language='c++')
+            coeff_file = Extension(
+                file_name,
+                sources=[full_file_name + ".pyx"],
+                extra_compile_args=c_opt['compiler_flags'].split(),
+                extra_link_args=c_opt['link_flags'].split(),
+                include_dirs=[np.get_include()],
+                language='c++'
+            )
             compile_time_env = {
                 "QUTIP_IDXINT_64": idxint_dtype is np.int64,
             }
@@ -694,7 +692,7 @@ def try_parse(code, args, args_ctypes, compile_opt):
     ncode, variables = use_hinted_type(variables, ncode, args_ctypes)
     if (
         (compile_opt['extra_import']
-        and not compile_opt['extra_import'].isspace())
+         and not compile_opt['extra_import'].isspace())
         or test_parsed(ncode, variables, constants, args)
     ):
         return ncode, variables, constants, False
