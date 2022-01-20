@@ -490,6 +490,10 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
             opt.store_states = True
         else:
             for op in e_ops:
+                if op.dims != rho0.dims:
+                    raise TypeError(f"e_ops dims ({op.dims}) are not "
+                                    f"compatible with the state's "
+                                    f"({rho0.dims})")
                 e_ops_data.append(spre(op).data)
                 if op.isherm and rho0.isherm:
                     output.expect.append(np.zeros(n_tsteps))
