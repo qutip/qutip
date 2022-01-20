@@ -78,8 +78,8 @@ class ExpectOps:
         if not self.isfunc:
             for op in self.e_ops_qoevo:
                 if isinstance(op, QobjEvo) and op.cte.dims[1] != dims[0]:
-                    raise TypeError('e_ops dims are not compatible with '
-                                    'the state')
+                    raise TypeError(f"e_ops dims ({op.cte.dims}) are not "
+                                    f"compatible with the system's ({dims})")
 
     def copy(self):
         out = ExpectOps.__new__(ExpectOps)

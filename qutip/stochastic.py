@@ -352,8 +352,8 @@ class StochasticSolverOptions:
                 and self.H is not None
                 and e_op.dims[1] != self.H.cte.dims[0]
             ):
-                raise TypeError('e_ops dims are not compatible with '
-                                'the state')
+                raise TypeError(f"e_ops dims ({e_op.dims}) are not compatible "
+                                f"with the system's ({self.H.cte.dims})")
         self.e_ops = e_ops
         self.m_ops = m_ops
         self.store_measurement = store_measurement
