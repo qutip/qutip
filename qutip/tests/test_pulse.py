@@ -127,7 +127,7 @@ def test_NoisyPulse():
     expected = QobjEvo([
         [tensor(identity(2), sigmaz()), np.array([0.1, 0.1, 0.2, 0.3, 0.3, 0.4])],
         [tensor(sigmay(), identity(2)), np.array([0., 0., 0.5, 0.5, 0.1, 0.5])]
-    ], tlist=np.array([0., 0.5,  1., 2., 2.5, 3.]), step_interpolation=True)
+    ], tlist=np.array([0., 0.5,  1., 2., 2.5, 3.]), order=0)
     assert _compare_qobjevo(noise_qu, expected, 0, 3)
 
     for c_op in c_ops:
@@ -138,7 +138,7 @@ def test_NoisyPulse():
             expected = QobjEvo([tensor(sigmax(), identity(2)),
                                 np.array([0., 0.1, 0.1, 0.2, 0.2, 0.3])],
                                tlist=np.array([0., 0.5,  1., 2., 2.5, 3.]),
-                               step_interpolation=True)
+                               order=0)
             assert _compare_qobjevo(c_op, expected, 0, 3)
 
 

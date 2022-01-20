@@ -61,11 +61,6 @@ class Pseudo_qevo:
         coeff = self.func(tlist, self.args)
         return ([self.cte, [self.qobj, coeff]], {}, tlist)
 
-    def spline(self):
-        tlist = np.linspace(0, 10, 10001)
-        coeff = Cubic_Spline(tlist[0], tlist[-1], self.func(tlist, self.args))
-        return ([self.cte, [self.qobj, coeff]], )
-
     def func_coeff(self):
         return ([self.cte, [self.qobj, self.func]], self.args)
 
@@ -111,7 +106,7 @@ cplx_qevo = Pseudo_qevo(
     _cplx, "exp(1j*t*w2)", args)
 
 
-@pytest.fixture(params=['func_coeff', 'string', 'spline',
+@pytest.fixture(params=['func_coeff', 'string',
                         'array', 'logarray', 'func_call'])
 def coeff_type(request):
     # all available QobjEvo types
@@ -164,8 +159,7 @@ def test_call(pseudo_qevo, coeff_type):
     _assert_qobjevo_equivalent(pseudo_qevo, qevo)
 
 @pytest.mark.parametrize('coeff_type',
-                         ['func_coeff', 'string',
-                          'spline', 'array', 'logarray'])
+                         ['func_coeff', 'string', 'array', 'logarray'])
 def test_product_coeff(pseudo_qevo, coeff_type):
     # test creation of QobjEvo with Qobj * Coefficient
     # Skip pure func: QobjEvo(f(t, args) -> Qobj)
@@ -291,7 +285,7 @@ def test_copy_side_effects(all_qevo):
     _assert_qobj_almost_eq(before, after)
 
 @pytest.mark.parametrize('coeff_type',
-    ['func_coeff', 'string', 'spline', 'array', 'logarray']
+    ['func_coeff', 'string', 'array', 'logarray']
 )
 def test_tidyup(all_qevo):
     "QobjEvo tidyup"
@@ -416,7 +410,7 @@ def test_QobjEvo_step_coeff():
     # uniform t
     tlist = np.array([2, 3, 4, 5, 6, 7], dtype=float)
     qobjevo = QobjEvo([[sigmaz(), coeff1], [sigmax(), coeff2]],
-                      tlist=tlist, step_interpolation=True)
+                      tlist=tlist, order=0)
     assert qobjevo(2.0)[0,0] == coeff1[0]
     assert qobjevo(7.0)[0,0] == coeff1[5]
     assert qobjevo(5.0001)[0,0] == coeff1[3]
@@ -430,7 +424,7 @@ def test_QobjEvo_step_coeff():
     # non-uniform t
     tlist = np.array([1, 2, 4, 5, 6, 8], dtype=float)
     qobjevo = QobjEvo([[sigmaz(), coeff1], [sigmax(), coeff2]],
-        tlist=tlist, step_interpolation=True)
+        tlist=tlist, order=0)
     assert qobjevo(1.0)[0,0] == coeff1[0]
     assert qobjevo(8.0)[0,0] == coeff1[5]
     assert qobjevo(3.9999)[0,0] == coeff1[1]

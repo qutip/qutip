@@ -71,12 +71,12 @@ cdef class QobjEvo:
         By default, a cubic spline interpolation will be used to interpolate
         the value of the (numpy array) coefficients at time ``t``. If the
         coefficients are to be treated as step functions, pass the argument
-        ``step_interpolation=True`` (see below).
+        ``order=0`` (see below).
 
-    step_interpolation : bool, default=False
-        By default, a cubic spline interpolation will be used to interpolate
+    order : int, default=3
+        Order of the spline interpolation that is to be used to interpolate
         the value of the (numpy array) coefficients at time ``t``.
-        Pass ``True`` to use step interpolation instead.
+        ``0`` use previous or left value.
 
     copy : bool, default=True
         Whether to make a copy of the :obj:`Qobj` instances supplied in
@@ -192,7 +192,7 @@ cdef class QobjEvo:
     ```
     """
     def __init__(QobjEvo self, Q_object, args=None, tlist=None,
-                 step_interpolation=False, copy=True, compress=True,
+                 order=3, copy=True, compress=True,
                  function_style=None):
         if isinstance(Q_object, QobjEvo):
             self.dims = Q_object.dims.copy()
@@ -228,16 +228,14 @@ cdef class QobjEvo:
             for op in Q_object:
                 self.elements.append(
                     self._read_element(
-                        op, copy=copy, tlist=tlist, args=args,
-                        use_step_func=step_interpolation,
+                        op, copy=copy, tlist=tlist, args=args, order=order,
                         function_style=function_style
                     )
                 )
         else:
             self.elements.append(
                 self._read_element(
-                    Q_object, copy=copy, tlist=tlist, args=args,
-                    use_step_func=step_interpolation,
+                    Q_object, copy=copy, tlist=tlist, args=args, order=order,
                     function_style=function_style
                 )
             )
@@ -245,7 +243,7 @@ cdef class QobjEvo:
         if compress:
             self.compress()
 
-    def _read_element(self, op, copy, tlist, args, use_step_func, function_style):
+    def _read_element(self, op, copy, tlist, args, order, function_style):
         """ Read a Q_object item and return an element for that item. """
         if isinstance(op, Qobj):
             out = _ConstantElement(op.copy() if copy else op)
@@ -253,8 +251,7 @@ cdef class QobjEvo:
         elif isinstance(op, list):
             out = _EvoElement(
                 op[0].copy() if copy else op[0],
-                coefficient(op[1], tlist=tlist, args=args,
-                            _stepInterpolation=use_step_func)
+                coefficient(op[1], tlist=tlist, args=args, order=order)
             )
             qobj = op[0]
         elif callable(op):
