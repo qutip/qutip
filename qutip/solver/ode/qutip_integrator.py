@@ -12,11 +12,14 @@ __all__ = ['IntegratorVern', 'IntegratorDiag']
 
 class IntegratorVern(Integrator):
     """
-    Qutip's implementation of Verner 'most efficient' Runge-Kutta method
-    of order 7 and 9. It's a Runge-Kutta method with variable steps and dense
+    QuTiP's implementation of Verner's "most efficient" Runge-Kutta method
+    of order 7 and 9. These are Runge-Kutta methods with variable steps and dense
     output.
-    Use qutip's Data object for the state, allowing sparse or gpu states.
-    [http://people.math.sfu.ca/~jverner/]
+
+    The implementation uses QuTiP's Data objects for the state, allowing sparse, GPU or other
+    data layer objects to be used efficiently by the solver in their native formats.
+    
+    See http://people.math.sfu.ca/~jverner/ for a detailed description of the methods.
     """
     integrator_options = {
         'atol': 1e-8,

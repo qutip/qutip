@@ -19,7 +19,7 @@ cdef class Explicit_RungeKutta:
     cdef readonly object method
 
     # Runge Kutta tableau and info
-    cdef int rk_step, rk_extra_step,  order, denseout_order
+    cdef int rk_step, rk_extra_step, order, denseout_order
     cdef bint adaptative_step, can_interpolate
     cdef object b_factor_np
     cdef double [:] b
