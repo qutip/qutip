@@ -21,7 +21,7 @@ euler_coeff = {
     'c': np.array([0.], dtype=np.float64)
 }
 
-rk4_coeff = (
+rk4_coeff = {
     'order': 4,
     'a': np.array([[0., 0., 0., 0.],
                    [.5, 0., 0., 0.],
@@ -29,7 +29,7 @@ rk4_coeff = (
                    [0., 0., 1., 0.]], dtype=np.float64),
     'b': np.array([1/6, 1/3, 1/3, 1/6], dtype=np.float64),
     'c': np.array([0., 0.5, 0.5, 1.0], dtype=np.float64)
-)
+}
 
 
 cdef Data copy_to(Data in_, Data out):
@@ -427,7 +427,7 @@ cdef class Explicit_RungeKutta:
         """ Get maximum safe step in function of the error."""
         cdef double factor
         if not self.adaptative_step:
-            return 0.
+            return
         elif err == 0:
             factor = 10
         else:
@@ -500,7 +500,7 @@ cdef class Explicit_RungeKutta:
               'None' if self._y_front is None else self._y_front.to_array(),
               self._norm_front)
         print("y_temp",
-              'None' if self._y_temp is None else self._y_temp.to_array()))
+              'None' if self._y_temp is None else self._y_temp.to_array())
         print("dt_safe: ", self._dt_safe, "dt_int: ", self._dt_int)
         for i in range(self.rk_extra_step):
             print(f'k[{i}]',
