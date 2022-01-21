@@ -254,6 +254,9 @@ cdef class QobjEvo:
                 coefficient(op[1], tlist=tlist, args=args, order=order)
             )
             qobj = op[0]
+        elif isinstance(op, _BaseElement):
+            out = op
+            qobj = op.qobj(0)
         elif callable(op):
             out = _FuncElement(op, args, style=function_style)
             qobj = out.qobj(0)
