@@ -131,12 +131,12 @@ class Solver:
             Results of the evolution. States and/or expect will be saved. You
             can control the saved data in the options.
         """
-        _data0 = self._prepare_state(state0)
-        if args:
-            self._integrator.arguments(args)
         _time_start = time()
-        self.is_set = True
+        _data0 = self._prepare_state(state0)
+        self._integrator = self._get_integrator()
         self._integrator.set_state(tlist[0], _data0)
+        self.is_set = True
+        self._argument(args)
         self.stats["preparation time"] += time() - _time_start
         results = Result(e_ops, self.options.results,
                          self.rhs.issuper, _data0.shape[1]!=1)
@@ -171,6 +171,7 @@ class Solver:
             Initial time of the evolution.
         """
         _time_start = time()
+        self._integrator = self._get_integrator()
         self._integrator.set_state(t0, self._prepare_state(state0))
         self.is_set = True
         self.stats["preparation time"] += time() - _time_start
@@ -192,10 +193,9 @@ class Solver:
         copy : bool, optional {True}
             Whether to return a copy of the data or the data in the ODE solver.
         """
-        if not self._integrator or not self._integrator._is_set:
+        if not self.is_set:
             raise RuntimeError("The `start` method must called first")
-        if args:
-            self._integrator.arguments(args)
+        self._argument(args)
         _time_start = time()
         _, state = self._integrator.integrate(t, copy=False)
         self.stats["run time"] += time() - _time_start
@@ -232,10 +232,7 @@ class Solver:
         self._options = new
         if self.is_set:
             state = self._integrator.get_state()
-        else:
-            state = False
-        self._integrator = self._get_integrator()
-        if state:
+            self._integrator = self._get_integrator()
             self._integrator.set_state(*state)
 
     @classmethod
@@ -270,3 +267,9 @@ class Solver:
         if integrator.integrator_options:
             for opt in integrator.integrator_options:
                 cls.odeoptionsclass.extra_options.add(opt)
+
+    def _argument(self, args):
+        """Update the args, for the `rhs` and other operators."""
+        if args:
+            self._integrator.arguments(args)
+            self.rhs.arguments(args)

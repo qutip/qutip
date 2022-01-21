@@ -125,7 +125,7 @@ class _McTrajectorySolver(_TrajectorySolver):
 
     def start(self, state, t0, seed=None):
         super().start(state, t0, seed=seed)
-        self.target_norm = self.generator.random()
+        self.target_norm = self._generator.random()
         self.collapses = []
 
     def _prob_func(self, state):
@@ -206,7 +206,8 @@ class _McTrajectorySolver(_TrajectorySolver):
             for i, n_op in enumerate(self._n_ops):
                 probs[i] = n_op.expect_data(collapse_time, state).real
             probs = np.cumsum(probs)
-            which = np.searchsorted(probs, probs[-1] * self.generator.random())
+            which = np.searchsorted(probs,
+                                    probs[-1] * self._generator.random())
 
         state_new = self._c_ops[which].matmul_data(collapse_time, state)
         new_norm = self._norm_func(state_new)
@@ -216,7 +217,7 @@ class _McTrajectorySolver(_TrajectorySolver):
         else:
             state_new = _data.mul(state_new, 1 / new_norm)
             self.collapses.append((collapse_time, which))
-            self.target_norm = self.generator.random()
+            self.target_norm = self._generator.random()
         self._integrator.set_state(collapse_time, state_new)
 
     def _argument(self, args):

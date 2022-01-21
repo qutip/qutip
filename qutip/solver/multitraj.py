@@ -356,10 +356,8 @@ class _TrajectorySolver(Solver):
         seed : int, SeedSequence
             Seed for the random number generator.
         """
-        _time_start = time()
-        self.generator = self.get_generator(seed)
-        self._integrator.set_state(t0, self._prepare_state(state))
-        self.stats["preparation time"] += time() - _time_start
+        self._generator = self.get_generator(seed)
+        super().start(state, t0)
 
     def step(self, t, *, args=None, copy=True):
         if not self._integrator:
@@ -408,8 +406,8 @@ class _TrajectorySolver(Solver):
             Results of the evolution. States and/or expect will be saved. You
             can control the saved data in the options.
         """
-        self._argument(args)
         self.start(state, tlist[0], seed)
+        self._argument(args)
         _time_start = time()
         result = Result(e_ops, self.options.results,
                         self.rhs.issuper, state.shape[1] != 1)
@@ -449,9 +447,3 @@ class _TrajectorySolver(Solver):
     def _step(self, t, copy=True):
         """Evolve to t, including jumps."""
         raise NotImplementedError
-
-    def _argument(self, args):
-        """Update the args, for the `rhs` and `c_ops` and other operators."""
-        if args:
-            self._integrator.arguments(args)
-            self.rhs.arguments(args)
