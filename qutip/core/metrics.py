@@ -40,10 +40,13 @@ __all__ = ['fidelity', 'tracedist', 'bures_dist', 'bures_angle',
            'hellinger_dist', 'hilbert_dist', 'average_gate_fidelity',
            'process_fidelity', 'unitarity', 'dnorm']
 
+import warnings
+
 import numpy as np
 from scipy import linalg as la
 import scipy.sparse as sp
-from .superop_reps import to_kraus, to_choi, _to_superpauli, to_super
+from .superop_reps import (to_kraus, to_choi, _to_superpauli, to_super,
+                           kraus_to_choi)
 from .superoperator import operator_to_vector, vector_to_operator
 from .operators import qeye
 from .semidefinite import dnorm_problem
@@ -105,12 +108,131 @@ def fidelity(A, B):
     return float(np.real(np.sqrt(eig_vals[eig_vals > 0]).sum()))
 
 
-def process_fidelity(U1, U2, normalize=True):
+def _hilbert_space_dims(oper):
     """
-    Calculate the process fidelity given two process operators.
+    For a quantum channel `oper`, return the dimensions `[dims_out, dims_in]`
+    of the output Hilbert space and the input Hilbert space.
+    - If oper is a unitary, then `oper.dims == [dims_out, dims_in]`.
+    - If oper is a list of Kraus operators, then
+     `oper[0].dims == [dims_out, dims_in]`.
+    - If oper is a superoperator with `oper.superrep == 'super'`:
+     `oper.dims == [[dims_out, dims_out], [dims_in, dims_in]]`
+    - If oper is a superoperator with `oper.superrep == 'choi'`:
+     `oper.dims == [[dims_in, dims_out], [dims_in, dims_out]]`
+    - If oper is a superoperator with `oper.superrep == 'chi', then
+      `dims_out == dims_in` and
+      `oper.dims == [[dims_out, dims_out], [dims_out, dims_out]]`.
+    :param oper: A quantum channel, represented by a unitary, a list of Kraus
+    operators, or a superoperator
+    :return: `[dims_out, dims_in]`, where `dims_out` and `dims_in` are lists
+     of integers
     """
-    out = (U1 * U2).tr()
-    return out / (U1.tr() * U2.tr()) if normalize else out
+    if isinstance(oper, list):
+        return oper[0].dims
+    elif oper.type == 'oper':  # interpret as unitary quantum channel
+        return oper.dims
+    elif oper.type == 'super' and oper.superrep in ['choi', 'chi', 'super']:
+        return [oper.dims[0][1], oper.dims[1][0]]
+    else:
+        raise TypeError('oper is not a valid quantum channel!')
+
+
+def _process_fidelity_to_id(oper):
+    """
+    Internal function returning the process fidelity of a quantum channel
+    to the identity quantum channel.
+    Parameters
+    ----------
+    oper : :class:`qutip.Qobj`/list
+        A unitary operator, or a superoperator in supermatrix, Choi or
+        chi-matrix form, or a list of Kraus operators
+    Returns
+    -------
+    fid : float
+    """
+    dims_out, dims_in = _hilbert_space_dims(oper)
+    if dims_out != dims_in:
+        raise TypeError('The process fidelity to identity is only defined '
+                        'for dimension preserving channels.')
+    d = np.prod(dims_in)
+    if isinstance(oper, list):  # oper is a list of Kraus operators
+        return np.sum([np.abs(k.tr()) ** 2 for k in oper]) / d ** 2
+    elif oper.type == 'oper':  # interpret as unitary
+        return np.abs(oper.tr()) ** 2 / d ** 2
+    elif oper.type == 'super':
+        if oper.superrep == 'chi':
+            return oper[0, 0].real / d ** 2
+        else:  # oper.superrep is either 'super' or 'choi':
+            return to_super(oper).tr().real / d ** 2
+
+
+def _kraus_or_qobj_to_choi(oper):
+    if isinstance(oper, list):
+        return kraus_to_choi(oper)
+    else:
+        return to_choi(oper)
+
+
+def process_fidelity(oper, target=None):
+    """
+    Returns the process fidelity of a quantum channel to the target
+    channel, or to the identity channel if no target is given.
+    The process fidelity between two channels is defined as the state
+    fidelity between their normalized Choi matrices.
+
+    Parameters
+    ----------
+    oper : :class:`qutip.Qobj`/list
+        A unitary operator, or a superoperator in supermatrix, Choi or
+        chi-matrix form, or a list of Kraus operators
+    target : :class:`qutip.Qobj`/list
+        A unitary operator, or a superoperator in supermatrix, Choi or
+        chi-matrix form, or a list of Kraus operators
+
+    Returns
+    -------
+    fid : float
+        Process fidelity between oper and target, or between oper and identity.
+
+    Notes
+    -----
+    Since Qutip 5.0, this function computes the process fidelity as defined
+    for example in: A. Gilchrist, N.K. Langford, M.A. Nielsen,
+    Phys. Rev. A 71, 062310 (2005). Previously, it computed a function
+    that is now implemented in
+    :func:`control.fidcomp.FidCompUnitary.get_fidelity`.
+    The definition of state fidelity that the process fidelity is based on
+    is the one from R. Jozsa, Journal of Modern Optics, 41:12, 2315 (1994).
+    It is the square of the one implemented in
+    :func:`qutip.metrics.fidelity` which follows Nielsen & Chuang,
+    "Quantum Computation and Quantum Information"
+
+    """
+    if target is None:
+        return _process_fidelity_to_id(oper)
+
+    dims_out, dims_in = _hilbert_space_dims(oper)
+    dims_out_target, dims_in_target = _hilbert_space_dims(target)
+    if [dims_out, dims_in] != [dims_out_target, dims_in_target]:
+        raise TypeError('Dimensions of oper and target do not match')
+
+    if not isinstance(target, list) and target.type == 'oper':
+        # interpret target as unitary.
+        if isinstance(oper, list):  # oper is a list of Kraus operators
+            return _process_fidelity_to_id([k * target.dag() for k in oper])
+        elif oper.type == 'oper':
+            return _process_fidelity_to_id(oper*target.dag())
+        elif oper.type == 'super':
+            oper_super = to_super(oper)
+            target_dag_super = to_super(target.dag())
+            return _process_fidelity_to_id(oper_super * target_dag_super)
+    else:  # target is a list of Kraus operators or a superoperator
+        if not isinstance(oper, list) and oper.type == 'oper':
+            return process_fidelity(target, oper)  # reverse order
+        oper_choi = _kraus_or_qobj_to_choi(oper)
+        target_choi = _kraus_or_qobj_to_choi(target)
+        d = np.prod(dims_in)
+        return (fidelity(oper_choi, target_choi)/d)**2
 
 
 def average_gate_fidelity(oper, target=None):

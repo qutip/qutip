@@ -44,22 +44,24 @@ class Result:
     num_collapse : int
         Number of collapse operators in simualation.
 """
-    def __init__(self, e_ops, options, super_):
-        self.e_ops = e_ops
+    def __init__(self, e_ops, options, _super, oper_state):
         self.times = []
 
         self._raw_e_ops = e_ops
         self._states = []
         self._expects = []
         self._last_state = None
-        self._super = super_
 
-        self._read_e_ops(super_)
-        self._read_options(options)
+        self._read_e_ops()
+        self._read_options(options, _super, oper_state)
         self.collapse = None
-        self.stats = {"num_expect": self._e_num}
+        self.stats = {
+            "num_expect": self._e_num,
+            "solver": "",
+            "method": "",
+        }
 
-    def _read_e_ops(self, _super):
+    def _read_e_ops(self):
         self._e_ops_dict = False
         self._e_num = 0
         self._e_ops = []
@@ -71,6 +73,8 @@ class Result:
             e_ops = [e for e in self._raw_e_ops.values()]
         elif callable(self._raw_e_ops):
             e_ops = [self._raw_e_ops]
+        elif self._raw_e_ops is None:
+            e_ops = []
         else:
             e_ops = self._raw_e_ops
 
@@ -78,8 +82,6 @@ class Result:
             if isinstance(e, Qobj):
                 self._e_ops.append(_Expect_Caller(e))
             elif isinstance(e, QobjEvo):
-                if not issuper(e.cte) and _super:
-                    e = spre(e)
                 self._e_ops.append(e.expect)
             elif callable(e):
                 self._e_ops.append(e)
@@ -87,25 +89,27 @@ class Result:
 
         self._e_num = len(e_ops)
 
-    def _read_options(self, options):
+    def _read_options(self, options, _super, oper_state):
         if options['store_states'] is not None:
             self._store_states = options['store_states']
         else:
             self._store_states = self._e_num == 0
+
         self._store_final_state = options['store_final_state']
-        if self._super:
-            self._normalize_outputs = options['normalize_output'] in ['dm', True, 'all']
+
+        if oper_state:
+            # No normalization method (yet?) for operator state (propagators).
+            self._normalize_outputs = False
+        elif _super:
+            # Normalization of density matrix only fix the trace to ``1``.
+            self._normalize_outputs = \
+                options['normalize_output'] in {'dm', True, 'all'}
         else:
-            self._normalize_outputs = options['normalize_output'] in ['ket', True, 'all']
+            self._normalize_outputs = \
+                options['normalize_output'] in {'ket', True, 'all'}
 
     def _normalize(self, state):
-        if state.shape[1] == 1:
-            return state * (1/state.norm())
-        elif state.shape[1] == state.shape[0] and self._super:
-            return state * (1/state.norm())
-        else:
-            # TODO add normalization for propagator evolution.
-            pass
+        return state * (1/state.norm())
 
     def add(self, t, state):
         """

@@ -1,6 +1,9 @@
-from qutip.solver.integrator import (sesolve_integrators,
-                                     mesolve_integrators, mcsolve_integrators)
 from qutip.solver.options import SolverOdeOptions
+from qutip.solver.sesolve import SeSolver
+from qutip.solver.mesolve import MeSolver
+from qutip.solver.solver_base import Solver
+from qutip.solver.ode.scipy_integrator import (IntegratorScipyZvode,
+                                               IntegratorScipylsoda)
 import qutip
 import numpy as np
 from numpy.testing import assert_allclose
@@ -14,21 +17,22 @@ class TestIntegratorCte():
     me_system = qutip.liouvillian(qutip.QobjEvo(qutip.qeye(2)),
                                   c_ops=[qutip.destroy(2)])
 
-    @pytest.fixture(params=list(sesolve_integrators.keys()))
+    @pytest.fixture(params=list(SeSolver.avail_integrators().keys()))
     def se_method(self, request):
         return request.param
 
-    @pytest.fixture(params=list(mesolve_integrators.keys()))
+    @pytest.fixture(params=list(MeSolver.avail_integrators().keys()))
     def me_method(self, request):
         return request.param
 
-    @pytest.fixture(params=list(mcsolve_integrators.keys()))
+    # TODO: Change when the McSolver is added
+    @pytest.fixture(params=list(Solver.avail_integrators().keys()))
     def mc_method(self, request):
         return request.param
 
     def test_se_integration(self, se_method):
         opt = SolverOdeOptions(method=se_method)
-        evol = sesolve_integrators[se_method](self.se_system, opt)
+        evol = SeSolver.avail_integrators()[se_method](self.se_system, opt)
         state0 = qutip.core.unstack_columns(qutip.basis(6,0).data, (2, 3))
         evol.set_state(0, state0)
         for t, state in evol.run(np.linspace(0, 2, 21)):
@@ -38,7 +42,7 @@ class TestIntegratorCte():
 
     def test_me_integration(self, me_method):
         opt = SolverOdeOptions(method=me_method)
-        evol = mesolve_integrators[me_method](self.me_system, opt)
+        evol = MeSolver.avail_integrators()[me_method](self.me_system, opt)
         state0 = qutip.operator_to_vector(qutip.fock_dm(2,1)).data
         evol.set_state(0, state0)
         for t in np.linspace(0, 2, 21):
@@ -49,7 +53,7 @@ class TestIntegratorCte():
 
     def test_mc_integration(self, mc_method):
         opt = SolverOdeOptions(method=mc_method)
-        evol = mcsolve_integrators[mc_method](self.se_system, opt)
+        evol = Solver.avail_integrators()[mc_method](self.se_system, opt)
         state = qutip.basis(2,0).data
         evol.set_state(0, state)
         t = 0
@@ -80,22 +84,42 @@ class TestIntegrator(TestIntegratorCte):
     )
 
     @pytest.fixture(
-        params=[key for key, integrator in sesolve_integrators.items()
+        params=[key for key, integrator in SeSolver.avail_integrators().items()
                 if integrator.support_time_dependant]
     )
     def se_method(self, request):
         return request.param
 
     @pytest.fixture(
-        params=[key for key, integrator in mesolve_integrators.items()
+        params=[key for key, integrator in MeSolver.avail_integrators().items()
                 if integrator.support_time_dependant]
     )
     def me_method(self, request):
         return request.param
 
     @pytest.fixture(
-        params=[key for key, integrator in mcsolve_integrators.items()
+        params=[key for key, integrator in Solver.avail_integrators().items()
                 if integrator.support_time_dependant]
     )
     def mc_method(self, request):
         return request.param
+
+
+@pytest.mark.parametrize('integrator',
+    [IntegratorScipyZvode, IntegratorScipylsoda], ids=["zvode", "lsoda"])
+def test_concurent_usage(integrator):
+    opt = SolverOdeOptions()
+
+    sys1 = qutip.QobjEvo(0.5*qutip.qeye(1))
+    inter1 = integrator(sys1, opt)
+    inter1.set_state(0, qutip.basis(1,0).data)
+
+    sys2 = qutip.QobjEvo(-0.5*qutip.qeye(1))
+    inter2 = integrator(sys2, opt)
+    inter2.set_state(0, qutip.basis(1,0).data)
+
+    for t in np.linspace(0,1,6):
+        expected1 = pytest.approx(np.exp(t/2), abs=1e-5)
+        assert inter1.integrate(t)[1].to_array()[0, 0] == expected1
+        expected2 = pytest.approx(np.exp(-t/2), abs=1e-5)
+        assert inter2.integrate(t)[1].to_array()[0, 0] == expected2

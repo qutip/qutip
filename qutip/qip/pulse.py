@@ -68,18 +68,17 @@ class _EvoElement():
                 qu = QobjEvo(mat * 0., tlist=self.tlist)
         else:
             if spline_kind == "step_func":
-                step_interpolation = True
+                interpolation = {'order': 0}
                 if len(self.coeff) == len(self.tlist) - 1:
                     self.coeff = np.concatenate([self.coeff, [0.]])
             elif spline_kind == "cubic":
-                step_interpolation = False
+                interpolation = {'order': 0}
             else:
                 # The spline will follow other pulses or
                 # use the default value of QobjEvo
-                step_interpolation = None
+                interpolation = {}
             qu = QobjEvo(
-                [mat, self.coeff], tlist=self.tlist,
-                step_interpolation=step_interpolation
+                [mat, self.coeff], tlist=self.tlist, **interpolation
             )
         return qu
 

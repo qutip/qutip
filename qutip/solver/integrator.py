@@ -1,8 +1,7 @@
 """ `Integrator`: ODE solver wrapper to use in qutip's Solver """
 import numpy as np
 
-__all__ = ['Integrator', 'IntegratorException', 'add_integrator',
-           'sesolve_integrators', 'mesolve_integrators', 'mcsolve_integrators']
+__all__ = ['Integrator', 'IntegratorException']
 
 
 class IntegratorException(Exception):
@@ -220,46 +219,3 @@ class Integrator:
         """
         self.system.arguments(args)
         self.reset()
-
-
-# TODO: These integrator set will be part of the solver classes
-# So sesolve will know which integrator it support etc.
-# `mesolve` and `sesolve` will use the same integrators, but some integrations
-# methods can not work for `mcsolve`.
-sesolve_integrators = {}
-mesolve_integrators = {}
-mcsolve_integrators = {}
-
-
-def add_integrator(integrator, keys, integrator_set, options_class=None):
-    """
-    Register an integrator.
-
-    Parameters
-    ----------
-    integrator : Integrator
-        The ODE solver to register.
-
-    keys : list of str
-        Values of the method options that refer to this integrator.
-
-    integrator_set : dict
-        Group of integrators to which register the integrator.
-
-    options_class : SolverOdeOptions
-        If given, will add the ODE options supported by this integrator to
-        those supported by the options_class. ie. If the integrator use a
-        `stiff` options that Qutip's `SolverOdeOptions` does not have, it will
-        add it support.
-    """
-    # TODO: Insert in Solvers as a classmethod.
-    if not issubclass(integrator, Integrator):
-        raise TypeError(f"The integrator {integrator} must be a subclass"
-                        " of `qutip.solver.Integrator`")
-    if not isinstance(keys, list):
-        keys = [keys]
-    for key in keys:
-        integrator_set[key] = integrator
-    if integrator.integrator_options and options_class:
-        for opt in integrator.integrator_options:
-            options_class.extra_options.add(opt)

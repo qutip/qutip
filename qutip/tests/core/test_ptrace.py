@@ -45,7 +45,7 @@ def expected(qobj, sel):
         qobj = qobj.proj()
     sel = sorted(sel)
     dims = [[x for i, x in enumerate(qobj.dims[0]) if i in sel]]*2
-    new_shape = (np.prod(dims[0]),) * 2
+    new_shape = (np.prod(dims[0], dtype=int),) * 2
     out = qobj.full()
     before, after = 1, qobj.shape[0]
     for i, dim in enumerate(qobj.dims[0]):
@@ -55,7 +55,7 @@ def expected(qobj, sel):
             continue
         tmp_dims = (before, dim, after) * 2
         out = np.einsum('aibcid->abcd', out.reshape(tmp_dims))
-    return qutip.Qobj(out.reshape(new_shape), dims=dims)
+    return qutip.Qobj(out.reshape(new_shape), dims=dims, type='oper')
 
 
 @pytest.fixture(params=[_data.CSR, _data.Dense], ids=['CSR', 'Dense'])
@@ -121,28 +121,43 @@ def test_ptrace_fails_on_invalid_input(state, selection, exception):
         state.ptrace(selection)
 
 
-def test_ptrace_rand(dtype):
-    'ptrace : randomized tests'
-    for _ in range(5):
-        A = qutip.tensor(
-            qutip.rand_ket(5), qutip.rand_ket(2), qutip.rand_ket(3),
-        ).to(dtype)
-        for sel in ([2, 1], [0, 2], [0, 1]):
-            assert A.ptrace(sel) == expected(A, sel)
+@pytest.mark.parametrize('dims, sel',
+                         [
+                             ([5, 2, 3], [2, 1]),
+                             ([5, 2, 3], [0, 2]),
+                             ([5, 2, 3], [0, 1]),
+                             ([2]*6, [3, 2]),
+                             ([2]*6, [0, 2]),
+                             ([2]*6, [0, 1]),
+                         ])
+def test_ptrace_rand_ket(dtype, dims, sel):
+    A = qutip.rand_ket(np.prod(dims), dims=[dims, [1]*len(dims)])
+    assert A.ptrace(sel) == expected(A, sel)
 
-        A = qutip.tensor(
-            qutip.rand_dm(2), qutip.thermal_dm(10, 1), qutip.rand_unitary(3),
-        ).to(dtype)
-        for sel in ([1, 2], [0, 2], [0, 1]):
-            assert A.ptrace(sel) == expected(A, sel)
 
-        A = qutip.tensor(
-            qutip.rand_ket(2), qutip.rand_ket(2), qutip.rand_ket(2),
-            qutip.rand_ket(2), qutip.rand_ket(2), qutip.rand_ket(2),
-        ).to(dtype)
-        for sel in ([3, 2], [0, 2], [0, 1]):
-            assert A.ptrace(sel) == expected(A, sel)
+@pytest.mark.parametrize('sel', [[], [0, 1, 2], [0], [1], [1, 0], [0, 2]],
+                         ids=['trace_all',
+                              'trace_none',
+                              'trace_one',
+                              'trace_one_2',
+                              'trace_multiple',
+                              'trace_multiple_not_sorted',
+                              ])
+def test_ptrace_rand_dm(dtype, sel):
+    A = qutip.rand_dm(64, 0.5, dims=[[4, 4, 4], [4, 4, 4]]).to(dtype)
+    assert A.ptrace(sel) == expected(A, sel)
 
-        A = qutip.rand_dm(64, 0.5, dims=[[4, 4, 4], [4, 4, 4]]).to(dtype)
-        for sel in ([0], [1], [0, 2]):
-            assert A.ptrace(sel) == expected(A, sel)
+
+@pytest.mark.parametrize('sel', [[], [0, 1, 2], [0], [1], [1, 0], [0, 2]],
+                         ids=['trace_all',
+                              'trace_none',
+                              'trace_one',
+                              'trace_one_2',
+                              'trace_multiple',
+                              'trace_multiple_not_sorted',
+                              ])
+def test_ptrace_operator(dtype, sel):
+    A = qutip.tensor(
+        qutip.rand_dm(2), qutip.thermal_dm(10, 1), qutip.rand_unitary(3),
+    ).to(dtype)
+    assert A.ptrace(sel) == expected(A, sel)

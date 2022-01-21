@@ -95,11 +95,14 @@ class SolverOdeOptions:
     tidy: bool {True}
         tidyup Hamiltonian before calculation
 
-    Operator_data_type: :class:`qutip.data.Data`, str {"input"}
-        Data type of the system, some method can overwrite it.
+    operator_data_type: str {""}
+        Data type of the operator to used during the ODE evolution, such as
+        'CSR' or 'Dense'. Use an empty string to keep the input state type.
 
-    State_data_type: :class:`qutip.data.Data`, str {qutip.data.Dense}
-        Data type of the state, most solver can only work with `Dense`.
+    state_data_type: str {'dense'}
+        Name of the data type of the state used during the ODE evolution.
+        Use an empty string to keep the input state type. Many integrator can
+        only work with `Dense`.
 
     feedback_normalize: bool
         Normalize the state before passing it to coefficient when using
@@ -128,9 +131,9 @@ class SolverOdeOptions:
         # tidyup Hamiltonian before calculation (default = True)
         "tidy": True,
 
-        "Operator_data_type": "input",
+        "operator_data_type": "",
 
-        "State_data_type": "dense",
+        "state_data_type": "dense",
         # Normalize the states received in feedback_args
         "feedback_normalize": True,
     }

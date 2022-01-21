@@ -1,6 +1,5 @@
-from ..integrator import (IntegratorException, Integrator, sesolve_integrators,
-                          mesolve_integrators, mcsolve_integrators,
-                          add_integrator)
+from ..integrator import IntegratorException, Integrator
+from ..solver_base import Solver
 from .explicit_rk import Explicit_RungeKutta
 from ..options import SolverOdeOptions
 import numpy as np
@@ -109,8 +108,5 @@ class IntegratorDiag(Integrator):
         self._y = _data.matmul(self.Uinv, state0).to_array()
 
 
-sets = [sesolve_integrators, mesolve_integrators, mcsolve_integrators]
-for integrator_set in sets:
-    add_integrator(IntegratorVern, ['vern7', 'vern9'],
-                   integrator_set, SolverOdeOptions)
-    add_integrator(IntegratorDiag, 'diag', integrator_set, SolverOdeOptions)
+Solver.add_integrator(IntegratorVern, ['vern7', 'vern9'])
+Solver.add_integrator(IntegratorDiag, 'diag')
