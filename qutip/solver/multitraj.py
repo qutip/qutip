@@ -39,27 +39,6 @@ class MultiTrajSolver:
         self.options = options
         self.seed_sequence = np.random.SeedSequence()
 
-    def _read_seed(self, seed, ntraj):
-        """
-        Read user provided seed(s) and produce one for each trajectory.
-        Let numpy raise error for inputs that cannot be seeds.
-        """
-        if seed is None:
-            seeds = self.seed_sequence.spawn(ntraj)
-        elif isinstance(seed, np.random.SeedSequence):
-            seeds = copy(seed).spawn(ntraj)
-        elif not isinstance(seed, list):
-            seeds = np.random.SeedSequence(seed).spawn(ntraj)
-        elif isinstance(seed, list) and len(seed) >= ntraj:
-            seeds = [
-                seed_ if isinstance(seed_, np.random.SeedSequence)
-                else np.random.SeedSequence(seed_)
-                for seed_ in seed[:ntraj]
-            ]
-        else:
-            raise ValueError("A seed list must be longer than ntraj")
-        return seeds
-
     def start(self, state, t0, ntraj=1, seed=None):
         """
         Set the initial state and time for a step evolution.
@@ -92,7 +71,7 @@ class MultiTrajSolver:
         self.traj_solvers = []
 
         for seed in seeds:
-            traj_solver = self._traj_solver_class(*self.traj_args,
+            traj_solver = self._traj_solver_class(*self._traj_args,
                                                   options=self.options)
             traj_solver.start(state, t0, seed=seed)
             self.traj_solvers.append(traj_solver)
@@ -126,12 +105,6 @@ class MultiTrajSolver:
                for traj_solver in self.traj_solvers]
         return out
 
-    def get_single_trajectory_solver(self):
-        """
-        Get a :cls:`Solver` for a single trajectory.
-        """
-        return self._traj_solver_class(*self.traj_args, options=self.options)
-
     def run(self, state, tlist, ntraj=1, *, args=None,
             e_ops=(), timeout=1e8, target_tol=None, seed=None):
         """
@@ -158,11 +131,6 @@ class MultiTrajSolver:
 
         args : dict, optional {None}
             Change the ``args`` of the rhs for the evolution.
-
-        options : SolverOptions, optional {None}
-            Update the ``options`` of the system.
-            The change is effective from the beginning of the interval.
-            Changing ``options`` can slow the evolution.
 
         e_ops : list
             list of Qobj or QobjEvo to compute the expectation values.
@@ -206,7 +174,7 @@ class MultiTrajSolver:
 
         result.stats['run time'] = 0
         self._traj_solver = self._traj_solver_class(
-            *self.traj_args, options=self.options,
+            *self._traj_args, options=self.options,
         )
         self.add_trajectories(
             result, ntraj, target_tol=target_tol,
@@ -255,7 +223,7 @@ class MultiTrajSolver:
             Results of the evolution. States and/or expect will be saved. You
             can control the saved data in the options.
 
-        .. note:
+        .. note :
             The simulation will end when the first end condition is reached
             between ``ntraj``, ``timeout`` and ``target_tol``.
         """
@@ -263,11 +231,11 @@ class MultiTrajSolver:
         if result.solver_id != id(self):
             raise ValueError("Result class was not created by this solver")
         seeds = self._read_seed(seed, ntraj)
-        map_func = get_map[self.options.mcsolve['map']]
+        map_func = get_map[self._options.mcsolve['map']]
         map_kw = {
-            'timeout': timeout or self.options.mcsolve['timeout'],
-            'job_timeout': self.options.mcsolve['job_timeout'],
-            'num_cpus': self.options.mcsolve['num_cpus'],
+            'timeout': timeout or self._options.mcsolve['timeout'],
+            'job_timeout': self._options.mcsolve['job_timeout'],
+            'num_cpus': self._options.mcsolve['num_cpus'],
         }
         result._target_ntraj = ntraj + result.num_traj
 
@@ -277,12 +245,40 @@ class MultiTrajSolver:
             self._traj_solver._run_map, seeds,
             (result.initial_state, result.tlist, result.e_ops),
             reduce_func=result.add, map_kw=map_kw,
-            progress_bar=self.options["progress_bar"],
-            progress_bar_kwargs=self.options["progress_kwargs"]
+            progress_bar=self._options["progress_bar"],
+            progress_bar_kwargs=self._options["progress_kwargs"]
         )
         result.stats['run time'] += time() - start_time
         result.stats.update(self.stats)
         return result
+
+    def _read_seed(self, seed, ntraj):
+        """
+        Read user provided seed(s) and produce one for each trajectory.
+        Let numpy raise error for inputs that cannot be seeds.
+        """
+        if seed is None:
+            seeds = self.seed_sequence.spawn(ntraj)
+        elif isinstance(seed, np.random.SeedSequence):
+            seeds = copy(seed).spawn(ntraj)
+        elif not isinstance(seed, list):
+            seeds = np.random.SeedSequence(seed).spawn(ntraj)
+        elif len(seed) >= ntraj:
+            seeds = [
+                seed_ if (isinstance(seed_, np.random.SeedSequence)
+                          or hasattr(seed_, 'random'))
+                else np.random.SeedSequence(seed_)
+                for seed_ in seed[:ntraj]
+            ]
+        else:
+            raise ValueError("A seed list must be longer than ntraj")
+        return seeds
+
+    def get_single_trajectory_solver(self):
+        """
+        Get a :cls:`Solver` for a single trajectory.
+        """
+        return self._traj_solver_class(*self._traj_args, options=self.options)
 
     @property
     def options(self):
@@ -307,24 +303,20 @@ class MultiTrajSolver:
             self.rhs.arguments(args)
 
     @property
-    def traj_args(self):
+    def _traj_args(self):
         return (self.rhs,)
 
 
 class _TrajectorySolver(Solver):
     """
     :cls:`Solver` for trajectory of a multi-trajectory evolution (``mcsolve``,
-    ``photocurrent``, etc.).
+    ``photocurrent``, ``stochastic``, etc.).
 
     :method:`start`, and :method:`run` take and extra ``seed`` keyword
     argument to initiate the random number generator.
 
     Evolution between times is done by the :method:`_step` which needs to be
-    implemented for the solver problem (include collapse in mcsolve, etc.).
-    An :class:`Integrator` is initiated using `rhs` before calling `_step`.
-
-    A new :method:`_argument` is used to update the args in `rhs` and other
-    :class:`QobjEvo` and need to be overloaded if other operators are used.
+    implemented for the solver problem.
     """
     name = "Generic trajectory solver"
 
@@ -356,12 +348,12 @@ class _TrajectorySolver(Solver):
         seed : int, SeedSequence
             Seed for the random number generator.
         """
-        self._generator = self.get_generator(seed)
+        self._generator = self._get_generator(seed)
         super().start(state, t0)
 
     def step(self, t, *, args=None, copy=True):
-        if not self._integrator:
-            raise RuntimeError("The `start` method must called first")
+        if not self.is_set:
+            raise RuntimeError("The `start` method must be called first")
         self._argument(args)
         _, state = self._step(t)
         return self._restore_state(state, copy=copy)
@@ -393,9 +385,6 @@ class _TrajectorySolver(Solver):
             List of Qobj, QobjEvo or callable to compute the expectation
             values. Function[s] must have the signature
                 f(t : float, state : Qobj) -> expect.
-
-        options : SolverOptions {None}
-            Options for the solver
 
         seed : int, SeedSequence
             Seed for the random number generator.
@@ -430,7 +419,7 @@ class _TrajectorySolver(Solver):
         """
         return self.run(state, tlist, e_ops=e_ops, seed=seed)
 
-    def get_generator(self, seed):
+    def _get_generator(self, seed):
         """
         Read the seed and create the random number generator.
         If the ``seed`` has a ``random`` method, it will be used as the
@@ -445,5 +434,8 @@ class _TrajectorySolver(Solver):
         return np.random.Generator(self.bit_gen(seed))
 
     def _step(self, t, copy=True):
-        """Evolve to t, including jumps."""
+        """ Evolve to t, including jumps.
+
+        An :class:`Integrator` is initiated using `rhs` before calling `_step`.
+        """
         raise NotImplementedError

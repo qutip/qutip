@@ -23,18 +23,6 @@ class Solver:
 
     options : SolverOptions
         Options for the solver
-
-    attributes
-    ----------
-    rhs : Qobj, QobjEvo
-        Right hand side of the evolution::
-            d state / dt = rhs @ state
-
-    options : SolverOptions
-        Options for the solver
-
-    stats: dict
-        Diverse statistics of the evolution.
     """
     name = "generic"
 
@@ -192,9 +180,14 @@ class Solver:
 
         copy : bool, optional {True}
             Whether to return a copy of the data or the data in the ODE solver.
+
+        .. note :
+            The state must be initialized first by calling ``start`` or
+            ``run``. If ``run`` is called, ``step`` will continue from the last
+            time and state obtained.
         """
         if not self.is_set:
-            raise RuntimeError("The `start` method must called first")
+            raise RuntimeError("The `start` method must be called first")
         self._argument(args)
         _time_start = time()
         _, state = self._integrator.integrate(t, copy=False)
