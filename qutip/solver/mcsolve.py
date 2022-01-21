@@ -308,7 +308,7 @@ class McSolver(MultiTrajSolver):
             n_op.arguments(args)
 
     @property
-    def traj_args(self):
+    def _traj_args(self):
         return (self.rhs, self._c_ops, self._n_ops)
 
     def run(self, state, tlist, ntraj=1, *, args=None,
