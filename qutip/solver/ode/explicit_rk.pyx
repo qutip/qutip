@@ -14,21 +14,21 @@ from .verner9efficient import vern9_coeff
 cimport cython
 import numpy as np
 
-euler_coeff = (
-    1,
-    np.array([[0.]], dtype=np.float64),
-    np.array([1.], dtype=np.float64),
-    np.array([0.], dtype=np.float64)
-)
+euler_coeff = {
+    'order': 1,
+    'a': np.array([[0.]], dtype=np.float64),
+    'b': np.array([1.], dtype=np.float64),
+    'c': np.array([0.], dtype=np.float64)
+}
 
 rk4_coeff = (
-    4,
-    np.array([[0., 0., 0., 0.],
-              [.5, 0., 0., 0.],
-              [0., .5, 0., 0.],
-              [0., 0., 1., 0.]], dtype=np.float64),
-    np.array([1/6, 1/3, 1/3, 1/6], dtype=np.float64),
-    np.array([0., 0.5, 0.5, 1.0], dtype=np.float64)
+    'order': 4,
+    'a': np.array([[0., 0., 0., 0.],
+                   [.5, 0., 0., 0.],
+                   [0., .5, 0., 0.],
+                   [0., 0., 1., 0.]], dtype=np.float64),
+    'b': np.array([1/6, 1/3, 1/3, 1/6], dtype=np.float64),
+    'c': np.array([0., 0.5, 0.5, 1.0], dtype=np.float64)
 )
 
 
@@ -81,7 +81,8 @@ cdef class Explicit_RungeKutta:
         Bounds of the step lenght in ``t``. ``0`` means no bounds.
 
     interpolate : bool
-        Whether to do longer step and interpolate back.
+        Whether to do longer step and interpolate back when the method support
+        it.
         Example:
             At ``t=1``, the integrator is asked to integrate to ``t=2`` but can
             safely integrate up to ``t=3``. If ``interpolate=True``, it will
@@ -116,18 +117,19 @@ cdef class Explicit_RungeKutta:
         self.interpolate = interpolate
 
         self.k = []
-        if isinstance(method, tuple):
-            self._init_coeff(*method)
+        if isinstance(method, dict):
+            self._init_coeff(**method)
         elif "vern7" == method:
-            self._init_coeff(*vern7_coeff)
+            self._init_coeff(**vern7_coeff)
         elif "vern9" == method:
-            self._init_coeff(*vern9_coeff)
+            self._init_coeff(**vern9_coeff)
         elif "rk4" == method:
-            self._init_coeff(*rk4_coeff)
+            self._init_coeff(**rk4_coeff)
         else:
-            self._init_coeff(*euler_coeff)
+            self._init_coeff(**euler_coeff)
         self.method = method
         self._y_prev = None
+        self._status = Status.NOT_INITIATED
 
     def _init_coeff(self, order, a, b, c, e=None, bi=None):
         """
@@ -178,12 +180,12 @@ cdef class Explicit_RungeKutta:
                              f"tableau. Got {e.shape[0]} but expected "
                              f"{self.rk_step}")
 
-        self.can_interpolate = bi is not None
-        self.interpolate = self.can_interpolate and self.interpolate
-        if self.can_interpolate:
+        self.interpolate = bi is not None and self.interpolate
+        if self.interpolate:
             self.denseout_order = bi.shape[1]
             if bi.shape[0] != self.rk_extra_step:
-                raise ValueError("The length of the error coefficients must be the")
+                raise ValueError("The interpolation coefficient's shape must "
+                                 "be (a.shape[0], dense output order)")
 
         self.a = a
         self.b = b
@@ -204,7 +206,6 @@ cdef class Explicit_RungeKutta:
         self._y = y0
         self._norm_prev = frobenius_data(self._y)
         self._norm_front = self._norm_prev
-        self._status = 0
 
         #prepare the buffers
         for i in range(self.rk_extra_step):
@@ -226,7 +227,7 @@ cdef class Explicit_RungeKutta:
         cdef double norm = frobenius_data(y0), tmp_norm
         cdef double tol = self.atol + norm * self.rtol
         cdef int i
-        imul_data(<Data> self.k[0], 0)
+        self.k[0] = imul_data(<Data> self.k[0], 0)
         self.k[0] = self.qevo.matmul_data(t, y0, <Data> self.k[0])
 
         # Ok approximation for linear system. But not in a general case.
@@ -242,7 +243,7 @@ cdef class Explicit_RungeKutta:
             dt1 = (tol * factorial * norm**self.order)**(1 /(self.order+1))
         self._y_temp = copy_to(y0, self._y_temp)
         self._y_temp = iadd_data(self._y_temp, <Data> self.k[0], dt1 / 100)
-        imul_data(<Data> self.k[1], 0)
+        self.k[1] = imul_data(<Data> self.k[1], 0)
         self.k[1] = self.qevo.matmul_data(t + dt1 / 100, self._y_temp,
                                           <Data> self.k[1])
 
@@ -268,17 +269,18 @@ cdef class Explicit_RungeKutta:
         """
         cdef int nsteps_left = self.max_numsteps
         cdef double err = 0
-        self._status = 0
 
         if self._y_prev is None:
             raise RuntimeError("The initial state must be set before "
                                "integrating.")
 
+        self._status = Status.NORMAL
+
         if t == self._t:
             return
 
         if t < self._t_prev:
-            self._status = -3  # Cannot integrate back in ``t``.
+            self._status = Status.OUTSIDE_RANGE
             return
 
         if self.interpolate and t < self._t_front:
@@ -302,11 +304,11 @@ cdef class Explicit_RungeKutta:
 
         if self._t_front > t:
             self._prep_dense_out()
-            self._status = 1
+            self._status = Status.INTERPOLATED
             self._t = t
             self._y = self._interpolate_step(t, self._y)
         else:
-            self._status = 2
+            self._status = Status.AT_FRONT
             self._t = self._t_front
             self._y = copy_to(self._y_front, self._y)
 
@@ -319,10 +321,10 @@ cdef class Explicit_RungeKutta:
         while error >= 1:
             dt = self._get_timestep(t)
             if dt < 1e-15:
-                self._status = -2  # Too small minimum step.
+                self._status = Status.DT_UNDERFLOW
                 break
             if nsteps > max_step:
-                self._status = -1  # Too many tries
+                self._status = Status.TOO_MUCH_WORK
                 break
             error = self._compute_step(dt)
             self._recompute_safe_step(error, dt)
@@ -337,7 +339,7 @@ cdef class Explicit_RungeKutta:
         """
         cdef int i
         for i in range(self.rk_step):
-            imul_data(<Data> self.k[i], 0.)
+            self.k[i] = imul_data(<Data> self.k[i], 0.)
 
         # Compute the derivatives
         self.k[0] = self.qevo.matmul_data(self._t_prev, self._y_prev,
@@ -363,7 +365,7 @@ cdef class Explicit_RungeKutta:
         """ Compute the normalized error. (error/tol) """
         if not self.adaptative_step:
             return 0.
-        imul_data(self._y_temp, 0.)
+        self._y_temp = imul_data(self._y_temp, 0.)
         self._y_temp = self._accumulate(self._y_temp, self.e, dt, self.rk_step)
         self._norm_front = frobenius_data(y_new)
         return frobenius_data(self._y_temp) / (self.atol +
@@ -376,7 +378,7 @@ cdef class Explicit_RungeKutta:
         cdef double dt = self._dt_int
 
         for i in range(self.rk_step, self.rk_extra_step):
-            imul_data(<Data> self.k[i], 0.)
+            self.k[i] = imul_data(<Data> self.k[i], 0.)
             self._y_temp = copy_to(self._y_prev, self._y_temp)
             self._y_temp = self._accumulate(self._y_temp, self.a[i,:], dt, i)
             self.k[i] = self.qevo.matmul_data(self._t_prev + self.c[i]*dt,
@@ -421,7 +423,7 @@ cdef class Explicit_RungeKutta:
             return dt_needed
         return dt_needed / (int(dt_needed / self._dt_safe) + 1)
 
-    cdef double _recompute_safe_step(self, double err, double dt):
+    cdef void _recompute_safe_step(self, double err, double dt):
         """ Get maximum safe step in function of the error."""
         cdef double factor
         if not self.adaptative_step:
@@ -445,6 +447,24 @@ cdef class Explicit_RungeKutta:
     @property
     def status(self):
         return self._status
+
+    def status_message(self):
+        "Status of the last step in a human readable format."
+        return {
+            AT_FRONT: "Internal state at the desired time.",
+            INTERPOLATED: (
+                "Internal state past the desired time and "
+                "interpolation to step done."),
+            NORMAL: 'No work done.',
+            TOO_MUCH_WORK: (
+                'Too much work done in one call. Try to increase '
+                'the nsteps parameter or increasing the tolerance.'
+            ),
+            DT_UNDERFLOW:
+                'Step size becomes too small. Try increasing tolerance.',
+            OUTSIDE_RANGE: 'Step outside available range.',
+            NOT_INITIATED: 'Not initialized.'
+        }[self._status]
 
     @property
     def y(self):
@@ -471,15 +491,17 @@ cdef class Explicit_RungeKutta:
         return self._t
 
     def _debug_state(self):
-        if self._y is not None:
-            print("y", self._t, self._y.to_array())
-        if self._y_prev is not None:
-            print("prev", self._t_prev, self._y_prev.to_array(), self._norm_prev)
-        if self._y_front is not None:
-            print("front", self._t_front, self._y_front.to_array(),
-                  self._norm_front)
-        if self._y_temp is not None:
-            print("temp", self._y_temp.to_array())
-        print(self._dt_safe, self._dt_int)
+        print("t, y: ", self._t,
+              'None' if self._y is None else self._y.to_array())
+        print("t_prev, y_prev, |y_prev|", self._t_prev,
+              'None' if self._y_prev is None else self._y_prev.to_array(),
+              self._norm_prev)
+        print("t_front, y_front, |y_front|", self._t_front,
+              'None' if self._y_front is None else self._y_front.to_array(),
+              self._norm_front)
+        print("y_temp",
+              'None' if self._y_temp is None else self._y_temp.to_array()))
+        print("dt_safe: ", self._dt_safe, "dt_int: ", self._dt_int)
         for i in range(self.rk_extra_step):
-            print(self.k[i].to_array())
+            print(f'k[{i}]',
+                  'None' if self.k[i] is None else self.k[i].to_array())

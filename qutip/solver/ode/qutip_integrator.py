@@ -18,7 +18,7 @@ class IntegratorVern(Integrator):
 
     The implementation uses QuTiP's Data objects for the state, allowing sparse, GPU or other
     data layer objects to be used efficiently by the solver in their native formats.
-    
+
     See http://people.math.sfu.ca/~jverner/ for a detailed description of the methods.
     """
     integrator_options = {
@@ -58,13 +58,7 @@ class IntegratorVern(Integrator):
     def _check_failed_integration(self):
         if self._ode_solver.successful():
             return
-        messages = {
-            -1: 'Too much work done in one call. Try to increase the nsteps '
-                'parameter or increasing the tolerance.',
-            -2: 'Step size becomes too small. Try increasing tolerance',
-            -3: 'Step outside available range.',
-        }
-        raise IntegratorException(messages[self._ode_solver.status])
+        raise IntegratorException(self._ode_solver.status_message())
 
 
 class IntegratorDiag(Integrator):

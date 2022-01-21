@@ -2,6 +2,15 @@
 from qutip.core.data cimport Data
 from qutip.core.cy.qobjevo cimport QobjEvo
 
+cpdef enum Status:
+    AT_FRONT = 2
+    INTERPOLATED = 1
+    NORMAL = 0
+    TOO_MUCH_WORK = -1
+    DT_UNDERFLOW = -2
+    OUTSIDE_RANGE = -3
+    NOT_INITIATED = -4
+
 cdef class Explicit_RungeKutta:
     cdef QobjEvo qevo
 
@@ -10,7 +19,8 @@ cdef class Explicit_RungeKutta:
     cdef Data _y_temp, _y, _y_prev, _y_front
     cdef double _norm_front, _norm_prev, _dt_safe, _dt_int
     cdef double _t, _t_prev, _t_front
-    cdef int _status
+    cdef Status _status
+    cdef dict status_messages
 
     # options: set in init
     cdef readonly double rtol, atol, first_step, min_step, max_step
@@ -50,4 +60,4 @@ cdef class Explicit_RungeKutta:
 
     cdef double _get_timestep(self, double t)
 
-    cdef double _recompute_safe_step(self, double err, double dt)
+    cdef void _recompute_safe_step(self, double err, double dt)
