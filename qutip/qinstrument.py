@@ -358,11 +358,15 @@ class QInstrument(object):
         return QInstrument({
             # Reverse the ordering of labels, since 𝐵𝐴 means "𝐴 then 𝐵."
             Seq(right_label, left_label): prod
-            for (left_label, left_process), (right_label, right_process)
-            in itertools.product(left._processes.items(), right._processes.items())
+            for (left_label, right_label, prod)
+            in (
+                (left_label, right_label, left_process * right_process)
+                for (left_label, left_process), (right_label, right_process) in
+                itertools.product(left._processes.items(), right._processes.items())
+            )
             # Chop out trace-annhilating processes (those processes that
             # correspond to measurement outcomes that cannot possibly occur).
-            if not (prod := (left_process * right_process)).is_trace_annhilating
+            if not prod.is_trace_annhilating
         })
 
     def __mul__(self, other):
