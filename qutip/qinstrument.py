@@ -7,7 +7,7 @@ __all__ = ['QInstrument', 'Seq', 'Par', 'Pauli', 'PauliString']
 
 # # Design notes
 #
-# Instruments are indexed sets of functions from normalized density operators 
+# Instruments are indexed sets of functions from normalized density operators
 # to subnormalized (trace ∈ [0, 1]) density operators, with each index
 # corresponding to a given classical measurement outcome.
 #
@@ -20,23 +20,31 @@ __all__ = ['QInstrument', 'Seq', 'Par', 'Pauli', 'PauliString']
 # measurement may be represented by tuples such as `(0,)`, `(1,)`, and so
 # forth.
 
+
+from qutip import __version__
+import qutip.settings as settings
+import numpy as np
 from enum import IntEnum
 import itertools
 import warnings
 import types
 import numbers
-from typing import Dict, Iterable, List, Tuple, TypeVar, Union, Optional, Generic
+from typing import (
+    Dict, Iterable, List, Tuple, TypeVar, Union, Optional, Generic
+)
 from dataclasses import dataclass, replace
 from qutip.core import Qobj
 
+
 @dataclass
 class Outcome:
-    probability : float
-    output_state : Qobj
+    probability: float
+    output_state: Qobj
 
     @classmethod
     def _from_qobj(cls, qobj):
         return cls(probability=qobj.tr(), output_state=qobj.unit())
+
 
 class Pauli(IntEnum):
     I = 0
@@ -54,23 +62,32 @@ class Pauli(IntEnum):
         elif self == Pauli.Z:
             return ops.sigmaz()
 
+
 # NB: This is a hack, since the metaclass for IntEnum adds a __new__
 #     only if we don't have one already.
 __orig_pauli_new = Pauli.__new__
+
+
 def __pauli_new(cls, value):
     if isinstance(value, str):
         return Pauli[value]
     return __orig_pauli_new(cls, value)
+
+
 Pauli.__new__ = __pauli_new
 
 _PHASES = ["+", "+i", "-", "-i"]
 
+
 @dataclass(frozen=True)
 class PauliString:
-    phase: int # Factor of 𝑖
+    phase: int  # Factor of 𝑖
     op: Tuple[Pauli]
 
-    def __init__(self, phase: Union[int, str, "PauliString"], op: Optional[List[Pauli]] = None):
+    def __init__(self,
+                 phase: Union[int, str, "PauliString"],
+                 op: Optional[List[Pauli]] = None):
+
         if isinstance(phase, str):
             value = type(self).parse(phase)
         elif isinstance(phase, PauliString):
@@ -78,8 +95,10 @@ class PauliString:
         else:
             value = None
 
-        object.__setattr__(self, "phase", value.phase if value is not None else phase)
-        object.__setattr__(self, "op", tuple(value.op if value is not None else op))
+        object.__setattr__(
+            self, "phase", value.phase if value is not None else phase)
+        object.__setattr__(self, "op", tuple(
+            value.op if value is not None else op))
 
     @classmethod
     def parse(cls, s):
@@ -106,6 +125,7 @@ class PauliString:
         else:
             return NotImplemented
 
+
 def _flatten_nested(t, items):
     return sum(
         (
@@ -115,6 +135,7 @@ def _flatten_nested(t, items):
         []
     )
 
+
 def _flatten_singletons(t, items):
     empty = t()
     return [
@@ -122,6 +143,7 @@ def _flatten_singletons(t, items):
         for item in items
         if item != empty
     ]
+
 
 def _normalize_seq_par_args(args, inner, outer):
     if len(args) == 0:
@@ -138,6 +160,7 @@ def _normalize_seq_par_args(args, inner, outer):
 
     return new_args
 
+
 class Seq(tuple):
     """
     A sequence of measurement outcomes.
@@ -148,19 +171,20 @@ class Seq(tuple):
     """
     def __new__(cls, *iterable):
         return super().__new__(cls,
-            _normalize_seq_par_args(iterable, Par, Seq)
-        )
+                               _normalize_seq_par_args(iterable, Par, Seq)
+                               )
 
     def __repr__(self) -> str:
         return f"Seq{super().__repr__()}"
 
     def __add__(self, other):
         return Seq(*(super().__add__(other)))
+
     def __radd__(self, other):
         return Seq(*(super().__radd__(other)))
 
     @classmethod
-    def parse(cls, value : str) -> cls:
+    def parse(cls, value: str) -> cls:
         def try_int(x):
             try:
                 return int(x)
@@ -186,35 +210,34 @@ class Par(tuple):
     """
     def __new__(cls, *iterable):
         return super().__new__(cls,
-            _normalize_seq_par_args(iterable, Seq, Par)
-        )
+                               _normalize_seq_par_args(iterable, Seq, Par)
+                               )
 
     def __repr__(self) -> str:
         return f"Par{super().__repr__()}"
 
     def __add__(self, other):
         return Par(*(super().__add__(other)))
+
     def __radd__(self, other):
         return Par(*(super().__radd__(other)))
 
 
-try:
-    import builtins
-except ImportError:
-    import __builtin__ as builtins
-
-import numpy as np
-import qutip.settings as settings
-from qutip import __version__
-
 def _is_iterable(value):
+    """
+    Attempts to detect if a given value is iterable, returning True if so.
+    Note that similar to isinstance and other type-checking functions, this
+    function should not have side-effects, and in particular, should never
+    fail or raise an exception.
+    """
     try:
         _ = iter(value)
         return True
-    except:
+    except Exception:
         return False
 
-def _normalize_as_instrument(instrument_like, parse : bool = True):
+
+def _normalize_as_instrument(instrument_like, parse: bool = True):
     """
     """
     # Is the input already literally an instrument? Then copy and return its
@@ -271,6 +294,7 @@ def _normalize_as_instrument(instrument_like, parse : bool = True):
     else:
         raise TypeError(f"Value {instrument_like} was not instrument-like.")
 
+
 def _require_consistant_dims(processes):
     dims = None
     for process in processes:
@@ -278,10 +302,17 @@ def _require_consistant_dims(processes):
             dims = process.dims
         else:
             if process.dims != dims:
-                raise ValueError(f"Dimensions {process.dims} are not consistent with dimensions {dims}.")
+                raise ValueError(
+                    f"Dimensions {process.dims} are not consistent " +
+                    f"with dimensions {dims}.")
+
 
 def _ensure_instrument(instrument_like):
-    return instrument_like if isinstance(instrument_like, QInstrument) else QInstrument(instrument_like)
+    return (
+        instrument_like
+        if isinstance(instrument_like, QInstrument) else
+        QInstrument(instrument_like)
+    )
 
 
 class QInstrument(object):
@@ -292,12 +323,13 @@ class QInstrument(object):
     # define __array__.
     __array_ufunc__ = None
 
-    def __init__(self, input=None, parse : bool = True):
+    def __init__(self, input=None, parse: bool = True):
         """
-        :param parse: If `True`, string labels will be parsed, with `,` implying
-            sequences and `;` implying parallel. For example, `0,1,2;3,4` is
-            equivalent to `Seq(Par(Seq(0, 1, 2), Seq(3, 4)))`. More general
-            cases can be constructed by using `Seq` and `Par` directly.
+        :param parse: If `True`, string labels will be parsed, with `,`
+            implying sequences and `;` implying parallel. For example,
+            `0,1,2;3,4` is equivalent to `Seq(Par(Seq(0, 1, 2), Seq(3, 4)))`.
+            More general cases can be constructed by using `Seq` and `Par`
+            directly.
         """
         self._processes = _normalize_as_instrument(input, parse)
         _require_consistant_dims(self._processes.values())
@@ -323,21 +355,30 @@ class QInstrument(object):
 
     @property
     def iscp(self):
-        return all(process.iscp for process in self._processes.values()) and self.nonselective_process.iscp
+        return (
+            all(process.iscp for process in self._processes.values())
+            and self.nonselective_process.iscp
+        )
 
     @property
     def ishp(self):
-        return all(process.ishp for process in self._processes.values()) and self.nonselective_process.ishp
+        return (
+            all(process.ishp for process in self._processes.values())
+            and self.nonselective_process.ishp
+        )
 
     @property
     def istp(self):
         # Only check the combined channel!
         return self.nonselective_process.istp
-    
+
     @property
     def iscptp(self):
         # Don't check tp on constiuant channels!
-        return all(process.iscp for process in self._processes.values()) and self.nonselective_process.iscptp
+        return (
+            all(process.iscp for process in self._processes.values())
+            and self.nonselective_process.iscptp
+        )
 
     def copy(self):
         """Create identical copy"""
@@ -362,7 +403,8 @@ class QInstrument(object):
             in (
                 (left_label, right_label, left_process * right_process)
                 for (left_label, left_process), (right_label, right_process) in
-                itertools.product(left._processes.items(), right._processes.items())
+                itertools.product(left._processes.items(),
+                                  right._processes.items())
             )
             # Chop out trace-annhilating processes (those processes that
             # correspond to measurement outcomes that cannot possibly occur).
@@ -421,10 +463,13 @@ class QInstrument(object):
         return tensor([self] * n)
 
     def __str__(self):
-        return repr(self) # TODO
+        return repr(self)  # TODO
 
     def __repr__(self):
-        return f"QInstrument id={id(self):0x} {{\n    dims {self.dims}\n    outcomes {' '.join(map(str, self.outcome_space))}\n}}"
+        return (
+            f"QInstrument id={id(self):0x} {{\n    dims {self.dims}" +
+            f"\n    outcomes {' '.join(map(str, self.outcome_space))}\n}}"
+        )
 
     def __call__(self, other):
         # TODO: Confirm that other is type=ket or type=oper.
@@ -435,7 +480,10 @@ class QInstrument(object):
 
     def sample(self, other):
         pr_table = list(self(other).items())
-        idx_outcome = np.random.choice(len(pr_table), p=[outcome.probability for (label, outcome) in pr_table])
+        idx_outcome = np.random.choice(
+            len(pr_table),
+            p=[outcome.probability for (label, outcome) in pr_table]
+        )
         return pr_table[idx_outcome][0], pr_table[idx_outcome][1].output_state
 
     def __getstate__(self):
@@ -462,8 +510,8 @@ class QInstrument(object):
     def unit(self, inplace=False,
              norm=None, sparse=False,
              tol=0, maxiter=100000):
-       # TODO
-       pass
+        # TODO
+        pass
 
     def tidyup(self, atol=settings.core['auto_tidyup_atol']):
         """Removes small elements from the quantum object.
@@ -484,7 +532,8 @@ class QInstrument(object):
 
     def with_finite_visibility(self, eta):
         shape = next(iter(self._processes.values())).shape
-        eye = (1 - eta) * Qobj(np.eye(*shape), dims=self.dims) / self.n_outcomes
+        eye = (1 - eta) * Qobj(np.eye(*shape),
+                               dims=self.dims) / self.n_outcomes
         return type(self)({
             label: eta * process + eye
             for label, process in self._processes.items()
@@ -507,7 +556,8 @@ class QInstrument(object):
         return type(self)({
             Seq(idx): process
             for (idx, (label, process)) in
-            enumerate(sorted(self._processes.items(), key=lambda item: item[0]))
+            enumerate(sorted(self._processes.items(),
+                      key=lambda item: item[0]))
         })
 
     def if_(self, conditions: Dict):
@@ -528,7 +578,8 @@ class QInstrument(object):
                 processes[label] = conditions[label] * process
             else:
                 # Fall back to using __eq__.
-                matches = [cond_label for cond_label in conditions.keys() if cond_label == label]
+                matches = [cond_label for cond_label in conditions.keys()
+                           if cond_label == label]
                 if len(matches) == 1:
                     processes[label] = conditions[matches[0]] * process
                 else:
@@ -542,7 +593,10 @@ class QInstrument(object):
             for label, process in self._processes.items()
         })
 
-## FACTORY FUNCTIONS ##
+# FACTORY FUNCTIONS ##########################################################
+# The next several functions help make it easier to initialize new
+# instances of QInstrument.
+
 
 def basis_measurement(N=2):
     return QInstrument([
@@ -551,6 +605,8 @@ def basis_measurement(N=2):
     ])
 
 # TODO: Change to list[Pauli], use _ensure_pauli to promote to string.
+
+
 def pauli_measurement(pauli: Optional[Union[PauliString, str]] = None):
     """
     Returns an instrument that performs a half-space measurement on a
@@ -566,10 +622,16 @@ def pauli_measurement(pauli: Optional[Union[PauliString, str]] = None):
         Seq(-pauli): (op - eye) / 2
     })
 
-## INTERNAL UTILITY FUNCTIONS ##
+# INTERNAL UTILITY FUNCTIONS #################################################
+
 
 def _instrument_tensor(qlist):
-    terms = list(itertools.product(*[_ensure_instrument(q)._processes.items() for q in qlist]))
+    """
+    Used by qutip.tensor for the case in which at least one tensor product
+    factor is an instrument.
+    """
+    terms = list(itertools.product(
+        *[_ensure_instrument(q)._processes.items() for q in qlist]))
 
     return QInstrument({
         Par(*labels): super_tensor(*processes)
@@ -577,12 +639,14 @@ def _instrument_tensor(qlist):
         itertools.starmap(zip, terms)
     })
 
-# TRAILING IMPORTS
+
+# TRAILING IMPORTS ###########################################################
 # We do a few imports here to avoid circular dependencies.
-import qutip.core.superop_reps as sr
-import qutip.core.tensor as tensor
+
 from .core.tensor import super_tensor
-import qutip.core.operators as ops
 import qutip.core.metrics as mts
-import qutip.core.states
+import qutip.core.operators as ops
+import qutip.core.tensor as tensor
+import qutip.core.superop_reps as sr
 import qutip.core.superoperator
+import qutip.core.states
