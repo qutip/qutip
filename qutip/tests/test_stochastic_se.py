@@ -211,9 +211,21 @@ def test_ssesolve_feedback():
                    ntraj=ntraj, nsubsteps=nsubsteps, method='homodyne',
                    map_func=parallel_map, args={"expect_op_3":qeye(N)})
 
-    print(all([np.mean(abs(res.expect[idx] - res_ref.expect[idx])) < tol
-                 for idx in range(len(e_ops))]))
 
+def test_ssesolve_bad_e_ops():
+    tol = 0.01
+    N = 4
+    ntraj = 10
+    nsubsteps = 100
+    a = destroy(N)
+    b = destroy(N-1)
 
-if __name__ == "__main__":
-    run_module_suite()
+    H = [num(N)]
+    psi0 = coherent(N, 2.5)
+    sc_ops = [a + a.dag()]
+    e_ops = [a.dag() * a, a + a.dag(), (-1j)*(b - b.dag()), qeye(N+1)]
+    times = np.linspace(0, 10, 101)
+    with pytest.raises(TypeError) as exc:
+        res = ssesolve(H, psi0, times, sc_ops, e_ops, solver=None, noise=1,
+                       ntraj=ntraj, nsubsteps=nsubsteps, method='homodyne',
+                       map_func=parallel_map)
