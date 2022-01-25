@@ -12,13 +12,15 @@ __all__ = ['IntegratorVern', 'IntegratorDiag']
 class IntegratorVern(Integrator):
     """
     QuTiP's implementation of Verner's "most efficient" Runge-Kutta method
-    of order 7 and 9. These are Runge-Kutta methods with variable steps and dense
-    output.
+    of order 7 and 9. These are Runge-Kutta methods with variable steps and
+    dense output.
 
-    The implementation uses QuTiP's Data objects for the state, allowing sparse, GPU or other
-    data layer objects to be used efficiently by the solver in their native formats.
+    The implementation uses QuTiP's Data objects for the state, allowing
+    sparse, GPU or other data layer objects to be used efficiently by the
+    solver in their native formats.
 
-    See http://people.math.sfu.ca/~jverner/ for a detailed description of the methods.
+    See http://people.math.sfu.ca/~jverner/ for a detailed description of the
+    methods.
     """
     integrator_options = {
         'atol': 1e-8,
@@ -35,14 +37,15 @@ class IntegratorVern(Integrator):
 
     def _prepare(self):
         self._ode_solver = Explicit_RungeKutta(self.system, **self.options)
-        self.name = "qutip " + self.options['method']
+        self.name = self.options['method']
 
     def get_state(self, copy=True):
         state = self._ode_solver.y
         return self._ode_solver.t, state.copy() if copy else state
 
     def set_state(self, t, state):
-        self._ode_solver.set_initial_value(state, t)
+        self._ode_solver.set_initial_value(state.copy(), t)
+        self._is_set = True
 
     def integrate(self, t, copy=True):
         self._ode_solver.integrate(t, step=False)
@@ -106,6 +109,7 @@ class IntegratorDiag(Integrator):
     def set_state(self, t, state0):
         self._t = t
         self._y = _data.matmul(self.Uinv, state0).to_array()
+        self._is_set = True
 
 
 Solver.add_integrator(IntegratorVern, ['vern7', 'vern9'])

@@ -74,8 +74,8 @@ cdef class Explicit_RungeKutta:
         Maximum number of steps done during one call of integrate.
 
     first_step : double
-        Lenght in ``t`` of the first step. If ``0``, an appropriate step will be
-        determined automaticaly.
+        Lenght in ``t`` of the first step. If ``0``, an appropriate step will
+        be determined automaticaly.
 
     min_step, max_step : double
         Bounds of the step lenght in ``t``. ``0`` means no bounds.
@@ -129,7 +129,6 @@ cdef class Explicit_RungeKutta:
             self._init_coeff(**euler_coeff)
         self.method = method
         self._y_prev = None
-        self._status = Status.NOT_INITIATED
 
     def _init_coeff(self, order, a, b, c, e=None, bi=None):
         """
@@ -164,11 +163,11 @@ cdef class Explicit_RungeKutta:
         """
         self.order = order
         self.rk_step = b.shape[0]
-        self.rk_extra_step = a.shape[0]
+        self.rk_extra_step = c.shape[0]
         if (
             self.rk_step > self.rk_extra_step or
             a.shape[1] != self.rk_extra_step or
-            c.shape[0] != self.rk_extra_step
+            a.shape[0] != self.rk_extra_step
         ):
             raise ValueError("Inconsistant shape between the Butcher tableau "
                              "parts.")
@@ -223,7 +222,7 @@ cdef class Explicit_RungeKutta:
         if not self.adaptative_step:
             return 0.
 
-        cdef double dt1, dt2, dt, factorial = 1
+        cdef double dt1, dt2, dt, factorial = 1, t1
         cdef double norm = frobenius_data(y0), tmp_norm
         cdef double tol = self.atol + norm * self.rtol
         cdef int i
@@ -231,29 +230,29 @@ cdef class Explicit_RungeKutta:
         self.k[0] = self.qevo.matmul_data(t, y0, <Data> self.k[0])
 
         # Ok approximation for linear system. But not in a general case.
-        if norm == 0:
+        if norm <= self.atol:
             norm = 1
         tmp_norm = frobenius_data(<Data> self.k[0])
         for i in range(1, self.order+1):
             factorial *= i
-        if tmp_norm != 0:
-            dt1 = ((tol * factorial * norm**self.order)**(1 /(self.order+1))
+        if tmp_norm >= (self.atol * 1e-6):
+            dt1 = ((tol * factorial * norm**self.order)**(1 / (self.order+1))
                    / tmp_norm)
         else:
-            dt1 = (tol * factorial * norm**self.order)**(1 /(self.order+1))
+            dt1 = (tol * factorial)**(1 / (self.order+1)) * norm * 0.5
+
+        t1 = t + dt1 / 100
         self._y_temp = copy_to(y0, self._y_temp)
         self._y_temp = iadd_data(self._y_temp, <Data> self.k[0], dt1 / 100)
         self.k[1] = imul_data(<Data> self.k[1], 0)
-        self.k[1] = self.qevo.matmul_data(t + dt1 / 100, self._y_temp,
-                                          <Data> self.k[1])
-
-        self.k[0] = iadd_data(<Data> self.k[0], <Data> self.k[1], -1)
-        tmp_norm = frobenius_data(<Data> self.k[0])
-        if tmp_norm != 0:
-            dt2 = ((tol * factorial* norm**(self.order//2))**(1/(self.order+1)) /
-                   (tmp_norm / dt1 * 100)**0.5)
+        self.k[1] = self.qevo.matmul_data(t1, self._y_temp, <Data> self.k[1])
+        tmp_norm = frobenius_data(<Data> self.k[1])
+        if tmp_norm >= (self.atol * 1e-6):
+            dt2 = ((tol * factorial * norm**self.order)**(1 / (self.order+1))
+                   / tmp_norm)
         else:
-            dt2 = 0.1
+            dt2 = dt1
+
         dt = min(dt1, dt2)
         if self.max_step:
             dt = min(self.max_step, dt)
@@ -271,8 +270,8 @@ cdef class Explicit_RungeKutta:
         cdef double err = 0
 
         if self._y_prev is None:
-            raise RuntimeError("The initial state must be set before "
-                               "integrating.")
+            self._status = Status.NOT_INITIATED
+            return
 
         self._status = Status.NORMAL
 
@@ -352,7 +351,8 @@ cdef class Explicit_RungeKutta:
 
         # Compute the state
         self._y_front = copy_to(self._y_prev, self._y_front)
-        self._y_front = self._accumulate(self._y_front, self.b, dt, self.rk_step)
+        self._y_front = self._accumulate(self._y_front, self.b, dt,
+                                         self.rk_step)
         self._t_front = self._t_prev + dt
 
         if type(self._y_front) is CSR:
