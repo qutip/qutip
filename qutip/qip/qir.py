@@ -31,7 +31,7 @@ from qutip.qip.circuit import Gate, Measurement, QubitCircuit
 
 __all__ = [
     "circuit_to_qir",
-    "save_circuit_to_qir"
+    "QirFormat"
 ]
 
 QREG = "qr"
@@ -66,12 +66,25 @@ class QirFormat(Enum):
 # Specify return types for each different format, so that IDE tooling and type
 # checkers can resolve the return type based on arguments.
 @overload
-def circuit_to_qir(circuit : QubitCircuit, format : Literal[QirFormat.BITCODE, "bitcode"], module_name : str = "qutip_circuit") -> bytes: ...
+def circuit_to_qir(circuit : QubitCircuit, format : Union[Literal[QirFormat.BITCODE], Literal["bitcode"]], module_name : str) -> bytes: ...
 @overload
-def circuit_to_qir(circuit : QubitCircuit, format : Literal[QirFormat.TEXT, "text"], module_name : str = "qutip_circuit") -> str: ...
+def circuit_to_qir(circuit : QubitCircuit, format : Union[Literal[QirFormat.TEXT], Literal["text"]], module_name : str) -> str: ...
 @overload
-def circuit_to_qir(circuit : QubitCircuit, format : Literal[QirFormat.MODULE, "module"], module_name : str = "qutip_circuit") -> pqp.QirModule: ...
-def circuit_to_qir(circuit : QubitCircuit, format : Union[QirFormat, Literal["bitcode", "text"]] = QirFormat.BITCODE, module_name : str = "qutip_circuit") -> Union[str, bytes, pqp.QirModule]:
+def circuit_to_qir(circuit : QubitCircuit, format : Union[Literal[QirFormat.MODULE], Literal["module"]], module_name : str) -> pqp.QirModule: ...
+
+def circuit_to_qir(circuit, format, module_name = "qutip_circuit"):
+    """
+    Given a circuit acting on qubits, generates a representation of that
+    circuit using Quantum Intermediate Representation (QIR).
+
+    :param circuit: The circuit to be translated to QIR.
+    :param format: The QIR serialization to be used. If `"text"`, returns a
+        plain-text representation using LLVM IR. If `"bitcode"`, returns a
+        dense binary representation ideal for use with other compilation tools.
+        If `"module"`, returns a PyQIR module object that can be manipulated
+        further before generating QIR.
+    :param module_name: The name of the module to be emitted.
+    """
     fmt = QirFormat.ensure(format)
 
     builder = pqg.QirBuilder(module_name)
@@ -92,7 +105,6 @@ def circuit_to_qir(circuit : QubitCircuit, format : Union[QirFormat, Literal["bi
                 raise NotImplementedError("Classical controls are not yet implemented.")
 
             # TODO: Validate indices.
-            # TODO: Finish adding gates.
             if op.name == "X":
                 builder.x(f"{QREG}{op.targets[0]}")
             elif op.name == "Y":
@@ -113,20 +125,32 @@ def circuit_to_qir(circuit : QubitCircuit, format : Union[QirFormat, Literal["bi
                 builder.ry(op.control_value, f"{QREG}{op.targets[0]}")
             elif op.name == "RZ":
                 builder.rz(op.control_value, f"{QREG}{op.targets[0]}")
-            # Not supported: CRZ, TOFFOLI
-            # These gates need decomposed before exporting to QIR base profile.
+            elif op.name in ("CRZ", "TOFFOLI"):
+                raise NotImplementedError(
+                    "Decomposition of CRZ and Toffoli gates into base " +
+                    "profile instructions is not yet implemented."
+                )
             else:
-                raise ValueError(f"Gate {op.name} not supported by the QIR base profile, and may require a custom declaration.")
+                raise ValueError(
+                    f"Gate {op.name} not supported by the QIR base profile, " +
+                    "and may require a custom declaration."
+                )
 
         elif isinstance(op, Measurement):
             # TODO: Validate indices.
             if op.name == "Z":
                 builder.m(f"{QREG}{op.targets[0]}", f"{CREG}{op.classical_store}")
             else:
-                raise ValueError(f"Measurement kind {op.name} not supported by the QIR base profile, and may require a custom declaration.")
+                raise ValueError(
+                    f"Measurement kind {op.name} not supported by the QIR " +
+                    "base profile, and may require a custom declaration."
+                )
 
         else:
-            raise NotImplementedError(f"Not yet implemented: {op}")
+            raise NotImplementedError(
+                f"Instruction {op} is not implemented in the QIR base " +
+                "profile and may require a custom declaration."
+            )
 
     if fmt == QirFormat.TEXT:
         return builder.get_ir_string()
