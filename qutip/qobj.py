@@ -310,6 +310,11 @@ class Qobj(object):
             )
             self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
 
+        if self._data.shape[0] > np.prod(self.dims[0]) or \
+           self._data.shape[1] > np.prod(self.dims[1]):
+            raise ValueError(f"Qobj has smaller dims {self.dims} " +
+                             f"than underlying shape {self._data.shape}")
+
         if type == 'super':
             # Type is not super, i.e. dims not explicitly passed, but oper-like
             # shape.
