@@ -209,7 +209,7 @@ class TestLattice1d:
                 else:
                     kop[row, col] = 1 / (np.exp(2j * np.pi * (row - col)/L)-1)
         kt = np.kron(kop * 2 * np.pi / L, np.eye(6))
-        dim_H = [[2, 2, 3], [2, 2, 3]]
+        dim_H = [[L, 2, 3], [L, 2, 3]]
         kt = qutip.Qobj(kt, dims=dim_H)
         k_q = kq.eigenstates()[0]
         k_t = kt.eigenstates()[0]
