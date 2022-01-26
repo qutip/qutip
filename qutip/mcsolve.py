@@ -309,6 +309,8 @@ class _MC():
         else:
             self.e_ops = ExpectOps([])
 
+        self.e_ops.check_dims(self.ss.td_c_ops[0].cte.dims)
+
         ss = self.ss
         if ss is not None and ss.type == "Diagonal" and not self.e_ops.isfunc:
             e_ops = [
