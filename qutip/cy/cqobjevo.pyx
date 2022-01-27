@@ -205,7 +205,7 @@ cdef class CQobjEvo:
 
     def mul_vec(self, double t, complex[::1] vec):
         if vec.shape[0] != self.shape1:
-            raise ValueError(f"Shape don't match: ({self.shape0}, "
+            raise ValueError(f"Shapes don't match: ({self.shape0}, "
                              f"{self.shape1}) @ ({vec.shape[0]}, 1) ")
         cdef np.ndarray[complex, ndim=1] out = np.zeros(self.shape0,
                                                         dtype=complex)
@@ -218,7 +218,7 @@ cdef class CQobjEvo:
         cdef unsigned int nrows = mat.shape[0]
         cdef unsigned int ncols = mat.shape[1]
         if mat.shape[0] != self.shape1:
-            raise ValueError("Shape don't match: "
+            raise ValueError("Shapes don't match: "
                 f"({self.shape0}, {self.shape1}) "
                 f"@ ({mat.shape[0]}, {mat.shape[1]})")
 
@@ -233,7 +233,7 @@ cdef class CQobjEvo:
     cpdef complex expect(self, double t, complex[::1] vec):
         if self.super:
             if self.shape1 != vec.shape[0]:
-                raise ValueError(f"Shape don't match: ({self.shape0}, "
+                raise ValueError(f"Shapes don't match: ({self.shape0}, "
                                  f"{self.shape1}) @ ({vec.shape[0]}, 1) ")
             return self._expect_super(t, &vec[0])
         else:
