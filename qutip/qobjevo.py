@@ -1399,7 +1399,7 @@ class QobjEvo:
                 exp = cy_expect_psi(self.__call__(t, data=True), vec, 0)
         elif vec.shape[0] == self.cte.shape[1]**2:
             if self.compiled:
-                exp = self.compiled_qobjevo.overlapse(t, vec)
+                exp = self.compiled_qobjevo.overlap(t, vec)
             else:
                 self._dynamics_args_update(t, state)
                 exp = (self.__call__(t, data=True) *

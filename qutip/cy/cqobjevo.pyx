@@ -206,7 +206,7 @@ cdef class CQobjEvo:
     def mul_vec(self, double t, complex[::1] vec):
         if vec.shape[0] != self.shape1:
             raise ValueError(f"Shapes don't match: ({self.shape0}, "
-                             f"{self.shape1}) @ ({vec.shape[0]}, 1) ")
+                             f"{self.shape1}) @ ({vec.shape[0]}, 1)")
         cdef np.ndarray[complex, ndim=1] out = np.zeros(self.shape0,
                                                         dtype=complex)
         self._mul_vec(t, &vec[0], &out[0])
@@ -234,28 +234,28 @@ cdef class CQobjEvo:
         if self.super:
             if self.shape1 != vec.shape[0]:
                 raise ValueError(f"Shapes don't match: ({self.shape0}, "
-                                 f"{self.shape1}) @ ({vec.shape[0]}, 1) ")
+                                 f"{self.shape1}), ({vec.shape[0]}, 1)")
             return self._expect_super(t, &vec[0])
         else:
             if self.shape1 != vec.shape[0] and self.shape0 != self.shape1:
-                raise ValueError(f"Shape don't match: ({self.shape0}, "
-                                 f"{self.shape1}) @ ({vec.shape[0]}, 1) ")
+                raise ValueError(f"Shapes don't match: ({self.shape0}, "
+                                 f"{self.shape1}), ({vec.shape[0]}, 1)")
             return self._expect(t, &vec[0])
 
-    def overlapse(self, double t, complex[::1] oper):
+    def overlap(self, double t, complex[::1] oper):
         """
-        Compute the overlapse of operator as tr(this @ oper)
+        Compute the overlap of operator as tr(this @ oper)
         """
         if self.shape0 * self.shape1 != oper.shape[0]:
-            raise ValueError(f"Shape don't match: ({self.shape0}, "
-                             f"{self.shape1}) @ ({oper.shape[0]}, 1) ")
+            raise ValueError(f"Shapes don't match: ({self.shape0}, "
+                             f"{self.shape1}), ({oper.shape[0]}, 1)")
         cdef complex* vec = &oper[0]
         return self._overlapse(t, vec)
 
     def ode_mul_mat_f_vec(self, double t, complex[::1] mat):
         if mat.shape[0] != self.shape1*self.shape1:
-            raise ValueError(f"Shape don't match: ({self.shape0}, "
-                             f"{self.shape1}) @ ({mat.shape[0]}, 1) ")
+            raise ValueError(f"Shapes don't match: ({self.shape0}, "
+                             f"{self.shape1}) @ ({mat.shape[0]}, 1)")
         cdef np.ndarray[complex, ndim=1] out = np.zeros(self.shape1*self.shape1,
                                                         dtype=complex)
         self._mul_matf(t, &mat[0], &out[0], self.shape1, self.shape1)
