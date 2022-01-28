@@ -387,7 +387,7 @@ Of course, like matrices, multiplying two objects of incompatible shape throws a
     TypeError: Incompatible Qobj shapes
 
 
-In additon, the logic operators "is equal" `==` and "is not equal" `!=` are also supported.
+In addition, the logic operators "is equal" `==` and "is not equal" `!=` are also supported.
 
 .. _basics-functions:
 
