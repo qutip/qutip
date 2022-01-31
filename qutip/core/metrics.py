@@ -212,6 +212,9 @@ def process_fidelity(oper, target=None):
         return _process_fidelity_to_id(oper)
 
     dims_out, dims_in = _hilbert_space_dims(oper)
+    if dims_out != dims_in:
+        raise NotImplementedError('Process fidelity only implemented for '
+                                  'dimension-preserving operators.')
     dims_out_target, dims_in_target = _hilbert_space_dims(target)
     if [dims_out, dims_in] != [dims_out_target, dims_in_target]:
         raise TypeError('Dimensions of oper and target do not match')
