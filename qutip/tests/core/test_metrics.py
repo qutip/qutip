@@ -417,7 +417,6 @@ def test_hilbert_space_dims_chi():
     assert_(_hilbert_space_dims(to_chi(u)) == dims)
 
 
-
 @avg_gate_fidelity_test
 def test_average_gate_fidelity():
     """
