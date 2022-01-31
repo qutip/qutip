@@ -237,36 +237,41 @@ def process_fidelity(oper, target=None):
 
 def average_gate_fidelity(oper, target=None):
     """
-    Given a Qobj representing the supermatrix form of a map, returns the
-    average gate fidelity (pseudo-metric) of that map.
+    Returns the average gate fidelity of a quantum channel to the target
+    channel, or to the identity channel if no target is given.
 
     Parameters
     ----------
-    A : Qobj
-        Quantum object representing a superoperator.
-    target : Qobj
-        Quantum object representing the target unitary; the inverse
-        is applied before evaluating the fidelity.
+    oper : :class:`qutip.Qobj`/list
+        A unitary operator, or a superoperator in supermatrix, Choi or
+        chi-matrix form, or a list of Kraus operators
+    target : :class:`qutip.Qobj`
+        A unitary operator
 
     Returns
     -------
     fid : float
-        Fidelity pseudo-metric between A and the identity superoperator,
-        or between A and the target superunitary.
+        Average gate fidelity between oper and target,
+        or between oper and identity.
+
+    Notes
+    -----
+    The average gate fidelity is defined for example in:
+    A. Gilchrist, N.K. Langford, M.A. Nielsen, Phys. Rev. A 71, 062310 (2005).
+    The definition of state fidelity that the average gate fidelity is based on
+    is the one from R. Jozsa, Journal of Modern Optics, 41:12, 2315 (1994).
+    It is the square of the fidelity implemented in
+    :func:`qutip.metrics.fidelity` which follows Nielsen & Chuang,
+    "Quantum Computation and Quantum Information"
+
     """
-    kraus = to_kraus(oper)
-    d = kraus[0].shape[0]
+    dims_out, dims_in = _hilbert_space_dims(oper)
+    if not (target is None or target.type == 'oper'):
+        raise TypeError(
+            'target must be None or a Qobj representing a unitary.')
 
-    if kraus[0].shape[1] != d:
-        return TypeError("Average gate fidelity only implemented for square "
-                         "superoperators.")
-
-    if target is None:
-        return (d + np.sum([np.abs(A_k.tr())**2 for A_k in kraus])) / (d*d + d)
-    return (
-        (d + np.sum([np.abs((A_k*target.dag()).tr())**2 for A_k in kraus]))
-        / (d*d + d)
-    )
+    d = np.prod(dims_in)
+    return (d * process_fidelity(oper, target) + 1) / (d + 1)
 
 
 def tracedist(A, B, sparse=False, tol=0):
