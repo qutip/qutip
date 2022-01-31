@@ -417,6 +417,7 @@ def test_hilbert_space_dims_chi():
     assert_(_hilbert_space_dims(to_chi(u)) == dims)
 
 
+
 @avg_gate_fidelity_test
 def test_average_gate_fidelity():
     """
@@ -427,6 +428,7 @@ def test_average_gate_fidelity():
         assert_(abs(average_gate_fidelity(identity(dims)) - 1) <= 1e-12)
     assert_(0 <= average_gate_fidelity(rand_super()) <= 1)
 
+
 @avg_gate_fidelity_test
 def test_average_gate_fidelity_target():
     """
@@ -436,6 +438,36 @@ def test_average_gate_fidelity_target():
         U = rand_unitary_haar(13)
         SU = to_super(U)
         assert_almost_equal(average_gate_fidelity(SU, target=U), 1)
+
+
+@avg_gate_fidelity_test
+def test_average_gate_fidelity_against_legacy_implementation():
+    """
+    Metrics: Test that AGF coincides with pre-5.0 implementation
+    """
+    def agf_pre_50(oper, target=None):
+        kraus = to_kraus(oper)
+        d = kraus[0].shape[0]
+
+        if kraus[0].shape[1] != d:
+            return TypeError(
+                "Average gate fidelity only implemented for square "
+                "superoperators.")
+
+        if target is None:
+            return (d + np.sum([np.abs(A_k.tr()) ** 2 for A_k in kraus])) / (
+                        d * d + d)
+        return (
+                (d + np.sum(
+                    [np.abs((A_k * target.dag()).tr()) ** 2 for A_k in kraus]))
+                / (d * d + d)
+        )
+
+    oper = rand_super_bcsz(16)
+    target = rand_unitary(16)
+    assert_almost_equal(average_gate_fidelity(oper, target),
+                        agf_pre_50(oper, target))
+
 
 def test_hilbert_dist():
     """
