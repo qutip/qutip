@@ -27,7 +27,7 @@ has_openmp = False
 # debug mode for development
 debug = False
 # Running on mac with openblas make eigh unsafe
-eigh_unsafe = False 
+eigh_unsafe = False
 # are we in IPython? Note that this cannot be
 # set by the RC file.
 ipython = False
@@ -116,19 +116,8 @@ def reset():
     for key in __default:
         __self[key] = __default[key]
 
-    import os
-    if 'QUTIP_NUM_PROCESSES' in os.environ:
-        num_cpus = int(os.environ['QUTIP_NUM_PROCESSES'])
-    elif 'cpus' in info:
-        import qutip.hardware_info
-        info = qutip.hardware_info.hardware_info()
-        num_cpus = info['cpus']
-    else:
-        try:
-            num_cpus = multiprocessing.cpu_count()
-        except:
-            num_cpus = 1
-    __self["num_cpus"] = num_cpus
+    from qutip.utilities import available_cpu_count
+    __self["num_cpus"] = available_cpu_count()
 
     try:
         from qutip.cy.openmp.parfuncs import spmv_csr_openmp

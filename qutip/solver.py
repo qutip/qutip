@@ -74,6 +74,13 @@ class ExpectOps:
         else:
             self.raw_out = np.zeros((self.e_num, len(tlist)), dtype=complex)
 
+    def check_dims(self, dims):
+        if not self.isfunc:
+            for op in self.e_ops_qoevo:
+                if isinstance(op, QobjEvo) and op.cte.dims[1] != dims[0]:
+                    raise TypeError(f"e_ops dims ({op.cte.dims}) are not "
+                                    f"compatible with the system's ({dims})")
+
     def copy(self):
         out = ExpectOps.__new__(ExpectOps)
         out.isfunc = self.isfunc
