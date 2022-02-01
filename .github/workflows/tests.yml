@@ -107,6 +107,7 @@ jobs:
             conda install nomkl "numpy${{ matrix.numpy-requirement }}" "scipy${{ matrix.scipy-requirement }}"
           fi
           python -m pip install -e .[$QUTIP_TARGET]
+          python -m pip install coverage==6.2
           python -m pip install pytest-cov coveralls
 
       - name: Package information
