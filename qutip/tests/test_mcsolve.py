@@ -281,3 +281,12 @@ def test_regression_490():
     result_mc = qutip.mcsolve(h, state, times, ntraj=1)
     for state_me, state_mc in zip(result_me.states, result_mc.states):
         np.testing.assert_allclose(state_me.full(), state_mc.full(), atol=1e-8)
+
+
+def test_mcsolve_bad_e_ops():
+    H = qutip.sigmaz()
+    c_ops = [qutip.sigmax()]
+    psi0 = qutip.basis(2, 0)
+    tlist = np.linspace(0, 20, 200)
+    with pytest.raises(TypeError) as exc:
+        qutip.mcsolve(H, psi0, tlist=tlist, c_ops=c_ops, e_ops=[qutip.qeye(3)])

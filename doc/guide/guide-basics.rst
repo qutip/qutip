@@ -57,7 +57,7 @@ To begin, let us create a blank ``Qobj``:
 
 where we see the blank ``Qobj`` object with dimensions, shape, and data. Here the data corresponds to a 1x1-dimensional matrix consisting of a single zero entry.
 
-.. Hint:: By convention, Class objects in Python such as ``Qobj()`` differ from functions in the use of a beginning capital letter.
+.. Hint:: By convention, the names of Python classes, such as ``Qobj()``, are capitalized whereas the names of functions are not.
 
 We can create a ``Qobj`` with a user defined data set by passing a list or array of data into the ``Qobj``:
 
@@ -123,7 +123,10 @@ Notice how both the dims and shape change according to the input data.  Although
 States and operators
 ---------------------
 
-Manually specifying the data for each quantum object is inefficient. Even more so when most objects correspond to commonly used types such as the ladder operators of a harmonic oscillator, the Pauli spin operators for a two-level system, or state vectors such as Fock states. Therefore, QuTiP includes predefined objects for a variety of states:
+Manually specifying the data for each quantum object is inefficient. Even more so when most objects correspond to commonly used 
+types such as the 
+ladder operators of a harmonic oscillator, the Pauli spin operators for a two-level system, or state vectors such as Fock states. 
+Therefore, QuTiP includes predefined objects for a variety of states and operators:
 
 .. cssclass:: table-striped
 
@@ -271,7 +274,8 @@ We have seen that a quantum object has several internal attributes, such as data
    >>> q.shape
    (4, 4)
 
-In general, the attributes (properties) of a ``Qobj`` object (or any Python class) can be retrieved using the `Q.attribute` notation.  In addition to the attributes shown with the ``print`` function, the ``Qobj`` class also has the following:
+In general, the attributes (properties) of a ``Qobj`` object (or any Python object) can be retrieved using the `Q.attribute` notation.  
+In addition to the those shown with the ``print`` function, an instance of the ``Qobj`` class also has the following attributes:
 
 .. cssclass:: table-striped
 
@@ -383,7 +387,7 @@ Of course, like matrices, multiplying two objects of incompatible shape throws a
     TypeError: Incompatible Qobj shapes
 
 
-In addition, the logic operators is equal `==` and is not equal `!=` are also supported.
+In addition, the logic operators "is equal" `==` and "is not equal" `!=` are also supported.
 
 .. _basics-functions:
 
