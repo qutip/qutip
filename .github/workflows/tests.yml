@@ -112,7 +112,7 @@ jobs:
         # If our tests are running for longer than an hour, _something_ is wrong
         # somewhere.  The GitHub default is 6 hours, which is a bit long to wait
         # to see if something hung.
-        timeout-minutes: 60
+        timeout-minutes: 300
         run: |
           if [[ -n "${{ matrix.openmp }}" ]]; then
             # Force OpenMP runs to use more threads, even if there aren't
