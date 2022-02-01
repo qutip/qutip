@@ -237,3 +237,7 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
 def _default_kwargs():
     settings = {'num_cpus': qset.num_cpus}
     return settings
+
+# skip multiprocessing as a check for hanging github action run
+parallel_map = serial_map
+parfor = serial_map
