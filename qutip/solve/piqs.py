@@ -98,6 +98,18 @@ __all__ = [
     "Pim",
 ]
 
+
+def _ensure_int(x):
+    """
+    Ensure that a floating-point value `x` is exactly an integer, and return it
+    as an int.
+    """
+    out = int(x)
+    if out != x:
+        raise ValueError(f"{x} is not an integral value")
+    return out
+
+
 # Functions necessary to generate the Lindbladian/Liouvillian
 def num_dicke_states(N):
     """Calculate the number of Dicke states.
@@ -637,8 +649,8 @@ def energy_degeneracy(N, m):
         The energy degeneracy
     """
     numerator = Decimal(factorial(N))
-    d1 = Decimal(factorial(N / 2 + m))
-    d2 = Decimal(factorial(N / 2 - m))
+    d1 = Decimal(factorial(_ensure_int(N / 2 + m)))
+    d2 = Decimal(factorial(_ensure_int(N / 2 - m)))
     degeneracy = numerator / (d1 * d2)
     return int(degeneracy)
 
@@ -667,8 +679,8 @@ def state_degeneracy(N, j):
     if j < 0:
         raise ValueError("j value should be >= 0")
     numerator = Decimal(factorial(N)) * Decimal(2 * j + 1)
-    denominator_1 = Decimal(factorial(N / 2 + j + 1))
-    denominator_2 = Decimal(factorial(N / 2 - j))
+    denominator_1 = Decimal(factorial(_ensure_int(N / 2 + j + 1)))
+    denominator_2 = Decimal(factorial(_ensure_int(N / 2 - j)))
     degeneracy = numerator / (denominator_1 * denominator_2)
     degeneracy = int(np.round(float(degeneracy)))
     return degeneracy
