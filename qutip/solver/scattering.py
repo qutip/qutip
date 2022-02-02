@@ -238,7 +238,8 @@ def temporal_scattered_state(H, psi0, n_emissions, c_ops, tlist,
     """
     T = len(tlist)
     W = len(c_ops)
-    phi_n = np.zeros([W * T] * n_emissions, dtype=complex)
+    em_dims = max(n_emissions, 1)
+    phi_n = np.zeros([W * T] * em_dims, dtype=complex)
 
     if construct_effective_hamiltonian:
         # Construct an effective Hamiltonian from system hamiltonian and c_ops
@@ -265,7 +266,7 @@ def temporal_scattered_state(H, psi0, n_emissions, c_ops, tlist,
             idx = _temporal_basis_idx(indices, T)
             phi_n[tuple(idx)] = phi_n_amp
 
-    return Qobj(phi_n.ravel(), dims=[[W * T] * n_emissions, [1] * n_emissions])
+    return Qobj(phi_n.ravel(), dims=[[W * T] * em_dims, [1] * em_dims])
 
 
 def scattering_probability(H, psi0, n_emissions, c_ops, tlist,

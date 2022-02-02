@@ -22,7 +22,7 @@ def testPropObj():
     assert len(U.times) == 5
     assert (U(1) - propagator(H, 1, [a])).norm('max') < 1e-4
     assert (U(0.5) - propagator(H, 0.5, [a])).norm('max') < 1e-4
-    assert (U.prop2t(1.5, 0.5) - propagator(H, 1, [a])).norm('max') < 1e-4
+    assert (U.prop(1.5, 0.5) - propagator(H, 1, [a])).norm('max') < 1e-4
 
 
 def func(t):
@@ -52,7 +52,7 @@ def testPropObjTd():
         - propagator([H, [H, "w*t"]], 0.5, [a], args={'w': 2})
     ).norm('max') < 1e-4
     assert (
-        U.prop2t(1.5, 0.5, args={'w': 1.5})
+        U.prop(1.5, 0.5, args={'w': 1.5})
         - propagator([H, [H, "w*t"]], [0.5, 1.5], [a], args={'w': 1.5})[1]
     ).norm('max') < 1e-4
 

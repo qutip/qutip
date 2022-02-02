@@ -148,7 +148,9 @@ class Propagator:
             self.props = [qeye(Hevo.dims[0])]
             self.solver = SeSolver(Hevo, options=options)
         self.cte = self.solver.rhs.isconstant
-        self.unitary = not self.solver.rhs.issuper and isinstance(H, Qobj) and H.isherm
+        self.unitary = (not self.solver.rhs.issuper
+                        and isinstance(H, Qobj)
+                        and H.isherm)
         self.args = args
         self.memoize = max(3, memoize)
         self.memoize_inv = memoize_inv
@@ -181,27 +183,10 @@ class Propagator:
         Get the inverse of the propagator at ``t``, such that
         ``psi_0 = U.inv(t) @ psi_t``
         """
-        U = self(t, args=args)
-        if not self.memoize_inv:
-            Uinv = self._inv(U)
-        else:
-            idx = np.searchsorted(self.times, t)
-            if idx > 0 and abs(t-self.times[idx-1]) <= self.tol:
-                idx = idx-1
-            if self.invs[idx] is None:
-                Uinv = self._inv(self.props(idx))
-                self.invs[idx] = Uinv
-            else:
-                Uinv = self.invs[idx]
-        return Uinv
+        return self._inv(self(t, args=args))
 
     def _inv(self, U):
-        if self.unitary:
-            Uinv = U.dag()
-        else:
-            Uinv = U.inv()
-        return Uinv
-
+        return U.dag() if self.unitary else U.inv()
 
     def prop(self, t_end, t_start, args=None):
         """
@@ -236,7 +221,6 @@ class Propagator:
         """
         self.times = self.times[:idx] + [t] + self.times[idx:]
         self.props = self.props[:idx] + [U] + self.props[idx:]
-        self.invs = self.invs[:idx] + [None] + self.invs[idx:]
         if len(self.times) > self.memoize:
             # When the list get too long, we clean memory.
             # We keep the extremums and last call.
@@ -245,4 +229,3 @@ class Propagator:
             rm_idx = rm_idx if rm_idx < idx else rm_idx + 1
             self.times = self.times[:rm_idx] + self.times[rm_idx+1:]
             self.props = self.props[:rm_idx] + self.props[rm_idx+1:]
-            self.invs = self.invs[:rm_idx] + self.invs[rm_idx+1:]
