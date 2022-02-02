@@ -11,13 +11,13 @@ First things first
 
 .. warning:: Do not run QuTiP from the installation directory.
 
-To load the qutip modules, we must first call the import statement:
+To load the qutip modules, first call the import statement:
 
 .. code-block:: Python
 
    from qutip import *
 
-that will load all of the user available functions. Often, we also need to import the NumPy and Matplotlib libraries with:
+This will load all of the user available functions. Often, we also need to import the NumPy and Matplotlib libraries with:
 
 .. code-block:: Python
 
@@ -25,7 +25,7 @@ that will load all of the user available functions. Often, we also need to impor
 
    import matplotlib.pyplot as plt
 
-Note that, in the rest of the documentation, functions are written using `qutip.module.function()` notation which links to the corresponding function in the QuTiP API: :ref:`functions`. However, in calling `import *`, we have already loaded all of the QuTiP modules. Therefore, we will only need the function name and not the complete path when calling the function from the interpreter prompt, Python script, or Jupyter notebook.
+In the rest of the documentation, functions are written using `qutip.module.function()` notation which links to the corresponding function in the QuTiP API: :ref:`functions`. However, in calling `import *`, we have already loaded all of the QuTiP modules. Therefore, we will only need the function name and not the complete path when calling the function from the interpreter prompt, Python script, or Jupyter notebook.
 
 .. _basics-qobj:
 
@@ -37,7 +37,7 @@ The quantum object class
 Introduction
 ---------------
 
-The key difference between classical and quantum mechanics lies in the use of operators instead of numbers as variables. Moreover, we need to specify state vectors and their properties. Therefore, in computing the dynamics of quantum systems we need a data structure that is capable of encapsulating the properties of a quantum operator and ket/bra vectors. The quantum object class, :func:`qutip.Qobj`, accomplishes this using matrix representation.
+The key difference between classical and quantum mechanics is the use of operators instead of numbers as variables. Moreover, we need to specify state vectors and their properties. Therefore, in computing the dynamics of quantum systems, we need a data structure that encapsulates the properties of a quantum operator and ket/bra vectors. The quantum object class, :func:`qutip.Qobj`, accomplishes this using matrix representation.
 
 To begin, let us create a blank ``Qobj``:
 
@@ -114,7 +114,9 @@ We can create a ``Qobj`` with a user defined data set by passing a list or array
      [0.60111501 0.70807258 0.02058449 0.96990985]
      [0.83244264 0.21233911 0.18182497 0.18340451]]
 
-Notice how both the dims and shape change according to the input data.  Although dims and shape appear to have the same function, the difference will become quite clear in the section on :ref:`tensor products and partial traces <tensor>`.
+Notice how both the dims and shape change according to the input data.  Although dims and shape appear to be the same, 
+dims keep track of the shapes for individual components of a multipartite system, while shape does not. We refer the reader to the section 
+:ref:`tensor products and partial traces <tensor>` for more information.
 
 .. note:: If you are running QuTiP from a python script you must use the :func:`print` function to view the Qobj attributes.
 
@@ -149,8 +151,6 @@ Therefore, QuTiP includes predefined objects for a variety of states and operato
 | Thermal density matrix   | ``thermal_dm(N,n)``              | n = particle number expectation value  |
 | (for n particles)        |                                  |                                        |
 +--------------------------+----------------------------------+----------------------------------------+
-
-and operators:
 
 .. cssclass:: table-striped
 
@@ -301,7 +301,7 @@ In addition to the those shown with the ``print`` function, an instance of the `
    :align: center
    :width: 3.5in
 
-   The ``Qobj`` Class viewed as a container for the properties need to characterize a quantum operator or state vector.
+   The ``Qobj`` Class viewed as a container for the properties needed to characterize a quantum operator or state vector.
 
 
 For the destruction operator above:
