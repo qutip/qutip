@@ -113,6 +113,7 @@ else:
 #
 
 from .core import *
+from .solver import *
 from .solve import *
 
 # graphics

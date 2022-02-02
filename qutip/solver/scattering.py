@@ -45,82 +45,20 @@ Pulses from Quantum Optical Systems (2017, arXiv:1710.02875).
 import numpy as np
 from itertools import product, combinations_with_replacement
 from ..core import basis, tensor, zero_ket, Qobj
-from .propagator import propagator
-from .solver import SolverOptions
+from .propagator import propagator, Propagator
+from .options import SolverOptions
 
 __all__ = ['temporal_basis_vector',
            'temporal_scattered_state',
            'scattering_probability']
 
 
-class Evolver:
-    """
-    A caching class which takes a Hamiltonian and a list of times to calculate
-    and memoize propagators for the system between any two times as demanded.
-
-    Parameters
-    ----------
-    H : :class: qutip.Qobj or list
-        System-waveguide(s) Hamiltonian or effective Hamiltonian in `Qobj` or
-        list-callback format. If construct_effective_hamiltonian is not
-        specified, an effective Hamiltonian is constructed from H and c_ops.
-    times : list-like
-        List of times to evaluate propagators over.
-    options : :class: qutip.SolverOptionss
-        Solver options to use when computing propagators.
-
-    Attributes
-    ----------
-    H : :class: qutip.Qobj or list
-        System-waveguide(s) Hamiltonian, may be time-dependent.
-    tlist : list-like
-        List of times to evaluate propagators over.
-    propagators : (dict of float: (dict of float: :class: qutip.Qobj))
-        Dictionary of dictionaries of propagator objects with keys of
-        evaluation times, e.g. propagators[t2][t1] returns U[t2,t1].
-    """
-    def __init__(self, H, tlist, options=None):
-        self.H = H
-        self.tlist = tlist
-        if options is None:
-            self.options = SolverOptions(nsteps=10000, normalize_output=False)
-        else:
-            self.options = options
-        # Make a blank nested dictionary to store propagators
-        self.propagators = dict.fromkeys(tlist)
-        for t in tlist:
-            self.propagators[t] = dict.fromkeys(tlist)
-
-    def prop(self, tf, ti):
-        """Compute U[t2,t1] where t2 > t1 or return the cached operator.
-
-        Parameters
-        ----------
-        tf : float
-            Final time to compute the propagator U[tf, ti].
-        ti : float
-            Initial time to compute the propagator U[tf,ti].
-
-        Returns
-        -------
-        propagator : :class: qutip.Qobj
-            The propagation operator.
-        """
-        left, right = np.searchsorted(self.tlist, [ti, tf], side='left')
-        t1, t2 = self.tlist[left], self.tlist[right]
-        if self.propagators[t2][t1] is None:
-            self.propagators[t2][t1] = propagator(self.H, [t1, t2],
-                                                  options=self.options,
-                                                  unitary_mode='single')
-            # Something is still broken about batch unitary mode (see #807)
-        return self.propagators[t2][t1]
-
-
 def set_partition(collection, num_sets):
     """
-    Enumerate all ways of partitioning collection into num_sets different lists,
-    e.g. list(set_partition([1,2], 2)) = [[[1, 2], []], [[1], [2]], [[2], [1]],
-    [[], [1, 2]]].
+    Enumerate all ways of partitioning collection into num_sets different
+    lists, e.g. :
+    list(set_partition([1,2], 2))
+    >>> [[[1, 2], []], [[1], [2]], [[2], [1]], [[], [1, 2]]]
 
     Parameters
     ----------
@@ -141,14 +79,14 @@ def set_partition(collection, num_sets):
         yield tuple(tuple(indices) for indices in partition)
 
 
-def photon_scattering_operator(evolver, c_ops, taus_list):
+def photon_scattering_operator(evolver, c_ops, tmax, taus_list):
     """
     Compute the scattering operator for a system emitting into multiple
     waveguides.
 
     Parameters
     ----------
-    evolver : :class: qutip.scattering.Evolver
+    evolver : :class:Propagator
         Evolver-wrapped Hamiltonian describing the system.
     c_ops : list
         list of collapse operators for each waveguide; these are assumed to
@@ -176,13 +114,12 @@ def photon_scattering_operator(evolver, c_ops, taus_list):
     for i in range(1, len(taus)):
         tq, q = taus[i]
         tprev, _ = taus[i - 1]
-        omega = c_ops[q] * evolver.prop(tq, tprev) * omega
+        omega = c_ops[q] * evolver.prop2t(tq, tprev) * omega
 
     # Add the <0|Uff(TP, tm)|0> term
-    tmax = evolver.tlist[-1]
     taumax, _ = taus[-1]
     # if taus[-1] < tmax:
-    omega = evolver.prop(tmax, taumax) * omega
+    omega = evolver.prop2t(tmax, taumax) * omega
 
     return omega
 
@@ -257,7 +194,8 @@ def temporal_scattered_state(H, psi0, n_emissions, c_ops, tlist,
         State representing zero excitations in the system. Defaults to
         :math:`\\psi(t_0)`
     construct_effective_hamiltonian : bool
-        Whether an effective Hamiltonian should be constructed from H and c_ops:
+        Whether an effective Hamiltonian should be constructed from H and
+        c_ops:
         :math:`H_{eff} = H - \\frac{i}{2} \\sum_n \\sigma_n^\\dagger \\sigma_n`
         Default: True.
 
@@ -287,7 +225,7 @@ def temporal_scattered_state(H, psi0, n_emissions, c_ops, tlist,
     else:
         Heff = H
 
-    evolver = Evolver(Heff, tlist)
+    evolver = Propagator(Heff, memoize=len(tlist))
 
     all_emission_indices = combinations_with_replacement(range(T), n_emissions)
 
@@ -301,7 +239,7 @@ def temporal_scattered_state(H, psi0, n_emissions, c_ops, tlist,
         # Consider all possible partitionings of time bins by waveguide
         for indices in partition:
             taus = [[tlist[i] for i in wg_indices] for wg_indices in indices]
-            omega = photon_scattering_operator(evolver, c_ops, taus)
+            omega = photon_scattering_operator(evolver, c_ops, tlist[-1], taus)
             phi_n_amp = system_zero_state.dag() * omega * psi0
             # Add scatter amplitude times temporal basis to overall state
             phi_n += phi_n_amp * temporal_basis_vector(indices, T)
@@ -341,7 +279,8 @@ def scattering_probability(H, psi0, n_emissions, c_ops, tlist,
         State representing zero excitations in the system. Defaults to
         `basis(systemDims, 0)`.
     construct_effective_hamiltonian : bool
-        Whether an effective Hamiltonian should be constructed from H and c_ops:
+        Whether an effective Hamiltonian should be constructed from H and
+        c_ops:
         :math:`H_{eff} = H - \\frac{i}{2} \\sum_n \\sigma_n^\\dagger \\sigma_n`
         Default: True.
 

@@ -8,9 +8,7 @@ from .mesolve import *
 from . import nonmarkov
 from .pdpsolve import *
 from .piqs import *
-from .propagator import *
 from .rcsolve import *
-from .scattering import *
 from .sesolve import *
 from .solver import *
 from .steadystate import *
@@ -20,3 +18,8 @@ from .stochastic import *
 del np
 del Qobj
 del debug
+
+# This create a collision between the file and the folder
+# removing it here allow qutip.solver to mean the folder
+# The function in the file here are still available in qutip namespace.
+del solver

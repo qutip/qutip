@@ -1,12 +1,12 @@
-__all__ = ['propagator', 'propagator_steadystate']
+__all__ = ['Propagator', 'propagator', 'propagator_steadystate']
 
 import numbers
 import numpy as np
 
 from .. import Qobj, qeye, unstack_columns, QobjEvo
 from ..core import data as _data
-from .mesolve import mesolve
-from .sesolve import sesolve
+from .mesolve import mesolve, MeSolver
+from .sesolve import sesolve, SeSolver
 from .options import SolverOptions
 
 
@@ -25,13 +25,13 @@ def propagator(H, t, c_ops=(), args=None, options=None):
         QobjEvo. ``list`` of [:class:`Qobj`, :class:`Coefficient`] or callable
         that can be made into :class:`QobjEvo` are also accepted.
 
-    t : float or array-like
+    t : float or array-like, optional
         Time or list of times for which to evaluate the propagator.
 
-    c_op : list, optional
+    c_ops : list, optional
         List of Qobj or QobjEvo collapse operators.
 
-    args : list/array/dictionary
+    args : dictionary
         Parameters to callback functions for time-dependent Hamiltonians and
         collapse operators.
 
@@ -61,7 +61,6 @@ def propagator(H, t, c_ops=(), args=None, options=None):
     else:
         out = sesolve(H, qeye(H.dims[0]), tlist,
                       args=args, options=options).states
-
 
     if list_output:
         return out
@@ -93,3 +92,123 @@ def propagator_steadystate(U):
                 type='oper',
                 isherm=True,
                 copy=False)
+
+
+class Propagator:
+    """
+    A generator of propagator for a system.
+
+    Usage:
+        U = Propagator(H, c_ops)
+        psi_t = U(t) @ psi_0
+
+    Save some previously computed propagator are stored to speed up subsequent
+    computation. Changing ``args`` will erase these stored probagator.
+
+    Parameters
+    ----------
+    H : :class:`Qobj`, :class:`QobjEvo`, :class:`QobjEvo` compatible format.
+        Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or
+        QobjEvo. ``list`` of [:class:`Qobj`, :class:`Coefficient`] or callable
+        that can be made into :class:`QobjEvo` are also accepted.
+
+    c_ops : list, optional
+        List of Qobj or QobjEvo collapse operators.
+
+    args : dictionary
+        Parameters to callback functions for time-dependent Hamiltonians and
+        collapse operators.
+
+    options : :class:`qutip.SolverOptions`
+        Options for the ODE solver.
+
+    memoize : int [10]
+        Max number of saved states.
+
+    tol : float [1e-14]
+        Absolute tolerance for the time. If a previous propagator was computed
+        at a time within tolerance, that propagator will be returned.
+
+    .. note :
+        The :class:`Propagator` is not a :class:`QobjEvo` so it cannot be used
+        for operations with :class:`Qobj` or :class:`QobjEvo`. It can be made
+        into a :class:`QobjEvo` with ::
+            U = QobjEvo(Propagator(H))
+    """
+    def __init__(self, H, c_ops=(), args=None, options=None,
+                 memoize=10, tol=1e-14):
+        H = QobjEvo(H, args=args)
+        c_ops = [QobjEvo(op, args=args) for op in c_ops]
+        self.times = [0]
+        if H.issuper or c_ops:
+            self.props = [qeye(H.dims)]
+            self.solver = MeSolver(H, c_ops=c_ops, options=options)
+        else:
+            self.props = [qeye(H.dims[0])]
+            self.solver = SeSolver(H, options=options)
+        self.cte = self.solver.rhs.isconstant
+        self.args = args
+        self.memoize = memoize
+        self.tol = tol
+
+    def __call__(self, t, args=None):
+        """
+        Get the propagator at ``t``.
+        Updating ``args`` take effect since ``t=0`` and the new ``args`` will
+        be used in future call.
+        """
+        # We could improve it when the system is constant using U(2t) = U(t)**2
+        if args and args != self.args and not self.cte:
+            self.args = args
+            self.times = [0]
+            self.props = [qeye(self.props[0].dims[0])]
+        U = None
+        idx = np.searchsorted(self.times, t)
+        if idx < len(self.times) and abs(t-self.times[idx]) <= self.tol:
+            U = self.props[idx]
+        elif idx > 0 and abs(t-self.times[idx-1]) <= self.tol:
+            U = self.props[idx-1]
+        elif idx > 0:
+            U = self._compute(t, idx)
+            self._insert(t, U, idx)
+        return U
+
+    def prop2t(self, t_end, t_start, args=None):
+        """
+        Obtain the probagator from t_start to t_end:
+            psi(t_end) = U(t_end, t_start) @ psi(t_start)
+        """
+        if self.cte:
+            return self(t_end - t_start, args=args)
+        elif self.solver.rhs.issuper:
+            # inv can be slow, th
+            return self(t_end, args=args) @ self(t_start, args=args).inv()
+        else:
+            return self(t_end, args=args) @ self(t_start, args=args).dag()
+
+    def _compute(self, t, idx):
+        """
+        Compute the propagator at ``t``, ``idx`` point to a pair of
+        (time, propagator) close to the desired time.
+        """
+        if idx > 0:
+            self.solver.start(self.props[idx-1], self.times[idx-1])
+            U = self.solver.step(t, args=self.args)
+        else:
+            # Evolving backward in time is not supported by all integrator.
+            self.solver.start(qeye(self.props[0].dims[0]), t)
+            U = self.solver.step(self.times[idx], args=self.args).dag()
+        return self.solver.step(t, args=self.args)
+
+    def _insert(self, t, U, idx):
+        """
+        Insert a new pair of (time, propagator) to the memorized states.
+        """
+        self.times = self.times[:idx] + [t] + self.times[idx:]
+        self.props = self.props[:idx] + [U] + self.props[idx:]
+        if len(self.times) > self.memoize:
+            # When the list get too long, we clean memory.
+            # There are probably a good way to do this.
+            rm_idx = np.random.randint(1, self.memoize)
+            self.times = self.times[:rm_idx] + self.times[rm_idx+1:]
+            self.props = self.props[:rm_idx] + self.props[rm_idx+1:]

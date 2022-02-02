@@ -42,7 +42,7 @@ module. Tests are approximate with low resolution to minimize runtime.
 import numpy as np
 from numpy.testing import assert_, run_module_suite
 from qutip import create, destroy, basis
-from qutip.solve.scattering import *
+from qutip.solver.scattering import *
 
 
 class TestScattering:
