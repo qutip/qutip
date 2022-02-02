@@ -44,7 +44,7 @@ Pulses from Quantum Optical Systems (2017, arXiv:1710.02875).
 
 import numpy as np
 from itertools import product, combinations_with_replacement
-from ..core import basis, tensor, zero_ket, Qobj
+from ..core import basis, tensor, zero_ket, Qobj, QobjEvo
 from .propagator import propagator, Propagator
 from .options import SolverOptions
 
@@ -108,23 +108,68 @@ def photon_scattering_operator(evolver, c_ops, tmax, taus_list):
     for i, tau_wg in enumerate(taus_list):
         for tau in tau_wg:
             taus.append((tau, i))
-    taus.sort(key = lambda tup: tup[0])  # sort taus by time
+    taus.sort(key=lambda tup: tup[0])  # sort taus by time
 
     # Compute Prod Ueff(tq, tq-1)
     for i in range(1, len(taus)):
         tq, q = taus[i]
         tprev, _ = taus[i - 1]
-        omega = c_ops[q] * evolver.prop2t(tq, tprev) * omega
+        omega = c_ops[q] * evolver.prop(tq, tprev) * omega
 
     # Add the <0|Uff(TP, tm)|0> term
     taumax, _ = taus[-1]
     # if taus[-1] < tmax:
-    omega = evolver.prop2t(tmax, taumax) * omega
+    omega = evolver.prop(tmax, taumax) * omega
 
     return omega
 
+def photon_scattering_amplitude(evolver, c_ops, tlist, indices, psi, psit):
+    # Extract the full list of taus
+    taus = []
+    for i, tau_wg in enumerate(indices):
+        for t_idx in tau_wg:
+            taus.append((tlist[t_idx], i))
+    taus.sort(key=lambda tup: tup[0])  # sort taus by time
 
-def temporal_basis_vector(waveguide_emission_indices, n_time_bins):
+    tq = tlist[0]
+    # Compute Prod Ueff(tq, tq-1)
+    for tau in taus:
+        tprev = tq
+        tq, q = tau
+        psi = c_ops[q] * evolver.prop(tq, tprev) * psi
+
+    psi = evolver.prop(tlist[-1], tq) * psi
+    return psit.overlap(psi)
+
+
+def _temporal_basis_idx(waveguide_emission_indices, n_time_bins):
+    """
+    Generate a the global index for the excitation.
+    """
+    idx = []
+    for i, wg_indices in enumerate(waveguide_emission_indices):
+        for index in wg_indices:
+            idx += [i * n_time_bins + index]
+    idx = idx or [0]
+    return idx
+
+
+def _temporal_basis_dims(waveguide_emission_indices, n_time_bins,
+                         n_emissions=None):
+    """
+    Return the dims of the ``temporal_basis_vector``.
+    """
+    num_col = len(waveguide_emission_indices)
+    if n_emissions is None:
+        n_emissions = sum(
+            [len(waveguide_indices)
+             for waveguide_indices in waveguide_emission_indices])
+    n_emissions = n_emissions or 1
+    return [num_col * n_time_bins] * n_emissions
+
+
+def temporal_basis_vector(waveguide_emission_indices, n_time_bins,
+                          n_emissions=None):
     """
     Generate a temporal basis vector for emissions at specified time bins into
     specified waveguides.
@@ -144,25 +189,10 @@ def temporal_basis_vector(waveguide_emission_indices, n_time_bins):
         If there are W waveguides, T times, and N photon emissions, then the
         basis vector has dimensionality (W*T)^N.
     """
-    # Cast waveguide_emission_indices to list for mutability
-    waveguide_emission_indices = [list(i) for i in waveguide_emission_indices]
-
-    # Calculate total number of waveguides
-    W = len(waveguide_emission_indices)
-
-    # Calculate total number of emissions
-    num_emissions = sum([len(waveguide_indices) for waveguide_indices in
-                         waveguide_emission_indices])
-    if num_emissions == 0:
-        return basis(W * n_time_bins, 0)
-
-    # Pad the emission indices with zeros
-    offset_indices = []
-    for i, wg_indices in enumerate(waveguide_emission_indices):
-        offset_indices += [index + (i * n_time_bins) for index in wg_indices]
-
-    # Return an appropriate tensor product state
-    return tensor([basis(n_time_bins * W, i) for i in offset_indices])
+    idx = _temporal_basis_idx(waveguide_emission_indices, n_time_bins)
+    dims = _temporal_basis_dims(waveguide_emission_indices,
+                                n_time_bins, n_emissions)
+    return basis(dims, idx)
 
 
 def temporal_scattered_state(H, psi0, n_emissions, c_ops, tlist,
@@ -208,20 +238,11 @@ def temporal_scattered_state(H, psi0, n_emissions, c_ops, tlist,
     """
     T = len(tlist)
     W = len(c_ops)
-
-    if n_emissions == 0:
-        phi_n = zero_ket(W * T)
-    else:
-        phi_n = tensor([zero_ket(W * T)] * n_emissions)
+    phi_n = np.zeros([W * T] * n_emissions, dtype=complex)
 
     if construct_effective_hamiltonian:
         # Construct an effective Hamiltonian from system hamiltonian and c_ops
-        if isinstance(H, Qobj):
-            Heff = H - 1j / 2 * sum([op.dag() * op for op in c_ops])
-        elif isinstance(H, list):
-            Heff = H + [-1j / 2 * sum([op.dag() * op for op in c_ops])]
-        else:
-            raise TypeError("Hamiltonian must be Qobj or list-callback format")
+        Heff = QobjEvo(H) - 1j / 2 * sum([op.dag() * op for op in c_ops])
     else:
         Heff = H
 
@@ -238,13 +259,13 @@ def temporal_scattered_state(H, psi0, n_emissions, c_ops, tlist,
         partition = tuple(set(set_partition(emission_indices, W)))
         # Consider all possible partitionings of time bins by waveguide
         for indices in partition:
-            taus = [[tlist[i] for i in wg_indices] for wg_indices in indices]
-            omega = photon_scattering_operator(evolver, c_ops, tlist[-1], taus)
-            phi_n_amp = system_zero_state.dag() * omega * psi0
+            phi_n_amp = photon_scattering_amplitude(evolver, c_ops, tlist,
+                indices, psi0, system_zero_state)
             # Add scatter amplitude times temporal basis to overall state
-            phi_n += phi_n_amp * temporal_basis_vector(indices, T)
+            idx = _temporal_basis_idx(indices, T)
+            phi_n[tuple(idx)] = phi_n_amp
 
-    return phi_n
+    return Qobj(phi_n.ravel(), dims=[[W * T] * n_emissions, [1] * n_emissions])
 
 
 def scattering_probability(H, psi0, n_emissions, c_ops, tlist,
@@ -312,5 +333,5 @@ def scattering_probability(H, psi0, n_emissions, c_ops, tlist,
 
     # Iteratively integrate to obtain single value
     while probs.shape != ():
-        probs = np.trapz(probs, x = tlist)
+        probs = np.trapz(probs, x=tlist)
     return np.abs(probs)

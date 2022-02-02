@@ -136,10 +136,11 @@ class Propagator:
             U = QobjEvo(Propagator(H))
     """
     def __init__(self, H, c_ops=(), args=None, options=None,
-                 memoize=10, tol=1e-14):
+                 memoize=10, tol=1e-14, memoize_inv=False):
         Hevo = QobjEvo(H, args=args)
         c_ops = [QobjEvo(op, args=args) for op in c_ops]
         self.times = [0]
+        self.invs = [None]
         if Hevo.issuper or c_ops:
             self.props = [qeye(Hevo.dims)]
             self.solver = MeSolver(Hevo, c_ops=c_ops, options=options)
@@ -149,7 +150,8 @@ class Propagator:
         self.cte = self.solver.rhs.isconstant
         self.unitary = not self.solver.rhs.issuper and isinstance(H, Qobj) and H.isherm
         self.args = args
-        self.memoize = memoize
+        self.memoize = max(3, memoize)
+        self.memoize_inv = memoize_inv
         self.tol = tol
 
     def __call__(self, t, args=None):
@@ -174,17 +176,44 @@ class Propagator:
             self._insert(t, U, idx)
         return U
 
-    def prop2t(self, t_end, t_start, args=None):
+    def inv(self, t, args=None):
+        """
+        Get the inverse of the propagator at ``t``, such that
+        ``psi_0 = U.inv(t) @ psi_t``
+        """
+        U = self(t, args=args)
+        if not self.memoize_inv:
+            Uinv = self._inv(U)
+        else:
+            idx = np.searchsorted(self.times, t)
+            if idx > 0 and abs(t-self.times[idx-1]) <= self.tol:
+                idx = idx-1
+            if self.invs[idx] is None:
+                Uinv = self._inv(self.props(idx))
+                self.invs[idx] = Uinv
+            else:
+                Uinv = self.invs[idx]
+        return Uinv
+
+    def _inv(self, U):
+        if self.unitary:
+            Uinv = U.dag()
+        else:
+            Uinv = U.inv()
+        return Uinv
+
+
+    def prop(self, t_end, t_start, args=None):
         """
         Obtain the probagator from t_start to t_end:
             psi(t_end) = U(t_end, t_start) @ psi(t_start)
         """
+        if t_end == t_start:
+            return self(0)
         if self.cte:
             return self(t_end - t_start, args=args)
-        elif self.unitary:
-            return self(t_end, args=args) @ self(t_start, args=args).dag()
         else:
-            return self(t_end, args=args) @ self(t_start, args=args).inv()
+            return self(t_end, args=args) @ self.inv(t_start, args=args)
 
     def _compute(self, t, idx):
         """
@@ -197,12 +226,9 @@ class Propagator:
         else:
             # Evolving backward in time is not supported by all integrator.
             self.solver.start(qeye(self.props[0].dims[0]), t)
-            U = self.solver.step(self.times[idx], args=self.args)
-            if self.unitary:
-                U = U.dag()
-            else:
-                U = U.inv()
-        return self.solver.step(t, args=self.args)
+            Uinv = self.solver.step(self.times[idx], args=self.args)
+            U = self._inv(Uinv)
+        return U
 
     def _insert(self, t, U, idx):
         """
@@ -210,9 +236,13 @@ class Propagator:
         """
         self.times = self.times[:idx] + [t] + self.times[idx:]
         self.props = self.props[:idx] + [U] + self.props[idx:]
+        self.invs = self.invs[:idx] + [None] + self.invs[idx:]
         if len(self.times) > self.memoize:
             # When the list get too long, we clean memory.
-            # There are probably a good way to do this.
-            rm_idx = np.random.randint(1, self.memoize)
+            # We keep the extremums and last call.
+            # There are probably a good ways to do this.
+            rm_idx = np.random.randint([1, self.memoize-1])
+            rm_idx = rm_idx if rm_idx < idx else rm_idx + 1
             self.times = self.times[:rm_idx] + self.times[rm_idx+1:]
             self.props = self.props[:rm_idx] + self.props[rm_idx+1:]
+            self.invs = self.invs[:rm_idx] + self.invs[rm_idx+1:]
