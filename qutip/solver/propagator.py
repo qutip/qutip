@@ -137,16 +137,17 @@ class Propagator:
     """
     def __init__(self, H, c_ops=(), args=None, options=None,
                  memoize=10, tol=1e-14):
-        H = QobjEvo(H, args=args)
+        Hevo = QobjEvo(H, args=args)
         c_ops = [QobjEvo(op, args=args) for op in c_ops]
         self.times = [0]
-        if H.issuper or c_ops:
-            self.props = [qeye(H.dims)]
-            self.solver = MeSolver(H, c_ops=c_ops, options=options)
+        if Hevo.issuper or c_ops:
+            self.props = [qeye(Hevo.dims)]
+            self.solver = MeSolver(Hevo, c_ops=c_ops, options=options)
         else:
-            self.props = [qeye(H.dims[0])]
-            self.solver = SeSolver(H, options=options)
+            self.props = [qeye(Hevo.dims[0])]
+            self.solver = SeSolver(Hevo, options=options)
         self.cte = self.solver.rhs.isconstant
+        self.unitary = not self.solver.rhs.issuper and isinstance(H, Qobj) and H.isherm
         self.args = args
         self.memoize = memoize
         self.tol = tol
@@ -180,11 +181,10 @@ class Propagator:
         """
         if self.cte:
             return self(t_end - t_start, args=args)
-        elif self.solver.rhs.issuper:
-            # inv can be slow, th
-            return self(t_end, args=args) @ self(t_start, args=args).inv()
-        else:
+        elif self.unitary:
             return self(t_end, args=args) @ self(t_start, args=args).dag()
+        else:
+            return self(t_end, args=args) @ self(t_start, args=args).inv()
 
     def _compute(self, t, idx):
         """
@@ -197,7 +197,11 @@ class Propagator:
         else:
             # Evolving backward in time is not supported by all integrator.
             self.solver.start(qeye(self.props[0].dims[0]), t)
-            U = self.solver.step(self.times[idx], args=self.args).dag()
+            U = self.solver.step(self.times[idx], args=self.args)
+            if self.unitary:
+                U = U.dag()
+            else:
+                U = U.inv()
         return self.solver.step(t, args=self.args)
 
     def _insert(self, t, U, idx):
