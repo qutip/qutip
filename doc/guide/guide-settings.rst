@@ -43,7 +43,7 @@ The two most important settings are ``auto_tidyup`` and ``auto_tidyup_atol`` as 
 
 >>> qutip.settings.auto_tidyup = False
 
-These settings will be used for the current QuTiP session only and will need to be modified again when restarting QuTiP.  If running QuTiP from a script file, then place the `qutip.setings.xxxx` commands immediately after `from qutip import *` at the top of the script file.  If you want to reset the parameters back to their default values then call the reset command::
+These settings will be used for the current QuTiP session only and will need to be modified again when restarting QuTiP.  If running QuTiP from a script file, then place the `qutip.settings.xxxx` commands immediately after `from qutip import *` at the top of the script file.  If you want to reset the parameters back to their default values then call the reset command::
 
 >>> qutip.settings.reset()
 
