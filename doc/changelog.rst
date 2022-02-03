@@ -4,13 +4,83 @@
 Change Log
 **********
 
+Version 4.6.3 (February ?, 2022)
+++++++++++++++++++++++++++++++++
+
+This minor release adds support for numpy 1.22 and Python 3.10 and removes some blockers for running QuTiP on the Apple M1.
+
+The performance of the ``enr_destroy``, ``state_number_enumerate`` and ``hadamard_transform`` functions was drastically improved (up to 70x or 200x faster in some common cases), and support for the drift Hamiltonian was added to the ``qutip.qip`` ``Processor``.
+
+The ``qutip.hardware_info`` module was removed as part of adding support for the Apple M1. We hope the removal of this little-used module does not adversely affect many users -- it was largely unrelated to QuTiP's core functionality and its presence was a continual source of blockers to importing ``qutip`` on new or changed platforms.
+
+A new check on the dimensions of ``Qobj``'s were added to prevent segmentation faults when invalid shape and dimension combinations were passed to Cython code.
+
+In addition, there were many small bugfixes, documentation improvements, and improvements to our building and testing processes.
+
+
+Improvements
+------------
+- The ``enr_destroy`` function was made ~200x faster in many simple cases. (`#1593 <https://github.com/qutip/qutip/pull/1593>`_)
+- The ``state_number_enumerate`` function was made significantly faster. (`#1594 <https://github.com/qutip/qutip/pull/1594>`_)
+- Added the missing drift Hamiltonian to the method run_analytically of ``Processor``. (`#1603 <https://github.com/qutip/qutip/pull/1603>`_)
+- The ``hadamard_transform`` was made much faster, e.g., ~70x faster for N=10. (`#1688 <https://github.com/qutip/qutip/pull/1688>`_)
+- Added support for computing the power of a scalar-like Qobj. (`#1692 <https://github.com/qutip/qutip/pull/1692>`_)
+- Removed the ``hardware_info`` module. This module wasn't used inside QuTiP and regularly broke when new operating systems were released, and in particular prevented importing QuTiP on the Apple M1. (`#1754 <https://github.com/qutip/qutip/pull/1754>`_, `#1758 <https://github.com/qutip/qutip/pull/1758>`_)
+
+Bug Fixes
+---------
+- Fixed support for calculating the propagator of a density matrix with collapse operators. QuTiP 4.6.2 introduced extra sanity checks on the dimensions of inputs to mesolve (Fix mesolve segfault with bad initial state `#1459 <https://github.com/qutip/qutip/pull/1459>`_), but the propagator function's calls to mesolve violated these checks by supplying initial states with the dimensions incorrectly set. ``propagator`` now calls mesolve with the correct dimensions set on the initial state. (`#1588 <https://github.com/qutip/qutip/pull/1588>`_)
+- Fixed support for calculating the propagator for a superoperator without collapse operators. This functionality was not tested by the test suite and appears to have broken sometime during 2019. Tests have now been added and the code breakages fixed. (`#1588 <https://github.com/qutip/qutip/pull/1588>`_)
+- Fixed the ignoring of the random number seed passed to ``rand_dm`` in the case where ``pure`` was set to true. (`#1600 <https://github.com/qutip/qutip/pull/1600>`_)
+- Fixed qutip.control.optimize_pulse support for sparse eigenvector decomposition with the Qobj oper_dtype (the Qobj oper_dtype is the default for large systems). (`#1621 <https://github.com/qutip/qutip/pull/1621>`_)
+- Removed qutip.control.optimize_pulse support for scipy.sparse.csr_matrix and generic ndarray-like matrices. Support for these was non-functional. (`#1621 <https://github.com/qutip/qutip/pull/1621>`_)
+- Fixed errors in the calculation of the Husimi spin_q_function and spin_wigner functions and added tests for them. (`#1632 <https://github.com/qutip/qutip/pull/1632>`_)
+- Fixed setting of OpenMP compilation flag on Linux. Previously when compiling the OpenMP functions were compiled without parallelization. (`#1693 <https://github.com/qutip/qutip/pull/1693>`_)
+- Fixed tracking the state of the Bloch sphere figure and axes to prevent exceptions during rendering. (`#1619 <https://github.com/qutip/qutip/pull/1619>`_)
+- Fixed compatibility with numpy configuration in numpy's 1.22.0 release. (`#1752 <https://github.com/qutip/qutip/pull/1752>`_)
+- Added dims checks for e_ops passed to solvers to prevent hanging the calling process when e_ops of the wrong dimensions were passed. (`#1778 <https://github.com/qutip/qutip/pull/1778>`_)
+- Added a check in Qobj constructor that the respective members of data.shape cannot be larger than what the corresponding dims could contain to prevent a segmentation fault caused by inconsistencies between dims and shapes. (`#1783 <https://github.com/qutip/qutip/pull/1783>`_, `#1785 <https://github.com/qutip/qutip/pull/1785>`_, `#1784 <https://github.com/qutip/qutip/pull/1784>`_)
+
+Documentation Improvements
+--------------------------
+- Added docs for the num_cbits parameter of the QubitCircuit class. (`#1652 <https://github.com/qutip/qutip/pull/1652>`_)
+- Fixed the parameters in the call to fsesolve in the Floquet guide. (`#1675 <https://github.com/qutip/qutip/pull/1675>`_)
+- Fixed the description of random number usage in the Monte Carlo solver guide. (`#1677 <https://github.com/qutip/qutip/pull/1677>`_)
+- Fixed the rendering of equation numbers in the documentation (they now appear on the right as expected, not above the equation). (`#1678 <https://github.com/qutip/qutip/pull/1678>`_)
+- Updated the installation requirements in the documentation to match what is specified in setup.py. (`#1715 <https://github.com/qutip/qutip/pull/1715>`_)
+- Fixed a typo in the ``chi_to_choi`` documentation. Previously the documentation mixed up chi and choi. (`#1731 <https://github.com/qutip/qutip/pull/1731>`_)
+- Improved the documentation for the stochastic equation solvers. Added links to notebooks with examples, API doumentation and external references. (`#1743 <https://github.com/qutip/qutip/pull/1743>`_)
+- Fixed a typo in ``qutip.settings`` in the settings guide. (`#1786 <https://github.com/qutip/qutip/pull/1786>`_)
+- Made numerous small improvements to the text of the QuTiP basics guide. (`#1768 <https://github.com/qutip/qutip/pull/1768>`_)
+- Made a small phrasing improvement to the README. (`#1790 <https://github.com/qutip/qutip/pull/1790>`_)
+
+Developer Changes
+-----------------
+- Improved test coverage of states and operators functions. (`#1578 <https://github.com/qutip/qutip/pull/1578>`_)
+- Fixed test_interpolate mcsolve use (`#1645 <https://github.com/qutip/qutip/pull/1645>`_)
+- Ensured figure plots are explicitly closed during tests so that the test suite passes when run headless under Xvfb. (`#1648 <https://github.com/qutip/qutip/pull/1648>`_)
+- Bumped the version of pillow used to build documentation from 8.2.0 to 9.0.0. (`#1654 <https://github.com/qutip/qutip/pull/1654>`_, `#1760 <https://github.com/qutip/qutip/pull/1760>`_)
+- Bumped the version of babel used to build documentation from 2.9.0 to 2.9.1. (`#1695 <https://github.com/qutip/qutip/pull/1695>`_)
+- Bumped the version of numpy used to build documentation from 1.19.5 to 1.21.0. (`#1767 <https://github.com/qutip/qutip/pull/1767>`_)
+- Bumped the version of ipython used to build documentation from 7.22.0 to 7.31.1. (`#1780 <https://github.com/qutip/qutip/pull/1780>`_)
+- Rename qutip.bib to CITATION.bib to enable GitHub's citation support. (`#1662 <https://github.com/qutip/qutip/pull/1662>`_)
+- Added tests for simdiags. (`#1681 <https://github.com/qutip/qutip/pull/1681>`_)
+- Added support for specifying the numpy version in the CI test matrix. (`#1696 <https://github.com/qutip/qutip/pull/1696>`_)
+- Fixed the skipping of the dnorm metric tests if cvxpy is not installed. Previously all metrics tests were skipped by accident. (`#1704 <https://github.com/qutip/qutip/pull/1704>`_)
+- Added bug report, feature request and other options to the GitHub issue reporting template. (`#1728 <https://github.com/qutip/qutip/pull/1728>`_)
+- Updated the build process to support building on Python 3.10 by removing the build requirement for numpy < 1.20 and replacing it with a requirement on oldest-supported-numpy. (`#1747 <https://github.com/qutip/qutip/pull/1747>`_)
+- Updated the version of cibuildwheel used to build wheels to 2.3.0. (`#1747 <https://github.com/qutip/qutip/pull/1747>`_, `#1751 <https://github.com/qutip/qutip/pull/1751>`_)
+- Added project urls to linking to the source repository, issue tracker and documentation to setup.cfg. (`#1779 <https://github.com/qutip/qutip/pull/1779>`_)
+- Added a numpy 1.22 and Python 3.10 build to the CI test matrix. (`#1777 <https://github.com/qutip/qutip/pull/1777>`_)
+
+
 Version 4.6.2 (June 2, 2021)
 ++++++++++++++++++++++++++++
 
 This minor release adds a function to calculate the quantum relative entropy, fixes a corner case in handling time-dependent Hamiltonians in ``mesolve`` and adds back support for a wider range of matplotlib versions when plotting or animating Bloch spheres.
 
-It also adds a section in the README listing the papers which should be referenced while citing QuTiP. 
- 
+It also adds a section in the README listing the papers which should be referenced while citing QuTiP.
+
 
 Improvements
 ------------
