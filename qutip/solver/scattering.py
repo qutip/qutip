@@ -123,6 +123,7 @@ def photon_scattering_operator(evolver, c_ops, tmax, taus_list):
 
     return omega
 
+
 def photon_scattering_amplitude(evolver, c_ops, tlist, indices, psi, psit):
     # Extract the full list of taus
     taus = []
@@ -151,7 +152,7 @@ def _temporal_basis_idx(waveguide_emission_indices, n_time_bins):
         for index in wg_indices:
             idx += [i * n_time_bins + index]
     idx = idx or [0]
-    return idx
+    return tuple(idx)
 
 
 def _temporal_basis_dims(waveguide_emission_indices, n_time_bins,
@@ -192,7 +193,47 @@ def temporal_basis_vector(waveguide_emission_indices, n_time_bins,
     idx = _temporal_basis_idx(waveguide_emission_indices, n_time_bins)
     dims = _temporal_basis_dims(waveguide_emission_indices,
                                 n_time_bins, n_emissions)
-    return basis(dims, idx)
+    return basis(dims, list(idx))
+
+
+def _temporal_scattered_matrix(H, psi0, n_emissions, c_ops, tlist,
+                               system_zero_state=None,
+                               construct_effective_hamiltonian=True):
+    """
+    Compute the scattered n-photon state as an ndarray.
+    """
+    T = len(tlist)
+    W = len(c_ops)
+    em_dims = max(n_emissions, 1)
+    phi_n = np.zeros([W * T] * em_dims, dtype=complex)
+
+    if construct_effective_hamiltonian:
+        # Construct an effective Hamiltonian from system hamiltonian and c_ops
+        Heff = QobjEvo(H) - 1j / 2 * sum([op.dag() * op for op in c_ops])
+    else:
+        Heff = H
+
+    evolver = Propagator(Heff, memoize=len(tlist))
+
+    all_emission_indices = combinations_with_replacement(range(T), n_emissions)
+
+    if system_zero_state is None:
+        system_zero_state = psi0
+
+    # Compute <omega_tau> for all combinations of tau
+    for emission_indices in all_emission_indices:
+        # Consider unique partitionings of emission times into waveguides
+        partition = tuple(set(set_partition(emission_indices, W)))
+        # Consider all possible partitionings of time bins by waveguide
+        for indices in partition:
+            phi_n_amp = photon_scattering_amplitude(
+                evolver, c_ops, tlist,
+                indices, psi0, system_zero_state
+            )
+            # Add scatter amplitude times temporal basis to overall state
+            idx = _temporal_basis_idx(indices, T)
+            phi_n[idx] = phi_n_amp
+    return phi_n
 
 
 def temporal_scattered_state(H, psi0, n_emissions, c_ops, tlist,
@@ -239,33 +280,10 @@ def temporal_scattered_state(H, psi0, n_emissions, c_ops, tlist,
     T = len(tlist)
     W = len(c_ops)
     em_dims = max(n_emissions, 1)
-    phi_n = np.zeros([W * T] * em_dims, dtype=complex)
-
-    if construct_effective_hamiltonian:
-        # Construct an effective Hamiltonian from system hamiltonian and c_ops
-        Heff = QobjEvo(H) - 1j / 2 * sum([op.dag() * op for op in c_ops])
-    else:
-        Heff = H
-
-    evolver = Propagator(Heff, memoize=len(tlist))
-
-    all_emission_indices = combinations_with_replacement(range(T), n_emissions)
-
-    if system_zero_state is None:
-        system_zero_state = psi0
-
-    # Compute <omega_tau> for all combinations of tau
-    for emission_indices in all_emission_indices:
-        # Consider unique partitionings of emission times into waveguides
-        partition = tuple(set(set_partition(emission_indices, W)))
-        # Consider all possible partitionings of time bins by waveguide
-        for indices in partition:
-            phi_n_amp = photon_scattering_amplitude(evolver, c_ops, tlist,
-                indices, psi0, system_zero_state)
-            # Add scatter amplitude times temporal basis to overall state
-            idx = _temporal_basis_idx(indices, T)
-            phi_n[tuple(idx)] = phi_n_amp
-
+    phi_n = _temporal_scattered_matrix(
+        H, psi0, n_emissions, c_ops, tlist,
+        system_zero_state, construct_effective_hamiltonian
+    )
     return Qobj(phi_n.ravel(), dims=[[W * T] * em_dims, [1] * em_dims])
 
 
@@ -312,9 +330,9 @@ def scattering_probability(H, psi0, n_emissions, c_ops, tlist,
         The probability of scattering n photons from the system over the time
         range specified.
     """
-    phi_n = temporal_scattered_state(H, psi0, n_emissions, c_ops, tlist,
-                                     system_zero_state,
-                                     construct_effective_hamiltonian)
+    phi_n = _temporal_scattered_matrix(H, psi0, n_emissions, c_ops, tlist,
+                                       system_zero_state,
+                                       construct_effective_hamiltonian)
     T = len(tlist)
     W = len(c_ops)
 
@@ -328,8 +346,8 @@ def scattering_probability(H, psi0, n_emissions, c_ops, tlist,
         partition = tuple(set(set_partition(emit_indices, W)))
         # wg_indices_list = list(set_partition(indices, W))
         for wg_indices in partition:
-            projector = temporal_basis_vector(wg_indices, T)
-            amplitude = projector.dag() * phi_n
+            idx = _temporal_basis_idx(wg_indices, T)
+            amplitude = phi_n[idx]
             probs[emit_indices] += np.real(amplitude.conjugate() * amplitude)
 
     # Iteratively integrate to obtain single value
