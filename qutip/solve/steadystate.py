@@ -1298,14 +1298,13 @@ def pseudo_inverse(L, rhoss=None, w=None, sparse=True, **kwargs):
 
     """
     pseudo_args = _default_steadystate_args()
+    pseudo_args['method'] = 'splu'
     for key, value in kwargs.items():
         if key in pseudo_args:
             pseudo_args[key] = value
         else:
             raise Exception(
                 "Invalid keyword argument '"+key+"' passed to pseudo_inverse.")
-    if 'method' not in kwargs:
-        pseudo_args['method'] = 'splu'
 
     # Set column perm to NATURAL if using RCM and not specified by user
     if pseudo_args['use_rcm'] and ('permc_spec' not in kwargs):

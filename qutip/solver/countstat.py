@@ -155,10 +155,11 @@ def _noise_direct(L, wlist, rhoss_vec, J_ops):
     return current, noise
 
 
-def _noise_pseudoinv(L, wlist, rhoss_vec, J_ops, sparse, method):
+def _noise_pseudoinv(L, wlist, rhoss, J_ops, sparse, method):
     N_j_ops = len(J_ops)
     current = np.zeros(N_j_ops)
     noise = np.zeros((N_j_ops, N_j_ops, len(wlist)))
+    rhoss_vec = operator_to_vector(rhoss).data
     for k, w in enumerate(wlist):
         R = pseudo_inverse(L, rhoss=rhoss, w=w,
                            sparse=sparse, method=method).data
@@ -240,13 +241,13 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
     if wlist is None:
         wlist = [0.]
 
-    rhoss_vec = operator_to_vector(rhoss).data
     J_ops = [op.data for op in J_ops]
 
     if not sparse or method != "direct":
-        current, noise = _noise_pseudoinv(L, wlist, rhoss_vec, J_ops,
+        current, noise = _noise_pseudoinv(L, wlist, rhoss, J_ops,
                                                  sparse, method)
     else:
+        rhoss_vec = operator_to_vector(rhoss).data
         current, noise = _noise_direct(L, wlist, rhoss_vec, J_ops)
 
     return current, noise
