@@ -39,6 +39,7 @@ __all__ = ['countstat_current', 'countstat_current_noise']
 import numpy as np
 import scipy.sparse as sp
 
+from itertools import product
 from ..core import (
     sprepost, spre, operator_to_vector, identity, tensor,
 )
@@ -95,12 +96,12 @@ def countstat_current(L, c_ops=None, rhoss=None, J_ops=None):
     rhoss_vec = _data.column_stack(rhoss.data.copy())
 
     N = len(J_ops)
-    I = np.zeros(N)
+    current = np.zeros(N)
 
     for i, Ji in enumerate(J_ops):
-        I[i] = _data.expect_super(Ji.data, rhoss_vec).real
+        current[i] = _data.expect_super(Ji.data, rhoss_vec).real
 
-    return I
+    return current
 
 
 def _solve(A, V):
@@ -113,6 +114,64 @@ def _solve(A, V):
     except Exception:
         out = sp.linalg.lsqr(A, V)[0]
     return out
+
+
+def _noise_direct(L, wlist, rhoss_vec, J_ops):
+    N_j_ops = len(J_ops)
+    current = np.zeros(N_j_ops)
+    noise = np.zeros((N_j_ops, N_j_ops, len(wlist)))
+
+    tr_op = tensor([identity(n) for n in L.dims[0][0]])
+    tr_op_vec = operator_to_vector(tr_op)
+
+    Pop = _data.kron(rhoss_vec, tr_op_vec.data.transpose())
+    Iop = _data.identity(np.prod(L.dims[0][0])**2)
+    Q = _data.sub(Iop, Pop)
+    Q_ops = [_data.matmul(Q, _data.matmul(op, rhoss_vec)).to_array()
+             for op in J_ops]
+
+    for k, w in enumerate(wlist):
+        if w != 0.0:
+            L_temp = 1.0j * w * spre(tr_op) + L
+        else:
+            # At zero frequency some solvers fail for small systems.
+            # Adding a small finite frequency of order 1e-15
+            # helps prevent the solvers from throwing an exception.
+            L_temp = 1e-15j * spre(tr_op) + L
+
+        A = _data.to(_data.CSR, L_temp.data).as_scipy()
+        X_rho = [_data.dense.fast_from_numpy(_solve(A, op))
+                 for op in Q_ops]
+
+        for i, j in product(range(N_j_ops), repeat=2):
+            if i == j:
+                current[i] = _data.expect_super(J_ops[i], rhoss_vec).real
+                noise[j, i, k] = current[i]
+            noise[j, i, k] -= (
+                _data.expect_super(_data.matmul(J_ops[j], Q), X_rho[i]) +
+                _data.expect_super(_data.matmul(J_ops[i], Q), X_rho[j])
+            ).real
+
+    return current, noise
+
+
+def _noise_pseudoinv(L, wlist, rhoss_vec, J_ops, sparse, method):
+    N_j_ops = len(J_ops)
+    current = np.zeros(N_j_ops)
+    noise = np.zeros((N_j_ops, N_j_ops, len(wlist)))
+    for k, w in enumerate(wlist):
+        R = pseudo_inverse(L, rhoss=rhoss, w=w,
+                           sparse=sparse, method=method).data
+        for i, j in product(range(N_j_ops), repeat=2):
+            if i == j:
+                current[i] = _data.expect_super(J_ops[i], rhoss_vec).real
+                noise[i, j, k] = current[i]
+            op = _data.add(
+                _data.matmul(_data.matmul(J_ops[i], R), J_ops[j]),
+                _data.matmul(_data.matmul(J_ops[j], R), J_ops[i]),
+            )
+            noise[i, j, k] -= _data.expect_super(op, rhoss_vec).real
+    return current, noise
 
 
 def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
@@ -165,7 +224,6 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
         can fail for small systems. For larger systems the sparse solvers
         are reccomended.
 
-
     Returns
     --------
     I, S : tuple of arrays
@@ -182,69 +240,13 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
     if wlist is None:
         wlist = [0.]
 
-    N = len(J_ops)
-    I = np.zeros(N)
-    S = np.zeros((N, N, len(wlist)))
+    rhoss_vec = operator_to_vector(rhoss).data
+    J_ops = [op.data for op in J_ops]
 
     if not sparse or method != "direct":
-        rhoss_vec = _data.column_stack(rhoss.data.copy())
-        for k, w in enumerate(wlist):
-            R = pseudo_inverse(L, rhoss=rhoss, w=w,
-                               sparse=sparse, method=method).data
-            for i, Ji in enumerate(J_ops):
-                Ji = Ji.data
-                for j, Jj in enumerate(J_ops):
-                    Jj = Jj.data
-                    if i == j:
-                        I[i] = _data.expect_super(Ji, rhoss_vec).real
-                        S[i, j, k] = I[i]
-                    op = _data.add(
-                        _data.matmul(_data.matmul(Ji, R), Jj),
-                        _data.matmul(_data.matmul(Jj, R), Ji),
-                    )
-                    S[i, j, k] -= _data.expect_super(op, rhoss_vec).real
-
+        current, noise = _noise_pseudoinv(L, wlist, rhoss_vec, J_ops,
+                                                 sparse, method)
     else:
-        N = np.prod(L.dims[0][0])
+        current, noise = _noise_direct(L, wlist, rhoss_vec, J_ops)
 
-        rhoss_vec = operator_to_vector(rhoss)
-
-        tr_op = tensor([identity(n) for n in L.dims[0][0]])
-        tr_op_vec = operator_to_vector(tr_op)
-
-        Pop = _data.kron(rhoss_vec.data, tr_op_vec.data.transpose())
-        Iop = _data.identity(N*N)
-        Q = _data.sub(Iop, Pop)
-
-        for k, w in enumerate(wlist):
-            if w != 0.0:
-                L_temp = 1.0j * w * spre(tr_op) + L
-            else:
-                # At zero frequency some solvers fail for small systems.
-                # Adding a small finite frequency of order 1e-15
-                # helps prevent the solvers from throwing an exception.
-                L_temp = 1e-15j * spre(tr_op) + L
-
-            A = _data.to(_data.CSR, L_temp.data).as_scipy()
-
-            rhoss_vec = _data.column_stack(rhoss.data.copy())
-
-            for j, Jj in enumerate(J_ops):
-                Jj = Jj.data
-                Qj = _data.matmul(Q, _data.matmul(Jj, rhoss_vec),
-                                  dtype=_data.Dense).as_ndarray()
-                X_rho_vec_j = _data.dense.fast_from_numpy(_solve(A, Qj))
-                for i, Ji in enumerate(J_ops):
-                    Ji = Ji.data
-                    Qi = _data.matmul(Q, _data.matmul(Ji, rhoss_vec),
-                                      dtype=_data.Dense).as_ndarray()
-                    if i == j:
-                        I[i] = _data.expect_super(Ji, rhoss_vec).real
-                        S[j, i, k] = I[i]
-
-                    X_rho_vec_i = _data.dense.fast_from_numpy(_solve(A, Qi))
-                    S[j, i, k] -= (
-                        _data.expect_super(_data.matmul(Jj, Q), X_rho_vec_i) +
-                        _data.expect_super(_data.matmul(Ji, Q), X_rho_vec_j)
-                    ).real
-    return I, S
+    return current, noise
