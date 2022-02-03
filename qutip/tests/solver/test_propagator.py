@@ -1,6 +1,6 @@
 import numpy as np
 from qutip import (destroy, propagator, Propagator, propagator_steadystate,
-                   steadystate, tensor, qeye)
+                   steadystate, tensor, qeye, basis, QobjEvo, sesolve)
 from qutip.solver.options import SolverOptions
 
 
@@ -22,7 +22,7 @@ def testPropObj():
     assert len(U.times) == 5
     assert (U(1) - propagator(H, 1, [a])).norm('max') < 1e-4
     assert (U(0.5) - propagator(H, 0.5, [a])).norm('max') < 1e-4
-    assert (U.prop(1.5, 0.5) - propagator(H, 1, [a])).norm('max') < 1e-4
+    assert (U(1.5, 0.5) - propagator(H, 1, [a])).norm('max') < 1e-4
 
 
 def func(t):
@@ -48,11 +48,10 @@ def testPropObjTd():
         U(1) - propagator([H, [H, "w*t"]], 1, [a], args={'w': 1})
     ).norm('max') < 1e-4
     assert (
-        U(0.5, args={'w': 2})
-        - propagator([H, [H, "w*t"]], 0.5, [a], args={'w': 2})
+        U(0.5, w=2) - propagator([H, [H, "w*t"]], 0.5, [a], args={'w': 2})
     ).norm('max') < 1e-4
     assert (
-        U.prop(1.5, 0.5, args={'w': 1.5})
+        U(1.5, 0.5, w=1.5)
         - propagator([H, [H, "w*t"]], [0.5, 1.5], [a], args={'w': 1.5})[1]
     ).norm('max') < 1e-4
 
@@ -79,3 +78,16 @@ def testPropHDims():
     H = tensor([qeye(2), qeye(2)])
     U = propagator(H, 1)
     assert U.dims == H.dims
+
+
+def testPropEvo():
+    a = destroy(5)
+    H = a.dag()*a
+    U = Propagator([H, [a + a.dag(), "w*t"]], args={'w': 1})
+    psi = QobjEvo(U) @ basis(5, 4)
+    tlist = np.linspace(0, 1, 6)
+    psi_expected = sesolve(
+        [H, [a + a.dag(), "w*t"]], basis(5,4), tlist=tlist, args={'w': 1}
+    ).states
+    for t, psi_t in zip(tlist, psi_expected):
+        assert abs(psi(t).overlap(psi_t)) > 1-1e-6

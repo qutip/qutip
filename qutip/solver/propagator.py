@@ -123,7 +123,7 @@ class Propagator:
         Options for the ODE solver.
 
     memoize : int [10]
-        Max number of saved states.
+        Max number of propagator to save.
 
     tol : float [1e-14]
         Absolute tolerance for the time. If a previous propagator was computed
@@ -136,7 +136,7 @@ class Propagator:
             U = QobjEvo(Propagator(H))
     """
     def __init__(self, H, c_ops=(), args=None, options=None,
-                 memoize=10, tol=1e-14, memoize_inv=False):
+                 memoize=10, tol=1e-14):
         Hevo = QobjEvo(H, args=args)
         c_ops = [QobjEvo(op, args=args) for op in c_ops]
         self.times = [0]
@@ -153,52 +153,70 @@ class Propagator:
                         and H.isherm)
         self.args = args
         self.memoize = max(3, memoize)
-        self.memoize_inv = memoize_inv
         self.tol = tol
 
-    def __call__(self, t, args=None):
+    def __call__(self, t, t_start=0, **args):
         """
         Get the propagator at ``t``.
-        Updating ``args`` take effect since ``t=0`` and the new ``args`` will
-        be used in future call.
+
+        Parameters
+        ----------
+        t : float
+            Time at which to compute the propagator.
+        t_start: float [0]
+            Time at which the propagator start such that:
+                ``psi[t] = U.prop(t, t_start) @ psi[t_start]``
+        args : dict
+            Argument to pass to a time dependent Hamiltonian.
+            Updating ``args`` take effect since ``t=0`` and the new ``args``
+            will be used in future call.
         """
         # We could improve it when the system is constant using U(2t) = U(t)**2
-        if args and args != self.args and not self.cte:
+        if not self.cte and args and args != self.args:
             self.args = args
             self.times = [0]
             self.props = [qeye(self.props[0].dims[0])]
-        U = None
-        idx = np.searchsorted(self.times, t)
-        if idx < len(self.times) and abs(t-self.times[idx]) <= self.tol:
-            U = self.props[idx]
-        elif idx > 0 and abs(t-self.times[idx-1]) <= self.tol:
-            U = self.props[idx-1]
-        elif idx > 0:
-            U = self._compute(t, idx)
-            self._insert(t, U, idx)
+
+        if t_start:
+            U = self._prop2t(t, t_start)
+        else:
+            idx = np.searchsorted(self.times, t)
+            if idx < len(self.times) and abs(t-self.times[idx]) <= self.tol:
+                U = self.props[idx]
+            elif idx > 0 and abs(t-self.times[idx-1]) <= self.tol:
+                U = self.props[idx-1]
+            else:
+                U = self._compute(t, idx)
+                self._insert(t, U, idx)
         return U
 
-    def inv(self, t, args=None):
+    def inv(self, t, **args):
         """
         Get the inverse of the propagator at ``t``, such that
-        ``psi_0 = U.inv(t) @ psi_t``
-        """
-        return self._inv(self(t, args=args))
+            ``psi_0 = U.inv(t) @ psi_t``
 
-    def _inv(self, U):
-        return U.dag() if self.unitary else U.inv()
-
-    def prop(self, t_end, t_start, args=None):
+        Parameters
+        ----------
+        t : float
+            Time at which to compute the propagator.
+        args : dict
+            Argument to pass to a time dependent Hamiltonian.
+            Updating ``args`` take effect since ``t=0`` and the new ``args``
+            will be used in future call.
         """
-        Obtain the probagator from t_start to t_end:
-            psi(t_end) = U(t_end, t_start) @ psi(t_start)
+        return self._inv(self(t, **args))
+
+    def _prop2t(self, t_end, t_start):
+        """
+        Obtain the probagator between times.
+            ``psi[t] = U.prop(t, t_start) @ psi[t_start]``
         """
         if t_end == t_start:
             return self(0)
         if self.cte:
-            return self(t_end - t_start, args=args)
+            return self(t_end - t_start)
         else:
-            return self(t_end, args=args) @ self.inv(t_start, args=args)
+            return self(t_end) @ self.inv(t_start)
 
     def _compute(self, t, idx):
         """
@@ -215,6 +233,9 @@ class Propagator:
             U = self._inv(Uinv)
         return U
 
+    def _inv(self, U):
+        return U.dag() if self.unitary else U.inv()
+
     def _insert(self, t, U, idx):
         """
         Insert a new pair of (time, propagator) to the memorized states.
@@ -225,7 +246,7 @@ class Propagator:
             # When the list get too long, we clean memory.
             # We keep the extremums and last call.
             # There are probably a good ways to do this.
-            rm_idx = np.random.randint([1, self.memoize-1])
+            rm_idx = np.random.randint(1, self.memoize-1)
             rm_idx = rm_idx if rm_idx < idx else rm_idx + 1
             self.times = self.times[:rm_idx] + self.times[rm_idx+1:]
             self.props = self.props[:rm_idx] + self.props[rm_idx+1:]

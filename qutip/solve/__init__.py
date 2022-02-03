@@ -19,7 +19,8 @@ del np
 del Qobj
 del debug
 
-# This create a collision between the file and the folder
-# removing it here allow qutip.solver to mean the folder
-# The function in the file here are still available in qutip namespace.
+# Temporary patch
+# There is a collision between the file and the folder solver.
+# We remove the file import here to allow qutip.solver to be the folder.
+# The names from file are still available in qutip namespace.
 del solver

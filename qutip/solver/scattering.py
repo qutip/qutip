@@ -79,52 +79,28 @@ def set_partition(collection, num_sets):
         yield tuple(tuple(indices) for indices in partition)
 
 
-def photon_scattering_operator(evolver, c_ops, tmax, taus_list):
+def photon_scattering_amplitude(evolver, c_ops, tlist, indices, psi, psit):
     """
-    Compute the scattering operator for a system emitting into multiple
+    Compute the scattering amplitude for a system emitting into multiple
     waveguides.
 
     Parameters
     ----------
     evolver : :class:Propagator
-        Evolver-wrapped Hamiltonian describing the system.
+        Propagator
     c_ops : list
         list of collapse operators for each waveguide; these are assumed to
         include spontaneous decay rates, e.g.
         :math:`\\sigma = \\sqrt \\gamma \\cdot a`
-    taus_list : list-like
-        List of (list of emission times) for each waveguide.
-
-    Returns
-    -------
-    omega : :class: qutip.Qobj
-        The temporal scattering operator with dimensionality equal to the
-        system state.
+    tlist : array_like
+        Times at which emissions can happen.
+    indices : list-like
+        List of (list of emission times indices) for each waveguide.
+    psi : Qobj
+        State at the start of the evolution
+    psit : Qobj
+        State at the end of the evolution.
     """
-    omega = 1
-
-    # Extract the full list of taus
-    taus = [(0.0, -1)]  # temporal "ground state" for arbitrary waveguide
-    for i, tau_wg in enumerate(taus_list):
-        for tau in tau_wg:
-            taus.append((tau, i))
-    taus.sort(key=lambda tup: tup[0])  # sort taus by time
-
-    # Compute Prod Ueff(tq, tq-1)
-    for i in range(1, len(taus)):
-        tq, q = taus[i]
-        tprev, _ = taus[i - 1]
-        omega = c_ops[q] * evolver.prop(tq, tprev) * omega
-
-    # Add the <0|Uff(TP, tm)|0> term
-    taumax, _ = taus[-1]
-    # if taus[-1] < tmax:
-    omega = evolver.prop(tmax, taumax) * omega
-
-    return omega
-
-
-def photon_scattering_amplitude(evolver, c_ops, tlist, indices, psi, psit):
     # Extract the full list of taus
     taus = []
     for i, tau_wg in enumerate(indices):
@@ -137,9 +113,9 @@ def photon_scattering_amplitude(evolver, c_ops, tlist, indices, psi, psit):
     for tau in taus:
         tprev = tq
         tq, q = tau
-        psi = c_ops[q] * evolver.prop(tq, tprev) * psi
+        psi = c_ops[q] * evolver(tq, tprev) * psi
 
-    psi = evolver.prop(tlist[-1], tq) * psi
+    psi = evolver(tlist[-1], tq) * psi
     return psit.overlap(psi)
 
 
