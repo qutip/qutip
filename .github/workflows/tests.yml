@@ -145,7 +145,7 @@ jobs:
           #  --strict-markers
           #     error out if a marker is used but not defined in the
           #     configuration file
-          #  --timeout=150
+          #  --timeout=300
           #     error any individual test that goes longer than the given time
           #  --durations=0 --durations-min=1.0
           #     at the end, show a list of all the tests that took longer than a
