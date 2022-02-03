@@ -245,7 +245,7 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
 
     if not sparse or method != "direct":
         current, noise = _noise_pseudoinv(L, wlist, rhoss, J_ops,
-                                                 sparse, method)
+                                          sparse, method)
     else:
         rhoss_vec = operator_to_vector(rhoss).data
         current, noise = _noise_direct(L, wlist, rhoss_vec, J_ops)
