@@ -114,6 +114,7 @@ else:
 
 from .core import *
 from .solve import *
+from .solver.countstat import *
 
 # graphics
 from .bloch import *
