@@ -313,10 +313,18 @@ def _generic_ode_solve(func, ode_args, psi0, tlist, e_ops, opt,
                     output.expect.append(np.zeros(n_tsteps, dtype=complex))
         if oper_evo:
             for e in e_ops:
-                e_ops_data.append(e.dag().data)
+                if e.dims[1] != psi0.dims[0]:
+                    raise TypeError(f"e_ops dims ({e.dims}) are not compatible"
+                                    f" with the state's ({psi0.dims})")
+                else:
+                    e_ops_data.append(e.dag().data)
         else:
             for e in e_ops:
-                e_ops_data.append(e.data)
+                if e.dims[1] != psi0.dims[0]:
+                    raise TypeError(f"e_ops dims ({e.dims}) are not compatible"
+                                    f" with the state's ({psi0.dims})")
+                else:
+                    e_ops_data.append(e.data)
     else:
         raise TypeError("Expectation parameter must be a list or a function")
 

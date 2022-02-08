@@ -41,7 +41,7 @@ Bibliography
     open quantum systems*. :arxiv:`1111.6950`
     
 .. [dAless08]
-    D. d’Alessandro, *Introduction to Quantum Control and Dynamics*, (Chapman & Hall/CRC, 2008)
+    D. d’Alessandro, *Introduction to Quantum Control and Dynamics*, (Chapman & Hall/CRC, 2008).
     
 .. [Byrd95]
     R. H. Byrd, P. Lu, J. Nocedal, and C. Zhu, *A Limited Memory Algorithm for Bound Constrained Optimization*, SIAM J. Sci. Comput. **16**, 1190 (1995). :doi:`10.1137/0916069`
@@ -62,5 +62,8 @@ Bibliography
     N. Rach, M. M. Müller, T. Calarco, and S. Montangero, *Dressing the chopped-random-basis optimization: A bandwidth-limited access to the trap-free landscape*, Phys. Rev. A. **92**, 062343 (2015). :doi:`10.1103/PhysRevA.92.062343`
 
 .. [DYNAMO]
-   S. Machnes, U. Sander, S. J. Glaser, P. De Fouquieres, A. Gruslys, S. Schirmer, and T. Schulte-Herbrueggen, *Comparing, Optimising and Benchmarking Quantum Control Algorithms in a Unifying Programming Framework*, Phys. Rev. A. **84**, 022305 (2010). :arxiv:`1011.4874`
-    
+    S. Machnes, U. Sander, S. J. Glaser, P. De Fouquieres, A. Gruslys, S. Schirmer, and T. Schulte-Herbrueggen, *Comparing, Optimising and Benchmarking Quantum Control Algorithms in a Unifying Programming Framework*, Phys. Rev. A. **84**, 022305 (2010). :arxiv:`1011.4874`
+
+.. [Wis09]
+
+    Wiseman, H. M. & Milburn, G. J. *Quantum Measurement and Control*, (Cambridge University Press, 2009).

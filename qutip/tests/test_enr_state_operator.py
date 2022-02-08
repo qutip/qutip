@@ -112,6 +112,12 @@ def test_fock_state(dimensions, n_excitations):
             assert abs(n.matrix_element(state.dag(), state)) - x < 1e-10
 
 
+def test_fock_state_error():
+    with pytest.raises(ValueError) as e:
+        state = qutip.enr_fock([2, 2, 2], 1, [1, 1, 1])
+    assert str(e.value).startswith("The state tuple ")
+
+
 def _reference_dm(dimensions, n_excitations, nbars):
     """
     Get the reference density matrix using `Qobj.eliminate_states` explicitly,
@@ -136,7 +142,7 @@ def test_thermal_dm(dimensions, n_excitations, nbar_type):
         nbars = 0.1 * n_excitations / len(dimensions)
     else:
         nbars = np.random.rand(len(dimensions))
-        nbars = (0.1 * n_excitations) / np.sum(nbars)
+        nbars *= (0.1 * n_excitations) / np.sum(nbars)
     test_dm = qutip.enr_thermal_dm(dimensions, n_excitations, nbars)
     expect_dm = _reference_dm(dimensions, n_excitations, nbars)
     np.testing.assert_allclose(test_dm.full(), expect_dm.full(), atol=1e-12)

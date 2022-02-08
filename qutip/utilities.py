@@ -36,8 +36,7 @@ This module contains utility functions that are commonly needed in other
 qutip modules.
 """
 
-__all__ = ['n_thermal', 'linspace_with', 'clebsch', 'convert_unit',
-           'view_methods']
+__all__ = ['n_thermal', 'clebsch', 'convert_unit']
 
 import numpy as np
 
@@ -76,39 +75,6 @@ def n_thermal(w, w_th):
             return 1.0 / (np.exp(w / w_th) - 1.0)
         else:
             return 0.0
-
-
-def linspace_with(start, stop, num=50, elems=[]):
-    """
-    Return an array of numbers sampled over specified interval
-    with additional elements added.
-
-    Returns `num` spaced array with elements from `elems` inserted
-    if not already included in set.
-
-    Returned sample array is not evenly spaced if addtional elements
-    are added.
-
-    Parameters
-    ----------
-    start : int
-        The starting value of the sequence.
-    stop : int
-        The stoping values of the sequence.
-    num : int, optional
-        Number of samples to generate.
-    elems : list/ndarray, optional
-        Requested elements to include in array
-
-    Returns
-    -------
-    samples : ndadrray
-        Original equally spaced sample array with additional
-        elements added.
-    """
-    elems = np.array(elems)
-    lspace = np.linspace(start, stop, num)
-    return np.union1d(lspace, elems)
 
 
 def _factorial_prod(N, arr):
@@ -391,32 +357,6 @@ def convert_mK_to_GHz(w):
     return w_GHz
 
 
-def view_methods(Q):
-    """
-    View the methods and corresponding doc strings
-    for a Qobj class.
-
-    Parameters
-    ----------
-    Q : Qobj
-        Input Quantum object.
-
-    """
-    meth = dir(Q)
-    qobj_props = ['data', 'dims', 'isherm', 'shape', 'type']
-    pub_meth = [x for x in meth if x.find('_') and x not in qobj_props]
-    ml = max([len(x) for x in pub_meth])
-    nl = len(Q.__class__.__name__ + 'Class Methods:')
-    print(Q.__class__.__name__ + ' Class Methods:')
-    print('-' * nl)
-    for ii in range(len(pub_meth)):
-        m = getattr(Q, pub_meth[ii])
-        meth_str = m.__doc__
-        ind = meth_str.find('\n')
-        pub_len = len(pub_meth[ii] + ': ')
-        print(pub_meth[ii] + ':' + ' ' * (ml+3-pub_len) + meth_str[:ind])
-
-
 def _version2int(version_string):
     str_list = version_string.split(
         "-dev")[0].split("rc")[0].split("a")[0].split("b")[0].split(
@@ -427,7 +367,12 @@ def _version2int(version_string):
 
 def _blas_info():
     config = np.__config__
-    blas_info = config.blas_opt_info
+    if hasattr(config, 'blas_ilp64_opt_info'):
+        blas_info = config.blas_ilp64_opt_info
+    elif hasattr(config, 'blas_opt_info'):
+        blas_info = config.blas_opt_info
+    else:
+        blas_info = {}
     _has_lib_key = 'libraries' in blas_info.keys()
     blas = None
     if hasattr(config,'mkl_info') or \
@@ -441,3 +386,42 @@ def _blas_info():
     else:
         blas = 'Generic'
     return blas
+
+
+def available_cpu_count():
+    """
+    Get the number of cpus.
+    It tries to only get the number available to qutip.
+    """
+    import os
+    import multiprocessing
+    try:
+        import psutil
+    except ImportError:
+        psutil = None
+    num_cpu = 0
+
+    if 'QUTIP_NUM_PROCESSES' in os.environ:
+        # We consider QUTIP_NUM_PROCESSES=0 as unset.
+        num_cpu = int(os.environ['QUTIP_NUM_PROCESSES'])
+
+    if num_cpu == 0 and 'SLURM_CPUS_PER_TASK' in os.environ:
+        num_cpu = int(os.environ['SLURM_CPUS_PER_TASK'])
+
+    if num_cpu == 0 and hasattr(os, 'sched_getaffinity'):
+        num_cpu = len(os.sched_getaffinity(0))
+
+    if (
+        num_cpu == 0
+        and psutil is not None
+        and hasattr(psutil.Process(), "cpu_affinity")
+    ):
+        num_cpu = len(psutil.Process().cpu_affinity())
+
+    if num_cpu == 0:
+        try:
+            num_cpu = multiprocessing.cpu_count()
+        except NotImplementedError:
+            pass
+
+    return num_cpu or 1

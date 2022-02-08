@@ -209,7 +209,7 @@ For convenience, all the steps described above for calculating the evolution of 
 
 .. code-block:: python
 
-    output = fsesolve(H, psi0, times, [num(2)], args)
+    output = fsesolve(H, psi0=psi0, tlist=tlist, e_ops=[qutip.num(2)], args=args)
     p_ex = output.expect[0]
 
 .. _floquet-dissipative:

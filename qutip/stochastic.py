@@ -358,8 +358,6 @@ class StochasticSolverOptions:
                                for op in sc_ops]
             except Exception as e:
                 raise ValueError(msg + str(e)) from e
-            except:
-                raise ValueError(msg)
         else:
             self.sc_ops = sc_ops
 
@@ -372,8 +370,6 @@ class StochasticSolverOptions:
                               for op in c_ops]
             except Exception as e:
                 raise ValueError(msg + str(e)) from e
-            except:
-                raise ValueError(msg)
         else:
             self.c_ops = c_ops
 
@@ -381,6 +377,15 @@ class StochasticSolverOptions:
         self.rho0 = mat2vec(state0.full()).ravel()
 
         # Observation
+
+        for e_op in e_ops:
+            if (
+                isinstance(e_op, Qobj)
+                and self.H is not None
+                and e_op.dims[1] != self.H.cte.dims[0]
+            ):
+                raise TypeError(f"e_ops dims ({e_op.dims}) are not compatible "
+                                f"with the system's ({self.H.cte.dims})")
         self.e_ops = e_ops
         self.m_ops = m_ops
         self.store_measurement = store_measurement
@@ -502,16 +507,17 @@ class StochasticSolverOptions:
             if not len(self.sc_ops) == 1 or \
                     not self.sc_ops[0].const or \
                     not self.method == "homodyne":
-                raise ValueError("Taylor2.0 only works with 1 constant " +
-                                "sc_ops and for homodyne method")
+                raise ValueError(
+                    "Taylor2.0 only works with 1 constant sc_ops and for"
+                    " homodyne method"
+                )
         else:
-            raise ValueError((
-                    "The solver should be one of "
-                    "[None, 'euler-maruyama', 'platen', 'pc-euler', "
-                    "'pc-euler-imp', 'milstein', 'milstein-imp', "
-                    "'rouchon', "
-                    "'taylor1.5', 'taylor1.5-imp', 'explicit1.5' "
-                    "'taylor2.0']"))
+            known = [
+                None, 'euler-maruyama', 'platen', 'pc-euler', 'pc-euler-imp',
+                'milstein', 'milstein-imp', 'rouchon', 'taylor1.5',
+                'taylor1.5-imp', 'explicit1.5', 'taylor2.0',
+            ]
+            raise ValueError("The solver should be one of {!r}".format(known))
 
 
 class StochasticSolverOptionsPhoto(StochasticSolverOptions):
@@ -589,8 +595,8 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
         print("stochastic solver with photocurrent method has been moved to "
               "it's own function: photocurrent_mesolve")
         return photocurrent_mesolve(H, rho0, times, c_ops=c_ops, sc_ops=sc_ops,
-                                   e_ops=e_ops, _safe_mode=_safe_mode,
-                                   args=args, **kwargs)
+                                    e_ops=e_ops, _safe_mode=_safe_mode,
+                                    args=args, **kwargs)
     if isket(rho0):
         rho0 = ket2dm(rho0)
 
@@ -716,8 +722,8 @@ def ssesolve(H, psi0, times, sc_ops=[], e_ops=[],
         print("stochastic solver with photocurrent method has been moved to "
               "it's own function: photocurrent_sesolve")
         return photocurrent_sesolve(H, psi0, times, c_ops=c_ops,
-                                   e_ops=e_ops, _safe_mode=_safe_mode,
-                                   args=args, **kwargs)
+                                    e_ops=e_ops, _safe_mode=_safe_mode,
+                                    args=args, **kwargs)
 
     if isinstance(e_ops, dict):
         e_ops_dict = e_ops
@@ -879,7 +885,7 @@ def _positive_map(sso, e_ops_dict):
 
 
 def photocurrent_mesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
-                        _safe_mode=True, args={}, **kwargs):
+                         _safe_mode=True, args={}, **kwargs):
     """
     Solve stochastic master equation using the photocurrent method.
 
@@ -975,7 +981,7 @@ def photocurrent_mesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
 
 
 def photocurrent_sesolve(H, psi0, times, sc_ops=[], e_ops=[],
-                        _safe_mode=True, args={}, **kwargs):
+                         _safe_mode=True, args={}, **kwargs):
     """
     Solve stochastic schrodinger equation using the photocurrent method.
 
@@ -1016,7 +1022,7 @@ def photocurrent_sesolve(H, psi0, times, sc_ops=[], e_ops=[],
     """
     if isinstance(e_ops, dict):
         e_ops_dict = e_ops
-        e_ops = [e for e in e_ops.values()]
+        e_ops = list(e_ops.values())
     else:
         e_ops_dict = None
 
@@ -1132,15 +1138,11 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
         except Exception as e:
             raise RuntimeError("Safety check: d1(0., state0_vec) failed.:\n" +
                                str(e)) from e
-        except:
-            raise RuntimeError("Safety check: d1(0., state0_vec) failed.")
         try:
             out_d2 = d2(0., sso.rho0)
         except Exception as e:
             raise RuntimeError("Safety check: d2(0., state0_vec) failed:\n" +
                                str(e)) from e
-        except:
-            raise RuntimeError("Safety check: d2(0., state0_vec) failed.")
 
         msg_d1 = ("d1 must return an 1d numpy array with the same number "
                   "of elements as the initial state as a vector.")
@@ -1185,7 +1187,7 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
         if sso.dW_factors is None:
             sso.dW_factors = [1.] * len(sso.m_ops)
         elif len(sso.dW_factors) == 1:
-                sso.dW_factors = sso.dW_factors * len(sso.m_ops)
+            sso.dW_factors = sso.dW_factors * len(sso.m_ops)
         elif len(sso.dW_factors) != len(sso.m_ops):
             raise ValueError("The number of dW_factors must fit" +
                              " the number of m_ops.")
@@ -1194,7 +1196,8 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
         sso.dW_factors = [1.] * len_d2
     sso.sops = [None] * len_d2
     sso.ce_ops = [QobjEvo(op) for op in sso.e_ops]
-    [op.compile() for op in sso.ce_ops]
+    for op in sso.ce_ops:
+        op.compile()
 
     sso.solver_obj = GenericSSolver
     sso.solver_name = "general_stochastic_solver_" + sso.solver
@@ -1216,7 +1219,9 @@ def _safety_checks(sso):
     l_vec = sso.rho0.shape[0]
     if sso.H.cte.issuper:
         if not sso.me:
-            raise
+            raise ValueError(
+                "Given a Liouvillian for a Schrödinger equation problem."
+            )
         shape_op = sso.H.cte.shape
         if shape_op[0] != l_vec or shape_op[1] != l_vec:
             raise Exception("The size of the hamiltonian does "
@@ -1235,7 +1240,9 @@ def _safety_checks(sso):
     for op in sso.sc_ops:
         if op.cte.issuper:
             if not sso.me:
-                raise
+                raise ValueError(
+                    "Given a Liouvillian for a Schrödinger equation problem."
+                )
             shape_op = op.cte.shape
             if shape_op[0] != l_vec or shape_op[1] != l_vec:
                 raise Exception("The size of the sc_ops does "
@@ -1254,7 +1261,9 @@ def _safety_checks(sso):
     for op in sso.c_ops:
         if op.cte.issuper:
             if not sso.me:
-                raise
+                raise ValueError(
+                    "Given a Liouvillian for a Schrödinger equation problem."
+                )
             shape_op = op.cte.shape
             if shape_op[0] != l_vec or shape_op[1] != l_vec:
                 raise Exception("The size of the c_ops does "
@@ -1369,9 +1378,8 @@ def _sesolve_generic(sso, options, progress_bar):
 def _single_trajectory(i, sso):
     # Only one step?
     ssolver = sso.solver_obj()
-    #ssolver.set_data(sso)
     ssolver.set_solver(sso)
-    result = ssolver.cy_sesolve_single_trajectory(i)#, sso)
+    result = ssolver.cy_sesolve_single_trajectory(i)
     return result
 
 

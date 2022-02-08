@@ -637,19 +637,25 @@ class Processor(object):
 
         Returns
         -------
-        evo_result: :class:`qutip.Result`
-            An instance of the class
-            :class:`qutip.Result` will be returned.
+        U_list: list
+            A list of propagators obtained for the physical implementation.
         """
         if init_state is not None:
             U_list = [init_state]
         else:
             U_list = []
         tlist = self.get_full_tlist()
-        # TODO replace this by get_complete_coeff
         coeffs = self.get_full_coeffs()
+
+        # Compute drift Hamiltonians
+        H_drift = 0
+        for drift_ham in self.drift.drift_hamiltonians:
+            H_drift += drift_ham.get_qobj(self.dims)
+
+        # Compute control Hamiltonians
         for n in range(len(tlist)-1):
-            H = sum([coeffs[m, n] * self.ctrls[m]
+            H = H_drift + sum(
+                [coeffs[m, n] * self.ctrls[m]
                     for m in range(len(self.ctrls))])
             dt = tlist[n + 1] - tlist[n]
             U = (-1j * H * dt).expm()
@@ -658,7 +664,9 @@ class Processor(object):
 
         try:  # correct_global_phase are defined for ModelProcessor
             if self.correct_global_phase and self.global_phase != 0:
-                U_list.append(globalphase(self.global_phase, N=self.N))
+                U_list.append(globalphase(
+                    self.global_phase, N=self.num_qubits)
+                )
         except AttributeError:
             pass
 

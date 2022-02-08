@@ -174,7 +174,7 @@ As of the 4.6.0 release, the build requirements can be installed with
 
 .. code-block:: bash
 
-   pip install setuptools wheel 'cython>=0.29.20' 'numpy>=1.16.6,<1.20' 'scipy>=1.0'
+   pip install setuptools wheel packaging 'cython>=0.29.20' 'numpy>=1.16.6,<1.20' 'scipy>=1.0'
 
 or similar with ``conda`` if you prefer.
 You will also need to have a functional C++ compiler installed on your system.

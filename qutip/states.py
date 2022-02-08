@@ -238,7 +238,7 @@ def coherent(N, alpha, offset=0, method='operator'):
         return Qobj(sqrtn)
 
     else:
-        raise TypeError(
+        raise ValueError(
             "The method option can only take values 'operator' or 'analytic'")
 
 
@@ -291,17 +291,8 @@ shape = [3, 3], type = oper, isHerm = True
     but would in that case give more accurate coefficients.
 
     """
-    if method == "operator":
-        psi = coherent(N, alpha, offset=offset)
-        return psi * psi.dag()
-
-    elif method == "analytic":
-        psi = coherent(N, alpha, offset=offset, method='analytic')
-        return psi * psi.dag()
-
-    else:
-        raise TypeError(
-            "The method option can only take values 'operator' or 'analytic'")
+    psi = coherent(N, alpha, offset=offset, method=method)
+    return psi * psi.dag()
 
 
 def fock_dm(dimensions, n=None, offset=None):
@@ -454,8 +445,8 @@ shape = [5, 5], type = oper, isHerm = True
             rm = sp.spdiags((1.0 + n) ** (-1.0) * (n / (1.0 + n)) ** (i),
                             0, N, N, format='csr')
         else:
-            raise ValueError(
-                "'method' keyword argument must be 'operator' or 'analytic'")
+            raise ValueError("The method option can only take "
+                             "values 'operator' or 'analytic'")
     return Qobj(rm)
 
 
@@ -757,7 +748,7 @@ def bra(seq, dim=2):
 #
 # quantum state number helper functions
 #
-def state_number_enumerate(dims, excitations=None, state=None, idx=0):
+def state_number_enumerate(dims, excitations=None, state=None, idx=0, nexc=0):
     """
     An iterator that enumerate all the state number arrays (quantum numbers on
     the form [n1, n2, n3, ...]) for a system with dimensions given by dims.
@@ -786,6 +777,9 @@ def state_number_enumerate(dims, excitations=None, state=None, idx=0):
     idx : integer
         Current index in the iteration. Used internally.
 
+    nexc : integer
+        Number of excitations in modes [0..idx-1]. Used internally.
+
     Returns
     -------
     state_number : list
@@ -797,17 +791,23 @@ def state_number_enumerate(dims, excitations=None, state=None, idx=0):
     if state is None:
         state = np.zeros(len(dims), dtype=int)
 
-    if excitations and sum(state[0:idx]) > excitations:
-        pass
-    elif idx == len(dims):
+    if idx == len(dims):
         if excitations is None:
             yield np.array(state)
         else:
             yield tuple(state)
     else:
-        for n in range(dims[idx]):
+        if excitations is None:
+            nlim = dims[idx]
+        else:
+            # modes [0..idx-1] have nexc excitations,
+            # so mode idx can have at most excitations-nexc excitations
+            nlim = min(dims[idx], 1 + excitations - nexc)
+
+        for n in range(nlim):
             state[idx] = n
-            for s in state_number_enumerate(dims, excitations, state, idx + 1):
+            for s in state_number_enumerate(dims, excitations,
+                                            state, idx + 1, nexc + n):
                 yield s
 
 
@@ -1221,7 +1221,7 @@ def triplet_states():
     .. math::
 
         \lvert T_1\rangle = \lvert11\rangle
-        \lvert T_2\rangle = \frac1{\sqrt2}(\lvert01\rangle - \lvert10\rangle)
+        \lvert T_2\rangle = \frac1{\sqrt2}(\lvert01\rangle + \lvert10\rangle)
         \lvert T_3\rangle = \lvert00\rangle
 
     Returns
