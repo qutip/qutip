@@ -72,6 +72,8 @@ Developer Changes
 - Updated the version of cibuildwheel used to build wheels to 2.3.0. (`#1747 <https://github.com/qutip/qutip/pull/1747>`_, `#1751 <https://github.com/qutip/qutip/pull/1751>`_)
 - Added project urls to linking to the source repository, issue tracker and documentation to setup.cfg. (`#1779 <https://github.com/qutip/qutip/pull/1779>`_)
 - Added a numpy 1.22 and Python 3.10 build to the CI test matrix. (`#1777 <https://github.com/qutip/qutip/pull/1777>`_)
+- Ignore deprecation warnings from SciPy 1.8.0 scipy.sparse.X imports in CI tests. (`#1797 <https://github.com/qutip/qutip/pull/1797>`_)
+- Add building of wheels for Python 3.10 to the cibuildwheel job. (`#1796 <https://github.com/qutip/qutip/pull/1796>`_)
 
 
 Version 4.6.2 (June 2, 2021)
