@@ -10,6 +10,7 @@ import glob
 import importlib
 import warnings
 import numbers
+from contextlib import contextmanager
 from collections import defaultdict
 from setuptools import setup, Extension
 try:
@@ -503,7 +504,6 @@ def compile_code(code, file_name, parsed, c_opt):
                 compile_time_env=compile_time_env,
                 force=c_opt['recompile'],
             )
-            setup(ext_modules=ext_modules)
             with _ignore_import_warning_for_pyximporter():
                 setup(ext_modules=ext_modules)
         except Exception as e:
