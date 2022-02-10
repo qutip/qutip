@@ -345,7 +345,12 @@ def _steadystate_LU_liouvillian(L, ss_args, has_mkl=0):
         if settings.debug:
             logger.debug('Calculating Weighted Bipartite Matching ordering...')
         _wbm_start = time.time()
-        perm = weighted_bipartite_matching(L)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", "qutip graph functions are deprecated",
+                DeprecationWarning,
+            )
+            perm = weighted_bipartite_matching(L)
         _wbm_end = time.time()
         L = sp_permute(L, perm, [], form)
         ss_args['info']['perm'].append('wbm')
@@ -738,7 +743,12 @@ def _steadystate_power_liouvillian(L, ss_args, has_mkl=0):
         if settings.debug:
             logger.debug('Calculating Weighted Bipartite Matching ordering...')
         _wbm_start = time.time()
-        perm = weighted_bipartite_matching(L)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", "qutip graph functions are deprecated",
+                DeprecationWarning,
+            )
+            perm = weighted_bipartite_matching(L)
         _wbm_end = time.time()
         L = sp_permute(L, perm, [], kind)
         ss_args['info']['perm'].append('wbm')
