@@ -94,11 +94,11 @@ def get_logger(name=None):
 
     logger = logging.getLogger(name)
 
-    policy = settings.install['log_handler']
+    policy = settings.core['log_handler']
 
     if policy == 'default':
         # Let's try to see if we're in IPython mode.
-        policy = 'basic' if settings.install['ipython'] else 'stream'
+        policy = 'basic' if settings.ipython else 'stream'
 
     metalogger.debug("Creating logger for {} with policy {}.".format(
         name, policy
@@ -109,7 +109,7 @@ def get_logger(name=None):
         # This is nice for working with IPython, since
         # it will use its own handlers instead of our StreamHandler
         # below.
-        if settings.install['debug']:
+        if settings.core['debug']:
             logging.basicConfig(level=logging.DEBUG)
         else:
             logging.basicConfig()
@@ -133,7 +133,7 @@ def get_logger(name=None):
         # for capturing to logfiles.
         logger.addHandler(logging.NullHandler())
 
-    if settings.install['debug']:
+    if settings.core['debug']:
         logger.setLevel(logging.DEBUG)
     else:
         logger.setLevel(logging.WARN)

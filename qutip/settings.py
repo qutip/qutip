@@ -36,54 +36,129 @@ tidyup functionality, etc.
 """
 from __future__ import absolute_import
 import qutip.configrc as qrc
+import os, sys
+from .utilities import _blas_info
+from ctypes import cdll
+from pathlib import Path
+from .version import short_version
+import platform
+
+__all__ = ['settings']
+
+def _find_mkl():
+    """
+    Finds the MKL runtime library for the Anaconda and Intel Python
+    distributions.
+    """
+    has_mkl = False
+    mkl_lib = None
+    if _blas_info() == 'INTEL MKL':
+        plat = sys.platform
+        python_dir = os.path.dirname(sys.executable)
+        if plat in ['darwin','linux2', 'linux']:
+            python_dir = os.path.dirname(python_dir)
+
+        if plat == 'darwin':
+            lib = '/libmkl_rt.dylib'
+        elif plat == 'win32':
+            lib = r'\mkl_rt.dll'
+        elif plat in ['linux2', 'linux']:
+            lib = '/libmkl_rt.so'
+        else:
+            raise Exception('Unknown platfrom.')
+
+        if plat in ['darwin','linux2', 'linux']:
+            lib_dir = '/lib'
+        else:
+            lib_dir = r'\Library\bin'
+        # Try in default Anaconda location first
+        try:
+            mkl_lib = cdll.LoadLibrary(python_dir+lib_dir+lib)
+            has_mkl = True
+        except:
+            pass
+
+        # Look in Intel Python distro location
+        if not has_mkl:
+            if plat in ['darwin','linux2', 'linux']:
+                lib_dir = '/ext/lib'
+            else:
+                lib_dir = r'\ext\lib'
+            try:
+                mkl_lib = \
+                    cdll.LoadLibrary(python_dir+lib_dir+lib)
+                has_mkl = True
+            except:
+                pass
+    return has_mkl, mkl_lib
 
 
 class Settings:
     """
     Qutip default settings and options.
     `print(qutip.settings)` to list all available options.
-    `help(qutip.settings.solver)` will explain the use of each options
-        in `solver`.
-
     """
     def __init__(self):
-        self._isDefault = True
         self._children = []
-        self._fullname = "qutip.settings"
+        self._fullname = "settings"
         self._defaultInstance = self
+        self._has_mkl, self._mkl_lib = _find_mkl()
+        try:
+            self.tmproot = os.path.join(os.path.expanduser("~"), '.qutip')
+        except OSError:
+            self._tmproot = "."
 
-    def _all_children(self):
-        optcls = []
-        for child in self._children:
-            optcls += child._all_children()
-        return optcls
+    @property
+    def has_mkl(self):
+        return self._has_mkl
 
-    def reset(self):
-        """
-        Reset all options to qutip's defaults.
-        """
-        for child in self._children:
-            child.reset(True)
+    @property
+    def mkl_lib(self):
+        return self._mkl_lib
 
-    def save(self, file="qutiprc"):
-        """
-        Save the default in a file in '$HOME/.qutip/'.
-        Use full path to same elsewhere.
-        The file 'qutiprc' is loaded when importing qutip.
-        """
-        optcls = self._all_children()
-        qrc.write_rc_object(file, optcls)
+    @property
+    def ipython(self):
+        try:
+            __IPYTHON__
+            return True
+        except NameError:
+            return False
 
-    def load(self, file="qutiprc"):
-        """
-        Load the default in a file in '$HOME/.qutip/'.
-        Use full path to same elsewhere.
-        """
-        optcls = self._all_children()
-        qrc.load_rc_object(file, optcls)
+    @property
+    def eigh_unsafe(self):
+        return _blas_info() == "OPENBLAS" and platform.system() == 'Darwin'
 
-    def __repr__(self):
-        return "".join(child.__repr__(True) for child in self._children)
+    @property
+    def tmproot(self):
+        return self._tmproot
+
+    @tmproot.setter
+    def tmproot(self, root):
+        if not os.path.exists(root):
+            os.mkdir(root)
+        self._tmproot = root
+
+    @property
+    def coeffroot(self):
+        return self._coeffroot
+
+    @coeffroot.setter
+    def coeffroot(self, root):
+        if not os.path.exists(root):
+            os.mkdir(root)
+        if root not in sys.path:
+            sys.path.insert(0, root)
+        self._coeffroot = root
+
+    @property
+    def coeff_write_ok(self):
+        return os.access(self.coeffroot, os.W_OK)
+
+    @property
+    def has_openmp(self):
+        return False
+        # We keep this as a reminder for when openmp is restored: see Pull #652
+        # os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 
 settings = Settings()

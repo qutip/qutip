@@ -47,7 +47,7 @@ from .steadystate import pseudo_inverse, steadystate
 from ..settings import settings
 
 # Load MKL spsolve if avaiable
-if settings.install['has_mkl']:
+if settings.has_mkl:
     from qutip._mkl.spsolve import mkl_spsolve
 
 
@@ -217,7 +217,7 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
                     # helps prevent the solvers from throwing an exception.
                     L_temp = 1e-15j*spre(tr_op) + L
 
-                if not settings.install['has_mkl']:
+                if not settings.has_mkl:
                     A = _data.to(_data.CSR, L_temp.data).as_scipy().tocsc()
                 else:
                     A = _data.to(_data.CSR, L_temp.data).as_scipy()
@@ -230,7 +230,7 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
                     Qj = _data.matmul(Q, _data.matmul(Jj, rhoss_vec),
                                       dtype=_data.Dense).as_ndarray()
                     try:
-                        if settings.install['has_mkl']:
+                        if settings.has_mkl:
                             X_rho_vec_j = mkl_spsolve(A, Qj)
                         else:
                             X_rho_vec_j =\
@@ -244,7 +244,7 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
                         Qi = _data.matmul(Q, _data.matmul(Ji, rhoss_vec),
                                           dtype=_data.Dense).as_ndarray()
                         try:
-                            if settings.install['has_mkl']:
+                            if settings.has_mkl:
                                 X_rho_vec_i = mkl_spsolve(A, Qi)
                             else:
                                 X_rho_vec_i = (

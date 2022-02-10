@@ -19,7 +19,7 @@ except ImportError:
     pass
 
 from ..settings import settings as qset
-from ..optionsclass import optionsclass
+from ..optionsclass import QutipOptions
 from .data import Data
 from .cy.coefficient import (
     Coefficient, InterCoefficient, FunctionCoefficient, StrFunctionCoefficient,
@@ -161,43 +161,49 @@ def shift(coeff, _t0=0):
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%      Everything under this is for string compilation      %%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-@optionsclass("compile", qset.core)
-class CompilationOptions:
-    """
-    Options for compilation.
-    use_cython: bool
-        execute strings as python code instead of cython.
+def has_cython():
+    try:
+        import cython
+        return True
+    except ImportError:
+        return False
 
-    Type management options.
-    accept_int : None, bool
-        Whether integer constants and args are kept or upgraded to float
+def _use_cython(val):
+    if val and not has_cython():
+        raise ValueError("Cython is not available.")
+    return bool(val)
+
+class CompilationOptions(QutipOptions):
+    """
+    Compilation options:
+
+    use_cython: bool [True]
+        Whether to compile strings as cython code or use python's exec.
+    try_parse: bool [True]
+        Whether to try parsing the string for reuse and static typing.
+    static_types : bool [True]
+        Whether to use static typing or not. Static typing is often faster.
+    accept_int : None, bool [None]
+        Whether integer constants and args are to be typed as float or complex.
         If `None`, use in if array subscrition is used.
-    accept_float : bool
+    accept_float : bool [True]
         Whether float are kept as float or upgraded to complex.
-    no_types : bool
-        Give up on detecting and using c types.
-    recompile : bool
-        Do not use previously made files but build a new one.
+    recompile : bool [False]
+        Whether to recompile even when the same string was previously used.
     compiler_flags : str
         Flags to pass to the compiler, ex: "-Wall -O3"...
         Flags not matching your comiler and OS may cause compilation to fail.
-        Use "recompile=True", when trying to if the string pattern was
-        previously used.
+        Use "recompile=True", if the string pattern was previously used.
     link_flags : str
-        Libraries to link to pass to the compiler. They can not be used to add
-        function to the string coefficient.
-    extra_import : str
+        Libraries to link to pass to the compiler.
+    extra_import : str, [""]
         Cython code to add at the head of the file. Can be used to add extra
-        import or import c code etc. ex:
-        "from scipy.linalg import det"
-        "from qutip.core.data import CSR"
+        import or cimport code, ex:
+        extra_import="from scipy.linalg import det"
+        extra_import="from qutip.core.data cimport CSR"
+    clean_on_error : bool [True]
+        When writing a cython file that cannot be imported, erase it.
     """
-    try:
-        import cython
-        _use_cython = True
-    except ImportError:
-        _use_cython = False
-
     _link_flags = ""
     _compiler_flags = ""
     if sys.platform == 'win32':
@@ -208,53 +214,44 @@ class CompilationOptions:
     else:
         _compiler_flags = '-w -O3 -funroll-loops'
 
-    options = {
+    default = {
         # use cython for compiling string coefficient
-        "use_cython": _use_cython,
+        "use_cython": has_cython(),
         # try to parse the string so qutip recognise similar string as one
         # compiled coefficient:
         # "a*t", "a * t", "b*t" would all use one compiled version
         "try_parse": True,
         # In compiled Coefficient, are int kept as int?
-        # None indicate to look for list subscription
+        # With `None` int will be kept when list or dict substriction is used
         "accept_int": None,
         # In compiled Coefficient, are float considered as complex?
         "accept_float": True,
         # In compiled Coefficient, is static typing used?
-        # Result is faster, but can cause errors if subscription
-        # (a[1], b["a"]) if used.
-        "no_types": False,
+        # The resulting coefficient is faster,
+        # but it can cause errors if subscription is used.
+        "static_types": True,
         # Skip saved previously compiled files and force compilation
         "recompile": False,
         # Compilation flags and link flags to pass to the compiler
         "compiler_flags": _compiler_flags,
         "link_flags": _link_flags,
         # Extra_header
-        "extra_import": ""
+        "extra_import": "",
+        "clean_on_error": True,
+    }
+    check = {
+        "use_cython": _use_cython
     }
 
 
 # Version number of the Coefficient
 COEFF_VERSION = "1.1"
 
-
-def get_root():
-    """
-    Find the location of the compiled coefficient and ensure they are in
-    the import path.
-    """
-    # qset.install['tmproot'] can be changed by the user without updating
-    # PYTHONPATH. If optionsclass allows for property like options,
-    # the logic could be moved there
-    tmproot = qset.install['tmproot']
-    root = os.path.join(tmproot, 'qutip_coeffs_{}'.format(COEFF_VERSION))
-    if not os.path.exists(root):
-        os.mkdir(root)
-    if not os.access(root, os.W_OK):
-        root = "."
-    if root not in sys.path:
-        sys.path.insert(0, root)
-    return root
+try:
+    root = os.path.join(qset.tmproot, f"qutip_coeffs_{COEFF_VERSION}")
+    qset.coeffroot = root
+except OSError:
+    qset.coeffroot = "."
 
 
 def clean_compiled_coefficient(all=False):
@@ -268,12 +265,13 @@ def clean_compiled_coefficient(all=False):
     """
     import glob
     import shutil
-    tmproot = qset.install['tmproot']
+    tmproot = qset.tmproot
     root = os.path.join(tmproot, 'qutip_coeffs_{}'.format(COEFF_VERSION))
     folders = glob.glob(os.path.join(tmproot, 'qutip_coeffs_') + "*")
     for folder in folders:
         if all or folder != root:
             shutil.rmtree(folder)
+    qset.coeffroot = qset.coeffroot
 
 
 def proj(x):
@@ -332,9 +330,6 @@ def coeff_from_str(base, args, args_ctypes, compile_opt=None):
             exec(base, str_env, env)
         except Exception as err:
             raise Exception("Invalid string coefficient") from err
-    # Do we even compile?
-    if not compile_opt['use_cython']:
-        return StrFunctionCoefficient(base, args)
     # Parsing tries to make the code in common pattern
     parsed, variables, constants, raw = try_parse(base, args,
                                                   args_ctypes, compile_opt)
@@ -343,10 +338,16 @@ def coeff_from_str(base, args, args_ctypes, compile_opt=None):
     file_name = "qtcoeff_" + hash_.hexdigest()[:30]
     # See if it already exist, if not write and cythonize it
     coeff = try_import(file_name, parsed)
-    if coeff is None or compile_opt['recompile']:
+    # Do we compile?
+    if (
+        (not coeff or compile_opt['recompile'])
+        and (compile_opt['use_cython'] and qset.coeff_write_ok)
+    ):
         code = make_cy_code(parsed, variables, constants,
                             raw, compile_opt)
         coeff = compile_code(code, file_name, parsed, compile_opt)
+    if not coeff:
+        return StrFunctionCoefficient(base, args)
     keys = [key for _, key, _ in variables]
     const = [fromstr(val) for _, val, _ in constants]
     return coeff(base, keys, const, args)
@@ -356,7 +357,6 @@ def try_import(file_name, parsed_in):
     """ Import the compiled coefficient if existing and check for
     name collision.
     """
-    get_root()
     try:
         with _ignore_import_warning_for_pyximporter():
             mod = importlib.import_module(file_name)
@@ -369,7 +369,7 @@ def try_import(file_name, parsed_in):
         return mod.StrCoefficient
     else:
         raise ValueError("string hash collision, change the string "
-                         "or clean files in qutip.settings.install['tmproot']")
+                         "or clean files in qutip.settings.coeffroot")
 
 
 def make_cy_code(code, variables, constants, raw, compile_opt):
@@ -476,10 +476,11 @@ cdef class StrCoefficient(Coefficient):
 
 def compile_code(code, file_name, parsed, c_opt):
     pwd = os.getcwd()
-    root = get_root()
+    root = qset.coeffroot
     try:
         os.chdir(root)
-        [os.remove(file) for file in glob.glob(file_name + "*")]
+        for file in glob.glob(file_name + "*"):
+            os.remove(file)
         full_file_name = os.path.join(root, file_name)
         file_ = open(full_file_name + ".pyx", "w")
         file_.writelines(code)
@@ -499,6 +500,9 @@ def compile_code(code, file_name, parsed, c_opt):
                 ext_modules = cythonize(coeff_file, force=c_opt['recompile'])
                 setup(ext_modules=ext_modules)
         except Exception as e:
+            if c_opt['clean_on_error']:
+                for file in glob.glob(file_name + "*"):
+                    os.remove(file)
             raise Exception("Could not compile") from e
         finally:
             sys.argv = oldargs
@@ -690,7 +694,7 @@ def try_parse(code, args, args_ctypes, compile_opt):
         code, variables = use_hinted_type(variables, code, args_ctypes)
         return code, variables, [], True
     ncode, variables, constants = parse(code, args, compile_opt)
-    if compile_opt['no_types']:
+    if not compile_opt['static_types']:
         # Fallback to all object
         variables = [(f, s, "object") for f, s, _ in variables]
         constants = [(f, s, "object") for f, s, _ in constants]

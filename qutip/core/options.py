@@ -1,9 +1,17 @@
-from ..optionsclass import optionsclass
+from ..optionsclass import QutipOptions
+from ..settings import settings
 
 __all__ = ["CoreOptions"]
 
-@optionsclass("core")
-class CoreOptions:
+
+def _coefficient_style(val):
+    if val not in ['auto', 'pythonic', 'dict']:
+        raise ValueError("'function_coefficient_style' must be one of "
+                         "['auto', 'pythonic', 'dict']")
+    return val
+
+
+class CoreOptions(QutipOptions):
     """
     Settings used by the Qobj.  Values can be changed in qutip.settings.core.
 
@@ -46,7 +54,7 @@ class CoreOptions:
           is exactly ``f(t, args)`` then ``dict`` is used. Otherwise
           ``pythonic`` is used.
     """
-    options = {
+    default = {
         # use auto tidyup
         "auto_tidyup": True,
         # use auto tidyup dims on multiplication
@@ -61,4 +69,21 @@ class CoreOptions:
         "auto_tidyup_atol": 1e-14,
         # signature style expected by function coefficients
         "function_coefficient_style": "auto",
+        # debug mode for development
+        "debug": False,
+        # define whether log handler should be
+        #   - default: switch based on IPython detection
+        #   - stream: set up non-propagating StreamHandler
+        #   - basic: call basicConfig
+        #   - null: leave logging to the user
+        "log_handler": 'default',
+        # Allow for a colorblind mode that uses different colormaps
+        # and plotting options by default.
+        "colorblind_safe": False,
     }
+
+    check = {
+        "function_coefficient_style": _coefficient_style
+    }
+
+settings.core = CoreOptions

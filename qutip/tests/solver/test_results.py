@@ -4,7 +4,7 @@ import numpy as np
 
 def test_result_states():
     N = 10
-    res = Result([], qutip.solver.SolverResultsOptions(),
+    res = Result([], qutip.solver.SolverOptions(),
                  _super=False, oper_state=False)
     for i in range(N):
         res.add(i, qutip.basis(N,i))
@@ -17,8 +17,8 @@ def test_result_expect():
     N = 10
     res = Result(
         [qutip.num(N), qutip.qeye(N)],
-        qutip.solver.SolverResultsOptions(store_final_state=False,
-                                          store_states=False),
+        qutip.solver.SolverOptions(store_final_state=False,
+                                   store_states=False),
         _super=False, oper_state=False
     )
     for i in range(N):
@@ -31,8 +31,8 @@ def test_result_expect():
 def test_result_normalize():
     N = 10
     res = Result([qutip.num(N), qutip.qeye(N)],
-                 qutip.solver.SolverResultsOptions(store_states=True,
-                                                   normalize_output=True),
+                 qutip.solver.SolverOptions(store_states=True,
+                                            normalize_output=True),
                  _super=False, oper_state=False)
     for i in range(N):
         res.add(i, qutip.basis(N,i)/2)
@@ -46,8 +46,8 @@ def test_multitraj_results():
     N = 10
     e_ops = [qutip.num(N), qutip.qeye(N)]
     m_res = MultiTrajResult(3)
-    opt = qutip.solver.SolverResultsOptions(store_states=True,
-                                            normalize_output=True)
+    opt = qutip.solver.SolverOptions(store_states=True,
+                                     normalize_output=True)
     for _ in range(5):
         res = Result(e_ops, opt, _super=False, oper_state=False)
         res.collapse = []
@@ -72,8 +72,8 @@ def test_multitrajavg_results():
     N = 10
     e_ops = [qutip.num(N), qutip.qeye(N)]
     m_res = MultiTrajResultAveraged(3)
-    opt = qutip.solver.SolverResultsOptions(store_final_state=True,
-                                            normalize_output=True)
+    opt = qutip.solver.SolverOptions(store_final_state=True,
+                                     normalize_output=True)
     for _ in range(5):
         res = Result(e_ops, opt, _super=False, oper_state=False)
         res.collapse = []

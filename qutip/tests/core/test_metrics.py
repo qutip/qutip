@@ -72,7 +72,7 @@ except:
 
 
 # Disable dnorm tests if MKL is present (see Issue #484).
-if settings.install['has_mkl']:
+if settings.has_mkl:
     dnorm_test = unittest.skipIf(True,
                                  "Known failure; CVXPY/MKL incompatibility.")
 else:

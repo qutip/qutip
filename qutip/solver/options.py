@@ -1,12 +1,10 @@
-__all__ = ['SolverOptions',
-           'SolverResultsOptions', 'SolverOdeOptions',
-           'McOptions']
+__all__ = ['SolverOptions', 'SolverOdeOptions']
 
-from ..optionsclass import optionsclass
+from ..optionsclass import QutipOptions
 import multiprocessing
 
-@optionsclass("solver")
-class SolverOptions:
+
+class SolverOptions(QutipOptions):
     """
     Class of options for evolution solvers such as :func:`qutip.mesolve` and
     :func:`qutip.mcsolve`. Options can be specified either as arguments to the
@@ -27,6 +25,50 @@ class SolverOptions:
 
     Options
     -------
+    store_final_state : bool {False, True}
+        Whether or not to store the final state of the evolution in the
+        result class.
+
+    store_states : bool {False, True, None}
+        Whether or not to store the state vectors or density matrices.
+        On `None` the states will be saved if no expectation operators are
+        given.
+
+    normalize_output : str {"", "ket", "all"}
+        normalize output state to hide ODE numerical errors.
+        "all" will normalize both ket and dm.
+        On "ket", only 'ket' output are normalized.
+        Leave empty for no normalization.
+
+    norm_tol : float {1e-4}
+        Tolerance used when finding wavefunction norm in mcsolve.
+
+    norm_t_tol : float {1e-6}
+        Tolerance used when finding wavefunction time in mcsolve.
+
+    norm_steps : int {5}
+        Max. number of steps used to find wavefunction norm to within norm_tol
+        in mcsolve.
+
+    keep_runs_results: bool
+        Keep all trajectories results or save only the average.
+
+    map : str  {'parallel', 'serial', 'loky'}
+        How to run the trajectories.
+        'parallel' use python's multiprocessing.
+        'loky' use the pyhon module of the same name (not installed with qutip).
+
+    map_options: dict
+        keys:
+            'num_cpus': number of cpus to use.
+            'timeout': maximum time for all trajectories. (sec)
+            'job_timeout': maximum time per trajectory. (sec)
+        Only finished trajectories will be returned when timeout is reached.
+
+    mc_corr_eps : float {1e-10}
+        Arbitrarily small value for eliminating any divide-by-zero errors in
+        correlation calculations when using mcsolve.
+
     progress_bar : str {'text', 'enhanced', 'tqdm', ''}
         How to present the solver progress.
         True will result in 'text'.
@@ -37,17 +79,66 @@ class SolverOptions:
     progress_kwargs : dict
         kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
     """
-    options = {
+    default = {
         # (turned off for batch unitary propagator mode)
         "progress_bar": "text",
         # Normalize output of solvers
         # (turned off for batch unitary propagator mode)
         "progress_kwargs": {"chunk_size":10},
+        # store final state?
+        "store_final_state": False,
+        # store states even if expectation operators are given?
+        "store_states": None,
+        # Normalize output of solvers
+        # (turned off for batch unitary propagator mode)
+        "normalize_output": "ket",
+        # Tolerance for wavefunction norm (mcsolve only)
+        "norm_tol": 1e-4,
+        # Tolerance for collapse time precision (mcsolve only)
+        "norm_t_tol": 1e-6,
+        # Max. number of steps taken to find wavefunction norm to within
+        # norm_tol (mcsolve only)
+        "norm_steps": 5,
+
+        "map": "parallel_map",
+
+        "keep_runs_results": False,
+
+        "mc_corr_eps": 1e-10,
+
+        'num_cpus': multiprocessing.cpu_count(),
+
+        'job_timeout': 1e8,
+
+        'method': 'adams',
     }
+    name = "Solver"
+
+    def __init__(self, base=None, *, method=None, _strick=True, **options):
+        if isinstance(method, SolverOdeOptions):
+            self.ode = method
+        else:
+            method = method or self.default['method']
+            self.ode = SolverOdeOptions()
+
+        if isinstance(base, dict):
+            options.update(base)
+
+        elif isinstance(base, QutipOptions):
+            options.update(base.options)
+
+        solver_keys = set(options) & set(self.default)
+        ode_keys = set(options) & set(self.ode.default)
+        leftoever = set(options) - solver_keys - ode_keys
+        if _strick and leftoever:
+            raise KeyError("Unknown option(s): " +
+                           f"{set(options) - set(self.default)}")
+        self.ode._from_dict(options)
+        self.options = self.default.copy()
+        self._from_dict(options)
 
 
-@optionsclass("ode", SolverOptions)
-class SolverOdeOptions:
+class SolverOdeOptions(QutipOptions):
     """
     Class of options for the ODE integrator of solvers such as
     :func:`qutip.mesolve` and :func:`qutip.mcsolve`. Options can be
@@ -108,7 +199,7 @@ class SolverOdeOptions:
         Normalize the state before passing it to coefficient when using
         feedback.
     """
-    options = {
+    default = {
         # Integration method (default = 'adams', for stiff 'bdf')
         "method": 'adams',
 
@@ -138,126 +229,3 @@ class SolverOdeOptions:
         "feedback_normalize": True,
     }
     extra_options = set()
-
-
-@optionsclass("results", SolverOptions)
-class SolverResultsOptions:
-    """
-    Class of options for Results of evolution solvers such as
-    :func:`qutip.mesolve` and :func:`qutip.mcsolve`.
-    Options can be specified when constructing SolverOptions
-
-        opts = SolverOptions(store_final_state=True, ...)
-
-    or by changing the class attributes after creation::
-
-        opts = SolverOptions()
-        opts.results["store_final_state"] = True
-
-    Returns options class to be used as options in evolution solvers.
-
-    The default can be changed by::
-
-        qutip.settings.solver.result['store_final_state'] = True
-
-    Options
-    -------
-    store_final_state : bool {False, True}
-        Whether or not to store the final state of the evolution in the
-        result class.
-
-    store_states : bool {False, True, None}
-        Whether or not to store the state vectors or density matrices.
-        On `None` the states will be saved if no expectation operators are
-        given.
-
-    normalize_output : str {"", "ket", "all"}
-        normalize output state to hide ODE numerical errors.
-        "all" will normalize both ket and dm.
-        On "ket", only 'ket' output are normalized.
-        Leave empty for no normalization.
-    """
-    options = {
-        # store final state?
-        "store_final_state": False,
-        # store states even if expectation operators are given?
-        "store_states": None,
-        # Normalize output of solvers
-        # (turned off for batch unitary propagator mode)
-        "normalize_output": "ket",
-    }
-
-
-@optionsclass("mcsolve", SolverOptions)
-class McOptions:
-    """
-    Class of options specific for :func:`qutip.mcsolve`.
-    Options can be specified either as arguments to the constructor of
-    SolverOptions::
-
-        opts = SolverOptions(norm_tol=1e-3, ...)
-
-    or by changing the class attributes after creation::
-
-        opts = SolverOptions()
-        opts.mcsolve['norm_tol'] = 1e-3
-
-    Returns options class to be used as options in evolution solvers.
-
-    The default can be changed by::
-
-        qutip.settings.options.mcsolve['norm_tol'] = 1e-3
-
-    Options
-    -------
-
-    norm_tol : float {1e-4}
-        Tolerance used when finding wavefunction norm in mcsolve.
-
-    norm_t_tol : float {1e-6}
-        Tolerance used when finding wavefunction time in mcsolve.
-
-    norm_steps : int {5}
-        Max. number of steps used to find wavefunction norm to within norm_tol
-        in mcsolve.
-
-    keep_runs_results: bool
-        Keep all trajectories results or save only the average.
-
-    map : str  {'parallel', 'serial', 'loky'}
-        How to run the trajectories.
-        'parallel' use python's multiprocessing.
-        'loky' use the pyhon module of the same name (not installed with qutip).
-
-    map_options: dict
-        keys:
-            'num_cpus': number of cpus to use.
-            'timeout': maximum time for all trajectories. (sec)
-            'job_timeout': maximum time per trajectory. (sec)
-        Only finished trajectories will be returned when timeout is reached.
-
-    mc_corr_eps : float {1e-10}
-        Arbitrarily small value for eliminating any divide-by-zero errors in
-        correlation calculations when using mcsolve.
-    """
-    options = {
-        # Tolerance for wavefunction norm (mcsolve only)
-        "norm_tol": 1e-4,
-        # Tolerance for collapse time precision (mcsolve only)
-        "norm_t_tol": 1e-6,
-        # Max. number of steps taken to find wavefunction norm to within
-        # norm_tol (mcsolve only)
-        "norm_steps": 5,
-
-        "map": "parallel_map",
-
-        "keep_runs_results": False,
-
-        "mc_corr_eps": 1e-10,
-
-        "map_options": {
-            'num_cpus': multiprocessing.cpu_count(),
-            'timeout':1e8,
-            'job_timeout':1e8
-        },
-    }

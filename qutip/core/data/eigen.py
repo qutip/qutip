@@ -12,7 +12,7 @@ __all__ = [
 ]
 
 
-if settings.install["eigh_unsafe"]:
+if settings.eigh_unsafe:
     def _orthogonalize(vec, other):
         cross = np.sum(np.conj(other) * vec)
         vec -= cross * other

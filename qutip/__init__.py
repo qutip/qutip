@@ -38,35 +38,12 @@ import qutip.version
 from qutip.version import version as __version__
 
 # -----------------------------------------------------------------------------
-# Check if we're in IPython.
-try:
-    __IPYTHON__
-    qutip.settings.ipython = True
-except NameError:
-    qutip.settings.ipython = False
-
-
-# -----------------------------------------------------------------------------
 # Look to see if we are running with OPENMP
 #
 # Set environ variable to determin if running in parallel mode
 # (i.e. in parfor or parallel_map)
 os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
 
-try:
-    from qutip.cy.openmp.parfuncs import spmv_csr_openmp
-except ImportError:
-    qutip.settings.has_openmp = False
-else:
-    qutip.settings.has_openmp = True
-    # See Pull #652 for why this is here.
-    os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
-
-import platform
-from .utilities import _blas_info
-qutip.settings.eigh_unsafe = (_blas_info() == "OPENBLAS" and
-                              platform.system() == 'Darwin')
-del platform
 # -----------------------------------------------------------------------------
 # setup the cython environment
 #
@@ -88,12 +65,6 @@ else:
     del _pyxbuilder, _Cython, _version2int
 
 
-
-# Find MKL library if it exists
-from .installsettings import *
-from . import _mkl
-
-
 # -----------------------------------------------------------------------------
 # Check that import modules are compatible with requested configuration
 #
@@ -105,7 +76,6 @@ except ImportError:
     warnings.warn("matplotlib not found: Graphics will not work.")
 else:
     del matplotlib
-
 
 
 # -----------------------------------------------------------------------------
@@ -151,9 +121,9 @@ from .cite import *
 # -----------------------------------------------------------------------------
 # Load user configuration if present: override defaults.
 #
-from . import configrc
-if configrc.has_qutip_rc():
-    settings.load()
+##from . import configrc
+##if configrc.has_qutip_rc():
+##    settings.load()
 
 # -----------------------------------------------------------------------------
 # Clean name space

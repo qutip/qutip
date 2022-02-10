@@ -39,11 +39,11 @@ import unittest
 from qutip import *
 from qutip.core import data as _data
 from qutip.settings import settings as qset
-if qset.install['has_mkl']:
+if qset.has_mkl:
     from qutip._mkl.spsolve import (mkl_splu, mkl_spsolve)
 
 
-@unittest.skipIf(qset.install['has_mkl'] == False, 'MKL extensions not found.')
+@unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
 def test_mkl_spsolve1():
     """
     MKL spsolve : Single RHS vector (Real)
@@ -59,7 +59,7 @@ def test_mkl_spsolve1():
     assert_array_almost_equal(x, x2)
 
 
-@unittest.skipIf(qset.install['has_mkl'] == False, 'MKL extensions not found.')
+@unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
 def test_mklspsolve2():
     """
     MKL spsolve : Single RHS vector (Complex)
@@ -71,7 +71,7 @@ def test_mklspsolve2():
     assert_array_almost_equal(x, y)
 
 
-@unittest.skipIf(qset.install['has_mkl'] == False, 'MKL extensions not found.')
+@unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
 def test_mkl_spsolve3():
     """
     MKL spsolve : Multi RHS vector (Real)
@@ -91,7 +91,7 @@ def test_mkl_spsolve3():
     assert_array_almost_equal(X, sX)
 
 
-@unittest.skipIf(qset.install['has_mkl'] == False, 'MKL extensions not found.')
+@unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
 def test_mkl_spsolve4():
     """
     MKL spsolve : Multi RHS vector (Complex)
@@ -111,7 +111,7 @@ def test_mkl_spsolve4():
     assert_array_almost_equal(X, sX)
 
 
-@unittest.skipIf(qset.install['has_mkl'] == False, 'MKL extensions not found.')
+@unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
 def test_mkl_spsolve5():
     """
     MKL splu : Repeated RHS solve (Real)
@@ -139,7 +139,7 @@ def test_mkl_spsolve5():
     assert_array_almost_equal(X, sX)
 
 
-@unittest.skipIf(qset.install['has_mkl'] == False, 'MKL extensions not found.')
+@unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
 def test_mkl_spsolve6():
     """
     MKL splu : Repeated RHS solve (Complex)
@@ -167,7 +167,7 @@ def test_mkl_spsolve6():
     assert_array_almost_equal(X, sX)
 
 
-@unittest.skipIf(qset.install['has_mkl'] == False, 'MKL extensions not found.')
+@unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
 def test_mkl_spsolve7():
     """
     MKL spsolve : Solution shape same as input RHS vec
@@ -186,7 +186,7 @@ def test_mkl_spsolve7():
     assert b.shape == out.shape
 
 
-@unittest.skipIf(qset.install['has_mkl'] == False, 'MKL extensions not found.')
+@unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
 def test_mkl_spsolve8():
     """
     MKL spsolve : Sparse RHS matrix
@@ -205,7 +205,7 @@ def test_mkl_spsolve8():
     assert_array_almost_equal(x.toarray(), ans)
 
 
-@unittest.skipIf(qset.install['has_mkl'] == False, 'MKL extensions not found.')
+@unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
 def test_mkl_spsolve9():
     """
     MKL spsolve : Hermitian (complex) solver
@@ -217,7 +217,7 @@ def test_mkl_spsolve9():
     assert_array_almost_equal(x, y)
 
 
-@unittest.skipIf(qset.install['has_mkl'] == False, 'MKL extensions not found.')
+@unittest.skipIf(qset.has_mkl == False, 'MKL extensions not found.')
 def test_mkl_spsolve10():
     """
     MKL spsolve : Hermitian (real) solver

@@ -34,7 +34,7 @@ import numpy as np
 from ctypes import POINTER, c_int, c_char, byref
 from numpy import ctypeslib
 from qutip.settings import settings as qset
-zcsrgemv = qset.install['mkl_lib'].mkl_cspblas_zcsrgemv
+zcsrgemv = qset.mkl_lib.mkl_cspblas_zcsrgemv
 
 def mkl_spmv(A, x):
      """

@@ -145,7 +145,7 @@ class Solver:
         _time_start = time()
         _integrator.set_state(tlist[0], _data0)
         self.stats["preparation time"] += time() - _time_start
-        results = Result(e_ops, self.options.results,
+        results = Result(e_ops, self.options,
                          self.rhs.issuper, _data0.shape[1]!=1)
         results.add(tlist[0], state0)
 

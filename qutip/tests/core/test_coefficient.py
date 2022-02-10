@@ -264,17 +264,24 @@ def test_CoeffReuse():
 def test_CoeffOptions():
     from itertools import combinations
     base = "1 + 1. + 1j"
-    options = []
-    options.append(CompilationOptions(accept_int=True))
-    options.append(CompilationOptions(accept_float=False))
-    options.append(CompilationOptions(no_types=True))
-    options.append(CompilationOptions(use_cython=False))
-    options.append(CompilationOptions(try_parse=False))
+    with CompilationOptions(
+        accept_int=None,
+        accept_float=True,
+        static_types=False,
+        use_cython=True,
+        try_parse=True,
+        clean_on_error=False
+    ):
+        options = []
+        options.append(CompilationOptions(accept_int=True))
+        options.append(CompilationOptions(accept_float=False))
+        options.append(CompilationOptions(static_types=True))
+        options.append(CompilationOptions(try_parse=False))
     coeffs = [coefficient(base, compile_opt=opt) for opt in options]
     for coeff in coeffs:
         assert coeff(0) == 2+1j
-    for coeff1, coeff2 in combinations(coeffs, 2):
-        assert not isinstance(coeff1, coeff2.__class__)
+    for coeffs1, coeffs2 in combinations(coeffs, 2):
+        assert not isinstance(coeffs1, coeffs2.__class__)
 
 
 @pytest.mark.requires_cython
@@ -314,11 +321,18 @@ def test_manual_typing():
 
 @pytest.mark.requires_cython
 def test_advance_use():
-    opt = CompilationOptions(recompile=True, extra_import="""
+    opt = CompilationOptions(
+        recompile=True,
+        clean_on_error=False,
+        extra_import="""
 from qutip import basis
 from qutip.core.data cimport CSR
 from qutip.core.data.expect cimport expect_csr
 """)
+    print(opt)
+    print(qutip.settings.tmproot)
+    print(qutip.settings.coeffroot)
+    print(qutip.settings.coeff_write_ok)
     csr = qutip.num(3).data
     coeff = coefficient("expect_csr(op, op)",
                         args={"op": csr},

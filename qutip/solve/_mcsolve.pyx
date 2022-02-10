@@ -88,9 +88,9 @@ cdef class CyMcOde:
     def __init__(self, ss, opt):
         self.c_ops = ss.td_c_ops
         self.n_ops = ss.td_n_ops
-        self.norm_steps = opt.mcsolve['norm_steps']
-        self.norm_t_tol = opt.mcsolve['norm_t_tol']
-        self.norm_tol = opt.mcsolve['norm_tol']
+        self.norm_steps = opt['norm_steps']
+        self.norm_t_tol = opt['norm_t_tol']
+        self.norm_tol = opt['norm_tol']
         self.steady_state = opt['steady_state_average']
         self.store_states = opt['store_states'] or opt['average_states']
         self.collapses = []
@@ -251,7 +251,7 @@ cdef class CyMcOde:
         if ii > self.norm_steps:
             raise Exception("Norm tolerance not reached. " +
                             "Increase accuracy of ODE solver or " +
-                            "SolverOptions.mcsolve['norm_steps'].")
+                            "SolverOptions['norm_steps'].")
 
     @cython.cdivision(True)
     @cython.boundscheck(False)
@@ -300,9 +300,9 @@ cdef class CyMcOdeDiag(CyMcOde):
         self.c_ops = ss.td_c_ops
         self.n_ops = ss.td_n_ops
         self.diag = ss.H_diag
-        self.norm_steps = opt.mcsolve['norm_steps']
-        self.norm_t_tol = opt.mcsolve['norm_t_tol']
-        self.norm_tol = opt.mcsolve['norm_tol']
+        self.norm_steps = opt['norm_steps']
+        self.norm_t_tol = opt['norm_t_tol']
+        self.norm_tol = opt['norm_tol']
         self.steady_state = opt['steady_state_average']
         self.store_states = opt['store_states'] or opt['average_states']
         self.collapses = []
@@ -463,4 +463,4 @@ cdef class CyMcOdeDiag(CyMcOde):
         if ii > self.norm_steps:
             raise Exception("Norm tolerance not reached. " +
                             "Increase accuracy of ODE solver or " +
-                            "SolverOptions.mcsolve['norm_steps'].")
+                            "SolverOptions['norm_steps'].")

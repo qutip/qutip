@@ -41,11 +41,11 @@ import time
 from qutip.settings import settings as qset
 
 # Load solver functions from mkl_lib
-pardiso = qset.install['mkl_lib'].pardiso
-pardiso_delete = qset.install['mkl_lib'].pardiso_handle_delete
+pardiso = qset.mkl_lib.pardiso
+pardiso_delete = qset.mkl_lib.pardiso_handle_delete
 if sys.maxsize > 2**32: #Running 64-bit
-    pardiso_64 = qset.install['mkl_lib'].pardiso_64
-    pardiso_delete_64 = qset.install['mkl_lib'].pardiso_handle_delete_64
+    pardiso_64 = qset.mkl_lib.pardiso_64
+    pardiso_delete_64 = qset.mkl_lib.pardiso_handle_delete_64
 
 
 def _pardiso_parameters(hermitian, has_perm,
