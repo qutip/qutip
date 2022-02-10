@@ -86,6 +86,7 @@ def test_exact_solution_for_simple_methods(method, kwargs):
         [0.e+00-0.j, 1.e+00+0.j],
     ])
     np.testing.assert_allclose(expected_rho_ss, rho_ss, atol=1e-16)
+    assert rho_ss.tr() == pytest.approx(1, abs=1e-14)
 
 
 @pytest.mark.parametrize(['method', 'kwargs'], [
@@ -151,6 +152,7 @@ def test_driven_cavity(method, kwargs):
     rho_ss_analytic = qutip.coherent_dm(N, -1.0j * (Omega)/(Gamma/2))
 
     np.testing.assert_allclose(rho_ss, rho_ss_analytic, atol=1e-4)
+    assert rho_ss.tr() == pytest.approx(1, abs=1e-12)
 
 
 @pytest.mark.parametrize(['method', 'kwargs'], [
@@ -169,6 +171,7 @@ def test_pseudo_inverse(method, kwargs):
     Lpinv = qutip.pseudo_inverse(L, rho, method=method, **kwargs)
     np.testing.assert_allclose((L * Lpinv * L).full(), L.full())
     np.testing.assert_allclose((Lpinv * L * Lpinv).full(), Lpinv.full())
+    assert rho.tr() == pytest.approx(1, abs=1e-15)
 
 
 @pytest.mark.parametrize('sparse', [True, False])
@@ -210,6 +213,7 @@ def test_steadystate_floquet(sparse):
     expect_ss = qutip.expect(a_d * a, rho_ss)
 
     np.testing.assert_allclose(expect_me[-20:], expect_ss, atol=1e-3)
+    assert rho_ss.tr() == pytest.approx(1, abs=1e-15)
 
 
 def test_bad_options_steadystate():
