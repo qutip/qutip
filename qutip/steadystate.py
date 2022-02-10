@@ -270,7 +270,8 @@ def steadystate(A, c_op_list=[], method='direct', solver=None, **kwargs):
 
     # Set weight parameter to avg abs val in L if not set explicitly
     if 'weight' not in kwargs.keys():
-        ss_args['weight'] = np.mean(np.abs(A.data.data.max()))
+        # set the weight to the mean of the non-zero absoluate values in A:
+        ss_args['weight'] = np.mean(np.abs(A.data.data))
         ss_args['info']['weight'] = ss_args['weight']
 
     if ss_args['method'] == 'direct':
@@ -344,7 +345,12 @@ def _steadystate_LU_liouvillian(L, ss_args, has_mkl=0):
         if settings.debug:
             logger.debug('Calculating Weighted Bipartite Matching ordering...')
         _wbm_start = time.time()
-        perm = weighted_bipartite_matching(L)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", "qutip graph functions are deprecated",
+                DeprecationWarning,
+            )
+            perm = weighted_bipartite_matching(L)
         _wbm_end = time.time()
         L = sp_permute(L, perm, [], form)
         ss_args['info']['perm'].append('wbm')
@@ -481,7 +487,7 @@ def _steadystate_direct_dense(L, ss_args):
     b[0] = ss_args['weight']
 
     L = L.full()
-    L[0, :] = np.diag(ss_args['weight']*np.ones(n)).reshape((1, n ** 2))
+    L[0, :] += np.diag(ss_args['weight']*np.ones(n)).reshape(n ** 2)
     _dense_start = time.time()
     v = np.linalg.solve(L, b)
     _dense_end = time.time()
@@ -555,8 +561,7 @@ def _iterative_precondition(A, n, ss_args):
                   fill_factor=ss_args['fill_factor'],
                   options=dict(ILU_MILU=ss_args['ILU_MILU']))
 
-        P_x = lambda x: P.solve(x)
-        M = LinearOperator((n ** 2, n ** 2), matvec=P_x)
+        M = LinearOperator((n ** 2, n ** 2), matvec=P.solve)
         _precond_end = time.time()
         ss_args['info']['permc_spec'] = ss_args['permc_spec']
         ss_args['info']['drop_tol'] = ss_args['drop_tol']
@@ -583,7 +588,7 @@ def _iterative_precondition(A, n, ss_args):
                 logger.debug('Fill factor: %f' % ((L_nnz+U_nnz)/A.nnz))
                 logger.debug('iLU condest: %f' % condest)
 
-    except:
+    except Exception:
         raise Exception("Failed to build preconditioner. Try increasing " +
                         "fill_factor and/or drop_tol.")
 
@@ -728,7 +733,6 @@ def _steadystate_power_liouvillian(L, ss_args, has_mkl=0):
     else:
         L = L.data.tocsc() - (1e-15) * sp.eye(n, n, format='csc')
         kind = 'csc'
-    orig_nnz = L.nnz
     if settings.debug:
         old_band = sp_bandwidth(L)[0]
         old_pro = sp_profile(L)[0]
@@ -739,7 +743,12 @@ def _steadystate_power_liouvillian(L, ss_args, has_mkl=0):
         if settings.debug:
             logger.debug('Calculating Weighted Bipartite Matching ordering...')
         _wbm_start = time.time()
-        perm = weighted_bipartite_matching(L)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", "qutip graph functions are deprecated",
+                DeprecationWarning,
+            )
+            perm = weighted_bipartite_matching(L)
         _wbm_end = time.time()
         L = sp_permute(L, perm, [], kind)
         ss_args['info']['perm'].append('wbm')
@@ -1138,7 +1147,7 @@ def _pseudo_inverse_dense(L, rhoss, w=None, **pseudo_args):
     if pseudo_args['method'] == 'direct':
         try:
             LIQ = np.linalg.solve(L.full(), Q)
-        except:
+        except Exception:
             LIQ = np.linalg.lstsq(L.full(), Q)[0]
 
         R = np.dot(Q, LIQ)
@@ -1160,8 +1169,9 @@ def _pseudo_inverse_dense(L, rhoss, w=None, **pseudo_args):
                     dims=L.dims)
 
     else:
-        raise ValueError("Unsupported method '%s'. Use 'direct' or 'numpy'" %
-                         method)
+        raise ValueError(
+            "Unsupported method '%s'. Use 'direct', 'numpy', 'scipy' or"
+            " 'scipy2'" % pseudo_args['method'])
 
 
 def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
