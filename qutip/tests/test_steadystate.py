@@ -65,6 +65,31 @@ def test_qubit(method, kwargs):
 
 @pytest.mark.parametrize(['method', 'kwargs'], [
     pytest.param('direct', {}, id="direct"),
+    pytest.param('direct', {'solver': 'mkl'}, id="direct_mkl",
+                 marks=pytest.mark.skipif(not qutip.settings.has_mkl,
+                                          reason='MKL extensions not found.')),
+    pytest.param('direct', {'sparse': False}, id="direct_dense"),
+    pytest.param('direct', {'use_rcm': True}, id="direct_rcm"),
+    pytest.param('direct', {'use_wbm': True}, id="direct_wbm"),
+    pytest.param('eigen', {}, id="eigen"),
+    pytest.param('eigen', {'use_rcm': True},  id="eigen_rcm"),
+    pytest.param('svd', {}, id="svd"),
+])
+def test_exact_solution_for_simple_methods(method, kwargs):
+    # this tests that simple methods correctly determine the steadystate
+    # with high accuracy for a small Liouvillian requiring correct weighting.
+    H = qutip.identity(2)
+    c_ops = [qutip.sigmam(), 1e-8 * qutip.sigmap()]
+    rho_ss = qutip.steadystate(H, c_ops, method=method, **kwargs)
+    expected_rho_ss = np.array([
+        [1.e-16+0.j, 0.e+00-0.j],
+        [0.e+00-0.j, 1.e+00+0.j],
+    ])
+    np.testing.assert_allclose(expected_rho_ss, rho_ss, atol=1e-16)
+
+
+@pytest.mark.parametrize(['method', 'kwargs'], [
+    pytest.param('direct', {}, id="direct"),
     pytest.param('direct', {'sparse':False}, id="direct_dense"),
     pytest.param('eigen', {}, id="eigen"),
     pytest.param('power', {'mtol':1e-5}, id="power"),
