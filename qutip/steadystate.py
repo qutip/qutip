@@ -482,7 +482,7 @@ def _steadystate_direct_dense(L, ss_args):
     b[0] = ss_args['weight']
 
     L = L.full()
-    L[0, :] = np.diag(ss_args['weight']*np.ones(n)).reshape((1, n ** 2))
+    L[0, :] += np.diag(ss_args['weight']*np.ones(n)).reshape(n ** 2)
     _dense_start = time.time()
     v = np.linalg.solve(L, b)
     _dense_end = time.time()
