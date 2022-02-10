@@ -193,11 +193,11 @@ def test_bad_options_steadystate():
     H = (a.dag() + a)
     c_ops = [a]
     with pytest.raises(ValueError):
-        rho_ss = qutip.steadystate(H, c_ops, method='not a method')
+        qutip.steadystate(H, c_ops, method='not a method')
     with pytest.raises(TypeError):
-        rho_ss = qutip.steadystate(H, c_ops, method='direct', bad_opt=True)
+        qutip.steadystate(H, c_ops, method='direct', bad_opt=True)
     with pytest.raises(ValueError):
-        rho_ss = qutip.steadystate(H, c_ops, method='direct', solver='Error')
+        qutip.steadystate(H, c_ops, method='direct', solver='Error')
 
 
 def test_bad_options_pseudo_inverse():
@@ -228,8 +228,7 @@ def test_bad_system():
     N = 4
     a = qutip.destroy(N)
     H = (a.dag() + a)
-    c_ops = [a]
-    with pytest.raises(TypeError) as err:
-        rho_ss = qutip.steadystate(H, [], method='direct')
-    with pytest.raises(TypeError) as err:
-        rho_ss = qutip.steadystate(qutip.basis(N, N-1), [], method='direct')
+    with pytest.raises(TypeError):
+        qutip.steadystate(H, [], method='direct')
+    with pytest.raises(TypeError):
+        qutip.steadystate(qutip.basis(N, N-1), [], method='direct')
