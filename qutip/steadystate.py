@@ -555,8 +555,7 @@ def _iterative_precondition(A, n, ss_args):
                   fill_factor=ss_args['fill_factor'],
                   options=dict(ILU_MILU=ss_args['ILU_MILU']))
 
-        P_x = lambda x: P.solve(x)
-        M = LinearOperator((n ** 2, n ** 2), matvec=P_x)
+        M = LinearOperator((n ** 2, n ** 2), matvec=P.solve)
         _precond_end = time.time()
         ss_args['info']['permc_spec'] = ss_args['permc_spec']
         ss_args['info']['drop_tol'] = ss_args['drop_tol']
@@ -583,7 +582,7 @@ def _iterative_precondition(A, n, ss_args):
                 logger.debug('Fill factor: %f' % ((L_nnz+U_nnz)/A.nnz))
                 logger.debug('iLU condest: %f' % condest)
 
-    except:
+    except Exception:
         raise Exception("Failed to build preconditioner. Try increasing " +
                         "fill_factor and/or drop_tol.")
 
@@ -728,7 +727,6 @@ def _steadystate_power_liouvillian(L, ss_args, has_mkl=0):
     else:
         L = L.data.tocsc() - (1e-15) * sp.eye(n, n, format='csc')
         kind = 'csc'
-    orig_nnz = L.nnz
     if settings.debug:
         old_band = sp_bandwidth(L)[0]
         old_pro = sp_profile(L)[0]
@@ -1138,7 +1136,7 @@ def _pseudo_inverse_dense(L, rhoss, w=None, **pseudo_args):
     if pseudo_args['method'] == 'direct':
         try:
             LIQ = np.linalg.solve(L.full(), Q)
-        except:
+        except Exception:
             LIQ = np.linalg.lstsq(L.full(), Q)[0]
 
         R = np.dot(Q, LIQ)
@@ -1160,8 +1158,9 @@ def _pseudo_inverse_dense(L, rhoss, w=None, **pseudo_args):
                     dims=L.dims)
 
     else:
-        raise ValueError("Unsupported method '%s'. Use 'direct' or 'numpy'" %
-                         method)
+        raise ValueError(
+            "Unsupported method '%s'. Use 'direct', 'numpy', 'scipy' or"
+            " 'scipy2'" % pseudo_args['method'])
 
 
 def _pseudo_inverse_sparse(L, rhoss, w=None, **pseudo_args):
