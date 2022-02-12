@@ -10,6 +10,7 @@ from qutip import num, destroy, create
 from qutip.interpolate import Cubic_Spline
 from qutip import sesolve
 from qutip.solver import Options
+import pytest
 
 os.environ['QUTIP_GRAPHICS'] = "NO"
 
@@ -344,5 +345,10 @@ class TestSESolve:
         assert_(max(abs(res.expect[0][5:])) < tol,
                 msg="evolution with feedback not proceding as expected")
 
-if __name__ == "__main__":
-    run_module_suite()
+
+def test_sesolve_bad_e_ops():
+    H = sigmaz()
+    psi0 = basis(2, 0)
+    tlist = np.linspace(0, 20, 200)
+    with pytest.raises(TypeError) as exc:
+        sesolve(H, psi0, tlist=tlist, e_ops=[qeye(3)])

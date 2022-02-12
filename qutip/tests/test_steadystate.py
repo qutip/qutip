@@ -65,6 +65,32 @@ def test_qubit(method, kwargs):
 
 @pytest.mark.parametrize(['method', 'kwargs'], [
     pytest.param('direct', {}, id="direct"),
+    pytest.param('direct', {'solver': 'mkl'}, id="direct_mkl",
+                 marks=pytest.mark.skipif(not qutip.settings.has_mkl,
+                                          reason='MKL extensions not found.')),
+    pytest.param('direct', {'sparse': False}, id="direct_dense"),
+    pytest.param('direct', {'use_rcm': True}, id="direct_rcm"),
+    pytest.param('direct', {'use_wbm': True}, id="direct_wbm"),
+    pytest.param('eigen', {}, id="eigen"),
+    pytest.param('eigen', {'use_rcm': True},  id="eigen_rcm"),
+    pytest.param('svd', {}, id="svd"),
+])
+def test_exact_solution_for_simple_methods(method, kwargs):
+    # this tests that simple methods correctly determine the steadystate
+    # with high accuracy for a small Liouvillian requiring correct weighting.
+    H = qutip.identity(2)
+    c_ops = [qutip.sigmam(), 1e-8 * qutip.sigmap()]
+    rho_ss = qutip.steadystate(H, c_ops, method=method, **kwargs)
+    expected_rho_ss = np.array([
+        [1.e-16+0.j, 0.e+00-0.j],
+        [0.e+00-0.j, 1.e+00+0.j],
+    ])
+    np.testing.assert_allclose(expected_rho_ss, rho_ss, atol=1e-16)
+    assert rho_ss.tr() == pytest.approx(1, abs=1e-14)
+
+
+@pytest.mark.parametrize(['method', 'kwargs'], [
+    pytest.param('direct', {}, id="direct"),
     pytest.param('direct', {'sparse':False}, id="direct_dense"),
     pytest.param('eigen', {}, id="eigen"),
     pytest.param('power', {'mtol':1e-5}, id="power"),
@@ -126,6 +152,7 @@ def test_driven_cavity(method, kwargs):
     rho_ss_analytic = qutip.coherent_dm(N, -1.0j * (Omega)/(Gamma/2))
 
     np.testing.assert_allclose(rho_ss, rho_ss_analytic, atol=1e-4)
+    assert rho_ss.tr() == pytest.approx(1, abs=1e-12)
 
 
 @pytest.mark.parametrize(['method', 'kwargs'], [
@@ -144,6 +171,7 @@ def test_pseudo_inverse(method, kwargs):
     Lpinv = qutip.pseudo_inverse(L, rho, method=method, **kwargs)
     np.testing.assert_allclose((L * Lpinv * L).full(), L.full())
     np.testing.assert_allclose((Lpinv * L * Lpinv).full(), Lpinv.full())
+    assert rho.tr() == pytest.approx(1, abs=1e-15)
 
 
 @pytest.mark.parametrize('sparse', [True, False])
@@ -185,6 +213,7 @@ def test_steadystate_floquet(sparse):
     expect_ss = qutip.expect(a_d * a, rho_ss)
 
     np.testing.assert_allclose(expect_me[-20:], expect_ss, atol=1e-3)
+    assert rho_ss.tr() == pytest.approx(1, abs=1e-15)
 
 
 def test_bad_options_steadystate():
@@ -193,11 +222,11 @@ def test_bad_options_steadystate():
     H = (a.dag() + a)
     c_ops = [a]
     with pytest.raises(ValueError):
-        rho_ss = qutip.steadystate(H, c_ops, method='not a method')
+        qutip.steadystate(H, c_ops, method='not a method')
     with pytest.raises(TypeError):
-        rho_ss = qutip.steadystate(H, c_ops, method='direct', bad_opt=True)
+        qutip.steadystate(H, c_ops, method='direct', bad_opt=True)
     with pytest.raises(ValueError):
-        rho_ss = qutip.steadystate(H, c_ops, method='direct', solver='Error')
+        qutip.steadystate(H, c_ops, method='direct', solver='Error')
 
 
 def test_bad_options_pseudo_inverse():
@@ -228,8 +257,7 @@ def test_bad_system():
     N = 4
     a = qutip.destroy(N)
     H = (a.dag() + a)
-    c_ops = [a]
-    with pytest.raises(TypeError) as err:
-        rho_ss = qutip.steadystate(H, [], method='direct')
-    with pytest.raises(TypeError) as err:
-        rho_ss = qutip.steadystate(qutip.basis(N, N-1), [], method='direct')
+    with pytest.raises(TypeError):
+        qutip.steadystate(H, [], method='direct')
+    with pytest.raises(TypeError):
+        qutip.steadystate(qutip.basis(N, N-1), [], method='direct')

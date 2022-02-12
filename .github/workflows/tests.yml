@@ -64,6 +64,19 @@ jobs:
             python-version: "3.8"
             nocython: 1
 
+          # Python 3.10 and numpy 1.22
+          # Use conda-forge to provide numpy 1.22
+          # Ignore ImportWarning because pyximport registered an importer
+          # PyxImporter that does not have a find_spec method and this raises
+          # a warning on Python 3.10
+          # Ignore DeprecationWarnings raised by importing scipy.sparse.X
+          # under SciPy 1.8.0+.
+          - case-name: Python 3.10
+            os: ubuntu-latest
+            python-version: "3.10"
+            condaforge: 1
+            pytest-extra-options: "-W ignore::ImportWarning -W ignore::DeprecationWarning:qutip.fastsparse -W ignore::DeprecationWarning:cvxpy.interface.scipy_wrapper"
+
     steps:
       - uses: actions/checkout@v2
 
@@ -82,6 +95,10 @@ jobs:
             QUTIP_TARGET="$QUTIP_TARGET,runtime_compilation"
           fi
           export CI_QUTIP_WITH_OPENMP=${{ matrix.openmp }}
+          if [[ -n "${{ matrix.condaforge }}" ]]; then
+            conda config --prepend channels conda-forge
+            conda config --set channel_priority strict
+          fi
           if [[ -z "${{ matrix.nomkl }}" ]]; then
             conda install blas=*=mkl "numpy${{ matrix.numpy-requirement }}" "scipy${{ matrix.scipy-requirement }}"
           elif [[ "${{ matrix.os }}" =~ ^windows.*$ ]]; then
@@ -92,7 +109,8 @@ jobs:
             conda install nomkl "numpy${{ matrix.numpy-requirement }}" "scipy${{ matrix.scipy-requirement }}"
           fi
           python -m pip install -e .[$QUTIP_TARGET]
-          python -m pip install pytest-cov coveralls
+          python -m pip install coverage==6.2
+          python -m pip install pytest-cov coveralls pytest-timeout
 
       - name: Package information
         run: |
@@ -120,7 +138,7 @@ jobs:
             # truly being executed.
             export QUTIP_NUM_PROCESSES=2
           fi
-          pytest -Werror --strict-config --strict-markers --durations=0 --durations-min=1.0 --verbosity=1 --cov=qutip --cov-report= --color=yes qutip/tests
+          pytest -Werror --strict-config --strict-markers --timeout=300 --durations=0 --durations-min=1.0 --verbosity=1 --cov=qutip --cov-report= --color=yes ${{ matrix.pytest-extra-options }} qutip/tests
           # Above flags are:
           #  -Werror
           #     treat warnings as errors
@@ -129,6 +147,8 @@ jobs:
           #  --strict-markers
           #     error out if a marker is used but not defined in the
           #     configuration file
+          #  --timeout=300
+          #     error any individual test that goes longer than the given time
           #  --durations=0 --durations-min=1.0
           #     at the end, show a list of all the tests that took longer than a
           #     second to run
