@@ -121,12 +121,8 @@ def krylovsolve(
         dimension."
 
     # transform state type from Qobj to np.ndarray for faster operations
-    if isinstance(psi0, Qobj):
-        _psi = psi0.full().copy()
-        _psi = _psi / np.linalg.norm(_psi)
-    else:
-        _psi = psi0.copy()
-        _psi = _psi / np.linalg.norm(_psi)
+    _psi = psi0.full().copy()
+    _psi = _psi / np.linalg.norm(_psi)
 
     if Options is None:
         options = Options()
@@ -151,9 +147,9 @@ def krylovsolve(
         delta_t = (tf - t0) / 10
     else:
         delta_t = optimizer(T_m,
-                           krylov_basis=krylov_basis,
-                           tlist=tlist,
-                           tol=options.atol)
+                            krylov_basis=krylov_basis,
+                            tlist=tlist,
+                            tol=options.atol)
 
     n_timesteps = int(ceil((tf - t0) / delta_t))
 
@@ -183,7 +179,11 @@ def krylovsolve(
     evolved_states = [Qobj(state) for state in evolved_states[1:-1]]
 
     # update states with e_ops or time evolutions
-    krylov_results = _evolve_states(e_ops, krylov_results, evolved_states, partitions, options)
+    krylov_results = _evolve_states(e_ops,
+                                    krylov_results,
+                                    evolved_states,
+                                    partitions,
+                                    options)
     last_t = partitions[0][-1]
 
     if progress_bar:
@@ -208,21 +208,13 @@ def krylovsolve(
         _psi = evolved_states[-1]
         psi_norm = np.linalg.norm(_psi)
 
-        evolved_states = evolved_states[1:-1]
-        evolved_states = [Qobj(state) for state in evolved_states]
+        evolved_states = [Qobj(state) for state in evolved_states[1:-1]]
 
-        if e_ops:
-            for idx, op in enumerate(e_ops):
-                krylov_results.expect[idx] += [
-                    expect(op, state) for state in evolved_states
-                ]
-            if options.store_states:
-                krylov_results.states += evolved_states
-            if options.store_final_state:
-                if pdx == len(partitions) - 1:
-                    krylov_results.states += evolved_states[-1]
-        else:
-            krylov_results.states += evolved_states
+        krylov_results = _evolve_states(e_ops,
+                                        krylov_results,
+                                        evolved_states,
+                                        partitions,
+                                        options)
         last_t = partition[-1]
 
     if progress_bar:
@@ -473,7 +465,8 @@ def _happy_breakdown(T_m, v, beta, w, j):
 
 def bound_function(T, krylov_basis, t0, tf):
     """
-    Function to optimize in order to obtain the optimal number of Lanczos algorithm iterations.
+    Function to optimize in order to obtain the optimal number of
+    Lanczos algorithm iterations.
     """
     eigenvalues1, eigenvectors1 = eigh(T[0:, 0:])
     U1 = np.matmul(krylov_basis[0:, 0:].T, eigenvectors1)
@@ -554,7 +547,8 @@ def illinois_algorithm(f, a, b, y, margin=1e-5):
 
 def optimizer(T, krylov_basis, tlist, tol):
     """
-    Optimizes the number of krylov's internal number of lanczos iterations using illnoins_algorithm. This is reflected
+    Optimizes the number of krylov's internal number of lanczos 
+    iterations using illnoins_algorithm. This is reflected
     by the internal krylov partitions of tlist.
     """
     f = bound_function(T, krylov_basis=krylov_basis, t0=tlist[0], tf=tlist[-1])
