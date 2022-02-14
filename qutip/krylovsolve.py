@@ -18,14 +18,14 @@ from scipy.linalg import eigh
 
 
 def krylovsolve(
-    H: Qobj,
-    psi0: Qobj,
-    tlist: np.array,
-    krylov_dim: int,
-    e_ops=None,
-    options=None,
-    progress_bar: bool = None,
-    sparse: bool = False,
+        H: Qobj,
+        psi0: Qobj,
+        tlist: np.array,
+        krylov_dim: int,
+        e_ops=None,
+        options=None,
+        progress_bar: bool = None,
+        sparse: bool = False,
 ):
     """
      Time evolution of state vectors for time independent Hamiltonians.
@@ -128,7 +128,6 @@ def krylovsolve(
         _psi = psi0.copy()
         _psi = _psi / np.linalg.norm(_psi)
 
-
     if Options is None:
         options = Options()
 
@@ -149,32 +148,22 @@ def krylovsolve(
                                           sparse=sparse)
 
     if krylov_basis.shape[0] != dim_m + 2:
-        deltat = (tf - t0) / 10
+        delta_t = (tf - t0) / 10
     else:
-        deltat = optimizer(T_m,
+        delta_t = optimizer(T_m,
                            krylov_basis=krylov_basis,
                            tlist=tlist,
                            tol=options.atol)
 
-    n_timesteps = int(ceil((tf - t0) / deltat))
+    n_timesteps = int(ceil((tf - t0) / delta_t))
 
     partitions = _make_partitions(tlist=tlist, n_timesteps=n_timesteps)
 
+    if len(tlist) < 1:  # if tlist is empty, return empty results
+        return krylov_results
+
     if progress_bar:
         pbar.start(len(partitions))
-
-
-
-    # if len(tlist)=1, the initial state (or its expectation value) is returned
-    if len(tlist) < 1:
-        if e_ops:
-            for idx, op in enumerate(e_ops):
-                krylov_results.expect[idx] += [expect(op, psi0)]
-            if options.store_states or options.store_final_state:
-                krylov_results.states += [psi0]
-        else:
-            krylov_results.states += [psi0]
-        return krylov_results
 
     # lazy iteration
     psi_norm = np.linalg.norm(_psi)
@@ -191,24 +180,10 @@ def krylovsolve(
     )
     _psi = evolved_states[-1]
     psi_norm = np.linalg.norm(_psi)
-    evolved_states = evolved_states[1:-1]
-    evolved_states = [Qobj(state) for state in evolved_states]
+    evolved_states = [Qobj(state) for state in evolved_states[1:-1]]
 
-    if e_ops:
-        for idx, op in enumerate(e_ops):
-
-            op.dims = [[reduce(operator.mul, op.dims[0])],
-                       [reduce(operator.mul, op.dims[1])]]
-
-            krylov_results.expect.append(
-                [expect(op, state) for state in evolved_states])
-        if options.store_states:
-            krylov_results.states += evolved_states
-        if options.store_final_state:
-            if len(partitions) == 1:
-                krylov_results.states += evolved_states[-1]
-    else:
-        krylov_results.states += evolved_states
+    # update states with e_ops or time evolutions
+    krylov_results = _evolve_states(e_ops, krylov_results, evolved_states, partitions, options)
     last_t = partitions[0][-1]
 
     if progress_bar:
@@ -256,31 +231,23 @@ def krylovsolve(
     return krylov_results
 
 
-def _estimate_norm(H: np.ndarray, order: int):
-    """
-     Estimates the norm-2 of a Hamiltonian using a Lanczos algorithm of
-     dimension 'order'.
-    Parameters
-    -------------
-     H : np.ndarray
-        System Hamiltonian.
-     order: int
-         Order of the estimated norm.
-     Returns
-     ---------
-     max_eigenvalue: float
-         The maximum eigenvalue resulting from a lanczos algorithm of
-         dimension 'order'.
-    """
+def _evolve_states(e_ops, krylov_results, evolved_states, partitions, options):
+    if e_ops:
+        for idx, op in enumerate(e_ops):
+            op.dims = [[reduce(operator.mul, op.dims[0])],
+                       [reduce(operator.mul, op.dims[1])]]
 
-    random_psi = np.random.random(
-        H.shape[0]) + 1j * np.random.random(H.shape[0])
-    random_psi = random_psi / np.linalg.norm(random_psi)
+            krylov_results.expect.append(
+                [expect(op, state) for state in evolved_states])
+        if options.store_states:
+            krylov_results.states += evolved_states
+        if options.store_final_state:
+            if len(partitions) == 1:
+                krylov_results.states += evolved_states[-1]
+    else:
+        krylov_results.states += evolved_states
 
-    _, T_m = lanczos_algorithm(H, psi0=random_psi, krylov_dim=order)
-    eigenvalues = eigh(T_m, eigvals_only=True)
-    max_eigenvalue = np.max(np.abs(eigenvalues))
-    return max_eigenvalue
+    return krylov_results
 
 
 def dot_mul(A, v, sparse: bool = False):
@@ -309,10 +276,10 @@ def dot_mul(A, v, sparse: bool = False):
 
 
 def lanczos_algorithm(
-    H,
-    psi: np.ndarray,
-    krylov_dim: int,
-    sparse: bool = False,
+        H,
+        psi: np.ndarray,
+        krylov_dim: int,
+        sparse: bool = False,
 ):
     """
     Computes a basis of the Krylov subspace for Hamiltonian 'H', a system
@@ -356,10 +323,6 @@ def lanczos_algorithm(
         beta = np.linalg.norm(w)
 
         if beta < 1e-7:
-
-            v_happy = np.zeros([j, psi.shape[0]], dtype=complex)
-            T_m_happy = np.zeros([j, j], dtype=complex)
-
             v_happy = v[0:j, :]
             T_m_happy = T_m[0:j, 0:j]
 
@@ -414,15 +377,15 @@ def _evolve(t0: float, krylov_basis: np.ndarray, T_m: np.ndarray):
 
 
 def _evolve_krylov_tlist(
-    H,
-    psi0: np.ndarray,
-    krylov_dim: int,
-    tlist: list,
-    t0: float,
-    psi_norm: float = None,
-    krylov_basis: np.array = None,
-    T_m: np.array = None,
-    sparse: bool = False,
+        H,
+        psi0: np.ndarray,
+        krylov_dim: int,
+        tlist: list,
+        t0: float,
+        psi_norm: float = None,
+        krylov_basis: np.array = None,
+        T_m: np.array = None,
+        sparse: bool = False,
 ):
     """
     Computes the Krylov approximation time evolution of dimension 'krylov_dim'
@@ -471,6 +434,7 @@ def _evolve_krylov_tlist(
     psi_list = list(map(evolve, tlist))
 
     return psi_list
+
 
 # ----------------------------------------------------------------------
 # Auxiliar functions
@@ -594,9 +558,9 @@ def optimizer(T, krylov_basis, tlist, tol):
     by the internal krylov partitions of tlist.
     """
     f = bound_function(T, krylov_basis=krylov_basis, t0=tlist[0], tf=tlist[-1])
-    n = illinois_algorithm(f,
-                           a=tlist[0],
-                           b=tlist[-1],
-                           y=np.log10(tol),
-                           margin=0.1)
-    return n
+    n_iterations = illinois_algorithm(f,
+                                      a=tlist[0],
+                                      b=tlist[-1],
+                                      y=np.log10(tol),
+                                      margin=0.1)
+    return n_iterations
