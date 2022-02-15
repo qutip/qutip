@@ -75,22 +75,10 @@ def krylovsolve(
     """
 
     # list of expectation values operators
-    if e_ops is None:
-        e_ops = []
-    if isinstance(e_ops, Qobj):
-        e_ops = [e_ops]
-
-    if isinstance(e_ops, dict):
-        e_ops_dict = e_ops
-        e_ops = [e for e in e_ops.values()]
-    else:
-        e_ops_dict = None
+    e_ops, e_ops_dict = check_e_ops(e_ops)
 
     # progress bar
-    if progress_bar is None:
-        pbar = BaseProgressBar()
-    if progress_bar is True:
-        pbar = TextProgressBar()
+    pbar = check_progress_bar(progress_bar)
 
     # verify that the hamiltonian meets the requirements
     assert isinstance(H, Qobj), "the Hamiltonian must be a Qobj."
@@ -104,13 +92,10 @@ def krylovsolve(
             ), "the Hamiltonian dimension must be greater or equal to the \
             maximum allowed krylov dimension."
 
-    if isinstance(H, Qobj):
-        if sparse:
-            _H = H.get_data()  # -> (fast_) csr_matrix
-        else:
-            _H = H.full().copy()  # -> np.ndarray
+    if sparse:
+        _H = H.get_data()  # -> (fast_) csr_matrix
     else:
-        _H = H
+        _H = H.full().copy()  # -> np.ndarray
 
     # verify that the state vector meets the requirements
     assert isinstance(psi0, Qobj), "The state vector must be a Qobj."
@@ -146,9 +131,8 @@ def krylovsolve(
         return krylov_results
 
     if n_tlist_steps == 1:  # if tlist has only one element, break
-        print(
-            "Warning: input 'tlist' contains a single element, assuming initial time is 0 and final time is tlist single element"
-        )
+        print("Warning: input 'tlist' contains a single element, assuming\
+            initial time is 0 and final time is tlist single element")
         tlist = [0, tlist[0]]
         n_tlist_steps = len(tlist)
 
@@ -172,31 +156,8 @@ def krylovsolve(
     if progress_bar:
         pbar.start(len(partitions))
 
-    krylov_results.expect = []
-    if callable(e_ops):
-        n_expt_op = 0
-        expt_callback = True
-        krylov_results.num_expect = 1
-    elif isinstance(e_ops, list):
-        n_expt_op = len(e_ops)
-        expt_callback = False
-        krylov_results.num_expect = n_expt_op
-        if n_expt_op == 0:
-            # fall back on storing states
-            options.store_states = True
-        else:
-            for op in e_ops:
-                if not isinstance(op, Qobj) and callable(op):
-                    krylov_results.expect.append(
-                        np.zeros(n_tlist_steps, dtype=complex))
-                    continue
-                if op.isherm:
-                    krylov_results.expect.append(np.zeros(n_tlist_steps))
-                else:
-                    krylov_results.expect.append(
-                        np.zeros(n_tlist_steps, dtype=complex))
-    else:
-        raise TypeError("Expectation parameter must be a list or a function")
+    krylov_results, expt_callback, options, n_expt_op = expectation_values_outputs(
+        krylov_results, e_ops, n_tlist_steps, options)
 
     # parameters for the lazy iteration evolve tlist
     psi_norm = np.linalg.norm(_psi)
@@ -498,10 +459,6 @@ def _make_partitions(tlist, n_timesteps):
         partitions.append([start] + _tlist[condition].tolist() + [end])
         _tlist = _tlist[~condition]
 
-    ## If there is only one partition, we need to append the tail
-    #if len(partitions) == 1:
-    #    partitions = [np.append(partitions[0], tf)]
-
     return partitions
 
 
@@ -599,3 +556,62 @@ def optimizer(T, krylov_basis, tlist, tol):
                                       y=np.log10(tol),
                                       margin=0.1)
     return n_iterations
+
+
+def check_e_ops(e_ops):
+    """
+    Check instances of e_ops and return the formatted version of e_ops
+    and e_ops_dict.
+    """
+    if e_ops is None:
+        e_ops = []
+    if isinstance(e_ops, Qobj):
+        e_ops = [e_ops]
+    if isinstance(e_ops, dict):
+        e_ops_dict = e_ops
+        e_ops = [e for e in e_ops.values()]
+    else:
+        e_ops_dict = None
+    return e_ops, e_ops_dict
+
+
+def expectation_values_outputs(krylov_results, e_ops, n_tlist_steps, options):
+    krylov_results.expect = []
+    if callable(e_ops):
+        n_expt_op = 0
+        expt_callback = True
+        krylov_results.num_expect = 1
+    elif isinstance(e_ops, list):
+        n_expt_op = len(e_ops)
+        expt_callback = False
+        krylov_results.num_expect = n_expt_op
+        if n_expt_op == 0:
+            # fall back on storing states
+            options.store_states = True
+        else:
+            for op in e_ops:
+                if not isinstance(op, Qobj) and callable(op):
+                    krylov_results.expect.append(
+                        np.zeros(n_tlist_steps, dtype=complex))
+                    continue
+                if op.isherm:
+                    krylov_results.expect.append(np.zeros(n_tlist_steps))
+                else:
+                    krylov_results.expect.append(
+                        np.zeros(n_tlist_steps, dtype=complex))
+
+    else:
+        raise TypeError("Expectation parameter must be a list or a function")
+
+    return krylov_results, expt_callback, options, n_expt_op
+
+
+def check_progress_bar(progress_bar):
+    """
+    Check instance of progress_bar and return the object.
+    """
+    if progress_bar is None:
+        pbar = BaseProgressBar()
+    if progress_bar is True:
+        pbar = TextProgressBar()
+    return pbar
