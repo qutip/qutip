@@ -79,53 +79,31 @@ class SolverOptions(QutipOptions):
     progress_kwargs : dict
         kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
     """
-    default = {
-        # (turned off for batch unitary propagator mode)
-        "progress_bar": "text",
-        # Normalize output of solvers
-        # (turned off for batch unitary propagator mode)
-        "progress_kwargs": {"chunk_size":10},
-        # store final state?
-        "store_final_state": False,
-        # store states even if expectation operators are given?
-        "store_states": None,
-        # Normalize output of solvers
-        # (turned off for batch unitary propagator mode)
-        "normalize_output": "ket",
-        # Tolerance for wavefunction norm (mcsolve only)
-        "norm_tol": 1e-4,
-        # Tolerance for collapse time precision (mcsolve only)
-        "norm_t_tol": 1e-6,
-        # Max. number of steps taken to find wavefunction norm to within
-        # norm_tol (mcsolve only)
-        "norm_steps": 5,
-
-        "map": "parallel_map",
-
-        "keep_runs_results": False,
-
-        "mc_corr_eps": 1e-10,
-
-        'num_cpus': multiprocessing.cpu_count(),
-
-        'job_timeout': 1e8,
-
-        'method': 'adams',
-    }
+    default = {}
     name = "Solver"
+    _ode_options = {}
 
     def __init__(self, base=None, *, method=None, _strick=True, **options):
-        if isinstance(method, SolverOdeOptions):
-            self.ode = method
-        else:
-            method = method or self.default['method']
-            self.ode = SolverOdeOptions()
-
         if isinstance(base, dict):
             options.update(base)
 
-        elif isinstance(base, QutipOptions):
+        elif type(base) is SolverOptions:
+            _strick = False
+            opt = {
+                key: val
+                for key, val in base.options.items()
+                if val is not None
+            }
             options.update(base.options)
+
+        elif type(base) is self.__class__:
+            options.update(base.options)
+
+        self._solver = None
+        self.options = self.default.copy()
+        self._from_dict(options)
+        self.ode = method
+        self.ode._from_dict(options)
 
         solver_keys = set(options) & set(self.default)
         ode_keys = set(options) & set(self.ode.default)
@@ -133,9 +111,44 @@ class SolverOptions(QutipOptions):
         if _strick and leftoever:
             raise KeyError("Unknown option(s): " +
                            f"{set(options) - set(self.default)}")
-        self.ode._from_dict(options)
-        self.options = self.default.copy()
-        self._from_dict(options)
+
+    def __setitem__(self, key, value):
+        self.options[key] = value
+        if key == 'method':
+            self.ode = value
+        if self._solver:
+            # Tell solver the options were updated
+            self._solver.options = self
+
+    def __str__(self):
+        out = self.name + ":\n"
+        longest = max(len(key) for key in self.options)
+        for key, val in self.options.items():
+            if isinstance(val, str):
+                out += "{:{width}} : '{}'\n".format(key, val, width=longest)
+            else:
+                out += "{:{width}} : {}\n".format(key, val, width=longest)
+        out += "\n"
+        out += str(self.ode)
+        return out
+
+    @property
+    def ode(self):
+        return self._ode
+
+    @ode.setter
+    def ode(self, new):
+        if isinstance(new, SolverOdeOptions):
+            self._ode = new
+        else:
+            method = new or self.default.get('method', None)
+            self._ode = self._ode_options.get(new, SolverOdeOptions)()
+
+        self.options['method'] = self._ode['method']
+        self._ode._parent = self
+        if self._solver:
+            # Tell solver the options were updated
+            self._solver.options = self
 
 
 class SolverOdeOptions(QutipOptions):
@@ -159,7 +172,7 @@ class SolverOdeOptions(QutipOptions):
 
     Options
     -------
-    method : str {'adams', 'bdf', 'dop853', 'lsoda', 'vern7', 'vern9', 'diag'}
+    method : str {'adams', 'bdf', 'dop853', 'lsoda', ...}
         Integration method.
 
     atol : float {1e-8}
@@ -182,50 +195,12 @@ class SolverOdeOptions(QutipOptions):
 
     max_step : float {0}
         Maximum step size (0 = automatic)
-
-    tidy: bool {True}
-        tidyup Hamiltonian before calculation
-
-    operator_data_type: str {""}
-        Data type of the operator to used during the ODE evolution, such as
-        'CSR' or 'Dense'. Use an empty string to keep the input state type.
-
-    state_data_type: str {'dense'}
-        Name of the data type of the state used during the ODE evolution.
-        Use an empty string to keep the input state type. Many integrator can
-        only work with `Dense`.
-
-    feedback_normalize: bool
-        Normalize the state before passing it to coefficient when using
-        feedback.
     """
-    default = {
-        # Integration method (default = 'adams', for stiff 'bdf')
-        "method": 'adams',
+    default = {}
+    _parent = None  # Instance of SolverOptions that contain this instance.
 
-        "rhs": '',
-
-        # Absolute tolerance (default = 1e-8)
-        "atol": 1e-8,
-        # Relative tolerance (default = 1e-6)
-        "rtol": 1e-6,
-        # Maximum order used by integrator (<=12 for 'adams', <=5 for 'bdf')
-        "order": 12,
-        # Max. number of internal steps/call
-        "nsteps": 2500,
-        # Size of initial step (0 = determined by solver)
-        "first_step": 0,
-        # Max step size (0 = determined by solver)
-        "max_step": 0,
-        # Minimal step size (0 = determined by solver)
-        "min_step": 0,
-        # tidyup Hamiltonian before calculation (default = True)
-        "tidy": True,
-
-        "operator_data_type": "",
-
-        "state_data_type": "dense",
-        # Normalize the states received in feedback_args
-        "feedback_normalize": True,
-    }
-    extra_options = set()
+    def __setitem__(self, key, value):
+        self.options[key] = value
+        if self._parent:
+            # Tell solver the options were updated
+            self._parent.ode = self

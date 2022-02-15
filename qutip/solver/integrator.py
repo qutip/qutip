@@ -67,12 +67,7 @@ class Integrator:
 
     def __init__(self, system, options):
         self.system = system
-        self.options = {
-            **self.integrator_options,
-            **{ key: options[key]
-                for key in self.integrator_options.keys()
-                if key in options and options[key] is not None}
-        }
+        self.options = integrator_options(options)
         self._is_set = False  # get_state can be used and return a valid state.
         self._back = (np.inf, None)
         self._prepare()

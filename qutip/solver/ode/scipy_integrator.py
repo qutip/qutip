@@ -1,7 +1,13 @@
 """ODE integrator from scipy."""
 
-__all__ = ['IntegratorScipyZvode', 'IntegratorScipyDop853',
-           'IntegratorScipylsoda']
+__all__ = [
+    'IntegratorScipyZvode',
+    'IntegratorScipyDop853',
+    'IntegratorScipylsoda',
+    'OdeZvodeOptions',
+    'OdeLsodaOptions',
+    'OdeDop853Options'
+]
 
 import numpy as np
 from scipy.integrate import ode
@@ -14,13 +20,15 @@ from ..solver_base import Solver
 import warnings
 
 
-class IntegratorScipyZvode(Integrator):
+class OdeZvodeOptions(SolverOdeOptions):
+    __doc__ = """
+    Options for integration using ``scipy.integrate.ode`` using ``zvode``.
+    Supported options are:
+        atol, rtol, nsteps, method, order, first_step, max_step, min_step
+
+    See scipy documentation for more information.
     """
-    Integrator using Scipy `ode` with zvode integrator. Ordinary Differential
-    Equation solver by netlib (http://www.netlib.org/odepack). Support 'Adams'
-    and 'BDF' methods for non-stiff and stiff systems respectively.
-    """
-    integrator_options = {
+    default = {
         'atol': 1e-8,
         'rtol': 1e-6,
         'nsteps': 2500,
@@ -30,6 +38,16 @@ class IntegratorScipyZvode(Integrator):
         'max_step': 0,
         'min_step': 0,
     }
+    name = "zvode"
+
+
+class IntegratorScipyZvode(Integrator):
+    """
+    Integrator using Scipy `ode` with zvode integrator. Ordinary Differential
+    Equation solver by netlib (http://www.netlib.org/odepack). Support 'Adams'
+    and 'BDF' methods for non-stiff and stiff systems respectively.
+    """
+    integrator_options = OdeZvodeOptions
     support_time_dependant = True
     supports_blackbox = True
 
@@ -137,15 +155,15 @@ class IntegratorScipyZvode(Integrator):
         )
 
 
-class IntegratorScipyDop853(Integrator):
+class OdeDop853Options(SolverOdeOptions):
     """
-    Integrator using Scipy `ode` with dop853 integrator. Eight order
-    runge-kutta method by Dormand & Prince. Use fortran implementation
-    from [E. Hairer, S.P. Norsett and G. Wanner, Solving Ordinary Differential
-    Equations i. Nonstiff Problems. 2nd edition. Springer Series in
-    Computational Mathematics, Springer-Verlag (1993)].
+    Options for integration using ``scipy.integrate.ode`` using ``dop853``.
+    Supported options are:
+        atol, rtol, nsteps, first_step, max_step, ifactor, dfactor, beta
+
+    See scipy documentation for more information.
     """
-    integrator_options = {
+    default = {
         'atol': 1e-8,
         'rtol': 1e-6,
         'nsteps': 2500,
@@ -155,8 +173,20 @@ class IntegratorScipyDop853(Integrator):
         'dfactor': 0.3,
         'beta': 0.0,
     }
+    name = "dop853"
+
+
+class IntegratorScipyDop853(Integrator):
+    """
+    Integrator using Scipy `ode` with dop853 integrator. Eight order
+    runge-kutta method by Dormand & Prince. Use fortran implementation
+    from [E. Hairer, S.P. Norsett and G. Wanner, Solving Ordinary Differential
+    Equations i. Nonstiff Problems. 2nd edition. Springer Series in
+    Computational Mathematics, Springer-Verlag (1993)].
+    """
     support_time_dependant = True
     supports_blackbox = True
+    integrator_options = OdeDop853Options
 
     def _prepare(self):
         """
@@ -238,13 +268,16 @@ class IntegratorScipyDop853(Integrator):
         )
 
 
-class IntegratorScipylsoda(IntegratorScipyDop853):
+class OdeLsodaOptions(SolverOdeOptions):
     """
-    Integrator using Scipy `ode` with lsoda integrator. ODE solver by netlib
-    (http://www.netlib.org/odepack) Automatically choose between 'Adams' and
-    'BDF' methods to solve both stiff and non-stiff systems.
+    Options for integration using ``scipy.integrate.ode`` using ``lsoda``.
+    Supported options are:
+        atol, rtol, nsteps, max_order_ns, max_order_s, first_step, max_step,
+        min_step
+
+    See scipy documentation for more information.
     """
-    integrator_options = {
+    default = {
         'atol': 1e-8,
         'rtol': 1e-6,
         'nsteps': 2500,
@@ -254,6 +287,16 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         'max_step': 0.0,
         'min_step': 0.0,
     }
+    name = "lsoda"
+
+
+class IntegratorScipylsoda(IntegratorScipyDop853):
+    """
+    Integrator using Scipy `ode` with lsoda integrator. ODE solver by netlib
+    (http://www.netlib.org/odepack) Automatically choose between 'Adams' and
+    'BDF' methods to solve both stiff and non-stiff systems.
+    """
+    integrator_options = OdeLsodaOptions
     support_time_dependant = True
     supports_blackbox = True
 

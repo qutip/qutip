@@ -77,8 +77,8 @@ class Solver:
             raise TypeError(f"incompatible dimensions {self.rhs.dims}"
                             f" and {state.dims}")
 
-        if self.options.ode["state_data_type"]:
-            state = state.to(self.options.ode["state_data_type"])
+        if self.options["state_data_type"]:
+            state = state.to(self.options["state_data_type"])
 
         self._state_metadata = {
             'dims': state.dims,
@@ -222,9 +222,9 @@ class Solver:
 
     def _get_integrator(self):
         """ Return the initialted integrator. """
-        if self.options.ode["operator_data_type"]:
+        if self.options["operator_data_type"]:
             self.rhs = self.rhs.to(
-                self.options.ode["operator_data_type"]
+                self.options["operator_data_type"]
             )
 
         method = self.options.ode["method"]
@@ -242,14 +242,8 @@ class Solver:
 
     @options.setter
     def options(self, new):
-        if new is None:
-            new = self.optionsclass()
-        elif isinstance(new, dict):
-            new = self.optionsclass(**new)
-        elif not isinstance(new, self.optionsclass):
-            raise TypeError("options must be an instance of" +
-                            str(self.optionsclass))
-        self._options = new
+        self._options = self.optionsclass(new)
+        self._options._solver = self
 
     @classmethod
     def avail_integrators(cls):
@@ -259,6 +253,15 @@ class Solver:
             **Solver.avail_integrators(),
             **cls._avail_integrators,
         }
+
+    @classmethod
+    def odeoptions(cls, key):
+        integrators = cls.avail_integrators()
+        options = {key: int.integrator_options
+                   for key, int in integrators.items()}
+        if key:
+            options = options[key]
+        return options
 
     @classmethod
     def add_integrator(cls, integrator, keys):
@@ -280,6 +283,4 @@ class Solver:
             keys = [keys]
         for key in keys:
             cls._avail_integrators[key] = integrator
-        if integrator.integrator_options:
-            for opt in integrator.integrator_options:
-                cls.odeoptionsclass.extra_options.add(opt)
+            cls.optionsclass._ode_options[key] = integrator.integrator_options

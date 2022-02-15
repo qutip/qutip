@@ -244,6 +244,8 @@ class CompilationOptions(QutipOptions):
     }
 
 
+qset.compilation = CompilationOptions
+
 # Version number of the Coefficient
 COEFF_VERSION = "1.1"
 
@@ -330,6 +332,7 @@ def coeff_from_str(base, args, args_ctypes, compile_opt=None):
             exec(base, str_env, env)
         except Exception as err:
             raise Exception("Invalid string coefficient") from err
+    coeff = None
     # Parsing tries to make the code in common pattern
     parsed, variables, constants, raw = try_parse(base, args,
                                                   args_ctypes, compile_opt)
@@ -337,12 +340,10 @@ def coeff_from_str(base, args, args_ctypes, compile_opt=None):
     hash_ = hashlib.sha256(bytes(parsed, encoding='utf8'))
     file_name = "qtcoeff_" + hash_.hexdigest()[:30]
     # See if it already exist, if not write and cythonize it
-    coeff = try_import(file_name, parsed)
+    if not compile_opt['recompile']:
+        coeff = try_import(file_name, parsed)
     # Do we compile?
-    if (
-        (not coeff or compile_opt['recompile'])
-        and (compile_opt['use_cython'] and qset.coeff_write_ok)
-    ):
+    if not coeff and compile_opt['use_cython'] and qset.coeff_write_ok:
         code = make_cy_code(parsed, variables, constants,
                             raw, compile_opt)
         coeff = compile_code(code, file_name, parsed, compile_opt)

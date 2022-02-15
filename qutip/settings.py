@@ -34,13 +34,11 @@
 This module contains settings for the QuTiP graphics, multiprocessing, and
 tidyup functionality, etc.
 """
-from __future__ import absolute_import
-import qutip.configrc as qrc
+# from __future__ import absolute_import
+# import qutip.configrc as qrc
 import os, sys
 from .utilities import _blas_info
 from ctypes import cdll
-from pathlib import Path
-from .version import short_version
 import platform
 
 __all__ = ['settings']
@@ -99,14 +97,15 @@ class Settings:
     `print(qutip.settings)` to list all available options.
     """
     def __init__(self):
-        self._children = []
-        self._fullname = "settings"
-        self._defaultInstance = self
         self._has_mkl, self._mkl_lib = _find_mkl()
         try:
             self.tmproot = os.path.join(os.path.expanduser("~"), '.qutip')
         except OSError:
             self._tmproot = "."
+        self.core = None
+        self.compilation = None
+        self._solvers = []
+        self._integrators = []
 
     @property
     def has_mkl(self):
