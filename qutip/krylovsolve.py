@@ -74,48 +74,40 @@ def krylovsolve(
          to the times `tlist` [if `e_ops` is an empty list].
     """
 
-    # list of expectation values operators
     e_ops, e_ops_dict = check_e_ops(e_ops)
-
-    # progress bar
     pbar = check_progress_bar(progress_bar)
 
-    # verify that the hamiltonian meets the requirements
-    assert isinstance(H, Qobj), "the Hamiltonian must be a Qobj."
+    # set the physics
+    if not isinstance(H, Qobj):
+        raise TypeError(
+            "krylovsolve currently supports Hamiltonian Qobj operators only")
 
-    assert len(H.shape) == 2, "the Hamiltonian must be 2-dimensional."
+    if not (psi0.isket and isinstance(psi0, Qobj)):
+        raise Exception("Initial state must be a state vector Qobj.")
 
-    assert (H.shape[0] == H.shape[1]
-            ), "the Hamiltonian must be a square 2-dimensional."
+    assert (len(H.shape) == 2 and H.shape[0] == H.shape[1]
+            ), "the Hamiltonian must be 2-dimensional square Qobj."
+
+    assert (psi0.shape[0] == H.shape[0]
+            ), "The state vector and the Hamiltonian must share the same \
+        dimension."
 
     assert (H.shape[0] >= krylov_dim
             ), "the Hamiltonian dimension must be greater or equal to the \
             maximum allowed krylov dimension."
 
+    # transform inputs type from Qobj to np.ndarray/csr_matrix
     if sparse:
-        _H = H.get_data()  # -> (fast_) csr_matrix
+        _H = H.get_data()  # (fast_) csr_matrix
     else:
-        _H = H.full().copy()  # -> np.ndarray
-
-    # verify that the state vector meets the requirements
-    assert isinstance(psi0, Qobj), "The state vector must be a Qobj."
-
-    # set the physics
-    if not psi0.isket:
-        raise Exception("Initial state must be a state vector.")
-
-    assert (psi0.shape[0] == _H.shape[0]
-            ), "The state vector and the Hamiltonian must share the same \
-        dimension."
-
-    # transform state type from Qobj to np.ndarray for faster operations
+        _H = H.full().copy()  # np.ndarray
     _psi = psi0.full().copy()
     _psi = _psi / np.linalg.norm(_psi)
 
+    # create internal variable and output containers
     if options is None:
         options = Options()
 
-    # create output container
     krylov_results = Result()
     krylov_results.solver = "krylovsolve"
 
@@ -123,18 +115,17 @@ def krylovsolve(
     dim_m = krylov_dim
     n_tlist_steps = len(tlist)
 
+    # handle particular cases of an empty tlist or single element
     if n_tlist_steps < 1:  # if tlist is empty, return empty results
-        if progress_bar is True:
-            pbar.start(1)
-            pbar.update(1)
-            pbar.finished()
+        _dummy_progress_bar(progress_bar=pbar)
         return krylov_results
 
-    if n_tlist_steps == 1:  # if tlist has only one element, break
-        print("Warning: input 'tlist' contains a single element, assuming\
+    if n_tlist_steps == 1:  # if tlist has only one element, return it
+        print("Warning: input 'tlist' contains a single element, assuming \
             initial time is 0 and final time is tlist single element")
-        tlist = [0, tlist[0]]
-        n_tlist_steps = len(tlist)
+        krylov_results = particular_tlist(
+            tlist, n_tlist_steps, options, psi0, e_ops, krylov_results, pbar)
+        return krylov_results
 
     tf = tlist[-1]
     t0 = tlist[0]
@@ -156,7 +147,7 @@ def krylovsolve(
     if progress_bar:
         pbar.start(len(partitions))
 
-    krylov_results, expt_callback, options, n_expt_op = expectation_values_outputs(
+    krylov_results, expt_callback, options, n_expt_op = e_ops_outputs(
         krylov_results, e_ops, n_tlist_steps, options)
 
     # parameters for the lazy iteration evolve tlist
@@ -201,6 +192,8 @@ def krylovsolve(
 
     if progress_bar:
         pbar.finished()
+
+    # krylov_results = remove_initial_result(krylov_results, _single_element_list, options, e_ops, n_expt_op)
 
     if e_ops_dict:
         krylov_results.expect = {
@@ -433,9 +426,9 @@ def _evolve_krylov_tlist(
 
 
 def _make_partitions(tlist, n_timesteps):
-    """Generates an internal 'partitions' list of np.arrays to iterate
-    Lanczos algorithms on each of them, based on 'tlist' and the
-    optimized number of iterations 'n_timesteps'. 
+    """Generates an internal 'partitions' list of np.arrays to iterate Lanczos
+    algorithms on each of them, based on 'tlist' and the optimized number of
+    iterations 'n_timesteps'. 
     """
 
     _tlist = np.copy(tlist)
@@ -513,6 +506,10 @@ def illinois_algorithm(f, a, b, y, margin=1e-5):
         Value where f(c) is within the margin of y.
     """
 
+    if margin < 0:
+        raise ValueError(
+            "tolerance by 'margin' input cannot be null nor negative")
+
     lower = f(a)
     upper = f(b)
 
@@ -575,7 +572,7 @@ def check_e_ops(e_ops):
     return e_ops, e_ops_dict
 
 
-def expectation_values_outputs(krylov_results, e_ops, n_tlist_steps, options):
+def e_ops_outputs(krylov_results, e_ops, n_tlist_steps, options):
     krylov_results.expect = []
     if callable(e_ops):
         n_expt_op = 0
@@ -615,3 +612,61 @@ def check_progress_bar(progress_bar):
     if progress_bar is True:
         pbar = TextProgressBar()
     return pbar
+
+
+def _dummy_progress_bar(progress_bar):
+    """ Create a progress bar without jobs.
+    """
+    if progress_bar:
+        progress_bar.start(1)
+        progress_bar.update(1)
+        progress_bar.finished()
+
+
+def remove_initial_result(res, _single_element_list, options, e_ops, n_expt_op):
+    """Auxiliar function to deal with a single element tlist.
+    """
+    if _single_element_list:
+        if options.store_states == True:
+            res.states = res.states[1:]
+        if e_ops != []:
+            if n_expt_op > 0:
+                for m in range(n_expt_op):
+                    res.expect[m] = res.expect[m][1:]
+            else:
+                res.expect = res.expect[1:]
+
+    return res
+
+
+def particular_tlist(tlist, n_tlist_steps, options, psi0, e_ops, res, progress_bar):
+
+    if progress_bar:
+        progress_bar.start(1)
+
+    res, expt_callback, options, n_expt_op = e_ops_outputs(
+        res, e_ops, n_tlist_steps, options)
+
+    if options.store_states:
+        res.states = [psi0]
+
+    if expt_callback:
+        # use callback method
+        res.expect.append(e_ops(tlist[0], psi0))
+
+    for m in range(n_expt_op):
+        op = e_ops[m]
+        if not isinstance(op, Qobj) and callable(op):
+
+            res.expect[m][0] = op(tlist[0], psi0)
+            continue
+
+        res.expect[m][0] = expect(op, psi0)
+
+    if options.store_final_state:
+        res.states = [psi0]
+
+    if progress_bar:
+        progress_bar.update(1)
+        progress_bar.finished()
+    return res
