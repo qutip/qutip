@@ -151,6 +151,7 @@ from qutip.rhs_generate import *
 from qutip.mesolve import *
 from qutip.sesolve import *
 from qutip.mcsolve import *
+from qutip.krylovsolve import *
 from qutip.stochastic import *
 from qutip.essolve import *
 from qutip.eseries import *
