@@ -207,8 +207,6 @@ def krylovsolve(
     if progress_bar:
         pbar.finished()
 
-    # krylov_results = remove_initial_result(krylov_results, _single_element_list, options, e_ops, n_expt_op)
-
     if e_ops_dict:
         krylov_results.expect = {
             e: krylov_results.expect[n]
@@ -465,7 +463,7 @@ def _make_partitions(tlist, n_timesteps):
     n_timesteps += 1
     krylov_tlist = np.linspace(tlist[0], tlist[-1], n_timesteps)
     krylov_partitions = [
-        np.array(krylov_tlist[i : i + 2]) for i in range(n_timesteps - 1)
+        np.array(krylov_tlist[i: i + 2]) for i in range(n_timesteps - 1)
     ]
     partitions = []
     for krylov_partition in krylov_partitions:
@@ -487,7 +485,7 @@ def bound_function(T, krylov_basis, t0, tf):
     U1 = np.matmul(krylov_basis[0:, 0:].T, eigenvectors1)
     e01 = eigenvectors1.conj().T[:, 0]
 
-    eigenvalues2, eigenvectors2 = eigh(T[0:-1, 0 : T.shape[1] - 1])
+    eigenvalues2, eigenvectors2 = eigh(T[0:-1, 0:T.shape[1] - 1])
     U2 = np.matmul(krylov_basis[0:-1, :].T, eigenvectors2)
     e02 = eigenvectors2.conj().T[:, 0]
 
@@ -594,7 +592,7 @@ def check_e_ops(e_ops):
     return e_ops, e_ops_dict
 
 
-def e_ops_outputs(krylov_results, e_ops, n_tlist_steps, options):
+def e_ops_outputs(krylov_results, e_ops, n_tlist_steps, opt):
     krylov_results.expect = []
     if callable(e_ops):
         n_expt_op = 0
@@ -606,7 +604,7 @@ def e_ops_outputs(krylov_results, e_ops, n_tlist_steps, options):
         krylov_results.num_expect = n_expt_op
         if n_expt_op == 0:
             # fall back on storing states
-            options.store_states = True
+            opt.store_states = True
         else:
             for op in e_ops:
                 if not isinstance(op, Qobj) and callable(op):
