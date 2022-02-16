@@ -547,7 +547,7 @@ def _lanczos_error_equation_to_optimize_delta_t(
     U1 = np.matmul(krylov_basis[0:, 0:].T, eigenvectors1)
     e01 = eigenvectors1.conj().T[:, 0]
 
-    eigenvalues2, eigenvectors2 = eigh(T[0:-1, 0 : T.shape[1] - 1])
+    eigenvalues2, eigenvectors2 = eigh(T[0:-1, 0: T.shape[1] - 1])
     U2 = np.matmul(krylov_basis[0:-1, :].T, eigenvectors2)
     e02 = eigenvectors2.conj().T[:, 0]
 
@@ -586,7 +586,7 @@ def _make_partitions(tlist, n_timesteps):
     n_timesteps += 1
     krylov_tlist = np.linspace(tlist[0], tlist[-1], n_timesteps)
     krylov_partitions = [
-        np.array(krylov_tlist[i : i + 2]) for i in range(n_timesteps - 1)
+        np.array(krylov_tlist[i: i + 2]) for i in range(n_timesteps - 1)
     ]
     partitions = []
     for krylov_partition in krylov_partitions:
