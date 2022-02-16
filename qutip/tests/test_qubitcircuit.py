@@ -8,7 +8,8 @@ from qutip.qip.circuit import (
     QubitCircuit, CircuitSimulator, Gate, Measurement, _ctrl_gates,
     _single_qubit_gates, _swap_like, _toffoli_like, _fredkin_like, _para_gates)
 from qutip import (tensor, Qobj, ptrace, rand_ket, fock_dm, basis,
-                   rand_dm, bell_state, ket2dm)
+                   rand_unitary_haar, bell_state, ket2dm, fidelity,
+                   average_gate_fidelity)
 from qutip.qip.qasm import read_qasm
 from qutip.qip.operations.gates import gate_sequence_product
 
@@ -461,7 +462,7 @@ class TestQubitCircuit:
         """
         Test for circuit with N-level system.
         """
-        mat3 = rand_dm(3, density=1.)
+        mat3 = rand_unitary_haar(3)
 
         def controlled_mat3(arg_value):
             """
@@ -476,7 +477,13 @@ class TestQubitCircuit:
         qc.user_gates = {"CTRLMAT3": controlled_mat3}
         qc.add_gate("CTRLMAT3", targets=[1, 0], arg_value=1)
         props = qc.propagators()
-        np.testing.assert_allclose(mat3, ptrace(props[0], 0) - 1)
+        final_fid = average_gate_fidelity(mat3, ptrace(props[0], 0) - 1)
+        assert pytest.approx(final_fid, 1.0e-6) == 1
+
+        init_state = basis([3, 2], [0, 1])
+        result = qc.run(init_state)
+        final_fid = fidelity(result, props[0] * init_state)
+        assert pytest.approx(final_fid, 1.0e-6) == 1.
 
     @pytest.mark.repeat(10)
     def test_run_teleportation(self):
