@@ -1,14 +1,16 @@
-__all__ = ["krylovsolve", "lanczos_algorithm"]
+__all__ = ["krylovsolve"]
 """
 This module provides approximations of the time evolution operator
 using small dimensional Krylov subspaces.
 """
 
+from scipy.optimize import root_scalar
 from functools import reduce
 from math import ceil
-import operator
-
 import numpy as np
+import operator
+import warnings
+
 from qutip.expect import expect, expect_rho_vec
 from qutip.qobj import Qobj
 from qutip.solver import Result, Options
@@ -74,31 +76,12 @@ def krylovsolve(
          to the times `tlist` [if `e_ops` is an empty list].
     """
 
-    e_ops, e_ops_dict = check_e_ops(e_ops)
-    pbar = check_progress_bar(progress_bar)
+    # check the physics
+    _check_inputs(H, psi0, krylov_dim)
 
-    # set the physics
-    if not isinstance(H, Qobj):
-        raise TypeError(
-            "krylovsolve currently supports Hamiltonian Qobj operators only"
-        )
-
-    if not (psi0.isket and isinstance(psi0, Qobj)):
-        raise Exception("Initial state must be a state vector Qobj.")
-
-    assert (
-        len(H.shape) == 2 and H.shape[0] == H.shape[1]
-    ), "the Hamiltonian must be 2-dimensional square Qobj."
-
-    assert (
-        psi0.shape[0] == H.shape[0]
-    ), "The state vector and the Hamiltonian must share the same \
-        dimension."
-
-    assert (
-        H.shape[0] >= krylov_dim
-    ), "the Hamiltonian dimension must be greater or equal to the \
-            maximum allowed krylov dimension."
+    # check extra inputs
+    e_ops, e_ops_dict = _check_e_ops(e_ops)
+    pbar = _check_progress_bar(progress_bar)
 
     # transform inputs type from Qobj to np.ndarray/csr_matrix
     if sparse:
@@ -111,38 +94,31 @@ def krylovsolve(
     # create internal variable and output containers
     if options is None:
         options = Options()
-
     krylov_results = Result()
     krylov_results.solver = "krylovsolve"
 
-    # optimization step
-    dim_m = krylov_dim
-    n_tlist_steps = len(tlist)
-
     # handle particular cases of an empty tlist or single element
-    if n_tlist_steps < 1:  # if tlist is empty, return empty results
-        _dummy_progress_bar(progress_bar=pbar)
+    n_tlist_steps = len(tlist)
+    if n_tlist_steps < 1:
         return krylov_results
 
     if n_tlist_steps == 1:  # if tlist has only one element, return it
-        print(
-            "Warning: input 'tlist' contains a single element, assuming \
-            initial time is 0 and final time is tlist single element"
-        )
         krylov_results = particular_tlist(
             tlist, n_tlist_steps, options, psi0, e_ops, krylov_results, pbar
-        )
+        )  # this will also raise a warning
         return krylov_results
 
     tf = tlist[-1]
     t0 = tlist[0]
 
-    # this Lanczos iteration it's reused for the first partition
+    # optimization step using Lanczos, then reuse it for the first partition
+    dim_m = krylov_dim
     krylov_basis, T_m = lanczos_algorithm(
         _H, _psi, krylov_dim=dim_m, sparse=sparse
     )
 
-    delta_t = optimizer(
+    # calculate optimal number of internal timesteps.
+    delta_t = _optimize_lanczos_timestep_size(
         T_m, krylov_basis=krylov_basis, tlist=tlist, tol=options.atol
     )
 
@@ -152,7 +128,8 @@ def krylovsolve(
     if progress_bar:
         pbar.start(len(partitions))
 
-    krylov_results, expt_callback, options, n_expt_op = e_ops_outputs(
+    # update parameters regarding e_ops
+    krylov_results, expt_callback, options, n_expt_op = _e_ops_outputs(
         krylov_results, e_ops, n_tlist_steps, options
     )
 
@@ -185,14 +162,17 @@ def krylovsolve(
         psi_norm = np.linalg.norm(_psi)
         last_t = partition[-1]
 
-        evolved_states = map(Qobj, evolved_states[1:-1])
+        # apply qobj to each evolved state, remove repeated tail elements
+        qobj_evolved_states = [
+            Qobj(state, dims=psi0.dims) for state in evolved_states[1:-1]
+        ]
 
-        krylov_results = _evolve_states(
+        krylov_results = _expectation_values(
             e_ops,
             n_expt_op,
             expt_callback,
             krylov_results,
-            evolved_states,
+            qobj_evolved_states,
             partitions,
             idx,
             t_idx,
@@ -216,11 +196,11 @@ def krylovsolve(
     return krylov_results
 
 
-def _evolve_states(
+def _expectation_values(
     e_ops,
     n_expt_op,
     expt_callback,
-    krylov_results,
+    res,
     evolved_states,
     partitions,
     idx,
@@ -229,7 +209,7 @@ def _evolve_states(
 ):
 
     if options.store_states:
-        krylov_results.states += evolved_states
+        res.states += evolved_states
 
     for t, state in zip(
         range(t_idx, t_idx + len(partitions[idx][1:-1])), evolved_states
@@ -237,47 +217,21 @@ def _evolve_states(
 
         if expt_callback:
             # use callback method
-            krylov_results.expect.append(e_ops(t, state))
+            res.expect.append(e_ops(t, state))
 
         for m in range(n_expt_op):
             op = e_ops[m]
             if not isinstance(op, Qobj) and callable(op):
-
-                krylov_results.expect[m][t] = op(t, state)
+                res.expect[m][t] = op(t, state)
                 continue
 
-            krylov_results.expect[m][t] = expect(op, state)
+            res.expect[m][t] = expect(op, state)
 
     if idx == len(partitions) - 1:
-        if options.store_final_state:
-            krylov_results.states += evolved_states[-1]
+        if (options.store_final_state) and (not options.store_states):
+            res.states = [evolved_states[-1]]
 
-    return krylov_results
-
-
-def dot_mul(A, v, sparse: bool = False):
-    """
-    Matrix multiplication of square matrix 'A' with vector 'v' for numpy
-    'A' an instance of a dense np.ndarray or a scipy sparse array.
-    Parameters
-    ------------
-    A : np.ndarray | csr_matrix
-        Square matrix.
-    v: np.ndarray
-        Vector.
-    sparse: bool (optional, default False)
-        Wether to perform scipy sparse matrix multiplication operations or
-        numpy dense matrix multiplications.
-    Returns
-    ---------
-    Av: np.ndarray
-        Resulting matrix multiplication.
-    """
-
-    if sparse:  # a is an instance of scr_matrix, v is a np.array
-        return A.dot(v)
-    else:
-        return np.matmul(A, v)
+    return res
 
 
 def lanczos_algorithm(
@@ -315,7 +269,7 @@ def lanczos_algorithm(
 
     v[0, :] = psi.squeeze()
 
-    w_prime = dot_mul(H, v[0, :], sparse=sparse)
+    w_prime = H.dot(v[0, :])
 
     alpha = np.vdot(w_prime, v[0, :])
 
@@ -336,7 +290,7 @@ def lanczos_algorithm(
             return v_happy, T_m_happy
 
         v[j, :] = w / beta
-        w_prime = dot_mul(H, v[j, :], sparse=sparse)
+        w_prime = H.dot(v[j, :])
         alpha = np.vdot(w_prime, v[j, :])
 
         w = w_prime - alpha * v[j, :] - beta * v[j - 1, :]
@@ -446,6 +400,175 @@ def _evolve_krylov_tlist(
 # Auxiliar functions
 
 
+def _check_inputs(H, psi0, krylov_dim):
+    """Check that the inputs 'H' and 'psi0' have the correct structures."""
+    if not isinstance(H, Qobj):
+        raise TypeError(
+            "krylovsolve currently supports Hamiltonian Qobj operators only"
+        )
+
+    if not isinstance(psi0, Qobj):
+        raise TypeError("'psi0' must be a Qobj.")
+
+    if not psi0.isket:
+        raise Exception("Initial state must be a ket Qobj.")
+
+    if not ((len(H.shape) == 2) and (H.shape[0] == H.shape[1])):
+        raise ValueError("the Hamiltonian must be 2-dimensional square Qobj.")
+
+    if not (psi0.dims[0] == H.dims[0]):
+        raise ValueError(
+            "'psi0' and the Hamiltonian must share the same dimension."
+        )
+
+    if not (H.shape[0] >= krylov_dim):
+        raise ValueError(
+            "the Hamiltonian dimension must be greater or equal to the maximum\
+allowed krylov dimension 'krylov_dim'."
+        )
+
+
+def _check_e_ops(e_ops):
+    """
+    Check instances of e_ops and return the formatted version of e_ops
+    and e_ops_dict.
+    """
+    if e_ops is None:
+        e_ops = []
+    if isinstance(e_ops, Qobj):
+        e_ops = [e_ops]
+    if isinstance(e_ops, dict):
+        e_ops_dict = e_ops
+        e_ops = [e for e in e_ops.values()]
+    else:
+        e_ops_dict = None
+    return e_ops, e_ops_dict
+
+
+def _check_progress_bar(progress_bar):
+    """
+    Check instance of progress_bar and return the object.
+    """
+    if progress_bar is None:
+        pbar = BaseProgressBar()
+    if progress_bar is True:
+        pbar = TextProgressBar()
+    return pbar
+
+
+def particular_tlist(
+    tlist, n_tlist_steps, options, psi0, e_ops, res, progress_bar
+):
+    """Deals with the problem when 'tlist' contains a single element, where
+    that same ket is returned and evaluated at 'e_ops', if provided.
+    """
+
+    warnings.warn(
+        "Input 'tlist' contains a single element. If 'e_ops' were provided, \
+returning its corresponding expectation values at 'psi0', else return 'psi0'."
+    )
+
+    if progress_bar:
+        progress_bar.start(1)
+
+    res, expt_callback, options, n_expt_op = _e_ops_outputs(
+        res, e_ops, n_tlist_steps, options
+    )
+
+    if options.store_states:
+        res.states = [psi0]
+
+    if expt_callback:
+        # use callback method
+        res.expect.append(e_ops(tlist[0], psi0))
+
+    for m in range(n_expt_op):
+        op = e_ops[m]
+        if not isinstance(op, Qobj) and callable(op):
+
+            res.expect[m][0] = op(tlist[0], psi0)
+            continue
+
+        res.expect[m][0] = expect(op, psi0)
+
+    if options.store_final_state:
+        res.states = [psi0]
+
+    if progress_bar:
+        progress_bar.update(1)
+        progress_bar.finished()
+    return res
+
+
+def _optimize_lanczos_timestep_size(T, krylov_basis, tlist, tol):
+    """
+    Solves the equation defined to optimize the number of Lanczos
+    iterations to be performed inside Krylov's algorithm.
+    """
+    f = _lanczos_error_equation_to_optimize_delta_t(
+        T,
+        krylov_basis=krylov_basis,
+        t0=tlist[0],
+        tf=tlist[-1],
+        target_tolerance=tol,
+    )
+    bracket = [tlist[0], tlist[-1]]
+
+    if (np.sign(f(tlist[0])) == -1) and (np.sign(f(tlist[-1])) == -1):
+        print(
+            "No optimization is required for this configuration of 'H', \
+'krylov_dim', 'tlist' and 'options.atol'"
+        )
+        delta_t = tlist[-1] - tlist[0]
+        return delta_t
+    else:
+        sol = root_scalar(f=f, bracket=bracket, method="brentq")
+        if sol.converged:
+            delta_t = sol.root
+            return delta_t
+        else:
+            raise Exception(
+                f"Method did not converge, try decreasing the tolerance via \
+Options().atol, 'krylov_dim' or taking a lesser final time 'tlist[-1]'. If \
+nothing works, this problem might not be suitable for Krylov or a deeper \
+analysis might be required"
+            )
+
+
+def _lanczos_error_equation_to_optimize_delta_t(
+    T, krylov_basis, t0, tf, target_tolerance
+):
+    """
+    Function to optimize in order to obtain the optimal number of
+    Lanczos algorithm iterations, governed by the optimal timestep size between
+    Lanczos iteractions.
+    """
+    eigenvalues1, eigenvectors1 = eigh(T[0:, 0:])
+    U1 = np.matmul(krylov_basis[0:, 0:].T, eigenvectors1)
+    e01 = eigenvectors1.conj().T[:, 0]
+
+    eigenvalues2, eigenvectors2 = eigh(T[0:-1, 0 : T.shape[1] - 1])
+    U2 = np.matmul(krylov_basis[0:-1, :].T, eigenvectors2)
+    e02 = eigenvectors2.conj().T[:, 0]
+
+    def f(t):
+        delta_t = -1j * (t - t0)
+
+        aux1 = np.multiply(np.exp(delta_t * eigenvalues1), e01)
+        psi1 = np.matmul(U1, aux1)
+
+        aux2 = np.multiply(np.exp(delta_t * eigenvalues2), e02)
+        psi2 = np.matmul(U2, aux2)
+
+        error = np.linalg.norm(psi1 - psi2)
+
+        steps = 1 if t == t0 else max(1, tf // (t - t0))
+        print(np.log10(target_tolerance))
+        return np.log10(error) + np.log10(steps) - np.log10(target_tolerance)
+
+    return f
+
+
 def _make_partitions(tlist, n_timesteps):
     """Generates an internal 'partitions' list of np.arrays to iterate Lanczos
     algorithms on each of them, based on 'tlist' and the optimized number of
@@ -463,7 +586,7 @@ def _make_partitions(tlist, n_timesteps):
     n_timesteps += 1
     krylov_tlist = np.linspace(tlist[0], tlist[-1], n_timesteps)
     krylov_partitions = [
-        np.array(krylov_tlist[i: i + 2]) for i in range(n_timesteps - 1)
+        np.array(krylov_tlist[i : i + 2]) for i in range(n_timesteps - 1)
     ]
     partitions = []
     for krylov_partition in krylov_partitions:
@@ -476,123 +599,7 @@ def _make_partitions(tlist, n_timesteps):
     return partitions
 
 
-def bound_function(T, krylov_basis, t0, tf):
-    """
-    Function to optimize in order to obtain the optimal number of
-    Lanczos algorithm iterations.
-    """
-    eigenvalues1, eigenvectors1 = eigh(T[0:, 0:])
-    U1 = np.matmul(krylov_basis[0:, 0:].T, eigenvectors1)
-    e01 = eigenvectors1.conj().T[:, 0]
-
-    eigenvalues2, eigenvectors2 = eigh(T[0:-1, 0:T.shape[1] - 1])
-    U2 = np.matmul(krylov_basis[0:-1, :].T, eigenvectors2)
-    e02 = eigenvectors2.conj().T[:, 0]
-
-    def f(t):
-        delta_t = -1j * (t - t0)
-
-        aux1 = np.multiply(np.exp(delta_t * eigenvalues1), e01)
-        psi1 = np.matmul(U1, aux1)
-
-        aux2 = np.multiply(np.exp(delta_t * eigenvalues2), e02)
-        psi2 = np.matmul(U2, aux2)
-
-        error = np.linalg.norm(psi1 - psi2)
-
-        steps = 1 if t == t0 else max(1, tf // (t - t0))
-        return np.log10(error) + np.log10(steps)
-
-    return f
-
-
-def illinois_algorithm(f, a, b, y, margin=1e-5):
-    """
-    Bracketed approach of Root-finding with illinois method.
-    Parameters
-    ----------
-    f : callable
-        Continuous function.
-    a : float
-        Lower bound to be searched.
-    b : float
-        Upper bound to be searched.
-    y : float
-        Target value.
-    margin : float
-        Margin of error in absolute term.
-    Returns
-    -------
-    c : float
-        Value where f(c) is within the margin of y.
-    """
-
-    if margin < 0:
-        raise ValueError(
-            "tolerance by 'margin' input cannot be null nor negative"
-        )
-
-    lower = f(a)
-    upper = f(b)
-
-    assert lower <= y, f"y is smaller than the lower bound. {y} < {lower}"
-
-    if upper <= y:
-        return b
-
-    stagnant = 0
-
-    while True:
-        c = ((a * (upper - y)) - (b * (lower - y))) / (upper - lower)
-
-        y_c = f(c)
-        if abs((y_c) - y) < margin:
-            # found!
-            return c
-        elif y < y_c:
-            b, upper = c, y_c
-            if stagnant == -1:
-                # Lower bound is stagnant!
-                lower += (y - lower) / 2
-            stagnant = -1
-        else:
-            a, lower = c, y_c
-            if stagnant == 1:
-                # Upper bound is stagnant!
-                upper -= (upper - y) / 2
-            stagnant = 1
-
-
-def optimizer(T, krylov_basis, tlist, tol):
-    """
-    Solves the equation defined to optimize the number of Lanczos
-    iterations to be performed inside Krylov's algorithm.
-    """
-    f = bound_function(T, krylov_basis=krylov_basis, t0=tlist[0], tf=tlist[-1])
-    n_iterations = illinois_algorithm(
-        f, a=tlist[0], b=tlist[-1], y=np.log10(tol), margin=0.1
-    )
-    return n_iterations
-
-
-def check_e_ops(e_ops):
-    """
-    Check instances of e_ops and return the formatted version of e_ops
-    and e_ops_dict.
-    """
-    if e_ops is None:
-        e_ops = []
-    if isinstance(e_ops, Qobj):
-        e_ops = [e_ops]
-    if isinstance(e_ops, dict):
-        e_ops_dict = e_ops
-        e_ops = [e for e in e_ops.values()]
-    else:
-        e_ops_dict = None
-    return e_ops, e_ops_dict
-
-
-def e_ops_outputs(krylov_results, e_ops, n_tlist_steps, opt):
+def _e_ops_outputs(krylov_results, e_ops, n_tlist_steps, opt):
     krylov_results.expect = []
     if callable(e_ops):
         n_expt_op = 0
@@ -622,59 +629,4 @@ def e_ops_outputs(krylov_results, e_ops, n_tlist_steps, opt):
     else:
         raise TypeError("Expectation parameter must be a list or a function")
 
-    return krylov_results, expt_callback, options, n_expt_op
-
-
-def check_progress_bar(progress_bar):
-    """
-    Check instance of progress_bar and return the object.
-    """
-    if progress_bar is None:
-        pbar = BaseProgressBar()
-    if progress_bar is True:
-        pbar = TextProgressBar()
-    return pbar
-
-
-def _dummy_progress_bar(progress_bar):
-    """Create a progress bar without jobs."""
-    if progress_bar:
-        progress_bar.start(1)
-        progress_bar.update(1)
-        progress_bar.finished()
-
-
-def particular_tlist(
-    tlist, n_tlist_steps, options, psi0, e_ops, res, progress_bar
-):
-
-    if progress_bar:
-        progress_bar.start(1)
-
-    res, expt_callback, options, n_expt_op = e_ops_outputs(
-        res, e_ops, n_tlist_steps, options
-    )
-
-    if options.store_states:
-        res.states = [psi0]
-
-    if expt_callback:
-        # use callback method
-        res.expect.append(e_ops(tlist[0], psi0))
-
-    for m in range(n_expt_op):
-        op = e_ops[m]
-        if not isinstance(op, Qobj) and callable(op):
-
-            res.expect[m][0] = op(tlist[0], psi0)
-            continue
-
-        res.expect[m][0] = expect(op, psi0)
-
-    if options.store_final_state:
-        res.states = [psi0]
-
-    if progress_bar:
-        progress_bar.update(1)
-        progress_bar.finished()
-    return res
+    return krylov_results, expt_callback, opt, n_expt_op
