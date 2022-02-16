@@ -126,7 +126,7 @@ def plot_wigner_sphere(fig, ax, wigner, reflections):
 
 
 # Adopted from the SciPy Cookbook.
-def _blob(x, y, w, w_max, area, cmap=None, ax=None):
+def _blob(x, y, w, w_max, area, color_fn, ax=None):
     """
     Draws a square-shaped blob with the given area (< 1) at
     the given coordinates.
@@ -141,7 +141,7 @@ def _blob(x, y, w, w_max, area, cmap=None, ax=None):
         handle = plt
 
     handle.fill(xcorners, ycorners,
-             color=cmap(int((w + w_max) * 256 / (2 * w_max))))
+             color=color_fn(w))
 
 
 def _cb_labels(left_dims):
@@ -175,7 +175,7 @@ def _cb_labels(left_dims):
 
 # Adopted from the SciPy Cookbook.
 def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
-           label_top=True):
+           label_top=True, color_style="scaled"):
     """Draws a Hinton diagram for visualizing a density matrix or superoperator.
 
     Parameters
@@ -202,6 +202,19 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
         If True, x-axis labels will be placed on top, otherwise
         they will appear below the plot.
 
+    color_style : string
+        Determines how colors are assigned to each square:
+
+        -  If set to ``"scaled"`` (default), each color is chosen by
+           passing the absolute value of the corresponding matrix
+           element into `cmap` with the sign of the real part.
+        -  If set to ``"threshold"``, each square is plotted as
+           the maximum of `cmap` for the positive real part and as
+           the minimum for the negative part of the matrix element;
+           note that this generalizes `"threshold"` to complex numbers.
+        -  If set to ``"phase"``, each color is chosen according to
+           the angle of the corresponding matrix element.
+
     Returns
     -------
     fig, ax : tuple
@@ -213,6 +226,21 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
     ValueError
         Input argument is not a quantum object.
 
+    Examples
+    --------
+    >>> import qutip
+    >>>
+    >>> dm = qutip.rand_dm(4)
+    >>> fig, ax = qutip.hinton(dm)
+    >>> fig.show()
+    >>>
+    >>> qutip.settings.colorblind_safe = True
+    >>> fig, ax = qutip.hinton(dm, color_style="threshold")
+    >>> fig.show()
+    >>> qutip.settings.colorblind_safe = False
+    >>>
+    >>> fig, ax = qutip.hinton(dm, color_style="phase")
+    >>> fig.show()
     """
 
     # Apply default colormaps.
@@ -278,21 +306,36 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
     if w_max <= 0.0:
         w_max = 1.0
 
+    # Set color_fn here.
+    if color_style == "scaled":
+        def color_fn(w):
+            w = np.abs(w) * np.sign(np.real(w))
+            return cmap(int((w + w_max) * 256 / (2 * w_max)))
+    elif color_style == "threshold":
+        def color_fn(w):
+            w = np.real(w)
+            return cmap(255 if w > 0 else 0)
+    elif color_style == "phase":
+        def color_fn(w):
+            return cmap(int(255 * (np.angle(w) / 2 / np.pi + 0.5)))
+    else:
+        raise ValueError(
+            "Unknown color style {} for Hinton diagrams.".format(color_style)
+        )
+
     ax.fill(array([0, width, width, 0]), array([0, 0, height, height]),
             color=cmap(128))
     for x in range(width):
         for y in range(height):
             _x = x + 1
             _y = y + 1
-            if np.real(W[x, y]) > 0.0:
-                _blob(_x - 0.5, height - _y + 0.5, abs(W[x, y]), w_max,
-                      min(1, abs(W[x, y]) / w_max), cmap=cmap, ax=ax)
-            else:
-                _blob(_x - 0.5, height - _y + 0.5, -abs(W[
-                      x, y]), w_max, min(1, abs(W[x, y]) / w_max), cmap=cmap, ax=ax)
+            _blob(
+                _x - 0.5, height - _y + 0.5, W[x, y], w_max,
+                min(1, abs(W[x, y]) / w_max), color_fn=color_fn, ax=ax)
 
     # color axis
-    norm = mpl.colors.Normalize(-abs(W).max(), abs(W).max())
+    vmax = np.pi if color_style == "phase" else abs(W).max()
+    norm = mpl.colors.Normalize(-vmax, vmax)
     cax, kw = mpl.colorbar.make_axes(ax, shrink=0.75, pad=.1)
     mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cmap)
 

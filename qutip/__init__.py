@@ -69,27 +69,16 @@ else:
 # -----------------------------------------------------------------------------
 # cpu/process configuration
 #
-import multiprocessing
+from qutip.utilities import available_cpu_count
 
 # Check if environ flag for qutip processes is set
 if 'QUTIP_NUM_PROCESSES' in os.environ:
     qutip.settings.num_cpus = int(os.environ['QUTIP_NUM_PROCESSES'])
 else:
+    qutip.settings.num_cpus = available_cpu_count()
     os.environ['QUTIP_NUM_PROCESSES'] = str(qutip.settings.num_cpus)
 
-if qutip.settings.num_cpus == 0:
-    # if num_cpu is 0 set it to the available number of cores
-    import qutip.hardware_info
-    info = qutip.hardware_info.hardware_info()
-    if 'cpus' in info:
-        qutip.settings.num_cpus = info['cpus']
-    else:
-        try:
-            qutip.settings.num_cpus = multiprocessing.cpu_count()
-        except NotImplementedError:
-            qutip.settings.num_cpus = 1
-
-del multiprocessing
+del available_cpu_count
 
 
 # Find MKL library if it exists
