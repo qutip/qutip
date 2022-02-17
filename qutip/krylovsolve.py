@@ -16,7 +16,6 @@ from qutip.qobj import Qobj
 from qutip.solver import Result, Options
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 from qutip.sparse import eigh
-from numpy.linalg import eig
 
 
 def krylovsolve(
@@ -526,15 +525,17 @@ def particular_tlist_or_happy_breakdown(
         res.expect[m][0] = e_m_0[m]
 
     if happy_breakdown:
-        for i in range(1, len(tlist)):
-            if options.store_states:
-                res.states.append(psi0)
-            if expt_callback:
-                res.expect.append(e_0)
-
-            for m in range(n_expt_op):
-                op = e_ops[m]
-                res.expect[m][i] = e_m_0[m]
+        res = _happy_breakdown(
+            tlist,
+            options,
+            res,
+            psi0,
+            expt_callback,
+            e_0,
+            n_expt_op,
+            e_ops,
+            e_m_0,
+        )
 
     if (options.store_final_state) and (not options.store_states):
         res.states = [psi0]
@@ -542,6 +543,24 @@ def particular_tlist_or_happy_breakdown(
     if progress_bar:
         progress_bar.update(1)
         progress_bar.finished()
+    return res
+
+
+def _happy_breakdown(
+    tlist, options, res, psi0, expt_callback, e_0, n_expt_op, e_ops, e_m_0
+):
+    """
+    Dummy evolves the system if a happy breakdown of an eigenstate occurs.
+    """
+    for i in range(1, len(tlist)):
+        if options.store_states:
+            res.states.append(psi0)
+        if expt_callback:
+            res.expect.append(e_0)
+
+        for m in range(n_expt_op):
+            op = e_ops[m]
+            res.expect[m][i] = e_m_0[m]
     return res
 
 
@@ -590,7 +609,7 @@ def _lanczos_error_equation_to_optimize_delta_t(
     U1 = np.matmul(krylov_basis[0:, 0:].T, eigenvectors1)
     e01 = eigenvectors1.conj().T[:, 0]
 
-    eigenvalues2, eigenvectors2 = eigh(T[0:-1, 0 : T.shape[1] - 1])
+    eigenvalues2, eigenvectors2 = eigh(T[0:-1, 0: T.shape[1] - 1])
     U2 = np.matmul(krylov_basis[0:-1, :].T, eigenvectors2)
     e02 = eigenvectors2.conj().T[:, 0]
 
@@ -628,11 +647,11 @@ def _make_partitions(tlist, n_timesteps):
     n_timesteps += 1
     krylov_tlist = np.linspace(tlist[0], tlist[-1], n_timesteps)
     krylov_partitions = [
-        np.array(krylov_tlist[i : i + 2]) for i in range(n_timesteps - 1)
+        np.array(krylov_tlist[i: i + 2]) for i in range(n_timesteps - 1)
     ]
     partitions = []
     for krylov_partition in krylov_partitions:
-        start = krylov_partition[0]
+        start = kry
         end = krylov_partition[-1]
         condition = _tlist <= end
         partitions.append([start] + _tlist[condition].tolist() + [end])
