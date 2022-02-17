@@ -119,13 +119,6 @@ from .about import *
 from .cite import *
 
 # -----------------------------------------------------------------------------
-# Load user configuration if present: override defaults.
-#
-##from . import configrc
-##if configrc.has_qutip_rc():
-##    settings.load()
-
-# -----------------------------------------------------------------------------
 # Clean name space
 #
 del os, warnings

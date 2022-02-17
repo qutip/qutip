@@ -323,16 +323,11 @@ def test_manual_typing():
 def test_advance_use():
     opt = CompilationOptions(
         recompile=True,
-        clean_on_error=False,
         extra_import="""
 from qutip import basis
 from qutip.core.data cimport CSR
 from qutip.core.data.expect cimport expect_csr
 """)
-    print(opt)
-    print(qutip.settings.tmproot)
-    print(qutip.settings.coeffroot)
-    print(qutip.settings.coeff_write_ok)
     csr = qutip.num(3).data
     coeff = coefficient("expect_csr(op, op)",
                         args={"op": csr},
@@ -435,3 +430,11 @@ def test_CoeffFromScipy():
     coeff = coefficient(y, tlist=tlist, order=3)
     from_scipy = coefficient(interp.make_interp_spline(tlist, y, k=3))
     _assert_eq_over_interval(coeff, from_scipy, rtol=1e-8, inside=True)
+
+
+
+def test_func_signature():
+    with qutip.core.CoreOptions(function_coefficient_style='pythonic'):
+        assert coefficient(lambda t, args: args, args={'args': 1})(0) == 1
+    with qutip.core.CoreOptions(function_coefficient_style='dict'):
+        assert coefficient(lambda t, w: w['w'], args={'w': 1})(0) == 1

@@ -4,13 +4,6 @@ from ..settings import settings
 __all__ = ["CoreOptions"]
 
 
-def _coefficient_style(val):
-    if val not in ['auto', 'pythonic', 'dict']:
-        raise ValueError("'function_coefficient_style' must be one of "
-                         "['auto', 'pythonic', 'dict']")
-    return val
-
-
 class CoreOptions(QutipOptions):
     """
     Settings used by the Qobj.  Values can be changed in qutip.settings.core.
@@ -82,8 +75,5 @@ class CoreOptions(QutipOptions):
         "colorblind_safe": False,
     }
 
-    check = {
-        "function_coefficient_style": _coefficient_style
-    }
 
 settings.core = CoreOptions

@@ -152,7 +152,7 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         Cutoff for secular approximation. Use ``-1`` if secular approximation
         is not used when evaluating bath-coupling terms.
 
-    options : :class:`qutip.solver.SolverOptions`
+    options : None / dict / :class:`BrOptions` / :class:`Options`
         Options for the solver.
 
     Returns
@@ -256,7 +256,6 @@ class BrSolver(Solver):
     name = "brmesolve"
     optionsclass = BrOptions
     _avail_integrators = {}
-    _avail_options = {}
 
     def __init__(self, H, a_ops, c_ops=None, *, sec_cutoff=0.1, options=None):
         _time_start = time()

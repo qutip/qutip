@@ -150,8 +150,8 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
         dictionary of parameters for time-dependent Hamiltonians and
         collapse operators.
 
-    options : None / :class:`qutip.SolverOptions`
-        with options for the solver.
+    options : None / dict / :class:`Options` / :class:`Options`
+        Options for the solver.
 
     Returns
     -------
@@ -175,7 +175,7 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
 
     if not use_mesolve:
         return sesolve(H, rho0, tlist, e_ops=e_ops, args=args,
-                       options=SeOptions(options, _strick=False))
+                       options=SeOptions(options, _strict=False))
 
     solver = MeSolver(H, c_ops, options=options)
 
@@ -218,7 +218,6 @@ class MeSolver(Solver):
     """
     name = "mesolve"
     _avail_integrators = {}
-    _avail_options = {}
     optionsclass = MeOptions
 
     def __init__(self, H, c_ops=None, *, options=None):

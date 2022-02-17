@@ -28,7 +28,7 @@ class Integrator:
     system: qutip.QobjEvo
         Quantum system in which states evolve.
 
-    options: qutip.SolverOdeOptions
+    options: OdeOptions
         Options for the solver.
 
     Class Attributes
@@ -149,7 +149,8 @@ class Integrator:
             differ from the input time only when ``step=True``.
 
         .. note:
-            The default implementation may be overridden by integrators that can provide a more efficient one.
+            The default implementation may be overridden by integrators that
+            can provide a more efficient one.
         """
         t_last, state = self.get_state()
         if t > t_last:

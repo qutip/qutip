@@ -123,8 +123,8 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None):
     args : None / *dictionary*
         dictionary of parameters for time-dependent Hamiltonians
 
-    options : None / :class:`qutip.SolverOptions`
-        with options for the ODE solver.
+    options : None / dict / :class:`SeOptions` / :class:`Options`
+        Options for the solver.
 
     Returns
     -------
@@ -163,7 +163,6 @@ class SeSolver(Solver):
     """
     name = "sesolve"
     _avail_integrators = {}
-    _avail_options = {}
     optionsclass = SeOptions
 
     def __init__(self, H, *, options=None):

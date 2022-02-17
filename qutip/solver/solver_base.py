@@ -126,7 +126,7 @@ class Solver:
             values. Function[s] must have the signature
             f(t : float, state : Qobj) -> expect.
 
-        options : Options {None}
+        options : None / dict / :class:`SolverOptions` / :class:`Options`
             Options for the solver
 
         Return

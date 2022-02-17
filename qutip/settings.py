@@ -34,8 +34,6 @@
 This module contains settings for the QuTiP graphics, multiprocessing, and
 tidyup functionality, etc.
 """
-# from __future__ import absolute_import
-# import qutip.configrc as qrc
 import os, sys
 from .utilities import _blas_info
 from ctypes import cdll

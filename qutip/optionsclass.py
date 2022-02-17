@@ -29,7 +29,7 @@ class QutipOptions(metaclass=MetaOptions):
     default = {}
     check = {}
 
-    def __init__(self, base=None, *, _strick=True, _frozzen=False, **options):
+    def __init__(self, base=None, *, _strict=True, _frozzen=False, **options):
         if isinstance(base, dict):
             options.update(base)
 
@@ -39,7 +39,7 @@ class QutipOptions(metaclass=MetaOptions):
         self.frozzen = _frozzen
         self.options = self.default.copy()
         self._from_dict(options)
-        if _strick and options:
+        if _strict and options:
             raise KeyError(f"Unknown option(s): {set(options)}")
 
     def copy(self):
@@ -80,10 +80,6 @@ class QutipOptions(metaclass=MetaOptions):
                 out += f"    {key:{longest}} : {val}\n"
         out += "\n"
         return out
-
-    def set_has_default(self):
-        for key in self.options:
-            self.__class__[key] = self.options[key]
 
     def _from_dict(self, opt):
         for key in set(opt) & set(self.options):

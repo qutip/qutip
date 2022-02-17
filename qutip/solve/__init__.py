@@ -20,5 +20,3 @@ from .stochastic import *
 del np
 del Qobj
 del debug
-
-del solver

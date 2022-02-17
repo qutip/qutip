@@ -120,11 +120,11 @@ class SolverOptions(QutipOptions):
     frozzen = False
 
     def __init__(self, base=None, *,
-                 ode=None, _strick=True, _frozzen=False, **options):
+                 ode=None, _strict=True, _frozzen=False, **options):
         if isinstance(base, dict):
             options.update(base)
         elif type(base) is Options:
-            _strick = False
+            _strict = False
             opt = {
                 key: val
                 for key, val in base.options.items()
@@ -133,13 +133,13 @@ class SolverOptions(QutipOptions):
             options.update(opt)
         elif (
             type(base) is self.__class__
-            or (isinstance(base, SolverOptions) and not _strick)
+            or (isinstance(base, SolverOptions) and not _strict)
         ):
             options.update(base.options)
             ode = base.ode
-        elif isinstance(base, SolverOptions) and _strick:
+        elif isinstance(base, SolverOptions) and _strict:
             # TODO: SeOptions, MeOptions contain the same info, should we be
-            # lenient? Or rename `_strick` to `force` and ask to use the flag?
+            # lenient? Or rename `_strict` to `force` and ask to use the flag?
             raise TypeError("Cannot convert between different options types")
 
         self.options = self.default.copy()
@@ -149,7 +149,7 @@ class SolverOptions(QutipOptions):
         self.frozzen = _frozzen
         self.ode.frozzen = _frozzen
 
-        if _strick and options:
+        if _strict and options:
             raise KeyError("Unknown option(s): " +
                            f"{set(options) - set(self.default)}")
 
