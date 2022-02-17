@@ -261,7 +261,7 @@ class BrSolver(Solver):
     def __init__(self, H, a_ops, c_ops=None, *, sec_cutoff=0.1, options=None):
         _time_start = time()
 
-        options = BrMeOptions(options)
+        options = BrOptions(options)
 
         if not isinstance(H, (Qobj, QobjEvo)):
             raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")

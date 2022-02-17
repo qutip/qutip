@@ -178,7 +178,7 @@ class OdeBdfOptions(QutipOptions):
     }
 
 
-class IntegratorScipyBDF(Integrator):
+class IntegratorScipyBDF(IntegratorScipyAdams):
     """
     Integrator using Scipy `ode` with zvode integrator using bdf method.
     Ordinary Differential Equation solver by netlib

@@ -2,9 +2,10 @@ import numpy as np
 from types import FunctionType
 
 import qutip
-from qutip.solver.mesolve import mesolve, MeSolver
+from qutip.solver.mesolve import mesolve, MeSolver, MeOptions
+from qutip.solver.sesolve import SeOptions
 from qutip.solver.solver_base import Solver
-from qutip.solver.options import SolverOptions
+from qutip.solver.options import Options
 import pickle
 import pytest
 
@@ -80,7 +81,7 @@ class TestMESolveDecay:
         H = self.a.dag() * self.a
         psi0 = qutip.basis(self.N, 9)  # initial state
         c_op_list = [cte_c_ops]
-        options = SolverOptions(progress_bar=None)
+        options = MeOptions(progress_bar=None)
         medata = mesolve(H, psi0, self.tlist, c_op_list, [H],
                          args={"kappa": self.kappa},
                          options=options)
@@ -96,7 +97,7 @@ class TestMESolveDecay:
         H = self.a.dag() * self.a
         psi0 = qutip.basis(self.N, 9)  # initial state
         c_op_list = [c_ops]
-        options = SolverOptions(method=method, progress_bar=None)
+        options = Options(method=method, progress_bar=None)
         medata = mesolve(H, psi0, self.tlist, c_op_list, [H],
                          args={"kappa": self.kappa}, options=options)
         expt = medata.expect[0]
@@ -109,7 +110,7 @@ class TestMESolveDecay:
         H = self.a.dag() * self.a
         psi0 = qutip.basis(self.N, 9)  # initial state
         c_op_list = [c_ops, c_ops_1]
-        options = SolverOptions(progress_bar=None)
+        options = {'progress_bar': None}
         medata = mesolve(H, psi0, self.tlist, c_op_list, [H],
                          args={"kappa": self.kappa},
                          options=options)
@@ -123,7 +124,7 @@ class TestMESolveDecay:
         me_error = 5e-6
         psi0 = qutip.basis(self.N, 9)  # initial state
         c_op_list = [c_ops]
-        options = SolverOptions(progress_bar=None)
+        options = MeOptions(progress_bar=None)
         medata = mesolve(H, psi0, self.tlist, c_op_list, [self.ada],
                          args={"kappa": self.kappa},
                          options=options)
@@ -142,7 +143,7 @@ class TestMESolveDecay:
             c_op_list = [c_ops + c_ops]
         else:
             c_op_list = [[c_ops, c_ops]]
-        options = SolverOptions(progress_bar=None)
+        options = Options(progress_bar=None)
         medata = mesolve(H, psi0, self.tlist, c_op_list, [self.ada],
                          args={"kappa": self.kappa},
                          options=options)
@@ -159,7 +160,7 @@ class TestMESolveDecay:
         psi0 = qutip.basis(self.N, 9)  # initial state
         rho0vec = qutip.operator_to_vector(psi0*psi0.dag())
         E0 = qutip.sprepost(qutip.qeye(self.N), qutip.qeye(self.N))
-        options = SolverOptions(progress_bar=None)
+        options = Options(progress_bar=None)
         c_op_list = [c_ops]
         out1 = mesolve(H, psi0, self.tlist, c_op_list, [],
                        args={"kappa": self.kappa},
@@ -180,7 +181,7 @@ class TestMESolveDecay:
         psi0 = qutip.basis(self.N, 9)  # initial state
         rho0vec = qutip.operator_to_vector(psi0*psi0.dag())
         E0 = qutip.sprepost(qutip.qeye(self.N), qutip.qeye(self.N))
-        options = SolverOptions(progress_bar=None)
+        options = Options(progress_bar=None)
         c_op_list = [c_ops]
         out1 = mesolve(L, psi0, self.tlist, c_op_list, [],
                        args={"kappa": self.kappa},
@@ -193,7 +194,7 @@ class TestMESolveDecay:
         assert fid == pytest.approx(1., abs=me_error)
 
     def test_mesolver_pickling(self):
-        options = SolverOptions(progress_bar=None)
+        options = Options(progress_bar=None)
         solver_obj = MeSolver(self.ada, c_ops=[self.a], options=options)
         copy = pickle.loads(pickle.dumps(solver_obj))
         e1 = solver_obj.run(qutip.basis(self.N, 9), [0, 1, 2, 3],
@@ -205,7 +206,7 @@ class TestMESolveDecay:
     @pytest.mark.parametrize('method',
                              all_ode_method, ids=all_ode_method)
     def test_mesolver_stepping(self, method):
-        options = SolverOptions(method=method, progress_bar=None)
+        options = Options(method=method, progress_bar=None)
         solver_obj = MeSolver(
             self.ada,
             c_ops=qutip.QobjEvo(
@@ -244,8 +245,11 @@ def testME_SesolveFallback(super_):
         H = qutip.liouvillian(H)
 
     times = np.linspace(0.0, 0.1, 3)
-    options = SolverOptions(store_states=False, store_final_state=True,
-                            progress_bar=None)
+    options = Options(
+        store_states=False,
+        store_final_state=True,
+        progress_bar=None
+    )
     result = mesolve(H, state0, times, [], e_ops=[a], options=options)
     if super_ == "ket":
         assert result.final_state.dims == psi0.dims
@@ -359,7 +363,7 @@ class TestJCModelEvolution:
         if rate > 0.0:
             c_op_list.append(np.sqrt(rate) * sm.dag())
 
-        options = SolverOptions(store_states=True, progress_bar=None)
+        options = MeOptions(store_states=True, progress_bar=None)
 
         # evolve and calculate expectation values
         output = mesolve(
@@ -528,7 +532,7 @@ class TestMESolveStepFuncCoeff:
     """
     # Runge-Kutta method (dop853) behave better with step function evolution
     # than multi-step methods (adams, qutip 4's default)
-    options = SolverOptions(method="dop853", nsteps=1e8, progress_bar=None)
+    options = MeOptions(method="dop853", nsteps=1e8, progress_bar=None)
 
     def python_coeff(self, t, args):
         if t < np.pi/2:
@@ -544,7 +548,7 @@ class TestMESolveStepFuncCoeff:
         """
         rho0 = qutip.rand_ket(2)
         tlist = np.array([0, np.pi/2])
-        options = SolverOptions(method=method, nsteps=1e5, rtol=1e-7)
+        options = Options(method=method, nsteps=1e5, rtol=1e-7)
         qu = qutip.QobjEvo([[qutip.sigmax(), self.python_coeff]],
                      tlist=tlist, args={"_step_func_coeff": 1})
         result = mesolve(qu, rho0=rho0, tlist=tlist, options=options)
@@ -643,4 +647,4 @@ def test_mesolve_bad_state():
 
 def test_mesolve_bad_options():
     with pytest.raises(TypeError):
-        MeSolver(qutip.qeye(4), [], options=False)
+        MeSolver(qutip.qeye(4), [], options=SeOptions())
