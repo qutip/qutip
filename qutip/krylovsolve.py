@@ -16,6 +16,7 @@ from qutip.qobj import Qobj
 from qutip.solver import Result, Options
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 from qutip.sparse import eigh
+from numpy.linalg import eig
 
 
 def krylovsolve(
@@ -103,7 +104,7 @@ def krylovsolve(
         return krylov_results
 
     if n_tlist_steps == 1:  # if tlist has only one element, return it
-        krylov_results = particular_tlist(
+        krylov_results = particular_tlist_or_happy_breakdown(
             tlist, n_tlist_steps, options, psi0, e_ops, krylov_results, pbar
         )  # this will also raise a warning
         return krylov_results
@@ -117,12 +118,35 @@ def krylovsolve(
         _H, _psi, krylov_dim=dim_m, sparse=sparse
     )
 
-    # calculate optimal number of internal timesteps.
-    delta_t = _optimize_lanczos_timestep_size(
-        T_m, krylov_basis=krylov_basis, tlist=tlist, tol=options.atol
-    )
+    # check if a happy breakdown occurred
+    if T_m.shape[0] < krylov_dim + 1:
+        if T_m.shape[0] == 1:
+            # this means that the state does not evolve in time, it lies in a
+            # symmetry of H subspace. Thus, theres no work to be done.
+            krylov_results = particular_tlist_or_happy_breakdown(
+                tlist,
+                n_tlist_steps,
+                options,
+                psi0,
+                e_ops,
+                krylov_results,
+                pbar,
+                happy_breakdown=True,
+            )
+            return krylov_results
+        else:
+            # no optimization is required, convergence is guaranteed.
+            delta_t = tf - t0
+            n_timesteps = 1
+    else:
 
-    n_timesteps = int(ceil((tf - t0) / delta_t))
+        # calculate optimal number of internal timesteps.
+        delta_t = _optimize_lanczos_timestep_size(
+            T_m, krylov_basis=krylov_basis, tlist=tlist, tol=options.atol
+        )
+
+        n_timesteps = int(ceil((tf - t0) / delta_t))
+
     partitions = _make_partitions(tlist=tlist, n_timesteps=n_timesteps)
 
     if progress_bar:
@@ -136,8 +160,6 @@ def krylovsolve(
     # parameters for the lazy iteration evolve tlist
     psi_norm = np.linalg.norm(_psi)
     last_t = t0
-    _krylov_basis = krylov_basis.copy()
-    _T_m = T_m.copy()
 
     for idx, partition in enumerate(partitions):
 
@@ -148,14 +170,14 @@ def krylovsolve(
             tlist=partition,
             t0=last_t,
             psi_norm=psi_norm,
-            krylov_basis=_krylov_basis,
-            T_m=_T_m,
+            krylov_basis=krylov_basis,
+            T_m=T_m,
             sparse=sparse,
         )
 
         if idx == 0:
-            _krylov_basis = None
-            _T_m = None
+            krylov_basis = None
+            T_m = None
             t_idx = 0
 
         _psi = evolved_states[-1]
@@ -227,9 +249,12 @@ def _expectation_values(
 
             res.expect[m][t] = expect(op, state)
 
-    if idx == len(partitions) - 1:
-        if (options.store_final_state) and (not options.store_states):
-            res.states = [evolved_states[-1]]
+    if (
+        idx == len(partitions) - 1
+        and options.store_final_state
+        and not options.store_states
+    ):
+        res.states = [evolved_states[-1]]
 
     return res
 
@@ -264,8 +289,8 @@ def lanczos_algorithm(
         Tridiagonal decomposition.
     """
 
-    v = np.zeros((krylov_dim + 2, psi.shape[0]), dtype=complex)
-    T_m = np.zeros((krylov_dim + 2, krylov_dim + 2), dtype=complex)
+    v = np.zeros((krylov_dim + 1, psi.shape[0]), dtype=complex)
+    T_m = np.zeros((krylov_dim + 1, krylov_dim + 1), dtype=complex)
 
     v[0, :] = psi.squeeze()
 
@@ -299,11 +324,6 @@ def lanczos_algorithm(
         T_m[j, j - 1] = beta
         T_m[j - 1, j] = beta
 
-    beta = np.linalg.norm(w)
-    v[krylov_dim + 1, :] = w / beta
-
-    T_m[krylov_dim + 1, krylov_dim] = beta
-
     return v, T_m
 
 
@@ -325,6 +345,7 @@ def _evolve(t0: float, krylov_basis: np.ndarray, T_m: np.ndarray):
     time_evolution: function
         Time evolution given by the Krylov subspace approximation.
     """
+
     eigenvalues, eigenvectors = eigh(T_m)
     U = np.matmul(krylov_basis.T, eigenvectors)
     e0 = eigenvectors.conj().T[:, 0]
@@ -411,7 +432,7 @@ def _check_inputs(H, psi0, krylov_dim):
         raise TypeError("'psi0' must be a Qobj.")
 
     if not psi0.isket:
-        raise Exception("Initial state must be a ket Qobj.")
+        raise TypeError("Initial state must be a ket Qobj.")
 
     if not ((len(H.shape) == 2) and (H.shape[0] == H.shape[1])):
         raise ValueError("the Hamiltonian must be 2-dimensional square Qobj.")
@@ -456,17 +477,26 @@ def _check_progress_bar(progress_bar):
     return pbar
 
 
-def particular_tlist(
-    tlist, n_tlist_steps, options, psi0, e_ops, res, progress_bar
+def particular_tlist_or_happy_breakdown(
+    tlist,
+    n_tlist_steps,
+    options,
+    psi0,
+    e_ops,
+    res,
+    progress_bar,
+    happy_breakdown=False,
 ):
     """Deals with the problem when 'tlist' contains a single element, where
     that same ket is returned and evaluated at 'e_ops', if provided.
     """
 
-    warnings.warn(
-        "Input 'tlist' contains a single element. If 'e_ops' were provided, \
-returning its corresponding expectation values at 'psi0', else return 'psi0'."
-    )
+    if len(tlist) == 0:
+        warnings.warn(
+            "Input 'tlist' contains a single element. If 'e_ops' were provided\
+            ,returning its corresponding expectation values at 'psi0', else \
+            return 'psi0'."
+        )
 
     if progress_bar:
         progress_bar.start(1)
@@ -480,18 +510,33 @@ returning its corresponding expectation values at 'psi0', else return 'psi0'."
 
     if expt_callback:
         # use callback method
-        res.expect.append(e_ops(tlist[0], psi0))
+        e_0 = e_ops(tlist[0], psi0)
+        res.expect.append(e_0)
 
+    e_m_0 = []
     for m in range(n_expt_op):
         op = e_ops[m]
-        if not isinstance(op, Qobj) and callable(op):
 
-            res.expect[m][0] = op(tlist[0], psi0)
+        if not isinstance(op, Qobj) and callable(op):
+            e_m_0.append(op(tlist[0], psi0))
+            res.expect[m][0] = e_m_0[m]
             continue
 
-        res.expect[m][0] = expect(op, psi0)
+        e_m_0.append(expect(op, psi0))
+        res.expect[m][0] = e_m_0[m]
 
-    if options.store_final_state:
+    if happy_breakdown:
+        for i in range(1, len(tlist)):
+            if options.store_states:
+                res.states.append(psi0)
+            if expt_callback:
+                res.expect.append(e_0)
+
+            for m in range(n_expt_op):
+                op = e_ops[m]
+                res.expect[m][i] = e_m_0[m]
+
+    if (options.store_final_state) and (not options.store_states):
         res.states = [psi0]
 
     if progress_bar:
@@ -505,6 +550,7 @@ def _optimize_lanczos_timestep_size(T, krylov_basis, tlist, tol):
     Solves the equation defined to optimize the number of Lanczos
     iterations to be performed inside Krylov's algorithm.
     """
+
     f = _lanczos_error_equation_to_optimize_delta_t(
         T,
         krylov_basis=krylov_basis,
@@ -515,23 +561,20 @@ def _optimize_lanczos_timestep_size(T, krylov_basis, tlist, tol):
     bracket = [tlist[0], tlist[-1]]
 
     if (np.sign(f(tlist[0])) == -1) and (np.sign(f(tlist[-1])) == -1):
-        print(
-            "No optimization is required for this configuration of 'H', \
-'krylov_dim', 'tlist' and 'options.atol'"
-        )
         delta_t = tlist[-1] - tlist[0]
         return delta_t
     else:
-        sol = root_scalar(f=f, bracket=bracket, method="brentq")
+        sol = root_scalar(f=f, bracket=bracket, method="brentq", xtol=tol)
         if sol.converged:
             delta_t = sol.root
             return delta_t
         else:
             raise Exception(
-                f"Method did not converge, try decreasing the tolerance via \
-Options().atol, 'krylov_dim' or taking a lesser final time 'tlist[-1]'. If \
-nothing works, this problem might not be suitable for Krylov or a deeper \
-analysis might be required"
+                f"Method did not converge, try increasing 'krylov_dim', \
+                taking a lesser final time 'tlist[-1]' or decreasing the \
+                tolerance via Options().atol. \
+                If nothing works, this problem might not be suitable for \
+                Krylov or a deeper analysis might be required"
             )
 
 
@@ -547,7 +590,7 @@ def _lanczos_error_equation_to_optimize_delta_t(
     U1 = np.matmul(krylov_basis[0:, 0:].T, eigenvectors1)
     e01 = eigenvectors1.conj().T[:, 0]
 
-    eigenvalues2, eigenvectors2 = eigh(T[0:-1, 0: T.shape[1] - 1])
+    eigenvalues2, eigenvectors2 = eigh(T[0:-1, 0 : T.shape[1] - 1])
     U2 = np.matmul(krylov_basis[0:-1, :].T, eigenvectors2)
     e02 = eigenvectors2.conj().T[:, 0]
 
@@ -562,8 +605,7 @@ def _lanczos_error_equation_to_optimize_delta_t(
 
         error = np.linalg.norm(psi1 - psi2)
 
-        steps = 1 if t == t0 else max(1, tf // (t - t0))
-        print(np.log10(target_tolerance))
+        steps = 1 if t == t0 else max(1, (tf - t0) // (t - t0))
         return np.log10(error) + np.log10(steps) - np.log10(target_tolerance)
 
     return f
@@ -586,7 +628,7 @@ def _make_partitions(tlist, n_timesteps):
     n_timesteps += 1
     krylov_tlist = np.linspace(tlist[0], tlist[-1], n_timesteps)
     krylov_partitions = [
-        np.array(krylov_tlist[i: i + 2]) for i in range(n_timesteps - 1)
+        np.array(krylov_tlist[i : i + 2]) for i in range(n_timesteps - 1)
     ]
     partitions = []
     for krylov_partition in krylov_partitions:
