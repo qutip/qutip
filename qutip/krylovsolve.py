@@ -507,6 +507,7 @@ def particular_tlist_or_happy_breakdown(
     if options.store_states:
         res.states = [psi0]
 
+    e_0 = None    
     if expt_callback:
         # use callback method
         e_0 = e_ops(tlist[0], psi0)
@@ -651,7 +652,7 @@ def _make_partitions(tlist, n_timesteps):
     ]
     partitions = []
     for krylov_partition in krylov_partitions:
-        start = kry
+        start = krylov_partition[0]
         end = krylov_partition[-1]
         condition = _tlist <= end
         partitions.append([start] + _tlist[condition].tolist() + [end])
