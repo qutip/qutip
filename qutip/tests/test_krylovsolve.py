@@ -666,3 +666,4 @@ class TestKrylovSolve:
             assert (
                 e_k_ex <= e_ss_ex
             ), "krylov failed to have better accuracy than sesolve"
+
