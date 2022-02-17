@@ -12,14 +12,13 @@ from ..core import stack_columns, unstack_columns
 from ..core.data import to
 from .solver_base import Solver
 from .options import SolverOptions
-from .sesolve import sesolve
+from .sesolve import sesolve, SeOptions
 
 
 class MeOptions(SolverOptions):
     """
-    Class of options for evolution solvers such as :func:`qutip.mesolve` and
-    :func:`qutip.mcsolve`. Options can be specified either as arguments to the
-    constructor::
+    Class of options for :func:`mesolve` and :class:`MeSolver`. Options can be
+    specified either as arguments to the constructor::
 
         opts = MeOptions(progress_bar='enhanced', ...)
 
@@ -76,11 +75,10 @@ class MeOptions(SolverOptions):
         "store_final_state": False,
         "store_states": None,
         "normalize_output": "ket",
-        'method': 'adams',
         "operator_data_type": "",
         "state_data_type": "",
+        'method': 'adams',
     }
-    name = "mesolve"
 
 
 def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
@@ -176,7 +174,8 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
     use_mesolve = len(c_ops) > 0 or (not rho0.isket) or H.issuper
 
     if not use_mesolve:
-        return sesolve(H, rho0, tlist, e_ops=e_ops, args=args, options=options)
+        return sesolve(H, rho0, tlist, e_ops=e_ops, args=args,
+                       options=SeOptions(options, _strick=False))
 
     solver = MeSolver(H, c_ops, options=options)
 
@@ -219,6 +218,7 @@ class MeSolver(Solver):
     """
     name = "mesolve"
     _avail_integrators = {}
+    _avail_options = {}
     optionsclass = MeOptions
 
     def __init__(self, H, c_ops=None, *, options=None):

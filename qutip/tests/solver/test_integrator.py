@@ -2,8 +2,7 @@ from qutip.solver.options import SolverOdeOptions
 from qutip.solver.sesolve import SeSolver
 from qutip.solver.mesolve import MeSolver
 from qutip.solver.solver_base import Solver
-from qutip.solver.ode.scipy_integrator import (IntegratorScipyZvode,
-                                               IntegratorScipylsoda)
+from qutip.solver.ode.scipy_integrator import *
 import qutip
 import numpy as np
 from numpy.testing import assert_allclose

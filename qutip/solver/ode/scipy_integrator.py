@@ -1,10 +1,12 @@
 """ODE integrator from scipy."""
 
 __all__ = [
-    'IntegratorScipyZvode',
+    'IntegratorScipyAdams',
+    'IntegratorScipyBDF',
     'IntegratorScipyDop853',
     'IntegratorScipylsoda',
-    'OdeZvodeOptions',
+    'OdeAdamsOptions',
+    'OdeBdfOptions',
     'OdeLsodaOptions',
     'OdeDop853Options'
 ]
@@ -13,18 +15,18 @@ import numpy as np
 from scipy.integrate import ode
 from scipy.integrate._ode import zvode
 from qutip.core import data as _data
-from ..options import SolverOdeOptions
+from ...optionsclass import QutipOptions
 from qutip.core.data.reshape import column_unstack_dense, column_stack_dense
 from ..integrator import IntegratorException, Integrator
 from ..solver_base import Solver
 import warnings
 
 
-class OdeZvodeOptions(SolverOdeOptions):
-    __doc__ = """
-    Options for integration using ``scipy.integrate.ode`` using ``zvode``.
-    Supported options are:
-        atol, rtol, nsteps, method, order, first_step, max_step, min_step
+class OdeAdamsOptions(QutipOptions):
+    """
+    Options for integration using ``scipy.integrate.ode`` using ``adams``
+    method. Supported options are:
+        atol, rtol, nsteps, order, first_step, max_step, min_step
 
     See scipy documentation for more information.
     """
@@ -32,24 +34,23 @@ class OdeZvodeOptions(SolverOdeOptions):
         'atol': 1e-8,
         'rtol': 1e-6,
         'nsteps': 2500,
-        'method': 'adams',
         'order': 12,
         'first_step': 0,
         'max_step': 0,
         'min_step': 0,
     }
-    name = "zvode"
 
 
-class IntegratorScipyZvode(Integrator):
+class IntegratorScipyAdams(Integrator):
     """
-    Integrator using Scipy `ode` with zvode integrator. Ordinary Differential
-    Equation solver by netlib (http://www.netlib.org/odepack). Support 'Adams'
-    and 'BDF' methods for non-stiff and stiff systems respectively.
+    Integrator using Scipy `ode` with zvode integrator using adams method.
+    Ordinary Differential Equation solver by netlib
+    (http://www.netlib.org/odepack).
     """
-    integrator_options = OdeZvodeOptions
+    integrator_options = OdeAdamsOptions
     support_time_dependant = True
     supports_blackbox = True
+    method = 'adams'
 
     class _zvode(zvode):
         """Overwrite the scipy's zvode to advance to max to ``t`` with step."""
@@ -67,8 +68,11 @@ class IntegratorScipyZvode(Integrator):
         """
         self._ode_solver = ode(self._mul_np_vec)
         self._ode_solver.set_integrator('zvode')
-        self._ode_solver._integrator = self._zvode(**self.options)
-        self.name = "scipy zvode " + self.options['method']
+        self._ode_solver._integrator = self._zvode(
+            method=self.method,
+            **self.options.options,
+        )
+        self.name = "scipy zvode " + self.method
 
     def _mul_np_vec(self, t, vec):
         """
@@ -155,7 +159,36 @@ class IntegratorScipyZvode(Integrator):
         )
 
 
-class OdeDop853Options(SolverOdeOptions):
+class OdeBdfOptions(QutipOptions):
+    """
+    Options for integration using ``scipy.integrate.ode`` using ``bdf`` method.
+    Supported options are:
+        atol, rtol, nsteps, order, first_step, max_step, min_step
+
+    See scipy documentation for more information.
+    """
+    default = {
+        'atol': 1e-8,
+        'rtol': 1e-6,
+        'nsteps': 2500,
+        'order': 5,
+        'first_step': 0,
+        'max_step': 0,
+        'min_step': 0,
+    }
+
+
+class IntegratorScipyBDF(Integrator):
+    """
+    Integrator using Scipy `ode` with zvode integrator using bdf method.
+    Ordinary Differential Equation solver by netlib
+    (http://www.netlib.org/odepack).
+    """
+    method = 'bdf'
+    integrator_options = OdeBdfOptions
+
+
+class OdeDop853Options(QutipOptions):
     """
     Options for integration using ``scipy.integrate.ode`` using ``dop853``.
     Supported options are:
@@ -173,7 +206,6 @@ class OdeDop853Options(SolverOdeOptions):
         'dfactor': 0.3,
         'beta': 0.0,
     }
-    name = "dop853"
 
 
 class IntegratorScipyDop853(Integrator):
@@ -193,7 +225,7 @@ class IntegratorScipyDop853(Integrator):
         Initialize the solver
         """
         self._ode_solver = ode(self._mul_np_vec)
-        self._ode_solver.set_integrator('dop853', **self.options)
+        self._ode_solver.set_integrator('dop853', **self.options.options)
         self.name = "scipy ode dop853"
 
     def _mul_np_vec(self, t, vec):
@@ -268,7 +300,7 @@ class IntegratorScipyDop853(Integrator):
         )
 
 
-class OdeLsodaOptions(SolverOdeOptions):
+class OdeLsodaOptions(QutipOptions):
     """
     Options for integration using ``scipy.integrate.ode`` using ``lsoda``.
     Supported options are:
@@ -287,7 +319,6 @@ class OdeLsodaOptions(SolverOdeOptions):
         'max_step': 0.0,
         'min_step': 0.0,
     }
-    name = "lsoda"
 
 
 class IntegratorScipylsoda(IntegratorScipyDop853):
@@ -305,7 +336,7 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         Initialize the solver
         """
         self._ode_solver = ode(self._mul_np_vec)
-        self._ode_solver.set_integrator('lsoda', **self.options)
+        self._ode_solver.set_integrator('lsoda', **self.options.options)
         self.name = "scipy lsoda"
 
     def _check_handle(self):
@@ -403,6 +434,7 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         )
 
 
-Solver.add_integrator(IntegratorScipyZvode, ['adams', 'bdf'])
-Solver.add_integrator(IntegratorScipyDop853, 'dop853')
-Solver.add_integrator(IntegratorScipylsoda, 'lsoda')
+Solver.add_integrator(IntegratorScipyBDF, OdeBdfOptions, 'bdf')
+Solver.add_integrator(IntegratorScipyAdams, OdeAdamsOptions, 'adams')
+Solver.add_integrator(IntegratorScipyDop853, OdeDop853Options, 'dop853')
+Solver.add_integrator(IntegratorScipylsoda, OdeLsodaOptions, 'lsoda')

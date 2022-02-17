@@ -4,27 +4,6 @@
 
 from qutip.settings import settings
 
-def store_options(options, name, file):
-    pass
-
-
-def save_options_file(options, file):
-    pass
-
-
-def read_file(file, name=None):
-    if file[-3:] != ".py":
-        file = os.path.join(settings.tmproot, 'qutip_saved_options.py')
-
-    spec = importlib.util.spec_from_file_location('qutipoptions', file)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-
-    #mod = importlib.import_module(file_name)
-    if name:
-        return getattr(module, name)
-    return module
-
 
 class MetaOptions(type):
     """
@@ -39,6 +18,8 @@ class MetaOptions(type):
         return cls.default[key]
 
     def __setitem__(cls, key, val):
+        if key not in cls.default:
+            raise KeyError(f"Key '{key}' is not supported.")
         if key in cls.check:
             value = cls.check[key](value)
         cls.default[key] = val
@@ -47,20 +28,19 @@ class MetaOptions(type):
 class QutipOptions(metaclass=MetaOptions):
     default = {}
     check = {}
-    name = "base_options"
 
-    def __init__(self, base=None, *, _strick=True, **options):
+    def __init__(self, base=None, *, _strick=True, _frozzen=False, **options):
         if isinstance(base, dict):
             options.update(base)
 
         elif isinstance(base, QutipOptions):
             options.update(base.options)
 
-        if _strick and (set(options) - set(self.default)):
-            raise KeyError("Unknown option(s): " +
-                           f"{set(options) - set(self.default)}")
+        self.frozzen = _frozzen
         self.options = self.default.copy()
         self._from_dict(options)
+        if _strick and options:
+            raise KeyError(f"Unknown option(s): {set(options)}")
 
     def copy(self):
         return self.__class__(self)
@@ -74,25 +54,30 @@ class QutipOptions(metaclass=MetaOptions):
 
     def __setitem__(self, key, value):
         # Let the dict catch the KeyError
+        if self.frozzen:
+            raise RuntimeError("Options associated cannot be modified, "
+                               "only overwritten.")
+        if key not in self.options:
+            raise KeyError(f"Key '{key}' is not supported.")
         if key in self.check:
             value = self.check[key](value)
         self.options[key] = value
 
     def __repr__(self):
-        out = "{\n"
+        out = type(self).__name__ + "({\n"
         for key, value in self.options.items():
             out += f"    '{key}' : {repr(value)},\n"
-        out += "}\n"
+        out += "})\n"
         return out
 
     def __str__(self):
-        out = self.name + ":\n"
         longest = max(len(key) for key in self.options)
+        out = type(self).__name__ + ":\n"
         for key, val in self.options.items():
             if isinstance(val, str):
-                out += "{:{width}} : '{}'\n".format(key, val, width=longest)
+                out += f"    {key:{longest}} : '{val}'\n"
             else:
-                out += "{:{width}} : {}\n".format(key, val, width=longest)
+                out += f"    {key:{longest}} : {val}\n"
         out += "\n"
         return out
 
@@ -102,15 +87,7 @@ class QutipOptions(metaclass=MetaOptions):
 
     def _from_dict(self, opt):
         for key in set(opt) & set(self.options):
-            self[key] = opt[key]
-
-    def save(self, file=None):
-        if file[-3:] != ".py":
-            name = file
-            file = os.path.join(settings.tmproot, 'saved_options.py')
-            store_options(self, name, file)
-        else:
-            save_options_file(self, name, file)
+            self[key] = opt.pop(key)
 
     def __enter__(self):
         self.__backup_default = self.__class__.default

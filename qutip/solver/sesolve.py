@@ -2,7 +2,7 @@
 This module provides solvers for the unitary Schrodinger equation.
 """
 
-__all__ = ['sesolve', 'SeSolver']
+__all__ = ['sesolve', 'SeSolver', 'SeOptions']
 
 import numpy as np
 from time import time
@@ -13,9 +13,8 @@ from .options import SolverOptions
 
 class SeOptions(SolverOptions):
     """
-    Class of options for evolution solvers such as :func:`qutip.mesolve` and
-    :func:`qutip.mcsolve`. Options can be specified either as arguments to the
-    constructor::
+    Class of options for :func:`sesolve` and :class:`SeSolver`. Options can be
+    specified either as arguments to the constructor::
 
         opts = SeOptions(progress_bar='enhanced', ...)
 
@@ -72,11 +71,10 @@ class SeOptions(SolverOptions):
         "store_final_state": False,
         "store_states": None,
         "normalize_output": "ket",
-        'method': 'adams',
         "operator_data_type": "",
         "state_data_type": "",
+        'method': 'adams',
     }
-    name = "sesolve"
 
 
 def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None):
@@ -165,6 +163,7 @@ class SeSolver(Solver):
     """
     name = "sesolve"
     _avail_integrators = {}
+    _avail_options = {}
     optionsclass = SeOptions
 
     def __init__(self, H, *, options=None):

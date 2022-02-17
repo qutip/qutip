@@ -1,7 +1,7 @@
 __all__ = ['Solver']
 
 from .. import Qobj, QobjEvo, ket2dm
-from .options import SolverOptions, SolverOdeOptions
+from .options import Options, SolverOptions
 from ..core import stack_columns, unstack_columns
 from .result import Result
 from .integrator import Integrator
@@ -47,7 +47,6 @@ class Solver:
 
     # Class of option used by the solver
     optionsclass = SolverOptions
-    odeoptionsclass = SolverOdeOptions
 
     def __init__(self, rhs, *, options=None):
         if isinstance(rhs, (QobjEvo, Qobj)):
@@ -127,7 +126,7 @@ class Solver:
             values. Function[s] must have the signature
             f(t : float, state : Qobj) -> expect.
 
-        options : SolverOptions {None}
+        options : Options {None}
             Options for the solver
 
         Return
@@ -198,7 +197,7 @@ class Solver:
             The change is effective from the beginning of the interval.
             Changing ``args`` can slow the evolution.
 
-        options : SolverOptions, optional {None}
+        options : Options, optional {None}
             Update the ``options`` of the system.
             The change is effective from the beginning of the interval.
             Changing ``options`` can slow the evolution.
@@ -227,7 +226,7 @@ class Solver:
                 self.options["operator_data_type"]
             )
 
-        method = self.options.ode["method"]
+        method = self.options["method"]
         if method in self.avail_integrators():
             integrator = self.avail_integrators()[method]
         elif issubclass(method, Integrator):
@@ -242,8 +241,7 @@ class Solver:
 
     @options.setter
     def options(self, new):
-        self._options = self.optionsclass(new)
-        self._options._solver = self
+        self._options = self.optionsclass(new, _frozzen=True)
 
     @classmethod
     def avail_integrators(cls):
@@ -251,20 +249,18 @@ class Solver:
             return cls._avail_integrators.copy()
         return {
             **Solver.avail_integrators(),
-            **cls._avail_integrators,
+            **cls._avail_integrators
         }
 
     @classmethod
-    def odeoptions(cls, key):
+    def integrator_options(cls):
         integrators = cls.avail_integrators()
-        options = {key: int.integrator_options
-                   for key, int in integrators.items()}
-        if key:
-            options = options[key]
+        options = {key: inte.integrator_options
+                   for key, inte in integrators.items()}
         return options
 
     @classmethod
-    def add_integrator(cls, integrator, keys):
+    def add_integrator(cls, integrator, optioncls, key):
         """
         Register an integrator.
 
@@ -279,8 +275,7 @@ class Solver:
         if not issubclass(integrator, Integrator):
             raise TypeError(f"The integrator {integrator} must be a subclass"
                             " of `qutip.solver.Integrator`")
-        if not isinstance(keys, list):
-            keys = [keys]
-        for key in keys:
-            cls._avail_integrators[key] = integrator
-            cls.optionsclass._ode_options[key] = integrator.integrator_options
+
+        cls._avail_integrators[key] = integrator
+        cls.optionsclass._ode_options[key] = optioncls
+        Options._add_options(optioncls)

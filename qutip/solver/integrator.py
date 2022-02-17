@@ -67,7 +67,7 @@ class Integrator:
 
     def __init__(self, system, options):
         self.system = system
-        self.options = integrator_options(options)
+        self.options = self.integrator_options(options)
         self._is_set = False  # get_state can be used and return a valid state.
         self._back = (np.inf, None)
         self._prepare()
