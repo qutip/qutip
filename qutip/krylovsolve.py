@@ -507,7 +507,7 @@ def particular_tlist_or_happy_breakdown(
     if options.store_states:
         res.states = [psi0]
 
-    e_0 = None    
+    e_0 = None
     if expt_callback:
         # use callback method
         e_0 = e_ops(tlist[0], psi0)
