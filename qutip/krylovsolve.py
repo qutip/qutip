@@ -210,7 +210,7 @@ def krylovsolve(
         krylov_results.expect = {
             e: krylov_results.expect[n]
             for n, e in enumerate(e_ops_dict.keys())
-        }
+        } 
 
     return krylov_results
 
@@ -507,7 +507,7 @@ def particular_tlist_or_happy_breakdown(
     e_0 = None
     if expt_callback:
         # use callback method
-        e_0 = e_ops(tlist[0], psi0)
+        e_0 = e_ops(0, psi0)
         res.expect.append(e_0)
 
     e_m_0 = []
@@ -515,7 +515,7 @@ def particular_tlist_or_happy_breakdown(
         op = e_ops[m]
 
         if not isinstance(op, Qobj) and callable(op):
-            e_m_0.append(op(tlist[0], psi0))
+            e_m_0.append(op(0, psi0))
             res.expect[m][0] = e_m_0[m]
             continue
 
