@@ -640,30 +640,4 @@ class TestKrylovSolve:
             square_hamiltonian=False,
         )
 
-    def test_20_check_err_magnitude_krylov_vs_sesolve(self, tol=1e-7):
-
-        dim = 512
-        H = rand_herm(dim)
-        psi0 = rand_ket(dim)
-        krylov_dim = 20
-        tlist = np.linspace(0, 20, 100)
-
-        output_k = krylovsolve(H, psi0, tlist, krylov_dim)
-        output_ss = sesolve(H, psi0, tlist)
-        output_ex = exactsolve(H, psi0, tlist)
-
-        err_k_ex = [
-            err_psi(psi_k, psi_ex)
-            for (psi_k, psi_ex) in zip(output_k.states, output_ex.states)
-        ]
-        err_ss_ex = [
-            err_psi(psi_ss, psi_ex)
-            for (psi_ss, psi_ex) in zip(output_ss.states, output_ex.states)
-        ]
-
-        # check that krylov has better accuracy in this case
-        for e_k_ex, e_ss_ex in zip(err_k_ex, err_ss_ex):
-            assert (
-                e_k_ex <= e_ss_ex
-            ), "krylov failed to have better accuracy than sesolve"
 
