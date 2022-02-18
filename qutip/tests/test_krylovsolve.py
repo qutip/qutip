@@ -7,6 +7,7 @@ import math
 import os
 
 from qutip import rand_herm, rand_ket, rand_unitary_haar, num, destroy, create
+from qutip.qip.operations import x_gate, y_gate, z_gate
 from qutip import sigmax, sigmay, sigmaz, qeye, jmat
 from qutip import tensor, Qobj, basis, expect, ket
 from qutip.solver import Options, Result
@@ -34,23 +35,9 @@ def h_ising_transverse(
     sy = sigmay()
     sz = sigmaz()
 
-    sx_list = []
-    sy_list = []
-    sz_list = []
-
-    for n in range(N):
-        op_list = []
-        for m in range(N):
-            op_list.append(si)
-
-        op_list[n] = sx
-        sx_list.append(tensor(op_list))
-
-        op_list[n] = sy
-        sy_list.append(tensor(op_list))
-
-        op_list[n] = sz
-        sz_list.append(tensor(op_list))
+    sx_list = [x_gate(N, i) for i in range(N)]
+    sy_list = [y_gate(N, i) for i in range(N)]
+    sz_list = [z_gate(N, i) for i in range(N)]
 
     # construct the hamiltonian
     H = 0
