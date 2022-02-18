@@ -68,8 +68,6 @@ def h_ising_transverse(
         H += -Jy[n] * sy_list[n] * sy_list[n + 1]
         H += -Jz[n] * sz_list[n] * sz_list[n + 1]
 
-    _dims = H.dims
-    H = Qobj(H, dims=_dims)
     return H
 
 
