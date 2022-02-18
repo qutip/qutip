@@ -2080,8 +2080,6 @@ class CircuitSimulator:
         self.state = None
 
         if state is not None:
-            if state.shape[0] != 2 ** self.qc.N:
-                raise ValueError("dimension of state is incorrect")
             if self.mode == "density_matrix_simulator" and state.isket:
                 self.state = ket2dm(state)
             else:
