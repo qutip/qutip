@@ -443,8 +443,8 @@ def _check_inputs(H, psi0, krylov_dim):
 
     if not (H.shape[0] >= krylov_dim):
         raise ValueError(
-            "the Hamiltonian dimension must be greater or equal to the maximum\
-allowed krylov dimension 'krylov_dim'."
+            "the Hamiltonian dimension must be greater or equal to the maximum"
+            " allowed krylov dimension 'krylov_dim'."
         )
 
 
@@ -492,9 +492,9 @@ def particular_tlist_or_happy_breakdown(
 
     if len(tlist) == 0:
         warnings.warn(
-            "Input 'tlist' contains a single element. If 'e_ops' were provided\
-            ,returning its corresponding expectation values at 'psi0', else \
-            return 'psi0'."
+            "Input 'tlist' contains a single element. If 'e_ops' were provided"
+            ", return its corresponding expectation values at 'psi0', else "
+            "return 'psi0'."
         )
 
     if progress_bar:
@@ -590,11 +590,11 @@ def _optimize_lanczos_timestep_size(T, krylov_basis, tlist, tol):
             return delta_t
         else:
             raise Exception(
-                f"Method did not converge, try increasing 'krylov_dim', \
-                taking a lesser final time 'tlist[-1]' or decreasing the \
-                tolerance via Options().atol. \
-                If nothing works, this problem might not be suitable for \
-                Krylov or a deeper analysis might be required"
+                "Method did not converge, try increasing 'krylov_dim', "
+                "taking a lesser final time 'tlist[-1]' or decreasing the "
+                "tolerance via Options().atol. "
+                "If nothing works, this problem might not be suitable for "
+                "Krylov or a deeper analysis might be required."
             )
 
 
