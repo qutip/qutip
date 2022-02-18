@@ -451,31 +451,23 @@ class TestKrylovSolve:
         self.check_e_ops_input_types_callable_mixed_list(H, psi0, tlist, dim)
 
     @pytest.mark.parametrize(
-        "N,psi0,krylov_dim,hx,hz,Jx,Jy,Jz",
+        "psi0,hz,Jx,Jz",
         [
             # eigenstate
-            (4, ket([1, 0, 0, 0]), 12, 0.0, 0.5, 0, 0, 1),  # eigenstate
+            (ket([1, 0, 0, 0]), 0.5, 0, 1),
             # state in the magnetization subspace of the XXZ model
-            (
-                4,
-                ket([0, 0, 1, 0]),
-                12,
-                0.0,
-                1.0,
-                1,
-                0,
-                0,
-            ),
+            (ket([0, 0, 1, 0]), 1.0, 1, 0),
         ],
+        ids=["happy_breakdown_eigenstate", "happy_breakdown_symmetry"],
     )
-    def test_05_check_happy_breakdown_eigenstate(
-        self, N, psi0, krylov_dim, hx, hz, Jx, Jy, Jz
-    ):
+    def test_05_check_happy_breakdown(self, psi0, hz, Jx, Jz):
 
+        krylov_dim = 12
+        N = 4
         dim = 2**N
-        H = h_ising_transverse(N, hx=hx, hz=hz, Jx=Jx, Jy=0, Jz=Jz)
+        H = h_ising_transverse(N, hx=0, hz=hz, Jx=Jx, Jy=0, Jz=Jz)
         _dims = H.dims
-        _dims2 = [d - 1 for d in _dims[0]]
+        _dims2 = [1] * N
 
         tlist = np.linspace(0, 20, 200)
         self.check_evolution_states(
