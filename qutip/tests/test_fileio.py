@@ -45,8 +45,9 @@ class Test_file_data_store_file_data_read:
         return self.case(_random_file_name(), kwargs)
 
 
-@pytest.mark.parametrize('use_path' [True, False], ids=['Path', 'str'])
-@pytest.mark.parametrize('include_suffix' [True, False], ids=['yes', 'no'])
+@pytest.mark.parametrize('use_path', [True, False], ids=['Path', 'str'])
+@pytest.mark.parametrize('include_suffix', [True, False],
+                         ids=['with_suffix', 'no_suffix'])
 def test_qsave_qload(use_path, include_suffix):
     ops_in = [qutip.sigmax(),
               qutip.num(_dimension),

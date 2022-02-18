@@ -225,7 +225,7 @@ def qsave(data, name='qutip_data'):
     if file.suffix != '.qu':
         file.with_suffix('.qu')
 
-    with open(name, "rb") as fileObject:
+    with open(name, "wb") as fileObject:
         # this writes the object a to the file named 'filename.qu'
         pickle.dump(data, fileObject)
 
