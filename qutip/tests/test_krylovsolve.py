@@ -30,11 +30,6 @@ def h_ising_transverse(
     hz = hz * np.ones(N)
     Jx, Jy, Jz = Jx * np.ones(N), Jy * np.ones(N), Jz * np.ones(N)
 
-    si = qeye(2)
-    sx = sigmax()
-    sy = sigmay()
-    sz = sigmaz()
-
     sx_list = [x_gate(N, i) for i in range(N)]
     sy_list = [y_gate(N, i) for i in range(N)]
     sz_list = [z_gate(N, i) for i in range(N)]
@@ -45,15 +40,13 @@ def h_ising_transverse(
     # energy splitting terms
     for n in range(N):
         H += hz[n] * sz_list[n]
-
-    for n in range(N):
         H += hx[n] * sx_list[n]
-
-    # interaction terms
-    for n in range(N - 1):
-        H += -Jx[n] * sx_list[n] * sx_list[n + 1]
-        H += -Jy[n] * sy_list[n] * sy_list[n + 1]
-        H += -Jz[n] * sz_list[n] * sz_list[n + 1]
+    
+        if n < N-1:
+            # interaction terms
+            H += -Jx[n] * sx_list[n] * sx_list[n + 1]
+            H += -Jy[n] * sy_list[n] * sy_list[n + 1]
+            H += -Jz[n] * sz_list[n] * sz_list[n + 1]
 
     return H
 
