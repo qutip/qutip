@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 import uuid
 import qutip
+from pathlib import Path
 
 # qsave _always_ appends a suffix to the file name at the time of writing, but
 # in case this changes in the future, to ensure that we never leak a temporary
@@ -44,11 +45,17 @@ class Test_file_data_store_file_data_read:
         return self.case(_random_file_name(), kwargs)
 
 
-def test_qsave_qload():
+@pytest.mark.parametrize('use_path' [True, False], ids=['Path', 'str'])
+@pytest.mark.parametrize('include_suffix' [True, False], ids=['yes', 'no'])
+def test_qsave_qload(use_path, include_suffix):
     ops_in = [qutip.sigmax(),
               qutip.num(_dimension),
               qutip.coherent_dm(_dimension, 1j)]
     filename = _random_file_name()
+    if include_suffix:
+        filename += '.qu'
+    if use_path:
+        filename = Path.cwd() / filename
     qutip.qsave(ops_in, filename)
     ops_out = qutip.qload(filename)
     assert ops_in == ops_out
