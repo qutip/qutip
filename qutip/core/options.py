@@ -74,6 +74,3 @@ class CoreOptions(QutipOptions):
         # and plotting options by default.
         "colorblind_safe": False,
     }
-
-
-settings.core = CoreOptions

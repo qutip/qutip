@@ -117,10 +117,10 @@ class SolverOptions(QutipOptions):
         'method': 'adams',
     }
     _ode_options = {}
-    frozzen = False
+    frozen = False
 
     def __init__(self, base=None, *,
-                 ode=None, _strict=True, _frozzen=False, **options):
+                 ode=None, _strict=True, _frozen=False, **options):
         if isinstance(base, dict):
             options.update(base)
         elif type(base) is Options:
@@ -146,8 +146,8 @@ class SolverOptions(QutipOptions):
         self._from_dict(options)
         self.ode = ode
         self.ode._from_dict(options)
-        self.frozzen = _frozzen
-        self.ode.frozzen = _frozzen
+        self.frozen = _frozen
+        self.ode.frozen = _frozen
 
         if _strict and options:
             raise KeyError("Unknown option(s): " +
@@ -172,7 +172,7 @@ class SolverOptions(QutipOptions):
 
     @ode.setter
     def ode(self, new):
-        if self.frozzen:
+        if self.frozen:
             raise RuntimeError("Options associated cannot be modified, "
                                "only overwritten.")
         ode_options_class = self.ode_options(self.options['method'])

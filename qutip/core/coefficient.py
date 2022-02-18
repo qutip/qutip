@@ -244,8 +244,6 @@ class CompilationOptions(QutipOptions):
     }
 
 
-qset.compilation = CompilationOptions
-
 # Version number of the Coefficient
 COEFF_VERSION = "1.1"
 

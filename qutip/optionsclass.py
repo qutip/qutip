@@ -29,14 +29,14 @@ class QutipOptions(metaclass=MetaOptions):
     default = {}
     check = {}
 
-    def __init__(self, base=None, *, _strict=True, _frozzen=False, **options):
+    def __init__(self, base=None, *, _strict=True, _frozen=False, **options):
         if isinstance(base, dict):
             options.update(base)
 
         elif isinstance(base, QutipOptions):
             options.update(base.options)
 
-        self.frozzen = _frozzen
+        self.frozen = _frozen
         self.options = self.default.copy()
         self._from_dict(options)
         if _strict and options:
@@ -54,7 +54,7 @@ class QutipOptions(metaclass=MetaOptions):
 
     def __setitem__(self, key, value):
         # Let the dict catch the KeyError
-        if self.frozzen:
+        if self.frozen:
             raise RuntimeError("Options associated cannot be modified, "
                                "only overwritten.")
         if key not in self.options:

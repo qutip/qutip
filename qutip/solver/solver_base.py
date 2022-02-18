@@ -241,7 +241,7 @@ class Solver:
 
     @options.setter
     def options(self, new):
-        self._options = self.optionsclass(new, _frozzen=True)
+        self._options = self.optionsclass(new, _frozen=True)
 
     @classmethod
     def avail_integrators(cls):
