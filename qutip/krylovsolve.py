@@ -210,7 +210,7 @@ def krylovsolve(
         krylov_results.expect = {
             e: krylov_results.expect[n]
             for n, e in enumerate(e_ops_dict.keys())
-        } 
+        }
 
     return krylov_results
 
