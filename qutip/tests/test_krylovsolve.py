@@ -8,7 +8,7 @@ import os
 
 from qutip import rand_herm, rand_ket, rand_unitary_haar, num, destroy, create
 from qutip import sigmax, sigmay, sigmaz, qeye, jmat
-from qutip import tensor, Qobj, basis, expect
+from qutip import tensor, Qobj, basis, expect, ket
 from qutip.solver import Options, Result
 from qutip import krylovsolve, sesolve
 from qutip.sparse import eigh
@@ -71,22 +71,6 @@ def h_ising_transverse(
     _dims = H.dims
     H = Qobj(H, dims=_dims)
     return H
-
-
-def single_spin_up_ket(N, site):
-
-    if site == 0:
-        psi = basis(2, 1)
-    else:
-        psi = basis(2, 0)
-
-    for i in range(1, N):
-        if site == i:
-            psi = tensor(psi, basis(2, 1))
-        else:
-            psi = tensor(psi, basis(2, 0))
-
-    return psi
 
 
 def err_psi(psi_a, psi_b):
@@ -209,7 +193,7 @@ class TestKrylovSolve:
         dim = 2**N
         H = h_ising_transverse(N, hx=0.1, hz=0.5, Jx=1, Jy=0, Jz=1)
         _dims = H.dims
-        _dims2 = [d - 1 for d in _dims[0]]
+        _dims2 = [1] * N
         psi0 = rand_ket(dim, dims=[_dims[0], _dims2])
         tlist = np.linspace(0, 20, 200)
 
@@ -470,11 +454,11 @@ class TestKrylovSolve:
         "N,psi0,krylov_dim,hx,hz,Jx,Jy,Jz",
         [
             # eigenstate
-            (8, single_spin_up_ket(8, 0), 25, 0.0, 0.5, 0, 0, 1),  # eigenstate
+            (4, ket([1, 0, 0, 0]), 12, 0.0, 0.5, 0, 0, 1),  # eigenstate
             # state in the magnetization subspace of the XXZ model
             (
                 4,
-                single_spin_up_ket(4, 2),
+                ket([0, 0, 1, 0]),
                 12,
                 0.0,
                 1.0,
@@ -491,7 +475,7 @@ class TestKrylovSolve:
         dim = 2**N
         H = h_ising_transverse(N, hx=hx, hz=hz, Jx=Jx, Jy=0, Jz=Jz)
         _dims = H.dims
-        _dims2 = [1] * N
+        _dims2 = [d - 1 for d in _dims[0]]
 
         tlist = np.linspace(0, 20, 200)
         self.check_evolution_states(
