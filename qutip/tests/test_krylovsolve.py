@@ -73,6 +73,22 @@ def h_ising_transverse(
     return H
 
 
+def single_spin_up_ket(N, site):
+
+    if site == 0:
+        psi = basis(2, 1)
+    else:
+        psi = basis(2, 0)
+
+    for i in range(1, N):
+        if site == i:
+            psi = tensor(psi, basis(2, 1))
+        else:
+            psi = tensor(psi, basis(2, 0))
+
+    return psi
+
+
 def err_psi(psi_a, psi_b):
     err = 1 - np.abs(psi_a.overlap(psi_b)) ** 2
     return err
@@ -225,10 +241,11 @@ class TestKrylovSolve:
                 err < tol
             ), f"difference between sparse and dense methods with err={err}"
 
-    def test_04_check_sparse_vs_non_sparse_with_sparse_H(
-        self, dim=512, krylov_dim=20
+    @pytest.mark.parametrize("density,dim", [(0.1, 512), (0.9, 800)])
+    def test_check_sparse_vs_non_sparse_with_density_H(
+        self, density, dim, krylov_dim=20
     ):
-        "krylovsolve: comparing sparse vs non sparse with non dense H"
+        "krylovsolve: comparing sparse vs non sparse."
         psi0 = rand_ket(dim)
         H_sparse = rand_herm(dim, density=0.1)
         tlist = np.linspace(0, 10, 200)
@@ -238,24 +255,6 @@ class TestKrylovSolve:
         )
         output_dense = krylovsolve(
             H_sparse, psi0, tlist, krylov_dim, sparse=False
-        )
-
-        self.check_sparse_vs_dense(output_sparse, output_dense)
-
-    def test_05_check_sparse_vs_non_sparse_with_dense_H(
-        self, dim=512, krylov_dim=20
-    ):
-        "krylovsolve: comparing sparse vs non sparse with dense H"
-
-        psi0 = rand_ket(dim)
-        H_dense = rand_herm(dim, density=0.9)
-        tlist = np.linspace(0, 10, 200)
-
-        output_sparse = krylovsolve(
-            H_dense, psi0, tlist, krylov_dim, sparse=True
-        )
-        output_dense = krylovsolve(
-            H_dense, psi0, tlist, krylov_dim, sparse=False
         )
 
         self.check_sparse_vs_dense(output_sparse, output_dense)
@@ -284,13 +283,13 @@ class TestKrylovSolve:
                     err < tol
                 ), f"difference between krylov and sesolve states evolution is\
                     greater than tol={tol} with err={err}"
-                    
+
         elif len(tlist) == 1:
             assert krylov_outputs.states == sesolve_outputs.states
         else:
             assert krylov_outputs.states == []
 
-    def test_06_check_e_ops_input_types_None(self):
+    def test_04_check_e_ops_input_types_None(self):
         "krylovsolve: testing inputs when e_ops=None and tlist is common."
         dim = 128
         psi0 = rand_ket(dim)
@@ -299,7 +298,7 @@ class TestKrylovSolve:
 
         self.check_e_ops_input_types_None(H, psi0, tlist, dim)
 
-    def test_07_check_e_ops_input_types_None_single_element_tlist(self):
+    def test_05_check_e_ops_input_types_None_single_element_tlist(self):
         "krylovsolve: test inputs when e_ops=None and len(tlist)=1."
         dim = 128
         psi0 = rand_ket(dim)
@@ -308,7 +307,7 @@ class TestKrylovSolve:
 
         self.check_e_ops_input_types_None(H, psi0, tlist, dim)
 
-    def test_08_check_e_ops_input_types_None_empty_tlist(self):
+    def test_06_check_e_ops_input_types_None_empty_tlist(self):
         "krylovsolve: testing inputs when e_ops=None and tlist is empty."
         dim = 128
         psi0 = rand_ket(dim)
@@ -331,7 +330,7 @@ class TestKrylovSolve:
 
         e_ops = lambda t, psi: expect(num(dim), psi)
 
-        # this will break if we have spins, but we want to test certain 
+        # this will break if we have spins, but we want to test certain
         # things as well thus we reformat it:
         if not square_hamiltonian:
             H.dims = [[H.shape[0]], [H.shape[0]]]
@@ -363,13 +362,13 @@ class TestKrylovSolve:
                     err <= tol
                 ), f"difference between krylov and exact e_ops evolution is \
                     greater than tol={tol} with err={err}"
-                    
+
         elif len(tlist) == 1:
             assert krylov_outputs.expect == sesolve_outputs.expect
         else:
             assert krylov_outputs.states == []
 
-    def test_09_check_e_ops_input_types_callable(self):
+    def test_07_check_e_ops_input_types_callable(self):
         "krylovsolve: check e_ops inputs with const H Ising Transverse Field"
         dim = 128
         psi0 = rand_ket(dim)
@@ -378,7 +377,7 @@ class TestKrylovSolve:
 
         self.check_e_ops_input_types_callable(H, psi0, tlist, dim)
 
-    def test_10_check_e_ops_input_types_callable_single_element_tlist(self):
+    def test_08_check_e_ops_input_types_callable_single_element_tlist(self):
         "krylovsolve: check e_ops inputs with const H Ising Transverse Field"
         dim = 128
         psi0 = rand_ket(dim)
@@ -387,7 +386,7 @@ class TestKrylovSolve:
 
         self.check_e_ops_input_types_callable(H, psi0, tlist, dim)
 
-    def test_11_check_e_ops_input_types_callable_empty_tlist(self):
+    def test_09_check_e_ops_input_types_callable_empty_tlist(self):
         "krylovsolve: check e_ops inputs with const H Ising Transverse Field"
         dim = 128
         psi0 = rand_ket(dim)
@@ -450,7 +449,7 @@ class TestKrylovSolve:
         else:
             assert krylov_outputs.states == []
 
-    def test_12_check_e_ops_input_types_callable_single_list(self):
+    def test_10_check_e_ops_input_types_callable_single_list(self):
         "krylovsolve: check e_ops inputs with const H Ising Transverse Field"
         dim = 128
         psi0 = rand_ket(dim)
@@ -459,7 +458,7 @@ class TestKrylovSolve:
 
         self.check_e_ops_input_types_callable_single_list(H, psi0, tlist, dim)
 
-    def test_13_ck_e_ops_input_types_callable_single_list_single_element_tlist(
+    def test_11_ck_e_ops_input_types_callable_single_list_single_element_tlist(
         self,
     ):
         "krylovsolve: check e_ops inputs with const H Ising Transverse Field"
@@ -470,7 +469,7 @@ class TestKrylovSolve:
 
         self.check_e_ops_input_types_callable_single_list(H, psi0, tlist, dim)
 
-    def test_14_check_e_ops_input_types_callable_single_element_empty_tlist(
+    def test_12_check_e_ops_input_types_callable_single_element_empty_tlist(
         self,
     ):
         "krylovsolve: check e_ops inputs with const H Ising Transverse Field"
@@ -539,7 +538,7 @@ class TestKrylovSolve:
         else:
             assert krylov_outputs.states == []
 
-    def test_15_check_e_ops_input_types_callable_mixed_list(self):
+    def test_13_check_e_ops_input_types_callable_mixed_list(self):
         "krylovsolve: check e_ops inputs with const H Ising Transverse Field"
         dim = 128
         psi0 = rand_ket(dim)
@@ -548,7 +547,7 @@ class TestKrylovSolve:
 
         self.check_e_ops_input_types_callable_mixed_list(H, psi0, tlist, dim)
 
-    def test_16_chk_e_ops_input_types_callable_mixed_list_single_element_tlist(
+    def test_14_chk_e_ops_input_types_callable_mixed_list_single_element_tlist(
         self,
     ):
         "krylovsolve: check e_ops inputs with const H Ising Transverse Field"
@@ -559,7 +558,7 @@ class TestKrylovSolve:
 
         self.check_e_ops_input_types_callable_mixed_list(H, psi0, tlist, dim)
 
-    def test_17_check_e_ops_input_types_callable_mixed_element_empty_tlist(
+    def test_15_check_e_ops_input_types_callable_mixed_element_empty_tlist(
         self,
     ):
         "krylovsolve: check e_ops inputs with const H Ising Transverse Field"
@@ -570,51 +569,33 @@ class TestKrylovSolve:
 
         self.check_e_ops_input_types_callable_mixed_list(H, psi0, tlist, dim)
 
-    def test_18_check_happy_breakdown_eigenstate(self):
-        N = 8
+    @pytest.mark.parametrize(
+        "N,psi0,krylov_dim,hx,hz,Jx,Jy,Jz",
+        [
+            # eigenstate
+            (8, single_spin_up_ket(8, 0), 25, 0.0, 0.5, 0, 0, 1),  # eigenstate
+            
+            # state in the magnetization subspace of the XXZ model
+            (
+                4,
+                single_spin_up_ket(4, 2),
+                12,
+                0.0,
+                1.0,
+                1,
+                0,
+                0,
+            ),
+        ],
+    )
+    def test_16_check_happy_breakdown_eigenstate(
+        self, N, psi0, krylov_dim, hx, hz, Jx, Jy, Jz
+    ):
+
         dim = 2**N
-        H = h_ising_transverse(N, hx=0.0, hz=0.5, Jx=0, Jy=0, Jz=1)
+        H = h_ising_transverse(N, hx=hx, hz=hz, Jx=Jx, Jy=0, Jz=Jz)
         _dims = H.dims
         _dims2 = [d - 1 for d in _dims[0]]
-
-        # create a ket with all spins down except the first one,
-        # which is an eigenstate of the Hamiltonian
-        psi0 = None
-        for i in range(N):
-            if not psi0:
-                psi0 = basis(2, 1)
-            else:
-                psi0 = tensor(psi0, basis(2, 0))
-
-        # psi0 = rand_ket(dim, dims=[_dims[0], _dims2])
-        tlist = np.linspace(0, 20, 200)
-        self.check_evolution_states(H, psi0, tlist, square_hamiltonian=False)
-        self.check_e_ops_input_types_None(H, psi0, tlist, dim)
-        self.check_e_ops_input_types_callable(
-            H, psi0, tlist, dim, square_hamiltonian=False
-        )
-        self.check_e_ops_input_types_callable_single_list(
-            H, psi0, tlist, dim, square_hamiltonian=False
-        )
-
-    def test_19_check_happy_breakdown_no_eigenstate(self):
-
-        krylov_dim = 12
-        N = 4
-        dim = 2**N
-        H = h_ising_transverse(N, hx=0.0, hz=1.0, Jx=1, Jy=0, Jz=0)
-        _dims = H.dims
-        _dims2 = [d - 1 for d in _dims[0]]
-
-        # create a ket (0,0,1,0), which lies on the symmetry subspace
-        # of magnetization. This guarantees a happy breakdown to occur, and it
-        # is not an eigenstate.
-        psi0 = basis(2, 0)
-        for i in range(1, N):
-            if i == 2:
-                psi0 = tensor(psi0, basis(2, 1))
-            else:
-                psi0 = tensor(psi0, basis(2, 0))
 
         tlist = np.linspace(0, 20, 200)
         self.check_evolution_states(
@@ -639,5 +620,3 @@ class TestKrylovSolve:
             krylov_dim=krylov_dim,
             square_hamiltonian=False,
         )
-
-
