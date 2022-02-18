@@ -202,11 +202,9 @@ def krylovsolve(
 
         t_idx += len(partition[1:-1])
 
-        if progress_bar:
-            pbar.update(idx)
+        pbar.update(idx)
 
-    if progress_bar:
-        pbar.finished()
+    pbar.finished()
 
     if e_ops_dict:
         krylov_results.expect = {
@@ -497,8 +495,7 @@ def particular_tlist_or_happy_breakdown(
             "return 'psi0'."
         )
 
-    if progress_bar:
-        progress_bar.start(1)
+    progress_bar.start(1)
 
     res, expt_callback, options, n_expt_op = _e_ops_outputs(
         res, e_ops, n_tlist_steps, options
@@ -541,9 +538,8 @@ def particular_tlist_or_happy_breakdown(
     if (options.store_final_state) and (not options.store_states):
         res.states = [psi0]
 
-    if progress_bar:
-        progress_bar.update(1)
-        progress_bar.finished()
+    progress_bar.update(1)
+    progress_bar.finished()
     return res
 
 
