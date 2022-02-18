@@ -3,6 +3,7 @@ import numpy as np
 
 np.random.seed(0)
 import pytest
+import types
 import math
 import os
 
@@ -80,6 +81,116 @@ class TestKrylovSolve:
     """
     A test class for the QuTiP Krylov Approximation method Solver.
     """
+
+    def general_check(self, H, psi0, krylov_dim, tol):
+        """generally checks krylovsolve for different possibilities of e_ops
+        and t_lists"""
+        dim = H.shape[0]
+
+        options = Options(store_states=True)    
+
+        # posibilities
+        e_ops_possibilities = [None, 
+                               
+                               lambda t, psi: expect(num(dim), psi),
+                            
+                               [lambda t, psi: expect(num(dim), psi)],
+                            
+                               [lambda t, psi: expect(num(dim), psi), 
+                                jmat((dim-1)/2., 'x')],
+                            
+                               [jmat((dim-1)/2., 'x'), 
+                                jmat((dim-1)/2., 'y'), 
+                                jmat((dim-1)/2., 'z')],
+                            
+                               jmat((dim-1)/2., 'x'),
+                            
+                               [jmat((dim-1)/2., 'x')]
+                              ]
+
+        t_list_possibilities = [np.linspace(0, 2, 100),
+                                np.linspace(0, 1, 2),
+                                [0]]
+
+        k_res, se_res, ex_res = [], [], []
+
+
+        for idx_e, e_ops in enumerate(e_ops_possibilities):
+            for idx_t, tlist in enumerate(t_list_possibilities):
+                print(f"idx_e={idx_e}, idx_t={idx_t}")
+                k = krylovsolve(H, psi0, tlist=tlist, krylov_dim=krylov_dim, 
+                                progress_bar=None, sparse=False, 
+                                options=options, e_ops=e_ops)
+                k_res.append(k)
+                ex_res = exactsolve(H, psi0, tlist)
+                try:
+                    s = sesolve(H, psi0, tlist=tlist, progress_bar=None, 
+                                options=options, e_ops=e_ops)
+                    se_res.append(s)
+                except UnboundLocalError:
+                    print("here sesolve failed")
+                    s = k_res[-1]
+                    se_res.append(s)
+                    pass
+
+                assert len(k.states) == len(s.states), \
+                    "states output has different length"
+                assert len(k.expect) == len(s.expect), \
+                    "expect output has different length"
+
+                if (not isinstance(e_ops, list)) and (e_ops is not None):
+
+                    if isinstance(e_ops, types.FunctionType):
+                        # expect should be a list of len=len(tlist) with the 
+                        # expectation values, thus:
+                        ex_expect = [e_ops(t, state) for (t, state) \
+                            in zip(tlist, ex_res.states)]
+                        err_expect = [np.abs(k_ex - ex_ex) for (k_ex, ex_ex) \
+                            in zip(k.expect, ex_expect)]
+
+                    elif isinstance(e_ops, Qobj):
+                        ex_expect = [expect(e_ops, state) for state \
+                            in ex_res.states]
+                        err_expect = [np.abs(k_ex - ex_ex) for (k_ex, ex_ex) \
+                            in zip(k.expect[0], ex_expect)]
+
+                        assert k.expect[0].shape == s.expect[0].shape, \
+                            "different shape for krylov and sesolve outputs"
+
+                    for err in err_expect:
+                        assert err <= tol, \
+                            f"err in expec values {err} is > than tol {tol}."
+
+                elif e_ops is None:
+                    err_states = [err_psi(psi_k, psi_ex) for (psi_k, psi_ex) \
+                        in zip(k.states, ex_res.states)]
+                    for err in err_states:
+                        assert err <= tol,\
+                        f"err in states {err} is > than tolerance {tol}."
+                else:
+                    for idx, op in enumerate(e_ops):
+            
+                        if isinstance(op, types.FunctionType):
+                            # expect should be a list of len=len(tlist) with 
+                            # the expectation values, thus:
+                            ex_expect = [op(t, state) for (t, state) \
+                                in zip(tlist, ex_res.states)]
+                            err_expect = [np.abs(k_ex - ex_ex) for \
+                                (k_ex, ex_ex) in zip(k.expect[idx], ex_expect)]
+
+                        elif isinstance(op, Qobj):
+                            ex_expect = [expect(op, state) for state \
+                                in ex_res.states]
+                            err_expect = [np.abs(k_ex - ex_ex) for \
+                                (k_ex, ex_ex) in zip(k.expect[idx], ex_expect)]
+                    
+                        assert k.expect[idx].shape == s.expect[idx].shape, \
+                        "different shape for krylov and sesolve outputs"
+            
+                        for err in err_expect:
+                            assert err <= tol, \
+                                f"err in expect values {err} is > than {tol}."
+
 
     def check_evolution_states(
         self,
@@ -164,6 +275,7 @@ class TestKrylovSolve:
         tlist = np.linspace(0, 10, 200)
 
         self.check_evolution_states(H, psi0, tlist)
+        self.general_check(H, psi0, krylov_dim=20, tol=1e-5)
 
     def test_02_states_with_constant_H_ising_transverse(self):
         "krylovsolve: states with const H Ising Transverse Field"
@@ -185,6 +297,7 @@ class TestKrylovSolve:
         tlist = np.linspace(0, 20, 200)
 
         self.check_evolution_states(H, psi0, tlist)
+        self.general_check(H, psi0, krylov_dim=20, tol=1e-5)
 
     def check_sparse_vs_dense(self, output_sparse, output_dense, tol=1e-5):
         "krylovsolve: comparing sparse vs non sparse"
@@ -200,7 +313,8 @@ class TestKrylovSolve:
                 err < tol
             ), f"difference between sparse and dense methods with err={err}"
 
-    @pytest.mark.parametrize("density,dim", [(0.1, 512), (0.9, 800)])
+    @pytest.mark.parametrize("density,dim", [(0.1, 512), (0.9, 800)],
+                             ids=["sparse H check", "dense H check"])
     def test_check_sparse_vs_non_sparse_with_density_H(
         self, density, dim, krylov_dim=20
     ):
@@ -417,6 +531,7 @@ class TestKrylovSolve:
 
     @pytest.mark.parametrize(
         "dim,tlist", [(128, np.linspace(0, 5, 200)), (400, [2]), (560, [])]
+        ,ids=["normal tlist", "single element tlist", "empty tlist"]
     )
     def test_04_check_e_ops_input_types_and_tlist_sizes(self, dim, tlist):
         "krylovsolve: check e_ops inputs with random H and different tlists."
