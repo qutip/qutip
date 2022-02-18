@@ -178,10 +178,7 @@ class TestKrylovSolve:
                 err <= tol
             ), f"error between sesolve states and krylov states its {err}."
 
-        # for the operators, I'm forced to test against exactsolve and not
-        # sesolve, because sesolve cumulates too much error (see test at
-        # the end of the file)
-
+        # for the operators, test against exactsolve for accuracy
         for i in range(len(e_ops)):
             output_exact.expect = [
                 expect(e_ops[i], state) for state in output_exact.states
@@ -289,33 +286,6 @@ class TestKrylovSolve:
         else:
             assert krylov_outputs.states == []
 
-    def test_04_check_e_ops_input_types_None(self):
-        "krylovsolve: testing inputs when e_ops=None and tlist is common."
-        dim = 128
-        psi0 = rand_ket(dim)
-        H = rand_herm(dim, density=0.5)
-        tlist = np.linspace(0, 10, 200)
-
-        self.check_e_ops_input_types_None(H, psi0, tlist, dim)
-
-    def test_05_check_e_ops_input_types_None_single_element_tlist(self):
-        "krylovsolve: test inputs when e_ops=None and len(tlist)=1."
-        dim = 128
-        psi0 = rand_ket(dim)
-        H = rand_herm(dim, density=0.5)
-        tlist = [2]
-
-        self.check_e_ops_input_types_None(H, psi0, tlist, dim)
-
-    def test_06_check_e_ops_input_types_None_empty_tlist(self):
-        "krylovsolve: testing inputs when e_ops=None and tlist is empty."
-        dim = 128
-        psi0 = rand_ket(dim)
-        H = rand_herm(dim, density=0.5)
-        tlist = []
-
-        self.check_e_ops_input_types_None(H, psi0, tlist, dim)
-
     def check_e_ops_input_types_callable(
         self,
         H,
@@ -364,36 +334,12 @@ class TestKrylovSolve:
                     greater than tol={tol} with err={err}"
 
         elif len(tlist) == 1:
-            assert krylov_outputs.expect == sesolve_outputs.expect
+            assert (
+                np.abs(krylov_outputs.expect[0] - sesolve_outputs.expect[0])
+                <= 1e-7
+            ), "krylov and sesolve outputs differ for len(tlist)=1"
         else:
             assert krylov_outputs.states == []
-
-    def test_07_check_e_ops_input_types_callable(self):
-        "krylovsolve: check e_ops inputs with const H Ising Transverse Field"
-        dim = 128
-        psi0 = rand_ket(dim)
-        H = rand_herm(dim, density=0.5)
-        tlist = np.linspace(0, 5, 200)
-
-        self.check_e_ops_input_types_callable(H, psi0, tlist, dim)
-
-    def test_08_check_e_ops_input_types_callable_single_element_tlist(self):
-        "krylovsolve: check e_ops inputs with const H Ising Transverse Field"
-        dim = 128
-        psi0 = rand_ket(dim)
-        H = rand_herm(dim, density=0.5)
-        tlist = [2]
-
-        self.check_e_ops_input_types_callable(H, psi0, tlist, dim)
-
-    def test_09_check_e_ops_input_types_callable_empty_tlist(self):
-        "krylovsolve: check e_ops inputs with const H Ising Transverse Field"
-        dim = 128
-        psi0 = rand_ket(dim)
-        H = rand_herm(dim, density=0.5)
-        tlist = []
-
-        self.check_e_ops_input_types_callable(H, psi0, tlist, dim)
 
     def check_e_ops_input_types_callable_single_list(
         self,
@@ -448,37 +394,6 @@ class TestKrylovSolve:
             ), "expect outputs from krylovsolve and sesolve are not equal"
         else:
             assert krylov_outputs.states == []
-
-    def test_10_check_e_ops_input_types_callable_single_list(self):
-        "krylovsolve: check e_ops inputs with const H Ising Transverse Field"
-        dim = 128
-        psi0 = rand_ket(dim)
-        H = rand_herm(dim, density=0.5)
-        tlist = np.linspace(0, 5, 200)
-
-        self.check_e_ops_input_types_callable_single_list(H, psi0, tlist, dim)
-
-    def test_11_ck_e_ops_input_types_callable_single_list_single_element_tlist(
-        self,
-    ):
-        "krylovsolve: check e_ops inputs with const H Ising Transverse Field"
-        dim = 128
-        psi0 = rand_ket(dim)
-        H = rand_herm(dim, density=0.5)
-        tlist = [2]
-
-        self.check_e_ops_input_types_callable_single_list(H, psi0, tlist, dim)
-
-    def test_12_check_e_ops_input_types_callable_single_element_empty_tlist(
-        self,
-    ):
-        "krylovsolve: check e_ops inputs with const H Ising Transverse Field"
-        dim = 128
-        psi0 = rand_ket(dim)
-        H = rand_herm(dim, density=0.5)
-        tlist = []
-
-        self.check_e_ops_input_types_callable_single_list(H, psi0, tlist, dim)
 
     def check_e_ops_input_types_callable_mixed_list(
         self, H, psi0, tlist, dim, krylov_dim=35, tol=1e-5
@@ -538,35 +453,17 @@ class TestKrylovSolve:
         else:
             assert krylov_outputs.states == []
 
-    def test_13_check_e_ops_input_types_callable_mixed_list(self):
-        "krylovsolve: check e_ops inputs with const H Ising Transverse Field"
-        dim = 128
+    @pytest.mark.parametrize(
+        "dim,tlist", [(128, np.linspace(0, 5, 200)), (400, [2]), (560, [])]
+    )
+    def test_04_check_e_ops_input_types_and_tlist_sizes(self, dim, tlist):
+        "krylovsolve: check e_ops inputs with random H and different tlists."
         psi0 = rand_ket(dim)
         H = rand_herm(dim, density=0.5)
-        tlist = np.linspace(0, 5, 200)
 
-        self.check_e_ops_input_types_callable_mixed_list(H, psi0, tlist, dim)
-
-    def test_14_chk_e_ops_input_types_callable_mixed_list_single_element_tlist(
-        self,
-    ):
-        "krylovsolve: check e_ops inputs with const H Ising Transverse Field"
-        dim = 128
-        psi0 = rand_ket(dim)
-        H = rand_herm(dim, density=0.5)
-        tlist = [2]
-
-        self.check_e_ops_input_types_callable_mixed_list(H, psi0, tlist, dim)
-
-    def test_15_check_e_ops_input_types_callable_mixed_element_empty_tlist(
-        self,
-    ):
-        "krylovsolve: check e_ops inputs with const H Ising Transverse Field"
-        dim = 128
-        psi0 = rand_ket(dim)
-        H = rand_herm(dim, density=0.5)
-        tlist = []
-
+        self.check_e_ops_input_types_None(H, psi0, tlist, dim)
+        self.check_e_ops_input_types_callable(H, psi0, tlist, dim)
+        self.check_e_ops_input_types_callable_single_list(H, psi0, tlist, dim)
         self.check_e_ops_input_types_callable_mixed_list(H, psi0, tlist, dim)
 
     @pytest.mark.parametrize(
@@ -574,7 +471,6 @@ class TestKrylovSolve:
         [
             # eigenstate
             (8, single_spin_up_ket(8, 0), 25, 0.0, 0.5, 0, 0, 1),  # eigenstate
-            
             # state in the magnetization subspace of the XXZ model
             (
                 4,
@@ -588,7 +484,7 @@ class TestKrylovSolve:
             ),
         ],
     )
-    def test_16_check_happy_breakdown_eigenstate(
+    def test_05_check_happy_breakdown_eigenstate(
         self, N, psi0, krylov_dim, hx, hz, Jx, Jy, Jz
     ):
 
