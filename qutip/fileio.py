@@ -222,8 +222,7 @@ def qsave(data, name='qutip_data'):
     """
     # open the file for writing
     file = Path(name)
-    if file.suffix != '.qu':
-        file.with_suffix('.qu')
+    file = file.with_suffix(file.suffix + ".qu")
 
     with open(name, "wb") as fileObject:
         # this writes the object a to the file named 'filename.qu'
@@ -246,8 +245,7 @@ def qload(name):
 
     """
     file = Path(name)
-    if file.suffix != '.qu':
-        file.with_suffix('.qu')
+    file = file.with_suffix(file.suffix + ".qu")
 
     with open(name, "rb") as fileObject:
         if sys.version_info >= (3, 0):

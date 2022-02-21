@@ -46,15 +46,12 @@ class Test_file_data_store_file_data_read:
 
 
 @pytest.mark.parametrize('use_path', [True, False], ids=['Path', 'str'])
-@pytest.mark.parametrize('include_suffix', [True, False],
-                         ids=['with_suffix', 'no_suffix'])
-def test_qsave_qload(use_path, include_suffix):
+@pytest.mark.parametrize('suffix', ['', '.qu', '.dat'])
+def test_qsave_qload(use_path, suffix):
     ops_in = [qutip.sigmax(),
               qutip.num(_dimension),
               qutip.coherent_dm(_dimension, 1j)]
-    filename = _random_file_name()
-    if include_suffix:
-        filename += '.qu'
+    filename = _random_file_name() + suffix
     if use_path:
         filename = Path.cwd() / filename
     qutip.qsave(ops_in, filename)
