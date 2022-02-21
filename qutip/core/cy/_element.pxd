@@ -8,7 +8,7 @@ from libcpp cimport bool
 cdef class _BaseElement:
     cpdef Data data(self, double t)
     cpdef object qobj(self, double t)
-    cpdef double complex coeff(self, double t) except *
+    cpdef object coeff(self, double t)
     cdef Data matmul_data_t(_BaseElement self, double t, Data state, Data out=?)
 
 

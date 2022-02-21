@@ -93,7 +93,7 @@ cdef class _BaseElement:
           "Sub-classes of _BaseElement should implement .qobj(t)."
         )
 
-    cpdef double complex coeff(self, double t) except *:
+    cpdef object coeff(self, double t):
         """
         Returns the complex coefficient of the term at time ``t``.
 
@@ -289,7 +289,7 @@ cdef class _ConstantElement(_BaseElement):
     cpdef object qobj(self, double t):
         return self._qobj
 
-    cpdef double complex coeff(self, double t) except *:
+    cpdef object coeff(self, double t):
         return 1.
 
     def linear_map(self, f, anti=False):
@@ -339,7 +339,7 @@ cdef class _EvoElement(_BaseElement):
     cpdef object qobj(self, double t):
         return self._qobj
 
-    cpdef double complex coeff(self, double t) except *:
+    cpdef object coeff(self, double t):
         return self._coefficient(t)
 
     def linear_map(self, f, anti=False):
@@ -451,7 +451,7 @@ cdef class _FuncElement(_BaseElement):
         self._previous = (t, _qobj)
         return _qobj
 
-    cpdef double complex coeff(self, double t) except *:
+    cpdef object coeff(self, double t):
         return 1.
 
     def linear_map(self, f, anti=False):
@@ -523,7 +523,7 @@ cdef class _MapElement(_BaseElement):
             out = func(out)
         return out
 
-    cpdef double complex coeff(self, double t) except *:
+    cpdef object coeff(self, double t):
         return self._coeff
 
     def linear_map(self, f, anti=False):
@@ -581,7 +581,7 @@ cdef class _ProdElement(_BaseElement):
             out = func(out)
         return out
 
-    cpdef double complex coeff(self, double t) except *:
+    cpdef object coeff(self, double t):
         cdef double complex out = self._left.coeff(t) * self._right.coeff(t)
         return conj(out) if self._conj else out
 

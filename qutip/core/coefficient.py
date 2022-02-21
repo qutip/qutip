@@ -46,8 +46,20 @@ class StringParsingWarning(Warning):
     pass
 
 
+def _return(base, **kwargs):
+    return base
+
+
+coefficient_builders = {
+    Coefficient: _return,
+    np.ndarray : InterCoefficient,
+    scipy.interpolate.PPoly: InterCoefficient.from_PPoly,
+    scipy.interpolate.BSpline: InterCoefficient.from_Bspline,
+}
+
+
 def coefficient(base, *, tlist=None, args={}, args_ctypes={},
-                order=3, compile_opt=None, function_style=None):
+                order=3, compile_opt=None, function_style=None, **kwargs):
     """Coefficient for time dependent systems.
 
     The coefficients are either a function, a string or a numpy array.
@@ -116,22 +128,20 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
     scipy are converted to a function-based coefficient (the same kind of
     coefficient created from callables).
     """
-    if isinstance(base, Coefficient):
-        return base
+    kwargs.update({
+        'tlist': tlist,
+        'args': args,
+        'args_ctypes': args_ctypes,
+        'order': order,
+        'compile_opt': compile_opt,
+        'function_style': function_style,
+    })
 
-    elif isinstance(base, np.ndarray):
-        return InterCoefficient(base, tlist, order)
+    for type_ in coefficient_builders:
+        if isinstance(base, type_):
+            return coefficient_builders[type_](base, **kwargs)
 
-    elif isinstance(base, scipy.interpolate.PPoly):
-        return InterCoefficient.from_PPoly(base)
-
-    elif isinstance(base, scipy.interpolate.BSpline):
-        return InterCoefficient.from_Bspline(base)
-
-    elif isinstance(base, str):
-        return coeff_from_str(base, args, args_ctypes, compile_opt)
-
-    elif callable(base):
+    if callable(base):
         op = FunctionCoefficient(base, args.copy(), style=function_style)
         if not isinstance(op(0), numbers.Number):
             raise TypeError("The coefficient function must return a number")
@@ -314,7 +324,7 @@ str_env = {
     "spe": scipy.special}
 
 
-def coeff_from_str(base, args, args_ctypes, compile_opt=None):
+def coeff_from_str(base, args, args_ctypes, compile_opt=None, **_):
     """
     Entry point for string based coefficients
     - Test if the string is valid
@@ -350,6 +360,9 @@ def coeff_from_str(base, args, args_ctypes, compile_opt=None):
     keys = [key for _, key, _ in variables]
     const = [fromstr(val) for _, val, _ in constants]
     return coeff(base, keys, const, args)
+
+
+coefficient_builders[str] = coeff_from_str
 
 
 def try_import(file_name, parsed_in):

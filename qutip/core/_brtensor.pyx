@@ -269,7 +269,7 @@ cdef class _BlochRedfieldElement(_BaseElement):
         return Qobj(self.data(t), dims=self.dims, type="super",
                     copy=False, superrep="super")
 
-    cpdef double complex coeff(self, double t) except *:
+    cpdef object coeff(self, double t):
         return 1.
 
     cpdef Data data(self, double t):
