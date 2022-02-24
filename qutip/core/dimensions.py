@@ -376,3 +376,289 @@ def dims_idxs_to_tensor_idxs(dims, indices):
     """
     perm = dims_to_tensor_perm(dims)
     return deep_map(partial(getitem, perm), indices)
+
+
+class MetaSpace(type):
+    def __call__(cls, *args, rep='super'):
+        if cls is Space and len(args) == 1 and isinstance(args[0], list):
+            return cls.from_list(*args, rep=rep)
+        elif len(args) == 1 and isinstance(args[0], Space):
+            return args[0]
+
+        if len(args) == 0:
+            cls = Field
+        elif len(args) == 1 and args[0] == 1:
+            cls = Field
+        elif len(args) == 1 and isinstance(args[0], Dims):
+            cls = SuperSpace
+        elif len(args) > 1:
+            if all(isinstance(arg, Field) for arg in args):
+                cls = Field
+            elif all(isinstance(arg, Space) for arg in args):
+                cls = Compound
+
+        if cls is Field:
+            return cls.field_instance
+        if cls is SuperSpace:
+            args = *args, rep
+        if args not in cls._stored_dims:
+            instance = cls.__new__(cls)
+            instance.__init__(*args)
+            cls._stored_dims[args] = instance
+        return cls._stored_dims[args]
+
+    def from_list(cls, list_dims, rep='super'):
+        if isinstance(list_dims[0], list):
+            # Superoperator or tensor of superoperators
+            spaces = [
+                Space(Dims(
+                    Space(list_dims[i+1]),
+                    Space(list_dims[1])
+                ), rep=rep)
+                for i in range(0, len(list_dims), 2)
+            ]
+        else:
+            spaces = [Space(size) for size in list_dims]
+        if len(spaces) == 1:
+            return spaces[0]
+        elif len(spaces) >= 2:
+            return Space(*spaces)
+        raise ValueError("Bad list format")
+
+
+class Space(metaclass=MetaSpace):
+    _stored_dims = {}
+    def __init__(self, dims):
+        if dims <= 0:
+            raise ValueError
+        self.size = dims
+        self.issuper = False
+        self.superrep = ""
+
+    def __repr__(self):
+        return f"Space({self.size})"
+
+    def as_list(self):
+        return [self.size]
+
+    def __str__(self):
+        return str(self.as_list())
+
+    def dims2idx(self, dims):
+        return dims
+
+    def idx2dims(self, idx):
+        return idx
+
+
+class Field(Space):
+    field_instance = None
+    def __init__(self):
+        self.size = 1
+        self.issuper = False
+        self.superrep = ""
+
+    def __repr__(self):
+        return "Field()"
+
+    def as_list(self):
+        return [1]
+
+
+Field.field_instance = Field.__new__(Field)
+Field.field_instance.__init__()
+
+
+class Compound(Space):
+    _stored_dims = {}
+    def __init__(self, *spaces):
+        self.spaces = spaces
+        self.size = np.prod([space.size for space in self.spaces])
+        self.issuper = any(space.issuper for space in self.spaces)
+        superrep = [space.superrep for space in self.spaces]
+        if all(superrep[0] == rep for rep in superrep):
+            self.superrep = superrep[0]
+        else:
+            # We could also raise an error
+            self.superrep = 'mixed'
+
+    def __repr__(self):
+        parts_rep = ", ".join(repr(space) for space in self.spaces)
+        return f"Compound({parts_rep})"
+
+    def as_list(self):
+        return sum([space.as_list() for space in self.spaces], [])
+
+    def dims2idx(self, dims):
+        pos = 0
+        step = 1
+        for space, dim in zip(self.spaces, dims)[::-1]:
+            pos += space.dims2idx(dim) * step
+            step *= space.size
+        return pos
+
+    def idx2dims(self, idx):
+        dims = []
+        for space in self.spaces:
+            dim, idx = divmod(idx, space.size)
+            dims.append(space.idx2dims(dim))
+        return dims
+
+
+class SuperSpace(Space):
+    _stored_dims = {}
+    def __init__(self, oper, rep='super'):
+        self.oper = oper
+        self.superrep = rep
+        self.size = oper.shape[0] * oper.shape[1]
+        self.issuper = True
+
+    def __repr__(self):
+        return f"Super({repr(self.oper)}, rep={self.superrep})"
+
+    def as_list(self):
+        return self.oper.as_list()
+
+    def dims2idx(self, dims):
+        pos = 0
+        step = 1
+        for space, dim in zip(self.spaces, dims)[::-1]:
+            pos += dim * step
+            step *= space.size
+        return pos
+
+    def idx2dims(self, idx):
+        dims = []
+        for space in self.spaces:
+            dim, idx = divmod(idx, space.size)
+            dims.append(dim)
+        return dims
+
+
+class SumSpace(Space):
+    """
+    Dims for piqs's dicke states.
+    Example :
+        A system of 2 qubit split into a triplet and singulet states:
+        SumSpace((3,1))
+    """
+    _stored_dims = {}
+    def __init__(self, structure):
+        self.structure = structure
+        self.size = sum(structure)
+        self.issuper = False
+        self.superrep = ""
+
+    def __repr__(self):
+        return f"SumSpace({self.structure})"
+
+    def as_list(self):
+        return list(self.dims)
+
+    def dims2idx(self, dims):
+        return dims
+
+    def idx2dims(self, idx):
+        return idx
+
+
+class EnrSpace(Space):
+    _stored_dims = {}
+    def __init__(self, dims, excitations):
+        from .states import enr_state_dictionaries
+        self.dims = dims
+        self.n_excitations = excitations
+        size, state2idx, idx2state = enr_state_dictionaries(dims, excitations)
+        self.size = nstates
+        self.state2idx = state2idx
+        self.idx2state = idx2state
+        self.issuper = False
+        self.superrep = ""
+
+    def __repr__(self):
+        return f"EnrSpace({self.dims}, {self.n_excitations})"
+
+    def as_list(self):
+        return list(self.dims)
+
+    def dims2idx(self, dims):
+        return self.state2idx[tuple(dims)]
+
+    def idx2dims(self, idx):
+        return self.idx2state[idx]
+
+
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+class MetaDims(type):
+    def __call__(cls, *args, rep='super'):
+        if isinstance(args[0], list):
+            args = (
+                Space(args[0][1], rep=rep),
+                Space(args[0][0], rep=rep)
+            )
+        if len(args) != 2:
+            raise NotImplementedError('No Dual, Ket, Bra... yet?')
+        if args[0] == args[1] == Field():
+            return Field()
+
+        if args not in cls._stored_dims:
+            instance = cls.__new__(cls)
+            instance.__init__(*args)
+            cls._stored_dims[args] = instance
+        return cls._stored_dims[args]
+
+
+class Dims(metaclass=MetaDims):
+    _stored_dims = {}
+    def __init__(self, from_, to_):
+        self.from_ = from_
+        self.to_ = to_
+        self.shape = self.to_.size, self.from_.size
+        self.issuper = self.from_.issuper or self.to_.issuper
+        self.isbra
+        self.isket
+        self.isoper
+        self.isoperbra
+        self.isoperket
+        if self.from_ is Field():
+            self.type = 'operator-ket' if self.issuper else 'ket'
+            self.isket = not self.issuper
+            self.isoperket = self.issuper
+            self.superrep = self.to_.superrep
+        elif self.to_ is Field():
+            self.type = 'operator-bra' if self.issuper else 'bra'
+            self.isbra = not self.issuper
+            self.isoperbra = self.issuper
+            self.superrep = self.from_.superrep
+        elif self.from_ == self.to_:
+            self.type = 'super' if self.issuper else 'oper'
+            self.superrep = self.from_.superrep
+            self.isoper = not self.issuper
+        else:
+            self.type = 'rec_super' if self.issuper else 'rec_oper'
+            if self.from_.superrep == self.to_.superrep:
+                self.superrep = self.from_.superrep
+            else:
+                self.superrep = 'mixed'
+
+
+    def __repr__(self):
+        return f"Dims({repr(self.from_)}, {repr(self.to_)})"
+
+    def __str__(self):
+        return str(self.as_list())
+
+    def as_list(self):
+        return [self.to_.as_list(), self.from_.as_list()]
+
+    def __getitem__(self, key):
+        if key == 0:
+            return self.to_
+        elif key == 1:
+            return self.from_
+
+    def dims2idx(self, dims):
+        return self.to_.dims2idx(dims[0]), self.from_.dims2idx(dims[1])
+
+    def idx2dims(self, idx):
+        return [self.to_.idx2dims(dims[0]), self.from_.idx2dims(dims[1])]
