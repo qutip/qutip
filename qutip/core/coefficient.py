@@ -499,12 +499,12 @@ def compile_code(code, file_name, parsed, c_opt):
             compile_time_env = {
                 "QUTIP_IDXINT_64": idxint_dtype is np.int64,
             }
-            ext_modules = cythonize(
-                coeff_file,
-                compile_time_env=compile_time_env,
-                force=c_opt['recompile'],
-            )
             with _ignore_import_warning_for_pyximporter():
+                ext_modules = cythonize(
+                    coeff_file,
+                    compile_time_env=compile_time_env,
+                    force=c_opt['recompile'],
+                )
                 setup(ext_modules=ext_modules)
         except Exception as e:
             raise Exception("Could not compile") from e
