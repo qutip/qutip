@@ -461,7 +461,9 @@ class Bloch3d():
         """
         from mayavi import mlab
         self.make_sphere()
-        mlab.view(azimuth=self.view[0], elevation=self.view[1], distance=5)
+        
+        # mlab defines azimuth 90 degrees different
+        mlab.view(azimuth=self.view[0], elevation=90-self.view[1], distance=5)
         if self.fig:
             mlab.show()
 
@@ -487,7 +489,8 @@ class Bloch3d():
         from mayavi import mlab
         import os
         self.make_sphere()
-        mlab.view(azimuth=self.view[0], elevation=self.view[1], distance=5)
+        # mlab defines azimuth 90 degrees different
+        mlab.view(azimuth=self.view[0], elevation=90-self.view[1], distance=5)
         if dirc:
             if not os.path.isdir(os.getcwd() + "/" + str(dirc)):
                 os.makedirs(os.getcwd() + "/" + str(dirc))

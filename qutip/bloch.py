@@ -119,7 +119,8 @@ class Bloch:
         # The size of the figure in inches, default = [5,5].
         self.figsize = figsize if figsize else [5, 5]
         # Azimuthal and Elvation viewing angles, default = [-60,30].
-        self.view = view if view else [-60, 30]
+        # Matplot lib rotated 90 degrees about z with respect to Bloch sphere
+        self.view = [view[0]+90,view[1]] if view else [-60, 30]
         # Color of Bloch sphere, default = #FFDDDD
         self.sphere_color = '#FFDDDD'
         # Transparency of Bloch sphere, default = 0.2
@@ -439,7 +440,8 @@ class Bloch:
                 plt.close(self.fig)
 
         if self.axes is None:
-            self.axes = _axes3D(self.fig, azim=self.view[0], elev=self.view[1])
+            # Matplotlib axes rotated 90 degrees about z with respect to Bloch sphere
+            self.axes = _axes3D(self.fig, azim=self.view[0]+90, elev=self.view[1])
 
         # Clearing the axes is horrifically slow and loses a lot of the
         # axes state, but matplotlib doesn't seem to provide a better way
