@@ -52,7 +52,7 @@ def _return(base, **kwargs):
 
 coefficient_builders = {
     Coefficient: _return,
-    np.ndarray : InterCoefficient,
+    np.ndarray: InterCoefficient,
     scipy.interpolate.PPoly: InterCoefficient.from_PPoly,
     scipy.interpolate.BSpline: InterCoefficient.from_Bspline,
 }
