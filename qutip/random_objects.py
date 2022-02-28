@@ -57,6 +57,7 @@ import scipy.sparse as sp
 
 from . import Qobj, create, destroy, jmat, basis, to_super
 from .core import data as _data
+from .core.dimensions import Dimensions
 
 _UNITS = np.array([1, 1j])
 
@@ -696,7 +697,7 @@ def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None, *,
         # TODO: check!
         pass
     else:
-        dims = [[[N], [N]], [[N], [N]]]
+        dims = Dimensions([[[N], [N]], [[N], [N]]], rep='choi')
 
     if rank is None:
         rank = N**2
@@ -742,8 +743,6 @@ def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None, *,
     # expects a column-stacking Choi matrix, we must permute the indices.
     D = D.permute([[1], [0]])
 
-    # Mark that we've made a Choi matrix.
-    D.superrep = 'choi'
     D.dims = dims
 
     return to_super(D).to(dtype)

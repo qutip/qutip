@@ -50,28 +50,9 @@ from ..settings import settings
 from . import data as _data
 from .dimensions import (
     type_from_dims, enumerate_flat, collapse_dims_super, flatten, unflatten,
+    Dimensions
 )
 
-
-_ADJOINT_TYPE_LOOKUP = {
-    'oper': 'oper',
-    'super': 'super',
-    'ket': 'bra',
-    'bra': 'ket',
-    'operator-ket': 'operator-bra',
-    'operator-bra': 'operator-ket',
-}
-
-_MATMUL_TYPE_LOOKUP = {
-    ('oper', 'ket'): 'ket',
-    ('oper', 'oper'): 'oper',
-    ('ket', 'bra'): 'oper',
-    ('bra', 'oper'): 'bra',
-    ('super', 'super'): 'super',
-    ('super', 'operator-ket'): 'operator-ket',
-    ('operator-bra', 'super'): 'operator-bra',
-    ('operator-ket', 'operator-bra'): 'super',
-}
 
 _NORM_FUNCTION_LOOKUP = {
     'tr': _data.norm.trace,
@@ -128,15 +109,13 @@ def _require_equal_type(method):
     def out(self, other):
         if (
             self.type in ('oper', 'super')
-            and self.dims[0] == self.dims[1]
+            and self._dims[0] == self._dims[1]
             and isinstance(other, numbers.Number)
         ):
             scale = complex(other)
             other = Qobj(_data.identity(self.shape[0], scale,
                                         dtype=type(self.data)),
-                         dims=self.dims,
-                         type=self.type,
-                         superrep=self.superrep,
+                         dims=self._dims,
                          isherm=(scale.imag == 0),
                          isunitary=(abs(abs(scale)-1) < settings.core['atol']),
                          copy=False)
@@ -149,15 +128,6 @@ def _require_equal_type(method):
             msg = (
                 "incompatible dimensions "
                 + repr(self.dims) + " and " + repr(other.dims)
-            )
-            raise ValueError(msg)
-        if self.type != other.type:
-            msg = "incompatible types " + self.type + " and " + other.type
-            raise ValueError(msg)
-        if self.superrep != other.superrep:
-            msg = (
-                "incompatible superoperator representations"
-                + self.superrep + " and " + other.superrep
             )
             raise ValueError(msg)
         return method(self, other)
@@ -325,15 +295,17 @@ class Qobj:
     __array_ufunc__ = None
 
     def _initialize_data(self, arg, dims, copy):
+        self._dims = None
+        self._data = None
         if isinstance(arg, _data.Data):
-            self.dims = dims or [[arg.shape[0]], [arg.shape[1]]]
             self._data = arg.copy() if copy else arg
+            self.dims = dims or [[arg.shape[0]], [arg.shape[1]]]
         elif isinstance(arg, Qobj):
-            self.dims = dims or arg.dims.copy()
             self._data = arg.data.copy() if copy else arg.data
+            self.dims = dims or arg.dims.copy()
         elif arg is None or isinstance(arg, numbers.Number):
             self.dims = dims or [[1], [1]]
-            size = np.prod(self.dims[0])
+            size = self._dims[0].size
             if arg is None:
                 self._data = _data.zeros(size, size)
             else:
@@ -344,12 +316,14 @@ class Qobj:
 
     def __init__(self, arg=None, dims=None, type=None,
                  copy=True, superrep=None, isherm=None, isunitary=None):
+        if dims:
+            dims = Dimensions(dims, rep=superrep)
         self._initialize_data(arg, dims, copy)
-        self.type = type or type_from_dims(self.dims)
         self._isherm = isherm
         self._isunitary = isunitary
 
-        if self.type == 'super' and type_from_dims(self.dims) == 'oper':
+        if type == 'super' and self.type == 'oper':
+            # Dims were guessed from the data and need to be changed to super.
             if self._data.shape[0] != self._data.shape[1]:
                 raise ValueError("".join([
                     "cannot build superoperator from nonsquare data of shape ",
@@ -363,16 +337,11 @@ class Qobj:
                     repr(self._data.shape[0]),
                 ]))
             self.dims = [[[root]]*2]*2
-        if self.type in ['super', 'operator-ket', 'operator-bra']:
-            superrep = superrep or 'super'
-        self.superrep = superrep
 
     def copy(self):
         """Create identical copy"""
         return Qobj(arg=self._data,
-                    dims=self.dims,
-                    type=self.type,
-                    superrep=self.superrep,
+                    dims=self._dims,
                     isherm=self._isherm,
                     isunitary=self._isunitary,
                     copy=True)
@@ -385,7 +354,30 @@ class Qobj:
     def data(self, data):
         if not isinstance(data, _data.Data):
             raise TypeError('Qobj data must be a data-layer format.')
+        if self._dims and data.shape != self._dims.shape:
+            raise ValueError('The data do not match the dimensions: ' +
+                             f"{data.shape} {self._dims.shape}")
         self._data = data
+
+    @property
+    def dims(self):
+        return self._dims.as_list()
+
+    @dims.setter
+    def dims(self, dims):
+        dims = Dimensions(dims)
+        if self._data and dims.shape != self._data.shape:
+            raise ValueError('Provided dimensions do not match the data: ' +
+                             f"{dims.shape} {self._data.shape}")
+        self._dims = dims
+
+    @property
+    def superrep(self):
+        return self._dims.superrep
+
+    @property
+    def type(self):
+        return self._dims.type
 
     def to(self, data_type):
         """
@@ -422,9 +414,7 @@ class Qobj:
         if type(self.data) is data_type:
             return self
         return Qobj(converter(self._data),
-                    dims=self.dims,
-                    type=self.type,
-                    superrep=self.superrep,
+                    dims=self._dims,
                     isherm=self._isherm,
                     isunitary=self._isunitary,
                     copy=False)
@@ -433,9 +423,7 @@ class Qobj:
     def __add__(self, other):
         isherm = (self._isherm and other._isherm) or None
         return Qobj(_data.add(self._data, other._data),
-                    dims=self.dims,
-                    type=self.type,
-                    superrep=self.superrep,
+                    dims=self._dims,
                     isherm=isherm,
                     copy=False)
 
@@ -446,9 +434,7 @@ class Qobj:
     def __sub__(self, other):
         isherm = (self._isherm and other._isherm) or None
         return Qobj(_data.sub(self._data, other._data),
-                    dims=self.dims,
-                    type=self.type,
-                    superrep=self.superrep,
+                    dims=self._dims,
                     isherm=isherm,
                     copy=False)
 
@@ -483,9 +469,7 @@ class Qobj:
             isunitary = None
 
         return Qobj(out,
-                    dims=self.dims,
-                    type=self.type,
-                    superrep=self.superrep,
+                    dims=self._dims,
                     isherm=isherm,
                     isunitary=isunitary,
                     copy=False)
@@ -508,31 +492,15 @@ class Qobj:
                 " and ",
                 repr(other.dims),
             ]))
-        if self.superrep != other.superrep:
-            raise TypeError("".join([
-                "incompatible superoperator representations ",
-                repr(self.superrep),
-                " and ",
-                repr(other.superrep),
-            ]))
         if (
             (self.isbra and other.isket)
             or (self.isoperbra and other.isoperket)
         ):
             return _data.inner(self.data, other.data)
 
-        try:
-            type_ = _MATMUL_TYPE_LOOKUP[(self.type, other.type)]
-        except KeyError:
-            raise TypeError(
-                "incompatible matmul types "
-                + repr(self.type) + " and " + repr(other.type)
-            ) from None
         return Qobj(_data.matmul(self.data, other.data),
-                    dims=[self.dims[0], other.dims[1]],
-                    type=type_,
+                    dims=[self._dims[0], other._dims[1]],
                     isunitary=self._isunitary and other._isunitary,
-                    superrep=self.superrep,
                     copy=False)
 
     def __truediv__(self, other):
@@ -542,9 +510,7 @@ class Qobj:
 
     def __neg__(self):
         return Qobj(_data.neg(self._data),
-                    dims=self.dims.copy(),
-                    type=self.type,
-                    superrep=self.superrep,
+                    dims=self._dims,
                     isherm=self._isherm,
                     isunitary=self._isunitary,
                     copy=False)
@@ -575,17 +541,14 @@ class Qobj:
 
     def __pow__(self, n, m=None):  # calculates powers of Qobj
         if (
-            self.type not in ('oper', 'super')
-            or self.dims[0] != self.dims[1]
+            self.dims[0] != self.dims[1]
             or m is not None
             or not isinstance(n, numbers.Integral)
             or n < 0
         ):
             return NotImplemented
         return Qobj(_data.pow(self._data, n),
-                    dims=self.dims,
-                    type=self.type,
-                    superrep=self.superrep,
+                    dims=self._dims,
                     isherm=self._isherm,
                     isunitary=self._isunitary,
                     copy=False)
@@ -688,9 +651,7 @@ class Qobj:
         if self._isherm:
             return self.copy()
         return Qobj(_data.adjoint(self._data),
-                    dims=[self.dims[1], self.dims[0]],
-                    type=_ADJOINT_TYPE_LOOKUP[self.type],
-                    superrep=self.superrep,
+                    dims=[self._dims[1], self._dims[0]],
                     isherm=self._isherm,
                     isunitary=self._isunitary,
                     copy=False)
@@ -698,9 +659,7 @@ class Qobj:
     def conj(self):
         """Get the element-wise conjugation of the quantum object."""
         return Qobj(_data.conj(self._data),
-                    dims=self.dims.copy(),
-                    type=self.type,
-                    superrep=self.superrep,
+                    dims=self._dims,
                     isherm=self._isherm,
                     isunitary=self._isunitary,
                     copy=False)
@@ -714,9 +673,7 @@ class Qobj:
             Transpose of input operator.
         """
         return Qobj(_data.transpose(self._data),
-                    dims=[self.dims[1], self.dims[0]],
-                    type=_ADJOINT_TYPE_LOOKUP[self.type],
-                    superrep=self.superrep,
+                    dims=[self._dims[1], self._dims[0]],
                     isherm=self._isherm,
                     isunitary=self._isunitary,
                     copy=False)
@@ -791,11 +748,10 @@ class Qobj:
         """
         if not (self.isket or self.isbra):
             raise TypeError("projection is only defined for bras and kets")
-        dims = ([self.dims[0], self.dims[0]] if self.isket
-                else [self.dims[1], self.dims[1]])
+        dims = ([self._dims[0], self._dims[0]] if self.isket
+                else [self._dims[1], self._dims[1]])
         return Qobj(_data.project(self._data),
                     dims=dims,
-                    type='oper',
                     isherm=True,
                     copy=False)
 
@@ -887,9 +843,7 @@ class Qobj:
         if self.dims[0] != self.dims[1]:
             raise TypeError("expm is only valid for square operators")
         return Qobj(_data.expm(self._data, dtype=dtype),
-                    dims=self.dims,
-                    type=self.type,
-                    superrep=self.superrep,
+                    dims=self._dims,
                     isherm=self._isherm,
                     copy=False)
 
@@ -951,9 +905,7 @@ class Qobj:
         else:
             spDv = _data.matmul(dV, _data.inv(evecs))
         return Qobj(_data.matmul(evecs, spDv),
-                    dims=self.dims,
-                    type=self.type,
-                    superrep=self.superrep,
+                    dims=self._dims,
                     copy=False)
 
     def cosm(self):
@@ -1026,9 +978,7 @@ class Qobj:
             data = self.data
 
         return Qobj(_data.inv(data),
-                    dims=[self.dims[1], self.dims[0]],
-                    type=self.type,
-                    superrep=self.superrep,
+                    dims=[self._dims[1], self._dims[0]],
                     copy=False)
 
     def unit(self, inplace=False, norm=None, kwargs=None):
@@ -1256,7 +1206,6 @@ class Qobj:
         data = _data.permute.dimensions(self.data, flat_structure, flat_order)
         return Qobj(data,
                     dims=dims,
-                    type=self.type,
                     superrep=self.superrep,
                     copy=False)
 
@@ -1331,10 +1280,8 @@ class Qobj:
             else:
                 data = _data.matmul(_data.matmul(S, self.data), S.adjoint())
         return Qobj(data,
-                    dims=self.dims,
-                    type=self.type,
+                    dims=self._dims,
                     isherm=self._isherm,
-                    superrep=self.superrep,
                     copy=False)
 
     def trunc_neg(self, method="clip"):
@@ -1394,8 +1341,7 @@ class Qobj:
                                      value)
         out_data = _data.mul(out_data, 1/_data.norm.trace(out_data))
         return Qobj(out_data,
-                    dims=self.dims.copy(),
-                    type=self.type,
+                    dims=self._dims,
                     isherm=True,
                     copy=False)
 
@@ -1544,14 +1490,9 @@ class Qobj:
             evals, evecs = _data.eigs(self.data, isherm=self._isherm,
                                       sort=sort, eigvals=eigvals)
 
-        if self.type == 'super':
-            new_dims = [self.dims[0], [1]]
-            new_type = 'operator-ket'
-        else:
-            new_dims = [self.dims[0], [1]*len(self.dims[0])]
-            new_type = 'ket'
+        new_dims = [self._dims[0], [1]]
         ekets = np.empty((evecs.shape[1],), dtype=object)
-        ekets[:] = [Qobj(vec, dims=new_dims, type=new_type, copy=False)
+        ekets[:] = [Qobj(vec, dims=new_dims, copy=False)
                     for vec in _data.split_columns(evecs, False)]
         norms = np.array([ket.norm() for ket in ekets])
         if phase_fix is None:
@@ -1659,7 +1600,7 @@ class Qobj:
             if (evals[1]-evals[0]) <= 10*tol:
                 print("WARNING: Ground state may be degenerate. "
                         "Use Q.eigenstates()")
-        new_dims = [self.dims[0], [1] * len(self.dims[0])]
+        new_dims = [self._dims[0], [1]]
         grndvec = Qobj(evecs[0], dims=new_dims)
         grndvec = grndvec / grndvec.norm()
         return evals[0], grndvec

@@ -389,13 +389,16 @@ class MetaSpace(type):
             cls = Field
         elif len(args) == 1 and args[0] == 1:
             cls = Field
-        elif len(args) == 1 and isinstance(args[0], Dims):
+        elif len(args) == 1 and isinstance(args[0], Dimensions):
             cls = SuperSpace
         elif len(args) > 1:
             if all(isinstance(arg, Field) for arg in args):
                 cls = Field
             elif all(isinstance(arg, Space) for arg in args):
                 cls = Compound
+
+        args = tuple([tuple(arg) if isinstance(arg, list) else arg
+                      for arg in args])
 
         if cls is Field:
             return cls.field_instance
@@ -411,7 +414,7 @@ class MetaSpace(type):
         if isinstance(list_dims[0], list):
             # Superoperator or tensor of superoperators
             spaces = [
-                Space(Dims(
+                Space(Dimensions(
                     Space(list_dims[i+1]),
                     Space(list_dims[1])
                 ), rep=rep)
@@ -431,9 +434,13 @@ class Space(metaclass=MetaSpace):
     def __init__(self, dims):
         if dims <= 0:
             raise ValueError
+        # Size of the hilbert space
         self.size = dims
         self.issuper = False
+        # Super representation, should be an empty string except for SuperSpace
         self.superrep = ""
+        # Does the size and dims match directly: size == prod(dims)
+        self._pure_dims = True
 
     def __repr__(self):
         return f"Space({self.size})"
@@ -457,6 +464,7 @@ class Field(Space):
         self.size = 1
         self.issuper = False
         self.superrep = ""
+        self._pure_dims = True
 
     def __repr__(self):
         return "Field()"
@@ -475,6 +483,7 @@ class Compound(Space):
         self.spaces = spaces
         self.size = np.prod([space.size for space in self.spaces])
         self.issuper = any(space.issuper for space in self.spaces)
+        self._pure_dims = all(space._pure_dims for space in self.spaces)
         superrep = [space.superrep for space in self.spaces]
         if all(superrep[0] == rep for rep in superrep):
             self.superrep = superrep[0]
@@ -512,6 +521,7 @@ class SuperSpace(Space):
         self.superrep = rep
         self.size = oper.shape[0] * oper.shape[1]
         self.issuper = True
+        self._pure_dims = oper._pure_dims
 
     def __repr__(self):
         return f"Super({repr(self.oper)}, rep={self.superrep})"
@@ -537,7 +547,7 @@ class SuperSpace(Space):
 
 class SumSpace(Space):
     """
-    Dims for piqs's dicke states.
+    Dimensions for piqs's dicke states.
     Example :
         A system of 2 qubit split into a triplet and singulet states:
         SumSpace((3,1))
@@ -548,6 +558,7 @@ class SumSpace(Space):
         self.size = sum(structure)
         self.issuper = False
         self.superrep = ""
+        self._pure_dims = False
 
     def __repr__(self):
         return f"SumSpace({self.structure})"
@@ -562,33 +573,6 @@ class SumSpace(Space):
         return idx
 
 
-class EnrSpace(Space):
-    _stored_dims = {}
-    def __init__(self, dims, excitations):
-        from .states import enr_state_dictionaries
-        self.dims = dims
-        self.n_excitations = excitations
-        size, state2idx, idx2state = enr_state_dictionaries(dims, excitations)
-        self.size = nstates
-        self.state2idx = state2idx
-        self.idx2state = idx2state
-        self.issuper = False
-        self.superrep = ""
-
-    def __repr__(self):
-        return f"EnrSpace({self.dims}, {self.n_excitations})"
-
-    def as_list(self):
-        return list(self.dims)
-
-    def dims2idx(self, dims):
-        return self.state2idx[tuple(dims)]
-
-    def idx2dims(self, idx):
-        return self.idx2state[idx]
-
-
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 class MetaDims(type):
     def __call__(cls, *args, rep='super'):
         if isinstance(args[0], list):
@@ -596,8 +580,10 @@ class MetaDims(type):
                 Space(args[0][1], rep=rep),
                 Space(args[0][0], rep=rep)
             )
-        if len(args) != 2:
-            raise NotImplementedError('No Dual, Ket, Bra... yet?')
+        if len(args) == 1 and isinstance(args[0], Dimensions):
+            return args[0]
+        elif len(args) != 2:
+            raise NotImplementedError('No Dual, Ket, Bra...', args)
         if args[0] == args[1] == Field():
             return Field()
 
@@ -608,18 +594,19 @@ class MetaDims(type):
         return cls._stored_dims[args]
 
 
-class Dims(metaclass=MetaDims):
+class Dimensions(metaclass=MetaDims):
     _stored_dims = {}
     def __init__(self, from_, to_):
         self.from_ = from_
         self.to_ = to_
-        self.shape = self.to_.size, self.from_.size
-        self.issuper = self.from_.issuper or self.to_.issuper
-        self.isbra
-        self.isket
-        self.isoper
-        self.isoperbra
-        self.isoperket
+        self.shape = to_.size, from_.size
+        self.issuper = from_.issuper or to_.issuper
+        self._pure_dims = from_._pure_dims and to_._pure_dims
+        self.isbra = False
+        self.isket = False
+        self.isoper = False
+        self.isoperbra = False
+        self.isoperket = False
         if self.from_ is Field():
             self.type = 'operator-ket' if self.issuper else 'ket'
             self.isket = not self.issuper
@@ -635,7 +622,7 @@ class Dims(metaclass=MetaDims):
             self.superrep = self.from_.superrep
             self.isoper = not self.issuper
         else:
-            self.type = 'rec_super' if self.issuper else 'rec_oper'
+            self.type = 'super' if self.issuper else 'oper'
             if self.from_.superrep == self.to_.superrep:
                 self.superrep = self.from_.superrep
             else:
@@ -643,7 +630,7 @@ class Dims(metaclass=MetaDims):
 
 
     def __repr__(self):
-        return f"Dims({repr(self.from_)}, {repr(self.to_)})"
+        return f"Dimensions({repr(self.from_)}, {repr(self.to_)})"
 
     def __str__(self):
         return str(self.as_list())
