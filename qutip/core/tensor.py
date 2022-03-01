@@ -165,12 +165,16 @@ def super_tensor(*args):
 
         # Reshuffle the superoperators.
         shuffled_ops = list(map(reshuffle, args))
+        print([op.dims for op in shuffled_ops])
 
         # Tensor the result.
         shuffled_tensor = tensor(shuffled_ops)
+        """
         dims = shuffled_tensor.dims[0]
         new_dims = [[d] for d in dims]
         shuffled_tensor.dims = [new_dims, new_dims]
+        """
+        print(shuffled_tensor.dims)
 
         # Unshuffle and return.
         out = reshuffle(shuffled_tensor)

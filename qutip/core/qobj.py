@@ -312,6 +312,8 @@ class Qobj:
                 self._data = _data.identity(size, scale=complex(arg))
         else:
             self._data = _data.create(arg, copy=copy)
+            if dims and dims.shape != self._data.shape:
+                self._data = _data.transpose(self._data)
             self.dims = dims or [[self._data.shape[0]], [self._data.shape[1]]]
 
     def __init__(self, arg=None, dims=None, type=None,
@@ -1195,15 +1197,14 @@ class Qobj:
                                  else self.dims[0])
         new_structure = unflatten([flat_structure[x] for x in flat_order],
                                   enumerate_flat(order))
-        dims = [flat_structure[x] for x in flat_order]
         if self.isoperbra:
-            dims = [self.dims[0], dims]
+            dims = [self.dims[0], new_structure]
         elif self.isoperket:
-            dims = [dims, self.dims[1]]
+            dims = [new_structure, self.dims[1]]
         else:
             if self.dims[0] != self.dims[1]:
                 raise TypeError("undefined for non-square operators")
-            dims = [dims, dims]
+            dims = [new_structure, new_structure]
         data = _data.permute.dimensions(self.data, flat_structure, flat_order)
         return Qobj(data,
                     dims=dims,

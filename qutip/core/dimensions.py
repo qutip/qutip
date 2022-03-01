@@ -403,7 +403,7 @@ class MetaSpace(type):
         if cls is Field:
             return cls.field_instance
         if cls is SuperSpace:
-            args = *args, rep
+            args = *args, rep or 'super'
         if args not in cls._stored_dims:
             instance = cls.__new__(cls)
             instance.__init__(*args)
@@ -413,13 +413,18 @@ class MetaSpace(type):
     def from_list(cls, list_dims, rep='super'):
         if isinstance(list_dims[0], list):
             # Superoperator or tensor of superoperators
-            spaces = [
-                Space(Dimensions(
-                    Space(list_dims[i+1]),
-                    Space(list_dims[i])
-                ), rep=rep)
-                for i in range(0, len(list_dims), 2)
-            ]
+            if len(list_dims) % 2 == 0:
+                spaces = [
+                    Space(Dimensions(
+                        Space(list_dims[i+1]),
+                        Space(list_dims[i])
+                    ), rep=rep)
+                    for i in range(0, len(list_dims), 2)
+                ]
+            elif len(list_dims) == 1:
+                spaces = [Space(size) for size in list_dims[0]]
+            else:
+                raise ValueError(f'Format not understood {list_dims}')
         else:
             spaces = [Space(size) for size in list_dims]
         if len(spaces) == 1:
