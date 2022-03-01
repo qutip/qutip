@@ -416,7 +416,7 @@ class MetaSpace(type):
             spaces = [
                 Space(Dimensions(
                     Space(list_dims[i+1]),
-                    Space(list_dims[1])
+                    Space(list_dims[i])
                 ), rep=rep)
                 for i in range(0, len(list_dims), 2)
             ]
@@ -580,11 +580,11 @@ class MetaDims(type):
                 Space(args[0][1], rep=rep),
                 Space(args[0][0], rep=rep)
             )
-        if len(args) == 1 and isinstance(args[0], Dimensions):
+        elif len(args) == 1 and isinstance(args[0], Dimensions):
             return args[0]
         elif len(args) != 2:
             raise NotImplementedError('No Dual, Ket, Bra...', args)
-        if args[0] == args[1] == Field():
+        elif args[0] == args[1] == Field():
             return Field()
 
         if args not in cls._stored_dims:

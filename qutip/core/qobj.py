@@ -692,7 +692,7 @@ class Qobj:
                 list(zip(tensor_idxs[0][1], tensor_idxs[0][0])) +
                 list(zip(tensor_idxs[1][1], tensor_idxs[1][0]))
         )).trans()
-        J_dual.superrep = 'choi'
+        # J_dual.superrep = 'choi'
         return J_dual
 
     def norm(self, norm=None, kwargs=None):
@@ -1195,14 +1195,15 @@ class Qobj:
                                  else self.dims[0])
         new_structure = unflatten([flat_structure[x] for x in flat_order],
                                   enumerate_flat(order))
+        dims = [flat_structure[x] for x in flat_order]
         if self.isoperbra:
-            dims = [self.dims[0], new_structure]
+            dims = [self.dims[0], dims]
         elif self.isoperket:
-            dims = [new_structure, self.dims[1]]
+            dims = [dims, self.dims[1]]
         else:
             if self.dims[0] != self.dims[1]:
                 raise TypeError("undefined for non-square operators")
-            dims = [new_structure, new_structure]
+            dims = [dims, dims]
         data = _data.permute.dimensions(self.data, flat_structure, flat_order)
         return Qobj(data,
                     dims=dims,

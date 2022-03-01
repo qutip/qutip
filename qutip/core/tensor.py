@@ -168,10 +168,15 @@ def super_tensor(*args):
 
         # Tensor the result.
         shuffled_tensor = tensor(shuffled_ops)
+        dims = shuffled_tensor.dims[0]
+        new_dims = [[d] for d in dims]
+        shuffled_tensor.dims = [new_dims, new_dims]
 
         # Unshuffle and return.
         out = reshuffle(shuffled_tensor)
-        out.superrep = args[0].superrep
+        out = Qobj(out,
+                   dims=[new_dims, new_dims],
+                   superrep=args[0].superrep)
         return out
     if all(arg.isoperket for arg in args):
 
@@ -180,6 +185,9 @@ def super_tensor(*args):
 
         # Tensor the result.
         shuffled_tensor = tensor(shuffled_ops)
+        dims = shuffled_tensor.dims[0]
+        new_dims = [[d] for d in dims]
+        shuffled_tensor.dims = [new_dims, [1]]
 
         # Unshuffle and return.
         out = reshuffle(shuffled_tensor)
