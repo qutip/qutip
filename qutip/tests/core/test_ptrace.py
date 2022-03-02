@@ -43,6 +43,8 @@ from qutip.core import data as _data
 def expected(qobj, sel):
     if qobj.isbra or qobj.isket:
         qobj = qobj.proj()
+    if not sel:
+        return qutip.Qobj(qobj.tr())
     sel = sorted(sel)
     dims = [[x for i, x in enumerate(qobj.dims[0]) if i in sel]]*2
     new_shape = (np.prod(dims[0], dtype=int),) * 2

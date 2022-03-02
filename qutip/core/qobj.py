@@ -1075,6 +1075,8 @@ class Qobj:
             data = _data.project(self.data)
         if dims[0] != dims[1]:
             raise ValueError("partial trace is not defined on non-square maps")
+        if not sel:
+            return Qobj(self.tr())
         dims = flatten(dims[0])
         new_data = _data.ptrace(data, dims, sel, dtype=dtype)
         new_dims = [[dims[x] for x in sel]] * 2
