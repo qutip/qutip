@@ -183,7 +183,6 @@ class Bloch:
         self._lines = []
         # Data for arcs and arc style
         self._arcs = []
-        self.arc_style = []
 
     def set_label_convention(self, convention):
         """Set x, y and z labels according to one of conventions.
@@ -296,7 +295,6 @@ class Bloch:
         self.annotations = []
         self._lines = []
         self._arcs = []
-        self.arc_style = []
 
     def add_points(self, points, meth='s'):
         """Add a list of data points to bloch sphere.
@@ -406,7 +404,7 @@ class Bloch:
     def add_arc(self, start, end, fmt = "b", steps = None, **kwargs):
         """Adds an arc between two points on a sphere. The arc is set to be
         blue solid curve by default.
-        
+
         Parameters
         ----------
         point1 : array_like
@@ -433,7 +431,7 @@ class Bloch:
             pt2 = end
         pt1 = np.asarray(pt1)
         pt2 = np.asarray(pt2)
-        
+
         len1 = np.linalg.norm(pt1)
         len2 = np.linalg.norm(pt2)
         if len1 < 1e-12 or len2 < 1e-12:
@@ -460,7 +458,7 @@ class Bloch:
     def add_line(self, start, end, fmt = "k", **kwargs):
         """Adds a line segment connecting two points on the bloch sphere.
         The line segment is set to be a black solid line by default.
-        
+
         Parameters
         ----------
         point1 : array_like
@@ -487,7 +485,7 @@ class Bloch:
             pt2 = end
         pt1 = np.asarray(pt1)
         pt2 = np.asarray(pt2)
-        
+
         x = [pt1[1], pt2[1]]
         y = [-pt1[0], -pt2[0]]
         z = [pt1[2], pt2[2]]
@@ -740,7 +738,7 @@ class Bloch:
     def plot_line(self):
         for line in self._lines:
             self.axes.plot(line[0][0], line[0][1], line[0][2], line[1], **line[2])
-    
+
     def plot_arc(self):
         for val in self._arcs:
             self.axes.plot(val[0][1,:],-val[0][0,:],val[0][2,:], val[1], **val[2])
