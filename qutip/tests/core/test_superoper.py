@@ -37,7 +37,7 @@ import scipy.linalg
 import qutip
 from qutip.core import data as _data
 import pytest
-
+from qutip.core.superoperator import _to_tensor_of_super, _to_super_of_tensor
 
 def f(t, args):
     return t * (1 - 0.5j)
@@ -178,11 +178,18 @@ class TestMatVec:
         U1 = qutip.rand_unitary(2)
         U2 = qutip.rand_unitary(3)
         U3 = qutip.rand_unitary(4)
-        U = qutip.tensor(U1, U2, U3)
-        S = qutip.to_super(U)
-        S_col = qutip.reshuffle(S)
-        assert S_col.dims[0] == [[2, 2], [3, 3], [4, 4]]
-        assert qutip.reshuffle(S_col) == S
+        S1 = qutip.to_super(U1)
+        S2 = qutip.to_super(U2)
+        S3 = qutip.to_super(U3)
+
+        S_T = qutip.to_super(qutip.tensor(U1, U2, U3))
+        T_S = qutip.tensor(S1, S2, S3)
+        mixed = qutip.tensor(S1, qutip.to_super(qutip.tensor(U2, U3)))
+
+        assert _to_tensor_of_super(S_T) == T_S
+        assert _to_super_of_tensor(T_S) == S_T
+        assert _to_tensor_of_super(mixed) == T_S
+        assert _to_super_of_tensor(mixed) == S_T
 
     def test_sprepost(self):
         U1 = qutip.rand_unitary(3)

@@ -485,7 +485,12 @@ Field.field_instance.__init__()
 class Compound(Space):
     _stored_dims = {}
     def __init__(self, *spaces):
-        self.spaces = spaces
+        self.spaces = []
+        for space in spaces:
+            if isinstance(space, Compound):
+                self.spaces += space.spaces
+            else:
+                self.spaces += [space]
         self.size = np.prod([space.size for space in self.spaces])
         self.issuper = any(space.issuper for space in self.spaces)
         self._pure_dims = all(space._pure_dims for space in self.spaces)
@@ -612,6 +617,7 @@ class Dimensions(metaclass=MetaDims):
         self.isoper = False
         self.isoperbra = False
         self.isoperket = False
+        self.issquare = False
         if self.from_ is Field():
             self.type = 'operator-ket' if self.issuper else 'ket'
             self.isket = not self.issuper
@@ -626,6 +632,7 @@ class Dimensions(metaclass=MetaDims):
             self.type = 'super' if self.issuper else 'oper'
             self.superrep = self.from_.superrep
             self.isoper = not self.issuper
+            self.issquare = True
         else:
             self.type = 'super' if self.issuper else 'oper'
             if self.from_.superrep == self.to_.superrep:

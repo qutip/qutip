@@ -42,7 +42,9 @@ import numpy as np
 from functools import partial
 from .operators import qeye
 from .qobj import Qobj
-from .superoperator import operator_to_vector, reshuffle
+from .superoperator import (
+    operator_to_vector, reshuffle, _to_tensor_of_super, _to_super_of_tensor
+)
 from .dimensions import (
     flatten, enumerate_flat, unflatten, deep_remove, dims_to_tensor_shape,
     dims_idxs_to_tensor_idxs
@@ -155,54 +157,27 @@ def super_tensor(*args):
     if isinstance(args[0], list):
         args = args[0]
 
+    if not all(arg._dims.issuper for arg in args):
+        raise TypeError(
+            "All arguments must be the same type, "
+            "either super, operator-ket or operator-bra."
+        )
+
     # Check if we're tensoring vectors or superoperators.
-    if all(arg.issuper for arg in args):
-        if not all(arg.superrep == "super" for arg in args):
-            raise TypeError(
-                "super_tensor on type='super' is only implemented for "
-                "superrep='super'."
-            )
-
-        # Reshuffle the superoperators.
-        shuffled_ops = list(map(reshuffle, args))
-        print([op.dims for op in shuffled_ops])
-
-        # Tensor the result.
-        shuffled_tensor = tensor(shuffled_ops)
-        """
-        dims = shuffled_tensor.dims[0]
-        new_dims = [[d] for d in dims]
-        shuffled_tensor.dims = [new_dims, new_dims]
-        """
-        print(shuffled_tensor.dims)
-
-        # Unshuffle and return.
-        out = reshuffle(shuffled_tensor)
-        out = Qobj(out,
-                   dims=[new_dims, new_dims],
-                   superrep=args[0].superrep)
-        return out
-    if all(arg.isoperket for arg in args):
-
-        # Reshuffle the superoperators.
-        shuffled_ops = list(map(reshuffle, args))
-
-        # Tensor the result.
-        shuffled_tensor = tensor(shuffled_ops)
-        dims = shuffled_tensor.dims[0]
-        new_dims = [[d] for d in dims]
-        shuffled_tensor.dims = [new_dims, [1]]
-
-        # Unshuffle and return.
-        out = reshuffle(shuffled_tensor)
-        return out
+    if not all(arg.superrep == "super" for arg in args):
+        raise TypeError(
+            "super_tensor on type='super' is only implemented for "
+            "superrep='super'."
+        )
 
     if all(arg.isoperbra for arg in args):
         return super_tensor(*(arg.dag() for arg in args)).dag()
-    raise TypeError(
-        "All arguments must be the same type, "
-        "either super, operator-ket or operator-bra."
-    )
+
+    shuffled_ops = list(map(_to_tensor_of_super, args))
+    shuffled_tensor = tensor(shuffled_ops)
+    out = _to_super_of_tensor(shuffled_tensor)
+    out = Qobj(out, superrep=args[0].superrep)
+    return out
 
 
 def _isoperlike(q):

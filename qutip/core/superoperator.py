@@ -43,6 +43,7 @@ import numpy as np
 
 from .qobj import Qobj
 from . import data as _data
+from .dimensions import Compound, SuperSpace, Space
 
 def _map_over_compound_operators(f):
     """
@@ -395,11 +396,94 @@ def sprepost(A, B):
                 copy=False)
 
 
+def _to_super_of_tensor(q_oper):
+    """
+    Transform a superoperator composed of multiple space into a superoperator
+    over a composite spaces.
+    """
+    msg = "Reshuffling is only supported for square operators."
+    if not q_oper._dims.issuper:
+        raise TypeError("Reshuffling is only supported on type='super' "
+                        "or type='operator-ket'.")
+    if q_oper._dims.isoper and not q_oper._dims.issquare:
+        raise NotImplementedError(msg)
+
+    dims = q_oper._dims[0]
+    if isinstance(dims, SuperSpace):
+        return q_oper.copy()
+
+    perm_idxs = [[], []]
+
+    if isinstance(dims, Compound):
+        shift = 0
+        for space in dims.spaces:
+            if not isinstance(space, SuperSpace) or not space.oper.issquare:
+                raise NotImplementedError(msg)
+            space_dims = space.oper.to_
+            if type(space_dims) is Space:
+                perm_idxs[0] += [shift]
+                perm_idxs[1] += [shift + 1]
+                shift += 2
+            elif isinstance(space_dims, Compound):
+                N = len(space_dims.spaces)
+                perm_idxs[0] += [shift + i for i in range(N)]
+                perm_idxs[1] += [shift + N + i for i in range(N)]
+                shift += 2 * N
+            else:
+                # ENR space or other complex spaces
+                raise NotImplementedError("Reshuffling with non standard space"
+                                          "is not supported.")
+
+    return q_oper.permute(perm_idxs)
+
+
+def _to_tensor_of_super(q_oper):
+    """
+    Transform a superoperator composed of multiple space into a tensor of
+    superoperator on each spaces.
+    """
+    msg = "Reshuffling is only supported for square operators."
+    if not q_oper._dims[0].issuper:
+        raise TypeError("Reshuffling is only supported on type='super' "
+                        "or type='operator-ket'.")
+
+    dims = q_oper._dims[0]
+    perm_idxs = []
+
+    if isinstance(dims, Compound):
+        shift = 0
+        for space in dims.spaces:
+            if not isinstance(space, SuperSpace) or not space.oper.issquare:
+                raise TypeError(msg)
+            space_dims = space.oper.to_
+            if type(space_dims) is Space:
+                perm_idxs += [[shift], [shift + 1]]
+                shift += 2
+            elif isinstance(space_dims, Compound):
+                N = len(space_dims.spaces)
+                idxs = range(0, N * 2, 2)
+                perm_idxs += [[i + shift] for i in idxs]
+                perm_idxs += [[i + shift + 1] for i in idxs]
+                shift += N * 2
+            else:
+                # ENR space or other complex spaces
+                raise NotImplementedError("Reshuffling with non standard space"
+                                          "is not supported.")
+    elif isinstance(dims, SuperSpace):
+        if isinstance(dims.oper.to_, Compound):
+            step = len(dims.oper.to_.spaces)
+            perm_idxs = sum([[[i], [i+step]] for i in range(step)], [])
+        else:
+            return q_oper
+
+    return q_oper.permute(perm_idxs)
+
+
 def reshuffle(q_oper):
     """
-    Column-reshuffles a ``type="super"`` Qobj.
+    Column-reshuffles a super operator or a operator-ket Qobj.
     """
-    if q_oper.type not in ('super', 'operator-ket'):
+    if not q_oper._dims[0].issuper:
         raise TypeError("Reshuffling is only supported on type='super' "
                         "or type='operator-ket'.")
     # How many indices are there, and how many subsystems can we decompose

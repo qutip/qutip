@@ -356,8 +356,8 @@ def _choi_to_stinespring(q_oper, threshold=1e-10):
         B += tensor(KR, basis(dK, idx_kraus))
 
     # There is no input (right) Kraus index, so strip that off.
-    del A.dims[1][-1]
-    del B.dims[1][-1]
+    A.dims = [out_left + [dK], out_right]
+    B.dims = [in_left + [dK], in_right]
 
     return A, B
 
