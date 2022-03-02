@@ -143,7 +143,6 @@ def test_simple_operator_creation(to_test, expected, dimension):
         [2, 3, 4],
         1,
         [1],
-        [1, 1],
     ])
 def test_implicit_tensor_creation(to_test, dimensions):
     implicit = to_test(dimensions)

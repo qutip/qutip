@@ -1076,7 +1076,7 @@ def test_unit():
     np.testing.assert_allclose(np.linalg.norm(psi.full()), 1.0)
 
 
-"""
+
 @pytest.mark.parametrize('inplace', [True, False], ids=['inplace', 'new'])
 @pytest.mark.parametrize(['expanded', 'contracted'], [
     pytest.param([[1, 2, 2], [1, 2, 2]], [[2, 2], [2, 2]], id='op'),
@@ -1089,13 +1089,13 @@ def test_unit():
                  id='mixed,unchanged'),
     pytest.param([[2, 2, 2], [1, 2, 2]], [[2, 2, 2], [1, 2, 2]],
                  id='mixed,unchanged'),
-    pytest.param([[2, 2, 1], [1, 1, 1]], [[2, 2], [1, 1]], id='ket'),
-    pytest.param([[1, 2, 1], [1, 1, 1]], [[2], [1]], id='ket'),
-    pytest.param([[2, 3, 4], [1, 1, 1]], [[2, 3, 4], [1, 1, 1]],
+    pytest.param([[2, 2, 1], [1]], [[2, 2], [1]], id='ket'),
+    pytest.param([[1, 2, 1], [1]], [[2], [1]], id='ket'),
+    pytest.param([[2, 3, 4], [1]], [[2, 3, 4], [1]],
                  id='ket,unchanged'),
-    pytest.param([[1, 1, 1], [2, 2, 1]], [[1, 1], [2, 2]], id='bra'),
-    pytest.param([[1, 1, 1], [1, 2, 1]], [[1], [2]], id='bra'),
-    pytest.param([[1, 1, 1], [2, 3, 4]], [[1, 1, 1], [2, 3, 4]],
+    pytest.param([[1], [2, 2, 1]], [[1], [2, 2]], id='bra'),
+    pytest.param([[1], [1, 2, 1]], [[1], [2]], id='bra'),
+    pytest.param([[1], [2, 3, 4]], [[1], [2, 3, 4]],
                  id='bra,unchanged'),
     pytest.param([[[2, 1, 1], [2, 1, 1]], [1]], [[[2], [2]], [1]],
                  id='operket'),
@@ -1115,4 +1115,3 @@ def test_contract(expanded, contracted, inplace):
     assert out.dims == contracted
     assert out.shape == qobj.shape
     assert np.all(out.full() == qobj.full())
-"""

@@ -79,7 +79,7 @@ def test_rand_vector_dims():
     FUNCS = [rand_ket, rand_ket_haar]
     for func in FUNCS:
         check_func_dims( func, (7, ), {}, [[7], [1]])
-        check_func_dims( func, (6, ), {'dims': [[2,3], [1,1]]}, [[2,3], [1,1]])
+        check_func_dims( func, (6, ), {'dims': [[2, 3], [1]]}, [[2, 3], [1]])
 
 def test_rand_oper_dims():
     FUNCS = [rand_unitary, rand_herm, rand_dm, rand_unitary_haar, rand_dm_ginibre, rand_dm_hs]
