@@ -475,34 +475,45 @@ class Bloch:
         arc = line * len1 / np.linalg.norm(line, axis=0)
         self._arcs.append([arc, fmt, kwargs])
 
-    def add_line(self, start, end, fmt = "k", **kwargs):
+    def add_line(self, start, end, fmt="k", **kwargs):
         """Adds a line segment connecting two points on the bloch sphere.
+
         The line segment is set to be a black solid line by default.
 
         Parameters
         ----------
-        point1 : array_like
-            Array with cartesian coordinates of the first point.
-        point2 : array_like
-            Array with cartesian coordinates of the second point.
+        start : Qobj or array-like
+            Array with cartesian coordinates of the first point, or a state
+            vector or density matrix that can be mapped to a point on or
+            within the Bloch sphere.
+        end : Qobj or array-like
+            Array with cartesian coordinates of the second point, or a state
+            vector or density matrix that can be mapped to a point on or
+            within the Bloch sphere.
+        fmt : str, default: "k"
+            A matplotlib format string for rendering the line.
+        **kwargs : dict
+            Additional parameters to pass to the matplotlib .plot function
+            when rendering this line.
         """
         if isinstance(start, Qobj):
-            start = [start]
-            for st in start:
-                pt1 = [expect(sigmax(), st),
-                           expect(sigmay(), st),
-                           expect(sigmaz(), st)]
+            pt1 = [
+                expect(sigmax(), start),
+                expect(sigmay(), start),
+                expect(sigmaz(), start),
+            ]
         else:
             pt1 = start
 
         if isinstance(end, Qobj):
-            end = [end]
-            for en in end:
-                pt2 = [expect(sigmax(), en),
-                          expect(sigmay(), en),
-                          expect(sigmaz(), en)]
+            pt2 = [
+                expect(sigmax(), end),
+                expect(sigmay(), end),
+                expect(sigmaz(), end),
+            ]
         else:
             pt2 = end
+
         pt1 = np.asarray(pt1)
         pt2 = np.asarray(pt2)
 
@@ -756,8 +767,8 @@ class Bloch:
                            annotation['text'], **opts)
 
     def plot_lines(self):
-        for line in self._lines:
-            self.axes.plot(line[0][0], line[0][1], line[0][2], line[1], **line[2])
+        for line, fmt, kw in self._lines:
+            self.axes.plot(line[0], line[1], line[2], fmt, **kw)
 
     def plot_arcs(self):
         for arc, fmt, kw in self._arcs:

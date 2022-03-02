@@ -72,3 +72,52 @@ class TestBloch:
     ):
         self.plot_arc_test(fig_test, start_test, end_test, **kwargs)
         self.plot_arc_ref(fig_ref, start_ref, end_ref, **kwargs)
+
+    def plot_line_test(self, fig, *args, **kw):
+        b = Bloch(fig=fig)
+        b.add_line(*args, **kw)
+        b.render()
+
+    def plot_line_ref(self, fig, start, end, **kw):
+        fmt = kw.pop("fmt", "k")
+
+        x = [start[1], end[1]]
+        y = [-start[0], -end[0]]
+        z = [start[2], end[2]]
+
+        b = Bloch(fig=fig)
+        b.render()
+        b.axes.plot(x, y, z, fmt, **kw)
+
+    @pytest.mark.parametrize([
+        "start_test", "start_ref", "end_test", "end_ref", "kwargs",
+    ], [
+        pytest.param(
+            (1, 0, 0), (1, 0, 0), (0, 1, 0), (0, 1, 0), {}, id="arrays"),
+        pytest.param(
+            (1, 0, 0), (1, 0, 0), (0, 1, 0), (0, 1, 0),
+            {"fmt": "r", "linestyle": "-"}, id="fmt-and-kwargs",
+        ),
+        pytest.param(
+            ket("0"), (0, 0, 1),
+            (ket("0") + ket("1")).unit(), (1, 0, 0),
+            {}, id="kets",
+        ),
+        pytest.param(
+            ket2dm(ket("0")), (0, 0, 1),
+            ket2dm(ket("0") + ket("1")).unit(), (1, 0, 0),
+            {}, id="dms",
+        ),
+        pytest.param(
+            ket2dm(ket("0")) * 0.5, (0, 0, 0.5),
+            ket2dm(ket("0") + ket("1")).unit() * 0.5, (0.5, 0, 0),
+            {}, id="non-unit-dms",
+        ),
+    ])
+    @check_pngs_equal
+    def test_line(
+        self, start_test, start_ref, end_test, end_ref, kwargs,
+        fig_test, fig_ref,
+    ):
+        self.plot_line_test(fig_test, start_test, end_test, **kwargs)
+        self.plot_line_ref(fig_ref, start_ref, end_ref, **kwargs)
