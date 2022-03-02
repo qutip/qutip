@@ -401,34 +401,50 @@ class Bloch:
                                  'text': text,
                                  'opts': kwargs})
 
-    def add_arc(self, start, end, fmt = "b", steps = None, **kwargs):
+    def add_arc(self, start, end, fmt="b", steps=None, **kwargs):
         """Adds an arc between two points on a sphere. The arc is set to be
         blue solid curve by default.
 
+        The start and end points must be on the same sphere (i.e. have the
+        same radius) but need not be on the unit sphere.
+
         Parameters
         ----------
-        point1 : array_like
-            Array with cartesian coordinates of the first point.
-        point2 : array_like
-            Array with cartesian coordinates of the second point.
+        start : Qobj or array-like
+            Array with cartesian coordinates of the first point, or a state
+            vector or density matrix that can be mapped to a point on or
+            within the Bloch sphere.
+        end : Qobj or array-like
+            Array with cartesian coordinates of the second point, or a state
+            vector or density matrix that can be mapped to a point on or
+            within the Bloch sphere.
+        fmt : str, default: "b"
+            A matplotlib format string for rendering the arc.
+        steps : int, default: None
+            The number of segments to use when rendering the arc. The default
+            uses one segment per 1/4 degree of the arc.
+        **kwargs : dict
+            Additional parameters to pass to the matplotlib .plot function
+            when rendering this arc.
         """
         if isinstance(start, Qobj):
-            start = [start]
-            for st in start:
-                pt1 = [expect(sigmax(), st),
-                           expect(sigmay(), st),
-                           expect(sigmaz(), st)]
+            pt1 = [
+                expect(sigmax(), start),
+                expect(sigmay(), start),
+                expect(sigmaz(), start),
+            ]
         else:
             pt1 = start
 
         if isinstance(end, Qobj):
-            end = [end]
-            for en in end:
-                pt2 = [expect(sigmax(), en),
-                          expect(sigmay(), en),
-                          expect(sigmaz(), en)]
+            pt2 = [
+                expect(sigmax(), end),
+                expect(sigmay(), end),
+                expect(sigmaz(), end),
+            ]
         else:
             pt2 = end
+
         pt1 = np.asarray(pt1)
         pt2 = np.asarray(pt2)
 
@@ -439,21 +455,25 @@ class Bloch:
         elif abs(len1 - len2) > 1e-12:
             raise ValueError("Points not on the same sphere.")
         elif (pt1 == pt2).all():
-            raise ValueError("Start and end represent the same point. No arc can be formed.")
+            raise ValueError(
+                "Start and end represent the same point. No arc can be formed."
+            )
         elif (pt1 == -pt2).all():
-            raise ValueError("Start and end are diagonally opposite, no unique arc is possible.")
-        else:
-            # Parametrization
-            if steps == None:
-                steps = int(np.linalg.norm(pt1 - pt2)/(np.pi/(2*360)))
-            t = np.linspace(0, 1, steps)
-            # All the points in this line are contained in the plane defined
-            # by pt1, pt2 and the origin.
-            line = pt1[:, np.newaxis]*t + pt2[:, np.newaxis]*(1-t)
-            # This will normalize all the points in the line such that
-            # they now have are at len1 distance from the origin.
-            arc = line*len1/np.linalg.norm(line, axis=0)
-            self._arcs.append([arc,fmt, kwargs])
+            raise ValueError(
+                "Start and end are diagonally opposite, no unique arc is"
+                " possible."
+            )
+
+        if steps is None:
+            steps = int(np.linalg.norm(pt1 - pt2)/(np.pi/(2*360)))
+        t = np.linspace(0, 1, steps)
+        # All the points in this line are contained in the plane defined
+        # by pt1, pt2 and the origin.
+        line = pt1[:, np.newaxis] * t + pt2[:, np.newaxis] * (1 - t)
+        # Normalize all the points in the line so that are distance len1 from
+        # the origin.
+        arc = line * len1 / np.linalg.norm(line, axis=0)
+        self._arcs.append([arc, fmt, kwargs])
 
     def add_line(self, start, end, fmt = "k", **kwargs):
         """Adds a line segment connecting two points on the bloch sphere.
@@ -566,8 +586,8 @@ class Bloch:
         self.plot_front()
         self.plot_axes_labels()
         self.plot_annotations()
-        self.plot_line()
-        self.plot_arc()
+        self.plot_lines()
+        self.plot_arcs()
         # Trigger an update of the Bloch sphere if it is already shown:
         self.fig.canvas.draw()
 
@@ -735,13 +755,13 @@ class Bloch:
             self.axes.text(vec[1], -vec[0], vec[2],
                            annotation['text'], **opts)
 
-    def plot_line(self):
+    def plot_lines(self):
         for line in self._lines:
             self.axes.plot(line[0][0], line[0][1], line[0][2], line[1], **line[2])
 
-    def plot_arc(self):
-        for val in self._arcs:
-            self.axes.plot(val[0][1,:],-val[0][0,:],val[0][2,:], val[1], **val[2])
+    def plot_arcs(self):
+        for arc, fmt, kw in self._arcs:
+            self.axes.plot(arc[1, :], -arc[0, :], arc[2, :], fmt, **kw)
 
     def show(self):
         """
