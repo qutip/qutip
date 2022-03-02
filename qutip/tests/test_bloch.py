@@ -73,6 +73,41 @@ class TestBloch:
         self.plot_arc_test(fig_test, start_test, end_test, **kwargs)
         self.plot_arc_ref(fig_ref, start_ref, end_ref, **kwargs)
 
+    @pytest.mark.parametrize([
+        "start", "end", "err_msg",
+    ], [
+        pytest.param(
+            (0, 0, 0), (0, 1, 0),
+            "Polar and azimuthal angles undefined at origin.",
+            id="start-origin",
+        ),
+        pytest.param(
+            (1, 0, 0), (0, 0, 0),
+            "Polar and azimuthal angles undefined at origin.",
+            id="end-origin",
+        ),
+        pytest.param(
+            (0.9, 0, 0), (0, 1, 0), "Points not on the same sphere.",
+            id="different-spheres",
+        ),
+        pytest.param(
+            (1, 0, 0), (1, 0, 0),
+            "Start and end represent the same point. No arc can be formed.",
+            id="same-points",
+        ),
+        pytest.param(
+            (1, 0, 0), (-1, 0, 0),
+            "Start and end are diagonally opposite, no unique arc is"
+            " possible.",
+            id="opposite-points",
+        ),
+    ])
+    def test_arc_errors(self, start, end, err_msg):
+        b = Bloch()
+        with pytest.raises(ValueError) as err:
+            b.add_arc(start, end)
+        assert str(err.value) == err_msg
+
     def plot_line_test(self, fig, *args, **kw):
         b = Bloch(fig=fig)
         b.add_line(*args, **kw)
