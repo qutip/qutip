@@ -89,6 +89,9 @@ def _crow_lattice(coupling, phase_delay,
                            inter_hop=hopping)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The module qutip.lattice is deprecated:DeprecationWarning"
+)
 class TestLattice1d:
     @pytest.mark.parametrize("cells", [1, 2, 3])
     @pytest.mark.parametrize("periodic", [True, False],
@@ -216,19 +219,22 @@ class TestLattice1d:
         k_tC = k_t - (2*np.pi/L) * ((L-1) // 2)
         np.testing.assert_allclose(k_tC, k_q, atol=1e-12)
 
-    @pytest.mark.parametrize(["lattice", "k_expected", "energies_expected"], [
-        pytest.param(qutip.Lattice1d(num_cell=8),
+    @pytest.mark.parametrize([
+        "lattice_func", "k_expected", "energies_expected",
+    ], [
+        pytest.param(lambda: qutip.Lattice1d(num_cell=8),
                      _k_expected(8),
                      np.array([[2, np.sqrt(2), 0, -np.sqrt(2), -2,
                                 -np.sqrt(2), 0, np.sqrt(2)]]),
                      id="atom chain"),
-        pytest.param(_ssh_lattice(-0.5, -0.6,
-                                  cells=6, sites_per_cell=2, freedom=[2, 2]),
+        pytest.param(lambda: _ssh_lattice(
+                        -0.5, -0.6, cells=6, sites_per_cell=2, freedom=[2, 2]),
                      _k_expected(6),
                      np.array([-_ssh_energies]*4 + [_ssh_energies]*4),
                      id="ssh model")
     ])
-    def test_get_dispersion(self, lattice, k_expected, energies_expected):
+    def test_get_dispersion(self, lattice_func, k_expected, energies_expected):
+        lattice = lattice_func()
         k_test, energies_test = lattice.get_dispersion()
         _assert_angles_close(k_test, k_expected, atol=1e-8)
         np.testing.assert_allclose(energies_test, energies_expected, atol=1e-8)
@@ -274,6 +280,9 @@ class TestLattice1d:
                                        atol=1e-12)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The module qutip.lattice is deprecated:DeprecationWarning"
+)
 class TestIntegration:
     def test_fixed_crow(self):
         lattice = _crow_lattice(2, np.pi/4, cells=4)
