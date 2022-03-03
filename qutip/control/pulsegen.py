@@ -236,32 +236,39 @@ class PulseGen(object):
 
         self._pulse_initialised = True
 
-        if (isinstance(self.lbound, np.ndarray) or
-                isinstance(self.ubound, np.ndarray)):
+        if (
+            isinstance(self.lbound, np.ndarray) or
+            isinstance(self.ubound, np.ndarray)
+        ):
+            if not (
+                isinstance(self.lbound, np.ndarray) and
+                isinstance(self.ubound, np.ndarray)
+            ):
+                raise ValueError(
+                    "If either lbound or ubound is an array, both must be."
+                )
             if self.lbound.shape != self.ubound.shape:
-                raise ValueError("lbound and ubound should have the same shape")
-
-        if isinstance(self.lbound, float):
-            if np.isinf(self.lbound):
-                self.lbound = None
-        elif isinstance(self.lbound, np.ndarray):
-            if (self.lbound==None).any():
-                raise ValueError("Use np.inf instead of None in bound arrays")
-
-        if isinstance(self.ubound, float):
-            if np.isinf(self.ubound):
-                self.ubound = None
-        elif isinstance(self.ubound, np.ndarray):
-            if (self.ubound==None).any():
-                raise ValueError("Use np.inf instead of None in bound arrays")
-
-        if not self.ubound is None and not self.lbound is None:
-            if self.ubound < self.lbound:
+                raise ValueError(
+                    "If lbound and ubound are arrays, they should have the"
+                    " same shape"
+                )
+            if None in self.lbound or None in self.ubound:
+                raise ValueError(
+                    "If lbound and ubound are arrays, use np.inf or -np.inf,"
+                    " not None, to specify the lack of a bound."
+                )
+            if (self.ubound < self.lbound).any():
                 raise ValueError("ubound cannot be less the lbound")
-        elif (isinstance(self.lbound, float) and
-                isinstance(self.ubound, float)):
-            if (self.ubound<self.lbound).any():
-                raise ValueError("ubound cannot be less the lbound")
+        else:
+            if isinstance(self.lbound, float):
+                if np.isinf(self.lbound):
+                    self.lbound = None
+            if isinstance(self.ubound, float):
+                if np.isinf(self.ubound):
+                    self.ubound = None
+            if self.ubound is not None and self.lbound is not None:
+                if self.ubound < self.lbound:
+                    raise ValueError("ubound cannot be less the lbound")
 
     def _apply_bounds_and_offset(self, pulse, ctrl_index=None):
         """
