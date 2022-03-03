@@ -492,38 +492,42 @@ class Optimizer(object):
         for t in range(dyn.num_tslots):
             for c in range(n_ctrls):
                 if (isinstance(self.amp_lbound, np.ndarray)
-                    and self.amp_lbound.ndim == 2):
+                        and self.amp_lbound.ndim == 2):
                     lb = self.amp_lbound[t, c]
                 elif (isinstance(self.amp_lbound, np.ndarray)
-                    and self.amp_lbound.ndim == 1):
+                        and self.amp_lbound.ndim == 1):
                     lb = self.amp_lbound[c]
                 elif isinstance(self.amp_lbound, list):
                     lb = self.amp_lbound[c]
                 elif isinstance(self.amp_lbound, (float, int)):
                     lb = self.amp_lbound
                 else:
-                    raise ValueError('The bounds supplied must be \
-                    floats, lists or ndarrays of shape (num_ctrls), \
-                    or ndarrays of shape (num_tslots x num_ctrls)')
+                    raise ValueError(
+                        "The lower bounds supplied must be floats, lists or"
+                        " ndarrays of shape (num_ctrls), or"
+                        " ndarrays of shape (num_tslots x num_ctrls)"
+                    )
 
                 if (isinstance(self.amp_ubound, np.ndarray)
-                    and self.amp_ubound.ndim == 2):
+                        and self.amp_ubound.ndim == 2):
                     ub = self.amp_ubound[t, c]
                 elif (isinstance(self.amp_ubound, np.ndarray)
-                    and self.amp_ubound.ndim == 1):
+                        and self.amp_ubound.ndim == 1):
                     ub = self.amp_ubound[c]
                 elif isinstance(self.amp_ubound, list):
                     ub = self.amp_ubound[c]
                 elif isinstance(self.amp_ubound, (float, int)):
                     ub = self.amp_ubound
                 else:
-                    raise ValueError('The bounds supplied must be \
-                    floats, lists or ndarrays of shape (num_ctrls), \
-                    or ndarrays of shape (num_tslots x num_ctrls)')
+                    raise ValueError(
+                        "The upper bounds supplied must be floats, lists or"
+                        " ndarrays of shape (num_ctrls), or"
+                        " ndarrays of shape (num_tslots x num_ctrls)"
+                    )
 
-                if not lb is None and np.isinf(lb):
+                if lb is not None and np.isinf(lb):
                     lb = None
-                if not ub is None and np.isinf(ub):
+                if ub is not None and np.isinf(ub):
                     ub = None
 
                 self.bounds.append((lb, ub))
