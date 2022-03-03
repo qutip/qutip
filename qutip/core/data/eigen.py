@@ -170,11 +170,11 @@ def _eigs_csr(data, isherm, vecs, eigvals, num_large, num_small, tol, maxiter):
     if remove_one == 1:
         evals = evals[:-1]
         if vecs:
-            evecs = evecs[:,:-1]
+            evecs = evecs[:, :-1]
     elif remove_one == -1:
         evals = evals[1:]
         if vecs:
-            evecs = evecs[:,1:]
+            evecs = evecs[:, 1:]
 
     return np.array(evals), evecs
 

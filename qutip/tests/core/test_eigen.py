@@ -33,233 +33,102 @@
 
 import scipy
 import numpy as np
-from numpy.testing import assert_equal, run_module_suite, assert_
-import unittest
-
-from qutip import num, rand_herm, expect, rand_unitary
+import pytest
+import qutip
 
 
-def test_SparseHermValsVecs():
-    """
-    Sparse eigs Hermitian
-    """
-
-    # check using number operator
-    N = num(10)
-    spvals, spvecs = N.eigenstates(sparse=True)
-    for k in range(10):
-        # check that eigvals are in proper order
-        assert_equal(abs(spvals[k] - k) <= 1e-13, True)
-        # check that eigenvectors are right and in right order
-        assert_equal(abs(expect(N, spvecs[k]) - spvals[k]) < 5e-14, True)
-
-    # check ouput of only a few eigenvals/vecs
-    spvals, spvecs = N.eigenstates(sparse=True, eigvals=7)
-    assert_equal(len(spvals), 7)
-    assert_equal(spvals[0] <= spvals[-1], True)
-    for k in range(7):
-        assert_equal(abs(spvals[k] - k) < 1e-12, True)
-        assert_equal(abs(expect(N, spvecs[k]) - spvals[k]) < 1e-12, True)
-
-    spvals, spvecs = N.eigenstates(sparse=True, sort='high', eigvals=5)
-    assert_equal(len(spvals), 5)
-    assert_equal(spvals[0] >= spvals[-1], True)
-    vals = np.arange(9, 4, -1)
-    for k in range(5):
-        # check that eigvals are ordered from high to low
-        assert_equal(abs(spvals[k] - vals[k]) < 5e-14, True)
-        assert_equal(abs(expect(N, spvecs[k]) - vals[k]) < 1e-14, True)
-    # check using random Hermitian
-    H = rand_herm(10)
-    spvals, spvecs = H.eigenstates(sparse=True)
-    # check that sorting is lowest eigval first
-    assert_equal(spvals[0] <= spvals[-1], True)
-    # check that spvals equal expect vals
-    for k in range(10):
-        assert_equal(abs(expect(H, spvecs[k]) - spvals[k]) < 5e-14, True)
-        # check that ouput is real for Hermitian operator
-        assert_equal(np.isreal(spvals[k]), True)
+def is_eigen_set(oper, vals, vecs):
+    for val, vec in zip(vals, vecs):
+        assert abs(vec.norm() - 1) < 1e-13
+        assert abs(qutip.expect(oper, vec) - val) < 1e-13
 
 
-def test_SparseValsVecs():
-    """
-    Sparse eigs non-Hermitian
-    """
-    U = rand_unitary(10)
-    spvals, spvecs = U.eigenstates(sparse=True)
-    assert_equal(np.real(spvals[0]) <= np.real(spvals[-1]), True)
-    for k in range(10):
-        # check that eigenvectors are right and in right order
-        assert_equal(abs(expect(U, spvecs[k]) - spvals[k]) < 5e-14, True)
-        assert_equal(np.iscomplex(spvals[k]), True)
-
-    # check sorting
-    spvals, spvecs = U.eigenstates(sparse=True, sort='high')
-    assert_equal(np.real(spvals[0]) >= np.real(spvals[-1]), True)
-
-    # check for N-1 eigenvals
-    U = rand_unitary(10)
-    spvals, spvecs = U.eigenstates(sparse=True, eigvals=9)
-    assert_equal(len(spvals), 9)
+@pytest.mark.parametrize(["sparse", 'dtype'], [
+    pytest.param(True, 'csr', id="sparse"),
+    pytest.param(False, 'csr', id="sparse2dense"),
+    pytest.param(False, 'dense', id="dense"),
+])
+def test_eigen_known_oper(sparse, dtype):
+    N = qutip.num(10, dtype=dtype)
+    spvals, spvecs = N.eigenstates(sparse=sparse)
+    expected = np.arange(10)
+    is_eigen_set(N, spvals, spvecs)
+    np.testing.assert_allclose(spvals, expected, atol=1e-13)
 
 
-def test_SparseValsOnly():
-    """
-    Sparse eigvals only Hermitian.
-    """
-    H = rand_herm(10)
-    spvals = H.eigenenergies(sparse=True)
-    assert_equal(len(spvals), 10)
-    # check that sorting is lowest eigval first
-    assert_equal(spvals[0] <= spvals[-1], True)
-    # check that spvals equal expect vals
-    for k in range(10):
-        # check that ouput is real for Hermitian operator
-        assert_equal(np.isreal(spvals[k]), True)
-    spvals = H.eigenenergies(sparse=True, sort='high')
-    # check that sorting is lowest eigval first
-    assert_equal(spvals[0] >= spvals[-1], True)
-    spvals = H.eigenenergies(sparse=True, sort='high', eigvals=4)
-    assert_equal(len(spvals), 4)
-
-    U = rand_unitary(10)
-    spvals = U.eigenenergies(sparse=True)
-    assert_equal(len(spvals), 10)
-    # check that sorting is lowest eigval first
-    assert_equal(spvals[0] <= spvals[-1], True)
-    # check that spvals equal expect vals
-    for k in range(10):
-        # check that ouput is real for Hermitian operator
-        assert_equal(np.iscomplex(spvals[k]), True)
-    spvals = U.eigenenergies(sparse=True, sort='high')
-    # check that sorting is lowest eigval first
-    assert_equal(spvals[0] >= spvals[-1], True)
-    spvals = U.eigenenergies(sparse=True, sort='high', eigvals=4)
-    assert_equal(len(spvals), 4)
+@pytest.mark.parametrize(["sparse", 'dtype'], [
+    pytest.param(True, 'csr', id="sparse"),
+    pytest.param(False, 'csr', id="sparse2dense"),
+    pytest.param(False, 'dense', id="dense"),
+])
+@pytest.mark.parametrize(["rand"], [
+    pytest.param(qutip.rand_herm, id="hermitian"),
+    pytest.param(qutip.rand_unitary, id="non-hermitian"),
+])
+@pytest.mark.parametrize("order", ['low', 'high'])
+def test_eigen_rand_oper(rand, sparse, dtype, order):
+    H = rand(10, dtype=dtype)
+    spvals, spvecs = H.eigenstates(sparse=sparse, sort=order)
+    if order == 'low':
+        assert np.all(np.diff(spvals).real >= 0)
+    else:
+        assert np.all(np.diff(spvals).real <= 0)
+    is_eigen_set(H, spvals, spvecs)
 
 
-def test_SparseFewState():
-    H = rand_herm(10, dtype='csr')
-    all_spvals, all_spvecs = H.eigenstates(sparse=True, sort='low',)
-    for i in range(1, 10):
-        spvals, spvecs = H.eigenstates(sparse=True, sort='high', eigvals=i)
-        assert np.allclose(all_spvals[:-i-1:-1], spvals)
-        for val, vec in zip(spvals, spvecs):
-            assert abs(expect(H, vec) - val) < 1e-13
-    for i in range(1, 10):
-        spvals, spvecs = H.eigenstates(sparse=True, sort='low', eigvals=i)
-        assert np.allclose(all_spvals[:i], spvals)
-        for val, vec in zip(spvals, spvecs):
-            assert abs(expect(H, vec) - val) < 1e-13
+@pytest.mark.parametrize(["sparse", 'dtype'], [
+    pytest.param(True, 'csr', id="sparse"),
+    pytest.param(False, 'csr', id="sparse2dense"),
+    pytest.param(False, 'dense', id="dense"),
+])
+@pytest.mark.parametrize("rand", [
+    pytest.param(qutip.rand_herm, id="hermitian"),
+    pytest.param(qutip.rand_unitary, id="non-hermitian"),
+])
+@pytest.mark.parametrize("order", ['low', 'high'])
+@pytest.mark.parametrize("N", [1, 5, 8, 9])
+def test_FewState(rand, sparse, dtype, order, N):
+    H = rand(10, dtype=dtype)
+    all_spvals = H.eigenenergies(sparse=sparse, sort=order)
+    spvals, spvecs = H.eigenstates(sparse=sparse, sort=order, eigvals=N)
+    assert np.allclose(all_spvals[:N], spvals)
+    is_eigen_set(H, spvals, spvecs)
+    if order == 'low':
+        assert np.all(np.diff(spvals).real >= 0)
+    else:
+        assert np.all(np.diff(spvals).real <= 0)
 
 
-def test_DenseHermValsVecs():
-    """
-    Dense eigs Hermitian.
-    """
-    # check using number operator
-    N = num(10)
-    spvals, spvecs = N.eigenstates(sparse=False)
-    for k in range(10):
-        # check that eigvals are in proper order
-        assert_equal(abs(spvals[k] - k) < 1e-14, True)
-        # check that eigenvectors are right and in right order
-        assert_equal(abs(expect(N, spvecs[k]) - spvals[k]) < 5e-14, True)
-
-    # check ouput of only a few eigenvals/vecs
-    spvals, spvecs = N.eigenstates(sparse=False, eigvals=7)
-    assert_equal(len(spvals), 7)
-    assert_equal(spvals[0] <= spvals[-1], True)
-    for k in range(7):
-        assert_equal(abs(spvals[k] - k) < 1e-14, True)
-
-    spvals, spvecs = N.eigenstates(sparse=False, sort='high', eigvals=5)
-    assert_equal(len(spvals), 5)
-    assert_equal(spvals[0] >= spvals[-1], True)
-    vals = np.arange(9, 4, -1)
-    for k in range(5):
-        # check that eigvals are ordered from high to low
-        assert_equal(abs(spvals[k] - vals[k]) < 5e-14, True)
-        assert_equal(abs(expect(N, spvecs[k]) - vals[k]) < 5e-14, True)
-    # check using random Hermitian
-    H = rand_herm(10)
-    spvals, spvecs = H.eigenstates(sparse=False)
-    # check that sorting is lowest eigval first
-    assert_equal(spvals[0] <= spvals[-1], True)
-    # check that spvals equal expect vals
-    for k in range(10):
-        assert_equal(abs(expect(H, spvecs[k]) - spvals[k]) < 5e-14, True)
-        # check that ouput is real for Hermitian operator
-        assert_equal(np.isreal(spvals[k]), True)
+@pytest.mark.parametrize(["sparse", 'dtype'], [
+    pytest.param(True, 'csr', id="sparse"),
+    pytest.param(False, 'csr', id="sparse2dense"),
+    pytest.param(False, 'dense', id="dense"),
+])
+@pytest.mark.parametrize(["rand"], [
+    pytest.param(qutip.rand_herm, id="hermitian"),
+    pytest.param(qutip.rand_unitary, id="non-hermitian"),
+])
+@pytest.mark.parametrize("order", ['low', 'high'])
+@pytest.mark.parametrize("N", [1, 5, 8, 9])
+def test_ValsOnly(rand, sparse, dtype, order, N):
+    H = rand(10, dtype=dtype)
+    all_spvals = H.eigenenergies(sparse=sparse, sort=order)
+    spvals = H.eigenenergies(sparse=sparse, sort=order, eigvals=N)
+    assert np.allclose(all_spvals[:N], spvals)
+    if order == 'low':
+        assert np.all(np.diff(spvals).real >= 0)
+    else:
+        assert np.all(np.diff(spvals).real <= 0)
 
 
-def test_DenseValsVecs():
-    """
-    Dense eigs non-Hermitian
-    """
-    W = rand_herm(10,0.5) + 1j*rand_herm(10,0.5)
-    spvals, spvecs = W.eigenstates(sparse=False)
-    assert_equal(np.real(spvals[0]) <= np.real(spvals[-1]), True)
-    for k in range(10):
-        # check that eigenvectors are right and in right order
-        assert_equal(abs(expect(W, spvecs[k]) - spvals[k]) < 1e-14, True)
-        assert_(np.iscomplex(spvals[k]))
-
-    # check sorting
-    spvals, spvecs = W.eigenstates(sparse=False, sort='high')
-    assert_equal(np.real(spvals[0]) >= np.real(spvals[-1]), True)
-
-    # check for N-1 eigenvals
-    W = rand_unitary(10)
-    spvals, spvecs = W.eigenstates(sparse=False, eigvals=9)
-    assert_equal(len(spvals), 9)
-
-
-def test_DenseValsOnly():
-    """
-    Dense eigvals only Hermitian
-    """
-    H = rand_herm(10)
-    spvals = H.eigenenergies(sparse=False)
-    assert_equal(len(spvals), 10)
-    # check that sorting is lowest eigval first
-    assert_equal(spvals[0] <= spvals[-1], True)
-    # check that spvals equal expect vals
-    for k in range(10):
-        # check that ouput is real for Hermitian operator
-        assert_equal(np.isreal(spvals[k]), True)
-    spvals = H.eigenenergies(sparse=False, sort='high')
-    # check that sorting is lowest eigval first
-    assert_equal(spvals[0] >= spvals[-1], True)
-    spvals = H.eigenenergies(sparse=False, sort='high', eigvals=4)
-    assert_equal(len(spvals), 4)
-
-    U = rand_unitary(10)
-    spvals = U.eigenenergies(sparse=False)
-    assert_equal(len(spvals), 10)
-    # check that sorting is lowest eigval first
-    assert_equal(spvals[0] <= spvals[-1], True)
-    # check that spvals equal expect vals
-    for k in range(10):
-        # check that ouput is real for Hermitian operator
-        assert_equal(np.iscomplex(spvals[k]), True)
-    spvals = U.eigenenergies(sparse=False, sort='high')
-    # check that sorting is lowest eigval first
-    assert_equal(spvals[0] >= spvals[-1], True)
-    spvals = U.eigenenergies(sparse=False, sort='high', eigvals=4)
-    assert_equal(len(spvals), 4)
-
-
-def test_DenseFewState():
-    H = rand_herm(10, dtype='dense')
-    all_spvals, all_spvecs = H.eigenstates(sort='low',)
-    for i in range(1, 10):
-        spvals, spvecs = H.eigenstates(sort='high', eigvals=i)
-        assert np.allclose(all_spvals[:-i-1:-1], spvals)
-        for val, vec in zip(spvals, spvecs):
-            assert abs(expect(H, vec) - val) < 1e-13
-    for i in range(1, 10):
-        spvals, spvecs = H.eigenstates(sort='low', eigvals=i)
-        assert np.allclose(all_spvals[:i], spvals)
-        for val, vec in zip(spvals, spvecs):
-            assert abs(expect(H, vec) - val) < 1e-13
+@pytest.mark.parametrize(["sparse", 'dtype'], [
+    pytest.param(True, 'csr', id="sparse"),
+    pytest.param(False, 'csr', id="sparse2dense"),
+    pytest.param(False, 'dense', id="dense"),
+])
+def test_eigen_small(sparse, dtype):
+    H = (qutip.sigmax() + qutip.sigmaz()).to(dtype)
+    all_spvals = H.eigenenergies(sparse=sparse)
+    spvals, spvecs = H.eigenstates(sparse=sparse, eigvals=1)
+    assert np.abs(all_spvals[0] - spvals[0]) <= 1e-14
+    is_eigen_set(H, spvals, spvecs)
