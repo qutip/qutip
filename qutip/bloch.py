@@ -422,7 +422,8 @@ class Bloch:
             A matplotlib format string for rendering the arc.
         steps : int, default: None
             The number of segments to use when rendering the arc. The default
-            uses one segment per 1/4 degree of the arc.
+            uses 100 steps times the distance between the start and end points,
+            with a minimum of 2 steps.
         **kwargs : dict
             Additional parameters to pass to the matplotlib .plot function
             when rendering this arc.
@@ -465,7 +466,8 @@ class Bloch:
             )
 
         if steps is None:
-            steps = int(np.linalg.norm(pt1 - pt2)/(np.pi/(2*360)))
+            steps = int(np.linalg.norm(pt1 - pt2) * 100)
+            steps = max(2, steps)
         t = np.linspace(0, 1, steps)
         # All the points in this line are contained in the plane defined
         # by pt1, pt2 and the origin.

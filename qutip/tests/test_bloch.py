@@ -29,7 +29,8 @@ class TestBloch:
         start = np.array(start)
         end = np.array(end)
         if steps is None:
-            steps = int(np.linalg.norm(start - end) / (np.pi / (2*360)))
+            steps = int(np.linalg.norm(start - end) * 100)
+            steps = max(2, steps)
 
         t = np.linspace(0, 1, steps)
         line = start[:, np.newaxis] * t + end[:, np.newaxis] * (1 - t)
