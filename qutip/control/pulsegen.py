@@ -210,7 +210,7 @@ class PulseGen(object):
         that is call logger.setLevel(lvl)
         """
         logger.setLevel(lvl)
-        
+
     def gen_pulse(self, ctrl_index=None):
         """
         returns the pulse as an array of values for each timeslot
@@ -240,7 +240,7 @@ class PulseGen(object):
                 isinstance(self.ubound, np.ndarray)):
             if self.lbound.shape != self.ubound.shape:
                 raise ValueError("lbound and ubound should have the same shape")
-                
+
         if isinstance(self.lbound, float):
             if np.isinf(self.lbound):
                 self.lbound = None
@@ -894,7 +894,7 @@ class PulseGenTriangle(PulseGenPeriodic):
             t = t + self.tau[k]
 
         return self._apply_bounds_and_offset(pulse, ctrl_index=ctrl_index)
-        
+
 
 class PulseGenGaussian(PulseGen):
     """
@@ -909,7 +909,7 @@ class PulseGenGaussian(PulseGen):
         self.mean = 0.5*self.pulse_time
         self.variance = 0.5*self.pulse_time
         self.apply_params()
-        
+
     def gen_pulse(self, ctrl_index=None, mean=None, variance=None):
         """
         Generate a pulse with Gaussian shape. The peak is centre around the
@@ -1002,7 +1002,7 @@ class PulseGenCustom(PulseGen):
         """
         Generates the input custom pulse of the specified index
         """
-        if ((self.init_custom_pulse.shape[0] != self.tau.shape[0]) or 
+        if ((self.init_custom_pulse.shape[0] != self.tau.shape[0]) or
             (ctrl_index not in range(self.init_custom_pulse.shape[1]))):
             raise ValueError("The initial custom pulse array should be of "
                     "shape (num_tslots x num_ctrls).")
@@ -1302,7 +1302,7 @@ class PulseGenCrabFourier(PulseGenCrab):
 
         if self.randomize_freqs:
             self.freqs += np.random.random(self.num_coeffs) - 0.5
-        
+
     def gen_pulse(self, ctrl_index=None, coeffs=None):
         """
         Generate a pulse using the Fourier basis with the freqs and

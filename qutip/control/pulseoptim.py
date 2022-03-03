@@ -424,7 +424,7 @@ def optimize_pulse(
         pgen = optim.pulse_generator
         for j in range(dyn.num_ctrls):
             init_amps[:, j] = pgen.gen_pulse(ctrl_index=j)
-    
+
     # Initialise the starting amplitudes
     dyn.initialize_controls(init_amps)
 
