@@ -79,9 +79,10 @@ def _eigs_dense(data, isherm, vecs, eigvals, num_large, num_small):
     if not isherm and eigvals > 0:
         if vecs:
             if num_small > 0:
-                evals, evecs = evals[:num_small], evecs[:num_small]
+                evals, evecs = evals[:num_small], evecs[:, :num_small]
             elif num_large > 0:
-                evals, evecs = evals[(N - num_large):], evecs[(N - num_large):]
+                evals = evals[(N - num_large):]
+                evecs = evecs[:, (N - num_large):]
         else:
             if num_small > 0:
                 evals = evals[:num_small]
@@ -103,10 +104,11 @@ def _eigs_csr(data, isherm, vecs, eigvals, num_large, num_small, tol, maxiter):
     remove_one = False
     if eigvals == (N - 1):
         # calculate all eigenvalues and remove one at output if using sparse
+        # 1: remove the smallest, -1, remove the largest
+        remove_one = bool(num_small) or -1
         eigvals = 0
         num_small = num_large = N // 2
         num_small += N % 2
-        remove_one = True
 
     if vecs:
         if isherm:
@@ -167,10 +169,14 @@ def _eigs_csr(data, isherm, vecs, eigvals, num_large, num_small, tol, maxiter):
         evecs = np.array([evecs[:, k] for k in perm]).T
 
     # remove last element if requesting N-1 eigs and using sparse
-    if remove_one:
-        evals = np.delete(evals, -1)
+    if remove_one == 1:
+        evals = evals[:-1]
         if vecs:
-            evecs = np.delete(evecs, -1)
+            evecs = evecs[:,:-1]
+    elif remove_one == -1:
+        evals = evals[1:]
+        if vecs:
+            evecs = evecs[:,1:]
 
     return np.array(evals), evecs
 
