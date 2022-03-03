@@ -263,7 +263,7 @@ class PulseGen(object):
             if (self.ubound<self.lbound).any():
                 raise ValueError("ubound cannot be less the lbound")
 
-    def _apply_bounds_and_offset(self, pulse, ctrl_index = None):
+    def _apply_bounds_and_offset(self, pulse, ctrl_index=None):
         """
         Ensure that the randomly generated pulse fits within the bounds
         (after applying the offset)
