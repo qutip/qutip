@@ -484,52 +484,39 @@ class Optimizer(object):
                 else:
                     self.method_options.update(unused_params)
 
+    def _bound_getter(self, name, bound):
+        """ Return a function for extracting the bound at a given t and c. """
+        if bound is None:
+            return lambda t, c: None
+        if isinstance(bound, (float, int)):
+            return lambda t, c: bound
+        if isinstance(bound, list):
+            return lambda t, c: bound[c]
+        if isinstance(bound, np.ndarray):
+            if bound.ndim == 1:
+                return lambda t, c: bound[c]
+            if bound.ndim == 2:
+                return lambda t, c: bound[t, c]
+        raise ValueError(
+            f"The {name} bounds supplied must be floats, lists or"
+            " ndarrays of shape (num_ctrls), or"
+            " ndarrays of shape (num_tslots x num_ctrls)"
+        )
+
     def _build_bounds_list(self):
-        cfg = self.config
         dyn = self.dynamics
         n_ctrls = dyn.num_ctrls
+        ubound_getter = self._bound_getter("upper", self.amp_ubound)
+        lbound_getter = self._bound_getter("lower", self.amp_lbound)
         self.bounds = []
         for t in range(dyn.num_tslots):
             for c in range(n_ctrls):
-                if (isinstance(self.amp_lbound, np.ndarray)
-                        and self.amp_lbound.ndim == 2):
-                    lb = self.amp_lbound[t, c]
-                elif (isinstance(self.amp_lbound, np.ndarray)
-                        and self.amp_lbound.ndim == 1):
-                    lb = self.amp_lbound[c]
-                elif isinstance(self.amp_lbound, list):
-                    lb = self.amp_lbound[c]
-                elif isinstance(self.amp_lbound, (float, int)):
-                    lb = self.amp_lbound
-                else:
-                    raise ValueError(
-                        "The lower bounds supplied must be floats, lists or"
-                        " ndarrays of shape (num_ctrls), or"
-                        " ndarrays of shape (num_tslots x num_ctrls)"
-                    )
-
-                if (isinstance(self.amp_ubound, np.ndarray)
-                        and self.amp_ubound.ndim == 2):
-                    ub = self.amp_ubound[t, c]
-                elif (isinstance(self.amp_ubound, np.ndarray)
-                        and self.amp_ubound.ndim == 1):
-                    ub = self.amp_ubound[c]
-                elif isinstance(self.amp_ubound, list):
-                    ub = self.amp_ubound[c]
-                elif isinstance(self.amp_ubound, (float, int)):
-                    ub = self.amp_ubound
-                else:
-                    raise ValueError(
-                        "The upper bounds supplied must be floats, lists or"
-                        " ndarrays of shape (num_ctrls), or"
-                        " ndarrays of shape (num_tslots x num_ctrls)"
-                    )
-
+                lb = lbound_getter(t, c)
+                ub = ubound_getter(t, c)
                 if lb is not None and np.isinf(lb):
                     lb = None
                 if ub is not None and np.isinf(ub):
                     ub = None
-
                 self.bounds.append((lb, ub))
 
     def run_optimization(self, term_conds=None):
