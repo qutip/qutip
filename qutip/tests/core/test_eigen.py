@@ -34,13 +34,13 @@
 import scipy
 import numpy as np
 import pytest
-from qutip import num, rand_herm, expect, rand_unitary
+import qutip
 
 
 def is_eigen_set(oper, vals, vecs):
     for val, vec in zip(vals, vecs):
         assert abs(vec.norm() - 1) < 1e-13
-        assert abs(expect(oper, vec) - val) < 1e-13
+        assert abs(qutip.expect(oper, vec) - val) < 1e-13
 
 
 @pytest.mark.parametrize(["sparse", 'dtype'], [
@@ -49,7 +49,7 @@ def is_eigen_set(oper, vals, vecs):
     pytest.param(False, 'dense', id="dense"),
 ])
 def test_eigen_known_oper(sparse, dtype):
-    N = num(10, dtype=dtype)
+    N = qutip.num(10, dtype=dtype)
     spvals, spvecs = N.eigenstates(sparse=sparse)
     expected = np.arange(10)
     is_eigen_set(N, spvals, spvecs)
@@ -62,8 +62,8 @@ def test_eigen_known_oper(sparse, dtype):
     pytest.param(False, 'dense', id="dense"),
 ])
 @pytest.mark.parametrize(["rand"], [
-    pytest.param(rand_herm, id="hermitian"),
-    pytest.param(rand_unitary, id="non-hermitian"),
+    pytest.param(qutip.rand_herm, id="hermitian"),
+    pytest.param(qutip.rand_unitary, id="non-hermitian"),
 ])
 @pytest.mark.parametrize("order", ['low', 'high'])
 def test_eigen_rand_oper(rand, sparse, dtype, order):
@@ -82,8 +82,8 @@ def test_eigen_rand_oper(rand, sparse, dtype, order):
     pytest.param(False, 'dense', id="dense"),
 ])
 @pytest.mark.parametrize("rand", [
-    pytest.param(rand_herm, id="hermitian"),
-    pytest.param(rand_unitary, id="non-hermitian"),
+    pytest.param(qutip.rand_herm, id="hermitian"),
+    pytest.param(qutip.rand_unitary, id="non-hermitian"),
 ])
 @pytest.mark.parametrize("order", ['low', 'high'])
 @pytest.mark.parametrize("N", [1, 5, 8, 9])
@@ -105,8 +105,8 @@ def test_FewState(rand, sparse, dtype, order, N):
     pytest.param(False, 'dense', id="dense"),
 ])
 @pytest.mark.parametrize(["rand"], [
-    pytest.param(rand_herm, id="hermitian"),
-    pytest.param(rand_unitary, id="non-hermitian"),
+    pytest.param(qutip.rand_herm, id="hermitian"),
+    pytest.param(qutip.rand_unitary, id="non-hermitian"),
 ])
 @pytest.mark.parametrize("order", ['low', 'high'])
 @pytest.mark.parametrize("N", [1, 5, 8, 9])
@@ -119,3 +119,16 @@ def test_ValsOnly(rand, sparse, dtype, order, N):
         assert np.all(np.diff(spvals).real >= 0)
     else:
         assert np.all(np.diff(spvals).real <= 0)
+
+
+@pytest.mark.parametrize(["sparse", 'dtype'], [
+    pytest.param(True, 'csr', id="sparse"),
+    pytest.param(False, 'csr', id="sparse2dense"),
+    pytest.param(False, 'dense', id="dense"),
+])
+def test_eigen_small(sparse, dtype):
+    H = (qutip.sigmax() + qutip.sigmaz()).to(dtype)
+    all_spvals = H.eigenenergies(sparse=sparse)
+    spvals, spvecs = H.eigenstates(sparse=sparse, eigvals=1)
+    assert np.abs(all_spvals[0] - spvals[0]) <= 1e-14
+    is_eigen_set(H, spvals, spvecs)
