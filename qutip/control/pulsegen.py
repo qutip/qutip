@@ -630,7 +630,9 @@ class PulseGenRndWalk2(PulseGen):
         self.max_d2_amp = 0.01
         self.apply_params()
 
-    def gen_pulse(self, ctrl_index=None, init_grad_range=None, max_d2_amp=None):
+    def gen_pulse(
+        self, ctrl_index=None, init_grad_range=None, max_d2_amp=None,
+    ):
         """
         Generate a pulse by changing the amplitude gradient a random amount
         between -max_d2_amp and +max_d2_amp at each timeslot.
@@ -703,7 +705,9 @@ class PulseGenLinear(PulseGen):
             self.gradient = float(self.end_val - self.start_val) / \
                 (self.pulse_time - self.tau[-1])
 
-    def gen_pulse(self, ctrl_index=None, gradient=None, start_val=None, end_val=None):
+    def gen_pulse(
+        self, ctrl_index=None, gradient=None, start_val=None, end_val=None,
+    ):
         """
         Generate a linear pulse using either the gradient and start value
         or using the end point to calulate the gradient
@@ -796,8 +800,10 @@ class PulseGenSine(PulseGenPeriodic):
     """
     Generates sine wave pulses
     """
-    def gen_pulse(self, ctrl_index=None, num_waves=None, wavelen=None,
-                  freq=None, start_phase=None):
+    def gen_pulse(
+        self, ctrl_index=None, num_waves=None, wavelen=None, freq=None,
+        start_phase=None,
+    ):
         """
         Generate a sine wave pulse
         If no params are provided then the class object attributes are used.
@@ -826,8 +832,10 @@ class PulseGenSquare(PulseGenPeriodic):
     """
     Generates square wave pulses
     """
-    def gen_pulse(self, ctrl_index=None, num_waves=None, wavelen=None,
-                  freq=None, start_phase=None):
+    def gen_pulse(
+        self, ctrl_index=None, num_waves=None, wavelen=None, freq=None,
+        start_phase=None,
+    ):
         """
         Generate a square wave pulse
         If no parameters are pavided then the class object attributes are used.
@@ -857,8 +865,10 @@ class PulseGenSaw(PulseGenPeriodic):
     """
     Generates saw tooth wave pulses
     """
-    def gen_pulse(self, ctrl_index=None, num_waves=None, wavelen=None,
-                  freq=None, start_phase=None):
+    def gen_pulse(
+        self, ctrl_index=None, num_waves=None, wavelen=None, freq=None,
+        start_phase=None,
+    ):
         """
         Generate a saw tooth wave pulse
         If no parameters are pavided then the class object attributes are used.
@@ -888,8 +898,10 @@ class PulseGenTriangle(PulseGenPeriodic):
     """
     Generates triangular wave pulses
     """
-    def gen_pulse(self, ctrl_index=None, num_waves=None, wavelen=None,
-                  freq=None, start_phase=None):
+    def gen_pulse(
+        self, ctrl_index=None, num_waves=None, wavelen=None, freq=None,
+        start_phase=None,
+    ):
         """
         Generate a sine wave pulse
         If no parameters are pavided then the class object attributes are used.
