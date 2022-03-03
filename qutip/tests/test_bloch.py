@@ -17,7 +17,6 @@ except ImportError:
 check_pngs_equal = check_figures_equal(extensions=["png"])
 
 
-@pytest.mark.skipif(plt is None, reason="matplotlib not installed")
 class TestBloch:
     def plot_arc_test(self, fig, *args, **kw):
         b = Bloch(fig=fig)
