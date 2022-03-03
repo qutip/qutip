@@ -1817,24 +1817,28 @@ def create_pulse_optimizer(
             lb = None
             if amp_lbound:
                 if isinstance(amp_lbound, np.ndarray):
-                    raise ValueError("Time dependent bounds are not \
-                                     supported for the CRAB algorithm")
+                    raise ValueError(
+                        "Time dependent bounds are not supported for the"
+                        " CRAB algorithm"
+                    )
                 elif isinstance(amp_lbound, list):
                     try:
                         lb = amp_lbound[j]
-                    except:
+                    except IndexError:
                         lb = amp_lbound[-1]
                 else:
                     lb = amp_lbound
             ub = None
             if amp_ubound:
                 if isinstance(amp_ubound, np.ndarray):
-                    raise ValueError("Time dependent bounds are not \
-                                     supported for the CRAB algorithm")
+                    raise ValueError(
+                        "Time dependent bounds are not supported for the"
+                        " CRAB algorithm"
+                    )
                 elif isinstance(amp_ubound, list):
                     try:
                         ub = amp_ubound[j]
-                    except:
+                    except IndexError:
                         ub = amp_ubound[-1]
                 else:
                     ub = amp_ubound
