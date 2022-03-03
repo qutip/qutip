@@ -46,6 +46,9 @@ class TestBloch:
         pytest.param(
             (1, 0, 0), (1, 0, 0), (0, 1, 0), (0, 1, 0), {}, id="arrays"),
         pytest.param(
+            (1.2, 0, 0), (1.2, 0, 0), (0, 1.2, 0), (0, 1.2, 0), {},
+            id="outside-sphere"),
+        pytest.param(
             (1, 0, 0), (1, 0, 0), (0, 1, 0), (0, 1, 0),
             {"fmt": "r", "linestyle": "-"}, id="fmt-and-kwargs",
         ),
