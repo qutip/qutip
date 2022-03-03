@@ -1,35 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
 """
 Functions for visualizing results of quantum dynamics simulations,
 visualizations of quantum states and processes.
@@ -47,15 +15,9 @@ __all__ = ['hinton', 'sphereplot', 'energy_level_diagram',
 import warnings
 import itertools as it
 import numpy as np
-from numpy import pi, array, sin, cos, angle, log2, sqrt
+from numpy import pi, array, sin, cos, angle, log2
 
-try:
-    import matplotlib.pyplot as plt
-    import matplotlib as mpl
-    from matplotlib import cm
-    from mpl_toolkits.mplot3d import Axes3D
-except:
-    pass
+from packaging.version import parse as parse_version
 
 from qutip.qobj import Qobj, isket
 from qutip.states import ket2dm
@@ -63,10 +25,27 @@ from qutip.wigner import wigner
 from qutip.tensor import tensor
 from qutip.matplotlib_utilities import complex_phase_cmap
 from qutip.superoperator import vector_to_operator
-from qutip.superop_reps import to_super, _super_to_superpauli, _isqubitdims, _pauli_basis
-from qutip.tensor import flatten
+from qutip.superop_reps import _super_to_superpauli, _isqubitdims
 
 from qutip import settings
+
+try:
+    import matplotlib.pyplot as plt
+    import matplotlib as mpl
+    from matplotlib import cm
+    from mpl_toolkits.mplot3d import Axes3D
+
+    # Define a custom _axes3D function based on the matplotlib version.
+    # The auto_add_to_figure keyword is new for matplotlib>=3.4.
+    if parse_version(mpl.__version__) >= parse_version('3.4'):
+        def _axes3D(fig, *args, **kwargs):
+            ax = Axes3D(fig, *args, auto_add_to_figure=False, **kwargs)
+            return fig.add_axes(ax)
+    else:
+        def _axes3D(*args, **kwargs):
+            return Axes3D(*args, **kwargs)
+except:
+    pass
 
 
 def plot_wigner_sphere(fig, ax, wigner, reflections):
@@ -74,14 +53,14 @@ def plot_wigner_sphere(fig, ax, wigner, reflections):
 
     Parameters
     ----------
-        fig
-            An instance of matplotlib.pyplot.figure.
-        ax
-            An axes instance in fig.
-        wigner : list of float
-            the wigner transformation at `steps` different theta and phi.
-        reflections : bool
-            If the reflections of the sphere should be plotted as well.
+    fig : :obj:`matplotlib.figure.Figure`
+        An instance of :obj:`~matplotlib.figure.Figure`.
+    ax : :obj:`matplotlib.axes.Axes`
+        An axes instance in the given figure.
+    wigner : list of float
+        The wigner transformation at `steps` different theta and phi.
+    reflections : bool
+        If the reflections of the sphere should be plotted as well.
 
     Notes
     ------
@@ -146,7 +125,7 @@ def plot_wigner_sphere(fig, ax, wigner, reflections):
 
 
 # Adopted from the SciPy Cookbook.
-def _blob(x, y, w, w_max, area, cmap=None, ax=None):
+def _blob(x, y, w, w_max, area, color_fn, ax=None):
     """
     Draws a square-shaped blob with the given area (< 1) at
     the given coordinates.
@@ -161,7 +140,7 @@ def _blob(x, y, w, w_max, area, cmap=None, ax=None):
         handle = plt
 
     handle.fill(xcorners, ycorners,
-             color=cmap(int((w + w_max) * 256 / (2 * w_max))))
+             color=color_fn(w))
 
 
 def _cb_labels(left_dims):
@@ -195,7 +174,7 @@ def _cb_labels(left_dims):
 
 # Adopted from the SciPy Cookbook.
 def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
-           label_top=True):
+           label_top=True, color_style="scaled"):
     """Draws a Hinton diagram for visualizing a density matrix or superoperator.
 
     Parameters
@@ -222,6 +201,19 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
         If True, x-axis labels will be placed on top, otherwise
         they will appear below the plot.
 
+    color_style : string
+        Determines how colors are assigned to each square:
+
+        -  If set to ``"scaled"`` (default), each color is chosen by
+           passing the absolute value of the corresponding matrix
+           element into `cmap` with the sign of the real part.
+        -  If set to ``"threshold"``, each square is plotted as
+           the maximum of `cmap` for the positive real part and as
+           the minimum for the negative part of the matrix element;
+           note that this generalizes `"threshold"` to complex numbers.
+        -  If set to ``"phase"``, each color is chosen according to
+           the angle of the corresponding matrix element.
+
     Returns
     -------
     fig, ax : tuple
@@ -233,6 +225,21 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
     ValueError
         Input argument is not a quantum object.
 
+    Examples
+    --------
+    >>> import qutip
+    >>>
+    >>> dm = qutip.rand_dm(4)
+    >>> fig, ax = qutip.hinton(dm)
+    >>> fig.show()
+    >>>
+    >>> qutip.settings.colorblind_safe = True
+    >>> fig, ax = qutip.hinton(dm, color_style="threshold")
+    >>> fig.show()
+    >>> qutip.settings.colorblind_safe = False
+    >>>
+    >>> fig, ax = qutip.hinton(dm, color_style="phase")
+    >>> fig.show()
     """
 
     # Apply default colormaps.
@@ -288,15 +295,34 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
 
     if not (xlabels or ylabels):
         ax.axis('off')
+    if title:
+        ax.set_title(title)
 
     ax.axis('equal')
     ax.set_frame_on(False)
 
     height, width = W.shape
 
-    w_max = 1.25 * max(abs(np.diag(np.matrix(W))))
+    w_max = 1.25 * max(abs(np.diag(np.array(W))))
     if w_max <= 0.0:
         w_max = 1.0
+
+    # Set color_fn here.
+    if color_style == "scaled":
+        def color_fn(w):
+            w = np.abs(w) * np.sign(np.real(w))
+            return cmap(int((w + w_max) * 256 / (2 * w_max)))
+    elif color_style == "threshold":
+        def color_fn(w):
+            w = np.real(w)
+            return cmap(255 if w > 0 else 0)
+    elif color_style == "phase":
+        def color_fn(w):
+            return cmap(int(255 * (np.angle(w) / 2 / np.pi + 0.5)))
+    else:
+        raise ValueError(
+            "Unknown color style {} for Hinton diagrams.".format(color_style)
+        )
 
     ax.fill(array([0, width, width, 0]), array([0, 0, height, height]),
             color=cmap(128))
@@ -304,30 +330,35 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
         for y in range(height):
             _x = x + 1
             _y = y + 1
-            if np.real(W[x, y]) > 0.0:
-                _blob(_x - 0.5, height - _y + 0.5, abs(W[x,
-                      y]), w_max, min(1, abs(W[x, y]) / w_max), cmap=cmap, ax=ax)
-            else:
-                _blob(_x - 0.5, height - _y + 0.5, -abs(W[
-                      x, y]), w_max, min(1, abs(W[x, y]) / w_max), cmap=cmap, ax=ax)
+            _blob(
+                _x - 0.5, height - _y + 0.5, W[x, y], w_max,
+                min(1, abs(W[x, y]) / w_max), color_fn=color_fn, ax=ax)
 
     # color axis
-    norm = mpl.colors.Normalize(-abs(W).max(), abs(W).max())
+    vmax = np.pi if color_style == "phase" else abs(W).max()
+    norm = mpl.colors.Normalize(-vmax, vmax)
     cax, kw = mpl.colorbar.make_axes(ax, shrink=0.75, pad=.1)
     mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cmap)
 
+    xtics = 0.5 + np.arange(width)
     # x axis
-    ax.xaxis.set_major_locator(plt.IndexLocator(1, 0.5))
-
+    ax.xaxis.set_major_locator(plt.FixedLocator(xtics))
     if xlabels:
+        nxlabels = len(xlabels)
+        if nxlabels != len(xtics):
+            raise ValueError(f"got {nxlabels} xlabels but needed {len(xtics)}")
         ax.set_xticklabels(xlabels)
         if label_top:
             ax.xaxis.tick_top()
     ax.tick_params(axis='x', labelsize=14)
 
     # y axis
-    ax.yaxis.set_major_locator(plt.IndexLocator(1, 0.5))
+    ytics = 0.5 + np.arange(height)
+    ax.yaxis.set_major_locator(plt.FixedLocator(ytics))
     if ylabels:
+        nylabels = len(ylabels)
+        if nylabels != len(ytics):
+            raise ValueError(f"got {nylabels} ylabels but needed {len(ytics)}")
         ax.set_yticklabels(list(reversed(ylabels)))
     ax.tick_params(axis='y', labelsize=14)
 
@@ -365,7 +396,7 @@ def sphereplot(theta, phi, values, fig=None, ax=None, save=False):
     """
     if fig is None or ax is None:
         fig = plt.figure()
-        ax = Axes3D(fig)
+        ax = _axes3D(fig)
 
     thetam, phim = np.meshgrid(theta, phi)
     xx = sin(thetam) * cos(phim)
@@ -395,8 +426,103 @@ def sphereplot(theta, phi, values, fig=None, ax=None, save=False):
     return fig, ax
 
 
+def _remove_margins(axis):
+    """
+    removes margins about z = 0 and improves the style
+    by monkey patching
+    """
+    def _get_coord_info_new(renderer):
+        mins, maxs, centers, deltas, tc, highs = \
+            _get_coord_info_old(renderer)
+        mins += deltas / 4
+        maxs -= deltas / 4
+        return mins, maxs, centers, deltas, tc, highs
+
+    _get_coord_info_old = axis._get_coord_info
+    axis._get_coord_info = _get_coord_info_new
+
+
+def _truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
+    """
+    truncates portion of a colormap and returns the new one
+    """
+    if isinstance(cmap, str):
+        cmap = plt.get_cmap(cmap)
+    new_cmap = mpl.colors.LinearSegmentedColormap.from_list(
+        'trunc({n},{a:.2f},{b:.2f})'.format(
+            n=cmap.name, a=minval, b=maxval),
+        cmap(np.linspace(minval, maxval, n)))
+    return new_cmap
+
+
+def _stick_to_planes(stick, azim, ax, M, spacing):
+    """adjusts xlim and ylim in way that bars will
+    Stick to xz and yz planes
+    """
+    if stick is True:
+        azim = azim % 360
+        if 0 <= azim <= 90:
+            ax.set_ylim(1 - .5,)
+            ax.set_xlim(1 - .5,)
+        elif 90 < azim <= 180:
+            ax.set_ylim(1 - .5,)
+            ax.set_xlim(0, M.shape[0] + (.5 - spacing))
+        elif 180 < azim <= 270:
+            ax.set_ylim(0, M.shape[1] + (.5 - spacing))
+            ax.set_xlim(0, M.shape[0] + (.5 - spacing))
+        elif 270 < azim < 360:
+            ax.set_ylim(0, M.shape[1] + (.5 - spacing))
+            ax.set_xlim(1 - .5,)
+
+
+def _update_yaxis(spacing, M, ax, ylabels):
+    """
+    updates the y-axis
+    """
+    ytics = [x + (1 - (spacing / 2)) for x in range(M.shape[1])]
+    ax.axes.w_yaxis.set_major_locator(plt.FixedLocator(ytics))
+    if ylabels:
+        nylabels = len(ylabels)
+        if nylabels != len(ytics):
+            raise ValueError(f"got {nylabels} ylabels but needed {len(ytics)}")
+        ax.set_yticklabels(ylabels)
+    else:
+        ax.set_yticklabels([str(y + 1) for y in range(M.shape[1])])
+        ax.set_yticklabels([str(i) for i in range(M.shape[1])])
+    ax.tick_params(axis='y', labelsize=14)
+    ax.set_yticks([y + (1 - (spacing / 2)) for y in range(M.shape[1])])
+
+
+def _update_xaxis(spacing, M, ax, xlabels):
+    """
+    updates the x-axis
+    """
+    xtics = [x + (1 - (spacing / 2)) for x in range(M.shape[1])]
+    ax.axes.w_xaxis.set_major_locator(plt.FixedLocator(xtics))
+    if xlabels:
+        nxlabels = len(xlabels)
+        if nxlabels != len(xtics):
+            raise ValueError(f"got {nxlabels} xlabels but needed {len(xtics)}")
+        ax.set_xticklabels(xlabels)
+    else:
+        ax.set_xticklabels([str(x + 1) for x in range(M.shape[0])])
+        ax.set_xticklabels([str(i) for i in range(M.shape[0])])
+    ax.tick_params(axis='x', labelsize=14)
+    ax.set_xticks([x + (1 - (spacing / 2)) for x in range(M.shape[0])])
+
+
+def _update_zaxis(ax, z_min, z_max, zticks):
+    """
+    updates the z-axis
+    """
+    ax.axes.w_zaxis.set_major_locator(plt.IndexLocator(1, 0.5))
+    if isinstance(zticks, list):
+        ax.set_zticks(zticks)
+    ax.set_zlim3d([min(z_min, 0), z_max])
+
+
 def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
-                     colorbar=True, fig=None, ax=None):
+                     colorbar=True, fig=None, ax=None, options=None):
     """
     Draw a histogram for the matrix M, with the given x and y labels and title.
 
@@ -420,7 +546,74 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
     ax : a matplotlib axes instance
         The axes context in which the plot will be drawn.
 
-    Returns
+    colorbar : bool (default: True)
+        show colorbar
+
+    options : dict
+        A dictionary containing extra options for the plot.
+        The names (keys) and values of the options are
+        described below:
+
+        'zticks' : list of numbers
+            A list of z-axis tick locations.
+
+        'cmap' : string (default: 'jet')
+            The name of the color map to use.
+
+        'cmap_min' : float (default: 0.0)
+            The lower bound to truncate the color map at.
+            A value in range 0 - 1. The default, 0, leaves the lower
+            bound of the map unchanged.
+
+        'cmap_max' : float (default: 1.0)
+            The upper bound to truncate the color map at.
+            A value in range 0 - 1. The default, 1, leaves the upper
+            bound of the map unchanged.
+
+        'bars_spacing' : float (default: 0.1)
+            spacing between bars.
+
+        'bars_alpha' : float (default: 1.)
+            transparency of bars, should be in range 0 - 1
+
+        'bars_lw' : float (default: 0.5)
+            linewidth of bars' edges.
+
+        'bars_edgecolor' : color (default: 'k')
+            The colors of the bars' edges.
+            Examples: 'k', (0.1, 0.2, 0.5) or '#0f0f0f80'.
+
+        'shade' : bool (default: True)
+            Whether to shade the dark sides of the bars (True) or not (False).
+            The shading is relative to plot's source of light.
+
+        'azim' : float
+            The azimuthal viewing angle.
+
+        'elev' : float
+            The elevation viewing angle.
+
+        'proj_type' : string (default: 'ortho' if ax is not passed)
+            The type of projection ('ortho' or 'persp')
+
+        'stick' : bool (default: False)
+            Changes xlim and ylim in such a way that bars next to
+            XZ and YZ planes will stick to those planes.
+            This option has no effect if ``ax`` is passed as a parameter.
+
+        'cbar_pad' : float (default: 0.04)
+            The fraction of the original axes between the colorbar
+            and the new image axes.
+            (i.e. the padding between the 3D figure and the colorbar).
+
+        'cbar_to_z' : bool (default: False)
+            Whether to set the color of maximum and minimum z-values to the
+            maximum and minimum colors in the colorbar (True) or not (False).
+
+        'figsize' : tuple of two numbers
+            The size of the figure.
+
+    Returns :
     -------
     fig, ax : tuple
         A tuple of the matplotlib figure and axes instances used to produce
@@ -433,16 +626,38 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
 
     """
 
+    # default options
+    default_opts = {'figsize': None, 'cmap': 'jet', 'cmap_min': 0.,
+                    'cmap_max': 1., 'zticks': None, 'bars_spacing': 0.2,
+                    'bars_alpha': 1., 'bars_lw': 0.5, 'bars_edgecolor': 'k',
+                    'shade': False, 'azim': -35, 'elev': 35,
+                    'proj_type': 'ortho', 'stick': False,
+                    'cbar_pad': 0.04, 'cbar_to_z': False}
+
+    # update default_opts from input options
+    if options is None:
+        pass
+    elif isinstance(options, dict):
+        # check if keys in options dict are valid
+        if set(options) - set(default_opts):
+            raise ValueError("invalid key(s) found in options: "
+                             f"{', '.join(set(options) - set(default_opts))}")
+        else:
+            # updating default options
+            default_opts.update(options)
+    else:
+        raise ValueError("options must be a dictionary")
+
     if isinstance(M, Qobj):
         # extract matrix data from Qobj
         M = M.full()
 
     n = np.size(M)
     xpos, ypos = np.meshgrid(range(M.shape[0]), range(M.shape[1]))
-    xpos = xpos.T.flatten() - 0.5
-    ypos = ypos.T.flatten() - 0.5
+    xpos = xpos.T.flatten() + 0.5
+    ypos = ypos.T.flatten() + 0.5
     zpos = np.zeros(n)
-    dx = dy = 0.8 * np.ones(n)
+    dx = dy = (1 - default_opts['bars_spacing']) * np.ones(n)
     dz = np.real(M.flatten())
 
     if isinstance(limits, list) and len(limits) == 2:
@@ -455,39 +670,58 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
             z_min -= 0.1
             z_max += 0.1
 
-    norm = mpl.colors.Normalize(z_min, z_max)
-    cmap = cm.get_cmap('jet')  # Spectral
+    if default_opts['cbar_to_z']:
+        norm = mpl.colors.Normalize(min(dz), max(dz))
+    else:
+        norm = mpl.colors.Normalize(z_min, z_max)
+    cmap = _truncate_colormap(default_opts['cmap'],
+                              default_opts['cmap_min'],
+                              default_opts['cmap_max'])
     colors = cmap(norm(dz))
 
     if ax is None:
-        fig = plt.figure()
-        ax = Axes3D(fig, azim=-35, elev=35)
+        fig = plt.figure(figsize=default_opts['figsize'])
+        ax = _axes3D(fig,
+                     azim=default_opts['azim'] % 360,
+                     elev=default_opts['elev'] % 360)
+        ax.set_proj_type(default_opts['proj_type'])
 
-    ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors)
+    ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors,
+             edgecolors=default_opts['bars_edgecolor'],
+             linewidths=default_opts['bars_lw'],
+             alpha=default_opts['bars_alpha'],
+             shade=default_opts['shade'])
+    # remove vertical lines on xz and yz plane
+    ax.yaxis._axinfo["grid"]['linewidth'] = 0
+    ax.xaxis._axinfo["grid"]['linewidth'] = 0
 
-    if title and fig:
+    if title:
         ax.set_title(title)
 
     # x axis
-    ax.axes.w_xaxis.set_major_locator(plt.IndexLocator(1, -0.5))
-    if xlabels:
-        ax.set_xticklabels(xlabels)
-    ax.tick_params(axis='x', labelsize=14)
+    _update_xaxis(default_opts['bars_spacing'], M, ax, xlabels)
 
     # y axis
-    ax.axes.w_yaxis.set_major_locator(plt.IndexLocator(1, -0.5))
-    if ylabels:
-        ax.set_yticklabels(ylabels)
-    ax.tick_params(axis='y', labelsize=14)
+    _update_yaxis(default_opts['bars_spacing'], M, ax, ylabels)
 
     # z axis
-    ax.axes.w_zaxis.set_major_locator(plt.IndexLocator(1, 0.5))
-    ax.set_zlim3d([min(z_min, 0), z_max])
+    _update_zaxis(ax, z_min, z_max, default_opts['zticks'])
+
+    # stick to xz and yz plane
+    _stick_to_planes(default_opts['stick'],
+                     default_opts['azim'], ax, M,
+                     default_opts['bars_spacing'])
 
     # color axis
     if colorbar:
-        cax, kw = mpl.colorbar.make_axes(ax, shrink=.75, pad=.0)
+        cax, kw = mpl.colorbar.make_axes(ax, shrink=.75,
+                                         pad=default_opts['cbar_pad'])
         mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
+
+    # removing margins
+    _remove_margins(ax.xaxis)
+    _remove_margins(ax.yaxis)
+    _remove_margins(ax.zaxis)
 
     return fig, ax
 
@@ -574,22 +808,30 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None,
 
     if ax is None:
         fig = plt.figure()
-        ax = Axes3D(fig, azim=-35, elev=35)
+        ax = _axes3D(fig, azim=-35, elev=35)
 
     ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors)
 
-    if title and fig:
+    if title:
         ax.set_title(title)
 
     # x axis
-    ax.axes.w_xaxis.set_major_locator(plt.IndexLocator(1, -0.5))
+    xtics = -0.5 + np.arange(M.shape[0])
+    ax.axes.w_xaxis.set_major_locator(plt.FixedLocator(xtics))
     if xlabels:
+        nxlabels = len(xlabels)
+        if nxlabels != len(xtics):
+            raise ValueError(f"got {nxlabels} xlabels but needed {len(xtics)}")
         ax.set_xticklabels(xlabels)
     ax.tick_params(axis='x', labelsize=12)
 
     # y axis
-    ax.axes.w_yaxis.set_major_locator(plt.IndexLocator(1, -0.5))
+    ytics = -0.5 + np.arange(M.shape[1])
+    ax.axes.w_yaxis.set_major_locator(plt.FixedLocator(ytics))
     if ylabels:
+        nylabels = len(ylabels)
+        if nylabels != len(ytics):
+            raise ValueError(f"got {nylabels} ylabels but needed {len(ytics)}")
         ax.set_yticklabels(ylabels)
     ax.tick_params(axis='y', labelsize=12)
 
@@ -1009,7 +1251,7 @@ def plot_expectation_values(results, ylabels=[], title=None, show_legend=False,
                                 label="%s [%d]" % (result.solver, e_idx))
 
     if title:
-        axes[0, 0].set_title(title)
+        fig.suptitle(title)
 
     axes[n_e_ops - 1, 0].set_xlabel("time", fontsize=12)
     for n in range(n_e_ops):
@@ -1115,7 +1357,7 @@ def plot_spin_distribution_3d(P, THETA, PHI,
 
     if fig is None or ax is None:
         fig = plt.figure(figsize=figsize)
-        ax = Axes3D(fig, azim=-35, elev=35)
+        ax = _axes3D(fig, azim=-35, elev=35)
 
     xx = sin(THETA) * cos(PHI)
     yy = sin(THETA) * sin(PHI)
@@ -1150,7 +1392,7 @@ def complex_array_to_rgb(X, theme='light', rmax=None):
     For more info on coloring, see:
         Emilia Petrisor,
         Visualizing complex-valued functions with Matplotlib and Mayavi
-        http://nbviewer.ipython.org/github/empet/Math/blob/master/DomainColoring.ipynb
+        https://nbviewer.ipython.org/github/empet/Math/blob/master/DomainColoring.ipynb
 
     Parameters
     ----------
@@ -1316,18 +1558,9 @@ def plot_qubism(ket, theme='light', how='pairs',
                 grid_iteration=1, legend_iteration=0,
                 fig=None, ax=None, figsize=(6, 6)):
     """
-    Qubism plot for pure states of many qudits.
-    Works best for spin chains, especially with even number of particles
-    of the same dimension.
-    Allows to see entanglement between first 2*k particles and the rest.
-
-    More information:
-        
-        J. Rodriguez-Laguna, P. Migdal,
-        M. Ibanez Berganza, M. Lewenstein, G. Sierra,
-        "Qubism: self-similar visualization of many-body wavefunctions",
-        New J. Phys. 14 053028 (2012), arXiv:1112.3560,
-        http://dx.doi.org/10.1088/1367-2630/14/5/053028 (open access)
+    Qubism plot for pure states of many qudits.  Works best for spin chains,
+    especially with even number of particles of the same dimension.  Allows to
+    see entanglement between first 2k particles and the rest.
 
     Parameters
     ----------
@@ -1339,23 +1572,21 @@ def plot_qubism(ket, theme='light', how='pairs',
         See: complex_array_to_rgb.
 
     how : 'pairs' (default), 'pairs_skewed' or 'before_after'
-        Type of Qubism plotting.
-        Options:
-            
-            'pairs' - typical coordinates,
-            'pairs_skewed' - for ferromagnetic/antriferromagnetic plots,
-            'before_after' - related to Schmidt plot (see also: plot_schmidt).
+        Type of Qubism plotting.  Options:
+
+        - 'pairs' - typical coordinates,
+        - 'pairs_skewed' - for ferromagnetic/antriferromagnetic plots,
+        - 'before_after' - related to Schmidt plot (see also: plot_schmidt).
 
     grid_iteration : int (default 1)
         Helper lines to be drawn on plot.
         Show tiles for 2*grid_iteration particles vs all others.
 
     legend_iteration : int (default 0) or 'grid_iteration' or 'all'
-        Show labels for first 2*legend_iteration particles.
-        Option 'grid_iteration' sets the same number of particles
-            as for grid_iteration.
-        Option 'all' makes label for all particles.
-        Typically it should be 0, 1, 2 or perhaps 3.
+        Show labels for first ``2*legend_iteration`` particles.  Option
+        'grid_iteration' sets the same number of particles as for
+        grid_iteration.  Option 'all' makes label for all particles.  Typically
+        it should be 0, 1, 2 or perhaps 3.
 
     fig : a matplotlib figure instance
         The figure canvas on which the plot will be drawn.
@@ -1373,6 +1604,17 @@ def plot_qubism(ket, theme='light', how='pairs',
         A tuple of the matplotlib figure and axes instances used to produce
         the figure.
 
+    Notes
+    -----
+    See also [1]_.
+
+    References
+    ----------
+    .. [1] J. Rodriguez-Laguna, P. Migdal, M. Ibanez Berganza, M. Lewenstein
+       and G. Sierra, *Qubism: self-similar visualization of many-body
+       wavefunctions*, `New J. Phys. 14 053028
+       <https://dx.doi.org/10.1088/1367-2630/14/5/053028>`_, arXiv:1112.3560
+       (2012), open access.
     """
 
     if not isket(ket):

@@ -1,2 +1,24 @@
 [build-system]
-requires = ["setuptools", "wheel", "Cython", "numpy", "scipy"]
+requires = [
+    "setuptools",
+    "packaging",
+    "wheel",
+    "cython>=0.29.20",
+    # See https://numpy.org/doc/stable/user/depending_on_numpy.html for
+    # the recommended way to build against numpy's C API:
+    "oldest-supported-numpy",
+    "scipy>=1.0",
+]
+build-backend = "setuptools.build_meta"
+
+[tool.cibuildwheel]
+manylinux-x86_64-image = "manylinux2014"
+manylinux-i686-image = "manylinux2014"
+# Change in future version to "build"
+build-frontend = "pip"
+
+[[tool.cibuildwheel.overrides]]
+# NumPy support manylinux2010 on CPython 3.6-3.9
+select = "cp3?-*"
+manylinux-x86_64-image = "manylinux2010"
+manylinux-i686-image = "manylinux2010"

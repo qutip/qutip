@@ -1,37 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
-import warnings
 import numpy as np
 import pytest
 import qutip
@@ -70,7 +36,7 @@ single_gate_tests = [
 
 
 device_lists = [
-    pytest.param(DispersiveCavityQED, {"g":0.1}, id = "DispersiveCavityQED"),
+    pytest.param(DispersiveCavityQED, {"g": 0.02}, id="DispersiveCavityQED"),
     pytest.param(LinearSpinChain, {}, id = "LinearSpinChain"),
     pytest.param(CircularSpinChain, {}, id = "CircularSpinChain"),
 ]
@@ -112,8 +78,7 @@ def test_numerical_evolution(
     circuit = qutip.qip.circuit.QubitCircuit(num_qubits)
     for gate in gates:
         circuit.add_gate(gate)
-    with warnings.catch_warnings(record=True):
-        device = device_class(num_qubits, **kwargs)
+    device = device_class(num_qubits, **kwargs)
     device.load_circuit(circuit)
 
     state = qutip.rand_ket(2**num_qubits)
@@ -152,15 +117,16 @@ circuit2.add_gate("SQRTISWAP", targets=[0, 2])  # supported only by SpinChain
 
 
 @pytest.mark.parametrize(("circuit", "device_class", "kwargs"), [
-    pytest.param(circuit, DispersiveCavityQED, {"g":0.1}, id = "DispersiveCavityQED"),
+    pytest.param(circuit, DispersiveCavityQED, {"g": 0.02},
+                 id="DispersiveCavityQED"),
     pytest.param(circuit2, LinearSpinChain, {}, id = "LinearSpinChain"),
     pytest.param(circuit2, CircularSpinChain, {}, id = "CircularSpinChain"),
 ])
-def test_numerical_circuit(circuit, device_class, kwargs):
+@pytest.mark.parametrize(("schedule_mode"), ["ASAP", "ALAP", None])
+def test_numerical_circuit(circuit, device_class, kwargs, schedule_mode):
     num_qubits = circuit.N
-    with warnings.catch_warnings(record=True):
-        device = device_class(circuit.N, **kwargs)
-    device.load_circuit(circuit)
+    device = device_class(circuit.N, **kwargs)
+    device.load_circuit(circuit, schedule_mode=schedule_mode)
 
     state = qutip.rand_ket(2**num_qubits)
     state.dims = [[2]*num_qubits, [1]*num_qubits]

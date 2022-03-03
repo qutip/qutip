@@ -1,48 +1,16 @@
 # -*- coding: utf-8 -*-
-#
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
+
 import numpy as np
-import scipy.sparse as sp
-from qutip.cy.stochastic import (SSESolver, SMESolver, PcSSESolver, PcSMESolver,
-                                 PmSMESolver, GenericSSolver, Solvers)
+from qutip.cy.stochastic import (
+    SSESolver, SMESolver, PcSSESolver, PcSMESolver, PmSMESolver,
+    GenericSSolver,
+)
 from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.states import ket2dm
 from qutip.solver import Result
 from qutip.qobjevo import QobjEvo
-from qutip.superoperator import (spre, spost, mat2vec, vec2mat,
-                                 liouvillian, lindblad_dissipator)
-from qutip.solver import Options, _solver_safety_check
+from qutip.superoperator import spre, spost, mat2vec, liouvillian
+from qutip.solver import Options
 from qutip.parallel import serial_map
 from qutip.ui.progressbar import TextProgressBar
 from qutip.pdpsolve import main_ssepdpsolve, main_smepdpsolve
@@ -53,121 +21,145 @@ __all__ = ['ssesolve', 'photocurrent_sesolve', 'smepdpsolve',
 
 
 def stochastic_solvers():
-    """Available solvers for ssesolve and smesolve
-    euler-maruyama:
-        A simple generalization of the Euler method for ordinary
-        differential equations to stochastic differential equations.
-        Only solver which could take non-commuting sc_ops. *not tested*
-        -Order 0.5
-        -Code: 'euler-maruyama', 'euler', 0.5
+    # This docstring contains several literal backslash characters inside LaTeX
+    # blocks, but it cannot be declared as a raw string because we also need to
+    # use a line continuation.  At one point we need a restructured text
+    # "definition list", where the heading _must_ be entirely on one line,
+    # however it will violate our line-length reporting if we do that.
+    """
+    This function is purely a reference point for documenting the available
+    stochastic solver methods, and takes no actions.
 
-    milstein, Order 1.0 strong Taylor scheme:
-        Better approximate numerical solution to stochastic
-        differential equations.
-        -Order strong 1.0
-        -Code: 'milstein', 1.0
-        Numerical Solution of Stochastic Differential Equations
-        Chapter 10.3 Eq. (3.1), By Peter E. Kloeden, Eckhard Platen
+    Notes
+    -----
+    Available solvers for :obj:`~ssesolve` and :obj:`~smesolve`
+        euler-maruyama
+            A simple generalization of the Euler method for ordinary
+            differential equations to stochastic differential equations.  Only
+            solver which could take non-commuting ``sc_ops``. *not tested*
 
-    milstein-imp, Order 1.0 implicit strong Taylor scheme:
-        Implicit milstein scheme for the numerical simulation of stiff
-        stochastic differential equations.
-        -Order strong 1.0
-        -Code: 'milstein-imp'
-        Numerical Solution of Stochastic Differential Equations
-        Chapter 12.2 Eq. (2.9), By Peter E. Kloeden, Eckhard Platen
+            - Order 0.5
+            - Code: ``'euler-maruyama'``, ``'euler'`` or ``0.5``
 
-    predictor-corrector:
-        Generalization of the trapezoidal method to stochastic
-        differential equations. More stable than explicit methods.
-        -Order strong 0.5, weak 1.0
-        Only the stochastic part is corrected.
-            (alpha = 0, eta = 1/2)
-            -Code: 'pred-corr', 'predictor-corrector', 'pc-euler'
-        Both the deterministic and stochastic part corrected.
-            (alpha = 1/2, eta = 1/2)
-            -Code: 'pc-euler-imp', 'pc-euler-2', 'pred-corr-2'
-        Numerical Solution of Stochastic Differential Equations
-        Chapter 15.5 Eq. (5.4), By Peter E. Kloeden, Eckhard Platen
+        milstein
+            An order 1.0 strong Taylor scheme.  Better approximate numerical
+            solution to stochastic differential equations.  See eq. (2.9) of
+            chapter 12.2 of [1]_.
 
-    platen:
-        Explicit scheme, create the milstein using finite difference instead of
-        derivatives. Also contain some higher order terms, thus converge better
-        than milstein while staying strong order 1.0.
-        Do not require derivatives, therefore usable for
-        :func:`qutip.stochastic.general_stochastic`
-        -Order strong 1.0, weak 2.0
-        -Code: 'platen', 'platen1', 'explicit1'
-        The Theory of Open Quantum Systems
-        Chapter 7 Eq. (7.47), H.-P Breuer, F. Petruccione
+            - Order strong 1.0
+            - Code: ``'milstein'`` or ``1.0``
 
-    rouchon:
-        Scheme keeping the positivity of the density matrix. (smesolve only)
-        -Order strong 1.0?
-        -Code: 'rouchon', 'Rouchon'
-        Eq. 4 of arXiv:1410.5345 with eta=1
-        Efficient Quantum Filtering for Quantum Feedback Control
-        Pierre Rouchon, Jason F. Ralph
-        arXiv:1410.5345 [quant-ph]
-        Phys. Rev. A 91, 012118, (2015)
+        milstein-imp
+            An order 1.0 implicit strong Taylor scheme.  Implicit Milstein
+            scheme for the numerical simulation of stiff stochastic
+            differential equations.
 
-    taylor1.5, Order 1.5 strong Taylor scheme:
-        Solver with more terms of the Ito-Taylor expansion.
-        Default solver for smesolve and ssesolve.
-        -Order strong 1.5
-        -Code: 'taylor1.5', 'taylor15', 1.5, None
-        Numerical Solution of Stochastic Differential Equations
-        Chapter 10.4 Eq. (4.6), By Peter E. Kloeden, Eckhard Platen
+            - Order strong 1.0
+            - Code: ``'milstein-imp'``
 
-    taylor1.5-imp, Order 1.5 implicit strong Taylor scheme:
-        implicit Taylor 1.5 (alpha = 1/2, beta = doesn't matter)
-        -Order strong 1.5
-        -Code: 'taylor1.5-imp', 'taylor15-imp'
-        Numerical Solution of Stochastic Differential Equations
-        Chapter 12.2 Eq. (2.18), By Peter E. Kloeden, Eckhard Platen
+        predictor-corrector
+            Generalization of the trapezoidal method to stochastic differential
+            equations. More stable than explicit methods.  See eq. (5.4) of
+            chapter 15.5 of [1]_.
 
-    explicit1.5, Explicit Order 1.5 Strong Schemes:
-        Reproduce the order 1.5 strong Taylor scheme using finite difference
-        instead of derivatives. Slower than taylor15 but usable by
-        :func:`qutip.stochastic.general_stochastic`
-        -Order strong 1.5
-        -Code: 'explicit1.5', 'explicit15', 'platen15'
-        Numerical Solution of Stochastic Differential Equations
-        Chapter 11.2 Eq. (2.13), By Peter E. Kloeden, Eckhard Platen
+            - Order strong 0.5, weak 1.0
+            - Codes to only correct the stochastic part (:math:`\\alpha=0`,
+              :math:`\\eta=1/2`): ``'pred-corr'``, ``'predictor-corrector'`` or
+              ``'pc-euler'``
+            - Codes to correct both the stochastic and deterministic parts
+              (:math:`\\alpha=1/2`, :math:`\\eta=1/2`): ``'pc-euler-imp'``,
+              ``'pc-euler-2'`` or ``'pred-corr-2'``
 
-    taylor2.0, Order 2 strong Taylor scheme:
-        Solver with more terms of the Stratonovich expansion.
-        -Order strong 2.0
-        -Code: 'taylor2.0', 'taylor20', 2.0
-        Numerical Solution of Stochastic Differential Equations
-        Chapter 10.5 Eq. (5.2), By Peter E. Kloeden, Eckhard Platen
+        platen
+            Explicit scheme, creates the Milstein using finite differences
+            instead of analytic derivatives. Also contains some higher order
+            terms, thus converges better than Milstein while staying strong
+            order 1.0.  Does not require derivatives, therefore usable by
+            :func:`~general_stochastic`.  See eq. (7.47) of chapter 7 of [2]_.
 
-    ---All solvers, except taylor2.0, are usable in both smesolve and ssesolve
-    and for both heterodyne and homodyne. taylor2.0 only work for 1 stochastic
-    operator not dependent of time with the homodyne method.
-    The :func:`qutip.stochastic.general_stochastic` only accept derivatives
-    free solvers: ['euler', 'platen', 'explicit1.5'].
+            - Order strong 1.0, weak 2.0
+            - Code: ``'platen'``, ``'platen1'`` or ``'explicit1'``
 
-Available solver for photocurrent_sesolve and photocurrent_mesolve:
+        rouchon
+            Scheme keeping the positivity of the density matrix
+            (:obj:`~smesolve` only).  See eq. (4) with :math:`\\eta=1` of [3]_.
+
+            - Order strong 1.0?
+            - Code: ``'rouchon'`` or ``'Rouchon'``
+
+        taylor1.5
+            Order 1.5 strong Taylor scheme.  Solver with more terms of the
+            Ito-Taylor expansion.  Default solver for :obj:`~smesolve` and
+            :obj:`~ssesolve`.  See eq. (4.6) of chapter 10.4 of [1]_.
+
+            - Order strong 1.5
+            - Code: ``'taylor1.5'``, ``'taylor15'``, ``1.5``, or ``None``
+
+        taylor1.5-imp
+            Order 1.5 implicit strong Taylor scheme.  Implicit Taylor 1.5
+            (:math:`\\alpha = 1/2`, :math:`\\beta` doesn't matter).  See eq.
+            (2.18) of chapter 12.2 of [1]_.
+
+            - Order strong 1.5
+            - Code: ``'taylor1.5-imp'`` or ``'taylor15-imp'``
+
+        explicit1.5
+            Explicit order 1.5 strong schemes.  Reproduce the order 1.5 strong
+            Taylor scheme using finite difference instead of derivatives.
+            Slower than ``taylor15`` but usable by
+            :func:`~general_stochastic`.  See eq. (2.13) of chapter 11.2 of
+            [1]_.
+
+            - Order strong 1.5
+            - Code: ``'explicit1.5'``, ``'explicit15'`` or ``'platen15'``
+
+        taylor2.0
+            Order 2 strong Taylor scheme.  Solver with more terms of the
+            Stratonovich expansion.  See eq. (5.2) of chapter 10.5 of [1]_.
+
+            - Order strong 2.0
+            - Code: ``'taylor2.0'``, ``'taylor20'`` or ``2.0``
+
+        All solvers, except taylor2.0, are usable in both smesolve and ssesolve
+        and for both heterodyne and homodyne. taylor2.0 only works for 1
+        stochastic operator independent of time with the homodyne method.
+        :func:`~general_stochastic` only accepts the derivative-free
+        solvers: ``'euler'``, ``'platen'`` and ``'explicit1.5'``.
+
+    Available solvers for :obj:`~photocurrent_sesolve` and \
+:obj:`~photocurrent_mesolve`
         Photocurrent use ordinary differential equations between
         stochastic "jump/collapse".
-    euler:
-        Euler method for ordinary differential equations between jumps.
-        Only 1 jumps per time interval.
-        Default solver
-        -Order 1.0
-        -Code: 'euler'
-        Quantum measurement and control
-        Chapter 4, Eq 4.19, 4.40, By Howard M. Wiseman, Gerard J. Milburn
 
-    predictor–corrector:
-        predictor–corrector method (PECE) for ordinary differential equations.
-        Use poisson distribution to obtain the number of jump at each timestep.
-        -Order 2.0
-        -Code: 'pred-corr'
+        euler
+            Euler method for ordinary differential equations between jumps.
+            Only one jump per time interval.  Default solver.  See eqs. (4.19)
+            and (4.4) of chapter 4 of [4]_.
 
+            - Order 1.0
+            - Code: ``'euler'``
+
+        predictor–corrector
+            predictor–corrector method (PECE) for ordinary differential
+            equations.  Uses the Poisson distribution to obtain the number of
+            jumps at each timestep.
+
+            - Order 2.0
+            - Code: ``'pred-corr'``
+
+    References
+    ----------
+    .. [1] Peter E. Kloeden and Exkhard Platen, *Numerical Solution of
+       Stochastic Differential Equations*.
+    .. [2] H.-P. Breuer and F. Petruccione, *The Theory of Open Quantum
+       Systems*.
+    .. [3] Pierre Rouchon and Jason F. Ralpha, *Efficient Quantum Filtering for
+       Quantum Feedback Control*, `arXiv:1410.5345 [quant-ph]
+       <https://arxiv.org/abs/1410.5345>`_, Phys. Rev. A 91, 012118,
+       (2015).
+    .. [4] Howard M. Wiseman, Gerard J. Milburn, *Quantum measurement and
+       control*.
     """
-    pass
 
 
 class StochasticSolverOptions:
@@ -183,26 +175,39 @@ class StochasticSolverOptions:
     construct an instance of this class, so it is rarely needed to explicitly
     create an instance of this class.
 
+    Within the attribute list, a ``time_dependent_object`` is either
+
+    - :class:`~Qobj`: a constant term
+    - 2-element list of ``[Qobj, time_dependence]``: a time-dependent term
+      where the ``Qobj`` will be multiplied by the time-dependent scalar.
+
+    For more details on all allowed time-dependent objects, see the
+    documentation for :class:`~QobjEvo`.
+
     Attributes
     ----------
-
-    H : :class:`qutip.Qobj`, time-dependent Qobj as a list*
-        System Hamiltonian.
+    H : time_dependent_object or list of time_dependent_object
+        System Hamiltonian in standard time-dependent list format.  This is the
+        same as the argument that (e.g.) :func:`~mesolve` takes.  If this is a
+        list of elements, they are summed.
 
     state0 : :class:`qutip.Qobj`
         Initial state vector (ket) or density matrix.
 
-    times : *list* / *array*
+    times : array_like of float
         List of times for :math:`t`. Must be uniformly spaced.
 
-    c_ops : list of :class:`qutip.Qobj`, :class:`qutip.QobjEvo` or [Qobj, coeff*]
-        List of deterministic collapse operators.
+    c_ops : list of time_dependent_object
+        List of deterministic collapse operators.  Each element of the list is
+        a separate operator; unlike the Hamiltonian, there is no implicit
+        summation over the terms.
 
-    sc_ops : list of :class:`qutip.Qobj`, :class:`qutip.QobjEvo` or [Qobj, coeff*]
+    sc_ops : list of time_dependent_object
         List of stochastic collapse operators. Each stochastic collapse
         operator will give a deterministic and stochastic contribution
         to the equation of motion according to how the d1 and d2 functions
-        are defined.
+        are defined.  Each element of the list is a separate operator, like
+        ``c_ops``.
 
     e_ops : list of :class:`qutip.Qobj`
         Single operator or list of operators for which to evaluate
@@ -232,14 +237,15 @@ class StochasticSolverOptions:
     solver : string
         Name of the solver method to use for solving the stochastic
         equations. Valid values are:
-        order 1/2 algorithms: 'euler-maruyama', 'pc-euler', 'pc-euler-imp'
-        order 1 algorithms: 'milstein', 'platen', 'milstein-imp', 'rouchon'
-        order 3/2 algorithms: 'taylor1.5', 'taylor1.5-imp', 'explicit1.5'
-        order 2 algorithms: 'taylor2.0'
-        call help of :func:`qutip.stochastic.stochastic_solvers`
-        for a description of the solvers.
-        Implicit methods can adjust tolerance via the kw 'tol'
-        default is {'tol':1e-6}
+
+        - order 1/2 algorithms: 'euler-maruyama', 'pc-euler', 'pc-euler-imp'
+        - order 1 algorithms: 'milstein', 'platen', 'milstein-imp', 'rouchon'
+        - order 3/2 algorithms: 'taylor1.5', 'taylor1.5-imp', 'explicit1.5'
+        - order 2 algorithms: 'taylor2.0'
+
+        See the documentation of :func:`~qutip.stochastic.stochastic_solvers`
+        for a description of the solvers.  Implicit methods can adjust
+        tolerance via the kw 'tol'. Default is {'tol': 1e-6}
 
     method : string ('homodyne', 'heterodyne')
         The name of the type of measurement process that give rise to the
@@ -252,12 +258,12 @@ class StochasticSolverOptions:
         Whether or not to store the measurement results in the
         :class:`qutip.solver.Result` instance returned by the solver.
 
-    noise : int, array[int, 1d], array[double, 4d]
-        int : seed of the noise
-        array[int, 1d], length = ntraj, seeds for each trajectories
-        array[double, 4d] (ntraj, len(times), nsubsteps, len(sc_ops)*[1|2])
-            vector for the noise, the len of the last dimensions is doubled for
-            solvers of order 1.5. The correspond to results.noise
+    noise : int, or 1D array of int, or 4D array of float
+        - int : seed of the noise
+        - 1D array : length = ntraj, seeds for each trajectories.
+        - 4D array : ``(ntraj, len(times), nsubsteps, len(sc_ops)*[1|2])``.
+          Vector for the noise, the len of the last dimensions is doubled for
+          solvers of order 1.5. This corresponds to results.noise.
 
     noiseDepth : int
         Number of terms kept of the truncated series used to create the
@@ -280,28 +286,6 @@ class StochasticSolverOptions:
 
     progress_bar : :class:`qutip.ui.BaseProgressBar`
         Optional progress bar class instance.
-
-    *
-    time-dependent Qobj can be used for H, c_ops and sc_ops.
-    The format for time-dependent system hamiltonian is:
-    H = [Qobj0,[Qobj1,coeff1],[Qobj2,coeff2],...]
-      = Qobj0 + Qobj1 * coeff1(t) + Qobj2 * coeff2(t)
-
-    coeff function can be:
-        function: coeff(t, args) -> complex
-        str: "sin(1j*w*t)"
-        np.array[complex, 1d] of length equal to the times array
-    The argument args for the function coeff is the args keyword argument of
-        the stochastic solver.
-    Likewisem in str cases, the parameters ('w' in this case) are taken from
-        the args keywords argument.
-    *While mixing coeff type does not results in errors, it is not recommended.*
-
-    For the collapse operators (c_ops, sc_ops):
-    Each operators can only be composed of 1 Qobj.
-    c_ops = [c_op1, c_op2, ...]
-    where, c_opN = Qobj or [Qobj,coeff]
-    The coeff format is the same as for the Hamiltonian.
     """
     def __init__(self, me, H=None, c_ops=[], sc_ops=[], state0=None,
                  e_ops=[], m_ops=None, store_all_expect=False,
@@ -342,8 +326,6 @@ class StochasticSolverOptions:
                                for op in sc_ops]
             except Exception as e:
                 raise ValueError(msg + str(e)) from e
-            except:
-                raise ValueError(msg)
         else:
             self.sc_ops = sc_ops
 
@@ -356,8 +338,6 @@ class StochasticSolverOptions:
                               for op in c_ops]
             except Exception as e:
                 raise ValueError(msg + str(e)) from e
-            except:
-                raise ValueError(msg)
         else:
             self.c_ops = c_ops
 
@@ -365,6 +345,15 @@ class StochasticSolverOptions:
         self.rho0 = mat2vec(state0.full()).ravel()
 
         # Observation
+
+        for e_op in e_ops:
+            if (
+                isinstance(e_op, Qobj)
+                and self.H is not None
+                and e_op.dims[1] != self.H.cte.dims[0]
+            ):
+                raise TypeError(f"e_ops dims ({e_op.dims}) are not compatible "
+                                f"with the system's ({self.H.cte.dims})")
         self.e_ops = e_ops
         self.m_ops = m_ops
         self.store_measurement = store_measurement
@@ -486,16 +475,17 @@ class StochasticSolverOptions:
             if not len(self.sc_ops) == 1 or \
                     not self.sc_ops[0].const or \
                     not self.method == "homodyne":
-                raise ValueError("Taylor2.0 only works with 1 constant " +
-                                "sc_ops and for homodyne method")
+                raise ValueError(
+                    "Taylor2.0 only works with 1 constant sc_ops and for"
+                    " homodyne method"
+                )
         else:
-            raise ValueError((
-                    "The solver should be one of "
-                    "[None, 'euler-maruyama', 'platen', 'pc-euler', "
-                    "'pc-euler-imp', 'milstein', 'milstein-imp', "
-                    "'rouchon', "
-                    "'taylor1.5', 'taylor1.5-imp', 'explicit1.5' "
-                    "'taylor2.0']"))
+            known = [
+                None, 'euler-maruyama', 'platen', 'pc-euler', 'pc-euler-imp',
+                'milstein', 'milstein-imp', 'rouchon', 'taylor1.5',
+                'taylor1.5-imp', 'explicit1.5', 'taylor2.0',
+            ]
+            raise ValueError("The solver should be one of {!r}".format(known))
 
 
 class StochasticSolverOptionsPhoto(StochasticSolverOptions):
@@ -573,8 +563,8 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
         print("stochastic solver with photocurrent method has been moved to "
               "it's own function: photocurrent_mesolve")
         return photocurrent_mesolve(H, rho0, times, c_ops=c_ops, sc_ops=sc_ops,
-                                   e_ops=e_ops, _safe_mode=_safe_mode,
-                                   args=args, **kwargs)
+                                    e_ops=e_ops, _safe_mode=_safe_mode,
+                                    args=args, **kwargs)
     if isket(rho0):
         rho0 = ket2dm(rho0)
 
@@ -700,8 +690,8 @@ def ssesolve(H, psi0, times, sc_ops=[], e_ops=[],
         print("stochastic solver with photocurrent method has been moved to "
               "it's own function: photocurrent_sesolve")
         return photocurrent_sesolve(H, psi0, times, c_ops=c_ops,
-                                   e_ops=e_ops, _safe_mode=_safe_mode,
-                                   args=args, **kwargs)
+                                    e_ops=e_ops, _safe_mode=_safe_mode,
+                                    args=args, **kwargs)
 
     if isinstance(e_ops, dict):
         e_ops_dict = e_ops
@@ -863,7 +853,7 @@ def _positive_map(sso, e_ops_dict):
 
 
 def photocurrent_mesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
-                        _safe_mode=True, args={}, **kwargs):
+                         _safe_mode=True, args={}, **kwargs):
     """
     Solve stochastic master equation using the photocurrent method.
 
@@ -959,7 +949,7 @@ def photocurrent_mesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
 
 
 def photocurrent_sesolve(H, psi0, times, sc_ops=[], e_ops=[],
-                        _safe_mode=True, args={}, **kwargs):
+                         _safe_mode=True, args={}, **kwargs):
     """
     Solve stochastic schrodinger equation using the photocurrent method.
 
@@ -1000,7 +990,7 @@ def photocurrent_sesolve(H, psi0, times, sc_ops=[], e_ops=[],
     """
     if isinstance(e_ops, dict):
         e_ops_dict = e_ops
-        e_ops = [e for e in e_ops.values()]
+        e_ops = list(e_ops.values())
     else:
         e_ops_dict = None
 
@@ -1116,15 +1106,11 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
         except Exception as e:
             raise RuntimeError("Safety check: d1(0., state0_vec) failed.:\n" +
                                str(e)) from e
-        except:
-            raise RuntimeError("Safety check: d1(0., state0_vec) failed.")
         try:
             out_d2 = d2(0., sso.rho0)
         except Exception as e:
             raise RuntimeError("Safety check: d2(0., state0_vec) failed:\n" +
                                str(e)) from e
-        except:
-            raise RuntimeError("Safety check: d2(0., state0_vec) failed.")
 
         msg_d1 = ("d1 must return an 1d numpy array with the same number "
                   "of elements as the initial state as a vector.")
@@ -1169,7 +1155,7 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
         if sso.dW_factors is None:
             sso.dW_factors = [1.] * len(sso.m_ops)
         elif len(sso.dW_factors) == 1:
-                sso.dW_factors = sso.dW_factors * len(sso.m_ops)
+            sso.dW_factors = sso.dW_factors * len(sso.m_ops)
         elif len(sso.dW_factors) != len(sso.m_ops):
             raise ValueError("The number of dW_factors must fit" +
                              " the number of m_ops.")
@@ -1178,7 +1164,8 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
         sso.dW_factors = [1.] * len_d2
     sso.sops = [None] * len_d2
     sso.ce_ops = [QobjEvo(op) for op in sso.e_ops]
-    [op.compile() for op in sso.ce_ops]
+    for op in sso.ce_ops:
+        op.compile()
 
     sso.solver_obj = GenericSSolver
     sso.solver_name = "general_stochastic_solver_" + sso.solver
@@ -1200,7 +1187,9 @@ def _safety_checks(sso):
     l_vec = sso.rho0.shape[0]
     if sso.H.cte.issuper:
         if not sso.me:
-            raise
+            raise ValueError(
+                "Given a Liouvillian for a Schrödinger equation problem."
+            )
         shape_op = sso.H.cte.shape
         if shape_op[0] != l_vec or shape_op[1] != l_vec:
             raise Exception("The size of the hamiltonian does "
@@ -1219,7 +1208,9 @@ def _safety_checks(sso):
     for op in sso.sc_ops:
         if op.cte.issuper:
             if not sso.me:
-                raise
+                raise ValueError(
+                    "Given a Liouvillian for a Schrödinger equation problem."
+                )
             shape_op = op.cte.shape
             if shape_op[0] != l_vec or shape_op[1] != l_vec:
                 raise Exception("The size of the sc_ops does "
@@ -1238,7 +1229,9 @@ def _safety_checks(sso):
     for op in sso.c_ops:
         if op.cte.issuper:
             if not sso.me:
-                raise
+                raise ValueError(
+                    "Given a Liouvillian for a Schrödinger equation problem."
+                )
             shape_op = op.cte.shape
             if shape_op[0] != l_vec or shape_op[1] != l_vec:
                 raise Exception("The size of the c_ops does "
@@ -1353,9 +1346,8 @@ def _sesolve_generic(sso, options, progress_bar):
 def _single_trajectory(i, sso):
     # Only one step?
     ssolver = sso.solver_obj()
-    #ssolver.set_data(sso)
     ssolver.set_solver(sso)
-    result = ssolver.cy_sesolve_single_trajectory(i)#, sso)
+    result = ssolver.cy_sesolve_single_trajectory(i)
     return result
 
 

@@ -9,94 +9,76 @@ QuTiP: Quantum Toolbox in Python
 [N. Lambert](https://github.com/nwlambert),
 [E. Giguère](https://github.com/ericgig),
 [B. Li](https://github.com/boxili),
+[J. Lishman](https://github.com/jakelishman),
+[S. Cross](https://github.com/hodgestar),
 [P. D. Nation](https://github.com/nonhermitian),
 and [J. R. Johansson](https://github.com/jrjohansson)
 
-
-QuTiP is open-source software for simulating the dynamics of closed and open
-quantum systems. The QuTiP library uses the excellent Numpy, Scipy, and Cython packages as numerical backend, and graphical output is provided by Matplotlib. QuTiP aims to provide user-friendly and efficient numerical simulations of a wide
-variety of quantum mechanical problems, including those with Hamiltonians
-and/or collapse operators with arbitrary time-dependence, commonly found in a
-wide range of physics applications. QuTiP is freely available for use and/or
-modification, and it can be used on all Unix-based platforms and on Windows.
-Being free of any licensing fees, QuTiP is ideal for exploring quantum
-mechanics in research as well as in the classroom.
-
-Build status and test coverage
-------------------------------
-
-[![build-status](https://secure.travis-ci.org/qutip/qutip.svg?branch=master)](http://travis-ci.org/qutip/qutip)
-[![Coverage Status](https://img.shields.io/coveralls/qutip/qutip.svg)](https://coveralls.io/r/qutip/qutip)
+[![Build Status](https://github.com/qutip/qutip/actions/workflows/tests.yml/badge.svg?branch=master)](https://github.com/qutip/qutip/actions/workflows/tests.yml)
+[![Coverage Status](https://img.shields.io/coveralls/qutip/qutip.svg?logo=Coveralls)](https://coveralls.io/r/qutip/qutip)
 [![Maintainability](https://api.codeclimate.com/v1/badges/df502674f1dfa1f1b67a/maintainability)](https://codeclimate.com/github/qutip/qutip/maintainability)
+[![license](https://img.shields.io/badge/license-New%20BSD-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)  
+[![PyPi Downloads](https://img.shields.io/pypi/dm/qutip?label=downloads%20%7C%20pip&logo=PyPI)](https://pypi.org/project/qutip)
+[![Conda-Forge Downloads](https://img.shields.io/conda/dn/conda-forge/qutip?label=downloads%20%7C%20conda&logo=Conda-Forge)](https://anaconda.org/conda-forge/qutip)
+
+QuTiP is open-source software for simulating the dynamics of closed and open quantum systems.
+It uses the excellent Numpy, Scipy, and Cython packages as numerical backends, and graphical output is provided by Matplotlib.
+QuTiP aims to provide user-friendly and efficient numerical simulations of a wide variety of quantum mechanical problems, including those with Hamiltonians and/or collapse operators with arbitrary time-dependence, commonly found in a wide range of physics applications.
+QuTiP is freely available for use and/or modification, and it can be used on all Unix-based platforms and on Windows.
+Being free of any licensing fees, QuTiP is ideal for exploring quantum mechanics in research as well as in the classroom.
 
 Support
---------
+-------
+
+[![Unitary Fund](https://img.shields.io/badge/Supported%20By-UNITARY%20FUND-brightgreen.svg?style=flat)](https://unitary.fund)
 [![Powered by NumFOCUS](https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)](https://numfocus.org)
-[![Unitary Fund](https://img.shields.io/badge/Supported%20By-UNITARY%20FUND-brightgreen.svg?style=for-the-badge)](http://unitary.fund)
 
-QuTiP development is supported by [Nori's lab](http://dml.riken.jp/)
-at RIKEN, by the University of Sherbrooke, and by Aberystwyth University,
-[among other supporting organizations](http://qutip.org/#supporting-organizations).
-
-Download
---------
-[![Anaconda-Server Badge](https://anaconda.org/conda-forge/qutip/badges/downloads.svg)](https://anaconda.org/conda-forge/qutip)
-
-The official releases of QuTiP can be downloaded at:
-
-[http://qutip.org/download.html](http://qutip.org/download.html)
+We are proud to be affiliated with [Unitary Fund](https://unitary.fund) and [numFOCUS](https://numfocus.org).
+QuTiP development is supported by [Nori's lab](https://dml.riken.jp/) at RIKEN, by the University of Sherbrooke, and by Aberystwyth University, [among other supporting organizations](https://qutip.org/#supporting-organizations).
 
 
 Installation
 ------------
 
-For instructions on how to install QuTiP, see:
+[![Pip Package](https://img.shields.io/pypi/v/qutip?logo=PyPI)](https://pypi.org/project/qutip)
+[![Conda-Forge Package](https://img.shields.io/conda/vn/conda-forge/qutip?logo=Conda-Forge)](https://anaconda.org/conda-forge/qutip)
 
-[http://qutip.org/docs/latest/installation.html](http://qutip.org/docs/latest/installation.html)
+QuTiP is available on both `pip` and `conda` (the latter in the `conda-forge` channel).
+You can install QuTiP from `pip` by doing
 
+```bash
+pip install qutip
+```
 
-Run notebooks online
------
-A selection of demonstration notebooks is available at [http://qutip.org/tutorials.html](http://qutip.org/tutorials.html) and can be run online here: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/qutip/qutip-notebooks/master?filepath=index.ipynb)
+to get the minimal installation.
+You can instead use the target `qutip[full]` to install QuTiP with all its optional dependencies.
+For more details, including instructions on how to build from source, see [the detailed installation guide in the documentation](https://qutip.org/docs/latest/installation.html).
 
-or may be found at: [github.com/qutip/qutip-notebooks](http://github.com/qutip/qutip-notebooks).
+All back releases are also available for download in the [releases section of this repository](https://github.com/qutip/qutip/releases), where you can also find per-version changelogs.
+For the most complete set of release notes and changelogs for historic versions, see the [changelog](https://qutip.org/docs/latest/changelog.html) section in the documentation.
 
 
 Documentation
 -------------
 
-The documentation for official releases, in HTML and PDF formats, are available at:
+The documentation for official releases, in HTML and PDF formats, can be found in the [documentation section of the QuTiP website](https://qutip.org/documentation.html).
+The latest development documentation is available in this repository in the `doc` folder.
 
-[http://qutip.org/documentation.html](http://qutip.org/documentation.html)
-
-and the development documentation is available at [github.com/qutip/qutip-doc](http://github.com/qutip/qutip-doc).
+A [selection of demonstration notebooks is available](https://qutip.org/tutorials.html), which demonstrate some of the many features of QuTiP.
+These are stored in the [qutip/qutip-notebooks repository](https://github.com/qutip/qutip-notebooks) here on GitHub.
+You can run the notebooks online using myBinder: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/qutip/qutip-notebooks/master?filepath=index.ipynb)
 
 Contribute
 ----------
 
-You are most welcome to contribute to QuTiP development by forking this
-repository and sending pull requests, or filing bug reports at the
-[issues page](http://github.com/qutip/qutip/issues), or send us bug reports,
-questions, or your proposed changes to our
-[QuTiP discussion group](http://groups.google.com/group/qutip).
+You are most welcome to contribute to QuTiP development by forking this repository and sending pull requests, or filing bug reports at the [issues page](https://github.com/qutip/qutip/issues).
+You can also help out with users' questions, or discuss proposed changes in the [QuTiP discussion group](https://groups.google.com/g/qutip).
+All code contributions are acknowledged in the [contributors](https://qutip.org/docs/latest/contributors.html) section in the documentation.
 
-All contributions are acknowledged in the
-[contributors](http://github.com/qutip/qutip-doc/blob/master/contributors.rst)
-section in the documentation.
+For more information, including technical advice, please see the ["contributing to QuTiP development" section of the documentation](https://qutip.org/docs/latest/development/contributing.html).
 
-Note that all contributions must adhere to the [PEP 8 -- Style Guide for Python Code](https://www.python.org/dev/peps/pep-0008/).
 
-For more information, including technical advice, please see [Contributing to QuTiP development](https://github.com/qutip/qutip-doc/blob/master/CONTRIBUTING.md).
+Citing QuTiP
+------------
 
-Changelog
----------
-
-For release notes and a change log, see the
-[changelog](http://github.com/qutip/qutip-doc/blob/master/changelog.rst)
-section in the documentation.
-
-License
--------
-[![license](https://img.shields.io/badge/license-New%20BSD-blue.svg)](http://en.wikipedia.org/wiki/BSD_licenses#3-clause_license_.28.22Revised_BSD_License.22.2C_.22New_BSD_License.22.2C_or_.22Modified_BSD_License.22.29)
-
-You are free to use this software, with or without modification, provided that the conditions listed in the LICENSE.txt file are satisfied.
+If you use QuTiP in your research, please cite the original QuTiP papers that are available [here](https://dml.riken.jp/?s=QuTiP).

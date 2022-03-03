@@ -1,35 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson,
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
 from __future__ import print_function
 
 __all__ = ['Options', 'Odeoptions', 'Odedata', 'ExpectOps']
@@ -75,14 +43,26 @@ class ExpectOps:
         self.e_ops = e_ops
         if isinstance(e_ops, list):
             self.e_num = len(e_ops)
-            self.e_ops_isherm = [e.isherm for e in e_ops]
-            if not super_:
-                self.e_ops_qoevo = np.array([QobjEvo(e) for e in e_ops],
-                                            dtype=object)
-            else:
-                self.e_ops_qoevo = np.array([QobjEvo(spre(e)) for e in e_ops],
-                                            dtype=object)
-            [op.compile() for op in self.e_ops_qoevo]
+            e_ops_qoevo = []
+            e_ops_isherm = []
+            for e in e_ops:
+                if isinstance(e, (Qobj, QobjEvo)):
+                    e_ops_isherm.append(e.isherm)
+                    e_ops_qoevo_entry = None
+                    if not super_:
+                        e_ops_qoevo_entry = QobjEvo(e)
+                    else:
+                        e_ops_qoevo_entry = QobjEvo(spre(e))
+                    e_ops_qoevo_entry.compile()
+                    e_ops_qoevo.append(e_ops_qoevo_entry)
+                elif callable(e):
+                    e_ops_isherm.append(None)
+                    e_ops_qoevo.append(e)
+                else:
+                    raise TypeError("Expectation value list entry needs to be "
+                                    "either a function either an operator")
+            self.e_ops_isherm = e_ops_isherm
+            self.e_ops_qoevo = np.array(e_ops_qoevo, dtype=object)
         elif callable(e_ops):
             self.isfunc = True
             self.e_num = 1
@@ -93,6 +73,13 @@ class ExpectOps:
             self.raw_out = []
         else:
             self.raw_out = np.zeros((self.e_num, len(tlist)), dtype=complex)
+
+    def check_dims(self, dims):
+        if not self.isfunc:
+            for op in self.e_ops_qoevo:
+                if isinstance(op, QobjEvo) and op.cte.dims[1] != dims[0]:
+                    raise TypeError(f"e_ops dims ({op.cte.dims}) are not "
+                                    f"compatible with the system's ({dims})")
 
     def copy(self):
         out = ExpectOps.__new__(ExpectOps)
@@ -111,8 +98,12 @@ class ExpectOps:
         else:
             t = self.tlist[iter_]
             for ii in range(self.e_num):
-                self.raw_out[ii, iter_] = \
-                    self.e_ops_qoevo[ii].compiled_qobjevo.expect(t, state)
+                if isinstance(self.e_ops_qoevo[ii], QobjEvo):
+                    self.raw_out[ii, iter_] = \
+                        self.e_ops_qoevo[ii].compiled_qobjevo.expect(t, state)
+                elif callable(self.e_ops_qoevo[ii]):
+                    self.raw_out[ii, iter_] = \
+                        self.e_ops_qoevo[ii](t, state)
 
     def finish(self):
         if self.isfunc:
@@ -495,7 +486,7 @@ def _format_time(t, tt=None, ttt=None):
     return time_str
 
 
-class Stats(object):
+class Stats:
     """
     Statistical information on the solver performance
     Statistics can be grouped into sections.
@@ -524,23 +515,6 @@ class Stats(object):
     total_time : float
         Time in seconds for the solver to complete processing
         Can be None, meaning that total timing percentages will be reported
-
-    Methods
-    -------
-    add_section
-        Add another section
-
-    add_count
-        Add some stat that is an integer count
-
-    add_timing
-        Add some timing statistics
-
-    add_message
-        Add some text type for output in the report
-
-    report:
-        Output the statistics report to console or file.
     """
 
     def __init__(self, section_names=None):
@@ -584,7 +558,7 @@ class Stats(object):
 
         Returns
         -------
-        section : `class` : _StatsSection
+        section : :class:`_StatsSection`
             The new section
         """
         sect = _StatsSection(name, self)
@@ -607,7 +581,7 @@ class Stats(object):
         value : int
             Initial value of the count, or added to an existing count
 
-        section: string or `class` : _StatsSection
+        section : string or :class:`_StatsSection`
             Section which to add the count to.
             If None given, the default (first) section will be used
         """

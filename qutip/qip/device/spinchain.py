@@ -1,46 +1,12 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-import warnings
+from copy import deepcopy
 
 import numpy as np
 
-from qutip.operators import sigmax, sigmay, sigmaz, identity
+from qutip.operators import sigmax, sigmay, sigmaz
 from qutip.tensor import tensor
 from qutip.qip.circuit import QubitCircuit
-from qutip.qip.device.processor import Processor
 from qutip.qip.device.modelprocessor import ModelProcessor
 from qutip.qip.pulse import Pulse
-from qutip.qip.compiler.gatecompiler import GateCompiler
 from qutip.qip.compiler.spinchaincompiler import SpinChainCompiler
 
 
@@ -55,10 +21,10 @@ class SpinChain(ModelProcessor):
     The processor can simulate the evolution under the given
     control pulses either numerically or analytically.
     It is a base class and should not be used directly, please
-    refer the the subclasses :class:`qutip.qip.LinearSpinChain` and
-    :class:`qutip.qip.CircularSpinChain`.
+    refer the the subclasses :class:`qutip.qip.device.LinearSpinChain` and
+    :class:`qutip.qip.device.CircularSpinChain`.
     (Only additional attributes are documented here, for others please
-    refer to the parent class :class:`qutip.qip.device.ModelProcessor`)
+    refer to the parent class :class:`.ModelProcessor`)
 
     Parameters
     ----------
@@ -135,23 +101,35 @@ class SpinChain(ModelProcessor):
         N: int
             The number of qubits in the system.
         """
+        self.pulse_dict = {}
+        index = 0
         # sx_ops
         for m in range(N):
             self.pulses.append(
                 Pulse(sigmax(), m, spline_kind=self.spline_kind))
+            self.pulse_dict["sx" + str(m)] = index
+            index += 1
         # sz_ops
         for m in range(N):
             self.pulses.append(
                 Pulse(sigmaz(), m, spline_kind=self.spline_kind))
+            self.pulse_dict["sz" + str(m)] = index
+            index += 1
         # sxsy_ops
         operator = tensor([sigmax(), sigmax()]) + tensor([sigmay(), sigmay()])
         for n in range(N - 1):
             self.pulses.append(
                 Pulse(operator, [n, n+1], spline_kind=self.spline_kind))
+            self.pulse_dict["g" + str(n)] = index
+            index += 1
 
     def set_up_params(self, sx, sz):
         """
         Save the parameters in the attribute `params` and check the validity.
+        The keys of `params` including "sx", "sz", and "sxsy", each
+        mapped to a list for parameters corresponding to each qubits.
+        For coupling strength "sxsy", list element i is the interaction
+        between qubits i and i+1.
 
         Parameters
         ----------
@@ -195,18 +173,19 @@ class SpinChain(ModelProcessor):
     def sxsy_u(self):
         return self.coeffs[2*self.N:]
 
-    def load_circuit(self, qc, setup):
+    def load_circuit(
+            self, qc, setup, schedule_mode="ASAP", compiler=None):
         """
-        Decompose a :class:`qutip.QubitCircuit` in to the control
+        Decompose a :class:`.QubitCircuit` in to the control
         amplitude generating the corresponding evolution.
 
         Parameters
         ----------
-        qc: :class:`qutip.QubitCircuit`
+        qc: :class:`.QubitCircuit`
             Takes the quantum circuit to be implemented.
 
         setup: string
-            "linear" or "circular" for two sub-calsses.
+            "linear" or "circular" for two sub-classes.
 
         Returns
         -------
@@ -219,12 +198,16 @@ class SpinChain(ModelProcessor):
             one Hamiltonian.
         """
         gates = self.optimize_circuit(qc).gates
-
-        compiler = SpinChainCompiler(
-            self.N, self._params, setup=setup,
-            global_phase=0., num_ops=len(self.ctrls))
-        tlist, self.coeffs, self.global_phase = compiler.decompose(gates)
-        self.set_all_tlist(tlist)
+        if compiler is None:
+            compiler = SpinChainCompiler(
+                self.N, self._params, setup=setup,
+                global_phase=0., pulse_dict=deepcopy(self.pulse_dict))
+        tlist, coeffs = compiler.compile(
+            gates, schedule_mode=schedule_mode)
+        self.global_phase = compiler.global_phase
+        self.coeffs = coeffs
+        for i in range(len(coeffs)):
+            self.pulses[i].tlist = tlist[i]
         return tlist, self.coeffs
 
     def adjacent_gates(self, qc, setup="linear"):
@@ -235,7 +218,7 @@ class SpinChain(ModelProcessor):
 
         Parameters
         ----------
-        qc: :class:`qutip.QubitCircuit`
+        qc: :class:`.QubitCircuit`
             The circular spin chain circuit to be resolved
 
         setup: Boolean
@@ -243,7 +226,7 @@ class SpinChain(ModelProcessor):
 
         Returns
         -------
-        qc: :class:`qutip.QubitCircuit`
+        qc: :class:`.QubitCircuit`
             Returns QubitCircuit of resolved gates for the qubit circuit in the
             desired basis.
         """
@@ -447,12 +430,12 @@ class SpinChain(ModelProcessor):
 
         Parameters
         ----------
-        qc: :class:`qutip.QubitCircuit`
+        qc: :class:`.QubitCircuit`
             Takes the quantum circuit to be implemented.
 
         Returns
         -------
-        qc: :class:`qutip.QubitCircuit`
+        qc: :class:`.QubitCircuit`
             The circuit representation with elementary gates
             that can be implemented in this model.
         """
@@ -524,8 +507,10 @@ class LinearSpinChain(SpinChain):
     def sxsy_u(self):
         return self.coeffs[2*self.N: 3*self.N-1]
 
-    def load_circuit(self, qc):
-        return super(LinearSpinChain, self).load_circuit(qc, "linear")
+    def load_circuit(
+            self, qc, schedule_mode="ASAP", compiler=None):
+        return super(LinearSpinChain, self).load_circuit(
+            qc, "linear", schedule_mode=schedule_mode, compiler=compiler)
 
     def get_operators_labels(self):
         """
@@ -596,6 +581,7 @@ class CircularSpinChain(SpinChain):
         operator = tensor([sigmax(), sigmax()]) + tensor([sigmay(), sigmay()])
         self.pulses.append(
             Pulse(operator, [N-1, 0], spline_kind=self.spline_kind))
+        self.pulse_dict["g" + str(N-1)] = len(self.pulses) - 1
 
     def set_up_params(self, sx, sz, sxsy):
         # Doc same as in the parent class
@@ -611,8 +597,10 @@ class CircularSpinChain(SpinChain):
     def sxsy_u(self):
         return self.coeffs[2*self.N: 3*self.N]
 
-    def load_circuit(self, qc):
-        return super(CircularSpinChain, self).load_circuit(qc, "circular")
+    def load_circuit(
+            self, qc, schedule_mode="ASAP", compiler=None):
+        return super(CircularSpinChain, self).load_circuit(
+            qc, "circular", schedule_mode=schedule_mode, compiler=compiler)
 
     def get_operators_labels(self):
         """

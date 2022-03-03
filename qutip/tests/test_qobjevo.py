@@ -1,35 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
 import pytest
 from qutip import *
 import numpy as np
@@ -520,6 +488,8 @@ def test_QobjEvo_mul_vec():
         assert_allclose(spmv(op(t,data=1), vec), op.mul_vec(t, vec))
         op.compile()
         assert_allclose(spmv(op(t,data=1), vec), op.mul_vec(t, vec))
+        with pytest.raises(ValueError):
+            op.mul_vec(t, vec[:-1])
 
 
 @pytest.mark.slow
@@ -562,6 +532,10 @@ def test_QobjEvo_mul_mat():
         assert_allclose(Qo1.data * matF, op.mul_mat(t,matF))
         assert_allclose(mat2vec(Qo1.data * mat).flatten(),
                         op.compiled_qobjevo.ode_mul_mat_f_vec(t,matV))
+        with pytest.raises(ValueError):
+            op.mul_mat(t, mat[:-1, :-1])
+        with pytest.raises(ValueError):
+            op.compiled_qobjevo.ode_mul_mat_f_vec(t,matV[:(N-1)**2])
 
 
 @pytest.mark.slow
@@ -613,6 +587,8 @@ def test_QobjEvo_expect_psi():
         assert_allclose(cy_expect_psi(Qo1.data, vec, 0), op.expect(t,vec,0))
         op.compile()
         assert_allclose(cy_expect_psi(Qo1.data, vec, 0), op.expect(t,vec,0))
+        with pytest.raises(ValueError):
+            op.expect(t, vec[:-1], 0)
 
 
 @pytest.mark.slow
@@ -664,6 +640,8 @@ def test_QobjEvo_expect_rho():
                         op.expect(t,mat,0), atol=1e-14)
         assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
                         op.expect(t,qobj,0), atol=1e-14)
+        with pytest.raises(ValueError):
+            op.expect(t, mat[:-1, :-1], 0)
 
     tlist = np.linspace(0,1,300)
     args={"w1":1, "w2":2, "w3":3}

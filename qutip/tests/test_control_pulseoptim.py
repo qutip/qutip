@@ -1,37 +1,4 @@
 # -*- coding: utf-8 -*-
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2014 and later, Alexander J G Pitchford
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
 # @author: Alexander Pitchford
 # @email1: agp1@aber.ac.uk
 # @email2: alex.pitchford@gmail.com
@@ -46,6 +13,7 @@ import pathlib
 import tempfile
 import numpy as np
 import scipy.optimize
+import scipy.sparse as sp
 
 import qutip
 from qutip.control import pulseoptim as cpo
@@ -149,6 +117,7 @@ symplectic = _System(system=_sympl_system,
 @pytest.fixture(params=[
     pytest.param(None, id="default propagation"),
     pytest.param({'oper_dtype': qutip.Qobj}, id="Qobj propagation"),
+    pytest.param({'oper_dtype': np.ndarray}, id="ndarray propagation"),
 ])
 def propagation(request):
     return {'dyn_params': request.param}
@@ -197,6 +166,38 @@ class TestOptimization:
         system = _merge_kwargs(system, propagation)
         result = _optimize_pulse(system)
         assert result.fid_err < system.kwargs['fid_err_targ']
+
+    def test_sparse_eigen_optimization(self, system, propagation):
+        system = _merge_kwargs(system, {
+            **propagation,
+            "dyn_params": {
+                **(propagation.get("dyn_params") or {}),
+                "sparse_eigen_decomp": True,
+            }
+        })
+        if system.system.dims == [[2], [2]]:
+            with pytest.raises(ValueError, match=(
+                    r"^Single qubit pulse optimization dynamics cannot use"
+                    r" sparse eigenvector decomposition")):
+                _optimize_pulse(system)
+        else:
+            result = _optimize_pulse(system)
+            assert result.fid_err < system.kwargs['fid_err_targ']
+
+    @pytest.mark.parametrize("oper_dtype", [
+        pytest.param(sp.csr_matrix, id="csr_matrix"),
+        pytest.param(list, id="list"),
+    ])
+    def test_invalid_oper_dtype(self, system, oper_dtype):
+        system = _merge_kwargs(system, {"dyn_params": {
+            "oper_dtype": oper_dtype,
+        }})
+        with pytest.raises(ValueError) as err:
+            _optimize_pulse(system)
+        assert str(err.value) == (
+            f"Unknown oper_dtype {oper_dtype!r}. The oper_dtype may be"
+            " qutip.Qobj or numpy.ndarray."
+        )
 
     def test_object_oriented_approach_and_gradient(self, system, propagation):
         """

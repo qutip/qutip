@@ -1,37 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
-
 import pytest
 import numpy as np
 from pathlib import Path
@@ -42,7 +8,8 @@ from qutip.qip.circuit import (
     QubitCircuit, CircuitSimulator, Gate, Measurement, _ctrl_gates,
     _single_qubit_gates, _swap_like, _toffoli_like, _fredkin_like, _para_gates)
 from qutip import (tensor, Qobj, ptrace, rand_ket, fock_dm, basis,
-                   rand_dm, bell_state, ket2dm)
+                   rand_unitary_haar, bell_state, ket2dm, fidelity,
+                   average_gate_fidelity)
 from qutip.qip.qasm import read_qasm
 from qutip.qip.operations.gates import gate_sequence_product
 
@@ -147,6 +114,19 @@ class TestQubitCircuit:
         qc2 = qc1.resolve_gates()
         U2 = gates.gate_sequence_product(qc2.propagators())
         assert _op_dist(U1, U2) < 1e-12
+
+    def testFREDKINdecompose(self):
+        """
+        FREDKIN to rotation and CNOT: compare unitary matrix for FREDKIN and product of
+        resolved matrices in terms of rotation gates and CNOT.
+        """
+        qc1 = QubitCircuit(3)
+        qc1.add_gate("FREDKIN", targets=[0, 1], controls=[2])
+        U1 = gates.gate_sequence_product(qc1.propagators())
+        qc2 = qc1.resolve_gates()
+        U2 = gates.gate_sequence_product(qc2.propagators())
+        assert _op_dist(U1, U2) < 1e-12
+
 
     def testadjacentgates(self):
         """
@@ -457,7 +437,7 @@ class TestQubitCircuit:
         User defined gate for QubitCircuit
         """
         def customer_gate1(arg_values):
-            mat = np.zeros((4, 4), dtype=np.complex)
+            mat = np.zeros((4, 4), dtype=np.complex128)
             mat[0, 0] = mat[1, 1] = 1.
             mat[2:4, 2:4] = gates.rx(arg_values)
             return Qobj(mat, dims=[[2, 2], [2, 2]])
@@ -482,7 +462,7 @@ class TestQubitCircuit:
         """
         Test for circuit with N-level system.
         """
-        mat3 = rand_dm(3, density=1.)
+        mat3 = rand_unitary_haar(3)
 
         def controlled_mat3(arg_value):
             """
@@ -497,7 +477,13 @@ class TestQubitCircuit:
         qc.user_gates = {"CTRLMAT3": controlled_mat3}
         qc.add_gate("CTRLMAT3", targets=[1, 0], arg_value=1)
         props = qc.propagators()
-        np.testing.assert_allclose(mat3, ptrace(props[0], 0) - 1)
+        final_fid = average_gate_fidelity(mat3, ptrace(props[0], 0) - 1)
+        assert pytest.approx(final_fid, 1.0e-6) == 1
+
+        init_state = basis([3, 2], [0, 1])
+        result = qc.run(init_state)
+        final_fid = fidelity(result, props[0] * init_state)
+        assert pytest.approx(final_fid, 1.0e-6) == 1.
 
     @pytest.mark.repeat(10)
     def test_run_teleportation(self):

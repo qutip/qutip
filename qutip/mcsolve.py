@@ -1,36 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
 __all__ = ['mcsolve']
 
 import os
@@ -62,9 +29,11 @@ if debug:
 # Internal, global variables for storing references to dynamically loaded
 # cython functions
 
+
 # Todo: use real warning
 def warn(text):
     print(text)
+
 
 class qutip_zvode(zvode):
     def step(self, *args):
@@ -75,10 +44,11 @@ class qutip_zvode(zvode):
         self.call_args[2] = itask
         return r
 
+
 def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=0,
             args={}, options=None, progress_bar=True,
             map_func=parallel_map, map_kwargs={}, _safe_mode=True):
-    """Monte Carlo evolution of a state vector :math:`|\psi \\rangle` for a
+    r"""Monte Carlo evolution of a state vector :math:`|\psi \rangle` for a
     given Hamiltonian and sets of collapse operators, and possibly, operators
     for calculating expectation values. Options for the underlying ODE solver
     are given by the Options class.
@@ -196,7 +166,7 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=0,
 
     try:
         num_traj = int(ntraj)
-    except:
+    except TypeError:
         num_traj = max(ntraj)
 
     # set the physics
@@ -205,7 +175,6 @@ def mcsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=0,
 
     # load monte carlo class
     mc = _MC(options)
-
 
     if isinstance(H, SolverSystem):
         mc.ss = H
@@ -321,7 +290,7 @@ class _MC():
             ss.set_args = _qobjevo_args
             ss.type = "QobjEvo"
 
-        except:
+        except Exception:
             ss.h_func = H
             ss.Hc_td = -0.5 * sum(ss.td_n_ops)
             ss.Hc_td.compile()
@@ -340,9 +309,14 @@ class _MC():
         else:
             self.e_ops = ExpectOps([])
 
+        self.e_ops.check_dims(self.ss.td_c_ops[0].cte.dims)
+
         ss = self.ss
         if ss is not None and ss.type == "Diagonal" and not self.e_ops.isfunc:
-            e_op = [Qobj(ss.Ud @ e.full() @ ss.U, dims=e.dims) for e in self.e_ops.e_ops]
+            e_ops = [
+                Qobj(ss.Ud @ e.full() @ ss.U, dims=e.dims)
+                for e in self.e_ops.e_ops
+            ]
             self.e_ops = ExpectOps(e_ops)
 
         if not self.e_ops:
@@ -352,20 +326,20 @@ class _MC():
         try:
             for c_op in self.ss.td_c_ops:
                 c_op.mul_vec(0, self.psi0)
-        except:
-            raise Exception("c_ops are not consistant with psi0")
+        except Exception as e:
+            raise Exception("c_ops are not consistant with psi0") from e
 
         if self.ss.type == "QobjEvo":
             try:
                 self.ss.H_td.mul_vec(0., self.psi0)
-            except:
-                raise Exception("Error calculating H")
+            except Exception as e:
+                raise Exception("Error calculating H") from e
         else:
             try:
-                rhs, ode_args = self.ss.makefunc(ss)
-                rhs(t, self.psi0.full().ravel(), ode_args)
-            except:
-                raise Exception("Error calculating H")
+                rhs, ode_args = self.ss.makefunc(self.ss)
+                rhs(0, self.psi0.full().ravel(), ode_args)
+            except Exception as e:
+                raise Exception("Error calculating H") from e
 
     def run(self, num_traj=0, psi0=None, tlist=None,
             args={}, e_ops=None, options=None,
@@ -430,7 +404,7 @@ class _MC():
 
         # set arguments for input to monte carlo
         map_kwargs_ = {'progress_bar': progress_bar,
-                      'num_cpus': options.num_cpus}
+                       'num_cpus': options.num_cpus}
         map_kwargs_.update(map_kwargs)
         map_kwargs = map_kwargs_
 
@@ -438,9 +412,11 @@ class _MC():
             self.set_e_ops()
 
         if self.ss.type == "Diagonal":
-            results = map_func(self._single_traj_diag, list(range(num_traj)), **map_kwargs)
+            results = map_func(self._single_traj_diag, list(range(num_traj)),
+                               **map_kwargs)
         else:
-            results = map_func(self._single_traj, list(range(num_traj)), **map_kwargs)
+            results = map_func(self._single_traj, list(range(num_traj)),
+                               **map_kwargs)
 
         self.t = self.tlist[-1]
         self.num_traj = num_traj
@@ -475,7 +451,7 @@ class _MC():
         if self._psi_out.shape[1] == 1:
             dm_t = np.zeros((len_, len_), dtype=complex)
             for i in range(self.num_traj):
-                vec = self._psi_out[i,0,:] # .reshape((-1,1))
+                vec = self._psi_out[i, 0]
                 dm_t += np.outer(vec, vec.conj())
             return Qobj(dm_t/self.num_traj, dims=[dims, dims])
         else:
@@ -483,7 +459,7 @@ class _MC():
             for j in range(len(self.tlist)):
                 dm_t = np.zeros((len_, len_), dtype=complex)
                 for i in range(self.num_traj):
-                    vec = self._psi_out[i,j,:] # .reshape((-1,1))
+                    vec = self._psi_out[i, j]
                     dm_t += np.outer(vec, vec.conj())
                 states[j] = Qobj(dm_t/self.num_traj, dims=[dims, dims])
             return states
@@ -494,7 +470,7 @@ class _MC():
         len_ = self._psi_out.shape[2]
         dm_t = np.zeros((len_, len_), dtype=complex)
         for i in range(self.num_traj):
-            vec = self._psi_out[i,-1,:]
+            vec = self._psi_out[i, -1]
             dm_t += np.outer(vec, vec.conj())
         return Qobj(dm_t/self.num_traj, dims=[dims, dims])
 
@@ -503,7 +479,7 @@ class _MC():
         dims = self.psi0.dims[0]
         psis = np.empty((self.num_traj), dtype=object)
         for i in range(self.num_traj):
-            psis[i] = Qobj(dense1D_to_fastcsr_ket(self._psi_out[i,-1,:]),
+            psis[i] = Qobj(dense1D_to_fastcsr_ket(self._psi_out[i, -1]),
                            dims=dims, fast='mc')
         return psis
 
@@ -539,7 +515,7 @@ class _MC():
             dims = self.psi0.dims[0]
             len_ = self.psi0.shape[0]
             return Qobj(np.mean(self._ss_out, axis=0),
-                            [dims, dims], [len_, len_])
+                        dims=[dims, dims], shape=(len_, len_))
         # TO-DO rebuild steady_state from _psi_out if needed
         # elif self._psi_out is not None:
         #     return sum(self.state_average) / self.num_traj
@@ -552,8 +528,8 @@ class _MC():
         psis = np.empty((self.num_traj, len(self.tlist)), dtype=object)
         for i in range(self.num_traj):
             for j in range(len(self.tlist)):
-                psis[i,j] = Qobj(dense1D_to_fastcsr_ket(self._psi_out[i,j,:]),
-                                 dims=dims, fast='mc')
+                psis[i, j] = Qobj(dense1D_to_fastcsr_ket(self._psi_out[i, j]),
+                                  dims=dims, fast='mc')
         return psis
 
     @property
@@ -566,7 +542,7 @@ class _MC():
         for col_ in self._collapse:
             col = list(zip(*col_))
             col = ([] if len(col) == 0 else col[0])
-            out.append( np.array(col) )
+            out.append(np.array(col))
         return out
         return [np.array(list(zip(*col_))[0]) for col_ in self._collapse]
 
@@ -576,7 +552,7 @@ class _MC():
         for col_ in self._collapse:
             col = list(zip(*col_))
             col = ([] if len(col) == 0 else col[1])
-            out.append( np.array(col) )
+            out.append(np.array(col))
         return out
         return [np.array(list(zip(*col_))[1]) for col_ in self._collapse]
 
@@ -710,7 +686,10 @@ class _MC():
         solver_safe["mcsolve"] = ss
 
         if self.e_ops and not self.e_ops.isfunc:
-            e_op = [Qobj(Ud @ e.full() @ U, dims=e.dims) for e in self.e_ops.e_ops]
+            e_ops = [
+                Qobj(Ud @ e.full() @ U, dims=e.dims)
+                for e in self.e_ops.e_ops
+            ]
             self.e_ops = ExpectOps(e_ops)
         self.ss = ss
         self.reset()
@@ -731,8 +710,8 @@ class _MC():
         e_ops.init(tlist)
 
         cymc = CyMcOdeDiag(ss, opt)
-        states_out, ss_out, collapses = cymc.run_ode(self.initial_vector, tlist,
-                                                     e_ops, prng)
+        states_out, ss_out, collapses =\
+            cymc.run_ode(self.initial_vector, tlist, e_ops, prng)
 
         if opt.steady_state_average:
             ss_out = ss.U @ ss_out @ ss.Ud
@@ -740,6 +719,7 @@ class _MC():
         if opt.steady_state_average:
             ss_out /= float(len(tlist))
         return (states_out, ss_out, e_ops, collapses)
+
 
 # -----------------------------------------------------------------------------
 # CODES FOR PYTHON FUNCTION BASED TIME-DEPENDENT RHS
@@ -749,6 +729,7 @@ def _qobjevo_set(ss, psi0=None, args={}, opt=None):
         self.set_args(args)
     rhs = ss.H_td.compiled_qobjevo.mul_vec
     return rhs, ()
+
 
 def _qobjevo_args(ss, args):
     var = _collapse_args(args)
@@ -760,6 +741,7 @@ def _qobjevo_args(ss, args):
     for c in ss.td_n_ops:
         c.solver_set_args(args, psi0, e_ops)
 
+
 def _func_set(HS, psi0=None, args={}, opt=None):
     if args:
         self.set_args(args)
@@ -770,6 +752,7 @@ def _func_set(HS, psi0=None, args={}, opt=None):
     else:
         rhs = _funcrhs_with_state
     return rhs, (ss.h_func, ss.Hc_td, args)
+
 
 def _func_args(ss, args):
     var = _collapse_args(args)
@@ -788,10 +771,12 @@ def _funcrhs(t, psi, h_func, Hc_td, args):
     h_func_term = h_func_data * psi
     return h_func_term + Hc_td.mul_vec(t, psi)
 
+
 def _funcrhs_with_state(t, psi, h_func, Hc_td, args):
     h_func_data = - 1.0j * h_func(t, psi, args).data
     h_func_term = h_func_data * psi
     return h_func_term + Hc_td.mul_vec(t, psi)
+
 
 def _mc_dm_avg(psi_list):
     """
@@ -803,6 +788,7 @@ def _mc_dm_avg(psi_list):
     shape = psi_list[0].shape
     out_data = sum([psi.data for psi in psi_list]) / ln
     return Qobj(out_data, dims=dims, shape=shape, fast='mc-dm')
+
 
 def _collapse_args(args):
     for key in args:

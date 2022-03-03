@@ -1,42 +1,8 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
 import pytest
 import numpy as np
-from numpy.testing import assert_, run_module_suite
 import qutip
-from qutip import (expect, destroy, coherent, coherent_dm, thermal_dm,
-                   fock_dm, triplet_states)
+from functools import partial
+from itertools import combinations
 
 
 @pytest.mark.parametrize("size, n", [(2, 0), (2, 1), (100, 99)])
@@ -47,12 +13,37 @@ def test_basis_simple(size, n):
     assert np.array_equal(qobj.full(), numpy)
 
 
-@pytest.mark.parametrize("to_test", [qutip.basis, qutip.fock, qutip.fock_dm])
+@pytest.mark.parametrize("to_test", [
+    qutip.basis, qutip.fock, qutip.fock_dm, qutip.state_number_qobj
+])
 @pytest.mark.parametrize("size, n", [([2, 2], [0, 1]), ([2, 3, 4], [1, 2, 0])])
 def test_implicit_tensor_basis_like(to_test, size, n):
     implicit = to_test(size, n)
-    explicit = qutip.tensor(*[to_test(ss, nn) for ss, nn in zip(size, n)])
+    explicit = qutip.tensor(*[to_test([ss], [nn]) for ss, nn in zip(size, n)])
     assert implicit == explicit
+
+
+@pytest.mark.parametrize("size, n, offset, msg", [
+    ([2, 2], [0, 1, 1], [0, 0], "All list inputs must be the same length."),
+    ([2, 2], [0, 1], 0, "All list inputs must be the same length."),
+    (-1, 0, 0, "All dimensions must be >= 0."),
+    (1.5, 0, 0, "All dimensions must be >= 0."),
+    (5, 5, 0, "All basis indices must be `offset <= n < dimension+offset`."),
+    (5, 0, 2, "All basis indices must be `offset <= n < dimension+offset`."),
+], ids=["n too long", "offset too long", "neg dims",
+        "fraction dims", "n too large", "n too small"]
+)
+def test_basis_error(size, n, offset, msg):
+    with pytest.raises(ValueError) as e:
+        qutip.basis(size, n, offset)
+    assert str(e.value) == msg
+
+
+def test_basis_error_type():
+    with pytest.raises(TypeError) as e:
+        qutip.basis(5, 3.5)
+    assert str(e.value) == ("Dimensions must be an integer "
+                            "or list of integers.")
 
 
 @pytest.mark.parametrize("size, n, m", [
@@ -66,63 +57,211 @@ def test_implicit_tensor_projection(size, n, m):
     assert implicit == explicit
 
 
-class TestStates:
-    """
-    A test class for the QuTiP functions for generating quantum states
-    """
-
-    def testCoherentState(self):
-        """
-        states: coherent state
-        """
-        N = 10
-        alpha = 0.5
-        c1 = coherent(N, alpha) # displacement method
-        c2 = coherent(7, alpha, offset=3) # analytic method
-        assert_(abs(expect(destroy(N), c1) - alpha) < 1e-10)
-        assert_((c1[3:]-c2).norm() < 1e-7)
-
-
-    def testCoherentDensityMatrix(self):
-        """
-        states: coherent density matrix
-        """
-        N = 10
-
-        rho = coherent_dm(N, 1)
-
-        # make sure rho has trace close to 1.0
-        assert_(abs(rho.tr() - 1.0) < 1e-12)
-
-    def testThermalDensityMatrix(self):
-        """
-        states: thermal density matrix
-        """
-        N = 40
-
-        rho = thermal_dm(N, 1)
-
-        # make sure rho has trace close to 1.0
-        assert_(abs(rho.tr() - 1.0) < 1e-12)
-
-    def testFockDensityMatrix(self):
-        """
-        states: Fock density matrix
-        """
-        N = 10
-        for i in range(N):
-            rho = fock_dm(N, i)
-            # make sure rho has trace close to 1.0
-            assert_(abs(rho.tr() - 1.0) < 1e-12)
-            assert_(rho.data[i, i] == 1.0)
-
-    def testTripletStateNorm(self):
-        """
-        Test the states returned by function triplet_states are normalized.
-        """
-        for triplet in triplet_states():
-            assert_(abs(triplet.norm() - 1.) < 1e-12)
+@pytest.mark.parametrize("base, operator, args, opargs, eigenval", [
+    pytest.param(qutip.basis, qutip.num, (10, 3), (10,), 3,
+                 id="basis"),
+    pytest.param(qutip.basis, qutip.num, (10, 3, 1), (10, 1), 3,
+                 id="basis,offset"),
+    pytest.param(qutip.fock, qutip.num, (10, 3), (10,), 3,
+                 id="fock"),
+    pytest.param(qutip.fock_dm, qutip.num, (10, 3), (10,), 3,
+                 id="fock_dm"),
+    pytest.param(qutip.fock_dm, qutip.num, (10, 3, 1), (10, 1), 3,
+                 id="fock_dm,offset"),
+    pytest.param(qutip.coherent, qutip.destroy, (20, 0.75), (20,), 0.75,
+                 id="coherent"),
+    pytest.param(qutip.coherent, qutip.destroy, (50, 4.25, 1), (50, 1), 4.25,
+                 id="coherent,offset"),
+    pytest.param(qutip.coherent_dm, qutip.destroy, (25, 1.25), (25,), 1.25,
+                 id="coherent_dm"),
+    pytest.param(qutip.phase_basis, qutip.phase,
+                 (10, 3), (10,), 3 * 2 * np.pi / 10,
+                 id="phase_basis"),
+    pytest.param(qutip.phase_basis, qutip.phase,
+                 (10, 3, 1), (10, 1), 3 * 2 * np.pi / 10 + 1,
+                 id="phase_basis,phi0"),
+    pytest.param(qutip.spin_state, qutip.spin_Jz, (3, 2), (3,), 2,
+                 id="spin_state"),
+    pytest.param(qutip.zero_ket, qutip.qeye, (10,), (10,), 0,
+                 id="zero_ket"),
+])
+def test_diverse_basis(base, operator, args, opargs, eigenval):
+    # For state which are supposed to eigenvector of an operator
+    # Verify that correspondance
+    state = base(*args)
+    oper = operator(*opargs)
+    assert qutip.expect(oper, state) == pytest.approx(eigenval)
 
 
-if __name__ == "__main__":
-    run_module_suite()
+@pytest.mark.parametrize('dm', [
+    partial(qutip.thermal_dm, n=1.),
+    qutip.maximally_mixed_dm,
+    partial(qutip.coherent_dm, alpha=0.5),
+    partial(qutip.fock_dm, n=1),
+    partial(qutip.spin_state, m=2, type='dm'),
+    partial(qutip.spin_coherent, theta=1, phi=2, type='dm'),
+], ids=[
+    'thermal_dm', 'maximally_mixed_dm', 'coherent_dm',
+    'fock_dm', 'spin_state', 'spin_coherent'
+])
+def test_dm(dm):
+    N = 5
+    rho = dm(N)
+    # make sure rho has trace close to 1.0
+    assert rho.tr() == pytest.approx(1.0)
+
+
+def test_CoherentState():
+    N = 10
+    alpha = 0.5
+    c1 = qutip.coherent(N, alpha)  # displacement method
+    c2 = qutip.coherent(7, alpha, offset=3)  # analytic method
+    c3 = qutip.coherent(N, alpha, offset=0, method="analytic")
+    np.testing.assert_allclose(c1.full()[3:], c2.full(), atol=1e-7)
+    np.testing.assert_allclose(c1.full(), c3.full(), atol=1e-7)
+    with pytest.raises(ValueError) as e:
+        qutip.coherent(N, alpha, method="other")
+    assert str(e.value) == ("The method option can only take "
+                            "values 'operator' or 'analytic'")
+    with pytest.raises(ValueError) as e:
+        qutip.coherent(N, alpha, offset=-1)
+    assert str(e.value) == ("Offset must be non-negative")
+    with pytest.raises(ValueError) as e:
+        qutip.coherent(N, alpha, offset=1, method="operator")
+    assert str(e.value) == (
+        "The method 'operator' does not support offset != 0. Please"
+        " select another method or set the offset to zero."
+    )
+
+
+def test_CoherentDensityMatrix():
+    N = 10
+    rho = qutip.coherent_dm(N, 1)
+    assert rho.tr() == pytest.approx(1.0)
+    with pytest.raises(ValueError) as e:
+        qutip.coherent_dm(N, 1, method="other")
+    assert str(e.value) == ("The method option can only take "
+                            "values 'operator' or 'analytic'")
+    with pytest.raises(ValueError) as e:
+        qutip.coherent_dm(N, 1, offset=-1)
+    assert str(e.value) == ("Offset must be non-negative")
+    with pytest.raises(ValueError) as e:
+        qutip.coherent_dm(N, 1, offset=1, method="operator")
+    assert str(e.value) == (
+        "The method 'operator' does not support offset != 0. Please"
+        " select another method or set the offset to zero."
+    )
+
+
+def test_thermal():
+    N = 10
+    beta = 0.5
+    assert qutip.thermal_dm(N, 0) == qutip.fock_dm(N, 0)
+
+    thermal_operator = qutip.thermal_dm(N, beta)
+    thermal_analytic = qutip.thermal_dm(N, beta, method="analytic")
+    np.testing.assert_allclose(thermal_operator.full(),
+                               thermal_analytic.full(), atol=2e-5)
+
+    with pytest.raises(ValueError) as e:
+        qutip.thermal_dm(N, beta, method="other")
+    assert str(e.value) == ("The method option can only take "
+                            "values 'operator' or 'analytic'")
+
+
+@pytest.mark.parametrize('func', [
+    qutip.spin_state, partial(qutip.spin_coherent, phi=0.5)
+])
+def test_spin_output(func):
+    assert qutip.isket(func(1.0, 0, type='ket'))
+    assert qutip.isbra(func(1.0, 0, type='bra'))
+    assert qutip.isoper(func(1.0, 0, type='dm'))
+
+    with pytest.raises(ValueError) as e:
+        func(1.0, 0, type='something')
+    assert str(e.value) == "invalid value keyword argument 'type'"
+
+
+@pytest.mark.parametrize('N', [2.5, -1])
+def test_maximally_mixed_dm_error(N):
+    with pytest.raises(ValueError) as e:
+        qutip.maximally_mixed_dm(N)
+    assert str(e.value) == "N must be integer N > 0"
+
+
+def test_TripletStateNorm():
+    for triplet in qutip.triplet_states():
+        assert triplet.norm() == pytest.approx(1.)
+    for t1, t2 in combinations(qutip.triplet_states(), 2):
+        assert t1.overlap(t2) == pytest.approx(0.)
+
+
+def test_ket2dm():
+    N = 5
+    ket = qutip.coherent(N, 2)
+    bra = ket.dag()
+    oper = qutip.ket2dm(ket)
+    oper_from_bra = qutip.ket2dm(bra)
+    assert qutip.expect(oper, ket) == pytest.approx(1.)
+    assert qutip.isoper(oper)
+    assert oper == ket * bra
+    assert oper == oper_from_bra
+    with pytest.raises(TypeError) as e:
+        qutip.ket2dm(oper)
+    assert str(e.value) == "Input is not a ket or bra vector."
+
+
+@pytest.mark.parametrize('state', [[0, 1], [0, 0], [0, 1, 0, 1]])
+def test_qstate(state):
+    from_basis = qutip.basis([2] * len(state), state)
+    from_qstate = qutip.qstate("".join({0: "d", 1: "u"}[i] for i in state))
+    assert from_basis == from_qstate
+
+
+def test_qstate_error():
+    with pytest.raises(TypeError) as e:
+        qutip.qstate("eeggg")
+    assert str(e.value) == ('String input to QSTATE must consist ' +
+                            'of "u" and "d" elements only')
+
+
+@pytest.mark.parametrize('state', ["11000", "eeggg", "dduuu", "VVHHH"])
+def test_bra_ket(state):
+    from_basis = qutip.basis([2, 2, 2, 2, 2], [1, 1, 0, 0, 0])
+    from_ket = qutip.ket(state)
+    from_bra = qutip.bra(state).dag()
+    assert from_basis == from_ket
+    assert from_basis == from_bra
+
+
+def test_w_states():
+    state = (
+        qutip.qstate("uddd") +
+        qutip.qstate("dudd") +
+        qutip.qstate("ddud") +
+        qutip.qstate("dddu")
+    ) / 2
+    assert state == qutip.w_state(4)
+
+
+def test_ghz_states():
+    state = (qutip.qstate("uuu") + qutip.qstate("ddd")).unit()
+    assert state == qutip.ghz_state(3)
+
+
+def test_bell_state():
+    states = [
+        qutip.bell_state('00'),
+        qutip.bell_state('01'),
+        qutip.bell_state('10'),
+        qutip.bell_state('11')
+    ]
+    exited = qutip.basis([2, 2], [1, 1])
+    for state, overlap in zip(states, [0.5**0.5, -0.5**0.5, 0, 0]):
+        assert state.norm() == pytest.approx(1.0)
+        assert state.overlap(exited) == pytest.approx(overlap)
+
+    for state1, state2 in combinations(states, 2):
+        assert state1.overlap(state2) == pytest.approx(0.0)
+
+    assert qutip.singlet_state() == qutip.bell_state('11')

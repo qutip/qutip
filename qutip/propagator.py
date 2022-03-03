@@ -1,36 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
 __all__ = ['propagator', 'propagator_steadystate']
 
 import types
@@ -48,7 +15,7 @@ from qutip.sparse import sp_reshape
 from qutip.cy.sparse_utils import unit_row_norm
 from qutip.mesolve import mesolve
 from qutip.sesolve import sesolve
-from qutip.states import basis
+from qutip.states import basis, projection
 from qutip.solver import Options, _solver_safety_check, config
 from qutip.parallel import parallel_map, _default_kwargs
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
@@ -58,11 +25,11 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                unitary_mode='batch', parallel=False,
                progress_bar=None, _safe_mode=True,
                **kwargs):
-    """
+    r"""
     Calculate the propagator U(t) for the density matrix or wave function such
     that :math:`\psi(t) = U(t)\psi(0)` or
-    :math:`\\rho_{\mathrm vec}(t) = U(t) \\rho_{\mathrm vec}(0)`
-    where :math:`\\rho_{\mathrm vec}` is the vector representation of the
+    :math:`\rho_{\mathrm vec}(t) = U(t) \rho_{\mathrm vec}(0)`
+    where :math:`\rho_{\mathrm vec}` is the vector representation of the
     density matrix.
 
     Parameters
@@ -133,7 +100,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
     if isinstance(H, (types.FunctionType, types.BuiltinFunctionType,
                       functools.partial)):
         H0 = H(0.0, args)
-        if unitary_mode =='batch':
+        if unitary_mode == 'batch':
             # batch don't work with function Hamiltonian
             unitary_mode = 'single'
     elif isinstance(H, list):
@@ -160,12 +127,9 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
             if unitary_mode == 'single':
                 output = sesolve(H, qeye(dims[0]), tlist, [], args, options,
                                  _safe_mode=False)
-                if len(tlist) == 2:
-                    return output.states[-1]
-                else:
-                    return output.states
+                return output.states[-1] if len(tlist) == 2 else output.states
 
-            elif unitary_mode =='batch':
+            elif unitary_mode == 'batch':
                 u = np.zeros(len(tlist), dtype=object)
                 _rows = np.array([(N+1)*m for m in range(N)])
                 _cols = np.zeros_like(_rows)
@@ -188,10 +152,8 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                     u[k] = sp_reshape(output.states[k].data, (N, N))
                     unit_row_norm(u[k].data, u[k].indptr, u[k].shape[0])
                     u[k] = u[k].T.tocsr()
-
             else:
-                raise Exception('Invalid unitary mode.')
-
+                raise ValueError('Invalid unitary mode.')
 
     elif len(c_op_list) == 0 and H0.issuper:
         # calculate the propagator for the vector representation of the
@@ -201,26 +163,24 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         sqrt_N = int(np.sqrt(N))
         dims = H0.dims
 
-        u = np.zeros([N, N, len(tlist)], dtype=complex)
-
         if parallel:
-            output = parallel_map(_parallel_mesolve,range(N * N),
+            output = parallel_map(_parallel_mesolve, range(N),
                                   task_args=(
                                       sqrt_N, H, tlist, c_op_list, args,
                                       options),
+                                  task_kwargs={"dims": H0.dims[0]},
                                   progress_bar=progress_bar, num_cpus=num_cpus)
-            for n in range(N * N):
+
+            u = np.zeros([N, N, len(tlist)], dtype=complex)
+            for n in range(N):
                 for k, t in enumerate(tlist):
                     u[:, n, k] = mat2vec(output[n].states[k].full()).T
         else:
-            rho0 = qeye(N,N)
-            rho0.dims = [[sqrt_N, sqrt_N], [sqrt_N, sqrt_N]]
-            output = mesolve(H, psi0, tlist, [], args, options,
-                             _safe_mode=False)
-            if len(tlist) == 2:
-                return output.states[-1]
-            else:
-                return output.states
+            rho0 = qeye(H0.dims[0])
+            output = mesolve(
+                H, rho0, tlist, args=args, options=options,
+                _safe_mode=False)
+            return output.states[-1] if len(tlist) == 2 else output.states
 
     else:
         # calculate the propagator for the vector representation of the
@@ -235,6 +195,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
             output = parallel_map(_parallel_mesolve, range(N * N),
                                   task_args=(
                                       N, H, tlist, c_op_list, args, options),
+                                  task_kwargs={"dims": H0.dims},
                                   progress_bar=progress_bar, num_cpus=num_cpus)
             for n in range(N * N):
                 for k, t in enumerate(tlist):
@@ -244,26 +205,25 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
             for n in range(N * N):
                 progress_bar.update(n)
                 col_idx, row_idx = np.unravel_index(n, (N, N))
-                rho0 = Qobj(sp.csr_matrix(([1], ([row_idx], [col_idx])),
-                                          shape=(N,N), dtype=complex))
-                output = mesolve(H, rho0, tlist, c_op_list, [], args, options,
-                                 _safe_mode=False)
+                rho0 = projection(N, row_idx, col_idx)
+                rho0.dims = H0.dims
+                output = mesolve(
+                    H, rho0, tlist, c_ops=c_op_list, args=args,
+                    options=options, _safe_mode=False)
                 for k, t in enumerate(tlist):
                     u[:, n, k] = mat2vec(output.states[k].full()).T
             progress_bar.finished()
 
     if len(tlist) == 2:
-        if unitary_mode == 'batch':
-            return Qobj(u[-1], dims=dims)
-        else:
-            return Qobj(u[:, :, 1], dims=dims)
+        data = u[-1] if unitary_mode == 'batch' else u[:, :, 1]
+        return Qobj(data, dims=dims)
+
+    out = np.empty((len(tlist),), dtype=object)
+    if unitary_mode == 'batch':
+        out[:] = [Qobj(u[k], dims=dims) for k in range(len(tlist))]
     else:
-        if unitary_mode == 'batch':
-            return np.array([Qobj(u[k], dims=dims)
-                             for k in range(len(tlist))], dtype=object)
-        else:
-            return np.array([Qobj(u[:, :, k], dims=dims)
-                             for k in range(len(tlist))], dtype=object)
+        out[:] = [Qobj(u[:, :, k], dims=dims) for k in range(len(tlist))]
+    return out
 
 
 def _get_min_and_index(lst):
@@ -311,10 +271,12 @@ def _parallel_sesolve(n, N, H, tlist, args, options):
     output = sesolve(H, psi0, tlist, [], args, options, _safe_mode=False)
     return output
 
-def _parallel_mesolve(n, N, H, tlist, c_op_list, args, options):
+
+def _parallel_mesolve(n, N, H, tlist, c_op_list, args, options, dims=None):
     col_idx, row_idx = np.unravel_index(n, (N, N))
-    rho0 = Qobj(sp.csr_matrix(([1], ([row_idx], [col_idx])),
-                              shape=(N,N), dtype=complex))
-    output = mesolve(H, rho0, tlist, c_op_list, [], args, options,
-                     _safe_mode=False)
+    rho0 = projection(N, row_idx, col_idx)
+    rho0.dims = dims
+    output = mesolve(
+        H, rho0, tlist, c_ops=c_op_list, args=args, options=options,
+        _safe_mode=False)
     return output

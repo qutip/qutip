@@ -1,43 +1,9 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
 __all__ = ['file_data_store', 'file_data_read', 'qsave', 'qload']
 
 import pickle
 import numpy as np
 import sys
-from qutip.qobj import Qobj
-from qutip.solver import Result
+from pathlib import Path
 
 
 # -----------------------------------------------------------------------------
@@ -49,7 +15,7 @@ def file_data_store(filename, data, numtype="complex", numformat="decimal",
 
     Parameters
     ----------
-    filename : str
+    filename : str or pathlib.Path
         Name of data file to be stored, including extension.
     data: array_like
         Data to be written to file.
@@ -145,7 +111,7 @@ def file_data_read(filename, sep=None):
 
     Parameters
     ----------
-    filename : str
+    filename : str or pathlib.Path
         Name of file containing reqested data.
     sep : str
         Seperator used to store data.
@@ -250,15 +216,17 @@ def qsave(data, name='qutip_data'):
     ----------
     data : instance/array_like
         Input Python object to be stored.
-    filename : str
+    filename : str or pathlib.Path
         Name of output data file.
 
     """
     # open the file for writing
-    fileObject = open(name + '.qu', 'wb')
-    # this writes the object a to the file named 'filename.qu'
-    pickle.dump(data, fileObject)
-    fileObject.close()
+    file = Path(name)
+    file = file.with_suffix(file.suffix + ".qu")
+
+    with open(name, "wb") as fileObject:
+        # this writes the object a to the file named 'filename.qu'
+        pickle.dump(data, fileObject)
 
 
 def qload(name):
@@ -267,7 +235,7 @@ def qload(name):
 
     Parameters
     ----------
-    name : str
+    name : str or pathlib.Path
         Name of data file to be loaded.
 
     Returns
@@ -276,23 +244,13 @@ def qload(name):
         Object retrieved from requested file.
 
     """
-    fileObject = open(name + '.qu', 'rb')  # open the file for reading
-    if sys.version_info >= (3, 0):
-        out = pickle.load(fileObject, encoding='latin1')  # return the object from the file
-    else:
-        out = pickle.load(fileObject)
-    if isinstance(out, Qobj):  # for quantum objects
-        print('Loaded Qobj object:')
-        str1 = "Quantum object: " + "dims = " + str(out.dims) \
-            + ", shape = " + str(out.shape) + ", type = " + out.type
-        if out.type == 'oper' or out.type == 'super':
-            str1 += ", isHerm = " + str(out.isherm) + "\n"
+    file = Path(name)
+    file = file.with_suffix(file.suffix + ".qu")
+
+    with open(name, "rb") as fileObject:
+        if sys.version_info >= (3, 0):
+            out = pickle.load(fileObject, encoding='latin1')
         else:
-            str1 += "\n"
-        print(str1)
-    elif isinstance(out, Result):
-        print('Loaded Result object:')
-        print(out)
-    else:
-        print("Loaded " + str(type(out).__name__) + " object.")
+            out = pickle.load(fileObject)
+
     return out

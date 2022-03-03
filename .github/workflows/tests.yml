@@ -1,0 +1,184 @@
+# The name is short because we mostly care how it appears in the pull request
+# "checks" dialogue box - it looks like
+#     Tests / ubuntu-latest, python-3.9, defaults
+# or similar.
+name: Tests
+
+on:
+    [push, pull_request]
+
+defaults:
+  run:
+    # The slightly odd shell call is to force bash to read .bashrc, which is
+    # necessary for having conda behave sensibly.  We use bash as the shell even
+    # on Windows, since we don't run anything much complicated, and it makes
+    # things much simpler.
+    shell: bash -l {0}
+
+jobs:
+  cases:
+    name: ${{ matrix.os }}, python${{ matrix.python-version }}, ${{ matrix.case-name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        # Test other versions of Python in special cases to avoid exploding the
+        # matrix size; make sure to test all supported versions in some form.
+        python-version: ["3.9"]
+        case-name: [defaults]
+        numpy-requirement: [">=1.20,<1.21"]
+        # Extra special cases.  In these, the new variable defined should always
+        # be a truth-y value (hence 'nomkl: 1' rather than 'mkl: 0'), because
+        # the lack of a variable is _always_ false-y, and the defaults lack all
+        # the special cases.
+        include:
+          # Needs an older version of Python because conda doesn't build old
+          # SciPy versions for Python 3.9.
+          - case-name: old SciPy
+            os: ubuntu-latest
+            python-version: "3.6"
+            scipy-requirement: ">=1.4,<1.5"
+            # let the old SciPy version select an appropriate numpy version:
+            numpy-requirement: ""
+
+          # No MKL runs.  MKL is now the default for conda installations, but
+          # not necessarily for pip.
+          - case-name: no MKL
+            os: ubuntu-latest
+            python-version: "3.7"
+            nomkl: 1
+
+          # OpenMP runs.  We only really care about getting OpenMP working
+          # properly on Linux at the moment.
+          - case-name: OpenMP
+            os: ubuntu-latest
+            python-version: "3.9"
+            numpy-requirement: ">=1.20,<1.21"
+            openmp: 1
+
+          # Builds without Cython at runtime.  This is a core feature;
+          # everything should be able to run this.
+          - case-name: no Cython
+            os: ubuntu-latest
+            python-version: "3.8"
+            nocython: 1
+
+          # Python 3.10 and numpy 1.22
+          # Use conda-forge to provide numpy 1.22
+          # Ignore ImportWarning because pyximport registered an importer
+          # PyxImporter that does not have a find_spec method and this raises
+          # a warning on Python 3.10
+          # Ignore DeprecationWarnings raised by importing scipy.sparse.X
+          # under SciPy 1.8.0+.
+          - case-name: Python 3.10
+            os: ubuntu-latest
+            python-version: "3.10"
+            condaforge: 1
+            pytest-extra-options: "-W ignore::ImportWarning -W ignore::DeprecationWarning:qutip.fastsparse -W ignore::DeprecationWarning:cvxpy.interface.scipy_wrapper"
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install QuTiP and dependencies
+        # In the run, first we handle any special cases.  We do this in bash
+        # rather than in the GitHub Actions file directly, because bash gives us
+        # a proper programming language to use.
+        run: |
+          QUTIP_TARGET="tests,graphics,semidefinite"
+          if [[ -z "${{ matrix.nocython }}" ]]; then
+            QUTIP_TARGET="$QUTIP_TARGET,runtime_compilation"
+          fi
+          export CI_QUTIP_WITH_OPENMP=${{ matrix.openmp }}
+          if [[ -n "${{ matrix.condaforge }}" ]]; then
+            conda config --prepend channels conda-forge
+            conda config --set channel_priority strict
+          fi
+          if [[ -z "${{ matrix.nomkl }}" ]]; then
+            conda install blas=*=mkl "numpy${{ matrix.numpy-requirement }}" "scipy${{ matrix.scipy-requirement }}"
+          elif [[ "${{ matrix.os }}" =~ ^windows.*$ ]]; then
+            # Conda doesn't supply forced nomkl builds on Windows, so we rely on
+            # pip not automatically linking to MKL.
+            pip install "numpy${{ matrix.numpy-requirement }}" "scipy${{ matrix.scipy-requirement }}"
+          else
+            conda install nomkl "numpy${{ matrix.numpy-requirement }}" "scipy${{ matrix.scipy-requirement }}"
+          fi
+          python -m pip install -e .[$QUTIP_TARGET]
+          python -m pip install coverage==6.2
+          python -m pip install pytest-cov coveralls pytest-timeout
+
+      - name: Package information
+        run: |
+          conda list
+          python -c "import qutip; qutip.about()"
+
+      - name: Environment information
+        run: |
+          uname -a
+          if [[ "ubuntu-latest" == "${{ matrix.os }}" ]]; then
+              hostnamectl
+              lscpu
+              free -h
+          fi
+
+      - name: Run tests
+        # If our tests are running for longer than an hour, _something_ is wrong
+        # somewhere.  The GitHub default is 6 hours, which is a bit long to wait
+        # to see if something hung.
+        timeout-minutes: 60
+        run: |
+          if [[ -n "${{ matrix.openmp }}" ]]; then
+            # Force OpenMP runs to use more threads, even if there aren't
+            # actually that many CPUs.  We have to check any dispatch code is
+            # truly being executed.
+            export QUTIP_NUM_PROCESSES=2
+          fi
+          pytest -Werror --strict-config --strict-markers --timeout=300 --durations=0 --durations-min=1.0 --verbosity=1 --cov=qutip --cov-report= --color=yes ${{ matrix.pytest-extra-options }} qutip/tests
+          # Above flags are:
+          #  -Werror
+          #     treat warnings as errors
+          #  --strict-config
+          #     error out if the configuration file is not parseable
+          #  --strict-markers
+          #     error out if a marker is used but not defined in the
+          #     configuration file
+          #  --timeout=300
+          #     error any individual test that goes longer than the given time
+          #  --durations=0 --durations-min=1.0
+          #     at the end, show a list of all the tests that took longer than a
+          #     second to run
+          #  --verbosity=1
+          #     turn the verbosity up so pytest prints the names of the tests
+          #     it's currently working on
+          #  --cov=qutip
+          #     limit coverage reporting to code that's within the qutip package
+          #  --cov-report=
+          #     don't print the coverage report to the terminal---it just adds
+          #     cruft, and we're going to upload the .coverage file to Coveralls
+          #  --color=yes
+          #     force coloured output in the terminal
+
+      - name: Upload to Coveralls
+        env:
+          GITHUB_TOKEN: ${{ secrets.github_token }}
+          COVERALLS_FLAG_NAME: ${{ matrix.os }}-${{ matrix.python-version }}-${{ matrix.case-name }}
+          COVERALLS_PARALLEL: true
+        run: coveralls --service=github
+
+  finalise:
+    name: Finalise coverage reporting
+    needs: cases
+    runs-on: ubuntu-latest
+    container: python:3-slim
+    steps:
+      - name: Finalise coverage reporting
+        env:
+          GITHUB_TOKEN: ${{ secrets.github_token }}
+        run: |
+          python -m pip install coveralls
+          coveralls --service=github --finish

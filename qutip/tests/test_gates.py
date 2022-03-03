@@ -1,36 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
 import pytest
 import functools
 import itertools
@@ -137,7 +104,8 @@ class TestExplicitForm:
         assert _infidelity(swapped, swap*start) < 1e-12
         assert _infidelity(start, swap*swap*start) < 1e-12
 
-    @pytest.mark.parametrize('permutation', itertools.permutations([0, 1, 2]),
+    @pytest.mark.parametrize('permutation',
+                             tuple(itertools.permutations([0, 1, 2])),
                              ids=_permutation_id)
     def test_toffoli(self, permutation):
         test = gates.toffoli(N=3,
@@ -296,8 +264,9 @@ class Test_expand_operator:
     # surrounding code, but the surrounding code wasn't updated.
     @pytest.mark.parametrize(
         'permutation',
-        itertools.chain(*[itertools.permutations(range(k))
-                          for k in [2, 3, 4]]),
+        tuple(itertools.chain(*[
+            itertools.permutations(range(k)) for k in [2, 3, 4]
+        ])),
         ids=_permutation_id)
     def test_permutation_without_expansion(self, permutation):
         base = qutip.tensor([qutip.rand_unitary(2) for _ in permutation])
@@ -329,6 +298,20 @@ class Test_expand_operator:
                              [0, 0, 0, 0, 0, 0, 1, 0],
                              [0, 0, 0, 1, 0, 0, 0, 0]])
         np.testing.assert_allclose(test, expected, atol=1e-15)
+
+
+    def test_hadamard_explicit(self):
+        test = gates.hadamard_transform(3).full()
+        expected = np.array([[ 1,  1,  1,  1,  1,  1,  1,  1],
+                            [ 1, -1,  1, -1,  1, -1,  1, -1],
+                            [ 1,  1, -1, -1,  1,  1, -1, -1],
+                            [ 1, -1, -1,  1,  1, -1, -1,  1],
+                            [ 1,  1,  1,  1, -1, -1, -1, -1],
+                            [ 1, -1,  1, -1, -1,  1, -1,  1],
+                            [ 1,  1, -1, -1, -1, -1,  1,  1],
+                            [ 1, -1, -1,  1, -1,  1,  1, -1]])
+        expected = expected/np.sqrt(8)
+        np.testing.assert_allclose(test, expected)
 
     def test_cyclic_permutation(self):
         operators = [qutip.sigmax(), qutip.sigmaz()]

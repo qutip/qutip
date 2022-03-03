@@ -1,37 +1,5 @@
 #cython: language_level=3
-# distutils: language = c++
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
+
 """
 Contain the cython interface of QobjEvo.
 The parent class "CQobjEvo" set the interface.
@@ -236,6 +204,9 @@ cdef class CQobjEvo:
         return 0.
 
     def mul_vec(self, double t, complex[::1] vec):
+        if vec.shape[0] != self.shape1:
+            raise ValueError(f"Shapes don't match: ({self.shape0}, "
+                             f"{self.shape1}) @ ({vec.shape[0]}, 1)")
         cdef np.ndarray[complex, ndim=1] out = np.zeros(self.shape0,
                                                         dtype=complex)
         self._mul_vec(t, &vec[0], &out[0])
@@ -246,6 +217,11 @@ cdef class CQobjEvo:
         cdef unsigned int sp_rows = self.shape0
         cdef unsigned int nrows = mat.shape[0]
         cdef unsigned int ncols = mat.shape[1]
+        if mat.shape[0] != self.shape1:
+            raise ValueError("Shapes don't match: "
+                f"({self.shape0}, {self.shape1}) "
+                f"@ ({mat.shape[0]}, {mat.shape[1]})")
+
         if mat.flags["F_CONTIGUOUS"]:
             out = np.zeros((sp_rows,ncols), dtype=complex, order="F")
             self._mul_matf(t, &mat[0,0], &out[0,0], nrows, ncols)
@@ -256,20 +232,32 @@ cdef class CQobjEvo:
 
     cpdef complex expect(self, double t, complex[::1] vec):
         if self.super:
+            if self.shape1 != vec.shape[0]:
+                raise ValueError(f"Shapes don't match: ({self.shape0}, "
+                                 f"{self.shape1}), ({vec.shape[0]}, 1)")
             return self._expect_super(t, &vec[0])
         else:
+            if self.shape1 != vec.shape[0] and self.shape0 != self.shape1:
+                raise ValueError(f"Shapes don't match: ({self.shape0}, "
+                                 f"{self.shape1}), ({vec.shape[0]}, 1)")
             return self._expect(t, &vec[0])
 
-    def overlapse(self, double t, complex[::1] oper):
+    def overlap(self, double t, complex[::1] oper):
         """
-        Compute the overlapse of operator as tr(this @ oper)
+        Compute the overlap of operator as tr(this @ oper)
         """
+        if self.shape0 * self.shape1 != oper.shape[0]:
+            raise ValueError(f"Shapes don't match: ({self.shape0}, "
+                             f"{self.shape1}), ({oper.shape[0]}, 1)")
         cdef complex* vec = &oper[0]
         return self._overlapse(t, vec)
 
     def ode_mul_mat_f_vec(self, double t, complex[::1] mat):
+        if mat.shape[0] != self.shape1*self.shape1:
+            raise ValueError(f"Shapes don't match: ({self.shape0}, "
+                             f"{self.shape1}) @ ({mat.shape[0]}, 1)")
         cdef np.ndarray[complex, ndim=1] out = np.zeros(self.shape1*self.shape1,
-                                                      dtype=complex)
+                                                        dtype=complex)
         self._mul_matf(t, &mat[0], &out[0], self.shape1, self.shape1)
         return out
 

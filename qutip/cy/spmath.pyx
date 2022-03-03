@@ -1,36 +1,5 @@
 #cython: language_level=3
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, The QuTiP Project.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
+
 import numpy as np
 import qutip.settings as qset
 cimport numpy as cnp
@@ -356,9 +325,9 @@ def zcsr_kron(object A, object B):
     cdef int rowsB = B.shape[0]
     cdef int colsB = B.shape[1]
 
-    cdef int out_nnz = _safe_multiply(dataA.shape[0], dataB.shape[0])
-    cdef int rows_out = rowsA * rowsB
-    cdef int cols_out = colsA * colsB
+    cdef int out_nnz = _safe_multiply(indptrA[rowsA], indptrB[rowsB])
+    cdef int rows_out = _safe_multiply(rowsA, rowsB)
+    cdef int cols_out = _safe_multiply(colsA, colsB)
 
     cdef CSR_Matrix out
     init_CSR(&out, out_nnz, rows_out, cols_out)
@@ -372,15 +341,15 @@ def zcsr_kron(object A, object B):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void _zcsr_kron(CSR_Matrix * A, CSR_Matrix * B, CSR_Matrix * C):
+cdef void _zcsr_kron(CSR_Matrix * A, CSR_Matrix * B, CSR_Matrix * C) except *:
     """
     Computes the kronecker product between two complex
     sparse matrices in CSR format.
     """
 
     cdef int out_nnz = _safe_multiply(A.nnz, B.nnz)
-    cdef int rows_out = A.nrows * B.nrows
-    cdef int cols_out = A.ncols * B.ncols
+    cdef int rows_out = _safe_multiply(A.nrows, B.nrows)
+    cdef int cols_out = _safe_multiply(A.ncols, B.ncols)
 
     init_CSR(C, out_nnz, rows_out, cols_out)
 
@@ -695,8 +664,9 @@ cdef bint _zcsr_isherm_full(
         free_CSR(&transpose)
 
 
+# Exception signal value should be something we only return rarely.
 @cython.overflowcheck(True)
-cdef _safe_multiply(int A, int B):
+cdef int _safe_multiply(int A, int B) except? -1:
     """
     Computes A*B and checks for overflow.
     """

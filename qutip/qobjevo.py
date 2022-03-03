@@ -1,35 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
 """Time-dependent Quantum Object (Qobj) class.
 """
 __all__ = ['QobjEvo']
@@ -38,20 +6,19 @@ from qutip.qobj import Qobj
 import qutip.settings as qset
 from qutip.interpolate import Cubic_Spline
 from scipy.interpolate import CubicSpline, interp1d
-from functools import partial, wraps
+from functools import partial
 from types import FunctionType, BuiltinFunctionType
 import numpy as np
 from numbers import Number
 from qutip.qobjevo_codegen import (_compile_str_single, _compiled_coeffs,
                                    _compiled_coeffs_python)
 from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi,
-                                 spmv, cy_spmm_tr)
+                                 spmv)
 from qutip.cy.cqobjevo import (CQobjCte, CQobjCteDense, CQobjEvoTd,
                                  CQobjEvoTdMatched, CQobjEvoTdDense)
 from qutip.cy.cqobjevo_factor import (InterCoeffT, InterCoeffCte,
                                       InterpolateCoeff, StrCoeff,
                                       StepCoeffCte, StepCoeffT)
-import pickle
 import sys
 import scipy
 import os
@@ -189,6 +156,7 @@ class StateArgs:
     def __call__(self):
         return self.dyn_args
 
+
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # object for each time dependent element of the QobjEvo
 # qobj : the Qobj of element ([*Qobj*, f])
@@ -196,6 +164,18 @@ class StateArgs:
 # coeff : The coeff as a string, array or function as provided by the user.
 # type : flag for the type of coeff
 class EvoElement:
+    """
+    Internal type used to represent the time-dependent parts of a
+    :class:`~QobjEvo`.
+
+    Availables "types" are
+
+    1. function
+    2. string
+    3. ``np.ndarray``
+    4. :class:`.Cubic_Spline`
+    """
+
     def __init__(self, qobj, get_coeff, coeff, type):
         self.qobj = qobj
         self.get_coeff = get_coeff
@@ -218,21 +198,44 @@ class EvoElement:
 
 
 class QobjEvo:
-    """A class for representing time-dependent quantum objects,
-    such as quantum operators and states.
+    """
+    A class for representing time-dependent quantum objects, such as quantum
+    operators and states.
 
-    The QobjEvo class is a representation of time-dependent Qutip quantum
-    objects (Qobj). This class implements math operations :
-        +,- : QobjEvo, Qobj
-        * : Qobj, C-number
-        / : C-number
-    and some common linear operator/state operations. The QobjEvo
-    are constructed from a nested list of Qobj with their time-dependent
-    coefficients. The time-dependent coefficients are either a funciton, a
-    string or a numpy array.
+    Basic math operations are defined:
 
-    For function format, the function signature must be f(t, args).
-    *Examples*
+    - ``+``, ``-`` : :class:`~QobjEvo`, :class:`~Qobj`, scalars.
+    - ``*``: :class:`~Qobj`, C number
+    - ``/`` : C number
+
+    This object is constructed by passing a list of :obj:`~Qobj` instances,
+    each of which *may* have an associated scalar time dependence.  The list is
+    summed to produce the final result.  In other words, if an instance of this
+    class is :math:`Q(t)`, then it is constructed from a set of constant
+    :obj:`~Qobj` :math:`\\{Q_k\\}` and time-dependent scalars :math:`f_k(t)` by
+
+    .. math::
+
+        Q(t) = \\sum_k f_k(t) Q_k
+
+    If a scalar :math:`f_k(t)` is not passed with a given :obj:`~Qobj`, then
+    that term is assumed to be constant.  The next section contains more detail
+    on the allowed forms of the constants, and gives several examples for how
+    to build instances of this class.
+
+    **Time-dependence formats**
+
+    There are three major formats for specifying a time-dependent scalar:
+
+    - Python function
+    - string
+    - array
+
+    For function format, the function signature must be
+    ``f(t: float, args: dict) -> complex``, for example
+
+    .. code-block:: python
+
         def f1_t(t, args):
             return np.exp(-1j * t * args["w1"])
 
@@ -241,207 +244,147 @@ class QobjEvo:
 
         H = QobjEvo([H0, [H1, f1_t], [H2, f2_t]], args={"w1":1., "w2":2.})
 
-    For string based coeffients, the string must be a compilable python code
+    For string-based coeffients, the string must be a compilable python code
     resulting in a complex. The following symbols are defined:
-        sin cos tan asin acos atan pi
-        sinh cosh tanh asinh acosh atanh
-        exp log log10 erf zerf sqrt
-        real imag conj abs norm arg proj
-        numpy as np, and scipy.special as spe.
-    *Examples*
+
+    .. code-block::
+
+        pi   exp   log   log10
+        erf  zerf  norm  proj
+        real imag conj abs arg
+        sin  sinh  asin  asinh
+        cos  cosh  acos  acosh
+        tan  tanh  atan  atanh
+        numpy as np
+        scipy.special as spe
+
+    A couple more simple examples:
+
+    .. code-block:: python
+
         H = QobjEvo([H0, [H1, 'exp(-1j*w1*t)'], [H2, 'cos(w2*t)']],
                     args={"w1":1.,"w2":2.})
 
-    For numpy array format, the array must be an 1d of dtype float or complex.
-    A list of times (float64) at which the coeffients must be given (tlist).
-    The coeffients array must have the same len as the tlist.
-    The time of the tlist do not need to be equidistant, but must be sorted.
-    By default, a cubic spline interpolation will be used for the coefficient
-    at time t.
-    If the coefficients are to be treated as step function, use the arguments
-    args = {"_step_func_coeff": True}
-    *Examples*
+    For numpy array format, the array must be an 1d of dtype ``np.float64`` or
+    ``np.complex128``.  A list of times (``np.float64``) at which the
+    coeffients must be given as ``tlist``.  The coeffients array must have the
+    same length as the tlist.  The times of the tlist do not need to be
+    equidistant, but must be sorted.  By default, a cubic spline interpolation
+    will be used for the coefficient at time t.  If the coefficients are to be
+    treated as step functions, use the arguments
+    ``args = {"_step_func_coeff": True}``.  Examples of array-format usage are:
+
+    .. code-block:: python
+
         tlist = np.logspace(-5,0,100)
         H = QobjEvo([H0, [H1, np.exp(-1j*tlist)], [H2, np.cos(2.*tlist)]],
                     tlist=tlist)
 
-    args is a dict of (name:object). The name must be a valid variables string.
-    Some solvers support arguments that update at each call:
-    sesolve, mesolve, mcsolve:
-        state can be obtained with:
-            "state_vec":psi0, args["state_vec"] = state as 1D np.ndarray
-            "state_mat":psi0, args["state_mat"] = state as 2D np.ndarray
-            "state":psi0, args["state"] = state as Qobj
+    Mixing time formats is allowed.  It is not possible to create a single
+    ``QobjEvo`` that contains different ``tlist`` values, however.
 
-            This Qobj is the initial value.
+    **Passing arguments**
 
-        expectation values:
-            "expect_op_n":0, args["expect_op_n"] = expect(e_ops[int(n)], state)
-            expect is <phi|O|psi> or tr(state * O) depending on state dimensions
+    ``args`` is a dict of (name: object). The name must be a valid Python
+    identifier string, and in general the object can be any type that is
+    supported by the code to be compiled in the string.
 
-    mcsolve:
-        collapse can be obtained with:
-            "collapse":list => args[name] == list of collapse
-            each collapse will be appended to the list as (time, which c_ops)
+    There are some "magic" names that can be specified, whose objects will be
+    overwritten when used within :func:`.sesolve`, :func:`.mesolve` and
+    :func:`.mcsolve`.  This allows access to the solvers' internal states, and
+    they are updated at every call.  The initial values of these dictionary
+    elements is unimportant.  The magic names available are:
 
-    Mixing the formats is possible, but not recommended.
-    Mixing tlist will cause problem.
+    - ``"state"``: the current state as a :class:`~Qobj`
+    - ``"state_vec"``: the current state as a column-stacked 1D ``np.ndarray``
+    - ``"state_mat"``: the current state as a 2D ``np.ndarray``
+    - ``"expect_op_<n>"``: the current expectation value of the element
+      ``e_ops[n]``, which is an argument to the solvers.  Replace ``<n>`` with
+      an integer literal, e.g. ``"expect_op_0"``.  This will be either real- or
+      complex-valued, depending on whether the state and operator are both
+      Hermitian or not.
+    - ``"collapse"``: (:func:`.mcsolve` only) a list of the collapses that have
+      occurred during the evolution.  Each element of the list is a 2-tuple
+      ``(time: float, which: int)``, where ``time`` is the time this collapse
+      happened, and ``which`` is an integer indexing the ``c_ops`` argument to
+      :func:`.mcsolve`.
 
     Parameters
     ----------
-    QobjEvo(Q_object=[], args={}, tlist=None)
+    Q_object : list, :class:`~Qobj` or :class:`~QobjEvo`
+        The time-dependent description of the quantum object.  This is of the
+        same format as the first parameter to the general ODE solvers; in
+        general, it is a list of ``[Qobj, time_dependence]`` pairs that are
+        summed to make the whole object.  The ``time_dependence`` can be any of
+        the formats discussed in the previous section.  If a particular term
+        has no time-dependence, then you should just give the ``Qobj`` instead
+        of the 2-element list.
 
-    Q_object : array_like
-        Data for vector/matrix representation of the quantum object.
+    args : dict, optional
+        Mapping of ``{str: object}``, discussed in greater detail above.  The
+        strings can be any valid Python identifier, and the objects are of the
+        consumable types.  See the previous section for details on the "magic"
+        names used to access solver internals.
 
-    args : dictionary that contain the arguments for
+    tlist : array_like, optional
+        List of the times any numpy-array coefficients describe.  This is used
+        only in at least one of the time dependences in ``Q_object`` is given
+        in Numpy-array format.  The times must be sorted, but need not be
+        equidistant.  Values inbetween will be interpolated.
 
-    tlist : array_like
-        List of times at which the numpy-array coefficients are applied. Times
-        must be equidistant and start from 0.
 
     Attributes
     ----------
-    cte : Qobj
-        Constant part of the QobjEvo
+    cte : :class:`~Qobj`
+        Constant part of the QobjEvo.
 
-    ops : list of EvoElement
-        List of Qobj and the coefficients.
-        [(Qobj, coefficient as a function, original coefficient,
-            type, local arguments ), ... ]
-        type :
-            1: function
-            2: string
-            3: np.array
-            4: Cubic_Spline
+    ops : list of :class:`.EvoElement`
+        Internal representation of the time-dependence structure of the
+        elements.
 
-    args : map
-        arguments of the coefficients
+    args : dict
+        The current value of the ``args`` dictionary passed into the
+        constructor.
 
     dynamics_args : list
-        arguments that change during evolution
+        Names of the dynamic arguments that the solvers will generate.  These
+        are the magic names that were found in the ``args`` parameter.
 
     tlist : array_like
         List of times at which the numpy-array coefficients are applied.
 
-    compiled : string
-        Has the cython version of the QobjEvo been created
+    compiled : str
+        A string representing the properties of the low-level Cython class
+        backing this object (may be empty).
 
-    compiled_qobjevo : cy_qobj (CQobjCte or CQobjEvoTd)
-        Cython version of the QobjEvo
+    compiled_qobjevo : ``CQobjCte`` or ``CQobjEvoTd``
+        Cython version of the QobjEvo.
 
-    coeff_get : callable object
-        object called to obtain a list of coefficient at t
+    coeff_get : callable
+        Object called to obtain a list of all the coefficients at a particular
+        time.
 
     coeff_files : list
-        runtime created files to delete with the instance
+        Runtime created files to delete with the instance.
 
     dummy_cte : bool
-        is self.cte a empty Qobj
+        Is self.cte an empty Qobj
 
     const : bool
-        Indicates if quantum object is Constant
+        Indicates if quantum object is constant
 
-    type : string
-        information about the type of coefficient
-            "string", "func", "array",
-            "spline", "mixed_callable", "mixed_compilable"
+    type : {"cte", "string", "func", "array", "spline", "mixed_callable", \
+"mixed_compilable"}
+        Information about the type of coefficients used in the entire object.
 
     num_obj : int
-        number of Qobj in the QobjEvo : len(ops) + (1 if not dummy_cte)
+        Number of :obj:`~Qobj` in the QobjEvo.
 
     use_cython : bool
-        flag to compile string to cython or python
+        Flag to compile string to Cython or Python
 
     safePickle : bool
-        flag to not share pointers between thread
-
-
-    Methods
-    -------
-    copy() :
-        Create copy of Qobj
-
-    arguments(new_args):
-        Update the args of the object
-
-    Math:
-        +/- QobjEvo, Qobj, scalar:
-            Addition is possible between QobjEvo and with Qobj or scalar
-        -:
-            Negation operator
-        * Qobj, scalar:
-            Product is possible with Qobj or scalar
-        / scalar:
-            It is possible to divide by scalar only
-    conj()
-        Return the conjugate of quantum object.
-
-    dag()
-        Return the adjoint (dagger) of quantum object.
-
-    trans()
-        Return the transpose of quantum object.
-
-    _cdc()
-        Return self.dag() * self.
-
-    permute(order)
-        Returns composite qobj with indices reordered.
-
-    apply(f, *args, **kw_args)
-        Apply the function f to every Qobj. f(Qobj) -> Qobj
-        Return a modified QobjEvo and let the original one untouched
-
-    apply_decorator(decorator, *args, str_mod=None,
-                    inplace_np=False, **kw_args):
-        Apply the decorator to each function of the ops.
-        The *args and **kw_args are passed to the decorator.
-        new_coeff_function = decorator(coeff_function, *args, **kw_args)
-        str_mod : list of 2 elements
-            replace the string : str_mod[0] + original_string + str_mod[1]
-            *exemple: str_mod = ["exp(",")"]
-        inplace_np:
-            Change the numpy array instead of applying the decorator to the
-            function reading the array. Some decorators create incorrect array.
-            Transformations f'(t) = f(g(t)) create a missmatch between the
-            array and the associated time list.
-
-    tidyup(atol=1e-12)
-        Removes small elements from quantum object.
-
-    compress():
-        Merge ops which are based on the same quantum object and coeff type.
-
-    compile(code=False, matched=False, dense=False, omp=0):
-        Create the associated cython object for faster usage.
-        code: return the code generated for compilation of the strings.
-        matched: the compiled object use sparse matrix with matching indices.
-                    (experimental, no real advantage)
-        dense: the compiled object use dense matrix.
-        omp: (int) number of thread: the compiled object use spmvpy_openmp.
-
-    __call__(t, data=False, state=None, args={}):
-        Return the Qobj at time t.
-        *Faster after compilation
-
-    mul_mat(t, mat):
-        Product of this at t time with the dense matrix mat.
-        *Faster after compilation
-
-    mul_vec(t, psi):
-        Apply the quantum object (if operator, no check) to psi.
-        More generaly, return the product of the object at t with psi.
-        *Faster after compilation
-
-    expect(t, psi, herm=False):
-        Calculates the expectation value for the quantum object (if operator,
-            no check) and state psi.
-        Return only the real part if herm.
-        *Faster after compilation
-
-    to_list():
-        Return the time-dependent quantum object as a list
+        Flag to not share pointers between thread.
     """
 
     def __init__(self, Q_object=[], args={}, copy=True,
@@ -467,7 +410,7 @@ class QobjEvo:
         self.args = args.copy()
         self.dynamics_args = []
         self.cte = None
-        self.tlist = tlist
+        self.tlist = np.asarray(tlist) if tlist is not None else None
         self.compiled = ""
         self.compiled_qobjevo = None
         self.coeff_get = None
@@ -477,13 +420,17 @@ class QobjEvo:
         self.use_cython = use_cython[0]
         self.safePickle = safePickle[0]
 
+        # Attempt to determine if a 2-element list is a single, time-dependent
+        # operator, or a list with 2 possibly time-dependent elements.
         if isinstance(Q_object, list) and len(Q_object) == 2:
-            if isinstance(Q_object[0], Qobj) and not isinstance(Q_object[1],
-                                                                (Qobj, list)):
-                # The format is [Qobj, f/str]
+            try:
+                # Test if parsing succeeds on this as a single element.
+                self._td_op_type(Q_object)
                 Q_object = [Q_object]
+            except (TypeError, ValueError):
+                pass
 
-        op_type = self._td_format_check_single(Q_object, tlist)
+        op_type = self._td_format_check(Q_object)
         self.ops = []
 
         if isinstance(op_type, int):
@@ -492,7 +439,7 @@ class QobjEvo:
                 self.const = True
                 self.type = "cte"
             elif op_type == 1:
-                raise Exception("The Qobj must not already be a function")
+                raise TypeError("The Qobj must not already be a function")
             elif op_type == -1:
                 pass
         else:
@@ -564,42 +511,39 @@ class QobjEvo:
         if state0 is not None:
             self._dynamics_args_update(0., state0)
 
-    def _td_format_check_single(self, Q_object, tlist=None):
-        op_type = []
-
+    def _td_format_check(self, Q_object):
         if isinstance(Q_object, Qobj):
-            op_type = 0
-        elif isinstance(Q_object, (FunctionType,
-                                   BuiltinFunctionType, partial)):
-            op_type = 1
-        elif isinstance(Q_object, list):
-            if (len(Q_object) == 0):
-                op_type = -1
-            for op_k in Q_object:
-                if isinstance(op_k, Qobj):
-                    op_type.append(0)
-                elif isinstance(op_k, list):
-                    if not isinstance(op_k[0], Qobj):
-                        raise TypeError("Incorrect Q_object specification")
-                    elif len(op_k) == 2:
-                        if isinstance(op_k[1], Cubic_Spline):
-                            op_type.append(4)
-                        elif callable(op_k[1]):
-                            op_type.append(1)
-                        elif isinstance(op_k[1], str):
-                            op_type.append(2)
-                        elif isinstance(op_k[1], np.ndarray):
-                            if not isinstance(tlist, np.ndarray) or not \
-                                        len(op_k[1]) == len(tlist):
-                                raise TypeError("Time list does not match")
-                            op_type.append(3)
-                        else:
-                            raise TypeError("Incorrect Q_object specification")
-                    else:
-                        raise TypeError("Incorrect Q_object specification")
+            return 0
+        if isinstance(Q_object, (FunctionType, BuiltinFunctionType, partial)):
+            return 1
+        if isinstance(Q_object, list):
+            return [self._td_op_type(element) for element in Q_object] or -1
+        raise TypeError("Incorrect Q_object specification")
+
+    def _td_op_type(self, element):
+        if isinstance(element, Qobj):
+            return 0
+        try:
+            op, td = element
+        except (TypeError, ValueError) as exc:
+            raise TypeError("Incorrect Q_object specification") from exc
+        if (not isinstance(op, Qobj)) or isinstance(td, Qobj):
+            # Qobj is itself callable, so we need an extra check to make sure
+            # that we don't have a two-element list where both are Qobj.
+            raise TypeError("Incorrect Q_object specification")
+        if isinstance(td, Cubic_Spline):
+            out = 4
+        elif callable(td):
+            out = 1
+        elif isinstance(td, str):
+            out = 2
+        elif isinstance(td, np.ndarray):
+            if self.tlist is None or td.shape != self.tlist.shape:
+                raise ValueError("Time lists are not compatible")
+            out = 3
         else:
             raise TypeError("Incorrect Q_object specification")
-        return op_type
+        return out
 
     def _args_checks(self):
         statedims = [self.cte.dims[1],[1]]
@@ -652,10 +596,13 @@ class QobjEvo:
                 pass
 
     def __call__(self, t, data=False, state=None, args={}):
+        """
+        Return a single :obj:`~Qobj` at the given time ``t``.
+        """
         try:
             t = float(t)
         except Exception as e:
-            raise TypeError("t should be a real scalar.") from e
+            raise TypeError("Time must be a real scalar.") from e
 
         if state is not None:
             self._dynamics_args_update(t, state)
@@ -750,6 +697,7 @@ class QobjEvo:
             raise TypeError("state must be a Qobj or np.ndarray")
 
     def copy(self):
+        """Return a copy of this object."""
         new = QobjEvo(self.cte.copy())
         new.const = self.const
         new.args = self.args.copy()
@@ -801,6 +749,9 @@ class QobjEvo:
                                        new_coeff, op.type))
 
     def arguments(self, new_args):
+        """
+        Update the scoped variables that were passed as ``args`` to new values.
+        """
         if not isinstance(new_args, dict):
             raise TypeError("The new args must be in a dict")
         # remove dynamics_args that are to be refreshed
@@ -834,6 +785,10 @@ class QobjEvo:
                 self.coeff_get.set_args(self.args, self.dynamics_args)
 
     def to_list(self):
+        """
+        Return this operator in the list-like form used to initialised it, like
+        can be passed to :func:`~mesolve`.
+        """
         list_qobj = []
         if not self.dummy_cte:
             list_qobj.append(self.cte)
@@ -885,7 +840,7 @@ class QobjEvo:
                     pass
                 elif len(other.tlist) != len(self.tlist) or \
                         other.tlist[-1] != self.tlist[-1]:
-                    raise Exception("tlist are not compatible")
+                    raise ValueError("Time lists are not compatible")
         else:
             self.cte += other
             self.dummy_cte = False
@@ -929,7 +884,8 @@ class QobjEvo:
             self.cte *= other
             for op in self.ops:
                 op.qobj *= other
-        elif isinstance(other, QobjEvo):
+            return self
+        if isinstance(other, QobjEvo):
             if other.const:
                 self.cte *= other.cte
                 for op in self.ops:
@@ -963,11 +919,8 @@ class QobjEvo:
                 self.num_obj = (len(self.ops) if
                               self.dummy_cte else len(self.ops) + 1)
             self._reset_type()
-
-        else:
-            raise TypeError("QobjEvo can only be multiplied"
-                            " with QobjEvo, Qobj or numbers")
-        return self
+            return self
+        return NotImplemented
 
     def __div__(self, other):
         if isinstance(other, (int, float, complex,
@@ -975,16 +928,14 @@ class QobjEvo:
             res = self.copy()
             res *= other**(-1)
             return res
-        else:
-            raise TypeError('Incompatible object for division')
+        return NotImplemented
 
     def __idiv__(self, other):
         if isinstance(other, (int, float, complex,
                               np.integer, np.floating, np.complexfloating)):
             self *= other**(-1)
-        else:
-            raise TypeError('Incompatible object for division')
-        return self
+            return self
+        return NotImplemented
 
     def __truediv__(self, other):
         return self.__div__(other)
@@ -1022,6 +973,7 @@ class QobjEvo:
 
     # Transformations
     def trans(self):
+        """Return the matrix transpose."""
         res = self.copy()
         res.cte = res.cte.trans()
         for op in res.ops:
@@ -1029,6 +981,7 @@ class QobjEvo:
         return res
 
     def conj(self):
+        """Return the matrix elementwise conjugation."""
         res = self.copy()
         res.cte = res.cte.conj()
         for op in res.ops:
@@ -1037,6 +990,7 @@ class QobjEvo:
         return res
 
     def dag(self):
+        """Return the matrix conjugate-transpose (dagger)."""
         res = self.copy()
         res.cte = res.cte.dag()
         for op in res.ops:
@@ -1045,7 +999,7 @@ class QobjEvo:
         return res
 
     def _cdc(self):
-        """return a.dag * a """
+        """Return ``a.dag * a``."""
         if not self.num_obj == 1:
             res = self.dag()
             res *= self
@@ -1059,6 +1013,7 @@ class QobjEvo:
 
     # Unitary function of Qobj
     def tidyup(self, atol=1e-12):
+        """Removes small elements from this quantum object inplace."""
         self.cte = self.cte.tidyup(atol)
         for op in self.ops:
             op.qobj = op.qobj.tidyup(atol)
@@ -1153,6 +1108,13 @@ class QobjEvo:
         self.ops = new_ops
 
     def compress(self):
+        """
+        Merge together elements that share the same time-dependence, to reduce
+        the number of matrix multiplications and additions that need to be done
+        to evaluate this object.
+
+        Modifies the object inplace.
+        """
         self.tidyup()
         sets, fsets = self._compress_make_set()
         N_sets = len(sets)
@@ -1216,14 +1178,29 @@ class QobjEvo:
         self.num_obj = (len(self.ops) if self.dummy_cte else len(self.ops) + 1)
 
     def permute(self, order):
+        """
+        Permute the tensor structure of the underlying matrices into a new
+        format.
+
+        See Also
+        --------
+        Qobj.permute : the same operation on constant quantum objects.
+        """
         res = self.copy()
         res.cte = res.cte.permute(order)
         for op in res.ops:
             op.qobj = op.qobj.permute(order)
         return res
 
-    # function to apply custom transformations
     def apply(self, function, *args, **kw_args):
+        """
+        Apply the linear function ``function`` to every ``Qobj`` included in
+        this time-dependent object, and return a new ``QobjEvo`` with the
+        result.
+
+        Any additional arguments or keyword arguments will be appended to every
+        function call.
+        """
         self.compiled = ""
         res = self.copy()
         cte_res = function(res.cte, *args, **kw_args)
@@ -1234,17 +1211,34 @@ class QobjEvo:
             op.qobj = function(op.qobj, *args, **kw_args)
         return res
 
-    def apply_decorator(self, function, *args, **kw_args):
-        if "str_mod" in kw_args:
-            str_mod = kw_args["str_mod"]
-            del kw_args["str_mod"]
-        else:
-            str_mod = None
-        if "inplace_np" in kw_args:
-            inplace_np = kw_args["inplace_np"]
-            del kw_args["inplace_np"]
-        else:
-            inplace_np = None
+    def apply_decorator(self, function, *args,
+                        str_mod=None, inplace_np=False, **kw_args):
+        """
+        Apply the given function to every time-dependent coefficient in the
+        quantum object, and return a new object with the result.
+
+        Any additional arguments and keyword arguments will be appended to the
+        function calls.
+
+        Parameters
+        ----------
+        function : callable
+            ``(time_dependence, *args, **kwargs) -> time_dependence``.  Called
+            on each time-dependent coefficient to produce a new coefficient.
+            The additional arguments and keyword arguments are the ones given
+            to this function.
+
+        str_mod : list
+            A 2-element list of strings, that will additionally wrap any string
+            time-dependences.  An existing time-dependence string ``x`` will
+            become ``str_mod[0] + x + str_mod[1]``.
+
+        inplace_np : bool, default False
+            Whether this function should modify Numpy arrays inplace, or be
+            used like a regular decorator.  Some decorators create incorrect
+            arrays as some transformations ``f'(t) = f(g(t))`` create a
+            mismatch between the array and the associated time list.
+        """
         res = self.copy()
         for op in res.ops:
             op.get_coeff = function(op.get_coeff, *args, **kw_args)
@@ -1357,16 +1351,38 @@ class QobjEvo:
         self.ops = new_ops
         return self
 
-    def expect(self, t, state, herm=0):
+    def expect(self, t, state, herm=False):
+        """
+        Calculate the expectation value of this operator on the given
+        (time-independent) state at a particular time.
+
+        This is more efficient than ``expect(QobjEvo(t), state)``.
+
+        Parameters
+        ----------
+        t : float
+            The time to evaluate this operator at.
+
+        state : Qobj or np.ndarray
+            The state to take the expectation value around.
+
+        herm : bool, default False
+            Whether this operator and the state are both Hermitian.  If True,
+            only the real part of the result will be returned.
+
+        See Also
+        --------
+        expect : General-purpose expectation values.
+        """
         if not isinstance(t, (int, float)):
-            raise TypeError("The time need to be a real scalar")
+            raise TypeError("Time must be a real scalar")
         if isinstance(state, Qobj):
             if self.cte.dims[1] == state.dims[0]:
                 vec = state.full().ravel("F")
             elif self.cte.dims[1] == state.dims:
                 vec = state.full().ravel("F")
             else:
-                raise Exception("Dimensions do not fit")
+                raise ValueError("Dimensions do not fit")
         elif isinstance(state, np.ndarray):
             vec = state.ravel("F")
         else:
@@ -1383,14 +1399,14 @@ class QobjEvo:
                 exp = cy_expect_psi(self.__call__(t, data=True), vec, 0)
         elif vec.shape[0] == self.cte.shape[1]**2:
             if self.compiled:
-                exp = self.compiled_qobjevo.overlapse(t, vec)
+                exp = self.compiled_qobjevo.overlap(t, vec)
             else:
                 self._dynamics_args_update(t, state)
                 exp = (self.__call__(t, data=True) *
                        vec.reshape((self.cte.shape[1],
                                     self.cte.shape[1])).T).trace()
         else:
-            raise Exception("The shapes do not match")
+            raise ValueError("The shapes do not match")
 
         if herm:
             return exp.real
@@ -1398,21 +1414,37 @@ class QobjEvo:
             return exp
 
     def mul_vec(self, t, vec):
+        """
+        Multiply this object evaluated at time `t` by a vector.
+
+        Parameters
+        ----------
+        t : float
+            The time to evaluate this object at.
+
+        vec : Qobj or np.ndarray
+            The state-vector to multiply this object by.
+
+        Returns
+        -------
+        vec: Qobj or np.ndarray
+            The vector result in the same type as the input.
+        """
         was_Qobj = False
         if not isinstance(t, (int, float)):
-            raise TypeError("the time need to be a real scalar")
+            raise TypeError("Time must be a real scalar")
         if isinstance(vec, Qobj):
             if self.cte.dims[1] != vec.dims[0]:
-                raise Exception("Dimensions do not fit")
+                raise ValueError("Dimensions do not fit")
             was_Qobj = True
             dims = vec.dims
             vec = vec.full().ravel()
         elif not isinstance(vec, np.ndarray):
             raise TypeError("The vector must be an array or Qobj")
         if vec.ndim != 1:
-            raise Exception("The vector must be 1d")
+            raise ValueError(f"The vector must be 1d, but is {vec.ndim}d")
         if vec.shape[0] != self.cte.shape[1]:
-            raise Exception("The length do not match")
+            raise ValueError("The lengths do not match")
 
         if self.compiled:
             out = self.compiled_qobjevo.mul_vec(t, vec)
@@ -1426,21 +1458,38 @@ class QobjEvo:
             return out
 
     def mul_mat(self, t, mat):
+        """
+        Multiply this object evaluated at time `t` by a matrix (from the
+        right).
+
+        Parameters
+        ----------
+        t : float
+            The time to evaluate this object at.
+
+        mat : Qobj or np.ndarray
+            The matrix that is multiplied by this object.
+
+        Returns
+        -------
+        mat: Qobj or np.ndarray
+            The matrix result in the same type as the input.
+        """
         was_Qobj = False
         if not isinstance(t, (int, float)):
-            raise TypeError("the time need to be a real scalar")
+            raise TypeError("Time must be a real scalar")
         if isinstance(mat, Qobj):
             if self.cte.dims[1] != mat.dims[0]:
-                raise Exception("Dimensions do not fit")
+                raise ValueError("Dimensions do not fit")
             was_Qobj = True
             dims = mat.dims
             mat = mat.full()
         if not isinstance(mat, np.ndarray):
             raise TypeError("The vector must be an array or Qobj")
         if mat.ndim != 2:
-            raise Exception("The matrice must be 2d")
+            raise ValueError(f"The matrix must be 2d, but is {mat.ndim}d")
         if mat.shape[0] != self.cte.shape[1]:
-            raise Exception("The length do not match")
+            raise ValueError("The lengths do not match")
 
         if self.compiled:
             out = self.compiled_qobjevo.mul_mat(t, mat)
@@ -1454,6 +1503,35 @@ class QobjEvo:
             return out
 
     def compile(self, code=False, matched=False, dense=False, omp=0):
+        """
+        Create an associated Cython object for faster usage.  This function is
+        called automatically by the solvers.
+
+        Parameters
+        ----------
+        code : bool, default False
+            Return the code string generated by compilation of any strings.
+
+        matched : bool, default False
+            If True, the underlying sparse matrices used to represent each
+            element of the type will have their structures unified.  This may
+            include adding explicit zeros to sparse matrices, but can be faster
+            in some cases due to not having to deal with repeated structural
+            mismatches.
+
+        dense : bool, default False
+            Whether to swap to using dense matrices to back the data.
+
+        omp : int, optional
+            The number of OpenMP threads to use when doing matrix
+            multiplications, if QuTiP was compiled with OpenMP.
+
+        Returns
+        -------
+        compiled_str : str
+            (Only if `code` was set to True).  The code-generated string of
+            compiled calling code.
+        """
         self.tidyup()
         Code = None
         if self.compiled:
@@ -1781,6 +1859,3 @@ class _Add():
 
     def __call__(self, t, args):
         return np.sum([f(t, args) for f in self.funcs])
-
-
-from qutip.superoperator import vec2mat
