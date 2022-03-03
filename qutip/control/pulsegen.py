@@ -280,16 +280,23 @@ class PulseGen(object):
         if self.lbound is None and self.ubound is None:
             return pulse + self.offset
 
-        if (isinstance(self.lbound, np.ndarray) and
-                isinstance(self.ubound, np.ndarray)):
+        if (
+            # init_pulse should ensure that these are either both ndarrays
+            # or both not ndarrays
+            isinstance(self.lbound, np.ndarray) or
+            isinstance(self.ubound, np.ndarray)
+        ):
             if ctrl_index not in range(self.lbound.shape[1]):
-                raise ValueError('ndarray bounds should be of \
-                    shape (n_tslots x n_ctrls).')
+                raise ValueError(
+                    "ndarray bounds should be of shape (n_tslots x n_ctrls)."
+                )
             offset_pulse = pulse + self.offset
             lbound = self.lbound[:, ctrl_index]
             ubound = self.ubound[:, ctrl_index]
-            if ((lbound <= offset_pulse).all() and
-                    (ubound >= offset_pulse).all()):
+            if (
+                (lbound <= offset_pulse).all() and
+                (ubound >= offset_pulse).all()
+            ):
                 return offset_pulse
             max_lbound = np.max(lbound)
             min_ubound = np.min(ubound)
@@ -312,12 +319,17 @@ class PulseGen(object):
                 return pulse + max_lbound - min(pulse)
             # the bounds are too tight
             else:
-                raise ValueError('The initial pulse does not fit in the bounds')
+                raise ValueError(
+                    "The initial pulse does not fit in the bounds"
+                )
         else:
             max_amp = max(pulse)
             min_amp = min(pulse)
-            if ((self.ubound is None or max_amp + self.offset <= self.ubound) and
-                (self.lbound is None or min_amp + self.offset >= self.lbound)):
+            if (
+                (self.ubound is None or max_amp + self.offset <= self.ubound)
+                and
+                (self.lbound is None or min_amp + self.offset >= self.lbound)
+            ):
                 return pulse + self.offset
 
             # Some shifting / scaling is required.
@@ -346,6 +358,7 @@ class PulseGen(object):
             pulse = pulse*ramping_pulse
 
         return pulse
+
 
 class PulseGenZero(PulseGen):
     """
@@ -1009,10 +1022,14 @@ class PulseGenCustom(PulseGen):
         """
         Generates the input custom pulse of the specified index
         """
-        if ((self.init_custom_pulse.shape[0] != self.tau.shape[0]) or
-            (ctrl_index not in range(self.init_custom_pulse.shape[1]))):
-            raise ValueError("The initial custom pulse array should be of "
-                    "shape (num_tslots x num_ctrls).")
+        if (
+            (self.init_custom_pulse.shape[0] != self.tau.shape[0]) or
+            (ctrl_index not in range(self.init_custom_pulse.shape[1]))
+        ):
+            raise ValueError(
+                "The initial custom pulse array should be of "
+                "shape (num_tslots x num_ctrls)."
+            )
 
         if not self._pulse_initialised:
             self.init_pulse()
