@@ -425,6 +425,9 @@ def _check_inputs(H, psi0, krylov_dim):
             "krylovsolve currently supports Hamiltonian Qobj operators only"
         )
 
+    if not H.isherm:
+        raise TypeError("Hamiltonian 'H' must be hermician.")
+
     if not isinstance(psi0, Qobj):
         raise TypeError("'psi0' must be a Qobj.")
 
