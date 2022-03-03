@@ -69,7 +69,7 @@ A very general way to write a time-dependent Hamiltonian or collapse operator is
 
 >>> H = [H0, [H1, py_coeff1], [H2, py_coeff2], ...] # doctest: +SKIP
 
-where ``H0`` is a time-independent Hamiltonian, while ``H1``, ``H2``, are time dependent. The same format can be used for collapse operators:
+where ``H0`` is a time-independent Hamiltonian, while ``H1``and ``H2`` are time dependent. The same format can be used for collapse operators:
 
 >>> c_ops = [[C0, py_coeff0], C1, [C2, py_coeff2], ...] # doctest: +SKIP
 
