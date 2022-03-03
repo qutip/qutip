@@ -328,6 +328,17 @@ class Qobj(object):
             if self.type == 'super' and self.superrep is None:
                 self.superrep = 'super'
 
+        # While the obvious check would be != that would fail valid
+        # use cases such as enr_fock and other enr_ functions.
+        # This does leave open the possibility of data still being
+        # misused such as Qobj(complex[n**2][1], dims = [[n],[n]])
+        if (self._data.shape[0] > np.prod(np.hstack(self.dims[0])) or
+           self._data.shape[1] > np.prod(np.hstack(self.dims[1]))) and \
+           self.type != 'super':
+
+            raise ValueError(f"Qobj has smaller dims {self.dims} " +
+                             f"than underlying shape {self._data.shape}")
+
         # clear type cache
         self._type = None
 
