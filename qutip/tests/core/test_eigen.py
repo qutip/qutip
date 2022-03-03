@@ -59,6 +59,7 @@ def test_SparseHermValsVecs():
     assert_equal(spvals[0] <= spvals[-1], True)
     for k in range(7):
         assert_equal(abs(spvals[k] - k) < 1e-12, True)
+        assert_equal(abs(expect(N, spvecs[k]) - spvals[k]) < 1e-12, True)
 
     spvals, spvecs = N.eigenstates(sparse=True, sort='high', eigvals=5)
     assert_equal(len(spvals), 5)
@@ -135,6 +136,21 @@ def test_SparseValsOnly():
     assert_equal(spvals[0] >= spvals[-1], True)
     spvals = U.eigenenergies(sparse=True, sort='high', eigvals=4)
     assert_equal(len(spvals), 4)
+
+
+def test_SparseFewState():
+    H = rand_herm(10, dtype='csr')
+    all_spvals, all_spvecs = H.eigenstates(sparse=True, sort='low',)
+    for i in range(1, 10):
+        spvals, spvecs = H.eigenstates(sparse=True, sort='high', eigvals=i)
+        assert np.allclose(all_spvals[:-i-1:-1], spvals)
+        for val, vec in zip(spvals, spvecs):
+            assert abs(expect(H, vec) - val) < 1e-13
+    for i in range(1, 10):
+        spvals, spvecs = H.eigenstates(sparse=True, sort='low', eigvals=i)
+        assert np.allclose(all_spvals[:i], spvals)
+        for val, vec in zip(spvals, spvecs):
+            assert abs(expect(H, vec) - val) < 1e-13
 
 
 def test_DenseHermValsVecs():
@@ -232,3 +248,18 @@ def test_DenseValsOnly():
     assert_equal(spvals[0] >= spvals[-1], True)
     spvals = U.eigenenergies(sparse=False, sort='high', eigvals=4)
     assert_equal(len(spvals), 4)
+
+
+def test_DenseFewState():
+    H = rand_herm(10, dtype='dense')
+    all_spvals, all_spvecs = H.eigenstates(sort='low',)
+    for i in range(1, 10):
+        spvals, spvecs = H.eigenstates(sort='high', eigvals=i)
+        assert np.allclose(all_spvals[:-i-1:-1], spvals)
+        for val, vec in zip(spvals, spvecs):
+            assert abs(expect(H, vec) - val) < 1e-13
+    for i in range(1, 10):
+        spvals, spvecs = H.eigenstates(sort='low', eigvals=i)
+        assert np.allclose(all_spvals[:i], spvals)
+        for val, vec in zip(spvals, spvecs):
+            assert abs(expect(H, vec) - val) < 1e-13
