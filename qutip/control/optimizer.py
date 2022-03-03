@@ -166,16 +166,14 @@ class Optimizer(object):
         Note it is set True automatically when the alg is CRAB
 
     amp_lbound : float or list of floats or ndarray of floats
-        lower boundaries for the control amplitudes
-        Can be a scalar value applied to all controls
-        or a list of bounds for each control
-        or an ndarray of bounds for each control at each time slot
+        Lower boundaries for the control amplitudes.  Can be a scalar value
+        applied to all controls, a list or 1-d ndarray of bounds for each
+        control, or a 2-d ndarray of bounds for each control at each time slot.
 
     amp_ubound : float or list of floats or ndarray of floats
-        upper boundaries for the control amplitudes
-        Can be a scalar value applied to all controls
-        or a list of bounds for each control
-        or an ndarray of bounds for each control at each time slot
+        Upper boundaries for the control amplitudes.  Can be a scalar value
+        applied to all controls, a list or 1-d ndarray of bounds for each
+        control, or a 2-d ndarray of bounds for each control at each time slot.
 
     bounds : List of floats
         Bounds for the parameters.
@@ -493,10 +491,10 @@ class Optimizer(object):
         self.bounds = []
         for t in range(dyn.num_tslots):
             for c in range(n_ctrls):
-                if (isinstance(self.amp_lbound, np.ndarray) 
+                if (isinstance(self.amp_lbound, np.ndarray)
                     and self.amp_lbound.ndim == 2):
                     lb = self.amp_lbound[t, c]
-                elif (isinstance(self.amp_lbound, np.ndarray) 
+                elif (isinstance(self.amp_lbound, np.ndarray)
                     and self.amp_lbound.ndim == 1):
                     lb = self.amp_lbound[c]
                 elif isinstance(self.amp_lbound, list):
@@ -507,11 +505,11 @@ class Optimizer(object):
                     raise ValueError('The bounds supplied must be \
                     floats, lists or ndarrays of shape (num_ctrls), \
                     or ndarrays of shape (num_tslots x num_ctrls)')
-                
-                if (isinstance(self.amp_ubound, np.ndarray) 
+
+                if (isinstance(self.amp_ubound, np.ndarray)
                     and self.amp_ubound.ndim == 2):
                     ub = self.amp_ubound[t, c]
-                elif (isinstance(self.amp_ubound, np.ndarray) 
+                elif (isinstance(self.amp_ubound, np.ndarray)
                     and self.amp_ubound.ndim == 1):
                     ub = self.amp_ubound[c]
                 elif isinstance(self.amp_ubound, list):
@@ -556,7 +554,7 @@ class Optimizer(object):
 
         The result is returned in an OptimResult object, which includes
         the final fidelity, time evolution, reason for termination etc
-        
+
         """
         self.init_optim(term_conds)
         term_conds = self.termination_conditions
@@ -635,7 +633,7 @@ class Optimizer(object):
         that is the 1d array that is passed from the optimisation method
         Note for GRAPE these are the function optimiser parameters
         (and this is the default)
-        
+
         Returns
         -------
         float array[dynamics.num_tslots, dynamics.num_ctrls]
@@ -959,7 +957,7 @@ class OptimizerLBFGSB(Optimizer):
 
         The result is returned in an OptimResult object, which includes
         the final fidelity, time evolution, reason for termination etc
-        
+
         """
         self.init_optim(term_conds)
         term_conds = self.termination_conditions
@@ -1116,11 +1114,11 @@ class OptimizerCrab(Optimizer):
         Generate the 1d array that holds the current variable values
         of the function to be optimised
         For CRAB these are the basis coefficients
-        
+
         Returns
         -------
         ndarray (1d) of float
-        
+
         """
         pvals = []
         for pgen in self.pulse_generator:
