@@ -46,8 +46,14 @@ class TestBloch:
         pytest.param(
             (1, 0, 0), (1, 0, 0), (0, 1, 0), (0, 1, 0), {}, id="arrays"),
         pytest.param(
+            (0.1, 0, 0), (0.1, 0, 0), (0, 0.1, 0), (0, 0.1, 0), {},
+            id="small-radius"),
+        pytest.param(
+            (1e-5, 0, 0), (1e-5, 0, 0), (0, 1e-5, 0), (0, 1e-5, 0), {},
+            id="tiny-radius"),
+        pytest.param(
             (1.2, 0, 0), (1.2, 0, 0), (0, 1.2, 0), (0, 1.2, 0), {},
-            id="outside-sphere"),
+            id="large-radius"),
         pytest.param(
             (1, 0, 0), (1, 0, 0), (0, 1, 0), (0, 1, 0),
             {"fmt": "r", "linestyle": "-"}, id="fmt-and-kwargs",
