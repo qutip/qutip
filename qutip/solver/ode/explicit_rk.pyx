@@ -109,7 +109,7 @@ cdef class Explicit_RungeKutta:
 
         # contrain on the step times
         self.first_step = first_step
-        self.min_step = min_step
+        self.min_step = min_step or 1e-15
         self.max_step = max_step
 
         # If True, will do the steps longer that the target and use
@@ -319,16 +319,18 @@ cdef class Explicit_RungeKutta:
         cdef int nsteps = 0
         while error >= 1:
             dt = self._get_timestep(t)
-            if dt < 1e-15:
+            error = self._compute_step(dt)
+            self._dt_int = dt
+            self._recompute_safe_step(error, dt)
+
+            if dt == self.min_step and error > 1:
+                # The tolerance was not reached but the dt is at the minimum.
                 self._status = Status.DT_UNDERFLOW
                 break
+            nsteps += 1
             if nsteps > max_step:
                 self._status = Status.TOO_MUCH_WORK
                 break
-            error = self._compute_step(dt)
-            self._recompute_safe_step(error, dt)
-            self._dt_int = dt
-            nsteps += 1
         return nsteps
 
     cdef double _compute_step(self, double dt):
