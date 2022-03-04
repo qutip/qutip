@@ -60,7 +60,11 @@ def krylovsolve(
          Single operator or list of operators for which to evaluate
          expectation values.
      options : Options
-         Instance of ODE solver options.
+         Instance of ODE solver options, as well as krylov parameters.
+            atol: controls (approximately) the error desired for the final solution. (Defaults
+            to 1e-8)
+            nsteps: maximum number of krylov's internal number of Lanczos iterations.
+            (Defaults to 10000)
      progress_bar : None / BaseProgressBar
          Optional instance of BaseProgressBar, or a subclass thereof, for
          showing the progress of the simulation.
@@ -93,7 +97,7 @@ def krylovsolve(
 
     # create internal variable and output containers
     if options is None:
-        options = Options()
+        options = Options(nsteps=10000)
     krylov_results = Result()
     krylov_results.solver = "krylovsolve"
 
@@ -141,11 +145,17 @@ def krylovsolve(
 
         # calculate optimal number of internal timesteps.
         delta_t = _optimize_lanczos_timestep_size(
-            T_m, krylov_basis=krylov_basis, tlist=tlist, tol=options.atol
+            T_m, krylov_basis=krylov_basis, tlist=tlist, options=options
         )
-
         n_timesteps = int(ceil((tf - t0) / delta_t))
-
+        
+        if n_timesteps >= options.nsteps:
+            raise Exception(
+                f"Optimization requires a number {n_timesteps} of lanczos iterations, "
+                f"which exceeds the defined allowed number {options.nsteps}. This can "
+                "be increased via the 'Options.nsteps' property."
+            )
+            
     partitions = _make_partitions(tlist=tlist, n_timesteps=n_timesteps)
 
     if progress_bar:
@@ -564,7 +574,7 @@ def _happy_breakdown(
     return res
 
 
-def _optimize_lanczos_timestep_size(T, krylov_basis, tlist, tol):
+def _optimize_lanczos_timestep_size(T, krylov_basis, tlist, options):
     """
     Solves the equation defined to optimize the number of Lanczos
     iterations to be performed inside Krylov's algorithm.
@@ -575,15 +585,28 @@ def _optimize_lanczos_timestep_size(T, krylov_basis, tlist, tol):
         krylov_basis=krylov_basis,
         t0=tlist[0],
         tf=tlist[-1],
-        target_tolerance=tol,
+        target_tolerance=options.atol,
     )
-    bracket = [tlist[0], tlist[-1]]
+    
+    # To avoid the singularity at t0, we add a small epsilon value 
+    t_min = (tlist[-1] - tlist[0] ) * 1e-5 + tlist[0]
+    bracket = [t_min, tlist[-1]]
 
-    if (np.sign(f(tlist[0])) == -1) and (np.sign(f(tlist[-1])) == -1):
+    if (np.sign(f(bracket[0])) == -1) and (np.sign(f(bracket[-1])) == -1):
         delta_t = tlist[-1] - tlist[0]
         return delta_t
+
+    elif (np.sign(f(bracket[0])) == 1) and (np.sign(f(bracket[-1])) == 1):
+        raise Exception(
+            "No solution exists with the given combination of parameters 'krylov_dim', " 
+            "tolerance = 'options.atol', maximum number allowed of krylov internal "
+            "partitions = 'options.nsteps' and 'tlist'. Try reducing the tolerance, or "
+            "increasing 'krylov_dim'. If nothing works, then a deeper analysis of the "
+            "problem is recommended."
+        )
+
     else:
-        sol = root_scalar(f=f, bracket=bracket, method="brentq", xtol=tol)
+        sol = root_scalar(f=f, bracket=bracket, method="brentq", xtol=options.atol)
         if sol.converged:
             delta_t = sol.root
             return delta_t
@@ -624,7 +647,8 @@ def _lanczos_error_equation_to_optimize_delta_t(
 
         error = np.linalg.norm(psi1 - psi2)
 
-        steps = 1 if t == t0 else max(1, (tf - t0) // (t - t0))
+        #steps = 1 if t == t0 else max(1, (tf - t0) // (t - t0))
+        steps = max(1, (tf - t0) // (t - t0))
         return np.log10(error) + np.log10(steps) - np.log10(target_tolerance)
 
     return f
