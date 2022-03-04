@@ -175,8 +175,6 @@ def rand_herm(N, density=0.75, dims=None, pos_def=False,
     if isinstance(N, (np.ndarray, list)):
         M = _data.diag[_data.CSR](N, 0)
         N = len(N)
-        if dims:
-            _check_dims(dims, N, N)
         nvals = max([N**2 * density, 1])
         M = rand_jacobi_rotation(M)
         while _data.csr.nnz(M) < 0.95 * nvals:
@@ -184,8 +182,6 @@ def rand_herm(N, density=0.75, dims=None, pos_def=False,
 
     elif isinstance(N, numbers.Integral):
         N = int(N)
-        if dims:
-            _check_dims(dims, N, N)
         if density < 0.5:
             M = _rand_herm_sparse(N, density, pos_def)
         else:
@@ -271,8 +267,6 @@ def rand_unitary(N, density=0.75, dims=None, *, seed=None, dtype=_data.Dense):
         NxN Unitary quantum operator.
 
     """
-    if dims:
-        _check_dims(dims, N, N)
     return (-1.0j * rand_herm(N, density, dims=dims,
                               seed=seed, dtype=dtype)
             ).expm().to(dtype)
@@ -305,9 +299,7 @@ def rand_unitary_haar(N=2, dims=None, *, seed=None, dtype=_data.Dense):
         Unitary of dims ``[[dim], [dim]]`` drawn from the Haar
         measure.
     """
-    if dims is not None:
-        _check_dims(dims, N, N)
-    else:
+    if dims is None:
         dims = [[N], [N]]
 
     # Mez01 STEP 1: Generate an N × N matrix Z of complex standard
@@ -369,10 +361,9 @@ def rand_ket(N=0, density=1, dims=None, *, seed=None, dtype=_data.Dense):
     if seed is not None:
         np.random.seed(seed=seed)
     if N and dims:
-        _check_dims(dims, N, 1)
+        pass
     elif dims:
         N = np.prod(dims[0])
-        _check_dims(dims, N, 1)
     else:
         dims = [[N], [1]]
     X = scipy.sparse.rand(N, 1, density, format='csr')
@@ -419,10 +410,9 @@ def rand_ket_haar(N=2, dims=None, *, seed=None, dtype=_data.Dense):
         A random state vector drawn from the Haar measure.
     """
     if N and dims:
-        _check_dims(dims, N, 1)
+        pass
     elif dims:
         N = np.prod(dims[0])
-        _check_dims(dims, N, 1)
     else:
         dims = [[N], [1]]
     U = rand_unitary_haar(N, seed=seed, dims=[dims[0], dims[0]])
@@ -471,16 +461,12 @@ def rand_dm(N, density=0.75, pure=False, dims=None, *,
                              'must sum to one.')
         H = _data.diag(N, 0)
         N = len(N)
-        if dims:
-            _check_dims(dims, N, N)
         nvals = N**2 * density
         H = rand_jacobi_rotation(H)
         while _data.csr.nnz(H) < 0.95*nvals:
             H = rand_jacobi_rotation(H)
     elif isinstance(N, numbers.Integral):
         N = int(N)
-        if dims:
-            _check_dims(dims, N, N)
         if pure:
             dm_density = np.sqrt(density)
             psi = rand_ket(N, dm_density, dtype=dtype)
@@ -608,9 +594,6 @@ def rand_kraus_map(N, dims=None, *, seed=None, dtype=_data.Dense):
         N^2 x N x N qobj operators.
 
     """
-    if dims:
-        _check_dims(dims, N, N)
-
     # Random unitary (Stinespring Dilation)
     big_unitary = rand_unitary(N ** 3, seed=seed, dtype=dtype).full()
     orthog_cols = np.array(big_unitary[:, :N])
@@ -640,12 +623,9 @@ def rand_super(N, dims=None, *, seed=None, dtype=_data.Dense):
         Storage representation. Any data-layer known to `qutip.data.to` is
         accepted.
     """
-    if dims is not None:
-        # TODO: check!
-        _check_dims(dims, N**2, N**2)
-        pass
-    else:
+    if dims is None:
         dims = [[[N], [N]], [[N], [N]]]
+
     H = rand_herm(N, seed=seed, dtype=dtype)
     S = propagator(H, np.random.rand(), [
         create(N), destroy(N), jmat(float(N - 1) / 2.0, 'z')
@@ -781,8 +761,6 @@ def rand_stochastic(N, density=0.75, kind='left', dims=None,
     """
     if seed is not None:
         np.random.seed(seed=seed)
-    if dims:
-        _check_dims(dims, N, N)
     num_elems = max([int(np.ceil(N*(N+1)*density)/2), N])
     data = np.random.rand(num_elems)
     # Ensure an element on every row and column
@@ -806,17 +784,6 @@ def rand_stochastic(N, density=0.75, kind='left', dims=None,
     else:
         return Qobj(M).to(dtype)
 
-
-def _check_dims(dims, N1, N2):
-    if len(dims) != 2:
-        raise Exception("Qobj dimensions must be list of length 2.")
-    if (not isinstance(dims[0], list)) or (not isinstance(dims[1], list)):
-        raise TypeError(
-            "Qobj dimension components must be lists. i.e. dims=[[N],[N]]")
-    if np.prod(dims[0]) != N1 or np.prod(dims[1]) != N2:
-        raise ValueError("Qobj dimensions must match matrix shape.")
-    if len(dims[0]) != len(dims[1]):
-        raise TypeError("Qobj dimension components must have same length.")
 
 # TRAILING IMPORTS
 # qutip.propagator depends on rand_dm, so we need to put this import last.
