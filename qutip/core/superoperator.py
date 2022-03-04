@@ -131,7 +131,7 @@ def liouvillian(H=None, c_ops=None, data_only=False, chi=None):
     op_shape = H.shape
     sop_dims = [[op_dims[0], op_dims[0]], [op_dims[1], op_dims[1]]]
     sop_shape = [np.prod(op_dims), np.prod(op_dims)]
-    spI = _data.identity(op_shape[0])
+    spI = _data.identity(op_shape[0], dtype=type(H.data))
 
     data = _data.mul(_data.kron(spI, H.data), -1j)
     data = _data.add(data, _data.kron(H.data.transpose(), spI), scale=1j)
