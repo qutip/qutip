@@ -1,5 +1,3 @@
-import warnings
-
 import numpy as np
 from scipy.sparse import (csr_matrix)
 
@@ -11,14 +9,6 @@ except ImportError:
     pass
 
 __all__ = ['Lattice1d', 'cell_structures']
-
-
-def _lattice_deprecation_warning():
-    warnings.warn(
-        "The module qutip.lattice is deprecated and will be removed in"
-        " QuTiP 5. Please install the package qutip_lattice (e.g. using"
-        " 'pip install qutip_lattice') and use that instead.",
-        DeprecationWarning, stacklevel=3)
 
 
 def cell_structures(val_s=None, val_t=None, val_u=None):
@@ -55,8 +45,6 @@ def cell_structures(val_s=None, val_t=None, val_u=None):
         A Qobj initiated with all 0s with proper shape for an input as
         inter_hop in Lattice1d.__init__()
     """
-    _lattice_deprecation_warning()
-
     Er0_str = "At least one list of str necessary for using cell_structures!"
     Er1_str = "val_s is required to be a list of str's or a str"
     Er2_str = "val_t is required to be a list of str's or a str."
@@ -236,8 +224,6 @@ class Lattice1d():
     def __init__(self, num_cell=10, boundary="periodic", cell_num_site=1,
                  cell_site_dof=[1], Hamiltonian_of_cell=None,
                  inter_hop=None):
-        _lattice_deprecation_warning()
-
         self.num_cell = num_cell
         self.cell_num_site = cell_num_site
         if (not isinstance(cell_num_site, int)) or cell_num_site < 0:

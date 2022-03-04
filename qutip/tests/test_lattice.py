@@ -89,9 +89,6 @@ def _crow_lattice(coupling, phase_delay,
                            inter_hop=hopping)
 
 
-@pytest.mark.filterwarnings(
-    "ignore:The module qutip.lattice is deprecated:DeprecationWarning"
-)
 class TestLattice1d:
     @pytest.mark.parametrize("cells", [1, 2, 3])
     @pytest.mark.parametrize("periodic", [True, False],
@@ -280,9 +277,6 @@ class TestLattice1d:
                                        atol=1e-12)
 
 
-@pytest.mark.filterwarnings(
-    "ignore:The module qutip.lattice is deprecated:DeprecationWarning"
-)
 class TestIntegration:
     def test_fixed_crow(self):
         lattice = _crow_lattice(2, np.pi/4, cells=4)
