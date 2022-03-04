@@ -86,7 +86,6 @@ class TestKrylovSolve:
         """generally checks krylovsolve for different possibilities of e_ops
         and t_lists"""
         dim = H.shape[0]
-
         options = Options(store_states=True)    
 
         # posibilities
@@ -113,7 +112,6 @@ class TestKrylovSolve:
                                 [0]]
 
         k_res, se_res, ex_res = [], [], []
-
 
         for idx_e, e_ops in enumerate(e_ops_possibilities):
             for idx_t, tlist in enumerate(t_list_possibilities):
@@ -191,7 +189,47 @@ class TestKrylovSolve:
                             assert err <= tol, \
                                 f"err in expect values {err} is > than {tol}."
 
+    def test_01_general_check(self, dim=512, krylov_dim=20, tol=1e-5):
+        "krylovsolve: states with const H random"
+        psi0 = rand_ket(dim)
+        H = rand_herm(dim)
+        tlist = np.linspace(0, 10, 200)
 
+        self.general_check(H, psi0, krylov_dim=krylov_dim, tol=tol)     
+        
+    def check_sparse_vs_dense(self, output_sparse, output_dense, tol=1e-5):
+        "krylovsolve: comparing sparse vs non sparse"
+
+        err_outputs = [
+            err_psi(psi_sparse, psi_dense)
+            for (psi_sparse, psi_dense) in zip(
+                output_sparse.states, output_dense.states
+            )
+        ]
+        for err in err_outputs:
+            assert (
+                err < tol
+            ), f"difference between sparse and dense methods with err={err}"
+            
+    @pytest.mark.parametrize("density,dim", [(0.1, 512), (0.9, 800)],
+                             ids=["sparse H check", "dense H check"])
+    def test_02_check_sparse_vs_non_sparse_with_density_H(
+        self, density, dim, krylov_dim=20
+    ):
+        "krylovsolve: comparing sparse vs non sparse."
+        psi0 = rand_ket(dim)
+        H_sparse = rand_herm(dim, density=0.1)
+        tlist = np.linspace(0, 10, 200)
+
+        output_sparse = krylovsolve(
+            H_sparse, psi0, tlist, krylov_dim, sparse=True
+        )
+        output_dense = krylovsolve(
+            H_sparse, psi0, tlist, krylov_dim, sparse=False
+        )
+
+        self.check_sparse_vs_dense(output_sparse, output_dense)
+        
     def check_evolution_states(
         self,
         H,
@@ -204,7 +242,6 @@ class TestKrylovSolve:
     ):
         """
         Compare integrated evolution with sesolve and exactsolve result.
-
         """
 
         options = Options(store_states=True)
@@ -267,7 +304,7 @@ class TestKrylovSolve:
                     err <= tol
                 ), f"error between exactsolve and krylov operators is {err}."
 
-    def test_01_states_with_constant_H_random(self):
+    def test_03_evolution_states_with_constant_H_random(self):
         "krylovsolve: states with const H random"
         dim = 512
         psi0 = rand_ket(dim)
@@ -275,9 +312,8 @@ class TestKrylovSolve:
         tlist = np.linspace(0, 10, 200)
 
         self.check_evolution_states(H, psi0, tlist)
-        self.general_check(H, psi0, krylov_dim=20, tol=1e-5)
 
-    def test_02_states_with_constant_H_ising_transverse(self):
+    def test_04_evolution_states_with_constant_H_ising_transverse(self):
         "krylovsolve: states with const H Ising Transverse Field"
         N = 8
         dim = 2**N
@@ -289,7 +325,7 @@ class TestKrylovSolve:
 
         self.check_evolution_states(H, psi0, tlist, square_hamiltonian=False)
 
-    def test_03_states_with_constant_H_sho(self):
+    def test_05_evolution_states_with_constant_H_sho(self):
         "krylovsolve: states with const H SHO"
         dim = 100
         psi0 = rand_ket(dim)
@@ -297,41 +333,7 @@ class TestKrylovSolve:
         tlist = np.linspace(0, 20, 200)
 
         self.check_evolution_states(H, psi0, tlist)
-        self.general_check(H, psi0, krylov_dim=20, tol=1e-5)
-
-    def check_sparse_vs_dense(self, output_sparse, output_dense, tol=1e-5):
-        "krylovsolve: comparing sparse vs non sparse"
-
-        err_outputs = [
-            err_psi(psi_sparse, psi_dense)
-            for (psi_sparse, psi_dense) in zip(
-                output_sparse.states, output_dense.states
-            )
-        ]
-        for err in err_outputs:
-            assert (
-                err < tol
-            ), f"difference between sparse and dense methods with err={err}"
-
-    @pytest.mark.parametrize("density,dim", [(0.1, 512), (0.9, 800)],
-                             ids=["sparse H check", "dense H check"])
-    def test_check_sparse_vs_non_sparse_with_density_H(
-        self, density, dim, krylov_dim=20
-    ):
-        "krylovsolve: comparing sparse vs non sparse."
-        psi0 = rand_ket(dim)
-        H_sparse = rand_herm(dim, density=0.1)
-        tlist = np.linspace(0, 10, 200)
-
-        output_sparse = krylovsolve(
-            H_sparse, psi0, tlist, krylov_dim, sparse=True
-        )
-        output_dense = krylovsolve(
-            H_sparse, psi0, tlist, krylov_dim, sparse=False
-        )
-
-        self.check_sparse_vs_dense(output_sparse, output_dense)
-
+    
     def check_e_ops_input_types_None(
         self, H, psi0, tlist, dim, krylov_dim=30, tol=1e-5, tol2=1e-4
     ):
@@ -533,7 +535,7 @@ class TestKrylovSolve:
         "dim,tlist", [(128, np.linspace(0, 5, 200)), (400, [2]), (560, [])]
         ,ids=["normal tlist", "single element tlist", "empty tlist"]
     )
-    def test_04_check_e_ops_input_types_and_tlist_sizes(self, dim, tlist):
+    def test_06_check_e_ops_input_types_and_tlist_sizes(self, dim, tlist):
         "krylovsolve: check e_ops inputs with random H and different tlists."
         psi0 = rand_ket(dim)
         H = rand_herm(dim, density=0.5)
@@ -542,7 +544,7 @@ class TestKrylovSolve:
         self.check_e_ops_input_types_callable(H, psi0, tlist, dim)
         self.check_e_ops_input_types_callable_single_list(H, psi0, tlist, dim)
         self.check_e_ops_input_types_callable_mixed_list(H, psi0, tlist, dim)
-
+        
     @pytest.mark.parametrize(
         "psi0,hz,Jx,Jz",
         [
@@ -553,7 +555,7 @@ class TestKrylovSolve:
         ],
         ids=["happy_breakdown_eigenstate", "happy_breakdown_symmetry"],
     )
-    def test_05_check_happy_breakdown(self, psi0, hz, Jx, Jz):
+    def test_07_check_happy_breakdown(self, psi0, hz, Jx, Jz):
 
         krylov_dim = 12
         N = 4
