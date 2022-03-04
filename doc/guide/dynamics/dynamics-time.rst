@@ -69,7 +69,7 @@ A very general way to write a time-dependent Hamiltonian or collapse operator is
 
 >>> H = [H0, [H1, py_coeff1], [H2, py_coeff2], ...] # doctest: +SKIP
 
-where ``H0`` is a time-independent Hamiltonian, while ``H1``,``H2``, are time dependent. The same format can be used for collapse operators:
+where ``H0`` is a time-independent Hamiltonian, while ``H1``and ``H2`` are time dependent. The same format can be used for collapse operators:
 
 >>> c_ops = [[C0, py_coeff0], C1, [C2, py_coeff2], ...] # doctest: +SKIP
 
@@ -77,7 +77,7 @@ Here we have demonstrated that the ordering of time-dependent and time-independe
 
 .. note:: While, in general, you can arrange time-dependent and time-independent terms in any order you like, it is best to place all time-independent terms first.
 
-As an example, we will look at an example that has a time-dependent Hamiltonian of the form :math:`H=H_{0}-f(t)H_{1}` where :math:`f(t)` is the time-dependent driving strength given as :math:`f(t)=A\exp\left[-\left( t/\sigma \right)^{2}\right]`.  The follow code sets up the problem
+As an example, we will look at an example that has a time-dependent Hamiltonian of the form :math:`H=H_{0}-f(t)H_{1}` where :math:`f(t)` is the time-dependent driving strength given as :math:`f(t)=A\exp\left[-\left( t/\sigma \right)^{2}\right]`.  The following code sets up the problem
 
 .. plot::
     :context:
