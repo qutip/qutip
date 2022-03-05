@@ -17,7 +17,6 @@ except ImportError:
 check_pngs_equal = check_figures_equal(extensions=["png"])
 
 
-@pytest.mark.skipif(plt is None, reason="matplotlib not installed")
 class TestBloch:
     def plot_arc_test(self, fig, *args, **kw):
         b = Bloch(fig=fig)
@@ -30,7 +29,8 @@ class TestBloch:
         start = np.array(start)
         end = np.array(end)
         if steps is None:
-            steps = int(np.linalg.norm(start - end) / (np.pi / (2*360)))
+            steps = int(np.linalg.norm(start - end) * 100)
+            steps = max(2, steps)
 
         t = np.linspace(0, 1, steps)
         line = start[:, np.newaxis] * t + end[:, np.newaxis] * (1 - t)
@@ -45,6 +45,15 @@ class TestBloch:
     ], [
         pytest.param(
             (1, 0, 0), (1, 0, 0), (0, 1, 0), (0, 1, 0), {}, id="arrays"),
+        pytest.param(
+            (0.1, 0, 0), (0.1, 0, 0), (0, 0.1, 0), (0, 0.1, 0), {},
+            id="small-radius"),
+        pytest.param(
+            (1e-5, 0, 0), (1e-5, 0, 0), (0, 1e-5, 0), (0, 1e-5, 0), {},
+            id="tiny-radius"),
+        pytest.param(
+            (1.2, 0, 0), (1.2, 0, 0), (0, 1.2, 0), (0, 1.2, 0), {},
+            id="large-radius"),
         pytest.param(
             (1, 0, 0), (1, 0, 0), (0, 1, 0), (0, 1, 0),
             {"fmt": "r", "linestyle": "-"}, id="fmt-and-kwargs",
