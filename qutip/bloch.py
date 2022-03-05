@@ -40,6 +40,8 @@ try:
 
             self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
             FancyArrowPatch.draw(self, renderer)
+        def do_3d_projection(self):
+            return 1
 except ImportError:
     pass
 
