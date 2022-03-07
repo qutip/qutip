@@ -198,7 +198,7 @@ class TestBloch:
         pytest.param(
             [0, 0, 1], id="single-vector-list"),
        pytest.param(
-            np.array(0, 0, 1), id="single-vector-numpy"),
+            np.array([0, 0, 1]), id="single-vector-numpy"),
         pytest.param(
             [(0, 0, 1), (0, 1, 0)], id="list-vectors-tuple"),
         pytest.param(
