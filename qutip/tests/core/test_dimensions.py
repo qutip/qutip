@@ -38,7 +38,7 @@ import qutip
 from qutip.core.dimensions import (
     type_from_dims, flatten, unflatten, enumerate_flat, deep_remove, deep_map,
     dims_idxs_to_tensor_idxs, dims_to_tensor_shape, dims_to_tensor_perm,
-    collapse_dims_super, collapse_dims_oper,
+    collapse_dims_super, collapse_dims_oper, Dimensions
 )
 
 _v = "vector"
@@ -183,6 +183,19 @@ class TestSuperOperatorDimsModification:
 
 
 class TestTypeFromDims:
+    @pytest.mark.parametrize(["base", "expected"], [
+        pytest.param([[2], [2]], 'oper'),
+        pytest.param([[2, 3], [2, 3]], 'oper'),
+        pytest.param([[2], [3]], 'oper'),
+        pytest.param([[2], [1]], 'ket'),
+        pytest.param([[1], [2]], 'bra'),
+        pytest.param([[[2, 3], [2, 3]], [1]], 'operator-ket'),
+        pytest.param([[1], [[2, 3], [2, 3]]], 'operator-bra'),
+        pytest.param([[[3], [3]], [[2, 3], [2, 3]]], 'super'),
+    ])
+    def test_Dimensions_type(self, base, expected):
+        assert Dimensions(base).type == expected
+
     @pytest.mark.parametrize(["base", "expected", "enforce_square"], [
         pytest.param([[2], [2]], 'oper', True),
         pytest.param([[2, 3], [2, 3]], 'oper', True),

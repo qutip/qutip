@@ -675,7 +675,7 @@ def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None, *,
     """
     if dims is not None:
         # TODO: check!
-        pass
+        dims = Dimensions(dims, rep='choi')
     else:
         dims = Dimensions([[[N], [N]], [[N], [N]]], rep='choi')
 

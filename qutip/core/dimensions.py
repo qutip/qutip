@@ -378,6 +378,11 @@ def dims_idxs_to_tensor_idxs(dims, indices):
     return deep_map(partial(getitem, perm), indices)
 
 
+
+def _frozen(*args, **kwargs):
+    raise RuntimeError("Dimension cannot be modified.")
+
+
 class MetaSpace(type):
     def __call__(cls, *args, rep='super'):
         if cls is Space and len(args) == 1 and isinstance(args[0], list):
@@ -446,6 +451,7 @@ class Space(metaclass=MetaSpace):
         self.superrep = ""
         # Does the size and dims match directly: size == prod(dims)
         self._pure_dims = True
+        self.__setitem__ = _frozen
 
     def __repr__(self):
         return f"Space({self.size})"
@@ -470,6 +476,7 @@ class Field(Space):
         self.issuper = False
         self.superrep = ""
         self._pure_dims = True
+        self.__setitem__ = _frozen
 
     def __repr__(self):
         return "Field()"
@@ -500,6 +507,7 @@ class Compound(Space):
         else:
             # We could also raise an error
             self.superrep = 'mixed'
+        self.__setitem__ = _frozen
 
     def __repr__(self):
         parts_rep = ", ".join(repr(space) for space in self.spaces)
@@ -532,6 +540,7 @@ class SuperSpace(Space):
         self.size = oper.shape[0] * oper.shape[1]
         self.issuper = True
         self._pure_dims = oper._pure_dims
+        self.__setitem__ = _frozen
 
     def __repr__(self):
         return f"Super({repr(self.oper)}, rep={self.superrep})"
@@ -569,6 +578,7 @@ class SumSpace(Space):
         self.issuper = False
         self.superrep = ""
         self._pure_dims = False
+        self.__setitem__ = _frozen
 
     def __repr__(self):
         return f"SumSpace({self.structure})"
@@ -639,6 +649,7 @@ class Dimensions(metaclass=MetaDims):
                 self.superrep = self.from_.superrep
             else:
                 self.superrep = 'mixed'
+        self.__setitem__ = _frozen
 
 
     def __repr__(self):
