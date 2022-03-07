@@ -194,7 +194,11 @@ class TestBloch:
         "vectors",
     ], [
         pytest.param(
-            (0, 0, 1), id="single-vector"),
+            (0, 0, 1), id="single-vector-tuple"),
+        pytest.param(
+            [0, 0, 1], id="single-vector-list"),
+       pytest.param(
+            np.array(0, 0, 1), id="single-vector-numpy"),
         pytest.param(
             [(0, 0, 1), (0, 1, 0)], id="two-vectors"),
         pytest.param(
