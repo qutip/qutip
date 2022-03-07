@@ -200,11 +200,11 @@ class TestBloch:
        pytest.param(
             np.array(0, 0, 1), id="single-vector-numpy"),
         pytest.param(
-            [(0, 0, 1), (0, 1, 0)], id="two-vectors"),
+            [(0, 0, 1), (0, 1, 0)], id="list-vectors-tuple"),
         pytest.param(
-            [[0, 0, 1]], id="list-vector"),
+            [[0, 0, 1]], id="list-vectors-list"),
         pytest.param(
-            [np.array([0, 0, 1])], id="nparray-vector"),
+            [np.array([0, 0, 1])], id="list-vectors-numpy"),
     ])
     @check_pngs_equal
     def test_vector(self, vectors, fig_test, fig_ref):
