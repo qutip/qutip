@@ -124,7 +124,7 @@ def _require_equal_type(method):
                 other = Qobj(other, type=self.type)
             except TypeError:
                 return NotImplemented
-        if self.dims != other.dims:
+        if self._dims != other._dims:
             msg = (
                 "incompatible dimensions "
                 + repr(self.dims) + " and " + repr(other.dims)
@@ -302,7 +302,7 @@ class Qobj:
             self.dims = dims or [[arg.shape[0]], [arg.shape[1]]]
         elif isinstance(arg, Qobj):
             self._data = arg.data.copy() if copy else arg.data
-            self.dims = dims or arg.dims.copy()
+            self.dims = dims or arg._dims
         elif arg is None or isinstance(arg, numbers.Number):
             self.dims = dims or [[1], [1]]
             size = self._dims[0].size
@@ -358,7 +358,7 @@ class Qobj:
             raise TypeError('Qobj data must be a data-layer format.')
         if self._dims and data.shape != self._dims.shape:
             raise ValueError('The data do not match the dimensions: ' +
-                             f"{data.shape} {self._dims.shape}")
+                             f"{data.shape} vs {self._dims.shape}")
         self._data = data
 
     @property
@@ -370,7 +370,7 @@ class Qobj:
         dims = Dimensions(dims)
         if self._data and dims.shape != self._data.shape:
             raise ValueError('Provided dimensions do not match the data: ' +
-                             f"{dims.shape} {self._data.shape}")
+                             f"{dims.shape} vs {self._data.shape}")
         self._dims = dims
 
     @property
@@ -487,7 +487,7 @@ class Qobj:
                 other = Qobj(other)
             except TypeError:
                 return NotImplemented
-        if self.dims[1] != other.dims[0]:
+        if self._dims[1] != other._dims[0]:
             raise TypeError("".join([
                 "incompatible dimensions ",
                 repr(self.dims),
@@ -536,14 +536,14 @@ class Qobj:
     def __eq__(self, other):
         if self is other:
             return True
-        if not isinstance(other, Qobj) or self.dims != other.dims:
+        if not isinstance(other, Qobj) or self._dims != other._dims:
             return False
         return _data.iszero(_data.sub(self._data, other._data),
                             tol=settings.core['atol'])
 
     def __pow__(self, n, m=None):  # calculates powers of Qobj
         if (
-            self.dims[0] != self.dims[1]
+            self._dims[0] != self._dims[1]
             or m is not None
             or not isinstance(n, numbers.Integral)
             or n < 0
@@ -842,7 +842,7 @@ class Qobj:
         TypeError
             Quantum operator is not square.
         """
-        if self.dims[0] != self.dims[1]:
+        if not self._dims.issquare:
             raise TypeError("expm is only valid for square operators")
         return Qobj(_data.expm(self._data, dtype=dtype),
                     dims=self._dims,
@@ -888,7 +888,7 @@ class Qobj:
         The sparse eigensolver is much slower than the dense version.
         Use sparse only if memory requirements demand it.
         """
-        if self.dims[0] != self.dims[1]:
+        if not self._dims.issquare:
             raise TypeError('sqrt only valid on square matrices')
         if isinstance(self.data, _data.CSR) and sparse:
             evals, evecs = _data.eigs_csr(self.data,
@@ -930,7 +930,7 @@ class Qobj:
         Uses the Q.expm() method.
 
         """
-        if self.dims[0] != self.dims[1]:
+        if not self._dims.issquare:
             raise TypeError('invalid operand for matrix cosine')
         return 0.5 * ((1j * self).expm() + (-1j * self).expm())
 
@@ -953,7 +953,7 @@ class Qobj:
         -----
         Uses the Q.expm() method.
         """
-        if self.dims[0] != self.dims[1]:
+        if not self._dims.issquare:
             raise TypeError('invalid operand for matrix sine')
         return -0.5j * ((1j * self).expm() - (-1j * self).expm())
 
@@ -1294,7 +1294,6 @@ class Qobj:
         Returns a new Qobj by removing the negative eigenvalues
         of this instance, then renormalizing to obtain a valid density
         operator.
-
 
         Parameters
         ----------

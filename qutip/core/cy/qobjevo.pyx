@@ -9,6 +9,7 @@ from functools import partial
 import qutip
 from .. import Qobj
 from .. import data as _data
+from ..dimensions import Dimensions
 from ..coefficient import coefficient, CompilationOptions
 from ._element import *
 from ..dimensions import type_from_dims
@@ -195,7 +196,7 @@ cdef class QobjEvo:
                  order=3, copy=True, compress=True,
                  function_style=None):
         if isinstance(Q_object, QobjEvo):
-            self.dims = Q_object.dims.copy()
+            self._dims = Q_object._dims
             self.shape = Q_object.shape
             self._shift_dt = (<QobjEvo> Q_object)._shift_dt
             self._issuper = (<QobjEvo> Q_object)._issuper
@@ -208,7 +209,7 @@ cdef class QobjEvo:
             return
 
         self.elements = []
-        self.dims = None
+        self._dims = None
         self.shape = (0, 0)
         self._issuper = -1
         self._isoper = -1
@@ -273,12 +274,12 @@ cdef class QobjEvo:
                 " received: {!r}".format(op)
             )
 
-        if self.dims is None:
-            self.dims = qobj.dims
+        if self._dims is None:
+            self._dims = qobj._dims
             self.shape = qobj.shape
             self.type = qobj.type
             self.superrep = qobj.superrep
-        elif self.dims != qobj.dims or self.shape != qobj.shape:
+        elif self._dims != qobj._dims or self.shape != qobj.shape:
             raise ValueError(
                 f"QobjEvo term {op!r} has dims {qobj.dims!r} and shape"
                 f" {qobj.shape!r} but previous terms had dims {self.dims!r}"
@@ -296,7 +297,7 @@ cdef class QobjEvo:
         if args:
             return QobjEvo(self, args=args)(t)
         return Qobj(
-            self._call(t), dims=self.dims, copy=False,
+            self._call(t), dims=self._dims, copy=False,
             type=self.type, superrep=self.superrep
         )
 
@@ -358,19 +359,19 @@ cdef class QobjEvo:
     def __iadd__(QobjEvo self, other):
         cdef _BaseElement element
         if isinstance(other, QobjEvo):
-            if other.dims != self.dims:
+            if other._dims != self._dims:
                 raise TypeError("incompatible dimensions" +
                                  str(self.dims) + ", " + str(other.dims))
             for element in (<QobjEvo> other).elements:
                 self.elements.append(element)
         elif isinstance(other, Qobj):
-            if other.dims != self.dims:
+            if other._dims != self._dims:
                 raise TypeError("incompatible dimensions" +
                                  str(self.dims) + ", " + str(other.dims))
             self.elements.append(_ConstantElement(other))
         elif (
             isinstance(other, numbers.Number) and
-            self.dims[0] == self.dims[1]
+            self._dims[0] == self._dims[1]
         ):
             self.elements.append(_ConstantElement(other * qutip.qeye(self.dims[0])))
         else:
@@ -405,12 +406,12 @@ cdef class QobjEvo:
         if isinstance(left, QobjEvo):
             return left.copy().__imatmul__(right)
         elif isinstance(left, Qobj):
-            if left.dims[1] != (<QobjEvo> right).dims[0]:
+            if left._dims[1] != (<QobjEvo> right)._dims[0]:
                 raise TypeError("incompatible dimensions" +
                                  str(left.dims[1]) + ", " +
                                  str((<QobjEvo> right).dims[0]))
             res = right.copy()
-            res.dims = [left.dims[0], right.dims[1]]
+            res._dims = Dimensions([left._dims[0], right._dims[1]])
             res.shape = (left.shape[0], right.shape[1])
             left = _ConstantElement(left)
             res.elements = [left @ element for element in res.elements]
@@ -422,12 +423,12 @@ cdef class QobjEvo:
 
     def __rmatmul__(QobjEvo self, other):
         if isinstance(other, Qobj):
-            if other.dims[1] != self.dims[0]:
+            if other._dims[1] != self._dims[0]:
                 raise TypeError("incompatible dimensions" +
-                                 str(other.dims[1]) + ", " +
-                                 str(self.dims[0]))
+                                 str(other._dims[1]) + ", " +
+                                 str(self._dims[0]))
             res = self.copy()
-            res.dims = [other.dims[0], res.dims[1]]
+            res._dims = Dimensions([other._dims[0], res._dims[1]])
             res.shape = (other.shape[0], res.shape[1])
             other = _ConstantElement(other)
             res.elements = [other @ element for element in res.elements]
@@ -443,7 +444,7 @@ cdef class QobjEvo:
                 raise TypeError("incompatible dimensions" +
                                 str(self.dims[1]) + ", " +
                                 str(other.dims[0]))
-            self.dims = [self.dims[0], other.dims[1]]
+            self._dims = Dimensions([self.dims[0], other.dims[1]])
             self.shape = (self.shape[0], other.shape[1])
             self._issuper = -1
             self._isoper = -1
@@ -613,7 +614,7 @@ cdef class QobjEvo:
                 raise TypeError("The op_mapping function must return a Qobj")
         cdef QobjEvo res = self.copy()
         res.elements = [element.linear_map(op_mapping) for element in res.elements]
-        res.dims = res.elements[0].qobj(0).dims
+        res._dims = res.elements[0].qobj(0)._dims
         res.shape = res.elements[0].qobj(0).shape
         res._issuper = res.elements[0].qobj(0).issuper
         res._isoper = res.elements[0].qobj(0).isoper
@@ -701,19 +702,16 @@ cdef class QobjEvo:
     @property
     def isoper(self):
         """Indicates if the system represents an operator."""
-        # TODO: isoper should be part of dims
-        if self._isoper == -1:
-            self._isoper = type_from_dims(self.dims) == "oper"
-        return self._isoper
+        return self._dims.isoper
 
     @property
     def issuper(self):
         """Indicates if the system represents a superoperator."""
-        # TODO: issuper should/will be part of dims
-        # remove self._issuper then
-        if self._issuper == -1:
-            self._issuper = type_from_dims(self.dims) == "super"
-        return self._issuper
+        return self._dims.issuper
+
+    @property
+    def dims(self):
+        return self._dims.as_list()
 
     ###########################################################################
     # operation methods                                                       #
@@ -744,8 +742,8 @@ cdef class QobjEvo:
             raise ValueError("Must be an operator or super operator to compute"
                              " an expectation value")
         if not (
-            (self.dims[1] == state.dims[0]) or
-            (self.issuper and self.dims[1] == state.dims)
+            (self._dims[1] == state._dims[0]) or
+            (self.issuper and self._dims[1] == state._dims)
         ):
             raise ValueError("incompatible dimensions " + str(self.dims) +
                              ", " + str(state.dims))
@@ -831,12 +829,12 @@ cdef class QobjEvo:
         if not isinstance(state, Qobj):
             raise TypeError("A Qobj state is expected")
 
-        if self.dims[1] != state.dims[0]:
+        if self._dims[1] != state._dims[0]:
             raise ValueError("incompatible dimensions " + str(self.dims[1]) +
                              ", " + str(state.dims[0]))
 
         return Qobj(self.matmul_data(t, state.data),
-                    dims=[self.dims[0],state.dims[1]],
+                    dims=[self._dims[0], state._dims[1]],
                     copy=False
                    )
 

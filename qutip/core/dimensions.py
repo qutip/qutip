@@ -453,6 +453,15 @@ class Space(metaclass=MetaSpace):
         self._pure_dims = True
         self.__setitem__ = _frozen
 
+    def __eq__(self, other):
+        return self is other or (
+            type(other) is type(self)
+            and other.size == self.size
+        )
+
+    def __hash__(self):
+        return hash(self.size)
+
     def __repr__(self):
         return f"Space({self.size})"
 
@@ -478,6 +487,12 @@ class Field(Space):
         self._pure_dims = True
         self.__setitem__ = _frozen
 
+    def __eq__(self, other):
+        return type(other) is Field
+
+    def __hash__(self):
+        return hash(0)
+
     def __repr__(self):
         return "Field()"
 
@@ -498,6 +513,7 @@ class Compound(Space):
                 self.spaces += space.spaces
             else:
                 self.spaces += [space]
+        self.spaces = tuple(self.spaces)
         self.size = np.prod([space.size for space in self.spaces])
         self.issuper = any(space.issuper for space in self.spaces)
         self._pure_dims = all(space._pure_dims for space in self.spaces)
@@ -508,6 +524,18 @@ class Compound(Space):
             # We could also raise an error
             self.superrep = 'mixed'
         self.__setitem__ = _frozen
+
+    def __eq__(self, other):
+        return self is other or (
+            type(other) is type(self)
+            and len(self.spaces) == len(other.spaces)
+            and all(self_space == other_space
+                    for self_space, other_space
+                    in zip(self.spaces, other.spaces))
+        )
+
+    def __hash__(self):
+        return hash(self.spaces)
 
     def __repr__(self):
         parts_rep = ", ".join(repr(space) for space in self.spaces)
@@ -542,6 +570,20 @@ class SuperSpace(Space):
         self._pure_dims = oper._pure_dims
         self.__setitem__ = _frozen
 
+    def __eq__(self, other):
+        return (
+            self is other
+            or self.oper == other
+            or (
+                type(other) is type(self)
+                and self.oper == other.oper
+                and self.superrep == other.superrep
+            )
+        )
+
+    def __hash__(self):
+        return hash((self.oper, self.superrep))
+
     def __repr__(self):
         return f"Super({repr(self.oper)}, rep={self.superrep})"
 
@@ -562,35 +604,6 @@ class SuperSpace(Space):
             dim, idx = divmod(idx, space.size)
             dims.append(dim)
         return dims
-
-
-class SumSpace(Space):
-    """
-    Dimensions for piqs's dicke states.
-    Example :
-        A system of 2 qubit split into a triplet and singulet states:
-        SumSpace((3,1))
-    """
-    _stored_dims = {}
-    def __init__(self, structure):
-        self.structure = structure
-        self.size = sum(structure)
-        self.issuper = False
-        self.superrep = ""
-        self._pure_dims = False
-        self.__setitem__ = _frozen
-
-    def __repr__(self):
-        return f"SumSpace({self.structure})"
-
-    def as_list(self):
-        return list(self.dims)
-
-    def dims2idx(self, dims):
-        return dims
-
-    def idx2dims(self, idx):
-        return idx
 
 
 class MetaDims(type):
@@ -651,6 +664,17 @@ class Dimensions(metaclass=MetaDims):
                 self.superrep = 'mixed'
         self.__setitem__ = _frozen
 
+    def __eq__(self, other):
+        return (self is other
+            or (
+                type(self) is type(other)
+                and self.to_ == other.to_
+                and self.from_ == other.from_
+            )
+        )
+
+    def __hash__(self):
+        return hash((self.to_, self.from_))
 
     def __repr__(self):
         return f"Dimensions({repr(self.from_)}, {repr(self.to_)})"
