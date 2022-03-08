@@ -205,7 +205,7 @@ class TestSuperopReps:
         assert qobj.ishp == shouldhp
         assert qobj.iscp == shouldcp
         assert qobj.istp == shouldtp
-        assert qobj.iscptp == shouldcp and shouldtp
+        assert qobj.iscptp == (shouldcp and shouldtp)
 
     def test_choi_tr(self, dimension):
         """
