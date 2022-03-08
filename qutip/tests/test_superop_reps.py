@@ -136,8 +136,8 @@ class TestSuperopReps:
         sixteen_kraus_ops = to_kraus(super, tol=0.0)
         # default is tol=1e-9
         one_kraus_op = to_kraus(super)
-        assert (len(sixteen_kraus_ops) == 16 and len(one_kraus_op) == 1)
-        assert ((one_kraus_op[0] - kraus).norm() < tol)
+        assert len(sixteen_kraus_ops) == 16 and len(one_kraus_op) == 1
+        assert (one_kraus_op[0] - kraus).norm() < tol
 
     def test_SuperPreservesSelf(self, superoperator):
         """
@@ -145,7 +145,7 @@ class TestSuperopReps:
         supermatrix.
         """
 
-        assert (superoperator is to_super(superoperator))
+        assert superoperator is to_super(superoperator)
 
     def test_ChoiPreservesSelf(self, superoperator):
         """
@@ -159,8 +159,8 @@ class TestSuperopReps:
         Superoperator: Randomly generated superoperators are
         correctly reported as CPTP and HP.
         """
-        assert (superoperator.iscptp)
-        assert (superoperator.ishp)
+        assert superoperator.iscptp
+        assert superoperator.ishp
 
     # Conjugation by a creation operator
     a = create(2).dag()
@@ -202,16 +202,10 @@ class TestSuperopReps:
         """
         Superoperator: ishp, iscp, istp and iscptp known cases.
         """
-        hp = qobj.ishp
-        cp = qobj.iscp
-        tp = qobj.istp
-        cptp = qobj.iscptp
-        shouldcptp = shouldcp and shouldtp
-
-        assert hp == shouldhp
-        assert cp == shouldcp
-        assert tp == shouldtp
-        assert cptp == shouldcptp
+        assert qobj.ishp == shouldhp
+        assert qobj.iscp == shouldcp
+        assert qobj.istp == shouldtp
+        assert qobj.iscptp == shouldcp and shouldtp
 
     def test_choi_tr(self, dimension):
         """
@@ -266,17 +260,11 @@ class TestSuperopReps:
         rt_superop = to_chi(to_choi(superop))
         dif = norm(rt_superop - superop)
 
-        assert 0 == pytest.approx(dif, abs=1e-7)
+        assert dif == pytest.approx(0, abs=1e-7)
         assert rt_superop.type == superop.type
         assert rt_superop.dims == superop.dims
 
     chi_sigmax = [
-        [0, 0, 0, 0],
-        [0, 4, 0, 0],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0]
-    ]
-    chi_super_sigmax = [
         [0, 0, 0, 0],
         [0, 4, 0, 0],
         [0, 0, 0, 0],
@@ -298,7 +286,7 @@ class TestSuperopReps:
 
     @pytest.mark.parametrize(['superop', 'chi_expected'], [
         pytest.param(sigmax(), chi_sigmax),
-        pytest.param(to_super(sigmax()), chi_super_sigmax),
+        pytest.param(to_super(sigmax()), chi_sigmax),
         pytest.param(qeye(2), chi_diag2),
         pytest.param(rotX_pi_4, chi_rotX_pi_4)
     ])
