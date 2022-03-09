@@ -641,7 +641,14 @@ class Dimensions(metaclass=MetaDims):
         self.isoperbra = False
         self.isoperket = False
         self.issquare = False
-        if self.from_ is Field():
+        if self.from_ is Field() and self.to_ is Field():
+            self.type = 'scalar'
+            self.isket = True
+            self.isbra = True
+            self.isoper = True
+            self.issquare = True
+            self.superrep = ""
+        elif self.from_ is Field():
             self.type = 'operator-ket' if self.issuper else 'ket'
             self.isket = not self.issuper
             self.isoperket = self.issuper

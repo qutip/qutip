@@ -46,13 +46,26 @@ def enr_state_dictionaries(dims, excitations):
 class EnrSpace(Space):
     _stored_dims = {}
     def __init__(self, dims, excitations):
-        self.dims = dims
+        self.dims = tuple(dims)
         self.n_excitations = excitations
         enr_dicts = enr_state_dictionaries(dims, excitations)
         self.size, self.state2idx, self.idx2state = enr_dicts
         self.issuper = False
         self.superrep = ""
         self._pure_dims = False
+
+    def __eq__(self, other):
+        return (
+            self is other
+            or (
+                type(other) is type(self)
+                and self.dims == other.dims
+                and self.n_excitations == other.n_excitations
+            )
+        )
+
+    def __hash__(self):
+        return hash((self.dims, self.n_excitations))
 
     def __repr__(self):
         return f"EnrSpace({self.dims}, {self.n_excitations})"

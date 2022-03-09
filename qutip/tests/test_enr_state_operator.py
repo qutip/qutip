@@ -77,7 +77,8 @@ class TestOperator:
         iden = [qutip.qeye(n) for n in dimensions]
         for i, test in enumerate(test_operators):
             expected = qutip.tensor(iden[:i] + [a[i]] + iden[i+1:])
-            assert test == expected
+            assert qutip.data.iszero(qutip.data.sub(test.data, expected.data),
+                                     tol=1e-9)
             assert test.dims == [dimensions, dimensions]
 
     def test_space_size_reduction(self, dimensions, n_excitations):
