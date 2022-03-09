@@ -168,12 +168,16 @@ class Optimizer(object):
     amp_lbound : float or list of floats or ndarray of floats
         Lower boundaries for the control amplitudes.  Can be a scalar value
         applied to all controls, a list or 1-d ndarray of bounds for each
-        control, or a 2-d ndarray of bounds for each control at each time slot.
+        control (i.e. ``amp_lbound[control]``), or a 2-d ndarray of bounds
+        for each control at each time slot
+        (i.e. ``amp_lbound[time, control]``).
 
     amp_ubound : float or list of floats or ndarray of floats
         Upper boundaries for the control amplitudes.  Can be a scalar value
         applied to all controls, a list or 1-d ndarray of bounds for each
-        control, or a 2-d ndarray of bounds for each control at each time slot.
+        control (i.e. ``amp_ubound[control]``), or a 2-d ndarray of bounds
+        for each control at each time slot
+        (i.e. ``amp_ubound[time, control]``).
 
     bounds : List of floats
         Bounds for the parameters.
