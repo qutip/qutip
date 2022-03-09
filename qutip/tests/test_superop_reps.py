@@ -9,50 +9,68 @@ from __future__ import division
 
 from numpy import abs, pi, asarray, kron
 from numpy.linalg import norm
-from numpy.testing import assert_, assert_almost_equal, run_module_suite, assert_equal
 
-from unittest import expectedFailure
-
+import pytest
 from qutip.qobj import Qobj
 from qutip.states import basis
 from qutip.operators import identity, sigmax, sigmay, qeye, create
 from qutip.qip.operations.gates import swap
 from qutip.random_objects import rand_super, rand_super_bcsz, rand_dm_ginibre
 from qutip.tensor import tensor, super_tensor
-from qutip.superop_reps import (kraus_to_choi, to_super, to_choi, to_kraus,
-                                to_chi, to_stinespring)
-from qutip.superoperator import operator_to_vector, vector_to_operator, sprepost
+from qutip.superop_reps import (
+    kraus_to_choi, to_super, to_choi, to_kraus, to_chi, to_stinespring,
+)
+from qutip.superoperator import (
+    operator_to_vector, vector_to_operator, sprepost,
+)
 
 tol = 1e-9
 
 
-class TestSuperopReps(object):
+@pytest.fixture(scope="function", params=[2, 3, 7])
+def dimension(request):
+    # There are also some cases in the file where this fixture is explicitly
+    # overridden by a more local mark.  That is deliberate.
+    return request.param
+
+
+@pytest.fixture(scope="function", params=[
+    pytest.param(rand_super, id="super"),
+    pytest.param(rand_super_bcsz, id="super_bcz")
+])
+def superoperator(request, dimension):
+    return request.param(dimension)
+
+
+class TestSuperopReps:
     """
     A test class for the QuTiP function for applying superoperators to
     subsystems.
     """
 
-    def test_SuperChoiSuper(self):
+    def test_SuperChoiSuper(self, superoperator):
         """
         Superoperator: Converting superoperator to Choi matrix and back.
         """
-        superoperator = rand_super()
 
         choi_matrix = to_choi(superoperator)
         test_supe = to_super(choi_matrix)
 
         # Assert both that the result is close to expected, and has the right
         # type.
-        assert_((test_supe - superoperator).norm() < tol)
-        assert_(choi_matrix.type == "super" and choi_matrix.superrep == "choi")
-        assert_(test_supe.type == "super" and test_supe.superrep == "super")
+        assert (test_supe - superoperator).norm() < tol
+        assert choi_matrix.type == "super" and choi_matrix.superrep == "choi"
+        assert test_supe.type == "super" and test_supe.superrep == "super"
 
-    def test_SuperChoiChiSuper(self):
+    @pytest.mark.parametrize('dimension', [2, 4])
+    def test_SuperChoiChiSuper(self, dimension):
         """
         Superoperator: Converting two-qubit superoperator through
         Choi and chi representations goes back to right superoperator.
         """
-        superoperator = super_tensor(rand_super(2), rand_super(2))
+        superoperator = super_tensor(
+            rand_super(dimension), rand_super(dimension),
+        )
 
         choi_matrix = to_choi(superoperator)
         chi_matrix = to_chi(choi_matrix)
@@ -60,29 +78,29 @@ class TestSuperopReps(object):
 
         # Assert both that the result is close to expected, and has the right
         # type.
-        assert_((test_supe - superoperator).norm() < tol)
-        assert_(choi_matrix.type == "super" and choi_matrix.superrep == "choi")
-        assert_(chi_matrix.type == "super" and chi_matrix.superrep == "chi")
-        assert_(test_supe.type == "super" and test_supe.superrep == "super")
+        assert (test_supe - superoperator).norm() < tol
+        assert choi_matrix.type == "super" and choi_matrix.superrep == "choi"
+        assert chi_matrix.type == "super" and chi_matrix.superrep == "chi"
+        assert test_supe.type == "super" and test_supe.superrep == "super"
 
-    def test_ChoiKrausChoi(self):
+    def test_ChoiKrausChoi(self, superoperator):
         """
         Superoperator: Convert superoperator to Choi matrix and back.
         """
-        superoperator = rand_super()
         choi_matrix = to_choi(superoperator)
         kraus_ops = to_kraus(choi_matrix)
         test_choi = kraus_to_choi(kraus_ops)
 
         # Assert both that the result is close to expected, and has the right
         # type.
-        assert_((test_choi - choi_matrix).norm() < tol)
-        assert_(choi_matrix.type == "super" and choi_matrix.superrep == "choi")
-        assert_(test_choi.type == "super" and test_choi.superrep == "choi")
+        assert (test_choi - choi_matrix).norm() < tol
+        assert choi_matrix.type == "super" and choi_matrix.superrep == "choi"
+        assert test_choi.type == "super" and test_choi.superrep == "choi"
 
     def test_NonSquareKrausSuperChoi(self):
         """
-        Superoperator: Convert non-square Kraus operator to Super + Choi matrix and back.
+        Superoperator: Convert non-square Kraus operator to Super + Choi matrix
+        and back.
         """
         zero = asarray([[1], [0]], dtype=complex)
         one = asarray([[0], [1]], dtype=complex)
@@ -95,15 +113,17 @@ class TestSuperopReps(object):
         op1 = to_kraus(super)
         op2 = to_kraus(choi)
         op3 = to_super(choi)
-        assert_(choi.type == "super" and choi.superrep == "choi")
-        assert_(super.type == "super" and super.superrep == "super")
-        assert_((op1[0] - kraus).norm() < 1e-8)
-        assert_((op2[0] - kraus).norm() < 1e-8)
-        assert_((op3 - super).norm() < 1e-8)
+
+        assert choi.type == "super" and choi.superrep == "choi"
+        assert super.type == "super" and super.superrep == "super"
+        assert (op1[0] - kraus).norm() < tol
+        assert (op2[0] - kraus).norm() < tol
+        assert (op3 - super).norm() < tol
 
     def test_NeglectSmallKraus(self):
         """
-        Superoperator: Convert Kraus to Choi matrix and back. Neglect tiny Kraus operators.
+        Superoperator: Convert Kraus to Choi matrix and back. Neglect tiny
+        Kraus operators.
         """
         zero = asarray([[1], [0]], dtype=complex)
         one = asarray([[0], [1]], dtype=complex)
@@ -116,204 +136,166 @@ class TestSuperopReps(object):
         sixteen_kraus_ops = to_kraus(super, tol=0.0)
         # default is tol=1e-9
         one_kraus_op = to_kraus(super)
-        assert_(len(sixteen_kraus_ops) == 16 and len(one_kraus_op) == 1)
-        assert_((one_kraus_op[0] - kraus).norm() < tol)
+        assert len(sixteen_kraus_ops) == 16 and len(one_kraus_op) == 1
+        assert (one_kraus_op[0] - kraus).norm() < tol
 
-    def test_SuperPreservesSelf(self):
+    def test_SuperPreservesSelf(self, superoperator):
         """
         Superoperator: to_super(q) returns q if q is already a
         supermatrix.
         """
-        superop = rand_super()
-        assert_(superop is to_super(superop))
 
-    def test_ChoiPreservesSelf(self):
+        assert superoperator is to_super(superoperator)
+
+    def test_ChoiPreservesSelf(self, superoperator):
         """
         Superoperator: to_choi(q) returns q if q is already Choi.
         """
-        superop = rand_super()
-        choi = to_choi(superop)
-        assert_(choi is to_choi(choi))
+        choi = to_choi(superoperator)
+        assert choi is to_choi(choi)
 
-    def test_random_iscptp(self):
+    def test_random_iscptp(self, superoperator):
         """
         Superoperator: Randomly generated superoperators are
         correctly reported as CPTP and HP.
         """
-        superop = rand_super()
-        assert_(superop.iscptp)
-        assert_(superop.ishp)
+        assert superoperator.iscptp
+        assert superoperator.ishp
 
-    def test_known_iscptp(self):
+    # Conjugation by a creation operator
+    a = create(2).dag()
+    S = sprepost(a, a.dag())
+
+    # A single off-diagonal element
+    S_ = sprepost(a, a)
+
+    # Check that a linear combination of bipartite unitaries is CPTP and HP.
+    S_U = (
+        to_super(tensor(sigmax(), identity(2))) +
+        to_super(tensor(identity(2), sigmay()))
+    ) / 2
+
+    # The partial transpose map, whose Choi matrix is SWAP
+    ptr_swap = Qobj(swap(), type='super', superrep='choi')
+
+    # Subnormalized maps (representing erasure channels, for instance)
+    subnorm_map = Qobj(identity(4) * 0.9, type='super', superrep='super')
+
+    @pytest.mark.parametrize(['qobj',  'shouldhp', 'shouldcp', 'shouldtp'], [
+        pytest.param(S, True, True, False, id="conjugatio by create op"),
+        pytest.param(S_, False, False, False, id="single off-diag"),
+        pytest.param(identity(2), True, True, True, id="Identity"),
+        pytest.param(sigmax(), True, True, True, id="Pauli X"),
+        pytest.param(
+            tensor(sigmax(), identity(2)), True, True, True,
+            id="bipartite system",
+        ),
+        pytest.param(
+            S_U, True, True, True, id="linear combination of bip. unitaries",
+        ),
+        pytest.param(ptr_swap,  True, False, True, id="partial transpose map"),
+        pytest.param(subnorm_map, True, True, False, id="subnorm map"),
+        pytest.param(basis(2), False, False, False, id="not an operator"),
+
+    ])
+    def test_known_iscptp(self, qobj, shouldhp, shouldcp, shouldtp):
         """
         Superoperator: ishp, iscp, istp and iscptp known cases.
         """
-        def case(qobj, shouldhp, shouldcp, shouldtp):
-            hp = qobj.ishp
-            cp = qobj.iscp
-            tp = qobj.istp
-            cptp = qobj.iscptp
+        assert qobj.ishp == shouldhp
+        assert qobj.iscp == shouldcp
+        assert qobj.istp == shouldtp
+        assert qobj.iscptp == (shouldcp and shouldtp)
 
-            shouldcptp = shouldcp and shouldtp
-
-            if (
-                hp == shouldhp and
-                cp == shouldcp and
-                tp == shouldtp and
-                cptp == shouldcptp
-            ):
-                return
-
-            fails = []
-            if hp != shouldhp:
-                fails.append(("ishp", shouldhp, hp))
-            if tp != shouldtp:
-                fails.append(("istp", shouldtp, tp))
-            if cp != shouldcp:
-                fails.append(("iscp", shouldcp, cp))
-            if cptp != shouldcptp:
-                fails.append(("iscptp", shouldcptp, cptp))
-
-            raise AssertionError("Expected {}.".format(" and ".join([
-                "{} == {} (got {})".format(fail, expected, got)
-                for fail, expected, got in fails
-            ])))
-
-        # Conjugation by a creation operator should
-        # have be CP (and hence HP), but not TP.
-        a = create(2).dag()
-        S = sprepost(a, a.dag())
-        case(S, True, True, False)
-
-        # A single off-diagonal element should not be CP,
-        # nor even HP.
-        S = sprepost(a, a)
-        case(S, False, False, False)
-        
-        # Check that unitaries are CPTP and HP.
-        case(identity(2), True, True, True)
-        case(sigmax(), True, True, True)
-
-        # Check that unitaries on bipartite systems are CPTP and HP.
-        case(tensor(sigmax(), identity(2)), True, True, True)
-
-        # Check that a linear combination of bipartitie unitaries is CPTP and HP.
-        S = (
-            to_super(tensor(sigmax(), identity(2))) + to_super(tensor(identity(2), sigmay()))
-        ) / 2
-        case(S, True, True, True)
-
-        # The partial transpose map, whose Choi matrix is SWAP, is TP
-        # and HP but not CP (one negative eigenvalue).
-        W = Qobj(swap(), type='super', superrep='choi')
-        case(W, True, False, True)
-
-        # Subnormalized maps (representing erasure channels, for instance)
-        # can be CP but not TP.
-        subnorm_map = Qobj(identity(4) * 0.9, type='super', superrep='super')
-        case(subnorm_map, True, True, False)
-
-        # Check that things which aren't even operators aren't identified as
-        # CPTP.
-        case(basis(2), False, False, False)
-
-    def test_choi_tr(self):
+    def test_choi_tr(self, dimension):
         """
         Superoperator: Trace returned by to_choi matches docstring.
         """
-        for dims in range(2, 5):
-            assert_(abs(to_choi(identity(dims)).tr() - dims) <= tol)
+        assert abs(to_choi(identity(dimension)).tr() - dimension) <= tol
 
-    def test_stinespring_cp(self, thresh=1e-10):
+    def test_stinespring_cp(self, dimension):
         """
         Stinespring: A and B match for CP maps.
         """
-        def case(map):
-            A, B = to_stinespring(map)
-            assert_(norm((A - B).full()) < thresh)
+        superop = rand_super_bcsz(dimension)
+        A, B = to_stinespring(superop)
 
-        for idx in range(4):
-            case(rand_super_bcsz(7))
+        assert norm(A - B) < tol
 
-    def test_stinespring_agrees(self, thresh=1e-10):
+    @pytest.mark.repeat(3)
+    def test_stinespring_agrees(self, dimension):
         """
         Stinespring: Partial Tr over pair agrees w/ supermatrix.
         """
-        def case(map, state):
-            S = to_super(map)
-            A, B = to_stinespring(map)
 
-            q1 = vector_to_operator(
-                S * operator_to_vector(state)
-            )
-            # FIXME: problem if Kraus index is implicitly
-            #        ptraced!
-            q2 = (A * state * B.dag()).ptrace((0,))
+        map = rand_super_bcsz(dimension)
+        state = rand_dm_ginibre(dimension)
 
-            assert_((q1 - q2).norm('tr') <= thresh)
+        S = to_super(map)
+        A, B = to_stinespring(map)
 
-        for idx in range(4):
-            case(rand_super_bcsz(2), rand_dm_ginibre(2))
+        q1 = vector_to_operator(
+            S * operator_to_vector(state)
+        )
+        # FIXME: problem if Kraus index is implicitly
+        #        ptraced!
+        q2 = (A * state * B.dag()).ptrace((0,))
 
-    def test_stinespring_dims(self):
+        assert (q1 - q2).norm('tr') <= tol
+
+    def test_stinespring_dims(self, dimension):
         """
         Stinespring: Check that dims of channels are preserved.
         """
-        # FIXME: not the most general test, since this assumes a map
-        #        from square matrices to square matrices on the same space.
-        chan = super_tensor(to_super(sigmax()), to_super(qeye(3)))
+        chan = super_tensor(to_super(sigmax()), to_super(qeye(dimension)))
         A, B = to_stinespring(chan)
-        assert_equal(A.dims, [[2, 3, 1], [2, 3]])
-        assert_equal(B.dims, [[2, 3, 1], [2, 3]])
+        assert A.dims == [[2, dimension, 1], [2, dimension]]
+        assert B.dims == [[2, dimension, 1], [2, dimension]]
 
-    def test_chi_choi_roundtrip(self):
-        def case(qobj):
-            qobj = to_chi(qobj)
-            rt_qobj = to_chi(to_choi(qobj))
+    @pytest.mark.parametrize('dimension', [2, 4, 8])
+    def test_chi_choi_roundtrip(self, dimension):
 
-            assert_almost_equal(rt_qobj.data.toarray(), qobj.data.toarray())
-            assert_equal(rt_qobj.type, qobj.type)
-            assert_equal(rt_qobj.dims, qobj.dims)
+        superop = rand_super_bcsz(dimension)
+        superop = to_chi(superop)
+        rt_superop = to_chi(to_choi(superop))
+        dif = norm(rt_superop - superop)
 
-        for N in (2, 4, 8):
-            case(rand_super_bcsz(N))
+        assert dif == pytest.approx(0, abs=1e-7)
+        assert rt_superop.type == superop.type
+        assert rt_superop.dims == superop.dims
 
-    def test_chi_known(self):
+    chi_sigmax = [
+        [0, 0, 0, 0],
+        [0, 4, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0]
+    ]
+    chi_diag2 = [
+        [4, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0]
+    ]
+    rotX_pi_4 = (-1j * sigmax() * pi / 4).expm()
+    chi_rotX_pi_4 = [
+        [2, 2j, 0, 0],
+        [-2j, 2, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0]
+    ]
+
+    @pytest.mark.parametrize(['superop', 'chi_expected'], [
+        pytest.param(sigmax(), chi_sigmax),
+        pytest.param(to_super(sigmax()), chi_sigmax),
+        pytest.param(qeye(2), chi_diag2),
+        pytest.param(rotX_pi_4, chi_rotX_pi_4)
+    ])
+    def test_chi_known(self, superop, chi_expected):
         """
         Superoperator: Chi-matrix for known cases is correct.
         """
-        def case(S, chi_expected, silent=True):
-            chi_actual = to_chi(S)
-            chiq = Qobj(chi_expected, dims=[[[2], [2]], [[2], [2]]], superrep='chi')
-            if not silent:
-                print(chi_actual)
-                print(chi_expected)
-            assert_almost_equal((chi_actual - chiq).norm('tr'), 0)
-
-        case(sigmax(), [
-            [0, 0, 0, 0],
-            [0, 4, 0, 0],
-            [0, 0, 0, 0],
-            [0, 0, 0, 0]
-        ])
-        case(to_super(sigmax()), [
-            [0, 0, 0, 0],
-            [0, 4, 0, 0],
-            [0, 0, 0, 0],
-            [0, 0, 0, 0]
-        ])
-        case(qeye(2), [
-            [4, 0, 0, 0],
-            [0, 0, 0, 0],
-            [0, 0, 0, 0],
-            [0, 0, 0, 0]
-        ])
-        case((-1j * sigmax() * pi / 4).expm(), [
-            [2, 2j, 0, 0],
-            [-2j, 2, 0, 0],
-            [0, 0, 0, 0],
-            [0, 0, 0, 0]
-        ])
-
-if __name__ == "__main__":
-    run_module_suite()
+        chi_actual = to_chi(superop)
+        chiq = Qobj(
+            chi_expected, dims=[[[2], [2]], [[2], [2]]], superrep='chi',
+        )
+        assert (chi_actual - chiq).norm() < tol
