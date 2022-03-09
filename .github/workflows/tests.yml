@@ -69,13 +69,13 @@ jobs:
           # Ignore ImportWarning because pyximport registered an importer
           # PyxImporter that does not have a find_spec method and this raises
           # a warning on Python 3.10
-          # Ignore DeprecationWarnings raised by importing scipy.sparse.X
+          # Ignore DeprecationWarnings raised by cvxpy importing scipy.sparse.X
           # under SciPy 1.8.0+.
           - case-name: Python 3.10
             os: ubuntu-latest
             python-version: "3.10"
             condaforge: 1
-            pytest-extra-options: "-W ignore::ImportWarning -W ignore::DeprecationWarning:qutip.fastsparse -W ignore::DeprecationWarning:cvxpy.interface.scipy_wrapper"
+            pytest-extra-options: "-W ignore::ImportWarning -W ignore::DeprecationWarning:cvxpy.interface.scipy_wrapper"
 
     steps:
       - uses: actions/checkout@v2
