@@ -475,7 +475,10 @@ class Space(metaclass=MetaSpace):
         return dims
 
     def idx2dims(self, idx):
-        return idx
+        return [idx]
+
+    def step(self):
+        return [1]
 
 
 class Field(Space):
@@ -497,6 +500,9 @@ class Field(Space):
         return "Field()"
 
     def as_list(self):
+        return [1]
+
+    def step(self):
         return [1]
 
 
@@ -545,19 +551,28 @@ class Compound(Space):
         return sum([space.as_list() for space in self.spaces], [])
 
     def dims2idx(self, dims):
+        print('Compound', dims)
         pos = 0
         step = 1
-        for space, dim in zip(self.spaces, dims)[::-1]:
+        for space, dim in zip(self.spaces[::-1], dims[::-1]):
             pos += space.dims2idx(dim) * step
             step *= space.size
         return pos
 
     def idx2dims(self, idx):
         dims = []
-        for space in self.spaces:
-            dim, idx = divmod(idx, space.size)
-            dims.append(space.idx2dims(dim))
+        for space in self.spaces[::-1]:
+            idx, dim = divmod(idx, space.size)
+            dims = space.idx2dims(dim) + dims
         return dims
+
+    def step(self):
+        steps = []
+        step = 1
+        for space in self.spaces[::-1]:
+            steps = [step * N for N in space.step()] + steps
+            step *= space.size
+        return steps
 
 
 class SuperSpace(Space):
@@ -591,19 +606,19 @@ class SuperSpace(Space):
         return self.oper.as_list()
 
     def dims2idx(self, dims):
-        pos = 0
-        step = 1
-        for space, dim in zip(self.spaces, dims)[::-1]:
-            pos += dim * step
-            step *= space.size
-        return pos
+        print('SuperSpace', dims)
+        posl, posr = self.oper.dims2idx(dims)
+        return posl + posr * self.oper.shape[0]
 
     def idx2dims(self, idx):
-        dims = []
-        for space in self.spaces:
-            dim, idx = divmod(idx, space.size)
-            dims.append(dim)
-        return dims
+        posl = idx % self.oper.shape[0]
+        posr = idx // self.oper.shape[0]
+        return self.oper.idx2dims(posl, posr)
+
+    def step(self):
+        stepl, stepr = self.oper.step()
+        step = self.oper.shape[0]
+        return stepl + [step * N for N in stepr]
 
 
 class MetaDims(type):
@@ -701,5 +716,8 @@ class Dimensions(metaclass=MetaDims):
     def dims2idx(self, dims):
         return self.to_.dims2idx(dims[0]), self.from_.dims2idx(dims[1])
 
-    def idx2dims(self, idx):
-        return [self.to_.idx2dims(dims[0]), self.from_.idx2dims(dims[1])]
+    def idx2dims(self, idxl, idxr):
+        return [self.to_.idx2dims(idxl), self.from_.idx2dims(idxr)]
+
+    def step(self):
+        return [self.to_.step(), self.from_.step()]

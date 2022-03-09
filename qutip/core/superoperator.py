@@ -483,9 +483,13 @@ def reshuffle(q_oper):
     """
     Column-reshuffles a super operator or a operator-ket Qobj.
     """
-    if not q_oper._dims[0].issuper:
+    if not q_oper.isoperket or not (q_oper.issuper and q_oper.issquare):
         raise TypeError("Reshuffling is only supported on type='super' "
                         "or type='operator-ket'.")
+
+    if isinstance(dims[0], Compound):
+        return _to_super_of_tensor(q_oper)
+    return _to_tensor_of_super(q_oper)
     # How many indices are there, and how many subsystems can we decompose
     # each index into?
     n_indices = len(q_oper.dims[0])

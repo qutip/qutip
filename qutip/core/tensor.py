@@ -47,7 +47,7 @@ from .superoperator import (
 )
 from .dimensions import (
     flatten, enumerate_flat, unflatten, deep_remove, dims_to_tensor_shape,
-    dims_idxs_to_tensor_idxs
+    dims_idxs_to_tensor_idxs, Dimensions, Compound
 )
 from . import data as _data
 
@@ -120,8 +120,8 @@ shape = [4, 4], type = oper, isHerm = True
     isherm = args[0]._isherm
     isunitary = args[0]._isunitary
     out_data = args[0].data
-    dims_l = [d for arg in args for d in arg.dims[0]]
-    dims_r = [d for arg in args for d in arg.dims[1]]
+    dims_l = Compound(*[arg._dims[0] for arg in args])
+    dims_r = Compound(*[arg._dims[1] for arg in args])
     for arg in args[1:]:
         out_data = _data.kron(out_data, arg.data)
         # If both _are_ Hermitian and/or unitary, then so is the output, but if
