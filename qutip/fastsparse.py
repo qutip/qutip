@@ -1,10 +1,17 @@
-import numpy as np
-import operator
-from scipy.sparse import (
-    _sparsetools, csr_matrix, dia_matrix, isspmatrix, SparseEfficiencyWarning,
-)
-from scipy.sparse.sputils import upcast, isdense, isscalarlike, get_index_dtype
 from warnings import warn
+import operator
+
+import numpy as np
+from scipy.sparse import (
+    csr_matrix, dia_matrix, isspmatrix, SparseEfficiencyWarning,
+)
+
+# fast_csr_matrix extends the internals of csr_matrix, and we need to
+# import parts of the internals of scipy.sparse to do that:
+import scipy.sparse._sparsetools as _sparsetools
+from scipy.sparse._sputils import (
+    isdense, isscalarlike, upcast, get_index_dtype,
+)
 
 
 class fast_csr_matrix(csr_matrix):
