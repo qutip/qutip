@@ -273,9 +273,24 @@ class PulseGen(object):
     def _apply_bounds_and_offset(self, pulse, ctrl_index=None):
         """
         Ensure that the randomly generated pulse fits within the bounds
-        (after applying the offset)
-        Assumes that pulses passed are centered around zero (on average)
-        ctrl_index is the index of the control for which the pulse is computed
+        after applying the offset.
+
+        It assumes that pulses passed are centered around zero (on average).
+
+        Parameters
+        ----------
+        pulse : ndarray
+            An array specify the pulse value at each time slot.
+
+        ctrl_index : int or None
+            The control that the pulse is for. The default of None may
+            only be used when the control index is irrelevant (e.g. when
+            the bounds are not control dependent).
+
+        Returns
+        -------
+        ndarray
+            The pulse with the offset and bounds applied.
         """
         if self.lbound is None and self.ubound is None:
             return pulse + self.offset
