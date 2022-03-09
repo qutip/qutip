@@ -8,10 +8,18 @@ from scipy.sparse import (
 
 # fast_csr_matrix extends the internals of csr_matrix, and we need to
 # import parts of the internals of scipy.sparse to do that:
+import scipy.sparse
 import scipy.sparse._sparsetools as _sparsetools
-from scipy.sparse._sputils import (
-    isdense, isscalarlike, upcast, get_index_dtype,
-)
+if hasattr(scipy.sparse, "_sputils"):
+    # SciPy 1.8.0 deprecated the public scipy.sparse.sputils interface and
+    # moved it to _sputils
+    from scipy.sparse._sputils import (
+        isdense, isscalarlike, upcast, get_index_dtype,
+    )
+else:
+    from scipy.sparse.sputils import (
+        isdense, isscalarlike, upcast, get_index_dtype,
+    )
 
 
 class fast_csr_matrix(csr_matrix):
