@@ -1,11 +1,11 @@
 import numpy as np
 import operator
-from scipy.sparse import (_sparsetools, isspmatrix, isspmatrix_csr,
-                          csr_matrix, coo_matrix, csc_matrix, dia_matrix)
-from scipy.sparse.sputils import (upcast, upcast_char, to_native, isdense, isshape,
-                      getdtype, isscalarlike, get_index_dtype)
-from scipy.sparse.base import spmatrix, isspmatrix, SparseEfficiencyWarning
+from scipy.sparse import (
+    _sparsetools, csr_matrix, dia_matrix, isspmatrix, SparseEfficiencyWarning,
+)
+from scipy.sparse.sputils import upcast, isdense, isscalarlike, get_index_dtype
 from warnings import warn
+
 
 class fast_csr_matrix(csr_matrix):
     """
