@@ -488,6 +488,8 @@ def test_QobjEvo_mul_vec():
         assert_allclose(spmv(op(t,data=1), vec), op.mul_vec(t, vec))
         op.compile()
         assert_allclose(spmv(op(t,data=1), vec), op.mul_vec(t, vec))
+        with pytest.raises(ValueError):
+            op.mul_vec(t, vec[:-1])
 
 
 @pytest.mark.slow
@@ -530,6 +532,10 @@ def test_QobjEvo_mul_mat():
         assert_allclose(Qo1.data * matF, op.mul_mat(t,matF))
         assert_allclose(mat2vec(Qo1.data * mat).flatten(),
                         op.compiled_qobjevo.ode_mul_mat_f_vec(t,matV))
+        with pytest.raises(ValueError):
+            op.mul_mat(t, mat[:-1, :-1])
+        with pytest.raises(ValueError):
+            op.compiled_qobjevo.ode_mul_mat_f_vec(t,matV[:(N-1)**2])
 
 
 @pytest.mark.slow
@@ -581,6 +587,8 @@ def test_QobjEvo_expect_psi():
         assert_allclose(cy_expect_psi(Qo1.data, vec, 0), op.expect(t,vec,0))
         op.compile()
         assert_allclose(cy_expect_psi(Qo1.data, vec, 0), op.expect(t,vec,0))
+        with pytest.raises(ValueError):
+            op.expect(t, vec[:-1], 0)
 
 
 @pytest.mark.slow
@@ -632,6 +640,8 @@ def test_QobjEvo_expect_rho():
                         op.expect(t,mat,0), atol=1e-14)
         assert_allclose(cy_expect_rho_vec(Qo1.data, vec, 0),
                         op.expect(t,qobj,0), atol=1e-14)
+        with pytest.raises(ValueError):
+            op.expect(t, mat[:-1, :-1], 0)
 
     tlist = np.linspace(0,1,300)
     args={"w1":1, "w2":2, "w3":3}

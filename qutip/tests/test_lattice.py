@@ -209,26 +209,29 @@ class TestLattice1d:
                 else:
                     kop[row, col] = 1 / (np.exp(2j * np.pi * (row - col)/L)-1)
         kt = np.kron(kop * 2 * np.pi / L, np.eye(6))
-        dim_H = [[2, 2, 3], [2, 2, 3]]
+        dim_H = [[L, 2, 3], [L, 2, 3]]
         kt = qutip.Qobj(kt, dims=dim_H)
         k_q = kq.eigenstates()[0]
         k_t = kt.eigenstates()[0]
         k_tC = k_t - (2*np.pi/L) * ((L-1) // 2)
         np.testing.assert_allclose(k_tC, k_q, atol=1e-12)
 
-    @pytest.mark.parametrize(["lattice", "k_expected", "energies_expected"], [
-        pytest.param(qutip.Lattice1d(num_cell=8),
+    @pytest.mark.parametrize([
+        "lattice_func", "k_expected", "energies_expected",
+    ], [
+        pytest.param(lambda: qutip.Lattice1d(num_cell=8),
                      _k_expected(8),
                      np.array([[2, np.sqrt(2), 0, -np.sqrt(2), -2,
                                 -np.sqrt(2), 0, np.sqrt(2)]]),
                      id="atom chain"),
-        pytest.param(_ssh_lattice(-0.5, -0.6,
-                                  cells=6, sites_per_cell=2, freedom=[2, 2]),
+        pytest.param(lambda: _ssh_lattice(
+                        -0.5, -0.6, cells=6, sites_per_cell=2, freedom=[2, 2]),
                      _k_expected(6),
                      np.array([-_ssh_energies]*4 + [_ssh_energies]*4),
                      id="ssh model")
     ])
-    def test_get_dispersion(self, lattice, k_expected, energies_expected):
+    def test_get_dispersion(self, lattice_func, k_expected, energies_expected):
+        lattice = lattice_func()
         k_test, energies_test = lattice.get_dispersion()
         _assert_angles_close(k_test, k_expected, atol=1e-8)
         np.testing.assert_allclose(energies_test, energies_expected, atol=1e-8)

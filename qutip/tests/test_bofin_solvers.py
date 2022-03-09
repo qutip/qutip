@@ -179,13 +179,13 @@ class TestHierarchyADOsState:
 
     def mk_rho_and_soln(self, ados, rho_dims):
         n_ados = len(ados.labels)
-        ado_soln = np.random.rand(n_ados, *[2**d for d in rho_dims])
-        rho = Qobj(ado_soln[0, :], dims=[2, 2])
+        ado_soln = np.random.rand(n_ados, *[np.product(d) for d in rho_dims])
+        rho = Qobj(ado_soln[0, :], dims=rho_dims)
         return rho, ado_soln
 
     def test_create(self):
         ados = self.mk_ados([2, 3], max_depth=2)
-        rho, ado_soln = self.mk_rho_and_soln(ados, [2, 2])
+        rho, ado_soln = self.mk_rho_and_soln(ados, [[2], [2]])
         ado_state = HierarchyADOsState(rho, ados, ado_soln)
         assert ado_state.rho == rho
         assert ado_state.labels == ados.labels
@@ -195,7 +195,7 @@ class TestHierarchyADOsState:
 
     def test_extract(self):
         ados = self.mk_ados([2, 3], max_depth=2)
-        rho, ado_soln = self.mk_rho_and_soln(ados, [2, 2])
+        rho, ado_soln = self.mk_rho_and_soln(ados, [[2], [2]])
         ado_state = HierarchyADOsState(rho, ados, ado_soln)
         ado_state.extract((0, 0)) == rho
         ado_state.extract(0) == rho

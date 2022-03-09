@@ -969,5 +969,10 @@ def test_tlist_h_with_other_tlist_c_ops_raises():
     assert str(exc.value) == "Time lists are not compatible"
 
 
-if __name__ == "__main__":
-    run_module_suite()
+def test_mesolve_bad_e_ops():
+    H = sigmaz()
+    c_ops = [sigmax()]
+    psi0 = basis(2, 0)
+    tlist = np.linspace(0, 20, 200)
+    with pytest.raises(TypeError) as exc:
+        mesolve(H, psi0, tlist=tlist, c_ops=c_ops, e_ops=[qeye(3)])
