@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import scipy.sparse as sp
 import scipy.linalg as la
 import numpy as np
@@ -11,6 +12,7 @@ from qutip.superoperator import (spre, spost, operator_to_vector,
                                  vector_to_operator)
 from qutip.superop_reps import to_super, to_choi, to_chi
 from qutip.tensor import tensor, super_tensor, composite
+import qutip.settings as settings
 
 from operator import add, mul, truediv, sub
 import pytest
@@ -1014,3 +1016,26 @@ def test_unit():
     psi.unit(inplace=True)
     assert psi == psi2
     assert np.allclose(np.linalg.norm(psi.full()), 1.0)
+
+
+def test_tidyup():
+    small = Qobj(1e-15)
+    small.tidyup(1e-14)
+    assert small.norm() == 0
+
+
+@contextmanager
+def tidyup_tol(tol):
+    old_tol = settings.auto_tidyup_atol
+    settings.auto_tidyup_atol = tol
+    try:
+        yield None
+    finally:
+        settings.auto_tidyup_atol = old_tol
+
+
+@pytest.mark.parametrize("tol", [1, 1e-15])
+def test_tidyup_default(tol):
+    with tidyup_tol(tol):
+        small = Qobj(1) * 1e-10
+        assert (small.norm() == 0) == (tol > 1e-10)

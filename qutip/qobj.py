@@ -1380,7 +1380,7 @@ class Qobj(object):
         q.data.sort_indices()
         return q
 
-    def tidyup(self, atol=settings.auto_tidyup_atol):
+    def tidyup(self, atol=None):
         """Removes small elements from the quantum object.
 
         Parameters
@@ -1395,6 +1395,8 @@ class Qobj(object):
             Quantum object with small elements removed.
 
         """
+        atol = atol or settings.auto_tidyup_atol
+
         if self.data.nnz:
             # This does the tidyup and returns True if
             # The sparse data needs to be shortened
