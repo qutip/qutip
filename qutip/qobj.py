@@ -1395,7 +1395,8 @@ class Qobj(object):
             Quantum object with small elements removed.
 
         """
-        atol = atol or settings.auto_tidyup_atol
+        if atol is None:
+            atol = settings.auto_tidyup_atol
 
         if self.data.nnz:
             # This does the tidyup and returns True if
