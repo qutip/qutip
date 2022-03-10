@@ -49,8 +49,7 @@ from .. import __version__
 from ..settings import settings
 from . import data as _data
 from .dimensions import (
-    type_from_dims, enumerate_flat, collapse_dims_super, flatten, unflatten,
-    Dimensions
+    enumerate_flat, collapse_dims_super, flatten, unflatten, Dimensions
 )
 
 

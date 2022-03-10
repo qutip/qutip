@@ -36,7 +36,7 @@ import pytest
 import collections
 import qutip
 from qutip.core.dimensions import (
-    type_from_dims, flatten, unflatten, enumerate_flat, deep_remove, deep_map,
+    flatten, unflatten, enumerate_flat, deep_remove, deep_map,
     dims_idxs_to_tensor_idxs, dims_to_tensor_shape, dims_to_tensor_perm,
     collapse_dims_super, collapse_dims_oper, Dimensions
 )
@@ -195,31 +195,6 @@ class TestTypeFromDims:
     ])
     def test_Dimensions_type(self, base, expected):
         assert Dimensions(base).type == expected
-
-    @pytest.mark.parametrize(["base", "expected", "enforce_square"], [
-        pytest.param([[2], [2]], 'oper', True),
-        pytest.param([[2, 3], [2, 3]], 'oper', True),
-        pytest.param([[2], [3]], 'other', True),
-        pytest.param([[2], [3]], 'oper', False),
-        pytest.param([[2], [1]], 'ket', True),
-        pytest.param([[1], [2]], 'bra', True),
-        pytest.param([[[2, 3], [2, 3]], [1]], 'operator-ket', True),
-        pytest.param([[1], [[2, 3], [2, 3]]], 'operator-bra', True),
-        pytest.param([[[3], [3]], [[2, 3], [2, 3]]], 'other', True),
-        pytest.param([[[3], [3]], [[2, 3], [2, 3]]], 'super', False),
-        pytest.param([[[2], [3, 3]], [[3], [2, 3]]], 'other', True),
-    ])
-    def test_type_from_dims(self, base, expected, enforce_square):
-        assert type_from_dims(base, enforce_square=enforce_square) == expected
-
-    @pytest.mark.parametrize("qobj", [
-        pytest.param(qutip.rand_ket(10), id='ket'),
-        pytest.param(qutip.rand_ket(10).dag(), id='bra'),
-        pytest.param(qutip.rand_dm(10), id='oper'),
-        pytest.param(qutip.to_super(qutip.rand_dm(10)), id='super'),
-    ])
-    def test_qobj_dims_match_qobj(self, qobj):
-        assert type_from_dims(qobj.dims) == qobj.type
 
 
 class TestCollapseDims:

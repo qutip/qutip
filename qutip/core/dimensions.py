@@ -42,57 +42,6 @@ from operator import getitem
 from functools import partial
 
 
-def is_scalar(dims):
-    """
-    Returns True if a dims specification is effectively
-    a scalar (has dimension 1).
-    """
-    return np.prod(flatten(dims)) == 1
-
-
-def is_vector(dims):
-    return (
-        isinstance(dims, list) and
-        isinstance(dims[0], (int, np.integer))
-    )
-
-
-def is_vectorized_oper(dims):
-    return (
-        isinstance(dims, list) and
-        isinstance(dims[0], list)
-    )
-
-
-def type_from_dims(dims, enforce_square=False):
-    bra_like, ket_like = map(is_scalar, dims)
-
-    if bra_like:
-        if is_vector(dims[1]):
-            return 'bra'
-        elif is_vectorized_oper(dims[1]):
-            return 'operator-bra'
-
-    if ket_like:
-        if is_vector(dims[0]):
-            return 'ket'
-        elif is_vectorized_oper(dims[0]):
-            return 'operator-ket'
-
-    elif is_vector(dims[0]) and (dims[0] == dims[1] or not enforce_square):
-        return 'oper'
-
-    elif (
-        is_vectorized_oper(dims[0])
-        and (
-            not enforce_square
-            or (dims[0] == dims[1] and dims[0][0] == dims[1][0])
-        )
-    ):
-        return 'super'
-    return 'other'
-
-
 def flatten(l):
     """Flattens a list of lists to the first level.
 
@@ -293,6 +242,7 @@ def dims_to_tensor_perm(dims):
         index of the tensor ``data`` corresponding to the ``idx``th
         dimension of ``dims``.
     """
+    raise NotImplementedError
     # We figure out the type of the dims specification,
     # relaxing the requirement that operators be square.
     # This means that dims_type need not coincide with
@@ -342,6 +292,7 @@ def dims_to_tensor_shape(dims):
     tensor_shape : tuple
         NumPy shape of the corresponding tensor.
     """
+    raise NotImplementedError
     perm = dims_to_tensor_perm(dims)
     dims = flatten(dims)
     return tuple(map(partial(getitem, dims), perm))
@@ -480,6 +431,16 @@ class Space(metaclass=MetaSpace):
     def step(self):
         return [1]
 
+    def flat(self):
+        return [self.size]
+
+    def remove(self, idx):
+        return Field() if idx else self
+
+    def remove(self, idx, new):
+        return Space(new)
+
+
 
 class Field(Space):
     field_instance = None
@@ -504,6 +465,15 @@ class Field(Space):
 
     def step(self):
         return [1]
+
+    def flat(self):
+        return [1]
+
+    def remove(self, idx):
+        return self
+
+    def remove(self, idx, new):
+        return Space(new)
 
 
 Field.field_instance = Field.__new__(Field)
@@ -574,6 +544,34 @@ class Compound(Space):
             step *= space.size
         return steps
 
+    def flat(self):
+        return sum([space.flat() for space in self.spaces], [])
+
+    def remove(self, idx):
+        new_spaces = []
+        for space in self.spaces:
+            n_indices = len(space.flat())
+            idx_space = [i for i in idx if i<n_indices]
+            idx = [i-n_indices for i in idx if i >= n_indices]
+            new_space = space.remove(idx_space)
+            if not isinstance(new_space, Field):
+                new_spaces.append(new_space)
+        if new_spaces:
+            return Compound(*new_spaces)
+        return Field()
+
+    def swap(self, idx, new):
+        new_spaces = []
+        for space in self.spaces:
+            n_indices = len(space.flat())
+            if 0 <= idx < n_indices:
+                new_spaces.append(space.swap(idx, new))
+            else:
+                new_spaces.append(space)
+            idx -= n_indices
+        return Compound(*new_spaces)
+
+
 
 class SuperSpace(Space):
     _stored_dims = {}
@@ -619,6 +617,18 @@ class SuperSpace(Space):
         stepl, stepr = self.oper.step()
         step = self.oper.shape[0]
         return stepl + [step * N for N in stepr]
+
+    def flat(self):
+        return sum(self.oper.flat(), [])
+
+    def remove(self, idx):
+        new_dims = self.oper.remove(idx)
+        if new_dims.type == 'scalar':
+            return Field()
+        return SuperSpace(self.oper.remove(idx), rep=self.superrep)
+
+    def swap(self, idx, new):
+        return SuperSpace(self.oper.swap(idx, new), rep=self.superrep)
 
 
 class MetaDims(type):
@@ -721,3 +731,49 @@ class Dimensions(metaclass=MetaDims):
 
     def step(self):
         return [self.to_.step(), self.from_.step()]
+
+    def flat(self):
+        return [self.to_.flat(), self.from_.flat()]
+
+    def get_tensor_shape(self):
+        stepl = self.to_.step()
+        flatl = self.to_.flat()
+        stepr = self.from_.step()
+        flatr = self.from_.flat()
+        return np.concatenate([
+            np.array(flatl)[np.argsort(stepl)[::-1]],
+            np.array(flatr)[np.argsort(stepr)[::-1]],
+        ])
+
+    def get_tensor_perm(self):
+        stepl = self.to_.step()
+        stepr = self.from_.step()
+        return np.concatenate([
+            np.argsort(stepl)[::-1],
+            np.argsort(stepr)[::-1] + len(stepl)
+        ])
+
+    def remove(self, idx):
+        if not isinstance(idx, list):
+            idx = [idx]
+        if not idx:
+            return self
+        idx = sorted(idx)
+        n_indices = len(self.to_.flat())
+        idx_to = [i for i in idx if i < n_indices]
+        idx_from = [i-n_indices for i in idx if i >= n_indices]
+        return Dimensions(
+            self.from_.remove(idx_from),
+            self.to_.remove(idx_to),
+        )
+
+    def swap(self, idx, new):
+        n_indices = len(self.to_.flat())
+        if idx < n_indices:
+            new_to = self.to_.swap(idx, new)
+            new_from = self.from_
+        else:
+            new_to = self.to_
+            new_from = self.from_.swap(idx-n_indices, new)
+
+        return Dimensions(new_from, new_to)
