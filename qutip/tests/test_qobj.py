@@ -1019,13 +1019,13 @@ def test_unit():
 
 
 def test_tidyup():
-    small = Qobj(1e-15)
-    small.tidyup(1e-14)
-    assert small.norm() == 0
+    small = Qobj([[1e-2, 0], [0, 1]])
+    small.tidyup(1e-1)
+    assert small.tr() == 1
 
 
 @contextmanager
-def tidyup_tol(tol):
+def auto_tidyup_tol(tol):
     old_tol = settings.auto_tidyup_atol
     settings.auto_tidyup_atol = tol
     try:
@@ -1036,6 +1036,6 @@ def tidyup_tol(tol):
 
 @pytest.mark.parametrize("tol", [1, 1e-15])
 def test_tidyup_default(tol):
-    with tidyup_tol(tol):
+    with auto_tidyup_tol(tol):
         small = Qobj(1) * 1e-10
         assert (small.norm() == 0) == (tol > 1e-10)
