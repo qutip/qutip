@@ -12,7 +12,6 @@ from .. import data as _data
 from ..dimensions import Dimensions
 from ..coefficient import coefficient, CompilationOptions
 from ._element import *
-from ..dimensions import type_from_dims
 from qutip.settings import settings
 
 from qutip.core.cy._element cimport _BaseElement

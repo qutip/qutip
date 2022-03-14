@@ -41,42 +41,6 @@ from qutip.core.dimensions import (
     collapse_dims_super, collapse_dims_oper, Dimensions
 )
 
-_v = "vector"
-_vo = "vectorized_oper"
-
-
-@pytest.mark.parametrize(["rank", "actual_type", "scalar"], [
-    pytest.param([1], _v, True, id="scalar"),
-    pytest.param([1, 1], _v, True, id="tensor scalar"),
-    pytest.param([[1]], _vo, True, id="nested scalar"),
-    pytest.param([[1], [1]], _vo, True, id="nested tensor scalar 1"),
-    pytest.param([[1, 1]], _vo, True, id="nested tensor scalar 2"),
-    pytest.param([2], _v, False, id="vector"),
-    pytest.param([2, 3], _v, False, id="tensor vector"),
-    pytest.param([1, 2, 3], _v, False, id="tensor vector with 1d subspace 1"),
-    pytest.param([2, 1, 1], _v, False, id="tensor vector with 1d subspace 2"),
-    pytest.param([[2]], _vo, False, id="vectorised operator"),
-    pytest.param([[2, 3]], _vo, False, id="vector tensor operator"),
-    pytest.param([[1, 3]], _vo, False, id="vector tensor operator with 1d"),
-])
-@pytest.mark.parametrize("test_type", ["scalar", _v, _vo])
-def test_rank_type_detection(rank, actual_type, scalar, test_type):
-    """
-    Test the rank detection tests `is_scalar`, `is_vector` and
-    `is_vectorized_oper` for a range of different test cases.  These tests are
-    designed to be called on individual elements of the two-element `dims`
-    parameter of `Qobj`s, so they're testing the row-rank and column-rank.
-
-    It's possible to be both a scalar and something else, but "vector" and
-    "vectorized_oper" are mutually exclusive.
-
-    These functions aren't properly specified for improper dimension setups, so
-    there are no tests for those.
-    """
-    expected = scalar if test_type == "scalar" else (actual_type == test_type)
-    function = getattr(qutip.dimensions, "is_" + test_type)
-    assert function(rank) == expected
-
 
 @pytest.mark.parametrize(["base", "flat"], [
     pytest.param([[[0], 1], 2], [0, 1, 2], id="standard"),

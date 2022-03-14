@@ -302,6 +302,45 @@ def tensor_swap(q_oper, *pairs):
     return Qobj(data, dims=dims, superrep=q_oper.superrep, copy=False)
 
 
+def tensor_swap(q_oper, *pairs):
+    """Transposes one or more pairs of indices of a Qobj.
+    Note that this uses dense representations and thus
+    should *not* be used for very large Qobjs.
+
+    Parameters
+    ----------
+
+    pairs : tuple
+        One or more tuples ``(i, j)`` indicating that the
+        ``i`` and ``j`` dimensions of the original qobj
+        should be swapped.
+
+    Returns
+    -------
+
+    sqobj : Qobj
+        The original Qobj with all named index pairs swapped with each other
+    """
+    dims = q_oper.dims
+    tensor_pairs = dims_idxs_to_tensor_idxs(dims, pairs)
+    data = q_oper.full()
+    # Reshape into tensor indices
+    data = data.reshape(dims_to_tensor_shape(dims))
+    # Now permute the dims list so we know how to get back.
+    flat_dims = flatten(dims)
+    perm = list(range(len(flat_dims)))
+    for i, j in pairs:
+        flat_dims[i], flat_dims[j] = flat_dims[j], flat_dims[i]
+    for i, j in tensor_pairs:
+        perm[i], perm[j] = perm[j], perm[i]
+    dims = unflatten(flat_dims, enumerate_flat(dims))
+    # Next, permute the actual indices of the dense tensor.
+    data = data.transpose(perm)
+    # Reshape back, using the left and right of dims.
+    data = data.reshape(list(map(np.prod, dims)))
+    return Qobj(data, dims=dims, superrep=q_oper.superrep, copy=False)
+
+
 def tensor_contract(qobj, *pairs):
     """Contracts a qobj along one or more index pairs.
     Note that this uses dense representations and thus

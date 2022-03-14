@@ -242,12 +242,11 @@ def dims_to_tensor_perm(dims):
         index of the tensor ``data`` corresponding to the ``idx``th
         dimension of ``dims``.
     """
-    raise NotImplementedError
     # We figure out the type of the dims specification,
     # relaxing the requirement that operators be square.
     # This means that dims_type need not coincide with
     # Qobj.type, but that works fine for our purposes here.
-    dims_type = type_from_dims(dims, enforce_square=False)
+    dims_type = Dimensions(dims).type
     perm = enumerate_flat(dims)
     if dims_type in ('oper', 'ket', 'bra'):
         return flatten(perm)
@@ -292,7 +291,6 @@ def dims_to_tensor_shape(dims):
     tensor_shape : tuple
         NumPy shape of the corresponding tensor.
     """
-    raise NotImplementedError
     perm = dims_to_tensor_perm(dims)
     dims = flatten(dims)
     return tuple(map(partial(getitem, dims), perm))
@@ -437,7 +435,7 @@ class Space(metaclass=MetaSpace):
     def remove(self, idx):
         return Field() if idx else self
 
-    def remove(self, idx, new):
+    def swap(self, idx, new):
         return Space(new)
 
 
@@ -472,7 +470,7 @@ class Field(Space):
     def remove(self, idx):
         return self
 
-    def remove(self, idx, new):
+    def swap(self, idx, new):
         return Space(new)
 
 
