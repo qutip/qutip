@@ -242,6 +242,10 @@ def dims_to_tensor_perm(dims):
         index of the tensor ``data`` corresponding to the ``idx``th
         dimension of ``dims``.
     """
+    if isinstance(dims, list):
+        dims = Dimensions(dims)
+    return dims.get_tensor_perm()
+
     # We figure out the type of the dims specification,
     # relaxing the requirement that operators be square.
     # This means that dims_type need not coincide with
@@ -291,9 +295,9 @@ def dims_to_tensor_shape(dims):
     tensor_shape : tuple
         NumPy shape of the corresponding tensor.
     """
-    perm = dims_to_tensor_perm(dims)
-    dims = flatten(dims)
-    return tuple(map(partial(getitem, dims), perm))
+    if isinstance(dims, list):
+        dims = Dimensions(dims)
+    return dims.get_tensor_shape()
 
 
 def dims_idxs_to_tensor_idxs(dims, indices):
@@ -326,6 +330,23 @@ def dims_idxs_to_tensor_idxs(dims, indices):
     perm = dims_to_tensor_perm(dims)
     return deep_map(partial(getitem, perm), indices)
 
+
+def to_tensor_rep(q_oper):
+    """
+
+    """
+    dims = q_oper._dims
+    data = q_oper.full().reshape(dims.get_tensor_shape())
+    return data.transpose(dims.get_tensor_perm())
+
+
+def from_tensor_rep(tensorrep, dims):
+    """
+
+    """
+    from . import Qobj
+    data = tensorrep.transpose(np.argsort(dims.get_tensor_perm()))
+    return Qobj(data.reshape(dims.shape), dims=dims)
 
 
 def _frozen(*args, **kwargs):
@@ -435,7 +456,7 @@ class Space(metaclass=MetaSpace):
     def remove(self, idx):
         return Field() if idx else self
 
-    def swap(self, idx, new):
+    def replace(self, idx, new):
         return Space(new)
 
 
@@ -470,7 +491,7 @@ class Field(Space):
     def remove(self, idx):
         return self
 
-    def swap(self, idx, new):
+    def replace(self, idx, new):
         return Space(new)
 
 
@@ -558,12 +579,12 @@ class Compound(Space):
             return Compound(*new_spaces)
         return Field()
 
-    def swap(self, idx, new):
+    def replace(self, idx, new):
         new_spaces = []
         for space in self.spaces:
             n_indices = len(space.flat())
             if 0 <= idx < n_indices:
-                new_spaces.append(space.swap(idx, new))
+                new_spaces.append(space.replace(idx, new))
             else:
                 new_spaces.append(space)
             idx -= n_indices
@@ -625,7 +646,7 @@ class SuperSpace(Space):
             return Field()
         return SuperSpace(self.oper.remove(idx), rep=self.superrep)
 
-    def swap(self, idx, new):
+    def replace(self, idx, new):
         return SuperSpace(self.oper.swap(idx, new), rep=self.superrep)
 
 
@@ -734,22 +755,24 @@ class Dimensions(metaclass=MetaDims):
         return [self.to_.flat(), self.from_.flat()]
 
     def get_tensor_shape(self):
+        # dims_to_tensor_shape
         stepl = self.to_.step()
         flatl = self.to_.flat()
         stepr = self.from_.step()
         flatr = self.from_.flat()
-        return np.concatenate([
+        return tuple(np.concatenate([
             np.array(flatl)[np.argsort(stepl)[::-1]],
             np.array(flatr)[np.argsort(stepr)[::-1]],
-        ])
+        ]))
 
     def get_tensor_perm(self):
+        # dims_to_tensor_perm
         stepl = self.to_.step()
         stepr = self.from_.step()
-        return np.concatenate([
+        return list(np.concatenate([
             np.argsort(stepl)[::-1],
             np.argsort(stepr)[::-1] + len(stepl)
-        ])
+        ]))
 
     def remove(self, idx):
         if not isinstance(idx, list):
@@ -765,13 +788,13 @@ class Dimensions(metaclass=MetaDims):
             self.to_.remove(idx_to),
         )
 
-    def swap(self, idx, new):
+    def replace(self, idx, new):
         n_indices = len(self.to_.flat())
         if idx < n_indices:
-            new_to = self.to_.swap(idx, new)
+            new_to = self.to_.replace(idx, new)
             new_from = self.from_
         else:
             new_to = self.to_
-            new_from = self.from_.swap(idx-n_indices, new)
+            new_from = self.from_.replace(idx-n_indices, new)
 
         return Dimensions(new_from, new_to)

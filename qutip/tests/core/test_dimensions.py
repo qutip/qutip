@@ -112,23 +112,23 @@ _Indices = collections.namedtuple('_Indices', ['base', 'permutation', 'shape'])
 
 @pytest.mark.parametrize("indices", [
     pytest.param(_Indices([[2], [1]], [0, 1], (2, 1)), id="ket preserved"),
-    pytest.param(_Indices([[2, 3], [1, 1]], [0, 1, 2, 3], (2, 3, 1, 1)),
+    pytest.param(_Indices([[2, 3], [1]], [0, 1, 2], (2, 3, 1)),
                  id="tensor-ket preserved"),
     pytest.param(_Indices([[1], [2]], [0, 1], (1, 2)), id="bra preserved"),
-    pytest.param(_Indices([[1, 1], [2, 2]], [0, 1, 2, 3], (1, 1, 2, 2)),
+    pytest.param(_Indices([[1], [2, 2]], [0, 1, 2], (1, 2, 2)),
                  id="tensor-bra preserved"),
     pytest.param(_Indices([[2], [3]], [0, 1], (2, 3)), id="oper preserved"),
-    pytest.param(_Indices([[2, 3], [1, 0]], [0, 1, 2, 3], (2, 3, 1, 0)),
+    pytest.param(_Indices([[2, 3], [1, 2]], [0, 1, 2, 3], (2, 3, 1, 2)),
                  id="tensor-oper preserved"),
     pytest.param(_Indices([[[2, 4], [6, 8]], [[1, 3], [5, 7]]],
                           [2, 3, 0, 1, 6, 7, 4, 5],
                           (6, 8, 2, 4, 5, 7, 1, 3)),
                  id="super-oper"),
     pytest.param(_Indices([[[2, 4], [6, 8]], [1]],
-                          [0, 1, 2, 3, 4], (2, 4, 6, 8, 1)),
+                          [2, 3, 0, 1, 4], (6, 8, 2, 4, 1)),
                  id="operator-ket"),
     pytest.param(_Indices([[1], [[2, 4], [6, 8]]],
-                          [0, 1, 2, 3, 4], (1, 2, 4, 6, 8)),
+                          [0, 3, 4, 1, 2], (1, 6, 8, 2, 4)),
                  id="operator-bra"),
 ])
 class TestSuperOperatorDimsModification:

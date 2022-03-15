@@ -1061,22 +1061,23 @@ class Qobj:
                 ) from None
             sel = [sel]
         if self.isoperket:
-            dims = self.dims[0]
+            dims = self._dims.to_.oper
             data = vector_to_operator(self).data
         elif self.isoperbra:
-            dims = self.dims[1]
+            dims = self._dims.from_.oper
             data = vector_to_operator(self.dag()).data
         elif self.issuper or self.isoper:
-            dims = self.dims
+            dims = self._dims
             data = self.data
         else:
-            dims = [self.dims[0] if self.isket else self.dims[1]] * 2
+            dims = self._dims[0] if self.isket else self._dims[1]
+            dims = Dimensions(dims, dims)
             data = _data.project(self.data)
         if dims[0] != dims[1]:
             raise ValueError("partial trace is not defined on non-square maps")
         if not sel:
             return Qobj(self.tr())
-        dims = flatten(dims[0])
+        dims = dims.flat()[0]
         new_data = _data.ptrace(data, dims, sel, dtype=dtype)
         new_dims = [[dims[x] for x in sel]] * 2
         out = Qobj(new_data, dims=new_dims, type='oper', copy=False)
