@@ -50,6 +50,7 @@ from . import data as _data
 from .qobj import Qobj
 from .operators import jmat, displace, qdiags
 from .tensor import tensor
+from .dimensions import Space
 
 def _promote_to_zero_list(arg, length):
     """
@@ -136,6 +137,8 @@ def basis(dimensions, n=None, offset=None, *, dtype=_data.Dense):
 
     """
     # Promote all parameters to lists to simplify later logic.
+    if isinstance(dimensions, Space):
+        dimensions = dimensions.as_list()
     if not isinstance(dimensions, list):
         dimensions = [dimensions]
     n_dimensions = len(dimensions)
@@ -830,7 +833,8 @@ def state_number_index(dims, state):
         ordering.
 
     """
-    return int(np.dot(state, np.cumprod([1] + dims[:0:-1])[::-1]))
+    dims = Space(dims)
+    return dims.dims2idx(state)
 
 
 def state_index_number(dims, index):
@@ -858,12 +862,8 @@ def state_index_number(dims, index):
         enumeration ordering.
 
     """
-    state = np.empty_like(dims)
-    D = np.concatenate([np.flipud(np.cumprod(np.flipud(dims[1:]))), [1]])
-    for n in range(len(dims)):
-        state[n] = index / D[n]
-        index -= state[n] * D[n]
-    return list(state)
+    dims = Space(dims)
+    return dims.idx2dims(index)
 
 
 def state_number_qobj(dims, state, *, dtype=_data.Dense):

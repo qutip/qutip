@@ -48,7 +48,7 @@ import scipy.sparse
 
 from . import data as _data
 from .qobj import Qobj
-from .dimensions import flatten
+from .dimensions import flatten, Space
 
 
 def qdiags(diagonals, offsets, dims=None, shape=None, *, dtype=_data.CSR):
@@ -514,11 +514,10 @@ def _implicit_tensor_dimensions(dimensions):
     dimensions : list
         Dimension list in the form required by ``Qobj`` creation.
     """
-    if not isinstance(dimensions, list):
+    if not isinstance(dimensions, (list, Space)):
         dimensions = [dimensions]
-    flat = flatten(dimensions)
-    if not all(isinstance(x, numbers.Integral) and x >= 0 for x in flat):
-        raise ValueError("All dimensions must be integers >= 0")
+    dimensions = Space(dimensions)
+    flat = dimensions.flat()
     return np.prod(flat), [dimensions, dimensions]
 
 
@@ -546,8 +545,7 @@ def qzero(dimensions, *, dtype=_data.CSR):
     """
     size, dimensions = _implicit_tensor_dimensions(dimensions)
     # A sparse matrix with no data is equal to a zero matrix.
-    type_ = 'super' if isinstance(dimensions[0][0], list) else 'oper'
-    return Qobj(_data.zeros[dtype](size, size), dims=dimensions, type=type_,
+    return Qobj(_data.zeros[dtype](size, size), dims=dimensions,
                 isherm=True, isunitary=False, copy=False)
 
 
@@ -592,8 +590,7 @@ isherm = True
 
     """
     size, dimensions = _implicit_tensor_dimensions(dimensions)
-    type_ = 'super' if isinstance(dimensions[0][0], list) else 'oper'
-    return Qobj(_data.identity[dtype](size), dims=dimensions, type=type_,
+    return Qobj(_data.identity[dtype](size), dims=dimensions,
                 isherm=True, isunitary=True, copy=False)
 
 
