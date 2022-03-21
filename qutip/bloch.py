@@ -180,12 +180,16 @@ class Bloch:
         self.points = []
         # Data for Bloch vectors
         self.vectors = []
+        # Transparency of vectors, alpha value from 0 to 1
+        self.vector_alpha = []
         # Data for annotations
         self.annotations = []
         # Number of times sphere has been saved
         self.savenum = 0
         # Style of points, 'm' for multiple colors, 's' for single color
         self.point_style = []
+        # Transparency of points, alpha value from 0 to 1
+        self.point_alpha = []
         # Data for line segment
         self._lines = []
         # Data for arcs and arc style
@@ -299,11 +303,13 @@ class Bloch:
         self.points = []
         self.vectors = []
         self.point_style = []
+        self.point_alpha = []
+        self.vector_alpha = []
         self.annotations = []
         self._lines = []
         self._arcs = []
 
-    def add_points(self, points, meth='s'):
+    def add_points(self, points, meth='s',alpha=1.0):
         """Add a list of data points to bloch sphere.
 
         Parameters
@@ -314,6 +320,9 @@ class Bloch:
         meth : {'s', 'm', 'l'}
             Type of points to plot, use 'm' for multicolored, 'l' for points
             connected with a line.
+        
+        alpha : float
+            Transparency value for the vectors. Values between 0 and 1. Default = 1.
         """
         if not isinstance(points[0], (list, ndarray)):
             points = [[points[0]], [points[1]], [points[2]]]
@@ -332,8 +341,9 @@ class Bloch:
         else:
             self.points.append(points)
             self.point_style.append('m')
-
-    def add_states(self, state, kind='vector'):
+        self.point_alpha.append(alpha)
+    
+    def add_states(self, state, kind='vector', alpha=1.0):
         """Add a state vector Qobj to Bloch sphere.
 
         Parameters
@@ -343,6 +353,9 @@ class Bloch:
 
         kind : {'vector', 'point'}
             Type of object to plot.
+        
+        alpha : float
+            Transparency value for the vectors. Values between 0 and 1. Default = 1.
         """
         if isinstance(state, Qobj):
             state = [state]
@@ -353,23 +366,27 @@ class Bloch:
                    expect(sigmaz(), st)]
 
             if kind == 'vector':
-                self.add_vectors(vec)
+                self.add_vectors(vec, alpha=alpha)
             elif kind == 'point':
-                self.add_points(vec)
+                self.add_points(vec, alpha=alpha)
 
-    def add_vectors(self, vectors):
+    def add_vectors(self, vectors, alpha=1.0):
         """Add a list of vectors to Bloch sphere.
 
         Parameters
         ----------
         vectors : array_like
             Array with vectors of unit length or smaller.
+        
+        alpha : float
+            Transparency value for the vectors. Values between 0 and 1. Default = 1.
         """
         if isinstance(vectors[0], (list, tuple, ndarray)):
             for vec in vectors:
                 self.vectors.append(vec)
         else:
             self.vectors.append(vectors)
+        self.vector_alpha.append(alpha)
 
     def add_annotation(self, state_or_vector, text, **kwargs):
         """
@@ -697,19 +714,21 @@ class Bloch:
             zs3d = self.vectors[k][2] * array([0, 1])
 
             color = self.vector_color[mod(k, len(self.vector_color))]
+            alpha = self.vector_alpha[mod(k, len(self.vector_alpha))]
 
             if self.vector_style == '':
                 # simple line style
                 self.axes.plot(xs3d, ys3d, zs3d,
                                zs=0, zdir='z', label='Z',
-                               lw=self.vector_width, color=color)
+                               lw=self.vector_width, color=color,
+                               alpha=alpha)
             else:
                 # decorated style, with arrow heads
                 a = Arrow3D(xs3d, ys3d, zs3d,
                             mutation_scale=self.vector_mutation,
                             lw=self.vector_width,
                             arrowstyle=self.vector_style,
-                            color=color)
+                            color=color,alpha=alpha)
 
                 self.axes.add_artist(a)
 
@@ -734,7 +753,7 @@ class Bloch:
                     - real(self.points[k][0][indperm]),
                     real(self.points[k][2][indperm]),
                     s=self.point_size[mod(k, len(self.point_size))],
-                    alpha=1,
+                    alpha=self.point_alpha[k],
                     edgecolor=None,
                     zdir='z',
                     color=self.point_color[mod(k, len(self.point_color))],
@@ -751,17 +770,17 @@ class Bloch:
                 self.axes.scatter(real(self.points[k][1][indperm]),
                                   -real(self.points[k][0][indperm]),
                                   real(self.points[k][2][indperm]),
-                                  s=s, alpha=1, edgecolor=None,
-                                  zdir='z', color=pnt_colors,
-                                  marker=marker)
+                                  s=s, alpha=self.point_alpha[k], 
+                                  edgecolor=None, zdir='z', 
+                                  color=pnt_colors, marker=marker)
 
             elif self.point_style[k] == 'l':
                 color = self.point_color[mod(k, len(self.point_color))]
                 self.axes.plot(real(self.points[k][1]),
                                -real(self.points[k][0]),
                                real(self.points[k][2]),
-                               alpha=0.75, zdir='z',
-                               color=color)
+                               alpha=self.point_alpha[k], 
+                               zdir='z',color=color)
 
     def plot_annotations(self):
         # -X and Y data are switched for plotting purposes
