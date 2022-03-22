@@ -309,7 +309,7 @@ class Bloch:
         self._lines = []
         self._arcs = []
 
-    def add_points(self, points, meth='s',alpha=1.0):
+    def add_points(self, points, meth='s', alpha=1.0):
         """Add a list of data points to bloch sphere.
 
         Parameters
@@ -320,9 +320,9 @@ class Bloch:
         meth : {'s', 'm', 'l'}
             Type of points to plot, use 'm' for multicolored, 'l' for points
             connected with a line.
-        
-        alpha : float
-            Transparency value for the vectors. Values between 0 and 1. Default = 1.
+
+        alpha : float, Default = 1.
+            Transparency value for the vectors. Values between 0 and 1.
         """
         if not isinstance(points[0], (list, ndarray)):
             points = [[points[0]], [points[1]], [points[2]]]
@@ -342,7 +342,7 @@ class Bloch:
             self.points.append(points)
             self.point_style.append('m')
         self.point_alpha.append(alpha)
-    
+
     def add_states(self, state, kind='vector', alpha=1.0):
         """Add a state vector Qobj to Bloch sphere.
 
@@ -353,9 +353,9 @@ class Bloch:
 
         kind : {'vector', 'point'}
             Type of object to plot.
-        
-        alpha : float
-            Transparency value for the vectors. Values between 0 and 1. Default = 1.
+
+        alpha : float, Default = 1.
+            Transparency value for the vectors. Values between 0 and 1.
         """
         if isinstance(state, Qobj):
             state = [state]
@@ -377,9 +377,9 @@ class Bloch:
         ----------
         vectors : array_like
             Array with vectors of unit length or smaller.
-        
-        alpha : float
-            Transparency value for the vectors. Values between 0 and 1. Default = 1.
+
+        alpha : float, Default = 1.
+            Transparency value for the vectors. Values between 0 and 1.
         """
         if isinstance(vectors[0], (list, tuple, ndarray)):
             for vec in vectors:
@@ -728,7 +728,7 @@ class Bloch:
                             mutation_scale=self.vector_mutation,
                             lw=self.vector_width,
                             arrowstyle=self.vector_style,
-                            color=color,alpha=alpha)
+                            color=color, alpha=alpha)
 
                 self.axes.add_artist(a)
 
@@ -761,7 +761,8 @@ class Bloch:
 
             elif self.point_style[k] == 'm':
                 pnt_colors = array(self.point_color *
-                                   int(ceil(num / float(len(self.point_color)))))
+                                   int(ceil(num / float(
+                                       len(self.point_color)))))
 
                 pnt_colors = pnt_colors[0:num]
                 pnt_colors = list(pnt_colors[indperm])
@@ -770,8 +771,8 @@ class Bloch:
                 self.axes.scatter(real(self.points[k][1][indperm]),
                                   -real(self.points[k][0][indperm]),
                                   real(self.points[k][2][indperm]),
-                                  s=s, alpha=self.point_alpha[k], 
-                                  edgecolor=None, zdir='z', 
+                                  s=s, alpha=self.point_alpha[k],
+                                  edgecolor=None, zdir='z',
                                   color=pnt_colors, marker=marker)
 
             elif self.point_style[k] == 'l':
@@ -779,8 +780,8 @@ class Bloch:
                 self.axes.plot(real(self.points[k][1]),
                                -real(self.points[k][0]),
                                real(self.points[k][2]),
-                               alpha=self.point_alpha[k], 
-                               zdir='z',color=color)
+                               alpha=self.point_alpha[k],
+                               zdir='z', color=color)
 
     def plot_annotations(self):
         # -X and Y data are switched for plotting purposes

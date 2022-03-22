@@ -156,7 +156,6 @@ class Bloch3d():
         # ---Point options---
         # List of colors for Bloch point markers, default = ['b','g','r','y']
         self.point_color = ['r', 'g', 'b', 'y']
-        
         # Size of point markers
         self.point_size = 0.06
         # Shape of point markers
@@ -173,11 +172,11 @@ class Bloch3d():
         self.savenum = 0
         # Style of points, 'm' for multiple colors, 's' for single color
         self.point_style = []
-         # Transparency of points
+        # Transparency of points
         self.point_alpha = []
         # Transparency of vectors
         self.vector_alpha = []
-    
+
     def __str__(self):
         s = ""
         s += "Bloch3D data:\n"
@@ -225,7 +224,7 @@ class Bloch3d():
         self.vectors = []
         self.point_style = []
 
-    def add_points(self, points, meth='s',alpha=1.0):
+    def add_points(self, points, meth='s', alpha=1.0):
         """Add a list of data points to bloch sphere.
 
         Parameters
@@ -236,8 +235,8 @@ class Bloch3d():
         meth : str {'s','m'}
             Type of points to plot, use 'm' for multicolored.
 
-        alpha : float
-            Transparency value for the vectors. Values between 0 and 1. Default = 1.
+        alpha : float, Default = 1.
+            Transparency value for the vectors. Values between 0 and 1.
 
         """
         if not isinstance(points[0], (list, np.ndarray)):
@@ -257,7 +256,7 @@ class Bloch3d():
             self.point_style.append('m')
         self.point_alpha.append(alpha)
 
-    def add_states(self, state, kind='vector',alpha=1.0):
+    def add_states(self, state, kind='vector', alpha=1.0):
         """Add a state vector Qobj to Bloch sphere.
 
         Parameters
@@ -267,9 +266,9 @@ class Bloch3d():
 
         kind : str {'vector','point'}
             Type of object to plot.
-       
-        alpha : float
-            Transparency value for the vectors. Values between 0 and 1. Default = 1.
+
+        alpha : float, Default = 1.
+            Transparency value for the vectors. Values between 0 and 1.
         """
         if isinstance(state, Qobj):
             state = [state]
@@ -277,11 +276,11 @@ class Bloch3d():
             if kind == 'vector':
                 vec = [expect(sigmax(), st), expect(sigmay(), st),
                        expect(sigmaz(), st)]
-                self.add_vectors(vec,alpha=alpha)
+                self.add_vectors(vec, alpha=alpha)
             elif kind == 'point':
                 pnt = [expect(sigmax(), st), expect(sigmay(), st),
                        expect(sigmaz(), st)]
-                self.add_points(pnt,alpha=alpha)
+                self.add_points(pnt, alpha=alpha)
 
     def add_vectors(self, vectors, alpha=1.0):
         """Add a list of vectors to Bloch sphere.
@@ -290,8 +289,8 @@ class Bloch3d():
         ----------
         vectors : array/list
             Array with vectors of unit length or smaller.
-        alpha : float
-            Transparency value for the vectors. Values between 0 and 1. Default = 1.
+        alpha : float, Default = 1.
+            Transparency value for the vectors. Values between 0 and 1.
 
         """
         if isinstance(vectors[0], (list, np.ndarray)):
