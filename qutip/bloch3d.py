@@ -289,7 +289,7 @@ class Bloch3d():
         ----------
         vectors : array/list
             Array with vectors of unit length or smaller.
-        
+
         alpha : float, default=1.
             Transparency value for the vectors. Values between 0 and 1.
 
