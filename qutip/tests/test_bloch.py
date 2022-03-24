@@ -167,9 +167,14 @@ class TestBloch:
         self.plot_line_ref(fig_ref, start_ref, end_ref, **kwargs)
 
     def plot_vector_test(self, fig, vectors):
-        b = Bloch(fig=fig)
-        b.add_vectors(vectors)
-        b.render()
+            b = Bloch(fig=fig)
+            b.add_vectors(vectors)
+            b.render()
+
+    def plot_vector_test_alpha(self, fig, vectors, alpha):
+            b = Bloch(fig=fig)
+            b.add_vectors(vectors, alpha=alpha)
+            b.render()
 
     def plot_vector_ref(self, fig, vectors):
         from qutip.bloch import Arrow3D
@@ -187,26 +192,57 @@ class TestBloch:
             zs3d = v[2] * np.array([0, 1])
             a = Arrow3D(
                 xs3d, ys3d, zs3d,
-                mutation_scale=20, lw=3, arrowstyle="-|>", color=color)
+                mutation_scale=20, lw=3, arrowstyle="-|>",
+                color=color)
+            b.axes.add_artist(a)
+
+    def plot_vector_ref_alpha(self, fig, vectors, alpha):
+        from qutip.bloch import Arrow3D
+        b = Bloch(fig=fig)
+        b.render()
+        colors = ['g', '#CC6600', 'b', 'r']
+
+        if not isinstance(vectors[0], (list, tuple, np.ndarray)):
+            vectors = [vectors]
+
+        for i, v in enumerate(vectors):
+            color = colors[i % len(colors)]
+            xs3d = v[1] * np.array([0, 1])
+            ys3d = -v[0] * np.array([0, 1])
+            zs3d = v[2] * np.array([0, 1])
+            a = Arrow3D(
+                xs3d, ys3d, zs3d,
+                mutation_scale=20, lw=3, arrowstyle="-|>",
+                color=color, alpha=alpha)
             b.axes.add_artist(a)
 
     @pytest.mark.parametrize([
-        "vectors",
+        "vectors", "alpha"
     ], [
         pytest.param(
-            (0, 0, 1), id="single-vector-tuple"),
+            (0, 0, 1), 1, id="opaque single-vector-tuple"),
         pytest.param(
-            [0, 0, 1], id="single-vector-list"),
-       pytest.param(
-            np.array([0, 0, 1]), id="single-vector-numpy"),
+            (0, 0, 1), 0.3, id="tranparent single-vector-tuple"),
         pytest.param(
-            [(0, 0, 1), (0, 1, 0)], id="list-vectors-tuple"),
+            (0, 0, 1), 1e-8, id="tiny tranparency single-vector-tuple"),
         pytest.param(
-            [[0, 0, 1]], id="list-vectors-list"),
+            (0, 0, 1), 0.3+1e-8, id="precise tranparency single-vector-tuple"),
         pytest.param(
-            [np.array([0, 0, 1])], id="list-vectors-numpy"),
+            (0, 0, 1), 0, id="invisible tranparency single-vector-tuple"),
+        pytest.param(
+            [0, 0, 1], None, id="single-vector-list"),
+        pytest.param(
+            np.array([0, 0, 1]), None, id="single-vector-numpy"),
+        pytest.param(
+            [(0, 0, 1), (0, 1, 0)], None, id="list-vectors-tuple"),
+        pytest.param(
+            [[0, 0, 1]], None, id="list-vectors-list"),
+        pytest.param(
+            [np.array([0, 0, 1])], None, id="list-vectors-numpy"),
     ])
     @check_pngs_equal
-    def test_vector(self, vectors, fig_test, fig_ref):
+    def test_vector(self, vectors, alpha, fig_test, fig_ref):
+        self.plot_vector_test_alpha(fig_test, vectors, alpha)
+        self.plot_vector_ref_alpha(fig_ref, vectors, alpha)
         self.plot_vector_test(fig_test, vectors)
         self.plot_vector_ref(fig_ref, vectors)
