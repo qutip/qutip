@@ -321,7 +321,7 @@ class Bloch:
             Type of points to plot, use 'm' for multicolored, 'l' for points
             connected with a line.
 
-        alpha : float, Default = 1.
+        alpha : float, default=1.
             Transparency value for the vectors. Values between 0 and 1.
         """
         if not isinstance(points[0], (list, ndarray)):
@@ -354,7 +354,7 @@ class Bloch:
         kind : {'vector', 'point'}
             Type of object to plot.
 
-        alpha : float, Default = 1.
+        alpha : float, default=1.
             Transparency value for the vectors. Values between 0 and 1.
         """
         if isinstance(state, Qobj):
@@ -378,7 +378,7 @@ class Bloch:
         vectors : array_like
             Array with vectors of unit length or smaller.
 
-        alpha : float, Default = 1.
+        alpha : float, default=1.
             Transparency value for the vectors. Values between 0 and 1.
         """
         if isinstance(vectors[0], (list, tuple, ndarray)):

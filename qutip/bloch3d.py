@@ -50,15 +50,15 @@ class Bloch3d():
         Width of displayed vectors.
     view : list {[45,65]}
         Azimuthal and Elevation viewing angles.
-    xlabel : list {['|x>', '']}
+    xlabel : list {``['|x>', '']``}
         List of strings corresponding to +x and -x axes labels, respectively.
     xlpos : list {[1.07,-1.07]}
         Positions of +x and -x labels respectively.
-    ylabel : list {['|y>', '']}
+    ylabel : list {``['|y>', '']``}
         List of strings corresponding to +y and -y axes labels, respectively.
     ylpos : list {[1.07,-1.07]}
         Positions of +y and -y labels respectively.
-    zlabel : list {['|0>', '|1>']}
+    zlabel : list {``['|0>', '|1>']``}
         List of strings corresponding to +z and -z axes labels, respectively.
     zlpos : list {[1.07,-1.07]}
         Positions of +z and -z labels respectively.
@@ -235,7 +235,7 @@ class Bloch3d():
         meth : str {'s','m'}
             Type of points to plot, use 'm' for multicolored.
 
-        alpha : float, Default = 1.
+        alpha : float, default=1.
             Transparency value for the vectors. Values between 0 and 1.
 
         """
@@ -267,7 +267,7 @@ class Bloch3d():
         kind : str {'vector','point'}
             Type of object to plot.
 
-        alpha : float, Default = 1.
+        alpha : float, default=1.
             Transparency value for the vectors. Values between 0 and 1.
         """
         if isinstance(state, Qobj):
@@ -289,7 +289,8 @@ class Bloch3d():
         ----------
         vectors : array/list
             Array with vectors of unit length or smaller.
-        alpha : float, Default = 1.
+        
+        alpha : float, default=1.
             Transparency value for the vectors. Values between 0 and 1.
 
         """
