@@ -167,9 +167,9 @@ class TestBloch:
         self.plot_line_ref(fig_ref, start_ref, end_ref, **kwargs)
 
     def plot_vector_test(self, fig, vectors):
-            b = Bloch(fig=fig)
-            b.add_vectors(vectors)
-            b.render()
+        b = Bloch(fig=fig)
+        b.add_vectors(vectors)
+        b.render()
 
     def plot_vector_ref(self, fig, vectors):
         from qutip.bloch import Arrow3D
@@ -192,7 +192,7 @@ class TestBloch:
             b.axes.add_artist(a)
 
     @pytest.mark.parametrize([
-        "vectors"
+        "vectors",
     ], [
         pytest.param(
             (0, 0, 1), id="single-vector-tuple"),
@@ -213,9 +213,9 @@ class TestBloch:
         self.plot_vector_ref(fig_ref, vectors)
 
     def plot_vector_test_alpha(self, fig, vectors, alpha):
-                b = Bloch(fig=fig)
-                b.add_vectors(vectors, alpha=alpha)
-                b.render()
+        b = Bloch(fig=fig)
+        b.add_vectors(vectors, alpha=alpha)
+        b.render()
 
     def plot_vector_ref_alpha(self, fig, vectors, alpha):
         from qutip.bloch import Arrow3D
