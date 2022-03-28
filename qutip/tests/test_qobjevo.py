@@ -1,5 +1,7 @@
+from contextlib import contextmanager
 import pytest
 from qutip import *
+import qutip.settings as settings
 import numpy as np
 from numpy.testing import (assert_equal, assert_, assert_almost_equal,
                             run_module_suite, assert_allclose)
@@ -903,3 +905,21 @@ def test_QobjEvo_superoperator():
                                sprepost(op1, op2)(t))
         _assert_qobj_almost_eq(liouvillian(Q1, [Q2]),
                                liouvillian(op1, [op2])(t))
+
+
+@contextmanager
+def auto_tidyup_tol(tol):
+    old_tol = settings.auto_tidyup_atol
+    settings.auto_tidyup_atol = tol
+    try:
+        yield None
+    finally:
+        settings.auto_tidyup_atol = old_tol
+
+
+@pytest.mark.parametrize("tol", [1, 1e-15])
+def test_QobjEvo_tidyup_default(tol):
+    with auto_tidyup_tol(tol):
+        small = QobjEvo([Qobj(1e-10), lambda t, args: 1])
+        small.compile()
+        assert (small(0).norm() == 0) == (tol > 1e-10)

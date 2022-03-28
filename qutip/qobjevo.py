@@ -1012,7 +1012,7 @@ class QobjEvo:
         return res
 
     # Unitary function of Qobj
-    def tidyup(self, atol=1e-12):
+    def tidyup(self, atol=None):
         """Removes small elements from this quantum object inplace."""
         self.cte = self.cte.tidyup(atol)
         for op in self.ops:

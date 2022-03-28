@@ -15,7 +15,7 @@ __all__ = ['hinton', 'sphereplot', 'energy_level_diagram',
 import warnings
 import itertools as it
 import numpy as np
-from numpy import pi, array, sin, cos, angle, log2, sqrt
+from numpy import pi, array, sin, cos, angle, log2
 
 from packaging.version import parse as parse_version
 
@@ -25,8 +25,7 @@ from qutip.wigner import wigner
 from qutip.tensor import tensor
 from qutip.matplotlib_utilities import complex_phase_cmap
 from qutip.superoperator import vector_to_operator
-from qutip.superop_reps import to_super, _super_to_superpauli, _isqubitdims, _pauli_basis
-from qutip.tensor import flatten
+from qutip.superop_reps import _super_to_superpauli, _isqubitdims
 
 from qutip import settings
 
@@ -296,6 +295,8 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
 
     if not (xlabels or ylabels):
         ax.axis('off')
+    if title:
+        ax.set_title(title)
 
     ax.axis('equal')
     ax.set_frame_on(False)
@@ -694,7 +695,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
     ax.yaxis._axinfo["grid"]['linewidth'] = 0
     ax.xaxis._axinfo["grid"]['linewidth'] = 0
 
-    if title and fig:
+    if title:
         ax.set_title(title)
 
     # x axis
@@ -811,7 +812,7 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None,
 
     ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors)
 
-    if title and fig:
+    if title:
         ax.set_title(title)
 
     # x axis
@@ -1250,7 +1251,7 @@ def plot_expectation_values(results, ylabels=[], title=None, show_legend=False,
                                 label="%s [%d]" % (result.solver, e_idx))
 
     if title:
-        axes[0, 0].set_title(title)
+        fig.suptitle(title)
 
     axes[n_e_ops - 1, 0].set_xlabel("time", fontsize=12)
     for n in range(n_e_ops):
