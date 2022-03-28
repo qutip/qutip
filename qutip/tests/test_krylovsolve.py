@@ -115,7 +115,6 @@ class TestKrylovSolve:
 
         for idx_e, e_ops in enumerate(e_ops_possibilities):
             for idx_t, tlist in enumerate(t_list_possibilities):
-                print(f"idx_e={idx_e}, idx_t={idx_t}")
                 k = krylovsolve(H, psi0, tlist=tlist, krylov_dim=krylov_dim, 
                                 progress_bar=None, sparse=False, 
                                 options=options, e_ops=e_ops)
@@ -126,7 +125,6 @@ class TestKrylovSolve:
                                 options=options, e_ops=e_ops)
                     se_res.append(s)
                 except UnboundLocalError:
-                    print("here sesolve failed")
                     s = k_res[-1]
                     se_res.append(s)
                     pass
