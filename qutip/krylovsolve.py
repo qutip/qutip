@@ -589,7 +589,7 @@ def _optimize_lanczos_timestep_size(T, krylov_basis, tlist, options):
     )
     
     # To avoid the singularity at t0, we add a small epsilon value 
-    t_min = (tlist[-1] - tlist[0] ) * 1e-5 + tlist[0]
+    t_min = (tlist[-1] - tlist[0]) / options.nsteps + tlist[0]
     bracket = [t_min, tlist[-1]]
 
     if (np.sign(f(bracket[0])) == -1) and (np.sign(f(bracket[-1])) == -1):
