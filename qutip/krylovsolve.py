@@ -647,7 +647,6 @@ def _lanczos_error_equation_to_optimize_delta_t(
 
         error = np.linalg.norm(psi1 - psi2)
 
-        #steps = 1 if t == t0 else max(1, (tf - t0) // (t - t0))
         steps = max(1, (tf - t0) // (t - t0))
         return np.log10(error) + np.log10(steps) - np.log10(target_tolerance)
 
