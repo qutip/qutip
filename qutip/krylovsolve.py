@@ -597,7 +597,7 @@ def _optimize_lanczos_timestep_size(T, krylov_basis, tlist, options):
         return delta_t
 
     elif (np.sign(f(bracket[0])) == 1) and (np.sign(f(bracket[-1])) == 1):
-        raise Exception(
+        raise ValueError(
             "No solution exists with the given combination of parameters 'krylov_dim', " 
             "tolerance = 'options.atol', maximum number allowed of krylov internal "
             "partitions = 'options.nsteps' and 'tlist'. Try reducing the tolerance, or "
