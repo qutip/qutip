@@ -52,9 +52,20 @@ def h_ising_transverse(
 
 
 def err_psi(psi_a, psi_b):
+    """Error between to kets."""
     err = 1 - np.abs(psi_a.overlap(psi_b)) ** 2
     return err
 
+
+def expect_value(e_ops, res_1, tlist):
+    """Calculates expectation values of results object."""
+    if isinstance(e_ops, types.FunctionType):
+        expect_values = [
+            e_ops(t, state) for (t, state) in zip(tlist, res_1.states)
+        ]
+    else:
+        expect_values = [expect(e_ops, state) for state in res_1.states]
+    return expect_values
 
 def assert_err_states_less_than_tol(res_1, res_2, tol):
     """Asserts error of states of two results less than tol."""
@@ -102,10 +113,10 @@ class TestKrylovSolve:
     """
 
     def check_sparse_vs_dense(self, output_sparse, output_dense, tol=1e-5):
-        "krylovsolve: comparing sparse vs non sparse results"
-
-        assert_err_states_less_than_tol(res_1=outout_sparse,
-                                        res_2=output_dense
+        "simple check of errors between two outputs states"
+        
+        assert_err_states_less_than_tol(res_1=output_sparse,
+                                        res_2=output_dense,
                                         tol=tol)
 
     @pytest.mark.parametrize("density,dim", [(0.1, 512), (0.9, 800)],
@@ -170,9 +181,9 @@ class TestKrylovSolve:
 
         # for the operators, test against exactsolve for accuracy
         for i in range(len(e_ops)):
-            output_exact.expect = [
-                expect(e_ops[i], state) for state in output_exact.states
-            ]
+            
+            output_exact.expect = expect_value(e_ops[i], output_exact, tlist)
+
             assert_err_expect_less_than_tol(exp_1=output.expect[i],
                                             exp_2=output_exact.expect,
                                             tol=tol)
@@ -221,18 +232,7 @@ class TestKrylovSolve:
             pass
 
         if len(tlist) > 1:
-            err_outputs = [
-                err_psi(psi_k, psi_ss)
-                for (psi_k, psi_ss) in zip(
-                    krylov_outputs.states, sesolve_outputs.states
-                )
-            ]
-            for err in err_outputs:
-                assert (
-                    err < tol
-                ), f"difference between krylov and sesolve states evolution is\
-                    greater than tol={tol} with err={err}"
-
+            assert_err_states_less_than_tol(krylov_outputs, sesolve_outputs, tol)
         elif len(tlist) == 1:
             assert krylov_outputs.states == sesolve_outputs.states
         else:
@@ -243,7 +243,7 @@ class TestKrylovSolve:
         ids=["normal tlist", "single element tlist", "empty tlist"]
     )
     def test_05_check_e_ops_none(self, dim, tlist):
-        "krylovsolve: check e_ops inputs with random H and different tlists."
+        "krylovsolve: check e_ops=None inputs with random H and different tlists."
         psi0 = rand_ket(dim)
         H = rand_herm(dim, density=0.5)
         self.check_e_ops_none(H, psi0, tlist, dim)
@@ -258,7 +258,7 @@ class TestKrylovSolve:
         tol=1e-5,
         square_hamiltonian=True,
     ):
-        "krylovsolve: testing inputs when e_ops=callable"
+        "Check krylov results when inputs when e_ops=callable or e_ops=Qobj"
 
         def e_ops(t, psi): return expect(num(dim), psi)
 
@@ -268,9 +268,9 @@ class TestKrylovSolve:
 
         krylov_outputs = krylovsolve(H, psi0, tlist, krylov_dim, e_ops=e_ops)
         exact_output = exactsolve(H, psi0, tlist)
-        exact_output.expect = [
-            e_ops(t, state) for (t, state) in zip(tlist, exact_output.states)
-        ]
+        exact_output.expect = expect_value(e_ops=e_ops, 
+                                           res_1=exact_output,
+                                           tlist=tlist)
 
         try:
             sesolve_outputs = sesolve(H, psi0, tlist, e_ops=e_ops)
@@ -299,7 +299,18 @@ class TestKrylovSolve:
         ids=["normal tlist", "single element tlist", "empty tlist"]
     )
     def test_06_check_e_ops_callable(self, dim, tlist):
-        "krylovsolve: check e_ops inputs with random H and different tlists."
+        "krylovsolve: check e_ops=callable inputs with random H and different tlists."
+        psi0 = rand_ket(dim)
+        H = rand_herm(dim, density=0.5)
+
+        self.check_e_ops_callable(H, psi0, tlist, dim)
+
+    @pytest.mark.parametrize(
+        "dim,tlist", [(128, np.linspace(0, 5, 200)), (400, [2]), (560, [])],
+        ids=["normal tlist", "single element tlist", "empty tlist"]
+    )
+    def test_06_check_e_ops_qobj(self, dim, tlist):
+        "krylovsolve: check e_ops=Qobj inputs with random H and different tlists."
         psi0 = rand_ket(dim)
         H = rand_herm(dim, density=0.5)
 
@@ -324,10 +335,7 @@ class TestKrylovSolve:
 
         krylov_outputs = krylovsolve(H, psi0, tlist, krylov_dim, e_ops=e_ops)
         exact_output = exactsolve(H, psi0, tlist)
-        exact_output.expect = [
-            e_ops[0](t, state)
-            for (t, state) in zip(tlist, exact_output.states)
-        ]
+        exact_output.expect = expect_value(e_ops[0], exact_output, tlist)
 
         try:
             sesolve_outputs = sesolve(H, psi0, tlist, e_ops=e_ops)
@@ -388,17 +396,7 @@ class TestKrylovSolve:
             ), "shape of outputs between krylov and sesolve differs"
 
             for idx, k_expect in enumerate(krylov_outputs.expect):
-                if idx == 0:
-                    exact_output.expect = [
-                        e_ops[idx](t, state)
-                        for (t, state) in zip(tlist, exact_output.states)
-                    ]
-                else:
-                    exact_output.expect = [
-                        expect(e_ops[idx], state)
-                        for state in exact_output.states
-                    ]
-
+                exact_output.expect = expect_value(e_ops[idx], exact_output, tlist)
                 assert_err_expect_less_than_tol(exp_1=k_expect,
                                                 exp_2=exact_output.expect,
                                                 tol=tol)
