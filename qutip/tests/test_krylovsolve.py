@@ -238,7 +238,7 @@ class TestKrylovSolve:
     def check_e_ops_none(
         self, H, psi0, tlist, dim, krylov_dim=30, tol=1e-5, tol2=1e-4
     ):
-        "krylovsolve: testing inputs when e_ops=None"
+        "Check input possibilities when e_ops=None"
 
         krylov_outputs = krylovsolve(H, psi0, tlist, krylov_dim, e_ops=None)
 
@@ -257,7 +257,7 @@ class TestKrylovSolve:
 
     @pytest.mark.parametrize(**e_ops_parametrize_inputs_dict)
     def test_05_check_e_ops_none(self, dim, tlist):
-        "krylovsolve: check e_ops=None inputs with random H and different tlists."
+        "krylovsolve: check e_ops=None inputs with random H different tlists."
         psi0 = rand_ket(dim)
         H = rand_herm(dim, density=0.5)
         self.check_e_ops_none(H, psi0, tlist, dim)
@@ -272,7 +272,7 @@ class TestKrylovSolve:
         tol=1e-5,
         square_hamiltonian=True,
     ):
-        "Check krylov results when inputs when e_ops=callable"
+        "Check input possibilities when e_ops=callable"
 
         def e_ops(t, psi): return expect(num(dim), psi)
 
@@ -310,7 +310,7 @@ class TestKrylovSolve:
 
     @pytest.mark.parametrize(**e_ops_parametrize_inputs_dict)
     def test_06_check_e_ops_callable(self, dim, tlist):
-        "krylovsolve: check e_ops=callable inputs with random H and different tlists."
+        "krylovsolve: check e_ops=call inputs with random H different tlists."
         psi0 = rand_ket(dim)
         H = rand_herm(dim, density=0.5)
         self.check_e_ops_callable(H, psi0, tlist, dim)
@@ -326,7 +326,7 @@ class TestKrylovSolve:
         tol=1e-5,
         square_hamiltonian=True,
     ):
-        "krylovsolve: testing inputs when e_ops=[callable]"
+        "Check input possibilities when e_ops=[callable | qobj]"
 
         if not square_hamiltonian:
             H.dims = [[H.shape[0]], [H.shape[0]]]
@@ -361,7 +361,7 @@ class TestKrylovSolve:
 
     @pytest.mark.parametrize(**e_ops_parametrize_inputs_dict)
     def test_07_check_e_ops_list_single_callable(self, dim, tlist):
-        "krylovsolve: check e_ops inputs with random H and different tlists."
+        "krylovsolve: check e_ops=[callable] inputs random H different tlists."
         psi0 = rand_ket(dim)
         H = rand_herm(dim, density=0.5)
         e_ops = [lambda t, psi: expect(num(dim), psi)]
@@ -369,21 +369,16 @@ class TestKrylovSolve:
 
     @pytest.mark.parametrize(**e_ops_parametrize_inputs_dict)
     def test_08_check_e_ops_list_single_qobj(self, dim, tlist):
-        "krylovsolve: check e_ops inputs with random H and different tlists."
+        "krylovsolve: check e_ops=[qobj] inputs random H different tlists."
         psi0 = rand_ket(dim)
         H = rand_herm(dim, density=0.5)
         e_ops = [jmat((H.shape[0] - 1)/2, "x")]
         self.check_e_ops_list_single_operator(e_ops, H, psi0, tlist, dim)
 
     def check_e_ops_mixed_list(
-        self, H, psi0, tlist, dim, krylov_dim=35, tol=1e-5
+        self, e_ops, H, psi0, tlist, dim, krylov_dim=35, tol=1e-5
     ):
-        "krylovsolve: testing inputs when e_ops=[callable]"
-
-        e_ops = [
-            lambda t, psi: expect(num(dim), psi),
-            jmat((H.shape[0] - 1) / 2.0, "x"),
-        ]
+        "Check input possibilities when e_ops=[call | qobj] and len(e_ops) > 1"
 
         krylov_outputs = krylovsolve(H, psi0, tlist, krylov_dim, e_ops=e_ops)
         exact_output = exactsolve(H, psi0, tlist)
@@ -420,14 +415,43 @@ class TestKrylovSolve:
 
     @pytest.mark.parametrize(**e_ops_parametrize_inputs_dict)
     def test_09_check_e_ops_mixed_list(self, dim, tlist):
-        "krylovsolve: check e_ops inputs with random H and different tlists."
+        "krylovsolve: check e_ops=[call, qobj] random H different tlists."
         psi0 = rand_ket(dim)
         H = rand_herm(dim, density=0.5)
+        e_ops = [
+            lambda t, psi: expect(num(dim), psi),
+            jmat((H.shape[0] - 1) / 2.0, "x"),
+        ]
 
-        self.check_e_ops_mixed_list(H, psi0, tlist, dim)
+        self.check_e_ops_mixed_list(e_ops, H, psi0, tlist, dim)
+
+    @pytest.mark.parametrize(**e_ops_parametrize_inputs_dict)
+    def test_10_check_e_ops_list_callables(self, dim, tlist):
+        "krylovsolve: check e_ops=[call, call] random H and different tlists."
+        psi0 = rand_ket(dim)
+        H = rand_herm(dim, density=0.5)
+        e_ops = [
+            lambda t, psi: expect(num(dim), psi),
+            lambda t, psi: expect(num(dim)/2, psi)
+        ]
+
+        self.check_e_ops_mixed_list(e_ops, H, psi0, tlist, dim)
+
+    @pytest.mark.parametrize(**e_ops_parametrize_inputs_dict)
+    def test_11_check_e_ops_list_qobjs(self, dim, tlist):
+        "krylovsolve: check e_ops=[qobj, qobj] random H and different tlists."
+        psi0 = rand_ket(dim)
+        H = rand_herm(dim, density=0.5)
+        e_ops = [
+            jmat((H.shape[0] - 1) / 2.0, "x"),
+            jmat((H.shape[0] - 1) / 2.0, "y"),
+            jmat((H.shape[0] - 1) / 2.0, "z"),
+        ]
+        self.check_e_ops_mixed_list(e_ops, H, psi0, tlist, dim)
 
     @pytest.mark.parametrize(**happy_breakdown_parametrize_inputs_dict)
-    def test_10_happy_breakdown_simple(self, psi0, hz, Jx, Jz):
+    def test_12_happy_breakdown_simple(self, psi0, hz, Jx, Jz):
+        "krylovsolve: check simple at happy breakdowns"
 
         krylov_dim = 12
         N = 4
@@ -442,7 +466,8 @@ class TestKrylovSolve:
         )
 
     @pytest.mark.parametrize(**happy_breakdown_parametrize_inputs_dict)
-    def test_11_happy_breakdown_e_ops_none(self, psi0, hz, Jx, Jz):
+    def test_13_happy_breakdown_e_ops_none(self, psi0, hz, Jx, Jz):
+        "krylovsolve: check e_ops=None at happy breakdowns"
 
         krylov_dim = 12
         N = 4
@@ -457,7 +482,8 @@ class TestKrylovSolve:
         )
 
     @pytest.mark.parametrize(**happy_breakdown_parametrize_inputs_dict)
-    def test_12_happy_breakdown_e_ops_callable(self, psi0, hz, Jx, Jz):
+    def test_14_happy_breakdown_e_ops_callable(self, psi0, hz, Jx, Jz):
+        "krylovsolve: check e_ops=callable at happy breakdowns"
 
         krylov_dim = 12
         N = 4
@@ -477,11 +503,12 @@ class TestKrylovSolve:
         )
 
     @pytest.mark.parametrize(**happy_breakdown_parametrize_inputs_dict)
-    def test_13_happy_breakdown_e_ops_list_single_callable(self,
+    def test_15_happy_breakdown_e_ops_list_single_callable(self,
                                                            psi0,
                                                            hz,
                                                            Jx,
                                                            Jz):
+        "krylovsolve: check e_ops=[callable] at happy breakdowns"
 
         krylov_dim = 12
         N = 4
