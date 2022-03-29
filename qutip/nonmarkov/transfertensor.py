@@ -14,7 +14,7 @@ import numpy as np
 
 
 from qutip import (Options, spre, vector_to_operator, operator_to_vector,
-                   ket2dm, isket)
+                   ket2dm, isket, Qobj)
 from qutip.solver import Result
 from qutip.expect import expect_rho_vec
 
@@ -148,7 +148,7 @@ def ttmsolve(dynmaps, rho0, times, e_ops=[], learningtimes=None, tensors=None,
     K = len(tensors)
     states = [rho0vec]
     for n in range(1, len(times)):
-        states.append(None)
+        states.append(Qobj())
         for k in range(n):
             if n-k < K:
                 states[-1] += tensors[n-k]*states[k]
