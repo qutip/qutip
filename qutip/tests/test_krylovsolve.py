@@ -102,18 +102,11 @@ class TestKrylovSolve:
     """
 
     def check_sparse_vs_dense(self, output_sparse, output_dense, tol=1e-5):
-        "krylovsolve: comparing sparse vs non sparse"
+        "krylovsolve: comparing sparse vs non sparse results"
 
-        err_outputs = [
-            err_psi(psi_sparse, psi_dense)
-            for (psi_sparse, psi_dense) in zip(
-                output_sparse.states, output_dense.states
-            )
-        ]
-        for err in err_outputs:
-            assert (
-                err < tol
-            ), f"difference between sparse and dense methods with err={err}"
+        assert_err_states_less_than_tol(res_1=outout_sparse,
+                                        res_2=output_dense
+                                        tol=tol)
 
     @pytest.mark.parametrize("density,dim", [(0.1, 512), (0.9, 800)],
                              ids=["sparse H check", "dense H check"])
