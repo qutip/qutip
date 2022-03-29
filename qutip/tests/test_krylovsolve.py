@@ -13,6 +13,21 @@ from scipy.linalg import expm
 import numpy as np
 
 np.random.seed(0)
+e_ops_parametrize_inputs_dict = {
+    "argnames": "dim,tlist",
+    "argvalues": [(128, np.linspace(0, 5, 200)), (400, [2]), (560, [])],
+    "ids": ["normal tlist", "single element tlist", "empty tlist"]
+}
+happy_breakdown_parametrize_inputs_dict = {
+    "argnames": "psi0,hz,Jx,Jz",
+    "argvalues": [
+        # eigenstate
+        (ket([1, 0, 0, 0]), 0.5, 0, 1),
+        # state in the magnetization subspace of the XXZ model
+        (ket([0, 0, 1, 0]), 1.0, 1, 0),
+    ],
+    "ids": ["happy_breakdown_eigenstate", "happy_breakdown_symmetry"]
+}
 
 
 def h_sho(dim):
@@ -67,6 +82,7 @@ def expect_value(e_ops, res_1, tlist):
         expect_values = [expect(e_ops, state) for state in res_1.states]
     return expect_values
 
+
 def assert_err_states_less_than_tol(res_1, res_2, tol):
     """Asserts error of states of two results less than tol."""
 
@@ -114,7 +130,7 @@ class TestKrylovSolve:
 
     def check_sparse_vs_dense(self, output_sparse, output_dense, tol=1e-5):
         "simple check of errors between two outputs states"
-        
+
         assert_err_states_less_than_tol(res_1=output_sparse,
                                         res_2=output_dense,
                                         tol=tol)
@@ -181,7 +197,7 @@ class TestKrylovSolve:
 
         # for the operators, test against exactsolve for accuracy
         for i in range(len(e_ops)):
-            
+
             output_exact.expect = expect_value(e_ops[i], output_exact, tlist)
 
             assert_err_expect_less_than_tol(exp_1=output.expect[i],
@@ -232,16 +248,14 @@ class TestKrylovSolve:
             pass
 
         if len(tlist) > 1:
-            assert_err_states_less_than_tol(krylov_outputs, sesolve_outputs, tol)
+            assert_err_states_less_than_tol(
+                krylov_outputs, sesolve_outputs, tol)
         elif len(tlist) == 1:
             assert krylov_outputs.states == sesolve_outputs.states
         else:
             assert krylov_outputs.states == []
 
-    @pytest.mark.parametrize(
-        "dim,tlist", [(128, np.linspace(0, 5, 200)), (400, [2]), (560, [])],
-        ids=["normal tlist", "single element tlist", "empty tlist"]
-    )
+    @pytest.mark.parametrize(**e_ops_parametrize_inputs_dict)
     def test_05_check_e_ops_none(self, dim, tlist):
         "krylovsolve: check e_ops=None inputs with random H and different tlists."
         psi0 = rand_ket(dim)
@@ -258,7 +272,7 @@ class TestKrylovSolve:
         tol=1e-5,
         square_hamiltonian=True,
     ):
-        "Check krylov results when inputs when e_ops=callable or e_ops=Qobj"
+        "Check krylov results when inputs when e_ops=callable"
 
         def e_ops(t, psi): return expect(num(dim), psi)
 
@@ -268,7 +282,7 @@ class TestKrylovSolve:
 
         krylov_outputs = krylovsolve(H, psi0, tlist, krylov_dim, e_ops=e_ops)
         exact_output = exactsolve(H, psi0, tlist)
-        exact_output.expect = expect_value(e_ops=e_ops, 
+        exact_output.expect = expect_value(e_ops=e_ops,
                                            res_1=exact_output,
                                            tlist=tlist)
 
@@ -294,30 +308,16 @@ class TestKrylovSolve:
         else:
             assert krylov_outputs.states == []
 
-    @pytest.mark.parametrize(
-        "dim,tlist", [(128, np.linspace(0, 5, 200)), (400, [2]), (560, [])],
-        ids=["normal tlist", "single element tlist", "empty tlist"]
-    )
+    @pytest.mark.parametrize(**e_ops_parametrize_inputs_dict)
     def test_06_check_e_ops_callable(self, dim, tlist):
         "krylovsolve: check e_ops=callable inputs with random H and different tlists."
         psi0 = rand_ket(dim)
         H = rand_herm(dim, density=0.5)
-
         self.check_e_ops_callable(H, psi0, tlist, dim)
 
-    @pytest.mark.parametrize(
-        "dim,tlist", [(128, np.linspace(0, 5, 200)), (400, [2]), (560, [])],
-        ids=["normal tlist", "single element tlist", "empty tlist"]
-    )
-    def test_06_check_e_ops_qobj(self, dim, tlist):
-        "krylovsolve: check e_ops=Qobj inputs with random H and different tlists."
-        psi0 = rand_ket(dim)
-        H = rand_herm(dim, density=0.5)
-
-        self.check_e_ops_callable(H, psi0, tlist, dim)
-
-    def check_e_ops_list_single_callable(
+    def check_e_ops_list_single_operator(
         self,
+        e_ops,
         H,
         psi0,
         tlist,
@@ -328,7 +328,6 @@ class TestKrylovSolve:
     ):
         "krylovsolve: testing inputs when e_ops=[callable]"
 
-        e_ops = [lambda t, psi: expect(num(dim), psi)]
         if not square_hamiltonian:
             H.dims = [[H.shape[0]], [H.shape[0]]]
             psi0.dims = [[H.shape[0]], [1]]
@@ -360,16 +359,21 @@ class TestKrylovSolve:
         else:
             assert krylov_outputs.states == []
 
-    @pytest.mark.parametrize(
-        "dim,tlist", [(128, np.linspace(0, 5, 200)), (400, [2]), (560, [])],
-        ids=["normal tlist", "single element tlist", "empty tlist"]
-    )
+    @pytest.mark.parametrize(**e_ops_parametrize_inputs_dict)
     def test_07_check_e_ops_list_single_callable(self, dim, tlist):
         "krylovsolve: check e_ops inputs with random H and different tlists."
         psi0 = rand_ket(dim)
         H = rand_herm(dim, density=0.5)
+        e_ops = [lambda t, psi: expect(num(dim), psi)]
+        self.check_e_ops_list_single_operator(e_ops, H, psi0, tlist, dim)
 
-        self.check_e_ops_list_single_callable(H, psi0, tlist, dim)
+    @pytest.mark.parametrize(**e_ops_parametrize_inputs_dict)
+    def test_08_check_e_ops_list_single_qobj(self, dim, tlist):
+        "krylovsolve: check e_ops inputs with random H and different tlists."
+        psi0 = rand_ket(dim)
+        H = rand_herm(dim, density=0.5)
+        e_ops = [jmat((H.shape[0] - 1)/2, "x")]
+        self.check_e_ops_list_single_operator(e_ops, H, psi0, tlist, dim)
 
     def check_e_ops_mixed_list(
         self, H, psi0, tlist, dim, krylov_dim=35, tol=1e-5
@@ -396,7 +400,8 @@ class TestKrylovSolve:
             ), "shape of outputs between krylov and sesolve differs"
 
             for idx, k_expect in enumerate(krylov_outputs.expect):
-                exact_output.expect = expect_value(e_ops[idx], exact_output, tlist)
+                exact_output.expect = expect_value(
+                    e_ops[idx], exact_output, tlist)
                 assert_err_expect_less_than_tol(exp_1=k_expect,
                                                 exp_2=exact_output.expect,
                                                 tol=tol)
@@ -413,28 +418,16 @@ class TestKrylovSolve:
         else:
             assert krylov_outputs.states == []
 
-    @pytest.mark.parametrize(
-        "dim,tlist", [(128, np.linspace(0, 5, 200)), (400, [2]), (560, [])],
-        ids=["normal tlist", "single element tlist", "empty tlist"]
-    )
-    def test_08_check_e_ops_mixed_list(self, dim, tlist):
+    @pytest.mark.parametrize(**e_ops_parametrize_inputs_dict)
+    def test_09_check_e_ops_mixed_list(self, dim, tlist):
         "krylovsolve: check e_ops inputs with random H and different tlists."
         psi0 = rand_ket(dim)
         H = rand_herm(dim, density=0.5)
 
         self.check_e_ops_mixed_list(H, psi0, tlist, dim)
 
-    @pytest.mark.parametrize(
-        "psi0,hz,Jx,Jz",
-        [
-            # eigenstate
-            (ket([1, 0, 0, 0]), 0.5, 0, 1),
-            # state in the magnetization subspace of the XXZ model
-            (ket([0, 0, 1, 0]), 1.0, 1, 0),
-        ],
-        ids=["happy_breakdown_eigenstate", "happy_breakdown_symmetry"],
-    )
-    def test_09_happy_breakdown_simple(self, psi0, hz, Jx, Jz):
+    @pytest.mark.parametrize(**happy_breakdown_parametrize_inputs_dict)
+    def test_10_happy_breakdown_simple(self, psi0, hz, Jx, Jz):
 
         krylov_dim = 12
         N = 4
@@ -448,17 +441,8 @@ class TestKrylovSolve:
             H, psi0, tlist, krylov_dim=krylov_dim, square_hamiltonian=False
         )
 
-    @pytest.mark.parametrize(
-        "psi0,hz,Jx,Jz",
-        [
-            # eigenstate
-            (ket([1, 0, 0, 0]), 0.5, 0, 1),
-            # state in the magnetization subspace of the XXZ model
-            (ket([0, 0, 1, 0]), 1.0, 1, 0),
-        ],
-        ids=["happy_breakdown_eigenstate", "happy_breakdown_symmetry"],
-    )
-    def test_10_happy_breakdown_e_ops_none(self, psi0, hz, Jx, Jz):
+    @pytest.mark.parametrize(**happy_breakdown_parametrize_inputs_dict)
+    def test_11_happy_breakdown_e_ops_none(self, psi0, hz, Jx, Jz):
 
         krylov_dim = 12
         N = 4
@@ -472,17 +456,8 @@ class TestKrylovSolve:
             H, psi0, tlist, dim, krylov_dim=krylov_dim
         )
 
-    @pytest.mark.parametrize(
-        "psi0,hz,Jx,Jz",
-        [
-            # eigenstate
-            (ket([1, 0, 0, 0]), 0.5, 0, 1),
-            # state in the magnetization subspace of the XXZ model
-            (ket([0, 0, 1, 0]), 1.0, 1, 0),
-        ],
-        ids=["happy_breakdown_eigenstate", "happy_breakdown_symmetry"],
-    )
-    def test_11_happy_breakdown_e_ops_callable(self, psi0, hz, Jx, Jz):
+    @pytest.mark.parametrize(**happy_breakdown_parametrize_inputs_dict)
+    def test_12_happy_breakdown_e_ops_callable(self, psi0, hz, Jx, Jz):
 
         krylov_dim = 12
         N = 4
@@ -490,7 +465,7 @@ class TestKrylovSolve:
         H = h_ising_transverse(N, hx=0, hz=hz, Jx=Jx, Jy=0, Jz=Jz)
         _dims = H.dims
         _dims2 = [1] * N
-
+        def e_ops(t, psi): return expect(num(dim), psi)
         tlist = np.linspace(0, 20, 200)
         self.check_e_ops_callable(
             H,
@@ -501,17 +476,8 @@ class TestKrylovSolve:
             square_hamiltonian=False,
         )
 
-    @pytest.mark.parametrize(
-        "psi0,hz,Jx,Jz",
-        [
-            # eigenstate
-            (ket([1, 0, 0, 0]), 0.5, 0, 1),
-            # state in the magnetization subspace of the XXZ model
-            (ket([0, 0, 1, 0]), 1.0, 1, 0),
-        ],
-        ids=["happy_breakdown_eigenstate", "happy_breakdown_symmetry"],
-    )
-    def test_12_happy_breakdown_e_ops_list_single_callable(self,
+    @pytest.mark.parametrize(**happy_breakdown_parametrize_inputs_dict)
+    def test_13_happy_breakdown_e_ops_list_single_callable(self,
                                                            psi0,
                                                            hz,
                                                            Jx,
@@ -523,9 +489,11 @@ class TestKrylovSolve:
         H = h_ising_transverse(N, hx=0, hz=hz, Jx=Jx, Jy=0, Jz=Jz)
         _dims = H.dims
         _dims2 = [1] * N
+        e_ops = [lambda t, psi: expect(num(dim), psi)]
 
         tlist = np.linspace(0, 20, 200)
-        self.check_e_ops_list_single_callable(
+        self.check_e_ops_list_single_operator(
+            e_ops,
             H,
             psi0,
             tlist,
