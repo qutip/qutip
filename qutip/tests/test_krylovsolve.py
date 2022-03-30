@@ -13,21 +13,33 @@ from scipy.linalg import expm
 import numpy as np
 
 np.random.seed(0)
-e_ops_parametrize_inputs_dict = {
-    "argnames": "dim,tlist",
-    "argvalues": [(128, np.linspace(0, 5, 200)), (400, [2]), (560, [])],
-    "ids": ["normal tlist", "single element tlist", "empty tlist"]
-}
-happy_breakdown_parametrize_inputs_dict = {
-    "argnames": "psi0,hz,Jx,Jz",
-    "argvalues": [
-        # eigenstate
-        (ket([1, 0, 0, 0]), 0.5, 0, 1),
-        # state in the magnetization subspace of the XXZ model
-        (ket([0, 0, 1, 0]), 1.0, 1, 0),
-    ],
-    "ids": ["happy_breakdown_eigenstate", "happy_breakdown_symmetry"]
-}
+
+
+@pytest.fixture(params=[
+    pytest.param(100, id="small dim"),
+    pytest.param(500, id="intermediate dim"),
+    pytest.param(1000, id="large dim"),
+])
+def dimensions(request):
+    return request.param
+
+
+@pytest.fixture(params=[
+    pytest.param(np.linspace(0, 5, 200), id="normal tlist"),
+    pytest.param([2], id="single element tlist"),
+    pytest.param([], id="empty tlist"),
+])
+def tlists(request):
+    return request.param
+
+
+@pytest.fixture(params=[
+    pytest.param((ket([1, 0, 0, 0]), 0.5, 0, 1), id="eigenstate"),
+    pytest.param((ket([0, 0, 1, 0]), 1.0, 1, 0),
+                 id="magnetization subspace state XXZ model"),
+])
+def happy_breakdown_parameters(request):
+    return request.param
 
 
 def h_sho(dim):
@@ -64,6 +76,25 @@ def h_ising_transverse(
             H += -Jz[n] * sz_list[n] * sz_list[n + 1]
 
     return H
+
+
+def create_test_e_ops(e_ops_type, H, dim):
+    """Creates e_ops used for testing give H and dim."""
+    if e_ops_type == "[c]":
+        e_ops = [lambda t, psi: expect(num(dim), psi)]
+    if e_ops_type == "[q]":
+        e_ops = [jmat((H.shape[0] - 1)/2, "x")]
+    if e_ops_type == "[c, c]":
+        e_ops = [lambda t, psi: expect(num(dim), psi),
+                 lambda t, psi: expect(num(dim)/2, psi)]
+    if e_ops_type == "[c, q]":
+        e_ops = [lambda t, psi: expect(num(dim), psi),
+                 jmat((H.shape[0] - 1) / 2.0, "x")]
+    if e_ops_type == "[q, q]":
+        e_ops = [jmat((H.shape[0] - 1) / 2.0, "x"),
+                 jmat((H.shape[0] - 1) / 2.0, "y"),
+                 jmat((H.shape[0] - 1) / 2.0, "z")]
+    return e_ops
 
 
 def err_psi(psi_a, psi_b):
@@ -255,12 +286,11 @@ class TestKrylovSolve:
         else:
             assert krylov_outputs.states == []
 
-    @pytest.mark.parametrize(**e_ops_parametrize_inputs_dict)
-    def test_05_check_e_ops_none(self, dim, tlist):
+    def test_05_check_e_ops_none(self, dimensions, tlists):
         "krylovsolve: check e_ops=None inputs with random H different tlists."
-        psi0 = rand_ket(dim)
-        H = rand_herm(dim, density=0.5)
-        self.check_e_ops_none(H, psi0, tlist, dim)
+        psi0 = rand_ket(dimensions)
+        H = rand_herm(dimensions, density=0.5)
+        self.check_e_ops_none(H, psi0, tlists, dimensions)
 
     def check_e_ops_callable(
         self,
@@ -308,12 +338,11 @@ class TestKrylovSolve:
         else:
             assert krylov_outputs.states == []
 
-    @pytest.mark.parametrize(**e_ops_parametrize_inputs_dict)
-    def test_06_check_e_ops_callable(self, dim, tlist):
+    def test_06_check_e_ops_callable(self, dimensions, tlists):
         "krylovsolve: check e_ops=call inputs with random H different tlists."
-        psi0 = rand_ket(dim)
-        H = rand_herm(dim, density=0.5)
-        self.check_e_ops_callable(H, psi0, tlist, dim)
+        psi0 = rand_ket(dimensions)
+        H = rand_herm(dimensions, density=0.5)
+        self.check_e_ops_callable(H, psi0, tlists, dimensions)
 
     def check_e_ops_list_single_operator(
         self,
@@ -359,24 +388,17 @@ class TestKrylovSolve:
         else:
             assert krylov_outputs.states == []
 
-    @pytest.mark.parametrize(**e_ops_parametrize_inputs_dict)
-    def test_07_check_e_ops_list_single_callable(self, dim, tlist):
-        "krylovsolve: check e_ops=[callable] inputs random H different tlists."
-        psi0 = rand_ket(dim)
-        H = rand_herm(dim, density=0.5)
-        e_ops = [lambda t, psi: expect(num(dim), psi)]
-        self.check_e_ops_list_single_operator(e_ops, H, psi0, tlist, dim)
-
-    @pytest.mark.parametrize(**e_ops_parametrize_inputs_dict)
-    def test_08_check_e_ops_list_single_qobj(self, dim, tlist):
-        "krylovsolve: check e_ops=[qobj] inputs random H different tlists."
-        psi0 = rand_ket(dim)
-        H = rand_herm(dim, density=0.5)
-        e_ops = [jmat((H.shape[0] - 1)/2, "x")]
-        self.check_e_ops_list_single_operator(e_ops, H, psi0, tlist, dim)
+    @pytest.mark.parametrize("e_ops_type", [("[c]"), ("[q]")], ids=["[c]", "[q]"])
+    def test_07_check_e_ops_list_single_callable(self, e_ops_type, dimensions, tlists):
+        "krylovsolve: check e_ops=[call | qobj] random H different tlists."
+        psi0 = rand_ket(dimensions)
+        H = rand_herm(dimensions, density=0.5)
+        e_ops = create_test_e_ops(e_ops_type, H, dimensions)
+        self.check_e_ops_list_single_operator(
+            e_ops, H, psi0, tlists, dimensions)
 
     def check_e_ops_mixed_list(
-        self, e_ops, H, psi0, tlist, dim, krylov_dim=35, tol=1e-5
+        self, e_ops, H, psi0, tlist, dim, krylov_dim=35, tol=1e-5,
     ):
         "Check input possibilities when e_ops=[call | qobj] and len(e_ops) > 1"
 
@@ -413,46 +435,23 @@ class TestKrylovSolve:
         else:
             assert krylov_outputs.states == []
 
-    @pytest.mark.parametrize(**e_ops_parametrize_inputs_dict)
-    def test_09_check_e_ops_mixed_list(self, dim, tlist):
-        "krylovsolve: check e_ops=[call, qobj] random H different tlists."
-        psi0 = rand_ket(dim)
-        H = rand_herm(dim, density=0.5)
-        e_ops = [
-            lambda t, psi: expect(num(dim), psi),
-            jmat((H.shape[0] - 1) / 2.0, "x"),
-        ]
+    @pytest.mark.parametrize("e_ops_type",
+                             [("[c, c]"), ("[c, q]"), ("[q, q]")],
+                             ids=["[c, c]", "[c, q]", "[q, q]"])
+    def test_08_check_e_ops_mixed_list(self, e_ops_type, dimensions, tlists):
+        "krylovsolve: check e_ops=[call | qobj] with len(e_ops)>1 for"
+        "random H different tlists."
+        psi0 = rand_ket(dimensions)
+        H = rand_herm(dimensions, density=0.5)
+        e_ops = create_test_e_ops(e_ops_type, H, dimensions)
+        self.check_e_ops_mixed_list(e_ops, H, psi0, tlists, dimensions)
 
-        self.check_e_ops_mixed_list(e_ops, H, psi0, tlist, dim)
-
-    @pytest.mark.parametrize(**e_ops_parametrize_inputs_dict)
-    def test_10_check_e_ops_list_callables(self, dim, tlist):
-        "krylovsolve: check e_ops=[call, call] random H and different tlists."
-        psi0 = rand_ket(dim)
-        H = rand_herm(dim, density=0.5)
-        e_ops = [
-            lambda t, psi: expect(num(dim), psi),
-            lambda t, psi: expect(num(dim)/2, psi)
-        ]
-
-        self.check_e_ops_mixed_list(e_ops, H, psi0, tlist, dim)
-
-    @pytest.mark.parametrize(**e_ops_parametrize_inputs_dict)
-    def test_11_check_e_ops_list_qobjs(self, dim, tlist):
-        "krylovsolve: check e_ops=[qobj, qobj] random H and different tlists."
-        psi0 = rand_ket(dim)
-        H = rand_herm(dim, density=0.5)
-        e_ops = [
-            jmat((H.shape[0] - 1) / 2.0, "x"),
-            jmat((H.shape[0] - 1) / 2.0, "y"),
-            jmat((H.shape[0] - 1) / 2.0, "z"),
-        ]
-        self.check_e_ops_mixed_list(e_ops, H, psi0, tlist, dim)
-
-    @pytest.mark.parametrize(**happy_breakdown_parametrize_inputs_dict)
-    def test_12_happy_breakdown_simple(self, psi0, hz, Jx, Jz):
+    def test_9_happy_breakdown_simple(self, happy_breakdown_parameters):
         "krylovsolve: check simple at happy breakdowns"
-
+        psi0 = happy_breakdown_parameters[0]
+        hz = happy_breakdown_parameters[1]
+        Jx = happy_breakdown_parameters[2]
+        Jz = happy_breakdown_parameters[3]
         krylov_dim = 12
         N = 4
         dim = 2**N
@@ -465,10 +464,12 @@ class TestKrylovSolve:
             H, psi0, tlist, krylov_dim=krylov_dim, square_hamiltonian=False
         )
 
-    @pytest.mark.parametrize(**happy_breakdown_parametrize_inputs_dict)
-    def test_13_happy_breakdown_e_ops_none(self, psi0, hz, Jx, Jz):
+    def test_10_happy_breakdown_e_ops_none(self, happy_breakdown_parameters):
         "krylovsolve: check e_ops=None at happy breakdowns"
-
+        psi0 = happy_breakdown_parameters[0]
+        hz = happy_breakdown_parameters[1]
+        Jx = happy_breakdown_parameters[2]
+        Jz = happy_breakdown_parameters[3]
         krylov_dim = 12
         N = 4
         dim = 2**N
@@ -481,10 +482,12 @@ class TestKrylovSolve:
             H, psi0, tlist, dim, krylov_dim=krylov_dim
         )
 
-    @pytest.mark.parametrize(**happy_breakdown_parametrize_inputs_dict)
-    def test_14_happy_breakdown_e_ops_callable(self, psi0, hz, Jx, Jz):
+    def test_11_happy_breakdown_e_ops_callable(self, happy_breakdown_parameters):
         "krylovsolve: check e_ops=callable at happy breakdowns"
-
+        psi0 = happy_breakdown_parameters[0]
+        hz = happy_breakdown_parameters[1]
+        Jx = happy_breakdown_parameters[2]
+        Jz = happy_breakdown_parameters[3]
         krylov_dim = 12
         N = 4
         dim = 2**N
@@ -502,14 +505,12 @@ class TestKrylovSolve:
             square_hamiltonian=False,
         )
 
-    @pytest.mark.parametrize(**happy_breakdown_parametrize_inputs_dict)
-    def test_15_happy_breakdown_e_ops_list_single_callable(self,
-                                                           psi0,
-                                                           hz,
-                                                           Jx,
-                                                           Jz):
+    def test_12_happy_breakdown_e_ops_list_single_callable(self, happy_breakdown_parameters):
         "krylovsolve: check e_ops=[callable] at happy breakdowns"
-
+        psi0 = happy_breakdown_parameters[0]
+        hz = happy_breakdown_parameters[1]
+        Jx = happy_breakdown_parameters[2]
+        Jz = happy_breakdown_parameters[3]
         krylov_dim = 12
         N = 4
         dim = 2**N
