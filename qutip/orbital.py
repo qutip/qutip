@@ -11,8 +11,9 @@ def orbital(theta, phi, *args):
     defined by theta and phi which is
     :math:`\sum_{lm} c_{lm} Y_{lm}(theta,phi)` where :math:`C_{lm}` are the
     coefficients specified by the list of kets. Each ket has 2l+1 components
-    for some integer l. The first entry of the ket defines the coefficient c_{l,-l},
-    while the last entry of the ket defines the coefficient c_{l, l}.
+    for some integer l. The first entry of the ket defines the coefficient
+    c_{l,-l}, while the last entry of the ket defines the
+    coefficient c_{l, l}.
 
     Parameters
     ----------
@@ -27,7 +28,8 @@ def orbital(theta, phi, *args):
 
     Returns
     -------
-    ``array`` for angular wave function evaluated at all possible combinations of theta and phi
+    ``array`` for angular wave function evaluated at all
+              possible combinations of theta and phi
 
     """
     if isinstance(args[0], list):
@@ -72,8 +74,10 @@ def orbital(theta, phi, *args):
         for i in range(len(factors)):
             # set correct m
             m = i - l
-            # calculate spherical harmonics, note that theta and phi are interchanged in scipy implementation
-            res = np.array([sph_harm(m, l, p, t) for t, p in zip(theta_mesh, phi_mesh)])
+            # calculate spherical harmonics
+            # note that theta and phi are interchanged in scipy implementation
+            res = np.array(
+                [sph_harm(m, l, p, t) for t, p in zip(theta_mesh, phi_mesh)])
             psi += factors[i] * res
 
     # flatten output if only one row
