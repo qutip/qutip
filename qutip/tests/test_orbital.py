@@ -15,7 +15,8 @@ def test_orbital_single_ket():
         for l in range(0, 5):
             for m in range(-l, l + 1):
                 q = qutip.basis(2 * l + 1, l + m)
-                # check that outputs are the same, note that theta and phi are interchanged for scipy
+                # check that outputs are the same,
+                # note that theta and phi are interchanged for scipy
                 assert sph_harm(m, l, phi, theta) == orbital(theta, phi, q)
 
 
@@ -28,7 +29,10 @@ def test_orbital_multiple_ket():
     l, m = 3, -1
     q2 = qutip.basis(2 * l + 1, l + m)
     for theta, phi in zip(theta_list, phi_list):
-        assert orbital(theta, phi, q1, q2) == sph_harm(2, 5, phi, theta) + sph_harm(-1, 3, phi, theta)
+        assert orbital(theta, phi, q1, q2) == sph_harm(2, 5, phi,
+                                                       theta) + sph_harm(-1, 3,
+                                                                         phi,
+                                                                         theta)
 
 
 def test_orbital_explicit():
@@ -42,10 +46,12 @@ def test_orbital_explicit():
     # cosine function
     l, m = 1, 0
     q = qutip.basis(2 * l + 1, l + m)
-    assert np.allclose(orbital(theta_list, 0, q), 0.5 * np.sqrt(3 / np.pi) * np.cos(theta_list))
+    assert np.allclose(orbital(theta_list, 0, q),
+                       0.5 * np.sqrt(3 / np.pi) * np.cos(theta_list))
     # cosine with phase
     l, m = 1, 1
     q = qutip.basis(2 * l + 1, l + m)
     phi_mesh, theta_mesh = np.meshgrid(phi_list, theta_list)
     assert np.allclose(orbital(theta_list, phi_list, q),
-                       -0.5 * np.sqrt(3 / (2 * np.pi)) * np.sin(theta_mesh) * np.exp(1j * phi_mesh))
+                       -0.5 * np.sqrt(3 / (2 * np.pi)) * np.sin(
+                           theta_mesh) * np.exp(1j * phi_mesh))
