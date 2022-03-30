@@ -74,8 +74,6 @@ def orbital(theta, phi, *args):
             m = i - l
             # calculate spherical harmonics
             # note that theta and phi are interchanged in scipy implementation
-            #res = np.array(
-            #    [sph_harm(m, l, p, t) for t, p in zip(theta_mesh, phi_mesh)])
             res = sph_harm(m, l, phi_mesh, theta_mesh)
             psi += factors[i] * res
 
