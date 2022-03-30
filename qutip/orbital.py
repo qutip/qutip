@@ -41,10 +41,8 @@ def orbital(theta, phi, *args):
         theta = np.array([theta])
     if isinstance(phi, float) or isinstance(phi, int):
         phi = np.array([phi])
-    if isinstance(theta, list):
-        theta = np.array(theta)
-    if isinstance(phi, list):
-        phi = np.array(phi)
+    theta = np.asarray(theta)
+    phi = np.asarray(phi)
     if len(theta.shape) != 1:
         raise ValueError('Polar angles theta must be 1D list')
     if len(phi.shape) != 1:
@@ -76,8 +74,9 @@ def orbital(theta, phi, *args):
             m = i - l
             # calculate spherical harmonics
             # note that theta and phi are interchanged in scipy implementation
-            res = np.array(
-                [sph_harm(m, l, p, t) for t, p in zip(theta_mesh, phi_mesh)])
+            #res = np.array(
+            #    [sph_harm(m, l, p, t) for t, p in zip(theta_mesh, phi_mesh)])
+            res = sph_harm(m, l, phi_mesh, theta_mesh)
             psi += factors[i] * res
 
     # flatten output if only one row

@@ -29,10 +29,8 @@ def test_orbital_multiple_ket():
     l, m = 3, -1
     q2 = qutip.basis(2 * l + 1, l + m)
     for theta, phi in zip(theta_list, phi_list):
-        assert orbital(theta, phi, q1, q2) == sph_harm(2, 5, phi,
-                                                       theta) + sph_harm(-1, 3,
-                                                                         phi,
-                                                                         theta)
+        exp = sph_harm(2, 5, phi, theta) + sph_harm(-1, 3, phi, theta)
+        assert orbital(theta, phi, q1, q2) ==  exp
 
 
 def test_orbital_explicit():
