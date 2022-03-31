@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 This module is a collection of random state and operator generators.
-The sparsity of the ouput Qobj's is controlled by varing the
+The sparsity of the output Qobj's is controlled by varying the
 `density` parameter.
 """
 
@@ -267,14 +267,15 @@ def rand_ket(N=None, density=1, dims=None, seed=None):
 
     Parameters
     ----------
-    N : int
+    N : int, None
         Number of rows for output quantum vector.
         If None, N is deduced from dims.
     density : float
         Density between [0,1] of output ket state.
-    dims : list
-        Dimensions of quantum object.  Used for specifying
-        tensor structure. Default is dims=[[N],[1]].
+    dims : list, None
+        Dimensions of quantum object.
+        Used for specifying tensor structure.
+        If None, dims = [[N], [1]].
     seed : int
         Seed for the random number generator.
 
@@ -291,16 +292,16 @@ def rand_ket(N=None, density=1, dims=None, seed=None):
     """
     if seed is not None:
         np.random.seed(seed=seed)
+
     if N is None and dims is None:
         raise ValueError('Specify either the number of rows of state vector'
-                         '(N) or dimensions of quantum object (dims)')
-    if N is not None and dims:
-        _check_dims(dims, N, 1)
-    elif dims:
+                         ' (N) or dimensions of quantum object (dims).')
+    elif N is None and dims:
         N = np.prod(dims[0])
-        _check_dims(dims, N, 1)
-    else:
+    elif N and dims is None:
         dims = [[N], [1]]
+    _check_dims(dims, N, 1)
+
     X = sp.rand(N, 1, density, format='csr')
     while X.nnz == 0:
         # ensure that the ket is not all zeros.
@@ -324,9 +325,12 @@ def rand_ket_haar(N=None, dims=None, seed=None):
     N : int
         Dimension of the state vector to be returned.
         If None, N is deduced from dims.
-    dims : list of ints, or None
-        Dimensions of the resultant quantum object.
-        If None, [[N],[1]] is used.
+    dims : list, None
+        Dimensions of quantum object.
+        Used for specifying tensor structure.
+        If None, dims = [[N], [1]].
+    seed : int
+        Seed for the random number generator.
 
     Returns
     -------
@@ -340,14 +344,13 @@ def rand_ket_haar(N=None, dims=None, seed=None):
     """
     if N is None and dims is None:
         raise ValueError('Specify either the number of rows of state vector'
-                         '(N) or dimensions of quantum object (dims)')
-    if N and dims:
-        _check_dims(dims, N, 1)
-    elif dims:
+                         ' (N) or dimensions of quantum object (dims).')
+    elif N is None and dims:
         N = np.prod(dims[0])
-        _check_dims(dims, N, 1)
-    else:
+    elif N and dims is None:
         dims = [[N], [1]]
+    _check_dims(dims, N, 1)
+
     psi = rand_unitary_haar(N, seed=seed) * basis(N, 0)
     psi.dims = dims
     return psi
@@ -482,7 +485,7 @@ def rand_dm_hs(N=2, dims=None, seed=None):
     return rand_dm_ginibre(N, rank=None, dims=dims, seed=seed)
 
 
-def rand_kraus_map(N, dims=None, seed=None):
+def rand_kraus_map(N=None, dims=None, seed=None):
     """
     Creates a random CPTP map on an N-dimensional Hilbert space in Kraus
     form.
@@ -495,7 +498,6 @@ def rand_kraus_map(N, dims=None, seed=None):
         Dimensions of quantum object.  Used for specifying
         tensor structure. Default is dims=[[N],[N]].
 
-
     Returns
     -------
     oper_list : list of qobj
@@ -503,7 +505,7 @@ def rand_kraus_map(N, dims=None, seed=None):
 
     """
 
-    if dims:
+    if N is not None and dims is not None:
         _check_dims(dims, N, N)
 
     # Random unitary (Stinespring Dilation)
@@ -678,11 +680,12 @@ def rand_stochastic(N, density=0.75, kind='left', dims=None, seed=None):
 
 
 def _check_dims(dims, N1, N2):
+
     if len(dims) != 2:
         raise Exception("Qobj dimensions must be list of length 2.")
     if (not isinstance(dims[0], list)) or (not isinstance(dims[1], list)):
         raise TypeError(
-            "Qobj dimension components must be lists. i.e. dims=[[N],[N]]")
+            "Qobj dimension components must be lists. i.e. dims=[[N],[N]].")
     if np.prod(dims[0]) != N1 or np.prod(dims[1]) != N2:
         raise ValueError("Qobj dimensions must match matrix shape.")
     if len(dims[0]) != len(dims[1]):
