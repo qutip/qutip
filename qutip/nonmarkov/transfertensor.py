@@ -11,7 +11,7 @@ method (TTM), introduced in [1].
 """
 
 import numpy as np
-
+from attr import validate
 
 from qutip import (Options, spre, vector_to_operator, operator_to_vector,
                    ket2dm, isket, Qobj)
@@ -46,7 +46,6 @@ class TTMSolverOptions:
 
     def __init__(self, dynmaps=None, times=[], learningtimes=[],
                  thres=0.0, options=None):
-
         if options is None:
             options = Options()
 
@@ -148,10 +147,12 @@ def ttmsolve(dynmaps, rho0, times, e_ops=[], learningtimes=None, tensors=None,
     K = len(tensors)
     states = [rho0vec]
     for n in range(1, len(times)):
-        states.append(Qobj())
+        # Append empty state
+        states.append(None)
         for k in range(n):
-            if n-k < K:
-                states[-1] += tensors[n-k]*states[k]
+            if n - k < K:
+                tmp = tensors[n - k] * states[k]
+                states[-1] = tmp if states[-1] is None else tmp + states[-1]
     for i, r in enumerate(states):
         if opt.store_states or expt_callback:
             if r.type == 'operator-ket':
@@ -212,14 +213,18 @@ def _generatetensors(dynmaps, learningtimes=None, **kwargs):
             raise TypeError("Argument 'learnintimes' required when 'dynmaps'" +
                             "is a callback function.")
 
-        def dynmapfunc(n): return dynmaps(learningtimes[n])
+        def dynmapfunc(n):
+            return dynmaps(learningtimes[n])
+
         Kmax = len(learningtimes)
     else:
         try:
             tmp = dynmaps[:]
             del tmp
 
-            def dynmapfunc(n): return dynmaps[n]
+            def dynmapfunc(n):
+                return dynmaps[n]
+
             Kmax = len(dynmaps)
         except TypeError:
             raise TypeError("Argument 'dynmaps' should be a callable or" +
@@ -236,12 +241,12 @@ def _generatetensors(dynmaps, learningtimes=None, **kwargs):
     for n in range(Kmax):
         T = dynmapfunc(n)
         for m in range(1, n):
-            T -= Tlist[n-m]*dynmapfunc(m)
+            T -= Tlist[n - m] * dynmapfunc(m)
         Tlist.append(T)
         if n > 1:
-            diff.append((Tlist[-1]-Tlist[-2]).norm())
+            diff.append((Tlist[-1] - Tlist[-2]).norm())
             if diff[-1] < opt.thres:
                 # Below threshold for truncation
-                print('breaking', (Tlist[-1]-Tlist[-2]).norm(), n)
+                print('breaking', (Tlist[-1] - Tlist[-2]).norm(), n)
                 break
     return Tlist, diff
