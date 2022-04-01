@@ -60,8 +60,7 @@ def rand_jacobi_rotation(A, seed=None):
     return A
 
 
-def randnz(shape, norm=1 / np.sqrt(2), seed=None):
-    # This function is intended for internal use.
+def _randnz(shape, norm=1 / np.sqrt(2), seed=None):
     """
     Returns an array of standard normal complex random variates.
     The Ginibre ensemble corresponds to setting ``norm = 1`` [Mis12]_.
@@ -267,15 +266,14 @@ def rand_ket(N=None, density=1, dims=None, seed=None):
 
     Parameters
     ----------
-    N : int, None
-        Number of rows for output quantum vector.
-        If None, N is deduced from dims.
+    N : int, optional
+        Number of rows for output state vector. If None, N is deduced
+         from dims.
     density : float
         Density between [0,1] of output ket state.
-    dims : list, None
-        Dimensions of quantum object.
-        Used for specifying tensor structure.
-        If None, dims = [[N], [1]].
+    dims : list, optional
+        Dimensions of quantum object. Used for specifying tensor
+        structure. If None, dims = [[N], [1]].
     seed : int
         Seed for the random number generator.
 
@@ -288,7 +286,6 @@ def rand_ket(N=None, density=1, dims=None, seed=None):
     -------
     ValueError
         If neither `N` or `dims` are specified.
-
     """
     if seed is not None:
         np.random.seed(seed=seed)
@@ -322,13 +319,12 @@ def rand_ket_haar(N=None, dims=None, seed=None):
 
     Parameters
     ----------
-    N : int
-        Dimension of the state vector to be returned.
-        If None, N is deduced from dims.
-    dims : list, None
-        Dimensions of quantum object.
-        Used for specifying tensor structure.
-        If None, dims = [[N], [1]].
+    N : int, optional
+        Number of rows for output state vector. If None, N is deduced
+        from dims.
+    dims : list, optional
+        Dimensions of quantum object. Used for specifying tensor
+        structure. If None, dims = [[N], [1]].
     seed : int
         Seed for the random number generator.
 
@@ -349,6 +345,7 @@ def rand_ket_haar(N=None, dims=None, seed=None):
         N = np.prod(dims[0])
     elif N and dims is None:
         dims = [[N], [1]]
+    elif N and dims:
     _check_dims(dims, N, 1)
 
     psi = rand_unitary_haar(N, seed=seed) * basis(N, 0)
@@ -381,7 +378,6 @@ def rand_dm(N, density=0.75, pure=False, dims=None, seed=None):
     -----
     For small density matrices., choosing a low density will result in an error
     as no diagonal elements will be generated such that :math:`Tr(\rho)=1`.
-
     """
     if isinstance(N, (np.ndarray, list)):
         if np.abs(np.sum(N)-1.0) > 1e-15:
@@ -422,22 +418,25 @@ def rand_dm(N, density=0.75, pure=False, dims=None, seed=None):
     return Qobj(H, dims=dims)
 
 
-def rand_dm_ginibre(N=2, rank=None, dims=None, seed=None):
+def rand_dm_ginibre(N=None, rank=None, dims=None, seed=None):
     """
-    Returns a Ginibre random density operator of dimension
-    ``dim`` and rank ``rank`` by using the algorithm of
-    [BCSZ08]_. If ``rank`` is `None`, a full-rank
-    (Hilbert-Schmidt ensemble) random density operator will be
-    returned.
+    Returns a Ginibre random density operator.
+
+    The operator has dimension ``dim`` and rank ``rank`` and is
+    obtained by using the algorithm of [BCSZ08]_. If ``rank`` is
+    `None`, a full-rank (Hilbert-Schmidt ensemble) random density
+    operator will be returned.
 
     Parameters
     ----------
-    N : int
-        Dimension of the density operator to be returned.
-    dims : list
-        Dimensions of quantum object.  Used for specifying
-        tensor structure. Default is dims=[[N],[N]].
-
+    N : int, optional
+        Dimension of the density operator to be returned. If None, N is
+        deduced from dims.
+    dims : list, optional
+        Dimensions of quantum object. Used for specifying tensor
+        structure. If None, dims = [[N], [N]].
+    seed : int
+        Seed for the random number generator.
     rank : int or None
         Rank of the sampled density operator. If None, a full-rank
         density operator is generated.
@@ -447,7 +446,23 @@ def rand_dm_ginibre(N=2, rank=None, dims=None, seed=None):
     rho : Qobj
         An N × N density operator sampled from the Ginibre
         or Hilbert-Schmidt distribution.
+
+    Raises
+    -------
+    ValueError
+        If neither `N` or `dims` are specified.
     """
+    if N is None and dims is None:
+        raise ValueError('Specify either the number of rows of density'
+                         ' operator (N) or dimensions of quantum object'
+                         ' (dims).')
+    elif N is None and dims:
+        N = np.prod(dims[0])
+    elif N and dims is None:
+        dims = [[N], [N]]
+    elif N and dims:
+        _check_dims(dims, N, N)
+
     if rank is None:
         rank = N
     if rank > N:
@@ -460,20 +475,24 @@ def rand_dm_ginibre(N=2, rank=None, dims=None, seed=None):
     return Qobj(rho, dims=dims)
 
 
-def rand_dm_hs(N=2, dims=None, seed=None):
+def rand_dm_hs(N=None, dims=None, seed=None):
     """
-    Returns a Hilbert-Schmidt random density operator of dimension
-    ``dim`` and rank ``rank`` by using the algorithm of
-    [BCSZ08]_.
+    Returns a Hilbert-Schmidt random density operator.
+
+    The operator has dimensions ``dim`` and rank ``rank`` and
+    is obtained using the algorithm of [BCSZ08]_.
 
 
     Parameters
     ----------
-    N : int
-        Dimension of the density operator to be returned.
-    dims : list
-        Dimensions of quantum object.  Used for specifying
-        tensor structure. Default is dims=[[N],[N]].
+    N : int, optional
+        Dimension of the density operator to be returned. If None, N is
+        deduced from dims.
+    dims : list, optional
+        Dimensions of quantum object. Used for specifying tensor
+        structure. If None, dims = [[N], [N]].
+    seed : int
+        Seed for the random number generator.
 
     Returns
     -------
