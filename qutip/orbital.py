@@ -36,13 +36,10 @@ def orbital(theta, phi, *args):
         # use the list in args[0]
         args = args[0]
 
-    # Convert theta and phi to numpy np arrays and check dimensions
-    if isinstance(theta, float) or isinstance(theta, int):
-        theta = np.array([theta])
-    if isinstance(phi, float) or isinstance(phi, int):
-        phi = np.array([phi])
-    theta = np.asarray(theta)
-    phi = np.asarray(phi)
+    # convert to numpy array
+    theta = np.atleast_1d(theta)
+    phi = np.atleast_1d(phi)
+    # check that arrays are only 1D
     if len(theta.shape) != 1:
         raise ValueError('Polar angles theta must be 1D list')
     if len(phi.shape) != 1:
