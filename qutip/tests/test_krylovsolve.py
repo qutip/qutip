@@ -78,22 +78,22 @@ def h_ising_transverse(
     return H
 
 
-def create_test_e_ops(e_ops_type, H, dim):
+def create_test_e_ops(e_ops_type, dim):
     """Creates e_ops used for testing give H and dim."""
     if e_ops_type == "[c]":
         e_ops = [lambda t, psi: expect(num(dim), psi)]
     if e_ops_type == "[q]":
-        e_ops = [jmat((H.shape[0] - 1)/2, "x")]
+        e_ops = [jmat((dim - 1)/2, "x")]
     if e_ops_type == "[c, c]":
         e_ops = [lambda t, psi: expect(num(dim), psi),
                  lambda t, psi: expect(num(dim)/2, psi)]
     if e_ops_type == "[c, q]":
         e_ops = [lambda t, psi: expect(num(dim), psi),
-                 jmat((H.shape[0] - 1) / 2.0, "x")]
+                 jmat((dim - 1) / 2.0, "x")]
     if e_ops_type == "[q, q]":
-        e_ops = [jmat((H.shape[0] - 1) / 2.0, "x"),
-                 jmat((H.shape[0] - 1) / 2.0, "y"),
-                 jmat((H.shape[0] - 1) / 2.0, "z")]
+        e_ops = [jmat((dim - 1) / 2.0, "x"),
+                 jmat((dim - 1) / 2.0, "y"),
+                 jmat((dim - 1) / 2.0, "z")]
     return e_ops
 
 
@@ -393,7 +393,7 @@ class TestKrylovSolve:
         "krylovsolve: check e_ops=[call | qobj] random H different tlists."
         psi0 = rand_ket(dimensions)
         H = rand_herm(dimensions, density=0.5)
-        e_ops = create_test_e_ops(e_ops_type, H, dimensions)
+        e_ops = create_test_e_ops(e_ops_type, dimensions)
         self.check_e_ops_list_single_operator(
             e_ops, H, psi0, tlists, dimensions)
 
@@ -443,7 +443,7 @@ class TestKrylovSolve:
         "random H different tlists."
         psi0 = rand_ket(dimensions)
         H = rand_herm(dimensions, density=0.5)
-        e_ops = create_test_e_ops(e_ops_type, H, dimensions)
+        e_ops = create_test_e_ops(e_ops_type, dimensions)
         self.check_e_ops_mixed_list(e_ops, H, psi0, tlists, dimensions)
 
     def test_9_happy_breakdown_simple(self, happy_breakdown_parameters):
