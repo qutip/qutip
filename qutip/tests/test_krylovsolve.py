@@ -448,17 +448,11 @@ class TestKrylovSolve:
 
     def test_9_happy_breakdown_simple(self, happy_breakdown_parameters):
         "krylovsolve: check simple at happy breakdowns"
-        psi0 = happy_breakdown_parameters[0]
-        hz = happy_breakdown_parameters[1]
-        Jx = happy_breakdown_parameters[2]
-        Jz = happy_breakdown_parameters[3]
+        psi0, hz, Jx, Jz = happy_breakdown_parameters
         krylov_dim = 12
         N = 4
         dim = 2**N
         H = h_ising_transverse(N, hx=0, hz=hz, Jx=Jx, Jy=0, Jz=Jz)
-        _dims = H.dims
-        _dims2 = [1] * N
-
         tlist = np.linspace(0, 20, 200)
         self.simple_check_states_e_ops(
             H, psi0, tlist, krylov_dim=krylov_dim, square_hamiltonian=False
@@ -466,17 +460,11 @@ class TestKrylovSolve:
 
     def test_10_happy_breakdown_e_ops_none(self, happy_breakdown_parameters):
         "krylovsolve: check e_ops=None at happy breakdowns"
-        psi0 = happy_breakdown_parameters[0]
-        hz = happy_breakdown_parameters[1]
-        Jx = happy_breakdown_parameters[2]
-        Jz = happy_breakdown_parameters[3]
+        psi0, hz, Jx, Jz = happy_breakdown_parameters
         krylov_dim = 12
         N = 4
         dim = 2**N
         H = h_ising_transverse(N, hx=0, hz=hz, Jx=Jx, Jy=0, Jz=Jz)
-        _dims = H.dims
-        _dims2 = [1] * N
-
         tlist = np.linspace(0, 20, 200)
         self.check_e_ops_none(
             H, psi0, tlist, dim, krylov_dim=krylov_dim
@@ -484,18 +472,14 @@ class TestKrylovSolve:
 
     def test_11_happy_breakdown_e_ops_callable(self, happy_breakdown_parameters):
         "krylovsolve: check e_ops=callable at happy breakdowns"
-        psi0 = happy_breakdown_parameters[0]
-        hz = happy_breakdown_parameters[1]
-        Jx = happy_breakdown_parameters[2]
-        Jz = happy_breakdown_parameters[3]
+        psi0, hz, Jx, Jz = happy_breakdown_parameters
         krylov_dim = 12
         N = 4
         dim = 2**N
         H = h_ising_transverse(N, hx=0, hz=hz, Jx=Jx, Jy=0, Jz=Jz)
-        _dims = H.dims
-        _dims2 = [1] * N
         def e_ops(t, psi): return expect(num(dim), psi)
         tlist = np.linspace(0, 20, 200)
+
         self.check_e_ops_callable(
             H,
             psi0,
@@ -507,16 +491,11 @@ class TestKrylovSolve:
 
     def test_12_happy_breakdown_e_ops_list_single_callable(self, happy_breakdown_parameters):
         "krylovsolve: check e_ops=[callable] at happy breakdowns"
-        psi0 = happy_breakdown_parameters[0]
-        hz = happy_breakdown_parameters[1]
-        Jx = happy_breakdown_parameters[2]
-        Jz = happy_breakdown_parameters[3]
+        psi0, hz, Jx, Jz = happy_breakdown_parameters
         krylov_dim = 12
         N = 4
         dim = 2**N
         H = h_ising_transverse(N, hx=0, hz=hz, Jx=Jx, Jy=0, Jz=Jz)
-        _dims = H.dims
-        _dims2 = [1] * N
         e_ops = [lambda t, psi: expect(num(dim), psi)]
 
         tlist = np.linspace(0, 20, 200)
@@ -529,3 +508,12 @@ class TestKrylovSolve:
             krylov_dim=krylov_dim,
             square_hamiltonian=False,
         )
+
+
+def test_13_krylovsolve_bad_krylov_dim(dim=15, krylov_dim=20):
+    """Check errors from bad krylov dimension inputs."""
+    H = rand_herm(dim)
+    psi0 = basis(dim, 0)
+    tlist = np.linspace(0, 1, 100)
+    with pytest.raises(ValueError) as exc:
+        krylovsolve(H, psi0, tlist, krylov_dim)
