@@ -60,7 +60,7 @@ def rand_jacobi_rotation(A, seed=None):
     return A
 
 
-def _randnz(shape, norm=1 / np.sqrt(2), seed=None):
+def randnz(shape, norm=1 / np.sqrt(2), seed=None):
     """
     Returns an array of standard normal complex random variates.
     The Ginibre ensemble corresponds to setting ``norm = 1`` [Mis12]_.
@@ -94,13 +94,13 @@ def rand_herm(N, density=0.75, dims=None, pos_def=False, seed=None):
         of generated operator.
     density : float
         Density between [0,1] of output Hermitian operator.
-    dims : list
+    dims : list of lists of int, optional
         Dimensions of quantum object.  Used for specifying
         tensor structure. Default is dims=[[N],[N]].
     pos_def : bool (default=False)
         Return a positive semi-definite matrix (by diagonal dominance).
-    seed : int
-        seed for the random number generator
+    seed : int, optional
+        Seed for the random number generator.
 
     Returns
     -------
@@ -180,7 +180,7 @@ def _rand_herm_dense(N, density, pos_def):
     return M
 
 
-def rand_unitary(N, density=0.75, dims=None, seed=None):
+def rand_unitary(N=None, density=0.75, dims=None, seed=None):
     r"""Creates a random NxN sparse unitary quantum object.
 
     Uses :math:`\exp(-iH)` where H is a randomly generated
@@ -188,13 +188,15 @@ def rand_unitary(N, density=0.75, dims=None, seed=None):
 
     Parameters
     ----------
-    N : int
+    N : int, optional
         Shape of output quantum operator.
     density : float
         Density between [0,1] of output Unitary operator.
-    dims : list
+    dims : list of lists of int, optional
         Dimensions of quantum object.  Used for specifying
         tensor structure. Default is dims=[[N],[N]].
+    seed : int, optional
+        Seed for the random number generator.
 
     Returns
     -------
@@ -202,14 +204,23 @@ def rand_unitary(N, density=0.75, dims=None, seed=None):
         NxN Unitary quantum operator.
 
     """
-    if dims:
+    if N is None and dims is None:
+        raise ValueError('Specify either the number of rows of unitary'
+                         ' operator (N) or dimensions of quantum object'
+                         ' (dims).')
+    elif N is None and dims:
+        N = np.prod(dims[0])
+    elif N and dims is None:
+        dims = [[N], [N]]
+    elif N and dims:
         _check_dims(dims, N, N)
+
     U = (-1.0j * rand_herm(N, density, seed=seed)).expm()
     U.data.sort_indices()
     return Qobj(U, dims=dims, shape=[N, N])
 
 
-def rand_unitary_haar(N=2, dims=None, seed=None):
+def rand_unitary_haar(N=None, dims=None, seed=None):
     """
     Returns a Haar random unitary matrix of dimension
     ``dim``, using the algorithm of [Mez07]_.
@@ -218,9 +229,11 @@ def rand_unitary_haar(N=2, dims=None, seed=None):
     ----------
     N : int
         Dimension of the unitary to be returned.
-    dims : list of lists of int, or None
+    dims : list of lists of int, optional
         Dimensions of quantum object.  Used for specifying
         tensor structure. Default is dims=[[N],[N]].
+    seed : int, optional
+        Seed for the random number generator.
 
     Returns
     -------
@@ -228,10 +241,16 @@ def rand_unitary_haar(N=2, dims=None, seed=None):
         Unitary of dims ``[[dim], [dim]]`` drawn from the Haar
         measure.
     """
-    if dims is not None:
-        _check_dims(dims, N, N)
-    else:
+    if N is None and dims is None:
+        raise ValueError('Specify either the number of rows of unitary'
+                         ' operator (N) or dimensions of quantum object'
+                         ' (dims).')
+    elif N is None and dims:
+        N = np.prod(dims[0])
+    elif N and dims is None:
         dims = [[N], [N]]
+    elif N and dims:
+        _check_dims(dims, N, N)
 
     # Mez01 STEP 1: Generate an N × N matrix Z of complex standard
     #               normal random variates.
@@ -271,10 +290,10 @@ def rand_ket(N=None, density=1, dims=None, seed=None):
          from dims.
     density : float
         Density between [0,1] of output ket state.
-    dims : list, optional
+    dims : list of lists of int, optional
         Dimensions of quantum object. Used for specifying tensor
         structure. If None, dims = [[N], [1]].
-    seed : int
+    seed : int, optional
         Seed for the random number generator.
 
     Returns
@@ -285,7 +304,7 @@ def rand_ket(N=None, density=1, dims=None, seed=None):
     Raises
     -------
     ValueError
-        If neither `N` or `dims` are specified.
+        If neither `N` nor `dims` are specified.
     """
     if seed is not None:
         np.random.seed(seed=seed)
@@ -297,7 +316,8 @@ def rand_ket(N=None, density=1, dims=None, seed=None):
         N = np.prod(dims[0])
     elif N and dims is None:
         dims = [[N], [1]]
-    _check_dims(dims, N, 1)
+    elif N and dims:
+        _check_dims(dims, N, 1)
 
     X = sp.rand(N, 1, density, format='csr')
     while X.nnz == 0:
@@ -322,10 +342,10 @@ def rand_ket_haar(N=None, dims=None, seed=None):
     N : int, optional
         Number of rows for output state vector. If None, N is deduced
         from dims.
-    dims : list, optional
+    dims : list of lists of int, optional
         Dimensions of quantum object. Used for specifying tensor
         structure. If None, dims = [[N], [1]].
-    seed : int
+    seed : int, optional
         Seed for the random number generator.
 
     Returns
@@ -336,7 +356,7 @@ def rand_ket_haar(N=None, dims=None, seed=None):
     Raises
     -------
     ValueError
-        If neither `N` or `dims` are specified.
+        If neither `N` nor `dims` are specified.
     """
     if N is None and dims is None:
         raise ValueError('Specify either the number of rows of state vector'
@@ -346,7 +366,7 @@ def rand_ket_haar(N=None, dims=None, seed=None):
     elif N and dims is None:
         dims = [[N], [1]]
     elif N and dims:
-    _check_dims(dims, N, 1)
+        _check_dims(dims, N, 1)
 
     psi = rand_unitary_haar(N, seed=seed) * basis(N, 0)
     psi.dims = dims
@@ -363,7 +383,7 @@ def rand_dm(N, density=0.75, pure=False, dims=None, seed=None):
         of generated density matrix.
     density : float
         Density between [0,1] of output density matrix.
-    dims : list
+    dims : list of lists of int, optional
         Dimensions of quantum object.  Used for specifying
         tensor structure. Default is dims=[[N],[N]].
     seed : int
@@ -432,14 +452,14 @@ def rand_dm_ginibre(N=None, rank=None, dims=None, seed=None):
     N : int, optional
         Dimension of the density operator to be returned. If None, N is
         deduced from dims.
-    dims : list, optional
-        Dimensions of quantum object. Used for specifying tensor
-        structure. If None, dims = [[N], [N]].
-    seed : int
-        Seed for the random number generator.
-    rank : int or None
+    rank : int or None, optional
         Rank of the sampled density operator. If None, a full-rank
         density operator is generated.
+    dims : list of lists of int, optional
+        Dimensions of quantum object. Used for specifying tensor
+        structure. If None, dims = [[N], [N]].
+    seed : int, optional
+        Seed for the random number generator.
 
     Returns
     -------
@@ -450,7 +470,7 @@ def rand_dm_ginibre(N=None, rank=None, dims=None, seed=None):
     Raises
     -------
     ValueError
-        If neither `N` or `dims` are specified.
+        If neither `N` nor `dims` are specified.
     """
     if N is None and dims is None:
         raise ValueError('Specify either the number of rows of density'
@@ -479,7 +499,7 @@ def rand_dm_hs(N=None, dims=None, seed=None):
     """
     Returns a Hilbert-Schmidt random density operator.
 
-    The operator has dimensions ``dim`` and rank ``rank`` and
+    The operator has dimensions ``dims`` and rank ``rank`` and
     is obtained using the algorithm of [BCSZ08]_.
 
 
@@ -488,10 +508,10 @@ def rand_dm_hs(N=None, dims=None, seed=None):
     N : int, optional
         Dimension of the density operator to be returned. If None, N is
         deduced from dims.
-    dims : list, optional
+    dims : list of lists of int, optional
         Dimensions of quantum object. Used for specifying tensor
         structure. If None, dims = [[N], [N]].
-    seed : int
+    seed : int, optional
         Seed for the random number generator.
 
     Returns
@@ -513,9 +533,11 @@ def rand_kraus_map(N=None, dims=None, seed=None):
     ----------
     N : int
         Length of input/output density matrix.
-    dims : list
+    dims : list of lists of int, optional
         Dimensions of quantum object.  Used for specifying
         tensor structure. Default is dims=[[N],[N]].
+    seed : int, optional
+        Seed for the random number generator.
 
     Returns
     -------
@@ -542,7 +564,7 @@ def rand_super(N=5, dims=None, seed=None):
     ----------
     N : int
         Square root of the dimension of the superoperator to be returned.
-    dims : list
+    dims : list of lists of int, optional
         Dimensions of quantum object.  Used for specifying
         tensor structure. Default is dims=[[[N],[N]], [[N],[N]]].
     """
@@ -579,7 +601,7 @@ def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None, seed=None):
     rank : int or None
         Rank of the sampled superoperator. If None, a full-rank
         superoperator is generated.
-    dims : list
+    dims : list of lists of int, optional
         Dimensions of quantum object.  Used for specifying
         tensor structure. Default is dims=[[[N],[N]], [[N],[N]]].
 
@@ -664,7 +686,7 @@ def rand_stochastic(N, density=0.75, kind='left', dims=None, seed=None):
         Density between [0,1] of output density matrix.
     kind : str (Default = 'left')
         Generate 'left' or 'right' stochastic matrix.
-    dims : list
+    dims : list of lists of int, optional
         Dimensions of quantum object.  Used for specifying
         tensor structure. Default is dims=[[N],[N]].
 
