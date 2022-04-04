@@ -531,7 +531,7 @@ def rand_kraus_map(N=None, dims=None, seed=None):
 
     Parameters
     ----------
-    N : int
+    N : int, optional
         Length of input/output density matrix.
     dims : list of lists of int, optional
         Dimensions of quantum object.  Used for specifying
@@ -545,8 +545,15 @@ def rand_kraus_map(N=None, dims=None, seed=None):
         N^2 x N x N qobj operators.
 
     """
-
-    if N is not None and dims is not None:
+    if N is None and dims is None:
+        raise ValueError('Specify either the number of rows of'
+                         ' operator (N) or dimensions of quantum object'
+                         ' (dims).')
+    elif N is None and dims:
+        N = np.prod(dims[0])
+    elif N and dims is None:
+        dims = [[N], [N]]
+    elif N and dims:
         _check_dims(dims, N, N)
 
     # Random unitary (Stinespring Dilation)
@@ -567,6 +574,8 @@ def rand_super(N=5, dims=None, seed=None):
     dims : list of lists of int, optional
         Dimensions of quantum object.  Used for specifying
         tensor structure. Default is dims=[[[N],[N]], [[N],[N]]].
+    seed : int, optional
+        Seed for the random number generator.
     """
     from .propagator import propagator
     if dims is not None:
@@ -604,6 +613,8 @@ def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None, seed=None):
     dims : list of lists of int, optional
         Dimensions of quantum object.  Used for specifying
         tensor structure. Default is dims=[[[N],[N]], [[N],[N]]].
+    seed : int, optional
+        Seed for the random number generator.
 
     Returns
     -------
@@ -675,12 +686,12 @@ def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None, seed=None):
     return sr.to_super(D)
 
 
-def rand_stochastic(N, density=0.75, kind='left', dims=None, seed=None):
+def rand_stochastic(N=None, density=0.75, kind='left', dims=None, seed=None):
     """Generates a random stochastic matrix.
 
     Parameters
     ----------
-    N : int
+    N : int, optional
         Dimension of matrix.
     density : float
         Density between [0,1] of output density matrix.
@@ -689,16 +700,28 @@ def rand_stochastic(N, density=0.75, kind='left', dims=None, seed=None):
     dims : list of lists of int, optional
         Dimensions of quantum object.  Used for specifying
         tensor structure. Default is dims=[[N],[N]].
+    seed : int, optional
+        Seed for the random number generator.
 
     Returns
     -------
     oper : qobj
         Quantum operator form of stochastic matrix.
     """
+    if N is None and dims is None:
+        raise ValueError('Specify either the number of rows of matrix'
+                         ' (N) or dimensions of quantum object'
+                         ' (dims).')
+    elif N is None and dims:
+        N = np.prod(dims[0])
+    elif N and dims is None:
+        dims = [[N], [N]]
+    elif N and dims:
+        _check_dims(dims, N, N)
+
     if seed is not None:
         np.random.seed(seed=seed)
-    if dims:
-        _check_dims(dims, N, N)
+
     num_elems = max([int(np.ceil(N*(N+1)*density)/2), N])
     data = np.random.rand(num_elems)
     # Ensure an element on every row and column
