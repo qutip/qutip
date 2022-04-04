@@ -419,11 +419,11 @@ def optimize_pulse(
         for j in range(dyn.num_ctrls):
             pgen = optim.pulse_generator[j]
             pgen.init_pulse()
-            init_amps[:, j] = pgen.gen_pulse()
+            init_amps[:, j] = pgen.gen_pulse(ctrl_index=j)
     else:
         pgen = optim.pulse_generator
         for j in range(dyn.num_ctrls):
-            init_amps[:, j] = pgen.gen_pulse()
+            init_amps[:, j] = pgen.gen_pulse(ctrl_index=j)
 
     # Initialise the starting amplitudes
     dyn.initialize_controls(init_amps)
@@ -1816,19 +1816,29 @@ def create_pulse_optimizer(
 
             lb = None
             if amp_lbound:
-                if isinstance(amp_lbound, list):
+                if isinstance(amp_lbound, np.ndarray):
+                    raise ValueError(
+                        "Time dependent bounds are not supported for the"
+                        " CRAB algorithm"
+                    )
+                elif isinstance(amp_lbound, list):
                     try:
                         lb = amp_lbound[j]
-                    except:
+                    except IndexError:
                         lb = amp_lbound[-1]
                 else:
                     lb = amp_lbound
             ub = None
             if amp_ubound:
-                if isinstance(amp_ubound, list):
+                if isinstance(amp_ubound, np.ndarray):
+                    raise ValueError(
+                        "Time dependent bounds are not supported for the"
+                        " CRAB algorithm"
+                    )
+                elif isinstance(amp_ubound, list):
                     try:
                         ub = amp_ubound[j]
-                    except:
+                    except IndexError:
                         ub = amp_ubound[-1]
                 else:
                     ub = amp_ubound
@@ -1838,12 +1848,12 @@ def create_pulse_optimizer(
             if guess_pulse_type:
                 guess_pgen.lbound = lb
                 guess_pgen.ubound = ub
-                crab_pgen.guess_pulse = guess_pgen.gen_pulse()
+                crab_pgen.guess_pulse = guess_pgen.gen_pulse(ctrl_index=j)
                 if guess_pulse_action:
                     crab_pgen.guess_pulse_action = guess_pulse_action
 
             if ramping_pgen:
-                crab_pgen.ramping_pulse = ramping_pgen.gen_pulse()
+                crab_pgen.ramping_pulse = ramping_pgen.gen_pulse(ctrl_index=j)
 
             optim.pulse_generator.append(crab_pgen)
         #This is just for the debug message now

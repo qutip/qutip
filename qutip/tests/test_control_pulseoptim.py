@@ -501,3 +501,34 @@ class TestTimeDependence:
             np.testing.assert_allclose(result.initial_amps[k],
                                        result.final_amps[k],
                                        rtol=1e-9)
+
+
+class TestCustomPulseBounds:
+    """
+    Test that custom pulse and time-dependent bounds can be defined
+    and work as expected.
+    """
+    def test_bounded_time_dependent_controls(self):
+        num_tslots = 100
+        evo_time = 1
+        time = np.linspace(0, evo_time, num_tslots)
+        init_pulse = np.array([
+            np.cos(np.pi * time) + 1,
+            np.sin(np.pi * time) - 1,
+        ]).T
+        init_pulse_params = {'init_custom_pulse': init_pulse}
+        amp_lbound = init_pulse - 0.5
+        amp_ubound = init_pulse + 0.5
+        controls = [_sx, _sy]
+        system = _merge_kwargs(hadamard, {
+            'num_tslots': num_tslots,
+            'evo_time': evo_time,
+            'amp_lbound': amp_lbound,
+            'amp_ubound': amp_ubound,
+            'init_pulse_params': init_pulse_params,
+            'init_pulse_type': 'CUSTOM',
+        })
+        system = system._replace(controls=controls)
+        result = _optimize_pulse(system)
+        assert np.all(result.final_amps >= amp_lbound)
+        assert np.all(result.final_amps <= amp_ubound)
