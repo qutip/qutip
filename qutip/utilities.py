@@ -33,7 +33,9 @@ def n_thermal(w, w_th):
 
 
     """
-
+    if isinstance(w, list):
+        w = np.asarray(w)
+        
     if isinstance(w, np.ndarray):
         return 1.0 / (np.exp(w / w_th) - 1.0)
 
@@ -166,6 +168,9 @@ def convert_unit(value, orig="meV", to="GHz"):
 
     if to not in _unit_factor_tbl:
         raise TypeError("Unsupported unit %s" % to)
+    
+    if isinstance(value, list):
+        value = np.asarray(value)
 
     return value * (_unit_factor_tbl[orig] / _unit_factor_tbl[to])
 
@@ -185,6 +190,9 @@ def convert_GHz_to_meV(w):
         The energy in the new unit.
     """
     # 1 GHz = 4.1357e-6 eV = 4.1357e-3 meV
+    if isinstance(w, list):
+        w = np.asarray(w)
+        
     w_meV = w * 4.1357e-3
     return w_meV
 
@@ -204,6 +212,9 @@ def convert_meV_to_GHz(w):
         The energy in the new unit.
     """
     # 1 meV = 1.0/4.1357e-3 GHz
+    if isinstance(w, list):
+        w = np.asarray(w)
+        
     w_GHz = w / 4.1357e-3
     return w_GHz
 
@@ -223,6 +234,9 @@ def convert_J_to_meV(w):
         The energy in the new unit.
     """
     # 1 eV = 1.602e-19 J
+    if isinstance(w, list):
+        w = np.asarray(w)
+        
     w_meV = 1000.0 * w / _e
     return w_meV
 
@@ -242,6 +256,9 @@ def convert_meV_to_J(w):
         The energy in the new unit.
     """
     # 1 eV = 1.602e-19 J
+    if isinstance(w, list):
+        w = np.asarray(w)
+        
     w_J = 0.001 * w * _e
     return w_J
 
@@ -261,6 +278,9 @@ def convert_meV_to_mK(w):
         The energy in the new unit.
     """
     # 1 mK = 0.0000861740 meV
+    if isinstance(w, list):
+        w = np.asarray(w)
+        
     w_mK = w / 0.0000861740
     return w_mK
 
@@ -280,6 +300,9 @@ def convert_mK_to_meV(w):
         The energy in the new unit.
     """
     # 1 mK = 0.0000861740 meV
+    if isinstance(w, list):
+        w = np.asarray(w)
+        
     w_meV = w * 0.0000861740
     return w_meV
 
@@ -301,6 +324,9 @@ def convert_GHz_to_mK(w):
     # h v [Hz] = kB T [K]
     # h 1e9 v [GHz] = kB 1e-3 T [mK]
     # T [mK] = 1e12 * (h/kB) * v [GHz]
+    if isinstance(w, list):
+        w = np.asarray(w)
+        
     w_mK = w * 1.0e12 * (_h / _kB)
     return w_mK
 
@@ -320,6 +346,9 @@ def convert_mK_to_GHz(w):
         The energy in the new unit.
 
     """
+    if isinstance(w, list):
+        w = np.asarray(w)
+        
     w_GHz = w * 1.0e-12 * (_kB / _h)
     return w_GHz
 
