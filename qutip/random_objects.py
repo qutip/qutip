@@ -80,22 +80,22 @@ def randnz(shape, norm=1 / np.sqrt(2), seed=None):
     return np.sum(np.random.randn(*(shape + (2,))) * UNITS, axis=-1) * norm
 
 
-def rand_herm(N, density=0.75, dims=None, pos_def=False, seed=None):
+def rand_herm(N=None, density=0.75, dims=None, pos_def=False, seed=None):
     """Creates a random NxN sparse Hermitian quantum object.
 
-    If 'N' is an integer, uses :math:`H=0.5*(X+X^{+})` where :math:`X` is
+    If 'N' is an integer or None, uses :math:`H=0.5*(X+X^{+})` where :math:`X` is
     a randomly generated quantum operator with a given `density`. Else uses
     complex Jacobi rotations when 'N' is given by an array.
 
     Parameters
     ----------
-    N : int, list/ndarray
+    N : int, list/ndarray, optional
         If int, then shape of output operator. If list/ndarray then eigenvalues
         of generated operator.
-    density : float
+    density : float (default=0.75)
         Density between [0,1] of output Hermitian operator.
     dims : list of lists of int, optional
-        Dimensions of quantum object.  Used for specifying
+        Dimensions of quantum object. Used for specifying
         tensor structure. Default is dims=[[N],[N]].
     pos_def : bool (default=False)
         Return a positive semi-definite matrix (by diagonal dominance).
@@ -130,6 +130,19 @@ def rand_herm(N, density=0.75, dims=None, pos_def=False, seed=None):
     elif isinstance(N, (int, np.int32, np.int64)):
         if dims:
             _check_dims(dims, N, N)
+        else:
+            dims = [[N], [N]]
+        if density < 0.5:
+            M = _rand_herm_sparse(N, density, pos_def)
+        else:
+            M = _rand_herm_dense(N, density, pos_def)
+    elif N is None:
+        if dims:
+            N = np.prod(dims[0])
+        else:
+            raise ValueError('Specify either the number of rows of Hermitian'
+                             ' operator (N) or dimensions of quantum object'
+                             ' (dims).')
         if density < 0.5:
             M = _rand_herm_sparse(N, density, pos_def)
         else:
@@ -193,7 +206,7 @@ def rand_unitary(N=None, density=0.75, dims=None, seed=None):
     density : float
         Density between [0,1] of output Unitary operator.
     dims : list of lists of int, optional
-        Dimensions of quantum object.  Used for specifying
+        Dimensions of quantum object. Used for specifying
         tensor structure. Default is dims=[[N],[N]].
     seed : int, optional
         Seed for the random number generator.
@@ -230,7 +243,7 @@ def rand_unitary_haar(N=None, dims=None, seed=None):
     N : int
         Dimension of the unitary to be returned.
     dims : list of lists of int, optional
-        Dimensions of quantum object.  Used for specifying
+        Dimensions of quantum object. Used for specifying
         tensor structure. Default is dims=[[N],[N]].
     seed : int, optional
         Seed for the random number generator.
@@ -373,20 +386,20 @@ def rand_ket_haar(N=None, dims=None, seed=None):
     return psi
 
 
-def rand_dm(N, density=0.75, pure=False, dims=None, seed=None):
+def rand_dm(N=None, density=0.75, pure=False, dims=None, seed=None):
     r"""Creates a random NxN density matrix.
 
     Parameters
     ----------
-    N : int, ndarray, list
+    N : int, ndarray, list, optional
         If int, then shape of output operator. If list/ndarray then eigenvalues
         of generated density matrix.
-    density : float
+    density : float (default=0.75)
         Density between [0,1] of output density matrix.
     dims : list of lists of int, optional
-        Dimensions of quantum object.  Used for specifying
+        Dimensions of quantum object. Used for specifying
         tensor structure. Default is dims=[[N],[N]].
-    seed : int
+    seed : int, optional
         Seed for the random number generator.
 
     Returns
@@ -412,8 +425,14 @@ def rand_dm(N, density=0.75, pure=False, dims=None, seed=None):
         while H.nnz < 0.95*nvals:
             H = rand_jacobi_rotation(H)
         H.sort_indices()
-    elif isinstance(N, (int, np.int32, np.int64)):
-        if dims:
+    elif isinstance(N, (int, np.int32, np.int64)) or N is None:
+        if N is None and dims is None:
+            raise ValueError('Specify either the number of rows of density'
+                             ' operator (N) or dimensions of quantum object'
+                             ' (dims).')
+        elif dims and N is None:
+            N = np.prod(dims[0])
+        elif dims and N:
             _check_dims(dims, N, N)
         if pure:
             dm_density = np.sqrt(density)
@@ -534,7 +553,7 @@ def rand_kraus_map(N=None, dims=None, seed=None):
     N : int, optional
         Length of input/output density matrix.
     dims : list of lists of int, optional
-        Dimensions of quantum object.  Used for specifying
+        Dimensions of quantum object. Used for specifying
         tensor structure. Default is dims=[[N],[N]].
     seed : int, optional
         Seed for the random number generator.
@@ -572,7 +591,7 @@ def rand_super(N=5, dims=None, seed=None):
     N : int
         Square root of the dimension of the superoperator to be returned.
     dims : list of lists of int, optional
-        Dimensions of quantum object.  Used for specifying
+        Dimensions of quantum object. Used for specifying
         tensor structure. Default is dims=[[[N],[N]], [[N],[N]]].
     seed : int, optional
         Seed for the random number generator.
@@ -594,7 +613,7 @@ def rand_super(N=5, dims=None, seed=None):
 def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None, seed=None):
     """
     Returns a random superoperator drawn from the Bruzda
-    et al ensemble for CPTP maps [BCSZ08]_. Note that due to
+    et al. ensemble for CPTP maps [BCSZ08]_. Note that due to
     finite numerical precision, for ranks less than full-rank,
     zero eigenvalues may become slightly negative, such that the
     returned operator is not actually completely positive.
@@ -602,7 +621,7 @@ def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None, seed=None):
 
     Parameters
     ----------
-    N : int
+    N : int, optional
         Square root of the dimension of the superoperator to be returned.
     enforce_tp : bool
         If True, the trace-preserving condition of [BCSZ08]_ is enforced;
@@ -611,7 +630,7 @@ def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None, seed=None):
         Rank of the sampled superoperator. If None, a full-rank
         superoperator is generated.
     dims : list of lists of int, optional
-        Dimensions of quantum object.  Used for specifying
+        Dimensions of quantum object. Used for specifying
         tensor structure. Default is dims=[[[N],[N]], [[N],[N]]].
     seed : int, optional
         Seed for the random number generator.
@@ -698,7 +717,7 @@ def rand_stochastic(N=None, density=0.75, kind='left', dims=None, seed=None):
     kind : str (Default = 'left')
         Generate 'left' or 'right' stochastic matrix.
     dims : list of lists of int, optional
-        Dimensions of quantum object.  Used for specifying
+        Dimensions of quantum object. Used for specifying
         tensor structure. Default is dims=[[N],[N]].
     seed : int, optional
         Seed for the random number generator.
