@@ -1734,11 +1734,11 @@ class QubitCircuit:
                 measurement = op
                 col = []
                 for n in range(self.N+self.num_cbits):
-
                     if n in measurement.targets:
                         col.append(r" \meter")
                     elif (n-self.N) == measurement.classical_store:
-                        store_tag = n - measurement.targets[0]
+                        sgn = 1 if self.reverse_states else -1
+                        store_tag = sgn * (n - measurement.targets[0])
                         col.append(r" \qw \cwx[%d] " % store_tag)
                     else:
                         col.append(r" \qw ")
