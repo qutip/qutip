@@ -121,34 +121,18 @@ def rand_herm(N=None, density=0.75, dims=None, pos_def=False, seed=None):
         M = sp.diags(N, 0, dtype=complex, format='csr')
         N = len(N)
         if dims:
-            _check_dims(dims, N, N)
+            _check_dims(dims, N, N, "Hermitian operator")
         nvals = max([N**2 * density, 1])
         M = rand_jacobi_rotation(M)
         while M.nnz < 0.95 * nvals:
             M = rand_jacobi_rotation(M)
         M.sort_indices()
-    elif isinstance(N, (int, np.int32, np.int64)):
-        if dims:
-            _check_dims(dims, N, N)
-        else:
-            dims = [[N], [N]]
-        if density < 0.5:
-            M = _rand_herm_sparse(N, density, pos_def)
-        else:
-            M = _rand_herm_dense(N, density, pos_def)
-    elif N is None:
-        if dims:
-            N = np.prod(dims[0])
-        else:
-            raise ValueError('Specify either the number of rows of Hermitian'
-                             ' operator (N) or dimensions of quantum object'
-                             ' (dims).')
-        if density < 0.5:
-            M = _rand_herm_sparse(N, density, pos_def)
-        else:
-            M = _rand_herm_dense(N, density, pos_def)
     else:
-        raise TypeError('Input N must be an integer or array_like.')
+        N, dims = _check_dims(dims, N, N, "Hermitian operator")
+        if density < 0.5:
+            M = _rand_herm_sparse(N, density, pos_def)
+        else:
+            M = _rand_herm_dense(N, density, pos_def)
     return Qobj(M, dims=dims)
 
 
@@ -217,7 +201,7 @@ def rand_unitary(N=None, density=0.75, dims=None, seed=None):
         NxN Unitary quantum operator.
 
     """
-    N, dims = _check_N_and_dims(dims, N, N, 'unitary operator')
+    N, dims = _check_dims(dims, N, N, 'unitary operator')
 
 
     U = (-1.0j * rand_herm(N, density, seed=seed)).expm()
@@ -246,7 +230,7 @@ def rand_unitary_haar(N=None, dims=None, seed=None):
         Unitary of dims ``[[dim], [dim]]`` drawn from the Haar
         measure.
     """
-    N, dims = _check_N_and_dims(dims, N, N, 'density operator')
+    N, dims = _check_dims(dims, N, N, 'density operator')
 
     # Mez01 STEP 1: Generate an N × N matrix Z of complex standard
     #               normal random variates.
@@ -305,7 +289,7 @@ def rand_ket(N=None, density=1, dims=None, seed=None):
     if seed is not None:
         np.random.seed(seed=seed)
 
-    N, dims = _check_N_and_dims(dims, N, 1, 'state vector')
+    N, dims = _check_dims(dims, N, 1, 'state vector')
 
     X = sp.rand(N, 1, density, format='csr')
     while X.nnz == 0:
@@ -346,7 +330,7 @@ def rand_ket_haar(N=None, dims=None, seed=None):
     ValueError
         If neither `N` nor `dims` are specified.
     """
-    N, dims = _check_N_and_dims(dims, N, 1, 'state vector')
+    N, dims = _check_dims(dims, N, 1, 'state vector')
 
     psi = rand_unitary_haar(N, seed=seed) * basis(N, 0)
     psi.dims = dims
@@ -376,7 +360,7 @@ def rand_dm(N=None, density=0.75, pure=False, dims=None, seed=None):
 
     Notes
     -----
-    For small density matrices., choosing a low density will result in an error
+    For small density matrices, choosing a low density will result in an error
     as no diagonal elements will be generated such that :math:`Tr(\rho)=1`.
     """
     if isinstance(N, (np.ndarray, list)):
@@ -386,21 +370,14 @@ def rand_dm(N=None, density=0.75, pure=False, dims=None, seed=None):
         H = sp.diags(N, 0, dtype=complex, format='csr')
         N = len(N)
         if dims:
-            _check_dims(dims, N, N)
+            _check_dims(dims, N, N, "density operator")
         nvals = N**2*density
         H = rand_jacobi_rotation(H, seed=seed)
         while H.nnz < 0.95*nvals:
             H = rand_jacobi_rotation(H)
         H.sort_indices()
-    elif isinstance(N, (int, np.int32, np.int64)) or N is None:
-        if N is None and dims is None:
-            raise ValueError('Specify either the number of rows of density'
-                             ' operator (N) or dimensions of quantum object'
-                             ' (dims).')
-        elif dims and N is None:
-            N = np.prod(dims[0])
-        elif dims and N:
-            _check_dims(dims, N, N)
+    else:
+        _check_dims(dims, N, N, "density operator")
         if pure:
             dm_density = np.sqrt(density)
             psi = rand_ket(N, dm_density, seed=seed)
@@ -419,8 +396,6 @@ def rand_dm(N=None, density=0.75, pure=False, dims=None, seed=None):
                     "Requested density is too low to generate density matrix.")
             H = H / H.tr()
             H.data.sort_indices()
-    else:
-        raise TypeError('Input N must be an integer or array_like.')
     return Qobj(H, dims=dims)
 
 
@@ -458,7 +433,7 @@ def rand_dm_ginibre(N=None, rank=None, dims=None, seed=None):
     ValueError
         If neither `N` nor `dims` are specified.
     """
-    N, dims = _check_N_and_dims(dims, N, N, 'density operator')
+    N, dims = _check_dims(dims, N, N, 'density operator')
 
     if rank is None:
         rank = N
@@ -522,7 +497,7 @@ def rand_kraus_map(N=None, dims=None, seed=None):
         N^2 x N x N qobj operators.
 
     """
-    N, dims = _check_N_and_dims(dims, N, N, 'operator')
+    N, dims = _check_dims(dims, N, N, 'operator')
 
     # Random unitary (Stinespring Dilation)
     orthog_cols = rand_unitary(N ** 3, seed=seed).full()[:, :N]
@@ -676,7 +651,7 @@ def rand_stochastic(N=None, density=0.75, kind='left', dims=None, seed=None):
     oper : qobj
         Quantum operator form of stochastic matrix.
     """
-    N, dims = _check_N_and_dims(dims, N, N, 'matrix')
+    N, dims = _check_dims(dims, N, N, 'matrix')
 
     if seed is not None:
         np.random.seed(seed=seed)
@@ -702,18 +677,7 @@ def rand_stochastic(N=None, density=0.75, kind='left', dims=None, seed=None):
     return Qobj(M, dims=dims, shape=(N, N))
 
 
-def _check_dims(dims, N1, N2):
-    if len(dims) != 2:
-        raise Exception("Qobj dimensions must be list of length 2.")
-    if (not isinstance(dims[0], list)) or (not isinstance(dims[1], list)):
-        raise TypeError(
-            "Qobj dimension components must be lists. i.e. dims=[[N],[N]].")
-    if np.prod(dims[0]) != N1 or np.prod(dims[1]) != N2:
-        raise ValueError("Qobj dimensions must match matrix shape.")
-    if len(dims[0]) != len(dims[1]):
-        raise TypeError("Qobj dimension components must have same length.")
-
-def _check_N_and_dims(dims, N1, N2, error_type):
+def _check_dims(dims, N1, N2, error_type):
     """
 
     Parameters
@@ -741,5 +705,13 @@ def _check_N_and_dims(dims, N1, N2, error_type):
     elif N1 and dims is None:
         dims = [[N1], [N2]]
     elif N1 and dims:
-        _check_dims(dims, N1, N2)
+        if len(dims) != 2:
+            raise Exception("Qobj dimensions must be list of length 2.")
+        if (not isinstance(dims[0], list)) or (not isinstance(dims[1], list)):
+            raise TypeError(
+                "Qobj dimension components must be lists. i.e. dims=[[N],[N]].")
+        if np.prod(dims[0]) != N1 or np.prod(dims[1]) != N2:
+            raise ValueError("Qobj dimensions must match matrix shape.")
+        if len(dims[0]) != len(dims[1]):
+            raise TypeError("Qobj dimension components must have same length.")
     return N1, dims
