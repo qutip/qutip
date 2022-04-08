@@ -324,7 +324,7 @@ class Bloch:
         alpha : float, default=1.
             Transparency value for the vectors. Values between 0 and 1.
         """
-        if not isinstance(points[0], (list, ndarray)):
+        if not isinstance(points[0], (list, tuple, ndarray)):
             points = [[points[0]], [points[1]], [points[2]]]
         points = array(points)
         if meth == 's':
@@ -335,13 +335,15 @@ class Bloch:
                 pnts = points
             self.points.append(pnts)
             self.point_style.append('s')
+            self.point_alpha.append(alpha)
         elif meth == 'l':
             self.points.append(points)
             self.point_style.append('l')
+            self.point_alpha.append(alpha)
         else:
             self.points.append(points)
             self.point_style.append('m')
-        self.point_alpha.append(alpha)
+            self.point_alpha.append(alpha)
 
     def add_states(self, state, kind='vector', alpha=1.0):
         """Add a state vector Qobj to Bloch sphere.
@@ -384,9 +386,10 @@ class Bloch:
         if isinstance(vectors[0], (list, tuple, ndarray)):
             for vec in vectors:
                 self.vectors.append(vec)
+                self.vector_alpha.append(alpha)
         else:
             self.vectors.append(vectors)
-        self.vector_alpha.append(alpha)
+            self.vector_alpha.append(alpha)
 
     def add_annotation(self, state_or_vector, text, **kwargs):
         """
@@ -714,7 +717,7 @@ class Bloch:
             zs3d = self.vectors[k][2] * array([0, 1])
 
             color = self.vector_color[mod(k, len(self.vector_color))]
-            alpha = self.vector_alpha[mod(k, len(self.vector_alpha))]
+            alpha = self.vector_alpha[k]
 
             if self.vector_style == '':
                 # simple line style

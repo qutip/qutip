@@ -168,64 +168,90 @@ class TestBloch:
         self.plot_line_test(fig_test, start_test, end_test, **kwargs)
         self.plot_line_ref(fig_ref, start_ref, end_ref, **kwargs)
 
-    def plot_vector_test(self, fig, vectors):
+    def plot_point_test(self, fig, point_kws):
         b = Bloch(fig=fig)
-        b.add_vectors(vectors)
+        for kw in point_kws:
+            points = kw.pop("points")
+            b.add_points(points, **kw)
         b.render()
 
-    def plot_vector_ref(self, fig, vectors):
-        from qutip.bloch import Arrow3D
+    def plot_point_ref(self, fig, point_kws):
         b = Bloch(fig=fig)
         b.render()
-        colors = ['g', '#CC6600', 'b', 'r']
+        point_colors = ['b', 'r', 'g', '#CC6600']
+        point_sizes = [25, 32, 35, 45]
+        point_markers = ["o", "s", "d", "^"]
+        idx = 0
 
-        if not isinstance(vectors[0], (list, tuple, np.ndarray)):
-            vectors = [vectors]
+        for kw in point_kws:
+            points = kw.pop("points")
+            if not isinstance(points[0], (list, tuple)):
+                points = [[points[0]], [points[1]], [points[2]]]
+            points = np.array(points)
+            if len(points[0]) == 1:
+                points = np.append(points, points, axis=1)
 
-        for i, v in enumerate(vectors):
-            color = colors[i % len(colors)]
-            xs3d = v[1] * np.array([0, 1])
-            ys3d = -v[0] * np.array([0, 1])
-            zs3d = v[2] * np.array([0, 1])
-            a = Arrow3D(
-                xs3d, ys3d, zs3d,
-                mutation_scale=20, lw=3, arrowstyle="-|>",
-                color=color)
-            b.axes.add_artist(a)
+            point_style = kw.pop("meth", "s")
+            point_color = point_colors[idx % len(point_colors)]
+            point_size = point_sizes[idx % len(point_sizes)]
+            point_marker = point_markers[idx % len(point_markers)]
+            point_alpha = kw.get("alpha", 1.0)
+            idx += 1
+
+            if point_style == 's':
+                # dummy point sorting:
+                indperm = range(len(points[0]))
+                b.axes.scatter(
+                    np.real(points[1][indperm]),
+                    - np.real(points[0][indperm]),
+                    np.real(points[2][indperm]),
+                    s=point_size,
+                    alpha=point_alpha,
+                    edgecolor=None,
+                    zdir='z',
+                    color=point_color,
+                    marker=point_marker)
+            else:
+                raise ValueError(
+                    "Tests currently only support point method 's'"
+                )
 
     @pytest.mark.parametrize([
-        "vectors",
+        "point_kws"
     ], [
         pytest.param(
-            (0, 0, 1), id="single-vector-tuple"),
+            dict(points=(0, 0, 1), alpha=1), id="alpha-opaque"),
         pytest.param(
-            [0, 0, 1], id="single-vector-list"),
+            dict(points=(0, 0, 1), alpha=0.3), id="alpha-transparent"),
         pytest.param(
-            np.array([0, 0, 1]), id="single-vector-numpy"),
+            dict(points=(0, 0, 1), alpha=0), id="alpha-invisible"),
         pytest.param(
-            [(0, 0, 1), (0, 1, 0)], id="list-vectors-tuple"),
-        pytest.param(
-            [[0, 0, 1]], id="list-vectors-list"),
-        pytest.param(
-            [np.array([0, 0, 1])], id="list-vectors-numpy"),
+            dict(points=(0, 0, 1)), id="alpha-default"),
+        pytest.param([
+            dict(points=[(0, 0), (0, 1), (1, 0)], alpha=1.0),
+            dict(points=[(1, 1), (0, 1), (1, 0)], alpha=0.5),
+        ], id="alpha-multiple-point-sets"),
     ])
     @check_pngs_equal
-    def test_vector(self, vectors, fig_test, fig_ref):
-        self.plot_vector_test(fig_test, vectors)
-        self.plot_vector_ref(fig_ref, vectors)
+    def test_point(self, point_kws, fig_test, fig_ref):
+        if isinstance(point_kws, dict):
+            point_kws = [point_kws]
+        self.plot_point_test(fig_test, copy.deepcopy(point_kws))
+        self.plot_point_ref(fig_ref, copy.deepcopy(point_kws))
 
-    def plot_vector_alpha_test(self, fig, vector_kws):
+    def plot_vector_test(self, fig, vector_kws):
         b = Bloch(fig=fig)
         for kw in vector_kws:
             vectors = kw.pop("vectors")
             b.add_vectors(vectors, **kw)
         b.render()
 
-    def plot_vector_alpha_ref(self, fig, vector_kws):
+    def plot_vector_ref(self, fig, vector_kws):
         from qutip.bloch import Arrow3D
         b = Bloch(fig=fig)
         b.render()
-        colors = ['g', '#CC6600', 'b', 'r']
+        vector_colors = ['g', '#CC6600', 'b', 'r']
+        idx = 0
 
         for kw in vector_kws:
             vectors = kw.pop("vectors")
@@ -233,8 +259,9 @@ class TestBloch:
             if not isinstance(vectors[0], (list, tuple, np.ndarray)):
                 vectors = [vectors]
 
-            for i, v in enumerate(vectors):
-                color = colors[i % len(colors)]
+            for v in vectors:
+                color = vector_colors[idx % len(vector_colors)]
+                idx += 1
                 xs3d = v[1] * np.array([0, 1])
                 ys3d = -v[0] * np.array([0, 1])
                 zs3d = v[2] * np.array([0, 1])
@@ -248,23 +275,33 @@ class TestBloch:
         "vector_kws"
     ], [
         pytest.param(
-            dict(vectors=(0, 0, 1), alpha=1), id="opaque"),
+            dict(vectors=(0, 0, 1)), id="single-vector-tuple"),
         pytest.param(
-            dict(vectors=(0, 0, 1), alpha=1), id="opaque"),
+            dict(vectors=[0, 0, 1]), id="single-vector-list"),
         pytest.param(
-            dict(vectors=(0, 0, 1), alpha=0.3), id="transparent"),
+            dict(vectors=np.array([0, 0, 1])), id="single-vector-numpy"),
         pytest.param(
-            dict(vectors=(0, 0, 1), alpha=0), id="invisible"),
+            dict(vectors=[(0, 0, 1), (0, 1, 0)]), id="list-vectors-tuple"),
         pytest.param(
-            dict(vectors=(0, 0, 1)), id="default-transparency"),
+            dict(vectors=[[0, 0, 1]]), id="list-vectors-list"),
+        pytest.param(
+            dict(vectors=[np.array([0, 0, 1])]), id="list-vectors-numpy"),
+        pytest.param(
+            dict(vectors=(0, 0, 1), alpha=1), id="alpha-opaque"),
+        pytest.param(
+            dict(vectors=(0, 0, 1), alpha=0.3), id="alpha-transparent"),
+        pytest.param(
+            dict(vectors=(0, 0, 1), alpha=0), id="alpha-invisible"),
+        pytest.param(
+            dict(vectors=(0, 0, 1)), id="alpha-default"),
         pytest.param([
             dict(vectors=[(0, 0, 1), (0, 1, 0)], alpha=1.0),
             dict(vectors=[(1, 0, 1), (1, 1, 0)], alpha=0.5),
-        ], id="multiple-transparent-vectors"),
+        ], id="alpha-multiple-vector-sets"),
     ])
     @check_pngs_equal
-    def test_vector_alpha(self, vector_kws, fig_test, fig_ref):
+    def test_vector(self, vector_kws, fig_test, fig_ref):
         if isinstance(vector_kws, dict):
             vector_kws = [vector_kws]
-        self.plot_vector_alpha_test(fig_test, copy.deepcopy(vector_kws))
-        self.plot_vector_alpha_ref(fig_ref, copy.deepcopy(vector_kws))
+        self.plot_vector_test(fig_test, copy.deepcopy(vector_kws))
+        self.plot_vector_ref(fig_ref, copy.deepcopy(vector_kws))
