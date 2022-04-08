@@ -27,57 +27,61 @@ def krylovsolve(
     sparse: bool = False,
 ):
     """
-     Time evolution of state vectors for time independent Hamiltonians.
-     Evolve the state vector ("psi0") finding an approximation for the time
-     evolution operator of Hamiltonian ("H") by obtaining the projection of
-     the time evolution operator on a set of small dimensional Krylov
-     subspaces (m<<dim(H)).
-     The output is either the state vector or the expectation values of
-     supplied operators ("e_ops") at arbitrary points at ("tlist").
+    Time evolution of state vectors for time independent Hamiltonians.
+    Evolve the state vector ("psi0") finding an approximation for the time
+    evolution operator of Hamiltonian ("H") by obtaining the projection of
+    the time evolution operator on a set of small dimensional Krylov
+    subspaces (m << dim(H)).
 
-     **Additional options**
-     Additional options to krylovsolve can be set with the following:
-     "store_states": stores states even though expectation values are
-     requested via the "e_ops" argument.
-     "store_final_state": store final state even though expectation values are
-     requested via the "e_ops" argument.
+    The output is either the state vector or the expectation values of
+    supplied operators ("e_ops") at arbitrary points at ("tlist").
+
+    **Additional options**
+
+    Additional options to krylovsolve can be set with the following:
+
+    * "store_states": stores states even though expectation values are
+      requested via the "e_ops" argument.
+
+    * "store_final_state": store final state even though expectation values are
+      requested via the "e_ops" argument.
 
     Parameters
-    -------------
-     H : :class:`qutip.Qobj`
+    ----------
+    H : :class:`qutip.Qobj`
         System Hamiltonian.
-     psi0 : :class: `qutip.Qobj`
-         initial state vector (ket).
-     tlist : None / *list* / *array*
+    psi0 : :class: `qutip.Qobj`
+        Initial state vector (ket).
+    tlist : None / *list* / *array*
         List of times on which to evolve the initial state. If None, nothing
         happens but the code won't break.
-     krylov_dim: int
-         Dimension of Krylov approximation subspaces used for the time
-         evolution approximation.
-     e_ops : None / list of :class:`qutip.Qobj`
-         Single operator or list of operators for which to evaluate
-         expectation values.
-     options : Options
-         Instance of ODE solver options, as well as krylov parameters.
-            atol: controls (approximately) the error desired for the final solution. (Defaults
-            to 1e-8)
-            nsteps: maximum number of krylov's internal number of Lanczos iterations.
-            (Defaults to 10000)
-     progress_bar : None / BaseProgressBar
+    krylov_dim: int
+        Dimension of Krylov approximation subspaces used for the time
+        evolution approximation.
+    e_ops : None / list of :class:`qutip.Qobj`
+        Single operator or list of operators for which to evaluate
+        expectation values.
+    options : Options
+        Instance of ODE solver options, as well as krylov parameters.
+            atol: controls (approximately) the error desired for the final
+                  solution. (Defaults to 1e-8)
+            nsteps: maximum number of krylov's internal number of Lanczos
+                    iterations. (Defaults to 10000)
+    progress_bar : None / BaseProgressBar
          Optional instance of BaseProgressBar, or a subclass thereof, for
          showing the progress of the simulation.
-     sparse : bool (default False)
+    sparse : bool (default False)
          Use np.array to represent system Hamiltonians. If True, scipy sparse
          arrays are used instead.
-     Returns
-     ---------
-      result: :class:`qutip.Result`
-         An instance of the class :class:`qutip.Result`, which contains
-         either an *array* `result.expect` of expectation values for the times
-         `tlist`, or an *array* `result.states` of state vectors corresponding
-         to the times `tlist` [if `e_ops` is an empty list].
-    """
 
+    Returns
+    -------
+    result: :class:`qutip.Result`
+        An instance of the class :class:`qutip.Result`, which contains
+        either an *array* `result.expect` of expectation values for the times
+        `tlist`, or an *array* `result.states` of state vectors corresponding
+        to the times `tlist` [if `e_ops` is an empty list].
+    """
     # check the physics
     _check_inputs(H, psi0, krylov_dim)
 
