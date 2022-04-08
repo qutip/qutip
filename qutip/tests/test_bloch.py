@@ -1,3 +1,5 @@
+import copy
+
 import numpy as np
 import pytest
 
@@ -198,7 +200,7 @@ class TestBloch:
             (0, 0, 1), id="single-vector-tuple"),
         pytest.param(
             [0, 0, 1], id="single-vector-list"),
-       pytest.param(
+        pytest.param(
             np.array([0, 0, 1]), id="single-vector-numpy"),
         pytest.param(
             [(0, 0, 1), (0, 1, 0)], id="list-vectors-tuple"),
@@ -212,48 +214,57 @@ class TestBloch:
         self.plot_vector_test(fig_test, vectors)
         self.plot_vector_ref(fig_ref, vectors)
 
-    def plot_vector_test_alpha(self, fig, vectors, alpha):
+    def plot_vector_alpha_test(self, fig, vector_kws):
         b = Bloch(fig=fig)
-        b.add_vectors(vectors, alpha=alpha)
+        for kw in vector_kws:
+            vectors = kw.pop("vectors")
+            b.add_vectors(vectors, **kw)
         b.render()
 
-    def plot_vector_ref_alpha(self, fig, vectors, alpha):
+    def plot_vector_alpha_ref(self, fig, vector_kws):
         from qutip.bloch import Arrow3D
         b = Bloch(fig=fig)
         b.render()
         colors = ['g', '#CC6600', 'b', 'r']
 
-        if not isinstance(vectors[0], (list, tuple, np.ndarray)):
-            vectors = [vectors]
+        for kw in vector_kws:
+            vectors = kw.pop("vectors")
 
-        for i, v in enumerate(vectors):
-            color = colors[i % len(colors)]
-            xs3d = v[1] * np.array([0, 1])
-            ys3d = -v[0] * np.array([0, 1])
-            zs3d = v[2] * np.array([0, 1])
-            a = Arrow3D(
-                xs3d, ys3d, zs3d,
-                mutation_scale=20, lw=3, arrowstyle="-|>",
-                color=color, alpha=alpha)
-            b.axes.add_artist(a)
+            if not isinstance(vectors[0], (list, tuple, np.ndarray)):
+                vectors = [vectors]
+
+            for i, v in enumerate(vectors):
+                color = colors[i % len(colors)]
+                xs3d = v[1] * np.array([0, 1])
+                ys3d = -v[0] * np.array([0, 1])
+                zs3d = v[2] * np.array([0, 1])
+                a = Arrow3D(
+                    xs3d, ys3d, zs3d,
+                    mutation_scale=20, lw=3, arrowstyle="-|>",
+                    color=color, alpha=kw.get("alpha", None))
+                b.axes.add_artist(a)
 
     @pytest.mark.parametrize([
-        "vectors", "alpha"
+        "vector_kws"
     ], [
         pytest.param(
-            (0, 0, 1), 1, id="opaque"),
+            dict(vectors=(0, 0, 1), alpha=1), id="opaque"),
         pytest.param(
-            (0, 0, 1), 0.3, id="tranparent"),
+            dict(vectors=(0, 0, 1), alpha=1), id="opaque"),
         pytest.param(
-            (0, 0, 1), 1e-8, id="tiny tranparency"),
+            dict(vectors=(0, 0, 1), alpha=0.3), id="transparent"),
         pytest.param(
-            (0, 0, 1), 0.3+1e-8, id="precise tranparency"),
+            dict(vectors=(0, 0, 1), alpha=0), id="invisible"),
         pytest.param(
-            (0, 0, 1), 0, id="invisible tranparency"),
-        pytest.param(
-            (0, 0, 1), None, id="None tranparency"),
+            dict(vectors=(0, 0, 1)), id="default-transparency"),
+        pytest.param([
+            dict(vectors=[(0, 0, 1), (0, 1, 0)], alpha=1.0),
+            dict(vectors=[(1, 0, 1), (1, 1, 0)], alpha=0.5),
+        ], id="multiple-transparent-vectors"),
     ])
     @check_pngs_equal
-    def test_vector_alpha(self, vectors, alpha, fig_test, fig_ref):
-        self.plot_vector_test_alpha(fig_test, vectors, alpha)
-        self.plot_vector_ref_alpha(fig_ref, vectors, alpha)
+    def test_vector_alpha(self, vector_kws, fig_test, fig_ref):
+        if isinstance(vector_kws, dict):
+            vector_kws = [vector_kws]
+        self.plot_vector_alpha_test(fig_test, copy.deepcopy(vector_kws))
+        self.plot_vector_alpha_ref(fig_ref, copy.deepcopy(vector_kws))
