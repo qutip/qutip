@@ -5,13 +5,11 @@ using small dimensional Krylov subspaces.
 """
 
 from scipy.optimize import root_scalar
-from functools import reduce
 from math import ceil
 import numpy as np
-import operator
 import warnings
 
-from qutip.expect import expect, expect_rho_vec
+from qutip.expect import expect
 from qutip.qobj import Qobj
 from qutip.solver import Result, Options
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
@@ -148,14 +146,14 @@ def krylovsolve(
             T_m, krylov_basis=krylov_basis, tlist=tlist, options=options
         )
         n_timesteps = int(ceil((tf - t0) / delta_t))
-        
+
         if n_timesteps >= options.nsteps:
             raise Exception(
                 f"Optimization requires a number {n_timesteps} of lanczos iterations, "
                 f"which exceeds the defined allowed number {options.nsteps}. This can "
                 "be increased via the 'Options.nsteps' property."
             )
-            
+
     partitions = _make_partitions(tlist=tlist, n_timesteps=n_timesteps)
 
     if progress_bar:
@@ -587,8 +585,8 @@ def _optimize_lanczos_timestep_size(T, krylov_basis, tlist, options):
         tf=tlist[-1],
         target_tolerance=options.atol,
     )
-    
-    # To avoid the singularity at t0, we add a small epsilon value 
+
+    # To avoid the singularity at t0, we add a small epsilon value
     t_min = (tlist[-1] - tlist[0]) / options.nsteps + tlist[0]
     bracket = [t_min, tlist[-1]]
 
@@ -598,7 +596,7 @@ def _optimize_lanczos_timestep_size(T, krylov_basis, tlist, options):
 
     elif (np.sign(f(bracket[0])) == 1) and (np.sign(f(bracket[-1])) == 1):
         raise ValueError(
-            "No solution exists with the given combination of parameters 'krylov_dim', " 
+            "No solution exists with the given combination of parameters 'krylov_dim', "
             "tolerance = 'options.atol', maximum number allowed of krylov internal "
             "partitions = 'options.nsteps' and 'tlist'. Try reducing the tolerance, or "
             "increasing 'krylov_dim'. If nothing works, then a deeper analysis of the "
