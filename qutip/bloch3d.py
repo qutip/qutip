@@ -6,7 +6,7 @@ from qutip.expect import expect
 from qutip.operators import sigmax, sigmay, sigmaz
 
 
-class Bloch3d():
+class Bloch3d:
     """Class for plotting data on a 3D Bloch sphere using mayavi.
     Valid data can be either points, vectors, or qobj objects
     corresponding to state vectors or density matrices. for
@@ -297,9 +297,10 @@ class Bloch3d():
         if isinstance(vectors[0], (list, np.ndarray)):
             for vec in vectors:
                 self.vectors.append(vec)
+                self.vector_alpha.append(alpha)
         else:
             self.vectors.append(vectors)
-        self.vector_alpha.append(alpha)
+            self.vector_alpha.append(alpha)
 
     def plot_vectors(self):
         """
