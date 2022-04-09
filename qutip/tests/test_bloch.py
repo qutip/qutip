@@ -185,7 +185,7 @@ class TestBloch:
 
         for kw in point_kws:
             points = kw.pop("points")
-            if not isinstance(points[0], (list, tuple)):
+            if not isinstance(points[0], (list, tuple, np.ndarray)):
                 points = [[points[0]], [points[1]], [points[2]]]
             points = np.array(points)
             if len(points[0]) == 1:
@@ -219,6 +219,15 @@ class TestBloch:
     @pytest.mark.parametrize([
         "point_kws"
     ], [
+        pytest.param(
+            dict(points=np.array([
+                [
+                    np.cos(np.pi / 4) * np.cos(t),
+                    np.sin(np.pi / 4) * np.cos(t),
+                    np.sin(t),
+                ]
+                for t in np.linspace(0, 2 * np.pi, 20)
+            ]).T, alpha=0.5), id="circle-of-points"),
         pytest.param(
             dict(points=(0, 0, 1), alpha=1), id="alpha-opaque"),
         pytest.param(
@@ -261,6 +270,7 @@ class TestBloch:
 
             for v in vectors:
                 color = vector_colors[idx % len(vector_colors)]
+                alpha = kw.get("alpha", 1.0)
                 idx += 1
                 xs3d = v[1] * np.array([0, 1])
                 ys3d = -v[0] * np.array([0, 1])
@@ -268,7 +278,7 @@ class TestBloch:
                 a = Arrow3D(
                     xs3d, ys3d, zs3d,
                     mutation_scale=20, lw=3, arrowstyle="-|>",
-                    color=color, alpha=kw.get("alpha", None))
+                    color=color, alpha=alpha)
                 b.axes.add_artist(a)
 
     @pytest.mark.parametrize([
@@ -286,6 +296,15 @@ class TestBloch:
             dict(vectors=[[0, 0, 1]]), id="list-vectors-list"),
         pytest.param(
             dict(vectors=[np.array([0, 0, 1])]), id="list-vectors-numpy"),
+        pytest.param(
+            dict(vectors=[
+                [
+                    np.cos(np.pi / 4) * np.cos(t),
+                    np.sin(np.pi / 4) * np.cos(t),
+                    np.sin(t),
+                ]
+                for t in np.linspace(0, 2 * np.pi, 20)
+            ], alpha=0.5), id="circle-of-vectors"),
         pytest.param(
             dict(vectors=(0, 0, 1), alpha=1), id="alpha-opaque"),
         pytest.param(
