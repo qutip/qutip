@@ -19,6 +19,23 @@ except ImportError:
 check_pngs_equal = check_figures_equal(extensions=["png"])
 
 
+class RefBloch(Bloch):
+    """ A helper for rendering reference Bloch spheres. """
+    def render(self):
+        raise NotImplementedError("RefBloch disables .render()")
+
+    def render_back(self):
+        old_plot_front = self.plot_front
+        self.plot_front = lambda: None
+        try:
+            Bloch.render(self)
+        finally:
+            self.plot_front = old_plot_front
+
+    def render_front(self):
+        self.plot_front()
+
+
 class TestBloch:
     def plot_arc_test(self, fig, *args, **kw):
         b = Bloch(fig=fig)
@@ -38,9 +55,10 @@ class TestBloch:
         line = start[:, np.newaxis] * t + end[:, np.newaxis] * (1 - t)
         arc = line * np.linalg.norm(start) / np.linalg.norm(line, axis=0)
 
-        b = Bloch(fig=fig)
-        b.render()
+        b = RefBloch(fig=fig)
+        b.render_back()
         b.axes.plot(arc[1, :], -arc[0, :], arc[2, :], fmt, **kw)
+        b.render_front()
 
     @pytest.mark.parametrize([
         "start_test", "start_ref", "end_test", "end_ref", "kwargs",
@@ -131,9 +149,10 @@ class TestBloch:
         y = [-start[0], -end[0]]
         z = [start[2], end[2]]
 
-        b = Bloch(fig=fig)
-        b.render()
+        b = RefBloch(fig=fig)
+        b.render_back()
         b.axes.plot(x, y, z, fmt, **kw)
+        b.render_front()
 
     @pytest.mark.parametrize([
         "start_test", "start_ref", "end_test", "end_ref", "kwargs",
@@ -176,8 +195,8 @@ class TestBloch:
         b.render()
 
     def plot_point_ref(self, fig, point_kws):
-        b = Bloch(fig=fig)
-        b.render()
+        b = RefBloch(fig=fig)
+        b.render_back()
         point_colors = ['b', 'r', 'g', '#CC6600']
         point_sizes = [25, 32, 35, 45]
         point_markers = ["o", "s", "d", "^"]
@@ -215,6 +234,7 @@ class TestBloch:
                 raise ValueError(
                     "Tests currently only support point method 's'"
                 )
+        b.render_front()
 
     @pytest.mark.parametrize([
         "point_kws"
@@ -257,8 +277,8 @@ class TestBloch:
 
     def plot_vector_ref(self, fig, vector_kws):
         from qutip.bloch import Arrow3D
-        b = Bloch(fig=fig)
-        b.render()
+        b = RefBloch(fig=fig)
+        b.render_back()
         vector_colors = ['g', '#CC6600', 'b', 'r']
         idx = 0
 
@@ -280,6 +300,7 @@ class TestBloch:
                     mutation_scale=20, lw=3, arrowstyle="-|>",
                     color=color, alpha=alpha)
                 b.axes.add_artist(a)
+        b.render_front()
 
     @pytest.mark.parametrize([
         "vector_kws"
