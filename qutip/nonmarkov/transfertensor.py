@@ -11,10 +11,9 @@ method (TTM), introduced in [1].
 """
 
 import numpy as np
-from attr import validate
 
 from qutip import (Options, spre, vector_to_operator, operator_to_vector,
-                   ket2dm, isket, Qobj)
+                   ket2dm, isket)
 from qutip.solver import Result
 from qutip.expect import expect_rho_vec
 

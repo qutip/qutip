@@ -1,7 +1,7 @@
 import pytest
 import qutip as qt
 import numpy as np
-from qutip.nonmarkov.transfertensor import *
+from qutip.nonmarkov.transfertensor import ttmsolve
 
 
 def test_ttmsolve_jc_model():
