@@ -1,37 +1,4 @@
 # -*- coding: utf-8 -*-
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2014 and later, Alexander J G Pitchford
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
 # @author: Alexander Pitchford
 # @email1: agp1@aber.ac.uk
 # @email2: alex.pitchford@gmail.com
@@ -207,9 +174,7 @@ class Dynamics(object):
 
     oper_dtype : type
         Data type for internal dynamics generators, propagators and time
-        evolution operators. This can be ndarray or Qobj, or (in theory) any
-        other representaion that supports typical matrix methods (e.g. dot)
-        ndarray performs best for smaller quantum systems.
+        evolution operators. This can be ndarray or Qobj.
         Qobj may perform better for larger systems, and will also
         perform better when (custom) fidelity measures use Qobj methods
         such as partial trace.
@@ -408,7 +373,7 @@ class Dynamics(object):
         self.time_depend_ctrl_dyn_gen = False
         # These internal attributes will be of the internal operator data type
         # used to compute the evolution
-        # Note this maybe ndarray, Qobj or some other depending on oper_dtype
+        # This will be either ndarray or Qobj
         self._drift_dyn_gen = None
         self._ctrl_dyn_gen = None
         self._phased_ctrl_dyn_gen = None
@@ -503,13 +468,15 @@ class Dynamics(object):
         """
         The level of data dumping that will occur during the time evolution
         calculation.
-         - NONE : No processing data dumped (Default)
-         - SUMMARY : A summary of each time evolution will be recorded
-         - FULL : All operators used or created in the calculation dumped
-         - CUSTOM : Some customised level of dumping
+
+        - NONE : No processing data dumped (Default)
+        - SUMMARY : A summary of each time evolution will be recorded
+        - FULL : All operators used or created in the calculation dumped
+        - CUSTOM : Some customised level of dumping
+
         When first set to CUSTOM this is equivalent to SUMMARY. It is then up
-        to the user to specify which operators are dumped
-        WARNING: FULL could consume a lot of memory!
+        to the user to specify which operators are dumped.  WARNING: FULL could
+        consume a lot of memory!
         """
         if self.dump is None:
             lvl = 'NONE'
@@ -747,7 +714,15 @@ class Dynamics(object):
         self.sys_shape = self.initial.shape
         # Set the phase application method
         self._init_phase()
+
         self._set_memory_optimizations()
+        if self.sparse_eigen_decomp and self.sys_shape[0] <= 2:
+            raise ValueError(
+                "Single qubit pulse optimization dynamics cannot use sparse"
+                " eigenvector decomposition because of limitations in"
+                " scipy.linalg.eigsh. Pleae set sparse_eigen_decomp to False"
+                " or increase the size of the system.")
+
         n_ts = self.num_tslots
         n_ctrls = self.num_ctrls
         if self.oper_dtype == Qobj:
@@ -770,13 +745,11 @@ class Dynamics(object):
                                     self.ctrl_dyn_gen[k, j].full()
             else:
                 self._ctrl_dyn_gen = [ctrl.full()
-                                      for ctrl in self.ctrl_dyn_gen]
+                                        for ctrl in self.ctrl_dyn_gen]
         else:
-            logger.warn(
-                "Unknown option '{}' for oper_dtype. "
-                "Assuming that internal drift, ctrls, initial and target "
-                "have been set correctly".format(self.oper_dtype)
-            )
+            raise ValueError(
+                "Unknown oper_dtype {!r}. The oper_dtype may be qutip.Qobj or"
+                " numpy.ndarray.".format(self.oper_dtype))
 
         if self.cache_phased_dyn_gen:
             if self.time_depend_ctrl_dyn_gen:
@@ -847,11 +820,13 @@ class Dynamics(object):
         """
         phase_application : scalar(string), default='preop'
         Determines how the phase is applied to the dynamics generators
-         - 'preop'  : P = expm(phase*dyn_gen)
-         - 'postop' : P = expm(dyn_gen*phase)
-         - 'custom' : Customised phase application
+
+        - 'preop'  : P = expm(phase*dyn_gen)
+        - 'postop' : P = expm(dyn_gen*phase)
+        - 'custom' : Customised phase application
+
         The 'custom' option assumes that the _apply_phase method has been
-        set to a custom function
+        set to a custom function.
         """
         return self._phase_application
 
@@ -1163,20 +1138,19 @@ class Dynamics(object):
             # Target is operator
             targ = la.inv(self.target.full())
             if self.oper_dtype == Qobj:
-                self._onto_evo_target = Qobj(targ)
+                rev_dims = [self.target.dims[1], self.target.dims[0]]
+                self._onto_evo_target = Qobj(targ, dims=rev_dims)
             elif self.oper_dtype == np.ndarray:
                 self._onto_evo_target = targ
             else:
-                targ_cls = self._target.__class__
-                self._onto_evo_target = targ_cls(targ)
+                assert False, f"Unknown oper_dtype {self.oper_dtype!r}"
         else:
             if self.oper_dtype == Qobj:
                 self._onto_evo_target = self.target.dag()
             elif self.oper_dtype == np.ndarray:
                 self._onto_evo_target = self.target.dag().full()
             else:
-                targ_cls = self._target.__class__
-                self._onto_evo_target = targ_cls(self.target.dag().full())
+                assert False, f"Unknown oper_dtype {self.oper_dtype!r}"
 
         return self._onto_evo_target
 
@@ -1571,15 +1545,27 @@ class DynamicsUnitary(Dynamics):
         if self.oper_dtype == Qobj:
             H = self._dyn_gen[k]
             # Returns eigenvalues as array (row)
-            # and eigenvectors as a list of separate 2D kets
+            # and eigenvectors as rows of an array
             _type = _data.CSR if self.sparse_eigen_decomp else _data.Dense
             eig_val, eig_vec = _data.eigs(_data.to(_type, H.data))
             eig_vec = eig_vec.to_array()
 
-        else:
+            #eig_val, eig_vec = H.eigenstates(sparse=self.sparse_eigen_decomp)
+            #eig_vec = eig_vec.full()
+            #eig_vec = eig_vec.T
+            #if self.sparse_eigen_decomp:
+                # when sparse=True, sp_eigs returns an ndarray where each
+                # element is a sparse matrix so we convert it into a sparse
+                # matrix we can later pass to Qobj(...)
+            #    eig_vec = sp.hstack(eig_vec)
+
+        elif self.oper_dtype == np.ndarray:
             H = self._dyn_gen[k]
             # returns row vector of eigenvals, columns with the eigenvecs
             eig_val, eig_vec = eigh(H)
+
+        else:
+            assert False, f"Unknown oper_dtype {self.oper_dtype!r}"
 
         # assuming H is an nxn matrix, find n
         n = self.get_drift_dim()
@@ -1628,7 +1614,7 @@ class DynamicsUnitary(Dynamics):
             if self._dyn_gen_eigenvectors_adj is not None:
                 self._dyn_gen_eigenvectors_adj[k] = \
                             self._dyn_gen_eigenvectors[k].dag()
-        else:
+        elif self.oper_dtype == np.ndarray:
             self._prop_eigen[k] = np.diagflat(prop_eig)
             self._dyn_gen_eigenvectors[k] = eig_vec
             # The _dyn_gen_eigenvectors_adj list is not used in
@@ -1636,6 +1622,8 @@ class DynamicsUnitary(Dynamics):
             if self._dyn_gen_eigenvectors_adj is not None:
                 self._dyn_gen_eigenvectors_adj[k] = \
                             self._dyn_gen_eigenvectors[k].conj().T
+        else:
+            assert False, f"Unknown oper_dtype {self.oper_dtype!r}"
 
     def _get_dyn_gen_eigenvectors_adj(self, k):
         # The _dyn_gen_eigenvectors_adj list is not used in
@@ -1734,7 +1722,7 @@ class DynamicsSymplectic(Dynamics):
                 self._omega = Qobj(omg, dims=self.dyn_dims)
                 self._omega_qobj = self._omega
             else:
-                 self._omega = omg
+                self._omega = omg
         return self._omega
 
     def _set_phase_application(self, value):

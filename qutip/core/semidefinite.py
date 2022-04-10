@@ -1,36 +1,5 @@
 # -*- coding: utf-8 -*-
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
+
 """
 This module implements internal-use functions for semidefinite programming.
 """
@@ -39,7 +8,7 @@ import collections
 import functools
 
 import numpy as np
-
+import scipy.sparse as sp
 # Conditionally import CVXPY
 try:
     import cvxpy
@@ -108,8 +77,8 @@ def conj(W, A):
     U, V = W.re, W.im
     A, B = A.re, A.im
     return Complex(
-        re=(U*A*U.T - U*B*V.T - V*A*V.T - V*B*U.T),
-        im=(U*A*V.T + U*B*U.T + V*A*U.T - V*B*V.T)
+        re=(U @ A @ U.T - U @ B @ V.T - V @ A @ V.T - V @ B @ U.T),
+        im=(U @ A @ V.T + U @ B @ U.T + V @ A @ U.T - V @ B @ V.T)
     )
 
 
@@ -147,7 +116,7 @@ def qudit_swap(dim):
 
 
 @memoize
-def dnorm_problem(dim):
+def initialize_constraints_on_dnorm_problem(dim):
     # Start assembling constraints and variables.
     constraints = []
 
@@ -164,7 +133,7 @@ def dnorm_problem(dim):
     # we need to swap the order in Rho0 and Rho1. This is not straightforward,
     # as CVXPY requires that the constant be the first argument. To solve this,
     # We conjugate by SWAP.
-    W = qudit_swap(dim).data.todense()
+    W = qudit_swap(dim).full()
     W = Complex(re=W.real, im=W.imag)
     Rho0 = conj(W, kron(np.eye(dim), rho0))
     Rho1 = conj(W, kron(np.eye(dim), rho1))
@@ -180,13 +149,55 @@ def dnorm_problem(dim):
 
     logger.debug("Using %d constraints.", len(constraints))
 
+    return X, constraints
+
+
+def dnorm_problem(dim):
+    X, constraints = initialize_constraints_on_dnorm_problem(dim)
     Jr = cvxpy.Parameter((dim**2, dim**2))
     Ji = cvxpy.Parameter((dim**2, dim**2))
+    # The objective, however, depends on J.
+    objective = cvxpy.Maximize(cvxpy.trace(
+        Jr.T @ X.re + Ji.T @ X.im
+    ))
+    problem = cvxpy.Problem(objective, constraints)
+    return problem, Jr, Ji
+
+
+def dnorm_sparse_problem(dim, J_dat):
+    X, constraints = initialize_constraints_on_dnorm_problem(dim)
+    J_val = J_dat.tocoo()
+
+    def adapt_sparse_params(A_val, dim):
+        # This detour is needed as pointed out in cvxgrp/cvxpy#1159, as cvxpy
+        # can not solve with parameters that aresparse matrices directly.
+        # Solutions have to be made through calling cvxpy.reshape on
+        # the original sparse matrix.
+        side_size = dim**2
+        A_nnz = cvxpy.Parameter(A_val.nnz)
+
+        A_data = np.ones(A_nnz.size)
+        A_rows = A_val.row * side_size + A_val.col
+        A_cols = np.arange(A_nnz.size)
+        # We are pushing the data on the location of the nonzero elements
+        # to the nonzero rows of A_indexer
+        A_Indexer = sp.coo_matrix((A_data, (A_rows, A_cols)),
+                                  shape=(side_size**2, A_nnz.size))
+        # We get finaly the sparse matrix A which we wanted
+        A = cvxpy.reshape(A_Indexer @ A_nnz, (side_size, side_size), order='C')
+        A_nnz.value = A_val.data
+        return A
+
+    Jr_val = J_val.real
+    Jr = adapt_sparse_params(Jr_val, dim)
+
+    Ji_val = J_val.imag
+    Ji = adapt_sparse_params(Ji_val, dim)
 
     # The objective, however, depends on J.
     objective = cvxpy.Maximize(cvxpy.trace(
-        Jr.T * X.re + Ji.T * X.im
+        Jr.T @ X.re + Ji.T @ X.im
     ))
 
     problem = cvxpy.Problem(objective, constraints)
-    return problem, Jr, Ji, X, rho0, rho1
+    return problem

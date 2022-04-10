@@ -1,35 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, The QuTiP Project
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
 """
 Module for measuring quantum objects.
 """
@@ -61,32 +29,32 @@ def _verify_input(op, state):
 
 
 def _measurement_statistics_povm_ket(state, ops):
-    '''
+    r"""
     Returns measurement statistics (resultant states and probabilities)
     for a measurements specified by a set of positive operator valued
     measurements on a specified ket.
 
     Parameters
     ----------
-    state : :class:.Qobj (ket)
+    state : :class:`.Qobj` (ket)
             The ket specifying the state to measure.
-    ops : list of :class:.Qobj
-          list of measurement operators M_i
-          (specifying a POVM s.t. E_i = dagger(M_i) * M_i)
+
+    ops : list of :class:`.Qobj`
+      List of measurement operators :math:`M_i` (specifying a POVM such that
+      :math:`E_i = M_i^\dagger M_i`).
 
 
     Returns
     -------
-    collapsed_states : List of :class:.Qobj (kets)
-                    the collapsed states (kets)
-                    obtained after measuring the qubits
-                    and obtaining the qubit specified by the target in the
-                    state specified by the index.
-    probabilities : List of floats
-                    the probability of measuring a state in a the state
-                    specified by the index.
-    '''
+    collapsed_states : list of :class:`.Qobj` (kets)
+        The collapsed states (kets) obtained after measuring the qubits and
+        obtaining the qubit specified by the target in the state specified by
+        the index.
 
+    probabilities : list of floats
+        The probability of measuring a state in a the state specified by the
+        index.
+    """
     probabilities = []
     collapsed_states = []
 
@@ -102,32 +70,31 @@ def _measurement_statistics_povm_ket(state, ops):
 
 
 def _measurement_statistics_povm_dm(density_mat, ops):
-    '''
+    r"""
     Returns measurement statistics (resultant states and probabilities)
     for a measurements specified by a set of positive operator valued
     measurements on a specified ket or density matrix.
 
     Parameters
     ----------
-    state : :class:.Qobj (density matrix)
-            The ket or density matrix specifying the state to measure.
-    ops : list of :class:.Qobj
-          list of measurement operators M_i
-          (specifying a POVM s.t. E_i = dagger(M_i) * M_i)
+    state : :class:`.Qobj` (density matrix)
+        The ket or density matrix specifying the state to measure.
 
+    ops : list of :class:`.Qobj`
+        List of measurement operators :math:`M_i` (specifying a POVM s.t.
+        :mathm:`E_i = M_i^\dagger M_i`)
 
     Returns
     -------
-    collapsed_states : List of :class:.Qobj
-                    the collapsed states (density matrices) obtained after
-                    measuring the qubits and obtaining the
-                    qubit specified by the target in the state
-                    specified by the index.
-    probabilities : List of floats
-                    the probability of measuring a state in a the state
-                    specified by the index.
-    '''
+    collapsed_states : list of :class:`.Qobj`
+        The collapsed states (density matrices) obtained after measuring the
+        qubits and obtaining the qubit specified by the target in the state
+        specified by the index.
 
+    probabilities : list of float
+        The probability of measuring a state in a the state specified by the
+        index.
+    """
     probabilities = []
     collapsed_states = []
 
@@ -144,22 +111,24 @@ def _measurement_statistics_povm_dm(density_mat, ops):
 
 
 def measurement_statistics_povm(state, ops, targets=None):
-    '''
-    Returns measurement statistics (resultant states and probabilities)
-    for a measurement specified by a set of positive operator valued
-    measurements on a specified ket or density matrix.
+    r"""
+    Returns measurement statistics (resultant states and probabilities) for a
+    measurement specified by a set of positive operator valued measurements on
+    a specified ket or density matrix.
 
     Parameters
     ----------
     state : :class:`.Qobj`
-            The ket or density matrix specifying the state to measure.
+        The ket or density matrix specifying the state to measure.
+
     ops : list of :class:`.Qobj`
-          list of measurement operators M_i or kets
-          Either:
-          1. specifying a POVM s.t. E_i = dagger(M_i) * M_i
-          2. projection operators if ops correspond to
-             projectors (s.t. E_i = dagger(M_i) = M_i)
-          3. kets (transformed to projectors)
+        List of measurement operators :math:`M_i` or kets.  Either:
+
+        1. specifying a POVM s.t. :math:`E_i = M_i^\dagger M_i`
+        2. projection operators if ops correspond to
+           projectors (s.t. :math:`E_i = M_i^\dagger = M_i`)
+        3. kets (transformed to projectors)
+
     targets : list of ints, optional
               Specifies a list of target "qubit" indices on which to apply
               the measurement using qutip.qip.gates.expand_operator to expand
@@ -168,15 +137,14 @@ def measurement_statistics_povm(state, ops, targets=None):
 
     Returns
     -------
-    collapsed_states : List of :class:`.Qobj`
-                    the collapsed states obtained after measuring the qubits
-                    and obtaining the qubit specified by the target in the
-                    state specified by the index.
-    probabilities : List of floats
-                    the probability of measuring a state in a the state
-                    specified by the index.
-    '''
+    collapsed_states : list of :class:`.Qobj`
+        The collapsed states obtained after measuring the qubits and obtaining
+        the qubit specified by the target in the state specified by the index.
 
+    probabilities : list of floats
+        The probability of measuring a state in a the state specified by the
+        index.
+    """
     if all(map(lambda x: x.isket, ops)):
         ops = [op * op.dag() for op in ops]
 
@@ -208,27 +176,29 @@ def measurement_statistics_observable(state, op, targets=None):
     ----------
     state : :class:`.Qobj`
         The ket or density matrix specifying the state to measure.
+
     op : :class:`.Qobj`
         The measurement operator.
-    targets : list of ints, optional
-              Specifies a list of targets "qubit" indices on which to apply
-              the measurement using :func:qutip.qip.gates.expand_operator
-              to expand op into full dimension.
 
+    targets : list of ints, optional
+        Specifies a list of targets "qubit" indices on which to apply the
+        measurement using :func:`qutip.qip.gates.expand_operator` to expand op
+        into full dimension.
 
     Returns
     -------
-    eigenvalues: List of floats
+    eigenvalues: list of float
         The list of eigenvalues of the measurement operator.
-    eigenstates_or_projectors: List of :class:`.Qobj`
+
+    eigenstates_or_projectors: list of :class:`.Qobj`
         If the state was a ket, return the eigenstates of the measurement
         operator. Otherwise return the projectors onto the eigenstates.
-    probabilities: List of floats
-        The probability of measuring the state as being in the
-        corresponding eigenstate (and the measurement result being
-        the corresponding eigenvalue).
-    """
 
+    probabilities: list of float
+        The probability of measuring the state as being in the corresponding
+        eigenstate (and the measurement result being the corresponding
+        eigenvalue).
+    """
     if targets:
         N = int(np.log2(state.shape[0]))
         op = expand_operator(op, N=N, targets=targets)
@@ -249,32 +219,31 @@ def measure_observable(state, op, targets=None):
     """
     Perform a measurement specified by an operator on the given state.
 
-    This function simulates the classic quantum measurement described
-    in many introductory texts on quantum mechanics. The measurement
-    collapses the state to one of the eigenstates of the given
-    operator and the result of the measurement is the corresponding
-    eigenvalue.
+    This function simulates the classic quantum measurement described in many
+    introductory texts on quantum mechanics. The measurement collapses the
+    state to one of the eigenstates of the given operator and the result of the
+    measurement is the corresponding eigenvalue.
 
     Parameters
     ----------
     state : :class:`.Qobj`
         The ket or density matrix specifying the state to measure.
+
     op : :class:`.Qobj`
         The measurement operator.
-    targets : list of ints, optional
-              Specifies a list of target "qubit" indices on which to apply
-              the measurement using :func:qutip.qip.gates.expand_operator
-              to expand op into full dimension.
 
+    targets : list of ints, optional
+        Specifies a list of target "qubit" indices on which to apply the
+        measurement using :func:`qutip.qip.gates.expand_operator` to expand op
+        into full dimension.
 
     Returns
     -------
     measured_value : float
         The result of the measurement (one of the eigenvalues of op).
-    state : :class:`.Qobj`
-        The new state (a ket if a ket was given, otherwise a density
-        matrix).
 
+    state : :class:`.Qobj`
+        The new state (a ket if a ket was given, otherwise a density matrix).
 
     Examples
     --------
@@ -329,39 +298,40 @@ def measure_observable(state, op, targets=None):
 
 
 def measure_povm(state, ops, targets=None):
-    """
+    r"""
     Perform a measurement specified by list of POVMs.
 
-    This function simulates a POVM measurement. The measurement
-    collapses the state to one of the resultant states of the measurement
-    and returns the index of the operator corresponding to the collapsed
-    state as well as the collapsed state.
+    This function simulates a POVM measurement. The measurement collapses the
+    state to one of the resultant states of the measurement and returns the
+    index of the operator corresponding to the collapsed state as well as the
+    collapsed state.
 
     Parameters
     ----------
     state : :class:`.Qobj`
-            The ket or density matrix specifying the state to measure.
-    ops : list of :class:.Qobj
-          list of measurement operators M_i or kets
-          Either:
-          1. specifying a POVM s.t. E_i = dagger(M_i) * M_i
-          2. projection operators if ops correspond to
-             projectors (s.t. E_i = dagger(M_i) = M_i)
-          3. kets (transformed to projectors)
+        The ket or density matrix specifying the state to measure.
+
+    ops : list of :class:`.Qobj`
+        List of measurement operators :math:`M_i` or kets.  Either:
+
+        1. specifying a POVM s.t. :math:`E_i = M_i^\dagger M_i`
+        2. projection operators if ops correspond to projectors (s.t.
+           :math:`E_i = M_i^\dagger = M_i`)
+        3. kets (transformed to projectors)
+
     targets : list of ints, optional
-              Specifies a list of target "qubit" indices on which to apply
-              the measurement using :func:`qutip.qip.gates.expand_operator`
-              to expand ops into full dimension.
+        Specifies a list of target "qubit" indices on which to apply
+        the measurement using :func:`qutip.qip.gates.expand_operator`
+        to expand ``ops`` into full dimension.
 
     Returns
     -------
     index : float
         The resultant index of the measurement.
-    state : :class:`.Qobj`
-        The new state (a ket if a ket was given, otherwise a density
-        matrix).
-    """
 
+    state : :class:`.Qobj`
+        The new state (a ket if a ket was given, otherwise a density matrix).
+    """
     collapsed_states, probabilities = measurement_statistics_povm(state,
                                                                   ops, targets)
     index = np.random.choice(range(len(collapsed_states)), p=probabilities)
@@ -370,35 +340,36 @@ def measure_povm(state, ops, targets=None):
 
 
 def measurement_statistics(state, ops, targets=None):
-    """
-    A dispatch method that provides measurement statistics
-    handling both observable style measurements
-    and projector style measurements(POVMs and PVMs).
+    r"""
+    A dispatch method that provides measurement statistics handling both
+    observable style measurements and projector style measurements(POVMs and
+    PVMs).
 
     For return signatures, please check:
-    - :func:`qutip.measurement.measurement_statistics_observable`
-      for observable measurements.
-    - :func:`qutip.measurement.measurement_statistics_povm` for povm measurements.
+
+    - :func:`~measurement_statistics_observable` for observable measurements.
+    - :func:`~measurement_statistics_povm` for POVM measurements.
 
     Parameters
     ----------
     state : :class:`.Qobj`
-            The ket or density matrix specifying the state to measure.
-    ops : :class:`.Qobj` or list of :class:`.Qobj`
-          - measurement observable (:class:.Qobj)
-          or
-          - list of measurement operators M_i or kets (list of :class:.Qobj)
-            Either:
-            1. specifying a POVM s.t. E_i = dagger(M_i) * M_i
-            2. projection operators if ops correspond to
-               projectors (s.t. E_i = dagger(M_i) = M_i)
-            3. kets (transformed to projectors)
-    targets : list of ints, optional
-              Specifies a list of target "qubit" indices on which to apply
-              the measurement using :func:qutip.qip.gates.expand_operator
-              to expand ops into full dimension.
-    """
+        The ket or density matrix specifying the state to measure.
 
+    ops : :class:`.Qobj` or list of :class:`.Qobj`
+        - measurement observable (:class:.Qobj); or
+        - list of measurement operators :math:`M_i` or kets (list of
+          :class:`.Qobj`) Either:
+
+          1. specifying a POVM s.t. :math:`E_i = M_i^\dagger * M_i`
+          2. projection operators if ops correspond to projectors (s.t.
+             :math:`E_i = M_i^\dagger = M_i`)
+          3. kets (transformed to projectors)
+
+    targets : list of ints, optional
+        Specifies a list of target "qubit" indices on which to apply the
+        measurement using :func:`qutip.qip.gates.expand_operator` to expand ops
+        into full dimension.
+    """
     if isinstance(ops, list):
         return measurement_statistics_povm(state, ops, targets)
     else:
@@ -406,34 +377,36 @@ def measurement_statistics(state, ops, targets=None):
 
 
 def measure(state, ops, targets=None):
-    """
-    A dispatch method that provides measurement results
-    handling both observable style measurements
-    and projector style measurements(POVMs and PVMs).
+    r"""
+    A dispatch method that provides measurement results handling both
+    observable style measurements and projector style measurements (POVMs and
+    PVMs).
 
     For return signatures, please check:
-    - :func:`qutip.measurement.measure_observable` for observable measurements.
-    - :func:`qutip.measurement.measure_povm` for povm measurements.
+
+    - :func:`~measure_observable` for observable measurements.
+    - :func:`~measure_povm` for POVM measurements.
 
     Parameters
     ----------
     state : :class:`.Qobj`
-            The ket or density matrix specifying the state to measure.
-    ops : :class:`.Qobj` or list of :class:`.Qobj`
-          - measurement observable (:class:`.Qobj`)
-          or
-          - list of measurement operators M_i or kets (list of :class:`.Qobj`)
-            Either:
-            1. specifying a POVM s.t. E_i = dagger(M_i) * M_i
-            2. projection operators if ops correspond to
-               projectors (s.t. E_i = dagger(M_i) = M_i)
-            3. kets (transformed to projectors)
-    targets : list of ints, optional
-              Specifies a list of target "qubit" indices on which to apply
-              the measurement using :func:qutip.qip.gates.expand_operator
-              to expand ops into full dimension.
-    """
+        The ket or density matrix specifying the state to measure.
 
+    ops : :class:`.Qobj` or list of :class:`.Qobj`
+        - measurement observable (:class:`.Qobj`); or
+        - list of measurement operators :math:`M_i` or kets (list of
+          :class:`.Qobj`) Either:
+
+          1. specifying a POVM s.t. :math:`E_i = M_i^\dagger M_i`
+          2. projection operators if ops correspond to projectors (s.t.
+             :math:`E_i = M_i^\dagger = M_i`)
+          3. kets (transformed to projectors)
+
+    targets : list of ints, optional
+        Specifies a list of target "qubit" indices on which to apply the
+        measurement using :func:`qutip.qip.gates.expand_operator` to expand ops
+        into full dimension.
+    """
     if isinstance(ops, list):
         return measure_povm(state, ops, targets)
     else:

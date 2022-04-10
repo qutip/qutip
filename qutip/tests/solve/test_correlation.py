@@ -1,38 +1,6 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
 import pytest
 import functools
+from itertools import product
 import numpy as np
 import qutip
 
@@ -55,6 +23,7 @@ def test_correlation_solver_equivalence(solver, start):
     system.
     """
     a = qutip.destroy(_equivalence_dimension)
+    x = ( a +a.dag() )/np.sqrt(2)
     H = a.dag() * a
     G1 = 0.75
     n_th = 2
@@ -249,3 +218,54 @@ def test_hamiltonian_order_unimportant():
     backwards = qutip.correlation_2op_2t(H[::-1], start, times, times, [sp],
                                          sp.dag(), sp)
     np.testing.assert_allclose(forwards, backwards, atol=1e-6)
+
+
+@pytest.mark.parametrize(['solver', 'state'], [
+    pytest.param('me', _equivalence_fock, id="me-ket"),
+    pytest.param('me', _equivalence_coherent, id="me-dm"),
+    pytest.param('me', None, id="me-steady"),
+    pytest.param('es', _equivalence_fock, id="es-ket"),
+    pytest.param('es', _equivalence_coherent, id="es-dm"),
+    pytest.param('es', None, id="es-steady"),
+    pytest.param('mc', _equivalence_fock, id="mc-ket",
+                 marks=[pytest.mark.slow]),
+])
+@pytest.mark.parametrize("is_e_op_hermitian", [True, False],
+                         ids=["hermitian", "nonhermitian"])
+@pytest.mark.parametrize("w", [1, 2])
+@pytest.mark.parametrize("gamma", [1, 10])
+def test_correlation_2op_1t_known_cases(solver,
+                                        state,
+                                        is_e_op_hermitian,
+                                        w,
+                                        gamma,
+                                       ):
+    """This test compares the output correlation_2op_1 solution to an analytical
+    solution."""
+
+    a = qutip.destroy(_equivalence_dimension)
+    x = (a + a.dag())/np.sqrt(2)
+
+    H = w * a.dag() * a
+
+    a_op = x if is_e_op_hermitian else a
+    b_op = x if is_e_op_hermitian else a.dag()
+    c_ops = [np.sqrt(gamma) * a]
+
+    times = np.linspace(0, 1, 30)
+
+    # Handle the case state==None when computing expt values
+    rho0 = state if state else qutip.steadystate(H, c_ops)
+    if is_e_op_hermitian:
+        # Analitycal solution for x,x as operators.
+        base = 0
+        base += qutip.expect(a*x, rho0)*np.exp(-1j*w*times - gamma*times/2)
+        base += qutip.expect(a.dag()*x, rho0)*np.exp(1j*w*times - gamma*times/2)
+        base /= np.sqrt(2)
+    else:
+        # Analitycal solution for a,adag as operators.
+        base = qutip.expect(a*a.dag(), rho0)*np.exp(-1j*w*times - gamma*times/2)
+
+    cmp = qutip.correlation_2op_1t(H, state, times, c_ops, a_op, b_op, solver=solver)
+
+    np.testing.assert_allclose(base, cmp, atol=0.25 if solver == 'mc' else 2e-5)

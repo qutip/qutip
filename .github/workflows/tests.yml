@@ -69,11 +69,13 @@ jobs:
           # Ignore ImportWarning because pyximport registered an importer
           # PyxImporter that does not have a find_spec method and this raises
           # a warning on Python 3.10
+          # Ignore DeprecationWarnings raised by cvxpy importing scipy.sparse.X
+          # under SciPy 1.8.0+.
           - case-name: Python 3.10
             os: ubuntu-latest
             python-version: "3.10"
             condaforge: 1
-            pytest-extra-options: "-W ignore::ImportWarning"
+            pytest-extra-options: "-W ignore::ImportWarning -W ignore::DeprecationWarning:cvxpy.interface.scipy_wrapper"
 
     steps:
       - uses: actions/checkout@v2
@@ -108,7 +110,7 @@ jobs:
           fi
           python -m pip install -e .[$QUTIP_TARGET]
           python -m pip install coverage==6.2
-          python -m pip install pytest-cov coveralls
+          python -m pip install pytest-cov coveralls pytest-timeout
 
       - name: Package information
         run: |
@@ -136,13 +138,17 @@ jobs:
             # truly being executed.
             export QUTIP_NUM_PROCESSES=2
           fi
-          pytest --strict-config --strict-markers --durations=0 --durations-min=1.0 --verbosity=1 --cov=qutip --cov-report= --color=yes ${{ matrix.pytest-extra-options }} qutip/tests
+          pytest -Werror --strict-config --strict-markers --timeout=300 --durations=0 --durations-min=1.0 --verbosity=1 --cov=qutip --cov-report= --color=yes ${{ matrix.pytest-extra-options }} qutip/tests
           # Above flags are:
+          #  -Werror
+          #     treat warnings as errors
           #  --strict-config
           #     error out if the configuration file is not parseable
           #  --strict-markers
           #     error out if a marker is used but not defined in the
           #     configuration file
+          #  --timeout=300
+          #     error any individual test that goes longer than the given time
           #  --durations=0 --durations-min=1.0
           #     at the end, show a list of all the tests that took longer than a
           #     second to run
