@@ -51,8 +51,8 @@ def test_simdiag_degen():
                 atol=3e-15
             )
 
-
-@pytest.mark.repeat(10)
+@pytest.mark.flaky(reruns=2)
+@pytest.mark.repeat(5)
 def test_simdiag_degen_large():
     N = 20
     U = qutip.rand_unitary(N)

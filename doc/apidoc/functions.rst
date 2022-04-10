@@ -156,6 +156,13 @@ Exponential Series
     :members: essolve, ode2es
 
 
+Krylov Subspace Solver
+----------------------
+
+.. automodule:: qutip.krylovsolve
+    :members: krylovsolve
+
+
 Bloch-Redfield Master Equation
 ------------------------------
 
