@@ -80,7 +80,7 @@ jobs:
           # Windows
           - case-name: Windows Latest
             os: windows-latest
-            pytest-extra-options: "-k 'not test_correlation' -k 'not test_interpolate'"
+            pytest-extra-options: "-k 'not (test_correlation or test_interpolate)'"
 
     steps:
       - uses: actions/checkout@v2
