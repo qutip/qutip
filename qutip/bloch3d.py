@@ -4,7 +4,7 @@ import numpy as np
 from . import Qobj, expect, sigmax, sigmay, sigmaz
 
 
-class Bloch3d():
+class Bloch3d:
     """Class for plotting data on a 3D Bloch sphere using mayavi.
     Valid data can be either points, vectors, or qobj objects
     corresponding to state vectors or density matrices. for
@@ -48,15 +48,15 @@ class Bloch3d():
         Width of displayed vectors.
     view : list {[45,65]}
         Azimuthal and Elevation viewing angles.
-    xlabel : list {['|x>', '']}
+    xlabel : list {``['|x>', '']``}
         List of strings corresponding to +x and -x axes labels, respectively.
     xlpos : list {[1.07,-1.07]}
         Positions of +x and -x labels respectively.
-    ylabel : list {['|y>', '']}
+    ylabel : list {``['|y>', '']``}
         List of strings corresponding to +y and -y axes labels, respectively.
     ylpos : list {[1.07,-1.07]}
         Positions of +y and -y labels respectively.
-    zlabel : list {['|0>', '|1>']}
+    zlabel : list {``['|0>', '|1>']``}
         List of strings corresponding to +z and -z axes labels, respectively.
     zlpos : list {[1.07,-1.07]}
         Positions of +z and -z labels respectively.
@@ -144,8 +144,6 @@ class Bloch3d():
         # Object used for representing vectors on Bloch sphere.
         # List of colors for Bloch vectors, default = ['b','g','r','y']
         self.vector_color = ['r', 'g', 'b', 'y']
-        # Transparency of vectors
-        self.vector_alpha = 1.0
         # Width of Bloch vectors, default = 2
         self.vector_width = 2.0
         # Height of vector head
@@ -172,6 +170,10 @@ class Bloch3d():
         self.savenum = 0
         # Style of points, 'm' for multiple colors, 's' for single color
         self.point_style = []
+        # Transparency of points
+        self.point_alpha = []
+        # Transparency of vectors
+        self.vector_alpha = []
 
     def __str__(self):
         s = ""
@@ -200,7 +202,6 @@ class Bloch3d():
         s += "sphere_alpha:       " + str(self.sphere_alpha) + "\n"
         s += "sphere_color:       " + str(self.sphere_color) + "\n"
         s += "size:               " + str(self.size) + "\n"
-        s += "vector_alpha:       " + str(self.vector_alpha) + "\n"
         s += "vector_color:       " + str(self.vector_color) + "\n"
         s += "vector_width:       " + str(self.vector_width) + "\n"
         s += "vector_head_height: " + str(self.vector_head_height) + "\n"
@@ -221,7 +222,7 @@ class Bloch3d():
         self.vectors = []
         self.point_style = []
 
-    def add_points(self, points, meth='s'):
+    def add_points(self, points, meth='s', alpha=1.0):
         """Add a list of data points to bloch sphere.
 
         Parameters
@@ -231,6 +232,9 @@ class Bloch3d():
 
         meth : str {'s','m'}
             Type of points to plot, use 'm' for multicolored.
+
+        alpha : float, default=1.
+            Transparency value for the vectors. Values between 0 and 1.
 
         """
         if not isinstance(points[0], (list, np.ndarray)):
@@ -248,8 +252,9 @@ class Bloch3d():
         else:
             self.points.append(points)
             self.point_style.append('m')
+        self.point_alpha.append(alpha)
 
-    def add_states(self, state, kind='vector'):
+    def add_states(self, state, kind='vector', alpha=1.0):
         """Add a state vector Qobj to Bloch sphere.
 
         Parameters
@@ -260,6 +265,8 @@ class Bloch3d():
         kind : str {'vector','point'}
             Type of object to plot.
 
+        alpha : float, default=1.
+            Transparency value for the vectors. Values between 0 and 1.
         """
         if isinstance(state, Qobj):
             state = [state]
@@ -267,13 +274,13 @@ class Bloch3d():
             if kind == 'vector':
                 vec = [expect(sigmax(), st), expect(sigmay(), st),
                        expect(sigmaz(), st)]
-                self.add_vectors(vec)
+                self.add_vectors(vec, alpha=alpha)
             elif kind == 'point':
                 pnt = [expect(sigmax(), st), expect(sigmay(), st),
                        expect(sigmaz(), st)]
-                self.add_points(pnt)
+                self.add_points(pnt, alpha=alpha)
 
-    def add_vectors(self, vectors):
+    def add_vectors(self, vectors, alpha=1.0):
         """Add a list of vectors to Bloch sphere.
 
         Parameters
@@ -281,12 +288,17 @@ class Bloch3d():
         vectors : array/list
             Array with vectors of unit length or smaller.
 
+        alpha : float, default=1.
+            Transparency value for the vectors. Values between 0 and 1.
+
         """
         if isinstance(vectors[0], (list, np.ndarray)):
             for vec in vectors:
                 self.vectors.append(vec)
+                self.vector_alpha.append(alpha)
         else:
             self.vectors.append(vectors)
+            self.vector_alpha.append(alpha)
 
     def plot_vectors(self):
         """
@@ -311,7 +323,7 @@ class Bloch3d():
             mlab.plot3d([0, vec[0]], [0, vec[1]], [0, vec[2]],
                         name='vector' + str(ii), tube_sides=100,
                         line_width=self.vector_width,
-                        opacity=self.vector_alpha,
+                        opacity=self.vector_alpha[k],
                         color=color)
 
             cone = tvtk.ConeSource(height=self.vector_head_height,
@@ -319,7 +331,7 @@ class Bloch3d():
                                    resolution=100)
             cone_mapper = tvtk.PolyDataMapper(
                 input_connection=cone.output_port)
-            prop = tvtk.Property(opacity=self.vector_alpha, color=color)
+            prop = tvtk.Property(opacity=self.vector_alpha[k], color=color)
             cc = tvtk.Actor(mapper=cone_mapper, property=prop)
             cc.rotate_z(np.degrees(phi))
             cc.rotate_y(-90 + np.degrees(theta))
@@ -352,7 +364,8 @@ class Bloch3d():
                     self.points[k][0][indperm], self.points[k][1][indperm],
                     self.points[k][2][indperm], figure=self.fig,
                     resolution=100, scale_factor=self.point_size,
-                    mode=self.point_mode, color=color)
+                    mode=self.point_mode, color=color,
+                    opacity=self.point_alpha[k])
 
             elif self.point_style[k] == 'm':
                 pnt_colors = np.array(self.point_color * np.ceil(
@@ -366,7 +379,8 @@ class Bloch3d():
                         self.points[k][2][
                             indperm[kk]], figure=self.fig, resolution=100,
                         scale_factor=self.point_size, mode=self.point_mode,
-                        color=colors.colorConverter.to_rgb(pnt_colors[kk]))
+                        color=colors.colorConverter.to_rgb(pnt_colors[kk]),
+                        opacity=self.point_alpha[k])
 
     def make_sphere(self):
         """
