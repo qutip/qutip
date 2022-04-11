@@ -20,13 +20,6 @@ QobjEvo
 .. autoclass:: qutip.QobjEvo
     :members:
 
-.. _classes-eseries:
-
-eseries
------------------
-
-.. autoclass:: qutip.eseries
-    :members:
 
 .. _classes-bloch:
 
@@ -56,55 +49,55 @@ Cubic Spline
 Non-Markovian Solvers
 ---------------------
 
-.. autoclass:: qutip.nonmarkov.heom.HEOMSolver
+.. autoclass:: qutip.solve.nonmarkov.heom.HEOMSolver
     :members:
 
-.. autoclass:: qutip.nonmarkov.heom.HSolverDL
+.. autoclass:: qutip.solve.nonmarkov.heom.HSolverDL
     :members:
 
-.. autoclass:: qutip.nonmarkov.heom.BathExponent
+.. autoclass:: qutip.solve.nonmarkov.heom.BathExponent
     :members:
 
-.. autoclass:: qutip.nonmarkov.heom.Bath
+.. autoclass:: qutip.solve.nonmarkov.heom.Bath
     :members:
 
-.. autoclass:: qutip.nonmarkov.heom.BosonicBath
+.. autoclass:: qutip.solve.nonmarkov.heom.BosonicBath
     :members:
 
-.. autoclass:: qutip.nonmarkov.heom.DrudeLorentzBath
+.. autoclass:: qutip.solve.nonmarkov.heom.DrudeLorentzBath
     :members:
 
-.. autoclass:: qutip.nonmarkov.heom.DrudeLorentzPadeBath
+.. autoclass:: qutip.solve.nonmarkov.heom.DrudeLorentzPadeBath
     :members:
 
-.. autoclass:: qutip.nonmarkov.heom.UnderDampedBath
+.. autoclass:: qutip.solve.nonmarkov.heom.UnderDampedBath
     :members:
 
-.. autoclass:: qutip.nonmarkov.heom.FermionicBath
+.. autoclass:: qutip.solve.nonmarkov.heom.FermionicBath
     :members:
 
-.. autoclass:: qutip.nonmarkov.heom.LorentzianBath
+.. autoclass:: qutip.solve.nonmarkov.heom.LorentzianBath
     :members:
 
-.. autoclass:: qutip.nonmarkov.heom.LorentzianPadeBath
+.. autoclass:: qutip.solve.nonmarkov.heom.LorentzianPadeBath
     :members:
 
-.. autoclass:: qutip.nonmarkov.heom.HierarchyADOs
+.. autoclass:: qutip.solve.nonmarkov.heom.HierarchyADOs
     :members:
 
-.. autoclass:: qutip.nonmarkov.heom.HierarchyADOsState
+.. autoclass:: qutip.solve.nonmarkov.heom.HierarchyADOsState
     :members:
 
-.. autoclass:: qutip.nonmarkov.dlheom_solver.HSolverDL
+.. autoclass:: qutip.solve.nonmarkov.dlheom_solver.HSolverDL
     :members:
 
-.. autoclass:: qutip.nonmarkov.dlheom_solver.HEOMSolver
+.. autoclass:: qutip.solve.nonmarkov.dlheom_solver.HEOMSolver
     :members:
 
-.. autoclass:: qutip.nonmarkov.memorycascade.MemoryCascade
+.. autoclass:: qutip.solve.nonmarkov.memorycascade.MemoryCascade
     :members:
 
-.. autoclass:: qutip.nonmarkov.transfertensor.TTMSolverOptions
+.. autoclass:: qutip.solve.nonmarkov.transfertensor.TTMSolverOptions
     :members:
 
 
@@ -113,22 +106,22 @@ Non-Markovian Solvers
 Solver Options and Results
 ---------------------------
 
-.. autoclass:: qutip.solver.ExpectOps
+.. autoclass:: qutip.solve.solver.ExpectOps
     :members:
 
-.. autoclass:: qutip.solver.Options
+.. autoclass:: qutip.solve.solver.SolverOptions
     :members:
 
-.. autoclass:: qutip.solver.Result
+.. autoclass:: qutip.solve.solver.Result
     :members:
 
-.. autoclass:: qutip.solver.SolverConfiguration
+.. autoclass:: qutip.solve.solver.SolverConfiguration
     :members:
 
-.. autoclass:: qutip.solver.Stats
+.. autoclass:: qutip.solve.solver.Stats
     :members:
 
-.. autoclass:: qutip.stochastic.StochasticSolverOptions
+.. autoclass:: qutip.solve.stochastic.StochasticSolverOptions
     :members:
 
 .. _classes-piqs:
@@ -136,19 +129,13 @@ Solver Options and Results
 Permutational Invariance
 ------------------------
 
-.. autoclass:: qutip.piqs.Dicke
+.. autoclass:: qutip.solve.piqs.Dicke
     :members:
 
-.. autoclass:: qutip.piqs.Pim
+.. autoclass:: qutip.solve.piqs.Pim
     :members:
 
 .. _classes-distributions:
-
-One-Dimensional Lattice
------------------------
-
-.. autoclass:: qutip.lattice.Lattice1d
-    :members:
 
 Distribution functions
 ----------------------------

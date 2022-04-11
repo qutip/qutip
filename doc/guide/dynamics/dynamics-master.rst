@@ -38,7 +38,7 @@ For example, the time evolution of a quantum spin-1/2 system with tunneling rate
 
 The brackets in the fourth argument is an empty list of collapse operators, since we consider unitary evolution in this example. See the next section for examples on how dissipation is included by defining a list of collapse operators.
 
-The function returns an instance of :class:`qutip.solver.Result`, as described in the previous section :ref:`solver_result`. The attribute ``expect`` in ``result`` is a list of expectation values for the operators that are included in the list in the fifth argument. Adding operators to this list results in a larger output list returned by the function (one array of numbers, corresponding to the times in times, for each operator)
+The function returns an instance of :class:`qutip.solve.solver.Result`, as described in the previous section :ref:`solver_result`. The attribute ``expect`` in ``result`` is a list of expectation values for the operators that are included in the list in the fifth argument. Adding operators to this list results in a larger output list returned by the function (one array of numbers, corresponding to the times in times, for each operator)
 
 .. plot::
     :context:
@@ -72,7 +72,7 @@ The resulting list of expectation values can easily be visualized using matplotl
     >>> ax.legend(("Sigma-Z", "Sigma-Y")) # doctest: +SKIP
     >>> plt.show() # doctest: +SKIP
 
-If an empty list of operators is passed as fifth parameter, the :func:`qutip.mesolve` function returns a :class:`qutip.solver.Result` instance that contains a list of state vectors for the times specified in ``times``
+If an empty list of operators is passed as fifth parameter, the :func:`qutip.mesolve` function returns a :class:`qutip.solve.solver.Result` instance that contains a list of state vectors for the times specified in ``times``
 
 .. plot::
     :context: close-figs
@@ -179,7 +179,7 @@ the previously empty list in the fourth parameter to the :func:`qutip.mesolve` f
     >>> plt.show() # doctest: +SKIP
 
 
-Here, 0.05 is the rate and the operator :math:`\sigma_x` (:func:`qutip.operators.sigmax`) describes the dissipation
+Here, 0.05 is the rate and the operator :math:`\sigma_x` (:func:`qutip.sigmax`) describes the dissipation
 process.
 
 Now a slightly more complex example: Consider a two-level atom coupled to a leaky single-mode cavity through a dipole-type interaction, which supports a coherent exchange of quanta between the two systems. If the atom initially is in its groundstate and the cavity in a 5-photon Fock state, the dynamics is calculated with the lines following code

@@ -6,15 +6,15 @@ Setting Options for the Dynamics Solvers
 
 .. testsetup:: [dynamics_options]
 
-   from qutip import Options
+   from qutip import SolverOptions
 
    import numpy as np
 
-Occasionally it is necessary to change the built in parameters of the dynamics solvers used by for example the :func:`qutip.mesolve` and :func:`qutip.mcsolve` functions.  The options for all dynamics solvers may be changed by using the Options class :class:`qutip.solver.Options`.
+Occasionally it is necessary to change the built in parameters of the dynamics solvers used by for example the :func:`qutip.mesolve` and :func:`qutip.mcsolve` functions.  The options for all dynamics solvers may be changed by using the SolverOptions class :class:`qutip.solve.solver.SolverOptions`.
 
 .. testcode:: [dynamics_options]
 
-   options = Options()
+   options = SolverOptions()
 
 the properties and default values of this class can be view via the `print` function:
 
@@ -51,7 +51,7 @@ the properties and default values of this class can be view via the `print` func
   store_states:      False
   store_final_state: False
 
-These properties are detailed in the following table.  Assuming ``options = Options()``:
+These properties are detailed in the following table.  Assuming ``options = SolverOptions()``:
 
 .. cssclass:: table-striped
 
@@ -111,11 +111,11 @@ These properties are detailed in the following table.  Assuming ``options = Opti
 | options.use_openmp          | None            | Use OPENMP for sparse matrix vector multiplication.            |
 +-----------------------------+-----------------+----------------------------------------------------------------+
 
-As an example, let us consider changing the number of processors used, turn the GUI off, and strengthen the absolute tolerance.  There are two equivalent ways to do this using the Options class.  First way,
+As an example, let us consider changing the number of processors used, turn the GUI off, and strengthen the absolute tolerance.  There are two equivalent ways to do this using the SolverOptions class.  First way,
 
 .. testcode:: [dynamics_options]
 
-    options = Options()
+    options = SolverOptions()
     options.num_cpus = 3
     options.atol = 1e-10
 
@@ -123,7 +123,7 @@ or one can use an inline method,
 
 .. testcode:: [dynamics_options]
 
-    options = Options(num_cpus=4, atol=1e-10)
+    options = SolverOptions(num_cpus=4, atol=1e-10)
 
 Note that the order in which you input the options does not matter.  Using either method, the resulting `options` variable is now:
 

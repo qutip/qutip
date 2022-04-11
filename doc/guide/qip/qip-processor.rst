@@ -7,7 +7,7 @@ Pulse-level circuit simulation
 Modelling quantum hardware with Processor
 -----------------------------------------
 
-Based on the open system solver, :class:`~qutip.qip.device.Processor` in the :mod:`qutip.qip` module simulates quantum circuits at the level of time evolution. One can consider the processor as a simulator of a quantum device, on which the quantum circuit is to be implemented. 
+Based on the open system solver, :class:`~qutip.qip.device.Processor` in the :mod:`qutip.qip` module simulates quantum circuits at the level of time evolution. One can consider the processor as a simulator of a quantum device, on which the quantum circuit is to be implemented.
 
 The procedure is illustrated in the figure below.
 It first compiles circuit into a Hamiltonian model, adds noisy dynamics and then uses the QuTiP open time evolution solvers to simulation the evolution.
@@ -65,7 +65,7 @@ Despite this difference, the logic behind all processors is the same:
 
 * The control pulse coefficients and time slices are either specified by the user or calculated by the method :meth:`~qutip.qip.device.Processor.load_circuit`, which takes a :class:`~qutip.qip.circuit.QubitCircuit` and find the control pulse for this evolution.
 
-* The processor calculates the evolution using the QuTiP solvers. Collapse operators can be added to simulate decoherence. The method :meth:`~qutip.qip.device.Processor.run_state` returns a object :class:`qutip.solver.Result`.
+* The processor calculates the evolution using the QuTiP solvers. Collapse operators can be added to simulate decoherence. The method :meth:`~qutip.qip.device.Processor.run_state` returns a object :class:`qutip.solve.solver.Result`.
 
 It is also possible to calculate the evolution analytically with matrix exponentiation by setting ``analytical=True``. A list of the matrices representing the gates is returned just like for :meth:`~qutip.qip.circuit.QubitCircuit.propagators`. However, this does not consider the collapse operators or other noise. As the system size gets larger, this approach will become very inefficient.
 
@@ -141,8 +141,7 @@ To let it find the optimal pulses, we need to give the parameters for :func:`~qu
 .. testcode::
 
       from qutip.qip.device import OptPulseProcessor
-      from qutip.operators import sigmaz, sigmax, sigmay
-      from qutip.tensor import tensor
+      from qutip import sigmaz, sigmax, sigmay, tensor
 
       # Same parameter for all the gates
       qc = QubitCircuit(N=1)
@@ -184,7 +183,7 @@ Compiler and scheduler
 In order to simulate quantum circuits at the level of time evolution.
 We need to first compile the circuit into the Hamiltonian model, i.e.
 the control pulses.
-Hence each :class:`~qutip.qip.device.Processor` has a corresponding 
+Hence each :class:`~qutip.qip.device.Processor` has a corresponding
 :class:`~qutip.qip.compiler.GateCompiler` class.
 The compiler takes a :class:`~qutip.qip.circuit.QubitCircuit`
 and returns the compiled ``tlist`` and ``coeffs``.
@@ -363,9 +362,9 @@ The second example demonstrates a biased Gaussian noise on the pulse amplitude. 
 
     # Plot the noisy pulse
     qobjevo, _ = processor.get_qobjevo(noisy=True)
-    noisy_coeff = qobjevo.to_list()[1][1] + qobjevo.to_list()[2][1]
-    fig2, axis2 = processor.plot_pulses(title="Noisy control amplitude", figsize=(5,3))
-    axis2[0].step(qobjevo.tlist, noisy_coeff)
+    # noisy_coeff = qobjevo.to_list()[1][1] + qobjevo.to_list()[2][1]
+    # fig2, axis2 = processor.plot_pulses(title="Noisy control amplitude", figsize=(5,3))
+    # axis2[0].step(qobjevo.tlist, noisy_coeff)
 
 
 Customize the simulator

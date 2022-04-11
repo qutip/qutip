@@ -18,8 +18,8 @@ a Padé expansion), how to evolve the system in time, and how to calculate
 the steady state.
 
 First we will do this in the simplest way, using the built-in implementations of
-the two bath expansions, :class:`~qutip.nonmarkov.heom.DrudeLorentzBath` and
-:class:`~qutip.nonmarkov.heom.DrudeLorentzPadeBath`. We will do this both with a
+the two bath expansions, :class:`~qutip.solve.nonmarkov.heom.DrudeLorentzBath` and
+:class:`~qutip.solve.nonmarkov.heom.DrudeLorentzPadeBath`. We will do this both with a
 truncated expansion and show how to include an approximation to all of the
 remaining terms in the bath expansion.
 
@@ -74,16 +74,16 @@ the parameters of a Drude-Lorentz bath, and ``Q`` is the coupling operator
 between the system and the bath.
 
 We may the pass these parameters to either
-:class:`~qutip.nonmarkov.heom.DrudeLorentzBath` or
-:class:`~qutip.nonmarkov.heom.DrudeLorentzPadeBath` to construct an expansion of
+:class:`~qutip.solve.nonmarkov.heom.DrudeLorentzBath` or
+:class:`~qutip.solve.nonmarkov.heom.DrudeLorentzPadeBath` to construct an expansion of
 the bath correlations:
 
 .. plot::
     :context:
     :nofigs:
 
-    from qutip.nonmarkov.heom import DrudeLorentzBath
-    from qutip.nonmarkov.heom import DrudeLorentzPadeBath
+    from qutip.solve.nonmarkov.heom import DrudeLorentzBath
+    from qutip.solve.nonmarkov.heom import DrudeLorentzPadeBath
 
     # Number of expansion terms to retain:
     Nk = 2
@@ -109,11 +109,11 @@ Now we are ready to construct a solver:
     :context:
     :nofigs:
 
-    from qutip.nonmarkov.heom import HEOMSolver
-    from qutip import Options
+    from qutip.solve.nonmarkov.heom import HEOMSolver
+    from qutip import SolverOptions
 
     max_depth = 5  # maximum hierarchy depth to retain
-    options = Options(nsteps=15_000)
+    options = SolverOptions(nsteps=15_000)
 
     solver = HEOMSolver(H_sys, bath, max_depth=max_depth, options=options)
 
@@ -135,7 +135,7 @@ The ``result`` is a standard QuTiP results object with the attributes:
 - ``states``: the system states at each time
 - ``expect``: the values of each ``e_ops`` at each time
 - ``ado_states``: see below (an instance of
-  :class:`~qutip.nonmarkov.heom.HierarchyADOsState`)
+  :class:`~qutip.solve.nonmarkov.heom.HierarchyADOsState`)
 
 If ``ado_return=True`` is passed to ``.run(...)`` the full set of auxilliary
 density operators (ADOs) that make up the hierarchy at each time will be
@@ -193,7 +193,7 @@ combined system and bath using:
 where ``steady_state`` is the steady state of the system and ``steady_ados``
 if the steady state of the full hierarchy. The ADO states are
 described more fully in :ref:`heom-determining-currents` and
-:class:`~qutip.nonmarkov.heom.HierarchyADOsState`.
+:class:`~qutip.solve.nonmarkov.heom.HierarchyADOsState`.
 
 
 Matsubara Terminator
@@ -210,8 +210,8 @@ the lower order terms in the expansion.
 This additional term is called the ``terminator`` because it terminates the
 expansion.
 
-The :class:`~qutip.nonmarkov.heom.DrudeLorentzBath` and
-:class:`~qutip.nonmarkov.heom.DrudeLorentzPadeBath` both provide a means of
+The :class:`~qutip.solve.nonmarkov.heom.DrudeLorentzBath` and
+:class:`~qutip.solve.nonmarkov.heom.DrudeLorentzPadeBath` both provide a means of
 calculating the terminator for a given expansion:
 
 .. plot::
@@ -243,10 +243,10 @@ Matsubara expansion coefficients
 --------------------------------
 
 So far we have relied on the built-in
-:class:`~qutip.nonmarkov.heom.DrudeLorentzBath` to construct the Drude-Lorentz
+:class:`~qutip.solve.nonmarkov.heom.DrudeLorentzBath` to construct the Drude-Lorentz
 bath expansion for us. Now we will calculate the coefficients ourselves and
-construct a :class:`~qutip.nonmarkov.heom.BosonicBath` directly. A similar
-procedure can be used to apply :class:`~qutip.nonmarkov.heom.HEOMSolver` to any
+construct a :class:`~qutip.solve.nonmarkov.heom.BosonicBath` directly. A similar
+procedure can be used to apply :class:`~qutip.solve.nonmarkov.heom.HEOMSolver` to any
 bosonic bath for which we can calculate the expansion coefficients.
 
 The real and imaginary parts of the correlation function, :math:`C(t)`, for the
@@ -325,21 +325,21 @@ After all that, constructing the bath is very straight forward:
     :context:
     :nofigs:
 
-    from qutip.nonmarkov.heom import BosonicBath
+    from qutip.solve.nonmarkov.heom import BosonicBath
 
     bath = BosonicBath(Q, ck_real, vk_real, ck_imag, vk_imag)
 
 And we're done!
 
-The :class:`~qutip.nonmarkov.heom.BosonicBath` can be used with the
-:class:`~qutip.nonmarkov.heom.HEOMSolver` in exactly the same way as the baths
+The :class:`~qutip.solve.nonmarkov.heom.BosonicBath` can be used with the
+:class:`~qutip.solve.nonmarkov.heom.HEOMSolver` in exactly the same way as the baths
 we constructed previously using the built-in Drude-Lorentz bath expansions.
 
 
 Multiple baths
 --------------
 
-The :class:`~qutip.nonmarkov.heom.HEOMSolver` supports having a system interact
+The :class:`~qutip.solve.nonmarkov.heom.HEOMSolver` supports having a system interact
 with multiple environments. All that is needed is to supply a list of baths
 instead of a single bath.
 

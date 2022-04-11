@@ -9,8 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 pi = np.pi
 from qutip.qip.device import Processor
-from qutip.operators import sigmaz
-from qutip.states import basis
+from qutip import sigmaz, basis
 
 processor = Processor(N=1)
 processor.add_control(sigmaz(), targets=0)

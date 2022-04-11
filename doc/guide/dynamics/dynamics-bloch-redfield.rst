@@ -264,7 +264,7 @@ The two steps of calculating the Bloch-Redfield tensor and evolving according to
 
     output = brmesolve(H, psi0, tlist, a_ops=[[sigmax(),ohmic_spectrum]], e_ops=e_ops)
 
-where the resulting `output` is an instance of the class :class:`qutip.solver.Result`.
+where the resulting `output` is an instance of the class :class:`qutip.solve.solver.Result`.
 
 
 .. _td-bloch-redfield:
@@ -276,7 +276,7 @@ Time-dependent Bloch-Redfield Dynamics
 
     It takes ~3-5 seconds (~30 if using Visual Studio) to compile a time-dependent Bloch-Redfield problem.  Therefore,
     if you are doing repeated simulations by varying parameters, then it is best to pass
-    ``options = Options(rhs_reuse=True)`` to the solver.
+    ``options = SolverOptions()`` to the solver.
 
 If you have not done so already, please read the section: :ref:`time`.
 

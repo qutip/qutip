@@ -7,9 +7,8 @@ Simulating the T2 relaxation of a single qubit with :class:`qutip.qip.device.Pro
 import numpy as np
 import matplotlib.pyplot as plt
 from qutip.qip.device import Processor
-from qutip.operators import sigmaz, destroy
+from qutip import sigmaz, destroy, basis
 from qutip.qip.operations import snot
-from qutip.states import basis
 
 a = destroy(2)
 Hadamard = snot()

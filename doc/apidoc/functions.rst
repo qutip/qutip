@@ -10,14 +10,14 @@ Manipulation and Creation of States and Operators
 Quantum States
 --------------
 
-.. automodule:: qutip.states
+.. automodule:: qutip.core.states
     :members: basis, bell_state, bra, coherent, coherent_dm, enr_state_dictionaries, enr_thermal_dm, enr_fock, fock, fock_dm, ghz_state, maximally_mixed_dm, ket, ket2dm, phase_basis, projection, qutrit_basis, singlet_state, spin_state, spin_coherent, state_number_enumerate, state_number_index, state_index_number, state_number_qobj, thermal_dm, triplet_states, w_state, zero_ket
 
 
 Quantum Operators
 -----------------
 
-.. automodule:: qutip.operators
+.. automodule:: qutip.core.operators
     :members: charge, commutator, create, destroy, displace, enr_destroy, enr_identity, jmat, num, qeye, identity, momentum, phase, position, qdiags, qutrit_ops, qzero, sigmam, sigmap, sigmax, sigmay, sigmaz, spin_Jx, spin_Jy, spin_Jz, spin_Jm, spin_Jp, squeeze, squeezing, tunneling
 
 
@@ -26,7 +26,7 @@ Quantum Operators
 Quantum Objects
 ---------------
 
-.. automodule:: qutip.qobj
+.. automodule:: qutip.core.qobj
     :members: qobj_list_evaluate, ptrace, dag, isequal, issuper, isoper, isoperket, isoperbra, isket, isbra, isherm, shape, dims
 
 
@@ -48,20 +48,20 @@ Three-Level Atoms
 Superoperators and Liouvillians
 -------------------------------
 
-.. automodule:: qutip.superoperator
+.. automodule:: qutip.core.superoperator
     :members: operator_to_vector, vector_to_operator, liouvillian, spost, spre, sprepost, lindblad_dissipator
 
 Superoperator Representations
 -----------------------------
 
-.. automodule:: qutip.superop_reps
+.. automodule:: qutip.core.superop_reps
     :members: super_to_choi, choi_to_super, choi_to_kraus, kraus_to_choi, kraus_to_super, choi_to_chi, chi_to_choi, to_choi, to_chi, to_super, to_kraus, to_stinespring
     :undoc-members:
 
 Operators and Superoperator Dimensions
 --------------------------------------
 
-.. automodule:: qutip.dimensions
+.. automodule:: qutip.core.dimensions
     :members: is_scalar, is_vector, is_vectorized_oper, type_from_dims, flatten, deep_remove, unflatten, collapse_dims_oper, collapse_dims_super, enumerate_flat, deep_map, dims_to_tensor_perm, dims_to_tensor_shape, dims_idxs_to_tensor_idxs
 
 
@@ -71,14 +71,14 @@ Functions acting on states and operators
 Expectation Values
 ------------------
 
-.. automodule:: qutip.expect
+.. automodule:: qutip.core.expect
     :members: expect, variance
 
 
 Tensor
 ------
 
-.. automodule:: qutip.tensor
+.. automodule:: qutip.core.tensor
     :members: tensor, super_tensor, composite, tensor_contract
 
 
@@ -102,7 +102,7 @@ Entropy Functions
 Density Matrix Metrics
 ----------------------
 
-.. automodule:: qutip.metrics
+.. automodule:: qutip.core.metrics
     :members: fidelity, tracedist, bures_dist, bures_angle, hilbert_dist, average_gate_fidelity, process_fidelity
 
 
@@ -129,31 +129,24 @@ Dynamics and Time-Evolution
 Schrödinger Equation
 --------------------
 
-.. automodule:: qutip.sesolve
+.. automodule:: qutip.solver.sesolve
     :members: sesolve
 
 Master Equation
 ---------------
 
-.. automodule:: qutip.mesolve
+.. automodule:: qutip.solver.mesolve
     :members: mesolve
 
 Monte Carlo Evolution
 ---------------------
 
-.. automodule:: qutip.mcsolve
+.. automodule:: qutip.solve.mcsolve
     :members: mcsolve
 
 .. ignore f90 stuff for now
     .. automodule:: qutip.fortran.mcsolve_f90
         :members: mcsolve_f90
-
-
-Exponential Series
-------------------
-
-.. automodule:: qutip.essolve
-    :members: essolve, ode2es
 
 
 Krylov Subspace Solver
@@ -166,79 +159,57 @@ Krylov Subspace Solver
 Bloch-Redfield Master Equation
 ------------------------------
 
-.. automodule:: qutip.bloch_redfield
+.. automodule:: qutip.solve.bloch_redfield
     :members: brmesolve, bloch_redfield_tensor, bloch_redfield_solve
 
 
 Floquet States and Floquet-Markov Master Equation
 -------------------------------------------------
 
-.. automodule:: qutip.floquet
+.. automodule:: qutip.solve.floquet
     :members: fmmesolve, floquet_modes, floquet_modes_t, floquet_modes_table, floquet_modes_t_lookup, floquet_states, floquet_states_t, floquet_wavefunction, floquet_wavefunction_t, floquet_state_decomposition, fsesolve, floquet_master_equation_rates, floquet_master_equation_steadystate, floquet_basis_transform, floquet_markov_mesolve
 
 
 Stochastic Schrödinger Equation and Master Equation
 ---------------------------------------------------
 
-.. automodule:: qutip.stochastic
+.. automodule:: qutip.solve.stochastic
     :members: ssesolve, photocurrent_sesolve, smepdpsolve, smesolve, photocurrent_mesolve, ssepdpsolve, stochastic_solvers, general_stochastic
 
 
 Correlation Functions
 ---------------------
 
-.. automodule:: qutip.correlation
+.. automodule:: qutip.solve.correlation
     :members: correlation, correlation_ss, correlation_2op_1t, correlation_2op_2t, correlation_3op_1t, correlation_3op_2t, correlation_4op_1t, correlation_4op_2t, spectrum, spectrum_ss, spectrum_pi, spectrum_correlation_fft, coherence_function_g1, coherence_function_g2
 
 
 Steady-state Solvers
 --------------------
 
-.. automodule:: qutip.steadystate
+.. automodule:: qutip.solve.steadystate
     :members: steadystate, build_preconditioner
     :undoc-members:
 
 Propagators
 -----------
 
-.. automodule:: qutip.propagator
+.. automodule:: qutip.solve.propagator
     :members: propagator, propagator_steadystate
     :undoc-members:
-
-
-Time-dependent problems
------------------------
-
-.. automodule:: qutip.rhs_generate
-    :members: rhs_generate, rhs_clear
 
 Scattering in Quantum Optical Systems
 -------------------------------------
 
-.. automodule:: qutip.scattering
+.. automodule:: qutip.solve.scattering
     :members: temporal_basis_vector, temporal_scattered_state, scattering_probability
     :undoc-members:
 
 Permutational Invariance
 ------------------------
 
-.. automodule:: qutip.piqs
+.. automodule:: qutip.solve.piqs
     :members: num_dicke_states, num_dicke_ladders, num_tls, isdiagonal, dicke_blocks, dicke_blocks_full, dicke_function_trace, purity_dicke, entropy_vn_dicke, state_degeneracy, m_degeneracy, energy_degeneracy, ap, am, spin_algebra, jspin, collapse_uncoupled, dicke_basis, dicke, excited, superradiant, css, ghz, ground, identity_uncoupled, block_matrix, tau_column,
-
-
-Lattice
-=======
-
-Lattice Properties
-------------------
-.. automodule:: qutip.lattice
-    :members: cell_structures
-
-
-Topology
---------
-.. automodule:: qutip.topology
-    :members: berry_curvature, plot_berry_curvature
 
 
 Visualization
@@ -309,7 +280,7 @@ Circuit
 Non-Markovian Solvers
 =====================
 
-.. automodule:: qutip.nonmarkov.transfertensor
+.. automodule:: qutip.solve.nonmarkov.transfertensor
     :members: ttmsolve
 
 .. _functions-control:
@@ -325,14 +296,6 @@ Optimal control
 
 Utility Functions
 =================
-
-.. _functions-graph:
-
-Graph Theory Routines
----------------------
-
-.. automodule:: qutip.graph
-    :members: breadth_first_search, graph_degree, reverse_cuthill_mckee, maximum_bipartite_matching, weighted_bipartite_matching
 
 
 .. _functions-utilities:
@@ -358,8 +321,8 @@ File I/O Functions
 Parallelization
 ---------------
 
-.. automodule:: qutip.parallel
-    :members: parfor, parallel_map, serial_map
+.. automodule:: qutip.solver.parallel
+    :members: parallel_map, serial_map
 
 
 .. _functions-ipython:
@@ -367,8 +330,9 @@ Parallelization
 Semidefinite Programming
 ------------------------
 
-.. automodule:: qutip.semidefinite
-    :members: complex_var, herm, pos_noherm, pos, dens, kron, conj, bmat, bmat, memoize, qudit_swap, dnorm_problem
+.. Was this removed
+    .. automodule:: qutip.semidefinite
+        :members: complex_var, herm, pos_noherm, pos, dens, kron, conj, bmat, bmat, memoize, qudit_swap, dnorm_problem
 
 
 .. _functions-semidefinite:

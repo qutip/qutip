@@ -235,7 +235,7 @@ The noise spectral-density function of the environment is implemented as a Pytho
     def noise_spectrum(omega):
         return 0.5 * gamma1 * omega/(2*pi)
 
-The other parameters are similar to the :func:`qutip.mesolve` and :func:`qutip.mcsolve`, and the same format for the return value is used :class:`qutip.solver.Result`. The following example extends the example studied above, and uses :func:`qutip.floquet.fmmesolve` to introduce dissipation into the calculation
+The other parameters are similar to the :func:`qutip.mesolve` and :func:`qutip.mcsolve`, and the same format for the return value is used :class:`qutip.solve.solver.Result`. The following example extends the example studied above, and uses :func:`qutip.floquet.fmmesolve` to introduce dissipation into the calculation
 
 .. plot:: guide/scripts/floquet_ex3.py
    :width: 4.0in
