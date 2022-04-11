@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest]
         # Test other versions of Python in special cases to avoid exploding the
         # matrix size; make sure to test all supported versions in some form.
         python-version: ["3.9"]
@@ -76,6 +76,11 @@ jobs:
             python-version: "3.10"
             condaforge: 1
             pytest-extra-options: "-W ignore::ImportWarning -W ignore::DeprecationWarning:cvxpy.interface.scipy_wrapper"
+
+          # Windows
+          - case-name: Windows Latest
+            os: windows-latest
+            pytest-extra-options: "-k 'not test_correlation'"
 
     steps:
       - uses: actions/checkout@v2
