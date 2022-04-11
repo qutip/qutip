@@ -218,18 +218,25 @@ class TestBloch:
             idx += 1
 
             if point_style == 's':
-                # dummy point sorting:
-                indperm = range(len(points[0]))
                 b.axes.scatter(
-                    np.real(points[1][indperm]),
-                    - np.real(points[0][indperm]),
-                    np.real(points[2][indperm]),
+                    np.real(points[1]),
+                    -np.real(points[0]),
+                    np.real(points[2]),
                     s=point_size,
                     alpha=point_alpha,
                     edgecolor=None,
                     zdir='z',
                     color=point_color,
                     marker=point_marker)
+            elif point_style == 'l':
+                b.axes.plot(
+                    np.real(points[1]),
+                    -np.real(points[0]),
+                    np.real(points[2]),
+                    alpha=point_alpha,
+                    zdir='z',
+                    color=point_color,
+                )
             else:
                 raise ValueError(
                     "Tests currently only support point method 's'"
@@ -247,7 +254,16 @@ class TestBloch:
                     np.sin(t),
                 ]
                 for t in np.linspace(0, 2 * np.pi, 20)
-            ]).T, alpha=0.5), id="circle-of-points"),
+            ]).T, alpha=0.5), id="circle-of-points-scatter"),
+        pytest.param(
+            dict(points=np.array([
+                [
+                    np.cos(np.pi / 4) * np.cos(t),
+                    np.sin(np.pi / 4) * np.cos(t),
+                    np.sin(t),
+                ]
+                for t in np.linspace(0, 2 * np.pi, 20)
+            ]).T, meth="l"), id="circle-of-points-line"),
         pytest.param(
             dict(points=(0, 0, 1), alpha=1), id="alpha-opaque"),
         pytest.param(
