@@ -323,6 +323,13 @@ class Bloch:
 
         alpha : float, default=1.
             Transparency value for the vectors. Values between 0 and 1.
+
+        .. note::
+
+           When using ``meth=l`` in QuTiP 4.6, the line transparency defaulted
+           to ``0.75`` and there was no way to alter it.
+           When the ``alpha`` parameter was added in QuTiP 4.7, the default
+           became ``alpha=1.0`` for values of ``meth``.
         """
         if not isinstance(points[0], (list, tuple, ndarray)):
             points = [[points[0]], [points[1]], [points[2]]]
