@@ -536,7 +536,7 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
     problem, Jr, Ji, *_ = dnorm_problem(dim)
 
     # Load the parameters with the Choi matrix passed in.
-    J_dat = _data.to('csr', J.data).to_scipy()
+    J_dat = _data.to('csr', J.data).as_scipy()
 
     if not sparse:
         # The parameters and constraints only depend on the dimension, so
