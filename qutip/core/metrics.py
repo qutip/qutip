@@ -19,7 +19,8 @@ from .superop_reps import (to_kraus, to_choi, _to_superpauli, to_super,
 from .superoperator import operator_to_vector, vector_to_operator
 from .operators import qeye
 from .states import ket2dm
-from .semidefinite import dnorm_problem
+from .semidefinite import dnorm_problem, dnorm_sparse_problem
+from . import data as _data
 
 try:
     import cvxpy
@@ -535,7 +536,7 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
     problem, Jr, Ji, *_ = dnorm_problem(dim)
 
     # Load the parameters with the Choi matrix passed in.
-    J_dat = J.data
+    J_dat = _data.to('csr', J.data).to_scipy()
 
     if not sparse:
         # The parameters and constraints only depend on the dimension, so
