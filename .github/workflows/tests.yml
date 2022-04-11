@@ -138,7 +138,7 @@ jobs:
             # truly being executed.
             export QUTIP_NUM_PROCESSES=2
           fi
-          pytest -Werror --strict-config --strict-markers --timeout=300 --durations=0 --durations-min=1.0 --verbosity=1 --cov=qutip --cov-report= --color=yes ${{ matrix.pytest-extra-options }} qutip/tests
+          pytest --strict-config --strict-markers --timeout=300 --durations=0 --durations-min=1.0 --verbosity=1 --cov=qutip --cov-report= --color=yes ${{ matrix.pytest-extra-options }} qutip/tests
           # Above flags are:
           #  -Werror
           #     treat warnings as errors
