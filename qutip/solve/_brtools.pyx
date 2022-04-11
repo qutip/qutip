@@ -1,6 +1,5 @@
 #cython: language_level=3
 
-from qutip.cy.brtools cimport spec_func
 from libc.math cimport fabs, fmin
 from libc.float cimport DBL_MAX
 from libc.string cimport memset
