@@ -114,11 +114,11 @@ class TestSubsysApply(object):
         analytic_result[1] = Qobj(
             vector_to_operator(
                 superop @ operator_to_vector(analytic_result[1])
-            ))#.full())
+            ))
         analytic_result[3] = Qobj(
             vector_to_operator(
                 superop @ operator_to_vector(analytic_result[3])
-            ))#.full())
+            ))
         analytic_result = tensor(analytic_result)
 
         naive_result = subsystem_apply(rho_input, superop,
