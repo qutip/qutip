@@ -353,8 +353,11 @@ def floquet_wavefunction(f_modes_t, f_energies, f_coeff, t):
         The wavefunction for the time :math:`t`.
 
     """
-    return sum([f_modes_t[i] * exp(-1j * f_energies[i] * t) * f_coeff[i]
-                for i in np.arange(len(f_energies))])
+    return sum(
+        [f_modes_t[i] * exp(-1j * f_energies[i] * t) * f_coeff[i]
+         for i in np.arange(1, len(f_energies))],
+        start=f_modes_t[0] * exp(-1j * f_energies[0] * t) * f_coeff[0]
+    )
 
 
 def floquet_wavefunction_t(f_modes_0, f_energies, f_coeff, t, H, T, args=None,
@@ -398,8 +401,10 @@ def floquet_wavefunction_t(f_modes_0, f_energies, f_coeff, t, H, T, args=None,
 
     f_states_t = floquet_states_t(f_modes_0, f_energies, t, H, T, args,
                                   options=options)
-    return sum([f_states_t[i] * f_coeff[i]
-                for i in np.arange(len(f_energies))])
+    return sum(
+        [f_states_t[i] * f_coeff[i] for i in np.arange(1, len(f_energies))],
+        start = f_states_t[0] * f_coeff[0]
+    )
 
 
 def floquet_state_decomposition(f_states, f_energies, psi):

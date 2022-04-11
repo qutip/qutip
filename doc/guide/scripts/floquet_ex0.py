@@ -13,7 +13,7 @@ psi0   = qutip.basis(2, 0)
 q_energies = np.zeros((len(A_vec), 2))
 
 H0 = delta/2.0 * qutip.sigmaz() - eps0/2.0 * qutip.sigmax()
-args = omega
+args = {'w': omega}
 for idx, A in enumerate(A_vec):
     H1 = A/2.0 * qutip.sigmax()
     H = [H0, [H1, lambda t, w: np.sin(w*t)]]
