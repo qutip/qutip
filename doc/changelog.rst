@@ -36,8 +36,7 @@ Improvements
 - Added the function ``steadystate_floquet``, which returns the "effective" steadystate of a periodic driven system. (`#1660 <https://github.com/qutip/qutip/pull/1660>`_ by Alberto Mercurio)
 - Improved mcsolve memory efficiency by not storing final states when they are not needed. (`#1669 <https://github.com/qutip/qutip/pull/1669>`_ by Eric Giguère)
 - Improved the default colors and styling of matrix_histogram and provided additional styling options. (`#1573 <https://github.com/qutip/qutip/pull/1573>`_ and `#1628 <https://github.com/qutip/qutip/pull/1628>`_ by Mahdi Aslani)
-- Sped up ``state_number_enumerate``, ``state_number_index``, ``state_index_number``, and added some error checking. (`#1604 <https://github.com/qutip/qutip/pull/1604>`_ by Johannes Feist)
-Made enr_state_dictionaries return a list for idx2state.
+- Sped up ``state_number_enumerate``, ``state_number_index``, ``state_index_number``, and added some error checking. ``enr_state_dictionaries`` now returns a list for ``idx2state``. (`#1604 <https://github.com/qutip/qutip/pull/1604>`_ by Johannes Feist)
 - Added new Husimi Q algorithms, improving the speed for density matrices, and giving a near order-of-magnitude improvement when calculating the Q function for many different states, using the new ``qutip.QFunc`` class, instead of the ``qutip.qfunc`` function. (`#934 <https://github.com/qutip/qutip/pull/934>`_ and `#1583 <https://github.com/qutip/qutip/pull/1583>`_ by Daniel Weigand and Jake Lishman)
 - Updated licence holders with regards to new governance model, and remove extraneous licensing information from source files. (`#1579 <https://github.com/qutip/qutip/pull/1579>`_ by Jake Lishman)
 - Removed the vendored copy of LaTeX's qcircuit package which is GPL licensed. We now rely on the package being installed by user. It is installed by default with TexLive. (`#1580 <https://github.com/qutip/qutip/pull/1580>`_ by Jake Lishman)
