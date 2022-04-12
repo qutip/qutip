@@ -48,7 +48,7 @@ Bug Fixes
 - Changed implementation of ``qutip.orbital`` to use ``scipy.special.spy_harm`` to remove bugs in angle interpretation. (`#1844 <https://github.com/qutip/qutip/pull/1844>`_ by Christian Staufenbiel)
 - Fixed ``QobjEvo.tidyup`` to use ``settings.auto_tidyup_atol`` when removing small elements in sparse matrices. (`#1832 <https://github.com/qutip/qutip/pull/1832>`_ by Eric Giguère)
 - Ensured that tidyup's default tolerance is read from settings at each call. (`#1830 <https://github.com/qutip/qutip/pull/1830>`_ by Eric Giguère)
-- Fixed ``scipy.sparse`` deprecation warnings raised by ``qutip.fast_csr_matrix``. (`#1827 <https://github.com/qutip/qutip/pull/1818>`_ by Simon Cross)
+- Fixed ``scipy.sparse`` deprecation warnings raised by ``qutip.fast_csr_matrix``. (`#1827 <https://github.com/qutip/qutip/pull/1827>`_ by Simon Cross)
 - Fixed rendering of vectors on the Bloch sphere when using matplotlib 3.5 and above. (`#1818 <https://github.com/qutip/qutip/pull/1818>`_ by Simon Cross)
 - Fixed the displaying of ``Lattice1d`` instances and their unit cells. Previously calling them raised exceptions in simple cases. (`#1819 <https://github.com/qutip/qutip/pull/1819>`_, `#1697 <https://github.com/qutip/qutip/pull/1697>`_ and `#1702 <https://github.com/qutip/qutip/pull/1702>`_ by Simon Cross and Saumya Biswas)
 - Fixed the displaying of the title for ``hinton`` and ``matrix_histogram`` plots when a title is given. Previously the supplied title was not displayed. (`#1707 <https://github.com/qutip/qutip/pull/1707>`_ by Vladimir Vargas-Calderón)
