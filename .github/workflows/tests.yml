@@ -81,7 +81,7 @@ jobs:
           # can be moved to the main os list in the test matrix.
           - case-name: Windows Latest
             os: windows-latest
-            pytest-extra-options: "-k 'not (test_correlation or test_interpolate)'"
+            pytest-extra-options: "-k 'not (test_correlation)'"
 
     steps:
       - uses: actions/checkout@v2
