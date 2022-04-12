@@ -59,6 +59,8 @@ Bug Fixes
 
 Documentation Improvements
 --------------------------
+- Added contributors image to the documentation. (`#1828 <https://github.com/qutip/qutip/pull/1828>`_ by Leonard Assis)
+- Fixed the Theory of Quantum Information bibliography link. (`#1840 <https://github.com/qutip/qutip/pull/1840>`_ by Anto Luketina)
 - Fixed minor grammar errors in the dynamics guide. (`#1822 <https://github.com/qutip/qutip/pull/1822>`_ by Victor Omole)
 - Fixed many small documentation typos. (`#1569 <https://github.com/qutip/qutip/pull/1569>`_ by Ashish Panigrahi)
 - Added Pulser to the list of libraries that use QuTiP. (`#1570 <https://github.com/qutip/qutip/pull/1570>`_ by Ashish Panigrahi)
