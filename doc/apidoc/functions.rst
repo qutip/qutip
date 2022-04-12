@@ -27,7 +27,7 @@ Quantum Objects
 ---------------
 
 .. automodule:: qutip.core.qobj
-    :members: qobj_list_evaluate, ptrace, dag, isequal, issuper, isoper, isoperket, isoperbra, isket, isbra, isherm, shape, dims
+    :members: ptrace, dag, isequal, issuper, isoper, isoperket, isoperbra, isket, isbra, isherm, shape, dims
 
 
 Random Operators and States

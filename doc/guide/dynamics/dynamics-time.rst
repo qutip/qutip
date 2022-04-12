@@ -13,8 +13,8 @@ we assumed that the systems under consideration were described by time-independe
 However, many systems have explicit time dependence in either the Hamiltonian,
 or the collapse operators describing coupling to the environment, and sometimes both components might depend on time.
 The time-evolutions  solvers
-:func:`qutip.mesolve`, :func:`qutip.mcsolve`, :func:`qutip.sesolve`, :func:`qutip.brmesolve`
-:func:`qutip.ssesolve`, :func:`qutip.photocurrent_sesolve`, :func:`qutip.smesolve`, and :func:`qutip.photocurrent_mesolve`
+:func:`qutip.solve.mesolve`, :func:`qutip.solve.mcsolve`, :func:`qutip.solve.sesolve`, :func:`qutip.solve.brmesolve`
+:func:`qutip.solve.ssesolve`, :func:`qutip.solve.photocurrent_sesolve`, :func:`qutip.solve.smesolve`, and :func:`qutip.solve.photocurrent_mesolve`
 are all capable of handling time-dependent Hamiltonians and collapse terms.
 There are, in general, three different ways to implement time-dependent problems in QuTiP:
 
@@ -33,7 +33,7 @@ In short, the function based method (option #1) is the most general,
 allowing for essentially arbitrary coefficients expressed via user defined functions.
 However, by automatically compiling your system into C++ code,
 the second option (string based) tends to be more efficient and will run faster
-[This is also the only format that is supported in the :func:`qutip.brmesolve` solver].
+[This is also the only format that is supported in the :func:`qutip.solve.brmesolve` solver].
 Of course, for small system sizes and evolution times, the difference will be minor.
 Although this method does not support all time-dependent coefficients that one can think of,
 it does support essentially all problems that one would typically encounter.
@@ -415,8 +415,8 @@ pre-generated Hamiltonian constructed using the :func:`qutip.rhs_generate` comma
 .. plot::
    :context:
 
-   opts = SolverOptions()
-   rhs_generate(H_td, c_ops, Hargs, name='lz_func')
+   # opts = SolverOptions()
+   # rhs_generate(H_td, c_ops, Hargs, name='lz_func')
 
 Here, we have given the generated file a custom name ``lz_func``, however this is not necessary as a generic name will automatically be given.  Now we define the function ``task`` that is called by :func:`qutip.parallel.parfor` with the m-index parallelized in loop over the elements of ``p_mat[m,n]``:
 

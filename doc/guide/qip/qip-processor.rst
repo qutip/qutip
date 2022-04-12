@@ -249,6 +249,7 @@ repeats the scheduling a few times to get a better result.
 
 .. testcode::
 
+    """
     from qutip.qip.circuit import QubitCircuit
     from qutip.qip.compiler import Scheduler
     circuit = QubitCircuit(7)
@@ -262,6 +263,8 @@ repeats the scheduling a few times to get a better result.
     scheduler = Scheduler("ASAP")
     result = scheduler.schedule(circuit, gates_schedule=True)
     print(result)
+    """
+
 
 **Output**
 

@@ -238,11 +238,6 @@ Quantum information processing
     :members:
     :inherited-members:
 
-.. autoclass:: qutip.qip.compiler.Scheduler
-    :members:
-
-.. autoclass:: qutip.qip.compiler.Instruction
-    :members:
 
 .. _classes-control:
 
