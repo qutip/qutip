@@ -79,13 +79,13 @@ def test_exact_solution_for_simple_methods(method, kwargs):
     # this tests that simple methods correctly determine the steadystate
     # with high accuracy for a small Liouvillian requiring correct weighting.
     H = qutip.identity(2)
-    c_ops = [qutip.sigmam(), 1e-8 * qutip.sigmap()]
+    c_ops = [qutip.sigmam(), 1e-5 * qutip.sigmap()]
     rho_ss = qutip.steadystate(H, c_ops, method=method, **kwargs)
     expected_rho_ss = np.array([
-        [1.e-16+0.j, 0.e+00-0.j],
+        [1.e-10+0.j, 0.e+00-0.j],
         [0.e+00-0.j, 1.e+00+0.j],
     ])
-    np.testing.assert_allclose(expected_rho_ss, rho_ss.full(), atol=1e-16)
+    np.testing.assert_allclose(expected_rho_ss, rho_ss.full(), atol=1e-14)
     assert rho_ss.tr() == pytest.approx(1, abs=1e-14)
 
 
@@ -97,7 +97,7 @@ def test_exact_solution_for_simple_methods(method, kwargs):
     pytest.param('power-gmres', {'mtol':1e-1, 'use_precond':1}, id="power-gmres"),
     pytest.param('power-bicgstab', {'use_precond':1}, id="power-bicgstab"),
     pytest.param('iterative-lgmres', {'use_precond':1}, id="iterative-lgmres"),
-    pytest.param('iterative-gmres', {}, id="iterative-gmres"),
+    pytest.param('iterative-gmres', {'weight': 1}, id="iterative-gmres"),
     pytest.param('iterative-bicgstab', {}, id="iterative-bicgstab"),
 ])
 def test_ho(method, kwargs):
@@ -135,7 +135,7 @@ def test_ho(method, kwargs):
                  id="power-gmres"),
     pytest.param('power-bicgstab', {'use_precond':1, 'M':'power'},
                  id="power-bicgstab"),
-    pytest.param('iterative-gmres', {}, id="iterative-gmres"),
+    pytest.param('iterative-gmres', {'weight': 1}, id="iterative-gmres"),
     pytest.param('iterative-bicgstab', {}, id="iterative-bicgstab"),
 ])
 def test_driven_cavity(method, kwargs):

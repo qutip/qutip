@@ -78,17 +78,29 @@ def _permute(matrix, rows, cols):
     # input.  To handle CSC matrices here, we always use the data-layer type
     # CSR, but switch the rows and cols in the permutation if we actually want
     # a CSC, and take care to output the transpose of the transpose at the end.
-    shape = matrix.shape
-    if isinstance(matrix, scipy.sparse.csc_matrix):
-        rows, cols = cols, rows
-        shape = (shape[1], shape[0])
-    temp = _data.CSR((matrix.data, matrix.indices, matrix.indptr),
-                     shape=shape)
-    temp = _data.permute.indices_csr(temp, rows, cols).as_scipy()
-    if isinstance(matrix, scipy.sparse.csr_matrix):
-        return temp
-    return scipy.sparse.csc_matrix((temp.data, temp.indices, temp.indptr),
-                                   shape=matrix.shape)
+    if isinstance(matrix, _data.Data):
+        as_np = matrix.to_array()
+    elif scipy.sparse.issparse(matrix):
+        as_np = matrix.todense()
+    elif isinstance(perm, np.ndarray):
+        as_np = matrix
+
+    if not np.any(rows):
+        rows = np.arange(as_np.shape[0])
+    if not np.any(cols):
+        cols = np.arange(as_np.shape[1])
+
+    # Use numpy as a temporary patch.
+    # TODO: restore usage of _data.permute when fixed
+    new = as_np[rows, :][:, cols]
+
+    if isinstance(matrix, _data.Data):
+        return _data.to('csr', _data.Dense(new))
+    elif scipy.sparse.issparse(matrix):
+        print(new)
+        return matrix.__class__(new)
+    elif isinstance(perm, np.ndarray):
+        return new
 
 
 def _profile(graph):
@@ -279,7 +291,7 @@ def steadystate(A, c_op_list=[], method='direct', solver=None, **kwargs):
     maxiter : int, optional, default=1000
         ITERATIVE ONLY. Maximum number of iterations to perform.
 
-   tol : float, default 1e-12
+    tol : float, default 1e-12
         ITERATIVE ONLY. Tolerance used for terminating solver.
 
     mtol : float, optional
@@ -462,10 +474,7 @@ def _steadystate_LU_liouvillian(L, ss_args, has_mkl=0):
         perm2 = scipy.sparse.csgraph.reverse_cuthill_mckee(L)
         _rcm_end = time.time()
         rev_perm = np.argsort(perm2)
-        print(np.round(L.toarray(),3))
         L = _permute(L, perm2, perm2)
-        print(np.round(L.toarray(),3))
-        print()
         ss_args['info']['perm'].append('rcm')
         ss_args['info']['rcm_time'] = _rcm_end-_rcm_start
         if settings.install['debug']:
