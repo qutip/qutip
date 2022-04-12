@@ -1550,15 +1550,6 @@ class DynamicsUnitary(Dynamics):
             eig_val, eig_vec = _data.eigs(_data.to(_type, H.data))
             eig_vec = eig_vec.to_array()
 
-            #eig_val, eig_vec = H.eigenstates(sparse=self.sparse_eigen_decomp)
-            #eig_vec = eig_vec.full()
-            #eig_vec = eig_vec.T
-            #if self.sparse_eigen_decomp:
-                # when sparse=True, sp_eigs returns an ndarray where each
-                # element is a sparse matrix so we convert it into a sparse
-                # matrix we can later pass to Qobj(...)
-            #    eig_vec = sp.hstack(eig_vec)
-
         elif self.oper_dtype == np.ndarray:
             H = self._dyn_gen[k]
             # returns row vector of eigenvals, columns with the eigenvecs
