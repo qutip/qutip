@@ -97,7 +97,7 @@ def test_exact_solution_for_simple_methods(method, kwargs):
     pytest.param('power-gmres', {'mtol':1e-1, 'use_precond':1}, id="power-gmres"),
     pytest.param('power-bicgstab', {'use_precond':1}, id="power-bicgstab"),
     pytest.param('iterative-lgmres', {'use_precond':1}, id="iterative-lgmres"),
-    pytest.param('iterative-gmres', {'weight': 1}, id="iterative-gmres"),
+    pytest.param('iterative-gmres', {}, id="iterative-gmres"),
     pytest.param('iterative-bicgstab', {}, id="iterative-bicgstab"),
 ])
 def test_ho(method, kwargs):

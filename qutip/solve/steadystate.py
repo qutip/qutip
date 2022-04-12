@@ -388,7 +388,8 @@ def steadystate(A, c_op_list=[], method='direct', solver=None, **kwargs):
     # Set weight parameter to max abs val in L if not set explicitly
     if 'weight' not in kwargs.keys():
         # set the weight to the mean of the non-zero absoluate values in A:
-        ss_args['weight'] = np.mean(np.abs(A.full().data))
+        A_np = np.abs(A.full())
+        ss_args['weight'] = np.mean(A_np[A_np > 0])
         ss_args['info']['weight'] = ss_args['weight']
 
     if ss_args['method'] == 'direct':
