@@ -1,29 +1,19 @@
 __all__ = ['mcsolve']
 
-import os
 import numpy as np
 from numpy.random import RandomState, randint
-import scipy.sparse as sp
 from scipy.integrate import ode
 from scipy.integrate._ode import zvode
 
-from types import FunctionType, BuiltinFunctionType
-from functools import partial
-from qutip.fastsparse import csr2fast
 from qutip.qobj import Qobj
 from qutip.qobjevo import QobjEvo
-from qutip.parallel import parfor, parallel_map, serial_map
+from qutip.parallel import parallel_map, serial_map
 from qutip.cy.mcsolve import CyMcOde, CyMcOdeDiag
 from qutip.cy.spconvert import dense1D_to_fastcsr_ket
 from qutip.sesolve import sesolve
 from qutip.solver import (Options, Result, ExpectOps,
                           solver_safe, SolverSystem)
-from qutip.settings import debug
 from qutip.ui.progressbar import TextProgressBar, BaseProgressBar
-import qutip.settings
-
-if debug:
-    import inspect
 
 #
 # Internal, global variables for storing references to dynamically loaded
