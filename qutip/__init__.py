@@ -6,15 +6,6 @@ import qutip.version
 from qutip.version import version as __version__
 
 # -----------------------------------------------------------------------------
-# Check if we're in IPython.
-try:
-    __IPYTHON__
-    qutip.settings.ipython = True
-except NameError:
-    qutip.settings.ipython = False
-
-
-# -----------------------------------------------------------------------------
 # Look to see if we are running with OPENMP
 #
 # Set environ variable to determin if running in parallel mode
@@ -30,21 +21,6 @@ else:
     # See Pull #652 for why this is here.
     os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
-import platform
-import scipy
-from packaging import version as pac_version
-from qutip.utilities import _blas_info
-
-is_old_scipy = pac_version.parse(scipy.__version__) < pac_version.parse("1.5")
-qutip.settings.eigh_unsafe = (
-    # macOS OpenBLAS eigh is unstable, see #1288
-    (_blas_info() == "OPENBLAS" and platform.system() == 'Darwin')
-    # The combination of scipy<1.5 and MKL causes wrong results when calling
-    # eigh for big matrices.  See #1495, #1491 and #1498.
-    or (is_old_scipy and (_blas_info() == 'INTEL MKL'))
-)
-
-del platform, _blas_info, scipy, pac_version, is_old_scipy
 # -----------------------------------------------------------------------------
 # setup the cython environment
 #
