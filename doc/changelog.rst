@@ -69,7 +69,7 @@ Documentation Improvements
 
 Developer Changes
 -----------------
-- Add GitHub actions test run on windows-latest. (`#1853 <https://github.com/qutip/qutip/pull/1853>`_ by Simon Cross)
+- Add GitHub actions test run on windows-latest. (`#1853 <https://github.com/qutip/qutip/pull/1853>`_ and `#1855 <https://github.com/qutip/qutip/pull/1855>`_ by Simon Cross)
 - Bumped the version of pillow used to build documentation from 9.0.0 to 9.0.1. (`#1835 <https://github.com/qutip/qutip/pull/1835>`_ by dependabot)
 - Migrated the ``qutip.superop_reps`` tests to pytest. (`#1825 <https://github.com/qutip/qutip/pull/1825>`_ by Felipe Bivort Haiek)
 - Migrated the ``qutip.steadystates`` tests to pytest. (`#1679 <https://github.com/qutip/qutip/pull/1679>`_ by Eric Giguère)
