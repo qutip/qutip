@@ -16,7 +16,7 @@ The Krylov-subspace method is a standard method to approximate quantum dynamics.
 
 	\mathcal{K}_{N}=\operatorname{span}\left\{|\psi\rangle, H|\psi\rangle, \ldots, H^{N-1}|\psi\rangle\right\},
 
-where the dimension math:`N<D` is a parameter of choice. In order to construct an orthornormal basis :math:`B_N` for :math:`\mathcal{K}_{N}`, the simplest algorithmiss the well-known Lanczos algorithm, which provides a sort of Gram-Schmidt procedure that harnesses the fact that orthonormalization needs to be imposed only with respect to the last two vectors in the basis. Written in this basism the time-evolved state can be approximated as
+where the dimension :math:`N<D` is a parameter of choice. In order to construct an orthornormal basis :math:`B_N` for :math:`\mathcal{K}_{N}`, the simplest algorithmiss the well-known Lanczos algorithm, which provides a sort of Gram-Schmidt procedure that harnesses the fact that orthonormalization needs to be imposed only with respect to the last two vectors in the basis. Written in this basism the time-evolved state can be approximated as
 
 .. math::
 	:label: lanczoskrylov
@@ -38,3 +38,6 @@ Although this approximation may fail quickly depending on the properties of the 
 
 Krylov Solver in QuTiP
 ====================
+
+In QuTiP, Krylov-subspace evolution is implemented as the function :func:`qutip.krylovsolve`. Arguments are nearly the same as :func:`qutip.mesolve`
+function for master-equation evolution, except that the initial state must be a ket vector, as oppose to a density matrix, and the additional parameter ``krylov_dim`` that defines the maximum allowed Krylov-subspace dimension. The maximum number of allowed Lanczos partitions can also be determined using the :func:`qutip.solver.options.nsteps` parameter, which defaults to '10000'. 
