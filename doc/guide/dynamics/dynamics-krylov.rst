@@ -21,11 +21,7 @@ where the dimension :math:`N<D` is a parameter of choice. In order to construct 
 .. math::
 	:label: lanczoskrylov
 
-	\begin{aligned}
-    |\psi(t)\rangle=e^{-i H t}|\psi\rangle & \approx \mathbb{P}_{N} e^{-i H t} \mathbb{P}_{N}|\psi\rangle \\
-    &=\mathbb{V}_{N}^{\dagger} e^{-i T_{N} t} \mathbb{V}_{N}|\psi\rangle \\
-    & \equiv\left|\psi_{N}(t)\right\rangle
-    \end{aligned},
+	|\psi(t)\rangle=e^{-iHt}|\psi\rangle\approx\mathbb{P}_{N}e^{-iHt}\mathbb{P}_{N}|\psi\rangle=\mathbb{V}_{N}^{\dagger}e^{-iT_{N}t}\mathbb{V}_{N}|\psi\rangle\equiv\left|\psi_{N}(t)\right\rangle 
 
 where  :math:`T_{N}=\mathbb{V}_{N} H \mathbb{V}_{N}^{\dagger}` is the Hamiltonian reduced to the Krylov subspace (which takes a tridiagonal matrix form), and :math:`\mathbb{V}_{N}^{\dagger}` is the matrix containing the vectors of the Krylov basis as columns.
 
