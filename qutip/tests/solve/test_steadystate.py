@@ -135,7 +135,7 @@ def test_ho(method, kwargs):
                  id="power-gmres"),
     pytest.param('power-bicgstab', {'use_precond':1, 'M':'power'},
                  id="power-bicgstab"),
-    pytest.param('iterative-gmres', {'weight': 1}, id="iterative-gmres"),
+    pytest.param('iterative-gmres', {}, id="iterative-gmres"),
     pytest.param('iterative-bicgstab', {}, id="iterative-bicgstab"),
 ])
 def test_driven_cavity(method, kwargs):
