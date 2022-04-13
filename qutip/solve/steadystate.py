@@ -78,29 +78,26 @@ def _permute(matrix, rows, cols):
     # input.  To handle CSC matrices here, we always use the data-layer type
     # CSR, but switch the rows and cols in the permutation if we actually want
     # a CSC, and take care to output the transpose of the transpose at the end.
-    if isinstance(matrix, _data.Data):
-        as_np = matrix.to_array()
-    elif scipy.sparse.issparse(matrix):
-        as_np = matrix.todense()
-    elif isinstance(perm, np.ndarray):
-        as_np = matrix
-
     if not np.any(rows):
-        rows = np.arange(as_np.shape[0])
+        rows = np.arange(matrix.shape[0])
     if not np.any(cols):
-        cols = np.arange(as_np.shape[1])
+        cols = np.arange(matrix.shape[1])
 
-    # Use numpy as a temporary patch.
-    # TODO: restore usage of _data.permute when fixed
-    new = as_np[rows, :][:, cols]
+    rows = np.argsort(rows)
+    cols = np.argsort(cols)
 
-    if isinstance(matrix, _data.Data):
-        return _data.to('csr', _data.Dense(new))
-    elif scipy.sparse.issparse(matrix):
-        print(new)
-        return matrix.__class__(new)
-    elif isinstance(perm, np.ndarray):
-        return new
+    shape = matrix.shape
+    if isinstance(matrix, scipy.sparse.csc_matrix):
+        rows, cols = cols, rows
+        shape = (shape[1], shape[0])
+    temp = _data.CSR((matrix.data, matrix.indices, matrix.indptr),
+                     shape=shape)
+    temp = _data.permute.indices_csr(temp, rows, cols).as_scipy()
+    if isinstance(matrix, scipy.sparse.csr_matrix):
+        return temp
+    return scipy.sparse.csc_matrix((temp.data, temp.indices, temp.indptr),
+                                   shape=matrix.shape)
+
 
 
 def _profile(graph):
