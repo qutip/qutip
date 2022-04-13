@@ -3,7 +3,7 @@ This module provides solvers for the Lindblad master equation and von Neumann
 equation.
 """
 
-__all__ = ['mesolve', 'MeSolver']
+__all__ = ['brmesolve', 'BRSolver']
 
 import numpy as np
 import inspect

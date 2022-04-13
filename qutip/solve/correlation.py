@@ -16,8 +16,6 @@ from ..core import (
 )
 from .mesolve import mesolve
 from .mcsolve import mcsolve
-from ._rhs_generate import rhs_clear, td_wrap_array_str
-from ._utilities import cython_build_cleanup
 from .solver import SolverOptions, config
 from .steadystate import steadystate
 from ..settings import settings
@@ -554,11 +552,6 @@ def _correlation_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
         raise TypeError("tlist must be positive and contain the element 0.")
     if min(taulist) != 0:
         raise TypeError("taulist must be positive and contain the element 0.")
-
-    if config.tdname:
-        cython_build_cleanup(config.tdname)
-    rhs_clear()
-    H, c_ops, args = td_wrap_array_str(H, c_ops, args, tlist)
 
     if solver == "me":
         return _correlation_me_2t(H, state0, tlist, taulist,
