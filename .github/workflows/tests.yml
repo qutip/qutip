@@ -77,6 +77,16 @@ jobs:
             condaforge: 1
             pytest-extra-options: "-W ignore::ImportWarning -W ignore::DeprecationWarning:cvxpy.interface.scipy_wrapper"
 
+          # Windows. Once all tests pass without special options needed, this
+          # can be moved to the main os list in the test matrix. All the tests
+          # that fail currently seem to do so because mcsolve uses
+          # multiprocessing under the hood. Windows does not support fork()
+          # well, which makes transfering objects to the child processes
+          # error prone. See, e.g., https://github.com/qutip/qutip/issues/1202
+          - case-name: Windows Latest
+            os: windows-latest
+            pytest-extra-options: "-k 'not (test_correlation or test_interpolate or test_mcsolve)'"
+
     steps:
       - uses: actions/checkout@v2
 
@@ -110,7 +120,7 @@ jobs:
           fi
           python -m pip install -e .[$QUTIP_TARGET]
           python -m pip install coverage==6.2
-          python -m pip install pytest-cov coveralls pytest-timeout
+          python -m pip install pytest-cov coveralls pytest-fail-slow
 
       - name: Package information
         run: |
@@ -138,7 +148,7 @@ jobs:
             # truly being executed.
             export QUTIP_NUM_PROCESSES=2
           fi
-          pytest -Werror --strict-config --strict-markers --timeout=300 --durations=0 --durations-min=1.0 --verbosity=1 --cov=qutip --cov-report= --color=yes ${{ matrix.pytest-extra-options }} qutip/tests
+          pytest -Werror --strict-config --strict-markers --fail-slow=300 --durations=0 --durations-min=1.0 --verbosity=1 --cov=qutip --cov-report= --color=yes ${{ matrix.pytest-extra-options }} qutip/tests
           # Above flags are:
           #  -Werror
           #     treat warnings as errors
