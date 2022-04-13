@@ -11,7 +11,6 @@ from qutip.core import data as _data
 import platform
 
 
-#@pytest.mark.skipif("platform.system() == 'Darwin'")
 @pytest.mark.parametrize('dimension', list(range(2, 100)))
 def test_zheevr(dimension):
     """
