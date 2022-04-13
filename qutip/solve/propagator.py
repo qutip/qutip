@@ -1,36 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
 __all__ = ['propagator', 'propagator_steadystate']
 
 import functools
@@ -193,17 +160,18 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         u = np.zeros([N, N, len(tlist)], dtype=complex)
 
         if parallel:
-            output = parallel_map(_parallel_mesolve, range(N * N),
+            output = parallel_map(_parallel_mesolve, range(N),
                                   task_args=(
                                       sqrt_N, H, tlist, c_op_list, args,
                                       options),
+                                  task_kwargs={"dims": H0.dims[0]},
                                   progress_bar=progress_bar, num_cpus=num_cpus)
-            for n in range(N * N):
+            for n in range(N):
                 for k, state in enumerate(output[n].states):
                     u[:, n, k] = stack_columns(state.data).to_array()[:, 0]
         else:
-            rho0 = qeye([sqrt_N, sqrt_N])
-            output = mesolve(H, psi0, tlist, [], args, options,
+            rho0 = qeye(dims[0])
+            output = mesolve(H, rho0, tlist, [], args=args, options=options,
                              _safe_mode=False)
             return output.states[-1] if len(tlist) == 2 else output.states
 
@@ -220,6 +188,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
             output = parallel_map(_parallel_mesolve, range(N * N),
                                   task_args=(
                                       N, H, tlist, c_op_list, args, options),
+                                  task_kwargs={"dims": H0.dims},
                                   progress_bar=progress_bar, num_cpus=num_cpus)
             for n in range(N * N):
                 for k, state in enumerate(output[n].states):
@@ -230,8 +199,10 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                 progress_bar.update(n)
                 col_idx, row_idx = np.unravel_index(n, (N, N))
                 rho0 = projection(N, row_idx, col_idx)
-                output = mesolve(H, rho0, tlist, c_op_list, [], args, options,
-                                 _safe_mode=False)
+                rho0.dims = H0.dims
+                output = mesolve(
+                    H, rho0, tlist, c_ops=c_op_list, args=args,
+                    options=options, _safe_mode=False)
                 for k, t in enumerate(tlist):
                     u[:, n, k] = stack_columns(output.states[k].data).to_array()[:, 0]
             progress_bar.finished()
@@ -292,9 +263,11 @@ def _parallel_sesolve(n, N, H, tlist, args, options):
     return output
 
 
-def _parallel_mesolve(n, N, H, tlist, c_op_list, args, options):
+def _parallel_mesolve(n, N, H, tlist, c_op_list, args, options, dims=None):
     col_idx, row_idx = np.unravel_index(n, (N, N))
     rho0 = projection(N, row_idx, col_idx)
-    output = mesolve(H, rho0, tlist, c_op_list, [], args, options,
-                     _safe_mode=False)
+    rho0.dims = dims
+    output = mesolve(
+        H, rho0, tlist, c_ops=c_op_list, args=args, options=options,
+        _safe_mode=False)
     return output

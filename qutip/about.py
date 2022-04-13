@@ -1,35 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
 """
 Command line output of information on QuTiP and dependencies.
 """
@@ -41,10 +9,8 @@ import platform
 import numpy
 import scipy
 import inspect
-import qutip
-from qutip.utilities import _blas_info
-from qutip.settings import settings
-from qutip.hardware_info import hardware_info
+from qutip.utilities import _blas_info, available_cpu_count
+import qutip.settings
 
 
 def about():
@@ -59,7 +25,7 @@ def about():
     print(
         "Current admin team: Alexander Pitchford, "
         "Nathan Shammah, Shahnawaz Ahmed, Neill Lambert, Eric Giguère, "
-        "Boxi Li and Jake Lishman."
+        "Boxi Li, Jake Lishman and Simon Cross."
     )
     print(
         "Board members: Daniel Burgarth, Robert Johansson, Anton F. Kockum, "
@@ -86,10 +52,10 @@ def about():
         matplotlib_ver = 'None'
     print("Matplotlib Version: %s" % matplotlib_ver)
     print("Python Version:     %d.%d.%d" % sys.version_info[0:3])
-    print("Number of CPUs:     %s" % hardware_info()['cpus'])
+    print("Number of CPUs:     %s" % available_cpu_count())
     print("BLAS Info:          %s" % _blas_info())
     # print("OPENMP Installed:   %s" % str(qutip.settings.has_openmp))
-    print("INTEL MKL Ext:      %s" % str(settings.install['has_mkl']))
+    print("INTEL MKL Ext:      %s" % str(qutip.settings.install['has_mkl']))
     print("Platform Info:      %s (%s)" % (platform.system(),
                                            platform.machine()))
     qutip_install_path = os.path.dirname(inspect.getsourcefile(qutip))

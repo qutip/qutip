@@ -1,4 +1,8 @@
 version: "2"
+exclude_patterns:
+- "doc/"
+- "dist/"
+- "**/tests/"
 checks:
   argument-count:
     config:
@@ -34,3 +38,9 @@ plugins:
     enabled: true
   pep8:
     enabled: true
+  duplication:
+    enabled: true
+    config:
+      languages:
+        python:
+          python_version: 3
