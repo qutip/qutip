@@ -4,7 +4,7 @@
 Change Log
 **********
 
-Version 4.7.0 (April ??, 2022)
+Version 4.7.0 (April 13, 2022)
 ++++++++++++++++++++++++++++++
 
 This release sees the addition of two new solvers -- ``qutip.krylovsolve`` based on the Krylov subspace approximation and ``qutip.nonmarkov.heom`` that reimplements the BoFiN HEOM solver.
