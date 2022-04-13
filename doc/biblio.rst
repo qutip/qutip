@@ -16,7 +16,7 @@ Bibliography
     Docutils FAQ at https://docutils.sourceforge.net/FAQ.html#is-nested-inline-markup-possible.
     
 .. |theory-qi| replace:: *Theory of Quantum Information*
-.. _theory-qi: https://cs.uwaterloo.ca/~watrous/CS766/
+.. _theory-qi: https://cs.uwaterloo.ca/~watrous/TQI-notes/
 
 .. [Mez07]
     F. Mezzadri, *How to generate random matrices from the classical compact groups*, Notices of the AMS **54** 592-604 (2007). :arxiv:`math-ph/0609050`.

@@ -288,12 +288,16 @@ def adc_choi(x):
 #
 # The warning filter is to account for cvxpy < 1.1.10 which uses np.complex,
 # which is deprecated as of numpy 1.20.
-# 
-# Skip dnorm tests if we don't have cvxpy or cvxopt available, since dnorm 
+#
+# Skip dnorm tests if we don't have cvxpy or cvxopt available, since dnorm
 # depends on them.
 @pytest.mark.skipif(cvxpy is None or cvxopt is None,
                     reason="Skipping dnorm tests because dnorm requires cvxpy"
                     " and cvxopt which are not installed.")
+@pytest.mark.skipif("Windows" in platform.system(),
+                    reason="Skipping dnorm tests -- cvxpy and cvxopt can be"
+                    " installed on Windows but fail to correctly solve"
+                    " the given optimization problems.")
 @pytest.mark.flaky(reruns=2)
 @pytest.mark.filterwarnings(
     "ignore:`np.complex` is a deprecated alias:DeprecationWarning:cvxpy"
