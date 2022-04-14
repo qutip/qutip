@@ -27,8 +27,7 @@ where  :math:`T_{N}=\mathbb{V}_{N} H \mathbb{V}_{N}^{\dagger}` is the Hamiltonia
 
 With the above approximation, the time-evolution is calculated only with a smaller square matrix of the desired size. Therefore, the Krylov-method provides huge speed-ups in computation of short-time evolutions when the dimension of the Hamiltonian is very large, point at which exact calculations on the complete subspace are practically impossible.
 
-Although this approximation may fail quickly depending on the properties of the Hamiltonian, a series of :math:`M` Krylov-subspace time evolutions provides accurate solutions for "not so small" final times. 
-
+One of the biggest problems with this type of method is the control of the error. After a short time, the error starts to grow exponentially. However, this can be easily corrected by restarting the subspace when the error reaches a certain threshold. Therefore, a series of :math:`M` Krylov-subspace time evolutions provides accurate solutions for a time-evolution.
 
 .. _krylov-qutip:
 
@@ -37,3 +36,5 @@ Krylov Solver in QuTiP
 
 In QuTiP, Krylov-subspace evolution is implemented as the function :func:`qutip.krylovsolve`. Arguments are nearly the same as :func:`qutip.mesolve`
 function for master-equation evolution, except that the initial state must be a ket vector, as oppose to a density matrix, and the additional parameter ``krylov_dim`` that defines the maximum allowed Krylov-subspace dimension. The maximum number of allowed Lanczos partitions can also be determined using the :func:`qutip.solver.options.nsteps` parameter, which defaults to '10000'. 
+
+Let's solve a simple example using the algorithm in QuTiP to get familiar with the method. 
