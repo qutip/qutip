@@ -59,7 +59,6 @@ Let's solve a simple example using the algorithm in QuTiP to get familiar with t
     plt.ylabel('Expectation values')
     plt.show()
 
-
 .. _krylov-sparse:
 
 Sparse and Dense Hamiltonians
@@ -68,7 +67,8 @@ Sparse and Dense Hamiltonians
 If the Hamiltonian of interest is known to be sparse, :func:`qutip.krylovsolve` also comes equipped with the possibility to store its internal data in a sparse optimized format using scipy. This allows for significant speed-ups, let's showcase it:
 
 
-.. code:: python
+.. plot::
+    :context:
 
     def time_krylov(psi0, H, tlist, sparse):
     	start = time()
