@@ -16,9 +16,9 @@ np.random.seed(0)
 
 
 @pytest.fixture(params=[
-    pytest.param(100, id="small dim"),
-    pytest.param(500, id="intermediate dim"),
-    pytest.param(1000, id="large dim"),
+    pytest.param(50, id="small dim"),
+    pytest.param(150, id="intermediate dim"),
+    pytest.param(300, id="large dim"),
 ])
 def dimensions(request):
     return request.param
@@ -166,7 +166,7 @@ class TestKrylovSolve:
                                         res_2=output_dense,
                                         tol=tol)
 
-    @pytest.mark.parametrize("density,dim", [(0.1, 512), (0.9, 800)],
+    @pytest.mark.parametrize("density, dim", [(0.1, 128), (0.9, 300)],
                              ids=["sparse H check", "dense H check"])
     def test_01_check_sparse_vs_non_sparse_with_density_H(
         self, density, dim, krylov_dim=20
@@ -237,7 +237,7 @@ class TestKrylovSolve:
 
     def test_02_simple_check_states_e_ops_H_random(self):
         "krylovsolve: states with const H random"
-        dim = 512
+        dim = 128
         psi0 = rand_ket(dim)
         H = rand_herm(dim)
         tlist = np.linspace(0, 10, 200)
@@ -246,7 +246,7 @@ class TestKrylovSolve:
 
     def test_03_simple_check_states_e_ops_H_ising_transverse(self):
         "krylovsolve: states with const H Ising Transverse Field"
-        N = 8
+        N = 6
         dim = 2**N
         H = h_ising_transverse(N, hx=0.1, hz=0.5, Jx=1, Jy=0, Jz=1)
         _dims = H.dims
