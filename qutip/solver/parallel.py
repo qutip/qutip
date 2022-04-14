@@ -16,7 +16,7 @@ else:
     Pool = multiprocessing.Pool
 
 map_kw = {
-    'job_timeout': 1e8,
+    'job_timeout': 2e16-1,
     'timeout': 1e8,
     'num_cpus': multiprocessing.cpu_count(),
 }
