@@ -47,7 +47,7 @@ Describing the system and bath
 First, let us construct the system Hamiltonian, :math:`H_{sys}`, and the initial
 system state, ``rho0``:
 
-.. #plot::
+.. plot::
     :context: reset
     :nofigs:
 
@@ -62,7 +62,7 @@ system state, ``rho0``:
 
 Now let us describe the bath properties:
 
-.. #plot::
+.. plot::
     :context:
     :nofigs:
 
@@ -87,7 +87,7 @@ operator between the system and the baths.
 We may the pass these parameters to either ``LorentzianBath`` or
 ``LorentzianPadeBath`` to construct an expansion of the bath correlations:
 
-.. #plot::
+.. plot::
     :context:
     :nofigs:
 
@@ -118,7 +118,7 @@ System and bath dynamics
 
 Now we are ready to construct a solver:
 
-.. #plot::
+.. plot::
     :context:
     :nofigs:
 
@@ -133,7 +133,7 @@ Now we are ready to construct a solver:
 
 and to calculate the system evolution as a function of time:
 
-.. #code-block:: python
+.. code-block:: python
 
     tlist = [0, 10, 20]  # times to evaluate the system state at
     result = solver.run(rho0, tlist)
@@ -149,7 +149,7 @@ the returned ``result`` object.
 Below we run the solver again, but use ``e_ops`` to store the expectation
 values of the population of the system states:
 
-.. #plot::
+.. plot::
     :context:
 
     # Define the operators that measure the populations of the two
@@ -207,7 +207,7 @@ in this example.
 Similarly, we may calculate the current to the right bath from the exponents
 tagged with "R".
 
-.. #plot::
+.. plot::
     :context:
     :nofigs:
 
@@ -231,7 +231,7 @@ tagged with "R".
 Once we have defined functions for retrieving the currents for the
 baths, we can pass them to ``e_ops`` and plot the results:
 
-.. #plot::
+.. plot::
     :context: close-figs
 
     # Run the solver (returning ADO states):
@@ -268,7 +268,7 @@ Steady state currents
 Using the same solver, we can also determine the steady state of the
 combined system and bath using:
 
-.. #plot::
+.. plot::
     :context:
     :nofigs:
 
@@ -277,7 +277,7 @@ combined system and bath using:
 and calculate the steady state currents to the two baths from ``steady_ados``
 using the same ``heom_current`` function we defined previously:
 
-.. #plot::
+.. plot::
     :context:
     :nofigs:
 
@@ -286,7 +286,7 @@ using the same ``heom_current`` function we defined previously:
 
 Now we can add the steady state currents to the previous plot:
 
-.. #plot::
+.. plot::
     :context: close-figs
 
     # Plot the results and steady state currents:
@@ -384,7 +384,7 @@ and :math:`\beta = \frac{1}{T}`.
 
 And now we calculate the same numbers in Python:
 
-.. #plot::
+.. plot::
     :context:
     :nofigs:
 
@@ -469,7 +469,7 @@ And now we calculate the same numbers in Python:
 Finally we are ready to construct the
 :class:`~qutip.solve.nonmarkov.heom.FermionicBath`:
 
-.. #plot::
+.. plot::
     :context:
     :nofigs:
 
@@ -486,7 +486,7 @@ The :class:`~qutip.solve.nonmarkov.heom.FermionicBath` can be used with the
 we constructed previously using the built-in Lorentzian bath expansions.
 
 
-.. #plot::
+.. plot::
     :context: reset
     :include-source: false
     :nofigs:

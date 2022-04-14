@@ -41,7 +41,7 @@ Describing the system and bath
 First, let us construct the system Hamiltonian, :math:`H_{sys}`, and the initial
 system state, ``rho0``:
 
-.. #plot::
+.. plot::
     :context: reset
     :nofigs:
 
@@ -57,7 +57,7 @@ system state, ``rho0``:
 
 Now let us describe the bath properties:
 
-.. #plot::
+.. plot::
     :context:
     :nofigs:
 
@@ -78,7 +78,7 @@ We may the pass these parameters to either
 :class:`~qutip.solve.nonmarkov.heom.DrudeLorentzPadeBath` to construct an expansion of
 the bath correlations:
 
-.. #plot::
+.. plot::
     :context:
     :nofigs:
 
@@ -105,7 +105,7 @@ System and bath dynamics
 
 Now we are ready to construct a solver:
 
-.. #plot::
+.. plot::
     :context:
     :nofigs:
 
@@ -119,7 +119,7 @@ Now we are ready to construct a solver:
 
 and to calculate the system evolution as a function of time:
 
-.. #code-block:: python
+.. code-block:: python
 
     tlist = [0, 10, 20]  # times to evaluate the system state at
     result = solver.run(rho0, tlist)
@@ -154,7 +154,7 @@ using ``.run(..., e_ops=[...])`` the expectation values are available in
 Below we run the solver again, but use ``e_ops`` to store the expectation
 values of the population of the system states and the coherence:
 
-.. #plot::
+.. plot::
     :context:
 
     # Define the operators that measure the populations of the two
@@ -184,7 +184,7 @@ Steady-state
 Using the same solver, we can also determine the steady state of the
 combined system and bath using:
 
-.. #plot::
+.. plot::
     :context:
     :nofigs:
 
@@ -214,7 +214,7 @@ The :class:`~qutip.solve.nonmarkov.heom.DrudeLorentzBath` and
 :class:`~qutip.solve.nonmarkov.heom.DrudeLorentzPadeBath` both provide a means of
 calculating the terminator for a given expansion:
 
-.. #plot::
+.. plot::
     :context:
     :nofigs:
 
@@ -291,7 +291,7 @@ and the imaginary part, :math:`C_{imag}(t)`:
 
 And now the same numbers calculated in Python:
 
-.. #plot::
+.. plot::
     :context:
     :nofigs:
 
@@ -321,7 +321,7 @@ And now the same numbers calculated in Python:
 
 After all that, constructing the bath is very straight forward:
 
-.. #plot::
+.. plot::
     :context:
     :nofigs:
 
@@ -358,7 +358,7 @@ At the end, we plot the populations of the system states as a function of
 time, and show the long-time beating of quantum state coherence that
 occurs:
 
-.. #plot::
+.. plot::
     :context: close-figs
 
     # The size of the system:
@@ -405,7 +405,7 @@ occurs:
     axes.legend(loc=0, fontsize=12)
 
 
-.. #plot::
+.. plot::
     :context: reset
     :include-source: false
     :nofigs:
