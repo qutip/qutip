@@ -25,9 +25,11 @@ where the dimension :math:`N<D` is a parameter of choice. In order to construct 
 
 where  :math:`T_{N}=\mathbb{V}_{N} H \mathbb{V}_{N}^{\dagger}` is the Hamiltonian reduced to the Krylov subspace (which takes a tridiagonal matrix form), and :math:`\mathbb{V}_{N}^{\dagger}` is the matrix containing the vectors of the Krylov basis as columns.
 
-With the above approximation, the time-evolution is calculated only with a smaller square matrix of the desired size. Therefore, the Krylov-method provides huge speed-ups in computation of short-time evolutions when the dimension of the Hamiltonian is very large, point at which exact calculations on the complete subspace are practically impossible.
+With the above approximation, the time-evolution is calculated only with a smaller square matrix of the desired size. Therefore, the Krylov-method provides huge speed-ups in computation of short-time evolutions when the dimension of the Hamiltonian is very large, point at which exact calculations on the complete subspace are practically impossible. 
 
-One of the biggest problems with this type of method is the control of the error. After a short time, the error starts to grow exponentially. However, this can be easily corrected by restarting the subspace when the error reaches a certain threshold. Therefore, a series of :math:`M` Krylov-subspace time evolutions provides accurate solutions for a time-evolution.
+One of the biggest problems with this type of method is the control of the error. After a short time, the error starts to grow exponentially. However, this can be easily corrected by restarting the subspace when the error reaches a certain threshold. Therefore, a series of :math:`M` Krylov-subspace time evolutions provides accurate solutions for a time-evolution. Within this scheme, the magic of Krylov resides not only on its ability of capturing complex time-evolutions from very large Hilbert spaces with dimenions :math:`M` as smaller as (in example) 30, but also the computing speeds it presents.
+
+For exceptional cases, Lanczos algorithm might arrive at the exact evolution of the initial state at a dimension :math:`M_{hb}<M`. This is called a happy-breakdown. For example, if a Hamiltonian has a symmetry subspace :math:`D_{\text{sim}}<M`, then the algorithm will opatimize using the value math:`M_{hb}<M`, at which the evolution is not only exact, but also cheap.
 
 .. _krylov-qutip:
 
@@ -35,7 +37,7 @@ Krylov Solver in QuTiP
 ====================
 
 In QuTiP, Krylov-subspace evolution is implemented as the function :func:`qutip.krylovsolve`. Arguments are nearly the same as :func:`qutip.mesolve`
-function for master-equation evolution, except that the initial state must be a ket vector, as oppose to a density matrix, and the additional parameter ``krylov_dim`` that defines the maximum allowed Krylov-subspace dimension. The maximum number of allowed Lanczos partitions can also be determined using the :func:`qutip.solver.options.nsteps` parameter, which defaults to '10000'. 
+function for master-equation evolution, except that the initial state must be a ket vector, as oppose to a density matrix, and the additional parameter ``krylov_dim`` that defines the maximum allowed Krylov-subspace dimension. The maximum number of allowed Lanczos partitions can also be determined using the :func:`qutip.solver.options.nsteps` parameter, which defaults to '10000'.
 
 Let's solve a simple example using the algorithm in QuTiP to get familiar with the method.
 
