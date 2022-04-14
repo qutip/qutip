@@ -228,7 +228,7 @@ def eigs_csr(data, isherm=None, vecs=True, sort='low', eigvals=0,
     evals, evecs = _eigs_csr(data.as_scipy(), isherm, vecs, eigvals,
                              num_large, num_small, tol, maxiter)
 
-    if vecs:
+    if vecs and isherm:
         i = 0
         while i < len(evals):
             num_degen = np.sum(np.abs(evals - evals[i]) < (2 * tol or 1e-14))
