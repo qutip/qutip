@@ -6,7 +6,6 @@ cimport cython
 from cpython.exc cimport PyErr_CheckSignals
 from libc.math cimport fabs
 from qutip.core.cy.qobjevo cimport QobjEvo
-from qutip.solve._brtools cimport ZHEEVR
 from .. import Qobj, unstack_columns
 import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
@@ -14,6 +13,7 @@ from scipy.linalg.cython_blas cimport zaxpy, zdotu, zdotc, zcopy, zdscal, zscal
 from scipy.linalg.cython_blas cimport dznrm2 as raw_dznrm2
 
 from qutip.core.data cimport dense, Dense
+import qutip.core.data as _data
 
 cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
@@ -124,9 +124,10 @@ cdef void _normalize_rho(complex[::1] rho):
     cdef int l = rho.shape[0]
     cdef int N = np.sqrt(l)
     cdef complex[::1,:] mat = np.reshape(rho, (N,N), order="F")
-    cdef complex[::1,:] eivec = np.zeros((N,N), dtype=complex, order="F")
+    cdef complex[::1,:] eivec
     cdef double[::1] eival = np.zeros(N)
-    ZHEEVR(mat, &eival[0], eivec, N)
+    eivec = _data.eigs(Dense(mat, copy=False), True, True)[1].full()
+
     _zero(rho)
     cdef int i, j, k
     cdef double sum

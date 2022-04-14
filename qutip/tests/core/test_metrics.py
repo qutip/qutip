@@ -296,6 +296,10 @@ def adc_choi(x):
 @pytest.mark.skipif(cvxpy is None or cvxopt is None,
                     reason="Skipping dnorm tests because dnorm requires cvxpy"
                     " and cvxopt which are not installed.")
+@pytest.mark.skipif("Windows" in platform.system(),
+                    reason="Skipping dnorm tests -- cvxpy and cvxopt can be"
+                    " installed on Windows but fail to correctly solve"
+                    " the given optimization problems.")
 @pytest.mark.flaky(reruns=2)
 @pytest.mark.filterwarnings(
     "ignore:`np.complex` is a deprecated alias:DeprecationWarning:cvxpy"

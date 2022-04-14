@@ -9,9 +9,9 @@ import scipy.sparse as sp
 
 from .. import (
     Qobj, tensor, qeye, unstack_columns, stack_columns, basis, projection,
+    QobjEvo
 )
 from ..core import data as _data
-from ._rhs_generate import rhs_clear, td_format_check
 from .mesolve import mesolve
 from .sesolve import sesolve
 from .solver import SolverOptions, _solver_safety_check
@@ -79,7 +79,6 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
 
     if options is None:
         options = SolverOptions()
-        rhs_clear()
 
     if isinstance(t, numbers.Real):
         tlist = [0, t]
@@ -88,8 +87,6 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
 
     if _safe_mode:
         _solver_safety_check(H, None, c_ops=c_op_list, e_ops=[], args=args)
-
-    td_type = td_format_check(H, c_op_list, solver='me')
 
     if isinstance(H, (types.FunctionType, types.BuiltinFunctionType,
                       functools.partial)):
@@ -129,15 +126,9 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
                 cols_ = np.zeros_like(rows_)
                 data_ = np.ones_like(rows_, dtype=complex)
                 psi0 = Qobj(sp.coo_matrix((data_, (rows_, cols_))).tocsr())
-                if td_type[1] > 0 or td_type[2] > 0:
-                    H2 = []
-                    for Hk in H:
-                        if isinstance(Hk, list):
-                            H2.append([tensor(qeye(N), Hk[0]), Hk[1]])
-                        else:
-                            H2.append(tensor(qeye(N), Hk))
-                else:
-                    H2 = tensor(qeye(N), H)
+                H = QobjEvo(H, args=args, tlist=tlist)
+                H2 = tensor(qeye(N), H)
+
                 options['normalize_output'] = False
                 output = sesolve(H2, psi0, tlist, [],
                                  args=args, options=options,

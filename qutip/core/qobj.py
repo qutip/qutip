@@ -445,7 +445,8 @@ class Qobj:
         try:
             multiplier = complex(other)
             isherm = (self._isherm and multiplier.imag == 0) or None
-            isunitary = abs(multiplier) == 1 if self._isunitary else None
+            isunitary = (abs(abs(multiplier) - 1) < settings.core['atol']
+                         if self._isunitary else None)
         except TypeError:
             isherm = None
             isunitary = None

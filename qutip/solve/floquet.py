@@ -19,7 +19,6 @@ from .. import (
 )
 from ..core import data as _data
 from .sesolve import sesolve
-from ._rhs_generate import rhs_clear
 from .steadystate import steadystate
 from .solver import SolverOptions
 from .propagator import propagator
@@ -199,7 +198,6 @@ def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args=None,
     f_modes_table_t = [[] for t in tlist_period]
 
     opt = SolverOptions()
-    rhs_clear()
 
     for n, f_mode in enumerate(f_modes_0):
         output = sesolve(H, f_mode, tlist_period, [], args, opt)

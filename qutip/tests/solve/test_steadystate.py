@@ -171,7 +171,7 @@ def test_pseudo_inverse(method, kwargs):
     L = qutip.liouvillian(H, [a])
     rho = qutip.steadystate(L)
     Lpinv = qutip.pseudo_inverse(L, rho, method=method, **kwargs)
-    np.testing.assert_allclose((L * Lpinv * L).full(), L.full(), atol=3e-14)
+    np.testing.assert_allclose((L * Lpinv * L).full(), L.full(), atol=5e-14)
     np.testing.assert_allclose(
         (Lpinv * L * Lpinv).full(), Lpinv.full(),  atol=3e-14
     )
