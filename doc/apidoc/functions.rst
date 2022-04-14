@@ -159,8 +159,8 @@ Krylov Subspace Solver
 Bloch-Redfield Master Equation
 ------------------------------
 
-.. automodule:: qutip.solve.bloch_redfield
-    :members: brmesolve, bloch_redfield_tensor, bloch_redfield_solve
+.. automodule:: qutip.solver.brmesolve
+    :members: brmesolve
 
 
 Floquet States and Floquet-Markov Master Equation
