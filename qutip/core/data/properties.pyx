@@ -135,6 +135,8 @@ cpdef bint isherm_csr(CSR matrix, double tol=-1):
                 # Pointer into the "transposed" matrix.
                 ptr_t = out_row_index[col]
                 out_row_index[col] += 1
+                if nrows != matrix.row_index[ptr_t]:
+                    return _isherm_csr_full(matrix, tol)
                 # We tested the structure already, so we can guarantee that
                 # these two elements correspond.
                 if not _conj_feq(matrix.data[ptr], matrix.data[ptr_t], tol):
