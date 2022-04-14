@@ -348,7 +348,7 @@ def coeff_from_str(base, args, args_ctypes, compile_opt=None):
                             raw, compile_opt)
         try :
             coeff = compile_code(code, file_name, parsed, compile_opt)
-        except Exception:
+        except PermissionError:
             return StrFunctionCoefficient(base, args)
     keys = [key for _, key, _ in variables]
     const = [fromstr(val) for _, val, _ in constants]
@@ -505,8 +505,6 @@ def compile_code(code, file_name, parsed, c_opt):
             raise Exception("Could not compile") from e
         finally:
             sys.argv = oldargs
-    except PermissionError:
-        raise Exception("Could not compile") from e
     finally:
         os.chdir(pwd)
     return try_import(file_name, parsed)
