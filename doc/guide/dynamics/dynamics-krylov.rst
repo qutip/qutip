@@ -34,7 +34,7 @@ For exceptional cases, the Lanczos algorithm might arrive at the exact evolution
 .. _krylov-qutip:
 
 Krylov Solver in QuTiP
-====================
+======================
 
 In QuTiP, Krylov-subspace evolution is implemented as the function :func:`qutip.krylovsolve`. Arguments are nearly the same as :func:`qutip.mesolve`
 function for master-equation evolution, except that the initial state must be a ket vector, as opposed to a density matrix, and the additional parameter ``krylov_dim`` that defines the maximum allowed Krylov-subspace dimension. The maximum number of allowed Lanczos partitions can also be determined using the :func:`qutip.solver.options.nsteps` parameter, which defaults to '10000'.
@@ -43,9 +43,6 @@ Let's solve a simple example using the algorithm in QuTiP to get familiar with t
 
 .. plot::
     :context:
-
-    from qutip import rand_ket, jmat
-    import matplotlib.pyplot as plt
 
     dim = 100
     e_ops = [jmat((dim - 1) / 2.0, "x"), jmat((dim - 1) / 2.0, "y"), jmat((dim - 1) / 2.0, "z")]
@@ -73,10 +70,6 @@ If the Hamiltonian of interest is known to be sparse, :func:`qutip.krylovsolve` 
 
 .. code:: python
 
-    from qutip import rand_ket, rand_herm, krylovsolve
-    from time import time
-    import numpy as np
-    
     def time_krylov(psi0, H, tlist, sparse):
     	start = time()
 	krylovsolve(H, psi0, tlist, krylov_dim=20, sparse=sparse)
