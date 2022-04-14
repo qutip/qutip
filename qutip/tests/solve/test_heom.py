@@ -19,10 +19,6 @@ from qutip.solve.nonmarkov.heom import (
     HierarchyADOsState,
 )
 
-
-pytestmark = pytest.mark.skip
-
-
 class TestBathAPI:
     def test_api(self):
         # just assert that the baths are importable

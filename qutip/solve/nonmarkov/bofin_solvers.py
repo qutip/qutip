@@ -10,10 +10,6 @@ https://github.com/tehruhn/bofin) which was itself derived from an earlier
 implementation in QuTiP itself.
 """
 
-"""
-This code is still in v4 format
-"""
-
 from copy import deepcopy
 
 import numpy as np
@@ -23,24 +19,15 @@ from scipy.sparse.linalg import spsolve
 
 from qutip import settings
 from qutip import state_number_enumerate
+from qutip.core import data as _data
+from qutip.core.data import csr as _csr
 from qutip.core import Qobj, QobjEvo
-from qutip.core.superoperator import liouvillian, spre, spost #, vec2mat
-# from qutip.cy.spmatfuncs import cy_ode_rhs
-from ..solver import SolverOptions, Result
-# from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
+from qutip.core.superoperator import liouvillian, spre, spost
+from ...solver import SolverOptions, Result, IntegratorScipyZvode
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
-# from qutip.fastsparse import fast_identity, fast_csr_matrix
 from .bofin_baths import (
     BathExponent, DrudeLorentzBath,
 )
-
-
-cy_ode_rhs = None
-vec2mat = None
-dense2D_to_fastcsr_fmode = None
-fast_identity = None
-fast_csr_matrix = None
-
 
 # Load MKL spsolve if avaiable
 if settings.install['has_mkl']:
@@ -422,18 +409,18 @@ class HEOMSolver:
         self.H_sys = self._convert_h_sys(H_sys)
         self.options = SolverOptions() if options is None else options
         self._is_timedep = isinstance(self.H_sys, QobjEvo)
-        self._H0 = self.H_sys.to_list()[0] if self._is_timedep else self.H_sys
-        self._is_hamiltonian = self._H0.type == "oper"
+        self._H0 = self.H_sys(0) if self._is_timedep else self.H_sys
+        self._is_hamiltonian = self.H_sys.type == "oper"
         self._L0 = liouvillian(self._H0) if self._is_hamiltonian else self._H0
 
         self._sys_shape = (
-            self._H0.shape[0] if self._is_hamiltonian
-            else int(np.sqrt(self._H0.shape[0]))
+            self.H_sys.shape[0] if self._is_hamiltonian
+            else int(np.sqrt(self.H_sys.shape[0]))
         )
         self._sup_shape = self._L0.shape[0]
         self._sys_dims = (
-            self._H0.dims if self._is_hamiltonian
-            else self._H0.dims[0]
+            self.H_sys.dims if self._is_hamiltonian
+            else self.H_sys.dims[0]
         )
 
         self.ados = HierarchyADOs(
@@ -443,26 +430,26 @@ class HEOMSolver:
         self._n_exponents = len(self.ados.exponents)
 
         # pre-calculate identity matrix required by _grad_n
-        self._sId = fast_identity(self._sup_shape)
+        self._sId = _data.identity(self._sup_shape, dtype="csr")
 
         # pre-calculate superoperators required by _grad_prev and _grad_next:
         Qs = [exp.Q for exp in self.ados.exponents]
         self._spreQ = [spre(op).data for op in Qs]
         self._spostQ = [spost(op).data for op in Qs]
         self._s_pre_minus_post_Q = [
-            self._spreQ[k] - self._spostQ[k] for k in range(self._n_exponents)
+            _data.sub(self._spreQ[k], self._spostQ[k]) for k in range(self._n_exponents)
         ]
         self._s_pre_plus_post_Q = [
-            self._spreQ[k] + self._spostQ[k] for k in range(self._n_exponents)
+            _data.add(self._spreQ[k], self._spostQ[k]) for k in range(self._n_exponents)
         ]
         self._spreQdag = [spre(op.dag()).data for op in Qs]
         self._spostQdag = [spost(op.dag()).data for op in Qs]
         self._s_pre_minus_post_Qdag = [
-            self._spreQdag[k] - self._spostQdag[k]
+            _data.sub(self._spreQdag[k], self._spostQdag[k])
             for k in range(self._n_exponents)
         ]
         self._s_pre_plus_post_Qdag = [
-            self._spreQdag[k] + self._spostQdag[k]
+            _data.add(self._spreQdag[k], self._spostQdag[k])
             for k in range(self._n_exponents)
         ]
 
@@ -521,20 +508,11 @@ class HEOMSolver:
             )
         return exponents
 
-    def _dsuper_list_td(self, t, y, L_list):
-        """ Auxiliary function for the time-dependent integration. Called every
-            time step.
-        """
-        L = L_list[0][0]
-        for n in range(1, len(L_list)):
-            L = L + L_list[n][0] * L_list[n][1](t)
-        return L * y
-
     def _grad_n(self, L, he_n):
         """ Get the gradient for the hierarchy ADO at level n. """
         vk = self.ados.vk
         vk_sum = sum(he_n[i] * vk[i] for i in range(len(vk)))
-        op = L - vk_sum * self._sId
+        op = _data.sub(L, _data.mul(self._sId, vk_sum))
         return op
 
     def _grad_prev(self, he_n, k):
@@ -554,19 +532,25 @@ class HEOMSolver:
 
     def _grad_prev_bosonic(self, he_n, k):
         if self.ados.exponents[k].type == BathExponent.types.R:
-            op = (-1j * he_n[k] * self.ados.ck[k]) * (
-                self._s_pre_minus_post_Q[k]
+            op = _data.mul(
+                self._s_pre_minus_post_Q[k],
+                -1j * he_n[k] * self.ados.ck[k],
             )
         elif self.ados.exponents[k].type == BathExponent.types.I:
-            op = (-1j * he_n[k] * 1j * self.ados.ck[k]) * (
-                self._s_pre_plus_post_Q[k]
+            op = _data.mul(
+                self._s_pre_plus_post_Q[k],
+                -1j * he_n[k] * 1j * self.ados.ck[k],
             )
         elif self.ados.exponents[k].type == BathExponent.types.RI:
-            term1 = (he_n[k] * -1j * self.ados.ck[k]) * (
-                self._s_pre_minus_post_Q[k]
+            term1 = _data.mul(
+                self._s_pre_minus_post_Q[k],
+                he_n[k] * -1j * self.ados.ck[k],
             )
-            term2 = (he_n[k] * self.ados.ck2[k]) * self._s_pre_plus_post_Q[k]
-            op = term1 + term2
+            term2 = _data.mul(
+                self._s_pre_plus_post_Q[k],
+                he_n[k] * self.ados.ck2[k],
+            )
+            op = _data.add(term1, term2)
         else:
             raise ValueError(
                 f"Unsupported type {self.ados.exponents[k].type}"
@@ -586,14 +570,20 @@ class HEOMSolver:
         sigma_bar_k = k + self.ados.sigma_bar_k_offset[k]
 
         if self.ados.exponents[k].type == BathExponent.types["+"]:
-            op = -1j * sign2 * (
-                (ck[k] * self._spreQdag[k]) -
-                (sign1 * np.conj(ck[sigma_bar_k]) * self._spostQdag[k])
+            op = _data.sub(
+                _data.mul(self._spreQdag[k], -1j * sign2 * ck[k]),
+                _data.mul(
+                    self._spostQdag[k],
+                    -1j * sign2 * sign1 * np.conj(ck[sigma_bar_k]),
+                ),
             )
         elif self.ados.exponents[k].type == BathExponent.types["-"]:
-            op = -1j * sign2 * (
-                (ck[k] * self._spreQ[k]) -
-                (sign1 * np.conj(ck[sigma_bar_k]) * self._spostQ[k])
+            op = _data.sub(
+                _data.mul(self._spreQ[k], -1j * sign2 * ck[k]),
+                _data.mul(
+                    self._spostQ[k],
+                    -1j * sign2 * sign1 * np.conj(ck[sigma_bar_k]),
+                ),
             )
         else:
             raise ValueError(
@@ -618,7 +608,7 @@ class HEOMSolver:
                 f"Mode {k} has unsupported type {self.ados.exponents[k].type}")
 
     def _grad_next_bosonic(self, he_n, k):
-        op = -1j * self._s_pre_minus_post_Q[k]
+        op = _data.mul(self._s_pre_minus_post_Q[k], -1j)
         return op
 
     def _grad_next_fermionic(self, he_n, k):
@@ -630,14 +620,14 @@ class HEOMSolver:
 
         if self.ados.exponents[k].type == BathExponent.types["+"]:
             if sign1 == -1:
-                op = (-1j * sign2) * self._s_pre_minus_post_Q[k]
+                op = _data.mul(self._s_pre_minus_post_Q[k], -1j * sign2)
             else:
-                op = (-1j * sign2) * self._s_pre_plus_post_Q[k]
+                op = _data.mul(self._s_pre_plus_post_Q[k], -1j * sign2)
         elif self.ados.exponents[k].type == BathExponent.types["-"]:
             if sign1 == -1:
-                op = (-1j * sign2) * self._s_pre_minus_post_Qdag[k]
+                op = _data.mul(self._s_pre_minus_post_Qdag[k], -1j * sign2)
             else:
-                op = (-1j * sign2) * self._s_pre_plus_post_Qdag[k]
+                op = _data.mul(self._s_pre_plus_post_Qdag[k], -1j * sign2)
         else:
             raise ValueError(
                 f"Unsupported type {self.ados.exponents[k].type}"
@@ -667,46 +657,32 @@ class HEOMSolver:
     def _configure_solver(self):
         """ Set up the solver. """
         RHSmat = self._rhs(self._L0.data)
-        assert isinstance(RHSmat, sp.csr_matrix)
+        assert isinstance(RHSmat, _csr.CSR)
 
         if self._is_timedep:
             # In the time dependent case, we construct the parameters
-            # for the ODE gradient function _dsuper_list_td under the
-            # assumption that RHSmat(t) = RHSmat + time dependent terms
-            # that only affect the diagonal blocks of the RHS matrix.
+            # for the ODE gradient function under the assumption that
+            # RHSmat(t) = RHSmat + time dependent terms that only affect the
+            # diagonal blocks of the RHS matrix.
             # This assumption holds because only _grad_n dependents on
             # the system Liovillian (and not _grad_prev or _grad_next).
 
-            h_identity_mat = sp.identity(self._n_ados, format="csr")
-            H_list = self.H_sys.to_list()
-
-            solver_params = [[RHSmat]]
-            for idx in range(1, len(H_list)):
-                temp_mat = sp.kron(
-                    h_identity_mat, liouvillian(H_list[idx][0])
-                )
-                solver_params.append([temp_mat, H_list[idx][1]])
-
-            solver = scipy.integrate.ode(self._dsuper_list_td)
-            solver.set_f_params(solver_params)
+            system = QobjEvo(Qobj(RHSmat))
+            h_identity = _data.identity(self._n_ados, dtype="csr")
+            def _kron(x):
+                # TODO: Check whether this works for more complex QobjEvos
+                #       and if not, raise an exception rather than give
+                #       incorrect results.
+                L = liouvillian(x) if self._is_hamiltonian else x
+                return Qobj(_data.kron(h_identity, L.data)).to("csr")
+            system += (self.H_sys - self._H0).linear_map(_kron)
         else:
-            solver = scipy.integrate.ode(cy_ode_rhs)
-            solver.set_f_params(RHSmat.data, RHSmat.indices, RHSmat.indptr)
+            system = QobjEvo(Qobj(RHSmat, dims=[
+                self._sup_shape * self._n_ados, self._sup_shape * self._n_ados
+            ]))
 
-        solver.set_integrator(
-            "zvode",
-            method=self.options.method,
-            order=self.options.order,
-            atol=self.options.atol,
-            rtol=self.options.rtol,
-            nsteps=self.options.nsteps,
-            first_step=self.options.first_step,
-            min_step=self.options.min_step,
-            max_step=self.options.max_step,
-        )
-
-        self._ode = solver
         self.RHSmat = RHSmat
+        self._ode = IntegratorScipyZvode(system, self.options)
 
     def steady_state(
         self,
@@ -750,7 +726,7 @@ class HEOMSolver:
         b_mat = np.zeros(n ** 2 * self._n_ados, dtype=complex)
         b_mat[0] = 1.0
 
-        L = deepcopy(self.RHSmat)
+        L = deepcopy(self.RHSmat.as_scipy())
         L = L.tolil()
         L[0, 0: n ** 2 * self._n_ados] = 0.0
         L = L.tocsr()
@@ -774,8 +750,8 @@ class HEOMSolver:
             L = L.tocsc()
             solution = spsolve(L, b_mat)
 
-        data = dense2D_to_fastcsr_fmode(vec2mat(solution[:n ** 2]), n, n)
-        data = 0.5 * (data + data.H)
+        data = _data.Dense(solution[:n ** 2].reshape((n, n)))
+        data = _data.mul(_data.add(data, data.conj()), 0.5)
         steady_state = Qobj(data, dims=self._sys_dims)
 
         solution = solution.reshape((self._n_ados, n, n))
@@ -904,13 +880,20 @@ class HEOMSolver:
         rho_dims = self._sys_dims
         hierarchy_shape = (self._n_ados, n, n)
 
-        output = Result()
+        output = Result(
+            e_ops,
+            {
+                "store_states": not e_ops or self.options.store_states,
+                "store_final_state": True,
+                "normalize_output": False,
+            },
+            _super=True,
+            oper_state=False,
+        )
+        # TODO: User new Result class better in the rest of this function
         output.solver = "HEOMSolver"
-        output.times = tlist
         if e_ops:
             output.expect = expected
-        if not e_ops or self.options.store_states:
-            output.states = []
 
         if ado_init:
             if isinstance(rho0, HierarchyADOsState):
@@ -923,37 +906,41 @@ class HEOMSolver:
                     f"but the solver hierarchy shape is {hierarchy_shape}"
                 )
             rho0_he = rho0_he.reshape(n ** 2 * self._n_ados)
+            rho0_he = _data.create(rho0_he)
         else:
             rho0_he = np.zeros([n ** 2 * self._n_ados], dtype=complex)
             rho0_he[:n ** 2] = rho0.full().ravel('F')
+            rho0_he = _data.create(rho0_he)
 
         if ado_return:
             output.ado_states = []
 
         solver = self._ode
-        solver.set_initial_value(rho0_he, tlist[0])
+        solver.set_state(tlist[0], rho0_he)
 
         self.progress_bar.start(len(tlist))
         for t_idx, t in enumerate(tlist):
             self.progress_bar.update(t_idx)
             if t_idx != 0:
-                solver.integrate(t)
-                if not solver.successful():
+                try:
+                    solver.integrate(t)
+                except Exception as e:
                     raise RuntimeError(
                         "HEOMSolver ODE integration error. Try increasing"
                         " the nsteps given in the HEOMSolver options"
                         " (which increases the allowed substeps in each"
-                        " step between times given in tlist).")
+                        " step between times given in tlist)."
+                    ) from e
 
+            _, rho_data = solver.get_state()
             rho = Qobj(
-                solver.y[:n ** 2].reshape(rho_shape, order='F'),
+                rho_data.to_array()[:n ** 2].reshape(rho_shape, order='F'),
                 dims=rho_dims,
             )
-            if self.options.store_states:
-                output.states.append(rho)
+            output.add(t, rho)
             if ado_return or e_ops_callables:
                 ado_state = HierarchyADOsState(
-                    rho, self.ados, solver.y.reshape(hierarchy_shape)
+                    rho, self.ados, rho_data.to_array().reshape(hierarchy_shape)
                 )
             if ado_return:
                 output.ado_states.append(ado_state)
@@ -1072,9 +1059,7 @@ class HSolverDL(HEOMSolver):
             # upgrade H_sys to a Liouvillian if needed and add the
             # bath terminator
             H_sys = self._convert_h_sys(H_sys)
-            is_timedep = isinstance(H_sys, QobjEvo)
-            H0 = H_sys.to_list()[0] if is_timedep else H_sys
-            is_hamiltonian = H0.type == "oper"
+            is_hamiltonian = H_sys.type == "oper"
             if is_hamiltonian:
                 H_sys = liouvillian(H_sys)
             _, terminator = bath.terminator()
@@ -1117,7 +1102,7 @@ class _GatherHEOMRHS:
     def add_op(self, row_he, col_he, op):
         """ Add an block operator to the list. """
         self._ops.append(
-            (self._f_idx(row_he), self._f_idx(col_he), op)
+            (self._f_idx(row_he), self._f_idx(col_he), _data.to["csr"](op))
         )
 
     def gather(self):
@@ -1135,7 +1120,7 @@ class _GatherHEOMRHS:
 
             Returns
             -------
-            rhs : :obj:`qutip.fastsparse.fast_csr_matrix`
+            rhs : :obj:`Data`
                 A combined matrix of shape ``(block * nhe, block * ne)``.
         """
         block = self._block
@@ -1143,9 +1128,9 @@ class _GatherHEOMRHS:
         ops = self._ops
         shape = (block * nhe, block * nhe)
         if not ops:
-            return sp.csr_matrix(shape, dtype=np.complex128)
+            return _data.zeros(*shape, dtype="csr")
         ops.sort()
-        nnz = sum(op.nnz for _, _, op in ops)
+        nnz = sum(_csr.nnz(op) for _, _, op in ops)
         indptr = np.zeros(shape[0] + 1, dtype=np.int32)
         indices = np.zeros(nnz, dtype=np.int32)
         data = np.zeros(nnz, dtype=np.complex128)
@@ -1164,6 +1149,7 @@ class _GatherHEOMRHS:
             rowpos = row_idx * block
             for op_row in range(block):
                 for _, col_idx, op in row_ops:
+                    op = op.as_scipy()  # convert CSR to SciPy csr_matrix
                     colpos = col_idx * block
                     op_row_start = op.indptr[op_row]
                     op_row_end = op.indptr[op_row + 1]
@@ -1179,6 +1165,6 @@ class _GatherHEOMRHS:
                     end += op_row_len
                 indptr[rowpos + op_row + 1] = end
 
-        return fast_csr_matrix(
-            (data, indices, indptr), shape=shape, dtype=np.complex128,
+        return _csr.CSR(
+            (data, indices, indptr), shape=shape, copy=False,
         )

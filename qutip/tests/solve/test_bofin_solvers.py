@@ -12,7 +12,7 @@ from qutip import (
     basis, destroy, expect, liouvillian, sigmax, sigmaz,
     tensor, Qobj, QobjEvo, SolverOptions,
 )
-# from qutip.fastsparse import fast_csr_matrix
+from qutip.core import data as _data
 from qutip.solve.nonmarkov.bofin_baths import (
     BathExponent,
     Bath,
@@ -32,9 +32,6 @@ from qutip.solve.nonmarkov.bofin_solvers import (
     _GatherHEOMRHS,
 )
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
-
-
-pytestmark = pytest.mark.skip
 
 
 class TestHierarchyADOs:
@@ -918,10 +915,13 @@ class Test_GatherHEOMRHS:
         for i in range(3):
             for j in range(3):
                 base = 10 * (j * 2) + (i * 2)
-                block_op = csr_matrix(np.array([
-                    [base, base + 10],
-                    [base + 1, base + 11],
-                ], dtype=np.complex128))
+                block_op = _data.to(
+                    _data.CSR,
+                    _data.create(np.array([
+                        [base, base + 10],
+                        [base + 1, base + 11],
+                    ]))
+                )
                 gather_heoms.add_op(f"o{i}", f"o{j}", block_op)
 
         op = gather_heoms.gather()
@@ -931,5 +931,5 @@ class Test_GatherHEOMRHS:
             for j in range(2 * 3)
         ], dtype=np.complex128)
 
-        np.testing.assert_array_equal(op.toarray(), expected_op)
-        assert isinstance(op, fast_csr_matrix)
+        np.testing.assert_array_equal(op.to_array(), expected_op)
+        assert isinstance(op, _data.CSR)
