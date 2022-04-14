@@ -110,7 +110,6 @@ class Test_isherm:
         assert not _data.isherm(base.transpose(), tol=self.tol)
 
     @pytest.mark.parametrize("density", np.linspace(0.2, 1, 17))
-    @pytest.mark.parametrize("n", [3, 10])
     def test_compare_implicit_zero_random(self, datatype, density):
         """
         Regression test of gh-1350.
@@ -122,6 +121,7 @@ class Test_isherm:
         so it should appear so.  We also set the diagonal to be larger to the
         tolerance to ensure isherm can't just compare everything to zero.
         """
+        n = 10
         base = self.tol * 1e-2 * (np.random.rand(n, n) + 1j * np.random.rand(n, n))
         # Mask some values out to zero.
         base[np.random.rand(n, n) > density] = 0
@@ -147,3 +147,10 @@ class Test_isherm:
         assert np.count_nonzero(base.to_array()) == nnz
         assert not _data.isherm(base, tol=self.tol)
         assert not _data.isherm(base.transpose(), tol=self.tol)
+
+    def test_structure_detection(self, datatype):
+        base = np.array([[1,1,0],
+                         [0,1,1],
+                         [1,0,1]])
+        base = _data.to(datatype, _data.create(base))
+        assert not _data.isherm(base, tol=self.tol)
