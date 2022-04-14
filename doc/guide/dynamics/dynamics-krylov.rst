@@ -37,4 +37,50 @@ Krylov Solver in QuTiP
 In QuTiP, Krylov-subspace evolution is implemented as the function :func:`qutip.krylovsolve`. Arguments are nearly the same as :func:`qutip.mesolve`
 function for master-equation evolution, except that the initial state must be a ket vector, as oppose to a density matrix, and the additional parameter ``krylov_dim`` that defines the maximum allowed Krylov-subspace dimension. The maximum number of allowed Lanczos partitions can also be determined using the :func:`qutip.solver.options.nsteps` parameter, which defaults to '10000'. 
 
-Let's solve a simple example using the algorithm in QuTiP to get familiar with the method. 
+Let's solve a simple example using the algorithm in QuTiP to get familiar with the method.
+
+.. _krylov-sparse:
+
+Sparse and Dense Hamiltonians
+-----------------------------------
+
+If the Hamiltonian of interest is known to be sparse, :func:`qutip.krylovsolve` also comes equipped with the possibility to store its internal data in a sparse optimized format using scipy. This allows for significant speed-ups, let's showcase it:
+
+
+.. code:: python
+    :context: krylov-sparse-dense-comparison
+
+	from qutip import rand_ket, rand_herm, krylovsolve
+	from time import time
+	import numpy as np
+
+	def time_krylov(psi0, H, tlist, sparse):
+	  start = time()
+	  krylovsolve(H, psi0, tlist, krylov_dim=20, sparse=sparse)
+	  end = time()
+	  return end - start
+
+	dim = 1000
+	n_random_samples = 20
+
+	# first index for type of H and second index for sparse = True or False (dense)
+	t_ss_list, t_sd_list, t_ds_list, t_dd_list = [], [], [], []
+	tlist = np.linspace(0, 1, 200)
+
+	for n in range(n_random_samples):
+	  psi0 = rand_ket(dim)
+	  H_sparse = rand_herm(dim, density=0.1, seed=0)
+	  H_dense = rand_herm(dim, density=0.9, seed=0)
+
+	  t_ss_list.append(time_krylov(psi0, H_sparse, tlist, sparse=True))
+	  t_sd_list.append(time_krylov(psi0, H_sparse, tlist, sparse=False))
+	  t_ds_list.append(time_krylov(psi0, H_dense, tlist, sparse=True))
+	  t_dd_list.append(time_krylov(psi0, H_dense, tlist, sparse=False))
+
+	t_ss_average = np.mean(t_ss_list)
+	t_sd_average = np.mean(t_sd_list)
+	t_ds_average = np.mean(t_ds_list)
+	t_dd_average = np.mean(t_dd_list)
+
+	print(f"Average time of solution for a sparse H is {t_ss_average} for sparse=True and {t_sd_average} for sparse=False")
+	print(f"Average time of solution for a dense H is {t_ds_average} for sparse=True and {t_dd_average} for sparse=False")
