@@ -8,6 +8,7 @@ import multiprocessing
 import os
 import sys
 import time
+import threading
 from qutip.ui.progressbar import progess_bars
 
 if sys.platform == 'darwin':
@@ -16,8 +17,8 @@ else:
     Pool = multiprocessing.Pool
 
 map_kw = {
-    'job_timeout': 1e8,
-    'timeout': 1e8,
+    'job_timeout': threading.TIMEOUT_MAX,
+    'timeout': threading.TIMEOUT_MAX,
     'num_cpus': multiprocessing.cpu_count(),
 }
 

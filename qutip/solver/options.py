@@ -4,6 +4,7 @@ __all__ = ['SolverOptions',
 
 from ..optionsclass import optionsclass
 import multiprocessing
+import threading
 
 @optionsclass("solver")
 class SolverOptions:
@@ -257,7 +258,7 @@ class McOptions:
 
         "map_options": {
             'num_cpus': multiprocessing.cpu_count(),
-            'timeout':1e8,
-            'job_timeout':1e8
+            'timeout': threading.TIMEOUT_MAX,
+            'job_timeout': threading.TIMEOUT_MAX,
         },
     }
