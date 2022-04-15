@@ -69,6 +69,7 @@ If the Hamiltonian of interest is known to be sparse, :func:`qutip.krylovsolve` 
 
 .. plot::
     :context:
+    from time import time
 
     def time_krylov(psi0, H, tlist, sparse):
     	start = time()
