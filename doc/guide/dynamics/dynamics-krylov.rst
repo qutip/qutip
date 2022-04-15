@@ -50,7 +50,6 @@ Let's solve a simple example using the algorithm in QuTiP to get familiar with t
     psi0 = rand_ket(dim)
     tlist = np.linspace(0.0, 10.0, 200)
     results = krylovsolve(H, psi0, tlist, krylov_dim=20, e_ops=e_ops)
-
     plt.figure()
     for expect in results.expect:
         plt.plot(tlist, expect)
@@ -69,14 +68,13 @@ If the Hamiltonian of interest is known to be sparse, :func:`qutip.krylovsolve` 
 
 .. plot::
     :context:
+    
     from time import time
-
     def time_krylov(psi0, H, tlist, sparse):
     	start = time()
 	krylovsolve(H, psi0, tlist, krylov_dim=20, sparse=sparse)
 	end = time()
 	return end - start
-
     dim = 1000
     n_random_samples = 20
     # first index for type of H and second index for sparse = True or False (dense)
@@ -86,16 +84,13 @@ If the Hamiltonian of interest is known to be sparse, :func:`qutip.krylovsolve` 
         psi0 = rand_ket(dim)
 	H_sparse = rand_herm(dim, density=0.1, seed=0)
 	H_dense = rand_herm(dim, density=0.9, seed=0)
-
 	t_ss_list.append(time_krylov(psi0, H_sparse, tlist, sparse=True))
 	t_sd_list.append(time_krylov(psi0, H_sparse, tlist, sparse=False))
 	t_ds_list.append(time_krylov(psi0, H_dense, tlist, sparse=True))
 	t_dd_list.append(time_krylov(psi0, H_dense, tlist, sparse=False))
-
     t_ss_average = np.mean(t_ss_list)
     t_sd_average = np.mean(t_sd_list)
     t_ds_average = np.mean(t_ds_list)
     t_dd_average = np.mean(t_dd_list)
-
     print(f"Average time of solution for a sparse H is {t_ss_average} for sparse=True and {t_sd_average} for sparse=False")
     print(f"Average time of solution for a dense H is {t_ds_average} for sparse=True and {t_dd_average} for sparse=False")
