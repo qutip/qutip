@@ -146,12 +146,13 @@ def ttmsolve(dynmaps, rho0, times, e_ops=[], learningtimes=None, tensors=None,
     K = len(tensors)
     states = [rho0vec]
     for n in range(1, len(times)):
-        # Append empty state
-        states.append(None)
-        for k in range(n):
-            if n - k < K:
-                tmp = tensors[n - k] * states[k]
-                states[-1] = tmp if states[-1] is None else tmp + states[-1]
+        # Set current state
+        state = None
+        for j in range(1, min(K, n + 1)):
+            tmp = tensors[j] * states[n - j]
+            state = tmp if state is None else tmp + state
+        # Append state to all states
+        states.append(state)
     for i, r in enumerate(states):
         if opt.store_states or expt_callback:
             if r.type == 'operator-ket':
