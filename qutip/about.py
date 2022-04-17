@@ -18,7 +18,10 @@ def about(caller="qutip"):
     About box for QuTiP. Gives version numbers for QuTiP, NumPy, SciPy, Cython,
     and MatPlotLib.
 
-    The caller argument indicates which libary called the function. 
+    Parameters
+    ----------
+    caller: string
+            The library about which the information is needed. Ex: 'qutip', 'qutip_qip' 
     """
     print("")
     print("QuTiP: Quantum Toolbox in Python")
