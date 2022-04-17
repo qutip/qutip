@@ -21,7 +21,8 @@ def about(caller="qutip"):
     Parameters
     ----------
     caller: string
-            The library about which the information is needed. Ex: 'qutip', 'qutip_qip' 
+            The library about which the information is needed.
+            Ex: 'qutip', 'qutip_qip'
     """
     print("")
     print("QuTiP: Quantum Toolbox in Python")
