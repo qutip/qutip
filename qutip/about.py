@@ -17,6 +17,8 @@ def about(caller="qutip"):
     """
     About box for QuTiP. Gives version numbers for QuTiP, NumPy, SciPy, Cython,
     and MatPlotLib.
+
+    The caller argument indicates which libary called the function. 
     """
     print("")
     print("QuTiP: Quantum Toolbox in Python")
@@ -72,7 +74,7 @@ def about(caller="qutip"):
     elif caller == "qutip_qip":
         try:
             install_path = os.path.dirname(inspect.getsourcefile(qutip_qip))
-        except:
+        except ImportError:
             pass
     print("Installation path:  %s" % install_path)
     # citation
