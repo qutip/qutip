@@ -10,7 +10,7 @@ from scipy.sparse import csr_matrix
 
 from qutip import (
     basis, destroy, expect, liouvillian, sigmax, sigmaz,
-    tensor, Qobj, QobjEvo, SolverOptions,
+    tensor, Qobj, QobjEvo,
 )
 from qutip.core import data as _data
 from qutip.solve.nonmarkov.bofin_baths import (
@@ -31,7 +31,7 @@ from qutip.solve.nonmarkov.bofin_solvers import (
     HSolverDL,
     _GatherHEOMRHS,
 )
-from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
+from qutip.solver.solver_base import SolverOptions
 
 
 class TestHierarchyADOs:
@@ -514,19 +514,6 @@ class TestHEOMSolver:
         hsolver = HEOMSolver(H, [bath] * 3, 2)
         assert hsolver.ados.exponents == exponents * 3
         assert hsolver.ados.max_depth == 2
-
-    def test_create_progress_bar(self):
-        Q = sigmaz()
-        H = sigmax()
-        bath = Bath([
-            BathExponent("R", None, Q=Q, ck=1.1, vk=2.1),
-        ])
-
-        hsolver = HEOMSolver(H, bath, 2)
-        assert isinstance(hsolver.progress_bar, BaseProgressBar)
-
-        hsolver = HEOMSolver(H, bath, 2, progress_bar=True)
-        assert isinstance(hsolver.progress_bar, TextProgressBar)
 
     def test_create_bath_errors(self):
         Q = sigmaz()
