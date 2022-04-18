@@ -578,7 +578,7 @@ class QubitCircuit:
                             control_value=control_value)
                 self.gates.append(gate)
 
-    def add_circuit(self, qc, start=0,overwrite_user_gates=False):
+    def add_circuit(self, qc, start=0, overwrite_user_gates=False):
         """
         Adds a block of a qubit circuit to the main circuit.
         Globalphase gates are not added.
@@ -592,7 +592,7 @@ class QubitCircuit:
         """
         if self.N - start < qc.N:
             raise NotImplementedError("Targets exceed number of qubits.")
-        
+
         # Inherit the user gates
         for user_gate in qc.user_gates:
             if user_gate in self.user_gates and overwrite_user_gates:
