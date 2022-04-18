@@ -50,7 +50,7 @@ _fredkin_like = ["FREDKIN"]
 
 class Gate:
     """
-    Representation of a quantum gate, with its required parametrs, and target
+    Representation of a quantum gate, with its required parameters, and target
     and control qubits.
 
     Parameters
@@ -442,7 +442,7 @@ class QubitCircuit:
 
         Parameters
         ----------
-        name: string
+        measurement: string
             Measurement name. If name is an instance of `Measuremnent`,
             parameters are unpacked and added.
         targets: list
@@ -578,7 +578,7 @@ class QubitCircuit:
                             control_value=control_value)
                 self.gates.append(gate)
 
-    def add_circuit(self, qc, start=0):
+    def add_circuit(self, qc, start=0,overwrite_user_gates=False):
         """
         Adds a block of a qubit circuit to the main circuit.
         Globalphase gates are not added.
@@ -592,6 +592,13 @@ class QubitCircuit:
         """
         if self.N - start < qc.N:
             raise NotImplementedError("Targets exceed number of qubits.")
+        
+        # Inherit the user gates
+        for user_gate in qc.user_gates:
+            if user_gate in self.user_gates and overwrite_user_gates:
+                self.user_gates[user_gate] = qc.user_gates[user_gate]
+            else:
+                self.user_gates[user_gate] = qc.user_gates[user_gate]
 
         for circuit_op in qc.gates:
 
@@ -1624,7 +1631,7 @@ class QubitCircuit:
             elif gate.name == "TOFFOLI":
                 self.U_list.append(toffoli())
             elif gate.name == "GLOBALPHASE":
-                self.U_list.append(globalphase(gate.arg_value, n))
+                self.U_list.append(globalphase(gate.arg_value))
             elif gate.name in self.user_gates:
                 if gate.controls is not None:
                     raise ValueError("A user defined gate {} takes only  "
