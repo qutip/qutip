@@ -11,6 +11,7 @@ import scipy
 import inspect
 from qutip.utilities import _blas_info, available_cpu_count
 import qutip.settings
+import importlib
 
 
 def about(caller="qutip"):
@@ -26,8 +27,6 @@ def about(caller="qutip"):
     """
     print("")
     print("QuTiP: Quantum Toolbox in Python")
-    if caller == "qutip_qip":
-        print("Quantum Information Processing Module")
     print("================================")
     print("Copyright (c) QuTiP team 2011 and later.")
     print(
@@ -45,13 +44,16 @@ def about(caller="qutip"):
           "See https://github.com/qutip for details.")
     print("")
     print("QuTiP Version:      %s" % qutip.__version__)
-    if caller == "qutip_qip":
+    install_path = os.path.dirname(inspect.getsourcefile(qutip))
+    if caller != "qutip":
         try:
-            import qutip_qip
-            qutip_qip_ver = qutip_qip.__version__
+            package = importlib.import_module(caller)
+            package_ver = package.__version__
+            install_path = os.path.dirname(inspect.getsourcefile(package))
         except ImportError:
-            qutip_qip_ver = 'None'
-        print("QuTiP QIP Version:  %s" % qutip_qip_ver)
+            package_ver = 'None'
+            install_path = 'None'
+        print(f"{caller} Version:  %s" % package_ver)
     print("Numpy Version:      %s" % numpy.__version__)
     print("Scipy Version:      %s" % scipy.__version__)
     try:
@@ -73,13 +75,6 @@ def about(caller="qutip"):
     print("INTEL MKL Ext:      %s" % str(qutip.settings.has_mkl))
     print("Platform Info:      %s (%s)" % (platform.system(),
                                            platform.machine()))
-    if caller == "qutip":
-        install_path = os.path.dirname(inspect.getsourcefile(qutip))
-    elif caller == "qutip_qip":
-        try:
-            install_path = os.path.dirname(inspect.getsourcefile(qutip_qip))
-        except ImportError:
-            pass
     print("Installation path:  %s" % install_path)
     # citation
     longbar = "=" * 80
