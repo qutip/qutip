@@ -5,8 +5,8 @@ Tests for qutip.nonmarkov.bofin_baths.
 import numpy as np
 import pytest
 
-from qutip.core import data as _data
 from qutip import spre, spost, sigmax, sigmaz
+from qutip.core import data as _data
 from qutip.solve.nonmarkov.bofin_baths import (
     BathExponent,
     Bath,
