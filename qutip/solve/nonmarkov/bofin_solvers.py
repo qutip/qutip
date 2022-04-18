@@ -23,11 +23,12 @@ from qutip.core import data as _data
 from qutip.core.data import csr as _csr
 from qutip.core import Qobj, QobjEvo
 from qutip.core.superoperator import liouvillian, spre, spost
-from ...solver import SolverOptions, Result, IntegratorScipyZvode
-from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 from .bofin_baths import (
     BathExponent, DrudeLorentzBath,
 )
+from ...solver.solver_base import Solver
+from ...solver import Result, IntegratorScipyZvode
+from ...ui.progressbar import progess_bars as _progress_bars
 
 # Load MKL spsolve if avaiable
 if settings.install['has_mkl']:
@@ -363,7 +364,7 @@ class HierarchyADOsState:
         return Qobj(self._ado_state[idx, :].T, dims=self.rho.dims)
 
 
-class HEOMSolver:
+class HEOMSolver(Solver):
     """
     HEOM solver that supports multiple baths.
 
@@ -371,10 +372,10 @@ class HEOMSolver:
 
     Parameters
     ----------
-    H_sys : QObj, QobjEvo or a list
-        The system Hamiltonian or Liouvillian specified as either a
-        :obj:`Qobj`, a :obj:`QobjEvo`, or a list of elements that may
-        be converted to a :obj:`ObjEvo`.
+    H : :class:`Qobj`, :class:`QobjEvo`
+        Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or QobjEvo.
+        list of [:class:`Qobj`, :class:`Coefficient`] or callable that can be
+        made into :class:`QobjEvo` are also accepted.
 
     bath : Bath or list of Bath
         A :obj:`Bath` containing the exponents of the expansion of the
@@ -389,13 +390,9 @@ class HEOMSolver:
         exponent "excitations" to retain).
 
     options : :class:`qutip.solver.SolverOptions`
-        Generic solver options. If set to None the default options will be
-        used.
-
-    progress_bar : None, True or :class:`BaseProgressBar`
-        Optional instance of BaseProgressBar, or a subclass thereof, for
-        showing the progress of the solver. If True, an instance of
-        :class:`TextProgressBar` is used instead.
+        Generic solver options.
+        If set to None the default options will be used. Keyword only.
+        Default: None.
 
     Attributes
     ----------
@@ -403,11 +400,13 @@ class HEOMSolver:
         The description of the hierarchy constructed from the given bath
         and maximum depth.
     """
-    def __init__(
-        self, H_sys, bath, max_depth, options=None, progress_bar=None,
-    ):
-        self.H_sys = self._convert_h_sys(H_sys)
-        self.options = SolverOptions() if options is None else options
+
+    name = "heomsolver"
+    _avail_integrators = {}
+
+    def __init__(self, H, bath, max_depth, *, options=None):
+        self.H_sys = self._convert_h_sys(H)
+        self.options = options
         self._is_timedep = isinstance(self.H_sys, QobjEvo)
         self._H0 = self.H_sys(0) if self._is_timedep else self.H_sys
         self._is_hamiltonian = self.H_sys.type == "oper"
@@ -452,11 +451,6 @@ class HEOMSolver:
             _data.add(self._spreQdag[k], self._spostQdag[k])
             for k in range(self._n_exponents)
         ]
-
-        if progress_bar is None:
-            self.progress_bar = BaseProgressBar()
-        if progress_bar is True:
-            self.progress_bar = TextProgressBar()
 
         self._configure_solver()
 
@@ -682,7 +676,7 @@ class HEOMSolver:
             ]))
 
         self.RHSmat = RHSmat
-        self._ode = IntegratorScipyZvode(system, self.options)
+        self._ode = IntegratorScipyZvode(system, self.options.ode)
 
     def steady_state(
         self,
@@ -918,12 +912,15 @@ class HEOMSolver:
         solver = self._ode
         solver.set_state(tlist[0], rho0_he)
 
-        self.progress_bar.start(len(tlist))
+        progress_bar = _progress_bars[self.options['progress_bar']]()
+        progress_bar.start(len(tlist), **self.options['progress_kwargs'])
         for t_idx, t in enumerate(tlist):
-            self.progress_bar.update(t_idx)
-            if t_idx != 0:
+            progress_bar.update()
+            if t_idx == 0:
+                rho_data = rho0_he
+            else:
                 try:
-                    solver.integrate(t)
+                    _, rho_data = solver.integrate(t, copy=False)
                 except Exception as e:
                     raise RuntimeError(
                         "HEOMSolver ODE integration error. Try increasing"
@@ -932,7 +929,6 @@ class HEOMSolver:
                         " step between times given in tlist)."
                     ) from e
 
-            _, rho_data = solver.get_state()
             rho = Qobj(
                 rho_data.to_array()[:n ** 2].reshape(rho_shape, order='F'),
                 dims=rho_dims,
@@ -951,7 +947,7 @@ class HEOMSolver:
                     e_result = e_op(t, ado_state)
                 output.expect[e_key].append(e_result)
 
-        self.progress_bar.finished()
+        progress_bar.finished()
         return output
 
 
@@ -1021,30 +1017,23 @@ class HSolverDL(HEOMSolver):
     bnd_cut_approx : bool
         Use boundary cut off approximation. If true, the Matsubara
         terminator is added to the system Liouvillian (and H_sys is
-        promoted to a Liouvillian if it was a Hamiltonian).
-
-    progress_bar : None, True or :class:`BaseProgressBar`
-        Optional instance of BaseProgressBar, or a subclass thereof, for
-        showing the progress of the solver. If True, an instance of
-        :class:`TextProgressBar` is used instead.
+        promoted to a Liouvillian if it was a Hamiltonian). Keyword only.
+        Default: False.
 
     options : :class:`qutip.solver.SolverOptions`
         Generic solver options.
-        If set to None the default options will be used.
-
-    progress_bar : None, True or :class:`BaseProgressBar`
-        Optional instance of BaseProgressBar, or a subclass thereof, for
-        showing the progress of the solver. If True, an instance of
-        :class:`TextProgressBar` is used instead.
+        If set to None the default options will be used. Keyword only.
+        Default: None.
 
     combine : bool, default True
         Whether to combine exponents with the same frequency (and coupling
         operator). See :meth:`BosonicBath.combine` for details.
+        Keyword only. Default: True.
     """
     def __init__(
         self, H_sys, coup_op, coup_strength, temperature,
-        N_cut, N_exp, cut_freq, bnd_cut_approx=False, options=None,
-        progress_bar=None, combine=True,
+        N_cut, N_exp, cut_freq, *, bnd_cut_approx=False, options=None,
+        combine=True,
     ):
         bath = DrudeLorentzBath(
             Q=coup_op,
@@ -1065,10 +1054,7 @@ class HSolverDL(HEOMSolver):
             _, terminator = bath.terminator()
             H_sys = H_sys + terminator
 
-        super().__init__(
-            H_sys, bath=bath, max_depth=N_cut, options=options,
-            progress_bar=progress_bar,
-        )
+        super().__init__(H_sys, bath=bath, max_depth=N_cut, options=options)
 
         # store input parameters as attributes for politeness and compatibility
         # with HSolverDL in QuTiP 4.6 and below.
