@@ -10,11 +10,11 @@ def test_ttmsolve_jc_model():
     which can also be found in the qutip-notebooks repository.
     """
     # Define Hamiltonian and states
-    N, kappa = 3, 1.0
+    N, kappa, g = 3, 1.0, 10
     a = qt.tensor(qt.qeye(2), qt.destroy(N))
     sm = qt.tensor(qt.sigmam(), qt.qeye(N))
     sz = qt.tensor(qt.sigmaz(), qt.qeye(N))
-    H = kappa * (a.dag() * sm + a * sm.dag())
+    H = g * (a.dag() * sm + a * sm.dag())
     c_ops = [np.sqrt(kappa) * a]
     # identity superoperator
     Id = qt.tensor(qt.qeye(2), qt.qeye(N))
@@ -30,20 +30,16 @@ def test_ttmsolve_jc_model():
                                qt.tensor(qt.qeye(2), psi0c.dag()))
 
     # calculate exact solution using mesolve
-    times = np.arange(0, 5, 0.1)
+    times = np.arange(0, 5.0, 0.1)
     exactsol = qt.mesolve(H, rho0, times, c_ops, [])
     exact_z = qt.expect(sz, exactsol.states)
 
-    # dynamical map
-    def dynmap(t):
-        # reduced dynamical map for the qubit at time t
-        Et = qt.mesolve(H, E0, [0., t], c_ops, []).states[-1]
-        return ptracesuper * (Et * superrho0cav)
-
     # solve using transfer method
-    learning_times = np.arange(0, 10.0, 0.1)
-    learning_maps = [dynmap(t) for t in learning_times]
+    learning_times = np.arange(0, 2.0, 0.1)
+    Et_list = qt.mesolve(H, E0, learning_times, c_ops, []).states
+    learning_maps = [ptracesuper * (Et * superrho0cav) for Et in Et_list]
     ttmsol = ttmsolve(learning_maps, rho0a, times)
     ttm_z = qt.expect(qt.sigmaz(), ttmsol.states)
-    # check that ttm result and exact solution are close
-    assert np.allclose(ttm_z, exact_z, atol=0.01)
+
+    # check that ttm result and exact solution are close in the learning times
+    assert np.allclose(ttm_z, exact_z, atol=1e-5)
