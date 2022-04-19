@@ -70,7 +70,8 @@ def test_known_eigensystem(hamiltonian, eigenvalues, eigenstates):
 # Specify parametrisation over a random Hamiltonian by specifying the
 # dimensions, rather than duplicating that logic.
 @pytest.fixture(params=[pytest.param([10], id="simple"),
-                        pytest.param([5, 3, 4], id="tensor")])
+                        pytest.param([5, 3, 4], id="tensor"),
+                        pytest.param([[0, 1, 1]]*3, id="degenerate")])
 def random_hamiltonian(request):
     dimensions = request.param
     return qutip.tensor(*[qutip.rand_herm(dim)
