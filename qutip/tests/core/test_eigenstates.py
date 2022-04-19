@@ -74,8 +74,8 @@ def test_known_eigensystem(hamiltonian, eigenvalues, eigenstates):
                         pytest.param([[0, 1, 1]]*3, id="degenerate")])
 def random_hamiltonian(request):
     dimensions = request.param
-    return qutip.tensor(*[qutip.rand_herm(dim)
-                          for dim in dimensions])
+    return qutip.tensor(*[qutip.rand_herm(dim_or_evecs)
+                          for dim_or_evecs in dimensions])
 
 
 @pytest.mark.parametrize('sparse', [True, False])
