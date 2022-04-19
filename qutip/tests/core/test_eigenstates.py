@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 import qutip
+from itertools import combinations
 
 
 def _canonicalise_eigenvector(vec):
@@ -68,15 +69,24 @@ def test_known_eigensystem(hamiltonian, eigenvalues, eigenstates):
 
 # Specify parametrisation over a random Hamiltonian by specifying the
 # dimensions, rather than duplicating that logic.
-@pytest.fixture(params=[pytest.param([5], id="simple"),
-                        pytest.param([5, 3, 4], id="tensor")])
+@pytest.fixture(params=[pytest.param([10], id="simple"),
+                        pytest.param([5, 3, 4], id="tensor"),
+                        pytest.param([[0, 1, 1]]*3, id="degenerate")])
 def random_hamiltonian(request):
     dimensions = request.param
-    return qutip.tensor(*[qutip.rand_herm(dim) for dim in dimensions])
+    return qutip.tensor(*[qutip.rand_herm(dim_or_evecs)
+                          for dim_or_evecs in dimensions])
 
 
-def test_satisfy_eigenvalue_equation(random_hamiltonian):
-    for eigenvalue, eigenstate in zip(*random_hamiltonian.eigenstates()):
+@pytest.mark.parametrize('sparse', [True, False])
+@pytest.mark.parametrize('dtype', ['csr', 'dense'])
+def test_satisfy_eigenvalue_equation(random_hamiltonian, sparse, dtype):
+    random_hamiltonian = random_hamiltonian.to(dtype)
+    eigenvalues, eigenstates = random_hamiltonian.eigenstates(sparse=sparse)
+    for eigenvalue, eigenstate in zip(eigenvalues, eigenstates):
         np.testing.assert_allclose((random_hamiltonian * eigenstate).full(),
                                    (eigenvalue * eigenstate).full(),
                                    atol=1e-10)
+        assert eigenstate.norm() == pytest.approx(1., abs=1e-10)
+    for evec1, evec2 in combinations(eigenstates, 2):
+        assert evec1.overlap(evec2) == pytest.approx(0., abs=1e-10)
