@@ -147,3 +147,10 @@ class Test_isherm:
         assert np.count_nonzero(base.to_array()) == nnz
         assert not _data.isherm(base, tol=self.tol)
         assert not _data.isherm(base.transpose(), tol=self.tol)
+
+    def test_structure_detection(self, datatype):
+        base = np.array([[1,1,0],
+                         [0,1,1],
+                         [1,0,1]])
+        base = _data.to(datatype, _data.create(base))
+        assert not _data.isherm(base, tol=self.tol)
