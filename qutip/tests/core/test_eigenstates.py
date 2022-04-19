@@ -73,12 +73,14 @@ def test_known_eigensystem(hamiltonian, eigenvalues, eigenstates):
                         pytest.param([5, 3, 4], id="tensor")])
 def random_hamiltonian(request):
     dimensions = request.param
-    return qutip.tensor(*[qutip.rand_herm(dim, dtype='csr')
+    return qutip.tensor(*[qutip.rand_herm(dim)
                           for dim in dimensions])
 
 
 @pytest.mark.parametrize('sparse', [True, False])
-def test_satisfy_eigenvalue_equation(random_hamiltonian, sparse):
+@pytest.mark.parametrize('dtype', ['csr', 'dense'])
+def test_satisfy_eigenvalue_equation(random_hamiltonian, sparse, dtype):
+    random_hamiltonian = random_hamiltonian.to(dtype)
     eigenvalues, eigenstates = random_hamiltonian.eigenstates(sparse=sparse)
     for eigenvalue, eigenstate in zip(eigenvalues, eigenstates):
         np.testing.assert_allclose((random_hamiltonian * eigenstate).full(),
