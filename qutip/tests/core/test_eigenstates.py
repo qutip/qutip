@@ -87,6 +87,6 @@ def test_satisfy_eigenvalue_equation(random_hamiltonian, sparse, dtype):
         np.testing.assert_allclose((random_hamiltonian * eigenstate).full(),
                                    (eigenvalue * eigenstate).full(),
                                    atol=1e-10)
-        assert eigenstate.norm() == pytest.approx(1.)
+        assert eigenstate.norm() == pytest.approx(1., abs=1e-10)
     for evec1, evec2 in combinations(eigenstates, 2):
-        assert evec1.overlap(evec2) == pytest.approx(0.)
+        assert evec1.overlap(evec2) == pytest.approx(0., abs=1e-10)
