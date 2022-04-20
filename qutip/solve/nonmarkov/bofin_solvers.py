@@ -10,7 +10,9 @@ https://github.com/tehruhn/bofin) which was itself derived from an earlier
 implementation in QuTiP itself.
 """
 
+import itertools
 from copy import deepcopy
+from time import time
 
 import numpy as np
 import scipy.sparse as sp
@@ -405,8 +407,9 @@ class HEOMSolver(Solver):
     _avail_integrators = {}
 
     def __init__(self, H, bath, max_depth, *, options=None):
+        _time_start = time()
+
         self.H_sys = self._convert_h_sys(H)
-        self.options = options
         self._is_timedep = isinstance(self.H_sys, QobjEvo)
         self._H0 = self.H_sys(0) if self._is_timedep else self.H_sys
         self._is_hamiltonian = self.H_sys.type == "oper"
@@ -452,7 +455,14 @@ class HEOMSolver(Solver):
             for k in range(self._n_exponents)
         ]
 
-        self._configure_solver()
+        rhs, RHSmat = self._calculate_rhs()
+        super().__init__(rhs, options=options)
+        self.RHSmat = RHSmat
+
+        self.stats['solver'] = "Hierarchical Equations of Motion Solver"
+        self.stats['max_depth'] = max_depth
+        self.stats["preparation time"] = time() - _time_start
+        self.stats["run time"] = 0
 
     def _convert_h_sys(self, H_sys):
         """ Process input system Hamiltonian, converting and raising as needed.
@@ -648,7 +658,7 @@ class HEOMSolver(Solver):
 
         return ops.gather()
 
-    def _configure_solver(self):
+    def _calculate_rhs(self):
         """ Set up the solver. """
         RHSmat = self._rhs(self._L0.data)
         assert isinstance(RHSmat, _csr.CSR)
@@ -661,7 +671,7 @@ class HEOMSolver(Solver):
             # This assumption holds because only _grad_n dependents on
             # the system Liovillian (and not _grad_prev or _grad_next).
 
-            system = QobjEvo(Qobj(RHSmat))
+            rhs = QobjEvo(Qobj(RHSmat))
             h_identity = _data.identity(self._n_ados, dtype="csr")
             def _kron(x):
                 # TODO: Check whether this works for more complex QobjEvos
@@ -669,14 +679,13 @@ class HEOMSolver(Solver):
                 #       incorrect results.
                 L = liouvillian(x) if self._is_hamiltonian else x
                 return Qobj(_data.kron(h_identity, L.data)).to("csr")
-            system += (self.H_sys - self._H0).linear_map(_kron)
+            rhs += (self.H_sys - self._H0).linear_map(_kron)
         else:
-            system = QobjEvo(Qobj(RHSmat, dims=[
+            rhs = QobjEvo(Qobj(RHSmat, dims=[
                 self._sup_shape * self._n_ados, self._sup_shape * self._n_ados
             ]))
 
-        self.RHSmat = RHSmat
-        self._ode = IntegratorScipyZvode(system, self.options.ode)
+        return rhs, RHSmat
 
     def steady_state(
         self,
@@ -874,18 +883,10 @@ class HEOMSolver(Solver):
         rho_dims = self._sys_dims
         hierarchy_shape = (self._n_ados, n, n)
 
-        output = Result(
-            e_ops,
-            {
-                "store_states": not e_ops or self.options.store_states,
-                "store_final_state": True,
-                "normalize_output": False,
-            },
-            _super=True,
-            oper_state=False,
+        results = Result(
+            e_ops, self.options.results, _super=True, oper_state=False,
         )
-        # TODO: User new Result class better in the rest of this function
-        output.solver = "HEOMSolver"
+
         if e_ops:
             output.expect = expected
 
@@ -907,48 +908,45 @@ class HEOMSolver(Solver):
             rho0_he = _data.create(rho0_he)
 
         if ado_return:
-            output.ado_states = []
+            results.ado_states = []
 
-        solver = self._ode
-        solver.set_state(tlist[0], rho0_he)
+        _integrator = self._get_integrator()
+
+        _time_start = time()
+        _integrator.set_state(tlist[0], rho0_he)
+        self.stats["preparation time"] += time() - _time_start
 
         progress_bar = _progress_bars[self.options['progress_bar']]()
         progress_bar.start(len(tlist), **self.options['progress_kwargs'])
-        for t_idx, t in enumerate(tlist):
+        for t, state in itertools.chain([(0, rho0_he)], _integrator.run(tlist)):
             progress_bar.update()
-            if t_idx == 0:
-                rho_data = rho0_he
-            else:
-                try:
-                    _, rho_data = solver.integrate(t, copy=False)
-                except Exception as e:
-                    raise RuntimeError(
-                        "HEOMSolver ODE integration error. Try increasing"
-                        " the nsteps given in the HEOMSolver options"
-                        " (which increases the allowed substeps in each"
-                        " step between times given in tlist)."
-                    ) from e
-
             rho = Qobj(
-                rho_data.to_array()[:n ** 2].reshape(rho_shape, order='F'),
+                state.to_array()[:n ** 2].reshape(rho_shape, order='F'),
                 dims=rho_dims,
             )
-            output.add(t, rho)
+            results.add(t, rho)
             if ado_return or e_ops_callables:
                 ado_state = HierarchyADOsState(
-                    rho, self.ados, rho_data.to_array().reshape(hierarchy_shape)
+                    rho, self.ados, state.to_array().reshape(hierarchy_shape)
                 )
             if ado_return:
-                output.ado_states.append(ado_state)
+                results.ado_states.append(ado_state)
             for e_key, e_op in e_ops.items():
                 if isinstance(e_op, Qobj):
                     e_result = (rho * e_op).tr()
                 else:
                     e_result = e_op(t, ado_state)
-                output.expect[e_key].append(e_result)
-
+                results.expect[e_key].append(e_result)
         progress_bar.finished()
-        return output
+
+        self.stats['run time'] = progress_bar.total_time()
+        # TODO: It would be nice if integrator could give evolution statistics
+        # self.stats.update(_integrator.stats)
+        self.stats["method"] = _integrator.name
+        results.stats = self.stats.copy()
+        results.solver = self.name
+
+        return results
 
 
 class HSolverDL(HEOMSolver):

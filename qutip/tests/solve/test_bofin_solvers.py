@@ -10,7 +10,7 @@ from scipy.sparse import csr_matrix
 
 from qutip import (
     basis, destroy, expect, liouvillian, sigmax, sigmaz,
-    tensor, Qobj, QobjEvo,
+    tensor, Qobj, QobjEvo
 )
 from qutip.core import data as _data
 from qutip.solve.nonmarkov.bofin_baths import (
@@ -31,6 +31,7 @@ from qutip.solve.nonmarkov.bofin_solvers import (
     HSolverDL,
     _GatherHEOMRHS,
 )
+from qutip.solver import IntegratorException
 from qutip.solver.solver_base import SolverOptions
 
 
@@ -882,13 +883,12 @@ class TestHSolverDL:
         options = SolverOptions(nsteps=10)
         hsolver = HEOMSolver(dlm.H, bath, 14, options=options)
 
-        with pytest.raises(RuntimeError) as err:
+        with pytest.raises(IntegratorException) as err:
             hsolver.run(dlm.rho(), tlist=[0, 10])
 
         assert str(err.value) == (
-            "HEOMSolver ODE integration error. Try increasing the nsteps given"
-            " in the HEOMSolver options (which increases the allowed substeps"
-            " in each step between times given in tlist)."
+            "Excess work done on this call. Try to increasing the nsteps"
+            " parameter in the Options class"
         )
 
 
