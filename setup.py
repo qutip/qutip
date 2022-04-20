@@ -29,7 +29,7 @@ def process_options():
             Is this a release build (True) or a local development build (False)
         'openmp': bool
             Should we build our OpenMP extensions and attempt to link in OpenMP
-            libraries?
+            libraries? (Not supported in this version.)
         'cflags': list of str
             Flags to be passed to the C++ compiler.
         'ldflags': list of str
@@ -83,6 +83,9 @@ def _determine_user_arguments(options):
     """
     options = _parse_bool_user_argument(options, 'openmp')
     options = _parse_bool_user_argument(options, 'idxint_64')
+    if options['openmp']:
+        options['openmp'] = False
+        warnings.warn('OpenMP is not supported in this version.')
     return options
 
 
@@ -111,6 +114,9 @@ def _determine_compilation_options(options):
     else:
         # Everything else
         options['cflags'].extend(['-w', '-O3', '-funroll-loops'])
+        if options['openmp']:
+            options['cflags'].append('-fopenmp')
+            options['ldflags'].append('-fopenmp')
     if sysconfig.get_platform().startswith("macos"):
         # These are needed for compiling on OSX 10.14+
         options['cflags'].append('-mmacosx-version-min=10.9')

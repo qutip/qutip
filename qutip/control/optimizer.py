@@ -1,37 +1,4 @@
 # -*- coding: utf-8 -*-
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2014 and later, Alexander J G Pitchford
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
 # @author: Alexander Pitchford
 # @email1: agp1@aber.ac.uk
 # @email2: alex.pitchford@gmail.com
@@ -85,6 +52,13 @@ These are called from the within the SciPy optimisation functions.
 The subclasses implement the algorithm specific pulse optimisation function.
 """
 
+import functools
+import numpy as np
+import timeit
+import warnings
+from packaging.version import parse as _parse_version
+import scipy
+import scipy.optimize as spopt
 import copy
 import collections
 import timeit
@@ -103,45 +77,73 @@ import qutip.control.dump as qtrldump
 import qutip.logging_utils as logging
 logger = logging.get_logger()
 
+# Older versions of SciPy use the method numpy.ndarray.tostring(), which has
+# been deprecated since Numpy 1.19 in favour of the identical-in-all-but-name
+# tobytes() method.  This is simply a deprecated call in SciPy, there's nothing
+# we or our users can do about it, and the function shouldn't actually be
+# removed from Numpy until at least 1.22, by which point we'll have been able
+# to drop support for SciPy 1.4.
+if _parse_version(scipy.__version__) < _parse_version("1.5"):
+    @functools.wraps(spopt.fmin_l_bfgs_b)
+    def fmin_l_bfgs_b(*args, **kwargs):
+        with warnings.catch_warnings():
+            message = r"tostring\(\) is deprecated\. Use tobytes\(\) instead\."
+            warnings.filterwarnings("ignore", message=message,
+                                    category=DeprecationWarning)
+            return spopt.fmin_l_bfgs_b(*args, **kwargs)
+else:
+    fmin_l_bfgs_b = spopt.fmin_l_bfgs_b
+
+
+def _is_string(var):
+    try:
+        if isinstance(var, basestring):
+            return True
+    except NameError:
+        try:
+            if isinstance(var, str):
+                return True
+        except:
+            return False
+    except:
+        return False
+
+
 
 class Optimizer(object):
     """
     Base class for all control pulse optimisers. This class should not be
-    instantiated, use its subclasses
-    This class implements the fidelity, gradient and interation callback
-    functions.
-    All subclass objects must be initialised with a
+    instantiated, use its subclasses.  This class implements the fidelity,
+    gradient and interation callback functions.  All subclass objects must be
+    initialised with a
 
-        OptimConfig instance - various configuration options
-        Dynamics instance - describes the dynamics of the (quantum) system
-                            to be control optimised
+    - ``OptimConfig`` instance - various configuration options
+    - ``Dynamics`` instance - describes the dynamics of the (quantum) system
+      to be control optimised
 
     Attributes
     ----------
     log_level : integer
-        level of messaging output from the logger.
-        Options are attributes of qutip.logging_utils,
-        in decreasing levels of messaging, are:
+        level of messaging output from the logger.  Options are attributes of
+        qutip.logging_utils, in decreasing levels of messaging, are:
         DEBUG_INTENSE, DEBUG_VERBOSE, DEBUG, INFO, WARN, ERROR, CRITICAL
-        Anything WARN or above is effectively 'quiet' execution,
-        assuming everything runs as expected.
-        The default NOTSET implies that the level will be taken from
-        the QuTiP settings file, which by default is WARN
+        Anything WARN or above is effectively 'quiet' execution, assuming
+        everything runs as expected.  The default NOTSET implies that the level
+        will be taken from the QuTiP settings file, which by default is WARN.
 
     params:  Dictionary
-        The key value pairs are the attribute name and value
-        Note: attributes are created if they do not exist already,
-        and are overwritten if they do.
+        The key value pairs are the attribute name and value. Note: attributes
+        are created if they do not exist already, and are overwritten if they
+        do.
 
     alg : string
-        Algorithm to use in pulse optimisation.
-        Options are:
-            'GRAPE' (default) - GRadient Ascent Pulse Engineering
-            'CRAB' - Chopped RAndom Basis
+        Algorithm to use in pulse optimisation.  Options are:
+
+        - 'GRAPE' (default) - GRadient Ascent Pulse Engineering
+        - 'CRAB' - Chopped RAndom Basis
 
     alg_params : Dictionary
-        options that are specific to the pulse optim algorithm
-        that is GRAPE or CRAB
+        Options that are specific to the pulse optim algorithm ``alg``.
 
     disp_conv_msg : bool
         Set true to display a convergence message
@@ -309,10 +311,12 @@ class Optimizer(object):
     def dumping(self):
         """
         The level of data dumping that will occur during the optimisation
-         - NONE : No processing data dumped (Default)
-         - SUMMARY : A summary at each iteration will be recorded
-         - FULL : All logs will be generated and dumped
-         - CUSTOM : Some customised level of dumping
+
+        - NONE : No processing data dumped (Default)
+        - SUMMARY : A summary at each iteration will be recorded
+        - FULL : All logs will be generated and dumped
+        - CUSTOM : Some customised level of dumping
+
         When first set to CUSTOM this is equivalent to SUMMARY. It is then up
         to the user to specify which logs are dumped
         """
@@ -979,7 +983,7 @@ class OptimizerLBFGSB(Optimizer):
                 msg += " (approx grad)"
             logger.info(msg)
         try:
-            optim_var_vals, fid, res_dict = spopt.fmin_l_bfgs_b(
+            optim_var_vals, fid, res_dict = fmin_l_bfgs_b(
                 self.fid_err_func_wrapper, self.optim_var_vals,
                 fprime=fprime,
                 approx_grad=self.approx_grad,
@@ -1134,18 +1138,18 @@ class OptimizerCrab(Optimizer):
 
 class OptimizerCrabFmin(OptimizerCrab):
     """
-    Optimises the pulse using the CRAB algorithm [1, 2].
-    It uses the scipy.optimize.fmin function which is effectively a wrapper
-    for the Nelder-mead method.
-    It minimises the fidelity error function with respect to the CRAB
-    basis function coefficients.
-    This is the default Optimizer for CRAB.
+    Optimises the pulse using the CRAB algorithm [1]_, [2]_.
+    It uses the ``scipy.optimize.fmin`` function which is effectively a wrapper
+    for the Nelder-Mead method.  It minimises the fidelity error function with
+    respect to the CRAB basis function coefficients.  This is the default
+    Optimizer for CRAB.
 
-    Notes
-    -----
-    [1] P. Doria, T. Calarco & S. Montangero. Phys. Rev. Lett. 106,
-        190501 (2011).
-    [2] T. Caneva, T. Calarco, & S. Montangero. Phys. Rev. A 84, 022326 (2011).
+    References
+    ----------
+    .. [1] P. Doria, T. Calarco & S. Montangero. Phys. Rev. Lett. 106, 190501
+       (2011).
+    .. [2] T. Caneva, T. Calarco, & S. Montangero. Phys. Rev. A 84, 022326
+       (2011).
     """
 
     def reset(self):

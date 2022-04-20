@@ -1,38 +1,4 @@
 # -*- coding: utf-8 -*-
-# The above line is so that UTF-8 comments won't break Py2.
-
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
 """
 This module is a collection of random state and operator generators.
 The sparsity of the ouput Qobj's is controlled by varing the
@@ -80,7 +46,7 @@ def rand_jacobi_rotation(A, *, seed=None):
     if seed is not None:
         np.random.seed(seed=seed)
     if A.shape[0] != A.shape[1]:
-        raise Exception('Input matrix must be square.')
+        raise ValueError('Input matrix must be square.')
     n = A.shape[0]
     angle = 2 * np.random.random() * np.pi
     a = np.sqrt(0.5) * np.exp(-1j * angle)
@@ -160,14 +126,13 @@ def rand_herm(N, density=0.75, dims=None, pos_def=False,
     oper : qobj
         NxN Hermitian quantum operator.
 
-    Note
-    ----
+    Notes
+    -----
     If given a list/ndarray as input 'N', this function returns a
     random Hermitian object with eigenvalues given in the list/ndarray.
     This is accomplished via complex Jacobi rotations.  While this method
     is ~50% faster than the corresponding (real only) Matlab code, it should
     not be repeatedly used for generating matrices larger than ~1000x1000.
-
     """
     if seed is not None:
         np.random.seed(seed=seed)
@@ -206,12 +171,12 @@ def _rand_herm_sparse(N, density, pos_def):
     num_elems = int(num_elems)
     data = (2 * np.random.rand(num_elems) - 1) + \
            (2 * np.random.rand(num_elems) - 1) * 1j
-    row_idx, col_idx = zip(*[divmod(index, N) for index
-                             in np.random.choice(N*N,
-                                                 num_elems,
-                                                 replace=False)])
-    M = sp.coo_matrix((data, (row_idx,col_idx)),
-                      dtype=complex, shape=(N,N)).tocsr()
+    row_idx, col_idx = zip(*[
+        divmod(index, N)
+        for index in np.random.choice(N*N, num_elems, replace=False)
+    ])
+    M = sp.coo_matrix((data, (row_idx, col_idx)),
+                      dtype=complex, shape=(N, N))
     M = 0.5 * (M + M.conj().transpose())
     if pos_def:
         M.setdiag(np.abs(M.diagonal()) + np.sqrt(2) * N)
@@ -220,17 +185,17 @@ def _rand_herm_sparse(N, density, pos_def):
 
 
 def _rand_herm_dense(N, density, pos_def):
-    M = (2 * np.random.rand(N,N) - 1) + \
-        (2 * np.random.rand(N,N) - 1) * 1j
+    M = (
+        (2*np.random.rand(N, N) - 1)
+        + 1j*(2*np.random.rand(N, N) - 1)
+    )
     M = 0.5 * (M + M.conj().transpose())
-    target = (1-(density)**0.5)
+    target = 1 - density**0.5
     num_remove = N * (N - 0.666) * target + 0.666 * N * (1 - density)
     num_remove = max([num_remove, 1])
     num_remove = int(num_remove)
-    for row, col in [divmod(index, N)
-                     for index in np.random.choice(N*N,
-                                                   num_remove,
-                                                   replace=False)]:
+    for index in np.random.choice(N*N, num_remove, replace=False):
+        row, col = divmod(index, N)
         M[col, row] = 0
         M[row, col] = 0
     if pos_def:
@@ -336,7 +301,7 @@ def rand_unitary_haar(N=2, dims=None, *, seed=None, dtype=_data.Dense):
                 type='oper', isunitary=True, copy=False).to(dtype)
 
 
-def rand_ket(N=0, density=1, dims=None, *, seed=None, dtype=_data.Dense):
+def rand_ket(N=None, density=1, dims=None, *, seed=None, dtype=_data.Dense):
     """Creates a random Nx1 sparse ket vector.
 
     Parameters
@@ -351,6 +316,8 @@ def rand_ket(N=0, density=1, dims=None, *, seed=None, dtype=_data.Dense):
     dims : list
         Dimensions of quantum object.  Used for specifying
         tensor structure. Default is dims=[[N],[1]].
+    seed : int
+        Seed for the random number generator.
 
     seed : int
         seed for the random number generator
@@ -362,12 +329,20 @@ def rand_ket(N=0, density=1, dims=None, *, seed=None, dtype=_data.Dense):
     Returns
     -------
     oper : qobj
-        Nx1 ket state quantum operator.
+        Nx1 ket quantum state vector.
+
+    Raises
+    -------
+    ValueError
+        If neither `N` or `dims` are specified.
 
     """
     if seed is not None:
         np.random.seed(seed=seed)
-    if N and dims:
+    if N is None and dims is None:
+        raise ValueError('Specify either the number of rows of state vector'
+                         '(N) or dimensions of quantum object (dims)')
+    if N is not None and dims:
         _check_dims(dims, N, 1)
     elif dims:
         N = np.prod(dims[0])
@@ -390,7 +365,7 @@ def rand_ket(N=0, density=1, dims=None, *, seed=None, dtype=_data.Dense):
                 isunitary=False).to(dtype)
 
 
-def rand_ket_haar(N=2, dims=None, *, seed=None, dtype=_data.Dense):
+def rand_ket_haar(N=None, dims=None, *, seed=None, dtype=_data.Dense):
     """
     Returns a Haar random pure state of dimension ``dim`` by
     applying a Haar random unitary to a fixed pure state.
@@ -416,7 +391,15 @@ def rand_ket_haar(N=2, dims=None, *, seed=None, dtype=_data.Dense):
     -------
     psi : Qobj
         A random state vector drawn from the Haar measure.
+
+    Raises
+    -------
+    ValueError
+        If neither `N` or `dims` are specified.
     """
+    if N is None and dims is None:
+        raise ValueError('Specify either the number of rows of state vector'
+                         '(N) or dimensions of quantum object (dims)')
     if N and dims:
         _check_dims(dims, N, 1)
     elif dims:
@@ -444,6 +427,8 @@ def rand_dm(N, density=0.75, pure=False, dims=None, *,
     dims : list
         Dimensions of quantum object.  Used for specifying
         tensor structure. Default is dims=[[N],[N]].
+    seed : int
+        Seed for the random number generator.
 
     seed : int
         seed for the random number generator
@@ -639,6 +624,7 @@ def rand_super(N, dims=None, *, seed=None, dtype=_data.Dense):
         Storage representation. Any data-layer known to `qutip.data.to` is
         accepted.
     """
+    from .solve.propagator import propagator
     if dims is not None:
         # TODO: check!
         _check_dims(dims, N**2, N**2)
@@ -818,7 +804,3 @@ def _check_dims(dims, N1, N2):
         raise ValueError("Qobj dimensions must match matrix shape.")
     if len(dims[0]) != len(dims[1]):
         raise TypeError("Qobj dimension components must have same length.")
-
-# TRAILING IMPORTS
-# qutip.propagator depends on rand_dm, so we need to put this import last.
-from qutip.solve.propagator import propagator
