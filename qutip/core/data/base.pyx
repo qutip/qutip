@@ -1,14 +1,8 @@
 #cython: language_level=3
 
-import numpy as np
-cimport numpy as cnp
-
 __all__ = [
     'idxint_dtype', 'Data', 'EfficiencyWarning',
 ]
-
-idxint_dtype = np.int32
-idxint_DTYPE = cnp.NPY_INT32
 
 # As this is an abstract base class with C entry points, we have to explicitly
 # stub out methods since we can't mark them as abstract.

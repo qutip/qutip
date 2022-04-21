@@ -81,20 +81,8 @@ def _determine_user_arguments(options):
     Add the 'openmp' option to the collection, based on the passed command-line
     arguments or environment variables.
     """
-<<<<<<< HEAD
-    options['openmp'] = (
-        '--with-openmp' in sys.argv
-        or _get_environment_bool('CI_QUTIP_WITH_OPENMP')
-    )
-    if options['openmp']:
-        options['openmp'] = False
-        warnings.warn('OpenMP is not supported in this version.')
-    if "--with-openmp" in sys.argv:
-        sys.argv.remove("--with-openmp")
-=======
     options = _parse_bool_user_argument(options, 'openmp')
     options = _parse_bool_user_argument(options, 'idxint_64')
->>>>>>> ff02059a (Slightly clean-up option parsing.)
     return options
 
 
