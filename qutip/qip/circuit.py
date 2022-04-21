@@ -601,7 +601,6 @@ class QubitCircuit:
         for circuit_op in qc.gates:
 
             if isinstance(circuit_op, Gate):
-                # gate = circuit_op
 
                 if circuit_op.targets is not None:
                     tar = [target + start for target in circuit_op.targets]
@@ -617,11 +616,12 @@ class QubitCircuit:
                     arg_value=circuit_op.arg_value)
             elif isinstance(circuit_op, Measurement):
                 self.add_measurement(
-                                circuit_op.name,
-                                targets=[target + start for target in circuit_op.targets],
-                                classical_store=circuit_op.classical_store)
+                    circuit_op.name,
+                    targets=[target + start for target in circuit_op.targets],
+                    classical_store=circuit_op.classical_store)
             else:
-                raise TypeError("The circuit to be added contains unknown operator {}".format(circuit_op))
+                raise TypeError("The circuit to be added contains unknown \
+                    operator {}".format(circuit_op))
 
     def remove_gate_or_measurement(self, index=None, end=None,
                                    name=None, remove="first"):
