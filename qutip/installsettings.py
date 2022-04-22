@@ -119,5 +119,5 @@ class InstallSettings:
         # Running on mac with openblas make eigh unsafe
         "eigh_unsafe": _eigh_unsafe,
         # int size for the shape of data layer object
-        "intsize": None
+        "idxint_size": None
     }

@@ -213,8 +213,10 @@ def _create_int_type_file(options):
     """
     if options['idxint_64']:
         typedef = "typedef int64_t idxint;\n"
+        typedef += "int _idxint_size=64;\n"
     else:
         typedef = "typedef int32_t idxint;\n"
+        typedef += "int _idxint_size=32;\n"
     path = os.path.join(options['rootdir'], 'qutip', 'core', 'data', 'src')
     file = os.path.join(path, 'intdtype.h')
     if os.path.exists(file):
