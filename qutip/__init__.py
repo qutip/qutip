@@ -21,27 +21,6 @@ else:
     # See Pull #652 for why this is here.
     os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
-# -----------------------------------------------------------------------------
-# setup the cython environment
-#
-try:
-    import Cython as _Cython
-except ImportError:
-    pass
-else:
-    from qutip.utilities import _version2int
-    _cy_require = "0.29.20"
-    if _version2int(_Cython.__version__) < _version2int(_cy_require):
-        warnings.warn(
-            "Old version of Cython detected: needed {}, got {}."
-            .format(_cy_require, _Cython.__version__)
-        )
-
-    # Setup pyximport
-    from qutip import _pyxbuilder
-    _pyxbuilder.install()
-    del _pyxbuilder, _Cython, _version2int
-
 
 # -----------------------------------------------------------------------------
 # cpu/process configuration
@@ -83,6 +62,7 @@ else:
 
 from .core import *
 from .solve import *
+from .solver.brmesolve import *
 
 # graphics
 from .bloch import *

@@ -37,13 +37,6 @@ Distributions
     :members:
 
 
-Cubic Spline
----------------
-
-.. autoclass:: qutip.interpolate.Cubic_Spline
-    :members:
-
-
 .. _classes-non_markov:
 
 Non-Markovian Solvers
