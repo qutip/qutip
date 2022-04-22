@@ -7,6 +7,8 @@ import scipy
 from .utilities import _blas_info
 from packaging import version as pac_version
 
+__all__ = ['InstallSettings']
+
 @optionsclass("install")
 class InstallSettings:
     """
@@ -115,5 +117,8 @@ class InstallSettings:
         # configured, rather than through _logging.get_logger().
         "_logger": _logger,
         # Running on mac with openblas make eigh unsafe
-        "eigh_unsafe": _eigh_unsafe
+        "eigh_unsafe": _eigh_unsafe,
+        # int size
+        #
+        "intsize": None
     }

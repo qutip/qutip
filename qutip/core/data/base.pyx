@@ -1,8 +1,19 @@
 #cython: language_level=3
+import numpy as np
+cimport numpy as cnp
 
 __all__ = [
     'idxint_dtype', 'Data', 'EfficiencyWarning',
 ]
+
+cdef idxint test = 2**32
+if test == 0:
+    # test overflow to 0 with 32 bits int
+    idxint_dtype = np.int32
+    idxint_DTYPE = cnp.NPY_INT32
+else:
+    idxint_dtype = np.int64
+    idxint_DTYPE = cnp.NPY_INT64
 
 # As this is an abstract base class with C entry points, we have to explicitly
 # stub out methods since we can't mark them as abstract.

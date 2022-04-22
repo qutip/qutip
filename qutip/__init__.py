@@ -117,6 +117,11 @@ from .fileio import *
 from .about import *
 from .cite import *
 
+import numpy as np
+if data.base.idxint_dtype == np.int64:
+    qutip.settings.install.read_only_options["intsize"] = 64
+else:
+    qutip.settings.install.read_only_options["intsize"] = 32
 # -----------------------------------------------------------------------------
 # Load user configuration if present: override defaults.
 #
@@ -127,4 +132,4 @@ if configrc.has_qutip_rc():
 # -----------------------------------------------------------------------------
 # Clean name space
 #
-del os, warnings
+del os, warnings, np

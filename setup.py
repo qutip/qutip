@@ -8,6 +8,7 @@ import subprocess
 import sys
 import sysconfig
 import warnings
+import shutil
 
 # Required third-party imports, must be specified in pyproject.toml.
 import packaging.version
@@ -81,7 +82,8 @@ def _determine_user_arguments(options):
     Add the 'openmp' option to the collection, based on the passed command-line
     arguments or environment variables.
     """
-    options = _parse_bool_user_argument(options, 'openmp')
+    # options = _parse_bool_user_argument(options, 'openmp')
+    options['openmp'] = False  # Not supported yet
     options = _parse_bool_user_argument(options, 'idxint_64')
     return options
 
@@ -206,6 +208,39 @@ def _extension_extra_sources():
     return out
 
 
+def _file_eq(src, dest):
+    """
+    Return True if both file contain the same data.
+    """
+    if not (os.path.isfile(src) and os.path.isfile(dest)):
+        return False
+    with open(src, 'r') as source:
+        source_content = source.read()
+    with open(dest, 'r') as destination:
+        destination_content = destination.read()
+    return source_content == destination_content
+
+
+def _create_int_type_file(options):
+    """
+    Create the `data/src/intdtype.h` file.
+    """
+    if options['idxint_64']:
+        typedef = "typedef int64_t idxint;\n"
+    else:
+        typedef = "typedef int32_t idxint;\n"
+    path = os.path.join(options['rootdir'], 'qutip', 'core', 'data', 'src')
+    file = os.path.join(path, 'intdtype.h')
+    if os.path.exists(file):
+        with open(file, 'r') as source:
+            if source.read() == typedef:
+                # The file is already existing and the same, nothing to do.
+                return
+
+    with open(file, 'w') as source:
+        source.write(typedef)
+
+
 def create_extension_modules(options):
     """
     Discover and Cythonise all extension modules that need to be built.  These
@@ -213,6 +248,7 @@ def create_extension_modules(options):
     """
     out = []
     root = pathlib.Path(options['rootdir'])
+    _create_int_type_file(options)
     pyx_files = set(root.glob('qutip/**/*.pyx'))
     if not options['openmp']:
         pyx_files -= set(root.glob('qutip/**/openmp/**/*.pyx'))
