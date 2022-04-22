@@ -228,7 +228,16 @@ class TestQubitCircuit:
         """
         Addition of a circuit to a `QubitCircuit`
         """
+
+        def customer_gate1(arg_values):
+            mat = np.zeros((4, 4), dtype=np.complex128)
+            mat[0, 0] = mat[1, 1] = 1.
+            mat[2:4, 2:4] = gates.rx(arg_values)
+            return Qobj(mat, dims=[[2, 2], [2, 2]])
+
         qc = QubitCircuit(6)
+        qc.user_gates = {"CTRLRX": customer_gate1}
+
         qc.add_gate("CNOT", targets=[1], controls=[0])
         test_gate = Gate("SWAP", targets=[1, 4])
         qc.add_gate(test_gate)
@@ -237,6 +246,7 @@ class TestQubitCircuit:
         qc.add_gate(test_gate, index=[3])
         qc.add_measurement("M0", targets=[0], classical_store=[1])
         qc.add_1q_gate("RY", start=4, end=5, arg_value=1.570796)
+        qc.add_gate("CTRLRX", targets=[1, 2], arg_value=np.pi/2)
 
         qc1 = QubitCircuit(6)
 
@@ -244,6 +254,9 @@ class TestQubitCircuit:
 
         # Test if all gates and measurements are added
         assert len(qc1.gates) == len(qc.gates)
+
+        # Test if the definitions of user gates are added
+        assert qc1.user_gates == qc.user_gates
 
         for i in range(len(qc1.gates)):
             assert (qc1.gates[i].name
@@ -279,6 +292,10 @@ class TestQubitCircuit:
                     qc.gates[i].controls is not None):
                 assert (qc2.gates[i].controls[0]
                         == qc.gates[i].controls[0]+2)
+        
+        # Test exception when the operators to be added are not gates or measurements
+        qc.gates[-1] = 0
+        pytest.raises(TypeError, qc2.add_circuit, qc)
 
     def test_add_state(self):
         """
