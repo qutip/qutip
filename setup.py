@@ -8,7 +8,6 @@ import subprocess
 import sys
 import sysconfig
 import warnings
-import shutil
 
 # Required third-party imports, must be specified in pyproject.toml.
 import packaging.version
@@ -206,19 +205,6 @@ def _extension_extra_sources():
         # Normalise the sources into OS-specific form.
         out[module] = [str(pathlib.Path(source)) for source in sources]
     return out
-
-
-def _file_eq(src, dest):
-    """
-    Return True if both file contain the same data.
-    """
-    if not (os.path.isfile(src) and os.path.isfile(dest)):
-        return False
-    with open(src, 'r') as source:
-        source_content = source.read()
-    with open(dest, 'r') as destination:
-        destination_content = destination.read()
-    return source_content == destination_content
 
 
 def _create_int_type_file(options):

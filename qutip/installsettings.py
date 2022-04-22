@@ -118,7 +118,6 @@ class InstallSettings:
         "_logger": _logger,
         # Running on mac with openblas make eigh unsafe
         "eigh_unsafe": _eigh_unsafe,
-        # int size
-        #
+        # int size for the shape of data layer object
         "intsize": None
     }

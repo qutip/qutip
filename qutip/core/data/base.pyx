@@ -1,4 +1,5 @@
 #cython: language_level=3
+
 import numpy as np
 cimport numpy as cnp
 
@@ -6,9 +7,9 @@ __all__ = [
     'idxint_dtype', 'Data', 'EfficiencyWarning',
 ]
 
-cdef idxint test = 2**32
-if test == 0:
-    # test overflow to 0 with 32 bits int
+cdef idxint size_check = 2**32
+if size_check == 0:
+    # size_check overflow to 0 with 32 bits int
     idxint_dtype = np.int32
     idxint_DTYPE = cnp.NPY_INT32
 else:
