@@ -27,7 +27,6 @@ class Solver:
     name = "generic"
 
     # State, time and Integrator of the stepper functionnality
-    is_set = False
     _integrator = None
     _avail_integrators = {}
 
@@ -125,7 +124,6 @@ class Solver:
         _time_start = time()
         _data0 = self._prepare_state(state0)
         self._integrator.set_state(tlist[0], _data0)
-        self.is_set = True
         self._argument(args)
         self.stats["preparation time"] += time() - _time_start
 
@@ -163,7 +161,6 @@ class Solver:
         """
         _time_start = time()
         self._integrator.set_state(t0, self._prepare_state(state0))
-        self.is_set = True
         self.stats["preparation time"] += time() - _time_start
 
     def step(self, t, *, args=None, copy=True):
@@ -188,7 +185,7 @@ class Solver:
             ``run``. If ``run`` is called, ``step`` will continue from the last
             time and state obtained.
         """
-        if not self.is_set:
+        if not self._integrator._is_set:
             raise RuntimeError("The `start` method must called first")
         _time_start = time()
         self._argument(args)
@@ -226,12 +223,14 @@ class Solver:
             raise TypeError("options must be an instance of" +
                             str(self.optionsclass))
         self._options = new
-        if self.is_set:
+        if self._integrator is None:
+            pass
+        elif self._integrator._is_set:
             # The integrator was already used: continue where it is.
             state = self._integrator.get_state()
             self._integrator = self._get_integrator()
             self._integrator.set_state(*state)
-        elif self._integrator is not None:
+        else:
             # The integrator was never used, but after it's creation in init.
             self._integrator = self._get_integrator()
 
