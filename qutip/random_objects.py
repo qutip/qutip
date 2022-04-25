@@ -178,10 +178,15 @@ def _rand_herm_sparse(N, density, pos_def):
     M = sp.coo_matrix((data, (row_idx, col_idx)),
                       dtype=complex, shape=(N, N))
     M = 0.5 * (M + M.conj().transpose())
-    if pos_def:
-        M.setdiag(np.abs(M.diagonal()) + np.sqrt(2) * N)
     M.sort_indices()
-    return _data.create(M)
+    rand_mat = _data.create(M)
+    if pos_def:
+        rand_mat = _data.add(
+            rand_mat,
+            _data.diag(np.ones(N, dtype=complex)),
+            np.sqrt(2) * N + 1
+        )
+    return rand_mat
 
 
 def _rand_herm_dense(N, density, pos_def):

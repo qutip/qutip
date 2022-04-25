@@ -66,8 +66,8 @@ class TestRelativeEntropy:
         # S(rho || sigma) = sum_i(p_i log p_i) - sum_ij(p_i P_ij log q_i)
         rvals, rvecs = rho.eigenstates()
         svals, svecs = sigma.eigenstates()
-        rvecs = np.hstack(vec.full() for vec in rvecs).T
-        svecs = np.hstack(vec.full() for vec in svecs).T
+        rvecs = np.hstack([vec.full() for vec in rvecs]).T
+        svecs = np.hstack([vec.full() for vec in svecs]).T
         # Calculate S
         S = 0
         for i in range(len(rvals)):
