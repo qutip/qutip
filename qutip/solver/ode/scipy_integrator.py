@@ -110,19 +110,26 @@ class IntegratorScipyZvode(Integrator):
         if self._ode_solver.t == t:
             # Exact same `t` as the last call, nothing to do.
             pass
-        elif self._back <= t <= self._front:
+        elif self._back > t:
+            # `t` before the range: not supported.
+            raise IntegratorException(
+                f"`t`={t} is behind the integration limit: "
+                f"{t} < {self._back}."
+            )
+        elif t <= self._front:
             # In the range, ask for the new state.
             self._ode_solver.integrate(t)
-        elif self._front < t:
+        elif self._ode_solver.t < self._front:
+            # `t` after the range but last call (`t_prev`) not at the front.
+            # Advancing the range would make the interval `t_prev`..`_front`
+            # unreachable. Thus advance to _front.
+            self._ode_solver.integrate(self._front)
+        else:
             # Advance the range.
             self._back = self._front
             self._ode_solver.integrate(t, step=True)
             self._front = self._ode_solver._integrator.rwork[12]
-        else:
-            raise IntegratorException(
-                f"`t`={t} is outside the integration range: "
-                f"{self._back[0]}..{self._ode_solver.t}."
-            )
+
         return self.get_state(copy)
 
     def _check_failed_integration(self):
