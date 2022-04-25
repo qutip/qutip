@@ -33,6 +33,7 @@ class Solver:
     # Class of option used by the solver
     optionsclass = SolverOptions
     odeoptionsclass = SolverOdeOptions
+    resultclass = Result
 
     def __init__(self, rhs, *, options=None):
         if isinstance(rhs, (QobjEvo, Qobj)):
@@ -127,9 +128,9 @@ class Solver:
         self._argument(args)
         self.stats["preparation time"] += time() - _time_start
 
-        results = Result(e_ops, self.options.results,
-                         self.rhs.issuper, _data0.shape[1]!=1)
-        results.add(tlist[0], state0)
+        results = self.resultclass(e_ops, self.options.results,
+                                   self.rhs.issuper, _data0.shape[1]!=1)
+        results.add(tlist[0], self._restore_state(_data0, copy=False))
 
         progress_bar = progess_bars[self.options['progress_bar']]()
         progress_bar.start(len(tlist)-1, **self.options['progress_kwargs'])
