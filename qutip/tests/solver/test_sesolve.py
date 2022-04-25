@@ -219,9 +219,9 @@ class TestSeSolve():
         np.testing.assert_allclose(qutip.expect(qutip.sigmaz(), state), sr2,
                                    atol=2e-6)
 
-        new_options = SolverOptions(method='adams', atol=1e-7, rtol=1e-8,
-                                    progress_bar=None)
-        state = solver_obj.step(3, args={"a":0}, options=new_options)
+        solver_obj.options = SolverOptions(method='adams', atol=1e-7,
+                                           rtol=1e-8, progress_bar=None)
+        state = solver_obj.step(3, args={"a":0})
         np.testing.assert_allclose(qutip.expect(qutip.sigmax(), state), 0.,
                                    atol=2e-6)
         np.testing.assert_allclose(qutip.expect(qutip.sigmay(), state), sr2,
