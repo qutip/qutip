@@ -28,9 +28,7 @@ default_map_kw = {
 def _read_map_kw(options):
     options = options or {}
     map_kw = default_map_kw.copy()
-    for key in map_kw:
-        if options.get(key) is not None:
-            map_kw[key] = options[key]
+    map_kw.update({k: v for k, v in options.items() if v is not None})
     return map_kw
 
 
