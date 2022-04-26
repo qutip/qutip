@@ -243,6 +243,7 @@ cdef class Explicit_RungeKutta:
 
         t1 = t + dt1 / 100
         self._y_temp = copy_to(y0, self._y_temp)
+        # below dt1 / 100 is an arbitrary small fraction of dt1:
         self._y_temp = iadd_data(self._y_temp, <Data> self.k[0], dt1 / 100)
         self.k[1] = imul_data(<Data> self.k[1], 0)
         self.k[1] = self.qevo.matmul_data(t1, self._y_temp, <Data> self.k[1])
