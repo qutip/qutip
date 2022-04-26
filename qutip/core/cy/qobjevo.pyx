@@ -292,9 +292,11 @@ cdef class QobjEvo:
 
         return out
 
-    def __call__(self, double t, dict args=None):
-        if args:
-            return QobjEvo(self, args=args)(t)
+    def __call__(self, double t, dict _args=None, **kwargs):
+        if _args is not None or kwargs:
+            if _args:
+                kwargs.update(_args)
+            return QobjEvo(self, args=kwargs)(t)
         return Qobj(
             self._call(t), dims=self.dims, copy=False,
             type=self.type, superrep=self.superrep
@@ -323,11 +325,13 @@ cdef class QobjEvo:
         """Return a copy of this `QobjEvo`"""
         return QobjEvo(self, compress=False)
 
-    def arguments(QobjEvo self, dict new_args):
+    def arguments(QobjEvo self, dict _args=None, **kwargs):
         """Update the arguments"""
+        if _args:
+            kwargs.update(_args)
         cache = []
         self.elements = [
-            element.replace_arguments(new_args, cache=cache)
+            element.replace_arguments(kwargs, cache=cache)
             for element in self.elements
         ]
 
