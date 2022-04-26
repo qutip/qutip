@@ -14,7 +14,7 @@ def test_basis_simple(size, n):
 
 
 @pytest.mark.parametrize("to_test", [
-    qutip.basis, qutip.fock, qutip.fock_dm, qutip.state_number_qobj
+    qutip.basis, qutip.fock, qutip.fock_dm,
 ])
 @pytest.mark.parametrize("size, n", [([2, 2], [0, 1]), ([2, 3, 4], [1, 2, 0])])
 def test_implicit_tensor_basis_like(to_test, size, n):
@@ -292,7 +292,6 @@ dtype_types = list(qutip.data.to._str2type.values()) + list(qutip.data.to.dtypes
     (qutip.ket, ("001",)),
     (qutip.bra, ('010',)),
     (qutip.qstate, ("uud",)),
-    (qutip.state_number_qobj, ([2, 2, 2], [1, 0, 1])),
     (qutip.w_state, (5,)),
     (qutip.ghz_state, (5,)),
     (qutip.qutrit_basis, ()),

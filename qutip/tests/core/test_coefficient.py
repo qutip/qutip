@@ -263,6 +263,9 @@ def test_CoeffOptions():
     pytest.param("t + (0 if not 'something' else 1)", {},
                  lambda t: t + 1, id="branch")
 ])
+@pytest.mark.filterwarnings(
+    "ignore::qutip.core.coefficient.StringParsingWarning"
+)
 def test_CoeffParsingStressTest(codestring, args, reference):
     opt = CompilationOptions(recompile=True)
     coeff = coefficient(codestring, args=args, compile_opt=opt)
