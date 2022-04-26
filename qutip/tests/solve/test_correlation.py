@@ -6,7 +6,7 @@ import qutip
 
 pytestmark = [pytest.mark.usefixtures("in_temporary_directory")]
 
-_equivalence_dimension = 20
+_equivalence_dimension = 15
 _equivalence_fock = qutip.fock(_equivalence_dimension, 1)
 _equivalence_coherent = qutip.coherent_dm(_equivalence_dimension, 2)
 
@@ -23,13 +23,13 @@ def test_correlation_solver_equivalence(solver, start):
     system.
     """
     a = qutip.destroy(_equivalence_dimension)
-    x = ( a +a.dag() )/np.sqrt(2)
+    x = ( a + a.dag() ) / np.sqrt(2)
     H = a.dag() * a
     G1 = 0.75
     n_th = 2
     c_ops = [np.sqrt(G1 * (n_th+1)) * a,
              np.sqrt(G1 * n_th) * a.dag()]
-    times = np.linspace(0, 5, 101)
+    times = np.linspace(0, 3, 61)
     # Massively relax the tolerance for the Monte-Carlo approach to avoid a
     # long simulation time.
     tol = 0.25 if solver == "mc" else 1e-4
