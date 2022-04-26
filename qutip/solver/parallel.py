@@ -55,19 +55,24 @@ def serial_map(task, values, task_args=None, task_kwargs=None,
         The optional additional argument to the ``task`` function.
     task_kwargs : list / dictionary
         The optional additional keyword argument to the ``task`` function.
+    reduce_func : func (optional)
+        If provided, it will be called with the output of each tasks instead of
+        storing a them in a list.
     progress_bar : string
         Progress bar options's string for showing progress.
     progress_bar_kwargs : dict
-        Options for the progress bar
-    map_kw:
-        Other options
+        Options for the progress bar.
+    map_kw: dict (optional)
+        Dictionary containing entry for 'timeout' the maximum time for the
+        whole map.
 
     Returns
     --------
     result : list
         The result list contains the value of
         ``task(value, *task_args, **task_kwargs)`` for each
-        value in ``values``.
+        value in ``values``. If a ``reduce_func`` is provided, and empty list
+        will be returned.
 
     """
     if task_args is None:
@@ -113,19 +118,26 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
         The optional additional argument to the ``task`` function.
     task_kwargs : list / dictionary
         The optional additional keyword argument to the ``task`` function.
+    reduce_func : func (optional)
+        If provided, it will be called with the output of each tasks instead of
+        storing a them in a list.
     progress_bar : string
         Progress bar options's string for showing progress.
     progress_bar_kwargs : dict
-        Options for the progress bar
-    map_kw:
-        Other options
+        Options for the progress bar.
+    map_kw: dict (optional)
+        Dictionary containing entry for:
+        'timeout': Maximum time for the whole map.
+        'job_timeout': Maximum time for each job in the map.
+        'num_cpus': Number of job to run at once.
 
     Returns
     --------
     result : list
         The result list contains the value of
         ``task(value, *task_args, **task_kwargs)`` for
-        each value in ``values``.
+        each value in ``values``. If a ``reduce_func`` is provided, and empty
+        list will be returned.
 
     """
     if task_args is None:
@@ -193,19 +205,26 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
         The optional additional argument to the ``task`` function.
     task_kwargs : list / dictionary
         The optional additional keyword argument to the ``task`` function.
+    reduce_func : func (optional)
+        If provided, it will be called with the output of each tasks instead of
+        storing a them in a list.
     progress_bar : string
         Progress bar options's string for showing progress.
     progress_bar_kwargs : dict
-        Options for the progress bar
-    **kwargs:
-        Other options to pass to loky
+        Options for the progress bar.
+    map_kw: dict (optional)
+        Dictionary containing entry for:
+        'timeout': Maximum time for the whole map.
+        'job_timeout': Maximum time for each job in the map.
+        'num_cpus': Number of job to run at once.
 
     Returns
     --------
     result : list
         The result list contains the value of
         ``task(value, *task_args, **task_kwargs)`` for
-        each value in ``values``.
+        each value in ``values``. If a ``reduce_func`` is provided, and empty
+        list will be returned.
 
     """
     if task_args is None:
@@ -216,14 +235,12 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
     os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
     from loky import get_reusable_executor, TimeoutError
 
-    kw = map_kw
-
     progress_bar = progess_bars[progress_bar]()
     progress_bar.start(len(values), **progress_bar_kwargs)
 
-    executor = get_reusable_executor(max_workers=kw['num_cpus'])
-    end_time = kw['timeout'] + time.time()
-    job_time = kw['job_timeout']
+    executor = get_reusable_executor(max_workers=map_kw['num_cpus'])
+    end_time = map_kw['timeout'] + time.time()
+    job_time = map_kw['job_timeout']
     results = []
 
     try:
