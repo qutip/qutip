@@ -100,7 +100,7 @@ def test_MCSolverCase1():
     assert max(abs(sz - sz_analytic)) < 0.25
 
 
-@pytest.mark.filterwarnings("ignore::UserWarning")
+@pytest.mark.filterwarnings("ignore:No c_ops, using sesolve:UserWarning")
 def test_MCSolverCase2():
     """
     Test mcsolve qubit, no dissipation

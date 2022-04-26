@@ -276,7 +276,7 @@ def _regression_490_f2(t, args):
     return -t
 
 
-@pytest.mark.filterwarnings("ignore::UserWarning")
+@pytest.mark.filterwarnings("ignore:No c_ops, using sesolve:UserWarning")
 def test_regression_490():
     """Test for regression of gh-490."""
     h = [qutip.sigmax(),

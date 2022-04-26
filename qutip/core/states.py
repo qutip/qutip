@@ -904,7 +904,7 @@ shape = [8, 1], type = ket
         The state as a :class:`qutip.Qobj.qobj` instance.
 
     .. note:
-        Deprecated in v5, use :func:`basis` instead.
+        Deprecated in QuTiP 5.0, use :func:`basis` instead.
     """
     warnings.warn("basis() is a drop-in replacement for this",
                   DeprecationWarning)
