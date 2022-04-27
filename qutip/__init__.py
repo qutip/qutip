@@ -97,6 +97,8 @@ from .fileio import *
 from .about import *
 from .cite import *
 
+qutip.settings.install.read_only_options["idxint_size"] = data.base.idxint_size
+
 # -----------------------------------------------------------------------------
 # Load user configuration if present: override defaults.
 #

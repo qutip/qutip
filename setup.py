@@ -61,20 +61,29 @@ def _get_environment_bool(var, default=False):
     return from_env.lower() not in {'0', 'false', 'none', ''}
 
 
+def _parse_bool_user_argument(options, name):
+    """
+    Parse a single boolean option from the commandline or environment.
+    """
+    cmd_flag = "--with-" + name.lower().replace("_", "-")
+    env_var = "CI_QUTIP_WITH_" + name.upper()
+    options[name] = (
+        cmd_flag in sys.argv
+        or _get_environment_bool(env_var)
+    )
+    if cmd_flag in sys.argv:
+        sys.argv.remove(cmd_flag)
+    return options
+
+
 def _determine_user_arguments(options):
     """
     Add the 'openmp' option to the collection, based on the passed command-line
     arguments or environment variables.
     """
-    options['openmp'] = (
-        '--with-openmp' in sys.argv
-        or _get_environment_bool('CI_QUTIP_WITH_OPENMP')
-    )
-    if options['openmp']:
-        options['openmp'] = False
-        warnings.warn('OpenMP is not supported in this version.')
-    if "--with-openmp" in sys.argv:
-        sys.argv.remove("--with-openmp")
+    # options = _parse_bool_user_argument(options, 'openmp')
+    options['openmp'] = False  # Not supported yet
+    options = _parse_bool_user_argument(options, 'idxint_64')
     return options
 
 
@@ -198,6 +207,28 @@ def _extension_extra_sources():
     return out
 
 
+def _create_int_type_file(options):
+    """
+    Create the `data/src/intdtype.h` file.
+    """
+    if options['idxint_64']:
+        typedef = "typedef int64_t idxint;\n"
+        typedef += "int _idxint_size=64;\n"
+    else:
+        typedef = "typedef int32_t idxint;\n"
+        typedef += "int _idxint_size=32;\n"
+    path = os.path.join(options['rootdir'], 'qutip', 'core', 'data', 'src')
+    file = os.path.join(path, 'intdtype.h')
+    if os.path.exists(file):
+        with open(file, 'r') as source:
+            if source.read() == typedef:
+                # The file is already existing and the same, nothing to do.
+                return
+
+    with open(file, 'w') as source:
+        source.write(typedef)
+
+
 def create_extension_modules(options):
     """
     Discover and Cythonise all extension modules that need to be built.  These
@@ -205,6 +236,7 @@ def create_extension_modules(options):
     """
     out = []
     root = pathlib.Path(options['rootdir'])
+    _create_int_type_file(options)
     pyx_files = set(root.glob('qutip/**/*.pyx'))
     if not options['openmp']:
         pyx_files -= set(root.glob('qutip/**/openmp/**/*.pyx'))
