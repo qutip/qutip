@@ -346,7 +346,10 @@ def coeff_from_str(base, args, args_ctypes, compile_opt=None):
     if coeff is None or compile_opt['recompile']:
         code = make_cy_code(parsed, variables, constants,
                             raw, compile_opt)
-        coeff = compile_code(code, file_name, parsed, compile_opt)
+        try :
+            coeff = compile_code(code, file_name, parsed, compile_opt)
+        except PermissionError:
+            return StrFunctionCoefficient(base, args)
     keys = [key for _, key, _ in variables]
     const = [fromstr(val) for _, val, _ in constants]
     return coeff(base, keys, const, args)

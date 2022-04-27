@@ -1,10 +1,10 @@
 #cython: language_level=3
 
-import numpy as np
-cimport numpy as cnp
+cdef extern from "src/intdtype.h":
+    # cython is smart enough to understand this int can be 32 or 64 bits.
+    ctypedef int idxint
+    cdef int _idxint_size
 
-# If you change the typedef, change the objects in base.pyx too!
-ctypedef cnp.npy_int32 idxint
 cdef int idxint_DTYPE
 
 cdef class Data:

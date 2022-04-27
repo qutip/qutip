@@ -1,6 +1,5 @@
 from .options import *
 from .coefficient import *
-from .interpolate import *
 from .qobj import *
 from .cy.qobjevo import *
 from .expect import *

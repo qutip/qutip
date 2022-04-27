@@ -4,11 +4,17 @@ import numpy as np
 cimport numpy as cnp
 
 __all__ = [
-    'idxint_dtype', 'Data', 'EfficiencyWarning',
+    'idxint_size', 'idxint_dtype', 'Data', 'EfficiencyWarning',
 ]
 
-idxint_dtype = np.int32
-idxint_DTYPE = cnp.NPY_INT32
+if _idxint_size == 32:
+    idxint_dtype = np.int32
+    idxint_DTYPE = cnp.NPY_INT32
+else:
+    idxint_dtype = np.int64
+    idxint_DTYPE = cnp.NPY_INT64
+
+idxint_size = _idxint_size
 
 # As this is an abstract base class with C entry points, we have to explicitly
 # stub out methods since we can't mark them as abstract.
