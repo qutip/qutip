@@ -16,13 +16,15 @@ def testPropObj():
     opt = SolverOptions(method='dop853')
     a = destroy(5)
     H = a.dag()*a
-    U = Propagator(H, [a], memoize=5)
+    U = Propagator(H, [a], options=opt, memoize=5, tol=1e-5)
     # Few call to fill the stored propagators.
     U(0.5), U(0.25), U(0.75), U(1), U(-1), U(-.5)
     assert len(U.times) == 5
     assert (U(1) - propagator(H, 1, [a])).norm('max') < 1e-4
     assert (U(0.5) - propagator(H, 0.5, [a])).norm('max') < 1e-4
     assert (U(1.5, 0.5) - propagator(H, 1, [a])).norm('max') < 1e-4
+    # Within tol, should use the precomupted value at U(0.5)
+    assert (U(0.5) - U(0.5 + 1e-6)).norm('max') < 1e-10
 
 
 def func(t):
