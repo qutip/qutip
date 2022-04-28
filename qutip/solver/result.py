@@ -2,7 +2,7 @@
 import numpy as np
 from copy import copy
 from ..core import Qobj, QobjEvo, spre, issuper, expect
-from . import SolverResultsOptions
+#from . import SolverResultsOptions
 
 __all__ = ["Result", "MultiTrajResult", "McResult"]
 
@@ -21,70 +21,108 @@ class Result:
     Class for storing simulation results from single trajectory
     dynamics solvers.
 
-    Property
-    --------
-    states : list of Qobj
-        Every state of the evolution
+    Parameters
+    ----------
+    e_ops : list of :class:`Qobj` / callback function
+        Single operator or list of operators for which to evaluate
+        expectation values or callable or list of callable.
+        Callable signature must be, `f(t: float, state: Qobj)`.
+        See :func:`expect` for more detail of operator expectation.
 
-    final_state : Qobj
-        Last state of the evolution
+    options : mapping
+        Result options, dict or equivalent containing entry for 'store_states',
+        'store_final_state' and 'normalize_output'. Only ket and density
+        matrices can be normalized.
 
-    expect : list
-        list of list of expectation values
-        expect[e_ops][t]
+    ts : float, iterable, [optional]
+        Time of the first time or tlist from which to extract that time.
+        If tlist is passed, it will be used to recognized when the last state
+        is added if options['store_final_state'] is True.
+        (Memory management optimization)
 
-    times : list
-        list of the times at which the expectation values and
-        states where taken.
+    state0 : Qobj, [optional]
+        First state of the evolution.
 
-    stats :
-        Diverse statistics of the evolution.
-
-    num_expect : int
-        Number of expectation value operators in simulation.
-
-    num_collapse : int
-        Number of collapse operators in simualation.
+    stats : dict, [optional]
+        Extra data to store with the result. Will be added to ``self.stats``.
     """
-    def __init__(self, e_ops, options, _super, oper_state):
-        self.times = []
+    def __init__(self, e_ops, options, ts=None, state0=None, stats=None):
+        # Initialize output data
+        self._times = []
         self._states = []
         self._expects = []
         self._last_state = None
-        self.collapse = None
+        self._last_time = -np.inf
+        if hasattr(ts, '__iter__') and len(ts) > 1:
+            self._last_time = ts[-1]
+            ts = ts[0]  # We only the first and last values.
 
+        # Read e_ops
         self._raw_e_ops = e_ops
-        self._e_ops_dict = False
-        self._e_ops = []
-        if isinstance(self._raw_e_ops, (Qobj, QobjEvo)):
-            e_ops = [self._raw_e_ops]
-        elif isinstance(self._raw_e_ops, dict):
-            self._e_ops_dict = self._raw_e_ops
-            e_ops = [e for e in self._raw_e_ops.values()]
-        elif callable(self._raw_e_ops):
-            e_ops = [self._raw_e_ops]
-        elif self._raw_e_ops is None:
-            e_ops = []
-        else:
-            e_ops = self._raw_e_ops
+        e_ops_list = self._e_ops_as_list(e_ops)
+        self._e_num = len(e_ops_list)
 
-        for e in e_ops:
-            if isinstance(e, Qobj):
-                self._e_ops.append(_Expect_Caller(e))
-            elif isinstance(e, QobjEvo):
-                self._e_ops.append(e.expect)
-            elif callable(e):
-                self._e_ops.append(e)
+        self._e_ops = []
+        dims = state0.dims[0] if state0 is not None else None
+        for e_op in e_ops_list:
+            self._e_ops.append(self._read_single_e_op(e_op, dims))
             self._expects.append([])
-        self._e_num = len(self._e_ops) if self._e_ops else 0
-        self._read_options(options, _super, oper_state)
+
+        # Read options
+        self._read_options(options, state0)
+
+        # Write some extra info.
         self.stats = {
             "num_expect": self._e_num,
             "solver": "",
             "method": "",
         }
+        if stats:
+            self.stats.update(stats)
 
-    def _read_options(self, options, _super, oper_state):
+        if state0 is not None:
+            self.add(ts, state0)
+
+    def _e_ops_as_list(self, e_ops):
+        """ Promote ``e_ops`` to a list. """
+        self._e_ops_keys = False
+
+        if isinstance(e_ops, list):
+            pass
+        elif e_ops is None:
+            e_ops = []
+        elif isinstance(e_ops, (Qobj, QobjEvo)):
+            e_ops = [e_ops]
+        elif callable(e_ops):
+            e_ops = [e_ops]
+        elif isinstance(e_ops, dict):
+            self._e_ops_keys = [e for e in e_ops.keys()]
+            e_ops = [e for e in e_ops.values()]
+        else:
+            raise TypeError("e_ops format not understood.")
+
+        return e_ops
+
+    def _read_single_e_op(self, e_op, dims):
+        """ Promote each c_ops to a callable(t, state). """
+        if isinstance(e_op, Qobj):
+            if dims and e_op.dims[1] != dims:
+                raise TypeError("Dimensions of the e_ops do "
+                                "not match the state")
+            e_op_call = _Expect_Caller(e_op)
+        elif isinstance(e_op, QobjEvo):
+            if dims and e_op.dims[1] != dims:
+                raise TypeError("Dimensions of the e_ops do "
+                                "not match the state")
+            e_op_call = e_op.expect
+        elif callable(e):
+            e_op_call = e_op
+        else:
+            raise TypeError("e_ops format not understood.")
+        return e_op_call
+
+    def _read_options(self, options, state0):
+        """ Read options. """
         if options['store_states'] is not None:
             self._store_states = options['store_states']
         else:
@@ -95,47 +133,56 @@ class Result:
         # TODO: Reminder for when reworking options
         # By having separate option for mesolve and sesolve, we could simplify
         # the way we decide whether to normalize the state.
-        if oper_state:
-            # No normalization method (yet?) for operator state (propagators).
-            self._normalize_outputs = False
-        elif _super:
-            # Normalization of density matrix only fix the trace to ``1``.
-            self._normalize_outputs = \
-                options['normalize_output'] in {'dm', True, 'all'}
+
+        # We can normalize ket and dm, but not operators.
+        if state0 is None:
+            # Cannot guess the type of state, we trust the option.
+            normalize = options['normalize_output'] in {True, 'all'}
+        elif state0.isket:
+            normalize = options['normalize_output'] in {'ket', True, 'all'}
+        elif (
+            state0.dims[0] != state0.dims[1]  # rectangular states
+            or state0.issuper  # super operator state
+            or abs(state0.norm()-1) > 1e-10  # initial state is not normalized
+        ):
+            # We don't try to normalize those.
+            normalize = False
         else:
-            self._normalize_outputs = \
-                options['normalize_output'] in {'ket', True, 'all'}
+            # The state is an operator with a trace of 1,
+            # While this is not enough to be 100% certain that we are working
+            # with a density matrix, odd are good enough that we go with it.
+            normalize = options['normalize_output'] in {'dm', True, 'all'}
+        self._normalize_outputs = normalize
 
     def _normalize(self, state):
         return state * (1/state.norm())
 
-    def add(self, t, state, last=True, copy=True):
+    def add(self, t, state, copy=True):
         """
         Add a state to the results for the time t of the evolution.
         The state is expected to be a Qobj with the right dims.
-
-        last : bool {True}
-            Whether the given state *can* be the last state.
         """
-        self.times.append(t)
-        # this is so we don't make a copy if normalize is
-        # false and states are not stored
+        self._times.append(t)
+
         if self._normalize_outputs:
             state = self._normalize(state)
-        elif copy:
-            state = state.copy()
+            copy = False  # normalization create a copy.
 
         if self._store_states:
-            self._states.append(state)
-        elif self._store_final_state and last:
-            self._last_state = state
+            self._states.append(state.copy() if copy else state)
+        elif self._store_final_state and t >= self._last_time:
+            self._last_state = state.copy() if copy else state
 
         for i, e_call in enumerate(self._e_ops):
             self._expects[i].append(e_call(t, state))
 
     @property
+    def times(self):
+        return self._times.copy()
+
+    @property
     def states(self):
-        return self._states
+        return self._states.copy()
 
     @property
     def final_state(self):
@@ -151,9 +198,9 @@ class Result:
         result = []
         for expect_vals in self._expects:
             result.append(np.array(expect_vals))
-        if self._e_ops_dict:
+        if self._e_ops_keys:
             result = {e: result[n]
-                      for n, e in enumerate(self._e_ops_dict.keys())}
+                      for n, e in enumerate(self._e_ops_keys)}
         return result
 
     @property
@@ -217,6 +264,7 @@ class MultiTrajResult:
         num_c_ops: int
             Number of collapses operator used in the McSolver
         """
+        from . import SolverResultsOptions
         self.options = copy(options) or SolverResultsOptions()
         self.initial_state = state
         self.tlist = tlist

@@ -128,10 +128,16 @@ class Solver:
         self._argument(args)
         self.stats["preparation time"] += time() - _time_start
 
-        results = self.resultclass(e_ops, self.options.results,
-                                   self.rhs.issuper, _data0.shape[1]!=1)
-        results.add(tlist[0], self._restore_state(_data0, copy=False))
-
+        results = self.resultclass(
+            e_ops,
+            self.options.results,
+            tlist,
+            self._restore_state(_data0, copy=False),
+            {
+                "solver": self.name,
+                "method": self._integrator.name,
+            }
+        )
         progress_bar = progess_bars[self.options['progress_bar']]()
         progress_bar.start(len(tlist)-1, **self.options['progress_kwargs'])
         for t, state in self._integrator.run(tlist):
@@ -142,9 +148,7 @@ class Solver:
         self.stats['run time'] = progress_bar.total_time()
         # TODO: It would be nice if integrator could give evolution statistics
         # self.stats.update(_integrator.stats)
-        self.stats["method"] = self._integrator.name
-        results.stats = self.stats.copy()
-        results.solver = self.name
+        results.stats.update(self.stats)
         return results
 
     def start(self, state0, t0):
