@@ -132,11 +132,7 @@ class Solver:
             e_ops,
             self.options.results,
             tlist,
-            self._restore_state(_data0, copy=False),
-            {
-                "solver": self.name,
-                "method": self._integrator.name,
-            }
+            self._restore_state(_data0, copy=False)
         )
         progress_bar = progess_bars[self.options['progress_bar']]()
         progress_bar.start(len(tlist)-1, **self.options['progress_kwargs'])
@@ -149,6 +145,8 @@ class Solver:
         # TODO: It would be nice if integrator could give evolution statistics
         # self.stats.update(_integrator.stats)
         results.stats.update(self.stats)
+        results.stats["solver"] = self.name
+        results.stats["method"] = self._integrator.name
         return results
 
     def start(self, state0, t0):
