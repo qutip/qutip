@@ -293,6 +293,26 @@ cdef class QobjEvo:
         return out
 
     def __call__(self, double t, dict _args=None, **kwargs):
+        """
+        Get the :cls:`Qobj` at ``t``.
+
+        parameter
+        ---------
+        t : float
+            Time at which the ``QobjEvo`` is to be evalued.
+
+        args : dict [positional / optional]
+            New arguments as a dict. Update args with ``arguments(new_args)``.
+
+        **kwargs :
+            New arguments as a keywors. Update args with
+            ``arguments(**new_args)``.
+
+        .. note:
+            If both the positional ``args`` and keywords are passed new values
+            from both will be used. If a key is present with both, the ``args``
+            dict value will take priority.
+        """
         if _args is not None or kwargs:
             if _args:
                 kwargs.update(_args)
@@ -326,7 +346,23 @@ cdef class QobjEvo:
         return QobjEvo(self, compress=False)
 
     def arguments(QobjEvo self, dict _args=None, **kwargs):
-        """Update the arguments"""
+        """
+        Update the arguments.
+
+        parameter
+        ---------
+        args : dict [positional / optional]
+            New arguments as a dict. Update args with ``arguments(new_args)``.
+
+        **kwargs :
+            New arguments as a keywors. Update args with
+            ``arguments(**new_args)``.
+
+        .. note:
+            If both the positional ``args`` and keywords are passed new values
+            from both will be used. If a key is present with both, the ``args``
+            dict value will take priority.
+        """
         if _args:
             kwargs.update(_args)
         cache = []
