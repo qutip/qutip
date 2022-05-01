@@ -41,6 +41,13 @@ jobs:
           #   --keep-going : do not stop after the first error
           #   -T : display a full traceback if a Python exception occurs
 
+      - name: Upload built PDF files
+        uses: actions/upload-artifact@v2
+        with:
+          name: qutip_pdf_docs
+          path: doc/_build/latex/*
+          if-no-files-found: error
+
       - name: Build HTML documentation
         working-directory: doc
         run: |
