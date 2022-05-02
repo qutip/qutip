@@ -301,7 +301,7 @@ cdef class QobjEvo:
         t : float
             Time at which the ``QobjEvo`` is to be evalued.
 
-        args : dict [positional / optional]
+        _args : dict [optional]
             New arguments as a dict. Update args with ``arguments(new_args)``.
 
         **kwargs :
@@ -309,12 +309,12 @@ cdef class QobjEvo:
             ``arguments(**new_args)``.
 
         .. note:
-            If both the positional ``args`` and keywords are passed new values
-            from both will be used. If a key is present with both, the ``args``
+            If both the positional ``_args`` and keywords are passed new values
+            from both will be used. If a key is present with both, the ``_args``
             dict value will take priority.
         """
         if _args is not None or kwargs:
-            if _args:
+            if _args is not None:
                 kwargs.update(_args)
             return QobjEvo(self, args=kwargs)(t)
         return Qobj(
@@ -351,7 +351,7 @@ cdef class QobjEvo:
 
         parameter
         ---------
-        args : dict [positional / optional]
+        _args : dict [optional]
             New arguments as a dict. Update args with ``arguments(new_args)``.
 
         **kwargs :
@@ -359,11 +359,11 @@ cdef class QobjEvo:
             ``arguments(**new_args)``.
 
         .. note:
-            If both the positional ``args`` and keywords are passed new values
-            from both will be used. If a key is present with both, the ``args``
+            If both the positional ``_args`` and keywords are passed new values
+            from both will be used. If a key is present with both, the ``_args``
             dict value will take priority.
         """
-        if _args:
+        if _args is not None:
             kwargs.update(_args)
         cache = []
         self.elements = [
