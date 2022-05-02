@@ -1,7 +1,7 @@
 """ Class for solve function results"""
 import numpy as np
 from copy import copy
-from ..core import Qobj, QobjEvo, spre, issuper, expect
+from ..core import Qobj, QobjEvo, spre, issuper, expect, ket2dm
 
 __all__ = ["Result", "MultiTrajResult", "McResult"]
 
@@ -258,7 +258,7 @@ class MultiTrajResult:
     """
 
     _sum_states = None
-    _sum_last_states = None
+    _sum_final_states = None
     _sum_expect = None
     _sum2_expect = None
     _target_ntraj = None
@@ -276,12 +276,12 @@ class MultiTrajResult:
         }
 
         self.solver_id = solver_id
-        self._save_traj = options.get('keep_runs_results', False)
+        self._save_traj = options['keep_runs_results']
         self.num_e_ops = len(self._e_ops_as_list(e_ops))
         self._num = 0
         self.seeds = []
         if state0.isket:
-            self._proj = lambda state: state.proj()
+            self._proj = ket2dm
         else:
             self._proj = lambda state: state
 
@@ -292,23 +292,23 @@ class MultiTrajResult:
         }
 
     def spawn(self):
-        return Result(**self._evolution_info)
+        return Result(*self._evolution_info.values())
 
     def _reduce_traj(self, one_traj):
         """
         Sum result from a Result object to average.
         """
-        if self._sum_states:
+        if self._sum_states is not None:
             self._sum_states = [
-                accu + self._proj(state.proj)
+                accu + self._proj(state)
                 for accu, state
                 in zip(self._sum_states, one_traj.states)
             ]
 
-        if self._sum_last_states:
-            self._sum_last_states += self._proj(one_traj.final_state)
+        if self._sum_final_states is not None:
+            self._sum_final_states += self._proj(one_traj.final_state)
 
-        if self._sum_expect:
+        if self._sum_expect is not None:
             self._sum_expect = [
                 np.array(one) + accu
                 for one, accu
@@ -330,27 +330,33 @@ class MultiTrajResult:
             # First trajectory
             self._first_traj = one_traj
 
-            if one_traj.states:
-                self._sum_states = [self._proj(state)
-                                    for state in one_traj.states]
-            if one_traj._store_final_state and one_traj.final_state.isket:
-                self._sum_last_states = self._proj(one_traj.final_state)
-            self._sum_expect = [np.array(expect)
-                                for expect in one_traj._expects]
-            self._sum2_expect = [np.abs(np.array(expect))**2
-                                 for expect in one_traj._expects]
+            if self._save_traj:
+                self._trajectories = []
+
+            if not self._save_traj:
+                if one_traj.states:
+                    self._sum_states = [self._proj(state)
+                                        for state in one_traj.states]
+                if one_traj._store_final_state and one_traj.final_state.isket:
+                    self._sum_final_states = self._proj(one_traj.final_state)
+
+            if not self._save_traj or self._target_tols is not None:
+                self._sum_expect = [np.array(expect)
+                                    for expect in one_traj._expects]
+                self._sum2_expect = [np.abs(np.array(expect))**2
+                                     for expect in one_traj._expects]
         else:
             self._reduce_traj(one_traj)
 
         if self._save_traj:
-            self._trajectories = [one_traj]
+            self._trajectories += [one_traj]
 
         self._num += 1
 
         if hasattr(one_traj, 'seed'):
             self.seeds.append(one_traj.seed)
 
-        if self._target_tols is not None:
+        if self._target_ntraj is not None:
             return self._get_traj_to_tol()
         return np.inf
 
@@ -358,10 +364,12 @@ class MultiTrajResult:
         """
         Estimate the number of trajectories needed to reach desired tolerance.
         """
+        if self._target_tols is None:
+            return self._target_ntraj - self._num
         if self._num >= self._next_check:
             traj_left = self._check_expect_tol()
 
-            # We don't check the tol each trajectory since it's slow.
+            # We don't check the tol each trajectory since it can be slow.
             # _next_check will be the next time we compute it.
             # For gaussian distribution, this ad hoc method usually reach the
             # target in about 10 tries without over shooting it.
@@ -374,15 +382,14 @@ class MultiTrajResult:
         else:
             return max(self._estimated_ntraj - self._num, 1)
 
-
-    def set_expect_tol(self, target_tol, ntraj):
+    def set_expect_tol(self, target_tol=None, ntraj=None):
         """
         Set the capacity to stop the map when the estimated error on the
         expectation values is within given tolerance.
 
         Error estimation is done with jackknife resampling.
 
-        target_tol : float, list, [optional]
+        target_tol : float, array_like, [optional]
             Target tolerance of the evolution. The evolution will compute
             trajectories until the error on the expectation values is lower
             than this tolerance. The error is computed using jackknife
@@ -390,18 +397,20 @@ class MultiTrajResult:
             absolute and relative tolerance, in that order. Lastly, it can be a
             list of pairs of (atol, rtol) for each e_ops.
 
-        ntraj : int
+        ntraj : int, [optional]
             Number of trajectories expected.
         """
+        self._estimated_ntraj = ntraj or np.inf
+        self._target_ntraj = ntraj
         self._target_tols = None
         self._tol_reached = False
+
         if not target_tol:
             return
+
         if not self.num_e_ops:
             raise ValueError("Cannot target a tolerance without e_ops")
         self._next_check = 10
-        self._estimated_ntraj = ntraj
-        self._target_ntraj = ntraj
 
         targets = np.array(target_tol)
         if targets.ndim == 0:
@@ -457,7 +466,7 @@ class MultiTrajResult:
         States of every runs as ``states[run][t]``.
         """
         if self._save_traj:
-            return [traj.states for traj in self.trajectories]
+            return [traj.states for traj in self._trajectories]
         else:
             return None
 
@@ -466,19 +475,18 @@ class MultiTrajResult:
         """
         States averages as density matrices.
         """
-        if not self._save_traj:
-            finals = self._sum_states
-        elif self.trajectories[0].states[0].isket:
-            finals = [state.proj() for state in self.trajectories[0].states]
-            for i in range(1, len(self.trajectories)):
-                finals = [state.proj() + final for final, state
-                          in zip(finals, self.trajectories[i].states)]
-        else:
-            finals = [state for state in self.trajectories[0].states]
-            for i in range(1, len(self.trajectories)):
-                finals = [state + final for final, state
-                          in zip(finals, self.trajectories[i].states)]
-        return [final / self._num for final in finals]
+        if self._first_traj.states is None:
+            return None
+        if self._sum_states is None:
+            self._sum_states = [self._proj(state)
+                                for state in self._trajectories[0].states]
+            for i in range(1, len(self._trajectories)):
+                self._sum_states = [
+                    self._proj(state) + sums
+                    for sums, state
+                    in zip(self._sum_states, self._trajectories[i].states)
+                ]
+        return [final / self._num for final in self._sum_states]
 
     @property
     def states(self):
@@ -495,7 +503,7 @@ class MultiTrajResult:
         Last states of each trajectories.
         """
         if self._save_traj:
-            return [traj.final_state for traj in self.trajectories]
+            return [traj.final_state for traj in self._trajectories]
         else:
             return None
 
@@ -504,15 +512,15 @@ class MultiTrajResult:
         """
         Last states of each trajectories averaged into a density matrix.
         """
-        if self.trajectories[0].final_state is None:
+        if self._first_traj.final_state is None:
             return None
-        if not self._save_traj:
-            final = self._sum_last_states
-        elif self.trajectories[0].states[0].isket:
-            final = sum(traj.final_state.proj() for traj in self.trajectories)
-        else:
-            final = sum(traj.final_state for traj in self.trajectories)
-        return final / self._num
+        if self._sum_final_states is None:
+            if self._sum_states:
+                self._sum_final_states = self._sum_states[-1]
+            else:
+                self._sum_final_states = sum(self._proj(traj.final_state)
+                                            for traj in self._trajectories)
+        return self._sum_final_states / self._num
 
     @property
     def final_state(self):
@@ -522,13 +530,24 @@ class MultiTrajResult:
         """
         return self.runs_final_states or self.average_final_state
 
-    @property
-    def steady_state(self):
+    def steady_state(self, N=0):
         """
-        Average the states at all times of every runs as a density matrix.
-        Should converge to the steady state with long times.
+        Average the states of the last ``N`` times of every runs as a density
+        matrix. Should converge to the steady state in the right circumstances.
+
+        Parameters
+        ----------
+        N : int [optional]
+            Number of states from the end of ``tlist`` to average. Per default
+            all states will be averaged.
         """
-        return sum(self.average_states) / len(self.times)
+        N = int(N) or len(self.times)
+        N = len(self.times) if N > len(self.times) else N
+        states = self.average_states
+        if states is not None:
+            return sum(states[-N:]) / N
+        else:
+            return None
 
     def _format_expect(self, expect):
         """
@@ -542,28 +561,26 @@ class MultiTrajResult:
         """
         Average of expectation values as list of numpy array.
         """
-        if self._save_traj:
-            return [np.mean(
-                np.stack([traj._expects[i] for traj in self.trajectories]),
+        if self._sum_expect is None:
+            self._sum_expect = [np.sum(
+                np.stack([traj._expects[i] for traj in self._trajectories]),
                 axis=0
             ) for i in range(self.num_e_ops)]
-        else:
-            return [sum_expect / self._num
-                    for sum_expect in self._sum_expect]
+
+        return [sum_expect / self._num for sum_expect in self._sum_expect]
 
     def _mean_expect2(self):
         """
         Average of the square of expectation values as list of numpy array.
         """
-        if self._save_traj:
-            return [np.mean(
+        if self._sum2_expect is None:
+            self._sum2_expect = [np.sum(
                 np.stack([np.abs(traj._expects[i])**2
-                          for traj in self.trajectories]),
+                          for traj in self._trajectories]),
                 axis=0
             ) for i in range(self.num_e_ops)]
-        else:
-            return [sum_expect / self._num
-                    for sum_expect in self._sum2_expect]
+
+        return [sum_expect / self._num for sum_expect in self._sum2_expect]
 
     @property
     def average_expect(self):
@@ -594,7 +611,7 @@ class MultiTrajResult:
         """
         if not self._save_traj:
             return None
-        result = [np.stack([traj._expects[i] for traj in self.trajectories])
+        result = [np.stack([traj._expects[i] for traj in self._trajectories])
                   for i in range(self.num_e_ops)]
         return self._format_expect(result)
 
@@ -610,13 +627,19 @@ class MultiTrajResult:
         """
         Average of the expectation values for the ``ntraj`` first runs.
         Return a ``dict`` if ``e_ops`` was one.
+
+        Parameters
+        ----------
+        ntraj : int, [optional]
+            Number of trajectories's expect to average.
+            Default: all trajectories.
         """
         if not self._save_traj:
             return None
         result = [
             np.mean(np.stack([
                 traj._expects[i]
-                for traj in self.trajectories[:ntraj]
+                for traj in self._trajectories[:ntraj]
             ]), axis=0)
             for i in range(self.num_e_ops)
         ]
@@ -627,13 +650,19 @@ class MultiTrajResult:
         Standard derivation of the expectation values for the ``ntraj``
         first runs.
         Return a ``dict`` if ``e_ops`` was one.
+
+        Parameters
+        ----------
+        ntraj : int, [optional]
+            Number of trajectories's expect to compute de standard derivation.
+            Default: all trajectories.
         """
         if not self._save_traj:
             return None
         result = [
             np.std(np.stack([
                 traj._expects[i]
-                for traj in self.trajectories[:ntraj]
+                for traj in self._trajectories[:ntraj]
             ]), axis=0)
             for i in range(self.num_e_ops)
         ]
@@ -648,9 +677,9 @@ class MultiTrajResult:
         else:
             out += "{} trajectories averaged\n".format(self.num_traj)
         out += "number of expect : {}\n".format(self.num_e_ops)
-        if self.trajectories[0]._store_states:
+        if self._first_traj._store_states:
             out += "States saved\n"
-        elif self.trajectories[0]._store_final_state:
+        elif self._first_traj._store_final_state:
             out += "Final state saved\n"
         else:
             out += "State not available\n"
@@ -660,7 +689,7 @@ class MultiTrajResult:
 
     @property
     def times(self):
-        return self.trajectories[0].tlist
+        return self._first_traj.times
 
     @property
     def num_traj(self):
@@ -679,7 +708,7 @@ class MultiTrajResult:
         elif self._target_ntraj is not None:
             end_condition = "timeout"
         else:
-            end_condition = "other"
+            end_condition = "unknown"
         return end_condition
 
 

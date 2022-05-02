@@ -119,7 +119,7 @@ def test_result_normalize_opt(norm, format, proj):
 
 @pytest.mark.parametrize('keep_runs_results', [True, False])
 @pytest.mark.parametrize('format', ['dm', 'ket'])
-def test_multitraj_results(format, keep_runs_results):
+def test_McResult(format, keep_runs_results):
     N = 10
     ntraj = 5
     e_ops = [qutip.num(N), qutip.qeye(N)]
@@ -127,11 +127,16 @@ def test_multitraj_results(format, keep_runs_results):
         keep_runs_results=keep_runs_results,
         store_states=True, normalize_output=True
     )
-    m_res = McResult(e_ops, opt, np.arange(N), qutip.basis(N, 0), 2)
+    state0 = qutip.basis(N, 0)
+    if format == 'dm':
+        state0 = qutip.ket2dm(state0)
+
+    m_res = McResult(e_ops, opt, np.arange(N), state0, 2)
+    m_res.set_expect_tol(None, ntraj)
     for _ in range(ntraj):
         res = m_res.spawn()
         res.collapse = []
-        for i in range(N):
+        for i in range(1, N):
             state = qutip.basis(N, i) / 2
             if format == 'dm':
                 state = qutip.ket2dm(state)
@@ -171,13 +176,18 @@ def test_multitraj_expect(keep_runs_results, e_ops):
     ntraj = 5
     opt = qutip.solver.SolverResultsOptions(
         keep_runs_results=keep_runs_results,
-        store_states=True, normalize_output=True
+        store_states=True,
+        normalize_output=True
     )
-    m_res = MultiTrajResult(ntraj+1, None, np.arange(N),
-                            _make_e_ops(N, e_ops), options=opt)
+    m_res = MultiTrajResult(
+        _make_e_ops(N, e_ops),
+        opt,
+        np.arange(N),
+        qutip.basis(N, 0)
+    )
     for _ in range(ntraj):
         res = m_res.spawn()
-        for i in range(N):
+        for i in range(1, N):
             res.add(i, qutip.basis(N, i) / 2)
         m_res.add(res)
 
@@ -193,7 +203,7 @@ def test_multitraj_expect(keep_runs_results, e_ops):
                 assert isinstance(m_res.runs_expect, dict)
     else:
         assert m_res.runs_expect is None
-    assert m_res.end_condition == "timeout"
+    assert m_res.end_condition == "unknown"
 
 
 @pytest.mark.parametrize('keep_runs_results', [True, False])
@@ -209,18 +219,20 @@ def test_multitraj_targettol(keep_runs_results, ttol):
         keep_runs_results=keep_runs_results,
         store_states=True, normalize_output=False
     )
-    m_res = MultiTrajResult(ntraj, None, np.arange(N),
-                            [qutip.num(N), qutip.qeye(N)],
-                            options=opt)
-    m_res.set_expect_tol(ttol)
+    m_res = MultiTrajResult(
+        [qutip.num(N), qutip.qeye(N)],
+        opt,
+        np.arange(N),
+        qutip.basis(N, 0) * (1 - 0.5*np.random.rand())
+    )
+    m_res.set_expect_tol(ttol, ntraj)
     for _ in range(ntraj):
         res = m_res.spawn()
-        for i in range(N):
+        for i in range(1, N):
             res.add(i, qutip.basis(N, i) * (1 - 0.5*np.random.rand()))
         if m_res.add(res) <= 0:
             break
 
     assert m_res.end_condition == "target tolerance reached"
-    assert m_res.num_collapse == 0
     assert m_res.num_expect == 2
     assert m_res.num_traj <= 1000
