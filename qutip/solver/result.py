@@ -41,9 +41,6 @@ class Result:
 
     state0 : Qobj, [optional]
         First state of the evolution.
-
-    stats : dict, [optional]
-        Extra data to store with the result. Will be added to ``self.stats``.
     """
     def __init__(self, e_ops, options, ts=None, state0=None):
         # Initialize output data
@@ -54,10 +51,9 @@ class Result:
         self._last_time = -np.inf
         if hasattr(ts, '__iter__') and len(ts) > 1:
             self._last_time = ts[-1]
-            ts = ts[0]  # We only the first and last values.
+            ts = ts[0]  # We only want the first and last values.
 
         # Read e_ops
-        self._raw_e_ops = e_ops
         e_ops_list = self._e_ops_as_list(e_ops)
         self._e_num = len(e_ops_list)
 
@@ -82,7 +78,7 @@ class Result:
 
     def _e_ops_as_list(self, e_ops):
         """ Promote ``e_ops`` to a list. """
-        self._e_ops_keys = False
+        self._e_ops_format = False
 
         if isinstance(e_ops, list):
             pass
@@ -90,10 +86,12 @@ class Result:
             e_ops = []
         elif isinstance(e_ops, (Qobj, QobjEvo)):
             e_ops = [e_ops]
+            self._e_ops_format = "single"
         elif callable(e_ops):
             e_ops = [e_ops]
+            self._e_ops_format = "single"
         elif isinstance(e_ops, dict):
-            self._e_ops_keys = [e for e in e_ops.keys()]
+            self._e_ops_format = [e for e in e_ops.keys()]
             e_ops = [e for e in e_ops.values()]
         else:
             raise TypeError("e_ops format not understood.")
@@ -162,6 +160,10 @@ class Result:
         Add a state to the results for the time t of the evolution.
         The state is expected to be a Qobj with the right dims.
         """
+        if self._times and self._times[-1] == t:
+            # State already added skip
+            # For the first state added twice with __init__ and add.
+            return
         self._times.append(t)
 
         if self._normalize_outputs:
@@ -198,8 +200,10 @@ class Result:
         result = []
         for expect_vals in self._expects:
             result.append(np.array(expect_vals))
-        if self._e_ops_keys:
-            result = {e: result[n] for n, e in enumerate(self._e_ops_keys)}
+        if self._e_ops_format == 'single':
+            result = result[0]
+        elif self._e_ops_format:
+            result = {e: result[n] for n, e in enumerate(self._e_ops_format)}
         return result
 
     @property
@@ -232,31 +236,27 @@ class Result:
 
 class MultiTrajResult:
     """
-    It contains the results of simulations with multiple trajectories.
+    Contain the results of simulations with multiple trajectories.
 
     Parameters
     ----------
-    ntraj : int
-        Number of trajectories expected.
-
-    state : Qobj
-        Initial state of the evolution.
-
-    tlist : array_like
-        Times at which the expectation results are desired.
-
     e_ops : Qobj, QobjEvo, callable or iterable of these.
         list of Qobj or QobjEvo to compute the expectation values.
         Alternatively, function[s] with the signature f(t, state) -> expect
         can be used.
 
-    solver_id : int, [optional]
-        Identifier of the Solver creating the object.
-
     options : SolverResultsOptions, [optional]
         Options conserning result to save.
-    """
 
+    tlist : array_like
+        Times at which the expectation results are desired.
+
+    state : Qobj
+        Initial state of the evolution.
+
+    solver_id : int, [optional]
+        Identifier of the Solver creating the object.
+    """
     _sum_states = None
     _sum_final_states = None
     _sum_expect = None
@@ -275,15 +275,12 @@ class MultiTrajResult:
             'state0': state0,
         }
 
-        self.solver_id = solver_id
+        self.solver_id = solver_id  # Used when adding trajectories to result
         self._save_traj = options['keep_runs_results']
         self.num_e_ops = len(self._e_ops_as_list(e_ops))
         self._num = 0
         self.seeds = []
-        if state0.isket:
-            self._proj = ket2dm
-        else:
-            self._proj = lambda state: state
+        self._proj = ket2dm if state0.isket else lambda x: x
 
         self.stats = {
             "num_expect": self.num_e_ops,
@@ -293,6 +290,27 @@ class MultiTrajResult:
 
     def spawn(self):
         return Result(*self._evolution_info.values())
+
+    def _add_first_traj(self, one_traj):
+        """
+        Read the first trajectory, intitializing needed data.
+        """
+        self._first_traj = one_traj
+
+        if self._save_traj:
+            self._trajectories = []
+        if not self._save_traj:
+            if one_traj.states:
+                self._sum_states = [self._proj(state)
+                                    for state in one_traj.states]
+            elif one_traj.final_state:
+                self._sum_final_states = self._proj(one_traj.final_state)
+
+        if not self._save_traj or self._target_tols is not None:
+            self._sum_expect = [np.array(expect)
+                                for expect in one_traj._expects]
+            self._sum2_expect = [np.abs(np.array(expect))**2
+                                 for expect in one_traj._expects]
 
     def _reduce_traj(self, one_traj):
         """
@@ -327,24 +345,7 @@ class MultiTrajResult:
         tolerance.
         """
         if self._num == 0:
-            # First trajectory
-            self._first_traj = one_traj
-
-            if self._save_traj:
-                self._trajectories = []
-
-            if not self._save_traj:
-                if one_traj.states:
-                    self._sum_states = [self._proj(state)
-                                        for state in one_traj.states]
-                if one_traj._store_final_state and one_traj.final_state.isket:
-                    self._sum_final_states = self._proj(one_traj.final_state)
-
-            if not self._save_traj or self._target_tols is not None:
-                self._sum_expect = [np.array(expect)
-                                    for expect in one_traj._expects]
-                self._sum2_expect = [np.abs(np.array(expect))**2
-                                     for expect in one_traj._expects]
+            self._add_first_traj(one_traj)
         else:
             self._reduce_traj(one_traj)
 
@@ -442,7 +443,7 @@ class MultiTrajResult:
 
     def _e_ops_as_list(self, e_ops):
         """ Promote ``e_ops`` to a list. """
-        self._e_ops_keys = False
+        self._e_ops_format = False
 
         if isinstance(e_ops, list):
             pass
@@ -450,10 +451,12 @@ class MultiTrajResult:
             e_ops = []
         elif isinstance(e_ops, (Qobj, QobjEvo)):
             e_ops = [e_ops]
+            self._e_ops_format = "single"
         elif callable(e_ops):
             e_ops = [e_ops]
+            self._e_ops_format = "single"
         elif isinstance(e_ops, dict):
-            self._e_ops_keys = [e for e in e_ops.keys()]
+            self._e_ops_format = [e for e in e_ops.keys()]
             e_ops = [e for e in e_ops.values()]
         else:
             raise TypeError("e_ops format not understood.")
@@ -551,10 +554,12 @@ class MultiTrajResult:
 
     def _format_expect(self, expect):
         """
-        Restore the dict format when needed.
+        Restore the format of expect.
         """
-        if self._e_ops_keys:
-            expect = {e: expect[n] for n, e in enumerate(self._e_ops_keys)}
+        if self._e_ops_format == "single":
+            expect = expect[0]
+        elif self._e_ops_format:
+            expect = {e: expect[n] for n, e in enumerate(self._e_ops_format)}
         return expect
 
     def _mean_expect(self):
@@ -669,22 +674,22 @@ class MultiTrajResult:
         return self._format_expect(result)
 
     def __repr__(self):
-        out = ""
-        out += self.stats['solver'] + "\n"
-        out += "solver : " + self.stats['method'] + "\n"
+        out = f"Result from {self.stats['solver']}\n"
+        out += f"solver : {self.stats['method']}\n"
+        out += f"Ended by : " + self.end_condition
         if self._save_traj:
-            out += "{} runs saved\n".format(self.num_traj)
+            out += f"{self.num_traj} runs saved\n"
         else:
-            out += "{} trajectories averaged\n".format(self.num_traj)
-        out += "number of expect : {}\n".format(self.num_e_ops)
+            out += f"{self.num_traj} trajectories averaged\n"
+        out += "number of expect : {self.num_e_ops}\n"
         if self._first_traj._store_states:
             out += "States saved\n"
         elif self._first_traj._store_final_state:
             out += "Final state saved\n"
         else:
             out += "State not available\n"
-        out += "times from {} to {} in {} steps\n".format(
-            self.times[0], self.times[-1], len(self.times))
+        out += (f"times from {self.times[0]} to {self.times[-1]}"
+                f" in {len(self.times)} steps\n")
         return out
 
     @property
@@ -721,8 +726,7 @@ class McResult(MultiTrajResult):
 
     def add(self, one_traj):
         out = super().add(one_traj)
-        if hasattr(one_traj, 'collapse'):
-            self._collapse.append(one_traj.collapse)
+        self._collapse.append(one_traj.collapse)
         return out
 
     @property
@@ -738,8 +742,6 @@ class McResult(MultiTrajResult):
         """
         List of the times of the collapses for each runs.
         """
-        if self._collapse is None:
-            return None
         out = []
         for col_ in self.collapse:
             col = list(zip(*col_))
@@ -752,8 +754,6 @@ class McResult(MultiTrajResult):
         """
         List of the indexes of the collapses for each runs.
         """
-        if self._collapse is None:
-            return None
         out = []
         for col_ in self.collapse:
             col = list(zip(*col_))
@@ -766,8 +766,6 @@ class McResult(MultiTrajResult):
         """
         Average photocurrent or measurement of the evolution.
         """
-        if self._collapse is None:
-            return None
         cols = [[] for _ in range(self.num_c_ops)]
         tlist = self.times
         for collapses in self.collapse:
@@ -784,8 +782,6 @@ class McResult(MultiTrajResult):
         """
         Photocurrent or measurement of each runs.
         """
-        if self._collapse is None:
-            return None
         tlist = self.times
         measurements = []
         for collapses in self.collapse:

@@ -21,10 +21,22 @@ def _make_e_ops(N, type_):
     elif type_ == 'callable':
         e_op = _e_ops_callable(N)
     elif type_ == 'dict':
-        e_op = {0: qutip.num(N)}
+        e_op = {'0': qutip.num(N)}
     elif type_ == 'list_func':
         e_op = [qutip.num(N), _e_ops_callable(N)]
     return e_op
+
+
+def _check_and_extract_expect(expect, type_):
+    if type_ in ['qobj', 'qobjevo', 'callable']:
+        assert isinstance(expect, np.ndarray)
+    elif type_ in ['list', 'list_func']:
+        assert isinstance(expect, list)
+        expect = expect[0]
+    elif type_ in ['dict']:
+        assert isinstance(expect, dict)
+        expect = expect['0']
+    return expect
 
 
 def test_result_states():
@@ -63,11 +75,8 @@ def test_result_expect_types(e_ops):
     res = Result(_make_e_ops(N, e_ops), opt)
     for i in range(N):
         res.add(i, qutip.basis(N,i))
-    np.testing.assert_allclose(res.expect[0], np.arange(N))
-    if e_ops == 'dict':
-        assert isinstance(res.expect, dict)
-    else:
-        assert isinstance(res.expect, list)
+    expect = _check_and_extract_expect(res.expect, e_ops)
+    np.testing.assert_allclose(expect, np.arange(N))
 
 
 def test_result_final_state():
@@ -75,7 +84,7 @@ def test_result_final_state():
     opt = qutip.solver.SolverResultsOptions(store_final_state=True,
                                             store_states=False)
     res = Result([], opt, [0, N-1], qutip.basis(N, 0))
-    for i in range(1, N):
+    for i in range(N):
         res.add(i, qutip.basis(N,i))
     assert res.final_state == qutip.basis(N, N-1)
     assert not res.states
@@ -113,7 +122,7 @@ def test_result_normalize_opt(norm, format, proj):
     for i in range(1, N):
         res.add(i, proj(qutip.basis(N, i) / 2))
     fact = 1 if norm else 0.25
-    np.testing.assert_allclose(res.expect[0][1:], np.ones(N-1) * fact)
+    np.testing.assert_allclose(res.expect[1:], np.ones(N-1) * fact)
     assert res.final_state == proj(qutip.basis(N, N-1) * (1 if norm else 0.5))
 
 
@@ -191,16 +200,14 @@ def test_multitraj_expect(keep_runs_results, e_ops):
             res.add(i, qutip.basis(N, i) / 2)
         m_res.add(res)
 
-    if isinstance(e_ops, dict):
-        assert isinstance(m_res.average_expect, dict)
-    np.testing.assert_allclose(m_res.average_expect[0], np.arange(N))
-    np.testing.assert_allclose(m_res.std_expect[0], np.zeros(N))
+    average_expect = _check_and_extract_expect(m_res.average_expect, e_ops)
+    np.testing.assert_allclose(average_expect, np.arange(N))
+    std_expect = _check_and_extract_expect(m_res.std_expect, e_ops)
+    np.testing.assert_allclose(std_expect, np.zeros(N))
     if keep_runs_results:
         for i in range(ntraj):
-            np.testing.assert_allclose(m_res.runs_expect[0][i],
-                                       np.arange(N))
-            if isinstance(e_ops, dict):
-                assert isinstance(m_res.runs_expect, dict)
+            runs_expect = _check_and_extract_expect(m_res.runs_expect, e_ops)
+            np.testing.assert_allclose(runs_expect[i], np.arange(N))
     else:
         assert m_res.runs_expect is None
     assert m_res.end_condition == "unknown"
@@ -228,7 +235,7 @@ def test_multitraj_targettol(keep_runs_results, ttol):
     m_res.set_expect_tol(ttol, ntraj)
     for _ in range(ntraj):
         res = m_res.spawn()
-        for i in range(1, N):
+        for i in range(N):
             res.add(i, qutip.basis(N, i) * (1 - 0.5*np.random.rand()))
         if m_res.add(res) <= 0:
             break
