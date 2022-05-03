@@ -33,25 +33,25 @@ class Result:
         'store_final_state' and 'normalize_output'. Only ket and density
         matrices can be normalized.
 
-    ts : float, iterable, [optional]
-        Time of the first time or tlist from which to extract that time.
-        If tlist is passed, it will be used to recognized when the last state
-        is added if options['store_final_state'] is True.
-        (Memory management optimization)
+    tlist : float, iterable, [optional]
+        Time of the first time of tlist or the full tlist. If tlist is passed,
+        it will be used to recognized when the last state is added if
+        options['store_final_state'] is True.
 
     state0 : Qobj, [optional]
         First state of the evolution.
     """
-    def __init__(self, e_ops, options, ts=None, state0=None):
+    def __init__(self, e_ops, options, tlist=None, state0=None):
         # Initialize output data
         self._times = []
         self._states = []
         self._expects = []
         self._last_state = None
         self._last_time = -np.inf
-        if hasattr(ts, '__iter__') and len(ts) > 1:
-            self._last_time = ts[-1]
-            ts = ts[0]  # We only want the first and last values.
+        if hasattr(tlist, '__iter__'):
+            # We only want the first and last values.
+            self._last_time = tlist[-1]
+            tlist = tlist[0]
 
         # Read e_ops
         e_ops_list = self._e_ops_as_list(e_ops)
@@ -74,7 +74,7 @@ class Result:
         }
 
         if state0 is not None:
-            self.add(ts, state0)
+            self.add(tlist, state0)
 
     def _e_ops_as_list(self, e_ops):
         """ Promote ``e_ops`` to a list. """
@@ -161,8 +161,7 @@ class Result:
         The state is expected to be a Qobj with the right dims.
         """
         if self._times and self._times[-1] == t:
-            # State already added skip
-            # For the first state added twice with __init__ and add.
+            # State added twice
             return
         self._times.append(t)
 
