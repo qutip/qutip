@@ -270,3 +270,35 @@ def test_operator_type(func, args, alias, dtype):
     else:
         for obj in object:
             assert isinstance(obj.data, dtype)
+
+
+def test_cnot():
+    cnot_expected = qutip.tensor(qutip.fock_dm(2,0), qutip.qeye(2))
+    cnot_expected += qutip.tensor(qutip.fock_dm(2,1), qutip.sigmax())
+    assert cnot_expected == qutip.cnot()
+
+
+def test_swap():
+    ket1 = qutip.rand_ket(2)
+    ket2 = qutip.rand_ket(2)
+    ket12 = qutip.tensor(ket1, ket2)
+    ket21 = qutip.tensor(ket2, ket1)
+    assert ket21 == qutip.swap() @ ket12
+
+
+def test_hadamard_explicit():
+    test = qutip.snot().full()
+    expected = np.array([[1, 1], [1, -1]])/ np.sqrt(2)
+    np.testing.assert_allclose(test, expected)
+
+
+@pytest.mark.parametrize('N', [1, 2, 5])
+def test_qft(N):
+    qft = qutip.qft(N).full()
+    np.testing.assert_allclose(np.abs(qft)**2, 1/2**N)
+    for i in range(2**N):
+        target = np.zeros(2**N)
+        target[i] = 1
+        fft = np.fft.fft(qft[:,i])
+        fft /= np.sum(fft)
+        np.testing.assert_allclose(fft, target, atol=1e-16 * 2**N)
