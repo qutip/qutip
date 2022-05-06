@@ -97,25 +97,6 @@ def test_measurement_statistics_observable(op, state, pairs, probabilities):
     np.testing.assert_almost_equal(probs, probabilities)
 
 
-@pytest.mark.parametrize(["op", "state"], [
-    pytest.param(sigmax(), basis([2, 2], [0, 0]), id="partial_ket_observable"),
-    pytest.param(sigmaz(), basis([2, 2], [0, 0]).proj(),
-                 id="partial_dm_observable")
-])
-def test_measurement_statistics_observable_ind(op, state):
-    """ measurement_statistics_observable: observables on basis
-        states with targets. """
-
-    evs1, ess_or_projs1, probs1 = measurement_statistics_observable(
-                                                state, tensor(op, identity(2)))
-    evs2, ess_or_projs2, probs2 = measurement_statistics_observable(
-                                                state, op, targets=[0])
-    np.testing.assert_almost_equal(evs1, evs2)
-    for a, b in zip(ess_or_projs1, ess_or_projs2):
-        assert a == b
-    np.testing.assert_almost_equal(probs1, probs2)
-
-
 @pytest.mark.parametrize(["ops", "state", "final_states", "probabilities"], [
     pytest.param(PZ, basis(2, 0), [state0, None], [1, 0], id="PZ_ket"),
     pytest.param(PZ, basis(2, 0).proj(), [state0.proj(), None], [1, 0],
@@ -141,23 +122,6 @@ def test_measurement_statistics_povm(ops, state, final_states, probabilities):
         else:
             assert collapsed_state is None
     np.testing.assert_almost_equal(probs, probabilities)
-
-
-@pytest.mark.parametrize(["ops", "state"], [
-    pytest.param(PX, basis([2, 2], [0, 0]), id="partial_ket"),
-    pytest.param(PX, basis([2, 2], [0, 0]).proj(), id="partial_dm"),
-])
-def test_measurement_statistics_ind(ops, state):
-    """measurement_statistics_povm: projectors on basis states with targets."""
-
-    states1, probs1 = measurement_statistics_povm(
-                                    state,
-                                    [tensor(op, identity(2)) for op in ops])
-    states2, probs2 = measurement_statistics_povm(state, ops, targets=[0])
-
-    for a, b in zip(states1, states2):
-        assert a == b
-    np.testing.assert_almost_equal(probs1, probs2)
 
 
 def test_measurement_statistics_povm_input_errors():
