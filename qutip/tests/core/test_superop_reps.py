@@ -14,9 +14,8 @@ from qutip import (
     Qobj, basis, identity, sigmax, sigmay, qeye, create, rand_super,
     rand_super_bcsz, rand_dm_ginibre, tensor, super_tensor, kraus_to_choi,
     to_super, to_choi, to_kraus, to_chi, to_stinespring, operator_to_vector,
-    vector_to_operator, sprepost, destroy
+    vector_to_operator, sprepost, destroy, swap
 )
-from qutip.qip.operations.gates import swap
 
 tol = 1e-8
 

@@ -8,7 +8,8 @@ __all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
            'destroy', 'create', 'qeye', 'identity', 'position', 'momentum',
            'num', 'squeeze', 'squeezing', 'displace', 'commutator',
            'qutrit_ops', 'qdiags', 'phase', 'qzero', 'enr_destroy',
-           'enr_identity', 'charge', 'tunneling']
+           'enr_identity', 'charge', 'tunneling', 
+           'cnot', 'snot', 'swap', 'qft']
 
 import numbers
 
@@ -1020,3 +1021,93 @@ def tunneling(N, m=1, *, dtype=_data.CSR):
     T = qdiags(diags, [m, -m], dtype=dtype)
     T.isherm = True
     return T
+
+
+def snot(*, dtype="dense"):
+    """Quantum object representing the SNOT (Hadamard) gate.
+
+    Parameters
+    ----------
+    dtype : str or type, [keyword only] [optional]
+        Storage representation. Any data-layer known to `qutip.data.to` is
+        accepted.
+
+    Returns
+    -------
+    snot_gate : qobj
+        Quantum object representation of SNOT gate.
+    """
+    return 1 / np.sqrt(2.0) * Qobj([[1, 1], [1, -1]]).to(dtype)
+
+
+def cnot(*, dtype="csr"):
+    """
+    Quantum object representing the CNOT gate.
+
+    Parameters
+    ----------
+    dtype : str or type, [keyword only] [optional]
+        Storage representation. Any data-layer known to `qutip.data.to` is
+        accepted.
+
+    Returns
+    -------
+    cnot_gate : qobj
+        Quantum object representation of CNOT gate
+    """
+    return Qobj(
+        [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]],
+        dims=[[2, 2], [2, 2]],
+    ).to(dtype)
+
+
+def swap(*, dtype="csr"):
+    """Quantum object representing the SWAP gate.
+
+    Parameters
+    ----------
+    dtype : str or type, [keyword only] [optional]
+        Storage representation. Any data-layer known to `qutip.data.to` is
+        accepted.
+
+    Returns
+    -------
+    swap_gate : qobj
+        Quantum object representation of SWAP gate
+    """
+    return Qobj(
+        [[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]],
+        dims=[[2, 2], [2, 2]],
+    ).to(dtype)
+
+
+def qft(N=1, *, dtype="dense"):
+    """
+    Quantum Fourier Transform operator on N qubits.
+
+    Parameters
+    ----------
+    N : int
+        Number of qubits.
+
+    dtype : str or type, [keyword only] [optional]
+        Storage representation. Any data-layer known to `qutip.data.to` is
+        accepted.
+
+    Returns
+    -------
+    QFT: qobj
+        Quantum Fourier transform operator.
+
+    """
+    if N < 1:
+        raise ValueError("Minimum value of N can be 1")
+
+    N2 = 2 ** N
+    phase = 2.0j * np.pi / N2
+    arr = np.arange(N2)
+    L, M = np.meshgrid(arr, arr)
+    L = phase * (L * M)
+    L = np.exp(L)
+    dims = [[2] * N, [2] * N]
+    return Qobj(1.0 / np.sqrt(N2) * L, dims=dims).to(dtype)

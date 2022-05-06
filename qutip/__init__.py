@@ -82,13 +82,6 @@ from .continuous_variables import *
 from .distributions import *
 from .three_level_atom import *
 
-########################################################################
-# This section exists only for the deprecation warning of qip importation.
-# It can be deleted for a major release.
-
-# quantum information
-from .qip import *
-########################################################################
 
 # utilities
 from .parallel import *

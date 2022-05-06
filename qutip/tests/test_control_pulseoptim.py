@@ -17,8 +17,7 @@ import scipy.sparse as sp
 
 import qutip
 from qutip.control import pulseoptim as cpo
-from qutip.qip.algorithms import qft
-from qutip.qip.operations.gates import hadamard_transform
+from qutip.core.operators import snot, qft
 import qutip.control.loadparams
 
 _sx = qutip.sigmax()
@@ -28,7 +27,7 @@ _sp = qutip.sigmap()
 _sm = qutip.sigmam()
 _si = qutip.identity(2)
 _project_0 = qutip.basis(2, 0).proj()
-_hadamard = hadamard_transform(1)
+_hadamard = snot()
 
 # We have a whole bunch of different physical systems we want to test the
 # optimiser for, but the logic for testing them is largely the same.  To avoid
@@ -87,7 +86,7 @@ _l_adc_kwargs = {'num_tslots': 10, 'evo_time': 5, 'init_pulse_type': 'LIN',
 l_adc = _System(system=_l_adc_system,
                 controls=_l_adc_controls,
                 initial=qutip.identity([2, 2]),
-                target=hadamard_transform(2),
+                target=qutip.tensor(snot(), snot()),
                 kwargs=_l_adc_kwargs)
 
 # Two coupled oscillators with symplectic dynamics.

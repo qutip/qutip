@@ -2,8 +2,7 @@ import numpy as np
 from numpy.testing import assert_, run_module_suite
 import scipy.linalg as la
 
-from qutip import (spre, spost, qeye, sigmax, sigmay, sigmaz, qpt)
-from qutip.qip.operations.gates import snot, cnot
+from qutip import (spre, spost, qeye, sigmax, sigmay, sigmaz, qpt, snot, cnot)
 
 
 def test_qpt_snot():
