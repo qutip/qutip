@@ -422,7 +422,7 @@ We are now ready to compute :math:`\chi` using :func:`qutip.tomography.qpt`, and
 
     chi = qpt(U_rho, op_basis)
 
-    fig = qpt_plot_combined(chi, op_label, r'$i$SWAP')
+    fig = qpt_plot_combined(chi, op_label, r'SWAP')
 
     plt.show()
 
