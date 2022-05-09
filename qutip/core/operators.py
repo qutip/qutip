@@ -8,7 +8,7 @@ __all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
            'destroy', 'create', 'qeye', 'identity', 'position', 'momentum',
            'num', 'squeeze', 'squeezing', 'displace', 'commutator',
            'qutrit_ops', 'qdiags', 'phase', 'qzero', 'enr_destroy',
-           'enr_identity', 'charge', 'tunneling', 
+           'enr_identity', 'charge', 'tunneling',
            'cnot', 'snot', 'swap', 'qft']
 
 import numbers
@@ -21,7 +21,7 @@ from .qobj import Qobj
 from .dimensions import flatten
 
 
-def qdiags(diagonals, offsets, dims=None, shape=None, *, dtype=_data.CSR):
+def qdiags(diagonals, offsets=None, dims=None, shape=None, *, dtype=_data.CSR):
     """
     Constructs an operator from an array of diagonals.
 
@@ -30,11 +30,12 @@ def qdiags(diagonals, offsets, dims=None, shape=None, *, dtype=_data.CSR):
     diagonals : sequence of array_like
         Array of elements to place along the selected diagonals.
 
-    offsets : sequence of ints
+    offsets : sequence of ints, optional
         Sequence for diagonals to be set:
             - k=0 main diagonal
             - k>0 kth upper diagonal
             - k<0 kth lower diagonal
+
     dims : list, optional
         Dimensions for operator
 
@@ -58,6 +59,7 @@ shape = [4, 4], type = oper, isherm = False
      [ 0.          0.          0.          0.        ]]
 
     """
+    offsets = [0] if offsets is None else offsets
     data = _data.diag[dtype](diagonals, offsets, shape)
     return Qobj(data, dims=dims, type='oper', copy=False)
 
@@ -1023,72 +1025,17 @@ def tunneling(N, m=1, *, dtype=_data.CSR):
     return T
 
 
-def snot(*, dtype="dense"):
-    """Quantum object representing the SNOT (Hadamard) gate.
+def qft(dimensions, *, dtype="dense"):
+    """
+    Quantum Fourier Transform operator.
 
     Parameters
     ----------
-    dtype : str or type, [keyword only] [optional]
-        Storage representation. Any data-layer known to `qutip.data.to` is
-        accepted.
-
-    Returns
-    -------
-    snot_gate : qobj
-        Quantum object representation of SNOT gate.
-    """
-    return 1 / np.sqrt(2.0) * Qobj([[1, 1], [1, -1]]).to(dtype)
-
-
-def cnot(*, dtype="csr"):
-    """
-    Quantum object representing the CNOT gate.
-
-    Parameters
-    ----------
-    dtype : str or type, [keyword only] [optional]
-        Storage representation. Any data-layer known to `qutip.data.to` is
-        accepted.
-
-    Returns
-    -------
-    cnot_gate : qobj
-        Quantum object representation of CNOT gate
-    """
-    return Qobj(
-        [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]],
-        dims=[[2, 2], [2, 2]],
-    ).to(dtype)
-
-
-def swap(*, dtype="csr"):
-    """Quantum object representing the SWAP gate.
-
-    Parameters
-    ----------
-    dtype : str or type, [keyword only] [optional]
-        Storage representation. Any data-layer known to `qutip.data.to` is
-        accepted.
-
-    Returns
-    -------
-    swap_gate : qobj
-        Quantum object representation of SWAP gate
-    """
-    return Qobj(
-        [[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]],
-        dims=[[2, 2], [2, 2]],
-    ).to(dtype)
-
-
-def qft(N=1, *, dtype="dense"):
-    """
-    Quantum Fourier Transform operator on N qubits.
-
-    Parameters
-    ----------
-    N : int
-        Number of qubits.
+    dimensions : (int) or (list of int) or (list of list of int)
+        Dimension of Hilbert space. If provided as a list of ints, then the
+        dimension is the product over this list, but the ``dims`` property of
+        the new Qobj are set to this list.  This can produce either `oper` or
+        `super` depending on the passed `dimensions`.
 
     dtype : str or type, [keyword only] [optional]
         Storage representation. Any data-layer known to `qutip.data.to` is
@@ -1100,14 +1047,10 @@ def qft(N=1, *, dtype="dense"):
         Quantum Fourier transform operator.
 
     """
-    if N < 1:
-        raise ValueError("Minimum value of N can be 1")
+    N2, dimensions = _implicit_tensor_dimensions(dimensions)
 
-    N2 = 2 ** N
     phase = 2.0j * np.pi / N2
     arr = np.arange(N2)
     L, M = np.meshgrid(arr, arr)
-    L = phase * (L * M)
-    L = np.exp(L)
-    dims = [[2] * N, [2] * N]
-    return Qobj(1.0 / np.sqrt(N2) * L, dims=dims).to(dtype)
+    data = np.exp(phase * (L * M)) / np.sqrt(N2)
+    return Qobj(data, dims=dimensions).to(dtype)
