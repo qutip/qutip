@@ -4,7 +4,7 @@ from operator import mul
 
 import numpy as np
 import scipy.sparse as sp
-from qutip import Qobj, qeye, sigmax, fock_dm, qdiags
+from . import Qobj, qeye, sigmax, fock_dm, qdiags
 
 
 __all__ = [
@@ -33,9 +33,7 @@ __all__ = [
     "fredkin",
     "molmer_sorensen",
     "toffoli",
-    "globalphase",
     "hadamard_transform",
-    "gate_sequence_product",
     "qubit_clifford_group",
 ]
 
@@ -74,7 +72,7 @@ def cz_gate(*, dtype="csr"):
     result : :class:`qutip.Qobj`
         Quantum object for operator describing the rotation.
     """
-    return qdiags([1, 1, 1, -1j], dims=[[2, 2], [2, 2]], dtype=dtype)
+    return qdiags([1, 1, 1, -1], dims=[[2, 2], [2, 2]], dtype=dtype)
 
 
 def s_gate(*, dtype="csr"):
@@ -215,8 +213,7 @@ def rz(phi, *, dtype="csr"):
         Quantum object for operator describing the rotation.
 
     """
-    phase = np.exp(-1j * phi / 2)
-    return qdiags([phase, np.conj(phase)], dtype=dtype)
+    return qdiags([np.exp(-1j * phi / 2), np.exp(1j * phi / 2)], dtype=dtype)
 
 
 def sqrtnot(*, dtype="dense"):
@@ -369,7 +366,7 @@ def csign(*, dtype="csr"):
         Quantum object representation of CSIGN gate
 
     """
-    return qt.qdiags([1, 1, 1, -1], dims=[[2, 2], [2, 2]], dtype=dtype)
+    return cz_gate(dtype=dtype)
 
 
 def berkeley(*, dtype="dense"):

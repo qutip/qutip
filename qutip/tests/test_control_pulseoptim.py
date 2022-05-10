@@ -26,7 +26,7 @@ _sp = qutip.sigmap()
 _sm = qutip.sigmam()
 _si = qutip.identity(2)
 _project_0 = qutip.basis(2, 0).proj()
-_hadamard = qutip.snot()
+_hadamard = qutip.gates.snot()
 
 # We have a whole bunch of different physical systems we want to test the
 # optimiser for, but the logic for testing them is largely the same.  To avoid
@@ -85,7 +85,7 @@ _l_adc_kwargs = {'num_tslots': 10, 'evo_time': 5, 'init_pulse_type': 'LIN',
 l_adc = _System(system=_l_adc_system,
                 controls=_l_adc_controls,
                 initial=qutip.identity([2, 2]),
-                target=qutip.tensor(qutip.snot(), qutip.snot()),
+                target=qutip.gates.hadamard_transform(2),
                 kwargs=_l_adc_kwargs)
 
 # Two coupled oscillators with symplectic dynamics.

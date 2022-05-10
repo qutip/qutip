@@ -8,8 +8,7 @@ __all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
            'destroy', 'create', 'qeye', 'identity', 'position', 'momentum',
            'num', 'squeeze', 'squeezing', 'displace', 'commutator',
            'qutrit_ops', 'qdiags', 'phase', 'qzero', 'enr_destroy',
-           'enr_identity', 'charge', 'tunneling',
-           'cnot', 'snot', 'swap', 'qft']
+           'enr_identity', 'charge', 'tunneling', 'qft']
 
 import numbers
 

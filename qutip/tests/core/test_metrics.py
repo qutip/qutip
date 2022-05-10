@@ -9,8 +9,9 @@ from qutip import (
     Qobj, tensor, fock_dm, basis, destroy, qdiags, sigmax, sigmay, sigmaz,
     qeye, rand_ket, rand_super_bcsz, rand_ket_haar, rand_dm_ginibre, rand_dm,
     rand_unitary, rand_unitary_haar, to_super, to_choi, kraus_to_choi,
-    to_chi, to_kraus, snot, swap
+    to_chi, to_kraus,
 )
+from qutip.core.gates import snot, swap
 
 try:
     import cvxpy
