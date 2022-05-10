@@ -60,7 +60,7 @@ _qft_kwargs = {'num_tslots': 10, 'evo_time': 10, 'gen_stats': True,
 qft = _System(system=_qft_system,
               controls=_qft_controls,
               initial=qutip.identity([2, 2]),
-              target=qutip.qft(2),
+              target=qutip.qft([2, 2]),
               kwargs=_qft_kwargs)
 
 # Coupling constants are completely arbitrary.

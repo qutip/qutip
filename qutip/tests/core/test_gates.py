@@ -103,7 +103,7 @@ class TestExplicitForm:
         assert gates.hadamard_transform(N) == expected
 
     def test_globalphase(self):
-        assert gates.globalphase(1, 3) * np.exp(-1j) == qutip.qeye([2]*3)
+        assert gates.globalphase(1, 3) * np.exp(-1j) == qutip.qeye([2] * 3)
 
 
 class TestCliffordGroup:

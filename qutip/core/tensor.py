@@ -342,7 +342,7 @@ def tensor_contract(qobj, *pairs):
     return Qobj(qmtx, dims=contracted_dims, superrep=qobj.superrep, copy=False)
 
 
-def _check_qubits_oper(oper, dims=None, targets=None):
+def _check_oper_dims(oper, dims=None, targets=None):
     """
     Check if the given operator is valid.
 
@@ -354,7 +354,7 @@ def _check_qubits_oper(oper, dims=None, targets=None):
         A list of integer for the dimension of each composite system.
         e.g ``[2, 2, 2, 2, 2]`` for 5 qubits system.
     targets : int or list of int, optional
-        The indices of qubits that are acted on.
+        The indices of subspace that are acted on.
     """
     # if operator matches N
     if not isinstance(oper, Qobj) or oper.dims[0] != oper.dims[1]:
@@ -378,14 +378,14 @@ def _targets_to_list(targets, oper=None, N=None):
     Parameters
     ----------
     targets : int or list of int
-        The indices of qubits that are acted on.
+        The indices of subspace that are acted on.
     oper : :class:`qutip.Qobj`, optional
-        An operator acts on qubits, the type of the :class:`qutip.Qobj`
+        An operator, the type of the :class:`qutip.Qobj`
         has to be an operator
         and the dimension matches the tensored qubit Hilbert space
         e.g. dims = ``[[2, 2, 2], [2, 2, 2]]``
     N : int, optional
-        The number of qubits in the system.
+        The number of subspace in the system.
     """
     # if targets is a list of integer
     if targets is None:
@@ -414,32 +414,38 @@ def _targets_to_list(targets, oper=None, N=None):
 
 def expand_operator(oper, targets, dims):
     """
-    Expand a qubits operator to one that acts on a N-qubit system.
+    Expand an operator to one that acts on a system with desired dimensions.
+    e.g.
+    ```
+    expand_operator(oper, 2, [2, 3, 4, 5]) ==
+        tensor(qeye(2), qeye(3), oper, qeye(5))
+    expand_operator(tensor(oper1, oper2), [2, 0], [2, 3, 4, 5]) ==
+        tensor(oper2, qeye(3), oper1, qeye(5))
+    ```
 
     Parameters
     ----------
     oper : :class:`qutip.Qobj`
-        An operator acts on qubits, the type of the :class:`qutip.Qobj`
-        has to be an operator and the dimension matches the tensored qubit
-        Hilbert space
-        e.g. dims = ``[[2, 2, 2], [2, 2, 2]]``
+        An operator that act on the subsystem, has to be an operator and the
+        dimension matches the tensored dims Hilbert space
+        e.g. oper.dims = ``[[2, 3], [2, 3]]``
     targets : int or list of int
-        The indices of qubits that are acted on.
-    dims : list, optional
+        The indices of subspace that are acted on.
+    dims : list
         A list of integer for the dimension of each composite system.
-        E.g ``[2, 2, 2, 3, 3]``.
+        E.g ``[2, 3, 2, 3, 4]``.
 
     Returns
     -------
     expanded_oper : :class:`qutip.Qobj`
-        The expanded qubits operator acting on a system with N qubits.
+        The expanded operator acting on a system with desired dimension.
     """
     from .operators import identity
     N = len(dims)
     targets = _targets_to_list(targets, oper=oper, N=N)
-    _check_qubits_oper(oper, dims=dims, targets=targets)
+    _check_oper_dims(oper, dims=dims, targets=targets)
 
-    # Generate the correct order for qubits permutation,
+    # Generate the correct order for permutation,
     # eg. if N = 5, targets = [3,0], the order is [1,2,3,0,4].
     # If the operator is cnot,
     # this order means that the 3rd qubit controls the 0th qubit.

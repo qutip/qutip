@@ -1033,8 +1033,7 @@ def qft(dimensions, *, dtype="dense"):
     dimensions : (int) or (list of int) or (list of list of int)
         Dimension of Hilbert space. If provided as a list of ints, then the
         dimension is the product over this list, but the ``dims`` property of
-        the new Qobj are set to this list.  This can produce either `oper` or
-        `super` depending on the passed `dimensions`.
+        the new Qobj are set to this list.
 
     dtype : str or type, [keyword only] [optional]
         Storage representation. Any data-layer known to `qutip.data.to` is
