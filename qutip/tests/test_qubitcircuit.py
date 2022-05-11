@@ -225,25 +225,48 @@ class TestQubitCircuit:
             # Single control
             pytest.raises(ValueError, qc.add_gate, gate, [0], [1])
 
-        dummy_gate = Gate("DUMMY")
+        dummy_gate1 = Gate("DUMMY1")
         inds = [1, 3, 4, 6]
-        qc.add_gate(dummy_gate, index=inds)
+        qc.add_gate(dummy_gate1, index=inds)
 
-        # Test adding gates at multiple indices at once.
+        # Test adding gates at multiple (sorted) indices at once.
         # NOTE: Every insertion shifts the indices in the original list of
         #       gates by an additional position to the right.
         expected_gate_names = [
             'CNOT',     # 0
-            'DUMMY',    # 1
+            'DUMMY1',   # 1
             'SWAP',     # 2
             'TOFFOLI',  # 3
-            'DUMMY',    # 4
+            'DUMMY1',   # 4
             'SWAP',     # 5
-            'DUMMY',    # 6
+            'DUMMY1',   # 6
             'SNOT',     # 7
             'RY',       # 8
-            'DUMMY',    # 9
+            'DUMMY1',   # 9
             'RY',       # 10
+        ]
+        actual_gate_names = list(map(attrgetter('name'), qc.gates))
+        assert actual_gate_names == expected_gate_names
+
+        dummy_gate2 = Gate("DUMMY2")
+        inds = [11, 0]
+        qc.add_gate(dummy_gate2, index=inds)
+
+        # Test adding gates at multiple (unsorted) indices at once.
+        expected_gate_names = [
+            'DUMMY2',   # 0
+            'CNOT',     # 1
+            'DUMMY1',   # 2
+            'SWAP',     # 3
+            'TOFFOLI',  # 4
+            'DUMMY1',   # 5
+            'SWAP',     # 6
+            'DUMMY1',   # 7
+            'SNOT',     # 8
+            'RY',       # 9
+            'DUMMY1',   # 10
+            'RY',       # 11
+            'DUMMY2',   # 12
         ]
         actual_gate_names = list(map(attrgetter('name'), qc.gates))
         assert actual_gate_names == expected_gate_names

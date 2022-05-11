@@ -527,7 +527,7 @@ class QubitCircuit:
         else:
             # NOTE: Every insertion shifts the indices in the original list of
             #       gates by an additional position to the right.
-            shifted_inds = np.asarray(index) + np.arange(len(index))
+            shifted_inds = np.sort(index) + np.arange(len(index))
             for position in shifted_inds:
                 gate = Gate(name, targets=targets, controls=controls,
                             arg_value=arg_value, arg_label=arg_label,
