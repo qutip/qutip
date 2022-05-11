@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+from operator import attrgetter
 from pathlib import Path
 
 from qutip.qip.operations import gates
@@ -224,6 +225,29 @@ class TestQubitCircuit:
             # Single control
             pytest.raises(ValueError, qc.add_gate, gate, [0], [1])
 
+        dummy_gate = Gate("DUMMY")
+        inds = [1, 3, 4, 6]
+        qc.add_gate(dummy_gate, index=inds)
+
+        # Test adding gates at multiple indices at once.
+        # NOTE: Every insertion shifts the indices in the original list of
+        #       gates by an additional position to the right.
+        expected_gate_names = [
+            'CNOT',     # 0
+            'DUMMY',    # 1
+            'SWAP',     # 2
+            'TOFFOLI',  # 3
+            'DUMMY',    # 4
+            'SWAP',     # 5
+            'DUMMY',    # 6
+            'SNOT',     # 7
+            'RY',       # 8
+            'DUMMY',    # 9
+            'RY',       # 10
+        ]
+        actual_gate_names = list(map(attrgetter('name'), qc.gates))
+        assert actual_gate_names == expected_gate_names
+
     def test_add_circuit(self):
         """
         Addition of a circuit to a `QubitCircuit`
@@ -292,7 +316,7 @@ class TestQubitCircuit:
                     qc.gates[i].controls is not None):
                 assert (qc2.gates[i].controls[0]
                         == qc.gates[i].controls[0]+2)
-        
+
         # Test exception when the operators to be added are not gates or measurements
         qc.gates[-1] = 0
         pytest.raises(TypeError, qc2.add_circuit, qc)
@@ -519,7 +543,6 @@ class TestQubitCircuit:
 
         teleportation_sim_results = teleportation_sim.run(state)
         state_final = teleportation_sim_results.get_final_states(0)
-        probability = teleportation_sim_results.get_probabilities(0)
 
         final_measurement = Measurement("start", targets=[2])
         _, final_probabilities = final_measurement.measurement_comp_basis(state_final)
@@ -608,9 +631,6 @@ class TestQubitCircuit:
         qc = read_qasm(filepath)
 
         rand_state = rand_ket(2)
-        wstate = (tensor(basis(2, 0), basis(2, 0), basis(2, 1))
-                  + tensor(basis(2, 0), basis(2, 1), basis(2, 0))
-                  + tensor(basis(2, 1), basis(2, 0), basis(2, 0))).unit()
 
         state = tensor(tensor(basis(2, 0), basis(2, 0), basis(2, 0)),
                        rand_state)
@@ -644,7 +664,3 @@ class TestQubitCircuit:
         exp = ' &  &  \\meter & \\qw \\\\ \n &  ' + \
               '&  \\qw \\cwx[-1]  & \\qw \\\\ \n'
         assert qc.latex_code() == exp
-
-
-if __name__ == "__main__":
-    run_module_suite()
