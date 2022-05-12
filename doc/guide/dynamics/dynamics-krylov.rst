@@ -103,3 +103,7 @@ If the Hamiltonian of interest is known to be sparse, :func:`qutip.krylovsolve` 
     Average time of solution for a sparse H is 0.21459429264068602 for sparse=True and 0.48820173740386963 for sparse=False
     Average time of solution for a dense H is 2.7786733388900755 for sparse=True and 1.551209032535553 for sparse=False
     
+.. plot::
+    :context: reset
+    :include-source: false
+    :nofigs:
