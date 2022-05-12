@@ -44,22 +44,22 @@ Let's solve a simple example using the algorithm in QuTiP to get familiar with t
 .. plot::
     :context: reset
     
-    from qutip import jmat, rand_ket, krylovsolve
-    import numpy as np
-    import matplotlib.pyplot as plt
-    dim = 100
-    e_ops = [jmat((dim - 1) / 2.0, "x"), jmat((dim - 1) / 2.0, "y"), jmat((dim - 1) / 2.0, "z")]
-    H = .5*jmat((dim - 1) / 2.0, "z") + .5*jmat((dim - 1) / 2.0, "x")
-    psi0 = rand_ket(dim)
-    tlist = np.linspace(0.0, 10.0, 200)
-    results = krylovsolve(H, psi0, tlist, krylov_dim=20, e_ops=e_ops)
-    plt.figure()
-    for expect in results.expect:
-        plt.plot(tlist, expect)
-    plt.legend(('jmat x', 'jmat y', 'jmat z'))
-    plt.xlabel('Time')
-    plt.ylabel('Expectation values')
-    plt.show()
+    >>> from qutip import jmat, rand_ket, krylovsolve
+    >>> import numpy as np
+    >>> import matplotlib.pyplot as plt
+    >>> dim = 100
+    >>> e_ops = [jmat((dim - 1) / 2.0, "x"), jmat((dim - 1) / 2.0, "y"), jmat((dim - 1) / 2.0, "z")]
+    >>> H = .5*jmat((dim - 1) / 2.0, "z") + .5*jmat((dim - 1) / 2.0, "x")
+    >>> psi0 = rand_ket(dim)
+    >>> tlist = np.linspace(0.0, 10.0, 200)
+    >>> results = krylovsolve(H, psi0, tlist, krylov_dim=20, e_ops=e_ops)
+    >>> plt.figure()
+    >>> for expect in results.expect:
+    >>>    plt.plot(tlist, expect)
+    >>> plt.legend(('jmat x', 'jmat y', 'jmat z'))
+    >>> plt.xlabel('Time')
+    >>> plt.ylabel('Expectation values')
+    >>> plt.show()
 
 .. _krylov-sparse:
 
