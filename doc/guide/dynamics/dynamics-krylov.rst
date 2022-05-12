@@ -42,8 +42,11 @@ function for master-equation evolution, except that the initial state must be a 
 Let's solve a simple example using the algorithm in QuTiP to get familiar with the method.
 
 .. plot::
-    :context:
-
+    :context: reset
+    
+    from qutip import jmat, rand_ket, krylovsolve
+    import numpy as np
+    import matplotlib.pyplot as plt
     dim = 100
     e_ops = [jmat((dim - 1) / 2.0, "x"), jmat((dim - 1) / 2.0, "y"), jmat((dim - 1) / 2.0, "z")]
     H = .5*jmat((dim - 1) / 2.0, "z") + .5*jmat((dim - 1) / 2.0, "x")
