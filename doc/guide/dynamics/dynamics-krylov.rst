@@ -29,7 +29,7 @@ With the above approximation, the time-evolution is calculated only with a small
 
 One of the biggest problems with this type of method is the control of the error. After a short time, the error starts to grow exponentially. However, this can be easily corrected by restarting the subspace when the error reaches a certain threshold. Therefore, a series of :math:`M` Krylov-subspace time evolutions provides accurate solutions for the complete time evolution. Within this scheme, the magic of Krylov resides not only in its ability to capture complex time evolutions from very large Hilbert spaces with very small dimenions :math:`M`, but also in the computing speed-up it presents.
 
-For exceptional cases, the Lanczos algorithm might arrive at the exact evolution of the initial state at a dimension :math:`M_{hb}<M`. This is called a happy breakdown. For example, if a Hamiltonian has a symmetry subspace :math:`D_{\text{sim}}<M`, then the algorithm will optimize using the value math:`M_{hb}<M`, at which the evolution is not only exact but also cheap.
+For exceptional cases, the Lanczos algorithm might arrive at the exact evolution of the initial state at a dimension :math:`M_{hb}<M`. This is called a happy breakdown. For example, if a Hamiltonian has a symmetry subspace :math:`D_{\text{sim}}<M`, then the algorithm will optimize using the value math:`M_{hb}<M`:, at which the evolution is not only exact but also cheap.
 
 .. _krylov-qutip:
 
