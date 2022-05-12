@@ -224,6 +224,52 @@ class TestQubitCircuit:
             # Single control
             pytest.raises(ValueError, qc.add_gate, gate, [0], [1])
 
+        dummy_gate1 = Gate("DUMMY1")
+        inds = [1, 3, 4, 6]
+        qc.add_gate(dummy_gate1, index=inds)
+
+        # Test adding gates at multiple (sorted) indices at once.
+        # NOTE: Every insertion shifts the indices in the original list of
+        #       gates by an additional position to the right.
+        expected_gate_names = [
+            'CNOT',     # 0
+            'DUMMY1',   # 1
+            'SWAP',     # 2
+            'TOFFOLI',  # 3
+            'DUMMY1',   # 4
+            'SWAP',     # 5
+            'DUMMY1',   # 6
+            'SNOT',     # 7
+            'RY',       # 8
+            'DUMMY1',   # 9
+            'RY',       # 10
+        ]
+        actual_gate_names = [gate.name for gate in qc.gates]
+        assert actual_gate_names == expected_gate_names
+
+        dummy_gate2 = Gate("DUMMY2")
+        inds = [11, 0]
+        qc.add_gate(dummy_gate2, index=inds)
+
+        # Test adding gates at multiple (unsorted) indices at once.
+        expected_gate_names = [
+            'DUMMY2',   # 0
+            'CNOT',     # 1
+            'DUMMY1',   # 2
+            'SWAP',     # 3
+            'TOFFOLI',  # 4
+            'DUMMY1',   # 5
+            'SWAP',     # 6
+            'DUMMY1',   # 7
+            'SNOT',     # 8
+            'RY',       # 9
+            'DUMMY1',   # 10
+            'RY',       # 11
+            'DUMMY2',   # 12
+        ]
+        actual_gate_names = [gate.name for gate in qc.gates]
+        assert actual_gate_names == expected_gate_names
+
     def test_add_circuit(self):
         """
         Addition of a circuit to a `QubitCircuit`
@@ -292,7 +338,7 @@ class TestQubitCircuit:
                     qc.gates[i].controls is not None):
                 assert (qc2.gates[i].controls[0]
                         == qc.gates[i].controls[0]+2)
-        
+
         # Test exception when the operators to be added are not gates or measurements
         qc.gates[-1] = 0
         pytest.raises(TypeError, qc2.add_circuit, qc)
@@ -519,7 +565,6 @@ class TestQubitCircuit:
 
         teleportation_sim_results = teleportation_sim.run(state)
         state_final = teleportation_sim_results.get_final_states(0)
-        probability = teleportation_sim_results.get_probabilities(0)
 
         final_measurement = Measurement("start", targets=[2])
         _, final_probabilities = final_measurement.measurement_comp_basis(state_final)
@@ -608,9 +653,6 @@ class TestQubitCircuit:
         qc = read_qasm(filepath)
 
         rand_state = rand_ket(2)
-        wstate = (tensor(basis(2, 0), basis(2, 0), basis(2, 1))
-                  + tensor(basis(2, 0), basis(2, 1), basis(2, 0))
-                  + tensor(basis(2, 1), basis(2, 0), basis(2, 0))).unit()
 
         state = tensor(tensor(basis(2, 0), basis(2, 0), basis(2, 0)),
                        rand_state)
@@ -644,7 +686,3 @@ class TestQubitCircuit:
         exp = ' &  &  \\meter & \\qw \\\\ \n &  ' + \
               '&  \\qw \\cwx[-1]  & \\qw \\\\ \n'
         assert qc.latex_code() == exp
-
-
-if __name__ == "__main__":
-    run_module_suite()
