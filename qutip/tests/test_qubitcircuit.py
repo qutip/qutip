@@ -1,6 +1,5 @@
 import pytest
 import numpy as np
-from operator import attrgetter
 from pathlib import Path
 
 from qutip.qip.operations import gates
@@ -245,7 +244,7 @@ class TestQubitCircuit:
             'DUMMY1',   # 9
             'RY',       # 10
         ]
-        actual_gate_names = list(map(attrgetter('name'), qc.gates))
+        actual_gate_names = [gate.name for gate in qc.gates]
         assert actual_gate_names == expected_gate_names
 
         dummy_gate2 = Gate("DUMMY2")
@@ -268,7 +267,7 @@ class TestQubitCircuit:
             'RY',       # 11
             'DUMMY2',   # 12
         ]
-        actual_gate_names = list(map(attrgetter('name'), qc.gates))
+        actual_gate_names = [gate.name for gate in qc.gates]
         assert actual_gate_names == expected_gate_names
 
     def test_add_circuit(self):
