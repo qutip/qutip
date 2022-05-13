@@ -69,7 +69,7 @@ Sparse and Dense Hamiltonians
 If the Hamiltonian of interest is known to be sparse, :func:`qutip.krylovsolve` also comes equipped with the possibility to store its internal data in a sparse optimized format using scipy. This allows for significant speed-ups, let's showcase it:
 
 
-.. code-block:: python
+.. plot:: 
     :context: reset
     :nofigs:
     
@@ -78,30 +78,23 @@ If the Hamiltonian of interest is known to be sparse, :func:`qutip.krylovsolve` 
     >>> from time import time
     >>> def time_krylov(psi0, H, tlist, sparse):
     >>>     start = time()
-    >>>     krylovsolve(H, psi0, tlist, krylov_dim=20, sparse=sparse)
+    >>>     krylovsolve(H, psi0, tlist, krylov_dim=30, sparse=sparse)
     >>>     end = time()
     >>>     return end - start
     >>> dim = 2000
-    >>> n_random_samples = 20
+    >>> tlist = np.linspace(0, 1, 10)
+    >>> psi0 = rand_ket(dim, seed=0)
+    >>> H_sparse = rand_herm(dim, density=0.1, seed=0)
+    >>> H_dense = rand_herm(dim, density=0.9, seed=0)
     >>> # first index for type of H and second index for sparse = True or False (dense)
-    >>> t_ss_list, t_sd_list, t_ds_list, t_dd_list = [], [], [], []
-    >>> tlist = np.linspace(0, 1, 200)
-    >>> for n in range(n_random_samples):
-    >>>     psi0 = rand_ket(dim)
-    >>>     H_sparse = rand_herm(dim, density=0.1, seed=0)
-    >>>     H_dense = rand_herm(dim, density=0.9, seed=0)
-    >>>     t_ss_list.append(time_krylov(psi0, H_sparse, tlist, sparse=True))
-    >>>     t_sd_list.append(time_krylov(psi0, H_sparse, tlist, sparse=False))
-    >>>     t_ds_list.append(time_krylov(psi0, H_dense, tlist, sparse=True))
-    >>>     t_dd_list.append(time_krylov(psi0, H_dense, tlist, sparse=False))
-    >>> t_ss_average = np.mean(t_ss_list)
-    >>> t_sd_average = np.mean(t_sd_list)
-    >>> t_ds_average = np.mean(t_ds_list)
-    >>> t_dd_average = np.mean(t_dd_list)
-    >>> print(f"Average time of solution for a sparse H is {t_ss_average} for sparse=True and {t_sd_average} for sparse=False")
-    >>> print(f"Average time of solution for a dense H is {t_ds_average} for sparse=True and {t_dd_average} for sparse=False")
-    Average time of solution for a sparse H is 0.21459429264068602 for sparse=True and 0.48820173740386963 for sparse=False
-    Average time of solution for a dense H is 2.7786733388900755 for sparse=True and 1.551209032535553 for sparse=False
+    >>> t_ss = time_krylov(psi0, H_sparse, tlist, sparse=True)
+    >>> t_sd = time_krylov(psi0, H_sparse, tlist, sparse=False)
+    >>> t_ds = time_krylov(psi0, H_dense, tlist, sparse=True)
+    >>> t_dd = time_krylov(psi0, H_dense, tlist, sparse=False)
+    >>> print(f"Average time of solution for a sparse H is {round((t_sd)/t_ss, 2)} faster for sparse=True in comparison to sparse=False")
+    >>> print(f"Average time of solution for a dense H is {round((t_dd)/t_ds, 2)} slower for sparse=True in comparison to sparse=False")
+    Average time of solution for a sparse H is 2.46 faster for sparse=True in comparison to sparse=False
+    Average time of solution for a dense H is 0.45 slower for sparse=True in comparison to sparse=False
     
 .. plot::
     :context: reset
