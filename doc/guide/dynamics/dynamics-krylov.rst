@@ -69,7 +69,7 @@ Sparse and Dense Hamiltonians
 If the Hamiltonian of interest is known to be sparse, :func:`qutip.krylovsolve` also comes equipped with the possibility to store its internal data in a sparse optimized format using scipy. This allows for significant speed-ups, let's showcase it:
 
 
-.. plot::
+.. code-block:: python
     :context: reset
     :nofigs:
     
