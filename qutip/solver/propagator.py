@@ -155,7 +155,7 @@ class Propagator:
         self.memoize = max(3, memoize)
         self.tol = tol
 
-    def __call__(self, t, t_start=0, **args):
+    def __call__(self, t, t_start=None, **args):
         """
         Get the propagator at ``t``.
 

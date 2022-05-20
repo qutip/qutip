@@ -47,7 +47,7 @@ def set_partition(collection, num_sets):
         yield tuple(tuple(indices) for indices in partition)
 
 
-def photon_scattering_amplitude(evolver, c_ops, tlist, indices, psi, psit):
+def photon_scattering_amplitude(propagator, c_ops, tlist, indices, psi, psit):
     """
     Compute the scattering amplitude for a system emitting into multiple
     waveguides.
