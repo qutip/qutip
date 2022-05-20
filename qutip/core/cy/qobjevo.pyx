@@ -461,6 +461,7 @@ cdef class QobjEvo:
             return NotImplemented
 
     def __rmatmul__(QobjEvo self, other):
+        cdef QobjEvo res
         if isinstance(other, Qobj):
             if other.dims[1] != self.dims[0]:
                 raise TypeError("incompatible dimensions" +
