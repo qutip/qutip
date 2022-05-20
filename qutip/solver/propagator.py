@@ -10,7 +10,7 @@ from .sesolve import sesolve, SeSolver
 from .options import SolverOptions
 
 
-def propagator(H, t, c_ops=(), args=None, options=None):
+def propagator(H, t, c_ops=(), args=None, options=None, **kwargs):
     r"""
     Calculate the propagator U(t) for the density matrix or wave function such
     that :math:`\psi(t) = U(t)\psi(0)` or
@@ -25,18 +25,22 @@ def propagator(H, t, c_ops=(), args=None, options=None):
         QobjEvo. ``list`` of [:class:`Qobj`, :class:`Coefficient`] or callable
         that can be made into :class:`QobjEvo` are also accepted.
 
-    t : float or array-like, optional
+    t : float or array-like
         Time or list of times for which to evaluate the propagator.
 
     c_ops : list, optional
         List of Qobj or QobjEvo collapse operators.
 
-    args : dictionary
+    args : dictionary, optional
         Parameters to callback functions for time-dependent Hamiltonians and
         collapse operators.
 
-    options : :class:`qutip.SolverOptions`
+    options : :class:`qutip.SolverOptions`, optional
         Options for the ODE solver.
+
+    **kwargs :
+        Extra parameters to use when creating the :class:`QobjEvo` from a list
+        format ``H``.
 
     Returns
     -------
@@ -53,7 +57,7 @@ def propagator(H, t, c_ops=(), args=None, options=None):
         list_output = True
 
     if not isinstance(H, (Qobj, QobjEvo)):
-        H = QobjEvo(H, args=args, tlist=tlist)
+        H = QobjEvo(H, args=args, **kwargs)
 
     if H.issuper or c_ops:
         out = mesolve(H, qeye(H.dims), tlist, c_ops=c_ops,
@@ -152,12 +156,26 @@ class Propagator:
                         and isinstance(H, Qobj)
                         and H.isherm)
         self.args = args
-        self.memoize = max(3, memoize)
+        self.memoize = max(3, int(memoize))
         self.tol = tol
 
-    def __call__(self, t, t_start=None, **args):
+    def _lookup_or_compute(self, t):
         """
-        Get the propagator at ``t``.
+        Get U(t) from cache or compute it.
+        """
+        idx = np.searchsorted(self.times, t)
+        if idx < len(self.times) and abs(t-self.times[idx]) <= self.tol:
+            U = self.props[idx]
+        elif idx > 0 and abs(t-self.times[idx-1]) <= self.tol:
+            U = self.props[idx-1]
+        else:
+            U = self._compute(t, idx)
+            self._insert(t, U, idx)
+        return U
+
+    def __call__(self, t, t_start=0, **args):
+        """
+        Get the propagator from ``t_start`` to ``t``.
 
         Parameters
         ----------
@@ -178,16 +196,15 @@ class Propagator:
             self.props = [qeye(self.props[0].dims[0])]
 
         if t_start:
-            U = self._prop2t(t, t_start)
-        else:
-            idx = np.searchsorted(self.times, t)
-            if idx < len(self.times) and abs(t-self.times[idx]) <= self.tol:
-                U = self.props[idx]
-            elif idx > 0 and abs(t-self.times[idx-1]) <= self.tol:
-                U = self.props[idx-1]
+            if t == t_start:
+                U = self._lookup_or_compute(0)
+            if self.cte:
+                U = self._lookup_or_compute(t - t_start)
             else:
-                U = self._compute(t, idx)
-                self._insert(t, U, idx)
+                Uinv = self._inv(self._lookup_or_compute(t_start))
+                U = self._lookup_or_compute(t) @ Uinv
+        else:
+            U = self._lookup_or_compute(t)
         return U
 
     def inv(self, t, **args):
@@ -205,18 +222,6 @@ class Propagator:
             will be used in future call.
         """
         return self._inv(self(t, **args))
-
-    def _prop2t(self, t_end, t_start):
-        """
-        Obtain the probagator between times.
-            ``psi[t] = U.prop(t, t_start) @ psi[t_start]``
-        """
-        if t_end == t_start:
-            return self(0)
-        if self.cte:
-            return self(t_end - t_start)
-        else:
-            return self(t_end) @ self.inv(t_start)
 
     def _compute(self, t, idx):
         """
@@ -240,13 +245,11 @@ class Propagator:
         """
         Insert a new pair of (time, propagator) to the memorized states.
         """
-        self.times = self.times[:idx] + [t] + self.times[idx:]
-        self.props = self.props[:idx] + [U] + self.props[idx:]
-        if len(self.times) > self.memoize:
-            # When the list get too long, we clean memory.
-            # We keep the extremums and last call.
-            # There are probably a good ways to do this.
-            rm_idx = np.random.randint(1, self.memoize-1)
-            rm_idx = rm_idx if rm_idx < idx else rm_idx + 1
-            self.times = self.times[:rm_idx] + self.times[rm_idx+1:]
-            self.props = self.props[:rm_idx] + self.props[rm_idx+1:]
+        while len(self.times) >= self.memoize:
+            rm_idx = self.memoize // 2
+            if self.times[rm_idx] < t:
+                idx -= 1
+            del self.times[rm_idx]
+            del self.props[rm_idx]
+        self.times.insert(idx, t)
+        self.props.insert(idx, U)

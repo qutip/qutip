@@ -47,43 +47,44 @@ def set_partition(collection, num_sets):
         yield tuple(tuple(indices) for indices in partition)
 
 
-def photon_scattering_amplitude(propagator, c_ops, tlist, indices, psi, psit):
+def photon_scattering_amplitude(propagator, c_ops, tlist, taus, psi, psit):
     """
     Compute the scattering amplitude for a system emitting into multiple
     waveguides.
 
     Parameters
     ----------
-    evolver : :class:Propagator
+    propagator : :class:Propagator
         Propagator
     c_ops : list
         list of collapse operators for each waveguide; these are assumed to
         include spontaneous decay rates, e.g.
         :math:`\\sigma = \\sqrt \\gamma \\cdot a`
     tlist : array_like
-        Times at which emissions can happen.
-    indices : list-like
-        List of (list of emission times indices) for each waveguide.
+        List of times starting at the beginning and ending at the end of the
+        evolution.
+    taus : list-like
+        List of (list of emission times) for each waveguide.
     psi : Qobj
         State at the start of the evolution
     psit : Qobj
         State at the end of the evolution.
     """
     # Extract the full list of taus
-    taus = []
-    for i, tau_wg in enumerate(indices):
-        for t_idx in tau_wg:
-            taus.append((tlist[t_idx], i))
-    taus.sort(key=lambda tup: tup[0])  # sort taus by time
+    tau_collapse = []
+    for i, tau_wg in enumerate(taus):
+        for t in tau_wg:
+            tau_collapse.append((t, i))
+    tau_collapse.sort(key=lambda tup: tup[0])  # sort tau_collapse by time
 
     tq = tlist[0]
     # Compute Prod Ueff(tq, tq-1)
-    for tau in taus:
+    for tau in tau_collapse:
         tprev = tq
         tq, q = tau
-        psi = c_ops[q] * evolver(tq, tprev) * psi
+        psi = c_ops[q] * propagator(tq, tprev) * psi
 
-    psi = evolver(tlist[-1], tq) * psi
+    psi = propagator(tlist[-1], tq) * psi
     return psit.overlap(psi)
 
 
@@ -170,9 +171,10 @@ def _temporal_scattered_matrix(H, psi0, n_emissions, c_ops, tlist,
         partition = tuple(set(set_partition(emission_indices, W)))
         # Consider all possible partitionings of time bins by waveguide
         for indices in partition:
+            taus = [[tlist[i] for i in wg_indices] for wg_indices in indices]
             phi_n_amp = photon_scattering_amplitude(
                 evolver, c_ops, tlist,
-                indices, psi0, system_zero_state
+                taus, psi0, system_zero_state
             )
             # Add scatter amplitude times temporal basis to overall state
             idx = _temporal_basis_idx(indices, T)
