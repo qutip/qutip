@@ -101,11 +101,11 @@ def _eigs_csr(data, isherm, vecs, eigvals, num_large, num_small, tol, maxiter):
     small_vals = np.array([])
     evecs = None
 
-    remove_one = False
+    remove_one = 0  # 0: remove none, 1: remove smallest, -1: remove largest
     if eigvals == (N - 1):
         # calculate all eigenvalues and remove one at output if using sparse
         # 1: remove the smallest, -1, remove the largest
-        remove_one = bool(num_small) or -1
+        remove_one = 1 if (num_small > 0) else -1
         eigvals = 0
         num_small = num_large = N // 2
         num_small += N % 2
