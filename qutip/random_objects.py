@@ -629,7 +629,7 @@ def rand_super(N, dims=None, *, seed=None, dtype=_data.Dense):
         Storage representation. Any data-layer known to `qutip.data.to` is
         accepted.
     """
-    from .solve.propagator import propagator
+    from .solver.propagator import propagator
     if dims is not None:
         # TODO: check!
         _check_dims(dims, N**2, N**2)
