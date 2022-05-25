@@ -158,15 +158,6 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
     'wlist' is an optional list of frequencies at which to evaluate the noise
     spectrum.
 
-    Note:
-    The default method is a direct solution using dense matrices, as sparse
-    matrix methods fail for some examples of small systems.
-    For larger systems it is reccomended to use the sparse solver
-    with the direct method, as it avoids explicit calculation of the
-    pseudo-inverse, as described in page 67 of "Electrons in nanostructures"
-    C. Flindt, PhD Thesis, available online:
-    https://orbit.dtu.dk/fedora/objects/orbit:82314/datastreams/file_4732600/content
-
     Parameters
     ----------
 
@@ -187,11 +178,24 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
     J_ops : array / list (optional)
         List of current superoperators.
 
-    sparse : bool
+    sparse : bool [True]
         Flag that indicates whether to use sparse or dense matrix methods when
         computing the pseudo inverse. Default is false, as sparse solvers
         can fail for small systems. For larger systems the sparse solvers
-        are reccomended.
+        are recommended.
+
+    method : str, ['direct']
+        Method used to compute the noise. The default, 'direct' with
+        ``sparse=True``, compute the noise directly. It is the recommended
+        method for larger systems. Otherwise, the pseudo inverse is computed
+        using the given method. Pseudo inverse supports 'splu' and 'spilu' for
+        sparse matrices and 'direct', 'scipy' and 'numpy' methods for
+        ``sparse=False``.
+
+    .. note::
+        The algoryth is described in page 67 of "Electrons in nanostructures"
+        C. Flindt, PhD Thesis, available online:
+        https://orbit.dtu.dk/fedora/objects/orbit:82314/datastreams/file_4732600/content
 
     Returns
     --------
@@ -211,7 +215,7 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
 
     J_ops = [op.data for op in J_ops]
 
-    if not sparse or method != "direct":
+    if not sparse or method != 'direct':
         current, noise = _noise_pseudoinv(L, wlist, rhoss, J_ops,
                                           sparse, method)
     else:
