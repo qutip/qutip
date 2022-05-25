@@ -3,7 +3,11 @@ import sys
 import os
 import logging
 import platform
+import scipy
 from .utilities import _blas_info
+from packaging import version as pac_version
+
+__all__ = ['InstallSettings']
 
 @optionsclass("install")
 class InstallSettings:
@@ -73,8 +77,16 @@ class InstallSettings:
     except NameError:
         _ipython = False
 
-    _eigh_unsafe = (_blas_info() == "OPENBLAS"
-                    and platform.system() == 'Darwin')
+    is_old_scipy = (
+        pac_version.parse(scipy.__version__) < pac_version.parse("1.5")
+    )
+    _eigh_unsafe = (
+        # macOS OpenBLAS eigh is unstable, see #1288
+        (_blas_info() == "OPENBLAS" and platform.system() == 'Darwin')
+        # The combination of scipy<1.5 and MKL causes wrong results when
+        # calling eigh for big matrices.  See #1495, #1491 and #1498.
+        or (is_old_scipy and (_blas_info() == 'INTEL MKL'))
+    )
 
     options = {
         # debug mode for development
@@ -105,5 +117,7 @@ class InstallSettings:
         # configured, rather than through _logging.get_logger().
         "_logger": _logger,
         # Running on mac with openblas make eigh unsafe
-        "eigh_unsafe": _eigh_unsafe
+        "eigh_unsafe": _eigh_unsafe,
+        # int size for the shape of data layer object
+        "idxint_size": None
     }

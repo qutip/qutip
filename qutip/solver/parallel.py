@@ -1,35 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
 """
 This module provides functions for parallel execution of loops and function
 mappings, using the builtin Python module multiprocessing or the loky parallel execution library.
@@ -40,22 +8,32 @@ import multiprocessing
 import os
 import sys
 import time
+import threading
 from qutip.ui.progressbar import progess_bars
+from qutip.utilities import available_cpu_count
 
 if sys.platform == 'darwin':
     Pool = multiprocessing.get_context('fork').Pool
 else:
     Pool = multiprocessing.Pool
 
-map_kw = {
-    'job_timeout': 1e8,
-    'timeout': 1e8,
-    'num_cpus': multiprocessing.cpu_count(),
+
+default_map_kw = {
+    'job_timeout': threading.TIMEOUT_MAX,
+    'timeout': threading.TIMEOUT_MAX,
+    'num_cpus': available_cpu_count(),
 }
 
 
+def _read_map_kw(options):
+    options = options or {}
+    map_kw = default_map_kw.copy()
+    map_kw.update({k: v for k, v in options.items() if v is not None})
+    return map_kw
+
+
 def serial_map(task, values, task_args=None, task_kwargs=None,
-               reduce_func=None, map_kw=map_kw,
+               reduce_func=None, map_kw=None,
                progress_bar=None, progress_bar_kwargs={}):
     """
     Serial mapping function with the same call signature as parallel_map, for
@@ -77,25 +55,31 @@ def serial_map(task, values, task_args=None, task_kwargs=None,
         The optional additional argument to the ``task`` function.
     task_kwargs : list / dictionary
         The optional additional keyword argument to the ``task`` function.
+    reduce_func : func (optional)
+        If provided, it will be called with the output of each tasks instead of
+        storing a them in a list.
     progress_bar : string
         Progress bar options's string for showing progress.
     progress_bar_kwargs : dict
-        Options for the progress bar
-    map_kw:
-        Other options
+        Options for the progress bar.
+    map_kw: dict (optional)
+        Dictionary containing entry for 'timeout' the maximum time for the
+        whole map.
 
     Returns
     --------
     result : list
         The result list contains the value of
         ``task(value, *task_args, **task_kwargs)`` for each
-        value in ``values``.
+        value in ``values``. If a ``reduce_func`` is provided, and empty list
+        will be returned.
 
     """
     if task_args is None:
         task_args = ()
     if task_kwargs is None:
         task_kwargs = {}
+    map_kw = _read_map_kw(map_kw)
     progress_bar = progess_bars[progress_bar]()
     progress_bar.start(len(values), **progress_bar_kwargs)
     end_time = map_kw['timeout'] + time.time()
@@ -115,7 +99,7 @@ def serial_map(task, values, task_args=None, task_kwargs=None,
 
 
 def parallel_map(task, values, task_args=None, task_kwargs=None,
-                 reduce_func=None, map_kw=map_kw,
+                 reduce_func=None, map_kw=None,
                  progress_bar=None, progress_bar_kwargs={}):
     """
     Parallel execution of a mapping of `values` to the function `task`. This
@@ -134,25 +118,33 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
         The optional additional argument to the ``task`` function.
     task_kwargs : list / dictionary
         The optional additional keyword argument to the ``task`` function.
+    reduce_func : func (optional)
+        If provided, it will be called with the output of each tasks instead of
+        storing a them in a list.
     progress_bar : string
         Progress bar options's string for showing progress.
     progress_bar_kwargs : dict
-        Options for the progress bar
-    map_kw:
-        Other options
+        Options for the progress bar.
+    map_kw: dict (optional)
+        Dictionary containing entry for:
+        'timeout': Maximum time for the whole map.
+        'job_timeout': Maximum time for each job in the map.
+        'num_cpus': Number of job to run at once.
 
     Returns
     --------
     result : list
         The result list contains the value of
         ``task(value, *task_args, **task_kwargs)`` for
-        each value in ``values``.
+        each value in ``values``. If a ``reduce_func`` is provided, and empty
+        list will be returned.
 
     """
     if task_args is None:
         task_args = ()
     if task_kwargs is None:
         task_kwargs = {}
+    map_kw = _read_map_kw(map_kw)
     os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
     end_time = map_kw['timeout'] + time.time()
     job_time = map_kw['job_timeout']
@@ -192,7 +184,7 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
 
 
 def loky_pmap(task, values, task_args=None, task_kwargs=None,
-              reduce_func=None, map_kw=map_kw,
+              reduce_func=None, map_kw=None,
               progress_bar=None, progress_bar_kwargs={}):
     """
     Parallel execution of a mapping of `values` to the function `task`. This
@@ -213,36 +205,42 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
         The optional additional argument to the ``task`` function.
     task_kwargs : list / dictionary
         The optional additional keyword argument to the ``task`` function.
+    reduce_func : func (optional)
+        If provided, it will be called with the output of each tasks instead of
+        storing a them in a list.
     progress_bar : string
         Progress bar options's string for showing progress.
     progress_bar_kwargs : dict
-        Options for the progress bar
-    **kwargs:
-        Other options to pass to loky
+        Options for the progress bar.
+    map_kw: dict (optional)
+        Dictionary containing entry for:
+        'timeout': Maximum time for the whole map.
+        'job_timeout': Maximum time for each job in the map.
+        'num_cpus': Number of job to run at once.
 
     Returns
     --------
     result : list
         The result list contains the value of
         ``task(value, *task_args, **task_kwargs)`` for
-        each value in ``values``.
+        each value in ``values``. If a ``reduce_func`` is provided, and empty
+        list will be returned.
 
     """
     if task_args is None:
         task_args = ()
     if task_kwargs is None:
         task_kwargs = {}
+    map_kw = _read_map_kw(map_kw)
     os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
     from loky import get_reusable_executor, TimeoutError
-
-    kw = map_kw
 
     progress_bar = progess_bars[progress_bar]()
     progress_bar.start(len(values), **progress_bar_kwargs)
 
-    executor = get_reusable_executor(max_workers=kw['num_cpus'])
-    end_time = kw['timeout'] + time.time()
-    job_time = kw['job_timeout']
+    executor = get_reusable_executor(max_workers=map_kw['num_cpus'])
+    end_time = map_kw['timeout'] + time.time()
+    job_time = map_kw['job_timeout']
     results = []
 
     try:

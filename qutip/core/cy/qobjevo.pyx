@@ -292,9 +292,31 @@ cdef class QobjEvo:
 
         return out
 
-    def __call__(self, double t, dict args=None):
-        if args:
-            return QobjEvo(self, args=args)(t)
+    def __call__(self, double t, dict _args=None, **kwargs):
+        """
+        Get the :cls:`Qobj` at ``t``.
+
+        parameter
+        ---------
+        t : float
+            Time at which the ``QobjEvo`` is to be evalued.
+
+        _args : dict [optional]
+            New arguments as a dict. Update args with ``arguments(new_args)``.
+
+        **kwargs :
+            New arguments as a keywors. Update args with
+            ``arguments(**new_args)``.
+
+        .. note:
+            If both the positional ``_args`` and keywords are passed new values
+            from both will be used. If a key is present with both, the ``_args``
+            dict value will take priority.
+        """
+        if _args is not None or kwargs:
+            if _args is not None:
+                kwargs.update(_args)
+            return QobjEvo(self, args=kwargs)(t)
         return Qobj(
             self._call(t), dims=self.dims, copy=False,
             type=self.type, superrep=self.superrep
@@ -323,11 +345,29 @@ cdef class QobjEvo:
         """Return a copy of this `QobjEvo`"""
         return QobjEvo(self, compress=False)
 
-    def arguments(QobjEvo self, dict new_args):
-        """Update the arguments"""
+    def arguments(QobjEvo self, dict _args=None, **kwargs):
+        """
+        Update the arguments.
+
+        parameter
+        ---------
+        _args : dict [optional]
+            New arguments as a dict. Update args with ``arguments(new_args)``.
+
+        **kwargs :
+            New arguments as a keywors. Update args with
+            ``arguments(**new_args)``.
+
+        .. note:
+            If both the positional ``_args`` and keywords are passed new values
+            from both will be used. If a key is present with both, the ``_args``
+            dict value will take priority.
+        """
+        if _args is not None:
+            kwargs.update(_args)
         cache = []
         self.elements = [
-            element.replace_arguments(new_args, cache=cache)
+            element.replace_arguments(kwargs, cache=cache)
             for element in self.elements
         ]
 
@@ -421,6 +461,7 @@ cdef class QobjEvo:
             return NotImplemented
 
     def __rmatmul__(QobjEvo self, other):
+        cdef QobjEvo res
         if isinstance(other, Qobj):
             if other.dims[1] != self.dims[0]:
                 raise TypeError("incompatible dimensions" +

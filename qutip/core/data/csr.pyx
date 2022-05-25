@@ -17,7 +17,11 @@ import numpy as np
 cimport numpy as cnp
 import scipy.sparse
 from scipy.sparse import csr_matrix as scipy_csr_matrix
-from scipy.sparse.data import _data_matrix as scipy_data_matrix
+try:
+    from scipy.sparse.data import _data_matrix as scipy_data_matrix
+except ImportError:
+    # The file data was renamed to _data from scipy 1.8.0
+    from scipy.sparse._data import _data_matrix as scipy_data_matrix
 from scipy.linalg cimport cython_blas as blas
 
 from qutip.core.data cimport base, Dense

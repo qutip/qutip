@@ -3,7 +3,6 @@ __all__ = ['SolverOptions',
            'McOptions']
 
 from ..optionsclass import optionsclass
-import multiprocessing
 
 @optionsclass("solver")
 class SolverOptions:
@@ -232,8 +231,10 @@ class McOptions:
     map_options: dict
         keys:
             'num_cpus': number of cpus to use.
-            'timeout': maximum time for all trajectories. (sec)
-            'job_timeout': maximum time per trajectory. (sec)
+            'timeout': maximum time (sec) for all trajectories. ``None`` will
+                use the maximum timeout value.
+            'job_timeout': maximum time (sec) per trajectory. ``None`` will
+                use the maximum timeout value.
         Only finished trajectories will be returned when timeout is reached.
 
     mc_corr_eps : float {1e-10}
@@ -256,8 +257,8 @@ class McOptions:
         "mc_corr_eps": 1e-10,
 
         "map_options": {
-            'num_cpus': multiprocessing.cpu_count(),
-            'timeout':1e8,
-            'job_timeout':1e8
+            'num_cpus': None,
+            'timeout': None,
+            'job_timeout': None,
         },
     }
