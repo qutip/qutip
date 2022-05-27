@@ -6,9 +6,7 @@ from .mesolve import *
 from . import nonmarkov
 from .pdpsolve import *
 from .piqs import *
-from .propagator import *
 from .rcsolve import *
-from .scattering import *
 from .sesolve import *
 from .solver import *
 from .steadystate import *
@@ -19,3 +17,9 @@ from .krylovsolve import *
 del np
 del Qobj
 del debug
+
+# Temporary patch
+# There is a collision between the file and the folder solver.
+# We remove the file import here to allow qutip.solver to be the folder.
+# The names from file are still available in qutip namespace.
+del solver

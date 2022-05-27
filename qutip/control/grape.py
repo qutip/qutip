@@ -15,7 +15,6 @@ import scipy.sparse as sp
 from qutip import Qobj
 from qutip.ui.progressbar import BaseProgressBar
 from qutip.control.cy_grape import cy_overlap, cy_grape_inner
-from qutip.qip.operations.gates import gate_sequence_product
 
 import qutip.logging_utils
 logger = qutip.logging_utils.get_logger()
@@ -548,7 +547,10 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
 
             U_list = [(-1j * _H_idx(idx) * dt).expm() for idx in range(M-1)]
 
-            Uf[k] = gate_sequence_product(U_list)
+            Uf[k] = 1
+            for U in U_list:
+                Uf[k] = U * Uf[k]
+
             _k_overlap[k] = _fidelity_function(cy_overlap(Uf[k].data,
                                                           U.data)).real
 

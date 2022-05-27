@@ -3,7 +3,6 @@ from qutip import krylovsolve, sesolve
 from qutip.solve.solver import SolverOptions, Result
 from qutip import tensor, Qobj, basis, expect, ket
 from qutip import sigmax, sigmay, sigmaz, qeye, jmat
-from qutip.qip.operations import x_gate, y_gate, z_gate
 from qutip import rand_herm, rand_ket, rand_unitary_haar, num, destroy, create
 import os
 import math
@@ -52,28 +51,25 @@ def h_sho(dim):
 def h_ising_transverse(
     N: int, hx: float, hz: float, Jx: float, Jy: float, Jz: float
 ):
-
-    hx = hx * np.ones(N)
-    hz = hz * np.ones(N)
-    Jx, Jy, Jz = Jx * np.ones(N), Jy * np.ones(N), Jz * np.ones(N)
-
-    sx_list = [x_gate(N, i) for i in range(N)]
-    sy_list = [y_gate(N, i) for i in range(N)]
-    sz_list = [z_gate(N, i) for i in range(N)]
+    id = qeye(2)
+    sx, sy, sz = sigmax(), sigmay(), sigmaz()
+    sx_list = [tensor([id] * n + [sx] + [id] * (N-n-1)) for n in range(N)]
+    sy_list = [tensor([id] * n + [sy] + [id] * (N-n-1)) for n in range(N)]
+    sz_list = [tensor([id] * n + [sz] + [id] * (N-n-1)) for n in range(N)]
 
     # construct the hamiltonian
     H = 0
 
     # energy splitting terms
     for n in range(N):
-        H += hz[n] * sz_list[n]
-        H += hx[n] * sx_list[n]
+        H += hz * sz_list[n]
+        H += hx * sx_list[n]
 
         if n < N-1:
             # interaction terms
-            H += -Jx[n] * sx_list[n] * sx_list[n + 1]
-            H += -Jy[n] * sy_list[n] * sy_list[n + 1]
-            H += -Jz[n] * sz_list[n] * sz_list[n + 1]
+            H += -Jx * sx_list[n] * sx_list[n + 1]
+            H += -Jy * sy_list[n] * sy_list[n + 1]
+            H += -Jz * sz_list[n] * sz_list[n + 1]
 
     return H
 

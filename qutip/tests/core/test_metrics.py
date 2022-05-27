@@ -9,11 +9,9 @@ from qutip import (
     Qobj, tensor, fock_dm, basis, destroy, qdiags, sigmax, sigmay, sigmaz,
     qeye, rand_ket, rand_super_bcsz, rand_ket_haar, rand_dm_ginibre, rand_dm,
     rand_unitary, rand_unitary_haar, to_super, to_choi, kraus_to_choi,
-    to_chi, to_kraus
+    to_chi, to_kraus,
 )
-from qutip.qip.operations import (
-    hadamard_transform, swap,
-)
+from qutip.core.gates import snot, swap
 
 try:
     import cvxpy
@@ -255,7 +253,7 @@ def overrotation(x):
 def had_mixture(x):
     id_chan = to_choi(qeye(2))
     S_eye = to_super(id_chan)
-    S_H = to_super(hadamard_transform())
+    S_H = to_super(snot())
     return (1 - x) * S_eye + x * S_H
 
 

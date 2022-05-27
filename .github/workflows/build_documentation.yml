@@ -18,6 +18,7 @@ jobs:
 
       - name: Install documentation dependencies
         run: |
+          pip install pip --upgrade
           python -mpip install -r doc/requirements.txt
 
       - name: Install QuTiP from GitHub

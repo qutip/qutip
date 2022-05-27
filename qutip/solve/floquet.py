@@ -21,7 +21,7 @@ from ..core import data as _data
 from .sesolve import sesolve
 from .steadystate import steadystate
 from .solver import SolverOptions
-from .propagator import propagator
+from ..solver.propagator import propagator
 from .solver import Result, _solver_safety_check
 from ..utilities import n_thermal
 
