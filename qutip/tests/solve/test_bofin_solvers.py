@@ -874,7 +874,7 @@ class TestHSolverDL:
         test = expect(hsolver.run(initial_state, times).states, projector)
         np.testing.assert_allclose(test, expected, atol=tol)
 
-    @pytest.mark.filterwarnings("ignore:zvode.*Excess work done:UserWarning")
+    @pytest.mark.filterwarnings("ignore:_zvode.*Excess work done:UserWarning")
     def test_integration_error(self):
         dlm = DrudeLorentzPureDephasingModel(
             lam=0.025, gamma=0.05, T=1/0.95, Nk=2,
