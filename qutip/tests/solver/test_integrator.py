@@ -72,6 +72,26 @@ class TestIntegratorCte():
                 t, state = evol.mcstep(t)
 
 
+    @pytest.mark.parametrize('start', [1, -1])
+    def test_mc_integration_mixed(self, start, mc_method):
+        system = qutip.QobjEvo(qutip.qeye(1))
+        evol = Solver.avail_integrators()[mc_method](system, {})
+
+        state = qutip.basis(1,0).data
+        evol.set_state(start, state)
+        t = start
+        t_target = start + .1
+        while t < t_target:
+            t, _ = evol.mcstep(start + .1)
+        _ = evol.mcstep(start + .2)
+        t_target = (start + .1 + t) / 2
+        t, state = evol.mcstep(t_target)
+        assert (
+            state.to_array()[0, 0]
+            == pytest.approx(np.exp(t - start), abs=1e-5)
+        )
+
+
 class TestIntegrator(TestIntegratorCte):
     _analytical_se = lambda _, t: np.cos(t**2/2 * np.pi)
     se_system = qutip.QobjEvo([-1j * qutip.sigmax() * np.pi, "t"])

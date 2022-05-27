@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.linalg
 import scipy.sparse as sp
+from itertools import combinations
 
 from .dense import Dense, from_csr
 from .csr import CSR
@@ -12,13 +13,14 @@ __all__ = [
 ]
 
 
-if settings.eigh_unsafe:
-    def _orthogonalize(vec, other):
-        cross = np.sum(np.conj(other) * vec)
-        vec -= cross * other
-        norm = np.sum(np.conj(vec) * vec)**0.5
-        vec /= norm
+def _orthogonalize(vec, other):
+    cross = np.sum(np.conj(other) * vec)
+    vec -= cross * other
+    norm = np.sum(np.conj(vec) * vec)**0.5
+    vec /= norm
 
+
+if settings.eigh_unsafe:
     def eigh(mat, eigvals=None):
         val, vec = scipy.linalg.eig(mat)
         val = np.real(val)
@@ -77,9 +79,10 @@ def _eigs_dense(data, isherm, vecs, eigvals, num_large, num_small):
     if not isherm and eigvals > 0:
         if vecs:
             if num_small > 0:
-                evals, evecs = evals[:num_small], evecs[:num_small]
+                evals, evecs = evals[:num_small], evecs[:, :num_small]
             elif num_large > 0:
-                evals, evecs = evals[(N - num_large):], evecs[(N - num_large):]
+                evals = evals[(N - num_large):]
+                evecs = evecs[:, (N - num_large):]
         else:
             if num_small > 0:
                 evals = evals[:num_small]
@@ -98,13 +101,14 @@ def _eigs_csr(data, isherm, vecs, eigvals, num_large, num_small, tol, maxiter):
     small_vals = np.array([])
     evecs = None
 
-    remove_one = False
+    remove_one = 0  # 0: remove none, 1: remove smallest, -1: remove largest
     if eigvals == (N - 1):
         # calculate all eigenvalues and remove one at output if using sparse
+        # 1: remove the smallest, -1, remove the largest
+        remove_one = 1 if (num_small > 0) else -1
         eigvals = 0
         num_small = num_large = N // 2
         num_small += N % 2
-        remove_one = True
 
     if vecs:
         if isherm:
@@ -165,10 +169,14 @@ def _eigs_csr(data, isherm, vecs, eigvals, num_large, num_small, tol, maxiter):
         evecs = np.array([evecs[:, k] for k in perm]).T
 
     # remove last element if requesting N-1 eigs and using sparse
-    if remove_one:
-        evals = np.delete(evals, -1)
+    if remove_one == 1:
+        evals = evals[:-1]
         if vecs:
-            evecs = np.delete(evecs, -1)
+            evecs = evecs[:, :-1]
+    elif remove_one == -1:
+        evals = evals[1:]
+        if vecs:
+            evecs = evecs[:, 1:]
 
     return np.array(evals), evecs
 
@@ -225,6 +233,19 @@ def eigs_csr(data, isherm=None, vecs=True, sort='low', eigvals=0,
     isherm = isherm if isherm is not None else _isherm(data)
     evals, evecs = _eigs_csr(data.as_scipy(), isherm, vecs, eigvals,
                              num_large, num_small, tol, maxiter)
+
+    if vecs and isherm:
+        i = 0
+        while i < len(evals):
+            num_degen = np.sum(np.abs(evals - evals[i]) < (2 * tol or 1e-14))
+            # orthogonalize vectors 1 .. k with respect to the first, then
+            # 2 .. k with respect to the second, and so on. Relies on both the
+            # order of each pair and the ordering of pairs returned by
+            # combinations.
+            for k, l in combinations(range(num_degen), 2):
+                _orthogonalize(evecs[:, i+l], evecs[:, i+k])
+            i += num_degen
+
     if sort == 'high':
         # Flip arrays around.
         if vecs:

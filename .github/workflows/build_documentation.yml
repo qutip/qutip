@@ -1,0 +1,48 @@
+name: Build HTML documentation
+
+on:
+  [push, pull_request]
+
+jobs:
+  build:
+    name: Build documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-python@v2
+        name: Install Python
+        with:
+          python-version: '3.8'
+
+      - name: Install documentation dependencies
+        run: |
+          pip install pip --upgrade
+          python -mpip install -r doc/requirements.txt
+
+      - name: Install QuTiP from GitHub
+        run: |
+          # Build without build isolation so that we use the build
+          # dependencies already installed from doc/requirements.txt.
+          python -m pip install -e .[full] --no-build-isolation
+          # Install in editable mode so it doesn't matter if we import from
+          # inside the installation directory, otherwise we can get some errors
+          # because we're importing from the wrong location.
+          python -c 'import qutip; qutip.about()'
+
+      - name: Build documentation
+        working-directory: doc
+        run: |
+          make html SPHINXOPTS="--keep-going -T"
+          # Above flags are:
+          #   -W : turn warnings into errors
+          #   --keep-going : do not stop after the first error
+          #   -T : display a full traceback if a Python exception occurs
+
+      - name: Upload built files
+        uses: actions/upload-artifact@v2
+        with:
+          name: qutip_html_docs
+          path: doc/_build/html/*
+          if-no-files-found: error

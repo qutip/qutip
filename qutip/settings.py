@@ -1,35 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
 """
 This module contains settings for the QuTiP graphics, multiprocessing, and
 tidyup functionality, etc.
@@ -94,6 +62,12 @@ class Settings:
     Qutip default settings and options.
     `print(qutip.settings)` to list all available options.
     """
+    def __new__(cls):
+        """Set Settings as a singleton."""
+        if not hasattr(cls, 'instance'):
+            cls.instance = super(Settings, cls).__new__(cls)
+        return cls.instance
+
     def __init__(self):
         self._has_mkl, self._mkl_lib = _find_mkl()
         try:
@@ -156,6 +130,22 @@ class Settings:
         return False
         # We keep this as a reminder for when openmp is restored: see Pull #652
         # os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+
+    @property
+    def idxint_size(self):
+        from .core import data
+        return data.base.idxint_size
+
+    @property
+    def num_cpus(self):
+        from qutip.utilities import available_cpu_count
+        if 'QUTIP_NUM_PROCESSES' in os.environ:
+            num_cpus = int(os.environ['QUTIP_NUM_PROCESSES'])
+        else:
+            num_cpus = available_cpu_count()
+            os.environ['QUTIP_NUM_PROCESSES'] = str(num_cpus)
+        return num_cpus
+
 
 
 settings = Settings()

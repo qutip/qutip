@@ -1,6 +1,5 @@
 from .options import *
 from .coefficient import *
-from .interpolate import *
 from .qobj import *
 from .cy.qobjevo import *
 from .expect import *
@@ -12,3 +11,4 @@ from .superoperator import *
 from .superop_reps import *
 from .subsystem_apply import *
 from .blochredfield import *
+from . import gates

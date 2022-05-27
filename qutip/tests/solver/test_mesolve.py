@@ -9,8 +9,10 @@ from qutip.solver.options import Options
 import pickle
 import pytest
 
-all_ode_method = MeSolver.avail_integrators().keys()
-
+all_ode_method = [
+    method for method, integrator in MeSolver.avail_integrators().items()
+    if integrator.support_time_dependant
+]
 
 def fidelitycheck(out1, out2, rho0vec):
     fid = np.zeros(len(out1.states))
@@ -550,7 +552,7 @@ class TestMESolveStepFuncCoeff:
         tlist = np.array([0, np.pi/2])
         options = Options(method=method, nsteps=1e5, rtol=1e-7)
         qu = qutip.QobjEvo([[qutip.sigmax(), self.python_coeff]],
-                     tlist=tlist, args={"_step_func_coeff": 1})
+                     tlist=tlist, order=0)
         result = mesolve(qu, rho0=rho0, tlist=tlist, options=options)
         fid = qutip.fidelity(result.states[-1], qutip.sigmax()*rho0)
         assert fid == pytest.approx(1)
@@ -643,8 +645,3 @@ def test_mesolve_bad_state():
     solver = MeSolver(qutip.qeye(4), [])
     with pytest.raises(TypeError):
         solver.start(qutip.basis(2,1) & qutip.basis(2,0), 0)
-
-
-def test_mesolve_bad_options():
-    with pytest.raises(TypeError):
-        MeSolver(qutip.qeye(4), [], options=SeOptions())

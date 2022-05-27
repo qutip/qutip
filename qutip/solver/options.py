@@ -140,7 +140,8 @@ class SolverOptions(QutipOptions):
         elif isinstance(base, SolverOptions) and _strict:
             # TODO: SeOptions, MeOptions contain the same info, should we be
             # lenient? Or rename `_strict` to `force` and ask to use the flag?
-            raise TypeError("Cannot convert between different options types")
+            pass
+            # raise TypeError("Cannot convert between different options types")
 
         self.options = self.default.copy()
         self._from_dict(options)
@@ -150,8 +151,9 @@ class SolverOptions(QutipOptions):
         self.ode.frozen = _frozen
 
         if _strict and options:
-            raise KeyError("Unknown option(s): " +
-                           f"{set(options) - set(self.default)}")
+            pass
+            # raise KeyError("Unknown option(s): " +
+            #                f"{set(options) - set(self.default)}")
 
     def __setitem__(self, key, value):
         # TODO: Do we support keys from the integrator options?

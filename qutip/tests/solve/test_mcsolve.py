@@ -1,36 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
 import pytest
 import numpy as np
 import qutip
@@ -106,23 +73,9 @@ class TestNoCollapse(StatesAndExpectOutputCase):
                               'tol'],
                              cases)
 
-    # Previously the "states_only" and "expect_only" tests were mixed in to
-    # every other test case.  We move them out into the simplest set so that
-    # their behaviour remains tested, but isn't repeated as often to keep test
-    # runtimes shorter.  The known-good cases are still tested in the other
-    # test cases, this is just testing the single-output behaviour.
-
-    def test_states_only(self, hamiltonian, args, c_ops, expected, tol):
-        options = qutip.SolverOptions(average_states=True, store_states=True)
-        result = qutip.mcsolve(hamiltonian, self.state, self.times, args=args,
-                               c_ops=c_ops, e_ops=[], ntraj=self.ntraj,
-                               options=options)
-        self._assert_states(result, expected, tol)
-
-    def test_expect_only(self, hamiltonian, args, c_ops, expected, tol):
-        result = qutip.mcsolve(hamiltonian, self.state, self.times, args=args,
-                               c_ops=c_ops, e_ops=self.e_ops, ntraj=self.ntraj)
-        self._assert_expect(result, expected, tol)
+    @pytest.mark.filterwarnings("ignore::UserWarning")
+    def test_states_and_expect(self, hamiltonian, args, c_ops, expected, tol):
+        super().test_states_and_expect(hamiltonian, args, c_ops, expected, tol)
 
 
 class TestConstantCollapse(StatesAndExpectOutputCase):
@@ -149,6 +102,24 @@ class TestConstantCollapse(StatesAndExpectOutputCase):
         metafunc.parametrize(['hamiltonian', 'args', 'c_ops', 'expected',
                               'tol'],
                              cases)
+
+    # Previously the "states_only" and "expect_only" tests were mixed in to
+    # every other test case.  We move them out into the simplest set so that
+    # their behaviour remains tested, but isn't repeated as often to keep test
+    # runtimes shorter.  The known-good cases are still tested in the other
+    # test cases, this is just testing the single-output behaviour.
+
+    def test_states_only(self, hamiltonian, args, c_ops, expected, tol):
+        options = qutip.SolverOptions(average_states=True, store_states=True)
+        result = qutip.mcsolve(hamiltonian, self.state, self.times, args=args,
+                               c_ops=c_ops, e_ops=[], ntraj=self.ntraj,
+                               options=options)
+        self._assert_states(result, expected, tol)
+
+    def test_expect_only(self, hamiltonian, args, c_ops, expected, tol):
+        result = qutip.mcsolve(hamiltonian, self.state, self.times, args=args,
+                               c_ops=c_ops, e_ops=self.e_ops, ntraj=self.ntraj)
+        self._assert_expect(result, expected, tol)
 
 
 class TestTimeDependentCollapse(StatesAndExpectOutputCase):
@@ -305,6 +276,7 @@ def _regression_490_f2(t, args):
     return -t
 
 
+@pytest.mark.filterwarnings("ignore:No c_ops, using sesolve:UserWarning")
 def test_regression_490():
     """Test for regression of gh-490."""
     h = [qutip.sigmax(),
@@ -316,3 +288,12 @@ def test_regression_490():
     result_mc = qutip.mcsolve(h, state, times, ntraj=1)
     for state_me, state_mc in zip(result_me.states, result_mc.states):
         np.testing.assert_allclose(state_me.full(), state_mc.full(), atol=1e-8)
+
+
+def test_mcsolve_bad_e_ops():
+    H = qutip.sigmaz()
+    c_ops = [qutip.sigmax()]
+    psi0 = qutip.basis(2, 0)
+    tlist = np.linspace(0, 20, 200)
+    with pytest.raises(TypeError) as exc:
+        qutip.mcsolve(H, psi0, tlist=tlist, c_ops=c_ops, e_ops=[qutip.qeye(3)])

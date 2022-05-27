@@ -87,12 +87,12 @@ class IntegratorScipyAdams(Integrator):
     def set_state(self, t, state0):
         self._is_set = True
         self._back = t
+        self._front = t
         self._mat_state = state0.shape[1] > 1
         self._size = state0.shape[0]
-        self._ode_solver.set_initial_value(
-            _data.column_stack(state0).to_array().ravel(),
-            t
-        )
+        if self._mat_state:
+            state0 = _data.column_stack(state0)
+        self._ode_solver.set_initial_value(state0.to_array().ravel(), t)
 
     def get_state(self, copy=True):
         if not self._is_set:
@@ -125,19 +125,33 @@ class IntegratorScipyAdams(Integrator):
         return self.get_state(copy)
 
     def mcstep(self, t, copy=True):
+        # When working with mcstep, we use the dense output feature:
+        # a range in which the state at any time can be computed with
+        # minimal work. We keep track of the range with _back and _front.
         self._check_handle()
         if self._ode_solver.t == t:
+            # Exact same `t` as the last call, nothing to do.
             pass
-        elif self._ode_solver.t < t:
-            self._back = self._ode_solver.t
-            self._ode_solver.integrate(t, step=True)
-        elif self._back <= t:
-            self._ode_solver.integrate(t)
-        else:
+        elif self._back > t:
+            # `t` before the range: not supported.
             raise IntegratorException(
-                f"`t`={t} is outside the integration range: "
-                f"{self._back[0]}..{self._ode_solver.t}."
+                f"`t`={t} is behind the integration limit: "
+                f"{t} < {self._back}."
             )
+        elif t <= self._front:
+            # In the range, ask for the new state.
+            self._ode_solver.integrate(t)
+        elif self._ode_solver.t < self._front:
+            # `t` after the range but last call (`t_prev`) not at the front.
+            # Advancing the range would make the interval `t_prev`..`_front`
+            # unreachable. Thus advance to _front.
+            self._ode_solver.integrate(self._front)
+        else:
+            # Advance the range.
+            self._back = self._front
+            self._ode_solver.integrate(t, step=True)
+            self._front = self._ode_solver._integrator.rwork[12]
+
         return self.get_state(copy)
 
     def _check_failed_integration(self):
@@ -279,8 +293,10 @@ class IntegratorScipyDop853(Integrator):
         self._is_set = True
         self._mat_state = state0.shape[1] > 1
         self._size = state0.shape[0]
+        if self._mat_state:
+            state0 = _data.column_stack(state0)
         self._ode_solver.set_initial_value(
-            _data.column_stack(state0).to_array().ravel().view(np.float64),
+            state0.to_array().ravel().view(np.float64),
             t
         )
 
@@ -353,19 +369,29 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         self._check_handle()
         return super().integrate(t, copy)
 
+    def set_state(self, t, state0):
+        self._front = t
+        super().set_state(t, state0)
+        self._back = self.get_state()
+
     def mcstep(self, t, copy=True):
+        # This solver support dense output:
+        # a range in which the state at any time can be computed with
+        # minimal work. We keep track of the range with _back[0] and _front.
         self._check_handle()
         if self._ode_solver.t == t:
+            # Exact same `t` as the last call, nothing to do.
             pass
-        elif self._ode_solver.t < t:
-            self._back = self.get_state(copy=False)
-            self._one_step(t)
-        elif self._back[0] <= t:
+        elif self._back[0] <= t <= self._front:
+            # In the range, ask for the new state.
             self._backstep(t)
+        elif self._front < t:
+            # Advance the range.
+            self._one_step(t)
         else:
             raise IntegratorException(
-                f"`t`={t} is outside the integration range: "
-                f"{self._back[0]}..{self._ode_solver.t}."
+                f"`t`={t} is behind the integration limit: "
+                f"{t} < {self._back[0]}."
             )
         return self.get_state(copy)
 
@@ -376,8 +402,6 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         time and the resulting time using `backstep`.
         """
         # Here we want to advance up to t doing maximum one step.
-        # We check if a new step is needed.
-        t_front = self._ode_solver._integrator.rwork[12]
         # lsoda officially support step, but sometime it does more work than
         # needed, so we ask it to advance a fraction of the last step, where it
         # will advance one internal step of length allowed by the tolerance and
@@ -386,18 +410,17 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         # `rhs` can cause exceptions to this, but _backstep catch those cases.
         safe_delta = self._ode_solver._integrator.rwork[11]/100 + 1e-15
         t_ode = self._ode_solver.t
-        if t > t_front and t_ode >= t_front:
-            # The state is at t_front, do a step
-            self._ode_solver.integrate(min(t_front + safe_delta, t))
-            new_t_front = self._ode_solver._integrator.rwork[12]
+
+        if t > self._front and t_ode >= self._front:
+            # The state is at self._front, do a step
+            self._back = self.get_state()
+            self._ode_solver.integrate(min(self._front + safe_delta, t))
+            self._front = self._ode_solver._integrator.rwork[12]
             # We asked for a fraction of a step, now complete it.
-            self._ode_solver.integrate(min(new_t_front, t))
-        elif t > t_front:
+            self._ode_solver.integrate(min(self._front, t))
+        elif t > self._front:
             # The state is at a time before t_front, advance to t_front
-            self._ode_solver.integrate(t_front)
-        elif t != t_ode:
-            # t is inside the already computed integration range.
-            self._ode_solver.integrate(t)
+            self._ode_solver.integrate(self._front)
 
     def _backstep(self, t):
         """
@@ -405,11 +428,10 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         The time t will always be between the last calls of `one_step`.
         return the pair t, state.
         """
-        t_front = self._ode_solver._integrator.rwork[12]
         delta = self._ode_solver._integrator.rwork[11]
         if t == self._ode_solver.t:
             pass
-        elif t_front - delta <= t:
+        elif self._front - delta <= t:
             self._ode_solver.integrate(t)
         else:
             self.set_state(*self._back)

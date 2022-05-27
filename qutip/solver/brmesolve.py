@@ -129,7 +129,7 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
             ]
 
     .. note:
-        ``Cubic_Spline`` have been replaced by numpy array :cls:`Coefficient`:
+        ``Cubic_Spline`` have been replaced by :cls:`Coefficient`:
             ``spline = qutip.coefficient(array, tlist=times)``
         Whether the ``a_ops`` is time dependent is deceided by the type of the
         operator: :cls:`Qobj` vs :cls:`QobjEvo` instead of the type of the

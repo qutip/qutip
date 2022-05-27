@@ -1,36 +1,4 @@
 # -*- coding: utf-8 -*-
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2016 and later, Alexander J G Pitchford
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
 
 """
 Classes that enable the storing of historical objects created during the
@@ -142,10 +110,17 @@ class Dump:
     @property
     def level(self):
         """
-        The level of data dumping that will occur
-         - SUMMARY : A summary will be recorded
-         - FULL : All possible dumping
-         - CUSTOM : Some customised level of dumping
+        The level of data dumping that will occur.
+
+        SUMMARY
+            A summary will be recorded
+
+        FULL
+            All possible dumping
+
+        CUSTOM
+            Some customised level of dumping
+
         When first set to CUSTOM this is equivalent to SUMMARY. It is then up
         to the user to specify what specifically is dumped
         """
@@ -493,15 +468,14 @@ class OptimDump(Dump):
 
 class DynamicsDump(Dump):
     """
-    A container for dumps of dynamics data.
-    Mainly time evolution calculations
+    A container for dumps of dynamics data. Mainly time evolution calculations.
 
     Attributes
     ----------
     dump_summary : bool
         If True a summary is recorded
 
-    evo_summary : list of :class:`tslotcomp.EvoCompSummary'
+    evo_summary : list of :class:`tslotcomp.EvoCompSummary`
         Summary items are appended if dump_summary is True
         at each recomputation of the evolution.
 
@@ -668,15 +642,16 @@ class DynamicsDump(Dump):
         return ecs
 
     def writeout(self, f=None):
-        """write all the dump items and the summary out to file(s)
+        """
+        Write all the dump items and the summary out to file(s).
+
         Parameters
         ----------
         f : filename or filehandle
             If specified then all summary and object data will go in one file.
-            If None is specified then type specific files will be generated
-            in the dump_dir
-            If a filehandle is specified then it must be a byte mode file
-            as numpy.savetxt is used, and requires this.
+            If None is specified then type specific files will be generated in
+            the dump_dir.  If a filehandle is specified then it must be a byte
+            mode file as numpy.savetxt is used, and requires this.
         """
         fall = None
         # If specific file given then write everything to it
@@ -739,9 +714,9 @@ class DumpItem:
 
 class EvoCompDumpItem(DumpItem):
     """
-    A copy of all objects generated to calculate one time evolution
-    Note the attributes are only set if the corresponding
-    :class:`DynamicsDump` dump_ attribute is set.
+    A copy of all objects generated to calculate one time evolution. Note the
+    attributes are only set if the corresponding :class:`DynamicsDump`
+    ``dump_*`` attribute is set.
     """
     def __init__(self, dump):
         if not isinstance(dump, DynamicsDump):
@@ -920,12 +895,12 @@ class EvoCompDumpItem(DumpItem):
         if closefall:
             fall.close()
 
-
 class DumpSummaryItem:
-    """A summary of the most recent iteration
-    Abstract class only
+    """
+    A summary of the most recent iteration.  Abstract class only.
 
-    Attributes:
+    Attributes
+    ----------
     idx : int
         Index in the summary list in which this is stored
     """

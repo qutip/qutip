@@ -266,11 +266,12 @@ def clean_compiled_coefficient(all=False):
     import glob
     import shutil
     tmproot = qset.tmproot
-    root = os.path.join(tmproot, 'qutip_coeffs_{}'.format(COEFF_VERSION))
+    root = os.path.join(tmproot, f'qutip_coeffs_{COEFF_VERSION}')
     folders = glob.glob(os.path.join(tmproot, 'qutip_coeffs_') + "*")
     for folder in folders:
         if all or folder != root:
             shutil.rmtree(folder)
+    # Recreate the empty folder.
     qset.coeffroot = qset.coeffroot
 
 
@@ -337,15 +338,21 @@ def coeff_from_str(base, args, args_ctypes, compile_opt=None):
     # Once parsed, the code should be unique enough to get a filename
     hash_ = hashlib.sha256(bytes(parsed, encoding='utf8'))
     file_name = "qtcoeff_" + hash_.hexdigest()[:30]
-    # See if it already exist, if not write and cythonize it
+    # See if it already exist and import it.
     if not compile_opt['recompile']:
         coeff = try_import(file_name, parsed)
-    # Do we compile?
+
     if not coeff and compile_opt['use_cython'] and qset.coeff_write_ok:
+        # Previously compiled coefficient not available: create the cython code
         code = make_cy_code(parsed, variables, constants,
                             raw, compile_opt)
-        coeff = compile_code(code, file_name, parsed, compile_opt)
-    if not coeff:
+        try :
+            coeff = compile_code(code, file_name, parsed, compile_opt)
+        except PermissionError:
+            pass
+    print(type(coeff), coeff)
+    if coeff is None:
+        # We don't use cython or compilation failed
         return StrFunctionCoefficient(base, args)
     keys = [key for _, key, _ in variables]
     const = [fromstr(val) for _, val, _ in constants]

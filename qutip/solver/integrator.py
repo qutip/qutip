@@ -57,7 +57,7 @@ class Integrator:
         included here will be supported by the :cls:SolverOdeOptions.
     """
     # Used options in qutip.SolverOdeOptions
-    integrator_options = {}
+    integrator_options = None
     # Can evolve time dependent system
     support_time_dependant = None
     # Whether the integrator used the system QobjEvo as a blackbox

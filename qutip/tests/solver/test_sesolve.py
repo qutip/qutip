@@ -6,8 +6,10 @@ from qutip.solver.sesolve import sesolve, SeSolver, SeOptions
 from qutip.solver.options import Options
 from qutip.solver.solver_base import Solver
 
-all_ode_method = SeSolver.avail_integrators().keys()
-
+all_ode_method = [
+    method for method, integrator in SeSolver.avail_integrators().items()
+    if integrator.support_time_dependant
+]
 
 def _analytic(t, alpha):
     return ((1 - np.exp(-alpha * t)) / alpha)
@@ -222,9 +224,9 @@ class TestSeSolve():
         np.testing.assert_allclose(qutip.expect(qutip.sigmaz(), state), sr2,
                                    atol=2e-6)
 
-        new_options = SeOptions(method='adams', atol=1e-7, rtol=1e-8,
-                                progress_bar=None)
-        state = solver_obj.step(3, args={"a":0}, options=new_options)
+        solver_obj.options = SeOptions(method='adams', atol=1e-7,
+                                           rtol=1e-8, progress_bar=None)
+        state = solver_obj.step(3, args={"a":0})
         np.testing.assert_allclose(qutip.expect(qutip.sigmax(), state), 0.,
                                    atol=2e-6)
         np.testing.assert_allclose(qutip.expect(qutip.sigmay(), state), sr2,
