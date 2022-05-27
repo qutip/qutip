@@ -4,7 +4,8 @@ __all__ = ['entropy_vn', 'entropy_linear', 'entropy_mutual', 'negativity',
 
 from numpy import conj, e, inf, imag, inner, real, sort, sqrt
 from numpy.lib.scimath import log, log2
-from . import ptrace, ket2dm, tensor, sigmay, partial_transpose
+from . import (ptrace, ket2dm, tensor, sigmay, partial_transpose,
+               expand_operator)
 from .core import data as _data
 
 
@@ -343,8 +344,7 @@ def participation_ratio(rho):
 def entangling_power(U):
     """
     Calculate the entangling power of a two-qubit gate U, which
-    is zero of nonentangling gates and 1 and 2/9 for maximally
-    entangling gates.
+    is zero of nonentangling gates and 2/9 for maximally entangling gates.
 
     Parameters
     ----------
@@ -354,7 +354,7 @@ def entangling_power(U):
     Returns
     -------
     ep : float
-        The entanglement power of U (real number between 0 and 1)
+        The entanglement power of U (real number between 0 and 2/9)
 
     References:
 
@@ -367,10 +367,10 @@ def entangling_power(U):
     if U.dims != [[2, 2], [2, 2]]:
         raise Exception("U must be a two-qubit gate.")
 
-    from qutip.qip.operations.gates import swap
-    a = (tensor(U, U).dag() * swap(N=4, targets=[1, 3]) *
-         tensor(U, U) * swap(N=4, targets=[1, 3]))
-    b = (tensor(swap() * U, swap() * U).dag() * swap(N=4, targets=[1, 3]) *
-         tensor(swap() * U, swap() * U) * swap(N=4, targets=[1, 3]))
+    from qutip.core.gates import swap
+    swap13 =  expand_operator(swap(), [1, 3], [2, 2, 2, 2])
+    a = tensor(U, U).dag() * swap13 * tensor(U, U) * swap13
+    Uswap = swap() * U
+    b = tensor(Uswap, Uswap).dag() * swap13 * tensor(Uswap, Uswap) * swap13
 
     return 5.0/9 - 1.0/36 * (a.tr() + b.tr()).real

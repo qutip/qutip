@@ -16,7 +16,8 @@ from qutip import (
     to_super, to_choi, to_kraus, to_chi, to_stinespring, operator_to_vector,
     vector_to_operator, sprepost, destroy
 )
-from qutip.qip.operations.gates import swap
+from qutip.core.gates import swap
+
 
 tol = 1e-8
 

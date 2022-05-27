@@ -200,12 +200,12 @@ _alpha = 2*np.pi * np.random.rand()
 
 
 @pytest.mark.parametrize(["gate", "expected"], [
-    pytest.param(qutip.qip.operations.gates.cnot(), 2/9, id="CNOT"),
-    pytest.param(qutip.qip.operations.gates.iswap(), 2/9, id="ISWAP"),
-    pytest.param(qutip.qip.operations.gates.berkeley(), 2/9, id="Berkeley"),
-    pytest.param(qutip.qip.operations.gates.swap(), 0, id="SWAP"),
-    pytest.param(qutip.qip.operations.gates.sqrtswap(), 1/6, id="sqrt(SWAP)"),
-    pytest.param(qutip.qip.operations.gates.swapalpha(_alpha),
+    pytest.param(qutip.gates.cnot(), 2/9, id="CNOT"),
+    pytest.param(qutip.gates.iswap(), 2/9, id="ISWAP"),
+    pytest.param(qutip.gates.berkeley(), 2/9, id="Berkeley"),
+    pytest.param(qutip.gates.swap(), 0, id="SWAP"),
+    pytest.param(qutip.gates.sqrtswap(), 1/6, id="sqrt(SWAP)"),
+    pytest.param(qutip.gates.swapalpha(_alpha),
                  np.sin(np.pi*_alpha)**2 / 6, id="SWAP(alpha)"),
 ])
 def test_entangling_power(gate, expected):
