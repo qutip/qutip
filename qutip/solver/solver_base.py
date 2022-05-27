@@ -43,8 +43,19 @@ class Solver:
         self.options = options
         _time_start = time()
         self._integrator = self._get_integrator()
-        self.stats = {"preparation time": time() - _time_start}
+        self._init_time = time() - _time_start
         self._state_metadata = {}
+        self.stats = self._initialize_stats()
+
+    def _initialize_stats(self):
+        """ Return the initial values for the solver stats.
+        """
+        return {
+            "method": self._integrator.name,
+            "init time": self._init_time,
+            "preparation time": 0.0,
+            "run time": 0.0,
+        }
 
     def _prepare_state(self, state):
         """
@@ -121,16 +132,19 @@ class Solver:
             Results of the evolution. States and/or expect will be saved. You
             can control the saved data in the options.
         """
-
         _time_start = time()
         _data0 = self._prepare_state(state0)
         self._integrator.set_state(tlist[0], _data0)
         self._argument(args)
-        self.stats["preparation time"] += time() - _time_start
-
-        results = self.resultclass(e_ops, self.options.results,
-                                   self.rhs.issuper, _data0.shape[1]!=1)
+        stats = self._initialize_stats()
+        results = self.resultclass(
+            e_ops, self.options.results,
+            solver=self.name, stats=stats,
+            rhs_is_super=self.rhs.issuper,
+            state_is_oper=(_data0.shape[1] != 1),
+        )
         results.add(tlist[0], self._restore_state(_data0, copy=False))
+        stats['preparation time'] += time() - _time_start
 
         progress_bar = progess_bars[self.options['progress_bar']]()
         progress_bar.start(len(tlist)-1, **self.options['progress_kwargs'])
@@ -139,12 +153,9 @@ class Solver:
             results.add(t, self._restore_state(state, copy=False))
         progress_bar.finished()
 
-        self.stats['run time'] = progress_bar.total_time()
+        stats['run time'] = progress_bar.total_time()
         # TODO: It would be nice if integrator could give evolution statistics
         # self.stats.update(_integrator.stats)
-        self.stats["method"] = self._integrator.name
-        results.stats = self.stats.copy()
-        results.solver = self.name
         return results
 
     def start(self, state0, t0):
