@@ -28,8 +28,9 @@ from qutip.core.superoperator import liouvillian, spre, spost
 from .bofin_baths import (
     BathExponent, DrudeLorentzBath,
 )
+from ...solver.result import BaseResult
 from ...solver.solver_base import Solver
-from ...solver import Result, IntegratorScipyZvode
+from ...solver import IntegratorScipyZvode
 from ...ui.progressbar import progess_bars as _progress_bars
 
 # Load MKL spsolve if avaiable
@@ -366,6 +367,39 @@ class HierarchyADOsState:
         return Qobj(self._ado_state[idx, :].T, dims=self.rho.dims)
 
 
+class HEOMResult(BaseResult):
+    def _post_init(self, **kw):
+        super()._post_init()
+
+        self.ado_return = self.options["store_ados"]
+        if self.ado_return:
+            self.final_ado_state = None
+            self.ado_states = []
+
+    def _e_op_func(self, e_op):
+        """ """
+        if isinstance(e_op, Qobj):
+            return lambda t, ado_state: (ado_state.rho * e_op).tr()
+        elif isinstance(e_op, QobjEvo):
+            raise NotImplementedError("XXX")
+        elif callable(e_op):
+            return e_op
+        raise TypeError(f"{e_op!r} has unsupported type {type(e_op)!r}.")
+
+    def _pre_copy(self, state):
+        return state
+
+    def _store_state(self, t, ado_state):
+        self.states.append(ado_state.rho)
+        if self.ado_return:
+            self.ado_states.append(ado_state)
+
+    def _store_final_state(self, t, ado_state):
+        self.final_state = ado_state.rho
+        if self.ado_return:
+            self.final_ado_state = ado_state
+
+
 class HEOMSolver(Solver):
     """
     HEOM solver that supports multiple baths.
@@ -404,6 +438,7 @@ class HEOMSolver(Solver):
     """
 
     name = "heomsolver"
+    resultclass = HEOMResult
     _avail_integrators = {}
 
     def __init__(self, H, bath, max_depth, *, options=None):
@@ -459,10 +494,13 @@ class HEOMSolver(Solver):
         super().__init__(rhs, options=options)
         self.RHSmat = RHSmat
 
-        self.stats['solver'] = "Hierarchical Equations of Motion Solver"
-        self.stats['max_depth'] = max_depth
-        self.stats["preparation time"] = time() - _time_start
-        self.stats["run time"] = 0
+    def _initialize_stats(self):
+        stats = super()._initialize_stats()
+        stats.update({
+            "solver": "Hierarchical Equations of Motion Solver",
+            "max_depth": self.ados.max_depth,
+        })
+        return stats
 
     def _convert_h_sys(self, H_sys):
         """ Process input system Hamiltonian, converting and raising as needed.
@@ -762,53 +800,7 @@ class HEOMSolver(Solver):
 
         return steady_state, steady_ados
 
-    def _convert_e_ops(self, e_ops):
-        """
-        Parse and convert a dictionary or list of e_ops.
-
-        Returns
-        -------
-        e_ops, expected : tuple
-            If the input ``e_ops`` was a list or scalar, ``expected`` is a list
-            with one item for each element of the original e_ops.
-
-            If the input ``e_ops`` was a dictionary, ``expected`` is a
-            dictionary with the same keys.
-
-            The output ``e_ops`` is always a dictionary. Its keys are the
-            keys or indexes for ``expected`` and its elements are the e_ops
-            functions or callables.
-        """
-        if isinstance(e_ops, (list, dict)):
-            pass
-        elif e_ops is None:
-            e_ops = []
-        elif isinstance(e_ops, Qobj):
-            e_ops = [e_ops]
-        elif callable(e_ops):
-            e_ops = [e_ops]
-        else:
-            try:
-                e_ops = list(e_ops)
-            except Exception as err:
-                raise TypeError(
-                    "e_ops must be an iterable, Qobj or function"
-                ) from err
-
-        if isinstance(e_ops, dict):
-            expected = {k: [] for k in e_ops}
-        else:
-            expected = [[] for _ in e_ops]
-            e_ops = {i: op for i, op in enumerate(e_ops)}
-
-        if not all(
-            callable(op) or isinstance(op, Qobj) for op in e_ops.values()
-        ):
-            raise TypeError("e_ops must only contain Qobj or functions")
-
-        return e_ops, expected
-
-    def run(self, rho0, tlist, e_ops=None, ado_init=False, ado_return=False):
+    def run(self, state0, tlist, *, e_ops=None):
         """
         Solve for the time evolution of the system.
 
@@ -873,22 +865,19 @@ class HEOMSolver(Solver):
               the same keys as ``e_ops`` and values giving the list of
               outcomes for the corresponding key.
         """
-        e_ops, expected = self._convert_e_ops(e_ops)
-        e_ops_callables = any(
-            not isinstance(op, Qobj) for op in e_ops.values()
-        )
+        return super().run(state0, tlist, e_ops=e_ops)
 
+    def _prepare_state(self, state):
         n = self._sys_shape
         rho_shape = (n, n)
         rho_dims = self._sys_dims
         hierarchy_shape = (self._n_ados, n, n)
 
-        results = Result(
-            e_ops, self.options.results, _super=True, oper_state=False,
+        rho0 = state
+        ado_init = (
+            isinstance(rho0, HierarchyADOsState) or
+            getattr(rho0, "shape", None) == hierarchy_shape
         )
-
-        if e_ops:
-            output.expect = expected
 
         if ado_init:
             if isinstance(rho0, HierarchyADOsState):
@@ -897,56 +886,40 @@ class HEOMSolver(Solver):
                 rho0_he = rho0
             if rho0_he.shape != hierarchy_shape:
                 raise ValueError(
-                    f"ADOs passed with ado_init have shape {rho0_he.shape}"
-                    f"but the solver hierarchy shape is {hierarchy_shape}"
+                    f"ADOs passed with ado_init has shape {rho0_he.shape}"
+                    f" but the solver hierarchy shape is {hierarchy_shape}"
                 )
             rho0_he = rho0_he.reshape(n ** 2 * self._n_ados)
             rho0_he = _data.create(rho0_he)
         else:
+            if rho0.dims != rho_dims:
+                raise ValueError(
+                    f"Initial state rho has dims {rho0.dims}"
+                    f" but the system dims are {rho_dims}"
+                )
             rho0_he = np.zeros([n ** 2 * self._n_ados], dtype=complex)
             rho0_he[:n ** 2] = rho0.full().ravel('F')
             rho0_he = _data.create(rho0_he)
 
-        if ado_return:
-            results.ado_states = []
+        # if self.options.ode["state_data_type"]:
+        #    state = state.to(self.options.ode["state_data_type"])
 
-        _integrator = self._get_integrator()
+        return rho0_he  # state.data
 
-        _time_start = time()
-        _integrator.set_state(tlist[0], rho0_he)
-        self.stats["preparation time"] += time() - _time_start
+    def _restore_state(self, state, *, copy=True):
+        n = self._sys_shape
+        rho_shape = (n, n)
+        rho_dims = self._sys_dims
+        hierarchy_shape = (self._n_ados, n, n)
 
-        progress_bar = _progress_bars[self.options['progress_bar']]()
-        progress_bar.start(len(tlist), **self.options['progress_kwargs'])
-        for t, state in itertools.chain([(0, rho0_he)], _integrator.run(tlist)):
-            progress_bar.update()
-            rho = Qobj(
-                state.to_array()[:n ** 2].reshape(rho_shape, order='F'),
-                dims=rho_dims,
-            )
-            results.add(t, rho)
-            if ado_return or e_ops_callables:
-                ado_state = HierarchyADOsState(
-                    rho, self.ados, state.to_array().reshape(hierarchy_shape)
-                )
-            if ado_return:
-                results.ado_states.append(ado_state)
-            for e_key, e_op in e_ops.items():
-                if isinstance(e_op, Qobj):
-                    e_result = (rho * e_op).tr()
-                else:
-                    e_result = e_op(t, ado_state)
-                results.expect[e_key].append(e_result)
-        progress_bar.finished()
-
-        self.stats['run time'] = progress_bar.total_time()
-        # TODO: It would be nice if integrator could give evolution statistics
-        # self.stats.update(_integrator.stats)
-        self.stats["method"] = _integrator.name
-        results.stats = self.stats.copy()
-        results.solver = self.name
-
-        return results
+        rho = Qobj(
+            state.to_array()[:n ** 2].reshape(rho_shape, order='F'),
+            dims=rho_dims,
+        )
+        ado_state = HierarchyADOsState(
+            rho, self.ados, state.to_array().reshape(hierarchy_shape)
+        )
+        return ado_state
 
 
 class HSolverDL(HEOMSolver):

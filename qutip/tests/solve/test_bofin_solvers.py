@@ -677,14 +677,15 @@ class TestHEOMSolver:
         ck_plus, vk_plus, ck_minus, vk_minus = dlm.bath_coefficients()
 
         options = SolverOptions(
-            nsteps=15_000, store_states=True, rtol=1e-7, atol=1e-7,
+            nsteps=15_000, store_states=True, store_ados=True,
+            rtol=1e-7, atol=1e-7,
         )
         bath = FermionicBath(dlm.Q, ck_plus, vk_plus, ck_minus, vk_minus)
         # for a single impurity we converge with max_depth = 2
         hsolver = HEOMSolver(H_sys, bath, 2, options=options)
 
         tlist = [0, 600]
-        result = hsolver.run(dlm.rho(), tlist, ado_return=True)
+        result = hsolver.run(dlm.rho(), tlist)
         current = dlm.state_current(result.ado_states[-1])
         analytic_current = dlm.analytic_current()
         np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
@@ -706,7 +707,8 @@ class TestHEOMSolver:
         )
 
         options = SolverOptions(
-            nsteps=15_000, store_states=True, rtol=1e-7, atol=1e-7,
+            nsteps=15_000, store_states=True, store_ados=True,
+            rtol=1e-7, atol=1e-7,
         )
         bath_l = bath_cls(
             dlm.Q, gamma=dlm.gamma, w=dlm.W, T=dlm.T, mu=dlm.theta / 2,
@@ -720,7 +722,7 @@ class TestHEOMSolver:
         hsolver = HEOMSolver(dlm.H, [bath_r, bath_l], 2, options=options)
 
         tlist = [0, 600]
-        result = hsolver.run(dlm.rho(), tlist, ado_return=True)
+        result = hsolver.run(dlm.rho(), tlist)
         current = dlm.state_current(result.ado_states[-1])
         # analytic_current = dlm.analytic_current()
         np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
@@ -735,29 +737,29 @@ class TestHEOMSolver:
         pytest.param("hierarchy-ados-state", id="hierarchy-ados-state"),
         pytest.param("numpy", id="numpy"),
     ])
-    def test_ado_return_and_ado_init(self, ado_format):
+    def test_ado_input_and_return(self, ado_format):
         dlm = DrudeLorentzPureDephasingModel(
             lam=0.025, gamma=0.05, T=1/0.95, Nk=2,
         )
         ck_real, vk_real, ck_imag, vk_imag = dlm.bath_coefficients()
 
         bath = BosonicBath(dlm.Q, ck_real, vk_real, ck_imag, vk_imag)
-        options = SolverOptions(nsteps=15_000, store_states=True)
+        options = SolverOptions(
+            nsteps=15_000, store_states=True, store_ados=True,
+        )
         hsolver = HEOMSolver(dlm.H, bath, 6, options=options)
 
         tlist_1 = [0, 1, 2]
-        result_1 = hsolver.run(dlm.rho(), tlist_1, ado_return=True)
+        result_1 = hsolver.run(dlm.rho(), tlist_1)
 
         tlist_2 = [2, 3, 4]
         rho0 = result_1.ado_states[-1]
         if ado_format == "numpy":
             rho0 = rho0._ado_state  # extract the raw numpy array
-        result_2 = hsolver.run(
-            rho0, tlist_2, ado_return=True, ado_init=True,
-        )
+        result_2 = hsolver.run(rho0, tlist_2)
 
         tlist_full = tlist_1 + tlist_2[1:]
-        result_full = hsolver.run(dlm.rho(), tlist_full, ado_return=True)
+        result_full = hsolver.run(dlm.rho(), tlist_full)
 
         times_12 = result_1.times + result_2.times[1:]
         times_full = result_full.times
