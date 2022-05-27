@@ -203,6 +203,9 @@ class BRSolver(Solver):
             if not isinstance(c_op, (Qobj, QobjEvo)):
                 raise TypeError("All `c_ops` must be a Qobj or QobjEvo")
 
+        self._num_collapse = len(c_ops)
+        self._num_a_ops = len(a_ops)
+
         tensor_type = {
             '' : 'sparse',
             'csr' : 'sparse',
@@ -216,8 +219,11 @@ class BRSolver(Solver):
             fock_basis=True, sparse_eigensolver=False, br_dtype=tensor_type)
         super().__init__(rhs, options=self.options)
 
-        self.stats['solver'] = "Bloch Redfield Equation Evolution"
-        self.stats['num_collapse'] = len(c_ops)
-        self.stats['num_a_ops'] = len(a_ops)
-        self.stats["preparation time"] = time() - _time_start
-        self.stats["run time"] = 0
+    def _initialize_stats(self):
+        stats = super()._initialize_stats()
+        stats.update({
+            "solver": "Bloch Redfield Equation Evolution",
+            "num_collapse": self._num_collapse,
+            "num_a_ops": self._num_a_ops,
+        })
+        return stats
