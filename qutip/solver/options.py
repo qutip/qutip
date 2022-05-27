@@ -170,6 +170,10 @@ class SolverResultsOptions:
         On `None` the states will be saved if no expectation operators are
         given.
 
+    store_ados : bool {False, True}
+        Whether or not to store the HEOM ADOs. Only relevant when using
+        the HEOM solver.
+
     normalize_output : str {"", "ket", "all"}
         normalize output state to hide ODE numerical errors.
         "all" will normalize both ket and dm.
@@ -181,6 +185,8 @@ class SolverResultsOptions:
         "store_final_state": False,
         # store states even if expectation operators are given?
         "store_states": None,
+        # store HEOM ADOs when using the HEOMSolver
+        "store_ados": False,
         # Normalize output of solvers
         # (turned off for batch unitary propagator mode)
         "normalize_output": "ket",
