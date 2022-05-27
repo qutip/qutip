@@ -197,11 +197,11 @@ class TestMESolveDecay:
     def test_mesolver_pickling(self):
         options = SolverOptions(progress_bar=None)
         solver_obj = MeSolver(self.ada, c_ops=[self.a], options=options)
-        copy = pickle.loads(pickle.dumps(solver_obj))
+        solver_copy = pickle.loads(pickle.dumps(solver_obj))
         e1 = solver_obj.run(qutip.basis(self.N, 9), [0, 1, 2, 3],
-                            e_ops=[self.ada]).expect
-        e2 = solver_obj.run(qutip.basis(self.N, 9), [0, 1, 2, 3],
-                            e_ops=[self.ada]).expect
+                            e_ops=[self.ada]).expect[0]
+        e2 = solver_copy.run(qutip.basis(self.N, 9), [0, 1, 2, 3],
+                            e_ops=[self.ada]).expect[0]
         np.testing.assert_allclose(e1, e2)
 
     @pytest.mark.parametrize('method',
@@ -627,7 +627,7 @@ def test_num_collapse_set():
         res = mesolve(H, psi, ts, c_ops=c_ops)
         if not isinstance(c_ops, list):
             c_ops = [c_ops]
-        assert res.num_collapse == len(c_ops)
+        assert res.stats["num_collapse"] == len(c_ops)
 
 
 def test_mesolve_bad_H():
