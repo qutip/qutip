@@ -1031,11 +1031,6 @@ class HSolverDL(HEOMSolver):
         terminator is added to the system Liouvillian (and H_sys is
         promoted to a Liouvillian if it was a Hamiltonian).
 
-    progress_bar : None, True or :class:`BaseProgressBar`
-        Optional instance of BaseProgressBar, or a subclass thereof, for
-        showing the progress of the solver. If True, an instance of
-        :class:`TextProgressBar` is used instead.
-
     options : :class:`qutip.solver.Options`
         Generic solver options.
         If set to None the default options will be used.
