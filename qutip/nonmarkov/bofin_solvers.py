@@ -938,7 +938,7 @@ class HEOMSolver:
                 solver.y[:n ** 2].reshape(rho_shape, order='F'),
                 dims=rho_dims,
             )
-            if self.options.store_states:
+            if self.options.store_states or not e_ops:
                 output.states.append(rho)
             if ado_return or e_ops_callables:
                 ado_state = HierarchyADOsState(
