@@ -207,8 +207,6 @@ class TestBloch:
             if not isinstance(points[0], (list, tuple, np.ndarray)):
                 points = [[points[0]], [points[1]], [points[2]]]
             points = np.array(points)
-            if len(points[0]) == 1:
-                points = np.append(points, points, axis=1)
 
             point_style = kw.pop("meth", "s")
             point_color = point_colors[idx % len(point_colors)]
@@ -216,6 +214,9 @@ class TestBloch:
             point_marker = point_markers[idx % len(point_markers)]
             point_alpha = kw.get("alpha", 1.0)
             idx += 1
+
+            if len(points[0]) == 1 and point_style == "s":
+                points = np.append(points, points, axis=1)
 
             if point_style == 's':
                 b.axes.scatter(
@@ -237,12 +238,32 @@ class TestBloch:
                     zdir='z',
                     color=point_color,
                 )
+            elif point_style == 'm':
+                pnt_colors = np.tile(point_colors,
+                                     np.ceil(points.shape[1]/len(point_colors)
+                                             ).astype(int))
+                pnt_colors = pnt_colors[:points.shape[1]]
+                b.axes.scatter(
+                    np.real(points[1]),
+                    -np.real(points[0]),
+                    np.real(points[2]),
+                    s=point_size,
+                    marker=point_marker,
+                    color=pnt_colors,
+                    alpha=point_alpha,
+                    edgecolor=None,
+                    zdir='z',
+                )
             else:
                 raise ValueError(
                     "Tests currently only support point method 's'"
                 )
         b.render_front()
 
+    @pytest.mark.parametrize("meth", ["", "s", "l", "m"], ids=["default",
+                                                               "scatter",
+                                                               "line",
+                                                               "multicolored"])
     @pytest.mark.parametrize([
         "point_kws"
     ], [
@@ -254,16 +275,7 @@ class TestBloch:
                     np.sin(t),
                 ]
                 for t in np.linspace(0, 2 * np.pi, 20)
-            ]).T, alpha=0.5), id="circle-of-points-scatter"),
-        pytest.param(
-            dict(points=np.array([
-                [
-                    np.cos(np.pi / 4) * np.cos(t),
-                    np.sin(np.pi / 4) * np.cos(t),
-                    np.sin(t),
-                ]
-                for t in np.linspace(0, 2 * np.pi, 20)
-            ]).T, meth="l"), id="circle-of-points-line"),
+            ]).T, alpha=0.5), id="circle-of-points"),
         pytest.param(
             dict(points=(0, 0, 1), alpha=1), id="alpha-opaque"),
         pytest.param(
@@ -276,13 +288,55 @@ class TestBloch:
             dict(points=[(0, 0), (0, 1), (1, 0)], alpha=1.0),
             dict(points=[(1, 1), (0, 1), (1, 0)], alpha=0.5),
         ], id="alpha-multiple-point-sets"),
+        pytest.param([
+            dict(points=[(0), (0), (1)], alpha=1.0),
+            dict(points=[(0), (1), (0)], alpha=1.0),
+            dict(points=[(1), (0), (0)], alpha=1.0),
+            dict(points=[(1), (1), (1)], alpha=1.0),
+        ], id="alpha-multiple-point-sets-all_sizes_markers"),
     ])
     @check_pngs_equal
-    def test_point(self, point_kws, fig_test, fig_ref):
+    def test_point(self, point_kws, meth, fig_test, fig_ref):
+        if meth and isinstance(point_kws, dict):
+            point_kws["meth"] = meth
+
+        elif meth and isinstance(point_kws, list):
+            for point_kw in point_kws:
+                point_kw["meth"] = meth
+
         if isinstance(point_kws, dict):
             point_kws = [point_kws]
+
         self.plot_point_test(fig_test, copy.deepcopy(point_kws))
         self.plot_point_ref(fig_ref, copy.deepcopy(point_kws))
+
+    def test_point_errors_meth(self):
+        with pytest.raises(ValueError) as err:
+            b = Bloch()
+            b.add_points((0, 0, 1), meth='k')
+            b.render()
+
+        err_msg = ("The value for meth = k is not valid."
+                   " Please use 's', 'l' or 'm'.")
+        assert str(err.value) == err_msg
+
+    @pytest.mark.parametrize("points",
+                             [(0, 1, 0, 1), (0, 1), [0, 1], np.array((0, 1)),
+                              np.arange(12).reshape((3, 2, 2))],
+                             ids=["long_tuple", "short_tuple", "short_list",
+                                  "short_numpy", "wrong_shape_numpy"]
+                             )
+    def test_point_errors_wrong_points(self, points):
+        with pytest.raises(ValueError) as err:
+            b = Bloch()
+            b.add_points(points)
+            b.render()
+
+        err_msg = ("The included points are not valid. Points must "
+                   "be equivalent to a 2D array where the first "
+                   "index represents the x,y,z values and the "
+                   "second index iterates over the points.")
+        assert str(err.value) == err_msg
 
     def plot_vector_test(self, fig, vector_kws):
         b = Bloch(fig=fig)
