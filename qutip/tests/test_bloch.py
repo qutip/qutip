@@ -208,7 +208,14 @@ class TestBloch:
             points = np.array(points)
 
             point_style = kw.pop("meth", "s")
-            point_color = point_colors[idx % len(point_colors)]
+            colors = kw.pop("colors", None)
+            if colors is None and point_style in ['s', 'l']:
+                colors = point_colors[idx % len(point_colors)]
+            elif colors is None and point_style == 'm':
+                colors = np.tile(point_colors,
+                                np.ceil(points.shape[1]/len(point_colors)
+                                        ).astype(int))
+                colors = colors[:points.shape[1]]
             point_size = point_sizes[idx % len(point_sizes)]
             point_marker = point_markers[idx % len(point_markers)]
             point_alpha = kw.get("alpha", 1.0)
@@ -225,7 +232,7 @@ class TestBloch:
                     alpha=point_alpha,
                     edgecolor=None,
                     zdir='z',
-                    color=point_color,
+                    color=colors,
                     marker=point_marker)
             elif point_style == 'l':
                 b.axes.plot(
@@ -234,20 +241,16 @@ class TestBloch:
                     np.real(points[2]),
                     alpha=point_alpha,
                     zdir='z',
-                    color=point_color,
+                    color=colors,
                 )
             elif point_style == 'm':
-                pnt_colors = np.tile(point_colors,
-                                     np.ceil(points.shape[1]/len(point_colors)
-                                             ).astype(int))
-                pnt_colors = pnt_colors[:points.shape[1]]
                 b.axes.scatter(
                     np.real(points[1]),
                     -np.real(points[0]),
                     np.real(points[2]),
                     s=point_size,
                     marker=point_marker,
-                    color=pnt_colors,
+                    color=colors,
                     alpha=point_alpha,
                     edgecolor=None,
                     zdir='z',
@@ -282,6 +285,9 @@ class TestBloch:
             dict(points=(0, 0, 1), alpha=0), id="alpha-invisible"),
         pytest.param(
             dict(points=(0, 0, 1)), id="alpha-default"),
+        pytest.param(
+            dict(points=[(0, 0), (0, 1), (1, 0)], colors='g'),
+            id="color-green"),
         pytest.param([
             dict(points=[(0, 0), (0, 1), (1, 0)], alpha=1.0),
             dict(points=[(1, 1), (0, 1), (1, 0)], alpha=0.5),

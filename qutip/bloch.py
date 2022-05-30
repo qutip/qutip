@@ -804,7 +804,7 @@ class Bloch:
             user_color = self.point_color[k]
             style = self.point_style[k]
             if user_color is not None:
-                color = [self.point_color[k]]
+                color = self.point_color[k]
             elif user_color is None and self.point_style[k] in ['s', 'l']:
                 color = self.point_default_color[mod(k, len(self.point_default_color))]
             elif user_color is None and style == 'm':
@@ -812,8 +812,6 @@ class Bloch:
                                  np.ceil(num_points/len(self.point_default_color)
                                          ).astype(int))
                 color = color[indperm]
-
-            print(color)
 
             if self.point_style[k] in ['s', 'm']:
                 self.axes.scatter(np.real(points[1]),
