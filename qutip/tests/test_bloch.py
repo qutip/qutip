@@ -200,9 +200,8 @@ class TestBloch:
         point_colors = ['b', 'r', 'g', '#CC6600']
         point_sizes = [25, 32, 35, 45]
         point_markers = ["o", "s", "d", "^"]
-        idx = 0
 
-        for kw in point_kws:
+        for idx, kw in enumerate(point_kws):
             points = kw.pop("points")
             if not isinstance(points[0], (list, tuple, np.ndarray)):
                 points = [[points[0]], [points[1]], [points[2]]]
@@ -213,7 +212,6 @@ class TestBloch:
             point_size = point_sizes[idx % len(point_sizes)]
             point_marker = point_markers[idx % len(point_markers)]
             point_alpha = kw.get("alpha", 1.0)
-            idx += 1
 
             if len(points[0]) == 1 and point_style == "s":
                 points = np.append(points, points, axis=1)
