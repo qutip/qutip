@@ -1,12 +1,14 @@
-from qutip.solver.result import *
+from qutip.solver.result import (
+    BaseResult, Result, MultiTrajResult, MultiTrajResultAveraged
+)
+from qutip.solver import SolverResultsOptions
 import qutip
 import numpy as np
 
 class TestBaseResult:
     def test_states(self):
         N = 10
-        res = Result([], qutip.solver.SolverResultsOptions(),
-                     rhs_is_super=False, state_is_oper=False)
+        res = BaseResult([], SolverResultsOptions())
         for i in range(N):
             res.add(i, qutip.basis(N,i))
         for i in range(N):
@@ -16,11 +18,11 @@ class TestBaseResult:
 
     def test_expect(self):
         N = 10
-        res = Result(
+        res = BaseResult(
             [qutip.num(N), qutip.qeye(N)],
-            qutip.solver.SolverResultsOptions(store_final_state=False,
-                                              store_states=False),
-            rhs_is_super=False, state_is_oper=False
+            SolverResultsOptions(
+                store_final_state=False,
+                store_states=False),
         )
         for i in range(N):
             res.add(i, qutip.basis(N,i))
@@ -34,7 +36,7 @@ class TestResult:
     def test_normalize(self):
         N = 10
         res = Result([qutip.num(N), qutip.qeye(N)],
-                     qutip.solver.SolverResultsOptions(store_states=True,
+                     SolverResultsOptions(store_states=True,
                                                        normalize_output=True),
                      rhs_is_super=False, state_is_oper=False)
         for i in range(N):
@@ -51,7 +53,7 @@ class TestMultiTrajResult:
         N = 10
         e_ops = [qutip.num(N), qutip.qeye(N)]
         m_res = MultiTrajResult(3)
-        opt = qutip.solver.SolverResultsOptions(store_states=True,
+        opt = SolverResultsOptions(store_states=True,
                                                 normalize_output=True)
         for _ in range(5):
             res = Result(e_ops, opt, rhs_is_super=False, state_is_oper=False)
@@ -79,7 +81,7 @@ class TestMultiTrajResultAveraged:
         N = 10
         e_ops = [qutip.num(N), qutip.qeye(N)]
         m_res = MultiTrajResultAveraged(3)
-        opt = qutip.solver.SolverResultsOptions(store_final_state=True,
+        opt = SolverResultsOptions(store_final_state=True,
                                                 normalize_output=True)
         for _ in range(5):
             res = Result(e_ops, opt, rhs_is_super=False, state_is_oper=False)
