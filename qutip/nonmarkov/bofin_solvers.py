@@ -455,12 +455,13 @@ class HEOMSolver:
             for k in range(self._n_exponents)
         ]
 
-        self.progress_bar = progress_bar
         if progress_bar is None:
             self.progress_bar = BaseProgressBar()
-        if progress_bar is True:
+        elif progress_bar is True:
             self.progress_bar = TextProgressBar()
-        if not isinstance(self.progress_bar, BaseProgressBar):
+        elif isinstance(progress_bar, BaseProgressBar):
+            self.progress_bar = progress_bar
+        else:
             raise TypeError(
                 "ProgressBar (progress_bar) is not and instance of"
                 "qutip.ui.BaseProgressBar"
