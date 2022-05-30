@@ -339,43 +339,31 @@ class Bloch:
            When the ``alpha`` parameter was added in QuTiP 4.7, the default
            became ``alpha=1.0`` for values of ``meth``.
         """
-        if not isinstance(points[0], (list, tuple, ndarray)):
-            points = [[points[0]], [points[1]], [points[2]]]
-        points = array(points)
-        if meth == 's':
-            if len(points[0]) == 1:
-                pnts = array([[points[0][0]], [points[1][0]], [points[2][0]]])
-                pnts = append(pnts, points, axis=1)
-            else:
-                pnts = points
-            self.points.append(pnts)
-            self.point_style.append('s')
-            self.point_alpha.append(alpha)
-            if colors is not None:
-                colors = [colors]
-            else:
-                k = mod(len(self.points)-1, len(self.point_default_color))
-                colors = [self.point_default_color[k]]
-        elif meth == 'l':
-            self.points.append(points)
-            self.point_style.append('l')
-            self.point_alpha.append(alpha)
-            if colors is not None:
-                colors = [colors]
-            else:
-                k = mod(len(self.points)-1, len(self.point_default_color))
-                colors = [self.point_default_color[k]]
-        else:
-            self.points.append(points)
-            self.point_style.append('m')
-            self.point_alpha.append(alpha)
-            if colors is None:
-                colors = []
-                for k, point in enumerate(points[0]):
-                    x = mod(k, len(self.point_default_color))
-                    color = self.point_default_color[x]
-                    colors.append(color)
+
+        points = np.asarray(points)
+
+        if points.ndim == 1:
+            points = points[:, np.newaxis]
+
+        if points.ndim != 2 or points.shape[0] != 3:
+            raise ValueError("The included points are not valid. Points must "
+                             "be equivalent to a 2D array where the first "
+                             "index represents the x,y,z values and the "
+                             "second index iterates over the points.")
+
+        if meth not in ['s', 'm', 'l']:
+            raise ValueError(f"The value for meth = {meth} is not valid."
+                             " Please use 's', 'l' or 'm'.")
+
+        if meth == 's' and points.shape[1] == 1:
+            points = np.append(points[:, :1], points, axis=1)
+
+
+        self.point_style.append(meth)
+        self.points.append(points)
+        self.point_alpha.append(alpha)
         self.point_color.append(colors)
+
 
     def add_states(self, state, kind='vector', colors=None, alpha=1.0):
         """Add a state vector Qobj to Bloch sphere.
@@ -798,53 +786,52 @@ class Bloch:
                 self.axes.add_artist(a)
 
     def plot_points(self):
+
         # -X and Y data are switched for plotting purposes
-        for k in range(len(self.points)):
-            num = len(self.points[k][0])
-            dist = [sqrt(self.points[k][0][j] ** 2 +
-                         self.points[k][1][j] ** 2 +
-                         self.points[k][2][j] ** 2) for j in range(num)]
-            if any(abs(dist - dist[0]) / dist[0] > 1e-12):
-                # combine arrays so that they can be sorted together
-                zipped = list(zip(dist, range(num)))
-                zipped.sort()  # sort rates from lowest to highest
-                dist, indperm = zip(*zipped)
-                indperm = array(indperm)
+        for k, points in enumerate(self.points):
+            points = np.asarray(points)
+            num_points = points.shape[1]
+
+            dist = np.linalg.norm(points, axis=0)
+            if not np.allclose(dist, dist[0], rtol=1e-12):
+                indperm = np.argsort(dist)
+                points = points[:, indperm]
             else:
-                indperm = arange(num)
-            if self.point_style[k] == 's':
+                indperm = np.arange(num_points)
 
-                self.axes.scatter(
-                    real(self.points[k][1][indperm]),
-                    - real(self.points[k][0][indperm]),
-                    real(self.points[k][2][indperm]),
-                    s=self.point_size[mod(k, len(self.point_size))],
-                    alpha=self.point_alpha[k],
-                    edgecolor=None,
-                    zdir='z',
-                    color=self.point_color[k][0],
-                    marker=self.point_marker[mod(k, len(self.point_marker))])
+            s = self.point_size[mod(k, len(self.point_size))]
+            marker = self.point_marker[mod(k, len(self.point_marker))]
+            if colors is not None:
+                colors = [colors]
+            elif colors is None and meth in ['s', 'l']:
+                colors = self.point_default_color[mod(k, len(self.point_default_color))]
+            elif colors is None and meth == 'm':
+                colors = np.tile(self.point_default_color,
+                                 np.ceil(num_points/len(self.point_default_color)
+                                         ).astype(int))
+                colors = colors[indperm]
 
-            elif self.point_style[k] == 'm':
-                pnt_colors = array(self.point_color *
-                                   int(ceil(num / float(
-                                       len(self.point_color)))))
-
-                marker = self.point_marker[mod(k, len(self.point_marker))]
-                s = self.point_size[mod(k, len(self.point_size))]
-                self.axes.scatter(real(self.points[k][1][indperm]),
-                                  -real(self.points[k][0][indperm]),
-                                  real(self.points[k][2][indperm]),
-                                  s=s, alpha=self.point_alpha[k],
-                                  edgecolor=None, zdir='z',
-                                  color=self.point_color[k][0], marker=marker)
+            if self.point_style[k] in ['s', 'm']:
+                self.axes.scatter(np.real(points[1]),
+                                  -np.real(points[0]),
+                                  np.real(points[2]),
+                                  s=s,
+                                  marker=marker,
+                                  color=colors,
+                                  alpha=self.point_alpha[k],
+                                  edgecolor=None,
+                                  zdir='z',
+                                  )
 
             elif self.point_style[k] == 'l':
-                self.axes.plot(real(self.points[k][1]),
-                               -real(self.points[k][0]),
-                               real(self.points[k][2]),
-                               alpha=self.point_alpha[k], zdir='z',
-                               color=self.point_color[k][0])
+                self.axes.plot(np.real(points[1]),
+                               -np.real(points[0]),
+                               np.real(points[2]),
+                               color=colors,
+                               alpha=self.point_alpha[k],
+                               zdir='z',
+                               )
+
 
     def plot_annotations(self):
         # -X and Y data are switched for plotting purposes
