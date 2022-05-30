@@ -463,7 +463,7 @@ class HEOMSolver:
             self.progress_bar = progress_bar
         else:
             raise TypeError(
-                "ProgressBar (progress_bar) is not and instance of"
+                "ProgressBar (progress_bar) is not and instance of "
                 "qutip.ui.BaseProgressBar"
             )
 
