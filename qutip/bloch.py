@@ -801,15 +801,19 @@ class Bloch:
 
             s = self.point_size[mod(k, len(self.point_size))]
             marker = self.point_marker[mod(k, len(self.point_marker))]
-            if colors is not None:
-                colors = [colors]
-            elif colors is None and meth in ['s', 'l']:
-                colors = self.point_default_color[mod(k, len(self.point_default_color))]
-            elif colors is None and meth == 'm':
-                colors = np.tile(self.point_default_color,
+            user_color = self.point_color[k]
+            style = self.point_style[k]
+            if user_color is not None:
+                color = [self.point_color[k]]
+            elif user_color is None and self.point_style[k] in ['s', 'l']:
+                color = self.point_default_color[mod(k, len(self.point_default_color))]
+            elif user_color is None and style == 'm':
+                color = np.tile(self.point_default_color,
                                  np.ceil(num_points/len(self.point_default_color)
                                          ).astype(int))
-                colors = colors[indperm]
+                color = color[indperm]
+
+            print(color)
 
             if self.point_style[k] in ['s', 'm']:
                 self.axes.scatter(np.real(points[1]),
@@ -817,7 +821,7 @@ class Bloch:
                                   np.real(points[2]),
                                   s=s,
                                   marker=marker,
-                                  color=colors,
+                                  color=color,
                                   alpha=self.point_alpha[k],
                                   edgecolor=None,
                                   zdir='z',
@@ -827,7 +831,7 @@ class Bloch:
                 self.axes.plot(np.real(points[1]),
                                -np.real(points[0]),
                                np.real(points[2]),
-                               color=colors,
+                               color=color,
                                alpha=self.point_alpha[k],
                                zdir='z',
                                )
