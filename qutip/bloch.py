@@ -784,7 +784,6 @@ class Bloch:
                 self.axes.add_artist(a)
 
     def plot_points(self):
-
         # -X and Y data are switched for plotting purposes
         for k, points in enumerate(self.points):
             points = np.asarray(points)
