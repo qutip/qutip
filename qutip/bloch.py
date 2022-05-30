@@ -358,12 +358,10 @@ class Bloch:
         if meth == 's' and points.shape[1] == 1:
             points = np.append(points[:, :1], points, axis=1)
 
-
         self.point_style.append(meth)
         self.points.append(points)
         self.point_alpha.append(alpha)
         self.point_color.append(colors)
-
 
     def add_states(self, state, kind='vector', colors=None, alpha=1.0):
         """Add a state vector Qobj to Bloch sphere.
@@ -804,13 +802,14 @@ class Bloch:
             user_color = self.point_color[k]
             style = self.point_style[k]
             if user_color is not None:
-                color = self.point_color[k]
+                color = user_color
             elif user_color is None and self.point_style[k] in ['s', 'l']:
-                color = self.point_default_color[mod(k, len(self.point_default_color))]
+                color = self.point_default_color[
+                    k % len(self.point_default_color)
+                ]
             elif user_color is None and style == 'm':
-                color = np.tile(self.point_default_color,
-                                 np.ceil(num_points/len(self.point_default_color)
-                                         ).astype(int))
+                length = np.ceil(num_points/len(self.point_default_color))
+                color = np.tile(self.point_default_color, length.astype(int))
                 color = color[indperm]
 
             if self.point_style[k] in ['s', 'm']:
@@ -833,7 +832,6 @@ class Bloch:
                                alpha=self.point_alpha[k],
                                zdir='z',
                                )
-
 
     def plot_annotations(self):
         # -X and Y data are switched for plotting purposes

@@ -213,8 +213,8 @@ class TestBloch:
                 colors = point_colors[idx % len(point_colors)]
             elif colors is None and point_style == 'm':
                 colors = np.tile(point_colors,
-                                np.ceil(points.shape[1]/len(point_colors)
-                                        ).astype(int))
+                                 np.ceil(points.shape[1]/len(point_colors)
+                                         ).astype(int))
                 colors = colors[:points.shape[1]]
             point_size = point_sizes[idx % len(point_sizes)]
             point_marker = point_markers[idx % len(point_markers)]
