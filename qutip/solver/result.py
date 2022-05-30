@@ -1,6 +1,6 @@
 """ Class for solve function results"""
 import numpy as np
-from ..core import Qobj, QobjEvo, spre, issuper, expect
+from ..core import Qobj, QobjEvo, expect
 
 __all__ = ["Result", "MultiTrajResult", "MultiTrajResultAveraged"]
 
@@ -294,8 +294,8 @@ class BaseResult:
             )
         if self.times:
             lines.extend([
-                f"  Times:",
-                f"    from {self.time[0]}",
+                "  Times:",
+                f"    from {self.times[0]}",
                 f"    to {self.times[-1]}",
                 f"    in {len(self.times)} steps",
             ])
@@ -323,7 +323,6 @@ class Result(BaseResult):
 
     def _pre_normalize(self, t, state):
         return state * (1 / state.norm())
-
 
 
 class MultiTrajResult:
