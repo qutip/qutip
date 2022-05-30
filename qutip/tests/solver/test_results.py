@@ -1,16 +1,18 @@
-from qutip.solver.result import (
-    BaseResult, Result, MultiTrajResult, MultiTrajResultAveraged
-)
-from qutip.solver import SolverResultsOptions
-import qutip
 import numpy as np
+
+import qutip
+from qutip.solver import SolverResultsOptions
+from qutip.solver.result import (
+    BaseResult, Result, MultiTrajResult, MultiTrajResultAveraged,
+)
+
 
 class TestBaseResult:
     def test_states(self):
         N = 10
         res = BaseResult([], SolverResultsOptions())
         for i in range(N):
-            res.add(i, qutip.basis(N,i))
+            res.add(i, qutip.basis(N, i))
         for i in range(N):
             assert res.states[i] == qutip.basis(N, i)
         assert res.final_state == qutip.basis(N, N-1)
@@ -25,7 +27,7 @@ class TestBaseResult:
                 store_states=False),
         )
         for i in range(N):
-            res.add(i, qutip.basis(N,i))
+            res.add(i, qutip.basis(N, i))
         np.testing.assert_allclose(res.expect[0], np.arange(N))
         np.testing.assert_allclose(res.expect[1], np.ones(N))
         assert res.final_state is None
@@ -35,15 +37,19 @@ class TestBaseResult:
 class TestResult:
     def test_normalize(self):
         N = 10
-        res = Result([qutip.num(N), qutip.qeye(N)],
-                     SolverResultsOptions(store_states=True,
-                                                       normalize_output=True),
-                     rhs_is_super=False, state_is_oper=False)
+        res = Result(
+            [qutip.num(N), qutip.qeye(N)],
+            SolverResultsOptions(
+                store_states=True,
+                normalize_output=True,
+            ),
+            rhs_is_super=False, state_is_oper=False,
+        )
         for i in range(N):
-            res.add(i, qutip.basis(N,i)/2)
+            res.add(i, qutip.basis(N, i)/2)
         np.testing.assert_allclose(res.expect[0], np.arange(N))
         np.testing.assert_allclose(res.expect[1], np.ones(N))
-        assert res.final_state == qutip.basis(N, N-1)
+        assert res.final_state == qutip.basis(N, N - 1)
         for i in range(N):
             assert res.states[i] == qutip.basis(N, i)
 
@@ -53,14 +59,13 @@ class TestMultiTrajResult:
         N = 10
         e_ops = [qutip.num(N), qutip.qeye(N)]
         m_res = MultiTrajResult(3)
-        opt = SolverResultsOptions(store_states=True,
-                                                normalize_output=True)
+        opt = SolverResultsOptions(store_states=True, normalize_output=True)
         for _ in range(5):
             res = Result(e_ops, opt, rhs_is_super=False, state_is_oper=False)
             res.collapse = []
             for i in range(N):
                 res.add(i, qutip.basis(N, i) / 2)
-                res.collapse.append((i+0.5, i%2))
+                res.collapse.append((i+0.5, i % 2))
             m_res.add(res)
 
         np.testing.assert_allclose(m_res.average_expect[0], np.arange(N))
@@ -68,11 +73,11 @@ class TestMultiTrajResult:
         np.testing.assert_allclose(m_res.std_expect[1], np.zeros(N))
         for i in range(N):
             assert m_res.average_states[i] == qutip.fock_dm(N, i)
-        assert m_res.average_final_state == qutip.fock_dm(N, N-1)
+        assert m_res.average_final_state == qutip.fock_dm(N, N - 1)
         assert len(m_res.runs_states) == 5
         assert len(m_res.runs_states[0]) == N
         for i in range(5):
-            assert m_res.runs_final_states[i] == qutip.basis(N, N-1)
+            assert m_res.runs_final_states[i] == qutip.basis(N, N - 1)
         assert np.all(np.array(m_res.col_which) < 2)
 
 
@@ -81,14 +86,16 @@ class TestMultiTrajResultAveraged:
         N = 10
         e_ops = [qutip.num(N), qutip.qeye(N)]
         m_res = MultiTrajResultAveraged(3)
-        opt = SolverResultsOptions(store_final_state=True,
-                                                normalize_output=True)
+        opt = SolverResultsOptions(
+            store_final_state=True,
+            normalize_output=True,
+        )
         for _ in range(5):
             res = Result(e_ops, opt, rhs_is_super=False, state_is_oper=False)
             res.collapse = []
             for i in range(N):
                 res.add(i, qutip.basis(N, i) / 2)
-                res.collapse.append((i+0.5, i%2))
+                res.collapse.append((i + 0.5, i % 2))
             m_res.add(res)
 
         np.testing.assert_allclose(m_res.average_expect[0], np.arange(N))
