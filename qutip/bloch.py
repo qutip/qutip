@@ -802,11 +802,11 @@ class Bloch:
             style = self.point_style[k]
             if user_color is not None:
                 color = user_color
-            elif user_color is None and self.point_style[k] in ['s', 'l']:
+            elif self.point_style[k] in ['s', 'l']:
                 color = self.point_default_color[
                     k % len(self.point_default_color)
                 ]
-            elif user_color is None and style == 'm':
+            elif style == 'm':
                 length = np.ceil(num_points/len(self.point_default_color))
                 color = np.tile(self.point_default_color, length.astype(int))
                 color = color[indperm]
