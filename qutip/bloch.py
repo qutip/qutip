@@ -798,15 +798,14 @@ class Bloch:
 
             s = self.point_size[mod(k, len(self.point_size))]
             marker = self.point_marker[mod(k, len(self.point_marker))]
-            user_color = self.point_color[k]
             style = self.point_style[k]
-            if user_color is not None:
-                color = user_color
+            if self.point_color[k] is not None:
+                color = self.point_color[k]
             elif self.point_style[k] in ['s', 'l']:
                 color = self.point_default_color[
                     k % len(self.point_default_color)
                 ]
-            elif style == 'm':
+            elif self.point_style[k] == 'm':
                 length = np.ceil(num_points/len(self.point_default_color))
                 color = np.tile(self.point_default_color, length.astype(int))
                 color = color[indperm]
