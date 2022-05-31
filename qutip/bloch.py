@@ -3,7 +3,7 @@ __all__ = ['Bloch']
 import os
 
 import numpy as np
-from numpy import (outer, cos, sin, ones, size)
+from numpy import (outer, cos, sin, ones)
 
 from packaging.version import parse as parse_version
 
@@ -685,7 +685,7 @@ class Bloch:
         v = np.linspace(0, np.pi, 25)
         x = outer(cos(u), sin(v))
         y = outer(sin(u), sin(v))
-        z = outer(ones(size(u)), cos(v))
+        z = outer(ones(np.size(u)), cos(v))
         self.axes.plot_surface(x, y, z, rstride=2, cstride=2,
                                color=self.sphere_color, linewidth=0,
                                alpha=self.sphere_alpha)
@@ -705,7 +705,7 @@ class Bloch:
         v = np.linspace(0, np.pi, 25)
         x = outer(cos(u), sin(v))
         y = outer(sin(u), sin(v))
-        z = outer(ones(size(u)), cos(v))
+        z = outer(ones(np.size(u)), cos(v))
         self.axes.plot_surface(x, y, z, rstride=2, cstride=2,
                                color=self.sphere_color, linewidth=0,
                                alpha=self.sphere_alpha)
