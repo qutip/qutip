@@ -43,7 +43,7 @@ class Solver:
         self.options = options
         _time_start = time()
         self._integrator = self._get_integrator()
-        self._init_time = time() - _time_start
+        self._init_integrator_time = time() - _time_start
         self._state_metadata = {}
         self.stats = self._initialize_stats()
 
@@ -52,7 +52,7 @@ class Solver:
         """
         return {
             "method": self._integrator.name,
-            "init time": self._init_time,
+            "init time": self._init_integrator_time,
             "preparation time": 0.0,
             "run time": 0.0,
         }
