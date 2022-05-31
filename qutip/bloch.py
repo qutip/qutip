@@ -2,9 +2,8 @@ __all__ = ['Bloch']
 
 import os
 
-from numpy import (ndarray, array, linspace, pi, outer, cos, sin, ones, size,
-                   sqrt, real, mod, append, ceil, arange)
 import numpy as np
+from numpy import (outer, cos, sin, ones, size)
 
 from packaging.version import parse as parse_version
 
@@ -382,7 +381,7 @@ class Bloch:
         """
         if isinstance(state, Qobj):
             state = [state]
-        if not isinstance(colors, (list, ndarray)) and colors is not None:
+        if not isinstance(colors, (list, np.ndarray)) and colors is not None:
             colors = [colors]
 
         for k, st in enumerate(state):
@@ -416,7 +415,7 @@ class Bloch:
             Transparency value for the vectors. Values between 0 and 1.
 
         """
-        if isinstance(vectors[0], (list, tuple, ndarray)):
+        if isinstance(vectors[0], (list, tuple, np.ndarray)):
             if colors is not None:
                 for k, vec in enumerate(vectors):
                     self.vectors.append(vec)
@@ -424,7 +423,8 @@ class Bloch:
                     self.vector_alpha.append(alpha)
             else:
                 for vec in vectors:
-                    k = mod(len(self.vectors), len(self.vector_default_color))
+                    k = np.mod(len(self.vectors),
+                               len(self.vector_default_color))
                     color = self.vector_default_color[k]
                     self.vector_color.append(color)
                     self.vectors.append(vec)
@@ -433,7 +433,7 @@ class Bloch:
             if colors is not None:
                 self.vector_color.append(colors)
             else:
-                k = mod(len(self.vectors), len(self.vector_default_color))
+                k = np.mod(len(self.vectors), len(self.vector_default_color))
                 color = self.vector_default_color[k]
                 self.vector_color.append(color)
             self.vectors.append(vectors)
@@ -466,7 +466,7 @@ class Bloch:
             vec = [expect(sigmax(), state_or_vector),
                    expect(sigmay(), state_or_vector),
                    expect(sigmaz(), state_or_vector)]
-        elif isinstance(state_or_vector, (list, ndarray, tuple)) \
+        elif isinstance(state_or_vector, (list, np.ndarray, tuple)) \
                 and len(state_or_vector) == 3:
             vec = state_or_vector
         else:
@@ -681,8 +681,8 @@ class Bloch:
 
     def plot_back(self):
         # back half of sphere
-        u = linspace(0, pi, 25)
-        v = linspace(0, pi, 25)
+        u = np.linspace(0, np.pi, 25)
+        v = np.linspace(0, np.pi, 25)
         x = outer(cos(u), sin(v))
         y = outer(sin(u), sin(v))
         z = outer(ones(size(u)), cos(v))
@@ -701,8 +701,8 @@ class Bloch:
 
     def plot_front(self):
         # front half of sphere
-        u = linspace(-pi, 0, 25)
-        v = linspace(0, pi, 25)
+        u = np.linspace(-np.pi, 0, 25)
+        v = np.linspace(0, np.pi, 25)
         x = outer(cos(u), sin(v))
         y = outer(sin(u), sin(v))
         z = outer(ones(size(u)), cos(v))
@@ -723,7 +723,7 @@ class Bloch:
 
     def plot_axes(self):
         # axes
-        span = linspace(-1.0, 1.0, 2)
+        span = np.linspace(-1.0, 1.0, 2)
         self.axes.plot(span, 0 * span, zs=0, zdir='z', label='X',
                        lw=self.frame_width, color=self.frame_color)
         self.axes.plot(0 * span, span, zs=0, zdir='z', label='Y',
@@ -760,11 +760,11 @@ class Bloch:
         # -X and Y data are switched for plotting purposes
         for k in range(len(self.vectors)):
 
-            xs3d = self.vectors[k][1] * array([0, 1])
-            ys3d = -self.vectors[k][0] * array([0, 1])
-            zs3d = self.vectors[k][2] * array([0, 1])
+            xs3d = self.vectors[k][1] * np.array([0, 1])
+            ys3d = -self.vectors[k][0] * np.array([0, 1])
+            zs3d = self.vectors[k][2] * np.array([0, 1])
 
-            color = self.vector_color[mod(k, len(self.vector_color))]
+            color = self.vector_color[np.mod(k, len(self.vector_color))]
             alpha = self.vector_alpha[k]
 
             if self.vector_style == '':
@@ -796,8 +796,8 @@ class Bloch:
             else:
                 indperm = np.arange(num_points)
 
-            s = self.point_size[mod(k, len(self.point_size))]
-            marker = self.point_marker[mod(k, len(self.point_marker))]
+            s = self.point_size[np.mod(k, len(self.point_size))]
+            marker = self.point_marker[np.mod(k, len(self.point_marker))]
             style = self.point_style[k]
             if self.point_color[k] is not None:
                 color = self.point_color[k]
