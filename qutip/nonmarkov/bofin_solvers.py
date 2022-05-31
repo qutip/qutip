@@ -457,8 +457,15 @@ class HEOMSolver:
 
         if progress_bar is None:
             self.progress_bar = BaseProgressBar()
-        if progress_bar is True:
+        elif progress_bar is True:
             self.progress_bar = TextProgressBar()
+        elif isinstance(progress_bar, BaseProgressBar):
+            self.progress_bar = progress_bar
+        else:
+            raise TypeError(
+                "progress_bar is not an instance of "
+                "qutip.ui.BaseProgressBar"
+            )
 
         self._configure_solver()
 
@@ -938,7 +945,7 @@ class HEOMSolver:
                 solver.y[:n ** 2].reshape(rho_shape, order='F'),
                 dims=rho_dims,
             )
-            if self.options.store_states:
+            if self.options.store_states or not e_ops:
                 output.states.append(rho)
             if ado_return or e_ops_callables:
                 ado_state = HierarchyADOsState(
@@ -1024,11 +1031,6 @@ class HSolverDL(HEOMSolver):
         Use boundary cut off approximation. If true, the Matsubara
         terminator is added to the system Liouvillian (and H_sys is
         promoted to a Liouvillian if it was a Hamiltonian).
-
-    progress_bar : None, True or :class:`BaseProgressBar`
-        Optional instance of BaseProgressBar, or a subclass thereof, for
-        showing the progress of the solver. If True, an instance of
-        :class:`TextProgressBar` is used instead.
 
     options : :class:`qutip.solver.Options`
         Generic solver options.
