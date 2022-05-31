@@ -6,29 +6,10 @@ import numpy as np
 from qutip import data as _data
 
 
-__all__ = ['IntegratorVern', 'IntegratorDiag']
+__all__ = ['IntegratorVern7', 'IntegratorVern9', 'IntegratorDiag']
 
 
-class OdeVernOptions(QutipOptions):
-    """
-    Options for integration using ``scipy.integrate.ode`` using ``adams``
-    method. Supported options are:
-        atol, rtol, nsteps, order, first_step, max_step, min_step
-
-    See scipy documentation for more information.
-    """
-    {
-        'atol': 1e-8,
-        'rtol': 1e-6,
-        'nsteps': 1000,
-        'first_step': 0,
-        'max_step': 0,
-        'min_step': 0,
-        'interpolate': True,
-    }
-
-
-class IntegratorVern(Integrator):
+class IntegratorVern7(Integrator):
     """
     QuTiP's implementation of Verner's "most efficient" Runge-Kutta method
     of order 7 and 9. These are Runge-Kutta methods with variable steps and
@@ -41,13 +22,24 @@ class IntegratorVern(Integrator):
     See http://people.math.sfu.ca/~jverner/ for a detailed description of the
     methods.
     """
-    integrator_options = OdeVernOptions
+    integrator_options = {
+        'atol': 1e-8,
+        'rtol': 1e-6,
+        'nsteps': 1000,
+        'first_step': 0,
+        'max_step': 0,
+        'min_step': 0,
+        'interpolate': True,
+    }
     support_time_dependant = True
     supports_blackbox = True
     method = 'vern7'
 
     def _prepare(self):
-        self._ode_solver = Explicit_RungeKutta(self.system, method=self.method, **self.options.options)
+        self._ode_solver = Explicit_RungeKutta(
+            self.system, method=self.method,
+            **self.options.options
+        )
         self.name = self.method
 
     def get_state(self, copy=True):
@@ -74,16 +66,17 @@ class IntegratorVern(Integrator):
         raise IntegratorException(self._ode_solver.status_message())
 
 
-class OdeDiagOptions(QutipOptions):
-    """
-    Options for integration using ``scipy.integrate.ode`` using ``adams``
-    method. Supported options are:
-        atol, rtol, nsteps, order, first_step, max_step, min_step
-
-    See scipy documentation for more information.
-    """
-    default = {
+class IntegratorVern9(IntegratorVern7):
+    integrator_options = {
+        'atol': 1e-8,
+        'rtol': 1e-6,
+        'nsteps': 1000,
+        'first_step': 0,
+        'max_step': 0,
+        'min_step': 0,
+        'interpolate': True,
     }
+    method = 'vern9'
 
 
 class IntegratorDiag(Integrator):
@@ -92,8 +85,7 @@ class IntegratorDiag(Integrator):
     analytically. It can only solve constant system and has a long preparation
     time, but the integration is very fast.
     """
-
-    integrator_options = OdeDiagOptions
+    integrator_options = {}
     support_time_dependant = False
     supports_blackbox = False
 
@@ -135,6 +127,6 @@ class IntegratorDiag(Integrator):
         self._is_set = True
 
 
-Solver.add_integrator(IntegratorVern, OdeVernOptions, 'vern7')
-# Solver.add_integrator(IntegratorVern, OdeVernOptions, 'vern9')
-Solver.add_integrator(IntegratorDiag, OdeDiagOptions, 'diag')
+Solver.add_integrator(IntegratorVern7, 'vern7')
+Solver.add_integrator(IntegratorVern9, 'vern9')
+Solver.add_integrator(IntegratorDiag, 'diag')

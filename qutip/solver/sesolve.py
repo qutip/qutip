@@ -2,79 +2,13 @@
 This module provides solvers for the unitary Schrodinger equation.
 """
 
-__all__ = ['sesolve', 'SeSolver', 'SeOptions']
+__all__ = ['sesolve', 'SeSolver']
 
 import numpy as np
 from time import time
 from .. import Qobj, QobjEvo
 from .solver_base import Solver
 from .options import SolverOptions
-
-
-class SeOptions(SolverOptions):
-    """
-    Class of options for :func:`sesolve` and :class:`SeSolver`. Options can be
-    specified either as arguments to the constructor::
-
-        opts = SeOptions(progress_bar='enhanced', ...)
-
-    or by changing the class attributes after creation::
-
-        opts = SeOptions()
-        opts['progress_bar'] = 'enhanced'
-
-    Returns options class to be used as options in evolution solvers.
-
-    The default can be changed by changing the key of the class::
-
-        SeOptions['progress_bar'] = 'enhanced'
-
-    Options
-    -------
-    store_final_state : bool {False, True}
-        Whether or not to store the final state of the evolution in the
-        result class.
-
-    store_states : bool {False, True, None}
-        Whether or not to store the state vectors or density matrices.
-        On `None` the states will be saved if no expectation operators are
-        given.
-
-    normalize_output : str {"", "ket", "all"}
-        normalize output state to hide ODE numerical errors.
-        "all" will normalize both ket and dm.
-        On "ket", only 'ket' output are normalized.
-        Leave empty for no normalization.
-
-    progress_bar : str {'text', 'enhanced', 'tqdm', ''}
-        How to present the solver progress.
-        True will result in 'text'.
-        'tqdm' uses the python module of the same name and raise an error if
-        not installed.
-        Empty string or False will disable the bar.
-
-    progress_kwargs : dict
-        kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
-
-    operator_data_type: str {""}
-        Data type of the operator to used during the ODE evolution, such as
-        'CSR' or 'Dense'. Use an empty string to keep the input state type.
-
-    state_data_type: str {""}
-        Name of the data type of the state used during the ODE evolution.
-        Use an empty string to keep the input state type. Some integrator can
-        only work with specific data type and will ignore this options.
-    """
-    default = {
-        "progress_bar": "text",
-        "progress_kwargs": {"chunk_size":10},
-        "store_final_state": False,
-        "store_states": None,
-        "normalize_output": "ket",
-        "operator_data_type": "",
-        "state_data_type": "",
-        'method': 'adams',
-    }
 
 
 def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None):
@@ -163,7 +97,8 @@ class SeSolver(Solver):
     """
     name = "sesolve"
     _avail_integrators = {}
-    optionsclass = SeOptions
+    solver_options = 
+
 
     def __init__(self, H, *, options=None):
         _time_start = time()

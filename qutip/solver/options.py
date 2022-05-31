@@ -3,6 +3,47 @@ __all__ = ['SolverOptions']
 from ..optionsclass import QutipOptions
 
 
+options_docstrings = {
+    "store_final_state": (
+        "bool", """
+        Whether or not to store the final state of the evolution in the
+        result class."""
+    ),
+
+    "store_states": (
+        "bool, None", """
+        Whether or not to store the state vectors or density matrices.
+        On `None` the states will be saved if no expectation operators are
+        given."""
+    ),
+
+    "normalize_output": (
+        "bool", """
+        Normalize output state to hide ODE numerical errors.
+        "all" will normalize both ket and dm.
+        On "ket", only 'ket' output are normalized.
+        Leave empty for no normalization."""
+    ),
+
+    "progress_bar": (
+        "str {'text', 'enhanced', 'tqdm', ''}", """
+        How to present the solver progress.
+        'tqdm' uses the python module of the same name and raise an error if
+        not installed. Empty string or False will disable the bar."""
+    ),
+
+    "progress_kwargs": (
+        "dict", """
+        kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`."""
+    ),
+
+    "method": (
+        "dict", """
+        kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`."""
+    ),
+}
+
+
 class Options():
     """
     General class of options for any solver. Options can be specified either as

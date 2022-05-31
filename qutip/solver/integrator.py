@@ -57,7 +57,7 @@ class Integrator:
         included here will be supported by the :cls:SolverOdeOptions.
     """
     # Used options in qutip.SolverOdeOptions
-    integrator_options = None
+    integrator_options = {}
     # Can evolve time dependent system
     support_time_dependant = None
     # Whether the integrator used the system QobjEvo as a blackbox
@@ -67,7 +67,8 @@ class Integrator:
 
     def __init__(self, system, options):
         self.system = system
-        self.options = self.integrator_options(options)
+        self._options = self.integrator_options.copy()
+        self.options = options
         self._is_set = False  # get_state can be used and return a valid state.
         self._back = (np.inf, None)
         self._prepare()
@@ -215,3 +216,23 @@ class Integrator:
         """
         self.system.arguments(args)
         self.reset()
+
+    @property
+    def options(self):
+        return self._options.copy()
+
+    @options.setter
+    def options(self, new_options):
+        self._options = {
+            **self._options,
+            **{
+               key: new_options[key]
+               for key in self.integrator_options.keys()
+               if key in new_options and new_options[key] is not None
+            }
+        }
+        if self._is_set:
+            state = self.get_state()
+        self._prepare()
+        if self._is_set:
+            self.set_state(*state)

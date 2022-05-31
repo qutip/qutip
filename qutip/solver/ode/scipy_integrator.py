@@ -5,10 +5,6 @@ __all__ = [
     'IntegratorScipyBDF',
     'IntegratorScipyDop853',
     'IntegratorScipylsoda',
-    'OdeAdamsOptions',
-    'OdeBdfOptions',
-    'OdeLsodaOptions',
-    'OdeDop853Options'
 ]
 
 import numpy as np
@@ -22,15 +18,13 @@ from ..solver_base import Solver
 import warnings
 
 
-class OdeAdamsOptions(QutipOptions):
+class IntegratorScipyAdams(Integrator):
     """
-    Options for integration using ``scipy.integrate.ode`` using ``adams``
-    method. Supported options are:
-        atol, rtol, nsteps, order, first_step, max_step, min_step
-
-    See scipy documentation for more information.
+    Integrator using Scipy `ode` with zvode integrator using adams method.
+    Ordinary Differential Equation solver by netlib
+    (http://www.netlib.org/odepack).
     """
-    default = {
+    integrator_options = {
         'atol': 1e-8,
         'rtol': 1e-6,
         'nsteps': 2500,
@@ -39,15 +33,6 @@ class OdeAdamsOptions(QutipOptions):
         'max_step': 0,
         'min_step': 0,
     }
-
-
-class IntegratorScipyAdams(Integrator):
-    """
-    Integrator using Scipy `ode` with zvode integrator using adams method.
-    Ordinary Differential Equation solver by netlib
-    (http://www.netlib.org/odepack).
-    """
-    integrator_options = OdeAdamsOptions
     support_time_dependant = True
     supports_blackbox = True
     method = 'adams'
@@ -173,25 +158,6 @@ class IntegratorScipyAdams(Integrator):
         )
 
 
-class OdeBdfOptions(QutipOptions):
-    """
-    Options for integration using ``scipy.integrate.ode`` using ``bdf`` method.
-    Supported options are:
-        atol, rtol, nsteps, order, first_step, max_step, min_step
-
-    See scipy documentation for more information.
-    """
-    default = {
-        'atol': 1e-8,
-        'rtol': 1e-6,
-        'nsteps': 2500,
-        'order': 5,
-        'first_step': 0,
-        'max_step': 0,
-        'min_step': 0,
-    }
-
-
 class IntegratorScipyBDF(IntegratorScipyAdams):
     """
     Integrator using Scipy `ode` with zvode integrator using bdf method.
@@ -199,26 +165,14 @@ class IntegratorScipyBDF(IntegratorScipyAdams):
     (http://www.netlib.org/odepack).
     """
     method = 'bdf'
-    integrator_options = OdeBdfOptions
-
-
-class OdeDop853Options(QutipOptions):
-    """
-    Options for integration using ``scipy.integrate.ode`` using ``dop853``.
-    Supported options are:
-        atol, rtol, nsteps, first_step, max_step, ifactor, dfactor, beta
-
-    See scipy documentation for more information.
-    """
-    default = {
+    integrator_options = {
         'atol': 1e-8,
         'rtol': 1e-6,
         'nsteps': 2500,
+        'order': 5,
         'first_step': 0,
         'max_step': 0,
-        'ifactor': 6.0,
-        'dfactor': 0.3,
-        'beta': 0.0,
+        'min_step': 0,
     }
 
 
@@ -232,7 +186,17 @@ class IntegratorScipyDop853(Integrator):
     """
     support_time_dependant = True
     supports_blackbox = True
-    integrator_options = OdeDop853Options
+    integrator_options =
+    default = {
+        'atol': 1e-8,
+        'rtol': 1e-6,
+        'nsteps': 2500,
+        'first_step': 0,
+        'max_step': 0,
+        'ifactor': 6.0,
+        'dfactor': 0.3,
+        'beta': 0.0,
+    }
 
     def _prepare(self):
         """
@@ -316,15 +280,13 @@ class IntegratorScipyDop853(Integrator):
         )
 
 
-class OdeLsodaOptions(QutipOptions):
+class IntegratorScipylsoda(IntegratorScipyDop853):
     """
-    Options for integration using ``scipy.integrate.ode`` using ``lsoda``.
-    Supported options are:
-        atol, rtol, nsteps, max_order_ns, max_order_s, first_step, max_step,
-        min_step
-
-    See scipy documentation for more information.
+    Integrator using Scipy `ode` with lsoda integrator. ODE solver by netlib
+    (http://www.netlib.org/odepack) Automatically choose between 'Adams' and
+    'BDF' methods to solve both stiff and non-stiff systems.
     """
+    integrator_options =
     default = {
         'atol': 1e-8,
         'rtol': 1e-6,
@@ -335,15 +297,6 @@ class OdeLsodaOptions(QutipOptions):
         'max_step': 0.0,
         'min_step': 0.0,
     }
-
-
-class IntegratorScipylsoda(IntegratorScipyDop853):
-    """
-    Integrator using Scipy `ode` with lsoda integrator. ODE solver by netlib
-    (http://www.netlib.org/odepack) Automatically choose between 'Adams' and
-    'BDF' methods to solve both stiff and non-stiff systems.
-    """
-    integrator_options = OdeLsodaOptions
     support_time_dependant = True
     supports_blackbox = True
 
@@ -456,7 +409,7 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         )
 
 
-Solver.add_integrator(IntegratorScipyBDF, OdeBdfOptions, 'bdf')
-Solver.add_integrator(IntegratorScipyAdams, OdeAdamsOptions, 'adams')
-Solver.add_integrator(IntegratorScipyDop853, OdeDop853Options, 'dop853')
-Solver.add_integrator(IntegratorScipylsoda, OdeLsodaOptions, 'lsoda')
+Solver.add_integrator(IntegratorScipyBDF, 'bdf')
+Solver.add_integrator(IntegratorScipyAdams, 'adams')
+Solver.add_integrator(IntegratorScipyDop853, 'dop853')
+Solver.add_integrator(IntegratorScipylsoda, 'lsoda')

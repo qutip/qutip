@@ -3,7 +3,7 @@ This module provides solvers for the Lindblad master equation and von Neumann
 equation.
 """
 
-__all__ = ['brmesolve', 'BrSolver', 'BrOptions']
+__all__ = ['brmesolve', 'BrSolver']
 
 import numpy as np
 import inspect
@@ -14,72 +14,6 @@ from ..core.cy.coefficient import InterCoefficient
 from ..core import data as _data
 from .solver_base import Solver
 from .options import SolverOptions
-
-
-class BrOptions(SolverOptions):
-    """
-    Class of options for :func:`brmesolve` and :class:`BrSolver`. Options can
-    be specified either as arguments to the constructor::
-
-        opts = BrOptions(progress_bar='enhanced', ...)
-
-    or by changing the class attributes after creation::
-
-        opts = BrOptions()
-        opts['progress_bar'] = 'enhanced'
-
-    Returns options class to be used as options in evolution solvers.
-
-    The default can be changed by changing the key of the class::
-
-        BrOptions['progress_bar'] = 'enhanced'
-
-    Options
-    -------
-    store_final_state : bool {False, True}
-        Whether or not to store the final state of the evolution in the
-        result class.
-
-    store_states : bool {False, True, None}
-        Whether or not to store the state vectors or density matrices.
-        On `None` the states will be saved if no expectation operators are
-        given.
-
-    normalize_output : str {"", "ket", "all"}
-        normalize output state to hide ODE numerical errors.
-        "all" will normalize both ket and dm.
-        On "ket", only 'ket' output are normalized.
-        Leave empty for no normalization.
-
-    progress_bar : str {'text', 'enhanced', 'tqdm', ''}
-        How to present the solver progress.
-        True will result in 'text'.
-        'tqdm' uses the python module of the same name and raise an error if
-        not installed.
-        Empty string or False will disable the bar.
-
-    progress_kwargs : dict
-        kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
-
-    operator_data_type: str {""}
-        Data type of the operator to used during the ODE evolution, such as
-        'CSR' or 'Dense'. Use an empty string to keep the input state type.
-
-    state_data_type: str {""}
-        Name of the data type of the state used during the ODE evolution.
-        Use an empty string to keep the input state type. Some integrator can
-        only work with specific data type and will ignore this options.
-    """
-    default = {
-        "progress_bar": "text",
-        "progress_kwargs": {"chunk_size":10},
-        "store_final_state": False,
-        "store_states": None,
-        "normalize_output": "ket",
-        "operator_data_type": "",
-        "state_data_type": "",
-        'method': 'adams',
-    }
 
 
 def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
@@ -254,7 +188,14 @@ class BrSolver(Solver):
         Diverse diagnostic statistics of the evolution.
     """
     name = "brmesolve"
-    optionsclass = BrOptions
+    solver_options = {
+        "progress_bar": "text",
+        "progress_kwargs": {"chunk_size":10},
+        "store_final_state": False,
+        "store_states": None,
+        "normalize_output": "ket",
+        'method': 'adams',
+    }
     _avail_integrators = {}
 
     def __init__(self, H, a_ops, c_ops=None, *, sec_cutoff=0.1, options=None):

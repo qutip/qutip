@@ -21,7 +21,7 @@ class Solver:
         Right hand side of the evolution::
             d state / dt = rhs @ state
 
-    options : SolverOptions
+    options : dict
         Options for the solver
     """
     name = "generic"
@@ -31,7 +31,7 @@ class Solver:
     _avail_integrators = {}
 
     # Class of option used by the solver
-    optionsclass = SolverOptions
+    solver_option = {}
     resultclass = Result
 
     def __init__(self, rhs, *, options=None):
@@ -39,6 +39,7 @@ class Solver:
             self.rhs = QobjEvo(rhs)
         else:
             TypeError("The rhs must be a QobjEvo")
+        self._options = self.solver_option.copy()
         self.options = options
         _time_start = time()
         self._integrator = self._get_integrator()
@@ -219,17 +220,58 @@ class Solver:
 
     @property
     def options(self):
-        return self._options
+        """
+        Dictionary of options used by the solver.
+
+        Keys
+        ----
+        store_final_state: bool
+            Whether or not to store the final state of the evolution in the
+            result class.
+
+        store_states": bool, None
+            Whether or not to store the state vectors or density matrices.
+            On `None` the states will be saved if no expectation operators are
+            given.
+
+        normalize_output: bool
+            Normalize output state to hide ODE numerical errors.
+            "all" will normalize both ket and dm.
+            On "ket", only 'ket' output are normalized.
+            Leave empty for no normalization.
+
+        progress_bar: str {'text', 'enhanced', 'tqdm', ''}
+            How to present the solver progress.
+            'tqdm' uses the python module of the same name and raise an error if
+            not installed. Empty string or False will disable the bar.
+
+        progress_kwargs": dict
+            kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
+
+        method: dict
+            Which ODE integrator methods are supported.
+        """
+        return self._options.copy()
 
     @options.setter
-    def options(self, new):
-        self._options = self.optionsclass(new, _frozen=True)
+    def options(self, new_options):
+        self._options = {
+            **self._options,
+            **{
+               key: new_options[key]
+               for key in self.solver_options.keys()
+               if key in new_options and new_options[key] is not None
+            }
+        }
+        if 'method' in new_options:
+            self._integrator = self._get_integrator()
+        self._integrator.options = new_options
 
     def _argument(self, args):
         """Update the args, for the `rhs` and other operators."""
         if args:
-            self._integrator.arguments(args)
             self.rhs.arguments(args)
+            self._integrator.arguments(args)
 
     @classmethod
     def avail_integrators(cls):
