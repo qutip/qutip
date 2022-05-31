@@ -293,12 +293,10 @@ class BaseResult:
                 for k, v in self.stats.items()
             )
         if self.times:
-            lines.extend([
-                "  Times:",
-                f"    from {self.times[0]}",
-                f"    to {self.times[-1]}",
-                f"    in {len(self.times)} steps",
-            ])
+            lines.append(
+                f"  Time interval: [{self.times[0]}, {self.times[-1]}]"
+                f" ({len(self.times)} steps)"
+            )
         lines.append(f"  Number of e_ops: {len(self.e_ops)}")
         if self.states:
             lines.append("  States saved.")
