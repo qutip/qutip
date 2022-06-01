@@ -57,7 +57,7 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None):
     args : None / *dictionary*
         dictionary of parameters for time-dependent Hamiltonians
 
-    options : None / dict / :class:`SeOptions` / :class:`Options`
+    options : None / dict / :class:`Options`
         Options for the solver.
 
     Returns
@@ -87,7 +87,7 @@ class SeSolver(Solver):
         list of [:class:`Qobj`, :class:`Coefficient`] or callable that can be
         made into :class:`QobjEvo` are also accepted.
 
-    options : :class:`SolverOptions`
+    options : None / dict / :class:`Options`
         Options for the solver
 
     attributes
@@ -97,8 +97,14 @@ class SeSolver(Solver):
     """
     name = "sesolve"
     _avail_integrators = {}
-    solver_options = 
-
+    default_options = {
+        "progress_bar": "text",
+        "progress_kwargs": {"chunk_size":10},
+        "store_final_state": False,
+        "store_states": None,
+        "normalize_output": True,
+        'method': 'adams',
+    }
 
     def __init__(self, H, *, options=None):
         _time_start = time()

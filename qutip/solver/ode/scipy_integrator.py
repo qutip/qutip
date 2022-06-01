@@ -186,8 +186,7 @@ class IntegratorScipyDop853(Integrator):
     """
     support_time_dependant = True
     supports_blackbox = True
-    integrator_options =
-    default = {
+    integrator_options = {
         'atol': 1e-8,
         'rtol': 1e-6,
         'nsteps': 2500,
@@ -286,8 +285,7 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
     (http://www.netlib.org/odepack) Automatically choose between 'Adams' and
     'BDF' methods to solve both stiff and non-stiff systems.
     """
-    integrator_options =
-    default = {
+    integrator_options = {
         'atol': 1e-8,
         'rtol': 1e-6,
         'nsteps': 2500,

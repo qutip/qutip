@@ -12,7 +12,7 @@ from ..core import stack_columns, unstack_columns
 from ..core.data import to
 from .solver_base import Solver
 from .options import SolverOptions
-from .sesolve import sesolve, SeOptions
+from .sesolve import sesolve
 
 
 def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
@@ -84,7 +84,7 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
         dictionary of parameters for time-dependent Hamiltonians and
         collapse operators.
 
-    options : None / dict / :class:`Options` / :class:`Options`
+    options : None / dict / :class:`Options`
         Options for the solver.
 
     Returns
@@ -142,7 +142,7 @@ class MeSolver(Solver):
         Single collapse operator, or list of collapse operators, or a list
         of Liouvillian superoperators. None is equivalent to an empty list.
 
-    options : SolverOptions
+    options : None / dict / :class:`Options`
         Options for the solver
 
     attributes
@@ -152,12 +152,12 @@ class MeSolver(Solver):
     """
     name = "mesolve"
     _avail_integrators = {}
-    solver_options = {
+    default_options = {
         "progress_bar": "text",
         "progress_kwargs": {"chunk_size":10},
         "store_final_state": False,
         "store_states": None,
-        "normalize_output": "ket",
+        "normalize_output": False,
         'method': 'adams',
     }
 

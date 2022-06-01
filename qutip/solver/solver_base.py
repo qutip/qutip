@@ -31,7 +31,14 @@ class Solver:
     _avail_integrators = {}
 
     # Class of option used by the solver
-    solver_option = {}
+    default_options = {
+        "progress_bar": "text",
+        "progress_kwargs": {"chunk_size": 10},
+        "store_final_state": False,
+        "store_states": None,
+        "normalize_output": "ket",
+        'method': 'adams',
+    }
     resultclass = Result
 
     def __init__(self, rhs, *, options=None):
@@ -82,10 +89,16 @@ class Solver:
         Retore the Qobj state from the it's data.
         """
         if self._state_metadata['dims'] == self.rhs.dims[1]:
-            return Qobj(unstack_columns(state),
-                        **self._state_metadata, copy=False)
+            stateQobj = Qobj(unstack_columns(state),
+                             **self._state_metadata, copy=False)
         else:
-            return Qobj(state, **self._state_metadata, copy=copy)
+            stateQobj = Qobj(state, **self._state_metadata, copy=copy)
+
+        state_is_oper = stateQobj.dims == self.rhs.dims
+        if self._options['normalize_output'] and not state_is_oper:
+            stateQobj /= stateQobj.norm()
+
+        return stateQobj
 
     def run(self, state0, tlist, *, args=None, e_ops=None):
         """
@@ -114,9 +127,6 @@ class Solver:
             List of Qobj, QobjEvo or callable to compute the expectation
             values. Function[s] must have the signature
             f(t : float, state : Qobj) -> expect.
-
-        options : None / dict / :class:`SolverOptions` / :class:`Options`
-            Options for the solver
 
         Return
         ------
@@ -181,11 +191,6 @@ class Solver:
             The change is effective from the beginning of the interval.
             Changing ``args`` can slow the evolution.
 
-        options : Options, optional {None}
-            Update the ``options`` of the system.
-            The change is effective from the beginning of the interval.
-            Changing ``options`` can slow the evolution.
-
         copy : bool, optional {True}
             Whether to return a copy of the data or the data in the ODE solver.
 
@@ -221,10 +226,6 @@ class Solver:
     @property
     def options(self):
         """
-        Dictionary of options used by the solver.
-
-        Keys
-        ----
         store_final_state: bool
             Whether or not to store the final state of the evolution in the
             result class.
@@ -236,22 +237,25 @@ class Solver:
 
         normalize_output: bool
             Normalize output state to hide ODE numerical errors.
-            "all" will normalize both ket and dm.
-            On "ket", only 'ket' output are normalized.
-            Leave empty for no normalization.
 
         progress_bar: str {'text', 'enhanced', 'tqdm', ''}
             How to present the solver progress.
             'tqdm' uses the python module of the same name and raise an error if
             not installed. Empty string or False will disable the bar.
 
-        progress_kwargs": dict
+        progress_kwargs: dict
             kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
 
-        method: dict
+        method: str
             Which ODE integrator methods are supported.
         """
-        return self._options.copy()
+        # Since we need to react when values we are passing a immutable map.
+        # ToDo: Make a custom dict-like class that can ve updated.
+        integrator_options = self._integrator.options._asdict()
+        return namedtuple("Options",
+            self._options.keys() & integrator_options.keys())(
+                **self._options, **integrator_options
+            )
 
     @options.setter
     def options(self, new_options):
@@ -263,7 +267,7 @@ class Solver:
                if key in new_options and new_options[key] is not None
             }
         }
-        if 'method' in new_options:
+        if 'method' in new_options and self._integrator is not None:
             self._integrator = self._get_integrator()
         self._integrator.options = new_options
 
@@ -290,7 +294,7 @@ class Solver:
         return options
 
     @classmethod
-    def add_integrator(cls, integrator, optioncls, key):
+    def add_integrator(cls, integrator, key):
         """
         Register an integrator.
 
@@ -307,5 +311,3 @@ class Solver:
                             " of `qutip.solver.Integrator`")
 
         cls._avail_integrators[key] = integrator
-        cls.optionsclass._ode_options[key] = optioncls
-        Options._add_options(optioncls)

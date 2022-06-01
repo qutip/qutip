@@ -2,51 +2,12 @@ __all__ = ['SolverOptions']
 
 from ..optionsclass import QutipOptions
 
-
-options_docstrings = {
-    "store_final_state": (
-        "bool", """
-        Whether or not to store the final state of the evolution in the
-        result class."""
-    ),
-
-    "store_states": (
-        "bool, None", """
-        Whether or not to store the state vectors or density matrices.
-        On `None` the states will be saved if no expectation operators are
-        given."""
-    ),
-
-    "normalize_output": (
-        "bool", """
-        Normalize output state to hide ODE numerical errors.
-        "all" will normalize both ket and dm.
-        On "ket", only 'ket' output are normalized.
-        Leave empty for no normalization."""
-    ),
-
-    "progress_bar": (
-        "str {'text', 'enhanced', 'tqdm', ''}", """
-        How to present the solver progress.
-        'tqdm' uses the python module of the same name and raise an error if
-        not installed. Empty string or False will disable the bar."""
-    ),
-
-    "progress_kwargs": (
-        "dict", """
-        kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`."""
-    ),
-
-    "method": (
-        "dict", """
-        kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`."""
-    ),
-}
+known_solver = {}
 
 
 class Options():
     """
-    General class of options for any solver. Options can be specified either as
+    General class of options for solvers. Options can be specified either as
     arguments to the constructor::
 
         opts = Options(progress_bar='enhanced', ...)
@@ -55,61 +16,35 @@ class Options():
 
         opts = Options()
         opts['progress_bar'] = 'enhanced'
-
-    Only the most commonly used options are listed here. See the options class
-    matching the solver, such as ``McOptions``, for a full list of supported
-    parameters.
-
-    Options
-    -------
-    method : str {'adams', 'bdf', 'dop853', 'lsoda', ...}
-        Name of the algorithm to use to solve the differential equations ot the
-        system studied.
-
-    atol : float
-        Absolute tolerance.
-
-    rtol : float
-        Relative tolerance.
-
-    store_final_state : bool
-        Whether or not to store the final state of the evolution in the
-        result class.
-
-    store_states : bool
-        Whether or not to store the state vectors or density matrices.
-        On `None` the states will be saved if no expectation operators are
-        given.
-
-    normalize_output : str
-        normalize output state to hide ODE numerical errors.
-        "all" will normalize both ket and dm.
-        On "ket", only 'ket' output are normalized.
-        Leave empty for no normalization.
-
-    progress_bar : str
-        How to present the solver progress.
-        True will result in 'text'.
-        'tqdm' uses the python module of the same name and raise an error if
-        not installed.
-        Empty string or False will disable the bar.
-
-    progress_kwargs : dict
-        kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
     """
-    all_options = set()
+    supported_options = set()
 
-    def __init__(self, base=None, **options):
-        if isinstance(base, dict):
-            options.update(base)
-        elif isinstance(base, SolverOptions):
-            options.update(base.options)
-            options.update(base.ode.options)
-        elif isinstance(base, (QutipOptions, Options)):
-            options.update(base.options)
-        self.options = {}
-        for key in options:
-            self[key] = options[key]
+    def __init__(self, solver=None, method=None, **kwargs):
+        _solver_options = {}
+        if solver:
+            _solver_options = known_solver[solver].default_options
+            method = method or _solver_options['method']
+        _integrator_options
+        if method:
+            _integrator_options = known_solver[solver].default_options
+
+    def _get_solver_options(self, solver):
+        if solver:
+            opt = known_solver[solver].default_options
+            doc = known_solver[solver].options.__doc__
+        else:
+            opt = {}
+            doc = ""
+        return opt, doc
+
+    def _get_integrator_options(self, solver):
+        if solver:
+            opt = known_solver[solver].default_options
+            doc = known_solver[solver].options.__doc__
+        else:
+            opt = {}
+            doc = ""
+        return opt, doc
 
     def __setitem__(self, key, value):
         if key in self.all_options:

@@ -86,7 +86,7 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         Cutoff for secular approximation. Use ``-1`` if secular approximation
         is not used when evaluating bath-coupling terms.
 
-    options : None / dict / :class:`BrOptions` / :class:`Options`
+    options : None / dict / :class:`Options`
         Options for the solver.
 
     Returns
@@ -131,9 +131,9 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         else:
             raise TypeError("a_ops's spectra not known")
 
-    solver = BrSolver(
-        H, new_a_ops, c_ops, options=options, sec_cutoff=sec_cutoff,
-    )
+    options['sec_cutoff'] = sec_cutoff
+
+    solver = BrSolver(H, new_a_ops, c_ops, options=options)
 
     return solver.run(psi0, tlist, e_ops=e_ops)
 
@@ -175,12 +175,8 @@ class BrSolver(Solver):
         Single collapse operator, or list of collapse operators, or a list
         of Lindblad dissipator. None is equivalent to an empty list.
 
-    options : SolverOptions
+    options : None / dict / :class:`Options`
         Options for the solver
-
-    sec_cutoff : float {0.1}
-        Cutoff for secular approximation. Use ``-1`` if secular approximation
-        is not used when evaluating bath-coupling terms.
 
     attributes
     ----------
@@ -188,20 +184,23 @@ class BrSolver(Solver):
         Diverse diagnostic statistics of the evolution.
     """
     name = "brmesolve"
-    solver_options = {
+    default_options = {
         "progress_bar": "text",
         "progress_kwargs": {"chunk_size":10},
         "store_final_state": False,
         "store_states": None,
-        "normalize_output": "ket",
+        "normalize_output": False,
         'method': 'adams',
+        'tensor_type': 'sparse',
+        'sparse_eigensolver': False,
+        'sec_cutoff': 0.1,
     }
     _avail_integrators = {}
 
-    def __init__(self, H, a_ops, c_ops=None, *, sec_cutoff=0.1, options=None):
+    def __init__(self, H, a_ops, c_ops=None, *, options=None):
         _time_start = time()
 
-        options = BrOptions(options)
+        self.options = options
 
         if not isinstance(H, (Qobj, QobjEvo)):
             raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
@@ -211,17 +210,8 @@ class BrSolver(Solver):
             if not isinstance(c_op, (Qobj, QobjEvo)):
                 raise TypeError("All `c_ops` must be a Qobj or QobjEvo")
 
-        tensor_type = {
-            '' : 'sparse',
-            'csr' : 'sparse',
-            'CSR' : 'sparse',
-            'Dense' : 'dense',
-            'dense' : 'dense',
-        }.get(options['operator_data_type'], 'data')
-
-        rhs = bloch_redfield_tensor(
-            H, a_ops, c_ops, sec_cutoff=sec_cutoff,
-            fock_basis=True, sparse_eigensolver=False, br_dtype=tensor_type)
+        self._system = H, a_ops, c_ops
+        rhs = self._prepare_rhs()
         super().__init__(rhs, options=options)
 
         self.stats['solver'] = "Bloch Redfield Equation Evolution"
@@ -229,3 +219,80 @@ class BrSolver(Solver):
         self.stats['num_a_ops'] = len(a_ops)
         self.stats["preparation time"] = time() - _time_start
         self.stats["run time"] = 0
+
+    def _prepare_rhs(self):
+        return bloch_redfield_tensor(
+            *self._system,
+            fock_basis=True,
+            sec_cutoff=self.options['sec_cutoff'],
+            sparse_eigensolver=self.options['sparse_eigensolver'],
+            br_dtype=self.options['tensor_type']
+        )
+
+    @property
+    def options(self):
+        """
+        store_final_state: bool
+            Whether or not to store the final state of the evolution in the
+            result class.
+
+        store_states": bool, None
+            Whether or not to store the state vectors or density matrices.
+            On `None` the states will be saved if no expectation operators are
+            given.
+
+        normalize_output: bool
+            Normalize output state to hide ODE numerical errors.
+
+        progress_bar: str {'text', 'enhanced', 'tqdm', ''}
+            How to present the solver progress.
+            'tqdm' uses the python module of the same name and raise an error if
+            not installed. Empty string or False will disable the bar.
+
+        progress_kwargs: dict
+            kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
+
+        tensor_type: str ['sparse', 'dense', 'data']
+            Which data type to use when computing the brtensor.
+            With a cutoff 'sparse' is usually the most efficient.
+
+        sparse_eigensolver: bool {False}
+            Whether to use the sparse eigensolver
+
+        sec_cutoff : float {0.1}
+            Cutoff for secular approximation. Use ``-1`` if secular
+            approximation is not used when evaluating bath-coupling terms.
+
+        method: str
+            Which ODE integrator methods are supported.
+        """
+        # Since we need to react when values we are passing a immutable map.
+        # ToDo: Make a custom dict-like class that can ve updated.
+        integrator_options = self._integrator.options._asdict()
+        return namedtuple("Options",
+            self._options.keys() & integrator_options.keys())(
+                **self._options, **integrator_options
+            )
+
+    @options.setter
+    def options(self, new_options):
+        self._options = {
+            **self._options,
+            **{
+               key: new_options[key]
+               for key in self.solver_options.keys()
+               if key in new_options and new_options[key] is not None
+            }
+        }
+        # TODO: clean up
+        rhs_options = ['sparse_eigensolver', 'sec_cutoff', 'tensor_type']
+        if (
+            any(rhs_option in new_options for rhs_option in rhs_options)
+            and self._integrator is not None
+            and not self.rhs.isconstant
+        ):
+            self.rhs = self._prepare_rhs()
+            self._integrator = self._get_integrator()
+        elif 'method' in new_options and self._integrator is not None:
+            self._integrator = self._get_integrator()
+        self._integrator.options = new_options
