@@ -22,26 +22,47 @@ class _QobjExpectEop:
         return expect(self.op, state)
 
 
-class _StoreEop:
+class ExpectOp:
     """
-    A pickable callable for storing e_ops values.
+    A result e_op (expectation operation).
 
     Parameters
     ----------
-    store : function
-        A callable ``store(value)``, e.g. ``expect[k].append``, that will store
-        the result of the e_ops function ``f(t, state)``.
+    op : object
+        The original object used to define the e_op operation, e.g. a
+        :~obj:`Qobj` or a function ``f(t, state)``.
 
     f : function
         A callable ``f(t, state)`` that will return the value of the e_op
         for the specified state and time.
+
+    append : function
+        A callable ``append(value)``, e.g. ``expect[k].append``, that will
+        store the result of the e_ops function ``f(t, state)``.
+
+    Attributes
+    ----------
+    op : object
+        The original object used to define the e_op operation.
     """
-    def __init__(self, store, f):
-        self.store = store
-        self.f = f
+    def __init__(self, op, f, append):
+        self.op = op
+        self._f = f
+        self._append = append
 
     def __call__(self, t, state):
-        self.store(self.f(t, state))
+        """
+        Return the expectation value for the given time, ``t`` and
+        state, ``state``.
+        """
+        return self._f(t, state)
+
+    def _store(self, t, state):
+        """
+        Store the result of the e_op function. Should only be called by
+        :class:`~Result`.
+        """
+        self._append(self._f(t, state))
 
 
 class BaseResult:
@@ -118,11 +139,14 @@ class BaseResult:
         self._state_processors = []
         self._state_processors_require_copy = False
 
-        self.e_ops = self._e_ops_to_dict(e_ops)
-        self.expect = {k: [] for k in self.e_ops}
-        for k, e_op in self.e_ops.items():
-            f = self._e_op_func(e_op)
-            self.add_processor(_StoreEop(self.expect[k].append, f))
+        raw_ops = self._e_ops_to_dict(e_ops)
+        self.e_data = {k: [] for k in raw_ops}
+        self.expect = list(self.e_data.values())
+        self.e_ops = {}
+        for k, op in raw_ops.items():
+            f = self._e_op_func(op)
+            self.e_ops[k] = ExpectOp(op, f, self.e_data[k].append)
+            self.add_processor(self.e_ops[k]._store)
 
         self.options = options
 
@@ -133,7 +157,7 @@ class BaseResult:
         self._post_init(**kw)
 
     def _e_ops_to_dict(self, e_ops):
-        """ Convert the supplied e_ops to a dictionary. """
+        """ Convert the supplied e_ops to a dictionary of Eop instances. """
         if e_ops is None:
             e_ops = {}
         elif isinstance(e_ops, (list, tuple)):
@@ -664,12 +688,12 @@ class MultiTrajResultAveraged:
                 self._sum_last_states = one_traj.final_state.proj()
             else:
                 self._sum_last_states = one_traj.final_state
-            self._sum_expect = {
-                k: np.array(expect) for k, expect in one_traj.expect.items()
-            }
-            self._sum2_expect = {
-                k: np.array(expect)**2 for k, expect in one_traj.expect.items()
-            }
+            self._sum_expect = [
+                np.array(expect) for expect in one_traj.expect
+            ]
+            self._sum2_expect = [
+                np.array(expect)**2 for expect in one_traj.expect
+            ]
         else:
             if self._to_dm:
                 if self._sum_states:
@@ -684,14 +708,14 @@ class MultiTrajResultAveraged:
                 if self._sum_last_states:
                     self._sum_last_states += one_traj.final_state
             if self._sum_expect:
-                self._sum_expect = {
-                    k: self._sum_expect[k] + np.array(one_traj.expect[k])
-                    for k in self._sum_expect
-                }
-                self._sum2_expect = {
-                    k: self._sum2_expect[k] + np.array(one_traj.expect[k])**2
-                    for k in self._sum2_expect
-                }
+                self._sum_expect = [
+                    self._sum_expect[i] + np.array(one_traj.expect[i])
+                    for i in range(len(self._sum_expect))
+                ]
+                self._sum2_expect = [
+                    self._sum2_expect[i] + np.array(one_traj.expect[i])**2
+                    for i in range(len(self._sum2_expect))
+                ]
         self._collapse.append(one_traj.collapse)
         self._num += 1
 
@@ -718,20 +742,17 @@ class MultiTrajResultAveraged:
 
     @property
     def average_expect(self):
-        return {
-            k: self._sum_expect[k] / self._num
-            for k in self._sum_expect
-        }
+        return [v / self._num for v in self._sum_expect]
 
     @property
     def std_expect(self):
-        return {
-            k: np.sqrt(
-                self._sum2_expect[k] / self._num -
-                (self._sum_expect[k] / self._num) ** 2
+        return [
+            np.sqrt(
+                self._sum2_expect[i] / self._num -
+                (self._sum_expect[i] / self._num) ** 2
             )
-            for k in self._sum_expect
-        }
+            for i in range(len(self._sum_expect))
+        ]
 
     @property
     def runs_expect(self):

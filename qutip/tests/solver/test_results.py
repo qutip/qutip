@@ -53,23 +53,37 @@ class TestBaseResult:
             id="function",
         )
     ])
-    def test_expect(self, N, e_ops, results):
+    def test_expect_and_e_ops(self, N, e_ops, results):
         res = BaseResult(
             e_ops,
             SolverResultsOptions(
                 store_final_state=False,
                 store_states=False),
         )
+        if isinstance(e_ops, dict):
+            raw_ops = e_ops
+        elif isinstance(e_ops, (list, tuple)):
+            raw_ops = dict(enumerate(e_ops))
+        else:
+            raw_ops = {0: e_ops}
         for i in range(N):
             res.add(i, qutip.basis(N, i))
         np.testing.assert_allclose(np.array(res.times), np.arange(N))
         assert res.final_state is None
         assert not res.states
-        for k, values in results.items():
-            if isinstance(res.expect[k][0], qutip.Qobj):
-                assert res.expect[k] == values
+        for i, k in enumerate(results):
+            assert res.e_ops[k].op is raw_ops[k]
+            e_op_call_values = [
+                res.e_ops[k](i, qutip.basis(N, i)) for i in range(N)
+            ]
+            if isinstance(res.expect[i][0], qutip.Qobj):
+                assert res.expect[i] == results[k]
+                assert res.e_data[k] == results[k]
+                assert e_op_call_values == results[k]
             else:
-                np.testing.assert_allclose(res.expect[k], values)
+                np.testing.assert_allclose(res.expect[i], results[k])
+                np.testing.assert_allclose(res.e_data[k], results[k])
+                np.testing.assert_allclose(e_op_call_values, results[k])
 
     def test_add_processor(self):
         res = BaseResult([], SolverResultsOptions(store_states=False))
@@ -90,6 +104,7 @@ class TestBaseResult:
         assert a[1][1] is not states[1]  # copy made (for b)
         assert b == [(1, {"t": 1})]
         assert b[0][1] is not states[1]  # copy made
+
 
     def test_add_preprocessor(self):
         res = BaseResult([], SolverResultsOptions(store_states=False))
