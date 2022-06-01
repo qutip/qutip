@@ -3,10 +3,10 @@ __all__ = ['SolverOptions']
 from ..optionsclass import QutipOptions
 
 known_solver = {}
-
+known_integrator = {}
 
 class Options():
-    """
+    _doc = """
     General class of options for solvers. Options can be specified either as
     arguments to the constructor::
 
@@ -16,62 +16,86 @@ class Options():
 
         opts = Options()
         opts['progress_bar'] = 'enhanced'
+
+    Parameters
+    ----------
+    solver : str ['sesolve', 'brmesolve', etc.], optional
+        Which solver this options is intended too. When given, all items used
+        by this solver will be included.
+
+    method : str ['adams', 'dop853', etc.], optional
+        Which integration method to use. When given, all options items used
+        by this integration method will be included.
     """
-    supported_options = set()
+    __doc__ = _doc
 
     def __init__(self, solver=None, method=None, **kwargs):
-        _solver_options = {}
-        if solver:
-            _solver_options = known_solver[solver].default_options
-            method = method or _solver_options['method']
-        _integrator_options
-        if method:
-            _integrator_options = known_solver[solver].default_options
+        self.solver = solver
+        self.solver_options, solver_doc = self._get_solver_options(solver)
+        method = method or _solver_options.get('method', None)
+        self.integrator_options, integrator_doc = self._get_integrator_options(method)
+        self.extra_options = {}
+        # Merge all options
+        for key in kwargs:
+            self.__setitem__(ket, kwargs[key])
 
     def _get_solver_options(self, solver):
         if solver:
             opt = known_solver[solver].default_options
-            doc = known_solver[solver].options.__doc__
+            self._doc = self._doc + known_solver[solver].options.__doc__
         else:
             opt = {}
-            doc = ""
         return opt, doc
 
     def _get_integrator_options(self, solver):
         if solver:
-            opt = known_solver[solver].default_options
-            doc = known_solver[solver].options.__doc__
+            opt = known_integrator[solver].default_options
+            self.__doc__ = self._doc + known_integrator[solver].options.__doc__
         else:
             opt = {}
-            doc = ""
+            self.__doc__ = self._doc
         return opt, doc
 
     def __setitem__(self, key, value):
-        if key in self.all_options:
-            self.options[key] = value
+        if key == 'method':
+            self.integrator_options = self._get_integrator_options(value)
+        if key in self.solver_options:
+            self.solver_options[key] = value
+        elif key in self.integrator_options:
+            self.integrator_options[key] = value
+        else:
+            self.extra_options[key] = value
 
     def __getitem__(self, key):
-        return self.options[key]
+        for dictionary in [
+            self.solver_options,
+            self.integrator_options,
+            self.extra_options
+        ]:
+            if key in dictionary:
+                return dictionary[key]
+        raise KeyError()
 
     def __str__(self):
-        if not self.options:
-            return "Options()"
-        longest = max(len(key) for key in self.options)
-        out = "Options({\n"
-        for key, val in self.options.items():
+        all_options = {
+            **self.solver_options,
+            **self.integrator_options,
+            **self.extra_options
+        }
+        if not all_options:
+            return "<Options()>"
+        longest = max(len(key) for key in all_options)
+        out = "<Options({\n"
+        for key, val in all_options.items():
             if isinstance(val, str):
                 out += f"    {key:{longest}} : '{val}'\n"
             else:
                 out += f"    {key:{longest}} : {val}\n"
-        out += "})\n"
+        out += "})>\n"
         return out
 
     def __repr__(self):
         return self.__str__()
-
-    @classmethod
-    def _add_options(cls, optioncls):
-        cls.all_options |= set(optioncls.default)
 
 
 class SolverOptions(QutipOptions):
