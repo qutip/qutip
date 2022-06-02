@@ -197,6 +197,7 @@ cdef class QobjEvo:
         if isinstance(Q_object, QobjEvo):
             self.dims = Q_object.dims.copy()
             self.shape = Q_object.shape
+            self.type = Q_object.type
             self._shift_dt = (<QobjEvo> Q_object)._shift_dt
             self._issuper = (<QobjEvo> Q_object)._issuper
             self._isoper = (<QobjEvo> Q_object)._isoper
@@ -283,6 +284,11 @@ cdef class QobjEvo:
                 f"QobjEvo term {op!r} has dims {qobj.dims!r} and shape"
                 f" {qobj.shape!r} but previous terms had dims {self.dims!r}"
                 f" and shape {self.shape!r}."
+            )
+        elif self.type != qobj.type:
+            raise ValueError(
+                f"QobjEvo term {op!r} has type {qobj.type!r} but "
+                f"previous terms had type {self.type!r}."
             )
         elif self.superrep != qobj.superrep:
             raise ValueError(
@@ -656,6 +662,7 @@ cdef class QobjEvo:
         res.elements = [element.linear_map(op_mapping) for element in res.elements]
         res.dims = res.elements[0].qobj(0).dims
         res.shape = res.elements[0].qobj(0).shape
+        res.type = res.elements[0].qobj(0).type
         res._issuper = res.elements[0].qobj(0).issuper
         res._isoper = res.elements[0].qobj(0).isoper
         if not _skip_check:
