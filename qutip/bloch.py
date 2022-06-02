@@ -45,6 +45,7 @@ try:
             xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, self.axes.M)
             self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
             return np.min(zs)
+
 except ImportError:
     pass
 
@@ -415,29 +416,32 @@ class Bloch:
             Transparency value for the vectors. Values between 0 and 1.
 
         """
-        if isinstance(vectors[0], (list, tuple, np.ndarray)):
-            if colors is not None:
-                for k, vec in enumerate(vectors):
-                    self.vectors.append(vec)
-                    self.vector_color.append(colors[k])
-                    self.vector_alpha.append(alpha)
-            else:
-                for vec in vectors:
-                    k = np.mod(len(self.vectors),
-                               len(self.vector_default_color))
-                    color = self.vector_default_color[k]
-                    self.vector_color.append(color)
-                    self.vectors.append(vec)
-                    self.vector_alpha.append(alpha)
+        vectors = np.asarray(vectors)
+
+        if vectors.ndim == 1:
+            vectors = vectors[np.newaxis, :]
+
+        if vectors.ndim != 2 or vectors.shape[1] != 3:
+            raise ValueError("The included vectors are not valid. Vectors must "
+                             "be equivalent to a 2D array where the first "
+                             "index represents the x,y,z values and the "
+                             "second index iterates over the vectors.")
+
+        n_vectors = vectors.shape[0]
+        if colors is None:
+            colors = np.array([None]*n_vectors)
         else:
-            if colors is not None:
-                self.vector_color.append(colors)
-            else:
-                k = np.mod(len(self.vectors), len(self.vector_default_color))
-                color = self.vector_default_color[k]
-                self.vector_color.append(color)
-            self.vectors.append(vectors)
+            colors = np.asarray(colors)
+
+        if colors.ndim != 1 and colors.size != n_vectors:
+            raise ValueError("The included colors are not valid. colors must "
+                             "be equivalent to a 1D array with the same "
+                             "size as the number of vectors. ")
+
+        for k, vec in enumerate(vectors):
+            self.vectors.append(vec)
             self.vector_alpha.append(alpha)
+            self.vector_color.append(colors[k])
 
     def add_annotation(self, state_or_vector, text, **kwargs):
         """
@@ -758,13 +762,16 @@ class Bloch:
 
     def plot_vectors(self):
         # -X and Y data are switched for plotting purposes
-        for k in range(len(self.vectors)):
+        for k, vec in enumerate(self.vectors):
 
-            xs3d = self.vectors[k][1] * np.array([0, 1])
-            ys3d = -self.vectors[k][0] * np.array([0, 1])
-            zs3d = self.vectors[k][2] * np.array([0, 1])
+            xs3d = vec[1] * np.array([0, 1])
+            ys3d = -vec[0] * np.array([0, 1])
+            zs3d = vec[2] * np.array([0, 1])
 
-            color = self.vector_color[np.mod(k, len(self.vector_color))]
+            color = self.vector_color[k]
+            if color is None:
+                idx = k % len(self.vector_default_color)
+                color = self.vector_default_color[idx]
             alpha = self.vector_alpha[k]
 
             if self.vector_style == '':
@@ -774,12 +781,19 @@ class Bloch:
                                lw=self.vector_width, color=color,
                                alpha=alpha)
             else:
+                print(
+                    xs3d, ys3d, zs3d,
+                            self.vector_mutation,
+                            self.vector_width,
+                            self.vector_style,
+                            color,
+                            alpha)
                 # decorated style, with arrow heads
                 a = Arrow3D(xs3d, ys3d, zs3d,
                             mutation_scale=self.vector_mutation,
                             lw=self.vector_width,
                             arrowstyle=self.vector_style,
-                            color=self.vector_color[k], alpha=alpha)
+                            color=color, alpha=alpha)
 
                 self.axes.add_artist(a)
 
