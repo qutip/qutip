@@ -341,8 +341,8 @@ class HierarchyADOsState:
 
     def extract(self, idx_or_label):
         """
-        Extract a Qobj representing specified ADO from a full representation of
-        the ADO states.
+        Extract a Qobj representing the specified ADO from a full
+        representation of the ADO states.
 
         Parameters
         ----------
@@ -821,41 +821,35 @@ class HEOMSolver(Solver):
 
         Parameters
         ----------
-        rho0 : Qobj or HierarchyADOsState or numpy.array
-            Initial state (:obj:`~Qobj` density matrix) of the system
-            if ``ado_init`` is ``False``.
+        rho0 : :class:`~Qobj` or :class:`~HierarchyADOsState` or array-like
+            If ``rho0`` is a :class:`~Qobj` the it is the initial state
+            of the system (i.e. a :obj:`~Qobj` density matrix).
 
-            If ``ado_init`` is ``True``, then ``rho0`` should be an
-            instance of :obj:`~HierarchyADOsState` or a numpy array
-            giving the initial state of all ADOs. Usually
-            the state of the ADOs would be determine from a previous call
-            to ``.run(..., ado_return=True)``. For example,
-            ``result = solver.run(..., ado_return=True)`` could be followed
-            by ``solver.run(result.ado_states[-1], tlist, ado_init=True)``.
+            If it is a :class:`~HierarchyADOsState` or array-like, then
+            ``rho0`` gives the initial state of all ADOs.
 
-            If a numpy array is passed its shape must be
+            Usually the state of the ADOs would be determine from a previous
+            call to ``.run(...)`` with the solver results option ``store_ados``
+            set to True. For example, ``result = solver.run(...)`` could be
+            followed by ``solver.run(result.ado_states[-1], tlist)``.
+
+            If a numpy array-like is passed its shape must be
             ``(number_of_ados, n, n)`` where ``(n, n)`` is the system shape
-            (i.e. shape of the system density matrix) and the ADOs must be
-            in the same order as in ``.ados.labels``.
+            (i.e. shape of the system density matrix) and the ADOs must
+            be in the same order as in ``.ados.labels``.
 
         tlist : list
             An ordered list of times at which to return the value of the state.
 
         e_ops : Qobj / callable / list / dict / None, optional
-            A list or dictionary of operators as `Qobj` and/or callable
+            A list or dictionary of operators as :class:`~Qobj` and/or callable
             functions (they can be mixed) or a single operator or callable
             function. For an operator ``op``, the result will be computed
             using ``(state * op).tr()`` and the state at each time ``t``. For
             callable functions, ``f``, the result is computed using
-            ``f(t, ado_state)``. The values are stored in ``expect`` on
-            (see the return section below).
-
-        ado_init: bool, default False
-            Indicates if initial condition is just the system state, or a
-            numpy array including all ADOs.
-
-        ado_return: bool, default True
-            Whether to also return as output the full state of all ADOs.
+            ``f(t, ado_state)``. The values are stored in the ``expect``
+            and ``e_data`` attributes of the result (see the return section
+            below).
 
         Returns
         -------
@@ -893,19 +887,22 @@ class HEOMSolver(Solver):
         hierarchy_shape = (self._n_ados, n, n)
 
         rho0 = state
-        ado_init = (
-            isinstance(rho0, HierarchyADOsState) or
-            getattr(rho0, "shape", None) == hierarchy_shape
-        )
+        ado_init = not isinstance(rho0, Qobj)
 
         if ado_init:
             if isinstance(rho0, HierarchyADOsState):
                 rho0_he = rho0._ado_state
-            else:
+            elif hasattr(rho0, "shape"):  # array-like
                 rho0_he = rho0
+            else:
+                raise TypeError(
+                    f"Initial ADOs passed have type {type(rho0)!r} but"
+                    " but a HierarchyADOsState or a numpy array-like instance"
+                    " was expected"
+                )
             if rho0_he.shape != hierarchy_shape:
                 raise ValueError(
-                    f"ADOs passed with ado_init has shape {rho0_he.shape}"
+                    f"Initial ADOs passed with shape {rho0_he.shape}"
                     f" but the solver hierarchy shape is {hierarchy_shape}"
                 )
             rho0_he = rho0_he.reshape(n ** 2 * self._n_ados)
