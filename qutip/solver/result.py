@@ -65,7 +65,7 @@ class ExpectOp:
         self._append(self._f(t, state))
 
 
-class BaseResult:
+class Result:
     """
     Base class for storing solver results.
 
@@ -330,10 +330,6 @@ class BaseResult:
             lines.append("  State not saved.")
         lines.append(">")
         return "\n".join(lines)
-
-
-class Result(BaseResult):
-    pass
 
 
 class MultiTrajResult:

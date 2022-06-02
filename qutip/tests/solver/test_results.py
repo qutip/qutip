@@ -4,7 +4,7 @@ import pytest
 import qutip
 from qutip.solver import SolverResultsOptions
 from qutip.solver.result import (
-    BaseResult, Result, MultiTrajResult, MultiTrajResultAveraged,
+    Result, MultiTrajResult, MultiTrajResultAveraged,
 )
 
 
@@ -13,7 +13,7 @@ def e_op_state_by_time(t, state):
     return t * state
 
 
-class TestBaseResult:
+class TestResult:
     @pytest.mark.parametrize(["N", "e_ops", "options"], [
         pytest.param(10, (), {}, id="no-e-ops"),
         pytest.param(
@@ -21,7 +21,7 @@ class TestBaseResult:
         )
     ])
     def test_states(self, N, e_ops, options):
-        res = BaseResult(e_ops, SolverResultsOptions(**options))
+        res = Result(e_ops, SolverResultsOptions(**options))
         for i in range(N):
             res.add(i, qutip.basis(N, i))
         np.testing.assert_allclose(np.array(res.times), np.arange(N))
@@ -54,7 +54,7 @@ class TestBaseResult:
         )
     ])
     def test_expect_and_e_ops(self, N, e_ops, results):
-        res = BaseResult(
+        res = Result(
             e_ops,
             SolverResultsOptions(
                 store_final_state=False,
@@ -86,7 +86,7 @@ class TestBaseResult:
                 np.testing.assert_allclose(e_op_call_values, results[k])
 
     def test_add_processor(self):
-        res = BaseResult([], SolverResultsOptions(store_states=False))
+        res = Result([], SolverResultsOptions(store_states=False))
         a = []
         b = []
         states = [{"t": 0}, {"t": 1}]
@@ -105,9 +105,8 @@ class TestBaseResult:
         assert b == [(1, {"t": 1})]
         assert b[0][1] is not states[1]  # copy made
 
-
     def test_add_preprocessor(self):
-        res = BaseResult([], SolverResultsOptions(store_states=False))
+        res = Result([], SolverResultsOptions(store_states=False))
         a = []
         states = [{"t": 0}, {"t": 1}, {"t": 2}]
 
@@ -131,12 +130,12 @@ class TestBaseResult:
         assert a[2][1] is states[2]  # copy faked
 
     def test_repr_minimal(self):
-        res = BaseResult(
+        res = Result(
             [],
             SolverResultsOptions(store_final_state=False, store_states=False),
         )
         assert repr(res) == "\n".join([
-            "<BaseResult",
+            "<Result",
             "  Solver: None",
             "  Number of e_ops: 0",
             "  State not saved.",
@@ -144,7 +143,7 @@ class TestBaseResult:
         ])
 
     def test_repr_full(self):
-        res = BaseResult(
+        res = Result(
             [qutip.num(5), qutip.qeye(5)],
             SolverResultsOptions(store_states=True),
             solver="test-solver",
@@ -153,7 +152,7 @@ class TestBaseResult:
         for i in range(5):
             res.add(i, qutip.basis(5, i))
         assert repr(res) == "\n".join([
-            "<BaseResult",
+            "<Result",
             "  Solver: test-solver",
             "  Solver stats:",
             "    stat-a: 1",
@@ -165,37 +164,17 @@ class TestBaseResult:
         ])
 
 
-class TestResult:
-    def test_normalize(self):
-        N = 10
-        res = Result(
-            [qutip.num(N), qutip.qeye(N)],
-            SolverResultsOptions(
-                store_states=True,
-                normalize_output=True,
-            ),
-            rhs_is_super=False, state_is_oper=False,
-        )
-        for i in range(N):
-            res.add(i, qutip.basis(N, i)/2)
-        np.testing.assert_allclose(res.expect[0], np.arange(N))
-        np.testing.assert_allclose(res.expect[1], np.ones(N))
-        assert res.final_state == qutip.basis(N, N - 1)
-        for i in range(N):
-            assert res.states[i] == qutip.basis(N, i)
-
-
 class TestMultiTrajResult:
     def test_averages_and_states(self):
         N = 10
         e_ops = [qutip.num(N), qutip.qeye(N)]
         m_res = MultiTrajResult(3)
-        opt = SolverResultsOptions(store_states=True, normalize_output=True)
+        opt = SolverResultsOptions(store_states=True)
         for _ in range(5):
-            res = Result(e_ops, opt, rhs_is_super=False, state_is_oper=False)
+            res = Result(e_ops, opt)
             res.collapse = []
             for i in range(N):
-                res.add(i, qutip.basis(N, i) / 2)
+                res.add(i, (qutip.basis(N, i) / 2).unit())
                 res.collapse.append((i+0.5, i % 2))
             m_res.add(res)
 
@@ -219,13 +198,12 @@ class TestMultiTrajResultAveraged:
         m_res = MultiTrajResultAveraged(3)
         opt = SolverResultsOptions(
             store_final_state=True,
-            normalize_output=True,
         )
         for _ in range(5):
-            res = Result(e_ops, opt, rhs_is_super=False, state_is_oper=False)
+            res = Result(e_ops, opt)
             res.collapse = []
             for i in range(N):
-                res.add(i, qutip.basis(N, i) / 2)
+                res.add(i, (qutip.basis(N, i) / 2).unit())
                 res.collapse.append((i + 0.5, i % 2))
             m_res.add(res)
 
