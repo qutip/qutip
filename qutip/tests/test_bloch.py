@@ -362,21 +362,19 @@ class TestBloch:
             if not isinstance(vectors[0], (list, tuple, np.ndarray)):
                 vectors = [vectors]
 
-            for v in vectors:
-                color = vector_colors[idx % len(vector_colors)]
+            colors = kw.pop("colors", None)
+            for k, v in enumerate(vectors):
+                if colors is None:
+                    color = vector_colors[idx % len(vector_colors)]
+                else:
+                    color = colors[k]
+
                 alpha = kw.get("alpha", 1.0)
                 idx += 1
 
                 xs3d = v[1] * np.array([0, 1])
                 ys3d = -v[0] * np.array([0, 1])
                 zs3d = v[2] * np.array([0, 1])
-                # print(
-                    # xs3d, ys3d, zs3d,
-                    # 20,
-                    # 3,
-                    # "-|>",
-                    # color,
-                    # alpha)
                 a = Arrow3D(
                     xs3d, ys3d, zs3d,
                     mutation_scale=20, lw=3, arrowstyle="-|>",
@@ -420,6 +418,15 @@ class TestBloch:
             dict(vectors=[(0, 0, 1), (0, 1, 0)], alpha=1.0),
             dict(vectors=[(1, 0, 1), (1, 1, 0)], alpha=0.5),
         ], id="alpha-multiple-vector-sets"),
+        pytest.param(
+            dict(vectors=(0, 0, 1), colors=['y']), id="color-y"),
+        pytest.param(
+            dict(vectors=[(0, 0, 1), (0, 1, 0)], colors=['y', 'y']),
+            id="color-two-y"),
+        pytest.param([
+            dict(vectors=[(0, 0, 1)], colors=['y']),
+            dict(vectors=[(1, 0, 1)], colors=['g']),
+        ], id="color-yg"),
     ])
     @check_pngs_equal
     def test_vector(self, vector_kws, fig_test, fig_ref):
