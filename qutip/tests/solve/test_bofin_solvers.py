@@ -558,7 +558,11 @@ class TestHEOMSolver:
             "Hamiltonian (H_sys) of type list cannot be converted to QObjEvo"
         )
 
-    def test_run_invalid_rho0_errors(self):
+    @pytest.mark.parametrize(['method'], [
+        pytest.param("run", id="run"),
+        pytest.param("start", id="start"),
+    ])
+    def test_invalid_rho0_errors(self, method):
         Q = sigmaz()
         H = sigmax()
         exponents = [
@@ -569,22 +573,31 @@ class TestHEOMSolver:
         bath = Bath(exponents)
         hsolver = HEOMSolver(H, bath, 2)
 
+        if method == "run":
+            def solve_method(rho0):
+                return hsolver.run(rho0, [0, 1])
+        elif method == "start":
+            def solve_method(rho0):
+                return hsolver.start(rho0, 0)
+        else:
+            assert False, f"method {method} not supported by test"
+
         with pytest.raises(ValueError) as err:
-            hsolver.run(basis(3, 0), [0, 1])
+            solve_method(basis(3, 0))
         assert str(err.value) == (
             "Initial state rho has dims [[3], [1]]"
             " but the system dims are [[2], [2]]"
         )
 
         with pytest.raises(TypeError) as err:
-            hsolver.run("batman", [0, 1])
+            solve_method("batman")
         assert str(err.value) == (
             "Initial ADOs passed have type <class 'str'> but a "
             "HierarchyADOsState or a numpy array-like instance was expected"
         )
 
         with pytest.raises(ValueError) as err:
-            hsolver.run(np.array([1, 2, 3]), [0, 1])
+            solve_method(np.array([1, 2, 3]))
         assert str(err.value) == (
             "Initial ADOs passed have shape (3,) but the solver hierarchy"
             " shape is (10, 2, 2)"
