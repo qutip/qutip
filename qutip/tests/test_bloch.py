@@ -453,3 +453,21 @@ class TestBloch:
                    "second index represents the position in 3D of vector "
                    "head.")
         assert str(err.value) == err_msg
+
+    @pytest.mark.parametrize("vectors, colors",
+                             [([0, 0, 1], ['g', 'y']),
+                             ([[0, 0, 1], [0, 1, 0]], ['y']),
+                             ([0, 0, 1], [['g', 'y']])],
+                             ids=["one-vec-two-colors", "two-vec-one-color",
+                                  "wrong-dimension-list"]
+                             )
+    def test_vector_errors_color_length(self, vectors, colors):
+        with pytest.raises(ValueError) as err:
+            b = Bloch()
+            b.add_vectors(vectors, colors=colors)
+            b.render()
+
+        err_msg = ("The included colors are not valid. colors must "
+                   "be equivalent to a 1D array with the same "
+                   "size as the number of vectors. ")
+        assert str(err.value) == err_msg

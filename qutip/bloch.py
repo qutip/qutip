@@ -434,7 +434,7 @@ class Bloch:
         else:
             colors = np.asarray(colors)
 
-        if colors.ndim != 1 and colors.size != n_vectors:
+        if colors.ndim != 1 or colors.size != n_vectors:
             raise ValueError("The included colors are not valid. colors must "
                              "be equivalent to a 1D array with the same "
                              "size as the number of vectors. ")
