@@ -823,6 +823,30 @@ class TestHEOMSolver:
         test_full = dlm.state_results(states_full)
         np.testing.assert_allclose(test_full, expected, atol=1e-3)
 
+    def test_solving_with_step(self):
+        dlm = DrudeLorentzPureDephasingModel(
+            lam=0.025, gamma=0.05, T=1/0.95, Nk=2,
+        )
+        ck_real, vk_real, ck_imag, vk_imag = dlm.bath_coefficients()
+
+        bath = BosonicBath(dlm.Q, ck_real, vk_real, ck_imag, vk_imag)
+        options = SolverOptions(nsteps=15_000)
+        hsolver = HEOMSolver(dlm.H, bath, 14, options=options)
+
+        tlist = np.linspace(0, 10, 21)
+        ado_state = None
+        states = [dlm.rho()]
+        hsolver.start(states[0], 0)
+        for t in tlist[1:]:
+            ado_state = hsolver.step(t)
+            states.append(ado_state.rho)
+
+        test = dlm.state_results(states)
+        expected = dlm.analytic_results(tlist)
+        np.testing.assert_allclose(test, expected, atol=1e-3)
+
+        assert states[-1] == ado_state.extract(0)
+
 
 class TestHSolverDL:
     @pytest.mark.parametrize(['bnd_cut_approx', 'atol'], [
