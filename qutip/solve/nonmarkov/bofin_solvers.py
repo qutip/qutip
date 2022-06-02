@@ -830,7 +830,7 @@ class HEOMSolver(Solver):
 
         return steady_state, steady_ados
 
-    def run(self, state0, tlist, *, e_ops=None):
+    def run(self, state0, tlist, *, args=None, e_ops=None):
         """
         Solve for the time evolution of the system.
 
@@ -855,6 +855,9 @@ class HEOMSolver(Solver):
 
         tlist : list
             An ordered list of times at which to return the value of the state.
+
+        args : dict, optional {None}
+            Change the ``args`` of the RHS for the evolution.
 
         e_ops : Qobj / callable / list / dict / None, optional
             A list or dictionary of operators as :class:`~Qobj` and/or callable
