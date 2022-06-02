@@ -420,6 +420,7 @@ class TestBloch:
         self.plot_vector_test(fig_test, copy.deepcopy(vector_kws))
         self.plot_vector_ref(fig_ref, copy.deepcopy(vector_kws))
 
+
 def test_repr_svg():
     svg = Bloch()._repr_svg_()
     assert isinstance(svg, str)
