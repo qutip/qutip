@@ -104,7 +104,7 @@ class SolverOdeOptions:
         Data type of the operator to used during the ODE evolution, such as
         'CSR' or 'Dense'. Use an empty string to keep the input state type.
 
-    state_data_type: str {"dense"}
+    state_data_type: str {'dense'}
         Name of the data type of the state used during the ODE evolution.
         Use an empty string to keep the input state type. Many integrator can
         only work with `Dense`.

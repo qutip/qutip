@@ -160,7 +160,7 @@ class Solver:
 
         stats['run time'] = progress_bar.total_time()
         # TODO: It would be nice if integrator could give evolution statistics
-        # self.stats.update(_integrator.stats)
+        # stats.update(_integrator.stats)
         return results
 
     def start(self, state0, t0):
