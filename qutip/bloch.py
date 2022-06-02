@@ -422,10 +422,11 @@ class Bloch:
             vectors = vectors[np.newaxis, :]
 
         if vectors.ndim != 2 or vectors.shape[1] != 3:
-            raise ValueError("The included vectors are not valid. Vectors must "
-                             "be equivalent to a 2D array where the first "
-                             "index represents the x,y,z values and the "
-                             "second index iterates over the vectors.")
+            raise ValueError(
+                "The included vectors are not valid. Vectors must "
+                "be equivalent to a 2D array where the first "
+                "index represents the iteration over the vectors and the "
+                "second index represents the position in 3D of vector head.")
 
         n_vectors = vectors.shape[0]
         if colors is None:

@@ -434,3 +434,22 @@ class TestBloch:
             vector_kws = [vector_kws]
         self.plot_vector_test(fig_test, copy.deepcopy(vector_kws))
         self.plot_vector_ref(fig_ref, copy.deepcopy(vector_kws))
+
+    @pytest.mark.parametrize("vectors",
+                             [(0, 1, 0, 1), (0, 1), [0, 1], np.array((0, 1)),
+                              np.arange(12).reshape((3, 2, 2))],
+                             ids=["long_tuple", "short_tuple", "short_list",
+                                  "short_numpy", "wrong_shape_numpy"]
+                             )
+    def test_vector_errors_wrong_vectors(self, vectors):
+        with pytest.raises(ValueError) as err:
+            b = Bloch()
+            b.add_vectors(vectors)
+            b.render()
+
+        err_msg = ("The included vectors are not valid. Vectors must "
+                   "be equivalent to a 2D array where the first "
+                   "index represents the iteration over the vectors and the "
+                   "second index represents the position in 3D of vector "
+                   "head.")
+        assert str(err.value) == err_msg
