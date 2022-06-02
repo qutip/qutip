@@ -333,18 +333,7 @@ class BaseResult:
 
 
 class Result(BaseResult):
-    def _post_init(self, state_is_oper, rhs_is_super):
-        super()._post_init()
-
-        normalize_output = self.options['normalize_output']
-        if not state_is_oper and (
-            (rhs_is_super and normalize_output in {'dm', True, 'all'}) or
-            (not rhs_is_super and normalize_output in {'ket', True, 'all'})
-        ):
-            self.add_preprocessor(self._pre_normalize, performs_copy=True)
-
-    def _pre_normalize(self, t, state):
-        return state * (1 / state.norm())
+    pass
 
 
 class MultiTrajResult:
