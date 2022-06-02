@@ -134,8 +134,6 @@ class Result:
         self.solver = solver
         self.stats = stats
 
-        self._state_preprocessors = []
-        self._state_preprocessors_perform_copy = False
         self._state_processors = []
         self._state_processors_require_copy = False
 
@@ -242,27 +240,6 @@ class Result:
         self._state_processors.append(f)
         self._state_processors_require_copy |= requires_copy
 
-    def add_preprocessor(self, f, performs_copy=False):
-        """
-        Append a pre-processor ``f`` to the list of state pre-processors.
-
-        Parameters
-        ----------
-        f : function, ``f(t, state) -> state``
-            A pre-processor function to apply to the state before passing
-            it to the state processors. The pre-processors are applied in
-            the same order in which they are added.
-
-        performs_copy : bool, default False
-            Whether this pre-processor returns a copy of the state rather than
-            a reference. A pre-processor should never modify the state in
-            place, but sometimes a pre-processor may return a different view
-            of the same underlying data (e.g. by reshaping it or wrapping it
-            in a :obj:`~Qobj`).
-        """
-        self._state_preprocessors.append(f)
-        self._state_preprocessors_perform_copy |= performs_copy
-
     def add(self, t, state):
         """
         Add a state to the results for the time ``t`` of the evolution.
@@ -285,21 +262,14 @@ class Result:
 
         .. note::
 
-           The expectation value and state are recorded by the state processors
-           (see ``.add_processor``) after state pre-processors (
-           see ``.add_preprocessor``) have been applied.
+           The expectation values, i.e. ``e_ops``, and states are recorded by
+           the state processors (see ``.add_processor``).
 
-           Additional processors and preprocessors may be added by sub-classes.
+           Additional processors may be added by sub-classes.
         """
         self.times.append(t)
 
-        for pre_op in self._state_preprocessors:
-            state = pre_op(t, state)
-
-        if (
-            not self._state_preprocessors_perform_copy and
-            self._state_processors_require_copy
-        ):
+        if self._state_processors_require_copy:
             state = self._pre_copy(state)
 
         for op in self._state_processors:

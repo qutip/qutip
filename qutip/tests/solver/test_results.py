@@ -105,30 +105,6 @@ class TestResult:
         assert b == [(1, {"t": 1})]
         assert b[0][1] is not states[1]  # copy made
 
-    def test_add_preprocessor(self):
-        res = Result([], SolverResultsOptions(store_states=False))
-        a = []
-        states = [{"t": 0}, {"t": 1}, {"t": 2}]
-
-        def inc_state(t, state):
-            state["t"] += 1
-            return state
-
-        res.add_processor(
-            lambda t, state: a.append((t, state)),
-            requires_copy=True,
-        )
-        res.add(0, states[0])
-        res.add_preprocessor(inc_state)
-        res.add(1, states[1])
-        res.add_preprocessor(inc_state, performs_copy=True)  # fake copy
-        res.add(2, states[2])
-
-        assert a == [(0, {"t": 0}), (1, {"t": 2}), (2, {"t": 4})]
-        assert a[0][1] is not states[0]  # no copy made
-        assert a[1][1] is not states[1]  # still no copy made
-        assert a[2][1] is states[2]  # copy faked
-
     def test_repr_minimal(self):
         res = Result(
             [],
