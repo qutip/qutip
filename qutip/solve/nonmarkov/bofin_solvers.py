@@ -10,13 +10,11 @@ https://github.com/tehruhn/bofin) which was itself derived from an earlier
 implementation in QuTiP itself.
 """
 
-import itertools
 from copy import deepcopy
 from time import time
 
 import numpy as np
 import scipy.sparse as sp
-import scipy.integrate
 from scipy.sparse.linalg import spsolve
 
 from qutip import settings
@@ -28,10 +26,8 @@ from qutip.core.superoperator import liouvillian, spre, spost
 from .bofin_baths import (
     BathExponent, DrudeLorentzBath,
 )
-from ...solver.result import BaseResult
 from ...solver.solver_base import Solver
-from ...solver import IntegratorScipyZvode
-from ...ui.progressbar import progess_bars as _progress_bars
+from ...solver import Result
 
 # Load MKL spsolve if avaiable
 if settings.install['has_mkl']:
@@ -367,7 +363,7 @@ class HierarchyADOsState:
         return Qobj(self._ado_state[idx, :].T, dims=self.rho.dims)
 
 
-class HEOMResult(BaseResult):
+class HEOMResult(Result):
     def _post_init(self, **kw):
         super()._post_init()
 
@@ -409,9 +405,9 @@ class HEOMSolver(Solver):
     Parameters
     ----------
     H : :class:`Qobj`, :class:`QobjEvo`
-        Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or QobjEvo.
-        list of [:class:`Qobj`, :class:`Coefficient`] or callable that can be
-        made into :class:`QobjEvo` are also accepted.
+        Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or
+        QobjEvo. list of [:class:`Qobj`, :class:`Coefficient`] or callable that
+        can be made into :class:`QobjEvo` are also accepted.
 
     bath : Bath or list of Bath
         A :obj:`Bath` containing the exponents of the expansion of the
@@ -474,10 +470,12 @@ class HEOMSolver(Solver):
         self._spreQ = [spre(op).data for op in Qs]
         self._spostQ = [spost(op).data for op in Qs]
         self._s_pre_minus_post_Q = [
-            _data.sub(self._spreQ[k], self._spostQ[k]) for k in range(self._n_exponents)
+            _data.sub(self._spreQ[k], self._spostQ[k])
+            for k in range(self._n_exponents)
         ]
         self._s_pre_plus_post_Q = [
-            _data.add(self._spreQ[k], self._spostQ[k]) for k in range(self._n_exponents)
+            _data.add(self._spreQ[k], self._spostQ[k])
+            for k in range(self._n_exponents)
         ]
         self._spreQdag = [spre(op.dag()).data for op in Qs]
         self._spostQdag = [spost(op.dag()).data for op in Qs]
@@ -711,6 +709,7 @@ class HEOMSolver(Solver):
 
             rhs = QobjEvo(Qobj(RHSmat))
             h_identity = _data.identity(self._n_ados, dtype="csr")
+
             def _kron(x):
                 # TODO: Check whether this works for more complex QobjEvos
                 #       and if not, raise an exception rather than give
@@ -869,7 +868,6 @@ class HEOMSolver(Solver):
 
     def _prepare_state(self, state):
         n = self._sys_shape
-        rho_shape = (n, n)
         rho_dims = self._sys_dims
         hierarchy_shape = (self._n_ados, n, n)
 
