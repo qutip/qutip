@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 from numpy.linalg import eigvalsh
 from scipy.integrate import quad
-from scipy.sparse import csr_matrix
 
 from qutip import (
     basis, destroy, expect, liouvillian, sigmax, sigmaz,
@@ -731,7 +730,6 @@ class TestHEOMSolver:
         current = dlm.state_current(ado_state)
         # analytic_current = dlm.analytic_current()
         np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
-
 
     @pytest.mark.parametrize(['ado_format'], [
         pytest.param("hierarchy-ados-state", id="hierarchy-ados-state"),
