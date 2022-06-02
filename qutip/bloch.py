@@ -45,7 +45,6 @@ try:
             xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, self.axes.M)
             self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
             return np.min(zs)
-
 except ImportError:
     pass
 
