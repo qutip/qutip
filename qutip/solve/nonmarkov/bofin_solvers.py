@@ -859,8 +859,9 @@ class HEOMSolver(Solver):
 
         Returns
         -------
-        :class:`qutip.solver.Result`
-            The results of the simulation run, with the following attributes:
+        :class:`~HEOMResult`
+            The results of the simulation run, with the following important
+            attributes:
 
             * ``times``: the times ``t`` (i.e. the ``tlist``).
 
@@ -869,16 +870,20 @@ class HEOMSolver(Solver):
               ``store_states`` was set to ``True``).
 
             * ``ado_states``: the full ADO state at each time (only available
-              if ``ado_return`` was set to ``True``). Each element is an
-              instance of :class:`HierarchyADOsState`.            .
+              if the results option ``ado_return`` was set to ``True``).
+              Each element is an instance of :class:`HierarchyADOsState`.
               The state of a particular ADO may be extracted from
               ``result.ado_states[i]`` by calling :meth:`.extract`.
 
-            * ``expect``: the value of each ``e_ops`` at time ``t`` (only
-              available if ``e_ops`` were given). If ``e_ops`` was passed
-              as a dictionary, then ``expect`` will be a dictionary with
-              the same keys as ``e_ops`` and values giving the list of
-              outcomes for the corresponding key.
+            * ``expect``: a list containing the values of each ``e_ops`` at
+              time ``t``.
+
+            * ``e_data``: a dictionary containing the values of each ``e_ops``
+              at tme ``t``. The keys are those given by ``e_ops`` if it was
+              a dict, otherwise they are the indexes of the supplied ``e_ops``.
+
+            See :class:`~HEOMResult` and :class:`~Result` for the complete
+            list of attributes.
         """
         return super().run(state0, tlist, e_ops=e_ops)
 
