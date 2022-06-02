@@ -354,6 +354,7 @@ class TestBloch:
         b = RefBloch(fig=fig)
         b.render_back()
         vector_colors = ['g', '#CC6600', 'b', 'r']
+        idx = 0
 
         for kw in vector_kws:
             vectors = kw.pop("vectors")
@@ -361,19 +362,21 @@ class TestBloch:
             if not isinstance(vectors[0], (list, tuple, np.ndarray)):
                 vectors = [vectors]
 
-            for idx, v in enumerate(vectors):
+            for v in vectors:
                 color = vector_colors[idx % len(vector_colors)]
                 alpha = kw.get("alpha", 1.0)
+                idx += 1
+
                 xs3d = v[1] * np.array([0, 1])
                 ys3d = -v[0] * np.array([0, 1])
                 zs3d = v[2] * np.array([0, 1])
-                print(
-                    xs3d, ys3d, zs3d,
-                    20,
-                    3,
-                    "-|>",
-                    color,
-                    alpha)
+                # print(
+                    # xs3d, ys3d, zs3d,
+                    # 20,
+                    # 3,
+                    # "-|>",
+                    # color,
+                    # alpha)
                 a = Arrow3D(
                     xs3d, ys3d, zs3d,
                     mutation_scale=20, lw=3, arrowstyle="-|>",

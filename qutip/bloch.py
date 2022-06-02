@@ -768,11 +768,11 @@ class Bloch:
             ys3d = -vec[0] * np.array([0, 1])
             zs3d = vec[2] * np.array([0, 1])
 
+            alpha = self.vector_alpha[k]
             color = self.vector_color[k]
             if color is None:
                 idx = k % len(self.vector_default_color)
                 color = self.vector_default_color[idx]
-            alpha = self.vector_alpha[k]
 
             if self.vector_style == '':
                 # simple line style
