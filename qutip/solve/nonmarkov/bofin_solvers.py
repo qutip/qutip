@@ -896,13 +896,13 @@ class HEOMSolver(Solver):
                 rho0_he = rho0
             else:
                 raise TypeError(
-                    f"Initial ADOs passed have type {type(rho0)!r} but"
+                    f"Initial ADOs passed have type {type(rho0)}"
                     " but a HierarchyADOsState or a numpy array-like instance"
                     " was expected"
                 )
             if rho0_he.shape != hierarchy_shape:
                 raise ValueError(
-                    f"Initial ADOs passed with shape {rho0_he.shape}"
+                    f"Initial ADOs passed have shape {rho0_he.shape}"
                     f" but the solver hierarchy shape is {hierarchy_shape}"
                 )
             rho0_he = rho0_he.reshape(n ** 2 * self._n_ados)

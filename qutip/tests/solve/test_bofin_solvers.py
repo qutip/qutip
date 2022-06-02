@@ -558,6 +558,38 @@ class TestHEOMSolver:
             "Hamiltonian (H_sys) of type list cannot be converted to QObjEvo"
         )
 
+    def test_run_invalid_rho0_errors(self):
+        Q = sigmaz()
+        H = sigmax()
+        exponents = [
+            BathExponent("R", None, Q=Q, ck=1.1, vk=2.1),
+            BathExponent("I", None, Q=Q, ck=1.2, vk=2.2),
+            BathExponent("RI", None, Q=Q, ck=1.3, vk=2.3, ck2=3.3),
+        ]
+        bath = Bath(exponents)
+        hsolver = HEOMSolver(H, bath, 2)
+
+        with pytest.raises(ValueError) as err:
+            hsolver.run(basis(3, 0), [0, 1])
+        assert str(err.value) == (
+            "Initial state rho has dims [[3], [1]]"
+            " but the system dims are [[2], [2]]"
+        )
+
+        with pytest.raises(TypeError) as err:
+            hsolver.run("batman", [0, 1])
+        assert str(err.value) == (
+            "Initial ADOs passed have type <class 'str'> but a "
+            "HierarchyADOsState or a numpy array-like instance was expected"
+        )
+
+        with pytest.raises(ValueError) as err:
+            hsolver.run(np.array([1, 2, 3]), [0, 1])
+        assert str(err.value) == (
+            "Initial ADOs passed have shape (3,) but the solver hierarchy"
+            " shape is (10, 2, 2)"
+        )
+
     @pytest.mark.parametrize(['evo', 'combine'], [
         pytest.param("qobj", True, id="qobj"),
         pytest.param("qobjevo", True, id="qobjevo"),
