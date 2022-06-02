@@ -937,6 +937,23 @@ class HEOMSolver(Solver):
         )
         return ado_state
 
+    def start(self, state0, t0):
+        """
+        Set the initial state and time for a step evolution.
+
+        Parameters
+        ----------
+        state0 : :class:`Qobj`
+            Initial state of the evolution. This may provide either just the
+            initial density matrix of the system, or the full set of ADOs
+            for the hierarchy. See the documentation for ``rho0`` in the
+            ``.run(...)`` method for details.
+
+        t0 : double
+            Initial time of the evolution.
+        """
+        super().start(state0, t0)
+
 
 class HSolverDL(HEOMSolver):
     """
