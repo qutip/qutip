@@ -462,6 +462,9 @@ class HEOMSolver(Solver):
         self._n_ados = len(self.ados.labels)
         self._n_exponents = len(self.ados.exponents)
 
+        self._init_ados_time = time() - _time_start
+        _time_start = time()
+
         # pre-calculate identity matrix required by _grad_n
         self._sId = _data.identity(self._sup_shape, dtype="csr")
 
@@ -488,13 +491,26 @@ class HEOMSolver(Solver):
             for k in range(self._n_exponents)
         ]
 
+        self._init_superop_cache_time = time() - _time_start
+        _time_start = time()
+
         rhs, RHSmat = self._calculate_rhs()
+
+        self._init_rhs_time = time() - _time_start
+
         super().__init__(rhs, options=options)
         self.RHSmat = RHSmat
 
     def _initialize_stats(self):
         stats = super()._initialize_stats()
         stats.update({
+            "init time": sum([
+                stats["init time"], self._init_ados_time,
+                self._init_superop_cache_time, self._init_rhs_time,
+            ]),
+            "init ados time": self._init_ados_time,
+            "init superop cache time": self._init_superop_cache_time,
+            "init rhs time": self._init_rhs_time,
             "solver": "Hierarchical Equations of Motion Solver",
             "max_depth": self.ados.max_depth,
         })
