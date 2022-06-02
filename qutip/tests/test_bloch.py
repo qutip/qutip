@@ -456,8 +456,8 @@ class TestBloch:
 
     @pytest.mark.parametrize("vectors, colors",
                              [([0, 0, 1], ['g', 'y']),
-                             ([[0, 0, 1], [0, 1, 0]], ['y']),
-                             ([0, 0, 1], [['g', 'y']])],
+                              ([[0, 0, 1], [0, 1, 0]], ['y']),
+                              ([0, 0, 1], [['g', 'y']])],
                              ids=["one-vec-two-colors", "two-vec-one-color",
                                   "wrong-dimension-list"]
                              )
