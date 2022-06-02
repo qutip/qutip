@@ -4,6 +4,7 @@ __all__ = ['SolverOptions',
 
 from ..optionsclass import optionsclass
 
+
 @optionsclass("solver")
 class SolverOptions:
     """
@@ -26,6 +27,12 @@ class SolverOptions:
 
     Options
     -------
+    normalize_output : str {"", "dm", "ket", "all", True}
+        Whether to normalize the output state to hide ODE numerical errors.
+        The values "all" and True will normalize both ket and dm states.
+        The values "ket" and "dm" will only normalize states of the specified
+        type. Leave blank for no normalization.
+
     progress_bar : str {'text', 'enhanced', 'tqdm', ''}
         How to present the solver progress.
         True will result in 'text'.
@@ -37,10 +44,9 @@ class SolverOptions:
         kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
     """
     options = {
-        # (turned off for batch unitary propagator mode)
-        "progress_bar": "text",
         # Normalize output of solvers
-        # (turned off for batch unitary propagator mode)
+        "normalize_output": "ket",
+        "progress_bar": "text",
         "progress_kwargs": {"chunk_size":10},
     }
 
@@ -98,7 +104,7 @@ class SolverOdeOptions:
         Data type of the operator to used during the ODE evolution, such as
         'CSR' or 'Dense'. Use an empty string to keep the input state type.
 
-    state_data_type: str {'dense'}
+    state_data_type: str {"dense"}
         Name of the data type of the state used during the ODE evolution.
         Use an empty string to keep the input state type. Many integrator can
         only work with `Dense`.
@@ -129,9 +135,9 @@ class SolverOdeOptions:
         "min_step": 0,
         # tidyup Hamiltonian before calculation (default = True)
         "tidy": True,
-
+        # data type to use for the operator
         "operator_data_type": "",
-
+        # data type to use for the state
         "state_data_type": "dense",
         # Normalize the states received in feedback_args
         "feedback_normalize": True,
@@ -173,12 +179,6 @@ class SolverResultsOptions:
     store_ados : bool {False, True}
         Whether or not to store the HEOM ADOs. Only relevant when using
         the HEOM solver.
-
-    normalize_output : str {"", "ket", "all"}
-        normalize output state to hide ODE numerical errors.
-        "all" will normalize both ket and dm.
-        On "ket", only 'ket' output are normalized.
-        Leave empty for no normalization.
     """
     options = {
         # store final state?
@@ -187,9 +187,6 @@ class SolverResultsOptions:
         "store_states": None,
         # store HEOM ADOs when using the HEOMSolver
         "store_ados": False,
-        # Normalize output of solvers
-        # (turned off for batch unitary propagator mode)
-        "normalize_output": "ket",
     }
 
 

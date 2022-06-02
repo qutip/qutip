@@ -43,7 +43,7 @@ class Solver:
         self.options = options
         _time_start = time()
         self._integrator = self._get_integrator()
-        self._init_time = time() - _time_start
+        self._init_integrator_time = time() - _time_start
         self._state_metadata = {}
         self.stats = self._initialize_stats()
 
@@ -52,7 +52,7 @@ class Solver:
         """
         return {
             "method": self._integrator.name,
-            "init time": self._init_time,
+            "init time": self._init_integrator_time,
             "preparation time": 0.0,
             "run time": 0.0,
         }
@@ -88,15 +88,22 @@ class Solver:
             return stack_columns(state.data)
         return state.data
 
-    def _restore_state(self, state, *, copy=True):
+    def _restore_state(self, data, *, copy=True):
         """
-        Retore the Qobj state from the it's data.
+        Retore the Qobj state from its data.
         """
         if self._state_metadata['dims'] == self.rhs.dims[1]:
-            return Qobj(unstack_columns(state),
-                        **self._state_metadata, copy=False)
+            state = Qobj(unstack_columns(data),
+                         **self._state_metadata, copy=False)
         else:
-            return Qobj(state, **self._state_metadata, copy=copy)
+            state = Qobj(data, **self._state_metadata, copy=copy)
+
+        if state.shape[1] == 1:  # if the state does not have type oper
+            state_type = 'dm' if self.rhs.issuper else 'ket'
+            if self.options['normalize_output'] in {state_type, True, 'all'}:
+                state = state * (1 / state.norm())
+
+        return state
 
     def run(self, state0, tlist, *, args=None, e_ops=None):
         """
@@ -140,8 +147,6 @@ class Solver:
         results = self.resultclass(
             e_ops, self.options.results,
             solver=self.name, stats=stats,
-            rhs_is_super=self.rhs.issuper,
-            state_is_oper=(_data0.shape[1] != 1),
         )
         results.add(tlist[0], self._restore_state(_data0, copy=False))
         stats['preparation time'] += time() - _time_start

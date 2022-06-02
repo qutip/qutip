@@ -1,6 +1,6 @@
 """ Class for solve function results"""
 import numpy as np
-from ..core import Qobj, QobjEvo, spre, issuper, expect
+from ..core import Qobj, QobjEvo, expect
 
 __all__ = ["Result", "MultiTrajResult", "MultiTrajResultAveraged"]
 
@@ -22,29 +22,50 @@ class _QobjExpectEop:
         return expect(self.op, state)
 
 
-class _StoreEop:
+class ExpectOp:
     """
-    A pickable callable for storing e_ops values.
+    A result e_op (expectation operation).
 
     Parameters
     ----------
-    store : function
-        A callable ``store(value)``, e.g. ``expect[k].append``, that will store
-        the result of the e_ops function ``f(t, state)``.
+    op : object
+        The original object used to define the e_op operation, e.g. a
+        :~obj:`Qobj` or a function ``f(t, state)``.
 
     f : function
         A callable ``f(t, state)`` that will return the value of the e_op
         for the specified state and time.
+
+    append : function
+        A callable ``append(value)``, e.g. ``expect[k].append``, that will
+        store the result of the e_ops function ``f(t, state)``.
+
+    Attributes
+    ----------
+    op : object
+        The original object used to define the e_op operation.
     """
-    def __init__(self, store, f):
-        self.store = store
-        self.f = f
+    def __init__(self, op, f, append):
+        self.op = op
+        self._f = f
+        self._append = append
 
     def __call__(self, t, state):
-        self.store(self.f(t, state))
+        """
+        Return the expectation value for the given time, ``t`` and
+        state, ``state``.
+        """
+        return self._f(t, state)
+
+    def _store(self, t, state):
+        """
+        Store the result of the e_op function. Should only be called by
+        :class:`~Result`.
+        """
+        self._append(self._f(t, state))
 
 
-class BaseResult:
+class Result:
     """
     Base class for storing solver results.
 
@@ -113,16 +134,17 @@ class BaseResult:
         self.solver = solver
         self.stats = stats
 
-        self._state_preprocessors = []
-        self._state_preprocessors_perform_copy = False
         self._state_processors = []
         self._state_processors_require_copy = False
 
-        self.e_ops = self._e_ops_to_dict(e_ops)
-        self.expect = {k: [] for k in self.e_ops}
-        for k, e_op in self.e_ops.items():
-            f = self._e_op_func(e_op)
-            self.add_processor(_StoreEop(self.expect[k].append, f))
+        raw_ops = self._e_ops_to_dict(e_ops)
+        self.e_data = {k: [] for k in raw_ops}
+        self.expect = list(self.e_data.values())
+        self.e_ops = {}
+        for k, op in raw_ops.items():
+            f = self._e_op_func(op)
+            self.e_ops[k] = ExpectOp(op, f, self.e_data[k].append)
+            self.add_processor(self.e_ops[k]._store)
 
         self.options = options
 
@@ -133,7 +155,7 @@ class BaseResult:
         self._post_init(**kw)
 
     def _e_ops_to_dict(self, e_ops):
-        """ Convert the supplied e_ops to a dictionary. """
+        """ Convert the supplied e_ops to a dictionary of Eop instances. """
         if e_ops is None:
             e_ops = {}
         elif isinstance(e_ops, (list, tuple)):
@@ -218,27 +240,6 @@ class BaseResult:
         self._state_processors.append(f)
         self._state_processors_require_copy |= requires_copy
 
-    def add_preprocessor(self, f, performs_copy=False):
-        """
-        Append a pre-processor ``f`` to the list of state pre-processors.
-
-        Parameters
-        ----------
-        f : function, ``f(t, state) -> state``
-            A pre-processor function to apply to the state before passing
-            it to the state processors. The pre-processors are applied in
-            the same order in which they are added.
-
-        performs_copy : bool, default False
-            Whether this pre-processor returns a copy of the state rather than
-            a reference. A pre-processor should never modify the state in
-            place, but sometimes a pre-processor may return a different view
-            of the same underlying data (e.g. by reshaping it or wrapping it
-            in a :obj:`~Qobj`).
-        """
-        self._state_preprocessors.append(f)
-        self._state_preprocessors_perform_copy |= performs_copy
-
     def add(self, t, state):
         """
         Add a state to the results for the time ``t`` of the evolution.
@@ -261,21 +262,14 @@ class BaseResult:
 
         .. note::
 
-           The expectation value and state are recorded by the state processors
-           (see ``.add_processor``) after state pre-processors (
-           see ``.add_preprocessor``) have been applied.
+           The expectation values, i.e. ``e_ops``, and states are recorded by
+           the state processors (see ``.add_processor``).
 
-           Additional processors and preprocessors may be added by sub-classes.
+           Additional processors may be added by sub-classes.
         """
         self.times.append(t)
 
-        for pre_op in self._state_preprocessors:
-            state = pre_op(t, state)
-
-        if (
-            not self._state_preprocessors_perform_copy and
-            self._state_processors_require_copy
-        ):
+        if self._state_processors_require_copy:
             state = self._pre_copy(state)
 
         for op in self._state_processors:
@@ -293,12 +287,10 @@ class BaseResult:
                 for k, v in self.stats.items()
             )
         if self.times:
-            lines.extend([
-                f"  Times:",
-                f"    from {self.time[0]}",
-                f"    to {self.times[-1]}",
-                f"    in {len(self.times)} steps",
-            ])
+            lines.append(
+                f"  Time interval: [{self.times[0]}, {self.times[-1]}]"
+                f" ({len(self.times)} steps)"
+            )
         lines.append(f"  Number of e_ops: {len(self.e_ops)}")
         if self.states:
             lines.append("  States saved.")
@@ -308,22 +300,6 @@ class BaseResult:
             lines.append("  State not saved.")
         lines.append(">")
         return "\n".join(lines)
-
-
-class Result(BaseResult):
-    def _post_init(self, state_is_oper, rhs_is_super):
-        super()._post_init()
-
-        normalize_output = self.options['normalize_output']
-        if not state_is_oper and (
-            (rhs_is_super and normalize_output in {'dm', True, 'all'}) or
-            (not rhs_is_super and normalize_output in {'ket', True, 'all'})
-        ):
-            self.add_preprocessor(self._pre_normalize, performs_copy=True)
-
-    def _pre_normalize(self, t, state):
-        return state * (1 / state.norm())
-
 
 
 class MultiTrajResult:
@@ -667,12 +643,12 @@ class MultiTrajResultAveraged:
                 self._sum_last_states = one_traj.final_state.proj()
             else:
                 self._sum_last_states = one_traj.final_state
-            self._sum_expect = {
-                k: np.array(expect) for k, expect in one_traj.expect.items()
-            }
-            self._sum2_expect = {
-                k: np.array(expect)**2 for k, expect in one_traj.expect.items()
-            }
+            self._sum_expect = [
+                np.array(expect) for expect in one_traj.expect
+            ]
+            self._sum2_expect = [
+                np.array(expect)**2 for expect in one_traj.expect
+            ]
         else:
             if self._to_dm:
                 if self._sum_states:
@@ -687,14 +663,14 @@ class MultiTrajResultAveraged:
                 if self._sum_last_states:
                     self._sum_last_states += one_traj.final_state
             if self._sum_expect:
-                self._sum_expect = {
-                    k: self._sum_expect[k] + np.array(one_traj.expect[k])
-                    for k in self._sum_expect
-                }
-                self._sum2_expect = {
-                    k: self._sum2_expect[k] + np.array(one_traj.expect[k])**2
-                    for k in self._sum2_expect
-                }
+                self._sum_expect = [
+                    self._sum_expect[i] + np.array(one_traj.expect[i])
+                    for i in range(len(self._sum_expect))
+                ]
+                self._sum2_expect = [
+                    self._sum2_expect[i] + np.array(one_traj.expect[i])**2
+                    for i in range(len(self._sum2_expect))
+                ]
         self._collapse.append(one_traj.collapse)
         self._num += 1
 
@@ -721,20 +697,17 @@ class MultiTrajResultAveraged:
 
     @property
     def average_expect(self):
-        return {
-            k: self._sum_expect[k] / self._num
-            for k in self._sum_expect
-        }
+        return [v / self._num for v in self._sum_expect]
 
     @property
     def std_expect(self):
-        return {
-            k: np.sqrt(
-                self._sum2_expect[k] / self._num -
-                (self._sum_expect[k] / self._num) ** 2
+        return [
+            np.sqrt(
+                self._sum2_expect[i] / self._num -
+                (self._sum_expect[i] / self._num) ** 2
             )
-            for k in self._sum_expect
-        }
+            for i in range(len(self._sum_expect))
+        ]
 
     @property
     def runs_expect(self):
