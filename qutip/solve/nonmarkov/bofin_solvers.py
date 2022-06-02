@@ -10,7 +10,6 @@ https://github.com/tehruhn/bofin) which was itself derived from an earlier
 implementation in QuTiP itself.
 """
 
-from copy import deepcopy
 from time import time
 
 import numpy as np
@@ -442,15 +441,13 @@ class HEOMSolver(Solver):
 
         self.H_sys = self._convert_h_sys(H)
         self._is_timedep = isinstance(self.H_sys, QobjEvo)
-        self._H0 = self.H_sys(0) if self._is_timedep else self.H_sys
         self._is_hamiltonian = self.H_sys.type == "oper"
-        self._L0 = liouvillian(self._H0) if self._is_hamiltonian else self._H0
 
         self._sys_shape = (
             self.H_sys.shape[0] if self._is_hamiltonian
             else int(np.sqrt(self.H_sys.shape[0]))
         )
-        self._sup_shape = self._L0.shape[0]
+        self._sup_shape = self._sys_shape ** 2
         self._sys_dims = (
             self.H_sys.dims if self._is_hamiltonian
             else self.H_sys.dims[0]
@@ -494,12 +491,11 @@ class HEOMSolver(Solver):
         self._init_superop_cache_time = time() - _time_start
         _time_start = time()
 
-        rhs, RHSmat = self._calculate_rhs()
+        rhs = self._calculate_rhs()
 
         self._init_rhs_time = time() - _time_start
 
         super().__init__(rhs, options=options)
-        self.RHSmat = RHSmat
 
     def _initialize_stats(self):
         stats = super()._initialize_stats()
@@ -568,7 +564,10 @@ class HEOMSolver(Solver):
         """ Get the gradient for the hierarchy ADO at level n. """
         vk = self.ados.vk
         vk_sum = sum(he_n[i] * vk[i] for i in range(len(vk)))
-        op = _data.sub(L, _data.mul(self._sId, vk_sum))
+        if L is not None:  # time-independent case
+            op = _data.sub(L, _data.mul(self._sId, vk_sum))
+        else:  # time-dependent case
+            op = _data.mul(self._sId, -vk_sum)
         return op
 
     def _grad_prev(self, he_n, k):
@@ -693,7 +692,9 @@ class HEOMSolver(Solver):
 
     def _rhs(self, L):
         """ Make the RHS for the HEOM. """
-        ops = _GatherHEOMRHS(self.ados.idx, block=L.shape[0], nhe=self._n_ados)
+        ops = _GatherHEOMRHS(
+            self.ados.idx, block=self._sup_shape, nhe=self._n_ados
+        )
 
         for he_n in self.ados.labels:
             op = self._grad_n(L, he_n)
@@ -712,33 +713,41 @@ class HEOMSolver(Solver):
 
     def _calculate_rhs(self):
         """ Set up the solver. """
-        RHSmat = self._rhs(self._L0.data)
-        assert isinstance(RHSmat, _csr.CSR)
-
-        if self._is_timedep:
+        if not self._is_timedep:
+            if self._is_hamiltonian:
+                L0 = liouvillian(self.H_sys)
+            else:
+                L0 = self.H_sys
+            rhs_mat = self._rhs(L0.data)
+            rhs = QobjEvo(Qobj(rhs_mat, dims=[
+                self._sup_shape * self._n_ados, self._sup_shape * self._n_ados
+            ]))
+        else:
             # In the time dependent case, we construct the parameters
             # for the ODE gradient function under the assumption that
+            #
             # RHSmat(t) = RHSmat + time dependent terms that only affect the
             # diagonal blocks of the RHS matrix.
+            #
             # This assumption holds because only _grad_n dependents on
-            # the system Liovillian (and not _grad_prev or _grad_next).
-
-            rhs = QobjEvo(Qobj(RHSmat))
+            # the system Liouvillian (and not _grad_prev or _grad_next) and
+            # the bath coupling operators are not time-dependent.
+            #
+            # By calling _rhs(None) we omit the Liouvillian completely from
+            # the RHS and then manually add back the Liouvillian afterwards.
+            rhs_mat = self._rhs(None)
+            rhs = QobjEvo(Qobj(rhs_mat))
             h_identity = _data.identity(self._n_ados, dtype="csr")
 
             def _kron(x):
-                # TODO: Check whether this works for more complex QobjEvos
-                #       and if not, raise an exception rather than give
-                #       incorrect results.
                 L = liouvillian(x) if self._is_hamiltonian else x
                 return Qobj(_data.kron(h_identity, L.data)).to("csr")
-            rhs += (self.H_sys - self._H0).linear_map(_kron)
-        else:
-            rhs = QobjEvo(Qobj(RHSmat, dims=[
-                self._sup_shape * self._n_ados, self._sup_shape * self._n_ados
-            ]))
+            rhs += self.H_sys.linear_map(_kron)
 
-        return rhs, RHSmat
+        assert isinstance(rhs_mat, _csr.CSR)
+        assert isinstance(rhs, QobjEvo)
+
+        return rhs
 
     def steady_state(
         self,
@@ -777,12 +786,17 @@ class HEOMSolver(Solver):
             The steady state of the full ADO hierarchy. A particular ADO may be
             extracted from the full state by calling :meth:`.extract`.
         """
+        if self._is_timedep:
+            raise ValueError(
+                "A steady state cannot be determined for a time-dependent"
+                " system"
+            )
         n = self._sys_shape
 
         b_mat = np.zeros(n ** 2 * self._n_ados, dtype=complex)
         b_mat[0] = 1.0
 
-        L = deepcopy(self.RHSmat.as_scipy())
+        L = self.rhs(0).data.copy().as_scipy()
         L = L.tolil()
         L[0, 0: n ** 2 * self._n_ados] = 0.0
         L = L.tocsr()

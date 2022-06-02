@@ -632,11 +632,19 @@ class TestHEOMSolver:
         expected = dlm.analytic_results(tlist)
         np.testing.assert_allclose(test, expected, atol=atol)
 
-        rho_final, ado_state = hsolver.steady_state()
-        test = dlm.state_results([rho_final])
-        expected = dlm.analytic_results([100])
-        np.testing.assert_allclose(test, expected, atol=atol)
-        assert rho_final == ado_state.extract(0)
+        if evo == "qobj":
+            rho_final, ado_state = hsolver.steady_state()
+            test = dlm.state_results([rho_final])
+            expected = dlm.analytic_results([100])
+            np.testing.assert_allclose(test, expected, atol=atol)
+            assert rho_final == ado_state.extract(0)
+        else:
+            with pytest.raises(ValueError) as err:
+                hsolver.steady_state()
+            assert str(err.value) == (
+                "A steady state cannot be determined for a time-dependent"
+                " system"
+            )
 
     @pytest.mark.parametrize(['terminator'], [
         pytest.param(True, id="terminator"),
@@ -734,10 +742,18 @@ class TestHEOMSolver:
         analytic_current = dlm.analytic_current()
         np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
 
-        rho_final, ado_state = hsolver.steady_state()
-        current = dlm.state_current(ado_state)
-        analytic_current = dlm.analytic_current()
-        np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
+        if evo == "qobj":
+            rho_final, ado_state = hsolver.steady_state()
+            current = dlm.state_current(ado_state)
+            analytic_current = dlm.analytic_current()
+            np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
+        else:
+            with pytest.raises(ValueError) as err:
+                hsolver.steady_state()
+            assert str(err.value) == (
+                "A steady state cannot be determined for a time-dependent"
+                " system"
+            )
 
     @pytest.mark.parametrize(['bath_cls', 'analytic_current'], [
         pytest.param(LorentzianBath, 0.001101, id="matsubara"),
@@ -898,11 +914,19 @@ class TestHSolverDL:
         expected = dlm.analytic_results(tlist)
         np.testing.assert_allclose(test, expected, atol=atol)
 
-        rho_final, ado_state = hsolver.steady_state()
-        test = dlm.state_results([rho_final])
-        expected = dlm.analytic_results([100])
-        np.testing.assert_allclose(test, expected, atol=atol)
-        assert rho_final == ado_state.extract(0)
+        if evo == "qobj":
+            rho_final, ado_state = hsolver.steady_state()
+            test = dlm.state_results([rho_final])
+            expected = dlm.analytic_results([100])
+            np.testing.assert_allclose(test, expected, atol=atol)
+            assert rho_final == ado_state.extract(0)
+        else:
+            with pytest.raises(ValueError) as err:
+                hsolver.steady_state()
+            assert str(err.value) == (
+                "A steady state cannot be determined for a time-dependent"
+                " system"
+            )
 
     @pytest.mark.parametrize(['bnd_cut_approx', 'tol'], [
         pytest.param(True, 1e-4, id="bnd_cut_approx"),
