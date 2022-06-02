@@ -38,7 +38,7 @@ class IntegratorVern7(Integrator):
     def _prepare(self):
         self._ode_solver = Explicit_RungeKutta(
             self.system, method=self.method,
-            **self.options.options
+            **self.options
         )
         self.name = self.method
 
@@ -64,6 +64,30 @@ class IntegratorVern7(Integrator):
         if self._ode_solver.successful():
             return
         raise IntegratorException(self._ode_solver.status_message())
+
+
+IntegratorVern7.options.__doc__ = """
+    atol : float
+        Absolute tolerance.
+
+    rtol : float
+        Relative tolerance.
+
+    nsteps : int
+        Max. number of internal steps/call.
+
+    first_step : float
+        Size of initial step (0 = automatic).
+
+    min_step : float
+        Minimum step size (0 = automatic).
+
+    max_step : float
+        Maximum step size (0 = automatic)
+
+    interpolate : bool
+        Whether to use interpolation step, faster most of the time.
+"""
 
 
 class IntegratorVern9(IntegratorVern7):

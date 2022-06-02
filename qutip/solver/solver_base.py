@@ -1,7 +1,7 @@
 __all__ = ['Solver']
 
 from .. import Qobj, QobjEvo, ket2dm
-from .options import Options, SolverOptions
+from .options import known_solver, SolverOptions
 from ..core import stack_columns, unstack_columns
 from .result import Result
 from .integrator import Integrator
@@ -46,8 +46,9 @@ class Solver:
             self.rhs = QobjEvo(rhs)
         else:
             TypeError("The rhs must be a QobjEvo")
-        self._options = self.solver_option.copy()
-        self.options = options
+        self._options = SolverOptions(self.name, **self.default_options)
+        if options is not None:
+            self.options = options
         _time_start = time()
         self._integrator = self._get_integrator()
         self.stats = {"preparation time": time() - _time_start}
@@ -71,9 +72,6 @@ class Solver:
         ):
             raise TypeError(f"incompatible dimensions {self.rhs.dims}"
                             f" and {state.dims}")
-
-        if self.options["state_data_type"]:
-            state = state.to(self.options["state_data_type"])
 
         self._state_metadata = {
             'dims': state.dims,
@@ -209,19 +207,14 @@ class Solver:
 
     def _get_integrator(self):
         """ Return the initialted integrator. """
-        if self.options["operator_data_type"]:
-            self.rhs = self.rhs.to(
-                self.options["operator_data_type"]
-            )
-
-        method = self.options["method"]
+        method = self._options["method"]
         if method in self.avail_integrators():
             integrator = self.avail_integrators()[method]
         elif issubclass(method, Integrator):
             integrator = method
         else:
             raise ValueError("Integrator method not supported.")
-        return integrator(self.rhs, self.options.ode)
+        return integrator(self.rhs, self.options)
 
     @property
     def options(self):
@@ -247,29 +240,31 @@ class Solver:
             kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
 
         method: str
-            Which ODE integrator methods are supported.
+            Which ordinary differential equation integration method to use.
         """
-        # Since we need to react when values we are passing a immutable map.
-        # ToDo: Make a custom dict-like class that can ve updated.
-        integrator_options = self._integrator.options._asdict()
-        return namedtuple("Options",
-            self._options.keys() & integrator_options.keys())(
-                **self._options, **integrator_options
-            )
+        return self._options.copy()
 
     @options.setter
     def options(self, new_options):
-        self._options = {
-            **self._options,
-            **{
-               key: new_options[key]
-               for key in self.solver_options.keys()
-               if key in new_options and new_options[key] is not None
-            }
-        }
-        if 'method' in new_options and self._integrator is not None:
+        if not new_options:
+            return  # Nothing to do
+        change_method = (
+            'method' in new_options
+            and new_options['method'] != self._options['method']
+        )
+        kept_options = self._options
+        if change_method:
+            kept_options = self._options.solver_options
+
+        self._options = SolverOptions(self.name, **{**kept_options, **new_options})
+        if self._integrator is None:
+            pass
+        elif change_method:
+            state = self._integrator.get_state()
             self._integrator = self._get_integrator()
-        self._integrator.options = new_options
+            self._integrator.set_state(*state)
+        else:
+            self._integrator.options = new_options
 
     def _argument(self, args):
         """Update the args, for the `rhs` and other operators."""
@@ -311,3 +306,8 @@ class Solver:
                             " of `qutip.solver.Integrator`")
 
         cls._avail_integrators[key] = integrator
+
+
+known_solver['solver'] = Solver
+known_solver['Solver'] = Solver
+known_solver['generic'] = Solver

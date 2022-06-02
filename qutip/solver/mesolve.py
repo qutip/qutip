@@ -11,7 +11,7 @@ from .. import (Qobj, QobjEvo, isket, liouvillian, ket2dm, lindblad_dissipator)
 from ..core import stack_columns, unstack_columns
 from ..core.data import to
 from .solver_base import Solver
-from .options import SolverOptions
+from .options import known_solver
 from .sesolve import sesolve
 
 
@@ -45,9 +45,8 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
 
     **Additional options**
 
-    Additional options to mesolve can be set via the `options` argument, which
-    should be an instance of :class:`qutip.solver.SolverOptions`. Many ODE
-    integration options can be set this way, and the `store_states` and
+    Additional options to mesolve can be set via the `options` argument. Many
+    ODE integration options can be set this way, and the `store_states` and
     `store_final_state` options can be used to store states even though
     expectation values are requested via the `e_ops` argument.
 
@@ -109,7 +108,7 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
 
     if not use_mesolve:
         return sesolve(H, rho0, tlist, e_ops=e_ops, args=args,
-                       options=SeOptions(options, _strict=False))
+                       options=options)
 
     solver = MeSolver(H, c_ops, options=options)
 
@@ -181,3 +180,8 @@ class MeSolver(Solver):
         self.stats['num_collapse'] = len(c_ops)
         self.stats["preparation time"] = time() - _time_start
         self.stats["run time"] = 0
+
+known_solver['mesolve'] = MeSolver
+known_solver['Mesolver'] = MeSolver
+known_solver['MeSolver'] = MeSolver
+known_solver['Master Equation Evolution'] = MeSolver

@@ -13,7 +13,7 @@ from ..core.blochredfield import bloch_redfield_tensor, SpectraCoefficient
 from ..core.cy.coefficient import InterCoefficient
 from ..core import data as _data
 from .solver_base import Solver
-from .options import SolverOptions
+from .options import known_solver
 
 
 def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
@@ -131,9 +131,7 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         else:
             raise TypeError("a_ops's spectra not known")
 
-    options['sec_cutoff'] = sec_cutoff
-
-    solver = BrSolver(H, new_a_ops, c_ops, options=options)
+    solver = BrSolver(H, new_a_ops, c_ops, sec_cutoff, options=options)
 
     return solver.run(psi0, tlist, e_ops=e_ops)
 
@@ -175,6 +173,10 @@ class BrSolver(Solver):
         Single collapse operator, or list of collapse operators, or a list
         of Lindblad dissipator. None is equivalent to an empty list.
 
+    sec_cutoff : float {0.1}
+        Cutoff for secular approximation. Use ``-1`` if secular
+        approximation is not used when evaluating bath-coupling terms.
+
     options : None / dict / :class:`Options`
         Options for the solver
 
@@ -193,13 +195,15 @@ class BrSolver(Solver):
         'method': 'adams',
         'tensor_type': 'sparse',
         'sparse_eigensolver': False,
-        'sec_cutoff': 0.1,
     }
     _avail_integrators = {}
 
-    def __init__(self, H, a_ops, c_ops=None, *, options=None):
+    def __init__(self, H, a_ops, c_ops=None, sec_cutoff=0.1, *, options=None):
         _time_start = time()
 
+        self.rhs = None
+        self.sec_cutoff = sec_cutoff
+        self._options = self.default_options.copy()
         self.options = options
 
         if not isinstance(H, (Qobj, QobjEvo)):
@@ -224,7 +228,7 @@ class BrSolver(Solver):
         return bloch_redfield_tensor(
             *self._system,
             fock_basis=True,
-            sec_cutoff=self.options['sec_cutoff'],
+            sec_cutoff=self.sec_cutoff,
             sparse_eigensolver=self.options['sparse_eigensolver'],
             br_dtype=self.options['tensor_type']
         )
@@ -259,40 +263,46 @@ class BrSolver(Solver):
         sparse_eigensolver: bool {False}
             Whether to use the sparse eigensolver
 
-        sec_cutoff : float {0.1}
-            Cutoff for secular approximation. Use ``-1`` if secular
-            approximation is not used when evaluating bath-coupling terms.
-
         method: str
             Which ODE integrator methods are supported.
         """
-        # Since we need to react when values we are passing a immutable map.
-        # ToDo: Make a custom dict-like class that can ve updated.
-        integrator_options = self._integrator.options._asdict()
-        return namedtuple("Options",
-            self._options.keys() & integrator_options.keys())(
-                **self._options, **integrator_options
-            )
+        return self._options.copy()
 
     @options.setter
     def options(self, new_options):
-        self._options = {
-            **self._options,
-            **{
-               key: new_options[key]
-               for key in self.solver_options.keys()
-               if key in new_options and new_options[key] is not None
-            }
-        }
-        # TODO: clean up
-        rhs_options = ['sparse_eigensolver', 'sec_cutoff', 'tensor_type']
-        if (
-            any(rhs_option in new_options for rhs_option in rhs_options)
-            and self._integrator is not None
-            and not self.rhs.isconstant
-        ):
+        if not new_options:
+            return  # Nothing to do
+        change_method = (
+            'method' in new_options
+            and new_options['method'] != self._options['method']
+        )
+        kept_options = self._options
+        if change_method:
+            kept_options = self._options.solver_options
+
+        self._options = SolverOptions('brmesolve', **{**kept_options, **new_options})
+
+        need_new_rhs = (
+            self.rhs is not None and self.rhs.isconstant
+            and (
+                'sparse_eigensolver' in new_options
+                or 'tensor_type' in new_options
+            )
+        )
+        if need_new_rhs:
             self.rhs = self._prepare_rhs()
+
+        if self._integrator is None:
+            pass
+        elif change_method or need_new_rhs:
+            state = self._integrator.get_state()
             self._integrator = self._get_integrator()
-        elif 'method' in new_options and self._integrator is not None:
-            self._integrator = self._get_integrator()
-        self._integrator.options = new_options
+            self._integrator.set_state(*state)
+        else:
+            self._integrator.options = new_options
+
+known_solver['brmesolve'] = BrSolver
+known_solver['Brmesolver'] = BrSolver
+known_solver['Brsolver'] = BrSolver
+known_solver['BrSolver'] = BrSolver
+known_solver['Bloch Redfield Equation Evolution'] = BrSolver

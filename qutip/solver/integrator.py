@@ -67,10 +67,10 @@ class Integrator:
 
     def __init__(self, system, options):
         self.system = system
-        self._options = self.integrator_options.copy()
-        self.options = options
         self._is_set = False  # get_state can be used and return a valid state.
         self._back = (np.inf, None)
+        self._options = self.integrator_options.copy()
+        self.options = options
         self._prepare()
 
     def _prepare(self):
@@ -219,6 +219,9 @@ class Integrator:
 
     @property
     def options(self):
+        """
+        Options for the integrator.
+        """
         return self._options.copy()
 
     @options.setter

@@ -55,7 +55,7 @@ class IntegratorScipyAdams(Integrator):
         self._ode_solver.set_integrator('zvode')
         self._ode_solver._integrator = self._zvode(
             method=self.method,
-            **self.options.options,
+            **self.options,
         )
         self.name = "scipy zvode " + self.method
 
@@ -158,6 +158,30 @@ class IntegratorScipyAdams(Integrator):
         )
 
 
+IntegratorScipyAdams.options.__doc__ = """
+    atol : float
+        Absolute tolerance.
+
+    rtol : float
+        Relative tolerance.
+
+    order : int
+        Order of integrator (<=12 'adams', <=5 'bdf')
+
+    nsteps : int
+        Max. number of internal steps/call.
+
+    first_step : float
+        Size of initial step (0 = automatic).
+
+    min_step : float
+        Minimum step size (0 = automatic).
+
+    max_step : float
+        Maximum step size (0 = automatic)
+"""
+
+
 class IntegratorScipyBDF(IntegratorScipyAdams):
     """
     Integrator using Scipy `ode` with zvode integrator using bdf method.
@@ -202,7 +226,7 @@ class IntegratorScipyDop853(Integrator):
         Initialize the solver
         """
         self._ode_solver = ode(self._mul_np_vec)
-        self._ode_solver.set_integrator('dop853', **self.options.options)
+        self._ode_solver.set_integrator('dop853', **self.options)
         self.name = "scipy ode dop853"
 
     def _mul_np_vec(self, t, vec):
@@ -279,6 +303,30 @@ class IntegratorScipyDop853(Integrator):
         )
 
 
+IntegratorScipyDop853.options.__doc__ = """
+    atol : float
+        Absolute tolerance.
+
+    rtol : float
+        Relative tolerance.
+
+    nsteps : int
+        Max. number of internal steps/call.
+
+    first_step : float
+        Size of initial step (0 = automatic).
+
+    max_step : float
+        Maximum step size (0 = automatic)
+
+    ifactor, dfactor : float
+        float Maximum factor to increase/decrease step size by in one step
+
+    beta : float
+        float Beta parameter for stabilised step size control.
+"""
+
+
 class IntegratorScipylsoda(IntegratorScipyDop853):
     """
     Integrator using Scipy `ode` with lsoda integrator. ODE solver by netlib
@@ -303,7 +351,7 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         Initialize the solver
         """
         self._ode_solver = ode(self._mul_np_vec)
-        self._ode_solver.set_integrator('lsoda', **self.options.options)
+        self._ode_solver.set_integrator('lsoda', **self.options)
         self.name = "scipy lsoda"
 
     def _check_handle(self):
@@ -405,6 +453,33 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         raise IntegratorException(
             messages[self._ode_solver._integrator.istate]
         )
+
+
+IntegratorScipylsoda.options.__doc__ = """
+    atol : float
+        Absolute tolerance.
+
+    rtol : float
+        Relative tolerance.
+
+    nsteps : int
+        Max. number of internal steps/call.
+
+    max_order_ns : int
+        Maximum order used in the nonstiff case (default 12).
+
+    max_order_s : int
+        Maximum order used in the stiff case (default 5).
+
+    first_step : float
+        Size of initial step (0 = automatic).
+
+    max_step : float
+        Maximum step size (0 = automatic)
+
+    min_step : float
+        Minimum step size (0 = automatic)
+"""
 
 
 Solver.add_integrator(IntegratorScipyBDF, 'bdf')

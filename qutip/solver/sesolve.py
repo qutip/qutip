@@ -8,7 +8,7 @@ import numpy as np
 from time import time
 from .. import Qobj, QobjEvo
 from .solver_base import Solver
-from .options import SolverOptions
+from .options import known_solver
 
 
 def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None):
@@ -120,3 +120,8 @@ class SeSolver(Solver):
         self.stats['solver'] = "Schrodinger Evolution"
         self.stats["preparation time"] = time() - _time_start
         self.stats["run time"] = 0
+
+known_solver['sesolve'] = SeSolver
+known_solver['Sesolver'] = SeSolver
+known_solver['SeSolver'] = SeSolver
+known_solver['Schrodinger Evolution'] = SeSolver

@@ -65,8 +65,8 @@ class Settings:
     def __new__(cls):
         """Set Settings as a singleton."""
         if not hasattr(cls, 'instance'):
-            cls.instance = super(Settings, cls).__new__(cls)
-        return cls.instance
+            cls._instance = super(Settings, cls).__new__(cls)
+        return cls._instance
 
     def __init__(self):
         self._has_mkl, self._mkl_lib = _find_mkl()
@@ -146,6 +146,15 @@ class Settings:
             os.environ['QUTIP_NUM_PROCESSES'] = str(num_cpus)
         return num_cpus
 
+    def __str__(self):
+        lines = []
+        for attr in self.__dir__():
+            if not attr.startswith('_'):
+                lines.append(f"{attr}: {self.__getattribute__(attr)}")
+        return '\n'.join(lines)
+
+    def __repr__(self):
+        return self.__str__()
 
 
 settings = Settings()
