@@ -439,15 +439,17 @@ class HEOMSolver(Solver):
     def __init__(self, H, bath, max_depth, *, options=None):
         _time_start = time()
 
-        self.H_sys = self._convert_h_sys(H)
-        self._is_timedep = isinstance(self.H_sys, QobjEvo)
+        self.H_sys = QobjEvo(self._convert_h_sys(H))
         self._is_hamiltonian = self.H_sys.type == "oper"
 
         self._sys_shape = (
             self.H_sys.shape[0] if self._is_hamiltonian
             else int(np.sqrt(self.H_sys.shape[0]))
         )
-        self._sup_shape = self._sys_shape ** 2
+        self._sup_shape = (
+            self.H_sys.shape[0] ** 2 if self._is_hamiltonian
+            else self.H_sys.shape[0]
+        )
         self._sys_dims = (
             self.H_sys.dims if self._is_hamiltonian
             else self.H_sys.dims[0]
@@ -712,12 +714,11 @@ class HEOMSolver(Solver):
         return ops.gather()
 
     def _calculate_rhs(self):
-        """ Set up the solver. """
-        if not self._is_timedep:
+        """ Make the full RHS required by the solver. """
+        if self.H_sys.isconstant:
+            L0 = self.H_sys(0)
             if self._is_hamiltonian:
-                L0 = liouvillian(self.H_sys)
-            else:
-                L0 = self.H_sys
+                L0 = liouvillian(L0)
             rhs_mat = self._rhs(L0.data)
             rhs = QobjEvo(Qobj(rhs_mat, dims=[
                 self._sup_shape * self._n_ados, self._sup_shape * self._n_ados
@@ -786,7 +787,7 @@ class HEOMSolver(Solver):
             The steady state of the full ADO hierarchy. A particular ADO may be
             extracted from the full state by calling :meth:`.extract`.
         """
-        if self._is_timedep:
+        if not self.H_sys.isconstant:
             raise ValueError(
                 "A steady state cannot be determined for a time-dependent"
                 " system"
