@@ -429,7 +429,7 @@ class Bloch:
 
         n_vectors = vectors.shape[0]
         if colors is None:
-            colors = np.array([None]*n_vectors)
+            colors = np.array([None] * n_vectors)
         else:
             colors = np.asarray(colors)
 
