@@ -424,3 +424,5 @@ class TestBloch:
 def test_repr_svg():
     svg = Bloch()._repr_svg_()
     assert isinstance(svg, str)
+    assert svg.startswith("<?xml")
+    assert svg.endswith("</svg>\n")
