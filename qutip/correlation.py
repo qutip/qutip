@@ -1079,7 +1079,7 @@ def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
             _args["_t0"] = tlist[t_idx]
 
         corr_mat[t_idx, :] = mesolve(
-            H_shifted, c_op * rho * a_op, taulist, c_ops_shifted,
+            H_shifted, c_op * rho * a_op, taulist + tlist[t_idx], c_ops_shifted,
             [b_op], args=_args, options=options
         ).expect[0]
 
