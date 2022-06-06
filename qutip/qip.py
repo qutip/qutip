@@ -8,6 +8,6 @@ try:
     del qutip_qip
 except ImportError:
     raise ImportError(
-        "'qutip.qip' imports require the `qutip_qip` package. Install it with "
+        "'qutip.qip' imports require the 'qutip_qip' package. Install it with "
         "`pip install qutip-qip` or with `pip install qutip[qip]`."
     )
