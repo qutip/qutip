@@ -2088,7 +2088,6 @@ class Lattice1d_2c_hcb_Hubbard():
             s += "Boundary Condition:  Hardwall"
         return s
 
-
     def basis_hcbosonic_Hubbard_chain(self):
         """
         Produces a graphic portraying the lattice symbolically with a unit cell
