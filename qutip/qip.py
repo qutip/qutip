@@ -3,11 +3,11 @@ import sys
 
 try:
     import qutip_qip
-
-    sys.modules["qutip.qip"] = sys.modules["qutip_qip"]
     del qutip_qip
+    sys.modules["qutip.qip"] = sys.modules["qutip_qip"]
 except ImportError:
     raise ImportError(
-        "'qutip.qip' imports require the 'qutip_qip' package. Install it with "
-        "`pip install qutip-qip` or with `pip install qutip[qip]`."
+        "Importing 'qutip.qip' requires the 'qutip_qip' package. Install it "
+        "with `pip install qutip-qip` (for more details, go to "
+        "https://qutip-qip.rtfd.io/en/stable/)."
     )
