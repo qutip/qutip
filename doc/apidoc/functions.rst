@@ -103,7 +103,7 @@ Density Matrix Metrics
 ----------------------
 
 .. automodule:: qutip.metrics
-    :members: fidelity, tracedist, bures_dist, bures_angle, hilbert_dist, average_gate_fidelity, process_fidelity
+    :members: fidelity, tracedist, bures_dist, bures_angle, hellinger_dist, hilbert_dist, average_gate_fidelity, process_fidelity, unitarity, dnorm
 
 
 Continuous Variables

@@ -283,6 +283,12 @@ def hellinger_dist(A, B, sparse=False, tol=0):
     -------
     hellinger_dist : float
         Quantum Hellinger distance between A and B. Ranges from 0 to sqrt(2).
+
+    Examples
+    --------
+    >>> x=fock_dm(5,3)
+    >>> y=coherent_dm(5,1)
+    >>> np.testing.assert_almost_equal(hellinger_dist(x,y), 1.3725145002591095)
     """
     if A.isket or A.isbra:
         sqrtmA = ket2dm(A)
