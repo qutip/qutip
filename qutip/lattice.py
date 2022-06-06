@@ -1,4 +1,4 @@
-__all__ = ['Lattice1d', 'cell_structures']
+__all__ = ['Lattice1d', 'Lattice1d_f_Hubbard', 'Lattice1d_2c_hcb_Hubbard', 'Lattice1d_Heisenberg', 'cell_structures']
 
 from scipy.sparse import (csr_matrix)
 from qutip import (Qobj, tensor, basis, qeye, isherm, sigmax, sigmay, sigmaz)
@@ -9,6 +9,15 @@ try:
     import matplotlib.pyplot as plt
 except ImportError:
     pass
+
+
+from scipy import sparse
+from scipy.sparse.linalg import eigs
+import operator as op
+from functools import reduce
+#from copy import deepcopy
+import copy
+
 
 
 def cell_structures(val_s=None, val_t=None, val_u=None):
@@ -195,7 +204,7 @@ class Lattice1d():
     num_cell : int
         The number of unit cells in the crystal.
     cell_num_site : int
-        The nuber of sites in a unit cell.
+        The number of sites in a unit cell.
     length_for_site : int
         The length of the dimension per site of a unit cell.
     cell_tensor_config : list of int
@@ -1251,3 +1260,1558 @@ class Lattice1d():
         plt.close()
 
         return Qobj(inter_T, dims=dims_site)
+
+class Lattice1d_f_Hubbard():
+    """A class for representing a 1d crystal.
+
+    The Lattice1d class can be defined with any specific unit cells and a
+    specified number of unit cells in the crystal. It can return dispersion
+    relationship, position operators, Hamiltonian in the position represention
+    etc.
+
+    Parameters
+    ----------
+    num_cell : int
+        The number of cells in the crystal.
+    boundary : str
+        Specification of the type of boundary the crystal is defined with.
+    cell_num_site : int
+        The number of sites in the unit cell.
+    cell_site_dof : list of int/ int
+        The tensor structure  of the degrees of freedom at each site of a unit
+        cell.
+    Hamiltonian_of_cell : qutip.Qobj
+        The Hamiltonian of the unit cell.
+    inter_hop : qutip.Qobj / list of Qobj
+        The coupling between the unit cell at i and at (i+unit vector)
+
+    Attributes
+    ----------
+    num_cell : int
+        The number of unit cells in the crystal.
+    cell_num_site : int
+        The number of sites in a unit cell.
+    length_for_site : int
+        The length of the dimension per site of a unit cell.
+    cell_tensor_config : list of int
+        The tensor structure of the cell in the form
+        [cell_num_site,cell_site_dof[:][0] ]
+    lattice_tensor_config : list of int
+        The tensor structure of the crystal in the
+        form [num_cell,cell_num_site,cell_site_dof[:][0]]
+    length_of_unit_cell : int
+        The length of the dimension for a unit cell.
+    period_bnd_cond_x : int
+        1 indicates "periodic" and 0 indicates "hardwall" boundary condition
+    inter_vec_list : list of list
+        The list of list of coefficients of inter unitcell vectors' components
+        along Cartesian uit vectors.
+    lattice_vectors_list : list of list
+        The list of list of coefficients of lattice basis vectors' components
+        along Cartesian unit vectors.
+    H_intra : qutip.Qobj
+        The Qobj storing the Hamiltonian of the unnit cell.
+    H_inter_list : list of Qobj/ qutip.Qobj
+        The list of coupling terms between unit cells of the lattice.
+    is_real : bool
+        Indicates if the Hamiltonian is real or not.
+    """
+    def __init__(self, num_sites=10, boundary="periodic", t=1,
+                 U=1, fillingUp=None, fillingDown=None, k=None):
+
+        self.paramT = t
+        self.paramU = U
+        self.latticeSize = [num_sites]
+        self.fillingUp = fillingUp
+        self.fillingDown = fillingDown
+        self.kval = k
+
+        if (not isinstance(num_sites, int)) or num_sites > 18:
+            raise Exception("cell_num_site is required to be a positive \
+                            integer.")
+                            
+        if boundary == "periodic":
+            self.period_bnd_cond_x = 1
+        elif boundary == "aperiodic" or boundary == "hardwall":
+            self.period_bnd_cond_x = 0
+        else:
+            raise Exception("Error in boundary: Only recognized bounday \
+                    options are:\"periodic \",\"aperiodic\" and \"hardwall\" ")
+
+    def __repr__(self):
+        s = ""
+        s += ("Lattice1d_f_Hubbard object: " +
+              "Number of sites = " + str(self.num_sites) +
+              ",\n hopping energy between sites, t = " + str(self.paramT) +
+              ",\n on-site interaction energy, U = " +
+              str(self.U ) +
+              ",\n number of spin up fermions = " +
+              str(self.fillingUp) +
+              ",\n number of spin down fermions = " + str(self.fillingDown) +
+              ",\n k - vector sector = " + str(self.k) + "\n")
+        if self.period_bnd_cond_x == 1:
+            s += "Boundary Condition:  Periodic"
+        else:
+            s += "Boundary Condition:  Hardwall"
+        return s
+
+    def basis_fermionic_Hubbard_chain(self):
+        """
+        Produces a graphic portraying the lattice symbolically with a unit cell
+        marked in it.
+
+        Returns
+        -------
+        inter_T : Qobj
+            The coefficient of $\psi_{i,N}^{\dagger}\psi_{0,i+1}$, i.e. the
+            coupling between the two boundary sites of the two unit cells i and
+            i+1.
+        """
+        latticeType = 'cubic'
+        [indNeighbors, nSites] = self._getNearestNeighbors(latticeType=latticeType, latticeSize=self.latticeSize)
+
+        nStatesUp = self._ncr(nSites, self.fillingUp)
+        nStatesDown = self._ncr(nSites, self.fillingDown)
+        linearLatticeSizeY = self.latticeSize[0]
+        kVector = np.arange(start=0, stop=2*np.pi, step=2*np.pi/linearLatticeSizeY)
+        [basisStatesUp, intStatesUp, indOnesUp] = self.createHeisenbergBasis(nStatesUp, nSites, self.fillingUp)
+        [basisStatesDown, integerBasisDown, indOnesDown] = self.createHeisenbergBasis(nStatesDown, nSites, self.fillingDown)
+        #print( np.shape(basisStatesUp) )
+        [basisReprUp, symOpInvariantsUp, index2ReprUp, symOp2ReprUp] = self._findReprOnlyTrans(basisStatesUp, self.latticeSize)
+        #print("Freshly baked:: symOpInvariantsUp:  ", symOpInvariantsUp)
+        #print("Freshly baked:: index2ReprUp:  ", index2ReprUp)
+        bin2dez = np.arange(nSites-1,-1,-1)
+        bin2dez = np.power(2, bin2dez)
+        intDownStates = np.sum(basisStatesDown*bin2dez, axis=1)
+        intUpStates = np.sum(basisStatesUp*bin2dez, axis=1)
+        [nBasisStatesDown, dumpV] = np.shape(basisStatesDown)
+        [nBasisStatesUp, dumpV] = np.shape(basisStatesUp)
+        kValue = kVector[self.kval]
+
+        [compDownStatesPerRepr, compInd2ReprDown, normHubbardStates] = self._combine2HubbardBasisOnlyTrans(symOpInvariantsUp, basisStatesDown, self.latticeSize, kValue)
+
+        H_down = self._calcHamiltonDownOnlyTrans(compDownStatesPerRepr, compInd2ReprDown, self.paramT, indNeighbors, normHubbardStates, symOpInvariantsUp, kValue, basisStatesDown, self.latticeSize)
+        H_up = self._calcHamiltonUpOnlyTrans( basisReprUp, compDownStatesPerRepr, self.paramT, indNeighbors, normHubbardStates, symOpInvariantsUp, kValue, index2ReprUp, symOp2ReprUp, intStatesUp , self.latticeSize)
+        H_diag = self._calcHubbardDIAG( basisReprUp, normHubbardStates, compDownStatesPerRepr, self.paramU)
+
+        Hamk = H_diag + H_up + H_down
+    
+        #vals, vecs = eigs(Hamk, k=1, which = ‘SR’)
+        vals, vecs = eigs(Hamk, k=1, which='SR')
+
+        return [Qobj(Hamk), basisStatesUp, compDownStatesPerRepr, normHubbardStates]
+
+    def _getNearestNeighbors(self, **kwargs):
+        latticeType = kwargs["latticeType"]
+        latticeSize = kwargs["latticeSize"]
+    
+        indNeighbors = np.arange(latticeSize[0])+ 1
+        indNeighbors = np.roll(indNeighbors,-1) - 1
+        nSites = latticeSize[0]
+        return [indNeighbors, nSites]
+
+    def _ncr(self, n, r):
+        r = min(r, n-r)
+        numer = reduce(op.mul, range(n, n-r, -1), 1)
+        denom = reduce(op.mul, range(1, r+1), 1)
+        return numer // denom
+
+    def createHeisenbergBasis(self, nStates, nSites, S_ges):
+        basisStates = np.zeros((nStates, nSites))
+        basisStates[0][nSites-S_ges: nSites] = 1
+    
+        iSites = np.arange(1, nSites+1,1)
+        indOnes = np.zeros((nStates, S_ges))
+    
+        for iStates in range(0, nStates-1):
+            maskOnes = basisStates[iStates, :] == 1
+            indexOnes = iSites[maskOnes]
+            indOnes[iStates][:] = indexOnes
+            indexZeros = iSites[np.invert(maskOnes)]
+        
+            rightMostZero = max(indexZeros[ indexZeros < max(indexOnes)])-1
+            basisStates[iStates+1, :] = basisStates[iStates, :]
+            basisStates[iStates+1, rightMostZero] = 1
+            basisStates[iStates+1, rightMostZero+1:nSites] = 0
+        
+            nDeletedOnes = sum( indexOnes > rightMostZero+1 )
+            basisStates[iStates+1, nSites-nDeletedOnes+1:nSites] = 1        
+        
+        indOnes[nStates-1][:] = iSites[basisStates[nStates-1, :] == 1]    
+    
+        bi2de = np.arange(nSites-1,-1,-1)
+        bi2de = np.power(2, bi2de)
+
+        integerBasis = np.sum(basisStates * bi2de, axis=1)
+    
+        return [basisStates, integerBasis, indOnes]
+
+    def _cubicSymmetries(self, basisStates, symmetryValue, latticeSize):
+        [nBasisStates, nSites] = np.shape(basisStates)
+        symmetryPhases = np.zeros(nBasisStates)
+        nSitesY = latticeSize[0]
+    
+        if symmetryValue == 0:
+            symmetryPhases = np.power(1, symmetryPhases)
+    
+        if symmetryValue != 0:
+            switchIndex = np.arange(1, nSites+1, 1)
+            switchIndex = np.roll(switchIndex, symmetryValue, axis=0)
+            basisStatesCopy = copy.deepcopy(basisStates)
+            basisStatesCopy[:, 0:nSites] = basisStatesCopy[:, switchIndex-1]   
+            flippedSwitchIndex = switchIndex[::-1]
+
+            for iSites in range(1,nSites+1):
+                indSwitchIndSmallerSiteInd = flippedSwitchIndex[flippedSwitchIndex <= iSites]
+                indUpTo = np.arange(0, np.size(indSwitchIndSmallerSiteInd), 1)
+            
+                y = indSwitchIndSmallerSiteInd[ np.arange(0,indUpTo[indSwitchIndSmallerSiteInd==iSites],1) ]
+                x = np.sum( basisStates[:, y-1], axis=1)
+                r = basisStates[:, iSites-1]
+                n = np.multiply(r, x)
+                symmetryPhases = symmetryPhases + n
+
+            symmetryPhases = np.power(-1, symmetryPhases)    
+
+        if symmetryValue == 0:
+            return [basisStates, symmetryPhases]
+        else:
+            return [basisStatesCopy, symmetryPhases]
+
+
+    def _findReprOnlyTrans(self, basisStates, latticeSize):
+        [nBasisStates, nSites] = np.shape(basisStates)
+        latticeDim = np.shape(latticeSize)
+        latticeDim = latticeDim[0]
+    
+        nSitesY = latticeSize[0]
+        nSymmetricStates = nBasisStates * nSites
+        indTransPower = np.arange(0,nSites,1)
+    
+        symmetricBasis = np.zeros((nSymmetricStates, nSites))
+        symmetryPhases = np.ones(nSymmetricStates)
+    
+        bi2de = np.arange(nSites-1,-1,-1)
+        bi2de = np.power(2, bi2de)
+    
+        integerRepr = np.zeros(nBasisStates)
+        index2Repr = np.zeros(nBasisStates)
+        symOp2Repr = np.zeros(nBasisStates)
+        basisRepr = np.zeros((nBasisStates, nSites))
+    
+        nRepr = 0
+    
+        symOpInvariants = np.zeros((nBasisStates, nSites))
+    
+        for rx1D in range(nSites):
+            ind = rx1D + 1
+            indCycle = np.arange(ind, nSymmetricStates - nSites + ind+1, nSites) - 1
+
+            [symmetricBasis[indCycle, :] , symmetryPhases[indCycle] ] = self._cubicSymmetries( basisStates, rx1D, latticeSize)
+
+        for iBasis in range(nBasisStates):
+            # index to pick out one spec. symmetry operation
+            indSymmetry = np.arange(iBasis*nSites, (iBasis+1)*nSites, 1)
+            #pick binary form of one symmetry op. and calculate integer
+
+            specSymBasis = symmetricBasis[indSymmetry, :]
+        
+            specInteger = np.sum(specSymBasis*bi2de, axis=1)
+            specPhases = symmetryPhases[indSymmetry]
+        
+            # find unique integers
+            [uniqueInteger, indUniqueInteger, conversionIndex2UniqueInteger] = np.unique(specInteger, return_index=True, return_inverse=True)
+
+            if uniqueInteger[0] in integerRepr:
+                locs = np.argwhere(integerRepr == uniqueInteger[0])
+                alreadyRepr = locs[0][0]
+                #position of corresponding repr. times phase factor
+                index2Repr[iBasis] = alreadyRepr*specPhases[indUniqueInteger[0]] + 1
+                # symmetry operations needed to get there, for 1D easy: position in
+                # symmetry group-1, for 2D only translation too : rx*Ly + ry
+                symOp2Repr[iBasis] = indUniqueInteger[0] 
+            else:
+                # integer value of repr. (needed in the loop)
+                integerRepr[nRepr] = uniqueInteger[0]
+                # binary repr. (output) if its a repr. its always first element
+                # since list is sorted!:
+                basisRepr[nRepr][:] = specSymBasis[0][:]
+                # mask for same element as starting state
+                sameElementAsFirst = conversionIndex2UniqueInteger == 0
+            
+                # store phases and translation value for invariant states
+                # column position of non zero elements determines the combination
+                # of translational powers rx, and ry: columnPos = rx*Ly + ry + 1
+                symOpInvariants[nRepr][indTransPower[sameElementAsFirst]] = specPhases[sameElementAsFirst]
+                # save index for hash table connecting basis states and repr.
+                index2Repr[iBasis] = nRepr + 1
+                # increase index for every found comp. repr.
+                nRepr = nRepr+1
+    
+        # cut not used elements of container
+        basisRepr = np.delete(basisRepr, np.arange(nRepr, nBasisStates, 1), 0)
+        symOpInvariants = np.delete(symOpInvariants, np.arange(nRepr, nBasisStates, 1), 0)
+
+        return [basisRepr, symOpInvariants, index2Repr, symOp2Repr]
+
+    def _combine2HubbardBasisOnlyTrans(self, symOpInvariantsUp, basisStatesDown, latticeSize, kValue):
+        [nReprUp, dumpV] = np.shape(symOpInvariantsUp)
+        [nBasisStatesDown, nSites] = np.shape(basisStatesDown)
+        [latticeDim, ] = np.shape(latticeSize)
+        nSitesY = latticeSize[0]
+
+        # umrechnung bin2dez
+        bi2de = np.arange(nSites-1,-1,-1)
+        bi2de = np.power(2, bi2de)
+
+        intDownStates = np.sum(basisStatesDown*bi2de, axis=1)
+        indexDownStates = np.arange(1, nBasisStatesDown+1, 1)
+
+        downStatesPerRepr = {}
+        index2ReprDown = {}
+        normHubbardStates = {}
+    
+    
+        flagAlreadySaved = 0
+        for iReprUp in range(nReprUp):
+            transStates = 0
+            transPhases = 0
+            expPhase = 0
+            transIndexUpT = np.argwhere(symOpInvariantsUp[iReprUp, :])
+            transIndexUp = transIndexUpT[:, 0]
+
+            transPhasesUp = symOpInvariantsUp[iReprUp, transIndexUp]
+            ntransIndexUp = np.size(transIndexUp)
+    
+            if ntransIndexUp == 1:
+                downStatesPerRepr[iReprUp] = basisStatesDown
+                index2ReprDown[iReprUp] = indexDownStates
+                normHubbardStates[iReprUp] = np.ones(nBasisStatesDown)/ nSites
+        
+            else:            
+                transIndexUp = np.delete(transIndexUp, np.arange(0, 1, 1), 0)
+                transPhasesUp = np.delete(transPhasesUp, np.arange(0, 1, 1), 0)
+                maskStatesSmaller = np.ones(nBasisStatesDown)
+                sumPhases = np.ones(nBasisStatesDown, dtype=complex)
+        
+                translationPower = transIndexUp       
+                transPowerY = np.mod(transIndexUp, nSitesY)
+
+                for iTrans in range(0, ntransIndexUp-1, 1):
+                    [transStates, transPhases] = self._cubicSymmetries(basisStatesDown, translationPower[iTrans], latticeSize)
+                    expPhase = np.exp(1J * kValue* translationPower[iTrans])
+                    intTransStates = np.sum( transStates*bi2de, axis = 1)                
+                    DLT = np.argwhere(intDownStates <= intTransStates)
+                    DLT = DLT[:, 0]
+                    set1 = np.zeros(nBasisStatesDown)
+                    set1[DLT] = 1                
+                    maskStatesSmaller = np.logical_and(maskStatesSmaller,  set1)
+                    DLT = np.argwhere(intDownStates == intTransStates)
+                    sameStates = DLT[:, 0]
+                    sumPhases[sameStates] = sumPhases[sameStates] + expPhase * transPhasesUp[iTrans] * transPhases[sameStates]
+
+                specNorm = np.abs(sumPhases)/ nSites
+                DLT = np.argwhere(specNorm > 1e-10)
+                DLT = DLT[:, 0]            
+                maskStatesComp = np.zeros(nBasisStatesDown)
+                maskStatesComp[DLT] = 1            
+                maskStatesComp = np.logical_and(maskStatesSmaller,  maskStatesComp)
+                downStatesPerRepr[iReprUp] = basisStatesDown[maskStatesComp, :]
+                index2ReprDown[iReprUp] = indexDownStates[maskStatesComp]
+                normHubbardStates[iReprUp] = specNorm[maskStatesComp]
+
+        return [downStatesPerRepr, index2ReprDown, normHubbardStates]
+
+    def _calcHubbardDIAG(self, basisReprUp, normHubbardStates, compDownStatesPerRepr, paramU):
+        [nReprUp, dumpV] = np.shape(basisReprUp)
+        nHubbardStates = 0
+        for k in range(nReprUp):
+            nHubbardStates = nHubbardStates + np.size(normHubbardStates[k])
+        # container for double occupancies
+        doubleOccupancies ={}
+        #loop over repr.
+        for iRepr in range(nReprUp):    
+            # pick out down states per up spin repr.
+            specBasisStatesDown = compDownStatesPerRepr[iRepr]
+            [nReprDown, dumpV] = np.shape(specBasisStatesDown)
+            UpReprs = [basisReprUp[iRepr, :]]* nReprDown
+            doubleOccupancies[iRepr] = np.sum( np.logical_and(UpReprs, compDownStatesPerRepr[iRepr]), axis = 1 )
+            if iRepr == 0:
+                doubleOccupanciesA = doubleOccupancies[iRepr]
+            elif iRepr > 0:
+                doubleOccupanciesA = np.concatenate((doubleOccupanciesA, doubleOccupancies[iRepr]))
+        rowIs = np.arange(0,nHubbardStates, 1)    
+        H_diag = sparse.csr_matrix( ( paramU*doubleOccupanciesA,  (rowIs, rowIs)), shape=(nHubbardStates, nHubbardStates))    
+        return H_diag
+
+    def _calcHamiltonDownOnlyTrans(self, compDownStatesPerRepr, compInd2ReprDown, paramT, indNeighbors, normHubbardStates, symOpInvariantsUp, kValue, basisStatesDown,latticeSize):
+        [nReprUp, nSites] = np.shape(symOpInvariantsUp)
+        nSitesY = latticeSize[0]
+        bin2dez = np.arange(nSites-1,-1,-1)
+        bin2dez = np.power(2, bin2dez)
+
+        nTranslations = np.zeros(nReprUp, dtype=int)
+        cumulIndex = np.zeros(nReprUp+1, dtype=int)
+        cumulIndex[0] = 0
+        sumL = 0
+        for iReprUp in range(nReprUp):
+            rt = symOpInvariantsUp[iReprUp, :]
+            rt = rt[rt == 1]
+            nTranslations[iReprUp] = np.sum(rt, axis=0)
+            sumL = sumL + np.size(normHubbardStates[iReprUp])
+            cumulIndex[iReprUp+1] = sumL
+
+        [nDims, ] = np.shape(indNeighbors)
+        # number of basis states of whole down spin basis
+        [nBasisSatesDown, dumpV] = np.shape(basisStatesDown)
+        # final x and y indices and phases
+
+        B2 = basisStatesDown[:, indNeighbors]
+        B2 = np.logical_xor(basisStatesDown, B2)
+        TwoA = np.argwhere(B2)
+        xIndWholeBasis = TwoA[:, 0]
+        d = TwoA[:, 1]
+
+        f = indNeighbors[d]
+        f1 = np.append(d, f, axis=0)    
+        d1 = np.append(np.arange(np.count_nonzero(B2)), np.arange(np.count_nonzero(B2)), axis=0)    
+                                      
+        F_i = basisStatesDown[np.sum(B2, axis=1) == 0, : ]
+        F = np.sum(F_i*bin2dez, axis=1)
+                                    
+        B2 = basisStatesDown[xIndWholeBasis, :]
+        d1 = sparse.csr_matrix( (np.ones(np.size(d1)) ,  (d1, f1)), shape=(np.max(d1)+1, nSites )      )
+        phasesWholeBasis = self._HubbardPhase(B2,d1,d,f)
+        d = np.logical_xor(d1.todense()  , B2 )
+        prodd = d * np.reshape(bin2dez,(nSitesY,1))
+
+        d = np.sum( prodd, axis=1)    
+        d = np.squeeze(np.asarray(d))    
+        f = np.append(d, F, axis=0)
+        [uniqueInteger, indUniqueInteger, B2] = np.unique(f, return_index=True, return_inverse=True)    
+
+        yIndWholeBasis = B2[np.arange(0,np.size(xIndWholeBasis),1) ]
+        sums = 0
+        cumulIndFinal = np.zeros(nReprUp+1, dtype=int)
+        cumulIndFinal[0] = sums
+
+        xFinal = {}
+        yFinal = {}
+        phasesFinal = {}
+        for iReprUp in range(nReprUp):
+            specNumOfTrans = nTranslations[iReprUp]
+            if specNumOfTrans == 1:
+                xFinal[iReprUp] = cumulIndex[iReprUp] + xIndWholeBasis
+                yFinal[iReprUp] = cumulIndex[iReprUp] + yIndWholeBasis
+                phasesFinal[iReprUp] = phasesWholeBasis
+            
+                sums = sums + np.shape(xIndWholeBasis)[0]
+                cumulIndFinal[iReprUp+1] = sums            
+                continue
+
+            specInd2ReprDown = compInd2ReprDown[iReprUp] - 1
+            nSpecStatesDown = np.size(specInd2ReprDown)
+
+            indexTransform = np.zeros(nBasisSatesDown)
+            indexTransform[specInd2ReprDown] = np.arange(1,nSpecStatesDown+1,1)
+
+            xIndSpec = indexTransform[xIndWholeBasis]
+            yIndSpec = indexTransform[yIndWholeBasis]
+
+            nBLe = np.size(xIndWholeBasis)
+
+            DLT = np.argwhere(xIndSpec != 0)
+            DLT = DLT[:, 0]
+            maskStartingStates = np.zeros(nBLe, dtype=bool)
+            maskStartingStates[DLT] = 1
+        
+            DLT = np.argwhere(yIndSpec != 0)
+            DLT = DLT[:, 0]
+            mask_ynonzero = np.zeros(nBLe)
+            mask_ynonzero[DLT] = 1
+        
+            maskCompatible = np.logical_and(maskStartingStates, mask_ynonzero)
+        
+            xIndOfReprDown = {}
+            yIndOfReprDown = {}
+            hoppingPhase = {}
+            for iTrans in range(specNumOfTrans-1):
+                xIndOfReprDown[iTrans+1] = xIndSpec[maskStartingStates]
+                hoppingPhase[iTrans+1] = phasesWholeBasis[maskStartingStates]
+        
+            xIndSpec = xIndSpec[maskCompatible]
+            yIndSpec = yIndSpec[maskCompatible]
+            phasesSpec = phasesWholeBasis[maskCompatible]
+        
+            xIndOfReprDown[0] = xIndSpec
+            yIndOfReprDown[0] = yIndSpec
+            hoppingPhase[0] = phasesSpec
+        
+            specStatesDown = compDownStatesPerRepr[iReprUp]
+            intSpecStatesDown = np.sum(specStatesDown * bin2dez, axis=1)
+        
+            hoppedStates = basisStatesDown[ yIndWholeBasis[maskStartingStates] ,: ]
+        
+            DLT = np.argwhere( symOpInvariantsUp[iReprUp, :] )
+        
+            translationPower = DLT[:, 0] - 1
+            phasesFromTransInvariance = symOpInvariantsUp[iReprUp, DLT]
+            phasesFromTransInvariance = phasesFromTransInvariance[:, 0]
+
+            cumulIndOfRepr = np.zeros(specNumOfTrans+1, dtype=int)
+            cumulIndOfRepr[0] = 0
+            cumulIndOfRepr[1] = np.size(xIndSpec)
+            sumIOR = np.size(xIndSpec)
+
+
+            for iTrans in range(specNumOfTrans-1):
+                specTrans = translationPower[iTrans+1]
+
+                [transBasis, transPhases] = self._cubicSymmetries( hoppedStates, specTrans, latticeSize)
+                expPhases = np.exp(1J * kValue* specTrans)        
+                phaseUpSpinTransInv = phasesFromTransInvariance[iTrans+1]        
+                PhaseF = expPhases * np.multiply(transPhases, phaseUpSpinTransInv)        
+                hoppingPhase[iTrans+1] = np.multiply(hoppingPhase[iTrans+1], PhaseF)        
+                intValues = np.sum(transBasis * bin2dez, axis=1)            
+                maskInBasis = np.in1d(intValues, intSpecStatesDown)            
+                intValues = intValues[maskInBasis]            
+                xIndOfReprDown[iTrans+1] = xIndOfReprDown[iTrans+1][maskInBasis]
+                hoppingPhase[iTrans+1] = hoppingPhase[iTrans+1][maskInBasis]
+                F = np.setdiff1d( intSpecStatesDown, intValues)
+                f = np.append(intValues, F)        
+                [uniqueInteger, indUniqueInteger, B2] = np.unique(f, return_index=True, return_inverse=True)    
+
+                yIndOfReprDown[iTrans+1] = B2[np.arange(0,np.size(xIndOfReprDown[iTrans+1] ),1) ] + 1
+                sumIOR = sumIOR + np.size(xIndOfReprDown[iTrans+1])
+                cumulIndOfRepr[iTrans+2] = sumIOR
+
+            xIndOfReprDownA = np.zeros(cumulIndOfRepr[-1])
+            yIndOfReprDownA = np.zeros(cumulIndOfRepr[-1])
+            hoppingPhaseA = np.zeros(cumulIndOfRepr[-1], dtype=complex)
+            for iTrans in range(specNumOfTrans):
+                xIndOfReprDownA[ cumulIndOfRepr[iTrans]: cumulIndOfRepr[iTrans +1] ] = xIndOfReprDown[iTrans] - 1
+                yIndOfReprDownA[ cumulIndOfRepr[iTrans]: cumulIndOfRepr[iTrans +1] ] = yIndOfReprDown[iTrans] - 1
+                hoppingPhaseA[ cumulIndOfRepr[iTrans]: cumulIndOfRepr[iTrans +1] ] = hoppingPhase[iTrans]
+                    
+            xFinal[iReprUp] = cumulIndex[iReprUp] + xIndOfReprDownA
+            yFinal[iReprUp] = cumulIndex[iReprUp] + yIndOfReprDownA
+            phasesFinal[iReprUp] = hoppingPhaseA
+
+            sums = sums + np.size(xIndOfReprDownA)
+            cumulIndFinal[iReprUp+1] = sums        
+        
+        xFinalA = np.zeros(cumulIndFinal[-1], dtype=int)
+        yFinalA = np.zeros(cumulIndFinal[-1], dtype=int)
+        phasesFinalA = np.zeros(cumulIndFinal[-1], dtype=complex)
+    
+        for iReprUp in range(nReprUp):
+            xFinalA[ cumulIndFinal[iReprUp]: cumulIndFinal[iReprUp +1] ] = xFinal[iReprUp ] 
+            yFinalA[ cumulIndFinal[iReprUp]: cumulIndFinal[iReprUp +1] ] = yFinal[iReprUp ]
+            phasesFinalA[ cumulIndFinal[iReprUp]: cumulIndFinal[iReprUp +1] ] = phasesFinal[iReprUp ]        
+        
+        nHubbardStates = cumulIndex[-1]
+        normHubbardStatesA = np.zeros(nHubbardStates)    
+        for iReprUp in range(nReprUp):
+            normHubbardStatesA[ cumulIndex[iReprUp]: cumulIndex[iReprUp +1] ] = normHubbardStates[iReprUp]
+    
+        normHubbardStates = np.multiply( np.sqrt(normHubbardStatesA[xFinalA]) , np.sqrt(normHubbardStatesA[yFinalA]))
+
+        H_down_elems = -paramT / nSites* np.divide(phasesFinalA, normHubbardStates)
+        H_down = sparse.csr_matrix( (  H_down_elems,  (xFinalA, yFinalA)), shape=(nHubbardStates, nHubbardStates))
+    
+        return (H_down+ H_down.transpose().conjugate())/2
+
+    def _calcHamiltonUpOnlyTrans(self, basisReprUp, compDownStatesPerRepr, paramT, indNeighbors, normHubbardStates, symOpInvariantsUp, kValue, index2ReprUp, symOp2ReprUp, intStatesUp , latticeSize):
+        [nReprUp, nSites] = np.shape(basisReprUp)
+        nSitesY = latticeSize[0]
+        bin2dez = np.arange(nSites-1,-1,-1)
+        bin2dez = np.power(2, bin2dez)
+        nTranslations = np.zeros(nReprUp, dtype=int)
+        cumulIndex = np.zeros(nReprUp+1, dtype=int)
+        cumulIndex[0] = 0
+        sumL = 0
+        for iReprUp in range(nReprUp):
+            rt = symOpInvariantsUp[iReprUp, :]
+            rt = rt[rt == 1]
+            nTranslations[iReprUp] = np.sum(rt, axis=0)
+            sumL = sumL + np.size(normHubbardStates[iReprUp])
+            cumulIndex[iReprUp+1] = sumL
+        transPhases2ReprUp = np.sign(index2ReprUp)
+        index2ReprUp = np.abs(index2ReprUp)
+
+        B2 = basisReprUp[:, indNeighbors]
+        B2 = np.logical_xor(basisReprUp, B2)
+
+        TwoA = np.argwhere(B2)
+        xIndOfReprUp = TwoA[:, 0]
+        d = TwoA[:, 1]
+
+        f = indNeighbors[d]
+        f1 = np.append(d, f, axis=0)
+    
+        d1 = np.append(np.arange(np.count_nonzero(B2)), np.arange(np.count_nonzero(B2)), axis=0)    
+                                      
+        F_i = basisReprUp[np.sum(B2, axis=1) == 0, : ]
+        F = np.sum(F_i*bin2dez, axis=1)                                    
+        B2 = basisReprUp[xIndOfReprUp, :]
+
+        d1 = sparse.csr_matrix( (np.ones(np.size(d1)) ,  (d1, f1)), shape=(np.max(d1)+1, nSites )      )
+        hoppingPhase = self._HubbardPhase(B2,d1,d,f)
+        d = np.logical_xor(d1.todense()  , B2 )
+        prodd = d * np.reshape(bin2dez,(nSitesY,1))
+        d = np.sum( prodd, axis=1)    
+        d = np.squeeze(np.asarray(d))   
+        f = np.append(d, F, axis=0)      
+        F = np.setdiff1d( intStatesUp, f)
+        f = np.append(f, F)    
+
+        [uniqueInteger, indUniqueInteger, B2] = np.unique(f, return_index=True, return_inverse=True)    
+
+        yIndOfCycleUp = B2[np.arange(0,np.size(xIndOfReprUp),1) ]
+        yIndOfReprUp = index2ReprUp[yIndOfCycleUp] - 1
+        yIndOfReprUp = yIndOfReprUp.astype('int')    
+        symOp2ReprUp = symOp2ReprUp[yIndOfCycleUp]    
+        combPhases = np.multiply(transPhases2ReprUp[yIndOfCycleUp], hoppingPhase)
+        xIndHubbUp = cumulIndex[xIndOfReprUp]
+        yIndHubbUp = cumulIndex[yIndOfReprUp]    
+        nConnectedUpStates = np.size(xIndOfReprUp)
+    
+        xFinal = {}
+        yFinal = {}
+        phasesFinal = {}
+        cumFinal = np.zeros(nConnectedUpStates+1)
+        sumF = 0
+        cumFinal[0] = sumF
+    
+        for iStates in range(nConnectedUpStates):
+            stateIndex = yIndOfReprUp[iStates]
+            downSpinState1 = compDownStatesPerRepr[ xIndOfReprUp[iStates] ] 
+            downSpinState2 = compDownStatesPerRepr[ stateIndex ]
+            DLT = np.argwhere( symOpInvariantsUp[stateIndex, :] )        
+            translationPower = DLT[:, 0]
+            phasesFromTransInvariance = symOpInvariantsUp[stateIndex, DLT]
+            phasesFromTransInvariance = phasesFromTransInvariance[:, 0]
+            combTranslation = symOp2ReprUp[iStates] + translationPower
+        
+            nTrans = np.size(combTranslation)                
+            xInd = {}
+            yInd = {}
+            phaseFactor = {}        
+            cumI = np.zeros( nTrans+1, dtype=int)
+            sumE = 0
+            cumI[0] = sumE
+        
+            for iTrans in range(  nTrans ):
+                Tss = -combTranslation[iTrans]
+                [transStates, transPhases] = self._cubicSymmetries(downSpinState2, int(Tss), latticeSize)
+
+                intTransStates = np.sum( transStates * bin2dez, axis=1)
+                intStatesOne = np.sum( downSpinState1 * bin2dez , axis = 1 )
+            
+                [dumpV, xInd[iTrans], yInd[iTrans] ] = self._intersect_mtlb(intStatesOne, intTransStates)
+                phaseFactor[iTrans] = transPhases[ yInd[iTrans] ]
+
+                sumE = sumE + np.size( xInd[iTrans] )
+                cumI[iTrans+1] = sumE
+
+            xIndA = np.zeros(cumI[-1])
+            yIndA = np.zeros(cumI[-1])
+
+            for iTrans in range( nTrans ):
+                xIndA[ cumI[iTrans]: cumI[iTrans +1] ] = xInd[iTrans ] 
+                yIndA[ cumI[iTrans]: cumI[iTrans +1] ] = yInd[iTrans ]
+
+            xFinal[iStates] = xIndHubbUp[iStates] + xIndA
+            yFinal[iStates] = yIndHubbUp[iStates] + yIndA
+            specCombPhase = combPhases[iStates]
+            cumP = np.zeros(nTranslations[stateIndex]+1, dtype=int)
+            sump = 0
+            cumP[0] = sump
+        
+            for iTrans in range(nTranslations[stateIndex]):
+                phaseFromTransUp = phasesFromTransInvariance[iTrans]
+                expPhases = np.exp(1J * kValue * combTranslation[iTrans])
+                phaseFactor[iTrans] = phaseFactor[iTrans] * specCombPhase * phaseFromTransUp * expPhases
+                sump = sump + 1
+                cumP[iTrans+1] = sump
+        
+            if nTrans == 1:
+                phasesFinal[iStates] = phaseFactor[0]
+            
+            else:
+                phasesFinal[iStates] = phaseFactor[0]
+            
+                for noss in range(1,nTrans,1):
+                    phasesFinal[iStates ] = np.hstack( [ phasesFinal[iStates], phaseFactor[noss] ]  )
+
+        phasesFinalA = phasesFinal[0]
+        xFinalA = xFinal[0]
+        yFinalA = yFinal[0]
+
+        if nConnectedUpStates > 1:
+            for noss in range(1, nConnectedUpStates, 1):
+                phasesFinalA = np.hstack([ phasesFinalA, phasesFinal[noss] ])
+                xFinalA = np.hstack([ xFinalA, xFinal[noss] ])
+                yFinalA = np.hstack([ yFinalA, yFinal[noss] ])
+        
+        normHubbardStatesA = normHubbardStates[0]
+        for iReprUp in range(1, nReprUp , 1):
+            normHubbardStatesA = np.hstack([ normHubbardStatesA , normHubbardStates[iReprUp] ])
+        
+        nHubbardStates = np.size(normHubbardStatesA)
+
+            
+        normHubbardStates = np.multiply( np.sqrt(normHubbardStatesA[xFinalA.astype(int)]) , np.sqrt(normHubbardStatesA[yFinalA.astype(int)] ) )  
+        H_up_elems = -paramT / nSites* np.divide(phasesFinalA, normHubbardStates)
+        H_up = sparse.csr_matrix( (  H_up_elems,  (xFinalA, yFinalA)), shape=(nHubbardStates, nHubbardStates))
+    
+        return (H_up+ H_up.transpose().conjugate() )/2
+
+    def _intersect_mtlb(self, a, b):
+        a1, ia = np.unique(a, return_index=True)
+        b1, ib = np.unique(b, return_index=True)
+        aux = np.concatenate((a1, b1))
+        aux.sort()
+        c = aux[:-1][aux[1:] == aux[:-1]]
+        return c, ia[np.isin(a1, c)], ib[np.isin(b1, c)]
+
+    def _HubbardPhase(self, replBasisStates, hopIndicationMatrix, hoppingIndicesX, hoppingIndicesY):
+        [nReplBasisStates, nSites] = np.shape(replBasisStates) # number of states and sites
+        siteInd = np.arange(1, nSites+1, 1)
+        phase = np.zeros(nReplBasisStates)    
+        hubbardPhases = np.zeros(nReplBasisStates)   #container for phases
+        
+        for i in range(nReplBasisStates):
+            [dumpV, x] = hopIndicationMatrix.getrow(i).nonzero()
+            if np.size(x) == 0:
+                phase[i] = 0
+                continue
+            ToPow = replBasisStates[i, np.arange(x[0]+1, x[1], 1)]        
+            if np.size(ToPow):
+                phase[i] = np.power(-1, np.sum(ToPow, axis=0)  )
+            else:
+                phase[i] = 1
+    
+        return phase
+
+class Lattice1d_2c_hcb_Hubbard():
+    """A class for representing a 1d crystal.
+
+    The Lattice1d class can be defined with any specific unit cells and a
+    specified number of unit cells in the crystal. It can return dispersion
+    relationship, position operators, Hamiltonian in the position represention
+    etc.
+
+    Parameters
+    ----------
+    num_cell : int
+        The number of cells in the crystal.
+    boundary : str
+        Specification of the type of boundary the crystal is defined with.
+    cell_num_site : int
+        The number of sites in the unit cell.
+    cell_site_dof : list of int/ int
+        The tensor structure  of the degrees of freedom at each site of a unit
+        cell.
+    Hamiltonian_of_cell : qutip.Qobj
+        The Hamiltonian of the unit cell.
+    inter_hop : qutip.Qobj / list of Qobj
+        The coupling between the unit cell at i and at (i+unit vector)
+
+    Attributes
+    ----------
+    num_cell : int
+        The number of unit cells in the crystal.
+    cell_num_site : int
+        The nuber of sites in a unit cell.
+    length_for_site : int
+        The length of the dimension per site of a unit cell.
+    cell_tensor_config : list of int
+        The tensor structure of the cell in the form
+        [cell_num_site,cell_site_dof[:][0] ]
+    lattice_tensor_config : list of int
+        The tensor structure of the crystal in the
+        form [num_cell,cell_num_site,cell_site_dof[:][0]]
+    length_of_unit_cell : int
+        The length of the dimension for a unit cell.
+    period_bnd_cond_x : int
+        1 indicates "periodic" and 0 indicates "hardwall" boundary condition
+    inter_vec_list : list of list
+        The list of list of coefficients of inter unitcell vectors' components
+        along Cartesian uit vectors.
+    lattice_vectors_list : list of list
+        The list of list of coefficients of lattice basis vectors' components
+        along Cartesian unit vectors.
+    H_intra : qutip.Qobj
+        The Qobj storing the Hamiltonian of the unnit cell.
+    H_inter_list : list of Qobj/ qutip.Qobj
+        The list of coupling terms between unit cells of the lattice.
+    is_real : bool
+        Indicates if the Hamiltonian is real or not.
+    """
+    def __init__(self, num_sites=10, boundary="periodic", t=1,
+                 U=1, fillingUp=None, fillingDown=None, k=None):
+
+        self.paramT = t
+        self.paramU = U
+        self.latticeSize = [num_sites]
+        self.fillingUp = fillingUp
+        self.fillingDown = fillingDown
+        self.kval = k
+
+        if (not isinstance(num_sites, int)) or num_sites > 18:
+            raise Exception("cell_num_site is required to be a positive \
+                            integer.")
+                            
+        if boundary == "periodic":
+            self.period_bnd_cond_x = 1
+        elif boundary == "aperiodic" or boundary == "hardwall":
+            self.period_bnd_cond_x = 0
+        else:
+            raise Exception("Error in boundary: Only recognized bounday \
+                    options are:\"periodic \",\"aperiodic\" and \"hardwall\" ")
+
+    def __repr__(self):
+        s = ""
+        s += ("Lattice1d_f_Hubbard object: " +
+              "Number of sites = " + str(self.num_sites) +
+              ",\n hopping energy between sites, t = " + str(self.paramT) +
+              ",\n on-site interaction energy, U = " +
+              str(self.U ) +
+              ",\n number of spin up fermions = " +
+              str(self.fillingUp) +
+              ",\n number of spin down fermions = " + str(self.fillingDown) +
+              ",\n k - vector sector = " + str(self.k) + "\n")
+        if self.period_bnd_cond_x == 1:
+            s += "Boundary Condition:  Periodic"
+        else:
+            s += "Boundary Condition:  Hardwall"
+        return s
+
+
+    def basis_hcbosonic_Hubbard_chain(self):
+        """
+        Produces a graphic portraying the lattice symbolically with a unit cell
+        marked in it.
+
+        Returns
+        -------
+        inter_T : Qobj
+            The coefficient of $\psi_{i,N}^{\dagger}\psi_{0,i+1}$, i.e. the
+            coupling between the two boundary sites of the two unit cells i and
+            i+1.
+        """
+
+        latticeType = 'cubic'
+
+        [indNeighbors, nSites] = self._getNearestNeighbors(latticeType=latticeType, latticeSize=self.latticeSize)
+
+        nStatesUp = self._ncr(nSites, self.fillingUp)
+        nStatesDown = self._ncr(nSites, self.fillingDown)
+
+        linearLatticeSizeY = self.latticeSize[0]
+
+
+        kVector = np.arange(start=0, stop=2*np.pi, step=2*np.pi/linearLatticeSizeY)
+        [basisStatesUp, intStatesUp, indOnesUp] = self.createHeisenbergBasis(nStatesUp, nSites, self.fillingUp)
+        [basisStatesDown, integerBasisDown, indOnesDown] = self.createHeisenbergBasis(nStatesDown, nSites, self.fillingDown)
+
+        [basisReprUp, symOpInvariantsUp, index2ReprUp, symOp2ReprUp] = self._findReprOnlyTrans(basisStatesUp, self.latticeSize)
+        bin2dez = np.arange(nSites-1,-1,-1)
+        bin2dez = np.power(2, bin2dez)
+
+        intDownStates = np.sum(basisStatesDown*bin2dez, axis=1)
+        intUpStates = np.sum(basisStatesUp*bin2dez, axis=1)
+        [nBasisStatesDown, dumpV] = np.shape(basisStatesDown)
+        [nBasisStatesUp, dumpV] = np.shape(basisStatesUp)
+
+
+        kValue = kVector[self.kval]
+
+        [compDownStatesPerRepr, compInd2ReprDown, normHubbardStates] = self._combine2HubbardBasisOnlyTrans(symOpInvariantsUp, basisStatesDown, self.latticeSize, kValue)
+
+
+        H_down = self._calcHamiltonDownOnlyTrans( compDownStatesPerRepr, compInd2ReprDown, self.paramT, indNeighbors, normHubbardStates, symOpInvariantsUp, kValue, basisStatesDown, self.latticeSize)
+        H_up = self._calcHamiltonUpOnlyTrans( basisReprUp, compDownStatesPerRepr, self.paramT, indNeighbors, normHubbardStates, symOpInvariantsUp, kValue, index2ReprUp, symOp2ReprUp, intStatesUp , self.latticeSize)
+        H_diag = self._calcHubbardDIAG( basisReprUp, normHubbardStates, compDownStatesPerRepr, self.paramU)
+
+        Hamk = H_diag + H_up + H_down
+    
+        #vals, vecs = eigs(Hamk, k=1, which = ‘SR’)
+        vals, vecs = eigs(Hamk, k=1, which='SR')
+
+        return [Qobj(Hamk), basisStatesUp, compDownStatesPerRepr, normHubbardStates]
+
+    def _getNearestNeighbors(self, **kwargs):
+        latticeType = kwargs["latticeType"]
+        latticeSize = kwargs["latticeSize"]
+    
+        indNeighbors = np.arange(latticeSize[0])+ 1
+        indNeighbors = np.roll(indNeighbors,-1) - 1
+        nSites = latticeSize[0]
+        return [indNeighbors, nSites]
+
+    def _ncr(self, n, r):
+        r = min(r, n-r)
+        numer = reduce(op.mul, range(n, n-r, -1), 1)
+        denom = reduce(op.mul, range(1, r+1), 1)
+        return numer // denom
+
+    def createHeisenbergBasis(self, nStates, nSites, S_ges):
+        basisStates = np.zeros((nStates, nSites))
+        basisStates[0][nSites-S_ges: nSites] = 1
+    
+        iSites = np.arange(1, nSites+1,1)
+        indOnes = np.zeros((nStates, S_ges))
+    
+        for iStates in range(0, nStates-1):
+            maskOnes = basisStates[iStates, :] == 1
+            indexOnes = iSites[maskOnes]
+            indOnes[iStates][:] = indexOnes
+            indexZeros = iSites[np.invert(maskOnes)]
+        
+            rightMostZero = max(indexZeros[ indexZeros < max(indexOnes)])-1
+            basisStates[iStates+1, :] = basisStates[iStates, :]
+            basisStates[iStates+1, rightMostZero] = 1
+            basisStates[iStates+1, rightMostZero+1:nSites] = 0
+        
+            nDeletedOnes = sum( indexOnes > rightMostZero+1 )
+            basisStates[iStates+1, nSites-nDeletedOnes+1:nSites] = 1        
+        
+        indOnes[nStates-1][:] = iSites[basisStates[nStates-1, :] == 1]    
+    
+        bi2de = np.arange(nSites-1,-1,-1)
+        bi2de = np.power(2, bi2de)
+
+        integerBasis = np.sum(basisStates * bi2de, axis=1)
+    
+        return [basisStates, integerBasis, indOnes]
+
+    def _cubicSymmetries(self, basisStates, symmetryValue, latticeSize):
+        [nBasisStates, nSites] = np.shape(basisStates)
+        symmetryPhases = np.zeros(nBasisStates)
+        nSitesY = latticeSize[0]
+    
+        if symmetryValue == 0:
+            symmetryPhases = np.power(1, symmetryPhases)
+    
+        if symmetryValue != 0:
+            switchIndex = np.arange(1, nSites+1, 1)
+            switchIndex = np.roll(switchIndex, symmetryValue, axis=0)
+            basisStatesCopy = copy.deepcopy(basisStates)
+            basisStatesCopy[:, 0:nSites] = basisStatesCopy[:, switchIndex-1]   
+            flippedSwitchIndex = switchIndex[::-1]
+
+            for iSites in range(1,nSites+1):
+                indSwitchIndSmallerSiteInd = flippedSwitchIndex[flippedSwitchIndex <= iSites]
+                indUpTo = np.arange(0, np.size(indSwitchIndSmallerSiteInd), 1)
+            
+                y = indSwitchIndSmallerSiteInd[ np.arange(0,indUpTo[indSwitchIndSmallerSiteInd==iSites],1) ]
+                x = np.sum( basisStates[:, y-1], axis=1)
+                r = basisStates[:, iSites-1]
+                n = np.multiply(r, x)
+                symmetryPhases = symmetryPhases + n
+
+            symmetryPhases = np.power(-1, symmetryPhases)    
+
+        if symmetryValue == 0:
+            return [basisStates, symmetryPhases]
+        else:
+            return [basisStatesCopy, symmetryPhases]
+
+
+    def _findReprOnlyTrans(self, basisStates, latticeSize):
+        [nBasisStates, nSites] = np.shape(basisStates)
+        latticeDim = np.shape(latticeSize)
+        latticeDim = latticeDim[0]
+    
+        nSitesY = latticeSize[0]
+        nSymmetricStates = nBasisStates * nSites
+        indTransPower = np.arange(0,nSites,1)
+    
+        symmetricBasis = np.zeros((nSymmetricStates, nSites))
+        symmetryPhases = np.ones(nSymmetricStates)
+    
+        bi2de = np.arange(nSites-1,-1,-1)
+        bi2de = np.power(2, bi2de)
+    
+        integerRepr = np.zeros(nBasisStates)
+        index2Repr = np.zeros(nBasisStates)
+        symOp2Repr = np.zeros(nBasisStates)
+        basisRepr = np.zeros((nBasisStates, nSites))
+    
+        nRepr = 0
+    
+        symOpInvariants = np.zeros((nBasisStates, nSites))
+    
+        for rx1D in range(nSites):
+            ind = rx1D + 1
+            indCycle = np.arange(ind, nSymmetricStates - nSites + ind+1, nSites) - 1
+
+            [symmetricBasis[indCycle, :] , symmetryPhases[indCycle] ] = self._cubicSymmetries( basisStates, rx1D, latticeSize)
+
+        for iBasis in range(nBasisStates):
+            # index to pick out one spec. symmetry operation
+            indSymmetry = np.arange(iBasis*nSites, (iBasis+1)*nSites, 1)
+            #pick binary form of one symmetry op. and calculate integer
+
+            specSymBasis = symmetricBasis[indSymmetry, :]
+        
+            specInteger = np.sum(specSymBasis*bi2de, axis=1)
+            specPhases = symmetryPhases[indSymmetry]
+        
+            # find unique integers
+            [uniqueInteger, indUniqueInteger, conversionIndex2UniqueInteger] = np.unique(specInteger, return_index=True, return_inverse=True)
+
+            if uniqueInteger[0] in integerRepr:
+                locs = np.argwhere(integerRepr == uniqueInteger[0])
+                alreadyRepr = locs[0][0]
+                #position of corresponding repr. times phase factor
+                index2Repr[iBasis] = alreadyRepr*specPhases[indUniqueInteger[0]] + 1
+                # symmetry operations needed to get there, for 1D easy: position in
+                # symmetry group-1, for 2D only translation too : rx*Ly + ry
+                symOp2Repr[iBasis] = indUniqueInteger[0] 
+            else:
+                # integer value of repr. (needed in the loop)
+                integerRepr[nRepr] = uniqueInteger[0]
+                # binary repr. (output) if its a repr. its always first element
+                # since list is sorted!:
+                basisRepr[nRepr][:] = specSymBasis[0][:]
+                # mask for same element as starting state
+                sameElementAsFirst = conversionIndex2UniqueInteger == 0
+            
+                # store phases and translation value for invariant states
+                # column position of non zero elements determines the combination
+                # of translational powers rx, and ry: columnPos = rx*Ly + ry + 1
+                symOpInvariants[nRepr][indTransPower[sameElementAsFirst]] = specPhases[sameElementAsFirst]
+                # save index for hash table connecting basis states and repr.
+                index2Repr[iBasis] = nRepr + 1
+                # increase index for every found comp. repr.
+                nRepr = nRepr+1
+    
+        # cut not used elements of container
+        basisRepr = np.delete(basisRepr, np.arange(nRepr, nBasisStates, 1), 0)
+        symOpInvariants = np.delete(symOpInvariants, np.arange(nRepr, nBasisStates, 1), 0)
+
+        return [basisRepr, symOpInvariants, index2Repr, symOp2Repr]
+
+    def _combine2HubbardBasisOnlyTrans(self, symOpInvariantsUp, basisStatesDown, latticeSize, kValue):
+        [nReprUp, dumpV] = np.shape(symOpInvariantsUp)
+        [nBasisStatesDown, nSites] = np.shape(basisStatesDown)
+        [latticeDim, ] = np.shape(latticeSize)
+        nSitesY = latticeSize[0]
+
+        # umrechnung bin2dez
+        bi2de = np.arange(nSites-1,-1,-1)
+        bi2de = np.power(2, bi2de)
+
+        intDownStates = np.sum(basisStatesDown*bi2de, axis=1)
+        indexDownStates = np.arange(1, nBasisStatesDown+1, 1)
+
+        downStatesPerRepr = {}
+        index2ReprDown = {}
+        normHubbardStates = {}
+    
+        flagAlreadySaved = 0
+        for iReprUp in range(nReprUp):
+            transStates = 0
+            transPhases = 0
+            expPhase = 0
+            transIndexUpT = np.argwhere(symOpInvariantsUp[iReprUp, :])
+            transIndexUp = transIndexUpT[:, 0]
+
+            transPhasesUp = symOpInvariantsUp[iReprUp, transIndexUp]
+            ntransIndexUp = np.size(transIndexUp)
+    
+            if ntransIndexUp == 1:
+                downStatesPerRepr[iReprUp] = basisStatesDown
+                index2ReprDown[iReprUp] = indexDownStates
+                normHubbardStates[iReprUp] = np.ones(nBasisStatesDown)/ nSites
+        
+            else:            
+                transIndexUp = np.delete(transIndexUp, np.arange(0, 1, 1), 0)
+                transPhasesUp = np.delete(transPhasesUp, np.arange(0, 1, 1), 0)
+                maskStatesSmaller = np.ones(nBasisStatesDown)
+                sumPhases = np.ones(nBasisStatesDown, dtype=complex)
+        
+                translationPower = transIndexUp       
+                transPowerY = np.mod(transIndexUp, nSitesY)
+
+                for iTrans in range(0, ntransIndexUp-1, 1):
+                    [transStates, transPhases] = self._cubicSymmetries(basisStatesDown, translationPower[iTrans], latticeSize)
+                    expPhase = np.exp(1J * kValue* translationPower[iTrans])
+                    intTransStates = np.sum( transStates*bi2de, axis = 1)                
+                    DLT = np.argwhere(intDownStates <= intTransStates)
+                    DLT = DLT[:, 0]
+                    set1 = np.zeros(nBasisStatesDown)
+                    set1[DLT] = 1                
+                    maskStatesSmaller = np.logical_and(maskStatesSmaller,  set1)
+                    DLT = np.argwhere(intDownStates == intTransStates)
+                    sameStates = DLT[:, 0]
+                    sumPhases[sameStates] = sumPhases[sameStates] + expPhase * transPhasesUp[iTrans] * transPhases[sameStates]
+
+                specNorm = np.abs(sumPhases)/ nSites
+                DLT = np.argwhere(specNorm > 1e-10)
+                DLT = DLT[:, 0]            
+                maskStatesComp = np.zeros(nBasisStatesDown)
+                maskStatesComp[DLT] = 1            
+                maskStatesComp = np.logical_and(maskStatesSmaller,  maskStatesComp)
+                downStatesPerRepr[iReprUp] = basisStatesDown[maskStatesComp, :]
+                index2ReprDown[iReprUp] = indexDownStates[maskStatesComp]
+                normHubbardStates[iReprUp] = specNorm[maskStatesComp]
+
+        return [downStatesPerRepr, index2ReprDown, normHubbardStates]
+
+    def _calcHubbardDIAG(self, basisReprUp, normHubbardStates, compDownStatesPerRepr, paramU):
+        [nReprUp, dumpV] = np.shape(basisReprUp)
+        nHubbardStates = 0
+        for k in range(nReprUp):
+            nHubbardStates = nHubbardStates + np.size(normHubbardStates[k])
+        # container for double occupancies
+        doubleOccupancies ={}
+        #loop over repr.
+        for iRepr in range(nReprUp):    
+            # pick out down states per up spin repr.
+            specBasisStatesDown = compDownStatesPerRepr[iRepr]
+            [nReprDown, dumpV] = np.shape(specBasisStatesDown)
+            UpReprs = [basisReprUp[iRepr, :]]* nReprDown
+            doubleOccupancies[iRepr] = np.sum( np.logical_and(UpReprs, compDownStatesPerRepr[iRepr]), axis = 1 )
+            if iRepr == 0:
+                doubleOccupanciesA = doubleOccupancies[iRepr]
+            elif iRepr > 0:
+                doubleOccupanciesA = np.concatenate((doubleOccupanciesA, doubleOccupancies[iRepr]))
+        rowIs = np.arange(0,nHubbardStates, 1)    
+        H_diag = sparse.csr_matrix( ( paramU*doubleOccupanciesA,  (rowIs, rowIs)), shape=(nHubbardStates, nHubbardStates))    
+        return H_diag
+
+    def _calcHamiltonDownOnlyTrans(self, compDownStatesPerRepr, compInd2ReprDown, paramT, indNeighbors, normHubbardStates, symOpInvariantsUp, kValue, basisStatesDown,latticeSize):
+        [nReprUp, nSites] = np.shape(symOpInvariantsUp)
+        nSitesY = latticeSize[0]
+        bin2dez = np.arange(nSites-1,-1,-1)
+        bin2dez = np.power(2, bin2dez)
+
+        nTranslations = np.zeros(nReprUp, dtype=int)
+        cumulIndex = np.zeros(nReprUp+1, dtype=int)
+        cumulIndex[0] = 0
+        sumL = 0
+        for iReprUp in range(nReprUp):
+            rt = symOpInvariantsUp[iReprUp, :]
+            rt = rt[rt == 1]
+            nTranslations[iReprUp] = np.sum(rt, axis=0)
+            sumL = sumL + np.size(normHubbardStates[iReprUp])
+            cumulIndex[iReprUp+1] = sumL
+
+        [nDims, ] = np.shape(indNeighbors)
+        # number of basis states of whole down spin basis
+        [nBasisSatesDown, dumpV] = np.shape(basisStatesDown)
+        # final x and y indices and phases
+
+        B2 = basisStatesDown[:, indNeighbors]
+        B2 = np.logical_xor(basisStatesDown, B2)
+        TwoA = np.argwhere(B2)
+        xIndWholeBasis = TwoA[:, 0]
+        d = TwoA[:, 1]
+
+        f = indNeighbors[d]
+        f1 = np.append(d, f, axis=0)    
+        d1 = np.append(np.arange(np.count_nonzero(B2)), np.arange(np.count_nonzero(B2)), axis=0)    
+                                      
+        F_i = basisStatesDown[np.sum(B2, axis=1) == 0, : ]
+        F = np.sum(F_i*bin2dez, axis=1)
+                                    
+        B2 = basisStatesDown[xIndWholeBasis, :]
+        d1 = sparse.csr_matrix( (np.ones(np.size(d1)) ,  (d1, f1)), shape=(np.max(d1)+1, nSites )      )
+        phasesWholeBasis = self._HubbardPhase(B2,d1,d,f)
+        d = np.logical_xor(d1.todense()  , B2 )
+        prodd = d * np.reshape(bin2dez,(nSitesY,1))
+
+        d = np.sum( prodd, axis=1)    
+        d = np.squeeze(np.asarray(d))    
+        f = np.append(d, F, axis=0)
+        [uniqueInteger, indUniqueInteger, B2] = np.unique(f, return_index=True, return_inverse=True)    
+
+        yIndWholeBasis = B2[np.arange(0,np.size(xIndWholeBasis),1) ]
+        sums = 0
+        cumulIndFinal = np.zeros(nReprUp+1, dtype=int)
+        cumulIndFinal[0] = sums
+
+        xFinal = {}
+        yFinal = {}
+        phasesFinal = {}
+        for iReprUp in range(nReprUp):
+            specNumOfTrans = nTranslations[iReprUp]
+            if specNumOfTrans == 1:
+                xFinal[iReprUp] = cumulIndex[iReprUp] + xIndWholeBasis
+                yFinal[iReprUp] = cumulIndex[iReprUp] + yIndWholeBasis
+                phasesFinal[iReprUp] = phasesWholeBasis
+            
+                sums = sums + np.shape(xIndWholeBasis)[0]
+                cumulIndFinal[iReprUp+1] = sums            
+                continue
+
+            specInd2ReprDown = compInd2ReprDown[iReprUp] - 1
+            nSpecStatesDown = np.size(specInd2ReprDown)
+
+            indexTransform = np.zeros(nBasisSatesDown)
+            indexTransform[specInd2ReprDown] = np.arange(1,nSpecStatesDown+1,1)
+
+            xIndSpec = indexTransform[xIndWholeBasis]
+            yIndSpec = indexTransform[yIndWholeBasis]
+
+            nBLe = np.size(xIndWholeBasis)
+
+            DLT = np.argwhere(xIndSpec != 0)
+            DLT = DLT[:, 0]
+            maskStartingStates = np.zeros(nBLe, dtype=bool)
+            maskStartingStates[DLT] = 1
+        
+            DLT = np.argwhere(yIndSpec != 0)
+            DLT = DLT[:, 0]
+            mask_ynonzero = np.zeros(nBLe)
+            mask_ynonzero[DLT] = 1
+        
+            maskCompatible = np.logical_and(maskStartingStates, mask_ynonzero)
+        
+            xIndOfReprDown = {}
+            yIndOfReprDown = {}
+            hoppingPhase = {}
+            for iTrans in range(specNumOfTrans-1):
+                xIndOfReprDown[iTrans+1] = xIndSpec[maskStartingStates]
+                hoppingPhase[iTrans+1] = phasesWholeBasis[maskStartingStates]
+        
+            xIndSpec = xIndSpec[maskCompatible]
+            yIndSpec = yIndSpec[maskCompatible]
+            phasesSpec = phasesWholeBasis[maskCompatible]
+        
+            xIndOfReprDown[0] = xIndSpec
+            yIndOfReprDown[0] = yIndSpec
+            hoppingPhase[0] = phasesSpec
+        
+            specStatesDown = compDownStatesPerRepr[iReprUp]
+            intSpecStatesDown = np.sum(specStatesDown * bin2dez, axis=1)
+        
+            hoppedStates = basisStatesDown[ yIndWholeBasis[maskStartingStates] ,: ]
+        
+            DLT = np.argwhere( symOpInvariantsUp[iReprUp, :] )
+        
+            translationPower = DLT[:, 0] - 1
+            phasesFromTransInvariance = symOpInvariantsUp[iReprUp, DLT]
+            phasesFromTransInvariance = phasesFromTransInvariance[:, 0]
+
+            cumulIndOfRepr = np.zeros(specNumOfTrans+1, dtype=int)
+            cumulIndOfRepr[0] = 0
+            cumulIndOfRepr[1] = np.size(xIndSpec)
+            sumIOR = np.size(xIndSpec)
+
+
+            for iTrans in range(specNumOfTrans-1):
+                specTrans = translationPower[iTrans+1]
+
+                [transBasis, transPhases] = self._cubicSymmetries( hoppedStates, specTrans, latticeSize)
+                expPhases = np.exp(1J * kValue* specTrans)        
+                phaseUpSpinTransInv = phasesFromTransInvariance[iTrans+1]        
+                PhaseF = expPhases * np.multiply(transPhases, phaseUpSpinTransInv)        
+                hoppingPhase[iTrans+1] = np.multiply(hoppingPhase[iTrans+1], PhaseF)        
+                intValues = np.sum(transBasis * bin2dez, axis=1)            
+                maskInBasis = np.in1d(intValues, intSpecStatesDown)            
+                intValues = intValues[maskInBasis]            
+                xIndOfReprDown[iTrans+1] = xIndOfReprDown[iTrans+1][maskInBasis]
+                hoppingPhase[iTrans+1] = hoppingPhase[iTrans+1][maskInBasis]
+                F = np.setdiff1d( intSpecStatesDown, intValues)
+                f = np.append(intValues, F)        
+                [uniqueInteger, indUniqueInteger, B2] = np.unique(f, return_index=True, return_inverse=True)    
+
+                yIndOfReprDown[iTrans+1] = B2[np.arange(0,np.size(xIndOfReprDown[iTrans+1] ),1) ] + 1
+                sumIOR = sumIOR + np.size(xIndOfReprDown[iTrans+1])
+                cumulIndOfRepr[iTrans+2] = sumIOR
+
+            xIndOfReprDownA = np.zeros(cumulIndOfRepr[-1])
+            yIndOfReprDownA = np.zeros(cumulIndOfRepr[-1])
+            hoppingPhaseA = np.zeros(cumulIndOfRepr[-1], dtype=complex)
+            for iTrans in range(specNumOfTrans):
+                xIndOfReprDownA[ cumulIndOfRepr[iTrans]: cumulIndOfRepr[iTrans +1] ] = xIndOfReprDown[iTrans] - 1
+                yIndOfReprDownA[ cumulIndOfRepr[iTrans]: cumulIndOfRepr[iTrans +1] ] = yIndOfReprDown[iTrans] - 1
+                hoppingPhaseA[ cumulIndOfRepr[iTrans]: cumulIndOfRepr[iTrans +1] ] = hoppingPhase[iTrans]
+                    
+            xFinal[iReprUp] = cumulIndex[iReprUp] + xIndOfReprDownA
+            yFinal[iReprUp] = cumulIndex[iReprUp] + yIndOfReprDownA
+            phasesFinal[iReprUp] = hoppingPhaseA
+
+            sums = sums + np.size(xIndOfReprDownA)
+            cumulIndFinal[iReprUp+1] = sums        
+        
+        xFinalA = np.zeros(cumulIndFinal[-1], dtype=int)
+        yFinalA = np.zeros(cumulIndFinal[-1], dtype=int)
+        phasesFinalA = np.zeros(cumulIndFinal[-1], dtype=complex)
+    
+        for iReprUp in range(nReprUp):
+            xFinalA[ cumulIndFinal[iReprUp]: cumulIndFinal[iReprUp +1] ] = xFinal[iReprUp ] 
+            yFinalA[ cumulIndFinal[iReprUp]: cumulIndFinal[iReprUp +1] ] = yFinal[iReprUp ]
+            phasesFinalA[ cumulIndFinal[iReprUp]: cumulIndFinal[iReprUp +1] ] = phasesFinal[iReprUp ]        
+        
+        nHubbardStates = cumulIndex[-1]
+        normHubbardStatesA = np.zeros(nHubbardStates)    
+        for iReprUp in range(nReprUp):
+            normHubbardStatesA[ cumulIndex[iReprUp]: cumulIndex[iReprUp +1] ] = normHubbardStates[iReprUp]
+    
+        normHubbardStates = np.multiply( np.sqrt(normHubbardStatesA[xFinalA]) , np.sqrt(normHubbardStatesA[yFinalA]))
+
+        H_down_elems = -paramT / nSites* np.divide(phasesFinalA, normHubbardStates)
+        H_down = sparse.csr_matrix( (  H_down_elems,  (xFinalA, yFinalA)), shape=(nHubbardStates, nHubbardStates))
+    
+        return (H_down+ H_down.transpose().conjugate())/2
+
+    def _calcHamiltonUpOnlyTrans(self, basisReprUp, compDownStatesPerRepr, paramT, indNeighbors, normHubbardStates, symOpInvariantsUp, kValue, index2ReprUp, symOp2ReprUp, intStatesUp , latticeSize):
+        [nReprUp, nSites] = np.shape(basisReprUp)
+        nSitesY = latticeSize[0]
+        bin2dez = np.arange(nSites-1,-1,-1)
+        bin2dez = np.power(2, bin2dez)
+        nTranslations = np.zeros(nReprUp, dtype=int)
+        cumulIndex = np.zeros(nReprUp+1, dtype=int)
+        cumulIndex[0] = 0
+        sumL = 0
+        for iReprUp in range(nReprUp):
+            rt = symOpInvariantsUp[iReprUp, :]
+            rt = rt[rt == 1]
+            nTranslations[iReprUp] = np.sum(rt, axis=0)
+            sumL = sumL + np.size(normHubbardStates[iReprUp])
+            cumulIndex[iReprUp+1] = sumL
+        transPhases2ReprUp = np.sign(index2ReprUp)
+        index2ReprUp = np.abs(index2ReprUp)
+
+        B2 = basisReprUp[:, indNeighbors]
+        B2 = np.logical_xor(basisReprUp, B2)
+
+        TwoA = np.argwhere(B2)
+        xIndOfReprUp = TwoA[:, 0]
+        d = TwoA[:, 1]
+
+        f = indNeighbors[d]
+        f1 = np.append(d, f, axis=0)
+    
+        d1 = np.append(np.arange(np.count_nonzero(B2)), np.arange(np.count_nonzero(B2)), axis=0)    
+                                      
+        F_i = basisReprUp[np.sum(B2, axis=1) == 0, : ]
+        F = np.sum(F_i*bin2dez, axis=1)                                    
+        B2 = basisReprUp[xIndOfReprUp, :]
+
+        d1 = sparse.csr_matrix( (np.ones(np.size(d1)) ,  (d1, f1)), shape=(np.max(d1)+1, nSites )      )
+        hoppingPhase = self._HubbardPhase(B2,d1,d,f)
+        d = np.logical_xor(d1.todense()  , B2 )
+        prodd = d * np.reshape(bin2dez,(nSitesY,1))
+        d = np.sum( prodd, axis=1)    
+        d = np.squeeze(np.asarray(d))   
+        f = np.append(d, F, axis=0)      
+        F = np.setdiff1d( intStatesUp, f)
+        f = np.append(f, F)    
+
+        [uniqueInteger, indUniqueInteger, B2] = np.unique(f, return_index=True, return_inverse=True)    
+
+        yIndOfCycleUp = B2[np.arange(0,np.size(xIndOfReprUp),1) ]
+        yIndOfReprUp = index2ReprUp[yIndOfCycleUp] - 1
+        yIndOfReprUp = yIndOfReprUp.astype('int')    
+        symOp2ReprUp = symOp2ReprUp[yIndOfCycleUp]    
+        combPhases = np.multiply(transPhases2ReprUp[yIndOfCycleUp], hoppingPhase)
+        xIndHubbUp = cumulIndex[xIndOfReprUp]
+        yIndHubbUp = cumulIndex[yIndOfReprUp]    
+        nConnectedUpStates = np.size(xIndOfReprUp)
+    
+        xFinal = {}
+        yFinal = {}
+        phasesFinal = {}
+        cumFinal = np.zeros(nConnectedUpStates+1)
+        sumF = 0
+        cumFinal[0] = sumF
+    
+        for iStates in range(nConnectedUpStates):
+            stateIndex = yIndOfReprUp[iStates]
+            downSpinState1 = compDownStatesPerRepr[ xIndOfReprUp[iStates] ] 
+            downSpinState2 = compDownStatesPerRepr[ stateIndex ]
+            DLT = np.argwhere( symOpInvariantsUp[stateIndex, :] )        
+            translationPower = DLT[:, 0]
+            phasesFromTransInvariance = symOpInvariantsUp[stateIndex, DLT]
+            phasesFromTransInvariance = phasesFromTransInvariance[:, 0]
+            combTranslation = symOp2ReprUp[iStates] + translationPower
+        
+            nTrans = np.size(combTranslation)                
+            xInd = {}
+            yInd = {}
+            phaseFactor = {}        
+            cumI = np.zeros( nTrans+1, dtype=int)
+            sumE = 0
+            cumI[0] = sumE
+        
+            for iTrans in range(  nTrans ):
+                Tss = -combTranslation[iTrans]
+                [transStates, transPhases] = self._cubicSymmetries(downSpinState2, int(Tss), latticeSize)
+
+                intTransStates = np.sum( transStates * bin2dez, axis=1)
+                intStatesOne = np.sum( downSpinState1 * bin2dez , axis = 1 )
+            
+                [dumpV, xInd[iTrans], yInd[iTrans] ] = self._intersect_mtlb(intStatesOne, intTransStates)
+                phaseFactor[iTrans] = transPhases[ yInd[iTrans] ]
+
+                sumE = sumE + np.size( xInd[iTrans] )
+                cumI[iTrans+1] = sumE
+
+            xIndA = np.zeros(cumI[-1])
+            yIndA = np.zeros(cumI[-1])
+
+            for iTrans in range( nTrans ):
+                xIndA[ cumI[iTrans]: cumI[iTrans +1] ] = xInd[iTrans ] 
+                yIndA[ cumI[iTrans]: cumI[iTrans +1] ] = yInd[iTrans ]
+
+            xFinal[iStates] = xIndHubbUp[iStates] + xIndA
+            yFinal[iStates] = yIndHubbUp[iStates] + yIndA
+            specCombPhase = combPhases[iStates]
+            cumP = np.zeros(nTranslations[stateIndex]+1, dtype=int)
+            sump = 0
+            cumP[0] = sump
+        
+            for iTrans in range(nTranslations[stateIndex]):
+                phaseFromTransUp = phasesFromTransInvariance[iTrans]
+                expPhases = np.exp(1J * kValue * combTranslation[iTrans])
+                phaseFactor[iTrans] = phaseFactor[iTrans] * specCombPhase * phaseFromTransUp * expPhases
+                sump = sump + 1
+                cumP[iTrans+1] = sump
+        
+            if nTrans == 1:
+                phasesFinal[iStates] = phaseFactor[0]
+            
+            else:
+                phasesFinal[iStates] = phaseFactor[0]
+            
+                for noss in range(1,nTrans,1):
+                    phasesFinal[iStates ] = np.hstack( [ phasesFinal[iStates], phaseFactor[noss] ]  )
+
+        phasesFinalA = phasesFinal[0]
+        xFinalA = xFinal[0]
+        yFinalA = yFinal[0]
+
+        if nConnectedUpStates > 1:
+            for noss in range(1, nConnectedUpStates, 1):
+                phasesFinalA = np.hstack([ phasesFinalA, phasesFinal[noss] ])
+                xFinalA = np.hstack([ xFinalA, xFinal[noss] ])
+                yFinalA = np.hstack([ yFinalA, yFinal[noss] ])
+        
+        normHubbardStatesA = normHubbardStates[0]
+        for iReprUp in range(1, nReprUp , 1):
+            normHubbardStatesA = np.hstack([ normHubbardStatesA , normHubbardStates[iReprUp] ])
+        
+        nHubbardStates = np.size(normHubbardStatesA)
+
+            
+        normHubbardStates = np.multiply( np.sqrt(normHubbardStatesA[xFinalA.astype(int)]) , np.sqrt(normHubbardStatesA[yFinalA.astype(int)] ) )  
+        H_up_elems = -paramT / nSites* np.divide(phasesFinalA, normHubbardStates)
+        H_up = sparse.csr_matrix( (  H_up_elems,  (xFinalA, yFinalA)), shape=(nHubbardStates, nHubbardStates))
+    
+        return (H_up+ H_up.transpose().conjugate() )/2
+
+    def _intersect_mtlb(self, a, b):
+        a1, ia = np.unique(a, return_index=True)
+        b1, ib = np.unique(b, return_index=True)
+        aux = np.concatenate((a1, b1))
+        aux.sort()
+        c = aux[:-1][aux[1:] == aux[:-1]]
+        return c, ia[np.isin(a1, c)], ib[np.isin(b1, c)]
+
+    def _HubbardPhase(self, replBasisStates, hopIndicationMatrix, hoppingIndicesX, hoppingIndicesY):
+        [nReplBasisStates, nSites] = np.shape(replBasisStates) # number of states and sites
+        siteInd = np.arange(1, nSites+1, 1)
+        phase = np.ones(nReplBasisStates)    
+    
+        return phase
+
+class Lattice1d_Heisenberg():
+    """A class for representing a 1d crystal.
+
+    The Lattice1d class can be defined with any specific unit cells and a
+    specified number of unit cells in the crystal. It can return dispersion
+    relationship, position operators, Hamiltonian in the position represention
+    etc.
+
+    Parameters
+    ----------
+    num_cell : int
+        The number of cells in the crystal.
+    boundary : str
+        Specification of the type of boundary the crystal is defined with.
+    cell_num_site : int
+        The number of sites in the unit cell.
+    cell_site_dof : list of int/ int
+        The tensor structure  of the degrees of freedom at each site of a unit
+        cell.
+    Hamiltonian_of_cell : qutip.Qobj
+        The Hamiltonian of the unit cell.
+    inter_hop : qutip.Qobj / list of Qobj
+        The coupling between the unit cell at i and at (i+unit vector)
+
+    Attributes
+    ----------
+    num_cell : int
+        The number of unit cells in the crystal.
+    cell_num_site : int
+        The nuber of sites in a unit cell.
+    length_for_site : int
+        The length of the dimension per site of a unit cell.
+    cell_tensor_config : list of int
+        The tensor structure of the cell in the form
+        [cell_num_site,cell_site_dof[:][0] ]
+    lattice_tensor_config : list of int
+        The tensor structure of the crystal in the
+        form [num_cell,cell_num_site,cell_site_dof[:][0]]
+    length_of_unit_cell : int
+        The length of the dimension for a unit cell.
+    period_bnd_cond_x : int
+        1 indicates "periodic" and 0 indicates "hardwall" boundary condition
+    inter_vec_list : list of list
+        The list of list of coefficients of inter unitcell vectors' components
+        along Cartesian uit vectors.
+    lattice_vectors_list : list of list
+        The list of list of coefficients of lattice basis vectors' components
+        along Cartesian unit vectors.
+    H_intra : qutip.Qobj
+        The Qobj storing the Hamiltonian of the unnit cell.
+    H_inter_list : list of Qobj/ qutip.Qobj
+        The list of coupling terms between unit cells of the lattice.
+    is_real : bool
+        Indicates if the Hamiltonian is real or not.
+    """
+    def __init__(self, num_sites=10, boundary="periodic", t=1,
+                 U=1, fillingUp=None, fillingDown=None, k=None):
+
+        self.paramT = t
+        self.paramU = U
+        self.latticeSize = [num_sites]
+        self.fillingUp = fillingUp
+        self.fillingDown = fillingDown
+
+        if (not isinstance(num_sites, int)) or num_sites > 18:
+            raise Exception("cell_num_site is required to be a positive \
+                            integer.")
+                            
+        if boundary == "periodic":
+            self.period_bnd_cond_x = 1
+        elif boundary == "aperiodic" or boundary == "hardwall":
+            self.period_bnd_cond_x = 0
+        else:
+            raise Exception("Error in boundary: Only recognized bounday \
+                    options are:\"periodic \",\"aperiodic\" and \"hardwall\" ")
+
+    def __repr__(self):
+        s = ""
+        s += ("Lattice1d_f_Hubbard object: " +
+              "Number of sites = " + str(self.num_sites) +
+              ",\n hopping energy between sites, t = " + str(self.paramT) +
+              ",\n on-site interaction energy, U = " +
+              str(self.U ) +
+              ",\n number of spin up fermions = " +
+              str(self.fillingUp) +
+              ",\n number of spin down fermions = " + str(self.fillingDown) +
+              ",\n k - vector sector = " + str(self.k) + "\n")
+        if self.period_bnd_cond_x == 1:
+            s += "Boundary Condition:  Periodic"
+        else:
+            s += "Boundary Condition:  Hardwall"
+        return s
+

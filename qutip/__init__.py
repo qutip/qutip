@@ -169,6 +169,7 @@ from qutip.scattering import *
 # lattice models
 from qutip.lattice import *
 from qutip.topology import *
+from qutip.latticeclass import *
 
 ########################################################################
 # This section exists only for the deprecation warning of qip importation.
