@@ -80,51 +80,26 @@ class TestSeSolve():
         np.testing.assert_allclose(sy, sy_analytic, atol=tol)
         np.testing.assert_allclose(sz, sz_analytic, atol=tol)
 
-    @pytest.mark.parametrize(['psi0_type'], [
+    @pytest.mark.parametrize(['state_type'], [
         pytest.param("ket", id="ket"),
-        pytest.param("dm", id="dm"),
         pytest.param("unitary", id="unitary"),
     ])
-    @pytest.mark.parametrize(['H', 'analytical'], [
-        pytest.param(H1, lambda t, _: t, id='const_H'),
-    ])
-    def test_sesolve_normalization(self, H, analytical, psi0_type):
-        tol = 5e-3
+    def test_sesolve_normalization(self, state_type):
+        # non-hermitean H causes state to evolve non-unitarily
+        H = qutip.Qobj([[1, -0.1j], [-0.1j, 1]])
         psi0 = qutip.basis(2, 0)
-        U = qutip.qeye(2)
         options = SolverOptions(normalize_output=True, progress_bar=None)
 
-        if psi0_type in {"ket", "dm"}:
-            # start with an unnormalized state:
-            output = sesolve(H, 0.5 * psi0, self.tlist,
-                             [qutip.sigmax(), qutip.sigmay(), qutip.sigmaz()],
-                             args=self.args, options=options)
-            sx, sy, sz = output.expect[0], output.expect[1], output.expect[2]
-        else:  # evolve a unitary
-            # start with an non-unitary U, but then normalize afterwards
-            # by hand:
-            output = sesolve(H, 0.5 * U, self.tlist, args=self.args,
-                             options=options)
-            sx = [qutip.expect(qutip.sigmax(), 2 * U * psi0)
-                  for U in output.states]
-            sy = [qutip.expect(qutip.sigmay(), 2 * U * psi0)
-                  for U in output.states]
-            sz = [qutip.expect(qutip.sigmaz(), 2 * U * psi0)
-                  for U in output.states]
-
-        sx_analytic = np.zeros(np.shape(self.tlist))
-        sy_analytic = np.array(
-            [-np.sin(2 * np.pi * analytical(t, self.args['alpha']))
-             for t in self.tlist]
-        )
-        sz_analytic = np.array(
-            [np.cos(2 * np.pi * analytical(t, self.args['alpha']))
-             for t in self.tlist]
-        )
-
-        np.testing.assert_allclose(sx, sx_analytic, atol=tol)
-        np.testing.assert_allclose(sy, sy_analytic, atol=tol)
-        np.testing.assert_allclose(sz, sz_analytic, atol=tol)
+        if state_type == "ket":
+            output = sesolve(H, psi0, self.tlist, e_ops=[], options=options)
+            norms = [state.norm() for state in output.states]
+            np.testing.assert_allclose(
+                norms, [1.0 for _ in self.tlist], atol=5e-3,
+            )
+        else:
+            U = qutip.qeye(2)
+            output = sesolve(H, U, self.tlist, e_ops=[], options=options)
+            assert all(state.norm() > 2 for state in output.states[1:])
 
     @pytest.mark.parametrize(['unitary_op'], [
         pytest.param(None, id="state"),
