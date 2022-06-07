@@ -1,7 +1,7 @@
 __all__ = ['Solver']
 
 from .. import Qobj, QobjEvo, ket2dm
-from .options import known_solver, SolverOptions
+from .options import known_solver, _AttachedSolverOptions, SolverOptions
 from ..core import stack_columns, unstack_columns
 from .result import Result
 from .integrator import Integrator
@@ -31,7 +31,7 @@ class Solver:
     _avail_integrators = {}
 
     # Class of option used by the solver
-    default_options = {
+    solver_options = {
         "progress_bar": "text",
         "progress_kwargs": {"chunk_size": 10},
         "store_final_state": False,
@@ -46,7 +46,7 @@ class Solver:
             self.rhs = QobjEvo(rhs)
         else:
             TypeError("The rhs must be a QobjEvo")
-        self._options = SolverOptions(self.name, **self.default_options)
+        self._options = _AttachedSolverOptions(self)
         if options is not None:
             self.options = options
         _time_start = time()
@@ -233,8 +233,8 @@ class Solver:
 
         progress_bar: str {'text', 'enhanced', 'tqdm', ''}
             How to present the solver progress.
-            'tqdm' uses the python module of the same name and raise an error if
-            not installed. Empty string or False will disable the bar.
+            'tqdm' uses the python module of the same name and raise an error
+            if not installed. Empty string or False will disable the bar.
 
         progress_kwargs: dict
             kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
@@ -242,29 +242,68 @@ class Solver:
         method: str
             Which ordinary differential equation integration method to use.
         """
-        return self._options.copy()
+        return self._options
+
+    def _parse_options(self, **new_options):
+        """
+        Do a first read through of the options:
+        - Raise an error for unsupported error.
+        - Replace ``None`` with the default value.
+        - Remove items that are unchanged.
+        """
+        method = new_options.get('method', self.options["method"])
+        default_options = SolverOptions(self.name, method=method)
+        extra_keys = new_options.keys() - default_options.supported_keys
+        if extra_keys:
+            raise KeyError(f"Options {extra_keys} are not supported.")
+        # First pass: Have ``None`` refert to the default.
+        new_options = {
+            key: (val if val is not None else default_options[key])
+            for key, val in new_options.items()
+        }
+        # Second pass: Remove options that remain unchanged.
+        new_options = {
+            key: val
+            for key, val in new_options.items()
+            if key in self._options and val != self._options[key]
+        }
+        return new_options
 
     @options.setter
     def options(self, new_options):
+        new_options = self._parse_options(**new_options)
         if not new_options:
             return  # Nothing to do
-        change_method = (
-            'method' in new_options
-            and new_options['method'] != self._options['method']
-        )
-        kept_options = self._options
-        if change_method:
-            kept_options = self._options.solver_options
 
-        self._options = SolverOptions(self.name, **{**kept_options, **new_options})
-        if self._integrator is None:
+        # Create options without the integrator items that are not
+        # not supported by the new integrator if changed.
+        kept_options = self._options.copy()
+        if 'method' in new_options:
+            kept_options['method'] = new_options['method']
+
+        self._options = _AttachedSolverOptions(
+            self,
+            **{**kept_options, **new_options}
+        )
+
+        self._apply_options(new_options.keys())
+
+    def _apply_options(self, keys):
+        """
+        Method called when options are changed, either through
+        ``solver.options[key] = value`` or ``solver.options = options``.
+        Allow to update the solver with the new options
+        """
+        if self._integrator is None or not keys:
             pass
-        elif change_method:
+        elif 'method' in keys:
             state = self._integrator.get_state()
             self._integrator = self._get_integrator()
             self._integrator.set_state(*state)
-        else:
-            self._integrator.options = new_options
+        elif keys & self._integrator.integrator_options.keys():
+            # Some of the keys are used by the integrator.
+            self._integrator.options = self._options
+            self._integrator.reset(hard=True)
 
     def _argument(self, args):
         """Update the args, for the `rhs` and other operators."""

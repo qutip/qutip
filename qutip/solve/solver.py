@@ -11,7 +11,7 @@ from collections import OrderedDict
 from types import FunctionType, BuiltinFunctionType
 
 from .. import __version__, Qobj, QobjEvo
-from ..optionsclass import QutipOptions
+from .optionsclass import optionsclass
 from ..core import data as _data
 
 solver_safe = {}
@@ -120,7 +120,8 @@ class ExpectOps:
         return bool(self.e_num)
 
 
-class SolverOptions(QutipOptions):
+@optionsclass("solver")
+class SolverOptions:
     """
     Class of options for evolution solvers such as :func:`qutip.mesolve` and
     :func:`qutip.mcsolve`. Options can be specified either as arguments to the
@@ -174,18 +175,8 @@ class SolverOptions(QutipOptions):
         result class, even if expectation values operators are given. If no
         expectation are provided, then states are stored by default and this
         option has no effect.
-    norm_tol : float {1e-4}
-        Tolerance used when finding wavefunction norm in mcsolve.
-    norm_t_tol : float {1e-6}
-        Tolerance used when finding wavefunction time in mcsolve.
-    norm_steps : int {5}
-        Max. number of steps used to find wavefunction norm to within norm_tol
-        in mcsolve.
-    mc_corr_eps : float {1e-10}
-        Arbitrarily small value for eliminating any divide-by-zero errors in
-        correlation calculations when using mcsolve.
     """
-    default = {
+    options = {
         # Absolute tolerance (default = 1e-8)
         "atol": 1e-8,
         # Relative tolerance (default = 1e-6)
@@ -219,7 +210,45 @@ class SolverOptions(QutipOptions):
         "steady_state_average": False,
         # Normalize output of solvers
         # (turned off for batch unitary propagator mode)
-        "normalize_output": True,
+        "normalize_output": True
+    }
+
+
+@optionsclass("mcsolve", SolverOptions)
+class McOptions:
+    """
+    Class of options for evolution solvers such as :func:`qutip.mesolve` and
+    :func:`qutip.mcsolve`. Options can be specified either as arguments to the
+    constructor::
+
+        opts = SolverOptions(norm_tol=1e-3, ...)
+
+    or by changing the class attributes after creation::
+
+        opts = SolverOptions()
+        opts.['norm_tol'] = 1e-3
+
+    Returns options class to be used as options in evolution solvers.
+
+    The default can be changed by::
+
+        qutip.settings.options.montecarlo['norm_tol'] = 1e-3
+
+    Options
+    -------
+
+    norm_tol : float {1e-4}
+        Tolerance used when finding wavefunction norm in mcsolve.
+    norm_t_tol : float {1e-6}
+        Tolerance used when finding wavefunction time in mcsolve.
+    norm_steps : int {5}
+        Max. number of steps used to find wavefunction norm to within norm_tol
+        in mcsolve.
+    mc_corr_eps : float {1e-10}
+        Arbitrarily small value for eliminating any divide-by-zero errors in
+        correlation calculations when using mcsolve.
+    """
+    options = {
         # Tolerance for wavefunction norm (mcsolve only)
         "norm_tol": 1e-4,
         # Tolerance for collapse time precision (mcsolve only)

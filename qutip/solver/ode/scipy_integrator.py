@@ -11,7 +11,6 @@ import numpy as np
 from scipy.integrate import ode
 from scipy.integrate._ode import zvode
 from qutip.core import data as _data
-from ...optionsclass import QutipOptions
 from qutip.core.data.reshape import column_unstack_dense, column_stack_dense
 from ..integrator import IntegratorException, Integrator
 from ..solver_base import Solver
@@ -220,6 +219,7 @@ class IntegratorScipyDop853(Integrator):
         'dfactor': 0.3,
         'beta': 0.0,
     }
+    method = 'dop853'
 
     def _prepare(self):
         """
@@ -345,6 +345,7 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
     }
     support_time_dependant = True
     supports_blackbox = True
+    method = 'lsoda'
 
     def _prepare(self):
         """

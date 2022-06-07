@@ -1,7 +1,6 @@
 from ..integrator import IntegratorException, Integrator
 from ..solver_base import Solver
 from .explicit_rk import Explicit_RungeKutta
-from ...optionsclass import QutipOptions
 import numpy as np
 from qutip import data as _data
 
@@ -112,6 +111,7 @@ class IntegratorDiag(Integrator):
     integrator_options = {}
     support_time_dependant = False
     supports_blackbox = False
+    method = 'diag'
 
     def __init__(self, system, options):
         if not system.isconstant:

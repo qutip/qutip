@@ -186,7 +186,7 @@ class BrSolver(Solver):
         Diverse diagnostic statistics of the evolution.
     """
     name = "brmesolve"
-    default_options = {
+    solver_options = {
         "progress_bar": "text",
         "progress_kwargs": {"chunk_size":10},
         "store_final_state": False,
@@ -203,7 +203,7 @@ class BrSolver(Solver):
 
         self.rhs = None
         self.sec_cutoff = sec_cutoff
-        self._options = self.default_options.copy()
+        self._options = self.solver_options.copy()
         self.options = options
 
         if not isinstance(H, (Qobj, QobjEvo)):

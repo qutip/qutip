@@ -97,7 +97,7 @@ class SeSolver(Solver):
     """
     name = "sesolve"
     _avail_integrators = {}
-    default_options = {
+    solver_options = {
         "progress_bar": "text",
         "progress_kwargs": {"chunk_size":10},
         "store_final_state": False,

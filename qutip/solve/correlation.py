@@ -731,7 +731,7 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
             if isinstance(a_op, Qobj) and isinstance(c_op, Qobj):
                 if a_op.dag() == c_op:
                     # A shortcut here, requires only 1/4 the trials
-                    chi_0 = (options['mc_corr_eps'] + c_op) * \
+                    chi_0 = (options.mcsolve['mc_corr_eps'] + c_op) * \
                         psi_t_mat[trial_idx, t_idx]
 
                     # evolve these states and calculate expectation value of B
@@ -755,7 +755,7 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                     # if this is not correct, the over-loaded addition
                     # operation will raise errors
                     a_op_dag = a_op
-                chi_0 = [(options['mc_corr_eps'] + a_op_dag +
+                chi_0 = [(options.mcsolve['mc_corr_eps'] + a_op_dag +
                           np.exp(1j*x*np.pi/2)*c_op) *
                          psi_t_mat[trial_idx, t_idx]
                          for x in range(4)]

@@ -44,93 +44,156 @@ class SolverOptions():
     def __init__(self, solver='solver', method=None, **kwargs):
         if solver not in known_solver:
             raise ValueError(f'Unknown solver "{solver}".')
-        self.solver = known_solver[solver]
-        self._doc = self.__doc__ + _adjust_docstring_indent(
-            self.solver.options.__doc__
+
+        solver_class = known_solver[solver]
+        # Various spelling are supported, set the official name.
+        self.solver = solver_class.name
+        # Add solver's options to the doc-string
+        self._doc = self.__class__.__doc__ + _adjust_docstring_indent(
+            solver_class.options.__doc__
         )
-        self.solver_options = self.solver.default_options.copy()
-        if method:
-            self.solver_options['method'] = method
-        else:
-            method = self.solver_options['method']
-        self.supported_integrator = self.solver.avail_integrators()
-        self.integrator_options = self._get_integrator_options(method)
+
+        # Get a copy of the solver default options
+        self._default_solver_options = solver_class.solver_options.copy()
+        self.supported_integrator = solver_class.avail_integrators()
+
+        method = method or self._default_solver_options['method']
+        self._options = {'method': method}
+        self._set_integrator_options(method)
 
         # Merge all options
         for key in kwargs:
             self.__setitem__(key, kwargs[key])
 
-    def _get_integrator_options(self, method):
+    def _set_integrator_options(self, method):
+        """
+        - Get a copy of the integrator's default options.
+        - Create a set of all supported keys.
+        - Remove the options' items that were supported by the previous
+          integrator, but a not by the new one.
+        - Rewrite the doc-string to include the new integrator's options.
+        """
         if method not in self.supported_integrator:
             raise ValueError(
                 f'Integration method "{method}" is not supported '
                 "by the solver."
             )
         integrator = self.supported_integrator[method]
-        integrator_options = integrator.integrator_options.copy()
+        self._default_integrator_options = integrator.integrator_options.copy()
+        self.supported_keys = (
+             self._default_solver_options.keys()
+             | self._default_integrator_options.keys()
+        )
+        # We drop options that the new integrator does not support.
+        self._options = {
+            key: val
+            for key, val in self._options.items()
+            if key in self.supported_keys
+        }
         self.__doc__ = self._doc + integrator.options.__doc__
-        return integrator_options
 
     def __setitem__(self, key, value):
-        if key == 'method' and values != self.solver_options[key]:
-            # This does not keep options values that are in common.
-            self.integrator_options = self._get_integrator_options(value)
+        """
+        Set the options.
+        Settings to ``None`` revert the the default value.
+        """
+        if key == 'method' and value != self._options['method']:
+            self._set_integrator_options(value)
 
-        if key in self.solver_options:
-            self.solver_options[key] = value
-        elif key in self.integrator_options:
-            self.integrator_options[key] = value
-        else:
-            raise KeyError(key)
+        if key not in self.supported_keys:
+            raise KeyError(f"'{key}' is not a supported options.")
+        elif value is not None:
+            self._options[key] = value
+        elif key in self._options:
+            del self._options[key]
 
     def __getitem__(self, key):
         for dictionary in [
-            self.solver_options,
-            self.integrator_options
+            self._options,
+            self._default_solver_options,
+            self._default_integrator_options
         ]:
             if key in dictionary:
                 return dictionary[key]
-        raise KeyError(key)
+        raise KeyError(f"'{key}' is not a supported options.")
+
+    def __contains__(self, key):
+        return key in self.supported_keys
+
+    def __delitem__(self, key):
+        """
+        Revert an options to it's default value.
+        """
+        if key in self._options:
+            del self._options[key]
+        elif key in self.supported_keys:
+            pass  # Default value, can't be erased.
+        else:
+            raise KeyError(f"'{key}' is not a supported options.")
 
     def __str__(self):
-        longest_s = max(len(key) for key in self.solver_options)
-        longest_i = max(len(key) for key in self.integrator_options)
+        longest_s = max(len(self[key]) for key in self._default_solver_options)
+        longest_i = max(len(self[key]) for key in self._default_integrator_options)
         lines = []
-        lines.append(f"Options for {self.solver.name}:")
-        for key, val in self.solver_options.items():
-            lines.append(f"    {key:{longest_s}} : '{val.__repr__()}'")
-        method = self.solver_options['method']
+        lines.append(f"Options for {self.solver}:")
+        for key in self._default_solver_options:
+            lines.append(f"    {key:{longest_s}} : '{self[key].__repr__()}'")
+        method = self._default_solver_options['method']
         lines.append(f"Options for {method} integrator:")
-        for key, val in self.integrator_options.items():
-            lines.append(f"    {key:{longest_i}} : '{val.__repr__()}'")
+        for key in self._default_integrator_options:
+            lines.append(f"    {key:{longest_i}} : '{self[key].__repr__()}'")
         return "\n".join(lines)
 
     def __repr__(self):
         items = []
-        items.append(f"SolverOptions(solver={self.solver.name}")
-        for key, val in self.solver_options.items():
+        items.append(f"SolverOptions(solver={self.solver}")
+        for key, val in self.items():
             items.append(f"{key}={val.__repr__()}")
-        for key, val in self.integrator_options.items():
-            items.append(f"{key}='{val.__repr__()}'")
         return ", ".join(items) + ")"
 
     def keys(self):
-        return self.solver_options.keys()| self.integrator_options.keys()
+        """
+        Return the keys of the non-default options.
+        """
+        return self._options.keys()
 
     def values(self):
-        return tuple(
-            list(self.solver_options.values())
-            + list(self.integrator_options.values())
-        )
+        """
+        Return the values of the non-default options.
+        """
+        return tuple(self[key] for key in self.keys())
 
     def items(self):
-        return tuple(
-            list(self.solver_options.items())
-            + list(self.integrator_options.items())
-        )
-
-    def __contains__(self, key):
-        return key in self.solver_options or key in self.integrator_options
+        """
+        Return the (key, value) pairs of the non-default options.
+        """
+        return tuple((key, self[key]) for key in self.keys())
 
     def copy(self):
-        return SolverOptions(self.solver.name, **self)
+        return SolverOptions(self.solver, **self)
+
+    def __bool__(self):
+        return bool(self._options)
+
+
+class _AttachedSolverOptions(SolverOptions):
+    """
+    SolverOptions used inside a Solver instance. Changing the options will
+    inform the instance to make the appropiate changes.
+
+    Parameters
+    ----------
+    solver_instance : :class:`Solver`
+        Instance of the solver using these options.
+    """
+    def __init__(self, solver_instance, **kwargs):
+        self.solver_instance = solver_instance
+        super().__init__(solver_instance.name, **kwargs)
+
+    def __setitem__(self, key, value):
+        if value != self[key]:
+            super().__setitem__(key, value)
+            self.solver_instance._apply_options({key})
+
+    def copy(self):
+        return _AttachedSolverOptions(self.solver_instance, **self)

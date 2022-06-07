@@ -1,5 +1,6 @@
 """ `Integrator`: ODE solver wrapper to use in qutip's Solver """
 import numpy as np
+from .options import SolverOptions
 
 __all__ = ['Integrator', 'IntegratorException']
 
@@ -56,14 +57,16 @@ class Integrator:
         keys, not the full options object passed to the solver. Options' keys
         included here will be supported by the :cls:SolverOdeOptions.
     """
-    # Used options in qutip.SolverOdeOptions
+    # Dict of used options and their default values
     integrator_options = {}
+    _options = None
     # Can evolve time dependent system
     support_time_dependant = None
     # Whether the integrator used the system QobjEvo as a blackbox
     supports_blackbox = None
     # The name of the integrator
     name = None
+    method = ""
 
     def __init__(self, system, options):
         self.system = system
@@ -199,10 +202,14 @@ class Integrator:
         for t in tlist[1:]:
             yield self.integrate(t, False)
 
-    def reset(self):
+    def reset(self, hard=False):
         """Reset internal state of the ODE solver."""
         if self._is_set:
-            self.set_state(*self.get_state())
+            state = self.get_state()
+        if hard:
+            self._prepare()
+        if self._is_set:
+            self.set_state(*state)
 
     def arguments(self, args):
         """
@@ -219,13 +226,13 @@ class Integrator:
 
     @property
     def options(self):
-        """
-        Options for the integrator.
-        """
-        return self._options.copy()
+        return self._options
 
     @options.setter
     def options(self, new_options):
+        """
+        This does not apply the new options.
+        """
         self._options = {
             **self._options,
             **{
@@ -234,8 +241,3 @@ class Integrator:
                if key in new_options and new_options[key] is not None
             }
         }
-        if self._is_set:
-            state = self.get_state()
-        self._prepare()
-        if self._is_set:
-            self.set_state(*state)
