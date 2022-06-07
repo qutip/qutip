@@ -49,15 +49,16 @@ class TestSeSolve():
         """
         tol = 5e-3
         psi0 = qutip.basis(2, 0)
-        option = SolverOptions(progress_bar=None)
+        options = SolverOptions(progress_bar=None)
 
         if unitary_op is None:
             output = sesolve(H, psi0, self.tlist,
                              [qutip.sigmax(), qutip.sigmay(), qutip.sigmaz()],
-                             args=self.args)
+                             args=self.args, options=options)
             sx, sy, sz = output.expect[0], output.expect[1], output.expect[2]
         else:
-            output = sesolve(H, unitary_op, self.tlist, args=self.args)
+            output = sesolve(H, unitary_op, self.tlist, args=self.args,
+                             options=options)
             sx = [qutip.expect(qutip.sigmax(), U * psi0)
                   for U in output.states]
             sy = [qutip.expect(qutip.sigmay(), U * psi0)
@@ -186,10 +187,10 @@ class TestSeSolve():
         options = SolverOptions(progress_bar=None)
         solver_obj = SeSolver(self.H0 + self.H1,
                               options=options)
-        copy = pickle.loads(pickle.dumps(solver_obj))
+        solver_copy = pickle.loads(pickle.dumps(solver_obj))
         sx, sy, sz = solver_obj.run(qutip.basis(2,1), [0, 1, 2, 3],
                                     e_ops=e_ops).expect
-        csx, csy, csz = solver_obj.run(qutip.basis(2,1), [0, 1, 2, 3],
+        csx, csy, csz = solver_copy.run(qutip.basis(2,1), [0, 1, 2, 3],
                                        e_ops=e_ops).expect
         np.testing.assert_allclose(sx, csx)
         np.testing.assert_allclose(sy, csy)
