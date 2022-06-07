@@ -97,9 +97,11 @@ class TestSeSolve():
                 norms, [1.0 for _ in self.tlist], atol=5e-3,
             )
         else:
+            # evolution of unitaries should not be normalized
             U = qutip.qeye(2)
             output = sesolve(H, U, self.tlist, e_ops=[], options=options)
-            assert all(state.norm() > 2 for state in output.states[1:])
+            norms = [state.norm() for state in output.states]
+            assert all(norm > 2 for norm in norms[1:])
 
     @pytest.mark.parametrize(['unitary_op'], [
         pytest.param(None, id="state"),
