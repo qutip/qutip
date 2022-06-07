@@ -98,7 +98,7 @@ class Solver:
         else:
             state = Qobj(data, **self._state_metadata, copy=copy)
 
-        if state.shape[1] == 1:  # if the state does not have type oper
+        if data.shape[1] == 1:  # if the state does not have type oper
             state_type = 'dm' if self.rhs.issuper else 'ket'
             if self.options['normalize_output'] in {state_type, True, 'all'}:
                 state = state * (1 / state.norm())

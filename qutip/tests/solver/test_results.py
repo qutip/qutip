@@ -28,6 +28,22 @@ class TestResult:
         assert res.states == [qutip.basis(N, i) for i in range(N)]
         assert res.final_state == qutip.basis(N, N-1)
 
+    @pytest.mark.parametrize(["N", "e_ops", "options"], [
+        pytest.param(10, (), {
+            "store_states": False, "store_final_state": True
+        }, id="no-e-ops"),
+        pytest.param(10, qutip.create(10), {
+            "store_final_state": True,
+        }, id="with-eops"),
+    ])
+    def test_final_state_only(self, N, e_ops, options):
+        res = Result(e_ops, SolverResultsOptions(**options))
+        for i in range(N):
+            res.add(i, qutip.basis(N, i))
+        np.testing.assert_allclose(np.array(res.times), np.arange(N))
+        assert res.states == []
+        assert res.final_state == qutip.basis(N, N-1)
+
     @pytest.mark.parametrize(["N", "e_ops", "results"], [
         pytest.param(
             10, qutip.num(10), {0: np.arange(10)}, id="single-e-op",
