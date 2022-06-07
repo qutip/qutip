@@ -1,38 +1,44 @@
 import sys
-import unittest
 
 import pytest
 
 
-class TestWithoutQip(unittest.TestCase):
-    def setUp(self):
-        self._temp_qip = None
-        if sys.modules.get("qutip_qip"):
-            self._temp_qip = sys.modules["qutip_qip"]
-        sys.modules["qutip_qip"] = None
+class QutipQipStub:
+    class CircuitModuleStub:
+        QubitCircuit = "FakeQubitCircuit"
 
-    def tearDown(self):
-        if self._temp_qip:
-            sys.modules["qutip_qip"] = self._temp_qip
-        else:
-            del sys.modules["qutip_qip"]
-
-    def test_failed_import(self):
-        # Ensure 'qutip.qip' is not imported yet
-        assert "qutip.qip" not in sys.modules
-        with pytest.raises(
-            ImportError,
-            match="'qutip.qip' imports require the 'qutip_qip' package.",
-        ):
-            import qutip.qip
+    circuit = CircuitModuleStub()
 
 
-def test_with_qip():
-    # Skips test if 'qutip_qip' is not installed
-    qutip_qip = pytest.importorskip("qutip_qip")
+@pytest.fixture
+def without_qutip_qip(monkeypatch):
+    monkeypatch.setitem(sys.modules, "qutip_qip", None)
+    monkeypatch.delitem(sys.modules, "qutip.qip", raising=False)
+
+
+@pytest.fixture
+def with_qutip_qip_stub(monkeypatch):
+    monkeypatch.setitem(sys.modules, "qutip_qip", QutipQipStub())
+    monkeypatch.delitem(sys.modules, "qutip.qip", raising=False)
+
+
+def test_failed_import(without_qutip_qip):
+    # Ensure 'qutip.qip' is not imported yet
+    assert "qutip.qip" not in sys.modules
+    with pytest.raises(
+        ImportError,
+        match="Importing 'qutip.qip' requires the 'qutip_qip' package.",
+    ):
+        import qutip.qip
+
+
+def test_with_qip(monkeypatch, with_qutip_qip_stub):
     import qutip.qip
+
+    monkeypatch.setitem(sys.modules, "qutip.qip.circuit", qutip.qip.circuit)
     import qutip.qip.circuit as circuit
     from qutip.qip.circuit import QubitCircuit
+    import qutip_qip
 
     assert qutip.qip is qutip_qip
     assert circuit is qutip_qip.circuit
