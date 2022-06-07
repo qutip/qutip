@@ -94,7 +94,7 @@ class TestSeSolve():
             output = sesolve(H, psi0, self.tlist, e_ops=[], options=options)
             norms = [state.norm() for state in output.states]
             np.testing.assert_allclose(
-                norms, [1.0 for _ in self.tlist], atol=5e-3,
+                norms, [1.0 for _ in self.tlist], atol=1e-15,
             )
         else:
             # evolution of unitaries should not be normalized

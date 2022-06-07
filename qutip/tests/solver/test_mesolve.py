@@ -202,7 +202,7 @@ class TestMESolveDecay:
     def test_mesolve_normalization(self, state_type):
         # non-hermitean H causes state to evolve non-unitarily
         H = qutip.Qobj([[1, -0.1j], [-0.1j, 1]])
-        H = qutip.liouvillian(H)  # ensure use of McSolve
+        H = qutip.sprepost(H, H) # ensure use of MeSolve
         psi0 = qutip.basis(2, 0)
         options = SolverOptions(normalize_output=True, progress_bar=None)
 
@@ -212,7 +212,7 @@ class TestMESolveDecay:
             output = mesolve(H, psi0, self.tlist, e_ops=[], options=options)
             norms = [state.norm() for state in output.states]
             np.testing.assert_allclose(
-                norms, [1.0 for _ in self.tlist], atol=1e-6,
+                norms, [1.0 for _ in self.tlist], atol=1e-15,
             )
         else:
             # evolution of unitaries should not be normalized
