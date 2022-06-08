@@ -10,7 +10,7 @@ import sys
 import time
 import threading
 from qutip.ui.progressbar import progess_bars
-from qutip.utilities import available_cpu_count
+from qutip.settings import available_cpu_count
 
 if sys.platform == 'darwin':
     Pool = multiprocessing.get_context('fork').Pool

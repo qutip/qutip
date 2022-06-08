@@ -4,11 +4,11 @@ import scipy.linalg
 import scipy.sparse
 
 import qutip
-if qutip.settings.install['has_mkl']:
+if qutip.settings.has_mkl:
     from qutip._mkl.spsolve import mkl_splu, mkl_spsolve
 
 pytestmark = [
-    pytest.mark.skipif(not qutip.settings.install['has_mkl'],
+    pytest.mark.skipif(not qutip.settings.has_mkl,
                        reason='MKL extensions not found.'),
 ]
 

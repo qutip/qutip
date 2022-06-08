@@ -244,7 +244,7 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
     # TODO: abstract this away into something that makes default
     #       colormaps.
     cmap = (
-        (cm.Greys_r if settings.install['colorblind_safe'] else cm.RdBu)
+        (cm.Greys_r if settings.core['colorblind_safe'] else cm.RdBu)
         if cmap is None else cmap
     )
 

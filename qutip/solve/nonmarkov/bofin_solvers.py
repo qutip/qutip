@@ -43,7 +43,7 @@ fast_csr_matrix = None
 
 
 # Load MKL spsolve if avaiable
-if settings.install['has_mkl']:
+if settings.has_mkl:
     from qutip._mkl.spsolve import mkl_spsolve
 else:
     mkl_spsolve = None
