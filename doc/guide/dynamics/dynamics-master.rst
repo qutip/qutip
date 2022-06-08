@@ -38,7 +38,7 @@ For example, the time evolution of a quantum spin-1/2 system with tunneling rate
 
 See the next section for examples on how dissipation is included by defining a list of collapse operators and using :func:`qutip.mesolve` instead.
 
-The function :func:`qutip.sesolve` returns an instance of :class:`qutip.solver.Result`, as described in the previous section :ref:`solver_result`. The attribute ``expect`` in ``result`` is a list of expectation values for the operators that are included in the list in the fourth argument. Adding operators to this list results in a larger output list returned by the function (one array of numbers, corresponding to the times in times, for each operator)
+The function :func:`qutip.sesolve` returns an instance of :class:`qutip.solver.Result`, as described in the previous section :ref:`solver_result`. The attribute ``expect`` in ``result`` is a list of expectation values for the operators that are included in the list in the fourth argument. Adding operators to this list results in a larger output list returned by the function (one array of numbers, corresponding to the times in times, for each operator).
 
 .. plot::
     :context:
