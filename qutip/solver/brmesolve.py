@@ -13,7 +13,7 @@ from ..core.blochredfield import bloch_redfield_tensor, SpectraCoefficient
 from ..core.cy.coefficient import InterCoefficient
 from ..core import data as _data
 from .solver_base import Solver
-from .options import known_solver
+from .options import known_solver, SolverOptions
 
 
 def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
@@ -208,6 +208,7 @@ class BrSolver(Solver):
 
         if not isinstance(H, (Qobj, QobjEvo)):
             raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
+
         c_ops = c_ops or []
         c_ops = [c_ops] if isinstance(c_ops, (Qobj, QobjEvo)) else c_ops
         for c_op in c_ops:
@@ -216,22 +217,29 @@ class BrSolver(Solver):
 
         self._system = H, a_ops, c_ops
         rhs = self._prepare_rhs()
-        super().__init__(rhs, options=options)
+        super().__init__(rhs, options=self.options)
 
-        self.stats['solver'] = "Bloch Redfield Equation Evolution"
-        self.stats['num_collapse'] = len(c_ops)
-        self.stats['num_a_ops'] = len(a_ops)
-        self.stats["preparation time"] = time() - _time_start
-        self.stats["run time"] = 0
+        def _initialize_stats(self):
+            stats = super()._initialize_stats()
+            stats.update({
+                "solver": "Bloch Redfield Equation Evolution",
+                "init time": stats["init time"] + self._init_rhs_time,
+                "num_collapse": self._num_collapse,
+                "num_a_ops": self._num_a_ops,
+            })
+            return stats
 
     def _prepare_rhs(self):
-        return bloch_redfield_tensor(
+        _time_start = time()
+        rhs = bloch_redfield_tensor(
             *self._system,
             fock_basis=True,
             sec_cutoff=self.sec_cutoff,
             sparse_eigensolver=self.options['sparse_eigensolver'],
             br_dtype=self.options['tensor_type']
         )
+        self._init_rhs_time = time() - _time_start
+        return rhs
 
     @property
     def options(self):

@@ -171,15 +171,21 @@ class MeSolver(Solver):
             if not isinstance(c_op, (Qobj, QobjEvo)):
                 raise TypeError("All `c_ops` must be a Qobj or QobjEvo")
 
+        self._num_collapse = len(c_ops)
+
         rhs = H if H.issuper else liouvillian(H)
         rhs += sum(c_op if c_op.issuper else lindblad_dissipator(c_op)
                    for c_op in c_ops)
+
         super().__init__(rhs, options=options)
 
-        self.stats['solver'] = "Master Equation Evolution"
-        self.stats['num_collapse'] = len(c_ops)
-        self.stats["preparation time"] = time() - _time_start
-        self.stats["run time"] = 0
+    def _initialize_stats(self):
+        stats = super()._initialize_stats()
+        stats.update({
+            "solver": "Master Equation Evolution",
+            "num_collapse": self._num_collapse,
+        })
+        return stats
 
 known_solver['mesolve'] = MeSolver
 known_solver['Mesolver'] = MeSolver
