@@ -2,7 +2,7 @@
 Basic use of Processor
 =============================
 
-This example contains the basic functions of :class:`qutip.qip.device.Processor.` We define a simulator with control Hamiltonian, pulse amplitude and time slice for each pulse. The two figures illustrate the pulse shape for two different setup: step function or continuous pulse.
+This example contains the basic functions of :class:`qutip.qip.device.Processor`. We define a simulator with control Hamiltonian, pulse amplitude and time slice for each pulse. The two figures illustrate the pulse shape for two different setup: step function or continuous pulse.
 """
 import copy
 import numpy as np
