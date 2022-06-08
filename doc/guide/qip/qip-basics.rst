@@ -7,7 +7,7 @@ Quantum Information Processing
 Introduction
 ============
 
-The Quantum Information Processing (QIP) module aims at providing basic tools for quantum computing simulation both for simple quantum algorithm design and for experimental realization. It offers two different approaches, one with :class:`~qutip.qip.QubitCircuit` calculating unitary evolution under quantum gates by matrix product, another called :class:`~qutip.qip.device.Processor` using open system solvers in QuTiP to simulate noisy quantum device.
+The Quantum Information Processing (QIP) module aims at providing basic tools for quantum computing simulation both for simple quantum algorithm design and for experimental realization. It offers two different approaches, one with :class:`~qutip.qip.circuit.QubitCircuit` calculating unitary evolution under quantum gates by matrix product, another called :class:`~qutip.qip.device.Processor` using open system solvers in QuTiP to simulate noisy quantum device.
 
 .. _quantum_circuits:
 
@@ -15,7 +15,7 @@ Quantum Circuit
 ===============
 
 The most common model for quantum computing is the quantum circuit model.
-In QuTiP, we use :class:`~qutip.qip.QubitCircuit` to represent a quantum circuit.
+In QuTiP, we use :class:`~qutip.qip.circuit.QubitCircuit` to represent a quantum circuit.
 The circuit is characterized by registers and gates:
 
 - **Registers**: The argument ``N`` specifies the number of qubit registers in the circuit
@@ -28,7 +28,7 @@ The circuit is characterized by registers and gates:
   with the argument ``classical_controls``.
 
 - **Measurements**: We can also carry out measurements on individual qubit (both in the middle and at the end of the circuit).
-  Each measurement is saved as a class object :class:`~qutip.qip.Measurement` with parameters such as `targets`,
+  Each measurement is saved as a class object :class:`~qutip.qip.circuit.Measurement` with parameters such as `targets`,
   the target qubit on which the measurement will be carried out, and `classical_store`,
   the index of the classical register which stores the result of the measurement.
 
@@ -177,7 +177,7 @@ Gate name                           Description
 "GLOBALPHASE"         Global phase
 ====================  ========================================
 
-For some of the gates listed above, :class:`~qutip.qip.QubitCircuit` also has a primitive :func:`~qutip.qip.QubitCircuit.resolve_gates()` method that decomposes them into elementary gate sets such as CNOT or SWAP with single-qubit gates (RX, RY and RZ). However, this method is not fully optimized. It is very likely that the depth of the circuit can be further reduced by merging quantum gates. It is required that the gate resolution be carried out before the measurements to the circuit are added.
+For some of the gates listed above, :class:`~qutip.qip.circuit.QubitCircuit` also has a primitive :func:`~qutip.qip.circuit.QubitCircuit.resolve_gates()` method that decomposes them into elementary gate sets such as CNOT or SWAP with single-qubit gates (RX, RY and RZ). However, this method is not fully optimized. It is very likely that the depth of the circuit can be further reduced by merging quantum gates. It is required that the gate resolution be carried out before the measurements to the circuit are added.
 
 **Custom Gates**
 
@@ -326,9 +326,9 @@ There are two different ways to simulate the action of quantum circuits using Qu
 
 - The first method utilizes unitary application through matrix products on the input states.
   This method simulates circuits exactly in a deterministic manner. This is achieved through
-  :class:`~qutip.qip.CircuitSimulator`. A short guide to exact simulation can be
+  :class:`~qutip.qip.circuit.CircuitSimulator`. A short guide to exact simulation can be
   found at :ref:`qip_simulator`. The teleportation notebook is also useful as an example.
 
 - A different method of circuit simulation employs driving Hamiltonians with the ability to
   simulate circuits in the presence of noise. This can be achieved through the various classes
-  in :class:`~qutip.qip.device`.A short guide to processors for QIP simulation can be found at :ref:`qip_processor`.
+  in :class:`qutip.qip.device`.A short guide to processors for QIP simulation can be found at :ref:`qip_processor`.

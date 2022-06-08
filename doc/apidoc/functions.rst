@@ -120,7 +120,7 @@ Measurement of quantum states
 -----------------------------
 
 .. automodule:: qutip.measurement
-    :members: measure, measure_observable, measurement_statistics, measurement_statistics_observable
+    :members: measure, measure_povm, measure_observable, measurement_statistics, measurement_statistics_observable, measurement_statistics_povm
 
 
 Dynamics and Time-Evolution
