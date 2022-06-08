@@ -131,7 +131,7 @@ def measurement_statistics_povm(state, ops, targets=None):
 
     targets : list of ints, optional
               Specifies a list of target "qubit" indices on which to apply
-              the measurement using qutip.qip.gates.expand_operator to expand
+              the measurement using qutip.qip.operations.gates.expand_operator to expand
               ops into full dimension.
 
 
@@ -182,7 +182,7 @@ def measurement_statistics_observable(state, op, targets=None):
 
     targets : list of ints, optional
         Specifies a list of targets "qubit" indices on which to apply the
-        measurement using :func:`qutip.qip.gates.expand_operator` to expand op
+        measurement using :func:`qutip.qip.operations.gates.expand_operator` to expand op
         into full dimension.
 
     Returns
@@ -234,7 +234,7 @@ def measure_observable(state, op, targets=None):
 
     targets : list of ints, optional
         Specifies a list of target "qubit" indices on which to apply the
-        measurement using :func:`qutip.qip.gates.expand_operator` to expand op
+        measurement using :func:`qutip.qip.operations.gates.expand_operator` to expand op
         into full dimension.
 
     Returns
@@ -321,7 +321,7 @@ def measure_povm(state, ops, targets=None):
 
     targets : list of ints, optional
         Specifies a list of target "qubit" indices on which to apply
-        the measurement using :func:`qutip.qip.gates.expand_operator`
+        the measurement using :func:`qutip.qip.operations.gates.expand_operator`
         to expand ``ops`` into full dimension.
 
     Returns
@@ -367,7 +367,7 @@ def measurement_statistics(state, ops, targets=None):
 
     targets : list of ints, optional
         Specifies a list of target "qubit" indices on which to apply the
-        measurement using :func:`qutip.qip.gates.expand_operator` to expand ops
+        measurement using :func:`qutip.qip.operations.gates.expand_operator` to expand ops
         into full dimension.
     """
     if isinstance(ops, list):
@@ -404,7 +404,7 @@ def measure(state, ops, targets=None):
 
     targets : list of ints, optional
         Specifies a list of target "qubit" indices on which to apply the
-        measurement using :func:`qutip.qip.gates.expand_operator` to expand ops
+        measurement using :func:`qutip.qip.operations.gates.expand_operator` to expand ops
         into full dimension.
     """
     if isinstance(ops, list):

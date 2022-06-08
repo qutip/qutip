@@ -177,18 +177,18 @@ class StochasticSolverOptions:
 
     Within the attribute list, a ``time_dependent_object`` is either
 
-    - :class:`~Qobj`: a constant term
+    - :class:`~qutip.Qobj`: a constant term
     - 2-element list of ``[Qobj, time_dependence]``: a time-dependent term
       where the ``Qobj`` will be multiplied by the time-dependent scalar.
 
     For more details on all allowed time-dependent objects, see the
-    documentation for :class:`~QobjEvo`.
+    documentation for :class:`~qutip.QobjEvo`.
 
     Attributes
     ----------
     H : time_dependent_object or list of time_dependent_object
         System Hamiltonian in standard time-dependent list format.  This is the
-        same as the argument that (e.g.) :func:`~mesolve` takes.  If this is a
+        same as the argument that (e.g.) :func:`~qutip.mesolve` takes.  If this is a
         list of elements, they are summed.
 
     state0 : :class:`qutip.Qobj`

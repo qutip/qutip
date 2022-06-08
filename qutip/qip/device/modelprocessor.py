@@ -118,9 +118,9 @@ class ModelProcessor(Processor):
 
         Returns
         -------
-        evo_result: :class:`qutip.Result`
+        evo_result: :class:`qutip.solver.Result`
             If ``analytical`` is False,  an instance of the class
-            :class:`qutip.Result` will be returned.
+            :class:`qutip.solver.Result` will be returned.
 
             If ``analytical`` is True, a list of matrices representation
             is returned.

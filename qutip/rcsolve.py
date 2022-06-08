@@ -46,7 +46,7 @@ def rcsolve(Hsys, psi0, tlist, e_ops, Q, wc, alpha, N, w_th, sparse=False,
         Temperature.
     sparse: Boolean
         Optional argument to call the sparse eigenstates solver if needed.
-    options : :class:`qutip.Options`
+    options : :class:`qutip.solver.Options`
         With options for the solver.
 
     Returns

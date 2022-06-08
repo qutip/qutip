@@ -42,13 +42,13 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
     Parameters
     ----------
 
-    H : :class:`~Qobj`, :class:`~QobjEvo`, list, or callable
-        System Hamiltonian as a :obj:`~Qobj , list of :obj:`Qobj` and
-        coefficient, :obj:`~QObjEvo`, or a callback function for time-dependent
+    H : :class:`~qutip.Qobj`, :class:`~qutip.QobjEvo`, list, or callable
+        System Hamiltonian as a :obj:`~qutip.Qobj` , list of :obj:`~qutip.Qobj` and
+        coefficient, :obj:`~qutip.QobjEvo`, or a callback function for time-dependent
         Hamiltonians.  List format and options can be found in QobjEvo's
         description.
 
-    psi0 : :class:`~Qobj`
+    psi0 : :class:`~qutip.Qobj`
         Initial state vector (ket) or initial unitary operator ``psi0 = U``.
 
     tlist : array_like of float
@@ -68,7 +68,7 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
     args : dict, optional
         Dictionary of scope parameters for time-dependent Hamiltonians.
 
-    options : :obj:`~solver.Options`, optional
+    options : :obj:`~qutip.solver.Options`, optional
         Options for the ODE solver.
 
     progress_bar : :obj:`~BaseProgressBar`, optional
@@ -78,8 +78,8 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
     Returns
     -------
 
-    output: :class:`~solver.Result`
-        An instance of the class :class:`~solver.Result`, which contains either
+    output: :class:`~qutip.solver.Result`
+        An instance of the class :class:`~qutip.solver.Options`, which contains either
         an array of expectation values for the times specified by ``tlist``, or
         an array or state vectors corresponding to the times in ``tlist`` (if
         ``e_ops`` is an empty list), or nothing if a callback function was

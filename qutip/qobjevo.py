@@ -166,7 +166,7 @@ class StateArgs:
 class EvoElement:
     """
     Internal type used to represent the time-dependent parts of a
-    :class:`~QobjEvo`.
+    :class:`~qutip.QobjEvo`.
 
     Availables "types" are
 
@@ -204,21 +204,21 @@ class QobjEvo:
 
     Basic math operations are defined:
 
-    - ``+``, ``-`` : :class:`~QobjEvo`, :class:`~Qobj`, scalars.
-    - ``*``: :class:`~Qobj`, C number
+    - ``+``, ``-`` : :class:`~qutip.QobjEvo`, :class:`~qutip.Qobj`, scalars.
+    - ``*``: :class:`~qutip.Qobj`, C number
     - ``/`` : C number
 
-    This object is constructed by passing a list of :obj:`~Qobj` instances,
+    This object is constructed by passing a list of :obj:`~qutip.Qobj` instances,
     each of which *may* have an associated scalar time dependence.  The list is
     summed to produce the final result.  In other words, if an instance of this
     class is :math:`Q(t)`, then it is constructed from a set of constant
-    :obj:`~Qobj` :math:`\\{Q_k\\}` and time-dependent scalars :math:`f_k(t)` by
+    :obj:`~qutip.Qobj` :math:`\\{Q_k\\}` and time-dependent scalars :math:`f_k(t)` by
 
     .. math::
 
         Q(t) = \\sum_k f_k(t) Q_k
 
-    If a scalar :math:`f_k(t)` is not passed with a given :obj:`~Qobj`, then
+    If a scalar :math:`f_k(t)` is not passed with a given :obj:`~qutip.Qobj`, then
     that term is assumed to be constant.  The next section contains more detail
     on the allowed forms of the constants, and gives several examples for how
     to build instances of this class.
@@ -295,7 +295,7 @@ class QobjEvo:
     they are updated at every call.  The initial values of these dictionary
     elements is unimportant.  The magic names available are:
 
-    - ``"state"``: the current state as a :class:`~Qobj`
+    - ``"state"``: the current state as a :class:`~qutip.Qobj`
     - ``"state_vec"``: the current state as a column-stacked 1D ``np.ndarray``
     - ``"state_mat"``: the current state as a 2D ``np.ndarray``
     - ``"expect_op_<n>"``: the current expectation value of the element
@@ -311,7 +311,7 @@ class QobjEvo:
 
     Parameters
     ----------
-    Q_object : list, :class:`~Qobj` or :class:`~QobjEvo`
+    Q_object : list, :class:`~qutip.Qobj` or :class:`~qutip.QobjEvo`
         The time-dependent description of the quantum object.  This is of the
         same format as the first parameter to the general ODE solvers; in
         general, it is a list of ``[Qobj, time_dependence]`` pairs that are
@@ -335,7 +335,7 @@ class QobjEvo:
 
     Attributes
     ----------
-    cte : :class:`~Qobj`
+    cte : :class:`~qutip.Qobj`
         Constant part of the QobjEvo.
 
     ops : list of :class:`.EvoElement`
@@ -378,7 +378,7 @@ class QobjEvo:
         Information about the type of coefficients used in the entire object.
 
     num_obj : int
-        Number of :obj:`~Qobj` in the QobjEvo.
+        Number of :obj:`~qutip.Qobj` in the QobjEvo.
 
     use_cython : bool
         Flag to compile string to Cython or Python
@@ -597,7 +597,7 @@ class QobjEvo:
 
     def __call__(self, t, data=False, state=None, args={}):
         """
-        Return a single :obj:`~Qobj` at the given time ``t``.
+        Return a single :obj:`~qutip.Qobj` at the given time ``t``.
         """
         try:
             t = float(t)
