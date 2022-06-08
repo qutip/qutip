@@ -19,6 +19,8 @@ def with_qutip_qip_stub(tmp_path, monkeypatch):
     circuit_file.write_text("class QubitCircuit:\n    pass")
 
     monkeypatch.syspath_prepend(tmp_path)
+    # Make sure the stub modules is the one imported
+    monkeypatch.delitem(sys.modules, "qutip_qip", raising=False)
     monkeypatch.delitem(sys.modules, "qutip.qip", raising=False)
 
 
@@ -32,7 +34,7 @@ def test_failed_import(without_qutip_qip):
         import qutip.qip
 
 
-def test_with_qip(monkeypatch, with_qutip_qip_stub):
+def test_with_qip(with_qutip_qip_stub):
     import qutip.qip
     import qutip.qip.circuit as circuit
     from qutip.qip.circuit import QubitCircuit
