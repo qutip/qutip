@@ -3,13 +3,6 @@ import sys
 import pytest
 
 
-class QutipQipStub:
-    class CircuitModuleStub:
-        QubitCircuit = "FakeQubitCircuit"
-
-    circuit = CircuitModuleStub()
-
-
 @pytest.fixture
 def without_qutip_qip(monkeypatch):
     monkeypatch.setitem(sys.modules, "qutip_qip", None)
@@ -17,8 +10,15 @@ def without_qutip_qip(monkeypatch):
 
 
 @pytest.fixture
-def with_qutip_qip_stub(monkeypatch):
-    monkeypatch.setitem(sys.modules, "qutip_qip", QutipQipStub())
+def with_qutip_qip_stub(tmp_path, monkeypatch):
+    pkg_dir = tmp_path / "qutip_qip"
+    pkg_dir.mkdir()
+    init_file = pkg_dir / "__init__.py"
+    init_file.write_text("__version__ = 'x.y.z'")
+    circuit_file = pkg_dir / "circuit.py"
+    circuit_file.write_text("class QubitCircuit:\n    pass")
+
+    monkeypatch.syspath_prepend(tmp_path)
     monkeypatch.delitem(sys.modules, "qutip.qip", raising=False)
 
 
@@ -34,12 +34,11 @@ def test_failed_import(without_qutip_qip):
 
 def test_with_qip(monkeypatch, with_qutip_qip_stub):
     import qutip.qip
-
-    monkeypatch.setitem(sys.modules, "qutip.qip.circuit", qutip.qip.circuit)
     import qutip.qip.circuit as circuit
     from qutip.qip.circuit import QubitCircuit
     import qutip_qip
 
+    assert qutip.qip.__version__ == "x.y.z"
     assert qutip.qip is qutip_qip
     assert circuit is qutip_qip.circuit
     assert QubitCircuit is qutip_qip.circuit.QubitCircuit
