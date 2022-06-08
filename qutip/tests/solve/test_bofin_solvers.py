@@ -26,12 +26,16 @@ from qutip.solve.nonmarkov.bofin_baths import (
 from qutip.solve.nonmarkov.bofin_solvers import (
     HierarchyADOs,
     HierarchyADOsState,
+    HEOMResult,
     HEOMSolver,
     HSolverDL,
     _GatherHEOMRHS,
 )
-from qutip.solver import IntegratorException
-from qutip.solver.solver_base import SolverOptions
+from qutip.solver import (
+    IntegratorException,
+    SolverOptions,
+    SolverResultsOptions,
+)
 
 
 class TestHierarchyADOs:
@@ -959,6 +963,93 @@ class TestHSolverDL:
             "Excess work done on this call. Try to increasing the nsteps"
             " parameter in the Options class"
         )
+
+
+class TestHEOMResult:
+    def mk_ados(self, bath_dims, max_depth):
+        exponents = [
+            BathExponent("I", dim, Q=None, ck=1.0, vk=2.0) for dim in bath_dims
+        ]
+        ados = HierarchyADOs(exponents, max_depth=max_depth)
+        return ados
+
+    def mk_rho_and_soln(self, ados, rho_dims):
+        n_ados = len(ados.labels)
+        ado_soln = np.random.rand(n_ados, *[np.product(d) for d in rho_dims])
+        rho = Qobj(ado_soln[0, :], dims=rho_dims)
+        return rho, ado_soln
+
+    def test_create_ado_states_attribute(self):
+        options = SolverResultsOptions()
+        result = HEOMResult(e_ops=[], options=options)
+        assert not hasattr(result, "final_ado_state")
+        assert not hasattr(result, "ado_states")
+        assert result.store_ados is False
+
+        options = SolverResultsOptions(store_ados=True)
+        result = HEOMResult(e_ops=[], options=options)
+        assert result.final_ado_state is None
+        assert result.ado_states == []
+        assert result.store_ados is True
+
+    @pytest.mark.parametrize(['e_op_type'], [
+        pytest.param("qobj", id="qobj"),
+        pytest.param("qobjevo", id="qobjevo"),
+        pytest.param("callable", id="callable"),
+    ])
+    def test_e_ops(self, e_op_type):
+        op = Qobj([[1, 0], [0, 0]])
+        if e_op_type == "qobj":
+            e_op = op
+        elif e_op_type == "qobjevo":
+            e_op = QobjEvo(op)
+        elif e_op_type == "callable":
+            def e_op(f, ado_state):
+                return expect(op, ado_state.rho)
+        else:
+            assert False, f"unknown e_op_type {e_op_type!r}"
+
+        options = SolverResultsOptions()
+        result = HEOMResult(e_ops=e_op, options=options)
+
+        ados = self.mk_ados([2, 3], max_depth=2)
+        rho, ado_soln = self.mk_rho_and_soln(ados, [[2], [2]])
+        e_op_value = expect(op, rho)
+        ado_state = HierarchyADOsState(rho, ados, ado_soln)
+
+        result.add(0.1, ado_state)
+
+        assert result.expect[0] == [e_op_value]
+        assert result.e_data[0] == [e_op_value]
+
+    def test_store_state(self):
+        options = SolverResultsOptions()
+        result = HEOMResult(e_ops=[], options=options)
+
+        ados = self.mk_ados([2, 3], max_depth=2)
+        rho, ado_soln = self.mk_rho_and_soln(ados, [[2], [2]])
+        ado_state = HierarchyADOsState(rho, ados, ado_soln)
+
+        result.add(0.1, ado_state)
+
+        assert result.times == [0.1]
+        assert result.states == [rho]
+        assert result.final_state is rho
+
+    def test_store_ados(self):
+        options = SolverResultsOptions(store_ados=True)
+        result = HEOMResult(e_ops=[], options=options)
+
+        ados = self.mk_ados([2, 3], max_depth=2)
+        rho, ado_soln = self.mk_rho_and_soln(ados, [[2], [2]])
+        ado_state = HierarchyADOsState(rho, ados, ado_soln)
+
+        result.add(0.1, ado_state)
+        assert result.times == [0.1]
+        assert result.states == [rho]
+        assert result.final_state is rho
+        assert result.ado_states == [ado_state]
+        assert result.final_ado_state is ado_state
 
 
 class Test_GatherHEOMRHS:
