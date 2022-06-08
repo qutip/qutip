@@ -363,20 +363,20 @@ class HierarchyADOsState:
 
 
 class HEOMResult(Result):
-    def _post_init(self, **kw):
+    def _post_init(self):
         super()._post_init()
 
-        self.ado_return = self.options["store_ados"]
-        if self.ado_return:
+        self.store_ados = self.options["store_ados"]
+        if self.store_ados:
             self.final_ado_state = None
             self.ado_states = []
 
     def _e_op_func(self, e_op):
-        """ """
+        """ Convert an e_op into a function ``f(t, ado_state)``. """
         if isinstance(e_op, Qobj):
             return lambda t, ado_state: (ado_state.rho * e_op).tr()
         elif isinstance(e_op, QobjEvo):
-            raise NotImplementedError("XXX")
+            return lambda t, ado_state: e_op.expect(t, ado_state.rho)
         elif callable(e_op):
             return e_op
         raise TypeError(f"{e_op!r} has unsupported type {type(e_op)!r}.")
@@ -386,12 +386,12 @@ class HEOMResult(Result):
 
     def _store_state(self, t, ado_state):
         self.states.append(ado_state.rho)
-        if self.ado_return:
+        if self.store_ados:
             self.ado_states.append(ado_state)
 
     def _store_final_state(self, t, ado_state):
         self.final_state = ado_state.rho
-        if self.ado_return:
+        if self.store_ados:
             self.final_ado_state = ado_state
 
 
@@ -859,15 +859,15 @@ class HEOMSolver(Solver):
         args : dict, optional {None}
             Change the ``args`` of the RHS for the evolution.
 
-        e_ops : Qobj / callable / list / dict / None, optional
-            A list or dictionary of operators as :class:`~Qobj` and/or callable
-            functions (they can be mixed) or a single operator or callable
-            function. For an operator ``op``, the result will be computed
-            using ``(state * op).tr()`` and the state at each time ``t``. For
-            callable functions, ``f``, the result is computed using
-            ``f(t, ado_state)``. The values are stored in the ``expect``
-            and ``e_data`` attributes of the result (see the return section
-            below).
+        e_ops : Qobj / QobjEvo / callable / list / dict / None, optional
+            A list or dictionary of operators as :class:`~Qobj`,
+            :class:`~QobjEvo` and/or callable functions (they can be mixed) or
+            a single operator or callable function. For an operator ``op``, the
+            result will be computed using ``(state * op).tr()`` and the state
+            at each time ``t``. For callable functions, ``f``, the result is
+            computed using ``f(t, ado_state)``. The values are stored in the
+            ``expect`` and ``e_data`` attributes of the result (see the return
+            section below).
 
         Returns
         -------
@@ -897,7 +897,7 @@ class HEOMSolver(Solver):
             See :class:`~HEOMResult` and :class:`~Result` for the complete
             list of attributes.
         """
-        return super().run(state0, tlist, e_ops=e_ops)
+        return super().run(state0, tlist, args=args, e_ops=e_ops)
 
     def _prepare_state(self, state):
         n = self._sys_shape
