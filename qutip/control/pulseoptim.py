@@ -202,7 +202,7 @@ def optimize_pulse(
 
     method_params : dict
         Parameters for the ``optim_method``.  Note that where there is an
-        attribute of the :obj:`~Optimizer` object or the termination_conditions
+        attribute of the :obj:`~qutip.control.optimizer.Optimizer` object or the termination_conditions
         matching the key that attribute. Otherwise, and in some case also, they
         are assumed to be method_options for the ``scipy.optimize.minimize``
         method.
@@ -218,11 +218,11 @@ def optimize_pulse(
 
     dyn_type : string
         Dynamics type, i.e. the type of matrix used to describe the dynamics.
-        Options are ``UNIT``, ``GEN_MAT``, ``SYMPL`` (see :obj:`~Dynamics`
+        Options are ``UNIT``, ``GEN_MAT``, ``SYMPL`` (see :obj:`~qutip.control.dynamics.Dynamics`
         classes for details).
 
     dyn_params : dict
-        Parameters for the :obj:`~Dynamics` object.  The key value pairs are
+        Parameters for the :obj:`~qutip.control.dynamics.Dynamics` object.  The key value pairs are
         assumed to be attribute name value pairs.  They applied after the
         object is created.
 
@@ -271,7 +271,7 @@ def optimize_pulse(
     init_pulse_type : string
         Type / shape of pulse(s) used to initialise the control amplitudes.
         Options (GRAPE) include: RND, LIN, ZERO, SINE, SQUARE, TRIANGLE, SAW.
-        Default is RND.  (see :obj:`~PulseGen` classes for details.) For the
+        Default is RND.  (see :obj:`~qutip.control.pulsegen.PulseGen` classes for details.) For the
         CRAB the this the ``guess_pulse_type``.
 
     init_pulse_params : dict
@@ -320,7 +320,7 @@ def optimize_pulse(
     Returns
     -------
     opt : OptimResult
-        Returns instance of :obj:`~OptimResult`, which has attributes giving
+        Returns instance of :obj:`~qutip.control.optimresult.OptimResult`, which has attributes giving
         the reason for termination, final fidelity error, final evolution final
         amplitudes, statistics etc.
     """
@@ -581,7 +581,7 @@ def optimize_pulse_unitary(
 
     method_params : dict
         Parameters for the ``optim_method``.  Note that where there is an
-        attribute of the :obj:`~Optimizer` object or the
+        attribute of the :obj:`~qutip.control.optimizer.Optimizer` object or the
         ``termination_conditions`` matching the key that attribute. Otherwise,
         and in some case also, they are assumed to be method_options for the
         ``scipy.optimize.minimize`` method.
@@ -603,7 +603,7 @@ def optimize_pulse_unitary(
         - SU - global phase included
 
     dyn_params : dict
-        Parameters for the :obj:`~Dynamics` object.  The key value pairs are
+        Parameters for the :obj:`~qutip.control.dynamics.Dynamics` object.  The key value pairs are
         assumed to be attribute name value pairs.  They applied after the
         object is created.
 
@@ -634,7 +634,7 @@ def optimize_pulse_unitary(
     init_pulse_type : string
         Type / shape of pulse(s) used to initialise the control amplitudes.
         Options (GRAPE) include: RND, LIN, ZERO, SINE, SQUARE, TRIANGLE, SAW.
-        DEF is RND.  (see :obj:`~PulseGen` classes for details.) For the CRAB
+        DEF is RND.  (see :obj:`~qutip.control.pulsegen.PulseGen` classes for details.) For the CRAB
         the this the guess_pulse_type.
 
     init_pulse_params : dict
@@ -683,7 +683,7 @@ def optimize_pulse_unitary(
     Returns
     -------
     opt : OptimResult
-        Returns instance of :obj:`~OptimResult`, which has attributes giving
+        Returns instance of :obj:`~qutip.control.optimresult.OptimResult`, which has attributes giving
         the reason for termination, final fidelity error, final evolution final
         amplitudes, statistics etc.
     """
@@ -864,7 +864,7 @@ def opt_pulse_crab(
 
     method_params : dict
         Parameters for the optim_method.  Note that where there is an attribute
-        of the :obj:`~Optimizer` object or the termination_conditions matching
+        of the :class:`~qutip.control.optimizer.Optimizer` object or the termination_conditions matching
         the key that attribute. Otherwise, and in some case also, they are
         assumed to be method_options for the ``scipy.optimize.minimize``
         method.  The commonly used parameter are:
@@ -877,7 +877,7 @@ def opt_pulse_crab(
         Options are UNIT, GEN_MAT, SYMPL (see Dynamics classes for details).
 
     dyn_params : dict
-        Parameters for the Dynamics object.  The key value pairs are assumed to
+        Parameters for the :class:`qutip.control.dynamics.Dynamics` object.  The key value pairs are assumed to
         be attribute name value pairs.  They applied after the object is
         created.
 
@@ -1138,7 +1138,7 @@ def opt_pulse_crab_unitary(
 
     method_params : dict
         Parameters for the ``optim_method``.  Note that where there is an
-        attribute of the :obj:`~Optimizer` object or the termination_conditions
+        attribute of the :obj:`~qutip.control.optimizer.Optimizer` object or the termination_conditions
         matching the key that attribute. Otherwise, and in some case also, they
         are assumed to be method_options for the ``scipy.optimize.minimize``
         method.  The commonly used parameter are:
@@ -1154,7 +1154,7 @@ def opt_pulse_crab_unitary(
         - SU - global phase included
 
     dyn_params : dict
-        Parameters for the :obj:`~Dynamics` object.  The key value pairs are
+        Parameters for the :obj:`~qutip.control.dynamics.Dynamics` object.  The key value pairs are
         assumed to be attribute name value pairs.  They applied after the
         object is created.
 
@@ -1233,7 +1233,7 @@ def opt_pulse_crab_unitary(
     Returns
     -------
     opt : OptimResult
-        Returns instance of :obj:`~OptimResult`, which has attributes giving
+        Returns instance of :obj:`~qutip.control.optimresult.OptimResult`, which has attributes giving
         the reason for termination, final fidelity error, final evolution final
         amplitudes, statistics etc.
     """
@@ -1403,7 +1403,7 @@ def create_pulse_optimizer(
     method_params : dict
         Parameters for the optim_method.
         Note that where there is an attribute of the
-        :class:`qutip.control.optimizer.Optimizer` object or the termination_conditions matching the key
+        :class:`~qutip.control.optimizer.Optimizer` object or the termination_conditions matching the key
         that attribute. Otherwise, and in some case also,
         they are assumed to be method_options
         for the scipy.optimize.minimize method.
@@ -1464,9 +1464,9 @@ def create_pulse_optimizer(
         (See TimeslotComputer classes for details)
 
     tslot_params : dict
-        Parameters for the TimeslotComputer object
-        The key value pairs are assumed to be attribute name value pairs
-        They applied after the object is created
+        Parameters for the TimeslotComputer object.
+        The key value pairs are assumed to be attribute name value pairs.
+        They applied after the object is created.
 
     amp_update_mode : string
         Deprecated. Use tslot_type instead.
@@ -1483,9 +1483,9 @@ def create_pulse_optimizer(
         For the CRAB the this the guess_pulse_type.
 
     init_pulse_params : dict
-        Parameters for the initial / guess pulse generator object
-        The key value pairs are assumed to be attribute name value pairs
-        They applied after the object is created
+        Parameters for the initial / guess pulse generator object.
+        The key value pairs are assumed to be attribute name value pairs.
+        They applied after the object is created.
 
     pulse_scaling : float
         Linear scale factor for generated initial / guess pulses
@@ -1504,8 +1504,8 @@ def create_pulse_optimizer(
         GAUSSIAN_EDGE was added for this purpose.
 
     ramping_pulse_params : dict
-        Parameters for the ramping pulse generator object
-        The key value pairs are assumed to be attribute name value pairs
+        Parameters for the ramping pulse generator object.
+        The key value pairs are assumed to be attribute name value pairs.
         They applied after the object is created
 
     log_level : integer
