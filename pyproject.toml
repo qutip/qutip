@@ -27,3 +27,7 @@ manylinux-i686-image = "manylinux2010"
 package = "qutip"
 package_dir = "qutip"
 directory = "doc/changes"
+[[tool.towncrier.type]]
+directory = "deprecation"
+name = "Deprecations"
+showcontent = true
