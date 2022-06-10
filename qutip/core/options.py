@@ -11,7 +11,7 @@ except ImportError:
 
 class QutipOptions:
     """
-    Class for basic functionallity for qutip's options.
+    Class for basic functionality for qutip's options.
 
     Define basic method to wrap an ``options`` dict.
     Default options are in a class _options dict.
