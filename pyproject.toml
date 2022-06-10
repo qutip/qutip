@@ -22,3 +22,8 @@ build-frontend = "pip"
 select = "cp3?-*"
 manylinux-x86_64-image = "manylinux2010"
 manylinux-i686-image = "manylinux2010"
+
+[tool.towncrier]
+package = "qutip"
+package_dir = "qutip"
+directory = "doc/changes"
