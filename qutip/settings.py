@@ -137,6 +137,9 @@ class Settings:
         self.core = None
         self._solvers = []
         self._integrators = []
+        self._debug = False
+        self._log_handler = "default"
+        self._colorblind_safe = False
 
     @property
     def has_mkl(self):
@@ -243,6 +246,44 @@ class Settings:
             num_cpus = available_cpu_count()
             os.environ['QUTIP_NUM_PROCESSES'] = str(num_cpus)
         return num_cpus
+
+    @property
+    def debug(self):
+        """
+        Debug mode for development.
+        """
+        return self._debug
+
+    @debug.setter
+    def debug(self, value):
+        self._debug = value
+
+    @property
+    def log_handler(self):
+        """
+        Define whether log handler should be:
+        - default: switch based on IPython detection
+        - stream: set up non-propagating StreamHandler
+        - basic: call basicConfig
+        - null: leave logging to the user
+        """
+        return self._log_handler
+
+    @log_handler.setter
+    def log_handler(self, value):
+        self._log_handler = value
+
+    @property
+    def colorblind_safe(self):
+        """
+        Allow for a colorblind mode that uses different colormaps
+        and plotting options by default.
+        """
+        return self._colorblind_safe
+
+    @colorblind_safe.setter
+    def colorblind_safe(self, value):
+        self._colorblind_safe = value
 
     def __str__(self):
         lines = ["Qutip settings:"]

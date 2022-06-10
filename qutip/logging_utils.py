@@ -62,7 +62,7 @@ def get_logger(name=None):
 
     logger = logging.getLogger(name)
 
-    policy = settings.core['log_handler']
+    policy = settings.log_handler
 
     if policy == 'default':
         # Let's try to see if we're in IPython mode.
@@ -77,7 +77,7 @@ def get_logger(name=None):
         # This is nice for working with IPython, since
         # it will use its own handlers instead of our StreamHandler
         # below.
-        if settings.core['debug']:
+        if settings.debug:
             logging.basicConfig(level=logging.DEBUG)
         else:
             logging.basicConfig()
@@ -101,7 +101,7 @@ def get_logger(name=None):
         # for capturing to logfiles.
         logger.addHandler(logging.NullHandler())
 
-    if settings.core['debug']:
+    if settings.debug:
         logger.setLevel(logging.DEBUG)
     else:
         logger.setLevel(logging.WARN)

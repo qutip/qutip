@@ -237,9 +237,8 @@ def test_CoeffOptions():
     options.append(CompilationOptions(accept_float=False))
     options.append(CompilationOptions(static_types=True))
     options.append(CompilationOptions(try_parse=False))
+    options.append(CompilationOptions(use_cython=False))
     coeffs = [coefficient(base, compile_opt=opt) for opt in options]
-    with CoreOptions(use_cython=False):
-        coeffs.append(coefficient(base))
     for coeff in coeffs:
         assert coeff(0) == 2+1j
     for coeff1, coeff2 in combinations(coeffs, 2):

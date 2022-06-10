@@ -11,7 +11,7 @@ from .solver import Result, SolverOptions
 from ..parallel import serial_map
 from ..ui.progressbar import TextProgressBar
 from ..settings import settings
-debug = settings.core['debug']
+debug = settings.debug
 
 
 class StochasticSolverOptions:

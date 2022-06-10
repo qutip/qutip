@@ -2,12 +2,6 @@ from ..settings import settings
 
 __all__ = ["CoreOptions"]
 
-try:
-    import cython
-    _use_cython = True
-except ImportError:
-    _use_cython = False
-
 
 class QutipOptions:
     """
@@ -17,6 +11,7 @@ class QutipOptions:
     Default options are in a class _options dict.
     """
     _options = {}
+    _settings_name = None  # Where the default is in settings
 
     def __init__(self, **options):
         self.options = self._options.copy()
@@ -42,6 +37,13 @@ class QutipOptions:
             out += [f"    '{key}': {repr(value)},"]
         out += [")>"]
         return "\n".join(out)
+
+    def __enter__(self):
+        self._backup = getattr(settings, self._settings_name)
+        setattr(settings, self._settings_name, self)
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        setattr(settings, self._settings_name, self._backup)
 
 
 class CoreOptions(QutipOptions):
@@ -86,23 +88,6 @@ class CoreOptions(QutipOptions):
           on the signature of the supplied function. If the function signature
           is exactly ``f(t, args)`` then ``dict`` is used. Otherwise
           ``pythonic`` is used.
-
-    debug: False
-        debug mode for development
-
-    log_handler: str
-        define whether log handler should be
-        - default: switch based on IPython detection
-        - stream: set up non-propagating StreamHandler
-        - basic: call basicConfig
-        - null: leave logging to the user
-
-    colorblind_safe: False
-        Allow for a colorblind mode that uses different colormaps
-        and plotting options by default.
-
-    use_cython: bool
-        Whether to compile strings as cython code or use python's ``exec``.
     """
     _options = {
         # use auto tidyup
@@ -119,26 +104,9 @@ class CoreOptions(QutipOptions):
         "auto_tidyup_atol": 1e-14,
         # signature style expected by function coefficients
         "function_coefficient_style": "auto",
-        # debug mode for development
-        "debug": False,
-        # define whether log handler should be
-        #   - default: switch based on IPython detection
-        #   - stream: set up non-propagating StreamHandler
-        #   - basic: call basicConfig
-        #   - null: leave logging to the user
-        "log_handler": 'default',
-        # Allow for a colorblind mode that uses different colormaps
-        # and plotting options by default.
-        "colorblind_safe": False,
-        # Whether to compile strings as cython code or use python's ``exec``.
-        "use_cython": _use_cython,
     }
-    def __enter__(self):
-        self._backup = settings.core
-        settings.core = self
+    _settings_name = "core"
 
-    def __exit__(self, exc_type, exc_value, exc_traceback):
-        settings.core = self._backup
 
 # Creating the instance of core options to use everywhere.
 settings.core = CoreOptions()

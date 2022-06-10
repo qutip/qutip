@@ -165,6 +165,9 @@ class CompilationOptions(QutipOptions):
     """
     Compilation options:
 
+    use_cython: bool
+        Whether to compile strings as cython code or use python's ``exec``.
+
     try_parse: bool [True]
         Whether to try parsing the string for reuse and static typing.
 
@@ -212,7 +215,14 @@ class CompilationOptions(QutipOptions):
     else:
         _compiler_flags = '-w -O3 -funroll-loops'
 
+    try:
+        import cython
+        _use_cython = True
+    except ImportError:
+        _use_cython = False
+
     _options = {
+        "use_cython": _use_cython,
         "try_parse": True,
         "static_types": True,
         "accept_int": None,
@@ -223,6 +233,11 @@ class CompilationOptions(QutipOptions):
         "extra_import": "",
         "clean_on_error": True,
     }
+    _settings_name = "compile"
+
+
+# Create the default instance in settings.
+qset.compile = CompilationOptions()
 
 
 # Version number of the Coefficient
@@ -304,7 +319,7 @@ def coeff_from_str(base, args, args_ctypes, compile_opt=None):
     """
     # First, a sanity check before thinking of compiling
     if compile_opt is None:
-        compile_opt = CompilationOptions()
+        compile_opt = qset.compile
     if not compile_opt['extra_import']:
         try:
             env = {"t": 0}
@@ -314,7 +329,7 @@ def coeff_from_str(base, args, args_ctypes, compile_opt=None):
             raise Exception("Invalid string coefficient") from err
     coeff = None
     # Do we compile?
-    if not qset.core['use_cython']:
+    if not compile_opt['use_cython']:
         return StrFunctionCoefficient(base, args)
     # Parsing tries to make the code in common pattern
     parsed, variables, constants, raw = try_parse(base, args,
