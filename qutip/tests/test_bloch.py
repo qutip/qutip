@@ -434,6 +434,7 @@ class TestBloch:
             vector_kws = [vector_kws]
         self.plot_vector_test(fig_test, copy.deepcopy(vector_kws))
         self.plot_vector_ref(fig_ref, copy.deepcopy(vector_kws))
+
     @pytest.mark.parametrize("vectors",
                              [(0, 1, 0, 1), (0, 1), [0, 1], np.array((0, 1)),
                               np.arange(12).reshape((3, 2, 2))],
@@ -471,7 +472,7 @@ class TestBloch:
                    "size as the number of vectors. ")
         assert str(err.value) == err_msg
 
-        
+
 def test_repr_svg():
     svg = Bloch()._repr_svg_()
     assert isinstance(svg, str)
