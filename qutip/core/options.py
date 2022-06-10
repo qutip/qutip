@@ -48,14 +48,18 @@ class QutipOptions:
 
 class CoreOptions(QutipOptions):
     """
-    Settings used by the Qobj.  Values can be changed in qutip.settings.core.
+    Options used by the core of qutip such as the tolerance of :class:`Qobj`
+    comparison or coefficient's format.
+
+    Values can be changed in ``qutip.settings.core`` or by using context:
+    ``with CoreOptions(atol=1e-6): ...``.
 
     Options
     -------
     auto_tidyup : bool
         Whether to tidyup during sparse operations.
 
-    auto_tidyup_dims : boolTrue
+    auto_tidyup_dims : bool [True]
         use auto tidyup dims on multiplication
 
     auto_herm : boolTrue
