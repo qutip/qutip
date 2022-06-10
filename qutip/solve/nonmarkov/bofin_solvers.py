@@ -935,10 +935,10 @@ class HEOMSolver(Solver):
             rho0_he[:n ** 2] = rho0.full().ravel('F')
             rho0_he = _data.create(rho0_he)
 
-        # if self.options.ode["state_data_type"]:
-        #    state = state.to(self.options.ode["state_data_type"])
+        if self.options.ode["state_data_type"]:
+            rho0_he = rho0_he.to(self.options.ode["state_data_type"])
 
-        return rho0_he  # state.data
+        return rho0_he
 
     def _restore_state(self, state, *, copy=True):
         n = self._sys_shape
