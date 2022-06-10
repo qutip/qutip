@@ -4,6 +4,7 @@ __all__ = ['SolverOptions',
 
 from ..optionsclass import optionsclass
 
+
 @optionsclass("solver")
 class SolverOptions:
     """
@@ -26,6 +27,12 @@ class SolverOptions:
 
     Options
     -------
+    normalize_output : str {"", "dm", "ket", "all", True}
+        Whether to normalize the output state to hide ODE numerical errors.
+        The values "all" and True will normalize both ket and dm states.
+        The values "ket" and "dm" will only normalize states of the specified
+        type. Leave blank for no normalization.
+
     progress_bar : str {'text', 'enhanced', 'tqdm', ''}
         How to present the solver progress.
         True will result in 'text'.
@@ -37,10 +44,9 @@ class SolverOptions:
         kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
     """
     options = {
-        # (turned off for batch unitary propagator mode)
-        "progress_bar": "text",
         # Normalize output of solvers
-        # (turned off for batch unitary propagator mode)
+        "normalize_output": "ket",
+        "progress_bar": "text",
         "progress_kwargs": {"chunk_size":10},
     }
 
@@ -129,9 +135,9 @@ class SolverOdeOptions:
         "min_step": 0,
         # tidyup Hamiltonian before calculation (default = True)
         "tidy": True,
-
+        # data type to use for the operator
         "operator_data_type": "",
-
+        # data type to use for the state
         "state_data_type": "dense",
         # Normalize the states received in feedback_args
         "feedback_normalize": True,
@@ -169,21 +175,12 @@ class SolverResultsOptions:
         Whether or not to store the state vectors or density matrices.
         On `None` the states will be saved if no expectation operators are
         given.
-
-    normalize_output : str {"", "ket", "all"}
-        normalize output state to hide ODE numerical errors.
-        "all" will normalize both ket and dm.
-        On "ket", only 'ket' output are normalized.
-        Leave empty for no normalization.
     """
     options = {
         # store final state?
         "store_final_state": False,
         # store states even if expectation operators are given?
         "store_states": None,
-        # Normalize output of solvers
-        # (turned off for batch unitary propagator mode)
-        "normalize_output": "ket",
     }
 
 
