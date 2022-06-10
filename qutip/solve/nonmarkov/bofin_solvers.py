@@ -936,7 +936,7 @@ class HEOMSolver(Solver):
             rho0_he = _data.create(rho0_he)
 
         if self.options.ode["state_data_type"]:
-            rho0_he = rho0_he.to(self.options.ode["state_data_type"])
+            rho0_he = _data.to(self.options.ode["state_data_type"], rho0_he)
 
         return rho0_he
 
