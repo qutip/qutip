@@ -270,3 +270,16 @@ def test_operator_type(func, args, alias, dtype):
     else:
         for obj in object:
             assert isinstance(obj.data, dtype)
+
+
+@pytest.mark.parametrize('dims', [8, 15, [2] * 4])
+def test_qft(dims):
+    N = np.prod(dims)
+    qft = qutip.qft(N).full()
+    np.testing.assert_allclose(np.abs(qft)**2, 1/N)
+    for i in range(N):
+        target = np.zeros(N)
+        target[i] = 1
+        fft = np.fft.fft(qft[:,i])
+        fft /= np.sum(fft)
+        np.testing.assert_allclose(fft, target, atol=1e-16 * N)

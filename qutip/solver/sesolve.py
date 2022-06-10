@@ -109,6 +109,9 @@ class SeSolver(Solver):
             raise ValueError("The hamiltonian must be an operator")
         super().__init__(rhs, options=options)
 
-        self.stats['solver'] = "Schrodinger Evolution"
-        self.stats["preparation time"] = time() - _time_start
-        self.stats["run time"] = 0
+    def _initialize_stats(self):
+        stats = super()._initialize_stats()
+        stats.update({
+            "solver": "Schrodinger Evolution",
+        })
+        return stats

@@ -8,7 +8,7 @@ __all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
            'destroy', 'create', 'qeye', 'identity', 'position', 'momentum',
            'num', 'squeeze', 'squeezing', 'displace', 'commutator',
            'qutrit_ops', 'qdiags', 'phase', 'qzero', 'enr_destroy',
-           'enr_identity', 'charge', 'tunneling']
+           'enr_identity', 'charge', 'tunneling', 'qft']
 
 import numbers
 
@@ -20,7 +20,7 @@ from .qobj import Qobj
 from .dimensions import flatten
 
 
-def qdiags(diagonals, offsets, dims=None, shape=None, *, dtype=_data.CSR):
+def qdiags(diagonals, offsets=None, dims=None, shape=None, *, dtype=_data.CSR):
     """
     Constructs an operator from an array of diagonals.
 
@@ -29,11 +29,12 @@ def qdiags(diagonals, offsets, dims=None, shape=None, *, dtype=_data.CSR):
     diagonals : sequence of array_like
         Array of elements to place along the selected diagonals.
 
-    offsets : sequence of ints
+    offsets : sequence of ints, optional
         Sequence for diagonals to be set:
             - k=0 main diagonal
             - k>0 kth upper diagonal
             - k<0 kth lower diagonal
+
     dims : list, optional
         Dimensions for operator
 
@@ -57,6 +58,7 @@ shape = [4, 4], type = oper, isherm = False
      [ 0.          0.          0.          0.        ]]
 
     """
+    offsets = [0] if offsets is None else offsets
     data = _data.diag[dtype](diagonals, offsets, shape)
     return Qobj(data, dims=dims, type='oper', copy=False)
 
@@ -1020,3 +1022,33 @@ def tunneling(N, m=1, *, dtype=_data.CSR):
     T = qdiags(diags, [m, -m], dtype=dtype)
     T.isherm = True
     return T
+
+
+def qft(dimensions, *, dtype="dense"):
+    """
+    Quantum Fourier Transform operator.
+
+    Parameters
+    ----------
+    dimensions : (int) or (list of int) or (list of list of int)
+        Dimension of Hilbert space. If provided as a list of ints, then the
+        dimension is the product over this list, but the ``dims`` property of
+        the new Qobj are set to this list.
+
+    dtype : str or type, [keyword only] [optional]
+        Storage representation. Any data-layer known to `qutip.data.to` is
+        accepted.
+
+    Returns
+    -------
+    QFT: qobj
+        Quantum Fourier transform operator.
+
+    """
+    N2, dimensions = _implicit_tensor_dimensions(dimensions)
+
+    phase = 2.0j * np.pi / N2
+    arr = np.arange(N2)
+    L, M = np.meshgrid(arr, arr)
+    data = np.exp(phase * (L * M)) / np.sqrt(N2)
+    return Qobj(data, dims=dimensions).to(dtype)

@@ -43,8 +43,19 @@ class Solver:
         self.options = options
         _time_start = time()
         self._integrator = self._get_integrator()
-        self.stats = {"preparation time": time() - _time_start}
+        self._init_integrator_time = time() - _time_start
         self._state_metadata = {}
+        self.stats = self._initialize_stats()
+
+    def _initialize_stats(self):
+        """ Return the initial values for the solver stats.
+        """
+        return {
+            "method": self._integrator.name,
+            "init time": self._init_integrator_time,
+            "preparation time": 0.0,
+            "run time": 0.0,
+        }
 
     def _prepare_state(self, state):
         """
@@ -71,21 +82,28 @@ class Solver:
         self._state_metadata = {
             'dims': state.dims,
             'type': state.type,
-            'isherm': state.isherm
+            'isherm': state.isherm and not (self.rhs.dims == state.dims)
         }
         if self.rhs.dims[1] == state.dims:
             return stack_columns(state.data)
         return state.data
 
-    def _restore_state(self, state, *, copy=True):
+    def _restore_state(self, data, *, copy=True):
         """
-        Retore the Qobj state from the it's data.
+        Retore the Qobj state from its data.
         """
         if self._state_metadata['dims'] == self.rhs.dims[1]:
-            return Qobj(unstack_columns(state),
-                        **self._state_metadata, copy=False)
+            state = Qobj(unstack_columns(data),
+                         **self._state_metadata, copy=False)
         else:
-            return Qobj(state, **self._state_metadata, copy=copy)
+            state = Qobj(data, **self._state_metadata, copy=copy)
+
+        if data.shape[1] == 1:  # if the state does not have type oper
+            state_type = 'dm' if self.rhs.issuper else 'ket'
+            if self.options['normalize_output'] in {state_type, True, 'all'}:
+                state = state * (1 / state.norm())
+
+        return state
 
     def run(self, state0, tlist, *, args=None, e_ops=None):
         """
@@ -121,19 +139,18 @@ class Solver:
             Results of the evolution. States and/or expect will be saved. You
             can control the saved data in the options.
         """
-
         _time_start = time()
         _data0 = self._prepare_state(state0)
         self._integrator.set_state(tlist[0], _data0)
         self._argument(args)
-        self.stats["preparation time"] += time() - _time_start
-
+        stats = self._initialize_stats()
         results = self.resultclass(
-            e_ops,
-            self.options.results,
-            tlist,
-            self._restore_state(_data0, copy=False)
+            e_ops, self.options.results,
+            solver=self.name, stats=stats,
         )
+        results.add(tlist[0], self._restore_state(_data0, copy=False))
+        stats['preparation time'] += time() - _time_start
+
         progress_bar = progess_bars[self.options['progress_bar']]()
         progress_bar.start(len(tlist)-1, **self.options['progress_kwargs'])
         for t, state in self._integrator.run(tlist):
@@ -141,12 +158,9 @@ class Solver:
             results.add(t, self._restore_state(state, copy=False))
         progress_bar.finished()
 
-        self.stats['run time'] = progress_bar.total_time()
+        stats['run time'] = progress_bar.total_time()
         # TODO: It would be nice if integrator could give evolution statistics
-        # self.stats.update(_integrator.stats)
-        results.stats.update(self.stats)
-        results.stats["solver"] = self.name
-        results.stats["method"] = self._integrator.name
+        # stats.update(_integrator.stats)
         return results
 
     def start(self, state0, t0):

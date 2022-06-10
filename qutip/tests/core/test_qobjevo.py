@@ -230,11 +230,18 @@ def test_args(pseudo_qevo, args_coeff_type):
 
     for t in TESTTIMES:
         _assert_qobj_almost_eq(obj(t, args), pseudo_qevo(t, args))
+        _assert_qobj_almost_eq(obj(t, **args), pseudo_qevo(t, args))
 
     # Did it modify original args
     _assert_qobjevo_equivalent(obj, pseudo_qevo)
 
     obj.arguments(args)
+    _assert_qobjevo_different(obj, pseudo_qevo)
+    for t in TESTTIMES:
+        _assert_qobj_almost_eq(obj(t), pseudo_qevo(t, args))
+
+    args = {'w1': 4, "w2": 4}
+    obj.arguments(**args)
     _assert_qobjevo_different(obj, pseudo_qevo)
     for t in TESTTIMES:
         _assert_qobj_almost_eq(obj(t), pseudo_qevo(t, args))

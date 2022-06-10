@@ -49,15 +49,16 @@ class TestSeSolve():
         """
         tol = 5e-3
         psi0 = qutip.basis(2, 0)
-        option = SolverOptions(progress_bar=None)
+        options = SolverOptions(progress_bar=None)
 
         if unitary_op is None:
             output = sesolve(H, psi0, self.tlist,
                              [qutip.sigmax(), qutip.sigmay(), qutip.sigmaz()],
-                             args=self.args)
+                             args=self.args, options=options)
             sx, sy, sz = output.expect[0], output.expect[1], output.expect[2]
         else:
-            output = sesolve(H, unitary_op, self.tlist, args=self.args)
+            output = sesolve(H, unitary_op, self.tlist, args=self.args,
+                             options=options)
             sx = [qutip.expect(qutip.sigmax(), U * psi0)
                   for U in output.states]
             sy = [qutip.expect(qutip.sigmay(), U * psi0)
@@ -78,6 +79,29 @@ class TestSeSolve():
         np.testing.assert_allclose(sx, sx_analytic, atol=tol)
         np.testing.assert_allclose(sy, sy_analytic, atol=tol)
         np.testing.assert_allclose(sz, sz_analytic, atol=tol)
+
+    @pytest.mark.parametrize(['state_type'], [
+        pytest.param("ket", id="ket"),
+        pytest.param("unitary", id="unitary"),
+    ])
+    def test_sesolve_normalization(self, state_type):
+        # non-hermitean H causes state to evolve non-unitarily
+        H = qutip.Qobj([[1, -0.1j], [-0.1j, 1]])
+        psi0 = qutip.basis(2, 0)
+        options = SolverOptions(normalize_output=True, progress_bar=None)
+
+        if state_type == "ket":
+            output = sesolve(H, psi0, self.tlist, e_ops=[], options=options)
+            norms = [state.norm() for state in output.states]
+            np.testing.assert_allclose(
+                norms, [1.0 for _ in self.tlist], atol=1e-15,
+            )
+        else:
+            # evolution of unitaries should not be normalized
+            U = qutip.qeye(2)
+            output = sesolve(H, U, self.tlist, e_ops=[], options=options)
+            norms = [state.norm() for state in output.states]
+            assert all(norm > 2 for norm in norms[1:])
 
     @pytest.mark.parametrize(['unitary_op'], [
         pytest.param(None, id="state"),
@@ -186,10 +210,10 @@ class TestSeSolve():
         options = SolverOptions(progress_bar=None)
         solver_obj = SeSolver(self.H0 + self.H1,
                               options=options)
-        copy = pickle.loads(pickle.dumps(solver_obj))
+        solver_copy = pickle.loads(pickle.dumps(solver_obj))
         sx, sy, sz = solver_obj.run(qutip.basis(2,1), [0, 1, 2, 3],
                                     e_ops=e_ops).expect
-        csx, csy, csz = solver_obj.run(qutip.basis(2,1), [0, 1, 2, 3],
+        csx, csy, csz = solver_copy.run(qutip.basis(2,1), [0, 1, 2, 3],
                                        e_ops=e_ops).expect
         np.testing.assert_allclose(sx, csx)
         np.testing.assert_allclose(sy, csy)

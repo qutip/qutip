@@ -12,83 +12,21 @@ Pulses from Quantum Optical Systems (2017, arXiv:1710.02875).
 
 import numpy as np
 from itertools import product, combinations_with_replacement
-from ..core import basis, tensor, zero_ket, Qobj
-from .propagator import propagator
-from .solver import SolverOptions
+from ..core import basis, tensor, zero_ket, Qobj, QobjEvo
+from .propagator import propagator, Propagator
+from .options import SolverOptions
 
 __all__ = ['temporal_basis_vector',
            'temporal_scattered_state',
            'scattering_probability']
 
 
-class Evolver:
-    """
-    A caching class which takes a Hamiltonian and a list of times to calculate
-    and memoize propagators for the system between any two times as demanded.
-
-    Parameters
-    ----------
-    H : :class: qutip.Qobj or list
-        System-waveguide(s) Hamiltonian or effective Hamiltonian in `Qobj` or
-        list-callback format. If construct_effective_hamiltonian is not
-        specified, an effective Hamiltonian is constructed from H and c_ops.
-    times : list-like
-        List of times to evaluate propagators over.
-    options : :class: qutip.SolverOptionss
-        Solver options to use when computing propagators.
-
-    Attributes
-    ----------
-    H : :class: qutip.Qobj or list
-        System-waveguide(s) Hamiltonian, may be time-dependent.
-    tlist : list-like
-        List of times to evaluate propagators over.
-    propagators : (dict of float: (dict of float: :class: qutip.Qobj))
-        Dictionary of dictionaries of propagator objects with keys of
-        evaluation times, e.g. propagators[t2][t1] returns U[t2,t1].
-    """
-    def __init__(self, H, tlist, options=None):
-        self.H = H
-        self.tlist = tlist
-        if options is None:
-            self.options = SolverOptions(nsteps=10000, normalize_output=False)
-        else:
-            self.options = options
-        # Make a blank nested dictionary to store propagators
-        self.propagators = dict.fromkeys(tlist)
-        for t in tlist:
-            self.propagators[t] = dict.fromkeys(tlist)
-
-    def prop(self, tf, ti):
-        """Compute U[t2,t1] where t2 > t1 or return the cached operator.
-
-        Parameters
-        ----------
-        tf : float
-            Final time to compute the propagator U[tf, ti].
-        ti : float
-            Initial time to compute the propagator U[tf,ti].
-
-        Returns
-        -------
-        propagator : :class: qutip.Qobj
-            The propagation operator.
-        """
-        left, right = np.searchsorted(self.tlist, [ti, tf], side='left')
-        t1, t2 = self.tlist[left], self.tlist[right]
-        if self.propagators[t2][t1] is None:
-            self.propagators[t2][t1] = propagator(self.H, [t1, t2],
-                                                  options=self.options,
-                                                  unitary_mode='single')
-            # Something is still broken about batch unitary mode (see #807)
-        return self.propagators[t2][t1]
-
-
 def set_partition(collection, num_sets):
     """
-    Enumerate all ways of partitioning collection into num_sets different lists,
-    e.g. list(set_partition([1,2], 2)) = [[[1, 2], []], [[1], [2]], [[2], [1]],
-    [[], [1, 2]]].
+    Enumerate all ways of partitioning collection into num_sets different
+    lists, e.g. :
+    list(set_partition([1,2], 2))
+    >>> [[[1, 2], []], [[1], [2]], [[2], [1]], [[], [1, 2]]]
 
     Parameters
     ----------
@@ -109,53 +47,75 @@ def set_partition(collection, num_sets):
         yield tuple(tuple(indices) for indices in partition)
 
 
-def photon_scattering_operator(evolver, c_ops, taus_list):
+def photon_scattering_amplitude(propagator, c_ops, tlist, taus, psi, psit):
     """
-    Compute the scattering operator for a system emitting into multiple
+    Compute the scattering amplitude for a system emitting into multiple
     waveguides.
 
     Parameters
     ----------
-    evolver : :class: qutip.scattering.Evolver
-        Evolver-wrapped Hamiltonian describing the system.
+    propagator : :class:Propagator
+        Propagator
     c_ops : list
         list of collapse operators for each waveguide; these are assumed to
         include spontaneous decay rates, e.g.
         :math:`\\sigma = \\sqrt \\gamma \\cdot a`
-    taus_list : list-like
+    tlist : array_like
+        List of times starting at the beginning and ending at the end of the
+        evolution.
+    taus : list-like
         List of (list of emission times) for each waveguide.
-
-    Returns
-    -------
-    omega : :class: qutip.Qobj
-        The temporal scattering operator with dimensionality equal to the
-        system state.
+    psi : Qobj
+        State at the start of the evolution
+    psit : Qobj
+        State at the end of the evolution.
     """
-    omega = 1
-
     # Extract the full list of taus
-    taus = [(0.0, -1)]  # temporal "ground state" for arbitrary waveguide
-    for i, tau_wg in enumerate(taus_list):
-        for tau in tau_wg:
-            taus.append((tau, i))
-    taus.sort(key = lambda tup: tup[0])  # sort taus by time
+    tau_collapse = []
+    for i, tau_wg in enumerate(taus):
+        for t in tau_wg:
+            tau_collapse.append((t, i))
+    tau_collapse.sort(key=lambda tup: tup[0])  # sort tau_collapse by time
 
+    tq = tlist[0]
     # Compute Prod Ueff(tq, tq-1)
-    for i in range(1, len(taus)):
-        tq, q = taus[i]
-        tprev, _ = taus[i - 1]
-        omega = c_ops[q] * evolver.prop(tq, tprev) * omega
+    for tau in tau_collapse:
+        tprev = tq
+        tq, q = tau
+        psi = c_ops[q] * propagator(tq, tprev) * psi
 
-    # Add the <0|Uff(TP, tm)|0> term
-    tmax = evolver.tlist[-1]
-    taumax, _ = taus[-1]
-    # if taus[-1] < tmax:
-    omega = evolver.prop(tmax, taumax) * omega
-
-    return omega
+    psi = propagator(tlist[-1], tq) * psi
+    return psit.overlap(psi)
 
 
-def temporal_basis_vector(waveguide_emission_indices, n_time_bins):
+def _temporal_basis_idx(waveguide_emission_indices, n_time_bins):
+    """
+    Generate a the global index for the excitation.
+    """
+    idx = []
+    for i, wg_indices in enumerate(waveguide_emission_indices):
+        for index in wg_indices:
+            idx += [i * n_time_bins + index]
+    idx = idx or [0]
+    return tuple(idx)
+
+
+def _temporal_basis_dims(waveguide_emission_indices, n_time_bins,
+                         n_emissions=None):
+    """
+    Return the dims of the ``temporal_basis_vector``.
+    """
+    num_col = len(waveguide_emission_indices)
+    if n_emissions is None:
+        n_emissions = sum(
+            [len(waveguide_indices)
+             for waveguide_indices in waveguide_emission_indices])
+    n_emissions = n_emissions or 1
+    return [num_col * n_time_bins] * n_emissions
+
+
+def temporal_basis_vector(waveguide_emission_indices, n_time_bins,
+                          n_emissions=None):
     """
     Generate a temporal basis vector for emissions at specified time bins into
     specified waveguides.
@@ -175,25 +135,51 @@ def temporal_basis_vector(waveguide_emission_indices, n_time_bins):
         If there are W waveguides, T times, and N photon emissions, then the
         basis vector has dimensionality (W*T)^N.
     """
-    # Cast waveguide_emission_indices to list for mutability
-    waveguide_emission_indices = [list(i) for i in waveguide_emission_indices]
+    idx = _temporal_basis_idx(waveguide_emission_indices, n_time_bins)
+    dims = _temporal_basis_dims(waveguide_emission_indices,
+                                n_time_bins, n_emissions)
+    return basis(dims, list(idx))
 
-    # Calculate total number of waveguides
-    W = len(waveguide_emission_indices)
 
-    # Calculate total number of emissions
-    num_emissions = sum([len(waveguide_indices) for waveguide_indices in
-                         waveguide_emission_indices])
-    if num_emissions == 0:
-        return basis(W * n_time_bins, 0)
+def _temporal_scattered_matrix(H, psi0, n_emissions, c_ops, tlist,
+                               system_zero_state=None,
+                               construct_effective_hamiltonian=True):
+    """
+    Compute the scattered n-photon state as an ndarray.
+    """
+    T = len(tlist)
+    W = len(c_ops)
+    em_dims = max(n_emissions, 1)
+    phi_n = np.zeros([W * T] * em_dims, dtype=complex)
 
-    # Pad the emission indices with zeros
-    offset_indices = []
-    for i, wg_indices in enumerate(waveguide_emission_indices):
-        offset_indices += [index + (i * n_time_bins) for index in wg_indices]
+    if construct_effective_hamiltonian:
+        # Construct an effective Hamiltonian from system hamiltonian and c_ops
+        Heff = QobjEvo(H) - 1j / 2 * sum([op.dag() * op for op in c_ops])
+    else:
+        Heff = H
 
-    # Return an appropriate tensor product state
-    return tensor([basis(n_time_bins * W, i) for i in offset_indices])
+    evolver = Propagator(Heff, memoize=len(tlist))
+
+    all_emission_indices = combinations_with_replacement(range(T), n_emissions)
+
+    if system_zero_state is None:
+        system_zero_state = psi0
+
+    # Compute <omega_tau> for all combinations of tau
+    for emission_indices in all_emission_indices:
+        # Consider unique partitionings of emission times into waveguides
+        partition = tuple(set(set_partition(emission_indices, W)))
+        # Consider all possible partitionings of time bins by waveguide
+        for indices in partition:
+            taus = [[tlist[i] for i in wg_indices] for wg_indices in indices]
+            phi_n_amp = photon_scattering_amplitude(
+                evolver, c_ops, tlist,
+                taus, psi0, system_zero_state
+            )
+            # Add scatter amplitude times temporal basis to overall state
+            idx = _temporal_basis_idx(indices, T)
+            phi_n[idx] = phi_n_amp
+    return phi_n
 
 
 def temporal_scattered_state(H, psi0, n_emissions, c_ops, tlist,
@@ -225,7 +211,8 @@ def temporal_scattered_state(H, psi0, n_emissions, c_ops, tlist,
         State representing zero excitations in the system. Defaults to
         :math:`\\psi(t_0)`
     construct_effective_hamiltonian : bool
-        Whether an effective Hamiltonian should be constructed from H and c_ops:
+        Whether an effective Hamiltonian should be constructed from H and
+        c_ops:
         :math:`H_{eff} = H - \\frac{i}{2} \\sum_n \\sigma_n^\\dagger \\sigma_n`
         Default: True.
 
@@ -238,43 +225,12 @@ def temporal_scattered_state(H, psi0, n_emissions, c_ops, tlist,
     """
     T = len(tlist)
     W = len(c_ops)
-
-    if n_emissions == 0:
-        phi_n = zero_ket(W * T)
-    else:
-        phi_n = tensor([zero_ket(W * T)] * n_emissions)
-
-    if construct_effective_hamiltonian:
-        # Construct an effective Hamiltonian from system hamiltonian and c_ops
-        if isinstance(H, Qobj):
-            Heff = H - 1j / 2 * sum([op.dag() * op for op in c_ops])
-        elif isinstance(H, list):
-            Heff = H + [-1j / 2 * sum([op.dag() * op for op in c_ops])]
-        else:
-            raise TypeError("Hamiltonian must be Qobj or list-callback format")
-    else:
-        Heff = H
-
-    evolver = Evolver(Heff, tlist)
-
-    all_emission_indices = combinations_with_replacement(range(T), n_emissions)
-
-    if system_zero_state is None:
-        system_zero_state = psi0
-
-    # Compute <omega_tau> for all combinations of tau
-    for emission_indices in all_emission_indices:
-        # Consider unique partitionings of emission times into waveguides
-        partition = tuple(set(set_partition(emission_indices, W)))
-        # Consider all possible partitionings of time bins by waveguide
-        for indices in partition:
-            taus = [[tlist[i] for i in wg_indices] for wg_indices in indices]
-            omega = photon_scattering_operator(evolver, c_ops, taus)
-            phi_n_amp = system_zero_state.dag() * omega * psi0
-            # Add scatter amplitude times temporal basis to overall state
-            phi_n += phi_n_amp * temporal_basis_vector(indices, T)
-
-    return phi_n
+    em_dims = max(n_emissions, 1)
+    phi_n = _temporal_scattered_matrix(
+        H, psi0, n_emissions, c_ops, tlist,
+        system_zero_state, construct_effective_hamiltonian
+    )
+    return Qobj(phi_n.ravel(), dims=[[W * T] * em_dims, [1] * em_dims])
 
 
 def scattering_probability(H, psi0, n_emissions, c_ops, tlist,
@@ -309,7 +265,8 @@ def scattering_probability(H, psi0, n_emissions, c_ops, tlist,
         State representing zero excitations in the system. Defaults to
         `basis(systemDims, 0)`.
     construct_effective_hamiltonian : bool
-        Whether an effective Hamiltonian should be constructed from H and c_ops:
+        Whether an effective Hamiltonian should be constructed from H and
+        c_ops:
         :math:`H_{eff} = H - \\frac{i}{2} \\sum_n \\sigma_n^\\dagger \\sigma_n`
         Default: True.
 
@@ -319,9 +276,9 @@ def scattering_probability(H, psi0, n_emissions, c_ops, tlist,
         The probability of scattering n photons from the system over the time
         range specified.
     """
-    phi_n = temporal_scattered_state(H, psi0, n_emissions, c_ops, tlist,
-                                     system_zero_state,
-                                     construct_effective_hamiltonian)
+    phi_n = _temporal_scattered_matrix(H, psi0, n_emissions, c_ops, tlist,
+                                       system_zero_state,
+                                       construct_effective_hamiltonian)
     T = len(tlist)
     W = len(c_ops)
 
@@ -335,11 +292,11 @@ def scattering_probability(H, psi0, n_emissions, c_ops, tlist,
         partition = tuple(set(set_partition(emit_indices, W)))
         # wg_indices_list = list(set_partition(indices, W))
         for wg_indices in partition:
-            projector = temporal_basis_vector(wg_indices, T)
-            amplitude = projector.dag() * phi_n
+            idx = _temporal_basis_idx(wg_indices, T)
+            amplitude = phi_n[idx]
             probs[emit_indices] += np.real(amplitude.conjugate() * amplitude)
 
     # Iteratively integrate to obtain single value
     while probs.shape != ():
-        probs = np.trapz(probs, x = tlist)
+        probs = np.trapz(probs, x=tlist)
     return np.abs(probs)

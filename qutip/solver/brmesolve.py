@@ -191,18 +191,19 @@ class BRSolver(Solver):
     _avail_integrators = {}
 
     def __init__(self, H, a_ops, c_ops=None, *, sec_cutoff=0.1, options=None):
-        _time_start = time()
-
-        self.options = options
-
         if not isinstance(H, (Qobj, QobjEvo)):
             raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
+
         c_ops = c_ops or []
         c_ops = [c_ops] if isinstance(c_ops, (Qobj, QobjEvo)) else c_ops
         for c_op in c_ops:
             if not isinstance(c_op, (Qobj, QobjEvo)):
                 raise TypeError("All `c_ops` must be a Qobj or QobjEvo")
 
+        self._num_collapse = len(c_ops)
+        self._num_a_ops = len(a_ops)
+
+        self.options = options  # duplicates assignment in Solver base-class
         tensor_type = {
             '' : 'sparse',
             'csr' : 'sparse',
@@ -211,13 +212,19 @@ class BRSolver(Solver):
             'dense' : 'dense',
         }.get(self.options.ode['operator_data_type'], 'data')
 
+        _time_start = time()
         rhs = bloch_redfield_tensor(
             H, a_ops, c_ops, sec_cutoff=sec_cutoff,
             fock_basis=True, sparse_eigensolver=False, br_dtype=tensor_type)
+        self._init_rhs_time = time() - _time_start
         super().__init__(rhs, options=self.options)
 
-        self.stats['solver'] = "Bloch Redfield Equation Evolution"
-        self.stats['num_collapse'] = len(c_ops)
-        self.stats['num_a_ops'] = len(a_ops)
-        self.stats["preparation time"] = time() - _time_start
-        self.stats["run time"] = 0
+    def _initialize_stats(self):
+        stats = super()._initialize_stats()
+        stats.update({
+            "solver": "Bloch Redfield Equation Evolution",
+            "init time": stats["init time"] + self._init_rhs_time,
+            "num_collapse": self._num_collapse,
+            "num_a_ops": self._num_a_ops,
+        })
+        return stats
