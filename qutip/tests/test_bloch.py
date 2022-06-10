@@ -362,10 +362,16 @@ class TestBloch:
             if not isinstance(vectors[0], (list, tuple, np.ndarray)):
                 vectors = [vectors]
 
-            for v in vectors:
-                color = vector_colors[idx % len(vector_colors)]
+            colors = kw.pop("colors", None)
+            for k, v in enumerate(vectors):
+                if colors is None:
+                    color = vector_colors[idx % len(vector_colors)]
+                else:
+                    color = colors[k]
+
                 alpha = kw.get("alpha", 1.0)
                 idx += 1
+
                 xs3d = v[1] * np.array([0, 1])
                 ys3d = -v[0] * np.array([0, 1])
                 zs3d = v[2] * np.array([0, 1])
@@ -412,6 +418,15 @@ class TestBloch:
             dict(vectors=[(0, 0, 1), (0, 1, 0)], alpha=1.0),
             dict(vectors=[(1, 0, 1), (1, 1, 0)], alpha=0.5),
         ], id="alpha-multiple-vector-sets"),
+        pytest.param(
+            dict(vectors=(0, 0, 1), colors=['y']), id="color-y"),
+        pytest.param(
+            dict(vectors=[(0, 0, 1), (0, 1, 0)], colors=['y', 'y']),
+            id="color-two-y"),
+        pytest.param([
+            dict(vectors=[(0, 0, 1)], colors=['y']),
+            dict(vectors=[(1, 0, 1)], colors=['g']),
+        ], id="color-yg"),
     ])
     @check_pngs_equal
     def test_vector(self, vector_kws, fig_test, fig_ref):
@@ -419,8 +434,44 @@ class TestBloch:
             vector_kws = [vector_kws]
         self.plot_vector_test(fig_test, copy.deepcopy(vector_kws))
         self.plot_vector_ref(fig_ref, copy.deepcopy(vector_kws))
+    @pytest.mark.parametrize("vectors",
+                             [(0, 1, 0, 1), (0, 1), [0, 1], np.array((0, 1)),
+                              np.arange(12).reshape((3, 2, 2))],
+                             ids=["long_tuple", "short_tuple", "short_list",
+                                  "short_numpy", "wrong_shape_numpy"]
+                             )
+    def test_vector_errors_wrong_vectors(self, vectors):
+        with pytest.raises(ValueError) as err:
+            b = Bloch()
+            b.add_vectors(vectors)
+            b.render()
 
+        err_msg = ("The included vectors are not valid. Vectors must "
+                   "be equivalent to a 2D array where the first "
+                   "index represents the iteration over the vectors and the "
+                   "second index represents the position in 3D of vector "
+                   "head.")
+        assert str(err.value) == err_msg
 
+    @pytest.mark.parametrize("vectors, colors",
+                             [([0, 0, 1], ['g', 'y']),
+                              ([[0, 0, 1], [0, 1, 0]], ['y']),
+                              ([0, 0, 1], [['g', 'y']])],
+                             ids=["one-vec-two-colors", "two-vec-one-color",
+                                  "wrong-dimension-list"]
+                             )
+    def test_vector_errors_color_length(self, vectors, colors):
+        with pytest.raises(ValueError) as err:
+            b = Bloch()
+            b.add_vectors(vectors, colors=colors)
+            b.render()
+
+        err_msg = ("The included colors are not valid. colors must "
+                   "be equivalent to a 1D array with the same "
+                   "size as the number of vectors. ")
+        assert str(err.value) == err_msg
+
+        
 def test_repr_svg():
     svg = Bloch()._repr_svg_()
     assert isinstance(svg, str)
