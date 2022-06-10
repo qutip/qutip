@@ -7,7 +7,7 @@ import warnings
 @pytest.mark.parametrize(['method', 'kwargs'], [
     pytest.param('direct', {}, id="direct"),
     pytest.param('direct', {'solver':'mkl'}, id="direct_mkl",
-                 marks=pytest.mark.skipif(not qutip.settings.install['has_mkl'],
+                 marks=pytest.mark.skipif(not qutip.settings.has_mkl,
                                           reason='MKL extensions not found.')),
     pytest.param('direct', {'return_info':True}, id="direct_info"),
     pytest.param('direct', {'sparse':False}, id="direct_dense"),
@@ -18,7 +18,7 @@ import warnings
     pytest.param('svd', {}, id="svd"),
     pytest.param('power', {'mtol':1e-5}, id="power"),
     pytest.param('power', {'mtol':1e-5, 'solver':'mkl'}, id="power_mkl",
-                 marks=pytest.mark.skipif(not qutip.settings.install['has_mkl'],
+                 marks=pytest.mark.skipif(not qutip.settings.has_mkl,
                                           reason='MKL extensions not found.')),
     pytest.param('power-gmres', {'mtol':1e-1}, id="power-gmres"),
     pytest.param('power-gmres', {'mtol':1e-1, 'use_rcm':True, 'use_wbm':True},
@@ -66,7 +66,7 @@ def test_qubit(method, kwargs):
 @pytest.mark.parametrize(['method', 'kwargs'], [
     pytest.param('direct', {}, id="direct"),
     pytest.param('direct', {'solver': 'mkl'}, id="direct_mkl",
-                 marks=pytest.mark.skipif(not qutip.settings.install['has_mkl'],
+                 marks=pytest.mark.skipif(not qutip.settings.has_mkl,
                                           reason='MKL extensions not found.')),
     pytest.param('direct', {'sparse': False}, id="direct_dense"),
     pytest.param('direct', {'use_rcm': True}, id="direct_rcm"),
