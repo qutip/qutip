@@ -181,15 +181,14 @@ jobs:
           COVERALLS_PARALLEL: true
         run: coveralls --service=github
 
-  verify-change-doc-added: 
+  towncrier-check: 
     name: Verify Towncrier entry added
     runs-on: ubuntu-latest
     steps:
       - name: Verify Towncrier entry added
         run: |
-          CHANGES=$(git diff --name-only doc/changes | grep [0-9]\\+ -o)
-          PR_NUMBER=${{ github.event.number }}
-          if [[ -n "$CHANGES[$PR_NUMBER]" ]]; then exit 0; else exit 1; fi
+          python -m pip install towncrier
+          towncrier check
 
   finalise:
     name: Finalise coverage reporting
