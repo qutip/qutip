@@ -331,4 +331,4 @@ There are two different ways to simulate the action of quantum circuits using Qu
 
 - A different method of circuit simulation employs driving Hamiltonians with the ability to
   simulate circuits in the presence of noise. This can be achieved through the various classes
-  in :class:`qutip.qip.device`.A short guide to processors for QIP simulation can be found at :ref:`qip_processor`.
+  in :class:`qutip.qip.device`. A short guide to processors for QIP simulation can be found at :ref:`qip_processor`.
