@@ -188,8 +188,8 @@ class StochasticSolverOptions:
     ----------
     H : time_dependent_object or list of time_dependent_object
         System Hamiltonian in standard time-dependent list format.  This is the
-        same as the argument that (e.g.) :func:`~qutip.mesolve` takes.  If this is a
-        list of elements, they are summed.
+        same as the argument that (e.g.) :func:`~qutip.mesolve` takes.
+        If this is a list of elements, they are summed.
 
     state0 : :class:`qutip.Qobj`
         Initial state vector (ket) or density matrix.

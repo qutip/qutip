@@ -202,10 +202,10 @@ def optimize_pulse(
 
     method_params : dict
         Parameters for the ``optim_method``.  Note that where there is an
-        attribute of the :obj:`~qutip.control.optimizer.Optimizer` object or the termination_conditions
-        matching the key that attribute. Otherwise, and in some case also, they
-        are assumed to be method_options for the ``scipy.optimize.minimize``
-        method.
+        attribute of the :obj:`~qutip.control.optimizer.Optimizer` object or
+        the termination_conditions matching the key that attribute.
+        Otherwise, and in some case also, they are assumed to be method_options
+        for the ``scipy.optimize.minimize`` method.
 
     optim_alg : string
         Deprecated. Use ``optim_method``.
@@ -218,35 +218,37 @@ def optimize_pulse(
 
     dyn_type : string
         Dynamics type, i.e. the type of matrix used to describe the dynamics.
-        Options are ``UNIT``, ``GEN_MAT``, ``SYMPL`` (see :obj:`~qutip.control.dynamics.Dynamics`
-        classes for details).
+        Options are ``UNIT``, ``GEN_MAT``, ``SYMPL``
+        (see :obj:`~qutip.control.dynamics.Dynamics` classes for details).
 
     dyn_params : dict
-        Parameters for the :obj:`~qutip.control.dynamics.Dynamics` object.  The key value pairs are
-        assumed to be attribute name value pairs.  They applied after the
-        object is created.
+        Parameters for the :obj:`~qutip.control.dynamics.Dynamics` object.
+        The key value pairs are assumed to be attribute name value pairs.
+        They applied after the object is created.
 
     prop_type : string
         Propagator type i.e. the method used to calculate the propagators and
         propagator gradient for each timeslot options are DEF, APPROX, DIAG,
         FRECHET, AUG_MAT.  DEF will use the default for the specific
-        ``dyn_type`` (see :obj:`~qutip.control.propcomp.PropagatorComputer` classes for details).
+        ``dyn_type`` (see :obj:`~qutip.control.propcomp.PropagatorComputer`
+        classes for details).
 
     prop_params : dict
-        Parameters for the :obj:`~qutip.control.propcomp.PropagatorComputer` object.  The key value
-        pairs are assumed to be attribute name value pairs.  They applied after
-        the object is created.
+        Parameters for the :obj:`~qutip.control.propcomp.PropagatorComputer`
+        object. The key value pairs are assumed to be attribute name value
+        pairs.  They applied after the object is created.
 
     fid_type : string
         Fidelity error (and fidelity error gradient) computation method.
         Options are DEF, UNIT, TRACEDIFF, TD_APPROX.  DEF will use the default
-        for the specific ``dyn_type`` (See :obj:`~qutip.control.fidcomp.FidelityComputer` classes for
+        for the specific ``dyn_type``
+        (See :obj:`~qutip.control.fidcomp.FidelityComputer` classes for
         details).
 
     fid_params : dict
-        Parameters for the :obj:`~qutip.control.fidcomp.FidelityComputer` object.  The key value
-        pairs are assumed to be attribute name value pairs.  They applied after
-        the object is created.
+        Parameters for the :obj:`~qutip.control.fidcomp.FidelityComputer`
+        object. The key value pairs are assumed to be attribute name value
+        pairs.  They applied after the object is created.
 
     phase_option : string
         Deprecated. Pass in ``fid_params`` instead.
@@ -257,13 +259,14 @@ def optimize_pulse(
     tslot_type : string
         Method for computing the dynamics generators, propagators and evolution
         in the timeslots.  Options: DEF, UPDATE_ALL, DYNAMIC.  UPDATE_ALL is
-        the only one that currently works.  (See :obj:`~qutip.control.tslotcomp.TimeslotComputer`
-        classes for details.)
+        the only one that currently works.
+        (See :obj:`~qutip.control.tslotcomp.TimeslotComputer` classes for
+        details.)
 
     tslot_params : dict
-        Parameters for the :obj:`~qutip.control.tslotcomp.TimeslotComputer` object.  The key value
-        pairs are assumed to be attribute name value pairs.  They applied after
-        the object is created.
+        Parameters for the :obj:`~qutip.control.tslotcomp.TimeslotComputer`
+        object. The key value pairs are assumed to be attribute name value
+        pairs. They applied after the object is created.
 
     amp_update_mode : string
         Deprecated. Use ``tslot_type`` instead.
@@ -271,8 +274,8 @@ def optimize_pulse(
     init_pulse_type : string
         Type / shape of pulse(s) used to initialise the control amplitudes.
         Options (GRAPE) include: RND, LIN, ZERO, SINE, SQUARE, TRIANGLE, SAW.
-        Default is RND.  (see :obj:`~qutip.control.pulsegen.PulseGen` classes for details.) For the
-        CRAB the this the ``guess_pulse_type``.
+        Default is RND. (see :obj:`~qutip.control.pulsegen.PulseGen` classes
+        for details). For the CRAB the this the ``guess_pulse_type``.
 
     init_pulse_params : dict
         Parameters for the initial / guess pulse generator object.
@@ -320,9 +323,9 @@ def optimize_pulse(
     Returns
     -------
     opt : OptimResult
-        Returns instance of :obj:`~qutip.control.optimresult.OptimResult`, which has attributes giving
-        the reason for termination, final fidelity error, final evolution final
-        amplitudes, statistics etc.
+        Returns instance of :obj:`~qutip.control.optimresult.OptimResult`,
+        which has attributes giving the reason for termination, final fidelity
+        error, final evolution final amplitudes, statistics etc.
     """
     if log_level == logging.NOTSET:
         log_level = logger.getEffectiveLevel()
@@ -581,10 +584,10 @@ def optimize_pulse_unitary(
 
     method_params : dict
         Parameters for the ``optim_method``.  Note that where there is an
-        attribute of the :obj:`~qutip.control.optimizer.Optimizer` object or the
-        ``termination_conditions`` matching the key that attribute. Otherwise,
-        and in some case also, they are assumed to be method_options for the
-        ``scipy.optimize.minimize`` method.
+        attribute of the :obj:`~qutip.control.optimizer.Optimizer` object or
+        the ``termination_conditions`` matching the key that attribute.
+        Otherwise, and in some case also, they are assumed to be
+        method_options for the ``scipy.optimize.minimize`` method.
 
     optim_alg : string
         Deprecated. Use ``optim_method``.
@@ -603,19 +606,19 @@ def optimize_pulse_unitary(
         - SU - global phase included
 
     dyn_params : dict
-        Parameters for the :obj:`~qutip.control.dynamics.Dynamics` object.  The key value pairs are
-        assumed to be attribute name value pairs.  They applied after the
-        object is created.
+        Parameters for the :obj:`~qutip.control.dynamics.Dynamics` object.
+        The key value pairs are assumed to be attribute name value pairs.
+        They applied after the object is created.
 
     prop_params : dict
-        Parameters for the :obj:`~qutip.control.propcomp.PropagatorComputer` object.  The key value
-        pairs are assumed to be attribute name value pairs.  They applied after
-        the object is created.
+        Parameters for the :obj:`~qutip.control.propcomp.PropagatorComputer`
+        object. The key value pairs are assumed to be attribute name value
+        pairs.  They applied after the object is created.
 
     fid_params : dict
-        Parameters for the :obj:`~qutip.control.fidcomp.FidelityComputer` object.  The key value
-        pairs are assumed to be attribute name value pairs.  They applied after
-        the object is created.
+        Parameters for the :obj:`~qutip.control.fidcomp.FidelityComputer`
+        object. The key value pairs are assumed to be attribute name value
+        pairs.  They applied after the object is created.
 
     tslot_type : string
         Method for computing the dynamics generators, propagators and evolution
@@ -624,9 +627,9 @@ def optimize_pulse_unitary(
         :obj:`~qutip.control.tslotcomp.TimeslotComputer` classes for details.)
 
     tslot_params : dict
-        Parameters for the :obj:`~qutip.control.tslotcomp.TimeslotComputer` object.  The key value
-        pairs are assumed to be attribute name value pairs.  They applied after
-        the object is created.
+        Parameters for the :obj:`~qutip.control.tslotcomp.TimeslotComputer`
+        object. The key value pairs are assumed to be attribute name value
+        pairs.  They applied after the object is created.
 
     amp_update_mode : string
         Deprecated. Use ``tslot_type`` instead.
@@ -634,8 +637,8 @@ def optimize_pulse_unitary(
     init_pulse_type : string
         Type / shape of pulse(s) used to initialise the control amplitudes.
         Options (GRAPE) include: RND, LIN, ZERO, SINE, SQUARE, TRIANGLE, SAW.
-        DEF is RND.  (see :obj:`~qutip.control.pulsegen.PulseGen` classes for details.) For the CRAB
-        the this the guess_pulse_type.
+        DEF is RND.  (see :obj:`~qutip.control.pulsegen.PulseGen` classes for
+        details.) For the CRAB the this the guess_pulse_type.
 
     init_pulse_params : dict
         Parameters for the initial / guess pulse generator object.  The key
@@ -683,9 +686,9 @@ def optimize_pulse_unitary(
     Returns
     -------
     opt : OptimResult
-        Returns instance of :obj:`~qutip.control.optimresult.OptimResult`, which has attributes giving
-        the reason for termination, final fidelity error, final evolution final
-        amplitudes, statistics etc.
+        Returns instance of :obj:`~qutip.control.optimresult.OptimResult`,
+        which has attributes giving the reason for termination, final fidelity
+        error, final evolution final amplitudes, statistics etc.
     """
 
     # parameters are checked in create pulse optimiser
@@ -749,7 +752,8 @@ def optimize_pulse_unitary(
             optim_method=optim_method, method_params=method_params,
             dyn_type='UNIT', dyn_params=dyn_params,
             prop_params=prop_params, fid_params=fid_params,
-            init_pulse_type=init_pulse_type, init_pulse_params=init_pulse_params,
+            init_pulse_type=init_pulse_type,
+            init_pulse_params=init_pulse_params,
             pulse_scaling=pulse_scaling, pulse_offset=pulse_offset,
             ramping_pulse_type=ramping_pulse_type,
             ramping_pulse_params=ramping_pulse_params,
@@ -864,10 +868,10 @@ def opt_pulse_crab(
 
     method_params : dict
         Parameters for the optim_method.  Note that where there is an attribute
-        of the :class:`~qutip.control.optimizer.Optimizer` object or the termination_conditions matching
-        the key that attribute. Otherwise, and in some case also, they are
-        assumed to be method_options for the ``scipy.optimize.minimize``
-        method.  The commonly used parameter are:
+        of the :class:`~qutip.control.optimizer.Optimizer` object or the
+        termination_conditions matching the key that attribute. Otherwise,
+        and in some case also, they are assumed to be method_options for the
+        ``scipy.optimize.minimize`` method.  The commonly used parameter are:
 
         - xtol - limit on variable change for convergence
         - ftol - limit on fidelity error change for convergence
@@ -877,42 +881,45 @@ def opt_pulse_crab(
         Options are UNIT, GEN_MAT, SYMPL (see Dynamics classes for details).
 
     dyn_params : dict
-        Parameters for the :class:`qutip.control.dynamics.Dynamics` object.  The key value pairs are assumed to
-        be attribute name value pairs.  They applied after the object is
-        created.
+        Parameters for the :class:`qutip.control.dynamics.Dynamics` object.
+        The key value pairs are assumed to be attribute name value pairs.
+        They applied after the object is created.
 
     prop_type : string
         Propagator type i.e. the method used to calculate the propagtors and
         propagtor gradient for each timeslot options are DEF, APPROX, DIAG,
         FRECHET, AUG_MAT DEF will use the default for the specific dyn_type
-        (see :obj:`~qutip.control.propcomp.PropagatorComputer` classes for details).
+        (see :obj:`~qutip.control.propcomp.PropagatorComputer` classes for 
+        details).
 
     prop_params : dict
-        Parameters for the :obj:`~qutip.control.propcomp.PropagatorComputer` object.  The key value
-        pairs are assumed to be attribute name value pairs.  They applied after
-        the object is created.
+        Parameters for the :obj:`~qutip.control.propcomp.PropagatorComputer`
+        object. The key value pairs are assumed to be attribute name value
+        pairs. They applied after the object is created.
 
     fid_type : string
         Fidelity error (and fidelity error gradient) computation method.
         Options are DEF, UNIT, TRACEDIFF, TD_APPROX.  DEF will use the default
-        for the specific dyn_type.  (See :obj:`~qutip.control.fidcomp.FidelityComputer` classes for
+        for the specific dyn_type.
+        (See :obj:`~qutip.control.fidcomp.FidelityComputer` classes for
         details).
 
     fid_params : dict
-        Parameters for the :obj:`~qutip.control.fidcomp.FidelityComputer` object.  The key value
-        pairs are assumed to be attribute name value pairs.  They applied after
-        the object is created.
+        Parameters for the :obj:`~qutip.control.fidcomp.FidelityComputer`
+        object. The key value pairs are assumed to be attribute name value
+        pairs. They applied after the object is created.
 
     tslot_type : string
         Method for computing the dynamics generators, propagators and evolution
         in the timeslots.  Options: DEF, UPDATE_ALL, DYNAMIC UPDATE_ALL is the
-        only one that currently works.  (See :obj:`~qutip.control.tslotcomp.TimeslotComputer` classes
+        only one that currently works.
+        (See :obj:`~qutip.control.tslotcomp.TimeslotComputer` classes
         for details).
 
     tslot_params : dict
-        Parameters for the :obj:`~qutip.control.tslotcomp.TimeslotComputer` object.  The key value
-        pairs are assumed to be attribute name value pairs.  They applied after
-        the object is created.
+        Parameters for the :obj:`~qutip.control.tslotcomp.TimeslotComputer`
+        object. The key value pairs are assumed to be attribute name value
+        pairs. They applied after the object is created.
 
     guess_pulse_type : string, default None
         Type / shape of pulse(s) used modulate the control amplitudes.
@@ -1138,10 +1145,10 @@ def opt_pulse_crab_unitary(
 
     method_params : dict
         Parameters for the ``optim_method``.  Note that where there is an
-        attribute of the :obj:`~qutip.control.optimizer.Optimizer` object or the termination_conditions
-        matching the key that attribute. Otherwise, and in some case also, they
-        are assumed to be method_options for the ``scipy.optimize.minimize``
-        method.  The commonly used parameter are:
+        attribute of the :obj:`~qutip.control.optimizer.Optimizer` object or
+        the termination_conditions matching the key that attribute. Otherwise,
+        and in some case also, they are assumed to be method_options for the
+        ``scipy.optimize.minimize`` method.  The commonly used parameter are:
 
         - xtol - limit on variable change for convergence
         - ftol - limit on fidelity error change for convergence
@@ -1154,30 +1161,31 @@ def opt_pulse_crab_unitary(
         - SU - global phase included
 
     dyn_params : dict
-        Parameters for the :obj:`~qutip.control.dynamics.Dynamics` object.  The key value pairs are
-        assumed to be attribute name value pairs.  They applied after the
-        object is created.
+        Parameters for the :obj:`~qutip.control.dynamics.Dynamics` object.
+        The key value pairs are assumed to be attribute name value pairs.
+        They applied after the object is created.
 
     prop_params : dict
-        Parameters for the :obj:`~qutip.control.propcomp.PropagatorComputer` object.  The key value
-        pairs are assumed to be attribute name value pairs.  They applied after
-        the object is created.
+        Parameters for the :obj:`~qutip.control.propcomp.PropagatorComputer`
+        object. The key value pairs are assumed to be attribute name value
+        pairs.  They applied after the object is created.
 
     fid_params : dict
-        Parameters for the :obj:`~qutip.control.fidcomp.FidelityComputer` object.  The key value
-        pairs are assumed to be attribute name value pairs.  They applied after
-        the object is created.
+        Parameters for the :obj:`~qutip.control.fidcomp.FidelityComputer`
+        object. The key value pairs are assumed to be attribute name value
+        pairs. They applied after the object is created.
 
     tslot_type : string
         Method for computing the dynamics generators, propagators and evolution
         in the timeslots.  Options: DEF, UPDATE_ALL, DYNAMIC.  UPDATE_ALL is
-        the only one that currently works.  (See :obj:`~qutip.control.tslotcomp.TimeslotComputer`
-        classes for details).
+        the only one that currently works.
+        (See :obj:`~qutip.control.tslotcomp.TimeslotComputer` classes for
+        details).
 
     tslot_params : dict
-        Parameters for the :obj:`~qutip.control.tslotcomp.TimeslotComputer` object The key value pairs
-        are assumed to be attribute name value pairs. They applied after the
-        object is created.
+        Parameters for the :obj:`~qutip.control.tslotcomp.TimeslotComputer`
+        object. The key value pairs are assumed to be attribute name value
+        pairs. They applied after the object is created.
 
     guess_pulse_type : string, optional
         Type / shape of pulse(s) used modulate the control amplitudes.
@@ -1233,9 +1241,9 @@ def opt_pulse_crab_unitary(
     Returns
     -------
     opt : OptimResult
-        Returns instance of :obj:`~qutip.control.optimresult.OptimResult`, which has attributes giving
-        the reason for termination, final fidelity error, final evolution final
-        amplitudes, statistics etc.
+        Returns instance of :obj:`~qutip.control.optimresult.OptimResult`,
+        which has attributes giving the reason for termination, final fidelity
+        error, final evolution final amplitudes, statistics etc.
     """
 
     # The parameters are checked in create_pulse_optimizer
@@ -1403,9 +1411,9 @@ def create_pulse_optimizer(
     method_params : dict
         Parameters for the optim_method.
         Note that where there is an attribute of the
-        :class:`~qutip.control.optimizer.Optimizer` object or the termination_conditions matching the key
-        that attribute. Otherwise, and in some case also,
-        they are assumed to be method_options
+        :class:`~qutip.control.optimizer.Optimizer` object or the
+        termination_conditions matching the key that attribute. Otherwise,
+        and in some case also, they are assumed to be method_options
         for the scipy.optimize.minimize method.
 
     optim_alg : string
@@ -1530,8 +1538,9 @@ def create_pulse_optimizer(
         Config, Dynamics, PulseGen, and TerminationConditions objects
         can be accessed as attributes.
         The PropagatorComputer, FidelityComputer and TimeslotComputer objects
-        can be accessed as attributes of the Dynamics object, e.g. optimizer.dynamics.fid_computer
-        The optimisation can be run through the optimizer.run_optimization
+        can be accessed as attributes of the Dynamics object,
+        e.g. optimizer.dynamics.fid_computer The optimisation can be run
+        through the optimizer.run_optimization
 
     """
 

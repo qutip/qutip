@@ -13,8 +13,8 @@ class eseries():
     time-dependent quantum objects.
 
     .. deprecated:: 4.6.0
-        :obj:`~eseries` will be removed in QuTiP 5.  Please use :obj:`~qutip.QobjEvo`
-        for general time-dependence.
+        :obj:`~eseries` will be removed in QuTiP 5.
+        Please use :obj:`~qutip.QobjEvo` for general time-dependence.
 
     Attributes
     ----------

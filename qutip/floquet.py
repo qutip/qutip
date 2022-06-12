@@ -992,8 +992,9 @@ def fmmesolve(H, rho0, tlist, c_ops=[], e_ops=[], spectra_cb=[], T=None,
 
     output : :class:`qutip.solver.Result`
 
-        An instance of the class :class:`qutip.solver.Result`, which contains either
-        an *array* of expectation values for the times specified by `tlist`.
+        An instance of the class :class:`qutip.solver.Result`, which contains
+        either an *array* of expectation values for the times specified
+        by `tlist`.
     """
 
     if _safe_mode:

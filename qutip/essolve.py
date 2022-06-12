@@ -45,10 +45,10 @@ def essolve(H, rho0, tlist, c_op_list, e_ops):
     expectation values of the supplied operators (`e_ops`).
 
     .. deprecated:: 4.6.0
-        :obj:`~essolve` will be removed in QuTiP 5.  Please use :obj:`~qutip.sesolve`
-        or :obj:`~qutip.mesolve` for general-purpose integration of the
-        Schroedinger/Lindblad master equation.  This will likely be faster than
-        :obj:`~essolve` for you.
+        :obj:`~essolve` will be removed in QuTiP 5.  Please use
+        :obj:`~qutip.sesolve` or :obj:`~qutip.mesolve` for general-purpose
+        integration of the Schroedinger/Lindblad master equation.
+        This will likely be faster than :obj:`~essolve` for you.
 
     Parameters
     ----------
@@ -119,8 +119,8 @@ def ode2es(L, rho0):
 
     .. deprecated:: 4.6.0
         :obj:`~ode2es` will be removed in QuTiP 5.  Please use
-        :obj:`qutip.Qobj.eigenstates` to get the eigenstates and -values, and use
-        :obj:`~qutip.QobjEvo` for general time-dependence.
+        :obj:`qutip.Qobj.eigenstates` to get the eigenstates and -values,
+        and use :obj:`~qutip.QobjEvo` for general time-dependence.
 
     Parameters
     ----------

@@ -375,8 +375,8 @@ class HEOMSolver:
     ----------
     H_sys : QObj, QobjEvo or a list
         The system Hamiltonian or Liouvillian specified as either a
-        :obj:`~qutip.Qobj`, a :obj:`~qutip.QobjEvo`, or a list of elements that may
-        be converted to a :obj:`~qutip.QobjEvo`.
+        :obj:`~qutip.Qobj`, a :obj:`~qutip.QobjEvo`, or a list of elements
+        that may be converted to a :obj:`~qutip.QobjEvo`.
 
     bath : Bath or list of Bath
         A :obj:`Bath` containing the exponents of the expansion of the

@@ -119,7 +119,8 @@ def serial_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
 
         result = [task(value, *task_args, **task_kwargs) for value in values]
 
-    This function work as a drop-in replacement of :func:`qutip.parallel.parallel_map`.
+    This function work as a drop-in replacement of
+    :func:`qutip.parallel.parallel_map`.
 
     Parameters
     ----------
