@@ -203,6 +203,27 @@ class TestTimeDependence:
         g2_ab_0 = _trapz_2d(np.real(correlation_ab), times)
         assert abs(g2_ab_0 - 0.185) < 1e-2
 
+    def test_correlation_2op_2t(self):
+        i1, i2 = 20, 50
+        tlist = np.linspace(0, 1, 101)
+        t1 = tlist[i1]
+        t2 = tlist[i2]
+        H = 0.0 * qutip.identity(2)
+        psi0 = qutip.basis(2, 1)
+        cops = [[qutip.destroy(2), lambda t, args: np.sqrt(8*t)]]
+        a = qutip.destroy(2)
+        ad = a.dag()
+        corre_result = qutip.correlation_2op_2t(H, psi0, tlist, tlist, cops, ad, a)
+        test_corre = corre_result[i1, i2-i1].real
+        rhom = qutip.mesolve(H, psi0, np.linspace(0, tlist[i1], 101), cops).states[-1]
+        msolve_result = (qutip.mesolve(H, a * rhom, np.linspace(tlist[i1], tlist[i2], 101), cops).states[-1] * ad).tr()
+        theory_result = np.exp(-(4.0 * t1 ** 2 + 4.0 * t2 ** 2) / 2)
+
+        np.testing.assert_allclose(test_corre, msolve_result, atol=1e-6)
+        np.testing.assert_allclose(test_corre, theory_result, atol=1e-6)
+
+
+
 
 def _step(t):
     return np.arctan(t)/np.pi + 0.5
