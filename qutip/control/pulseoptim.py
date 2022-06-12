@@ -889,7 +889,7 @@ def opt_pulse_crab(
         Propagator type i.e. the method used to calculate the propagtors and
         propagtor gradient for each timeslot options are DEF, APPROX, DIAG,
         FRECHET, AUG_MAT DEF will use the default for the specific dyn_type
-        (see :obj:`~qutip.control.propcomp.PropagatorComputer` classes for 
+        (see :obj:`~qutip.control.propcomp.PropagatorComputer` classes for
         details).
 
     prop_params : dict
