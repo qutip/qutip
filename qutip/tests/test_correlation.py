@@ -213,11 +213,14 @@ class TestTimeDependence:
         cops = [[qutip.destroy(2), lambda t, args: np.sqrt(8*t)]]
         a = qutip.destroy(2)
         ad = a.dag()
-        corre_result = qutip.correlation_2op_2t(H, psi0, tlist, tlist, cops, ad, a)
+        corre_result = qutip.correlation_2op_2t(H, psi0, tlist,
+                                                tlist, cops, ad, a)
         test_corre = corre_result[i1, i2-i1].real
-        rhom = qutip.mesolve(H, psi0, np.linspace(0, tlist[i1], 101), cops).states[-1]
-        msolve_result = (qutip.mesolve(H, a * rhom, np.linspace(tlist[i1], tlist[i2]
-                                                                , 101), cops).states[-1] * ad).tr()
+        rhom = qutip.mesolve(H, psi0,
+                             np.linspace(0,tlist[i1], 101), cops).states[-1]
+        msolve_result = (qutip.mesolve(H, a * rhom,
+                                       np.linspace(tlist[i1], tlist[i2]
+                                       ,101), cops).states[-1] * ad).tr()
         theory_result = np.exp(-(4.0 * t1 ** 2 + 4.0 * t2 ** 2) / 2)
 
         np.testing.assert_allclose(test_corre, msolve_result, atol=1e-6)
