@@ -774,20 +774,14 @@ class Bloch:
                 idx = k % len(self.vector_default_color)
                 color = self.vector_default_color[idx]
 
-            if self.vector_style == '':
-                # simple line style
-                self.axes.plot(xs3d, ys3d, zs3d, zdir='z', label='Z',
-                               lw=self.vector_width, color=color,
-                               alpha=alpha)
-            else:
-                # decorated style, with arrow heads
-                a = Arrow3D(xs3d, ys3d, zs3d,
-                            mutation_scale=self.vector_mutation,
-                            lw=self.vector_width,
-                            arrowstyle=self.vector_style,
-                            color=color, alpha=alpha)
+            # decorated style, with arrow heads
+            a = Arrow3D(xs3d, ys3d, zs3d,
+                        mutation_scale=self.vector_mutation,
+                        lw=self.vector_width,
+                        arrowstyle=self.vector_style,
+                        color=color, alpha=alpha)
 
-                self.axes.add_artist(a)
+            self.axes.add_artist(a)
 
     def plot_points(self):
         # -X and Y data are switched for plotting purposes
