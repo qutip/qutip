@@ -15,9 +15,3 @@ Describe here the proposed change.
 
 **Related issues or PRs**
 Please mention the related issues or PRs here. If the PR fixes an issue, use the keyword fix/fixes/fixed followed by the issue id, e.g. fix #1184
-
-**Changelog**
-Give a short description of the PR in a few words. This will be shown in the QuTiP change log after the PR gets merged.
-For example: 
-Fixed error checking for null matrix in essolve.
-Added option for specifying resolution in Bloch.save function.
