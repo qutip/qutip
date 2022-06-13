@@ -471,3 +471,10 @@ class TestBloch:
                    "be equivalent to a 1D array with the same "
                    "size as the number of vectors. ")
         assert str(err.value) == err_msg
+
+
+def test_repr_svg():
+    svg = Bloch()._repr_svg_()
+    assert isinstance(svg, str)
+    assert svg.startswith("<?xml")
+    assert svg.endswith("</svg>\n")

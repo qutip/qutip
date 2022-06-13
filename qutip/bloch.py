@@ -294,7 +294,7 @@ class Bloch:
     def _repr_svg_(self):
         from IPython.core.pylabtools import print_figure
         self.render()
-        fig_data = print_figure(self.fig, 'svg').decode('utf-8')
+        fig_data = print_figure(self.fig, 'svg')
         plt.close(self.fig)
         return fig_data
 
