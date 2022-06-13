@@ -80,7 +80,8 @@ Here we have demonstrated that the ordering of time-dependent and time-independe
 As an example, we will look at an example that has a time-dependent Hamiltonian of the form :math:`H=H_{0}-f(t)H_{1}` where :math:`f(t)` is the time-dependent driving strength given as :math:`f(t)=A\exp\left[-\left( t/\sigma \right)^{2}\right]`.  The following code sets up the problem
 
 .. plot::
-    :context:
+    :context: reset
+    :nofigs:
 
     ustate = basis(3, 0)
     excited = basis(3, 1)
@@ -115,6 +116,7 @@ Given that we have a single time-dependent Hamiltonian term, and constant collap
 
 .. plot::
     :context:
+    :nofigs:
 
     def H1_coeff(t, args):
         return 9 * np.exp(-(t / 5.) ** 2)
@@ -123,6 +125,7 @@ In this case, the return value dependents only on time.  However, when specifyin
 
 .. plot::
     :context:
+    :nofigs:
 
     H = [H0,[H1, H1_coeff]]
     output = mesolve(H, psi0, t, c_ops, [ada, sigma_UU, sigma_GG])
@@ -142,6 +145,7 @@ The output from the master equation solver is identical to that shown in the exa
 
 .. plot::
     :context:
+    :nofigs:
 
     kappa = 0.5
 
@@ -163,6 +167,7 @@ In the previous example we hardcoded all of the variables, driving amplitude :ma
 
 .. plot::
     :context:
+    :nofigs:
 
     def H1_coeff(t, args):
         return args['A'] * np.exp(-(t/args['sigma'])**2)
@@ -171,6 +176,7 @@ or equivalently,
 
 .. plot::
     :context:
+    :nofigs:
 
     def H1_coeff(t, args):
           A = args['A']
@@ -181,6 +187,7 @@ where args is a Python dictionary of ``key: value`` pairs ``args = {'A': a, 'sig
 
 .. plot::
     :context:
+    :nofigs:
 
     output = mesolve(H, psi0, times, c_ops, [a.dag() * a], args={'A': 9, 'sigma': 5})
 
@@ -188,6 +195,7 @@ or to keep things looking pretty
 
 .. plot::
     :context:
+    :nofigs:
 
     args = {'A': 9, 'sigma': 5}
     output = mesolve(H, psi0, times, c_ops, [a.dag() * a], args=args)
@@ -207,6 +215,7 @@ Like the previous method, the string-based format uses a list pair format ``[Op,
 
 .. plot::
    :context:
+   :nofigs:
 
    ustate = basis(3, 0)
    excited = basis(3, 1)
@@ -240,6 +249,7 @@ Like the previous method, the string-based format uses a list pair format ``[Op,
 
 .. plot::
     :context:
+    :nofigs:
 
     H = [H0, [H1, '9 * exp(-(t / 5) ** 2)']]
 
@@ -247,6 +257,7 @@ Notice that this is a valid Hamiltonian for the string-based format as ``exp`` i
 
 .. plot::
    :context:
+   :nofigs:
 
    output = mesolve(H, psi0, t, c_ops, [a.dag() * a])
 
@@ -254,6 +265,7 @@ We can also use the ``args`` variable in the same manner as before, however we m
 
 .. plot::
     :context:
+    :nofigs:
 
     H = [H0, [H1, 'A * exp(-(t / sig) ** 2)']]
     args = {'A': 9, 'sig': 5}
@@ -273,7 +285,7 @@ Modeling Non-Analytic and/or Experimental Time-Dependent Parameters using Interp
 Sometimes it is necessary to model a system where the time-dependent parameters are non-analytic functions, or are derived from experimental data (i.e. a collection of data points).  In these situations, one can use interpolating functions as an approximate functional form for input into a time-dependent solver.  QuTiP includes it own custom cubic spline interpolation class :class:`qutip.interpolate.Cubic_Spline` to provide this functionality.  To see how this works, lets first generate some noisy data:
 
 .. plot::
-    :context:
+    :context: close-figs
 
     t = np.linspace(-15, 15, 100)
     func = lambda t: 9*np.exp(-(t / 5)** 2)
@@ -386,6 +398,7 @@ To set up the problem, we run the following code:
 
 .. plot::
    :context:
+   :nofigs:
 
    delta = 0.1  * 2 * np.pi  # qubit sigma_x coefficient
    w = 2.0  * 2 * np.pi      # driving frequency
@@ -414,6 +427,7 @@ pre-generated Hamiltonian constructed using the :func:`qutip.rhs_generate` comma
 
 .. plot::
    :context:
+   :nofigs:
 
    opts = Options(rhs_reuse=True)
    rhs_generate(H_td, c_ops, Hargs, name='lz_func')
@@ -434,3 +448,10 @@ Here, we have given the generated file a custom name ``lz_func``, however this i
       return [m, p_mat_m]
 
 Notice the Options ``opts`` in the call to the :func:`qutip.propagator` function.  This is tells the :func:`qutip.mesolve` function used in the propagator to call the pre-generated file ``lz_func``. If this were missing then the routine would fail.
+
+.. plot::
+    :context: reset
+    :include-source: false
+    :nofigs:
+
+    # reset the context at the end
