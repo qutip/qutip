@@ -88,7 +88,7 @@ def ttmsolve(dynmaps, rho0, times, e_ops=[], learningtimes=None, tensors=None,
 
     kwargs : dictionary
         Optional keyword arguments. See
-        :class:`qutip.nonmarkov.ttm.TTMSolverOptions`.
+        :class:`qutip.nonmarkov.transfertensor.TTMSolverOptions`.
 
     Returns
     -------
@@ -199,7 +199,7 @@ def _generatetensors(dynmaps, learningtimes=None, **kwargs):
 
     kwargs : dictionary
         Optional keyword arguments. See
-        :class:`qutip.nonmarkov.ttm.TTMSolverOptions`.
+        :class:`qutip.nonmarkov.transfertensor.TTMSolverOptions`.
 
     Returns
     -------

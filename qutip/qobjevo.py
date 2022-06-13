@@ -15,7 +15,7 @@ from qutip.qobjevo_codegen import (_compile_str_single, _compiled_coeffs,
 from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi,
                                  spmv)
 from qutip.cy.cqobjevo import (CQobjCte, CQobjCteDense, CQobjEvoTd,
-                                 CQobjEvoTdMatched, CQobjEvoTdDense)
+                               CQobjEvoTdMatched, CQobjEvoTdDense)
 from qutip.cy.cqobjevo_factor import (InterCoeffT, InterCoeffCte,
                                       InterpolateCoeff, StrCoeff,
                                       StepCoeffCte, StepCoeffT)
@@ -81,6 +81,7 @@ class _file_list:
     """
     Contain temp a list .pyx to clean
     """
+
     def __init__(self):
         self.files = []
 
@@ -103,6 +104,7 @@ class _file_list:
     def __del__(self):
         self.clean()
 
+
 coeff_files = _file_list()
 
 
@@ -115,6 +117,7 @@ class _StrWrapper:
         env.update(args)
         exec(self.code, str_env, env)
         return env["_out"]
+
 
 class _CubicSplineWrapper:
     # Using scipy's CubicSpline since Qutip's one
@@ -136,6 +139,7 @@ class _CubicSplineWrapper:
     def __call__(self, t, args={}):
         return self.func([t])[0]
 
+
 class _StateAsArgs:
     # old with state (f(t, psi, args)) to new (args["state"] = psi)
     def __init__(self, coeff_func):
@@ -150,6 +154,7 @@ class StateArgs:
     """Object to indicate to use the state in args outside solver.
     args[key] = StateArgs(type, op)
     """
+
     def __init__(self, type="Qobj", op=None):
         self.dyn_args = (type, op)
 
@@ -166,7 +171,7 @@ class StateArgs:
 class EvoElement:
     """
     Internal type used to represent the time-dependent parts of a
-    :class:`~QobjEvo`.
+    :class:`~qutip.QobjEvo`.
 
     Availables "types" are
 
@@ -204,24 +209,25 @@ class QobjEvo:
 
     Basic math operations are defined:
 
-    - ``+``, ``-`` : :class:`~QobjEvo`, :class:`~Qobj`, scalars.
-    - ``*``: :class:`~Qobj`, C number
+    - ``+``, ``-`` : :class:`~qutip.QobjEvo`, :class:`~qutip.Qobj`, scalars.
+    - ``*``: :class:`~qutip.Qobj`, C number
     - ``/`` : C number
 
-    This object is constructed by passing a list of :obj:`~Qobj` instances,
-    each of which *may* have an associated scalar time dependence.  The list is
-    summed to produce the final result.  In other words, if an instance of this
-    class is :math:`Q(t)`, then it is constructed from a set of constant
-    :obj:`~Qobj` :math:`\\{Q_k\\}` and time-dependent scalars :math:`f_k(t)` by
+    This object is constructed by passing a list of :obj:`~qutip.Qobj`
+    instances, each of which *may* have an associated scalar time dependence.
+    The list is summed to produce the final result.  In other words, if an
+    instance of this class is :math:`Q(t)`, then it is constructed from a set
+    of constant:obj:`~qutip.Qobj` :math:`\\{Q_k\\}` and time-dependent scalars
+    :math:`f_k(t)` by
 
     .. math::
 
         Q(t) = \\sum_k f_k(t) Q_k
 
-    If a scalar :math:`f_k(t)` is not passed with a given :obj:`~Qobj`, then
-    that term is assumed to be constant.  The next section contains more detail
-    on the allowed forms of the constants, and gives several examples for how
-    to build instances of this class.
+    If a scalar :math:`f_k(t)` is not passed with a given :obj:`~qutip.Qobj`,
+    then that term is assumed to be constant.  The next section contains more
+    detail on the allowed forms of the constants, and gives several examples
+    for how to build instances of this class.
 
     **Time-dependence formats**
 
@@ -295,7 +301,7 @@ class QobjEvo:
     they are updated at every call.  The initial values of these dictionary
     elements is unimportant.  The magic names available are:
 
-    - ``"state"``: the current state as a :class:`~Qobj`
+    - ``"state"``: the current state as a :class:`~qutip.Qobj`
     - ``"state_vec"``: the current state as a column-stacked 1D ``np.ndarray``
     - ``"state_mat"``: the current state as a 2D ``np.ndarray``
     - ``"expect_op_<n>"``: the current expectation value of the element
@@ -311,7 +317,7 @@ class QobjEvo:
 
     Parameters
     ----------
-    Q_object : list, :class:`~Qobj` or :class:`~QobjEvo`
+    Q_object : list, :class:`~qutip.Qobj` or :class:`~qutip.QobjEvo`
         The time-dependent description of the quantum object.  This is of the
         same format as the first parameter to the general ODE solvers; in
         general, it is a list of ``[Qobj, time_dependence]`` pairs that are
@@ -335,7 +341,7 @@ class QobjEvo:
 
     Attributes
     ----------
-    cte : :class:`~Qobj`
+    cte : :class:`~qutip.Qobj`
         Constant part of the QobjEvo.
 
     ops : list of :class:`.EvoElement`
@@ -378,7 +384,7 @@ class QobjEvo:
         Information about the type of coefficients used in the entire object.
 
     num_obj : int
-        Number of :obj:`~Qobj` in the QobjEvo.
+        Number of :obj:`~qutip.Qobj` in the QobjEvo.
 
     use_cython : bool
         Flag to compile string to Cython or Python
@@ -546,7 +552,7 @@ class QobjEvo:
         return out
 
     def _args_checks(self):
-        statedims = [self.cte.dims[1],[1]]
+        statedims = [self.cte.dims[1], [1]]
         for key in self.args:
             if key == "state" or key == "state_qobj":
                 self.dynamics_args += [(key, "Qobj", None)]
@@ -597,7 +603,7 @@ class QobjEvo:
 
     def __call__(self, t, data=False, state=None, args={}):
         """
-        Return a single :obj:`~Qobj` at the given time ``t``.
+        Return a single :obj:`~qutip.Qobj` at the given time ``t``.
         """
         try:
             t = float(t)
@@ -662,11 +668,12 @@ class QobjEvo:
                     elif what == "Qobj":
                         self.args[name] = Qobj(mat, dims=self.cte.dims[1])
                 elif state.shape[0] == s1:
-                    mat = state.reshape((-1,1))
+                    mat = state.reshape((-1, 1))
                     if what == "mat":
                         self.args[name] = mat
                     elif what == "Qobj":
-                        self.args[name] = Qobj(mat, dims=[self.cte.dims[1],[1]])
+                        self.args[name] = Qobj(
+                            mat, dims=[self.cte.dims[1], [1]])
                 elif state.shape[0] == s1*s1:
                     new_l = int(np.sqrt(s1))
                     mat = state.reshape((new_l, new_l), order="F")
@@ -687,7 +694,7 @@ class QobjEvo:
                 elif what == "expect":
                     self.args[name] = op.expect(t, state)
                 elif state.shape[1] == 1:
-                    self.args[name] = Qobj(state, dims=[self.cte.dims[1],[1]])
+                    self.args[name] = Qobj(state, dims=[self.cte.dims[1], [1]])
                 elif state.shape[1] == s1:
                     self.args[name] = Qobj(state, dims=self.cte.dims)
                 else:
@@ -917,7 +924,7 @@ class QobjEvo:
                 self.dynamics_args += other.dynamics_args
                 self.dummy_cte = self.dummy_cte and other.dummy_cte
                 self.num_obj = (len(self.ops) if
-                              self.dummy_cte else len(self.ops) + 1)
+                                self.dummy_cte else len(self.ops) + 1)
             self._reset_type()
             return self
         return NotImplemented
@@ -1600,8 +1607,8 @@ class QobjEvo:
                 for part in self.ops:
                     if isinstance(part.get_coeff, _StrWrapper):
                         get_coeff, file_ = _compile_str_single(
-                                                                part.coeff,
-                                                                self.args)
+                            part.coeff,
+                            self.args)
                         coeff_files.add(file_)
                         self.coeff_files.append(file_)
                         funclist.append(get_coeff)
@@ -1616,10 +1623,10 @@ class QobjEvo:
             elif self.type in ["mixed_callable"]:
                 funclist = [part.get_coeff for part in self.ops]
                 _UnitedStrCaller, Code, file_ = _compiled_coeffs_python(
-                                                        self.ops,
-                                                        self.args,
-                                                        self.dynamics_args,
-                                                        self.tlist)
+                    self.ops,
+                    self.args,
+                    self.dynamics_args,
+                    self.tlist)
                 coeff_files.add(file_)
                 self.coeff_files.append(file_)
                 self.coeff_get = _UnitedStrCaller(funclist, self.args,
@@ -1631,10 +1638,10 @@ class QobjEvo:
                 if self.use_cython:
                     # All factor can be compiled
                     self.coeff_get, Code, file_ = _compiled_coeffs(
-                                                        self.ops,
-                                                        self.args,
-                                                        self.dynamics_args,
-                                                        self.tlist)
+                        self.ops,
+                        self.args,
+                        self.dynamics_args,
+                        self.tlist)
                     coeff_files.add(file_)
                     self.coeff_files.append(file_)
                     self.compiled_qobjevo.set_factor(obj=self.coeff_get)
@@ -1642,10 +1649,10 @@ class QobjEvo:
                 else:
                     # All factor can be compiled
                     _UnitedStrCaller, Code, file_ = _compiled_coeffs_python(
-                                                        self.ops,
-                                                        self.args,
-                                                        self.dynamics_args,
-                                                        self.tlist)
+                        self.ops,
+                        self.args,
+                        self.dynamics_args,
+                        self.tlist)
                     coeff_files.add(file_)
                     self.coeff_files.append(file_)
                     funclist = [part.get_coeff for part in self.ops]
@@ -1661,7 +1668,7 @@ class QobjEvo:
                 except KeyError:
                     use_step_func = 0
                 if np.allclose(np.diff(self.tlist),
-                            self.tlist[1] - self.tlist[0]):
+                               self.tlist[1] - self.tlist[0]):
                     if use_step_func:
                         self.coeff_get = StepCoeffCte(
                             self.ops, None, self.tlist)
@@ -1708,7 +1715,7 @@ class QobjEvo:
         self.__dict__ = state[0]
         self.compiled_qobjevo = None
         if self.compiled:
-            mat_type, threading, td =  self.compiled.split()
+            mat_type, threading, td = self.compiled.split()
             if mat_type == "csr":
                 if self.safePickle:
                     # __getstate__ and __setstate__ of compiled_qobjevo pass pointers
@@ -1732,22 +1739,27 @@ class QobjEvo:
                             self.compiled_qobjevo.set_threads(self.omp)
 
                         if td == "pyfunc":
-                            self.compiled_qobjevo.set_factor(func=self.coeff_get)
+                            self.compiled_qobjevo.set_factor(
+                                func=self.coeff_get)
                         elif td == "cyfactor":
-                            self.compiled_qobjevo.set_factor(obj=self.coeff_get)
+                            self.compiled_qobjevo.set_factor(
+                                obj=self.coeff_get)
                 else:
                     if td == "cte":
                         if threading == "single":
                             self.compiled_qobjevo = CQobjCte.__new__(CQobjCte)
                         elif threading == "omp":
-                            self.compiled_qobjevo = CQobjCteOmp.__new__(CQobjCteOmp)
+                            self.compiled_qobjevo = CQobjCteOmp.__new__(
+                                CQobjCteOmp)
                             self.compiled_qobjevo.set_threads(self.omp)
                     else:
                         # time dependence is pyfunc or cyfactor
                         if threading == "single":
-                            self.compiled_qobjevo = CQobjEvoTd.__new__(CQobjEvoTd)
+                            self.compiled_qobjevo = CQobjEvoTd.__new__(
+                                CQobjEvoTd)
                         elif threading == "omp":
-                            self.compiled_qobjevo = CQobjEvoTdOmp.__new__(CQobjEvoTdOmp)
+                            self.compiled_qobjevo = CQobjEvoTdOmp.__new__(
+                                CQobjEvoTdOmp)
                             self.compiled_qobjevo.set_threads(self.omp)
                     self.compiled_qobjevo.__setstate__(state[1])
 
@@ -1795,12 +1807,12 @@ class _UnitedFuncCaller:
             elif what == "Qobj":
                 if self.shape[1] == shape[1]:  # oper
                     self.args[name] = Qobj(mat, dims=self.dims)
-                elif shape[1] == 1: # ket
-                    self.args[name] = Qobj(mat, dims=[self.dims[1],[1]])
+                elif shape[1] == 1:  # ket
+                    self.args[name] = Qobj(mat, dims=[self.dims[1], [1]])
                 else:  # rho
                     self.args[name] = Qobj(mat, dims=self.dims[1])
             elif what == "expect":
-                if shape[1] == op.cte.shape[1]: # same shape as object
+                if shape[1] == op.cte.shape[1]:  # same shape as object
                     self.args[name] = op.mul_mat(t, mat).trace()
                 else:
                     self.args[name] = op.expect(t, state)

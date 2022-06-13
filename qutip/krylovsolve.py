@@ -76,8 +76,8 @@ def krylovsolve(
 
     Returns
     -------
-    result: :class:`qutip.Result`
-        An instance of the class :class:`qutip.Result`, which contains
+    result: :class:`qutip.solver.Result`
+        An instance of the class :class:`qutip.solver.Result`, which contains
         either an *array* `result.expect` of expectation values for the times
         `tlist`, or an *array* `result.states` of state vectors corresponding
         to the times `tlist` [if `e_ops` is an empty list].

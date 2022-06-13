@@ -375,7 +375,7 @@ To represent superoperators acting on :math:`\mathcal{L}(\mathcal{H}_1 \otimes \
 :math:`\mathcal{H}_1 \otimes \mathcal{H}_2 \otimes \mathcal{H}_1 \otimes \mathcal{H}_2`.
 
 In particular, this means that :func:`qutip.tensor` does not act as
-one might expect on the results of :func:`qutip.to_super`:
+one might expect on the results of :func:`qutip.superop_reps.to_super`:
 
 .. doctest:: [tensor]
 
@@ -394,7 +394,7 @@ of the compound index with dims ``[2, 3]``. In the latter
 case, however, each of the Hilbert space indices is listed
 independently and in the wrong order.
 
-The :func:`qutip.super_tensor` function performs the needed
+The :func:`qutip.tensor.super_tensor` function performs the needed
 rearrangement, providing the most direct analog to :func:`qutip.tensor` on
 the underlying Hilbert space. In particular, for any two ``type="oper"``
 Qobjs ``A`` and ``B``, ``to_super(tensor(A, B)) == super_tensor(to_super(A), to_super(B))`` and
@@ -405,8 +405,8 @@ Qobjs ``A`` and ``B``, ``to_super(tensor(A, B)) == super_tensor(to_super(A), to_
   >>> super_tensor(to_super(A), to_super(B)).dims
   [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]
 
-The :func:`qutip.composite` function automatically switches between
-:func:`qutip.tensor` and :func:`qutip.super_tensor` based on the ``type``
+The :func:`qutip.tensor.composite` function automatically switches between
+:func:`qutip.tensor` and :func:`qutip.tensor.super_tensor` based on the ``type``
 of its arguments, such that ``composite(A, B)`` returns an appropriate Qobj to
 represent the composition of two systems.
 
@@ -420,7 +420,7 @@ represent the composition of two systems.
 
 QuTiP also allows more general tensor manipulations that are
 useful for converting between superoperator representations [WBC11]_.
-In particular, the :func:`tensor_contract` function allows for
+In particular, the :func:`~qutip.tensor.tensor_contract` function allows for
 contracting one or more pairs of indices. As detailed in
 the `channel contraction tutorial`_, this can be used to find
 superoperators that represent partial trace maps.
