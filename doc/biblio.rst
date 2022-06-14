@@ -67,3 +67,7 @@ Bibliography
 .. [Wis09]
 
     Wiseman, H. M. & Milburn, G. J. *Quantum Measurement and Control*, (Cambridge University Press, 2009).
+
+.. [NKanej]
+
+    N Khaneja et. al. *Optimal control of coupled spin dynamics: Design of NMR pulse sequences by gradient ascent algorithms.* J. Magn. Reson. **172**, 296–305 (2005). :doi:`10.1016/j.jmr.2004.11.004`
