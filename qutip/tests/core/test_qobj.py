@@ -1081,3 +1081,19 @@ def test_contract(expanded, contracted, inplace):
     assert out.dims == contracted
     assert out.shape == qobj.shape
     assert np.all(out.full() == qobj.full())
+
+
+@pytest.mark.parametrize(["shape"], [
+    pytest.param((5, 1), id='ket'),
+    pytest.param((5, 2), id='tall'),
+    pytest.param((1, 5), id='bra'),
+    pytest.param((2, 5), id='wide'),
+    pytest.param((3, 3), id='oper'),
+])
+def test_sum_zero(shape):
+    data = np.random.rand(*shape) + 1j*np.random.rand(*shape)
+    ket = qutip.Qobj(data)
+    assert ket + 0 == ket
+    assert ket - 0 == ket
+    assert 0 + ket == ket
+    assert 0 - ket == -ket
