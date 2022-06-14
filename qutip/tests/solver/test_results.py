@@ -11,6 +11,11 @@ def e_op_state_by_time(t, state):
     return t * state
 
 
+def e_op_num(t, state):
+    """ An e_ops function that returns the ground state occupation. """
+    return state.dag() @ qutip.num(5) @ state
+
+
 class TestResult:
     @pytest.mark.parametrize(["N", "e_ops", "options"], [
         pytest.param(10, (), {}, id="no-e-ops"),
@@ -256,33 +261,46 @@ def test_McResult(format, keep_runs_results):
 
 
 @pytest.mark.parametrize('keep_runs_results', [True, False])
-@pytest.mark.parametrize('e_ops',
-    ['list', 'qobj', 'qobjevo', 'callable', 'dict', 'list_func'])
-def test_multitraj_expect(keep_runs_results, e_ops):
-    N = 10
-    ntraj = 5
+@pytest.mark.parametrize(["e_ops", "results"], [
+    pytest.param(qutip.num(5), [np.arange(5)], id="single-e-op"),
+    pytest.param(
+        {"a": qutip.num(5), "b": qutip.qeye(5)},
+        [np.arange(5), np.ones(5)],
+        id="dict-e-ops",
+    ),
+    pytest.param(qutip.QobjEvo(qutip.num(5)), [np.arange(5)], id="qobjevo"),
+    pytest.param(e_op_num, [np.arange(5)], id="function"),
+    pytest.param(
+        [qutip.num(5), e_op_num],
+        [np.arange(5), np.arange(5)],
+        id="list-e-ops",
+    ),
+])
+def test_multitraj_expect(keep_runs_results, e_ops, results):
+    N = 5
+    ntraj = 25
     opt = qutip.solver.SolverResultsOptions(
         keep_runs_results=keep_runs_results,
-        store_states=True,
     )
-    m_res = MultiTrajResult(
-        _make_e_ops(N, e_ops),
-        opt,
-        np.arange(N),
-        qutip.basis(N, 0)
-    )
+    m_res = MultiTrajResult(e_ops, opt)
     for _ in range(ntraj):
-        res = m_res.spawn()
-        for i in range(1, N):
-            res.add(i, qutip.basis(N, i) / 2)
+        res = Result(e_ops, opt)
+        for i in range(0, N):
+            res.add(i, qutip.basis(N, i) * (1 + np.random.randn() * 0.1))
         m_res.add(res)
 
-    average_expect = _check_and_extract_expect(m_res.average_expect, e_ops)
-    np.testing.assert_allclose(average_expect, np.arange(N))
-    std_expect = _check_and_extract_expect(m_res.std_expect, e_ops)
-    np.testing.assert_allclose(std_expect, np.zeros(N))
+    for expect, expected in zip(m_res.average_expect, results):
+        # Check at 5 sigma, should fail about 1 in 1.7e6 times.
+        np.assert_allclose(expect, expected, atol=1e-14, rtol=0.5)
+
+    for expect, expected in zip(m_res.std_expect, results):
+        # Check at 5 sigma, should fail about 1 in 1.7e6 times.
+        np.assert_allclose(expect, 0.1*expected, atol=1e-14, rtol=0.7)
+
+
     if keep_runs_results:
         for i in range(ntraj):
+            break
             runs_expect = _check_and_extract_expect(m_res.runs_expect, e_ops)
             np.testing.assert_allclose(runs_expect[i], np.arange(N))
     else:
@@ -291,27 +309,22 @@ def test_multitraj_expect(keep_runs_results, e_ops):
 
 
 @pytest.mark.parametrize('keep_runs_results', [True, False])
-@pytest.mark.parametrize('ttol', [
+@pytest.mark.parametrize('targettol', [
     pytest.param(0.1, id='atol'),
     pytest.param([0.001, 0.1], id='rtol'),
     pytest.param([[0.001, 0.1], [0.1, 0]], id='tol_per_e_op'),
 ])
-def test_multitraj_targettol(keep_runs_results, ttol):
+def test_multitraj_targettol(keep_runs_results, targettol):
     N = 10
     ntraj = 1000
     opt = qutip.solver.SolverResultsOptions(
         keep_runs_results=keep_runs_results,
         store_states=True,
     )
-    m_res = MultiTrajResult(
-        [qutip.num(N), qutip.qeye(N)],
-        opt,
-        np.arange(N),
-        qutip.basis(N, 0)
-    )
-    m_res.set_expect_tol(ttol, ntraj)
+    m_res = MultiTrajResult([qutip.num(N), qutip.qeye(N)], opt)
+    m_res.add_end_condition(ntraj, targettol)
     for _ in range(ntraj):
-        res = m_res.spawn()
+        res = Result([qutip.num(N), qutip.qeye(N)], opt)
         for i in range(N):
             res.add(i, qutip.basis(N, i) * (1 - 0.5*np.random.rand()))
         if m_res.add(res) <= 0:
