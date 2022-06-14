@@ -183,7 +183,9 @@ def test_McResult(format, keep_runs_results):
             if format == 'dm':
                 state = qutip.ket2dm(state)
             res.add(i, state)
-            res.collapse.append((i+0.5, i%2))
+            res.collapse.append((i+0.5, 0))
+            res.collapse.append((i+0.25, 1))
+            res.collapse.append((i+0.75, 1))
         m_res.add(res)
 
     np.testing.assert_allclose(m_res.average_expect[0], np.arange(N))
@@ -208,6 +210,8 @@ def test_McResult(format, keep_runs_results):
     assert m_res.end_condition == "ntraj reached"
     assert isinstance(m_res.collapse, list)
     assert len(m_res.col_which[0]) == len(m_res.col_times[0])
+    np.testing.assert_allclose(m_res.photocurrent[0], np.ones(N-1))
+    np.testing.assert_allclose(m_res.photocurrent[1], 2 * np.ones(N-1))
 
 
 @pytest.mark.parametrize('keep_runs_results', [True, False])
@@ -258,13 +262,14 @@ def test_multitraj_expect(keep_runs_results, e_ops, results):
         assert isinstance(m_res.expect_traj_std(), list)
         assert isinstance(m_res.e_data_traj_avg(), dict)
         assert isinstance(m_res.e_data_traj_std(), dict)
+
         for runs_expect, expected in zip(m_res.runs_expect, results):
             for expect in runs_expect:
                 np.testing.assert_allclose(expect, expected, atol=1e-14,
                                            rtol=0.1)
         for expect, expected in zip(m_res.expect_traj_avg(9), results):
             np.testing.assert_allclose(expect, expected, atol=1e-14,
-                                       rtol=0.02)
+                                       rtol=0.04)
         for variance, expected in zip(m_res.expect_traj_std(9), results):
             np.testing.assert_allclose(variance, 0.02*expected, atol=1e-14,
                                        rtol=0.9)
@@ -303,3 +308,19 @@ def test_multitraj_targettol(keep_runs_results, targettol):
 
     assert m_res.end_condition == "target tolerance reached"
     assert m_res.num_trajectories <= 1000
+
+
+def test_multitraj_steadystate():
+    N = 5
+    ntraj = 1000
+    opt = qutip.solver.SolverResultsOptions()
+    m_res = MultiTrajResult([], opt)
+    m_res.add_end_condition(ntraj)
+    for _ in range(100):
+        res = Result([], opt)
+        for i in range(N):
+            res.add(i, qutip.basis(N, i))
+        m_res.add(res)
+
+    assert m_res.end_condition == "timeout"
+    assert m_res.steady_state() == qutip.qeye(5) / 5

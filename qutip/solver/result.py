@@ -484,7 +484,7 @@ class MultiTrajResult(Result):
         self.num_trajectories = 0
         self._target_ntraj = None
 
-        store_states = self.options['store_states']
+        store_states = self.options['store_states'] or not self.raw_ops
         store_final_state = self.options['store_final_state']
         store_traj = self.options['keep_runs_results']
 
@@ -628,7 +628,6 @@ class MultiTrajResult(Result):
         """
         return self.runs_final_states or self.average_final_state
 
-    @property
     def steady_state(self, N=0):
         """
         Average the states of the last ``N`` times of every runs as a density
@@ -869,7 +868,7 @@ class McResult(MultiTrajResult):
             for t, which in collapses:
                 cols[which].append(t)
         mesurement = [
-            np.histogram(cols[i], tlist)[0] / np.diff(tlist) / self._num
+            np.histogram(cols[i], tlist)[0] / np.diff(tlist) / self.num_trajectories
             for i in range(self.num_c_ops)
         ]
         return mesurement
