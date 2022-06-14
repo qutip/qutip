@@ -59,7 +59,7 @@ We can use optimal control algorithms to determine a set of :math:`u_j` that wil
 
 The GRAPE algorithm
 ===================
-The **GR**\ adient **A**\ scent **P**\ ulse **E**\ ngineering was first proposed in [2]. Solutions to Schrödinger's equation for a time-dependent Hamiltonian are not generally possible to obtain analytically. Therefore, a piecewise constant approximation to the pulse amplitudes is made. Time allowed for the system to evolve :math:`T` is split into :math:`M` timeslots (typically these are of equal duration), during which the control amplitude is assumed to remain constant. The combined Hamiltonian can then be approximated as:
+The **GR**\ adient **A**\ scent **P**\ ulse **E**\ ngineering was first proposed in [NKanej]_. Solutions to Schrödinger's equation for a time-dependent Hamiltonian are not generally possible to obtain analytically. Therefore, a piecewise constant approximation to the pulse amplitudes is made. Time allowed for the system to evolve :math:`T` is split into :math:`M` timeslots (typically these are of equal duration), during which the control amplitude is assumed to remain constant. The combined Hamiltonian can then be approximated as:
 
 .. math::
 
