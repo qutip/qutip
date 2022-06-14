@@ -159,56 +159,6 @@ class TestResult:
         ])
 
 
-class TestMultiTrajResult:
-    def test_averages_and_states(self):
-        N = 10
-        e_ops = [qutip.num(N), qutip.qeye(N)]
-        m_res = MultiTrajResult(3)
-        opt = SolverResultsOptions(store_states=True)
-        for _ in range(5):
-            res = Result(e_ops, opt)
-            res.collapse = []
-            for i in range(N):
-                res.add(i, (qutip.basis(N, i) / 2).unit())
-                res.collapse.append((i+0.5, i % 2))
-            m_res.add(res)
-
-        np.testing.assert_allclose(m_res.average_expect[0], np.arange(N))
-        np.testing.assert_allclose(m_res.average_expect[1], np.ones(N))
-        np.testing.assert_allclose(m_res.std_expect[1], np.zeros(N))
-        for i in range(N):
-            assert m_res.average_states[i] == qutip.fock_dm(N, i)
-        assert m_res.average_final_state == qutip.fock_dm(N, N - 1)
-        assert len(m_res.runs_states) == 5
-        assert len(m_res.runs_states[0]) == N
-        for i in range(5):
-            assert m_res.runs_final_states[i] == qutip.basis(N, N - 1)
-        assert np.all(np.array(m_res.col_which) < 2)
-
-
-class TestMultiTrajResultAveraged:
-    def test_averages_and_states(self):
-        N = 10
-        e_ops = [qutip.num(N), qutip.qeye(N)]
-        m_res = MultiTrajResultAveraged(3)
-        opt = SolverResultsOptions(
-            store_final_state=True,
-        )
-        for _ in range(5):
-            res = Result(e_ops, opt)
-            res.collapse = []
-            for i in range(N):
-                res.add(i, (qutip.basis(N, i) / 2).unit())
-                res.collapse.append((i + 0.5, i % 2))
-            m_res.add(res)
-
-        np.testing.assert_allclose(m_res.average_expect[0], np.arange(N))
-        np.testing.assert_allclose(m_res.average_expect[1], np.ones(N))
-        np.testing.assert_allclose(m_res.std_expect[1], np.zeros(N))
-        assert m_res.average_final_state == qutip.fock_dm(N, N-1)
-        assert np.all(np.array(m_res.col_which) < 2)
-
-# =============================================================================  ====================================================
 @pytest.mark.parametrize('keep_runs_results', [True, False])
 @pytest.mark.parametrize('format', ['dm', 'ket'])
 def test_McResult(format, keep_runs_results):
@@ -223,13 +173,13 @@ def test_McResult(format, keep_runs_results):
     if format == 'dm':
         state0 = qutip.ket2dm(state0)
 
-    m_res = McResult(e_ops, opt, np.arange(N), state0, 2)
-    m_res.set_expect_tol(None, ntraj)
+    m_res = McResult(e_ops, opt, stats={"num_collapse": 2})
+    m_res.add_end_condition(ntraj, None)
     for _ in range(ntraj):
-        res = m_res.spawn()
+        res = Result(e_ops, opt)
         res.collapse = []
-        for i in range(1, N):
-            state = qutip.basis(N, i) / 2
+        for i in range(0, N):
+            state = qutip.basis(N, i)
             if format == 'dm':
                 state = qutip.ket2dm(state)
             res.add(i, state)
@@ -278,7 +228,7 @@ def test_McResult(format, keep_runs_results):
 ])
 def test_multitraj_expect(keep_runs_results, e_ops, results):
     N = 5
-    ntraj = 25
+    ntraj = 100
     opt = qutip.solver.SolverResultsOptions(
         keep_runs_results=keep_runs_results,
     )
@@ -286,25 +236,46 @@ def test_multitraj_expect(keep_runs_results, e_ops, results):
     for _ in range(ntraj):
         res = Result(e_ops, opt)
         for i in range(0, N):
-            res.add(i, qutip.basis(N, i) * (1 + np.random.randn() * 0.1))
+            res.add(i, qutip.basis(N, i) * (1 + np.random.randn() * 0.01))
         m_res.add(res)
 
     for expect, expected in zip(m_res.average_expect, results):
-        # Check at 5 sigma, should fail about 1 in 1.7e6 times.
-        np.assert_allclose(expect, expected, atol=1e-14, rtol=0.5)
+        np.testing.assert_allclose(expect, expected, atol=1e-14, rtol=0.01)
 
-    for expect, expected in zip(m_res.std_expect, results):
-        # Check at 5 sigma, should fail about 1 in 1.7e6 times.
-        np.assert_allclose(expect, 0.1*expected, atol=1e-14, rtol=0.7)
+    for variance, expected in zip(m_res.std_expect, results):
+        np.testing.assert_allclose(variance, 0.02*expected,
+                                   atol=1e-14, rtol=0.9)
 
+    assert isinstance(m_res.std_expect, list)
+    assert isinstance(m_res.average_e_data, dict)
+    assert isinstance(m_res.std_expect, list)
+    assert isinstance(m_res.average_e_data, dict)
 
     if keep_runs_results:
-        for i in range(ntraj):
-            break
-            runs_expect = _check_and_extract_expect(m_res.runs_expect, e_ops)
-            np.testing.assert_allclose(runs_expect[i], np.arange(N))
+        assert isinstance(m_res.runs_expect, list)
+        assert isinstance(m_res.runs_e_data, dict)
+        assert isinstance(m_res.expect_traj_avg(), list)
+        assert isinstance(m_res.expect_traj_std(), list)
+        assert isinstance(m_res.e_data_traj_avg(), dict)
+        assert isinstance(m_res.e_data_traj_std(), dict)
+        for runs_expect, expected in zip(m_res.runs_expect, results):
+            for expect in runs_expect:
+                np.testing.assert_allclose(expect, expected, atol=1e-14,
+                                           rtol=0.1)
+        for expect, expected in zip(m_res.expect_traj_avg(9), results):
+            np.testing.assert_allclose(expect, expected, atol=1e-14,
+                                       rtol=0.02)
+        for variance, expected in zip(m_res.expect_traj_std(9), results):
+            np.testing.assert_allclose(variance, 0.02*expected, atol=1e-14,
+                                       rtol=0.9)
     else:
         assert m_res.runs_expect is None
+        assert m_res.runs_e_data is None
+        assert m_res.expect_traj_avg() is None
+        assert m_res.e_data_traj_avg() is None
+        assert m_res.expect_traj_std() is None
+        assert m_res.e_data_traj_std() is None
+
     assert m_res.end_condition == "unknown"
 
 
@@ -331,5 +302,4 @@ def test_multitraj_targettol(keep_runs_results, targettol):
             break
 
     assert m_res.end_condition == "target tolerance reached"
-    assert m_res.num_expect == 2
-    assert m_res.num_traj <= 1000
+    assert m_res.num_trajectories <= 1000

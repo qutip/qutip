@@ -152,21 +152,8 @@ class Result:
 
         self._state_processors = []
         self._state_processors_require_copy = False
-
-        raw_ops = self._e_ops_to_dict(e_ops)
-        self.e_data = {k: [] for k in raw_ops}
-        self.expect = list(self.e_data.values())
-        self.e_ops = {}
-        for k, op in raw_ops.items():
-            f = self._e_op_func(op)
-            self.e_ops[k] = ExpectOp(op, f, self.e_data[k].append)
-            self.add_processor(self.e_ops[k]._store)
-
+        self.raw_ops = self._e_ops_to_dict(e_ops)
         self.options = options
-
-        self.times = []
-        self.states = []
-        self.final_state = None
 
         self._post_init(**kw)
 
@@ -210,6 +197,18 @@ class Result:
         Sub-class ``.post_init()`` implementation may take additional keyword
         arguments if required.
         """
+        self.e_data = {k: [] for k in self.raw_ops}
+        self.expect = list(self.e_data.values())
+        self.e_ops = {}
+        for k, op in self.raw_ops.items():
+            f = self._e_op_func(op)
+            self.e_ops[k] = ExpectOp(op, f, self.e_data[k].append)
+            self.add_processor(self.e_ops[k]._store)
+
+        self.times = []
+        self.states = []
+        self.final_state = None
+
         store_states = self.options['store_states']
         store_final_state = self.options['store_final_state']
 
@@ -327,7 +326,10 @@ def _e_data_2_expect(f):
     if is_property: f = f.fget
 
     def flatten(*args, **kwargs):
-        return list(f(*args, **kwargs).values())
+        e_data = f(*args, **kwargs)
+        if e_data is None:
+            return None
+        return list(e_data.values())
     doc = f.__doc__.split('/n')[:-1]
     doc.append("            expect : list")
     flatten.__doc__ = "\n".join(doc)
@@ -373,21 +375,6 @@ class MultiTrajResult(Result):
     _target_tols = None
     _tol_reached = False
 
-    def __init__(self, e_ops, options, *, solver=None, stats=None, **kw):
-        self.solver = solver
-        self.stats = stats
-
-        self._state_processors = []
-        self._state_processors_require_copy = False
-
-        self.e_ops = self._e_ops_to_dict(e_ops)
-
-        self.options = options
-
-        self.times = []
-
-        self._post_init(**kw)
-
     @staticmethod
     def _to_dm(state):
         if state.type == 'ket':
@@ -416,10 +403,6 @@ class MultiTrajResult(Result):
     def _store_trajectory(self, trajectory):
         self.trajectories.append(trajectory)
 
-    def _store_seed(self, trajectory):
-        if hasattr(trajectory, "seed"):
-            self.seeds.append(trajectory.seed)
-
     def _reduce_states(self, trajectory):
         self._sum_states = [
             accu + self._to_dm(state)
@@ -428,11 +411,18 @@ class MultiTrajResult(Result):
         ]
 
     def _reduce_final_state(self, trajectory):
-        self._sum_final_states += self._proj(trajectory.final_state)
+        self._sum_final_states += self._to_dm(trajectory.final_state)
 
     def _reduce_expect(self, trajectory):
         self._sum_expect += np.array(trajectory.expect)
         self._sum2_expect += np.abs(np.array(trajectory.expect))**2
+
+    def _increment_traj(self, trajectory):
+        if self.num_trajectories == 0:
+            self._add_first_traj(trajectory)
+        self.num_trajectories += 1
+        if hasattr(trajectory, "seed"):
+            self.seeds.append(trajectory.seed)
 
     def _no_end(self):
         """
@@ -462,9 +452,9 @@ class MultiTrajResult(Result):
             for mean, (atol, rtol)
             in zip(avg, self._target_tols)
         ])
-        traj_left = np.max((avg2 - abs(avg)**2) / target**2 + 1)
-        self._tol_reached = traj_left < 0
-        return traj_left
+        target_ntraj = np.max((avg2 - abs(avg)**2) / target**2 + 1)
+        self._tol_reached = target_ntraj < self.num_trajectories
+        return target_ntraj
 
     def _target_tolerance_end(self):
         """
@@ -489,24 +479,23 @@ class MultiTrajResult(Result):
         return self._estimated_ntraj - self.num_trajectories
 
     def _post_init(self):
-        # Remove expect's processors
-        self._state_processors = []
         self.trajectories = []
         self.seeds = []
         self.num_trajectories = 0
+        self._target_ntraj = None
 
         store_states = self.options['store_states']
         store_final_state = self.options['store_final_state']
         store_traj = self.options['keep_runs_results']
 
-        self.add_processor(self._store_seed)
+        self.add_processor(self._increment_traj)
         if store_traj:
             self.add_processor(self._store_trajectory)
         if store_states:
             self.add_processor(self._reduce_states)
-        if store_final_state:
+        if store_states or store_final_state:
             self.add_processor(self._reduce_final_state)
-        if self.e_ops:
+        if self.raw_ops:
             self.add_processor(self._reduce_expect)
 
         self._early_finish_check = self._no_end
@@ -529,11 +518,6 @@ class MultiTrajResult(Result):
             Return the number of trajectories still needed to reach the target
             tolerance. If no tolerance is provided, return infinity.
         """
-        if self.num_trajectories == 0:
-            self._add_first_traj(trajectory)
-
-        self.num_trajectories += 1
-
         for op in self._state_processors:
             op(trajectory)
 
@@ -569,7 +553,7 @@ class MultiTrajResult(Result):
             self._early_finish_check = self._fixed_end
             return
 
-        num_e_ops = len(self.e_ops)
+        num_e_ops = len(self.raw_ops)
 
         if not num_e_ops:
             raise ValueError("Cannot target a tolerance without e_ops")
@@ -623,8 +607,8 @@ class MultiTrajResult(Result):
         """
         Last states of each trajectories.
         """
-        if self._save_traj:
-            return [traj.final_state for traj in self._trajectories]
+        if self.trajectories:
+            return [traj.final_state for traj in self.trajectories]
         else:
             return None
 
@@ -675,7 +659,7 @@ class MultiTrajResult(Result):
         """
         return {
             k: sum_expect / self.num_trajectories
-            for k, sum_expect in zip(self.e_ops, self._sum_expect)
+            for k, sum_expect in zip(self.raw_ops, self._sum_expect)
         }
 
     average_expect = _e_data_2_expect(average_e_data)
@@ -691,7 +675,10 @@ class MultiTrajResult(Result):
         """
         avg = self._sum_expect / self.num_trajectories
         avg2 = self._sum2_expect / self.num_trajectories
-        return [np.sqrt(a2 - abs(a*a)) for a, a2 in zip(avg, avg2)]
+        return {
+            k: np.sqrt(a2 - abs(a*a))
+            for k, a, a2 in zip(self.raw_ops, avg, avg2)
+        }
 
     std_expect = _e_data_2_expect(std_e_data)
 
@@ -705,9 +692,11 @@ class MultiTrajResult(Result):
         ------
             e_data : dict
         """
+        if not self.trajectories:
+            return None
         return {
             k: np.stack([traj.e_data[k] for traj in self.trajectories])
-            for k in self.e_ops
+            for k in self.raw_ops
         }
 
     runs_expect = _e_data_2_expect(runs_e_data)
@@ -751,10 +740,10 @@ class MultiTrajResult(Result):
         if not self.trajectories:
             return None
         return {
-            k: np.std(np.stack([
-                traj.expect[k] for traj in self.trajectories[:ntraj]
+            k: np.mean(np.stack([
+                traj.e_data[k] for traj in self.trajectories[:ntraj]
             ]), axis=0)
-            for k in self.e_ops
+            for k in self.raw_ops
         }
 
     expect_traj_avg = _e_data_2_expect(e_data_traj_avg)
@@ -778,9 +767,9 @@ class MultiTrajResult(Result):
             return None
         return {
             k: np.std(np.stack([
-                traj.expect[k] for traj in self.trajectories[:ntraj]
+                traj.e_data[k] for traj in self.trajectories[:ntraj]
             ]), axis=0)
-            for k in self.e_ops
+            for k in self.raw_ops
         }
 
     expect_traj_std = _e_data_2_expect(e_data_traj_std)
@@ -840,8 +829,8 @@ class McResult(MultiTrajResult):
         self.collapse.append(trajectory.collapse)
 
     def _post_init(self):
-        self.num_c_ops = stats["num_collapse"]
         super()._post_init()
+        self.num_c_ops = self.stats["num_collapse"]
         self.collapse = []
         self.add_processor(self._add_collapse)
 
