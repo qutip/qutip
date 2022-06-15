@@ -450,13 +450,6 @@ class MultiTrajResult(Result):
             self.stats['end_condition'] = 'ntraj reached'
         return ntraj_left
 
-    def _estimated_trajectories_to_target_tolerance(self):
-        """
-        Compute the error on the expectation values using jackknife resampling.
-        Return the approximate number of trajectories needed to have this
-        error within the tolerance fot all e_ops and times.
-        """
-
     def _target_tolerance_end(self):
         """
         Compute the error on the expectation values using jackknife resampling.
