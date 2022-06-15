@@ -94,6 +94,8 @@ def _require_equal_type(method):
     """
     @functools.wraps(method)
     def out(self, other):
+        if other == 0:
+            return method(self, other)
         if (
             self.type in ('oper', 'super')
             and self.dims[0] == self.dims[1]
@@ -399,6 +401,8 @@ class Qobj:
 
     @_require_equal_type
     def __add__(self, other):
+        if other == 0:
+            return self.copy()
         isherm = (self._isherm and other._isherm) or None
         return Qobj(_data.add(self._data, other._data),
                     dims=self.dims,
@@ -412,6 +416,8 @@ class Qobj:
 
     @_require_equal_type
     def __sub__(self, other):
+        if other == 0:
+            return self.copy()
         isherm = (self._isherm and other._isherm) or None
         return Qobj(_data.sub(self._data, other._data),
                     dims=self.dims,
