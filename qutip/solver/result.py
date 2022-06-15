@@ -783,6 +783,14 @@ class MultiTrajResult(Result):
 
     expect_traj_std = _e_data_2_expect(e_data_traj_std)
 
+    def __repr__(self):
+        repr = super().__repr__()
+        lines = repr.split("\n")
+        lines.insert(-1, f"  Number of trajectories: {self.num_trajectories}")
+        if self.trajectories:
+            lines.insert(-1, "  Trajectories saved.")
+        return "\n".join(lines)
+
 
 class McResult(MultiTrajResult):
     """

@@ -325,3 +325,17 @@ class TestMultiTrahResult:
         self._fill_trajectories(m_res, N, ntraj)
         assert m_res.stats['end_condition'] == "timeout"
         assert m_res.steady_state() == qutip.qeye(5) / 5
+
+    @pytest.mark.parametrize('keep_runs_results', [True, False])
+    def test_repr(self, keep_runs_results):
+        N = 10
+        ntraj = 10
+        opt = qutip.solver.SolverResultsOptions(
+            keep_runs_results=keep_runs_results
+        )
+        m_res = MultiTrajResult([], opt)
+        self._fill_trajectories(m_res, N, ntraj)
+        repr = m_res.__repr__()
+        assert "Number of trajectories: 10" in repr
+        if keep_runs_results:
+            assert "Trajectories saved." in repr
