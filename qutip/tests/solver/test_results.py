@@ -11,11 +11,6 @@ def e_op_state_by_time(t, state):
     return t * state
 
 
-def e_op_num(t, state):
-    """ An e_ops function that returns the ground state occupation. """
-    return state.dag() @ qutip.num(5) @ state
-
-
 class TestResult:
     @pytest.mark.parametrize(["N", "e_ops", "options"], [
         pytest.param(10, (), {}, id="no-e-ops"),
@@ -159,168 +154,174 @@ class TestResult:
         ])
 
 
-@pytest.mark.parametrize('keep_runs_results', [True, False])
-@pytest.mark.parametrize('format', ['dm', 'ket'])
-def test_McResult(format, keep_runs_results):
-    N = 10
-    ntraj = 5
-    e_ops = [qutip.num(N), qutip.qeye(N)]
-    opt = qutip.solver.SolverResultsOptions(
-        keep_runs_results=keep_runs_results,
-        store_states=True,
-    )
-    state0 = qutip.basis(N, 0)
-    if format == 'dm':
-        state0 = qutip.ket2dm(state0)
-
-    m_res = McResult(e_ops, opt, stats={"num_collapse": 2})
-    m_res.add_end_condition(ntraj, None)
-    for _ in range(ntraj):
-        res = Result(e_ops, opt)
-        res.collapse = []
-        for i in range(0, N):
-            state = qutip.basis(N, i)
-            if format == 'dm':
-                state = qutip.ket2dm(state)
-            res.add(i, state)
-            res.collapse.append((i+0.5, 0))
-            res.collapse.append((i+0.25, 1))
-            res.collapse.append((i+0.75, 1))
-        m_res.add(res)
-
-    np.testing.assert_allclose(m_res.average_expect[0], np.arange(N))
-    np.testing.assert_allclose(m_res.average_expect[1], np.ones(N))
-    np.testing.assert_allclose(m_res.std_expect[1], np.zeros(N))
-    for i in range(N):
-        assert m_res.average_states[i] == qutip.fock_dm(N, i)
-    assert m_res.average_final_state == qutip.fock_dm(N, N-1)
-    if keep_runs_results:
-        assert len(m_res.runs_states) == 5
-        assert len(m_res.runs_states[0]) == N
-        for i in range(ntraj):
-            target = qutip.basis(N, N-1)
-            if format == 'dm':
-                target = target.proj()
-            assert m_res.runs_final_states[i] == target
-    else:
-        assert m_res.runs_states is None
-        assert m_res.runs_final_states is None
-    assert np.all(np.array(m_res.col_which) < 2)
-    np.testing.assert_allclose(np.array(m_res.times), np.arange(N))
-    assert m_res.end_condition == "ntraj reached"
-    assert isinstance(m_res.collapse, list)
-    assert len(m_res.col_which[0]) == len(m_res.col_times[0])
-    np.testing.assert_allclose(m_res.photocurrent[0], np.ones(N-1))
-    np.testing.assert_allclose(m_res.photocurrent[1], 2 * np.ones(N-1))
+def e_op_num(t, state):
+    """ An e_ops function that returns the ground state occupation. """
+    return state.dag() @ qutip.num(5) @ state
 
 
-@pytest.mark.parametrize('keep_runs_results', [True, False])
-@pytest.mark.parametrize(["e_ops", "results"], [
-    pytest.param(qutip.num(5), [np.arange(5)], id="single-e-op"),
-    pytest.param(
-        {"a": qutip.num(5), "b": qutip.qeye(5)},
-        [np.arange(5), np.ones(5)],
-        id="dict-e-ops",
-    ),
-    pytest.param(qutip.QobjEvo(qutip.num(5)), [np.arange(5)], id="qobjevo"),
-    pytest.param(e_op_num, [np.arange(5)], id="function"),
-    pytest.param(
-        [qutip.num(5), e_op_num],
-        [np.arange(5), np.arange(5)],
-        id="list-e-ops",
-    ),
-])
-def test_multitraj_expect(keep_runs_results, e_ops, results):
-    N = 5
-    ntraj = 100
-    opt = qutip.solver.SolverResultsOptions(
-        keep_runs_results=keep_runs_results,
-    )
-    m_res = MultiTrajResult(e_ops, opt)
-    for _ in range(ntraj):
-        res = Result(e_ops, opt)
-        for i in range(0, N):
-            res.add(i, qutip.basis(N, i) * (1 + np.random.randn() * 0.01))
-        m_res.add(res)
+class TestMultiTrahResult:
+    def _fill_trajectories(self, multiresult, N, ntraj,
+                           collapse=False, noise=0, dm=False):
+        for _ in range(ntraj):
+            result = Result(multiresult.raw_ops, multiresult.options)
+            result.collapse = []
+            for t in range(N):
+                delta = 1 + noise * np.random.randn()
+                state = qutip.basis(N, t) * delta
+                if dm:
+                    state = state.proj()
+                result.add(t, state)
+                if collapse:
+                    result.collapse.append((t+0.1, 0))
+                    result.collapse.append((t+0.2, 1))
+                    result.collapse.append((t+0.3, 1))
+            if multiresult.add(result) <= 0:
+                break
 
-    for expect, expected in zip(m_res.average_expect, results):
-        np.testing.assert_allclose(expect, expected, atol=1e-14, rtol=0.01)
+    def _expect_check_types(self, multiresult):
+        assert isinstance(multiresult.std_expect, list)
+        assert isinstance(multiresult.average_e_data, dict)
+        assert isinstance(multiresult.std_expect, list)
+        assert isinstance(multiresult.average_e_data, dict)
 
-    for variance, expected in zip(m_res.std_expect, results):
-        np.testing.assert_allclose(variance, 0.02*expected,
-                                   atol=1e-14, rtol=0.9)
+        if multiresult.trajectories:
+            assert isinstance(multiresult.runs_expect, list)
+            assert isinstance(multiresult.runs_e_data, dict)
+            assert isinstance(multiresult.expect_traj_avg(), list)
+            assert isinstance(multiresult.expect_traj_std(), list)
+            assert isinstance(multiresult.e_data_traj_avg(), dict)
+            assert isinstance(multiresult.e_data_traj_std(), dict)
+        else:
+            assert multiresult.runs_expect is None
+            assert multiresult.runs_e_data is None
+            assert multiresult.expect_traj_avg() is None
+            assert multiresult.expect_traj_std() is None
+            assert multiresult.e_data_traj_avg() is None
+            assert multiresult.e_data_traj_std() is None
 
-    assert isinstance(m_res.std_expect, list)
-    assert isinstance(m_res.average_e_data, dict)
-    assert isinstance(m_res.std_expect, list)
-    assert isinstance(m_res.average_e_data, dict)
+    @pytest.mark.parametrize('keep_runs_results', [True, False])
+    @pytest.mark.parametrize('dm', [True, False])
+    def test_McResult(self, dm, keep_runs_results):
+        N = 10
+        ntraj = 5
+        e_ops = [qutip.num(N), qutip.qeye(N)]
+        opt = qutip.solver.SolverResultsOptions(
+            keep_runs_results=keep_runs_results,
+        )
 
-    if keep_runs_results:
-        assert isinstance(m_res.runs_expect, list)
-        assert isinstance(m_res.runs_e_data, dict)
-        assert isinstance(m_res.expect_traj_avg(), list)
-        assert isinstance(m_res.expect_traj_std(), list)
-        assert isinstance(m_res.e_data_traj_avg(), dict)
-        assert isinstance(m_res.e_data_traj_std(), dict)
+        m_res = McResult(e_ops, opt, stats={"num_collapse": 2})
+        m_res.add_end_condition(ntraj, None)
+        self._fill_trajectories(m_res, N, ntraj, collapse=True, dm=dm)
 
-        for runs_expect, expected in zip(m_res.runs_expect, results):
-            for expect in runs_expect:
-                np.testing.assert_allclose(expect, expected, atol=1e-14,
-                                           rtol=0.1)
-        for expect, expected in zip(m_res.expect_traj_avg(9), results):
-            np.testing.assert_allclose(expect, expected, atol=1e-14,
-                                       rtol=0.04)
-        for variance, expected in zip(m_res.expect_traj_std(9), results):
-            np.testing.assert_allclose(variance, 0.02*expected, atol=1e-14,
-                                       rtol=0.9)
-    else:
-        assert m_res.runs_expect is None
-        assert m_res.runs_e_data is None
-        assert m_res.expect_traj_avg() is None
-        assert m_res.e_data_traj_avg() is None
-        assert m_res.expect_traj_std() is None
-        assert m_res.e_data_traj_std() is None
+        np.testing.assert_allclose(np.array(m_res.times), np.arange(N))
+        assert m_res.stats['end_condition'] == "ntraj reached"
+        self._expect_check_types(m_res)
 
-    assert m_res.end_condition == "unknown"
+        assert np.all(np.array(m_res.col_which) < 2)
+        assert isinstance(m_res.collapse, list)
+        assert len(m_res.col_which[0]) == len(m_res.col_times[0])
+        np.testing.assert_allclose(m_res.photocurrent[0], np.ones(N-1))
+        np.testing.assert_allclose(m_res.photocurrent[1], 2 * np.ones(N-1))
 
+    @pytest.mark.parametrize('keep_runs_results', [True, False])
+    @pytest.mark.parametrize(["e_ops", "results"], [
+        pytest.param(qutip.num(5), [np.arange(5)], id="single-e-op"),
+        pytest.param(
+            {"a": qutip.num(5), "b": qutip.qeye(5)},
+            [np.arange(5), np.ones(5)],
+            id="dict-e-ops",
+        ),
+        pytest.param(qutip.QobjEvo(qutip.num(5)), [np.arange(5)], id="qobjevo"),
+        pytest.param(e_op_num, [np.arange(5)], id="function"),
+        pytest.param(
+            [qutip.num(5), e_op_num],
+            [np.arange(5), np.arange(5)],
+            id="list-e-ops",
+        ),
+    ])
+    def test_multitraj_expect(self, keep_runs_results, e_ops, results):
+        N = 5
+        ntraj = 25
+        opt = qutip.solver.SolverResultsOptions(
+            keep_runs_results=keep_runs_results,
+        )
+        m_res = MultiTrajResult(e_ops, opt, stats={})
+        self._fill_trajectories(m_res, N, ntraj, noise=0.01)
 
-@pytest.mark.parametrize('keep_runs_results', [True, False])
-@pytest.mark.parametrize('targettol', [
-    pytest.param(0.1, id='atol'),
-    pytest.param([0.001, 0.1], id='rtol'),
-    pytest.param([[0.001, 0.1], [0.1, 0]], id='tol_per_e_op'),
-])
-def test_multitraj_targettol(keep_runs_results, targettol):
-    N = 10
-    ntraj = 1000
-    opt = qutip.solver.SolverResultsOptions(
-        keep_runs_results=keep_runs_results,
-        store_states=True,
-    )
-    m_res = MultiTrajResult([qutip.num(N), qutip.qeye(N)], opt)
-    m_res.add_end_condition(ntraj, targettol)
-    for _ in range(ntraj):
-        res = Result([qutip.num(N), qutip.qeye(N)], opt)
+        for expect, expected in zip(m_res.average_expect, results):
+            np.testing.assert_allclose(expect, expected,
+                                       atol=1e-14, rtol=0.02)
+
+        for variance, expected in zip(m_res.std_expect, results):
+            np.testing.assert_allclose(variance, 0.02 * expected,
+                                       atol=1e-14, rtol=0.9)
+
+        if keep_runs_results:
+            for runs_expect, expected in zip(m_res.runs_expect, results):
+                for expect in runs_expect:
+                    np.testing.assert_allclose(expect, expected,
+                                               atol=1e-14, rtol=0.1)
+
+            for expect, expected in zip(m_res.expect_traj_avg(25), results):
+                np.testing.assert_allclose(expect, expected,
+                                           atol=1e-14, rtol=0.04)
+
+        self._expect_check_types(m_res)
+
+        assert m_res.stats['end_condition'] == "unknown"
+
+    @pytest.mark.parametrize('keep_runs_results', [True, False])
+    @pytest.mark.parametrize('dm', [True, False])
+    def test_multitraj_state(self, keep_runs_results, dm):
+        N = 5
+        ntraj = 25
+        opt = qutip.solver.SolverResultsOptions(
+            keep_runs_results=keep_runs_results,
+        )
+        m_res = MultiTrajResult([], opt)
+        self._fill_trajectories(m_res, N, ntraj, dm=dm)
+
+        np.testing.assert_allclose(np.array(m_res.times), np.arange(N))
+
         for i in range(N):
-            res.add(i, qutip.basis(N, i) * (1 - 0.5*np.random.rand()))
-        if m_res.add(res) <= 0:
-            break
+            assert m_res.average_states[i] == qutip.fock_dm(N, i)
+        assert m_res.average_final_state == qutip.fock_dm(N, N-1)
 
-    assert m_res.end_condition == "target tolerance reached"
-    assert m_res.num_trajectories <= 1000
+        if keep_runs_results:
+            assert len(m_res.runs_states) == 25
+            assert len(m_res.runs_states[0]) == N
+            for i in range(ntraj):
+                expected = qutip.basis(N, N-1)
+                if dm:
+                    expected = expected.proj()
+                assert m_res.runs_final_states[i] == expected
 
+    @pytest.mark.parametrize('keep_runs_results', [True, False])
+    @pytest.mark.parametrize('targettol', [
+        pytest.param(0.1, id='atol'),
+        pytest.param([0.001, 0.1], id='rtol'),
+        pytest.param([[0.001, 0.1], [0.1, 0]], id='tol_per_e_op'),
+    ])
+    def test_multitraj_targettol(self, keep_runs_results, targettol):
+        N = 10
+        ntraj = 1000
+        opt = qutip.solver.SolverResultsOptions(
+            keep_runs_results=keep_runs_results,
+            store_states=True,
+        )
+        m_res = MultiTrajResult([qutip.num(N), qutip.qeye(N)], opt, stats={})
+        m_res.add_end_condition(ntraj, targettol)
+        self._fill_trajectories(m_res, N, ntraj, noise=0.1)
 
-def test_multitraj_steadystate():
-    N = 5
-    ntraj = 1000
-    opt = qutip.solver.SolverResultsOptions()
-    m_res = MultiTrajResult([], opt)
-    m_res.add_end_condition(ntraj)
-    for _ in range(100):
-        res = Result([], opt)
-        for i in range(N):
-            res.add(i, qutip.basis(N, i))
-        m_res.add(res)
+        assert m_res.stats['end_condition'] == "target tolerance reached"
+        assert m_res.num_trajectories <= 1000
 
-    assert m_res.end_condition == "timeout"
-    assert m_res.steady_state() == qutip.qeye(5) / 5
+    def test_multitraj_steadystate(self):
+        N = 5
+        ntraj = 100
+        opt = qutip.solver.SolverResultsOptions()
+        m_res = MultiTrajResult([], opt, stats={})
+        m_res.add_end_condition(1000)
+        self._fill_trajectories(m_res, N, ntraj)
+        assert m_res.stats['end_condition'] == "timeout"
+        assert m_res.steady_state() == qutip.qeye(5) / 5

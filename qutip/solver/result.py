@@ -435,7 +435,10 @@ class MultiTrajResult(Result):
         """
         Finish at a known number of trajectories.
         """
-        return self._target_ntraj - self.num_trajectories
+        ntraj_left = self._target_ntraj - self.num_trajectories
+        if ntraj_left == 0:
+            self.stats['end_condition'] = 'ntraj reached'
+        return ntraj_left
 
     def _estimated_trajectories_to_target_tolerance(self):
         """
@@ -476,6 +479,9 @@ class MultiTrajResult(Result):
                 - 1
             )
             self._estimated_ntraj = min(target, self._target_ntraj)
+
+        if self._estimated_ntraj - self.num_trajectories <= 0:
+            self.stats['end_condition'] = 'target tolerance reached'
         return self._estimated_ntraj - self.num_trajectories
 
     def _post_init(self):
@@ -483,6 +489,8 @@ class MultiTrajResult(Result):
         self.seeds = []
         self.num_trajectories = 0
         self._target_ntraj = None
+        if self.stats is None:
+            self.stats = {}
 
         store_states = self.options['store_states'] or not self.raw_ops
         store_final_state = self.options['store_final_state']
@@ -499,6 +507,7 @@ class MultiTrajResult(Result):
             self.add_processor(self._reduce_expect)
 
         self._early_finish_check = self._no_end
+        self.stats['end_condition'] = 'unknown'
 
     def add(self, trajectory):
         """
@@ -548,6 +557,7 @@ class MultiTrajResult(Result):
             Error estimation is done with jackknife resampling.
         """
         self._target_ntraj = ntraj
+        self.stats['end_condition'] = 'timeout'
 
         if target_tol is None:
             self._early_finish_check = self._fixed_end
@@ -772,18 +782,6 @@ class MultiTrajResult(Result):
         }
 
     expect_traj_std = _e_data_2_expect(e_data_traj_std)
-
-    @property
-    def end_condition(self):
-        if self._target_tols is not None and self._tol_reached:
-            end_condition = "target tolerance reached"
-        elif self._target_ntraj == self.num_trajectories:
-            end_condition = "ntraj reached"
-        elif self._target_ntraj is not None:
-            end_condition = "timeout"
-        else:
-            end_condition = "unknown"
-        return end_condition
 
 
 class McResult(MultiTrajResult):
