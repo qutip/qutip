@@ -1,7 +1,6 @@
 """ Class for solve function results"""
 import numpy as np
 from ..core import Qobj, QobjEvo, expect, qzero
-import functools
 
 __all__ = ["Result", "MultiTrajResult", "McResult"]
 
@@ -317,30 +316,9 @@ class Result:
         return "\n".join(lines)
 
 
-def _e_data_2_expect(f):
-    """
-    Create a method returning a list from one that return a dict.
-    This transform the ``e_data`` properties to ``expect`` ones.
-    """
-    is_property = isinstance(f, property)
-    if is_property: f = f.fget
-
-    def flatten(*args, **kwargs):
-        e_data = f(*args, **kwargs)
-        if e_data is None:
-            return None
-        return list(e_data.values())
-    doc = f.__doc__.split('/n')[:-1]
-    doc.append("            expect : list")
-    flatten.__doc__ = "\n".join(doc)
-
-    if is_property: flatten = property(flatten)
-    return flatten
-
-
 class MultiTrajResult(Result):
     """
-    Base class for storing solver results.
+    Base class for storing results for solver using multiple trajectories.
 
     Parameters
     ----------
@@ -374,6 +352,7 @@ class MultiTrajResult(Result):
     _sum2_expect = None
     _target_tols = None
     _tol_reached = False
+
 
     @staticmethod
     def _to_dm(state):
@@ -414,8 +393,39 @@ class MultiTrajResult(Result):
         self._sum_final_states += self._to_dm(trajectory.final_state)
 
     def _reduce_expect(self, trajectory):
+        """
+        Compute the average of the expectation values and store it in it's
+        multiple formats.
+        """
         self._sum_expect += np.array(trajectory.expect)
         self._sum2_expect += np.abs(np.array(trajectory.expect))**2
+
+        avg = self._sum_expect / self.num_trajectories
+        avg2 = self._sum2_expect / self.num_trajectories
+
+        self.average_e_data = {
+            k: avg_expect
+            for k, avg_expect in zip(self.raw_ops, avg)
+        }
+        self.average_expect = list(self.average_e_data.values())
+
+        self.expect = self.average_expect
+        self.e_data = self.average_e_data
+
+        self.std_e_data = {
+            k: np.sqrt(avg_expect2 - abs(avg_expect**2))
+            for k, avg_expect, avg_expect2 in zip(self.raw_ops, avg, avg2)
+        }
+        self.std_expect = list(self.std_e_data.values())
+
+        if self.trajectories:
+            self.runs_e_data = {
+                k: np.stack([traj.e_data[k] for traj in self.trajectories])
+                for k in self.raw_ops
+            }
+            self.runs_expect = list(self.runs_e_data.values())
+            self.expect = self.runs_expect
+            self.e_data = self.runs_e_data
 
     def _increment_traj(self, trajectory):
         if self.num_trajectories == 0:
@@ -443,8 +453,15 @@ class MultiTrajResult(Result):
     def _estimated_trajectories_to_target_tolerance(self):
         """
         Compute the error on the expectation values using jackknife resampling.
-        Return the approximate number of trajectories needed to reach the
-        desired tolerance.
+        Return the approximate number of trajectories needed to have this
+        error within the tolerance fot all e_ops and times.
+        """
+
+    def _target_tolerance_end(self):
+        """
+        Compute the error on the expectation values using jackknife resampling.
+        Return the approximate number of trajectories needed to have this
+        error within the tolerance fot all e_ops and times.
         """
         if self.num_trajectories <= 1:
             return np.inf
@@ -456,30 +473,8 @@ class MultiTrajResult(Result):
             in zip(avg, self._target_tols)
         ])
         target_ntraj = np.max((avg2 - abs(avg)**2) / target**2 + 1)
-        self._tol_reached = target_ntraj < self.num_trajectories
-        return target_ntraj
 
-    def _target_tolerance_end(self):
-        """
-        Estimate the number of trajectories needed to reach desired tolerance.
-        """
-        if self.num_trajectories >= self._next_check:
-            target = self._estimated_trajectories_to_target_tolerance()
-            # We don't check the tol each trajectory since it can be slow and
-            # we can have a good estimation of when it will end.
-            # _next_check will be the next time we compute it.
-            # For gaussian distribution, this ad hoc method usually reach the
-            # target in about 10 tries without over shooting it.
-            traj_left = target - self.num_trajectories
-            confidence = 0.5 * (1 - 5 / self.num_trajectories)
-            confidence += 0.5 / max(abs(target - self._estimated_ntraj), 1)
-            self._next_check = int(
-                traj_left * confidence
-                + self.num_trajectories
-                - 1
-            )
-            self._estimated_ntraj = min(target, self._target_ntraj)
-
+        self._estimated_ntraj = min(target_ntraj, self._target_ntraj)
         if self._estimated_ntraj - self.num_trajectories <= 0:
             self.stats['end_condition'] = 'target tolerance reached'
         return self._estimated_ntraj - self.num_trajectories
@@ -492,13 +487,24 @@ class MultiTrajResult(Result):
         if self.stats is None:
             self.stats = {}
 
-        store_states = self.options['store_states'] or not self.raw_ops
+        self.average_e_data = {}
+        self.average_expect = []
+        self.e_data = {}
+        self.expect = []
+        self.std_e_data = {}
+        self.std_expect = []
+        self.runs_e_data = {}
+        self.runs_expect = []
+
+        store_states = self.options['store_states']
         store_final_state = self.options['store_final_state']
         store_traj = self.options['keep_runs_results']
 
         self.add_processor(self._increment_traj)
         if store_traj:
             self.add_processor(self._store_trajectory)
+        if store_states is None:
+            store_states = len(self.raw_ops) == 0
         if store_states:
             self.add_processor(self._reduce_states)
         if store_states or store_final_state:
@@ -569,9 +575,6 @@ class MultiTrajResult(Result):
             raise ValueError("Cannot target a tolerance without e_ops")
 
         self._estimated_ntraj = ntraj
-        self._tol_reached = False
-        # We run at least 10 trajectories before computing error bars.
-        self._next_check = 10
 
         targets = np.array(target_tol)
         if targets.ndim == 0:
@@ -657,94 +660,16 @@ class MultiTrajResult(Result):
         else:
             return None
 
-    @property
-    def average_e_data(self):
-        """
-        Average of the expectation values.
-
-        Return
-        ------
-            e_data : dict
-        """
-        return {
-            k: sum_expect / self.num_trajectories
-            for k, sum_expect in zip(self.raw_ops, self._sum_expect)
-        }
-
-    average_expect = _e_data_2_expect(average_e_data)
-
-    @property
-    def std_e_data(self):
-        """
-        Standard derivation of the expectation values.
-
-        Return
-        ------
-            e_data : dict
-        """
-        avg = self._sum_expect / self.num_trajectories
-        avg2 = self._sum2_expect / self.num_trajectories
-        return {
-            k: np.sqrt(a2 - abs(a*a))
-            for k, a, a2 in zip(self.raw_ops, avg, avg2)
-        }
-
-    std_expect = _e_data_2_expect(std_e_data)
-
-    @property
-    def runs_e_data(self):
-        """
-        Expectation values for each trajectories as ``expect[e_op][run][t]``.
-        Return an empty object if is run data is not saved.
-
-        Return
-        ------
-            e_data : dict
-        """
-        if not self.trajectories:
-            return None
-        return {
-            k: np.stack([traj.e_data[k] for traj in self.trajectories])
-            for k in self.raw_ops
-        }
-
-    runs_expect = _e_data_2_expect(runs_e_data)
-
-    @property
-    def expect(self):
-        """
-        Runs expectation values if available, average otherwise.
-
-        Return
-        ------
-            expect : list
-        """
-        return self.runs_expect or self.average_expect
-
-    @property
-    def e_data(self):
-        """
-        Runs expectation values if available, average otherwise.
-
-        Return
-        ------
-            e_data : dict
-        """
-        return self.runs_e_data or self.average_e_data
-
     def e_data_traj_avg(self, ntraj=-1):
         """
-        Average of the expectation values for the ``ntraj`` first runs.
+        Average of the expectation values for the ``ntraj`` first runs as a
+        dict. Trajectories must be saved.
 
         Parameters
         ----------
         ntraj : int, [optional]
             Number of trajectories's expect to average.
             Default: all trajectories.
-
-        Return
-        ------
-            e_data : dict
         """
         if not self.trajectories:
             return None
@@ -755,22 +680,31 @@ class MultiTrajResult(Result):
             for k in self.raw_ops
         }
 
-    expect_traj_avg = _e_data_2_expect(e_data_traj_avg)
+    def expect_traj_avg(self, ntraj=-1):
+        """
+        Average of the expectation values for the ``ntraj`` first runs as a
+        list. Trajectories must be saved.
+
+        Parameters
+        ----------
+        ntraj : int, [optional]
+            Number of trajectories's expect to average.
+            Default: all trajectories.
+        """
+        if not self.trajectories:
+            return None
+        return list(self.e_data_traj_avg(ntraj).values())
 
     def e_data_traj_std(self, ntraj=-1):
         """
         Standard derivation of the expectation values for the ``ntraj``
-        first runs.
+        first runs as a dict. Trajectories must be saved.
 
         Parameters
         ----------
         ntraj : int, [optional]
             Number of trajectories's expect to compute de standard derivation.
             Default: all trajectories.
-
-        Return
-        ------
-            e_data : dict
         """
         if not self.trajectories:
             return None
@@ -781,7 +715,20 @@ class MultiTrajResult(Result):
             for k in self.raw_ops
         }
 
-    expect_traj_std = _e_data_2_expect(e_data_traj_std)
+    def expect_traj_std(self, ntraj=-1):
+        """
+        Standard derivation of the expectation values for the ``ntraj``
+        first runs as a dict. Trajectories must be saved.
+
+        Parameters
+        ----------
+        ntraj : int, [optional]
+            Number of trajectories's expect to compute de standard derivation.
+            Default: all trajectories.
+        """
+        if not self.trajectories:
+            return None
+        return list(self.e_data_traj_std(ntraj).values())
 
     def __repr__(self):
         repr = super().__repr__()
@@ -815,9 +762,10 @@ class McResult(MultiTrajResult):
     solver : str or None
         The name of the solver generating these results.
 
-    stats : dict or None
+    stats : dict
         The stats generated by the solver while producing these results. Note
         that the solver may update the stats directly while producing results.
+        Must include a value for "num_collapse".
 
     kw : dict
         Additional parameters specific to a result sub-class.

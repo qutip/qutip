@@ -192,8 +192,8 @@ class TestMultiTrahResult:
             assert isinstance(multiresult.e_data_traj_avg(), dict)
             assert isinstance(multiresult.e_data_traj_std(), dict)
         else:
-            assert multiresult.runs_expect is None
-            assert multiresult.runs_e_data is None
+            assert multiresult.runs_expect == []
+            assert multiresult.runs_e_data == {}
             assert multiresult.expect_traj_avg() is None
             assert multiresult.expect_traj_std() is None
             assert multiresult.e_data_traj_avg() is None
