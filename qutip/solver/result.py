@@ -151,7 +151,7 @@ class Result:
 
         self._state_processors = []
         self._state_processors_require_copy = False
-        self.raw_ops = self._e_ops_to_dict(e_ops)
+        self._raw_ops = self._e_ops_to_dict(e_ops)
         self.options = options
 
         self._post_init(**kw)
@@ -196,10 +196,10 @@ class Result:
         Sub-class ``.post_init()`` implementation may take additional keyword
         arguments if required.
         """
-        self.e_data = {k: [] for k in self.raw_ops}
+        self.e_data = {k: [] for k in self._raw_ops}
         self.expect = list(self.e_data.values())
         self.e_ops = {}
-        for k, op in self.raw_ops.items():
+        for k, op in self._raw_ops.items():
             f = self._e_op_func(op)
             self.e_ops[k] = ExpectOp(op, f, self.e_data[k].append)
             self.add_processor(self.e_ops[k]._store)
@@ -333,6 +333,8 @@ class MultiTrajResult(Result):
         object. ``.expect`` is a list, where each item contains the values
         of the corresponding ``e_op``.
 
+        Function ``e_ops`` must return a number so the average can be computed.
+
     options : :obj:`~SolverResultsOptions`
         The options for this result class.
 
@@ -345,6 +347,94 @@ class MultiTrajResult(Result):
 
     kw : dict
         Additional parameters specific to a result sub-class.
+
+    Properties
+    ----------
+    times : list
+        A list of the times at which the expectation values and states were
+        recorded.
+
+    average_states : list of :obj:`~Qobj`
+        The state at each time ``t`` (if the recording of the state was
+        requested) averaged over all trajectories as a density matrix.
+
+    runs_states : list of list of :obj:`~Qobj`
+        The state for each trajectory and each time ``t`` (if the recording of
+        the states and trajectories was requested)
+
+    final_state : :obj:`~Qobj:
+        The final state (if the recording of the final state was requested)
+        averaged over all trajectories as a density matrix.
+
+    runs_state : list of :obj:`~Qobj`
+        The final state for each trajectory (if the recording of the final
+        state and trajectories was requested).
+
+    average_expect : list of array of expectation values
+        A list containing the values of each ``e_op`` averaged over each
+        trajectories. The list is in the same order in which the ``e_ops`` were
+        supplied and empty if no ``e_ops`` were given.
+
+        Each element is itself an array and contains the values of the
+        corresponding ``e_op``, with one value for each time in ``.times``.
+
+    std_expect : list of array of expectation values
+        A list containing the standard derivation of each ``e_op`` over each
+        trajectories. The list is in the same order in which the ``e_ops`` were
+        supplied and empty if no ``e_ops`` were given.
+
+        Each element is itself an array and contains the values of the
+        corresponding ``e_op``, with one value for each time in ``.times``.
+
+    runs_expect : list of array of expectation values
+        A list containing the values of each ``e_op`` for each trajectories.
+        The list is in the same order in which the ``e_ops`` were
+        supplied and empty if no ``e_ops`` were given. Only available if the
+        storing of trajectories was requested.
+
+        The order of the elements is ``runs_expect[e_ops][trajectory][time]``.
+
+        Each element is itself an array and contains the values of the
+        corresponding ``e_op``, with one value for each time in ``.times``.
+
+    average_e_data : dict
+        A dictionary containing the values of each ``e_op`` averaged over each
+        trajectories. If the ``e_ops`` were supplied as a dictionary, the keys
+        are the same as in that dictionary. Otherwise the keys are the index of
+        the ``e_op`` in the ``.expect`` list.
+
+        The lists of expectation values returned are the *same* lists as
+        those returned by ``.expect``.
+
+    average_e_data : dict
+        A dictionary containing the standard derivation of each ``e_op`` over
+        each trajectories. If the ``e_ops`` were supplied as a dictionary, the
+        keys are the same as in that dictionary. Otherwise the keys are the
+        index of the ``e_op`` in the ``.expect`` list.
+
+        The lists of expectation values returned are the *same* lists as
+        those returned by ``.expect``.
+
+    runs_e_data : dict
+        A dictionary containing the values of each ``e_op`` for each 
+        trajectories. If the ``e_ops`` were supplied as a dictionary, the keys
+        are the same as in that dictionary. Otherwise the keys are the index of
+        the ``e_op`` in the ``.expect`` list. Only available if the storing
+        of trajectories was requested.
+
+        The order of the elements is ``runs_expect[e_ops][trajectory][time]``.
+
+        The lists of expectation values returned are the *same* lists as
+        those returned by ``.expect``.
+
+    solver : str or None
+        The name of the solver generating these results.
+
+    stats : dict or None
+        The stats generated by the solver while producing these results.
+
+    options : :obj:`~SolverResultsOptions`
+        The options for this result class.
     """
     _sum_states = None
     _sum_final_states = None
@@ -352,7 +442,6 @@ class MultiTrajResult(Result):
     _sum2_expect = None
     _target_tols = None
     _tol_reached = False
-
 
     @staticmethod
     def _to_dm(state):
@@ -405,7 +494,7 @@ class MultiTrajResult(Result):
 
         self.average_e_data = {
             k: avg_expect
-            for k, avg_expect in zip(self.raw_ops, avg)
+            for k, avg_expect in zip(self._raw_ops, avg)
         }
         self.average_expect = list(self.average_e_data.values())
 
@@ -414,14 +503,14 @@ class MultiTrajResult(Result):
 
         self.std_e_data = {
             k: np.sqrt(avg_expect2 - abs(avg_expect**2))
-            for k, avg_expect, avg_expect2 in zip(self.raw_ops, avg, avg2)
+            for k, avg_expect, avg_expect2 in zip(self._raw_ops, avg, avg2)
         }
         self.std_expect = list(self.std_e_data.values())
 
         if self.trajectories:
             self.runs_e_data = {
                 k: np.stack([traj.e_data[k] for traj in self.trajectories])
-                for k in self.raw_ops
+                for k in self._raw_ops
             }
             self.runs_expect = list(self.runs_e_data.values())
             self.expect = self.runs_expect
@@ -497,12 +586,12 @@ class MultiTrajResult(Result):
         if store_traj:
             self.add_processor(self._store_trajectory)
         if store_states is None:
-            store_states = len(self.raw_ops) == 0
+            store_states = len(self._raw_ops) == 0
         if store_states:
             self.add_processor(self._reduce_states)
         if store_states or store_final_state:
             self.add_processor(self._reduce_final_state)
-        if self.raw_ops:
+        if self._raw_ops:
             self.add_processor(self._reduce_expect)
 
         self._early_finish_check = self._no_end
@@ -562,7 +651,7 @@ class MultiTrajResult(Result):
             self._early_finish_check = self._fixed_end
             return
 
-        num_e_ops = len(self.raw_ops)
+        num_e_ops = len(self._raw_ops)
 
         if not num_e_ops:
             raise ValueError("Cannot target a tolerance without e_ops")
@@ -670,7 +759,7 @@ class MultiTrajResult(Result):
             k: np.mean(np.stack([
                 traj.e_data[k] for traj in self.trajectories[:ntraj]
             ]), axis=0)
-            for k in self.raw_ops
+            for k in self._raw_ops
         }
 
     def expect_traj_avg(self, ntraj=-1):
@@ -705,7 +794,7 @@ class MultiTrajResult(Result):
             k: np.std(np.stack([
                 traj.e_data[k] for traj in self.trajectories[:ntraj]
             ]), axis=0)
-            for k in self.raw_ops
+            for k in self._raw_ops
         }
 
     def expect_traj_std(self, ntraj=-1):

@@ -163,7 +163,7 @@ class TestMultiTrahResult:
     def _fill_trajectories(self, multiresult, N, ntraj,
                            collapse=False, noise=0, dm=False):
         for _ in range(ntraj):
-            result = Result(multiresult.raw_ops, multiresult.options)
+            result = Result(multiresult._raw_ops, multiresult.options)
             result.collapse = []
             for t in range(N):
                 delta = 1 + noise * np.random.randn()
