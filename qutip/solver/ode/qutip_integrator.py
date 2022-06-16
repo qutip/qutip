@@ -64,29 +64,45 @@ class IntegratorVern7(Integrator):
             return
         raise IntegratorException(self._ode_solver.status_message())
 
+    @property
+    def options(self):
+        """
+        atol : float
+            Absolute tolerance.
 
-IntegratorVern7.options.__doc__ = """
-    atol : float
-        Absolute tolerance.
+        rtol : float
+            Relative tolerance.
 
-    rtol : float
-        Relative tolerance.
+        nsteps : int
+            Max. number of internal steps/call.
 
-    nsteps : int
-        Max. number of internal steps/call.
+        first_step : float
+            Size of initial step (0 = automatic).
 
-    first_step : float
-        Size of initial step (0 = automatic).
+        min_step : float
+            Minimum step size (0 = automatic).
 
-    min_step : float
-        Minimum step size (0 = automatic).
+        max_step : float
+            Maximum step size (0 = automatic)
 
-    max_step : float
-        Maximum step size (0 = automatic)
+        interpolate : bool
+            Whether to use interpolation step, faster most of the time.
+        """
+        return self._options
 
-    interpolate : bool
-        Whether to use interpolation step, faster most of the time.
-"""
+    @options.setter
+    def options(self, new_options):
+        """
+        This does not apply the new options.
+        """
+        self._options = {
+            **self._options,
+            **{
+               key: new_options[key]
+               for key in self.integrator_options.keys()
+               if key in new_options and new_options[key] is not None
+            }
+        }
 
 
 class IntegratorVern9(IntegratorVern7):

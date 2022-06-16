@@ -156,29 +156,45 @@ class IntegratorScipyAdams(Integrator):
             messages[self._ode_solver._integrator.istate]
         )
 
+    @property
+    def options(self):
+        """
+        atol : float
+            Absolute tolerance.
 
-IntegratorScipyAdams.options.__doc__ = """
-    atol : float
-        Absolute tolerance.
+        rtol : float
+            Relative tolerance.
 
-    rtol : float
-        Relative tolerance.
+        order : int
+            Order of integrator (<=12 'adams', <=5 'bdf')
 
-    order : int
-        Order of integrator (<=12 'adams', <=5 'bdf')
+        nsteps : int
+            Max. number of internal steps/call.
 
-    nsteps : int
-        Max. number of internal steps/call.
+        first_step : float
+            Size of initial step (0 = automatic).
 
-    first_step : float
-        Size of initial step (0 = automatic).
+        min_step : float
+            Minimum step size (0 = automatic).
 
-    min_step : float
-        Minimum step size (0 = automatic).
+        max_step : float
+            Maximum step size (0 = automatic)
+    """
+        return self._options
 
-    max_step : float
-        Maximum step size (0 = automatic)
-"""
+    @options.setter
+    def options(self, new_options):
+        """
+        This does not apply the new options.
+        """
+        self._options = {
+            **self._options,
+            **{
+               key: new_options[key]
+               for key in self.integrator_options.keys()
+               if key in new_options and new_options[key] is not None
+            }
+        }
 
 
 class IntegratorScipyBDF(IntegratorScipyAdams):
@@ -302,30 +318,45 @@ class IntegratorScipyDop853(Integrator):
             messages[self._ode_solver._integrator.istate]
         )
 
+    @property
+    def options(self):
+        """
+        atol : float
+            Absolute tolerance.
 
-IntegratorScipyDop853.options.__doc__ = """
-    atol : float
-        Absolute tolerance.
+        rtol : float
+            Relative tolerance.
 
-    rtol : float
-        Relative tolerance.
+        nsteps : int
+            Max. number of internal steps/call.
 
-    nsteps : int
-        Max. number of internal steps/call.
+        first_step : float
+            Size of initial step (0 = automatic).
 
-    first_step : float
-        Size of initial step (0 = automatic).
+        max_step : float
+            Maximum step size (0 = automatic)
 
-    max_step : float
-        Maximum step size (0 = automatic)
+        ifactor, dfactor : float
+            float Maximum factor to increase/decrease step size by in one step
 
-    ifactor, dfactor : float
-        float Maximum factor to increase/decrease step size by in one step
+        beta : float
+            float Beta parameter for stabilised step size control.
+        """
+        return self._options
 
-    beta : float
-        float Beta parameter for stabilised step size control.
-"""
-
+    @options.setter
+    def options(self, new_options):
+        """
+        This does not apply the new options.
+        """
+        self._options = {
+            **self._options,
+            **{
+               key: new_options[key]
+               for key in self.integrator_options.keys()
+               if key in new_options and new_options[key] is not None
+            }
+        }
 
 class IntegratorScipylsoda(IntegratorScipyDop853):
     """
@@ -455,32 +486,48 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
             messages[self._ode_solver._integrator.istate]
         )
 
+    @property
+    def options(self):
+        """
+        atol : float
+            Absolute tolerance.
 
-IntegratorScipylsoda.options.__doc__ = """
-    atol : float
-        Absolute tolerance.
+        rtol : float
+            Relative tolerance.
 
-    rtol : float
-        Relative tolerance.
+        nsteps : int
+            Max. number of internal steps/call.
 
-    nsteps : int
-        Max. number of internal steps/call.
+        max_order_ns : int
+            Maximum order used in the nonstiff case (default 12).
 
-    max_order_ns : int
-        Maximum order used in the nonstiff case (default 12).
+        max_order_s : int
+            Maximum order used in the stiff case (default 5).
 
-    max_order_s : int
-        Maximum order used in the stiff case (default 5).
+        first_step : float
+            Size of initial step (0 = automatic).
 
-    first_step : float
-        Size of initial step (0 = automatic).
+        max_step : float
+            Maximum step size (0 = automatic)
 
-    max_step : float
-        Maximum step size (0 = automatic)
+        min_step : float
+            Minimum step size (0 = automatic)
+        """
+        return self._options
 
-    min_step : float
-        Minimum step size (0 = automatic)
-"""
+    @options.setter
+    def options(self, new_options):
+        """
+        This does not apply the new options.
+        """
+        self._options = {
+            **self._options,
+            **{
+               key: new_options[key]
+               for key in self.integrator_options.keys()
+               if key in new_options and new_options[key] is not None
+            }
+        }
 
 
 Solver.add_integrator(IntegratorScipyBDF, 'bdf')

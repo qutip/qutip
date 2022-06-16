@@ -90,7 +90,9 @@ class SolverOptions():
             for key, val in self._options.items()
             if key in self.supported_keys
         }
-        self.__doc__ = self._doc + integrator.options.__doc__
+        self.__doc__ = (
+            self._doc + _adjust_docstring_indent(integrator.options.__doc__)
+        )
 
     def __setitem__(self, key, value):
         """
