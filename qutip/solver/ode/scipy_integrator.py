@@ -1,30 +1,32 @@
 """ODE integrator from scipy."""
 
-__all__ = ['IntegratorScipyZvode', 'IntegratorScipyDop853',
-           'IntegratorScipylsoda']
+__all__ = [
+    'IntegratorScipyAdams',
+    'IntegratorScipyBDF',
+    'IntegratorScipyDop853',
+    'IntegratorScipylsoda',
+]
 
 import numpy as np
 from scipy.integrate import ode
 from scipy.integrate._ode import zvode
 from qutip.core import data as _data
-from ..options import SolverOdeOptions
 from qutip.core.data.reshape import column_unstack_dense, column_stack_dense
 from ..integrator import IntegratorException, Integrator
 from ..solver_base import Solver
 import warnings
 
 
-class IntegratorScipyZvode(Integrator):
+class IntegratorScipyAdams(Integrator):
     """
-    Integrator using Scipy `ode` with zvode integrator. Ordinary Differential
-    Equation solver by netlib (http://www.netlib.org/odepack). Support 'Adams'
-    and 'BDF' methods for non-stiff and stiff systems respectively.
+    Integrator using Scipy `ode` with zvode integrator using adams method.
+    Ordinary Differential Equation solver by netlib
+    (http://www.netlib.org/odepack).
     """
     integrator_options = {
         'atol': 1e-8,
         'rtol': 1e-6,
         'nsteps': 2500,
-        'method': 'adams',
         'order': 12,
         'first_step': 0,
         'max_step': 0,
@@ -32,6 +34,7 @@ class IntegratorScipyZvode(Integrator):
     }
     support_time_dependant = True
     supports_blackbox = True
+    method = 'adams'
 
     class _zvode(zvode):
         """Overwrite the scipy's zvode to advance to max to ``t`` with step."""
@@ -49,8 +52,11 @@ class IntegratorScipyZvode(Integrator):
         """
         self._ode_solver = ode(self._mul_np_vec)
         self._ode_solver.set_integrator('zvode')
-        self._ode_solver._integrator = self._zvode(**self.options)
-        self.name = "scipy zvode " + self.options['method']
+        self._ode_solver._integrator = self._zvode(
+            method=self.method,
+            **self.options,
+        )
+        self.name = "scipy zvode " + self.method
 
     def _mul_np_vec(self, t, vec):
         """
@@ -151,6 +157,48 @@ class IntegratorScipyZvode(Integrator):
         )
 
 
+IntegratorScipyAdams.options.__doc__ = """
+    atol : float
+        Absolute tolerance.
+
+    rtol : float
+        Relative tolerance.
+
+    order : int
+        Order of integrator (<=12 'adams', <=5 'bdf')
+
+    nsteps : int
+        Max. number of internal steps/call.
+
+    first_step : float
+        Size of initial step (0 = automatic).
+
+    min_step : float
+        Minimum step size (0 = automatic).
+
+    max_step : float
+        Maximum step size (0 = automatic)
+"""
+
+
+class IntegratorScipyBDF(IntegratorScipyAdams):
+    """
+    Integrator using Scipy `ode` with zvode integrator using bdf method.
+    Ordinary Differential Equation solver by netlib
+    (http://www.netlib.org/odepack).
+    """
+    method = 'bdf'
+    integrator_options = {
+        'atol': 1e-8,
+        'rtol': 1e-6,
+        'nsteps': 2500,
+        'order': 5,
+        'first_step': 0,
+        'max_step': 0,
+        'min_step': 0,
+    }
+
+
 class IntegratorScipyDop853(Integrator):
     """
     Integrator using Scipy `ode` with dop853 integrator. Eight order
@@ -159,6 +207,8 @@ class IntegratorScipyDop853(Integrator):
     Equations i. Nonstiff Problems. 2nd edition. Springer Series in
     Computational Mathematics, Springer-Verlag (1993)].
     """
+    support_time_dependant = True
+    supports_blackbox = True
     integrator_options = {
         'atol': 1e-8,
         'rtol': 1e-6,
@@ -169,8 +219,7 @@ class IntegratorScipyDop853(Integrator):
         'dfactor': 0.3,
         'beta': 0.0,
     }
-    support_time_dependant = True
-    supports_blackbox = True
+    method = 'dop853'
 
     def _prepare(self):
         """
@@ -254,6 +303,30 @@ class IntegratorScipyDop853(Integrator):
         )
 
 
+IntegratorScipyDop853.options.__doc__ = """
+    atol : float
+        Absolute tolerance.
+
+    rtol : float
+        Relative tolerance.
+
+    nsteps : int
+        Max. number of internal steps/call.
+
+    first_step : float
+        Size of initial step (0 = automatic).
+
+    max_step : float
+        Maximum step size (0 = automatic)
+
+    ifactor, dfactor : float
+        float Maximum factor to increase/decrease step size by in one step
+
+    beta : float
+        float Beta parameter for stabilised step size control.
+"""
+
+
 class IntegratorScipylsoda(IntegratorScipyDop853):
     """
     Integrator using Scipy `ode` with lsoda integrator. ODE solver by netlib
@@ -272,6 +345,7 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
     }
     support_time_dependant = True
     supports_blackbox = True
+    method = 'lsoda'
 
     def _prepare(self):
         """
@@ -382,6 +456,34 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         )
 
 
-Solver.add_integrator(IntegratorScipyZvode, ['adams', 'bdf'])
+IntegratorScipylsoda.options.__doc__ = """
+    atol : float
+        Absolute tolerance.
+
+    rtol : float
+        Relative tolerance.
+
+    nsteps : int
+        Max. number of internal steps/call.
+
+    max_order_ns : int
+        Maximum order used in the nonstiff case (default 12).
+
+    max_order_s : int
+        Maximum order used in the stiff case (default 5).
+
+    first_step : float
+        Size of initial step (0 = automatic).
+
+    max_step : float
+        Maximum step size (0 = automatic)
+
+    min_step : float
+        Minimum step size (0 = automatic)
+"""
+
+
+Solver.add_integrator(IntegratorScipyBDF, 'bdf')
+Solver.add_integrator(IntegratorScipyAdams, 'adams')
 Solver.add_integrator(IntegratorScipyDop853, 'dop853')
 Solver.add_integrator(IntegratorScipylsoda, 'lsoda')

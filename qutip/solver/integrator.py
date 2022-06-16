@@ -1,5 +1,6 @@
 """ `Integrator`: ODE solver wrapper to use in qutip's Solver """
 import numpy as np
+from .options import SolverOptions
 
 __all__ = ['Integrator', 'IntegratorException']
 
@@ -28,7 +29,7 @@ class Integrator:
     system: qutip.QobjEvo
         Quantum system in which states evolve.
 
-    options: qutip.SolverOdeOptions
+    options: OdeOptions
         Options for the solver.
 
     Class Attributes
@@ -56,25 +57,23 @@ class Integrator:
         keys, not the full options object passed to the solver. Options' keys
         included here will be supported by the :cls:SolverOdeOptions.
     """
-    # Used options in qutip.SolverOdeOptions
+    # Dict of used options and their default values
     integrator_options = {}
+    _options = None
     # Can evolve time dependent system
     support_time_dependant = None
     # Whether the integrator used the system QobjEvo as a blackbox
     supports_blackbox = None
     # The name of the integrator
     name = None
+    method = ""
 
     def __init__(self, system, options):
         self.system = system
-        self.options = {
-            **self.integrator_options,
-            **{ key: options[key]
-                for key in self.integrator_options.keys()
-                if key in options and options[key] is not None}
-        }
         self._is_set = False  # get_state can be used and return a valid state.
         self._back = (np.inf, None)
+        self._options = self.integrator_options.copy()
+        self.options = options
         self._prepare()
 
     def _prepare(self):
@@ -154,7 +153,8 @@ class Integrator:
             differ from the input time only when ``step=True``.
 
         .. note:
-            The default implementation may be overridden by integrators that can provide a more efficient one.
+            The default implementation may be overridden by integrators that
+            can provide a more efficient one.
         """
         t_last, state = self.get_state()
         if t > t_last:
@@ -202,10 +202,14 @@ class Integrator:
         for t in tlist[1:]:
             yield self.integrate(t, False)
 
-    def reset(self):
+    def reset(self, hard=False):
         """Reset internal state of the ODE solver."""
         if self._is_set:
-            self.set_state(*self.get_state())
+            state = self.get_state()
+        if hard:
+            self._prepare()
+        if self._is_set:
+            self.set_state(*state)
 
     def arguments(self, args):
         """
@@ -219,3 +223,21 @@ class Integrator:
         """
         self.system.arguments(args)
         self.reset()
+
+    @property
+    def options(self):
+        return self._options
+
+    @options.setter
+    def options(self, new_options):
+        """
+        This does not apply the new options.
+        """
+        self._options = {
+            **self._options,
+            **{
+               key: new_options[key]
+               for key in self.integrator_options.keys()
+               if key in new_options and new_options[key] is not None
+            }
+        }

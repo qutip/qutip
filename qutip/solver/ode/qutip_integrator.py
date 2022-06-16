@@ -1,15 +1,14 @@
 from ..integrator import IntegratorException, Integrator
 from ..solver_base import Solver
 from .explicit_rk import Explicit_RungeKutta
-from ..options import SolverOdeOptions
 import numpy as np
 from qutip import data as _data
 
 
-__all__ = ['IntegratorVern', 'IntegratorDiag']
+__all__ = ['IntegratorVern7', 'IntegratorVern9', 'IntegratorDiag']
 
 
-class IntegratorVern(Integrator):
+class IntegratorVern7(Integrator):
     """
     QuTiP's implementation of Verner's "most efficient" Runge-Kutta method
     of order 7 and 9. These are Runge-Kutta methods with variable steps and
@@ -30,14 +29,17 @@ class IntegratorVern(Integrator):
         'max_step': 0,
         'min_step': 0,
         'interpolate': True,
-        'method': 'vern7'
     }
     support_time_dependant = True
     supports_blackbox = True
+    method = 'vern7'
 
     def _prepare(self):
-        self._ode_solver = Explicit_RungeKutta(self.system, **self.options)
-        self.name = self.options['method']
+        self._ode_solver = Explicit_RungeKutta(
+            self.system, method=self.method,
+            **self.options
+        )
+        self.name = self.method
 
     def get_state(self, copy=True):
         state = self._ode_solver.y
@@ -63,16 +65,53 @@ class IntegratorVern(Integrator):
         raise IntegratorException(self._ode_solver.status_message())
 
 
+IntegratorVern7.options.__doc__ = """
+    atol : float
+        Absolute tolerance.
+
+    rtol : float
+        Relative tolerance.
+
+    nsteps : int
+        Max. number of internal steps/call.
+
+    first_step : float
+        Size of initial step (0 = automatic).
+
+    min_step : float
+        Minimum step size (0 = automatic).
+
+    max_step : float
+        Maximum step size (0 = automatic)
+
+    interpolate : bool
+        Whether to use interpolation step, faster most of the time.
+"""
+
+
+class IntegratorVern9(IntegratorVern7):
+    integrator_options = {
+        'atol': 1e-8,
+        'rtol': 1e-6,
+        'nsteps': 1000,
+        'first_step': 0,
+        'max_step': 0,
+        'min_step': 0,
+        'interpolate': True,
+    }
+    method = 'vern9'
+
+
 class IntegratorDiag(Integrator):
     """
     Integrator solving the ODE by diagonalizing the system and solving
     analytically. It can only solve constant system and has a long preparation
     time, but the integration is very fast.
     """
-
     integrator_options = {}
     support_time_dependant = False
     supports_blackbox = False
+    method = 'diag'
 
     def __init__(self, system, options):
         if not system.isconstant:
@@ -112,5 +151,6 @@ class IntegratorDiag(Integrator):
         self._is_set = True
 
 
-Solver.add_integrator(IntegratorVern, ['vern7', 'vern9'])
+Solver.add_integrator(IntegratorVern7, 'vern7')
+Solver.add_integrator(IntegratorVern9, 'vern9')
 Solver.add_integrator(IntegratorDiag, 'diag')

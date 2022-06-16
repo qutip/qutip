@@ -215,7 +215,22 @@ class BRSolver(Solver):
             if not isinstance(c_op, (Qobj, QobjEvo)):
                 raise TypeError("All `c_ops` must be a Qobj or QobjEvo")
 
+        a_ops = a_ops or []
+        if not hasattr(a_ops, "__iter__"):
+            TypeError("`a_ops` must be a list of (operator, spectra)")
+        if a_ops and isinstance(a_ops[0], (Qobj, QobjEvo)):
+            a_ops = [a_ops]
+        for oper, spectra in a_ops:
+            if not isinstance(oper, (Qobj, QobjEvo)):
+                raise TypeError("All `a_ops` operators "
+                                "must be a Qobj or QobjEvo")
+            if not isinstance(spectra, Coefficient):
+                raise TypeError("All `a_ops` spectra "
+                                "must be a Coefficient.")
+
         self._system = H, a_ops, c_ops
+        self._num_collapse = len(c_ops)
+        self._num_a_ops = len(a_ops)
         rhs = self._prepare_rhs()
         super().__init__(rhs, options=self.options)
 
