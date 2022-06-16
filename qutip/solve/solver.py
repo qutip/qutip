@@ -11,7 +11,7 @@ from collections import OrderedDict
 from types import FunctionType, BuiltinFunctionType
 
 from .. import __version__, Qobj, QobjEvo
-from ..optionsclass import optionsclass
+from .optionsclass import optionsclass
 from ..core import data as _data
 
 solver_safe = {}

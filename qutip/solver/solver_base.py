@@ -1,7 +1,7 @@
 __all__ = ['Solver']
 
 from .. import Qobj, QobjEvo, ket2dm
-from .options import SolverOptions, SolverOdeOptions
+from .options import known_solver, _AttachedSolverOptions, SolverOptions
 from ..core import stack_columns, unstack_columns
 from .result import Result
 from .integrator import Integrator
@@ -21,7 +21,7 @@ class Solver:
         Right hand side of the evolution::
             d state / dt = rhs @ state
 
-    options : SolverOptions
+    options : dict
         Options for the solver
     """
     name = "generic"
@@ -31,8 +31,14 @@ class Solver:
     _avail_integrators = {}
 
     # Class of option used by the solver
-    optionsclass = SolverOptions
-    odeoptionsclass = SolverOdeOptions
+    solver_options = {
+        "progress_bar": "text",
+        "progress_kwargs": {"chunk_size": 10},
+        "store_final_state": False,
+        "store_states": None,
+        "normalize_output": "ket",
+        'method': 'adams',
+    }
     resultclass = Result
 
     def __init__(self, rhs, *, options=None):
@@ -40,7 +46,9 @@ class Solver:
             self.rhs = QobjEvo(rhs)
         else:
             TypeError("The rhs must be a QobjEvo")
-        self.options = options
+        self._options = _AttachedSolverOptions(self)
+        if options is not None:
+            self.options = options
         _time_start = time()
         self._integrator = self._get_integrator()
         self._init_integrator_time = time() - _time_start
@@ -76,9 +84,6 @@ class Solver:
             raise TypeError(f"incompatible dimensions {self.rhs.dims}"
                             f" and {state.dims}")
 
-        if self.options.ode["state_data_type"]:
-            state = state.to(self.options.ode["state_data_type"])
-
         self._state_metadata = {
             'dims': state.dims,
             'type': state.type,
@@ -98,10 +103,8 @@ class Solver:
         else:
             state = Qobj(data, **self._state_metadata, copy=copy)
 
-        if data.shape[1] == 1:  # if the state does not have type oper
-            state_type = 'dm' if self.rhs.issuper else 'ket'
-            if self.options['normalize_output'] in {state_type, True, 'all'}:
-                state = state * (1 / state.norm())
+        if data.shape[1] == 1 and self._options['normalize_output']:
+            state = state * (1 / state.norm())
 
         return state
 
@@ -145,7 +148,7 @@ class Solver:
         self._argument(args)
         stats = self._initialize_stats()
         results = self.resultclass(
-            e_ops, self.options.results,
+            e_ops, self.options,
             solver=self.name, stats=stats,
         )
         results.add(tlist[0], self._restore_state(_data0, copy=False))
@@ -212,50 +215,109 @@ class Solver:
 
     def _get_integrator(self):
         """ Return the initialted integrator. """
-        if self.options.ode["operator_data_type"]:
-            self.rhs = self.rhs.to(
-                self.options.ode["operator_data_type"]
-            )
-
-        method = self.options.ode["method"]
+        method = self._options["method"]
         if method in self.avail_integrators():
             integrator = self.avail_integrators()[method]
         elif issubclass(method, Integrator):
             integrator = method
         else:
             raise ValueError("Integrator method not supported.")
-        return integrator(self.rhs, self.options.ode)
+        return integrator(self.rhs, self.options)
 
     @property
     def options(self):
+        """
+        store_final_state: bool
+            Whether or not to store the final state of the evolution in the
+            result class.
+
+        store_states": bool, None
+            Whether or not to store the state vectors or density matrices.
+            On `None` the states will be saved if no expectation operators are
+            given.
+
+        normalize_output: bool
+            Normalize output state to hide ODE numerical errors.
+
+        progress_bar: str {'text', 'enhanced', 'tqdm', ''}
+            How to present the solver progress.
+            'tqdm' uses the python module of the same name and raise an error
+            if not installed. Empty string or False will disable the bar.
+
+        progress_kwargs: dict
+            kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
+
+        method: str
+            Which ordinary differential equation integration method to use.
+        """
         return self._options
 
+    def _parse_options(self, **new_options):
+        """
+        Do a first read through of the options:
+        - Raise an error for unsupported error.
+        - Replace ``None`` with the default value.
+        - Remove items that are unchanged.
+        """
+        method = new_options.get('method', self.options["method"])
+        default_options = SolverOptions(self.name, method=method)
+        extra_keys = new_options.keys() - default_options.supported_keys
+        if extra_keys:
+            raise KeyError(f"Options {extra_keys} are not supported.")
+        # First pass: Have ``None`` refert to the default.
+        new_options = {
+            key: (val if val is not None else default_options[key])
+            for key, val in new_options.items()
+        }
+        # Second pass: Remove options that remain unchanged.
+        new_options = {
+            key: val
+            for key, val in new_options.items()
+            if key in self._options and val != self._options[key]
+        }
+        return new_options
+
     @options.setter
-    def options(self, new):
-        if new is None:
-            new = self.optionsclass()
-        elif isinstance(new, dict):
-            new = self.optionsclass(**new)
-        elif not isinstance(new, self.optionsclass):
-            raise TypeError("options must be an instance of" +
-                            str(self.optionsclass))
-        self._options = new
-        if self._integrator is None:
+    def options(self, new_options):
+        new_options = self._parse_options(**new_options)
+        if not new_options:
+            return  # Nothing to do
+
+        # Create options without the integrator items that are not
+        # not supported by the new integrator if changed.
+        kept_options = self._options.copy()
+        if 'method' in new_options:
+            kept_options['method'] = new_options['method']
+
+        self._options = _AttachedSolverOptions(
+            self,
+            **{**kept_options, **new_options}
+        )
+
+        self._apply_options(new_options.keys())
+
+    def _apply_options(self, keys):
+        """
+        Method called when options are changed, either through
+        ``solver.options[key] = value`` or ``solver.options = options``.
+        Allow to update the solver with the new options
+        """
+        if self._integrator is None or not keys:
             pass
-        elif self._integrator._is_set:
-            # The integrator was already used: continue where it is.
+        elif 'method' in keys:
             state = self._integrator.get_state()
             self._integrator = self._get_integrator()
             self._integrator.set_state(*state)
-        else:
-            # The integrator was never used, but after it's creation in init.
-            self._integrator = self._get_integrator()
+        elif keys & self._integrator.integrator_options.keys():
+            # Some of the keys are used by the integrator.
+            self._integrator.options = self._options
+            self._integrator.reset(hard=True)
 
     def _argument(self, args):
         """Update the args, for the `rhs` and other operators."""
         if args:
-            self._integrator.arguments(args)
             self.rhs.arguments(args)
+            self._integrator.arguments(args)
 
     @classmethod
     def avail_integrators(cls):
@@ -263,11 +325,18 @@ class Solver:
             return cls._avail_integrators.copy()
         return {
             **Solver.avail_integrators(),
-            **cls._avail_integrators,
+            **cls._avail_integrators
         }
 
     @classmethod
-    def add_integrator(cls, integrator, keys):
+    def integrator_options(cls):
+        integrators = cls.avail_integrators()
+        options = {key: inte.integrator_options
+                   for key, inte in integrators.items()}
+        return options
+
+    @classmethod
+    def add_integrator(cls, integrator, key):
         """
         Register an integrator.
 
@@ -282,10 +351,10 @@ class Solver:
         if not issubclass(integrator, Integrator):
             raise TypeError(f"The integrator {integrator} must be a subclass"
                             " of `qutip.solver.Integrator`")
-        if not isinstance(keys, list):
-            keys = [keys]
-        for key in keys:
-            cls._avail_integrators[key] = integrator
-        if integrator.integrator_options:
-            for opt in integrator.integrator_options:
-                cls.odeoptionsclass.extra_options.add(opt)
+
+        cls._avail_integrators[key] = integrator
+
+
+known_solver['solver'] = Solver
+known_solver['Solver'] = Solver
+known_solver['generic'] = Solver

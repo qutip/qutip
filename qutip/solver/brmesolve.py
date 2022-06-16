@@ -13,7 +13,7 @@ from ..core.blochredfield import bloch_redfield_tensor, SpectraCoefficient
 from ..core.cy.coefficient import InterCoefficient
 from ..core import data as _data
 from .solver_base import Solver
-from .options import SolverOptions
+from .options import known_solver, SolverOptions
 
 
 def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
@@ -86,7 +86,7 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         Cutoff for secular approximation. Use ``-1`` if secular approximation
         is not used when evaluating bath-coupling terms.
 
-    options : :class:`qutip.solver.SolverOptions`
+    options : None / dict / :class:`qutip.solver.SolverOptions`
         Options for the solver.
 
     Returns
@@ -131,9 +131,7 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         else:
             raise TypeError("a_ops's spectra not known")
 
-    solver = BRSolver(
-        H, new_a_ops, c_ops, options=options, sec_cutoff=sec_cutoff,
-    )
+    solver = BRSolver(H, new_a_ops, c_ops, sec_cutoff, options=options)
 
     return solver.run(psi0, tlist, e_ops=e_ops)
 
@@ -175,7 +173,7 @@ class BRSolver(Solver):
         Single collapse operator, or list of collapse operators, or a list
         of Lindblad dissipator. None is equivalent to an empty list.
 
-    options : SolverOptions
+    options : None / dict / :class:`qutip.solver.SolverOptions`
         Options for the solver
 
     sec_cutoff : float {0.1}
@@ -188,9 +186,26 @@ class BRSolver(Solver):
         Diverse diagnostic statistics of the evolution.
     """
     name = "brmesolve"
+    solver_options = {
+        "progress_bar": "text",
+        "progress_kwargs": {"chunk_size":10},
+        "store_final_state": False,
+        "store_states": None,
+        "normalize_output": False,
+        'method': 'adams',
+        'tensor_type': 'sparse',
+        'sparse_eigensolver': False,
+    }
     _avail_integrators = {}
 
-    def __init__(self, H, a_ops, c_ops=None, *, sec_cutoff=0.1, options=None):
+    def __init__(self, H, a_ops, c_ops=None, sec_cutoff=0.1, *, options=None):
+        _time_start = time()
+
+        self.rhs = None
+        self.sec_cutoff = sec_cutoff
+        self._options = self.solver_options.copy()
+        self.options = options
+
         if not isinstance(H, (Qobj, QobjEvo)):
             raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
 
@@ -200,23 +215,8 @@ class BRSolver(Solver):
             if not isinstance(c_op, (Qobj, QobjEvo)):
                 raise TypeError("All `c_ops` must be a Qobj or QobjEvo")
 
-        self._num_collapse = len(c_ops)
-        self._num_a_ops = len(a_ops)
-
-        self.options = options  # duplicates assignment in Solver base-class
-        tensor_type = {
-            '' : 'sparse',
-            'csr' : 'sparse',
-            'CSR' : 'sparse',
-            'Dense' : 'dense',
-            'dense' : 'dense',
-        }.get(self.options.ode['operator_data_type'], 'data')
-
-        _time_start = time()
-        rhs = bloch_redfield_tensor(
-            H, a_ops, c_ops, sec_cutoff=sec_cutoff,
-            fock_basis=True, sparse_eigensolver=False, br_dtype=tensor_type)
-        self._init_rhs_time = time() - _time_start
+        self._system = H, a_ops, c_ops
+        rhs = self._prepare_rhs()
         super().__init__(rhs, options=self.options)
 
     def _initialize_stats(self):
@@ -228,3 +228,89 @@ class BRSolver(Solver):
             "num_a_ops": self._num_a_ops,
         })
         return stats
+
+    def _prepare_rhs(self):
+        _time_start = time()
+        rhs = bloch_redfield_tensor(
+            *self._system,
+            fock_basis=True,
+            sec_cutoff=self.sec_cutoff,
+            sparse_eigensolver=self.options['sparse_eigensolver'],
+            br_dtype=self.options['tensor_type']
+        )
+        self._init_rhs_time = time() - _time_start
+        return rhs
+
+    @property
+    def options(self):
+        """
+        store_final_state: bool
+            Whether or not to store the final state of the evolution in the
+            result class.
+
+        store_states": bool, None
+            Whether or not to store the state vectors or density matrices.
+            On `None` the states will be saved if no expectation operators are
+            given.
+
+        normalize_output: bool
+            Normalize output state to hide ODE numerical errors.
+
+        progress_bar: str {'text', 'enhanced', 'tqdm', ''}
+            How to present the solver progress.
+            'tqdm' uses the python module of the same name and raise an error if
+            not installed. Empty string or False will disable the bar.
+
+        progress_kwargs: dict
+            kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
+
+        tensor_type: str ['sparse', 'dense', 'data']
+            Which data type to use when computing the brtensor.
+            With a cutoff 'sparse' is usually the most efficient.
+
+        sparse_eigensolver: bool {False}
+            Whether to use the sparse eigensolver
+
+        method: str
+            Which ODE integrator methods are supported.
+        """
+        return self._options.copy()
+
+    @options.setter
+    def options(self, new_options):
+        if not new_options:
+            return  # Nothing to do
+        change_method = (
+            'method' in new_options
+            and new_options['method'] != self._options['method']
+        )
+        kept_options = self._options
+        if change_method:
+            kept_options = self._options.solver_options
+
+        self._options = SolverOptions('brmesolve', **{**kept_options, **new_options})
+
+        need_new_rhs = (
+            self.rhs is not None and self.rhs.isconstant
+            and (
+                'sparse_eigensolver' in new_options
+                or 'tensor_type' in new_options
+            )
+        )
+        if need_new_rhs:
+            self.rhs = self._prepare_rhs()
+
+        if self._integrator is None:
+            pass
+        elif change_method or need_new_rhs:
+            state = self._integrator.get_state()
+            self._integrator = self._get_integrator()
+            self._integrator.set_state(*state)
+        else:
+            self._integrator.options = new_options
+
+known_solver['brmesolve'] = BRSolver
+known_solver['Brmesolver'] = BRSolver
+known_solver['Brsolver'] = BRSolver
+known_solver['BrSolver'] = BRSolver
+known_solver['Bloch Redfield Equation Evolution'] = BRSolver

@@ -11,14 +11,10 @@ from .. import (Qobj, QobjEvo, isket, liouvillian, ket2dm, lindblad_dissipator)
 from ..core import stack_columns, unstack_columns
 from ..core.data import to
 from .solver_base import Solver
-from .options import SolverOptions
+from .options import known_solver
 from .sesolve import sesolve
 
 
-# -----------------------------------------------------------------------------
-# pass on to wavefunction solver or master equation solver depending on whether
-# any collapse operators were given.
-#
 def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
     """
     Master equation evolution of a density matrix for a given Hamiltonian and
@@ -49,9 +45,8 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
 
     **Additional options**
 
-    Additional options to mesolve can be set via the `options` argument, which
-    should be an instance of :class:`qutip.solver.SolverOptions`. Many ODE
-    integration options can be set this way, and the `store_states` and
+    Additional options to mesolve can be set via the `options` argument. Many
+    ODE integration options can be set this way, and the `store_states` and
     `store_final_state` options can be used to store states even though
     expectation values are requested via the `e_ops` argument.
 
@@ -88,8 +83,8 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
         dictionary of parameters for time-dependent Hamiltonians and
         collapse operators.
 
-    options : None / :class:`qutip.SolverOptions`
-        with options for the solver.
+    options : None / dict / :class:`SolverOptions`
+        Options for the solver.
 
     Returns
     -------
@@ -112,7 +107,8 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
     use_mesolve = len(c_ops) > 0 or (not rho0.isket) or H.issuper
 
     if not use_mesolve:
-        return sesolve(H, rho0, tlist, e_ops=e_ops, args=args, options=options)
+        return sesolve(H, rho0, tlist, e_ops=e_ops, args=args,
+                       options=options)
 
     solver = MeSolver(H, c_ops, options=options)
 
@@ -145,7 +141,7 @@ class MeSolver(Solver):
         Single collapse operator, or list of collapse operators, or a list
         of Liouvillian superoperators. None is equivalent to an empty list.
 
-    options : SolverOptions
+    options : None / dict / :class:`SolverOptions`
         Options for the solver
 
     attributes
@@ -155,6 +151,14 @@ class MeSolver(Solver):
     """
     name = "mesolve"
     _avail_integrators = {}
+    solver_options = {
+        "progress_bar": "text",
+        "progress_kwargs": {"chunk_size":10},
+        "store_final_state": False,
+        "store_states": None,
+        "normalize_output": False,
+        'method': 'adams',
+    }
 
     def __init__(self, H, c_ops=None, *, options=None):
         _time_start = time()
@@ -182,3 +186,8 @@ class MeSolver(Solver):
             "num_collapse": self._num_collapse,
         })
         return stats
+
+known_solver['mesolve'] = MeSolver
+known_solver['Mesolver'] = MeSolver
+known_solver['MeSolver'] = MeSolver
+known_solver['Master Equation Evolution'] = MeSolver
