@@ -188,7 +188,7 @@ jobs:
       - name: Verify Towncrier entry added
         run: |
           python -m pip install towncrier
-          towncrier check
+          towncrier check --compare-with master
 
   finalise:
     name: Finalise coverage reporting
