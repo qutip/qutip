@@ -51,7 +51,8 @@ class TestIntegratorCte():
                             state.to_array()[0, 0], atol=2e-5)
 
     def test_mc_integration(self, mc_method):
-        evol = Solver.avail_integrators()[mc_method](self.se_system, SolverOptions())
+        opt = SolverOptions()  # TODO: specify mcsolve when added.
+        evol = Solver.avail_integrators()[mc_method](self.se_system, opt)
         state = qutip.basis(2,0).data
         evol.set_state(0, state)
         t = 0

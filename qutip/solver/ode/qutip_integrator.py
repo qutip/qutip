@@ -166,6 +166,23 @@ class IntegratorDiag(Integrator):
         self._y = _data.matmul(self.Uinv, state0).to_array()
         self._is_set = True
 
+    @property
+    def options(self):
+        """"""
+        return self._options
+
+    @options.setter
+    def options(self, new_options):
+        # This does not apply the new options.
+        self._options = {
+            **self._options,
+            **{
+               key: new_options[key]
+               for key in self.integrator_options.keys()
+               if key in new_options and new_options[key] is not None
+            }
+        }
+
 
 Solver.add_integrator(IntegratorVern7, 'vern7')
 Solver.add_integrator(IntegratorVern9, 'vern9')

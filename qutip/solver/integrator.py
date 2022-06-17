@@ -226,18 +226,5 @@ class Integrator:
 
     @property
     def options(self):
+        # Options should be overwritten by each integrators.
         return self._options
-
-    @options.setter
-    def options(self, new_options):
-        """
-        This does not apply the new options.
-        """
-        self._options = {
-            **self._options,
-            **{
-               key: new_options[key]
-               for key in self.integrator_options.keys()
-               if key in new_options and new_options[key] is not None
-            }
-        }

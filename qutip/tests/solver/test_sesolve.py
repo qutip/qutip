@@ -49,7 +49,7 @@ class TestSeSolve():
         """
         tol = 5e-3
         psi0 = qutip.basis(2, 0)
-        options = SolverOptions(progress_bar=None)
+        options = SolverOptions("sesolve", progress_bar=None)
 
         if unitary_op is None:
             output = sesolve(H, psi0, self.tlist,
@@ -116,7 +116,7 @@ class TestSeSolve():
         """
         tol = 5e-3
         psi0 = qutip.basis(2, 0)
-        options = SolverOptions(method=method, progress_bar=None)
+        options = SolverOptions("sesolve", method=method, progress_bar=None)
         H = [[self.H1, 'exp(-alpha*t)']]
 
         if unitary_op is None:
@@ -169,8 +169,12 @@ class TestSeSolve():
         psi0 = qutip.basis(2, 0)
         U0 = qutip.qeye(2)
 
-        options = SolverOptions(store_states=True, normalize_output=normalize,
-                                progress_bar=None)
+        options = SolverOptions(
+            "sesolve",
+            store_states=True,
+            normalize_output=normalize,
+            progress_bar=None
+        )
         out_s = sesolve(H, psi0, self.tlist, [qutip.sigmax(),
                                               qutip.sigmay(),
                                               qutip.sigmaz()],
@@ -197,7 +201,7 @@ class TestSeSolve():
         np.testing.assert_allclose(zs, zu, atol=tol)
 
     def test_sesolver_args(self):
-        options = SolverOptions(progress_bar=None)
+        options = SolverOptions("sesolve", progress_bar=None)
         solver_obj = SeSolver(qutip.QobjEvo([self.H0, [self.H1,'a']],
                                             args={'a': 1}),
                               options=options)
@@ -207,7 +211,7 @@ class TestSeSolve():
 
     def test_sesolver_pickling(self):
         e_ops = [qutip.sigmax(), qutip.sigmay(), qutip.sigmaz()]
-        options = SolverOptions(progress_bar=None)
+        options = SolverOptions("sesolve", progress_bar=None)
         solver_obj = SeSolver(self.H0 + self.H1,
                               options=options)
         solver_copy = pickle.loads(pickle.dumps(solver_obj))
@@ -221,7 +225,7 @@ class TestSeSolve():
 
     @pytest.mark.parametrize('method', all_ode_method, ids=all_ode_method)
     def test_sesolver_stepping(self, method):
-        options = SolverOptions(method=method, atol=1e-7, rtol=1e-8,
+        options = SolverOptions("sesolve", method=method, atol=1e-7, rtol=1e-8,
                                 progress_bar=None)
         solver_obj = SeSolver(
             qutip.QobjEvo([self.H1, lambda t, a: a], args={"a":0.25}),
@@ -245,8 +249,11 @@ class TestSeSolve():
         np.testing.assert_allclose(qutip.expect(qutip.sigmaz(), state), sr2,
                                    atol=2e-6)
 
-        solver_obj.options = SolverOptions(method='adams', atol=1e-7,
-                                           rtol=1e-8, progress_bar=None)
+        solver_obj.options = SolverOptions(
+            "sesolve", method='adams',
+            atol=1e-7, rtol=1e-8,
+            progress_bar=None
+        )
         state = solver_obj.step(3, args={"a":0})
         np.testing.assert_allclose(qutip.expect(qutip.sigmax(), state), 0.,
                                    atol=2e-6)

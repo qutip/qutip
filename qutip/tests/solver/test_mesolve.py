@@ -82,7 +82,7 @@ class TestMESolveDecay:
         H = self.a.dag() * self.a
         psi0 = qutip.basis(self.N, 9)  # initial state
         c_op_list = [cte_c_ops]
-        options = SolverOptions(progress_bar=None)
+        options = SolverOptions("mesolve", progress_bar=None)
         medata = mesolve(H, psi0, self.tlist, c_op_list, [H],
                          args={"kappa": self.kappa},
                          options=options)
@@ -98,7 +98,7 @@ class TestMESolveDecay:
         H = self.a.dag() * self.a
         psi0 = qutip.basis(self.N, 9)  # initial state
         c_op_list = [c_ops]
-        options = SolverOptions(method=method, progress_bar=None)
+        options = SolverOptions("mesolve", method=method, progress_bar=None)
         medata = mesolve(H, psi0, self.tlist, c_op_list, [H],
                          args={"kappa": self.kappa}, options=options)
         expt = medata.expect[0]
@@ -111,7 +111,7 @@ class TestMESolveDecay:
         H = self.a.dag() * self.a
         psi0 = qutip.basis(self.N, 9)  # initial state
         c_op_list = [c_ops, c_ops_1]
-        options = SolverOptions(progress_bar=None)
+        options = SolverOptions("mesolve", progress_bar=None)
         medata = mesolve(H, psi0, self.tlist, c_op_list, [H],
                          args={"kappa": self.kappa},
                          options=options)
@@ -125,7 +125,7 @@ class TestMESolveDecay:
         me_error = 5e-6
         psi0 = qutip.basis(self.N, 9)  # initial state
         c_op_list = [c_ops]
-        options = SolverOptions(progress_bar=None)
+        options = SolverOptions("mesolve", progress_bar=None)
         medata = mesolve(H, psi0, self.tlist, c_op_list, [self.ada],
                          args={"kappa": self.kappa},
                          options=options)
@@ -144,7 +144,7 @@ class TestMESolveDecay:
             c_op_list = [c_ops + c_ops]
         else:
             c_op_list = [[c_ops, c_ops]]
-        options = SolverOptions(progress_bar=None)
+        options = SolverOptions("mesolve", progress_bar=None)
         medata = mesolve(H, psi0, self.tlist, c_op_list, [self.ada],
                          args={"kappa": self.kappa},
                          options=options)
@@ -161,7 +161,7 @@ class TestMESolveDecay:
         psi0 = qutip.basis(self.N, 9)  # initial state
         rho0vec = qutip.operator_to_vector(psi0*psi0.dag())
         E0 = qutip.sprepost(qutip.qeye(self.N), qutip.qeye(self.N))
-        options = SolverOptions(progress_bar=None)
+        options = SolverOptions("mesolve", progress_bar=None)
         c_op_list = [c_ops]
         out1 = mesolve(H, psi0, self.tlist, c_op_list, [],
                        args={"kappa": self.kappa},
@@ -182,7 +182,7 @@ class TestMESolveDecay:
         psi0 = qutip.basis(self.N, 9)  # initial state
         rho0vec = qutip.operator_to_vector(psi0*psi0.dag())
         E0 = qutip.sprepost(qutip.qeye(self.N), qutip.qeye(self.N))
-        options = SolverOptions(progress_bar=None)
+        options = SolverOptions("mesolve", progress_bar=None)
         c_op_list = [c_ops]
         out1 = mesolve(L, psi0, self.tlist, c_op_list, [],
                        args={"kappa": self.kappa},
@@ -222,7 +222,7 @@ class TestMESolveDecay:
             assert all(norm > 4 for norm in norms[1:])
 
     def test_mesolver_pickling(self):
-        options = SolverOptions(progress_bar=None)
+        options = SolverOptions("mesolve", progress_bar=None)
         solver_obj = MeSolver(self.ada, c_ops=[self.a], options=options)
         solver_copy = pickle.loads(pickle.dumps(solver_obj))
         e1 = solver_obj.run(qutip.basis(self.N, 9), [0, 1, 2, 3],
@@ -234,7 +234,7 @@ class TestMESolveDecay:
     @pytest.mark.parametrize('method',
                              all_ode_method, ids=all_ode_method)
     def test_mesolver_stepping(self, method):
-        options = SolverOptions(method=method, progress_bar=None)
+        options = SolverOptions("mesolve", method=method, progress_bar=None)
         solver_obj = MeSolver(
             self.ada,
             c_ops=qutip.QobjEvo(
@@ -273,8 +273,12 @@ def testME_SesolveFallback(super_):
         H = qutip.liouvillian(H)
 
     times = np.linspace(0.0, 0.1, 3)
-    options = SolverOptions(store_states=False, store_final_state=True,
-                            progress_bar=None)
+    options = SolverOptions(
+        "mesolve",
+        store_states=False,
+        store_final_state=True,
+        progress_bar=None
+    )
     result = mesolve(H, state0, times, [], e_ops=[a], options=options)
     if super_ == "ket":
         assert result.final_state.dims == psi0.dims
