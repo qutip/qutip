@@ -28,8 +28,6 @@ package = "qutip"
 package_dir = "qutip"
 directory = "doc/changes"
 filename = "doc/changelog.rst"
-issue_format = ""
-template = "doc/changes/template.rst"
 [[tool.towncrier.type]]
 directory = "deprecation"
 name = "Deprecations"
