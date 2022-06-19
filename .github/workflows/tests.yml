@@ -184,6 +184,7 @@ jobs:
   towncrier-check: 
     name: Verify Towncrier entry added
     runs-on: ubuntu-latest
+    working-directory: /
     steps:
       - name: Verify Towncrier entry added
         run: |
