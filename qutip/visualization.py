@@ -971,7 +971,7 @@ def plot_fock_distribution(rho, offset=0, fig=None, ax=None,
 
     Parameters
     ----------
-    rho : :class:`qutip.qobj.Qobj`
+    rho : :class:`qutip.Qobj`
         The density matrix (or ket) of the state to visualize.
 
     fig : a matplotlib Figure instance
@@ -1034,7 +1034,7 @@ def plot_wigner(rho, fig=None, ax=None, figsize=(6, 6),
 
     Parameters
     ----------
-    rho : :class:`qutip.qobj.Qobj`
+    rho : :class:`qutip.Qobj`
         The density matrix (or ket) of the state to visualize.
 
     fig : a matplotlib Figure instance
@@ -1127,7 +1127,7 @@ def plot_wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
 
     Parameters
     ----------
-    rho : :class:`qutip.qobj.Qobj`
+    rho : :class:`qutip.Qobj`
         The density matrix (or ket) of the state to visualize.
 
     fig : a matplotlib Figure instance

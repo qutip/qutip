@@ -870,8 +870,8 @@ shape = [8, 1], type = ket
 
     Returns
     -------
-    state : :class:`qutip.Qobj.qobj`
-        The state as a :class:`qutip.Qobj.qobj` instance.
+    state : :class:`qutip.Qobj`
+        The state as a :class:`qutip.Qobj` instance.
 
 
     """

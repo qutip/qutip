@@ -239,15 +239,15 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None, progress
     e_ops : list of :class:`qutip.qobj` / callback function
         List of operators for which to evaluate expectation values.
 
-    options : :class:`qutip.Qdeoptions`
+    options : :class:`qutip.solver.Options`
         Options for the ODE solver.
 
     Returns
     -------
 
-    output: :class:`qutip.solver`
+    output: :class:`qutip.solver.Result`
 
-        An instance of the class :class:`qutip.solver`, which contains either
+        An instance of the class :class:`qutip.solver.Result`, which contains either
         an *array* of expectation values for the times specified by `tlist`.
 
     """

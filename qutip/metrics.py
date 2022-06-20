@@ -315,7 +315,7 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
           sparse=True):
     """
     Calculates the diamond norm of the quantum map q_oper, using
-    the simplified semidefinite program of [Wat12]_.
+    the simplified semidefinite program of [Wat13]_.
 
     The diamond norm SDP is solved by using CVXPY_.
 

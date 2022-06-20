@@ -32,7 +32,7 @@ def about(caller="qutip"):
     print(
         "Current admin team: Alexander Pitchford, "
         "Nathan Shammah, Shahnawaz Ahmed, Neill Lambert, Eric Giguère, "
-        "Boxi Li, Jake Lishman and Simon Cross."
+        "Boxi Li, Jake Lishman, Simon Cross and Asier Galicia."
     )
     print(
         "Board members: Daniel Burgarth, Robert Johansson, Anton F. Kockum, "
