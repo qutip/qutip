@@ -186,13 +186,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0  # fetch the master branch too for comparison
 
-      - name: Verify Towncrier entry added
+      - name: Install Towncrier
         run: |
           python -m pip install towncrier
-          towncrier check --compare-with master
+
+      - name: Verify Towncrier entry added
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_BRANCH: ${{ github.base_ref }}
+        run: |
+          # Fetch the pull request' base branch so towncrier will be able to
+          # compare the current branch with the base branch.
+          # Source: https://github.com/actions/checkout/#fetch-all-branches.
+          git fetch --no-tags origin +refs/heads/${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}
+          towncrier check --compare-with origin/${BASE_BRANCH}
 
   finalise:
     name: Finalise coverage reporting
