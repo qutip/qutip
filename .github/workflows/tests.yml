@@ -184,9 +184,9 @@ jobs:
   towncrier-check: 
     name: Verify Towncrier entry added
     runs-on: ubuntu-latest
-    working-directory: /
     steps:
       - name: Verify Towncrier entry added
+        working-directory: /
         run: |
           python -m pip install towncrier
           towncrier check --compare-with master
