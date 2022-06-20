@@ -42,7 +42,7 @@ cdef class QobjEvo:
 
       * a :obj:`~Qobj` (which creates a constant :obj:`~QobjEvo` term).
 
-      * a list of such callables, pairs or :obj:`~Qobj`s.
+      * a list of such callables, pairs or :obj:`~Qobj`\s.
 
       * a :obj:`~QobjEvo` (in which case a copy is created, all other arguments
         are ignored except ``args`` which, if passed, replaces the existing
@@ -114,8 +114,8 @@ cdef class QobjEvo:
         Representation used if `type` is 'super'. One of 'super'
         (Liouville form) or 'choi' (Choi matrix with tr = dimension).
 
-    Property
-    --------
+    Properties
+    ----------
     num_elements
         Number of parts composing the system.
 
@@ -296,8 +296,8 @@ cdef class QobjEvo:
         """
         Get the :cls:`Qobj` at ``t``.
 
-        parameter
-        ---------
+        parameters
+        ----------
         t : float
             Time at which the ``QobjEvo`` is to be evalued.
 
@@ -595,8 +595,8 @@ cdef class QobjEvo:
 
         The `QobjEvo` is transformed inplace.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         data_type : type
             The data-layer type that the data of this `Qobj` should be
             converted to.

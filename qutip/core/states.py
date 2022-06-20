@@ -1273,8 +1273,8 @@ def triplet_states(*, dtype=_data.Dense):
 
 def w_state(N=3, *, dtype=_data.Dense):
     """
-    Returns the N-qubit W-state.
-        [ |100..0> + |010..0> + |001..0> + ... |000..1> ] / sqrt(n)
+    Returns the N-qubit W-state:
+        ``[ |100..0> + |010..0> + |001..0> + ... |000..1> ] / sqrt(n)``
 
     Parameters
     ----------
@@ -1287,7 +1287,7 @@ def w_state(N=3, *, dtype=_data.Dense):
 
     Returns
     -------
-    W : qobj
+    W : :obj:`~qobj`
         N-qubit W-state
     """
     inds = np.zeros(N, dtype=int)
@@ -1300,8 +1300,8 @@ def w_state(N=3, *, dtype=_data.Dense):
 
 def ghz_state(N=3, *, dtype=_data.Dense):
     """
-    Returns the N-qubit GHZ-state
-        [ |00...00> + |11...11> ] / sqrt(2)
+    Returns the N-qubit GHZ-state:
+        ``[ |00...00> + |11...11> ] / sqrt(2)``
 
     Parameters
     ----------

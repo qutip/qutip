@@ -52,9 +52,12 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
             expected to be of the signature ``f(w)`` or ``f(t, w, **args)``.
 
             The spectra function can depend on ``t`` if the corresponding
-            ``a_op`` is a :cls:`QobjEvo`.
+            ``a_op`` is a :class:`QobjEvo`.
 
         Example:
+
+        .. code-block::
+
             a_ops = [
                 (a+a.dag(), ('w>0', args={"w": 0})),
                 (QobjEvo(a+a.dag()), 'w > exp(-t)'),
@@ -62,12 +65,13 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
                 (c+c.dag(), SpectraCoefficient(coefficient(array, tlist=ws))),
             ]
 
-    .. note:
-        ``Cubic_Spline`` have been replaced by :cls:`Coefficient`:
-            ``spline = qutip.coefficient(array, tlist=times)``
-        Whether the ``a_ops`` is time dependent is deceided by the type of the
-        operator: :cls:`Qobj` vs :cls:`QobjEvo` instead of the type of the
-        spectra.
+        .. note:
+            ``Cubic_Spline`` have been replaced by :class:`Coefficient`\:
+                ``spline = qutip.coefficient(array, tlist=times)``
+
+            Whether the ``a_ops`` is time dependent is deceided by the type of
+            the operator: :class:`Qobj` vs :class:`QobjEvo` instead of the type
+            of the spectra.
 
     e_ops : list of :class:`Qobj` / callback function
         Single operator or list of operators for which to evaluate
