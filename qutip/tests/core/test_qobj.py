@@ -1110,3 +1110,17 @@ def test_sum_buildin(shape):
     data = np.random.rand(*shape) + 1j*np.random.rand(*shape)
     qobj = qutip.Qobj(data)
     assert sum([qobj, 2 * qobj, -qobj]) == 2 * qobj
+
+
+def test_groundstate():
+    eigenvals = np.sort(np.random.rand(10))
+    eigenvals[1:] += 0.1  # Ensure no degenerate groundstate
+    qobj = qutip.rand_herm(eigenvals)
+    groundenergy, groundstate = qobj.groundstate()
+    assert groundenergy == pytest.approx(eigenvals[0])
+    assert qutip.expect(qobj, groundstate) == pytest.approx(eigenvals[0])
+    assert groundstate.overlap(groundstate) == pytest.approx(1)
+
+    with pytest.warns(UserWarning) as warning:
+        qutip.qeye(5).groundstate()
+    assert "degenerate" in warning[0].message.args[0]
