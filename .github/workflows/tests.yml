@@ -185,7 +185,9 @@ jobs:
     name: Verify Towncrier entry added
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # fetch the master branch too for comparison
 
       - name: Verify Towncrier entry added
         run: |
