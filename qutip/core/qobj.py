@@ -1621,7 +1621,9 @@ class Qobj:
 
         if safe:
             tol = tol or settings.core['atol']
-            if (evals[1]-evals[0]) <= 10*tol:
+            # This tol should be less strick than the tol for the eigensolver
+            # so it's numerical errors are not seens as degenerate states.
+            if (evals[1]-evals[0]) <= 10 * tol:
                 warnings.warn("Ground state may be degenerate.", UserWarning)
         return evals[0], evecs[0]
 
