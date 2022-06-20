@@ -133,19 +133,20 @@ cdef class QobjEvo:
 
     A :obj:`~QobjEvo` constructed from a function:
 
-    ```
-    def f(t, args):
-        return qutip.qeye(N) * np.exp(args['w'] * t)
+    .. code-block::
 
-    QobjEvo(f, args={'w': 1j})
-    ```
+        def f(t, args):
+            return qutip.qeye(N) * np.exp(args['w'] * t)
+
+        QobjEvo(f, args={'w': 1j})
+
 
     For list based :obj:`~QobjEvo`, the list must consist of :obj`~Qobj` or
     ``[Qobj, Coefficient]`` pairs:
 
-    ```
-    QobjEvo([H0, [H1, coeff1], [H2, coeff2]], args=args)
-    ```
+    .. code-block::
+
+        QobjEvo([H0, [H1, coeff1], [H2, coeff2]], args=args)
 
     The coefficients may be specified either using a :obj:`~Coefficient`
     object or by a function, string, numpy array or any object that
@@ -154,42 +155,43 @@ cdef class QobjEvo:
 
     An example of a coefficient specified by a function:
 
-    ```
-    def f1_t(t, args):
-        return np.exp(-1j * t * args["w1"])
+    .. code-block::
 
-    QobjEvo([[H1, f1_t]], args={"w1": 1.})
-    ```
+        def f1_t(t, args):
+            return np.exp(-1j * t * args["w1"])
+
+        QobjEvo([[H1, f1_t]], args={"w1": 1.})
 
     And of coefficients specified by string expressions:
 
-    ```
-    H = QobjEvo(
-        [H0, [H1, 'exp(-1j*w1*t)'], [H2, 'cos(w2*t)']],
-        args={"w1": 1., "w2": 2.}
-    )
-    ```
+    .. code-block::
+
+        H = QobjEvo(
+            [H0, [H1, 'exp(-1j*w1*t)'], [H2, 'cos(w2*t)']],
+            args={"w1": 1., "w2": 2.}
+        )
 
     Coefficients maybe also be expressed as numpy arrays giving a list
     of the coefficient values:
 
-    ```
-    tlist = np.logspace(-5, 0, 100)
-    H = QobjEvo(
-        [H0, [H1, np.exp(-1j * tlist)], [H2, np.cos(2. * tlist)]],
-        tlist=tlist
-    )
-    ```
+    .. code-block::
+
+        tlist = np.logspace(-5, 0, 100)
+        H = QobjEvo(
+            [H0, [H1, np.exp(-1j * tlist)], [H2, np.cos(2. * tlist)]],
+            tlist=tlist
+        )
 
     The coeffients array must have the same len as the tlist.
 
     A :obj:`~QobjEvo` may also be built using simple arithmetic operations
     combining :obj:`~Qobj` with :obj:`~Coefficient`, for example:
 
-    ```
-    coeff = qutip.coefficient("exp(-1j*w1*t)", args={"w1": 1})
-    qevo = H0 + H1 * coeff
-    ```
+    .. code-block::
+
+        coeff = qutip.coefficient("exp(-1j*w1*t)", args={"w1": 1})
+        qevo = H0 + H1 * coeff
+
     """
     def __init__(QobjEvo self, Q_object, args=None, tlist=None,
                  order=3, copy=True, compress=True,
@@ -349,8 +351,8 @@ cdef class QobjEvo:
         """
         Update the arguments.
 
-        parameter
-        ---------
+        Parameters
+        ----------
         _args : dict [optional]
             New arguments as a dict. Update args with ``arguments(new_args)``.
 
