@@ -181,10 +181,12 @@ jobs:
           COVERALLS_PARALLEL: true
         run: coveralls --service=github
 
-  towncrier-check: 
+  towncrier-check:
     name: Verify Towncrier entry added
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
+
       - name: Verify Towncrier entry added
         run: |
           python -m pip install towncrier
