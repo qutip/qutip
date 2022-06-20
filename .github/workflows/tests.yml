@@ -186,7 +186,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Verify Towncrier entry added
-        working-directory: /
         run: |
           python -m pip install towncrier
           towncrier check --compare-with master
