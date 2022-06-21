@@ -2,7 +2,7 @@
 This module contains utility functions for using QuTiP with IPython notebooks.
 """
 from qutip.ui.progressbar import BaseProgressBar
-from qutip.utilities import _blas_info, available_cpu_count
+from .settings import _blas_info, available_cpu_count
 import IPython
 
 #IPython parallel routines moved to ipyparallel in V4

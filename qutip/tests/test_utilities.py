@@ -1,7 +1,6 @@
 import numpy as np
 from qutip import convert_unit, clebsch, n_thermal
 import qutip.utilities as utils
-from qutip.utilities import available_cpu_count
 from functools import partial
 import pytest
 
@@ -108,6 +107,7 @@ def test_unit_clebsch_delta_m(j1, j2):
 
 
 def test_cpu_count(monkeypatch):
+    from qutip.settings import available_cpu_count
     ncpus = available_cpu_count()
     assert isinstance(ncpus, int)
     assert ncpus >= 1

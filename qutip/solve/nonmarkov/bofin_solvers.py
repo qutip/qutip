@@ -29,7 +29,7 @@ from ...solver.solver_base import Solver
 from ...solver import Result
 
 # Load MKL spsolve if avaiable
-if settings.install['has_mkl']:
+if settings.has_mkl:
     from qutip._mkl.spsolve import mkl_spsolve
 else:
     mkl_spsolve = None
