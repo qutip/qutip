@@ -1060,7 +1060,7 @@ class Qobj:
         space of dimensions `[2, 3, 2, 3]`, and a superoperator would be an
         operator which acts on this joint space.  This function performs the
         partial trace on superoperators by letting the selected components
-        refer to elements of the _joint space_, and then returns a regular
+        refer to elements of the _joint_ _space_, and then returns a regular
         operator (of type `oper`).
 
         Parameters
