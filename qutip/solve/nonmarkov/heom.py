@@ -46,6 +46,7 @@ from .bofin_baths import (
 
 from .bofin_solvers import (
     HEOMSolver,
+    HEOMResult,
     HSolverDL,
     HierarchyADOs,
     HierarchyADOsState,
