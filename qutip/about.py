@@ -17,7 +17,7 @@ import pkg_resources
 def about():
     """
     About box for QuTiP. Gives version numbers for QuTiP, NumPy, SciPy, Cython,
-    and MatPlotLib.
+    and MatPlotLib. Also provides information about installed family packages like qutip-qip.
     """
     print("")
     print("QuTiP: Quantum Toolbox in Python")
