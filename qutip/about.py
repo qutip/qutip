@@ -11,19 +11,13 @@ import scipy
 import inspect
 from qutip.utilities import _blas_info, available_cpu_count
 import qutip.settings
-import importlib
+import pkg_resources
 
 
-def about(caller="qutip"):
+def about():
     """
     About box for QuTiP. Gives version numbers for QuTiP, NumPy, SciPy, Cython,
     and MatPlotLib.
-
-    Parameters
-    ----------
-    caller: string
-            The library about which the information is needed.
-            Ex: 'qutip', 'qutip_qip'
     """
     print("")
     print("QuTiP: Quantum Toolbox in Python")
@@ -44,16 +38,6 @@ def about(caller="qutip"):
           "See https://github.com/qutip for details.")
     print("")
     print("QuTiP Version:      %s" % qutip.__version__)
-    install_path = os.path.dirname(inspect.getsourcefile(qutip))
-    if caller != "qutip":
-        try:
-            package = importlib.import_module(caller)
-            package_ver = package.__version__
-            install_path = os.path.dirname(inspect.getsourcefile(package))
-        except ImportError:
-            package_ver = 'None'
-            install_path = 'None'
-        print(f"{caller} Version:  %s" % package_ver)
     print("Numpy Version:      %s" % numpy.__version__)
     print("Scipy Version:      %s" % scipy.__version__)
     try:
@@ -75,7 +59,22 @@ def about(caller="qutip"):
     print("INTEL MKL Ext:      %s" % str(qutip.settings.has_mkl))
     print("Platform Info:      %s (%s)" % (platform.system(),
                                            platform.machine()))
-    print("Installation path:  %s" % install_path)
+    qutip_install_path = os.path.dirname(inspect.getsourcefile(qutip))
+    print("Installation path:  %s" % qutip_install_path)
+
+    # family packages
+    entrypoints = pkg_resources.iter_entry_points('qutip.about')
+    for ep in entrypoints:
+        about_func = ep.load()
+        try:
+            title, lines = about_func()
+        except Exception as exc:
+            title, lines = ep.name, [str(exc)]
+        print()
+        print(title)
+        for line in lines:
+            print(line)
+
     # citation
     longbar = "=" * 80
     cite_msg = "For your convenience a bibtex reference can be easily"
