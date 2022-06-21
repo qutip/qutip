@@ -18,6 +18,18 @@ from qutip.core import data as _data
 from qutip.core.qobj import Qobj
 from qutip.core.superoperator import spre, spost
 
+__all__ = [
+    "BathExponent",
+    "Bath",
+    "BosonicBath",
+    "DrudeLorentzBath",
+    "DrudeLorentzPadeBath",
+    "UnderDampedBath",
+    "FermionicBath",
+    "LorentzianBath",
+    "LorentzianPadeBath",
+]
+
 
 def _isequal(Q1, Q2, tol):
     """ Return true if Q1 and Q2 are equal to within the given tolerance. """

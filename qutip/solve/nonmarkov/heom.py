@@ -26,6 +26,7 @@ __all__ = [
     "LorentzianBath",
     "LorentzianPadeBath",
     "HEOMSolver",
+    "HEOMResult",
     "HSolverDL",
     "HierarchyADOs",
     "HierarchyADOsState",

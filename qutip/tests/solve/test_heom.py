@@ -14,6 +14,7 @@ from qutip.solve.nonmarkov.heom import (
     LorentzianBath,
     LorentzianPadeBath,
     HEOMSolver,
+    HEOMResult,
     HSolverDL,
     HierarchyADOs,
     HierarchyADOsState,
@@ -37,6 +38,7 @@ class TestSolverAPI:
     def test_api(self):
         # just assert that the solvers and associated classes are importable
         assert HEOMSolver
+        assert HEOMResult
         assert HSolverDL
         assert HierarchyADOs
         assert HierarchyADOsState
