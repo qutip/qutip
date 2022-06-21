@@ -280,10 +280,7 @@ To see how this works, lets first generate some noisy data:
 
     times = np.linspace(-15, 15, 100)
     func = lambda t: 9 * np.exp(-(t / 5)** 2)
-    noisy_data = np.array([
-        func(t) * (1 + 0.05 * np.random.randn())
-        for t in times
-    ])
+    noisy_data = func(times) * (1 + 0.05 * np.random.randn(len(times)))
 
     plt.figure()
     plt.plot(times, func(times))
