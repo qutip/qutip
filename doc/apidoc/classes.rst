@@ -84,12 +84,6 @@ Non-Markovian Solvers
 .. autoclass:: qutip.solve.nonmarkov.heom.HEOMResult
     :members:
 
-.. autoclass:: qutip.solve.nonmarkov.dlheom_solver.HSolverDL
-    :members:
-
-.. autoclass:: qutip.solve.nonmarkov.dlheom_solver.HEOMSolver
-    :members:
-
 .. autoclass:: qutip.solve.nonmarkov.memorycascade.MemoryCascade
     :members:
 
