@@ -81,6 +81,9 @@ Non-Markovian Solvers
 .. autoclass:: qutip.solve.nonmarkov.heom.HierarchyADOsState
     :members:
 
+.. autoclass:: qutip.solve.nonmarkov.heom.HEOMResult
+    :members:
+
 .. autoclass:: qutip.solve.nonmarkov.dlheom_solver.HSolverDL
     :members:
 
