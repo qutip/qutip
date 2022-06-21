@@ -9,6 +9,7 @@ __all__ = [
 
 import functools
 import numbers
+import warnings
 
 import numpy as np
 import scipy.sparse
@@ -1615,29 +1616,16 @@ class Qobj:
         Use sparse only if memory requirements demand it.
         """
         eigvals = 2 if safe else 1
-        if isinstance(self.data, _data.CSR) and sparse:
-            evals, evecs = _data.eigs_csr(self.data,
-                                          isherm=self._isherm,
-                                          eigvals=eigvals, tol=tol,
-                                          maxiter=maxiter)
-        elif isinstance(self.data, _data.CSR):
-            evals, evecs = _data.eigs(_data.to(_data.Dense, self.data),
-                                      isherm=self._isherm,
-                                      eigvals=eigvals)
-        else:
-            evals, evecs = _data.eigs(self.data,
-                                      isherm=self._isherm,
-                                      eigvals=eigvals)
+        evals, evecs = self.eigenstates(sparse=sparse, eigvals=eigvals,
+                                        tol=tol, maxiter=maxiter)
 
         if safe:
             tol = tol or settings.core['atol']
-            if (evals[1]-evals[0]) <= 10*tol:
-                print("WARNING: Ground state may be degenerate. "
-                        "Use Q.eigenstates()")
-        new_dims = [self.dims[0], [1] * len(self.dims[0])]
-        grndvec = Qobj(evecs[0], dims=new_dims)
-        grndvec = grndvec / grndvec.norm()
-        return evals[0], grndvec
+            # This tol should be less strick than the tol for the eigensolver
+            # so it's numerical errors are not seens as degenerate states.
+            if (evals[1]-evals[0]) <= 10 * tol:
+                warnings.warn("Ground state may be degenerate.", UserWarning)
+        return evals[0], evecs[0]
 
     def dnorm(self, B=None):
         """Calculates the diamond norm, or the diamond distance to another
