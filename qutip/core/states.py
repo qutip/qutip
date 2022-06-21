@@ -1287,7 +1287,7 @@ def w_state(N=3, *, dtype=_data.Dense):
 
     Returns
     -------
-    W : :obj:`~qobj`
+    W : :obj:`~Qobj`
         N-qubit W-state
     """
     inds = np.zeros(N, dtype=int)

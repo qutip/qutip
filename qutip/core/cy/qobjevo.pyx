@@ -284,7 +284,7 @@ cdef class QobjEvo:
         """
         Get the :class:`~Qobj` at ``t``.
 
-        parameters
+        Parameters
         ----------
         t : float
             Time at which the ``QobjEvo`` is to be evalued.
