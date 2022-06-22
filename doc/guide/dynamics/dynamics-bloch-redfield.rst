@@ -226,15 +226,17 @@ Note that it is also possible to add Lindblad dissipation superoperators in the 
 
     H = - delta/2.0 * sigmax() - eps0/2.0 * sigmaz()
 
-    def ohmic_spectrum(w):
+    def ohmic_spectrum(_, w):
       if w == 0.0: # dephasing inducing noise
         return gamma1
       else: # relaxation inducing noise
         return gamma1 / 2 * (w / (2 * np.pi)) * (w > 0.0)
 
-    R, ekets = bloch_redfield_tensor(H, [[sigmax(), ohmic_spectrum]])
+    ohmic_spectrum = coefficient(ohmic_spectrum, args={'w': 0})
 
-The evolution of a wavefunction or density matrix, according to the Bloch-Redfield master equation :eq:`br-final`, can be calculated using the QuTiP function :func:`qutip.bloch_redfield.bloch_redfield_solve`. It takes five mandatory arguments: the Bloch-Redfield tensor ``R``, the list of eigenkets ``ekets``, the initial state ``psi0`` (as a ket or density matrix), a list of times ``tlist`` for which to evaluate the expectation values, and a list of operators ``e_ops`` for which to evaluate the expectation values at each time step defined by `tlist`. For example, to evaluate the expectation values of the :math:`\sigma_x`, :math:`\sigma_y`, and :math:`\sigma_z` operators for the example above, we can use the following code:
+    R = bloch_redfield_tensor(H, [[sigmax(), ohmic_spectrum]], fock_basis=True)
+
+The evolution of a wavefunction or density matrix, according to the Bloch-Redfield master equation :eq:`br-final`, can be calculated using the QuTiP function :func:`qutip.mesolve` using Bloch-Refield tensor instead of a liouvillian. For example, to evaluate the expectation values of the :math:`\sigma_x`, :math:`\sigma_y`, and :math:`\sigma_z` operators for the example above, we can use the following code:
 
 .. plot::
     :context:
@@ -245,7 +247,7 @@ The evolution of a wavefunction or density matrix, according to the Bloch-Redfie
 
     e_ops = [sigmax(), sigmay(), sigmaz()]
 
-    expt_list = bloch_redfield_solve(R, ekets, psi0, tlist, e_ops)
+    expt_list = mesolve(R, psi0, tlist, e_ops=e_ops).expect
 
     sphere = Bloch()
 
@@ -272,12 +274,6 @@ where the resulting `output` is an instance of the class :class:`qutip.solve.sol
 Time-dependent Bloch-Redfield Dynamics
 =======================================
 
-.. warning::
-
-    It takes ~3-5 seconds (~30 if using Visual Studio) to compile a time-dependent Bloch-Redfield problem.  Therefore,
-    if you are doing repeated simulations by varying parameters, then it is best to pass
-    ``options = SolverOptions()`` to the solver.
-
 If you have not done so already, please read the section: :ref:`time`.
 
 As we have already discussed, the Bloch-Redfield master equation requires transforming into the eigenbasis of the system Hamiltonian.  For time-independent systems, this transformation need only be done once.  However, for time-dependent systems, one must move to the instantaneous eigenbasis at each time-step in the evolution, thus greatly increasing the computational complexity of the dynamics.  In addition, the requirement for computing all the eigenvalues severely limits the scalability of the method.  Fortunately, this eigen decomposition occurs at the Hamiltonian level, as opposed to the super-operator level, and thus, with efficient programming, one can tackle many systems that are commonly encountered.
@@ -297,7 +293,13 @@ The time-dependent Bloch-Redfield solver in QuTiP relies on the efficient numeri
 Although the problem itself is time-independent, the use of a string as the noise power spectrum tells the solver to go into time-dependent mode.  The string is nearly identical to the Python function format, except that we replaced ``np.pi`` with ``pi`` to avoid calling Python in our Cython code, and we have hard coded the ``gamma1`` argument into the string as limitations prevent passing arguments into the time-dependent Bloch-Redfield solver.
 
 
-For actual time-dependent Hamiltonians, the Hamiltonian itself can be passed into the solver like any other string-based Hamiltonian, as thus we will not discuss this topic further.  Instead, here the focus is on time-dependent bath coupling terms.  To this end, suppose that we have a dissipative harmonic oscillator, where the white-noise dissipation rate decreases exponentially with time :math:`\kappa(t) = \kappa(0)\exp(-t)`.  In the Lindblad or monte-carlo solvers, this could be implemented as a time-dependent collapse operator list ``c_ops = [[a, 'sqrt(kappa*exp(-t))']]``.  In the Bloch-Redfield solver, the bath coupling terms must be Hermitian.  As such, in this example, our coupling operator is the position operator ``a+a.dag()``.  In addition, we do not need the ``sqrt`` operation that occurs in the ``c_ops`` definition.  The complete example, and comparison to the analytic expression is:
+For actual time-dependent Hamiltonians, the Hamiltonian itself can be passed into the solver like any other time dependent Hamiltonian, as thus we will not discuss this topic further.
+Instead, here the focus is on time-dependent bath coupling terms.
+To this end, suppose that we have a dissipative harmonic oscillator, where the white-noise dissipation rate decreases exponentially with time :math:`\kappa(t) = \kappa(0)\exp(-t)`.
+In the Lindblad or monte-carlo solvers, this could be implemented as a time-dependent collapse operator list ``c_ops = [[a, 'sqrt(kappa*exp(-t))']]``.
+In the Bloch-Redfield solver, the bath coupling terms must be Hermitian.
+As such, in this example, our coupling operator is the position operator ``a+a.dag()``.
+The complete example, and comparison to the analytic expression is:
 
 
 .. plot::
@@ -313,7 +315,9 @@ For actual time-dependent Hamiltonians, the Hamiltonian itself can be passed int
 
     kappa = 0.2  # coupling to oscillator
 
-    a_ops = [[a+a.dag(), '{kappa}*exp(-t)*(w>=0)'.format(kappa=kappa)]]
+    a_ops = [
+        ([a+a.dag(), f'sqrt({kappa}*exp(-t))'], '(w>=0)')
+    ]
 
     tlist = np.linspace(0, 10, 100)
 
@@ -330,15 +334,22 @@ For actual time-dependent Hamiltonians, the Hamiltonian itself can be passed int
     plt.show()
 
 
-In many cases, the bath-coupling operators can take the form :math:`A = f(t)a + f(t)^* a^{+}`.  In this case, the above format for inputting the ``a_ops`` is not sufficient. Instead, one must construct a nested-list of tuples to specify this time-dependence.  For example consider a white-noise bath that is coupled to an operator of the form ``exp(1j*t)*a + exp(-1j*t)* a.dag()``.  In this example, the ``a_ops`` list would be:
+In many cases, the bath-coupling operators can take the form :math:`A = f(t)a + f(t)^* a^{+}`.
+The operator parts of the `a_ops` can be made of as many time-dependent terms as needed to construct such operator.
+For example consider a white-noise bath that is coupled to an operator of the form ``exp(1j*t)*a + exp(-1j*t)* a.dag()``.
+In this example, the ``a_ops`` list would be:
 
 .. plot::
     :context: close-figs
 
-    a_ops = [ [ (a, a.dag()), ('{0} * (w >= 0)'.format(kappa), 'exp(1j*t)', 'exp(-1j*t)') ] ]
+    a_ops = [
+        ([[a, 'exp(1j*t)'], [a.dag(), 'exp(-1j*t)']], f'{kappa} * (w >= 0)')
+    ]
 
 
-where the first tuple element ``(a, a.dag())`` tells the solver which operators make up the full Hermitian coupling operator.  The second tuple ``('{0} * (w >= 0)'.format(kappa), 'exp(1j*t)', 'exp(-1j*t)')``, gives the noise power spectrum, and time-dependence of each operator.  Note that the noise spectrum must always come first in this second tuple. A full example is:
+where the first tuple element ``[[a, 'exp(1j*t)'], [a.dag(), 'exp(-1j*t)']]`` tells the solver what is the time-dependent Hermitian coupling operator.
+The second tuple ``f'{kappa} * (w >= 0)'``, gives the noise power spectrum.
+A full example is:
 
 .. plot::
     :context:
@@ -359,7 +370,9 @@ where the first tuple element ``(a, a.dag())`` tells the solver which operators 
 
     psi0 = ket2dm((basis(N, 4) + basis(N, 2) + basis(N, 0)).unit())
 
-    a_ops = [[ (a, a.dag()), ('{0} * (w >= 0)'.format(kappa), 'exp(1j*t)', 'exp(-1j*t)') ]]
+    a_ops = [[
+        QobjEvo([[a, 'exp(1j*t)'], [a.dag(), 'exp(-1j*t)']]), (f'{kappa} * (w >= 0)')
+    ]]
 
     e_ops = [a.dag() * a, a + a.dag()]
 
