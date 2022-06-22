@@ -29,7 +29,7 @@ class Integrator:
     system: qutip.QobjEvo
         Quantum system in which states evolve.
 
-    options: OdeOptions
+    options: dict / :class:`SolverOptions`
         Options for the solver.
 
     Class Attributes

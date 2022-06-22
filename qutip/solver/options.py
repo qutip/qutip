@@ -41,7 +41,8 @@ class SolverOptions():
         value is passed, only options shared between most solver will be
         displayed.
     """
-    def __init__(self, solver='solver', method=None, **kwargs):
+    def __init__(self, solver='solver', method=None,
+                 _solver_feedback=None, **kwargs):
         if solver not in known_solver:
             raise ValueError(f'Unknown solver "{solver}".')
 
@@ -64,6 +65,9 @@ class SolverOptions():
         # Merge all options
         for key in kwargs:
             self.__setitem__(key, kwargs[key])
+
+        # A function to call to inform the solver an options was updated.
+        self._solver_feedback = _solver_feedback
 
     def _set_integrator_options(self, method):
         """
@@ -108,6 +112,9 @@ class SolverOptions():
             self._options[key] = value
         elif key in self._options:
             del self._options[key]
+
+        if self._solver_feedback is not None:
+            self._solver_feedback({key})
 
     def __getitem__(self, key):
         for dictionary in [
@@ -172,30 +179,12 @@ class SolverOptions():
         return tuple((key, self[key]) for key in self.keys())
 
     def copy(self):
-        return SolverOptions(self.solver, **self)
+        copy = SolverOptions(
+            self.solver,
+            **self,
+            _solver_feedback=_self._solver_feedback
+        )
+        return copy
 
     def __bool__(self):
         return bool(self._options)
-
-
-class _AttachedSolverOptions(SolverOptions):
-    """
-    SolverOptions used inside a Solver instance. Changing the options will
-    inform the instance to make the appropiate changes.
-
-    Parameters
-    ----------
-    solver_instance : :class:`Solver`
-        Instance of the solver using these options.
-    """
-    def __init__(self, solver_instance, **kwargs):
-        self.solver_instance = solver_instance
-        super().__init__(solver_instance.name, **kwargs)
-
-    def __setitem__(self, key, value):
-        if value != self[key]:
-            super().__setitem__(key, value)
-            self.solver_instance._apply_options({key})
-
-    def copy(self):
-        return _AttachedSolverOptions(self.solver_instance, **self)

@@ -289,9 +289,10 @@ class Solver:
         if 'method' in new_options:
             kept_options['method'] = new_options['method']
 
-        self._options = _AttachedSolverOptions(
+        self._options = SolverOptions(
             self,
-            **{**kept_options, **new_options}
+            **{**kept_options, **new_options},
+            _solver_feedback=self._apply_options,
         )
 
         self._apply_options(new_options.keys())

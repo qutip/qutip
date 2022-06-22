@@ -293,40 +293,46 @@ class BRSolver(Solver):
         method: str
             Which ODE integrator methods are supported.
         """
-        return self._options.copy()
+        return self._options
 
     @options.setter
     def options(self, new_options):
+        new_options = self._parse_options(**new_options)
         if not new_options:
             return  # Nothing to do
-        change_method = (
-            'method' in new_options
-            and new_options['method'] != self._options['method']
+
+        # Create options without the integrator items that are not
+        # not supported by the new integrator if changed.
+        kept_options = self._options.copy()
+        if 'method' in new_options:
+            kept_options['method'] = new_options['method']
+
+        self._options = SolverOptions(
+            self,
+            **{**kept_options, **new_options},
+            _solver_feedback=self._apply_options,
         )
-        kept_options = self._options
-        if change_method:
-            kept_options = self._options.solver_options
 
-        self._options = SolverOptions('brmesolve', **{**kept_options, **new_options})
+        self._apply_options(new_options.keys())
 
-        need_new_rhs = (
-            self.rhs is not None and self.rhs.isconstant
-            and (
-                'sparse_eigensolver' in new_options
-                or 'tensor_type' in new_options
-            )
+    def _apply_options(self, keys):
+        need_new_rhs = self.rhs is not None and not self.rhs.isconstant
+        need_new_rhs &= (
+            'sparse_eigensolver' in keys or 'tensor_type' in keys
         )
         if need_new_rhs:
             self.rhs = self._prepare_rhs()
 
-        if self._integrator is None:
+        if self._integrator is None or not keys:
             pass
-        elif change_method or need_new_rhs:
+        elif 'method' in keys or need_new_rhs:
             state = self._integrator.get_state()
             self._integrator = self._get_integrator()
             self._integrator.set_state(*state)
         else:
             self._integrator.options = new_options
+            self._integrator.reset(hard=True)
+
 
 known_solver['brmesolve'] = BRSolver
 known_solver['Brmesolver'] = BRSolver
