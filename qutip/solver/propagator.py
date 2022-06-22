@@ -133,7 +133,7 @@ class Propagator:
         Absolute tolerance for the time. If a previous propagator was computed
         at a time within tolerance, that propagator will be returned.
 
-    .. note :
+    .. note::
         The :class:`Propagator` is not a :class:`QobjEvo` so it cannot be used
         for operations with :class:`Qobj` or :class:`QobjEvo`. It can be made
         into a :class:`QobjEvo` with ::

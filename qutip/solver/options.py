@@ -25,23 +25,23 @@ class SolverOptions:
 
         qutip.settings.solver['progress_bar'] = 'enhanced'
 
-    Options
-    -------
-    normalize_output : str {"", "dm", "ket", "all", True}
-        Whether to normalize the output state to hide ODE numerical errors.
-        The values "all" and True will normalize both ket and dm states.
-        The values "ket" and "dm" will only normalize states of the specified
-        type. Leave blank for no normalization.
+    Keys:
+    
+        normalize_output : str {"", "dm", "ket", "all", True}
+            Whether to normalize the output state to hide ODE numerical errors.
+            The values "all" and True will normalize both ket and dm states.
+            The values "ket" and "dm" will only normalize states of the
+            specified type. Leave blank for no normalization.
 
-    progress_bar : str {'text', 'enhanced', 'tqdm', ''}
-        How to present the solver progress.
-        True will result in 'text'.
-        'tqdm' uses the python module of the same name and raise an error if
-        not installed.
-        Empty string or False will disable the bar.
+        progress_bar : str {'text', 'enhanced', 'tqdm', ''}
+            How to present the solver progress.
+            True will result in 'text'.
+            'tqdm' uses the python module of the same name and raise an error
+            if not installed.
+            Empty string or False will disable the bar.
 
-    progress_kwargs : dict
-        kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
+        progress_kwargs : dict
+            kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
     """
     options = {
         # Normalize output of solvers
