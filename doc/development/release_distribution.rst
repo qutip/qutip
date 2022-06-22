@@ -46,7 +46,7 @@ For every change that is going to be part of your release, make sure that:
 
 Please make a normal PR to ``master`` correcting anything missing from these points and have it merged before you begin the release, if necessary.
 
-.. _update-requirement
+.. _update-requirement:
 
 Updating the Requirements
 -------------------------
