@@ -255,7 +255,7 @@ class Solver:
     def _parse_options(self, **new_options):
         """
         Do a first read through of the options:
-        - Raise an error for unsupported error.
+        - Raise an error for unsupported options keys.
         - Replace ``None`` with the default value.
         - Remove items that are unchanged.
         """
@@ -325,15 +325,8 @@ class Solver:
             return cls._avail_integrators.copy()
         return {
             **Solver.avail_integrators(),
-            **cls._avail_integrators
+            **cls._avail_integrators,
         }
-
-    @classmethod
-    def integrator_options(cls):
-        integrators = cls.avail_integrators()
-        options = {key: inte.integrator_options
-                   for key, inte in integrators.items()}
-        return options
 
     @classmethod
     def add_integrator(cls, integrator, key):

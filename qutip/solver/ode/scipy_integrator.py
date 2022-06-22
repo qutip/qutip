@@ -223,8 +223,6 @@ class IntegratorScipyDop853(Integrator):
     Equations i. Nonstiff Problems. 2nd edition. Springer Series in
     Computational Mathematics, Springer-Verlag (1993)].
     """
-    support_time_dependant = True
-    supports_blackbox = True
     integrator_options = {
         'atol': 1e-8,
         'rtol': 1e-6,
@@ -235,6 +233,8 @@ class IntegratorScipyDop853(Integrator):
         'dfactor': 0.3,
         'beta': 0.0,
     }
+    support_time_dependant = True
+    supports_blackbox = True
     method = 'dop853'
 
     def _prepare(self):
