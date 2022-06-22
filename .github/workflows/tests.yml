@@ -33,13 +33,12 @@ jobs:
         # the lack of a variable is _always_ false-y, and the defaults lack all
         # the special cases.
         include:
-          # Scipy 1.4 is the oldest version supported with python 3.8 and
-          # numpy 1.20
+          # Scipy 1.5, we let conda choose numpy and python versions
           - case-name: old SciPy
             os: ubuntu-latest
-            python-version: "3.9"
-            scipy-requirement: ">=1.4,<1.5"
+            python-version: ">=3.8"
             numpy-requirement: ">=1.20"
+            scipy-requirement: ">=1.5,<1.6"
 
           # No MKL runs.  MKL is now the default for conda installations, but
           # not necessarily for pip.
