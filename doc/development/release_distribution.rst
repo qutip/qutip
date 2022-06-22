@@ -53,7 +53,9 @@ Updating the Requirements
 
 Ensure that QuTip's tests pass on the oldest version supported in the requirements.
 On major and minor version, requirements can be updated to remove support of older version of some packages.
-We follow `NEP29 <https://numpy.org/neps/nep-0029-deprecation_policy.html>` for minimum supported versions.
+We follow `NEP29`_ for minimum supported versions.
+
+.. _NEP29: https://numpy.org/neps/nep-0029-deprecation_policy.html
 
 .. _update-changelog:
 
