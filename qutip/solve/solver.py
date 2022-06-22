@@ -140,41 +140,40 @@ class SolverOptions:
 
         qutip.settings.solver['order'] = 10
 
-    Options
-    -------
+    Supported options:
 
-    atol : float {1e-8}
-        Absolute tolerance.
-    rtol : float {1e-6}
-        Relative tolerance.
-    method : str {'adams','bdf'}
-        Integration method.
-    order : int {12}
-        Order of integrator (<=12 'adams', <=5 'bdf')
-    nsteps : int {2500}
-        Max. number of internal steps/call.
-    first_step : float {0}
-        Size of initial step (0 = automatic).
-    min_step : float {0}
-        Minimum step size (0 = automatic).
-    max_step : float {0}
-        Maximum step size (0 = automatic)
-    tidy : bool {True,False}
-        Tidyup Hamiltonian and initial state by removing small terms.
-    average_states : bool {False}
-        Average states values over trajectories in stochastic solvers.
-    average_expect : bool {True}
-        Average expectation values over trajectories for stochastic solvers.
-    ntraj : int {500}
-        Number of trajectories in stochastic solvers.
-    store_final_state : bool {False, True}
-        Whether or not to store the final state of the evolution in the
-        result class.
-    store_states : bool {False, True}
-        Whether or not to store the state vectors or density matrices in the
-        result class, even if expectation values operators are given. If no
-        expectation are provided, then states are stored by default and this
-        option has no effect.
+        atol : float {1e-8}
+            Absolute tolerance.
+        rtol : float {1e-6}
+            Relative tolerance.
+        method : str {'adams','bdf'}
+            Integration method.
+        order : int {12}
+            Order of integrator (<=12 'adams', <=5 'bdf')
+        nsteps : int {2500}
+            Max. number of internal steps/call.
+        first_step : float {0}
+            Size of initial step (0 = automatic).
+        min_step : float {0}
+            Minimum step size (0 = automatic).
+        max_step : float {0}
+            Maximum step size (0 = automatic)
+        tidy : bool {True,False}
+            Tidyup Hamiltonian and initial state by removing small terms.
+        average_states : bool {False}
+            Average states values over trajectories in stochastic solvers.
+        average_expect : bool {True}
+            Average expectation values over trajectories for stochastic solvers.
+        ntraj : int {500}
+            Number of trajectories in stochastic solvers.
+        store_final_state : bool {False, True}
+            Whether or not to store the final state of the evolution in the
+            result class.
+        store_states : bool {False, True}
+            Whether or not to store the state vectors or density matrices in the
+            result class, even if expectation values operators are given. If no
+            expectation are provided, then states are stored by default and this
+            option has no effect.
     """
     options = {
         # Absolute tolerance (default = 1e-8)

@@ -200,7 +200,7 @@ class Solver:
         copy : bool, optional {True}
             Whether to return a copy of the data or the data in the ODE solver.
 
-        .. note :
+        .. note::
             The state must be initialized first by calling ``start`` or
             ``run``. If ``run`` is called, ``step`` will continue from the last
             time and state obtained.
