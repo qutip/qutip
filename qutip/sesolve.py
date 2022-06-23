@@ -125,7 +125,7 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
     elif callable(H):
         ss = _sesolve_func_td(H, args, options)
     else:
-        raise TypeError(f"Invalid H type {type(H)}")
+        raise TypeError(f"Invalid H: {H!r}")
 
     func, ode_args = ss.makefunc(ss, psi0, args, e_ops, options)
 
