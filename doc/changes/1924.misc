@@ -1,0 +1,1 @@
+Return TypeError instead of Exception for type error in sesolve argument
