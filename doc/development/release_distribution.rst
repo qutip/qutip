@@ -51,7 +51,7 @@ Please make a normal PR to ``master`` correcting anything missing from these poi
 Updating the Requirements
 -------------------------
 
-Ensure that QuTip's tests pass on the oldest version supported in the requirements.
+Ensure that QuTiP's tests pass on the oldest version supported in the requirements.
 On major and minor version, requirements can be updated to remove support of older version of some packages.
 We follow `NEP29`_ for minimum supported versions.
 
