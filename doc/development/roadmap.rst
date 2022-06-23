@@ -447,6 +447,8 @@ QIP circuits could be animated. Status lights showing evolution of states during
 the processing. Animated Bloch spheres for qubits.
 
 
+.. _release roadmap:
+
 QuTiP major release roadmap
 ===========================
 
@@ -465,8 +467,14 @@ These Projects need to be completed for the qutip v.5 release.
 
 The planned timeline for the release is:
 
-- **alpha version, April 2021**. Core features packaged and available for
+- **alpha version, September 2022**. Core features packaged and available for
   experienced users to test.
-- **beta version, July 2021**. All required features and documentation complete,
-  packaged and ready for community testing.
-- **full release, September 2021**. Full tested version released.
+- **beta version, November 2022**. All required features and documentation
+  complete, packaged and ready for community testing.
+- **full release, December 2022**. Full tested version released.
+
+Planned supported environment:
+
+- python 3.8 .. 3.11
+- numpy 1.20 .. 1.23
+- scipy 1.5 .. 1.8

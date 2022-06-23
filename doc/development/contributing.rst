@@ -87,12 +87,15 @@ Cython will detect and compile only the files that have been changed, so this co
 
 .. note::
 
-   When developing for a new major or minor version (not a patch release), new feature introduced could require newer versions of some of the required packages.
-   In that case, update the requirements as needed.
-   We follow `NEP29`_ for minimum supported versions of scipy and numpy.
-   For other dependencies, we support the oldest version that is supporting the suggested python and numpy's versions.
+    QuTiP follows `NEP29`_ when selecting the supported version of its dependencies.
+    To see which versions are planned to be supported in future release, please refer to the :ref:`release roadmap`.
+    These coincide with the versions employed for testing in continuous integration.
+
+    In the event of a feature requiring a version upgrade of python or a dependency, it will be considered appropriately in the pull request.
+    In any case, python and dependency upgrades will only happen in mayor or minor versions of QuTiP, not in a patch.
 
 .. _NEP29: https://numpy.org/neps/nep-0029-deprecation_policy.html
+
 
 Code Style
 ----------
