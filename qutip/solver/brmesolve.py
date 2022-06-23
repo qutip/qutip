@@ -207,8 +207,12 @@ class BRSolver(Solver):
 
         self.rhs = None
         self.sec_cutoff = sec_cutoff
-        self._options = self.solver_options.copy()
-        self.options = options
+        self._options = SolverOptions(
+            self.name,
+            _solver_feedback=self._apply_options
+        )
+        if options is not None:
+            self.options = options
 
         if not isinstance(H, (Qobj, QobjEvo)):
             raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
@@ -308,7 +312,7 @@ class BRSolver(Solver):
             kept_options['method'] = new_options['method']
 
         self._options = SolverOptions(
-            self,
+            self.name,
             **{**kept_options, **new_options},
             _solver_feedback=self._apply_options,
         )

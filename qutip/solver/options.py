@@ -41,10 +41,12 @@ class SolverOptions():
         value is passed, only options shared between most solver will be
         displayed.
     """
-    def __init__(self, solver='solver', method=None,
-                 _solver_feedback=None, **kwargs):
+    def __init__(self, solver='solver', _solver_feedback=None, **kwargs):
         if solver not in known_solver:
             raise ValueError(f'Unknown solver "{solver}".')
+
+        # A function to call to inform the solver an options was updated.
+        self._solver_feedback = _solver_feedback
 
         solver_class = known_solver[solver]
         # Various spelling are supported, set the official name.
@@ -54,20 +56,18 @@ class SolverOptions():
             solver_class.options.__doc__
         )
 
+        self._options = {}
+
         # Get a copy of the solver default options
         self._default_solver_options = solver_class.solver_options.copy()
         self.supported_integrator = solver_class.avail_integrators()
 
-        method = method or self._default_solver_options['method']
-        self._options = {'method': method}
+        method = kwargs.get("method", self._default_solver_options["method"])
         self._set_integrator_options(method)
 
         # Merge all options
         for key in kwargs:
             self.__setitem__(key, kwargs[key])
-
-        # A function to call to inform the solver an options was updated.
-        self._solver_feedback = _solver_feedback
 
     def _set_integrator_options(self, method):
         """
@@ -103,7 +103,7 @@ class SolverOptions():
         Set the options.
         Settings to ``None`` revert the the default value.
         """
-        if key == 'method' and value != self._options['method']:
+        if key == 'method' and value != self['method']:
             self._set_integrator_options(value)
 
         if key not in self.supported_keys:
@@ -141,16 +141,22 @@ class SolverOptions():
             raise KeyError(f"'{key}' is not a supported options.")
 
     def __str__(self):
-        longest_s = max(len(self[key]) for key in self._default_solver_options)
-        longest_i = max(len(self[key]) for key in self._default_integrator_options)
+        longest_s = max(len(key) for key in self._default_solver_options)
+        longest_i = max(len(key) for key in self._default_integrator_options)
         lines = []
         lines.append(f"Options for {self.solver}:")
         for key in self._default_solver_options:
-            lines.append(f"    {key:{longest_s}} : '{self[key].__repr__()}'")
+            default = "  (default)" if key not in self._options else ""
+            lines.append(f"    {key:{longest_s}} : "
+                         f"{self[key].__repr__():{70-longest_s}}"
+                         f"{default}")
         method = self._default_solver_options['method']
         lines.append(f"Options for {method} integrator:")
         for key in self._default_integrator_options:
-            lines.append(f"    {key:{longest_i}} : '{self[key].__repr__()}'")
+            default = "  (default)" if key not in self._options else ""
+            lines.append(f"    {key:{longest_i}} : "
+                         f"{self[key].__repr__():{70-longest_i}}"
+                         f"{default}")
         return "\n".join(lines)
 
     def __repr__(self):
@@ -182,9 +188,29 @@ class SolverOptions():
         copy = SolverOptions(
             self.solver,
             **self,
-            _solver_feedback=_self._solver_feedback
+            _solver_feedback=self._solver_feedback
         )
         return copy
 
     def __bool__(self):
         return bool(self._options)
+
+    def convert(self, new_solver):
+        """
+        Create a new SolverOptions for the new solver, keeping the options in
+        common, but dropping those which are not used by the new solver.
+
+        Parameters
+        ----------
+        new_solver : str
+            Name of the solver for which the options are intended for.
+        """
+        # This is intended for solver fallback such as mcsolve to sesolve.
+        # The options specific to mcsolve would raise error in sesolve.
+        new_opt = SolverOptions(new_solver)
+        for key, val in self._options.items():
+            try:
+                new_opt[key] = val
+            except KeyError:
+                pass
+        return new_opt

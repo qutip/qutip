@@ -1,7 +1,7 @@
 __all__ = ['Solver']
 
 from .. import Qobj, QobjEvo, ket2dm
-from .options import known_solver, _AttachedSolverOptions, SolverOptions
+from .options import known_solver, SolverOptions
 from ..core import stack_columns, unstack_columns
 from .result import Result
 from .integrator import Integrator
@@ -46,7 +46,10 @@ class Solver:
             self.rhs = QobjEvo(rhs)
         else:
             TypeError("The rhs must be a QobjEvo")
-        self._options = _AttachedSolverOptions(self)
+        self._options = SolverOptions(
+            self.name,
+            _solver_feedback=self._apply_options
+        )
         if options is not None:
             self.options = options
         _time_start = time()
@@ -290,7 +293,7 @@ class Solver:
             kept_options['method'] = new_options['method']
 
         self._options = SolverOptions(
-            self,
+            self.name,
             **{**kept_options, **new_options},
             _solver_feedback=self._apply_options,
         )
