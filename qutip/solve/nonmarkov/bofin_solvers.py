@@ -753,6 +753,10 @@ class HEOMSolver(Solver):
                 return Qobj(_data.kron(h_identity, L.data)).to("csr")
             rhs += self.H_sys.linear_map(_kron)
 
+        # The assertion that rhs_mat has data type CSR is just a sanity
+        # check on the RHS creation. The base solver class will still
+        # convert the RHS to the type required by the ODE integrator if
+        # required.
         assert isinstance(rhs_mat, _csr.CSR)
         assert isinstance(rhs, QobjEvo)
 
