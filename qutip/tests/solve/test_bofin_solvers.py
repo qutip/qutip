@@ -563,17 +563,17 @@ class TestHEOMSolver:
 
     def test_create_h_sys_errors(self):
         H = object()
-
         with pytest.raises(TypeError) as err:
             HEOMSolver(H, Bath([]), 2)
         assert str(err.value) == (
-            "Hamiltonian (H_sys) has unsupported type: <class 'object'>"
+            "The Hamiltonian (H) must be a Qobj or QobjEvo"
         )
 
-        with pytest.raises(ValueError) as err:
+        H = [sigmax()]
+        with pytest.raises(TypeError) as err:
             HEOMSolver([H], Bath([]), 2)
         assert str(err.value) == (
-            "Hamiltonian (H_sys) of type list cannot be converted to QObjEvo"
+            "The Hamiltonian (H) must be a Qobj or QobjEvo"
         )
 
     @pytest.mark.parametrize(['method'], [

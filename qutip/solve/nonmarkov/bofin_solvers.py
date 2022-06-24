@@ -551,10 +551,13 @@ class HEOMSolver(Solver):
     def __init__(self, H, bath, max_depth, *, options=None):
         _time_start = time()
 
-        H_sys = QobjEvo(self._convert_h_sys(H))
+        if not isinstance(H, (Qobj, QobjEvo)):
+            raise TypeError("The Hamiltonian (H) must be a Qobj or QobjEvo")
+
+        H = QobjEvo(H)
         self.L_sys = (
-            liouvillian(H_sys) if H_sys.type == "oper"  # hamiltonian
-            else H_sys  # already a liouvillian
+            liouvillian(H) if H.type == "oper"  # hamiltonian
+            else H  # already a liouvillian
         )
 
         self._sys_shape = int(np.sqrt(self.L_sys.shape[0]))
@@ -619,24 +622,6 @@ class HEOMSolver(Solver):
             "max_depth": self.ados.max_depth,
         })
         return stats
-
-    def _convert_h_sys(self, H_sys):
-        """ Process input system Hamiltonian, converting and raising as needed.
-        """
-        if isinstance(H_sys, (Qobj, QobjEvo)):
-            pass
-        elif isinstance(H_sys, list):
-            try:
-                H_sys = QobjEvo(H_sys)
-            except Exception as err:
-                raise ValueError(
-                    "Hamiltonian (H_sys) of type list cannot be converted to"
-                    " QObjEvo"
-                ) from err
-        else:
-            raise TypeError(
-                f"Hamiltonian (H_sys) has unsupported type: {type(H_sys)!r}")
-        return H_sys
 
     def _combine_bath_exponents(self, bath):
         """ Combine the exponents for the specified baths. """
@@ -1164,6 +1149,7 @@ class HSolverDL(HEOMSolver):
         N_cut, N_exp, cut_freq, *, bnd_cut_approx=False, options=None,
         combine=True,
     ):
+        H_sys = QobjEvo(H_sys)
         bath = DrudeLorentzBath(
             Q=coup_op,
             lam=coup_strength,
@@ -1176,9 +1162,7 @@ class HSolverDL(HEOMSolver):
         if bnd_cut_approx:
             # upgrade H_sys to a Liouvillian if needed and add the
             # bath terminator
-            H_sys = self._convert_h_sys(H_sys)
-            is_hamiltonian = H_sys.type == "oper"
-            if is_hamiltonian:
+            if H_sys.type == "oper":  # H_sys is a Hamiltonian
                 H_sys = liouvillian(H_sys)
             _, terminator = bath.terminator()
             H_sys = H_sys + terminator
