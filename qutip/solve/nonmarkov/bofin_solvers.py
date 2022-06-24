@@ -447,21 +447,15 @@ class HEOMSolver(Solver):
     def __init__(self, H, bath, max_depth, *, options=None):
         _time_start = time()
 
-        self.H_sys = QobjEvo(self._convert_h_sys(H))
-        self._is_hamiltonian = self.H_sys.type == "oper"
+        H_sys = QobjEvo(self._convert_h_sys(H))
+        self.L_sys = (
+            liouvillian(H_sys) if H_sys.type == "oper"  # hamiltonian
+            else H_sys  # already a liouvillian
+        )
 
-        self._sys_shape = (
-            self.H_sys.shape[0] if self._is_hamiltonian
-            else int(np.sqrt(self.H_sys.shape[0]))
-        )
-        self._sup_shape = (
-            self.H_sys.shape[0] ** 2 if self._is_hamiltonian
-            else self.H_sys.shape[0]
-        )
-        self._sys_dims = (
-            self.H_sys.dims if self._is_hamiltonian
-            else self.H_sys.dims[0]
-        )
+        self._sys_shape = int(np.sqrt(self.L_sys.shape[0]))
+        self._sup_shape = self.L_sys.shape[0]
+        self._sys_dims = self.L_sys.dims[0]
 
         self.ados = HierarchyADOs(
             self._combine_bath_exponents(bath), max_depth,
@@ -723,10 +717,8 @@ class HEOMSolver(Solver):
 
     def _calculate_rhs(self):
         """ Make the full RHS required by the solver. """
-        if self.H_sys.isconstant:
-            L0 = self.H_sys(0)
-            if self._is_hamiltonian:
-                L0 = liouvillian(L0)
+        if self.L_sys.isconstant:
+            L0 = self.L_sys(0)
             rhs_mat = self._rhs(L0.data)
             rhs = QobjEvo(Qobj(rhs_mat, dims=[
                 self._sup_shape * self._n_ados, self._sup_shape * self._n_ados
@@ -749,9 +741,8 @@ class HEOMSolver(Solver):
             h_identity = _data.identity(self._n_ados, dtype="csr")
 
             def _kron(x):
-                L = liouvillian(x) if self._is_hamiltonian else x
-                return Qobj(_data.kron(h_identity, L.data)).to("csr")
-            rhs += self.H_sys.linear_map(_kron)
+                return Qobj(_data.kron(h_identity, x.data)).to("csr")
+            rhs += self.L_sys.linear_map(_kron)
 
         # The assertion that rhs_mat has data type CSR is just a sanity
         # check on the RHS creation. The base solver class will still
@@ -799,7 +790,7 @@ class HEOMSolver(Solver):
             The steady state of the full ADO hierarchy. A particular ADO may be
             extracted from the full state by calling :meth:`.extract`.
         """
-        if not self.H_sys.isconstant:
+        if not self.L_sys.isconstant:
             raise ValueError(
                 "A steady state cannot be determined for a time-dependent"
                 " system"
