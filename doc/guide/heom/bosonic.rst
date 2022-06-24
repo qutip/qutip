@@ -133,7 +133,8 @@ The ``result`` is a standard QuTiP results object with the attributes:
 
 - ``times``: the times at which the state was evaluated (i.e. ``tlist``)
 - ``states``: the system states at each time
-- ``expect``: the values of each ``e_ops`` at each time
+- ``expect``: a list with the values of each ``e_ops`` at each time
+- ``e_data``: a dictionary with the values of each ``e_op`` at each time
 - ``ado_states``: see below (an instance of
   :class:`~qutip.solve.nonmarkov.heom.HierarchyADOsState`)
 
@@ -149,7 +150,7 @@ supply it as the initial state of the solver by calling
 
 As with other QuTiP solvers, if expectation operators or functions are supplied
 using ``.run(..., e_ops=[...])`` the expectation values are available in
-``result.expect``.
+``result.expect`` and ``result.e_data``.
 
 Below we run the solver again, but use ``e_ops`` to store the expectation
 values of the population of the system states and the coherence:
@@ -172,8 +173,8 @@ values of the population of the system states and the coherence:
 
     # Plot the results:
     fig, axes = plt.subplots(1, 1, sharex=True, figsize=(8,8))
-    axes.plot(result.times, result.expect["11"], 'b', linewidth=2, label="P11")
-    axes.plot(result.times, result.expect["12"], 'r', linewidth=2, label="P12")
+    axes.plot(result.times, result.e_data["11"], 'b', linewidth=2, label="P11")
+    axes.plot(result.times, result.e_data["12"], 'r', linewidth=2, label="P12")
     axes.set_xlabel(r't', fontsize=28)
     axes.legend(loc=0, fontsize=12)
 
@@ -398,7 +399,7 @@ occurs:
 
     # Plot populations:
     fig, axes = plt.subplots(1, 1, sharex=True, figsize=(8,8))
-    for label, values in result.expect.items():
+    for label, values in result.e_data.items():
         axes.plot(result.times, values, label=label)
     axes.set_xlabel(r't', fontsize=28)
     axes.set_ylabel(r"Population", fontsize=28)

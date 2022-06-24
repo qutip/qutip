@@ -163,8 +163,8 @@ values of the population of the system states:
 
     # Plot the results:
     fig, axes = plt.subplots(1, 1, sharex=True, figsize=(8,8))
-    axes.plot(result.times, result.expect["11"], 'b', linewidth=2, label="P11")
-    axes.plot(result.times, result.expect["22"], 'r', linewidth=2, label="P22")
+    axes.plot(result.times, result.e_data["11"], 'b', linewidth=2, label="P11")
+    axes.plot(result.times, result.e_data["22"], 'r', linewidth=2, label="P22")
     axes.set_xlabel(r't', fontsize=28)
     axes.legend(loc=0, fontsize=12)
 
@@ -244,11 +244,11 @@ baths, we can pass them to ``e_ops`` and plot the results:
     # Plot the results:
     fig, axes = plt.subplots(1, 1, sharex=True, figsize=(8,8))
     axes.plot(
-        result.times, result.expect["left_currents"], 'b',
+        result.times, result.e_data["left_currents"], 'b',
         linewidth=2, label=r"Bath L",
     )
     axes.plot(
-        result.times, result.expect["right_currents"], 'r',
+        result.times, result.e_data["right_currents"], 'r',
         linewidth=2, label="Bath R",
     )
     axes.set_xlabel(r't', fontsize=28)
@@ -292,7 +292,7 @@ Now we can add the steady state currents to the previous plot:
     # Plot the results and steady state currents:
     fig, axes = plt.subplots(1, 1, sharex=True, figsize=(8,8))
     axes.plot(
-        result.times, result.expect["left_currents"], 'b',
+        result.times, result.e_data["left_currents"], 'b',
         linewidth=2, label=r"Bath L",
     )
     axes.plot(
@@ -300,7 +300,7 @@ Now we can add the steady state currents to the previous plot:
         linewidth=2, label=r"Bath L (steady state)",
     )
     axes.plot(
-        result.times, result.expect["right_currents"], 'r',
+        result.times, result.e_data["right_currents"], 'r',
         linewidth=2, label="Bath R",
     )
     axes.plot(
