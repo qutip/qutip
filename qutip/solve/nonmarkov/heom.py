@@ -25,6 +25,7 @@ __all__ = [
     "FermionicBath",
     "LorentzianBath",
     "LorentzianPadeBath",
+    "heomsolve",
     "HEOMSolver",
     "HEOMResult",
     "HSolverDL",
@@ -45,6 +46,7 @@ from .bofin_baths import (
 )
 
 from .bofin_solvers import (
+    heomsolve,
     HEOMSolver,
     HEOMResult,
     HSolverDL,

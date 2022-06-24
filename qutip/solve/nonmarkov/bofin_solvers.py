@@ -35,6 +35,7 @@ else:
     mkl_spsolve = None
 
 __all__ = [
+    "heomsolve",
     "HierarchyADOs",
     "HierarchyADOsState",
     "HEOMResult",
@@ -401,6 +402,109 @@ class HEOMResult(Result):
         self.final_state = ado_state.rho
         if self.store_ados:
             self.final_ado_state = ado_state
+
+
+def heomsolve(
+    H, bath, max_depth, state0, tlist, *, e_ops=None, args=None, options=None,
+):
+    """
+    Hierarchical Equations of Motion (HEOM) solver that supports multiple
+    baths.
+
+    The baths must be all either bosonic or fermionic baths.
+
+    If you need to run many evolutions of the same system and bath, consider
+    using :class:`HEOMSolver` directly to avoid having to continually
+    reconstruct the equation hierarchy for every evolution.f__
+
+    Parameters
+    ----------
+    H : :class:`Qobj`, :class:`QobjEvo`
+        Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or
+        QobjEvo. list of [:class:`Qobj`, :class:`Coefficient`] or callable that
+        can be made into :class:`QobjEvo` are also accepted.
+
+    bath : Bath or list of Bath
+        A :obj:`Bath` containing the exponents of the expansion of the
+        bath correlation funcion and their associated coefficients
+        and coupling operators, or a list of baths.
+
+        If multiple baths are given, they must all be either fermionic
+        or bosonic baths.
+
+    max_depth : int
+        The maximum depth of the heirarchy (i.e. the maximum number of bath
+        exponent "excitations" to retain).
+
+    state0 : :class:`~Qobj` or :class:`~HierarchyADOsState` or array-like
+        If ``rho0`` is a :class:`~Qobj` the it is the initial state
+        of the system (i.e. a :obj:`~Qobj` density matrix).
+
+        If it is a :class:`~HierarchyADOsState` or array-like, then
+        ``rho0`` gives the initial state of all ADOs.
+
+        Usually the state of the ADOs would be determine from a previous
+        call to ``.run(...)`` with the solver results option ``store_ados``
+        set to True. For example, ``result = solver.run(...)`` could be
+        followed by ``solver.run(result.ado_states[-1], tlist)``.
+
+        If a numpy array-like is passed its shape must be
+        ``(number_of_ados, n, n)`` where ``(n, n)`` is the system shape
+        (i.e. shape of the system density matrix) and the ADOs must
+        be in the same order as in ``.ados.labels``.
+
+    tlist : list
+        An ordered list of times at which to return the value of the state.
+
+    e_ops : Qobj / QobjEvo / callable / list / dict / None, optional
+        A list or dictionary of operators as :class:`~Qobj`,
+        :class:`~QobjEvo` and/or callable functions (they can be mixed) or
+        a single operator or callable function. For an operator ``op``, the
+        result will be computed using ``(state * op).tr()`` and the state
+        at each time ``t``. For callable functions, ``f``, the result is
+        computed using ``f(t, ado_state)``. The values are stored in the
+        ``expect`` and ``e_data`` attributes of the result (see the return
+        section below).
+
+    args : dict, optional {None}
+        Change the ``args`` of the RHS for the evolution.
+
+    options : :class:`qutip.solver.SolverOptions`
+        Generic solver options.
+        If set to None the default options will be used. Keyword only.
+        Default: None.
+
+    Returns
+    -------
+    :class:`~HEOMResult`
+        The results of the simulation run, with the following important
+        attributes:
+
+        * ``times``: the times ``t`` (i.e. the ``tlist``).
+
+        * ``states``: the system state at each time ``t`` (only available
+          if ``e_ops`` was ``None`` or if the solver option
+          ``store_states`` was set to ``True``).
+
+        * ``ado_states``: the full ADO state at each time (only available
+          if the results option ``ado_return`` was set to ``True``).
+          Each element is an instance of :class:`HierarchyADOsState`.
+          The state of a particular ADO may be extracted from
+          ``result.ado_states[i]`` by calling :meth:`.extract`.
+
+        * ``expect``: a list containing the values of each ``e_ops`` at
+          time ``t``.
+
+        * ``e_data``: a dictionary containing the values of each ``e_ops``
+          at tme ``t``. The keys are those given by ``e_ops`` if it was
+          a dict, otherwise they are the indexes of the supplied ``e_ops``.
+
+        See :class:`~HEOMResult` and :class:`~Result` for the complete
+        list of attributes.
+    """
+    H = QobjEvo(H, args=args, tlist=tlist)
+    solver = HEOMSolver(H, bath=bath, max_depth=max_depth, options=options)
+    return solver.run(state0, tlist, e_ops=e_ops)
 
 
 class HEOMSolver(Solver):
@@ -839,7 +943,7 @@ class HEOMSolver(Solver):
 
         Parameters
         ----------
-        rho0 : :class:`~Qobj` or :class:`~HierarchyADOsState` or array-like
+        state0 : :class:`~Qobj` or :class:`~HierarchyADOsState` or array-like
             If ``rho0`` is a :class:`~Qobj` the it is the initial state
             of the system (i.e. a :obj:`~Qobj` density matrix).
 

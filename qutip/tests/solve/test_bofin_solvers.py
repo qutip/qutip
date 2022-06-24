@@ -24,6 +24,7 @@ from qutip.solve.nonmarkov.bofin_baths import (
     LorentzianPadeBath,
 )
 from qutip.solve.nonmarkov.bofin_solvers import (
+    heomsolve,
     HierarchyADOs,
     HierarchyADOsState,
     HEOMResult,
@@ -485,6 +486,7 @@ _HAMILTONIAN_EVO_KINDS = {
     "qobj": lambda H: H,
     "qobjevo_const": lambda H: QobjEvo([H]),
     "qobjevo_timedep": lambda H: QobjEvo([H, lambda t: 1.0]),
+    "listevo_const": lambda H: [H],
 }
 
 
@@ -884,6 +886,50 @@ class TestHEOMSolver:
 
         assert states[-1] == ado_state.extract(0)
 
+class TestHeomsolveFunction:
+    @pytest.mark.parametrize(['evo'], [
+        pytest.param("qobj", id="qobj"),
+        pytest.param("listevo_const", id="listevo_const"),
+        pytest.param("qobjevo_const", id="qobjevo_const"),
+        pytest.param("qobjevo_timedep", id="qobjevo_timedep"),
+    ])
+    @pytest.mark.parametrize(['liouvillianize'], [
+        pytest.param(False, id="hamiltonian"),
+        pytest.param(True, id="liouvillian"),
+    ])
+    def test_heomsolve_with_pure_dephasing_model(
+        self, evo, liouvillianize, atol=1e-3
+    ):
+        dlm = DrudeLorentzPureDephasingModel(
+            lam=0.025, gamma=0.05, T=1/0.95, Nk=2,
+        )
+        ck_real, vk_real, ck_imag, vk_imag = dlm.bath_coefficients()
+        H_sys = hamiltonian_to_sys(dlm.H, evo, liouvillianize)
+
+        bath = BosonicBath(dlm.Q, ck_real, vk_real, ck_imag, vk_imag)
+        options = SolverOptions(nsteps=15000, store_states=True)
+
+        e_ops = {
+            "11": basis(2,0) * basis(2,0).dag(),
+            "22": basis(2,1) * basis(2,1).dag(),
+        }
+
+        tlist = np.linspace(0, 10, 21)
+        result = heomsolve(
+            H_sys, bath, 14, dlm.rho(), tlist,
+            e_ops=e_ops, args={"foo": 1}, options=options)
+
+        test = dlm.state_results(result.states)
+        expected = dlm.analytic_results(tlist)
+        np.testing.assert_allclose(test, expected, atol=atol)
+
+        for label in ["11", "22"]:
+            np.testing.assert_allclose(
+                result.e_data[label],
+                [expect(rho, e_ops[label]) for rho in result.states],
+                atol=atol,
+            )
+
 
 class TestHSolverDL:
     @pytest.mark.parametrize(['bnd_cut_approx', 'atol'], [
@@ -893,6 +939,7 @@ class TestHSolverDL:
     @pytest.mark.parametrize(['evo', 'combine'], [
         pytest.param("qobj", True, id="qobj-combined"),
         pytest.param("qobjevo_const", True, id="qobjevo-const-combined"),
+        pytest.param("listevo_const", True, id="listevo-const-combined"),
         pytest.param("qobjevo_timedep", True, id="qobjevo-timedep-combined"),
         pytest.param("qobjevo_timedep", False, id="qobjevo-timedep-uncombined"),
     ])
