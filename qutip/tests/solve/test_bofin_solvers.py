@@ -38,6 +38,18 @@ from qutip.solver import (
 )
 
 
+def assert_raises_steady_state_time_dependent(hsolver):
+    """ Assert that calling .steady_state() on a HEOMSolver with
+        a time-dependent Hamiltonian raises the appropriate exception.
+    """
+    with pytest.raises(ValueError) as err:
+       hsolver.steady_state()
+    assert str(err.value) == (
+       "A steady state cannot be determined for a time-dependent"
+       " system"
+    )
+
+
 class TestHierarchyADOs:
     def mk_exponents(self, dims):
         return [
@@ -471,8 +483,8 @@ class DiscreteLevelCurrentModel:
 
 _HAMILTONIAN_EVO_KINDS = {
     "qobj": lambda H: H,
-    "qobjevo": lambda H: QobjEvo([H]),
-    "listevo": lambda H: [H],
+    "qobjevo_const": lambda H: QobjEvo([H]),
+    "qobjevo_timedep": lambda H: QobjEvo([H, lambda t: 1.0]),
 }
 
 
@@ -609,8 +621,8 @@ class TestHEOMSolver:
 
     @pytest.mark.parametrize(['evo'], [
         pytest.param("qobj", id="qobj"),
-        pytest.param("qobjevo", id="qobjevo"),
-        pytest.param("listevo", id="listevo"),
+        pytest.param("qobjevo_const", id="qobjevo_const"),
+        pytest.param("qobjevo_timedep", id="qobjevo_timedep"),
     ])
     @pytest.mark.parametrize(['liouvillianize'], [
         pytest.param(False, id="hamiltonian"),
@@ -636,11 +648,15 @@ class TestHEOMSolver:
         expected = dlm.analytic_results(tlist)
         np.testing.assert_allclose(test, expected, atol=atol)
 
-        rho_final, ado_state = hsolver.steady_state()
-        test = dlm.state_results([rho_final])
-        expected = dlm.analytic_results([100])
-        np.testing.assert_allclose(test, expected, atol=atol)
-        assert rho_final == ado_state.extract(0)
+        if evo != "qobjevo_timedep":
+            rho_final, ado_state = hsolver.steady_state()
+            test = dlm.state_results([rho_final])
+            expected = dlm.analytic_results([100])
+            np.testing.assert_allclose(test, expected, atol=atol)
+            assert rho_final == ado_state.extract(0)
+        else:
+            assert_raises_steady_state_time_dependent(hsolver)
+
 
     @pytest.mark.parametrize(['terminator'], [
         pytest.param(True, id="terminator"),
@@ -710,8 +726,8 @@ class TestHEOMSolver:
 
     @pytest.mark.parametrize(['evo'], [
         pytest.param("qobj"),
-        pytest.param("qobjevo"),
-        pytest.param("listevo"),
+        pytest.param("qobjevo_const"),
+        pytest.param("qobjevo_timedep"),
     ])
     @pytest.mark.parametrize(['liouvillianize'], [
         pytest.param(False, id="hamiltonian"),
@@ -738,10 +754,14 @@ class TestHEOMSolver:
         analytic_current = dlm.analytic_current()
         np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
 
-        rho_final, ado_state = hsolver.steady_state()
-        current = dlm.state_current(ado_state)
-        analytic_current = dlm.analytic_current()
-        np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
+        if evo != "qobjevo_timedep":
+            rho_final, ado_state = hsolver.steady_state()
+            current = dlm.state_current(ado_state)
+            analytic_current = dlm.analytic_current()
+            np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
+        else:
+            assert_raises_steady_state_time_dependent(hsolver)
+
 
     @pytest.mark.parametrize(['bath_cls', 'analytic_current'], [
         pytest.param(LorentzianBath, 0.001101, id="matsubara"),
@@ -872,9 +892,9 @@ class TestHSolverDL:
     ])
     @pytest.mark.parametrize(['evo', 'combine'], [
         pytest.param("qobj", True, id="qobj-combined"),
-        pytest.param("qobjevo", True, id="qobjevo-combined"),
-        pytest.param("listevo", True, id="listevo-combined"),
-        pytest.param("qobj", False, id="qobj-uncombined"),
+        pytest.param("qobjevo_const", True, id="qobjevo-const-combined"),
+        pytest.param("qobjevo_timedep", True, id="qobjevo-timedep-combined"),
+        pytest.param("qobjevo_timedep", False, id="qobjevo-timedep-uncombined"),
     ])
     @pytest.mark.parametrize(['liouvillianize'], [
         pytest.param(False, id="hamiltonian"),
@@ -902,11 +922,14 @@ class TestHSolverDL:
         expected = dlm.analytic_results(tlist)
         np.testing.assert_allclose(test, expected, atol=atol)
 
-        rho_final, ado_state = hsolver.steady_state()
-        test = dlm.state_results([rho_final])
-        expected = dlm.analytic_results([100])
-        np.testing.assert_allclose(test, expected, atol=atol)
-        assert rho_final == ado_state.extract(0)
+        if evo != "qobjevo_timedep":
+            rho_final, ado_state = hsolver.steady_state()
+            test = dlm.state_results([rho_final])
+            expected = dlm.analytic_results([100])
+            np.testing.assert_allclose(test, expected, atol=atol)
+            assert rho_final == ado_state.extract(0)
+        else:
+            assert_raises_steady_state_time_dependent(hsolver)
 
     @pytest.mark.parametrize(['bnd_cut_approx', 'tol'], [
         pytest.param(True, 1e-4, id="bnd_cut_approx"),
