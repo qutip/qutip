@@ -100,7 +100,7 @@ jobs:
         # rather than in the GitHub Actions file directly, because bash gives us
         # a proper programming language to use.
         run: |
-          QUTIP_TARGET="tests,graphics,semidefinite"
+          QUTIP_TARGET="tests,graphics,semidefinite,ipython"
           if [[ -z "${{ matrix.nocython }}" ]]; then
             QUTIP_TARGET="$QUTIP_TARGET,runtime_compilation"
           fi
@@ -126,7 +126,7 @@ jobs:
         run: |
           conda list
           python -c "import qutip; qutip.about()"
-          python -c "import qutip; print(qutip.settings.install)"
+          python -c "import qutip; print(qutip.settings)"
 
       - name: Environment information
         run: |

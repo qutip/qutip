@@ -270,38 +270,42 @@ Collapse operators are handled in the exact same way.
 Modeling Non-Analytic and/or Experimental Time-Dependent Parameters using Interpolating Functions
 =================================================================================================
 
-Sometimes it is necessary to model a system where the time-dependent parameters are non-analytic functions, or are derived from experimental data (i.e. a collection of data points).  In these situations, one can use interpolating functions as an approximate functional form for input into a time-dependent solver.  QuTiP includes it own custom cubic spline interpolation class :class:`qutip.interpolate.Cubic_Spline` to provide this functionality.  To see how this works, lets first generate some noisy data:
+Sometimes it is necessary to model a system where the time-dependent parameters are non-analytic functions, or are derived from experimental data (i.e. a collection of data points).
+In these situations, one can use interpolating functions as an approximate functional form for input into a time-dependent solver.
+QuTiP support spline interpolation in it's :class:`qutip.Coefficient`.
+To see how this works, lets first generate some noisy data:
 
 .. plot::
     :context:
 
-    t = np.linspace(-15, 15, 100)
-    func = lambda t: 9*np.exp(-(t / 5)** 2)
-    noisy_func = lambda t: func(t)+(0.05*func(t))*np.random.randn(t.shape[0])
-    noisy_data = noisy_func(t)
+    times = np.linspace(-15, 15, 100)
+    func = lambda t: 9 * np.exp(-(t / 5)** 2)
+    noisy_data = func(times) * (1 + 0.05 * np.random.randn(len(times)))
 
     plt.figure()
-    plt.plot(t, func(t))
-    plt.plot(t, noisy_data, 'o')
+    plt.plot(times, func(times))
+    plt.plot(times, noisy_data, 'o')
     plt.show()
 
 
-To turn these data points into a function we call the QuTiP :class:`qutip.interpolate.Cubic_Spline` class using the first and last domain time points, ``t[0]`` and ``t[-1]``, respectively, as well as the entire array of data points:
+To turn these data points into a function we call the QuTiP :func:`qutip.coefficient` using the array of data points, times to which these are measured and spline interpolation order :
 
 
 .. plot::
     :context: close-figs
 
-    S = Cubic_Spline(t[0], t[-1], noisy_data)
+    S = coefficient(noisy_data, tlist=times, order=3)
 
     plt.figure()
-    plt.plot(t, func(t))
-    plt.plot(t, noisy_data, 'o')
-    plt.plot(t, S(t), lw=2)
+    plt.plot(times, func(times))
+    plt.plot(times, noisy_data, 'o')
+    plt.plot(times, [S(t).real for t in times], lw=2)
     plt.show()
 
 
-Note that, at present, only equally spaced real or complex data sets can be accommodated.  This cubic spline class ``S`` can now be pasted to any of the ``mesolve``, ``mcsolve``, or ``sesolve`` functions where one would normally input a time-dependent function or string-representation.  Taking the problem from the previous section as an example.  We would make the replacement:
+This :class:`qutip.Coefficient` instance can now be used in any of the solver supporting time-dependent operators, such as the ``mesolve``, ``mcsolve``, or ``sesolve`` functions.
+Taking the problem from the previous section as an example.
+We would make the replacement:
 
 .. code-block:: python
 

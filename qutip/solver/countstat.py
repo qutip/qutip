@@ -16,7 +16,7 @@ from qutip import pseudo_inverse, steadystate
 from ..settings import settings
 
 # Load MKL spsolve if avaiable
-if settings.install['has_mkl']:
+if settings.has_mkl:
     from qutip._mkl.spsolve import mkl_spsolve
 
 
@@ -74,7 +74,7 @@ def countstat_current(L, c_ops=None, rhoss=None, J_ops=None):
 
 def _solve(A, V):
     try:
-        if settings.install['has_mkl']:
+        if settings.has_mkl:
             out = mkl_spsolve(A.tocsc(), V)
         else:
             A.sort_indices()

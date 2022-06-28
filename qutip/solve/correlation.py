@@ -19,7 +19,7 @@ from .mcsolve import mcsolve
 from .solver import SolverOptions, config
 from .steadystate import steadystate
 from ..settings import settings
-debug = settings.install['debug']
+debug = settings.debug
 
 if debug:
     import inspect

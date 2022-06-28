@@ -52,9 +52,12 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
             expected to be of the signature ``f(w)`` or ``f(t, w, **args)``.
 
             The spectra function can depend on ``t`` if the corresponding
-            ``a_op`` is a :cls:`QobjEvo`.
+            ``a_op`` is a :class:`QobjEvo`.
 
         Example:
+
+        .. code-block::
+
             a_ops = [
                 (a+a.dag(), ('w>0', args={"w": 0})),
                 (QobjEvo(a+a.dag()), 'w > exp(-t)'),
@@ -62,12 +65,13 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
                 (c+c.dag(), SpectraCoefficient(coefficient(array, tlist=ws))),
             ]
 
-    .. note:
-        ``Cubic_Spline`` have been replaced by :cls:`Coefficient`:
-            ``spline = qutip.coefficient(array, tlist=times)``
-        Whether the ``a_ops`` is time dependent is deceided by the type of the
-        operator: :cls:`Qobj` vs :cls:`QobjEvo` instead of the type of the
-        spectra.
+        .. note:
+            ``Cubic_Spline`` has been replaced by :class:`Coefficient`\:
+                ``spline = qutip.coefficient(array, tlist=times)``
+
+            Whether the ``a_ops`` is time dependent is decided by the type of
+            the operator: :class:`Qobj` vs :class:`QobjEvo` instead of the type
+            of the spectra.
 
     e_ops : list of :class:`Qobj` / callback function
         Single operator or list of operators for which to evaluate
@@ -191,18 +195,19 @@ class BRSolver(Solver):
     _avail_integrators = {}
 
     def __init__(self, H, a_ops, c_ops=None, *, sec_cutoff=0.1, options=None):
-        _time_start = time()
-
-        self.options = options
-
         if not isinstance(H, (Qobj, QobjEvo)):
             raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
+
         c_ops = c_ops or []
         c_ops = [c_ops] if isinstance(c_ops, (Qobj, QobjEvo)) else c_ops
         for c_op in c_ops:
             if not isinstance(c_op, (Qobj, QobjEvo)):
                 raise TypeError("All `c_ops` must be a Qobj or QobjEvo")
 
+        self._num_collapse = len(c_ops)
+        self._num_a_ops = len(a_ops)
+
+        self.options = options  # duplicates assignment in Solver base-class
         tensor_type = {
             '' : 'sparse',
             'csr' : 'sparse',
@@ -211,13 +216,19 @@ class BRSolver(Solver):
             'dense' : 'dense',
         }.get(self.options.ode['operator_data_type'], 'data')
 
+        _time_start = time()
         rhs = bloch_redfield_tensor(
             H, a_ops, c_ops, sec_cutoff=sec_cutoff,
             fock_basis=True, sparse_eigensolver=False, br_dtype=tensor_type)
+        self._init_rhs_time = time() - _time_start
         super().__init__(rhs, options=self.options)
 
-        self.stats['solver'] = "Bloch Redfield Equation Evolution"
-        self.stats['num_collapse'] = len(c_ops)
-        self.stats['num_a_ops'] = len(a_ops)
-        self.stats["preparation time"] = time() - _time_start
-        self.stats["run time"] = 0
+    def _initialize_stats(self):
+        stats = super()._initialize_stats()
+        stats.update({
+            "solver": "Bloch Redfield Equation Evolution",
+            "init time": stats["init time"] + self._init_rhs_time,
+            "num_collapse": self._num_collapse,
+            "num_a_ops": self._num_a_ops,
+        })
+        return stats

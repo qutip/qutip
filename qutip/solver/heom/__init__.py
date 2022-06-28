@@ -13,11 +13,6 @@ For backwards compatibility with QuTiP 4.6 and below, a new version of
 HSolverDL (the Drude-Lorentz specific HEOM solver) is provided. It is
 implemented on top of the new HEOMSolver but should largely be a drop-in
 replacement for the old HSolverDL.
-
-An exact copy of the QuTiP 4.6 HSolverDL is provided in
-``qutip.nonmarkov.dlheom_solver`` for cases where the functionality of the
-older solver is required. The older solver will be completely removed in
-QuTiP 5.
 """
 
 __all__ = [
@@ -30,7 +25,9 @@ __all__ = [
     "FermionicBath",
     "LorentzianBath",
     "LorentzianPadeBath",
+    "heomsolve",
     "HEOMSolver",
+    "HEOMResult",
     "HSolverDL",
     "HierarchyADOs",
     "HierarchyADOsState",
@@ -49,7 +46,9 @@ from .bofin_baths import (
 )
 
 from .bofin_solvers import (
+    heomsolve,
     HEOMSolver,
+    HEOMResult,
     HSolverDL,
     HierarchyADOs,
     HierarchyADOsState,

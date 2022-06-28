@@ -27,7 +27,7 @@ Quantum Objects
 ---------------
 
 .. automodule:: qutip.core.qobj
-    :members: ptrace, dag, isequal, issuper, isoper, isoperket, isoperbra, isket, isbra, isherm, shape, dims
+    :members: ptrace, issuper, isoper, isoperket, isoperbra, isket, isbra, isherm
 
 
 Random Operators and States
@@ -55,7 +55,7 @@ Superoperator Representations
 -----------------------------
 
 .. automodule:: qutip.core.superop_reps
-    :members: super_to_choi, choi_to_super, choi_to_kraus, kraus_to_choi, kraus_to_super, choi_to_chi, chi_to_choi, to_choi, to_chi, to_super, to_kraus, to_stinespring
+    :members: kraus_to_choi, kraus_to_super, to_choi, to_chi, to_super, to_kraus, to_stinespring
     :undoc-members:
 
 Operators and Superoperator Dimensions
@@ -152,7 +152,7 @@ Monte Carlo Evolution
 Krylov Subspace Solver
 ----------------------
 
-.. automodule:: qutip.krylovsolve
+.. automodule:: qutip.solve.krylovsolve
     :members: krylovsolve
 
 
@@ -177,11 +177,18 @@ Stochastic Schrödinger Equation and Master Equation
     :members: ssesolve, photocurrent_sesolve, smepdpsolve, smesolve, photocurrent_mesolve, ssepdpsolve, stochastic_solvers, general_stochastic
 
 
+Hierarchical Equations of Motion
+--------------------------------
+
+.. automodule:: qutip.solver.heom
+    :members: heomsolve
+
+
 Correlation Functions
 ---------------------
 
 .. automodule:: qutip.solve.correlation
-    :members: correlation, correlation_ss, correlation_2op_1t, correlation_2op_2t, correlation_3op_1t, correlation_3op_2t, correlation_4op_1t, correlation_4op_2t, spectrum, spectrum_ss, spectrum_pi, spectrum_correlation_fft, coherence_function_g1, coherence_function_g2
+    :members: correlation_2op_1t, correlation_2op_2t, correlation_3op_1t, correlation_3op_2t, spectrum, spectrum_correlation_fft, coherence_function_g1, coherence_function_g2
 
 
 Steady-state Solvers
@@ -194,14 +201,14 @@ Steady-state Solvers
 Propagators
 -----------
 
-.. automodule:: qutip.solve.propagator
+.. automodule:: qutip.solver.propagator
     :members: propagator, propagator_steadystate
     :undoc-members:
 
 Scattering in Quantum Optical Systems
 -------------------------------------
 
-.. automodule:: qutip.solve.scattering
+.. automodule:: qutip.solver.scattering
     :members: temporal_basis_vector, temporal_scattered_state, scattering_probability
     :undoc-members:
 

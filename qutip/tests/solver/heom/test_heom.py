@@ -3,7 +3,7 @@ Tests for qutip.nonmarkov.heom.
 """
 
 import pytest
-from qutip.solve.nonmarkov.heom import (
+from qutip.solver.heom import (
     BathExponent,
     Bath,
     BosonicBath,
@@ -13,15 +13,13 @@ from qutip.solve.nonmarkov.heom import (
     FermionicBath,
     LorentzianBath,
     LorentzianPadeBath,
+    heomsolve,
     HEOMSolver,
+    HEOMResult,
     HSolverDL,
     HierarchyADOs,
     HierarchyADOsState,
 )
-
-
-pytestmark = pytest.mark.skip
-
 
 class TestBathAPI:
     def test_api(self):
@@ -40,7 +38,9 @@ class TestBathAPI:
 class TestSolverAPI:
     def test_api(self):
         # just assert that the solvers and associated classes are importable
+        assert heomsolve
         assert HEOMSolver
+        assert HEOMResult
         assert HSolverDL
         assert HierarchyADOs
         assert HierarchyADOsState

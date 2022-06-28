@@ -10,13 +10,15 @@ HSolverDL
 ---------
 
 The original HEOM solver was implemented by Neill Lambert, Anubhav Vardhan,
-and Alexander Pitchford and is still available as
-:class:`qutip.solve.nonmarkov.dlheom_solver.HSolverDL` and only directly provided
-support for the Drude-Lorentz bath although there was the possibility of
-sub-classing the solver to implement other baths.
+and Alexander Pitchford. In QuTiP 4.7 it was still available as
+``qutip.solve.nonmarkov.dlheom_solver.HSolverDL`` but the legacy implementation
+was removed in QuTiP 5.
 
-A compatible interface using the current implementation is available under the
-same name in :class:`qutip.solve.nonmarkov.heom.HSolverDL`.
+It only directly provided support for the Drude-Lorentz bath although there was
+the possibility of sub-classing the solver to implement other baths.
+
+A compatible interface using the current implementation is still available
+under the same name in :class:`qutip.solver.heom.HSolverDL`.
 
 
 BoFiN-HEOM
