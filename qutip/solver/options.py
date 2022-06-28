@@ -89,12 +89,6 @@ class SolverOptions():
              self._default_solver_options.keys()
              | self._default_integrator_options.keys()
         )
-        # We drop options that the new integrator does not support.
-        self._options = {
-            key: val
-            for key, val in self._options.items()
-            if key in self.supported_keys
-        }
         self.__doc__ = (
             self._doc + _adjust_docstring_indent(integrator.options.__doc__)
         )
