@@ -145,21 +145,23 @@ class SolverOptions():
         lines = []
 
         longest_s = max(len(key) for key in self._default_solver_options)
-        lines.append(f"Options for {self.solver}:")
+        lines.append(f"Options for {self.solver.__repr__()}:")
         for key in self._default_solver_options:
             default = "  (default)" if key not in self._options else ""
             lines.append(f"    {key:{longest_s}} : "
                          f"{self[key].__repr__():{70-longest_s}}"
                          f"{default}")
 
-        longest_i = max(len(key) for key in self._default_integrator_options)
-        method = self._default_solver_options['method']
-        lines.append(f"Options for {method} integrator:")
-        for key in self._default_integrator_options:
-            default = "  (default)" if key not in self._options else ""
-            lines.append(f"    {key:{longest_i}} : "
-                         f"{self[key].__repr__():{70-longest_i}}"
-                         f"{default}")
+        if self._default_integrator_options:
+            longest_i = max(len(key)
+                            for key in self._default_integrator_options)
+            method = self._default_solver_options['method']
+            lines.append(f"Options for {method} integrator:")
+            for key in self._default_integrator_options:
+                default = "  (default)" if key not in self._options else ""
+                lines.append(f"    {key:{longest_i}} : "
+                             f"{self[key].__repr__():{70-longest_i}}"
+                             f"{default}")
         other_options = []
         for key in self._options:
             if key not in self.supported_keys:
@@ -168,12 +170,12 @@ class SolverOptions():
         if other_options:
             lines.append(f"Other options:")
             lines += other_options
-        
+
         return "\n".join(lines)
 
     def __repr__(self):
         items = []
-        items.append(f"SolverOptions(solver={self.solver}")
+        items.append(f"SolverOptions(solver={self.solver.__repr__()}")
         for key, val in self.items():
             items.append(f"{key}={val.__repr__()}")
         return ", ".join(items) + ")"
