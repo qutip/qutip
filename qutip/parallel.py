@@ -7,6 +7,7 @@ __all__ = ['parfor', 'parallel_map', 'serial_map']
 from scipy import array
 import multiprocessing
 from functools import partial
+from concurrent.futures import ProcessPoolExecutor
 import os
 import sys
 import signal
@@ -15,9 +16,9 @@ from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 
 
 if sys.platform == 'darwin':
-    Pool = multiprocessing.get_context('fork').Pool
+    mp_context = multiprocessing.get_context('fork')
 else:
-    Pool = multiprocessing.Pool
+    mp_context = multiprocessing.get_context()
 
 
 def _task_wrapper(args):
@@ -86,7 +87,7 @@ def parfor(func, *args, **kwargs):
               "is larger than physical number (%s)." % qset.num_cpus)
         print("Reduce 'num_cpus' for greater performance.")
 
-    pool = Pool(processes=kw['num_cpus'])
+    pool = mp_context.Pool(processes=kw['num_cpus'])
     args = [list(arg) for arg in args]
     var = [[args[j][i] for j in range(len(args))]
            for i in range(len(list(args[0])))]
@@ -147,7 +148,7 @@ def serial_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
         progress_bar = kwargs['progress_bar']
         if progress_bar is True:
             progress_bar = TextProgressBar()
-    except:
+    except Exception:
         progress_bar = BaseProgressBar()
 
     progress_bar.start(len(values))
@@ -190,7 +191,6 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
         each value in ``values``.
 
     """
-    os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
     kw = _default_kwargs()
     if 'num_cpus' in kwargs:
         kw['num_cpus'] = kwargs['num_cpus']
@@ -199,39 +199,35 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
         progress_bar = kwargs['progress_bar']
         if progress_bar is True:
             progress_bar = TextProgressBar()
-    except:
+    except Exception:
         progress_bar = BaseProgressBar()
 
     progress_bar.start(len(values))
     nfinished = [0]
 
-    def _update_progress_bar(x):
+    def _update_progress_bar(future):
         nfinished[0] += 1
         progress_bar.update(nfinished[0])
 
+    os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
+    result_futures = []
     try:
-        pool = Pool(processes=kw['num_cpus'])
+        with ProcessPoolExecutor(
+            mp_context=mp_context, max_workers=kw['num_cpus'],
+        ) as executor:
+            for value in values:
+                future = executor.submit(
+                    task, *((value,) + task_args), **task_kwargs,
+                )
+                future.add_done_callback(_update_progress_bar)
+                result_futures.append(future)
 
-        async_res = [pool.apply_async(task, (value,) + task_args, task_kwargs,
-                                      _update_progress_bar)
-                     for value in values]
-
-        while not all([ar.ready() for ar in async_res]):
-            for ar in async_res:
-                ar.wait(timeout=0.1)
-
-        pool.terminate()
-        pool.join()
-
-    except KeyboardInterrupt as e:
+        results = [f.result() for f in result_futures]
+    finally:
         os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
-        pool.terminate()
-        pool.join()
-        raise e
 
     progress_bar.finished()
-    os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
-    return [ar.get() for ar in async_res]
+    return results
 
 
 def _default_kwargs():
