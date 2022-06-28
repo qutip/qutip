@@ -4,7 +4,88 @@
 Change Log
 **********
 
-Version 4.6.3 (February ?, 2022)
+.. towncrier release notes start
+
+Version 4.7.0 (April 13, 2022)
+++++++++++++++++++++++++++++++
+
+This release sees the addition of two new solvers -- ``qutip.krylovsolve`` based on the Krylov subspace approximation and ``qutip.nonmarkov.heom`` that reimplements the BoFiN HEOM solver.
+
+Bloch sphere rendering gained support for drawing arcs and lines on the sphere, and for setting the transparency of rendered points and vectors, Hinton plots gained support for specifying a coloring style, and matrix histograms gained better default colors and more flexible styling options.
+
+Other significant improvements include better scaling of the Floquet solver, support for passing ``Path`` objects when saving and loading files, support for passing callable functions as ``e_ops`` to ``mesolve`` and ``sesolve``, and faster state number enumeration and Husimi Q functions.
+
+Import bugfixes include some bugs affecting plotting with matplotlib 3.5 and fixing support for qutrits (and other non-qubit) quantum circuits.
+
+The many other small improvements, bug fixes, documentation enhancements, and behind the scenese development changes are included in the list below.
+
+QuTiP 4.7.X will be the last series of releases for QuTiP 4. Patch releases will continue for the 4.7.X series but the main development effort will move to QuTiP 5.
+
+The many, many contributors who filed issues, submitted or reviewed pull requests, and improved the documentation for this release are listed next to their contributions below. Thank you to all of you.
+
+Improvements
+------------
+- **MAJOR** Added krylovsolve as a new solver based on krylov subspace approximation. (`#1739 <https://github.com/qutip/qutip/pull/1739>`_ by Emiliano Fortes)
+- **MAJOR** Imported BoFiN HEOM (https://github.com/tehruhn/bofin/) into QuTiP and replaced the HEOM solver with a compatibility wrapper around BoFiN bosonic solver. (`#1601 <https://github.com/qutip/qutip/pull/1601>`_, `#1726 <https://github.com/qutip/qutip/pull/1726>`_, and `#1724 <https://github.com/qutip/qutip/pull/1724>`_ by Simon Cross, Tarun Raheja and Neill Lambert)
+- **MAJOR** Added support for plotting lines and arcs on the Bloch sphere. (`#1690 <https://github.com/qutip/qutip/pull/1690>`_ by Gaurav Saxena, Asier Galicia and Simon Cross)
+- Added transparency parameter to the add_point, add_vector and add_states methods in the Bloch and Bloch3d classes. (`#1837 <https://github.com/qutip/qutip/pull/1837>`_ by Xavier Spronken)
+- Support ``Path`` objects in ``qutip.fileio``. (`#1813 <https://github.com/qutip/qutip/pull/1813>`_ by Adrià Labay)
+- Improved the weighting in steadystate solver, so that the default weight matches the documented behaviour and the dense solver applies the weights in the same manner as the sparse solver. (`#1275 <https://github.com/qutip/qutip/pull/1275>`_ and `#1802 <https://github.com/qutip/qutip/pull/1802>`_ by NS2 Group at LPS and Simon Cross)
+- Added a ``color_style`` option to the ``hinton`` plotting function. (`#1595 <https://github.com/qutip/qutip/pull/1595>`_ by Cassandra Granade)
+- Improved the scaling of ``floquet_master_equation_rates`` and ``floquet_master_equation_tensor`` and fixed transposition and basis change errors in ``floquet_master_equation_tensor`` and ``floquet_markov_mesolve``. (`#1248 <https://github.com/qutip/qutip/pull/1248>`_ by Camille Le Calonnec, Jake Lishman and Eric Giguère)
+- Removed ``linspace_with`` and ``view_methods`` from ``qutip.utilities``. For the former it is far better to use ``numpy.linspace`` and for the later Python's in-built ``help`` function or other tools. (`#1680 <https://github.com/qutip/qutip/pull/1680>`_ by Eric Giguère)
+- Added support for passing callable functions as ``e_ops`` to ``mesolve`` and ``sesolve``. (`#1655 <https://github.com/qutip/qutip/pull/1655>`_ by Marek Narożniak)
+- Added the function ``steadystate_floquet``, which returns the "effective" steadystate of a periodic driven system. (`#1660 <https://github.com/qutip/qutip/pull/1660>`_ by Alberto Mercurio)
+- Improved mcsolve memory efficiency by not storing final states when they are not needed. (`#1669 <https://github.com/qutip/qutip/pull/1669>`_ by Eric Giguère)
+- Improved the default colors and styling of matrix_histogram and provided additional styling options. (`#1573 <https://github.com/qutip/qutip/pull/1573>`_ and `#1628 <https://github.com/qutip/qutip/pull/1628>`_ by Mahdi Aslani)
+- Sped up ``state_number_enumerate``, ``state_number_index``, ``state_index_number``, and added some error checking. ``enr_state_dictionaries`` now returns a list for ``idx2state``. (`#1604 <https://github.com/qutip/qutip/pull/1604>`_ by Johannes Feist)
+- Added new Husimi Q algorithms, improving the speed for density matrices, and giving a near order-of-magnitude improvement when calculating the Q function for many different states, using the new ``qutip.QFunc`` class, instead of the ``qutip.qfunc`` function. (`#934 <https://github.com/qutip/qutip/pull/934>`_ and `#1583 <https://github.com/qutip/qutip/pull/1583>`_ by Daniel Weigand and Jake Lishman)
+- Updated licence holders with regards to new governance model, and remove extraneous licensing information from source files. (`#1579 <https://github.com/qutip/qutip/pull/1579>`_ by Jake Lishman)
+- Removed the vendored copy of LaTeX's qcircuit package which is GPL licensed. We now rely on the package being installed by user. It is installed by default with TexLive. (`#1580 <https://github.com/qutip/qutip/pull/1580>`_ by Jake Lishman)
+- The signatures of rand_ket and rand_ket_haar were changed to allow N (the size of the random ket) to be determined automatically when dims are specified. (`#1509 <https://github.com/qutip/qutip/pull/1509>`_ by Purva Thakre)
+
+Bug Fixes
+---------
+- Fix circuit index used when plotting circuits with non-reversed states. (`#1847 <https://github.com/qutip/qutip/pull/1847>`_ by Christian Staufenbiel)
+- Changed implementation of ``qutip.orbital`` to use ``scipy.special.spy_harm`` to remove bugs in angle interpretation. (`#1844 <https://github.com/qutip/qutip/pull/1844>`_ by Christian Staufenbiel)
+- Fixed ``QobjEvo.tidyup`` to use ``settings.auto_tidyup_atol`` when removing small elements in sparse matrices. (`#1832 <https://github.com/qutip/qutip/pull/1832>`_ by Eric Giguère)
+- Ensured that tidyup's default tolerance is read from settings at each call. (`#1830 <https://github.com/qutip/qutip/pull/1830>`_ by Eric Giguère)
+- Fixed ``scipy.sparse`` deprecation warnings raised by ``qutip.fast_csr_matrix``. (`#1827 <https://github.com/qutip/qutip/pull/1827>`_ by Simon Cross)
+- Fixed rendering of vectors on the Bloch sphere when using matplotlib 3.5 and above. (`#1818 <https://github.com/qutip/qutip/pull/1818>`_ by Simon Cross)
+- Fixed the displaying of ``Lattice1d`` instances and their unit cells. Previously calling them raised exceptions in simple cases. (`#1819 <https://github.com/qutip/qutip/pull/1819>`_, `#1697 <https://github.com/qutip/qutip/pull/1697>`_ and `#1702 <https://github.com/qutip/qutip/pull/1702>`_ by Simon Cross and Saumya Biswas)
+- Fixed the displaying of the title for ``hinton`` and ``matrix_histogram`` plots when a title is given. Previously the supplied title was not displayed. (`#1707 <https://github.com/qutip/qutip/pull/1707>`_ by Vladimir Vargas-Calderón)
+- Removed an incorrect check on the initial state dimensions in the ``QubitCircuit`` constructor. This allows, for example, the construction of qutrit circuits. (`#1807 <https://github.com/qutip/qutip/pull/1807>`_ by Boxi Li)
+- Fixed the checking of ``method`` and ``offset`` parameters in ``coherent`` and ``coherent_dm``. (`#1469 <https://github.com/qutip/qutip/pull/1469>`_ and `#1741 <https://github.com/qutip/qutip/pull/1741>`_ by Joseph Fox-Rabinovitz and Simon Cross)
+- Removed the Hamiltonian saved in the ``sesolve`` solver results. (`#1689 <https://github.com/qutip/qutip/pull/1689>`_ by Eric Giguère)
+- Fixed a bug in rand_herm with ``pos_def=True`` and ``density>0.5`` where the diagonal was incorrectly filled. (`#1562 <https://github.com/qutip/qutip/pull/1562>`_ by Eric Giguère)
+
+Documentation Improvements
+--------------------------
+- Added contributors image to the documentation. (`#1828 <https://github.com/qutip/qutip/pull/1828>`_ by Leonard Assis)
+- Fixed the Theory of Quantum Information bibliography link. (`#1840 <https://github.com/qutip/qutip/pull/1840>`_ by Anto Luketina)
+- Fixed minor grammar errors in the dynamics guide. (`#1822 <https://github.com/qutip/qutip/pull/1822>`_ by Victor Omole)
+- Fixed many small documentation typos. (`#1569 <https://github.com/qutip/qutip/pull/1569>`_ by Ashish Panigrahi)
+- Added Pulser to the list of libraries that use QuTiP. (`#1570 <https://github.com/qutip/qutip/pull/1570>`_ by Ashish Panigrahi)
+- Corrected typo in the states and operators guide. (`#1567 <https://github.com/qutip/qutip/pull/1567>`_ by Laurent Ajdnik)
+- Converted http links to https. (`#1555 <https://github.com/qutip/qutip/pull/1555>`_ by Jake Lishamn)
+
+Developer Changes
+-----------------
+- Add GitHub actions test run on windows-latest. (`#1853 <https://github.com/qutip/qutip/pull/1853>`_ and `#1855 <https://github.com/qutip/qutip/pull/1855>`_ by Simon Cross)
+- Bumped the version of pillow used to build documentation from 9.0.0 to 9.0.1. (`#1835 <https://github.com/qutip/qutip/pull/1835>`_ by dependabot)
+- Migrated the ``qutip.superop_reps`` tests to pytest. (`#1825 <https://github.com/qutip/qutip/pull/1825>`_ by Felipe Bivort Haiek)
+- Migrated the ``qutip.steadystates`` tests to pytest. (`#1679 <https://github.com/qutip/qutip/pull/1679>`_ by Eric Giguère)
+- Changed the README.md CI badge to the GitHub Actions badge. (`#1581 <https://github.com/qutip/qutip/pull/1581>`_ by Jake Lishman)
+- Updated CodeClimate configuration to treat our Python source files as Python 3. (`#1577 <https://github.com/qutip/qutip/pull/1577>`_ by Jake Lishman)
+- Reduced cyclomatic complexity in ``qutip._mkl``. (`#1576 <https://github.com/qutip/qutip/pull/1576>`_ by Jake Lishman)
+- Fixed PEP8 warnings in ``qutip.control``, ``qutip.mcsolve``, ``qutip.random_objects``, and ``qutip.stochastic``. (`#1575 <https://github.com/qutip/qutip/pull/1575>`_ by Jake Lishman)
+- Bumped the version of urllib3 used to build documentation from 1.26.4 to 1.26.5. (`#1563 <https://github.com/qutip/qutip/pull/1563>`_ by dependabot)
+- Moved tests to GitHub Actions. (`#1551 <https://github.com/qutip/qutip/pull/1551>`_ by Jake Lishman)
+- The GitHub contributing guidelines were re-added and updated to point to the more complete guidelines in the documentation. (`#1549 <https://github.com/qutip/qutip/pull/1549>`_ by Jake Lishman)
+- The release documentation was reworked after the initial 4.6.1 to match the actual release process. (`#1544 <https://github.com/qutip/qutip/pull/1544>`_ by Jake Lishman)
+
+
+Version 4.6.3 (February 9, 2022)
 ++++++++++++++++++++++++++++++++
 
 This minor release adds support for numpy 1.22 and Python 3.10 and removes some blockers for running QuTiP on the Apple M1.

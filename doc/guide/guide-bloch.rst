@@ -9,7 +9,7 @@ Plotting on the Bloch Sphere
 Introduction
 ============
 
-When studying the dynamics of a two-level system, it is often convenient to visualize the state of the system by plotting the state-vector or density matrix on the Bloch sphere.  In QuTiP, we have created two different classes to allow for easy creation and manipulation of data sets, both vectors and data points, on the Bloch sphere.  The :class:`qutip.Bloch` class, uses Matplotlib to render the Bloch sphere, where as :class:`qutip.Bloch3d` uses the Mayavi rendering engine to generate a more faithful 3D reconstruction of the Bloch sphere.
+When studying the dynamics of a two-level system, it is often convenient to visualize the state of the system by plotting the state-vector or density matrix on the Bloch sphere.  In QuTiP, we have created two different classes to allow for easy creation and manipulation of data sets, both vectors and data points, on the Bloch sphere.  The :class:`qutip.bloch.Bloch` class, uses Matplotlib to render the Bloch sphere, where as :class:`qutip.bloch3d.Bloch3d` uses the Mayavi rendering engine to generate a more faithful 3D reconstruction of the Bloch sphere.
 
 .. _bloch-class:
 
@@ -23,11 +23,11 @@ In QuTiP, creating a Bloch sphere is accomplished by calling either:
 
     b = qutip.Bloch()
 
-which will load an instance of the :class:`qutip.Bloch` class, or using ::
+which will load an instance of the :class:`qutip.bloch.Bloch` class, or using ::
 
    >>> b3d = qutip.Bloch3d()
 
-that loads the :class:`qutip.Bloch3d` version.  Before getting into the details of these objects, we can simply plot the blank Bloch sphere associated with these instances via:
+that loads the :class:`qutip.bloch3d.Bloch3d` version.  Before getting into the details of these objects, we can simply plot the blank Bloch sphere associated with these instances via:
 
 .. plot::
     :context:
@@ -42,7 +42,7 @@ or
     :width: 3.5in
     :figclass: align-center
 
-In addition to the ``show`` command, see the API documentation for :class:`~Bloch` for a full list of other available functions.
+In addition to the ``show`` command, see the API documentation for :class:`~qutip.bloch.Bloch` for a full list of other available functions.
 As an example, we can add a single data point:
 
 .. plot::
@@ -156,7 +156,7 @@ Notice that, in contrast to states or vectors, each point remains the same color
 
 The color and shape of the data points is varied automatically by the Bloch class.  Notice how the color and point markers change for each set of data.  Again, we have had to call ``add_points`` twice because adding more than one set of multiple data points is *not* supported by the ``add_points`` function.
 
-What if we want to vary the color of our points.  We can tell the :class:`qutip.Bloch` class to vary the color of each point according to the colors listed in the ``b.point_color`` list (see :ref:`bloch-config` below).  Again after ``clear()``:
+What if we want to vary the color of our points.  We can tell the :class:`qutip.bloch.Bloch` class to vary the color of each point according to the colors listed in the ``b.point_color`` list (see :ref:`bloch-config` below).  Again after ``clear()``:
 
 .. plot::
     :context: close-figs
@@ -183,7 +183,7 @@ Now, the data points cycle through a variety of predefined colors.  Now lets add
     b.add_points([xz, yz, zz])  # no 'm'
     b.render()
 
-Again, the same plot can be generated using the :class:`qutip.Bloch3d` class by replacing ``Bloch`` with ``Bloch3d``:
+Again, the same plot can be generated using the :class:`qutip.bloch3d.Bloch3d` class by replacing ``Bloch`` with ``Bloch3d``:
 
 .. figure:: figures/bloch3d+points.png
     :width: 3.5in

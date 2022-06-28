@@ -54,11 +54,12 @@ Updating the Changelog
 This needs to be done no matter what type of release is being made.
 
 #. Create a new branch to use to make a pull request.
-#. Write the changelog for this version in ``doc/changelog.rst``.
-   Look at recent entries in that file to get a feel for the style.
-   In general, the format is one or two paragraphs written in regular prose describing the major new features of the version, and anything that needs special attention.
-   After that, in suitable headings, list all the changes and who made them.
-   Headings you may want to have include "Features", "Improvements", "Bug Fixes", "Deprecations", "Removals" and "Developer Changes", but feel free to use anything sensible.
+#. Update the changelog using ``towncrier``:
+
+   towncrier build --version=<version-number>
+
+Where ``<version-number>`` is the expected version number of the release
+
 #. Make a pull request on the main ``qutip/qutip`` repository with this changelog, and get other members of the admin team to approve it.
 #. Merge this into ``master``.
 

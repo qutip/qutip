@@ -150,7 +150,7 @@ For some problems interesting observations can be draw from the quasienergy leve
    >>> plt.title(r'Floquet quasienergies') # doctest: +SKIP
    >>> plt.show() # doctest: +SKIP
 
-Given the Floquet modes at :math:`t=0`, we obtain the Floquet mode at some later time :math:`t` using the function :func:`qutip.floquet.floquet_mode_t`:
+Given the Floquet modes at :math:`t=0`, we obtain the Floquet mode at some later time :math:`t` using the function :func:`qutip.floquet.floquet_modes_t`:
 
 .. plot::
    :context: close-figs

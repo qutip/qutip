@@ -217,7 +217,7 @@ It is called implicitly when calling the method
 Here we first use :meth:`~qutip.qip.circuit.QubitCircuit.resolve_gates`
 to decompose the X gate to its natural gate on Spin Chain model,
 the rotation over X-axis.
-We pass the hardware parameters of the :class:`~qutip.qip.device.SpinChain `` model, ``processor.params``, as well as a map between the pulse name and pulse index ``pulse_dict`` to the compiler.
+We pass the hardware parameters of the :class:`~qutip.qip.device.SpinChain` model, ``processor.params``, as well as a map between the pulse name and pulse index ``pulse_dict`` to the compiler.
 The later one allows one to address the pulse more conveniently in the compiler.
 
 The compiler returns a list of ``tlist`` and ``coeff``, corresponding to each pulse.
@@ -273,7 +273,7 @@ repeats the scheduling a few times to get a better result.
 The result shows the scheduling order of each gate in the original circuit.
 
 For pulse schedule, or scheduling gates with different duration,
-one will need to wrap the :class:`qutip.qip.circuit.Gate` object with :class:`qutip.qip.compiler.instruction` object,
+one will need to wrap the :class:`qutip.qip.Gate` object with :class:`qutip.qip.compiler.Instruction` object,
 with a parameter `duration`.
 The result will then be the start time of each instruction.
 

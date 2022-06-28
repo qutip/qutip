@@ -63,7 +63,7 @@ Here :math:`\delta N = 1` with a probability of :math:`\delta \omega` and
 Trajectories obtained with this algorithm are equivalent to those obtained with
 monte-carlo evolution (up to :math:`O(\delta t^2)`).
 In most cases, :func:`qutip.mcsolve` is more efficient than
-:func:`qutip.photocurrent_sesolve`.
+:func:`qutip.stochastic.photocurrent_sesolve`.
 
 Open system
 -----------

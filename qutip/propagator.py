@@ -49,7 +49,7 @@ def propagator(H, t, c_op_list=[], args={}, options=None,
         Parameters to callback functions for time-dependent Hamiltonians and
         collapse operators.
 
-    options : :class:`qutip.Options`
+    options : :class:`qutip.solver.Options`
         with options for the ODE solver.
 
     unitary_mode = str ('batch', 'single')

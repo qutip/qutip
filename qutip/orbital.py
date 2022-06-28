@@ -1,7 +1,7 @@
 __all__ = ['orbital']
 
 import numpy as np
-from scipy.special import factorial, sph_harm
+from scipy.special import sph_harm
 
 
 def orbital(theta, phi, *args):

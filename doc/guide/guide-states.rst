@@ -1002,7 +1002,7 @@ convention,
     J(\Lambda) = (\mathbb{1} \otimes \Lambda) [|\mathbb{1}\rangle\!\rangle \langle\!\langle \mathbb{1}|].
 
 In QuTiP, :math:`J(\Lambda)` can be found by calling the :func:`~qutip.superop_reps.to_choi`
-function on a ``type="super"`` :obj:`~Qobj`.
+function on a ``type="super"`` :obj:`~qutip.Qobj`.
 
 .. testcode:: [states]
 
@@ -1042,7 +1042,7 @@ function on a ``type="super"`` :obj:`~Qobj`.
    [0. 0. 0. 0.]
    [1. 0. 0. 1.]]
 
-If a :obj:`~Qobj` instance is already in the Choi :attr:`~Qobj.superrep`, then calling :func:`~qutip.superop_reps.to_choi`
+If a :obj:`~qutip.Qobj` instance is already in the Choi :attr:`~qutip.Qobj.superrep`, then calling :func:`~qutip.superop_reps.to_choi`
 does nothing:
 
 .. testcode:: [states]
@@ -1220,7 +1220,7 @@ using the :func:`~qutip.superop_reps.to_kraus` function.
      [0.         0.70710678]]]
 
 As with the other representation conversion functions, :func:`~qutip.superop_reps.to_kraus`
-checks the :attr:`~Qobj.superrep` attribute of its input, and chooses an appropriate
+checks the :attr:`~qutip.Qobj.superrep` attribute of its input, and chooses an appropriate
 conversion method. Thus, in the above example, we can also call :func:`~qutip.superop_reps.to_kraus`
 on ``J``.
 
@@ -1414,7 +1414,7 @@ the :math:`\chi_{00}` element:
 Here, the factor of 4 comes from the dimension of the underlying
 Hilbert space :math:`\mathcal{H}`. As with the superoperator
 and Choi representations, the :math:`\chi` representation is
-denoted by the :attr:`~Qobj.superrep`, such that :func:`~qutip.superop_reps.to_super`,
+denoted by the :attr:`~qutip.Qobj.superrep`, such that :func:`~qutip.superop_reps.to_super`,
 :func:`~qutip.superop_reps.to_choi`, :func:`~qutip.superop_reps.to_kraus`,
 :func:`~qutip.superop_reps.to_stinespring` and :func:`~qutip.superop_reps.to_chi`
 all convert from the :math:`\chi` representation appropriately.
@@ -1425,7 +1425,7 @@ Properties of Quantum Maps
 In addition to converting between the different representations of quantum maps,
 QuTiP also provides attributes to make it easy to check if a map is completely
 positive, trace preserving and/or hermicity preserving. Each of these attributes
-uses :attr:`~Qobj.superrep` to automatically perform any needed conversions.
+uses :attr:`~qutip.Qobj.superrep` to automatically perform any needed conversions.
 
 In particular, a quantum map is said to be positive (but not necessarily completely
 positive) if it maps all positive operators to positive operators. For instance, the
@@ -1451,7 +1451,7 @@ with negative eigenvalues. Complete positivity addresses this by requiring that
 a map returns positive operators for all positive operators, and does so even
 under tensoring with another map. The Choi matrix is very useful here, as it
 can be shown that a map is completely positive if and only if its Choi matrix
-is positive [Wat13]_. QuTiP implements this check with the :attr:`~Qobj.iscp`
+is positive [Wat13]_. QuTiP implements this check with the :attr:`~qutip.Qobj.iscp`
 attribute. As an example, notice that the snippet above already calculates
 the Choi matrix of the transpose map by acting it on half of an entangled
 pair. We simply need to manually set the ``dims`` and ``superrep`` attributes to reflect the
@@ -1477,7 +1477,7 @@ That is, :math:`\Lambda(\rho) = (\Lambda(\rho))^\dagger` for all :math:`\rho` su
 :math:`\rho = \rho^\dagger`. To see this, we note that :math:`(\rho^{\mathrm{T}})^\dagger
 = \rho^*`, the complex conjugate of :math:`\rho`. By assumption, :math:`\rho = \rho^\dagger
 = (\rho^*)^{\mathrm{T}}`, though, such that :math:`\Lambda(\rho) = \Lambda(\rho^\dagger) = \rho^*`.
-We can confirm this by checking the :attr:`~Qobj.ishp` attribute:
+We can confirm this by checking the :attr:`~qutip.Qobj.ishp` attribute:
 
 .. testcode:: [states]
 
@@ -1492,7 +1492,7 @@ We can confirm this by checking the :attr:`~Qobj.ishp` attribute:
 
 Next, we note that the transpose map does preserve the trace of its inputs, such that
 :math:`\operatorname{Tr}(\Lambda[\rho]) = \operatorname{Tr}(\rho)` for all :math:`\rho`.
-This can be confirmed by the :attr:`~Qobj.istp` attribute:
+This can be confirmed by the :attr:`~qutip.Qobj.istp` attribute:
 
 .. testcode:: [states]
 
