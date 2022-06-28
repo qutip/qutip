@@ -415,7 +415,7 @@ def heomsolve(
 
     If you need to run many evolutions of the same system and bath, consider
     using :class:`HEOMSolver` directly to avoid having to continually
-    reconstruct the equation hierarchy for every evolution.f__
+    reconstruct the equation hierarchy for every evolution.
 
     Parameters
     ----------
