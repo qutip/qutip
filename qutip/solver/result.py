@@ -95,7 +95,7 @@ class Result:
     kw : dict
         Additional parameters specific to a result sub-class.
 
-    Properties
+    Attributes
     ----------
     times : list
         A list of the times at which the expectation values and states were
