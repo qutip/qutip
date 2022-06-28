@@ -177,6 +177,13 @@ Stochastic Schrödinger Equation and Master Equation
     :members: ssesolve, photocurrent_sesolve, smepdpsolve, smesolve, photocurrent_mesolve, ssepdpsolve, stochastic_solvers, general_stochastic
 
 
+Hierarchical Equations of Motion
+--------------------------------
+
+.. automodule:: qutip.solver.heom
+    :members: heomsolve
+
+
 Correlation Functions
 ---------------------
 

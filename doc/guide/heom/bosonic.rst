@@ -1,4 +1,4 @@
-####################
+solver.heom####################
 Bosonic Environments
 ####################
 
@@ -18,8 +18,8 @@ a Padé expansion), how to evolve the system in time, and how to calculate
 the steady state.
 
 First we will do this in the simplest way, using the built-in implementations of
-the two bath expansions, :class:`~qutip.solve.nonmarkov.heom.DrudeLorentzBath` and
-:class:`~qutip.solve.nonmarkov.heom.DrudeLorentzPadeBath`. We will do this both with a
+the two bath expansions, :class:`~qutip.solver.heom.DrudeLorentzBath` and
+:class:`~qutip.solver.heom.DrudeLorentzPadeBath`. We will do this both with a
 truncated expansion and show how to include an approximation to all of the
 remaining terms in the bath expansion.
 
@@ -41,7 +41,7 @@ Describing the system and bath
 First, let us construct the system Hamiltonian, :math:`H_{sys}`, and the initial
 system state, ``rho0``:
 
-.. #plot::
+.. plot::
     :context: reset
     :nofigs:
 
@@ -57,7 +57,7 @@ system state, ``rho0``:
 
 Now let us describe the bath properties:
 
-.. #plot::
+.. plot::
     :context:
     :nofigs:
 
@@ -74,16 +74,16 @@ the parameters of a Drude-Lorentz bath, and ``Q`` is the coupling operator
 between the system and the bath.
 
 We may the pass these parameters to either
-:class:`~qutip.solve.nonmarkov.heom.DrudeLorentzBath` or
-:class:`~qutip.solve.nonmarkov.heom.DrudeLorentzPadeBath` to construct an expansion of
+:class:`~qutip.solver.heom.DrudeLorentzBath` or
+:class:`~qutip.solver.heom.DrudeLorentzPadeBath` to construct an expansion of
 the bath correlations:
 
-.. #plot::
+.. plot::
     :context:
     :nofigs:
 
-    from qutip.solve.nonmarkov.heom import DrudeLorentzBath
-    from qutip.solve.nonmarkov.heom import DrudeLorentzPadeBath
+    from qutip.solver.heom import DrudeLorentzBath
+    from qutip.solver.heom import DrudeLorentzPadeBath
 
     # Number of expansion terms to retain:
     Nk = 2
@@ -105,12 +105,12 @@ System and bath dynamics
 
 Now we are ready to construct a solver:
 
-.. #plot::
+.. plot::
     :context:
     :nofigs:
 
-    from qutip.solve.nonmarkov.heom import HEOMSolver
-    from qutip import SolverOptions
+    from qutip.solver.heom import HEOMSolver
+    from qutip.solver import SolverOptions
 
     max_depth = 5  # maximum hierarchy depth to retain
     options = SolverOptions(nsteps=15_000)
@@ -119,7 +119,7 @@ Now we are ready to construct a solver:
 
 and to calculate the system evolution as a function of time:
 
-.. #code-block:: python
+.. code-block:: python
 
     tlist = [0, 10, 20]  # times to evaluate the system state at
     result = solver.run(rho0, tlist)
@@ -133,9 +133,10 @@ The ``result`` is a standard QuTiP results object with the attributes:
 
 - ``times``: the times at which the state was evaluated (i.e. ``tlist``)
 - ``states``: the system states at each time
-- ``expect``: the values of each ``e_ops`` at each time
+- ``expect``: a list with the values of each ``e_ops`` at each time
+- ``e_data``: a dictionary with the values of each ``e_op`` at each time
 - ``ado_states``: see below (an instance of
-  :class:`~qutip.solve.nonmarkov.heom.HierarchyADOsState`)
+  :class:`~qutip.solver.heom.HierarchyADOsState`)
 
 If ``ado_return=True`` is passed to ``.run(...)`` the full set of auxilliary
 density operators (ADOs) that make up the hierarchy at each time will be
@@ -149,12 +150,12 @@ supply it as the initial state of the solver by calling
 
 As with other QuTiP solvers, if expectation operators or functions are supplied
 using ``.run(..., e_ops=[...])`` the expectation values are available in
-``result.expect``.
+``result.expect`` and ``result.e_data``.
 
 Below we run the solver again, but use ``e_ops`` to store the expectation
 values of the population of the system states and the coherence:
 
-.. #plot::
+.. plot::
     :context:
 
     # Define the operators that measure the populations of the two
@@ -172,8 +173,8 @@ values of the population of the system states and the coherence:
 
     # Plot the results:
     fig, axes = plt.subplots(1, 1, sharex=True, figsize=(8,8))
-    axes.plot(result.times, result.expect["11"], 'b', linewidth=2, label="P11")
-    axes.plot(result.times, result.expect["12"], 'r', linewidth=2, label="P12")
+    axes.plot(result.times, result.e_data["11"], 'b', linewidth=2, label="P11")
+    axes.plot(result.times, result.e_data["12"], 'r', linewidth=2, label="P12")
     axes.set_xlabel(r't', fontsize=28)
     axes.legend(loc=0, fontsize=12)
 
@@ -184,7 +185,7 @@ Steady-state
 Using the same solver, we can also determine the steady state of the
 combined system and bath using:
 
-.. #plot::
+.. plot::
     :context:
     :nofigs:
 
@@ -193,7 +194,7 @@ combined system and bath using:
 where ``steady_state`` is the steady state of the system and ``steady_ados``
 if the steady state of the full hierarchy. The ADO states are
 described more fully in :ref:`heom-determining-currents` and
-:class:`~qutip.solve.nonmarkov.heom.HierarchyADOsState`.
+:class:`~qutip.solver.heom.HierarchyADOsState`.
 
 
 Matsubara Terminator
@@ -210,11 +211,11 @@ the lower order terms in the expansion.
 This additional term is called the ``terminator`` because it terminates the
 expansion.
 
-The :class:`~qutip.solve.nonmarkov.heom.DrudeLorentzBath` and
-:class:`~qutip.solve.nonmarkov.heom.DrudeLorentzPadeBath` both provide a means of
+The :class:`~qutip.solver.heom.DrudeLorentzBath` and
+:class:`~qutip.solver.heom.DrudeLorentzPadeBath` both provide a means of
 calculating the terminator for a given expansion:
 
-.. #plot::
+.. plot::
     :context:
     :nofigs:
 
@@ -243,10 +244,10 @@ Matsubara expansion coefficients
 --------------------------------
 
 So far we have relied on the built-in
-:class:`~qutip.solve.nonmarkov.heom.DrudeLorentzBath` to construct the Drude-Lorentz
+:class:`~qutip.solver.heom.DrudeLorentzBath` to construct the Drude-Lorentz
 bath expansion for us. Now we will calculate the coefficients ourselves and
-construct a :class:`~qutip.solve.nonmarkov.heom.BosonicBath` directly. A similar
-procedure can be used to apply :class:`~qutip.solve.nonmarkov.heom.HEOMSolver` to any
+construct a :class:`~qutip.solver.heom.BosonicBath` directly. A similar
+procedure can be used to apply :class:`~qutip.solver.heom.HEOMSolver` to any
 bosonic bath for which we can calculate the expansion coefficients.
 
 The real and imaginary parts of the correlation function, :math:`C(t)`, for the
@@ -291,7 +292,7 @@ and the imaginary part, :math:`C_{imag}(t)`:
 
 And now the same numbers calculated in Python:
 
-.. #plot::
+.. plot::
     :context:
     :nofigs:
 
@@ -321,25 +322,25 @@ And now the same numbers calculated in Python:
 
 After all that, constructing the bath is very straight forward:
 
-.. #plot::
+.. plot::
     :context:
     :nofigs:
 
-    from qutip.solve.nonmarkov.heom import BosonicBath
+    from qutip.solver.heom import BosonicBath
 
     bath = BosonicBath(Q, ck_real, vk_real, ck_imag, vk_imag)
 
 And we're done!
 
-The :class:`~qutip.solve.nonmarkov.heom.BosonicBath` can be used with the
-:class:`~qutip.solve.nonmarkov.heom.HEOMSolver` in exactly the same way as the baths
+The :class:`~qutip.solver.heom.BosonicBath` can be used with the
+:class:`~qutip.solver.heom.HEOMSolver` in exactly the same way as the baths
 we constructed previously using the built-in Drude-Lorentz bath expansions.
 
 
 Multiple baths
 --------------
 
-The :class:`~qutip.solve.nonmarkov.heom.HEOMSolver` supports having a system interact
+The :class:`~qutip.solver.heom.HEOMSolver` supports having a system interact
 with multiple environments. All that is needed is to supply a list of baths
 instead of a single bath.
 
@@ -358,7 +359,7 @@ At the end, we plot the populations of the system states as a function of
 time, and show the long-time beating of quantum state coherence that
 occurs:
 
-.. #plot::
+.. plot::
     :context: close-figs
 
     # The size of the system:
@@ -398,14 +399,14 @@ occurs:
 
     # Plot populations:
     fig, axes = plt.subplots(1, 1, sharex=True, figsize=(8,8))
-    for label, values in result.expect.items():
+    for label, values in result.e_data.items():
         axes.plot(result.times, values, label=label)
     axes.set_xlabel(r't', fontsize=28)
     axes.set_ylabel(r"Population", fontsize=28)
     axes.legend(loc=0, fontsize=12)
 
 
-.. #plot::
+.. plot::
     :context: reset
     :include-source: false
     :nofigs:

@@ -1,9 +1,9 @@
+import operator
+
 import pytest
 from qutip import *
 import numpy as np
 from numpy.testing import assert_allclose
-from functools import partial
-from types import FunctionType, BuiltinFunctionType
 
 from qutip.core import data as _data
 
@@ -106,6 +106,9 @@ def _assert_qobjevo_equivalent(obj1, obj2, tol=1e-8):
 
 
 def _assert_qobj_almost_eq(obj1, obj2, tol=1e-10):
+    assert obj1.dims == obj2.dims
+    assert obj1.shape == obj2.shape
+    assert obj1.type == obj2.type
     assert _data.iszero((obj1 - obj2).data, tol)
 
 
@@ -160,6 +163,23 @@ def test_binopt(all_qevo, other_qevo, bin_op):
         as_qevo = bin_op(obj1, obj2)(t)
         as_qobj = bin_op(obj1(t), obj2(t))
         _assert_qobj_almost_eq(as_qevo, as_qobj)
+
+
+@pytest.mark.parametrize('bin_op', [
+    pytest.param(operator.iadd, id="add"),
+    pytest.param(operator.isub, id="sub"),
+    pytest.param(operator.imul, id="mul"),
+    pytest.param(operator.imatmul, id="matmul"),
+    pytest.param(operator.iand, id="tensor"),
+])
+def test_binopt_inplace(all_qevo, other_qevo, bin_op):
+    obj1 = all_qevo
+    obj2 = other_qevo
+    for t in TESTTIMES:
+        as_qevo = bin_op(obj1.copy(), obj2)(t)
+        as_qobj = bin_op(obj1(t).copy(), obj2(t))
+        _assert_qobj_almost_eq(as_qevo, as_qobj)
+
 
 @pytest.mark.parametrize('bin_op', [
     pytest.param(lambda a, b: a + b, id="add"),

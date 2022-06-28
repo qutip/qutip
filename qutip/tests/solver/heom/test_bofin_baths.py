@@ -5,8 +5,9 @@ Tests for qutip.nonmarkov.bofin_baths.
 import numpy as np
 import pytest
 
-from qutip import spre, spost, sigmax, sigmaz #, isequal
-from qutip.solve.nonmarkov.bofin_baths import (
+from qutip import spre, spost, sigmax, sigmaz
+from qutip.core import data as _data
+from qutip.solver.heom.bofin_baths import (
     BathExponent,
     Bath,
     BosonicBath,
@@ -19,7 +20,9 @@ from qutip.solve.nonmarkov.bofin_baths import (
 )
 
 
-pytestmark = pytest.mark.skip
+def isequal(Q1, Q2, tol):
+    """ Return true if Q1 and Q2 are equal to within the given tolerance. """
+    return _data.iszero(_data.sub(Q1.data, Q2.data), tol=tol)
 
 
 def check_exponent(
