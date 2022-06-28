@@ -12,7 +12,7 @@ from qutip import (
     tensor, Qobj, QobjEvo
 )
 from qutip.core import data as _data
-from qutip.solve.nonmarkov.bofin_baths import (
+from qutip.solver.heom.bofin_baths import (
     BathExponent,
     Bath,
     BosonicBath,
@@ -23,7 +23,7 @@ from qutip.solve.nonmarkov.bofin_baths import (
     LorentzianBath,
     LorentzianPadeBath,
 )
-from qutip.solve.nonmarkov.bofin_solvers import (
+from qutip.solver.heom.bofin_solvers import (
     heomsolve,
     HierarchyADOs,
     HierarchyADOsState,

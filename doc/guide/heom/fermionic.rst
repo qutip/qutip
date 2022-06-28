@@ -24,8 +24,8 @@ one for each reservoir or lead -- and call them the left (:math:`L`) and right
 potential :math:`\mu` which we will label :math:`\mu_L` and :math:`\mu_R`.
 
 First we will do this using the built-in implementations of the bath expansions,
-:class:`~qutip.solve.nonmarkov.heom.LorentzianBath` and
-:class:`~qutip.solve.nonmarkov.heom.LorentzianPadeBath`.
+:class:`~qutip.solver.heom.LorentzianBath` and
+:class:`~qutip.solver.heom.LorentzianPadeBath`.
 
 Afterwards, we will show how to calculate the bath expansion coefficients and to
 use those coefficients to construct your own bath description so that you can
@@ -91,8 +91,8 @@ We may the pass these parameters to either ``LorentzianBath`` or
     :context:
     :nofigs:
 
-    from qutip.solve.nonmarkov.heom import LorentzianBath
-    from qutip.solve.nonmarkov.heom import LorentzianPadeBath
+    from qutip.solver.heom import LorentzianBath
+    from qutip.solver.heom import LorentzianPadeBath
 
     # Number of expansion terms to retain:
     Nk = 2
@@ -122,7 +122,7 @@ Now we are ready to construct a solver:
     :context:
     :nofigs:
 
-    from qutip.solve.nonmarkov.heom import HEOMSolver
+    from qutip.solver.heom import HEOMSolver
     from qutip.solver import SolverOptions
 
     max_depth = 5  # maximum hierarchy depth to retain
@@ -197,8 +197,8 @@ description later in :ref:`heom-fermionic-pade-expansion-coefficients`) and
 
 The first-level exponents for the left bath are retrieved by calling
 ``.filter(tags=["L"])`` on ``ado_state`` which is an instance of
-:class:`~qutip.solve.nonmarkov.heom.HierarchyADOsState` and also provides access to
-the methods of :class:`~qutip.solve.nonmarkov.heom.HierarchyADOs` which describes the
+:class:`~qutip.solver.heom.HierarchyADOsState` and also provides access to
+the methods of :class:`~qutip.solver.heom.HierarchyADOs` which describes the
 structure of the hierarchy for a given problem.
 
 Here the tag "L" matches the tag passed when constructing ``bath_L`` earlier
@@ -323,9 +323,9 @@ Padé expansion coefficients
 
 We now look at how to calculate the correlation expansion coefficients for the
 Lorentzian spectral density ourselves. Once we have calculated the coefficients
-we can construct a :class:`~qutip.solve.nonmarkov.heom.FermionicBath` directly from
+we can construct a :class:`~qutip.solver.heom.FermionicBath` directly from
 them. A similar procedure can be used to apply
-:class:`~qutip.solve.nonmarkov.heom.HEOMSolver` to any fermionic bath for which we can
+:class:`~qutip.solver.heom.HEOMSolver` to any fermionic bath for which we can
 calculate the expansion coefficients.
 
 In the fermionic case we must descriminate between the order in which
@@ -467,13 +467,13 @@ And now we calculate the same numbers in Python:
     ck_minus_R, vk_minus_R = C(-1.0, mu_R, Nk)  # C_-, right bath
 
 Finally we are ready to construct the
-:class:`~qutip.solve.nonmarkov.heom.FermionicBath`:
+:class:`~qutip.solver.heom.FermionicBath`:
 
 .. plot::
     :context:
     :nofigs:
 
-    from qutip.solve.nonmarkov.heom import FermionicBath
+    from qutip.solver.heom import FermionicBath
 
     # Padé expansion:
     bath_L = FermionicBath(Q, ck_plus_L, vk_plus_L, ck_minus_L, vk_minus_L)
@@ -481,8 +481,8 @@ Finally we are ready to construct the
 
 And we're done!
 
-The :class:`~qutip.solve.nonmarkov.heom.FermionicBath` can be used with the
-:class:`~qutip.solve.nonmarkov.heom.HEOMSolver` in exactly the same way as the baths
+The :class:`~qutip.solver.heom.FermionicBath` can be used with the
+:class:`~qutip.solver.heom.HEOMSolver` in exactly the same way as the baths
 we constructed previously using the built-in Lorentzian bath expansions.
 
 

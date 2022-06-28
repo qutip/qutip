@@ -18,7 +18,7 @@ It only directly provided support for the Drude-Lorentz bath although there was
 the possibility of sub-classing the solver to implement other baths.
 
 A compatible interface using the current implementation is still available
-under the same name in :class:`qutip.solve.nonmarkov.heom.HSolverDL`.
+under the same name in :class:`qutip.solver.heom.HSolverDL`.
 
 
 BoFiN-HEOM

@@ -3,7 +3,7 @@ Tests for qutip.nonmarkov.heom.
 """
 
 import pytest
-from qutip.solve.nonmarkov.heom import (
+from qutip.solver.heom import (
     BathExponent,
     Bath,
     BosonicBath,

@@ -25,8 +25,8 @@ from qutip.core.superoperator import liouvillian, spre, spost
 from .bofin_baths import (
     BathExponent, DrudeLorentzBath,
 )
-from ...solver.solver_base import Solver
-from ...solver import Result
+from ..solver_base import Solver
+from .. import Result
 
 # Load MKL spsolve if avaiable
 if settings.has_mkl:

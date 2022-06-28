@@ -37,52 +37,58 @@ Distributions
     :members:
 
 
-.. _classes-non_markov:
+.. _classes-non_markov_heom:
 
-Non-Markovian Solvers
----------------------
+Non-Markovian HEOM Solver
+-------------------------
 
-.. autoclass:: qutip.solve.nonmarkov.heom.HEOMSolver
+.. autoclass:: qutip.solver.heom.HEOMSolver
     :members:
 
-.. autoclass:: qutip.solve.nonmarkov.heom.HSolverDL
+.. autoclass:: qutip.solver.heom.HSolverDL
     :members:
 
-.. autoclass:: qutip.solve.nonmarkov.heom.BathExponent
+.. autoclass:: qutip.solver.heom.BathExponent
     :members:
 
-.. autoclass:: qutip.solve.nonmarkov.heom.Bath
+.. autoclass:: qutip.solver.heom.Bath
     :members:
 
-.. autoclass:: qutip.solve.nonmarkov.heom.BosonicBath
+.. autoclass:: qutip.solver.heom.BosonicBath
     :members:
 
-.. autoclass:: qutip.solve.nonmarkov.heom.DrudeLorentzBath
+.. autoclass:: qutip.solver.heom.DrudeLorentzBath
     :members:
 
-.. autoclass:: qutip.solve.nonmarkov.heom.DrudeLorentzPadeBath
+.. autoclass:: qutip.solver.heom.DrudeLorentzPadeBath
     :members:
 
-.. autoclass:: qutip.solve.nonmarkov.heom.UnderDampedBath
+.. autoclass:: qutip.solver.heom.UnderDampedBath
     :members:
 
-.. autoclass:: qutip.solve.nonmarkov.heom.FermionicBath
+.. autoclass:: qutip.solver.heom.FermionicBath
     :members:
 
-.. autoclass:: qutip.solve.nonmarkov.heom.LorentzianBath
+.. autoclass:: qutip.solver.heom.LorentzianBath
     :members:
 
-.. autoclass:: qutip.solve.nonmarkov.heom.LorentzianPadeBath
+.. autoclass:: qutip.solver.heom.LorentzianPadeBath
     :members:
 
-.. autoclass:: qutip.solve.nonmarkov.heom.HierarchyADOs
+.. autoclass:: qutip.solver.heom.HierarchyADOs
     :members:
 
-.. autoclass:: qutip.solve.nonmarkov.heom.HierarchyADOsState
+.. autoclass:: qutip.solver.heom.HierarchyADOsState
     :members:
 
-.. autoclass:: qutip.solve.nonmarkov.heom.HEOMResult
+.. autoclass:: qutip.solver.heom.HEOMResult
     :members:
+
+
+.. _classes-non_markov_mc_and_tt:
+
+Non-Markovian Memory Cascade and Transfer Tensor Solvers
+--------------------------------------------------------
 
 .. autoclass:: qutip.solve.nonmarkov.memorycascade.MemoryCascade
     :members:
