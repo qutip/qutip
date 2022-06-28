@@ -363,5 +363,9 @@ class TestBloch:
         self.plot_vector_ref(fig_ref, copy.deepcopy(vector_kws))
 
 def test_repr_svg():
-    svg = Bloch()._repr_svg_()
-    assert isinstance(svg, str)
+    try:
+        # test when ipython is available
+        svg = Bloch()._repr_svg_()
+        assert isinstance(svg, str)
+    except ImportError:
+        pass
