@@ -14,8 +14,26 @@ import enum
 import numpy as np
 from scipy.linalg import eigvalsh
 
+from qutip.core import data as _data
 from qutip.core.qobj import Qobj
 from qutip.core.superoperator import spre, spost
+
+__all__ = [
+    "BathExponent",
+    "Bath",
+    "BosonicBath",
+    "DrudeLorentzBath",
+    "DrudeLorentzPadeBath",
+    "UnderDampedBath",
+    "FermionicBath",
+    "LorentzianBath",
+    "LorentzianPadeBath",
+]
+
+
+def _isequal(Q1, Q2, tol):
+    """ Return true if Q1 and Q2 are equal to within the given tolerance. """
+    return _data.iszero(_data.sub(Q1.data, Q2.data), tol=tol)
 
 
 class BathExponent:
@@ -277,7 +295,7 @@ class BosonicBath(Bath):
             for e2 in remaining[:]:
                 if (
                     np.isclose(e1.vk, e2.vk, rtol=rtol, atol=atol) and
-                    np.allclose(e1.Q, e2.Q, rtol=rtol, atol=atol)
+                    _isequal(e1.Q, e2.Q, tol=atol)
                 ):
                     group.append(e2)
                     remaining.remove(e2)

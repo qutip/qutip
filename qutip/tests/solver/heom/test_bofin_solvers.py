@@ -6,14 +6,13 @@ import numpy as np
 import pytest
 from numpy.linalg import eigvalsh
 from scipy.integrate import quad
-from scipy.sparse import csr_matrix
 
 from qutip import (
     basis, destroy, expect, liouvillian, sigmax, sigmaz,
-    tensor, Qobj, QobjEvo, SolverOptions,
+    tensor, Qobj, QobjEvo
 )
-# from qutip.fastsparse import fast_csr_matrix
-from qutip.solve.nonmarkov.bofin_baths import (
+from qutip.core import data as _data
+from qutip.solver.heom.bofin_baths import (
     BathExponent,
     Bath,
     BosonicBath,
@@ -24,17 +23,32 @@ from qutip.solve.nonmarkov.bofin_baths import (
     LorentzianBath,
     LorentzianPadeBath,
 )
-from qutip.solve.nonmarkov.bofin_solvers import (
+from qutip.solver.heom.bofin_solvers import (
+    heomsolve,
     HierarchyADOs,
     HierarchyADOsState,
+    HEOMResult,
     HEOMSolver,
     HSolverDL,
     _GatherHEOMRHS,
 )
-from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
+from qutip.solver import (
+    IntegratorException,
+    SolverOptions,
+    SolverResultsOptions,
+)
 
 
-pytestmark = pytest.mark.skip
+def assert_raises_steady_state_time_dependent(hsolver):
+    """ Assert that calling .steady_state() on a HEOMSolver with
+        a time-dependent Hamiltonian raises the appropriate exception.
+    """
+    with pytest.raises(ValueError) as err:
+       hsolver.steady_state()
+    assert str(err.value) == (
+       "A steady state cannot be determined for a time-dependent"
+       " system"
+    )
 
 
 class TestHierarchyADOs:
@@ -470,8 +484,9 @@ class DiscreteLevelCurrentModel:
 
 _HAMILTONIAN_EVO_KINDS = {
     "qobj": lambda H: H,
-    "qobjevo": lambda H: QobjEvo([H]),
-    "listevo": lambda H: [H],
+    "qobjevo_const": lambda H: QobjEvo([H]),
+    "qobjevo_timedep": lambda H: QobjEvo([H, lambda t: 1.0]),
+    "listevo_const": lambda H: [H],
 }
 
 
@@ -518,19 +533,6 @@ class TestHEOMSolver:
         assert hsolver.ados.exponents == exponents * 3
         assert hsolver.ados.max_depth == 2
 
-    def test_create_progress_bar(self):
-        Q = sigmaz()
-        H = sigmax()
-        bath = Bath([
-            BathExponent("R", None, Q=Q, ck=1.1, vk=2.1),
-        ])
-
-        hsolver = HEOMSolver(H, bath, 2)
-        assert isinstance(hsolver.progress_bar, BaseProgressBar)
-
-        hsolver = HEOMSolver(H, bath, 2, progress_bar=True)
-        assert isinstance(hsolver.progress_bar, TextProgressBar)
-
     def test_create_bath_errors(self):
         Q = sigmaz()
         H = sigmax()
@@ -561,30 +563,75 @@ class TestHEOMSolver:
 
     def test_create_h_sys_errors(self):
         H = object()
-
         with pytest.raises(TypeError) as err:
             HEOMSolver(H, Bath([]), 2)
         assert str(err.value) == (
-            "Hamiltonian (H_sys) has unsupported type: <class 'object'>"
+            "The Hamiltonian (H) must be a Qobj or QobjEvo"
+        )
+
+        H = [sigmax()]
+        with pytest.raises(TypeError) as err:
+            HEOMSolver([H], Bath([]), 2)
+        assert str(err.value) == (
+            "The Hamiltonian (H) must be a Qobj or QobjEvo"
+        )
+
+    @pytest.mark.parametrize(['method'], [
+        pytest.param("run", id="run"),
+        pytest.param("start", id="start"),
+    ])
+    def test_invalid_rho0_errors(self, method):
+        Q = sigmaz()
+        H = sigmax()
+        exponents = [
+            BathExponent("R", None, Q=Q, ck=1.1, vk=2.1),
+            BathExponent("I", None, Q=Q, ck=1.2, vk=2.2),
+            BathExponent("RI", None, Q=Q, ck=1.3, vk=2.3, ck2=3.3),
+        ]
+        bath = Bath(exponents)
+        hsolver = HEOMSolver(H, bath, 2)
+
+        if method == "run":
+            def solve_method(rho0):
+                return hsolver.run(rho0, [0, 1])
+        elif method == "start":
+            def solve_method(rho0):
+                return hsolver.start(rho0, 0)
+        else:
+            assert False, f"method {method} not supported by test"
+
+        with pytest.raises(ValueError) as err:
+            solve_method(basis(3, 0))
+        assert str(err.value) == (
+            "Initial state rho has dims [[3], [1]]"
+            " but the system dims are [[2], [2]]"
+        )
+
+        with pytest.raises(TypeError) as err:
+            solve_method("batman")
+        assert str(err.value) == (
+            "Initial ADOs passed have type <class 'str'> but a "
+            "HierarchyADOsState or a numpy array-like instance was expected"
         )
 
         with pytest.raises(ValueError) as err:
-            HEOMSolver([H], Bath([]), 2)
+            solve_method(np.array([1, 2, 3]))
         assert str(err.value) == (
-            "Hamiltonian (H_sys) of type list cannot be converted to QObjEvo"
+            "Initial ADOs passed have shape (3,) but the solver hierarchy"
+            " shape is (10, 2, 2)"
         )
 
-    @pytest.mark.parametrize(['evo', 'combine'], [
-        pytest.param("qobj", True, id="qobj"),
-        pytest.param("qobjevo", True, id="qobjevo"),
-        pytest.param("listevo", True, id="listevo"),
+    @pytest.mark.parametrize(['evo'], [
+        pytest.param("qobj", id="qobj"),
+        pytest.param("qobjevo_const", id="qobjevo_const"),
+        pytest.param("qobjevo_timedep", id="qobjevo_timedep"),
     ])
     @pytest.mark.parametrize(['liouvillianize'], [
         pytest.param(False, id="hamiltonian"),
         pytest.param(True, id="liouvillian"),
     ])
     def test_pure_dephasing_model_bosonic_bath(
-        self, evo, combine, liouvillianize, atol=1e-3
+        self, evo, liouvillianize, atol=1e-3
     ):
         dlm = DrudeLorentzPureDephasingModel(
             lam=0.025, gamma=0.05, T=1/0.95, Nk=2,
@@ -603,11 +650,15 @@ class TestHEOMSolver:
         expected = dlm.analytic_results(tlist)
         np.testing.assert_allclose(test, expected, atol=atol)
 
-        rho_final, ado_state = hsolver.steady_state()
-        test = dlm.state_results([rho_final])
-        expected = dlm.analytic_results([100])
-        np.testing.assert_allclose(test, expected, atol=atol)
-        assert rho_final == ado_state.extract(0)
+        if evo != "qobjevo_timedep":
+            rho_final, ado_state = hsolver.steady_state()
+            test = dlm.state_results([rho_final])
+            expected = dlm.analytic_results([100])
+            np.testing.assert_allclose(test, expected, atol=atol)
+            assert rho_final == ado_state.extract(0)
+        else:
+            assert_raises_steady_state_time_dependent(hsolver)
+
 
     @pytest.mark.parametrize(['terminator'], [
         pytest.param(True, id="terminator"),
@@ -677,8 +728,8 @@ class TestHEOMSolver:
 
     @pytest.mark.parametrize(['evo'], [
         pytest.param("qobj"),
-        pytest.param("qobjevo"),
-        pytest.param("listevo"),
+        pytest.param("qobjevo_const"),
+        pytest.param("qobjevo_timedep"),
     ])
     @pytest.mark.parametrize(['liouvillianize'], [
         pytest.param(False, id="hamiltonian"),
@@ -692,22 +743,27 @@ class TestHEOMSolver:
         ck_plus, vk_plus, ck_minus, vk_minus = dlm.bath_coefficients()
 
         options = SolverOptions(
-            nsteps=15_000, store_states=True, rtol=1e-7, atol=1e-7,
+            nsteps=15_000, store_states=True, store_ados=True,
+            rtol=1e-7, atol=1e-7,
         )
         bath = FermionicBath(dlm.Q, ck_plus, vk_plus, ck_minus, vk_minus)
         # for a single impurity we converge with max_depth = 2
         hsolver = HEOMSolver(H_sys, bath, 2, options=options)
 
         tlist = [0, 600]
-        result = hsolver.run(dlm.rho(), tlist, ado_return=True)
+        result = hsolver.run(dlm.rho(), tlist)
         current = dlm.state_current(result.ado_states[-1])
         analytic_current = dlm.analytic_current()
         np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
 
-        rho_final, ado_state = hsolver.steady_state()
-        current = dlm.state_current(ado_state)
-        analytic_current = dlm.analytic_current()
-        np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
+        if evo != "qobjevo_timedep":
+            rho_final, ado_state = hsolver.steady_state()
+            current = dlm.state_current(ado_state)
+            analytic_current = dlm.analytic_current()
+            np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
+        else:
+            assert_raises_steady_state_time_dependent(hsolver)
+
 
     @pytest.mark.parametrize(['bath_cls', 'analytic_current'], [
         pytest.param(LorentzianBath, 0.001101, id="matsubara"),
@@ -721,7 +777,8 @@ class TestHEOMSolver:
         )
 
         options = SolverOptions(
-            nsteps=15_000, store_states=True, rtol=1e-7, atol=1e-7,
+            nsteps=15_000, store_states=True, store_ados=True,
+            rtol=1e-7, atol=1e-7,
         )
         bath_l = bath_cls(
             dlm.Q, gamma=dlm.gamma, w=dlm.W, T=dlm.T, mu=dlm.theta / 2,
@@ -735,7 +792,7 @@ class TestHEOMSolver:
         hsolver = HEOMSolver(dlm.H, [bath_r, bath_l], 2, options=options)
 
         tlist = [0, 600]
-        result = hsolver.run(dlm.rho(), tlist, ado_return=True)
+        result = hsolver.run(dlm.rho(), tlist)
         current = dlm.state_current(result.ado_states[-1])
         # analytic_current = dlm.analytic_current()
         np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
@@ -745,34 +802,33 @@ class TestHEOMSolver:
         # analytic_current = dlm.analytic_current()
         np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
 
-
     @pytest.mark.parametrize(['ado_format'], [
         pytest.param("hierarchy-ados-state", id="hierarchy-ados-state"),
         pytest.param("numpy", id="numpy"),
     ])
-    def test_ado_return_and_ado_init(self, ado_format):
+    def test_ado_input_and_return(self, ado_format):
         dlm = DrudeLorentzPureDephasingModel(
             lam=0.025, gamma=0.05, T=1/0.95, Nk=2,
         )
         ck_real, vk_real, ck_imag, vk_imag = dlm.bath_coefficients()
 
         bath = BosonicBath(dlm.Q, ck_real, vk_real, ck_imag, vk_imag)
-        options = SolverOptions(nsteps=15_000, store_states=True)
+        options = SolverOptions(
+            nsteps=15_000, store_states=True, store_ados=True,
+        )
         hsolver = HEOMSolver(dlm.H, bath, 6, options=options)
 
         tlist_1 = [0, 1, 2]
-        result_1 = hsolver.run(dlm.rho(), tlist_1, ado_return=True)
+        result_1 = hsolver.run(dlm.rho(), tlist_1)
 
         tlist_2 = [2, 3, 4]
         rho0 = result_1.ado_states[-1]
         if ado_format == "numpy":
             rho0 = rho0._ado_state  # extract the raw numpy array
-        result_2 = hsolver.run(
-            rho0, tlist_2, ado_return=True, ado_init=True,
-        )
+        result_2 = hsolver.run(rho0, tlist_2)
 
         tlist_full = tlist_1 + tlist_2[1:]
-        result_full = hsolver.run(dlm.rho(), tlist_full, ado_return=True)
+        result_full = hsolver.run(dlm.rho(), tlist_full)
 
         times_12 = result_1.times + result_2.times[1:]
         times_full = result_full.times
@@ -806,6 +862,74 @@ class TestHEOMSolver:
         test_full = dlm.state_results(states_full)
         np.testing.assert_allclose(test_full, expected, atol=1e-3)
 
+    def test_solving_with_step(self):
+        dlm = DrudeLorentzPureDephasingModel(
+            lam=0.025, gamma=0.05, T=1/0.95, Nk=2,
+        )
+        ck_real, vk_real, ck_imag, vk_imag = dlm.bath_coefficients()
+
+        bath = BosonicBath(dlm.Q, ck_real, vk_real, ck_imag, vk_imag)
+        options = SolverOptions(nsteps=15_000)
+        hsolver = HEOMSolver(dlm.H, bath, 14, options=options)
+
+        tlist = np.linspace(0, 10, 21)
+        ado_state = None
+        states = [dlm.rho()]
+        hsolver.start(states[0], 0)
+        for t in tlist[1:]:
+            ado_state = hsolver.step(t)
+            states.append(ado_state.rho)
+
+        test = dlm.state_results(states)
+        expected = dlm.analytic_results(tlist)
+        np.testing.assert_allclose(test, expected, atol=1e-3)
+
+        assert states[-1] == ado_state.extract(0)
+
+class TestHeomsolveFunction:
+    @pytest.mark.parametrize(['evo'], [
+        pytest.param("qobj", id="qobj"),
+        pytest.param("listevo_const", id="listevo_const"),
+        pytest.param("qobjevo_const", id="qobjevo_const"),
+        pytest.param("qobjevo_timedep", id="qobjevo_timedep"),
+    ])
+    @pytest.mark.parametrize(['liouvillianize'], [
+        pytest.param(False, id="hamiltonian"),
+        pytest.param(True, id="liouvillian"),
+    ])
+    def test_heomsolve_with_pure_dephasing_model(
+        self, evo, liouvillianize, atol=1e-3
+    ):
+        dlm = DrudeLorentzPureDephasingModel(
+            lam=0.025, gamma=0.05, T=1/0.95, Nk=2,
+        )
+        ck_real, vk_real, ck_imag, vk_imag = dlm.bath_coefficients()
+        H_sys = hamiltonian_to_sys(dlm.H, evo, liouvillianize)
+
+        bath = BosonicBath(dlm.Q, ck_real, vk_real, ck_imag, vk_imag)
+        options = SolverOptions(nsteps=15000, store_states=True)
+
+        e_ops = {
+            "11": basis(2,0) * basis(2,0).dag(),
+            "22": basis(2,1) * basis(2,1).dag(),
+        }
+
+        tlist = np.linspace(0, 10, 21)
+        result = heomsolve(
+            H_sys, bath, 14, dlm.rho(), tlist,
+            e_ops=e_ops, args={"foo": 1}, options=options)
+
+        test = dlm.state_results(result.states)
+        expected = dlm.analytic_results(tlist)
+        np.testing.assert_allclose(test, expected, atol=atol)
+
+        for label in ["11", "22"]:
+            np.testing.assert_allclose(
+                result.e_data[label],
+                [expect(rho, e_ops[label]) for rho in result.states],
+                atol=atol,
+            )
+
 
 class TestHSolverDL:
     @pytest.mark.parametrize(['bnd_cut_approx', 'atol'], [
@@ -814,9 +938,10 @@ class TestHSolverDL:
     ])
     @pytest.mark.parametrize(['evo', 'combine'], [
         pytest.param("qobj", True, id="qobj-combined"),
-        pytest.param("qobjevo", True, id="qobjevo-combined"),
-        pytest.param("listevo", True, id="listevo-combined"),
-        pytest.param("qobj", False, id="qobj-uncombined"),
+        pytest.param("qobjevo_const", True, id="qobjevo-const-combined"),
+        pytest.param("listevo_const", True, id="listevo-const-combined"),
+        pytest.param("qobjevo_timedep", True, id="qobjevo-timedep-combined"),
+        pytest.param("qobjevo_timedep", False, id="qobjevo-timedep-uncombined"),
     ])
     @pytest.mark.parametrize(['liouvillianize'], [
         pytest.param(False, id="hamiltonian"),
@@ -844,11 +969,14 @@ class TestHSolverDL:
         expected = dlm.analytic_results(tlist)
         np.testing.assert_allclose(test, expected, atol=atol)
 
-        rho_final, ado_state = hsolver.steady_state()
-        test = dlm.state_results([rho_final])
-        expected = dlm.analytic_results([100])
-        np.testing.assert_allclose(test, expected, atol=atol)
-        assert rho_final == ado_state.extract(0)
+        if evo != "qobjevo_timedep":
+            rho_final, ado_state = hsolver.steady_state()
+            test = dlm.state_results([rho_final])
+            expected = dlm.analytic_results([100])
+            np.testing.assert_allclose(test, expected, atol=atol)
+            assert rho_final == ado_state.extract(0)
+        else:
+            assert_raises_steady_state_time_dependent(hsolver)
 
     @pytest.mark.parametrize(['bnd_cut_approx', 'tol'], [
         pytest.param(True, 1e-4, id="bnd_cut_approx"),
@@ -887,7 +1015,7 @@ class TestHSolverDL:
         test = expect(hsolver.run(initial_state, times).states, projector)
         np.testing.assert_allclose(test, expected, atol=tol)
 
-    @pytest.mark.filterwarnings("ignore:zvode.*Excess work done:UserWarning")
+    @pytest.mark.filterwarnings("ignore:_zvode.*Excess work done:UserWarning")
     def test_integration_error(self):
         dlm = DrudeLorentzPureDephasingModel(
             lam=0.025, gamma=0.05, T=1/0.95, Nk=2,
@@ -898,14 +1026,100 @@ class TestHSolverDL:
         options = SolverOptions(nsteps=10)
         hsolver = HEOMSolver(dlm.H, bath, 14, options=options)
 
-        with pytest.raises(RuntimeError) as err:
+        with pytest.raises(IntegratorException) as err:
             hsolver.run(dlm.rho(), tlist=[0, 10])
 
         assert str(err.value) == (
-            "HEOMSolver ODE integration error. Try increasing the nsteps given"
-            " in the HEOMSolver options (which increases the allowed substeps"
-            " in each step between times given in tlist)."
+            "Excess work done on this call. Try to increasing the nsteps"
+            " parameter in the Options class"
         )
+
+
+class TestHEOMResult:
+    def mk_ados(self, bath_dims, max_depth):
+        exponents = [
+            BathExponent("I", dim, Q=None, ck=1.0, vk=2.0) for dim in bath_dims
+        ]
+        ados = HierarchyADOs(exponents, max_depth=max_depth)
+        return ados
+
+    def mk_rho_and_soln(self, ados, rho_dims):
+        n_ados = len(ados.labels)
+        ado_soln = np.random.rand(n_ados, *[np.product(d) for d in rho_dims])
+        rho = Qobj(ado_soln[0, :], dims=rho_dims)
+        return rho, ado_soln
+
+    def test_create_ado_states_attribute(self):
+        options = SolverResultsOptions()
+        result = HEOMResult(e_ops=[], options=options)
+        assert not hasattr(result, "final_ado_state")
+        assert not hasattr(result, "ado_states")
+        assert result.store_ados is False
+
+        options = SolverResultsOptions(store_ados=True)
+        result = HEOMResult(e_ops=[], options=options)
+        assert result.final_ado_state is None
+        assert result.ado_states == []
+        assert result.store_ados is True
+
+    @pytest.mark.parametrize(['e_op_type'], [
+        pytest.param("qobj", id="qobj"),
+        pytest.param("qobjevo", id="qobjevo"),
+        pytest.param("callable", id="callable"),
+    ])
+    def test_e_ops(self, e_op_type):
+        op = Qobj([[1, 0], [0, 0]])
+        if e_op_type == "qobj":
+            e_op = op
+        elif e_op_type == "qobjevo":
+            e_op = QobjEvo(op)
+        elif e_op_type == "callable":
+            def e_op(f, ado_state):
+                return expect(op, ado_state.rho)
+        else:
+            assert False, f"unknown e_op_type {e_op_type!r}"
+
+        options = SolverResultsOptions()
+        result = HEOMResult(e_ops=e_op, options=options)
+
+        ados = self.mk_ados([2, 3], max_depth=2)
+        rho, ado_soln = self.mk_rho_and_soln(ados, [[2], [2]])
+        e_op_value = expect(op, rho)
+        ado_state = HierarchyADOsState(rho, ados, ado_soln)
+
+        result.add(0.1, ado_state)
+
+        assert result.expect[0] == [e_op_value]
+        assert result.e_data[0] == [e_op_value]
+
+    def test_store_state(self):
+        options = SolverResultsOptions()
+        result = HEOMResult(e_ops=[], options=options)
+
+        ados = self.mk_ados([2, 3], max_depth=2)
+        rho, ado_soln = self.mk_rho_and_soln(ados, [[2], [2]])
+        ado_state = HierarchyADOsState(rho, ados, ado_soln)
+
+        result.add(0.1, ado_state)
+
+        assert result.times == [0.1]
+        assert result.states == [rho]
+        assert result.final_state is rho
+
+    def test_store_ados(self):
+        options = SolverResultsOptions(store_ados=True)
+        result = HEOMResult(e_ops=[], options=options)
+
+        ados = self.mk_ados([2, 3], max_depth=2)
+        rho, ado_soln = self.mk_rho_and_soln(ados, [[2], [2]])
+        ado_state = HierarchyADOsState(rho, ados, ado_soln)
+
+        result.add(0.1, ado_state)
+        assert result.times == [0.1]
+        assert result.states == [rho]
+        assert result.final_state is rho
+        assert result.ado_states == [ado_state]
+        assert result.final_ado_state is ado_state
 
 
 class Test_GatherHEOMRHS:
@@ -918,10 +1132,13 @@ class Test_GatherHEOMRHS:
         for i in range(3):
             for j in range(3):
                 base = 10 * (j * 2) + (i * 2)
-                block_op = csr_matrix(np.array([
-                    [base, base + 10],
-                    [base + 1, base + 11],
-                ], dtype=np.complex128))
+                block_op = _data.to(
+                    _data.CSR,
+                    _data.create(np.array([
+                        [base, base + 10],
+                        [base + 1, base + 11],
+                    ]))
+                )
                 gather_heoms.add_op(f"o{i}", f"o{j}", block_op)
 
         op = gather_heoms.gather()
@@ -931,5 +1148,5 @@ class Test_GatherHEOMRHS:
             for j in range(2 * 3)
         ], dtype=np.complex128)
 
-        np.testing.assert_array_equal(op.toarray(), expected_op)
-        assert isinstance(op, fast_csr_matrix)
+        np.testing.assert_array_equal(op.to_array(), expected_op)
+        assert isinstance(op, _data.CSR)

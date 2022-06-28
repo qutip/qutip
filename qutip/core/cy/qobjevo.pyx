@@ -19,6 +19,7 @@ from qutip.core.data cimport Dense, Data, dense
 from qutip.core.data.expect cimport *
 from qutip.core.data.reshape cimport (column_stack_dense, column_unstack_dense)
 from qutip.core.cy.coefficient cimport Coefficient
+from qutip.core.qobj import _MATMUL_TYPE_LOOKUP
 from libc.math cimport fabs
 
 __all__ = ['QobjEvo']
@@ -185,6 +186,7 @@ cdef class QobjEvo:
         if isinstance(Q_object, QobjEvo):
             self.dims = Q_object.dims.copy()
             self.shape = Q_object.shape
+            self.type = Q_object.type
             self._shift_dt = (<QobjEvo> Q_object)._shift_dt
             self._issuper = (<QobjEvo> Q_object)._issuper
             self._isoper = (<QobjEvo> Q_object)._isoper
@@ -271,6 +273,11 @@ cdef class QobjEvo:
                 f"QobjEvo term {op!r} has dims {qobj.dims!r} and shape"
                 f" {qobj.shape!r} but previous terms had dims {self.dims!r}"
                 f" and shape {self.shape!r}."
+            )
+        elif self.type != qobj.type:
+            raise ValueError(
+                f"QobjEvo term {op!r} has type {qobj.type!r} but "
+                f"previous terms had type {self.type!r}."
             )
         elif self.superrep != qobj.superrep:
             raise ValueError(
@@ -437,9 +444,18 @@ cdef class QobjEvo:
                 raise TypeError("incompatible dimensions" +
                                  str(left.dims[1]) + ", " +
                                  str((<QobjEvo> right).dims[0]))
+
+            type_ =_MATMUL_TYPE_LOOKUP.get((left.type, right.type))
+            if type_ is None:
+                raise TypeError(
+                    "incompatible matmul types "
+                    + repr(left.type) + " and " + repr(right.type)
+                )
+
             res = right.copy()
             res.dims = [left.dims[0], right.dims[1]]
             res.shape = (left.shape[0], right.shape[1])
+            res.type = type_
             left = _ConstantElement(left)
             res.elements = [left @ element for element in res.elements]
             res._issuper = -1
@@ -455,9 +471,18 @@ cdef class QobjEvo:
                 raise TypeError("incompatible dimensions" +
                                  str(other.dims[1]) + ", " +
                                  str(self.dims[0]))
+
+            type_ =_MATMUL_TYPE_LOOKUP.get((other.type, self.type))
+            if type_ is None:
+                raise TypeError(
+                    "incompatible matmul types "
+                    + repr(other.type) + " and " + repr(self.type)
+                )
+
             res = self.copy()
             res.dims = [other.dims[0], res.dims[1]]
             res.shape = (other.shape[0], res.shape[1])
+            res.type = type_
             other = _ConstantElement(other)
             res.elements = [other @ element for element in res.elements]
             res._issuper = -1
@@ -472,8 +497,17 @@ cdef class QobjEvo:
                 raise TypeError("incompatible dimensions" +
                                 str(self.dims[1]) + ", " +
                                 str(other.dims[0]))
+
+            type_ =_MATMUL_TYPE_LOOKUP.get((self.type, other.type))
+            if type_ is None:
+                raise TypeError(
+                    "incompatible matmul types "
+                    + repr(self.type) + " and " + repr(other.type)
+                )
+
             self.dims = [self.dims[0], other.dims[1]]
             self.shape = (self.shape[0], other.shape[1])
+            self.type = type_
             self._issuper = -1
             self._isoper = -1
             if isinstance(other, Qobj):
@@ -644,6 +678,7 @@ cdef class QobjEvo:
         res.elements = [element.linear_map(op_mapping) for element in res.elements]
         res.dims = res.elements[0].qobj(0).dims
         res.shape = res.elements[0].qobj(0).shape
+        res.type = res.elements[0].qobj(0).type
         res._issuper = res.elements[0].qobj(0).issuper
         res._isoper = res.elements[0].qobj(0).isoper
         if not _skip_check:

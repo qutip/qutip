@@ -175,12 +175,18 @@ class SolverResultsOptions:
         Whether or not to store the state vectors or density matrices.
         On `None` the states will be saved if no expectation operators are
         given.
+
+    store_ados : bool {False, True}
+        Whether or not to store the HEOM ADOs. Only relevant when using
+        the HEOM solver.
     """
     options = {
         # store final state?
         "store_final_state": False,
         # store states even if expectation operators are given?
         "store_states": None,
+        # store HEOM ADOs when using the HEOMSolver
+        "store_ados": False,
     }
 
 
