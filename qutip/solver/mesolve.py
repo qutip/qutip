@@ -12,7 +12,7 @@ from ..core import stack_columns, unstack_columns
 from ..core.data import to
 from .solver_base import Solver
 from .options import known_solver
-from .sesolve import sesolve
+from .sesolve import sesolve, SeSolver
 
 
 def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
@@ -115,7 +115,7 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
     return solver.run(rho0, tlist, e_ops=e_ops)
 
 
-class MeSolver(Solver):
+class MeSolver(SeSolver):
     """
     Master equation evolution of a density matrix for a given Hamiltonian and
     set of collapse operators, or a Liouvillian.
@@ -177,7 +177,7 @@ class MeSolver(Solver):
         rhs += sum(c_op if c_op.issuper else lindblad_dissipator(c_op)
                    for c_op in c_ops)
 
-        super().__init__(rhs, options=options)
+        Solver.__init__(self, rhs, options=options)
 
     def _initialize_stats(self):
         stats = super()._initialize_stats()

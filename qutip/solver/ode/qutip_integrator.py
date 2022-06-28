@@ -92,17 +92,7 @@ class IntegratorVern7(Integrator):
 
     @options.setter
     def options(self, new_options):
-        """
-        This does not apply the new options.
-        """
-        self._options = {
-            **self._options,
-            **{
-               key: new_options[key]
-               for key in self.integrator_options.keys()
-               if key in new_options and new_options[key] is not None
-            }
-        }
+        Integrator.options.fset(self, new_options)
 
 
 class IntegratorVern9(IntegratorVern7):
@@ -173,15 +163,9 @@ class IntegratorDiag(Integrator):
 
     @options.setter
     def options(self, new_options):
-        # This does not apply the new options.
-        self._options = {
-            **self._options,
-            **{
-               key: new_options[key]
-               for key in self.integrator_options.keys()
-               if key in new_options and new_options[key] is not None
-            }
-        }
+        Integrator.options.fset(self, new_options)
+
+
 
 
 Solver.add_integrator(IntegratorVern7, 'vern7')

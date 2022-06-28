@@ -24,7 +24,7 @@ class Solver:
     options : dict
         Options for the solver
     """
-    name = "generic"
+    name = ""
 
     # State, time and Integrator of the stepper functionnality
     _integrator = None
@@ -37,7 +37,7 @@ class Solver:
         "store_final_state": False,
         "store_states": None,
         "normalize_output": "ket",
-        'method': 'adams',
+        "method": "adams",
     }
     resultclass = Result
 
@@ -230,26 +230,6 @@ class Solver:
     @property
     def options(self):
         """
-        store_final_state: bool
-            Whether or not to store the final state of the evolution in the
-            result class.
-
-        store_states": bool, None
-            Whether or not to store the state vectors or density matrices.
-            On `None` the states will be saved if no expectation operators are
-            given.
-
-        normalize_output: bool
-            Normalize output state to hide ODE numerical errors.
-
-        progress_bar: str {'text', 'enhanced', 'tqdm', ''}
-            How to present the solver progress.
-            'tqdm' uses the python module of the same name and raise an error
-            if not installed. Empty string or False will disable the bar.
-
-        progress_kwargs: dict
-            kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
-
         method: str
             Which ordinary differential equation integration method to use.
         """
@@ -352,6 +332,6 @@ class Solver:
         cls._avail_integrators[key] = integrator
 
 
-known_solver['solver'] = Solver
-known_solver['Solver'] = Solver
-known_solver['generic'] = Solver
+known_solver[""] = Solver
+known_solver["generic"] = Solver
+known_solver["solver"] = Solver

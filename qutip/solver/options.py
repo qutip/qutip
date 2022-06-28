@@ -1,5 +1,6 @@
 __all__ = ['SolverOptions']
 
+
 known_solver = {}
 
 
@@ -36,12 +37,12 @@ class SolverOptions():
 
     Parameters
     ----------
-    solver : str ["sesolve", "mesolve", "brmesolve", etc.]
+    solver : str ["sesolve", "mesolve", "brmesolve", "heomsolve", etc.]
         Solver for which this options is intended to be used with. When no
         value is passed, only options shared between most solver will be
         displayed.
     """
-    def __init__(self, solver='solver', _solver_feedback=None, **kwargs):
+    def __init__(self, solver="", _solver_feedback=None, **kwargs):
         if solver not in known_solver:
             raise ValueError(f'Unknown solver "{solver}".')
 
@@ -106,7 +107,7 @@ class SolverOptions():
         if key == 'method' and value != self['method']:
             self._set_integrator_options(value)
 
-        if key not in self.supported_keys:
+        if self.solver and key not in self.supported_keys:
             raise KeyError(f"'{key}' is not a supported options.")
         elif value is not None:
             self._options[key] = value
@@ -127,7 +128,7 @@ class SolverOptions():
         raise KeyError(f"'{key}' is not a supported options.")
 
     def __contains__(self, key):
-        return key in self.supported_keys
+        return key in self.supported_keys or key in self._options
 
     def __delitem__(self, key):
         """
@@ -141,15 +142,17 @@ class SolverOptions():
             raise KeyError(f"'{key}' is not a supported options.")
 
     def __str__(self):
-        longest_s = max(len(key) for key in self._default_solver_options)
-        longest_i = max(len(key) for key in self._default_integrator_options)
         lines = []
+
+        longest_s = max(len(key) for key in self._default_solver_options)
         lines.append(f"Options for {self.solver}:")
         for key in self._default_solver_options:
             default = "  (default)" if key not in self._options else ""
             lines.append(f"    {key:{longest_s}} : "
                          f"{self[key].__repr__():{70-longest_s}}"
                          f"{default}")
+
+        longest_i = max(len(key) for key in self._default_integrator_options)
         method = self._default_solver_options['method']
         lines.append(f"Options for {method} integrator:")
         for key in self._default_integrator_options:
@@ -157,6 +160,15 @@ class SolverOptions():
             lines.append(f"    {key:{longest_i}} : "
                          f"{self[key].__repr__():{70-longest_i}}"
                          f"{default}")
+        other_options = []
+        for key in self._options:
+            if key not in self.supported_keys:
+                other_options.append(f"    {key} : {self[key].__repr__()}")
+
+        if other_options:
+            lines.append(f"Other options:")
+            lines += other_options
+        
         return "\n".join(lines)
 
     def __repr__(self):

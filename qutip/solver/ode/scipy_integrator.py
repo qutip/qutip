@@ -184,17 +184,7 @@ class IntegratorScipyAdams(Integrator):
 
     @options.setter
     def options(self, new_options):
-        """
-        This does not apply the new options.
-        """
-        self._options = {
-            **self._options,
-            **{
-               key: new_options[key]
-               for key in self.integrator_options.keys()
-               if key in new_options and new_options[key] is not None
-            }
-        }
+        Integrator.options.fset(self, new_options)
 
 
 class IntegratorScipyBDF(IntegratorScipyAdams):
@@ -346,17 +336,8 @@ class IntegratorScipyDop853(Integrator):
 
     @options.setter
     def options(self, new_options):
-        """
-        This does not apply the new options.
-        """
-        self._options = {
-            **self._options,
-            **{
-               key: new_options[key]
-               for key in self.integrator_options.keys()
-               if key in new_options and new_options[key] is not None
-            }
-        }
+        Integrator.options.fset(self, new_options)
+
 
 class IntegratorScipylsoda(IntegratorScipyDop853):
     """
@@ -517,17 +498,7 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
 
     @options.setter
     def options(self, new_options):
-        """
-        This does not apply the new options.
-        """
-        self._options = {
-            **self._options,
-            **{
-               key: new_options[key]
-               for key in self.integrator_options.keys()
-               if key in new_options and new_options[key] is not None
-            }
-        }
+        Integrator.options.fset(self, new_options)
 
 
 Solver.add_integrator(IntegratorScipyBDF, 'bdf')

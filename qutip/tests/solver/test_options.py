@@ -8,17 +8,27 @@ def solver(request):
     return request.param
 
 
-def test_empty_SolverOptions():
-    opt = SolverOptions()
+def test_SolverOptions_Error():
+    opt = SolverOptions("sesolve")
     assert not opt     # Empty solver is false
     assert not {**opt} # Empty solver convect to empty dict
     with pytest.raises(KeyError) as error:
-        SolverOptions(bad_options=5)
+        SolverOptions("sesolve", bad_options=5)
     assert "bad_options" in str(error.value)
 
     with pytest.raises(ValueError) as error:
         SolverOptions("Not a solver")
     assert "Not a solver" in str(error.value)
+
+
+def test_empty_SolverOptions():
+    opt = SolverOptions(tensor_type=1, atol=1, dummy=True)
+    assert opt["tensor_type"] == 1
+    assert opt["atol"] == 1
+    assert opt["dummy"] is True
+    assert "dummy" in opt
+    assert "dummy" not in opt.convert('brmesolve')
+    assert opt.convert('brmesolve')["tensor_type"] == 1
 
 
 def _assert_keys(keys, **kwargs):
