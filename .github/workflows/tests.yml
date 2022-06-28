@@ -86,7 +86,7 @@ jobs:
           - case-name: Windows Latest
             os: windows-latest
             python-version: "3.10"
-            pytest-extra-options: "-k 'not (test_correlation)'"
+            pytest-extra-options: "-W ignore::ImportWarning -k 'not (test_correlation)'"
 
     steps:
       - uses: actions/checkout@v2
