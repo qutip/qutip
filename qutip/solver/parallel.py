@@ -9,13 +9,14 @@ import os
 import sys
 import time
 import threading
+from concurrent.futures import ProcessPoolExecutor
 from qutip.ui.progressbar import progess_bars
 from qutip.settings import available_cpu_count
 
 if sys.platform == 'darwin':
-    Pool = multiprocessing.get_context('fork').Pool
+    mp_context = multiprocessing.get_context('fork')
 else:
-    Pool = multiprocessing.Pool
+    mp_context = multiprocessing.get_context()
 
 
 default_map_kw = {
@@ -145,39 +146,39 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
     if task_kwargs is None:
         task_kwargs = {}
     map_kw = _read_map_kw(map_kw)
-    os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
     end_time = map_kw['timeout'] + time.time()
     job_time = map_kw['job_timeout']
 
     progress_bar = progess_bars[progress_bar]()
     progress_bar.start(len(values), **progress_bar_kwargs)
 
-    results = []
+    if sys.version_info >= (3, 7):
+        # ProcessPoolExecutor only supports mp_context from 3.7 onwards
+        ctx_kw = {"mp_context": mp_context}
+
+    os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
     try:
-        pool = Pool(processes=map_kw['num_cpus'])
+        with ProcessPoolExecutor(
+            max_workers=map_kw['num_cpus'], **ctx_kw,
+        ) as executor:
+            result_futures = []
+            for value in values:
+                future = executor.submit(
+                    task, *((value,) + task_args), **task_kwargs,
+                )
+                result_futures.append(future)
 
-        async_res = [pool.apply_async(task, (value,) + task_args, task_kwargs)
-                     for value in values]
-
-        for job in async_res:
-            remaining_time = min(end_time - time.time(), job_time)
-            result = job.get(remaining_time)
-            if reduce_func is not None:
-                reduce_func(result)
-            else:
-                results.append(result)
-            progress_bar.update()
-
-    except KeyboardInterrupt as e:
-        raise e
-
-    except multiprocessing.TimeoutError:
-        pass
-
+            results = []
+            for f in result_futures:
+                remaining_time = min(end_time - time.time(), job_time)
+                result = f.result(timeout=remaining_time)
+                if reduce_func is not None:
+                    reduce_func(result)
+                else:
+                    results.append(result)
+                progress_bar.update()
     finally:
         os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
-        pool.terminate()
-        pool.join()
 
     progress_bar.finished()
     return results
