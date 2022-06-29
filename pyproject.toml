@@ -26,6 +26,8 @@ manylinux-i686-image = "manylinux2010"
 [tool.towncrier]
 directory = "doc/changes"
 filename = "doc/changelog.rst"
+name = "QuTiP"
+package = "qutip"
 [[tool.towncrier.type]]
 directory = "deprecation"
 name = "Deprecations"
