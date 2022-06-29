@@ -155,6 +155,8 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
     if sys.version_info >= (3, 7):
         # ProcessPoolExecutor only supports mp_context from 3.7 onwards
         ctx_kw = {"mp_context": mp_context}
+    else:
+        ctx_kw = {}
 
     os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
     try:
