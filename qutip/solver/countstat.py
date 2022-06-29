@@ -9,7 +9,8 @@ import scipy.sparse as sp
 
 from itertools import product
 from ..core import (
-    sprepost, spre, operator_to_vector, identity, tensor,
+    sprepost, spre, qeye, tensor, expect, Qobj,
+    operator_to_vector, vector_to_operator
 )
 from ..core import data as _data
 from qutip import pseudo_inverse, steadystate
@@ -22,8 +23,9 @@ if settings.has_mkl:
 
 def countstat_current(L, c_ops=None, rhoss=None, J_ops=None):
     """
-    Calculate the current corresponding to a system Liouvillian ``L`` and a list of
-    current collapse operators ``c_ops`` or current superoperators ``J_ops``.
+    Calculate the current corresponding to a system Liouvillian ``L`` and a
+    list of current collapse operators ``c_ops`` or current superoperators
+    ``J_ops``.
 
     Parameters
     ----------
@@ -32,15 +34,17 @@ def countstat_current(L, c_ops=None, rhoss=None, J_ops=None):
         Qobj representing the system Liouvillian.
 
     c_ops : array / list (optional)
-        List of current collapse operators. Required if either ``rhoss`` or ``J_ops`` is not given.
+        List of current collapse operators. Required if either ``rhoss`` or
+        ``J_ops`` is not given.
 
     rhoss : :class:`qutip.Qobj` (optional)
-        The steadystate density matrix for the given system Liouvillian ``L`` and collapse operators.
-        If not given, it defaults to ``steadystate(L, c_ops)``.
+        The steadystate density matrix for the given system Liouvillian ``L``
+        and collapse operators. If not given, it defaults to
+        ``steadystate(L, c_ops)``.
 
     J_ops : array / list (optional)
-        List of current superoperators.
-        If not given, they default to ``sprepost(c, c.dag())`` for each ``c`` from ``c_ops``.
+        List of current superoperators. If not given, they default to
+        ``sprepost(c, c.dag())`` for each ``c`` from ``c_ops``.
 
     Returns
     --------
@@ -82,12 +86,15 @@ def _solve(A, V):
     return out
 
 
-def _noise_direct(L, wlist, rhoss_vec, J_ops):
+def _noise_direct(L, wlist, rhoss, J_ops):
+    J_ops = [op.data for op in J_ops]
+    rhoss_vec = operator_to_vector(rhoss).data
+
     N_j_ops = len(J_ops)
     current = np.zeros(N_j_ops)
     noise = np.zeros((N_j_ops, N_j_ops, len(wlist)))
 
-    tr_op = tensor([identity(n) for n in L.dims[0][0]])
+    tr_op = tensor([qeye(n) for n in L.dims[0][0]])
     tr_op_vec = operator_to_vector(tr_op)
 
     Pop = _data.kron(rhoss_vec, tr_op_vec.data.transpose())
@@ -125,19 +132,15 @@ def _noise_pseudoinv(L, wlist, rhoss, J_ops, sparse, method):
     N_j_ops = len(J_ops)
     current = np.zeros(N_j_ops)
     noise = np.zeros((N_j_ops, N_j_ops, len(wlist)))
-    rhoss_vec = operator_to_vector(rhoss).data
+    rhoss_vec = operator_to_vector(rhoss)
     for k, w in enumerate(wlist):
-        R = pseudo_inverse(L, rhoss=rhoss, w=w,
-                           sparse=sparse, method=method).data
+        R = pseudo_inverse(L, rhoss=rhoss, w=w, sparse=sparse, method=method)
         for i, j in product(range(N_j_ops), repeat=2):
             if i == j:
-                current[i] = _data.expect_super(J_ops[i], rhoss_vec).real
+                current[i] = J_ops[i](rhoss).tr().real
                 noise[i, j, k] = current[i]
-            op = _data.add(
-                _data.matmul(_data.matmul(J_ops[i], R), J_ops[j]),
-                _data.matmul(_data.matmul(J_ops[j], R), J_ops[i]),
-            )
-            noise[i, j, k] -= _data.expect_super(op, rhoss_vec).real
+            op = J_ops[i] @ R @ J_ops[j] + J_ops[j] @ R @ J_ops[i]
+            noise[i, j, k] -= op(rhoss).tr().real
     return current, noise
 
 
@@ -211,11 +214,9 @@ def countstat_current_noise(L, c_ops, wlist=None, rhoss=None, J_ops=None,
     if wlist is None:
         wlist = [0.]
 
-    J_ops = [op.data for op in J_ops]
-
     if sparse and method == 'direct':
-        rhoss_vec = operator_to_vector(rhoss).data
-        current, noise = _noise_direct(L, wlist, rhoss_vec, J_ops)
+        # rhoss_vec = operator_to_vector(rhoss).data
+        current, noise = _noise_direct(L, wlist, rhoss, J_ops)
     else:
         current, noise = _noise_pseudoinv(L, wlist, rhoss, J_ops,
                                           sparse, method)
