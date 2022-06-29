@@ -203,8 +203,7 @@ jobs:
           # Source: https://github.com/actions/checkout/#fetch-all-branches.
           git fetch --no-tags origin +refs/heads/${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}
           towncrier check --compare-with origin/${BASE_BRANCH}
-          echo "version = '$(cat VERSION)'" > qutip/version.py
-          towncrier build --draft
+          towncrier build --version "$(cat VERSION)" --draft
 
   finalise:
     name: Finalise coverage reporting
