@@ -396,10 +396,7 @@ class QobjEvo:
     def __init__(self, Q_object=[], args={}, copy=True,
                  tlist=None, state0=None, e_ops=[]):
         if isinstance(Q_object, QobjEvo):
-            if copy:
-                self._inplace_copy(Q_object)
-            else:
-                self.__dict__ = Q_object.__dict__
+            self._inplace_copy(Q_object)
             if args:
                 self.arguments(args)
                 for i, dargs in enumerate(self.dynamics_args):
@@ -598,7 +595,7 @@ class QobjEvo:
         for file_ in self.coeff_files:
             try:
                 os.remove(file_)
-            except:
+            except Exception:
                 pass
 
     def __call__(self, t, data=False, state=None, args={}):
