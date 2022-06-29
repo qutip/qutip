@@ -203,7 +203,7 @@ jobs:
           # Source: https://github.com/actions/checkout/#fetch-all-branches.
           git fetch --no-tags origin +refs/heads/${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}
           towncrier check --compare-with origin/${BASE_BRANCH}
-          python setup.py check  # hack to generate qutip.version.
+          echo "version = '$(cat VERSION)'" > qutip/version.py
           towncrier build --draft
 
   finalise:
