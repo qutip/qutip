@@ -39,26 +39,26 @@ def test_dqd_current():
         H = eps / 2 * sz + tc * sx
         L = qutip.liouvillian(H, c_ops)
         rhoss = qutip.steadystate(L)
-        current_, noise_ = qutip.countstat_current_noise(
+        current_1, noise_1 = qutip.countstat_current_noise(
             L, [], wlist=[0, 1], rhoss=rhoss, J_ops=J_ops
         )
-        current[n] = current_[0]
-        noise[n] = noise_[0, 0, 0]
+        current[n] = current_1[0]
+        noise[n] = noise_1[0, 0, 0]
 
         current_2 = qutip.countstat_current(L, rhoss=rhoss, J_ops=J_ops)
-        assert abs(current[n] - current_2[0]) < 1e-8
+        assert abs(current_1[0] - current_2[0]) < 1e-8
 
         current_2 = qutip.countstat_current(L, c_ops, J_ops=J_ops)
-        assert abs(current[n] - current_2[0]) < 1e-8
+        assert abs(current_1[0] - current_2[0]) < 1e-8
 
         current_2 = qutip.countstat_current(L, c_ops)
-        assert abs(current[n] - current_2[0]) < 1e-8
+        assert abs(current_1[0] - current_2[0]) < 1e-8
 
         current_3, noise_3 = qutip.countstat_current_noise(
             L, c_ops, wlist=[0, 1], sparse=False
         )
-        assert abs(current_[0] - current_3[0]) < 1e-6
-        np.testing.assert_allclose(noise_[0, 0, :], noise_3[0, 0, :],
+        assert abs(current_1[0] - current_3[0]) < 1e-6
+        np.testing.assert_allclose(noise_1[0, 0, :], noise_3[0, 0, :],
                                    atol=1e-6)
 
     current_target = (
