@@ -9,12 +9,14 @@ import os
 import sys
 import time
 import threading
-from concurrent.futures import ProcessPoolExecutor
+import concurrent.futures
 from qutip.ui.progressbar import progess_bars
 from qutip.settings import available_cpu_count
 
 if sys.platform == 'darwin':
     mp_context = multiprocessing.get_context('fork')
+elif sys.platform == 'linux':
+    mp_context = multiprocessing.get_context('forkserver')
 else:
     mp_context = multiprocessing.get_context()
 
@@ -152,6 +154,18 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
     progress_bar = progess_bars[progress_bar]()
     progress_bar.start(len(values), **progress_bar_kwargs)
 
+    if reduce_func is not None:
+        results = None
+        result_func = lambda i, value: reduce_func(value)
+    else:
+        results = [None] * len(values)
+        result_func = lambda i, value: results.__setitem__(i, value)
+
+    def _done_callback(future):
+        if not future.cancelled():
+            result_func(future._i, future.result())
+        progress_bar.update()
+
     if sys.version_info >= (3, 7):
         # ProcessPoolExecutor only supports mp_context from 3.7 onwards
         ctx_kw = {"mp_context": mp_context}
@@ -160,25 +174,44 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
 
     os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
     try:
-        with ProcessPoolExecutor(
+        with concurrent.futures.ProcessPoolExecutor(
             max_workers=map_kw['num_cpus'], **ctx_kw,
         ) as executor:
-            result_futures = []
-            for value in values:
-                future = executor.submit(
-                    task, *((value,) + task_args), **task_kwargs,
-                )
-                result_futures.append(future)
+            waiting = set()
+            i = 0
+            while i < len(values):
+                # feed values to the executor, ensuring that there is at
+                # most one task per worker at any moment in time so that
+                # we can shutdown without waiting for greater than the time
+                # taken by the longest task
+                if len(waiting) >= map_kw['num_cpus']:
+                    # no space left, wait for a task to complete or
+                    # the time to run out
+                    timeout = max(0, end_time - time.time())
+                    _done, waiting = concurrent.futures.wait(
+                        waiting,
+                        timeout=timeout,
+                        return_when=concurrent.futures.FIRST_COMPLETED,
+                    )
+                if time.time() >= end_time:
+                    # no time left, exit the loop
+                    break
+                while len(waiting) < map_kw['num_cpus'] and i < len(values):
+                    # space and time available, add tasks
+                    value = values[i]
+                    future = executor.submit(
+                        task, *((value,) + task_args), **task_kwargs,
+                    )
+                    # small hack to avoid add_done_callback not supporting
+                    # extra arguments and closures inside loops retaining
+                    # a reference not a value:
+                    future._i = i
+                    future.add_done_callback(_done_callback)
+                    waiting.add(future)
+                    i += 1
 
-            results = []
-            for f in result_futures:
-                remaining_time = min(end_time - time.time(), job_time)
-                result = f.result(timeout=remaining_time)
-                if reduce_func is not None:
-                    reduce_func(result)
-                else:
-                    results.append(result)
-                progress_bar.update()
+            timeout = max(0, end_time - time.time())
+            concurrent.futures.wait(waiting, timeout=timeout)
     finally:
         os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
 
