@@ -16,7 +16,9 @@ from qutip.settings import available_cpu_count
 if sys.platform == 'darwin':
     mp_context = multiprocessing.get_context('fork')
 elif sys.platform == 'linux':
-    mp_context = multiprocessing.get_context('forkserver')
+    # forkserver would handle threads better, but is much slower at starting
+    # the executor and spawning tasks
+    mp_context = multiprocessing.get_context('fork')
 else:
     mp_context = multiprocessing.get_context()
 
