@@ -123,7 +123,8 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
         The optional additional keyword argument to the ``task`` function.
     reduce_func : func (optional)
         If provided, it will be called with the output of each tasks instead of
-        storing a them in a list.
+        storing a them in a list. Note that the order in which results are
+        passed to ``reduce_func`` is not defined.
     progress_bar : string
         Progress bar options's string for showing progress.
     progress_bar_kwargs : dict
