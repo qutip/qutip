@@ -88,7 +88,7 @@ Cython will detect and compile only the files that have been changed, so this co
 .. note::
 
     QuTiP follows `NEP29`_ when selecting the supported version of its dependencies.
-    To see which versions are planned to be supported in future release, please refer to the :ref:`release roadmap`.
+    To see which versions are planned to be supported in the next release, please refer to the :ref:`release roadmap`.
     These coincide with the versions employed for testing in continuous integration.
 
     In the event of a feature requiring a version upgrade of python or a dependency, it will be considered appropriately in the pull request.
