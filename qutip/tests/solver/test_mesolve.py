@@ -8,8 +8,10 @@ from qutip.solver.options import SolverOptions
 import pickle
 import pytest
 
-all_ode_method = MeSolver.avail_integrators().keys()
-
+all_ode_method = [
+    method for method, integrator in MeSolver.avail_integrators().items()
+    if integrator.support_time_dependant
+]
 
 def fidelitycheck(out1, out2, rho0vec):
     fid = np.zeros(len(out1.states))
@@ -192,14 +194,41 @@ class TestMESolveDecay:
         fid = fidelitycheck(out1, out2, rho0vec)
         assert fid == pytest.approx(1., abs=me_error)
 
+    @pytest.mark.parametrize(['state_type'], [
+        pytest.param("ket", id="ket"),
+        pytest.param("dm", id="dm"),
+        pytest.param("unitary", id="unitary"),
+    ])
+    def test_mesolve_normalization(self, state_type):
+        # non-hermitean H causes state to evolve non-unitarily
+        H = qutip.Qobj([[1, -0.1j], [-0.1j, 1]])
+        H = qutip.sprepost(H, H) # ensure use of MeSolve
+        psi0 = qutip.basis(2, 0)
+        options = SolverOptions(normalize_output=True, progress_bar=None)
+
+        if state_type in {"ket", "dm"}:
+            if state_type == "dm":
+                psi0 = qutip.ket2dm(psi0)
+            output = mesolve(H, psi0, self.tlist, e_ops=[], options=options)
+            norms = [state.norm() for state in output.states]
+            np.testing.assert_allclose(
+                norms, [1.0 for _ in self.tlist], atol=1e-15,
+            )
+        else:
+            # evolution of unitaries should not be normalized
+            U = qutip.sprepost(qutip.qeye(2), qutip.qeye(2))
+            output = mesolve(H, U, self.tlist, e_ops=[], options=options)
+            norms = [state.norm() for state in output.states]
+            assert all(norm > 4 for norm in norms[1:])
+
     def test_mesolver_pickling(self):
         options = SolverOptions(progress_bar=None)
         solver_obj = MeSolver(self.ada, c_ops=[self.a], options=options)
-        copy = pickle.loads(pickle.dumps(solver_obj))
+        solver_copy = pickle.loads(pickle.dumps(solver_obj))
         e1 = solver_obj.run(qutip.basis(self.N, 9), [0, 1, 2, 3],
-                            e_ops=[self.ada]).expect
-        e2 = solver_obj.run(qutip.basis(self.N, 9), [0, 1, 2, 3],
-                            e_ops=[self.ada]).expect
+                            e_ops=[self.ada]).expect[0]
+        e2 = solver_copy.run(qutip.basis(self.N, 9), [0, 1, 2, 3],
+                            e_ops=[self.ada]).expect[0]
         np.testing.assert_allclose(e1, e2)
 
     @pytest.mark.parametrize('method',
@@ -546,7 +575,7 @@ class TestMESolveStepFuncCoeff:
         tlist = np.array([0, np.pi/2])
         options = SolverOptions(method=method, nsteps=1e5, rtol=1e-7)
         qu = qutip.QobjEvo([[qutip.sigmax(), self.python_coeff]],
-                     tlist=tlist, args={"_step_func_coeff": 1})
+                     tlist=tlist, order=0)
         result = mesolve(qu, rho0=rho0, tlist=tlist, options=options)
         fid = qutip.fidelity(result.states[-1], qutip.sigmax()*rho0)
         assert fid == pytest.approx(1)
@@ -625,7 +654,7 @@ def test_num_collapse_set():
         res = mesolve(H, psi, ts, c_ops=c_ops)
         if not isinstance(c_ops, list):
             c_ops = [c_ops]
-        assert res.num_collapse == len(c_ops)
+        assert res.stats["num_collapse"] == len(c_ops)
 
 
 def test_mesolve_bad_H():

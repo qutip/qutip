@@ -1,7 +1,28 @@
-from qutip.settings import settings
 
 
-def optionsclass(name, parent=settings):
+class AllOptions:
+    """
+    Class that serve as the parent of all other options class.
+    """
+    # Temporary patch to make changes in solver's options minimal.
+    # TODO: Follow up PR based on #1812 should replace this.
+    def __init__(self):
+        self._isDefault = True
+        self._children = []
+        self._fullname = "qutip.settings"
+        self._defaultInstance = self
+
+    def _all_children(self):
+        optcls = []
+        for child in self._children:
+            optcls += child._all_children()
+        return optcls
+
+
+alloptions = AllOptions()
+
+
+def optionsclass(name, parent=alloptions):
     """
     Use as a decorator to register the options class to `qutip.settings`.
     The default will be in added to qutip.setting.[parent].name.

@@ -1,36 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
 import pytest
 import collections
 import functools
@@ -169,15 +136,26 @@ def test_equivalent_to_matrix_element(hermitian, op_type, state_type):
 ])
 def test_compatibility_with_solver(solve):
     e_ops = [getattr(qutip, 'sigma'+x)() for x in 'xyzmp']
+    e_ops += [lambda t, psi: np.sin(t)]
     h = qutip.sigmax()
     state = qutip.basis(2, 0)
     times = np.linspace(0, 10, 101)
     options = qutip.SolverOptions(store_states=True)
     result = solve(h, state, times, e_ops=e_ops, options=options)
     direct, states = result.expect, result.states
-    indirect = qutip.expect(e_ops, states)
-    assert len(direct) == len(indirect)
+    indirect = qutip.expect(e_ops[:-1], states)
+    # check measurement operators based on quantum objects
+    assert len(direct)-1 == len(indirect)
     for direct_, indirect_ in zip(direct, indirect):
+        assert len(direct_) == len(indirect_)
+        assert isinstance(direct_, np.ndarray)
+        assert isinstance(indirect_, np.ndarray)
+        assert direct_.dtype == indirect_.dtype
+        np.testing.assert_allclose(direct_, indirect_, atol=1e-12)
+        # test measurement operators based on lambda functions
+        direct_ = direct[-1]
+        # by design, lambda measurements are of complex type
+        indirect_ = np.sin(times, dtype=complex)
         assert len(direct_) == len(indirect_)
         assert isinstance(direct_, np.ndarray)
         assert isinstance(indirect_, np.ndarray)
@@ -200,4 +178,3 @@ def test_no_real_attribute(monkeypatch):
 
     sz = qutip.sigmaz() # the choice of the matrix does not matter
     assert "object without .real" == qutip.expect(sz, sz)
-

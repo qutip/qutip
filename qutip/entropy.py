@@ -1,42 +1,12 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
 __all__ = ['entropy_vn', 'entropy_linear', 'entropy_mutual', 'negativity',
-           'concurrence', 'entropy_conditional', 'entangling_power']
+           'concurrence', 'entropy_conditional', 'entangling_power',
+           'entropy_relative']
 
-from numpy import e, real, sort, sqrt
+from numpy import conj, e, inf, imag, inner, real, sort, sqrt
 from numpy.lib.scimath import log, log2
-from . import ptrace, ket2dm, tensor, sigmay, partial_transpose
+from . import (ptrace, ket2dm, tensor, sigmay, partial_transpose,
+               expand_operator)
+from .core import data as _data
 
 
 def entropy_vn(rho, base=e, sparse=False):
@@ -120,7 +90,7 @@ def concurrence(rho):
     References
     ----------
 
-    .. [1] http://en.wikipedia.org/wiki/Concurrence_(quantum_computing)
+    .. [1] https://en.wikipedia.org/wiki/Concurrence_(quantum_computing)
 
     """
     if rho.isket and rho.dims != [[2, 2], [1, 1]]:
@@ -218,45 +188,100 @@ def entropy_mutual(rho, selA, selB, base=e, sparse=False):
     return out
 
 
-def _entropy_relative(rho, sigma, base=e, sparse=False):
+def entropy_relative(rho, sigma, base=e, sparse=False, tol=1e-12):
     """
-    ****NEEDS TO BE WORKED ON****
-
     Calculates the relative entropy S(rho||sigma) between two density
     matrices.
 
     Parameters
     ----------
-    rho : qobj
-        First density matrix.
-    sigma : qobj
-        Second density matrix.
+    rho : :class:`qutip.Qobj`
+        First density matrix (or ket which will be converted to a density
+        matrix).
+    sigma : :class:`qutip.Qobj`
+        Second density matrix (or ket which will be converted to a density
+        matrix).
     base : {e,2}
-        Base of logarithm.
+        Base of logarithm. Defaults to e.
+    sparse : bool
+        Flag to use sparse solver when determining the eigenvectors
+        of the density matrices. Defaults to False.
+    tol : float
+        Tolerance to use to detect 0 eigenvalues or dot producted between
+        eigenvectors. Defaults to 1e-12.
 
     Returns
     -------
     rel_ent : float
-        Value of relative entropy.
+        Value of relative entropy. Guaranteed to be greater than zero
+        and should equal zero only when rho and sigma are identical.
 
+    Examples
+    --------
+
+    First we define two density matrices:
+
+    >>> rho = qutip.ket2dm(qutip.ket("00"))
+    >>> sigma = rho + qutip.ket2dm(qutip.ket("01"))
+    >>> sigma = sigma.unit()
+
+    Then we calculate their relative entropy using base 2 (i.e. ``log2``)
+    and base e (i.e. ``log``).
+
+    >>> qutip.entropy_relative(rho, sigma, base=2)
+    1.0
+    >>> qutip.entropy_relative(rho, sigma)
+    0.6931471805599453
+
+    References
+    ----------
+
+    See Nielsen & Chuang, "Quantum Computation and Quantum Information",
+    Section 11.3.1, pg. 511 for a detailed explanation of quantum relative
+    entropy.
     """
-    if rho.type != 'oper' or sigma.type != 'oper':
-        raise TypeError("Inputs must be density matrices..")
-    # sigma terms
-    svals = sigma.eigenenergies(sparse=sparse)
-    snzvals = svals[svals != 0]
+    if rho.isket:
+        rho = ket2dm(rho)
+    if sigma.isket:
+        sigma = ket2dm(sigma)
+    if not rho.isoper or not sigma.isoper:
+        raise TypeError("Inputs must be density matrices.")
+    if rho.dims != sigma.dims:
+        raise ValueError("Inputs must have the same shape and dims.")
     if base == 2:
-        slogvals = log2(snzvals)
+        log_base = log2
     elif base == e:
-        slogvals = log(snzvals)
+        log_base = log
     else:
         raise ValueError("Base must be 2 or e.")
-    # rho terms
-    rvals = rho.eigenenergies(sparse=sparse)
-    rnzvals = rvals[rvals != 0]
-    # calculate tr(rho*log sigma)
-    rel_trace = float(real(sum(rnzvals * slogvals)))
-    return -entropy_vn(rho, base, sparse) - rel_trace
+    # S(rho || sigma) = sum_i(p_i log p_i) - sum_ij(p_i P_ij log q_i)
+    #
+    # S is +inf if the kernel of sigma (i.e. svecs[svals == 0]) has non-trivial
+    # intersection with the support of rho (i.e. rvecs[rvals != 0]).
+    rvals, rvecs = _data.eigs(rho.data, rho.isherm, True)
+    rvecs = rvecs.to_array().T
+    if any(abs(imag(rvals)) >= tol):
+        raise ValueError("Input rho has non-real eigenvalues.")
+    rvals = real(rvals)
+    svals, svecs = _data.eigs(sigma.data, sigma.isherm, True)
+    svecs = svecs.to_array().T
+    if any(abs(imag(svals)) >= tol):
+        raise ValueError("Input sigma has non-real eigenvalues.")
+    svals = real(svals)
+    # Calculate inner products of eigenvectors and return +inf if kernel
+    # of sigma overlaps with support of rho.
+    P = abs(inner(rvecs, conj(svecs))) ** 2
+    if (rvals >= tol) @ (P >= tol) @ (svals < tol):
+        return inf
+    # Avoid -inf from log(0) -- these terms will be multiplied by zero later
+    # anyway
+    svals[abs(svals) < tol] = 1
+    nzrvals = rvals[abs(rvals) >= tol]
+    # Calculate S
+    S = nzrvals @ log_base(nzrvals) - rvals @ P @ log_base(svals)
+    # the relative entropy is guaranteed to be >= 0, so we clamp the
+    # calculated value to 0 to avoid small violations of the lower bound.
+    return max(0, S)
 
 
 def entropy_conditional(rho, selB, base=e, sparse=False):
@@ -319,8 +344,7 @@ def participation_ratio(rho):
 def entangling_power(U):
     """
     Calculate the entangling power of a two-qubit gate U, which
-    is zero of nonentangling gates and 1 and 2/9 for maximally
-    entangling gates.
+    is zero of nonentangling gates and 2/9 for maximally entangling gates.
 
     Parameters
     ----------
@@ -330,7 +354,7 @@ def entangling_power(U):
     Returns
     -------
     ep : float
-        The entanglement power of U (real number between 0 and 1)
+        The entanglement power of U (real number between 0 and 2/9)
 
     References:
 
@@ -343,10 +367,10 @@ def entangling_power(U):
     if U.dims != [[2, 2], [2, 2]]:
         raise Exception("U must be a two-qubit gate.")
 
-    from qutip.qip.operations.gates import swap
-    a = (tensor(U, U).dag() * swap(N=4, targets=[1, 3]) *
-         tensor(U, U) * swap(N=4, targets=[1, 3]))
-    b = (tensor(swap() * U, swap() * U).dag() * swap(N=4, targets=[1, 3]) *
-         tensor(swap() * U, swap() * U) * swap(N=4, targets=[1, 3]))
+    from qutip.core.gates import swap
+    swap13 =  expand_operator(swap(), [1, 3], [2, 2, 2, 2])
+    a = tensor(U, U).dag() * swap13 * tensor(U, U) * swap13
+    Uswap = swap() * U
+    b = tensor(Uswap, Uswap).dag() * swap13 * tensor(Uswap, Uswap) * swap13
 
     return 5.0/9 - 1.0/36 * (a.tr() + b.tr()).real

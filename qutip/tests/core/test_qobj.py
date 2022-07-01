@@ -1,36 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
 import numbers
 import operator
 import pytest
@@ -105,7 +72,7 @@ def test_QobjCopyArgument(original_data, copy):
         # we get its data as ndarray.
         qobj_data = qobj_data.as_ndarray()
 
-        # We look at the memory and see if it is shared or not to asses wether 
+        # We look at the memory and see if it is shared or not to asses wether
         # copy argument worked or not.
         assert np.shares_memory(qobj_data, original_data) != copy
 
@@ -219,7 +186,7 @@ def test_QobjUnitaryOper():
     assert_unitarity(Sx*1, True)
     # Chech that if qobj is _not_ unitary, operation by scalar set it to `None`
     # We do not know if it is unitary until we check the whole matrix again.
-    assert (qutip.sigmam()*4)._isunitary == None  # Non unitary 
+    assert (qutip.sigmam()*4)._isunitary == None  # Non unitary
     # This may be removed in the future as if scalar has abs value of 1 and
     # matrix is not unitary, output wont be unitary.
     assert (qutip.sigmam()*1)._isunitary == None
@@ -1114,3 +1081,46 @@ def test_contract(expanded, contracted, inplace):
     assert out.dims == contracted
     assert out.shape == qobj.shape
     assert np.all(out.full() == qobj.full())
+
+
+@pytest.mark.parametrize(["shape"], [
+    pytest.param((5, 1), id='ket'),
+    pytest.param((5, 2), id='tall'),
+    pytest.param((1, 5), id='bra'),
+    pytest.param((2, 5), id='wide'),
+    pytest.param((3, 3), id='oper'),
+])
+def test_sum_zero(shape):
+    data = np.random.rand(*shape) + 1j*np.random.rand(*shape)
+    qobj = qutip.Qobj(data)
+    assert qobj + 0 == qobj
+    assert qobj - 0 == qobj
+    assert 0 + qobj == qobj
+    assert 0 - qobj == -qobj
+
+
+@pytest.mark.parametrize(["shape"], [
+    pytest.param((5, 1), id='ket'),
+    pytest.param((5, 2), id='tall'),
+    pytest.param((1, 5), id='bra'),
+    pytest.param((2, 5), id='wide'),
+    pytest.param((3, 3), id='oper'),
+])
+def test_sum_buildin(shape):
+    data = np.random.rand(*shape) + 1j*np.random.rand(*shape)
+    qobj = qutip.Qobj(data)
+    assert sum([qobj, 2 * qobj, -qobj]) == 2 * qobj
+
+
+def test_groundstate():
+    eigenvals = np.sort(np.random.rand(10))
+    eigenvals[1:] += 0.1  # Ensure no degenerate groundstate
+    qobj = qutip.rand_herm(eigenvals)
+    groundenergy, groundstate = qobj.groundstate()
+    assert groundenergy == pytest.approx(eigenvals[0])
+    assert qutip.expect(qobj, groundstate) == pytest.approx(eigenvals[0])
+    assert groundstate.overlap(groundstate) == pytest.approx(1)
+
+    with pytest.warns(UserWarning) as warning:
+        qutip.qeye(5).groundstate()
+    assert "degenerate" in warning[0].message.args[0]

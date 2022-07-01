@@ -1,41 +1,9 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
+import operator
+
 import pytest
 from qutip import *
 import numpy as np
 from numpy.testing import assert_allclose
-from functools import partial
-from types import FunctionType, BuiltinFunctionType
 
 from qutip.core import data as _data
 
@@ -138,6 +106,9 @@ def _assert_qobjevo_equivalent(obj1, obj2, tol=1e-8):
 
 
 def _assert_qobj_almost_eq(obj1, obj2, tol=1e-10):
+    assert obj1.dims == obj2.dims
+    assert obj1.shape == obj2.shape
+    assert obj1.type == obj2.type
     assert _data.iszero((obj1 - obj2).data, tol)
 
 
@@ -192,6 +163,23 @@ def test_binopt(all_qevo, other_qevo, bin_op):
         as_qevo = bin_op(obj1, obj2)(t)
         as_qobj = bin_op(obj1(t), obj2(t))
         _assert_qobj_almost_eq(as_qevo, as_qobj)
+
+
+@pytest.mark.parametrize('bin_op', [
+    pytest.param(operator.iadd, id="add"),
+    pytest.param(operator.isub, id="sub"),
+    pytest.param(operator.imul, id="mul"),
+    pytest.param(operator.imatmul, id="matmul"),
+    pytest.param(operator.iand, id="tensor"),
+])
+def test_binopt_inplace(all_qevo, other_qevo, bin_op):
+    obj1 = all_qevo
+    obj2 = other_qevo
+    for t in TESTTIMES:
+        as_qevo = bin_op(obj1.copy(), obj2)(t)
+        as_qobj = bin_op(obj1(t).copy(), obj2(t))
+        _assert_qobj_almost_eq(as_qevo, as_qobj)
+
 
 @pytest.mark.parametrize('bin_op', [
     pytest.param(lambda a, b: a + b, id="add"),
@@ -262,11 +250,18 @@ def test_args(pseudo_qevo, args_coeff_type):
 
     for t in TESTTIMES:
         _assert_qobj_almost_eq(obj(t, args), pseudo_qevo(t, args))
+        _assert_qobj_almost_eq(obj(t, **args), pseudo_qevo(t, args))
 
     # Did it modify original args
     _assert_qobjevo_equivalent(obj, pseudo_qevo)
 
     obj.arguments(args)
+    _assert_qobjevo_different(obj, pseudo_qevo)
+    for t in TESTTIMES:
+        _assert_qobj_almost_eq(obj(t), pseudo_qevo(t, args))
+
+    args = {'w1': 4, "w2": 4}
+    obj.arguments(**args)
     _assert_qobjevo_different(obj, pseudo_qevo)
     for t in TESTTIMES:
         _assert_qobj_almost_eq(obj(t), pseudo_qevo(t, args))

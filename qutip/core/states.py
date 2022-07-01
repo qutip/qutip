@@ -1,36 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
 __all__ = ['basis', 'qutrit_basis', 'coherent', 'coherent_dm', 'fock_dm',
            'fock', 'thermal_dm', 'maximally_mixed_dm', 'ket2dm', 'projection',
            'qstate', 'ket', 'bra', 'state_number_enumerate',
@@ -46,6 +13,7 @@ import warnings
 
 import numpy as np
 import scipy.sparse as sp
+import itertools
 
 from . import data as _data
 from .qobj import Qobj
@@ -185,7 +153,7 @@ def qutrit_basis(*, dtype=_data.Dense):
 _COHERENT_METHODS = ('operator', 'analytic')
 
 
-def coherent(N, alpha, offset=0, method='operator', *, dtype=_data.Dense):
+def coherent(N, alpha, offset=0, method=None, *, dtype=_data.Dense):
     """Generates a coherent state with eigenvalue alpha.
 
     Constructed using displacement operator on vacuum state.
@@ -239,9 +207,21 @@ def coherent(N, alpha, offset=0, method='operator', *, dtype=_data.Dense):
     but would in that case give more accurate coefficients.
 
     """
-    if method == "operator" and offset == 0:
+    if offset < 0:
+        raise ValueError('Offset must be non-negative')
+
+    if method is None:
+        method = "operator" if offset == 0 else "analytic"
+
+    if method == "operator":
+        if offset != 0:
+            raise ValueError(
+                "The method 'operator' does not support offset != 0. Please"
+                " select another method or set the offset to zero."
+            )
         return (displace(N, alpha, dtype=dtype) * basis(N, 0)).to(dtype)
-    elif method == "analytic" or offset > 0:
+
+    elif method == "analytic":
         sqrtn = np.sqrt(np.arange(offset, offset+N, dtype=complex))
         sqrtn[0] = 1  # Get rid of divide by zero warning
         data = alpha / sqrtn
@@ -474,9 +454,8 @@ shape = [5, 5], type = oper, isHerm = True
             # populates diagonal terms using analytic values
             diags = (1.0 + n) ** (-1.0) * (n / (1.0 + n)) ** (i)
         else:
-            raise ValueError(
-                "'method' keyword argument must be 'operator' or 'analytic'"
-            )
+            raise ValueError("The method option can only take "
+                             "values 'operator' or 'analytic'")
         out = qdiags(diags, 0, dims=[[N], [N]], shape=(N, N), dtype=dtype)
         out._isherm = True
         return out
@@ -536,11 +515,13 @@ shape = [3, 3], type = oper, isHerm = True
     """
     if Q.isket or Q.isbra:
         return Q.proj()
-    raise TypeError("input is not a ket or bra vector.")
+    raise TypeError("Input is not a ket or bra vector.")
 
 
 def projection(N, n, m, offset=None, *, dtype=_data.CSR):
-    """The projection operator that projects state :math:`|m>` on state :math:`|n>`.
+    r"""
+    The projection operator that projects state :math:`\lvert m\rangle` on
+    state :math:`\lvert n\rangle`.
 
     Parameters
     ----------
@@ -562,16 +543,14 @@ def projection(N, n, m, offset=None, *, dtype=_data.CSR):
     -------
     oper : qobj
          Requested projection operator.
-
     """
     return basis(N, n, offset=offset, dtype=dtype) @ \
            basis(N, m, offset=offset, dtype=dtype).dag()
 
 
 def qstate(string, *, dtype=_data.Dense):
-    """
-    Creates a tensor product for a set of qubits in either the 'up' :math:`|0>`
-    or 'down' :math:`|1>` state.
+    r"""Creates a tensor product for a set of qubits in either
+    the 'up' :math:`\lvert0\rangle` or 'down' :math:`\lvert1\rangle` state.
 
     Parameters
     ----------
@@ -727,9 +706,11 @@ def bra(seq, dim=2, *, dtype=_data.Dense):
         Each element defines state of the respective particle.
         (e.g. [1,1,0,1] or a string "1101").
         For qubits it is also possible to use the following conventions:
+
         - 'g'/'e' (ground and excited state)
         - 'u'/'d' (spin up and down)
         - 'H'/'V' (horizontal and vertical polarization)
+
         Note: for dimension > 9 you need to use a list.
 
 
@@ -773,17 +754,17 @@ def bra(seq, dim=2, *, dtype=_data.Dense):
 
 def state_number_enumerate(dims, excitations=None):
     """
-    An iterator that enumerate all the state number arrays (quantum numbers on
-    the form [n1, n2, n3, ...]) for a system with dimensions given by dims.
+    An iterator that enumerates all the state number tuples (quantum numbers of
+    the form (n1, n2, n3, ...)) for a system with dimensions given by dims.
 
     Example:
 
         >>> for state in state_number_enumerate([2,2]): # doctest: +SKIP
         >>>     print(state) # doctest: +SKIP
-        [ 0  0 ]
-        [ 0  1 ]
-        [ 1  0 ]
-        [ 1  1 ]
+        ( 0  0 )
+        ( 0  1 )
+        ( 1  0 )
+        ( 1  1 )
 
     Parameters
     ----------
@@ -796,14 +777,37 @@ def state_number_enumerate(dims, excitations=None):
 
     Returns
     -------
-    state_number : list
-        Successive state number arrays that can be used in loops and other
+    state_number : tuple
+        Successive state number tuples that can be used in loops and other
         iterations, using standard state enumeration *by definition*.
 
     """
-    return (x
-            for x in itertools.product(*[range(d) for d in dims])
-            if excitations is None or sum(x) <= excitations)
+
+    if excitations is None:
+        # in this case, state numbers are a direct product
+        yield from itertools.product(*(range(d) for d in dims))
+        return
+
+    # From here on, excitations is not None
+
+    # General idea of algorithm: add excitations one by one in last mode (idx =
+    # len(dims)-1), and carry over to the next index when the limit is reached.
+    # Keep track of the number of excitations while doing so to avoid having to
+    # do explicit sums over the states.
+    state = (0,)*len(dims)
+    nexc = 0
+    while True:
+        yield state
+        idx = len(dims) - 1
+        state = state[:idx] + (state[idx]+1,)
+        nexc += 1
+        while nexc > excitations or state[idx] >= dims[idx]:
+            # remove all excitations in mode idx, add one in idx-1
+            idx -= 1
+            if idx < 0:
+                return
+            nexc -= state[idx+1] - 1
+            state = state[:idx] + (state[idx]+1, 0) + state[idx+2:]
 
 
 def state_number_index(dims, state):
@@ -831,7 +835,7 @@ def state_number_index(dims, state):
         ordering.
 
     """
-    return int(np.dot(state, np.cumprod([1] + dims[:0:-1])[::-1]))
+    return np.ravel_multi_index(state, dims)
 
 
 def state_index_number(dims, index):
@@ -854,17 +858,12 @@ def state_index_number(dims, index):
 
     Returns
     -------
-    state : list
-        The state number array corresponding to index `index` in standard
+    state : tuple
+        The state number tuple corresponding to index `index` in standard
         enumeration ordering.
 
     """
-    state = np.empty_like(dims)
-    D = np.concatenate([np.flipud(np.cumprod(np.flipud(dims[1:]))), [1]])
-    for n in range(len(dims)):
-        state[n] = index / D[n]
-        index -= state[n] * D[n]
-    return list(state)
+    return np.unravel_index(index, dims)
 
 
 def state_number_qobj(dims, state, *, dtype=_data.Dense):
@@ -904,7 +903,8 @@ shape = [8, 1], type = ket
     state : :class:`qutip.Qobj.qobj`
         The state as a :class:`qutip.Qobj.qobj` instance.
 
-
+    .. note::
+        Deprecated in QuTiP 5.0, use :func:`basis` instead.
     """
     warnings.warn("basis() is a drop-in replacement for this",
                   DeprecationWarning)
@@ -929,19 +929,16 @@ def enr_state_dictionaries(dims, excitations):
 
     Returns
     -------
-    nstates, state2idx, idx2state: integer, dict, dict
+    nstates, state2idx, idx2state: integer, dict, list
         The number of states `nstates`, a dictionary for looking up state
-        indices from a state tuple, and a dictionary for looking up state
-        state tuples from state indices.
+        indices from a state tuple, and a list containing the state tuples
+        ordered by state indices. state2idx and idx2state are reverses of
+        each other, i.e., state2idx[idx2state[idx]] = idx and
+        idx2state[state2idx[state]] = state.
     """
-    nstates = 0
-    state2idx = {}
-    idx2state = {}
-
-    for state in state_number_enumerate(dims, excitations):
-        state2idx[state] = nstates
-        idx2state[nstates] = state
-        nstates += 1
+    idx2state = list(state_number_enumerate(dims, excitations))
+    state2idx = {state: idx for idx, state in enumerate(idx2state)}
+    nstates = len(idx2state)
 
     return nstates, state2idx, idx2state
 
@@ -986,7 +983,7 @@ def enr_fock(dims, excitations, state, *, dtype=_data.Dense):
                                        (state2idx[tuple(state)], 0), 1)
     except KeyError:
         msg = (
-            "state tuple " + str(tuple(state))
+            "The state tuple " + str(tuple(state))
             + " is not in the restricted state space."
         )
         raise ValueError(msg) from None
@@ -1032,8 +1029,7 @@ def enr_thermal_dm(dims, excitations, n, *, dtype=_data.CSR):
     else:
         n = np.asarray(n)
 
-    diags = [np.prod((n / (n + 1)) ** np.array(state))
-             for idx, state in idx2state.items()]
+    diags = [np.prod((n / (n + 1)) ** np.array(state)) for state in idx2state]
     diags /= np.sum(diags)
     out = qdiags(diags, 0, dims=[dims, dims],
                  shape=(nstates, nstates), dtype=dtype)
@@ -1104,8 +1100,8 @@ def zero_ket(N, dims=None, *, dtype=_data.Dense):
 
 
 def spin_state(j, m, type='ket', *, dtype=_data.Dense):
-    """Generates the spin state |j, m>, i.e.  the eigenstate
-    of the spin-j Sz operator with eigenvalue m.
+    r"""Generates the spin state :math:`\lvert j, m\rangle`, i.e. the
+    eigenstate of the spin-j Sz operator with eigenvalue m.
 
     Parameters
     ----------
@@ -1126,7 +1122,6 @@ def spin_state(j, m, type='ket', *, dtype=_data.Dense):
     -------
     state : qobj
         Qobj quantum object for spin state
-
     """
     J = 2*j + 1
 
@@ -1137,11 +1132,11 @@ def spin_state(j, m, type='ket', *, dtype=_data.Dense):
     elif type == 'dm':
         return fock_dm(int(J), int(j - m), dtype=dtype)
     else:
-        raise ValueError(f"invalid value keyword argument type='{type}'")
+        raise ValueError(f"Invalid value keyword argument type='{type}'")
 
 
 def spin_coherent(j, theta, phi, type='ket', *, dtype=_data.Dense):
-    """Generate the coherent spin state |theta, phi>.
+    r"""Generate the coherent spin state :math:`\lvert \theta, \phi\rangle`.
 
     Parameters
     ----------
@@ -1165,10 +1160,9 @@ def spin_coherent(j, theta, phi, type='ket', *, dtype=_data.Dense):
     -------
     state : qobj
         Qobj quantum object for spin coherent state
-
     """
     if type not in ['ket', 'bra', 'dm']:
-        raise ValueError("invalid value keyword argument 'type'")
+        raise ValueError("Invalid value keyword argument 'type'")
     Sp = jmat(j, '+')
     Sm = jmat(j, '-')
     psi = (0.5 * theta * np.exp(1j * phi) * Sm -
@@ -1189,15 +1183,22 @@ _BELL_STATES = {
     '11': np.sqrt(0.5) * (basis([2, 2], [0, 1]) - basis([2, 2], [1, 0])),
 }
 
-
 def bell_state(state='00', *, dtype=_data.Dense):
-    """
-    Returns the Bell state:
+    r"""
+    Returns the selected Bell state:
 
-        |B00> = 1 / sqrt(2)*[|0>|0>+|1>|1>]
-        |B01> = 1 / sqrt(2)*[|0>|0>-|1>|1>]
-        |B10> = 1 / sqrt(2)*[|0>|1>+|1>|0>]
-        |B11> = 1 / sqrt(2)*[|0>|1>-|1>|0>]
+    .. math::
+
+        \begin{aligned}
+        \lvert B_{00}\rangle &=
+            \frac1{\sqrt2}(\lvert00\rangle+\lvert11\rangle)\\
+        \lvert B_{01}\rangle &=
+            \frac1{\sqrt2}(\lvert00\rangle-\lvert11\rangle)\\
+        \lvert B_{10}\rangle &=
+            \frac1{\sqrt2}(\lvert01\rangle+\lvert10\rangle)\\
+        \lvert B_{11}\rangle &=
+            \frac1{\sqrt2}(\lvert01\rangle-\lvert10\rangle)\\
+        \end{aligned}
 
 
     Parameters
@@ -1213,16 +1214,17 @@ def bell_state(state='00', *, dtype=_data.Dense):
     -------
     Bell_state : qobj
         Bell state
-
     """
     return _BELL_STATES[state].copy().to(dtype)
 
 
 def singlet_state(*, dtype=_data.Dense):
-    """
+    r"""
     Returns the two particle singlet-state:
 
-        |S>=1/sqrt(2)*[|0>|1>-|1>|0>]
+    .. math::
+
+        \lvert S\rangle = \frac1{\sqrt2}(\lvert01\rangle-\lvert10\rangle)
 
     that is identical to the fourth bell state.
 
@@ -1235,19 +1237,20 @@ def singlet_state(*, dtype=_data.Dense):
     Returns
     -------
     Bell_state : qobj
-        |B11> Bell state
-
+        :math:`\lvert B_{11}\rangle` Bell state
     """
     return bell_state('11').to(dtype)
 
 
 def triplet_states(*, dtype=_data.Dense):
-    """
-    Returns the two particle triplet-states:
-        |T> = |1>|1>
-            = 1 / sqrt(2)*[|0>|1> + |1>|0>]
-            = |0>|0>
-    that is identical to the fourth bell state.
+    r"""
+    Returns a list of the two particle triplet-states:
+
+    .. math::
+
+        \lvert T_1\rangle = \lvert11\rangle
+        \lvert T_2\rangle = \frac1{\sqrt2}(\lvert01\rangle + \lvert10\rangle)
+        \lvert T_3\rangle = \lvert00\rangle
 
     Parameters
     ----------
@@ -1270,8 +1273,8 @@ def triplet_states(*, dtype=_data.Dense):
 
 def w_state(N=3, *, dtype=_data.Dense):
     """
-    Returns the N-qubit W-state.
-        [ |100..0> + |010..0> + |001..0> + ... |000..1> ] / sqrt(n)
+    Returns the N-qubit W-state:
+        ``[ |100..0> + |010..0> + |001..0> + ... |000..1> ] / sqrt(n)``
 
     Parameters
     ----------
@@ -1284,7 +1287,7 @@ def w_state(N=3, *, dtype=_data.Dense):
 
     Returns
     -------
-    W : qobj
+    W : :obj:`~Qobj`
         N-qubit W-state
     """
     inds = np.zeros(N, dtype=int)
@@ -1297,8 +1300,8 @@ def w_state(N=3, *, dtype=_data.Dense):
 
 def ghz_state(N=3, *, dtype=_data.Dense):
     """
-    Returns the N-qubit GHZ-state
-        [ |00...00> + |11...11> ] / sqrt(2)
+    Returns the N-qubit GHZ-state:
+        ``[ |00...00> + |11...11> ] / sqrt(2)``
 
     Parameters
     ----------
