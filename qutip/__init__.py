@@ -33,6 +33,8 @@ else:
 from .core import *
 from .solver import *
 from .solve import *
+# Import here to avoid circular imports
+from .solver.countstat import *
 from .solver.brmesolve import *
 
 # graphics
