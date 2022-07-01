@@ -56,7 +56,7 @@ You will also need the requirements for any optional features you want to test a
 
 Refer to the main instructions for the most up-to-date version, however as of version 4.6 the requirements can be installed into a conda environment with ::
 
-   conda install setuptools wheel 'numpy>=1.16.6,<1.20' 'scipy>=1.0' 'cython>=0.29.20' packaging 'pytest>=5.2' pytest-rerunfailures
+   conda install setuptools wheel numpy scipy cython packaging pytest pytest-rerunfailures
 
 Note that ``qutip`` should *not* be installed with ``conda install``.
 
@@ -84,6 +84,18 @@ Cython will detect and compile only the files that have been changed, so this co
 
    When undertaking Cython development, the reason we use ``python setup.py develop`` instead of ``pip install -e .`` is because Cython's changed-file detection does not reliably work in the latter.
    ``pip`` tends to build in temporary virtual environments, which often makes Cython think its core library files have been updated, triggering a complete, slow rebuild of everything.
+
+.. note::
+
+    QuTiP follows `NEP29`_ when selecting the supported version of its dependencies.
+    To see which versions are planned to be supported in the next release, please refer to the :ref:`release roadmap`.
+    These coincide with the versions employed for testing in continuous integration.
+
+    In the event of a feature requiring a version upgrade of python or a dependency, it will be considered appropriately in the pull request.
+    In any case, python and dependency upgrades will only happen in mayor or minor versions of QuTiP, not in a patch.
+
+.. _NEP29: https://numpy.org/neps/nep-0029-deprecation_policy.html
+
 
 Code Style
 ----------
