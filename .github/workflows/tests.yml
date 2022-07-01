@@ -85,7 +85,7 @@ jobs:
           # error prone. See, e.g., https://github.com/qutip/qutip/issues/1202
           - case-name: Windows Latest
             os: windows-latest
-            pytest-extra-options: "-k 'not (test_correlation or test_interpolate or test_mcsolve)'"
+            pytest-extra-options: "-k 'not (test_correlation)'"
 
     steps:
       - uses: actions/checkout@v2
