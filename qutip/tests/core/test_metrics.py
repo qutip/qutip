@@ -180,11 +180,6 @@ class Test_hellinger_dist:
         assert hellinger_dist(rho_sim, sigma) == pytest.approx(dist, abs=tol)
 
 
-# TODO: resolve the Mac failures.
-@pytest.mark.skipif(
-    "Darwin" in platform.system(),
-    reason="average gate fidelity tests broken on macOS as of July 2019",
-)
 class Test_average_gate_fidelity:
     def test_identity(self, dimension):
         id = qeye(dimension)
