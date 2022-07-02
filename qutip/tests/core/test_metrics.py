@@ -180,11 +180,6 @@ class Test_hellinger_dist:
         assert hellinger_dist(rho_sim, sigma) == pytest.approx(dist, abs=tol)
 
 
-# TODO: resolve the Mac failures.
-@pytest.mark.skipif(
-    "Darwin" in platform.system(),
-    reason="average gate fidelity tests broken on macOS as of July 2019",
-)
 class Test_average_gate_fidelity:
     def test_identity(self, dimension):
         id = qeye(dimension)
@@ -203,6 +198,37 @@ class Test_average_gate_fidelity:
         U = rand_unitary_haar(dimension)
         SU = to_super(U)
         assert average_gate_fidelity(SU, target=U) == pytest.approx(1, abs=tol)
+
+    def test_average_gate_fidelity_against_legacy_implementation(self):
+        """
+        Metrics: Test that AGF coincides with pre-5.0 implementation
+        """
+        def agf_pre_50(oper, target=None):
+            kraus = to_kraus(oper)
+            d = kraus[0].shape[0]
+
+            if kraus[0].shape[1] != d:
+                return TypeError(
+                    "Average gate fidelity only implemented for square "
+                    "superoperators.")
+
+            if target is None:
+                return (
+                    (d + np.sum([np.abs(A_k.tr()) ** 2 for A_k in kraus])) /
+                    (d * d + d)
+                )
+            return (
+                (d + np.sum([
+                    np.abs((A_k * target.dag()).tr()) ** 2 for A_k in kraus
+                ])) / (d * d + d)
+            )
+
+        oper = rand_super_bcsz(16)
+        target = rand_unitary(16)
+        np.testing.assert_almost_equal(
+            average_gate_fidelity(oper, target),
+            agf_pre_50(oper, target)
+        )
 
 
 class Test_hilbert_dist:
