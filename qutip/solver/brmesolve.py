@@ -13,7 +13,7 @@ from ..core.blochredfield import bloch_redfield_tensor, SpectraCoefficient
 from ..core.cy.coefficient import InterCoefficient
 from ..core import data as _data
 from .solver_base import Solver
-from .options import known_solver, SolverOptions
+from .options import _SolverOptions
 
 
 def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
@@ -90,8 +90,42 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
         Cutoff for secular approximation. Use ``-1`` if secular approximation
         is not used when evaluating bath-coupling terms.
 
-    options : None / dict / :class:`qutip.solver.SolverOptions`
-        Options for the solver.
+    options : None / dict
+        Dictionary of options for the solver.
+
+        - store_final_state : bool
+          Whether or not to store the final state of the evolution in the
+          result class.
+        - store_states : bool, None
+          Whether or not to store the state vectors or density matrices.
+          On `None` the states will be saved if no expectation operators are
+          given.
+        - normalize_output : bool
+          Normalize output state to hide ODE numerical errors.
+        - progress_bar : str {'text', 'enhanced', 'tqdm', ''}
+          How to present the solver progress.
+          'tqdm' uses the python module of the same name and raise an error
+          if not installed. Empty string or False will disable the bar.
+        - progress_kwargs : dict
+          kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
+        - tensor_type : str ['sparse', 'dense', 'data']
+          Which data type to use when computing the brtensor.
+          With a cutoff 'sparse' is usually the most efficient.
+        - sparse_eigensolver : bool {False}
+          Whether to use the sparse eigensolver
+        - method : str ["adams", "bdf", "lsoda", "dop853", "vern9", etc.]
+          Which differential equation integration method to use.
+        - atol, rtol : float
+          Absolute and relative tolerance of the ODE integrator.
+        - nsteps :
+          Maximum number of (internally defined) steps allowed in one ``tlist``
+          step.
+        - max_step : float, 0
+          Maximum lenght of one internal step. When using pulses, it should be
+          less than half the width of the thinnest pulse.
+
+        Other options could be supported depending on the integration method,
+        see `Integrator <./classes.html#classes-ode>`_.
 
     Returns
     -------
@@ -166,6 +200,9 @@ class BRSolver(Solver):
             depending on ``t`` to one depending on ``w``.
 
         Example:
+
+        .. code-block::
+
             a_ops = [
                 (a+a.dag(), coefficient('w>0', args={'w':0})),
                 (QobjEvo([b+b.dag(), lambda t: ...]),
@@ -177,8 +214,9 @@ class BRSolver(Solver):
         Single collapse operator, or list of collapse operators, or a list
         of Lindblad dissipator. None is equivalent to an empty list.
 
-    options : None / dict / :class:`qutip.solver.SolverOptions`
-        Options for the solver
+    options : dict, optional
+        Options for the solver, see :obj:`BRSolver.options` and
+        `Integrator <./classes.html#classes-ode>`_ for a list of all options.
 
     sec_cutoff : float {0.1}
         Cutoff for secular approximation. Use ``-1`` if secular approximation
@@ -207,15 +245,19 @@ class BRSolver(Solver):
 
         self.rhs = None
         self.sec_cutoff = sec_cutoff
-        self._options = SolverOptions(
+        self._options = _SolverOptions(
+            self.solver_options,
+            self._apply_options,
             self.name,
-            _solver_feedback=self._apply_options
+            self.__class__.options.__doc__
         )
+        self._options.ode = {}
         if options is not None:
             self.options = options
 
         if not isinstance(H, (Qobj, QobjEvo)):
             raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
+        H = QobjEvo(H)
 
         c_ops = c_ops or []
         c_ops = [c_ops] if isinstance(c_ops, (Qobj, QobjEvo)) else c_ops
@@ -239,8 +281,11 @@ class BRSolver(Solver):
         self._system = H, a_ops, c_ops
         self._num_collapse = len(c_ops)
         self._num_a_ops = len(a_ops)
-        rhs = self._prepare_rhs()
-        super().__init__(rhs, options=self.options)
+        self.rhs = self._prepare_rhs()
+        self._integrator = self._get_integrator()
+        self._state_metadata = {}
+        self.stats = self._initialize_stats()
+
 
     def _initialize_stats(self):
         stats = super()._initialize_stats()
@@ -301,23 +346,7 @@ class BRSolver(Solver):
 
     @options.setter
     def options(self, new_options):
-        new_options = self._parse_options(**new_options)
-        if not new_options:
-            return  # Nothing to do
-
-        # Create options without the integrator items that are not
-        # not supported by the new integrator if changed.
-        kept_options = self._options.copy()
-        if 'method' in new_options:
-            kept_options['method'] = new_options['method']
-
-        self._options = SolverOptions(
-            self.name,
-            **{**kept_options, **new_options},
-            _solver_feedback=self._apply_options,
-        )
-
-        self._apply_options(new_options.keys())
+        Solver.options.fset(self, new_options)
 
     def _apply_options(self, keys):
         need_new_rhs = self.rhs is not None and not self.rhs.isconstant
@@ -336,10 +365,3 @@ class BRSolver(Solver):
         else:
             self._integrator.options = new_options
             self._integrator.reset(hard=True)
-
-
-known_solver['brmesolve'] = BRSolver
-known_solver['Brmesolver'] = BRSolver
-known_solver['Brsolver'] = BRSolver
-known_solver['BrSolver'] = BRSolver
-known_solver['Bloch Redfield Equation Evolution'] = BRSolver

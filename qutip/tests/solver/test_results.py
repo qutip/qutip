@@ -2,10 +2,17 @@ import numpy as np
 import pytest
 
 import qutip
-from qutip.solver import SolverOptions
 from qutip.solver.result import (
     Result, MultiTrajResult, MultiTrajResultAveraged,
 )
+
+
+def fill_options(**kwargs):
+    return {
+        "store_states": None,
+        "store_final_state": False,
+        **kwargs
+    }
 
 
 def e_op_state_by_time(t, state):
@@ -21,7 +28,7 @@ class TestResult:
         )
     ])
     def test_states(self, N, e_ops, options):
-        res = Result(e_ops, SolverOptions(**options))
+        res = Result(e_ops, fill_options(**options))
         for i in range(N):
             res.add(i, qutip.basis(N, i))
         np.testing.assert_allclose(np.array(res.times), np.arange(N))
@@ -37,7 +44,7 @@ class TestResult:
         }, id="with-eops"),
     ])
     def test_final_state_only(self, N, e_ops, options):
-        res = Result(e_ops, SolverOptions(**options))
+        res = Result(e_ops, fill_options(**options))
         for i in range(N):
             res.add(i, qutip.basis(N, i))
         np.testing.assert_allclose(np.array(res.times), np.arange(N))
@@ -72,7 +79,7 @@ class TestResult:
     def test_expect_and_e_ops(self, N, e_ops, results):
         res = Result(
             e_ops,
-            SolverOptions(
+            fill_options(
                 store_final_state=False,
                 store_states=False),
         )
@@ -102,7 +109,7 @@ class TestResult:
                 np.testing.assert_allclose(e_op_call_values, results[k])
 
     def test_add_processor(self):
-        res = Result([], SolverOptions(store_states=False))
+        res = Result([], fill_options(store_states=False))
         a = []
         b = []
         states = [{"t": 0}, {"t": 1}]
@@ -124,7 +131,7 @@ class TestResult:
     def test_repr_minimal(self):
         res = Result(
             [],
-            SolverOptions(store_final_state=False, store_states=False),
+            fill_options(store_final_state=False, store_states=False),
         )
         assert repr(res) == "\n".join([
             "<Result",
@@ -137,7 +144,7 @@ class TestResult:
     def test_repr_full(self):
         res = Result(
             [qutip.num(5), qutip.qeye(5)],
-            SolverOptions(store_states=True),
+            fill_options(store_states=True),
             solver="test-solver",
             stats={"stat-a": 1, "stat-b": 2},
         )
@@ -161,7 +168,7 @@ class TestMultiTrajResult:
         N = 10
         e_ops = [qutip.num(N), qutip.qeye(N)]
         m_res = MultiTrajResult(3)
-        opt = SolverOptions(store_states=True)
+        opt = fill_options(store_states=True)
         for _ in range(5):
             res = Result(e_ops, opt)
             res.collapse = []
@@ -188,9 +195,7 @@ class TestMultiTrajResultAveraged:
         N = 10
         e_ops = [qutip.num(N), qutip.qeye(N)]
         m_res = MultiTrajResultAveraged(3)
-        opt = SolverOptions(
-            store_final_state=True,
-        )
+        opt = fill_options(store_final_state=True,)
         for _ in range(5):
             res = Result(e_ops, opt)
             res.collapse = []

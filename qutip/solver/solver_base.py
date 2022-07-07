@@ -1,7 +1,7 @@
 __all__ = ['Solver']
 
 from .. import Qobj, QobjEvo, ket2dm
-from .options import known_solver, SolverOptions
+from .options import _SolverOptions
 from ..core import stack_columns, unstack_columns
 from .result import Result
 from .integrator import Integrator
@@ -46,15 +46,16 @@ class Solver:
             self.rhs = QobjEvo(rhs)
         else:
             TypeError("The rhs must be a QobjEvo")
-        self._options = SolverOptions(
+        self._options = _SolverOptions(
+            self.solver_options,
+            self._apply_options,
             self.name,
-            _solver_feedback=self._apply_options
+            self.__class__.options.__doc__
         )
+        self._options.ode = {}
         if options is not None:
             self.options = options
-        _time_start = time()
         self._integrator = self._get_integrator()
-        self._init_integrator_time = time() - _time_start
         self._state_metadata = {}
         self.stats = self._initialize_stats()
 
@@ -218,6 +219,7 @@ class Solver:
 
     def _get_integrator(self):
         """ Return the initialted integrator. """
+        _time_start = time()
         method = self._options["method"]
         if method in self.avail_integrators():
             integrator = self.avail_integrators()[method]
@@ -225,7 +227,9 @@ class Solver:
             integrator = method
         else:
             raise ValueError("Integrator method not supported.")
-        return integrator(self.rhs, self.options)
+        integrator_instance = integrator(self.rhs, self.options.ode)
+        self._init_integrator_time = time() - _time_start
+        return integrator_instance
 
     @property
     def options(self):
@@ -235,47 +239,77 @@ class Solver:
         """
         return self._options
 
-    def _parse_options(self, **new_options):
+    def _parse_options(self, new_options, default, old_options):
         """
         Do a first read through of the options:
-        - Raise an error for unsupported options keys.
+        - Split new options' items included in the default from those that are
+          not.
         - Replace ``None`` with the default value.
         - Remove items that are unchanged.
         """
-        method = new_options.get('method', self.options["method"])
-        default_options = SolverOptions(self.name, method=method)
-        extra_keys = new_options.keys() - default_options.supported_keys
-        if extra_keys:
-            raise KeyError(f"Options {extra_keys} are not supported.")
-        # First pass: Have ``None`` refert to the default.
-        new_options = {
-            key: (val if val is not None else default_options[key])
-            for key, val in new_options.items()
-        }
-        # Second pass: Remove options that remain unchanged.
-        new_options = {
+        included_options = {
             key: val
             for key, val in new_options.items()
-            if key in self._options and val != self._options[key]
+            if key in default
         }
-        return new_options
+        extra_options = {
+            key: val
+            for key, val in new_options.items()
+            if key not in default
+        }
+
+        # First pass: Have ``None`` refert to the default.
+        included_options = {
+            key: (val if val is not None else default[key])
+            for key, val in included_options.items()
+        }
+        # Second pass: Remove options that remain unchanged.
+        included_options = {
+            key: val
+            for key, val in included_options.items()
+            if not (key in old_options and val == old_options[key])
+        }
+        return included_options, extra_options
 
     @options.setter
     def options(self, new_options):
-        new_options = self._parse_options(**new_options)
-        if not new_options:
+        if not isinstance(new_options, dict):
+            raise TypeError("options most to be a dictionary.")
+        new_solver_options, new_options = self._parse_options(
+            new_options, self.solver_options, self.options
+        )
+        method = new_solver_options.get("method", self.options["method"])
+        integrator = self.avail_integrators()[method]
+
+        new_ode_options, extra_options = self._parse_options(
+            new_options, integrator.integrator_options, self.options.ode
+        )
+        if extra_options:
+            raise KeyError(f"Options {extra_options.keys()} are not supported")
+        if not (new_solver_options or new_ode_options):
             return  # Nothing to do
 
-        # Create options without the integrator items that are not
-        # not supported by the new integrator if changed.
-        kept_options = self._options.copy()
-        if 'method' in new_options:
-            kept_options['method'] = new_options['method']
+        old_options = self._options
 
-        self._options = SolverOptions(
+        self._options = _SolverOptions(
+            self.solver_options,
+            self._apply_options,
             self.name,
-            **{**kept_options, **new_options},
-            _solver_feedback=self._apply_options,
+            self.__class__.options.__doc__,
+            **{**old_options, **new_solver_options}
+        )
+
+        old_ode_options, _ = self._parse_options(
+            old_options.ode,
+            integrator.integrator_options,
+            integrator.integrator_options
+        )
+        self._options.ode = _SolverOptions(
+            integrator.integrator_options,
+            self._apply_options,
+            integrator.method,
+            integrator.options.__doc__,
+            **{**old_ode_options, **new_ode_options}
         )
 
         self._apply_options(new_options.keys())
@@ -330,8 +364,3 @@ class Solver:
                             " of `qutip.solver.Integrator`")
 
         cls._avail_integrators[key] = integrator
-
-
-known_solver[""] = Solver
-known_solver["generic"] = Solver
-known_solver["solver"] = Solver

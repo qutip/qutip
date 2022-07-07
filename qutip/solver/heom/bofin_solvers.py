@@ -26,7 +26,6 @@ from .bofin_baths import (
     BathExponent, DrudeLorentzBath,
 )
 from ..solver_base import Solver
-from ..options import known_solver
 from .. import Result
 
 # Load MKL spsolve if avaiable
@@ -470,7 +469,7 @@ def heomsolve(
     args : dict, optional {None}
         Change the ``args`` of the RHS for the evolution.
 
-    options : :class:`qutip.solver.SolverOptions`
+    options : None / dict
         Generic solver options.
         If set to None the default options will be used. Keyword only.
         Default: None.
@@ -533,7 +532,7 @@ class HEOMSolver(Solver):
         The maximum depth of the heirarchy (i.e. the maximum number of bath
         exponent "excitations" to retain).
 
-    options : :class:`qutip.solver.SolverOptions`
+    options : dict, optional
         Generic solver options.
         If set to None the default options will be used. Keyword only.
         Default: None.
@@ -1117,12 +1116,6 @@ class HEOMSolver(Solver):
         Solver.options.fset(self, new_options)
 
 
-known_solver['HEOMSolver'] = HEOMSolver
-known_solver['heomsolve'] = HEOMSolver
-known_solver['HeomSolver'] = HEOMSolver
-known_solver['heomsolver'] = HEOMSolver
-
-
 class HSolverDL(HEOMSolver):
     """
     A helper class for creating an :class:`HEOMSolver` that is backwards
@@ -1192,7 +1185,7 @@ class HSolverDL(HEOMSolver):
         promoted to a Liouvillian if it was a Hamiltonian). Keyword only.
         Default: False.
 
-    options : :class:`qutip.solver.SolverOptions`
+    options : dict, optional
         Generic solver options.
         If set to None the default options will be used. Keyword only.
         Default: None.

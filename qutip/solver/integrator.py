@@ -1,6 +1,5 @@
 """ `Integrator`: ODE solver wrapper to use in qutip's Solver """
 import numpy as np
-from .options import SolverOptions
 
 __all__ = ['Integrator', 'IntegratorException']
 
@@ -29,8 +28,8 @@ class Integrator:
     system: qutip.QobjEvo
         Quantum system in which states evolve.
 
-    options: dict / :class:`SolverOptions`
-        Options for the solver.
+    options: dict
+        Options for the integrator.
 
     Class Attributes
     ----------------
@@ -115,8 +114,8 @@ class Integrator:
         copy : bool [True]
             Whether to return a copy of the state or the state itself.
 
-        Return
-        ------
+        Returns
+        -------
         (t, state) : (float, qutip.Data)
             The state of the solver at ``t``.
         """
@@ -146,8 +145,8 @@ class Integrator:
         copy : bool [True]
             Whether to return a copy of the state or the state itself.
 
-        Return
-        ------
+        Returns
+        -------
         (t, state) : (float, qutip.Data)
             The state of the solver at ``t``. The returned time ``t`` can
             differ from the input time only when ``step=True``.
@@ -178,8 +177,8 @@ class Integrator:
         copy : bool (True)
             Whether to return the data stored in the Integrator or a copy.
 
-        Return
-        ------
+        Returns
+        -------
         (t, state) : (float, qutip.Data)
             The state of the solver at ``t``.
         """
@@ -194,8 +193,8 @@ class Integrator:
         tlist : *list* / *array*
             List of times to yield the state.
 
-        Yield
-        -----
+        Yields
+        ------
         (t, state) : (float, qutip.Data)
             The state of the solver at each ``t`` of tlist.
         """

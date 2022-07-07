@@ -8,7 +8,6 @@ import numpy as np
 from time import time
 from .. import Qobj, QobjEvo
 from .solver_base import Solver
-from .options import known_solver
 
 
 def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None):
@@ -37,9 +36,9 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None):
     Parameters
     ----------
     H : :class:`Qobj`, :class:`QobjEvo`, :class:`QobjEvo` compatible format.
-        System Hamiltonian as a Qobj or QobjEvo for time-dependent Hamiltonians.
-        list of [:class:`Qobj`, :class:`Coefficient`] or callable that can be
-        made into :class:`QobjEvo` are also accepted.
+        System Hamiltonian as a Qobj or QobjEvo for time-dependent
+        Hamiltonians. List of [:class:`Qobj`, :class:`Coefficient`] or callable
+        that can be made into :class:`QobjEvo` are also accepted.
 
     psi0 : :class:`qutip.qobj`
         initial state vector (ket)
@@ -57,8 +56,37 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None):
     args : None / *dictionary*
         dictionary of parameters for time-dependent Hamiltonians
 
-    options : None / dict / :class:`SolverOptions`
-        Options for the solver.
+    options : None / dict
+        Dictionary of options for the solver.
+
+        - store_final_state : bool
+          Whether or not to store the final state of the evolution in the
+          result class.
+        - store_states : bool, None
+          Whether or not to store the state vectors or density matrices.
+          On `None` the states will be saved if no expectation operators are
+          given.
+        - normalize_output : bool
+          Normalize output state to hide ODE numerical errors.
+        - progress_bar : str {'text', 'enhanced', 'tqdm', ''}
+          How to present the solver progress.
+          'tqdm' uses the python module of the same name and raise an error
+          if not installed. Empty string or False will disable the bar.
+        - progress_kwargs : dict
+          kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
+        - method : str ["adams", "bdf", "lsoda", "dop853", "vern9", etc.]
+          Which differential equation integration method to use.
+        - atol, rtol : float
+          Absolute and relative tolerance of the ODE integrator.
+        - nsteps :
+          Maximum number of (internally defined) steps allowed in one ``tlist``
+          step.
+        - max_step : float, 0
+          Maximum lenght of one internal step. When using pulses, it should be
+          less than half the width of the thinnest pulse.
+
+        Other options could be supported depending on the integration method,
+        see `Integrator <./classes.html#classes-ode>`_.
 
     Returns
     -------
@@ -83,12 +111,13 @@ class SeSolver(Solver):
     Parameters
     ----------
     H : :class:`Qobj`, :class:`QobjEvo`
-        System Hamiltonian as a Qobj or QobjEvo for time-dependent Hamiltonians.
-        list of [:class:`Qobj`, :class:`Coefficient`] or callable that can be
-        made into :class:`QobjEvo` are also accepted.
+        System Hamiltonian as a Qobj or QobjEvo for time-dependent
+        Hamiltonians. List of [:class:`Qobj`, :class:`Coefficient`] or callable
+        that can be made into :class:`QobjEvo` are also accepted.
 
-    options : None / dict / :class:`SolverOptions`
-        Options for the solver
+    options : dict, optional
+        Options for the solver, see :obj:`SeSolver.options` and
+        `Integrator <./classes.html#classes-ode>`_ for a list of all options.
 
     attributes
     ----------
@@ -155,9 +184,3 @@ class SeSolver(Solver):
     @options.setter
     def options(self, new_options):
         Solver.options.fset(self, new_options)
-
-
-known_solver['sesolve'] = SeSolver
-known_solver['Sesolver'] = SeSolver
-known_solver['SeSolver'] = SeSolver
-known_solver['Schrodinger Evolution'] = SeSolver

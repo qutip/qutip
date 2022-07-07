@@ -37,6 +37,21 @@ Distributions
     :members:
 
 
+.. _classes-solver:
+
+Solver
+------
+
+.. autoclass:: qutip.solver.sesolve.SeSolver
+    :members:
+
+.. autoclass:: qutip.solver.mesolve.MeSolver
+    :members:
+
+.. autoclass:: qutip.solver.brmesolve.BRSolver
+    :members:
+
+
 .. _classes-non_markov_heom:
 
 Non-Markovian HEOM Solver
@@ -83,6 +98,33 @@ Non-Markovian HEOM Solver
 
 .. autoclass:: qutip.solver.heom.HEOMResult
     :members:
+
+
+.. _classes-ode:
+
+Integrator
+----------
+
+.. autoclass:: qutip.solver.ode.scipy_integrator.IntegratorScipyAdams
+    :members: options
+
+.. autoclass:: qutip.solver.ode.scipy_integrator.IntegratorScipyBDF
+    :members: options
+
+.. autoclass:: qutip.solver.ode.scipy_integrator.IntegratorScipylsoda
+    :members: options
+
+.. autoclass:: qutip.solver.ode.scipy_integrator.IntegratorScipyDop853
+    :members: options
+
+.. autoclass:: qutip.solver.ode.qutip_integrator.IntegratorVern7
+    :members: options
+
+.. autoclass:: qutip.solver.ode.qutip_integrator.IntegratorVern9
+    :members: options
+
+.. autoclass:: qutip.solver.ode.qutip_integrator.IntegratorDiag
+    :members: options
 
 
 .. _classes-non_markov_mc_and_tt:

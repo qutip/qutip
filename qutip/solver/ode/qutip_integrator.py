@@ -112,7 +112,7 @@ class IntegratorDiag(Integrator):
     """
     Integrator solving the ODE by diagonalizing the system and solving
     analytically. It can only solve constant system and has a long preparation
-    time, but the integration is very fast.
+    time, but the integration is fast.
     """
     integrator_options = {}
     support_time_dependant = False
@@ -164,8 +164,6 @@ class IntegratorDiag(Integrator):
     @options.setter
     def options(self, new_options):
         Integrator.options.fset(self, new_options)
-
-
 
 
 Solver.add_integrator(IntegratorVern7, 'vern7')
