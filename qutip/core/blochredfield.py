@@ -1,9 +1,11 @@
 import os
+import inspect
 import numpy as np
 from qutip.settings import settings as qset
 
 from . import Qobj, QobjEvo, liouvillian, coefficient, sprepost
 from ._brtools import SpectraCoefficient, _EigenBasisTransform
+from .cy.coefficient import InterCoefficient, Coefficient
 from ._brtensor import _BlochRedfieldElement
 
 
@@ -93,8 +95,26 @@ def bloch_redfield_tensor(H, a_ops, c_ops=[], sec_cutoff=0.1,
             R.compress()
         evec = H_transform.as_Qobj()
         R = sprepost(evec, evec.dag()) @ R @ sprepost(evec.dag(), evec)
-        for a_op in a_ops:
-            R += brterm(H_transform, *a_op, sec_cutoff,
+        for (a_op, spectra) in a_ops:
+            a_op = QobjEvo(a_op)
+            # convert spectra to Coefficient
+            if isinstance(spectra, str):
+                spectra = coefficient(spectra, args={'w': 0})
+            elif isinstance(spectra, InterCoefficient):
+                spectra = SpectraCoefficient(spectra)
+            elif isinstance(spectra, Coefficient):
+                pass
+            elif callable(spectra):
+                sig = inspect.signature(spectra)
+                if tuple(sig.parameters.keys()) == ("w",):
+                    spectra = SpectraCoefficient(coefficient(spectra))
+                else:
+                    spectra = coefficient(spectra, args={'w': 0})
+            else:
+                raise TypeError("a_ops's spectra not known")
+
+            # add brterm
+            R += brterm(H_transform, a_op, spectra, sec_cutoff,
                         False, br_dtype=br_dtype)[0]
         return R, H_transform.as_Qobj()
 
