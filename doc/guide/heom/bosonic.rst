@@ -110,10 +110,9 @@ Now we are ready to construct a solver:
     :nofigs:
 
     from qutip.solver.heom import HEOMSolver
-    from qutip.solver import SolverOptions
 
     max_depth = 5  # maximum hierarchy depth to retain
-    options = SolverOptions(nsteps=15_000)
+    options = {"nsteps": 15_000}
 
     solver = HEOMSolver(H_sys, bath, max_depth=max_depth, options=options)
 

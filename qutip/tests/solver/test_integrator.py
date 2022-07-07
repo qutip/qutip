@@ -1,4 +1,3 @@
-from qutip.solver.options import SolverOptions
 from qutip.solver.sesolve import SeSolver
 from qutip.solver.mesolve import MeSolver
 from qutip.solver.solver_base import Solver
@@ -30,8 +29,7 @@ class TestIntegratorCte():
         return request.param
 
     def test_se_integration(self, se_method):
-        opt = SolverOptions('sesolve', method=se_method)
-        evol = SeSolver.avail_integrators()[se_method](self.se_system, opt)
+        evol = SeSolver.avail_integrators()[se_method](self.se_system, {})
         state0 = qutip.core.unstack_columns(qutip.basis(6,0).data, (2, 3))
         evol.set_state(0, state0)
         for t, state in evol.run(np.linspace(0, 2, 21)):
@@ -40,8 +38,7 @@ class TestIntegratorCte():
             assert state.shape == (2, 3)
 
     def test_me_integration(self, me_method):
-        opt = SolverOptions('mesolve', method=me_method)
-        evol = MeSolver.avail_integrators()[me_method](self.me_system, opt)
+        evol = MeSolver.avail_integrators()[me_method](self.me_system, {})
         state0 = qutip.operator_to_vector(qutip.fock_dm(2,1)).data
         evol.set_state(0, state0)
         for t in np.linspace(0, 2, 21):
@@ -51,8 +48,7 @@ class TestIntegratorCte():
                             state.to_array()[0, 0], atol=2e-5)
 
     def test_mc_integration(self, mc_method):
-        opt = SolverOptions()  # TODO: specify mcsolve when added.
-        evol = Solver.avail_integrators()[mc_method](self.se_system, opt)
+        evol = Solver.avail_integrators()[mc_method](self.se_system, {})
         state = qutip.basis(2,0).data
         evol.set_state(0, state)
         t = 0

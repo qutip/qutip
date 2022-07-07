@@ -147,9 +147,6 @@ Solver Options and Results
 .. autoclass:: qutip.solve.solver.ExpectOps
     :members:
 
-.. autoclass:: qutip.solve.solver.SolverOptions
-    :members:
-
 .. autoclass:: qutip.solve.solver.Result
     :members:
 

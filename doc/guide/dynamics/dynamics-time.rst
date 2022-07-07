@@ -370,9 +370,8 @@ When repeatedly simulating a system where only the time-dependent variables, or 
     H = [H0, [H1, 'A * exp(-(t / sig) ** 2)']]
     args = {'A': 9, 'sig': 5}
     output = mcsolve(H, psi0, times, c_ops, [a.dag()*a], args=args)
-    opts = SolverOptions()
     args = {'A': 10, 'sig': 3}
-    output = mcsolve(H, psi0, times, c_ops, [a.dag()*a], args=args, options=opts)
+    output = mcsolve(H, psi0, times, c_ops, [a.dag()*a], args=args)
 
 The second call to :func:`qutip.mcsolve` does not reorganize the data, and in the case of the string format, does not recompile the Cython code.  For the small system here, the savings in computation time is quite small, however, if you need to call the solvers many times for different parameters, this savings will obviously start to add up.
 
@@ -412,15 +411,6 @@ To set up the problem, we run the following code:
 where the last code block sets up the problem using a string-based Hamiltonian, and ``Hargs`` is a dictionary of arguments to be passed into the Hamiltonian.  In this example, we are going to use the :func:`qutip.propagator` and :func:`qutip.propagator.propagator_steadystate` to find expectation
 values for different values of :math:`\epsilon` and :math:`A` in the
 Hamiltonian :math:`H = -\frac{1}{2}\Delta\sigma_x -\frac{1}{2}\epsilon\sigma_z- \frac{1}{2}A\sin(\omega t)`.
-
-We must now tell the :func:`qutip.mesolve` function, that is called by :func:`qutip.propagator` to reuse a
-pre-generated Hamiltonian constructed using the :func:`qutip.rhs_generate` command:
-
-.. plot::
-   :context:
-
-   # opts = SolverOptions()
-   # rhs_generate(H_td, c_ops, Hargs, name='lz_func')
 
 Here, we have given the generated file a custom name ``lz_func``, however this is not necessary as a generic name will automatically be given.  Now we define the function ``task`` that is called by :func:`qutip.parallel.parfor` with the m-index parallelized in loop over the elements of ``p_mat[m,n]``:
 

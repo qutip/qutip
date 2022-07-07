@@ -37,16 +37,11 @@ from qutip.solver import (
 )
 
 
-def SolverOptions(_=None, **kwargs):
+def fill_options(_=None, **kwargs):
     return {
-        "progress_bar": "text",
-        "progress_kwargs": {"chunk_size": 10},
         "store_final_state": False,
         "store_states": None,
-        "normalize_output": "ket",
-        "method": "adams",
         "store_ados": False,
-        "state_data_type": "dense",
         **kwargs
     }
 
@@ -652,7 +647,7 @@ class TestHEOMSolver:
         H_sys = hamiltonian_to_sys(dlm.H, evo, liouvillianize)
 
         bath = BosonicBath(dlm.Q, ck_real, vk_real, ck_imag, vk_imag)
-        options = SolverOptions(nsteps=15000, store_states=True)
+        options = {"nsteps": 15000, "store_states": True}
         hsolver = HEOMSolver(H_sys, bath, 14, options=options)
 
         tlist = np.linspace(0, 10, 21)
@@ -695,7 +690,7 @@ class TestHEOMSolver:
         else:
             H_sys = dlm.H
 
-        options = SolverOptions(nsteps=15000, store_states=True)
+        options = {"nsteps": 15000, "store_states": True}
         hsolver = HEOMSolver(H_sys, bath, 14, options=options)
 
         tlist = np.linspace(0, 10, 21)
@@ -722,7 +717,7 @@ class TestHEOMSolver:
             w0=udm.w0,
         )
 
-        options = SolverOptions(nsteps=15000, store_states=True)
+        options = {"nsteps": 15000, "store_states": True}
         hsolver = HEOMSolver(udm.H, bath, 14, options=options)
 
         tlist = np.linspace(0, 10, 21)
@@ -754,10 +749,13 @@ class TestHEOMSolver:
         H_sys = hamiltonian_to_sys(dlm.H, evo, liouvillianize)
         ck_plus, vk_plus, ck_minus, vk_minus = dlm.bath_coefficients()
 
-        options = SolverOptions(
-            store_states=True, store_ados=True,
-            nsteps=15_000, rtol=1e-7, atol=1e-7,
-        )
+        options = {
+            "store_states": True,
+            "store_ados": True,
+            "nsteps": 15_000,
+            "rtol": 1e-7,
+            "atol": 1e-7,
+        }
         bath = FermionicBath(dlm.Q, ck_plus, vk_plus, ck_minus, vk_minus)
         # for a single impurity we converge with max_depth = 2
         hsolver = HEOMSolver(H_sys, bath, 2, options=options)
@@ -788,10 +786,10 @@ class TestHEOMSolver:
             gamma=0.01, W=1, T=0.025851991, lmax=10,
         )
 
-        options = SolverOptions(
-            nsteps=15_000, store_states=True, store_ados=True,
-            rtol=1e-7, atol=1e-7,
-        )
+        options = {
+            "nsteps": 15_000, "store_states": True, "store_ados": True,
+            "rtol": 1e-7, "atol": 1e-7,
+        }
         bath_l = bath_cls(
             dlm.Q, gamma=dlm.gamma, w=dlm.W, T=dlm.T, mu=dlm.theta / 2,
             Nk=dlm.lmax,
@@ -825,9 +823,9 @@ class TestHEOMSolver:
         ck_real, vk_real, ck_imag, vk_imag = dlm.bath_coefficients()
 
         bath = BosonicBath(dlm.Q, ck_real, vk_real, ck_imag, vk_imag)
-        options = SolverOptions(
-            nsteps=15_000, store_states=True, store_ados=True,
-        )
+        options = {
+            "nsteps": 15_000, "store_states": True, "store_ados": True,
+        }
         hsolver = HEOMSolver(dlm.H, bath, 6, options=options)
 
         tlist_1 = [0, 1, 2]
@@ -1019,7 +1017,7 @@ class TestHSolverDL:
         Q = sigmaz()
         initial_state = 0.5*Qobj(np.ones((2, 2)))
         projector = basis(2, 0) * basis(2, 1).dag()
-        options = SolverOptions(nsteps=15_000, store_states=True)
+        options = {"nsteps": 15_000, "store_states": True}
         hsolver = HSolverDL(H_sys, Q, coupling_strength, temperature,
                             20, 2, cut_frequency,
                             bnd_cut_approx=bnd_cut_approx,
@@ -1035,7 +1033,7 @@ class TestHSolverDL:
         ck_real, vk_real, ck_imag, vk_imag = dlm.bath_coefficients()
 
         bath = BosonicBath(dlm.Q, ck_real, vk_real, ck_imag, vk_imag)
-        options = SolverOptions(nsteps=10)
+        options = {"nsteps": 10}
         hsolver = HEOMSolver(dlm.H, bath, 14, options=options)
 
         with pytest.raises(IntegratorException) as err:
@@ -1062,13 +1060,13 @@ class TestHEOMResult:
         return rho, ado_soln
 
     def test_create_ado_states_attribute(self):
-        options = SolverOptions()
+        options = fill_options()
         result = HEOMResult(e_ops=[], options=options)
         assert not hasattr(result, "final_ado_state")
         assert not hasattr(result, "ado_states")
         assert result.store_ados is False
 
-        options = SolverOptions(store_ados=True)
+        options = fill_options(store_ados=True)
         result = HEOMResult(e_ops=[], options=options)
         assert result.final_ado_state is None
         assert result.ado_states == []
@@ -1091,7 +1089,7 @@ class TestHEOMResult:
         else:
             assert False, f"unknown e_op_type {e_op_type!r}"
 
-        options = SolverOptions()
+        options = fill_options()
         result = HEOMResult(e_ops=e_op, options=options)
 
         ados = self.mk_ados([2, 3], max_depth=2)
@@ -1105,7 +1103,7 @@ class TestHEOMResult:
         assert result.e_data[0] == [e_op_value]
 
     def test_store_state(self):
-        options = SolverOptions()
+        options = fill_options()
         result = HEOMResult(e_ops=[], options=options)
 
         ados = self.mk_ados([2, 3], max_depth=2)
@@ -1119,7 +1117,7 @@ class TestHEOMResult:
         assert result.final_state is rho
 
     def test_store_ados(self):
-        options = SolverOptions(store_ados=True)
+        options = fill_options(store_ados=True)
         result = HEOMResult(e_ops=[], options=options)
 
         ados = self.mk_ados([2, 3], max_depth=2)
