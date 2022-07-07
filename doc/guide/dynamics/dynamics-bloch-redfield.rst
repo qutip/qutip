@@ -194,7 +194,7 @@ To illustrate how to calculate the Bloch-Redfield tensor, let's consider a two-l
         return gamma1 / 2 * (w / (2 * np.pi)) * (w > 0.0)
 
 
-    R, ekets = bloch_redfield_tensor(H, [[sigmax(), ohmic_spectrum]])
+    R, H_ekets = bloch_redfield_tensor(H, [[sigmax(), ohmic_spectrum]])
 
     print(R)
 
@@ -213,7 +213,7 @@ To illustrate how to calculate the Bloch-Redfield tensor, let's consider a two-l
      [ 0.        +0.j         0.        +0.j         0.        +0.j
       -0.24514517+0.j       ]]
 
-Note that it is also possible to add Lindblad dissipation superoperators in the Bloch-Refield tensor by passing the operators via the ``c_ops`` keyword argument like you would in the :func:`qutip.mesolve` or :func:`qutip.mcsolve` functions. For convenience, the function :func:`qutip.bloch_redfield.bloch_redfield_tensor` also returns a list of eigenkets `ekets`, since they are calculated in the process of calculating the Bloch-Redfield tensor `R`, and the `ekets` are usually needed again later when transforming operators between the computational basis and the eigenbasis.
+Note that it is also possible to add Lindblad dissipation superoperators in the Bloch-Refield tensor by passing the operators via the ``c_ops`` keyword argument like you would in the :func:`qutip.mesolve` or :func:`qutip.mcsolve` functions. For convenience, the function :func:`qutip.bloch_redfield.bloch_redfield_tensor` also returns the eigenstates of `H` (`H_ekets`), since they are calculated in the process of calculating the Bloch-Redfield tensor `R`, and the `H_ekets` are usually needed again later when transforming operators between the computational basis and the eigenbasis.
 
 
 .. plot::
@@ -232,9 +232,9 @@ Note that it is also possible to add Lindblad dissipation superoperators in the 
       else: # relaxation inducing noise
         return gamma1 / 2 * (w / (2 * np.pi)) * (w > 0.0)
 
-    R, ekets = bloch_redfield_tensor(H, [[sigmax(), ohmic_spectrum]])
+    R, H_ekets = bloch_redfield_tensor(H, [[sigmax(), ohmic_spectrum]])
 
-The evolution of a wavefunction or density matrix, according to the Bloch-Redfield master equation :eq:`br-final`, can be calculated using the QuTiP function :func:`qutip.bloch_redfield.bloch_redfield_solve`. It takes five mandatory arguments: the Bloch-Redfield tensor ``R``, the list of eigenkets ``ekets``, the initial state ``psi0`` (as a ket or density matrix), a list of times ``tlist`` for which to evaluate the expectation values, and a list of operators ``e_ops`` for which to evaluate the expectation values at each time step defined by `tlist`. For example, to evaluate the expectation values of the :math:`\sigma_x`, :math:`\sigma_y`, and :math:`\sigma_z` operators for the example above, we can use the following code:
+The evolution of a wavefunction or density matrix, according to the Bloch-Redfield master equation :eq:`br-final`, can be calculated using the QuTiP function :func:`qutip.bloch_redfield.bloch_redfield_solve`. It takes five mandatory arguments: the Bloch-Redfield tensor ``R``, the list of eigenkets ``H_ekets`` of the hamiltonian, the initial state ``psi0`` (as a ket or density matrix), a list of times ``tlist`` for which to evaluate the expectation values, and a list of operators ``e_ops`` for which to evaluate the expectation values at each time step defined by `tlist`. For example, to evaluate the expectation values of the :math:`\sigma_x`, :math:`\sigma_y`, and :math:`\sigma_z` operators for the example above, we can use the following code:
 
 .. plot::
     :context:
@@ -245,7 +245,7 @@ The evolution of a wavefunction or density matrix, according to the Bloch-Redfie
 
     e_ops = [sigmax(), sigmay(), sigmaz()]
 
-    expt_list = bloch_redfield_solve(R, ekets, psi0, tlist, e_ops)
+    expt_list = bloch_redfield_solve(R, H_ekets, psi0, tlist, e_ops)
 
     sphere = Bloch()
 
