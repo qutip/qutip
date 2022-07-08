@@ -317,7 +317,7 @@ def test_bloch_redfield_tensor_spectral_string():
         c_ops=[a**2],
         fock_basis=False
     )
-    assert isinstance(R_eigs, qutip.QobjEvo)
+    assert isinstance(R_eigs, qutip.Qobj)
     assert isinstance(evecs, qutip.Qobj)
 
 def test_bloch_redfield_tensor_spectral_callable():
@@ -332,5 +332,5 @@ def test_bloch_redfield_tensor_spectral_callable():
         c_ops=[a**2],
         fock_basis=False
     )
-    assert isinstance(R_eigs, qutip.QobjEvo)
+    assert isinstance(R_eigs, qutip.Qobj)
     assert isinstance(evecs, qutip.Qobj)
