@@ -469,10 +469,47 @@ def heomsolve(
     args : dict, optional {None}
         Change the ``args`` of the RHS for the evolution.
 
-    options : None / dict
+    options : dict, optional {None}
         Generic solver options.
-        If set to None the default options will be used. Keyword only.
-        Default: None.
+
+        - store_final_state : bool
+          Whether or not to store the final state of the evolution in the
+          result class.
+        - store_states : bool, None
+          Whether or not to store the state vectors or density matrices.
+          On `None` the states will be saved if no expectation operators are
+          given.
+        - store_ados : bool {False, True}
+          Whether or not to store the HEOM ADOs.
+        - normalize_output : bool
+          Normalize output state to hide ODE numerical errors.
+        - progress_bar : str {'text', 'enhanced', 'tqdm', ''}
+          How to present the solver progress.
+          'tqdm' uses the python module of the same name and raise an error
+          if not installed. Empty string or False will disable the bar.
+        - progress_kwargs : dict
+          kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
+        - state_data_type: str {'dense'}
+          Name of the data type of the state used during the ODE evolution.
+          Use an empty string to keep the input state type. Many integrator can
+          only work with `Dense`.
+        - method : str ["adams", "bdf", "lsoda", "dop853", "vern9", etc.]
+          Which differential equation integration method to use.
+        - atol, rtol : float
+          Absolute and relative tolerance of the ODE integrator.
+        - nsteps :
+          Maximum number of (internally defined) steps allowed in one ``tlist``
+          step.
+        - max_step : float, 0
+          Maximum lenght of one internal step. When using pulses, it should be
+          less than half the width of the thinnest pulse.
+
+
+
+
+
+
+
 
     Returns
     -------
@@ -1081,7 +1118,7 @@ class HEOMSolver(Solver):
             Whether or not to store the final state of the evolution in the
             result class.
 
-        store_states": bool, None
+        store_states: bool, None
             Whether or not to store the state vectors or density matrices.
             On `None` the states will be saved if no expectation operators are
             given.
