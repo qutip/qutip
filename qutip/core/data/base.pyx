@@ -3,6 +3,7 @@
 import numpy as np
 cimport numpy as cnp
 import qutip.core.data as _data
+from qutip.settings import settings
 
 __all__ = [
     'idxint_size', 'idxint_dtype', 'Data', 'EfficiencyWarning',
@@ -84,6 +85,16 @@ cdef class Data:
 
     def __neg__(self):
         return _data.neg(self)
+
+    def __eq__(left, right):
+        if (
+            isinstance(left, Data)
+            and isinstance(right, Data)
+            and left.shape[0] == right.shape[0]
+            and left.shape[1] == right.shape[1]
+        ):
+            return _data.iszero(_data.sub(left, right), settings.core['atol'])
+        return False
 
 
 class EfficiencyWarning(Warning):

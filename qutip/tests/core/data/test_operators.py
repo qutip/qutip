@@ -2,6 +2,7 @@ import pytest
 import numpy
 import qutip
 from qutip.core import data as _data
+from qutip import settings
 
 
 @pytest.mark.parametrize('type_left', _data.to.dtypes)
@@ -69,3 +70,25 @@ def test_data_neg_operator(type_):
     numpy.testing.assert_allclose(
         (-data).to_array(), -data.to_array(), rtol=1e-15
     )
+
+
+@pytest.mark.parametrize('type_left', _data.to.dtypes)
+@pytest.mark.parametrize('type_right', _data.to.dtypes)
+def test_data_eq_operator(type_left, type_right):
+    mat = qutip.rand_dm(5)
+    noise = qutip.rand_dm(5) * settings.core["atol"] / 10
+
+    left = mat.to(type_left).data
+    right = mat.to(type_right).data
+    assert left == right
+    right = (mat + noise).to(type_right).data
+    assert left == right
+
+    right = (mat + noise * 100).to(type_right).data
+    assert left != right
+
+    right = qutip.operator_to_vector(mat).to(type_right).data
+    assert left != right
+
+    assert left != mat
+    assert left != mat.full()
