@@ -9,7 +9,7 @@ from scipy.integrate._ode import zvode
 
 from ..core import Qobj, QobjEvo
 from ..core import data as _data
-from ..parallel import parallel_map, serial_map
+from ..solver.parallel import parallel_map, serial_map
 from ._mcsolve import CyMcOde, CyMcOdeDiag
 from .sesolve import sesolve
 from .solver import SolverOptions, Result, ExpectOps, solver_safe, SolverSystem
@@ -350,9 +350,9 @@ class _MC():
             self.seed(num_traj, self.seeds)
 
         if progress_bar is None:
-            progress_bar = BaseProgressBar()
+            progress_bar = ""
         elif progress_bar is True:
-            progress_bar = TextProgressBar()
+            progress_bar = "text"
 
         # set arguments for input to monte carlo
         map_kwargs_ = {'progress_bar': progress_bar}

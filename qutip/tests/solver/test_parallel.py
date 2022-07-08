@@ -68,4 +68,4 @@ def test_map_accumulator(map, num_cpus):
     y1 = [_func1(xx) for xx in x]
 
     map(_func2, x, args, kwargs, reduce_func=y2.append, map_kw=map_kw)
-    assert ((np.array(y1) == np.array(y2)).all())
+    assert ((np.array(sorted(y1)) == np.array(sorted(y2))).all())

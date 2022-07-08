@@ -9,13 +9,18 @@ import os
 import sys
 import time
 import threading
+import concurrent.futures
 from qutip.ui.progressbar import progess_bars
 from qutip.settings import available_cpu_count
 
 if sys.platform == 'darwin':
-    Pool = multiprocessing.get_context('fork').Pool
+    mp_context = multiprocessing.get_context('fork')
+elif sys.platform == 'linux':
+    # forkserver would handle threads better, but is much slower at starting
+    # the executor and spawning tasks
+    mp_context = multiprocessing.get_context('fork')
 else:
-    Pool = multiprocessing.Pool
+    mp_context = multiprocessing.get_context()
 
 
 default_map_kw = {
@@ -120,7 +125,8 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
         The optional additional keyword argument to the ``task`` function.
     reduce_func : func (optional)
         If provided, it will be called with the output of each tasks instead of
-        storing a them in a list.
+        storing a them in a list. Note that the order in which results are
+        passed to ``reduce_func`` is not defined.
     progress_bar : string
         Progress bar options's string for showing progress.
     progress_bar_kwargs : dict
@@ -145,39 +151,72 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
     if task_kwargs is None:
         task_kwargs = {}
     map_kw = _read_map_kw(map_kw)
-    os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
     end_time = map_kw['timeout'] + time.time()
     job_time = map_kw['job_timeout']
 
     progress_bar = progess_bars[progress_bar]()
     progress_bar.start(len(values), **progress_bar_kwargs)
 
-    results = []
+    if reduce_func is not None:
+        results = None
+        result_func = lambda i, value: reduce_func(value)
+    else:
+        results = [None] * len(values)
+        result_func = lambda i, value: results.__setitem__(i, value)
+
+    def _done_callback(future):
+        if not future.cancelled():
+            result_func(future._i, future.result())
+        progress_bar.update()
+
+    if sys.version_info >= (3, 7):
+        # ProcessPoolExecutor only supports mp_context from 3.7 onwards
+        ctx_kw = {"mp_context": mp_context}
+    else:
+        ctx_kw = {}
+
+    os.environ['QUTIP_IN_PARALLEL'] = 'TRUE'
     try:
-        pool = Pool(processes=map_kw['num_cpus'])
+        with concurrent.futures.ProcessPoolExecutor(
+            max_workers=map_kw['num_cpus'], **ctx_kw,
+        ) as executor:
+            waiting = set()
+            i = 0
+            while i < len(values):
+                # feed values to the executor, ensuring that there is at
+                # most one task per worker at any moment in time so that
+                # we can shutdown without waiting for greater than the time
+                # taken by the longest task
+                if len(waiting) >= map_kw['num_cpus']:
+                    # no space left, wait for a task to complete or
+                    # the time to run out
+                    timeout = max(0, end_time - time.time())
+                    _done, waiting = concurrent.futures.wait(
+                        waiting,
+                        timeout=timeout,
+                        return_when=concurrent.futures.FIRST_COMPLETED,
+                    )
+                if time.time() >= end_time:
+                    # no time left, exit the loop
+                    break
+                while len(waiting) < map_kw['num_cpus'] and i < len(values):
+                    # space and time available, add tasks
+                    value = values[i]
+                    future = executor.submit(
+                        task, *((value,) + task_args), **task_kwargs,
+                    )
+                    # small hack to avoid add_done_callback not supporting
+                    # extra arguments and closures inside loops retaining
+                    # a reference not a value:
+                    future._i = i
+                    future.add_done_callback(_done_callback)
+                    waiting.add(future)
+                    i += 1
 
-        async_res = [pool.apply_async(task, (value,) + task_args, task_kwargs)
-                     for value in values]
-
-        for job in async_res:
-            remaining_time = min(end_time - time.time(), job_time)
-            result = job.get(remaining_time)
-            if reduce_func is not None:
-                reduce_func(result)
-            else:
-                results.append(result)
-            progress_bar.update()
-
-    except KeyboardInterrupt as e:
-        raise e
-
-    except multiprocessing.TimeoutError:
-        pass
-
+            timeout = max(0, end_time - time.time())
+            concurrent.futures.wait(waiting, timeout=timeout)
     finally:
         os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
-        pool.terminate()
-        pool.join()
 
     progress_bar.finished()
     return results
