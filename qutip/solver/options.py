@@ -3,7 +3,7 @@ __all__ = ['SolverOptions',
            'McOptions']
 
 from ..optionsclass import optionsclass
-import multiprocessing
+
 
 @optionsclass("solver")
 class SolverOptions:
@@ -25,23 +25,28 @@ class SolverOptions:
 
         qutip.settings.solver['progress_bar'] = 'enhanced'
 
-    Options
-    -------
-    progress_bar : str {'text', 'enhanced', 'tqdm', ''}
-        How to present the solver progress.
-        True will result in 'text'.
-        'tqdm' uses the python module of the same name and raise an error if
-        not installed.
-        Empty string or False will disable the bar.
+    Keys:
+    
+        normalize_output : str {"", "dm", "ket", "all", True}
+            Whether to normalize the output state to hide ODE numerical errors.
+            The values "all" and True will normalize both ket and dm states.
+            The values "ket" and "dm" will only normalize states of the
+            specified type. Leave blank for no normalization.
 
-    progress_kwargs : dict
-        kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
+        progress_bar : str {'text', 'enhanced', 'tqdm', ''}
+            How to present the solver progress.
+            True will result in 'text'.
+            'tqdm' uses the python module of the same name and raise an error
+            if not installed.
+            Empty string or False will disable the bar.
+
+        progress_kwargs : dict
+            kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
     """
     options = {
-        # (turned off for batch unitary propagator mode)
-        "progress_bar": "text",
         # Normalize output of solvers
-        # (turned off for batch unitary propagator mode)
+        "normalize_output": "ket",
+        "progress_bar": "text",
         "progress_kwargs": {"chunk_size":10},
     }
 
@@ -95,11 +100,14 @@ class SolverOdeOptions:
     tidy: bool {True}
         tidyup Hamiltonian before calculation
 
-    Operator_data_type: :class:`qutip.data.Data`, str {"input"}
-        Data type of the system, some method can overwrite it.
+    operator_data_type: str {""}
+        Data type of the operator to used during the ODE evolution, such as
+        'CSR' or 'Dense'. Use an empty string to keep the input state type.
 
-    State_data_type: :class:`qutip.data.Data`, str {qutip.data.Dense}
-        Data type of the state, most solver can only work with `Dense`.
+    state_data_type: str {'dense'}
+        Name of the data type of the state used during the ODE evolution.
+        Use an empty string to keep the input state type. Many integrator can
+        only work with `Dense`.
 
     feedback_normalize: bool
         Normalize the state before passing it to coefficient when using
@@ -127,10 +135,10 @@ class SolverOdeOptions:
         "min_step": 0,
         # tidyup Hamiltonian before calculation (default = True)
         "tidy": True,
-
-        "Operator_data_type": "input",
-
-        "State_data_type": "dense",
+        # data type to use for the operator
+        "operator_data_type": "",
+        # data type to use for the state
+        "state_data_type": "dense",
         # Normalize the states received in feedback_args
         "feedback_normalize": True,
     }
@@ -168,20 +176,17 @@ class SolverResultsOptions:
         On `None` the states will be saved if no expectation operators are
         given.
 
-    normalize_output : str {"", "ket", "all"}
-        normalize output state to hide ODE numerical errors.
-        "all" will normalize both ket and dm.
-        On "ket", only 'ket' output are normalized.
-        Leave empty for no normalization.
+    store_ados : bool {False, True}
+        Whether or not to store the HEOM ADOs. Only relevant when using
+        the HEOM solver.
     """
     options = {
         # store final state?
         "store_final_state": False,
         # store states even if expectation operators are given?
         "store_states": None,
-        # Normalize output of solvers
-        # (turned off for batch unitary propagator mode)
-        "normalize_output": "ket",
+        # store HEOM ADOs when using the HEOMSolver
+        "store_ados": False,
     }
 
 
@@ -229,8 +234,10 @@ class McOptions:
     map_options: dict
         keys:
             'num_cpus': number of cpus to use.
-            'timeout': maximum time for all trajectories. (sec)
-            'job_timeout': maximum time per trajectory. (sec)
+            'timeout': maximum time (sec) for all trajectories. ``None`` will
+                use the maximum timeout value.
+            'job_timeout': maximum time (sec) per trajectory. ``None`` will
+                use the maximum timeout value.
         Only finished trajectories will be returned when timeout is reached.
 
     mc_corr_eps : float {1e-10}
@@ -253,8 +260,8 @@ class McOptions:
         "mc_corr_eps": 1e-10,
 
         "map_options": {
-            'num_cpus': multiprocessing.cpu_count(),
-            'timeout':1e8,
-            'job_timeout':1e8
+            'num_cpus': None,
+            'timeout': None,
+            'job_timeout': None,
         },
     }

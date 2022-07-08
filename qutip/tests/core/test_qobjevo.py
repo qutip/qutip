@@ -1,41 +1,9 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
+import operator
+
 import pytest
 from qutip import *
 import numpy as np
 from numpy.testing import assert_allclose
-from functools import partial
-from types import FunctionType, BuiltinFunctionType
 
 from qutip.core import data as _data
 
@@ -60,11 +28,6 @@ class Pseudo_qevo:
         tlist = np.logspace(-3, 1, 10001)
         coeff = self.func(tlist, self.args)
         return ([self.cte, [self.qobj, coeff]], {}, tlist)
-
-    def spline(self):
-        tlist = np.linspace(0, 10, 10001)
-        coeff = Cubic_Spline(tlist[0], tlist[-1], self.func(tlist, self.args))
-        return ([self.cte, [self.qobj, coeff]], )
 
     def func_coeff(self):
         return ([self.cte, [self.qobj, self.func]], self.args)
@@ -111,7 +74,7 @@ cplx_qevo = Pseudo_qevo(
     _cplx, "exp(1j*t*w2)", args)
 
 
-@pytest.fixture(params=['func_coeff', 'string', 'spline',
+@pytest.fixture(params=['func_coeff', 'string',
                         'array', 'logarray', 'func_call'])
 def coeff_type(request):
     # all available QobjEvo types
@@ -143,6 +106,9 @@ def _assert_qobjevo_equivalent(obj1, obj2, tol=1e-8):
 
 
 def _assert_qobj_almost_eq(obj1, obj2, tol=1e-10):
+    assert obj1.dims == obj2.dims
+    assert obj1.shape == obj2.shape
+    assert obj1.type == obj2.type
     assert _data.iszero((obj1 - obj2).data, tol)
 
 
@@ -164,8 +130,7 @@ def test_call(pseudo_qevo, coeff_type):
     _assert_qobjevo_equivalent(pseudo_qevo, qevo)
 
 @pytest.mark.parametrize('coeff_type',
-                         ['func_coeff', 'string',
-                          'spline', 'array', 'logarray'])
+                         ['func_coeff', 'string', 'array', 'logarray'])
 def test_product_coeff(pseudo_qevo, coeff_type):
     # test creation of QobjEvo with Qobj * Coefficient
     # Skip pure func: QobjEvo(f(t, args) -> Qobj)
@@ -198,6 +163,23 @@ def test_binopt(all_qevo, other_qevo, bin_op):
         as_qevo = bin_op(obj1, obj2)(t)
         as_qobj = bin_op(obj1(t), obj2(t))
         _assert_qobj_almost_eq(as_qevo, as_qobj)
+
+
+@pytest.mark.parametrize('bin_op', [
+    pytest.param(operator.iadd, id="add"),
+    pytest.param(operator.isub, id="sub"),
+    pytest.param(operator.imul, id="mul"),
+    pytest.param(operator.imatmul, id="matmul"),
+    pytest.param(operator.iand, id="tensor"),
+])
+def test_binopt_inplace(all_qevo, other_qevo, bin_op):
+    obj1 = all_qevo
+    obj2 = other_qevo
+    for t in TESTTIMES:
+        as_qevo = bin_op(obj1.copy(), obj2)(t)
+        as_qobj = bin_op(obj1(t).copy(), obj2(t))
+        _assert_qobj_almost_eq(as_qevo, as_qobj)
+
 
 @pytest.mark.parametrize('bin_op', [
     pytest.param(lambda a, b: a + b, id="add"),
@@ -268,11 +250,18 @@ def test_args(pseudo_qevo, args_coeff_type):
 
     for t in TESTTIMES:
         _assert_qobj_almost_eq(obj(t, args), pseudo_qevo(t, args))
+        _assert_qobj_almost_eq(obj(t, **args), pseudo_qevo(t, args))
 
     # Did it modify original args
     _assert_qobjevo_equivalent(obj, pseudo_qevo)
 
     obj.arguments(args)
+    _assert_qobjevo_different(obj, pseudo_qevo)
+    for t in TESTTIMES:
+        _assert_qobj_almost_eq(obj(t), pseudo_qevo(t, args))
+
+    args = {'w1': 4, "w2": 4}
+    obj.arguments(**args)
     _assert_qobjevo_different(obj, pseudo_qevo)
     for t in TESTTIMES:
         _assert_qobj_almost_eq(obj(t), pseudo_qevo(t, args))
@@ -291,7 +280,7 @@ def test_copy_side_effects(all_qevo):
     _assert_qobj_almost_eq(before, after)
 
 @pytest.mark.parametrize('coeff_type',
-    ['func_coeff', 'string', 'spline', 'array', 'logarray']
+    ['func_coeff', 'string', 'array', 'logarray']
 )
 def test_tidyup(all_qevo):
     "QobjEvo tidyup"
@@ -416,7 +405,7 @@ def test_QobjEvo_step_coeff():
     # uniform t
     tlist = np.array([2, 3, 4, 5, 6, 7], dtype=float)
     qobjevo = QobjEvo([[sigmaz(), coeff1], [sigmax(), coeff2]],
-                      tlist=tlist, step_interpolation=True)
+                      tlist=tlist, order=0)
     assert qobjevo(2.0)[0,0] == coeff1[0]
     assert qobjevo(7.0)[0,0] == coeff1[5]
     assert qobjevo(5.0001)[0,0] == coeff1[3]
@@ -430,7 +419,7 @@ def test_QobjEvo_step_coeff():
     # non-uniform t
     tlist = np.array([1, 2, 4, 5, 6, 8], dtype=float)
     qobjevo = QobjEvo([[sigmaz(), coeff1], [sigmax(), coeff2]],
-        tlist=tlist, step_interpolation=True)
+        tlist=tlist, order=0)
     assert qobjevo(1.0)[0,0] == coeff1[0]
     assert qobjevo(8.0)[0,0] == coeff1[5]
     assert qobjevo(3.9999)[0,0] == coeff1[1]

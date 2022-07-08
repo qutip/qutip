@@ -5,16 +5,22 @@ cimport cython
 
 from qutip.core.data.base cimport idxint
 from qutip.core.data.csr cimport CSR
+from qutip.core.data.dense cimport Dense
 from qutip.core.data cimport csr
+import numpy
 
 __all__ = [
-    'kron', 'kron_csr',
+    'kron', 'kron_csr', 'kron_dense'
 ]
 
 
 @cython.overflowcheck(True)
-cdef cython.numeric _mul_checked(cython.numeric a, cython.numeric b):
+cdef idxint _mul_checked(idxint a, idxint b):
     return a * b
+
+
+cpdef Dense kron_dense(Dense left, Dense right):
+    return Dense(numpy.kron(left.as_ndarray(), right.as_ndarray()), copy=False)
 
 
 cpdef CSR kron_csr(CSR left, CSR right):
@@ -79,6 +85,7 @@ kron.__doc__ =\
     """
 kron.add_specialisations([
     (CSR, CSR, CSR, kron_csr),
+    (Dense, Dense, Dense, kron_dense),
 ], _defer=True)
 
 del _inspect, _Dispatcher

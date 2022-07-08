@@ -1,36 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, The QuTiP Project
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
 import itertools
 
 import numpy as np
@@ -45,7 +12,7 @@ def expected(qobj, sel):
         qobj = qobj.proj()
     sel = sorted(sel)
     dims = [[x for i, x in enumerate(qobj.dims[0]) if i in sel]]*2
-    new_shape = (np.prod(dims[0]),) * 2
+    new_shape = (np.prod(dims[0], dtype=int),) * 2
     out = qobj.full()
     before, after = 1, qobj.shape[0]
     for i, dim in enumerate(qobj.dims[0]):
@@ -55,7 +22,7 @@ def expected(qobj, sel):
             continue
         tmp_dims = (before, dim, after) * 2
         out = np.einsum('aibcid->abcd', out.reshape(tmp_dims))
-    return qutip.Qobj(out.reshape(new_shape), dims=dims)
+    return qutip.Qobj(out.reshape(new_shape), dims=dims, type='oper')
 
 
 @pytest.fixture(params=[_data.CSR, _data.Dense], ids=['CSR', 'Dense'])
@@ -121,28 +88,43 @@ def test_ptrace_fails_on_invalid_input(state, selection, exception):
         state.ptrace(selection)
 
 
-def test_ptrace_rand(dtype):
-    'ptrace : randomized tests'
-    for _ in range(5):
-        A = qutip.tensor(
-            qutip.rand_ket(5), qutip.rand_ket(2), qutip.rand_ket(3),
-        ).to(dtype)
-        for sel in ([2, 1], [0, 2], [0, 1]):
-            assert A.ptrace(sel) == expected(A, sel)
+@pytest.mark.parametrize('dims, sel',
+                         [
+                             ([5, 2, 3], [2, 1]),
+                             ([5, 2, 3], [0, 2]),
+                             ([5, 2, 3], [0, 1]),
+                             ([2]*6, [3, 2]),
+                             ([2]*6, [0, 2]),
+                             ([2]*6, [0, 1]),
+                         ])
+def test_ptrace_rand_ket(dtype, dims, sel):
+    A = qutip.rand_ket(np.prod(dims), dims=[dims, [1]*len(dims)])
+    assert A.ptrace(sel) == expected(A, sel)
 
-        A = qutip.tensor(
-            qutip.rand_dm(2), qutip.thermal_dm(10, 1), qutip.rand_unitary(3),
-        ).to(dtype)
-        for sel in ([1, 2], [0, 2], [0, 1]):
-            assert A.ptrace(sel) == expected(A, sel)
 
-        A = qutip.tensor(
-            qutip.rand_ket(2), qutip.rand_ket(2), qutip.rand_ket(2),
-            qutip.rand_ket(2), qutip.rand_ket(2), qutip.rand_ket(2),
-        ).to(dtype)
-        for sel in ([3, 2], [0, 2], [0, 1]):
-            assert A.ptrace(sel) == expected(A, sel)
+@pytest.mark.parametrize('sel', [[], [0, 1, 2], [0], [1], [1, 0], [0, 2]],
+                         ids=['trace_all',
+                              'trace_none',
+                              'trace_one',
+                              'trace_one_2',
+                              'trace_multiple',
+                              'trace_multiple_not_sorted',
+                              ])
+def test_ptrace_rand_dm(dtype, sel):
+    A = qutip.rand_dm(64, 0.5, dims=[[4, 4, 4], [4, 4, 4]]).to(dtype)
+    assert A.ptrace(sel) == expected(A, sel)
 
-        A = qutip.rand_dm(64, 0.5, dims=[[4, 4, 4], [4, 4, 4]]).to(dtype)
-        for sel in ([0], [1], [0, 2]):
-            assert A.ptrace(sel) == expected(A, sel)
+
+@pytest.mark.parametrize('sel', [[], [0, 1, 2], [0], [1], [1, 0], [0, 2]],
+                         ids=['trace_all',
+                              'trace_none',
+                              'trace_one',
+                              'trace_one_2',
+                              'trace_multiple',
+                              'trace_multiple_not_sorted',
+                              ])
+def test_ptrace_operator(dtype, sel):
+    A = qutip.tensor(
+        qutip.rand_dm(2), qutip.thermal_dm(10, 1), qutip.rand_unitary(3),
+    ).to(dtype)
+    assert A.ptrace(sel) == expected(A, sel)

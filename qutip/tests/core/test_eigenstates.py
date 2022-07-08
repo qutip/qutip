@@ -1,39 +1,7 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
 import pytest
 import numpy as np
 import qutip
+from itertools import combinations
 
 
 def _canonicalise_eigenvector(vec):
@@ -101,15 +69,25 @@ def test_known_eigensystem(hamiltonian, eigenvalues, eigenstates):
 
 # Specify parametrisation over a random Hamiltonian by specifying the
 # dimensions, rather than duplicating that logic.
-@pytest.fixture(params=[pytest.param([5], id="simple"),
-                        pytest.param([5, 3, 4], id="tensor")])
+@pytest.fixture(params=[pytest.param([10], id="simple"),
+                        pytest.param([5, 3, 4], id="tensor"),
+                        pytest.param([[0, 1, 1]]*3, id="degenerate")])
 def random_hamiltonian(request):
     dimensions = request.param
-    return qutip.tensor(*[qutip.rand_herm(dim) for dim in dimensions])
+    return qutip.tensor(*[qutip.rand_herm(dim_or_evecs)
+                          for dim_or_evecs in dimensions])
 
 
-def test_satisfy_eigenvalue_equation(random_hamiltonian):
-    for eigenvalue, eigenstate in zip(*random_hamiltonian.eigenstates()):
+@pytest.mark.parametrize('sparse', [True, False])
+@pytest.mark.parametrize('dtype', ['csr', 'dense'])
+def test_satisfy_eigenvalue_equation(random_hamiltonian, sparse, dtype):
+    random_hamiltonian = random_hamiltonian.to(dtype)
+    eigenvalues, eigenstates = random_hamiltonian.eigenstates(sparse=sparse)
+    for eigenvalue, eigenstate in zip(eigenvalues, eigenstates):
         np.testing.assert_allclose((random_hamiltonian * eigenstate).full(),
                                    (eigenvalue * eigenstate).full(),
                                    atol=1e-10)
+        assert eigenstate.norm() == pytest.approx(1., abs=1e-10)
+    errors = [evec1.overlap(evec2)
+              for evec1, evec2 in combinations(eigenstates, 2)]
+    assert np.max(np.abs(errors)) == pytest.approx(0., abs=1e-8)

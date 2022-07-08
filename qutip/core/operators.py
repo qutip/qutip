@@ -1,35 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
 """
 This module contains functions for generating Qobj representation of a variety
 of commonly occuring quantum operators.
@@ -40,7 +8,7 @@ __all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
            'destroy', 'create', 'qeye', 'identity', 'position', 'momentum',
            'num', 'squeeze', 'squeezing', 'displace', 'commutator',
            'qutrit_ops', 'qdiags', 'phase', 'qzero', 'enr_destroy',
-           'enr_identity', 'charge', 'tunneling']
+           'enr_identity', 'charge', 'tunneling', 'qft']
 
 import numbers
 
@@ -52,7 +20,7 @@ from .qobj import Qobj
 from .dimensions import flatten
 
 
-def qdiags(diagonals, offsets, dims=None, shape=None, *, dtype=_data.CSR):
+def qdiags(diagonals, offsets=None, dims=None, shape=None, *, dtype=_data.CSR):
     """
     Constructs an operator from an array of diagonals.
 
@@ -61,11 +29,12 @@ def qdiags(diagonals, offsets, dims=None, shape=None, *, dtype=_data.CSR):
     diagonals : sequence of array_like
         Array of elements to place along the selected diagonals.
 
-    offsets : sequence of ints
+    offsets : sequence of ints, optional
         Sequence for diagonals to be set:
             - k=0 main diagonal
             - k>0 kth upper diagonal
             - k<0 kth lower diagonal
+
     dims : list, optional
         Dimensions for operator
 
@@ -89,6 +58,7 @@ shape = [4, 4], type = oper, isherm = False
      [ 0.          0.          0.          0.        ]]
 
     """
+    offsets = [0] if offsets is None else offsets
     data = _data.diag[dtype](diagonals, offsets, shape)
     return Qobj(data, dims=dims, type='oper', copy=False)
 
@@ -161,17 +131,17 @@ shape = [3, 3], type = oper, isHerm = True
         return Qobj(_jplus(j, dtype=dtype).adjoint(), dims=dims, type='oper',
                     isherm=False, isunitary=False, copy=False)
     if which == 'x':
-        A = 0.5 * _jplus(j, dtype=dtype)
-        return Qobj(A + A.adjoint(), dims=dims, type='oper',
-                    isherm=True, isunitary=False, copy=False)
+        A =  _jplus(j, dtype=dtype)
+        return Qobj(_data.add(A, A.adjoint()), dims=dims, type='oper',
+                    isherm=True, isunitary=False, copy=False) * 0.5
     if which == 'y':
-        A = -0.5j * _jplus(j, dtype=dtype)
-        return Qobj(A + A.adjoint(), dims=dims, type='oper',
+        A =  _data.mul(_jplus(j, dtype=dtype), -0.5j)
+        return Qobj(_data.add(A, A.adjoint()), dims=dims, type='oper',
                     isherm=True, isunitary=False, copy=False)
     if which == 'z':
         return Qobj(_jz(j, dtype=dtype), dims=dims, type='oper',
                     isherm=True, isunitary=False, copy=False)
-    raise ValueError('invalid spin operator: ' + which)
+    raise ValueError('Invalid spin operator: ' + which)
 
 
 def _jplus(j, *, dtype=_data.CSR):
@@ -926,18 +896,19 @@ def enr_destroy(dims, excitations, *, dtype=_data.CSR):
     """
     from .states import enr_state_dictionaries
 
-    nstates, _, idx2state = enr_state_dictionaries(dims, excitations)
+    nstates, state2idx, idx2state = enr_state_dictionaries(dims, excitations)
 
     a_ops = [scipy.sparse.lil_matrix((nstates, nstates), dtype=np.complex128)
              for _ in dims]
 
-    for n1, state1 in idx2state.items():
-        for n2, state2 in idx2state.items():
-            for idx, a in enumerate(a_ops):
-                s1 = [s for idx2, s in enumerate(state1) if idx != idx2]
-                s2 = [s for idx2, s in enumerate(state2) if idx != idx2]
-                if (state1[idx] == state2[idx] - 1) and (s1 == s2):
-                    a[n1, n2] = np.sqrt(state2[idx])
+    for n1, state1 in enumerate(idx2state):
+        for idx, s in enumerate(state1):
+            # if s > 0, the annihilation operator of mode idx has a non-zero
+            # entry with one less excitation in mode idx in the final state
+            if s > 0:
+                state2 = state1[:idx] + (s-1,) + state1[idx+1:]
+                n2 = state2idx[state2]
+                a_ops[idx][n2, n1] = np.sqrt(s)
 
     return [Qobj(a, dims=[dims, dims]).to(dtype) for a in a_ops]
 
@@ -1051,3 +1022,33 @@ def tunneling(N, m=1, *, dtype=_data.CSR):
     T = qdiags(diags, [m, -m], dtype=dtype)
     T.isherm = True
     return T
+
+
+def qft(dimensions, *, dtype="dense"):
+    """
+    Quantum Fourier Transform operator.
+
+    Parameters
+    ----------
+    dimensions : (int) or (list of int) or (list of list of int)
+        Dimension of Hilbert space. If provided as a list of ints, then the
+        dimension is the product over this list, but the ``dims`` property of
+        the new Qobj are set to this list.
+
+    dtype : str or type, [keyword only] [optional]
+        Storage representation. Any data-layer known to `qutip.data.to` is
+        accepted.
+
+    Returns
+    -------
+    QFT: qobj
+        Quantum Fourier transform operator.
+
+    """
+    N2, dimensions = _implicit_tensor_dimensions(dimensions)
+
+    phase = 2.0j * np.pi / N2
+    arr = np.arange(N2)
+    L, M = np.meshgrid(arr, arr)
+    data = np.exp(phase * (L * M)) / np.sqrt(N2)
+    return Qobj(data, dims=dimensions).to(dtype)

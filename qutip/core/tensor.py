@@ -1,41 +1,10 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
 """
 Module for the creation of composite quantum objects via the tensor product.
 """
 
 __all__ = [
-    'tensor', 'super_tensor', 'composite', 'tensor_swap', 'tensor_contract'
+    'tensor', 'super_tensor', 'composite', 'tensor_swap', 'tensor_contract',
+    'expand_operator'
 ]
 
 import numpy as np
@@ -371,3 +340,123 @@ def tensor_contract(qobj, *pairs):
 
     # Return back as a qobj.
     return Qobj(qmtx, dims=contracted_dims, superrep=qobj.superrep, copy=False)
+
+
+def _check_oper_dims(oper, dims=None, targets=None):
+    """
+    Check if the given operator is valid.
+
+    Parameters
+    ----------
+    oper : :class:`qutip.Qobj`
+        The quantum object to be checked.
+    dims : list, optional
+        A list of integer for the dimension of each composite system.
+        e.g ``[2, 2, 2, 2, 2]`` for 5 qubits system.
+    targets : int or list of int, optional
+        The indices of subspace that are acted on.
+    """
+    # if operator matches N
+    if not isinstance(oper, Qobj) or oper.dims[0] != oper.dims[1]:
+        raise ValueError(
+            "The operator is not an "
+            "Qobj with the same input and output dimensions.")
+    # if operator dims matches the target dims
+    if dims is not None and targets is not None:
+        targ_dims = [dims[t] for t in targets]
+        if oper.dims[0] != targ_dims:
+            raise ValueError(
+                "The operator dims {} do not match "
+                "the target dims {}.".format(
+                    oper.dims[0], targ_dims))
+
+
+def _targets_to_list(targets, oper=None, N=None):
+    """
+    transform targets to a list and check validity.
+
+    Parameters
+    ----------
+    targets : int or list of int
+        The indices of subspace that are acted on.
+    oper : :class:`qutip.Qobj`, optional
+        An operator, the type of the :class:`qutip.Qobj`
+        has to be an operator
+        and the dimension matches the tensored qubit Hilbert space
+        e.g. dims = ``[[2, 2, 2], [2, 2, 2]]``
+    N : int, optional
+        The number of subspace in the system.
+    """
+    # if targets is a list of integer
+    if targets is None:
+        targets = list(range(len(oper.dims[0])))
+    if not hasattr(targets, '__iter__'):
+        targets = [targets]
+    if not all([isinstance(t, int) for t in targets]):
+        raise TypeError(
+            "targets should be "
+            "an integer or a list of integer")
+    # if targets has correct length
+    if oper is not None:
+        req_num = len(oper.dims[0])
+        if len(targets) != req_num:
+            raise ValueError(
+                "The given operator needs {} "
+                "target qutbis, "
+                "but {} given.".format(
+                    req_num, len(targets)))
+    # if targets is smaller than N
+    if N is not None:
+        if not all([t < N for t in targets]):
+            raise ValueError("Targets must be smaller than N={}.".format(N))
+    return targets
+
+
+def expand_operator(oper, targets, dims):
+    """
+    Expand an operator to one that acts on a system with desired dimensions.
+    e.g.
+    ```
+    expand_operator(oper, 2, [2, 3, 4, 5]) ==
+        tensor(qeye(2), qeye(3), oper, qeye(5))
+    expand_operator(tensor(oper1, oper2), [2, 0], [2, 3, 4, 5]) ==
+        tensor(oper2, qeye(3), oper1, qeye(5))
+    ```
+
+    Parameters
+    ----------
+    oper : :class:`qutip.Qobj`
+        An operator that act on the subsystem, has to be an operator and the
+        dimension matches the tensored dims Hilbert space
+        e.g. oper.dims = ``[[2, 3], [2, 3]]``
+    targets : int or list of int
+        The indices of subspace that are acted on.
+    dims : list
+        A list of integer for the dimension of each composite system.
+        E.g ``[2, 3, 2, 3, 4]``.
+
+    Returns
+    -------
+    expanded_oper : :class:`qutip.Qobj`
+        The expanded operator acting on a system with desired dimension.
+    """
+    from .operators import identity
+    N = len(dims)
+    targets = _targets_to_list(targets, oper=oper, N=N)
+    _check_oper_dims(oper, dims=dims, targets=targets)
+
+    # Generate the correct order for permutation,
+    # eg. if N = 5, targets = [3,0], the order is [1,2,3,0,4].
+    # If the operator is cnot,
+    # this order means that the 3rd qubit controls the 0th qubit.
+    new_order = [0] * N
+    for i, t in enumerate(targets):
+        new_order[t] = i
+    # allocate the rest qutbits (not targets) to the empty
+    # position in new_order
+    rest_pos = [q for q in list(range(N)) if q not in targets]
+    rest_qubits = list(range(len(targets), N))
+    for i, ind in enumerate(rest_pos):
+        new_order[ind] = rest_qubits[i]
+    id_list = [identity(dims[i]) for i in rest_pos]
+    return tensor([oper] + id_list).permute(new_order)

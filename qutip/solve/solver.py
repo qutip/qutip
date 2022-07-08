@@ -1,35 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson,
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
 from __future__ import print_function
 
 __all__ = ['SolverOptions', 'ExpectOps']
@@ -93,6 +61,13 @@ class ExpectOps:
         else:
             self.raw_out = np.zeros((self.e_num, len(tlist)), dtype=complex)
 
+    def check_dims(self, dims):
+        if not self.isfunc:
+            for op in self.e_ops_qoevo:
+                if isinstance(op, QobjEvo) and op.dims[1] != dims[0]:
+                    raise TypeError(f"e_ops dims ({op.dims}) are not "
+                                    f"compatible with the system's ({dims})")
+
     def copy(self):
         out = ExpectOps.__new__(ExpectOps)
         out.isfunc = self.isfunc
@@ -111,8 +86,12 @@ class ExpectOps:
             state = _data.dense.fast_from_numpy(state)
             t = self.tlist[iter_]
             for ii in range(self.e_num):
-                self.raw_out[ii, iter_] = \
-                    self.e_ops_qoevo[ii].expect_data(t, state)
+                if isinstance(self.e_ops_qoevo[ii], QobjEvo):
+                    self.raw_out[ii, iter_] = \
+                        self.e_ops_qoevo[ii].expect_data(t, state)
+                elif callable(self.e_ops_qoevo[ii]):
+                    self.raw_out[ii, iter_] = \
+                        self.e_ops_qoevo[ii](t, state)
 
     def finish(self):
         if self.isfunc:
@@ -161,41 +140,40 @@ class SolverOptions:
 
         qutip.settings.solver['order'] = 10
 
-    Options
-    -------
+    Supported options:
 
-    atol : float {1e-8}
-        Absolute tolerance.
-    rtol : float {1e-6}
-        Relative tolerance.
-    method : str {'adams','bdf'}
-        Integration method.
-    order : int {12}
-        Order of integrator (<=12 'adams', <=5 'bdf')
-    nsteps : int {2500}
-        Max. number of internal steps/call.
-    first_step : float {0}
-        Size of initial step (0 = automatic).
-    min_step : float {0}
-        Minimum step size (0 = automatic).
-    max_step : float {0}
-        Maximum step size (0 = automatic)
-    tidy : bool {True,False}
-        Tidyup Hamiltonian and initial state by removing small terms.
-    average_states : bool {False}
-        Average states values over trajectories in stochastic solvers.
-    average_expect : bool {True}
-        Average expectation values over trajectories for stochastic solvers.
-    ntraj : int {500}
-        Number of trajectories in stochastic solvers.
-    store_final_state : bool {False, True}
-        Whether or not to store the final state of the evolution in the
-        result class.
-    store_states : bool {False, True}
-        Whether or not to store the state vectors or density matrices in the
-        result class, even if expectation values operators are given. If no
-        expectation are provided, then states are stored by default and this
-        option has no effect.
+        atol : float {1e-8}
+            Absolute tolerance.
+        rtol : float {1e-6}
+            Relative tolerance.
+        method : str {'adams','bdf'}
+            Integration method.
+        order : int {12}
+            Order of integrator (<=12 'adams', <=5 'bdf')
+        nsteps : int {2500}
+            Max. number of internal steps/call.
+        first_step : float {0}
+            Size of initial step (0 = automatic).
+        min_step : float {0}
+            Minimum step size (0 = automatic).
+        max_step : float {0}
+            Maximum step size (0 = automatic)
+        tidy : bool {True,False}
+            Tidyup Hamiltonian and initial state by removing small terms.
+        average_states : bool {False}
+            Average states values over trajectories in stochastic solvers.
+        average_expect : bool {True}
+            Average expectation values over trajectories for stochastic solvers.
+        ntraj : int {500}
+            Number of trajectories in stochastic solvers.
+        store_final_state : bool {False, True}
+            Whether or not to store the final state of the evolution in the
+            result class.
+        store_states : bool {False, True}
+            Whether or not to store the state vectors or density matrices in the
+            result class, even if expectation values operators are given. If no
+            expectation are provided, then states are stored by default and this
+            option has no effect.
     """
     options = {
         # Absolute tolerance (default = 1e-8)
@@ -453,7 +431,7 @@ def _format_time(t, tt=None, ttt=None):
     return time_str
 
 
-class Stats(object):
+class Stats:
     """
     Statistical information on the solver performance
     Statistics can be grouped into sections.
@@ -482,23 +460,6 @@ class Stats(object):
     total_time : float
         Time in seconds for the solver to complete processing
         Can be None, meaning that total timing percentages will be reported
-
-    Methods
-    -------
-    add_section
-        Add another section
-
-    add_count
-        Add some stat that is an integer count
-
-    add_timing
-        Add some timing statistics
-
-    add_message
-        Add some text type for output in the report
-
-    report:
-        Output the statistics report to console or file.
     """
 
     def __init__(self, section_names=None):
@@ -542,7 +503,7 @@ class Stats(object):
 
         Returns
         -------
-        section : `class` : _StatsSection
+        section : :class:`_StatsSection`
             The new section
         """
         sect = _StatsSection(name, self)
@@ -565,7 +526,7 @@ class Stats(object):
         value : int
             Initial value of the count, or added to an existing count
 
-        section: string or `class` : _StatsSection
+        section : string or :class:`_StatsSection`
             Section which to add the count to.
             If None given, the default (first) section will be used
         """

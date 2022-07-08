@@ -1,36 +1,4 @@
 # -*- coding: utf-8 -*-
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
 #
 # This module was initially contributed by Ben Criger.
 #
@@ -51,7 +19,6 @@ import numpy as np
 import scipy.linalg
 
 from . import data as _data
-from .data import matmul
 from .superoperator import stack_columns, unstack_columns, sprepost
 from .tensor import tensor
 from .dimensions import flatten
@@ -164,7 +131,7 @@ def _choi_to_kraus(q_oper, tol=1e-9):
     vals, vecs = q_oper.eigenstates()
     dims = [q_oper.dims[0][1], q_oper.dims[0][0]]
     shape = (np.prod(q_oper.dims[0][1]), np.prod(q_oper.dims[0][0]))
-    return [Qobj(np.sqrt(val) * unstack_columns(vec.data, shape=shape),
+    return [Qobj(_data.mul(unstack_columns(vec.data, shape=shape), np.sqrt(val)),
                  dims=dims, type='oper', copy='False')
             for val, vec in zip(vals, vecs) if abs(val) >= tol]
 
@@ -233,7 +200,7 @@ def _choi_to_chi(q_oper):
     """
     nq = _nq(q_oper.dims)
     B = _superpauli_basis(nq).data
-    return Qobj(matmul(matmul(B.adjoint(), q_oper.data), B),
+    return Qobj(_data.matmul(_data.matmul(B.adjoint(), q_oper.data), B),
                 dims=q_oper.dims,
                 type='super',
                 superrep='chi',
@@ -242,7 +209,7 @@ def _choi_to_chi(q_oper):
 
 def _chi_to_choi(q_oper):
     """
-    Converts a Choi matrix to a Chi matrix in the Pauli basis.
+    Converts a Chi matrix to a Choi matrix.
 
     NOTE: this is only supported for qubits right now. Need to extend to
     Heisenberg-Weyl for other subsystem dimensions.
@@ -251,7 +218,10 @@ def _chi_to_choi(q_oper):
     B = _superpauli_basis(nq).data
     # The Chi matrix has tr(chi) == d², so we need to divide out
     # by that to get back to the Choi form.
-    return Qobj(matmul(matmul(B, q_oper.data), B.adjoint()) / q_oper.shape[0],
+    return Qobj(_data.mul(
+                    _data.matmul(_data.matmul(B, q_oper.data), B.adjoint()),
+                    1 / q_oper.shape[0]
+                ),
                 dims=q_oper.dims,
                 type='super',
                 superrep='choi',

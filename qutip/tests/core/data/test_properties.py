@@ -64,7 +64,7 @@ class Test_isherm:
         n = 10
         base = _data.to(datatype, _data.create(np.diag(np.random.rand(n))))
         assert _data.isherm(base, tol=self.tol)
-        assert not _data.isherm(base * 1j, tol=self.tol)
+        assert not _data.isherm(_data.mul(base, 1j), tol=self.tol)
 
     def test_compare_implicit_zero_structure(self, datatype):
         """
@@ -147,3 +147,10 @@ class Test_isherm:
         assert np.count_nonzero(base.to_array()) == nnz
         assert not _data.isherm(base, tol=self.tol)
         assert not _data.isherm(base.transpose(), tol=self.tol)
+
+    def test_structure_detection(self, datatype):
+        base = np.array([[1,1,0],
+                         [0,1,1],
+                         [1,0,1]])
+        base = _data.to(datatype, _data.create(base))
+        assert not _data.isherm(base, tol=self.tol)
