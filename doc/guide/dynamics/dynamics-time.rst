@@ -368,11 +368,13 @@ To turn on the reuse features, we must use the class interface of the solver:
 .. plot::
     :context: close-figs
 
-    H = QobjEvo([H0, [H1, 'A * exp(-(t / sig) ** 2)']])
+    from qutip.solver.mesolve import MeSolver
+    H = QobjEvo([H0, [H1, 'A * exp(-(t / sig)**2)']], args={'A': 0, 'sig': 1})
     solver = MeSolver(H, c_ops)
     args = {'A': 9, 'sig': 5}
-    output = solver,run(psi0, times, e_ops=[a.dag()*a], args=args)
+    output = solver.run(psi0, times, e_ops=[a.dag()*a], args=args)
     args = {'A': 10, 'sig': 3}
-    output = solver,run(psi0, times, e_ops=[a.dag()*a], args=args)
+    output = solver.run(psi0, times, e_ops=[a.dag()*a], args=args)
 
-The second call to :func:`qutip.mcsolve` does not reorganize the data, and in the case of the string format, does not recompile the Cython code.  For the small system here, the savings in computation time is quite small, however, if you need to call the solvers many times for different parameters, this savings will obviously start to add up.
+The preparation of the Liouvillian and in the case of the string format, compilation of the Cython code, is done once in the initialization of the solver instance.
+For the small system here, the savings in computation time is quite small, however, if you need to call the solvers many times for different parameters, this savings will obviously start to add up.
