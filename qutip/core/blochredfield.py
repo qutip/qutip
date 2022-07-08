@@ -33,24 +33,25 @@ def bloch_redfield_tensor(H, a_ops, c_ops=[], sec_cutoff=0.1,
         a_op : :class:`qutip.Qobj`, :class:`qutip.QobjEvo`
             The operator coupling to the environment. Must be hermitian.
 
-        spectra : :class:`Coefficient`
+        spectra : :class:`Coefficient`, func, str
             The corresponding bath spectra.
-            Can be a `Coefficient` using an 'w' args or a function of the
-            frequency. The `SpectraCoefficient` can be used to use array based
-            coefficient. They can also depend on ``t`` if the corresponding
-            ``a_op`` is a :cls:`QobjEvo`.
+            Can be a `Coefficient` using an 'w' args, a function of the
+            frequency or a string. The `SpectraCoefficient` can be used for
+            array based coefficient.
+            The spectra function can depend on ``t`` if the corresponding
+            ``a_op`` is a :class:`QobjEvo`.
 
         Example:
 
         .. code-block::
 
-                a_ops = [
-                    (a+a.dag(), coefficient('w>0', args={"w": 0})),
-                    (a+a.dag(), coefficient(lambda _, w: w>0, args={"w": 0}),
-                    (QobjEvo([b+b.dag(), lambda t: ...]),
-                     coefficient(lambda t, w: ...), args={"w": 0}),
-                    (c+c.dag(), SpectraCoefficient(coefficient(array, tlist=...))),
-                ]
+            a_ops = [
+                (a+a.dag(), ('w>0', args={"w": 0})),
+                (QobjEvo(a+a.dag()), 'w > exp(-t)'),
+                (QobjEvo([b+b.dag(), lambda t: ...]), lambda w: ...)),
+                (c+c.dag(), SpectraCoefficient(coefficient(array, tlist=ws))),
+            ]
+
 
     c_ops : list
         List of system collapse operators.
@@ -82,8 +83,8 @@ def bloch_redfield_tensor(H, a_ops, c_ops=[], sec_cutoff=0.1,
     H_transform = _EigenBasisTransform(QobjEvo(H), sparse_eigensolver)
 
     if fock_basis:
-        for a_op in a_ops:
-            R += brterm(H_transform, *a_op, sec_cutoff, True,
+        for (a_op, spectra) in a_ops:
+            R += brterm(H_transform, a_op, spectra, sec_cutoff, True,
                         br_dtype=br_dtype)
         return R
     else:
@@ -96,24 +97,6 @@ def bloch_redfield_tensor(H, a_ops, c_ops=[], sec_cutoff=0.1,
         evec = H_transform.as_Qobj()
         R = sprepost(evec, evec.dag()) @ R @ sprepost(evec.dag(), evec)
         for (a_op, spectra) in a_ops:
-            a_op = QobjEvo(a_op)
-            # convert spectra to Coefficient
-            if isinstance(spectra, str):
-                spectra = coefficient(spectra, args={'w': 0})
-            elif isinstance(spectra, InterCoefficient):
-                spectra = SpectraCoefficient(spectra)
-            elif isinstance(spectra, Coefficient):
-                pass
-            elif callable(spectra):
-                sig = inspect.signature(spectra)
-                if tuple(sig.parameters.keys()) == ("w",):
-                    spectra = SpectraCoefficient(coefficient(spectra))
-                else:
-                    spectra = coefficient(spectra, args={'w': 0})
-            else:
-                raise TypeError("a_ops's spectra not known")
-
-            # add brterm
             R += brterm(H_transform, a_op, spectra, sec_cutoff,
                         False, br_dtype=br_dtype)[0]
         return R, H_transform.as_Qobj()
@@ -134,11 +117,13 @@ def brterm(H, a_op, spectra, sec_cutoff=0.1,
     a_op : :class:`qutip.Qobj`, :class:`qutip.QobjEvo`
         The operator coupling to the environment. Must be hermitian.
 
-    spectra : :class:`Coefficient`
+    spectra : :class:`Coefficient`, func, str
         The corresponding bath spectra.
-        Must be a :cls:`Coefficient` using an 'w' args. The
-        :cls:`SpectraCoefficient` can be used to use array based coefficient.
-        It can also depend on ``t`` if ``a_op`` is a :cls:`QobjEvo`.
+        Can be a `Coefficient` using an 'w' args, a function of the
+        frequency or a string. The `SpectraCoefficient` can be used for
+        array based coefficient.
+        The spectra function can depend on ``t`` if the corresponding
+        ``a_op`` is a :class:`QobjEvo`.
 
         Example:
 
@@ -173,6 +158,22 @@ def brterm(H, a_op, spectra, sec_cutoff=0.1,
         Hdiag = H
     else:
         Hdiag = _EigenBasisTransform(QobjEvo(H), sparse=sparse_eigensolver)
+
+    # convert spectra to Coefficient
+    if isinstance(spectra, str):
+        spectra = coefficient(spectra, args={'w': 0})
+    elif isinstance(spectra, InterCoefficient):
+        spectra = SpectraCoefficient(spectra)
+    elif isinstance(spectra, Coefficient):
+        pass
+    elif callable(spectra):
+        sig = inspect.signature(spectra)
+        if tuple(sig.parameters.keys()) == ("w",):
+            spectra = SpectraCoefficient(coefficient(spectra))
+        else:
+            spectra = coefficient(spectra, args={'w': 0})
+    else:
+        raise TypeError("a_ops's spectra not known")
 
     sec_cutoff = sec_cutoff if sec_cutoff >= 0 else np.inf
     R = QobjEvo(_BlochRedfieldElement(Hdiag, QobjEvo(a_op), spectra,
