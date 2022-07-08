@@ -11,8 +11,8 @@ __all__ = ['IntegratorVern7', 'IntegratorVern9', 'IntegratorDiag']
 class IntegratorVern7(Integrator):
     """
     QuTiP's implementation of Verner's "most efficient" Runge-Kutta method
-    of order 7 and 9. These are Runge-Kutta methods with variable steps and
-    dense output.
+    of order 7. These are Runge-Kutta methods with variable steps and dense
+    output.
 
     The implementation uses QuTiP's Data objects for the state, allowing
     sparse, GPU or other data layer objects to be used efficiently by the
@@ -20,6 +20,8 @@ class IntegratorVern7(Integrator):
 
     See http://people.math.sfu.ca/~jverner/ for a detailed description of the
     methods.
+
+    Usable with ``method="vern7"``
     """
     integrator_options = {
         'atol': 1e-8,
@@ -96,6 +98,20 @@ class IntegratorVern7(Integrator):
 
 
 class IntegratorVern9(IntegratorVern7):
+    """
+    QuTiP's implementation of Verner's "most efficient" Runge-Kutta method
+    of order 9. These are Runge-Kutta methods with variable steps and dense
+    output.
+
+    The implementation uses QuTiP's Data objects for the state, allowing
+    sparse, GPU or other data layer objects to be used efficiently by the
+    solver in their native formats.
+
+    See http://people.math.sfu.ca/~jverner/ for a detailed description of the
+    methods.
+
+    Usable with ``method="vern9"``
+    """
     integrator_options = {
         'atol': 1e-8,
         'rtol': 1e-6,
@@ -113,6 +129,8 @@ class IntegratorDiag(Integrator):
     Integrator solving the ODE by diagonalizing the system and solving
     analytically. It can only solve constant system and has a long preparation
     time, but the integration is fast.
+
+    Usable with ``method="diag"``
     """
     integrator_options = {}
     support_time_dependant = False

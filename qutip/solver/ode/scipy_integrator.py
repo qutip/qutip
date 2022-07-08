@@ -22,6 +22,8 @@ class IntegratorScipyAdams(Integrator):
     Integrator using Scipy `ode` with zvode integrator using adams method.
     Ordinary Differential Equation solver by netlib
     (http://www.netlib.org/odepack).
+
+    Usable with ``method="adams"``
     """
     integrator_options = {
         'atol': 1e-8,
@@ -192,6 +194,8 @@ class IntegratorScipyBDF(IntegratorScipyAdams):
     Integrator using Scipy `ode` with zvode integrator using bdf method.
     Ordinary Differential Equation solver by netlib
     (http://www.netlib.org/odepack).
+
+    Usable with ``method="bdf"``
     """
     method = 'bdf'
     integrator_options = {
@@ -212,6 +216,8 @@ class IntegratorScipyDop853(Integrator):
     from [E. Hairer, S.P. Norsett and G. Wanner, Solving Ordinary Differential
     Equations i. Nonstiff Problems. 2nd edition. Springer Series in
     Computational Mathematics, Springer-Verlag (1993)].
+
+    Usable with ``method="dop853"``
     """
     integrator_options = {
         'atol': 1e-8,
@@ -344,6 +350,8 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
     Integrator using Scipy `ode` with lsoda integrator. ODE solver by netlib
     (http://www.netlib.org/odepack) Automatically choose between 'Adams' and
     'BDF' methods to solve both stiff and non-stiff systems.
+
+    Usable with ``method="lsoda"``
     """
     integrator_options = {
         'atol': 1e-8,
