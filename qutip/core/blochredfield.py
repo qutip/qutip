@@ -119,10 +119,10 @@ def brterm(H, a_op, spectra, sec_cutoff=0.1,
 
     spectra : :class:`Coefficient`, func, str
         The corresponding bath spectra.
-        Can be a `Coefficient` using an 'w' args, a function of the
-        frequency or a string. The `SpectraCoefficient` can be used for
+        Can be a :class:`~Coefficient` using an 'w' args, a function of the
+        frequency or a string. The :class:`SpectraCoefficient` can be used for
         array based coefficient.
-        The spectra function can depend on ``t`` if the corresponding
+        The spectra can depend on ``t`` if the corresponding
         ``a_op`` is a :class:`QobjEvo`.
 
         Example:
