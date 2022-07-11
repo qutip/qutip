@@ -341,7 +341,7 @@ In many cases, the bath-coupling operators can take the form :math:`A = f(t)a + 
 where the first tuple element ``(a, a.dag())`` tells the solver which operators make up the full Hermitian coupling operator.  The second tuple ``('{0} * (w >= 0)'.format(kappa), 'exp(1j*t)', 'exp(-1j*t)')``, gives the noise power spectrum, and time-dependence of each operator.  Note that the noise spectrum must always come first in this second tuple. A full example is:
 
 .. plot::
-    :context:
+    :context: close-figs
 
     N = 10
 
@@ -375,5 +375,7 @@ where the first tuple element ``(a, a.dag())`` tells the solver which operators 
 
     plt.show()
 
+.. plot::
+    :context: close-figs
 
 Further examples on time-dependent Bloch-Redfield simulations can be found in the online tutorials.
