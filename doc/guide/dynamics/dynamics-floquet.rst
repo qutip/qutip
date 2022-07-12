@@ -27,7 +27,7 @@ The Schrödinger equation with a time-dependent Hamiltonian :math:`H(t)` is
 
 	H(t)\Psi(t) = i\hbar\frac{\partial}{\partial t}\Psi(t),
 
-where :math:`\Psi(t)` is the wave function solution. Here we are interested in problems with periodic time-dependence, i.e., the Hamiltonian satisfies :math:`H(t) = H(t+T)` where :math:`T` is the period. According to the Floquet theorem, there exist solutions to :eq:`eq_td_schrodinger` on the form
+where :math:`\Psi(t)` is the wave function solution. Here we are interested in problems with periodic time-dependence, i.e., the Hamiltonian satisfies :math:`H(t) = H(t+T)` where :math:`T` is the period. According to the Floquet theorem, there exist solutions to :eq:`eq_td_schrodinger` of the form
 
 .. math::
    :label: eq_floquet_states
@@ -241,7 +241,7 @@ The other parameters are similar to the :func:`qutip.mesolve` and :func:`qutip.m
    :width: 4.0in
    :include-source:
 
-Alternatively, we can let the :func:`qutip.floquet.fmmesolve` function transform the density matrix at each time step back to the computational basis, and calculating the expectation values for us, but using::
+Alternatively, we can let the :func:`qutip.floquet.fmmesolve` function transform the density matrix at each time step back to the computational basis, and calculating the expectation values for us, by using:
 
-    output = fmmesolve(H, psi0, tlist, [sigmax()], [num(2)], [noise_spectrum], T, args)
+    output = fmmesolve(H, psi0, tlist, [sigmax()], [num(2)], [noise_spectrum], T, args, floquet_basis=False)
     p_ex = output.expect[0]
