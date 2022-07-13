@@ -54,9 +54,8 @@ def test_SolverOptions_Feedback():
     called = []
 
     def _catch(keys):
-        assert isinstance(keys, set)
-        assert len(keys) == 1
-        called.append(keys.pop())
+        assert isinstance(keys, (set, str))
+        called.append(keys)
 
     opt = _SolverOptions(default, _catch)
     opt["opt1"] = 2

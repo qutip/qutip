@@ -55,7 +55,7 @@ class _SolverOptions(dict):
             return
         super().__setitem__(key, val)
         if self._feedback:
-            self._feedback(set([key]))
+            self._feedback(key)
 
     def __delitem__(self, key):
         if key not in self._default:
