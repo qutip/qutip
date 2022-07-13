@@ -7,65 +7,87 @@ The sparsity of the ouput Qobj's is controlled by varing the
 
 __all__ = [
     'rand_herm',
-    'rand_unitary', 'rand_unitary_haar',
-    'rand_dm', 'rand_dm_ginibre', 'rand_dm_hs',
+    'rand_unitary',
+    'rand_dm',
     'rand_stochastic',
-    'rand_ket', 'rand_ket_haar',
+    'rand_ket',
     'rand_kraus_map',
-    'rand_super_bcsz', 'rand_super'
+    'rand_super',
+    'rand_super_bcsz',
+    'rand_jacobi_rotation'
 ]
 
 import numbers
 
 import numpy as np
+from numpy.random import Generator, SeedSequence, default_rng
 import scipy.linalg
 import scipy.sparse as sp
 
 from . import Qobj, create, destroy, jmat, basis, to_super
 from .core import data as _data
+from .core.dimensions import flatten
 
+
+_RAND = default_rng()
 _UNITS = np.array([1, 1j])
 
 
-def rand_jacobi_rotation(A, *, seed=None):
-    """Random Jacobi rotation of a matrix.
+def _implicit_tensor_dimensions(dimensions, superoper=False):
+    """
+    Total flattened size and operator dimensions for operator creation routines
+    that automatically perform tensor products.
 
     Parameters
     ----------
-    A : qutip.data.Data
-        Matrix to rotate as a data layer object.
-
-    seed : int32
-        seed to reseed the random number generator.
+    dimensions : (int) or (list of int) or (list of list of int)
+        First dimension of an operator which can create an implicit tensor
+        product.  If the type is `int`, it is promoted first to `[dimensions]`.
+        From there, it should be one of the two-elements `dims` parameter of a
+        `qutip.Qobj` representing an `oper` or `super`, with possible tensor
+        products.
 
     Returns
     -------
-    qutip.data.Data
-        Rotated sparse matrix.
+    size : int
+        Dimension of backing matrix required to represent operator.
+    dimensions : list
+        Dimension list in the form required by ``Qobj`` creation.
     """
-    if seed is not None:
-        np.random.seed(seed=seed)
-    if A.shape[0] != A.shape[1]:
-        raise ValueError('Input matrix must be square.')
-    n = A.shape[0]
-    angle = 2 * np.random.random() * np.pi
-    a = np.sqrt(0.5) * np.exp(-1j * angle)
-    b = np.conj(a)
-    i = np.random.randint(n)
-    j = i
-    while i == j:
-        j = np.random.randint(n)
-    data = np.hstack((np.array([a, -b, a, b], dtype=complex),
-                      np.ones(n - 2, dtype=complex)))
-    diag = np.delete(np.arange(n), [i, j])
-    rows = np.hstack(([i, i, j, j], diag))
-    cols = np.hstack(([i, j, i, j], diag))
-    R = sp.coo_matrix((data, (rows, cols)), shape=(n, n), dtype=complex)
-    R = _data.create(R.tocsr())
-    return _data.matmul(_data.matmul(R, A), R.adjoint())
+    if not isinstance(dimensions, list):
+        dimensions = [dimensions]
+    flat = flatten(dimensions)
+    if not all(isinstance(x, numbers.Integral) and x >= 0 for x in flat):
+        raise ValueError("All dimensions must be integers >= 0")
+    N = np.prod(flat)
+    if superoper:
+        if isinstance(dimensions[0], numbers.Integral):
+            dimensions = [dimensions, dimensions]
+        else:
+            N = int(N**0.5)
+    return N, [dimensions, dimensions]
 
 
-def _randnz(shape, norm=np.sqrt(0.5), *, seed=None):
+def _get_generator(seed):
+    """
+    Obtain a random generator from a seed or generator.
+
+    Parameters
+    ----------
+    seed: int, SeedSequence, Generator, NoneType
+        Seed to create the generator. If it's already a generator return it.
+        When ``None`` is suplied, a default generator is provided.
+    """
+    if seed is None:
+        gen = _RAND
+    elif isinstance(seed, Generator):
+        gen = seed
+    else:
+        gen = default_rng(seed)
+    return gen
+
+
+def _randnz(shape, generator, norm=np.sqrt(0.5)):
     """
     Returns an array of standard normal complex random variates.
     The Ginibre ensemble corresponds to setting ``norm = 1`` [Mis12]_.
@@ -75,47 +97,108 @@ def _randnz(shape, norm=np.sqrt(0.5), *, seed=None):
     shape : tuple
         Shape of the returned array of random variates.
 
+    generator : Generator
+        Random number generator.
+
     norm : float
         Scale of the returned random variates, or 'ginibre' to draw
         from the Ginibre ensemble.
-
-    seed : int32
-        seed to reseed the random number generator.
     """
     # This function is intended for internal use.
-    if seed is not None:
-        np.random.seed(seed=seed)
     if norm == 'ginibre':
         norm = 1
-    return np.sum(np.random.randn(*(shape + (2,))) * _UNITS, axis=-1) * norm
+    return np.sum(generator.normal(size=(shape + (2,))) * _UNITS, axis=-1) * norm
 
 
-def rand_herm(N, density=0.75, dims=None, pos_def=False,
-              *, seed=None, dtype=_data.CSR):
-    """Creates a random NxN sparse Hermitian quantum object.
-
-    If 'N' is an integer, uses :math:`H=0.5*(X+X^{+})` where :math:`X` is
-    a randomly generated quantum operator with a given `density`. Else uses
-    complex Jacobi rotations when 'N' is given by an array.
+def _rand_jacobi_rotation_data(A, generator):
+    """Random Jacobi rotation of a matrix.
 
     Parameters
     ----------
-    N : int, list/ndarray
-        If int, then shape of output operator. If list/ndarray then eigenvalues
-        of generated operator.
+    A : :class:`core.data.Data`
+        Matrix to rotate as a data matrix.
 
-    density : float
+    generator : Generator
+        Random number generator.
+
+    Returns
+    -------
+    Rotated matrix: :class:`Qobj`
+        Rotated sparse matrix.
+    """
+    if A.shape[0] != A.shape[1]:
+        raise ValueError('Input matrix must be square.')
+    n = A.shape[0]
+    angle = 2 * generator.random() * np.pi
+    a = np.sqrt(0.5) * np.exp(-1j * angle)
+    b = np.conj(a)
+    i = generator.integers(n)
+    j = i
+    while i == j:
+        j = generator.integers(n)
+    data = np.hstack((np.array([a, -b, a, b], dtype=complex),
+                      np.ones(n - 2, dtype=complex)))
+    diag = np.delete(np.arange(n), [i, j])
+    rows = np.hstack(([i, i, j, j], diag))
+    cols = np.hstack(([i, j, i, j], diag))
+    R = sp.coo_matrix((data, (rows, cols)), shape=(n, n), dtype=complex)
+    R = _data.to(A.__class__, _data.create(R.tocsr()))
+
+    return R @ A @ R.adjoint()
+
+
+def rand_jacobi_rotation(A, *, seed=None):
+    """Random Jacobi rotation of a matrix.
+
+    Parameters
+    ----------
+    A : :class:`Qobj`
+        Qobj operator to rotate.
+
+    seed : int, SeedSequence, Generator, optional
+        Seed to create the random number generator. Can be a pre prepared
+        generator. When none is suplied, a default generator is used.
+
+    Returns
+    -------
+    Rotated matrix: :class:`Qobj`
+        Rotated sparse matrix.
+    """
+    generator = _get_generator(seed)
+    rotated = _rand_jacobi_rotation_data(A.data, generator)
+    return Qobj(rotated, dims=A.dims, copy=False, isherm=A.isherm, type=A.type)
+
+
+def rand_herm(dimensions, density=0.30, pos_def=False, eigenvalues=None, *,
+              seed=None, dtype=_data.CSR):
+    """Creates a random sparse Hermitian quantum object.
+
+    Uses :math:`H=0.5*(X+X^{+})` where :math:`X` is a randomly generated
+    quantum operator with elements uniformly distributed between
+    ``[-1, 1] + [-1j, 1j]``. If eigenvalues are passed, it uses random complex
+    Jacobi rotations to shuffle the operator.
+
+    Parameters
+    ----------
+    dimensions : (int) or (list of int) or (list of list of int)
+        Dimension of Hilbert space. If provided as a list of ints, then the
+        dimension is the product over this list, but the ``dims`` property of
+        the new Qobj are set to this list.  This can produce either `oper` or
+        `super` depending on the passed `dimensions`.
+
+    density : float, [0.30]
         Density between [0,1] of output Hermitian operator.
-
-    dims : list
-        Dimensions of quantum object.  Used for specifying
-        tensor structure. Default is dims=[[N],[N]].
 
     pos_def : bool (default=False)
         Return a positive semi-definite matrix (by diagonal dominance).
 
-    seed : int
-        seed for the random number generator
+    eigenvalues : array_like, optional
+        Eigenvalues of the output Hermitian matrix. The len must match the
+        shape of the matrix.
+
+    seed : int, SeedSequence, Generator, optional
+        Seed to create the random number generator or a pre prepared
+        generator. When none is suplied, a default generator is used.
 
     dtype : type or str
         Storage representation. Any data-layer known to `qutip.data.to` is
@@ -123,57 +206,51 @@ def rand_herm(N, density=0.75, dims=None, pos_def=False,
 
     Returns
     -------
-    oper : qobj
-        NxN Hermitian quantum operator.
+    oper : :class:`qobj`
+        Hermitian quantum operator.
 
     Notes
     -----
-    If given a list/ndarray as input 'N', this function returns a
-    random Hermitian object with eigenvalues given in the list/ndarray.
-    This is accomplished via complex Jacobi rotations.  While this method
-    is ~50% faster than the corresponding (real only) Matlab code, it should
-    not be repeatedly used for generating matrices larger than ~1000x1000.
+    If given a list of eigenvalues the object is created using complex Jacobi
+    rotations.  While this method is fast for small matrices, it should not be
+    repeatedly used for generating matrices larger than ~1000x1000.
     """
-    if seed is not None:
-        np.random.seed(seed=seed)
-    if isinstance(N, (np.ndarray, list)):
-        M = _data.diag[_data.CSR](N, 0)
-        N = len(N)
-        if dims:
-            _check_dims(dims, N, N)
-        nvals = max([N**2 * density, 1])
-        M = rand_jacobi_rotation(M)
-        while _data.csr.nnz(M) < 0.95 * nvals:
-            M = rand_jacobi_rotation(M)
+    N, dims = _implicit_tensor_dimensions(dimensions)
+    generator = _get_generator(seed)
 
-    elif isinstance(N, numbers.Integral):
-        N = int(N)
-        if dims:
-            _check_dims(dims, N, N)
-        if density < 0.5:
-            M = _rand_herm_sparse(N, density, pos_def)
-        else:
-            M = _rand_herm_dense(N, density, pos_def)
+    if eigenvalues is not None:
+        if N != len(eigenvalues):
+            raise ValueError("The number of eigenvalues does not match the "
+                             "desired shape.")
+        out = Qobj(_data.diag[_data.CSR](eigenvalues, 0),
+                   type='oper', isherm=True, copy=False)
+        nvals = max([N**2 * density, 1])
+        out = rand_jacobi_rotation(out, seed=generator)
+        while _data.csr.nnz(out.data) < 0.95 * nvals:
+            out = rand_jacobi_rotation(out, seed=generator)
 
     else:
-        raise TypeError('Input N must be an integer or array_like.')
-    out = Qobj(M, dims=dims or [[N]]*2, type='oper',
-               isherm=True, copy=False).to(dtype)
-    if dtype:
-        out = out.to(dtype)
-    return out
+        if density < 0.5:
+            M = _rand_herm_sparse(N, density, pos_def, generator)
+        else:
+            M = _rand_herm_dense(N, density, pos_def, generator)
+
+        out = Qobj(M, type='oper', isherm=True, copy=False)
+
+    out.dims = dims
+    return out.to(dtype)
 
 
-def _rand_herm_sparse(N, density, pos_def):
+def _rand_herm_sparse(N, density, pos_def, generator):
     target = (1 - (1 - density)**0.5)
     num_elems = (N**2 - 0.666 * N) * target + 0.666 * N * density
     num_elems = max([num_elems, 1])
     num_elems = int(num_elems)
-    data = (2 * np.random.rand(num_elems) - 1) + \
-           (2 * np.random.rand(num_elems) - 1) * 1j
+    data = (2 * generator.random(num_elems) - 1) + \
+           (2 * generator.random(num_elems) - 1) * 1j
     row_idx, col_idx = zip(*[
         divmod(index, N)
-        for index in np.random.choice(N*N, num_elems, replace=False)
+        for index in generator.choice(N*N, num_elems, replace=False)
     ])
     M = sp.coo_matrix((data, (row_idx, col_idx)),
                       dtype=complex, shape=(N, N))
@@ -189,17 +266,17 @@ def _rand_herm_sparse(N, density, pos_def):
     return rand_mat
 
 
-def _rand_herm_dense(N, density, pos_def):
+def _rand_herm_dense(N, density, pos_def, generator):
     M = (
-        (2*np.random.rand(N, N) - 1)
-        + 1j*(2*np.random.rand(N, N) - 1)
+        (2*generator.random((N, N)) - 1)
+        + 1j*(2*generator.random((N, N)) - 1)
     )
     M = 0.5 * (M + M.conj().transpose())
     target = 1 - density**0.5
     num_remove = N * (N - 0.666) * target + 0.666 * N * (1 - density)
     num_remove = max([num_remove, 1])
     num_remove = int(num_remove)
-    for index in np.random.choice(N*N, num_remove, replace=False):
+    for index in generator.choice(N*N, num_remove, replace=False):
         row, col = divmod(index, N)
         M[col, row] = 0
         M[row, col] = 0
@@ -209,26 +286,33 @@ def _rand_herm_dense(N, density, pos_def):
 
 
 
-def rand_unitary(N, density=0.75, dims=None, *, seed=None, dtype=_data.Dense):
-    r"""Creates a random NxN sparse unitary quantum object.
+def rand_unitary(dimensions, density=0.75, distribution="harr", *,
+                 seed=None, dtype=_data.Dense):
+    r"""Creates a random sparse unitary quantum object.
 
     Uses :math:`\exp(-iH)` where H is a randomly generated
     Hermitian operator.
 
     Parameters
     ----------
-    N : int
-        Shape of output quantum operator.
+    dimensions : (int) or (list of int) or (list of list of int)
+        Dimension of Hilbert space. If provided as a list of ints, then the
+        dimension is the product over this list, but the ``dims`` property of
+        the new Qobj are set to this list.  This can produce either `oper` or
+        `super` depending on the passed `dimensions`.
 
-    density : float
+    distribution : float, [0.75]
         Density between [0,1] of output Unitary operator.
 
-    dims : list
-        Dimensions of quantum object.  Used for specifying
-        tensor structure. Default is dims=[[N],[N]].
+    method : ["haar", "exp"]
+        Method used to obtain the unitary matrices.
 
-    seed : int
-        seed for the random number generator
+        - haar : Haar random unitary matrix using the algorithm of [Mez07]_.
+        - exp : Exponantiation of a random Hermitian matrix.
+
+    seed : int, SeedSequence, Generator, optional
+        Seed to create the random number generator or a pre prepared
+        generator. When none is suplied, a default generator is used.
 
     dtype : type or str
         Storage representation. Any data-layer known to `qutip.data.to` is
@@ -237,17 +321,24 @@ def rand_unitary(N, density=0.75, dims=None, *, seed=None, dtype=_data.Dense):
     Returns
     -------
     oper : qobj
-        NxN Unitary quantum operator.
-
+        Unitary quantum operator.
     """
-    if dims:
-        _check_dims(dims, N, N)
-    return (-1.0j * rand_herm(N, density, dims=dims,
-                              seed=seed, dtype=dtype)
-            ).expm().to(dtype)
+    N, dims = _implicit_tensor_dimensions(dimensions)
+    generator = _get_generator(seed)
+
+    if distribution not in ["haar", "exp"]:
+        raise ValueError("distribution must be one of {'haar', 'exp'}")
+    if distribution == "haar":
+        mat = _rand_unitary_haar(N, generator)
+    elif distribution == "exp":
+        mat = (-1.0j * rand_herm(N, seed=generator)).expm()
+    else:
+        raise ValueError("distribution must be one of {'haar', 'exp'}")
+    mat.dims = dims
+    return mat.to(dtype)
 
 
-def rand_unitary_haar(N=2, dims=None, *, seed=None, dtype=_data.Dense):
+def _rand_unitary_haar(N, generator):
     """
     Returns a Haar random unitary matrix of dimension
     ``dim``, using the algorithm of [Mez07]_.
@@ -257,31 +348,15 @@ def rand_unitary_haar(N=2, dims=None, *, seed=None, dtype=_data.Dense):
     N : int
         Dimension of the unitary to be returned.
 
-    dims : list of lists of int, or None
-        Dimensions of quantum object.  Used for specifying
-        tensor structure. Default is dims=[[N],[N]].
-
-    seed : int
-        seed for the random number generator
-
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
-        accepted.
-
     Returns
     -------
     U : Qobj
         Unitary of dims ``[[dim], [dim]]`` drawn from the Haar
         measure.
     """
-    if dims is not None:
-        _check_dims(dims, N, N)
-    else:
-        dims = [[N], [N]]
-
     # Mez01 STEP 1: Generate an N × N matrix Z of complex standard
     #               normal random variates.
-    Z = _randnz((N, N), seed=seed)
+    Z = _randnz((N, N), generator)
 
     # Mez01 STEP 2: Find a QR decomposition Z = Q · R.
     Q, R = scipy.linalg.qr(Z)
@@ -302,30 +377,28 @@ def rand_unitary_haar(N=2, dims=None, *, seed=None, dtype=_data.Dense):
     #       As NumPy arrays, Q has shape (N, N) and
     #       Lambda has shape (N, ), such that the broadcasting
     #       represents precisely Q_ij λ_j.
-    return Qobj(Q * Lambda, dims=dims,
-                type='oper', isunitary=True, copy=False).to(dtype)
+    return Qobj(Q * Lambda, type='oper', isunitary=True, copy=False)
 
 
-def rand_ket(N=None, density=1, dims=None, *, seed=None, dtype=_data.Dense):
-    """Creates a random Nx1 sparse ket vector.
+def rand_ket(dimensions, density=1, distribution="haar", *,
+             seed=None, dtype=_data.Dense):
+    """Creates a random ket vector.
 
     Parameters
     ----------
-    N : int
-        Number of rows for output quantum operator.
-        If None or 0, N is deduced from dims.
+    dimensions : (int) or (list of int) or (list of list of int)
+        Dimension of Hilbert space. If provided as a list of ints, then the
+        dimension is the product over this list, but the ``dims`` property of
+        the new Qobj are set to this list.  This can produce either `oper` or
+        `super` depending on the passed `dimensions`.
 
-    density : float
-        Density between [0,1] of output ket state.
+    density : float, [1]
+        Density between [0,1] of output ket state when using the ``fill``
+        method.
 
-    dims : list
-        Dimensions of quantum object.  Used for specifying
-        tensor structure. Default is dims=[[N],[1]].
-    seed : int
-        Seed for the random number generator.
-
-    seed : int
-        seed for the random number generator
+    seed : int, SeedSequence, Generator, optional
+        Seed to create the random number generator or a pre prepared
+        generator. When none is suplied, a default generator is used.
 
     dtype : type or str
         Storage representation. Any data-layer known to `qutip.data.to` is
@@ -334,109 +407,68 @@ def rand_ket(N=None, density=1, dims=None, *, seed=None, dtype=_data.Dense):
     Returns
     -------
     oper : qobj
-        Nx1 ket quantum state vector.
-
-    Raises
-    -------
-    ValueError
-        If neither `N` or `dims` are specified.
-
+        Ket quantum state vector.
     """
-    if seed is not None:
-        np.random.seed(seed=seed)
-    if N is None and dims is None:
-        raise ValueError('Specify either the number of rows of state vector'
-                         '(N) or dimensions of quantum object (dims)')
-    if N is not None and dims:
-        _check_dims(dims, N, 1)
-    elif dims:
-        N = np.prod(dims[0])
-        _check_dims(dims, N, 1)
+    generator = _get_generator(seed)
+    N, dims = _implicit_tensor_dimensions(dimensions)
+    if distribution not in ["haar", "fill"]:
+        raise ValueError("distribution must be one of {'haar', 'fill'}")
+
+    if distribution == "haar":
+        ket = _rand_unitary_haar(N, generator) @ basis(N, 0)
     else:
-        dims = [[N], [1]]
-    X = scipy.sparse.rand(N, 1, density, format='csr')
-    while X.nnz == 0:
-        # ensure that the ket is not all zeros.
-        X = scipy.sparse.rand(N, 1, density+1/N, format='csr')
-    X.data = X.data - 0.5
-    Y = X.copy()
-    Y.data = 1.0j * (np.random.random(len(X.data)) - 0.5)
-    X = _data.csr.CSR(X + Y)
-    return Qobj(_data.mul(X, 1 / _data.norm.l2(X)),
-                dims=dims,
-                copy=False,
-                type='ket',
-                isherm=False,
-                isunitary=False).to(dtype)
+        X = scipy.sparse.rand(N, 1, density, format='csr')
+        while X.nnz == 0:
+            # ensure that the ket is not all zeros.
+            X = scipy.sparse.rand(N, 1, density+1/N, format='csr')
+        X.data = X.data - 0.5
+        Y = X.copy()
+        Y.data = 1.0j * (generator.random(len(X.data)) - 0.5)
+        X = _data.csr.CSR(X + Y)
+        ket = Qobj(_data.mul(X, 1 / _data.norm.l2(X)),
+                   copy=False, type="ket", isherm=False, isunitary=False)
+    ket.dims = [dims[0], [1]]
+    return ket.to(dtype)
 
 
-def rand_ket_haar(N=None, dims=None, *, seed=None, dtype=_data.Dense):
-    """
-    Returns a Haar random pure state of dimension ``dim`` by
-    applying a Haar random unitary to a fixed pure state.
-
-    Parameters
-    ----------
-    N : int
-        Dimension of the state vector to be returned.
-        If None or 0, N is deduced from dims.
-
-    dims : list of ints, or None
-        Dimensions of the resultant quantum object.
-        If None, [[N],[1]] is used.
-
-    seed : int
-        seed for the random number generator
-
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
-        accepted.
-
-    Returns
-    -------
-    psi : Qobj
-        A random state vector drawn from the Haar measure.
-
-    Raises
-    -------
-    ValueError
-        If neither `N` or `dims` are specified.
-    """
-    if N is None and dims is None:
-        raise ValueError('Specify either the number of rows of state vector'
-                         '(N) or dimensions of quantum object (dims)')
-    if N and dims:
-        _check_dims(dims, N, 1)
-    elif dims:
-        N = np.prod(dims[0])
-        _check_dims(dims, N, 1)
-    else:
-        dims = [[N], [1]]
-    U = rand_unitary_haar(N, seed=seed, dims=[dims[0], dims[0]])
-    return (U @ basis(dims[0], [0]*len(dims[0]))).to(dtype)
-
-
-def rand_dm(N, density=0.75, pure=False, dims=None, *,
+def rand_dm(dimensions, density=0.75, eigenvalues=None,
+            distribution="ginibre", rank=None, *,
             seed=None, dtype=_data.CSR):
-    r"""Creates a random NxN density matrix.
+    r"""Creates a random density matrix of the desired dimensions.
 
     Parameters
     ----------
-    N : int, ndarray, list
-        If int, then shape of output operator. If list/ndarray then eigenvalues
-        of generated density matrix.
+    dimensions : (int) or (list of int) or (list of list of int)
+        Dimension of Hilbert space. If provided as a list of ints, then the
+        dimension is the product over this list, but the ``dims`` property of
+        the new Qobj are set to this list.  This can produce either `oper` or
+        `super` depending on the passed `dimensions`.
+
+    distribution : str {"ginibre", "hs", "pure", "eigen", "uniform"}
+        Method used to obtain the density matrices.
+
+        - "ginibre" : Ginibre random density operator of rank ``rank`` by using
+          the algorithm of [BCSZ08]_.
+        - "hs" : Hilbert-Schmidt ensemble, equivalent to a full rank ginibre
+          operator.
+        - "pure" : Density matrix created from a random ket.
+        - "eigen" : A density matrix with the gven ``eigenvalues``.
+        - "herm" : Build from a random hermitian matrix using ``rand_herm``.
 
     density : float
         Density between [0,1] of output density matrix.
 
-    dims : list
-        Dimensions of quantum object.  Used for specifying
-        tensor structure. Default is dims=[[N],[N]].
-    seed : int
-        Seed for the random number generator.
+    eigenvalues : array_like, optional
+        Eigenvalues of the output Hermitian matrix. The len must match the
+        shape of the matrix.
 
-    seed : int
-        seed for the random number generator
+    rank : int
+        When using the "ginibre" distribution, rank of the density matrix.
+
+
+    seed : int, SeedSequence, Generator, optional
+        Seed to create the random number generator or a pre prepared
+        generator. When none is suplied, a default generator is used.
 
     dtype : type or str
         Storage representation. Any data-layer known to `qutip.data.to` is
@@ -445,59 +477,55 @@ def rand_dm(N, density=0.75, pure=False, dims=None, *,
     Returns
     -------
     oper : qobj
-        NxN density matrix quantum operator.
-
-    Notes
-    -----
-    For small density matrices., choosing a low density will result in an error
-    as no diagonal elements will be generated such that :math:`Tr(\rho)=1`.
+        Density matrix quantum operator.
     """
-    if seed is not None:
-        np.random.seed(seed=seed)
-    if isinstance(N, (np.ndarray, list)):
+    generator = _get_generator(seed)
+    N, dims = _implicit_tensor_dimensions(dimensions)
+    distributions = set(["eigen", "ginibre", "hs", "pure", "herm"])
+    if distribution not in distributions:
+        raise ValueError(f"distribution must be one of {distributions}")
+
+    if distribution == "eigen":
+        if len(eigenvalues) != N:
+            raise ValueError("Number of eigenvalues does not match the shape.")
         if np.abs(np.sum(N)-1.0) > 1e-15:
             raise ValueError('Eigenvalues of a density matrix '
                              'must sum to one.')
-        H = _data.diag(N, 0)
-        N = len(N)
-        if dims:
-            _check_dims(dims, N, N)
+        H = _data.diag(eigenvalues, 0)
         nvals = N**2 * density
-        H = rand_jacobi_rotation(H)
+        H = rand_jacobi_rotation(H, seed=generator)
         while _data.csr.nnz(H) < 0.95*nvals:
             H = rand_jacobi_rotation(H)
-    elif isinstance(N, numbers.Integral):
-        N = int(N)
-        if dims:
-            _check_dims(dims, N, N)
-        if pure:
-            dm_density = np.sqrt(density)
-            psi = rand_ket(N, dm_density, dtype=dtype)
-            H = psi.proj().data
-        else:
-            trace = 0
-            tries = 0
-            while trace == 0 and tries < 10:
-                H = rand_herm(N, density, seed=seed, dtype=dtype)
-                H = H.dag() @ H
-                trace = H.tr()
-                tries += 1
-            if tries >= 10:
-                raise ValueError(
-                    "Requested density is too low to generate density matrix.")
-            H /= trace
-            H = H.data
-
+    elif distribution == "ginibre":
+        H = _rand_dm_ginibre(N, rankseed=generator)
+    elif distribution == "hs":
+        H = _rand_dm_ginibre(N, Nseed=generator)
+    elif distribution == "pure":
+        dm_density = np.sqrt(density)
+        psi = rand_ket(N, density=dm_density,
+                       distribution="fill", seed=generator)
+        H = psi.proj().data
     else:
-        raise TypeError('Input N must be an integer or array_like.')
+        trace = 0
+        tries = 0
+        while trace == 0 and tries < 10:
+            H = rand_herm(N, density, seed=seed, dtype=dtype)
+            H = H.dag() @ H
+            trace = H.tr()
+            tries += 1
+        if tries >= 10:
+            raise ValueError(
+                "Requested density is too low to generate density matrix.")
+        H /= trace
+        H = H.data
+
     return Qobj(H, dims=dims, type='oper', isherm=True, copy=False).to(dtype)
 
 
-def rand_dm_ginibre(N=2, rank=None, dims=None, *, seed=None, dtype=_data.CSR):
+def _rand_dm_ginibre(N, rank, generator):
     """
-    Returns a Ginibre random density operator of dimension
-    ``dim`` and rank ``rank`` by using the algorithm of
-    [BCSZ08]_. If ``rank`` is `None`, a full-rank
+    Returns a Ginibre random density operator of  rank ``rank`` by using the
+    algorithm of [BCSZ08]_. If ``rank`` is `None`, a full-rank
     (Hilbert-Schmidt ensemble) random density operator will be
     returned.
 
@@ -505,20 +533,10 @@ def rand_dm_ginibre(N=2, rank=None, dims=None, *, seed=None, dtype=_data.CSR):
     ----------
     N : int
         Dimension of the density operator to be returned.
-    dims : list
-        Dimensions of quantum object.  Used for specifying
-        tensor structure. Default is dims=[[N],[N]].
 
     rank : int or None
         Rank of the sampled density operator. If None, a full-rank
         density operator is generated.
-
-    seed : int
-        seed for the random number generator
-
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
-        accepted.
 
     Returns
     -------
@@ -531,58 +549,25 @@ def rand_dm_ginibre(N=2, rank=None, dims=None, *, seed=None, dtype=_data.CSR):
     if rank > N:
         raise ValueError("Rank cannot exceed dimension.")
 
-    X = _randnz((N, rank), norm='ginibre', seed=seed)
+    X = _randnz((N, rank), generator, norm='ginibre')
     rho = np.dot(X, X.T.conj())
     rho /= np.trace(rho)
 
-    return Qobj(rho, dims=dims, type='oper', isherm=True, copy=False).to(dtype)
+    return rho
 
 
-def rand_dm_hs(N=2, dims=None, *, seed=None, dtype=_data.CSR):
-    """
-    Returns a Hilbert-Schmidt random density operator of dimension
-    ``dim`` and rank ``rank`` by using the algorithm of
-    [BCSZ08]_.
-
-    Parameters
-    ----------
-    N : int
-        Dimension of the density operator to be returned.
-
-    dims : list
-        Dimensions of quantum object.  Used for specifying
-        tensor structure. Default is dims=[[N],[N]].
-
-    seed : int
-        seed for the random number generator
-
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
-        accepted.
-
-    Returns
-    -------
-    rho : Qobj
-        A dim × dim density operator sampled from the Ginibre
-        or Hilbert-Schmidt distribution.
-
-    """
-    return rand_dm_ginibre(N, rank=None, dims=dims, seed=seed, dtype=dtype)
-
-
-def rand_kraus_map(N, dims=None, *, seed=None, dtype=_data.Dense):
+def rand_kraus_map(dimensions, *, seed=None, dtype=_data.Dense):
     """
     Creates a random CPTP map on an N-dimensional Hilbert space in Kraus
     form.
 
     Parameters
     ----------
-    N : int
-        Length of input/output density matrix.
-
-    dims : list
-        Dimensions of quantum object.  Used for specifying
-        tensor structure. Default is dims=[[N],[N]].
+    dimensions : (int) or (list of int) or (list of list of int)
+        Dimension of Hilbert space. If provided as a list of ints, then the
+        dimension is the product over this list, but the ``dims`` property of
+        the new Qobj are set to this list.  This can produce either `oper` or
+        `super` depending on the passed `dimensions`.
 
     seed : int
         seed for the random number generator
@@ -597,8 +582,7 @@ def rand_kraus_map(N, dims=None, *, seed=None, dtype=_data.Dense):
         N^2 x N x N qobj operators.
 
     """
-    if dims:
-        _check_dims(dims, N, N)
+    N, dims = _implicit_tensor_dimensions(dimensions)
 
     # Random unitary (Stinespring Dilation)
     big_unitary = rand_unitary(N ** 3, seed=seed, dtype=dtype).full()
@@ -608,19 +592,18 @@ def rand_kraus_map(N, dims=None, *, seed=None, dtype=_data.Dense):
             for x in oper_list]
 
 
-def rand_super(N, dims=None, *, seed=None, dtype=_data.Dense):
+def rand_super(dimensions, *, seed=None, dtype=_data.Dense):
     """
     Returns a randomly drawn superoperator acting on operators acting on
     N dimensions.
 
     Parameters
     ----------
-    N : int
-        Square root of the dimension of the superoperator to be returned.
-
-    dims : list
-        Dimensions of quantum object.  Used for specifying
-        tensor structure. Default is dims=[[[N],[N]], [[N],[N]]].
+    dimensions : (int) or (list of int) or (list of list of int)
+        Dimension of Hilbert space. If provided as a list of ints, then the
+        dimension is the product over this list, but the ``dims`` property of
+        the new Qobj are set to this list.  This can produce either `oper` or
+        `super` depending on the passed `dimensions`.
 
     seed : int
         seed for the random number generator
@@ -629,23 +612,19 @@ def rand_super(N, dims=None, *, seed=None, dtype=_data.Dense):
         Storage representation. Any data-layer known to `qutip.data.to` is
         accepted.
     """
+    generator = _get_generator(seed)
     from .solver.propagator import propagator
-    if dims is not None:
-        # TODO: check!
-        _check_dims(dims, N**2, N**2)
-        pass
-    else:
-        dims = [[[N], [N]], [[N], [N]]]
-    H = rand_herm(N, seed=seed, dtype=dtype)
-    S = propagator(H, np.random.rand(), [
+    N, dims = _implicit_tensor_dimensions(dimensions, superoper=True)
+    H = rand_herm(N, seed=generator, dtype=dtype)
+    S = propagator(H, generator.random(), [
         create(N), destroy(N), jmat(float(N - 1) / 2.0, 'z')
     ])
     S.dims = dims
     return S.to(dtype)
 
 
-def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None, *,
-                    seed=None, dtype=_data.CSR):
+def rand_super_bcsz(dimensions, enforce_tp=True, rank=None, *,
+                    superrep="super", seed=None, dtype=_data.CSR):
     """
     Returns a random superoperator drawn from the Bruzda
     et al ensemble for CPTP maps [BCSZ08]_. Note that due to
@@ -655,8 +634,13 @@ def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None, *,
 
     Parameters
     ----------
-    N : int
-        Square root of the dimension of the superoperator to be returned.
+    dimensions : (int) or (list of int) or (list of list of int)
+        Dimension of Hilbert space. If an int is provided, it is understood as
+        the Square root of the dimension of the superoperator to be returned,
+        with the corresponding dims as ``[[[N],[N]], [[N],[N]]]``. If provided
+        as a list of ints, then the dimensions is understood as the space of
+        density matrices this superoperator is applied to: ``dimensions=[2,2]``
+        ``dims=[[[2,2],[2,2]], [[2,2],[2,2]]]``.
 
     enforce_tp : bool
         If True, the trace-preserving condition of [BCSZ08]_ is enforced;
@@ -666,12 +650,11 @@ def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None, *,
         Rank of the sampled superoperator. If None, a full-rank
         superoperator is generated.
 
-    dims : list
-        Dimensions of quantum object.  Used for specifying
-        tensor structure. Default is dims=[[[N],[N]], [[N],[N]]].
-
     seed : int
         seed for the random number generator
+
+    superrop : str, optional, {"super"}
+        representation of the
 
     dtype : type or str
         Storage representation. Any data-layer known to `qutip.data.to` is
@@ -683,11 +666,8 @@ def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None, *,
         A superoperator acting on vectorized dim × dim density operators,
         sampled from the BCSZ distribution.
     """
-    if dims is not None:
-        # TODO: check!
-        pass
-    else:
-        dims = [[[N], [N]], [[N], [N]]]
+    generator = _get_generator(seed)
+    N, dims = _implicit_tensor_dimensions(dimensions, superoper=True)
 
     if rank is None:
         rank = N**2
@@ -700,7 +680,7 @@ def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None, *,
 
     # We start with a Ginibre uniform matrix X of the appropriate rank,
     # and use it to construct a positive semidefinite matrix X X⁺.
-    X = _randnz((N**2, rank), norm='ginibre', seed=seed)
+    X = _randnz((N**2, rank), generator, norm='ginibre')
 
     # Precompute X X⁺, as we'll need it in two different places.
     XXdag = np.dot(X, X.T.conj())
@@ -737,27 +717,34 @@ def rand_super_bcsz(N=2, enforce_tp=True, rank=None, dims=None, *,
     D.superrep = 'choi'
     D.dims = dims
 
-    return to_super(D).to(dtype)
+    D.to(dtype)
+    D = {
+        "choi" : to_choi,
+        "chi" : to_chi,
+        "super": to_super,
+        "kraus": to_kraus,
+        "Stinespring": to_stinespring,
+    }[superrep](D)
+    return D
 
 
-def rand_stochastic(N, density=0.75, kind='left', dims=None,
+def rand_stochastic(dimensions, density=0.75, kind='left',
                     *, seed=None, dtype=_data.CSR):
     """Generates a random stochastic matrix.
 
     Parameters
     ----------
-    N : int
-        Dimension of matrix.
+    dimensions : (int) or (list of int) or (list of list of int)
+        Dimension of Hilbert space. If provided as a list of ints, then the
+        dimension is the product over this list, but the ``dims`` property of
+        the new Qobj are set to this list.  This can produce either `oper` or
+        `super` depending on the passed `dimensions`.
 
-    density : float
+    density : float, [0.75]
         Density between [0,1] of output density matrix.
 
     kind : str (Default = 'left')
         Generate 'left' or 'right' stochastic matrix.
-
-    dims : list
-        Dimensions of quantum object.  Used for specifying
-        tensor structure. Default is dims=[[N],[N]].
 
     seed : int
         seed for the random number generator
@@ -771,17 +758,15 @@ def rand_stochastic(N, density=0.75, kind='left', dims=None,
     oper : qobj
         Quantum operator form of stochastic matrix.
     """
-    if seed is not None:
-        np.random.seed(seed=seed)
-    if dims:
-        _check_dims(dims, N, N)
+    generator = _get_generator(seed)
+    N, dims = _implicit_tensor_dimensions(dimensions)
     num_elems = max([int(np.ceil(N*(N+1)*density)/2), N])
-    data = np.random.rand(num_elems)
+    data = generator.random(num_elems)
     # Ensure an element on every row and column
-    row_idx = np.hstack([np.random.permutation(N),
-                         np.random.choice(N, num_elems-N)])
-    col_idx = np.hstack([np.random.permutation(N),
-                         np.random.choice(N, num_elems-N)])
+    row_idx = np.hstack([generator.permutation(N),
+                         generator.choice(N, num_elems-N)])
+    col_idx = np.hstack([generator.permutation(N),
+                         generator.choice(N, num_elems-N)])
     M = sp.coo_matrix((data, (row_idx, col_idx)),
                       dtype=np.complex128, shape=(N, N)).tocsr()
     M = 0.5 * (M + M.conj().transpose())
@@ -793,19 +778,4 @@ def rand_stochastic(N, density=0.75, kind='left', dims=None,
         M.data[row_start:row_end] /= row_sum
     if kind == 'left':
         M = M.transpose()
-    if dims:
-        return Qobj(M, dims=dims).to(dtype)
-    else:
-        return Qobj(M).to(dtype)
-
-
-def _check_dims(dims, N1, N2):
-    if len(dims) != 2:
-        raise Exception("Qobj dimensions must be list of length 2.")
-    if (not isinstance(dims[0], list)) or (not isinstance(dims[1], list)):
-        raise TypeError(
-            "Qobj dimension components must be lists. i.e. dims=[[N],[N]]")
-    if np.prod(dims[0]) != N1 or np.prod(dims[1]) != N2:
-        raise ValueError("Qobj dimensions must match matrix shape.")
-    if len(dims[0]) != len(dims[1]):
-        raise TypeError("Qobj dimension components must have same length.")
+    return Qobj(M, dims=dims).to(dtype)
