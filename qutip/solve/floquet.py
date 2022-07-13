@@ -906,7 +906,7 @@ def floquet_markov_mesolve(
         if not r.successful():
             break
 
-        rho = Qobj(unstack_columns(r.y), rho0.dims)
+        rho = transform(Qobj(unstack_columns(r.y), rho0.dims), t)
 
         if expt_callback:
             e_ops(t, rho)
