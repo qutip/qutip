@@ -75,14 +75,14 @@ cdef class Data:
         return _data.neg(self)
 
     def __eq__(left, right):
+        if not (isinstance(left, Data) and isinstance(right, Data)):
+            return NotImplemented
         if (
-            isinstance(left, Data)
-            and isinstance(right, Data)
-            and left.shape[0] == right.shape[0]
+            left.shape[0] == right.shape[0]
             and left.shape[1] == right.shape[1]
         ):
             return _data.iszero(_data.sub(left, right), settings.core['atol'])
-        return NotImplemented
+        return False
 
 
 class EfficiencyWarning(Warning):
