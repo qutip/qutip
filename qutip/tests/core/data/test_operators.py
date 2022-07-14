@@ -29,7 +29,7 @@ def test_data_binary_operator(type_left, type_right, operator, dispatch):
     pytest.param(lambda data, number: data / number,
                  lambda data, number: _data.mul(data, 1/number), id="div"),
 ])
-def test_data_unitary_operator(type_, operator, dispatch):
+def test_data_scalar_operator(type_, operator, dispatch):
     data = qutip.qeye(2, dtype=type_).data
     number = 3
     numpy.testing.assert_allclose(
