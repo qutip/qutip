@@ -274,7 +274,7 @@ class Solver:
     def options(self, new_options):
         if not isinstance(new_options, dict):
             raise TypeError("options most to be a dictionary.")
-        new_solver_options, new_options = self._parse_options(
+        new_solver_options, new_ode_options = self._parse_options(
             new_options, self.solver_options, self.options
         )
         method = new_solver_options.get("method", self.options["method"])
@@ -289,7 +289,7 @@ class Solver:
             old_options, _ = self._parse_options(self._options, self.solver_options, {})
 
         new_ode_options, extra_options = self._parse_options(
-            new_options, integrator.integrator_options, self.options
+            new_ode_options, integrator.integrator_options, self.options
         )
         if extra_options:
             raise KeyError(f"Options {extra_options.keys()} are not supported")
@@ -313,6 +313,7 @@ class Solver:
         Allow to update the solver with the new options
         """
         from_setter = isinstance(keys, (set))
+        print(keys)
         if not from_setter:
             keys = set([keys])
 

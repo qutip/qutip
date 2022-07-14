@@ -1,5 +1,6 @@
 import pytest
 import qutip
+import numpy as np
 from qutip.solver.options import _SolverOptions
 
 
@@ -114,3 +115,28 @@ def test_in_solver():
     assert solver.options["atol"] == 0.01
     assert "order" not in solver.options
     assert "interpolate" in solver.options
+
+
+def test_options_update_solver():
+    opt = {"method": "adams", "normalize_output": False}
+    solver = qutip.solver.sesolve.SeSolver(1j * qutip.qeye(1), options=opt)
+
+    solver.start(qutip.basis(1), 0)
+    err_atol_def = (solver.step(1) - np.exp(1)).norm()
+
+    solver.options["atol"] = 1
+    solver.start(qutip.basis(1), 0)
+    assert (solver.step(1) - np.exp(1)).norm() > err_atol_def * 10
+
+    del solver.options["atol"]
+    solver.start(qutip.basis(1), 0)
+    assert (solver.step(1) - np.exp(1)).norm() == pytest.approx(err_atol_def)
+
+    solver.options["atol"] = 1
+    solver.options["atol"] = None
+    solver.start(qutip.basis(1), 0)
+    assert (solver.step(1) - np.exp(1)).norm() == pytest.approx(err_atol_def)
+
+    solver.options["method"] = "diag"
+    solver.start(qutip.basis(1), 0)
+    assert (solver.step(1) - np.exp(1)).norm() == pytest.approx(0., abs=-1e10)
