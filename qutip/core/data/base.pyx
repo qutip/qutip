@@ -64,22 +64,10 @@ cdef class Data:
         except TypeError:
             return NotImplemented
 
-    def __imul__(self, other):
-        try:
-            return _data.imul(self, other)
-        except TypeError:
-            return NotImplemented
-
     def __truediv__(left, right):
         data, number = (left, right) if isinstance(left, Data) else (right, left)
         try:
             return _data.mul(data, 1/number)
-        except TypeError:
-            return NotImplemented
-
-    def __itruediv__(self, other):
-        try:
-            return _data.imul(self, 1/other)
         except TypeError:
             return NotImplemented
 

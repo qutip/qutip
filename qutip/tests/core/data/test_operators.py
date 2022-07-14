@@ -39,31 +39,6 @@ def test_data_scalar_operator(type_, operator, dispatch):
     )
 
 
-def imul(data, number):
-    data *= number
-
-
-def idiv(data, number):
-    data /= number
-
-
-@pytest.mark.parametrize('type_', _data.to.dtypes)
-@pytest.mark.parametrize(['operator', 'dispatch'], [
-    pytest.param(imul, _data.mul, id="imul"),
-    pytest.param(idiv, lambda data, num: _data.mul(data, 1/num), id="idiv"),
-])
-def test_data_inplace_operator(type_, operator, dispatch):
-    data = qutip.qeye(2, dtype=type_).data
-    data_copy = data.copy()
-    number = 3
-    operator(data, number)
-    numpy.testing.assert_allclose(
-        data.to_array(),
-        dispatch(data_copy, number).to_array(),
-        rtol=1e-15
-    )
-
-
 @pytest.mark.parametrize('type_', _data.to.dtypes)
 def test_data_neg_operator(type_):
     data = qutip.qeye(2, dtype=type_).data
