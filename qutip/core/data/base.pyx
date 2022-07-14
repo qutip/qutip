@@ -82,7 +82,7 @@ cdef class Data:
             and left.shape[1] == right.shape[1]
         ):
             return _data.iszero(_data.sub(left, right), settings.core['atol'])
-        return False
+        return NotImplemented
 
 
 class EfficiencyWarning(Warning):

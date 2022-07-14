@@ -66,4 +66,4 @@ def test_data_eq_operator(type_left, type_right):
     assert left != right
 
     assert left != mat
-    assert left != mat.full()
+    assert numpy.all(left != mat.full())
