@@ -315,28 +315,31 @@ class Solver:
         from_setter = isinstance(keys, (set))
         if not from_setter:
             keys = set([keys])
+
+        if not from_setter and "method" in keys:
+            # Drop the ode's options.
+            old_solver_options, _ = self._parse_options(
+                self.options, self.solver_options, {}
+            )
+            method = self.options["method"]
+            integrator = self.avail_integrators()[method]
+
+            self._options = _SolverOptions(
+                {**self.solver_options, **integrator.integrator_options},
+                self._apply_options,
+                self.name + " with " + integrator.method + " integrator",
+                self.__class__.options.__doc__ + integrator.options.__doc__,
+                **old_solver_options
+            )
+
         if self._integrator is None or not keys:
             pass
-        elif 'method' in keys:
-            if not from_setter:
-                # Drop the ode's options.
-                old_solver_options, _ = self._parse_options(
-                    self.options, self.solver_options, {}
-                )
-                method = self.options["method"]
-                integrator = self.avail_integrators()[method]
-
-                self._options = _SolverOptions(
-                    {**self.solver_options, **integrator.integrator_options},
-                    self._apply_options,
-                    self.name + " with " + integrator.method + " integrator",
-                    self.__class__.options.__doc__ + integrator.options.__doc__,
-                    **old_solver_options
-                )
-
+        elif 'method' in keys and self._integrator._is_set:
             state = self._integrator.get_state()
             self._integrator = self._get_integrator()
             self._integrator.set_state(*state)
+        elif "method" in keys:
+            self._integrator = self._get_integrator()
         elif keys & self._integrator.integrator_options.keys():
             # Some of the keys are used by the integrator.
             self._integrator.options = self._options

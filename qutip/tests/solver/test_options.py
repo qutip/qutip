@@ -84,3 +84,33 @@ def test_print():
     assert "opt2 : True" in opt.__str__()
     assert "opt3 : None" in opt.__str__()
     assert opt.__doc__ == "Custom doc"
+
+
+def test_in_solver():
+    opt = {"method": "adams", "store_states": True, "atol": 1}
+    solver = qutip.solver.sesolve.SeSolver(qutip.qeye(1), options=opt)
+    adams = qutip.solver.ode.scipy_integrator.IntegratorScipyAdams
+    lsoda = qutip.solver.ode.scipy_integrator.IntegratorScipylsoda
+    bdf = qutip.solver.ode.scipy_integrator.IntegratorScipyBDF
+    assert solver.options["store_states"] is True
+    assert solver.options["method"] == "adams"
+    assert solver.options["atol"] == 1
+    assert solver.options["order"] == adams.integrator_options["order"]
+
+    solver.options["method"] = "bdf"
+    assert solver.options["store_states"] is True
+    assert solver.options["method"] == "bdf"
+    assert solver.options["atol"] == bdf.integrator_options["atol"]
+    assert solver.options["order"] == bdf.integrator_options["order"]
+
+    solver.options = {
+        "method": "vern7",
+        "store_final_state": True,
+        "atol": 0.01
+    }
+    assert solver.options["store_states"] is True
+    assert solver.options["store_final_state"] is True
+    assert solver.options["method"] == "vern7"
+    assert solver.options["atol"] == 0.01
+    assert "order" not in solver.options
+    assert "interpolate" in solver.options
