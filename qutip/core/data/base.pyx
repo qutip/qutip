@@ -2,6 +2,8 @@
 
 import numpy as np
 cimport numpy as cnp
+import qutip.core.data as _data
+from qutip.settings import settings
 
 __all__ = [
     'idxint_size', 'idxint_dtype', 'Data', 'EfficiencyWarning',
@@ -39,6 +41,48 @@ cdef class Data:
 
     cpdef Data copy(self):
         raise NotImplementedError
+
+    def __add__(left, right):
+        if isinstance(left, Data) and isinstance(right, Data):
+            return _data.add(left, right)
+        return NotImplemented
+
+    def __sub__(left, right):
+        if isinstance(left, Data) and isinstance(right, Data):
+            return _data.sub(left, right)
+        return NotImplemented
+
+    def __matmul__(left, right):
+        if isinstance(left, Data) and isinstance(right, Data):
+            return _data.matmul(left, right)
+        return NotImplemented
+
+    def __mul__(left, right):
+        data, number = (left, right) if isinstance(left, Data) else (right, left)
+        try:
+            return _data.mul(data, number)
+        except TypeError:
+            return NotImplemented
+
+    def __truediv__(left, right):
+        data, number = (left, right) if isinstance(left, Data) else (right, left)
+        try:
+            return _data.mul(data, 1/number)
+        except TypeError:
+            return NotImplemented
+
+    def __neg__(self):
+        return _data.neg(self)
+
+    def __eq__(left, right):
+        if not (isinstance(left, Data) and isinstance(right, Data)):
+            return NotImplemented
+        if (
+            left.shape[0] == right.shape[0]
+            and left.shape[1] == right.shape[1]
+        ):
+            return _data.iszero(_data.sub(left, right), settings.core['atol'])
+        return False
 
 
 class EfficiencyWarning(Warning):
