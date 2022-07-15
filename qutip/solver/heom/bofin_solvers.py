@@ -1114,6 +1114,8 @@ class HEOMSolver(Solver):
     @property
     def options(self):
         """
+        Options for HEOMSolver:
+
         store_final_state: bool
             Whether or not to store the final state of the evolution in the
             result class.

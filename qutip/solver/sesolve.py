@@ -156,6 +156,8 @@ class SeSolver(Solver):
     @property
     def options(self):
         """
+        Solver's options:
+
         store_final_state: bool
             Whether or not to store the final state of the evolution in the
             result class.

@@ -159,6 +159,8 @@ class IntegratorScipyAdams(Integrator):
     @property
     def options(self):
         """
+        Supported options by zvode integrator:
+
         atol : float
             Absolute tolerance.
 
@@ -311,6 +313,8 @@ class IntegratorScipyDop853(Integrator):
     @property
     def options(self):
         """
+        Supported options by dop853 integrator:
+
         atol : float
             Absolute tolerance.
 
@@ -470,6 +474,8 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
     @property
     def options(self):
         """
+        Supported options by lsoda integrator:
+
         atol : float
             Absolute tolerance.
 
