@@ -20,7 +20,7 @@ def _orthogonalize(vec, other):
     vec /= norm
 
 
-if settings.install["eigh_unsafe"]:
+if settings.eigh_unsafe:
     def eigh(mat, eigvals=None):
         val, vec = scipy.linalg.eig(mat)
         val = np.real(val)

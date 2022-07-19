@@ -394,7 +394,7 @@ In QuTiP, the procedure described above is implemented in the function :func:`qu
 .. plot::
     :context: close-figs
 
-    from qutip import swap
+    from qutip.core.gates import swap
 
     U_psi = swap()
 

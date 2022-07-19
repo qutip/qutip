@@ -9,6 +9,7 @@ __all__ = [
 
 import functools
 import numbers
+import warnings
 
 import numpy as np
 import scipy.sparse
@@ -94,6 +95,8 @@ def _require_equal_type(method):
     """
     @functools.wraps(method)
     def out(self, other):
+        if other == 0:
+            return method(self, other)
         if (
             self.type in ('oper', 'super')
             and self.dims[0] == self.dims[1]
@@ -371,8 +374,8 @@ class Qobj:
         returns `self`.  Otherwise, it returns a copy of itself with the data
         store in the new type.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         data_type : type
             The data-layer type that the data of this `Qobj` should be
             converted to.
@@ -399,6 +402,8 @@ class Qobj:
 
     @_require_equal_type
     def __add__(self, other):
+        if other == 0:
+            return self.copy()
         isherm = (self._isherm and other._isherm) or None
         return Qobj(_data.add(self._data, other._data),
                     dims=self.dims,
@@ -412,6 +417,8 @@ class Qobj:
 
     @_require_equal_type
     def __sub__(self, other):
+        if other == 0:
+            return self.copy()
         isherm = (self._isherm and other._isherm) or None
         return Qobj(_data.sub(self._data, other._data),
                     dims=self.dims,
@@ -1045,7 +1052,7 @@ class Qobj:
         superoperator formalism (i.e. the object has type `operator-ket` or
         `operator-bra`), the partial trace is applied as if the operator were
         in the conventional form.  This means that for any operator `x`,
-            operator_to_vector(x).ptrace(0) == operator_to_vector(x.ptrace(0))
+        ``operator_to_vector(x).ptrace(0) == operator_to_vector(x.ptrace(0))``
         and similar for `operator-bra`.
 
         The story is different for full superoperators.  In the formalism that
@@ -1054,7 +1061,7 @@ class Qobj:
         space of dimensions `[2, 3, 2, 3]`, and a superoperator would be an
         operator which acts on this joint space.  This function performs the
         partial trace on superoperators by letting the selected components
-        refer to elements of the _joint space_, and then returns a regular
+        refer to elements of the _joint_ _space_, and then returns a regular
         operator (of type `oper`).
 
         Parameters
@@ -1112,14 +1119,14 @@ class Qobj:
         Parameters
         ----------
         inplace: bool, optional
-            If True, modify the dimensions in place.  If False, return a copied
-            object.
+            If ``True``, modify the dimensions in place.  If ``False``, return
+            a copied object.
 
         Returns
         -------
         out: :class:`.Qobj`
-            Quantum object with dimensions contracted.  Will be `self` if
-            :param:`inplace` is True.
+            Quantum object with dimensions contracted.  Will be ``self`` if
+            ``inplace`` is ``True``.
         """
         if self.isket:
             sub = [x for x in self.dims[0] if x > 1] or [1]
@@ -1156,28 +1163,28 @@ class Qobj:
     def permute(self, order):
         """
         Permute the tensor structure of a quantum object.  For example,
-            qutip.tensor(x, y).permute([1, 0])
+        ``qutip.tensor(x, y).permute([1, 0])``
         will give the same result as
-            qutip.tensor(y, x)
+        ``qutip.tensor(y, x)``
         and
-            qutip.tensor(a, b, c).permute([1, 2, 0])
+        ``qutip.tensor(a, b, c).permute([1, 2, 0])``
         will be the same as
-            qutip.tensor(b, c, a)
+        ``qutip.tensor(b, c, a)``
 
-        For regular objects (bras, kets and operators) we expect `order` to be
-        a flat list of integers, which specifies the new order of the tensor
+        For regular objects (bras, kets and operators) we expect ``order`` to
+        be a flat list of integers, which specifies the new order of the tensor
         product.
 
-        For superoperators, we expect `order` to be something like
-            [[0, 2], [1, 3]]
+        For superoperators, we expect ``order`` to be something like
+        ``[[0, 2], [1, 3]]``
         which tells us to permute according to [0, 2, 1, 3], and then group
         indices according to the length of each sublist.  As another example,
         permuting a superoperator with dimensions of
-          [[[1, 2, 3], [1, 2, 3]], [[1, 2, 3], [1, 2, 3]]]
-        by an `order`
-          [[0, 3], [1, 4], [2, 5]]
+        ``[[[1, 2, 3], [1, 2, 3]], [[1, 2, 3], [1, 2, 3]]]``
+        by an ``order``
+        ``[[0, 3], [1, 4], [2, 5]]``
         should give a new object with dimensions
-          [[[1, 1], [2, 2], [3, 3]], [[1, 1], [2, 2], [3, 3]]].
+        ``[[[1, 1], [2, 2], [3, 3]], [[1, 1], [2, 2], [3, 3]]]``.
 
         Parameters
         ----------
@@ -1609,29 +1616,16 @@ class Qobj:
         Use sparse only if memory requirements demand it.
         """
         eigvals = 2 if safe else 1
-        if isinstance(self.data, _data.CSR) and sparse:
-            evals, evecs = _data.eigs_csr(self.data,
-                                          isherm=self._isherm,
-                                          eigvals=eigvals, tol=tol,
-                                          maxiter=maxiter)
-        elif isinstance(self.data, _data.CSR):
-            evals, evecs = _data.eigs(_data.to(_data.Dense, self.data),
-                                      isherm=self._isherm,
-                                      eigvals=eigvals)
-        else:
-            evals, evecs = _data.eigs(self.data,
-                                      isherm=self._isherm,
-                                      eigvals=eigvals)
+        evals, evecs = self.eigenstates(sparse=sparse, eigvals=eigvals,
+                                        tol=tol, maxiter=maxiter)
 
         if safe:
             tol = tol or settings.core['atol']
-            if (evals[1]-evals[0]) <= 10*tol:
-                print("WARNING: Ground state may be degenerate. "
-                        "Use Q.eigenstates()")
-        new_dims = [self.dims[0], [1] * len(self.dims[0])]
-        grndvec = Qobj(evecs[0], dims=new_dims)
-        grndvec = grndvec / grndvec.norm()
-        return evals[0], grndvec
+            # This tol should be less strick than the tol for the eigensolver
+            # so it's numerical errors are not seens as degenerate states.
+            if (evals[1]-evals[0]) <= 10 * tol:
+                warnings.warn("Ground state may be degenerate.", UserWarning)
+        return evals[0], evecs[0]
 
     def dnorm(self, B=None):
         """Calculates the diamond norm, or the diamond distance to another

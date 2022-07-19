@@ -25,23 +25,23 @@ class SolverOptions:
 
         qutip.settings.solver['progress_bar'] = 'enhanced'
 
-    Options
-    -------
-    normalize_output : str {"", "dm", "ket", "all", True}
-        Whether to normalize the output state to hide ODE numerical errors.
-        The values "all" and True will normalize both ket and dm states.
-        The values "ket" and "dm" will only normalize states of the specified
-        type. Leave blank for no normalization.
+    Keys:
 
-    progress_bar : str {'text', 'enhanced', 'tqdm', ''}
-        How to present the solver progress.
-        True will result in 'text'.
-        'tqdm' uses the python module of the same name and raise an error if
-        not installed.
-        Empty string or False will disable the bar.
+        normalize_output : str {"", "dm", "ket", "all", True}
+            Whether to normalize the output state to hide ODE numerical errors.
+            The values "all" and True will normalize both ket and dm states.
+            The values "ket" and "dm" will only normalize states of the
+            specified type. Leave blank for no normalization.
 
-    progress_kwargs : dict
-        kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
+        progress_bar : str {'text', 'enhanced', 'tqdm', ''}
+            How to present the solver progress.
+            True will result in 'text'.
+            'tqdm' uses the python module of the same name and raise an error
+            if not installed.
+            Empty string or False will disable the bar.
+
+        progress_kwargs : dict
+            kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
     """
     options = {
         # Normalize output of solvers
@@ -176,17 +176,19 @@ class SolverResultsOptions:
         On `None` the states will be saved if no expectation operators are
         given.
 
-    keep_runs_results: bool
-        Keep all trajectories results or save only the average.
-
+    store_ados : bool {False, True}
+        Whether or not to store the HEOM ADOs. Only relevant when using
+        the HEOM solver.
     """
     options = {
         # store final state?
         "store_final_state": False,
         # store states even if expectation operators are given?
         "store_states": None,
+        # store HEOM ADOs when using the HEOMSolver
+        "store_ados": False,
 
-        "keep_runs_results": False,
+        "keep_run_result": False,
     }
 
 

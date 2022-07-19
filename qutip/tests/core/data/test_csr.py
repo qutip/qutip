@@ -4,6 +4,7 @@ import pytest
 
 from qutip.core import data
 from qutip.core.data import csr
+from qutip import qeye, CoreOptions
 
 from . import conftest
 
@@ -340,3 +341,11 @@ class TestFactoryMethods:
             base = data.one_element_csr(shape, position, value)
         assert str(exc.value).startswith("Position of the elements"
                                          " out of bound: ")
+
+
+def test_tidyup():
+    small = qeye(1) * 1e-5
+    with CoreOptions(auto_tidyup_atol=1e-3):
+        assert (small + small).tr() == 0
+    with CoreOptions(auto_tidyup_atol=1e-3, auto_tidyup=False):
+        assert (small + small).tr() == 2e-5
