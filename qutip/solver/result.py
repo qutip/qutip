@@ -65,7 +65,55 @@ class ExpectOp:
         self._append(self._f(t, state))
 
 
-class Result:
+class _BaseResult:
+    """
+    Common method for all ``Result``.
+    """
+    def __init__(self, options, *, solver=None, stats=None):
+        self.solver = solver
+        if stats is None:
+            stats = {}
+        self.stats = stats
+
+        self._state_processors = []
+        self._state_processors_require_copy = False
+
+        self.options = options
+
+    def _e_ops_to_dict(self, e_ops):
+        """ Convert the supplied e_ops to a dictionary of Eop instances. """
+        if e_ops is None:
+            e_ops = {}
+        elif isinstance(e_ops, (list, tuple)):
+            e_ops = {k: e_op for k, e_op in enumerate(e_ops)}
+        elif isinstance(e_ops, dict):
+            pass
+        else:
+            e_ops = {0: e_ops}
+        return e_ops
+
+    def add_processor(self, f, requires_copy=False):
+        """
+        Append a processor ``f`` to the list of state processors.
+
+        Parameters
+        ----------
+        f : function, ``f(t, state)``
+            A function to be called each time a state is added to this
+            result object. The state is the state passed to ``.add``, after
+            applying the pre-processors, if any.
+
+        requires_copy : bool, default False
+            Whether this processor requires a copy of the state rather than
+            a reference. A processor must never modify the supplied state, but
+            if a processor stores the state it should set ``require_copy`` to
+            true.
+        """
+        self._state_processors.append(f)
+        self._state_processors_require_copy |= requires_copy
+
+
+class Result(_BaseResult):
     """
     Base class for storing solver results.
 
@@ -146,27 +194,21 @@ class Result:
         The options for this result class.
     """
     def __init__(self, e_ops, options, *, solver=None, stats=None, **kw):
-        self.solver = solver
-        self.stats = stats
+        super().__init__(options, solver=solver, stats=stats)
+        raw_ops = self._e_ops_to_dict(e_ops)
+        self.e_data = {k: [] for k in raw_ops}
+        self.expect = list(self.e_data.values())
+        self.e_ops = {}
+        for k, op in raw_ops.items():
+            f = self._e_op_func(op)
+            self.e_ops[k] = ExpectOp(op, f, self.e_data[k].append)
+            self.add_processor(self.e_ops[k]._store)
 
-        self._state_processors = []
-        self._state_processors_require_copy = False
-        self._raw_ops = self._e_ops_to_dict(e_ops)
-        self.options = options
+        self.times = []
+        self.states = []
+        self.final_state = None
 
         self._post_init(**kw)
-
-    def _e_ops_to_dict(self, e_ops):
-        """ Convert the supplied e_ops to a dictionary of Eop instances. """
-        if e_ops is None:
-            e_ops = {}
-        elif isinstance(e_ops, (list, tuple)):
-            e_ops = {k: e_op for k, e_op in enumerate(e_ops)}
-        elif isinstance(e_ops, dict):
-            pass
-        else:
-            e_ops = {0: e_ops}
-        return e_ops
 
     def _e_op_func(self, e_op):
         """
@@ -196,18 +238,6 @@ class Result:
         Sub-class ``.post_init()`` implementation may take additional keyword
         arguments if required.
         """
-        self.e_data = {k: [] for k in self._raw_ops}
-        self.expect = list(self.e_data.values())
-        self.e_ops = {}
-        for k, op in self._raw_ops.items():
-            f = self._e_op_func(op)
-            self.e_ops[k] = ExpectOp(op, f, self.e_data[k].append)
-            self.add_processor(self.e_ops[k]._store)
-
-        self.times = []
-        self.states = []
-        self.final_state = None
-
         store_states = self.options['store_states']
         store_final_state = self.options['store_final_state']
 
@@ -233,26 +263,6 @@ class Result:
             altogether if a copy is not necessary.
         """
         return state.copy()
-
-    def add_processor(self, f, requires_copy=False):
-        """
-        Append a processor ``f`` to the list of state processors.
-
-        Parameters
-        ----------
-        f : function, ``f(t, state)``
-            A function to be called each time a state is added to this
-            result object. The state is the state passed to ``.add``, after
-            applying the pre-processors, if any.
-
-        requires_copy : bool, default False
-            Whether this processor requires a copy of the state rather than
-            a reference. A processor must never modify the supplied state, but
-            if a processor stores the state it should set ``require_copy`` to
-            true.
-        """
-        self._state_processors.append(f)
-        self._state_processors_require_copy |= requires_copy
 
     def add(self, t, state):
         """
@@ -316,7 +326,7 @@ class Result:
         return "\n".join(lines)
 
 
-class MultiTrajResult(Result):
+class MultiTrajResult(_BaseResult):
     """
     Base class for storing results for solver using multiple trajectories.
 
@@ -416,7 +426,7 @@ class MultiTrajResult(Result):
         those returned by ``.expect``.
 
     runs_e_data : dict
-        A dictionary containing the values of each ``e_op`` for each 
+        A dictionary containing the values of each ``e_op`` for each
         trajectories. If the ``e_ops`` were supplied as a dictionary, the keys
         are the same as in that dictionary. Otherwise the keys are the index of
         the ``e_op`` in the ``.expect`` list. Only available if the storing
@@ -436,12 +446,31 @@ class MultiTrajResult(Result):
     options : :obj:`~SolverResultsOptions`
         The options for this result class.
     """
-    _sum_states = None
-    _sum_final_states = None
-    _sum_expect = None
-    _sum2_expect = None
-    _target_tols = None
-    _tol_reached = False
+    def __init__(self, e_ops, options, *, solver=None, stats=None, **kw):
+        super().__init__(options, solver=solver, stats=stats)
+        self._raw_ops = self._e_ops_to_dict(e_ops)
+
+        self.times = []
+        self.trajectories = []
+        self.seeds = []
+
+        self._sum_states = None
+        self._sum_final_states = None
+        self._sum_expect = None
+        self._sum2_expect = None
+        self._target_tols = None
+        self._tol_reached = False
+
+        self.average_e_data = {}
+        self.average_expect = []
+        self.e_data = {}
+        self.expect = []
+        self.std_e_data = {}
+        self.std_expect = []
+        self.runs_e_data = {}
+        self.runs_expect = []
+
+        self._post_init(**kw)
 
     @staticmethod
     def _to_dm(state):
@@ -520,8 +549,6 @@ class MultiTrajResult(Result):
         if self.num_trajectories == 0:
             self._add_first_traj(trajectory)
         self.num_trajectories += 1
-        if hasattr(trajectory, "seed"):
-            self.seeds.append(trajectory.seed)
 
     def _no_end(self):
         """
@@ -557,26 +584,13 @@ class MultiTrajResult(Result):
         target_ntraj = np.max((avg2 - abs(avg)**2) / target**2 + 1)
 
         self._estimated_ntraj = min(target_ntraj, self._target_ntraj)
-        if self._estimated_ntraj - self.num_trajectories <= 0:
+        if (self._estimated_ntraj - self.num_trajectories) <= 0:
             self.stats['end_condition'] = 'target tolerance reached'
         return self._estimated_ntraj - self.num_trajectories
 
     def _post_init(self):
-        self.trajectories = []
-        self.seeds = []
         self.num_trajectories = 0
         self._target_ntraj = None
-        if self.stats is None:
-            self.stats = {}
-
-        self.average_e_data = {}
-        self.average_expect = []
-        self.e_data = {}
-        self.expect = []
-        self.std_e_data = {}
-        self.std_expect = []
-        self.runs_e_data = {}
-        self.runs_expect = []
 
         store_states = self.options['store_states']
         store_final_state = self.options['store_final_state']
@@ -597,7 +611,7 @@ class MultiTrajResult(Result):
         self._early_finish_check = self._no_end
         self.stats['end_condition'] = 'unknown'
 
-    def add(self, trajectory):
+    def add(self, seed, trajectory):
         """
         Add a trajectory to the evolution.
 
@@ -606,6 +620,9 @@ class MultiTrajResult(Result):
 
         Parameters
         ----------
+        seed : int, SeedSequence
+            Seed used to generate the trajectory.
+
         trajectory : :class:`Result`
             Run result for one evolution over the times.
 
@@ -615,6 +632,8 @@ class MultiTrajResult(Result):
             Return the number of trajectories still needed to reach the target
             tolerance. If no tolerance is provided, return infinity.
         """
+        self.seeds.append(seed)
+
         for op in self._state_processors:
             op(trajectory)
 

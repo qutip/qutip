@@ -188,7 +188,7 @@ class SolverResultsOptions:
         # store HEOM ADOs when using the HEOMSolver
         "store_ados": False,
 
-        "keep_run_result": False,
+        "keep_runs_results": False,
     }
 
 
