@@ -339,3 +339,26 @@ class TestMultiTrahResult:
         assert "Number of trajectories: 10" in repr
         if keep_runs_results:
             assert "Trajectories saved." in repr
+
+    @pytest.mark.parametrize('keep_runs_results', [True, False])
+    def test_merge_result(self, keep_runs_results):
+        N = 10
+        opt = qutip.solver.SolverResultsOptions(
+            keep_runs_results=keep_runs_results,
+            store_states=True,
+        )
+        m_res1 = MultiTrajResult([qutip.num(10)], opt)
+        self._fill_trajectories(m_res1, N, 10, noise=0.1)
+
+        m_res2 = MultiTrajResult([qutip.num(10)], opt)
+        self._fill_trajectories(m_res2, N, 30, noise=0.1)
+
+        merged_res = m_res1 + m_res2
+        assert merged_res.num_trajectories == 40
+        np.testing.assert_allclose(merged_res.average_expect[0], np.arange(10), rtol=0.1)
+        np.testing.assert_allclose(
+            np.diag(sum(merged_res.average_states).full()),
+            np.ones(N),
+            rtol=0.1
+        )
+        assert bool(merged_res.trajectories) == keep_runs_results

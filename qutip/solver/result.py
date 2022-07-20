@@ -452,6 +452,7 @@ class MultiTrajResult(_BaseResult):
 
         self.times = []
         self.trajectories = []
+        self.num_trajectories = 0
         self.seeds = []
 
         self._sum_states = None
@@ -459,7 +460,6 @@ class MultiTrajResult(_BaseResult):
         self._sum_expect = None
         self._sum2_expect = None
         self._target_tols = None
-        self._tol_reached = False
 
         self.average_e_data = {}
         self.average_expect = []
@@ -838,6 +838,57 @@ class MultiTrajResult(_BaseResult):
         if self.trajectories:
             lines.insert(-1, "  Trajectories saved.")
         return "\n".join(lines)
+
+    def __add__(self, other):
+        if not isinstance(other, MultiTrajResult):
+            return NotImplemented
+        if self._raw_ops != other._raw_ops:
+            raise ValueError("Shared `e_ops` is required to merge results")
+        if self.times != other.times:
+            raise ValueError("Shared `times` are is required to merge results")
+        new = self.__class__(self._raw_ops, self.options, solver=self.solver)
+        if self.trajectories and other.trajectories:
+            new.trajectories = self.trajectories + other.trajectories
+        new.num_trajectories = self.num_trajectories + other.num_trajectories
+        new.times = self.times
+        new.seeds = self.seeds + other.seeds
+
+        new._sum_states = self._sum_states + other._sum_states
+        new._sum_final_states = self._sum_final_states + other._sum_final_states
+        new._target_tols = None
+
+        if self._raw_ops:
+            new._sum_expect = self._sum_expect + other._sum_expect
+            new._sum2_expect = self._sum2_expect + other._sum2_expect
+
+            avg = new._sum_expect / new.num_trajectories
+            avg2 = new._sum2_expect / new.num_trajectories
+
+            new.average_e_data = {
+                k: avg_expect
+                for k, avg_expect in zip(self._raw_ops, avg)
+            }
+            new.average_expect = list(new.average_e_data.values())
+
+            new.expect = new.average_expect
+            new.e_data = new.average_e_data
+
+            new.std_e_data = {
+                k: np.sqrt(avg_expect2 - abs(avg_expect**2))
+                for k, avg_expect, avg_expect2 in zip(self._raw_ops, avg, avg2)
+            }
+            new.std_expect = list(new.std_e_data.values())
+
+            if new.trajectories:
+                new.runs_e_data = {
+                    k: np.stack([traj.e_data[k] for traj in new.trajectories])
+                    for k in new._raw_ops
+                }
+                new.runs_expect = list(new.runs_e_data.values())
+                new.expect = new.runs_expect
+                new.e_data = new.runs_e_data
+
+        return new
 
 
 class McResult(MultiTrajResult):
