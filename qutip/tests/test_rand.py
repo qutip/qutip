@@ -1,8 +1,38 @@
 import numpy as np
 from qutip import (
-    rand_unitary, qeye, rand_herm, rand_dm, rand_ket, rand_stochastic,
+    rand_jacobi_rotation,
+    rand_herm,
+    rand_unitary,
+    rand_dm,
+    rand_ket,
+    rand_stochastic,
+    rand_super,
 )
-from qutip.core.data import eigs_csr
+
+
+def rand_jacobi_rotation():
+
+
+
+
+import qutip.data as _data
+
+
+def _is_unitary(qobj):
+    return qobj * qobj.dag() == qeye(qobj.dims[0])
+
+
+def _is_herm(qobj):
+    return _data.isherm(qobj.data)
+
+def test_rand_herm():
+
+
+def test_rand_herm_eigen():
+
+
+
+
 
 
 class TestRand:

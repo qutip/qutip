@@ -392,6 +392,12 @@ def rand_ket(dimensions, density=1, distribution="haar", *,
         the new Qobj are set to this list.  This can produce either `oper` or
         `super` depending on the passed `dimensions`.
 
+    distribution : ["haar", "fill"]
+        Method used to obtain the distribution of unitary matrices.
+        haar - Haar random pure state obtained by applying a Haar random
+          unitary to a fixed pure state.
+        fill - Fill the ket with uniformly distributed random complex number.
+
     density : float, [1]
         Density between [0,1] of output ket state when using the ``fill``
         method.
@@ -431,8 +437,8 @@ def rand_ket(dimensions, density=1, distribution="haar", *,
     return ket.to(dtype)
 
 
-def rand_dm(dimensions, density=0.75, eigenvalues=None,
-            distribution="ginibre", rank=None, *,
+def rand_dm(dimensions, distribution="ginibre",
+            density=0.75, eigenvalues=None, rank=None, *,
             seed=None, dtype=_data.CSR):
     r"""Creates a random density matrix of the desired dimensions.
 
@@ -493,13 +499,13 @@ def rand_dm(dimensions, density=0.75, eigenvalues=None,
                              'must sum to one.')
         H = _data.diag(eigenvalues, 0)
         nvals = N**2 * density
-        H = rand_jacobi_rotation(H, seed=generator)
+        H = _rand_jacobi_rotation(H, generator)
         while _data.csr.nnz(H) < 0.95*nvals:
-            H = rand_jacobi_rotation(H)
+            H = rand_jacobi_rotation(H, generator)
     elif distribution == "ginibre":
-        H = _rand_dm_ginibre(N, rankseed=generator)
+        H = _rand_dm_ginibre(N, rank, seed=generator)
     elif distribution == "hs":
-        H = _rand_dm_ginibre(N, Nseed=generator)
+        H = _rand_dm_ginibre(N, N, seed=generator)
     elif distribution == "pure":
         dm_density = np.sqrt(density)
         psi = rand_ket(N, density=dm_density,
