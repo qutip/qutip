@@ -216,6 +216,35 @@ Floquet theory for dissipative evolution
 
 A driven system that is interacting with its environment is not necessarily well described by the standard Lindblad master equation, since its dissipation process could be time-dependent due to the driving. In such cases a rigorious approach would be to take the driving into account when deriving the master equation. This can be done in many different ways, but one way common approach is to derive the master equation in the Floquet basis. That approach results in the so-called Floquet-Markov master equation, see Grifoni et al., Physics Reports 304, 299 (1998) for details.
 
+For a brief summary of the derivation, the important contents for the implementation in QuTiP are listed below.
+
+The floquet mode :math:`\ket{\phi_\alpha(t)}` refers to a full class of quasienergies defined by :math:`\epsilon_\alpha + k \Omega` for arbitrary :math:`k`. Hence, the quasienenergy difference between two floquet modes is given by
+
+.. math::
+    \Delta_{\alpha \beta k} = \frac{\epsilon_\alpha - \epsilon_\beta}{\hbar} + k \Omega
+
+For any coupling operator :math:`q` (given by the user) the matrix elements in the floquet basis are calculated as:
+
+.. math::
+    X_{\alpha \beta k} = \frac{1}{T} \int_0^T dt \; e^{-ik \Omega t} \bra{\phi_\alpha(t)}q\ket{\phi_\beta(t)}
+
+From the matrix elements and the spectral density :math:`J(\omega)`, the decay rate :math:`\gamma_{\alpha \beta k}` is defined:
+
+.. math::
+    \gamma_{\alpha \beta k} = 2 \pi \Theta(\Delta_{\alpha \beta k}) J(\Delta_{\alpha \beta k}) | X_{\alpha \beta k}|^2
+
+where :math:`\Theta` is the Heaviside function. The master equation is further simplified by the RWA, which makes the following matrix useful:
+
+.. math::
+    A_{\alpha \beta} = \sum_{k = -\infty}^\infty [\gamma_{\alpha \beta k} + n_{th}(|\Delta_{\alpha \beta k}|)(\gamma_{\alpha \beta k} + \gamma_{\alpha \beta -k})
+
+The density matrix of the system then evolves according to:
+.. math::
+    \dot{\rho}_{\alpha \alpha}(t) = \sum_\nu (A_{\alpha \nu} \rho_{\nu \nu}(t) - A_{\nu \alpha} \rho_{\alpha \alpha} (t))
+
+.. math::
+    \dot{\rho}_{\alpha \beta}(t) = -\frac{1}{2} \sum_\nu (A_{\nu \alpha} + A_{\nu \beta}) \rho_{\alpha \beta}(t) \qquad \alpha \neq \beta
+
 
 The Floquet-Markov master equation in QuTiP
 -------------------------------------------
