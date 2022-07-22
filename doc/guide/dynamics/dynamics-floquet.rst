@@ -239,6 +239,7 @@ where :math:`\Theta` is the Heaviside function. The master equation is further s
     A_{\alpha \beta} = \sum_{k = -\infty}^\infty [\gamma_{\alpha \beta k} + n_{th}(|\Delta_{\alpha \beta k}|)(\gamma_{\alpha \beta k} + \gamma_{\alpha \beta -k})
 
 The density matrix of the system then evolves according to:
+
 .. math::
     \dot{\rho}_{\alpha \alpha}(t) = \sum_\nu (A_{\alpha \nu} \rho_{\nu \nu}(t) - A_{\nu \alpha} \rho_{\alpha \alpha} (t))
 
