@@ -303,3 +303,34 @@ def test_bloch_redfield_tensor_time_dependence(cutoff, fock_basis):
         R_expected = R_expected[0] if not fock_basis else R_expected
         np.testing.assert_allclose(R(t).full(), R_expected.full(),
                                    rtol=1e-14, atol=1e-14)
+
+
+def test_bloch_redfield_tensor_spectral_string():
+    N = 5
+    H = qutip.num(N)
+    a = qutip.destroy(N)
+    A_op = a + a.dag()
+    spectra = "(w>0) * 0.5"
+    R_eigs, evecs = bloch_redfield_tensor(
+        H=H,
+        a_ops=[(A_op, spectra)],
+        c_ops=[a**2],
+        fock_basis=False
+    )
+    assert isinstance(R_eigs, qutip.Qobj)
+    assert isinstance(evecs, qutip.Qobj)
+
+def test_bloch_redfield_tensor_spectral_callable():
+    N = 5
+    H = qutip.num(N)
+    a = qutip.destroy(N)
+    A_op = a + a.dag()
+    spectra = lambda w: (w>0) * 0.5
+    R_eigs, evecs = bloch_redfield_tensor(
+        H=H,
+        a_ops=[(A_op, spectra)],
+        c_ops=[a**2],
+        fock_basis=False
+    )
+    assert isinstance(R_eigs, qutip.Qobj)
+    assert isinstance(evecs, qutip.Qobj)
