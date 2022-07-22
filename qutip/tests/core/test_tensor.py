@@ -219,7 +219,7 @@ class Test_expand_operator:
     def test_general_qubit_expansion(self, n_targets):
         # Test all permutations with the given number of targets.
         n_qubits = 5
-        operation = qutip.rand_unitary(2**n_targets, dims=[[2]*n_targets]*2)
+        operation = qutip.rand_unitary([2]*n_targets)
         for targets in itertools.permutations(range(n_qubits), n_targets):
             expected = _tensor_with_entanglement([qutip.qeye(2)] * n_qubits,
                                                  operation, targets)

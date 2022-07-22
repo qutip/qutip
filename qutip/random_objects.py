@@ -1,8 +1,5 @@
-# -*- coding: utf-8 -*-
 """
 This module is a collection of random state and operator generators.
-The sparsity of the ouput Qobj's is controlled by varing the
-`density` parameter.
 """
 
 __all__ = [
@@ -13,8 +10,7 @@ __all__ = [
     'rand_ket',
     'rand_kraus_map',
     'rand_super',
-    'rand_super_bcsz',
-    'rand_jacobi_rotation'
+    "rand_super_bcsz",
 ]
 
 import numbers
@@ -24,7 +20,8 @@ from numpy.random import Generator, SeedSequence, default_rng
 import scipy.linalg
 import scipy.sparse as sp
 
-from . import Qobj, create, destroy, jmat, basis, to_super
+from . import (Qobj, create, destroy, jmat, basis,
+               to_super, to_choi, to_chi, to_kraus, to_stinespring)
 from .core import data as _data
 from .core.dimensions import flatten
 
@@ -110,20 +107,20 @@ def _randnz(shape, generator, norm=np.sqrt(0.5)):
     return np.sum(generator.normal(size=(shape + (2,))) * _UNITS, axis=-1) * norm
 
 
-def _rand_jacobi_rotation_data(A, generator):
+def _rand_jacobi_rotation(A, generator):
     """Random Jacobi rotation of a matrix.
 
     Parameters
     ----------
-    A : :class:`core.data.Data`
-        Matrix to rotate as a data matrix.
+    A : qutip.data.Data
+        Matrix to rotate as a data layer object.
 
-    generator : Generator
+    generator : numpy.random.generator
         Random number generator.
 
     Returns
     -------
-    Rotated matrix: :class:`Qobj`
+    qutip.data.Data
         Rotated sparse matrix.
     """
     if A.shape[0] != A.shape[1]:
@@ -142,31 +139,8 @@ def _rand_jacobi_rotation_data(A, generator):
     rows = np.hstack(([i, i, j, j], diag))
     cols = np.hstack(([i, j, i, j], diag))
     R = sp.coo_matrix((data, (rows, cols)), shape=(n, n), dtype=complex)
-    R = _data.to(A.__class__, _data.create(R.tocsr()))
-
-    return R @ A @ R.adjoint()
-
-
-def rand_jacobi_rotation(A, *, seed=None):
-    """Random Jacobi rotation of a matrix.
-
-    Parameters
-    ----------
-    A : :class:`Qobj`
-        Qobj operator to rotate.
-
-    seed : int, SeedSequence, Generator, optional
-        Seed to create the random number generator. Can be a pre prepared
-        generator. When none is suplied, a default generator is used.
-
-    Returns
-    -------
-    Rotated matrix: :class:`Qobj`
-        Rotated sparse matrix.
-    """
-    generator = _get_generator(seed)
-    rotated = _rand_jacobi_rotation_data(A.data, generator)
-    return Qobj(rotated, dims=A.dims, copy=False, isherm=A.isherm, type=A.type)
+    R = _data.create(R.tocsr())
+    return _data.matmul(_data.matmul(R, A), R.adjoint())
 
 
 def rand_herm(dimensions, density=0.30, pos_def=False, eigenvalues=None, *,
@@ -222,12 +196,12 @@ def rand_herm(dimensions, density=0.30, pos_def=False, eigenvalues=None, *,
         if N != len(eigenvalues):
             raise ValueError("The number of eigenvalues does not match the "
                              "desired shape.")
-        out = Qobj(_data.diag[_data.CSR](eigenvalues, 0),
-                   type='oper', isherm=True, copy=False)
+        out = _data.diag[_data.CSR](eigenvalues, 0)
         nvals = max([N**2 * density, 1])
-        out = rand_jacobi_rotation(out, seed=generator)
-        while _data.csr.nnz(out.data) < 0.95 * nvals:
-            out = rand_jacobi_rotation(out, seed=generator)
+        out = _rand_jacobi_rotation(out, generator)
+        while _data.csr.nnz(out) < 0.95 * nvals:
+            out = _rand_jacobi_rotation(out, generator)
+        out = Qobj(out, type='oper', isherm=True, copy=False)
 
     else:
         if density < 0.5:
@@ -423,10 +397,12 @@ def rand_ket(dimensions, density=1, distribution="haar", *,
     if distribution == "haar":
         ket = _rand_unitary_haar(N, generator) @ basis(N, 0)
     else:
-        X = scipy.sparse.rand(N, 1, density, format='csr')
+        X = scipy.sparse.rand(N, 1, density, format='csr',
+                              random_state=generator)
         while X.nnz == 0:
             # ensure that the ket is not all zeros.
-            X = scipy.sparse.rand(N, 1, density+1/N, format='csr')
+            X = scipy.sparse.rand(N, 1, density+1/N, format='csr',
+                                  random_state=generator)
         X.data = X.data - 0.5
         Y = X.copy()
         Y.data = 1.0j * (generator.random(len(X.data)) - 0.5)
@@ -462,7 +438,8 @@ def rand_dm(dimensions, distribution="ginibre",
         - "herm" : Build from a random hermitian matrix using ``rand_herm``.
 
     density : float
-        Density between [0,1] of output density matrix.
+        Density between [0,1] of output density matrix. Used by the "pure",
+        "eigen" and "herm".
 
     eigenvalues : array_like, optional
         Eigenvalues of the output Hermitian matrix. The len must match the
@@ -494,14 +471,14 @@ def rand_dm(dimensions, distribution="ginibre",
     if distribution == "eigen":
         if len(eigenvalues) != N:
             raise ValueError("Number of eigenvalues does not match the shape.")
-        if np.abs(np.sum(N)-1.0) > 1e-15:
+        if np.abs(np.sum(eigenvalues)-1.0) > 1e-15:
             raise ValueError('Eigenvalues of a density matrix '
-                             'must sum to one.')
+                             f'must sum to one, not {np.sum(eigenvalues)}')
         H = _data.diag(eigenvalues, 0)
         nvals = N**2 * density
         H = _rand_jacobi_rotation(H, generator)
         while _data.csr.nnz(H) < 0.95*nvals:
-            H = rand_jacobi_rotation(H, generator)
+            H = _rand_jacobi_rotation(H, generator)
     elif distribution == "ginibre":
         H = _rand_dm_ginibre(N, rank, seed=generator)
     elif distribution == "hs":
@@ -550,7 +527,7 @@ def _rand_dm_ginibre(N, rank, generator):
         An N × N density operator sampled from the Ginibre
         or Hilbert-Schmidt distribution.
     """
-    if rank is None:
+    if not rank:
         rank = N
     if rank > N:
         raise ValueError("Rank cannot exceed dimension.")
@@ -575,8 +552,9 @@ def rand_kraus_map(dimensions, *, seed=None, dtype=_data.Dense):
         the new Qobj are set to this list.  This can produce either `oper` or
         `super` depending on the passed `dimensions`.
 
-    seed : int
-        seed for the random number generator
+    seed : int, SeedSequence, Generator, optional
+        Seed to create the random number generator or a pre prepared
+        generator. When none is suplied, a default generator is used.
 
     dtype : type or str
         Storage representation. Any data-layer known to `qutip.data.to` is
@@ -598,7 +576,7 @@ def rand_kraus_map(dimensions, *, seed=None, dtype=_data.Dense):
             for x in oper_list]
 
 
-def rand_super(dimensions, *, seed=None, dtype=_data.Dense):
+def rand_super(dimensions, *, superrep="super", seed=None, dtype=_data.Dense):
     """
     Returns a randomly drawn superoperator acting on operators acting on
     N dimensions.
@@ -611,8 +589,12 @@ def rand_super(dimensions, *, seed=None, dtype=_data.Dense):
         the new Qobj are set to this list.  This can produce either `oper` or
         `super` depending on the passed `dimensions`.
 
-    seed : int
-        seed for the random number generator
+    superrop : str, optional, {"super"}
+        Representation of the super operator
+
+    seed : int, SeedSequence, Generator, optional
+        Seed to create the random number generator or a pre prepared
+        generator. When none is suplied, a default generator is used.
 
     dtype : type or str
         Storage representation. Any data-layer known to `qutip.data.to` is
@@ -626,7 +608,15 @@ def rand_super(dimensions, *, seed=None, dtype=_data.Dense):
         create(N), destroy(N), jmat(float(N - 1) / 2.0, 'z')
     ])
     S.dims = dims
-    return S.to(dtype)
+
+    out = {
+            "choi" : to_choi,
+            "chi" : to_chi,
+            "super": to_super,
+            "kraus": to_kraus,
+            "Stinespring": to_stinespring,
+        }[superrep](S).to(dtype)
+    return out
 
 
 def rand_super_bcsz(dimensions, enforce_tp=True, rank=None, *,
@@ -656,8 +646,9 @@ def rand_super_bcsz(dimensions, enforce_tp=True, rank=None, *,
         Rank of the sampled superoperator. If None, a full-rank
         superoperator is generated.
 
-    seed : int
-        seed for the random number generator
+    seed : int, SeedSequence, Generator, optional
+        Seed to create the random number generator or a pre prepared
+        generator. When none is suplied, a default generator is used.
 
     superrop : str, optional, {"super"}
         representation of the
@@ -722,16 +713,14 @@ def rand_super_bcsz(dimensions, enforce_tp=True, rank=None, *,
     # Mark that we've made a Choi matrix.
     D.superrep = 'choi'
     D.dims = dims
-
-    D.to(dtype)
-    D = {
-        "choi" : to_choi,
-        "chi" : to_chi,
-        "super": to_super,
-        "kraus": to_kraus,
-        "Stinespring": to_stinespring,
-    }[superrep](D)
-    return D
+    out = {
+            "choi" : to_choi,
+            "chi" : to_chi,
+            "super": to_super,
+            "kraus": to_kraus,
+            "Stinespring": to_stinespring,
+        }[superrep](D).to(dtype)
+    return out
 
 
 def rand_stochastic(dimensions, density=0.75, kind='left',
@@ -752,8 +741,9 @@ def rand_stochastic(dimensions, density=0.75, kind='left',
     kind : str (Default = 'left')
         Generate 'left' or 'right' stochastic matrix.
 
-    seed : int
-        seed for the random number generator
+    seed : int, SeedSequence, Generator, optional
+        Seed to create the random number generator or a pre prepared
+        generator. When none is suplied, a default generator is used.
 
     dtype : type or str
         Storage representation. Any data-layer known to `qutip.data.to` is

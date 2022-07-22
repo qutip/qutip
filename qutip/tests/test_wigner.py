@@ -51,9 +51,9 @@ class TestHusimiQ:
     @pytest.mark.parametrize('dm', [True, False], ids=['dm', 'ket'])
     def test_failure_if_tensor_hilbert_space(self, dm):
         if dm:
-            state = qutip.rand_dm(4, dims=[[2, 2], [2, 2]])
+            state = qutip.rand_dm([2, 2])
         else:
-            state = qutip.rand_ket(4, dims=[[2, 2], [1, 1]])
+            state = qutip.rand_ket([2, 2])
         xs = np.linspace(-1, 1, 5)
         with pytest.raises(ValueError) as e:
             qutip.qfunc(state, xs, xs)
@@ -491,7 +491,7 @@ def test_wigner_compare_methods_dm():
     for n in range(10):
         # try ten different random density matrices
 
-        rho = rand_dm(N, 0.5 + rand() / 2)
+        rho = rand_dm(N, density=0.5 + rand() / 2)
 
         # calculate the wigner function using qutip and analytic formula
         W_qutip1 = wigner(rho, xvec, yvec, g=2)
@@ -523,7 +523,7 @@ def test_wigner_compare_methods_ket():
     for n in range(10):
         # try ten different random density matrices
 
-        psi = rand_ket(N, 0.5 + rand() / 2)
+        psi = rand_ket(N, density=0.5 + rand() / 2)
 
         # calculate the wigner function using qutip and analytic formula
         W_qutip1 = wigner(psi, xvec, yvec, g=2)
@@ -604,7 +604,7 @@ def test_wigner_clenshaw_sp_iter_dm():
 ])
 def test_spin_q_function(spin, pure):
     d = int(2*spin + 1)
-    rho = rand_dm(d, pure=pure)
+    rho = rand_dm(d, "pure")
 
     # Points at which to evaluate the spin Q function
     theta = np.linspace(0, np.pi, 16, endpoint=True)
@@ -628,7 +628,7 @@ def test_spin_q_function(spin, pure):
 ])
 def test_spin_q_function_normalized(spin, pure):
     d = int(2 * spin + 1)
-    rho = rand_dm(d, pure=pure)
+    rho = rand_dm(d, "pure")
 
     # Points at which to evaluate the spin Q function
     theta = np.linspace(0, np.pi, 128, endpoint=True)
@@ -651,7 +651,7 @@ def test_spin_q_function_normalized(spin, pure):
 ])
 def test_spin_wigner_normalized(spin, pure):
     d = int(2*spin + 1)
-    rho = rand_dm(d, pure=pure)
+    rho = rand_dm(d, "pure")
 
     # Points at which to evaluate the spin Wigner function
     theta = np.linspace(0, np.pi, 256, endpoint=True)
@@ -673,7 +673,7 @@ def test_spin_wigner_normalized(spin, pure):
 ])
 def test_spin_wigner_overlap(spin, pure, n=5):
     d = int(2*spin + 1)
-    rho = rand_dm(d, pure=pure)
+    rho = rand_dm(d, "pure")
 
     # Points at which to evaluate the spin Wigner function
     theta = np.linspace(0, np.pi, 256, endpoint=True)

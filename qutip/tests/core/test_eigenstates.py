@@ -69,13 +69,16 @@ def test_known_eigensystem(hamiltonian, eigenvalues, eigenstates):
 
 # Specify parametrisation over a random Hamiltonian by specifying the
 # dimensions, rather than duplicating that logic.
-@pytest.fixture(params=[pytest.param([10], id="simple"),
-                        pytest.param([5, 3, 4], id="tensor"),
-                        pytest.param([[0, 1, 1]]*3, id="degenerate")])
+@pytest.fixture(params=[
+    pytest.param([10], id="simple"),
+    pytest.param([5, 3, 4], id="tensor"),
+    pytest.param([3, 3, 3], id="degenerate")])
 def random_hamiltonian(request):
     dimensions = request.param
-    return qutip.tensor(*[qutip.rand_herm(dim_or_evecs)
-                          for dim_or_evecs in dimensions])
+    eigen = None
+    if dimensions == [3, 3, 3]:
+        eigen = [0, 1, 1] * 9
+    return qutip.rand_herm(dimensions, eigenvalues=eigen)
 
 
 @pytest.mark.parametrize('sparse', [True, False])

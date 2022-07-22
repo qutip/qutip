@@ -7,8 +7,8 @@ import pytest
 
 from qutip import (
     Qobj, tensor, fock_dm, basis, destroy, qdiags, sigmax, sigmay, sigmaz,
-    qeye, rand_ket, rand_super_bcsz, rand_ket_haar, rand_dm_ginibre, rand_dm,
-    rand_unitary, rand_unitary_haar, to_super, to_choi, kraus_to_choi,
+    qeye, rand_ket, rand_super_bcsz, rand_dm,
+    rand_unitary, to_super, to_choi, kraus_to_choi,
     to_chi, to_kraus,
 )
 from qutip.core.gates import snot, swap
@@ -38,8 +38,8 @@ def dimension(request):
 
 
 @pytest.fixture(scope="function", params=[
-    pytest.param(rand_ket_haar, id="pure"),
-    pytest.param(rand_dm_ginibre, id="mixed"),
+    pytest.param(rand_ket, id="pure"),
+    pytest.param(rand_dm, id="mixed"),
 ])
 def state(request, dimension):
     return request.param(dimension)
@@ -59,8 +59,8 @@ left = right = state
 class Test_fidelity:
     def test_mixed_state_inequality(self, dimension):
         tol = 1e-7
-        rho1 = rand_dm(dimension, 0.25)
-        rho2 = rand_dm(dimension, 0.25)
+        rho1 = rand_dm(dimension, density=0.25)
+        rho2 = rand_dm(dimension, density=0.25)
         F = fidelity(rho1, rho2)
         assert 1 - F <= np.sqrt(1 - F*F) + tol
 
@@ -76,9 +76,9 @@ class Test_fidelity:
         assert fidelity(left, right) == pytest.approx(0, abs=1e-6)
 
     def test_invariant_under_unitary_transformation(self, dimension):
-        rho1 = rand_dm(dimension, 0.25)
-        rho2 = rand_dm(dimension, 0.25)
-        U = rand_unitary(dimension, 0.25)
+        rho1 = rand_dm(dimension, density=0.25)
+        rho2 = rand_dm(dimension, density=0.25)
+        U = rand_unitary(dimension)
         F = fidelity(rho1, rho2)
         FU = fidelity(U*rho1*U.dag(), U*rho2*U.dag())
         assert F == pytest.approx(FU, rel=1e-5, abs=1e-7)
@@ -93,8 +93,8 @@ class Test_fidelity:
 
     def test_pure_state_equivalent_to_overlap(self, dimension):
         """Check fidelity against pure-state overlap, see gh-361."""
-        psi = rand_ket_haar(dimension)
-        phi = rand_ket_haar(dimension)
+        psi = rand_ket(dimension)
+        phi = rand_ket(dimension)
         overlap = np.abs(psi.overlap(phi))
         assert fidelity(psi, phi) == pytest.approx(overlap, abs=1e-7)
 
@@ -131,9 +131,9 @@ class Test_tracedist:
         assert tracedist(left, right) == pytest.approx(1, abs=1e-6)
 
     def test_invariant_under_unitary_transformation(self, dimension):
-        rho1 = rand_dm(dimension, 0.25)
-        rho2 = rand_dm(dimension, 0.25)
-        U = rand_unitary(dimension, 0.25)
+        rho1 = rand_dm(dimension, density=0.25)
+        rho2 = rand_dm(dimension, density=0.25)
+        U = rand_unitary(dimension)
         D = tracedist(rho1, rho2)
         DU = tracedist(U*rho1*U.dag(), U*rho2*U.dag())
         assert D == pytest.approx(DU, rel=1e-5)
@@ -195,7 +195,7 @@ class Test_average_gate_fidelity:
     def test_unitaries_equal_1(self, dimension):
         """Tests that for random unitaries U, AGF(U, U) = 1."""
         tol = 1e-7
-        U = rand_unitary_haar(dimension)
+        U = rand_unitary(dimension)
         SU = to_super(U)
         assert average_gate_fidelity(SU, target=U) == pytest.approx(1, abs=tol)
 
@@ -441,7 +441,7 @@ class Test_dnorm:
     @pytest.mark.repeat(3)
     @pytest.mark.parametrize("generator", [
         pytest.param(rand_super_bcsz, id="super"),
-        pytest.param(rand_unitary_haar, id="unitary"),
+        pytest.param(rand_unitary, id="unitary"),
     ])
     def test_force_solve(self, dimension, generator):
         """
@@ -482,7 +482,7 @@ def test_process_fidelity_identical_channels(superrep_conversion):
     """
     num_qubits = 2
     for k in range(10):
-        oper = rand_super_bcsz(2**num_qubits, dims=2*[2*[num_qubits*[2]]])
+        oper = rand_super_bcsz(num_qubits*[2])
         oper = superrep_conversion(oper)
         f = process_fidelity(oper, oper)
         assert f == pytest.approx(1)
@@ -494,7 +494,7 @@ def test_process_fidelity_identical_unitaries():
     """
     num_qubits = 3
     for k in range(10):
-        oper = rand_unitary(2**num_qubits, dims=2*[num_qubits*[2]])
+        oper = rand_unitary(num_qubits * [2])
         f = process_fidelity(oper, oper)
         assert f == pytest.approx(1)
 
@@ -507,8 +507,8 @@ def test_process_fidelity_consistency():
     for k in range(10):
         fidelities_u_to_u = []
         fidelities_u_to_id = []
-        u1 = rand_unitary(2**num_qubits, dims=2*[num_qubits*[2]])
-        u2 = rand_unitary(2**num_qubits, dims=2*[num_qubits*[2]])
+        u1 = rand_unitary(num_qubits * [2])
+        u2 = rand_unitary(num_qubits * [2])
         for map1 in [lambda x:x, to_super, to_choi, to_chi, to_kraus]:
             fidelities_u_to_id.append(process_fidelity(map1(u1)))
             for map2 in [lambda x:x, to_super, to_choi, to_chi, to_kraus]:

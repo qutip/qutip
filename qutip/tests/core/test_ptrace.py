@@ -38,7 +38,7 @@ def dm(request):
 @pytest.fixture
 def state(dtype, dm):
     dims = [2, 3, 4]
-    state = qutip.rand_ket(np.prod(dims), dims=[dims, [1]*len(dims)])
+    state = qutip.rand_ket(dims)
     if dm:
         state = state.proj()
     return state.to(dtype)
@@ -98,7 +98,7 @@ def test_ptrace_fails_on_invalid_input(state, selection, exception):
                              ([2]*6, [0, 1]),
                          ])
 def test_ptrace_rand_ket(dtype, dims, sel):
-    A = qutip.rand_ket(np.prod(dims), dims=[dims, [1]*len(dims)])
+    A = qutip.rand_ket(dims)
     assert A.ptrace(sel) == expected(A, sel)
 
 
@@ -111,7 +111,7 @@ def test_ptrace_rand_ket(dtype, dims, sel):
                               'trace_multiple_not_sorted',
                               ])
 def test_ptrace_rand_dm(dtype, sel):
-    A = qutip.rand_dm(64, 0.5, dims=[[4, 4, 4], [4, 4, 4]]).to(dtype)
+    A = qutip.rand_dm([4, 4, 4], density=0.5).to(dtype)
     assert A.ptrace(sel) == expected(A, sel)
 
 

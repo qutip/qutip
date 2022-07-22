@@ -82,7 +82,8 @@ class Test_spsolve:
 
     @pytest.mark.parametrize('dtype', [np.float64, np.complex128])
     def test_symmetric_solver(self, dtype):
-        A = qutip.rand_herm(np.arange(1, 11), dtype='csr').data.as_scipy()
+        A = qutip.rand_herm(10, eigenvalues=np.arange(1, 11),
+                            dtype='csr').data.as_scipy()
         if dtype == np.float64:
             A = A.real
         x = np.ones(10, dtype=dtype)
