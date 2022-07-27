@@ -275,10 +275,7 @@ def rand_unitary(dimensions, density=0.75, distribution="harr", *,
         the new Qobj are set to this list.  This can produce either `oper` or
         `super` depending on the passed `dimensions`.
 
-    distribution : float, [0.75]
-        Density between [0,1] of output Unitary operator.
-
-    method : ["haar", "exp"]
+    distribution : ["haar", "exp"]
         Method used to obtain the unitary matrices.
 
         - haar : Haar random unitary matrix using the algorithm of [Mez07]_.
@@ -366,11 +363,12 @@ def rand_ket(dimensions, density=1, distribution="haar", *,
         the new Qobj are set to this list.  This can produce either `oper` or
         `super` depending on the passed `dimensions`.
 
-    distribution : ["haar", "fill"]
-        Method used to obtain the distribution of unitary matrices.
-        haar - Haar random pure state obtained by applying a Haar random
+    distribution : str ["haar", "fill"]
+        Method used to obtain the kets.
+
+        - haar : Haar random pure state obtained by applying a Haar random
           unitary to a fixed pure state.
-        fill - Fill the ket with uniformly distributed random complex number.
+        - fill : Fill the ket with uniformly distributed random complex number.
 
     density : float, [1]
         Density between [0,1] of output ket state when using the ``fill``
@@ -445,8 +443,9 @@ def rand_dm(dimensions, distribution="ginibre",
         Eigenvalues of the output Hermitian matrix. The len must match the
         shape of the matrix.
 
-    rank : int
+    rank : int, optional
         When using the "ginibre" distribution, rank of the density matrix.
+        Will default to a full rank operator when not provided.
 
 
     seed : int, SeedSequence, Generator, optional
