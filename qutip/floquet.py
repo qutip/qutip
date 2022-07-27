@@ -612,7 +612,7 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
     Gamma = np.zeros((N, N, M))
     A = np.zeros((N, N))
 
-    nT = 100
+    nT = 2 * kmax * np.ceil(omega)
     dT = T / nT
     tlist = np.arange(dT, T + dT / 2, dT)
 
