@@ -611,7 +611,8 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
     Gamma = np.zeros((N, N, M))
     A = np.zeros((N, N))
 
-    nT = 100
+    # time steps for integration of coupling operator
+    nT = np.max([2 * kmax * np.ceil(omega), 100])
     dT = T / nT
     tlist = np.arange(dT, T + dT / 2, dT)
 
