@@ -589,7 +589,7 @@ class HEOMSolver(Solver):
         "progress_kwargs": {"chunk_size": 10},
         "store_final_state": False,
         "store_states": None,
-        "normalize_output": "ket",
+        "normalize_output": False,
         "method": "adams",
         "store_ados": False,
         "state_data_type": "dense",
@@ -1116,35 +1116,36 @@ class HEOMSolver(Solver):
         """
         Options for HEOMSolver:
 
-        store_final_state: bool
+        store_final_state: bool, default=False
             Whether or not to store the final state of the evolution in the
             result class.
 
-        store_states: bool, None
+        store_states: bool, default=None
             Whether or not to store the state vectors or density matrices.
             On `None` the states will be saved if no expectation operators are
             given.
 
-        normalize_output: bool
+        normalize_output: bool, default=False
             Normalize output state to hide ODE numerical errors.
 
-        progress_bar: str {'text', 'enhanced', 'tqdm', ''}
+        progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default="text"
             How to present the solver progress.
             'tqdm' uses the python module of the same name and raise an error
             if not installed. Empty string or False will disable the bar.
 
-        progress_kwargs: dict
-            kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
+        progress_kwargs: dict, default={"chunk_size": 10}
+            Arguments to pass to the progress_bar. Qutip's bars use
+            ``chunk_size``.
 
-        method: str
+        method: str, default="adams"
             Which ordinary differential equation integration method to use.
 
-        state_data_type: str {'dense'}
+        state_data_type: str, default="dense"
             Name of the data type of the state used during the ODE evolution.
             Use an empty string to keep the input state type. Many integrator can
             only work with `Dense`.
 
-        store_ados : bool {False, True}
+        store_ados : bool, default=False
             Whether or not to store the HEOM ADOs. Only relevant when using
             the HEOM solver.
         """

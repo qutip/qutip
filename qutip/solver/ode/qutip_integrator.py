@@ -71,25 +71,27 @@ class IntegratorVern7(Integrator):
         """
         Supported options by verner method:
 
-        atol : float
+        atol : float, default=1e-8
             Absolute tolerance.
 
-        rtol : float
+        rtol : float, default=1e-6
             Relative tolerance.
 
-        nsteps : int
+        nsteps : int, default=1000
             Max. number of internal steps/call.
 
-        first_step : float
+        first_step : float, default=0
             Size of initial step (0 = automatic).
 
-        min_step : float
+        min_step : float, default=0
             Minimum step size (0 = automatic).
 
-        max_step : float
+        max_step : float, default=0
             Maximum step size (0 = automatic)
+            When using pulses, change to half the thinest pulse otherwise it
+            may be skipped.
 
-        interpolate : bool
+        interpolate : bool, default=True
             Whether to use interpolation step, faster most of the time.
         """
         return self._options

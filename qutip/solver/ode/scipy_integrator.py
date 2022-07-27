@@ -163,26 +163,28 @@ class IntegratorScipyAdams(Integrator):
         """
         Supported options by zvode integrator:
 
-        atol : float
+        atol : float, default=1e-8
             Absolute tolerance.
 
-        rtol : float
+        rtol : float, default=1e-6
             Relative tolerance.
 
-        order : int
-            Order of integrator (<=12 'adams', <=5 'bdf')
+        order : int, default=12, 'adams' or 5, 'bdf'
+            Order of integrator <=12 'adams', <=5 'bdf'
 
-        nsteps : int
+        nsteps : int, default=2500
             Max. number of internal steps/call.
 
-        first_step : float
+        first_step : float, default=0
             Size of initial step (0 = automatic).
 
-        min_step : float
+        min_step : float, default=0
             Minimum step size (0 = automatic).
 
-        max_step : float
+        max_step : float, default=0
             Maximum step size (0 = automatic)
+            When using pulses, change to half the thinest pulse otherwise it
+            may be skipped.
     """
         return self._options
 
@@ -321,26 +323,28 @@ class IntegratorScipyDop853(Integrator):
         """
         Supported options by dop853 integrator:
 
-        atol : float
+        atol : float, default=1e-8
             Absolute tolerance.
 
-        rtol : float
+        rtol : float, default=1e-6
             Relative tolerance.
 
-        nsteps : int
+        nsteps : int, default=2500
             Max. number of internal steps/call.
 
-        first_step : float
+        first_step : float, default=0
             Size of initial step (0 = automatic).
 
-        max_step : float
+        max_step : float, default=0
             Maximum step size (0 = automatic)
 
-        ifactor, dfactor : float
-            float Maximum factor to increase/decrease step size by in one step
+        ifactor, dfactor : float, default=6., 0.3
+            Maximum factor to increase/decrease step size by in one step
 
-        beta : float
-            float Beta parameter for stabilised step size control.
+        beta : float, default=0
+            Beta parameter for stabilised step size control.
+
+        See scipy.integrate.ode ode for more detail
         """
         return self._options
 
@@ -484,28 +488,30 @@ class IntegratorScipylsoda(IntegratorScipyDop853):
         """
         Supported options by lsoda integrator:
 
-        atol : float
+        atol : float, default=1e-8
             Absolute tolerance.
 
-        rtol : float
+        rtol : float, default=1e-6
             Relative tolerance.
 
-        nsteps : int
+        nsteps : int, default=2500
             Max. number of internal steps/call.
 
-        max_order_ns : int
-            Maximum order used in the nonstiff case (default 12).
+        max_order_ns : int, default=12
+            Maximum order used in the nonstiff case (<= 12).
 
-        max_order_s : int
-            Maximum order used in the stiff case (default 5).
+        max_order_s : int, default=5
+            Maximum order used in the stiff case (<= 5).
 
-        first_step : float
+        first_step : float, default=0
             Size of initial step (0 = automatic).
 
-        max_step : float
+        max_step : float, default=0
             Maximum step size (0 = automatic)
+            When using pulses, change to half the thinest pulse otherwise it
+            may be skipped.
 
-        min_step : float
+        min_step : float, default=0
             Minimum step size (0 = automatic)
         """
         return self._options

@@ -185,7 +185,7 @@ class MeSolver(SeSolver):
         "progress_kwargs": {"chunk_size":10},
         "store_final_state": False,
         "store_states": None,
-        "normalize_output": False,
+        "normalize_output": True,
         'method': 'adams',
     }
 

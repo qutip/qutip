@@ -362,6 +362,10 @@ class Solver:
         }
 
     @classmethod
+    def integrator(cls, key):
+        return cls.avail_integrators()[key]
+
+    @classmethod
     def add_integrator(cls, integrator, key):
         """
         Register an integrator.
