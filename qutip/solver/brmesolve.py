@@ -312,6 +312,8 @@ class BRSolver(Solver):
     @property
     def options(self):
         """
+        Options for bloch redfield solver:
+
         store_final_state: bool
             Whether or not to store the final state of the evolution in the
             result class.

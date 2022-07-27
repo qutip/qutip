@@ -1,5 +1,6 @@
 import pytest
 import qutip
+import numpy as np
 from qutip.solver.options import _SolverOptions
 
 
@@ -54,9 +55,8 @@ def test_SolverOptions_Feedback():
     called = []
 
     def _catch(keys):
-        assert isinstance(keys, set)
-        assert len(keys) == 1
-        called.append(keys.pop())
+        assert isinstance(keys, (set, str))
+        called.append(keys)
 
     opt = _SolverOptions(default, _catch)
     opt["opt1"] = 2
@@ -85,3 +85,58 @@ def test_print():
     assert "opt2 : True" in opt.__str__()
     assert "opt3 : None" in opt.__str__()
     assert opt.__doc__ == "Custom doc"
+
+
+def test_in_solver():
+    opt = {"method": "adams", "store_states": True, "atol": 1}
+    solver = qutip.solver.sesolve.SeSolver(qutip.qeye(1), options=opt)
+    adams = qutip.solver.ode.scipy_integrator.IntegratorScipyAdams
+    lsoda = qutip.solver.ode.scipy_integrator.IntegratorScipylsoda
+    bdf = qutip.solver.ode.scipy_integrator.IntegratorScipyBDF
+    assert solver.options["store_states"] is True
+    assert solver.options["method"] == "adams"
+    assert solver.options["atol"] == 1
+    assert solver.options["order"] == adams.integrator_options["order"]
+
+    solver.options["method"] = "bdf"
+    assert solver.options["store_states"] is True
+    assert solver.options["method"] == "bdf"
+    assert solver.options["atol"] == bdf.integrator_options["atol"]
+    assert solver.options["order"] == bdf.integrator_options["order"]
+
+    solver.options = {
+        "method": "vern7",
+        "store_final_state": True,
+        "atol": 0.01
+    }
+    assert solver.options["store_states"] is True
+    assert solver.options["store_final_state"] is True
+    assert solver.options["method"] == "vern7"
+    assert solver.options["atol"] == 0.01
+    assert "order" not in solver.options
+    assert "interpolate" in solver.options
+
+
+def test_options_update_solver():
+    opt = {"method": "adams", "normalize_output": False}
+    solver = qutip.solver.sesolve.SeSolver(1j * qutip.qeye(1), options=opt)
+
+    solver.start(qutip.basis(1), 0)
+    err_atol_def = (solver.step(1) - np.exp(1)).norm()
+
+    solver.options["atol"] = 1
+    solver.start(qutip.basis(1), 0)
+    assert (solver.step(1) - np.exp(1)).norm() > err_atol_def * 10
+
+    del solver.options["atol"]
+    solver.start(qutip.basis(1), 0)
+    assert (solver.step(1) - np.exp(1)).norm() == pytest.approx(err_atol_def)
+
+    solver.options["atol"] = 1
+    solver.options["atol"] = None
+    solver.start(qutip.basis(1), 0)
+    assert (solver.step(1) - np.exp(1)).norm() == pytest.approx(err_atol_def)
+
+    solver.options["method"] = "diag"
+    solver.start(qutip.basis(1), 0)
+    assert (solver.step(1) - np.exp(1)).norm() == pytest.approx(0., abs=-1e10)

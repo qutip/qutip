@@ -69,6 +69,8 @@ class IntegratorVern7(Integrator):
     @property
     def options(self):
         """
+        Supported options by verner method:
+
         atol : float
             Absolute tolerance.
 
@@ -176,7 +178,9 @@ class IntegratorDiag(Integrator):
 
     @property
     def options(self):
-        """"""
+        """
+        Diagonalization method do not use any options.
+        """
         return self._options
 
     @options.setter

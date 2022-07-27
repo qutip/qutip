@@ -51,16 +51,20 @@ class _SolverOptions(dict):
     def __setitem__(self, key, val):
         if key not in self._default:
             raise KeyError(f"Options {key} is not supported.")
+        if val is None:
+            val = self._default[key]
         if val == self[key]:
             return
         super().__setitem__(key, val)
         if self._feedback:
-            self._feedback(set([key]))
+            self._feedback(key)
 
     def __delitem__(self, key):
         if key not in self._default:
             raise KeyError(f"Options {key} is not supported.")
         super().__setitem__(key, self._default[key])
+        if self._feedback:
+            self._feedback(key)
 
     def copy(self):
         return self.__class__(
