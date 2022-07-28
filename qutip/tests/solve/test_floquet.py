@@ -1,5 +1,5 @@
 import numpy as np
-from qutip import fsesolve, sigmax, sigmaz, rand_ket, num, mesolve
+from qutip import fsesolve, sigmax, sigmaz, rand_ket, num, mesolve, sigmay
 from qutip import sigmap, sigmam, floquet_master_equation_rates, expect, Qobj
 from qutip import floquet_modes, floquet_modes_table, fmmesolve
 from qutip import floquet_modes_t_lookup
@@ -248,6 +248,83 @@ class TestFloquet:
         output1 = fmmesolve(
                             H, psi0, tlist, [c_op_fmmesolve], [num(2)],
                             [noise_spectrum], T, args, floquet_basis=False)
+        p_ex = output1.expect[0]
+        # Compare with mesolve
+        output2 = mesolve(H, psi0, tlist, c_op_mesolve, [num(2)], args)
+        p_ex_ref = output2.expect[0]
+
+        np.testing.assert_allclose(np.real(p_ex), np.real(p_ex_ref), atol=1e-4)
+
+    def testFloquetMasterEquation_multiple_coupling(self):
+        """
+        Test Floquet-Markov Master Equation for a two-level system
+        subject to dissipation with multiple coupling operators
+        """
+
+        delta = 1.0 * 2 * np.pi
+        eps0 = 1.0 * 2 * np.pi
+        A = 0.5 * 2 * np.pi
+        omega = np.sqrt(delta ** 2 + eps0 ** 2)
+        T = (2 * np.pi) / omega
+        tlist = np.linspace(0.0, 2 * T, 101)
+        psi0 = rand_ket(2)
+        H0 = - eps0 / 2.0 * sigmaz() - delta / 2.0 * sigmax()
+        H1 = A / 2.0 * sigmax()
+        args = {'w': omega}
+        H = [H0, [H1, lambda t, args: np.sin(args['w'] * t)]]
+        e_ops = [num(2)]
+        gamma1 = 1
+
+        A = 0. * 2 * np.pi
+        psi0 = rand_ket(2)
+        H1 = A / 2.0 * sigmax()
+        args = {'w': omega}
+        H = [H0, [H1, lambda t, args: np.sin(args['w'] * t)]]
+
+        # Collapse operator for Floquet-Markov Master Equation
+        c_ops_fmmesolve = [sigmax(), sigmay()]
+
+        # Collapse operator for Lindblad Master Equation
+        def noise_spectrum1(omega):
+            if omega > 0:
+                return 0.5 * gamma1 * omega/(2*np.pi)
+            else:
+                return 0
+        def noise_spectrum2(omega):
+            if omega > 0:
+                return 0.5 * gamma1 / (2 * np.pi)
+            else:
+                return 0
+
+        noise_spectra = [noise_spectrum1, noise_spectrum2]
+
+        ep, vp = H0.eigenstates()
+        op0 = vp[0]*vp[0].dag()
+        op1 = vp[1]*vp[1].dag()
+
+        c_op_mesolve = []
+
+
+        for c_op_fmmesolve, noise_spectrum in zip(c_ops_fmmesolve,
+                                                   noise_spectra):
+            gamma = np.zeros([2, 2], dtype=complex)
+            for i in range(2):
+                for j in range(2):
+                    if i != j:
+                        gamma[i][j] = 2*np.pi*c_op_fmmesolve.matrix_element(
+                            vp[j], vp[i])*c_op_fmmesolve.matrix_element(
+                            vp[i], vp[j])*noise_spectrum(ep[j]-ep[i])
+
+            for i in range(2):
+                for j in range(2):
+                    c_op_mesolve.append(
+                        np.sqrt(gamma[i][j])*(vp[i]*vp[j].dag())
+                    )
+
+        # Solve the floquet-markov master equation
+        output1 = fmmesolve(
+                            H, psi0, tlist, c_ops_fmmesolve, [num(2)],
+                            noise_spectra, T, args, floquet_basis=False)
         p_ex = output1.expect[0]
         # Compare with mesolve
         output2 = mesolve(H, psi0, tlist, c_op_mesolve, [num(2)], args)
