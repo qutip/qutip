@@ -936,10 +936,6 @@ def fmmesolve(H, rho0, tlist, c_ops=[], e_ops=[], spectra_cb=[], T=None,
     """
     Solve the dynamics for the system using the Floquet-Markov master equation.
 
-    .. note::
-
-        This solver currently does not support multiple collapse operators.
-
     Parameters
     ----------
 
