@@ -26,7 +26,7 @@ class SolverOptions:
         qutip.settings.solver['progress_bar'] = 'enhanced'
 
     Keys:
-    
+
         normalize_output : str {"", "dm", "ket", "all", True}
             Whether to normalize the output state to hide ODE numerical errors.
             The values "all" and True will normalize both ket and dm states.
@@ -187,6 +187,8 @@ class SolverResultsOptions:
         "store_states": None,
         # store HEOM ADOs when using the HEOMSolver
         "store_ados": False,
+
+        "keep_runs_results": False,
     }
 
 
@@ -223,9 +225,6 @@ class McOptions:
         Max. number of steps used to find wavefunction norm to within norm_tol
         in mcsolve.
 
-    keep_runs_results: bool
-        Keep all trajectories results or save only the average.
-
     map : str  {'parallel', 'serial', 'loky'}
         How to run the trajectories.
         'parallel' use python's multiprocessing.
@@ -254,8 +253,6 @@ class McOptions:
         "norm_steps": 5,
 
         "map": "parallel_map",
-
-        "keep_runs_results": False,
 
         "mc_corr_eps": 1e-10,
 
