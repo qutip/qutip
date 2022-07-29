@@ -3,6 +3,7 @@ from qutip import fsesolve, sigmax, sigmaz, rand_ket, num, mesolve, sigmay
 from qutip import sigmap, sigmam, floquet_master_equation_rates, expect, Qobj
 from qutip import floquet_modes, floquet_modes_table, fmmesolve
 from qutip import floquet_modes_t_lookup
+import pytest
 
 
 class TestFloquet:
@@ -191,7 +192,8 @@ class TestFloquet:
 
         np.testing.assert_allclose(np.real(p_ex), np.real(p_ex_ref), atol=1e-4)
 
-    def testFloquetMasterEquation3(self):
+    @pytest.mark.parametrize("kmax", [5, 100, 300])
+    def testFloquetMasterEquation3(self, kmax):
         """
         Test Floquet-Markov Master Equation for a two-level system
         subject to dissipation with internal transform of fmmesolve
@@ -247,13 +249,15 @@ class TestFloquet:
         # Solve the floquet-markov master equation
         output1 = fmmesolve(
                             H, psi0, tlist, [c_op_fmmesolve], [num(2)],
-                            [noise_spectrum], T, args, floquet_basis=False)
+                            [noise_spectrum], T, args, floquet_basis=False,
+                            kmax=kmax)
         p_ex = output1.expect[0]
         # Compare with mesolve
         output2 = mesolve(H, psi0, tlist, c_op_mesolve, [num(2)], args)
         p_ex_ref = output2.expect[0]
 
-        np.testing.assert_allclose(np.real(p_ex), np.real(p_ex_ref), atol=1e-4)
+        np.testing.assert_allclose(np.real(p_ex), np.real(p_ex_ref),
+                                   atol=5 * 1e-4)
 
     def testFloquetMasterEquation_multiple_coupling(self):
         """
