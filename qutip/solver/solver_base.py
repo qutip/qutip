@@ -46,14 +46,8 @@ class Solver:
             self.rhs = QobjEvo(rhs)
         else:
             TypeError("The rhs must be a QobjEvo")
-        self._options = {"method": self.solver_options["method"]}
-        """_SolverOptions(
-            self.solver_options,
-            self._apply_options,
-            self.name,
-            self.__class__.options.__doc__
-        )"""
-        self.options = options or {}
+        self._options = {}
+        self.options = {} if options is None else options
         self._integrator = self._get_integrator()
         self._state_metadata = {}
         self.stats = self._initialize_stats()
@@ -277,16 +271,20 @@ class Solver:
         new_solver_options, new_ode_options = self._parse_options(
             new_options, self.solver_options, self.options
         )
-        method = new_solver_options.get("method", self.options["method"])
+        method = new_solver_options.get(
+            "method", self.options.get("method", self.solver_options["method"])
+        )
         integrator = self.avail_integrators()[method]
 
-        if method == self.options["method"]:
+        if method == self.options.get("method", None):
             # If method changed, drop old ode options
             old_ode_options = self.options
             old_options = self._options
         else:
             old_ode_options = {}
-            old_options, _ = self._parse_options(self._options, self.solver_options, {})
+            old_options, _ = self._parse_options(
+                self._options, self.solver_options, {}
+            )
 
         new_ode_options, extra_options = self._parse_options(
             new_ode_options, integrator.integrator_options, self.options
