@@ -37,7 +37,8 @@ from qutip.solver import (
 )
 
 
-def fill_options(_=None, **kwargs):
+def fill_options(**kwargs):
+    """Fill the options with minimal entries needed by HEOMResult."""
     return {
         "store_final_state": False,
         "store_states": None,

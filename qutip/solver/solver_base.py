@@ -46,14 +46,14 @@ class Solver:
             self.rhs = QobjEvo(rhs)
         else:
             TypeError("The rhs must be a QobjEvo")
-        self._options = _SolverOptions(
+        self._options = {"method": self.solver_options["method"]}
+        """_SolverOptions(
             self.solver_options,
             self._apply_options,
             self.name,
             self.__class__.options.__doc__
-        )
-        if options is not None:
-            self.options = options
+        )"""
+        self.options = options or {}
         self._integrator = self._get_integrator()
         self._state_metadata = {}
         self.stats = self._initialize_stats()
@@ -293,7 +293,7 @@ class Solver:
         )
         if extra_options:
             raise KeyError(f"Options {extra_options.keys()} are not supported")
-        if not (new_solver_options or new_ode_options):
+        if self._options and not (new_solver_options or new_ode_options):
             return  # Nothing to do
 
         self._options = _SolverOptions(
@@ -313,7 +313,6 @@ class Solver:
         Allow to update the solver with the new options
         """
         from_setter = isinstance(keys, (set))
-        print(keys)
         if not from_setter:
             keys = set([keys])
 
