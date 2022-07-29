@@ -1,7 +1,7 @@
 __all__ = ['Solver']
 
 from .. import Qobj, QobjEvo, ket2dm
-from .options import SolverOptions, SolverOdeOptions
+from .options import _SolverOptions
 from ..core import stack_columns, unstack_columns
 from .result import Result
 from .integrator import Integrator
@@ -21,18 +21,24 @@ class Solver:
         Right hand side of the evolution::
             d state / dt = rhs @ state
 
-    options : SolverOptions
+    options : dict
         Options for the solver
     """
-    name = "generic"
+    name = ""
 
     # State, time and Integrator of the stepper functionnality
     _integrator = None
     _avail_integrators = {}
 
     # Class of option used by the solver
-    optionsclass = SolverOptions
-    odeoptionsclass = SolverOdeOptions
+    solver_options = {
+        "progress_bar": "text",
+        "progress_kwargs": {"chunk_size": 10},
+        "store_final_state": False,
+        "store_states": None,
+        "normalize_output": "ket",
+        "method": "adams",
+    }
     resultclass = Result
 
     def __init__(self, rhs, *, options=None):
@@ -40,10 +46,9 @@ class Solver:
             self.rhs = QobjEvo(rhs)
         else:
             TypeError("The rhs must be a QobjEvo")
-        self.options = options
-        _time_start = time()
+        self._options = {}
+        self.options = {} if options is None else options
         self._integrator = self._get_integrator()
-        self._init_integrator_time = time() - _time_start
         self._state_metadata = {}
         self.stats = self._initialize_stats()
 
@@ -76,9 +81,6 @@ class Solver:
             raise TypeError(f"incompatible dimensions {self.rhs.dims}"
                             f" and {state.dims}")
 
-        if self.options.ode["state_data_type"]:
-            state = state.to(self.options.ode["state_data_type"])
-
         self._state_metadata = {
             'dims': state.dims,
             'type': state.type,
@@ -98,10 +100,8 @@ class Solver:
         else:
             state = Qobj(data, **self._state_metadata, copy=copy)
 
-        if data.shape[1] == 1:  # if the state does not have type oper
-            state_type = 'dm' if self.rhs.issuper else 'ket'
-            if self.options['normalize_output'] in {state_type, True, 'all'}:
-                state = state * (1 / state.norm())
+        if data.shape[1] == 1 and self._options['normalize_output']:
+            state = state * (1 / state.norm())
 
         return state
 
@@ -145,7 +145,7 @@ class Solver:
         self._argument(args)
         stats = self._initialize_stats()
         results = self.resultclass(
-            e_ops, self.options.results,
+            e_ops, self.options,
             solver=self.name, stats=stats,
         )
         results.add(tlist[0], self._restore_state(_data0, copy=False))
@@ -212,50 +212,142 @@ class Solver:
 
     def _get_integrator(self):
         """ Return the initialted integrator. """
-        if self.options.ode["operator_data_type"]:
-            self.rhs = self.rhs.to(
-                self.options.ode["operator_data_type"]
-            )
-
-        method = self.options.ode["method"]
+        _time_start = time()
+        method = self._options["method"]
         if method in self.avail_integrators():
             integrator = self.avail_integrators()[method]
         elif issubclass(method, Integrator):
             integrator = method
         else:
             raise ValueError("Integrator method not supported.")
-        return integrator(self.rhs, self.options.ode)
+        integrator_instance = integrator(self.rhs, self.options)
+        self._init_integrator_time = time() - _time_start
+        return integrator_instance
 
     @property
     def options(self):
+        """
+        method: str
+            Which ordinary differential equation integration method to use.
+        """
         return self._options
 
+    def _parse_options(self, new_options, default, old_options):
+        """
+        Do a first read through of the options:
+        - Split new options' items included in the default from those that are
+          not.
+        - Replace ``None`` with the default value.
+        - Remove items that are unchanged.
+        """
+        included_options = {
+            key: val
+            for key, val in new_options.items()
+            if key in default
+        }
+        extra_options = {
+            key: val
+            for key, val in new_options.items()
+            if key not in default
+        }
+
+        # First pass: Have ``None`` refert to the default.
+        included_options = {
+            key: (val if val is not None else default[key])
+            for key, val in included_options.items()
+        }
+        # Second pass: Remove options that remain unchanged.
+        included_options = {
+            key: val
+            for key, val in included_options.items()
+            if not (key in old_options and val == old_options[key])
+        }
+        return included_options, extra_options
+
     @options.setter
-    def options(self, new):
-        if new is None:
-            new = self.optionsclass()
-        elif isinstance(new, dict):
-            new = self.optionsclass(**new)
-        elif not isinstance(new, self.optionsclass):
-            raise TypeError("options must be an instance of" +
-                            str(self.optionsclass))
-        self._options = new
-        if self._integrator is None:
+    def options(self, new_options):
+        if not isinstance(new_options, dict):
+            raise TypeError("options most to be a dictionary.")
+        new_solver_options, new_ode_options = self._parse_options(
+            new_options, self.solver_options, self.options
+        )
+        method = new_solver_options.get(
+            "method", self.options.get("method", self.solver_options["method"])
+        )
+        integrator = self.avail_integrators()[method]
+
+        if method == self.options.get("method", None):
+            # If method changed, drop old ode options
+            old_ode_options = self.options
+            old_options = self._options
+        else:
+            old_ode_options = {}
+            old_options, _ = self._parse_options(
+                self._options, self.solver_options, {}
+            )
+
+        new_ode_options, extra_options = self._parse_options(
+            new_ode_options, integrator.integrator_options, self.options
+        )
+        if extra_options:
+            raise KeyError(f"Options {extra_options.keys()} are not supported")
+        if self._options and not (new_solver_options or new_ode_options):
+            return  # Nothing to do
+
+        self._options = _SolverOptions(
+            {**self.solver_options, **integrator.integrator_options},
+            self._apply_options,
+            self.name + " with " + integrator.method + " integrator",
+            self.__class__.options.__doc__ + integrator.options.__doc__,
+            **{**old_options, **new_solver_options, **new_ode_options}
+        )
+
+        self._apply_options(set(new_options.keys()))
+
+    def _apply_options(self, keys):
+        """
+        Method called when options are changed, either through
+        ``solver.options[key] = value`` or ``solver.options = options``.
+        Allow to update the solver with the new options
+        """
+        from_setter = isinstance(keys, (set))
+        if not from_setter:
+            keys = set([keys])
+
+        if not from_setter and "method" in keys:
+            # Drop the ode's options.
+            old_solver_options, _ = self._parse_options(
+                self.options, self.solver_options, {}
+            )
+            method = self.options["method"]
+            integrator = self.avail_integrators()[method]
+
+            self._options = _SolverOptions(
+                {**self.solver_options, **integrator.integrator_options},
+                self._apply_options,
+                self.name + " with " + integrator.method + " integrator",
+                self.__class__.options.__doc__ + integrator.options.__doc__,
+                **old_solver_options
+            )
+
+        if self._integrator is None or not keys:
             pass
-        elif self._integrator._is_set:
-            # The integrator was already used: continue where it is.
+        elif 'method' in keys and self._integrator._is_set:
             state = self._integrator.get_state()
             self._integrator = self._get_integrator()
             self._integrator.set_state(*state)
-        else:
-            # The integrator was never used, but after it's creation in init.
+        elif "method" in keys:
             self._integrator = self._get_integrator()
+        elif keys & self._integrator.integrator_options.keys():
+            # Some of the keys are used by the integrator.
+            self._integrator.options = self._options
+            self._integrator.reset(hard=True)
 
     def _argument(self, args):
         """Update the args, for the `rhs` and other operators."""
         if args:
-            self._integrator.arguments(args)
             self.rhs.arguments(args)
+            self._integrator.arguments(args)
 
     @classmethod
     def avail_integrators(cls):
@@ -267,7 +359,11 @@ class Solver:
         }
 
     @classmethod
-    def add_integrator(cls, integrator, keys):
+    def integrator(cls, key):
+        return cls.avail_integrators()[key]
+
+    @classmethod
+    def add_integrator(cls, integrator, key):
         """
         Register an integrator.
 
@@ -282,10 +378,5 @@ class Solver:
         if not issubclass(integrator, Integrator):
             raise TypeError(f"The integrator {integrator} must be a subclass"
                             " of `qutip.solver.Integrator`")
-        if not isinstance(keys, list):
-            keys = [keys]
-        for key in keys:
-            cls._avail_integrators[key] = integrator
-        if integrator.integrator_options:
-            for opt in integrator.integrator_options:
-                cls.odeoptionsclass.extra_options.add(opt)
+
+        cls._avail_integrators[key] = integrator

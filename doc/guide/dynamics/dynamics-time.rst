@@ -362,79 +362,19 @@ Reusing Time-Dependent Hamiltonian Data
 
 .. note:: This section covers a specialized topic and may be skipped if you are new to QuTiP.
 
-When repeatedly simulating a system where only the time-dependent variables, or initial state change, it is possible to reuse the Hamiltonian data stored in QuTiP and there by avoid spending time needlessly preparing the Hamiltonian and collapse terms for simulation.  To turn on the the reuse features, we must pass a :class:`qutip.Options` object with the ``rhs_reuse`` flag turned on.  Instructions on setting flags are found in :ref:`Options`.  For example, we can do
+When repeatedly simulating a system where only the time-dependent variables, or initial state change, it is possible to reuse the Hamiltonian data stored in QuTiP and there by avoid spending time needlessly preparing the Hamiltonian and collapse terms for simulation.
+To turn on the reuse features, we must use the class interface of the solver:
 
 .. plot::
     :context: close-figs
 
-    H = [H0, [H1, 'A * exp(-(t / sig) ** 2)']]
+    from qutip.solver.mesolve import MeSolver
+    H = QobjEvo([H0, [H1, 'A * exp(-(t / sig)**2)']], args={'A': 0, 'sig': 1})
+    solver = MeSolver(H, c_ops)
     args = {'A': 9, 'sig': 5}
-    output = mcsolve(H, psi0, times, c_ops, [a.dag()*a], args=args)
-    opts = SolverOptions()
+    output = solver.run(psi0, times, e_ops=[a.dag()*a], args=args)
     args = {'A': 10, 'sig': 3}
-    output = mcsolve(H, psi0, times, c_ops, [a.dag()*a], args=args, options=opts)
+    output = solver.run(psi0, times, e_ops=[a.dag()*a], args=args)
 
-The second call to :func:`qutip.mcsolve` does not reorganize the data, and in the case of the string format, does not recompile the Cython code.  For the small system here, the savings in computation time is quite small, however, if you need to call the solvers many times for different parameters, this savings will obviously start to add up.
-
-
-.. _time-parallel:
-
-Running String-Based Time-Dependent Problems using Parfor
-==========================================================
-
-.. note:: This section covers a specialized topic and may be skipped if you are new to QuTiP.
-
-In this section we discuss running string-based time-dependent problems using the :func:`qutip.parfor` function.  As the :func:`qutip.mcsolve` function is already parallelized, running string-based time dependent problems inside of parfor loops should be restricted to the :func:`qutip.mesolve` function only. When using the string-based format, the system Hamiltonian and collapse operators are converted into C code with a specific file name that is automatically genrated, or supplied by the user via the ``rhs_filename`` property of the :class:`qutip.Options` class. Because the :func:`qutip.parfor` function uses the built-in Python multiprocessing functionality, in calling the solver inside a parfor loop, each thread will try to generate compiled code with the same file name, leading to a crash.  To get around this problem you can call the :func:`qutip.rhs_generate` function to compile simulation into C code before calling parfor.  You **must** then set the :class:`qutip.Odedata` object ``rhs_reuse=True`` for all solver calls inside the parfor loop that indicates that a valid C code file already exists and a new one should not be generated.  As an example, we will look at the Landau-Zener-Stuckelberg interferometry example that can be found in the notebook "Time-dependent master equation: Landau-Zener-Stuckelberg inteferometry" in the tutorials section of the QuTiP web site.
-
-To set up the problem, we run the following code:
-
-.. plot::
-   :context:
-
-   delta = 0.1  * 2 * np.pi  # qubit sigma_x coefficient
-   w = 2.0  * 2 * np.pi      # driving frequency
-   T = 2 * np.pi / w         # driving period
-   gamma1 = 0.00001          # relaxation rate
-   gamma2 = 0.005            # dephasing  rate
-
-   eps_list = np.linspace(-10.0, 10.0, 51) * 2 * np.pi  # epsilon
-   A_list = np.linspace(0.0, 20.0, 51) * 2 * np.pi	# Amplitude
-
-   sx = sigmax(); sz = sigmaz(); sm = destroy(2); sn = num(2)
-
-   c_ops = [np.sqrt(gamma1) * sm, np.sqrt(gamma2) * sz]  # relaxation and dephasing
-   H0 = -delta / 2.0 * sx
-   H1 = [sz, '-eps / 2.0 + A / 2.0 * sin(w * t)']
-   H_td = [H0, H1]
-   Hargs = {'w': w, 'eps': eps_list[0], 'A': A_list[0]}
-
-
-where the last code block sets up the problem using a string-based Hamiltonian, and ``Hargs`` is a dictionary of arguments to be passed into the Hamiltonian.  In this example, we are going to use the :func:`qutip.propagator` and :func:`qutip.propagator.propagator_steadystate` to find expectation
-values for different values of :math:`\epsilon` and :math:`A` in the
-Hamiltonian :math:`H = -\frac{1}{2}\Delta\sigma_x -\frac{1}{2}\epsilon\sigma_z- \frac{1}{2}A\sin(\omega t)`.
-
-We must now tell the :func:`qutip.mesolve` function, that is called by :func:`qutip.propagator` to reuse a
-pre-generated Hamiltonian constructed using the :func:`qutip.rhs_generate` command:
-
-.. plot::
-   :context:
-
-   # opts = SolverOptions()
-   # rhs_generate(H_td, c_ops, Hargs, name='lz_func')
-
-Here, we have given the generated file a custom name ``lz_func``, however this is not necessary as a generic name will automatically be given.  Now we define the function ``task`` that is called by :func:`qutip.parallel.parfor` with the m-index parallelized in loop over the elements of ``p_mat[m,n]``:
-
-.. code-block:: python
-
-   def task(args):
-      m, eps = args
-      p_mat_m = np.zeros(len(A_list))
-      for n, A in enumerate(A_list):
-          # change args sent to solver, w is really a constant though.
-          Hargs = {'w': w, 'eps': eps,'A': A}
-          U = propagator(H_td, T, c_ops, Hargs, opts) #<- IMPORTANT LINE
-          rho_ss = propagator_steadystate(U)
-          p_mat_m[n] = expect(sn, rho_ss)
-      return [m, p_mat_m]
-
-Notice the Options ``opts`` in the call to the :func:`qutip.propagator` function.  This is tells the :func:`qutip.mesolve` function used in the propagator to call the pre-generated file ``lz_func``. If this were missing then the routine would fail.
+The preparation of the Liouvillian and in the case of the string format, compilation of the Cython code, is done once in the initialization of the solver instance.
+For the small system here, the savings in computation time is quite small, however, if you need to call the solvers many times for different parameters, this savings will obviously start to add up.

@@ -34,7 +34,12 @@ def test_simple_qubit_system(me_c_ops, brme_c_ops, brme_a_ops):
     psi0 = (2 * qutip.basis(2, 0) + qutip.basis(2, 1)).unit()
     times = np.linspace(0, 10, 100)
     me = qutip.mesolve(H, psi0, times, c_ops=me_c_ops, e_ops=e_ops)
-    brme = brmesolve(H, psi0, times, brme_a_ops, e_ops=e_ops, c_ops=brme_c_ops)
+    opt = {"tensor_type": "dense"}
+    brme = brmesolve(
+        H, psi0, times,
+        a_ops=brme_a_ops, c_ops=brme_c_ops,
+        e_ops=e_ops, options=opt
+    )
     for me_expectation, brme_expectation in zip(me.expect, brme.expect):
         np.testing.assert_allclose(me_expectation, brme_expectation, atol=1e-2)
 

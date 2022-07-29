@@ -7,7 +7,6 @@ from .. import Qobj, qeye, unstack_columns, QobjEvo
 from ..core import data as _data
 from .mesolve import mesolve, MeSolver
 from .sesolve import sesolve, SeSolver
-from .options import SolverOptions
 
 
 def propagator(H, t, c_ops=(), args=None, options=None, **kwargs):
@@ -35,8 +34,8 @@ def propagator(H, t, c_ops=(), args=None, options=None, **kwargs):
         Parameters to callback functions for time-dependent Hamiltonians and
         collapse operators.
 
-    options : :class:`qutip.SolverOptions`, optional
-        Options for the ODE solver.
+    options : dict, optional
+        Options for the solver.
 
     **kwargs :
         Extra parameters to use when creating the :class:`QobjEvo` from a list
@@ -123,8 +122,8 @@ class Propagator:
         Parameters to callback functions for time-dependent Hamiltonians and
         collapse operators.
 
-    options : :class:`qutip.SolverOptions`
-        Options for the ODE solver.
+    options : dict
+        Options for the solver.
 
     memoize : int [10]
         Max number of propagator to save.

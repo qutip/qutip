@@ -3,7 +3,6 @@ import pickle
 import qutip
 import numpy as np
 from qutip.solver.sesolve import sesolve, SeSolver
-from qutip.solver.options import SolverOptions
 from qutip.solver.solver_base import Solver
 
 all_ode_method = [
@@ -49,7 +48,7 @@ class TestSeSolve():
         """
         tol = 5e-3
         psi0 = qutip.basis(2, 0)
-        options = SolverOptions(progress_bar=None)
+        options = {"progress_bar": None}
 
         if unitary_op is None:
             output = sesolve(H, psi0, self.tlist,
@@ -88,7 +87,7 @@ class TestSeSolve():
         # non-hermitean H causes state to evolve non-unitarily
         H = qutip.Qobj([[1, -0.1j], [-0.1j, 1]])
         psi0 = qutip.basis(2, 0)
-        options = SolverOptions(normalize_output=True, progress_bar=None)
+        options = {"normalize_output": True, "progress_bar": None}
 
         if state_type == "ket":
             output = sesolve(H, psi0, self.tlist, e_ops=[], options=options)
@@ -116,7 +115,7 @@ class TestSeSolve():
         """
         tol = 5e-3
         psi0 = qutip.basis(2, 0)
-        options = SolverOptions(method=method, progress_bar=None)
+        options = {"method": method, "progress_bar": None}
         H = [[self.H1, 'exp(-alpha*t)']]
 
         if unitary_op is None:
@@ -169,8 +168,11 @@ class TestSeSolve():
         psi0 = qutip.basis(2, 0)
         U0 = qutip.qeye(2)
 
-        options = SolverOptions(store_states=True, normalize_output=normalize,
-                                progress_bar=None)
+        options = {
+            "store_states": True,
+            "normalize_output": normalize,
+            "progress_bar": None
+        }
         out_s = sesolve(H, psi0, self.tlist, [qutip.sigmax(),
                                               qutip.sigmay(),
                                               qutip.sigmaz()],
@@ -197,7 +199,7 @@ class TestSeSolve():
         np.testing.assert_allclose(zs, zu, atol=tol)
 
     def test_sesolver_args(self):
-        options = SolverOptions(progress_bar=None)
+        options = {"progress_bar": None}
         solver_obj = SeSolver(qutip.QobjEvo([self.H0, [self.H1,'a']],
                                             args={'a': 1}),
                               options=options)
@@ -207,7 +209,7 @@ class TestSeSolve():
 
     def test_sesolver_pickling(self):
         e_ops = [qutip.sigmax(), qutip.sigmay(), qutip.sigmaz()]
-        options = SolverOptions(progress_bar=None)
+        options = {"progress_bar": None}
         solver_obj = SeSolver(self.H0 + self.H1,
                               options=options)
         solver_copy = pickle.loads(pickle.dumps(solver_obj))
@@ -221,8 +223,12 @@ class TestSeSolve():
 
     @pytest.mark.parametrize('method', all_ode_method, ids=all_ode_method)
     def test_sesolver_stepping(self, method):
-        options = SolverOptions(method=method, atol=1e-7, rtol=1e-8,
-                                progress_bar=None)
+        options = {
+            "method": method,
+            "atol": 1e-7,
+            "rtol": 1e-8,
+            "progress_bar": None
+        }
         solver_obj = SeSolver(
             qutip.QobjEvo([self.H1, lambda t, a: a], args={"a":0.25}),
             options=options
@@ -245,8 +251,12 @@ class TestSeSolve():
         np.testing.assert_allclose(qutip.expect(qutip.sigmaz(), state), sr2,
                                    atol=2e-6)
 
-        solver_obj.options = SolverOptions(method='adams', atol=1e-7,
-                                           rtol=1e-8, progress_bar=None)
+        solver_obj.options = {
+            "method": "adams",
+            "atol": 1e-7,
+            "rtol": 1e-8,
+            "progress_bar": None
+        }
         state = solver_obj.step(3, args={"a":0})
         np.testing.assert_allclose(qutip.expect(qutip.sigmax(), state), 0.,
                                    atol=2e-6)

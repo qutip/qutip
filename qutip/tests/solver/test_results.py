@@ -2,8 +2,16 @@ import numpy as np
 import pytest
 
 import qutip
-from qutip.solver import SolverResultsOptions
 from qutip.solver.result import Result, MultiTrajResult, McResult
+
+
+def fill_options(**kwargs):
+    return {
+        "store_states": None,
+        "store_final_state": False,
+        "keep_runs_results": False,
+        **kwargs
+    }
 
 
 def e_op_state_by_time(t, state):
@@ -19,7 +27,7 @@ class TestResult:
         )
     ])
     def test_states(self, N, e_ops, options):
-        res = Result(e_ops, SolverResultsOptions(**options))
+        res = Result(e_ops, fill_options(**options))
         for i in range(N):
             res.add(i, qutip.basis(N, i))
         np.testing.assert_allclose(np.array(res.times), np.arange(N))
@@ -35,7 +43,7 @@ class TestResult:
         }, id="with-eops"),
     ])
     def test_final_state_only(self, N, e_ops, options):
-        res = Result(e_ops, SolverResultsOptions(**options))
+        res = Result(e_ops, fill_options(**options))
         for i in range(N):
             res.add(i, qutip.basis(N, i))
         np.testing.assert_allclose(np.array(res.times), np.arange(N))
@@ -70,7 +78,7 @@ class TestResult:
     def test_expect_and_e_ops(self, N, e_ops, results):
         res = Result(
             e_ops,
-            SolverResultsOptions(
+            fill_options(
                 store_final_state=False,
                 store_states=False),
         )
@@ -100,7 +108,7 @@ class TestResult:
                 np.testing.assert_allclose(e_op_call_values, results[k])
 
     def test_add_processor(self):
-        res = Result([], SolverResultsOptions(store_states=False))
+        res = Result([], fill_options(store_states=False))
         a = []
         b = []
         states = [{"t": 0}, {"t": 1}]
@@ -122,7 +130,7 @@ class TestResult:
     def test_repr_minimal(self):
         res = Result(
             [],
-            SolverResultsOptions(store_final_state=False, store_states=False),
+            fill_options(store_final_state=False, store_states=False),
         )
         assert repr(res) == "\n".join([
             "<Result",
@@ -135,7 +143,7 @@ class TestResult:
     def test_repr_full(self):
         res = Result(
             [qutip.num(5), qutip.qeye(5)],
-            SolverResultsOptions(store_states=True),
+            fill_options(store_states=True),
             solver="test-solver",
             stats={"stat-a": 1, "stat-b": 2},
         )
@@ -159,7 +167,7 @@ def e_op_num(t, state):
     return state.dag() @ qutip.num(5) @ state
 
 
-class TestMultiTrahResult:
+class TestMultiTrajResult:
     def _fill_trajectories(self, multiresult, N, ntraj,
                            collapse=False, noise=0, dm=False):
         for _ in range(ntraj):
@@ -205,9 +213,7 @@ class TestMultiTrahResult:
         N = 10
         ntraj = 5
         e_ops = [qutip.num(N), qutip.qeye(N)]
-        opt = qutip.solver.SolverResultsOptions(
-            keep_runs_results=keep_runs_results,
-        )
+        opt = fill_options(keep_runs_results=keep_runs_results)
 
         m_res = McResult(e_ops, opt, stats={"num_collapse": 2})
         m_res.add_end_condition(ntraj, None)
@@ -242,9 +248,7 @@ class TestMultiTrahResult:
     def test_multitraj_expect(self, keep_runs_results, e_ops, results):
         N = 5
         ntraj = 25
-        opt = qutip.solver.SolverResultsOptions(
-            keep_runs_results=keep_runs_results,
-        )
+        opt = fill_options(keep_runs_results=keep_runs_results)
         m_res = MultiTrajResult(e_ops, opt, stats={})
         self._fill_trajectories(m_res, N, ntraj, noise=0.01)
 
@@ -275,9 +279,7 @@ class TestMultiTrahResult:
     def test_multitraj_state(self, keep_runs_results, dm):
         N = 5
         ntraj = 25
-        opt = qutip.solver.SolverResultsOptions(
-            keep_runs_results=keep_runs_results,
-        )
+        opt = fill_options(keep_runs_results=keep_runs_results)
         m_res = MultiTrajResult([], opt)
         self._fill_trajectories(m_res, N, ntraj, dm=dm)
 
@@ -305,9 +307,8 @@ class TestMultiTrahResult:
     def test_multitraj_targettol(self, keep_runs_results, targettol):
         N = 10
         ntraj = 1000
-        opt = qutip.solver.SolverResultsOptions(
-            keep_runs_results=keep_runs_results,
-            store_states=True,
+        opt = fill_options(
+            keep_runs_results=keep_runs_results, store_states=True
         )
         m_res = MultiTrajResult([qutip.num(N), qutip.qeye(N)], opt, stats={})
         m_res.add_end_condition(ntraj, targettol)
@@ -319,7 +320,7 @@ class TestMultiTrahResult:
     def test_multitraj_steadystate(self):
         N = 5
         ntraj = 100
-        opt = qutip.solver.SolverResultsOptions()
+        opt = fill_options()
         m_res = MultiTrajResult([], opt, stats={})
         m_res.add_end_condition(1000)
         self._fill_trajectories(m_res, N, ntraj)
@@ -330,9 +331,7 @@ class TestMultiTrahResult:
     def test_repr(self, keep_runs_results):
         N = 10
         ntraj = 10
-        opt = qutip.solver.SolverResultsOptions(
-            keep_runs_results=keep_runs_results
-        )
+        opt = fill_options(keep_runs_results=keep_runs_results)
         m_res = MultiTrajResult([], opt)
         self._fill_trajectories(m_res, N, ntraj)
         repr = m_res.__repr__()
@@ -343,9 +342,8 @@ class TestMultiTrahResult:
     @pytest.mark.parametrize('keep_runs_results', [True, False])
     def test_merge_result(self, keep_runs_results):
         N = 10
-        opt = qutip.solver.SolverResultsOptions(
-            keep_runs_results=keep_runs_results,
-            store_states=True,
+        opt = fill_options(
+            keep_runs_results=keep_runs_results, store_states=True
         )
         m_res1 = MultiTrajResult([qutip.num(10)], opt)
         self._fill_trajectories(m_res1, N, 10, noise=0.1)

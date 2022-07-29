@@ -469,10 +469,47 @@ def heomsolve(
     args : dict, optional {None}
         Change the ``args`` of the RHS for the evolution.
 
-    options : :class:`qutip.solver.SolverOptions`
+    options : dict, optional {None}
         Generic solver options.
-        If set to None the default options will be used. Keyword only.
-        Default: None.
+
+        - store_final_state : bool
+          Whether or not to store the final state of the evolution in the
+          result class.
+        - store_states : bool, None
+          Whether or not to store the state vectors or density matrices.
+          On `None` the states will be saved if no expectation operators are
+          given.
+        - store_ados : bool {False, True}
+          Whether or not to store the HEOM ADOs.
+        - normalize_output : bool
+          Normalize output state to hide ODE numerical errors.
+        - progress_bar : str {'text', 'enhanced', 'tqdm', ''}
+          How to present the solver progress.
+          'tqdm' uses the python module of the same name and raise an error
+          if not installed. Empty string or False will disable the bar.
+        - progress_kwargs : dict
+          kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
+        - state_data_type: str {'dense'}
+          Name of the data type of the state used during the ODE evolution.
+          Use an empty string to keep the input state type. Many integrator can
+          only work with `Dense`.
+        - method : str ["adams", "bdf", "lsoda", "dop853", "vern9", etc.]
+          Which differential equation integration method to use.
+        - atol, rtol : float
+          Absolute and relative tolerance of the ODE integrator.
+        - nsteps :
+          Maximum number of (internally defined) steps allowed in one ``tlist``
+          step.
+        - max_step : float, 0
+          Maximum lenght of one internal step. When using pulses, it should be
+          less than half the width of the thinnest pulse.
+
+
+
+
+
+
+
 
     Returns
     -------
@@ -532,7 +569,7 @@ class HEOMSolver(Solver):
         The maximum depth of the heirarchy (i.e. the maximum number of bath
         exponent "excitations" to retain).
 
-    options : :class:`qutip.solver.SolverOptions`
+    options : dict, optional
         Generic solver options.
         If set to None the default options will be used. Keyword only.
         Default: None.
@@ -547,6 +584,16 @@ class HEOMSolver(Solver):
     name = "heomsolver"
     resultclass = HEOMResult
     _avail_integrators = {}
+    solver_options = {
+        "progress_bar": "text",
+        "progress_kwargs": {"chunk_size": 10},
+        "store_final_state": False,
+        "store_states": None,
+        "normalize_output": False,
+        "method": "adams",
+        "store_ados": False,
+        "state_data_type": "dense",
+    }
 
     def __init__(self, H, bath, max_depth, *, options=None):
         _time_start = time()
@@ -1027,8 +1074,8 @@ class HEOMSolver(Solver):
             rho0_he[:n ** 2] = rho0.full().ravel('F')
             rho0_he = _data.create(rho0_he)
 
-        if self.options.ode["state_data_type"]:
-            rho0_he = _data.to(self.options.ode["state_data_type"], rho0_he)
+        if self.options["state_data_type"]:
+            rho0_he = _data.to(self.options["state_data_type"], rho0_he)
 
         return rho0_he
 
@@ -1063,6 +1110,50 @@ class HEOMSolver(Solver):
             Initial time of the evolution.
         """
         super().start(state0, t0)
+
+    @property
+    def options(self):
+        """
+        Options for HEOMSolver:
+
+        store_final_state: bool, default=False
+            Whether or not to store the final state of the evolution in the
+            result class.
+
+        store_states: bool, default=None
+            Whether or not to store the state vectors or density matrices.
+            On `None` the states will be saved if no expectation operators are
+            given.
+
+        normalize_output: bool, default=False
+            Normalize output state to hide ODE numerical errors.
+
+        progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default="text"
+            How to present the solver progress.
+            'tqdm' uses the python module of the same name and raise an error
+            if not installed. Empty string or False will disable the bar.
+
+        progress_kwargs: dict, default={"chunk_size": 10}
+            Arguments to pass to the progress_bar. Qutip's bars use
+            ``chunk_size``.
+
+        method: str, default="adams"
+            Which ordinary differential equation integration method to use.
+
+        state_data_type: str, default="dense"
+            Name of the data type of the state used during the ODE evolution.
+            Use an empty string to keep the input state type. Many integrator can
+            only work with `Dense`.
+
+        store_ados : bool, default=False
+            Whether or not to store the HEOM ADOs. Only relevant when using
+            the HEOM solver.
+        """
+        return self._options
+
+    @options.setter
+    def options(self, new_options):
+        Solver.options.fset(self, new_options)
 
 
 class HSolverDL(HEOMSolver):
@@ -1134,7 +1225,7 @@ class HSolverDL(HEOMSolver):
         promoted to a Liouvillian if it was a Hamiltonian). Keyword only.
         Default: False.
 
-    options : :class:`qutip.solver.SolverOptions`
+    options : dict, optional
         Generic solver options.
         If set to None the default options will be used. Keyword only.
         Default: None.
