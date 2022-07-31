@@ -1,0 +1,1 @@
+Change fidelity(A, B) to use the reduced fidelity formula for pure states which is more numerically efficient and accurate.
