@@ -555,8 +555,8 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
     equation.
 
     .. note :
-        The number of integration steps (for calculating X) within one period is
-        set to 20 * kmax.
+        The number of integration steps (for calculating X) within one period
+        is set to 20 * kmax.
 
     Parameters
     ----------
