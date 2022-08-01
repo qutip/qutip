@@ -1,0 +1,1 @@
+Change floquet_master_equation_rates(...) to use an adaptive number of time steps scaled by the number of sidebands, kmax.
