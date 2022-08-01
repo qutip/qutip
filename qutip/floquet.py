@@ -554,6 +554,10 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
     Calculate the rates and matrix elements for the Floquet-Markov master
     equation.
 
+    .. note :
+        The number of integration steps (for calculating X) within one period is
+        set to 20 * kmax.
+
     Parameters
     ----------
 
@@ -582,7 +586,7 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
     w_th : float
         The temperature in units of frequency.
 
-    k_max : int
+    kmax : int
         The truncation of the number of sidebands (default 5).
 
     f_modes_table_t : nested list of :class:`qutip.qobj` (kets)
@@ -613,7 +617,7 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
     A = np.zeros((N, N))
 
     # time steps for integration of coupling operator
-    nT = int(np.max([2 * kmax * np.ceil(omega), 100]))
+    nT = int(np.max([20 * kmax, 100]))
     dT = T / nT
     tlist = np.arange(dT, T + dT / 2, dT)
 
