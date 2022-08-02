@@ -1019,6 +1019,9 @@ def fmmesolve(H, rho0, tlist, c_ops=[], e_ops=[], spectra_cb=[], T=None,
         # add white noise callbacks if absent
         spectra_cb = [lambda w: 1.0] * len(c_ops)
 
+    if len(spectra_cb) != len(c_ops):
+        raise ValueError("Length of c_ops and spectra_cb don't match.")
+
     f_modes_0, f_energies = floquet_modes(H, T, args,
                                           options=options_modes)
 
@@ -1034,7 +1037,7 @@ def fmmesolve(H, rho0, tlist, c_ops=[], e_ops=[], spectra_cb=[], T=None,
         w_th = 0
 
     # floquet-markov master equation tensor
-    R = None
+    R = 0
     # loop over input c_ops and spectra_cb, calculate one R for each set
     for c_op, spectrum in zip(c_ops, spectra_cb):
         # calculate the rate-matrices for the floquet-markov master equation
@@ -1043,13 +1046,7 @@ def fmmesolve(H, rho0, tlist, c_ops=[], e_ops=[], spectra_cb=[], T=None,
             w_th, kmax, f_modes_table_t)
 
         # calculate temporary floquet-markov master equation tensor
-        R_tmp = floquet_master_equation_tensor(Amat, f_energies)
-        # add temp tensor to general tensor
-        if not R:
-            R = R_tmp
-        else:
-            R += R_tmp
-
+        R += floquet_master_equation_tensor(Amat, f_energies)
 
     return floquet_markov_mesolve(R, rho0, tlist, e_ops,
                                   options=options,
