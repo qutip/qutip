@@ -72,17 +72,18 @@ class TestFloquet:
         op1 = vp[1]*vp[1].dag()
 
         c_op_mesolve = []
-        gamma = np.zeros([2, 2], dtype=complex)
         for i in range(2):
             for j in range(2):
                 if i != j:
-                    gamma[i][j] = 2*np.pi*c_op_fmmesolve.matrix_element(
-                        vp[j], vp[i])*c_op_fmmesolve.matrix_element(
-                        vp[i], vp[j])*noise_spectrum(ep[j]-ep[i])
+                    # caclculate the rate
+                    gamma = 2 * np.pi * c_op_fmmesolve.matrix_element(
+                        vp[j], vp[i]) * c_op_fmmesolve.matrix_element(
+                        vp[i], vp[j]) * noise_spectrum(ep[j] - ep[i])
 
-        for i in range(2):
-            for j in range(2):
-                c_op_mesolve.append(np.sqrt(gamma[i][j])*(vp[i]*vp[j].dag()))
+                    # add c_op for mesolve
+                    c_op_mesolve.append(
+                        np.sqrt(gamma) * (vp[i] * vp[j].dag())
+                    )
 
         # Find the floquet modes
         f_modes_0, f_energies = floquet_modes(H, T, args)
@@ -152,17 +153,18 @@ class TestFloquet:
         op1 = vp[1]*vp[1].dag()
 
         c_op_mesolve = []
-        gamma = np.zeros([2, 2], dtype=complex)
         for i in range(2):
             for j in range(2):
                 if i != j:
-                    gamma[i][j] = 2*np.pi*c_op_fmmesolve.matrix_element(
-                        vp[j], vp[i])*c_op_fmmesolve.matrix_element(
-                        vp[i], vp[j])*noise_spectrum(ep[j]-ep[i])
+                    # caclculate the rate
+                    gamma = 2 * np.pi * c_op_fmmesolve.matrix_element(
+                        vp[j], vp[i]) * c_op_fmmesolve.matrix_element(
+                        vp[i], vp[j]) * noise_spectrum(ep[j] - ep[i])
 
-        for i in range(2):
-            for j in range(2):
-                c_op_mesolve.append(np.sqrt(gamma[i][j])*(vp[i]*vp[j].dag()))
+                    # add c_op for mesolve
+                    c_op_mesolve.append(
+                        np.sqrt(gamma) * (vp[i] * vp[j].dag())
+                    )
 
         # Find the floquet modes
         f_modes_0, f_energies = floquet_modes(H, T, args)
@@ -234,17 +236,18 @@ class TestFloquet:
         op1 = vp[1]*vp[1].dag()
 
         c_op_mesolve = []
-        gamma = np.zeros([2, 2], dtype=complex)
         for i in range(2):
             for j in range(2):
                 if i != j:
-                    gamma[i][j] = 2*np.pi*c_op_fmmesolve.matrix_element(
+                    # caclculate the rate
+                    gamma = 2*np.pi*c_op_fmmesolve.matrix_element(
                         vp[j], vp[i])*c_op_fmmesolve.matrix_element(
                         vp[i], vp[j])*noise_spectrum(ep[j]-ep[i])
 
-        for i in range(2):
-            for j in range(2):
-                c_op_mesolve.append(np.sqrt(gamma[i][j])*(vp[i]*vp[j].dag()))
+                    # add c_op for mesolve
+                    c_op_mesolve.append(
+                        np.sqrt(gamma) * (vp[i] * vp[j].dag())
+                    )
 
         # Solve the floquet-markov master equation
         output1 = fmmesolve(
@@ -308,22 +311,20 @@ class TestFloquet:
 
         c_op_mesolve = []
 
-
+        # Convert the c_ops for fmmesolve to c_ops for mesolve
         for c_op_fmmesolve, noise_spectrum in zip(c_ops_fmmesolve,
                                                    noise_spectra):
-            gamma = np.zeros([2, 2], dtype=complex)
             for i in range(2):
                 for j in range(2):
                     if i != j:
-                        gamma[i][j] = 2*np.pi*c_op_fmmesolve.matrix_element(
+                        # caclculate the rate
+                        gamma = 2*np.pi*c_op_fmmesolve.matrix_element(
                             vp[j], vp[i])*c_op_fmmesolve.matrix_element(
                             vp[i], vp[j])*noise_spectrum(ep[j]-ep[i])
-
-            for i in range(2):
-                for j in range(2):
-                    c_op_mesolve.append(
-                        np.sqrt(gamma[i][j])*(vp[i]*vp[j].dag())
-                    )
+                        # add c_op for mesolve
+                        c_op_mesolve.append(
+                            np.sqrt(gamma) * (vp[i] * vp[j].dag())
+                        )
 
         # Solve the floquet-markov master equation
         output1 = fmmesolve(
