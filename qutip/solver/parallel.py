@@ -309,13 +309,10 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
     return results
 
 
-def get_map(options):
-    if "parallel" in options['map']:
-        return parallel_map
-    elif "serial" in options['map']:
-        return serial_map
-    elif "loky" in options['map']:
-        return loky_pmap
-    else:
-        raise ValueError("map not found, available options are 'parallel',"
-                         " 'serial' and 'loky'")
+get_map = {
+    "parallel_map": parallel_map,
+    "parallel": parallel_map,
+    "serial_map": serial_map,
+    "serial": serial_map,
+    "loky": loky_pmap
+}

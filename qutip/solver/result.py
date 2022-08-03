@@ -611,7 +611,7 @@ class MultiTrajResult(_BaseResult):
         self._early_finish_check = self._no_end
         self.stats['end_condition'] = 'unknown'
 
-    def add(self, seed, trajectory):
+    def add(self, trajectory):
         """
         Add a trajectory to the evolution.
 
@@ -632,6 +632,7 @@ class MultiTrajResult(_BaseResult):
             Return the number of trajectories still needed to reach the target
             tolerance. If no tolerance is provided, return infinity.
         """
+        seed, trajectory = trajectory
         self.seeds.append(seed)
 
         for op in self._state_processors:
@@ -846,15 +847,18 @@ class MultiTrajResult(_BaseResult):
             raise ValueError("Shared `e_ops` is required to merge results")
         if self.times != other.times:
             raise ValueError("Shared `times` are is required to merge results")
-        new = self.__class__(self._raw_ops, self.options, solver=self.solver)
+        new = self.__class__(self._raw_ops, self.options,
+                             solver=self.solver, stats=self.stats)
         if self.trajectories and other.trajectories:
             new.trajectories = self.trajectories + other.trajectories
         new.num_trajectories = self.num_trajectories + other.num_trajectories
         new.times = self.times
         new.seeds = self.seeds + other.seeds
 
-        new._sum_states = self._sum_states + other._sum_states
-        new._sum_final_states = self._sum_final_states + other._sum_final_states
+        if self._sum_states is not None and other._sum_states is not None:
+            new._sum_states = self._sum_states + other._sum_states
+        if self._sum_final_states is not None and other._sum_final_states is not None:
+            new._sum_final_states = self._sum_final_states + other._sum_final_states
         new._target_tols = None
 
         if self._raw_ops:
