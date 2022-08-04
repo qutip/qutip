@@ -166,3 +166,19 @@ def test_solver_accepts_list_hamiltonian():
     brme = qutip.brmesolve(H, psi0, times, [], e_ops, c_ops).expect
     for me_expectation, brme_expectation in zip(me, brme):
         np.testing.assert_allclose(me_expectation, brme_expectation, atol=1e-8)
+
+
+def test_solver_overwork_error():
+    """
+    brmesolve: input list of Qobj
+    """
+    c_ops = qutip.sigmax()
+    H = 100 * qutip.sigmax() +  200 * qutip.sigmaz()
+    psi0 = (2*qutip.basis(2, 0) + qutip.basis(2, 1)).unit()
+    times = np.linspace(0, 10, 100)
+    options = qutip.Options(nsteps=2)
+    with pytest.raises(Exception) as err:
+        brme = qutip.brmesolve(
+            H, psi0, times, a_ops=[[c_ops, lambda w: w>0]], options=options
+        )
+    assert "ODE integration error" in str(err.value)
