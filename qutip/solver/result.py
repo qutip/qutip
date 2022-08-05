@@ -530,8 +530,13 @@ class MultiTrajResult(_BaseResult):
         self.expect = self.average_expect
         self.e_data = self.average_e_data
 
+        [
+            print(avg_expect2 - abs(avg_expect**2))
+            for k, avg_expect, avg_expect2 in zip(self._raw_ops, avg, avg2)
+        ]
+
         self.std_e_data = {
-            k: np.sqrt(avg_expect2 - abs(avg_expect**2))
+            k: np.sqrt(np.maximum(avg_expect2 - abs(avg_expect**2), 0))
             for k, avg_expect, avg_expect2 in zip(self._raw_ops, avg, avg2)
         }
         self.std_expect = list(self.std_e_data.values())
