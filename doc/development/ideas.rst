@@ -4,14 +4,23 @@
 Ideas for future QuTiP development
 **********************************
 
-This chapter covers the development of QuTiP and its subpackages, including
-a roadmap for upcoming releases and ideas for future improvements.
+Ideas for significant new features are listed here. For the general roadmap,
+see :doc:`roadmap`.
 
 .. toctree::
    :maxdepth: 1
 
    ideas/qutip-interactive.rst
    ideas/pulse-level-quantum-circuits.rst
-   ideas/tensorflow-data-backend.rst
    ideas/quantum-error-mitigation.rst
    ideas/heom-gpu.rst
+
+Completed Projects
+==================
+
+These projects have been completed:
+
+.. toctree::
+   :maxdepth: 1
+
+   ideas/tensorflow-data-backend.rst
