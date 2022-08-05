@@ -15,6 +15,7 @@ from collections import defaultdict
 from setuptools import setup, Extension
 try:
     from Cython.Build import cythonize
+    import filelock
 except ImportError:
     pass
 
@@ -217,6 +218,7 @@ class CompilationOptions(QutipOptions):
 
     try:
         import cython
+        import filelock
         _use_cython = True
     except ImportError:
         _use_cython = False
@@ -481,7 +483,9 @@ cdef class StrCoefficient(Coefficient):
 def compile_code(code, file_name, parsed, c_opt):
     pwd = os.getcwd()
     root = qset.coeffroot
+    lock = filelock.FileLock(file_name + ".lock")
     try:
+        lock.acquire(timeout=0)
         os.chdir(root)
         for file in glob.glob(file_name + "*"):
             os.remove(file)
@@ -510,7 +514,12 @@ def compile_code(code, file_name, parsed, c_opt):
             raise Exception("Could not compile") from e
         finally:
             sys.argv = oldargs
+    except filelock.Timeout:
+        with lock:
+            # We wait for the lock to be released and then retry the import.
+            pass
     finally:
+        lock.release()
         os.chdir(pwd)
     return try_import(file_name, parsed)
 
