@@ -314,7 +314,6 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None, progress
                             "the allowed number of substeps by increasing "
                             "the nsteps parameter in the Options class.")
 
-
         rho_eb.data = dense2D_to_fastcsr_fmode(vec2mat(r.y), rho0.shape[0], rho0.shape[1])
 
         # calculate all the expectation values, or output rho_eb if no
