@@ -183,7 +183,7 @@ class TestMultiTrajResult:
                     result.collapse.append((t+0.1, 0))
                     result.collapse.append((t+0.2, 1))
                     result.collapse.append((t+0.3, 1))
-            if multiresult.add(0, result) <= 0:
+            if multiresult.add((0, result)) <= 0:
                 break
 
     def _expect_check_types(self, multiresult):

@@ -4,7 +4,6 @@ import qutip
 from copy import copy
 from qutip.solver.mcsolve import mcsolve, McSolver
 from qutip.solver.solver_base import Solver
-from qutip.solver.options import SolverOptions
 
 def _return_constant(t, args):
     return args['constant']
@@ -51,7 +50,7 @@ class StatesAndExpectOutputCase:
             np.testing.assert_allclose(test, expected_part, rtol=tol)
 
     def test_states_and_expect(self, hamiltonian, args, c_ops, expected, tol):
-        options = SolverOptions(store_states=True, map='serial')
+        options = {"store_states": True, "map": "serial"}
         result = mcsolve(hamiltonian, self.state, self.times, args=args,
                          c_ops=c_ops, e_ops=self.e_ops, ntraj=self.ntraj,
                          options=options, target_tol=0.05)
@@ -88,7 +87,7 @@ class TestNoCollapse(StatesAndExpectOutputCase):
     # test cases, this is just testing the single-output behaviour.
 
     def test_states_only(self, hamiltonian, args, c_ops, expected, tol):
-        options = SolverOptions(store_states=None, map='serial')
+        options = {"store_states": True, "map": "serial"}
         result = mcsolve(hamiltonian, self.state, self.times, args=args,
                          c_ops=c_ops, e_ops=[], ntraj=self.ntraj,
                          options=options)
@@ -426,7 +425,7 @@ def _dynamic(t, args):
     return 0 if args["collapse"] else 1
 
 
-@pytest.mark.xfail(reason="current limitation of SolverOptions")
+@pytest.mark.xfail(reason="current limitation of McSolve")
 def test_dynamic_arguments():
     """Test dynamically updated arguments are usable."""
     size = 5
