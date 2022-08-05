@@ -157,6 +157,7 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
     progress_bar = progess_bars[progress_bar]()
     progress_bar.start(len(values), **progress_bar_kwargs)
 
+    errors = []
     if reduce_func is not None:
         results = None
         result_func = lambda i, value: reduce_func(value)
@@ -166,7 +167,12 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
 
     def _done_callback(future):
         if not future.cancelled():
-            result_func(future._i, future.result())
+            try:
+                result = future.result()
+            except Exception as e:
+                errors.append(e)
+                raise e
+        result_func(future._i, result)
         progress_bar.update()
 
     if sys.version_info >= (3, 7):
@@ -219,6 +225,8 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
         os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
 
     progress_bar.finished()
+    if errors:
+        raise errors[0]
     return results
 
 
