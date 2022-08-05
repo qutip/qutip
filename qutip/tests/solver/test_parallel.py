@@ -69,3 +69,25 @@ def test_map_accumulator(map, num_cpus):
 
     map(_func2, x, args, kwargs, reduce_func=y2.append, map_kw=map_kw)
     assert ((np.array(sorted(y1)) == np.array(sorted(y2))).all())
+
+
+class MyException(Exception):
+    pass
+
+
+def func(i):
+    raise MyException("Error in subprocess")
+
+
+@pytest.mark.parametrize('map', [
+    pytest.param(parallel_map, id='parallel_map'),
+    pytest.param(loky_pmap, id='loky_pmap'),
+    pytest.param(serial_map, id='serial_map'),
+])
+def test_map_pass_error(map):
+    if map is loky_pmap:
+        loky = pytest.importorskip("loky")
+
+    with pytest.raises(MyException) as err:
+        map(func, [None]*3)
+    assert str(err.value) == "Error in subprocess"
