@@ -15,6 +15,18 @@ see :doc:`roadmap`.
    ideas/quantum-error-mitigation.rst
    ideas/heom-gpu.rst
 
+
+Google Summer of Code
+=====================
+
+Many possible extensions and improvements to QuTiP have been documented as
+part of `Google Summer of Code <https://summerofcode.withgoogle.com/>`_:
+
+* `GSoC 2021 <https://github.com/qutip/qutip/wiki/Google-Summer-of-Code-2021/>`_
+* `GSoC 2022 <https://github.com/qutip/qutip/wiki/Google-Summer-of-Code-2022/>`_
+
+
+
 Completed Projects
 ==================
 
