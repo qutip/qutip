@@ -1,19 +1,49 @@
 """ Hypothesis strategies for QuTiP. """
 
+import warnings
+
 import numpy
 
-from hypothesis import strategies as st
+from hypothesis import strategies as st, note as _note
 from hypothesis.extra import numpy as npst
 
+from qutip import Qobj
 from qutip.core import data as _data
+
+
+def assert_allclose(a, b, atol=1e-15, rtol=1e-15):
+    """ Call numpy.testing.assert_allclose, but ignore it's warnings generated
+        when comparing NaNs equal.
+    """
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore", "invalid value encountered in multiply", RuntimeWarning,
+        )
+        warnings.filterwarnings(
+            "ignore", "overflow encountered in absolute", RuntimeWarning,
+        )
+        numpy.testing.assert_allclose(a, b, atol=atol, rtol=rtol)
+
+
+def note(**kw):
+    """ Generate hypothesis .note() calls for the supplied keyword arguments
+        apply .to_array() or .full() as necessary.
+    """
+    for key, value in kw.items():
+        if isinstance(value, Qobj):
+            key = f"{key}.full()"
+            value = value.full()
+        elif isinstance(value, _data.Data):
+            key = f"{key}.to_array()"
+            value = value.to_array()
+        _note(f"{key}: {value!r}")
 
 
 def qobj_dtypes():
     """
     A strategy for Qobj data-layer dtypes.
     """
-    dtype_list = sorted(_data.to.dtypes, key=lambda t: t.__name__)
-    return st.sampled_from(dtype_list)
+    return st.sampled_from([_data.Dense, _data.CSR])
 
 
 def qobj_shapes():
@@ -23,11 +53,17 @@ def qobj_shapes():
     return npst.array_shapes(max_dims=2)
 
 
-def qobj_np(shape=qobj_shapes()):
+@st.composite
+def qobj_np(draw, shape=qobj_shapes()):
     """
     A strategy for returning Qobj compatible numpy arrays.
     """
-    return npst.arrays(shape=shape, dtype=numpy.complex128)
+    np_array = draw(npst.arrays(shape=shape, dtype=numpy.complex128))
+    if len(np_array.shape) == 1:
+        np_array = numpy.atleast_2d(np_array).transpose()
+    else:
+        np_array = numpy.atleast_2d(np_array)
+    return np_array
 
 
 @st.composite
