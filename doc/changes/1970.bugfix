@@ -1,0 +1,4 @@
+Backport fix for IPython helper Bloch._repr_svg_ from dev.major. Previously the
+print_figure function returned byte code, but since ipython/ipython#5452
+(in 2014) it returns a Unicode string. This fix updates QuTiP's helper to
+match. 
