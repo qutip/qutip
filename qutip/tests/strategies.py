@@ -1,8 +1,9 @@
 """ Hypothesis strategies for QuTiP. """
 
+import contextlib
 import warnings
 
-import numpy
+import numpy as np
 
 from hypothesis import strategies as st, note as _note
 from hypothesis.extra import numpy as npst
@@ -11,18 +12,58 @@ from qutip import Qobj
 from qutip.core import data as _data
 
 
-def assert_allclose(a, b, atol=1e-15, rtol=1e-15):
-    """ Call numpy.testing.assert_allclose, but ignore it's warnings generated
-        when comparing NaNs equal.
+def _convert_inf_to_nan(a):
+    """ Convert infinite values (i.e. where np.isinf) to np.nan. """
+    if np.issubdtype(a.dtype, complex):
+        a = a.copy()
+        a[np.isinf(a)] = complex(np.nan, np.nan)
+    elif np.issubdtype(a.dtype, float):
+        a = a.copy()
+        a[np.isnf(a)] = np.nan
+    return a
+
+
+@contextlib.contextmanager
+def ignore_arithmetic_warnings():
+    """ Ignore numpy's arithmetic warnings when encountering nans and infs.
     """
     with warnings.catch_warnings():
         warnings.filterwarnings(
-            "ignore", "invalid value encountered in multiply", RuntimeWarning,
+            "ignore", "invalid value encountered in", RuntimeWarning,
         )
         warnings.filterwarnings(
-            "ignore", "overflow encountered in absolute", RuntimeWarning,
+            "ignore", "overflow encountered in", RuntimeWarning,
         )
-        numpy.testing.assert_allclose(a, b, atol=atol, rtol=rtol)
+        yield
+
+
+def assert_allclose(
+    a, b, atol=1e-15, rtol=1e-15, treat_inf_as_nan=False,
+):
+    """ Call numpy.testing.assert_allclose, but ignore it's warnings generated
+        when comparing NaNs equal.
+
+        Parameters
+        ----------
+        a : numpy.array
+            The first array to compare.
+        b : numpy.array
+            The second array to compare.
+        atol : float
+            The absolute tolerance to use in the comparison. Default 1e-15.
+        rtol : float
+            The relative tolerance to use in the comparion. Default 1e-15.
+        treat_inf_as_nan: bool
+            Parts of BLAS were defined before IEEE 754 was released in 1985.
+            Thus BLAS sometimes returns (nan+infj) for (0+infj). This
+            option allows this break from the specification by setting all
+            infinite elements (i.e. where np.isinf) to nan.
+    """
+    if treat_inf_as_nan:
+        a = _convert_inf_to_nan(a)
+        b = _convert_inf_to_nan(b)
+    with ignore_arithmetic_warnings():
+        np.testing.assert_allclose(a, b, atol=atol, rtol=rtol)
 
 
 def note(**kw):
@@ -58,11 +99,11 @@ def qobj_np(draw, shape=qobj_shapes()):
     """
     A strategy for returning Qobj compatible numpy arrays.
     """
-    np_array = draw(npst.arrays(shape=shape, dtype=numpy.complex128))
+    np_array = draw(npst.arrays(shape=shape, dtype=np.complex128))
     if len(np_array.shape) == 1:
-        np_array = numpy.atleast_2d(np_array).transpose()
+        np_array = np.atleast_2d(np_array).transpose()
     else:
-        np_array = numpy.atleast_2d(np_array)
+        np_array = np.atleast_2d(np_array)
     return np_array
 
 
