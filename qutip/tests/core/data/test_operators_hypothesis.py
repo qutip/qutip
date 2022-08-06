@@ -35,7 +35,9 @@ def test_data_add_operator(a, b):
 def test_data_minus_operator(a, b):
     result = a - b
     qst.note(result=result, a=a, b=b)
-    qst.assert_allclose(result.to_array(), a.to_array() - b.to_array())
+    with qst.ignore_arithmetic_warnings():
+        expected = a.to_array() - b.to_array()
+    qst.assert_allclose(result.to_array(), expected, treat_inf_as_nan=True)
 
 
 @given(qst.qobj_datas(shape=same_shape), qst.qobj_datas(shape=same_shape))
