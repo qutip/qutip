@@ -9,3 +9,4 @@ recursive-include qutip *.pxd
 recursive-include qutip *.hpp
 recursive-include qutip *.cpp
 recursive-include qutip *.ini
+recursive-include qutip *.h
