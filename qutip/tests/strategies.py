@@ -29,8 +29,8 @@ class MatrixShapesStrategy(st.SearchStrategy):
 
         Examples
         --------
-        MatrixShapeStrategy([("n", "k"), ("k", "m")])
-        MatrixShapeStrategy([("j", 3), (3, "j")])
+        MatrixShapesStrategy([("n", "k"), ("k", "m")])
+        MatrixShapesStrategy([("j", 3), (3, "j")])
     """
     def __init__(
         self,
@@ -40,7 +40,7 @@ class MatrixShapesStrategy(st.SearchStrategy):
     ):
         super().__init__()
         self.side_strat = st.integers(min_side, max_side)
-        self.shapes = shapes
+        self.shapes = tuple(shapes)
         self.min_side = min_side
         self.max_side = max_side
 
@@ -110,21 +110,25 @@ def qobj_datas(draw, shape=qobj_shapes(), dtype=qobj_dtypes()):
     return _data.to(dtype, _data.create(data))
 
 
-@st.composite
-def qobj_shaped_datas(
-    draw,
-    shapes=MatrixShapesStrategy(shapes=(("n", "k"), ("k", "m"))),
-    dtype=qobj_dtypes(),
-):
+def qobj_shared_shapes(shapes):
     """
-    A strategy for returning a list of Qobj data-layer instances.
+    Return a tuple of strategies that each return one shape from
+    a shared MatrixShapesStrategy strategy defined by the given shapes.
+
+    Examples
+    --------
+    >>> shape_a, shape_b = qobj_shared_shapes([("n", "k"), ("k", "m")])
+
+    In the example above shape_a would return the shapes generated for
+    ("n", "k") and shape_b the shapes generated for ("k", "m").
     """
-    shapes = draw(shapes)
-    datas = [
-        draw(qobj_datas(shape=shape, dtype=dtype))
-        for shape in shapes
-    ]
-    return datas
+    shapes_st = MatrixShapesStrategy(shapes)
+    shapes_st = st.shared(shapes_st)
+    import operator
+    return tuple(
+        st.builds(operator.itemgetter(i), shapes_st)
+        for i in range(len(shapes))
+    )
 
 
 def note(**kw):

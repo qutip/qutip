@@ -5,6 +5,12 @@ from hypothesis import given, strategies as st
 from qutip.core import data as _data
 from qutip.tests import strategies as qst
 
+same_shape = st.shared(qst.qobj_shapes())
+[matmul_shape_a, matmul_shape_b] = qst.qobj_shared_shapes([
+    ("n", "k"),
+    ("k", "m"),
+])
+
 
 @given(qst.qobj_np(), qst.qobj_dtypes())
 def test_data_create(np_array, dtype):
@@ -30,9 +36,6 @@ def test_data_iszero(data):
             np_array, numpy.zeros_like(np_array), rtol=1e-15
         )
     assert result is expected
-
-
-same_shape = st.shared(qst.qobj_shapes())
 
 
 @given(qst.qobj_datas(shape=same_shape), qst.qobj_datas(shape=same_shape))
@@ -109,12 +112,10 @@ def test_data_equality_operator_different_shapes(a, b):
 
 
 @given(
-    datas=qst.qobj_shaped_datas(
-        shapes=qst.MatrixShapesStrategy(shapes=(("n", "k"), ("k", "m"))),
-    ),
+    qst.qobj_datas(shape=matmul_shape_a),
+    qst.qobj_datas(shape=matmul_shape_b),
 )
-def test_data_matmul_operator(datas):
-    [a, b] = datas
+def test_data_matmul_operator(a, b):
     result = a @ b
     qst.note(result=result, a=a, b=b)
     with qst.ignore_arithmetic_warnings():
