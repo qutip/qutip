@@ -20,8 +20,6 @@ cpdef CSR imul_csr(CSR matrix, double complex value):
 
 cpdef CSR mul_csr(CSR matrix, double complex value):
     """Multiply this CSR `matrix` by a complex scalar `value`."""
-    if value == 0:
-        return csr.zeros(matrix.shape[0], matrix.shape[1])
     cdef CSR out = csr.copy_structure(matrix)
     cdef idxint ptr
     with nogil:
