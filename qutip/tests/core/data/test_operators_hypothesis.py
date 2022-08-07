@@ -120,5 +120,4 @@ def test_data_matmul_operator(a, b):
     qst.note(result=result, a=a, b=b)
     with qst.ignore_arithmetic_warnings():
         expected = a.to_array() @ b.to_array()
-    qst.note(expected=expected)
     qst.assert_allclose(result.to_array(), expected)
