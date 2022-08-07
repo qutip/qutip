@@ -33,7 +33,7 @@ def test_data_iszero(data):
     with qst.ignore_arithmetic_warnings():
         np_array = data.to_array()
         expected = numpy.allclose(
-            np_array, numpy.zeros_like(np_array), rtol=1e-15
+            np_array, numpy.zeros_like(np_array), atol=1e-15, rtol=1e-15
         )
     assert result is expected
 
