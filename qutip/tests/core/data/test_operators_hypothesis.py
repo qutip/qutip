@@ -93,10 +93,25 @@ def test_data_scalar_division_operator(a, x):
 
 
 @given(qst.qobj_datas(shape=same_shape), qst.qobj_datas(shape=same_shape))
-def test_data_equality_operator(a, b):
+def test_data_equality_operator_same_shapes(a, b):
     result = (a == b)
     qst.note(result=result, a=a, b=b)
     with qst.ignore_arithmetic_warnings():
-        assert result == numpy.allclose(
+        expected = numpy.allclose(
             a.to_array(), b.to_array(), rtol=1e-15
         )
+    assert result == expected
+
+
+@given(qst.qobj_datas(), qst.qobj_datas())
+def test_data_equality_operator_different_shapes(a, b):
+    result = (a == b)
+    qst.note(result=result, a=a, b=b)
+    if a.shape != b.shape:
+        expected = False
+    else:
+        with qst.ignore_arithmetic_warnings():
+            expected = numpy.allclose(
+                a.to_array(), b.to_array(), rtol=1e-15
+            )
+    assert result == expected
