@@ -137,11 +137,11 @@ def note(**kw):
     """
     for key, value in kw.items():
         if isinstance(value, Qobj):
-            key = f"{key}.full()"
-            value = (type(value.data).__name__, value.full())
+            key = f"{key} [Qobj, {type(value.data).__name__}]"
+            value = value.full()
         elif isinstance(value, _data.Data):
-            key = f"{key}.to_array()"
-            value = (type(value).__name__, value.to_array())
+            key = f"{key} [Data, {type(value).__name__}]"
+            value = value.to_array()
         _note(f"{key}: {value!r}")
 
 
