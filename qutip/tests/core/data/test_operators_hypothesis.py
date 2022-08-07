@@ -53,15 +53,6 @@ def test_data_minus_operator(a, b):
     qst.assert_allclose(result.to_array(), expected, treat_inf_as_nan=True)
 
 
-@given(qst.qobj_datas(shape=same_shape), qst.qobj_datas(shape=same_shape))
-def test_data_matmul_operator(a, b):
-    result = a @ b
-    qst.note(result=result, a=a, b=b)
-    with qst.ignore_arithmetic_warnings():
-        expected = a.to_array() @ b.to_array()
-    qst.assert_allclose(result.to_array(), expected)
-
-
 @given(st.complex_numbers(), qst.qobj_datas(shape=same_shape))
 def test_data_scalar_multiplication_left_operator(x, a):
     result = x * a
@@ -115,3 +106,18 @@ def test_data_equality_operator_different_shapes(a, b):
                 a.to_array(), b.to_array(), rtol=1e-15
             )
     assert result == expected
+
+
+@given(
+    datas=qst.qobj_shaped_datas(
+        shapes=qst.MatrixShapesStrategy(shapes=(("n", "k"), ("k", "m"))),
+    ),
+)
+def test_data_matmul_operator(datas):
+    [a, b] = datas
+    result = a @ b
+    qst.note(result=result, a=a, b=b)
+    with qst.ignore_arithmetic_warnings():
+        expected = a.to_array() @ b.to_array()
+    qst.note(expected=expected)
+    qst.assert_allclose(result.to_array(), expected)
