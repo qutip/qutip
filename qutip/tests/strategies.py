@@ -12,6 +12,56 @@ from qutip import Qobj
 from qutip.core import data as _data
 
 
+class MatrixShapesStrategy(st.SearchStrategy):
+    """ A strategy for producing compatible matrix shapes.
+
+        Parameters
+        ----------
+        shapes : list of shape specifications
+            Each shape specification show be a tuple of dimension labels,
+            e.g. ("n", "k"). Dimensions with the same labels will be
+            given the same length in the resulting shapes. Fixed dimensions
+            may be specified with an integer constant, e.g. ("n", 3).
+        min_side : int
+            The minimum length of any one dimension. Default 0.
+        max_side : int
+            The maximum length of any one dimension. Default 64.
+
+        Examples
+        --------
+        MatrixShapeStrategy([("n", "k"), ("k", "m")])
+        MatrixShapeStrategy([("j", 3), (3, "j")])
+    """
+    def __init__(
+        self,
+        shapes,
+        min_side=1,
+        max_side=64,
+    ):
+        super().__init__()
+        self.side_strat = st.integers(min_side, max_side)
+        self.shapes = shapes
+        self.min_side = min_side
+        self.max_side = max_side
+
+    def do_draw(self, data):
+        dims = {}
+        shapes = []
+        for shape in self.shapes:
+            shapes.append([])
+            for name in shape:
+                if isinstance(name, int):
+                    shapes[-1].append(name)
+                    continue
+                if name not in dims:
+                    dim = name
+                    dims[dim] = data.draw(self.side_strat)
+                shapes[-1].append(dims[name])
+
+        shapes = tuple(tuple(s) for s in shapes)
+        return shapes
+
+
 def _convert_inf_to_nan(a):
     """ Convert infinite values (i.e. where np.isinf) to np.nan. """
     if np.issubdtype(a.dtype, complex):
@@ -82,14 +132,14 @@ def note(**kw):
 
 def qobj_dtypes():
     """
-    A strategy for Qobj data-layer dtypes.
+    A strategy returning Qobj data-layer dtypes.
     """
     return st.sampled_from([_data.Dense, _data.CSR])
 
 
 def qobj_shapes():
     """
-    A strategy for Qobj data-layer shapes.
+    A strategy returning Qobj data-layer shapes.
     """
     return npst.array_shapes(max_dims=2)
 
@@ -97,7 +147,7 @@ def qobj_shapes():
 @st.composite
 def qobj_np(draw, shape=qobj_shapes()):
     """
-    A strategy for returning Qobj compatible numpy arrays.
+    A strategy returning Qobj compatible numpy arrays.
     """
     np_array = draw(npst.arrays(shape=shape, dtype=np.complex128))
     if len(np_array.shape) == 1:
@@ -126,3 +176,20 @@ def qobj_datas(draw, shape=qobj_shapes(), dtype=qobj_dtypes()):
     dtype = draw(dtype)
     data = draw(qobj_np(shape=shape))
     return _data.to(dtype, _data.create(data))
+
+
+@st.composite
+def qobj_shaped_datas(
+    draw,
+    shapes=MatrixShapesStrategy(shapes=(("n", "k"), ("k", "m"))),
+    dtype=qobj_dtypes(),
+):
+    """
+    A strategy for returning a list of Qobj data-layer instances.
+    """
+    shapes = draw(shapes)
+    datas = [
+        draw(qobj_datas(shape=shape, dtype=dtype))
+        for shape in shapes
+    ]
+    return datas
