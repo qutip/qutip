@@ -90,4 +90,4 @@ def test_map_pass_error(map):
 
     with pytest.raises(MyException) as err:
         map(func, [None]*3)
-    assert str(err.value) == "Error in subprocess"
+    assert "Error in subprocess" in str(err.value)

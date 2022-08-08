@@ -202,7 +202,7 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
                         timeout=timeout,
                         return_when=concurrent.futures.FIRST_COMPLETED,
                     )
-                if time.time() >= end_time:
+                if time.time() >= end_time or errors:
                     # no time left, exit the loop
                     break
                 while len(waiting) < map_kw['num_cpus'] and i < len(values):
@@ -226,7 +226,15 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
 
     progress_bar.finished()
     if errors:
-        raise errors[0]
+        parents = tuple(set(err.__class__ for err in errors))
+
+        class ParallelExceptions(*parents):
+            def __init__(self, msg, errors):
+                super().__init__(msg, errors)
+                self.errors = errors
+
+        raise ParallelExceptions("Errors in parallel_map subprocess.", errors)
+
     return results
 
 
