@@ -5,7 +5,7 @@ import numpy as np
 import scipy.interpolate as interp
 from functools import partial
 from qutip.core.coefficient import (coefficient, norm, conj, shift,
-                                    CompilationOptions,
+                                    CompilationOptions, Coefficient,
                                     clean_compiled_coefficient
                                    )
 from qutip.core.options import CoreOptions
@@ -392,3 +392,23 @@ def test_CoeffFromScipy():
     coeff = coefficient(y, tlist=tlist, order=3)
     from_scipy = coefficient(interp.make_interp_spline(tlist, y, k=3))
     _assert_eq_over_interval(coeff, from_scipy, rtol=1e-8, inside=True)
+
+
+@pytest.mark.parametrize('map_func', [
+    pytest.param(qutip.solver.parallel.parallel_map, id='parallel_map'),
+    pytest.param(qutip.solver.parallel.loky_pmap, id='loky_pmap'),
+])
+@pytest.mark.requires_cython
+def test_coefficient_parallel(map_func):
+    otherwise_never_used = "np.log(np.exp(t + t + t))"
+    expected = coefficient(lambda t: 3 * t)
+
+    if map_func is qutip.solver.parallel.loky_pmap:
+        loky = pytest.importorskip("loky")
+        otherwise_never_used += " + 0"
+
+    coeffs = map_func(coefficient, [otherwise_never_used] * 10)
+
+    for coeff in coeffs:
+        assert isinstance(coeff, Coefficient)
+        _assert_eq_over_interval(coeff, expected)
