@@ -252,3 +252,7 @@ class MultiTrajSolver(Solver):
         else:
             generator = np.random.default_rng(seed)
         return generator
+
+    @classmethod
+    def avail_integrators(cls):
+        return cls._avail_integrators

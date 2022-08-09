@@ -6,6 +6,7 @@ import numpy as np
 from copy import copy
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns, liouvillian
 from .multitraj import MultiTrajSolver
+from .solver_base import Solver
 from .result import McResult, Result
 from .mesolve import mesolve, MeSolver
 import qutip.core.data as _data
@@ -508,3 +509,12 @@ class McSolver(MultiTrajSolver):
     @options.setter
     def options(self, new_options):
         MultiTrajSolver.options.fset(self, new_options)
+
+    @classmethod
+    def avail_integrators(cls):
+        if cls is Solver:
+            return cls._avail_integrators.copy()
+        return {
+            **Solver.avail_integrators(),
+            **cls._avail_integrators,
+        }
