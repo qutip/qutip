@@ -498,7 +498,7 @@ class MultiTrajResult(_BaseResult):
         self.e_ops = trajectory.e_ops
 
         self.average_e_data = {
-            k: avg_expect.astype(np.array(expect).dtype)
+            k: avg_expect if np.iscomplexobj(expect) else avg_expect.real
             for k, avg_expect, expect
             in zip(self._raw_ops, self._sum_expect, trajectory.expect)
         }
@@ -529,7 +529,7 @@ class MultiTrajResult(_BaseResult):
         avg2 = self._sum2_expect / self.num_trajectories
 
         self.average_e_data = {
-            k: avg_expect.astype(expect.dtype)
+            k: avg_expect if np.iscomplexobj(expect) else avg_expect.real
             for k, avg_expect, expect
             in zip(self._raw_ops, avg, self.average_expect)
         }

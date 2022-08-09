@@ -13,7 +13,7 @@ from time import time
 
 
 def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
-            args=None, options=None, seeds=None, target_tol=None, timeout=1e8):
+            args=None, options=None, seeds=None, target_tol=None, timeout=None):
     r"""
     Monte Carlo evolution of a state vector :math:`|\psi \rangle` for a
     given Hamiltonian and sets of collapse operators. Options for the
@@ -49,11 +49,48 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
         is passed with the ``timeout`` keyword or if the target tolerance is
         reached, see ``target_tol``.
 
-    args : dict, [optional]
+    args : None / dict
         Arguments for time-dependent Hamiltonian and collapse operator terms.
 
-    options : SolverOptions, [optional]
-        Options for the evolution.
+    options : None / dict
+        Dictionary of options for the solver.
+
+        - store_final_state : bool
+          Whether or not to store the final state of the evolution in the
+          result class.
+        - store_states : bool, None
+          Whether or not to store the state vectors or density matrices.
+          On `None` the states will be saved if no expectation operators are
+          given.
+        - normalize_output : bool
+          Normalize output state to hide ODE numerical errors.
+        - progress_bar : str {'text', 'enhanced', 'tqdm', ''}
+          How to present the solver progress.
+          'tqdm' uses the python module of the same name and raise an error
+          if not installed. Empty string or False will disable the bar.
+        - progress_kwargs : dict
+          kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
+        - method : str ["adams", "bdf", "lsoda", "dop853", "vern9", etc.]
+          Which differential equation integration method to use.
+        - keep_runs_results : bool
+          Whether to store results from all trajectories or just store the
+          averages.
+        - map : str {"serial", "parallel", "loky"}
+          How to run the trajectories. "parallel" uses concurent module to run
+          in parallel while "loky" use the module of the same name to do so.
+        - job_timeout : None, int
+          Maximum time to compute one trajectory.
+        - num_cpus : None, int
+          Number of cpus to use when running in parallel. ``None`` detect the
+          number of available cpus.
+        - norm_t_tol, norm_tol, norm_steps : float, float, int
+          Parameters used to find the collapse location. ``norm_t_tol`` and
+          ``norm_tol`` are the tolerance in time and norm respectively.
+          An error will be raised if the collapse could not be found within
+          ``norm_steps`` tries.
+        - mc_corr_eps : float
+          Small number used to detect non-physical collapse caused by numerical
+          imprecision.
 
     seeds : int, SeedSequence, list, [optional]
         Seed for the random number generator. It can be a single seed used to
@@ -61,7 +98,7 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
         trajectory. Seeds are saved in the result and they can be reused with::
             seeds=prev_result.seeds
 
-    target_tol : {float, tuple, list}, optional [None]
+    target_tol : {float, tuple, list}, optional
         Target tolerance of the evolution. The evolution will compute
         trajectories until the error on the expectation values is lower than
         this tolerance. The maximum number of trajectories employed is
@@ -70,7 +107,7 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
         relative tolerance, in that order. Lastly, it can be a list of pairs of
         (atol, rtol) for each e_ops.
 
-    timeout : float [optional] {1e8}
+    timeout : float [optional]
         Maximum time for the evolution in second. When reached, no more
         trajectories will be computed. Overwrite the option of the same name.
 
@@ -100,8 +137,10 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
                        options=options)
 
     if isinstance(ntraj, list):
-        raise TypeError("No longer supported, use `result.expect_traj_avg`"
-                        "with the options `keep_runs_results=True`.")
+        raise TypeError(
+            "List ntraj is no longer supported, use `result.expect_traj_avg`"
+            "with the options `keep_runs_results=True`."
+        )
 
     mc = McSolver(H, c_ops, options=options)
     result = mc.run(state, tlist=tlist, ntraj=ntraj, e_ops=e_ops,
@@ -111,7 +150,7 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
 
 class MCIntegrator:
     """
-    Solver for one mcsolve trajectory. Created by a :class:`McSolver`.
+    Integrator like object for mcsolve trajectory.
     """
     name = "mcsolve"
 
@@ -172,7 +211,7 @@ class MCIntegrator:
             yield self.integrate(t, False)
 
     def reset(self, hard=False):
-        self._integrator(hard)
+        self._integrator.reset(hard)
 
     def _prob_func(self, state):
         if self.issuper:
@@ -309,7 +348,6 @@ class McSolver(MultiTrajSolver):
         "keep_runs_results": False,
         "method": "adams",
         "map": "serial",
-        "timeout": None,
         "job_timeout": None,
         "num_cpus": None,
         "bitgenerator": None,
@@ -405,3 +443,68 @@ class McSolver(MultiTrajSolver):
         )
         self._init_integrator_time = time() - _time_start
         return mc_integrator
+
+    @property
+    def options(self):
+        """
+        Options for bloch redfield solver:
+
+        store_final_state: bool, default=False
+            Whether or not to store the final state of the evolution in the
+            result class.
+
+        store_states: bool, default=None
+            Whether or not to store the state vectors or density matrices.
+            On `None` the states will be saved if no expectation operators are
+            given.
+
+        progress_bar: str {'text', 'enhanced', 'tqdm', ''}, default="text"
+            How to present the solver progress.
+            'tqdm' uses the python module of the same name and raise an error if
+            not installed. Empty string or False will disable the bar.
+
+        progress_kwargs: dict, default={"chunk_size":10}
+            Arguments to pass to the progress_bar. Qutip's bars use
+            ``chunk_size``.
+
+        keep_runs_results: bool
+          Whether to store results from all trajectories or just store the
+          averages.
+
+        method: str, default="adams"
+            Which ODE integrator methods are supported.
+
+        map: str {"serial", "parallel", "loky"}
+            How to run the trajectories. "parallel" uses concurent module to
+            run in parallel while "loky" use the module of the same name to do
+            so.
+
+        job_timeout: None, int
+            Maximum time to compute one trajectory.
+
+        num_cpus: None, int
+            Number of cpus to use when running in parallel. ``None`` detect the
+            number of available cpus.
+
+        bitgenerator: {None, "MT19937", "PCG64", "PCG64DXSM", ...}
+            Which of numpy.random's bitgenerator to use. With ``None``, your
+            numpy version's default is used.
+
+        mc_corr_eps: float
+            Small number used to detect non-physical collapse caused by
+            numerical imprecision.
+
+        norm_t_tol: float
+            Tolerance in time used when finding the collapse.
+
+        norm_tol: float
+            Tolerance in norm used when finding the collapse.
+
+        norm_steps: int
+            Maximum number of tries to find the collapse.
+        """
+        return self._options
+
+    @options.setter
+    def options(self, new_options):
+        MultiTrajSolver.options.fset(self, new_options)

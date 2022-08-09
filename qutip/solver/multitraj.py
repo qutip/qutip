@@ -42,7 +42,6 @@ class MultiTrajSolver(Solver):
         "normalize_output": False,
         "method": "",
         "map": "serial",
-        "timeout": None,
         "job_timeout": None,
         "num_cpus": None,
         "bitgenerator": None,
@@ -178,7 +177,7 @@ class MultiTrajSolver(Solver):
 
         map_func = get_map[self._options['map']]
         map_kw = {
-            'timeout': timeout or self.options['timeout'],
+            'timeout': timeout,
             'job_timeout': self.options['job_timeout'],
             'num_cpus': self.options['num_cpus'],
         }
@@ -246,8 +245,6 @@ class MultiTrajSolver(Solver):
             # We check for the method, not the type to accept pseudo non-random
             # generator for debug/testing purpose.
             return seed
-        if not isinstance(seed, np.random.SeedSequence):
-            seed = np.random.SeedSequence(seed)
 
         if self.options['bitgenerator']:
             bit_gen = getattr(np.random, self.options['bitgenerator'])
