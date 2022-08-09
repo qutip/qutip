@@ -73,13 +73,13 @@ def test_map_accumulator(map, num_cpus):
     assert ((np.array(sorted(y1)) == np.array(sorted(y2))).all())
 
 
-class TestException(Exception):
+class CustomException(Exception):
     pass
 
 
 def func(i):
     if i % 2 == 1:
-        raise TestException(f"Error in subprocess {i}")
+        raise CustomException(f"Error in subprocess {i}")
     return i
 
 
@@ -92,7 +92,7 @@ def test_map_pass_error(map):
     if map is loky_pmap:
         loky = pytest.importorskip("loky")
 
-    with pytest.raises(TestException) as err:
+    with pytest.raises(CustomException) as err:
         map(func, range(10))
     assert "Error in subprocess" in str(err.value)
 
@@ -111,7 +111,7 @@ def test_map_store_error(map):
     map_error = err.value
     assert "iterations failed" in str(map_error)
     for iter, error in map_error.errors.items():
-        assert isinstance(error, TestException)
+        assert isinstance(error, CustomException)
         assert f"Error in subprocess {iter}" == str(error)
     for n, result in enumerate(map_error.results):
         if n % 2 == 0:
