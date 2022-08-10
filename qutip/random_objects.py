@@ -143,6 +143,72 @@ def _rand_jacobi_rotation(A, generator):
     return _data.matmul(_data.matmul(R, A), R.adjoint())
 
 
+def _get_block_sizes(N, density, generator):
+    """
+    Obtain a list of matrices block sizes in a way that a NxN matrix composed.
+    Of full matrices of these size allong the diagonal would be of desired
+    density.
+    """
+    if density <= 0:
+        return [1] * N
+    elif density >= 1:
+        return [N]
+    max_block_size = int((N**2 * density)**0.5)
+    min_block_size = 1
+    if density >= 0.5:
+        min_block_size = int(N / 2 * (1 + (2 * density - 1)**0.5))
+
+    if min_block_size >= max_block_size:
+        M = min(min_block_size, max_block_size)
+    else:
+        M = generator.integers(min_block_size, max_block_size) + 1
+    M += generator.integers(-1, 2)
+    M = min(max(M, 1), N)
+
+    other_blocks = []
+    if M < N:
+        other_N = N - M
+        other_density = (density * N**2 - M**2) / other_N**2
+        other_blocks = _get_block_sizes(other_N, other_density, generator)
+
+    return [M] + other_blocks
+
+
+def _merge_shuffle_blocks(blocks, generator):
+    """
+    For a list of block, merge them in one matrix along the diagonal and
+    shuffle the rows and columns.
+    """
+    N = sum(block.shape[0] for block in blocks)
+    D = sum(block.shape[0]**2 for block in blocks) / N**2
+    idx = generator.permutation(N)
+    end = 0
+    if D < 0.1:
+        # TODO: coo_array from sicpy 1.8 would allow to simplify this.
+        row = []
+        col = []
+        data = []
+        for block in blocks:
+            start = end
+            end = end + block.shape[0]
+            brow, bcol = np.meshgrid(idx[start:end], idx[start:end])
+            row.append(brow.ravel())
+            col.append(bcol.ravel())
+            data.append(block.ravel())
+        data = np.hstack(data)
+        row = np.hstack(row)
+        col = np.hstack(col)
+        matrix = sp.coo_matrix((data, (row, col)), shape=(N, N))
+    else:
+        matrix = np.zeros((N,N), dtype=complex)
+        for block in blocks:
+            start = end
+            end = end + block.shape[0]
+            brow, bcol = np.meshgrid(idx[start:end], idx[start:end])
+            matrix[brow, bcol] = block
+    return _data.create(matrix, copy=False)
+
+
 def rand_herm(dimensions, density=0.30, pos_def=False, eigenvalues=None, *,
               seed=None, dtype=_data.CSR):
     """Creates a random sparse Hermitian quantum object.
@@ -259,13 +325,9 @@ def _rand_herm_dense(N, density, pos_def, generator):
     return _data.create(M)
 
 
-
-def rand_unitary(dimensions, density=0.75, distribution="harr", *,
+def rand_unitary(dimensions, distribution="haar", density=1, *,
                  seed=None, dtype=_data.Dense):
     r"""Creates a random sparse unitary quantum object.
-
-    Uses :math:`\exp(-iH)` where H is a randomly generated
-    Hermitian operator.
 
     Parameters
     ----------
@@ -279,7 +341,11 @@ def rand_unitary(dimensions, density=0.75, distribution="harr", *,
         Method used to obtain the unitary matrices.
 
         - haar : Haar random unitary matrix using the algorithm of [Mez07]_.
-        - exp : Exponantiation of a random Hermitian matrix.
+        - exp : Uses :math:`\exp(-iH)`, where H is a randomly generated
+          Hermitian operator.
+
+    density : float, [1]
+        Density between [0,1] of output unitary operator.
 
     seed : int, SeedSequence, Generator, optional
         Seed to create the random number generator or a pre prepared
@@ -295,17 +361,25 @@ def rand_unitary(dimensions, density=0.75, distribution="harr", *,
         Unitary quantum operator.
     """
     N, dims = _implicit_tensor_dimensions(dimensions)
-    generator = _get_generator(seed)
-
     if distribution not in ["haar", "exp"]:
         raise ValueError("distribution must be one of {'haar', 'exp'}")
-    if distribution == "haar":
-        mat = _rand_unitary_haar(N, generator)
-    elif distribution == "exp":
-        mat = (-1.0j * rand_herm(N, seed=generator)).expm()
-    else:
-        raise ValueError("distribution must be one of {'haar', 'exp'}")
-    mat.dims = dims
+    generator = _get_generator(seed)
+    block_sizes = _get_block_sizes(N, density, generator)
+
+    blocks = []
+    for block in block_sizes:
+        if distribution == "haar":
+            mat = _rand_unitary_haar(block, generator)
+        elif distribution == "exp":
+            mat = scipy.linalg.expm(
+                -1.0j *
+                _rand_herm_dense(block, 1, False, generator).as_ndarray()
+            )
+        blocks.append(mat)
+
+    merged = _merge_shuffle_blocks(blocks, generator)
+
+    mat = Qobj(merged, type='oper', dims=dims, isunitary=True, copy=False)
     return mat.to(dtype)
 
 
@@ -319,11 +393,13 @@ def _rand_unitary_haar(N, generator):
     N : int
         Dimension of the unitary to be returned.
 
+    generator : numpy.random.generator
+        Random number generator.
+
     Returns
     -------
-    U : Qobj
-        Unitary of dims ``[[dim], [dim]]`` drawn from the Haar
-        measure.
+    U : qutip.core.data.Dense
+        Unitary of shape ``(N, N)`` drawn from the Haar measure.
     """
     # Mez01 STEP 1: Generate an N × N matrix Z of complex standard
     #               normal random variates.
@@ -348,7 +424,7 @@ def _rand_unitary_haar(N, generator):
     #       As NumPy arrays, Q has shape (N, N) and
     #       Lambda has shape (N, ), such that the broadcasting
     #       represents precisely Q_ij λ_j.
-    return Qobj(Q * Lambda, type='oper', isunitary=True, copy=False)
+    return Q * Lambda
 
 
 def rand_ket(dimensions, density=1, distribution="haar", *,
@@ -393,7 +469,7 @@ def rand_ket(dimensions, density=1, distribution="haar", *,
         raise ValueError("distribution must be one of {'haar', 'fill'}")
 
     if distribution == "haar":
-        ket = _rand_unitary_haar(N, generator) @ basis(N, 0)
+        ket = rand_unitary(N, "harr", density, generator) @ basis(N, 0)
     else:
         X = scipy.sparse.rand(N, 1, density, format='csr',
                               random_state=generator)
@@ -479,27 +555,29 @@ def rand_dm(dimensions, distribution="ginibre",
         while _data.csr.nnz(H) < 0.95*nvals:
             H = _rand_jacobi_rotation(H, generator)
     elif distribution == "ginibre":
-        H = _rand_dm_ginibre(N, rank, seed=generator)
+        H = _rand_dm_ginibre(N, rank, generator)
     elif distribution == "hs":
-        H = _rand_dm_ginibre(N, N, seed=generator)
+        H = _rand_dm_ginibre(N, N, generator)
     elif distribution == "pure":
         dm_density = np.sqrt(density)
         psi = rand_ket(N, density=dm_density,
                        distribution="fill", seed=generator)
         H = psi.proj().data
-    else:
-        trace = 0
-        tries = 0
-        while trace == 0 and tries < 10:
-            H = rand_herm(N, density, seed=seed, dtype=dtype)
-            H = H.dag() @ H
-            trace = H.tr()
-            tries += 1
-        if tries >= 10:
-            raise ValueError(
-                "Requested density is too low to generate density matrix.")
-        H /= trace
-        H = H.data
+    elif distribution == "herm":
+        block_sizes = _get_block_sizes(N, density, generator)
+        blocks = []
+        first = True
+        for block in block_sizes:
+            if block != 1:
+                mat = rand_herm(block, 1, seed=generator, dtype="dense").full()
+            else:
+                mat = np.ones((1,1))
+                if not first:
+                    mat *= max(generator.random() - 0.5, 0)
+                first = False
+            blocks.append(mat.T.conj() @ mat)
+        H = _merge_shuffle_blocks(blocks, generator)
+        H /= H.trace()
 
     return Qobj(H, dims=dims, type='oper', isherm=True, copy=False).to(dtype)
 
@@ -607,14 +685,14 @@ def rand_super(dimensions, *, superrep="super", seed=None, dtype=_data.Dense):
         create(N), destroy(N), jmat(float(N - 1) / 2.0, 'z')
     ])
     S.dims = dims
-
+    S.to(dtype)
     out = {
             "choi" : to_choi,
             "chi" : to_chi,
             "super": to_super,
             "kraus": to_kraus,
             "Stinespring": to_stinespring,
-        }[superrep](S).to(dtype)
+        }[superrep](S)
     return out
 
 
@@ -712,13 +790,14 @@ def rand_super_bcsz(dimensions, enforce_tp=True, rank=None, *,
     # Mark that we've made a Choi matrix.
     D.superrep = 'choi'
     D.dims = dims
+    D.to(dtype)
     out = {
             "choi" : to_choi,
             "chi" : to_chi,
             "super": to_super,
             "kraus": to_kraus,
             "Stinespring": to_stinespring,
-        }[superrep](D).to(dtype)
+        }[superrep](D)
     return out
 
 

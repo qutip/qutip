@@ -4,10 +4,9 @@ import scipy.sparse as sp
 import scipy.linalg as la
 import pytest
 
-from qutip import qeye, num, to_kraus
+from qutip import qeye, num, to_kraus, kraus_to_choi, CoreOptions
 from qutip import data as _data
 from qutip.random_objects import (
-    rand_jacobi_rotation,
     rand_herm,
     rand_unitary,
     rand_dm,
@@ -111,15 +110,21 @@ def test_rand_herm_Eigs(dimensions, density):
 
 @pytest.mark.repeat(5)
 @pytest.mark.parametrize('distribution', ["haar", "exp"])
-def test_rand_unitary(dimensions, distribution, dtype):
+@pytest.mark.parametrize('density', [0.2, 0.8])
+def test_rand_unitary(dimensions, distribution, density, dtype):
     """
     Random Qobjs: Tests that unitaries are actually unitary.
     """
     N = np.prod(dimensions)
-    random_qobj = rand_unitary(dimensions, distribution, dtype=dtype)
+    random_qobj = rand_unitary(
+        dimensions, distribution,
+        density=density, dtype=dtype
+    )
     I = qeye(dimensions)
     assert random_qobj * random_qobj.dag() == I
     _assert_metadata(random_qobj, dimensions, dtype)
+    if distribution == "exp":
+        _assert_density(random_qobj, density)
 
 
 @pytest.mark.repeat(3)
@@ -174,18 +179,6 @@ def test_rand_dm(dimensions, kw, dtype, distribution):
         _assert_density(random_qobj, kw["density"])
 
 
-@pytest.mark.repeat(3)
-def test_rand_jacobi_rotation(dimensions):
-    random_qobj = rand_herm(dimensions)
-    rotated = rand_jacobi_rotation(random_qobj)
-    _assert_metadata(rotated, dimensions)
-    np.testing.assert_allclose(
-        random_qobj.eigenenergies(),
-        rotated.eigenenergies(),
-        atol=1e-15
-    )
-
-
 @pytest.mark.repeat(5)
 @pytest.mark.parametrize('kind', ["left", "right"])
 def test_rand_stochastic(dimensions, kind, dtype):
@@ -226,7 +219,8 @@ def test_rand_super(dimensions, dtype, superrep):
     """
     random_qobj = rand_super(dimensions, dtype=dtype, superrep=superrep)
     assert random_qobj.issuper
-    assert random_qobj.iscptp
+    with CoreOptions(atol=1e-9):
+        assert random_qobj.iscptp
     assert random_qobj.superrep == superrep
     _assert_metadata(random_qobj, dimensions, dtype, super=True)
 
@@ -242,7 +236,8 @@ def test_rand_super_bcsz(dimensions, dtype, rank, superrep):
     random_qobj = rand_super_bcsz(dimensions, rank=rank,
                                   dtype=dtype, superrep=superrep)
     assert random_qobj.issuper
-    assert random_qobj.iscptp
+    with CoreOptions(atol=1e-9):
+        assert random_qobj.iscptp
     assert random_qobj.superrep == superrep
     _assert_metadata(random_qobj, dimensions, dtype, super=True)
     if (
@@ -256,7 +251,7 @@ def test_rand_super_bcsz(dimensions, dtype, rank, superrep):
         # dimensions = [a], qobj.dims = [[[a], [a]], [[a], [a]]]
         rank = np.prod(dimensions)**2
     rank = rank or N
-    obtained_rank = len(to_kraus(random_qobj))
+    obtained_rank = len(to_kraus(random_qobj, tol=1e-13))
     assert obtained_rank == rank
 
 
@@ -268,8 +263,6 @@ def test_rand_super_bcsz(dimensions, dtype, rank, superrep):
     pytest.param(rand_stochastic, id="rand_stochastic"),
     pytest.param(rand_super, id="rand_super"),
     pytest.param(rand_super_bcsz, id="rand_super_bcsz"),
-    pytest.param(lambda N, seed: rand_jacobi_rotation(num(N), seed=seed),
-                 id="rand_jacobi_rotation"),
 ])
 @pytest.mark.parametrize("seed", [
     pytest.param(lambda : 123, id="int"),
@@ -287,6 +280,8 @@ def test_random_seeds(function, seed):
     assert U0 == U2
 
 
-def test_rand_ket_raises_if_no_args():
-    with pytest.raises(TypeError):
-        rand_ket()
+def test_kraus_map(dimensions, dtype):
+    kmap = rand_kraus_map(dimensions, dtype=dtype)
+    _assert_metadata(kmap[0], dimensions, dtype)
+    with CoreOptions(atol=1e-9):
+        assert kraus_to_choi(kmap).iscptp

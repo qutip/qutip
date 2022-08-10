@@ -26,7 +26,7 @@ class Test_spsolve:
         np.testing.assert_allclose(x, x2)
 
     def test_single_rhs_vector_complex(self):
-        A = qutip.rand_herm(10, dtype='csr')
+        A = qutip.rand_herm(10, density=0.8, dtype='csr')
         x = qutip.rand_ket(10).full()
         b = A.full() @ x
         y = mkl_spsolve(A.data.as_scipy(), b, verbose=True)
