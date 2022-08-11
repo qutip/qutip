@@ -469,7 +469,7 @@ def rand_ket(dimensions, density=1, distribution="haar", *,
         raise ValueError("distribution must be one of {'haar', 'fill'}")
 
     if distribution == "haar":
-        ket = rand_unitary(N, "harr", density, generator) @ basis(N, 0)
+        ket = rand_unitary(N, "haar", density, seed=generator) @ basis(N, 0)
     else:
         X = scipy.sparse.rand(N, 1, density, format='csr',
                               random_state=generator)
@@ -685,14 +685,11 @@ def rand_super(dimensions, *, superrep="super", seed=None, dtype=_data.Dense):
         create(N), destroy(N), jmat(float(N - 1) / 2.0, 'z')
     ])
     S.dims = dims
-    S.to(dtype)
     out = {
             "choi" : to_choi,
             "chi" : to_chi,
             "super": to_super,
-            "kraus": to_kraus,
-            "Stinespring": to_stinespring,
-        }[superrep](S)
+        }[superrep](S).to(dtype)
     return out
 
 
@@ -790,14 +787,11 @@ def rand_super_bcsz(dimensions, enforce_tp=True, rank=None, *,
     # Mark that we've made a Choi matrix.
     D.superrep = 'choi'
     D.dims = dims
-    D.to(dtype)
     out = {
             "choi" : to_choi,
             "chi" : to_chi,
             "super": to_super,
-            "kraus": to_kraus,
-            "Stinespring": to_stinespring,
-        }[superrep](D)
+        }[superrep](D).to(dtype)
     return out
 
 
