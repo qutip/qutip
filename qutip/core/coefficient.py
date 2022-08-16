@@ -482,10 +482,12 @@ cdef class StrCoefficient(Coefficient):
 
 def compile_code(code, file_name, parsed, c_opt):
     pwd = os.getcwd()
-    root = qset.coeffroot
+    os.chdir(qset.coeffroot)
+    # Files with the same name, but differents extension than the pyx file, are
+    # erased during cythonization process, breaking filelock.
+    # Adding a prefix make them safe to use.
+    lock = filelock.FileLock("compile_lock_" + file_name + ".lock")
     try:
-        os.chdir(root)
-        lock = filelock.FileLock(file_name + ".lock")
         lock.acquire(timeout=0)
         for file in glob.glob(file_name + "*"):
             os.remove(file)
