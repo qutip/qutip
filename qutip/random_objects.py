@@ -145,9 +145,8 @@ def _rand_jacobi_rotation(A, generator):
 
 def _get_block_sizes(N, density, generator):
     """
-    Obtain a list of matrices block sizes in a way that a NxN matrix composed.
-    Of full matrices of these size allong the diagonal would be of desired
-    density.
+    Obtain a list of matrix block sizes in such a way that an NxN matrix composed
+    of full matrices of these sizes along the diagonal would be of desired density.
     """
     if density <= 0:
         return [1] * N
