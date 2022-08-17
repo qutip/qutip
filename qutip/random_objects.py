@@ -145,8 +145,9 @@ def _rand_jacobi_rotation(A, generator):
 
 def _get_block_sizes(N, density, generator):
     """
-    Obtain a list of matrix block sizes in such a way that an NxN matrix composed
-    of full matrices of these sizes along the diagonal would be of desired density.
+    Obtain a list of matrix block sizes in such a way that an NxN matrix
+    composed of full matrices of these sizes along the diagonal would be of
+    desired density.
     """
     if density <= 0:
         return [1] * N
@@ -266,7 +267,7 @@ def rand_herm(dimensions, density=0.30, pos_def=False, eigenvalues=None, *,
         out = _rand_jacobi_rotation(out, generator)
         while _data.csr.nnz(out) < 0.95 * nvals:
             out = _rand_jacobi_rotation(out, generator)
-        out = Qobj(out, type='oper', isherm=True, copy=False)
+        out = Qobj(out, type='oper', dims=dims, isherm=True, copy=False)
 
     else:
         if density < 0.5:
@@ -274,9 +275,8 @@ def rand_herm(dimensions, density=0.30, pos_def=False, eigenvalues=None, *,
         else:
             M = _rand_herm_dense(N, density, pos_def, generator)
 
-        out = Qobj(M, type='oper', isherm=True, copy=False)
+        out = Qobj(M, type='oper', dims=dims, isherm=True, copy=False)
 
-    out.dims = dims
     return out.to(dtype)
 
 
