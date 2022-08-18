@@ -76,9 +76,11 @@ def test_known_eigensystem(hamiltonian, eigenvalues, eigenstates):
 def random_hamiltonian(request):
     dimensions = request.param
     eigen = None
+    dist = "fill"
     if dimensions == [3, 3, 3]:
         eigen = [0, 1, 1] * 9
-    return qutip.rand_herm(dimensions, eigenvalues=eigen)
+        dist = "eigen"
+    return qutip.rand_herm(dimensions, distribution=dist, eigenvalues=eigen)
 
 
 @pytest.mark.parametrize('sparse', [True, False])

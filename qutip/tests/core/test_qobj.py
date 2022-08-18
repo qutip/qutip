@@ -1114,7 +1114,7 @@ def test_sum_buildin(shape):
 def test_groundstate():
     eigenvals = np.sort(np.random.rand(10))
     eigenvals[1:] += 0.1  # Ensure no degenerate groundstate
-    qobj = qutip.rand_herm(10, eigenvalues=eigenvals)
+    qobj = qutip.rand_herm(10, distribution="eigen", eigenvalues=eigenvals)
     groundenergy, groundstate = qobj.groundstate()
     assert groundenergy == pytest.approx(eigenvals[0])
     assert qutip.expect(qobj, groundstate) == pytest.approx(eigenvals[0])

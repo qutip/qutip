@@ -44,13 +44,13 @@ class TestConcurrence:
 class TestMutualInformation:
     def test_pure_state_additive(self):
         # Verify mutual information = S(A) + S(B) for pure states.
-        dm = qutip.rand_dm([5, 5], "pure")
+        dm = qutip.rand_dm([5, 5], distribution="pure")
         expect = (qutip.entropy_vn(dm.ptrace(0))
                   + qutip.entropy_vn(dm.ptrace(1)))
         assert abs(qutip.entropy_mutual(dm, [0], [1]) - expect) < 1e-13
 
     def test_component_selection(self):
-        dm = qutip.rand_dm([2, 2, 2], "pure")
+        dm = qutip.rand_dm([2, 2, 2], distribution="pure")
         expect = (qutip.entropy_vn(dm.ptrace([0, 2]))
                   + qutip.entropy_vn(dm.ptrace(1)))
         assert abs(qutip.entropy_mutual(dm, [0, 2], [1]) - expect) < 1e-13
@@ -182,14 +182,14 @@ class TestRelativeEntropy:
 class TestConditionalEntropy:
     def test_inequality_3_qubits(self):
         # S(A | B,C) <= S(A|B)
-        full = qutip.rand_dm([2]*3, "pure")
+        full = qutip.rand_dm([2]*3, distribution="pure")
         ab = full.ptrace([0, 1])
         assert (qutip.entropy_conditional(full, [1, 2])
                 <= qutip.entropy_conditional(ab, 1))
 
     def test_triangle_inequality_4_qubits(self):
         # S(A,B | C,D) <= S(A|C) + S(B|D)
-        full = qutip.rand_dm([2]*4, "pure")
+        full = qutip.rand_dm([2]*4, distribution="pure")
         ac, bd = full.ptrace([0, 2]), full.ptrace([1, 3])
         assert (qutip.entropy_conditional(full, [2, 3])
                 <= (qutip.entropy_conditional(ac, 1)

@@ -209,14 +209,9 @@ def _merge_shuffle_blocks(blocks, generator):
     return _data.create(matrix, copy=False)
 
 
-def rand_herm(dimensions, density=0.30, pos_def=False, eigenvalues=None, *,
-              seed=None, dtype=_data.CSR):
+def rand_herm(dimensions, density=0.30, distribution="fill", *,
+              eigenvalues=(), seed=None, dtype=_data.CSR):
     """Creates a random sparse Hermitian quantum object.
-
-    Uses :math:`H=0.5*(X+X^{+})` where :math:`X` is a randomly generated
-    quantum operator with elements uniformly distributed between
-    ``[-1, 1] + [-1j, 1j]``. If eigenvalues are passed, it uses random complex
-    Jacobi rotations to shuffle the operator.
 
     Parameters
     ----------
@@ -229,8 +224,16 @@ def rand_herm(dimensions, density=0.30, pos_def=False, eigenvalues=None, *,
     density : float, [0.30]
         Density between [0,1] of output Hermitian operator.
 
-    pos_def : bool (default=False)
-        Return a positive semi-definite matrix (by diagonal dominance).
+    distribution : str {"fill", "pos_def", "eigen"}
+        Method used to obtain the density matrices.
+
+        - "fill" : Uses :math:`H=0.5*(X+X^{+})` where :math:`X` is a randomly
+          generated quantum operator with elements uniformly distributed
+          between ``[-1, 1] + [-1j, 1j]``.
+        - "eigen" : A density matrix with the given ``eigenvalues``. It uses
+          random complex Jacobi rotations to shuffle the operator.
+        - "pos_def" : Return a positive semi-definite matrix by diagonal
+          dominance.
 
     eigenvalues : array_like, optional
         Eigenvalues of the output Hermitian matrix. The len must match the
@@ -257,8 +260,11 @@ def rand_herm(dimensions, density=0.30, pos_def=False, eigenvalues=None, *,
     """
     N, dims = _implicit_tensor_dimensions(dimensions)
     generator = _get_generator(seed)
+    if distribution not in ["eigen", "fill", "pos_def"]:
+        raise ValueError("distribution must be one of {'eigen', 'fill', "
+                         "'pos_def'}")
 
-    if eigenvalues is not None:
+    if distribution == "eigen":
         if N != len(eigenvalues):
             raise ValueError("The number of eigenvalues does not match the "
                              "desired shape.")
@@ -270,6 +276,7 @@ def rand_herm(dimensions, density=0.30, pos_def=False, eigenvalues=None, *,
         out = Qobj(out, type='oper', dims=dims, isherm=True, copy=False)
 
     else:
+        pos_def = distribution == "pos_def"
         if density < 0.5:
             M = _rand_herm_sparse(N, density, pos_def, generator)
         else:
@@ -324,7 +331,7 @@ def _rand_herm_dense(N, density, pos_def, generator):
     return _data.create(M)
 
 
-def rand_unitary(dimensions, distribution="haar", density=1, *,
+def rand_unitary(dimensions, density=1, distribution="haar", *,
                  seed=None, dtype=_data.Dense):
     r"""Creates a random sparse unitary quantum object.
 
@@ -336,15 +343,15 @@ def rand_unitary(dimensions, distribution="haar", density=1, *,
         the new Qobj are set to this list.  This can produce either `oper` or
         `super` depending on the passed `dimensions`.
 
+    density : float, [1]
+        Density between [0,1] of output unitary operator.
+
     distribution : ["haar", "exp"]
         Method used to obtain the unitary matrices.
 
         - haar : Haar random unitary matrix using the algorithm of [Mez07]_.
         - exp : Uses :math:`\exp(-iH)`, where H is a randomly generated
           Hermitian operator.
-
-    density : float, [1]
-        Density between [0,1] of output unitary operator.
 
     seed : int, SeedSequence, Generator, optional
         Seed to create the random number generator or a pre prepared
@@ -438,16 +445,16 @@ def rand_ket(dimensions, density=1, distribution="haar", *,
         the new Qobj are set to this list.  This can produce either `oper` or
         `super` depending on the passed `dimensions`.
 
-    distribution : str ["haar", "fill"]
+    density : float, [1]
+        Density between [0,1] of output ket state when using the ``fill``
+        method.
+
+    distribution : str {"haar", "fill"}
         Method used to obtain the kets.
 
         - haar : Haar random pure state obtained by applying a Haar random
           unitary to a fixed pure state.
         - fill : Fill the ket with uniformly distributed random complex number.
-
-    density : float, [1]
-        Density between [0,1] of output ket state when using the ``fill``
-        method.
 
     seed : int, SeedSequence, Generator, optional
         Seed to create the random number generator or a pre prepared
@@ -468,7 +475,7 @@ def rand_ket(dimensions, density=1, distribution="haar", *,
         raise ValueError("distribution must be one of {'haar', 'fill'}")
 
     if distribution == "haar":
-        ket = rand_unitary(N, "haar", density, seed=generator) @ basis(N, 0)
+        ket = rand_unitary(N, density, "haar", seed=generator) @ basis(N, 0)
     else:
         X = scipy.sparse.rand(N, 1, density, format='csr',
                               random_state=generator)
@@ -486,9 +493,8 @@ def rand_ket(dimensions, density=1, distribution="haar", *,
     return ket.to(dtype)
 
 
-def rand_dm(dimensions, distribution="ginibre",
-            density=0.75, eigenvalues=None, rank=None, *,
-            seed=None, dtype=_data.CSR):
+def rand_dm(dimensions, density=0.75, distribution="ginibre", *,
+            eigenvalues=(), rank=None, seed=None, dtype=_data.CSR):
     r"""Creates a random density matrix of the desired dimensions.
 
     Parameters
@@ -496,8 +502,12 @@ def rand_dm(dimensions, distribution="ginibre",
     dimensions : (int) or (list of int) or (list of list of int)
         Dimension of Hilbert space. If provided as a list of ints, then the
         dimension is the product over this list, but the ``dims`` property of
-        the new Qobj are set to this list.  This can produce either `oper` or
-        `super` depending on the passed `dimensions`.
+        the new Qobj are set to this list.  This can produce either ``oper`` or
+        ``super`` depending on the passed ``dimensions``.
+
+    density : float
+        Density between [0,1] of output density matrix. Used by the "pure",
+        "eigen" and "herm".
 
     distribution : str {"ginibre", "hs", "pure", "eigen", "uniform"}
         Method used to obtain the density matrices.
@@ -507,12 +517,8 @@ def rand_dm(dimensions, distribution="ginibre",
         - "hs" : Hilbert-Schmidt ensemble, equivalent to a full rank ginibre
           operator.
         - "pure" : Density matrix created from a random ket.
-        - "eigen" : A density matrix with the gven ``eigenvalues``.
+        - "eigen" : A density matrix with the given ``eigenvalues``.
         - "herm" : Build from a random hermitian matrix using ``rand_herm``.
-
-    density : float
-        Density between [0,1] of output density matrix. Used by the "pure",
-        "eigen" and "herm".
 
     eigenvalues : array_like, optional
         Eigenvalues of the output Hermitian matrix. The len must match the
@@ -521,7 +527,6 @@ def rand_dm(dimensions, distribution="ginibre",
     rank : int, optional
         When using the "ginibre" distribution, rank of the density matrix.
         Will default to a full rank operator when not provided.
-
 
     seed : int, SeedSequence, Generator, optional
         Seed to create the random number generator or a pre prepared
@@ -545,7 +550,7 @@ def rand_dm(dimensions, distribution="ginibre",
     if distribution == "eigen":
         if len(eigenvalues) != N:
             raise ValueError("Number of eigenvalues does not match the shape.")
-        if np.abs(np.sum(eigenvalues)-1.0) > 1e-15:
+        if np.abs(np.sum(eigenvalues)-1.0) > 1e-15 * N:
             raise ValueError('Eigenvalues of a density matrix '
                              f'must sum to one, not {np.sum(eigenvalues)}')
         H = _data.diag(eigenvalues, 0)

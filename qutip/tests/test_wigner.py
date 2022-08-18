@@ -599,12 +599,12 @@ def test_wigner_clenshaw_sp_iter_dm():
     pytest.param(7, id="spin-seven")
 ])
 @pytest.mark.parametrize("pure", [
-    pytest.param(True, id="pure"),
-    pytest.param(False, id="mixed")
+    pytest.param("pure", id="pure"),
+    pytest.param("herm", id="mixed")
 ])
 def test_spin_q_function(spin, pure):
     d = int(2*spin + 1)
-    rho = rand_dm(d, "pure")
+    rho = rand_dm(d, distribution=pure)
 
     # Points at which to evaluate the spin Q function
     theta = np.linspace(0, np.pi, 16, endpoint=True)
@@ -623,12 +623,12 @@ def test_spin_q_function(spin, pure):
     pytest.param(7, id="spin-seven")
 ])
 @pytest.mark.parametrize("pure", [
-    pytest.param(True, id="pure"),
-    pytest.param(False, id="mixed")
+    pytest.param("pure", id="pure"),
+    pytest.param("herm", id="mixed")
 ])
 def test_spin_q_function_normalized(spin, pure):
     d = int(2 * spin + 1)
-    rho = rand_dm(d, "pure")
+    rho = rand_dm(d, distribution=pure)
 
     # Points at which to evaluate the spin Q function
     theta = np.linspace(0, np.pi, 128, endpoint=True)
@@ -646,12 +646,12 @@ def test_spin_q_function_normalized(spin, pure):
     pytest.param(2, id="spin-two")
 ])
 @pytest.mark.parametrize("pure", [
-    pytest.param(True, id="pure"),
-    pytest.param(False, id="mixed")
+    pytest.param("pure", id="pure"),
+    pytest.param("herm", id="mixed")
 ])
 def test_spin_wigner_normalized(spin, pure):
     d = int(2*spin + 1)
-    rho = rand_dm(d, "pure")
+    rho = rand_dm(d, distribution=pure)
 
     # Points at which to evaluate the spin Wigner function
     theta = np.linspace(0, np.pi, 256, endpoint=True)
@@ -668,12 +668,12 @@ def test_spin_wigner_normalized(spin, pure):
     pytest.param(2, id="spin-two")
 ])
 @pytest.mark.parametrize("pure", [
-    pytest.param(True, id="pure"),
-    pytest.param(False, id="mixed")
+    pytest.param("pure", id="pure"),
+    pytest.param("herm", id="mixed")
 ])
 def test_spin_wigner_overlap(spin, pure, n=5):
     d = int(2*spin + 1)
-    rho = rand_dm(d, "pure")
+    rho = rand_dm(d, distribution=pure)
 
     # Points at which to evaluate the spin Wigner function
     theta = np.linspace(0, np.pi, 256, endpoint=True)

@@ -70,18 +70,18 @@ def _assert_metadata(random_qobj, dims, dtype=None, super=False, ket=False):
 
 @pytest.mark.repeat(3)
 @pytest.mark.parametrize('density', [0.2, 0.8], ids=["sparse", "dense"])
-@pytest.mark.parametrize('pos_def', [True, False])
-def test_rand_herm(dimensions, density, pos_def, dtype):
+@pytest.mark.parametrize('distribution', ["fill", "pos_def"])
+def test_rand_herm(dimensions, density, distribution, dtype):
     """
     Random Qobjs: Hermitian matrix
     """
     random_qobj = rand_herm(
         dimensions,
         density=density,
-        pos_def=pos_def,
+        distribution=distribution,
         dtype=dtype
     )
-    if pos_def:
+    if distribution == "pos_def":
         assert all(random_qobj.eigenenergies() > -1e14)
     assert random_qobj.isherm
     assert _data.isherm(random_qobj.data)
@@ -99,7 +99,7 @@ def test_rand_herm_Eigs(dimensions, density):
     eigs = np.random.random(N)
     eigs /= np.sum(eigs)
     eigs.sort()
-    random_qobj = rand_herm(dimensions, density=density, eigenvalues=eigs)
+    random_qobj = rand_herm(dimensions, density, "eigen", eigenvalues=eigs)
     np.testing.assert_allclose(random_qobj.eigenenergies(), eigs)
     # verify hermitian
     assert random_qobj.isherm
@@ -117,7 +117,7 @@ def test_rand_unitary(dimensions, distribution, density, dtype):
     """
     N = np.prod(dimensions)
     random_qobj = rand_unitary(
-        dimensions, distribution,
+        dimensions, distribution=distribution,
         density=density, dtype=dtype
     )
     I = qeye(dimensions)
