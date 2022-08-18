@@ -11,14 +11,9 @@ from .. import (Qobj, QobjEvo, isket, liouvillian, ket2dm, lindblad_dissipator)
 from ..core import stack_columns, unstack_columns
 from ..core.data import to
 from .solver_base import Solver
-from .options import SolverOptions
-from .sesolve import sesolve
+from .sesolve import sesolve, SeSolver
 
 
-# -----------------------------------------------------------------------------
-# pass on to wavefunction solver or master equation solver depending on whether
-# any collapse operators were given.
-#
 def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
     """
     Master equation evolution of a density matrix for a given Hamiltonian and
@@ -49,9 +44,8 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
 
     **Additional options**
 
-    Additional options to mesolve can be set via the `options` argument, which
-    should be an instance of :class:`qutip.solver.SolverOptions`. Many ODE
-    integration options can be set this way, and the `store_states` and
+    Additional options to mesolve can be set via the `options` argument. Many
+    ODE integration options can be set this way, and the `store_states` and
     `store_final_state` options can be used to store states even though
     expectation values are requested via the `e_ops` argument.
 
@@ -64,9 +58,9 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
     ----------
 
     H : :class:`Qobj`, :class:`QobjEvo`, :class:`QobjEvo` compatible format.
-        Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or QobjEvo.
-        list of [:class:`Qobj`, :class:`Coefficient`] or callable that can be
-        made into :class:`QobjEvo` are also accepted.
+        Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or
+        QobjEvo. List of [:class:`Qobj`, :class:`Coefficient`] or callable that
+        can be made into :class:`QobjEvo` are also accepted.
 
     rho0 : :class:`Qobj`
         initial density matrix or state vector (ket).
@@ -88,8 +82,37 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
         dictionary of parameters for time-dependent Hamiltonians and
         collapse operators.
 
-    options : None / :class:`qutip.SolverOptions`
-        with options for the solver.
+    options : None / dict
+        Dictionary of options for the solver.
+
+        - store_final_state : bool
+          Whether or not to store the final state of the evolution in the
+          result class.
+        - store_states : bool, None
+          Whether or not to store the state vectors or density matrices.
+          On `None` the states will be saved if no expectation operators are
+          given.
+        - normalize_output : bool
+          Normalize output state to hide ODE numerical errors.
+        - progress_bar : str {'text', 'enhanced', 'tqdm', ''}
+          How to present the solver progress.
+          'tqdm' uses the python module of the same name and raise an error
+          if not installed. Empty string or False will disable the bar.
+        - progress_kwargs : dict
+          kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
+        - method : str ["adams", "bdf", "lsoda", "dop853", "vern9", etc.]
+          Which differential equation integration method to use.
+        - atol, rtol : float
+          Absolute and relative tolerance of the ODE integrator.
+        - nsteps :
+          Maximum number of (internally defined) steps allowed in one ``tlist``
+          step.
+        - max_step : float, 0
+          Maximum lenght of one internal step. When using pulses, it should be
+          less than half the width of the thinnest pulse.
+
+        Other options could be supported depending on the integration method,
+        see `Integrator <./classes.html#classes-ode>`_.
 
     Returns
     -------
@@ -112,14 +135,15 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None):
     use_mesolve = len(c_ops) > 0 or (not rho0.isket) or H.issuper
 
     if not use_mesolve:
-        return sesolve(H, rho0, tlist, e_ops=e_ops, args=args, options=options)
+        return sesolve(H, rho0, tlist, e_ops=e_ops, args=args,
+                       options=options)
 
     solver = MeSolver(H, c_ops, options=options)
 
     return solver.run(rho0, tlist, e_ops=e_ops)
 
 
-class MeSolver(Solver):
+class MeSolver(SeSolver):
     """
     Master equation evolution of a density matrix for a given Hamiltonian and
     set of collapse operators, or a Liouvillian.
@@ -137,16 +161,17 @@ class MeSolver(Solver):
     Parameters
     ----------
     H : :class:`Qobj`, :class:`QobjEvo`
-        Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or QobjEvo.
-        list of [:class:`Qobj`, :class:`Coefficient`] or callable that can be
-        made into :class:`QobjEvo` are also accepted.
+        Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or
+        QobjEvo. List of [:class:`Qobj`, :class:`Coefficient`] or callable that
+        can be made into :class:`QobjEvo` are also accepted.
 
     c_ops : list of :class:`Qobj`, :class:`QobjEvo`
         Single collapse operator, or list of collapse operators, or a list
         of Liouvillian superoperators. None is equivalent to an empty list.
 
-    options : SolverOptions
-        Options for the solver
+    options : dict, optional
+        Options for the solver, see :obj:`SeSolver.options` and
+        `Integrator <./classes.html#classes-ode>`_ for a list of all options.
 
     attributes
     ----------
@@ -155,6 +180,14 @@ class MeSolver(Solver):
     """
     name = "mesolve"
     _avail_integrators = {}
+    solver_options = {
+        "progress_bar": "text",
+        "progress_kwargs": {"chunk_size":10},
+        "store_final_state": False,
+        "store_states": None,
+        "normalize_output": True,
+        'method': 'adams',
+    }
 
     def __init__(self, H, c_ops=None, *, options=None):
         _time_start = time()
@@ -167,12 +200,18 @@ class MeSolver(Solver):
             if not isinstance(c_op, (Qobj, QobjEvo)):
                 raise TypeError("All `c_ops` must be a Qobj or QobjEvo")
 
+        self._num_collapse = len(c_ops)
+
         rhs = H if H.issuper else liouvillian(H)
         rhs += sum(c_op if c_op.issuper else lindblad_dissipator(c_op)
                    for c_op in c_ops)
-        super().__init__(rhs, options=options)
 
-        self.stats['solver'] = "Master Equation Evolution"
-        self.stats['num_collapse'] = len(c_ops)
-        self.stats["preparation time"] = time() - _time_start
-        self.stats["run time"] = 0
+        Solver.__init__(self, rhs, options=options)
+
+    def _initialize_stats(self):
+        stats = super()._initialize_stats()
+        stats.update({
+            "solver": "Master Equation Evolution",
+            "num_collapse": self._num_collapse,
+        })
+        return stats

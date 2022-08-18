@@ -1,36 +1,5 @@
 # -*- coding: utf-8 -*-
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
+
 """
 This module contains a collection of functions for calculating metrics
 (distance measures) between states and operators.
@@ -49,7 +18,9 @@ from .superop_reps import (to_kraus, to_choi, _to_superpauli, to_super,
                            kraus_to_choi)
 from .superoperator import operator_to_vector, vector_to_operator
 from .operators import qeye
-from .semidefinite import dnorm_problem
+from .states import ket2dm
+from .semidefinite import dnorm_problem, dnorm_sparse_problem
+from . import data as _data
 
 try:
     import cvxpy
@@ -212,6 +183,9 @@ def process_fidelity(oper, target=None):
         return _process_fidelity_to_id(oper)
 
     dims_out, dims_in = _hilbert_space_dims(oper)
+    if dims_out != dims_in:
+        raise NotImplementedError('Process fidelity only implemented for '
+                                  'dimension-preserving operators.')
     dims_out_target, dims_in_target = _hilbert_space_dims(target)
     if [dims_out, dims_in] != [dims_out_target, dims_in_target]:
         raise TypeError('Dimensions of oper and target do not match')
@@ -237,36 +211,41 @@ def process_fidelity(oper, target=None):
 
 def average_gate_fidelity(oper, target=None):
     """
-    Given a Qobj representing the supermatrix form of a map, returns the
-    average gate fidelity (pseudo-metric) of that map.
+    Returns the average gate fidelity of a quantum channel to the target
+    channel, or to the identity channel if no target is given.
 
     Parameters
     ----------
-    A : Qobj
-        Quantum object representing a superoperator.
-    target : Qobj
-        Quantum object representing the target unitary; the inverse
-        is applied before evaluating the fidelity.
+    oper : :class:`qutip.Qobj`/list
+        A unitary operator, or a superoperator in supermatrix, Choi or
+        chi-matrix form, or a list of Kraus operators
+    target : :class:`qutip.Qobj`
+        A unitary operator
 
     Returns
     -------
     fid : float
-        Fidelity pseudo-metric between A and the identity superoperator,
-        or between A and the target superunitary.
+        Average gate fidelity between oper and target,
+        or between oper and identity.
+
+    Notes
+    -----
+    The average gate fidelity is defined for example in:
+    A. Gilchrist, N.K. Langford, M.A. Nielsen, Phys. Rev. A 71, 062310 (2005).
+    The definition of state fidelity that the average gate fidelity is based on
+    is the one from R. Jozsa, Journal of Modern Optics, 41:12, 2315 (1994).
+    It is the square of the fidelity implemented in
+    :func:`qutip.metrics.fidelity` which follows Nielsen & Chuang,
+    "Quantum Computation and Quantum Information"
+
     """
-    kraus = to_kraus(oper)
-    d = kraus[0].shape[0]
+    dims_out, dims_in = _hilbert_space_dims(oper)
+    if not (target is None or target.type == 'oper'):
+        raise TypeError(
+            'target must be None or a Qobj representing a unitary.')
 
-    if kraus[0].shape[1] != d:
-        return TypeError("Average gate fidelity only implemented for square "
-                         "superoperators.")
-
-    if target is None:
-        return (d + np.sum([np.abs(A_k.tr())**2 for A_k in kraus])) / (d*d + d)
-    return (
-        (d + np.sum([np.abs((A_k*target.dag()).tr())**2 for A_k in kraus]))
-        / (d*d + d)
-    )
+    d = np.prod(dims_in)
+    return (d * process_fidelity(oper, target) + 1) / (d + 1)
 
 
 def tracedist(A, B, sparse=False, tol=0):
@@ -427,12 +406,19 @@ def hellinger_dist(A, B, sparse=False, tol=0):
     >>> y=coherent_dm(5,1)
     >>> np.testing.assert_almost_equal(hellinger_dist(x,y), 1.3725145002591095)
     """
-    if A.dims != B.dims:
-        raise TypeError("A and B do not have same dimensions.")
-    sqrtA = A.proj() if A.isket or A.isbra else A.sqrtm(sparse=sparse, tol=tol)
-    sqrtB = B.proj() if B.isket or B.isbra else B.sqrtm(sparse=sparse, tol=tol)
-    product = sqrtA*sqrtB
+    if A.isket or A.isbra:
+        sqrtmA = ket2dm(A)
+    else:
+        sqrtmA = A.sqrtm(sparse=sparse, tol=tol)
+    if B.isket or B.isbra:
+        sqrtmB = ket2dm(B)
+    else:
+        sqrtmB = B.sqrtm(sparse=sparse, tol=tol)
 
+    if sqrtmA.dims != sqrtmB.dims:
+        raise TypeError("A and B do not have compatible dimensions.")
+
+    product = sqrtmA*sqrtmB
     eigs = product.eigenenergies(sparse=sparse, tol=tol)
     # np.maximum() is to avoid nan appearing sometimes due to numerical
     # instabilities causing np.sum(eigs) slightly (~1e-8) larger than 1 when
@@ -440,7 +426,8 @@ def hellinger_dist(A, B, sparse=False, tol=0):
     return np.sqrt(2.0 * np.maximum(0, 1 - np.real(np.sum(eigs))))
 
 
-def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
+def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
+          sparse=True):
     """
     Calculates the diamond norm of the quantum map q_oper, using
     the simplified semidefinite program of [Wat12]_.
@@ -452,18 +439,18 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
     A : Qobj
         Quantum map to take the diamond norm of.
     B : Qobj or None
-        If provided, the diamond norm of :math:`A - B` is
-        taken instead.
+        If provided, the diamond norm of :math:`A - B` is taken instead.
     solver : str
-        Solver to use with CVXPY. One of "CVXOPT" (default)
-        or "SCS". The latter tends to be significantly faster,
-        but somewhat less accurate.
+        Solver to use with CVXPY. One of "CVXOPT" (default) or "SCS". The
+        latter tends to be significantly faster, but somewhat less accurate.
     verbose : bool
-        If True, prints additional information about the
-        solution.
+        If True, prints additional information about the solution.
     force_solve : bool
         If True, forces dnorm to solve the associated SDP, even if a special
         case is known for the argument.
+    sparse : bool
+        Whether to use sparse matrices in the convex optimisation problem.
+        Default True.
 
     Returns
     -------
@@ -475,7 +462,7 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
     ImportError
         If CVXPY cannot be imported.
 
-    .. _cvxpy: http://www.cvxpy.org/en/latest/
+    .. _cvxpy: https://www.cvxpy.org/en/latest/
     """
     if cvxpy is None:  # pragma: no cover
         raise ImportError("dnorm() requires CVXPY to be installed.")
@@ -545,7 +532,7 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
         op = vector_to_operator(S_dual * vec_eye)
         # The 2-norm was not implemented for sparse matrices as of the time
         # of this writing. Thus, we must yet again go dense.
-        return la.norm(op.data.todense(), 2)
+        return la.norm(op.full(), 2)
 
     # If we're still here, we need to actually solve the problem.
 
@@ -557,14 +544,27 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False):
     problem, Jr, Ji, *_ = dnorm_problem(dim)
 
     # Load the parameters with the Choi matrix passed in.
-    J_dat = J.data
+    J_dat = _data.to('csr', J.data).as_scipy()
 
-    Jr.value = sp.csr_matrix((J_dat.data.real, J_dat.indices, J_dat.indptr),
-                             shape=J_dat.shape)
+    if not sparse:
+        # The parameters and constraints only depend on the dimension, so
+        # we can cache them efficiently.
+        problem, Jr, Ji = dnorm_problem(dim)
 
-    Ji.value = sp.csr_matrix((J_dat.data.imag, J_dat.indices, J_dat.indptr),
-                             shape=J_dat.shape)
-    # Finally, set up and run the problem.
+        # Load the parameters with the Choi matrix passed in.
+        Jr.value = sp.csr_matrix((J_dat.data.real, J_dat.indices,
+                                  J_dat.indptr),
+                                 shape=J_dat.shape).toarray()
+
+        Ji.value = sp.csr_matrix((J_dat.data.imag, J_dat.indices,
+                                  J_dat.indptr),
+                                 shape=J_dat.shape).toarray()
+    else:
+
+        # The parameters do not depend solely on the dimension,
+        # so we can not cache them efficiently.
+        problem = dnorm_sparse_problem(dim, J_dat)
+
     problem.solve(solver=solver, verbose=verbose)
 
     return problem.value

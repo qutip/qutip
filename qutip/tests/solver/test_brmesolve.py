@@ -34,7 +34,12 @@ def test_simple_qubit_system(me_c_ops, brme_c_ops, brme_a_ops):
     psi0 = (2 * qutip.basis(2, 0) + qutip.basis(2, 1)).unit()
     times = np.linspace(0, 10, 100)
     me = qutip.mesolve(H, psi0, times, c_ops=me_c_ops, e_ops=e_ops)
-    brme = brmesolve(H, psi0, times, brme_a_ops, e_ops=e_ops, c_ops=brme_c_ops)
+    opt = {"tensor_type": "dense"}
+    brme = brmesolve(
+        H, psi0, times,
+        a_ops=brme_a_ops, c_ops=brme_c_ops,
+        e_ops=e_ops, options=opt
+    )
     for me_expectation, brme_expectation in zip(me.expect, brme.expect):
         np.testing.assert_allclose(me_expectation, brme_expectation, atol=1e-2)
 
@@ -87,7 +92,7 @@ def test_harmonic_oscillator(n_th):
     np.testing.assert_allclose(me_num, brme_num, atol=1e-2)
 
 
-def test_jaynes_cummings_zero_temperature():
+def test_jaynes_cummings_zero_temperature_spectral_callable():
     """
     brmesolve: Jaynes-Cummings model, zero temperature
     """
@@ -95,12 +100,12 @@ def test_jaynes_cummings_zero_temperature():
     a = qutip.tensor(qutip.destroy(N), qutip.qeye(2))
     sp = qutip.tensor(qutip.qeye(N), qutip.sigmap())
     psi0 = qutip.ket2dm(qutip.tensor(qutip.basis(N, 1), qutip.basis(2, 0)))
-    a_ops = [(a + a.dag(), qutip.coefficient(lambda t, w: kappa * (w >= 0)))]
+    kappa = 0.05
+    a_ops = [(a + a.dag(), lambda w: kappa * (w >= 0))]
     e_ops = [a.dag()*a, sp.dag()*sp]
 
     w0 = 1.0 * 2*np.pi
     g = 0.05 * 2*np.pi
-    kappa = 0.05
     times = np.linspace(0, 2 * 2*np.pi / g, 1000)
 
     c_ops = [np.sqrt(kappa) * a]
@@ -143,9 +148,9 @@ def test_tensor_system():
     times = np.linspace(0, 10./gamma3, 1000)
 
     sol = brmesolve(H, ini, times, [[qubit_2_x, S2], [qubit_3_x, S3]],
-                    e_ops=[proj_up1]).expect
+                    e_ops=[proj_up1]).expect[0]
 
-    np.testing.assert_allclose(sol[0], np.ones_like(times))
+    np.testing.assert_allclose(sol, np.ones_like(times))
 
 
 def test_solver_accepts_list_hamiltonian():
@@ -166,7 +171,7 @@ def test_solver_accepts_list_hamiltonian():
         np.testing.assert_allclose(me_expectation, brme_expectation, atol=1e-8)
 
 
-def test_jaynes_cummings_zero_temperature():
+def test_jaynes_cummings_zero_temperature_spectral_str():
     N = 10
     a = qutip.tensor(qutip.destroy(N), qutip.qeye(2))
     sp = qutip.tensor(qutip.qeye(N), qutip.sigmap())

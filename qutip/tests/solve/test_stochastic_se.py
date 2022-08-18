@@ -1,35 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
 import pytest
 import numpy as np
 from numpy.testing import assert_
@@ -241,3 +209,22 @@ def test_ssesolve_feedback():
                    ntraj=ntraj, nsubsteps=nsubsteps, method='homodyne',
                    map_func=parallel_map, args={"expect_op_3": qeye(N)})
     np.testing.assert_allclose(res.expect, res_ref.expect, atol=tol)
+
+
+def test_ssesolve_bad_e_ops():
+    tol = 0.01
+    N = 4
+    ntraj = 10
+    nsubsteps = 100
+    a = destroy(N)
+    b = destroy(N-1)
+
+    H = [num(N)]
+    psi0 = coherent(N, 2.5)
+    sc_ops = [a + a.dag()]
+    e_ops = [a.dag() * a, a + a.dag(), (-1j)*(b - b.dag()), qeye(N+1)]
+    times = np.linspace(0, 10, 101)
+    with pytest.raises(TypeError) as exc:
+        res = ssesolve(H, psi0, times, sc_ops, e_ops, solver=None, noise=1,
+                       ntraj=ntraj, nsubsteps=nsubsteps, method='homodyne',
+                       map_func=parallel_map)

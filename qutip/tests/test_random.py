@@ -1,41 +1,7 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
-import pytest
+import numpy as np
 import scipy.sparse as sp
 import scipy.linalg as la
-import numpy as np
-from numpy.testing import assert_equal, assert_, run_module_suite
+import pytest
 
 from qutip import qeye
 from qutip import data as _data
@@ -44,69 +10,190 @@ from qutip.random_objects import (rand_ket, rand_dm, rand_herm, rand_unitary,
                                   rand_super, rand_unitary_haar, rand_dm_ginibre,
                                   rand_super_bcsz)
 
-def test_rand_unitary_haar_unitarity():
+@pytest.mark.repeat(5)
+@pytest.mark.parametrize('func', [rand_unitary, rand_unitary_haar])
+def test_rand_unitary(func):
     """
     Random Qobjs: Tests that unitaries are actually unitary.
     """
-    U = rand_unitary_haar(5)
+    random_qobj = func(5)
     I = qeye(5)
+    assert random_qobj * random_qobj.dag() == I
 
-    assert_(U * U.dag() == I)
 
+@pytest.mark.repeat(5)
+@pytest.mark.parametrize('density', [0.2, 0.8], ids=["sparse", "dense"])
+@pytest.mark.parametrize('pos_def', [True, False])
+def test_rand_herm(density, pos_def):
+    """
+    Random Qobjs: Hermitian matrix
+    """
+    random_qobj = rand_herm(5, density=density, pos_def=pos_def)
+    if pos_def:
+        assert all(random_qobj.eigenenergies() > -1e14)
+    assert random_qobj.isherm
+
+
+@pytest.mark.repeat(5)
+def test_rand_herm_Eigs():
+    """
+    Random Qobjs: Hermitian matrix - Eigs given
+    """
+    eigs = np.random.random(5)
+    eigs /= np.sum(eigs)
+    eigs.sort()
+    random_qobj = rand_herm(eigs)
+    np.testing.assert_allclose(random_qobj.eigenenergies(), eigs)
+    # verify hermitian
+    assert random_qobj.isherm
+
+
+@pytest.mark.repeat(5)
+@pytest.mark.parametrize('func', [rand_dm, rand_dm_hs])
+def test_rand_dm(func):
+    """
+    Random Qobjs: Density matrix
+    """
+    random_qobj = func(5)
+    assert abs(random_qobj.tr() - 1.0) < 1e-14
+    # verify all eigvals are >=0
+    assert all(random_qobj.eigenenergies() >= -1e-14)
+    # verify hermitian
+    assert random_qobj.isherm
+
+
+@pytest.mark.repeat(5)
+def test_rand_dm_Eigs():
+    """
+    Random Qobjs: Density matrix - Eigs given
+    """
+    eigs = np.random.random(5)
+    eigs /= np.sum(eigs)
+    eigs.sort()
+    random_qobj = rand_dm(eigs)
+    assert abs(random_qobj.tr() - 1.0) < 1e-14
+    np.testing.assert_allclose(random_qobj.eigenenergies(), eigs)
+    # verify hermitian
+    assert random_qobj.isherm
+
+
+@pytest.mark.repeat(5)
 def test_rand_dm_ginibre_rank():
     """
     Random Qobjs: Ginibre-random density ops have correct rank.
     """
-    rho = rand_dm_ginibre(5, rank=3)
+    random_qobj = rand_dm_ginibre(5, rank=3)
+    rank = sum([abs(E) >= 1e-10 for E in random_qobj.eigenenergies()])
+    assert rank == 3
 
-    rank = sum([abs(E) >= 1e-10 for E in rho.eigenenergies()])
-    assert_(rank == 3)
 
+@pytest.mark.repeat(5)
+@pytest.mark.parametrize('kind', ["left", "right"])
+def test_rand_stochastic(kind):
+    """
+    Random Qobjs: Test random stochastic
+    """
+    random_qobj = rand_stochastic(5, kind=kind)
+    axis = {"left":0, "right":1}[kind]
+    np.testing.assert_allclose(np.sum(random_qobj.full(), axis=axis), 1,
+                               atol=1e-14)
+
+
+@pytest.mark.repeat(5)
+@pytest.mark.parametrize('func', [rand_ket, rand_ket_haar])
+def test_rand_ket(func):
+    """
+    Random Qobjs: Test random ket type and norm.
+    """
+    random_qobj = func(5)
+    assert random_qobj.type == 'ket'
+    assert abs(random_qobj.norm() - 1) < 1e-14
+
+
+@pytest.mark.repeat(5)
+def test_rand_super():
+    """
+    Random Qobjs: Super operator.
+    """
+    random_qobj = rand_super(5)
+    assert random_qobj.issuper
+
+
+@pytest.mark.repeat(5)
 def test_rand_super_bcsz_cptp():
     """
     Random Qobjs: Tests that BCSZ-random superoperators are CPTP.
     """
-    S = rand_super_bcsz(5)
-    assert_(S.iscptp)
+    random_qobj = rand_super_bcsz(5)
+    assert random_qobj.issuper
+    assert random_qobj.iscptp
 
-def check_func_dims(func, args, kwargs, dims):
-    # TODO: promote this out of test_random, as it's generically useful
-    #       in writing tests.
-    resdims = func(*args, **kwargs).dims
-    assert_(resdims == dims, "Checking {}; epected dimensions of {}, got {}.".format(func.__name__, dims, resdims))
 
-def test_rand_vector_dims():
-    FUNCS = [rand_ket, rand_ket_haar]
-    for func in FUNCS:
-        check_func_dims( func, (7, ), {}, [[7], [1]])
-        check_func_dims( func, (6, ), {'dims': [[2, 3], [1]]}, [[2, 3], [1]])
-
-def test_rand_oper_dims():
-    FUNCS = [rand_unitary, rand_herm, rand_dm, rand_unitary_haar, rand_dm_ginibre, rand_dm_hs]
-    for func in FUNCS:
-        check_func_dims( func, (7, ), {}, [[7], [7]])
-        check_func_dims( func, (6, ), {'dims': [[2, 3], [2, 3]]}, [[2, 3], [2, 3]])
-
-def test_rand_super_dims():
-    FUNCS = [rand_super, rand_super_bcsz]
-    for func in FUNCS:
-        check_func_dims(func, (7, ), {}, [[[7], [7]]] * 2)
-        check_func_dims(func, (6, ), {'dims': [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]}, [[[2, 3], [2, 3]], [[2, 3], [2, 3]]])
-
-if __name__ == "__main__":
-    run_module_suite()
-
-# random object accept `str` and base.Data
-# Obtain all valid dtype from `to`
-dtype_names = list(_data.to._str2type.keys()) + list(_data.to.dtypes)
-dtype_types = list(_data.to._str2type.values()) + list(_data.to.dtypes)
-@pytest.mark.parametrize(['alias', 'dtype'], zip(dtype_names, dtype_types),
-                         ids=[str(dtype) for dtype in dtype_names])
 @pytest.mark.parametrize('func', [
+    rand_unitary, rand_unitary_haar, rand_herm,
     rand_dm, rand_dm_hs, rand_dm_ginibre,
-    rand_ket, rand_ket_haar, rand_herm, rand_unitary,
-    rand_super, rand_unitary_haar, rand_super_bcsz, rand_stochastic
+    rand_ket, rand_ket_haar,
+    rand_super, rand_super_bcsz
 ])
-def test_random_type(func, alias, dtype):
-    rand_qobj = func(5, dtype=alias)
-    assert isinstance(rand_qobj.data, dtype)
+def test_random_seeds(func):
+    """
+    Random Qobjs: Random number generator seed
+    """
+    seed = 12345
+    U0 = func(5, seed=seed)
+    U1 = func(5, seed=None)
+    U2 = func(5, seed=seed)
+    assert U0 != U1
+    assert U0 == U2
+
+
+@pytest.mark.parametrize('func', [rand_ket, rand_ket_haar])
+@pytest.mark.parametrize(('args', 'kwargs', 'dims'), [
+    pytest.param((6,), {}, [[6], [1]], id="N"),
+    pytest.param((), {'dims': [[2, 3], [1]]}, [[2, 3], [1]], id="dims"),
+    pytest.param((6,), {'dims': [[2, 3], [1]]}, [[2, 3], [1]],
+                 id="both"),
+])
+def test_rand_vector_dims(func, args, kwargs, dims):
+    shape = np.prod(dims[0]), np.prod(dims[1])
+    output = func(*args, **kwargs)
+    assert output.shape == shape
+    assert output.dims == dims
+
+
+@pytest.mark.parametrize('func', [rand_ket, rand_ket_haar])
+def test_rand_ket_raises_if_no_args(func):
+    with pytest.raises(TypeError):
+        func()
+
+
+@pytest.mark.parametrize('func', [
+    rand_unitary, rand_herm, rand_dm, rand_unitary_haar, rand_dm_ginibre,
+    rand_dm_hs, rand_stochastic,
+])
+@pytest.mark.parametrize(('args', 'kwargs', 'dims'), [
+    pytest.param((6,), {}, [[6], [6]], id="N"),
+    pytest.param((6,), {'dims': [[2, 3], [2, 3]]}, [[2, 3], [2, 3]],
+                 id="both"),
+])
+def test_rand_oper_dims(func, args, kwargs, dims):
+    shape = np.prod(dims[0]), np.prod(dims[1])
+    output = func(*args, **kwargs)
+    assert output.shape == shape
+    assert output.dims == dims
+
+
+_super_dims = [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]
+
+
+@pytest.mark.parametrize('func', [rand_super, rand_super_bcsz])
+@pytest.mark.parametrize(('args', 'kwargs', 'dims'), [
+    pytest.param((6,), {}, [[[6]]*2]*2, id="N"),
+    pytest.param((6,), {'dims': _super_dims}, _super_dims,
+                 id="both"),
+])
+def test_rand_super_dims(func, args, kwargs, dims):
+    shape = np.prod(dims[0]), np.prod(dims[1])
+    output = func(*args, **kwargs)
+    assert output.shape == shape
+    assert output.dims == dims

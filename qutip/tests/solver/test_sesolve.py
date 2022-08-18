@@ -3,11 +3,12 @@ import pickle
 import qutip
 import numpy as np
 from qutip.solver.sesolve import sesolve, SeSolver
-from qutip.solver.options import SolverOptions
 from qutip.solver.solver_base import Solver
 
-all_ode_method = SeSolver.avail_integrators().keys()
-
+all_ode_method = [
+    method for method, integrator in SeSolver.avail_integrators().items()
+    if integrator.support_time_dependant
+]
 
 def _analytic(t, alpha):
     return ((1 - np.exp(-alpha * t)) / alpha)
@@ -47,15 +48,16 @@ class TestSeSolve():
         """
         tol = 5e-3
         psi0 = qutip.basis(2, 0)
-        option = SolverOptions(progress_bar=None)
+        options = {"progress_bar": None}
 
         if unitary_op is None:
             output = sesolve(H, psi0, self.tlist,
                              [qutip.sigmax(), qutip.sigmay(), qutip.sigmaz()],
-                             args=self.args)
+                             args=self.args, options=options)
             sx, sy, sz = output.expect[0], output.expect[1], output.expect[2]
         else:
-            output = sesolve(H, unitary_op, self.tlist, args=self.args)
+            output = sesolve(H, unitary_op, self.tlist, args=self.args,
+                             options=options)
             sx = [qutip.expect(qutip.sigmax(), U * psi0)
                   for U in output.states]
             sy = [qutip.expect(qutip.sigmay(), U * psi0)
@@ -77,6 +79,29 @@ class TestSeSolve():
         np.testing.assert_allclose(sy, sy_analytic, atol=tol)
         np.testing.assert_allclose(sz, sz_analytic, atol=tol)
 
+    @pytest.mark.parametrize(['state_type'], [
+        pytest.param("ket", id="ket"),
+        pytest.param("unitary", id="unitary"),
+    ])
+    def test_sesolve_normalization(self, state_type):
+        # non-hermitean H causes state to evolve non-unitarily
+        H = qutip.Qobj([[1, -0.1j], [-0.1j, 1]])
+        psi0 = qutip.basis(2, 0)
+        options = {"normalize_output": True, "progress_bar": None}
+
+        if state_type == "ket":
+            output = sesolve(H, psi0, self.tlist, e_ops=[], options=options)
+            norms = [state.norm() for state in output.states]
+            np.testing.assert_allclose(
+                norms, [1.0 for _ in self.tlist], atol=1e-15,
+            )
+        else:
+            # evolution of unitaries should not be normalized
+            U = qutip.qeye(2)
+            output = sesolve(H, U, self.tlist, e_ops=[], options=options)
+            norms = [state.norm() for state in output.states]
+            assert all(norm > 2 for norm in norms[1:])
+
     @pytest.mark.parametrize(['unitary_op'], [
         pytest.param(None, id="state"),
         pytest.param(qutip.qeye(2), id="unitary"),
@@ -90,7 +115,7 @@ class TestSeSolve():
         """
         tol = 5e-3
         psi0 = qutip.basis(2, 0)
-        options = SolverOptions(method=method, progress_bar=None)
+        options = {"method": method, "progress_bar": None}
         H = [[self.H1, 'exp(-alpha*t)']]
 
         if unitary_op is None:
@@ -143,8 +168,11 @@ class TestSeSolve():
         psi0 = qutip.basis(2, 0)
         U0 = qutip.qeye(2)
 
-        options = SolverOptions(store_states=True, normalize_output=normalize,
-                                progress_bar=None)
+        options = {
+            "store_states": True,
+            "normalize_output": normalize,
+            "progress_bar": None
+        }
         out_s = sesolve(H, psi0, self.tlist, [qutip.sigmax(),
                                               qutip.sigmay(),
                                               qutip.sigmaz()],
@@ -171,7 +199,7 @@ class TestSeSolve():
         np.testing.assert_allclose(zs, zu, atol=tol)
 
     def test_sesolver_args(self):
-        options = SolverOptions(progress_bar=None)
+        options = {"progress_bar": None}
         solver_obj = SeSolver(qutip.QobjEvo([self.H0, [self.H1,'a']],
                                             args={'a': 1}),
                               options=options)
@@ -181,13 +209,13 @@ class TestSeSolve():
 
     def test_sesolver_pickling(self):
         e_ops = [qutip.sigmax(), qutip.sigmay(), qutip.sigmaz()]
-        options = SolverOptions(progress_bar=None)
+        options = {"progress_bar": None}
         solver_obj = SeSolver(self.H0 + self.H1,
                               options=options)
-        copy = pickle.loads(pickle.dumps(solver_obj))
+        solver_copy = pickle.loads(pickle.dumps(solver_obj))
         sx, sy, sz = solver_obj.run(qutip.basis(2,1), [0, 1, 2, 3],
                                     e_ops=e_ops).expect
-        csx, csy, csz = solver_obj.run(qutip.basis(2,1), [0, 1, 2, 3],
+        csx, csy, csz = solver_copy.run(qutip.basis(2,1), [0, 1, 2, 3],
                                        e_ops=e_ops).expect
         np.testing.assert_allclose(sx, csx)
         np.testing.assert_allclose(sy, csy)
@@ -195,8 +223,12 @@ class TestSeSolve():
 
     @pytest.mark.parametrize('method', all_ode_method, ids=all_ode_method)
     def test_sesolver_stepping(self, method):
-        options = SolverOptions(method=method, atol=1e-7, rtol=1e-8,
-                                progress_bar=None)
+        options = {
+            "method": method,
+            "atol": 1e-7,
+            "rtol": 1e-8,
+            "progress_bar": None
+        }
         solver_obj = SeSolver(
             qutip.QobjEvo([self.H1, lambda t, a: a], args={"a":0.25}),
             options=options
@@ -219,9 +251,13 @@ class TestSeSolve():
         np.testing.assert_allclose(qutip.expect(qutip.sigmaz(), state), sr2,
                                    atol=2e-6)
 
-        new_options = SolverOptions(method='adams', atol=1e-7, rtol=1e-8,
-                                    progress_bar=None)
-        state = solver_obj.step(3, args={"a":0}, options=new_options)
+        solver_obj.options = {
+            "method": "adams",
+            "atol": 1e-7,
+            "rtol": 1e-8,
+            "progress_bar": None
+        }
+        state = solver_obj.step(3, args={"a":0})
         np.testing.assert_allclose(qutip.expect(qutip.sigmax(), state), 0.,
                                    atol=2e-6)
         np.testing.assert_allclose(qutip.expect(qutip.sigmay(), state), sr2,

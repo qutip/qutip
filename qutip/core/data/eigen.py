@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.linalg
 import scipy.sparse as sp
+from itertools import combinations
 
 from .dense import Dense, from_csr
 from .csr import CSR
@@ -12,13 +13,14 @@ __all__ = [
 ]
 
 
-if settings.install["eigh_unsafe"]:
-    def _orthogonalize(vec, other):
-        cross = np.sum(np.conj(other) * vec)
-        vec -= cross * other
-        norm = np.sum(np.conj(vec) * vec)**0.5
-        vec /= norm
+def _orthogonalize(vec, other):
+    cross = np.sum(np.conj(other) * vec)
+    vec -= cross * other
+    norm = np.sum(np.conj(vec) * vec)**0.5
+    vec /= norm
 
+
+if settings.eigh_unsafe:
     def eigh(mat, eigvals=None):
         val, vec = scipy.linalg.eig(mat)
         val = np.real(val)
@@ -99,11 +101,11 @@ def _eigs_csr(data, isherm, vecs, eigvals, num_large, num_small, tol, maxiter):
     small_vals = np.array([])
     evecs = None
 
-    remove_one = False
+    remove_one = 0  # 0: remove none, 1: remove smallest, -1: remove largest
     if eigvals == (N - 1):
         # calculate all eigenvalues and remove one at output if using sparse
         # 1: remove the smallest, -1, remove the largest
-        remove_one = bool(num_small) or -1
+        remove_one = 1 if (num_small > 0) else -1
         eigvals = 0
         num_small = num_large = N // 2
         num_small += N % 2
@@ -231,6 +233,19 @@ def eigs_csr(data, isherm=None, vecs=True, sort='low', eigvals=0,
     isherm = isherm if isherm is not None else _isherm(data)
     evals, evecs = _eigs_csr(data.as_scipy(), isherm, vecs, eigvals,
                              num_large, num_small, tol, maxiter)
+
+    if vecs and isherm:
+        i = 0
+        while i < len(evals):
+            num_degen = np.sum(np.abs(evals - evals[i]) < (2 * tol or 1e-14))
+            # orthogonalize vectors 1 .. k with respect to the first, then
+            # 2 .. k with respect to the second, and so on. Relies on both the
+            # order of each pair and the ordering of pairs returned by
+            # combinations.
+            for k, l in combinations(range(num_degen), 2):
+                _orthogonalize(evecs[:, i+l], evecs[:, i+k])
+            i += num_degen
+
     if sort == 'high':
         # Flip arrays around.
         if vecs:

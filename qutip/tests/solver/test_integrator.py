@@ -1,9 +1,7 @@
-from qutip.solver.options import SolverOdeOptions
 from qutip.solver.sesolve import SeSolver
 from qutip.solver.mesolve import MeSolver
 from qutip.solver.solver_base import Solver
-from qutip.solver.ode.scipy_integrator import (IntegratorScipyZvode,
-                                               IntegratorScipylsoda)
+from qutip.solver.ode.scipy_integrator import *
 import qutip
 import numpy as np
 from numpy.testing import assert_allclose
@@ -31,8 +29,7 @@ class TestIntegratorCte():
         return request.param
 
     def test_se_integration(self, se_method):
-        opt = SolverOdeOptions(method=se_method)
-        evol = SeSolver.avail_integrators()[se_method](self.se_system, opt)
+        evol = SeSolver.avail_integrators()[se_method](self.se_system, {})
         state0 = qutip.core.unstack_columns(qutip.basis(6,0).data, (2, 3))
         evol.set_state(0, state0)
         for t, state in evol.run(np.linspace(0, 2, 21)):
@@ -41,8 +38,7 @@ class TestIntegratorCte():
             assert state.shape == (2, 3)
 
     def test_me_integration(self, me_method):
-        opt = SolverOdeOptions(method=me_method)
-        evol = MeSolver.avail_integrators()[me_method](self.me_system, opt)
+        evol = MeSolver.avail_integrators()[me_method](self.me_system, {})
         state0 = qutip.operator_to_vector(qutip.fock_dm(2,1)).data
         evol.set_state(0, state0)
         for t in np.linspace(0, 2, 21):
@@ -52,8 +48,7 @@ class TestIntegratorCte():
                             state.to_array()[0, 0], atol=2e-5)
 
     def test_mc_integration(self, mc_method):
-        opt = SolverOdeOptions(method=mc_method)
-        evol = Solver.avail_integrators()[mc_method](self.se_system, opt)
+        evol = Solver.avail_integrators()[mc_method](self.se_system, {})
         state = qutip.basis(2,0).data
         evol.set_state(0, state)
         t = 0
@@ -72,6 +67,26 @@ class TestIntegratorCte():
                 assert_allclose(self._analytical_se(t),
                                 state.to_array()[0, 0], atol=2e-5)
                 t, state = evol.mcstep(t)
+
+
+    @pytest.mark.parametrize('start', [1, -1])
+    def test_mc_integration_mixed(self, start, mc_method):
+        system = qutip.QobjEvo(qutip.qeye(1))
+        evol = Solver.avail_integrators()[mc_method](system, {})
+
+        state = qutip.basis(1,0).data
+        evol.set_state(start, state)
+        t = start
+        t_target = start + .1
+        while t < t_target:
+            t, _ = evol.mcstep(start + .1)
+        _ = evol.mcstep(start + .2)
+        t_target = (start + .1 + t) / 2
+        t, state = evol.mcstep(t_target)
+        assert (
+            state.to_array()[0, 0]
+            == pytest.approx(np.exp(t - start), abs=1e-5)
+        )
 
 
 class TestIntegrator(TestIntegratorCte):
@@ -106,9 +121,11 @@ class TestIntegrator(TestIntegratorCte):
 
 
 @pytest.mark.parametrize('integrator',
-    [IntegratorScipyZvode, IntegratorScipylsoda], ids=["zvode", "lsoda"])
+    [IntegratorScipyAdams, IntegratorScipyBDF, IntegratorScipylsoda],
+    ids=["adams", 'bdf', "lsoda"]
+)
 def test_concurent_usage(integrator):
-    opt = SolverOdeOptions()
+    opt = {'atol':1e-10, 'rtol':1e-7}
 
     sys1 = qutip.QobjEvo(0.5*qutip.qeye(1))
     inter1 = integrator(sys1, opt)

@@ -1,35 +1,3 @@
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
 """
 This module provides solvers for the Lindblad master equation and von Neumann
 equation.
@@ -114,7 +82,7 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
     **Additional options**
 
     Additional options to mesolve can be set via the `options` argument, which
-    should be an instance of :class:`qutip.solver.Options`. Many ODE
+    should be an instance of :class:`qutip.solver.SolverOptions`. Many ODE
     integration options can be set this way, and the `store_states` and
     `store_final_state` options can be used to store states even though
     expectation values are requested via the `e_ops` argument.
@@ -156,9 +124,13 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
         single collapse operator, or list of collapse operators, or a list
         of Liouvillian superoperators.
 
-    e_ops : None / list of :class:`qutip.Qobj` / callback function single
-        single operator or list of operators for which to evaluate
-        expectation values.
+    e_ops : None / list / callback function, optional
+        A list of operators as `Qobj` and/or callable functions (can be mixed)
+        or a single callable function. For operators, the result's expect will
+        be  computed by :func:`qutip.expect`. For callable functions, they are
+        called as ``f(t, state)`` and return the expectation value.
+        A single callback's expectation value can be any type, but a callback
+        part of a list must return a number as the expectation value.
 
     args : None / *dictionary*
         dictionary of parameters for time-dependent Hamiltonians and
@@ -242,20 +214,32 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
         return sesolve(H, rho0, tlist, e_ops=e_ops, args=args, options=options,
                        progress_bar=progress_bar, _safe_mode=_safe_mode)
 
+    if isket(rho0):
+        rho0 = ket2dm(rho0)
+    if (not (rho0.isoper or rho0.issuper)) or (rho0.dims[0] != rho0.dims[1]):
+        raise ValueError(
+            "input state must be a pure state vector, square density matrix, "
+            "or superoperator"
+        )
+
     if isinstance(H, SolverSystem):
         ss = H
+    else:
+        H = QobjEvo(H, args=args, tlist=tlist)
+        ss = _mesolve_QobjEvo(H, c_ops, tlist, args, options)
+    """
     elif isinstance(H, (list, Qobj, QobjEvo)):
         ss = _mesolve_QobjEvo(H, c_ops, tlist, args, options)
     elif callable(H):
         ss = _mesolve_func_td(H, c_ops, rho0, tlist, args, options)
     else:
         raise Exception("Invalid H type")
+    """
 
-    if isket(rho0):
-        rho0 = ket2dm(rho0)
     func, ode_args = ss.makefunc(ss, rho0, args, e_ops, options)
 
     if _safe_mode:
+        # This is to test safety of the function before starting the loop.
         v = rho0.full().ravel('F')
         func(0., v, *ode_args)[:, 0] + v
 
@@ -298,6 +282,20 @@ def _mesolve_QobjEvo(H, c_ops, tlist, args, opt):
     return ss
 
 
+def _test_liouvillian_dimensions(L_dims, rho_dims):
+    """
+    Raise ValueError if the dimensions of the Liouvillian and the density
+    matrix or superoperator state are incompatible with the master equation.
+    """
+    if L_dims[0] != L_dims[1]:
+        raise ValueError("Liouvillian had nonsquare dims: " + str(L_dims))
+    if not ((L_dims[1] == rho_dims) or (L_dims[1] == rho_dims[0])):
+        raise ValueError("".join([
+            "incompatible Liouvillian and state dimensions: ",
+            str(L_dims), " and ", str(rho_dims),
+        ]))
+
+
 def _wrap_matmul(t, state, cqobj, unstack):
     data = _data.dense.fast_from_numpy(state)
     if unstack:
@@ -318,6 +316,7 @@ def _qobjevo_set(HS, rho0, args, e_ops, opt):
         raise TypeError("The unitary solver requires rho0 to be"
                         " a ket or dm as initial state"
                         " or a super operator as initial state.")
+    _test_liouvillian_dimensions(H_td.dims, rho0.dims)
     return _wrap_matmul, (H_td, rho0.issuper)
 
 
@@ -325,13 +324,15 @@ def _qobjevo_set(HS, rho0, args, e_ops, opt):
 # Master equation solver for python-function time-dependence.
 #
 class _LiouvillianFromFunc:
-    def __init__(self, func, c_ops):
+    def __init__(self, func, c_ops, rho_dims):
         self.f = func
         self.c_ops = c_ops
+        self.rho_dims = rho_dims
 
     def H2L(self, t, rho, args):
         Ht = self.f(t, args)
         Lt = -1.0j * (spre(Ht) - spost(Ht))
+        _test_liouvillian_dimensions(Lt.dims, self.rho_dims)
         for op in self.c_ops:
             Lt += op(t)
         return Lt.data
@@ -339,18 +340,21 @@ class _LiouvillianFromFunc:
     def H2L_with_state(self, t, rho, args):
         Ht = self.f(t, rho, args)
         Lt = -1.0j * (spre(Ht) - spost(Ht))
+        _test_liouvillian_dimensions(Lt.dims, self.rho_dims)
         for op in self.c_ops:
             Lt += op(t)
         return Lt.data
 
     def L(self, t, rho, args):
         Lt = self.f(t, args)
+        _test_liouvillian_dimensions(Lt.dims, self.rho_dims)
         for op in self.c_ops:
             Lt += op(t)
         return Lt.data
 
     def L_with_state(self, t, rho, args):
         Lt = self.f(t, rho, args)
+        _test_liouvillian_dimensions(Lt.dims, self.rho_dims)
         for op in self.c_ops:
             Lt += op(t)
         return Lt.data
@@ -382,11 +386,7 @@ def _mesolve_func_td(L_func, c_op_list, rho0, tlist, args, opt):
             L_func = _LiouvillianFromFunc(L_func, c_ops_).L_with_state
     else:
         obj = L_func(0., args)
-        if not issuper(obj):
-            L_func = _LiouvillianFromFunc(L_func, c_ops_).H2L
-        else:
-            L_func = _LiouvillianFromFunc(L_func, c_ops_).L
-
+        L_func = L_api.L if issuper(obj) else L_api.H2L
     ss = SolverSystem()
     ss.L = L_func
     ss.makefunc = _Lfunc_set
@@ -470,6 +470,13 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
             opt['store_states'] = True
         else:
             for op in e_ops:
+                if not isinstance(op, Qobj) and callable(op):
+                    output.expect.append(np.zeros(n_tsteps, dtype=complex))
+                    continue
+                if op.dims != rho0.dims:
+                    raise TypeError(f"e_ops dims ({op.dims}) are not "
+                                    f"compatible with the state's "
+                                    f"({rho0.dims})")
                 e_ops_data.append(spre(op).data)
                 dtype = (np.float64 if op.isherm and rho0.isherm
                          else np.complex128)
@@ -517,12 +524,15 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
                                                copy=False)))
 
         for m in range(n_expt_op):
-            if cdata.shape[1] == size:
+            if cdata.shape[0] == size:
                 cdata = _data.column_stack_dense(cdata, inplace=False)
-            val = _data.expect_super(e_ops_data[m], cdata)
-            if e_ops[m].isherm:
-                val = val.real
-            output.expect[m][t_idx] = val
+            if not isinstance(e_ops[m], Qobj) and callable(e_ops[m]):
+                output.expect[m][t_idx] = e_ops[m](t, Qobj(cdata, dims=dims))
+            else:
+                val = _data.expect_super(e_ops_data[m], cdata)
+                if e_ops[m].isherm and rho0.isherm:
+                    val = val.real
+                output.expect[m][t_idx] = val
 
         if t_idx < n_tsteps - 1:
             r.integrate(r.t + dt[t_idx])
@@ -533,7 +543,7 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
         cdata = get_curr_state_data(r)
         matrix = _data.column_unstack_dense(cdata, size)
         output.final_state = Qobj(matrix,
-                                  dims=dims, type=rho0.type, isherm=True,
-                                  copy=False)
+                                  dims=dims, type=rho0.type,
+                                  isherm=rho0.isherm or None, copy=False)
 
     return output

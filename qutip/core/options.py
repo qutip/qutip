@@ -1,18 +1,65 @@
-from ..optionsclass import optionsclass
+from ..settings import settings
 
 __all__ = ["CoreOptions"]
 
-@optionsclass("core")
-class CoreOptions:
+
+class QutipOptions:
     """
-    Settings used by the Qobj.  Values can be changed in qutip.settings.core.
+    Class for basic functionality for qutip's options.
+
+    Define basic method to wrap an ``options`` dict.
+    Default options are in a class _options dict.
+    """
+    _options = {}
+    _settings_name = None  # Where the default is in settings
+
+    def __init__(self, **options):
+        self.options = self._options.copy()
+        for key in set(options) & set(self.options):
+            self[key] = options.pop(key)
+        if options:
+            raise KeyError(f"Options {set(options)} are not supported.")
+
+    def __contains__(self, key):
+        return key in self.options
+
+    def __getitem__(self, key):
+        # Let the dict catch the KeyError
+        return self.options[key]
+
+    def __setitem__(self, key, value):
+        # Let the dict catch the KeyError
+        self.options[key] = value
+
+    def __repr__(self):
+        out = [f"<{self.__class__.__name__}("]
+        for key, value in self.options.items():
+            out += [f"    '{key}': {repr(value)},"]
+        out += [")>"]
+        return "\n".join(out)
+
+    def __enter__(self):
+        self._backup = getattr(settings, self._settings_name)
+        setattr(settings, self._settings_name, self)
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        setattr(settings, self._settings_name, self._backup)
+
+
+class CoreOptions(QutipOptions):
+    """
+    Options used by the core of qutip such as the tolerance of :class:`Qobj`
+    comparison or coefficient's format.
+
+    Values can be changed in ``qutip.settings.core`` or by using context:
+    ``with CoreOptions(atol=1e-6): ...``.
 
     Options
     -------
     auto_tidyup : bool
         Whether to tidyup during sparse operations.
 
-    auto_tidyup_dims : boolTrue
+    auto_tidyup_dims : bool [True]
         use auto tidyup dims on multiplication
 
     auto_herm : boolTrue
@@ -46,7 +93,7 @@ class CoreOptions:
           is exactly ``f(t, args)`` then ``dict`` is used. Otherwise
           ``pythonic`` is used.
     """
-    options = {
+    _options = {
         # use auto tidyup
         "auto_tidyup": True,
         # use auto tidyup dims on multiplication
@@ -62,3 +109,8 @@ class CoreOptions:
         # signature style expected by function coefficients
         "function_coefficient_style": "auto",
     }
+    _settings_name = "core"
+
+
+# Creating the instance of core options to use everywhere.
+settings.core = CoreOptions()

@@ -8,8 +8,6 @@ cdef class QobjEvo:
         list elements
         readonly object _dims
         readonly (idxint, idxint) shape
-        readonly str type
-        readonly str superrep
         int _issuper
         int _isoper
         double _shift_dt
