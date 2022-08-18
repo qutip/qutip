@@ -65,6 +65,13 @@ def _determine_user_arguments(options):
     """
     Add the 'openmp' option to the collection, based on the passed command-line
     arguments or environment variables.
+
+    If using PEP517 builds, one can pass these options on the command-line
+    using, for example:
+
+        python -m build \
+            --wheel \
+            --config-setting="--global-option=--with-openmp"
     """
     options['openmp'] = (
         '--with-openmp' in sys.argv
