@@ -23,7 +23,7 @@ from qutip.tensor import tensor_swap
 from qutip.operators import qeye
 
 from qutip.logging_utils import get_logger
-logger = get_logger()
+logger = get_logger('qutip.semidefinite')
 
 def complex_var(rows=1, cols=1, name=None):
     return Complex(

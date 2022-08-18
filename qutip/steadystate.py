@@ -31,7 +31,7 @@ import qutip.settings as settings
 from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
 
 import qutip.logging_utils
-logger = qutip.logging_utils.get_logger()
+logger = qutip.logging_utils.get_logger('qutip.steadystate')
 logger.setLevel('DEBUG')
 
 # Load MKL spsolve if avaiable

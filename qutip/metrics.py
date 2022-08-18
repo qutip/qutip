@@ -21,7 +21,7 @@ from qutip.semidefinite import dnorm_problem, dnorm_sparse_problem
 import qutip.settings as settings
 
 import qutip.logging_utils as logging
-logger = logging.get_logger()
+logger = logging.get_logger('qutip.metrics')
 
 try:
     import cvxpy

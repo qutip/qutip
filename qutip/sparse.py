@@ -58,7 +58,7 @@ else:
     eigvalsh = la.eigvalsh
 
 import qutip.logging_utils
-logger = qutip.logging_utils.get_logger()
+logger = qutip.logging_utils.get_logger('qutip.sparse')
 
 if debug:
     import inspect
