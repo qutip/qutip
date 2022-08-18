@@ -3,7 +3,7 @@ from qutip import krylovsolve, sesolve
 from qutip.solve.solver import SolverOptions, Result
 from qutip import tensor, Qobj, basis, expect, ket
 from qutip import sigmax, sigmay, sigmaz, qeye, jmat
-from qutip import rand_herm, rand_ket, rand_unitary_haar, num, destroy, create
+from qutip import rand_herm, rand_ket, rand_unitary, num, destroy, create
 import os
 import math
 import types
@@ -42,7 +42,7 @@ def happy_breakdown_parameters(request):
 
 
 def h_sho(dim):
-    U = rand_unitary_haar(dim)
+    U = rand_unitary(dim)
     H = U * (num(dim) + 0.5) * U.dag()
     H = H / np.linalg.norm(H.full(), ord=2)
     return H
@@ -247,7 +247,7 @@ class TestKrylovSolve:
         H = h_ising_transverse(N, hx=0.1, hz=0.5, Jx=1, Jy=0, Jz=1)
         _dims = H.dims
         _dims2 = [1] * N
-        psi0 = rand_ket(dim, dims=[_dims[0], _dims2])
+        psi0 = rand_ket(_dims[0])
         tlist = np.linspace(0, 20, 200)
 
         self.simple_check_states_e_ops(

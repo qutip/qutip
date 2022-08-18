@@ -12,7 +12,7 @@ import pytest
 
 from qutip import (
     Qobj, basis, identity, sigmax, sigmay, qeye, create, rand_super,
-    rand_super_bcsz, rand_dm_ginibre, tensor, super_tensor, kraus_to_choi,
+    rand_super_bcsz, rand_dm, tensor, super_tensor, kraus_to_choi,
     to_super, to_choi, to_kraus, to_chi, to_stinespring, operator_to_vector,
     vector_to_operator, sprepost, destroy
 )
@@ -275,7 +275,7 @@ class TestSuperopReps:
         """
 
         map = rand_super_bcsz(dimension)
-        state = rand_dm_ginibre(dimension)
+        state = rand_dm(dimension)
 
         S = to_super(map)
         A, B = to_stinespring(map)
