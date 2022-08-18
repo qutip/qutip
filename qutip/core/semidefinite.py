@@ -18,7 +18,7 @@ except ImportError:
 from .tensor import tensor_swap
 from .operators import qeye
 from ..logging_utils import get_logger
-logger = get_logger()
+logger = get_logger('qutip.core.semidefinite')
 
 Complex = collections.namedtuple('Complex', ['re', 'im'])
 
