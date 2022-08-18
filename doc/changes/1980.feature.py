@@ -1,1 +1,1 @@
-Improve qutip import times
+Improve qutip import times by setting logger names explicitly.
