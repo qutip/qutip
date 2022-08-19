@@ -56,42 +56,48 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
     options : None / dict
         Dictionary of options for the solver.
 
-        - store_final_state : bool
+        - store_final_state : bool [False]
           Whether or not to store the final state of the evolution in the
           result class.
-        - store_states : bool, None
+        - store_states : bool, NoneType, [None]
           Whether or not to store the state vectors or density matrices.
           On `None` the states will be saved if no expectation operators are
           given.
-        - normalize_output : bool
-          Normalize output state to hide ODE numerical errors.
-        - progress_bar : str {'text', 'enhanced', 'tqdm', ''}
+        - progress_bar : str {'text', 'enhanced', 'tqdm', ''}, ['text']
           How to present the solver progress.
           'tqdm' uses the python module of the same name and raise an error
           if not installed. Empty string or False will disable the bar.
-        - progress_kwargs : dict
+        - progress_kwargs : dict, [{"chunk_size": 10}]
           kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
-        - method : str ["adams", "bdf", "lsoda", "dop853", "vern9", etc.]
+        - method : str {"adams", "bdf", "dop853", "vern9", etc.} ["adams"]
           Which differential equation integration method to use.
-        - keep_runs_results : bool
+        - keep_runs_results : bool, [False]
           Whether to store results from all trajectories or just store the
           averages.
-        - map : str {"serial", "parallel", "loky"}
+        - map : str {"serial", "parallel", "loky"}, ["serial"]
           How to run the trajectories. "parallel" uses concurent module to run
           in parallel while "loky" use the module of the same name to do so.
-        - job_timeout : None, int
+        - job_timeout : NoneType, int, [None]
           Maximum time to compute one trajectory.
-        - num_cpus : None, int
+        - num_cpus : NoneType, int, [None]
           Number of cpus to use when running in parallel. ``None`` detect the
           number of available cpus.
-        - norm_t_tol, norm_tol, norm_steps : float, float, int
+        - norm_t_tol, norm_tol, norm_steps : float, float, int, [1e-6, 1e-4, 5]
           Parameters used to find the collapse location. ``norm_t_tol`` and
           ``norm_tol`` are the tolerance in time and norm respectively.
           An error will be raised if the collapse could not be found within
           ``norm_steps`` tries.
-        - mc_corr_eps : float
+        - mc_corr_eps : float, [1e-10]
           Small number used to detect non-physical collapse caused by numerical
           imprecision.
+        - atol, rtol : float, [1e-8, 1e-6]
+          Absolute and relative tolerance of the ODE integrator.
+        - nsteps : int [2500]
+          Maximum number of (internally defined) steps allowed in one ``tlist``
+          step.
+        - max_step : float, [0]
+          Maximum lenght of one internal step. When using pulses, it should be
+          less than half the width of the thinnest pulse.
 
     seeds : int, SeedSequence, list, [optional]
         Seed for the random number generator. It can be a single seed used to
@@ -419,6 +425,10 @@ class McSolver(MultiTrajSolver):
         """
         Run one trajectory and return the result.
         """
+        # The integrators is reused, but non-reentrant. They are are fine for
+        # multiprocessing, but will fail with multithreading.
+        # If a thread base parallel map is created, eahc trajectory should use
+        # a copy of the integrator.
         result = Result(e_ops, {**self.options, "normalize_output": False})
         generator = self._get_generator(seed)
         self._integrator.set_state(tlist[0], state, generator)

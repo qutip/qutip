@@ -39,6 +39,7 @@ class StatesAndExpectOutputCase:
     def _assert_states(self, result, expected, tol):
         assert hasattr(result, 'states')
         assert len(result.states) == len(self.times)
+        assert len(self.e_ops) == len(expected)
         for test_operator, expected_part in zip(self.e_ops, expected):
             test = qutip.expect(test_operator, result.states)
             np.testing.assert_allclose(test, expected_part, rtol=tol)
@@ -46,6 +47,7 @@ class StatesAndExpectOutputCase:
     def _assert_expect(self, result, expected, tol):
         assert hasattr(result, 'expect')
         assert len(result.expect) == len(self.e_ops)
+        assert len(self.e_ops) == len(expected)
         for test, expected_part in zip(result.expect, expected):
             np.testing.assert_allclose(test, expected_part, rtol=tol)
 

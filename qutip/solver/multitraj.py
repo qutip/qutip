@@ -1,6 +1,6 @@
 from .. import Qobj, QobjEvo
 from .result import Result, MultiTrajResult
-from .parallel import get_map
+from .parallel import _get_map
 from time import time
 from .solver_base import Solver
 import numpy as np
@@ -175,7 +175,7 @@ class MultiTrajSolver(Solver):
         )
         result.add_end_condition(ntraj, target_tol)
 
-        map_func = get_map[self._options['map']]
+        map_func = _get_map[self._options['map']]
         map_kw = {
             'timeout': timeout,
             'job_timeout': self.options['job_timeout'],
