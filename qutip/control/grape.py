@@ -18,7 +18,7 @@ from qutip.control.cy_grape import cy_overlap, cy_grape_inner
 from qutip.qip.operations.gates import gate_sequence_product
 
 import qutip.logging_utils
-logger = qutip.logging_utils.get_logger()
+logger = qutip.logging_utils.get_logger('qutip.control.grape')
 
 
 class GRAPEResult:
