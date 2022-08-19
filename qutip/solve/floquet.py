@@ -553,6 +553,10 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
     Calculate the rates and matrix elements for the Floquet-Markov master
     equation.
 
+    .. note :
+        The number of integration steps (for calculating X) within one period
+        is set to 20 * kmax.
+
     Parameters
     ----------
 
@@ -581,7 +585,7 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
     w_th : float
         The temperature in units of frequency.
 
-    k_max : int
+    kmax : int
         The truncation of the number of sidebands (default 5).
 
     f_modes_table_t : nested list of :class:`qutip.qobj` (kets)
@@ -611,7 +615,8 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
     Gamma = np.zeros((N, N, M))
     A = np.zeros((N, N))
 
-    nT = 100
+    # time steps for integration of coupling operator
+    nT = int(np.max([20 * kmax, 100]))
     dT = T / nT
     tlist = np.arange(dT, T + dT / 2, dT)
 
@@ -906,7 +911,7 @@ def floquet_markov_mesolve(
         if not r.successful():
             break
 
-        rho = Qobj(unstack_columns(r.y), rho0.dims)
+        rho = transform(Qobj(unstack_columns(r.y), rho0.dims), t)
 
         if expt_callback:
             e_ops(t, rho)
@@ -934,10 +939,6 @@ def fmmesolve(H, rho0, tlist, c_ops=[], e_ops=[], spectra_cb=[], T=None,
               _safe_mode=True, options_modes=None):
     """
     Solve the dynamics for the system using the Floquet-Markov master equation.
-
-    .. note::
-
-        This solver currently does not support multiple collapse operators.
 
     Parameters
     ----------
@@ -1018,6 +1019,9 @@ def fmmesolve(H, rho0, tlist, c_ops=[], e_ops=[], spectra_cb=[], T=None,
         # add white noise callbacks if absent
         spectra_cb = [lambda w: 1.0] * len(c_ops)
 
+    if len(spectra_cb) != len(c_ops):
+        raise ValueError("Length of c_ops and spectra_cb don't match.")
+
     f_modes_0, f_energies = floquet_modes(H, T, args,
                                           options=options_modes)
 
@@ -1032,15 +1036,17 @@ def fmmesolve(H, rho0, tlist, c_ops=[], e_ops=[], spectra_cb=[], T=None,
     else:
         w_th = 0
 
-    # TODO: loop over input c_ops and spectra_cb, calculate one R for each set
+    # floquet-markov master equation tensor
+    R = 0
+    # loop over input c_ops and spectra_cb, calculate one R for each set
+    for c_op, spectrum in zip(c_ops, spectra_cb):
+        # calculate the rate-matrices for the floquet-markov master equation
+        Delta, X, Gamma, Amat = floquet_master_equation_rates(
+            f_modes_0, f_energies, c_op, H, T, args, spectrum,
+            w_th, kmax, f_modes_table_t)
 
-    # calculate the rate-matrices for the floquet-markov master equation
-    Delta, X, Gamma, Amat = floquet_master_equation_rates(
-        f_modes_0, f_energies, c_ops[0], H, T, args, spectra_cb[0],
-        w_th, kmax, f_modes_table_t)
-
-    # the floquet-markov master equation tensor
-    R = floquet_master_equation_tensor(Amat, f_energies)
+        # calculate temporary floquet-markov master equation tensor
+        R += floquet_master_equation_tensor(Amat, f_energies)
 
     return floquet_markov_mesolve(R, rho0, tlist, e_ops,
                                   options=options,

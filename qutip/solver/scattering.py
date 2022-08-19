@@ -14,7 +14,6 @@ import numpy as np
 from itertools import product, combinations_with_replacement
 from ..core import basis, tensor, zero_ket, Qobj, QobjEvo
 from .propagator import propagator, Propagator
-from .options import SolverOptions
 
 __all__ = ['temporal_basis_vector',
            'temporal_scattered_state',

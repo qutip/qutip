@@ -128,8 +128,6 @@ we can extract the relevant expectation values using:
     expt100 = data.expect[2]
     expt1000 = data.expect[3]
 
-The Monte Carlo solver also has many available options that can be set using the :func:`qutip.solve.solver.SolverOptions` class as discussed in :ref:`options`.
-
 
 .. _monte-reuse:
 
@@ -140,14 +138,7 @@ Reusing Hamiltonian Data
 
 In order to solve a given simulation as fast as possible, the solvers in QuTiP take the given input operators and break them down into simpler components before passing them on to the ODE solvers.  Although these operations are reasonably fast, the time spent organizing data can become appreciable when repeatedly solving a system over, for example, many different initial conditions. In cases such as this, the Hamiltonian and other operators may be reused after the initial configuration, thus speeding up calculations.  Note that, unless you are planning to reuse the data many times, this functionality will not be very useful.
 
-To turn on the "reuse" functionality we must set the ``rhs_reuse=True`` flag in the :func:`qutip.solve.solver.SolverOptions`:
-
-.. plot::
-    :context:
-
-    options = SolverOptions()
-
-A full account of this feature is given in :ref:`options`.  Using the previous example, we will calculate the dynamics for two different initial states, with the Hamiltonian data being reused on the second call
+Using the previous example, we will calculate the dynamics for two different initial states, with the Hamiltonian data being reused on the second call
 
 .. plot::
     :context:

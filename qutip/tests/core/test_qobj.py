@@ -595,9 +595,9 @@ def test_QobjNorm():
     np.testing.assert_allclose(A.norm('fro'), scipy.linalg.norm(x, 'fro'),
                                atol=1e-12)
     # operator trace norm
-    a = qutip.rand_herm(10, 0.25)
+    a = qutip.rand_herm(10, density=0.25)
     np.testing.assert_allclose(a.norm(), (a*a.dag()).sqrtm().tr().real)
-    b = qutip.rand_herm(10, 0.25) - 1j*qutip.rand_herm(10, 0.25)
+    b = qutip.rand_herm(10, density=0.25) - 1j*qutip.rand_herm(10, density=0.25)
     np.testing.assert_allclose(b.norm(), (b*b.dag()).sqrtm().tr().real)
 
 
@@ -668,8 +668,7 @@ def test_QobjPermute():
 
     for _ in range(3):
         super_dims = [3, 5, 4]
-        U = qutip.rand_unitary(np.prod(super_dims), density=0.02,
-                               dims=[super_dims, super_dims])
+        U = qutip.rand_unitary(super_dims)
         Unew = U.permute([2, 1, 0])
         S_tens = qutip.to_super(U)
         S_tens_new = qutip.to_super(Unew)
@@ -941,10 +940,10 @@ def test_dual_channel(sub_dimensions, n_trials=50):
     duals = []
 
     for _ in [None]*n_trials:
-        X = qutip.rand_dm_ginibre(out_dim)
+        X = qutip.rand_dm(out_dim)
         X.dims = left_dims
         X = qutip.operator_to_vector(X)
-        Y = qutip.rand_dm_ginibre(in_dim)
+        Y = qutip.rand_dm(in_dim)
         Y.dims = right_dims
         Y = qutip.operator_to_vector(Y)
 
@@ -960,7 +959,7 @@ def test_call():
     """
     # Make test objects.
     psi = qutip.rand_ket(3)
-    rho = qutip.rand_dm_ginibre(3)
+    rho = qutip.rand_dm(3)
     U = qutip.rand_unitary(3)
     S = qutip.rand_super_bcsz(3)
 
@@ -986,10 +985,10 @@ def test_mat_elem():
     """
     for _ in range(10):
         N = 20
-        H = qutip.rand_herm(N, 0.2)
-        L = qutip.rand_ket(N, 0.3)
+        H = qutip.rand_herm(N, density=0.2)
+        L = qutip.rand_ket(N, density=0.3)
         Ld = L.dag()
-        R = qutip.rand_ket(N, 0.3)
+        R = qutip.rand_ket(N, density=0.3)
         ans = Ld * H * R
         # bra-ket
         out1 = H.matrix_element(Ld, R)
@@ -1005,7 +1004,7 @@ def test_projection():
     """
     for _ in range(10):
         N = 5
-        K = qutip.tensor(qutip.rand_ket(N, 0.75), qutip.rand_ket(N, 0.75))
+        K = qutip.rand_ket([N, N], density=0.75)
         B = K.dag()
         ans = K * K.dag()
         out1 = K.proj()
@@ -1020,9 +1019,9 @@ def test_overlap():
     """
     for _ in range(10):
         N = 10
-        A = qutip.rand_ket(N, 0.75)
+        A = qutip.rand_ket(N, density=0.75)
         Ad = A.dag()
-        B = qutip.rand_ket(N, 0.75)
+        B = qutip.rand_ket(N, density=0.75)
         Bd = B.dag()
         ans = A.dag() * B
         np.testing.assert_allclose(A.overlap(B), ans)
@@ -1115,7 +1114,7 @@ def test_sum_buildin(shape):
 def test_groundstate():
     eigenvals = np.sort(np.random.rand(10))
     eigenvals[1:] += 0.1  # Ensure no degenerate groundstate
-    qobj = qutip.rand_herm(eigenvals)
+    qobj = qutip.rand_herm(10, distribution="eigen", eigenvalues=eigenvals)
     groundenergy, groundstate = qobj.groundstate()
     assert groundenergy == pytest.approx(eigenvals[0])
     assert qutip.expect(qobj, groundstate) == pytest.approx(eigenvals[0])

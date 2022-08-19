@@ -34,7 +34,7 @@ Random Operators and States
 ---------------------------
 
 .. automodule:: qutip.random_objects
-    :members: rand_dm, rand_dm_ginibre, rand_dm_hs, rand_herm, rand_ket, rand_ket_haar, rand_stochastic, rand_unitary, rand_unitary_haar, rand_super, rand_super_bcsz
+    :members: rand_dm, rand_herm, rand_ket, rand_stochastic, rand_unitary, rand_super, rand_super_bcsz
 
 
 Three-Level Atoms

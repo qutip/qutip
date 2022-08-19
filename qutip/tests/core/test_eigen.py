@@ -42,7 +42,7 @@ def test_eigen_rand_oper(rand, sparse, dtype, order):
     else:
         assert np.all(np.diff(spvals).real <= 0)
     is_eigen_set(H, spvals, spvecs)
-    np.testing.assert_allclose(spvals, sp_energies)
+    np.testing.assert_allclose(spvals, sp_energies, atol=5e-15)
 
 
 @pytest.mark.parametrize(["sparse", 'dtype'], [

@@ -1,7 +1,6 @@
 import numpy as np
 from qutip import (destroy, propagator, Propagator, propagator_steadystate,
                    steadystate, tensor, qeye, basis, QobjEvo, sesolve)
-from qutip.solver.options import SolverOptions
 
 
 def testPropHOB():
@@ -13,7 +12,7 @@ def testPropHOB():
 
 
 def testPropObj():
-    opt = SolverOptions(method='dop853')
+    opt = {"method": "dop853"}
     a = destroy(5)
     H = a.dag()*a
     U = Propagator(H, [a], options=opt, memoize=5, tol=1e-5)

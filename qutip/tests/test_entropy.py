@@ -36,7 +36,7 @@ class TestConcurrence:
 
     @pytest.mark.repeat(10)
     def test_nonzero(self):
-        dm = qutip.rand_dm(4, dims=[[2, 2], [2, 2]])
+        dm = qutip.rand_dm([2, 2])
         assert qutip.concurrence(dm) >= 0
 
 
@@ -44,13 +44,13 @@ class TestConcurrence:
 class TestMutualInformation:
     def test_pure_state_additive(self):
         # Verify mutual information = S(A) + S(B) for pure states.
-        dm = qutip.rand_dm(25, dims=[[5, 5], [5, 5]], pure=True)
+        dm = qutip.rand_dm([5, 5], distribution="pure")
         expect = (qutip.entropy_vn(dm.ptrace(0))
                   + qutip.entropy_vn(dm.ptrace(1)))
         assert abs(qutip.entropy_mutual(dm, [0], [1]) - expect) < 1e-13
 
     def test_component_selection(self):
-        dm = qutip.rand_dm(8, dims=[[2, 2, 2], [2, 2, 2]], pure=True)
+        dm = qutip.rand_dm([2, 2, 2], distribution="pure")
         expect = (qutip.entropy_vn(dm.ptrace([0, 2]))
                   + qutip.entropy_vn(dm.ptrace(1)))
         assert abs(qutip.entropy_mutual(dm, [0, 2], [1]) - expect) < 1e-13
@@ -163,14 +163,14 @@ class TestRelativeEntropy:
 
     @pytest.mark.repeat(20)
     def test_random_dm_with_self(self):
-        rho = qutip.rand_dm(8, pure=False)
+        rho = qutip.rand_dm(8)
         rel = qutip.entropy_relative(rho, rho)
         assert abs(rel) < 1e-13
 
     @pytest.mark.repeat(20)
     def test_random_rho_sigma(self):
-        rho = qutip.rand_dm(8, pure=False)
-        sigma = qutip.rand_dm(8, pure=False)
+        rho = qutip.rand_dm(8)
+        sigma = qutip.rand_dm(8)
         rel = qutip.entropy_relative(rho, sigma)
         assert rel >= 0
         assert rel == pytest.approx(
@@ -182,14 +182,14 @@ class TestRelativeEntropy:
 class TestConditionalEntropy:
     def test_inequality_3_qubits(self):
         # S(A | B,C) <= S(A|B)
-        full = qutip.rand_dm(8, dims=[[2]*3]*2, pure=True)
+        full = qutip.rand_dm([2]*3, distribution="pure")
         ab = full.ptrace([0, 1])
         assert (qutip.entropy_conditional(full, [1, 2])
                 <= qutip.entropy_conditional(ab, 1))
 
     def test_triangle_inequality_4_qubits(self):
         # S(A,B | C,D) <= S(A|C) + S(B|D)
-        full = qutip.rand_dm(16, dims=[[2]*4]*2, pure=True)
+        full = qutip.rand_dm([2]*4, distribution="pure")
         ac, bd = full.ptrace([0, 2]), full.ptrace([1, 3])
         assert (qutip.entropy_conditional(full, [2, 3])
                 <= (qutip.entropy_conditional(ac, 1)

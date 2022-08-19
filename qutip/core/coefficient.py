@@ -15,6 +15,7 @@ from collections import defaultdict
 from setuptools import setup, Extension
 try:
     from Cython.Build import cythonize
+    import filelock
 except ImportError:
     pass
 
@@ -217,6 +218,7 @@ class CompilationOptions(QutipOptions):
 
     try:
         import cython
+        import filelock
         _use_cython = True
     except ImportError:
         _use_cython = False
@@ -480,13 +482,16 @@ cdef class StrCoefficient(Coefficient):
 
 def compile_code(code, file_name, parsed, c_opt):
     pwd = os.getcwd()
-    root = qset.coeffroot
+    os.chdir(qset.coeffroot)
+    # Files with the same name, but differents extension than the pyx file, are
+    # erased during cythonization process, breaking filelock.
+    # Adding a prefix make them safe to use.
+    lock = filelock.FileLock("compile_lock_" + file_name + ".lock")
     try:
-        os.chdir(root)
+        lock.acquire(timeout=0)
         for file in glob.glob(file_name + "*"):
             os.remove(file)
-        full_file_name = os.path.join(root, file_name)
-        file_ = open(full_file_name + ".pyx", "w")
+        file_ = open(file_name + ".pyx", "w")
         file_.writelines(code)
         file_.close()
         oldargs = sys.argv
@@ -494,7 +499,7 @@ def compile_code(code, file_name, parsed, c_opt):
             sys.argv = ["setup.py", "build_ext", "--inplace"]
             coeff_file = Extension(
                 file_name,
-                sources=[full_file_name + ".pyx"],
+                sources=[file_name + ".pyx"],
                 extra_compile_args=c_opt['compiler_flags'].split(),
                 extra_link_args=c_opt['link_flags'].split(),
                 include_dirs=[np.get_include()],
@@ -510,7 +515,12 @@ def compile_code(code, file_name, parsed, c_opt):
             raise Exception("Could not compile") from e
         finally:
             sys.argv = oldargs
+    except filelock.Timeout:
+        with lock:
+            # We wait for the lock to be released and then retry the import.
+            pass
     finally:
+        lock.release()
         os.chdir(pwd)
     return try_import(file_name, parsed)
 
