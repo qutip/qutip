@@ -27,6 +27,7 @@ default_map_kw = {
     'job_timeout': threading.TIMEOUT_MAX,
     'timeout': threading.TIMEOUT_MAX,
     'num_cpus': available_cpu_count(),
+    'fail_fast': True,
 }
 
 
@@ -35,6 +36,13 @@ def _read_map_kw(options):
     map_kw = default_map_kw.copy()
     map_kw.update({k: v for k, v in options.items() if v is not None})
     return map_kw
+
+
+class MapExceptions(Exception):
+    def __init__(self, msg, errors, results):
+        super().__init__(msg, errors, results)
+        self.errors = errors
+        self.results = results
 
 
 def serial_map(task, values, task_args=None, task_kwargs=None,
@@ -68,8 +76,9 @@ def serial_map(task, values, task_args=None, task_kwargs=None,
     progress_bar_kwargs : dict
         Options for the progress bar.
     map_kw: dict (optional)
-        Dictionary containing entry for 'timeout' the maximum time for the
-        whole map.
+        Dictionary containing:
+        - timeout: float, Maximum time (sec) for the whole map.
+        - fail_fast: bool, Raise an error at the first.
 
     Returns
     --------
@@ -88,18 +97,31 @@ def serial_map(task, values, task_args=None, task_kwargs=None,
     progress_bar = progess_bars[progress_bar]()
     progress_bar.start(len(values), **progress_bar_kwargs)
     end_time = map_kw['timeout'] + time.time()
-    results = []
+    results = None
+    if reduce_func is None:
+        results = [None] * len(values)
+    errors = {}
     for n, value in enumerate(values):
         if time.time() > end_time:
             break
         progress_bar.update(n)
-        result = task(value, *task_args, **task_kwargs)
-        if reduce_func is not None:
-            reduce_func(result)
+        try:
+            result = task(value, *task_args, **task_kwargs)
+        except Exception as err:
+            if map_kw["fail_fast"]:
+                raise err
+            else:
+                errors[n] = err
         else:
-            results.append(result)
+            if reduce_func is not None:
+                reduce_func(result)
+            else:
+                results[n] = result
     progress_bar.finished()
 
+    if errors:
+        raise MapExceptions(f"{len(errors)} iterations failed in serial_map",
+                            errors, results)
     return results
 
 
@@ -133,9 +155,10 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
         Options for the progress bar.
     map_kw: dict (optional)
         Dictionary containing entry for:
-        'timeout': Maximum time for the whole map.
-        'job_timeout': Maximum time for each job in the map.
-        'num_cpus': Number of job to run at once.
+        - timeout: float, Maximum time (sec) for the whole map.
+        - job_timeout: float, Maximum time (sec) for each job in the map.
+        - num_cpus: int, Number of job to run at once.
+        - fail_fast: bool, Raise an error at the first.
 
     Returns
     --------
@@ -157,6 +180,7 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
     progress_bar = progess_bars[progress_bar]()
     progress_bar.start(len(values), **progress_bar_kwargs)
 
+    errors = {}
     if reduce_func is not None:
         results = None
         result_func = lambda i, value: reduce_func(value)
@@ -166,7 +190,11 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
 
     def _done_callback(future):
         if not future.cancelled():
-            result_func(future._i, future.result())
+            try:
+                result = future.result()
+            except Exception as e:
+                errors[future._i] = e
+        result_func(future._i, result)
         progress_bar.update()
 
     if sys.version_info >= (3, 7):
@@ -196,7 +224,7 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
                         timeout=timeout,
                         return_when=concurrent.futures.FIRST_COMPLETED,
                     )
-                if time.time() >= end_time:
+                if time.time() >= end_time or (errors and map_kw['fail_fast']):
                     # no time left, exit the loop
                     break
                 while len(waiting) < map_kw['num_cpus'] and i < len(values):
@@ -219,6 +247,14 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
         os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
 
     progress_bar.finished()
+    if errors and map_kw["fail_fast"]:
+        raise list(errors.values())[0]
+    elif errors:
+        raise MapExceptions(
+            f"{len(errors)} iterations failed in parallel_map",
+            errors, results
+        )
+
     return results
 
 
@@ -253,9 +289,10 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
         Options for the progress bar.
     map_kw: dict (optional)
         Dictionary containing entry for:
-        'timeout': Maximum time for the whole map.
-        'job_timeout': Maximum time for each job in the map.
-        'num_cpus': Number of job to run at once.
+        - timeout: float, Maximum time (sec) for the whole map.
+        - job_timeout: float, Maximum time (sec) for each job in the map.
+        - num_cpus: int, Number of job to run at once.
+        - fail_fast: bool, Raise an error at the first.
 
     Returns
     --------
@@ -280,19 +317,29 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
     executor = get_reusable_executor(max_workers=map_kw['num_cpus'])
     end_time = map_kw['timeout'] + time.time()
     job_time = map_kw['job_timeout']
-    results = []
+    results = None
+    errors = {}
+    if reduce_func is None:
+        results = [None] * len(values)
 
     try:
         jobs = [executor.submit(task, value, *task_args, **task_kwargs)
                for value in values]
 
-        for job in jobs:
+        for n, job in enumerate(jobs):
             remaining_time = min(end_time - time.time(), job_time)
-            result = job.result(remaining_time)
-            if reduce_func is not None:
-                reduce_func(result)
+            try:
+                result = job.result(remaining_time)
+            except Exception as err:
+                if map_kw["fail_fast"]:
+                    raise err
+                else:
+                    errors[n] = err
             else:
-                results.append(result)
+                if reduce_func is not None:
+                    reduce_func(result)
+                else:
+                    results[n] = result
             progress_bar.update()
 
     except KeyboardInterrupt as e:
@@ -306,6 +353,11 @@ def loky_pmap(task, values, task_args=None, task_kwargs=None,
         executor.shutdown()
     progress_bar.finished()
     os.environ['QUTIP_IN_PARALLEL'] = 'FALSE'
+    if errors:
+        raise MapExceptions(
+            f"{len(errors)} iterations failed in loky_pmap",
+            errors, results
+        )
     return results
 
 
