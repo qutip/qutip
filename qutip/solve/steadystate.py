@@ -9,6 +9,7 @@ __all__ = ['steadystate', 'steadystate_floquet',
 
 import warnings
 import time
+import functools
 from packaging.version import parse as _parse_version
 
 import numpy as np
@@ -29,7 +30,7 @@ from ..settings import settings
 from . import _steadystate
 
 import qutip.logging_utils
-logger = qutip.logging_utils.get_logger()
+logger = qutip.logging_utils.get_logger('qutip.solve.steadystate')
 logger.setLevel('DEBUG')
 
 # Load MKL spsolve if avaiable
