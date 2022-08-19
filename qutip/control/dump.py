@@ -13,7 +13,7 @@ import numpy as np
 import copy
 # QuTiP logging
 import qutip.logging_utils
-logger = qutip.logging_utils.get_logger()
+logger = qutip.logging_utils.get_logger('qutip.control.dump')
 # QuTiP control modules
 import qutip.control.io as qtrlio
 from numpy.compat import asbytes
