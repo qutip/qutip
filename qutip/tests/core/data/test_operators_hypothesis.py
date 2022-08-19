@@ -28,7 +28,7 @@ def test_data_neg_operator(data):
 
 @given(qst.qobj_datas())
 def test_data_iszero(data):
-    result = _data.iszero(data)
+    result = _data.iszero(data, tol=1e-15)
     qst.note(result=result, data=data)
     with qst.ignore_arithmetic_warnings():
         np_array = data.to_array()
