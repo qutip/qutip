@@ -37,36 +37,6 @@ if settings.has_mkl:
     from qutip._mkl.spsolve import (mkl_splu, mkl_spsolve)
 
 
-def _eat_kwargs(function, names):
-    """
-    Return a wrapped version of `function` that simply removes any keyword
-    arguments with one of the given names.
-    """
-    @functools.wraps(function)
-    def out(*args, **kwargs):
-        for name in names:
-            if name in kwargs:
-                del kwargs[name]
-        return function(*args, **kwargs)
-    return out
-
-
-# From SciPy 1.4 onwards we need to pass the `callback_type='legacy'` argument
-# to gmres to maintain the same behaviour we used to have.  Since this should
-# be the default behaviour, we use that in the main code and just "eat" the
-# argument if passed to a lower version of SciPy that doesn't know about it.
-# Similarly, SciPy < 1.1 does not recognise the `atol` keyword.
-#
-# Respective checks can be removed when SciPy version requirements are raised.
-
-if _parse_version(scipy.__version__) < _parse_version("1.1"):
-    gmres = _eat_kwargs(gmres, ['atol', 'callback_type'])
-    lgmres = _eat_kwargs(lgmres, ['atol'])
-    bicgstab = _eat_kwargs(bicgstab, ['atol'])
-elif _parse_version(scipy.__version__) < _parse_version("1.4"):
-    gmres = _eat_kwargs(gmres, ['callback_type'])
-
-
 def _permute(matrix, rows, cols):
     """
     Permute the rows and columns of the scipy CSR or CSC matrix such that row
