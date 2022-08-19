@@ -16,7 +16,7 @@ from numpy.compat import asbytes
 import qutip.control.io as qtrlio
 # QuTiP logging
 import qutip.logging_utils
-logger = qutip.logging_utils.get_logger()
+logger = qutip.logging_utils.get_logger('qutip.control.dump')
 
 DUMP_DIR = "~/.qtrl_dump"
 
