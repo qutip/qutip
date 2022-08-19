@@ -9,7 +9,6 @@ __all__ = ['steadystate', 'steadystate_floquet',
 
 import warnings
 import time
-from packaging.version import parse as _parse_version
 
 import numpy as np
 import scipy
