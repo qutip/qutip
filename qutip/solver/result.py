@@ -497,6 +497,13 @@ class MultiTrajResult(_BaseResult):
 
         self.e_ops = trajectory.e_ops
 
+        self.average_e_data = {
+            k: avg_expect if np.iscomplexobj(expect) else avg_expect.real
+            for k, avg_expect, expect
+            in zip(self._raw_ops, self._sum_expect, trajectory.expect)
+        }
+        self.average_expect = list(self.average_e_data.values())
+
     def _store_trajectory(self, trajectory):
         self.trajectories.append(trajectory)
 
@@ -522,16 +529,19 @@ class MultiTrajResult(_BaseResult):
         avg2 = self._sum2_expect / self.num_trajectories
 
         self.average_e_data = {
-            k: avg_expect
-            for k, avg_expect in zip(self._raw_ops, avg)
+            k: avg_expect if np.iscomplexobj(expect) else avg_expect.real
+            for k, avg_expect, expect
+            in zip(self._raw_ops, avg, self.average_expect)
         }
         self.average_expect = list(self.average_e_data.values())
 
         self.expect = self.average_expect
         self.e_data = self.average_e_data
 
+        # mean(expect**2) - mean(expect)**2 can something be very small
+        # negative (-1e-15) which raise an error for float sqrt.
         self.std_e_data = {
-            k: np.sqrt(avg_expect2 - abs(avg_expect**2))
+            k: np.sqrt(np.abs(avg_expect2 - np.abs(avg_expect**2)))
             for k, avg_expect, avg_expect2 in zip(self._raw_ops, avg, avg2)
         }
         self.std_expect = list(self.std_e_data.values())
@@ -611,7 +621,7 @@ class MultiTrajResult(_BaseResult):
         self._early_finish_check = self._no_end
         self.stats['end_condition'] = 'unknown'
 
-    def add(self, seed, trajectory):
+    def add(self, trajectory_info):
         """
         Add a trajectory to the evolution.
 
@@ -620,11 +630,11 @@ class MultiTrajResult(_BaseResult):
 
         Parameters
         ----------
-        seed : int, SeedSequence
-            Seed used to generate the trajectory.
-
-        trajectory : :class:`Result`
-            Run result for one evolution over the times.
+        trajectory_info : tuple of seed and trajectory
+            - seed: int, SeedSequence
+              Seed used to generate the trajectory.
+            - trajectory : :class:`Result`
+              Run result for one evolution over the times.
 
         Return
         ------
@@ -632,6 +642,7 @@ class MultiTrajResult(_BaseResult):
             Return the number of trajectories still needed to reach the target
             tolerance. If no tolerance is provided, return infinity.
         """
+        seed, trajectory = trajectory_info
         self.seeds.append(seed)
 
         for op in self._state_processors:
@@ -846,15 +857,24 @@ class MultiTrajResult(_BaseResult):
             raise ValueError("Shared `e_ops` is required to merge results")
         if self.times != other.times:
             raise ValueError("Shared `times` are is required to merge results")
-        new = self.__class__(self._raw_ops, self.options, solver=self.solver)
+        new = self.__class__(self._raw_ops, self.options,
+                             solver=self.solver, stats=self.stats)
         if self.trajectories and other.trajectories:
             new.trajectories = self.trajectories + other.trajectories
         new.num_trajectories = self.num_trajectories + other.num_trajectories
         new.times = self.times
         new.seeds = self.seeds + other.seeds
 
-        new._sum_states = self._sum_states + other._sum_states
-        new._sum_final_states = self._sum_final_states + other._sum_final_states
+        if self._sum_states is not None and other._sum_states is not None:
+            new._sum_states = self._sum_states + other._sum_states
+
+        if (
+            self._sum_final_states is not None
+            and other._sum_final_states is not None
+        ):
+            new._sum_final_states = (
+                self._sum_final_states + other._sum_final_states
+            )
         new._target_tols = None
 
         if self._raw_ops:
@@ -887,6 +907,9 @@ class MultiTrajResult(_BaseResult):
                 new.runs_expect = list(new.runs_e_data.values())
                 new.expect = new.runs_expect
                 new.e_data = new.runs_e_data
+
+        new.stats["run time"] += other.stats["run time"]
+        new.stats['end_condition'] = "Merged results"
 
         return new
 
