@@ -6,8 +6,6 @@ Superoperators, Pauli Basis and Channel Contraction
 written by `Christopher Granade <http://www.cgranade.com>`, Institute for Quantum Computing
 
 .. math::
-    \newcommand{\ket}[1]{\left|#1\right\rangle}
-    \newcommand{\bra}[1]{\left\langle#1\right|}
     \newcommand{\cnot}{{\scriptstyle \rm CNOT}}
     \newcommand{\Tr}{\operatorname{Tr}}
 
