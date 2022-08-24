@@ -7,7 +7,6 @@ written by `Christopher Granade <http://www.cgranade.com>`, Institute for Quantu
 
 .. math::
     \newcommand{\cnot}{{\scriptstyle \rm CNOT}}
-    \newcommand{\Tr}{\operatorname{Tr}}
 
 In this guide, we will demonstrate the :func:`tensor_contract` function, which contracts one or more pairs of indices of a Qobj. This functionality can be used to find rectangular superoperators that implement the partial trace channel :math:S(\rho) = \Tr_2(\rho)`, for instance. Using this functionality, we can quickly turn a system-environment representation of an open quantum process into a superoperator representation.
 
