@@ -58,40 +58,27 @@ Reduced Channels
 As an example of tensor contraction, we now consider the map $S(\rho) = \Tr_2[\cnot (\rho \otimes \ket{0}\bra{0}) \cnot^\dagger]$.
 We can think of the $\cnot$ here as a system-environment representation of an open quantum process, in which an environment register is prepared in a state $\rho_{\text{anc}}$, then a unitary acts jointly on the system of interest and environment. Finally, the environment is traced out, leaving a *channel* on the system alone. In terms of [Wood diagrams](http://arxiv.org/abs/1111.6950), this can be represented as the composition of a preparation map, evolution under the system-environment unitary, and then a measurement map.
 
-# TODO: add images
-![](images/sprep-wood-diagram.png)
+.. figure:: figures/sprep-wood-diagram.png
+   :align: center
+   :width: 2.5in
 
 
 The two tensor wires on the left indicate where we must take a tensor contraction to obtain the measurement map. Numbering the tensor wires from 0 to 3, this corresponds to a ``tensor_contract`` argument of ``(1, 3)``.
 
-```python
-s_meas = qt.tensor_contract(qt.to_super(qt.identity([2, 2])), (1, 3))
-s_meas
-```
+>>> tensor_contract(to_super(identity([2, 2])), (1, 3)) # doctest: +SKIP
 
 Meanwhile, the ``super_tensor`` function implements the swap on the right, such that we can quickly find the preparation map.
 
-```python
-q = qt.tensor(qt.identity(2), qt.basis(2))
-s_prep = qt.sprepost(q, q.dag())
-s_prep
-```
+>>> q = tensor(identity(2), basis(2)) # doctest: +SKIP
+>>> s_prep = sprepost(q, q.dag()) # doctest: +SKIP
 
 For a $\cnot$ system-environment model, the composition of these maps should give us a completely dephasing channel. The channel on both qubits is just the superunitary $\cnot$ channel:
 
-```python
-qt.visualization.hinton(qt.to_super(cnot()));
-```
+>>> visualization.hinton(to_super(cnot())); # doctest: +SKIP
 
 We now complete by multiplying the superunitary $\cnot$ by the preparation channel above, then applying the partial trace channel by contracting the second and fourth index indices. As expected, this gives us a dephasing map.
 
-```python
-qt.tensor_contract(qt.to_super(cnot()), (1, 3)) * s_prep
-```
+>>> tensor_contract(to_super(cnot()), (1, 3)) * s_prep # doctest: +SKIP
+>>> visualization.hinton(tensor_contract(to_super(cnot()), (1, 3)) * s_prep); # doctest: +SKIP
 
-```python
-qt.visualization.hinton(qt.tensor_contract(
-                            qt.to_super(cnot()), (1, 3)) * s_prep
-                        );
-```
 
