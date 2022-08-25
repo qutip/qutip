@@ -52,7 +52,11 @@ As a couple more examples, we also consider the supermatrix for a Hadamard trans
 Reduced Channels
 ================
 
-As an example of tensor contraction, we now consider the map :math:`S(\rho) = \Tr_2[\cnot (\rho \otimes \ket{0}\bra{0}) \cnot^\dagger]`.
+As an example of tensor contraction, we now consider the map
+
+.. math::
+    S(\rho)=\Tr_2[\cnot (\rho\otimes \ket{0}\bra{0}) \cnot^\dagger]
+
 We can think of the :math:`\cnot` here as a system-environment representation of an open quantum process, in which an environment register is prepared in a state :math:`\rho_{\text{anc}}`, then a unitary acts jointly on the system of interest and environment. Finally, the environment is traced out, leaving a *channel* on the system alone. In terms of `Wood diagrams <http://arxiv.org/abs/1111.6950>`, this can be represented as the composition of a preparation map, evolution under the system-environment unitary, and then a measurement map.
 
 .. figure:: figures/sprep-wood-diagram.png
