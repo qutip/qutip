@@ -5,8 +5,6 @@ Superoperators, Pauli Basis and Channel Contraction
 *****************************************************
 written by `Christopher Granade <http://www.cgranade.com>`, Institute for Quantum Computing
 
-.. math::
-    \newcommand{\cnot}{{\scriptstyle \rm CNOT}}
 
 In this guide, we will demonstrate the :func:`tensor_contract` function, which contracts one or more pairs of indices of a Qobj. This functionality can be used to find rectangular superoperators that implement the partial trace channel :math:S(\rho) = \Tr_2(\rho)`, for instance. Using this functionality, we can quickly turn a system-environment representation of an open quantum process into a superoperator representation.
 
@@ -55,9 +53,10 @@ Reduced Channels
 As an example of tensor contraction, we now consider the map
 
 .. math::
-    S(\rho)=\Tr_2[\cnot (\rho\otimes \ket{0}\bra{0}) \cnot^\dagger]
 
-We can think of the :math:`\cnot` here as a system-environment representation of an open quantum process, in which an environment register is prepared in a state :math:`\rho_{\text{anc}}`, then a unitary acts jointly on the system of interest and environment. Finally, the environment is traced out, leaving a *channel* on the system alone. In terms of `Wood diagrams <http://arxiv.org/abs/1111.6950>`, this can be represented as the composition of a preparation map, evolution under the system-environment unitary, and then a measurement map.
+    S(\rho)=\Tr_2 (\scriptstyle \rm CNOT (\rho \otimes \ket{0}\bra{0}) \scriptstyle \rm CNOT^\dagger)
+
+We can think of the :math:`\scriptstyle \rm CNOT` here as a system-environment representation of an open quantum process, in which an environment register is prepared in a state :math:`\rho_{\text{anc}}`, then a unitary acts jointly on the system of interest and environment. Finally, the environment is traced out, leaving a *channel* on the system alone. In terms of `Wood diagrams <http://arxiv.org/abs/1111.6950>`, this can be represented as the composition of a preparation map, evolution under the system-environment unitary, and then a measurement map.
 
 .. figure:: figures/sprep-wood-diagram.png
    :align: center
@@ -76,14 +75,14 @@ Meanwhile, the :func:`super_tensor` function implements the swap on the right, s
 >>> q = tensor(identity(2), basis(2)) # doctest: +SKIP
 >>> s_prep = sprepost(q, q.dag()) # doctest: +SKIP
 
-For a :math:`\cnot` system-environment model, the composition of these maps should give us a completely dephasing channel. The channel on both qubits is just the superunitary :math:`\cnot` channel:
+For a :math:`\scriptstyle \rm CNOT` system-environment model, the composition of these maps should give us a completely dephasing channel. The channel on both qubits is just the superunitary :math:`\scriptstyle \rm CNOT` channel:
 
 .. plot::
    :context:
 
 >>> visualization.hinton(to_super(cnot())); # doctest: +SKIP
 
-We now complete by multiplying the superunitary :math:`\cnot` by the preparation channel above, then applying the partial trace channel by contracting the second and fourth index indices. As expected, this gives us a dephasing map.
+We now complete by multiplying the superunitary :math:`\scriptstyle \rm CNOT` by the preparation channel above, then applying the partial trace channel by contracting the second and fourth index indices. As expected, this gives us a dephasing map.
 
 .. plot::
    :context:
