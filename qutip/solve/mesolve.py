@@ -524,12 +524,18 @@ def _generic_ode_solve(func, ode_args, rho0, tlist, e_ops, opt,
                                                copy=False)))
 
         for m in range(n_expt_op):
-            if cdata.shape[1] == size:
-                cdata = _data.column_stack_dense(cdata, inplace=False)
             if not isinstance(e_ops[m], Qobj) and callable(e_ops[m]):
-                output.expect[m][t_idx] = e_ops[m](t, Qobj(cdata, dims=dims))
+                if cdata.shape[0] != size:
+                    qdata = _data.column_unstack_dense(cdata, size, inplace=False)
+                else:
+                    qdata = cdata
+                output.expect[m][t_idx] = e_ops[m](t, Qobj(qdata, dims=dims))
             else:
-                val = _data.expect_super(e_ops_data[m], cdata)
+                if cdata.shape[1] != 1:
+                    qdata = _data.column_stack_dense(cdata, inplace=False)
+                else:
+                    qdata = cdata
+                val = _data.expect_super(e_ops_data[m], qdata)
                 if e_ops[m].isherm and rho0.isherm:
                     val = val.real
                 output.expect[m][t_idx] = val

@@ -7,8 +7,8 @@ __all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
            'spin_J_set', 'sigmap', 'sigmam', 'sigmax', 'sigmay', 'sigmaz',
            'destroy', 'create', 'qeye', 'identity', 'position', 'momentum',
            'num', 'squeeze', 'squeezing', 'displace', 'commutator',
-           'qutrit_ops', 'qdiags', 'phase', 'qzero', 'enr_destroy',
-           'enr_identity', 'charge', 'tunneling', 'qft']
+           'qutrit_ops', 'qdiags', 'phase', 'qzero', 'charge', 'tunneling',
+           'qft']
 
 import numbers
 
@@ -847,110 +847,6 @@ def phase(N, phi0=0, *, dtype=_data.Dense):
                        for kk in phim])
     ops = np.sum([np.outer(st, st.conj()) for st in states], axis=0)
     return Qobj(ops, dims=[[N], [N]], type='oper', copy=False).to(dtype)
-
-
-def enr_destroy(dims, excitations, *, dtype=_data.CSR):
-    """
-    Generate annilation operators for modes in a excitation-number-restricted
-    state space. For example, consider a system consisting of 4 modes, each
-    with 5 states. The total hilbert space size is 5**4 = 625. If we are
-    only interested in states that contain up to 2 excitations, we only need
-    to include states such as
-
-        (0, 0, 0, 0)
-        (0, 0, 0, 1)
-        (0, 0, 0, 2)
-        (0, 0, 1, 0)
-        (0, 0, 1, 1)
-        (0, 0, 2, 0)
-        ...
-
-    This function creates annihilation operators for the 4 modes that act
-    within this state space:
-
-        a1, a2, a3, a4 = enr_destroy([5, 5, 5, 5], excitations=2)
-
-    From this point onwards, the annihiltion operators a1, ..., a4 can be
-    used to setup a Hamiltonian, collapse operators and expectation-value
-    operators, etc., following the usual pattern.
-
-    Parameters
-    ----------
-    dims : list
-        A list of the dimensions of each subsystem of a composite quantum
-        system.
-
-    excitations : integer
-        The maximum number of excitations that are to be included in the
-        state space.
-
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
-        accepted.
-
-    Returns
-    -------
-    a_ops : list of qobj
-        A list of annihilation operators for each mode in the composite
-        quantum system described by dims.
-    """
-    from .states import enr_state_dictionaries
-
-    nstates, state2idx, idx2state = enr_state_dictionaries(dims, excitations)
-
-    a_ops = [scipy.sparse.lil_matrix((nstates, nstates), dtype=np.complex128)
-             for _ in dims]
-
-    for n1, state1 in enumerate(idx2state):
-        for idx, s in enumerate(state1):
-            # if s > 0, the annihilation operator of mode idx has a non-zero
-            # entry with one less excitation in mode idx in the final state
-            if s > 0:
-                state2 = state1[:idx] + (s-1,) + state1[idx+1:]
-                n2 = state2idx[state2]
-                a_ops[idx][n2, n1] = np.sqrt(s)
-
-    return [Qobj(a, dims=[dims, dims]).to(dtype) for a in a_ops]
-
-
-def enr_identity(dims, excitations, *, dtype=_data.CSR):
-    """
-    Generate the identity operator for the excitation-number restricted
-    state space defined by the `dims` and `exciations` arguments. See the
-    docstring for enr_fock for a more detailed description of these arguments.
-
-    Parameters
-    ----------
-    dims : list
-        A list of the dimensions of each subsystem of a composite quantum
-        system.
-
-    excitations : integer
-        The maximum number of excitations that are to be included in the
-        state space.
-
-    state : list of integers
-        The state in the number basis representation.
-
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
-        accepted.
-
-    Returns
-    -------
-    op : Qobj
-        A Qobj instance that represent the identity operator in the
-        exication-number-restricted state space defined by `dims` and
-        `exciations`.
-    """
-    from .states import enr_state_dictionaries
-    nstates, _, _ = enr_state_dictionaries(dims, excitations)
-    return Qobj(_data.identity[dtype](nstates),
-                dims=[dims, dims],
-                type='oper',
-                isherm=True,
-                isunitary=True,
-                copy=False)
 
 
 def charge(Nmax, Nmin=None, frac=1, *, dtype=_data.CSR):

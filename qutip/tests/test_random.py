@@ -202,7 +202,10 @@ def test_rand_ket(dimensions, distribution, dtype):
     """
     random_qobj = rand_ket(dimensions, distribution=distribution, dtype=dtype)
 
-    assert random_qobj.type == 'ket'
+    target_type = "ket"
+    if isinstance(dimensions, list) and isinstance(dimensions[0], list):
+        target_type = "operator-ket"
+    assert random_qobj.type == target_type
     assert abs(random_qobj.norm() - 1) < 1e-14
 
     if isinstance(dimensions, int):

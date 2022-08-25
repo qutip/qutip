@@ -13,6 +13,8 @@ def expected(qobj, sel):
     sel = sorted(sel)
     dims = [[x for i, x in enumerate(qobj.dims[0]) if i in sel]]*2
     new_shape = (np.prod(dims[0], dtype=int),) * 2
+    if not dims[0]:
+        dims = None
     out = qobj.full()
     before, after = 1, qobj.shape[0]
     for i, dim in enumerate(qobj.dims[0]):

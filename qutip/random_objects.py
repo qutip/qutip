@@ -488,7 +488,7 @@ def rand_ket(dimensions, density=1, distribution="haar", *,
         Y.data = 1.0j * (generator.random(len(X.data)) - 0.5)
         X = _data.csr.CSR(X + Y)
         ket = Qobj(_data.mul(X, 1 / _data.norm.l2(X)),
-                   copy=False, type="ket", isherm=False, isunitary=False)
+                   copy=False, isherm=False, isunitary=False)
     ket.dims = [dims[0], [1]]
     return ket.to(dtype)
 
@@ -583,7 +583,7 @@ def rand_dm(dimensions, density=0.75, distribution="ginibre", *,
         H = _merge_shuffle_blocks(blocks, generator)
         H /= H.trace()
 
-    return Qobj(H, dims=dims, type='oper', isherm=True, copy=False).to(dtype)
+    return Qobj(H, dims=dims, isherm=True, copy=False).to(dtype)
 
 
 def _rand_dm_ginibre(N, rank, generator):
@@ -653,7 +653,7 @@ def rand_kraus_map(dimensions, *, seed=None, dtype=_data.Dense):
     big_unitary = rand_unitary(N ** 3, seed=seed, dtype=dtype).full()
     orthog_cols = np.array(big_unitary[:, :N])
     oper_list = np.reshape(orthog_cols, (N ** 2, N, N))
-    return [Qobj(x, dims=dims, type='oper', copy=False).to(dtype)
+    return [Qobj(x, dims=dims, copy=False).to(dtype)
             for x in oper_list]
 
 

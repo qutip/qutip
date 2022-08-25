@@ -222,10 +222,11 @@ class TestSuperopReps:
     ) / 2
 
     # The partial transpose map, whose Choi matrix is SWAP
-    ptr_swap = Qobj(swap(), type='super', superrep='choi')
+    ptr_swap = Qobj(swap(), dims=[[[2], [2]]]*2, type='super', superrep='choi')
 
     # Subnormalized maps (representing erasure channels, for instance)
-    subnorm_map = Qobj(identity(4) * 0.9, type='super', superrep='super')
+    subnorm_map = Qobj(identity(4) * 0.9, dims=[[[2], [2]]]*2,
+                       type='super', superrep='super')
 
     @pytest.mark.parametrize(['qobj',  'shouldhp', 'shouldcp', 'shouldtp'], [
         pytest.param(S, True, True, False, id="conjugatio by create op"),

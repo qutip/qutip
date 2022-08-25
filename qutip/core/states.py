@@ -4,8 +4,7 @@ __all__ = ['basis', 'qutrit_basis', 'coherent', 'coherent_dm', 'fock_dm',
            'state_number_index', 'state_index_number', 'state_number_qobj',
            'phase_basis', 'zero_ket', 'spin_state', 'spin_coherent',
            'bell_state', 'singlet_state', 'triplet_states', 'w_state',
-           'ghz_state', 'enr_state_dictionaries', 'enr_fock',
-           'enr_thermal_dm']
+           'ghz_state']
 
 import itertools
 import numbers
@@ -909,132 +908,6 @@ shape = [8, 1], type = ket
     warnings.warn("basis() is a drop-in replacement for this",
                   DeprecationWarning)
     return basis(dims, state, dtype=dtype)
-
-
-# Excitation-number restricted (enr) states
-
-def enr_state_dictionaries(dims, excitations):
-    """
-    Return the number of states, and lookup-dictionaries for translating
-    a state tuple to a state index, and vice versa, for a system with a given
-    number of components and maximum number of excitations.
-
-    Parameters
-    ----------
-    dims: list
-        A list with the number of states in each sub-system.
-
-    excitations : integer
-        The maximum numbers of dimension
-
-    Returns
-    -------
-    nstates, state2idx, idx2state: integer, dict, list
-        The number of states `nstates`, a dictionary for looking up state
-        indices from a state tuple, and a list containing the state tuples
-        ordered by state indices. state2idx and idx2state are reverses of
-        each other, i.e., state2idx[idx2state[idx]] = idx and
-        idx2state[state2idx[state]] = state.
-    """
-    idx2state = list(state_number_enumerate(dims, excitations))
-    state2idx = {state: idx for idx, state in enumerate(idx2state)}
-    nstates = len(idx2state)
-
-    return nstates, state2idx, idx2state
-
-
-def enr_fock(dims, excitations, state, *, dtype=_data.Dense):
-    """
-    Generate the Fock state representation in a excitation-number restricted
-    state space. The `dims` argument is a list of integers that define the
-    number of quantums states of each component of a composite quantum system,
-    and the `excitations` specifies the maximum number of excitations for
-    the basis states that are to be included in the state space. The `state`
-    argument is a tuple of integers that specifies the state (in the number
-    basis representation) for which to generate the Fock state representation.
-
-    Parameters
-    ----------
-    dims : list
-        A list of the dimensions of each subsystem of a composite quantum
-        system.
-
-    excitations : integer
-        The maximum number of excitations that are to be included in the
-        state space.
-
-    state : list of integers
-        The state in the number basis representation.
-
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
-        accepted.
-
-    Returns
-    -------
-    ket : Qobj
-        A Qobj instance that represent a Fock state in the exication-number-
-        restricted state space defined by `dims` and `exciations`.
-
-    """
-    nstates, state2idx, _ = enr_state_dictionaries(dims, excitations)
-    try:
-        data =_data.one_element[dtype]((nstates, 1),
-                                       (state2idx[tuple(state)], 0), 1)
-    except KeyError:
-        msg = (
-            "The state tuple " + str(tuple(state))
-            + " is not in the restricted state space."
-        )
-        raise ValueError(msg) from None
-    return Qobj(data, dims=[dims, [1]*len(dims)], type='ket', copy=False)
-
-
-def enr_thermal_dm(dims, excitations, n, *, dtype=_data.CSR):
-    """
-    Generate the density operator for a thermal state in the excitation-number-
-    restricted state space defined by the `dims` and `exciations` arguments.
-    See the documentation for enr_fock for a more detailed description of
-    these arguments. The temperature of each mode in dims is specified by
-    the average number of excitatons `n`.
-
-    Parameters
-    ----------
-    dims : list
-        A list of the dimensions of each subsystem of a composite quantum
-        system.
-
-    excitations : integer
-        The maximum number of excitations that are to be included in the
-        state space.
-
-    n : integer
-        The average number of exciations in the thermal state. `n` can be
-        a float (which then applies to each mode), or a list/array of the same
-        length as dims, in which each element corresponds specifies the
-        temperature of the corresponding mode.
-
-    dtype : type or str
-        Storage representation. Any data-layer known to `qutip.data.to` is
-        accepted.
-
-    Returns
-    -------
-    dm : Qobj
-        Thermal state density matrix.
-    """
-    nstates, _, idx2state = enr_state_dictionaries(dims, excitations)
-    if not isinstance(n, (list, np.ndarray)):
-        n = np.ones(len(dims)) * n
-    else:
-        n = np.asarray(n)
-
-    diags = [np.prod((n / (n + 1)) ** np.array(state)) for state in idx2state]
-    diags /= np.sum(diags)
-    out = qdiags(diags, 0, dims=[dims, dims],
-                 shape=(nstates, nstates), dtype=dtype)
-    out._isherm = True
-    return out
 
 
 def phase_basis(N, m, phi0=0, *, dtype=_data.Dense):

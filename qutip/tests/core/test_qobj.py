@@ -101,7 +101,7 @@ def test_QobjType():
 
     N = 9
     super_data = np.random.random((N, N))
-    super_qobj = qutip.Qobj(super_data, dims=[[[3]], [[3]]])
+    super_qobj = qutip.Qobj(super_data, dims=[[[3], [3]], [[3], [3]]])
     assert super_qobj.type == 'super'
     assert super_qobj.issuper
     assert super_qobj.superrep == 'super'
