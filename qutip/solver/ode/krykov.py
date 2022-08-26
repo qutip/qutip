@@ -1,5 +1,8 @@
 from ..integrator import IntegratorException, Integrator
 import numpy as np
+from qutip.core import data as _data
+from scipy.optimize import root_scalar
+from ..sesolve import SeSolver
 
 
 class IntegratorKrylov(Integrator):
@@ -10,9 +13,10 @@ class IntegratorKrylov(Integrator):
     subspaces (m << dim(H)).
     """
     integrator_options = {
-        'tol': 1e-6,
+        'atol': 1e-6,
         'nsteps': 100,
         'min_step': 1e-5,
+        'max_step': 1e5,
         'krylov_dim': 0,
         'sub_system_tol': 1e-7,
     }
@@ -29,8 +33,9 @@ class IntegratorKrylov(Integrator):
                              "integer smaller that the system size")
 
         if krylov_dim == 0:
-            # TODO: The error is proportional to exp(-krylov_dim)
-            # This could be obtianed from atol
+            # TODO: krylov_dim, max_step and error (atol) are related by
+            # err ~= exp(-krylov_dim / dt**(1~2))
+            # We could ask for 2 and determine the third one.
             N = self.system.shape[0]
             krylov_dim = min(int((N + 100)**0.5), N)
             self.options["krylov_dim"]  = krylov_dim
@@ -54,58 +59,85 @@ class IntegratorKrylov(Integrator):
             Tridiagonal decomposition.
         """
         krylov_dim = self.options['krylov_dim']
-        H = self.system.full()
+        H = (1j * self.system(0)).data
 
-        v = np.zeros((krylov_dim + 1, psi.shape[0]), dtype=complex)
-        T_m = np.zeros((krylov_dim + 1, krylov_dim + 1), dtype=complex)
+        v = []
+        T_diag = np.zeros(krylov_dim + 1, dtype=complex)
+        T_subdiag = np.zeros(krylov_dim, dtype=complex)
 
-        v[0, :] = psi.to_array().squeeze()
-
-        w_prime = H.dot(v[0, :])
-
-        alpha = np.vdot(w_prime, v[0, :])
-
-        w = w_prime - alpha * v[0, :]
-
-        T_m[0, 0] = alpha
+        w_prime = _data.matmul(H, psi)
+        T_diag[0] = _data.inner(w_prime, psi)
+        v.append(psi)
+        w = _data.add(w_prime, v[-1], -T_diag[0])
 
         for j in range(1, krylov_dim + 1):
+            T_subdiag[j-1] = _data.norm.l2(w)
 
-            beta = np.linalg.norm(w)
-
-            if beta < self.options['sub_system_tol']:
+            if T_subdiag[j-1] < self.options['sub_system_tol']:
                 # Happy breakdown
-                v = v[0:j, :]
-                T_m = T_m[0:j, 0:j]
                 break
 
-            v[j, :] = w / beta
-            w_prime = H.dot(v[j, :])
-            alpha = np.vdot(w_prime, v[j, :])
+            v.append(_data.mul(w, 1 / T_subdiag[j-1]))
+            w_prime = _data.matmul(H, v[-1])
+            T_diag[j] = _data.inner(w_prime, v[-1])
 
-            w = w_prime - alpha * v[j, :] - beta * v[j - 1, :]
+            w = _data.add(w_prime, v[-1], -T_diag[j])
+            w = _data.add(w, v[-2], -T_subdiag[j-1])
 
-            T_m[j, j] = alpha
-            T_m[j, j - 1] = beta
-            T_m[j - 1, j] = beta
+        T_m = _data.diag["dense"](
+            [T_subdiag[:j], T_diag[:j+1], T_subdiag[:j]],
+            [-1, 0, 1]
+        )
+        v = _data.Dense(np.hstack([psi.to_array() for psi in v]))
 
         return T_m, v
 
-    def _compute_evolution_matrices(self, T_m, v):
-        eigenvalues, eigenvectors = _data.eigs(_data.Dense(T_m), True)
-        eigenvectors = eigenvectors.to_array()
-        U = np.matmul(v.T, eigenvectors)
-        e0 = eigenvectors.conj().T[:, 0]
+    def _compute_krylov_set(self, T_m, v):
+        eigenvalues, eigenvectors = _data.eigs(T_m, True)
+        N = eigenvalues.shape[0]
+        U = _data.matmul(v, eigenvectors)
+        e0 = eigenvectors.adjoint() @ _data.one_element_dense((N, 1), (0, 0), 1.0)
         return eigenvalues, U, e0
 
     def _compute_psi(self, dt, eigenvalues, U, e0):
-        aux = np.multiply(np.exp(-1j * delta_t * self._eigenvalues), self._e0)
-        return np.matmul(self._U, aux)
+        phases = _data.Dense(np.exp(-1j * dt * eigenvalues))
+        aux = _data.multiply(phases, e0)
+        return _data.matmul(U, aux)
+
+    def _compute_max_step(self, krylov_state, reduced_state):
+
+        def krylov_error(t):
+            return np.log(np.linalg.norm(
+                self._compute_psi(t, *krylov_state) -
+                self._compute_psi(t, *reduced_state)
+            ) / self.options["atol"])
+
+        dt = self.options["min_step"]
+        err = krylov_error(dt)
+        if err > 0:
+            ValueError(
+                f"With the krylov dim of {self.options['krylov_dim']}, the "
+                f"error with the minimum step {dt} is {err}, higher than the "
+                f"desired tolerance of {self.options['atol']}."
+            )
+
+        while krylov_error(dt * 10) < 0 and dt < self.options["max_step"]:
+            dt *= 10
+
+        if dt > self.options["max_step"]:
+            return self.options["max_step"]
+
+        sol = root_scalar(f=krylov_error, bracket=[dt, dt * 10],
+                          method="brentq", xtol=self.options['atol'])
+        if sol.converged:
+            return sol.root
+        else:
+            return dt
 
     def set_state(self, t, state0):
         self._t_0 = t
         T_m, v = self._lanczos_algorithm(state0)
-        self._krylov_state = self._compute_evolution_matrices(T_m, v)
+        self._krylov_state = self._compute_krylov_set(T_m, v)
 
         if T_m.shape[0] <= self.options['krylov_dim']:
             # happy_breakdown
@@ -113,53 +145,11 @@ class IntegratorKrylov(Integrator):
             return
 
         if not np.isfinite(self._max_step):
-            reduced_state = self._compute_evolution_matrices(T_m[:-1, :-1], v[:-1, :])
-
-            def get_error(t):
-                return np.log(np.linalg.norm(
-                    self._compute_psi(t, *self._krylov_state) -
-                    self._compute_psi(t, *reduced_state)
-                ) / self.options["atol"])
-
-            dt = min_step
-            err = get_error(dt)
-            if err > 0:
-                ValueError( "Place holder ###################################################"
-                    "No solution exists with the given combination of parameters 'krylov_dim', "
-                    "tolerance = 'options['atol']', maximum number allowed of krylov internal "
-                    "partitions = 'options['nsteps']' and 'tlist'. Try reducing the tolerance, or "
-                    "increasing 'krylov_dim'. If nothing works, then a deeper analysis of the "
-                    "problem is recommended."
-                    "#####################################################################################################"
-                )
-
-            while err < 0:
-                dt *= 2
-                err = get_error(dt)
-
-            sol = root_scalar(f=get_error, bracket=[dt/2,dt], method="brentq", xtol=self.options['atol'])
-            if sol.converged:
-                delta_t = sol.root
-                return delta_t
-            else:
-                raise Exception(
-                    "Method did not converge, try increasing 'krylov_dim', "
-                    "taking a lesser final time 'tlist[-1]' or decreasing the "
-                    "tolerance via SolverOptions().atol. "
-                    "If nothing works, this problem might not be suitable for "
-                    "Krylov or a deeper analysis might be required."
-                )
-
-
-
-
-
-
-
-
+            reduced_state = self._compute_krylov_set(T_m[:-1, :-1], v[:-1, :])
+            self._max_step = self._compute_max_step(self._krylov_state, reduced_state)
 
     def get_state(self, copy=True):
-        return self._t_0, _data.Dense(np.matmul(self._U, self._e0))
+        return self._t_0, self._compute_psi(0, *self._krylov_state)
 
     def integrate(self, t, copy=True):
         while t > self._t_0 + self._max_step:
@@ -173,4 +163,7 @@ class IntegratorKrylov(Integrator):
 
         self._step = 0
         delta_t = t - self._t_0
-        return t, _data.Dense(self._compute_psi(delta_t, *self._krylov_state))
+        return t, self._compute_psi(delta_t, *self._krylov_state)
+
+
+SeSolver.add_integrator(IntegratorKrylov, 'krylov')
