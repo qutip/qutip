@@ -151,7 +151,7 @@ class IntegratorDiag(Integrator):
         self._prepare()
 
     def _prepare(self):
-        self.diag, self.U = _data.eigs(self.system(0).data, False)
+        self.diag, self.U = _data.eigs(self.system(0).to("dense").data, False)
         self.diag = self.diag.reshape((-1, 1))
         self.Uinv = _data.inv(self.U)
         self.name = "qutip diagonalized"

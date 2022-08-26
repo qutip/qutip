@@ -5,6 +5,9 @@ from scipy.optimize import root_scalar
 from ..sesolve import SeSolver
 
 
+__all__ = ["IntegratorKrylov"]
+
+
 class IntegratorKrylov(Integrator):
     """
     Evolve the state vector ("psi0") finding an approximation for the time
@@ -13,18 +16,21 @@ class IntegratorKrylov(Integrator):
     subspaces (m << dim(H)).
     """
     integrator_options = {
-        'atol': 1e-6,
+        'atol': 1e-7,
         'nsteps': 100,
         'min_step': 1e-5,
         'max_step': 1e5,
         'krylov_dim': 0,
         'sub_system_tol': 1e-7,
+        'always_compute_step': False,
     }
     support_time_dependant = False
     supports_blackbox = False
     method = 'krylov'
 
     def _prepare(self):
+        if not self.system.isconstant:
+            raise ValueError()
         self._max_step = -np.inf
         self._step = 0
         krylov_dim = self.options["krylov_dim"]
@@ -37,8 +43,20 @@ class IntegratorKrylov(Integrator):
             # err ~= exp(-krylov_dim / dt**(1~2))
             # We could ask for 2 and determine the third one.
             N = self.system.shape[0]
-            krylov_dim = min(int((N + 100)**0.5), N)
+            krylov_dim = min(int((N + 100)**0.5), N-1)
             self.options["krylov_dim"]  = krylov_dim
+
+        if not self.options["always_compute_step"]:
+            from qutip import rand_ket
+            N = self.system.shape[0]
+            T_m, v = self._lanczos_algorithm(rand_ket(N).data)
+            if (
+                T_m.shape[0] < self.options["krylov_dim"]
+                or T_m.shape[0] == N
+            ):
+                self._max_step = np.inf
+            else:
+                self._max_step = self._compute_max_step(T_m, v)
 
     def _lanczos_algorithm(self, psi):
         """
@@ -63,26 +81,23 @@ class IntegratorKrylov(Integrator):
 
         v = []
         T_diag = np.zeros(krylov_dim + 1, dtype=complex)
-        T_subdiag = np.zeros(krylov_dim, dtype=complex)
+        T_subdiag = np.zeros(krylov_dim + 1, dtype=complex)
 
         w_prime = _data.matmul(H, psi)
         T_diag[0] = _data.inner(w_prime, psi)
         v.append(psi)
         w = _data.add(w_prime, v[-1], -T_diag[0])
+        T_subdiag[0] = _data.norm.l2(w)
+        j = 0
 
-        for j in range(1, krylov_dim + 1):
-            T_subdiag[j-1] = _data.norm.l2(w)
-
-            if T_subdiag[j-1] < self.options['sub_system_tol']:
-                # Happy breakdown
-                break
-
+        while j < krylov_dim and T_subdiag[j] > self.options['sub_system_tol']:
+            j += 1
             v.append(_data.mul(w, 1 / T_subdiag[j-1]))
             w_prime = _data.matmul(H, v[-1])
             T_diag[j] = _data.inner(w_prime, v[-1])
-
             w = _data.add(w_prime, v[-1], -T_diag[j])
             w = _data.add(w, v[-2], -T_subdiag[j-1])
+            T_subdiag[j] = _data.norm.l2(w)
 
         T_m = _data.diag["dense"](
             [T_subdiag[:j], T_diag[:j+1], T_subdiag[:j]],
@@ -104,10 +119,16 @@ class IntegratorKrylov(Integrator):
         aux = _data.multiply(phases, e0)
         return _data.matmul(U, aux)
 
-    def _compute_max_step(self, krylov_state, reduced_state):
+    def _compute_max_step(self, T_m, v, krylov_state=None):
+        if not krylov_state:
+            krylov_state = self._compute_krylov_set(T_m, v)
+
+        small_T = _data.Dense(T_m.as_ndarray()[:-1, :-1])
+        small_v = _data.Dense(v.as_ndarray()[:, :-1])
+        reduced_state = self._compute_krylov_set(small_T, small_v)
 
         def krylov_error(t):
-            return np.log(np.linalg.norm(
+            return np.log(_data.norm.l2(
                 self._compute_psi(t, *krylov_state) -
                 self._compute_psi(t, *reduced_state)
             ) / self.options["atol"])
@@ -139,14 +160,18 @@ class IntegratorKrylov(Integrator):
         T_m, v = self._lanczos_algorithm(state0)
         self._krylov_state = self._compute_krylov_set(T_m, v)
 
-        if T_m.shape[0] <= self.options['krylov_dim']:
+        if (
+            T_m.shape[0] <= self.options['krylov_dim']
+            or T_m.shape == self.system.shape
+        ):
             # happy_breakdown
             self._max_step = np.inf
             return
 
-        if not np.isfinite(self._max_step):
-            reduced_state = self._compute_krylov_set(T_m[:-1, :-1], v[:-1, :])
-            self._max_step = self._compute_max_step(self._krylov_state, reduced_state)
+        if self.options["always_compute_step"]:
+            self._max_step = self._compute_max_step(
+                T_m, v, self._krylov_state,
+            )
 
     def get_state(self, copy=True):
         return self._t_0, self._compute_psi(0, *self._krylov_state)
@@ -159,11 +184,47 @@ class IntegratorKrylov(Integrator):
             if self._step >= self.options["nsteps"]:
                 self._step = 0
                 raise IntegratorException
-            self.set_state(*self.integrate(self._t_0 + self._max_step))
+            new_t0, new_psi = self.integrate(self._t_0 + self._max_step)
+            self.set_state(new_t0, new_psi)
 
         self._step = 0
         delta_t = t - self._t_0
-        return t, self._compute_psi(delta_t, *self._krylov_state)
+        out = self._compute_psi(delta_t, *self._krylov_state)
+        return t, out
+
+    @property
+    def options(self):
+        """
+        Supported options by krylov method:
+
+        atol : float, default=1e-7
+            Absolute tolerance.
+
+        nsteps : int, default=100
+            Max. number of internal steps/call.
+
+        min_step, max_step : float, default=(1e-5, 1e5)
+            Minimum and maximum step size.
+
+        krylov_dim: int, default=0
+            Dimension of Krylov approximation subspaces used for the time
+            evolution approximation.
+
+        sub_system_tol: float, default=1e-7
+            Tolerance to detect an happy breakdown. An happy breakdown happens
+            when the initial ket is in a subspace of the Hamiltonian smaller
+            than ``krylov_dim``.
+
+        always_compute_step: bool, default=False
+            If True, the step lenght is computed each time a new Krylov
+            subspace is computed. Otherwise it is computed only once when
+            creating the integrator.
+        """
+        return self._options
+
+    @options.setter
+    def options(self, new_options):
+        Integrator.options.fset(self, new_options)
 
 
 SeSolver.add_integrator(IntegratorKrylov, 'krylov')
