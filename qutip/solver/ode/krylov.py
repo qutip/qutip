@@ -30,7 +30,7 @@ class IntegratorKrylov(Integrator):
 
     def _prepare(self):
         if not self.system.isconstant:
-            raise ValueError()
+            raise ValueError("krylov method only support constant system.")
         self._max_step = -np.inf
         self._step = 0
         krylov_dim = self.options["krylov_dim"]
@@ -49,14 +49,16 @@ class IntegratorKrylov(Integrator):
         if not self.options["always_compute_step"]:
             from qutip import rand_ket
             N = self.system.shape[0]
-            T_m, v = self._lanczos_algorithm(rand_ket(N).data)
+            krylov_tridiag, krylov_basis = \
+                self._lanczos_algorithm(rand_ket(N).data)
             if (
-                T_m.shape[0] < self.options["krylov_dim"]
-                or T_m.shape[0] == N
+                krylov_tridiag.shape[0] < self.options["krylov_dim"]
+                or krylov_tridiag.shape[0] == N
             ):
                 self._max_step = np.inf
             else:
-                self._max_step = self._compute_max_step(T_m, v)
+                self._max_step = self._compute_max_step(krylov_tridiag,
+                                                        krylov_basis)
 
     def _lanczos_algorithm(self, psi):
         """
@@ -68,13 +70,6 @@ class IntegratorKrylov(Integrator):
         ------------
         psi: np.ndarray
             State used to calculate Krylov subspace.
-
-        Returns
-        ---------
-        v: np.ndarray
-            Lanczos eigenvector.
-        T: np.ndarray
-            Tridiagonal decomposition.
         """
         krylov_dim = self.options['krylov_dim']
         H = (1j * self.system(0)).data
@@ -99,33 +94,42 @@ class IntegratorKrylov(Integrator):
             w = _data.add(w, v[-2], -T_subdiag[j-1])
             T_subdiag[j] = _data.norm.l2(w)
 
-        T_m = _data.diag["dense"](
+        krylov_tridiag = _data.diag["dense"](
             [T_subdiag[:j], T_diag[:j+1], T_subdiag[:j]],
             [-1, 0, 1]
         )
-        v = _data.Dense(np.hstack([psi.to_array() for psi in v]))
+        krylov_basis = _data.Dense(np.hstack([psi.to_array() for psi in v]))
 
-        return T_m, v
+        return krylov_tridiag, krylov_basis
 
-    def _compute_krylov_set(self, T_m, v):
-        eigenvalues, eigenvectors = _data.eigs(T_m, True)
+    def _compute_krylov_set(self, krylov_tridiag, krylov_basis):
+        """
+        Compute the eigen energies, basis transformation operator (U) and e0.
+        """
+        eigenvalues, eigenvectors = _data.eigs(krylov_tridiag, True)
         N = eigenvalues.shape[0]
-        U = _data.matmul(v, eigenvectors)
+        U = _data.matmul(krylov_basis, eigenvectors)
         e0 = eigenvectors.adjoint() @ _data.one_element_dense((N, 1), (0, 0), 1.0)
         return eigenvalues, U, e0
 
     def _compute_psi(self, dt, eigenvalues, U, e0):
+        """
+        compute the state at time ``t``.
+        """
         phases = _data.Dense(np.exp(-1j * dt * eigenvalues))
         aux = _data.multiply(phases, e0)
         return _data.matmul(U, aux)
 
-    def _compute_max_step(self, T_m, v, krylov_state=None):
+    def _compute_max_step(self, krylov_tridiag, krylov_basis, krylov_state=None):
+        """
+        Compute the maximum step lenght to stay under the desired tolerance.
+        """
         if not krylov_state:
-            krylov_state = self._compute_krylov_set(T_m, v)
+            krylov_state = self._compute_krylov_set(krylov_tridiag, krylov_basis)
 
-        small_T = _data.Dense(T_m.as_ndarray()[:-1, :-1])
-        small_v = _data.Dense(v.as_ndarray()[:, :-1])
-        reduced_state = self._compute_krylov_set(small_T, small_v)
+        small_tridiag = _data.Dense(krylov_tridiag.as_ndarray()[:-1, :-1])
+        small_basis = _data.Dense(krylov_basis.as_ndarray()[:, :-1])
+        reduced_state = self._compute_krylov_set(small_tridiag, small_basis)
 
         def krylov_error(t):
             return np.log(_data.norm.l2(
@@ -157,20 +161,23 @@ class IntegratorKrylov(Integrator):
 
     def set_state(self, t, state0):
         self._t_0 = t
-        T_m, v = self._lanczos_algorithm(state0)
-        self._krylov_state = self._compute_krylov_set(T_m, v)
+        krylov_tridiag, krylov_basis = self._lanczos_algorithm(state0)
+        self._krylov_state = self._compute_krylov_set(krylov_tridiag, krylov_basis)
 
         if (
-            T_m.shape[0] <= self.options['krylov_dim']
-            or T_m.shape == self.system.shape
+            krylov_tridiag.shape[0] <= self.options['krylov_dim']
+            or krylov_tridiag.shape == self.system.shape
         ):
             # happy_breakdown
             self._max_step = np.inf
             return
 
-        if self.options["always_compute_step"]:
+        if (
+            not np.isfinite(self._max_step)
+            or self.options["always_compute_step"]
+        ):
             self._max_step = self._compute_max_step(
-                T_m, v, self._krylov_state,
+                krylov_tridiag, krylov_basis, self._krylov_state,
             )
 
     def get_state(self, copy=True):
