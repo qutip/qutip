@@ -126,6 +126,9 @@ Integrator
 .. autoclass:: qutip.solver.ode.qutip_integrator.IntegratorDiag
     :members: options
 
+.. autoclass:: qutip.solver.ode.krylov.IntegratorKrylov
+    :members: options
+
 
 .. _classes-non_markov_mc_and_tt:
 

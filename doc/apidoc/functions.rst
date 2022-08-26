@@ -152,7 +152,7 @@ Monte Carlo Evolution
 Krylov Subspace Solver
 ----------------------
 
-.. automodule:: qutip.solve.krylovsolve
+.. automodule:: qutip.solver.krylovsolve
     :members: krylovsolve
 
 
