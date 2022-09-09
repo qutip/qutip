@@ -21,10 +21,12 @@ In particular, we will use Hinton diagrams as implemented by :func:`qutip.visual
 show the real parts of matrix elements as squares whose size and color both correspond to the magnitude of each element. To illustrate, we first plot a few density operators.
 
 .. plot::
-   :context:
+   :context: reset
 
->>> visualization.hinton(identity([2, 3]).unit()); # doctest: +SKIP
->>> visualization.hinton(Qobj([[1, 0.5], [0.5, 1]]).unit()); # doctest: +SKIP
+    from qutip import visualization, identity, Qobj, to_super, sigmaz, tensor, hadamrd_transform, cnot, tensor_contract
+
+    visualization.hinton(identity([2, 3]).unit())
+    visualization.hinton(Qobj([[1, 0.5], [0.5, 1]]).unit())
 
 
 We show superoperators as matrices in the *Pauli basis*, such that any Hermicity-preserving map is represented by a real-valued matrix. This is especially convienent for use with Hinton diagrams, as the plot thus carries complete information about the channel.
@@ -34,7 +36,7 @@ As an example, conjugation by :math:`\sigma_z` leaves :math:`\mathbb{1}` and :ma
 .. plot::
    :context:
 
->>> visualization.hinton(to_super(sigmaz())); # doctest: +SKIP
+    visualization.hinton(to_super(sigmaz()))
 
 
 As a couple more examples, we also consider the supermatrix for a Hadamard transform and for :math:`\sigma_z \otimes H`.
@@ -42,8 +44,8 @@ As a couple more examples, we also consider the supermatrix for a Hadamard trans
 .. plot::
    :context:
 
->>> visualization.hinton(to_super(hadamard_transform())); # doctest: +SKIP
->>> visualization.hinton(to_super(tensor(sigmaz(), hadamard_transform()))); # doctest: +SKIP
+    visualization.hinton(to_super(hadamard_transform()))
+    visualization.hinton(to_super(tensor(sigmaz(), hadamard_transform())))
 
 .. _super-reduced-channels:
 
@@ -67,26 +69,36 @@ The two tensor wires on the left indicate where we must take a tensor contractio
 
 .. plot::
    :context:
-
->>> tensor_contract(to_super(identity([2, 2])), (1, 3)) # doctest: +SKIP
+   :nofigs:
+   tensor_contract(to_super(identity([2, 2])), (1, 3))
 
 Meanwhile, the :func:`super_tensor` function implements the swap on the right, such that we can quickly find the preparation map.
 
->>> q = tensor(identity(2), basis(2)) # doctest: +SKIP
->>> s_prep = sprepost(q, q.dag()) # doctest: +SKIP
+.. plot::
+   :context:
+   :nofigs:
+
+   q = tensor(identity(2), basis(2))
+   s_prep = sprepost(q, q.dag())
 
 For a :math:`\scriptstyle \rm CNOT` system-environment model, the composition of these maps should give us a completely dephasing channel. The channel on both qubits is just the superunitary :math:`\scriptstyle \rm CNOT` channel:
 
 .. plot::
    :context:
 
->>> visualization.hinton(to_super(cnot())); # doctest: +SKIP
+   visualization.hinton(to_super(cnot()))
 
 We now complete by multiplying the superunitary :math:`\scriptstyle \rm CNOT` by the preparation channel above, then applying the partial trace channel by contracting the second and fourth index indices. As expected, this gives us a dephasing map.
 
 .. plot::
    :context:
 
->>> visualization.hinton(tensor_contract(to_super(cnot()), (1, 3)) * s_prep); # doctest: +SKIP
+   visualization.hinton(tensor_contract(to_super(cnot()), (1, 3)) * s_prep)
 
 
+.. plot::
+    :context: reset
+    :include-source: false
+    :nofigs:
+
+    # reset the context at the end
