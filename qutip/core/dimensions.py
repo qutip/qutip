@@ -3,7 +3,6 @@ Internal use module for manipulating dims specifications.
 """
 
 # Everything should be explicitly imported, not made available by default.
-__all__ = ['expand_operator']
 
 import numpy as np
 from operator import getitem
