@@ -869,6 +869,37 @@ class Qobj:
                     isherm=self._isherm,
                     copy=False)
 
+    def logm(self):
+        """Matrix exponential of quantum operator.
+
+        Input operator must be square.
+
+        Parameters
+        ----------
+        dtype : type
+            The data-layer type that should be output.  As the matrix
+            exponential is almost dense, this defaults to outputting dense
+            matrices.
+
+        Returns
+        -------
+        oper : :class:`qutip.Qobj`
+            Exponentiated quantum operator.
+
+        Raises
+        ------
+        TypeError
+            Quantum operator is not square.
+        """
+        if self.dims[0] != self.dims[1]:
+            raise TypeError("expm is only valid for square operators")
+        return Qobj(_data.logm(self._data),
+                    dims=self.dims,
+                    type=self.type,
+                    superrep=self.superrep,
+                    isherm=self._isherm,
+                    copy=False)
+
     def check_herm(self):
         """Check if the quantum object is hermitian.
 
