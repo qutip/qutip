@@ -46,7 +46,7 @@ def expm_csr_dense(matrix: CSR) -> Dense:
 def expm_dense(matrix: Dense) -> Dense:
     if matrix.shape[0] != matrix.shape[1]:
         raise ValueError("can only exponentiate square matrix")
-    return Dense(scipy.linalg.expm(matrix.as_ndarray()))
+    return Dense(scipy.linalg.expm(matrix.as_ndarray()), copy=False)
 
 
 from .dispatch import Dispatcher as _Dispatcher
@@ -73,7 +73,7 @@ expm.add_specialisations([
 def logm_dense(matrix: Dense) -> Dense:
     if matrix.shape[0] != matrix.shape[1]:
         raise ValueError("can only compute logarithm square matrix")
-    return Dense(scipy.linalg.logm(matrix.as_ndarray()))
+    return Dense(scipy.linalg.logm(matrix.as_ndarray()), copy=False)
 
 
 logm = _Dispatcher(
