@@ -520,14 +520,6 @@ def test_QobjLogm():
     assert (B.full() - la.logm(data) < 1e-10).all()
 
 
-def test_QobjLogmExplicitlySparse():
-    "Qobj logm (sparse)"
-    data = _random_not_singular(15)
-    A = Qobj(data)
-    B = A.logm(method='sparse')
-    assert (B.full() - la.logm(data) < 1e-10).all()
-
-
 def test_QobjLogmZeroOper():
     "Qobj logm zero_oper (#493)"
     A = qeye(5)
