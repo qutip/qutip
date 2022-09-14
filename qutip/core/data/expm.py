@@ -13,7 +13,7 @@ from .base import idxint_dtype
 
 __all__ = [
     'expm', 'expm_csr', 'expm_csr_dense', 'expm_dense',
-    'logm', 'logm_csr', 'logm_dense',
+    'logm', 'logm_dense',
 ]
 
 
@@ -73,37 +73,9 @@ expm.add_specialisations([
 ], _defer=True)
 
 
-def logm_csr(matrix: CSR) -> CSR:
-    if matrix.shape[0] != matrix.shape[1]:
-        raise ValueError("can only compute logarithm of square matrix")
-    if iszero_csr(matrix):
-        data = np.ones(matrix.shape[0]) * 1e-300
-        shift = diag(data, 0, dtype=CSR)
-        matrix = add_csr(matrix, shift)
-    if isdiag_csr(matrix):
-        matrix_sci = matrix.as_scipy()
-        data = np.zeros(matrix.shape[0], dtype=np.complex128)
-        data[matrix_sci.indices] += np.log(matrix_sci.data)
-        return CSR(
-            (
-                data,
-                np.arange(matrix.shape[0], dtype=idxint_dtype),
-                np.arange(matrix.shape[0] + 1, dtype=idxint_dtype),
-            ),
-            shape=matrix.shape,
-            copy=False,
-        )
-    else:
-        return csr.from_dense(Dense(scipy.linalg.logm(matrix.to_array())))
-
-
 def logm_dense(matrix: Dense) -> Dense:
     if matrix.shape[0] != matrix.shape[1]:
         raise ValueError("can only compute logarithm square matrix")
-    if iszero_dense(matrix):
-        data = np.ones(matrix.shape[0]) * 1e-300
-        shift = diag(data, 0, dtype=Dense)
-        matrix = add_dense(matrix, shift)
     return Dense(scipy.linalg.logm(matrix.as_ndarray()))
 
 
@@ -118,7 +90,6 @@ logm = _Dispatcher(
 )
 logm.__doc__ = """Matrix logarithm `ln(A)` for a matrix `A`."""
 logm.add_specialisations([
-    (CSR, CSR, logm_csr),
     (Dense, Dense, logm_dense),
 ], _defer=True)
 
