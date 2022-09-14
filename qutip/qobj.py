@@ -23,6 +23,7 @@ from numpy import (arccos, arccosh, arcsin, arcsinh, arctan, arctan2, arctanh,
 
 import numpy as np
 import scipy.sparse as sp
+import scipy.linalg
 import qutip.settings as settings
 from qutip import __version__
 from qutip.fastsparse import fast_csr_matrix, fast_identity
