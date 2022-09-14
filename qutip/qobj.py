@@ -1154,6 +1154,29 @@ class Qobj(object):
         out = Qobj(F, dims=self.dims)
         return out.tidyup() if settings.auto_tidyup else out
 
+    def logm(self):
+        """Matrix logarithm of quantum operator.
+
+        Input operator must be square.
+
+        Returns
+        -------
+        oper : :class:`qutip.Qobj`
+            Logarithm of the quantum operator.
+
+        Raises
+        ------
+        TypeError
+            Quantum operator is not square.
+        """
+        if self.dims[0] != self.dims[1]:
+            raise TypeError("can only compute logarithm square matrix")
+        return Qobj(
+            scipy.linalg.logm(self.full()),
+            dims=self.dims,
+            type=self.type
+        )
+
     def check_herm(self):
         """Check if the quantum object is hermitian.
 

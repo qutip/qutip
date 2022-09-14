@@ -7,7 +7,8 @@ from qutip.qobj import Qobj
 from qutip.random_objects import (rand_ket, rand_dm, rand_herm, rand_unitary,
                                   rand_super, rand_super_bcsz, rand_dm_ginibre)
 from qutip.states import basis, fock_dm, ket2dm
-from qutip.operators import create, destroy, num, sigmax, sigmay, sigmam, qeye
+from qutip.operators import (create, destroy, num, sigmax, sigmay, sigmam,
+                             qeye, qzero)
 from qutip.superoperator import (spre, spost, operator_to_vector,
                                  vector_to_operator)
 from qutip.superop_reps import to_super, to_choi, to_chi
@@ -509,6 +510,29 @@ def test_QobjExpmZeroOper():
     A = Qobj(np.zeros((5, 5), dtype=complex))
     B = A.expm()
     assert B == qeye(5)
+
+
+def test_QobjLogm():
+    "Qobj logm (dense)"
+    data = _random_not_singular(15)
+    A = Qobj(data)
+    B = A.logm()
+    assert (B.full() - la.logm(data) < 1e-10).all()
+
+
+def test_QobjLogmExplicitlySparse():
+    "Qobj logm (sparse)"
+    data = _random_not_singular(15)
+    A = Qobj(data)
+    B = A.logm(method='sparse')
+    assert (B.full() - la.logm(data) < 1e-10).all()
+
+
+def test_QobjLogmZeroOper():
+    "Qobj logm zero_oper (#493)"
+    A = qeye(5)
+    B = A.logm()
+    assert B == qzero(5)
 
 
 def test_Qobj_sqrtm():
