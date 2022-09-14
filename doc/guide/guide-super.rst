@@ -23,7 +23,7 @@ show the real parts of matrix elements as squares whose size and color both corr
 .. plot::
    :context: reset
 
-    from qutip import visualization, identity, Qobj, to_super, sigmaz, tensor, hadamrd_transform, cnot, tensor_contract
+    from qutip import visualization, identity, Qobj, to_super, sigmaz, tensor, hadamard_transform, cnot, tensor_contract
 
     visualization.hinton(identity([2, 3]).unit())
     visualization.hinton(Qobj([[1, 0.5], [0.5, 1]]).unit())
