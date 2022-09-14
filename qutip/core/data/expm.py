@@ -4,10 +4,7 @@ import scipy.linalg
 
 from .dense import Dense
 from .csr import CSR
-from . import csr
-from .make import diag
-from .add import add_dense, add_csr
-from .properties import isdiag_csr, iszero_csr, iszero_dense
+from .properties import isdiag_csr
 from qutip.settings import settings
 from .base import idxint_dtype
 
