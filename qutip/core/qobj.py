@@ -870,21 +870,14 @@ class Qobj:
                     copy=False)
 
     def logm(self):
-        """Matrix exponential of quantum operator.
+        """Matrix logarithm of quantum operator.
 
         Input operator must be square.
-
-        Parameters
-        ----------
-        dtype : type
-            The data-layer type that should be output.  As the matrix
-            exponential is almost dense, this defaults to outputting dense
-            matrices.
 
         Returns
         -------
         oper : :class:`qutip.Qobj`
-            Exponentiated quantum operator.
+            Logarithm of the quantum operator.
 
         Raises
         ------
