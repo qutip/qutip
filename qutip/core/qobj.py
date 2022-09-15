@@ -869,6 +869,30 @@ class Qobj:
                     isherm=self._isherm,
                     copy=False)
 
+    def logm(self):
+        """Matrix logarithm of quantum operator.
+
+        Input operator must be square.
+
+        Returns
+        -------
+        oper : :class:`qutip.Qobj`
+            Logarithm of the quantum operator.
+
+        Raises
+        ------
+        TypeError
+            Quantum operator is not square.
+        """
+        if self.dims[0] != self.dims[1]:
+            raise TypeError("expm is only valid for square operators")
+        return Qobj(_data.logm(self._data),
+                    dims=self.dims,
+                    type=self.type,
+                    superrep=self.superrep,
+                    isherm=self._isherm,
+                    copy=False)
+
     def check_herm(self):
         """Check if the quantum object is hermitian.
 
