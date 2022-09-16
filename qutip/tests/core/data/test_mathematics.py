@@ -841,6 +841,18 @@ class TestExpm(UnaryOpMixin):
     specialisations = [
         pytest.param(data.expm_csr, CSR, CSR),
         pytest.param(data.expm_csr_dense, CSR, Dense),
+        pytest.param(data.expm_dense, Dense, Dense),
+    ]
+
+
+class TestLogm(UnaryOpMixin):
+    def op_numpy(self, matrix):
+        return scipy.linalg.logm(matrix)
+
+    shapes = shapes_square()
+    bad_shapes = shapes_not_square()
+    specialisations = [
+        pytest.param(data.logm_dense, Dense, Dense),
     ]
 
 

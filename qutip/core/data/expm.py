@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.sparse.linalg
+import scipy.linalg
 
 from .dense import Dense
 from .csr import CSR
@@ -8,7 +9,8 @@ from qutip.settings import settings
 from .base import idxint_dtype
 
 __all__ = [
-    'expm', 'expm_csr', 'expm_csr_dense',
+    'expm', 'expm_csr', 'expm_csr_dense', 'expm_dense',
+    'logm', 'logm_dense',
 ]
 
 
@@ -41,6 +43,12 @@ def expm_csr_dense(matrix: CSR) -> Dense:
     return Dense(scipy.sparse.linalg.expm(matrix.to_array()))
 
 
+def expm_dense(matrix: Dense) -> Dense:
+    if matrix.shape[0] != matrix.shape[1]:
+        raise ValueError("can only exponentiate square matrix")
+    return Dense(scipy.linalg.expm(matrix.as_ndarray()), copy=False)
+
+
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
 
@@ -58,6 +66,28 @@ expm.__doc__ = """Matrix exponential `e**A` for a matrix `A`."""
 expm.add_specialisations([
     (CSR, CSR, expm_csr),
     (CSR, Dense, expm_csr_dense),
+    (Dense, Dense, expm_dense),
+], _defer=True)
+
+
+def logm_dense(matrix: Dense) -> Dense:
+    if matrix.shape[0] != matrix.shape[1]:
+        raise ValueError("can only compute logarithm square matrix")
+    return Dense(scipy.linalg.logm(matrix.as_ndarray()), copy=False)
+
+
+logm = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    ]),
+    name='logm',
+    module=__name__,
+    inputs=('matrix',),
+    out=True,
+)
+logm.__doc__ = """Matrix logarithm `ln(A)` for a matrix `A`."""
+logm.add_specialisations([
+    (Dense, Dense, logm_dense),
 ], _defer=True)
 
 del _inspect, _Dispatcher

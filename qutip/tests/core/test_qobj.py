@@ -551,6 +551,29 @@ def test_QobjExpmZeroOper():
     assert B == qutip.qeye(5)
 
 
+def test_QobjLogm():
+    "qutip.Qobj expm (dense)"
+    data = _random_not_singular(15)
+    A = qutip.Qobj(data)
+    B = A.logm()
+    np.testing.assert_allclose(B.full(), scipy.linalg.logm(data), atol=1e-10)
+
+
+def test_QobjLogmExplicitlySparse():
+    "qutip.Qobj logm (sparse)"
+    data = _random_not_singular(15)
+    A = qutip.Qobj(data).to("csr")
+    B = A.logm()
+    np.testing.assert_allclose(B.full(), scipy.linalg.logm(data), atol=1e-10)
+
+
+def test_QobjLogmZeroOper():
+    "qutip.Qobj logm zero_oper (#493)"
+    A = qutip.qeye(5)
+    B = A.logm()
+    assert B == qutip.qzero(5)
+
+
 def test_Qobj_sqrtm():
     "qutip.Qobj sqrtm"
     data = _random_not_singular(5)
