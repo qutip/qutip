@@ -383,7 +383,7 @@ def test_QobjDivisionNotValidScalar(not_scalar):
     q1 = qutip.Qobj(np.array([[1, 2], [3, 4]]))
 
     with pytest.raises(TypeError):
-        not_scalar / q1
+        q1 / not_scalar
 
 
 def test_QobjDivision():
