@@ -729,10 +729,6 @@ cdef class QobjEvo:
     def superrep(self):
         return self._dims.superrep
 
-    @superrep.setter
-    def superrep(self, super_rep):
-        self._dims = Dimensions(self._dims.as_list(), rep=super_rep)
-
     ###########################################################################
     # operation methods                                                       #
     ###########################################################################

@@ -271,22 +271,18 @@ class Qobj:
     __array_ufunc__ = None
 
     def _initialize_data(self, arg, dims, copy):
+        self._dims = None
+        self._data = None
         if isinstance(arg, _data.Data):
             self._data = arg.copy() if copy else arg
             self.dims = dims or [[arg.shape[0]], [arg.shape[1]]]
         elif isinstance(arg, Qobj):
             self._data = arg.data.copy() if copy else arg.data
-            if dims:
-                self.dims = dims
-            else:
-                self._dims = arg._dims
-        elif arg is None or isinstance(arg, numbers.Number):
-            self.dims = dims or [[1], [1]]
-            size = self._dims[0].size
-            if arg is None:
-                self._data = _data.zeros(size, size)
-            else:
-                self._data = _data.identity(size, scale=complex(arg))
+            self._dims = dims or arg._dims
+            if arg._isherm is not None:
+                self._isherm = arg._isherm
+            if arg._isunitary is not None:
+                self._isunitary = arg._isunitary
         else:
             self._data = _data.create(arg, copy=copy)
             if (
@@ -299,14 +295,11 @@ class Qobj:
 
     def __init__(self, arg=None, dims=None, type=None,
                  copy=True, superrep=None, isherm=None, isunitary=None):
-        self._dims = None
-        self._data = None
-        self.type = None
         self._isherm = isherm
         self._isunitary = isunitary
         self._superrep = None
         if isinstance(dims, list):
-            dims = Dimensions(dims, rep=superrep)
+            dims = Dimensions(dims)
         self._initialize_data(arg, dims, copy)
         self.type = type or self._dims.type
 
@@ -351,9 +344,10 @@ class Qobj:
 
     @property
     def superrep(self):
-        if self._superrep:
-            return self._superrep
-        elif self.type in ['super', 'operator-ket', 'operator-bra']:
+        if (
+            self._dims
+            and self._dims.type in ['super', 'operator-ket', 'operator-bra']
+        ):
             return self._dims.superrep
         else:
             return None
@@ -371,6 +365,9 @@ class Qobj:
     def data(self, data):
         if not isinstance(data, _data.Data):
             raise TypeError('Qobj data must be a data-layer format.')
+        if self._dims and self._dims.shape != data.shape:
+            raise ValueError('Provided data do not match the dimensions: ' +
+                             f"{dims.shape} vs {self._data.shape}")
         self._data = data
 
     def to(self, data_type):
