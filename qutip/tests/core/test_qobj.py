@@ -254,11 +254,8 @@ def test_QobjAddition():
     q3 = qutip.Qobj(data3)
 
     q4 = q1 + q2
-    q4_type = q4.type
     q4_isherm = q4.isherm
-    q4._type = None
     q4._isherm = None  # clear cached values
-    assert q4_type == q4.type
     assert q4_isherm == q4.isherm
 
     # check elementwise addition/subtraction

@@ -301,12 +301,11 @@ class Qobj:
         if isinstance(dims, list):
             dims = Dimensions(dims)
         self._initialize_data(arg, dims, copy)
-        self.type = type or self._dims.type
 
         # Dims are guessed from the data and need to be changed to super.
         if (
             type in ['super', 'operator-ket', 'operator-bra']
-            and self.type in ['oper', 'ket', 'bra']
+            and self._dims.type in ['oper', 'ket', 'bra']
         ):
             root_right = int(np.sqrt(self._data.shape[0]))
             root_left = int(np.sqrt(self._data.shape[1]))
@@ -318,8 +317,9 @@ class Qobj:
                     "cannot build superoperator from nonsquare subspaces"
                 )
             self.dims = [[[root_right]]*2, [[root_left]]*2]
-        if superrep and self.type in ['super', 'operator-ket', 'operator-bra']:
-            self.superrep = superrep
+
+        self.type = type
+        self.superrep = superrep
 
     def copy(self):
         """Create identical copy"""
@@ -343,6 +343,21 @@ class Qobj:
         self.type = self._dims.type
 
     @property
+    def type(self):
+        return self._type
+
+    @type.setter
+    def type(self, val):
+        if not val:
+            self._type = self._dims.type
+        elif self._dims.type == "scalar":
+            self._type = val
+        elif self._dims.type == val:
+            self._type = val
+        else:
+            raise TypeError("Type does not match dimensions.")
+
+    @property
     def superrep(self):
         if (
             self._dims
@@ -354,8 +369,11 @@ class Qobj:
 
     @superrep.setter
     def superrep(self, super_rep):
-        self._dims = Dimensions(self._dims.as_list(), rep=super_rep)
-        self._superrep = super_rep
+        if (
+            super_rep
+            and self._dims.type in ['super', 'operator-ket', 'operator-bra']
+        ):
+            self._dims = Dimensions(self._dims.as_list(), rep=super_rep)
 
     @property
     def data(self):

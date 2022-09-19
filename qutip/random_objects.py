@@ -259,6 +259,9 @@ def rand_herm(dimensions, density=0.30, distribution="fill", *,
     repeatedly used for generating matrices larger than ~1000x1000.
     """
     N, dims = _implicit_tensor_dimensions(dimensions)
+    type = None
+    if N == 1:
+        type = "oper"
     generator = _get_generator(seed)
     if distribution not in ["eigen", "fill", "pos_def"]:
         raise ValueError("distribution must be one of {'eigen', 'fill', "
@@ -273,7 +276,7 @@ def rand_herm(dimensions, density=0.30, distribution="fill", *,
         out = _rand_jacobi_rotation(out, generator)
         while _data.csr.nnz(out) < 0.95 * nvals:
             out = _rand_jacobi_rotation(out, generator)
-        out = Qobj(out, type='oper', dims=dims, isherm=True, copy=False)
+        out = Qobj(out, type=type, dims=dims, isherm=True, copy=False)
 
     else:
         pos_def = distribution == "pos_def"
@@ -282,7 +285,7 @@ def rand_herm(dimensions, density=0.30, distribution="fill", *,
         else:
             M = _rand_herm_dense(N, density, pos_def, generator)
 
-        out = Qobj(M, type='oper', dims=dims, isherm=True, copy=False)
+        out = Qobj(M, type=type, dims=dims, isherm=True, copy=False)
 
     return out.to(dtype)
 
@@ -367,6 +370,9 @@ def rand_unitary(dimensions, density=1, distribution="haar", *,
         Unitary quantum operator.
     """
     N, dims = _implicit_tensor_dimensions(dimensions)
+    type = None
+    if N == 1:
+        type = "oper"
     if distribution not in ["haar", "exp"]:
         raise ValueError("distribution must be one of {'haar', 'exp'}")
     generator = _get_generator(seed)
@@ -385,7 +391,7 @@ def rand_unitary(dimensions, density=1, distribution="haar", *,
 
     merged = _merge_shuffle_blocks(blocks, generator)
 
-    mat = Qobj(merged, type='oper', dims=dims, isunitary=True, copy=False)
+    mat = Qobj(merged, type=type, dims=dims, isunitary=True, copy=False)
     return mat.to(dtype)
 
 
@@ -471,6 +477,9 @@ def rand_ket(dimensions, density=1, distribution="haar", *,
     """
     generator = _get_generator(seed)
     N, dims = _implicit_tensor_dimensions(dimensions)
+    type = None
+    if N == 1:
+        type = "ket"
     if distribution not in ["haar", "fill"]:
         raise ValueError("distribution must be one of {'haar', 'fill'}")
 
@@ -488,8 +497,9 @@ def rand_ket(dimensions, density=1, distribution="haar", *,
         Y.data = 1.0j * (generator.random(len(X.data)) - 0.5)
         X = _data.csr.CSR(X + Y)
         ket = Qobj(_data.mul(X, 1 / _data.norm.l2(X)),
-                   copy=False, type="ket", isherm=False, isunitary=False)
+                   copy=False, isherm=False, isunitary=False)
     ket.dims = [dims[0], [1]]
+    ket.type = type
     return ket.to(dtype)
 
 
@@ -543,6 +553,9 @@ def rand_dm(dimensions, density=0.75, distribution="ginibre", *,
     """
     generator = _get_generator(seed)
     N, dims = _implicit_tensor_dimensions(dimensions)
+    type = None
+    if N == 1:
+        type = "oper"
     distributions = set(["eigen", "ginibre", "hs", "pure", "herm"])
     if distribution not in distributions:
         raise ValueError(f"distribution must be one of {distributions}")
@@ -583,7 +596,7 @@ def rand_dm(dimensions, density=0.75, distribution="ginibre", *,
         H = _merge_shuffle_blocks(blocks, generator)
         H /= H.trace()
 
-    return Qobj(H, dims=dims, type='oper', isherm=True, copy=False).to(dtype)
+    return Qobj(H, dims=dims, type=type, isherm=True, copy=False).to(dtype)
 
 
 def _rand_dm_ginibre(N, rank, generator):

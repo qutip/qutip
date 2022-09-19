@@ -284,7 +284,13 @@ def test_random_seeds(function, seed):
 
 
 def test_kraus_map(dimensions, dtype):
-    kmap = rand_kraus_map(dimensions, dtype=dtype)
-    _assert_metadata(kmap[0], dimensions, dtype)
-    with CoreOptions(atol=1e-9):
-        assert kraus_to_choi(kmap).iscptp
+    if isinstance(dimensions, list) and isinstance(dimensions[0], list):
+        # Each element of a kraus map cannot be a super operators
+        with pytest.raises(TypeError) as err:
+            kmap = rand_kraus_map(dimensions, dtype=dtype)
+        assert "Type does not match dimensions" in str(err.value)
+    else:
+        kmap = rand_kraus_map(dimensions, dtype=dtype)
+        _assert_metadata(kmap[0], dimensions, dtype)
+        with CoreOptions(atol=1e-9):
+            assert kraus_to_choi(kmap).iscptp

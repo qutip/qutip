@@ -264,7 +264,7 @@ def dims_to_tensor_perm(dims):
     """
     if isinstance(dims, list):
         dims = Dimensions(dims)
-    return dims.get_tensor_perm()
+    return dims._get_tensor_perm()
 
 
 def dims_to_tensor_shape(dims):
