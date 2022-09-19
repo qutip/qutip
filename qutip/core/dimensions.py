@@ -338,8 +338,8 @@ def to_tensor_rep(q_oper):
     ```
     """
     dims = q_oper._dims
-    data = q_oper.full().reshape(dims.get_tensor_shape())
-    return data.transpose(dims.get_tensor_perm())
+    data = q_oper.full().reshape(dims._get_tensor_shape())
+    return data.transpose(dims._get_tensor_perm())
 
 
 def from_tensor_rep(tensorrep, dims):
@@ -350,7 +350,7 @@ def from_tensor_rep(tensorrep, dims):
     """
     from . import Qobj
     dims = Dimensions(dims)
-    data = tensorrep.transpose(np.argsort(dims.get_tensor_perm()))
+    data = tensorrep.transpose(np.argsort(dims._get_tensor_perm()))
     return Qobj(data.reshape(dims.shape), dims=dims)
 
 
@@ -463,23 +463,45 @@ class Space(metaclass=MetaSpace):
         return str(self.as_list())
 
     def dims2idx(self, dims):
+        """
+        Transform dimensions indices to full array indices.
+        """
         return dims
 
     def idx2dims(self, idx):
+        """
+        Transform full array indices to dimensions indices.
+        """
         return [idx]
 
     def step(self):
+        """
+        Get the step in the array between for each dimensions index.
+
+        If element ``[i, j, k]`` is ``ket.full()[m, 0]`` then element
+        ``[i, j+1, k]`` is ``ket.full()[m + ket._dims.step()[1], 0]``.
+        """
         return [1]
 
     def flat(self):
+        """ Dimensions as a flat list. """
         return [self.size]
 
     def remove(self, idx):
+        """
+        Remove a Space from a Dimensons or complex Space.
+
+        ``Space([2, 3, 4]).remove(1) == Space([2, 4])``
+        """
         raise RuntimeError("Cannot delete a flat space.")
 
     def replace(self, idx, new):
-        return Space(new)
+        """
+        Reshape a Space from a Dimensons or complex Space.
 
+        ``Space([2, 3, 4]).replace(1, 5) == Space([2, 5, 4])``
+        """
+        return Space(new)
 
 
 class Field(Space):
@@ -744,6 +766,9 @@ class Dimensions(metaclass=MetaDims):
         return str(self.as_list())
 
     def as_list(self):
+        """
+        Return the list representation of the Dimensions object.
+        """
         return [self.to_.as_list(), self.from_.as_list()]
 
     def __getitem__(self, key):
@@ -753,18 +778,36 @@ class Dimensions(metaclass=MetaDims):
             return self.from_
 
     def dims2idx(self, dims):
+        """
+        Transform dimensions indices to full array indices.
+        """
         return self.to_.dims2idx(dims[0]), self.from_.dims2idx(dims[1])
 
     def idx2dims(self, idxl, idxr):
+        """
+        Transform full array indices to dimensions indices.
+        """
         return [self.to_.idx2dims(idxl), self.from_.idx2dims(idxr)]
 
     def step(self):
+        """
+        Get the step in the array between for each dimensions index.
+
+        If element ``[i, j, k]`` is ``ket.full()[m, 0]`` then element
+        ``[i, j+1, k]`` is ``ket.full()[m + ket._dims.step()[1], 0]``.
+        """
         return [self.to_.step(), self.from_.step()]
 
     def flat(self):
+        """ Dimensions as a flat list. """
         return [self.to_.flat(), self.from_.flat()]
 
-    def get_tensor_shape(self):
+    def _get_tensor_shape(self):
+        """
+        Get the shape to of the Nd tensor with one dimensions for each
+        Dimension index. The order of the space values are not in the order of
+        the Dimension index.
+        """
         # dims_to_tensor_shape
         stepl = self.to_.step()
         flatl = self.to_.flat()
@@ -775,7 +818,11 @@ class Dimensions(metaclass=MetaDims):
             np.array(flatr)[np.argsort(stepr)[::-1]],
         ]))
 
-    def get_tensor_perm(self):
+    def _get_tensor_perm(self):
+        """
+        Get the permutation of a tensor created using ``_get_tensor_shape`` to
+        reorder the tensor dimensions with those of the Dimensions object.
+        """
         # dims_to_tensor_perm
         stepl = self.to_.step()
         stepr = self.from_.step()
@@ -785,6 +832,11 @@ class Dimensions(metaclass=MetaDims):
         ]))
 
     def remove(self, idx):
+        """
+        Remove a Space from a Dimensons or complex Space.
+
+        ``Space([2, 3, 4]).remove(1) == Space([2, 4])``
+        """
         if not isinstance(idx, list):
             idx = [idx]
         if not idx:
@@ -799,6 +851,11 @@ class Dimensions(metaclass=MetaDims):
         )
 
     def replace(self, idx, new):
+        """
+        Reshape a Space from a Dimensons or complex Space.
+
+        ``Space([2, 3, 4]).replace(1, 5) == Space([2, 5, 4])``
+        """
         n_indices = len(self.to_.flat())
         if idx < n_indices:
             new_to = self.to_.replace(idx, new)

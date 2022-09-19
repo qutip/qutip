@@ -436,8 +436,8 @@ cdef class QobjEvo:
         if isinstance(other, Qobj):
             if other._dims[1] != self._dims[0]:
                 raise TypeError("incompatible dimensions" +
-                                 str(other._dims[1]) + ", " +
-                                 str(self._dims[0]))
+                                 str(other.dims[1]) + ", " +
+                                 str(self.dims[0]))
             res = self.copy()
             res._dims = Dimensions([other._dims[0], res._dims[1]])
             res.shape = (other.shape[0], res.shape[1])
