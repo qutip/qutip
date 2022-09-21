@@ -593,6 +593,7 @@ def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
         print(inspect.stack()[0][3])
 
     rho_t = mesolve(H, rho0, tlist, c_ops, args=args, options=options).states
+    print(rho_t)
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
     H = QobjEvo(H, args=args, tlist=tlist, copy=False)
     c_ops = [QobjEvo(op, args=args, tlist=tlist, copy=False) for op in c_ops]

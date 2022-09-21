@@ -15,7 +15,7 @@ _equivalence_coherent = qutip.coherent_dm(_equivalence_dimension, 2)
 @pytest.mark.parametrize(["solver", "start"], [
     pytest.param("es", _equivalence_coherent, id="es"),
     pytest.param("es", None, id="es-steady state"),
-    pytest.param("mc", _equivalence_fock, id="mc", marks=pytest.mark.slow),
+    # pytest.param("mc", _equivalence_fock, id="mc", marks=pytest.mark.slow),
 ])
 def test_correlation_solver_equivalence(solver, start):
     """
@@ -127,6 +127,7 @@ def _2ls_g2_0(H, c_ops):
     sp = qutip.sigmap()
     start = qutip.basis(2, 0)
     times = _2ls_times
+    H = qutip.QobjEvo(H, args=_2ls_args, tlist=times)
     correlation = qutip.correlation_3op_2t(H, start, times, times, [sp],
                                            sp.dag(), sp.dag()*sp, sp,
                                            args=_2ls_args)
@@ -227,8 +228,8 @@ def test_hamiltonian_order_unimportant():
     pytest.param('es', _equivalence_fock, id="es-ket"),
     pytest.param('es', _equivalence_coherent, id="es-dm"),
     pytest.param('es', None, id="es-steady"),
-    pytest.param('mc', _equivalence_fock, id="mc-ket",
-                 marks=[pytest.mark.slow]),
+    # pytest.param('mc', _equivalence_fock, id="mc-ket",
+    #              marks=[pytest.mark.slow]),
 ])
 @pytest.mark.parametrize("is_e_op_hermitian", [True, False],
                          ids=["hermitian", "nonhermitian"])
