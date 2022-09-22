@@ -239,12 +239,12 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
         be used as the initial state. The 'steady-state' is only implemented
         for the ``me`` and ``es`` solvers if ``c_ops`` are provided.
     tlist : array_like
-        list of times for :math:`t`. tlist must be positive and contain the
+        List of times for :math:`t`. tlist must be positive and contain the
         element `0`. When taking steady-steady correlations only one tlist
         value is necessary, i.e. when :math:`t \rightarrow \infty`; here
         tlist is automatically set, ignoring user input.
     taulist : array_like
-        list of times for :math:`\tau`. taulist must be positive and contain
+        List of times for :math:`\tau`. taulist must be positive and contain
         the element `0`.
     c_ops : list of {Qobj, QobjEvo}
         List of collapse operators
@@ -445,6 +445,29 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None):
     r"""
     Calculate the three-operator two-time correlation function:
     :math:`\left<A(t)B(t+\tau)C(t)\right>`
+
+    Note: it is not possibly to calculate a physically meaningful correlation
+    of this form where :math:`\tau<0`.
+
+    Parameters
+    ----------
+    solver : :class:`MeSolver`, :class:`BRSolver`, :class:`HEOMSolver`
+        Qutip solver for an open system.
+    state0 : Qobj
+        Initial state density matrix :math:`\rho(t_0)` or state vector
+        :math:`\psi(t_0)`.
+    tlist : array_like
+        List of times for :math:`t`. tlist must be positive and contain the
+        element `0`.
+    taulist : array_like
+        List of times for :math:`\tau`. taulist must be positive and contain
+        the element `0`.
+    A : Qobj, QobjEvo, optional, default=None
+        Operator A.
+    B : Qobj, QobjEvo, optional, default=None
+        Operator B.
+    C : Qobj, QobjEvo, optional, default=None
+        Operator C.
     """
 
     if not isinstance(solver, (MeSolver, BRSolver, HEOMSolver)):
