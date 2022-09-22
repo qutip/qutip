@@ -267,3 +267,37 @@ def test_correlation_2op_1t_known_cases(solver,
     cmp = qutip.correlation_2op_1t(H, state, times, c_ops, a_op, b_op, solver=solver)
 
     np.testing.assert_allclose(base, cmp, atol=0.25 if solver == 'mc' else 2e-5)
+
+
+def test_correlation_timedependant_op():
+    num = qutip.num(2)
+    a = qutip.destroy(2)
+    sx = qutip.sigmax()
+    sz = qutip.sigmaz()
+    times = np.arange(4)
+    # swith between sx and sz at t=1.5
+    A_op = qutip.QobjEvo([[sx, lambda t: t<=1.5], [sz, lambda t: t>1.5]])
+
+    cmp_sx = qutip.correlation_2op_1t(num, None, times, [a], sx, sx)
+    cmp_sz = qutip.correlation_2op_1t(num, None, times, [a], sz, sx)
+    cmp_switch = qutip.correlation_2op_1t(num, None, times, [a], A_op, sx)
+    np.testing.assert_allclose(cmp_sx[:2], cmp_switch[:2])
+    np.testing.assert_allclose(cmp_sz[-2:], cmp_switch[-2:])
+
+
+def test_alternative_solver():
+    from qutip.solver.mesolve import MeSolver
+    from qutip.solver.brmesolve import BRSolver
+
+    H = qutip.num(5)
+    a = qutip.destroy(5)
+    a_ops = [(a+a.dag(), qutip.coefficient(lambda _, w: w>0, args={"w":0}))]
+
+    br = BRSolver(H, a_ops)
+    me = MeSolver(H, [a])
+    times = np.arange(4)
+
+    br_corr = qutip.correlation_3op(br, qutip.basis(5), [0], times, a, a.dag())
+    me_corr = qutip.correlation_3op(me, qutip.basis(5), [0], times, a, a.dag())
+
+    np.testing.assert_allclose(br_corr, me_corr)

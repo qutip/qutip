@@ -458,8 +458,8 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None):
     if isinstance(solver, (MeSolver, BRSolver, HEOMSolver)):
         out = _correlation_3op_dm(solver, state0, tlist, taulist, A, B, C)
     elif isinstance(solver, McSolver):
-        raise TypeError("Monte Carlo support for correlation is no longer "
-                        "supported .")
+        raise TypeError("Monte Carlo support for correlation was removed. "
+                        "Please tell us on github if you need it.")
     else:
         raise TypeError("Only solver able to evolve density matrices"
                         " are supported.")
@@ -483,7 +483,6 @@ def _correlation_3op_dm(solver, state0, tlist, taulist, A, B, C):
 
         for t_idx, rho in enumerate(rho_t):
             t = tlist[t_idx]
-            print(t_idx, C(t) @ rho @ A(t))
             corr_mat[t_idx, :] = solver.run(
                 C(t) @ rho @ A(t),
                 taulist + t,
