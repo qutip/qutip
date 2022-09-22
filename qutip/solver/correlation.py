@@ -57,14 +57,11 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
     reverse : bool {False, True}
         If `True`, calculate :math:`\left<A(t)B(t+\tau)\right>` instead of
         :math:`\left<A(t+\tau)B(t)\right>`.
-    solver : str {'me', 'mc', 'es'}
-        Choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
-        `es` for exponential series).
+    solver : str {'me', 'es'}
+        Choice of solver (`me` for master-equation, and `es` for exponential
+        series).
     options : dict
-        Options for the solver. If the Monte Carlo solver is used, an extra
-        ``ntraj`` key is used, for the number of trajectories averaged
-        (default: 100). ``mc_corr_eps`` is used to prevents divide-by-zero
-        errors in the `mc` correlator.
+        Options for the solver.
 
     Returns
     -------
@@ -123,15 +120,11 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
     reverse : bool {False, True}
         If `True`, calculate :math:`\left<A(t)B(t+\tau)\right>` instead of
         :math:`\left<A(t+\tau)B(t)\right>`.
-    solver : str {'me', 'mc', 'es'}
-        Choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
-        `es` for exponential series).
+    solver : str {'me', 'es'}
+        Choice of solver (`me` for master-equation, and `es` for exponential
+        series).
     options : dict
-        Options for the solver. If the Monte Carlo solver is used, an extra
-        ``ntraj`` key is used, for the number of trajectories averaged
-        (default: 20 for the evolutions over tlist, 100 for the evolutions over
-        taulist). ``mc_corr_eps`` is used to prevents divide-by-zero errors in
-        the `mc` correlator.
+        Options for the solver.
 
     Returns
     -------
@@ -193,13 +186,10 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
     c_op : Qobj, QobjEvo
         Operator C.
     solver : str
-        choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
-        `es` for exponential series).
+        choice of solver (`me` for master-equation, and `es` for exponential
+        series).
     options : dict
-        Options for the solver. If the Monte Carlo solver is used, an extra
-        ``ntraj`` key is used, for the number of trajectories averaged
-        (default: 100). ``mc_corr_eps`` is used to prevents divide-by-zero
-        errors in the `mc` correlator.
+        Options for the solver.
 
     Returns
     -------
@@ -255,14 +245,10 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     c_op : Qobj, QobjEvo
         Operator C.
     solver : str
-        Choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
-        `es` for exponential series).
+        Choice of solver (`me` for master-equation, and `es` for exponential
+        series).
     options : dict
-        Options for the solver. If the Monte Carlo solver is used, an extra
-        ``ntraj`` key is used, for the number of trajectories averaged
-        (default: 20 for the evolutions over tlist, 100 for the evolutions over
-        taulist). ``mc_corr_eps`` is used to prevents divide-by-zero errors in
-        the `mc` correlator.
+        Options for the solver.
 
     Returns
     -------
@@ -323,13 +309,10 @@ def coherence_function_g1(
     a_op : Qobj, QobjEvo
         Operator A.
     solver : str
-        Choice of solver (`me` for master-equation and
-        `es` for exponential series).
+        Choice of solver (`me` for master-equation and `es` for exponential
+        series).
     options : dict
-        Options for the solver. If the Monte Carlo solver is used, an extra
-        ``ntraj`` key is used, for the number of trajectories averaged
-        (default: 100). ``mc_corr_eps`` is used to prevents divide-by-zero
-        errors in the `mc` correlator.
+        Options for the solver.
 
     Returns
     -------
@@ -371,8 +354,7 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me",
     Parameters
     ----------
     H : Qobj
-        system Hamiltonian, may be time-dependent for solver choice of `me` or
-        `mc`.
+        system Hamiltonian, may be time-dependent for solver choice of `me`.
     state0 : Qobj
         Initial state density matrix :math:`\rho(t_0)` or state vector
         :math:`\psi(t_0)`. If 'state0' is 'None', then the steady state will
@@ -383,7 +365,7 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me",
         the element `0`.
     c_ops : list
         list of collapse operators, may be time-dependent for solver choice of
-        `me` or `mc`.
+        `me`.
     a_op : Qobj
         operator A.
     args : dict
@@ -392,11 +374,7 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me",
         choice of solver (`me` for master-equation and
         `es` for exponential series).
     options : dict
-        Options for the solver. If the Monte Carlo solver is used, an extra
-        ``ntraj`` key is used, for the number of trajectories averaged
-        (default: 20 for the evolutions over tlist, 100 for the evolutions over
-        taulist). ``mc_corr_eps`` is used to prevents divide-by-zero errors in
-        the `mc` correlator.
+        Options for the solver.
 
     Returns
     -------
@@ -437,7 +415,7 @@ def _make_solver(H, c_ops, args, options, solver):
         options = {**options, **{"method": "diag"}}
         solver_instance = MeSolver(H, c_ops, options=options)
     elif solver == "mc":
-        solver_instance = McSolver(H, c_ops, options=options)
+        raise ValueError("MC solver for correlation has been removed")
     return solver_instance
 
 
@@ -470,11 +448,6 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None):
         Operator C.
     """
 
-    if not isinstance(solver, (MeSolver, BRSolver, HEOMSolver)):
-        raise Exception()
-
-    old_opt = solver.options.copy()
-
     taulist = np.asarray(taulist)
 
     dims = state0.dims[0]
@@ -482,6 +455,20 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None):
     B = _fix_op_type(B, dims)
     C = _fix_op_type(C, dims)
 
+    if isinstance(solver, (MeSolver, BRSolver, HEOMSolver)):
+        out = _correlation_3op_dm(solver, state0, tlist, taulist, A, B, C)
+    elif isinstance(solver, McSolver):
+        raise TypeError("Monte Carlo support for correlation is no longer "
+                        "supported .")
+    else:
+        raise TypeError("Only solver able to evolve density matrices"
+                        " are supported.")
+
+    return out
+
+
+def _correlation_3op_dm(solver, state0, tlist, taulist, A, B, C):
+    old_opt = solver.options.copy()
     try:
         # We don't want to modify the solver
         # TODO: Solver could have a ``with`` or ``copy``.
