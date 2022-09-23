@@ -1,6 +1,8 @@
 import numpy as np
 from qutip import (destroy, propagator, Propagator, propagator_steadystate,
                    steadystate, tensor, qeye, basis, QobjEvo, sesolve)
+import qutip
+from qutip.solver.brmesolve import BRSolver
 
 
 def testPropHOB():
@@ -15,7 +17,7 @@ def testPropObj():
     opt = {"method": "dop853"}
     a = destroy(5)
     H = a.dag()*a
-    U = Propagator(H, [a], options=opt, memoize=5, tol=1e-5)
+    U = Propagator(H, c_ops=[a], options=opt, memoize=5, tol=1e-5)
     # Few call to fill the stored propagators.
     U(0.5), U(0.25), U(0.75), U(1), U(-1), U(-.5)
     assert len(U.times) == 5
@@ -44,7 +46,7 @@ def testPropHOTd():
 def testPropObjTd():
     a = destroy(5)
     H = a.dag()*a
-    U = Propagator([H, [H, "w*t"]], [a], args={'w': 1})
+    U = Propagator([H, [H, "w*t"]], c_ops=[a], args={'w': 1})
     assert (
         U(1) - propagator([H, [H, "w*t"]], 1, [a], args={'w': 1})
     ).norm('max') < 1e-4
@@ -92,3 +94,15 @@ def testPropEvo():
     ).states
     for t, psi_t in zip(tlist, psi_expected):
         assert abs(psi(t).overlap(psi_t)) > 1-1e-6
+
+
+def testPropSolver():
+    a = destroy(5)
+    H = a.dag()*a
+    spectra = qutip.coefficient(lambda t, w: w >= 0, args={"w": 0})
+    solver = BRSolver(H, [(a+a.dag(), spectra)])
+    U = Propagator(solver)
+
+    assert (U(1) - propagator(H, 1, [a])).norm('max') < 1e-4
+    assert (U(0.5) - propagator(H, 0.5, [a])).norm('max') < 1e-4
+    assert (U(1.5, 0.5) - propagator(H, 1, [a])).norm('max') < 1e-4

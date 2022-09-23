@@ -7,6 +7,7 @@ from .. import Qobj, qeye, unstack_columns, QobjEvo
 from ..core import data as _data
 from .mesolve import mesolve, MeSolver
 from .sesolve import sesolve, SeSolver
+from .solver_base import Solver
 
 
 def propagator(H, t, c_ops=(), args=None, options=None, **kwargs):
@@ -145,25 +146,21 @@ class Propagator:
     """
     def __init__(self, system, *, c_ops=(), args=None, options=None,
                  memoize=10, tol=1e-14):
-        if isinstance(system, (Qobj, QobjEvo)):
-            Hevo = QobjEvo(H, args=args)
+        if isinstance(system, Solver):
+            self.solver = system
+        else:
+            Hevo = QobjEvo(system, args=args)
             c_ops = [QobjEvo(op, args=args) for op in c_ops]
             if Hevo.issuper or c_ops:
                 self.solver = MeSolver(Hevo, c_ops=c_ops, options=options)
             else:
                 self.solver = SeSolver(Hevo, options=options)
-        elif isinstance(system, Solver):
-            self.solver = system
-        else:
-            raise TypeError("The probagator need a solver or an Hamiltonian"
-                            " as the system.")
+
         self.times = [0]
         self.invs = [None]
         self.props = [qeye(self.solver.sys_dims)]
         self.cte = self.solver.rhs.isconstant
-        self.unitary = (not self.solver.rhs.issuper
-                        and isinstance(H, Qobj)
-                        and H.isherm)
+        self.unitary = isinstance(system, SeSolver)
         self.args = args
         self.memoize = max(3, int(memoize))
         self.tol = tol

@@ -66,7 +66,7 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
             ]
 
         .. note:
-            ``Cubic_Spline`` has been replaced by :class:`Coefficient`\:
+            ``Cubic_Spline`` has been replaced by :class:`Coefficient`:
                 ``spline = qutip.coefficient(array, tlist=times)``
 
             Whether the ``a_ops`` is time dependent is decided by the type of
@@ -285,6 +285,8 @@ class BRSolver(Solver):
         self._integrator = self._get_integrator()
         self._state_metadata = {}
         self.stats = self._initialize_stats()
+        self.sys_dims = self.rhs.dims[0]
+        self.evolve_dm = True
 
 
     def _initialize_stats(self):
