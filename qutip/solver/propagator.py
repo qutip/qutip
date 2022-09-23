@@ -110,10 +110,15 @@ class Propagator:
 
     Parameters
     ----------
-    H : :class:`Qobj`, :class:`QobjEvo`, :class:`QobjEvo` compatible format.
-        Possibly time-dependent system Liouvillian or Hamiltonian as a Qobj or
-        QobjEvo. ``list`` of [:class:`Qobj`, :class:`Coefficient`] or callable
-        that can be made into :class:`QobjEvo` are also accepted.
+    system : :class:`Qobj`, :class:`QobjEvo`, :class:`Solver`
+        Possibly time-dependent system driving the evolution, either already
+        packaged in a solver, such as :class:`SeSolver` or :class:`BrSolver`,
+        or the Liouvillian or Hamiltonian as a :class:`Qobj`, :class:`QobjEvo`.
+        ``list`` of [:class:`Qobj`, :class:`Coefficient`] or callable that can
+        be made into :class:`QobjEvo` are also accepted.
+
+        Solver that run non-deterministacilly, such as :class:`McSolver`, are
+        not supported.
 
     c_ops : list, optional
         List of Qobj or QobjEvo collapse operators.
@@ -138,18 +143,23 @@ class Propagator:
         into a :class:`QobjEvo` with ::
             U = QobjEvo(Propagator(H))
     """
-    def __init__(self, H, c_ops=(), args=None, options=None,
+    def __init__(self, system, *, c_ops=(), args=None, options=None,
                  memoize=10, tol=1e-14):
-        Hevo = QobjEvo(H, args=args)
-        c_ops = [QobjEvo(op, args=args) for op in c_ops]
+        if isinstance(system, (Qobj, QobjEvo)):
+            Hevo = QobjEvo(H, args=args)
+            c_ops = [QobjEvo(op, args=args) for op in c_ops]
+            if Hevo.issuper or c_ops:
+                self.solver = MeSolver(Hevo, c_ops=c_ops, options=options)
+            else:
+                self.solver = SeSolver(Hevo, options=options)
+        elif isinstance(system, Solver):
+            self.solver = system
+        else:
+            raise TypeError("The probagator need a solver or an Hamiltonian"
+                            " as the system.")
         self.times = [0]
         self.invs = [None]
-        if Hevo.issuper or c_ops:
-            self.props = [qeye(Hevo.dims)]
-            self.solver = MeSolver(Hevo, c_ops=c_ops, options=options)
-        else:
-            self.props = [qeye(Hevo.dims[0])]
-            self.solver = SeSolver(Hevo, options=options)
+        self.props = [qeye(self.solver.sys_dims)]
         self.cte = self.solver.rhs.isconstant
         self.unitary = (not self.solver.rhs.issuper
                         and isinstance(H, Qobj)

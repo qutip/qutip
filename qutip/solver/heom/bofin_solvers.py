@@ -609,7 +609,6 @@ class HEOMSolver(Solver):
 
         self._sys_shape = int(np.sqrt(self.L_sys.shape[0]))
         self._sup_shape = self.L_sys.shape[0]
-        self._sys_dims = self.L_sys.dims[0]
 
         self.ados = HierarchyADOs(
             self._combine_bath_exponents(bath), max_depth,
@@ -654,6 +653,8 @@ class HEOMSolver(Solver):
         self._init_rhs_time = time() - _time_start
 
         super().__init__(rhs, options=options)
+        self.sys_dims = self.L_sys.dims[0]
+        self.evolve_dm = True
 
     def _initialize_stats(self):
         stats = super()._initialize_stats()
@@ -962,7 +963,7 @@ class HEOMSolver(Solver):
 
         data = _data.Dense(solution[:n ** 2].reshape((n, n)))
         data = _data.mul(_data.add(data, data.conj()), 0.5)
-        steady_state = Qobj(data, dims=self._sys_dims)
+        steady_state = Qobj(data, dims=self.sys_dims)
 
         solution = solution.reshape((self._n_ados, n, n))
         steady_ados = HierarchyADOsState(steady_state, self.ados, solution)
@@ -1040,7 +1041,7 @@ class HEOMSolver(Solver):
 
     def _prepare_state(self, state):
         n = self._sys_shape
-        rho_dims = self._sys_dims
+        rho_dims = self.sys_dims
         hierarchy_shape = (self._n_ados, n, n)
 
         rho0 = state
@@ -1082,7 +1083,7 @@ class HEOMSolver(Solver):
     def _restore_state(self, state, *, copy=True):
         n = self._sys_shape
         rho_shape = (n, n)
-        rho_dims = self._sys_dims
+        rho_dims = self.sys_dims
         hierarchy_shape = (self._n_ados, n, n)
 
         rho = Qobj(

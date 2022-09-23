@@ -46,6 +46,8 @@ class Solver:
             self.rhs = QobjEvo(rhs)
         else:
             TypeError("The rhs must be a QobjEvo")
+        self.sys_dims = rhs.dims[0]
+        self.evolve_dm = rhs.issuper
         self._options = {}
         self.options = {} if options is None else options
         self._integrator = self._get_integrator()
