@@ -312,6 +312,9 @@ cdef class QobjEvo:
             if _args is not None:
                 kwargs.update(_args)
             return QobjEvo(self, args=kwargs)(t)
+        if self.isconstant:
+            # When the QobjEvo is constant, it is usually made of only one Qobj
+            return sum(element.qobj(t) for element in self.elements)
         return Qobj(
             self._call(t), dims=self.dims, copy=False,
             type=self.type, superrep=self.superrep

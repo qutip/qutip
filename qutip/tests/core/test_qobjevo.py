@@ -1,7 +1,8 @@
 import operator
 
 import pytest
-from qutip import *
+from qutip import (Qobj, QobjEvo, coefficient, qeye, sigmax, sigmaz,
+                   rand_stochastic, rand_herm, rand_ket, liouvillian)
 import numpy as np
 from numpy.testing import assert_allclose
 
@@ -59,18 +60,18 @@ def _cplx(t, args):
 
 
 real_qevo = Pseudo_qevo(
-    rand_stochastic(N).to(data.CSR),
-    rand_stochastic(N).to(data.CSR),
+    rand_stochastic(N).to(_data.CSR),
+    rand_stochastic(N).to(_data.CSR),
     _real, "sin(t*w1)", args)
 
 herm_qevo = Pseudo_qevo(
-    rand_herm(N).to(data.Dense),
-    rand_herm(N).to(data.Dense),
+    rand_herm(N).to(_data.Dense),
+    rand_herm(N).to(_data.Dense),
     _real, "sin(t*w1)", args)
 
 cplx_qevo = Pseudo_qevo(
-    rand_stochastic(N).to(data.Dense),
-    rand_stochastic(N).to(data.CSR) + rand_stochastic(N).to(data.CSR) * 1j,
+    rand_stochastic(N).to(_data.Dense),
+    rand_stochastic(N).to(_data.CSR) + rand_stochastic(N).to(_data.CSR) * 1j,
     _cplx, "exp(1j*t*w2)", args)
 
 
@@ -355,7 +356,7 @@ def test_expect_rho(all_qevo):
 
 @pytest.mark.parametrize('dtype',
 [pytest.param(dtype, id=dtype.__name__)
-     for dtype in core.data.to.dtypes])
+     for dtype in _data.to.dtypes])
 def test_convert(all_qevo, dtype):
     "QobjEvo expect rho"
     op = all_qevo.to(dtype)
@@ -380,14 +381,14 @@ def test_compress():
 
 @pytest.mark.parametrize(['qobjdtype'],
     [pytest.param(dtype, id=dtype.__name__)
-     for dtype in core.data.to.dtypes])
+     for dtype in _data.to.dtypes])
 @pytest.mark.parametrize(['statedtype'],
     [pytest.param(dtype, id=dtype.__name__)
-     for dtype in core.data.to.dtypes])
+     for dtype in _data.to.dtypes])
 def test_layer_support(qobjdtype, statedtype):
     N = 10
     qevo = QobjEvo(rand_herm(N).to(qobjdtype))
-    state_dense = rand_ket(N).to(core.data.Dense)
+    state_dense = rand_ket(N).to(_data.Dense)
     state = state_dense.to(statedtype).data
     state_dense = state_dense.data
     exp_any = qevo.expect_data(0, state)
@@ -431,3 +432,11 @@ def test_QobjEvo_step_coeff():
     assert qobjevo(6.7)[0,1] == coeff2[4]
     assert qobjevo(7.9999)[0,1] == coeff2[4]
     assert qobjevo(3.9999)[0,1] == coeff2[1]
+
+
+def test_QobjEvo_isherm_flag_knowcase():
+    assert QobjEvo(sigmax())(0)._isherm is True
+    non_hermitian = sigmax() + 1j
+    non_hermitian.isherm  # set flag
+    assert QobjEvo(non_hermitian)(0)._isherm is False
+    assert QobjEvo([sigmax(), sigmaz()])(0)._isherm is True
