@@ -7,6 +7,7 @@ from .. import Qobj, qeye, unstack_columns, QobjEvo
 from ..core import data as _data
 from .mesolve import mesolve, MeSolver
 from .sesolve import sesolve, SeSolver
+from .mcsolve import McSolver
 from .solver_base import Solver
 
 
@@ -146,7 +147,9 @@ class Propagator:
     """
     def __init__(self, system, *, c_ops=(), args=None, options=None,
                  memoize=10, tol=1e-14):
-        if isinstance(system, Solver):
+        if isinstance(system, McSolver):
+            raise TypeError("McSolver cannot be used in propagator")
+        elif isinstance(system, Solver):
             self.solver = system
         else:
             Hevo = QobjEvo(system, args=args)
