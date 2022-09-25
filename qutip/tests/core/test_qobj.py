@@ -386,6 +386,23 @@ def test_QobjDivisionNotValidScalar(not_scalar):
         q1 / not_scalar
 
 
+def test_QobjNotImplemented():
+    class MockerScalar():
+        def __mul__(self, other):
+            return "object not accepted by _data.mul, mul"
+
+        def __rmul__(self, other):
+            return "object not accepted by _data.mul, rmul"
+
+        def __rtruediv__(self, other):
+            return "object not accepted by _data.mul, rtruediv"
+
+    qobj = qutip.Qobj(np.array([[1, 2], [3, 4]]))
+    scalar = MockerScalar()
+    assert (qobj*scalar) == "object not accepted by _data.mul, rmul"
+    assert (scalar*qobj) == "object not accepted by _data.mul, mul"
+    assert (qobj/scalar) == "object not accepted by _data.mul, rtruediv"
+
 def test_QobjDivision():
     "qutip.Qobj division"
     data = _random_not_singular(5)
