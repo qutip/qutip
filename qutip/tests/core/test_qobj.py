@@ -7,6 +7,7 @@ import scipy.sparse
 import scipy.linalg
 
 import qutip
+from qutip.core import data as _data
 
 
 def _random_not_singular(N):
@@ -1063,6 +1064,28 @@ def test_unit():
     psi.unit(inplace=True)
     assert psi == psi2
     np.testing.assert_allclose(np.linalg.norm(psi.full()), 1.0)
+
+
+def test_trace():
+    sz = qutip.sigmaz()
+    assert sz.tr() == 0
+
+
+def test_no_real_attribute(monkeypatch):
+    """This tests ensures that trace still works even if the output of a
+    specialisation does not have the ``real`` attribute. This is the case for
+    the tensorflow and cupy data layers."""
+
+    def mocker_trace_return(oper):
+        """
+        We simply return a string which does not have the `real` attribute.
+        """
+        return "object without .real"
+
+    monkeypatch.setattr(_data, "trace", mocker_trace_return)
+
+    sz = qutip.sigmaz() # the choice of the matrix does not matter
+    assert "object without .real" == sz.tr()
 
 
 @pytest.mark.parametrize('inplace', [True, False], ids=['inplace', 'new'])

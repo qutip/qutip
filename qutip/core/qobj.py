@@ -785,7 +785,11 @@ class Qobj:
 
         """
         out = _data.trace(self._data)
-        return out.real if self.isherm else out
+        # This ensures that trace can return something that is not a number such
+        # as a `tensorflow.Tensor` in qutip-tensorflow.
+        return out.real if (self.isherm
+                        and hasattr(out, "real")
+                        ) else out
 
     def purity(self):
         """Calculate purity of a quantum object.
