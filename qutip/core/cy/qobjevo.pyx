@@ -316,7 +316,10 @@ cdef class QobjEvo:
         t = self._prepare(t, None)
 
         if self.isconstant:
-            # When the QobjEvo is constant, it is usually made of only one Qobj
+            # For constant QobjEvo's, we sum the contained Qobjs directly in
+            # order to retain the cached values of attributes like .isherm when
+            # possible, rather than calling _call(t) which may lose this cached
+            # information.
             return sum(element.qobj(t) for element in self.elements)
 
         cdef _BaseElement part = self.elements[0]
