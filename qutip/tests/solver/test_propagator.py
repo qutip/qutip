@@ -142,6 +142,10 @@ def testPropHEOM():
     assert U(1).dims == [[[2], [2]], [[2], [2]]]
     assert U(2).istp
 
+    rho = qutip.rand_dm(2)
+    hsolver.start(rho, 0)
+    np.testing.assert_allclose(U(1)(rho).full(), hsolver.step(1).full())
+
 
 def testPropMcSolver():
     a = destroy(5)
