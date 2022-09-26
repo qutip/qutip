@@ -144,7 +144,10 @@ def testPropHEOM():
 
     rho = qutip.rand_dm(2)
     hsolver.start(rho, 0)
-    np.testing.assert_allclose(U(1)(rho).full(), hsolver.step(1).full())
+    np.testing.assert_allclose(
+        U(1)(rho).full(), hsolver.step(1).full(),
+        atol=1e-6
+    )
 
 
 def testPropMcSolver():
