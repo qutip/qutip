@@ -312,11 +312,27 @@ cdef class QobjEvo:
             if _args is not None:
                 kwargs.update(_args)
             return QobjEvo(self, args=kwargs)(t)
+
+        t = self._prepare(t, None)
+
         if self.isconstant:
             # When the QobjEvo is constant, it is usually made of only one Qobj
             return sum(element.qobj(t) for element in self.elements)
+
+        cdef _BaseElement part = self.elements[0]
+        cdef double complex coeff = part.coeff(t)
+        obj = part.qobj(t)
+        cdef Data out = _data.mul(obj.data, coeff)
+        cdef bint isherm = <bint> obj._isherm and coeff.imag == 0
+        for element in self.elements[1:]:
+            part = <_BaseElement> element
+            coeff = part.coeff(t)
+            obj = part.qobj(t)
+            isherm &= <bint> obj._isherm and coeff.imag == 0
+            out = _data.add(out, obj.data, coeff)
+
         return Qobj(
-            self._call(t), dims=self.dims, copy=False,
+            out, dims=self.dims, copy=False, isherm=isherm or None,
             type=self.type, superrep=self.superrep
         )
 
@@ -328,6 +344,7 @@ cdef class QobjEvo:
                         part.coeff(t))
         for element in self.elements[1:]:
             part = <_BaseElement> element
+
             out = _data.add(
                 out,
                 part.data(t),

@@ -440,3 +440,7 @@ def test_QobjEvo_isherm_flag_knowcase():
     non_hermitian.isherm  # set flag
     assert QobjEvo(non_hermitian)(0)._isherm is False
     assert QobjEvo([sigmax(), sigmaz()])(0)._isherm is True
+    assert QobjEvo([sigmax(), "t"])(0)._isherm is True
+    assert QobjEvo([sigmax(), "1j"])(0)._isherm is None
+    assert QobjEvo([[sigmax(), "t"], [sigmaz(), "1"]])(0)._isherm is True
+    assert QobjEvo([[sigmax(), "t"], [sigmaz(), "1j"]])(0)._isherm is None
