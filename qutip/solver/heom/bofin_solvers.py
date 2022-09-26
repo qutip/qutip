@@ -609,6 +609,7 @@ class HEOMSolver(Solver):
 
         self._sys_shape = int(np.sqrt(self.L_sys.shape[0]))
         self._sup_shape = self.L_sys.shape[0]
+        self._sys_dims = self.L_sys.dims[0]
 
         self.ados = HierarchyADOs(
             self._combine_bath_exponents(bath), max_depth,
@@ -653,8 +654,17 @@ class HEOMSolver(Solver):
         self._init_rhs_time = time() - _time_start
 
         super().__init__(rhs, options=options)
-        self.sys_dims = self.L_sys.dims[0]
         self.evolve_dm = True
+
+    @property
+    def sys_dims(self):
+        """
+        Dimensions of the space that the system use:
+
+        ``qutip.basis(sovler.dims)`` will create a state with proper dimensions
+        for this solver.
+        """
+        return self._sys_dims
 
     def _initialize_stats(self):
         stats = super()._initialize_stats()
@@ -963,7 +973,7 @@ class HEOMSolver(Solver):
 
         data = _data.Dense(solution[:n ** 2].reshape((n, n)))
         data = _data.mul(_data.add(data, data.conj()), 0.5)
-        steady_state = Qobj(data, dims=self.sys_dims)
+        steady_state = Qobj(data, dims=self._sys_dims)
 
         solution = solution.reshape((self._n_ados, n, n))
         steady_ados = HierarchyADOsState(steady_state, self.ados, solution)
@@ -1041,7 +1051,7 @@ class HEOMSolver(Solver):
 
     def _prepare_state(self, state):
         n = self._sys_shape
-        rho_dims = self.sys_dims
+        rho_dims = self._sys_dims
         hierarchy_shape = (self._n_ados, n, n)
 
         rho0 = state
@@ -1066,13 +1076,25 @@ class HEOMSolver(Solver):
             rho0_he = rho0_he.reshape(n ** 2 * self._n_ados)
             rho0_he = _data.create(rho0_he)
         else:
-            if rho0.dims != rho_dims:
+            if rho0.dims == rho_dims:
+                n_sub = 1
+            elif rho0.dims[0] == rho_dims:
+                n_sub = rho0.shape[1]
+            else:
                 raise ValueError(
                     f"Initial state rho has dims {rho0.dims}"
                     f" but the system dims are {rho_dims}"
                 )
-            rho0_he = np.zeros([n ** 2 * self._n_ados], dtype=complex)
-            rho0_he[:n ** 2] = rho0.full().ravel('F')
+            self._state_metadata = {
+                "shape": rho0.shape,
+                "dims": rho0.dims,
+            }
+
+            rho0_he = np.zeros([n ** 2 * self._n_ados, n_sub],
+                               dtype=complex)
+            rho0_he[:n ** 2, :] = rho0.full().reshape(
+                (n ** 2, n_sub), order='F'
+            )
             rho0_he = _data.create(rho0_he)
 
         if self.options["state_data_type"]:
@@ -1082,18 +1104,19 @@ class HEOMSolver(Solver):
 
     def _restore_state(self, state, *, copy=True):
         n = self._sys_shape
-        rho_shape = (n, n)
-        rho_dims = self.sys_dims
-        hierarchy_shape = (self._n_ados, n, n)
+        rho_shape = self._state_metadata["shape"]
+        rho_dims = self._state_metadata["dims"]
+        hierarchy_shape = (self._n_ados,) + rho_shape
 
         rho = Qobj(
-            state.to_array()[:n ** 2].reshape(rho_shape, order='F'),
+            state.to_array()[:n ** 2, :].reshape(rho_shape, order='F'),
             dims=rho_dims,
         )
-        ado_state = HierarchyADOsState(
+        out = HierarchyADOsState(
             rho, self.ados, state.to_array().reshape(hierarchy_shape)
         )
-        return ado_state
+
+        return out
 
     def start(self, state0, t0):
         """
@@ -1111,6 +1134,13 @@ class HEOMSolver(Solver):
             Initial time of the evolution.
         """
         super().start(state0, t0)
+
+    def step(self, t, *, args=None, copy=True):
+        ado = super().step(t, args=args, copy=copy)
+        if self.options["store_ados"]:
+            return ado
+        else:
+            return ado.rho
 
     @property
     def options(self):

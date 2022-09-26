@@ -285,7 +285,6 @@ class BRSolver(Solver):
         self._integrator = self._get_integrator()
         self._state_metadata = {}
         self.stats = self._initialize_stats()
-        self.sys_dims = self.rhs.dims[0]
         self.evolve_dm = True
 
 

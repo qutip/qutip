@@ -9,6 +9,7 @@ from .mesolve import mesolve, MeSolver
 from .sesolve import sesolve, SeSolver
 from .mcsolve import McSolver
 from .solver_base import Solver
+from .multitraj import MultiTrajSolver
 
 
 def propagator(H, t, c_ops=(), args=None, options=None, **kwargs):
@@ -147,8 +148,9 @@ class Propagator:
     """
     def __init__(self, system, *, c_ops=(), args=None, options=None,
                  memoize=10, tol=1e-14):
-        if isinstance(system, McSolver):
-            raise TypeError("McSolver cannot be used in propagator")
+        if isinstance(system, MultiTrajSolver):
+            raise TypeError("Non-deterministic solver cannot be used in "
+                            "propagator")
         elif isinstance(system, Solver):
             self.solver = system
         else:
@@ -163,7 +165,7 @@ class Propagator:
         self.invs = [None]
         self.props = [qeye(self.solver.sys_dims)]
         self.cte = self.solver.rhs.isconstant
-        self.unitary = isinstance(system, SeSolver)
+        self.unitary = not self.solver.evolve_dm and self.solver.rhs(0).isherm
         self.args = args
         self.memoize = max(3, int(memoize))
         self.tol = tol

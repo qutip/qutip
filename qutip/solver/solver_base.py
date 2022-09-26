@@ -23,6 +23,13 @@ class Solver:
 
     options : dict
         Options for the solver
+
+    Attributes
+    ----------
+    evolve_dm : bool
+        Whether the solver is able to evolve density matrix. When ``False``,
+        operator initial input may not raise error but return ``U @ operator``
+        where ``U`` is the propagator.
     """
     name = ""
 
@@ -46,7 +53,6 @@ class Solver:
             self.rhs = QobjEvo(rhs)
         else:
             TypeError("The rhs must be a QobjEvo")
-        self.sys_dims = rhs.dims[0]
         self.evolve_dm = rhs.issuper
         self._options = {}
         self.options = {} if options is None else options
@@ -225,6 +231,16 @@ class Solver:
         integrator_instance = integrator(self.rhs, self.options)
         self._init_integrator_time = time() - _time_start
         return integrator_instance
+
+    @property
+    def sys_dims(self):
+        """
+        Dimensions of the space that the system use:
+
+        ``qutip.basis(sovler.dims)`` will create a state with proper dimensions
+        for this solver.
+        """
+        return self.rhs.dims[0]
 
     @property
     def options(self):

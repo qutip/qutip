@@ -2,7 +2,11 @@ import numpy as np
 from qutip import (destroy, propagator, Propagator, propagator_steadystate,
                    steadystate, tensor, qeye, basis, QobjEvo, sesolve)
 import qutip
+import pytest
 from qutip.solver.brmesolve import BRSolver
+from qutip.solver.mesolve import MeSolver
+from qutip.solver.sesolve import SeSolver
+from qutip.solver.mcsolve import McSolver
 
 
 def testPropHOB():
@@ -96,13 +100,53 @@ def testPropEvo():
         assert abs(psi(t).overlap(psi_t)) > 1-1e-6
 
 
-def testPropSolver():
+def _make_se(H, a):
+    return SeSolver(H)
+
+
+def _make_me(H, a):
+    return MeSolver(H, [a])
+
+
+def _make_br(H, a):
+    spectra = qutip.coefficient(lambda t, w: w >= 0, args={"w": 0})
+    return BRSolver(H, [(a+a.dag(), spectra)])
+
+
+@pytest.mark.parametrize('solver', [
+    pytest.param(_make_se, id='SeSolver'),
+    pytest.param(_make_me, id='MeSolver'),
+    pytest.param(_make_br, id='BRSolver'),
+])
+def testPropSolver(solver):
     a = destroy(5)
     H = a.dag()*a
-    spectra = qutip.coefficient(lambda t, w: w >= 0, args={"w": 0})
-    solver = BRSolver(H, [(a+a.dag(), spectra)])
-    U = Propagator(solver)
+    U = Propagator(solver(H, a))
+    c_ops = []
+    if solver is not _make_se:
+        c_ops = [a]
 
-    assert (U(1) - propagator(H, 1, [a])).norm('max') < 1e-4
-    assert (U(0.5) - propagator(H, 0.5, [a])).norm('max') < 1e-4
-    assert (U(1.5, 0.5) - propagator(H, 1, [a])).norm('max') < 1e-4
+    assert (U(1) - propagator(H, 1, c_ops)).norm('max') < 1e-4
+    assert (U(0.5) - propagator(H, 0.5, c_ops)).norm('max') < 1e-4
+    assert (U(1.5, 0.5) - propagator(H, 1, c_ops)).norm('max') < 1e-4
+
+
+def testPropHEOM():
+    from qutip.solver.heom.bofin_baths import Bath, BathExponent
+    from qutip.solver.heom.bofin_solvers import HEOMSolver
+    a = destroy(2)
+    H = a.dag()*a
+    bath = Bath([BathExponent("R", None, Q=a, ck=1, vk=0)])
+    hsolver = HEOMSolver(H, bath, 1)
+    U = Propagator(hsolver)
+    assert U(1).dims == [[[2], [2]], [[2], [2]]]
+    assert U(2).istp
+
+
+def testPropMcSolver():
+    a = destroy(5)
+    H = a.dag()*a
+    solver = McSolver(H, [a])
+    with pytest.raises(TypeError) as err:
+        Propagator(solver)
+    assert str(err.value).startswith("Non-deterministic")
