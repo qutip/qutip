@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.linalg
 import scipy.sparse as sp
+import scipy.sparse.linalg
 from itertools import combinations
 
 from .dense import Dense, from_csr
@@ -10,6 +11,7 @@ from qutip.settings import settings
 
 __all__ = [
     'eigs', 'eigs_csr', 'eigs_dense',
+    'svd', 'svd_csr', 'svd_dense',
 ]
 
 
@@ -276,6 +278,8 @@ def eigs_dense(data, isherm=None, vecs=True, sort='low', eigvals=0):
 
 
 from .dispatch import Dispatcher as _Dispatcher
+import inspect as _inspect
+
 
 # We use eigs_dense as the signature source, since in this case it has the
 # complete signature that we allow, so we don't need to manually set it.
@@ -323,4 +327,122 @@ eigs.add_specialisations([
     (Dense, eigs_dense),
 ], _defer=True)
 
+
+def svd_csr(data, vecs=True, k=None, solver=None, **kw):
+    """
+    Singular Value Decomposition:
+
+    ``data = U @ S @ Vh``
+
+    Where ``S`` is diagonal.
+
+    Parameters
+    ----------
+    data : Data
+        Input matrix
+    vecs : bool, optional (True)
+        Whether the singular vectors (``U``, ``Vh``) should be returned.
+    k : int, optional
+        Number of state to compute, default maximum number of state: ``N - 2``.
+
+    **kw : dict
+        Options to pass to ``scipy.sparse.linalg.svds``.
+
+    Returns
+    -------
+    U : Dense
+        Left singular vectors as columns. Only returned if ``vecs == True``.
+    S : np.ndarray
+        Singular values.
+    Vh : Dense
+        Right singular vectors as rows. Only returned if ``vecs == True``.
+
+    .. note::
+        Sparse svd cannot compute all states.
+    """
+    solver = kw.pop("solver", "arpack")
+    k = k or (min(data.shape) - (2 if solver != "propack" else 1))
+    out = scipy.sparse.linalg.svds(
+        data.as_scipy(), k, return_singular_vectors=vecs, solver=solver, **kw
+    )
+    if vecs:
+        u, s, vh = out
+        return Dense(u, copy=False), s, Dense(vh, copy=False)
+    return out
+
+
+def svd_dense(data, vecs=True, **kw):
+    """
+    Singular Value Decomposition:
+
+    ``data = U @ S @ Vh``
+
+    Where ``S`` is diagonal.
+
+    Parameters
+    ----------
+    data : Data
+        Input matrix
+    vecs : bool, optional (True)
+        Whether the singular vectors (``U``, ``Vh``) should be returned.
+    **kw : dict
+        Options to pass to ``scipy.linalg.svd``.
+
+    Returns
+    -------
+    U : Dense
+        Left singular vectors as columns. Only returned if ``vecs == True``.
+    S : np.ndarray
+        Singular values.
+    Vh : Dense
+        Right singular vectors as rows. Only returned if ``vecs == True``.
+    """
+    out = scipy.linalg.svd(
+        data.to_array(), compute_uv=vecs, **kw
+    )
+    if vecs:
+        u, s, vh = out
+        return Dense(u, copy=False), s, Dense(vh, copy=False)
+    return out
+
+
+svd = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('data', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('vecs', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    ]),
+    name='svd',
+    module=__name__,
+    inputs=('data',),
+    out=False)
+svd.__doc__ =\
+    """
+    Singular Value Decomposition:
+
+    ``data = U @ S @ Vh``
+
+    Where ``S`` is diagonal.
+
+    Parameters
+    ----------
+    data : Data
+        Input matrix
+    vecs : bool, optional (True)
+        Whether the singular vectors (``U``, ``Vh``) should be returned.
+
+    Returns
+    -------
+    U : Dense
+        Left singular vectors as columns. Only returned if ``vecs == True``.
+    S : np.ndarray
+        Singular values.
+    Vh : Dense
+        Right singular vectors as rows. Only returned if ``vecs == True``.
+    """
+svd.add_specialisations([
+    (Dense, svd_dense),
+], _defer=True)
+
+
 del _Dispatcher
+del _inspect

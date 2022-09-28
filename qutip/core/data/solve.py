@@ -14,8 +14,8 @@ def _splu(A, B, **kwargs):
     return lu.solve(B)
 
 
-def solve_csr(matrix: CSR, target: Data, method: str ="spsolve",
-              options: dict={}) -> Data:
+def solve_csr_dense(matrix: CSR, target: Dense, method=None,
+                    options: dict={}) -> Dense:
     """
     Solve ``Ax=b`` for ``x``.
 
@@ -53,13 +53,9 @@ def solve_csr(matrix: CSR, target: Data, method: str ="spsolve",
     if matrix.shape[1] != target.shape[0]:
         raise ValueError("target does not match the system")
 
-    if isinstance(target, CSR) and csr.nnz(target) < np.prod(target.shape)*0.1:
-        b = target.as_scipy()
-    elif isinstance(target, Dense):
-        b = target.as_ndarray()
-    else:
-        b = target.to_array()
+    b = target.as_ndarray()
 
+    method = method or "spsolve"
 
     if method == "splu":
         solver = _splu
@@ -72,13 +68,16 @@ def solve_csr(matrix: CSR, target: Data, method: str ="spsolve",
     else:
         raise ValueError(f"Unknown sparse solver {method}.")
 
+    options = options.copy()
     M = matrix.as_scipy()
     if options.pop("csc", False):
         M = M.tocsc()
 
-    out = solver(matrix.as_scipy(), b, **options)
+    print(type(M))
+    out = solver(M, b, **options)
 
-    if isinstance(out, tuple):
+    if isinstance(out, tuple) and len(out) == 2:
+        # iterative method return a success flag
         out, check = out
         if check == 0:
             # Successful
@@ -94,11 +93,14 @@ def solve_csr(matrix: CSR, target: Data, method: str ="spsolve",
                 f"scipy.sparse.linalg.{method} error: Bad input. "
                 "Error code: {check}"
             )
+    elif isinstance(out, tuple) and len(out) > 2:
+        # least sqare method return residual, flag, etc.
+        out, *_ = out
     # spsolve can return both scipy sparse matrix or ndarray
     return _data.create(out, copy=False)
 
 
-def solve_dense(matrix: Dense, target: Data, method: str="solve",
+def solve_dense(matrix: Dense, target: Data, method=None,
                 options: dict={}) -> Dense:
     """
     Solve ``Ax=b`` for ``x``.
@@ -135,7 +137,7 @@ def solve_dense(matrix: Dense, target: Data, method: str="solve",
         b = target.to_array()
 
 
-    if method == "solve":
+    if method in ["solve", None]:
         out = np.linalg.solve(matrix.as_ndarray(), b)
     elif method == "lstsq":
         out, *_ = np.linalg.lstsq(
@@ -158,8 +160,10 @@ solve = _Dispatcher(
     _inspect.Signature([
         _inspect.Parameter('matrix', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
         _inspect.Parameter('target', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
-        _inspect.Parameter('method', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
-        _inspect.Parameter('options', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('method', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                           default=None),
+        _inspect.Parameter('options', _inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                           default={}),
     ]),
     name='solve',
     module=__name__,
@@ -199,8 +203,10 @@ solve.__doc__ = """
         Solution to the system Ax = b.
 """
 solve.add_specialisations([
-    (CSR, CSR, Dense, solve_csr),
-    (CSR, Dense, Dense, solve_csr),
-    (Dense, CSR, Dense, solve_dense),
+    (CSR, Dense, Dense, solve_csr_dense),
     (Dense, Dense, Dense, solve_dense),
 ], _defer=True)
+
+
+del _Dispatcher
+del _inspect
