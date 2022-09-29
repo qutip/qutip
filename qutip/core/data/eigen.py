@@ -328,7 +328,7 @@ eigs.add_specialisations([
 ], _defer=True)
 
 
-def svd_csr(data, vecs=True, k=None, solver=None, **kw):
+def svd_csr(data, vecs=True, k=6, **kw):
     """
     Singular Value Decomposition:
 
@@ -342,9 +342,8 @@ def svd_csr(data, vecs=True, k=None, solver=None, **kw):
         Input matrix
     vecs : bool, optional (True)
         Whether the singular vectors (``U``, ``Vh``) should be returned.
-    k : int, optional
-        Number of state to compute, default maximum number of state: ``N - 2``.
-
+    k : int, optional (6)
+        Number of state to compute, default is ``6`` to match scipy's default.
     **kw : dict
         Options to pass to ``scipy.sparse.linalg.svds``.
 
@@ -352,18 +351,22 @@ def svd_csr(data, vecs=True, k=None, solver=None, **kw):
     -------
     U : Dense
         Left singular vectors as columns. Only returned if ``vecs == True``.
+        shape = (data.shape[0], k)
     S : np.ndarray
-        Singular values.
+        The ``k``'s largest singular values.
     Vh : Dense
         Right singular vectors as rows. Only returned if ``vecs == True``.
+        shape = (k, data.shape[1])
 
     .. note::
-        Sparse svd cannot compute all states.
+        svds cannot compute all states at once. While it could find the
+        largest and smallest in 2 calls, it has issues converging with when
+        solving for the smallest (finding the 5 smallest in a 50x50 matrix
+        can fail with default options). It should be used when not all states
+        are needed.
     """
-    solver = kw.pop("solver", "arpack")
-    k = k or (min(data.shape) - (2 if solver != "propack" else 1))
     out = scipy.sparse.linalg.svds(
-        data.as_scipy(), k, return_singular_vectors=vecs, solver=solver, **kw
+        data.as_scipy(), k, return_singular_vectors=vecs, **kw
     )
     if vecs:
         u, s, vh = out
@@ -439,6 +442,8 @@ svd.__doc__ =\
     Vh : Dense
         Right singular vectors as rows. Only returned if ``vecs == True``.
     """
+# Dense implementation return all states, but sparse implementation compute
+# only a few states. So only the dense version is registed.
 svd.add_specialisations([
     (Dense, svd_dense),
 ], _defer=True)

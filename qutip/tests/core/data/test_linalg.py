@@ -86,30 +86,48 @@ class TestSVD():
     def _gen_dm(self, N, rank, dtype):
         return qutip.rand_dm(N, rank=rank, dtype=dtype).data
 
-    @pytest.mark.parametrize("dtype", [CSR, Dense], ids=["CSR", "Dense"])
-    def test_mathematically_correct_svd(self, dtype):
-        matrix = self._gen_dm(10, 6, dtype)
-        u, s, v = self.op_numpy(matrix.to_array())
-        test_U, test_S1, test_V = _data.svd(matrix, True)
-        test_S2 = _data.svd(matrix, False)
+    def _gen_non_square(self, N):
+        mat = np.random.randn(N, N//2)
+        for i in range(N//2):
+            # Ensure no zeros singular values
+            mat[i,i] += 5
+        return _data.Dense(mat)
 
-        assert sum(test_S1 > 1e-10) == 6
+    @pytest.mark.parametrize("shape", ["square", "non-square"])
+    def test_mathematically_correct_svd(self, shape):
+        if shape == "square":
+            matrix = self._gen_dm(10, 6, Dense)
+        else:
+            matrix = self._gen_non_square(12)
+        u, s, v = self.op_numpy(matrix.to_array())
+        test_U, test_S, test_V = _data.svd(matrix, True)
+        only_S = _data.svd(matrix, False)
+
+        assert sum(test_S > 1e-10) == 6
         np.testing.assert_allclose(test_U.to_array(), u, atol=1e-7, rtol=1e-7)
         np.testing.assert_allclose(test_V.to_array(), v, atol=1e-7, rtol=1e-7)
-        np.testing.assert_allclose(test_S1, s, atol=1e-7, rtol=1e-7)
-        np.testing.assert_allclose(test_S2, s, atol=1e-7, rtol=1e-7)
+        np.testing.assert_allclose(test_S, s, atol=1e-7, rtol=1e-7)
+        np.testing.assert_allclose(only_S, s, atol=1e-7, rtol=1e-7)
+
+        s_as_matrix = _data.diag(test_S, 0, (test_U.shape[1], test_V.shape[0]))
 
         np.testing.assert_allclose(
             matrix.to_array(),
-            (test_U @ _data.diag(test_S1, [0]) @ test_V).to_array(),
+            (test_U @ s_as_matrix @ test_V).to_array(),
             atol=1e-7, rtol=1e-7
         )
 
-
     def test_mathematically_correct_svd_csr(self):
-        matrix = self._gen_dm(5, 4, CSR)
-        test_U, test_S1, test_V = _data.svd_csr(matrix, True, k=2)
-        test_S2 = _data.svd_csr(matrix, False, k=2)
+        rank = 5
+        matrix = self._gen_dm(100, rank, CSR)
+        test_U, test_S1, test_V = _data.svd_csr(matrix, True, k=rank)
+        test_S2 = _data.svd_csr(matrix, False, k=rank)
 
-        assert sum(test_S1 > 1e-10) == 2
-        assert sum(test_S2 > 1e-10) == 2
+        assert len(test_S1) == rank
+        assert len(test_S2) == rank
+
+        np.testing.assert_allclose(
+            matrix.to_array(),
+            (test_U @ _data.diag(test_S1, 0) @ test_V).to_array(),
+            atol=1e-7, rtol=1e-7
+        )
