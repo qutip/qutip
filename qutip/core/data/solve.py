@@ -6,7 +6,7 @@ from qutip.settings import settings
 if settings.has_mkl:
     from qutip._mkl.spsolve import mkl_spsolve
 else:
-    mkl = None
+    mkl_spsolve = None
 
 
 def _splu(A, B, **kwargs):
@@ -61,10 +61,10 @@ def solve_csr_dense(matrix: CSR, target: Dense, method=None,
         solver = _splu
     elif hasattr(splinalg, method):
         solver = getattr(splinalg, method)
-    elif method.startswith("mkl") and mkl is None:
+    elif method == "mkl_spsolve" and mkl_spsolve is None:
         raise ValueError("mkl is not available")
     elif method == "mkl_spsolve":
-        solver = getattr(mkl, method)
+        solver = mkl_spsolve
     else:
         raise ValueError(f"Unknown sparse solver {method}.")
 
