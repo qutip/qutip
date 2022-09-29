@@ -61,10 +61,10 @@ def solve_csr_dense(matrix: CSR, target: Dense, method=None,
         solver = _splu
     elif hasattr(splinalg, method):
         solver = getattr(splinalg, method)
-    elif method in ["mkl_spsolve", "mkl"]:
-        solver = getattr(mkl, method)
     elif method.startswith("mkl") and mkl is None:
         raise ValueError("mkl is not available")
+    elif method == "mkl_spsolve":
+        solver = getattr(mkl, method)
     else:
         raise ValueError(f"Unknown sparse solver {method}.")
 
@@ -73,7 +73,6 @@ def solve_csr_dense(matrix: CSR, target: Dense, method=None,
     if options.pop("csc", False):
         M = M.tocsc()
 
-    print(type(M))
     out = solver(M, b, **options)
 
     if isinstance(out, tuple) and len(out) == 2:
@@ -96,8 +95,7 @@ def solve_csr_dense(matrix: CSR, target: Dense, method=None,
     elif isinstance(out, tuple) and len(out) > 2:
         # least sqare method return residual, flag, etc.
         out, *_ = out
-    # spsolve can return both scipy sparse matrix or ndarray
-    return _data.create(out, copy=False)
+    return Dense(out, copy=False)
 
 
 def solve_dense(matrix: Dense, target: Data, method=None,
@@ -136,7 +134,6 @@ def solve_dense(matrix: Dense, target: Data, method=None,
     else:
         b = target.to_array()
 
-
     if method in ["solve", None]:
         out = np.linalg.solve(matrix.as_ndarray(), b)
     elif method == "lstsq":
@@ -148,8 +145,7 @@ def solve_dense(matrix: Dense, target: Data, method=None,
     else:
         raise ValueError(f"Unknown solver {method},"
                          " 'solve' and 'lstsq' are supported.")
-    print(out)
-    return _data.create(out, copy=False)
+    return Dense(out, copy=False)
 
 
 from .dispatch import Dispatcher as _Dispatcher
