@@ -443,7 +443,7 @@ svd.__doc__ =\
         Right singular vectors as rows. Only returned if ``vecs == True``.
     """
 # Dense implementation return all states, but sparse implementation compute
-# only a few states. So only the dense version is registed.
+# only a few states. So only the dense version is registered.
 svd.add_specialisations([
     (Dense, svd_dense),
 ], _defer=True)
