@@ -348,10 +348,10 @@ class DiscreteLevelCurrentModel:
         """ Initial state. """
         return 0.5 * Qobj(np.ones((2, 2)))
 
-    def state_current(self, ado_state):
+    def state_current(self, ado_state, tags=None):
         level_1_aux = [
             (ado_state.extract(label), ado_state.exps(label)[0])
-            for label in ado_state.filter(level=1)
+            for label in ado_state.filter(level=1, tags=tags)
         ]
 
         def exp_sign(exp):
@@ -553,14 +553,6 @@ class TestHEOMSolver:
             BathExponent("I", 2, Q=tensor(Q, Q), ck=1.2, vk=2.2),
             BathExponent("R", 2, Q=Q, ck=1.2, vk=2.2),
         ]
-
-        with pytest.raises(ValueError) as err:
-            HEOMSolver(H, Bath(mixed_types), 2)
-        assert str(err.value) == (
-            "Bath exponents are currently restricted to being either all"
-            " bosonic or all fermionic, but a mixture of bath exponents was"
-            " given."
-        )
 
         with pytest.raises(ValueError) as err:
             HEOMSolver(H, Bath(mixed_q_dims), 2)
@@ -813,6 +805,64 @@ class TestHEOMSolver:
         # analytic_current = dlm.analytic_current()
         np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
 
+
+    @pytest.mark.parametrize(['evo'], [
+        pytest.param("qobj"),
+        pytest.param("qobjevo_const"),
+        pytest.param("qobjevo_timedep"),
+    ])
+    @pytest.mark.parametrize(['liouvillianize'], [
+        pytest.param(False, id="hamiltonian"),
+        pytest.param(True, id="liouvillian"),
+    ])
+    def test_discrete_level_model_fermionic_bath_with_decoupled_bosonic_bath(
+        self, evo, liouvillianize
+    ):
+        dlm = DiscreteLevelCurrentModel(
+            gamma=0.01, W=1, T=0.025851991, lmax=10,
+        )
+        H_sys = hamiltonian_to_sys(dlm.H, evo, liouvillianize)
+        ck_plus, vk_plus, ck_minus, vk_minus = dlm.bath_coefficients()
+
+        options = {
+            "store_states": True,
+            "store_ados": True,
+            "nsteps": 15_000,
+            "rtol": 1e-7,
+            "atol": 1e-7,
+        }
+        fermionic_bath = FermionicBath(
+            dlm.Q, ck_plus, vk_plus, ck_minus, vk_minus, tag="fermionic",
+        )
+        # very weak bosonic coupling which should not affect the dynamics of
+        # the interaction between the system and the fermionic bath:
+        eps = [1e-10] * 5
+        bosonic_Q = sigmax()
+        bosonic_bath = BosonicBath(bosonic_Q, eps, eps, eps, eps, combine=False)
+        # for a single impurity we converge with max_depth = 2
+        # we specify the bosonic bath first to ensure that the test checks
+        # that the sums inside HEOMSolver grad-next/prev work when the bosonic
+        # mode is before the fermionic ones
+        hsolver = HEOMSolver(
+            H_sys, [bosonic_bath, fermionic_bath], 2, options=options,
+        )
+
+        tlist = [0, 600]
+        result = hsolver.run(dlm.rho(), tlist)
+        current = dlm.state_current(result.ado_states[-1], tags=["fermionic"])
+        analytic_current = dlm.analytic_current()
+        np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
+
+        if evo != "qobjevo_timedep":
+            rho_final, ado_state = hsolver.steady_state()
+            current = dlm.state_current(ado_state)
+            analytic_current = dlm.analytic_current()
+            np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
+        else:
+            assert_raises_steady_state_time_dependent(hsolver)
+
+
+
     @pytest.mark.parametrize(['ado_format'], [
         pytest.param("hierarchy-ados-state", id="hierarchy-ados-state"),
         pytest.param("numpy", id="numpy"),
@@ -896,6 +946,7 @@ class TestHEOMSolver:
         np.testing.assert_allclose(test, expected, atol=1e-3)
 
         assert states[-1] == ado_state.extract(0)
+
 
 class TestHeomsolveFunction:
     @pytest.mark.parametrize(['evo'], [
