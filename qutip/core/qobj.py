@@ -512,9 +512,7 @@ class Qobj:
                     copy=False)
 
     def __truediv__(self, other):
-        if not isinstance(other, numbers.Number):
-            return NotImplemented
-        return self.__mul__(1 / complex(other))
+        return self.__mul__(1 / other)
 
     def __neg__(self):
         return Qobj(_data.neg(self._data),
