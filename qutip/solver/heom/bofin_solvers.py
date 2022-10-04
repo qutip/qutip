@@ -686,12 +686,6 @@ class HEOMSolver(Solver):
             exp.type in (exp.types["+"], exp.types["-"])
             for exp in exponents
         )
-        if not (all_bosonic or all_fermionic):
-            raise ValueError(
-                "Bath exponents are currently restricted to being either"
-                " all bosonic or all fermionic, but a mixture of bath"
-                " exponents was given."
-            )
         if not all(exp.Q.dims == exponents[0].Q.dims for exp in exponents):
             raise ValueError(
                 "All bath exponents must have system coupling operators"
@@ -755,11 +749,15 @@ class HEOMSolver(Solver):
 
     def _grad_prev_fermionic(self, he_n, k):
         ck = self.ados.ck
+        he_fermionic_n = [
+            i * int(exp.fermionic)
+            for i, exp in zip(he_n, self.ados.exponents)
+        ]
 
-        n_excite = sum(he_n)
+        n_excite = sum(he_fermionic_n)
         sign1 = (-1) ** (n_excite + 1)
 
-        n_excite_before_m = sum(he_n[:k])
+        n_excite_before_m = sum(he_fermionic_n[:k])
         sign2 = (-1) ** (n_excite_before_m)
 
         sigma_bar_k = k + self.ados.sigma_bar_k_offset[k]
@@ -807,10 +805,14 @@ class HEOMSolver(Solver):
         return op
 
     def _grad_next_fermionic(self, he_n, k):
-        n_excite = sum(he_n)
+        he_fermionic_n = [
+            i * int(exp.fermionic)
+            for i, exp in zip(he_n, self.ados.exponents)
+        ]
+        n_excite = sum(he_fermionic_n)
         sign1 = (-1) ** (n_excite + 1)
 
-        n_excite_before_m = sum(he_n[:k])
+        n_excite_before_m = sum(he_fermionic_n[:k])
         sign2 = (-1) ** (n_excite_before_m)
 
         if self.ados.exponents[k].type == BathExponent.types["+"]:
