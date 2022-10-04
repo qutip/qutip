@@ -1,7 +1,28 @@
 from qutip import liouvillian, lindblad_dissipator, Qobj
-import qutip.data as _data
+import qutip.core.data as _data
 
-def steadystate(A, c_ops=[], *, method='direct', weight=0, **kwargs):
+
+def permute_wbm(L, b):
+    perm = scipy.sparse.csgraph.maximum_bipartite_matching(L.as_scipy())
+    L = _data.permute.indices(L, perm, None)
+    b = _data.permute.indices(b, perm, None)
+    return L, b
+
+
+def permute_rcm(L, b):
+    perm = scipy.sparse.csgraph.reverse_cuthill_mckee(L.as_scipy())
+    L = _data.permute.indices(L, perm, perm)
+    b = _data.permute.indices(b, perm, None)
+    return L, b, perm
+
+
+def reverse_rcm(rho, perm):
+    rev_perm = np.argsort(perm)
+    rho = _data.permute.indices(rho, rev_perm, None)
+    return rho
+
+
+def steadystate(A, c_ops=[], *, method='direct', solve_method=None, weight=0, **kwargs):
     """
     Calculates the steady state for quantum evolution subject to the supplied
     Hamiltonian or Liouvillian operator and (if given a Hamiltonian) a list of
@@ -18,24 +39,30 @@ def steadystate(A, c_ops=[], *, method='direct', weight=0, **kwargs):
     c_op_list : list
         A list of collapse operators.
 
-    method : str, default 'direct'
-        The allowed methods are
-        - 'direct'
-        - 'eigen'
-        - 'svd'
-        - 'power'
+    method : str, default='direct'
+        The allowed methods are composed of 2 parts, the steadystate method:
+        - 'direct' or 'iterative': Solving ``L(rho_ss) = 0``
+        - 'eigen' : Eigenvalue problem
+        - 'svd' : Singular value decomposition
+        - 'power': Inverse-power method
 
-        Method for solving the underlying linear equation. Direct LU solver
-        'direct' (default), sparse eigenvalue problem 'eigen', iterative GMRES
-        method 'iterative-gmres', iterative LGMRES method 'iterative-lgmres',
-        iterative BICGSTAB method 'iterative-bicgstab', SVD 'svd' (dense), or
-        inverse-power method 'power'. The iterative power methods
-        'power-gmres', 'power-lgmres', 'power-bicgstab' use the same solvers as
-        their direct counterparts.
+    solver : str, default=None
+        'direct' and 'power' methods only.
+        Solver to use when solving the ``L(rho) = 0`` equation. Default supported are:
+        - "solve", "lstsq": dense solver from numpy.linalg
+        - "spsolve", "gmres", "lgmres", "bicgstab": sparse solver from scipy.sparse.linalg
+        - "mkl_spsolve", sparse solver by mkl.
+        Extension to qutip, such as qutip-tensorflow, can use come with their own solver. When ``A`` and ``c_ops``
+        use these data backends, see the corresponding libraries ``linalg`` for available solver.
+        extra options for these solver can be passed in ``**kw``.
 
-    return_info : bool, default False
-        Return a dictionary of solver-specific infomation about the solution
-        and how it was obtained.
+    **kw :
+        use_rcm
+        use_wbm
+        weigth
+        sparse
+        tol, max_iter
+
 
     Returns
     -------
@@ -54,19 +81,32 @@ def steadystate(A, c_ops=[], *, method='direct', weight=0, **kwargs):
     if not A.issuper:
         A = liouvillian(A)
     for op in c_ops:
-        A += lindbald_dissipator(op)
+        A += lindblad_dissipator(op)
 
-    if method == "direct":
-        return _steadystate_direct(A, weight, **kwargs)
-    elif method in ["eigen", "svn"]:
-        return _steadystate_decomposition(A, method, **kwargs)
+    if "-" in method:
+        method, solver = method.split("-")
+
+    # We want the user to be able to use this without having to know what data type the liouvillian use.
+    # For extra data types (tensorflow) we can expect the users to know they are using them and choose an appropriate solver
+    if isinstance(A.data, _data.csr) and solver in ["solve", "lstsq"]:
+        A = A.to("dense")
+    elif isinstance(A.data, _data.Dense) and solver in ["spsolve", "mkl_spsolve", "gmres", "lgmres", "bicgstab"]:
+        A = A.to("csr")
+
+    if method in ["direct", "iterative"]:
+        return _steadystate_direct(A, weight, method=solver, **kwargs)
+    elif method == "eigen":
+        return _steadystate_eigen(A, **kwargs)
+    elif method == "svd":
+        return _steadystate_svd(A, **kwargs)
     elif method == "power":
-        return _steadystate_power(A, **kwargs)
+        return _steadystate_power(A, method=solver, **kwargs)
     else:
-        raise ValueError(f"method {mehtod} not supported.")
+        raise ValueError(f"method {method} not supported.")
+
 
 def _steadystate_direct(A, weight, **kw):
-    # Find Add weight
+    # Find the weight, no good dispatched function available...
     if weight:
         pass
     elif isinstance(A.data, _data.CSR):
@@ -85,36 +125,68 @@ def _steadystate_direct(A, weight, **kw):
     weight_vec = _data.column_stack(_data.diag([weight] * n, 0, dtype=dtype))
     weight_vec = _data.add(weight_vec.transpose(), L_row0, -1)
     weight_mat = _data.kron(weight_vec, _data.one_element[dtype]((N, 1), (0, 0), 1))
-    A += Qobj(weight_mat, dims=A.dims)
-
+    L = _data.add(weight_mat, A.data)
     b = _data.one_element[dtype]((N, 1), (0, 0), weight)
 
-    steadystate = _data.solve(A.data, b, **kw)
+    # Permutation are part of scipy.sparse, thus only supported for CSR.
+    if kw.pop("use_wbm", False) and isinstance(L, _data.CSR):
+        L, b = permute_wbm(L, b)
+    use_rcm = kw.pop("use_rcm", False) and isinstance(L, _data.CSR)
+    if use_rcm:
+        L, b, perm = permute_rcm(L, b)
+
+    steadystate = _data.solve(L, b, **kw)
+
+    if use_rcm:
+        steadystate = reverse_rcm(steadystate, perm)
+
     rho_ss = _data.column_unstack(steadystate, n)
     rho_ss = _data.add(rho_ss, rho_ss.adjoint()) * 0.5
 
     return Qobj(rho_ss, dims=A.dims[0], isherm=True)
 
-def _steadystate_decomposition(L, method="eigen", **kw):
-    if method == "eigen":
-        val, vec = (L.dag() @ L).eigenstates(eigvals=1, sort="low", sparse=kw.pop("sparse", True))
-        vec = vec[0]
 
-    elif method == "svd":
-        u, s, vh = _data.svd(L.data, True)
-        vec = Qobj(_data.split_columns(vh.adjoint())[-1], dims=L.dims[0])
-
+def _steadystate_eigen(L, **kw):
+    # v4's implementation only uses sparse eigen solver
+    val, vec = (L.dag() @ L).eigenstates(eigvals=1, sort="low", sparse=kw.pop("sparse", True))
+    rho = qt.vector_to_operator(vec[0])
     return rho / rho.tr()
 
-def _steadystate_power(L, **kw):
-    L += 1e-15
+
+def _steadystate_svd(L, **kw):
+    u, s, vh = _data.svd(L.data, True)
+    vec = Qobj(_data.split_columns(vh.adjoint())[-1], dims=[L.dims[0],[1]])
+    rho = qt.vector_to_operator(vec)
+    return rho / rho.tr()
+
+
+def _steadystate_power(A, **kw):
+    A += 1e-15
+    L = A.data
     N = L.shape[1]
     y = _data.Dense([1]*N)
-    it = 0
-    tol = 1e-10
-    while it < 5 and _data.norm.max(L.data @ y) > tol:
-        y = _data.solve(L.data, y, **kw)
-        y = y / _data.norm.max(y)
 
-    rho_ss = Qobj(_data.column_unstack(y, n), dims=A.dims[0], isherm=True)
+    # Permutation are part of scipy.sparse, thus only supported for CSR.
+    if kw.pop("use_wbm", False) and isinstance(L, _data.CSR):
+        L, y = permute_wbm(L, y)
+    use_rcm = kw.pop("use_rcm", False) and isinstance(L, _data.CSR)
+    if use_rcm:
+        L, y, perm = permute_rcm(L, y)
+
+    it = 0
+    maxiter = kw.pop("maxiter", 1000)
+    tol = kw.pop("tol", 1e-12)
+    while it < maxiter and _data.norm.max(L @ y) > tol:
+        y = _data.solve(L, y, **kw)
+        y = y / _data.norm.max(y)
+        it += 1
+
+    if it >= maxiter:
+        raise Exception('Failed to find steady state after ' +
+                        str(maxiter) + ' iterations')
+
+    if use_rcm:
+        y = reverse_rcm(y, perm)
+
+    rho_ss = Qobj(_data.column_unstack(y, N**0.5), dims=A.dims[0], isherm=True)
     return rho_ss / rho_ss.tr()
