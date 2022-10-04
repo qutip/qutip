@@ -120,15 +120,20 @@ class BathExponent:
                     " specified for + and - bath exponents"
                 )
 
+    def _type_is_fermionic(self, type):
+        return type in (self.types["+"], self.types["-"])
+
+
     def __init__(
-            self, type, dim, Q, ck, vk, ck2=None, sigma_bar_k_offset=None,
-            tag=None,
+            self, type, dim, Q, ck, vk, ck2=None,
+            sigma_bar_k_offset=None, tag=None,
     ):
         if not isinstance(type, self.types):
             type = self.types[type]
         self._check_ck2(type, ck2)
         self._check_sigma_bar_k_offset(type, sigma_bar_k_offset)
         self.type = type
+        self.fermionic = self._type_is_fermionic(type)
         self.dim = dim
         self.Q = Q
         self.ck = ck
@@ -145,6 +150,7 @@ class BathExponent:
             f" Q.dims={dims!r}"
             f" ck={self.ck!r} vk={self.vk!r} ck2={self.ck2!r}"
             f" sigma_bar_k_offset={self.sigma_bar_k_offset!r}"
+            f" fermionic={self.fermionic!r}"
             f" tag={self.tag!r}>"
         )
 
