@@ -435,7 +435,9 @@ def _make_solver(H, c_ops, args, options, solver):
 def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None):
     r"""
     Calculate the three-operator two-time correlation function:
+
         :math:`\left<A(t)B(t+\tau)C(t)\right>`.
+
     from a open system :class:`Solver`.
 
     Note: it is not possible to calculate a physically meaningful correlation
