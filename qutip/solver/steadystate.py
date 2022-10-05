@@ -22,7 +22,7 @@ def _reverse_rcm(rho, perm):
     return rho
 
 
-def steadystate(A, c_ops=[], *, method='direct', solve_method=None, weight=0, 
+def steadystate(A, c_ops=[], *, method='direct', solve_method=None, *,
                 **kwargs):
     """
     Calculates the steady state for quantum evolution subject to the supplied
@@ -42,7 +42,7 @@ def steadystate(A, c_ops=[], *, method='direct', solve_method=None, weight=0,
 
     method : str, default='direct'
         The allowed methods are composed of 2 parts, the steadystate method:
-        - 'direct' or 'iterative': Solving ``L(rho_ss) = 0``
+        - 'direct': Solving ``L(rho_ss) = 0``
         - 'eigen' : Eigenvalue problem
         - 'svd' : Singular value decomposition
         - 'power': Inverse-power method
@@ -63,13 +63,31 @@ def steadystate(A, c_ops=[], *, method='direct', solve_method=None, weight=0,
 
         Extra options for these solver can be passed in ``**kw``.
 
-    **kw :
-        use_rcm
-        use_wbm
-        weigth
-        sparse
-        tol, max_iter
+    use_rcm : bool, default False
+        Use reverse Cuthill-Mckee reordering to minimize fill-in in the LU
+        factorization of the Liouvillian.
+        Used with 'direct' or 'power' method.
 
+    use_wbm : bool, default False
+        Use Weighted Bipartite Matching reordering to make the Liouvillian
+        diagonally dominant.  This is useful for iterative preconditioners
+        only. Used with 'direct' or 'power' method.
+
+    weight : float, optional
+        Sets the size of the elements used for adding the unity trace condition
+        to the linear solvers.  This is set to the average abs value of the
+        Liouvillian elements if not specified by the user.
+        Used with 'direct' method.
+
+    power_tol : float, default 1e-12
+        Tolerance for the solution when using the 'power' method.
+
+    power_maxiter : int, default 10
+        Maximum number of iteration to use when looking for a solution when
+        using the 'power' method.
+
+    **kwargs :
+        Extra options to pass to the solver.
 
     Returns
     -------
@@ -91,7 +109,11 @@ def steadystate(A, c_ops=[], *, method='direct', solve_method=None, weight=0,
         A += lindblad_dissipator(op)
 
     if "-" in method:
+        # to support v4's "power-gmres" method
         method, solver = method.split("-")
+
+    if solver == "mkl":
+        solver = "mkl_spsolve"
 
     # We want the user to be able to use this without having to know what data
     # type the liouvillian use. For extra data types (tensorflow) we can expect
@@ -103,12 +125,17 @@ def steadystate(A, c_ops=[], *, method='direct', solve_method=None, weight=0,
         A = A.to("csr")
 
     if method in ["direct", "iterative"]:
+        # Remove unused kwargs, so only used and pass-through ones are included
+        kwargs.pop("power_tol", 0)
+        kwargs.pop("power_maxiter", 0)
         return _steadystate_direct(A, weight, method=solver, **kwargs)
     elif method == "eigen":
         return _steadystate_eigen(A, **kwargs)
     elif method == "svd":
         return _steadystate_svd(A, **kwargs)
     elif method == "power":
+        # Remove unused kwargs, so only used and pass-through ones are included
+        kwargs.pop("weight", 0)
         return _steadystate_power(A, method=solver, **kwargs)
     else:
         raise ValueError(f"method {method} not supported.")
@@ -159,10 +186,10 @@ def _steadystate_direct(A, weight, **kw):
 
 
 def _steadystate_eigen(L, **kw):
-    # v4's implementation only uses sparse eigen solver
     val, vec = (L.dag() @ L).eigenstates(
         eigvals=1,
         sort="low",
+        # v4's implementation only uses sparse eigen solver
         sparse=kw.pop("sparse", True)
     )
     rho = qt.vector_to_operator(vec[0])
@@ -190,8 +217,8 @@ def _steadystate_power(A, **kw):
         L, y, perm = _permute_rcm(L, y)
 
     it = 0
-    maxiter = kw.pop("maxiter", 1000)
-    tol = kw.pop("tol", 1e-12)
+    maxiter = kw.pop("power_maxiter", 10)
+    tol = kw.pop("power_tol", 1e-12)
     while it < maxiter and _data.norm.max(L @ y) > tol:
         y = _data.solve(L, y, **kw)
         y = y / _data.norm.max(y)
@@ -206,3 +233,194 @@ def _steadystate_power(A, **kw):
 
     rho_ss = Qobj(_data.column_unstack(y, N**0.5), dims=A.dims[0], isherm=True)
     return rho_ss / rho_ss.tr()
+
+
+def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False):
+    """
+    Calculates the effective steady state for a driven
+     system with a time-dependent cosinusoidal term:
+    .. math::
+        \\mathcal{\\hat{H}}(t) = \\hat{H}_0 +
+         \\mathcal{\\hat{O}} \\cos(\\omega_d t)
+    Parameters
+    ----------
+    H_0 : :obj:`~Qobj`
+        A Hamiltonian or Liouvillian operator.
+    c_ops : list
+        A list of collapse operators.
+    Op_t : :obj:`~Qobj`
+        The the interaction operator which is multiplied by the cosine
+    w_d : float, default 1.0
+        The frequency of the drive
+    n_it : int, default 3
+        The number of iterations for the solver
+    sparse : bool, default False
+        Solve for the steady state using sparse algorithms.
+        Actually, dense seems to be faster.
+    Returns
+    -------
+    dm : qobj
+        Steady state density matrix.
+    .. note::
+        See: Sze Meng Tan,
+        https://copilot.caltech.edu/documents/16743/qousersguide.pdf,
+        Section (10.16)
+    """
+    if False:
+        # TODO: rewrite using `core.Data`
+        N = H_0.shape[0]
+
+        L_0 = liouvillian(H_0, c_ops).data.tocsc()
+        L_t = liouvillian(Op_t)
+        L_p = (0.5 * L_t).data.tocsc()
+        # L_p and L_m correspond to the positive and negative
+        # frequency terms respectively.
+        # They are independent in the model, so we keep both names.
+        L_m = L_p
+        L_p_array = L_p.todense()
+        L_m_array = L_p_array
+
+        Id = scipy.sparse.eye(N ** 2, format="csc", dtype=np.complex128)
+        S = T = scipy.sparse.csc_matrix((N ** 2, N ** 2), dtype=np.complex128)
+
+        for n_i in np.arange(n_it, 0, -1):
+            L = scipy.sparse.csc_matrix(L_0 - 1j * n_i * w_d * Id + L_m.dot(S))
+            L.sort_indices()
+            LU = splu(L)
+            S = - LU.solve(L_p_array)
+
+            L = scipy.sparse.csc_matrix(L_0 + 1j * n_i * w_d * Id + L_p.dot(T))
+            L.sort_indices()
+            LU = splu(L)
+            T = - LU.solve(L_m_array)
+
+        M_subs = L_0 + L_m.dot(S) + L_p.dot(T)
+    else:
+        N = H_0.shape[0]
+
+        L_0 = liouvillian(H_0, c_ops).full()
+        L_t = liouvillian(Op_t)
+        L_p = (0.5 * L_t).full()
+        L_m = L_p
+
+        Id = np.eye(N ** 2)
+        S, T = np.zeros((N ** 2, N ** 2)), np.zeros((N ** 2, N ** 2))
+
+        for n_i in np.arange(n_it, 0, -1):
+            L = L_0 - 1j * n_i * w_d * Id + np.matmul(L_m, S)
+            lu, piv = scipy.linalg.lu_factor(L)
+            S = - scipy.linalg.lu_solve((lu, piv), L_p)
+
+            L = L_0 + 1j * n_i * w_d * Id + np.matmul(L_p, T)
+            lu, piv = scipy.linalg.lu_factor(L)
+            T = - scipy.linalg.lu_solve((lu, piv), L_m)
+
+        M_subs = L_0 + np.matmul(L_m, S) + np.matmul(L_p, T)
+
+    return steadystate(Qobj(M_subs, type="super", dims=L_t.dims))
+
+
+def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
+                   **kwargs):
+    """
+    Compute the pseudo inverse for a Liouvillian superoperator, optionally
+    given its steady state density matrix (which will be computed if not
+    given).
+
+    Returns
+    -------
+    L : Qobj
+        A Liouvillian superoperator for which to compute the pseudo inverse.
+
+    rhoss : Qobj
+        A steadystate density matrix as Qobj instance, for the Liouvillian
+        superoperator L.
+
+    w : double
+        frequency at which to evaluate pseudo-inverse.  Can be zero for dense
+        systems and large sparse systems. Small sparse systems can fail for
+        zero frequencies.
+
+    sparse : bool
+        Flag that indicate whether to use sparse or dense matrix methods when
+        computing the pseudo inverse.
+
+    method : string
+        Name of method to use. For sparse=True, allowed values are 'spsolve',
+        'splu' and 'spilu'. For sparse=False, allowed values are 'direct' and
+        'numpy'.
+
+    kwargs : dictionary
+        Additional keyword arguments for setting parameters for solver methods.
+
+    Returns
+    -------
+    R : Qobj
+        Returns a Qobj instance representing the pseudo inverse of L.
+
+    Note
+    ----
+    In general the inverse of a sparse matrix will be dense.  If you
+    are applying the inverse to a density matrix then it is better to
+    cast the problem as an Ax=b type problem where the explicit calculation
+    of the inverse is not required. See page 67 of "Electrons in
+    nanostructures" C. Flindt, PhD Thesis available online:
+    https://orbit.dtu.dk/fedora/objects/orbit:82314/datastreams/
+    file_4732600/content
+
+    Note also that the definition of the pseudo-inverse herein is different
+    from numpys pinv() alone, as it includes pre and post projection onto
+    the subspace defined by the projector Q.
+
+    """
+    if rhoss is None:
+        rhoss = steadystate(L)
+
+    sparse_solvers = ["splu", "mkl_spsolve", "spilu"]
+    dense_solvers = ["solve", "lstsq"]
+    if isinstance(A.data, _data.csr) and method in dense_solvers:
+        A = A.to("dense")
+    elif isinstance(A.data, _data.Dense) and method in sparse_solvers:
+        A = A.to("csr")
+
+    N = np.prod(L.dims[0][0])
+    dtype = type(L.data)
+    rhoss_vec = operator_to_vector(rhoss)
+
+    tr_op = identity(L.dims[0][0])
+    tr_op_vec = operator_to_vector(tr_op)
+
+    P = _data.kron(rhoss_vec.data, tr_op_vec.data.transpose(), dtype=dtype)
+    I = _data.csr.identity(N * N, dtype=dtype)
+    Q = _data.sub(I, P)
+
+    if w in [None, 0.0]:
+        L += 1e-15j
+    else:
+        L += 1.0j*w
+
+    use_rcm = use_rcm and isinstance(L.data, _data.CSR)
+
+    if use_rcm:
+        perm = scipy.sparse.csgraph.reverse_cuthill_mckee(L.data.as_scipy())
+        A = _data.permute.indices(L.data, perm, perm)
+        Q = _data.permute.indices(Q, perm, perm, dtype=_data.CSR)
+        if method in ["splu", "spilu"]:
+            pseudo_args["permc_spec"] = "NATURAL"
+    else:
+        A = L.data
+
+    if method in ["numpy", "scipy", "scipy2"]:
+        # from scipy 1.7.0, they all use the same algorithm.
+        LI = _data.Dense(scipy.linalg.pinv(A.to_array()), copy=False)
+        LIQ = _data.matmul(LI, Q)
+    else:
+        LIQ = _data.solve(A, Q, method, **pseudo_args)
+
+    R = _data.matmul(Q, LIQ)
+
+    if use_rcm:
+        rev_perm = np.argsort(perm)
+        R = _data.permute.indices(R, rev_perm, rev_perm)
+
+    return Qobj(R, dims=L.dims)
