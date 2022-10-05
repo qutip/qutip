@@ -174,7 +174,6 @@ class IntegratorDiag(Integrator):
         return self._t, _data.matmul(self.U, _data.dense.Dense(self._y))
 
     def set_state(self, t, state0):
-        self._is_set = True
         self._t = t
         self._y = _data.matmul(self.Uinv, state0).to_array()
         self._is_set = True

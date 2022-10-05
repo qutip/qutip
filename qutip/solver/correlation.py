@@ -44,7 +44,7 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
         Initial state density matrix :math:`\rho(t_0)` or state vector
         :math:`\psi(t_0)`. If 'state0' is 'None', then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
-        for the `me` and `es` solvers.
+        if ``c_ops`` are provided.
     taulist : array_like
         List of times for :math:`\tau`. taulist must be positive and contain
         the element `0`.
@@ -58,10 +58,10 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
         If `True`, calculate :math:`\left<A(t)B(t+\tau)\right>` instead of
         :math:`\left<A(t+\tau)B(t)\right>`.
     solver : str {'me', 'es'}
-        Choice of solver (`me` for master-equation, and `es` for exponential
-        series).
-    options : dict
-        Options for the solver.
+        Choice of solver, `me` for master-equation, and `es` for exponential
+        series. `es` is equivalent to `me` with  ``options={"method": "diag"}``
+    options : dict, optional
+        Options for the solver. Only used with `me` solver.
 
     Returns
     -------
@@ -102,7 +102,7 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
         Initial state density matrix :math:`\rho(t_0)` or state vector
         :math:`\psi(t_0)`. If 'state0' is 'None', then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
-        for the ``me`` and ``es`` solvers if ``c_ops`` are provided.
+        if ``c_ops`` are provided.
     tlist : array_like
         List of times for :math:`t`. tlist must be positive and contain the
         element `0`. When taking steady-steady correlations only one tlist
@@ -121,10 +121,10 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
         If `True`, calculate :math:`\left<A(t)B(t+\tau)\right>` instead of
         :math:`\left<A(t+\tau)B(t)\right>`.
     solver : str {'me', 'es'}
-        Choice of solver (`me` for master-equation, and `es` for exponential
-        series).
-    options : dict
-        Options for the solver.
+        Choice of solver, `me` for master-equation, and `es` for exponential
+        series. `es` is equivalent to `me` with  ``options={"method": "diag"}``
+    options : dict, optional
+        Options for the solver. Only used with `me` solver.
 
     Returns
     -------
@@ -173,7 +173,7 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
         Initial state density matrix :math:`\rho(t_0)` or state vector
         :math:`\psi(t_0)`. If 'state0' is 'None', then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
-        for the ``me`` and ``es`` solvers if ``c_ops`` are provided.
+        if ``c_ops`` are provided.
     taulist : array_like
         List of times for :math:`\tau`. taulist must be positive and contain
         the element `0`.
@@ -185,11 +185,11 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
         Operator B.
     c_op : Qobj, QobjEvo
         Operator C.
-    solver : str
-        choice of solver (`me` for master-equation, and `es` for exponential
-        series).
-    options : dict
-        Options for the solver.
+    solver : str {'me', 'es'}
+        Choice of solver, `me` for master-equation, and `es` for exponential
+        series. `es` is equivalent to `me` with  ``options={"method": "diag"}``
+    options : dict, optional
+        Options for the solver. Only used with `me` solver.
 
     Returns
     -------
@@ -227,7 +227,7 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
         Initial state density matrix :math:`\rho(t_0)` or state vector
         :math:`\psi(t_0)`. If 'state0' is 'None', then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
-        for the ``me`` and ``es`` solvers if ``c_ops`` are provided.
+        if ``c_ops`` are provided.
     tlist : array_like
         List of times for :math:`t`. tlist must be positive and contain the
         element `0`. When taking steady-steady correlations only one tlist
@@ -244,11 +244,11 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
         Operator B.
     c_op : Qobj, QobjEvo
         Operator C.
-    solver : str
-        Choice of solver (`me` for master-equation, and `es` for exponential
-        series).
-    options : dict
-        Options for the solver.
+    solver : str {'me', 'es'}
+        Choice of solver, `me` for master-equation, and `es` for exponential
+        series. `es` is equivalent to `me` with  ``options={"method": "diag"}``
+    options : dict, optional
+        Options for the solver. Only used with `me` solver.
 
     Returns
     -------
@@ -300,7 +300,7 @@ def coherence_function_g1(
         Initial state density matrix :math:`\rho(t_0)` or state vector
         :math:`\psi(t_0)`. If 'state0' is 'None', then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
-        for the `me` and `es` solvers.
+        if ``c_ops`` are provided.
     taulist : array_like
         list of times for :math:`\tau`. taulist must be positive and contain
         the element `0`.
@@ -308,11 +308,11 @@ def coherence_function_g1(
         List of collapse operators
     a_op : Qobj, QobjEvo
         Operator A.
-    solver : str
-        Choice of solver (`me` for master-equation and `es` for exponential
-        series).
-    options : dict
-        Options for the solver.
+    solver : str {'me', 'es'}
+        Choice of solver, `me` for master-equation, and `es` for exponential
+        series. `es` is equivalent to `me` with  ``options={"method": "diag"}``
+    options : dict, optional
+        Options for the solver. Only used with `me` solver.
 
     Returns
     -------
@@ -359,7 +359,7 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me",
         Initial state density matrix :math:`\rho(t_0)` or state vector
         :math:`\psi(t_0)`. If 'state0' is 'None', then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
-        for the `me` and `es` solvers.
+        if ``c_ops`` are provided.
     taulist : array_like
         list of times for :math:`\tau`. taulist must be positive and contain
         the element `0`.
@@ -370,11 +370,11 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me",
         operator A.
     args : dict
         Dictionary of arguments to be passed to solver.
-    solver : str
-        choice of solver (`me` for master-equation and
-        `es` for exponential series).
-    options : dict
-        Options for the solver.
+    solver : str {'me', 'es'}
+        Choice of solver, `me` for master-equation, and `es` for exponential
+        series. `es` is equivalent to `me` with  ``options={"method": "diag"}``
+    options : dict, optional
+        Options for the solver. Only used with `me` solver.
 
     Returns
     -------
@@ -412,7 +412,7 @@ def _make_solver(H, c_ops, args, options, solver):
     if solver == "me":
         solver_instance = MeSolver(H, c_ops, options=options)
     elif solver == "es":
-        options = {**options, **{"method": "diag"}}
+        options = {"method": "diag"}
         solver_instance = MeSolver(H, c_ops, options=options)
     elif solver == "mc":
         raise ValueError("MC solver for correlation has been removed")
