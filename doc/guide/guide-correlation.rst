@@ -47,6 +47,8 @@ QuTiP provides a family of functions that assists in the process of calculating 
 
 The most common use-case is to calculate correlation functions of the kind :math:`\left<A(\tau)B(0)\right>`, in which case we use the correlation function solvers that start from the steady state, e.g., the :func:`qutip.correlation_2op_1t` function. These correlation function solvers return a vector or matrix (in general complex) with the correlations as a function of the delays times.
 
+The function :func:`qutip.correlation_3op` is an alternative interface that allow to use other solvers than :func:`mesolve`, such as :func:`brmesolve`.
+
 .. _correlation-steady:
 
 Steadystate correlation function

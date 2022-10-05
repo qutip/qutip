@@ -68,6 +68,11 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
     corr_vec : ndarray
         An array of correlation values for the times specified by `taulist`.
 
+    See Also
+    --------
+    :func:`correlation_3op` :
+        Similar function supporting various solver types.
+
     References
     ----------
     See, Gardiner, Quantum Noise, Section 5.2.
@@ -134,6 +139,11 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
         `tlist` is `None`, then a 1-dimensional array of correlation values
         is returned instead.
 
+    See Also
+    --------
+    :func:`correlation_3op` :
+        Similar function supporting various solver types.
+
     References
     ----------
     See, Gardiner, Quantum Noise, Section 5.2.
@@ -196,6 +206,11 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
     corr_vec : array
         An array of correlation values for the times specified by `taulist`
 
+    See Also
+    --------
+    :func:`correlation_3op` :
+        Similar function supporting various solver types.
+
     References
     ----------
     See, Gardiner, Quantum Noise, Section 5.2.
@@ -257,6 +272,11 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
         specified by `tlist` (first index) and `taulist` (second index). If
         `tlist` is `None`, then a 1-dimensional array of correlation values
         is returned instead.
+
+    See Also
+    --------
+    :func:`correlation_3op` :
+        Similar function supporting various solver types.
 
     References
     ----------
@@ -399,13 +419,6 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me",
     return g2, G2
 
 
-def _fix_op_type(op, dims):
-    """ Make op QobjEvo. """
-    if op in [None, 1]:
-        op = qeye(dims)
-    return QobjEvo(op)
-
-
 def _make_solver(H, c_ops, args, options, solver):
     H = QobjEvo(H, args=args)
     c_ops = [QobjEvo(c_op, args=args) for c_op in c_ops]
@@ -422,10 +435,11 @@ def _make_solver(H, c_ops, args, options, solver):
 def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None):
     r"""
     Calculate the three-operator two-time correlation function:
-    :math:`\left<A(t)B(t+\tau)C(t)\right>`
+        :math:`\left<A(t)B(t+\tau)C(t)\right>`.
+    from a open system :class:`Solver`.
 
     Note: it is not possible to calculate a physically meaningful correlation
-   where :math:`\tau<0`.
+    where :math:`\tau<0`.
 
     Parameters
     ----------
@@ -446,15 +460,21 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None):
         Operator B.
     C : Qobj, QobjEvo, optional, default=None
         Operator C.
-    """
 
+    Returns
+    -------
+    corr_mat : array
+        An 2-dimensional array (matrix) of correlation values for the times
+        specified by `tlist` (first index) and `taulist` (second index). If
+        `tlist` is `None`, then a 1-dimensional array of correlation values
+        is returned instead.
+    """
     taulist = np.asarray(taulist)
 
     dims = state0.dims[0]
-    A = qeye(dims) if A in [None, 1] else A
-    B = qeye(dims) if B in [None, 1] else B
-    C = qeye(dims) if C in [None, 1] else C
-    A, B, C = QobjEvo(A), QobjEvo(B), QobjEvo(C)
+    A = QobjEvo(qeye(dims) if A in [None, 1] else A)
+    B = QobjEvo(qeye(dims) if B in [None, 1] else B)
+    C = QobjEvo(qeye(dims) if C in [None, 1] else C)
 
     if isinstance(solver, (MeSolver, BRSolver, HEOMSolver)):
         out = _correlation_3op_dm(solver, state0, tlist, taulist, A, B, C)
