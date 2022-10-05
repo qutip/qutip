@@ -275,7 +275,7 @@ def test_correlation_timedependant_op():
     sx = qutip.sigmax()
     sz = qutip.sigmaz()
     times = np.arange(4)
-    # swith between sx and sz at t=1.5
+    # switch between sx and sz at t=1.5
     A_op = qutip.QobjEvo([[sx, lambda t: t<=1.5], [sz, lambda t: t>1.5]])
 
     cmp_sx = qutip.correlation_2op_1t(num, None, times, [a], sx, sx)

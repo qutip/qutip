@@ -424,8 +424,8 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None):
     Calculate the three-operator two-time correlation function:
     :math:`\left<A(t)B(t+\tau)C(t)\right>`
 
-    Note: it is not possibly to calculate a physically meaningful correlation
-    of this form where :math:`\tau<0`.
+    Note: it is not possible to calculate a physically meaningful correlation
+   where :math:`\tau<0`.
 
     Parameters
     ----------
@@ -451,17 +451,18 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None):
     taulist = np.asarray(taulist)
 
     dims = state0.dims[0]
-    A = _fix_op_type(A, dims)
-    B = _fix_op_type(B, dims)
-    C = _fix_op_type(C, dims)
+    A = qeye(dims) if A in [None, 1] else A
+    B = qeye(dims) if B in [None, 1] else B
+    C = qeye(dims) if C in [None, 1] else C
+    A, B, C = QobjEvo(A), QobjEvo(B), QobjEvo(C)
 
     if isinstance(solver, (MeSolver, BRSolver, HEOMSolver)):
         out = _correlation_3op_dm(solver, state0, tlist, taulist, A, B, C)
     elif isinstance(solver, McSolver):
         raise TypeError("Monte Carlo support for correlation was removed. "
-                        "Please tell us on github if you need it.")
+                        "Please, tell us on GitHub issues if you need it!")
     else:
-        raise TypeError("Only solver able to evolve density matrices"
+        raise TypeError("Only solvers able to evolve density matrices"
                         " are supported.")
 
     return out
