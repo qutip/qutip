@@ -139,7 +139,7 @@ reshape = _Dispatcher(
         _inspect.Parameter('n_rows_out', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
         _inspect.Parameter('n_cols_out', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
     ]),
-    name='inspect',
+    name='reshape',
     module=__name__,
     inputs=('matrix',),
     out=True,
