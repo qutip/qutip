@@ -456,12 +456,10 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None):
     taulist : array_like
         List of times for :math:`\tau`. taulist must be positive and contain
         the element `0`.
-    A : Qobj, QobjEvo, optional, default=None
-        Operator A.
-    B : Qobj, QobjEvo, optional, default=None
-        Operator B.
-    C : Qobj, QobjEvo, optional, default=None
-        Operator C.
+    A, B, C: Qobj, QobjEvo, optional, default=None
+        Operators ``A``, ``B``, ``C`` from the equation ``<A(t)B(t+\tau)C(t)>``
+        in the Schrodinger picture. They do not need to be all provided. For
+        exemple, if ``A`` is not provided, ``<B(t+\tau)C(t)>`` is computed.
 
     Returns
     -------
