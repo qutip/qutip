@@ -181,7 +181,7 @@ class IntegratorDiag(Integrator):
     @property
     def options(self):
         """
-        Supported options by verner method:
+        Supported options by "diag" method:
 
         eigensolver_dtype : str, default="dense"
             Qutip data type {"dense", "csr", etc.} to use when computing the

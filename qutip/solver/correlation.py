@@ -59,7 +59,7 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
         :math:`\left<A(t+\tau)B(t)\right>`.
     solver : str {'me', 'es'}
         Choice of solver, `me` for master-equation, and `es` for exponential
-        series. `es` is equivalent to `me` with  ``options={"method": "diag"}``
+        series. `es` is equivalent to `me` with ``options={"method": "diag"}``.
     options : dict, optional
         Options for the solver. Only used with `me` solver.
 
@@ -204,7 +204,7 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
     Returns
     -------
     corr_vec : array
-        An array of correlation values for the times specified by `taulist`
+        An array of correlation values for the times specified by `taulist`.
 
     See Also
     --------
@@ -412,7 +412,7 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me",
         n = solver.run(state0, taulist, e_ops=[a_op.dag() * a_op]).expect[0]
 
     # calculate the correlation function G2 and normalize with n to obtain g2
-    G1 = correlation_3op(solver, state0, [0], taulist,
+    G2 = correlation_3op(solver, state0, [0], taulist,
                          a_op.dag(), a_op.dag() * a_op, a_op)
 
     g2 = G2 / (n[0] * n)
