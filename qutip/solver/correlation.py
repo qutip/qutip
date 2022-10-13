@@ -127,7 +127,7 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
         :math:`\left<A(t+\tau)B(t)\right>`.
     solver : str {'me', 'es'}
         Choice of solver, `me` for master-equation, and `es` for exponential
-        series. `es` is equivalent to `me` with  ``options={"method": "diag"}``
+        series. `es` is equivalent to `me` with ``options={"method": "diag"}``.
     options : dict, optional
         Options for the solver. Only used with `me` solver.
 
@@ -197,7 +197,7 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
         Operator C.
     solver : str {'me', 'es'}
         Choice of solver, `me` for master-equation, and `es` for exponential
-        series. `es` is equivalent to `me` with  ``options={"method": "diag"}``
+        series. `es` is equivalent to `me` with ``options={"method": "diag"}``.
     options : dict, optional
         Options for the solver. Only used with `me` solver.
 
@@ -261,7 +261,7 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
         Operator C.
     solver : str {'me', 'es'}
         Choice of solver, `me` for master-equation, and `es` for exponential
-        series. `es` is equivalent to `me` with  ``options={"method": "diag"}``
+        series. `es` is equivalent to `me` with ``options={"method": "diag"}``.
     options : dict, optional
         Options for the solver. Only used with `me` solver.
 
@@ -330,7 +330,7 @@ def coherence_function_g1(
         Operator A.
     solver : str {'me', 'es'}
         Choice of solver, `me` for master-equation, and `es` for exponential
-        series. `es` is equivalent to `me` with  ``options={"method": "diag"}``
+        series. `es` is equivalent to `me` with ``options={"method": "diag"}``.
     options : dict, optional
         Options for the solver. Only used with `me` solver.
 
@@ -350,9 +350,9 @@ def coherence_function_g1(
         n = solver.run(state0, taulist, e_ops=[a_op.dag() * a_op]).expect[0]
 
     # calculate the correlation function G1 and normalize with n to obtain g1
-    G1 = correlation_3op(solver, state0, [0], taulist, None, a_op.dag(), a_op)
+    G1 = correlation_3op(solver, state0, [0], taulist, None, a_op.dag(), a_op)[0]
 
-    g1 = G1 / np.sqrt(n[0] * n)
+    g1 = G1 / np.sqrt(n[0] * np.array(n))[0]
     return g1, G1
 
 
@@ -392,7 +392,7 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me",
         Dictionary of arguments to be passed to solver.
     solver : str {'me', 'es'}
         Choice of solver, `me` for master-equation, and `es` for exponential
-        series. `es` is equivalent to `me` with  ``options={"method": "diag"}``
+        series. `es` is equivalent to `me` with ``options={"method": "diag"}``.
     options : dict, optional
         Options for the solver. Only used with `me` solver.
 
@@ -413,9 +413,9 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me",
 
     # calculate the correlation function G2 and normalize with n to obtain g2
     G2 = correlation_3op(solver, state0, [0], taulist,
-                         a_op.dag(), a_op.dag() * a_op, a_op)
+                         a_op.dag(), a_op.dag() * a_op, a_op)[0]
 
-    g2 = G2 / (n[0] * n)
+    g2 = G2 / (n[0] * np.array(n))
     return g2, G2
 
 
@@ -476,10 +476,13 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None):
     B = QobjEvo(qeye(dims) if B in [None, 1] else B)
     C = QobjEvo(qeye(dims) if C in [None, 1] else C)
 
-    if isinstance(solver, (MeSolver, BRSolver, HEOMSolver)):
+    if isinstance(solver, (MeSolver, BRSolver)):
         out = _correlation_3op_dm(solver, state0, tlist, taulist, A, B, C)
     elif isinstance(solver, McSolver):
         raise TypeError("Monte Carlo support for correlation was removed. "
+                        "Please, tell us on GitHub issues if you need it!")
+    elif isinstance(solver, HEOMSolver):
+        raise TypeError("HEOM is not supported by correlation. "
                         "Please, tell us on GitHub issues if you need it!")
     else:
         raise TypeError("Only solvers able to evolve density matrices"

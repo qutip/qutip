@@ -301,3 +301,28 @@ def test_alternative_solver():
     me_corr = qutip.correlation_3op(me, qutip.basis(5), [0], times, a, a.dag())
 
     np.testing.assert_allclose(br_corr, me_corr)
+
+
+def test_G1():
+    H = qutip.Qobj([[0,1], [1,0]])
+    psi0 = qutip.basis(2)
+    taus = np.linspace(0, 1, 11)
+    scale = 2
+    a_op = qutip.sigmaz() * scale
+    g1, G1 = qutip.coherence_function_g1(H, psi0, taus, [], a_op)
+    expected = np.array([np.cos(t)**2 - np.sin(t)**2 for t in taus])
+    np.testing.assert_allclose(g1, expected, rtol=2e-5)
+    np.testing.assert_allclose(G1, expected * scale**2, rtol=2e-5)
+
+
+def test_G2():
+    N = 10
+    H = qutip.rand_dm(N)
+    psi0 = qutip.rand_ket(N)
+    taus = np.linspace(0, 1, 11)
+    scale = 2
+    a_op = qutip.rand_unitary(N) * scale
+    g1, G1 = qutip.coherence_function_g2(H, psi0, taus, [], a_op)
+    expected = np.ones(11)
+    np.testing.assert_allclose(g1, expected, rtol=2e-5)
+    np.testing.assert_allclose(G1, expected * scale**4, rtol=2e-5)
