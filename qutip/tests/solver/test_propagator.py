@@ -131,25 +131,6 @@ def testPropSolver(solver):
     assert (U(1.5, 0.5) - propagator(H, 1, c_ops)).norm('max') < 1e-4
 
 
-def testPropHEOM():
-    from qutip.solver.heom.bofin_baths import Bath, BathExponent
-    from qutip.solver.heom.bofin_solvers import HEOMSolver
-    a = destroy(2)
-    H = a.dag()*a
-    bath = Bath([BathExponent("R", None, Q=a, ck=1, vk=0)])
-    hsolver = HEOMSolver(H, bath, 1)
-    U = Propagator(hsolver)
-    assert U(1).dims == [[[2], [2]], [[2], [2]]]
-    assert U(2).istp
-
-    rho = qutip.rand_dm(2)
-    hsolver.start(rho, 0)
-    np.testing.assert_allclose(
-        U(1)(rho).full(), hsolver.step(1).full(),
-        atol=1e-6
-    )
-
-
 def testPropMcSolver():
     a = destroy(5)
     H = a.dag()*a

@@ -8,6 +8,7 @@ from ..core import data as _data
 from .mesolve import mesolve, MeSolver
 from .sesolve import sesolve, SeSolver
 from .mcsolve import McSolver
+from .heom.bofin_solvers import HEOMSolver
 from .solver_base import Solver
 from .multitraj import MultiTrajSolver
 
@@ -151,6 +152,9 @@ class Propagator:
         if isinstance(system, MultiTrajSolver):
             raise TypeError("Non-deterministic solver cannot be used in "
                             "propagator")
+        elif isinstance(system, HEOMSolver):
+            raise TypeError("HEOM is not supported by Propagator. "
+                            "Please, tell us on GitHub issues if you need it!")
         elif isinstance(system, Solver):
             self.solver = system
         else:
