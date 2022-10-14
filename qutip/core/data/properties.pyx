@@ -161,14 +161,6 @@ cpdef bint isherm_dense(Dense matrix, double tol=-1):
     -------
     bint
         Boolean True if it is Hermitian, False if not.
-
-    Notes
-    -----
-    The implementation is effectively just taking the adjoint, but rather than
-    actually allocating and creating a new matrix, we just check whether the
-    output would match the input matrix.  If we cannot be certain of Hermicity
-    because the sizes of some elements are within tolerance of 0, we have to
-    resort to a complete adjoint calculation.
     """
     if matrix.shape[0] != matrix.shape[1]:
         return False
