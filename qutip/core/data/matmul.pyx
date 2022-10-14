@@ -397,8 +397,8 @@ matmul.__doc__ =\
     where `scale` is (optionally) a scalar, and `left` and `right` are
     matrices.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     left : Data
         The left operand as either a bra or a ket matrix.
 

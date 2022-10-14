@@ -15,8 +15,8 @@ cdef extern from *:
     void *PyMem_Calloc(size_t nelem, size_t elsize)
 
 __all__ = [
-    'isherm', 'isherm_csr',
-    'isdiag', 'isdiag_csr',
+    'isherm', 'isherm_csr', 'isherm_dense',
+    'isdiag', 'isdiag_csr', 'isdiag_dense',
     'iszero', 'iszero_csr', 'iszero_dense',
 ]
 
@@ -144,6 +144,47 @@ cpdef bint isherm_csr(CSR matrix, double tol=-1):
         mem.PyMem_Free(out_row_index)
 
 
+cpdef bint isherm_dense(Dense matrix, double tol=-1):
+    """
+    Determine whether an input Dense matrix is Hermitian up to a given
+    floating-point tolerance.
+
+    Parameters
+    ----------
+    matrix : Dense
+        Input matrix to test
+    tol : double, optional
+        Absolute tolerance value to use.  Defaults to
+        :obj:`settings.core['atol']`.
+
+    Returns
+    -------
+    bint
+        Boolean True if it is Hermitian, False if not.
+
+    Notes
+    -----
+    The implementation is effectively just taking the adjoint, but rather than
+    actually allocating and creating a new matrix, we just check whether the
+    output would match the input matrix.  If we cannot be certain of Hermicity
+    because the sizes of some elements are within tolerance of 0, we have to
+    resort to a complete adjoint calculation.
+    """
+    if matrix.shape[0] != matrix.shape[1]:
+        return False
+    tol = tol if tol >= 0 else settings.core["atol"]
+    cdef size_t row, col, size=matrix.shape[0]
+    for row in range(size):
+        for col in range(size):
+            if not _conj_feq(
+                matrix.data[col*size+row],
+                matrix.data[row*size+col],
+                tol
+            ):
+                return False
+    return True
+
+
 cpdef bint isdiag_csr(CSR matrix) nogil:
     cdef size_t row, ptr_start, ptr_end=matrix.row_index[0]
     for row in range(matrix.shape[0]):
@@ -152,6 +193,16 @@ cpdef bint isdiag_csr(CSR matrix) nogil:
             return False
         if ptr_end - ptr_start == 1:
             if matrix.col_index[ptr_start] != row:
+                return False
+    return True
+
+
+cpdef bint isdiag_dense(Dense matrix) nogil:
+    cdef size_t row, row_stride = 1 if matrix.fortran else matrix.shape[1]
+    cdef size_t col, col_stride = matrix.shape[0] if matrix.fortran else 1
+    for row in range(matrix.shape[0]):
+        for col in range(matrix.shape[1]):
+            if (col != row) and matrix.data[col * col_stride + row * row_stride] != 0.:
                 return False
     return True
 
@@ -201,8 +252,8 @@ isherm.__doc__ =\
 
     Only square matrices can possibly be Hermitian.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     matrix : Data
         The matrix to test for Hermicity.
 
@@ -228,8 +279,8 @@ isdiag.__doc__ =\
     """
     Check if the matrix is diagonal.  The matrix need not be square to test.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     matrix : Data
         The matrix to test for diagonality.
     """
@@ -252,8 +303,8 @@ iszero.__doc__ =\
     """
     Test if this matrix is the zero matrix, up to a certain absolute tolerance.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     matrix : Data
         The matrix to test.
     tol : real, optional

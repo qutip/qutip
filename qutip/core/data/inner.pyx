@@ -5,12 +5,14 @@ cdef extern from "<complex>" namespace "std" nogil:
     double complex conj(double complex x)
 
 from qutip.core.data.base cimport idxint, Data
-from qutip.core.data cimport csr
+from qutip.core.data cimport csr, dense
 from qutip.core.data.csr cimport CSR
+from qutip.core.data.dense cimport Dense
+from qutip.core.data.matmul cimport matmul_dense
 
 __all__ = [
-    'inner', 'inner_csr',
-    'inner_op', 'inner_op_csr',
+    'inner', 'inner_csr', 'inner_dense',
+    'inner_op', 'inner_op_csr', 'inner_op_dense',
 ]
 
 
@@ -88,6 +90,33 @@ cpdef double complex inner_csr(CSR left, CSR right, bint scalar_is_ket=False) no
         return _inner_csr_bra_ket(left, right)
     return _inner_csr_ket_ket(left, right)
 
+cpdef double complex inner_dense(Dense left, Dense right, bint scalar_is_ket=False) nogil except *:
+    """
+    Compute the complex inner product <left|right>.  The shape of `left` is
+    used to determine if it has been supplied as a ket or a bra.  The result of
+    this function will be identical if passed `left` or `adjoint(left)`.
+
+    The parameter `scalar_is_ket` is only intended for the case where `left`
+    and `right` are both of shape (1, 1).  In this case, `left` will be assumed
+    to be a ket unless `scalar_is_ket` is False.  This parameter is ignored at
+    all other times.
+    """
+    _check_shape_inner(left, right)
+    if left.shape[0] == left.shape[1] == right.shape[1] == 1:
+        return (
+                conj(left.data[0]) * right.data[0] if scalar_is_ket
+                else left.data[0] * right.data[0]
+        )
+    cdef double complex out = 0
+    cdef size_t i
+    if left.shape[0] == 1:
+        for i in range(right.shape[0]):
+            out += left.data[i] * right.data[i]
+    else:
+        for i in range(right.shape[0]):
+            out += conj(left.data[i]) * right.data[i]
+    return out
+
 
 cdef double complex _inner_op_csr_bra_ket(CSR left, CSR op, CSR right) nogil:
     cdef size_t ptr_l, ptr_op, ptr_r, row, col
@@ -143,6 +172,21 @@ cpdef double complex inner_op_csr(CSR left, CSR op, CSR right,
         return _inner_op_csr_bra_ket(left, op, right)
     return _inner_op_csr_ket_ket(left, op, right)
 
+cpdef double complex inner_op_dense(Dense left, Dense op, Dense right,
+                                  bint scalar_is_ket=False) except *:
+    """
+    Compute the complex inner product <left|op|right>.  The shape of `left` is
+    used to determine if it has been supplied as a ket or a bra.  The result of
+    this function will be identical if passed `left` or `adjoint(left)`.
+
+    The parameter `scalar_is_ket` is only intended for the case where `left`
+    and `right` are both of shape (1, 1).  In this case, `left` will be assumed
+    to be a ket unless `scalar_is_ket` is False.  This parameter is ignored at
+    all other times.
+    """
+    _check_shape_inner_op(left, op, right)
+    return inner_dense(left, matmul_dense(op, right))
+
 
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
@@ -172,8 +216,8 @@ inner.__doc__ =\
     to be a ket unless `scalar_is_ket` is False.  This parameter is ignored at
     all other times.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     left : Data
         The left operand as either a bra or a ket matrix.
 
@@ -187,6 +231,7 @@ inner.__doc__ =\
     """
 inner.add_specialisations([
     (CSR, CSR, inner_csr),
+    (Dense, Dense, inner_dense),
 ], _defer=True)
 
 inner_op = _Dispatcher(
@@ -216,8 +261,8 @@ inner_op.__doc__ =\
     to be a ket unless `scalar_is_ket` is False.  This parameter is ignored at
     all other times.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     left : Data
         The left operand as either a bra or a ket matrix.
 
@@ -235,6 +280,7 @@ inner_op.__doc__ =\
     """
 inner_op.add_specialisations([
     (CSR, CSR, CSR, inner_op_csr),
+    (Dense, Dense, Dense, inner_op_dense),
 ], _defer=True)
 
 del _inspect, _Dispatcher
