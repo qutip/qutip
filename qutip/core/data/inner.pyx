@@ -185,7 +185,7 @@ cpdef double complex inner_op_dense(Dense left, Dense op, Dense right,
     all other times.
     """
     _check_shape_inner_op(left, op, right)
-    return inner_dense(left, matmul_dense(op, right))
+    return inner_dense(left, matmul_dense(op, right), scalar_is_ket)
 
 
 from .dispatch import Dispatcher as _Dispatcher
