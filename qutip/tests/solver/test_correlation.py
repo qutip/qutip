@@ -15,7 +15,6 @@ _equivalence_coherent = qutip.coherent_dm(_equivalence_dimension, 2)
 @pytest.mark.parametrize(["solver", "start"], [
     pytest.param("es", _equivalence_coherent, id="es"),
     pytest.param("es", None, id="es-steady state"),
-    pytest.param("mc", _equivalence_fock, id="mc", marks=pytest.mark.slow),
 ])
 def test_correlation_solver_equivalence(solver, start):
     """
@@ -127,6 +126,7 @@ def _2ls_g2_0(H, c_ops):
     sp = qutip.sigmap()
     start = qutip.basis(2, 0)
     times = _2ls_times
+    H = qutip.QobjEvo(H, args=_2ls_args, tlist=times)
     correlation = qutip.correlation_3op_2t(H, start, times, times, [sp],
                                            sp.dag(), sp.dag()*sp, sp,
                                            args=_2ls_args)
@@ -227,8 +227,6 @@ def test_hamiltonian_order_unimportant():
     pytest.param('es', _equivalence_fock, id="es-ket"),
     pytest.param('es', _equivalence_coherent, id="es-dm"),
     pytest.param('es', None, id="es-steady"),
-    pytest.param('mc', _equivalence_fock, id="mc-ket",
-                 marks=[pytest.mark.slow]),
 ])
 @pytest.mark.parametrize("is_e_op_hermitian", [True, False],
                          ids=["hermitian", "nonhermitian"])
@@ -269,3 +267,62 @@ def test_correlation_2op_1t_known_cases(solver,
     cmp = qutip.correlation_2op_1t(H, state, times, c_ops, a_op, b_op, solver=solver)
 
     np.testing.assert_allclose(base, cmp, atol=0.25 if solver == 'mc' else 2e-5)
+
+
+def test_correlation_timedependant_op():
+    num = qutip.num(2)
+    a = qutip.destroy(2)
+    sx = qutip.sigmax()
+    sz = qutip.sigmaz()
+    times = np.arange(4)
+    # switch between sx and sz at t=1.5
+    A_op = qutip.QobjEvo([[sx, lambda t: t<=1.5], [sz, lambda t: t>1.5]])
+
+    cmp_sx = qutip.correlation_2op_1t(num, None, times, [a], sx, sx)
+    cmp_sz = qutip.correlation_2op_1t(num, None, times, [a], sz, sx)
+    cmp_switch = qutip.correlation_2op_1t(num, None, times, [a], A_op, sx)
+    np.testing.assert_allclose(cmp_sx[:2], cmp_switch[:2])
+    np.testing.assert_allclose(cmp_sz[-2:], cmp_switch[-2:])
+
+
+def test_alternative_solver():
+    from qutip.solver.mesolve import MeSolver
+    from qutip.solver.brmesolve import BRSolver
+
+    H = qutip.num(5)
+    a = qutip.destroy(5)
+    a_ops = [(a+a.dag(), qutip.coefficient(lambda _, w: w>0, args={"w":0}))]
+
+    br = BRSolver(H, a_ops)
+    me = MeSolver(H, [a])
+    times = np.arange(4)
+
+    br_corr = qutip.correlation_3op(br, qutip.basis(5), [0], times, a, a.dag())
+    me_corr = qutip.correlation_3op(me, qutip.basis(5), [0], times, a, a.dag())
+
+    np.testing.assert_allclose(br_corr, me_corr)
+
+
+def test_G1():
+    H = qutip.Qobj([[0,1], [1,0]])
+    psi0 = qutip.basis(2)
+    taus = np.linspace(0, 1, 11)
+    scale = 2
+    a_op = qutip.sigmaz() * scale
+    g1, G1 = qutip.coherence_function_g1(H, psi0, taus, [], a_op)
+    expected = np.array([np.cos(t)**2 - np.sin(t)**2 for t in taus])
+    np.testing.assert_allclose(g1, expected, rtol=2e-5)
+    np.testing.assert_allclose(G1, expected * scale**2, rtol=2e-5)
+
+
+def test_G2():
+    N = 10
+    H = qutip.rand_dm(N)
+    psi0 = qutip.rand_ket(N)
+    taus = np.linspace(0, 1, 11)
+    scale = 2
+    a_op = qutip.rand_unitary(N) * scale
+    g1, G1 = qutip.coherence_function_g2(H, psi0, taus, [], a_op)
+    expected = np.ones(11)
+    np.testing.assert_allclose(g1, expected, rtol=2e-5)
+    np.testing.assert_allclose(G1, expected * scale**4, rtol=2e-5)
