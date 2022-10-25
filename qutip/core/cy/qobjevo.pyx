@@ -774,6 +774,35 @@ cdef class QobjEvo:
 
         self.elements = cleaned_elements
 
+    def to_list(QobjEvo self):
+        """
+        Restore the QobjEvo to a list form.
+
+        Returns
+        -------
+        list_qevo: list
+            The QobjEvo as a list, element are either :class:`Qobj` for
+            constant parts, ``[Qobj, Coefficient]`` for coefficient based term.
+            The original format of the :class:`Coefficient` is not restored.
+            Lastly if the original `QobjEvo` is constructed with an function
+            returning a Qobj, the term is returned as a pair of :class:`Qobj`
+            and args (``dict``).
+        """
+        out = []
+        for element in self.elements:
+            if isinstance(element, _ConstantElement):
+                out.append(element.qobj(0))
+            elif isinstance(element, _EvoElement):
+                coeff = element._coefficient
+                out.append([element.qobj(0), coeff])
+            elif isinstance(element, _FuncElement):
+                func = element._func
+                args = element._args
+                out.append([func, args])
+            else:
+                out.append([element, {}])
+        return out
+
     ###########################################################################
     # properties                                                              #
     ###########################################################################
@@ -855,7 +884,7 @@ cdef class QobjEvo:
         if type(state) is Dense:
             return self._expect_dense(t, state)
         cdef _BaseElement part
-        cdef double complex out = 0., coeff
+        cdef object out = 0.
         cdef Data part_data
         cdef object expect_func
         t = self._prepare(t, state)
@@ -868,9 +897,8 @@ cdef class QobjEvo:
 
         for element in self.elements:
             part = (<_BaseElement> element)
-            coeff = part.coeff(t)
             part_data = part.data(t)
-            out += coeff * expect_func(part_data, state)
+            out += part.coeff(t) * expect_func(part_data, state)
         return out
 
     cdef double complex _expect_dense(QobjEvo self, double t, Dense state) except *:
