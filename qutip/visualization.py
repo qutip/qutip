@@ -331,8 +331,8 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
             _x = x + 1
             _y = y + 1
             _blob(
-                _x - 0.5, height - _y + 0.5, W[x, y], w_max,
-                min(1, abs(W[x, y]) / w_max), color_fn=color_fn, ax=ax)
+                _x - 0.5, height - _y + 0.5, W[y, x], w_max,
+                min(1, abs(W[y, x]) / w_max), color_fn=color_fn, ax=ax)
 
     # color axis
     vmax = np.pi if color_style == "phase" else abs(W).max()
