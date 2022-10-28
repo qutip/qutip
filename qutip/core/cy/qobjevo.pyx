@@ -287,6 +287,28 @@ cdef class QobjEvo:
 
         return out
 
+    @classmethod
+    def _retore(cls, elements, dims, shape, type, superrep, flags):
+        # We
+        cdef QobjEvo out = cls.__new__(cls)
+        out.elements = elements
+        out.dims = dims
+        out.shape = shape
+        out.type = type
+        out.superrep = superrep
+        out._issuper, out._isoper, out._shift_dt = flags
+        return out
+
+    def _getstate(self):
+        return {
+            "elements": self.elements,
+            "dims": self.dims,
+            "shape": self.shape,
+            "type": self.type,
+            "superrep": self.superrep,
+            "flags": (self._issuper, self._isoper, self._shift_dt)
+        }
+
     def __call__(self, double t, dict _args=None, **kwargs):
         """
         Get the :class:`~Qobj` at ``t``.
@@ -355,7 +377,7 @@ cdef class QobjEvo:
             )
         return out
 
-    cdef double _prepare(QobjEvo self, double t, Data state=None):
+    cdef object _prepare(QobjEvo self, object t, Data state=None):
         """ Precomputation before computing getting the element at `t`"""
         return t + self._shift_dt
 
@@ -837,7 +859,7 @@ cdef class QobjEvo:
     ###########################################################################
     # operation methods                                                       #
     ###########################################################################
-    def expect(QobjEvo self, double t, state):
+    def expect(QobjEvo self, object t, state, check_real=True):
         """
         Expectation value of this operator at time ``t`` with the state.
 
@@ -870,11 +892,14 @@ cdef class QobjEvo:
             raise ValueError("incompatible dimensions " + str(self.dims) +
                              ", " + str(state.dims))
         out = self.expect_data(t, state.data)
-        if out == 0 or (out.real and fabs(out.imag / out.real) < herm_rtol):
+        if (
+            check_real and
+            (out == 0 or (out.real and fabs(out.imag / out.real) < herm_rtol))
+        ):
             return out.real
         return out
 
-    cpdef double complex expect_data(QobjEvo self, double t, Data state) except *:
+    cpdef object expect_data(QobjEvo self, object t, Data state):
         """
         Expectation is defined as ``state.adjoint() @ self @ state`` if
         ``state`` is a vector, or ``state`` is an operator and ``self`` is a
@@ -930,7 +955,7 @@ cdef class QobjEvo:
                 out += coeff * expect_data_dense(part_data, state)
         return out
 
-    def matmul(self, double t, state):
+    def matmul(self, t, state):
         """
         Product of this operator at time ``t`` to the state.
         ``self(t) @ state``
@@ -959,7 +984,7 @@ cdef class QobjEvo:
                     copy=False
                    )
 
-    cpdef Data matmul_data(QobjEvo self, double t, Data state, Data out=None):
+    cpdef Data matmul_data(QobjEvo self, object t, Data state, Data out=None):
         """Compute ``out += self(t) @ state``"""
         cdef _BaseElement part
         t = self._prepare(t, state)

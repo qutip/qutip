@@ -55,7 +55,7 @@ cdef class _BaseElement:
       All :obj:`~_BaseElement` instances are immutable and methods that would
       modify an object return a new instance instead.
     """
-    cpdef Data data(self, double t):
+    cpdef Data data(self, t):
         """
         Returns the underlying :obj:`~Data` of the :obj:`~Qobj` component
         of the term at time ``t``.
@@ -75,7 +75,7 @@ cdef class _BaseElement:
           "Sub-classes of _BaseElement should implement .data(t)."
         )
 
-    cpdef object qobj(self, double t):
+    cpdef object qobj(self, t):
         """
         Returns the :obj:`~Qobj` component of the term at time ``t``.
 
@@ -93,7 +93,7 @@ cdef class _BaseElement:
           "Sub-classes of _BaseElement should implement .qobj(t)."
         )
 
-    cpdef object coeff(self, double t):
+    cpdef object coeff(self, t):
         """
         Returns the complex coefficient of the term at time ``t``.
 
@@ -111,7 +111,7 @@ cdef class _BaseElement:
           "Sub-classes of _BaseElement should implement .coeff(t)."
         )
 
-    cdef Data matmul_data_t(_BaseElement self, double t, Data state, Data out=None):
+    cdef Data matmul_data_t(_BaseElement self, t, Data state, Data out=None):
         """
         Possibly in-place multiplication and addition. Multiplies a given state
         by the elemen's value at time ``t`` and adds the result to ``out``.
@@ -289,13 +289,13 @@ cdef class _ConstantElement(_BaseElement):
             )
         return NotImplemented
 
-    cpdef Data data(self, double t):
+    cpdef Data data(self, t):
         return self._qobj.data
 
-    cpdef object qobj(self, double t):
+    cpdef object qobj(self, t):
         return self._qobj
 
-    cpdef object coeff(self, double t):
+    cpdef object coeff(self, t):
         return 1.
 
     def linear_map(self, f, anti=False):
@@ -342,13 +342,13 @@ cdef class _EvoElement(_BaseElement):
             return NotImplemented
         return _EvoElement(left._qobj * right._qobj, coefficient)
 
-    cpdef Data data(self, double t):
+    cpdef Data data(self, t):
         return self._qobj.data
 
-    cpdef object qobj(self, double t):
+    cpdef object qobj(self, t):
         return self._qobj
 
-    cpdef object coeff(self, double t):
+    cpdef object coeff(self, t):
         return self._coefficient(t)
 
     def linear_map(self, f, anti=False):
@@ -444,10 +444,10 @@ cdef class _FuncElement(_BaseElement):
     def __matmul__(left, right):
         return _ProdElement(left, right, [])
 
-    cpdef Data data(self, double t):
+    cpdef Data data(self, t):
         return self.qobj(t).data
 
-    cpdef object qobj(self, double t):
+    cpdef object qobj(self, t):
         cdef double _t
         cdef object _qobj
         _t, _qobj = self._previous
@@ -460,7 +460,7 @@ cdef class _FuncElement(_BaseElement):
         self._previous = (t, _qobj)
         return _qobj
 
-    cpdef object coeff(self, double t):
+    cpdef object coeff(self, t):
         return 1.
 
     def linear_map(self, f, anti=False):
@@ -523,16 +523,16 @@ cdef class _MapElement(_BaseElement):
     def __matmul__(left, right):
         return _ProdElement(left, right, [])
 
-    cpdef Data data(self, double t):
+    cpdef Data data(self, t):
         return self.qobj(t).data
 
-    cpdef object qobj(self, double t):
+    cpdef object qobj(self, t):
         out = self._base.qobj(t)
         for func in self._transform:
             out = func(out)
         return out
 
-    cpdef object coeff(self, double t):
+    cpdef object coeff(self, t):
         return self._coeff
 
     def linear_map(self, f, anti=False):
@@ -581,20 +581,20 @@ cdef class _ProdElement(_BaseElement):
     def __matmul__(left, right):
         return _ProdElement(left, right, [])
 
-    cpdef Data data(self, double t):
+    cpdef Data data(self, t):
         return self.qobj(t).data
 
-    cpdef object qobj(self, double t):
+    cpdef object qobj(self, t):
         out = self._left.qobj(t) @ self._right.qobj(t)
         for func in self._transform:
             out = func(out)
         return out
 
-    cpdef object coeff(self, double t):
+    cpdef object coeff(self, t):
         cdef double complex out = self._left.coeff(t) * self._right.coeff(t)
         return conj(out) if self._conj else out
 
-    cdef Data matmul_data_t(_ProdElement self, double t, Data state, Data out=None):
+    cdef Data matmul_data_t(_ProdElement self, t, Data state, Data out=None):
         cdef Data temp
         if not self._transform:
             temp = self._right.matmul_data_t(t, state)

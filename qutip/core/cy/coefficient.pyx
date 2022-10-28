@@ -75,8 +75,8 @@ cdef class Coefficient:
 
     :obj:`Coefficient` are immutable.
     """
-    def __init__(self, **_):
-        raise NotImplementedError("Only sub-classes should be initiated.")
+    def __init__(self, args, **_):
+        self.args = args
 
     def replace_arguments(self, _args=None, **kwargs):
         """
@@ -98,7 +98,7 @@ cdef class Coefficient:
         """
         return self
 
-    def __call__(self, double t, dict _args=None, **kwargs):
+    def __call__(self, t, dict _args=None, **kwargs):
         """
         Return the coefficient value at time `t`.
         Stored arguments can overwriten with `_args` or as keywords parameters.
@@ -204,7 +204,7 @@ cdef class FunctionCoefficient(Coefficient):
         self._f_pythonic = _f_pythonic
         self._f_parameters = _f_parameters
 
-    def __call__(self, double t, dict _args=None, **kwargs):
+    def __call__(self, t, dict _args=None, **kwargs):
         if _args is not None or kwargs:
             return self.replace_arguments(_args, **kwargs)(t)
         if self._f_pythonic:
