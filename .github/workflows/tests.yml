@@ -19,6 +19,8 @@ jobs:
   cases:
     name: ${{ matrix.os }}, python${{ matrix.python-version }}, ${{ matrix.case-name }}
     runs-on: ${{ matrix.os }}
+    env:
+      MPLBACKEND: Agg  # Explicitly define matplotlib backend for Windows tests
     strategy:
       fail-fast: false
       matrix:
