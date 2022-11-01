@@ -18,7 +18,7 @@ import numbers
 
 import numpy as np
 from scipy.sparse import dok_matrix, csgraph
-
+from qutip.settings import settings
 cimport cython
 
 __all__ = ['to', 'create']
@@ -88,6 +88,16 @@ cdef class _partial_converter:
 
     def __repr__(self):
         return "<converter to " + self.to.__name__ + ">"
+
+
+cdef class _default_dtype:
+    cdef type dtype
+
+    def __init__(self, dtype):
+        self.dtype = dtype
+
+    def __call__(self):
+        return settings.core["default_dtype"] or self.dtype
 
 
 # While `_to` and `_create` are defined as objects here, they are actually
@@ -309,6 +319,8 @@ cdef class _to:
             registered, or if ``dtype`` is a type, but not a known data-layer
             type.
         """
+        if type(dtype) is _default_dtype:
+            dtype = dtype()
         if type(dtype) is type:
             if dtype not in self.dtypes:
                 raise ValueError(

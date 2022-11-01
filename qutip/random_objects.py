@@ -24,6 +24,7 @@ from . import (Qobj, create, destroy, jmat, basis,
                to_super, to_choi, to_chi, to_kraus, to_stinespring)
 from .core import data as _data
 from .core.dimensions import flatten
+from .core.data.convert import _default_dtype
 
 
 _RAND = default_rng()
@@ -210,7 +211,7 @@ def _merge_shuffle_blocks(blocks, generator):
 
 
 def rand_herm(dimensions, density=0.30, distribution="fill", *,
-              eigenvalues=(), seed=None, dtype=_data.CSR):
+              eigenvalues=(), seed=None, dtype=_default_dtype(_data.CSR)):
     """Creates a random sparse Hermitian quantum object.
 
     Parameters
@@ -332,7 +333,7 @@ def _rand_herm_dense(N, density, pos_def, generator):
 
 
 def rand_unitary(dimensions, density=1, distribution="haar", *,
-                 seed=None, dtype=_data.Dense):
+                 seed=None, dtype=_default_dtype(_data.Dense)):
     r"""Creates a random sparse unitary quantum object.
 
     Parameters
@@ -434,7 +435,7 @@ def _rand_unitary_haar(N, generator):
 
 
 def rand_ket(dimensions, density=1, distribution="haar", *,
-             seed=None, dtype=_data.Dense):
+             seed=None, dtype=_default_dtype(_data.Dense)):
     """Creates a random ket vector.
 
     Parameters
@@ -494,7 +495,8 @@ def rand_ket(dimensions, density=1, distribution="haar", *,
 
 
 def rand_dm(dimensions, density=0.75, distribution="ginibre", *,
-            eigenvalues=(), rank=None, seed=None, dtype=_data.CSR):
+            eigenvalues=(), rank=None, seed=None,
+            dtype=_default_dtype(_data.CSR)):
     r"""Creates a random density matrix of the desired dimensions.
 
     Parameters
@@ -620,7 +622,8 @@ def _rand_dm_ginibre(N, rank, generator):
     return rho
 
 
-def rand_kraus_map(dimensions, *, seed=None, dtype=_data.Dense):
+def rand_kraus_map(dimensions, *, seed=None,
+                   dtype=_default_dtype(_data.Dense)):
     """
     Creates a random CPTP map on an N-dimensional Hilbert space in Kraus
     form.
@@ -657,7 +660,8 @@ def rand_kraus_map(dimensions, *, seed=None, dtype=_data.Dense):
             for x in oper_list]
 
 
-def rand_super(dimensions, *, superrep="super", seed=None, dtype=_data.Dense):
+def rand_super(dimensions, *, superrep="super", seed=None,
+               dtype=_default_dtype(_data.Dense)):
     """
     Returns a randomly drawn superoperator acting on operators acting on
     N dimensions.
@@ -698,7 +702,8 @@ def rand_super(dimensions, *, superrep="super", seed=None, dtype=_data.Dense):
 
 
 def rand_super_bcsz(dimensions, enforce_tp=True, rank=None, *,
-                    superrep="super", seed=None, dtype=_data.CSR):
+                    superrep="super", seed=None,
+                    dtype=_default_dtype(_data.CSR)):
     """
     Returns a random superoperator drawn from the Bruzda
     et al ensemble for CPTP maps [BCSZ08]_. Note that due to
@@ -800,7 +805,7 @@ def rand_super_bcsz(dimensions, enforce_tp=True, rank=None, *,
 
 
 def rand_stochastic(dimensions, density=0.75, kind='left',
-                    *, seed=None, dtype=_data.CSR):
+                    *, seed=None, dtype=_default_dtype(_data.CSR)):
     """Generates a random stochastic matrix.
 
     Parameters

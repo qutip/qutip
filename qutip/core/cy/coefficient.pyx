@@ -155,6 +155,10 @@ cdef class Coefficient:
         """ Return a :obj:`Coefficient` being the norm of this"""
         return NormCoefficient(self)
 
+    def _shift(self):
+        """ Return a :obj:`Coefficient` with a time shift"""
+        return ShiftCoefficient(self, 0)
+
 
 @cython.auto_pickle(True)
 cdef class FunctionCoefficient(Coefficient):
@@ -719,3 +723,55 @@ cdef class NormCoefficient(Coefficient):
     cpdef Coefficient copy(self):
         """Return a copy of the :obj:`Coefficient`."""
         return NormCoefficient(self.base.copy())
+
+
+@cython.auto_pickle(True)
+cdef class ShiftCoefficient(Coefficient):
+    """
+    Introduce a time shift into the :obj:`Coefficient`.
+
+    Used internally within qutip when calculating correlations.
+
+    :obj:ShiftCoefficient is returned by
+    ``qutip.coefficent.shift(Coefficient)``.
+    """
+    cdef Coefficient base
+    cdef double _t0
+
+    def __init__(self, Coefficient base, double _t0):
+        self.base = base
+        self._t0 = _t0
+
+    def replace_arguments(self, _args=None, **kwargs):
+        """
+        Replace the arguments (``args``) of a coefficient.
+
+        Returns a new :obj:`Coefficient` if the coefficient has arguments, or
+        the original coefficient if it does not. Arguments to replace may be
+        supplied either in a dictionary as the first position argument, or
+        passed as keywords, or as a combination of the two. Arguments not
+        replaced retain their previous values.
+
+        Parameters
+        ----------
+        _args : dict
+            Dictionary of arguments to replace.
+
+        **kwargs
+            Arguments to replace.
+        """
+        if _args:
+            kwargs.update(_args)
+        try:
+            _t0 = kwargs["_t0"]
+            del kwargs["_t0"]
+        except KeyError:
+            _t0 = self._t0
+        return ShiftCoefficient(self.base.replace_arguments(**kwargs), _t0)
+
+    cdef complex _call(self, double t) except *:
+        return self.base._call(t + self._t0)
+
+    cpdef Coefficient copy(self):
+        """Return a copy of the :obj:`Coefficient`."""
+        return ShiftCoefficient(self.base.copy(), self._t0)

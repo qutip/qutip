@@ -18,9 +18,11 @@ import scipy.sparse
 from . import data as _data
 from .qobj import Qobj
 from .dimensions import flatten
+from .data.convert import _default_dtype
 
 
-def qdiags(diagonals, offsets=None, dims=None, shape=None, *, dtype=_data.CSR):
+def qdiags(diagonals, offsets=None, dims=None, shape=None, *,
+           dtype=_default_dtype(_data.CSR)):
     """
     Constructs an operator from an array of diagonals.
 
@@ -63,7 +65,7 @@ shape = [4, 4], type = oper, isherm = False
     return Qobj(data, dims=dims, type='oper', copy=False)
 
 
-def jmat(j, which=None, *, dtype=_data.CSR):
+def jmat(j, which=None, *, dtype=_default_dtype(_data.CSR)):
     """Higher-order spin operators:
 
     Parameters
@@ -144,7 +146,7 @@ shape = [3, 3], type = oper, isHerm = True
     raise ValueError('Invalid spin operator: ' + which)
 
 
-def _jplus(j, *, dtype=_data.CSR):
+def _jplus(j, *, dtype=_default_dtype(_data.CSR)):
     """
     Internal functions for generating the data representing the J-plus
     operator.
@@ -154,7 +156,7 @@ def _jplus(j, *, dtype=_data.CSR):
     return _data.diag[dtype](data, 1)
 
 
-def _jz(j, *, dtype=_data.CSR):
+def _jz(j, *, dtype=_default_dtype(_data.CSR)):
     """
     Internal functions for generating the data representing the J-z operator.
     """
@@ -166,7 +168,7 @@ def _jz(j, *, dtype=_data.CSR):
 #
 # Spin j operators:
 #
-def spin_Jx(j, *, dtype=_data.CSR):
+def spin_Jx(j, *, dtype=_default_dtype(_data.CSR)):
     """Spin-j x operator
 
     Parameters
@@ -187,7 +189,7 @@ def spin_Jx(j, *, dtype=_data.CSR):
     return jmat(j, 'x', dtype=dtype)
 
 
-def spin_Jy(j, *, dtype=_data.CSR):
+def spin_Jy(j, *, dtype=_default_dtype(_data.CSR)):
     """Spin-j y operator
 
     Parameters
@@ -208,7 +210,7 @@ def spin_Jy(j, *, dtype=_data.CSR):
     return jmat(j, 'y', dtype=dtype)
 
 
-def spin_Jz(j, *, dtype=_data.CSR):
+def spin_Jz(j, *, dtype=_default_dtype(_data.CSR)):
     """Spin-j z operator
 
     Parameters
@@ -229,7 +231,7 @@ def spin_Jz(j, *, dtype=_data.CSR):
     return jmat(j, 'z', dtype=dtype)
 
 
-def spin_Jm(j, *, dtype=_data.CSR):
+def spin_Jm(j, *, dtype=_default_dtype(_data.CSR)):
     """Spin-j annihilation operator
 
     Parameters
@@ -250,7 +252,7 @@ def spin_Jm(j, *, dtype=_data.CSR):
     return jmat(j, '-', dtype=dtype)
 
 
-def spin_Jp(j, *, dtype=_data.CSR):
+def spin_Jp(j, *, dtype=_default_dtype(_data.CSR)):
     """Spin-j creation operator
 
     Parameters
@@ -271,7 +273,7 @@ def spin_Jp(j, *, dtype=_data.CSR):
     return jmat(j, '+', dtype=dtype)
 
 
-def spin_J_set(j, *, dtype=_data.CSR):
+def spin_J_set(j, *, dtype=_default_dtype(_data.CSR)):
     """Set of spin-j operators (x, y, z)
 
     Parameters
@@ -384,7 +386,7 @@ shape = [2, 2], type = oper, isHerm = True
     return _SIGMAZ.copy()
 
 
-def destroy(N, offset=0, *, dtype=_data.CSR):
+def destroy(N, offset=0, *, dtype=_default_dtype(_data.CSR)):
     """
     Destruction (lowering) operator.
 
@@ -422,7 +424,7 @@ def destroy(N, offset=0, *, dtype=_data.CSR):
     return qdiags(data, 1, dtype=dtype)
 
 
-def create(N, offset=0, *, dtype=_data.CSR):
+def create(N, offset=0, *, dtype=_default_dtype(_data.CSR)):
     """
     Creation (raising) operator.
 
@@ -493,7 +495,7 @@ def _implicit_tensor_dimensions(dimensions):
     return np.prod(flat), [dimensions, dimensions]
 
 
-def qzero(dimensions, *, dtype=_data.CSR):
+def qzero(dimensions, *, dtype=_default_dtype(_data.CSR)):
     """
     Zero operator.
 
@@ -522,7 +524,7 @@ def qzero(dimensions, *, dtype=_data.CSR):
                 isherm=True, isunitary=False, copy=False)
 
 
-def qeye(dimensions, *, dtype=_data.CSR):
+def qeye(dimensions, *, dtype=_default_dtype(_data.CSR)):
     """
     Identity operator.
 
@@ -572,7 +574,7 @@ isherm = True
 identity = qeye
 
 
-def position(N, offset=0, *, dtype=_data.CSR):
+def position(N, offset=0, *, dtype=_default_dtype(_data.CSR)):
     """
     Position operator x=1/sqrt(2)*(a+a.dag())
 
@@ -598,7 +600,7 @@ def position(N, offset=0, *, dtype=_data.CSR):
     return np.sqrt(0.5) * (a + a.dag())
 
 
-def momentum(N, offset=0, *, dtype=_data.CSR):
+def momentum(N, offset=0, *, dtype=_default_dtype(_data.CSR)):
     """
     Momentum operator p=-1j/sqrt(2)*(a-a.dag())
 
@@ -624,7 +626,7 @@ def momentum(N, offset=0, *, dtype=_data.CSR):
     return -1j * np.sqrt(0.5) * (a - a.dag())
 
 
-def num(N, offset=0, *, dtype=_data.CSR):
+def num(N, offset=0, *, dtype=_default_dtype(_data.CSR)):
     """
     Quantum object for number operator.
 
@@ -660,7 +662,7 @@ def num(N, offset=0, *, dtype=_data.CSR):
     return qdiags(data, 0, dtype=dtype)
 
 
-def squeeze(N, z, offset=0, *, dtype=_data.CSR):
+def squeeze(N, z, offset=0, *, dtype=_default_dtype(_data.CSR)):
     """Single-mode squeezing operator.
 
     Parameters
@@ -731,7 +733,7 @@ def squeezing(a1, a2, z):
     return b.expm()
 
 
-def displace(N, alpha, offset=0, *, dtype=_data.Dense):
+def displace(N, alpha, offset=0, *, dtype=_default_dtype(_data.Dense)):
     """Single-mode displacement operator.
 
     Parameters
@@ -786,7 +788,7 @@ def commutator(A, B, kind="normal"):
         raise TypeError("Unknown commutator kind '%s'" % kind)
 
 
-def qutrit_ops(*, dtype=_data.CSR):
+def qutrit_ops(*, dtype=_default_dtype(_data.CSR)):
     """
     Operators for a three level system (qutrit).
 
@@ -815,7 +817,7 @@ def qutrit_ops(*, dtype=_data.CSR):
     return out
 
 
-def phase(N, phi0=0, *, dtype=_data.Dense):
+def phase(N, phi0=0, *, dtype=_default_dtype(_data.Dense)):
     """
     Single-mode Pegg-Barnett phase operator.
 
@@ -849,7 +851,7 @@ def phase(N, phi0=0, *, dtype=_data.Dense):
     return Qobj(ops, dims=[[N], [N]], type='oper', copy=False).to(dtype)
 
 
-def enr_destroy(dims, excitations, *, dtype=_data.CSR):
+def enr_destroy(dims, excitations, *, dtype=_default_dtype(_data.CSR)):
     """
     Generate annilation operators for modes in a excitation-number-restricted
     state space. For example, consider a system consisting of 4 modes, each
@@ -913,7 +915,7 @@ def enr_destroy(dims, excitations, *, dtype=_data.CSR):
     return [Qobj(a, dims=[dims, dims]).to(dtype) for a in a_ops]
 
 
-def enr_identity(dims, excitations, *, dtype=_data.CSR):
+def enr_identity(dims, excitations, *, dtype=_default_dtype(_data.CSR)):
     """
     Generate the identity operator for the excitation-number restricted
     state space defined by the `dims` and `exciations` arguments. See the
@@ -953,7 +955,7 @@ def enr_identity(dims, excitations, *, dtype=_data.CSR):
                 copy=False)
 
 
-def charge(Nmax, Nmin=None, frac=1, *, dtype=_data.CSR):
+def charge(Nmax, Nmin=None, frac=1, *, dtype=_default_dtype(_data.CSR)):
     """
     Generate the diagonal charge operator over charge states
     from Nmin to Nmax.
@@ -991,7 +993,7 @@ def charge(Nmax, Nmin=None, frac=1, *, dtype=_data.CSR):
     return out
 
 
-def tunneling(N, m=1, *, dtype=_data.CSR):
+def tunneling(N, m=1, *, dtype=_default_dtype(_data.CSR)):
     r"""
     Tunneling operator with elements of the form
     :math:`\\sum |N><N+m| + |N+m><N|`.
