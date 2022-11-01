@@ -308,3 +308,11 @@ def test_state_type(func, args, alias, dtype):
     else:
         for obj in object:
             assert isinstance(obj.data, dtype)
+
+    with qutip.CoreOptions(default_dtype=alias):
+        object = func(*args)
+        if isinstance(object, qutip.Qobj):
+            assert isinstance(object.data, dtype)
+        else:
+            for obj in object:
+                assert isinstance(obj.data, dtype)

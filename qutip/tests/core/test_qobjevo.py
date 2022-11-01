@@ -301,6 +301,14 @@ def test_QobjEvo_pickle(all_qevo):
     recreated = pickle.loads(pickled)
     _assert_qobjevo_equivalent(recreated, obj)
 
+def test_QobjEvo_restore(all_qevo):
+    "QobjEvo pickle"
+    # used in parallel_map
+    obj = all_qevo
+    state = obj._getstate()
+    recreated = QobjEvo._restore(**state)
+    _assert_qobjevo_equivalent(recreated, obj)
+
 def test_shift(all_qevo):
     dt = 0.2
     obj = all_qevo
@@ -444,3 +452,14 @@ def test_QobjEvo_isherm_flag_knowcase():
     assert QobjEvo([sigmax(), "1j"])(0)._isherm is None
     assert QobjEvo([[sigmax(), "t"], [sigmaz(), "1"]])(0)._isherm is True
     assert QobjEvo([[sigmax(), "t"], [sigmaz(), "1j"]])(0)._isherm is None
+
+@pytest.mark.parametrize(
+    "coeff_type",
+    ['func_coeff', 'string', 'array', 'logarray']
+)
+def test_QobjEvo_to_list(coeff_type, pseudo_qevo):
+    qevo = QobjEvo(*pseudo_qevo[coeff_type])
+    as_list = qevo.to_list()
+    assert len(as_list) == 2
+    restored = QobjEvo(as_list)
+    _assert_qobjevo_equivalent(qevo, restored)

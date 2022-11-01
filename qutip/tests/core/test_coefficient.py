@@ -4,7 +4,7 @@ import qutip
 import numpy as np
 import scipy.interpolate as interp
 from functools import partial
-from qutip.core.coefficient import (coefficient, norm, conj,
+from qutip.core.coefficient import (coefficient, norm, conj, shift,
                                     CompilationOptions, Coefficient,
                                     clean_compiled_coefficient
                                    )

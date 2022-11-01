@@ -288,8 +288,8 @@ cdef class QobjEvo:
         return out
 
     @classmethod
-    def _retore(cls, elements, dims, shape, type, superrep, flags):
-        # We
+    def _restore(cls, elements, dims, shape, type, superrep, flags):
+        """ Recreate a QobjEvo without using __init__ """
         cdef QobjEvo out = cls.__new__(cls)
         out.elements = elements
         out.dims = dims
@@ -300,6 +300,11 @@ cdef class QobjEvo:
         return out
 
     def _getstate(self):
+        """ Obtain the state """
+        # For jax pytree representation
+        # auto_pickle create similar method __getstate__, but since it's
+        # automatically created, it could change depending on cython version
+        # etc. so we create our own.
         return {
             "elements": self.elements,
             "dims": self.dims,
