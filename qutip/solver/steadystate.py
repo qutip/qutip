@@ -1,4 +1,4 @@
-from qutip import liouvillian, lindblad_dissipator, Qobj
+from qutip import liouvillian, lindblad_dissipator, Qobj, qeye, qzero
 import qutip
 import qutip.core.data as _data
 import numpy as np
@@ -92,9 +92,9 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
         using the 'power' method.
 
     **kwargs :
-        Extra options to pass to the solver. See the documentation of the used
-        solver in ``numpy.linalg`` or ``scipy.sparse.linalg`` to see what extra
-        arguments are supported.
+        Extra options to pass to the linear system solver. See the
+        documentation of the used solver in ``numpy.linalg`` or
+        ``scipy.sparse.linalg`` to see what extra arguments are supported.
 
     Returns
     -------
@@ -262,89 +262,86 @@ def _steadystate_power(A, **kw):
     return rho_ss / rho_ss.tr()
 
 
-def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False):
+def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False,
+                        solver=None, **kwargs):
     """
     Calculates the effective steady state for a driven
      system with a time-dependent cosinusoidal term:
     .. math::
         \\mathcal{\\hat{H}}(t) = \\hat{H}_0 +
          \\mathcal{\\hat{O}} \\cos(\\omega_d t)
+
     Parameters
     ----------
     H_0 : :obj:`~Qobj`
         A Hamiltonian or Liouvillian operator.
+
     c_ops : list
         A list of collapse operators.
+
     Op_t : :obj:`~Qobj`
         The the interaction operator which is multiplied by the cosine
+
     w_d : float, default 1.0
         The frequency of the drive
+
     n_it : int, default 3
         The number of iterations for the solver
+
     sparse : bool, default False
         Solve for the steady state using sparse algorithms.
-        Actually, dense seems to be faster.
+
+    solver : str, default=None
+        Solver to use when solving the linear system.
+        Default supported solver are:
+        - "solve", "lstsq":
+          dense solver from numpy.linalg
+        - "spsolve", "gmres", "lgmres", "bicgstab":
+          sparse solver from scipy.sparse.linalg
+        - "mkl_spsolve",
+          sparse solver by mkl.
+        Extension to qutip, such as qutip-tensorflow, can use come with their
+        own solver. When ``A`` and ``c_ops`` use these data backends, see the
+        corresponding libraries ``linalg`` for available solver.
+
+    **kwargs:
+        Extra options to pass to the linear system solver. See the
+        documentation of the used solver in ``numpy.linalg`` or
+        ``scipy.sparse.linalg`` to see what extra arguments are supported.
+
     Returns
     -------
     dm : qobj
         Steady state density matrix.
+
     .. note::
         See: Sze Meng Tan,
         https://copilot.caltech.edu/documents/16743/qousersguide.pdf,
         Section (10.16)
     """
-    if False:
-        # TODO: rewrite using `core.Data`
-        N = H_0.shape[0]
 
-        L_0 = liouvillian(H_0, c_ops).data.tocsc()
-        L_t = liouvillian(Op_t)
-        L_p = (0.5 * L_t).data.tocsc()
-        # L_p and L_m correspond to the positive and negative
-        # frequency terms respectively.
-        # They are independent in the model, so we keep both names.
-        L_m = L_p
-        L_p_array = L_p.todense()
-        L_m_array = L_p_array
+    L_0 = liouvillian(H_0, c_ops)
+    L_m = L_p = 0.5 * liouvillian(Op_t)
+    # L_p and L_m correspond to the positive and negative
+    # frequency terms respectively.
+    # They are independent in the model, so we keep both names.
+    Id = qeye(L_0.dims[0])
+    S = T = qzero(L_0.dims[0])
 
-        Id = scipy.sparse.eye(N ** 2, format="csc", dtype=np.complex128)
-        S = T = scipy.sparse.csc_matrix((N ** 2, N ** 2), dtype=np.complex128)
+    if isinstance(H_0.data, _data.CSR) and not sparse:
+        L_0 = L_0.to("Dense")
+        L_m = L_m.to("Dense")
+        L_p = L_p.to("Dense")
+        Id = Id.to("Dense")
 
-        for n_i in np.arange(n_it, 0, -1):
-            L = scipy.sparse.csc_matrix(L_0 - 1j * n_i * w_d * Id + L_m.dot(S))
-            L.sort_indices()
-            LU = splu(L)
-            S = - LU.solve(L_p_array)
+    for n_i in np.arange(n_it, 0, -1):
+        L = L_0 - 1j * n_i * w_d * Id + L_m @ S
+        S.data = - _data.solve(L.data, L_p.data, solver, kwargs)
+        L = L_0 - 1j * n_i * w_d * Id + L_p @ T
+        T.data = - _data.solve(L.data, L_m.data, solver, kwargs)
 
-            L = scipy.sparse.csc_matrix(L_0 + 1j * n_i * w_d * Id + L_p.dot(T))
-            L.sort_indices()
-            LU = splu(L)
-            T = - LU.solve(L_m_array)
-
-        M_subs = L_0 + L_m.dot(S) + L_p.dot(T)
-    else:
-        N = H_0.shape[0]
-
-        L_0 = liouvillian(H_0, c_ops).full()
-        L_t = liouvillian(Op_t)
-        L_p = (0.5 * L_t).full()
-        L_m = L_p
-
-        Id = np.eye(N ** 2)
-        S, T = np.zeros((N ** 2, N ** 2)), np.zeros((N ** 2, N ** 2))
-
-        for n_i in np.arange(n_it, 0, -1):
-            L = L_0 - 1j * n_i * w_d * Id + np.matmul(L_m, S)
-            lu, piv = scipy.linalg.lu_factor(L)
-            S = - scipy.linalg.lu_solve((lu, piv), L_p)
-
-            L = L_0 + 1j * n_i * w_d * Id + np.matmul(L_p, T)
-            lu, piv = scipy.linalg.lu_factor(L)
-            T = - scipy.linalg.lu_solve((lu, piv), L_m)
-
-        M_subs = L_0 + np.matmul(L_m, S) + np.matmul(L_p, T)
-
-    return steadystate(Qobj(M_subs, type="super", dims=L_t.dims))
+    M_subs = L_0 + L_m @ S + L_p @ T
+    return steadystate(M_subs, solver=solver, **kwargs)
 
 
 def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,

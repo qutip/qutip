@@ -42,10 +42,6 @@ def test_qubit(method, kwargs):
     p_ss = np.zeros(np.shape(wth_vec))
 
     with warnings.catch_warnings():
-        if 'use_wbm' in kwargs:
-            # The deprecation has been fixed in dev.major
-            warnings.simplefilter("ignore", category=DeprecationWarning)
-
         for idx, wth in enumerate(wth_vec):
             n_th = 1.0 / (np.exp(1.0 / wth) - 1)  # bath temperature
             c_op_list = []
@@ -176,7 +172,6 @@ def test_pseudo_inverse(method, kwargs):
 
 @pytest.mark.parametrize('sparse', [True, False])
 def test_steadystate_floquet(sparse):
-    return
     """
     Test the steadystate solution for a periodically
     driven system.
