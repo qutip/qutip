@@ -1,5 +1,11 @@
 from qutip import liouvillian, lindblad_dissipator, Qobj
+import qutip
 import qutip.core.data as _data
+import numpy as np
+import scipy.sparse.csgraph
+from warnings import warn
+
+__all__ = ["steadystate", "steadystate_floquet", "pseudo_inverse"]
 
 
 def _permute_wbm(L, b):
@@ -22,8 +28,7 @@ def _reverse_rcm(rho, perm):
     return rho
 
 
-def steadystate(A, c_ops=[], *, method='direct', solve_method=None, *,
-                **kwargs):
+def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
     """
     Calculates the steady state for quantum evolution subject to the supplied
     Hamiltonian or Liouvillian operator and (if given a Hamiltonian) a list of
@@ -42,10 +47,10 @@ def steadystate(A, c_ops=[], *, method='direct', solve_method=None, *,
 
     method : str, default='direct'
         The allowed methods are composed of 2 parts, the steadystate method:
-        - 'direct': Solving ``L(rho_ss) = 0``
-        - 'eigen' : Eigenvalue problem
-        - 'svd' : Singular value decomposition
-        - 'power': Inverse-power method
+        - "direct": Solving ``L(rho_ss) = 0``
+        - "eigen" : Eigenvalue problem
+        - "svd" : Singular value decomposition
+        - "power" : Inverse-power method
 
     solver : str, default=None
         'direct' and 'power' methods only.
@@ -87,7 +92,9 @@ def steadystate(A, c_ops=[], *, method='direct', solve_method=None, *,
         using the 'power' method.
 
     **kwargs :
-        Extra options to pass to the solver.
+        Extra options to pass to the solver. See the documentation of the used
+        solver in ``numpy.linalg`` or ``scipy.sparse.linalg`` to see what extra
+        arguments are supported.
 
     Returns
     -------
@@ -115,20 +122,38 @@ def steadystate(A, c_ops=[], *, method='direct', solve_method=None, *,
     if solver == "mkl":
         solver = "mkl_spsolve"
 
+    # Keys supported in v4, but removed in v5
+    if kwargs.pop("return_info", False):
+        warn("Steadystate no longer compute info", DeprecationWarning)
+    if kwargs.pop("use_precond", False):
+        warn("Steadystate no longer compute precond", DeprecationWarning)
+    if "mtol" in kwargs and "power_tol" not in kwargs:
+        kwargs["power_tol"] = kwargs["mtol"]
+    kwargs.pop("mtol", None)
+
     # We want the user to be able to use this without having to know what data
     # type the liouvillian use. For extra data types (tensorflow) we can expect
     # the users to know they are using them and choose an appropriate solver
     sparse_solvers = ["spsolve", "mkl_spsolve", "gmres", "lgmres", "bicgstab"]
-    if isinstance(A.data, _data.csr) and solver in ["solve", "lstsq"]:
+    if isinstance(A.data, _data.CSR) and solver in ["solve", "lstsq"]:
         A = A.to("dense")
     elif isinstance(A.data, _data.Dense) and solver in sparse_solvers:
         A = A.to("csr")
+    elif solver is None and kwargs.get("sparse", False):
+        A = A.to("csr")
+        solver = "spsolve"
+    elif solver is None and (kwargs.get("sparse", None) is False):
+        # sparse is explicitly set to false, v4 tag to use `numpy.linalg.solve`
+        A = A.to("dense")
+        solver = "solve"
 
     if method in ["direct", "iterative"]:
         # Remove unused kwargs, so only used and pass-through ones are included
         kwargs.pop("power_tol", 0)
         kwargs.pop("power_maxiter", 0)
-        return _steadystate_direct(A, weight, method=solver, **kwargs)
+        kwargs.pop("sparse", 0)
+        return _steadystate_direct(A, kwargs.pop("weight", 0),
+                                   method=solver, **kwargs)
     elif method == "eigen":
         return _steadystate_eigen(A, **kwargs)
     elif method == "svd":
@@ -174,7 +199,8 @@ def _steadystate_direct(A, weight, **kw):
     if use_rcm:
         L, b, perm = _permute_rcm(L, b)
 
-    steadystate = _data.solve(L, b, **kw)
+    method = kw.pop("method", None)
+    steadystate = _data.solve(L, b, method, options=kw)
 
     if use_rcm:
         steadystate = _reverse_rcm(steadystate, perm)
@@ -192,14 +218,14 @@ def _steadystate_eigen(L, **kw):
         # v4's implementation only uses sparse eigen solver
         sparse=kw.pop("sparse", True)
     )
-    rho = qt.vector_to_operator(vec[0])
+    rho = qutip.vector_to_operator(vec[0])
     return rho / rho.tr()
 
 
 def _steadystate_svd(L, **kw):
     u, s, vh = _data.svd(L.data, True)
     vec = Qobj(_data.split_columns(vh.adjoint())[-1], dims=[L.dims[0],[1]])
-    rho = qt.vector_to_operator(vec)
+    rho = qutip.vector_to_operator(vec)
     return rho / rho.tr()
 
 
@@ -219,8 +245,9 @@ def _steadystate_power(A, **kw):
     it = 0
     maxiter = kw.pop("power_maxiter", 10)
     tol = kw.pop("power_tol", 1e-12)
+    method = kw.pop("method", None)
     while it < maxiter and _data.norm.max(L @ y) > tol:
-        y = _data.solve(L, y, **kw)
+        y = _data.solve(L, y, method, options=kw)
         y = y / _data.norm.max(y)
         it += 1
 
@@ -415,7 +442,7 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
         LI = _data.Dense(scipy.linalg.pinv(A.to_array()), copy=False)
         LIQ = _data.matmul(LI, Q)
     else:
-        LIQ = _data.solve(A, Q, method, **pseudo_args)
+        LIQ = _data.solve(A, Q, method, options=pseudo_args)
 
     R = _data.matmul(Q, LIQ)
 

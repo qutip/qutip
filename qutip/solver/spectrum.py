@@ -3,7 +3,7 @@ __all__ = ['spectrum', 'spectrum_correlation_fft']
 import numpy as np
 import scipy.fftpack
 
-from ..solve.steadystate import steadystate
+from .steadystate import steadystate
 from ..core import (
     qeye, Qobj, liouvillian, spre, unstack_columns, stack_columns,
     tensor, qzero, expect

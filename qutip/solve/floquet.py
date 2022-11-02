@@ -19,7 +19,7 @@ from .. import (
 )
 from ..core import data as _data
 from .sesolve import sesolve
-from .steadystate import steadystate
+from ._steadystate_v4 import steadystate
 from .solver import SolverOptions
 from ..solver.propagator import propagator
 from .solver import Result, _solver_safety_check
