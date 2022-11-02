@@ -352,6 +352,58 @@ def test_QobjMulNotValidScalar(not_scalar):
         q1 * not_scalar
 
 
+# Allowed division operations (scalar)
+@pytest.mark.parametrize("scalar",
+                         [2+2j,  np.array(2+2j), np.array([2+2j])],
+                         ids=[
+                             "python_number",
+                             "scalar_like_array_shape_0",
+                             "scalar_like_array_shape_1",
+                         ])
+def test_QobjDivisionValidScalar(scalar):
+    "Tests multiplication of Qobj times scalar."
+    data = np.array([[1, 2], [3, 4]])
+    q = qutip.Qobj(data)
+    expect = data / (2+2j)
+
+    # Check __truediv__
+    result = q / scalar
+    assert np.all(result.full() == expect)
+
+
+# Similar as in test_QobjMulNotValidScalar, we do not allow multiplication by
+# non scalar numpy values. This should also be removed in case of implementing
+# broadcasting rules for Qobj.
+@pytest.mark.parametrize("not_scalar",
+                         [np.array([2j, 1]), np.array([[1, 2], [3, 4]])],
+                         ids=[
+                             "not_scalar_like_vector",
+                             "not_scalar_like_matrix",
+                         ])
+def test_QobjDivisionNotValidScalar(not_scalar):
+    q1 = qutip.Qobj(np.array([[1, 2], [3, 4]]))
+
+    with pytest.raises(TypeError):
+        q1 / not_scalar
+
+
+def test_QobjNotImplemented():
+    class MockerScalar():
+        def __mul__(self, other):
+            return "object not accepted by _data.mul, mul"
+
+        def __rmul__(self, other):
+            return "object not accepted by _data.mul, rmul"
+
+        def __rtruediv__(self, other):
+            return "object not accepted by _data.mul, rtruediv"
+
+    qobj = qutip.Qobj(np.array([[1, 2], [3, 4]]))
+    scalar = MockerScalar()
+    assert (qobj*scalar) == "object not accepted by _data.mul, rmul"
+    assert (scalar*qobj) == "object not accepted by _data.mul, mul"
+    assert (qobj/scalar) == "object not accepted by _data.mul, rtruediv"
+
 def test_QobjDivision():
     "qutip.Qobj division"
     data = _random_not_singular(5)

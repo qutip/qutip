@@ -16,7 +16,7 @@ import numpy as np
 import scipy.sparse as sp
 from scipy.sparse.linalg import spsolve
 
-from qutip import settings
+from qutip.settings import settings
 from qutip import state_number_enumerate
 from qutip.core import data as _data
 from qutip.core.data import csr as _csr

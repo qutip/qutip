@@ -1,4 +1,3 @@
-from .correlation import *
 from .floquet import *
 from .mcsolve import *
 from .mesolve import *

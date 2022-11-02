@@ -187,8 +187,11 @@ Hierarchical Equations of Motion
 Correlation Functions
 ---------------------
 
-.. automodule:: qutip.solve.correlation
-    :members: correlation_2op_1t, correlation_2op_2t, correlation_3op_1t, correlation_3op_2t, spectrum, spectrum_correlation_fft, coherence_function_g1, coherence_function_g2
+.. automodule:: qutip.solver.correlation
+    :members: correlation_2op_1t, correlation_2op_2t, correlation_3op_1t, correlation_3op_2t, correlation_3op, coherence_function_g1, coherence_function_g2
+
+.. automodule:: qutip.solver.spectrum
+    :members: spectrum, spectrum_correlation_fft
 
 
 Steady-state Solvers
