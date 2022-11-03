@@ -14,11 +14,6 @@ def _splu(A, B, **kwargs):
     return lu.solve(B)
 
 
-def _spilu(A, B, **kwargs):
-    lu = splinalg.spilu(A, **kwargs)
-    return lu.solve(B)
-
-
 def solve_csr_dense(matrix: CSR, target: Dense, method=None,
                     options: dict={}) -> Dense:
     """
@@ -64,8 +59,6 @@ def solve_csr_dense(matrix: CSR, target: Dense, method=None,
 
     if method == "splu":
         solver = _splu
-    elif method == "spilu":
-        solver = _spilu
     elif hasattr(splinalg, method):
         solver = getattr(splinalg, method)
     elif method == "mkl_spsolve" and mkl_spsolve is None:

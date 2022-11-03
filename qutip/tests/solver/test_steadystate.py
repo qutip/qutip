@@ -149,7 +149,7 @@ def test_driven_cavity(method, kwargs):
 @pytest.mark.parametrize(['method', 'kwargs'], [
     pytest.param('solve', {}, id="dense_direct"),
     pytest.param('numpy', {}, id="dense_numpy"),
-    pytest.param('splu', {}, id="splu"),
+    pytest.param('splu', {"csc": True}, id="splu"),
     pytest.param('spilu', {},  id="spilu"),
 ])
 def test_pseudo_inverse(method, kwargs):

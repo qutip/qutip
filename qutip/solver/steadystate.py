@@ -384,14 +384,13 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
         Default supported solver are:
         - "solve", "lstsq":
           dense solver from numpy.linalg
-        - "spsolve", "gmres", "lgmres", "bicgstab":
+        - "spsolve", "gmres", "lgmres", "bicgstab", "splu":
           sparse solver from scipy.sparse.linalg
         - "mkl_spsolve",
           sparse solver by mkl.
         Extension to qutip, such as qutip-tensorflow, can use come with their
         own solver. When ``L`` use these data backends, see the corresponding
         libraries ``linalg`` for available solver.
-
 
     kwargs : dictionary
         Additional keyword arguments for setting parameters for solver methods.
@@ -458,6 +457,11 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
         # from scipy 1.7.0, they all use the same algorithm.
         LI = _data.Dense(scipy.linalg.pinv(A.to_array()), copy=False)
         LIQ = _data.matmul(LI, Q)
+    elif method == "spilu":
+        if not isinstance(A, _data.CSR):
+            raise TypeError("'spilu' method can only be used with sparse data")
+        ILU = scipy.sparse.linalg.spilu(A.as_scipy().tocsc(), **kwargs)
+        LIQ = _data.Dense(ILU.solve(Q.to_array()))
     else:
         LIQ = _data.solve(A, Q, method, options=kwargs)
 
