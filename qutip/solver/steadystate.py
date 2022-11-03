@@ -3,6 +3,7 @@ import qutip
 import qutip.core.data as _data
 import numpy as np
 import scipy.sparse.csgraph
+import scipy.sparse.linalg
 from warnings import warn
 
 __all__ = ["steadystate", "steadystate_floquet", "pseudo_inverse"]
@@ -125,8 +126,6 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
     # Keys supported in v4, but removed in v5
     if kwargs.pop("return_info", False):
         warn("Steadystate no longer compute info", DeprecationWarning)
-    if kwargs.pop("use_precond", False):
-        warn("Steadystate no longer compute precond", DeprecationWarning)
     if "mtol" in kwargs and "power_tol" not in kwargs:
         kwargs["power_tol"] = kwargs["mtol"]
     kwargs.pop("mtol", None)
@@ -199,6 +198,9 @@ def _steadystate_direct(A, weight, **kw):
     if use_rcm:
         L, b, perm = _permute_rcm(L, b)
 
+    if isinstance(L, _data.CSR) and kw.pop("use_precond", False):
+        kw["M"] = _compute_precond(L, kw)
+
     method = kw.pop("method", None)
     steadystate = _data.solve(L, b, method, options=kw)
 
@@ -230,7 +232,7 @@ def _steadystate_svd(L, **kw):
 
 
 def _steadystate_power(A, **kw):
-    A += 1e-15
+    A += kw.pop("power_eps", 1e-15)
     L = A.data
     N = L.shape[1]
     y = _data.Dense([1]*N)
@@ -241,6 +243,9 @@ def _steadystate_power(A, **kw):
     use_rcm = kw.pop("use_rcm", False) and isinstance(L, _data.CSR)
     if use_rcm:
         L, y, perm = _permute_rcm(L, y)
+
+    if isinstance(L, _data.CSR) and kw.pop("use_precond", False):
+        kw["M"] = _compute_precond(L, kw)
 
     it = 0
     maxiter = kw.pop("power_maxiter", 10)
@@ -258,8 +263,11 @@ def _steadystate_power(A, **kw):
     if use_rcm:
         y = _reverse_rcm(y, perm)
 
-    rho_ss = Qobj(_data.column_unstack(y, N**0.5), dims=A.dims[0], isherm=True)
-    return rho_ss / rho_ss.tr()
+    rho_ss = Qobj(_data.column_unstack(y, N**0.5), dims=A.dims[0])
+    rho_ss = rho_ss + rho_ss.dag()
+    rho_ss = rho_ss / rho_ss.tr()
+    rho_ss.isherm = True
+    return rho_ss
 
 
 def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False,
@@ -301,7 +309,7 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False,
         - "mkl_spsolve",
           sparse solver by mkl.
         Extension to qutip, such as qutip-tensorflow, can use come with their
-        own solver. When ``A`` and ``c_ops`` use these data backends, see the
+        own solver. When ``H_0`` and ``c_ops`` use these data backends, see the
         corresponding libraries ``linalg`` for available solver.
 
     **kwargs:
@@ -351,8 +359,8 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
     given its steady state density matrix (which will be computed if not
     given).
 
-    Returns
-    -------
+    Parameters
+    ----------
     L : Qobj
         A Liouvillian superoperator for which to compute the pseudo inverse.
 
@@ -370,9 +378,20 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
         computing the pseudo inverse.
 
     method : string
-        Name of method to use. For sparse=True, allowed values are 'spsolve',
-        'splu' and 'spilu'. For sparse=False, allowed values are 'direct' and
-        'numpy'.
+        Method used to compte matrix inverse.
+        Choice are 'pinv' to use scipy's function of the same name, or a linear
+        system solver.
+        Default supported solver are:
+        - "solve", "lstsq":
+          dense solver from numpy.linalg
+        - "spsolve", "gmres", "lgmres", "bicgstab":
+          sparse solver from scipy.sparse.linalg
+        - "mkl_spsolve",
+          sparse solver by mkl.
+        Extension to qutip, such as qutip-tensorflow, can use come with their
+        own solver. When ``L`` use these data backends, see the corresponding
+        libraries ``linalg`` for available solver.
+
 
     kwargs : dictionary
         Additional keyword arguments for setting parameters for solver methods.
@@ -400,22 +419,25 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
     if rhoss is None:
         rhoss = steadystate(L)
 
+    sparse = kwargs.pop("sparse", False)
+    if method == "direct":
+        method = "splu" if sparse else "pinv"
     sparse_solvers = ["splu", "mkl_spsolve", "spilu"]
-    dense_solvers = ["solve", "lstsq"]
-    if isinstance(A.data, _data.csr) and method in dense_solvers:
-        A = A.to("dense")
-    elif isinstance(A.data, _data.Dense) and method in sparse_solvers:
-        A = A.to("csr")
+    dense_solvers = ["solve", "lstsq", "pinv"]
+    if isinstance(L.data, _data.CSR) and method in dense_solvers:
+        L = L.to("dense")
+    elif isinstance(L.data, _data.Dense) and method in sparse_solvers:
+        L = L.to("csr")
 
     N = np.prod(L.dims[0][0])
     dtype = type(L.data)
-    rhoss_vec = operator_to_vector(rhoss)
+    rhoss_vec = qutip.operator_to_vector(rhoss)
 
-    tr_op = identity(L.dims[0][0])
-    tr_op_vec = operator_to_vector(tr_op)
+    tr_op = qutip.qeye(L.dims[0][0])
+    tr_op_vec = qutip.operator_to_vector(tr_op)
 
     P = _data.kron(rhoss_vec.data, tr_op_vec.data.transpose(), dtype=dtype)
-    I = _data.csr.identity(N * N, dtype=dtype)
+    I = _data.csr.identity(N * N)
     Q = _data.sub(I, P)
 
     if w in [None, 0.0]:
@@ -429,17 +451,15 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
         perm = scipy.sparse.csgraph.reverse_cuthill_mckee(L.data.as_scipy())
         A = _data.permute.indices(L.data, perm, perm)
         Q = _data.permute.indices(Q, perm, perm, dtype=_data.CSR)
-        if method in ["splu", "spilu"]:
-            pseudo_args["permc_spec"] = "NATURAL"
     else:
         A = L.data
 
-    if method in ["numpy", "scipy", "scipy2"]:
+    if method in ["pinv", "numpy", "scipy", "scipy2"]:
         # from scipy 1.7.0, they all use the same algorithm.
         LI = _data.Dense(scipy.linalg.pinv(A.to_array()), copy=False)
         LIQ = _data.matmul(LI, Q)
     else:
-        LIQ = _data.solve(A, Q, method, options=pseudo_args)
+        LIQ = _data.solve(A, Q, method, options=kwargs)
 
     R = _data.matmul(Q, LIQ)
 
@@ -448,3 +468,20 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
         R = _data.permute.indices(R, rev_perm, rev_perm)
 
     return Qobj(R, dims=L.dims)
+
+
+def _compute_precond(L, args):
+    spilu_keys = {
+        'permc_spec',
+        'drop_tol',
+        'diag_pivot_thresh',
+        'fill_factor',
+        'options',
+    }
+    ss_args = {
+        key: args.pop(key)
+        for key in spilu_keys
+        if key in args
+    }
+    P = scipy.sparse.linalg.spilu(L.as_scipy().tocsc(), **ss_args)
+    return scipy.sparse.linalg.LinearOperator(L.shape, matvec=P.solve)

@@ -23,7 +23,7 @@ import warnings
     pytest.param('power-gmres', {'tol':1e-1, 'atol': 1e-12}, id="power-gmres"),
     pytest.param('power-gmres', {'tol':1e-1, 'use_rcm':True, 'use_wbm':True, 'atol': 1e-12},
                  id="power-gmres_perm"),
-    pytest.param('power-bicgstab', {"atol": 1e-10, "tol": 1e-10}, id="power-bicgstab"),
+    pytest.param('power-bicgstab', {"atol": 1e-10, "tol": 1e-10, 'use_precond':1}, id="power-bicgstab"),
     pytest.param('iterative-gmres', {'tol': 1e-12, 'atol': 1e-12}, id="iterative-gmres"),
     pytest.param('iterative-gmres', {'use_rcm':True, 'use_wbm':True, 'tol': 1e-12, 'atol': 1e-12},
                  id="iterative-gmres_perm"),
@@ -121,11 +121,11 @@ def test_ho(method, kwargs):
     pytest.param('direct', {'sparse':False}, id="direct_dense"),
     pytest.param('eigen', {}, id="eigen"),
     pytest.param('svd', {}, id="svd"),
-    pytest.param('power', {'mtol':1e-5}, id="power"),
-    #pytest.param('power-gmres', {'mtol':1e-1, 'use_precond':1, 'M':'iterative'},
-    #             id="power-gmres"),
-    #pytest.param('power-bicgstab', {'use_precond':1, 'M':'power'},
-    #             id="power-bicgstab"),
+    pytest.param('power', {}, id="power"),
+    pytest.param('power-gmres', {"atol": 1e-5, 'tol':1e-1, 'use_precond':1},
+                 id="power-gmres"),
+    pytest.param('power', {"solver": "bicgstab", "atol": 1e-6, "tol": 1e-6, 'use_precond':1},
+                 id="power-bicgstab"),
     pytest.param('iterative-gmres', {"atol": 1e-10, "tol": 1e-10}, id="iterative-gmres"),
     pytest.param('iterative-bicgstab', {"atol": 1e-10, "tol": 1e-10}, id="iterative-bicgstab"),
 ])
@@ -137,8 +137,6 @@ def test_driven_cavity(method, kwargs):
     a = qutip.destroy(N)
     H = Omega * (a.dag() + a)
     c_ops = [np.sqrt(Gamma) * a]
-    if 'use_precond' in kwargs:
-        kwargs['M'] = qutip.build_preconditioner(H, c_ops, method=kwargs['M'])
     rho_ss = qutip.steadystate(H, c_ops, method=method, **kwargs).full()
     rho_ss_analytic = qutip.coherent_dm(N, -1.0j * (Omega)/(Gamma/2)).full()
 
@@ -149,14 +147,12 @@ def test_driven_cavity(method, kwargs):
 
 
 @pytest.mark.parametrize(['method', 'kwargs'], [
-    pytest.param('splu', {'sparse':False}, id="dense_direct"),
-    pytest.param('numpy', {'sparse':False}, id="dense_numpy"),
-    pytest.param('scipy', {'sparse':False}, id="dense_scipy"),
+    pytest.param('solve', {}, id="dense_direct"),
+    pytest.param('numpy', {}, id="dense_numpy"),
     pytest.param('splu', {}, id="splu"),
     pytest.param('spilu', {},  id="spilu"),
 ])
 def test_pseudo_inverse(method, kwargs):
-    return
     N = 4
     a = qutip.destroy(N)
     H = (a.dag() + a)
@@ -226,7 +222,6 @@ def test_bad_options_steadystate():
 
 
 def test_bad_options_pseudo_inverse():
-    return
     N = 4
     a = qutip.destroy(N)
     H = (a.dag() + a)

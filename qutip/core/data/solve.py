@@ -64,7 +64,7 @@ def solve_csr_dense(matrix: CSR, target: Dense, method=None,
 
     if method == "splu":
         solver = _splu
-    elif method == "spily":
+    elif method == "spilu":
         solver = _spilu
     elif hasattr(splinalg, method):
         solver = getattr(splinalg, method)
