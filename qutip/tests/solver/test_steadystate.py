@@ -149,7 +149,6 @@ def test_driven_cavity(method, kwargs):
 @pytest.mark.parametrize(['method', 'kwargs'], [
     pytest.param('solve', {}, id="dense_direct"),
     pytest.param('numpy', {}, id="dense_numpy"),
-    pytest.param('splu', {"csc": True}, id="splu"),
     pytest.param('spilu', {},  id="spilu"),
 ])
 def test_pseudo_inverse(method, kwargs):
@@ -232,18 +231,6 @@ def test_bad_options_pseudo_inverse():
         qutip.pseudo_inverse(L, method='not a method', sparse=False)
     with pytest.raises(ValueError):
         qutip.pseudo_inverse(L, method='not a method')
-
-
-def test_bad_options_build_preconditioner():
-    return
-    N = 4
-    a = qutip.destroy(N)
-    H = (a.dag() + a)
-    c_ops = [a]
-    with pytest.raises(TypeError):
-        qutip.build_preconditioner(H, c_ops, method='power', bad_opt=True)
-    with pytest.raises(ValueError):
-        qutip.build_preconditioner(H, c_ops, method='not a method')
 
 
 def test_bad_system():
