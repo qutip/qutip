@@ -197,8 +197,8 @@ Correlation Functions
 Steady-state Solvers
 --------------------
 
-.. automodule:: qutip.solve.steadystate
-    :members: steadystate, build_preconditioner
+.. automodule:: qutip.solver.steadystate
+    :members: steadystate, pseudo_inverse, steadystate_floquet
     :undoc-members:
 
 Propagators

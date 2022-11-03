@@ -57,12 +57,14 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
         'direct' and 'power' methods only.
         Solver to use when solving the ``L(rho) = 0`` equation.
         Default supported solver are:
-        - "solve", "lstsq":
+
+        - "solve", "lstsq"
           dense solver from numpy.linalg
-        - "spsolve", "gmres", "lgmres", "bicgstab":
+        - "spsolve", "gmres", "lgmres", "bicgstab"
           sparse solver from scipy.sparse.linalg
-        - "mkl_spsolve",
+        - "mkl_spsolve"
           sparse solver by mkl.
+
         Extension to qutip, such as qutip-tensorflow, can use come with their
         own solver. When ``A`` and ``c_ops`` use these data backends, see the
         corresponding libraries ``linalg`` for available solver.
@@ -104,9 +106,10 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
     info : dict, optional
         Dictionary containing solver-specific information about the solution.
 
-    Notes
-    -----
-    The SVD method works only for dense operators (i.e. small systems).
+    .. note::
+
+        The SVD method works only for dense operators (i.e. small systems).
+
     """
     if not A.issuper and not c_ops:
         raise TypeError('Cannot calculate the steady state for a ' +
@@ -275,7 +278,9 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False,
     """
     Calculates the effective steady state for a driven
      system with a time-dependent cosinusoidal term:
+     
     .. math::
+
         \\mathcal{\\hat{H}}(t) = \\hat{H}_0 +
          \\mathcal{\\hat{O}} \\cos(\\omega_d t)
 
@@ -302,12 +307,14 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False,
     solver : str, default=None
         Solver to use when solving the linear system.
         Default supported solver are:
-        - "solve", "lstsq":
+
+        - "solve", "lstsq"
           dense solver from numpy.linalg
-        - "spsolve", "gmres", "lgmres", "bicgstab":
+        - "spsolve", "gmres", "lgmres", "bicgstab"
           sparse solver from scipy.sparse.linalg
-        - "mkl_spsolve",
+        - "mkl_spsolve"
           sparse solver by mkl.
+
         Extension to qutip, such as qutip-tensorflow, can use come with their
         own solver. When ``H_0`` and ``c_ops`` use these data backends, see the
         corresponding libraries ``linalg`` for available solver.
@@ -323,9 +330,11 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False,
         Steady state density matrix.
 
     .. note::
+
         See: Sze Meng Tan,
         https://copilot.caltech.edu/documents/16743/qousersguide.pdf,
         Section (10.16)
+
     """
 
     L_0 = liouvillian(H_0, c_ops)
@@ -382,12 +391,14 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
         Choice are 'pinv' to use scipy's function of the same name, or a linear
         system solver.
         Default supported solver are:
-        - "solve", "lstsq":
+
+        - "solve", "lstsq"
           dense solver from numpy.linalg
-        - "spsolve", "gmres", "lgmres", "bicgstab", "splu":
+        - "spsolve", "gmres", "lgmres", "bicgstab", "splu"
           sparse solver from scipy.sparse.linalg
         - "mkl_spsolve",
           sparse solver by mkl.
+
         Extension to qutip, such as qutip-tensorflow, can use come with their
         own solver. When ``L`` use these data backends, see the corresponding
         libraries ``linalg`` for available solver.
@@ -400,19 +411,19 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
     R : Qobj
         Returns a Qobj instance representing the pseudo inverse of L.
 
-    Note
-    ----
-    In general the inverse of a sparse matrix will be dense.  If you
-    are applying the inverse to a density matrix then it is better to
-    cast the problem as an Ax=b type problem where the explicit calculation
-    of the inverse is not required. See page 67 of "Electrons in
-    nanostructures" C. Flindt, PhD Thesis available online:
-    https://orbit.dtu.dk/fedora/objects/orbit:82314/datastreams/
-    file_4732600/content
+    .. note::
 
-    Note also that the definition of the pseudo-inverse herein is different
-    from numpys pinv() alone, as it includes pre and post projection onto
-    the subspace defined by the projector Q.
+        In general the inverse of a sparse matrix will be dense.  If you
+        are applying the inverse to a density matrix then it is better to
+        cast the problem as an Ax=b type problem where the explicit calculation
+        of the inverse is not required. See page 67 of "Electrons in
+        nanostructures" C. Flindt, PhD Thesis available online:
+        https://orbit.dtu.dk/fedora/objects/orbit:82314/datastreams/
+        file_4732600/content
+
+        Note also that the definition of the pseudo-inverse herein is different
+        from numpys pinv() alone, as it includes pre and post projection onto
+        the subspace defined by the projector Q.
 
     """
     if rhoss is None:
