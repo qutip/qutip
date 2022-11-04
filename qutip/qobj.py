@@ -809,7 +809,7 @@ class Qobj(object):
         """
         t = self.type
         shape = self.shape
-        s = r'$'
+        s = r''
         if self.type in ['oper', 'super']:
             s += ("Quantum object: " +
                   "dims = " + str(self.dims) +
@@ -829,7 +829,7 @@ class Qobj(object):
 
         M, N = self.data.shape
 
-        s += r'\\\left(\begin{matrix}'
+        s += r' $ \\ \left(\begin{matrix}'
 
         def _format_float(value):
             if value == 0.0:
