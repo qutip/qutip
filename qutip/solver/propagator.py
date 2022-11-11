@@ -150,6 +150,7 @@ class Propagator:
         else:
             self.props = [qeye(Hevo.dims[0])]
             self.solver = SeSolver(Hevo, options=options)
+        self.solver.start(self.props[0], self.times[0])
         self.cte = self.solver.rhs.isconstant
         self.unitary = (not self.solver.rhs.issuper
                         and isinstance(H, Qobj)
@@ -191,6 +192,7 @@ class Propagator:
         # We could improve it when the system is constant using U(2t) = U(t)**2
         if not self.cte and args and args != self.args:
             self.args = args
+            self.solver._argument(args)
             self.times = [0]
             self.props = [qeye(self.props[0].dims[0])]
 
@@ -227,13 +229,16 @@ class Propagator:
         Compute the propagator at ``t``, ``idx`` point to a pair of
         (time, propagator) close to the desired time.
         """
-        if idx > 0:
+        t_last = self.solver._integrator.get_state(copy=False)[0]
+        if self.times[idx-1] <= t_last <= t:
+            U = self.solver.step(t)
+        elif idx > 0:
             self.solver.start(self.props[idx-1], self.times[idx-1])
-            U = self.solver.step(t, args=self.args)
+            U = self.solver.step(t)
         else:
             # Evolving backward in time is not supported by all integrator.
             self.solver.start(qeye(self.props[0].dims[0]), t)
-            Uinv = self.solver.step(self.times[idx], args=self.args)
+            Uinv = self.solver.step(self.times[idx])
             U = self._inv(Uinv)
         return U
 
