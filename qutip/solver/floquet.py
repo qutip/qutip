@@ -30,7 +30,7 @@ class FloquetBasis:
     U_T : :class:`Qobj`
         Propagator over one period.
     """
-    def __init__(self, H, T, options=None, sparse=False, memoize=0):
+    def __init__(self, H, T, options=None, sparse=False, precompute=None):
         """
         Parameters
         ----------
@@ -47,14 +47,30 @@ class FloquetBasis:
             Whether to use the sparse eigen solver when computing the
             quasi-energies.
 
-        memoize : int [10]
-            Number of modes to remember for faster computation of floquet modes
-            and states.
+        precompute : list [None]
+            If provided, a list of time at which to store the propagators
+            for later use when computing modes and states. Default is
+            ``linspace(0, T, 101)`` corresponding to the default integration
+            steps used for the floquet tensor computation.
         """
         if not T > 0:
             raise ValueError("The period need to be a positive number.")
         self.T = T
+        if precompute is not None:
+            tlist = np.unique(np.atleast_1d(precompute) % self.T)
+            memoize = len(tlist)
+            if tlist[0] != 0:
+                memoize += 1
+            if tlist[-1] != T:
+                memoize += 1
+        else:
+            # Default computation
+            tlist = np.linspace(0, T, 101)
+            memoize = 101
         self.U = Propagator(H, options=options, memoize=memoize)
+        for t in tlist:
+            # Do the evolution by steps to save the intermediate results.
+            self.U(t)
         self.U_T = self.U(self.T)
         if not sparse and isinstance(self.U_T, _data.CSR):
             self.U_T = self.U_T.to("Dense")
@@ -204,53 +220,6 @@ class FloquetBasis:
             return Qobj(floquet_basis, dims=dims)
         return floquet_basis
 
-    def modes(self, ts):
-        """
-        Yield mode for each times as a data object.
-        Equivalent to:
-
-        ```
-            for t in ts:
-                yield fb.mode(t, data=True)
-        ```
-
-        Parameters
-        ----------
-        ts : array-like
-            List of times at which
-
-        Yields
-        ------
-        mode: :class:`qutip.data.Data`
-            Floquet mode at each elements in ``ts``.
-
-        .. note::
-
-            Usually 2~3 faster than calling :method:`mode` in loop since it can
-            do the evolution over une period only once. However :method:`mode`
-            has memoize capacity thus can be faster for repeated calls.
-
-        """
-        ts = np.atleast_1d(ts)
-        t_mod = ts % self.T
-        is_sorted = np.all(t_mod[:-1] <= t_mod[1:])
-        solver = self.U.solver
-        solver.start(self.U.props[0], 0)
-        integrator = solver._integrator
-        if is_sorted:
-            for t in t_mod:
-                _, U = integrator.integrate(t, copy=False)
-                phase = _data.diag(np.exp(1j * t * self.e_quasi))
-                yield U @ self.evecs @ phase
-        else:
-            perm = np.argsort(t_mod)
-            Us = [integrator.integrate(t, copy=False)[1] for t in t_mod[perm]]
-            for i, idx in enumerate(np.argsort(perm)):
-                t = t_mod[i]
-                phase = _data.diag(np.exp(1j * t * self.e_quasi))
-                U = Us[idx]
-                yield U @ self.evecs @ phase
-
 
 def floquet_delta_tensor(f_energies, kmax, T):
     """
@@ -309,7 +278,8 @@ def floquet_X_matrices(floquet_basis, c_ops, kmax, ntimes=100):
         for k in ks
     }
 
-    for t, mode in zip(tlist, floquet_basis.modes(tlist)):
+    for t in tlist:
+        mode = floquet_basis.mode(t, data=True)
         FFs = [mode.adjoint() @ c_op.data @ mode for c_op in c_ops]
         for k, phi in zip(ks, np.exp(-1j * ks * omega * t) / ntimes) :
             out[k] = [
@@ -350,8 +320,8 @@ def floquet_gamma_matrices(X, delta, J_cb):
     }
 
     for X_c_op, sp in zip(X, J_cb):
-        response = (delta>0) * sp(delta) * ((2+0j) * np.pi) # 29
-        response = [ # 33
+        response = sp(delta) * ((2+0j) * np.pi)
+        response = [
             _data.Dense(response[:,:,k], copy=False)
             for k in range(2*kmax+1)
         ]
@@ -382,30 +352,29 @@ def floquet_A_matrix(delta, gamma, w_th):
         The temperature in units of frequency.
     """
     kmax = (delta.shape[2] - 1) // 2
-    deltap = np.copy(delta)
-    deltap[deltap == 0.] = np.inf
-    thermal = ((1.)/(np.exp(np.abs(deltap) / w_th) - 1.0))
-    thermal = [
-        _data.Dense(thermal[:,:,k])
-        for k in range(2*kmax+1)
-    ]
 
-    gamma_k_k = _data.add(gamma[0], gamma[0].transpose())
-    A = _data.add(
-            gamma[0],
-            _data.multiply(thermal[kmax], gamma_k_k)
-        )
+    if w_th > 0.:
+        deltap = np.copy(delta)
+        deltap[deltap == 0.] = np.inf
+        thermal = 1. / (np.exp(np.abs(deltap) / w_th) - 1.0)
+        thermal = [_data.Dense(thermal[:, :, k]) for k in range(2 * kmax + 1)]
 
-    for k in range(1, kmax+1):
-        gamma_k_k = _data.add(gamma[k], gamma[-k].transpose())
-        A += _data.add(
-            gamma[k],
-            _data.multiply(thermal[kmax+k], gamma_k_k)
-        )
-        A += _data.add(
-            gamma[-k],
-            _data.multiply(thermal[kmax-k], gamma_k_k.transpose())
-        )
+        gamma_k_k = _data.add(gamma[0], gamma[0].transpose())
+        A = _data.add(gamma[0], _data.multiply(thermal[kmax], gamma_k_k))
+
+        for k in range(1, kmax+1):
+            g_kk = _data.add(gamma[k], gamma[-k].transpose())
+            thermal_kk = _data.multiply(thermal[kmax+k], g_kk)
+            A = _data.add(A, _data.add(gamma[k], thermal_k_k))
+            thermal_kk = _data.multiply(thermal[kmax-k], g_kk.transpose())
+            A = _data.add(A, _data.add(gamma[-k], thermal_k_k))
+    else:
+        # w_th is 0, thermal = 0s
+        A = gamma[0]
+        for k in range(1, kmax+1):
+            A = _data.add(gamma[k], A)
+            A = _data.add(gamma[-k], A)
+
     return A
 
 
@@ -495,7 +464,7 @@ def floquet_tensor(H, c_ops, spectra_cb, T=0, w_th=0., kmax=5, nT=100):
 
 
 def fmmesolve(
-    H, rho0, tlist, c_ops, e_ops, spectra_cb, T, w_th,
+    H, rho0, tlist, c_ops, e_ops, spectra_cb, T, w_th=0.,
     args=None, options=None
 ):
     """
@@ -587,14 +556,9 @@ def fmmesolve(
         state density matrices corresponding to the times.
     """
     H = QobjEvo(H, args, options)
-    floquet_basis = FloquetBasis(H, T, memoize=len(tlist))
 
-    t_mod = np.sort(np.array(tlist) % T)
-    # Precompute the propagator and store the with the Propagator memoize
-    # capacity. Since some integrator are not re-entrant, this will ensure the
-    # propagator evolution is fully computed before starting the rhs evolution.
-    # TODO The propagator evolution is still computed 3 times...
-    [floquet_basis.mode(t) for t in t_mod]
+    t_precompute = np.concatenate([tlist, np.linspace(0, T, 101)])
+    floquet_basis = FloquetBasis(H, T, precompute=t_precompute)
 
     if not w_th and args:
         w_th = args.get("w_th", 0.)
@@ -603,7 +567,7 @@ def fmmesolve(
         c_ops = [c_ops]
 
     if spectra_cb is None:
-        spectra_cb = [lambda w: w]
+        spectra_cb = [lambda w: (w>0)]
     elif callable(spectra_cb):
         spectra_cb = [spectra_cb]
     if len(spectra_cb) == 1:
