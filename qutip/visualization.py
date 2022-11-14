@@ -166,8 +166,8 @@ def _cb_labels(left_dims):
     return [
         map(fmt.format, basis_labels) for fmt in
         (
+            r"$\langle{}|$",
             r"$|{}\rangle$",
-            r"$\langle{}|$"
         )
     ]
 
