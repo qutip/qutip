@@ -1,6 +1,10 @@
 import numpy as np
-from qutip import sigmax, sigmaz, rand_ket, num, mesolve, sigmay
-from qutip import sigmap, sigmam, expect, Qobj, QobjEvo
+from qutip import (
+    sigmax, sigmay, sigmaz,  sigmap, sigmam,
+    rand_ket, num, destroy,
+    mesolve, expect, sesolve,
+    Qobj, QobjEvo, coefficient
+ )
 
 #from qutip import floquet_modes, floquet_modes_table, fmmesolve
 #from qutip import floquet_modes_t_lookup, fsesolve, floquet_master_equation_rates
@@ -37,6 +41,21 @@ class TestFloquet:
     """
     A test class for the QuTiP functions for Floquet formalism.
     """
+
+    def testFloquetUnitary(self):
+        N = 10
+        a = destroy(N)
+        H = num(N) + (a+a.dag()) * coefficient(lambda t: np.cos(t))
+        T = 2 * np.pi
+        floquet_basis = FloquetBasis(H, T)
+        psi0 = rand_ket(N)
+        tlist = np.linspace(0, 10, 11)
+        floquet_psi0 = floquet_basis.to_floquet_basis(psi0)
+        states = sesolve(H, psi0, tlist).states
+        for t, state in zip(tlist, states):
+            from_floquet = floquet_basis.from_floquet_basis(floquet_psi0, t)
+            assert state.overlap(from_floquet) == pytest.approx(1., abs=5e-5)
+
 
     def testFloquetMasterEquation1(self):
         """
@@ -166,8 +185,8 @@ class TestFloquet:
         solver = FMESolver(
             floquet_basis, [(c_op_fmmesolve, spectrum)], kmax=kmax
         )
-        output1 = solver.run(psi0, tlist, e_ops=[num(2)])
-        p_ex = output1.expect[0]
+        solver.start(psi0, tlist[0])
+        p_ex = [expect(num(2), solver.step(t)) for t in tlist]
 
         # Compare with mesolve
         output2 = mesolve(H, psi0, tlist, c_op_mesolve, [num(2)], args)

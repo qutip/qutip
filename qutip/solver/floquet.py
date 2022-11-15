@@ -19,7 +19,7 @@ class FloquetBasis:
     Attributes
     ----------
     U : :class:`Propagator`
-        asd
+        The propagator of the hamiltonian over one period.
 
     evecs : :class:`qutip.data.Data`
         Matrix where each column is an initial Floquet modes.
@@ -359,15 +359,15 @@ def floquet_A_matrix(delta, gamma, w_th):
         thermal = 1. / (np.exp(np.abs(deltap) / w_th) - 1.0)
         thermal = [_data.Dense(thermal[:, :, k]) for k in range(2 * kmax + 1)]
 
-        gamma_k_k = _data.add(gamma[0], gamma[0].transpose())
-        A = _data.add(gamma[0], _data.multiply(thermal[kmax], gamma_k_k))
+        gamma_kk = _data.add(gamma[0], gamma[0].transpose())
+        A = _data.add(gamma[0], _data.multiply(thermal[kmax], gamma_kk))
 
         for k in range(1, kmax+1):
             g_kk = _data.add(gamma[k], gamma[-k].transpose())
             thermal_kk = _data.multiply(thermal[kmax+k], g_kk)
-            A = _data.add(A, _data.add(gamma[k], thermal_k_k))
+            A = _data.add(A, _data.add(gamma[k], thermal_kk))
             thermal_kk = _data.multiply(thermal[kmax-k], g_kk.transpose())
-            A = _data.add(A, _data.add(gamma[-k], thermal_k_k))
+            A = _data.add(A, _data.add(gamma[-k], thermal_kk))
     else:
         # w_th is 0, thermal = 0s
         A = gamma[0]
@@ -612,8 +612,9 @@ class FMESolver(MeSolver):
 
     a_ops : list of tuple(:class:`qutip.Qobj`, callable)
         List of collapse operators and the corresponding function for the noise
-        power spectrum. The spectrum function must take and return an numpy
-        array.
+        power spectrum. The collapse operator must be a :class:`Qobj` and
+        cannot be time dependent. The spectrum function must take and return
+        an numpy array.
 
     w_th : float
         The temperature of the environment in units of Hamiltonian frequency.
@@ -652,8 +653,11 @@ class FMESolver(MeSolver):
         nT = nT or max(100, 20 * kmax)
         self._num_collapse = len(a_ops)
         c_ops, spectra_cb = zip(*a_ops)
-
-        # The evolution of the propagator over ``T`` is ran 2~3 time.
+        if not all(
+            isinstance(c_op, Qobj) and callable(spectrum)
+            for c_op, spectrum in a_ops
+        ):
+            raise TypeError("a_ops must be tuple of (Qobj, callable)")
         self.rhs = QobjEvo(floquet_tensor(
             self.floquet_basis, c_ops, spectra_cb, w_th=w_th, kmax=kmax, nT=nT
         ))
