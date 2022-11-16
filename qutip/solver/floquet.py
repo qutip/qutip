@@ -30,7 +30,8 @@ class FloquetBasis:
     U_T : :class:`Qobj`
         Propagator over one period.
     """
-    def __init__(self, H, T, args=None, options=None, sparse=False, precompute=None):
+    def __init__(self, H, T, args=None, options=None,
+                 sparse=False, sort=True, precompute=None):
         """
         Parameters
         ----------
@@ -50,6 +51,9 @@ class FloquetBasis:
         sparse : bool [False]
             Whether to use the sparse eigen solver when computing the
             quasi-energies.
+
+        sort : bool [True]
+            Whether to sort the quasi-energies.
 
         precompute : list [None]
             If provided, a list of time at which to store the propagators
@@ -78,8 +82,15 @@ class FloquetBasis:
         self.U_T = self.U(self.T)
         if not sparse and isinstance(self.U_T, _data.CSR):
             self.U_T = self.U_T.to("Dense")
-        evals, self.evecs = _data.eigs(self.U_T.data)
-        self.e_quasi = -np.angle(evals) / T
+        evals, evecs = _data.eigs(self.U_T.data)
+        e_quasi = -np.angle(evals) / T
+        if sort:
+            perm = np.argsort(e_quasi)
+            self.evecs = _data.permute.indices(evecs, col_perm=np.argsort(perm))
+            self.e_quasi = e_quasi[perm]
+        else:
+            self.evecs = evecs
+            self.e_quasi = e_quasi
 
     def _as_ketlist(self, kets_mat):
         """
