@@ -352,7 +352,7 @@ The second tuple ``f'{kappa} * (w >= 0)'``, gives the noise power spectrum.
 A full example is:
 
 .. plot::
-    :context:
+    :context: close-figs
 
     N = 10
 

@@ -166,8 +166,8 @@ Bloch-Redfield Master Equation
 Floquet States and Floquet-Markov Master Equation
 -------------------------------------------------
 
-.. automodule:: qutip.solve.floquet
-    :members: fmmesolve, floquet_modes, floquet_modes_t, floquet_modes_table, floquet_modes_t_lookup, floquet_states, floquet_states_t, floquet_wavefunction, floquet_wavefunction_t, floquet_state_decomposition, fsesolve, floquet_master_equation_rates, floquet_master_equation_steadystate, floquet_basis_transform, floquet_markov_mesolve
+.. automodule:: qutip.solver.floquet
+    :members: fmmesolve, fsesolve, FloquetBasis, FMESolver, floquet_tensor
 
 
 Stochastic Schrödinger Equation and Master Equation

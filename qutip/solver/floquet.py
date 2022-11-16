@@ -1,4 +1,4 @@
-__all__ = ['FloquetBasis', 'floquet_tensor', 'fmmesolve', 'FMESolver']
+__all__ = ['FloquetBasis', 'floquet_tensor', 'fmmesolve', 'fsesolve', 'FMESolver']
 
 import numpy as np
 from qutip.core import data as _data
@@ -30,15 +30,19 @@ class FloquetBasis:
     U_T : :class:`Qobj`
         Propagator over one period.
     """
-    def __init__(self, H, T, options=None, sparse=False, precompute=None):
+    def __init__(self, H, T, args=None, options=None, sparse=False, precompute=None):
         """
         Parameters
         ----------
-        H : :class:`QobjEvo`
+        H : :class:`Qobj`, :class:`QobjEvo`, :class:`QobjEvo` compatible format.
             System Hamiltonian, with period `T`.
 
         T : float
             Period of the Hamiltonian.
+
+        args : None / *dictionary*
+            dictionary of parameters for time-dependent Hamiltonians and
+            collapse operators.
 
         options : dict [None]
             Options used by sesolve to compute the floquet modes.
@@ -67,7 +71,7 @@ class FloquetBasis:
             # Default computation
             tlist = np.linspace(0, T, 101)
             memoize = 101
-        self.U = Propagator(H, options=options, memoize=memoize)
+        self.U = Propagator(H, args=args, options=options, memoize=memoize)
         for t in tlist:
             # Do the evolution by steps to save the intermediate results.
             self.U(t)
@@ -463,8 +467,73 @@ def floquet_tensor(H, c_ops, spectra_cb, T=0, w_th=0., kmax=5, nT=100):
                 type="super", superrep="super", copy=False)
 
 
+def fsesolve(H, psi0, tlist, e_ops=None, T=0., args=None, options=None):
+    """
+    Solve the Schrodinger equation using the Floquet formalism.
+
+    Parameters
+    ----------
+    H : :class:`Qobj`, :class:`QobjEvo`, :class:`QobjEvo` compatible format.
+        Periodic system Hamiltonian as :class:`QobjEvo`. List of
+        [:class:`Qobj`, :class:`Coefficient`] or callable that
+        can be made into :class:`QobjEvo` are also accepted.
+
+    psi0 : :class:`qutip.qobj`
+        Initial state vector (ket). If an operator is provided,
+
+    tlist : *list* / *array*
+        List of times for :math:`t`.
+
+    e_ops : list of :class:`qutip.qobj` / callback function
+        List of operators for which to evaluate expectation values. If this
+        list is empty, the state vectors for each time in `tlist` will be
+        returned instead of expectation values.
+
+    T : float
+        The period of the time-dependence of the hamiltonian.
+
+    args : dictionary
+        Dictionary with variables required to evaluate H.
+
+    options : dict
+        Options for the ODE solver.
+
+        - store_final_state : bool
+          Whether or not to store the final state of the evolution in the
+          result class.
+        - store_states : bool, None
+          Whether or not to store the state vectors or density matrices.
+          On `None` the states will be saved if no expectation operators are
+          given.
+        - normalize_output : bool
+          Normalize output state to hide ODE numerical errors.
+
+    Returns
+    -------
+    output : :class:`qutip.solver.Result`
+        An instance of the class :class:`qutip.solver.Result`, which
+        contains either an *array* of expectation values or an array of
+        state vectors, for the times specified by `tlist`.
+    """
+    T = T or tlist[-1]
+    floquet_basis = FloquetBasis(H, T, args, precompute=tlist)
+    f_coeff = floquet_basis.to_floquet_basis(psi0)
+    result_options = {
+        "store_final_state": False,
+        "store_states": None,
+        "normalize_output": True,
+    }
+    result_options.update(options or {})
+    result = Result(e_ops, result_options, solver="fsesolve")
+    for t in tlist:
+        state_t = floquet_basis.from_floquet_basis(f_coeff, t)
+        result.add(t, state_t)
+
+    return result
+
+
 def fmmesolve(
-    H, rho0, tlist, c_ops, e_ops, spectra_cb, T, w_th=0.,
+    H, rho0, tlist, c_ops=None, e_ops=None, spectra_cb=None, T=0, w_th=0.,
     args=None, options=None
 ):
     """
@@ -472,7 +541,7 @@ def fmmesolve(
 
     Parameters
     ----------
-    H : :class:`qutip.QobjEvo`, :class:`QobjEvo` compatible format.
+    H : :class:`Qobj`, :class:`QobjEvo`, :class:`QobjEvo` compatible format.
         Periodic system Hamiltonian as :class:`QobjEvo`. List of
         [:class:`Qobj`, :class:`Coefficient`] or callable that
         can be made into :class:`QobjEvo` are also accepted.
@@ -555,7 +624,14 @@ def fmmesolve(
         the expectation values for the times specified by `tlist`, and/or the
         state density matrices corresponding to the times.
     """
-    H = QobjEvo(H, args, options)
+    if c_ops is None:
+        return fsesolve(
+            H, rho0, tlist, e_ops=e_ops, T=T,
+            w_th=w_th, args=args, options=options
+        )
+
+    H = QobjEvo(H, args)
+    T = T or tlist[-1]
 
     t_precompute = np.concatenate([tlist, np.linspace(0, T, 101)])
     floquet_basis = FloquetBasis(H, T, precompute=t_precompute)
@@ -737,8 +813,8 @@ class FMESolver(MeSolver):
 
         For a ``state0`` at time ``tlist[0]`` do the evolution as directed by
         ``rhs`` and for each time in ``tlist`` store the state and/or
-        expectation values in a :cls:`Result`. The evolution method and stored
-        results are determined by ``options``.
+        expectation values in a :class:`Result`. The evolution method and
+        stored results are determined by ``options``.
 
         Parameters
         ----------
