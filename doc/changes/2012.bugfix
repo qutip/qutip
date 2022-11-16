@@ -1,0 +1,1 @@
+Fix the hinton visualization method to take into account all the matrix coefficients to set the squares scale, instead of only the diagonal coefficients.
