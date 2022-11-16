@@ -37,7 +37,7 @@ jobs:
           # SciPy versions for Python 3.9.
           - case-name: MacOS
             os: macos-latest
-            python-version: "3.10"
+            python-version: "3.9"
             nomkl: 1
 
           # Needs an older version of Python because conda doesn't build old
