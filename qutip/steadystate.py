@@ -1148,7 +1148,7 @@ def _pseudo_inverse_dense(L, rhoss, w=None, **pseudo_args):
         try:
             LIQ = np.linalg.solve(L.full(), Q)
         except Exception:
-            LIQ = np.linalg.lstsq(L.full(), Q)[0]
+            LIQ = np.linalg.lstsq(L.full(), Q, rcond=None)[0]
 
         R = np.dot(Q, LIQ)
 
