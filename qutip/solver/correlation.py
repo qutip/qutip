@@ -166,7 +166,7 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
                        options={}):
     r"""
     Calculate the three-operator two-time correlation function:
-    :math:`\left<A(t)B(t+\tau)C(t)\right>` along one time axis using the
+    :math:`\left<A(0)B(\tau)C(0)\right>` along one time axis using the
     quantum regression theorem and the evolution solver indicated by the
     `solver` parameter.
 
