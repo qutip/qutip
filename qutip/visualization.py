@@ -166,8 +166,8 @@ def _cb_labels(left_dims):
     return [
         map(fmt.format, basis_labels) for fmt in
         (
+            r"$\langle{}|$",
             r"$|{}\rangle$",
-            r"$\langle{}|$"
         )
     ]
 
@@ -303,7 +303,7 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
 
     height, width = W.shape
 
-    w_max = 1.25 * max(abs(np.diag(np.array(W))))
+    w_max = 1.25 * max(abs(np.array(W)).flatten())
     if w_max <= 0.0:
         w_max = 1.0
 
@@ -331,8 +331,8 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
             _x = x + 1
             _y = y + 1
             _blob(
-                _x - 0.5, height - _y + 0.5, W[x, y], w_max,
-                min(1, abs(W[x, y]) / w_max), color_fn=color_fn, ax=ax)
+                _x - 0.5, height - _y + 0.5, W[y, x], w_max,
+                min(1, abs(W[y, x]) / w_max), color_fn=color_fn, ax=ax)
 
     # color axis
     vmax = np.pi if color_style == "phase" else abs(W).max()
