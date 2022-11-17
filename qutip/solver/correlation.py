@@ -318,7 +318,7 @@ def coherence_function_g1(
         be used as the initial state. The 'steady-state' is only implemented
         if ``c_ops`` are provided and the Hamiltonian is constant.
     taulist : array_like
-        list of times for :math:`\tau`. taulist must be positive and contain
+        List of times for :math:`\tau`. taulist must be positive and contain
         the element `0`.
     c_ops : list of {:class:`Qobj`, :class:`QobjEvo`}
         List of collapse operators
@@ -377,13 +377,13 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me",
         be used as the initial state. The 'steady-state' is only implemented
         if ``c_ops`` are provided and the Hamiltonian is constant.
     taulist : array_like
-        list of times for :math:`\tau`. taulist must be positive and contain
+        List of times for :math:`\tau`. taulist must be positive and contain
         the element `0`.
     c_ops : list
-        list of collapse operators, may be time-dependent for solver choice of
+        List of collapse operators, may be time-dependent for solver choice of
         `me`.
     a_op : :class:`Qobj`
-        operator A.
+        Operator A.
     args : dict
         Dictionary of arguments to be passed to solver.
     solver : str {'me', 'es'}
