@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
         # Test other versions of Python in special cases to avoid exploding the
         # matrix size; make sure to test all supported versions in some form.
         python-version: ["3.9"]
@@ -33,6 +33,13 @@ jobs:
         # the lack of a variable is _always_ false-y, and the defaults lack all
         # the special cases.
         include:
+          # Needs an older version of Python because conda doesn't build old
+          # SciPy versions for Python 3.9.
+          - case-name: MacOS
+            os: macos-latest
+            python-version: "3.9"
+            nomkl: 1
+
           # Needs an older version of Python because conda doesn't build old
           # SciPy versions for Python 3.9.
           - case-name: old SciPy
@@ -93,7 +100,7 @@ jobs:
             pytest-extra-options: "-W ignore::ImportWarning -k 'not (test_correlation or test_interpolate or test_mcsolve)'"
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - uses: conda-incubator/setup-miniconda@v2
         with:
