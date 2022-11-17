@@ -30,31 +30,31 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
                        solver="me", reverse=False, args={},
                        options={}):
     r"""
-    Calculate the two-operator two-time correlation function:
-    :math:`\left<A(t+\tau)B(t)\right>`
+    Calculate the two-operator one-time correlation function:
+    :math:`\left<A(\tau)B(0)\right>`
     along one time axis using the quantum regression theorem and the evolution
     solver indicated by the `solver` parameter.
 
     Parameters
     ----------
 
-    H : Qobj, QobjEvo
-        System Hamiltonian.
-    state0 : Qobj
+    H : :class:`Qobj`, :class:`QobjEvo`
+        System Hamiltonian, may be time-dependent for solver choice of `me`.
+    state0 : :class:`Qobj`
         Initial state density matrix :math:`\rho(t_0)` or state vector
         :math:`\psi(t_0)`. If 'state0' is 'None', then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
-        if ``c_ops`` are provided.
+        if ``c_ops`` are provided and the Hamiltonian is constant.
     taulist : array_like
         List of times for :math:`\tau`. taulist must be positive and contain
         the element `0`.
-    c_ops : list of {Qobj, QobjEvo}
+    c_ops : list of {:class:`Qobj`, :class:`QobjEvo`}
         List of collapse operators
-    a_op : Qobj, QobjEvo
+    a_op : :class:`Qobj`, :class:`QobjEvo`
         Operator A.
-    b_op : Qobj, QobjEvo
+    b_op : :class:`Qobj`, :class:`QobjEvo`
         Operator B.
-    reverse : bool {False, True}
+    reverse : bool {False}
         If `True`, calculate :math:`\left<A(t)B(t+\tau)\right>` instead of
         :math:`\left<A(t+\tau)B(t)\right>`.
     solver : str {'me', 'es'}
@@ -97,32 +97,32 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
     Calculate the two-operator two-time correlation function:
     :math:`\left<A(t+\tau)B(t)\right>`
     along two time axes using the quantum regression theorem and the
-    evolution solver indicated by the `solver` parameter.
+    evolution solver indicated by the ``solver`` parameter.
 
     Parameters
     ----------
-    H : Qobj, QobjEvo
-        System Hamiltonian.
-    state0 : Qobj
+    H : :class:`Qobj`, :class:`QobjEvo`
+        System Hamiltonian, may be time-dependent for solver choice of `me`.
+    state0 : :class:`Qobj`
         Initial state density matrix :math:`\rho(t_0)` or state vector
         :math:`\psi(t_0)`. If 'state0' is 'None', then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
-        if ``c_ops`` are provided.
+        if ``c_ops`` are provided and the Hamiltonian is constant.
     tlist : array_like
         List of times for :math:`t`. tlist must be positive and contain the
-        element `0`. When taking steady-steady correlations only one tlist
-        value is necessary, i.e. when :math:`t \rightarrow \infty`; here
-        tlist is automatically set, ignoring user input.
+        element `0`. When taking steady-steady correlations only one ``tlist``
+        value is necessary, i.e. when :math:`t \rightarrow \infty`.
+        If ``tlist`` is ``None``, ``tlist=[0]`` is assumed.
     taulist : array_like
         List of times for :math:`\tau`. taulist must be positive and contain
         the element `0`.
-    c_ops : list of {Qobj, QobjEvo}
+    c_ops : list of {:class:`Qobj`, :class:`QobjEvo`}
         List of collapse operators
-    a_op : Qobj, QobjEvo
+    a_op : :class:`Qobj`, :class:`QobjEvo`
         Operator A.
-    b_op : Qobj, QobjEvo
+    b_op : :class:`Qobj`, :class:`QobjEvo`
         Operator B.
-    reverse : bool {False, True}
+    reverse : bool {False}
         If `True`, calculate :math:`\left<A(t)B(t+\tau)\right>` instead of
         :math:`\left<A(t+\tau)B(t)\right>`.
     solver : str {'me', 'es'}
@@ -135,9 +135,7 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
     -------
     corr_mat : ndarray
         An 2-dimensional array (matrix) of correlation values for the times
-        specified by `tlist` (first index) and `taulist` (second index). If
-        `tlist` is `None`, then a 1-dimensional array of correlation values
-        is returned instead.
+        specified by `tlist` (first index) and `taulist` (second index).
 
     See Also
     --------
@@ -177,23 +175,23 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
 
     Parameters
     ----------
-    H : Qobj, QobjEvo
-        System Hamiltonian.
-    state0 : Qobj
+    H : :class:`Qobj`, :class:`QobjEvo`
+        System Hamiltonian, may be time-dependent for solver choice of `me`.
+    state0 : :class:`Qobj`
         Initial state density matrix :math:`\rho(t_0)` or state vector
         :math:`\psi(t_0)`. If 'state0' is 'None', then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
-        if ``c_ops`` are provided.
+        if ``c_ops`` are provided and the Hamiltonian is constant.
     taulist : array_like
         List of times for :math:`\tau`. taulist must be positive and contain
         the element `0`.
-    c_ops : list of {Qobj, QobjEvo}
+    c_ops : list of {:class:`Qobj`, :class:`QobjEvo`}
         List of collapse operators
-    a_op : Qobj, QobjEvo
+    a_op : :class:`Qobj`, :class:`QobjEvo`
         Operator A.
-    b_op : Qobj, QobjEvo
+    b_op : :class:`Qobj`, :class:`QobjEvo`
         Operator B.
-    c_op : Qobj, QobjEvo
+    c_op : :class:`Qobj`, :class:`QobjEvo`
         Operator C.
     solver : str {'me', 'es'}
         Choice of solver, `me` for master-equation, and `es` for exponential
@@ -236,28 +234,28 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
     Parameters
     ----------
-    H : Qobj, QobjEvo
-        System Hamiltonian.
-    state0 : Qobj
+    H : :class:`Qobj`, :class:`QobjEvo`
+        System Hamiltonian, may be time-dependent for solver choice of `me`.
+    state0 : :class:`Qobj`
         Initial state density matrix :math:`\rho(t_0)` or state vector
         :math:`\psi(t_0)`. If 'state0' is 'None', then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
-        if ``c_ops`` are provided.
+        if ``c_ops`` are provided and the Hamiltonian is constant.
     tlist : array_like
         List of times for :math:`t`. tlist must be positive and contain the
         element `0`. When taking steady-steady correlations only one tlist
-        value is necessary, i.e. when :math:`t \rightarrow \infty`; here
-        tlist is automatically set, ignoring user input.
+        value is necessary, i.e. when :math:`t \rightarrow \infty`.
+        If ``tlist`` is ``None``, ``tlist=[0]`` is assumed.
     taulist : array_like
         List of times for :math:`\tau`. taulist must be positive and contain
         the element `0`.
-    c_ops : list of {Qobj, QobjEvo}
+    c_ops : list of {:class:`Qobj`, :class:`QobjEvo`}
         List of collapse operators
-    a_op : Qobj, QobjEvo
+    a_op : :class:`Qobj`, :class:`QobjEvo`
         Operator A.
-    b_op : Qobj, QobjEvo
+    b_op : :class:`Qobj`, :class:`QobjEvo`
         Operator B.
-    c_op : Qobj, QobjEvo
+    c_op : :class:`Qobj`, :class:`QobjEvo`
         Operator C.
     solver : str {'me', 'es'}
         Choice of solver, `me` for master-equation, and `es` for exponential
@@ -269,9 +267,7 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     -------
     corr_mat : array
         An 2-dimensional array (matrix) of correlation values for the times
-        specified by `tlist` (first index) and `taulist` (second index). If
-        `tlist` is `None`, then a 1-dimensional array of correlation values
-        is returned instead.
+        specified by `tlist` (first index) and `taulist` (second index).
 
     See Also
     --------
@@ -314,19 +310,19 @@ def coherence_function_g1(
 
     Parameters
     ----------
-    H : Qobj, QobjEvo
-        System Hamiltonian.
-    state0 : Qobj
+    H : :class:`Qobj`, :class:`QobjEvo`
+        System Hamiltonian, may be time-dependent for solver choice of `me`.
+    state0 : :class:`Qobj`
         Initial state density matrix :math:`\rho(t_0)` or state vector
         :math:`\psi(t_0)`. If 'state0' is 'None', then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
-        if ``c_ops`` are provided.
+        if ``c_ops`` are provided and the Hamiltonian is constant.
     taulist : array_like
         list of times for :math:`\tau`. taulist must be positive and contain
         the element `0`.
-    c_ops : list of {Qobj, QobjEvo}
+    c_ops : list of {:class:`Qobj`, :class:`QobjEvo`}
         List of collapse operators
-    a_op : Qobj, QobjEvo
+    a_op : :class:`Qobj`, :class:`QobjEvo`
         Operator A.
     solver : str {'me', 'es'}
         Choice of solver, `me` for master-equation, and `es` for exponential
@@ -373,20 +369,20 @@ def coherence_function_g2(H, state0, taulist, c_ops, a_op, solver="me",
 
     Parameters
     ----------
-    H : Qobj
-        system Hamiltonian, may be time-dependent for solver choice of `me`.
-    state0 : Qobj
+    H : :class:`Qobj`, :class:`QobjEvo`
+        System Hamiltonian, may be time-dependent for solver choice of `me`.
+    state0 : :class:`Qobj`
         Initial state density matrix :math:`\rho(t_0)` or state vector
         :math:`\psi(t_0)`. If 'state0' is 'None', then the steady state will
         be used as the initial state. The 'steady-state' is only implemented
-        if ``c_ops`` are provided.
+        if ``c_ops`` are provided and the Hamiltonian is constant.
     taulist : array_like
         list of times for :math:`\tau`. taulist must be positive and contain
         the element `0`.
     c_ops : list
         list of collapse operators, may be time-dependent for solver choice of
         `me`.
-    a_op : Qobj
+    a_op : :class:`Qobj`
         operator A.
     args : dict
         Dictionary of arguments to be passed to solver.
@@ -445,9 +441,9 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None):
 
     Parameters
     ----------
-    solver : :class:`MeSolver`, :class:`BRSolver`, :class:`HEOMSolver`
+    solver : :class:`MeSolver`, :class:`BRSolver`
         Qutip solver for an open system.
-    state0 : Qobj
+    state0 : :class:`Qobj`
         Initial state density matrix :math:`\rho(t_0)` or state vector
         :math:`\psi(t_0)`.
     tlist : array_like
@@ -456,7 +452,7 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None):
     taulist : array_like
         List of times for :math:`\tau`. taulist must be positive and contain
         the element `0`.
-    A, B, C: Qobj, QobjEvo, optional, default=None
+    A, B, C: :class:`Qobj`, :class:`QobjEvo`, optional, default=None
         Operators ``A``, ``B``, ``C`` from the equation ``<A(t)B(t+\tau)C(t)>``
         in the Schrodinger picture. They do not need to be all provided. For
         exemple, if ``A`` is not provided, ``<B(t+\tau)C(t)>`` is computed.
