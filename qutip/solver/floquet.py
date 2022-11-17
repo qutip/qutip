@@ -1,4 +1,15 @@
-__all__ = ['FloquetBasis', 'floquet_tensor', 'fmmesolve', 'fsesolve', 'FMESolver']
+__all__ = [
+    "FloquetBasis",
+    "floquet_delta_tensor",
+    "floquet_X_matrices",
+    "floquet_gamma_matrices",
+    "floquet_A_matrix",
+    "floquet_master_equation_tensor",
+    "floquet_tensor",
+    "fsesolve",
+    "fmmesolve",
+    "FMESolver",
+]
 
 import numpy as np
 from qutip.core import data as _data
@@ -30,8 +41,17 @@ class FloquetBasis:
     U_T : :class:`Qobj`
         Propagator over one period.
     """
-    def __init__(self, H, T, args=None, options=None,
-                 sparse=False, sort=True, precompute=None):
+
+    def __init__(
+        self,
+        H,
+        T,
+        args=None,
+        options=None,
+        sparse=False,
+        sort=True,
+        precompute=None,
+    ):
         """
         Parameters
         ----------
@@ -122,12 +142,12 @@ class FloquetBasis:
             in a single matrix.
         """
         t = t % self.T
-        if t == 0.:
+        if t == 0.0:
             kets_mat = self.evecs
         else:
             U = self.U(t).data
             phases = _data.diag(np.exp(1j * t * self.e_quasi))
-            kets_mat =  U @ self.evecs @ phases
+            kets_mat = U @ self.evecs @ phases
         if data:
             return kets_mat
         else:
@@ -187,8 +207,9 @@ class FloquetBasis:
             dims = floquet_basis.dims
             floquet_basis = floquet_basis.data
             if dims[0] != self.U_T.dims[1]:
-                raise ValueError("Dimensions of the state does "
-                                 "not match the Hamiltonian")
+                raise ValueError(
+                    "Dimensions of the state does " "not match the Hamiltonian"
+                )
 
         state_mat = self.state(t, True)
         lab_basis = state_mat @ floquet_basis
@@ -223,8 +244,9 @@ class FloquetBasis:
             dims = lab_basis.dims
             lab_basis = lab_basis.data
             if dims[0] != self.U_T.dims[1]:
-                raise ValueError("Dimensions of the state does "
-                                 "not match the Hamiltonian")
+                raise ValueError(
+                    "Dimensions of the state does " "not match the Hamiltonian"
+                )
 
         state_mat = self.state(t, True)
         floquet_basis = state_mat.adjoint() @ lab_basis
@@ -287,19 +309,15 @@ def floquet_X_matrices(floquet_basis, c_ops, kmax, ntimes=100):
     N = floquet_basis.U_T.shape[0]
     omega = (2 * np.pi) / T
     tlist = np.linspace(T / ntimes, T, ntimes)
-    ks = np.arange(-kmax, kmax+1)
-    out = {
-        k: [_data.csr.zeros(N, N)] * len(c_ops)
-        for k in ks
-    }
+    ks = np.arange(-kmax, kmax + 1)
+    out = {k: [_data.csr.zeros(N, N)] * len(c_ops) for k in ks}
 
     for t in tlist:
         mode = floquet_basis.mode(t, data=True)
         FFs = [mode.adjoint() @ c_op.data @ mode for c_op in c_ops]
-        for k, phi in zip(ks, np.exp(-1j * ks * omega * t) / ntimes) :
+        for k, phi in zip(ks, np.exp(-1j * ks * omega * t) / ntimes):
             out[k] = [
-                _data.add(prev, new, phi)
-                for prev, new in zip(out[k], FFs)
+                _data.add(prev, new, phi) for prev, new in zip(out[k], FFs)
             ]
 
     return [{k: out[k][i] for k in ks} for i in range(len(c_ops))]
@@ -329,24 +347,21 @@ def floquet_gamma_matrices(X, delta, J_cb):
     """
     N = delta.shape[0]
     kmax = (delta.shape[2] - 1) // 2
-    gamma = {
-        k: _data.csr.zeros(N, N)
-        for k in range(-kmax, kmax + 1, 1)
-    }
+    gamma = {k: _data.csr.zeros(N, N) for k in range(-kmax, kmax + 1, 1)}
 
     for X_c_op, sp in zip(X, J_cb):
-        response = sp(delta) * ((2+0j) * np.pi)
+        response = sp(delta) * ((2 + 0j) * np.pi)
         response = [
-            _data.Dense(response[:,:,k], copy=False)
-            for k in range(2*kmax+1)
+            _data.Dense(response[:, :, k], copy=False)
+            for k in range(2 * kmax + 1)
         ]
         for k in range(-kmax, kmax + 1, 1):
             gamma[k] = _data.add(
                 gamma[k],
                 _data.multiply(
                     _data.multiply(X_c_op[k].conj(), X_c_op[k]),
-                    response[k+kmax]
-                )
+                    response[k + kmax],
+                ),
             )
     return gamma
 
@@ -368,25 +383,25 @@ def floquet_A_matrix(delta, gamma, w_th):
     """
     kmax = (delta.shape[2] - 1) // 2
 
-    if w_th > 0.:
+    if w_th > 0.0:
         deltap = np.copy(delta)
-        deltap[deltap == 0.] = np.inf
-        thermal = 1. / (np.exp(np.abs(deltap) / w_th) - 1.0)
+        deltap[deltap == 0.0] = np.inf
+        thermal = 1.0 / (np.exp(np.abs(deltap) / w_th) - 1.0)
         thermal = [_data.Dense(thermal[:, :, k]) for k in range(2 * kmax + 1)]
 
         gamma_kk = _data.add(gamma[0], gamma[0].transpose())
         A = _data.add(gamma[0], _data.multiply(thermal[kmax], gamma_kk))
 
-        for k in range(1, kmax+1):
+        for k in range(1, kmax + 1):
             g_kk = _data.add(gamma[k], gamma[-k].transpose())
-            thermal_kk = _data.multiply(thermal[kmax+k], g_kk)
+            thermal_kk = _data.multiply(thermal[kmax + k], g_kk)
             A = _data.add(A, _data.add(gamma[k], thermal_kk))
-            thermal_kk = _data.multiply(thermal[kmax-k], g_kk.transpose())
+            thermal_kk = _data.multiply(thermal[kmax - k], g_kk.transpose())
             A = _data.add(A, _data.add(gamma[-k], thermal_kk))
     else:
         # w_th is 0, thermal = 0s
         A = gamma[0]
-        for k in range(1, kmax+1):
+        for k in range(1, kmax + 1):
             A = _data.add(gamma[k], A)
             A = _data.add(gamma[-k], A)
 
@@ -414,7 +429,7 @@ def floquet_master_equation_tensor(A):
 
     # R[i+N*i, j+N*j] = A[j, i]
     cols = np.arange(N, dtype=np.int32)
-    rows = np.linspace(1-1/(N+1), N, N**2+1, dtype=np.int32)
+    rows = np.linspace(1 - 1 / (N + 1), N, N**2 + 1, dtype=np.int32)
     data = np.ones(N, dtype=complex)
     expand = _data.csr.CSR((data, cols, rows), shape=(N**2, N))
 
@@ -424,12 +439,12 @@ def floquet_master_equation_tensor(A):
     ket_1 = _data.Dense(np.ones(N, dtype=complex))
     Asum = A @ ket_1
     to_super = _data.add(_data.kron(Asum, ket_1), _data.kron(ket_1, Asum))
-    S = _data.diag(to_super.to_array().flatten()*-.5, 0)
+    S = _data.diag(to_super.to_array().flatten() * -0.5, 0)
 
     return _data.add(R, S)
 
 
-def floquet_tensor(H, c_ops, spectra_cb, T=0, w_th=0., kmax=5, nT=100):
+def floquet_tensor(H, c_ops, spectra_cb, T=0, w_th=0.0, kmax=5, nT=100):
     """
     Construct a tensor that represents the master equation in the floquet
     basis.
@@ -474,11 +489,12 @@ def floquet_tensor(H, c_ops, spectra_cb, T=0, w_th=0., kmax=5, nT=100):
     a = floquet_A_matrix(delta, gamma, w_th)
     r = floquet_master_equation_tensor(a)
     dims = floquet_basis.U_T.dims
-    return Qobj(r, dims=[dims, dims],
-                type="super", superrep="super", copy=False)
+    return Qobj(
+        r, dims=[dims, dims], type="super", superrep="super", copy=False
+    )
 
 
-def fsesolve(H, psi0, tlist, e_ops=None, T=0., args=None, options=None):
+def fsesolve(H, psi0, tlist, e_ops=None, T=0.0, args=None, options=None):
     """
     Solve the Schrodinger equation using the Floquet formalism.
 
@@ -544,8 +560,16 @@ def fsesolve(H, psi0, tlist, e_ops=None, T=0., args=None, options=None):
 
 
 def fmmesolve(
-    H, rho0, tlist, c_ops=None, e_ops=None, spectra_cb=None, T=0, w_th=0.,
-    args=None, options=None
+    H,
+    rho0,
+    tlist,
+    c_ops=None,
+    e_ops=None,
+    spectra_cb=None,
+    T=0,
+    w_th=0.0,
+    args=None,
+    options=None,
 ):
     """
     Solve the dynamics for the system using the Floquet-Markov master equation.
@@ -637,8 +661,14 @@ def fmmesolve(
     """
     if c_ops is None:
         return fsesolve(
-            H, rho0, tlist, e_ops=e_ops, T=T,
-            w_th=w_th, args=args, options=options
+            H,
+            rho0,
+            tlist,
+            e_ops=e_ops,
+            T=T,
+            w_th=w_th,
+            args=args,
+            options=options,
         )
 
     H = QobjEvo(H, args)
@@ -648,13 +678,13 @@ def fmmesolve(
     floquet_basis = FloquetBasis(H, T, precompute=t_precompute)
 
     if not w_th and args:
-        w_th = args.get("w_th", 0.)
+        w_th = args.get("w_th", 0.0)
 
     if isinstance(c_ops, Qobj):
         c_ops = [c_ops]
 
     if spectra_cb is None:
-        spectra_cb = [lambda w: (w>0)]
+        spectra_cb = [lambda w: (w > 0)]
     elif callable(spectra_cb):
         spectra_cb = [spectra_cb]
     if len(spectra_cb) == 1:
@@ -669,14 +699,14 @@ def fmmesolve(
 class FloquetResult(Result):
     def _post_init(self, floquet_basis):
         self.floquet_basis = floquet_basis
-        if self.options['store_floquet_states']:
+        if self.options["store_floquet_states"]:
             self.floquet_states = []
         else:
             self.floquet_states = None
         super()._post_init()
 
     def add(self, t, state):
-        if self.options['store_floquet_states']:
+        if self.options["store_floquet_states"]:
             self.floquet_states.append(state)
 
         state = self.floquet_basis.from_floquet_basis(state, t)
@@ -716,20 +746,23 @@ class FMESolver(MeSolver):
         Options for the solver, see :obj:`FMESolver.options` and
         `Integrator <./classes.html#classes-ode>`_ for a list of all options.
     """
+
     name = "fmmesolve"
     _avail_integrators = {}
     resultclass = FloquetResult
     solver_options = {
         "progress_bar": "text",
-        "progress_kwargs": {"chunk_size":10},
+        "progress_kwargs": {"chunk_size": 10},
         "store_final_state": False,
         "store_states": None,
         "normalize_output": True,
         "method": "adams",
-        "store_floquet_states": False
+        "store_floquet_states": False,
     }
-    def __init__(self, floquet_basis, a_ops, w_th=0., *,
-                 kmax=5, nT=None, options=None):
+
+    def __init__(
+        self, floquet_basis, a_ops, w_th=0.0, *, kmax=5, nT=None, options=None
+    ):
         self._options = {}
         self.options = {} if options is None else options
         if isinstance(floquet_basis, FloquetBasis):
@@ -745,9 +778,16 @@ class FMESolver(MeSolver):
             for c_op, spectrum in a_ops
         ):
             raise TypeError("a_ops must be tuple of (Qobj, callable)")
-        self.rhs = QobjEvo(floquet_tensor(
-            self.floquet_basis, c_ops, spectra_cb, w_th=w_th, kmax=kmax, nT=nT
-        ))
+        self.rhs = QobjEvo(
+            floquet_tensor(
+                self.floquet_basis,
+                c_ops,
+                spectra_cb,
+                w_th=w_th,
+                kmax=kmax,
+                nT=nT,
+            )
+        )
 
         self._integrator = self._get_integrator()
         self._state_metadata = {}
@@ -755,10 +795,12 @@ class FMESolver(MeSolver):
 
     def _initialize_stats(self):
         stats = Solver._initialize_stats(self)
-        stats.update({
-            "solver": "Floquet-Markov master equation",
-            "num_collapse": self._num_collapse,
-        })
+        stats.update(
+            {
+                "solver": "Floquet-Markov master equation",
+                "num_collapse": self._num_collapse,
+            }
+        )
         return stats
 
     def _argument(self, args):
@@ -864,21 +906,23 @@ class FMESolver(MeSolver):
         self._integrator.set_state(tlist[0], _data0)
         stats = self._initialize_stats()
         results = self.resultclass(
-            e_ops, self.options,
-            solver=self.name, stats=stats,
-            floquet_basis=self.floquet_basis
+            e_ops,
+            self.options,
+            solver=self.name,
+            stats=stats,
+            floquet_basis=self.floquet_basis,
         )
         results.add(tlist[0], self._restore_state(_data0, copy=False))
-        stats['preparation time'] += time() - _time_start
+        stats["preparation time"] += time() - _time_start
 
-        progress_bar = progess_bars[self.options['progress_bar']]()
-        progress_bar.start(len(tlist)-1, **self.options['progress_kwargs'])
+        progress_bar = progess_bars[self.options["progress_bar"]]()
+        progress_bar.start(len(tlist) - 1, **self.options["progress_kwargs"])
         for t, state in self._integrator.run(tlist):
             progress_bar.update()
             results.add(t, self._restore_state(state, copy=False))
         progress_bar.finished()
 
-        stats['run time'] = progress_bar.total_time()
+        stats["run time"] = progress_bar.total_time()
         # TODO: It would be nice if integrator could give evolution statistics
         # stats.update(_integrator.stats)
         return results
