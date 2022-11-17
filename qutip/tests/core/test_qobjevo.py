@@ -301,12 +301,6 @@ def test_QobjEvo_pickle(all_qevo):
     recreated = pickle.loads(pickled)
     _assert_qobjevo_equivalent(recreated, obj)
 
-def test_shift(all_qevo):
-    dt = 0.2
-    obj = all_qevo
-    shited = obj._insert_time_shift(dt)
-    for t in TESTTIMES:
-        _assert_qobj_almost_eq(obj(t + dt), shited(t))
 
 def test_mul_vec(all_qevo):
     "QobjEvo matmul ket"
@@ -315,6 +309,7 @@ def test_mul_vec(all_qevo):
     for t in TESTTIMES:
         assert_allclose((op(t) @ vec).full(),
                         op.matmul(t, vec).full(), atol=1e-14)
+
 
 def test_matmul(all_qevo):
     "QobjEvo matmul oper"
