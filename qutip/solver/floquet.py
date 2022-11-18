@@ -55,7 +55,7 @@ class FloquetBasis:
         """
         Parameters
         ----------
-        H : :class:`Qobj`, :class:`QobjEvo`, :class:`QobjEvo` compatible format.
+        H : :class:`Qobj`, :class:`QobjEvo`, QobjEvo compatible format.
             System Hamiltonian, with period `T`.
 
         T : float
@@ -511,19 +511,19 @@ def fsesolve(H, psi0, tlist, e_ops=None, T=0.0, args=None, options=None):
     tlist : *list* / *array*
         List of times for :math:`t`.
 
-    e_ops : list of :class:`qutip.qobj` / callback function
+    e_ops : list of :class:`qutip.qobj` / callback function, optional
         List of operators for which to evaluate expectation values. If this
         list is empty, the state vectors for each time in `tlist` will be
         returned instead of expectation values.
 
-    T : float
+    T : float, default=tlist[-1]
         The period of the time-dependence of the hamiltonian.
 
-    args : dictionary
+    args : dictionary, optional
         Dictionary with variables required to evaluate H.
 
-    options : dict
-        Options for the ODE solver.
+    options : dict, optional
+        Options for the results.
 
         - store_final_state : bool
           Whether or not to store the final state of the evolution in the
@@ -542,8 +542,14 @@ def fsesolve(H, psi0, tlist, e_ops=None, T=0.0, args=None, options=None):
         contains either an *array* of expectation values or an array of
         state vectors, for the times specified by `tlist`.
     """
-    T = T or tlist[-1]
-    floquet_basis = FloquetBasis(H, T, args, precompute=tlist)
+    if isinstance(H, FloquetBasis):
+        floquet_basis = H
+    else:
+        T = T or tlist[-1]
+        # `fsesolve` is a fallback from `fmmesolve`, for the later, options
+        # are for the open system evolution.
+        floquet_basis = FloquetBasis(H, T, args, precompute=tlist)
+
     f_coeff = floquet_basis.to_floquet_basis(psi0)
     result_options = {
         "store_final_state": False,
@@ -671,11 +677,14 @@ def fmmesolve(
             options=options,
         )
 
-    H = QobjEvo(H, args)
-    T = T or tlist[-1]
-
-    t_precompute = np.concatenate([tlist, np.linspace(0, T, 101)])
-    floquet_basis = FloquetBasis(H, T, precompute=t_precompute)
+    if isinstance(H, FloquetBasis):
+        floquet_basis = H
+    else:
+        T = T or tlist[-1]
+        t_precompute = np.concatenate([tlist, np.linspace(0, T, 101)])
+        # `fsesolve` is a fallback from `fmmesolve`, for the later, options
+        # are for the open system evolution.
+        floquet_basis = FloquetBasis(H, T, args, precompute=t_precompute)
 
     if not w_th and args:
         w_th = args.get("w_th", 0.0)
