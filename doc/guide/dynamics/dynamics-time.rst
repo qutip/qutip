@@ -5,30 +5,60 @@ Solving Problems with Time-dependent Hamiltonians
 *************************************************
 
 
-Methods for Writing Time-Dependent Operators
-============================================
+Time-Dependent Operators
+========================
 
 In the previous examples of quantum evolution,
 we assumed that the systems under consideration were described by time-independent Hamiltonians.
 However, many systems have explicit time dependence in either the Hamiltonian,
 or the collapse operators describing coupling to the environment, and sometimes both components might depend on time.
-The time-evolutions  solvers
-:func:`qutip.solve.mesolve`, :func:`qutip.solve.mcsolve`, :func:`qutip.solve.sesolve`, :func:`qutip.solve.brmesolve`
-:func:`qutip.solve.ssesolve`, :func:`qutip.solve.photocurrent_sesolve`, :func:`qutip.solve.smesolve`, and :func:`qutip.solve.photocurrent_mesolve`
-are all capable of handling time-dependent Hamiltonians and collapse terms.
-There are, in general, three different ways to implement time-dependent problems in QuTiP:
+The time-evolutions solvers such as :func:`sesolve`, :func:`brmesolve`, etc. are all capable of handling time-dependent Hamiltonians and collapse terms.
+QuTiP use :class:`QobjEvo` to represent time-dependent quantum operators.
+There are three different ways to build a :class:`QobjEvo`: :
 
 
-1. **Function based**: Hamiltonian / collapse operators expressed using [qobj, func] pairs, where the time-dependent coefficients of the Hamiltonian (or collapse operators) are expressed using Python functions.
+1. **Function based**: Build the time dependent operator from a function returning a :class:`Qobj`:
 
-2. **String (Cython) based**: The Hamiltonian and/or collapse operators are expressed as a list of [qobj, string] pairs, where the time-dependent coefficients are represented as strings.  The resulting Hamiltonian is then compiled into C code using Cython and executed.
+.. code-block:: python
 
-3. **Array Based**: The Hamiltonian and/or collapse operators are expressed as a list of [qobj, np.array] pairs. The arrays are 1 dimensional and dtype are complex or float. They must contain one value for each time in the tlist given to the solver. Cubic spline interpolation will be used between the given times.
+    def oper(t):
+        return num(N) + (destroy(N) + create(N)) * np.sin(t)
+    H_t = QobjEvo(oper)
 
-4. **Hamiltonian function (outdated)**: The Hamiltonian is itself a Python function with time-dependence.  Collapse operators must be time independent using this input format.
+1. **List based**: The time dependent quantum operator is represented as a list of ``qobj`` and ``[qobj, coefficient]`` pairs.
+
+.. code-block:: python
+
+    H_t = QobjEvo([num(N), [destroy(N) + create(N), lambda t: np.sin(t)]])
 
 
-Give the multiple choices of input style, the first question that arrises is which option to choose?
+3. **coefficent based**: The product of a :class:`Qobj` with a :class:`Coefficient` result in a :class:`QobjEvo`:
+
+.. code-block:: python
+
+    coeff = coefficent(lambda t: np.sin(t))
+    H_t = num(N) + (destroy(N) + create(N)) * coeff
+
+These 3 examples will create the same time dependent operator, however the function based method will usually be slower when used in solver.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+The Hamiltonian and/or collapse operators are expressed as a list of [qobj, string] pairs, where the time-dependent coefficients are represented as strings.  The resulting Hamiltonian is then compiled into C code using Cython and executed.
+The Hamiltonian and/or collapse operators are expressed as a list of [qobj, np.array] pairs. The arrays are 1 dimensional and dtype are complex or float. They must contain one value for each time in the tlist given to the solver. Cubic spline interpolation will be used between the given times.
+
+
+Give the multiple choices of input style, the first question that arises is which option to choose?
 In short, the function based method (option #1) is the most general,
 allowing for essentially arbitrary coefficients expressed via user defined functions.
 However, by automatically compiling your system into C++ code,
@@ -41,8 +71,8 @@ Time-dependent coefficients using any of the following functions,
 or combinations thereof (including constants) can be compiled directly into C++-code::
 
   'abs', 'acos', 'acosh', 'arg', 'asin', 'asinh', 'atan', 'atanh', 'conj',
-   'cos', 'cosh','exp', 'erf', 'zerf', 'imag', 'log', 'log10', 'norm', 'pi',
-   'proj', 'real', 'sin', 'sinh', 'sqrt', 'tan', 'tanh'
+  'cos', 'cosh','exp', 'erf', 'zerf', 'imag', 'log', 'log10', 'norm', 'pi',
+  'proj', 'real', 'sin', 'sinh', 'sqrt', 'tan', 'tanh'
 
 In addition, QuTiP supports cubic spline based interpolation functions [:ref:`time-interp`].
 
