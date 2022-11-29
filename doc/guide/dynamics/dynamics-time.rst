@@ -65,9 +65,8 @@ In the following call:
 
     result = mesolve(H_t, ..., c_ops=[num(N), [destroy(N) + create(N), lambda t: np.sin(t)]])
 
-:func:`mesolve` will see 2 collpases operetors: ``num(N)`` and ``[destroy(N) + create(N), lambda t: np.sin(t)]``.
-It is therefore prefered to pass each collapse operator as either a :class:`Qobj`: or a :class:`QobjEvo`:.
-
+:func:`mesolve` will see 2 collapses operators: ``num(N)`` and ``[destroy(N) + create(N), lambda t: np.sin(t)]``.
+It is therefore preferred to pass each collapse operator as either a :class:`Qobj`: or a :class:`QobjEvo`:.
 
 
 As an example, we will look at a case with a time-dependent Hamiltonian of the form :math:`H=H_{0}+f(t)H_{1}` where :math:`f(t)` is the time-dependent driving strength given as :math:`f(t)=A\exp\left[-\left( t/\sigma \right)^{2}\right]`.
@@ -119,7 +118,7 @@ Having specified our coefficient function, we can now specify the Hamiltonian in
 .. plot::
     :context:
 
-    H = [H0,[H1, H1_coeff]]
+    H = [H0, [H1, H1_coeff]]
     output = mesolve(H, psi0, t, c_ops, [ada, sigma_UU, sigma_GG])
 
 We can call the Monte Carlo solver in the exact same way (if using the default ``ntraj=500``):
@@ -154,15 +153,140 @@ In addition, we can also consider the decay of a simple Harmonic oscillator with
 
 
 
-
 Qobjevo
 =======
 
+:class:`QobjEvo` as a time dependent quantum system, as it's main functionality create a :class:`Qobj` at a time:
+
+.. code-block:: python
+
+    >>> print(H_t(np.pi / 2))
+    Quantum object: dims=[[2], [2]], shape=(2, 2), type='oper', isherm=True
+    Qobj data =
+    [[0. 1.]
+     [1. 1.]]
+
+ :class:`QobjEvo` shares a lot of properties with the :class:`Qobj`.
+
++---------------+------------------+----------------------------------------+
+| Property      | Attribute        | Description                            |
++===============+==================+========================================+
+| Dimensions    | ``Q.dims``       | List keeping track of shapes for       |
+|               |                  | individual components of a             |
+|               |                  | multipartite system (for tensor        |
+|               |                  | products and partial traces).          |
++---------------+------------------+----------------------------------------+
+| Shape         | ``Q.shape``      | Dimensions of underlying data matrix.  |
++---------------+------------------+----------------------------------------+
+| Type          | ``Q.type``       | Is object of type 'ket, 'bra',         |
+|               |                  | 'oper', or 'super'?                    |
++---------------+------------------+----------------------------------------+
+| is constant?  | ``Q.isconstant`` | Is the operator Hermitian or not?      |
++---------------+------------------+----------------------------------------+
+
+
+:class:`QobjEvo`'s follow the same mathematical operations rules than :class:`Qobj`.
+They can be added, subtracted and multiplied with scalar, ``Qobj`` and ``QobjEvo``.
+They also support the `dag` and `trans` and `conj` method and can be used for tensor operations and super operator transformation:
+
+.. code-block:: python
+
+    H = tensor(H_t, qeye(2))
+    c_op = tensor(QobjEvo([destroy(N), lambda t: np.exp(-t)]), sigmax())
+
+    L = -1j * (spre(H) - spost(H.dag()))
+    L += spre(c_op) * spost(c_op.dag()) - 0.5 * spre(c_op.dag() * c_op) - 0.5 * spost(c_op.dag() * c_op)
+
+
+Or equivalently:
+
+.. code-block:: python
+
+    L = liouvillian(H, [c_op])
 
 
 Using arguments
 ---------------
 
+Until now, the coefficient were only functions of time.
+In the definition of ``H1_coeff``, the driving amplitude A and width σ were hardcoded with their numerical values.
+This is fine for problems that are specialized, or that we only want to run once.
+However, in many cases, we would like study the same problem with a range of parameters and not have to worry about manually changing the values on each run.
+QuTiP allows you to accomplish this using by adding extra arguments to coefficients function that make the :class:`QobjEvo`.
+For instance, instead of explicitly writing 9 for the amplitude and 5 for the width of the gaussian driving term, we can add an `args` variable:
+
+
+.. plot::
+    :context:
+
+    def H1_coeff(t, args):
+        return args['A'] * np.exp(-(t/args['sigma'])**2)
+
+
+or, new from v5, add the extra parameter directly:
+
+
+.. plot::
+    :context:
+
+    def H1_coeff(t, A, sigma):
+        return A * np.exp(-(t / sigma)**2)
+
+
+``args`` is a Python dictionary of ``key: value`` pairs ``args = {'A': a, 'sigma': b}`` where ``a`` and ``b`` are the two parameters for the amplitude and width, respectively.
+This ``args`` dictionary need to be given at creation of the :class:`QobjEvo` when function using then are included:
+
+.. plot::
+    :context:
+
+    system = [H0, [H1, H1_coeff]]
+    args={'A': 9, 'sigma': 5}
+    qevo = QobjEvo(system, args=args)
+
+But without ``args``, the :class:`QobjEvo` creation will fail:
+
+.. plot::
+    :context:
+
+    try:
+        QobjEvo(system)
+    except TypeError as err:
+        print(err)
+
+When evaluation the :class:`QobjEvo` at a time, new arguments can be passed either with the ``args`` dictionary positional arguments, or with specific keywords arguments:
+
+.. plot::
+    :context:
+
+    print(qevo(1))
+    print(qevo(1, {"A": 5, "sigma": 0.2}))
+    print(qevo(1, A=5))
+
+
+Whether the original coefficient used the ``args`` or specific input does not matter.
+It is fine to mix the different signatures.
+
+Solver calls take an ``args`` input that is used to build the time dependent system.
+If the Hamiltonian or collapse operators are already :class:`QobjEvo`, their arguments will be overwritten.
+
+.. code-block:: python
+
+    def system(t, A, sigma):
+        return H0 + H1 * (A * np.exp(-(t / sigma)**2))
+
+    mesolve(system, ..., args=args)
+
+
+To update arguments of an existing time dependent quantum system, you can pass the previous object as the input of a :class:`QobjEvo` with new ``args``:
+
+
+.. plot::
+    :context:
+
+    print(qevo(1))
+    print(qevo(1, {"A": 5, "sigma": 0.2}))
+    new_qevo = QobjEvo(qevo, args={"A": 5, "sigma": 0.2})
+    print(new_qevo(1))
 
 
 Coefficients
@@ -175,21 +299,36 @@ Coefficients
 
 
 
-:class:`QobjEvo`: can be use for mathematical operation, tensor operator and super operator transformation:
 
-.. code-block:: python
 
-    H = tensor(H_t, qeye(2))
-    c_op = tensor(QobjEvo([destroy(N), lambda t: np.exp(-t)]), sigmax())
 
-    L = -1j * (spre(H) - spost(H.dag()))
-    L += spre(c_op) * spost(c_op.dag()) - 0.5 * spre(c_op.dag() * c_op) - 0.5 * spost(c_op.dag() * c_op)
 
-Or equivalently:
 
-.. code-block:: python
 
-    L = liouvillian(H, [c_op])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 +----------------------------+---------------------------------------------------------------------+
