@@ -42,12 +42,158 @@ There are three different ways to build a :class:`QobjEvo`: :
 These 3 examples will create the same time dependent operator, however the function based method will usually be slower when used in solver.
 
 
+Solvers will accept a :class:`QobjEvo`: when an operator is expected: this include the Hamiltonian ``H``, collapse operators, expectation values operators, the operator of :func:`brmesolve`'s ``a_ops``, etc.
+Exception are :func:`krylovsolve`'s Hamiltonian and HEOM's Bath operators.
+
+
+Most solver will accept any format that could be made into a  for the Hamiltonian.
+All of the following are equivalent:
+
+
+.. code-block:: python
+
+    result = mesolve(H_t, ...)
+    result = mesolve([num(N), [destroy(N) + create(N), lambda t: np.sin(t)]], ...)
+    result = mesolve(oper, ...)
+
+
+Collapse operator also accept a list of object that could be made into :class:`QobjEvo`:.
+However one needs to be careful about not confusing the list nature of the `c_ops` parameter with list format quantum system.
+In the following call:
+
+.. code-block:: python
+
+    result = mesolve(H_t, ..., c_ops=[num(N), [destroy(N) + create(N), lambda t: np.sin(t)]])
+
+:func:`mesolve` will see 2 collpases operetors: ``num(N)`` and ``[destroy(N) + create(N), lambda t: np.sin(t)]``.
+It is therefore prefered to pass each collapse operator as either a :class:`Qobj`: or a :class:`QobjEvo`:.
+
+
+
+As an example, we will look at a case with a time-dependent Hamiltonian of the form :math:`H=H_{0}+f(t)H_{1}` where :math:`f(t)` is the time-dependent driving strength given as :math:`f(t)=A\exp\left[-\left( t/\sigma \right)^{2}\right]`.
+The following code sets up the problem
+
+.. plot::
+    :context:
+
+    ustate = basis(3, 0)
+    excited = basis(3, 1)
+    ground = basis(3, 2)
+
+    N = 2 # Set where to truncate Fock state for cavity
+    sigma_ge = tensor(qeye(N), ground * excited.dag())  # |g><e|
+    sigma_ue = tensor(qeye(N), ustate * excited.dag())  # |u><e|
+    a = tensor(destroy(N), qeye(3))
+    ada = tensor(num(N), qeye(3))
+
+    c_ops = []  # Build collapse operators
+    kappa = 1.5 # Cavity decay rate
+    c_ops.append(np.sqrt(kappa) * a)
+    gamma = 6  # Atomic decay rate
+    c_ops.append(np.sqrt(5*gamma/9) * sigma_ue) # Use Rb branching ratio of 5/9 e->u
+    c_ops.append(np.sqrt(4*gamma/9) * sigma_ge) # 4/9 e->g
+
+    t = np.linspace(-15, 15, 100) # Define time vector
+    psi0 = tensor(basis(N, 0), ustate) # Define initial state
+
+    state_GG = tensor(basis(N, 1), ground) # Define states onto which to project
+    sigma_GG = state_GG * state_GG.dag()
+    state_UU = tensor(basis(N, 0), ustate)
+    sigma_UU = state_UU * state_UU.dag()
+
+    g = 5  # coupling strength
+    H0 = -g * (sigma_ge.dag() * a + a.dag() * sigma_ge)  # time-independent term
+    H1 = (sigma_ue.dag() + sigma_ue)  # time-dependent term
+
+Given that we have a single time-dependent Hamiltonian term, and constant collapse terms, we need to specify a single Python function for the coefficient :math:`f(t)`.  In this case, one can simply do
+
+.. plot::
+    :context:
+
+    def H1_coeff(t):
+        return 9 * np.exp(-(t / 5.) ** 2)
+
+In this case, the return value depends only on time.  However it is possible to add optional arguments to the call, see **Insert link to arguments***.
+Having specified our coefficient function, we can now specify the Hamiltonian in list format and call the solver (in this case :func:`qutip.mesolve`)
+
+.. plot::
+    :context:
+
+    H = [H0,[H1, H1_coeff]]
+    output = mesolve(H, psi0, t, c_ops, [ada, sigma_UU, sigma_GG])
+
+We can call the Monte Carlo solver in the exact same way (if using the default ``ntraj=500``):
+
+
+..
+  Hacky fix because plot has complicated conditional code execution
+
+.. doctest::
+    :skipif: True
+
+    output = mcsolve(H, psi0, t, c_ops, [ada, sigma_UU, sigma_GG])
+
+The output from the master equation solver is identical to that shown in the examples, the Monte Carlo however will be noticeably off, suggesting we should increase the number of trajectories for this example.
+In addition, we can also consider the decay of a simple Harmonic oscillator with time-varying decay rate
+
+.. plot::
+    :context:
+
+    kappa = 0.5
+
+    def col_coeff(t, args):  # coefficient function
+        return np.sqrt(kappa * np.exp(-t))
+
+    N = 10  # number of basis states
+    a = destroy(N)
+    H = a.dag() * a  # simple HO
+    psi0 = basis(N, 9)  # initial state
+    c_ops = [QobjEvo([a, col_coeff])]  # time-dependent collapse term
+    times = np.linspace(0, 10, 100)
+    output = mesolve(H, psi0, times, c_ops, [a.dag() * a])
+
+
+
+
+Qobjevo
+=======
+
+
+
+Using arguments
+---------------
+
+
+
+Coefficients
+============
 
 
 
 
 
 
+
+
+:class:`QobjEvo`: can be use for mathematical operation, tensor operator and super operator transformation:
+
+.. code-block:: python
+
+    H = tensor(H_t, qeye(2))
+    c_op = tensor(QobjEvo([destroy(N), lambda t: np.exp(-t)]), sigmax())
+
+    L = -1j * (spre(H) - spost(H.dag()))
+    L += spre(c_op) * spost(c_op.dag()) - 0.5 * spre(c_op.dag() * c_op) - 0.5 * spost(c_op.dag() * c_op)
+
+Or equivalently:
+
+.. code-block:: python
+
+    L = liouvillian(H, [c_op])
+
+
++----------------------------+---------------------------------------------------------------------+
+| method
 
 
 
