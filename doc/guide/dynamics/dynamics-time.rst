@@ -29,7 +29,7 @@ There are three different ways to build a :class:`QobjEvo`: :
 
 .. code-block:: python
 
-    H_t = QobjEvo([num(N), [destroy(N) + create(N), lambda t: np.sin(t)]])
+    H_t = QobjEvo([num(N), [create(N), lambda t: np.sin(t)], [destroy(N), lambda t: np.sin(t)]])
 
 
 3. **coefficent based**: The product of a :class:`Qobj` with a :class:`Coefficient` result in a :class:`QobjEvo`:
@@ -213,7 +213,7 @@ In the definition of ``H1_coeff``, the driving amplitude A and width σ were har
 This is fine for problems that are specialized, or that we only want to run once.
 However, in many cases, we would like study the same problem with a range of parameters and not have to worry about manually changing the values on each run.
 QuTiP allows you to accomplish this using by adding extra arguments to coefficients function that make the :class:`QobjEvo`.
-For instance, instead of explicitly writing 9 for the amplitude and 5 for the width of the gaussian driving term, we can add an `args` variable:
+For instance, instead of explicitly writing 9 for the amplitude and 5 for the width of the gaussian driving term, we can add an `args` positional variable:
 
 
 .. plot::
@@ -233,7 +233,9 @@ or, new from v5, add the extra parameter directly:
         return A * np.exp(-(t / sigma)**2)
 
 
-``args`` is a Python dictionary of ``key: value`` pairs ``args = {'A': a, 'sigma': b}`` where ``a`` and ``b`` are the two parameters for the amplitude and width, respectively.
+When the second positional input of the coefficient function is named ``args``, the arguments are passed as a Python dictionary of ``key: value`` pairs.
+Otherwise the coefficient function is called as ``coeff(t, **args)``.
+In the last example, ``args = {'A': a, 'sigma': b}`` where ``a`` and ``b`` are the two parameters for the amplitude and width, respectively.
 This ``args`` dictionary need to be given at creation of the :class:`QobjEvo` when function using then are included:
 
 .. plot::
@@ -289,9 +291,128 @@ To update arguments of an existing time dependent quantum system, you can pass t
     print(new_qevo(1))
 
 
+:class:`QobjEvo` created from a monolithic function can also use arguments:
+
+
+.. code-block:: python
+
+    def oper(t, w):
+        return num(N) + (destroy(N) + create(N)) * np.sin(t*w)
+
+    H_t = QobjEvo(oper, args={"w": np.pi})
+
+
+When merging two or more :class:`QobjEvo`, each will keep it arguments, but calling it with updated are will affect all parts:
+
+
+.. plot::
+    :context:
+
+    qevo1 = QobjEvo([[qt.sigmap(), lambda t, a: a], [qt.sigmam(), lambda t, a, b: a+1j*b]], args={"a": 1, "b":2})
+    qevo2 = QobjEvo([[qt.num(2), lambda t, a, c: a+1j*c]], args={"a": 2, "c":2})
+    summed_evo = qevo1 + qevo2
+    print(summed_evo(0))
+    print(summed_evo(0, a=3, b=1))
+
+
 Coefficients
 ============
 
+To build time dependent quantum system we often use a list of :class:`Qobj` and *coefficient*.
+These *coefficients* represent the strength of the corresponding quantum object a function that of time.
+Up to now, we used functions for these, but QuTiP support multiple formats: ``callable``, ``strings``, ``array``.
+
+
+**Function coefficients** :
+Use a callable with the signature ``f(t: double, ...) -> double`` as coefficient.
+Any function or method that can be called by ``f(t, args)``, ``f(t, **args)`` is accepted.
+
+
+.. code-block:: python
+
+    def coeff(t, A, sigma):
+        return A * np.exp(-(t / sigma)**2)
+
+    H = QobjEvo([H0, [H1, coeff]], args=args)
+
+
+**String coefficients** :
+Use a string containing a simple Python expression.
+The variable ``t``, common mathematical functions such as ``sin`` or ``exp`` an variable in args will be available.
+If available, the string will be compiled using cython, fixing variable type when possible, allowing slightly faster excution than function.
+While the speed up is usually very small, in long evolution, numerous calls to the functions are made and it's can accumulate.
+From version 5, compilation of the coefficient is done only once and saved between sessions.
+When Cython is not available, the code will be executed in python with the same environment.
+This, however, as no advantage over using python function.
+
+
+.. code-block:: python
+
+    coeff = "A * exp(-(t / sigma)**2)"
+
+    H = QobjEvo([H0, [H1, coeff]], args=args)
+
+
+Here is a list of defined variables:
+    ``sin``, ``cos``, ``tan``, ``asin``, ``acos``, ``atan``, ``pi``,
+    ``sinh``, ``cosh``, ``tanh``, ``asinh``, ``acosh``, ``atanh``,
+    ``exp``, ``log``, ``log10``, ``erf``, ``zerf``, ``sqrt``,
+    ``real``, ``imag``, ``conj``, ``abs``, ``norm``, ``arg``, ``proj``,
+    ``np`` (numpy) and ``spe`` (scipy.special).
+
+
+**Array coefficients** :
+Use the spline interpolation of an array.
+Useful when the coefficient is hard to define as a function or obtained from experimental data.
+The times at which the array are defined must be passed as ``tlist``:
+
+.. code-block:: python
+
+    times = np.linspace(-sigma*5, sigma*5, 500)
+    coeff = A * exp(-(times / sigma)**2)
+
+    H = QobjEvo([H0, [H1, coeff]], tlist=times)
+
+
+Per default, a cubic spline interpolation is used, but the order of the interpolation can be controlled with the order input:
+Outside the interpolation range, the first or last value are used.
+
+.. plot::
+    :context:
+
+    times = np.array([0, 0.1, 0.3, 0.6, 1.0])
+    coeff = times**2
+    tlist = np.linspace(-0.1, 1.1, 25)
+
+    H = QobjEvo([qeye(1), coeff], tlist=times)
+    plt.plot(tlist, [H(t).norm() for t in tlist])
+
+    H = QobjEvo([qeye(1), coeff], tlist=times, order=0)
+    plt.plot(tlist, [H(t).norm() for t in tlist])
+
+    H = QobjEvo([qeye(1), coeff], tlist=times, order=1)
+    plt.plot(tlist, [H(t).norm() for t in tlist])
+
+
+When using array coefficients in solver, if the time dependent quantum system is in list format, the solver tlist is used as times of the array.
+This is often not ideal as the interpolation is usually less precise close the extremities of the range.
+It is therefore better to create the QobjEvo using an extended range prior to the solver:
+
+
+.. plot::
+    :context:
+
+    N = 5
+    times = np.linspace(-0.1, 1.1, 13)
+    coeff = np.exp(-times)
+
+    c_ops = [QobjEvo([qt.destroy(N), coeff], tlist=times)]
+    plt.plot(
+        mesolve(qt.qeye(N), qt.basis(N, N-1), np.linspace(0, 1, 11), c_ops=c_ops, e_ops=[qt.num(N)]).expect
+    )
+
+
+Different coefficient types can be mixed in a :class:`QobjEvo`.
 
 
 
@@ -315,24 +436,6 @@ Coefficients
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-+----------------------------+---------------------------------------------------------------------+
-| method
 
 
 
@@ -516,9 +619,16 @@ String Format Method
 
 .. note:: You must have Cython installed on your computer to use this format.  See :ref:`install` for instructions on installing Cython.
 
-The string-based time-dependent format works in a similar manner as the previously discussed Python function method.  That being said, the underlying code does something completely different.  When using this format, the strings used to represent the time-dependent coefficients, as well as Hamiltonian and collapse operators, are rewritten as Cython code using a code generator class and then compiled into C code.  The details of this meta-programming will be published in due course.  however, in short, this can lead to a substantial reduction in time for complex time-dependent problems, or when simulating over long intervals.
+The string-based time-dependent format works in a similar manner as the previously discussed Python function method.
+That being said, the underlying code does something completely different.
+When using this format, the strings used to represent the time-dependent coefficients,
+as well as Hamiltonian and collapse operators, are rewritten as Cython code using a code generator class and then compiled into C code.
+The details of this meta-programming will be published in due course.
+however, in short, this can lead to a substantial reduction in time for complex time-dependent problems, or when simulating over long intervals.
 
-Like the previous method, the string-based format uses a list pair format ``[Op, str]`` where ``str`` is now a string representing the time-dependent coefficient.  For our first example, this string would be ``'9 * exp(-(t / 5.) ** 2)'``.  The Hamiltonian in this format would take the form:
+Like the previous method, the string-based format uses a list pair format
+ ``[Op, str]`` where ``str`` is now a string representing the time-dependent coefficient.
+ For our first example, this string would be ``'9 * exp(-(t / 5.) ** 2)'``.  The Hamiltonian in this format would take the form:
 
 .. plot::
    :context:
