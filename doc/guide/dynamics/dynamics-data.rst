@@ -134,19 +134,21 @@ For a fix output format, ``average_expect`` return the average, while ``runs_sta
 The ``runs_`` output will return ``None`` when the trajectories are not saved.
 Standard derivation of the expectation values is also available:
 
-+-------------------------+----------------------+
-| Reduced result          | Trajectories results |
-+=========================+======================+
-| ``average_states``      | ``runs_states``      |
-+-------------------------+----------------------+
-| ``average_final_state`` | ``runs_final_state`` |
-+-------------------------+----------------------+
-| ``average_expect`     ` | ``runs_expect``      |
-| ``std_expect`           |                      |
-+-------------------------+----------------------+
-| ``average_e_data``      | ``runs_e_data``      |
-| ``std_e_data``          |                      |
-+-------------------------+----------------------+
++-------------------------+----------------------+------------------------------------------------------------------------+
+| Reduced result          | Trajectories results | Description                                                            |
++=========================+======================+========================================================================+
+| ``average_states``      | ``runs_states``      | State vectors or density matrices calculated at each times of tlist    |
++-------------------------+----------------------+------------------------------------------------------------------------+
+| ``average_final_state`` | ``runs_final_state`` | State vectors or density matrices calculated at the last time of tlist |
++-------------------------+----------------------+------------------------------------------------------------------------+
+| ``average_expect``      | ``runs_expect``      | List/array of expectation values, if requested.                        |
++-------------------------+----------------------+------------------------------------------------------------------------+
+| ``std_expect``          |                      | List/array of standard derivation of the expectation values.           |
++-------------------------+----------------------+------------------------------------------------------------------------+
+| ``average_e_data``      | ``runs_e_data``      | Dictionary of expectation values, if requested.                        |
++-------------------------+----------------------+------------------------------------------------------------------------+
+| ``std_e_data``          |                      | Dictionary of standard derivation of the expectation values.           |
++-------------------------+----------------------+------------------------------------------------------------------------+
 
 Multiple trajectories results also keep the trajectories seeds to allows recomputing the results.
 
