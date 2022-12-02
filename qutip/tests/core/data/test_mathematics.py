@@ -614,6 +614,7 @@ class TestInner(BinaryOpMixin):
 
     specialisations = [
         pytest.param(data.inner_csr, CSR, CSR, complex),
+        pytest.param(data.inner_dense, Dense, Dense, complex),
     ]
 
     def generate_scalar_is_ket(self, metafunc):
@@ -683,6 +684,7 @@ class TestInnerOp(TernaryOpMixin):
 
     specialisations = [
         pytest.param(data.inner_op_csr, CSR, CSR, CSR, complex),
+        pytest.param(data.inner_op_dense, Dense, Dense, Dense, complex),
     ]
 
     def generate_scalar_is_ket(self, metafunc):
@@ -810,6 +812,7 @@ class TestPow(UnaryOpMixin):
     bad_shapes = shapes_not_square()
     specialisations = [
         pytest.param(data.pow_csr, CSR, CSR),
+        pytest.param(data.pow_dense, Dense, Dense),
     ]
 
     @pytest.mark.parametrize("n", [0, 1, 10], ids=["n_0", "n_1", "n_10"])

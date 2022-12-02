@@ -84,8 +84,8 @@ tidyup.__doc__ =\
     By default, this operation is in-place.  The output type will always match
     the input type; no dispatching takes place on the output.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     matrix : Data
         The matrix to tidy up.
 
