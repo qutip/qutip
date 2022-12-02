@@ -654,12 +654,11 @@ class HEOMSolver(Solver):
         self._init_rhs_time = time() - _time_start
 
         super().__init__(rhs, options=options)
-        self.evolve_dm = True
 
     @property
     def sys_dims(self):
         """
-        Dimensions of the space that the system use:
+        Dimensions of the space that the system use, excluding any environment:
 
         ``qutip.basis(sovler.dims)`` will create a state with proper dimensions
         for this solver.

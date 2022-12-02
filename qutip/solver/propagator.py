@@ -153,8 +153,10 @@ class Propagator:
             raise TypeError("Non-deterministic solvers cannot be used "
                             "as a propagator system")
         elif isinstance(system, HEOMSolver):
-            raise TypeError("HEOM is not supported by Propagator. "
-                            "Please, tell us on GitHub issues if you need it!")
+            raise NotImplementedError(
+                "HEOM is not supported by Propagator. "
+                "Please, tell us on GitHub issues if you need it!"
+            )
         elif isinstance(system, Solver):
             self.solver = system
         else:
@@ -169,7 +171,8 @@ class Propagator:
         self.invs = [None]
         self.props = [qeye(self.solver.sys_dims)]
         self.cte = self.solver.rhs.isconstant
-        self.unitary = not self.solver.evolve_dm and self.solver.rhs(0).isherm
+        H_0 = self.solver.rhs(0)
+        self.unitary = not H_0.issuper and H_0.isherm
         self.args = args
         self.memoize = max(3, int(memoize))
         self.tol = tol

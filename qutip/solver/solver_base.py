@@ -23,13 +23,6 @@ class Solver:
 
     options : dict
         Options for the solver
-
-    Attributes
-    ----------
-    evolve_dm : bool
-        Whether the solver is able to evolve density matrix. When ``False``,
-        operator initial input may not raise error but return ``U @ operator``
-        where ``U`` is the propagator.
     """
     name = ""
 
@@ -53,7 +46,6 @@ class Solver:
             self.rhs = QobjEvo(rhs)
         else:
             TypeError("The rhs must be a QobjEvo")
-        self.evolve_dm = rhs.issuper
         self._options = {}
         self.options = {} if options is None else options
         self._integrator = self._get_integrator()
