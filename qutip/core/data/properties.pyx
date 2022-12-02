@@ -167,7 +167,7 @@ cpdef bint isherm_dense(Dense matrix, double tol=-1):
     tol = tol if tol >= 0 else settings.core["atol"]
     cdef size_t row, col, size=matrix.shape[0]
     for row in range(size):
-        for col in range(size):
+        for col in range(row + 1):
             if not _conj_feq(
                 matrix.data[col*size+row],
                 matrix.data[row*size+col],
