@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.linalg
 import scipy.sparse as sp
+import scipy.sparse.linalg
 from itertools import combinations
 
 from .dense import Dense, from_csr
@@ -10,6 +11,7 @@ from qutip.settings import settings
 
 __all__ = [
     'eigs', 'eigs_csr', 'eigs_dense',
+    'svd', 'svd_csr', 'svd_dense',
 ]
 
 
@@ -276,6 +278,8 @@ def eigs_dense(data, isherm=None, vecs=True, sort='low', eigvals=0):
 
 
 from .dispatch import Dispatcher as _Dispatcher
+import inspect as _inspect
+
 
 # We use eigs_dense as the signature source, since in this case it has the
 # complete signature that we allow, so we don't need to manually set it.
@@ -323,4 +327,127 @@ eigs.add_specialisations([
     (Dense, eigs_dense),
 ], _defer=True)
 
+
+def svd_csr(data, vecs=True, k=6, **kw):
+    """
+    Singular Value Decomposition:
+
+    ``data = U @ S @ Vh``
+
+    Where ``S`` is diagonal.
+
+    Parameters
+    ----------
+    data : Data
+        Input matrix
+    vecs : bool, optional (True)
+        Whether the singular vectors (``U``, ``Vh``) should be returned.
+    k : int, optional (6)
+        Number of state to compute, default is ``6`` to match scipy's default.
+    **kw : dict
+        Options to pass to ``scipy.sparse.linalg.svds``.
+
+    Returns
+    -------
+    U : Dense
+        Left singular vectors as columns. Only returned if ``vecs == True``.
+        shape = (data.shape[0], k)
+    S : np.ndarray
+        The ``k``'s largest singular values.
+    Vh : Dense
+        Right singular vectors as rows. Only returned if ``vecs == True``.
+        shape = (k, data.shape[1])
+
+    .. note::
+        svds cannot compute all states at once. While it could find the
+        largest and smallest in 2 calls, it has issues converging with when
+        solving for the smallest (finding the 5 smallest in a 50x50 matrix
+        can fail with default options). It should be used when not all states
+        are needed.
+    """
+    out = scipy.sparse.linalg.svds(
+        data.as_scipy(), k, return_singular_vectors=vecs, **kw
+    )
+    if vecs:
+        u, s, vh = out
+        return Dense(u, copy=False), s, Dense(vh, copy=False)
+    return out
+
+
+def svd_dense(data, vecs=True, **kw):
+    """
+    Singular Value Decomposition:
+
+    ``data = U @ S @ Vh``
+
+    Where ``S`` is diagonal.
+
+    Parameters
+    ----------
+    data : Data
+        Input matrix
+    vecs : bool, optional (True)
+        Whether the singular vectors (``U``, ``Vh``) should be returned.
+    **kw : dict
+        Options to pass to ``scipy.linalg.svd``.
+
+    Returns
+    -------
+    U : Dense
+        Left singular vectors as columns. Only returned if ``vecs == True``.
+    S : np.ndarray
+        Singular values.
+    Vh : Dense
+        Right singular vectors as rows. Only returned if ``vecs == True``.
+    """
+    out = scipy.linalg.svd(
+        data.to_array(), compute_uv=vecs, **kw
+    )
+    if vecs:
+        u, s, vh = out
+        return Dense(u, copy=False), s, Dense(vh, copy=False)
+    return out
+
+
+svd = _Dispatcher(
+    _inspect.Signature([
+        _inspect.Parameter('data', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+        _inspect.Parameter('vecs', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
+    ]),
+    name='svd',
+    module=__name__,
+    inputs=('data',),
+    out=False)
+svd.__doc__ =\
+    """
+    Singular Value Decomposition:
+
+    ``data = U @ S @ Vh``
+
+    Where ``S`` is diagonal.
+
+    Parameters
+    ----------
+    data : Data
+        Input matrix
+    vecs : bool, optional (True)
+        Whether the singular vectors (``U``, ``Vh``) should be returned.
+
+    Returns
+    -------
+    U : Dense
+        Left singular vectors as columns. Only returned if ``vecs == True``.
+    S : np.ndarray
+        Singular values.
+    Vh : Dense
+        Right singular vectors as rows. Only returned if ``vecs == True``.
+    """
+# Dense implementation return all states, but sparse implementation compute
+# only a few states. So only the dense version is registered.
+svd.add_specialisations([
+    (Dense, svd_dense),
+], _defer=True)
+
+
 del _Dispatcher
+del _inspect
