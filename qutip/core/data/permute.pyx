@@ -14,8 +14,7 @@ import numpy as np
 cimport numpy as cnp
 
 from qutip.core.data.base cimport idxint, idxint_DTYPE
-from qutip.core.data cimport csr
-from qutip.core.data.csr cimport CSR
+from qutip.core.data cimport csr, dense, CSR, Dense
 
 from qutip.core.data.base import idxint_dtype
 
@@ -201,6 +200,16 @@ cpdef CSR indices_csr(CSR matrix, object row_perm=None, object col_perm=None):
                              np.asarray(row_perm, dtype=idxint_dtype),
                              np.asarray(col_perm, dtype=idxint_dtype))
 
+cpdef Dense indices_dense(Dense matrix, object row_perm=None, object col_perm=None):
+    if row_perm is None and col_perm is None:
+        return matrix.copy()
+    array = matrix.as_ndarray()
+    if row_perm is not None:
+        array = array[np.argsort(row_perm), :]
+    if col_perm is not None:
+        array = array[:, np.argsort(col_perm)]
+    return Dense(array)
+
 
 cdef CSR _dimensions_csr_columns(CSR matrix, _Indexer index):
     if matrix.shape[0] != 1:
@@ -293,6 +302,18 @@ cpdef CSR dimensions_csr(CSR matrix, object dimensions, object order):
         return _indices_csr_full(matrix, permutation, permutation)
     return _dimensions_csr_sparse(matrix, index)
 
+@cython.cdivision(True)
+cpdef Dense dimensions_dense(Dense matrix, object dimensions, object order):
+    cdef _Indexer index = _Indexer(np.asarray(dimensions, dtype=idxint_dtype),
+                                   np.asarray(order, dtype=idxint_dtype))
+    cdef idxint[:] permutation = index.all()
+    row_perm, col_perm = None, None
+    if matrix.shape[0] != 1:
+        row_perm = permutation
+    if matrix.shape[1] != 1:
+        col_perm = permutation
+    return indices_dense(matrix, row_perm, col_perm)
+
 
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
@@ -323,8 +344,8 @@ dimensions.__doc__ =\
     In other words, the inputs to `kron` are reordered so that input `n` moves
     to position `order[n]`.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     matrix : Data
         Input matrix to reorder.  This can either be a square matrix
         representing an operator, or a bra- or ket-like vector.
@@ -341,6 +362,7 @@ dimensions.__doc__ =\
     """
 dimensions.add_specialisations([
     (CSR, CSR, dimensions_csr),
+    (Dense, Dense, dimensions_dense),
 ], _defer=True)
 
 indices = _Dispatcher(
@@ -363,8 +385,8 @@ indices.__doc__ =\
     of quantum states; if you want to "reorder" the tensor-product structure of
     a system, you want `permute.dimensions` instead.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     matrix : Data
         The input matrix.
 
@@ -377,6 +399,7 @@ indices.__doc__ =\
     """
 indices.add_specialisations([
     (CSR, CSR, indices_csr),
+    (Dense, Dense, indices_dense),
 ], _defer=True)
 
 del _inspect, _Dispatcher
