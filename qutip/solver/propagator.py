@@ -121,7 +121,7 @@ class Propagator:
         ``list`` of [:class:`Qobj`, :class:`Coefficient`] or callable that can
         be made into :class:`QobjEvo` are also accepted.
 
-        Solver that run non-deterministacilly, such as :class:`McSolver`, are
+        Solvers that run non-deterministacilly, such as :class:`McSolver`, are
         not supported.
 
     c_ops : list, optional
@@ -150,8 +150,8 @@ class Propagator:
     def __init__(self, system, *, c_ops=(), args=None, options=None,
                  memoize=10, tol=1e-14):
         if isinstance(system, MultiTrajSolver):
-            raise TypeError("Non-deterministic solver cannot be used in "
-                            "propagator")
+            raise TypeError("Non-deterministic solvers cannot be used "
+                            "as a propagator system")
         elif isinstance(system, HEOMSolver):
             raise TypeError("HEOM is not supported by Propagator. "
                             "Please, tell us on GitHub issues if you need it!")
