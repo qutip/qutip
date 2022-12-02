@@ -193,8 +193,8 @@ ptrace.__doc__ =\
         ptrace(data, [2, 3, 4], [0, 2])
     will be a matrix with effective dimensions `[[2, 4], [2, 4]]`.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     matrix : Data
         The density matrix to be partially traced.
 

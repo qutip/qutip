@@ -136,7 +136,7 @@ class IntegratorDiag(Integrator):
 
     Usable with ``method="diag"``
     """
-    integrator_options = {}
+    integrator_options = {"eigensolver_dtype": "dense"}
     support_time_dependant = False
     supports_blackbox = False
     method = 'diag'
@@ -145,13 +145,13 @@ class IntegratorDiag(Integrator):
         if not system.isconstant:
             raise ValueError("Hamiltonian system must be constant to use "
                              "diagonalized method")
-        self.system = system
-        self._dt = 0.
-        self._expH = None
-        self._prepare()
+        super().__init__(system, options)
 
     def _prepare(self):
-        self.diag, self.U = _data.eigs(self.system(0).to("dense").data, False)
+        self._dt = 0.
+        self._expH = None
+        H0 = self.system(0).to(self.options["eigensolver_dtype"])
+        self.diag, self.U = _data.eigs(H0.data, False)
         self.diag = self.diag.reshape((-1, 1))
         self.Uinv = _data.inv(self.U)
         self.name = "qutip diagonalized"
@@ -181,7 +181,12 @@ class IntegratorDiag(Integrator):
     @property
     def options(self):
         """
-        Diagonalization method do not use any options.
+        Supported options by "diag" method:
+
+        eigensolver_dtype : str, default="dense"
+            Qutip data type {"dense", "csr", etc.} to use when computing the
+            eigenstates. The dense eigen solver is usually faster and more
+            stable.
         """
         return self._options
 

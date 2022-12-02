@@ -366,5 +366,5 @@ class BRSolver(Solver):
             self._integrator = self._get_integrator()
             self._integrator.set_state(*state)
         else:
-            self._integrator.options = new_options
+            self._integrator.options = self._options
             self._integrator.reset(hard=True)

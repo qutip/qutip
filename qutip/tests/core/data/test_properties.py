@@ -154,3 +154,22 @@ class Test_isherm:
                          [1,0,1]])
         base = _data.to(datatype, _data.create(base))
         assert not _data.isherm(base, tol=self.tol)
+
+
+class Test_isdiag:
+    @pytest.mark.parametrize("shape",
+        [(10, 1), (2, 5), (5, 2), (5, 5)]
+    )
+    def test_isdiag(self, shape, datatype):
+        mat = np.zeros(shape)
+        data = _data.to(datatype, _data.Dense(mat))
+        # empty matrices are diagonal
+        assert _data.isdiag(data)
+
+        mat[0, 0] = 1
+        data = _data.to(datatype, _data.Dense(mat))
+        assert _data.isdiag(data)
+
+        mat[1, 0] = 1
+        data = _data.to(datatype, _data.Dense(mat))
+        assert not _data.isdiag(data)

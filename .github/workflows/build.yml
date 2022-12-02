@@ -46,9 +46,9 @@ jobs:
       OVERRIDE_VERSION: ${{ github.event.inputs.override_version }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         name: Install Python
         with:
           # For the sdist we should be as conservative as possible with our
@@ -87,7 +87,7 @@ jobs:
           zip "$zipfile" -r "$stem"
           rm -r "$stem"
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: sdist
           path: |
@@ -112,9 +112,9 @@ jobs:
       OVERRIDE_VERSION: ${{ github.event.inputs.override_version }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         name: Install Python
         with:
           # This is about the build environment, not the released wheel version.
@@ -134,7 +134,7 @@ jobs:
           if [[ ! -z "$OVERRIDE_VERSION" ]]; then echo "$OVERRIDE_VERSION" > VERSION; fi
           python -m cibuildwheel --output-dir wheelhouse
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: wheels
           path: ./wheelhouse/*.whl
@@ -157,9 +157,9 @@ jobs:
 
     steps:
       - name: Download build artifacts to local runner
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
 
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         name: Install Python
         with:
           python-version: '3.7'

@@ -512,9 +512,7 @@ class Qobj:
                     copy=False)
 
     def __truediv__(self, other):
-        if not isinstance(other, numbers.Number):
-            return NotImplemented
-        return self.__mul__(1 / complex(other))
+        return self.__mul__(1 / other)
 
     def __neg__(self):
         return Qobj(_data.neg(self._data),
@@ -785,7 +783,11 @@ class Qobj:
 
         """
         out = _data.trace(self._data)
-        return out.real if self.isherm else out
+        # This ensures that trace can return something that is not a number such
+        # as a `tensorflow.Tensor` in qutip-tensorflow.
+        return out.real if (self.isherm
+                        and hasattr(out, "real")
+                        ) else out
 
     def purity(self):
         """Calculate purity of a quantum object.
@@ -863,6 +865,30 @@ class Qobj:
         if self.dims[0] != self.dims[1]:
             raise TypeError("expm is only valid for square operators")
         return Qobj(_data.expm(self._data, dtype=dtype),
+                    dims=self.dims,
+                    type=self.type,
+                    superrep=self.superrep,
+                    isherm=self._isherm,
+                    copy=False)
+
+    def logm(self):
+        """Matrix logarithm of quantum operator.
+
+        Input operator must be square.
+
+        Returns
+        -------
+        oper : :class:`qutip.Qobj`
+            Logarithm of the quantum operator.
+
+        Raises
+        ------
+        TypeError
+            Quantum operator is not square.
+        """
+        if self.dims[0] != self.dims[1]:
+            raise TypeError("expm is only valid for square operators")
+        return Qobj(_data.logm(self._data),
                     dims=self.dims,
                     type=self.type,
                     superrep=self.superrep,

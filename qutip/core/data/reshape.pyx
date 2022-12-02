@@ -139,7 +139,7 @@ reshape = _Dispatcher(
         _inspect.Parameter('n_rows_out', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
         _inspect.Parameter('n_cols_out', _inspect.Parameter.POSITIONAL_OR_KEYWORD),
     ]),
-    name='inspect',
+    name='reshape',
     module=__name__,
     inputs=('matrix',),
     out=True,
@@ -149,8 +149,8 @@ reshape.__doc__ =\
     Reshape the input matrix.  The values of `n_rows_out` and `n_cols_out` must
     match the current total number of elements of the matrix.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     matrix : Data
         The input matrix to reshape.
 
@@ -196,8 +196,8 @@ column_stack.__doc__ =\
 
     The inverse of this operation is `column_unstack`.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     matrix : Data
         The matrix to stack the columns of.
     """
@@ -232,8 +232,8 @@ column_unstack.__doc__ =\
 
     The inverse of this operation is `column_stack`.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     matrix : Data
         The matrix to unstack the columns of.
 
@@ -263,8 +263,8 @@ split_columns.__doc__ =\
     Make a ket-shaped data out of each columns of the matrix.
     This is used for to split the eigenvectors from :obj:`eigs`.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     matrix : Data
         The matrix to unstack the columns of.
 

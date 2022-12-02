@@ -211,7 +211,7 @@ class Test_expand_operator:
         ids=_permutation_id)
     def test_permutation_without_expansion(self, permutation):
         base = qutip.tensor([qutip.rand_unitary(2) for _ in permutation])
-        test = expand_operator(base, permutation, [2] * len(permutation))
+        test = expand_operator(base, [2] * len(permutation), permutation)
         expected = base.permute(_apply_permutation(permutation))
         np.testing.assert_allclose(test.full(), expected.full(), atol=1e-15)
 
@@ -223,12 +223,12 @@ class Test_expand_operator:
         for targets in itertools.permutations(range(n_qubits), n_targets):
             expected = _tensor_with_entanglement([qutip.qeye(2)] * n_qubits,
                                                  operation, targets)
-            test = expand_operator(operation, targets, [2] * 5)
+            test = expand_operator(operation, [2] * 5, targets)
             np.testing.assert_allclose(test.full(), expected.full(),
                                        atol=1e-15)
 
     def test_cnot_explicit(self):
-        test = expand_operator(qutip.gates.cnot(), [2, 0], [2]*3).full()
+        test = expand_operator(qutip.gates.cnot(), [2]*3, [2, 0]).full()
         expected = np.array([[1, 0, 0, 0, 0, 0, 0, 0],
                              [0, 0, 0, 0, 0, 1, 0, 0],
                              [0, 0, 1, 0, 0, 0, 0, 0],
@@ -252,6 +252,6 @@ class Test_expand_operator:
                          for n, dimension in enumerate(dimensions)]
             expected = qutip.tensor(*operators)
             base_test = qutip.tensor(*[operators[x] for x in targets])
-            test = expand_operator(base_test, targets=targets, dims=dimensions)
+            test = expand_operator(base_test, dims=dimensions, targets=targets)
             assert test.dims == expected.dims
             np.testing.assert_allclose(test.full(), expected.full())
