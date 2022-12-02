@@ -1135,13 +1135,6 @@ class HEOMSolver(Solver):
         """
         super().start(state0, t0)
 
-    def step(self, t, *, args=None, copy=True):
-        ado = super().step(t, args=args, copy=copy)
-        if self.options["store_ados"]:
-            return ado
-        else:
-            return ado.rho
-
     @property
     def options(self):
         """
