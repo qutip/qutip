@@ -1,10 +1,12 @@
 from qutip import liouvillian, lindblad_dissipator, Qobj, qeye, qzero
-import qutip
+from qutip import vector_to_operator, operator_to_vector
+from qutip import settings
 import qutip.core.data as _data
 import numpy as np
 import scipy.sparse.csgraph
 import scipy.sparse.linalg
 from warnings import warn
+
 
 __all__ = ["steadystate", "steadystate_floquet", "pseudo_inverse"]
 
@@ -55,7 +57,7 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
 
     solver : str, default=None
         'direct' and 'power' methods only.
-        Solver to use when solving the ``L(rho) = 0`` equation.
+        Solver to use when solving the ``L(rho_ss) = 0`` equation.
         Default supported solver are:
 
         - "solve", "lstsq"
@@ -93,6 +95,15 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
     power_maxiter : int, default 10
         Maximum number of iteration to use when looking for a solution when
         using the 'power' method.
+
+    power_eps: double, default 1e-15
+        Small weight used in the "power" method.
+
+    sparse: bool
+        Whether to use the sparse eigen solver with the "eigen" method
+        (default sparse).  With "direct" and "power" method, when the solver is
+        not specified, it is used to set whether "solve" or "[mkl_]spsolve" is
+        used as default solver.
 
     **kwargs :
         Extra options to pass to the linear system solver. See the
@@ -133,17 +144,25 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
         kwargs["power_tol"] = kwargs["mtol"]
     kwargs.pop("mtol", None)
 
-    # We want the user to be able to use this without having to know what data
-    # type the liouvillian use. For extra data types (tensorflow) we can expect
+    if method == "eigen":
+        return _steadystate_eigen(A, **kwargs)
+    if method == "svd":
+        return _steadystate_svd(A, **kwargs)
+
+    # We want to be able to use this without having to know what data type the
+    # liouvillian use. For extra data types (tensorflow) we can expect
     # the users to know they are using them and choose an appropriate solver
     sparse_solvers = ["spsolve", "mkl_spsolve", "gmres", "lgmres", "bicgstab"]
-    if isinstance(A.data, _data.CSR) and solver in ["solve", "lstsq"]:
+    if not isinstance(A.data, (_data.CSR, _data.Dense)):
+        # Tensorflow, jax, etc. data type
+        pass
+    elif isinstance(A.data, _data.CSR) and solver in ["solve", "lstsq"]:
         A = A.to("dense")
     elif isinstance(A.data, _data.Dense) and solver in sparse_solvers:
         A = A.to("csr")
     elif solver is None and kwargs.get("sparse", False):
         A = A.to("csr")
-        solver = "spsolve"
+        solver = "mkl_spsolve" if settings.has_mkl else "spsolve"
     elif solver is None and (kwargs.get("sparse", None) is False):
         # sparse is explicitly set to false, v4 tag to use `numpy.linalg.solve`
         A = A.to("dense")
@@ -153,16 +172,15 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
         # Remove unused kwargs, so only used and pass-through ones are included
         kwargs.pop("power_tol", 0)
         kwargs.pop("power_maxiter", 0)
+        kwargs.pop("power_eps", 0)
         kwargs.pop("sparse", 0)
         return _steadystate_direct(A, kwargs.pop("weight", 0),
                                    method=solver, **kwargs)
-    elif method == "eigen":
-        return _steadystate_eigen(A, **kwargs)
-    elif method == "svd":
-        return _steadystate_svd(A, **kwargs)
+
     elif method == "power":
         # Remove unused kwargs, so only used and pass-through ones are included
         kwargs.pop("weight", 0)
+        kwargs.pop("sparse", 0)
         return _steadystate_power(A, method=solver, **kwargs)
     else:
         raise ValueError(f"method {method} not supported.")
@@ -201,7 +219,7 @@ def _steadystate_direct(A, weight, **kw):
     if use_rcm:
         L, b, perm = _permute_rcm(L, b)
 
-    if isinstance(L, _data.CSR) and kw.pop("use_precond", False):
+    if kw.pop("use_precond", False) and isinstance(L, _data.CSR):
         kw["M"] = _compute_precond(L, kw)
 
     method = kw.pop("method", None)
@@ -223,14 +241,14 @@ def _steadystate_eigen(L, **kw):
         # v4's implementation only uses sparse eigen solver
         sparse=kw.pop("sparse", True)
     )
-    rho = qutip.vector_to_operator(vec[0])
+    rho = vector_to_operator(vec[0])
     return rho / rho.tr()
 
 
 def _steadystate_svd(L, **kw):
     u, s, vh = _data.svd(L.data, True)
     vec = Qobj(_data.split_columns(vh.adjoint())[-1], dims=[L.dims[0],[1]])
-    rho = qutip.vector_to_operator(vec)
+    rho = vector_to_operator(vec)
     return rho / rho.tr()
 
 
@@ -247,7 +265,7 @@ def _steadystate_power(A, **kw):
     if use_rcm:
         L, y, perm = _permute_rcm(L, y)
 
-    if isinstance(L, _data.CSR) and kw.pop("use_precond", False):
+    if kw.pop("use_precond", False) and isinstance(L, _data.CSR):
         kw["M"] = _compute_precond(L, kw)
 
     it = 0
@@ -278,7 +296,7 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False,
     """
     Calculates the effective steady state for a driven
      system with a time-dependent cosinusoidal term:
-     
+
     .. math::
 
         \\mathcal{\\hat{H}}(t) = \\hat{H}_0 +
@@ -441,10 +459,10 @@ def pseudo_inverse(L, rhoss=None, w=None, method='splu', *, use_rcm=False,
 
     N = np.prod(L.dims[0][0])
     dtype = type(L.data)
-    rhoss_vec = qutip.operator_to_vector(rhoss)
+    rhoss_vec = operator_to_vector(rhoss)
 
-    tr_op = qutip.qeye(L.dims[0][0])
-    tr_op_vec = qutip.operator_to_vector(tr_op)
+    tr_op = qeye(L.dims[0][0])
+    tr_op_vec = operator_to_vector(tr_op)
 
     P = _data.kron(rhoss_vec.data, tr_op_vec.data.transpose(), dtype=dtype)
     I = _data.csr.identity(N * N)
