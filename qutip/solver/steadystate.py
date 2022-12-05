@@ -102,7 +102,7 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
     sparse: bool
         Whether to use the sparse eigen solver with the "eigen" method
         (default sparse).  With "direct" and "power" method, when the solver is
-        not specified, it is used to set whether "solve" or "[mkl_]spsolve" is
+        not specified, it is used to set whether "solve" or "spsolve" is
         used as default solver.
 
     **kwargs :
