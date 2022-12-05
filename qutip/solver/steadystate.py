@@ -360,8 +360,8 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False,
     # L_p and L_m correspond to the positive and negative
     # frequency terms respectively.
     # They are independent in the model, so we keep both names.
-    Id = qeye(L_0.dims[0])
-    S = T = qzero(L_0.dims[0])
+    Id = qeye(L_0.dims[0], dtype=type(L_0.data))
+    S = T = qzero(L_0.dims[0], dtype=type(L_0.data))
 
     if isinstance(H_0.data, _data.CSR) and not sparse:
         L_0 = L_0.to("Dense")
