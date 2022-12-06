@@ -595,7 +595,9 @@ def position(N, offset=0, *, dtype=_data.CSR):
         Position operator as Qobj.
     """
     a = destroy(N, offset=offset, dtype=dtype)
-    return np.sqrt(0.5) * (a + a.dag())
+    position = np.sqrt(0.5) * (a + a.dag())
+    position._isherm = True
+    return position
 
 
 def momentum(N, offset=0, *, dtype=_data.CSR):
@@ -621,7 +623,9 @@ def momentum(N, offset=0, *, dtype=_data.CSR):
         Momentum operator as Qobj.
     """
     a = destroy(N, offset=offset, dtype=dtype)
-    return -1j * np.sqrt(0.5) * (a - a.dag())
+    momentum = -1j * np.sqrt(0.5) * (a - a.dag())
+    momentum._isherm = True
+    return momentum
 
 
 def num(N, offset=0, *, dtype=_data.CSR):
