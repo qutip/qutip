@@ -624,7 +624,7 @@ def momentum(N, offset=0, *, dtype=_data.CSR):
     """
     a = destroy(N, offset=offset, dtype=dtype)
     momentum = -1j * np.sqrt(0.5) * (a - a.dag())
-    momentum._isherm = True
+    momentum.isherm = True
     return momentum
 
 
