@@ -706,7 +706,7 @@ class MultiTrajResult(_BaseResult):
         """
         States of every runs as ``states[run][t]``.
         """
-        if self.trajectories:
+        if self.trajectories and self.trajectories[0].states:
             return [traj.states for traj in self.trajectories]
         else:
             return None
@@ -732,7 +732,7 @@ class MultiTrajResult(_BaseResult):
         """
         Last states of each trajectories.
         """
-        if self.trajectories:
+        if self.trajectories and self.trajectories[0].final_state:
             return [traj.final_state for traj in self.trajectories]
         else:
             return None
@@ -843,11 +843,34 @@ class MultiTrajResult(_BaseResult):
         return list(self.e_data_traj_std(ntraj).values())
 
     def __repr__(self):
-        repr = super().__repr__()
-        lines = repr.split("\n")
-        lines.insert(-1, f"  Number of trajectories: {self.num_trajectories}")
+        lines = [
+            f"<{self.__class__.__name__}",
+            f"  Solver: {self.solver}",
+        ]
+        if self.stats:
+            lines.append("  Solver stats:")
+            lines.extend(
+                f"    {k}: {v!r}"
+                for k, v in self.stats.items()
+            )
+        if self.times:
+            lines.append(
+                f"  Time interval: [{self.times[0]}, {self.times[-1]}]"
+                f" ({len(self.times)} steps)"
+            )
+        lines.append(f"  Number of e_ops: {len(self.e_ops)}")
+        if self.states:
+            lines.append("  States saved.")
+        elif self.final_state is not None:
+            lines.append("  Final state saved.")
+        else:
+            lines.append("  State not saved.")
+        lines.append(f"  Number of trajectories: {self.num_trajectories}")
         if self.trajectories:
-            lines.insert(-1, "  Trajectories saved.")
+            lines.append("  Trajectories saved.")
+        else:
+            lines.append("  Trajectories not saved.")
+        lines.append(">")
         return "\n".join(lines)
 
     def __add__(self, other):

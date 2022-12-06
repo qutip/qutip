@@ -131,8 +131,8 @@ project.__doc__ =\
     Get the projector of a state with itself.  Mathematically, if passed an
     object `|a>` or `<a|`, then return the matrix `|a><a|`.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     state : Data
         The input state bra- or ket-like vector.
     """
