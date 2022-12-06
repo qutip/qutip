@@ -225,6 +225,16 @@ class Solver:
         return integrator_instance
 
     @property
+    def sys_dims(self):
+        """
+        Dimensions of the space that the system use:
+
+        ``qutip.basis(sovler.dims)`` will create a state with proper dimensions
+        for this solver.
+        """
+        return self.rhs.dims[0]
+
+    @property
     def options(self):
         """
         method: str

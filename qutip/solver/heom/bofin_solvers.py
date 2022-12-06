@@ -655,6 +655,16 @@ class HEOMSolver(Solver):
 
         super().__init__(rhs, options=options)
 
+    @property
+    def sys_dims(self):
+        """
+        Dimensions of the space that the system use, excluding any environment:
+
+        ``qutip.basis(sovler.dims)`` will create a state with proper dimensions
+        for this solver.
+        """
+        return self._sys_dims
+
     def _initialize_stats(self):
         stats = super()._initialize_stats()
         stats.update({
