@@ -596,7 +596,7 @@ def position(N, offset=0, *, dtype=_data.CSR):
     """
     a = destroy(N, offset=offset, dtype=dtype)
     position = np.sqrt(0.5) * (a + a.dag())
-    position._isherm = True
+    position.isherm = True
     return position
 
 
