@@ -46,7 +46,7 @@ Solvers will accept a :class:`QobjEvo`: when an operator is expected: this inclu
 Exception are :func:`krylovsolve`'s Hamiltonian and HEOM's Bath operators.
 
 
-Most solver will accept any format that could be made into a  for the Hamiltonian.
+Most solvers will accept any format that could be made into a :class:`QobjEvo`: for the Hamiltonian.
 All of the following are equivalent:
 
 
@@ -112,7 +112,7 @@ Given that we have a single time-dependent Hamiltonian term, and constant collap
     def H1_coeff(t):
         return 9 * np.exp(-(t / 5.) ** 2)
 
-In this case, the return value depends only on time.  However it is possible to add optional arguments to the call, see **Insert link to arguments***.
+In this case, the return value depends only on time.  However it is possible to add optional arguments to the call, see `Using arguments`_.
 Having specified our coefficient function, we can now specify the Hamiltonian in list format and call the solver (in this case :func:`qutip.mesolve`)
 
 .. plot::
@@ -433,4 +433,4 @@ Lastly the spline method is usually as fast the string method, but it cannot be 
 Accessing the state from solver
 ===============================
 
-Not available in v5 yet
+In QuTiP 4.4 to 4.7, it was possible to request that the solver pass the state, expectation values or collapse operators via arguments to :class:`QobjEvo`. Support for this is not yet available in QuTiP 5.
