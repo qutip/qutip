@@ -1075,25 +1075,13 @@ class HEOMSolver(Solver):
             rho0_he = rho0_he.reshape(n ** 2 * self._n_ados)
             rho0_he = _data.create(rho0_he)
         else:
-            if rho0.dims == rho_dims:
-                n_sub = 1
-            elif rho0.dims[0] == rho_dims:
-                n_sub = rho0.shape[1]
-            else:
+            if rho0.dims != rho_dims:
                 raise ValueError(
                     f"Initial state rho has dims {rho0.dims}"
                     f" but the system dims are {rho_dims}"
                 )
-            self._state_metadata = {
-                "shape": rho0.shape,
-                "dims": rho0.dims,
-            }
-
-            rho0_he = np.zeros([n ** 2 * self._n_ados, n_sub],
-                               dtype=complex)
-            rho0_he[:n ** 2, :] = rho0.full().reshape(
-                (n ** 2, n_sub), order='F'
-            )
+            rho0_he = np.zeros([n ** 2 * self._n_ados], dtype=complex)
+            rho0_he[:n ** 2] = rho0.full().ravel('F')
             rho0_he = _data.create(rho0_he)
 
         if self.options["state_data_type"]:
@@ -1103,19 +1091,18 @@ class HEOMSolver(Solver):
 
     def _restore_state(self, state, *, copy=True):
         n = self._sys_shape
-        rho_shape = self._state_metadata["shape"]
-        rho_dims = self._state_metadata["dims"]
-        hierarchy_shape = (self._n_ados,) + rho_shape
+        rho_shape = (n, n)
+        rho_dims = self._sys_dims
+        hierarchy_shape = (self._n_ados, n, n)
 
         rho = Qobj(
-            state.to_array()[:n ** 2, :].reshape(rho_shape, order='F'),
+            state.to_array()[:n ** 2].reshape(rho_shape, order='F'),
             dims=rho_dims,
         )
-        out = HierarchyADOsState(
+        ado_state = HierarchyADOsState(
             rho, self.ados, state.to_array().reshape(hierarchy_shape)
         )
-
-        return out
+        return ado_state
 
     def start(self, state0, t0):
         """
