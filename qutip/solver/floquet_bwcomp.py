@@ -147,7 +147,7 @@ def floquet_wavefunction_t(
     """
     warnings.warn(FutureWarning("`floquet_states` is deprecated."))
     fbasis = FloquetBasis(H, T, args=args, options=options)
-    return fbasis.statfrom_floquet_basise(f_coeff, t)
+    return fbasis.from_floquet_basis(f_coeff, t)
 
 
 def floquet_state_decomposition(f_states, f_energies, psi):
