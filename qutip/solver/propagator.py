@@ -214,6 +214,7 @@ class Propagator:
             self.solver._argument(args)
             self.times = [0]
             self.props = [qeye(self.props[0].dims[0])]
+            self.solver.start(self.props[0], self.times[0])
 
         if t_start:
             if t == t_start:
