@@ -1,4 +1,4 @@
-__all__ = ['mcsolve', "McSolver"]
+__all__ = ['mcsolve', "MCSolver"]
 
 import warnings
 
@@ -8,7 +8,7 @@ from ..core import QobjEvo, spre, spost, Qobj, unstack_columns, liouvillian
 from .multitraj import MultiTrajSolver
 from .solver_base import Solver
 from .result import McResult, Result
-from .mesolve import mesolve, MeSolver
+from .mesolve import mesolve, MESolver
 import qutip.core.data as _data
 from time import time
 
@@ -138,7 +138,7 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
         options = {
             key: options[key]
             for key in options
-            if key in MeSolver.solver_options
+            if key in MESolver.solver_options
         }
         return mesolve(H, state, tlist, e_ops=e_ops, args=args,
                        options=options)
@@ -149,7 +149,7 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
             "with the options `keep_runs_results=True`."
         )
 
-    mc = McSolver(H, c_ops, options=options)
+    mc = MCSolver(H, c_ops, options=options)
     result = mc.run(state, tlist=tlist, ntraj=ntraj, e_ops=e_ops,
                     seed=seeds, target_tol=target_tol, timeout=timeout)
     return result
@@ -317,7 +317,7 @@ class MCIntegrator:
 # -----------------------------------------------------------------------------
 # MONTE CARLO CLASS
 # -----------------------------------------------------------------------------
-class McSolver(MultiTrajSolver):
+class MCSolver(MultiTrajSolver):
     r"""
     Monte Carlo Solver of a state vector :math:`|\psi \rangle` for a
     given Hamiltonian and sets of collapse operators. Options for the

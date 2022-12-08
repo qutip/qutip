@@ -785,6 +785,11 @@ class MultiTrajResult(_BaseResult):
         """
         if not self.trajectories:
             return None
+        if ntraj > len(self.trajectories):
+            raise ValueError(
+                f"Cannot compute statistic for {ntraj} trajectories. "
+                f"Only {len(self.trajectories)} trajectories are stored."
+            )
         return {
             k: np.mean(np.stack([
                 traj.e_data[k] for traj in self.trajectories[:ntraj]
@@ -820,6 +825,11 @@ class MultiTrajResult(_BaseResult):
         """
         if not self.trajectories:
             return None
+        if ntraj > len(self.trajectories):
+            raise ValueError(
+                f"Cannot compute statistic for {ntraj} trajectories. "
+                f"Only {len(self.trajectories)} trajectories are stored."
+            )
         return {
             k: np.std(np.stack([
                 traj.e_data[k] for traj in self.trajectories[:ntraj]
@@ -916,10 +926,12 @@ class MultiTrajResult(_BaseResult):
             new.expect = new.average_expect
             new.e_data = new.average_e_data
 
-            new.std_e_data = {
-                k: np.sqrt(avg_expect2 - abs(avg_expect**2))
-                for k, avg_expect, avg_expect2 in zip(self._raw_ops, avg, avg2)
-            }
+            new.std_e_data = {}
+            for i, key in enumerate(self._raw_ops):
+                std2 = avg2[i] - abs(avg[i]**2)
+                std2[std2 < 0] = 0.
+                new.std_e_data[key] = np.sqrt(std2)
+
             new.std_expect = list(new.std_e_data.values())
 
             if new.trajectories:
