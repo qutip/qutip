@@ -13,7 +13,7 @@ defaults:
     # necessary for having conda behave sensibly.  We use bash as the shell even
     # on Windows, since we don't run anything much complicated, and it makes
     # things much simpler.
-    shell: bash -l {0}
+    shell: bash -l -e {0}
 
 jobs:
   cases:
