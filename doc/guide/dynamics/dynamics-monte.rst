@@ -4,10 +4,6 @@
 Monte Carlo Solver
 *******************************************
 
-.. plot::
-      :include-source: False
-
-      from qutip.solver.mcsolve import *
 
 .. _monte-intro:
 
@@ -75,6 +71,8 @@ To illustrate the use of the Monte Carlo evolution of quantum systems in QuTiP, 
 .. plot::
     :context:
 
+    from qutip.solver.mcsolve import MCSolver, mcsolve
+
     times = np.linspace(0.0, 10.0, 200)
     psi0 = tensor(fock(2, 0), fock(10, 5))
     a  = tensor(qeye(2), destroy(10))
@@ -110,7 +108,7 @@ If we want to run 1000 trajectories in the above example, we can simply modify t
 .. plot::
     :context: close-figs
 
-    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm], ntraj=1000)
+    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], e_ops=[a.dag() * a, sm.dag() * sm], ntraj=1000)
 
 where we have added the keyword argument ``ntraj=1000`` at the end of the inputs.
 Now, the Monte Carlo solver will calculate expectation values for both operators, ``a.dag() * a, sm.dag() * sm`` averaging over 1000 trajectories.
@@ -132,17 +130,22 @@ we can extract the relevant expectation values using:
     expt100 = data.expect_traj_avg(100)
     expt1000 = data.expect_traj_avg(1000)
 
-		plt.figure()
-    plt.plot(times, expt1, label="ntraj=1")
-		plt.plot(times, expt10, label="ntraj=10")
-		plt.plot(times, expt100, label="ntraj=100")
-		plt.plot(times, expt1000, label="ntraj=1000")
+    plt.figure()
+    plt.plot(times, expt1[0], label="ntraj=1")
+    plt.plot(times, expt10[0], label="ntraj=10")
+    plt.plot(times, expt100[0], label="ntraj=100")
+    plt.plot(times, expt1000[0], label="ntraj=1000")
     plt.title('Monte Carlo time evolution')
     plt.xlabel('Time')
     plt.ylabel('Expectation values')
     plt.legend()
     plt.show()
 
+
+Monte Carlo Solver Result
+-------------------------
+
+...
 
 .. _monte-reuse:
 
@@ -196,7 +199,7 @@ In addition to the initial state, one may reuse the Hamiltonian data when adding
     sm = tensor(destroy(2), qeye(10))
 
     H = 2*np.pi*a.dag()*a + 2*np.pi*sm.dag()*sm + 2*np.pi*0.25*(sm*a.dag() + sm.dag()*a)
-    solver = MCSolver(H, c_ops=[np.sqrt(0.1) * a])
+    # solver = MCSolver(H, c_ops=[np.sqrt(0.1) * a])
     data1 = solver.run(psi0, times, e_ops=[a.dag() * a, sm.dag() * sm], ntraj=10)
     data2 = solver.run(psi0, times, e_ops=[a.dag() * a, sm.dag() * sm], ntraj=10)
     data_merged = data1 + data2
