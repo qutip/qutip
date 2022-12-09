@@ -742,7 +742,7 @@ class Processor(object):
         # set the max step size as 1/2 of the smallest gate time.
         options = kwargs.get("options", Options())
         if options.max_step == 0.:
-            options.max_step = np.min(np.diff(self.get_full_tlist())) / 22
+            options.max_step = np.min(np.diff(self.get_full_tlist())) / 2
         kwargs["options"] = options
         # choose solver:
         if solver == "mesolve":
