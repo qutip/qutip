@@ -105,6 +105,7 @@ jobs:
             os: ubuntu-latest
             python-version: "3.11"
             condaforge: 1
+            conda-extra-pkgs: "suitesparse"  # for compiling cvxopt
             pytest-extra-options: "-W ignore::ImportWarning -W ignore::DeprecationWarning:cvxpy.interface.scipy_wrapper -W ignore:Absolute:DeprecationWarning"
 
           # Windows. Once all tests pass without special options needed, this
@@ -137,9 +138,8 @@ jobs:
             QUTIP_TARGET="$QUTIP_TARGET,runtime_compilation"
           fi
           export CI_QUTIP_WITH_OPENMP=${{ matrix.openmp }}
-          if [[ -n "${{ matrix.condaforge }}" ]]; then
-            conda config --prepend channels conda-forge
-            conda config --set channel_priority strict
+          if [[ -z "${{ matrix.conda-extra-pkgs }}" ]]; then
+            conda install "${{ matrix.conda-extra-pkgs }}"
           fi
           if [[ -z "${{ matrix.nomkl }}" ]]; then
             conda install blas=*=mkl "numpy${{ matrix.numpy-requirement }}" "scipy${{ matrix.scipy-requirement }}"
