@@ -90,6 +90,23 @@ jobs:
             condaforge: 1
             pytest-extra-options: "-W ignore::ImportWarning -W ignore::DeprecationWarning:cvxpy.interface.scipy_wrapper -W ignore:Absolute:DeprecationWarning"
 
+          # Python 3.11 and latest numpy
+          # Use conda-forge to provide Python 3.11 and latest numpy
+          # Ignore ImportWarning because pyximport registered an importer
+          # PyxImporter that does not have a find_spec method and this raises
+          # a warning on Python 3.10
+          # Ignore DeprecationWarnings raised by cvxpy importing scipy.sparse.X
+          # under SciPy 1.8.0+.
+          # Ignore DeprecationWarnings raised by versions of
+          # setuptools >= 65.0.0 during pyximport imports This can be removed
+          # once https://github.com/cython/cython/issues/4985
+          # is fixed and released.
+          - case-name: Python 3.11
+            os: ubuntu-latest
+            python-version: "3.11"
+            condaforge: 1
+            pytest-extra-options: "-W ignore::ImportWarning -W ignore::DeprecationWarning:cvxpy.interface.scipy_wrapper -W ignore:Absolute:DeprecationWarning"
+
           # Windows. Once all tests pass without special options needed, this
           # can be moved to the main os list in the test matrix. All the tests
           # that fail currently seem to do so because mcsolve uses
@@ -108,6 +125,7 @@ jobs:
         with:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
+          channels: ${{ matrix.condaforge == 1 && "conda-forge" || "defaults" }}
 
       - name: Install QuTiP and dependencies
         # In the run, first we handle any special cases.  We do this in bash
