@@ -376,7 +376,7 @@ class MultiTrajResult(_BaseResult):
         The final state (if the recording of the final state was requested)
         averaged over all trajectories as a density matrix.
 
-    runs_state : list of :obj:`~Qobj`
+    runs_final_state : list of :obj:`~Qobj`
         The final state for each trajectory (if the recording of the final
         state and trajectories was requested).
 
