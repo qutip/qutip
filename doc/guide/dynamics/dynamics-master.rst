@@ -72,7 +72,7 @@ The resulting list of expectation values can easily be visualized using matplotl
     >>> ax.legend(("Sigma-Z", "Sigma-Y")) # doctest: +SKIP
     >>> plt.show() # doctest: +SKIP
 
-If an empty list of operators is passed as fifth parameter, the :func:`qutip.mesolve` function returns a :class:`qutip.solve.solver.Result` instance that contains a list of state vectors for the times specified in ``times``
+If an empty list of operators is passed as fifth parameter, the :func:`qutip.mesolve` function returns a :class:`qutip.Result` instance that contains a list of state vectors for the times specified in ``times``
 
 .. plot::
     :context: close-figs
