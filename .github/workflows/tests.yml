@@ -125,7 +125,7 @@ jobs:
         with:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
-          channels: ${{ matrix.condaforge == 1 && "conda-forge" || "defaults" }}
+          channels: ${{ matrix.condaforge == 1 && 'conda-forge' || 'defaults' }}
 
       - name: Install QuTiP and dependencies
         # In the run, first we handle any special cases.  We do this in bash
