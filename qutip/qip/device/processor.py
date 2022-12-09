@@ -12,6 +12,7 @@ from qutip.qip.operations.gates import expand_operator, globalphase
 from qutip.tensor import tensor
 from qutip.mesolve import mesolve
 from qutip.mcsolve import mcsolve
+from qutip import Options
 from qutip.qip.circuit import QubitCircuit
 from qutip.qip.noise import (
     Noise, RelaxationNoise, DecoherenceNoise,
@@ -738,6 +739,11 @@ class Processor(object):
         else:
             kwargs["c_ops"] = sys_c_ops
 
+        # set the max step size as 1/2 of the smallest gate time.
+        options = kwargs.get("options", Options())
+        if options.max_step == 0.:
+            options.max_step = np.min(np.diff(self.get_full_tlist())) / 2
+        kwargs["options"] = options
         # choose solver:
         if solver == "mesolve":
             evo_result = mesolve(
