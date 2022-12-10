@@ -138,9 +138,6 @@ jobs:
             QUTIP_TARGET="$QUTIP_TARGET,runtime_compilation"
           fi
           export CI_QUTIP_WITH_OPENMP=${{ matrix.openmp }}
-          if [[ -z "${{ matrix.conda-extra-pkgs }}" ]]; then
-            conda install "${{ matrix.conda-extra-pkgs }}"
-          fi
           if [[ -z "${{ matrix.nomkl }}" ]]; then
             conda install blas=*=mkl "numpy${{ matrix.numpy-requirement }}" "scipy${{ matrix.scipy-requirement }}"
           elif [[ "${{ matrix.os }}" =~ ^windows.*$ ]]; then
@@ -149,6 +146,9 @@ jobs:
             pip install "numpy${{ matrix.numpy-requirement }}" "scipy${{ matrix.scipy-requirement }}"
           else
             conda install nomkl "numpy${{ matrix.numpy-requirement }}" "scipy${{ matrix.scipy-requirement }}"
+          fi
+          if [[ -n "${{ matrix.conda-extra-pkgs }}" ]]; then
+            conda install "${{ matrix.conda-extra-pkgs }}"
           fi
           python -m pip install -e .[$QUTIP_TARGET]
           python -m pip install coverage==6.2
