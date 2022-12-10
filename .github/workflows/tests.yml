@@ -151,7 +151,7 @@ jobs:
             conda install "${{ matrix.conda-extra-pkgs }}"
           fi
           python -m pip install -e .[$QUTIP_TARGET]
-          python -m pip install coverage==6.2
+          python -m pip install coverage==6.5
           python -m pip install pytest-cov coveralls pytest-fail-slow
 
       - name: Package information
