@@ -13,7 +13,7 @@ import numpy as np
 import copy
 # QuTiP logging
 import qutip.logging_utils
-logger = qutip.logging_utils.get_logger()
+logger = qutip.logging_utils.get_logger('qutip.control.dump')
 # QuTiP control modules
 import qutip.control.io as qtrlio
 from numpy.compat import asbytes
@@ -229,7 +229,7 @@ class OptimDump(Dump):
     dump_summary : bool
         When True summary items are appended to the iter_summary
 
-    iter_summary : list of :class:`optimizer.OptimIterSummary`
+    iter_summary : list of :class:`qutip.control.optimizer.OptimIterSummary`
         Summary at each iteration
 
     dump_fid_err : bool

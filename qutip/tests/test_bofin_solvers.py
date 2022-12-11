@@ -528,6 +528,12 @@ class TestHEOMSolver:
         hsolver = HEOMSolver(H, bath, 2, progress_bar=True)
         assert isinstance(hsolver.progress_bar, TextProgressBar)
 
+        hsolver = HEOMSolver(H, bath, 2, progress_bar=TextProgressBar())
+        assert isinstance(hsolver.progress_bar, BaseProgressBar)
+
+        with pytest.raises(TypeError):
+            HEOMSolver(H, bath, 2, progress_bar=False)
+
     def test_create_bath_errors(self):
         Q = sigmaz()
         H = sigmax()

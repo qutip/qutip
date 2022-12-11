@@ -1,4 +1,4 @@
-name: Build HTML documentation
+name: Build documentation
 
 on:
   [push, pull_request]
@@ -9,16 +9,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         name: Install Python
         with:
           python-version: '3.8'
 
       - name: Install documentation dependencies
         run: |
+          pip install pip --upgrade
           python -mpip install -r doc/requirements.txt
+          sudo apt-get update
+          sudo apt-get install texlive-full
 
       - name: Install QuTiP from GitHub
         run: |
@@ -30,7 +33,23 @@ jobs:
           # because we're importing from the wrong location.
           python -c 'import qutip; qutip.about()'
 
-      - name: Build documentation
+      - name: Build PDF documentation
+        working-directory: doc
+        run: |
+          make latexpdf SPHINXOPTS="-W --keep-going -T"
+          # Above flags are:
+          #   -W : turn warnings into errors
+          #   --keep-going : do not stop after the first error
+          #   -T : display a full traceback if a Python exception occurs
+
+      - name: Upload built PDF files
+        uses: actions/upload-artifact@v3
+        with:
+          name: qutip_pdf_docs
+          path: doc/_build/latex/*
+          if-no-files-found: error
+
+      - name: Build HTML documentation
         working-directory: doc
         run: |
           make html SPHINXOPTS="-W --keep-going -T"
@@ -39,8 +58,8 @@ jobs:
           #   --keep-going : do not stop after the first error
           #   -T : display a full traceback if a Python exception occurs
 
-      - name: Upload built files
-        uses: actions/upload-artifact@v2
+      - name: Upload built HTML files
+        uses: actions/upload-artifact@v3
         with:
           name: qutip_html_docs
           path: doc/_build/html/*

@@ -21,7 +21,7 @@ from qutip.semidefinite import dnorm_problem, dnorm_sparse_problem
 import qutip.settings as settings
 
 import qutip.logging_utils as logging
-logger = logging.get_logger()
+logger = logging.get_logger('qutip.metrics')
 
 try:
     import cvxpy
@@ -53,12 +53,13 @@ def fidelity(A, B):
     >>> np.testing.assert_almost_equal(fidelity(x,y), 0.24104350624628332)
     """
     if A.isket or A.isbra:
+        if B.isket or B.isbra:
+            # The fidelity for pure states reduces to the modulus of their
+            # inner product.
+            return np.abs(A.overlap(B))
         # Take advantage of the fact that the density operator for A
         # is a projector to avoid a sqrtm call.
         sqrtmA = ket2dm(A)
-        # Check whether we have to turn B into a density operator, too.
-        if B.isket or B.isbra:
-            B = ket2dm(B)
     else:
         if B.isket or B.isbra:
             # Swap the order so that we can take a more numerically
@@ -315,7 +316,7 @@ def dnorm(A, B=None, solver="CVXOPT", verbose=False, force_solve=False,
           sparse=True):
     """
     Calculates the diamond norm of the quantum map q_oper, using
-    the simplified semidefinite program of [Wat12]_.
+    the simplified semidefinite program of [Wat13]_.
 
     The diamond norm SDP is solved by using CVXPY_.
 

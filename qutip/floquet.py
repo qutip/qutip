@@ -58,7 +58,7 @@ def floquet_modes(H, T, args=None, sort=False, U=None, options=None):
         If U is `None` (default), it will be calculated from the Hamiltonian
         `H` using :func:`qutip.propagator.propagator`.
 
-    options : :class:`qutip.solver`
+    options : :class:`qutip.solver.Options`
         options for the ODE solver. For the propagator U.
 
     Returns
@@ -128,7 +128,7 @@ def floquet_modes_t(f_modes_0, f_energies, t, H, T, args=None,
     T : float
         The period of the time-dependence of the hamiltonian.
 
-    options : :class:`qutip.solver`
+    options : :class:`qutip.solver.Options`
         options for the ODE solver. For the propagator.
 
     Returns
@@ -183,7 +183,7 @@ def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args=None,
     args : dictionary
         dictionary with variables required to evaluate H
 
-    options : :class:`qutip.solver`
+    options : :class:`qutip.solver.Options`
         options for the ODE solver.
 
     Returns
@@ -310,7 +310,7 @@ def floquet_states_t(f_modes_0, f_energies, t, H, T, args=None,
     args : dictionary
         Dictionary with variables required to evaluate H.
 
-    options : :class:`qutip.solver`
+    options : :class:`qutip.solver.Options`
         options for the ODE solver.
 
     Returns
@@ -443,7 +443,7 @@ def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100,
     Parameters
     ----------
 
-    H : :class:`qutip.qobj.Qobj`
+    H : :class:`qutip.Qobj`
         System Hamiltonian, time-dependent with period `T`.
 
     psi0 : :class:`qutip.qobj`
@@ -467,7 +467,7 @@ def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100,
         The number of time steps in one driving period for which to
         precalculate the Floquet modes. `Tsteps` should be an even number.
 
-    options_modes : :class:`qutip.solver`
+    options_modes : :class:`qutip.solver.Options`
         options for the ODE solver.
 
     Returns
@@ -554,6 +554,10 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
     Calculate the rates and matrix elements for the Floquet-Markov master
     equation.
 
+    .. note :
+        The number of integration steps (for calculating X) within one period
+        is set to 20 * kmax.
+
     Parameters
     ----------
 
@@ -582,14 +586,14 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
     w_th : float
         The temperature in units of frequency.
 
-    k_max : int
+    kmax : int
         The truncation of the number of sidebands (default 5).
 
     f_modes_table_t : nested list of :class:`qutip.qobj` (kets)
         A lookup-table of Floquet modes at times precalculated by
         :func:`qutip.floquet.floquet_modes_table` (optional).
 
-    options : :class:`qutip.solver`
+    options : :class:`qutip.solver.Options`
         options for the ODE solver.
 
     Returns
@@ -612,7 +616,8 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
     Gamma = np.zeros((N, N, M))
     A = np.zeros((N, N))
 
-    nT = 100
+    # time steps for integration of coupling operator
+    nT = int(np.max([20 * kmax, 100]))
     dT = T / nT
     tlist = np.arange(dT, T + dT / 2, dT)
 
@@ -784,7 +789,7 @@ def floquet_markov_mesolve(
     e_ops : list of :class:`qutip.qobj` / callback function
         list of operators for which to evaluate expectation values.
 
-    options : :class:`qutip.solver`
+    options : :class:`qutip.solver.Options`
         options for the ODE solver.
 
     floquet_basis: bool, True
@@ -974,7 +979,7 @@ def fmmesolve(H, rho0, tlist, c_ops=[], e_ops=[], spectra_cb=[], T=None,
         >>> args['w_th'] = temperature * (kB / h) * 2 * pi * 1e-9 \
             #doctest: +SKIP
 
-    options : :class:`qutip.solver`
+    options : :class:`qutip.solver.Options`
         options for the ODE solver. For solving the master equation.
 
     floquet_basis : bool
@@ -984,16 +989,17 @@ def fmmesolve(H, rho0, tlist, c_ops=[], e_ops=[], spectra_cb=[], T=None,
     k_max : int
         The truncation of the number of sidebands (default 5).
 
-    options_modes : :class:`qutip.solver`
+    options_modes : :class:`qutip.solver.Options`
         options for the ODE solver. For computing Floquet modes.
 
     Returns
     -------
 
-    output : :class:`qutip.solver`
+    output : :class:`qutip.solver.Result`
 
-        An instance of the class :class:`qutip.solver`, which contains either
-        an *array* of expectation values for the times specified by `tlist`.
+        An instance of the class :class:`qutip.solver.Result`, which contains
+        either an *array* of expectation values for the times specified
+        by `tlist`.
     """
 
     if _safe_mode:

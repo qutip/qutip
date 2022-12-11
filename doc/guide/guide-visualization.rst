@@ -280,7 +280,7 @@ QuTiP offers a few functions for quickly visualizing matrix data in the
 form of histograms, :func:`qutip.visualization.matrix_histogram` and
 :func:`qutip.visualization.matrix_histogram_complex`, and as Hinton diagram of weighted
 squares, :func:`qutip.visualization.hinton`. These functions takes a
-:class:`qutip.Qobj.Qobj` as first argument, and optional arguments to, for
+:class:`qutip.Qobj` as first argument, and optional arguments to, for
 example, set the axis labels and figure title (see the function's documentation
 for details).
 
@@ -388,7 +388,7 @@ Note that to obtain :math:`\chi` with this method we have to construct a matrix 
 Implementation in QuTiP
 -----------------------
 
-In QuTiP, the procedure described above is implemented in the function :func:`qutip.tomography.qpt`, which returns the :math:`\chi` matrix given a density matrix propagator. To illustrate how to use this function, let's consider the :math:`i`-SWAP gate for two qubits. In QuTiP the function :func:`qutip.qip.operations.iswap` generates the unitary transformation for the state kets:
+In QuTiP, the procedure described above is implemented in the function :func:`qutip.tomography.qpt`, which returns the :math:`\chi` matrix given a density matrix propagator. To illustrate how to use this function, let's consider the :math:`i`-SWAP gate for two qubits. In QuTiP the function :func:`qutip.qip.operations.iswap<qutip.qip.operations.gates.iswap>` generates the unitary transformation for the state kets:
 
 
 .. plot::

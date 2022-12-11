@@ -1,0 +1,1 @@
+Fix the hinton visualization method to plot the matrix instead of its transpose.

@@ -13,6 +13,7 @@ pytestmark = [pytest.mark.usefixtures("in_temporary_directory")]
 
 _dimension = 10
 
+
 def _random_file_name():
     return "_" + str(uuid.uuid4())
 
@@ -57,3 +58,5 @@ def test_qsave_qload(use_path, suffix):
     qutip.qsave(ops_in, filename)
     ops_out = qutip.qload(filename)
     assert ops_in == ops_out
+    # check that the file was saved with the correct name:
+    assert Path(str(filename) + ".qu").exists()

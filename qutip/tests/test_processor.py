@@ -4,7 +4,7 @@ from numpy.testing import (
     assert_, run_module_suite, assert_allclose, assert_equal)
 import numpy as np
 
-from qutip.qip.device.processor import Processor
+from qutip.qip.device import Processor, LinearSpinChain
 from qutip.states import basis
 from qutip.operators import sigmaz, sigmax, sigmay, identity, destroy
 from qutip.qip.operations.gates import hadamard_transform
@@ -16,6 +16,9 @@ from qutip.qip.noise import (
 from qutip.qip.qubits import qubit_states
 from qutip.metrics import fidelity
 from qutip.qip.pulse import Pulse
+from qutip.qip.circuit import QubitCircuit
+
+import pytest
 
 
 class TestCircuitProcessor:
@@ -322,7 +325,35 @@ class TestCircuitProcessor:
         result = proc.run_state(init_state=init_state, solver="mcsolve")
         assert_allclose(
             fidelity(result.states[-1], qubit_states(2, [0, 1, 0, 0])),
-            1, rtol=1.e-7) 
+            1, rtol=1.e-7)
+
+    def test_max_step_size(self):
+        num_qubits = 2
+        init_state = tensor([basis(2, 1), basis(2, 1)])
+        qc = QubitCircuit(2)
+
+        # ISWAP acts trivially on the initial states.
+        # If no max_step are defined,
+        # the solver will choose a step size too large
+        # such that the X gate will be skipped.
+        qc.add_gate("ISWAP", targets=[0, 1])
+        qc.add_gate("ISWAP", targets=[0, 1])
+        qc.add_gate("X", targets=[0])
+        processor = LinearSpinChain(num_qubits)
+        processor.load_circuit(qc)
+
+        # No max_step
+        final_state = processor.run_state(
+            init_state, options=Options(max_step=10000) # too large max_step
+        ).states[-1]
+        expected_state = tensor([basis(2, 0), basis(2, 1)])
+        assert pytest.approx(fidelity(final_state, expected_state), 0.001) == 0
+
+        # With default max_step
+        final_state = processor.run_state(init_state).states[-1]
+        expected_state = tensor([basis(2, 0), basis(2, 1)])
+        assert pytest.approx(fidelity(final_state, expected_state), 0.001) == 1
+
 
 if __name__ == "__main__":
     run_module_suite()

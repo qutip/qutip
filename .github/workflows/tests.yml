@@ -13,26 +13,36 @@ defaults:
     # necessary for having conda behave sensibly.  We use bash as the shell even
     # on Windows, since we don't run anything much complicated, and it makes
     # things much simpler.
-    shell: bash -l {0}
+    shell: bash -l -e {0}
 
 jobs:
   cases:
     name: ${{ matrix.os }}, python${{ matrix.python-version }}, ${{ matrix.case-name }}
     runs-on: ${{ matrix.os }}
+    env:
+      MPLBACKEND: Agg  # Explicitly define matplotlib backend for Windows tests
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
         # Test other versions of Python in special cases to avoid exploding the
         # matrix size; make sure to test all supported versions in some form.
         python-version: ["3.9"]
         case-name: [defaults]
         numpy-requirement: [">=1.20,<1.21"]
+        coverage-requirement: ["==6.5"]
         # Extra special cases.  In these, the new variable defined should always
         # be a truth-y value (hence 'nomkl: 1' rather than 'mkl: 0'), because
         # the lack of a variable is _always_ false-y, and the defaults lack all
         # the special cases.
         include:
+          # Needs an older version of Python because conda doesn't build old
+          # SciPy versions for Python 3.9.
+          - case-name: MacOS
+            os: macos-latest
+            python-version: "3.9"
+            nomkl: 1
+
           # Needs an older version of Python because conda doesn't build old
           # SciPy versions for Python 3.9.
           - case-name: old SciPy
@@ -41,6 +51,7 @@ jobs:
             scipy-requirement: ">=1.4,<1.5"
             # let the old SciPy version select an appropriate numpy version:
             numpy-requirement: ""
+            coverage-requirement: "==6.2"  # last coverage that supported 3.6
 
           # No MKL runs.  MKL is now the default for conda installations, but
           # not necessarily for pip.
@@ -71,11 +82,33 @@ jobs:
           # a warning on Python 3.10
           # Ignore DeprecationWarnings raised by cvxpy importing scipy.sparse.X
           # under SciPy 1.8.0+.
+          # Ignore DeprecationWarnings raised by versions of
+          # setuptools >= 65.0.0 during pyximport imports This can be removed
+          # once https://github.com/cython/cython/issues/4985
+          # is fixed and released.
           - case-name: Python 3.10
             os: ubuntu-latest
             python-version: "3.10"
             condaforge: 1
-            pytest-extra-options: "-W ignore::ImportWarning -W ignore::DeprecationWarning:cvxpy.interface.scipy_wrapper"
+            pytest-extra-options: "-W ignore::ImportWarning -W ignore::DeprecationWarning:cvxpy.interface.scipy_wrapper -W ignore:Absolute:DeprecationWarning"
+
+          # Python 3.11 and latest numpy
+          # Use conda-forge to provide Python 3.11 and latest numpy
+          # Ignore ImportWarning because pyximport registered an importer
+          # PyxImporter that does not have a find_spec method and this raises
+          # a warning on Python 3.10
+          # Ignore DeprecationWarnings raised by cvxpy importing scipy.sparse.X
+          # under SciPy 1.8.0+.
+          # Ignore DeprecationWarnings raised by versions of
+          # setuptools >= 65.0.0 during pyximport imports This can be removed
+          # once https://github.com/cython/cython/issues/4985
+          # is fixed and released.
+          - case-name: Python 3.11
+            os: ubuntu-latest
+            python-version: "3.11"
+            condaforge: 1
+            conda-extra-pkgs: "suitesparse"  # for compiling cvxopt
+            pytest-extra-options: "-W ignore::ImportWarning -W ignore::DeprecationWarning:cvxpy.interface.scipy_wrapper -W ignore:Absolute:DeprecationWarning -W ignore::DeprecationWarning:Cython.Tempita"
 
           # Windows. Once all tests pass without special options needed, this
           # can be moved to the main os list in the test matrix. All the tests
@@ -85,30 +118,28 @@ jobs:
           # error prone. See, e.g., https://github.com/qutip/qutip/issues/1202
           - case-name: Windows Latest
             os: windows-latest
-            pytest-extra-options: "-k 'not (test_correlation or test_interpolate or test_mcsolve)'"
+            python-version: "3.10"
+            pytest-extra-options: "-W ignore::ImportWarning -k 'not (test_correlation or test_interpolate or test_mcsolve)'"
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - uses: conda-incubator/setup-miniconda@v2
         with:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
+          channels: ${{ matrix.condaforge == 1 && 'conda-forge' || 'defaults' }}
 
       - name: Install QuTiP and dependencies
         # In the run, first we handle any special cases.  We do this in bash
         # rather than in the GitHub Actions file directly, because bash gives us
         # a proper programming language to use.
         run: |
-          QUTIP_TARGET="tests,graphics,semidefinite"
+          QUTIP_TARGET="tests,graphics,semidefinite,ipython"
           if [[ -z "${{ matrix.nocython }}" ]]; then
             QUTIP_TARGET="$QUTIP_TARGET,runtime_compilation"
           fi
           export CI_QUTIP_WITH_OPENMP=${{ matrix.openmp }}
-          if [[ -n "${{ matrix.condaforge }}" ]]; then
-            conda config --prepend channels conda-forge
-            conda config --set channel_priority strict
-          fi
           if [[ -z "${{ matrix.nomkl }}" ]]; then
             conda install blas=*=mkl "numpy${{ matrix.numpy-requirement }}" "scipy${{ matrix.scipy-requirement }}"
           elif [[ "${{ matrix.os }}" =~ ^windows.*$ ]]; then
@@ -118,8 +149,11 @@ jobs:
           else
             conda install nomkl "numpy${{ matrix.numpy-requirement }}" "scipy${{ matrix.scipy-requirement }}"
           fi
+          if [[ -n "${{ matrix.conda-extra-pkgs }}" ]]; then
+            conda install "${{ matrix.conda-extra-pkgs }}"
+          fi
           python -m pip install -e .[$QUTIP_TARGET]
-          python -m pip install coverage==6.2
+          python -m pip install "coverage${{ matrix.coverage-requirement }}"
           python -m pip install pytest-cov coveralls pytest-fail-slow
 
       - name: Package information
@@ -179,6 +213,30 @@ jobs:
           COVERALLS_FLAG_NAME: ${{ matrix.os }}-${{ matrix.python-version }}-${{ matrix.case-name }}
           COVERALLS_PARALLEL: true
         run: coveralls --service=github
+
+  towncrier-check:
+    name: Verify Towncrier entry added
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install Towncrier
+        run: |
+          python -m pip install towncrier
+
+      - name: Verify Towncrier entry added
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_BRANCH: ${{ github.base_ref }}
+        run: |
+          # Fetch the pull request' base branch so towncrier will be able to
+          # compare the current branch with the base branch.
+          # Source: https://github.com/actions/checkout/#fetch-all-branches.
+          git fetch --no-tags origin +refs/heads/${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}
+          towncrier check --compare-with origin/${BASE_BRANCH}
+          towncrier build --version "$(cat VERSION)" --draft
 
   finalise:
     name: Finalise coverage reporting

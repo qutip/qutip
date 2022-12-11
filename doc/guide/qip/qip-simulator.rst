@@ -134,9 +134,9 @@ outputs, we can use the :meth:`~qutip.qip.circuit.QubitCircuit.run_statistics` f
     [0.]]
     with probability 0.33333485891662384
 
-The function returns a :class:`~qutip.qip.Result` object which contains
+The function returns a :class:`~qutip.qip.circuit.CircuitResult` object which contains
 the output states.
-The method :meth:`~qutip.qip.Result.get_results` can be used to obtain the
+The method :meth:`~qutip.qip.circuit.QubitCircuit.run_statistics` can be used to obtain the
 possible states and probabilities.
 Since the state created by the circuit is the W-state, we observe the states
 :math:`\ket{001}`,  :math:`\ket{010}` and :math:`\ket{100}` with equal probability.
