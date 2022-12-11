@@ -6,6 +6,46 @@ Change Log
 
 .. towncrier release notes start
 
+Version 4.7.1 (December 11, 2022)
++++++++++++++++++++++++++++++++++
+
+This is a bugfix release for QuTiP 4.7.X. In addition to the minor fixes
+listed below, the release adds builds for Python 3.11 and support for
+packaging 22.0.
+
+Features
+--------
+- Improve qutip import times by setting logger names explicitly. (#1980)
+
+Bug Fixes
+---------
+- Change floquet_master_equation_rates(...) to use an adaptive number of time steps scaled by the number of sidebands, kmax. (#1961)
+- Change fidelity(A, B) to use the reduced fidelity formula for pure states which is more numerically efficient and accurate. (#1964)
+- Change `brmesolve` to raise an exception when ode integration is not successful. (#1965)
+- Backport fix for IPython helper Bloch._repr_svg_ from dev.major. Previously the print_figure function returned bytes, but since ipython/ipython#5452 (in 2014) it returns a Unicode string. This fix updates QuTiP's helper to match. (#1970)
+- Fix correlation for case where only the collapse operators are time dependent. (#1979)
+- Fix the hinton visualization method to plot the matrix instead of its transpose. (#2011)
+- Fix the hinton visualization method to take into account all the matrix coefficients to set the squares scale, instead of only the diagonal coefficients. (#2012)
+- Fix parsing of package versions in setup.py to support packaging 22.0. (#2037)
+- Add back .qu suffix to objects saved with qsave and loaded with qload. The suffix was accidentally removed in QuTiP 4.7.0. (#2038)
+- Add a default max_step to processors. (#2040)
+
+Documentation
+-------------
+- Add towncrier for managing the changelog. (#1927)
+- Update the version of numpy used to build documentation to 1.22.0. (#1940)
+- Clarify returned objects from bloch_redfield_tensor(). (#1950)
+- Update Floquet Markov solver docs. (#1958)
+- Update the roadmap and ideas to show completed work as of August 2022. (#1967)
+
+Miscellaneous
+-------------
+- Return TypeError instead of Exception for type error in sesolve argument. (#1924)
+- Add towncrier draft build of changelog to CI tests. (#1946)
+- Add Python 3.11 to builds. (#2041)
+- Simplify version parsing by using packaging.version.Version. (#2043)
+
+
 Version 4.7.0 (April 13, 2022)
 ++++++++++++++++++++++++++++++
 

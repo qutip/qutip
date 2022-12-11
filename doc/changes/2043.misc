@@ -1,1 +1,0 @@
-Simplify version parsing by using packaging.version.Version.
