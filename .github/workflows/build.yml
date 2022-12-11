@@ -105,7 +105,7 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     env:
       # Set up wheels matrix.  This is CPython 3.6--3.10 for all OS targets.
-      CIBW_BUILD: "cp3{6,7,8,9,10}-*"
+      CIBW_BUILD: "cp3{6,7,8,9,10,11}-*"
       # Numpy and SciPy do not supply wheels for i686 for Python 3.10, so we
       # skip those too:
       CIBW_SKIP: "*-musllinux* cp310-manylinux_i686 cp310-win32"
