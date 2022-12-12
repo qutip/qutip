@@ -12,7 +12,7 @@ Configuration parameters for control pulse optimisation
 import numpy as np
 # QuTiP logging
 import qutip.logging_utils
-logger = qutip.logging_utils.get_logger()
+logger = qutip.logging_utils.get_logger('qutip.control.optimconfig')
 import qutip.control.io as qtrlio
 
 class OptimConfig(object):

@@ -829,7 +829,7 @@ class Qobj(object):
 
         M, N = self.data.shape
 
-        s += r'\begin{equation*}\left(\begin{array}{*{11}c}'
+        s += r' $ \\ \left(\begin{matrix}'
 
         def _format_float(value):
             if value == 0.0:
@@ -916,7 +916,7 @@ class Qobj(object):
                     s += _format_element(m, n, self.data[m, n])
                 s += r'\\'
 
-        s += r'\end{array}\right)\end{equation*}'
+        s += r'\end{matrix}\right)$'
         return s
 
     def dag(self):

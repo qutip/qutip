@@ -222,7 +222,7 @@ def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None, g=np.sqrt(2)):
 def logarithmic_negativity(V, g=np.sqrt(2)):
     """
     Calculates the logarithmic negativity given a symmetrized covariance
-    matrix, see :func:`qutip.continous_variables.covariance_matrix`. Note that
+    matrix, see :func:`qutip.continuous_variables.covariance_matrix`. Note that
     the two-mode field state that is described by `V` must be Gaussian for this
     function to applicable.
 

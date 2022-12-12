@@ -31,7 +31,7 @@ import qutip.settings as settings
 from qutip.cy.spconvert import dense2D_to_fastcsr_fmode
 
 import qutip.logging_utils
-logger = qutip.logging_utils.get_logger()
+logger = qutip.logging_utils.get_logger('qutip.steadystate')
 logger.setLevel('DEBUG')
 
 # Load MKL spsolve if avaiable
@@ -104,7 +104,7 @@ def steadystate(A, c_op_list=[], method='direct', solver=None, **kwargs):
 
     Parameters
     ----------
-    A : :obj:`~Qobj`
+    A : :obj:`~qutip.Qobj`
         A Hamiltonian or Liouvillian operator.
 
     c_op_list : list
@@ -935,13 +935,13 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False):
 
     Parameters
     ----------
-    H_0 : :obj:`~Qobj`
+    H_0 : :obj:`~qutip.Qobj`
         A Hamiltonian or Liouvillian operator.
 
     c_ops : list
         A list of collapse operators.
 
-    Op_t : :obj:`~Qobj`
+    Op_t : :obj:`~qutip.Qobj`
         The the interaction operator which is multiplied by the cosine
 
     w_d : float, default 1.0
@@ -1148,7 +1148,7 @@ def _pseudo_inverse_dense(L, rhoss, w=None, **pseudo_args):
         try:
             LIQ = np.linalg.solve(L.full(), Q)
         except Exception:
-            LIQ = np.linalg.lstsq(L.full(), Q)[0]
+            LIQ = np.linalg.lstsq(L.full(), Q, rcond=None)[0]
 
         R = np.dot(Q, LIQ)
 

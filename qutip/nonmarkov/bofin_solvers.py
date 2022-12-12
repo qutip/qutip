@@ -312,7 +312,7 @@ class HierarchyADOsState:
 
     Parameters
     ----------
-    rho : :class:`Qobj`
+    rho : :class:`~qutip.Qobj`
         The current state of the system (i.e. the 0th component of the
         hierarchy).
     ados : :class:`HierarchyADOs`
@@ -356,7 +356,7 @@ class HierarchyADOsState:
         Returns
         -------
         Qobj
-            A :obj:`Qobj` representing the state of the specified ADO.
+            A :obj:`~qutip.Qobj` representing the state of the specified ADO.
         """
         if isinstance(idx_or_label, int):
             idx = idx_or_label
@@ -375,8 +375,8 @@ class HEOMSolver:
     ----------
     H_sys : QObj, QobjEvo or a list
         The system Hamiltonian or Liouvillian specified as either a
-        :obj:`Qobj`, a :obj:`QobjEvo`, or a list of elements that may
-        be converted to a :obj:`ObjEvo`.
+        :obj:`~qutip.Qobj`, a :obj:`~qutip.QobjEvo`, or a list of elements
+        that may be converted to a :obj:`~qutip.QobjEvo`.
 
     bath : Bath or list of Bath
         A :obj:`Bath` containing the exponents of the expansion of the
@@ -457,8 +457,15 @@ class HEOMSolver:
 
         if progress_bar is None:
             self.progress_bar = BaseProgressBar()
-        if progress_bar is True:
+        elif progress_bar is True:
             self.progress_bar = TextProgressBar()
+        elif isinstance(progress_bar, BaseProgressBar):
+            self.progress_bar = progress_bar
+        else:
+            raise TypeError(
+                "progress_bar is not an instance of "
+                "qutip.ui.BaseProgressBar"
+            )
 
         self._configure_solver()
 
@@ -825,7 +832,7 @@ class HEOMSolver:
         Parameters
         ----------
         rho0 : Qobj or HierarchyADOsState or numpy.array
-            Initial state (:obj:`~Qobj` density matrix) of the system
+            Initial state (:obj:`~qutip.Qobj` density matrix) of the system
             if ``ado_init`` is ``False``.
 
             If ``ado_init`` is ``True``, then ``rho0`` should be an
@@ -938,7 +945,7 @@ class HEOMSolver:
                 solver.y[:n ** 2].reshape(rho_shape, order='F'),
                 dims=rho_dims,
             )
-            if self.options.store_states:
+            if self.options.store_states or not e_ops:
                 output.states.append(rho)
             if ado_return or e_ops_callables:
                 ado_state = HierarchyADOsState(
@@ -1024,11 +1031,6 @@ class HSolverDL(HEOMSolver):
         Use boundary cut off approximation. If true, the Matsubara
         terminator is added to the system Liouvillian (and H_sys is
         promoted to a Liouvillian if it was a Hamiltonian).
-
-    progress_bar : None, True or :class:`BaseProgressBar`
-        Optional instance of BaseProgressBar, or a subclass thereof, for
-        showing the progress of the solver. If True, an instance of
-        :class:`TextProgressBar` is used instead.
 
     options : :class:`qutip.solver.Options`
         Generic solver options.

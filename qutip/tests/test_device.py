@@ -91,7 +91,7 @@ def test_numerical_evolution(
         init_state = qutip.tensor(extra, state)
     else:
         init_state = state
-    options = qutip.Options(store_final_state=True, nsteps=50_000)
+    options = qutip.Options(store_final_state=True, nsteps=100_000)
     result = device.run_state(init_state=init_state,
                               analytical=False,
                               options=options)
@@ -138,7 +138,7 @@ def test_numerical_circuit(circuit, device_class, kwargs, schedule_mode):
         init_state = qutip.tensor(extra, state)
     else:
         init_state = state
-    options = qutip.Options(store_final_state=True, nsteps=50_000)
+    options = qutip.Options(store_final_state=True, nsteps=100_000)
     result = device.run_state(init_state=init_state,
                               analytical=False,
                               options=options)

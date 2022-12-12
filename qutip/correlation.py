@@ -1069,18 +1069,15 @@ def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     rho_t = mesolve(H, rho0, tlist, c_ops, [],
                     args=args, options=options).states
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
-    H_shifted, c_ops_shifted, _args = _transform_L_t_shift_new(H, c_ops, args)
+    taulist = np.asarray(taulist)
     if config.tdname:
         _cython_build_cleanup(config.tdname)
     rhs_clear()
 
     for t_idx, rho in enumerate(rho_t):
-        if not isinstance(H, Qobj):
-            _args["_t0"] = tlist[t_idx]
-
         corr_mat[t_idx, :] = mesolve(
-            H_shifted, c_op * rho * a_op, taulist, c_ops_shifted,
-            [b_op], args=_args, options=options
+            H, c_op * rho * a_op, taulist + tlist[t_idx], c_ops,
+            [b_op], args=args, options=options
         ).expect[0]
 
         if t_idx == 1:
@@ -1205,7 +1202,8 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     ).states
 
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
-    H_shifted, c_ops_shifted, _args = _transform_L_t_shift_new(H, c_ops, args)
+    tlist = np.asarray(tlist)
+    taulist = np.asarray(taulist)
     if config.tdname:
         _cython_build_cleanup(config.tdname)
     rhs_clear()
@@ -1213,9 +1211,6 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     # calculation of <A(t)B(t+tau)C(t)> from only knowledge of psi0 requires
     # averaging over both t and tau
     for t_idx in range(np.size(tlist)):
-        if not isinstance(H, Qobj):
-            _args["_t0"] = tlist[t_idx]
-
         for trial_idx in range(options.ntraj[0]):
             if isinstance(a_op, Qobj) and isinstance(c_op, Qobj):
                 if a_op.dag() == c_op:
@@ -1225,9 +1220,9 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
                     # evolve these states and calculate expectation value of B
                     c_tau = chi_0.norm()**2 * mcsolve(
-                        H_shifted, chi_0/chi_0.norm(), taulist, c_ops_shifted,
+                        H, chi_0/chi_0.norm(), taulist + tlist[t_idx], c_ops,
                         [b_op],
-                        args=_args, ntraj=options.ntraj[1], options=options,
+                        args=args, ntraj=options.ntraj[1], options=options,
                         progress_bar=None
                     ).expect[0]
 
@@ -1252,9 +1247,9 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                 # evolve these states and calculate expectation value of B
                 c_tau = [
                     chi.norm()**2 * mcsolve(
-                        H_shifted, chi/chi.norm(), taulist, c_ops_shifted,
+                        H, chi/chi.norm(), taulist + tlist[t_idx], c_ops,
                         [b_op],
-                        args=_args, ntraj=options.ntraj[1], options=options,
+                        args=args, ntraj=options.ntraj[1], options=options,
                         progress_bar=None
                     ).expect[0]
                     for chi in chi_0
@@ -1316,55 +1311,3 @@ def _spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
         spectrum[idx] = -2 * np.real(s[0, 0])
 
     return spectrum
-
-
-# auxiliary
-def _transform_shift_one_coeff(op, args):
-    if isinstance(op, types.FunctionType):
-        # function-list based time-dependence
-        if isinstance(args, dict):
-            def fn(t, args_i):
-                return op(t + args_i["_t0"], args_i)
-            fn = lambda t, args_i: \
-                op(t + args_i["_t0"], args_i)
-        else:
-            def fn(t, args_i):
-                return op(t + args_i["_t0"], args_i["_user_args"])
-    else:
-        fn = sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",
-                 "(t+_t0)", " " + op + " ")
-    return fn
-
-
-def _transform_shift_one_op(op, args={}):
-    if isinstance(op, Qobj):
-        new_op = op
-    elif isinstance(op, QobjEvo):
-        new_op = op
-        new_op._shift
-    elif callable(op):
-        def new_op(t, args_i):
-            return op(t + args_i["_t0"], args_i)
-    elif isinstance(op, list):
-        new_op = []
-        for block in op:
-            if isinstance(block, list):
-                new_op.append([block[0],
-                               _transform_shift_one_coeff(block[1], args)])
-            else:
-                new_op.append(block)
-    return new_op
-
-
-def _transform_L_t_shift_new(H, c_ops, args={}):
-    H_shifted = _transform_shift_one_op(H, args)
-    c_ops_shifted = [_transform_shift_one_op(op, args) for op in c_ops]
-    if args is None:
-        _args = {"_t0": 0}
-    elif isinstance(args, dict):
-        _args = args.copy()
-        _args["_t0"] = 0
-    else:
-        _args = {"_user_args": args, "_t0": 0}
-
-    return H_shifted, c_ops_shifted, _args

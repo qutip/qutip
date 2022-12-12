@@ -153,6 +153,10 @@ def dependence_2ls(request):
     return request.param
 
 
+def coeff(t, _):
+    return np.sqrt(8*t)
+
+
 class TestTimeDependence:
     """
     Test correlations with time-dependent operators using a two-level system
@@ -202,6 +206,24 @@ class TestTimeDependence:
         correlation_ab = -forwards*backwards + _n_correlation(times, n_expect)
         g2_ab_0 = _trapz_2d(np.real(correlation_ab), times)
         assert abs(g2_ab_0 - 0.185) < 1e-2
+
+    @pytest.mark.parametrize("solver", ["me", "mc"])
+    def test_correlation_c_ops_td(self, solver):
+        t1 = 0.2
+        t2 = 0.5
+        tlist = [0, 0.2, 0.5]
+        H = qutip.qzero(2)
+        psi0 = qutip.basis(2, 1)
+        cops = [[qutip.destroy(2), coeff]]
+        a = qutip.destroy(2)
+        ad = a.dag()
+        options = qutip.Options(nsteps=1e5)
+        result = qutip.correlation_2op_2t(
+            H, psi0, [0, t1], [0, t2-t1], cops, ad, a, solver=solver
+        )[1, 1].real
+        expected = np.exp(-(4.0 * t1 ** 2 + 4.0 * t2 ** 2) / 2)
+        atol = 2e-6 if solver == "me" else 0.2 # 4 sigma
+        np.testing.assert_allclose(result, expected, atol=atol)
 
 
 def _step(t):

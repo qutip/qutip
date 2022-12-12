@@ -41,7 +41,7 @@ The most general form of a master equation for the system dynamics is obtained b
 
 where the additional assumption that the total system-bath density matrix can be factorized as :math:`\rho(t) \approx \rho_S(t) \otimes \rho_B`. This assumption is known as the Born approximation, and it implies that there never is any entanglement between the system and the bath, neither in the initial state nor at any time during the evolution. *It is justified for weak system-bath interaction.*
 
-The master equation :eq:`br-nonmarkovian-form-one` is non-Markovian, i.e., the change in the density matrix at a time :math:`t` depends on states at all times :math:`\tau < t`, making it intractable to solve both theoretically and numerically. To make progress towards a manageable master equation, we now introduce the Markovian approximation, in which :math:`\rho(s)` is replaced by :math:`\rho(t)` in Eq. :eq:`br-nonmarkovian-form-one`. The result is the Redfield equation
+The master equation :eq:`br-nonmarkovian-form-one` is non-Markovian, i.e., the change in the density matrix at a time :math:`t` depends on states at all times :math:`\tau < t`, making it intractable to solve both theoretically and numerically. To make progress towards a manageable master equation, we now introduce the Markovian approximation, in which :math:`\rho_S(\tau)` is replaced by :math:`\rho_S(t)` in Eq. :eq:`br-nonmarkovian-form-one`. The result is the Redfield equation
 
 .. math::
    :label: br-nonmarkovian-form-two
@@ -194,7 +194,7 @@ To illustrate how to calculate the Bloch-Redfield tensor, let's consider a two-l
         return gamma1 / 2 * (w / (2 * np.pi)) * (w > 0.0)
 
 
-    R, ekets = bloch_redfield_tensor(H, [[sigmax(), ohmic_spectrum]])
+    R, H_ekets = bloch_redfield_tensor(H, [[sigmax(), ohmic_spectrum]])
 
     print(R)
 
@@ -213,7 +213,7 @@ To illustrate how to calculate the Bloch-Redfield tensor, let's consider a two-l
      [ 0.        +0.j         0.        +0.j         0.        +0.j
       -0.24514517+0.j       ]]
 
-Note that it is also possible to add Lindblad dissipation superoperators in the Bloch-Refield tensor by passing the operators via the ``c_ops`` keyword argument like you would in the :func:`qutip.mesolve` or :func:`qutip.mcsolve` functions. For convenience, the function :func:`qutip.bloch_redfield.bloch_redfield_tensor` also returns a list of eigenkets `ekets`, since they are calculated in the process of calculating the Bloch-Redfield tensor `R`, and the `ekets` are usually needed again later when transforming operators between the computational basis and the eigenbasis.
+Note that it is also possible to add Lindblad dissipation superoperators in the Bloch-Refield tensor by passing the operators via the ``c_ops`` keyword argument like you would in the :func:`qutip.mesolve` or :func:`qutip.mcsolve` functions. For convenience, the function :func:`qutip.bloch_redfield.bloch_redfield_tensor` also returns the eigenstates of `H` (`H_ekets`), since they are calculated in the process of calculating the Bloch-Redfield tensor `R`, and the `H_ekets` are usually needed again later when transforming operators between the computational basis and the eigenbasis.
 
 
 .. plot::
@@ -232,9 +232,9 @@ Note that it is also possible to add Lindblad dissipation superoperators in the 
       else: # relaxation inducing noise
         return gamma1 / 2 * (w / (2 * np.pi)) * (w > 0.0)
 
-    R, ekets = bloch_redfield_tensor(H, [[sigmax(), ohmic_spectrum]])
+    R, H_ekets = bloch_redfield_tensor(H, [[sigmax(), ohmic_spectrum]])
 
-The evolution of a wavefunction or density matrix, according to the Bloch-Redfield master equation :eq:`br-final`, can be calculated using the QuTiP function :func:`qutip.bloch_redfield.bloch_redfield_solve`. It takes five mandatory arguments: the Bloch-Redfield tensor ``R``, the list of eigenkets ``ekets``, the initial state ``psi0`` (as a ket or density matrix), a list of times ``tlist`` for which to evaluate the expectation values, and a list of operators ``e_ops`` for which to evaluate the expectation values at each time step defined by `tlist`. For example, to evaluate the expectation values of the :math:`\sigma_x`, :math:`\sigma_y`, and :math:`\sigma_z` operators for the example above, we can use the following code:
+The evolution of a wavefunction or density matrix, according to the Bloch-Redfield master equation :eq:`br-final`, can be calculated using the QuTiP function :func:`qutip.bloch_redfield.bloch_redfield_solve`. It takes five mandatory arguments: the Bloch-Redfield tensor ``R``, the list of eigenkets ``H_ekets`` of the hamiltonian, the initial state ``psi0`` (as a ket or density matrix), a list of times ``tlist`` for which to evaluate the expectation values, and a list of operators ``e_ops`` for which to evaluate the expectation values at each time step defined by `tlist`. For example, to evaluate the expectation values of the :math:`\sigma_x`, :math:`\sigma_y`, and :math:`\sigma_z` operators for the example above, we can use the following code:
 
 .. plot::
     :context:
@@ -245,7 +245,7 @@ The evolution of a wavefunction or density matrix, according to the Bloch-Redfie
 
     e_ops = [sigmax(), sigmay(), sigmaz()]
 
-    expt_list = bloch_redfield_solve(R, ekets, psi0, tlist, e_ops)
+    expt_list = bloch_redfield_solve(R, H_ekets, psi0, tlist, e_ops)
 
     sphere = Bloch()
 
@@ -341,7 +341,7 @@ In many cases, the bath-coupling operators can take the form :math:`A = f(t)a + 
 where the first tuple element ``(a, a.dag())`` tells the solver which operators make up the full Hermitian coupling operator.  The second tuple ``('{0} * (w >= 0)'.format(kappa), 'exp(1j*t)', 'exp(-1j*t)')``, gives the noise power spectrum, and time-dependence of each operator.  Note that the noise spectrum must always come first in this second tuple. A full example is:
 
 .. plot::
-    :context:
+    :context: close-figs
 
     N = 10
 
@@ -375,5 +375,7 @@ where the first tuple element ``(a, a.dag())`` tells the solver which operators 
 
     plt.show()
 
+.. plot::
+    :context: close-figs
 
 Further examples on time-dependent Bloch-Redfield simulations can be found in the online tutorials.
