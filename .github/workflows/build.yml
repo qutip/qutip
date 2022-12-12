@@ -54,7 +54,7 @@ jobs:
           # For the sdist we should be as conservative as possible with our
           # Python version.  This should be the lowest supported version.  This
           # means that no unsupported syntax can sneak through.
-          python-version: '3.6'
+          python-version: '3.7'
 
       - name: Install pip build
         run: |
