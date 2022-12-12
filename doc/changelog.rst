@@ -44,6 +44,7 @@ Miscellaneous
 - Add towncrier draft build of changelog to CI tests. (#1946)
 - Add Python 3.11 to builds. (#2041)
 - Simplify version parsing by using packaging.version.Version. (#2043)
+- Update builds to use cibuildwheel 2.11, and to build with manylinux2014 on Python 3.8 and 3.9, since numpy and SciPy no longer support manylinux2010 on those versions of Python. (#2047)
 
 
 Version 4.7.0 (April 13, 2022)
