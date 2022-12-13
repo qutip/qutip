@@ -503,7 +503,7 @@ or use ``0.5 * fock_dm(5, 2) + 0.5 * fock_dm(5, 4)``. There are also several oth
      [0.         0.         0.         0.08046635 0.        ]
      [0.         0.         0.         0.         0.04470353]]
 
-QuTiP also provides a set of distance metrics for determining how close two density matrix distributions are to each other. Included are the trace distance :func:`qutip.metrics.tracedist`, fidelity :func:`qutip.metrics.fidelity`, Hilbert-Schmidt distance :func:`qutip.metrics.hilbert_dist`, Bures distance :func:`qutip.metrics.bures_dist`, Bures angle :func:`qutip.metrics.bures_angle`, and quantum Hellinger distance :func:`qutip.metrics.hellinger_dist`.
+QuTiP also provides a set of distance metrics for determining how close two density matrix distributions are to each other. Included are the trace distance :func:`qutip.core.metrics.tracedist`, fidelity :func:`qutip.core.metrics.fidelity`, Hilbert-Schmidt distance :func:`qutip.core.metrics.hilbert_dist`, Bures distance :func:`qutip.core.metrics.bures_dist`, Bures angle :func:`qutip.core.metrics.bures_angle`, and quantum Hellinger distance :func:`qutip.core.metrics.hellinger_dist`.
 
 .. testcode:: [states]
 

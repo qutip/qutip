@@ -760,7 +760,7 @@ def displace(N, alpha, offset=0, *, dtype=_data.Dense):
         Displacement operator.
 
     Examples
-    ---------
+    --------
     >>> displace(4,0.25) # doctest: +SKIP
     Quantum object: dims = [[4], [4]], \
 shape = [4, 4], type = oper, isHerm = False

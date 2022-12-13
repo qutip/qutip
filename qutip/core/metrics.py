@@ -176,7 +176,7 @@ def process_fidelity(oper, target=None):
     The definition of state fidelity that the process fidelity is based on
     is the one from R. Jozsa, Journal of Modern Optics, 41:12, 2315 (1994).
     It is the square of the one implemented in
-    :func:`qutip.metrics.fidelity` which follows Nielsen & Chuang,
+    :func:`qutip.core.metrics.fidelity` which follows Nielsen & Chuang,
     "Quantum Computation and Quantum Information"
 
     """
@@ -236,7 +236,7 @@ def average_gate_fidelity(oper, target=None):
     The definition of state fidelity that the average gate fidelity is based on
     is the one from R. Jozsa, Journal of Modern Optics, 41:12, 2315 (1994).
     It is the square of the fidelity implemented in
-    :func:`qutip.metrics.fidelity` which follows Nielsen & Chuang,
+    :func:`qutip.core.metrics.fidelity` which follows Nielsen & Chuang,
     "Quantum Computation and Quantum Information"
 
     """

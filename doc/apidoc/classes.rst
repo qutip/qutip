@@ -9,7 +9,7 @@ Classes
 Qobj
 --------------
 
-.. autoclass:: qutip.Qobj
+.. autoclass:: qutip.core.qobj.Qobj
     :members:
 
 .. _classes-qobjevo:
@@ -17,7 +17,7 @@ Qobj
 QobjEvo
 --------------
 
-.. autoclass:: qutip.QobjEvo
+.. autoclass:: qutip.core.cy.qobjevo.QobjEvo
     :members:
 
 

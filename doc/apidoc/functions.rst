@@ -102,7 +102,7 @@ Entropy Functions
 Density Matrix Metrics
 ----------------------
 
-.. automodule:: qutip.metrics
+.. automodule:: qutip.core.metrics
     :members: fidelity, tracedist, bures_dist, bures_angle, hellinger_dist, hilbert_dist, average_gate_fidelity, process_fidelity, unitarity, dnorm
 
 

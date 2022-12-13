@@ -61,7 +61,7 @@ def plot_wigner_sphere(fig, ax, wigner, reflections):
         If the reflections of the sphere should be plotted as well.
 
     Notes
-    ------
+    -----
     Special thanks to Russell P Rundle for writing this function.
     """
     ax.set_xlabel("x")
