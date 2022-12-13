@@ -439,6 +439,7 @@ HEOM revamp
 
 An overhaul of the HEOM solver, to incorporate the improvements pioneered in BoFiN.
 
+.. _release roadmap:
 
 QuTiP major release roadmap
 ===========================
