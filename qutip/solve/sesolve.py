@@ -34,13 +34,13 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
     Parameters
     ----------
 
-    H : :class:`~Qobj`, :class:`~QobjEvo`, list, or callable
-        System Hamiltonian as a :obj:`~Qobj , list of :obj:`Qobj` and
-        coefficient, :obj:`~QObjEvo`, or a callback function for time-dependent
-        Hamiltonians.  List format and options can be found in QobjEvo's
-        description.
+    H : :class:`~qutip.Qobj`, :class:`~qutip.QobjEvo`, list, or callable
+        System Hamiltonian as a :obj:`~qutip.Qobj` , list of
+        :obj:`~qutip.Qobj` and coefficient, :obj:`~qutip.QobjEvo`,
+        or a callback function for time-dependent Hamiltonians. List format
+        and options can be found in QobjEvo's description.
 
-    psi0 : :class:`~Qobj`
+    psi0 : :class:`~qutip.Qobj`
         Initial state vector (ket) or initial unitary operator ``psi0 = U``.
 
     tlist : array_like of float
@@ -70,13 +70,13 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
     Returns
     -------
 
-    output: :class:`~solver.Result`
-        An instance of the class :class:`~solver.Result`, which contains either
-        an array of expectation values for the times specified by ``tlist``, or
-        an array or state vectors corresponding to the times in ``tlist`` (if
-        ``e_ops`` is an empty list), or nothing if a callback function was
-        given inplace of operators for which to calculate the expectation
-        values.
+    output: :class:`~qutip.solver.Result`
+        An instance of the class :class:`~qutip.solver.Options`, which
+        contains either an array of expectation values for the times
+        specified by ``tlist``, or an array or state vectors
+        corresponding to the times in ``tlist`` (if ``e_ops`` is an empty
+        list), or nothing if a callback function was given inplace of
+        operators for which to calculate the expectation values.
     """
     if e_ops is None:
         e_ops = []
@@ -120,7 +120,7 @@ def sesolve(H, psi0, tlist, e_ops=None, args=None, options=None,
     elif callable(H):
         ss = _sesolve_func_td(H, args, options)
     else:
-        raise Exception("Invalid H type")
+        raise TypeError(f"Invalid H: {H!r}")
 
     func, ode_args = ss.makefunc(ss, psi0, args, e_ops, options)
 

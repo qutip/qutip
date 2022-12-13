@@ -280,7 +280,7 @@ QuTiP offers a few functions for quickly visualizing matrix data in the
 form of histograms, :func:`qutip.visualization.matrix_histogram` and
 :func:`qutip.visualization.matrix_histogram_complex`, and as Hinton diagram of weighted
 squares, :func:`qutip.visualization.hinton`. These functions takes a
-:class:`qutip.Qobj.Qobj` as first argument, and optional arguments to, for
+:class:`qutip.Qobj` as first argument, and optional arguments to, for
 example, set the axis labels and figure title (see the function's documentation
 for details).
 

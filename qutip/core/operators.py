@@ -685,7 +685,7 @@ def squeeze(N, z, offset=0, *, dtype=_data.CSR):
 
     Returns
     -------
-    oper : :class:`qutip.qobj.Qobj`
+    oper : :class:`qutip.Qobj`
         Squeezing operator.
 
 
@@ -716,10 +716,10 @@ def squeezing(a1, a2, z):
 
     Parameters
     ----------
-    a1 : :class:`qutip.qobj.Qobj`
+    a1 : :class:`qutip.Qobj`
         Operator 1.
 
-    a2 : :class:`qutip.qobj.Qobj`
+    a2 : :class:`qutip.Qobj`
         Operator 2.
 
     z : float/complex
@@ -727,7 +727,7 @@ def squeezing(a1, a2, z):
 
     Returns
     -------
-    oper : :class:`qutip.qobj.Qobj`
+    oper : :class:`qutip.Qobj`
         Squeezing operator.
 
     """

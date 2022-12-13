@@ -107,7 +107,8 @@ The following code sets up the problem
 Given that we have a single time-dependent Hamiltonian term, and constant collapse terms, we need to specify a single Python function for the coefficient :math:`f(t)`.  In this case, one can simply do
 
 .. plot::
-    :context: close-figs
+    :context:
+    :nofigs:
 
     def H1_coeff(t):
         return 9 * np.exp(-(t / 5.) ** 2)

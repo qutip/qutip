@@ -102,8 +102,8 @@ Entropy Functions
 Density Matrix Metrics
 ----------------------
 
-.. automodule:: qutip.core.metrics
-    :members: fidelity, tracedist, bures_dist, bures_angle, hilbert_dist, average_gate_fidelity, process_fidelity
+.. automodule:: qutip.metrics
+    :members: fidelity, tracedist, bures_dist, bures_angle, hellinger_dist, hilbert_dist, average_gate_fidelity, process_fidelity, unitarity, dnorm
 
 
 Continuous Variables
@@ -120,7 +120,7 @@ Measurement of quantum states
 -----------------------------
 
 .. automodule:: qutip.measurement
-    :members: measure, measure_observable, measurement_statistics, measurement_statistics_observable
+    :members: measure, measure_povm, measure_observable, measurement_statistics, measurement_statistics_observable, measurement_statistics_povm
 
 
 Dynamics and Time-Evolution
