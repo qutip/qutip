@@ -141,9 +141,7 @@ def _determine_version(options):
     version_filename = os.path.join(options['rootdir'], 'VERSION')
     with open(version_filename, "r") as version_file:
         version_string = version_file.read().strip()
-    version = packaging.version.parse(version_string)
-    if isinstance(version, packaging.version.LegacyVersion):
-        raise ValueError("invalid version: " + version_string)
+    version = packaging.version.Version(version_string)
     options['short_version'] = str(version.public)
     options['release'] = not version.is_devrelease
     if not options['release']:

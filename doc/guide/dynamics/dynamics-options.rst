@@ -17,7 +17,7 @@ The options for all dynamics solvers may be changed by using the dictionaries.
    options = {"store_states": True, "atol": 1e-12}
 
 Supported items come from 2 sources, the solver and the ODE integration method.
-Supported solver options and their default can be seen with the class interface:
+Supported solver options and their default can be seen using the class interface:
 
 .. testcode:: [dynamics_options]
 
@@ -27,23 +27,21 @@ Options supported by the ODE integration depend on the "method" options of the s
 
 .. testcode:: [dynamics_options]
 
-   help(MeSolver.integrator("adams"))
+   help(MeSolver.integrator("adams").options)
 
 See `Integrator <../../apidoc/classes.html#classes-ode>`_ for a list of supported methods.
 
 
-As an example, let us consider changing the number of processors used, turn the GUI off, and strengthen the absolute tolerance.  There are two equivalent ways to do this using the SolverOptions class.  First way,
+As an example, let us consider changing the integrator, turn the GUI off, and strengthen the absolute tolerance.
 
 .. testcode:: [dynamics_options]
 
-    options = {method="bdf", "atol": 1e-10}
+    options = {method="bdf", "atol": 1e-10, "progress_bar": False}
 
-To use these new settings we can use the keyword argument ``options`` in either the func:`qutip.mesolve` and :func:`qutip.mcsolve` function.  We can modify the last example as::
+To use these new settings we can use the keyword argument ``options`` in either the :func:`qutip.mesolve` and :func:`qutip.mcsolve` function::
 
     >>> mesolve(H0, psi0, tlist, c_op_list, [sigmaz()], options=options)
-    >>> MeSolver(hamiltonian_t, c_op_list, options=options)
 
 or::
 
-    >>> mcsolve(H0, psi0, tlist, ntraj,c_op_list, [sigmaz()], options=options)
-    >>> mcsolve(hamiltonian_t, psi0, tlist, ntraj, c_op_list, [sigmaz()], H_args, options=options)
+    >>> McSolver(H0, c_op_list, options=options)
