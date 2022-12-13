@@ -50,7 +50,7 @@ Liouvillian super operator in Lindblad form, or alternatively, a Liouvillian
 passed by the user.
 
 Both the ``"direct"`` and ``"power"`` method need to solve a linear equation
-system. To do so, there are multiple solver available: ``
+system. To do so, there are multiple solvers available: ``
 
 .. cssclass:: table-striped
 
@@ -109,7 +109,7 @@ output, labelled as ``rho_ss``, is the steady-state solution for the systems.
 If no other keywords are passed to the solver, the default 'direct' method is
 used with ``numpy.linalg.solve``, generating a solution that is exact to
 machine precision at the expense of a large memory requirement. However
-Liouvillian are often quite sparse and using sparse method is preferred:
+Liouvillians are often quite sparse and using a sparse solver may be preferred:
 
 
 .. code-block:: python
@@ -120,22 +120,22 @@ where ``method='power'`` indicates that we are using the inverse-power solution
 method, and ``solver="spsolve"`` indicate to use the sparse solver.
 
 
-Sparse solver still use quite a large amout memory when the factorize the
-matrix since the Liouvillian usually have a large bandwidth.
-:func:`qutip.steadystate` allows to use bandwidth minimization algorithms as
-listed in :ref:`steady-args`. It can be used as:
+Sparse solvers may still use quite a large amount of memory when they factorize the
+matrix since the Liouvillian usually has a large bandwidth.
+To address this, :func:`qutip.steadystate` allows one to use the bandwidth minimization algorithms
+listed in :ref:`steady-args`. For example:
 
 .. code-block:: python
 
    rho_ss = steadystate(H, c_ops, solver="spsolve", use_rcm=True)
 
-``use_rcm=True`` turns on a bandwidth minimization routine.
+where ``use_rcm=True`` turns on a bandwidth minimization routine.
 
 Although it is not obvious, the ``'direct'``, ``'eigen'``, and ``'power'``
 methods all use an LU decomposition internally and thus can have a large
-memory overhead.  In contrast, iterative solver such as the ``'gmres'``,
+memory overhead.  In contrast, iterative solvers such as the ``'gmres'``,
 ``'lgmres'``, and ``'bicgstab'`` do not factor the matrix and thus take less
-memory than these previous methods and allowing, in principle, for extremely
+memory than the LU methods and allow, in principle, for extremely
 large system sizes. The downside is that these methods can take much longer
 than the direct method as the condition number of the Liouvillian matrix is
 large, indicating that these iterative methods require a large number of
@@ -182,7 +182,7 @@ The following additional solver arguments are available for the steady-state sol
    :header-rows: 1
 
    * - Keyword
-     - Defaul
+     - Default
      - Description
    * - weight
      - None
@@ -195,7 +195,7 @@ The following additional solver arguments are available for the steady-state sol
      - Use a Reverse Cuthill-Mckee reordering to minimize the bandwidth of the modified Liouvillian used in the LU decomposition.
    * - use_wbm
      - False
-     - Use a Weighted Bipartite Matching algorithm to attempt to make the modified Liouvillian more diagonally dominate, and thus for favorable for preconditioning.
+     - Use a Weighted Bipartite Matching algorithm to attempt to make the modified Liouvillian more diagonally dominant, and thus for favorable for preconditioning.
    * - power_tol
      - 1e-12
      - Tolerance for the solution when using the 'power' method.
