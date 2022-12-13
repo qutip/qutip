@@ -110,11 +110,8 @@ jobs:
           # error prone. See, e.g., https://github.com/qutip/qutip/issues/1202
           - case-name: Windows Latest
             os: windows-latest
-<<<<<<< HEAD
-=======
             python-version: "3.10"
             pytest-extra-options: "-W ignore::ImportWarning -k 'not (test_correlation or test_interpolate or test_mcsolve)'"
->>>>>>> upstream/master
 
     steps:
       - uses: actions/checkout@v3
@@ -223,7 +220,7 @@ jobs:
           python -m pip install towncrier
 
       - name: Verify Towncrier entry added
-        if: github.event_name == 'pull_request'
+        if: False # github.event_name == 'pull_request'
         env:
           BASE_BRANCH: ${{ github.base_ref }}
         run: |
