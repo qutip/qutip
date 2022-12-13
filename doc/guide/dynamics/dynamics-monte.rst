@@ -97,11 +97,11 @@ Monte Carlo Solver Result
 -------------------------
 
 The Monte Carlo solver returns a :class:`qutip.MultitrajResult` object consisting of expectation values and/or states.
-The main difference with :func:`qutip.mesolve`'s :class:`qutip.Result` is that it optionally store the result of each trajectories with the averages.
+The main difference with :func:`qutip.mesolve`'s :class:`qutip.Result` is that it optionally stores the result of each trajectory together with their averages.
 When trajectories are stored, ``result.runs_expect`` is a list over the expectation operators, trajectories and times in that order.
 The averages are stored in ``result.average_expect`` and the standard derivation of the expectation values in ``result.std_expect``.
-When states are returned, ``result.runs_states`` will be an array of length ``ntraj``, with each element containing an array of ket-type qobjs with the same number of elements as ``times`` and ``result.average_states`` is a list of density matrices for each times.
-Furthermore, the output will also contain a list of times at which collapse occurred, and which collapse operators did the collapse, in the ``col_times`` and ``col_which`` properties, respectively.
+When the states are returned, ``result.runs_states`` will be an array of length ``ntraj``. Each element contains an array of "Qobj" type ket with the same number of elements as ``times``. ``result.average_states`` is a list of density matrices computed as the average of the states at each time step.
+Furthermore, the output will also contain a list of times at which the collapse occurred, and which collapse operators did the collapse. These can be obtained in  ``result.col_times`` and ``result.col_which`` respectively.
 Lastly ``result.photocurrent`` contain the measurement of the evolution.
 
 
@@ -128,10 +128,10 @@ Lastly ``result.photocurrent`` contain the measurement of the evolution.
 Changing the Number of Trajectories
 -----------------------------------
 
-As mentioned earlier, by default, the ``mcsolve`` function runs 500 trajectories.
+By default, the ``mcsolve`` function runs 500 trajectories.
 This value was chosen because it gives good accuracy, Monte Carlo errors scale as :math:`1/n` where :math:`n` is the number of trajectories, and simultaneously does not take an excessive amount of time to run.
-However, like many other options in QuTiP you are free to change the number of trajectories to fit your needs.
-If we want to run 1000 trajectories in the above example, we can simply modify the call to ``mcsolve`` like:
+However, you can change the number of trajectories to fit your needs.
+In order to run 1000 trajectories in the above example, we can simply modify the call to ``mcsolve`` like:
 
 .. plot::
     :context: close-figs
@@ -140,8 +140,7 @@ If we want to run 1000 trajectories in the above example, we can simply modify t
 
 where we have added the keyword argument ``ntraj=1000`` at the end of the inputs.
 Now, the Monte Carlo solver will calculate expectation values for both operators, ``a.dag() * a, sm.dag() * sm`` averaging over 1000 trajectories.
-Sometimes one is also interested in seeing how the Monte Carlo trajectories converge to the master equation solution by calculating expectation values over a range of trajectory numbers.
-If, for example, we want to average over 1, 10 and 100 trajectories, we must first run the solver keeping expectation values for each trajectories:
+In order to explore the convergence of the Monte Carlo solver, it is possible to retrieve expectation values as a function of the number of trajectories. For example, the following code block plots expectation values for 1, 10 and 100 trajectories by first running the solver for 100 trajectories but keeping the expectation values for each trajectory:
 
 .. plot::
     :context:
@@ -208,8 +207,7 @@ Using the previous example, we will calculate the dynamics for two different ini
 
 .. guide-dynamics-mc2:
 
-In addition to the initial state, one may reuse the Hamiltonian data when adding more trajectories to the result or changing simulation times ``times``.
-
+The ``MCSolver`` also allows adding new trajectories after the first computation. This is shown in the next example where the results of two separated runs with identical conditions are merged into a single ``result`` object.
 
 .. plot::
     :context: close-figs
