@@ -32,7 +32,6 @@ class IntegratorKrylov(Integrator):
         if not self.system.isconstant:
             raise ValueError("krylov method only support constant system.")
         self._max_step = -np.inf
-        self._step = 0
         krylov_dim = self.options["krylov_dim"]
         if krylov_dim < 0 or krylov_dim > self.system.shape[0]:
             raise ValueError("The options 'krylov_dim', must be a positive "
@@ -122,7 +121,7 @@ class IntegratorKrylov(Integrator):
 
     def _compute_max_step(self, krylov_tridiag, krylov_basis, krylov_state=None):
         """
-        Compute the maximum step lenght to stay under the desired tolerance.
+        Compute the maximum step length to stay under the desired tolerance.
         """
         if not krylov_state:
             krylov_state = self._compute_krylov_set(krylov_tridiag, krylov_basis)
@@ -184,17 +183,16 @@ class IntegratorKrylov(Integrator):
         return self._t_0, self._compute_psi(0, *self._krylov_state)
 
     def integrate(self, t, copy=True):
+        step = 0
         while t > self._t_0 + self._max_step:
             # The approximation in only valid in the range t_0, t_0 + max step
             # If outside, advance the range
-            self._step += 1
-            if self._step >= self.options["nsteps"]:
-                self._step = 0
-                raise IntegratorException
-            new_t0, new_psi = self.integrate(self._t_0 + self._max_step)
-            self.set_state(new_t0, new_psi)
+            step += 1
+            if step >= self.options["nsteps"]:
+                raise IntegratorException(f"Maximum number of integration steps ({self.options['nsteps']}) exceeded")
+            new_psi = self._compute_psi(self._max_step, *self._krylov_state)
+            self.set_state(self._t_0 + self._max_step, new_psi)
 
-        self._step = 0
         delta_t = t - self._t_0
         out = self._compute_psi(delta_t, *self._krylov_state)
         return t, out
@@ -215,15 +213,16 @@ class IntegratorKrylov(Integrator):
 
         krylov_dim: int, default=0
             Dimension of Krylov approximation subspaces used for the time
-            evolution approximation.
+            evolution approximation. If the defaut 0 is given, the dimension is calculated
+            from the system size N, using `min(int((N + 100)**0.5), N-1)`.
 
         sub_system_tol: float, default=1e-7
-            Tolerance to detect an happy breakdown. An happy breakdown happens
+            Tolerance to detect a happy breakdown. A happy breakdown occurs
             when the initial ket is in a subspace of the Hamiltonian smaller
             than ``krylov_dim``.
 
         always_compute_step: bool, default=False
-            If True, the step lenght is computed each time a new Krylov
+            If True, the step length is computed each time a new Krylov
             subspace is computed. Otherwise it is computed only once when
             creating the integrator.
         """
