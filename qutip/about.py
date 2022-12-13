@@ -11,12 +11,14 @@ import scipy
 import inspect
 from qutip.utilities import _blas_info, available_cpu_count
 import qutip.settings
+import pkg_resources
 
 
 def about():
     """
     About box for QuTiP. Gives version numbers for QuTiP, NumPy, SciPy, Cython,
     and MatPlotLib.
+    Also provides information about installed family packages like qutip-qip.
     """
     print("")
     print("QuTiP: Quantum Toolbox in Python")
@@ -60,6 +62,19 @@ def about():
                                            platform.machine()))
     qutip_install_path = os.path.dirname(inspect.getsourcefile(qutip))
     print("Installation path:  %s" % qutip_install_path)
+
+    # family packages
+    entrypoints = pkg_resources.iter_entry_points('qutip.about')
+    for ep in entrypoints:
+        about_func = ep.load()
+        try:
+            title, lines = about_func()
+        except Exception as exc:
+            title, lines = ep.name, [str(exc)]
+        print()
+        print(title)
+        for line in lines:
+            print(line)
 
     # citation
     longbar = "=" * 80
