@@ -52,7 +52,7 @@ jobs:
       - name: Build HTML documentation
         working-directory: doc
         run: |
-          make html SPHINXOPTS="-W --keep-going -T"
+          make html SPHINXOPTS="--keep-going -T"
           # Above flags are:
           #   -W : turn warnings into errors
           #   --keep-going : do not stop after the first error
