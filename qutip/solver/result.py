@@ -784,7 +784,10 @@ class MultiTrajResult(_BaseResult):
             Default: all trajectories.
         """
         if not self.trajectories:
-            return None
+            raise ValueError(
+                f"Trajectories information are not available. "
+                f"Use the options 'keep_runs_results' to store trajectories."
+            )
         if ntraj > len(self.trajectories):
             raise ValueError(
                 f"Cannot compute statistic for {ntraj} trajectories. "
@@ -809,7 +812,10 @@ class MultiTrajResult(_BaseResult):
             Default: all trajectories.
         """
         if not self.trajectories:
-            return None
+            raise ValueError(
+                f"Trajectories information are not available. "
+                f"Use the options 'keep_runs_results' to store trajectories."
+            )
         return list(self.e_data_traj_avg(ntraj).values())
 
     def e_data_traj_std(self, ntraj=-1):
@@ -824,7 +830,10 @@ class MultiTrajResult(_BaseResult):
             Default: all trajectories.
         """
         if not self.trajectories:
-            return None
+            raise ValueError(
+                f"Trajectories information are not available. "
+                f"Use the options 'keep_runs_results' to store trajectories."
+            )
         if ntraj > len(self.trajectories):
             raise ValueError(
                 f"Cannot compute statistic for {ntraj} trajectories. "
@@ -849,7 +858,10 @@ class MultiTrajResult(_BaseResult):
             Default: all trajectories.
         """
         if not self.trajectories:
-            return None
+            raise ValueError(
+                f"Trajectories information are not available. "
+                f"Use the options 'keep_runs_results' to store trajectories."
+            )
         return list(self.e_data_traj_std(ntraj).values())
 
     def __repr__(self):
