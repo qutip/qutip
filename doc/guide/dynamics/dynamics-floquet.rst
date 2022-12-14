@@ -155,7 +155,7 @@ Since the quasienergies can be associated with the time-scale of the long-term d
    >>> plt.title(r'Floquet quasienergies') # doctest: +SKIP
    >>> plt.show() # doctest: +SKIP
 
-Given the Floquet modes at :math:`t=0`, we obtain the Floquet mode at some later time :math:`t` using :method:`FloquetBasis.mode`:
+Given the Floquet modes at :math:`t=0`, we obtain the Floquet mode at some later time :math:`t` using :meth:`FloquetBasis.mode`:
 
 .. plot::
    :context: close-figs
