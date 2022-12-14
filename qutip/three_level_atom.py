@@ -56,7 +56,7 @@ def three_level_ops():
     Operators for a three level system (qutrit)
 
     Returns
-    --------
+    -------
     ops : np.array
         :obj:`numpy.ndarray` of three level operators.
     """

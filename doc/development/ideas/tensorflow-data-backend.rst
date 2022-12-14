@@ -6,6 +6,9 @@ TensorFlow Data Backend
     :local:
     :depth: 3
 
+.. note::
+    This project was completed as part of GSoC 2021 [3]_.
+
 QuTiP's data layer provides the mathematical operations needed to work with
 quantum states and operators, i.e. ``Qobj``, inside QuTiP. As part of Google
 Summer of Code 2020, the data layer was rewritten to allow new backends to
@@ -74,3 +77,4 @@ References
 
 .. [1] https://www.tensorflow.org/
 .. [2] https://github.com/tehruhn/bofin
+.. [3] https://github.com/qutip/qutip-tensorflow/

@@ -145,9 +145,9 @@ def mesolve(H, rho0, tlist, c_ops=None, e_ops=None, args=None, options=None,
 
     Returns
     -------
-    result: :class:`qutip.Result`
+    result: :class:`qutip.solver.Result`
 
-        An instance of the class :class:`qutip.Result`, which contains
+        An instance of the class :class:`qutip.solver.Result`, which contains
         either an *array* `result.expect` of expectation values for the times
         specified by `tlist`, or an *array* `result.states` of state vectors or
         density matrices corresponding to the times in `tlist` [if `e_ops` is

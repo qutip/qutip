@@ -806,7 +806,7 @@ def qfunc(
         that is used for single kets, set ``precompute_memory=None``.
 
     Returns
-    --------
+    -------
     ndarray
         Values representing the Husimi-Q function calculated over the specified
         range ``[xvec, yvec]``.

@@ -329,3 +329,11 @@ def test_sesolve_bad_e_ops():
     tlist = np.linspace(0, 20, 200)
     with pytest.raises(TypeError) as exc:
         sesolve(H, psi0, tlist=tlist, e_ops=[qeye(3)])
+
+def test_sesolve_bad_H():
+    H = sigmaz(),
+    psi0 = basis(2, 0)
+    tlist = np.linspace(0, 20, 200)
+    with pytest.raises(TypeError) as exc:
+        sesolve(H, psi0, tlist=tlist, e_ops=[qeye(3)])
+    assert str(exc.value).startswith("Invalid H:")
