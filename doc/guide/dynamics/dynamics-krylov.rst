@@ -45,7 +45,7 @@ Let's solve a simple example using the algorithm in QuTiP to get familiar with t
     :context: reset
 
     >>> from qutip import jmat, rand_ket
-		>>> from qutip.solver.krylovsolve import krylovsolve
+    >>> from qutip.solver.krylovsolve import krylovsolve
     >>> import numpy as np
     >>> import matplotlib.pyplot as plt
     >>> dim = 100
