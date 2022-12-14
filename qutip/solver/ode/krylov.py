@@ -131,6 +131,8 @@ class IntegratorKrylov(Integrator):
         reduced_state = self._compute_krylov_set(small_tridiag, small_basis)
 
         def krylov_error(t):
+            # we divide by atol and take the log so that the error returned is 0
+            # at atol, which is convenient for calling root_scalar with.
             return np.log(_data.norm.l2(
                 self._compute_psi(t, *krylov_state) -
                 self._compute_psi(t, *reduced_state)
