@@ -71,7 +71,7 @@ def testPropHOSteady():
     kappa = 0.1
     n_th = 2
     rate = kappa * (1 + n_th)
-    c_op_list.append(np.sqrt(rate) * a)e
+    c_op_list.append(np.sqrt(rate) * a)
     rate = kappa * n_th
     c_op_list.append(np.sqrt(rate) * a.dag())
     U = propagator(H, 2*np.pi, c_op_list)

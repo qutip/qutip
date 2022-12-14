@@ -74,7 +74,7 @@ To illustrate the use of the Monte Carlo evolution of quantum systems in QuTiP, 
     from qutip.solver.mcsolve import MCSolver, mcsolve
 
     times = np.linspace(0.0, 10.0, 200)
-    psi0 = tensor(fock(2, 0), fock(10, 5))
+    psi0 = tensor(fock(2, 0), fock(10, 8))
     a  = tensor(qeye(2), destroy(10))
     sm = tensor(destroy(2), qeye(10))
     H = 2*np.pi*a.dag()*a + 2*np.pi*sm.dag()*sm + 2*np.pi*0.25*(sm*a.dag() + sm.dag()*a)
@@ -92,7 +92,35 @@ To illustrate the use of the Monte Carlo evolution of quantum systems in QuTiP, 
 
 The advantage of the Monte Carlo method over the master equation approach is that only the state vector is required to be kept in the computers memory, as opposed to the entire density matrix. For large quantum system this becomes a significant advantage, and the Monte Carlo solver is therefore generally recommended for such systems. For example, simulating a Heisenberg spin-chain consisting of 10 spins with random parameters and initial states takes almost 7 times longer using the master equation rather than Monte Carlo approach with the default number of trajectories running on a quad-CPU machine.  Furthermore, it takes about 7 times the memory as well. However, for small systems, the added overhead of averaging a large number of stochastic trajectories to obtain the open system dynamics, as well as starting the multiprocessing functionality, outweighs the benefit of the minor (in this case) memory saving. Master equation methods are therefore generally more efficient when Hilbert space sizes are on the order of a couple of hundred states or smaller.
 
-Like the master equation solver :func:`qutip.mesolve`, the Monte Carlo solver returns a :class:`qutip.Result` object consisting of expectation values, if the user has defined expectation value operators in the 5th argument to ``mcsolve``, or state vectors if no expectation value operators are given.  If state vectors are returned, then the :class:`qutip.Result` returned by :func:`qutip.mcsolve` will be an array of length ``ntraj``, with each element containing an array of ket-type qobjs with the same number of elements as ``times``.  Furthermore, the output :class:`qutip.Result` object will also contain a list of times at which collapse occurred, and which collapse operators did the collapse, in the ``col_times`` and ``col_which`` properties, respectively.
+
+Monte Carlo Solver Result
+-------------------------
+
+The Monte Carlo solver returns a :class:`qutip.MultitrajResult` object consisting of expectation values and/or states.
+The main difference with :func:`qutip.mesolve`'s :class:`qutip.Result` is that it optionally stores the result of each trajectory together with their averages.
+When trajectories are stored, ``result.runs_expect`` is a list over the expectation operators, trajectories and times in that order.
+The averages are stored in ``result.average_expect`` and the standard derivation of the expectation values in ``result.std_expect``.
+When the states are returned, ``result.runs_states`` will be an array of length ``ntraj``. Each element contains an array of "Qobj" type ket with the same number of elements as ``times``. ``result.average_states`` is a list of density matrices computed as the average of the states at each time step.
+Furthermore, the output will also contain a list of times at which the collapse occurred, and which collapse operators did the collapse. These can be obtained in  ``result.col_times`` and ``result.col_which`` respectively.
+Lastly ``result.photocurrent`` contain the measurement of the evolution.
+
+
+.. plot::
+    :context: close-figs
+
+    times = np.linspace(0.0, 10.0, 200)
+    psi0 = tensor(fock(2, 0), fock(10, 8))
+    a  = tensor(qeye(2), destroy(10))
+    sm = tensor(destroy(2), qeye(10))
+    H = 2*np.pi*a.dag()*a + 2*np.pi*sm.dag()*sm + 2*np.pi*0.25*(sm*a.dag() + sm.dag()*a)
+    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], e_ops=[a.dag() * a, sm.dag() * sm])
+
+    plt.figure()
+    plt.plot((times[:-1] + times[1:])/2, data.photocurrent[0])
+    plt.title('Monte Carlo Photocurrent')
+    plt.xlabel('Time')
+    plt.ylabel('Photon detections')
+    plt.show()
 
 
 .. _monte-ntraj:
@@ -100,10 +128,10 @@ Like the master equation solver :func:`qutip.mesolve`, the Monte Carlo solver re
 Changing the Number of Trajectories
 -----------------------------------
 
-As mentioned earlier, by default, the ``mcsolve`` function runs 500 trajectories.
+By default, the ``mcsolve`` function runs 500 trajectories.
 This value was chosen because it gives good accuracy, Monte Carlo errors scale as :math:`1/n` where :math:`n` is the number of trajectories, and simultaneously does not take an excessive amount of time to run.
-However, like many other options in QuTiP you are free to change the number of trajectories to fit your needs.
-If we want to run 1000 trajectories in the above example, we can simply modify the call to ``mcsolve`` like:
+However, you can change the number of trajectories to fit your needs.
+In order to run 1000 trajectories in the above example, we can simply modify the call to ``mcsolve`` like:
 
 .. plot::
     :context: close-figs
@@ -112,13 +140,12 @@ If we want to run 1000 trajectories in the above example, we can simply modify t
 
 where we have added the keyword argument ``ntraj=1000`` at the end of the inputs.
 Now, the Monte Carlo solver will calculate expectation values for both operators, ``a.dag() * a, sm.dag() * sm`` averaging over 1000 trajectories.
-Sometimes one is also interested in seeing how the Monte Carlo trajectories converge to the master equation solution by calculating expectation values over a range of trajectory numbers.
-If, for example, we want to average over 1, 10, 100, and 1000 trajectories, we must first run the solver keeping expectation values for each trajectories:
+In order to explore the convergence of the Monte Carlo solver, it is possible to retrieve expectation values as a function of the number of trajectories. For example, the following code block plots expectation values for 1, 10 and 100 trajectories by first running the solver for 100 trajectories but keeping the expectation values for each trajectory:
 
 .. plot::
     :context:
 
-    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], e_ops=[a.dag() * a, sm.dag() * sm], options={"keep_runs_results": True}, ntraj=1000)
+    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], e_ops=[a.dag() * a, sm.dag() * sm], options={"keep_runs_results": True}, ntraj=100, seeds=1)
 
 we can extract the relevant expectation values using:
 
@@ -128,24 +155,17 @@ we can extract the relevant expectation values using:
     expt1 = data.expect_traj_avg(1)
     expt10 = data.expect_traj_avg(10)
     expt100 = data.expect_traj_avg(100)
-    expt1000 = data.expect_traj_avg(1000)
 
     plt.figure()
     plt.plot(times, expt1[0], label="ntraj=1")
     plt.plot(times, expt10[0], label="ntraj=10")
     plt.plot(times, expt100[0], label="ntraj=100")
-    plt.plot(times, expt1000[0], label="ntraj=1000")
     plt.title('Monte Carlo time evolution')
     plt.xlabel('Time')
     plt.ylabel('Expectation values')
     plt.legend()
     plt.show()
 
-
-Monte Carlo Solver Result
--------------------------
-
-...
 
 .. _monte-reuse:
 
@@ -172,13 +192,13 @@ Using the previous example, we will calculate the dynamics for two different ini
 
     H = 2*np.pi*a.dag()*a + 2*np.pi*sm.dag()*sm + 2*np.pi*0.25*(sm*a.dag() + sm.dag()*a)
     solver = MCSolver(H, c_ops=[np.sqrt(0.1) * a])
-    data1 = solver.run(psi0, times, e_ops=[a.dag() * a, sm.dag() * sm], ntraj=1000)
+    data1 = solver.run(psi0, times, e_ops=[a.dag() * a, sm.dag() * sm], ntraj=100)
     psi1 = tensor(fock(2, 0), coherent(10, 2 - 1j))
-    data2 = solver.run(psi1, times, e_ops=[a.dag() * a, sm.dag() * sm], ntraj=1000)
+    data2 = solver.run(psi1, times, e_ops=[a.dag() * a, sm.dag() * sm], ntraj=100)
 
     plt.figure()
-    plt.plot(times, data1.expect[0], times, data1.expect[1], lw=2)
-    plt.plot(times, data2.expect[0], '--', times, data2.expect[1], '--', lw=2)
+    plt.plot(times, data1.expect[0], "b", times, data1.expect[1], "r", lw=2)
+    plt.plot(times, data2.expect[0], 'b--', times, data2.expect[1], 'r--', lw=2)
     plt.title('Monte Carlo time evolution')
     plt.xlabel('Time', fontsize=14)
     plt.ylabel('Expectation values', fontsize=14)
@@ -187,8 +207,7 @@ Using the previous example, we will calculate the dynamics for two different ini
 
 .. guide-dynamics-mc2:
 
-In addition to the initial state, one may reuse the Hamiltonian data when adding more trajectories to the result or changing simulation times ``times``.
-
+The ``MCSolver`` also allows adding new trajectories after the first computation. This is shown in the next example where the results of two separated runs with identical conditions are merged into a single ``result`` object.
 
 .. plot::
     :context: close-figs
@@ -199,9 +218,9 @@ In addition to the initial state, one may reuse the Hamiltonian data when adding
     sm = tensor(destroy(2), qeye(10))
 
     H = 2*np.pi*a.dag()*a + 2*np.pi*sm.dag()*sm + 2*np.pi*0.25*(sm*a.dag() + sm.dag()*a)
-    # solver = MCSolver(H, c_ops=[np.sqrt(0.1) * a])
-    data1 = solver.run(psi0, times, e_ops=[a.dag() * a, sm.dag() * sm], ntraj=10)
-    data2 = solver.run(psi0, times, e_ops=[a.dag() * a, sm.dag() * sm], ntraj=10)
+    solver = MCSolver(H, c_ops=[np.sqrt(0.1) * a])
+    data1 = solver.run(psi0, times, e_ops=[a.dag() * a, sm.dag() * sm], ntraj=1, seed=1)
+    data2 = solver.run(psi0, times, e_ops=[a.dag() * a, sm.dag() * sm], ntraj=1, seed=3)
     data_merged = data1 + data2
 
     plt.figure()
