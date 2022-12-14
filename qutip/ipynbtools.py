@@ -53,7 +53,7 @@ def version_table(verbose=False):
 
 
     Returns
-    --------
+    -------
     version_table: string
         Return an HTML-formatted string containing version information for
         QuTiP dependencies.
@@ -219,7 +219,7 @@ def parfor(task, task_vec, args=None, client=None, view=None,
         loop.
 
     Returns
-    --------
+    -------
     result : list
         The result list contains the value of ``task(value, args)`` for each
         value in ``task_vec``, that is, it should be equivalent to
@@ -284,7 +284,7 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
         loop.
 
     Returns
-    --------
+    -------
     result : list
         The result list contains the value of
         ``task(value, task_args, task_kwargs)`` for each

@@ -185,8 +185,8 @@ To control the random number, a seed as an `int` or `numpy.random.SeedSequence` 
     >>> rand_ket(2, seed=rng) # doctest: +NORMALIZE_WHITESPACE
     Quantum object: dims=[[2], [1]], shape=(2, 1), type='ket'
     Qobj data =
-    [[−0.697+0.618j],
-     [−0.326−0.163j]]
+    [[-0.697+0.618j],
+     [-0.326-0.163j]]
 
 
 Internal matrix format

@@ -35,7 +35,8 @@ output = qutip.fmmesolve(H, psi0, tlist, [qutip.sigmax()], [], [noise_spectrum],
 p_ex = np.zeros(tlist.shape, dtype=np.complex128)
 for idx, t in enumerate(tlist):
     f_modes_t = qutip.floquet_modes_t_lookup(f_modes_table_t, t, T)
-    p_ex[idx] = qutip.expect(qutip.num(2), output.states[idx].transform(f_modes_t, True))
+    f_states_t = qutip.floquet_states(f_modes_t, f_energies, t)
+    p_ex[idx] = qutip.expect(qutip.num(2), output.states[idx].transform(f_states_t, True))
 
 # For reference: calculate the same thing with mesolve
 output = qutip.mesolve(H, psi0, tlist,
