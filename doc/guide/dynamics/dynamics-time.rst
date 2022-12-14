@@ -107,7 +107,8 @@ The following code sets up the problem
 Given that we have a single time-dependent Hamiltonian term, and constant collapse terms, we need to specify a single Python function for the coefficient :math:`f(t)`.  In this case, one can simply do
 
 .. plot::
-    :context: close-figs
+    :context:
+    :nofigs:
 
     def H1_coeff(t):
         return 9 * np.exp(-(t / 5.) ** 2)
@@ -211,7 +212,7 @@ Using arguments
 ---------------
 
 Until now, the coefficient were only functions of time.
-In the definition of ``H1_coeff``, the driving amplitude A and width σ were hardcoded with their numerical values.
+In the definition of ``H1_coeff``, the driving amplitude ``A`` and width ``sigma`` were hardcoded with their numerical values.
 This is fine for problems that are specialized, or that we only want to run once.
 However, in many cases, we would like study the same problem with a range of parameters and not have to worry about manually changing the values on each run.
 QuTiP allows you to accomplish this using by adding extra arguments to coefficients function that make the :class:`QobjEvo`.

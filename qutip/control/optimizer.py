@@ -206,7 +206,7 @@ class Optimizer(object):
         set to None to reduce overhead of calculating stats.
         Note it is (usually) shared with the Dynamics instance
 
-    dump : :class:`dump.OptimDump`
+    dump : :class:`qutip.control.dump.OptimDump`
         Container for data dumped during the optimisation.
         Can be set by specifying the dumping level or set directly.
         Note this is mainly intended for user and a development debugging

@@ -330,7 +330,7 @@ def spre(A):
         Quantum operator for pre-multiplication.
 
     Returns
-    --------
+    -------
     super :Qobj or QobjEvo
         Superoperator formed from input quantum object.
     """
@@ -367,7 +367,7 @@ def sprepost(A, B):
         Quantum operator for post-multiplication.
 
     Returns
-    --------
+    -------
     super : Qobj or QobjEvo
         Superoperator formed from input quantum objects.
     """

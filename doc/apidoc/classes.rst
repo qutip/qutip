@@ -9,7 +9,7 @@ Classes
 Qobj
 --------------
 
-.. autoclass:: qutip.Qobj
+.. autoclass:: qutip.core.qobj.Qobj
     :members:
 
 .. _classes-qobjevo:
@@ -17,7 +17,7 @@ Qobj
 QobjEvo
 --------------
 
-.. autoclass:: qutip.QobjEvo
+.. autoclass:: qutip.core.cy.qobjevo.QobjEvo
     :members:
 
 
@@ -29,6 +29,8 @@ Bloch sphere
 .. autoclass:: qutip.bloch.Bloch
     :members:
 
+.. autoclass:: qutip.bloch3d.Bloch3d
+    :members:
 
 Distributions
 -------------

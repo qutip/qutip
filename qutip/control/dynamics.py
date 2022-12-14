@@ -315,7 +315,7 @@ class Dynamics(object):
         Tolerance used in checking if operator is unitary
         Default is 1e-10
 
-    dump : :class:`dump.DynamicsDump`
+    dump : :class:`qutip.control.dump.DynamicsDump`
         Store of historical calculation data.
         Set to None (Default) for no storing of historical data
         Use dumping property to set level of data dumping
