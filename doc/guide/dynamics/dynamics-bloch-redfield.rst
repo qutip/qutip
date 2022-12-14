@@ -53,7 +53,7 @@ This assumption is known as the Born approximation, and it implies that there ne
 *It is justified for weak system-bath interaction.*
 
 The master equation :eq:`br-nonmarkovian-form-one` is non-Markovian, i.e., the change in the density matrix at a time :math:`t` depends on states at all times :math:`\tau < t`, making it intractable to solve both theoretically and numerically.
-To make progress towards a manageable master equation, we now introduce the Markovian approximation, in which :math:`\rho(s)` is replaced by :math:`\rho(t)` in Eq. :eq:`br-nonmarkovian-form-one`.
+To make progress towards a manageable master equation, we now introduce the Markovian approximation, in which :math:`\rho_S(\tau)` is replaced by :math:`\rho_S(t)` in Eq. :eq:`br-nonmarkovian-form-one`.
 The result is the Redfield equation
 
 .. math::
@@ -356,7 +356,7 @@ The second tuple ``f'{kappa} * (w >= 0)'``, gives the noise power spectrum.
 A full example is:
 
 .. plot::
-    :context:
+    :context: close-figs
 
     N = 10
 
@@ -392,5 +392,7 @@ A full example is:
 
     plt.show()
 
+.. plot::
+    :context: close-figs
 
 Further examples on time-dependent Bloch-Redfield simulations can be found in the online tutorials.

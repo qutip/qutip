@@ -3,7 +3,6 @@
 import collections
 import os
 import pathlib
-import re
 import subprocess
 import sys
 import sysconfig
@@ -80,6 +79,13 @@ def _determine_user_arguments(options):
     """
     Add the 'openmp' option to the collection, based on the passed command-line
     arguments or environment variables.
+
+    If using PEP517 builds, one can pass these options on the command-line
+    using, for example:
+
+        python -m build \
+            --wheel \
+            --config-setting="--global-option=--with-openmp"
     """
     # options = _parse_bool_user_argument(options, 'openmp')
     options['openmp'] = False  # Not supported yet

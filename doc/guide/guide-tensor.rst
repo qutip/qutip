@@ -12,7 +12,7 @@ Tensor products
 
 To describe the states of multipartite quantum systems - such as two coupled qubits, a qubit coupled to an oscillator, etc. - we need to expand the Hilbert space by taking the tensor product of the state vectors for each of the system components. Similarly, the operators acting on the state vectors in the combined Hilbert space (describing the coupled system) are formed by taking the tensor product of the individual operators.
 
-In QuTiP the function :func:`qutip.tensor.tensor` is used to accomplish this task. This function takes as argument a collection::
+In QuTiP the function :func:`qutip.core.tensor.tensor` is used to accomplish this task. This function takes as argument a collection::
 
 >>> tensor(op1, op2, op3) # doctest: +SKIP
 
@@ -58,7 +58,7 @@ or equivalently using the ``list`` format:
      [0.]
      [0.]]
 
-This is straightforward to generalize to more qubits by adding more component state vectors in the argument list to the :func:`qutip.tensor.tensor` function, as illustrated in the following example:
+This is straightforward to generalize to more qubits by adding more component state vectors in the argument list to the :func:`qutip.core.tensor.tensor` function, as illustrated in the following example:
 
 .. testcode:: [tensor]
 
@@ -83,7 +83,7 @@ This is straightforward to generalize to more qubits by adding more component st
 
 This state is slightly more complicated, describing two qubits in a superposition between the up and down states, while the third qubit is in its ground state.
 
-To construct operators that act on an extended Hilbert space of a combined system, we similarly pass a list of operators for each component system to the :func:`qutip.tensor.tensor` function. For example, to form the operator that represents the simultaneous action of the :math:`\sigma_x` operator on two qubits:
+To construct operators that act on an extended Hilbert space of a combined system, we similarly pass a list of operators for each component system to the :func:`qutip.core.tensor.tensor` function. For example, to form the operator that represents the simultaneous action of the :math:`\sigma_x` operator on two qubits:
 
 .. testcode:: [tensor]
 
@@ -125,7 +125,7 @@ To create operators in a combined Hilbert space that only act on a single compon
 Example: Constructing composite Hamiltonians
 ============================================
 
-The :func:`qutip.tensor.tensor` function is extensively used when constructing Hamiltonians for composite systems. Here we'll look at some simple examples.
+The :func:`qutip.core.tensor.tensor` function is extensively used when constructing Hamiltonians for composite systems. Here we'll look at some simple examples.
 
 .. _tensor-product-example-2qubits:
 
@@ -375,7 +375,7 @@ To represent superoperators acting on :math:`\mathcal{L}(\mathcal{H}_1 \otimes \
 :math:`\mathcal{H}_1 \otimes \mathcal{H}_2 \otimes \mathcal{H}_1 \otimes \mathcal{H}_2`.
 
 In particular, this means that :func:`qutip.tensor` does not act as
-one might expect on the results of :func:`qutip.to_super`:
+one might expect on the results of :func:`qutip.superop_reps.to_super`:
 
 .. doctest:: [tensor]
 
@@ -394,7 +394,7 @@ of the compound index with dims ``[2, 3]``. In the latter
 case, however, each of the Hilbert space indices is listed
 independently and in the wrong order.
 
-The :func:`qutip.super_tensor` function performs the needed
+The :func:`qutip.tensor.super_tensor` function performs the needed
 rearrangement, providing the most direct analog to :func:`qutip.tensor` on
 the underlying Hilbert space. In particular, for any two ``type="oper"``
 Qobjs ``A`` and ``B``, ``to_super(tensor(A, B)) == super_tensor(to_super(A), to_super(B))`` and
@@ -405,8 +405,8 @@ Qobjs ``A`` and ``B``, ``to_super(tensor(A, B)) == super_tensor(to_super(A), to_
   >>> super_tensor(to_super(A), to_super(B)).dims
   [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]
 
-The :func:`qutip.composite` function automatically switches between
-:func:`qutip.tensor` and :func:`qutip.super_tensor` based on the ``type``
+The :func:`qutip.tensor.composite` function automatically switches between
+:func:`qutip.tensor` and :func:`qutip.tensor.super_tensor` based on the ``type``
 of its arguments, such that ``composite(A, B)`` returns an appropriate Qobj to
 represent the composition of two systems.
 
@@ -420,7 +420,7 @@ represent the composition of two systems.
 
 QuTiP also allows more general tensor manipulations that are
 useful for converting between superoperator representations [WBC11]_.
-In particular, the :func:`tensor_contract` function allows for
+In particular, the :func:`~qutip.core.tensor.tensor_contract` function allows for
 contracting one or more pairs of indices. As detailed in
 the `channel contraction tutorial`_, this can be used to find
 superoperators that represent partial trace maps.
