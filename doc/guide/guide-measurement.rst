@@ -42,8 +42,8 @@ along the z-axis.
 
 We choose what to measure (in this case) by selecting a **measurement operator**.
 For example,
-we could select :func:`~qutip.sigmaz` which measures the z-component of the
-spin of a spin-1/2 particle, or :func:`~qutip.sigmax` which measures the
+we could select :func:`~qutip.operators.sigmaz` which measures the z-component of the
+spin of a spin-1/2 particle, or :func:`~qutip.operators.sigmax` which measures the
 x-component:
 
 .. testcode::
@@ -136,7 +136,7 @@ We can also choose what to measure by specifying a *list of projection operators
 example, we could select the projection operators :math:`\ket{0} \bra{0}` and
 :math:`\ket{1} \bra{1}` which measure the state in the :math:`\ket{0}, \ket{1}`
 basis. Note that these projection operators are simply the projectors determined by
-the eigenstates of the :func:`~qutip.sigmaz` operator.
+the eigenstates of the :func:`~qutip.operators.sigmaz` operator.
 
 .. testcode::
 

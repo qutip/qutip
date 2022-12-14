@@ -1,0 +1,2 @@
+# This ensures that the folder persists after the removal of the files in it in a new version release.
+!.gitignore

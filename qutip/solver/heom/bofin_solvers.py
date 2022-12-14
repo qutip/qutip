@@ -318,7 +318,7 @@ class HierarchyADOsState:
 
     Parameters
     ----------
-    rho : :class:`Qobj`
+    rho : :class:`~qutip.Qobj`
         The current state of the system (i.e. the 0th component of the
         hierarchy).
     ados : :class:`HierarchyADOs`
@@ -362,7 +362,7 @@ class HierarchyADOsState:
         Returns
         -------
         Qobj
-            A :obj:`Qobj` representing the state of the specified ADO.
+            A :obj:`~qutip.Qobj` representing the state of the specified ADO.
         """
         if isinstance(idx_or_label, int):
             idx = idx_or_label
