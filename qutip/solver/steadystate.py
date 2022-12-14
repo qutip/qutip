@@ -139,7 +139,7 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
 
     # Keys supported in v4, but removed in v5
     if kwargs.pop("return_info", False):
-        warn("Steadystate no longer compute info", DeprecationWarning)
+        warn("Steadystate no longer supports return_info", DeprecationWarning)
     if "mtol" in kwargs and "power_tol" not in kwargs:
         kwargs["power_tol"] = kwargs["mtol"]
     kwargs.pop("mtol", None)
@@ -150,7 +150,7 @@ def steadystate(A, c_ops=[], *, method='direct', solver=None, **kwargs):
         return _steadystate_svd(A, **kwargs)
 
     # We want to be able to use this without having to know what data type the
-    # liouvillian use. For extra data types (tensorflow) we can expect
+    # liouvillian uses. For extra data types (tensorflow) we can expect
     # the users to know they are using them and choose an appropriate solver
     sparse_solvers = ["spsolve", "mkl_spsolve", "gmres", "lgmres", "bicgstab"]
     if not isinstance(A.data, (_data.CSR, _data.Dense)):
@@ -200,7 +200,7 @@ def _steadystate_direct(A, weight, **kw):
     # A[:, 0] = vectorized(eye * weight)
     # We don't have a function to overwrite part of an array, so
     N = A.shape[0]
-    n = int(A.shape[0]**0.5)
+    n = int(N**0.5)
     dtype = type(A.data)
     weight_vec = _data.column_stack(_data.diag([weight] * n, 0, dtype=dtype))
     weight_mat = _data.kron(
@@ -350,9 +350,9 @@ def steadystate_floquet(H_0, c_ops, Op_t, w_d=1.0, n_it=3, sparse=False,
         - "mkl_spsolve"
           sparse solver by mkl.
 
-        Extension to qutip, such as qutip-tensorflow, can use come with their
-        own solver. When ``H_0`` and ``c_ops`` use these data backends, see the
-        corresponding libraries ``linalg`` for available solver.
+        Extensions to qutip, such as qutip-tensorflow, may provide their own solvers.
+        When ``H_0`` and ``c_ops`` use these data backends, see their documentation
+        for the names and details of additional solvers they may provide.
 
     **kwargs:
         Extra options to pass to the linear system solver. See the

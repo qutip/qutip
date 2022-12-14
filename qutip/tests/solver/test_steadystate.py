@@ -9,7 +9,6 @@ import warnings
     pytest.param('direct', {'solver':'mkl'}, id="direct_mkl",
                  marks=pytest.mark.skipif(not qutip.settings.has_mkl,
                                           reason='MKL extensions not found.')),
-    pytest.param('direct', {}, id="direct_info"),
     pytest.param('direct', {'sparse':False}, id="direct_dense"),
     pytest.param('direct', {'use_rcm':True}, id="direct_rcm"),
     pytest.param('direct', {'use_wbm':True}, id="direct_wbm"),
