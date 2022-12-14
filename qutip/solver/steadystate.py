@@ -202,25 +202,33 @@ def _steadystate_direct(A, weight, **kw):
     N = A.shape[0]
     n = int(A.shape[0]**0.5)
     dtype = type(A.data)
-    L_row0 = _data.matmul(_data.one_element[dtype]((1, N), (0, 0), 1), A.data)
     weight_vec = _data.column_stack(_data.diag([weight] * n, 0, dtype=dtype))
-    weight_vec = _data.add(weight_vec.transpose(), L_row0, -1)
     weight_mat = _data.kron(
-        weight_vec,
+        weight_vec.transpose(),
         _data.one_element[dtype]((N, 1), (0, 0), 1)
     )
     L = _data.add(weight_mat, A.data)
     b = _data.one_element[dtype]((N, 1), (0, 0), weight)
 
     # Permutation are part of scipy.sparse, thus only supported for CSR.
-    if kw.pop("use_wbm", False) and isinstance(L, _data.CSR):
-        L, b = _permute_wbm(L, b)
-    use_rcm = kw.pop("use_rcm", False) and isinstance(L, _data.CSR)
-    if use_rcm:
-        L, b, perm = _permute_rcm(L, b)
+    if kw.pop("use_wbm", False):
+        if isinstance(L, _data.CSR):
+            L, b = _permute_wbm(L, b)
+        else:
+            warn("Only sparse matrice can be permuted.", RuntimeWarning)
+    use_rcm = False
+    if kw.pop("use_rcm", False):
+        if isinstance(L, _data.CSR):
+            L, b, perm = _permute_rcm(L, b)
+            use_rcm = True
+        else:
+            warn("Only sparse matrice can be permuted.", RuntimeWarning)
+    if kw.pop("use_precond", False):
+        if isinstance(L, _data.CSR):
+            kw["M"] = _compute_precond(L, kw)
+        else:
+            warn("Only sparse solver use preconditioners.", RuntimeWarning)
 
-    if kw.pop("use_precond", False) and isinstance(L, _data.CSR):
-        kw["M"] = _compute_precond(L, kw)
 
     method = kw.pop("method", None)
     steadystate = _data.solve(L, b, method, options=kw)
@@ -259,14 +267,23 @@ def _steadystate_power(A, **kw):
     y = _data.Dense([1]*N)
 
     # Permutation are part of scipy.sparse, thus only supported for CSR.
-    if kw.pop("use_wbm", False) and isinstance(L, _data.CSR):
-        L, y = _permute_wbm(L, y)
-    use_rcm = kw.pop("use_rcm", False) and isinstance(L, _data.CSR)
-    if use_rcm:
-        L, y, perm = _permute_rcm(L, y)
-
-    if kw.pop("use_precond", False) and isinstance(L, _data.CSR):
-        kw["M"] = _compute_precond(L, kw)
+    if kw.pop("use_wbm", False):
+        if isinstance(L, _data.CSR):
+            L, y = _permute_wbm(L, y)
+        else:
+            warn("Only sparse matrice can be permuted.", RuntimeWarning)
+    use_rcm = False
+    if kw.pop("use_rcm", False):
+        if isinstance(L, _data.CSR):
+            L, y, perm = _permute_rcm(L, y)
+            use_rcm = True
+        else:
+            warn("Only sparse matrice can be permuted.", RuntimeWarning)
+    if kw.pop("use_precond", False):
+        if isinstance(L, _data.CSR):
+            kw["M"] = _compute_precond(L, kw)
+        else:
+            warn("Only sparse solver use preconditioners.", RuntimeWarning)
 
     it = 0
     maxiter = kw.pop("power_maxiter", 10)

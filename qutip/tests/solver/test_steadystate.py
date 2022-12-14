@@ -41,16 +41,15 @@ def test_qubit(method, kwargs):
     wth_vec = np.linspace(0.1, 3, 20)
     p_ss = np.zeros(np.shape(wth_vec))
 
-    with warnings.catch_warnings():
-        for idx, wth in enumerate(wth_vec):
-            n_th = 1.0 / (np.exp(1.0 / wth) - 1)  # bath temperature
-            c_op_list = []
-            rate = gamma1 * (1 + n_th)
-            c_op_list.append(np.sqrt(rate) * sm)
-            rate = gamma1 * n_th
-            c_op_list.append(np.sqrt(rate) * sm.dag())
-            rho_ss = qutip.steadystate(H, c_op_list, method=method, **kwargs)
-            p_ss[idx] = qutip.expect(sm.dag() * sm, rho_ss)
+    for idx, wth in enumerate(wth_vec):
+        n_th = 1.0 / (np.exp(1.0 / wth) - 1)  # bath temperature
+        c_op_list = []
+        rate = gamma1 * (1 + n_th)
+        c_op_list.append(np.sqrt(rate) * sm)
+        rate = gamma1 * n_th
+        c_op_list.append(np.sqrt(rate) * sm.dag())
+        rho_ss = qutip.steadystate(H, c_op_list, method=method, **kwargs)
+        p_ss[idx] = qutip.expect(sm.dag() * sm, rho_ss)
 
     p_ss_analytic = np.exp(-1.0 / wth_vec) / (1 + np.exp(-1.0 / wth_vec))
     np.testing.assert_allclose(p_ss_analytic, p_ss, atol=1e-5)
@@ -143,7 +142,7 @@ def test_driven_cavity(method, kwargs):
     np.testing.assert_allclose(
         rho_ss, rho_ss_analytic, atol=1e-4
     )
-    assert rho_ss.trace() == pytest.approx(1, abs=1e-11)
+    assert rho_ss.trace() == pytest.approx(1, abs=1e-10)
 
 
 @pytest.mark.parametrize(['method', 'kwargs'], [
