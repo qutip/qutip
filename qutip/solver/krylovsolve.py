@@ -1,7 +1,7 @@
 __all__ = ['krylovsolve']
 
 from .. import QobjEvo
-from .sesolve import SeSolver
+from .sesolve import SESolver
 
 
 def krylovsolve(
@@ -98,5 +98,5 @@ def krylovsolve(
     options = options or {}
     options["method"] = "krylov"
     options["krylov_dim"] = krylov_dim
-    solver = SeSolver(H, options=options)
+    solver = SESolver(H, options=options)
     return solver.run(psi0, tlist, e_ops=e_ops)

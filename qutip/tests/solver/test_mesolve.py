@@ -2,13 +2,13 @@ import numpy as np
 from types import FunctionType
 
 import qutip
-from qutip.solver.mesolve import mesolve, MeSolver
+from qutip.solver.mesolve import mesolve, MESolver
 from qutip.solver.solver_base import Solver
 import pickle
 import pytest
 
 all_ode_method = [
-    method for method, integrator in MeSolver.avail_integrators().items()
+    method for method, integrator in MESolver.avail_integrators().items()
     if integrator.support_time_dependant
 ]
 
@@ -222,7 +222,7 @@ class TestMESolveDecay:
 
     def test_mesolver_pickling(self):
         options = {"progress_bar": None}
-        solver_obj = MeSolver(self.ada, c_ops=[self.a], options=options)
+        solver_obj = MESolver(self.ada, c_ops=[self.a], options=options)
         solver_copy = pickle.loads(pickle.dumps(solver_obj))
         e1 = solver_obj.run(qutip.basis(self.N, 9), [0, 1, 2, 3],
                             e_ops=[self.ada]).expect[0]
@@ -234,7 +234,7 @@ class TestMESolveDecay:
                              all_ode_method, ids=all_ode_method)
     def test_mesolver_stepping(self, method):
         options = {"method": method, "progress_bar": None}
-        solver_obj = MeSolver(
+        solver_obj = MESolver(
             self.ada,
             c_ops=qutip.QobjEvo(
                 [self.a, lambda t, kappa: np.sqrt(kappa * np.exp(-t))],
@@ -661,17 +661,17 @@ def test_num_collapse_set():
 
 def test_mesolve_bad_H():
     with pytest.raises(TypeError):
-        MeSolver([qutip.qeye(3), 't'], [])
+        MESolver([qutip.qeye(3), 't'], [])
     with pytest.raises(TypeError):
-        MeSolver(qutip.qeye(3), [[qutip.qeye(3), 't']])
+        MESolver(qutip.qeye(3), [[qutip.qeye(3), 't']])
 
 
 def test_mesolve_bad_state():
-    solver = MeSolver(qutip.qeye(4), [])
+    solver = MESolver(qutip.qeye(4), [])
     with pytest.raises(TypeError):
         solver.start(qutip.basis(2,1) & qutip.basis(2,0), 0)
 
 
 def test_mesolve_bad_options():
     with pytest.raises(TypeError):
-        MeSolver(qutip.qeye(4), [], options=False)
+        MESolver(qutip.qeye(4), [], options=False)

@@ -286,7 +286,7 @@ def test_correlation_timedependant_op():
 
 
 def test_alternative_solver():
-    from qutip.solver.mesolve import MeSolver
+    from qutip.solver.mesolve import MESolver
     from qutip.solver.brmesolve import BRSolver
 
     H = qutip.num(5)
@@ -294,7 +294,7 @@ def test_alternative_solver():
     a_ops = [(a+a.dag(), qutip.coefficient(lambda _, w: w>0, args={"w":0}))]
 
     br = BRSolver(H, a_ops)
-    me = MeSolver(H, [a])
+    me = MESolver(H, [a])
     times = np.arange(4)
 
     br_corr = qutip.correlation_3op(br, qutip.basis(5), [0], times, a, a.dag())

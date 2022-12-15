@@ -6,7 +6,7 @@ Setting Options for the Dynamics Solvers
 
 .. testsetup:: [dynamics_options]
 
-   from qutip.solver.mesolve import MeSolver, mesolve
+   from qutip.solver.mesolve import MESolver, mesolve
    import numpy as np
 
 Occasionally it is necessary to change the built in parameters of the dynamics solvers used by for example the :func:`qutip.mesolve` and :func:`qutip.mcsolve` functions.
@@ -21,13 +21,13 @@ Supported solver options and their default can be seen using the class interface
 
 .. testcode:: [dynamics_options]
 
-   help(MeSolver.options)
+   help(MESolver.options)
 
 Options supported by the ODE integration depend on the "method" options of the solver, they can be listed through the integrator method of the solvers:
 
 .. testcode:: [dynamics_options]
 
-   help(MeSolver.integrator("adams").options)
+   help(MESolver.integrator("adams").options)
 
 See `Integrator <../../apidoc/classes.html#classes-ode>`_ for a list of supported methods.
 
@@ -44,4 +44,4 @@ To use these new settings we can use the keyword argument ``options`` in either 
 
 or::
 
-    >>> McSolver(H0, c_op_list, options=options)
+    >>> MCSolver(H0, c_op_list, options=options)
