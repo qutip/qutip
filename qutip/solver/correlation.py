@@ -16,7 +16,7 @@ from .mcsolve import MCSolver
 from .brmesolve import BRSolver
 from .heom.bofin_solvers import HEOMSolver
 
-from ..solve.steadystate import steadystate
+from .steadystate import steadystate
 from ..ui.progressbar import progess_bars
 
 # -----------------------------------------------------------------------------
