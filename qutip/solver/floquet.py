@@ -15,7 +15,7 @@ import numpy as np
 from qutip.core import data as _data
 from qutip import Qobj, QobjEvo
 from .propagator import Propagator
-from .mesolve import MeSolver
+from .mesolve import MESolver
 from .solver_base import Solver
 from .integrator import Integrator
 from .result import Result
@@ -722,7 +722,7 @@ class FloquetResult(Result):
         super().add(t, state)
 
 
-class FMESolver(MeSolver):
+class FMESolver(MESolver):
     """
     Solver for the Floquet-Markov master equation.
 
