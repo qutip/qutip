@@ -376,7 +376,7 @@ class MultiTrajResult(_BaseResult):
         The final state (if the recording of the final state was requested)
         averaged over all trajectories as a density matrix.
 
-    runs_state : list of :obj:`~Qobj`
+    runs_final_state : list of :obj:`~Qobj`
         The final state for each trajectory (if the recording of the final
         state and trajectories was requested).
 
@@ -784,7 +784,15 @@ class MultiTrajResult(_BaseResult):
             Default: all trajectories.
         """
         if not self.trajectories:
-            return None
+            raise ValueError(
+                f"Trajectories information are not available. "
+                f"Use the options 'keep_runs_results' to store trajectories."
+            )
+        if ntraj > len(self.trajectories):
+            raise ValueError(
+                f"Cannot compute statistic for {ntraj} trajectories. "
+                f"Only {len(self.trajectories)} trajectories are stored."
+            )
         return {
             k: np.mean(np.stack([
                 traj.e_data[k] for traj in self.trajectories[:ntraj]
@@ -804,7 +812,10 @@ class MultiTrajResult(_BaseResult):
             Default: all trajectories.
         """
         if not self.trajectories:
-            return None
+            raise ValueError(
+                f"Trajectories information are not available. "
+                f"Use the options 'keep_runs_results' to store trajectories."
+            )
         return list(self.e_data_traj_avg(ntraj).values())
 
     def e_data_traj_std(self, ntraj=-1):
@@ -819,7 +830,15 @@ class MultiTrajResult(_BaseResult):
             Default: all trajectories.
         """
         if not self.trajectories:
-            return None
+            raise ValueError(
+                f"Trajectories information are not available. "
+                f"Use the options 'keep_runs_results' to store trajectories."
+            )
+        if ntraj > len(self.trajectories):
+            raise ValueError(
+                f"Cannot compute statistic for {ntraj} trajectories. "
+                f"Only {len(self.trajectories)} trajectories are stored."
+            )
         return {
             k: np.std(np.stack([
                 traj.e_data[k] for traj in self.trajectories[:ntraj]
@@ -839,7 +858,10 @@ class MultiTrajResult(_BaseResult):
             Default: all trajectories.
         """
         if not self.trajectories:
-            return None
+            raise ValueError(
+                f"Trajectories information are not available. "
+                f"Use the options 'keep_runs_results' to store trajectories."
+            )
         return list(self.e_data_traj_std(ntraj).values())
 
     def __repr__(self):
@@ -916,10 +938,12 @@ class MultiTrajResult(_BaseResult):
             new.expect = new.average_expect
             new.e_data = new.average_e_data
 
-            new.std_e_data = {
-                k: np.sqrt(avg_expect2 - abs(avg_expect**2))
-                for k, avg_expect, avg_expect2 in zip(self._raw_ops, avg, avg2)
-            }
+            new.std_e_data = {}
+            for i, key in enumerate(self._raw_ops):
+                std2 = avg2[i] - abs(avg[i]**2)
+                std2[std2 < 0] = 0.
+                new.std_e_data[key] = np.sqrt(std2)
+
             new.std_expect = list(new.std_e_data.values())
 
             if new.trajectories:

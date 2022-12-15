@@ -2,11 +2,12 @@ import pytest
 import pickle
 import qutip
 import numpy as np
-from qutip.solver.sesolve import sesolve, SeSolver
+from qutip.solver.sesolve import sesolve, SESolver
+from qutip.solver.krylovsolve import krylovsolve
 from qutip.solver.solver_base import Solver
 
 all_ode_method = [
-    method for method, integrator in SeSolver.avail_integrators().items()
+    method for method, integrator in SESolver.avail_integrators().items()
     if integrator.support_time_dependant
 ]
 
@@ -200,7 +201,7 @@ class TestSeSolve():
 
     def test_sesolver_args(self):
         options = {"progress_bar": None}
-        solver_obj = SeSolver(qutip.QobjEvo([self.H0, [self.H1,'a']],
+        solver_obj = SESolver(qutip.QobjEvo([self.H0, [self.H1,'a']],
                                             args={'a': 1}),
                               options=options)
         res = solver_obj.run(qutip.basis(2,1), [0, 1, 2, 3],
@@ -210,7 +211,7 @@ class TestSeSolve():
     def test_sesolver_pickling(self):
         e_ops = [qutip.sigmax(), qutip.sigmay(), qutip.sigmaz()]
         options = {"progress_bar": None}
-        solver_obj = SeSolver(self.H0 + self.H1,
+        solver_obj = SESolver(self.H0 + self.H1,
                               options=options)
         solver_copy = pickle.loads(pickle.dumps(solver_obj))
         sx, sy, sz = solver_obj.run(qutip.basis(2,1), [0, 1, 2, 3],
@@ -229,7 +230,7 @@ class TestSeSolve():
             "rtol": 1e-8,
             "progress_bar": None
         }
-        solver_obj = SeSolver(
+        solver_obj = SESolver(
             qutip.QobjEvo([self.H1, lambda t, a: a], args={"a":0.25}),
             options=options
         )
@@ -268,13 +269,13 @@ class TestSeSolve():
 
 def test_sesolve_bad_H():
     with pytest.raises(TypeError):
-        SeSolver(np.eye(3))
+        SESolver(np.eye(3))
     with pytest.raises(ValueError):
-        SeSolver(qutip.basis(3,1))
+        SESolver(qutip.basis(3,1))
 
 
 def test_sesolve_bad_state():
-    solver = SeSolver(qutip.qeye(4))
+    solver = SESolver(qutip.qeye(4))
     with pytest.raises(TypeError):
         solver.start(qutip.basis(4,1).dag(), 0)
     with pytest.raises(TypeError):
@@ -282,6 +283,19 @@ def test_sesolve_bad_state():
 
 
 def test_sesolve_step_no_start():
-    solver = SeSolver(qutip.qeye(4))
+    solver = SESolver(qutip.qeye(4))
     with pytest.raises(RuntimeError):
         solver.step(1)
+
+
+@pytest.mark.parametrize("always_compute_step", [True, False])
+def test_krylovsolve(always_compute_step):
+    H = qutip.tensor([qutip.rand_herm(2) for _ in range(8)])
+    psi0 = qutip.basis([2]*8, [1]*8)
+    e_op = qutip.num(256)
+    e_op.dims = H.dims
+    tlist = np.linspace(0, 1, 11)
+    ref = sesolve(H, psi0, tlist, e_ops=[e_op]).expect[0]
+    options = {"always_compute_step", always_compute_step}
+    krylov_sol = krylovsolve(H, psi0, tlist, 20, e_ops=[e_op]).expect[0]
+    np.testing.assert_allclose(ref, krylov_sol)

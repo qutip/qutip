@@ -141,18 +141,14 @@ Master Equation
 Monte Carlo Evolution
 ---------------------
 
-.. automodule:: qutip.solve.mcsolve
+.. automodule:: qutip.solver.mcsolve
     :members: mcsolve
-
-.. ignore f90 stuff for now
-    .. automodule:: qutip.fortran.mcsolve_f90
-        :members: mcsolve_f90
 
 
 Krylov Subspace Solver
 ----------------------
 
-.. automodule:: qutip.solve.krylovsolve
+.. automodule:: qutip.solver.krylovsolve
     :members: krylovsolve
 
 
@@ -197,8 +193,8 @@ Correlation Functions
 Steady-state Solvers
 --------------------
 
-.. automodule:: qutip.solve.steadystate
-    :members: steadystate, build_preconditioner
+.. automodule:: qutip.solver.steadystate
+    :members: steadystate, pseudo_inverse, steadystate_floquet
     :undoc-members:
 
 Propagators

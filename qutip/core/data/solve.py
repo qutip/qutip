@@ -82,15 +82,15 @@ def solve_csr_dense(matrix: CSR, target: Dense, method=None,
             # Successful
             pass
         elif check > 0:
-            raise RunTimeError(
+            raise RuntimeError(
                 f"scipy.sparse.linalg.{method} error: Tolerance was not"
-                " reached. Error code: {check}"
+                f" reached. Error code: {check}"
             )
 
         elif check < 0:
-            raise RunTimeError(
+            raise RuntimeError(
                 f"scipy.sparse.linalg.{method} error: Bad input. "
-                "Error code: {check}"
+                f"Error code: {check}"
             )
     elif isinstance(out, tuple) and len(out) > 2:
         # least sqare method return residual, flag, etc.

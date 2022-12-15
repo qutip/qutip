@@ -1,7 +1,10 @@
-from qutip.solver.sesolve import SeSolver
-from qutip.solver.mesolve import MeSolver
+from qutip.solver.sesolve import SESolver
+from qutip.solver.mesolve import MESolver
+from qutip.solver.mcsolve import MCSolver
 from qutip.solver.solver_base import Solver
 from qutip.solver.ode.scipy_integrator import *
+from qutip.solver.ode.krylov import *
+from qutip.solver.ode.qutip_integrator import *
 import qutip
 import numpy as np
 from numpy.testing import assert_allclose
@@ -15,30 +18,30 @@ class TestIntegratorCte():
     me_system = qutip.liouvillian(qutip.QobjEvo(qutip.qeye(2)),
                                   c_ops=[qutip.destroy(2)])
 
-    @pytest.fixture(params=list(SeSolver.avail_integrators().keys()))
+    @pytest.fixture(params=list(SESolver.avail_integrators().keys()))
     def se_method(self, request):
         return request.param
 
-    @pytest.fixture(params=list(MeSolver.avail_integrators().keys()))
+    @pytest.fixture(params=list(MESolver.avail_integrators().keys()))
     def me_method(self, request):
         return request.param
 
-    # TODO: Change when the McSolver is added
-    @pytest.fixture(params=list(Solver.avail_integrators().keys()))
+    # TODO: Change when the MCSolver is added
+    @pytest.fixture(params=list(MCSolver.avail_integrators().keys()))
     def mc_method(self, request):
         return request.param
 
     def test_se_integration(self, se_method):
-        evol = SeSolver.avail_integrators()[se_method](self.se_system, {})
-        state0 = qutip.core.unstack_columns(qutip.basis(6,0).data, (2, 3))
+        evol = SESolver.avail_integrators()[se_method](self.se_system, {})
+        state0 = qutip.basis(2, 0).data
         evol.set_state(0, state0)
         for t, state in evol.run(np.linspace(0, 2, 21)):
             assert_allclose(self._analytical_se(t),
                             state.to_array()[0, 0], atol=2e-5)
-            assert state.shape == (2, 3)
+            assert state.shape == (2, 1)
 
     def test_me_integration(self, me_method):
-        evol = MeSolver.avail_integrators()[me_method](self.me_system, {})
+        evol = MESolver.avail_integrators()[me_method](self.me_system, {})
         state0 = qutip.operator_to_vector(qutip.fock_dm(2,1)).data
         evol.set_state(0, state0)
         for t in np.linspace(0, 2, 21):
@@ -48,7 +51,7 @@ class TestIntegratorCte():
                             state.to_array()[0, 0], atol=2e-5)
 
     def test_mc_integration(self, mc_method):
-        evol = Solver.avail_integrators()[mc_method](self.se_system, {})
+        evol = MCSolver.avail_integrators()[mc_method](self.se_system, {})
         state = qutip.basis(2,0).data
         evol.set_state(0, state)
         t = 0
@@ -99,25 +102,46 @@ class TestIntegrator(TestIntegratorCte):
     )
 
     @pytest.fixture(
-        params=[key for key, integrator in SeSolver.avail_integrators().items()
+        params=[key for key, integrator in SESolver.avail_integrators().items()
                 if integrator.support_time_dependant]
     )
     def se_method(self, request):
         return request.param
 
     @pytest.fixture(
-        params=[key for key, integrator in MeSolver.avail_integrators().items()
+        params=[key for key, integrator in MESolver.avail_integrators().items()
                 if integrator.support_time_dependant]
     )
     def me_method(self, request):
         return request.param
 
     @pytest.fixture(
-        params=[key for key, integrator in Solver.avail_integrators().items()
+        params=[key for key, integrator in MCSolver.avail_integrators().items()
                 if integrator.support_time_dependant]
     )
     def mc_method(self, request):
         return request.param
+
+
+@pytest.mark.parametrize('sizes', [(1, 100), (10, 10), (100, 0)],
+                     ids=["large", "multiple subspaces", "diagonal"])
+def test_krylov(sizes):
+    # Krylov solve act differently for large systems composed tensored
+    # sub systems.
+    N, M = sizes
+    H = qutip.qeye(N)
+    if M:
+        H = H & (qutip.num(M) + qutip.create(M) + qutip.destroy(M))
+    H = qutip.QobjEvo(-1j * H)
+    integrator = IntegratorKrylov(H, {})
+    ref_integrator = IntegratorDiag(H, {})
+    psi = qutip.basis(100, 95).data
+    integrator.set_state(0, psi)
+    ref_integrator.set_state(0, psi)
+    for t in np.linspace(0.25, 1, 4):
+        out = integrator.integrate(t)[1]
+        ref = ref_integrator.integrate(t)[1]
+        assert qutip.data.norm.l2(out - ref) == pytest.approx(0, abs=1e-6)
 
 
 @pytest.mark.parametrize('integrator',

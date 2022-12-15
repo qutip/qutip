@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import qutip
 from copy import copy
-from qutip.solver.mcsolve import mcsolve, McSolver
+from qutip.solver.mcsolve import mcsolve, MCSolver
 from qutip.solver.solver_base import Solver
 
 def _return_constant(t, args):
@@ -341,7 +341,7 @@ class TestSeeds:
         size = 10
         a = qutip.QobjEvo([qutip.destroy(size), 'alpha'], args={'alpha': 0})
         H = qutip.num(size)
-        mcsolver = McSolver(H, a, options={'map': 'serial'})
+        mcsolver = MCSolver(H, a, options={'map': 'serial'})
         mcsolver.start(qutip.basis(size, size-1), 0, seed=5)
         state_1 = mcsolver.step(1, args={'alpha':1})
 
@@ -389,7 +389,7 @@ def test_McSolver_run():
     size = 10
     a = qutip.QobjEvo([qutip.destroy(size), 'coupling'], args={'coupling':0})
     H = qutip.num(size)
-    solver = McSolver(H, a)
+    solver = MCSolver(H, a)
     solver.options = {'store_final_state': True}
     res = solver.run(qutip.basis(size, size-1), np.linspace(0, 5.0, 11),
                      e_ops=[qutip.qeye(size)], args={'coupling': 1})
@@ -409,7 +409,7 @@ def test_McSolver_stepping():
     size = 10
     a = qutip.QobjEvo([qutip.destroy(size), 'coupling'], args={'coupling':0})
     H = qutip.num(size)
-    solver = McSolver(H, a)
+    solver = MCSolver(H, a)
     solver.start(qutip.basis(size, size-1), 0, seed=0)
     solver.options = {'method': 'lsoda'}
     state = solver.step(1)

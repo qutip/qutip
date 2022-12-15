@@ -44,10 +44,10 @@ Distributions
 Solver
 ------
 
-.. autoclass:: qutip.solver.sesolve.SeSolver
+.. autoclass:: qutip.solver.sesolve.SESolver
     :members:
 
-.. autoclass:: qutip.solver.mesolve.MeSolver
+.. autoclass:: qutip.solver.mesolve.MESolver
     :members:
 
 .. autoclass:: qutip.solver.brmesolve.BRSolver
@@ -126,6 +126,9 @@ Integrator
     :members: options
 
 .. autoclass:: qutip.solver.ode.qutip_integrator.IntegratorDiag
+    :members: options
+
+.. autoclass:: qutip.solver.ode.krylov.IntegratorKrylov
     :members: options
 
 

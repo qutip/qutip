@@ -6,9 +6,7 @@ from .piqs import *
 from .rcsolve import *
 from .sesolve import *
 from .solver import *
-from .steadystate import *
 from .stochastic import *
-from .krylovsolve import *
 
 # TODO: most of these don't have a __all__ leaking names, ex:
 del np

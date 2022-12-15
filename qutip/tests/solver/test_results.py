@@ -202,10 +202,14 @@ class TestMultiTrajResult:
         else:
             assert multiresult.runs_expect == []
             assert multiresult.runs_e_data == {}
-            assert multiresult.expect_traj_avg() is None
-            assert multiresult.expect_traj_std() is None
-            assert multiresult.e_data_traj_avg() is None
-            assert multiresult.e_data_traj_std() is None
+            with pytest.raises(ValueError):
+                multiresult.expect_traj_avg()
+            with pytest.raises(ValueError):
+                multiresult.expect_traj_std()
+            with pytest.raises(ValueError):
+                multiresult.e_data_traj_avg()
+            with pytest.raises(ValueError):
+                multiresult.e_data_traj_std()
 
     @pytest.mark.parametrize('keep_runs_results', [True, False])
     @pytest.mark.parametrize('dm', [True, False])

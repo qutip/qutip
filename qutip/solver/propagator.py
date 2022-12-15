@@ -5,9 +5,8 @@ import numpy as np
 
 from .. import Qobj, qeye, unstack_columns, QobjEvo
 from ..core import data as _data
-from .mesolve import mesolve, MeSolver
-from .sesolve import sesolve, SeSolver
-from .mcsolve import McSolver
+from .mesolve import mesolve, MESolver
+from .sesolve import sesolve, SESolver
 from .heom.bofin_solvers import HEOMSolver
 from .solver_base import Solver
 from .multitraj import MultiTrajSolver
@@ -116,12 +115,12 @@ class Propagator:
     ----------
     system : :class:`Qobj`, :class:`QobjEvo`, :class:`Solver`
         Possibly time-dependent system driving the evolution, either already
-        packaged in a solver, such as :class:`SeSolver` or :class:`BrSolver`,
+        packaged in a solver, such as :class:`SESolver` or :class:`BRSolver`,
         or the Liouvillian or Hamiltonian as a :class:`Qobj`, :class:`QobjEvo`.
         ``list`` of [:class:`Qobj`, :class:`Coefficient`] or callable that can
         be made into :class:`QobjEvo` are also accepted.
 
-        Solvers that run non-deterministacilly, such as :class:`McSolver`, are
+        Solvers that run non-deterministacilly, such as :class:`MCSolver`, are
         not supported.
 
     c_ops : list, optional
@@ -163,9 +162,9 @@ class Propagator:
             Hevo = QobjEvo(system, args=args)
             c_ops = [QobjEvo(op, args=args) for op in c_ops]
             if Hevo.issuper or c_ops:
-                self.solver = MeSolver(Hevo, c_ops=c_ops, options=options)
+                self.solver = MESolver(Hevo, c_ops=c_ops, options=options)
             else:
-                self.solver = SeSolver(Hevo, options=options)
+                self.solver = SESolver(Hevo, options=options)
 
         self.times = [0]
         self.invs = [None]
