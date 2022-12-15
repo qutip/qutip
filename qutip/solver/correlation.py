@@ -11,8 +11,8 @@ from ..core import (
     qeye, Qobj, QobjEvo, liouvillian, spre, unstack_columns, stack_columns,
     tensor, qzero, expect
 )
-from .mesolve import MeSolver
-from .mcsolve import McSolver
+from .mesolve import MESolver
+from .mcsolve import MCSolver
 from .brmesolve import BRSolver
 from .heom.bofin_solvers import HEOMSolver
 
@@ -419,10 +419,10 @@ def _make_solver(H, c_ops, args, options, solver):
     H = QobjEvo(H, args=args)
     c_ops = [QobjEvo(c_op, args=args) for c_op in c_ops]
     if solver == "me":
-        solver_instance = MeSolver(H, c_ops, options=options)
+        solver_instance = MESolver(H, c_ops, options=options)
     elif solver == "es":
         options = {"method": "diag"}
-        solver_instance = MeSolver(H, c_ops, options=options)
+        solver_instance = MESolver(H, c_ops, options=options)
     elif solver == "mc":
         raise ValueError("MC solver for correlation has been removed")
     return solver_instance
@@ -441,7 +441,7 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None):
 
     Parameters
     ----------
-    solver : :class:`MeSolver`, :class:`BRSolver`
+    solver : :class:`MESolver`, :class:`BRSolver`
         Qutip solver for an open system.
     state0 : :class:`Qobj`
         Initial state density matrix :math:`\rho(t_0)` or state vector
@@ -472,9 +472,9 @@ def correlation_3op(solver, state0, tlist, taulist, A=None, B=None, C=None):
     B = QobjEvo(qeye(dims) if B in [None, 1] else B)
     C = QobjEvo(qeye(dims) if C in [None, 1] else C)
 
-    if isinstance(solver, (MeSolver, BRSolver)):
+    if isinstance(solver, (MESolver, BRSolver)):
         out = _correlation_3op_dm(solver, state0, tlist, taulist, A, B, C)
-    elif isinstance(solver, McSolver):
+    elif isinstance(solver, MCSolver):
         raise TypeError("Monte Carlo support for correlation was removed. "
                         "Please, tell us on GitHub issues if you need it!")
     elif isinstance(solver, HEOMSolver):

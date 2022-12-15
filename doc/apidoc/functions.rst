@@ -141,12 +141,8 @@ Master Equation
 Monte Carlo Evolution
 ---------------------
 
-.. automodule:: qutip.solve.mcsolve
+.. automodule:: qutip.solver.mcsolve
     :members: mcsolve
-
-.. ignore f90 stuff for now
-    .. automodule:: qutip.fortran.mcsolve_f90
-        :members: mcsolve_f90
 
 
 Krylov Subspace Solver

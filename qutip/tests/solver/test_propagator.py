@@ -4,9 +4,9 @@ from qutip import (destroy, propagator, Propagator, propagator_steadystate,
 import qutip
 import pytest
 from qutip.solver.brmesolve import BRSolver
-from qutip.solver.mesolve import MeSolver
-from qutip.solver.sesolve import SeSolver
-from qutip.solver.mcsolve import McSolver
+from qutip.solver.mesolve import MESolver
+from qutip.solver.sesolve import SESolver
+from qutip.solver.mcsolve import MCSolver
 
 
 def testPropHOB():
@@ -101,11 +101,11 @@ def testPropEvo():
 
 
 def _make_se(H, a):
-    return SeSolver(H)
+    return SESolver(H)
 
 
 def _make_me(H, a):
-    return MeSolver(H, [a])
+    return MESolver(H, [a])
 
 
 def _make_br(H, a):
@@ -114,8 +114,8 @@ def _make_br(H, a):
 
 
 @pytest.mark.parametrize('solver', [
-    pytest.param(_make_se, id='SeSolver'),
-    pytest.param(_make_me, id='MeSolver'),
+    pytest.param(_make_se, id='SESolver'),
+    pytest.param(_make_me, id='MESolver'),
     pytest.param(_make_br, id='BRSolver'),
 ])
 def testPropSolver(solver):
@@ -134,7 +134,7 @@ def testPropSolver(solver):
 def testPropMcSolver():
     a = destroy(5)
     H = a.dag()*a
-    solver = McSolver(H, [a])
+    solver = MCSolver(H, [a])
     with pytest.raises(TypeError) as err:
         Propagator(solver)
     assert str(err.value).startswith("Non-deterministic")
