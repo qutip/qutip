@@ -1132,7 +1132,7 @@ def general_stochastic(state0, times, d1, d2, e_ops=[], m_ops=[],
             raise ValueError("Safety check: d1 and d2 must return " +
                              "complex numpy array.")
         msg_e_ops = ("Safety check: The shape of the e_ops "
-                     "does not fit the intial state.")
+                     "does not fit the initial state.")
         for op in sso.e_ops:
             shape_op = op.shape
             if sso.me:
@@ -1193,17 +1193,17 @@ def _safety_checks(sso):
         shape_op = sso.H.cte.shape
         if shape_op[0] != l_vec or shape_op[1] != l_vec:
             raise Exception("The size of the hamiltonian does "
-                            "not fit the intial state")
+                            "not fit the initial state")
     else:
         shape_op = sso.H.cte.shape
         if sso.me:
             if shape_op[0]**2 != l_vec or shape_op[1]**2 != l_vec:
                 raise Exception("The size of the hamiltonian does "
-                                "not fit the intial state")
+                                "not fit the initial state")
         else:
             if shape_op[0] != l_vec or shape_op[1] != l_vec:
                 raise Exception("The size of the hamiltonian does "
-                                "not fit the intial state")
+                                "not fit the initial state")
 
     for op in sso.sc_ops:
         if op.cte.issuper:
@@ -1214,17 +1214,17 @@ def _safety_checks(sso):
             shape_op = op.cte.shape
             if shape_op[0] != l_vec or shape_op[1] != l_vec:
                 raise Exception("The size of the sc_ops does "
-                                "not fit the intial state")
+                                "not fit the initial state")
         else:
             shape_op = op.cte.shape
             if sso.me:
                 if shape_op[0]**2 != l_vec or shape_op[1]**2 != l_vec:
                     raise Exception("The size of the sc_ops does "
-                                    "not fit the intial state")
+                                    "not fit the initial state")
             else:
                 if shape_op[0] != l_vec or shape_op[1] != l_vec:
                     raise Exception("The size of the sc_ops does "
-                                    "not fit the intial state")
+                                    "not fit the initial state")
 
     for op in sso.c_ops:
         if op.cte.issuper:
@@ -1235,28 +1235,28 @@ def _safety_checks(sso):
             shape_op = op.cte.shape
             if shape_op[0] != l_vec or shape_op[1] != l_vec:
                 raise Exception("The size of the c_ops does "
-                                "not fit the intial state")
+                                "not fit the initial state")
         else:
             shape_op = op.cte.shape
             if sso.me:
                 if shape_op[0]**2 != l_vec or shape_op[1]**2 != l_vec:
                     raise Exception("The size of the c_ops does "
-                                    "not fit the intial state")
+                                    "not fit the initial state")
             else:
                 if shape_op[0] != l_vec or shape_op[1] != l_vec:
                     raise Exception("The size of the c_ops does "
-                                    "not fit the intial state")
+                                    "not fit the initial state")
 
     for op in sso.e_ops:
         shape_op = op.shape
         if sso.me:
             if shape_op[0]**2 != l_vec or shape_op[1]**2 != l_vec:
                 raise Exception("The size of the e_ops does "
-                                "not fit the intial state")
+                                "not fit the initial state")
         else:
             if shape_op[0] != l_vec or shape_op[1] != l_vec:
                 raise Exception("The size of the e_ops does "
-                                "not fit the intial state")
+                                "not fit the initial state")
 
     if sso.m_ops is not None:
         for op in sso.m_ops:
@@ -1264,11 +1264,11 @@ def _safety_checks(sso):
             if sso.me:
                 if shape_op[0]**2 != l_vec or shape_op[1]**2 != l_vec:
                     raise Exception("The size of the m_ops does "
-                                    "not fit the intial state")
+                                    "not fit the initial state")
             else:
                 if shape_op[0] != l_vec or shape_op[1] != l_vec:
                     raise Exception("The size of the m_ops does "
-                                    "not fit the intial state")
+                                    "not fit the initial state")
 
 
 def _sesolve_generic(sso, options, progress_bar):
