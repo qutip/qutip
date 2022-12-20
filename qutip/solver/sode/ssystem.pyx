@@ -84,7 +84,7 @@ cdef class StochasticOpenSystem:
         return self.L.matmul_data(t, state)
 
     def diffusion(self, double t, Data state):
-        cdef int i, k
+        cdef int i
         cdef QobjEvo c_op
         cdef complex expect
         cdef out = []
