@@ -6,7 +6,7 @@ from .solver_base import Solver
 import numpy as np
 from copy import copy
 
-__all__ = ["MultiTrajSolver", "TrajectorySolver"]
+__all__ = ["MultiTrajSolver"]
 
 
 class MultiTrajSolver(Solver):

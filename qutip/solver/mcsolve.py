@@ -223,12 +223,12 @@ class MCIntegrator:
 
     def _prob_func(self, state):
         if self.issuper:
-            return _data.norm.trace(unstack_columns(state))
+            return _data.norm.trace_oper_ket(state)
         return _data.norm.l2(state)**2
 
     def _norm_func(self, state):
         if self.issuper:
-            return _data.norm.trace(unstack_columns(state))
+            return _data.norm.trace_oper_ket(state)
         return _data.norm.l2(state)
 
     def _find_collapse_time(self, norm_old, norm, t_prev, t_final):
