@@ -61,12 +61,12 @@ cpdef Data platen(StochasticSystem system, t, Data state, dt, dW):
         d2m = system.diffusion(t, Vm[i])
         dw = dW[i] * 0.25
         out = _data.add(out, d2m[i], dw)
-        out = _data.add(out, d2[i], 2*dw)
+        out = _data.add(out, d2[i], 2 * dw)
         out = _data.add(out, d2p[i], dw)
 
         for j in range(system.num_collapse):
             dw2 = sqrt_dt_inv * (dW[i] * dW[j] - dt * (i == j))
-            out = _data.add(out, d2p[j], dw)
-            out = _data.add(out, d2m[j], -dw)
+            out = _data.add(out, d2p[j], dw2)
+            out = _data.add(out, d2m[j], -dw2)
 
     return out

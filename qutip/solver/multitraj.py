@@ -28,7 +28,7 @@ class MultiTrajSolver(Solver):
     options : dict
         Options for the solver.
     """
-    name = "generic multi trajectory"
+    name = "stochastic master equation"
     resultclass = MultiTrajResult
     _avail_integrators = {}
 
@@ -40,7 +40,7 @@ class MultiTrajSolver(Solver):
         "store_states": None,
         "keep_runs_results": False,
         "normalize_output": False,
-        "method": "",
+        "method": "adams",
         "map": "serial",
         "job_timeout": None,
         "num_cpus": None,
