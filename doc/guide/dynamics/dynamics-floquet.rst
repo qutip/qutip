@@ -104,7 +104,7 @@ In QuTiP we can define this Hamiltonian as follows:
    >>> args = {'w': omega}
    >>> H = [H0, [H1, 'sin(w * t)']]
 
-The :math:`t=0` Floquet modes corresponding to the Hamiltonian :eq:`eq_driven_qubit` can then be calculated using the :class:`qutip.FloquetBasis` class, which encapsulated the Floquet modes and the quasienergies
+The :math:`t=0` Floquet modes corresponding to the Hamiltonian :eq:`eq_driven_qubit` can then be calculated using the :class:`qutip.FloquetBasis` class, which encapsulates the Floquet modes and the quasienergies:
 
 .. plot::
    :context:
@@ -183,7 +183,7 @@ To do that, we first need to decompose the initial state in the Floquet states, 
    [(-0.645265993068382+0.7304552549315746j),
    (0.15517002114250228-0.1612116102238258j)]
 
-and given this decomposition of the initial state in the Floquet states we can easily evaluate the wavefunction that is the solution to :eq:`eq_driven_qubit` at an arbitrary time :math:`t` using the function :meth:`FloquetBasis.from_floquet_basis`
+and given this decomposition of the initial state in the Floquet states we can easily evaluate the wavefunction that is the solution to :eq:`eq_driven_qubit` at an arbitrary time :math:`t` using the function :meth:`FloquetBasis.from_floquet_basis`:
 
 .. plot::
    :context:
@@ -200,9 +200,9 @@ The following example illustrates how to use the functions introduced above to c
 Pre-computing the Floquet modes for one period
 ----------------------------------------------
 
-When evaluating the Floquet states or the wavefunction at many points in time it is useful to pre-compute the Floquet modes for the first period of the driving with the required resolution.
-In QuTiP the function :func:`qutip.floquet.floquet_modes_table` calculates a table of Floquet modes which later can be used together with the function :func:`qutip.floquet.floquet_modes_t_lookup` to efficiently lookup the Floquet mode at an arbitrary time.
-The following example illustrates how the example from the previous section can be solved more efficiently using these functions for pre-computing the Floquet modes.
+When evaluating the Floquet states or the wavefunction at many points in time it is useful to pre-compute the Floquet modes for the first period of the driving with the required times.
+The list of times to pre-compute modes for may be passed to :class:`FloquetBasis` using `precompute=tlist`, and then `:meth:`FloquetBasis.from_floquet_basis` and :meth:`FloquetBasis.to_floquet_basis` can be used to efficiently retrieve the wave function at the pre-computed times.
+The following example illustrates how the example from the previous section can be solved more efficiently using these functions for pre-computing the Floquet modes:
 
 .. plot:: guide/scripts/floquet_ex2.py
    :width: 4.0in
@@ -279,7 +279,7 @@ The other parameters are similar to the :func:`qutip.mesolve` and :func:`qutip.m
    :width: 4.0in
    :include-source:
 
-Finally, :func:`qutip.solver.floquet.fmmesolve` consider the ``e_ops`` to always be in the laboratory basis, thus we can simply use:
+Finally, :func:`qutip.solver.floquet.fmmesolve`  always expects the ``e_ops`` to be specified in the laboratory basis (as for other solvers) and we can calculate expectation values using:
 
     output = fmmesolve(H, psi0, tlist, [sigmax()], e_ops=[num(2)], spectra_cb=[noise_spectrum], T=T, args=args)
     p_ex = output.expect[0]
