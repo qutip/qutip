@@ -1,10 +1,5 @@
 __all__ = [
     "FloquetBasis",
-    "floquet_delta_tensor",
-    "floquet_X_matrices",
-    "floquet_gamma_matrices",
-    "floquet_A_matrix",
-    "floquet_master_equation_tensor",
     "floquet_tensor",
     "fsesolve",
     "fmmesolve",
@@ -37,9 +32,6 @@ class FloquetBasis:
 
     e_quasi : np.ndarray[float]
         The quasi energies of the Hamiltonian.
-
-    U_T : :class:`Qobj`
-        Propagator over one period.
     """
 
     def __init__(
@@ -99,10 +91,10 @@ class FloquetBasis:
         for t in tlist:
             # Do the evolution by steps to save the intermediate results.
             self.U(t)
-        self.U_T = self.U(self.T)
-        if not sparse and isinstance(self.U_T, _data.CSR):
-            self.U_T = self.U_T.to("Dense")
-        evals, evecs = _data.eigs(self.U_T.data)
+        U_T = self.U(self.T)
+        if not sparse and isinstance(U_T.data, _data.CSR):
+            U_T = U_T.to("Dense")
+        evals, evecs = _data.eigs(U_T.data)
         e_quasi = -np.angle(evals) / T
         if sort:
             perm = np.argsort(e_quasi)
@@ -116,7 +108,7 @@ class FloquetBasis:
         """
         Split the Data array in a list of kets.
         """
-        dims = [self.U_T.dims[0], [1]]
+        dims = [self.U(0).dims[0], [1]]
         return [
             Qobj(ket, dims=dims, type="ket")
             for ket in _data.split_columns(kets_mat)
@@ -206,7 +198,7 @@ class FloquetBasis:
         if is_Qobj:
             dims = floquet_basis.dims
             floquet_basis = floquet_basis.data
-            if dims[0] != self.U_T.dims[1]:
+            if dims[0] != self.U(0).dims[1]:
                 raise ValueError(
                     "Dimensions of the state does " "not match the Hamiltonian"
                 )
@@ -243,7 +235,7 @@ class FloquetBasis:
         if is_Qobj:
             dims = lab_basis.dims
             lab_basis = lab_basis.data
-            if dims[0] != self.U_T.dims[1]:
+            if dims[0] != self.U(0).dims[1]:
                 raise ValueError(
                     "Dimensions of the state does " "not match the Hamiltonian"
                 )
@@ -258,7 +250,7 @@ class FloquetBasis:
         return floquet_basis
 
 
-def floquet_delta_tensor(f_energies, kmax, T):
+def _floquet_delta_tensor(f_energies, kmax, T):
     """
     Floquet-Markov master equation X matrices.
 
@@ -282,14 +274,14 @@ def floquet_delta_tensor(f_energies, kmax, T):
     return np.add.outer(delta, np.arange(-kmax, kmax + 1) * (2 * np.pi / T))
 
 
-def floquet_X_matrices(floquet_basis, c_ops, kmax, ntimes=100):
+def _floquet_X_matrices(floquet_basis, c_ops, kmax, ntimes=100):
     """
     Floquet-Markov master equation X matrices.
 
     Parameters
     ----------
     floquet_basis : :class:`FloquetBasis`
-        Floquet delta tensor created by :func:`floquet_X_matrices`.
+        Floquet delta tensor created by :func:`_floquet_X_matrices`.
 
     c_ops : list of :class:`Qobj`
         The collapse operators describing the dissipation.
@@ -323,17 +315,17 @@ def floquet_X_matrices(floquet_basis, c_ops, kmax, ntimes=100):
     return [{k: out[k][i] for k in ks} for i in range(len(c_ops))]
 
 
-def floquet_gamma_matrices(X, delta, J_cb):
+def _floquet_gamma_matrices(X, delta, J_cb):
     """
     Floquet-Markov master equation gamma matrices.
 
     Parameters
     ----------
     X : list of dict of :class:`qutip.data.Data`
-        Floquet delta tensor created by :func:`floquet_X_matrices`.
+        Floquet delta tensor created by :func:`_floquet_X_matrices`.
 
     delta : np.ndarray
-        Floquet delta tensor created by :func:`floquet_delta_tensor`.
+        Floquet delta tensor created by :func:`_floquet_delta_tensor`.
 
     J_cb : list of callable
         A list callback function that computes the noise power spectrum, as
@@ -366,17 +358,17 @@ def floquet_gamma_matrices(X, delta, J_cb):
     return gamma
 
 
-def floquet_A_matrix(delta, gamma, w_th):
+def _floquet_A_matrix(delta, gamma, w_th):
     """
     Floquet-Markov master equation rate matrix.
 
     Parameters
     ----------
     delta : np.ndarray
-        Floquet delta tensor created by :func:`floquet_delta_tensor`.
+        Floquet delta tensor created by :func:`_floquet_delta_tensor`.
 
     gamma : dict of :class:`qutip.data.Data`
-        Floquet gamma matrices created by :func:`floquet_gamma_matrices`.
+        Floquet gamma matrices created by :func:`_floquet_gamma_matrices`.
 
     w_th : float
         The temperature in units of frequency.
@@ -408,7 +400,7 @@ def floquet_A_matrix(delta, gamma, w_th):
     return A
 
 
-def floquet_master_equation_tensor(A):
+def _floquet_master_equation_tensor(A):
     """
     Construct a tensor that represents the master equation in the floquet
     basis (with constant Hamiltonian and collapse operators?).
@@ -483,11 +475,11 @@ def floquet_tensor(H, c_ops, spectra_cb, T=0, w_th=0.0, kmax=5, nT=100):
     else:
         floquet_basis = FloquetBasis(H, T)
     energy = floquet_basis.e_quasi
-    delta = floquet_delta_tensor(energy, kmax, T)
-    x = floquet_X_matrices(floquet_basis, c_ops, kmax, nT)
-    gamma = floquet_gamma_matrices(x, delta, spectra_cb)
-    a = floquet_A_matrix(delta, gamma, w_th)
-    r = floquet_master_equation_tensor(a)
+    delta = _floquet_delta_tensor(energy, kmax, T)
+    x = _floquet_X_matrices(floquet_basis, c_ops, kmax, nT)
+    gamma = _floquet_gamma_matrices(x, delta, spectra_cb)
+    a = _floquet_A_matrix(delta, gamma, w_th)
+    r = _floquet_master_equation_tensor(a)
     dims = floquet_basis.U_T.dims
     return Qobj(
         r, dims=[dims, dims], type="super", superrep="super", copy=False
