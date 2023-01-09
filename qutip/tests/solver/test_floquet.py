@@ -6,12 +6,9 @@ from qutip import (
     Qobj, QobjEvo, coefficient
  )
 
-#from qutip import floquet_modes, floquet_modes_table, fmmesolve
-#from qutip import floquet_modes_t_lookup, fsesolve, floquet_master_equation_rates
-
 from qutip.solver.floquet import (
     FloquetBasis, floquet_tensor, fmmesolve, FMESolver,
-    floquet_delta_tensor, floquet_X_matrices, fsesolve
+    _floquet_delta_tensor, _floquet_X_matrices, fsesolve
 )
 import pytest
 
@@ -302,8 +299,8 @@ class TestFloquet:
             )
 
             floquet_basis = FloquetBasis(H, T)
-            DeltaMatrix = floquet_delta_tensor(floquet_basis.e_quasi, kmax, T)
-            X = floquet_X_matrices(floquet_basis, [c_ops], kmax)
+            DeltaMatrix = _floquet_delta_tensor(floquet_basis.e_quasi, kmax, T)
+            X = _floquet_X_matrices(floquet_basis, [c_ops], kmax)
 
             # Check energies
             deltas = np.ndarray.flatten(DeltaMatrix)

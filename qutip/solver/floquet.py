@@ -298,7 +298,7 @@ def _floquet_X_matrices(floquet_basis, c_ops, kmax, ntimes=100):
         A dict of the sidebands ``k`` to the X matrices for each c_ops
     """
     T = floquet_basis.T
-    N = floquet_basis.U_T.shape[0]
+    N = floquet_basis.U(0).shape[0]
     omega = (2 * np.pi) / T
     tlist = np.linspace(T / ntimes, T, ntimes)
     ks = np.arange(-kmax, kmax + 1)
@@ -480,7 +480,7 @@ def floquet_tensor(H, c_ops, spectra_cb, T=0, w_th=0.0, kmax=5, nT=100):
     gamma = _floquet_gamma_matrices(x, delta, spectra_cb)
     a = _floquet_A_matrix(delta, gamma, w_th)
     r = _floquet_master_equation_tensor(a)
-    dims = floquet_basis.U_T.dims
+    dims = floquet_basis.U(0).dims
     return Qobj(
         r, dims=[dims, dims], type="super", superrep="super", copy=False
     )
