@@ -64,6 +64,7 @@ def _spectrum_fft(H, c_ops, a, b):
     pytest.param(_spectrum_fft, id="fft"),
     pytest.param(_spectrum_wrapper("es"), id="es"),
     pytest.param(_spectrum_wrapper("pi"), id="pi"),
+    pytest.param(_spectrum_wrapper("solve"), id="solve"),
 ])
 def test_spectrum_solver_equivalence_to_es(spectrum):
     """Test equivalence of the spectrum solvers to the base "es" method."""
