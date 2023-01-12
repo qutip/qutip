@@ -164,8 +164,8 @@ class Result(_BaseResult):
         Each element is itself a list and contains the values of the
         corresponding ``e_op``, with one value for each time in ``.times``.
 
-        The same lists of values may be accessed via the ``.e_data`` dictionary
-        and the original ``e_ops`` are available via the ``.e_ops`` attribute.
+        The same lists of values may be accessed via the ``e_data`` dictionary
+        and the original ``e_ops`` are available via the ``e_ops`` attribute.
 
     e_data : dict
         A dictionary containing the values of each ``e_op``. If the ``e_ops``
