@@ -25,10 +25,10 @@ class FloquetBasis:
     Attributes
     ----------
     U : :class:`Propagator`
-        The propagator of the hamiltonian over one period.
+        The propagator of the Hamiltonian over one period.
 
     evecs : :class:`qutip.data.Data`
-        Matrix where each column is an initial Floquet modes.
+        Matrix where each column is an initial Floquet mode.
 
     e_quasi : np.ndarray[float]
         The quasi energies of the Hamiltonian.
@@ -176,23 +176,21 @@ class FloquetBasis:
 
     def from_floquet_basis(self, floquet_basis, t=0):
         """
-        Evaluate the wavefunction for a time t using the Floquet state
-        decompositon.
+        Transform a ket or density matrix from the Floquet basis at time ``t`` to the lab basis.
 
         Parameters
         ----------
-        lab_basis : :class:`Qobj`, :class:`qutip.data.Data`
-            Initial state in the floquet basis. Can be either a ket or density
+        floquet_basis : :class:`Qobj`, :class:`qutip.data.Data`
+            Initial state in the Floquet basis at time ``t``. May be either a ket or density
             matrix.
 
         t : float [0]
-            The time for which to evaluate the Floquet states.
+            The time at which to evaluate the Floquet states.
 
         Returns
         -------
         output : :class:`Qobj`, :class:`qutip.data.Data`
-            The state in the lab basis. Keep the same format as the input
-            state.
+            The state in the lab basis. The return type is the same as the type of the input state.
         """
         is_Qobj = isinstance(floquet_basis, Qobj)
         if is_Qobj:
@@ -200,7 +198,7 @@ class FloquetBasis:
             floquet_basis = floquet_basis.data
             if dims[0] != self.U(0).dims[1]:
                 raise ValueError(
-                    "Dimensions of the state does " "not match the Hamiltonian"
+                    "Dimensions of the state do not match the Hamiltonian"
                 )
 
         state_mat = self.state(t, True)
@@ -214,8 +212,8 @@ class FloquetBasis:
 
     def to_floquet_basis(self, lab_basis, t=0):
         """
-        Decompose the wavefunction as a ket or density matrix in the lab basis
-        in term of the Floquet states.
+        Transform a ket or density matrix in the lab basis
+        to the Floquet basis at time ``t``.
 
         Parameters
         ----------
@@ -223,13 +221,12 @@ class FloquetBasis:
             Initial state in the lab basis.
 
         t : float [0]
-            Time a which the lab basis is set.
+            The time at which to evaluate the Floquet states.
 
         Returns
         -------
         output : :class:`Qobj`, :class:`qutip.data.Data`
-            The state in the floquet basis. Keep the same format as the input
-            state.
+            The state in the Floquet basis. The return type is the same as the type of the input state.
         """
         is_Qobj = isinstance(lab_basis, Qobj)
         if is_Qobj:
@@ -237,7 +234,7 @@ class FloquetBasis:
             lab_basis = lab_basis.data
             if dims[0] != self.U(0).dims[1]:
                 raise ValueError(
-                    "Dimensions of the state does " "not match the Hamiltonian"
+                    "Dimensions of the state do not match the Hamiltonian"
                 )
 
         state_mat = self.state(t, True)
@@ -263,7 +260,7 @@ def _floquet_delta_tensor(f_energies, kmax, T):
         The truncation of the number of sidebands (default 5).
 
     T : float
-        The period of the time-dependence of the hamiltonian.
+        The period of the time-dependence of the Hamiltonian.
 
     Returns
     -------
@@ -295,7 +292,7 @@ def _floquet_X_matrices(floquet_basis, c_ops, kmax, ntimes=100):
     Returns
     -------
     X : list of dict of :class:`qutip.data.Data`
-        A dict of the sidebands ``k`` to the X matrices for each c_ops
+        A dict of the sidebands ``k`` for the X matrices of each c_ops
     """
     T = floquet_basis.T
     N = floquet_basis.U(0).shape[0]
@@ -322,20 +319,22 @@ def _floquet_gamma_matrices(X, delta, J_cb):
     Parameters
     ----------
     X : list of dict of :class:`qutip.data.Data`
-        Floquet delta tensor created by :func:`_floquet_X_matrices`.
+        Floquet X matrices created by :func:`_floquet_X_matrices`.
 
     delta : np.ndarray
         Floquet delta tensor created by :func:`_floquet_delta_tensor`.
 
-    J_cb : list of callable
-        A list callback function that computes the noise power spectrum, as
-        a function of frequency, associated with each collapse operator `c_op`.
-        The function should take and return numpy arrays of frequencies.
+    J_cb : list of callables
+        A list callback functions that compute the noise power spectrum as
+        a function of frequency. The list should contain one callable for each collapse operator `c_op`,
+        in the same order as the elements of `X`.
+        Each callable should accept a numpy array of frequencies and return a numpy array of
+        corresponding noise power.
 
     Returns
     -------
     gammas : dict of :class:`qutip.data.Data`
-        A dict of the sidebands ``k`` to it's gamma matrices.
+        A dict mapping the sidebands ``k`` to their gamma matrices.
     """
     N = delta.shape[0]
     kmax = (delta.shape[2] - 1) // 2
@@ -822,7 +821,7 @@ class FMESolver(MESolver):
             Initial time of the evolution.
 
         floquet : bool, optional {False}
-            Whether the initial state in the floquet basis or laboratory basis.
+            Whether the initial state is in the floquet basis or laboratory basis.
         """
         if not floquet:
             state0 = self.floquet_basis.to_floquet_basis(state0, t0)
@@ -863,7 +862,7 @@ class FMESolver(MESolver):
 
     def run(self, state0, tlist, *, floquet=False, args=None, e_ops=None):
         """
-        Do the evolution of the Quantum system.
+        Calculate the evolution of the quantum system.
 
         For a ``state0`` at time ``tlist[0]`` do the evolution as directed by
         ``rhs`` and for each time in ``tlist`` store the state and/or
