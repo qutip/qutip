@@ -4,7 +4,6 @@ import pickle
 import numpy as np
 import sys
 from .core import Qobj
-from .solve import Result
 from pathlib import Path
 
 

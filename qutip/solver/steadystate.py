@@ -1,6 +1,6 @@
 from qutip import liouvillian, lindblad_dissipator, Qobj, qeye, qzero
 from qutip import vector_to_operator, operator_to_vector
-from qutip import settings
+from qutip.settings import settings
 import qutip.core.data as _data
 import numpy as np
 import scipy.sparse.csgraph

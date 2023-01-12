@@ -2,7 +2,7 @@ import pytest
 import numpy
 import qutip
 from qutip.core import data as _data
-from qutip import settings
+from qutip.settings import settings
 
 
 @pytest.mark.parametrize('type_left', _data.to.dtypes)

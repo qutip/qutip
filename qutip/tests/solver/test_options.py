@@ -89,7 +89,7 @@ def test_print():
 
 def test_in_solver():
     opt = {"method": "adams", "store_states": True, "atol": 1}
-    solver = qutip.solver.sesolve.SESolver(qutip.qeye(1), options=opt)
+    solver = qutip.SESolver(qutip.qeye(1), options=opt)
     adams = qutip.solver.ode.scipy_integrator.IntegratorScipyAdams
     lsoda = qutip.solver.ode.scipy_integrator.IntegratorScipylsoda
     bdf = qutip.solver.ode.scipy_integrator.IntegratorScipyBDF
@@ -119,7 +119,7 @@ def test_in_solver():
 
 def test_options_update_solver():
     opt = {"method": "adams", "normalize_output": False}
-    solver = qutip.solver.sesolve.SESolver(1j * qutip.qeye(1), options=opt)
+    solver = qutip.SESolver(1j * qutip.qeye(1), options=opt)
 
     solver.start(qutip.basis(1), 0)
     err_atol_def = (solver.step(1) - np.exp(1)).norm()

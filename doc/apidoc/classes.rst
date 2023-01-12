@@ -149,19 +149,7 @@ Non-Markovian Memory Cascade and Transfer Tensor Solvers
 Solver Options and Results
 ---------------------------
 
-.. autoclass:: qutip.solve.solver.ExpectOps
-    :members:
-
-.. autoclass:: qutip.solve.solver.Result
-    :members:
-
-.. autoclass:: qutip.solve.solver.SolverConfiguration
-    :members:
-
-.. autoclass:: qutip.solve.solver.Stats
-    :members:
-
-.. autoclass:: qutip.solve.stochastic.StochasticSolverOptions
+.. autoclass:: qutip.solver.result.Result
     :members:
 
 .. _classes-piqs:
