@@ -51,7 +51,7 @@ def coefficient_function_parameters(func, style=None):
     sig = inspect.signature(func)
     f_has_kw = any(p.kind == p.VAR_KEYWORD for p in sig.parameters.values())
     if style is None:
-        style = qutip.settings.settings.core["function_coefficient_style"]
+        style = qutip.settings.core["function_coefficient_style"]
     if style == "auto":
         if tuple(sig.parameters.keys()) == ("t", "args") and not f_has_kw:
             # if the signature is exactly f(t, args), then assume parameters
