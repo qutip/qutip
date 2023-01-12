@@ -1,54 +1,8 @@
 __all__ = ["smesolve", "SMESolver"]
 
-from .integrator import Integrator
+from .sode.sode import ExplicitIntegrator
 from .result import MultiTrajResult, Result
 from .multitraj import MultiTrajSolver
-
-
-class SIntegrator(Integrator):
-    def set_state(self, t, state0, generator):
-        """
-        Set the state of the SODE solver.
-
-        Parameters
-        ----------
-        t : float
-            Initial time
-
-        state0 : qutip.Data
-            Initial state.
-
-        generator : numpy.random.generator
-            Random number generator.
-        """
-        raise NotImplementedError
-
-
-    def integrate(self, t, copy=True):
-        """
-        Evolve to t.
-
-        Before calling `integrate` for the first time, the initial state should
-        be set with `set_state`.
-
-        Parameters
-        ----------
-        t : float
-            Time to integrate to, should be larger than the previous time.
-
-        copy : bool [True]
-            Whether to return a copy of the state or the state itself.
-
-        Returns
-        -------
-        (t, state, noise) : (float, qutip.Data, np.ndarray)
-            The state of the solver at ``t``.
-        """
-        raise NotImplementedError
-
-
-    def mcstep(self, t, copy=True):
-        raise NotImplementedError
 
 
 class StochasticTrajResult(Result):
@@ -162,7 +116,7 @@ class SMESolver(MultiTrajSolver):
             L = liouvillian(H, sc_ops)
         else:
             L = H + sum(lindblad_dissipator(c_op) for c_op in sc_ops)
-        rhs = StochasticOpenSystem(L, sc_ops)
+        rhs = StochasticOpenSystem(L, sc_ops, self.options["heterodyne"])
         super().__init__(rhs, options=options)
 
         if self.options["heterodyne"]:

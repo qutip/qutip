@@ -1,11 +1,17 @@
+#cython: language_level=3
 from qutip.core import data as _data
 from qutip.core.cy.qobjevo cimport QobjEvo
 from qutip.core.data cimport Data
+from collections import defaultdict
+cimport cython
+import numpy as np
+
+N_dws = defaultdict(lambda : 1)
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef Data euler(StochasticSystem system, t, Data state, dt, dW):
+cpdef Data euler(system, t, Data state, double dt, double[:, :] dW):
     """
     Integration scheme:
     Basic Euler order 0.5
@@ -18,13 +24,13 @@ cpdef Data euler(StochasticSystem system, t, Data state, dt, dW):
     b = system.diffusion(t, state)
     new_state = _data.add(state, a, dt)
     for i in range(system.num_collapse):
-        new_state = _data.add(new_state, b[i], dW[i])
+        new_state = _data.add(new_state, b[i], dW[i, 0])
     return new_state
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef Data platen(StochasticSystem system, t, Data state, dt, dW):
+cpdef Data platen(system, t, Data state, double dt, double[:, :] dW):
     """
     Platen rhs function for both master eq and schrodinger eq.
     dV = -iH* (V+Vt)/2 * dt + (d1(V)+d1(Vt))/2 * dt
@@ -38,7 +44,7 @@ cpdef Data platen(StochasticSystem system, t, Data state, dt, dW):
     """
     cdef int i, j
     cdef double sqrt_dt = np.sqrt(dt)
-    cdef double sqrt_dt_inv = 0.25/sqrt_dt
+    cdef double sqrt_dt_inv = 0.25 / sqrt_dt
     cdef double dw, dw2
 
     d1 = _data.add(system.drift(t, state), state)
@@ -59,13 +65,13 @@ cpdef Data platen(StochasticSystem system, t, Data state, dt, dW):
     for i in range(system.num_collapse):
         d2p = system.diffusion(t, Vp[i])
         d2m = system.diffusion(t, Vm[i])
-        dw = dW[i] * 0.25
+        dw = dW[i, 0] * 0.25
         out = _data.add(out, d2m[i], dw)
         out = _data.add(out, d2[i], 2 * dw)
         out = _data.add(out, d2p[i], dw)
 
         for j in range(system.num_collapse):
-            dw2 = sqrt_dt_inv * (dW[i] * dW[j] - dt * (i == j))
+            dw2 = sqrt_dt_inv * (dW[i, 0] * dW[j, 0] - dt * (i == j))
             out = _data.add(out, d2p[j], dw2)
             out = _data.add(out, d2m[j], -dw2)
 

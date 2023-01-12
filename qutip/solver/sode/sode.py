@@ -1,6 +1,6 @@
 
-import ._sode as sstepper
-
+from . import _sode as sstepper
+from ..integrator import SIntegrator
 
 
 class ExplicitIntegrator(SIntegrator):
@@ -14,6 +14,8 @@ class ExplicitIntegrator(SIntegrator):
         self.dt = self.options["dt"]
         self.tol = self.options["tol"]
         self.stepper = getattr(sstepper, options["method"])
+        self.N_dw = sstepper.N_dws[options["method"]]
+        self.N_drift = system.num_collapse
 
     def _step(self, dt, dW):
         new_state = self.stepper(self.system, self.t, self.state, dt, dW)
@@ -28,14 +30,16 @@ class ExplicitIntegrator(SIntegrator):
     def integrate(self, t, copy=True):
         delta_t = (t - self.t)
         dt = self.dt
-        N, err = np.divmod(delta_t, dt)
-        if err > self.tol:
+        N, extra = np.divmod(delta_t, dt)
+        if extra > self.tol:
             # Not a whole number of steps.
             N += 1
             dt = delta_t / N
-        dW = self.generator.normal(0, np.sqrt(dt), size=(N, self.system.num_dw))
+        dW = self.generator.normal(0, np.sqrt(dt), size=(N, self.N_drift, self.N_dw))
+
         for i in range(N):
             self._step(dt, dW[i, :])
+
         return self.t, self.state, np.sum(dW, axis=0) / (N * dt)
 
     def get_state(self, copy=True):

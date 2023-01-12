@@ -1,3 +1,4 @@
+#cython: language_level=3
 """
 Class to represent a stochastic differential equation system.
 """
@@ -5,39 +6,51 @@ Class to represent a stochastic differential equation system.
 from qutip.core import data as _data
 from qutip.core.cy.qobjevo cimport QobjEvo
 from qutip.core.data cimport Data
+cimport cython
+import numpy as np
+from qutip.core import spre, spost
 
 cdef class StochasticSystem:
-    """
+    cdef object d1, d2
+    cdef int num_collapse
+    cdef double t
+    cdef double state
 
-    """
     def __init__(self, a, b):
-        self.a = a
-        self.b = b
+        self.d1 = a
+        self.d2 = b
+        self.num_collapse = 1
 
     def drift(self, t, state):
-        return self.b(t, state)
+        return self.d1(t, state)
 
     def diffusion(self, t, state):
-        return self.a(t, state)
+        return self.d2(t, state)
+
+
+    cdef void set_state(self, double t, Data state):
+        self.t = t
+        self.state = state
+
+    cdef Data a(self, double t, Data state):
+        return self.d1(self.t, self.state)
+
+    cdef object b(self, double t, Data state):
+        return self.d2(self.t, self.state)
 
 
 
-cdef class StochasticClosedSystem:
-    """
-
-    """
+cdef class StochasticClosedSystem(StochasticSystem):
     cdef QobjEvo H
     cdef list c_ops
     cdef list cpcd_ops
     cdef object imp
-    cdef Data state
-    cdef double t
 
-    def __init__(self, H, c_ops, dt, options=None, implicit=False):
+    def __init__(self, H, c_ops, heterodyne, implicit=False):
         self.H = H
         self.c_ops = c_ops
         self.cpcd_ops = [op + op.dag() for op in c_ops]
-        self.dt = dt
+        self.num_collapse = len(c_ops)
 
     def drift(self, double t, Data state):
         cdef int i
@@ -45,7 +58,7 @@ cdef class StochasticClosedSystem:
         cdef Data temp, out
 
         out = self.L.matmul_data(t, state)
-        for i in range(len(self.c_ops)):
+        for i in range(self.num_collapse):
             c_op = self.cpcd_ops[i]
             e = c_op.expect_data(t, state)
             c_op = self.c_ops[i]
@@ -57,7 +70,7 @@ cdef class StochasticClosedSystem:
         cdef int i
         cdef QobjEvo c_op
         out = []
-        for i in range(len(self.c_ops)):
+        for i in range(self.num_collapse):
             c_op = self.c_ops[i]
             _out = c_op.matmul_data(t, state)
             c_op = self.cpcd_ops[i]
@@ -66,19 +79,24 @@ cdef class StochasticClosedSystem:
         return out
 
 
-cdef class StochasticOpenSystem:
-    """
-
-    """
+cdef class StochasticOpenSystem(StochasticSystem):
     cdef QobjEvo L
     cdef list c_ops
     cdef object imp
-    cdef Data state
-    cdef double t
 
-    def __init__(self, H, c_ops):
+
+    def __init__(self, H, c_ops, heterodyne):
         self.L = H
-        self.c_ops = c_ops
+        if heterodyne:
+            self.c_ops = []
+            for c in c_ops:
+                self.c_ops += [
+                    (spre(c) + spost(c.dag())) / np.sqrt(2),
+                    (spre(c) - spost(c.dag())) * -1j / np.sqrt(2)
+                ]
+        else:
+            self.c_ops = [spre(op) + spost(op.dag()) for op in c_ops]
+        self.num_collapse = len(self.c_ops)
 
     def drift(self, double t, Data state):
         return self.L.matmul_data(t, state)
@@ -88,7 +106,7 @@ cdef class StochasticOpenSystem:
         cdef QobjEvo c_op
         cdef complex expect
         cdef out = []
-        for i in range(self.num_ops):
+        for i in range(self.num_collapse):
             c_op = self.c_ops[i]
             vec = c_op.matmul_data(t, state)
             expect = _data.trace_oper_ket(vec)
