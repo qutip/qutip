@@ -131,7 +131,7 @@ def testPropSolver(solver):
     assert (U(1.5, 0.5) - propagator(H, 1, c_ops)).norm('max') < 1e-4
 
 
-def testPropMcSolver():
+def testPropMCSolver():
     a = destroy(5)
     H = a.dag()*a
     solver = MCSolver(H, [a])

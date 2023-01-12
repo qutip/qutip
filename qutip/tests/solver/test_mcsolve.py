@@ -385,7 +385,7 @@ def test_super_H():
     np.testing.assert_allclose(mc_expected.expect[0], mc.expect[0], atol=0.5)
 
 
-def test_McSolver_run():
+def test_MCSolver_run():
     size = 10
     a = qutip.QobjEvo([qutip.destroy(size), 'coupling'], args={'coupling':0})
     H = qutip.num(size)
@@ -405,7 +405,7 @@ def test_McSolver_run():
     assert res.num_trajectories == 1001
 
 
-def test_McSolver_stepping():
+def test_MCSolver_stepping():
     size = 10
     a = qutip.QobjEvo([qutip.destroy(size), 'coupling'], args={'coupling':0})
     H = qutip.num(size)

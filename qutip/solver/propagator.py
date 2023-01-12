@@ -169,6 +169,7 @@ class Propagator:
         self.times = [0]
         self.invs = [None]
         self.props = [qeye(self.solver.sys_dims)]
+        self.solver.start(self.props[0], self.times[0])
         self.cte = self.solver.rhs.isconstant
         H_0 = self.solver.rhs(0)
         self.unitary = not H_0.issuper and H_0.isherm
@@ -209,8 +210,10 @@ class Propagator:
         # We could improve it when the system is constant using U(2t) = U(t)**2
         if not self.cte and args and args != self.args:
             self.args = args
+            self.solver._argument(args)
             self.times = [0]
             self.props = [qeye(self.props[0].dims[0])]
+            self.solver.start(self.props[0], self.times[0])
 
         if t_start:
             if t == t_start:
@@ -245,13 +248,16 @@ class Propagator:
         Compute the propagator at ``t``, ``idx`` point to a pair of
         (time, propagator) close to the desired time.
         """
-        if idx > 0:
+        t_last = self.solver._integrator.get_state(copy=False)[0]
+        if self.times[idx-1] <= t_last <= t:
+            U = self.solver.step(t)
+        elif idx > 0:
             self.solver.start(self.props[idx-1], self.times[idx-1])
-            U = self.solver.step(t, args=self.args)
+            U = self.solver.step(t)
         else:
             # Evolving backward in time is not supported by all integrator.
             self.solver.start(qeye(self.props[0].dims[0]), t)
-            Uinv = self.solver.step(self.times[idx], args=self.args)
+            Uinv = self.solver.step(self.times[idx])
             U = self._inv(Uinv)
         return U
 

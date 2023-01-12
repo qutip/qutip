@@ -13,20 +13,18 @@ psi0   = qutip.basis(2,0)
 H0 = - delta/2.0 * qutip.sigmax() - eps0/2.0 * qutip.sigmaz()
 H1 = A/2.0 * qutip.sigmax()
 args = {'w': omega}
-H = [H0, [H1, lambda t, args: np.sin(args['w'] * t)]]
+H = [H0, [H1, lambda t, w: np.sin(w * t)]]
 
-# find the floquet modes for the time-dependent hamiltonian        
-f_modes_0,f_energies = qutip.floquet_modes(H, T, args)
+# find the floquet modes for the time-dependent hamiltonian
+floquetbasis = qutip.FloquetBasis(H, T, args, precompute=tlist)
 
 # decompose the inital state in the floquet modes
-f_coeff = qutip.floquet_state_decomposition(f_modes_0, f_energies, psi0)
+f_coeff = floquetbasis.to_floquet_basis(psi0)
 
-# calculate the wavefunctions using the from the floquet modes
-f_modes_table_t = qutip.floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args)
+# calculate the wavefunctions using the from the floquet modes coefficients
 p_ex = np.zeros(len(tlist))
 for n, t in enumerate(tlist):
-    f_modes_t = qutip.floquet_modes_t_lookup(f_modes_table_t, t, T)
-    psi_t     = qutip.floquet_wavefunction(f_modes_t, f_energies, f_coeff, t)
+    psi_t = floquetbasis.from_floquet_basis(f_coeff, t)
     p_ex[n] = qutip.expect(qutip.num(2), psi_t)
 
 # For reference: calculate the same thing with mesolve
