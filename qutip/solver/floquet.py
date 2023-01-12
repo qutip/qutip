@@ -176,13 +176,14 @@ class FloquetBasis:
 
     def from_floquet_basis(self, floquet_basis, t=0):
         """
-        Transform a ket or density matrix from the Floquet basis at time ``t`` to the lab basis.
+        Transform a ket or density matrix from the Floquet basis at time ``t``
+        to the lab basis.
 
         Parameters
         ----------
         floquet_basis : :class:`Qobj`, :class:`qutip.data.Data`
-            Initial state in the Floquet basis at time ``t``. May be either a ket or density
-            matrix.
+            Initial state in the Floquet basis at time ``t``. May be either a
+            ket or density matrix.
 
         t : float [0]
             The time at which to evaluate the Floquet states.
@@ -190,7 +191,8 @@ class FloquetBasis:
         Returns
         -------
         output : :class:`Qobj`, :class:`qutip.data.Data`
-            The state in the lab basis. The return type is the same as the type of the input state.
+            The state in the lab basis. The return type is the same as the type
+            of the input state.
         """
         is_Qobj = isinstance(floquet_basis, Qobj)
         if is_Qobj:
@@ -226,7 +228,8 @@ class FloquetBasis:
         Returns
         -------
         output : :class:`Qobj`, :class:`qutip.data.Data`
-            The state in the Floquet basis. The return type is the same as the type of the input state.
+            The state in the Floquet basis. The return type is the same as the
+            type of the input state.
         """
         is_Qobj = isinstance(lab_basis, Qobj)
         if is_Qobj:
@@ -278,7 +281,7 @@ def _floquet_X_matrices(floquet_basis, c_ops, kmax, ntimes=100):
     Parameters
     ----------
     floquet_basis : :class:`FloquetBasis`
-        Floquet delta tensor created by :func:`_floquet_X_matrices`.
+        The system Hamiltonian wrapped in a FloquetBasis object.
 
     c_ops : list of :class:`Qobj`
         The collapse operators describing the dissipation.
@@ -326,10 +329,10 @@ def _floquet_gamma_matrices(X, delta, J_cb):
 
     J_cb : list of callables
         A list callback functions that compute the noise power spectrum as
-        a function of frequency. The list should contain one callable for each collapse operator `c_op`,
-        in the same order as the elements of `X`.
-        Each callable should accept a numpy array of frequencies and return a numpy array of
-        corresponding noise power.
+        a function of frequency. The list should contain one callable for each
+        collapse operator `c_op`, in the same order as the elements of `X`.
+        Each callable should accept a numpy array of frequencies and return a
+        numpy array of corresponding noise power.
 
     Returns
     -------
@@ -821,7 +824,8 @@ class FMESolver(MESolver):
             Initial time of the evolution.
 
         floquet : bool, optional {False}
-            Whether the initial state is in the floquet basis or laboratory basis.
+            Whether the initial state is in the floquet basis or laboratory
+            basis.
         """
         if not floquet:
             state0 = self.floquet_basis.to_floquet_basis(state0, t0)

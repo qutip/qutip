@@ -1,6 +1,8 @@
-""" Floquet solver compatibility functions that behave like the corresponding functions from QuTiP 4.7.
+""" Floquet solver compatibility functions that behave like the corresponding
+functions from QuTiP 4.7.
 
-These functions are indented to be used when porting code from QuTiP 4.7 to QuTiP 5. They are deprecated and will be removed in QuTiP 5.1.
+These functions are indented to be used when porting code from QuTiP 4.7 to
+QuTiP 5. They are deprecated and will be removed in QuTiP 5.1.
 """
 
 __all__ = [
