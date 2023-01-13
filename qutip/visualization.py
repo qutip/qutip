@@ -15,7 +15,7 @@ __all__ = ['hinton', 'sphereplot', 'energy_level_diagram',
 import warnings
 import itertools as it
 import numpy as np
-from numpy import pi, array, sin, cos, angle, log2
+from numpy import pi, array, sin, cos, angle, log2, sqrt
 
 from packaging.version import parse as parse_version
 
@@ -1027,7 +1027,9 @@ def fock_distribution(rho, offset=0, fig=None, ax=None,
 
 def plot_wigner(rho, fig=None, ax=None, figsize=(6, 6),
                 cmap=None, alpha_max=7.5, colorbar=False,
-                method='clenshaw', projection='2d'):
+                method='clenshaw', g=sqrt(2),
+                sparse=False, parfor=False,
+                projection='2d'):
     """
     Plot the the Wigner function for a density matrix (or ket) that describes
     an oscillator mode.
@@ -1061,6 +1063,18 @@ def plot_wigner(rho, fig=None, ax=None, figsize=(6, 6),
         The method used for calculating the wigner function. See the
         documentation for qutip.wigner for details.
 
+    g : float
+        Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
+        See the documentation for qutip.wigner for details.
+
+    sparse : bool {False, True}
+        Flag for sparse format.
+        See the documentation for qutip.wigner for details.
+
+    parfor : bool {False, True}
+        Flag for parallel calculation.
+        See the documentation for qutip.wigner for details.
+
     projection: string {'2d', '3d'}
         Specify whether the Wigner function is to be plotted as a
         contour graph ('2d') or surface plot ('3d').
@@ -1085,7 +1099,9 @@ def plot_wigner(rho, fig=None, ax=None, figsize=(6, 6),
         rho = ket2dm(rho)
 
     xvec = np.linspace(-alpha_max, alpha_max, 200)
-    W0 = wigner(rho, xvec, xvec, method=method)
+    W0 = wigner(rho, xvec, xvec,
+                method=method, g=g,
+                sparse=sparse, parfor=parfor)
 
     W, yvec = W0 if isinstance(W0, tuple) else (W0, xvec)
 
@@ -1120,7 +1136,9 @@ def plot_wigner(rho, fig=None, ax=None, figsize=(6, 6),
 
 def plot_wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
                                   cmap=None, alpha_max=7.5, colorbar=False,
-                                  method='iterative', projection='2d'):
+                                  method='clenshaw', g=sqrt(2),
+                                  sparse=False, parfor=False,
+                                  projection='2d'):
     """
     Plot the Fock distribution and the Wigner function for a density matrix
     (or ket) that describes an oscillator mode.
@@ -1150,9 +1168,21 @@ def plot_wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
         Whether (True) or not (False) a colorbar should be attached to the
         Wigner function graph.
 
-    method : string {'iterative', 'laguerre', 'fft'}
+    method : string {'clenshaw', 'iterative', 'laguerre', 'fft'}
         The method used for calculating the wigner function. See the
         documentation for qutip.wigner for details.
+
+    g : float
+        Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
+        See the documentation for qutip.wigner for details.
+
+    sparse : bool {False, True}
+        Flag for sparse format.
+        See the documentation for qutip.wigner for details.
+
+    parfor : bool {False, True}
+        Flag for parallel calculation.
+        See the documentation for qutip.wigner for details.
 
     projection: string {'2d', '3d'}
         Specify whether the Wigner function is to be plotted as a
@@ -1180,7 +1210,8 @@ def plot_wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
 
     plot_fock_distribution(rho, fig=fig, ax=axes[0])
     plot_wigner(rho, fig=fig, ax=axes[1], figsize=figsize, cmap=cmap,
-                alpha_max=alpha_max, colorbar=colorbar, method=method,
+                alpha_max=alpha_max, colorbar=colorbar,
+                method=method, g=g, sparse=sparse, parfor=parfor,
                 projection=projection)
 
     return fig, axes
