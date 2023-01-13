@@ -2,7 +2,6 @@ from .result import *
 from .options import *
 import qutip.solver.integrator
 from .integrator import IntegratorException
-import qutip.solver.ode
 from .sesolve import *
 from .mesolve import *
 from .mcsolve import *

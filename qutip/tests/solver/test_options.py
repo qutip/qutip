@@ -90,9 +90,9 @@ def test_print():
 def test_in_solver():
     opt = {"method": "adams", "store_states": True, "atol": 1}
     solver = qutip.SESolver(qutip.qeye(1), options=opt)
-    adams = qutip.solver.ode.scipy_integrator.IntegratorScipyAdams
-    lsoda = qutip.solver.ode.scipy_integrator.IntegratorScipylsoda
-    bdf = qutip.solver.ode.scipy_integrator.IntegratorScipyBDF
+    adams = qutip.integrator.IntegratorScipyAdams
+    lsoda = qutip.integrator.IntegratorScipylsoda
+    bdf = qutip.integrator.IntegratorScipyBDF
     assert solver.options["store_states"] is True
     assert solver.options["method"] == "adams"
     assert solver.options["atol"] == 1
