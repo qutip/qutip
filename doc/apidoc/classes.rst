@@ -107,28 +107,28 @@ Non-Markovian HEOM Solver
 Integrator
 ----------
 
-.. autoclass:: qutip.solver.ode.scipy_integrator.IntegratorScipyAdams
+.. autoclass:: qutip.solver.integrator.scipy_integrator.IntegratorScipyAdams
     :members: options
 
-.. autoclass:: qutip.solver.ode.scipy_integrator.IntegratorScipyBDF
+.. autoclass:: qutip.solver.integrator.scipy_integrator.IntegratorScipyBDF
     :members: options
 
-.. autoclass:: qutip.solver.ode.scipy_integrator.IntegratorScipylsoda
+.. autoclass:: qutip.solver.integrator.scipy_integrator.IntegratorScipylsoda
     :members: options
 
-.. autoclass:: qutip.solver.ode.scipy_integrator.IntegratorScipyDop853
+.. autoclass:: qutip.solver.integrator.scipy_integrator.IntegratorScipyDop853
     :members: options
 
-.. autoclass:: qutip.solver.ode.qutip_integrator.IntegratorVern7
+.. autoclass:: qutip.solver.integrator.qutip_integrator.IntegratorVern7
     :members: options
 
-.. autoclass:: qutip.solver.ode.qutip_integrator.IntegratorVern9
+.. autoclass:: qutip.solver.integrator.qutip_integrator.IntegratorVern9
     :members: options
 
-.. autoclass:: qutip.solver.ode.qutip_integrator.IntegratorDiag
+.. autoclass:: qutip.solver.integrator.qutip_integrator.IntegratorDiag
     :members: options
 
-.. autoclass:: qutip.solver.ode.krylov.IntegratorKrylov
+.. autoclass:: qutip.solver.integrator.krylov.IntegratorKrylov
     :members: options
 
 
@@ -149,19 +149,7 @@ Non-Markovian Memory Cascade and Transfer Tensor Solvers
 Solver Options and Results
 ---------------------------
 
-.. autoclass:: qutip.solve.solver.ExpectOps
-    :members:
-
-.. autoclass:: qutip.solve.solver.Result
-    :members:
-
-.. autoclass:: qutip.solve.solver.SolverConfiguration
-    :members:
-
-.. autoclass:: qutip.solve.solver.Stats
-    :members:
-
-.. autoclass:: qutip.solve.stochastic.StochasticSolverOptions
+.. autoclass:: qutip.solver.result.Result
     :members:
 
 .. _classes-piqs:

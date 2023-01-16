@@ -15,10 +15,8 @@ from numpy import matrix
 from numpy import linalg
 from .. import (
     spre, spost, sprepost, thermal_dm, tensor, identity, destroy, sigmax,
-    sigmaz, basis, qeye,
+    sigmaz, basis, qeye, mesolve
 )
-from .mesolve import mesolve
-from .solver import SolverOptions
 
 
 def rcsolve(Hsys, psi0, tlist, e_ops, Q, wc, alpha, N, w_th, sparse=False,
@@ -50,8 +48,8 @@ def rcsolve(Hsys, psi0, tlist, e_ops, Q, wc, alpha, N, w_th, sparse=False,
         Temperature.
     sparse: Boolean
         Optional argument to call the sparse eigenstates solver if needed.
-    options : :class:`qutip.SolverOptions`
-        With options for the solver.
+    options : dict
+        Options for the solver.
 
     Returns
     -------
@@ -59,7 +57,7 @@ def rcsolve(Hsys, psi0, tlist, e_ops, Q, wc, alpha, N, w_th, sparse=False,
         System evolution.
     """
     if options is None:
-        options = SolverOptions()
+        options = {}
 
     dot_energy, dot_state = Hsys.eigenstates(sparse=sparse)
     deltaE = dot_energy[1] - dot_energy[0]

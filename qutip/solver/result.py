@@ -153,7 +153,7 @@ class Result(_BaseResult):
         The state at each time ``t`` (if the recording of the state was
         requested).
 
-    final_state : :obj:`~Qobj:
+    final_state : :obj:`~Qobj`:
         The final state (if the recording of the final state was requested).
 
     expect : list of lists of expectation values
