@@ -54,6 +54,7 @@ from .partial_transpose import *
 from .continuous_variables import *
 from .distributions import *
 from .three_level_atom import *
+from .qinstrument import *
 
 
 # utilities
