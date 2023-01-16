@@ -7,7 +7,7 @@ from numpy.testing import assert_, run_module_suite, assert_equal, \
     assert_almost_equal, assert_allclose
 
 import qutip
-from qutip.states import coherent, fock, ket, bell_state
+from qutip.core.states import coherent, fock, ket, bell_state
 from qutip.wigner import wigner, wigner_transform, _parity
 from qutip.random_objects import rand_dm, rand_ket
 
@@ -51,9 +51,9 @@ class TestHusimiQ:
     @pytest.mark.parametrize('dm', [True, False], ids=['dm', 'ket'])
     def test_failure_if_tensor_hilbert_space(self, dm):
         if dm:
-            state = qutip.rand_dm(4, dims=[[2, 2], [2, 2]])
+            state = qutip.rand_dm([2, 2])
         else:
-            state = qutip.rand_ket(4, dims=[[2, 2], [1, 1]])
+            state = qutip.rand_ket([2, 2])
         xs = np.linspace(-1, 1, 5)
         with pytest.raises(ValueError) as e:
             qutip.qfunc(state, xs, xs)
@@ -301,10 +301,7 @@ def test_wigner_bell4_fullparity():
         for p in range(steps):
             wigner_analyt[t, p] = -0.30901699
 
-    print("wigner anal: ", wigner_analyt)
     wigner_theo = wigner_transform(psi, 0.5, True, steps, slicearray)
-
-    print("wigner theo: ", wigner_theo)
     assert_(np.sum(np.abs(wigner_analyt - wigner_theo)) < 1e-4)
 
 
@@ -494,7 +491,7 @@ def test_wigner_compare_methods_dm():
     for n in range(10):
         # try ten different random density matrices
 
-        rho = rand_dm(N, 0.5 + rand() / 2)
+        rho = rand_dm(N, density=0.5 + rand() / 2)
 
         # calculate the wigner function using qutip and analytic formula
         W_qutip1 = wigner(rho, xvec, yvec, g=2)
@@ -526,7 +523,7 @@ def test_wigner_compare_methods_ket():
     for n in range(10):
         # try ten different random density matrices
 
-        psi = rand_ket(N, 0.5 + rand() / 2)
+        psi = rand_ket(N, density=0.5 + rand() / 2)
 
         # calculate the wigner function using qutip and analytic formula
         W_qutip1 = wigner(psi, xvec, yvec, g=2)
@@ -602,12 +599,12 @@ def test_wigner_clenshaw_sp_iter_dm():
     pytest.param(7, id="spin-seven")
 ])
 @pytest.mark.parametrize("pure", [
-    pytest.param(True, id="pure"),
-    pytest.param(False, id="mixed")
+    pytest.param("pure", id="pure"),
+    pytest.param("herm", id="mixed")
 ])
 def test_spin_q_function(spin, pure):
     d = int(2*spin + 1)
-    rho = rand_dm(d, pure=pure)
+    rho = rand_dm(d, distribution=pure)
 
     # Points at which to evaluate the spin Q function
     theta = np.linspace(0, np.pi, 16, endpoint=True)
@@ -616,7 +613,7 @@ def test_spin_q_function(spin, pure):
 
     for k, (phi_prime, theta_prime) in enumerate(itertools.product(phi, theta)):
         state = qutip.spin_coherent(spin, theta_prime, phi_prime)
-        direct_Q = (state.dag() * rho * state).norm()
+        direct_Q = abs(state.dag() * rho * state)
         assert_almost_equal(Q.flat[k], direct_Q, decimal=9)
 
 @pytest.mark.parametrize(['spin'], [
@@ -626,12 +623,12 @@ def test_spin_q_function(spin, pure):
     pytest.param(7, id="spin-seven")
 ])
 @pytest.mark.parametrize("pure", [
-    pytest.param(True, id="pure"),
-    pytest.param(False, id="mixed")
+    pytest.param("pure", id="pure"),
+    pytest.param("herm", id="mixed")
 ])
 def test_spin_q_function_normalized(spin, pure):
     d = int(2 * spin + 1)
-    rho = rand_dm(d, pure=pure)
+    rho = rand_dm(d, distribution=pure)
 
     # Points at which to evaluate the spin Q function
     theta = np.linspace(0, np.pi, 128, endpoint=True)
@@ -649,12 +646,12 @@ def test_spin_q_function_normalized(spin, pure):
     pytest.param(2, id="spin-two")
 ])
 @pytest.mark.parametrize("pure", [
-    pytest.param(True, id="pure"),
-    pytest.param(False, id="mixed")
+    pytest.param("pure", id="pure"),
+    pytest.param("herm", id="mixed")
 ])
 def test_spin_wigner_normalized(spin, pure):
     d = int(2*spin + 1)
-    rho = rand_dm(d, pure=pure)
+    rho = rand_dm(d, distribution=pure)
 
     # Points at which to evaluate the spin Wigner function
     theta = np.linspace(0, np.pi, 256, endpoint=True)
@@ -671,12 +668,12 @@ def test_spin_wigner_normalized(spin, pure):
     pytest.param(2, id="spin-two")
 ])
 @pytest.mark.parametrize("pure", [
-    pytest.param(True, id="pure"),
-    pytest.param(False, id="mixed")
+    pytest.param("pure", id="pure"),
+    pytest.param("herm", id="mixed")
 ])
 def test_spin_wigner_overlap(spin, pure, n=5):
     d = int(2*spin + 1)
-    rho = rand_dm(d, pure=pure)
+    rho = rand_dm(d, distribution=pure)
 
     # Points at which to evaluate the spin Wigner function
     theta = np.linspace(0, np.pi, 256, endpoint=True)

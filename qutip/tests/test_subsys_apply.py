@@ -1,12 +1,11 @@
 from numpy.linalg import norm
 from numpy.testing import assert_, run_module_suite
 
-from qutip.random_objects import rand_dm, rand_unitary, rand_kraus_map
-from qutip.subsystem_apply import subsystem_apply
-from qutip.superop_reps import kraus_to_super
-from qutip.superoperator import mat2vec, vec2mat
-from qutip.tensor import tensor
-from qutip.qobj import Qobj
+from qutip import (
+    Qobj, tensor, vector_to_operator, operator_to_vector, kraus_to_super,
+    subsystem_apply, rand_dm, rand_unitary,
+)
+from qutip.random_objects import rand_kraus_map
 
 
 class TestSubsysApply(object):
@@ -49,7 +48,8 @@ class TestSubsysApply(object):
         tol = 1e-12
         rho_3 = rand_dm(3)
         superop = kraus_to_super(rand_kraus_map(3))
-        analytic_result = vec2mat(superop.full() @ mat2vec(rho_3.full()))
+        analytic_result = vector_to_operator(superop @
+                                             operator_to_vector(rho_3))
         naive_result = subsystem_apply(rho_3, superop, [True],
                                        reference=True)
         naive_diff = (analytic_result - naive_result).full()
@@ -112,9 +112,13 @@ class TestSubsysApply(object):
 
         analytic_result = rho_list
         analytic_result[1] = Qobj(
-            vec2mat(superop.full() @ mat2vec(analytic_result[1].full())))
+            vector_to_operator(
+                superop @ operator_to_vector(analytic_result[1])
+            ))
         analytic_result[3] = Qobj(
-            vec2mat(superop.full() @ mat2vec(analytic_result[3].full())))
+            vector_to_operator(
+                superop @ operator_to_vector(analytic_result[3])
+            ))
         analytic_result = tensor(analytic_result)
 
         naive_result = subsystem_apply(rho_input, superop,
@@ -135,7 +139,3 @@ class TestSubsysApply(object):
                 msg="ComplexSuper: efficient_diff_norm {} "
                     "is beyond tolerance {}".format(
                         efficient_diff_norm, tol))
-
-
-if __name__ == "__main__":
-    run_module_suite()

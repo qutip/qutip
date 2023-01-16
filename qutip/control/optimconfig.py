@@ -48,7 +48,6 @@ class OptimConfig(object):
         Options are DEF, UNIT, TRACEDIFF, TD_APPROX
         DEF will use the default for the specific dyn_type
         (See FidelityComputer classes for details)
-
     """
 
     def __init__(self):
@@ -56,31 +55,13 @@ class OptimConfig(object):
 
     def reset(self):
         self.log_level = logger.getEffectiveLevel()
-        self.alg = 'GRAPE' # Alts: 'CRAB'
-        # *** AJGP 2015-04-21: This has been replaced optim_method
-        #self.optim_alg = 'LBFGSB'
+        self.alg = 'GRAPE'  # Alts: 'CRAB'
         self.optim_method = 'DEF'
         self.dyn_type = 'DEF'
         self.fid_type = 'DEF'
-        # *** AJGP 2015-04-21: phase_option has been moved to the FidComputer
-        #self.phase_option = 'PSU'
-        # *** AJGP 2015-04-21: amp_update_mode has been replaced by tslot_type
-        #self.amp_update_mode = 'ALL'  # Alts: 'DYNAMIC'
         self.fid_type = 'DEF'
         self.tslot_type = 'DEF'
         self.init_pulse_type = 'DEF'
-        ######################
-        # Note the following parameteres are for constrained optimisation
-        # methods e.g. L-BFGS-B
-        # *** AJGP 2015-04-21:
-        #    These have been moved to the OptimizerLBFGSB class
-        #        self.amp_lbound = -np.Inf
-        #        self.amp_ubound = np.Inf
-        #        self.max_metric_corr = 10
-        #    These moved to termination conditions
-        #        self.accuracy_factor = 1e7
-        # ***
-        # ####################
 
     @property
     def log_level(self):
@@ -109,8 +90,8 @@ class OptimConfig(object):
         msg : string
             Error msg if directory creation failed
         """
-        
         return qtrlio.create_dir(output_dir, desc=desc)
+
 
 # create global instance
 optimconfig = OptimConfig()

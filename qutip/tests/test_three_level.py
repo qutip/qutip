@@ -1,6 +1,6 @@
 import numpy as np
 from numpy.testing import assert_, assert_equal, run_module_suite
-from qutip.states import basis
+from qutip import basis
 from qutip.three_level_atom import *
 
 

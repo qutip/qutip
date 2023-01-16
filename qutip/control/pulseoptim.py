@@ -53,15 +53,13 @@ References
 4.  Caneva, T., Calarco, T. & Montangero, S.
     Chopped random-basis quantum optimization.
     Phys. Rev. A - At. Mol. Opt. Phys. 84, (2011).
-
 """
+
 import numpy as np
 import warnings
 
 # QuTiP
-from qutip.qobj import Qobj
-import qutip.logging_utils as logging
-logger = logging.get_logger()
+from qutip import Qobj
 # QuTiP control modules
 import qutip.control.optimconfig as optimconfig
 import qutip.control.dynamics as dynamics
@@ -72,23 +70,26 @@ import qutip.control.errors as errors
 import qutip.control.fidcomp as fidcomp
 import qutip.control.propcomp as propcomp
 import qutip.control.pulsegen as pulsegen
-#import qutip.control.pulsegencrab as pulsegencrab
+import qutip.logging_utils as logging
+logger = logging.get_logger()
 
-warnings.simplefilter('always', DeprecationWarning) #turn off filter
+
 def _param_deprecation(message, stacklevel=3):
     """
     Issue deprecation warning
     Using stacklevel=3 will ensure message refers the function
     calling with the deprecated parameter,
     """
-    warnings.warn(message, DeprecationWarning, stacklevel=stacklevel)
+    warnings.warn(message, FutureWarning, stacklevel=stacklevel)
+
 
 def _upper_safe(s):
     try:
         s = s.upper()
-    except:
+    except AttributeError:
         pass
     return s
+
 
 def optimize_pulse(
         drift, ctrls, initial, target,
@@ -336,56 +337,56 @@ def optimize_pulse(
     # so no need to do so here
     # However, the deprecation management is repeated here
     # so that the stack level is correct
-    if not optim_alg is None:
+    if optim_alg is not None:
         optim_method = optim_alg
         _param_deprecation(
             "The 'optim_alg' parameter is deprecated. "
             "Use 'optim_method' instead")
 
-    if not max_metric_corr is None:
+    if max_metric_corr is not None:
         if isinstance(method_params, dict):
-            if not 'max_metric_corr' in method_params:
-                 method_params['max_metric_corr'] = max_metric_corr
+            if 'max_metric_corr' not in method_params:
+                method_params['max_metric_corr'] = max_metric_corr
         else:
-            method_params = {'max_metric_corr':max_metric_corr}
+            method_params = {'max_metric_corr': max_metric_corr}
         _param_deprecation(
             "The 'max_metric_corr' parameter is deprecated. "
             "Use 'max_metric_corr' in method_params instead")
 
-    if not accuracy_factor is None:
+    if accuracy_factor is not None:
         if isinstance(method_params, dict):
-            if not 'accuracy_factor' in method_params:
-                 method_params['accuracy_factor'] = accuracy_factor
+            if 'accuracy_factor' not in method_params:
+                method_params['accuracy_factor'] = accuracy_factor
         else:
-            method_params = {'accuracy_factor':accuracy_factor}
+            method_params = {'accuracy_factor': accuracy_factor}
         _param_deprecation(
             "The 'accuracy_factor' parameter is deprecated. "
             "Use 'accuracy_factor' in method_params instead")
 
     # phase_option
-    if not phase_option is None:
+    if phase_option is not None:
         if isinstance(fid_params, dict):
-            if not 'phase_option' in fid_params:
-                 fid_params['phase_option'] = phase_option
+            if 'phase_option' not in fid_params:
+                fid_params['phase_option'] = phase_option
         else:
-            fid_params = {'phase_option':phase_option}
+            fid_params = {'phase_option': phase_option}
         _param_deprecation(
             "The 'phase_option' parameter is deprecated. "
             "Use 'phase_option' in fid_params instead")
 
     # fid_err_scale_factor
-    if not fid_err_scale_factor is None:
+    if fid_err_scale_factor is not None:
         if isinstance(fid_params, dict):
-            if not 'fid_err_scale_factor' in fid_params:
-                 fid_params['scale_factor'] = fid_err_scale_factor
+            if 'fid_err_scale_factor' not in fid_params:
+                fid_params['scale_factor'] = fid_err_scale_factor
         else:
-            fid_params = {'scale_factor':fid_err_scale_factor}
+            fid_params = {'scale_factor': fid_err_scale_factor}
         _param_deprecation(
             "The 'fid_err_scale_factor' parameter is deprecated. "
             "Use 'scale_factor' in fid_params instead")
 
     # amp_update_mode
-    if not amp_update_mode is None:
+    if amp_update_mode is not None:
         amp_update_mode_up = _upper_safe(amp_update_mode)
         if amp_update_mode_up == 'ALL':
             tslot_type = 'UPDATE_ALL'
@@ -487,7 +488,6 @@ def optimize_pulse_unitary(
         pulse_scaling=1.0, pulse_offset=0.0,
         ramping_pulse_type=None, ramping_pulse_params=None,
         log_level=logging.NOTSET, out_file_ext=None, gen_stats=False):
-
     """
     Optimise a control pulse to minimise the fidelity error, assuming that the
     dynamics of the system are generated by unitary operators.  This function
@@ -695,34 +695,34 @@ def optimize_pulse_unitary(
 
     # The deprecation management is repeated here
     # so that the stack level is correct
-    if not optim_alg is None:
+    if optim_alg is not None:
         optim_method = optim_alg
         _param_deprecation(
             "The 'optim_alg' parameter is deprecated. "
             "Use 'optim_method' instead")
 
-    if not max_metric_corr is None:
+    if max_metric_corr is not None:
         if isinstance(method_params, dict):
-            if not 'max_metric_corr' in method_params:
-                 method_params['max_metric_corr'] = max_metric_corr
+            if 'max_metric_corr' not in method_params:
+                method_params['max_metric_corr'] = max_metric_corr
         else:
-            method_params = {'max_metric_corr':max_metric_corr}
+            method_params = {'max_metric_corr': max_metric_corr}
         _param_deprecation(
             "The 'max_metric_corr' parameter is deprecated. "
             "Use 'max_metric_corr' in method_params instead")
 
-    if not accuracy_factor is None:
+    if accuracy_factor is not None:
         if isinstance(method_params, dict):
-            if not 'accuracy_factor' in method_params:
-                 method_params['accuracy_factor'] = accuracy_factor
+            if 'accuracy_factor' not in method_params:
+                method_params['accuracy_factor'] = accuracy_factor
         else:
-            method_params = {'accuracy_factor':accuracy_factor}
+            method_params = {'accuracy_factor': accuracy_factor}
         _param_deprecation(
             "The 'accuracy_factor' parameter is deprecated. "
             "Use 'accuracy_factor' in method_params instead")
 
     # amp_update_mode
-    if not amp_update_mode is None:
+    if amp_update_mode is not None:
         amp_update_mode_up = _upper_safe(amp_update_mode)
         if amp_update_mode_up == 'ALL':
             tslot_type = 'UPDATE_ALL'
@@ -734,13 +734,12 @@ def optimize_pulse_unitary(
 
     # phase_option is still valid for this method
     # pass it via the fid_params
-    if not phase_option is None:
+    if phase_option is not None:
         if fid_params is None:
-            fid_params = {'phase_option':phase_option}
+            fid_params = {'phase_option': phase_option}
         else:
-            if not 'phase_option' in fid_params:
+            if 'phase_option' not in fid_params:
                 fid_params['phase_option'] = phase_option
-
 
     return optimize_pulse(
             drift=H_d, ctrls=H_c, initial=U_0, target=U_targ,
@@ -759,6 +758,7 @@ def optimize_pulse_unitary(
             ramping_pulse_params=ramping_pulse_params,
             log_level=log_level, out_file_ext=out_file_ext,
             gen_stats=gen_stats)
+
 
 def opt_pulse_crab(
         drift, ctrls, initial, target,
@@ -993,11 +993,12 @@ def opt_pulse_crab(
         alg_params = {'num_coeffs': num_coeffs,
                       'init_coeff_scaling': init_coeff_scaling}
     else:
-        if (num_coeffs is not None and
-            not 'num_coeffs' in alg_params):
+        if (num_coeffs is not None and 'num_coeffs' not in alg_params):
             alg_params['num_coeffs'] = num_coeffs
-        if (init_coeff_scaling is not None and
-            not 'init_coeff_scaling' in alg_params):
+        if (
+            init_coeff_scaling is not None
+            and 'init_coeff_scaling' not in alg_params
+        ):
             alg_params['init_coeff_scaling'] = init_coeff_scaling
 
     # Build the guess pulse options
@@ -1006,14 +1007,14 @@ def opt_pulse_crab(
     if guess_pulse_type:
         if not isinstance(guess_pulse_params, dict):
             guess_pulse_params = {}
-        if (guess_pulse_scaling is not None and
-            not 'scaling' in guess_pulse_params):
+        if (guess_pulse_scaling is not None
+                and 'scaling' not in guess_pulse_params):
             guess_pulse_params['scaling'] = guess_pulse_scaling
-        if (guess_pulse_offset is not None and
-            not 'offset' in guess_pulse_params):
+        if (guess_pulse_offset is not None
+                and 'offset' not in guess_pulse_params):
             guess_pulse_params['offset'] = guess_pulse_offset
-        if (guess_pulse_action is not None and
-            not 'pulse_action' in guess_pulse_params):
+        if (guess_pulse_action is not None
+                and 'pulse_action' not in guess_pulse_params):
             guess_pulse_params['pulse_action'] = guess_pulse_action
 
     return optimize_pulse(
@@ -1033,6 +1034,7 @@ def opt_pulse_crab(
         ramping_pulse_type=ramping_pulse_type,
         ramping_pulse_params=ramping_pulse_params,
         log_level=log_level, out_file_ext=out_file_ext, gen_stats=gen_stats)
+
 
 def opt_pulse_crab_unitary(
         H_d, H_c, U_0, U_targ,
@@ -1256,14 +1258,14 @@ def opt_pulse_crab_unitary(
 
     # build the algorithm options
     if not isinstance(alg_params, dict):
-        alg_params = {'num_coeffs':num_coeffs,
-                       'init_coeff_scaling':init_coeff_scaling}
+        alg_params = {'num_coeffs': num_coeffs,
+                      'init_coeff_scaling': init_coeff_scaling}
     else:
-        if (num_coeffs is not None and
-            not 'num_coeffs' in alg_params):
+        if (num_coeffs is not None
+                and 'num_coeffs' not in alg_params):
             alg_params['num_coeffs'] = num_coeffs
-        if (init_coeff_scaling is not None and
-            not 'init_coeff_scaling' in alg_params):
+        if (init_coeff_scaling is not None
+                and 'init_coeff_scaling' not in alg_params):
             alg_params['init_coeff_scaling'] = init_coeff_scaling
 
     # Build the guess pulse options
@@ -1272,14 +1274,14 @@ def opt_pulse_crab_unitary(
     if guess_pulse_type:
         if not isinstance(guess_pulse_params, dict):
             guess_pulse_params = {}
-        if (guess_pulse_scaling is not None and
-            not 'scaling' in guess_pulse_params):
+        if (guess_pulse_scaling is not None
+                and 'scaling' not in guess_pulse_params):
             guess_pulse_params['scaling'] = guess_pulse_scaling
-        if (guess_pulse_offset is not None and
-            not 'offset' in guess_pulse_params):
+        if (guess_pulse_offset is not None
+                and 'offset' not in guess_pulse_params):
             guess_pulse_params['offset'] = guess_pulse_offset
-        if (guess_pulse_action is not None and
-            not 'pulse_action' in guess_pulse_params):
+        if (guess_pulse_action is not None
+                and 'pulse_action' not in guess_pulse_params):
             guess_pulse_params['pulse_action'] = guess_pulse_action
 
     return optimize_pulse_unitary(
@@ -1298,6 +1300,7 @@ def opt_pulse_crab_unitary(
         ramping_pulse_type=ramping_pulse_type,
         ramping_pulse_params=ramping_pulse_params,
         log_level=log_level, out_file_ext=out_file_ext, gen_stats=gen_stats)
+
 
 def create_pulse_optimizer(
         drift, ctrls, initial, target,
@@ -1318,7 +1321,6 @@ def create_pulse_optimizer(
         pulse_scaling=1.0, pulse_offset=0.0,
         ramping_pulse_type=None, ramping_pulse_params=None,
         log_level=logging.NOTSET, gen_stats=False):
-
     """
     Generate the objects of the appropriate subclasses required for the pulse
     optmisation based on the parameters given Note this method may be
@@ -1555,56 +1557,56 @@ def create_pulse_optimizer(
         raise TypeError("target must be a Qobj")
 
     # Deprecated parameter management
-    if not optim_alg is None:
+    if optim_alg is not None:
         optim_method = optim_alg
         _param_deprecation(
             "The 'optim_alg' parameter is deprecated. "
             "Use 'optim_method' instead")
 
-    if not max_metric_corr is None:
+    if max_metric_corr is not None:
         if isinstance(method_params, dict):
-            if not 'max_metric_corr' in method_params:
-                 method_params['max_metric_corr'] = max_metric_corr
+            if 'max_metric_corr' not in method_params:
+                method_params['max_metric_corr'] = max_metric_corr
         else:
-            method_params = {'max_metric_corr':max_metric_corr}
+            method_params = {'max_metric_corr': max_metric_corr}
         _param_deprecation(
             "The 'max_metric_corr' parameter is deprecated. "
             "Use 'max_metric_corr' in method_params instead")
 
-    if not accuracy_factor is None:
+    if accuracy_factor is not None:
         if isinstance(method_params, dict):
-            if not 'accuracy_factor' in method_params:
-                 method_params['accuracy_factor'] = accuracy_factor
+            if 'accuracy_factor' not in method_params:
+                method_params['accuracy_factor'] = accuracy_factor
         else:
-            method_params = {'accuracy_factor':accuracy_factor}
+            method_params = {'accuracy_factor': accuracy_factor}
         _param_deprecation(
             "The 'accuracy_factor' parameter is deprecated. "
             "Use 'accuracy_factor' in method_params instead")
 
     # phase_option
-    if not phase_option is None:
+    if phase_option is not None:
         if isinstance(fid_params, dict):
-            if not 'phase_option' in fid_params:
-                 fid_params['phase_option'] = phase_option
+            if 'phase_option' not in fid_params:
+                fid_params['phase_option'] = phase_option
         else:
-            fid_params = {'phase_option':phase_option}
+            fid_params = {'phase_option': phase_option}
         _param_deprecation(
             "The 'phase_option' parameter is deprecated. "
             "Use 'phase_option' in fid_params instead")
 
     # fid_err_scale_factor
-    if not fid_err_scale_factor is None:
+    if fid_err_scale_factor is not None:
         if isinstance(fid_params, dict):
-            if not 'fid_err_scale_factor' in fid_params:
-                 fid_params['scale_factor'] = fid_err_scale_factor
+            if 'fid_err_scale_factor' not in fid_params:
+                fid_params['scale_factor'] = fid_err_scale_factor
         else:
-            fid_params = {'scale_factor':fid_err_scale_factor}
+            fid_params = {'scale_factor': fid_err_scale_factor}
         _param_deprecation(
             "The 'fid_err_scale_factor' parameter is deprecated. "
             "Use 'scale_factor' in fid_params instead")
 
     # amp_update_mode
-    if not amp_update_mode is None:
+    if amp_update_mode is not None:
         amp_update_mode_up = _upper_safe(amp_update_mode)
         if amp_update_mode_up == 'ALL':
             tslot_type = 'UPDATE_ALL'
@@ -1727,7 +1729,7 @@ def create_pulse_optimizer(
                                     optim_method, alg))
     else:
         # Assume that the optim_method is a valid
-        #scipy.optimize.minimize method
+        # scipy.optimize.minimize method
         # Choose an optimiser based on the algorithm
         if alg_up == 'CRAB':
             optim = optimizer.OptimizerCrab(cfg, dyn)
@@ -1773,7 +1775,7 @@ def create_pulse_optimizer(
         # timeslot durations
         try:
             evo_time / num_tslots
-        except:
+        except Exception:
             raise errors.UsageError(
                 "Either the timeslot durations should be supplied as an "
                 "array 'tau' or the number of timeslots 'num_tslots' "
@@ -1828,7 +1830,7 @@ def create_pulse_optimizer(
                 if isinstance(amp_lbound, list):
                     try:
                         lb = amp_lbound[j]
-                    except:
+                    except Exception:
                         lb = amp_lbound[-1]
                 else:
                     lb = amp_lbound
@@ -1837,7 +1839,7 @@ def create_pulse_optimizer(
                 if isinstance(amp_ubound, list):
                     try:
                         ub = amp_ubound[j]
-                    except:
+                    except Exception:
                         ub = amp_ubound[-1]
                 else:
                     ub = amp_ubound
@@ -1855,13 +1857,13 @@ def create_pulse_optimizer(
                 crab_pgen.ramping_pulse = ramping_pgen.gen_pulse()
 
             optim.pulse_generator.append(crab_pgen)
-        #This is just for the debug message now
+        # This is just for the debug message now
         pgen = optim.pulse_generator[0]
 
     else:
         # Create a pulse generator of the type specified
         pgen = pulsegen.create_pulse_gen(pulse_type=init_pulse_type, dyn=dyn,
-                                        pulse_params=init_pulse_params)
+                                         pulse_params=init_pulse_params)
         pgen.scaling = pulse_scaling
         pgen.offset = pulse_offset
         pgen.lbound = amp_lbound

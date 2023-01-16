@@ -41,7 +41,7 @@ Here we begin by creating a Fock :func:`qutip.states.basis` vacuum state vector 
 
 
 
-and then create a lowering operator :math:`\left(\hat{a}\right)` corresponding to 5 number states using the :func:`qutip.operators.destroy` function:
+and then create a lowering operator :math:`\left(\hat{a}\right)` corresponding to 5 number states using the :func:`qutip.destroy` function:
 
 .. testcode:: [states]
 
@@ -102,7 +102,7 @@ We see that, as expected, the vacuum is transformed to the zero vector.  A more 
     [0.]
     [0.]]
 
-The raising operator has in indeed raised the state `vec` from the vacuum to the :math:`\left| 1\right>` state.  Instead of using the dagger ``Qobj.dag()`` method to raise the state, we could have also used the built in :func:`qutip.operators.create` function to make a raising operator:
+The raising operator has in indeed raised the state `vec` from the vacuum to the :math:`\left| 1\right>` state.  Instead of using the dagger ``Qobj.dag()`` method to raise the state, we could have also used the built in :func:`qutip.create` function to make a raising operator:
 
 .. testcode:: [states]
 
@@ -258,7 +258,7 @@ Since we are giving a demonstration of using states and operators, we have done 
      [0.]
      [0.]]
 
-Notice how it is automatically normalized.  We can also use the built in :func:`qutip.operators.num` operator:
+Notice how it is automatically normalized.  We can also use the built in :func:`qutip.num` operator:
 
 .. testcode:: [states]
 
@@ -338,7 +338,7 @@ where we have used the :func:`qutip.Qobj.unit` method to again normalize the sta
      [0.        ]
      [0.        ]]
 
-We can also create coherent states and squeezed states by applying the :func:`qutip.operators.displace` and :func:`qutip.operators.squeeze` functions to the vacuum state:
+We can also create coherent states and squeezed states by applying the :func:`qutip.displace` and :func:`qutip.squeeze` functions to the vacuum state:
 
 .. testcode:: [states]
 
@@ -503,7 +503,7 @@ or use ``0.5 * fock_dm(5, 2) + 0.5 * fock_dm(5, 4)``. There are also several oth
      [0.         0.         0.         0.08046635 0.        ]
      [0.         0.         0.         0.         0.04470353]]
 
-QuTiP also provides a set of distance metrics for determining how close two density matrix distributions are to each other. Included are the trace distance :func:`qutip.metrics.tracedist`, fidelity :func:`qutip.metrics.fidelity`, Hilbert-Schmidt distance :func:`qutip.metrics.hilbert_dist`, Bures distance :func:`qutip.metrics.bures_dist`, Bures angle :func:`qutip.metrics.bures_angle`, and quantum Hellinger distance :func:`qutip.metrics.hellinger_dist`.
+QuTiP also provides a set of distance metrics for determining how close two density matrix distributions are to each other. Included are the trace distance :func:`qutip.core.metrics.tracedist`, fidelity :func:`qutip.core.metrics.fidelity`, Hilbert-Schmidt distance :func:`qutip.core.metrics.hilbert_dist`, Bures distance :func:`qutip.core.metrics.bures_dist`, Bures angle :func:`qutip.core.metrics.bures_angle`, and quantum Hellinger distance :func:`qutip.core.metrics.hellinger_dist`.
 
 .. testcode:: [states]
 
@@ -547,7 +547,7 @@ Now at this point one may ask how this state is different than that of a harmoni
 
     vac = basis(2, 0)
 
-At this stage, there is no difference.  This should not be surprising as we called the exact same function twice.  The difference between the two comes from the action of the spin operators :func:`qutip.operators.sigmax`, :func:`qutip.operators.sigmay`, :func:`qutip.operators.sigmaz`, :func:`qutip.operators.sigmap`, and :func:`qutip.operators.sigmam` on these two-level states.  For example, if ``vac`` corresponds to the vacuum state of a harmonic oscillator, then, as we have already seen, we can use the raising operator to get the :math:`\left|1\right>` state:
+At this stage, there is no difference.  This should not be surprising as we called the exact same function twice.  The difference between the two comes from the action of the spin operators :func:`qutip.sigmax`, :func:`qutip.sigmay`, :func:`qutip.sigmaz`, :func:`qutip.sigmap`, and :func:`qutip.sigmam` on these two-level states.  For example, if ``vac`` corresponds to the vacuum state of a harmonic oscillator, then, as we have already seen, we can use the raising operator to get the :math:`\left|1\right>` state:
 
 .. testcode:: [states]
 
@@ -579,7 +579,7 @@ At this stage, there is no difference.  This should not be surprising as we call
     [[0.]
      [1.]]
 
-For a spin system, the operator analogous to the raising operator is the sigma-plus operator :func:`qutip.operators.sigmap`.  Operating on the ``spin`` state gives:
+For a spin system, the operator analogous to the raising operator is the sigma-plus operator :func:`qutip.sigmap`.  Operating on the ``spin`` state gives:
 
 .. testcode:: [states]
 
@@ -609,7 +609,7 @@ For a spin system, the operator analogous to the raising operator is the sigma-p
     [[0.]
      [0.]]
 
-Now we see the difference!  The :func:`qutip.operators.sigmap` operator acting on the ``spin`` state returns the zero vector.  Why is this?  To see what happened, let us use the :func:`qutip.operators.sigmaz` operator:
+Now we see the difference!  The :func:`qutip.sigmap` operator acting on the ``spin`` state returns the zero vector.  Why is this?  To see what happened, let us use the :func:`qutip.sigmaz` operator:
 
 .. testcode:: [states]
 
@@ -669,7 +669,7 @@ Now we see the difference!  The :func:`qutip.operators.sigmap` operator acting o
   [[ 0.]
    [-1.]]
 
-The answer is now apparent.  Since the QuTiP :func:`qutip.operators.sigmaz` function uses the standard z-basis representation of the sigma-z spin operator, the ``spin`` state corresponds to the :math:`\left|\uparrow\right>` state of a two-level spin system while ``spin2`` gives the :math:`\left|\downarrow\right>` state.  Therefore, in our previous example ``sigmap() * spin``, we raised the qubit state out of the truncated two-level Hilbert space resulting in the zero state.
+The answer is now apparent.  Since the QuTiP :func:`qutip.sigmaz` function uses the standard z-basis representation of the sigma-z spin operator, the ``spin`` state corresponds to the :math:`\left|\uparrow\right>` state of a two-level spin system while ``spin2`` gives the :math:`\left|\downarrow\right>` state.  Therefore, in our previous example ``sigmap() * spin``, we raised the qubit state out of the truncated two-level Hilbert space resulting in the zero state.
 
 While at first glance this convention might seem somewhat odd, it is in fact quite handy. For one, the spin operators remain in the conventional form. Second, when the spin system is in the :math:`\left|\uparrow\right>` state:
 
@@ -689,7 +689,7 @@ While at first glance this convention might seem somewhat odd, it is in fact qui
 
 the non-zero component is the zeroth-element of the underlying matrix (remember that python uses c-indexing, and matrices start with the zeroth element).  The :math:`\left|\downarrow\right>` state therefore has a non-zero entry in the first index position. This corresponds nicely with the quantum information definitions of qubit states, where the excited :math:`\left|\uparrow\right>` state is label as :math:`\left|0\right>`, and the :math:`\left|\downarrow\right>` state by :math:`\left|1\right>`.
 
-If one wants to create spin operators for higher spin systems, then the :func:`qutip.operators.jmat` function comes in handy.
+If one wants to create spin operators for higher spin systems, then the :func:`qutip.jmat` function comes in handy.
 
 .. _states-expect:
 

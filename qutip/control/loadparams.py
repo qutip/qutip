@@ -15,34 +15,12 @@ defined for that object
 """
 
 import numpy as np
-
-try:
-    # Python 3
-    from configparser import ConfigParser
-except:
-    # Python 2
-    from ConfigParser import SafeConfigParser
-
+from configparser import ConfigParser
 # QuTiP logging
-from qutip.qobj import Qobj
-
+from qutip import Qobj
 import qutip.logging_utils as logging
 logger = logging.get_logger()
 
-def _is_string(var):
-    try:
-        if isinstance(var, basestring):
-            return True
-    except NameError:
-        try:
-            if isinstance(var, str):
-                return True
-        except:
-            return False
-    except:
-        return False
-
-    return False
 
 def load_parameters(file_name, config=None, term_conds=None,
                     dynamics=None, optim=None, pulsegen=None,
@@ -51,10 +29,7 @@ def load_parameters(file_name, config=None, term_conds=None,
     Import parameters for the optimisation objects
     Will throw a ValueError if file_name does not exist
     """
-    try:
-        parser = SafeConfigParser()
-    except:
-        parser = ConfigParser()
+    parser = ConfigParser()
 
     readFiles = parser.read(str(file_name))
     if len(readFiles) == 0:
@@ -111,9 +86,11 @@ def load_parameters(file_name, config=None, term_conds=None,
                 s, type(e).__name__, e))
 
     if obj is not None:
-        if not _is_string(section):
-            raise ValueError("Section name must be given when loading "
-                "parameters of general object")
+        if not isinstance(section, str):
+            raise ValueError(
+                "Section name must be given when loading "
+                "parameters of general object"
+            )
         s = section
         try:
             attr_names = parser.options(s)
@@ -122,6 +99,7 @@ def load_parameters(file_name, config=None, term_conds=None,
         except Exception as e:
             logger.warn("Unable to load {} parameters:({}) {}".format(
                 s, type(e).__name__, e))
+
 
 def set_param(parser, section, option, obj, attrib_name):
     """

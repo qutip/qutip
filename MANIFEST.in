@@ -2,12 +2,11 @@ include README.md
 include LICENSE.txt
 include VERSION
 include requirements.txt
-include qutip.bib
+include CITATION.bib
 include pyproject.toml
 recursive-include qutip *.pyx
 recursive-include qutip *.pxd
-recursive-include qutip *.pxi
 recursive-include qutip *.hpp
 recursive-include qutip *.cpp
 recursive-include qutip *.ini
-recursive-include qutip/tests/qasm_files *.qasm
+recursive-include qutip *.h

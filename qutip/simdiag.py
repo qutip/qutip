@@ -2,7 +2,8 @@ __all__ = ['simdiag']
 
 import numpy as np
 import scipy.linalg as la
-from qutip.qobj import Qobj
+from . import Qobj
+from .core import data as _data
 
 
 def _degen(tol, vecs, ops, i=0):
@@ -20,7 +21,7 @@ def _degen(tol, vecs, ops, i=0):
                 vecs[:, j] = ((vecs[:, j] - dot * vecs[:, k])
                               / (1 - np.abs(dot)**2)**0.5)
 
-    subspace = vecs.conj().T @ ops[i].data @ vecs
+    subspace = vecs.conj().T @ ops[i].full() @ vecs
     eigvals, eigvecs = la.eig(subspace)
 
     perm = np.argsort(eigvals)
@@ -88,10 +89,9 @@ def simdiag(ops, evals: bool = True, *,
             if (A * B - B * A).norm() / (A * B).norm() > tol:
                 raise TypeError('Matricies must commute.')
 
-    eigvals, eigvecs = la.eigh(ops[0].full())
-    perm = np.argsort(eigvals)
-    eigvecs = eigvecs[:, perm]
-    eigvals = eigvals[perm]
+    # TODO: rewrite using Data object
+    eigvals, eigvecs = _data.eigs(ops[0].data, True, True)
+    eigvecs = eigvecs.to_array()
 
     k = 0
     while k < N:
@@ -106,8 +106,7 @@ def simdiag(ops, evals: bool = True, *,
         eigvecs[:, k] = eigvecs[:, k] / la.norm(eigvecs[:, k])
 
     kets_out = [
-        Qobj(eigvecs[:, j],
-             dims=[ops[0].dims[0], [1]], shape=[ops[0].shape[0], 1])
+        Qobj(eigvecs[:, j], dims=[ops[0].dims[0], [1]])
         for j in range(N)
     ]
     eigvals_out = np.zeros((len(ops), N), dtype=np.float64)

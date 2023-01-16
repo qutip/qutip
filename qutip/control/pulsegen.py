@@ -14,11 +14,11 @@ See the class and gen_pulse function descriptions for details
 
 import numpy as np
 
-import qutip.logging_utils as logging
-logger = logging.get_logger()
-
 import qutip.control.dynamics as dynamics
 import qutip.control.errors as errors
+
+import qutip.logging_utils as logging
+logger = logging.get_logger()
 
 def create_pulse_gen(pulse_type='RND', dyn=None, pulse_params=None):
     """
@@ -50,7 +50,6 @@ def create_pulse_gen(pulse_type='RND', dyn=None, pulse_params=None):
     are copied over.
 
     """
-
     if pulse_type == 'RND':
         return PulseGenRandom(dyn, params=pulse_params)
     if pulse_type == 'RNDFOURIER':
@@ -83,7 +82,7 @@ def create_pulse_gen(pulse_type='RND', dyn=None, pulse_params=None):
         raise ValueError("No option for pulse_type '{}'".format(pulse_type))
 
 
-class PulseGen(object):
+class PulseGen:
     """
     Pulse generator
     Base class for all Pulse generators
@@ -234,14 +233,14 @@ class PulseGen(object):
 
         self._pulse_initialised = True
 
-        if not self.lbound is None:
+        if self.lbound is not None:
             if np.isinf(self.lbound):
                 self.lbound = None
-        if not self.ubound is None:
+        if self.ubound is not None:
             if np.isinf(self.ubound):
                 self.ubound = None
 
-        if not self.ubound is None and not self.lbound is None:
+        if self.ubound is not None and self.lbound is not None:
             if self.ubound < self.lbound:
                 raise ValueError("ubound cannot be less the lbound")
 
@@ -256,8 +255,10 @@ class PulseGen(object):
 
         max_amp = max(pulse)
         min_amp = min(pulse)
-        if ((self.ubound is None or max_amp + self.offset <= self.ubound) and
-            (self.lbound is None or min_amp + self.offset >= self.lbound)):
+        if (
+            (self.ubound is None or max_amp + self.offset <= self.ubound)
+            and (self.lbound is None or min_amp + self.offset >= self.lbound)
+        ):
             return pulse + self.offset
 
         # Some shifting / scaling is required.
@@ -286,6 +287,7 @@ class PulseGen(object):
             pulse = pulse*ramping_pulse
 
         return pulse
+
 
 class PulseGenZero(PulseGen):
     """
@@ -350,7 +352,7 @@ class PulseGenRndFourier(PulseGen):
         self._uses_time = True
         try:
             self.min_wavelen = self.pulse_time / 10.0
-        except:
+        except AttributeError:
             self.min_wavelen = 0.1
         self.apply_params()
 
@@ -359,7 +361,6 @@ class PulseGenRndFourier(PulseGen):
         Generate a random pulse based on a Fourier series with a minimum
         wavelength
         """
-
         if min_wavelen is not None:
             self.min_wavelen = min_wavelen
         min_wavelen = self.min_wavelen
@@ -431,11 +432,11 @@ class PulseGenRndWaves(PulseGen):
         self.num_comp_waves = 20
         try:
             self.min_wavelen = self.pulse_time / 10.0
-        except:
+        except AttributeError:
             self.min_wavelen = 0.1
         try:
             self.max_wavelen = 2*self.pulse_time
-        except:
+        except AttributeError:
             self.max_wavelen = 10.0
         self.apply_params()
 
@@ -842,6 +843,7 @@ class PulseGenTriangle(PulseGenPeriodic):
 
         return self._apply_bounds_and_offset(pulse)
 
+
 class PulseGenGaussian(PulseGen):
     """
     Generates pulses with a Gaussian profile
@@ -880,6 +882,7 @@ class PulseGenGaussian(PulseGen):
 
         pulse = self.scaling*np.exp(-(t-Tm)**2/(2*Tv))
         return self._apply_bounds_and_offset(pulse)
+
 
 class PulseGenGaussianEdge(PulseGen):
     """
@@ -1122,8 +1125,8 @@ class PulseGenCrab(PulseGen):
                 self._bound_scale = self.ubound
             else:
                 add_guess_pulse_scale = True
-                self._bound_scale = self.scaling*self.num_coeffs + \
-                            self.get_guess_pulse_scale()
+                self._bound_scale =\
+                    self.scaling*self.num_coeffs + self.get_guess_pulse_scale()
                 self._bound_mean = -abs(self._bound_scale) + self.ubound
             self._bound_scale_cond = self._BSC_GT_MEAN
 
@@ -1161,12 +1164,12 @@ class PulseGenCrab(PulseGen):
         elif self._bound_scale_cond == self._BSC_GT_MEAN:
             scale_where = pulse > self._bound_mean
             pulse[scale_where] = (np.tanh(pulse[scale_where])*self._bound_scale
-                                        + self._bound_mean)
+                                  + self._bound_mean)
             return pulse
         elif self._bound_scale_cond == self._BSC_LT_MEAN:
             scale_where = pulse < self._bound_mean
             pulse[scale_where] = (np.tanh(pulse[scale_where])*self._bound_scale
-                                        + self._bound_mean)
+                                  + self._bound_mean)
             return pulse
         else:
             return pulse
@@ -1236,11 +1239,8 @@ class PulseGenCrabFourier(PulseGenCrab):
 
         for i in range(self.num_coeffs):
             phase = self.freqs[i]*self.time
-#            basis1comp = self.coeffs[i, 0]*np.sin(phase)
-#            basis2comp = self.coeffs[i, 1]*np.cos(phase)
-#            pulse += basis1comp + basis2comp
-            pulse += self.coeffs[i, 0]*np.sin(phase) + \
-                        self.coeffs[i, 1]*np.cos(phase)
+            pulse += (self.coeffs[i, 0]*np.sin(phase)
+                      + self.coeffs[i, 1]*np.cos(phase))
 
         if self.guess_pulse_func:
             pulse = self.guess_pulse_func(pulse)

@@ -2,7 +2,7 @@
 This module contains utility functions for using QuTiP with IPython notebooks.
 """
 from qutip.ui.progressbar import BaseProgressBar
-from qutip.utilities import _blas_info, available_cpu_count
+from .settings import _blas_info, available_cpu_count
 import IPython
 
 #IPython parallel routines moved to ipyparallel in V4
@@ -53,7 +53,7 @@ def version_table(verbose=False):
 
 
     Returns
-    --------
+    -------
     version_table: string
         Return an HTML-formatted string containing version information for
         QuTiP dependencies.
@@ -219,7 +219,7 @@ def parfor(task, task_vec, args=None, client=None, view=None,
         loop.
 
     Returns
-    --------
+    -------
     result : list
         The result list contains the value of ``task(value, args)`` for each
         value in ``task_vec``, that is, it should be equivalent to
@@ -284,7 +284,7 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
         loop.
 
     Returns
-    --------
+    -------
     result : list
         The result list contains the value of
         ``task(value, task_args, task_kwargs)`` for each

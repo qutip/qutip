@@ -1,10 +1,9 @@
 __all__ = ['qpt_plot', 'qpt_plot_combined', 'qpt']
 
-from qutip.tensor import tensor
-from qutip.superoperator import spre, spost, mat2vec, vec2mat
 from numpy import hstack, real, imag
 import scipy.linalg as la
-from qutip.visualization import matrix_histogram, matrix_histogram_complex
+from . import tensor, spre, spost, stack_columns, unstack_columns
+from .visualization import matrix_histogram, matrix_histogram_complex
 
 try:
     import matplotlib.pyplot as plt
@@ -156,7 +155,7 @@ def qpt(U, op_basis_list):
 
         or
 
-        rho = vec2mat(U * mat2vec(rho0))
+        rho = unstack_columns(U * stack_columns(rho0))
 
     U can be calculated for an open quantum system using the QuTiP propagator
     function.
@@ -184,13 +183,8 @@ def qpt(U, op_basis_list):
         E_op_list = [op_basis_list[k][inds[k]] for k in range(len(
             op_basis_list))]
         E_ops.append(tensor(E_op_list))
-
     EE_ops = [spre(E1) * spost(E2.dag()) for E1 in E_ops for E2 in E_ops]
-
-    M = hstack([mat2vec(EE.full()) for EE in EE_ops])
-
-    Uvec = mat2vec(U.full())
-
+    M = hstack([EE.full().ravel('F')[:, None] for EE in EE_ops])
+    Uvec = U.full().ravel('F')
     chi_vec = la.solve(M, Uvec)
-
-    return vec2mat(chi_vec)
+    return chi_vec.reshape(U.shape).T

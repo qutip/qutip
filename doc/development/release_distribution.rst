@@ -46,6 +46,22 @@ For every change that is going to be part of your release, make sure that:
 
 Please make a normal PR to ``master`` correcting anything missing from these points and have it merged before you begin the release, if necessary.
 
+.. _update-requirement:
+
+Updating the Requirements
+-------------------------
+
+Ensure that QuTiP's tests pass on the oldest version supported in the requirements.
+On major and minor version, requirements can be adjusted upwards, but patch release must not change minimum requirements.
+We follow `NEP29`_ for minimum supported versions ::
+
+    - All minor versions of Python released 42 months prior to the project, and at minimum the two latest minor versions.
+    - All minor versions of numpy and scipy released in the 24 months prior to the project, and at minimum the last three minor versions.
+
+If dependency versions need to be updated, update them in the master branch. The following files may need to be updated: `.github/workflows/tests.yml`, `setup.cfg` and `roadmap.rst`. Finally, ensure that PyPI wheels and conda builds cover at least these versions.
+
+.. _NEP29: https://numpy.org/neps/nep-0029-deprecation_policy.html
+
 .. _update-changelog:
 
 Updating the Changelog
@@ -105,7 +121,7 @@ If you notice you have made a mistake, you can make additional pull requests to 
 ``master`` should look pretty similar, except the ``VERSION`` will be higher and have a ``.dev`` suffix, and the "Development Status" in ``setup.cfg`` will be different.
 
 You are now ready to actually perform the release.
-Go to deploy_. 
+Go to deploy_.
 
 
 
@@ -154,7 +170,7 @@ You should now see that the ``qutip-4.6.X`` (or whatever) branch on GitHub has b
 If you have made a mistake, feel free to make additonal PRs to rectify the situation.
 
 You are now ready to actually perform the release.
-Go to deploy_. 
+Go to deploy_.
 
 
 .. _deploy:
@@ -271,15 +287,15 @@ For all releases move (no new docs) or copy (for new docs) the ``qutip-doc-<MAJO
 The legacy html documentation should be in a subfolder like ::
 
     docs/<MAJOR>.<MINOR>
-    
-For a major or minor release the previous version documentation should be moved into this folder. 
+
+For a major or minor release the previous version documentation should be moved into this folder.
 
 The latest version HTML documentation should be the folder ::
 
     docs/latest
-    
+
 For any release which new documentation is included
-- copy the contents ``qutip/doc/_build/html`` into this folder. **Note that the underscores at start of the subfolder names will need to be removed, otherwise Jekyll will ignore the folders**. There is a script in the ``docs`` folder for this. 
+- copy the contents ``qutip/doc/_build/html`` into this folder. **Note that the underscores at start of the subfolder names will need to be removed, otherwise Jekyll will ignore the folders**. There is a script in the ``docs`` folder for this.
 https://github.com/qutip/qutip.github.io/blob/master/docs/remove_leading_underscores.py
 
 

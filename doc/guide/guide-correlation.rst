@@ -28,21 +28,24 @@ QuTiP provides a family of functions that assists in the process of calculating 
 
 .. cssclass:: table-striped
 
-+----------------------------------------------+--------------------------------------------------+
-| QuTiP function                               | Correlation function                             |
-+==============================================+==================================================+
-|                                              | :math:`\left<A(t+\tau)B(t)\right>` or            |
-| :func:`qutip.correlation.correlation_2op_2t` | :math:`\left<A(t)B(t+\tau)\right>`.              |
-+----------------------------------------------+--------------------------------------------------+
-|                                              | :math:`\left<A(\tau)B(0)\right>` or              |
-| :func:`qutip.correlation.correlation_2op_1t` | :math:`\left<A(0)B(\tau)\right>`.                |
-+----------------------------------------------+--------------------------------------------------+
-| :func:`qutip.correlation.correlation_3op_1t` | :math:`\left<A(0)B(\tau)C(0)\right>`.            |
-+----------------------------------------------+--------------------------------------------------+
-| :func:`qutip.correlation.correlation_3op_2t` | :math:`\left<A(t)B(t+\tau)C(t)\right>`.          |
-+----------------------------------------------+--------------------------------------------------+
++----------------------------------+--------------------------------------------------+
+| QuTiP function                   | Correlation function                             |
++==================================+==================================================+
+|                                  | :math:`\left<A(t+\tau)B(t)\right>` or            |
+| :func:`qutip.correlation_2op_2t` | :math:`\left<A(t)B(t+\tau)\right>`.              |
++----------------------------------+--------------------------------------------------+
+|                                  | :math:`\left<A(\tau)B(0)\right>` or              |
+| :func:`qutip.correlation_2op_1t` | :math:`\left<A(0)B(\tau)\right>`.                |
++----------------------------------+--------------------------------------------------+
+| :func:`qutip.correlation_3op_1t` | :math:`\left<A(0)B(\tau)C(0)\right>`.            |
++----------------------------------+--------------------------------------------------+
+| :func:`qutip.correlation_3op_2t` | :math:`\left<A(t)B(t+\tau)C(t)\right>`.          |
++----------------------------------+--------------------------------------------------+
+| :func:`qutip.correlation_3op`    | :math:`\left<A(t)B(t+\tau)C(t)\right>`.          |
++----------------------------------+--------------------------------------------------+
 
-The most common use-case is to calculate correlation functions of the kind :math:`\left<A(\tau)B(0)\right>`, in which case we use the correlation function solvers that start from the steady state, e.g., the :func:`qutip.correlation.correlation_2op_1t` function. These correlation function solvers return a vector or matrix (in general complex) with the correlations as a function of the delays times.
+
+The most common use-case is to calculate the two time correlation function :math:`\left<A(\tau)B(0)\right>`. :func:`qutip.correlation_2op_1t` performs this task with sensible default values, but only allows using the :func:`mesolve` solver. From QuTiP 5.0 we added :func:`qutip.correlation_3op`. This function can also calculate correlation functions with two or three operators and with one or two times. Most importantly, this function accepts alternative solvers such as :func:`brmesolve`.
 
 .. _correlation-steady:
 

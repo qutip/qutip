@@ -24,8 +24,8 @@ one for each reservoir or lead -- and call them the left (:math:`L`) and right
 potential :math:`\mu` which we will label :math:`\mu_L` and :math:`\mu_R`.
 
 First we will do this using the built-in implementations of the bath expansions,
-:class:`~qutip.nonmarkov.heom.LorentzianBath` and
-:class:`~qutip.nonmarkov.heom.LorentzianPadeBath`.
+:class:`~qutip.solver.heom.LorentzianBath` and
+:class:`~qutip.solver.heom.LorentzianPadeBath`.
 
 Afterwards, we will show how to calculate the bath expansion coefficients and to
 use those coefficients to construct your own bath description so that you can
@@ -91,8 +91,8 @@ We may the pass these parameters to either ``LorentzianBath`` or
     :context:
     :nofigs:
 
-    from qutip.nonmarkov.heom import LorentzianBath
-    from qutip.nonmarkov.heom import LorentzianPadeBath
+    from qutip.solver.heom import LorentzianBath
+    from qutip.solver.heom import LorentzianPadeBath
 
     # Number of expansion terms to retain:
     Nk = 2
@@ -122,11 +122,10 @@ Now we are ready to construct a solver:
     :context:
     :nofigs:
 
-    from qutip.nonmarkov.heom import HEOMSolver
-    from qutip import Options
+    from qutip.solver.heom import HEOMSolver
 
     max_depth = 5  # maximum hierarchy depth to retain
-    options = Options(nsteps=15_000)
+    options = {"nsteps": 15_000}
     baths = [bath_L, bath_R]
 
     solver = HEOMSolver(H_sys, baths, max_depth=max_depth, options=options)
@@ -163,8 +162,8 @@ values of the population of the system states:
 
     # Plot the results:
     fig, axes = plt.subplots(1, 1, sharex=True, figsize=(8,8))
-    axes.plot(result.times, result.expect["11"], 'b', linewidth=2, label="P11")
-    axes.plot(result.times, result.expect["22"], 'r', linewidth=2, label="P22")
+    axes.plot(result.times, result.e_data["11"], 'b', linewidth=2, label="P11")
+    axes.plot(result.times, result.e_data["22"], 'r', linewidth=2, label="P22")
     axes.set_xlabel(r't', fontsize=28)
     axes.legend(loc=0, fontsize=12)
 
@@ -197,8 +196,8 @@ description later in :ref:`heom-fermionic-pade-expansion-coefficients`) and
 
 The first-level exponents for the left bath are retrieved by calling
 ``.filter(tags=["L"])`` on ``ado_state`` which is an instance of
-:class:`~qutip.nonmarkov.heom.HierarchyADOsState` and also provides access to
-the methods of :class:`~qutip.nonmarkov.heom.HierarchyADOs` which describes the
+:class:`~qutip.solver.heom.HierarchyADOsState` and also provides access to
+the methods of :class:`~qutip.solver.heom.HierarchyADOs` which describes the
 structure of the hierarchy for a given problem.
 
 Here the tag "L" matches the tag passed when constructing ``bath_L`` earlier
@@ -244,11 +243,11 @@ baths, we can pass them to ``e_ops`` and plot the results:
     # Plot the results:
     fig, axes = plt.subplots(1, 1, sharex=True, figsize=(8,8))
     axes.plot(
-        result.times, result.expect["left_currents"], 'b',
+        result.times, result.e_data["left_currents"], 'b',
         linewidth=2, label=r"Bath L",
     )
     axes.plot(
-        result.times, result.expect["right_currents"], 'r',
+        result.times, result.e_data["right_currents"], 'r',
         linewidth=2, label="Bath R",
     )
     axes.set_xlabel(r't', fontsize=28)
@@ -292,7 +291,7 @@ Now we can add the steady state currents to the previous plot:
     # Plot the results and steady state currents:
     fig, axes = plt.subplots(1, 1, sharex=True, figsize=(8,8))
     axes.plot(
-        result.times, result.expect["left_currents"], 'b',
+        result.times, result.e_data["left_currents"], 'b',
         linewidth=2, label=r"Bath L",
     )
     axes.plot(
@@ -300,7 +299,7 @@ Now we can add the steady state currents to the previous plot:
         linewidth=2, label=r"Bath L (steady state)",
     )
     axes.plot(
-        result.times, result.expect["right_currents"], 'r',
+        result.times, result.e_data["right_currents"], 'r',
         linewidth=2, label="Bath R",
     )
     axes.plot(
@@ -323,9 +322,9 @@ Padé expansion coefficients
 
 We now look at how to calculate the correlation expansion coefficients for the
 Lorentzian spectral density ourselves. Once we have calculated the coefficients
-we can construct a :class:`~qutip.nonmarkov.heom.FermionicBath` directly from
+we can construct a :class:`~qutip.solver.heom.FermionicBath` directly from
 them. A similar procedure can be used to apply
-:class:`~qutip.nonmarkov.heom.HEOMSolver` to any fermionic bath for which we can
+:class:`~qutip.solver.heom.HEOMSolver` to any fermionic bath for which we can
 calculate the expansion coefficients.
 
 In the fermionic case we must descriminate between the order in which
@@ -467,13 +466,13 @@ And now we calculate the same numbers in Python:
     ck_minus_R, vk_minus_R = C(-1.0, mu_R, Nk)  # C_-, right bath
 
 Finally we are ready to construct the
-:class:`~qutip.nonmarkov.heom.FermionicBath`:
+:class:`~qutip.solver.heom.FermionicBath`:
 
 .. plot::
     :context:
     :nofigs:
 
-    from qutip.nonmarkov.heom import FermionicBath
+    from qutip.solver.heom import FermionicBath
 
     # Padé expansion:
     bath_L = FermionicBath(Q, ck_plus_L, vk_plus_L, ck_minus_L, vk_minus_L)
@@ -481,8 +480,8 @@ Finally we are ready to construct the
 
 And we're done!
 
-The :class:`~qutip.nonmarkov.heom.FermionicBath` can be used with the
-:class:`~qutip.nonmarkov.heom.HEOMSolver` in exactly the same way as the baths
+The :class:`~qutip.solver.heom.FermionicBath` can be used with the
+:class:`~qutip.solver.heom.HEOMSolver` in exactly the same way as the baths
 we constructed previously using the built-in Lorentzian bath expansions.
 
 

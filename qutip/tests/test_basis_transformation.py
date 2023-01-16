@@ -53,24 +53,3 @@ def test_eigenbasis_transformation_makes_diagonal_operator():
     _, ekets = H.eigenstates()
     Heb = H.transform(ekets).tidyup()  # Heb should be diagonal
     assert abs(Heb.full() - np.diag(Heb.full().diagonal())).max() < 1e-6
-
-
-_state_constructors = [qutip.rand_herm, qutip.rand_ket, rand_bra]
-@pytest.mark.parametrize("constructor", _state_constructors)
-@pytest.mark.parametrize("n_levels", [2, 10])
-@pytest.mark.parametrize("inverse", [True, False])
-def test_transformations_from_qobj_and_direct_eigenbases_match(constructor,
-                                                               n_levels,
-                                                               inverse):
-    """
-    Check transformations from the Qobj-calculated eigenbasis matches the one
-    from the scipy-calculated basis.
-    """
-    qobj = constructor(n_levels)
-    # Generate a random basis
-    random_dm = qutip.rand_dm(n_levels, density=1)
-    _, qobj_basis = random_dm.eigenstates()
-    _, direct_basis = qutip.sparse.sp_eigs(random_dm.data, isherm=1)
-    H1 = qobj.transform(qobj_basis, inverse=inverse)
-    H2 = qobj.transform(direct_basis, inverse=inverse)
-    assert (H1 - H2).norm() < 1e-6

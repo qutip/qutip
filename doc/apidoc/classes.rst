@@ -9,7 +9,7 @@ Classes
 Qobj
 --------------
 
-.. autoclass:: qutip.Qobj
+.. autoclass:: qutip.core.qobj.Qobj
     :members:
 
 .. _classes-qobjevo:
@@ -17,16 +17,9 @@ Qobj
 QobjEvo
 --------------
 
-.. autoclass:: qutip.QobjEvo
+.. autoclass:: qutip.core.cy.qobjevo.QobjEvo
     :members:
 
-.. _classes-eseries:
-
-eseries
------------------
-
-.. autoclass:: qutip.eseries
-    :members:
 
 .. _classes-bloch:
 
@@ -46,67 +39,108 @@ Distributions
     :members:
 
 
-Cubic Spline
----------------
+.. _classes-solver:
 
-.. autoclass:: qutip.interpolate.Cubic_Spline
+Solver
+------
+
+.. autoclass:: qutip.solver.sesolve.SESolver
+    :members:
+
+.. autoclass:: qutip.solver.mesolve.MESolver
+    :members:
+
+.. autoclass:: qutip.solver.brmesolve.BRSolver
     :members:
 
 
-.. _classes-non_markov:
+.. _classes-non_markov_heom:
 
-Non-Markovian Solvers
----------------------
+Non-Markovian HEOM Solver
+-------------------------
 
-.. autoclass:: qutip.nonmarkov.heom.HEOMSolver
+.. autoclass:: qutip.solver.heom.HEOMSolver
     :members:
 
-.. autoclass:: qutip.nonmarkov.heom.HSolverDL
+.. autoclass:: qutip.solver.heom.HSolverDL
     :members:
 
-.. autoclass:: qutip.nonmarkov.heom.BathExponent
+.. autoclass:: qutip.solver.heom.BathExponent
     :members:
 
-.. autoclass:: qutip.nonmarkov.heom.Bath
+.. autoclass:: qutip.solver.heom.Bath
     :members:
 
-.. autoclass:: qutip.nonmarkov.heom.BosonicBath
+.. autoclass:: qutip.solver.heom.BosonicBath
     :members:
 
-.. autoclass:: qutip.nonmarkov.heom.DrudeLorentzBath
+.. autoclass:: qutip.solver.heom.DrudeLorentzBath
     :members:
 
-.. autoclass:: qutip.nonmarkov.heom.DrudeLorentzPadeBath
+.. autoclass:: qutip.solver.heom.DrudeLorentzPadeBath
     :members:
 
-.. autoclass:: qutip.nonmarkov.heom.UnderDampedBath
+.. autoclass:: qutip.solver.heom.UnderDampedBath
     :members:
 
-.. autoclass:: qutip.nonmarkov.heom.FermionicBath
+.. autoclass:: qutip.solver.heom.FermionicBath
     :members:
 
-.. autoclass:: qutip.nonmarkov.heom.LorentzianBath
+.. autoclass:: qutip.solver.heom.LorentzianBath
     :members:
 
-.. autoclass:: qutip.nonmarkov.heom.LorentzianPadeBath
+.. autoclass:: qutip.solver.heom.LorentzianPadeBath
     :members:
 
-.. autoclass:: qutip.nonmarkov.heom.HierarchyADOs
+.. autoclass:: qutip.solver.heom.HierarchyADOs
     :members:
 
-.. autoclass:: qutip.nonmarkov.heom.HierarchyADOsState
+.. autoclass:: qutip.solver.heom.HierarchyADOsState
     :members:
 
-.. autoclass:: qutip.nonmarkov.dlheom_solver.HSolverDL
+.. autoclass:: qutip.solver.heom.HEOMResult
     :members:
 
-.. autoclass:: qutip.nonmarkov.dlheom_solver.HEOMSolver
+
+.. _classes-ode:
+
+Integrator
+----------
+
+.. autoclass:: qutip.solver.integrator.scipy_integrator.IntegratorScipyAdams
+    :members: options
+
+.. autoclass:: qutip.solver.integrator.scipy_integrator.IntegratorScipyBDF
+    :members: options
+
+.. autoclass:: qutip.solver.integrator.scipy_integrator.IntegratorScipylsoda
+    :members: options
+
+.. autoclass:: qutip.solver.integrator.scipy_integrator.IntegratorScipyDop853
+    :members: options
+
+.. autoclass:: qutip.solver.integrator.qutip_integrator.IntegratorVern7
+    :members: options
+
+.. autoclass:: qutip.solver.integrator.qutip_integrator.IntegratorVern9
+    :members: options
+
+.. autoclass:: qutip.solver.integrator.qutip_integrator.IntegratorDiag
+    :members: options
+
+.. autoclass:: qutip.solver.integrator.krylov.IntegratorKrylov
+    :members: options
+
+
+.. _classes-non_markov_mc_and_tt:
+
+Non-Markovian Memory Cascade and Transfer Tensor Solvers
+--------------------------------------------------------
+
+.. autoclass:: qutip.solve.nonmarkov.memorycascade.MemoryCascade
     :members:
 
-.. autoclass:: qutip.nonmarkov.memorycascade.MemoryCascade
-    :members:
-
-.. autoclass:: qutip.nonmarkov.transfertensor.TTMSolverOptions
+.. autoclass:: qutip.solve.nonmarkov.transfertensor.TTMSolverOptions
     :members:
 
 
@@ -115,22 +149,7 @@ Non-Markovian Solvers
 Solver Options and Results
 ---------------------------
 
-.. autoclass:: qutip.solver.ExpectOps
-    :members:
-
-.. autoclass:: qutip.solver.Options
-    :members:
-
-.. autoclass:: qutip.solver.Result
-    :members:
-
-.. autoclass:: qutip.solver.SolverConfiguration
-    :members:
-
-.. autoclass:: qutip.solver.Stats
-    :members:
-
-.. autoclass:: qutip.stochastic.StochasticSolverOptions
+.. autoclass:: qutip.solver.result.Result
     :members:
 
 .. _classes-piqs:
@@ -138,19 +157,13 @@ Solver Options and Results
 Permutational Invariance
 ------------------------
 
-.. autoclass:: qutip.piqs.Dicke
+.. autoclass:: qutip.solve.piqs.Dicke
     :members:
 
-.. autoclass:: qutip.piqs.Pim
+.. autoclass:: qutip.solve.piqs.Pim
     :members:
 
 .. _classes-distributions:
-
-One-Dimensional Lattice
------------------------
-
-.. autoclass:: qutip.lattice.Lattice1d
-    :members:
 
 Distribution functions
 ----------------------------
@@ -173,91 +186,6 @@ Distribution functions
 .. autoclass:: qutip.distributions.HarmonicOscillatorProbabilityFunction
     :members:
 
-.. _classes-qip:
-
-Quantum information processing
-------------------------------
-
-.. autoclass:: qutip.qip.Gate
-    :members:
-
-.. autoclass:: qutip.qip.circuit.Measurement
-    :members:
-
-.. autoclass:: qutip.qip.circuit.QubitCircuit
-    :members:
-
-.. autoclass:: qutip.qip.circuit.CircuitResult
-    :members:
-
-.. autoclass:: qutip.qip.circuit.CircuitSimulator
-    :members:
-
-.. autoclass:: qutip.qip.device.Processor
-    :members:
-
-.. autoclass:: qutip.qip.device.OptPulseProcessor
-    :members:
-    :inherited-members:
-
-.. autoclass:: qutip.qip.device.ModelProcessor
-    :members:
-    :inherited-members:
-
-.. autoclass:: qutip.qip.device.SpinChain
-    :members:
-    :inherited-members:
-
-.. autoclass:: qutip.qip.device.LinearSpinChain
-    :members:
-    :inherited-members:
-
-.. autoclass:: qutip.qip.device.CircularSpinChain
-    :members:
-    :inherited-members:
-
-.. autoclass:: qutip.qip.device.DispersiveCavityQED
-    :members:
-    :inherited-members:
-
-.. autoclass:: qutip.qip.noise.Noise
-    :members:
-
-.. autoclass:: qutip.qip.noise.DecoherenceNoise
-    :members:
-    :inherited-members:
-
-.. autoclass:: qutip.qip.noise.RelaxationNoise
-    :members:
-    :inherited-members:
-
-.. autoclass:: qutip.qip.noise.ControlAmpNoise
-    :members:
-    :inherited-members:
-
-.. autoclass:: qutip.qip.noise.RandomNoise
-    :members:
-    :inherited-members:
-
-.. autoclass:: qutip.qip.pulse.Pulse
-    :members:
-
-.. autoclass:: qutip.qip.compiler.GateCompiler
-    :members:
-
-.. autoclass:: qutip.qip.compiler.CavityQEDCompiler
-    :members:
-    :inherited-members:
-
-.. autoclass:: qutip.qip.compiler.SpinChainCompiler
-    :members:
-    :inherited-members:
-
-.. autoclass:: qutip.qip.compiler.Scheduler
-    :members:
-
-.. autoclass:: qutip.qip.compiler.Instruction
-    :members:
 
 .. _classes-control:
 

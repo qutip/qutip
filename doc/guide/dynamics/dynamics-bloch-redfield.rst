@@ -18,11 +18,20 @@ Bloch-Redfield master equation
 Introduction
 ============
 
-The Lindblad master equation introduced earlier is constructed so that it describes a physical evolution of the density matrix (i.e., trace and positivity preserving), but it does not provide a connection to any underlaying microscopic physical model. The Lindblad operators (collapse operators) describe phenomenological processes, such as for example dephasing and spin flips, and the rates of these processes are arbitrary parameters in the model. In many situations the collapse operators and their corresponding rates have clear physical interpretation, such as dephasing and relaxation rates, and in those cases the Lindblad master equation is usually the method of choice.
+The Lindblad master equation introduced earlier is constructed so that it describes a physical evolution of the density matrix (i.e., trace and positivity preserving), but it does not provide a connection to any underlaying microscopic physical model.
+The Lindblad operators (collapse operators) describe phenomenological processes, such as for example dephasing and spin flips, and the rates of these processes are arbitrary parameters in the model.
+In many situations the collapse operators and their corresponding rates have clear physical interpretation, such as dephasing and relaxation rates, and in those cases the Lindblad master equation is usually the method of choice.
 
 However, in some cases, for example systems with varying energy biases and eigenstates and that couple to an environment in some well-defined manner (through a physically motivated system-environment interaction operator), it is often desirable to derive the master equation from more fundamental physical principles, and relate it to for example the noise-power spectrum of the environment.
 
-The Bloch-Redfield formalism is one such approach to derive a master equation from a microscopic system. It starts from a combined system-environment perspective, and derives a perturbative master equation for the system alone, under the assumption of weak system-environment coupling. One advantage of this approach is that the dissipation processes and rates are obtained directly from the properties of the environment. On the downside, it does not intrinsically guarantee that the resulting master equation unconditionally preserves the physical properties of the density matrix (because it is a perturbative method). The Bloch-Redfield master equation must therefore be used with care, and the assumptions made in the derivation must be honored. (The Lindblad master equation is in a sense more robust -- it always results in a physical density matrix -- although some collapse operators might not be physically justified). For a full derivation of the Bloch Redfield master equation, see e.g. [Coh92]_ or [Bre02]_. Here we present only a brief version of the derivation, with the intention of introducing the notation and how it relates to the implementation in QuTiP.
+The Bloch-Redfield formalism is one such approach to derive a master equation from a microscopic system.
+It starts from a combined system-environment perspective, and derives a perturbative master equation for the system alone, under the assumption of weak system-environment coupling.
+One advantage of this approach is that the dissipation processes and rates are obtained directly from the properties of the environment.
+On the downside, it does not intrinsically guarantee that the resulting master equation unconditionally preserves the physical properties of the density matrix (because it is a perturbative method).
+The Bloch-Redfield master equation must therefore be used with care, and the assumptions made in the derivation must be honored.
+(The Lindblad master equation is in a sense more robust -- it always results in a physical density matrix -- although some collapse operators might not be physically justified).
+For a full derivation of the Bloch Redfield master equation, see e.g. [Coh92]_ or [Bre02]_.
+Here we present only a brief version of the derivation, with the intention of introducing the notation and how it relates to the implementation in QuTiP.
 
 .. _bloch-redfield-derivation:
 
@@ -39,9 +48,13 @@ The most general form of a master equation for the system dynamics is obtained b
 
     \frac{d}{dt}\rho_S(t) = - \hbar^{-2}\int_0^t d\tau\;  {\rm Tr}_B [H_I(t), [H_I(\tau), \rho_S(\tau)\otimes\rho_B]],
 
-where the additional assumption that the total system-bath density matrix can be factorized as :math:`\rho(t) \approx \rho_S(t) \otimes \rho_B`. This assumption is known as the Born approximation, and it implies that there never is any entanglement between the system and the bath, neither in the initial state nor at any time during the evolution. *It is justified for weak system-bath interaction.*
+where the additional assumption that the total system-bath density matrix can be factorized as :math:`\rho(t) \approx \rho_S(t) \otimes \rho_B`.
+This assumption is known as the Born approximation, and it implies that there never is any entanglement between the system and the bath, neither in the initial state nor at any time during the evolution.
+*It is justified for weak system-bath interaction.*
 
-The master equation :eq:`br-nonmarkovian-form-one` is non-Markovian, i.e., the change in the density matrix at a time :math:`t` depends on states at all times :math:`\tau < t`, making it intractable to solve both theoretically and numerically. To make progress towards a manageable master equation, we now introduce the Markovian approximation, in which :math:`\rho_S(\tau)` is replaced by :math:`\rho_S(t)` in Eq. :eq:`br-nonmarkovian-form-one`. The result is the Redfield equation
+The master equation :eq:`br-nonmarkovian-form-one` is non-Markovian, i.e., the change in the density matrix at a time :math:`t` depends on states at all times :math:`\tau < t`, making it intractable to solve both theoretically and numerically.
+To make progress towards a manageable master equation, we now introduce the Markovian approximation, in which :math:`\rho_S(\tau)` is replaced by :math:`\rho_S(t)` in Eq. :eq:`br-nonmarkovian-form-one`.
+The result is the Redfield equation
 
 .. math::
    :label: br-nonmarkovian-form-two
@@ -57,7 +70,8 @@ which is local in time with respect the density matrix, but still not Markovian 
 
 The two Markovian approximations introduced above are valid if the time-scale with which the system dynamics changes is large compared to the time-scale with which correlations in the bath decays (corresponding to a "short-memory" bath, which results in Markovian system dynamics).
 
-The master equation :eq:`br-markovian-form` is still on a too general form to be suitable for numerical implementation. We therefore assume that the system-bath interaction takes the form :math:`H_I = \sum_\alpha A_\alpha \otimes B_\alpha` and where :math:`A_\alpha` are system operators and :math:`B_\alpha` are bath operators. This allows us to write master equation in terms of system operators and bath correlation functions:
+The master equation :eq:`br-markovian-form` is still on a too general form to be suitable for numerical implementation. We therefore assume that the system-bath interaction takes the form :math:`H_I = \sum_\alpha A_\alpha \otimes B_\alpha` and where :math:`A_\alpha` are system operators and :math:`B_\alpha` are bath operators.
+This allows us to write master equation in terms of system operators and bath correlation functions:
 
 .. math::
 
@@ -102,7 +116,8 @@ In the eigenbasis of the system Hamiltonian, where :math:`A_{mn}(t) = A_{mn} e^{
     \right\} \rho_{cd}(t),
     \nonumber\\
 
-where the "sec" above the summation symbol indicate summation of the secular terms which satisfy :math:`|\omega_{ab}-\omega_{cd}| \ll \tau_ {\rm decay}`. This is an almost-useful form of the master equation. The final step before arriving at the form of the Bloch-Redfield master equation that is implemented in QuTiP, involves rewriting the bath correlation function :math:`g(\tau)` in terms of the noise-power spectrum of the environment :math:`S(\omega) = \int_{-\infty}^\infty d\tau e^{i\omega\tau} g(\tau)`:
+where the "sec" above the summation symbol indicate summation of the secular terms which satisfy :math:`|\omega_{ab}-\omega_{cd}| \ll \tau_ {\rm decay}`.
+This is an almost-useful form of the master equation. The final step before arriving at the form of the Bloch-Redfield master equation that is implemented in QuTiP, involves rewriting the bath correlation function :math:`g(\tau)` in terms of the noise-power spectrum of the environment :math:`S(\omega) = \int_{-\infty}^\infty d\tau e^{i\omega\tau} g(\tau)`:
 
 .. math::
    :label: br-nonmarkovian-form-four
@@ -169,7 +184,9 @@ Bloch-Redfield master equation in QuTiP
 
 
 
-In QuTiP, the Bloch-Redfield tensor Eq. :eq:`br-tensor` can be calculated using the function :func:`qutip.bloch_redfield.bloch_redfield_tensor`. It takes two mandatory arguments: The system Hamiltonian :math:`H`, a nested list of operator  :math:`A_\alpha`, spectral density functions :math:`S_\alpha(\omega)` pairs that characterize the coupling between system and bath. The spectral density functions are Python callback functions that takes the (angular) frequency as a single argument.
+In QuTiP, the Bloch-Redfield tensor Eq. :eq:`br-tensor` can be calculated using the function :func:`qutip.bloch_redfield.bloch_redfield_tensor`.
+It takes two mandatory arguments: The system Hamiltonian :math:`H`, a nested list of operator  :math:`A_\alpha`, spectral density functions :math:`S_\alpha(\omega)` pairs that characterize the coupling between system and bath.
+The spectral density functions are Python callback functions that takes the (angular) frequency as a single argument.
 
 To illustrate how to calculate the Bloch-Redfield tensor, let's consider a two-level atom
 
@@ -194,7 +211,7 @@ To illustrate how to calculate the Bloch-Redfield tensor, let's consider a two-l
         return gamma1 / 2 * (w / (2 * np.pi)) * (w > 0.0)
 
 
-    R, H_ekets = bloch_redfield_tensor(H, [[sigmax(), ohmic_spectrum]])
+    R, ekets = bloch_redfield_tensor(H, a_ops=[[sigmax(), ohmic_spectrum]])
 
     print(R)
 
@@ -213,12 +230,16 @@ To illustrate how to calculate the Bloch-Redfield tensor, let's consider a two-l
      [ 0.        +0.j         0.        +0.j         0.        +0.j
       -0.24514517+0.j       ]]
 
-Note that it is also possible to add Lindblad dissipation superoperators in the Bloch-Refield tensor by passing the operators via the ``c_ops`` keyword argument like you would in the :func:`qutip.mesolve` or :func:`qutip.mcsolve` functions. For convenience, the function :func:`qutip.bloch_redfield.bloch_redfield_tensor` also returns the eigenstates of `H` (`H_ekets`), since they are calculated in the process of calculating the Bloch-Redfield tensor `R`, and the `H_ekets` are usually needed again later when transforming operators between the computational basis and the eigenbasis.
+Note that it is also possible to add Lindblad dissipation superoperators in the Bloch-Refield tensor by passing the operators via the ``c_ops`` keyword argument like you would in the :func:`qutip.mesolve` or :func:`qutip.mcsolve` functions.
+For convenience, the function :func:`qutip.bloch_redfield_tensor` also returns the basis transformation operator, the eigen vector matrix, since they are calculated in the process of calculating the Bloch-Redfield tensor `R`, and the `ekets` are usually needed again later when transforming operators between the laboratory basis and the eigen basis.
+The tensor can be obtained in the laboratory basis by setting ``fock_basis=True``, in that case, the transformation operator is not returned.
 
+
+The evolution of a wavefunction or density matrix, according to the Bloch-Redfield master equation :eq:`br-final`, can be calculated using the QuTiP function :func:`qutip.mesolve` using Bloch-Refield tensor in the laboratory basis instead of a liouvillian.
+For example, to evaluate the expectation values of the :math:`\sigma_x`, :math:`\sigma_y`, and :math:`\sigma_z` operators for the example above, we can use the following code:
 
 .. plot::
     :context:
-    :include-source: False
 
     delta = 0.2 * 2*np.pi
     eps0 = 1.0 * 2*np.pi
@@ -227,25 +248,20 @@ Note that it is also possible to add Lindblad dissipation superoperators in the 
     H = - delta/2.0 * sigmax() - eps0/2.0 * sigmaz()
 
     def ohmic_spectrum(w):
-      if w == 0.0: # dephasing inducing noise
-        return gamma1
-      else: # relaxation inducing noise
-        return gamma1 / 2 * (w / (2 * np.pi)) * (w > 0.0)
+        if w == 0.0: # dephasing inducing noise
+            return gamma1
+        else: # relaxation inducing noise
+            return gamma1 / 2 * (w / (2 * np.pi)) * (w > 0.0)
 
-    R, H_ekets = bloch_redfield_tensor(H, [[sigmax(), ohmic_spectrum]])
-
-The evolution of a wavefunction or density matrix, according to the Bloch-Redfield master equation :eq:`br-final`, can be calculated using the QuTiP function :func:`qutip.bloch_redfield.bloch_redfield_solve`. It takes five mandatory arguments: the Bloch-Redfield tensor ``R``, the list of eigenkets ``H_ekets`` of the hamiltonian, the initial state ``psi0`` (as a ket or density matrix), a list of times ``tlist`` for which to evaluate the expectation values, and a list of operators ``e_ops`` for which to evaluate the expectation values at each time step defined by `tlist`. For example, to evaluate the expectation values of the :math:`\sigma_x`, :math:`\sigma_y`, and :math:`\sigma_z` operators for the example above, we can use the following code:
-
-.. plot::
-    :context:
+    R = bloch_redfield_tensor(H, [[sigmax(), ohmic_spectrum]], fock_basis=True)
 
     tlist = np.linspace(0, 15.0, 1000)
 
-    psi0 = rand_ket(2)
+    psi0 = rand_ket(2, seed=1)
 
     e_ops = [sigmax(), sigmay(), sigmaz()]
 
-    expt_list = bloch_redfield_solve(R, H_ekets, psi0, tlist, e_ops)
+    expt_list = mesolve(R, psi0, tlist, e_ops=e_ops).expect
 
     sphere = Bloch()
 
@@ -257,14 +273,14 @@ The evolution of a wavefunction or density matrix, according to the Bloch-Redfie
 
     sphere.make_sphere()
 
-The two steps of calculating the Bloch-Redfield tensor and evolving according to the corresponding master equation can be combined into one by using the function :func:`qutip.bloch_redfield.brmesolve`, which takes same arguments as :func:`qutip.mesolve` and :func:`qutip.mcsolve`, save for the additional nested list of operator-spectrum pairs that is called ``a_ops``.
+The two steps of calculating the Bloch-Redfield tensor and evolving according to the corresponding master equation can be combined into one by using the function :func:`qutip.brmesolve`, which takes same arguments as :func:`qutip.mesolve` and :func:`qutip.mcsolve`, save for the additional nested list of operator-spectrum pairs that is called ``a_ops``.
 
 .. plot::
     :context: close-figs
 
     output = brmesolve(H, psi0, tlist, a_ops=[[sigmax(),ohmic_spectrum]], e_ops=e_ops)
 
-where the resulting `output` is an instance of the class :class:`qutip.solver.Result`.
+where the resulting `output` is an instance of the class :class:`qutip.Result`.
 
 
 .. _td-bloch-redfield:
@@ -272,32 +288,22 @@ where the resulting `output` is an instance of the class :class:`qutip.solver.Re
 Time-dependent Bloch-Redfield Dynamics
 =======================================
 
-.. warning::
-
-    It takes ~3-5 seconds (~30 if using Visual Studio) to compile a time-dependent Bloch-Redfield problem.  Therefore,
-    if you are doing repeated simulations by varying parameters, then it is best to pass
-    ``options = Options(rhs_reuse=True)`` to the solver.
-
 If you have not done so already, please read the section: :ref:`time`.
 
-As we have already discussed, the Bloch-Redfield master equation requires transforming into the eigenbasis of the system Hamiltonian.  For time-independent systems, this transformation need only be done once.  However, for time-dependent systems, one must move to the instantaneous eigenbasis at each time-step in the evolution, thus greatly increasing the computational complexity of the dynamics.  In addition, the requirement for computing all the eigenvalues severely limits the scalability of the method.  Fortunately, this eigen decomposition occurs at the Hamiltonian level, as opposed to the super-operator level, and thus, with efficient programming, one can tackle many systems that are commonly encountered.
+As we have already discussed, the Bloch-Redfield master equation requires transforming into the eigenbasis of the system Hamiltonian.
+For time-independent systems, this transformation need only be done once.
+However, for time-dependent systems, one must move to the instantaneous eigenbasis at each time-step in the evolution, thus greatly increasing the computational complexity of the dynamics.
+In addition, the requirement for computing all the eigenvalues severely limits the scalability of the method.
+Fortunately, this eigen decomposition occurs at the Hamiltonian level, as opposed to the super-operator level, and thus, with efficient programming, one can tackle many systems that are commonly encountered.
 
 
-The time-dependent Bloch-Redfield solver in QuTiP relies on the efficient numerical computations afforded by the string-based time-dependent format, and Cython compilation.  As such, all the time-dependent terms, and noise power spectra must be expressed in the string format.  To begin, lets consider the previous example, but formatted to call the time-dependent solver:
-
-
-.. plot::
-    :context:
-
-    ohmic = "{gamma1} / 2.0 * (w / (2 * pi)) * (w > 0.0)".format(gamma1=gamma1)
-
-    output = brmesolve(H, psi0, tlist, a_ops=[[sigmax(),ohmic]], e_ops=e_ops)
-
-
-Although the problem itself is time-independent, the use of a string as the noise power spectrum tells the solver to go into time-dependent mode.  The string is nearly identical to the Python function format, except that we replaced ``np.pi`` with ``pi`` to avoid calling Python in our Cython code, and we have hard coded the ``gamma1`` argument into the string as limitations prevent passing arguments into the time-dependent Bloch-Redfield solver.
-
-
-For actual time-dependent Hamiltonians, the Hamiltonian itself can be passed into the solver like any other string-based Hamiltonian, as thus we will not discuss this topic further.  Instead, here the focus is on time-dependent bath coupling terms.  To this end, suppose that we have a dissipative harmonic oscillator, where the white-noise dissipation rate decreases exponentially with time :math:`\kappa(t) = \kappa(0)\exp(-t)`.  In the Lindblad or monte-carlo solvers, this could be implemented as a time-dependent collapse operator list ``c_ops = [[a, 'sqrt(kappa*exp(-t))']]``.  In the Bloch-Redfield solver, the bath coupling terms must be Hermitian.  As such, in this example, our coupling operator is the position operator ``a+a.dag()``.  In addition, we do not need the ``sqrt`` operation that occurs in the ``c_ops`` definition.  The complete example, and comparison to the analytic expression is:
+For time-dependent Hamiltonians, the Hamiltonian itself can be passed into the solver like any other time dependent Hamiltonian, as thus we will not discuss this topic further.
+Instead, here the focus is on time-dependent bath coupling terms.
+To this end, suppose that we have a dissipative harmonic oscillator, where the white-noise dissipation rate decreases exponentially with time :math:`\kappa(t) = \kappa(0)\exp(-t)`.
+In the Lindblad or monte-carlo solvers, this could be implemented as a time-dependent collapse operator list ``c_ops = [[a, 'sqrt(kappa*exp(-t))']]``.
+In the Bloch-Redfield solver, the bath coupling terms must be Hermitian.
+As such, in this example, our coupling operator is the position operator ``a+a.dag()``.
+The complete example, and comparison to the analytic expression is:
 
 
 .. plot::
@@ -313,7 +319,9 @@ For actual time-dependent Hamiltonians, the Hamiltonian itself can be passed int
 
     kappa = 0.2  # coupling to oscillator
 
-    a_ops = [[a+a.dag(), '{kappa}*exp(-t)*(w>=0)'.format(kappa=kappa)]]
+    a_ops = [
+        ([a+a.dag(), f'sqrt({kappa}*exp(-t))'], '(w>=0)')
+    ]
 
     tlist = np.linspace(0, 10, 100)
 
@@ -330,15 +338,22 @@ For actual time-dependent Hamiltonians, the Hamiltonian itself can be passed int
     plt.show()
 
 
-In many cases, the bath-coupling operators can take the form :math:`A = f(t)a + f(t)^* a^{+}`.  In this case, the above format for inputting the ``a_ops`` is not sufficient. Instead, one must construct a nested-list of tuples to specify this time-dependence.  For example consider a white-noise bath that is coupled to an operator of the form ``exp(1j*t)*a + exp(-1j*t)* a.dag()``.  In this example, the ``a_ops`` list would be:
+In many cases, the bath-coupling operators can take the form :math:`A = f(t)a + f(t)^* a^{+}`.
+The operator parts of the `a_ops` can be made of as many time-dependent terms as needed to construct such operator.
+For example consider a white-noise bath that is coupled to an operator of the form ``exp(1j*t)*a + exp(-1j*t)* a.dag()``.
+In this example, the ``a_ops`` list would be:
 
 .. plot::
     :context: close-figs
 
-    a_ops = [ [ (a, a.dag()), ('{0} * (w >= 0)'.format(kappa), 'exp(1j*t)', 'exp(-1j*t)') ] ]
+    a_ops = [
+        ([[a, 'exp(1j*t)'], [a.dag(), 'exp(-1j*t)']], f'{kappa} * (w >= 0)')
+    ]
 
 
-where the first tuple element ``(a, a.dag())`` tells the solver which operators make up the full Hermitian coupling operator.  The second tuple ``('{0} * (w >= 0)'.format(kappa), 'exp(1j*t)', 'exp(-1j*t)')``, gives the noise power spectrum, and time-dependence of each operator.  Note that the noise spectrum must always come first in this second tuple. A full example is:
+where the first tuple element ``[[a, 'exp(1j*t)'], [a.dag(), 'exp(-1j*t)']]`` tells the solver what is the time-dependent Hermitian coupling operator.
+The second tuple ``f'{kappa} * (w >= 0)'``, gives the noise power spectrum.
+A full example is:
 
 .. plot::
     :context: close-figs
@@ -359,7 +374,9 @@ where the first tuple element ``(a, a.dag())`` tells the solver which operators 
 
     psi0 = ket2dm((basis(N, 4) + basis(N, 2) + basis(N, 0)).unit())
 
-    a_ops = [[ (a, a.dag()), ('{0} * (w >= 0)'.format(kappa), 'exp(1j*t)', 'exp(-1j*t)') ]]
+    a_ops = [[
+        QobjEvo([[a, 'exp(1j*t)'], [a.dag(), 'exp(-1j*t)']]), (f'{kappa} * (w >= 0)')
+    ]]
 
     e_ops = [a.dag() * a, a + a.dag()]
 

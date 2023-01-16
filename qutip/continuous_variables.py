@@ -7,7 +7,7 @@ __all__ = ['correlation_matrix', 'covariance_matrix',
            'correlation_matrix_field', 'correlation_matrix_quadrature',
            'wigner_covariance_matrix', 'logarithmic_negativity']
 
-from qutip.expect import expect
+from . import expect
 import numpy as np
 
 

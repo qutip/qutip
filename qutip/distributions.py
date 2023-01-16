@@ -18,9 +18,8 @@ from numpy import pi, exp, sqrt
 
 from scipy.special import hermite, factorial
 
-from qutip.qobj import isket
-from qutip.wigner import wigner, qfunc
-from qutip.states import ket2dm, state_number_index
+from . import isket, ket2dm, state_number_index
+from .wigner import wigner, qfunc
 
 try:
     import matplotlib as mpl
