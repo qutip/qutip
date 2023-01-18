@@ -12,7 +12,7 @@ from ._stochastic import (
     GenericSSolver, Solvers
 )
 from .solver import Result, SolverOptions, _solver_safety_check
-from ..parallel import serial_map
+from .parallel import serial_map
 from ..ui.progressbar import TextProgressBar
 from qutip.core import data as _data
 

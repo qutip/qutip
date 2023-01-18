@@ -12,3 +12,5 @@ from .superop_reps import *
 from .subsystem_apply import *
 from .blochredfield import *
 from . import gates
+
+del cy  # File in cy are not public facing
