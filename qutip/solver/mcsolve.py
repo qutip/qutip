@@ -136,6 +136,8 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
     c_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in c_ops]
 
     if len(c_ops) == 0:
+        if options is None:
+            options = {}
         options = {
             key: options[key]
             for key in options

@@ -61,8 +61,9 @@ def _eigs_dense(data, isherm, vecs, eigvals, num_large, num_small):
     N = data.shape[0]
     kwargs = {}
     if eigvals != 0 and isherm:
-        kwargs['eigvals'] = ([0, num_small-1] if num_small
-                             else [N-num_large, N-1])
+        kwargs['subset_by_index'] = (
+            [0, num_small-1] if num_small else [N-num_large, N-1]
+        )
     if vecs:
         driver = eigh if isherm else scipy.linalg.eig
         evals, evecs = driver(data, **kwargs)

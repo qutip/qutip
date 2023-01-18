@@ -2,9 +2,7 @@ from qutip.solver.sesolve import SESolver
 from qutip.solver.mesolve import MESolver
 from qutip.solver.mcsolve import MCSolver
 from qutip.solver.solver_base import Solver
-from qutip.solver.ode.scipy_integrator import *
-from qutip.solver.ode.krylov import *
-from qutip.solver.ode.qutip_integrator import *
+from qutip.solver.integrator import *
 import qutip
 import numpy as np
 from numpy.testing import assert_allclose
