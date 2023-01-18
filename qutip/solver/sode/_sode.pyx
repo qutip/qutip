@@ -47,7 +47,7 @@ cpdef Data platen(system, t, Data state, double dt, double[:, :] dW):
     cdef double sqrt_dt_inv = 0.25 / sqrt_dt
     cdef double dw, dw2
 
-    d1 = _data.add(system.drift(t, state), state)
+    d1 = _data.add(state, system.drift(t, state), dt)
     d2 = system.diffusion(t, state)
 
     out = _data.mul(d1, 0.5)
@@ -57,10 +57,10 @@ cpdef Data platen(system, t, Data state, double dt, double[:, :] dW):
     for i in range(system.num_collapse):
         Vp.append(_data.add(d1, d2[i], sqrt_dt))
         Vm.append(_data.add(d1, d2[i], -sqrt_dt))
-        Vt = _data.add(Vt, d2[i], dW[i])
+        Vt = _data.add(Vt, d2[i], dW[i, 0])
 
     d1 = system.drift(t, Vt)
-    out = _data.add(out, d1, 0.5)
+    out = _data.add(out, d1, 0.5 * dt)
     out = _data.add(out, state, 0.5)
     for i in range(system.num_collapse):
         d2p = system.diffusion(t, Vp[i])

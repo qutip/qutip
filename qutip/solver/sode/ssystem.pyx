@@ -10,11 +10,19 @@ cimport cython
 import numpy as np
 from qutip.core import spre, spost
 
+__all__ = [
+    "StochasticSystem", "StochasticOpenSystem", "StochasticClosedSystem"
+]
+
+
+
 cdef class StochasticSystem:
     cdef object d1, d2
-    cdef int num_collapse
+    cdef readonly int num_collapse
     cdef double t
     cdef double state
+    cdef readonly bint issuper
+    cdef readonly object dims
 
     def __init__(self, a, b):
         self.d1 = a
@@ -27,17 +35,9 @@ cdef class StochasticSystem:
     def diffusion(self, t, state):
         return self.d2(t, state)
 
-
     cdef void set_state(self, double t, Data state):
         self.t = t
         self.state = state
-
-    cdef Data a(self, double t, Data state):
-        return self.d1(self.t, self.state)
-
-    cdef object b(self, double t, Data state):
-        return self.d2(self.t, self.state)
-
 
 
 cdef class StochasticClosedSystem(StochasticSystem):
@@ -51,6 +51,8 @@ cdef class StochasticClosedSystem(StochasticSystem):
         self.c_ops = c_ops
         self.cpcd_ops = [op + op.dag() for op in c_ops]
         self.num_collapse = len(c_ops)
+        self.issuper = False
+        self.dims = self.H.dims
 
     def drift(self, double t, Data state):
         cdef int i
@@ -84,7 +86,6 @@ cdef class StochasticOpenSystem(StochasticSystem):
     cdef list c_ops
     cdef object imp
 
-
     def __init__(self, H, c_ops, heterodyne):
         self.L = H
         if heterodyne:
@@ -97,6 +98,8 @@ cdef class StochasticOpenSystem(StochasticSystem):
         else:
             self.c_ops = [spre(op) + spost(op.dag()) for op in c_ops]
         self.num_collapse = len(self.c_ops)
+        self.issuper = True
+        self.dims = self.L.dims
 
     def drift(self, double t, Data state):
         return self.L.matmul_data(t, state)
