@@ -34,7 +34,7 @@ else:
 from .core import *
 from .solver import *
 from .solve import nonmarkov
-from .solve.piqs import *
+import qutip.solve.piqs as piqs
 from .solve.stochastic import *
 
 # graphics
@@ -57,7 +57,6 @@ from .three_level_atom import *
 
 
 # utilities
-from .parallel import *
 from .utilities import *
 from .fileio import *
 from .about import *
