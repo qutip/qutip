@@ -1,9 +1,92 @@
 import numpy as np
-from . import _sode as sstepper
-from ..integrator.integrator import SIntegrator, Integrator
+from . import _sode
+from ..integrator.integrator import Integrator
 from ..stochastic import StochasticSolver
 
-class ExplicitIntegrator(SIntegrator):
+
+class SIntegrator(Integrator):
+    """
+    A wrapper around stochastic ODE solvers.
+
+    Parameters
+    ----------
+    system: qutip.StochasticSystem
+        Quantum system in which states evolve.
+
+    options: dict
+        Options for the integrator.
+
+    Class Attributes
+    ----------------
+    name : str
+        The name of the integrator.
+
+    supports_blackbox : bool
+        If True, then the integrator calls only ``system.matmul``,
+        ``system.matmul_data``, ``system.expect``, ``system.expect_data`` and
+        ``isconstant``, ``isoper`` or ``issuper``. This allows the solver using
+        the integrator to modify the system in creative ways. In particular,
+        the solver may modify the system depending on *both* the time ``t``
+        *and* the current ``state`` the system is being applied to.
+
+        If the integrator calls any other methods, set to False.
+
+    supports_time_dependent : bool
+        If True, then the integrator supports time dependent systems. If False,
+        ``supports_blackbox`` should usually be ``False`` too.
+
+    integrator_options : dict
+        A dictionary of options used by the integrator and their default
+        values. Once initiated, ``self.options`` will be a dict with the same
+        keys, not the full options object passed to the solver. Options' keys
+        included here will be supported by the :cls:SolverOdeOptions.
+    """
+    def set_state(self, t, state0, generator):
+        """
+        Set the state of the SODE solver.
+
+        Parameters
+        ----------
+        t : float
+            Initial time
+
+        state0 : qutip.Data
+            Initial state.
+
+        generator : numpy.random.generator
+            Random number generator.
+        """
+        raise NotImplementedError
+
+
+    def integrate(self, t, copy=True):
+        """
+        Evolve to t.
+
+        Before calling `integrate` for the first time, the initial state should
+        be set with `set_state`.
+
+        Parameters
+        ----------
+        t : float
+            Time to integrate to, should be larger than the previous time.
+
+        copy : bool [True]
+            Whether to return a copy of the state or the state itself.
+
+        Returns
+        -------
+        (t, state, noise) : (float, qutip.Data, np.ndarray)
+            The state of the solver at ``t``.
+        """
+        raise NotImplementedError
+
+
+    def mcstep(self, t, copy=True):
+        raise NotImplementedError
+
+
+class _Explicit_Simple_Integrator(SIntegrator):
     """
     Stochastic evolution solver
     """
@@ -11,14 +94,15 @@ class ExplicitIntegrator(SIntegrator):
         "dt": 0.001,
         "tol": 1e-7,
     }
+    stepper = None
+    N_dw = 0
+
     def __init__(self, system, options):
         self.system = system
         self._options = self.integrator_options.copy()
         self.options = options
         self.dt = self.options["dt"]
         self.tol = self.options["tol"]
-        self.stepper = getattr(sstepper, options["method"])
-        self.N_dw = sstepper.N_dws[options["method"]]
         self.N_drift = system.num_collapse
 
     def _step(self, dt, dW):
@@ -62,7 +146,7 @@ class ExplicitIntegrator(SIntegrator):
     @property
     def options(self):
         """
-        Supported options by verner method:
+        Supported options by Explicit Stochastic Integrators:
 
         dt : float, default=0.001
             Internal time step.
@@ -76,6 +160,59 @@ class ExplicitIntegrator(SIntegrator):
     def options(self, new_options):
         Integrator.options.fset(self, new_options)
 
+    def __init__(self, system, options):
+        self.system = system
+        self._options = self.integrator_options.copy()
+        self.options = options
+        self.dt = self.options["dt"]
+        self.tol = self.options["tol"]
+        self.stepper = getattr(sstepper, options["method"])
+        self.N_dw = sstepper.N_dws[options["method"]]
+        self.N_drift = system.num_collapse
 
-StochasticSolver.add_integrator(ExplicitIntegrator, "euler")
-StochasticSolver.add_integrator(ExplicitIntegrator, "platen")
+
+class EulerSODE(_Explicit_Simple_Integrator):
+    """
+    A simple generalization of the Euler method for ordinary
+    differential equations to stochastic differential equations.  Only
+    solver which could take non-commuting ``sc_ops``.
+
+    - Order: 0.5
+    """
+    stepper = _sode.euler
+    N_dw = 1
+
+
+class PlatenSODE(_Explicit_Simple_Integrator):
+    """
+    Explicit scheme, creates the Milstein using finite differences
+    instead of analytic derivatives. Also contains some higher order
+    terms, thus converges better than Milstein while staying strong
+    order 1.0.  Does not require derivatives. See eq. (7.47) of chapter 7 of
+    H.-P. Breuer and F. Petruccione, *The Theory of Open Quantum Systems*.
+
+    - Order: strong 1, weak 2
+    """
+    stepper = _sode.platen
+    N_dw = 1
+
+
+class Explicit1_5_SODE(_Explicit_Simple_Integrator):
+    """
+    Explicit order 1.5 strong schemes.  Reproduce the order 1.5 strong
+    Taylor scheme using finite difference instead of derivatives.
+    Slower than ``taylor15`` but usable when derrivatives cannot be
+    analytically obtained.
+    See eq. (2.13) of chapter 11.2 of Peter E. Kloeden and Exkhard Platen,
+    *Numerical Solution of Stochastic Differential Equations.*
+
+    - Order: strong 1.5
+    """
+    stepper = _sode.explicit15
+    N_dw = 2
+
+
+StochasticSolver.add_integrator(EulerSODE, "euler")
+StochasticSolver.add_integrator(EulerSODE, "euler-maruyama")
+StochasticSolver.add_integrator(PlatenSODE, "platen")
+StochasticSolver.add_integrator(PlatenSODE, "explicit1.5")

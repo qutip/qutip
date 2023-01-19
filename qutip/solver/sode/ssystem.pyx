@@ -15,14 +15,13 @@ __all__ = [
 ]
 
 
-
-cdef class StochasticSystem:
-    cdef object d1, d2
+cdef class _StochasticSystem:
     cdef readonly int num_collapse
-    cdef double t
-    cdef double state
     cdef readonly bint issuper
     cdef readonly object dims
+    cdef Data state
+    cdef double t
+    cdef object imp
 
     def __init__(self, a, b):
         self.d1 = a
@@ -40,11 +39,25 @@ cdef class StochasticSystem:
         self.state = state
 
 
+cdef class GeneralStochasticSystem(_StochasticSystem):
+    cdef object d1, d2
+
+    def __init__(self, a, b):
+        self.d1 = a
+        self.d2 = b
+        self.num_collapse = 1
+
+    def drift(self, t, state):
+        return self.d1(t, state)
+
+    def diffusion(self, t, state):
+        return self.d2(t, state)
+
+
 cdef class StochasticClosedSystem(StochasticSystem):
     cdef QobjEvo H
     cdef list c_ops
     cdef list cpcd_ops
-    cdef object imp
 
     def __init__(self, H, c_ops, heterodyne, implicit=False):
         self.H = H
@@ -84,7 +97,6 @@ cdef class StochasticClosedSystem(StochasticSystem):
 cdef class StochasticOpenSystem(StochasticSystem):
     cdef QobjEvo L
     cdef list c_ops
-    cdef object imp
 
     def __init__(self, H, c_ops, heterodyne):
         self.L = H
