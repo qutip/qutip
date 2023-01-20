@@ -11,7 +11,7 @@ import numpy as np
 from qutip.core import spre, spost
 
 __all__ = [
-    "StochasticSystem", "StochasticOpenSystem", "StochasticClosedSystem"
+    "GeneralStochasticSystem", "StochasticOpenSystem", "StochasticClosedSystem"
 ]
 
 
@@ -54,13 +54,13 @@ cdef class GeneralStochasticSystem(_StochasticSystem):
         return self.d2(t, state)
 
 
-cdef class StochasticClosedSystem(StochasticSystem):
+cdef class StochasticClosedSystem(_StochasticSystem):
     cdef QobjEvo H
     cdef list c_ops
     cdef list cpcd_ops
 
     def __init__(self, H, c_ops, heterodyne, implicit=False):
-        self.H = H
+        self.H = -1j*H
         self.c_ops = c_ops
         self.cpcd_ops = [op + op.dag() for op in c_ops]
         self.num_collapse = len(c_ops)
@@ -72,7 +72,7 @@ cdef class StochasticClosedSystem(StochasticSystem):
         cdef QobjEvo c_op
         cdef Data temp, out
 
-        out = self.L.matmul_data(t, state)
+        out = self.H.matmul_data(t, state)
         for i in range(self.num_collapse):
             c_op = self.cpcd_ops[i]
             e = c_op.expect_data(t, state)
@@ -80,6 +80,7 @@ cdef class StochasticClosedSystem(StochasticSystem):
             temp = c_op.matmul_data(t, state)
             out = _data.add(out, state,  -0.125 * e * e)
             out = _data.add(out, temp, 0.5 * e)
+        return out
 
     def diffusion(self, double t, Data state):
         cdef int i
@@ -90,11 +91,11 @@ cdef class StochasticClosedSystem(StochasticSystem):
             _out = c_op.matmul_data(t, state)
             c_op = self.cpcd_ops[i]
             expect = c_op.expect_data(t, state)
-            out.append(_data.add(out, state, -0.5 * expect))
+            out.append(_data.add(_out, state, -0.5 * expect))
         return out
 
 
-cdef class StochasticOpenSystem(StochasticSystem):
+cdef class StochasticOpenSystem(_StochasticSystem):
     cdef QobjEvo L
     cdef list c_ops
 

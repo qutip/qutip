@@ -41,7 +41,7 @@ cpdef Data platen(system, t, Data state, double dt, double[:, :] dW):
     The Theory of Open Quantum Systems
     Chapter 7 Eq. (7.47), H.-P Breuer, F. Petruccione
     """
-    cdef int i, j
+    cdef int i, j, num_ops = system.num_collapse
     cdef double sqrt_dt = np.sqrt(dt)
     cdef double sqrt_dt_inv = 0.25 / sqrt_dt
     cdef double dw, dw2
@@ -55,7 +55,7 @@ cpdef Data platen(system, t, Data state, double dt, double[:, :] dW):
     Vt = d1.copy()
     Vp = []
     Vm = []
-    for i in range(system.num_collapse):
+    for i in range(num_ops):
         Vp.append(_data.add(d1, d2[i], sqrt_dt))
         Vm.append(_data.add(d1, d2[i], -sqrt_dt))
         Vt = _data.add(Vt, d2[i], dW[i, 0])
@@ -63,7 +63,7 @@ cpdef Data platen(system, t, Data state, double dt, double[:, :] dW):
     d1 = system.drift(t, Vt)
     out = _data.add(out, d1, 0.5 * dt)
     out = _data.add(out, state, 0.5)
-    for i in range(system.num_collapse):
+    for i in range(num_ops):
         d2p = system.diffusion(t, Vp[i])
         d2m = system.diffusion(t, Vm[i])
         dw = dW[i, 0] * 0.25
@@ -71,7 +71,7 @@ cpdef Data platen(system, t, Data state, double dt, double[:, :] dW):
         out = _data.add(out, d2[i], 2 * dw)
         out = _data.add(out, d2p[i], dw)
 
-        for j in range(system.num_collapse):
+        for j in range(num_ops):
             dw2 = sqrt_dt_inv * (dW[i, 0] * dW[j, 0] - dt * (i == j))
             out = _data.add(out, d2p[j], dw2)
             out = _data.add(out, d2m[j], -dw2)
@@ -82,42 +82,42 @@ cpdef Data platen(system, t, Data state, double dt, double[:, :] dW):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void explicit15(system, t, Data state, double dt, double[:, :] dW):
+cpdef Data explicit15(system, t, Data state, double dt, double[:, :] dW):
     """
     Chapter 11.2 Eq. (2.13)
     Numerical Solution of Stochastic Differential Equations
     By Peter E. Kloeden, Eckhard Platen
     """
-    cdef int i, j, k
+    cdef int i, j, k, num_ops = system.num_collapse
     cdef double sqrt_dt = np.sqrt(dt)
     cdef double sqrt_dt_inv = 1./sqrt_dt
     cdef double ddz, ddw, ddd
     cdef double[::1] dz, dw
-    dw = np.empty(system.num_collapse)
-    dz = np.empty(system.num_collapse)
-    for i in range(system.num_collapse):
+    dw = np.empty(num_ops)
+    dz = np.empty(num_ops)
+    for i in range(num_ops):
         dw[i] = dW[i, 0]
-        dz[i] = 0.5 *(dW[i, 0] + 1./np.sqrt(3) * noise[i, 1])
+        dz[i] = 0.5 *(dW[i, 0] + 1./np.sqrt(3) * dW[i, 1])
 
     d1 = system.drift(t, state)
     d2 = system.diffusion(t, state)
-    dd2 = system.diffusion(t+dt, state)
+    dd2 = system.diffusion(t + dt, state)
     # Euler part
-    out = _data.add(state, d1)
-    for i in range(system.num_collapse):
-        out = _data.add(out, d2[:], dw[i])
+    out = _data.add(state, d1, dt)
+    for i in range(num_ops):
+        out = _data.add(out, d2[i], dw[i])
 
-    V = _data.add(state, d1, 1./self.num_ops)
+    V = _data.add(state, d1, 1./num_ops)
 
     v2p = []
     v2m = []
-    for i in range(system.num_collapse):
+    for i in range(num_ops):
         v2p.append(_data.add(V, d2[i], sqrt_dt))
         v2m.append(_data.add(V, d2[i], -sqrt_dt))
 
     p2p = []
     p2m = []
-    for i in range(system.num_collapse):
+    for i in range(num_ops):
         d2p = system.diffusion(t, v2p[i])
         d2m = system.diffusion(t, v2m[i])
         ddw = (dw[i] * dw[i] - dt) * 0.25 * sqrt_dt_inv  # 1.0
@@ -125,20 +125,21 @@ cdef void explicit15(system, t, Data state, double dt, double[:, :] dW):
         out = _data.add(out, d2m[i], -ddw)
         temp_p2p = []
         temp_p2m = []
-        for j in range(system.num_collapse):
-            temp_p2p.append(v2p[i], d2p[j], sqrt_dt)
-            temp_p2m.append(v2p[i], d2p[j], -sqrt_dt)
+        for j in range(num_ops):
+            temp_p2p.append(_data.add(v2p[i], d2p[j], sqrt_dt))
+            temp_p2m.append(_data.add(v2p[i], d2p[j], -sqrt_dt))
         p2p.append(temp_p2p)
         p2m.append(temp_p2m)
 
-    out = _data.add(out, d1, -0.5*(self.num_ops))
+    out = _data.add(out, d1, -0.5*(num_ops))
 
-    for i in range(system.num_collapse):
-        ddz = dz[i] * 0.5 / sqrt_dt  # 1.5
-        ddd = 0.25 * (dw[i] * dw[i] / 3 - dt) * dw[i] / dt  # 1.5
+    for i in range(num_ops):
+        ddz = dz[i] * 0.5 / sqrt_dt *0 # 1.5
+        ddd = 0.25 * (dw[i] * dw[i] / 3 - dt) * dw[i] / dt *0 # 1.5
 
-        d1p = system.drift(t + dt/self.num_ops, v2p[i])
-        d1m = system.drift(t + dt/self.num_ops, v2m[i])
+        d1p = system.drift(t + dt/num_ops, v2p[i])
+        d1m = system.drift(t + dt/num_ops, v2m[i])
+
         d2p = system.diffusion(t, v2p[i])
         d2m = system.diffusion(t, v2m[i])
         d2pp = system.diffusion(t, p2p[i][i])
@@ -151,12 +152,13 @@ cdef void explicit15(system, t, Data state, double dt, double[:, :] dW):
         out = _data.add(out, d2[i], dz[i] - dw[i])
 
         out = _data.add(out, d2pp[i], ddd)
-        out = _data.add(out, d2mm[i], ddd)
-        out = _data.add(out, d2p[i], ddd)
+        out = _data.add(out, d2mm[i], -ddd)
+        out = _data.add(out, d2p[i], -ddd)
         out = _data.add(out, d2m[i], ddd)
 
-        for j in range(system.num_collapse):
-            ddw = 0.5 * (dw[j] - dz[j])  # O(1.5)
+
+        for j in range(num_ops):
+            ddw = 0.5 * (dw[j] - dz[j]) * 0  # O(1.5)
             out = _data.add(out, d2p[j], ddw)
             out = _data.add(out, d2[j], -2*ddw)
             out = _data.add(out, d2m[j], ddw)
@@ -166,17 +168,17 @@ cdef void explicit15(system, t, Data state, double dt, double[:, :] dW):
                 out = _data.add(out, d2p[j], ddw)
                 out = _data.add(out, d2m[j], -ddw)
 
-                ddw = 0.25 * (dw[j] * dw[j] - dt) * dw[i] / dt  # O(1.5)
-                d2pp = self.diffusion(t, p2p[j][i])
-                d2mm = self.diffusion(t, p2m[j][i])
+                ddw = 0.25 * (dw[j] * dw[j] - dt) * dw[i] / dt * 0  # O(1.5)
+                d2pp = system.diffusion(t, p2p[j][i])
+                d2mm = system.diffusion(t, p2m[j][i])
 
                 out = _data.add(out, d2pp[j], ddw)
                 out = _data.add(out, d2mm[j], -ddw)
                 out = _data.add(out, d2p[j], -ddw)
-                out = _data.add(out, d2m[j], ddw)s
+                out = _data.add(out, d2m[j], ddw)
 
-                for k in range(j+1, system.num_collapse):
-                    ddw = 0.5 * dw[i] * dw[j] * dw[k] / dt  # O(1.5)
+                for k in range(j+1, num_ops):
+                    ddw = 0.5 * dw[i] * dw[j] * dw[k] / dt * 0  # O(1.5)
 
                     out = _data.add(out, d2pp[k], ddw)
                     out = _data.add(out, d2mm[k], -ddw)
@@ -184,12 +186,14 @@ cdef void explicit15(system, t, Data state, double dt, double[:, :] dW):
                     out = _data.add(out, d2m[k], ddw)
 
             if j < i:
-                ddw = 0.25 * (dw[j] * dw[j] - dt) * dw[i] / dt  # O(1.5)
+                ddw = 0.25 * (dw[j] * dw[j] - dt) * dw[i] / dt * 0  # O(1.5)
 
-                d2pp = self.diffusion(t, p2p[j][i])
-                d2mm = self.diffusion(t, p2m[j][i])
+                d2pp = system.diffusion(t, p2p[j][i])
+                d2mm = system.diffusion(t, p2m[j][i])
 
                 out = _data.add(out, d2pp[j], ddw)
                 out = _data.add(out, d2mm[j], -ddw)
                 out = _data.add(out, d2p[j], -ddw)
                 out = _data.add(out, d2m[j], ddw)
+
+    return out

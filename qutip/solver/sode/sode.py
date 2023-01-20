@@ -160,16 +160,6 @@ class _Explicit_Simple_Integrator(SIntegrator):
     def options(self, new_options):
         Integrator.options.fset(self, new_options)
 
-    def __init__(self, system, options):
-        self.system = system
-        self._options = self.integrator_options.copy()
-        self.options = options
-        self.dt = self.options["dt"]
-        self.tol = self.options["tol"]
-        self.stepper = getattr(sstepper, options["method"])
-        self.N_dw = sstepper.N_dws[options["method"]]
-        self.N_drift = system.num_collapse
-
 
 class EulerSODE(_Explicit_Simple_Integrator):
     """
@@ -215,4 +205,4 @@ class Explicit1_5_SODE(_Explicit_Simple_Integrator):
 StochasticSolver.add_integrator(EulerSODE, "euler")
 StochasticSolver.add_integrator(EulerSODE, "euler-maruyama")
 StochasticSolver.add_integrator(PlatenSODE, "platen")
-StochasticSolver.add_integrator(PlatenSODE, "explicit1.5")
+StochasticSolver.add_integrator(Explicit1_5_SODE, "explicit1.5")

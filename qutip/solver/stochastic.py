@@ -1,4 +1,4 @@
-__all__ = ["smesolve", "SMESolver"]
+__all__ = ["smesolve", "SMESolver", "ssesolve", "SSESolver", "StochasticSolver"]
 
 from .sode.ssystem import *
 from .result import MultiTrajResult, Result
@@ -81,18 +81,76 @@ def smesolve(H, rho0, tlist, c_ops=(), sc_ops=(), e_ops=(), m_ops=(),
     output: :class:`qutip.solver.Result`
 
         An instance of the class :class:`qutip.solver.Result`.
-
     """
-    L = QobjEvo(H, args=args)
+    H = QobjEvo(H, args=args)
     c_ops = [QobjEvo(c_op, args=args) for c_op in c_ops]
     sc_ops = [QobjEvo(c_op, args=args) for c_op in sc_ops]
-    L = liouvillian(H, c_ops)
+    if H.issuper:
+        L = H + liouvillian(None, c_ops)
+    else:
+        L = liouvillian(H, c_ops)
     sol = SMESolver(L, sc_ops, options=options or {}, m_ops=m_ops)
     return sol.run(rho0, tlist, ntraj, e_ops=e_ops)
 
 
+
+def ssesolve(H, psi0, tlist, sc_ops=(), e_ops=(), m_ops=(),
+             args={}, ntraj=500, options=None):
+    """
+    Solve stochastic master equation. Dispatch to specific solvers
+    depending on the value of the `solver` keyword argument.
+
+    Parameters
+    ----------
+
+    H : :class:`qutip.Qobj`, or time dependent system.
+        System Hamiltonian.
+        Can depend on time, see StochasticSolverOptions help for format.
+
+    rho0 : :class:`qutip.Qobj`
+        Initial density matrix or state vector (ket).
+
+    tlist : *list* / *array*
+        List of times for :math:`t`. Must be uniformly spaced.
+
+    c_ops : list of :class:`qutip.Qobj`, or time dependent Qobjs.
+        Deterministic collapse operator which will contribute with a standard
+        Lindblad type of dissipation.
+        Can depend on time, see StochasticSolverOptions help for format.
+
+    sc_ops : list of :class:`qutip.Qobj`, or time dependent Qobjs.
+        List of stochastic collapse operators. Each stochastic collapse
+        operator will give a deterministic and stochastic contribution
+        to the eqaution of motion according to how the d1 and d2 functions
+        are defined.
+        Can depend on time, see StochasticSolverOptions help for format.
+
+    e_ops : list of :class:`qutip.Qobj`
+        Single operator or list of operators for which to evaluate
+        expectation values.
+
+    m_ops : list of :class:`qutip.Qobj`
+        Single operator or list of operators for which to evaluate
+        expectation values.
+
+    args : dict
+        ...
+
+    Returns
+    -------
+
+    output: :class:`qutip.solver.Result`
+
+        An instance of the class :class:`qutip.solver.Result`.
+    """
+    H = QobjEvo(H, args=args)
+    sc_ops = [QobjEvo(c_op, args=args) for c_op in sc_ops]
+    sol = SSESolver(H, sc_ops, options=options or {}, m_ops=m_ops)
+    return sol.run(psi0, tlist, ntraj, e_ops=e_ops)
+
+
 class StochasticSolver(MultiTrajSolver):
-    name = "generic stochastic"
+    name = "StochasticSolver"
     resultclass = StochasticResult
     _avail_integrators = {}
     solver_options = {
@@ -102,12 +160,46 @@ class StochasticSolver(MultiTrajSolver):
         "store_states": None,
         "keep_runs_results": False,
         "normalize_output": False,
-        "method": "euler",
+        "method": "platen",
         "map": "serial",
         "job_timeout": None,
         "num_cpus": None,
         "bitgenerator": None,
+        "heterodyne": False,
     }
+
+    def __init__(self, H, sc_ops, heterodyne=False, *, options=None, m_ops=()):
+        self._options = self.solver_options.copy()
+        self.options = options
+
+        if not isinstance(H, (Qobj, QobjEvo)):
+            raise TypeError("...")
+        H = QobjEvo(H)
+
+        if isinstance(sc_ops, (Qobj, QobjEvo)):
+            sc_ops = [sc_ops]
+        sc_ops = [QobjEvo(c_op) for c_op in sc_ops]
+        if any(not c_op.isoper for c_op in sc_ops):
+            raise TypeError("sc_ops must be operators")
+
+        if H.issuper:
+            L = H + liouvillian(None, sc_ops)
+            rhs = StochasticOpenSystem(L, sc_ops, heterodyne)
+        else:
+            rhs = StochasticClosedSystem(H, sc_ops, heterodyne)
+
+        super().__init__(rhs, options=options)
+
+        if len(m_ops) == rhs.num_collapse:
+            self.m_ops = m_ops
+        elif heterodyne:
+            self.m_ops = []
+            for sc_op in sc_ops:
+                self.m_ops += [
+                    sc_op + sc_op.dag(), -1j * (sc_op - sc_op.dag())
+                ]
+        else:
+            self.m_ops = [sc_op + sc_op.dag() for sc_op in sc_ops]
 
     def _run_one_traj(self, seed, state, tlist, e_ops):
         """
@@ -136,46 +228,9 @@ class StochasticSolver(MultiTrajSolver):
 
 class SMESolver(StochasticSolver):
     name = "smesolve"
-    resultclass = StochasticResult
     _avail_integrators = {}
-    solver_options = {
-        "progress_bar": "text",
-        "progress_kwargs": {"chunk_size": 10},
-        "store_final_state": False,
-        "store_states": None,
-        "keep_runs_results": False,
-        "normalize_output": False,
-        "method": "platen",
-        "map": "serial",
-        "job_timeout": None,
-        "num_cpus": None,
-        "bitgenerator": None,
-        "heterodyne": False,
-    }
-
-    def __init__(self, H, sc_ops, *, options=None, m_ops=()):
-        self._options = self.solver_options.copy()
-        self.options = options
-        if isinstance(sc_ops, (Qobj, QobjEvo)):
-            sc_ops = [sc_ops]
-        sc_ops = [QobjEvo(c_op) for c_op in sc_ops]
-        if not H.issuper:
-            L = liouvillian(H, sc_ops)
-        else:
-            if any(not c_op.isoper for c_op in sc_ops):
-                raise TypeError("sc_ops must be operators")
-            L = H + sum(lindblad_dissipator(c_op) for c_op in sc_ops)
-        rhs = StochasticOpenSystem(L, sc_ops, self.options["heterodyne"])
-        super().__init__(rhs, options=options)
 
 
-        if len(m_ops) == rhs.num_collapse:
-            self.m_ops = m_ops
-        elif self.options["heterodyne"]:
-            self.m_ops = []
-            for sc_op in sc_ops:
-                self.m_ops += [
-                    sc_op + sc_op.dag(), -1j * (sc_op - sc_op.dag())
-                ]
-        else:
-            self.m_ops = [sc_op + sc_op.dag() for sc_op in sc_ops]
+class SSESolver(StochasticSolver):
+    name = "ssesolve"
+    _avail_integrators = {}

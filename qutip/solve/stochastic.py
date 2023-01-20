@@ -121,7 +121,7 @@ def stochastic_solvers():
             - Order strong 2.0
             - Code: ``'taylor2.0'``, ``'taylor20'`` or ``2.0``
 
-        All solvers, except taylor2.0, are usable in both smesolve and ssesolve
+        All solvers, except taylor2.0, are usable in both smesolve and (ssesolve)
         and for both heterodyne and homodyne. taylor2.0 only works for 1
         stochastic operator independent of time with the homodyne method.
         :func:`~general_stochastic` only accepts the derivative-free
