@@ -8,7 +8,7 @@ from qutip.core.cy.qobjevo cimport QobjEvo
 from qutip.core.data cimport Data
 cimport cython
 import numpy as np
-from qutip.core import spre, spost
+from qutip.core import spre, spost, liouvillian
 
 __all__ = [
     "GeneralStochasticSystem", "StochasticOpenSystem", "StochasticClosedSystem"
@@ -16,22 +16,16 @@ __all__ = [
 
 
 cdef class _StochasticSystem:
-    cdef readonly int num_collapse
-    cdef readonly bint issuper
-    cdef readonly object dims
-    cdef Data state
-    cdef double t
-    cdef object imp
 
     def __init__(self, a, b):
         self.d1 = a
         self.d2 = b
         self.num_collapse = 1
 
-    def drift(self, t, state):
+    cpdef Data drift(self, t, Data state):
         return self.d1(t, state)
 
-    def diffusion(self, t, state):
+    cpdef list diffusion(self, t, Data state):
         return self.d2(t, state)
 
     cdef void set_state(self, double t, Data state):
@@ -47,10 +41,10 @@ cdef class GeneralStochasticSystem(_StochasticSystem):
         self.d2 = b
         self.num_collapse = 1
 
-    def drift(self, t, state):
+    cpdef Data drift(self, t, Data state):
         return self.d1(t, state)
 
-    def diffusion(self, t, state):
+    cpdef list diffusion(self, t, Data state):
         return self.d2(t, state)
 
 
@@ -59,15 +53,26 @@ cdef class StochasticClosedSystem(_StochasticSystem):
     cdef list c_ops
     cdef list cpcd_ops
 
-    def __init__(self, H, c_ops, heterodyne, implicit=False):
-        self.H = -1j*H
-        self.c_ops = c_ops
-        self.cpcd_ops = [op + op.dag() for op in c_ops]
-        self.num_collapse = len(c_ops)
+    def __init__(self, H, c_ops, heterodyne):
+        self.H = -1j * H
+        if heterodyne:
+            self.c_ops = []
+            for c_op in c_ops:
+                self.c_ops.append(c_op / np.sqrt(2))
+                self.c_ops.append(c_op * (-1j / np.sqrt(2)))
+                self.cpcd_ops.append((c_op + c_op.dag()) / np.sqrt(2))
+                self.cpcd_ops.append((-c_op + c_op.dag()) * 1j / np.sqrt(2))
+        else:
+            self.c_ops = c_ops
+            self.cpcd_ops = [op + op.dag() for op in c_ops]
+
+        self.num_collapse = len(self.c_ops)
+        for c_op in self.c_ops:
+            self.H += -0.5 * c_op.dag() * c_op
         self.issuper = False
         self.dims = self.H.dims
 
-    def drift(self, double t, Data state):
+    cpdef Data drift(self, t, Data state):
         cdef int i
         cdef QobjEvo c_op
         cdef Data temp, out
@@ -82,7 +87,7 @@ cdef class StochasticClosedSystem(_StochasticSystem):
             out = _data.add(out, temp, 0.5 * e)
         return out
 
-    def diffusion(self, double t, Data state):
+    cpdef list diffusion(self, t, Data state):
         cdef int i
         cdef QobjEvo c_op
         out = []
@@ -100,7 +105,7 @@ cdef class StochasticOpenSystem(_StochasticSystem):
     cdef list c_ops
 
     def __init__(self, H, c_ops, heterodyne):
-        self.L = H
+        self.L = H + liouvillian(None, c_ops)
         if heterodyne:
             self.c_ops = []
             for c in c_ops:
@@ -114,10 +119,10 @@ cdef class StochasticOpenSystem(_StochasticSystem):
         self.issuper = True
         self.dims = self.L.dims
 
-    def drift(self, double t, Data state):
+    cpdef Data drift(self, t, Data state):
         return self.L.matmul_data(t, state)
 
-    def diffusion(self, double t, Data state):
+    cpdef list diffusion(self, t, Data state):
         cdef int i
         cdef QobjEvo c_op
         cdef complex expect

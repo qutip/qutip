@@ -1,15 +1,17 @@
 #cython: language_level=3
+
 from qutip.core import data as _data
 from qutip.core.cy.qobjevo cimport QobjEvo
 from qutip.core.data cimport Data
 from collections import defaultdict
 cimport cython
+from qutip.solver.sode.ssystem cimport _StochasticSystem
 import numpy as np
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef Data euler(system, t, Data state, double dt, double[:, :] dW):
+cpdef Data euler(_StochasticSystem system, t, Data state, double dt, double[:, :] dW):
     """
     Integration scheme:
     Basic Euler order 0.5
@@ -29,7 +31,7 @@ cpdef Data euler(system, t, Data state, double dt, double[:, :] dW):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef Data platen(system, t, Data state, double dt, double[:, :] dW):
+cpdef Data platen(_StochasticSystem system, t, Data state, double dt, double[:, :] dW):
     """
     Platen rhs function for both master eq and schrodinger eq.
     dV = -iH* (V+Vt)/2 * dt + (d1(V)+d1(Vt))/2 * dt
@@ -82,7 +84,7 @@ cpdef Data platen(system, t, Data state, double dt, double[:, :] dW):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cpdef Data explicit15(system, t, Data state, double dt, double[:, :] dW):
+cpdef Data explicit15(_StochasticSystem system, t, Data state, double dt, double[:, :] dW):
     """
     Chapter 11.2 Eq. (2.13)
     Numerical Solution of Stochastic Differential Equations
@@ -131,11 +133,11 @@ cpdef Data explicit15(system, t, Data state, double dt, double[:, :] dW):
         p2p.append(temp_p2p)
         p2m.append(temp_p2m)
 
-    out = _data.add(out, d1, -0.5*(num_ops))
+    out = _data.add(out, d1, -0.5*(num_ops) * dt)
 
     for i in range(num_ops):
-        ddz = dz[i] * 0.5 / sqrt_dt *0 # 1.5
-        ddd = 0.25 * (dw[i] * dw[i] / 3 - dt) * dw[i] / dt *0 # 1.5
+        ddz = dz[i] * 0.5 / sqrt_dt # 1.5
+        ddd = 0.25 * (dw[i] * dw[i] / 3 - dt) * dw[i] / dt # 1.5
 
         d1p = system.drift(t + dt/num_ops, v2p[i])
         d1m = system.drift(t + dt/num_ops, v2m[i])
@@ -145,8 +147,8 @@ cpdef Data explicit15(system, t, Data state, double dt, double[:, :] dW):
         d2pp = system.diffusion(t, p2p[i][i])
         d2mm = system.diffusion(t, p2m[i][i])
 
-        out = _data.add(out, d1p, 0.25 + ddz)
-        out = _data.add(out, d1m, 0.25 - ddz)
+        out = _data.add(out, d1p, (0.25 + ddz) * dt)
+        out = _data.add(out, d1m, (0.25 - ddz) * dt)
 
         out = _data.add(out, dd2[i], dw[i] - dz[i])
         out = _data.add(out, d2[i], dz[i] - dw[i])
@@ -158,7 +160,7 @@ cpdef Data explicit15(system, t, Data state, double dt, double[:, :] dW):
 
 
         for j in range(num_ops):
-            ddw = 0.5 * (dw[j] - dz[j]) * 0  # O(1.5)
+            ddw = 0.5 * (dw[j] - dz[j])  # O(1.5)
             out = _data.add(out, d2p[j], ddw)
             out = _data.add(out, d2[j], -2*ddw)
             out = _data.add(out, d2m[j], ddw)
@@ -168,7 +170,7 @@ cpdef Data explicit15(system, t, Data state, double dt, double[:, :] dW):
                 out = _data.add(out, d2p[j], ddw)
                 out = _data.add(out, d2m[j], -ddw)
 
-                ddw = 0.25 * (dw[j] * dw[j] - dt) * dw[i] / dt * 0  # O(1.5)
+                ddw = 0.25 * (dw[j] * dw[j] - dt) * dw[i] / dt  # O(1.5)
                 d2pp = system.diffusion(t, p2p[j][i])
                 d2mm = system.diffusion(t, p2m[j][i])
 
@@ -178,7 +180,7 @@ cpdef Data explicit15(system, t, Data state, double dt, double[:, :] dW):
                 out = _data.add(out, d2m[j], ddw)
 
                 for k in range(j+1, num_ops):
-                    ddw = 0.5 * dw[i] * dw[j] * dw[k] / dt * 0  # O(1.5)
+                    ddw = 0.5 * dw[i] * dw[j] * dw[k] / dt  # O(1.5)
 
                     out = _data.add(out, d2pp[k], ddw)
                     out = _data.add(out, d2mm[k], -ddw)
@@ -186,7 +188,7 @@ cpdef Data explicit15(system, t, Data state, double dt, double[:, :] dW):
                     out = _data.add(out, d2m[k], ddw)
 
             if j < i:
-                ddw = 0.25 * (dw[j] * dw[j] - dt) * dw[i] / dt * 0  # O(1.5)
+                ddw = 0.25 * (dw[j] * dw[j] - dt) * dw[i] / dt  # O(1.5)
 
                 d2pp = system.diffusion(t, p2p[j][i])
                 d2mm = system.diffusion(t, p2m[j][i])

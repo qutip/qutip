@@ -126,7 +126,7 @@ cdef void _normalize_rho(complex[::1] rho):
     cdef complex[::1,:] mat = np.reshape(rho, (N,N), order="F")
     cdef complex[::1,:] eivec
     cdef double[::1] eival = np.zeros(N)
-    eivec = _data.eigs(Dense(mat, copy=False), True, True)[1].full()
+    eivec = _data.eigs(Dense(mat, copy=False), True, True)[1].to_array()
 
     _zero(rho)
     cdef int i, j, k

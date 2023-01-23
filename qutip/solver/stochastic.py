@@ -183,8 +183,7 @@ class StochasticSolver(MultiTrajSolver):
             raise TypeError("sc_ops must be operators")
 
         if H.issuper:
-            L = H + liouvillian(None, sc_ops)
-            rhs = StochasticOpenSystem(L, sc_ops, heterodyne)
+            rhs = StochasticOpenSystem(H, sc_ops, heterodyne)
         else:
             rhs = StochasticClosedSystem(H, sc_ops, heterodyne)
 
