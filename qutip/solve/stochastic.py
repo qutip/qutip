@@ -123,7 +123,7 @@ def stochastic_solvers():
 
         All solvers, except taylor2.0, are usable in both smesolve and (ssesolve)
         and for both heterodyne and homodyne. taylor2.0 only works for 1
-        stochastic operator independent of time with the homodyne method.
+        stochastic opera__init__tor independent of time with the homodyne method.
         :func:`~general_stochastic` only accepts the derivative-free
         solvers: ``'euler'``, ``'platen'`` and ``'explicit1.5'``.
 
@@ -206,7 +206,7 @@ class StochasticSolverOptions:
     sc_ops : list of time_dependent_object
         List of stochastic collapse operators. Each stochastic collapse
         operator will give a deterministic and stochastic contribution
-        to the equation of motion according to how the d1 and d2 functions
+        to the equation of __init__motion according to how the d1 and d2 functions
         are defined.  Each element of the list is a separate operator, like
         ``c_ops``.
 
@@ -441,16 +441,16 @@ class StochasticSolverOptions:
             self.solver_code = 100
             self.solver = 'platen'
         elif self.solver in ['pred-corr', 'predictor-corrector',
-                             'pc-euler', 101]:
+                             'pc-euler', "pred_corr", 101]:
             self.solver_code = 101
             self.solver = 'pred-corr'
         elif self.solver in ['milstein', 102, 1.0]:
             self.solver_code = 102
             self.solver = 'milstein'
-        elif self.solver in ['milstein-imp', 103]:
+        elif self.solver in ['milstein-imp', 'milstein_imp', 103]:
             self.solver_code = 103
             self.solver = 'milstein-imp'
-        elif self.solver in ['pred-corr-2', 'pc-euler-2', 'pc-euler-imp', 104]:
+        elif self.solver in ['pred-corr-2', 'pc-euler-2', 'pc-euler-imp', "pred_corr_a", 104]:
             self.solver_code = 104
             self.solver = 'pred-corr-2'
         elif self.solver in ['Rouchon', 'rouchon', 120]:
@@ -464,7 +464,7 @@ class StochasticSolverOptions:
         elif self.solver in ['taylor15', 'taylor1.5', None, 1.5, 152]:
             self.solver_code = 152
             self.solver = 'taylor1.5'
-        elif self.solver in ['taylor15-imp', 'taylor1.5-imp', 153]:
+        elif self.solver in ['taylor15-imp', 'taylor1.5-imp', "taylor15_imp", 153]:
             self.solver_code = 153
             self.solver = 'taylor1.5-imp'
         elif self.solver in ['taylor2.0', 'taylor20', 2.0, 202]:
@@ -511,7 +511,7 @@ class StochasticSolverOptionsPhoto(StochasticSolverOptions):
 
 
 def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
-             _safe_mode=True, args={}, **kwargs):
+             _safe_mode=True, args={}, _dry_run=False, **kwargs):
     """
     Solve stochastic master equation. Dispatch to specific solvers
     depending on the value of the `solver` keyword argument.
@@ -629,6 +629,11 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     sso.solver_obj = SMESolver
     sso.solver_name = "smesolve_" + sso.solver
 
+    if _dry_run:
+        ssolver = sso.solver_obj()
+        ssolver.set_solver(sso)
+        return ssolver
+
     res = _sesolve_generic(sso, sso.options, sso.progress_bar)
 
     if e_ops_dict:
@@ -638,7 +643,7 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
 
 
 def ssesolve(H, psi0, times, sc_ops=[], e_ops=[],
-             _safe_mode=True, args={}, **kwargs):
+             _safe_mode=True, args={}, _dry_run=False, **kwargs):
     """
     Solve stochastic schrodinger equation. Dispatch to specific solvers
     depending on the value of the `solver` keyword argument.
@@ -747,6 +752,11 @@ def ssesolve(H, psi0, times, sc_ops=[], e_ops=[],
 
     sso.solver_obj = SSESolver
     sso.solver_name = "ssesolve_" + sso.solver
+
+    if _dry_run:
+        ssolver = sso.solver_obj()
+        ssolver.set_solver(sso)
+        return ssolver
 
     res = _sesolve_generic(sso, sso.options, sso.progress_bar)
 

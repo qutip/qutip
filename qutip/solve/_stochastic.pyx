@@ -25,13 +25,13 @@ cdef int ONE=1
 
 """Some of blas wrapper"""
 @cython.boundscheck(False)
-cdef void _axpy(complex a, complex[::1] x, complex[::1] y):
+cpdef void _axpy(complex a, complex[::1] x, complex[::1] y):
     """ y += a*x"""
     cdef int l = x.shape[0]
     zaxpy(&l, &a, <complex*>&x[0], &ONE, <complex*>&y[0], &ONE)
 
 @cython.boundscheck(False)
-cdef void copy(complex[::1] x, complex[::1] y):
+cpdef void copy(complex[::1] x, complex[::1] y):
     """ y = x """
     cdef int l = x.shape[0]
     zcopy(&l, <complex*>&x[0], &ONE, <complex*>&y[0], &ONE)
@@ -55,37 +55,37 @@ cdef double _dznrm2(complex[::1] vec):
     return raw_dznrm2(&l, <complex*>&vec[0], &ONE)
 
 @cython.boundscheck(False)
-cdef void _scale(double a, complex[::1] x):
+cpdef void _scale(double a, complex[::1] x):
     """ x *= a """
     cdef int l = x.shape[0]
     zdscal(&l, &a, <complex*>&x[0], &ONE)
 
 @cython.boundscheck(False)
-cdef void _zscale(complex a, complex[::1] x):
+cpdef void _zscale(complex a, complex[::1] x):
     """ x *= a """
     cdef int l = x.shape[0]
     zscal(&l, &a, <complex*>&x[0], &ONE)
 
 @cython.boundscheck(False)
-cdef void _zero(complex[::1] x):
+cpdef void _zero(complex[::1] x):
     """ x *= 0 """
     cdef int l = x.shape[0]
     zdscal(&l, &DZERO, <complex*>&x[0], &ONE)
 
 @cython.boundscheck(False)
-cdef void _zero_2d(complex[:,::1] x):
+cpdef void _zero_2d(complex[:,::1] x):
     """ x *= 0 """
     cdef int l = x.shape[0]*x.shape[1]
     zdscal(&l, &DZERO, <complex*>&x[0,0], &ONE)
 
 @cython.boundscheck(False)
-cdef void _zero_3d(complex[:,:,::1] x):
+cpdef void _zero_3d(complex[:,:,::1] x):
     """ x *= 0 """
     cdef int l = x.shape[0]*x.shape[1]*x.shape[2]
     zdscal(&l, &DZERO, <complex*>&x[0,0,0], &ONE)
 
 @cython.boundscheck(False)
-cdef void _zero_4d(complex[:,:,:,::1] x):
+cpdef void _zero_4d(complex[:,:,:,::1] x):
     """ x *= 0 """
     cdef int l = x.shape[0]*x.shape[1]*x.shape[2]*x.shape[3]
     zdscal(&l, &DZERO, <complex*>&x[0,0,0,0], &ONE)
@@ -99,7 +99,7 @@ cdef Dense _dense_wrap(double complex [::1] x):
 # functions for ensuring that the states stay physical
 @cython.cdivision(True)
 @cython.boundscheck(False)
-cdef void _normalize_inplace(complex[::1] vec):
+cpdef void _normalize_inplace(complex[::1] vec):
     """ make norm of vec equal to 1"""
     cdef int l = vec.shape[0]
     cdef double norm = 1.0/_dznrm2(vec)
@@ -117,7 +117,7 @@ def normalize_inplace(complex[::1] vec):
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
-cdef void _normalize_rho(complex[::1] rho):
+cpdef void _normalize_rho(complex[::1] rho):
     """ Ensure that the density matrix trace is one and
     that the composing states are normalized.
     """
@@ -299,16 +299,17 @@ cdef class StochasticSolver:
       d1, d2 and there derivatives up to dt**2.0
       one sc_ops
     """
-    cdef int l_vec, num_ops
-    cdef Solvers solver
-    cdef int num_step, num_substeps, num_dw
-    cdef int normalize
-    cdef double dt
+    cdef readonly int l_vec, num_ops
+    cdef readonly Solvers solver
+    cdef public int num_step, num_substeps
+    cdef readonly int num_dw
+    cdef public int normalize
+    cdef readonly double dt
     cdef int noise_type
     cdef object custom_noise
     cdef double[::1] dW_factor
     cdef unsigned int[::1] seed
-    cdef object sso
+    cdef readonly object sso
 
     # buffer to not redo the initialisation at each substep
     cdef complex[:, ::1] buffer_1d
@@ -443,6 +444,10 @@ cdef class StochasticSolver:
             self.custom_noise = sso.noise
         elif self.noise_type == 0:
             self.seed = sso.noise
+
+    def reset_solver(self, new_solver):
+        self.sso.solver = new_solver
+        self.set_solver(self.sso)
 
     def set_data(self, sso):
         """Set solver specific operator"""
@@ -606,29 +611,29 @@ cdef class StochasticSolver:
             self._normalize_inplace(vec)
         return vec
 
-    cdef void _normalize_inplace(self, complex[::1] vec):
+    cpdef void _normalize_inplace(self, complex[::1] vec):
         _normalize_inplace(vec)
 
     # Dummy functions
     # Needed for compilation since ssesolve is not stand-alone
-    cdef void d1(self, double t, complex[::1] v, complex[::1] out):
+    cpdef void d1(self, double t, complex[::1] v, complex[::1] out):
         """ deterministic part of the evolution
         depend on schrodinger vs master vs photocurrent
         """
         pass
 
-    cdef void d2(self, double t, complex[::1] v, complex[:, ::1] out):
+    cpdef void d2(self, double t, complex[::1] v, complex[:, ::1] out):
         """ stochastic part of the evolution
         depend on schrodinger vs master vs photocurrent
         """
         pass
 
-    cdef void implicit(self, double t,  np.ndarray[complex, ndim=1] dvec,
+    cpdef void implicit(self, double t,  np.ndarray[complex, ndim=1] dvec,
                        complex[::1] out, np.ndarray[complex, ndim=1] guess) except *:
         """ Do the step X(t+dt) = f(X(t+dt)) + g(X(t)) """
         pass
 
-    cdef void derivatives(self, double t, int deg, complex[::1] rho,
+    cpdef void derivatives(self, double t, int deg, complex[::1] rho,
                               complex[::1] a, complex[:, ::1] b,
                               complex[:, :, ::1] Lb, complex[:,::1] La,
                               complex[:, ::1] L0b, complex[:, :, :, ::1] LLb,
@@ -639,7 +644,7 @@ cdef class StochasticSolver:
         """
         pass
 
-    cdef void derivativesO2(self, double t, complex[::1] rho,
+    cpdef void derivativesO2(self, double t, complex[::1] rho,
                             complex[::1] a, complex[::1] b, complex[::1] Lb,
                             complex[::1] La, complex[::1] L0b, complex[::1] LLb,
                             complex[::1] L0a,
@@ -651,21 +656,21 @@ cdef class StochasticSolver:
         """
         pass
 
-    cdef void photocurrent(self, double t, double dt, double[:] noise,
+    cpdef void photocurrent(self, double t, double dt, double[:] noise,
                            complex[::1] vec, complex[::1] out):
         """Special integration scheme:
         photocurrent collapse + euler evolution
         """
         pass
 
-    cdef void photocurrent_pc(self, double t, double dt, double[:] noise,
+    cpdef void photocurrent_pc(self, double t, double dt, double[:] noise,
                            complex[::1] vec, complex[::1] out):
         """Special integration scheme:
         photocurrent collapse + predictor-corrector evolution
         """
         pass
 
-    cdef void rouchon(self, double t, double dt, double[:] noise,
+    cpdef void rouchon(self, double t, double dt, double[:] noise,
                       complex[::1] vec, complex[::1] out):
         """Special integration scheme:
         Force valid density matrix using positive map
@@ -676,7 +681,7 @@ cdef class StochasticSolver:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef void euler(self, double t, double dt, double[:] noise,
+    cpdef void euler(self, double t, double dt, double[:] noise,
                     complex[::1] vec, complex[::1] out):
         """Integration scheme:
         Basic Euler order 0.5
@@ -696,7 +701,7 @@ cdef class StochasticSolver:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void platen(self, double t, double dt, double[:] noise,
+    cpdef void platen(self, double t, double dt, double[:] noise,
                        complex[::1] vec, complex[::1] out):
         """
         Platen rhs function for both master eq and schrodinger eq.
@@ -759,7 +764,7 @@ cdef class StochasticSolver:
     @cython.wraparound(False)
     @cython.boundscheck(False)
     @cython.cdivision(True)
-    cdef void pred_corr(self, double t, double dt, double[:] noise,
+    cpdef void pred_corr(self, double t, double dt, double[:] noise,
                     complex[::1] vec, complex[::1] out):
         """
         Chapter 15.5 Eq. (5.4)
@@ -795,7 +800,7 @@ cdef class StochasticSolver:
     @cython.wraparound(False)
     @cython.boundscheck(False)
     @cython.cdivision(True)
-    cdef void pred_corr_a(self, double t, double dt, double[:] noise,
+    cpdef void pred_corr_a(self, double t, double dt, double[:] noise,
                     complex[::1] vec, complex[::1] out):
         """
         Chapter 15.5 Eq. (5.4)
@@ -838,7 +843,7 @@ cdef class StochasticSolver:
     @cython.wraparound(False)
     @cython.boundscheck(False)
     @cython.cdivision(True)
-    cdef void milstein(self, double t, double dt, double[:] noise,
+    cpdef void milstein(self, double t, double dt, double[:] noise,
                     complex[::1] vec, complex[::1] out):
         """
         Chapter 10.3 Eq. (3.1)
@@ -869,7 +874,7 @@ cdef class StochasticSolver:
     @cython.wraparound(False)
     @cython.boundscheck(False)
     @cython.cdivision(True)
-    cdef void milstein_imp(self, double t, double dt, double[:] noise,
+    cpdef void milstein_imp(self, double t, double dt, double[:] noise,
                            complex[::1] vec, complex[::1] out) except *:
         """
         Chapter 12.2 Eq. (2.9)
@@ -907,7 +912,7 @@ cdef class StochasticSolver:
     @cython.wraparound(False)
     @cython.boundscheck(False)
     @cython.cdivision(True)
-    cdef void taylor15(self, double t, double dt, double[:] noise,
+    cpdef void taylor15(self, double t, double dt, double[:] noise,
                            complex[::1] vec, complex[::1] out):
         """
         Chapter 12.2 Eq. (2.18),
@@ -959,7 +964,7 @@ cdef class StochasticSolver:
     @cython.wraparound(False)
     @cython.boundscheck(False)
     @cython.cdivision(True)
-    cdef void taylor15_imp(self, double t, double dt, double[:] noise,
+    cpdef void taylor15_imp(self, double t, double dt, double[:] noise,
                            complex[::1] vec, complex[::1] out) except *:
         """
         Chapter 12.2 Eq. (2.18),
@@ -1017,7 +1022,7 @@ cdef class StochasticSolver:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void platen15(self, double t, double dt, double[:] noise,
+    cpdef void platen15(self, double t, double dt, double[:] noise,
                     complex[::1] vec, complex[::1] out):
         """
         Chapter 11.2 Eq. (2.13)
@@ -1160,7 +1165,7 @@ cdef class StochasticSolver:
     @cython.wraparound(False)
     @cython.boundscheck(False)
     @cython.cdivision(True)
-    cdef void taylor20(self, double t, double dt, double[::1] noise,
+    cpdef void taylor20(self, double t, double dt, double[::1] noise,
                            complex[::1] vec, complex[::1] out):
         """
         Chapter 10.5 Eq. (5.1),
@@ -1217,11 +1222,11 @@ cdef class StochasticSolver:
 
 cdef class SSESolver(StochasticSolver):
     """stochastic Schrodinger system"""
-    cdef QobjEvo L
-    cdef object c_ops
-    cdef object cpcd_ops
-    cdef object imp
-    cdef double tol, imp_t
+    cdef readonly QobjEvo L
+    cdef readonly object c_ops
+    cdef readonly object cpcd_ops
+    cdef readonly object imp
+    cdef readonly double tol, imp_t
 
     def set_data(self, sso):
         L = sso.LH
@@ -1250,7 +1255,7 @@ cdef class SSESolver(StochasticSolver):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void d1(self, double t, complex[::1] vec, complex[::1] out):
+    cpdef void d1(self, double t, complex[::1] vec, complex[::1] out):
         self.L.matmul_data(t, _dense_wrap(vec), out=_dense_wrap(out))
         cdef int i
         cdef complex e
@@ -1269,7 +1274,7 @@ cdef class SSESolver(StochasticSolver):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void d2(self, double t, complex[::1] vec, complex[:, ::1] out):
+    cpdef void d2(self, double t, complex[::1] vec, complex[:, ::1] out):
         cdef int i, k
         cdef QobjEvo c_op
         cdef complex expect
@@ -1283,7 +1288,7 @@ cdef class SSESolver(StochasticSolver):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void derivatives(self, double t, int deg, complex[::1] vec,
+    cpdef void derivatives(self, double t, int deg, complex[::1] vec,
                           complex[::1] a, complex[:, ::1] b,
                           complex[:, :, ::1] Lb, complex[:,::1] La,
                           complex[:, ::1] L0b, complex[:, :, :, ::1] LLb,
@@ -1432,7 +1437,7 @@ cdef class SSESolver(StochasticSolver):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef void _c_vec_conj(self, double t, QobjEvo c_op,
+    cpdef void _c_vec_conj(self, double t, QobjEvo c_op,
                          complex[::1] vec, complex[::1] out):
         cdef int k
         cdef complex[::1] temp = self.func_buffer_1d[13,:]
@@ -1444,7 +1449,7 @@ cdef class SSESolver(StochasticSolver):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void derivativesO2(self, double t, complex[::1] psi,
+    cpdef void derivativesO2(self, double t, complex[::1] psi,
                             complex[::1] a, complex[::1] b, complex[::1] Lb,
                             complex[::1] La, complex[::1] L0b, complex[::1] LLb,
                             complex[::1] L0a,
@@ -1612,7 +1617,7 @@ cdef class SSESolver(StochasticSolver):
         _axpy(de_a * dt, Cpsi, L0a)         # a'_a_
         _axpy(-0.5 * dt, L0Lb, L0a) # _L0_Lb/2
 
-    cdef void implicit(self, double t,  np.ndarray[complex, ndim=1] dvec,
+    cpdef void implicit(self, double t,  np.ndarray[complex, ndim=1] dvec,
                                         complex[::1] out,
                                         np.ndarray[complex, ndim=1] guess) except *:
         # np.ndarray to memoryview is OK but not the reverse
@@ -1626,11 +1631,11 @@ cdef class SSESolver(StochasticSolver):
 
 cdef class SMESolver(StochasticSolver):
     """stochastic master equation system"""
-    cdef QobjEvo L
-    cdef object imp
-    cdef object c_ops
-    cdef int N_root
-    cdef double tol
+    cdef readonly QobjEvo L
+    cdef readonly object imp
+    cdef readonly object c_ops
+    cdef readonly int N_root
+    cdef readonly double tol
 
     def set_data(self, sso):
         L = sso.LH
@@ -1646,7 +1651,7 @@ cdef class SMESolver(StochasticSolver):
             self.tol = sso.tol
             self.imp = sso.imp
 
-    cdef void _normalize_inplace(self, complex[::1] vec):
+    cpdef void _normalize_inplace(self, complex[::1] vec):
         _normalize_rho(vec)
 
     @cython.boundscheck(False)
@@ -1660,13 +1665,13 @@ cdef class SMESolver(StochasticSolver):
         return e
 
     @cython.boundscheck(False)
-    cdef void d1(self, double t, complex[::1] rho, complex[::1] out):
+    cpdef void d1(self, double t, complex[::1] rho, complex[::1] out):
         self.L.matmul_data(t, _dense_wrap(rho), _dense_wrap(out))
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void d2(self, double t, complex[::1] rho, complex[:, ::1] out):
+    cpdef void d2(self, double t, complex[::1] rho, complex[:, ::1] out):
         cdef int i, k
         cdef QobjEvo c_op
         cdef complex expect
@@ -1679,7 +1684,7 @@ cdef class SMESolver(StochasticSolver):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void derivatives(self, double t, int deg, complex[::1] rho,
+    cpdef void derivatives(self, double t, int deg, complex[::1] rho,
                           complex[::1] a, complex[:, ::1] b,
                           complex[:, :, ::1] Lb, complex[:,::1] La,
                           complex[:, ::1] L0b, complex[:, :, :, ::1] LLb,
@@ -1777,7 +1782,7 @@ cdef class SMESolver(StochasticSolver):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void derivativesO2(self, double t, complex[::1] rho,
+    cpdef void derivativesO2(self, double t, complex[::1] rho,
                             complex[::1] a, complex[::1] b, complex[::1] Lb,
                             complex[::1] La, complex[::1] L0b, complex[::1] LLb,
                             complex[::1] L0a,
@@ -1881,7 +1886,7 @@ cdef class SMESolver(StochasticSolver):
         _axpy(-self.dt*0.5, L0Lb, L0a)
 
 
-    cdef void implicit(self, double t,  np.ndarray[complex, ndim=1] dvec,
+    cpdef void implicit(self, double t,  np.ndarray[complex, ndim=1] dvec,
                                         complex[::1] out,
                                         np.ndarray[complex, ndim=1] guess) except *:
         # np.ndarray to memoryview is OK but not the reverse
@@ -1913,7 +1918,7 @@ cdef class PcSSESolver(StochasticSolver):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef void photocurrent(self, double t, double dt, double[:] noise,
+    cpdef void photocurrent(self, double t, double dt, double[:] noise,
                            complex[::1] vec, complex[::1] out):
         cdef QobjEvo c_op
         cdef double rand
@@ -1942,7 +1947,7 @@ cdef class PcSSESolver(StochasticSolver):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef void photocurrent_pc(self, double t, double dt, double[:] noise,
+    cpdef void photocurrent_pc(self, double t, double dt, double[:] noise,
                            complex[::1] vec, complex[::1] out):
         cdef QobjEvo c_op
         cdef double expect
@@ -2002,7 +2007,7 @@ cdef class PcSSESolver(StochasticSolver):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void d1(self, double t, complex[::1] vec, complex[::1] out):
+    cpdef void d1(self, double t, complex[::1] vec, complex[::1] out):
         self.L.matmul_data(t, _dense_wrap(vec), _dense_wrap(out))
         cdef int i
         cdef complex e
@@ -2018,7 +2023,7 @@ cdef class PcSSESolver(StochasticSolver):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void d2(self, double t, complex[::1] vec, complex[:, ::1] out):
+    cpdef void d2(self, double t, complex[::1] vec, complex[:, ::1] out):
         cdef int i
         cdef QobjEvo c_op
         cdef complex expect
@@ -2035,7 +2040,7 @@ cdef class PcSSESolver(StochasticSolver):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void collapse(self, double t, int which, double expect,
+    cpdef void collapse(self, double t, int which, double expect,
                        complex[::1] vec, complex[::1] out):
         cdef QobjEvo c_op
         c_op = self.c_ops[which]
@@ -2067,12 +2072,12 @@ cdef class PcSMESolver(StochasticSolver):
             self.cdcl_ops.append(op[1])
             self.clcdr_ops.append(op[2])
 
-    cdef void _normalize_inplace(self, complex[::1] vec):
+    cpdef void _normalize_inplace(self, complex[::1] vec):
         _normalize_rho(vec)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef void photocurrent(self, double t, double dt,  double[:] noise,
+    cpdef void photocurrent(self, double t, double dt,  double[:] noise,
                            complex[::1] vec, complex[::1] out):
         cdef QobjEvo c_op
         cdef double rand
@@ -2101,7 +2106,7 @@ cdef class PcSMESolver(StochasticSolver):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef void photocurrent_pc(self, double t, double dt,  double[:] noise,
+    cpdef void photocurrent_pc(self, double t, double dt,  double[:] noise,
                            complex[::1] vec, complex[::1] out):
         cdef QobjEvo c_op
         cdef int i, which, num_coll=0, did_collapse
@@ -2170,7 +2175,7 @@ cdef class PcSMESolver(StochasticSolver):
         return e
 
     @cython.boundscheck(False)
-    cdef void d1(self, double t, complex[::1] rho, complex[::1] out):
+    cpdef void d1(self, double t, complex[::1] rho, complex[::1] out):
         cdef int i
         cdef QobjEvo c_op
         cdef complex[::1] crho = self.func_buffer_1d[0,:]
@@ -2187,7 +2192,7 @@ cdef class PcSMESolver(StochasticSolver):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void d2(self, double t, complex[::1] rho, complex[:, ::1] out):
+    cpdef void d2(self, double t, complex[::1] rho, complex[:, ::1] out):
         cdef int i
         cdef QobjEvo c_op
         cdef complex expect
@@ -2204,7 +2209,7 @@ cdef class PcSMESolver(StochasticSolver):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void collapse(self, double t, int which, double expect,
+    cpdef void collapse(self, double t, int which, double expect,
                        complex[::1] vec, complex[::1] out):
         cdef QobjEvo c_op
         c_op = self.clcdr_ops[which]
@@ -2239,12 +2244,12 @@ cdef class PmSMESolver(StochasticSolver):
         self.postops2 = [op for op in sso.postops2]
         self.N_root = np.sqrt(self.l_vec)
 
-    cdef void _normalize_inplace(self, complex[::1] vec):
+    cpdef void _normalize_inplace(self, complex[::1] vec):
         _normalize_rho(vec)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef void rouchon(self, double t, double dt, double[:] noise,
+    cpdef void rouchon(self, double t, double dt, double[:] noise,
                            complex[::1] vec, complex[::1] out):
         cdef complex[::1] dy = self.expect_buffer_1d[0,:]
         cdef complex[::1] temp = self.buffer_1d[0,:]
@@ -2325,7 +2330,7 @@ cdef class GenericSSolver(StochasticSolver):
         self.d2_func = sso.d2
 
 
-    cdef void d1(self, double t, complex[::1] rho, complex[::1] out):
+    cpdef void d1(self, double t, complex[::1] rho, complex[::1] out):
         cdef np.ndarray[complex, ndim=1] in_np
         cdef np.ndarray[complex, ndim=1] out_np
         in_np = np.zeros((self.l_vec, ), dtype=complex)
@@ -2334,7 +2339,7 @@ cdef class GenericSSolver(StochasticSolver):
         _axpy(self.dt, out_np, out) # d1 is += and * dt
 
     @cython.boundscheck(False)
-    cdef void d2(self, double t, complex[::1] rho, complex[:, ::1] out):
+    cpdef void d2(self, double t, complex[::1] rho, complex[:, ::1] out):
         cdef np.ndarray[complex, ndim=1] in_np
         cdef np.ndarray[complex, ndim=2] out_np
         cdef int i

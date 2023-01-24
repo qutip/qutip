@@ -1,3 +1,4 @@
+#cython: language_level=3
 from qutip.core.data cimport Data
 
 cdef class _StochasticSystem:
