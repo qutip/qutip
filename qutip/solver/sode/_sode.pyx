@@ -109,7 +109,7 @@ cpdef Data explicit15(_StochasticSystem system, t, Data state, double dt, double
     for i in range(num_ops):
         out = _data.add(out, d2[i], dw[i])
 
-    V = _data.add(state, d1, 1./num_ops)
+    V = _data.add(state, d1, dt/num_ops)
 
     v2p = []
     v2m = []
@@ -197,5 +197,101 @@ cpdef Data explicit15(_StochasticSystem system, t, Data state, double dt, double
                 out = _data.add(out, d2mm[j], -ddw)
                 out = _data.add(out, d2p[j], -ddw)
                 out = _data.add(out, d2m[j], ddw)
+
+    return out
+
+
+
+cpdef Data milstein(_StochasticSystem system, t, Data state, double dt, double[:, :] dW):
+    """
+    Chapter 10.3 Eq. (3.1)
+    Numerical Solution of Stochastic Differential Equations
+    By Peter E. Kloeden, Eckhard Platen
+
+    dV = -iH*V*dt + d1*dt + d2_i*dW_i
+    + 0.5*d2_i' d2_j*(dW_i*dw_j -dt*delta_ij)
+    """
+    cdef int i, j, num_ops = system.num_collapse
+    cdef double dw
+
+    system.set_state(t, state)
+
+    out = _data.add_dense(state, system.a(), dt)
+
+    for i in range(num_ops):
+        _data.iadd_dense(out, system.bi(i), dW[i, 0])
+
+    for i in range(num_ops):
+        for j in range(i, num_ops):
+            dw = (dW[i, 0] * dW[j, 0] - dt * (i == j)) * (0.5 + (i != j) * 0.5)
+            _data.iadd_dense(out, system.Libj(i, j), dw)
+
+    return out
+
+
+cpdef Data pred_corr(_StochasticSystem system, t, Data state, double dt, double[:, :] dW, alpha=0.):
+    """
+    Chapter 10.3 Eq. (3.1)
+    Numerical Solution of Stochastic Differential Equations
+    By Peter E. Kloeden, Eckhard Platen
+
+    dV = -iH*V*dt + d1*dt + d2_i*dW_i
+    + 0.5*d2_i' d2_j*(dW_i*dw_j -dt*delta_ij)
+    """
+    cdef int i, j, k, num_ops = system.num_collapse
+    cdef double eta=0.5
+
+    system.set_state(t, state)
+
+    out = _data.add_dense(state, system.a(), dt*(1-alpha))
+    euler = _data.add_dense(state, system.a(), dt)
+
+    for i in range(num_ops):
+        _data.iadd_dense(euler, system.bi(i), dW[i, 0])
+        _data.iadd_dense(out, system.bi(i), dW[i, 0]*eta)
+        _data.iadd_dense(out, system.Libj(i, i), dt*(alpha-1)*0.5)
+
+    system.set_state(t+dt, euler)
+    if alpha:
+        _data.iadd_dense(out, system.a(), dt*alpha)
+
+    for i in range(num_ops):
+        _data.iadd_dense(out, system.bi(i), dW[i, 0]*(1-eta))
+        _data.iadd_dense(out, system.Libj(i, i), -dt*alpha*0.5)
+
+    return out
+
+
+cpdef Data taylor15(_StochasticSystem system, t, Data state, double dt, double[:, :] dW):
+    """
+    Chapter 12.2 Eq. (2.18),
+    Numerical Solution of Stochastic Differential Equations
+    By Peter E. Kloeden, Eckhard Platen
+    """
+    system.set_state(t, state)
+    cdef int i, j, k, num_ops = system.num_collapse
+    cdef double[:] dz, dw
+
+    num_ops = system.num_collapse
+    dw = dW[:, 0]
+    dz = 0.5 *(dW[:, 0] + 1./np.sqrt(3) * dW[:, 1]) * dt
+
+    out = _data.add_dense(state, system.a(), dt)
+    _data.iadd_dense(out, system.L0a(), 0.5 * dt*dt)
+
+    for i in range(num_ops):
+        _data.iadd_dense(out, system.bi(i), dw[i])
+        _data.iadd_dense(out, system.Libj(i, i), 0.5*(dw[i]*dw[i]-dt))
+        _data.iadd_dense(out, system.Lia(i), dz[i])
+        _data.iadd_dense(out, system.L0bi(i), dw[i] * dt - dz[i])
+        _data.iadd_dense(out, system.LiLjbk(i, i, i),
+                         0.5 * ((1/3.) * dw[i] * dw[i] - dt) * dw[i])
+
+        for j in range(i+1, num_ops):
+            _data.iadd_dense(out, system.Libj(i, j), dw[i]*dw[j])
+            _data.iadd_dense(out, system.LiLjbk(i, j, j), 0.5*(dw[j]*dw[j]-dt)*dw[i])
+            _data.iadd_dense(out, system.LiLjbk(i, i, j), 0.5*(dw[i]*dw[i]-dt)*dw[j])
+            for k in range(j+1, num_ops):
+                _data.iadd_dense(out, system.LiLjbk(i, j, k), dw[i]*dw[j]*dw[k])
 
     return out

@@ -31,4 +31,18 @@ class MultiNoise:
 
     def dz(self, dt):
         N = int(np.round(dt /self.dt))
-        return np.einsum("ijk,j", self.noise.reshape(-1, N, self.num), np.arange(N-0.5, 0, -1)) * self.dt
+        return np.einsum(
+            "ijk,j",
+            self.noise.reshape(-1, N, self.num),
+            np.arange(N-0.5, 0, -1)
+        ) * self.dt
+
+    def dW(self, dt):
+        N = int(np.round(dt / self.dt))
+        noise = self.noise
+        if noise.shape[0] % N:
+            noise = noise[:-noise.shape[0] % N]
+        out = np.empty((self.num, 2), dtype=float)
+        out[:, 0] = noise[:N, :].sum(axis=0)
+        out[:, 1] = np.arange(N-0.5, 0, -1) @ noise[:N, :] * self.dt
+        return out.T
