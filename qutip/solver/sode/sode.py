@@ -202,7 +202,52 @@ class Explicit1_5_SODE(_Explicit_Simple_Integrator):
     N_dw = 2
 
 
+class Taylor1_5_SODE(_Explicit_Simple_Integrator):
+    """
+    Order 1.5 strong Taylor scheme.  Solver with more terms of the
+    Ito-Taylor expansion.  Default solver for :obj:`~smesolve` and
+    :obj:`~ssesolve`.  See eq. (4.6) of chapter 10.4 of [1]_.
+
+    - Order strong 1.5
+    """
+    stepper = _sode.taylor15
+    N_dw = 2
+
+
+class Milstein_SODE(_Explicit_Simple_Integrator):
+    """
+    An order 1.0 strong Taylor scheme.  Better approximate numerical
+    solution to stochastic differential equations.  See eq. (2.9) of
+    chapter 12.2 of [1]_.
+
+    - Order strong 1.0
+    """
+    stepper = _sode.milstein
+    N_dw = 1
+
+
+class PredCorr_SODE(_Explicit_Simple_Integrator):
+    """
+    Generalization of the trapezoidal method to stochastic differential
+    equations. More stable than explicit methods.  See eq. (5.4) of
+    chapter 15.5 of [1]_.
+
+    - Order strong 0.5, weak 1.0
+    - Codes to only correct the stochastic part (:math:`\\alpha=0`,
+      :math:`\\eta=1/2`): ``'pred-corr'``, ``'predictor-corrector'`` or
+      ``'pc-euler'``
+    - Codes to correct both the stochastic and deterministic parts
+      (:math:`\\alpha=1/2`, :math:`\\eta=1/2`): ``'pc-euler-imp'``,
+      ``'pc-euler-2'`` or ``'pred-corr-2'``
+    """
+    stepper = _sode.pred_corr
+    N_dw = 1
+
+
 StochasticSolver.add_integrator(EulerSODE, "euler")
 StochasticSolver.add_integrator(EulerSODE, "euler-maruyama")
 StochasticSolver.add_integrator(PlatenSODE, "platen")
 StochasticSolver.add_integrator(Explicit1_5_SODE, "explicit1.5")
+StochasticSolver.add_integrator(Taylor1_5_SODE, "taylor15")
+StochasticSolver.add_integrator(PredCorr_SODE, "pred_corr")
+StochasticSolver.add_integrator(Milstein_SODE, "milstein")
