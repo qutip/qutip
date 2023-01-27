@@ -206,7 +206,8 @@ class Taylor1_5_SODE(_Explicit_Simple_Integrator):
     """
     Order 1.5 strong Taylor scheme.  Solver with more terms of the
     Ito-Taylor expansion.  Default solver for :obj:`~smesolve` and
-    :obj:`~ssesolve`.  See eq. (4.6) of chapter 10.4 of [1]_.
+    :obj:`~ssesolve`.  See eq. (4.6) of chapter 10.4 of Peter E. Kloeden and
+    Exkhard Platen, *Numerical Solution of Stochastic Differential Equations*.
 
     - Order strong 1.5
     """
@@ -218,7 +219,8 @@ class Milstein_SODE(_Explicit_Simple_Integrator):
     """
     An order 1.0 strong Taylor scheme.  Better approximate numerical
     solution to stochastic differential equations.  See eq. (2.9) of
-    chapter 12.2 of [1]_.
+    chapter 12.2 of Peter E. Kloeden and Exkhard Platen,
+    *Numerical Solution of Stochastic Differential Equations*..
 
     - Order strong 1.0
     """
@@ -230,7 +232,8 @@ class PredCorr_SODE(_Explicit_Simple_Integrator):
     """
     Generalization of the trapezoidal method to stochastic differential
     equations. More stable than explicit methods.  See eq. (5.4) of
-    chapter 15.5 of [1]_.
+    chapter 15.5 of Peter E. Kloeden and Exkhard Platen,
+    *Numerical Solution of Stochastic Differential Equations*.
 
     - Order strong 0.5, weak 1.0
     - Codes to only correct the stochastic part (:math:`\\alpha=0`,

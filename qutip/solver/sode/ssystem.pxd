@@ -8,7 +8,7 @@ cdef class _StochasticSystem:
     cdef Data state
     cdef double t
     cdef object imp
-    cdef int is_set
+    cdef int _is_set
 
     cpdef Data drift(self, t, Data state)
 
