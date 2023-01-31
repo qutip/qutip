@@ -104,11 +104,7 @@ class _Explicit_Simple_Integrator(SIntegrator):
         self.dt = self.options["dt"]
         self.tol = self.options["tol"]
         self.N_drift = system.num_collapse
-
-    def _step(self, dt, dW):
-        new_state = self.stepper(self.system, self.t, self.state, dt, dW)
-        self.state = new_state
-        self.t += dt
+        self.step_func = self.stepper(self.system).run
 
     def set_state(self, t, state0, generator):
         self.t = t
@@ -135,8 +131,8 @@ class _Explicit_Simple_Integrator(SIntegrator):
             size=(N, self.N_drift, self.N_dw)
         )
 
-        for i in range(N):
-            self._step(dt, dW[i, :])
+        self.state = self.step_func(self.t, self.state, dt, dW, N)
+        self.t += dt * N
 
         return self.t, self.state, np.sum(dW, axis=0) / (N * dt)
 
@@ -169,7 +165,7 @@ class EulerSODE(_Explicit_Simple_Integrator):
 
     - Order: 0.5
     """
-    stepper = _sode.euler
+    stepper = _sode.Euler
     N_dw = 1
 
 
@@ -183,7 +179,7 @@ class PlatenSODE(_Explicit_Simple_Integrator):
 
     - Order: strong 1, weak 2
     """
-    stepper = _sode.platen
+    stepper = _sode.Platen
     N_dw = 1
 
 
@@ -198,7 +194,7 @@ class Explicit1_5_SODE(_Explicit_Simple_Integrator):
 
     - Order: strong 1.5
     """
-    stepper = _sode.explicit15
+    stepper = _sode.Explicit15
     N_dw = 2
 
 
@@ -211,7 +207,7 @@ class Taylor1_5_SODE(_Explicit_Simple_Integrator):
 
     - Order strong 1.5
     """
-    stepper = _sode.taylor15
+    stepper = _sode.Taylor15
     N_dw = 2
 
 
@@ -224,7 +220,7 @@ class Milstein_SODE(_Explicit_Simple_Integrator):
 
     - Order strong 1.0
     """
-    stepper = _sode.milstein
+    stepper = _sode.Milstein
     N_dw = 1
 
 
@@ -243,7 +239,7 @@ class PredCorr_SODE(_Explicit_Simple_Integrator):
       (:math:`\\alpha=1/2`, :math:`\\eta=1/2`): ``'pc-euler-imp'``,
       ``'pc-euler-2'`` or ``'pred-corr-2'``
     """
-    stepper = _sode.pred_corr
+    stepper = _sode.PredCorr
     N_dw = 1
 
 
