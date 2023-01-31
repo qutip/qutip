@@ -148,8 +148,7 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
 
     if isinstance(ntraj, list):
         raise TypeError(
-            "List ntraj is no longer supported, use `result.expect_traj_avg`"
-            "with the options `keep_runs_results=True`."
+            "List ntraj is no longer supported"
         )
 
     mc = MCSolver(H, c_ops, options=options)
