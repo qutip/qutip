@@ -10,14 +10,14 @@ import IPython
 if IPython.version_info[0] >= 4:
     try:
         from ipyparallel import Client
-        __all__ = ['version_table', 'parfor', 'plot_animation',
+        __all__ = ['version_table', 'plot_animation',
                     'parallel_map', 'HTMLProgressBar']
     except:
          __all__ = ['version_table', 'plot_animation', 'HTMLProgressBar']
 else:
     try:
         from IPython.parallel import Client
-        __all__ = ['version_table', 'parfor', 'plot_animation',
+        __all__ = ['version_table', 'plot_animation',
                     'parallel_map', 'HTMLProgressBar']
     except:
          __all__ = ['version_table', 'plot_animation', 'HTMLProgressBar']
