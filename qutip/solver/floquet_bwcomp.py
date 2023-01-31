@@ -34,7 +34,9 @@ def floquet_modes(H, T, args=None, sort=False, U=None, options=None):
     f_mode_0 = fbasis.mode(0)
     f_energies = fbasis.e_quasi
     """
-    warnings.warn(FutureWarning("`floquet_modes` is deprecated."))
+    warnings.warn(FutureWarning(
+        "`floquet_modes` is deprecated. Use `FloquetBasis.mode` instead."
+    ))
     fbasis = FloquetBasis(H, T, args=args, options=options, sort=sort)
     f_mode_0 = fbasis.mode(0)
     f_energies = fbasis.e_quasi
@@ -51,7 +53,9 @@ def floquet_modes_t(f_modes_0, f_energies, t, H, T, args=None, options=None):
     fbasis = FloquetBasis(H, T, args=args, options=options)
     f_mode_t = fbasis.mode(t)
     """
-    warnings.warn(FutureWarning("`floquet_modes_t` is deprecated."))
+    warnings.warn(FutureWarning(
+        "`floquet_modes_t` is deprecated. Use `FloquetBasis.mode` instead."
+    ))
     fbasis = FloquetBasis(H, T, args=args, options=options)
     return fbasis.mode(t)
 
@@ -68,8 +72,9 @@ def floquet_modes_table(
 
     fbasis = FloquetBasis(H, T, args=args, options=options, precompute=tlist)
     """
-    warnings.warn(FutureWarning("`floquet_modes_table` is deprecated."))
-    return FloquetBasis(H, T, args=args, options=options, precompute=tlist)
+    raise NotImplementedError(
+        "`floquet_modes_table` is deprecated. Use `FloquetBasis` instead."
+    )
 
 
 def floquet_modes_t_lookup(f_modes_table_t, t, T):
@@ -82,8 +87,9 @@ def floquet_modes_t_lookup(f_modes_table_t, t, T):
     f_modes_table_t = fbasis = FloquetBasis(...)
     f_mode_t = f_modes_table_t.mode(t)
     """
-    warnings.warn(FutureWarning("`floquet_modes_t_lookup` is deprecated."))
-    return f_modes_table_t.mode(t)
+    raise NotImplementedError(
+        "`floquet_modes_t_lookup` is deprecated. Use `FloquetBasis` instead."
+    )
 
 
 def floquet_states(f_modes_t, f_energies, t):
@@ -95,7 +101,10 @@ def floquet_states(f_modes_t, f_energies, t):
     fbasis = FloquetBasis(H, T, args=args, options=options)
     f_state_t = fbasis.state(t)
     """
-    warnings.warn(FutureWarning("`floquet_states` is deprecated."))
+    warnings.warn(FutureWarning(
+        "`floquet_modes_t_lookup` is deprecated. "
+        "Use `FloquetBasis.state` instead."
+    ))
     return [
         (f_modes_t[i] * np.exp(-1j * f_energies[i] * t))
         for i in np.arange(len(f_energies))
@@ -111,7 +120,10 @@ def floquet_states_t(f_modes_0, f_energies, t, H, T, args=None, options=None):
     fbasis = FloquetBasis(H, T, args=args, options=options)
     f_state_t = fbasis.state(t)
     """
-    warnings.warn(FutureWarning("`floquet_states` is deprecated."))
+    warnings.warn(FutureWarning(
+        "`floquet_modes_t_lookup` is deprecated. "
+        "Use `FloquetBasis.state` instead."
+    ))
     fbasis = FloquetBasis(H, T, args=args, options=options)
     return fbasis.state(t)
 
@@ -126,13 +138,9 @@ def floquet_wavefunction(f_modes_t, f_energies, f_coeff, t):
     fbasis = FloquetBasis(H, T, args=args, options=options)
     psi_t = fbasis.from_floquet_basis(f_coeff, t)
     """
-    warnings.warn(FutureWarning("`floquet_wavefunction` is deprecated."))
-    return sum(
-        [
-            f_modes_t[i] * np.exp(-1j * f_energies[i] * t) * f_coeff[i]
-            for i in np.arange(1, len(f_energies))
-        ],
-        start=f_modes_t[0] * np.exp(-1j * f_energies[0] * t) * f_coeff[0],
+    raise NotImplementedError(
+        "`floquet_wavefunction` is deprecated. "
+        "Use `FloquetBasis.from_floquet_basis` instead."
     )
 
 
@@ -148,7 +156,10 @@ def floquet_wavefunction_t(
     fbasis = FloquetBasis(H, T, args=args, options=options)
     psi_t = fbasis.from_floquet_basis(f_coeff, t)
     """
-    warnings.warn(FutureWarning("`floquet_states` is deprecated."))
+    warnings.warn(FutureWarning(
+        "`floquet_modes_t_lookup` is deprecated. "
+        "Use `FloquetBasis.from_floquet_basis` instead."
+    ))
     fbasis = FloquetBasis(H, T, args=args, options=options)
     return fbasis.from_floquet_basis(f_coeff, t)
 
@@ -163,8 +174,10 @@ def floquet_state_decomposition(f_states, f_energies, psi):
     fbasis = FloquetBasis(H, T, args=args, options=options)
     f_coeff = fbasis.to_floquet_basis(psi)
     """
-    warnings.warn(FutureWarning("`floquet_states` is deprecated."))
-    return [state.dag() * psi for state in f_states]
+    raise NotImplementedError(
+        "`floquet_wavefunction` is deprecated. "
+        "Use `FloquetBasis.to_floquet_basis` instead."
+    )
 
 
 def floquet_master_equation_rates(
