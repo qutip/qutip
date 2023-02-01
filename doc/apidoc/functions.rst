@@ -316,7 +316,7 @@ IPython Notebook Tools
 ----------------------
 
 .. automodule:: qutip.ipynbtools
-    :members: parfor, parallel_map, version_table
+    :members: parallel_map, version_table
 
 .. _functions-misc:
 

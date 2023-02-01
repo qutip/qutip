@@ -62,7 +62,7 @@ module_groups = [
     ("#bf5730", {
         "fileio", "utilities", "ipynbtools", "sparse", "graph", "simdiag",
         "permute", "demos", "about", "parallel", "version", "testing",
-        "parfor", "hardware_info", "ui", "cite", "lattice",
+        "hardware_info", "ui", "cite",
     }),
 ]
 
