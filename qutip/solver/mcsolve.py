@@ -146,9 +146,10 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
         return mesolve(H, state, tlist, e_ops=e_ops, args=args,
                        options=options)
 
-    if isinstance(ntraj, list):
+    if isinstance(ntraj, (list, tuple)):
         raise TypeError(
-            "List ntraj is no longer supported"
+            "ntraj must be an integer. "
+            "A list of numbers is not longer supported."
         )
 
     mc = MCSolver(H, c_ops, options=options)
