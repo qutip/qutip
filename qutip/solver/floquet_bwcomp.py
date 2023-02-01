@@ -85,7 +85,9 @@ def floquet_modes_t_lookup(f_modes_table_t, t, T):
     f_modes_table_t = fbasis = FloquetBasis(...)
     f_mode_t = f_modes_table_t.mode(t)
     """
-    raise NotImplementedError("`floquet_modes_t_lookup` is deprecated.")
+    raise NotImplementedError(
+        "`floquet_modes_t_lookup` is no longer provided. Use `FloquetBasis` instead."
+    )
 
 
 def floquet_states(f_modes_t, f_energies, t):
@@ -135,7 +137,7 @@ def floquet_wavefunction(f_modes_t, f_energies, f_coeff, t):
     psi_t = fbasis.from_floquet_basis(f_coeff, t)
     """
     raise NotImplementedError(
-        "`floquet_wavefunction` is deprecated. "
+        "`floquet_wavefunction` is not longer provided. "
         "Use `FloquetBasis.from_floquet_basis` instead."
     )
 
