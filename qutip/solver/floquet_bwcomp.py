@@ -86,7 +86,8 @@ def floquet_modes_t_lookup(f_modes_table_t, t, T):
     f_mode_t = f_modes_table_t.mode(t)
     """
     raise NotImplementedError(
-        "`floquet_modes_t_lookup` is no longer provided. Use `FloquetBasis` instead."
+        "`floquet_modes_t_lookup` is no longer provided. "
+        "Use `FloquetBasis` instead."
     )
 
 
@@ -231,7 +232,9 @@ def floquet_master_equation_rates(
         A list (Delta, X, Gamma, A) containing the matrices Delta, X, Gamma
         and A used in the construction of the Floquet-Markov master equation.
     """
-    warnings.warn(FutureWarning("`floquet_master_equation_rates` is deprecated."))
+    warnings.warn(
+        FutureWarning("`floquet_master_equation_rates` is deprecated.")
+    )
     floquet_basis = FloquetBasis(H, T, args=args)
     energy = floquet_basis.e_quasi
     delta = floquet_delta_tensor(energy, kmax, T)
