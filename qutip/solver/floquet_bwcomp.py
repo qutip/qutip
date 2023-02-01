@@ -72,9 +72,7 @@ def floquet_modes_table(
 
     fbasis = FloquetBasis(H, T, args=args, options=options, precompute=tlist)
     """
-    raise NotImplementedError(
-        "`floquet_modes_table` is deprecated. Use `FloquetBasis` instead."
-    )
+    raise NotImplementedError("`floquet_modes_table` is deprecated.")
 
 
 def floquet_modes_t_lookup(f_modes_table_t, t, T):
@@ -87,9 +85,7 @@ def floquet_modes_t_lookup(f_modes_table_t, t, T):
     f_modes_table_t = fbasis = FloquetBasis(...)
     f_mode_t = f_modes_table_t.mode(t)
     """
-    raise NotImplementedError(
-        "`floquet_modes_t_lookup` is deprecated. Use `FloquetBasis` instead."
-    )
+    raise NotImplementedError("`floquet_modes_t_lookup` is deprecated.")
 
 
 def floquet_states(f_modes_t, f_energies, t):
@@ -102,7 +98,7 @@ def floquet_states(f_modes_t, f_energies, t):
     f_state_t = fbasis.state(t)
     """
     warnings.warn(FutureWarning(
-        "`floquet_modes_t_lookup` is deprecated. "
+        "`floquet_states` is deprecated. "
         "Use `FloquetBasis.state` instead."
     ))
     return [
@@ -121,7 +117,7 @@ def floquet_states_t(f_modes_0, f_energies, t, H, T, args=None, options=None):
     f_state_t = fbasis.state(t)
     """
     warnings.warn(FutureWarning(
-        "`floquet_modes_t_lookup` is deprecated. "
+        "`floquet_states_t` is deprecated. "
         "Use `FloquetBasis.state` instead."
     ))
     fbasis = FloquetBasis(H, T, args=args, options=options)
@@ -157,7 +153,7 @@ def floquet_wavefunction_t(
     psi_t = fbasis.from_floquet_basis(f_coeff, t)
     """
     warnings.warn(FutureWarning(
-        "`floquet_modes_t_lookup` is deprecated. "
+        "`floquet_wavefunction_t` is deprecated. "
         "Use `FloquetBasis.from_floquet_basis` instead."
     ))
     fbasis = FloquetBasis(H, T, args=args, options=options)
@@ -175,7 +171,7 @@ def floquet_state_decomposition(f_states, f_energies, psi):
     f_coeff = fbasis.to_floquet_basis(psi)
     """
     raise NotImplementedError(
-        "`floquet_wavefunction` is deprecated. "
+        "`floquet_state_decomposition` is deprecated. "
         "Use `FloquetBasis.to_floquet_basis` instead."
     )
 
