@@ -193,7 +193,7 @@ jobs:
       TWINE_USERNAME: __token__
       TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
       TWINE_NON_INTERACTIVE: 1
-      TWINE_REPOSITORY: testpypi
+      TWINE_REPOSITORY: testpypi  # https://test.pypi.org/legacy/
 
     steps:
       - name: Download build artifacts to local runner
