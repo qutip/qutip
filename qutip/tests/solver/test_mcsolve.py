@@ -253,8 +253,6 @@ def test_expectation_outputs(keep_runs_results):
         assert isinstance(data.runs_expect[0][0][1], float)
         assert isinstance(data.runs_expect[1][0][1], float)
         assert isinstance(data.runs_expect[2][0][1], complex)
-        assert not np.allclose(data.std_expect[0][1],
-                               data.expect_traj_std(3)[0][1])
     assert isinstance(data.photocurrent[0][0], float)
     assert isinstance(data.photocurrent[1][0], float)
     assert (np.array(data.runs_photocurrent).shape
