@@ -109,7 +109,7 @@ The number of cpu used can also be controlled using the `map_kw` keyword, per de
    Total run time:  28.91s
 
 There is a function called :func:`qutip.solver.parallel.serial_map` that works as a non-parallel drop-in replacement for :func:`qutip.solver.parallel.parallel_map`, which allows easy switching between serial and parallel computation.
-Qutip as also the function :func:`qutip.solver.parallel.loky_map` as another drop-in replacement. It use the `loky` module instead of `multiprocessing` to run in parallel.
+Qutip also has the function :func:`qutip.solver.parallel.loky_map` as another drop-in replacement. It use the `loky` module instead of `multiprocessing` to run in parallel.
 Parallel processing is useful for repeated tasks such as generating plots corresponding to the dynamical evolution of your system, or simultaneously simulating different parameter configurations.
 
 
