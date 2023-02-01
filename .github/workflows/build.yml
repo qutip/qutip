@@ -30,8 +30,10 @@ jobs:
       - name: Compare confirmation to current reference
         shell: bash
         run: |
-          [[ -z $CONFIRM_REF || $GITHUB_REF =~ ^refs/(heads|tags)/$CONFIRM_REF$ ]]
-          if [[ -z $CONFIRM_REF ]]; then
+          [[ -z $CONFIRM_REF || $GITHUB_REF =~ ^refs/(heads|tags)/$CONFIRM_REF$ || $CONFIRM_REF == "test" ]]
+          if [[ $CONFIRM_REF == "test" ]]; then
+            echo "Build and deploy to testpypi."
+          elif [[ -z $CONFIRM_REF ]]; then
             echo "Build only.  Nothing will be uploaded to PyPI."
           else
             echo "Full build and deploy.  Wheels and source will be uploaded to PyPI."
@@ -146,7 +148,7 @@ jobs:
     # either a missing confirmation (so we shouldn't run this job) or a valid
     # confirmation.  We don't need to retest the value of the confirmation,
     # beyond checking that one existed.
-    if: ${{ github.event.inputs.confirm_ref != '' }}
+    if: ${{ endswith(github.ref, github.event.inputs.confirm_ref) }}
     needs: [deploy_test, build_sdist, build_wheels]
     runs-on: ubuntu-latest
     env:
@@ -168,11 +170,49 @@ jobs:
         shell: bash
         run: |
           python -m pip install wheels/*-cp37-cp37m-*.manylinux2010_x86_64.whl
-          python -c 'import qutip; print(qutip.__version__); assert "dev" not in qutip.__version__; assert "+" not in qutip.__version__'
+          python -c 'import qutip; print(qutip.__version__); assert "+" not in qutip.__version__'
 
       # We built the zipfile for convenience distributing to Windows users on
       # our end, but PyPI only needs the tarball.
       - name: Upload sdist and wheels to PyPI
         run: |
           python -m pip install "twine"
-          python -m twine upload --verbose wheels/*.whl sdist/*.tar.gz
+          echo python -m twine upload --verbose wheels/*.whl sdist/*.tar.gz
+
+
+  deploy_testpypi:
+    name: "Deploy to TestPyPI if desired"
+    # The confirmation is tested explicitly in `deploy_test`, so we know it is
+    # either a missing confirmation (so we shouldn't run this job) or a valid
+    # confirmation.  We don't need to retest the value of the confirmation,
+    # beyond checking that one existed.
+    if: ${{ github.event.inputs.confirm_ref == 'test' }}
+    needs: [deploy_test, build_sdist, build_wheels]
+    runs-on: ubuntu-latest
+    env:
+      TWINE_USERNAME: __token__
+      TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
+      TWINE_NON_INTERACTIVE: 1
+      TWINE_REPOSITORY: testpypi
+
+    steps:
+      - name: Download build artifacts to local runner
+        uses: actions/download-artifact@v3
+
+      - uses: actions/setup-python@v4
+        name: Install Python
+        with:
+          python-version: '3.7'
+
+      - name: Verify this is not a dev version
+        shell: bash
+        run: |
+          python -m pip install wheels/*-cp37-cp37m-*.manylinux2010_x86_64.whl
+          python -c 'import qutip; print(qutip.__version__); assert "+" not in qutip.__version__'
+
+      # We built the zipfile for convenience distributing to Windows users on
+      # our end, but PyPI only needs the tarball.
+      - name: Upload sdist and wheels to TestPyPI
+        run: |
+          python -m pip install "twine"
+          echo python -m twine upload --verbose wheels/*.whl sdist/*.tar.gz
