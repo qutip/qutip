@@ -3,10 +3,9 @@ __all__ = ['mcsolve', "MCSolver"]
 import warnings
 
 import numpy as np
-from copy import copy
-from ..core import QobjEvo, spre, spost, Qobj, unstack_columns, liouvillian
+from ..core import QobjEvo, spre, spost, Qobj, unstack_columns
 from .multitraj import MultiTrajSolver
-from .solver_base import Solver
+from .solver_base import Solver, Integrator
 from .result import McResult, Result
 from .mesolve import mesolve, MESolver
 import qutip.core.data as _data
