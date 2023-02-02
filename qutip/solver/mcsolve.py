@@ -444,7 +444,7 @@ class MCSolver(MultiTrajSolver):
 
     def _get_integrator(self):
         _time_start = time()
-        method = self._options["method"]
+        method = self.options["method"]
         if method in self.avail_integrators():
             integrator = self.avail_integrators()[method]
         elif issubclass(method, Integrator):
@@ -461,7 +461,7 @@ class MCSolver(MultiTrajSolver):
     @property
     def options(self):
         """
-        Options for bloch redfield solver:
+        Options for monte carlo solver:
 
         store_final_state: bool, default=False
             Whether or not to store the final state of the evolution in the

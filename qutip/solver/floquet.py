@@ -766,8 +766,7 @@ class FMESolver(MESolver):
     def __init__(
         self, floquet_basis, a_ops, w_th=0.0, *, kmax=5, nT=None, options=None
     ):
-        self._options = {}
-        self.options = {} if options is None else options
+        self.options = options
         if isinstance(floquet_basis, FloquetBasis):
             self.floquet_basis = floquet_basis
         else:
