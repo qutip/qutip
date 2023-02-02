@@ -101,8 +101,8 @@ class MultiTrajSolver(Solver):
         if not self._integrator._is_set:
             raise RuntimeError("The `start` method must called first.")
         self._argument(args)
-        _, state = self._integrator.integrate(t, copy=False)
-        return self._restore_state(state, copy=copy)
+        t, state = self._integrator.integrate(t, copy=False)
+        return self._restore_state(state, t, copy=copy)
 
     def run(self, state, tlist, ntraj=1, *,
             args=None, e_ops=(), timeout=None, target_tol=None, seed=None):
@@ -202,10 +202,10 @@ class MultiTrajSolver(Solver):
         result = Result(e_ops, self.options)
         generator = self._get_generator(seed)
         self._integrator.set_state(tlist[0], state, generator)
-        result.add(tlist[0], self._restore_state(state, copy=False))
+        result.add(tlist[0], self._restore_state(state, tlist[0], copy=False))
         for t in tlist[1:]:
             t, state = self._integrator.step(t, copy=False)
-            result.add(t, self._restore_state(state, copy=False))
+            result.add(t, self._restore_state(state, t, copy=False))
         return seed, result
 
     def _read_seed(self, seed, ntraj):

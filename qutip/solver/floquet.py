@@ -916,14 +916,15 @@ class FMESolver(MESolver):
             stats=stats,
             floquet_basis=self.floquet_basis,
         )
-        results.add(tlist[0], self._restore_state(_data0, copy=False))
+        results.add(tlist[0],
+                    self._restore_state(_data0, tlist[0], copy=False))
         stats["preparation time"] += time() - _time_start
 
         progress_bar = progess_bars[self.options["progress_bar"]]()
         progress_bar.start(len(tlist) - 1, **self.options["progress_kwargs"])
         for t, state in self._integrator.run(tlist):
             progress_bar.update()
-            results.add(t, self._restore_state(state, copy=False))
+            results.add(t, self._restore_state(state, t, copy=False))
         progress_bar.finished()
 
         stats["run time"] = progress_bar.total_time()
