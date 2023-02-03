@@ -20,6 +20,7 @@ from .qobj import Qobj
 from .operators import jmat, displace, qdiags
 from .tensor import tensor
 
+
 def _promote_to_zero_list(arg, length):
     """
     Ensure `arg` is a list of length `length`.  If `arg` is None it is promoted
@@ -49,7 +50,7 @@ def basis(N, n=None, offset=None, *, dtype=_data.Dense):
     ----------
     N : int or list of ints
         The dimension of Hilbert space if it's int or A list with the number
-         of states in each sub-system if it's a list of ints.
+        of states in each sub-system if it's a list of ints.
 
 
     n : int or list of ints, optional (default 0 for all N)
@@ -150,6 +151,7 @@ def qutrit_basis(*, dtype=_data.Dense):
         basis(3, 2, dtype=dtype),
     ]
     return out
+
 
 _COHERENT_METHODS = ('operator', 'analytic')
 
@@ -545,8 +547,8 @@ def projection(N, n, m, offset=None, *, dtype=_data.CSR):
     oper : qobj
          Requested projection operator.
     """
-    return basis(N, n, offset=offset, dtype=dtype) @ \
-           basis(N, m, offset=offset, dtype=dtype).dag()
+    return basis(N, n, offset=offset, dtype=dtype) @ basis(
+        N, m, offset=offset, dtype=dtype).dag()
 
 
 def qstate(string, *, dtype=_data.Dense):
@@ -957,7 +959,7 @@ def enr_fock(N, excitations, state, *, dtype=_data.Dense):
     Parameters
     ----------
     N : list
-        A list with the number of states in each sub-system if it's a 
+        A list with the number of states in each sub-system if it's a
         list of ints.
     excitations : integer
         The maximum number of excitations that are to be included in the
@@ -979,7 +981,7 @@ def enr_fock(N, excitations, state, *, dtype=_data.Dense):
     """
     nstates, state2idx, _ = enr_state_dictionaries(N, excitations)
     try:
-        data =_data.one_element[dtype]((nstates, 1),
+        data = data.one_element[dtype]((nstates, 1),
                                        (state2idx[tuple(state)], 0), 1)
     except KeyError:
         msg = (
@@ -1164,9 +1166,10 @@ def spin_coherent(j, theta, phi, type='ket', *, dtype=_data.Dense):
         raise ValueError("Invalid value keyword argument 'type'")
     Sp = jmat(j, '+')
     Sm = jmat(j, '-')
-    psi = (0.5 * theta * np.exp(1j * phi) * Sm -
-           0.5 * theta * np.exp(-1j * phi) * Sp).expm() * \
-           spin_state(j, j)
+    psi = (
+        0.5 * theta * np.exp(1j * phi) * Sm -
+        0.5 * theta * np.exp(-1j * phi) * Sp).expm() * \
+        spin_state(j, j)
 
     if type == 'bra':
         psi = psi.dag()
@@ -1181,6 +1184,7 @@ _BELL_STATES = {
     '10': np.sqrt(0.5) * (basis([2, 2], [0, 1]) + basis([2, 2], [1, 0])),
     '11': np.sqrt(0.5) * (basis([2, 2], [0, 1]) - basis([2, 2], [1, 0])),
 }
+
 
 def bell_state(state='00', *, dtype=_data.Dense):
     r"""
