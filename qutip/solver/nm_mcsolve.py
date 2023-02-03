@@ -1,5 +1,6 @@
 __all__ = ['NonMarkovianMCSolver']
 
+from functools import partial
 import numpy as np
 import scipy
 from .mcsolve import MCSolver
@@ -55,14 +56,16 @@ class NonMarkovianMCSolver(MCSolver):
     def _compute_paired_c_ops(self):
         c_ops = []
         for f in self.ops_and_rates:
-            def sqrt_gamma(t, f=f):
-                return np.sqrt(f[1](t) + self._rate_shift(t))
+            sqrt_gamma = partial(self._sqrt_gamma, original_rate=f[1])
             c_ops.append(QobjEvo([f[0], sqrt_gamma]))
         return c_ops
 
     def _rate_shift(self, t):
         min_rate = min(f[1](t) for f in self.ops_and_rates)
         return 2 * abs(min(0, min_rate))
+    
+    def _sqrt_gamma(self, t, original_rate):
+        return np.sqrt(original_rate(t) + self._rate_shift(t))
 
     # Continuous part of the martingale evolution
     def _continuous_martingale(self, tlist):
@@ -88,16 +91,16 @@ class NonMarkovianMCSolver(MCSolver):
         return super().run(state, tlist, *args, **kwargs)
 
     # Override "_restore_state" to include the martingale in the state
-    def _restore_state(self, data, time, *, copy=True):
+    def _restore_state(self, data, t, *, copy=True):
         # find state |psi><psi|
-        state = super()._restore_state(data, time, copy=copy)
+        state = super()._restore_state(data, t, copy=copy)
         if isket(state):
             # the influence martingale is for weighting density matrices, not kets!
             state = ket2dm(state)
 
         # find martingale mu
         collapses = self._integrator.collapses
-        mu = self._mu_c[time] * self._discrete_martingale(collapses)
+        mu = self._mu_c[t] * self._discrete_martingale(collapses)
 
         # return weighted state
         return mu * state
