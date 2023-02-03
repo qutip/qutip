@@ -4,6 +4,7 @@ from functools import partial
 import numpy as np
 import scipy
 from .mcsolve import MCSolver
+from .result import McResult
 from ..core import QobjEvo, isket, ket2dm
 
 
@@ -12,32 +13,53 @@ class NonMarkovianMCSolver(MCSolver):
     Monte-Carlo solver for master equation with negative rates.
     Based on the methods explained in arXiv:2209.08958 [quant-ph]
     """
+    name = "nm_mcsolve"
+    resultclass = McResult
+    solver_options = {
+        "progress_bar": "text",
+        "progress_kwargs": {"chunk_size": 10},
+        "store_final_state": False,
+        "store_states": None,
+        "keep_runs_results": False,
+        "method": "adams",
+        "map": "serial",
+        "job_timeout": None,
+        "num_cpus": None,
+        "bitgenerator": None,
+        "mc_corr_eps": 1e-10,
+        "norm_steps": 5,
+        "norm_t_tol": 1e-6,
+        "norm_tol": 1e-4,
+        "completeness_rtol": None,
+        "completeness_atol": None,
+    }
 
     # ops_and_rates is a list of tuples (L_i, Gamma_i), where Gamma_i = Gamma_i(t) is callable
-    def __init__(self, H, ops_and_rates, *args,
-                 completeness_rtol=None, completeness_atol=None, **kwargs):
+    def __init__(self, H, ops_and_rates, *args, options=None, **kwargs):
         self.ops_and_rates = list(ops_and_rates)
-        self._a_parameter, L = self._check_completeness(ops_and_rates,
-                                                        completeness_rtol,
-                                                        completeness_atol)
+
+        self._a_parameter, L = self._check_completeness(ops_and_rates, options)
         if L is not None:
             self.ops_and_rates.append((L, lambda t: 0))
 
         c_ops = self._compute_paired_c_ops()
-        super().__init__(H, c_ops, *args, **kwargs)
+        super().__init__(H, c_ops, *args, options=options, **kwargs)
 
     # Check whether op = sum(Li.dag() * Li) is proportional to identity
     # If not, creates an extra Lindblad operator so that it is
     # Returns: * the proportionality factor a
     #          * the extra Lindblad operator (or None if not necessary)
     @staticmethod
-    def _check_completeness(ops_and_rates,
-                            completeness_rtol=None, completeness_atol=None):
+    def _check_completeness(ops_and_rates, options=None):
         tolerance_settings = {}
-        if completeness_rtol is not None:
-            tolerance_settings['rtol'] = completeness_rtol
-        if completeness_atol is not None:
-            tolerance_settings['atol'] = completeness_atol
+        if options is not None:
+            rtol = options.get('completeness_rtol', None)
+            if rtol is not None:
+                tolerance_settings['rtol'] = rtol
+
+            atol = options.get('completeness_atol', None)
+            if atol is not None:
+                tolerance_settings['atol'] = atol
 
         op = sum((f[0].dag() * f[0]).full() for f in ops_and_rates)
 
