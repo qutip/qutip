@@ -148,7 +148,7 @@ jobs:
     # either a missing confirmation (so we shouldn't run this job) or a valid
     # confirmation.  We don't need to retest the value of the confirmation,
     # beyond checking that one existed.
-    if: ${{ endswith(github.ref, github.event.inputs.confirm_ref) }}
+    if: ${{ ithub.event.inputs.confirm_ref != '' && github.event.inputs.confirm_ref != 'test' }}
     needs: [deploy_test, build_sdist, build_wheels]
     runs-on: ubuntu-latest
     env:
@@ -170,7 +170,7 @@ jobs:
         shell: bash
         run: |
           python -m pip install wheels/*-cp37-cp37m-*.manylinux2010_x86_64.whl
-          python -c 'import qutip; print(qutip.__version__); assert "+" not in qutip.__version__'
+          python -c 'import qutip; print(qutip.__version__); assert "dev" not in qutip.__version__; assert "+" not in qutip.__version__'
 
       # We built the zipfile for convenience distributing to Windows users on
       # our end, but PyPI only needs the tarball.
