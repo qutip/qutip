@@ -37,10 +37,11 @@ class NonMarkovianMCSolver(MCSolver):
     # ops_and_rates is a list of tuples (L_i, Gamma_i), where Gamma_i = Gamma_i(t) is callable
     def __init__(self, H, ops_and_rates, *args, options=None, **kwargs):
         self.ops_and_rates = list(ops_and_rates)
+        self._mu_c = None
 
         self._a_parameter, L = self._check_completeness(ops_and_rates, options)
         if L is not None:
-            self.ops_and_rates.append((L, float)) # float() is zero
+            self.ops_and_rates.append((L, float))  # float() is zero
 
         c_ops = self._compute_paired_c_ops()
         super().__init__(H, c_ops, *args, options=options, **kwargs)
@@ -85,19 +86,31 @@ class NonMarkovianMCSolver(MCSolver):
     def _rate_shift(self, t):
         min_rate = min(f[1](t) for f in self.ops_and_rates)
         return 2 * abs(min(0, min_rate))
-    
+
     def _sqrt_gamma(self, t, original_rate):
         return np.sqrt(original_rate(t) + self._rate_shift(t))
 
     # Continuous part of the martingale evolution
-    def _continuous_martingale(self, tlist):
-        mu_c = {t: 1 for t in tlist}
-        integral = 0
-        for t1, t2 in zip(tlist, tlist[1:]):
-            # We compute the time integral for every interval and sum them together
-            integral += scipy.integrate.quad(self._rate_shift, t1, t2)[0]
-            mu_c[t2] = np.exp(self._a_parameter * integral)
-        return mu_c
+    # Checks self._mu_c for the closest time t0 earlier than the given time t
+    #     and starts integration from there.
+    # Returns the continuous part of the martingale at time t and stores it in
+    #     self._mu_c
+    def _continuous_martingale(self, t):
+        if self._mu_c is None:
+            raise RuntimeError("The `start` method must called first.")
+        if t in self._mu_c:
+            return self._mu_c[t]
+
+        earlier_times = filter(lambda t0: t0 < t, self._mu_c.keys())
+        try:
+            t0 = max(earlier_times)
+        except ValueError as exc:
+            raise ValueError("Cannot integrate backwards in time.") from exc
+
+        integral = scipy.integrate.quad(self._rate_shift, t0, t)[0]
+        result = self._mu_c[t0] * np.exp(self._a_parameter * integral)
+        self._mu_c[t] = result
+        return result
 
     # Discrete part of the martingale evolution
     # collapses is a list of (t_k, i_k)
@@ -107,10 +120,16 @@ class NonMarkovianMCSolver(MCSolver):
                    for tk, ik in collapses]
         return np.prod(factors)
 
-    # Override "run" to initialize continuous part of martingale evolution
+    # Override "run" and "start" to initialize continuous part of martingale evolution
     def run(self, state, tlist, *args, **kwargs):
-        self._mu_c = self._continuous_martingale(tlist)
+        self._mu_c = {tlist[0]: 1}
+        for t in tlist[1:]:
+            self._continuous_martingale(t)  # precompute self._mu_c
         return super().run(state, tlist, *args, **kwargs)
+
+    def start(self, state, t0, seed=None):
+        self._mu_c = {t0: 1}
+        return super().start(state, t0, seed=seed)
 
     # Override "_restore_state" to include the martingale in the state
     def _restore_state(self, data, t, *, copy=True):
@@ -122,7 +141,8 @@ class NonMarkovianMCSolver(MCSolver):
 
         # find martingale mu
         collapses = self._integrator.collapses
-        mu = self._mu_c[t] * self._discrete_martingale(collapses)
+        mu = self._continuous_martingale(t) *\
+            self._discrete_martingale(collapses)
 
         # return weighted state
         return mu * state
