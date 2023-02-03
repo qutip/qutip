@@ -5,7 +5,7 @@ import numpy as np
 import scipy
 from .mcsolve import MCSolver
 from .result import McResult
-from ..core import QobjEvo, isket, ket2dm
+from ..core import Qobj, QobjEvo, isket, ket2dm
 
 
 class NonMarkovianMCSolver(MCSolver):
@@ -40,7 +40,7 @@ class NonMarkovianMCSolver(MCSolver):
 
         self._a_parameter, L = self._check_completeness(ops_and_rates, options)
         if L is not None:
-            self.ops_and_rates.append((L, lambda t: 0))
+            self.ops_and_rates.append((L, float)) # float() is zero
 
         c_ops = self._compute_paired_c_ops()
         super().__init__(H, c_ops, *args, options=options, **kwargs)
@@ -71,7 +71,7 @@ class NonMarkovianMCSolver(MCSolver):
         w, _ = np.linalg.eig(op)
         a = max(np.real(w))
         L = scipy.linalg.sqrtm(a * np.eye(len(op)) - op)  # new Lindblad operator
-        return a, L
+        return a, Qobj(L)
 
     # Shifts all rate function by the function rate_shift
     # Returns c_i = L_i * sqrt(gamma_i) as QobjEvo objects
