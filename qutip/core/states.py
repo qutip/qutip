@@ -42,22 +42,22 @@ def _promote_to_zero_list(arg, length):
     raise TypeError("Dimensions must be an integer or list of integers.")
 
 
-def basis(dimensions, n=None, offset=None, *, dtype=_data.Dense):
+def basis(N, n=None, offset=None, *, dtype=_data.Dense):
     """Generates the vector representation of a Fock state.
 
     Parameters
     ----------
-    dimensions : int or list of ints
+    N : int or list of ints
         Number of Fock states in Hilbert space.  If a list, then the resultant
         object will be a tensor product over spaces with those dimensions.
 
-    n : int or list of ints, optional (default 0 for all dimensions)
+    n : int or list of ints, optional (default 0 for all N)
         Integer corresponding to desired number state, defaults to 0 for all
-        dimensions if omitted.  The shape must match ``dimensions``, e.g. if
-        ``dimensions`` is a list, then ``n`` must either be omitted or a list
+        N if omitted.  The shape must match ``N``, e.g. if
+        ``N`` is a list, then ``n`` must either be omitted or a list
         of equal length.
 
-    offset : int or list of ints, optional (default 0 for all dimensions)
+    offset : int or list of ints, optional (default 0 for all N)
         The lowest number state that is included in the finite number state
         representation of the state in the relevant dimension.
 
@@ -73,7 +73,7 @@ def basis(dimensions, n=None, offset=None, *, dtype=_data.Dense):
     Examples
     --------
     >>> basis(5,2) # doctest: +SKIP
-    Quantum object: dims = [[5], [1]], shape = (5, 1), type = ket
+    Quantum object: N = [[5], [1]], shape = (5, 1), type = ket
     Qobj data =
     [[ 0.+0.j]
      [ 0.+0.j]
@@ -81,7 +81,7 @@ def basis(dimensions, n=None, offset=None, *, dtype=_data.Dense):
      [ 0.+0.j]
      [ 0.+0.j]]
     >>> basis([2,2,2], [0,1,0]) # doctest: +SKIP
-    Quantum object: dims = [[2, 2, 2], [1, 1, 1]], shape = (8, 1), type = ket
+    Quantum object: N = [[2, 2, 2], [1, 1, 1]], shape = (8, 1), type = ket
     Qobj data =
     [[0.]
      [0.]
@@ -105,24 +105,24 @@ def basis(dimensions, n=None, offset=None, *, dtype=_data.Dense):
 
     """
     # Promote all parameters to lists to simplify later logic.
-    if not isinstance(dimensions, list):
-        dimensions = [dimensions]
-    n_dimensions = len(dimensions)
+    if not isinstance(N, list):
+        N = [N]
+    n_dimensions = len(N)
     ns = [m-off for m, off in zip(_promote_to_zero_list(n, n_dimensions),
                                   _promote_to_zero_list(offset, n_dimensions))]
-    if any((not isinstance(x, numbers.Integral)) or x < 0 for x in dimensions):
+    if any((not isinstance(x, numbers.Integral)) or x < 0 for x in N):
         raise ValueError("All dimensions must be >= 0.")
-    if not all(0 <= n < dimension for n, dimension in zip(ns, dimensions)):
+    if not all(0 <= n < dimension for n, dimension in zip(ns, N)):
         raise ValueError("All basis indices must be "
                          "`offset <= n < dimension+offset`.")
     location, size = 0, 1
-    for m, dimension in zip(reversed(ns), reversed(dimensions)):
+    for m, dimension in zip(reversed(ns), reversed(N)):
         location += m*size
         size *= dimension
 
     data = _data.one_element[dtype]((size, 1), (location, 0), 1)
     return Qobj(data,
-                dims=[dimensions, [1]*n_dimensions],
+                dims=[N, [1]*n_dimensions],
                 type='ket',
                 isherm=False,
                 isunitary=False,
@@ -186,7 +186,7 @@ def coherent(N, alpha, offset=0, method=None, *, dtype=_data.Dense):
     Examples
     --------
     >>> coherent(5,0.25j) # doctest: +SKIP
-    Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
+    Quantum object: N = [[5], [1]], shape = [5, 1], type = ket
     Qobj data =
     [[  9.69233235e-01+0.j        ]
      [  0.00000000e+00+0.24230831j]
@@ -272,7 +272,7 @@ def coherent_dm(N, alpha, offset=0, method='operator', *, dtype=_data.Dense):
     Examples
     --------
     >>> coherent_dm(3,0.25j) # doctest: +SKIP
-    Quantum object: dims = [[3], [3]], \
+    Quantum object: N = [[3], [3]], \
 shape = [3, 3], type = oper, isHerm = True
     Qobj data =
     [[ 0.93941695+0.j          0.00000000-0.23480733j -0.04216943+0.j        ]
@@ -296,21 +296,21 @@ shape = [3, 3], type = oper, isHerm = True
     return coherent(N, alpha, offset=offset, method=method, dtype=dtype).proj()
 
 
-def fock_dm(dimensions, n=None, offset=None, *, dtype=_data.CSR):
+def fock_dm(N, n=None, offset=None, *, dtype=_data.CSR):
     """Density matrix representation of a Fock state
 
     Constructed via outer product of :func:`qutip.states.fock`.
 
     Parameters
     ----------
-    dimensions : int or list of ints
+    N : int or list of ints
         Number of Fock states in Hilbert space.  If a list, then the resultant
         object will be a tensor product over spaces with those dimensions.
 
-    n : int or list of ints, optional (default 0 for all dimensions)
+    n : int or list of ints, optional (default 0 for all N)
         Integer corresponding to desired number state, defaults to 0 for all
-        dimensions if omitted.  The shape must match ``dimensions``, e.g. if
-        ``dimensions`` is a list, then ``n`` must either be omitted or a list
+        N if omitted.  The shape must match ``N``, e.g. if
+        ``N`` is a list, then ``n`` must either be omitted or a list
         of equal length.
 
     offset : int or list of ints, optional (default 0 for all dimensions)
@@ -329,7 +329,7 @@ def fock_dm(dimensions, n=None, offset=None, *, dtype=_data.CSR):
     Examples
     --------
      >>> fock_dm(3,1) # doctest: +SKIP
-     Quantum object: dims = [[3], [3]], \
+     Quantum object: N = [[3], [3]], \
 shape = [3, 3], type = oper, isHerm = True
      Qobj data =
      [[ 0.+0.j  0.+0.j  0.+0.j]
@@ -337,24 +337,24 @@ shape = [3, 3], type = oper, isHerm = True
       [ 0.+0.j  0.+0.j  0.+0.j]]
 
     """
-    return basis(dimensions, n, offset=offset, dtype=dtype).proj()
+    return basis(N, n, offset=offset, dtype=dtype).proj()
 
 
-def fock(dimensions, n=None, offset=None, *, dtype=_data.Dense):
+def fock(N, n=None, offset=None, *, dtype=_data.Dense):
     """Bosonic Fock (number) state.
 
     Same as :func:`qutip.states.basis`.
 
     Parameters
     ----------
-    dimensions : int or list of ints
+    N : int or list of ints
         Number of Fock states in Hilbert space.  If a list, then the resultant
         object will be a tensor product over spaces with those dimensions.
 
-    n : int or list of ints, optional (default 0 for all dimensions)
+    n : int or list of ints, optional (default 0 for all N)
         Integer corresponding to desired number state, defaults to 0 for all
-        dimensions if omitted.  The shape must match ``dimensions``, e.g. if
-        ``dimensions`` is a list, then ``n`` must either be omitted or a list
+        N if omitted.  The shape must match ``N``, e.g. if
+        ``N`` is a list, then ``n`` must either be omitted or a list
         of equal length.
 
     offset : int or list of ints, optional (default 0 for all dimensions)
@@ -372,7 +372,7 @@ def fock(dimensions, n=None, offset=None, *, dtype=_data.Dense):
     Examples
     --------
     >>> fock(4,3) # doctest: +SKIP
-    Quantum object: dims = [[4], [1]], shape = [4, 1], type = ket
+    Quantum object: N = [[4], [1]], shape = [4, 1], type = ket
     Qobj data =
     [[ 0.+0.j]
      [ 0.+0.j]
@@ -380,7 +380,7 @@ def fock(dimensions, n=None, offset=None, *, dtype=_data.Dense):
      [ 1.+0.j]]
 
     """
-    return basis(dimensions, n, offset=offset, dtype=dtype)
+    return basis(N, n, offset=offset, dtype=dtype)
 
 
 def thermal_dm(N, n, method='operator', *, dtype=_data.CSR):
@@ -410,7 +410,7 @@ def thermal_dm(N, n, method='operator', *, dtype=_data.CSR):
     Examples
     --------
     >>> thermal_dm(5, 1) # doctest: +SKIP
-    Quantum object: dims = [[5], [5]], \
+    Quantum object: N = [[5], [5]], \
 shape = [5, 5], type = oper, isHerm = True
     Qobj data =
     [[ 0.51612903  0.          0.          0.          0.        ]
@@ -421,7 +421,7 @@ shape = [5, 5], type = oper, isHerm = True
 
 
     >>> thermal_dm(5, 1, 'analytic') # doctest: +SKIP
-    Quantum object: dims = [[5], [5]], \
+    Quantum object: N = [[5], [5]], \
 shape = [5, 5], type = oper, isHerm = True
     Qobj data =
     [[ 0.5      0.       0.       0.       0.     ]
@@ -505,7 +505,7 @@ def ket2dm(Q):
     --------
     >>> x=basis(3,2)
     >>> ket2dm(x) # doctest: +SKIP
-    Quantum object: dims = [[3], [3]], \
+    Quantum object: N = [[3], [3]], \
 shape = [3, 3], type = oper, isHerm = True
     Qobj data =
     [[ 0.+0.j  0.+0.j  0.+0.j]
@@ -574,7 +574,7 @@ def qstate(string, *, dtype=_data.Dense):
     Examples
     --------
     >>> qstate('udu') # doctest: +SKIP
-    Quantum object: dims = [[2, 2, 2], [1, 1, 1]], shape = [8, 1], type = ket
+    Quantum object: N = [[2, 2, 2], [1, 1, 1]], shape = [8, 1], type = ket
     Qobj data =
     [[ 0.]
      [ 0.]
@@ -644,7 +644,7 @@ def ket(seq, dim=2, *, dtype=_data.Dense):
     Examples
     --------
     >>> ket("10") # doctest: +SKIP
-    Quantum object: dims = [[2, 2], [1, 1]], shape = [4, 1], type = ket
+    Quantum object: N = [[2, 2], [1, 1]], shape = [4, 1], type = ket
     Qobj data =
     [[ 0.]
      [ 0.]
@@ -652,7 +652,7 @@ def ket(seq, dim=2, *, dtype=_data.Dense):
      [ 0.]]
 
     >>> ket("Hue") # doctest: +SKIP
-    Quantum object: dims = [[2, 2, 2], [1, 1, 1]], shape = [8, 1], type = ket
+    Quantum object: N = [[2, 2, 2], [1, 1, 1]], shape = [8, 1], type = ket
     Qobj data =
     [[ 0.]
      [ 1.]
@@ -664,7 +664,7 @@ def ket(seq, dim=2, *, dtype=_data.Dense):
      [ 0.]]
 
     >>> ket("12", 3) # doctest: +SKIP
-    Quantum object: dims = [[3, 3], [1, 1]], shape = [9, 1], type = ket
+    Quantum object: N = [[3, 3], [1, 1]], shape = [9, 1], type = ket
     Qobj data =
     [[ 0.]
      [ 0.]
@@ -677,7 +677,7 @@ def ket(seq, dim=2, *, dtype=_data.Dense):
      [ 0.]]
 
     >>> ket("31", [5, 2]) # doctest: +SKIP
-    Quantum object: dims = [[5, 2], [1, 1]], shape = [10, 1], type = ket
+    Quantum object: N = [[5, 2], [1, 1]], shape = [10, 1], type = ket
     Qobj data =
     [[ 0.]
      [ 0.]
@@ -729,33 +729,33 @@ def bra(seq, dim=2, *, dtype=_data.Dense):
     Examples
     --------
     >>> bra("10") # doctest: +SKIP
-    Quantum object: dims = [[1, 1], [2, 2]], shape = [1, 4], type = bra
+    Quantum object: N = [[1, 1], [2, 2]], shape = [1, 4], type = bra
     Qobj data =
     [[ 0.  0.  1.  0.]]
 
     >>> bra("Hue") # doctest: +SKIP
-    Quantum object: dims = [[1, 1, 1], [2, 2, 2]], shape = [1, 8], type = bra
+    Quantum object: N = [[1, 1, 1], [2, 2, 2]], shape = [1, 8], type = bra
     Qobj data =
     [[ 0.  1.  0.  0.  0.  0.  0.  0.]]
 
     >>> bra("12", 3) # doctest: +SKIP
-    Quantum object: dims = [[1, 1], [3, 3]], shape = [1, 9], type = bra
+    Quantum object: N = [[1, 1], [3, 3]], shape = [1, 9], type = bra
     Qobj data =
     [[ 0.  0.  0.  0.  0.  1.  0.  0.  0.]]
 
 
     >>> bra("31", [5, 2]) # doctest: +SKIP
-    Quantum object: dims = [[1, 1], [5, 2]], shape = [1, 10], type = bra
+    Quantum object: N = [[1, 1], [5, 2]], shape = [1, 10], type = bra
     Qobj data =
     [[ 0.  0.  0.  0.  0.  0.  0.  1.  0.  0.]]
     """
     return ket(seq, dim=dim, dtype=dtype).dag()
 
 
-def state_number_enumerate(dims, excitations=None):
+def state_number_enumerate(N, excitations=None):
     """
     An iterator that enumerates all the state number tuples (quantum numbers of
-    the form (n1, n2, n3, ...)) for a system with dimensions given by dims.
+    the form (n1, n2, n3, ...)) for a system with dimensions given by N.
 
     Example:
 
@@ -768,7 +768,7 @@ def state_number_enumerate(dims, excitations=None):
 
     Parameters
     ----------
-    dims : list or array
+    N : list or array
         The quantum state dimensions array, as it would appear in a Qobj.
 
     excitations : integer (None)
@@ -785,23 +785,23 @@ def state_number_enumerate(dims, excitations=None):
 
     if excitations is None:
         # in this case, state numbers are a direct product
-        yield from itertools.product(*(range(d) for d in dims))
+        yield from itertools.product(*(range(d) for d in N))
         return
 
     # From here on, excitations is not None
 
     # General idea of algorithm: add excitations one by one in last mode (idx =
-    # len(dims)-1), and carry over to the next index when the limit is reached.
+    # len(N)-1), and carry over to the next index when the limit is reached.
     # Keep track of the number of excitations while doing so to avoid having to
     # do explicit sums over the states.
-    state = (0,)*len(dims)
+    state = (0,)*len(N)
     nexc = 0
     while True:
         yield state
-        idx = len(dims) - 1
+        idx = len(N) - 1
         state = state[:idx] + (state[idx]+1,)
         nexc += 1
-        while nexc > excitations or state[idx] >= dims[idx]:
+        while nexc > excitations or state[idx] >= N[idx]:
             # remove all excitations in mode idx, add one in idx-1
             idx -= 1
             if idx < 0:
@@ -810,10 +810,10 @@ def state_number_enumerate(dims, excitations=None):
             state = state[:idx] + (state[idx]+1, 0) + state[idx+2:]
 
 
-def state_number_index(dims, state):
+def state_number_index(N, state):
     """
     Return the index of a quantum state corresponding to state,
-    given a system with dimensions given by dims.
+    given a system with dimensions given by N.
 
     Example:
 
@@ -822,7 +822,7 @@ def state_number_index(dims, state):
 
     Parameters
     ----------
-    dims : list or array
+    N : list or array
         The quantum state dimensions array, as it would appear in a Qobj.
 
     state : list
@@ -835,13 +835,13 @@ def state_number_index(dims, state):
         ordering.
 
     """
-    return np.ravel_multi_index(state, dims)
+    return np.ravel_multi_index(state, N)
 
 
-def state_index_number(dims, index):
+def state_index_number(N, index):
     """
     Return a quantum number representation given a state index, for a system
-    of composite structure defined by dims.
+    of composite structure defined by N.
 
     Example:
 
@@ -850,7 +850,7 @@ def state_index_number(dims, index):
 
     Parameters
     ----------
-    dims : list or array
+    N : list or array
         The quantum state dimensions array, as it would appear in a Qobj.
 
     index : integer
@@ -863,10 +863,10 @@ def state_index_number(dims, index):
         enumeration ordering.
 
     """
-    return np.unravel_index(index, dims)
+    return np.unravel_index(index, N)
 
 
-def state_number_qobj(dims, state, *, dtype=_data.Dense):
+def state_number_qobj(N, state, *, dtype=_data.Dense):
     """
     Return a Qobj representation of a quantum state specified by the state
     array `state`.
@@ -874,7 +874,7 @@ def state_number_qobj(dims, state, *, dtype=_data.Dense):
     Example:
 
         >>> state_number_qobj([2, 2, 2], [1, 0, 1]) # doctest: +SKIP
-        Quantum object: dims = [[2, 2, 2], [1, 1, 1]], \
+        Quantum object: N = [[2, 2, 2], [1, 1, 1]], \
 shape = [8, 1], type = ket
         Qobj data =
         [[ 0.]
@@ -888,7 +888,7 @@ shape = [8, 1], type = ket
 
     Parameters
     ----------
-    dims : list or array
+    N : list or array
         The quantum state dimensions array, as it would appear in a Qobj.
 
     state : list
@@ -908,12 +908,12 @@ shape = [8, 1], type = ket
     """
     warnings.warn("basis() is a drop-in replacement for this",
                   DeprecationWarning)
-    return basis(dims, state, dtype=dtype)
+    return basis(N, state, dtype=dtype)
 
 
 # Excitation-number restricted (enr) states
 
-def enr_state_dictionaries(dims, excitations):
+def enr_state_dictionaries(N, excitations):
     """
     Return the number of states, and lookup-dictionaries for translating
     a state tuple to a state index, and vice versa, for a system with a given
@@ -921,7 +921,7 @@ def enr_state_dictionaries(dims, excitations):
 
     Parameters
     ----------
-    dims: list
+    N: list
         A list with the number of states in each sub-system.
 
     excitations : integer
@@ -936,17 +936,17 @@ def enr_state_dictionaries(dims, excitations):
         each other, i.e., state2idx[idx2state[idx]] = idx and
         idx2state[state2idx[state]] = state.
     """
-    idx2state = list(state_number_enumerate(dims, excitations))
+    idx2state = list(state_number_enumerate(N, excitations))
     state2idx = {state: idx for idx, state in enumerate(idx2state)}
     nstates = len(idx2state)
 
     return nstates, state2idx, idx2state
 
 
-def enr_fock(dims, excitations, state, *, dtype=_data.Dense):
+def enr_fock(N, excitations, state, *, dtype=_data.Dense):
     """
     Generate the Fock state representation in a excitation-number restricted
-    state space. The `dims` argument is a list of integers that define the
+    state space. The `N` argument is a list of integers that define the
     number of quantums states of each component of a composite quantum system,
     and the `excitations` specifies the maximum number of excitations for
     the basis states that are to be included in the state space. The `state`
@@ -955,7 +955,7 @@ def enr_fock(dims, excitations, state, *, dtype=_data.Dense):
 
     Parameters
     ----------
-    dims : list
+    N : list
         A list of the dimensions of each subsystem of a composite quantum
         system.
 
@@ -974,10 +974,10 @@ def enr_fock(dims, excitations, state, *, dtype=_data.Dense):
     -------
     ket : Qobj
         A Qobj instance that represent a Fock state in the exication-number-
-        restricted state space defined by `dims` and `exciations`.
+        restricted state space defined by `N` and `exciations`.
 
     """
-    nstates, state2idx, _ = enr_state_dictionaries(dims, excitations)
+    nstates, state2idx, _ = enr_state_dictionaries(N, excitations)
     try:
         data =_data.one_element[dtype]((nstates, 1),
                                        (state2idx[tuple(state)], 0), 1)
@@ -987,20 +987,20 @@ def enr_fock(dims, excitations, state, *, dtype=_data.Dense):
             + " is not in the restricted state space."
         )
         raise ValueError(msg) from None
-    return Qobj(data, dims=[dims, [1]*len(dims)], type='ket', copy=False)
+    return Qobj(data, dims=[N, [1]*len(N)], type='ket', copy=False)
 
 
-def enr_thermal_dm(dims, excitations, n, *, dtype=_data.CSR):
+def enr_thermal_dm(N, excitations, n, *, dtype=_data.CSR):
     """
     Generate the density operator for a thermal state in the excitation-number-
-    restricted state space defined by the `dims` and `exciations` arguments.
+    restricted state space defined by the `N` and `exciations` arguments.
     See the documentation for enr_fock for a more detailed description of
-    these arguments. The temperature of each mode in dims is specified by
+    these arguments. The temperature of each mode in N is specified by
     the average number of excitatons `n`.
 
     Parameters
     ----------
-    dims : list
+    N : list
         A list of the dimensions of each subsystem of a composite quantum
         system.
 
@@ -1011,7 +1011,7 @@ def enr_thermal_dm(dims, excitations, n, *, dtype=_data.CSR):
     n : integer
         The average number of exciations in the thermal state. `n` can be
         a float (which then applies to each mode), or a list/array of the same
-        length as dims, in which each element corresponds specifies the
+        length as N, in which each element corresponds specifies the
         temperature of the corresponding mode.
 
     dtype : type or str
@@ -1023,15 +1023,15 @@ def enr_thermal_dm(dims, excitations, n, *, dtype=_data.CSR):
     dm : Qobj
         Thermal state density matrix.
     """
-    nstates, _, idx2state = enr_state_dictionaries(dims, excitations)
+    nstates, _, idx2state = enr_state_dictionaries(N, excitations)
     if not isinstance(n, (list, np.ndarray)):
-        n = np.ones(len(dims)) * n
+        n = np.ones(len(N)) * n
     else:
         n = np.asarray(n)
 
     diags = [np.prod((n / (n + 1)) ** np.array(state)) for state in idx2state]
     diags /= np.sum(diags)
-    out = qdiags(diags, 0, dims=[dims, dims],
+    out = qdiags(diags, 0, dims=[N, N],
                  shape=(nstates, nstates), dtype=dtype)
     out._isherm = True
     return out
