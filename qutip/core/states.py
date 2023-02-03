@@ -48,8 +48,9 @@ def basis(N, n=None, offset=None, *, dtype=_data.Dense):
     Parameters
     ----------
     N : int or list of ints
-        Number of Fock states in Hilbert space.  If a list, then the resultant
-        object will be a tensor product over spaces with those dimensions.
+        The dimension of Hilbert space if it's int or A list with the number
+         of states in each sub-system if it's a list of ints.
+
 
     n : int or list of ints, optional (default 0 for all N)
         Integer corresponding to desired number state, defaults to 0 for all
@@ -161,7 +162,7 @@ def coherent(N, alpha, offset=0, method=None, *, dtype=_data.Dense):
     Parameters
     ----------
     N : int
-        Number of Fock states in Hilbert space.
+        The dimension of Hilbert space.
 
     alpha : float/complex
         Eigenvalue of coherent state.
@@ -248,7 +249,7 @@ def coherent_dm(N, alpha, offset=0, method='operator', *, dtype=_data.Dense):
     Parameters
     ----------
     N : int
-        Number of Fock states in Hilbert space.
+        The dimension of Hilbert space.
 
     alpha : float/complex
         Eigenvalue for coherent state.
@@ -304,8 +305,8 @@ def fock_dm(N, n=None, offset=None, *, dtype=_data.CSR):
     Parameters
     ----------
     N : int or list of ints
-        Number of Fock states in Hilbert space.  If a list, then the resultant
-        object will be a tensor product over spaces with those dimensions.
+        The dimension of Hilbert space if it's int or A list with the number of
+        states in each sub-system if it's a list of ints.
 
     n : int or list of ints, optional (default 0 for all N)
         Integer corresponding to desired number state, defaults to 0 for all
@@ -348,8 +349,8 @@ def fock(N, n=None, offset=None, *, dtype=_data.Dense):
     Parameters
     ----------
     N : int or list of ints
-        Number of Fock states in Hilbert space.  If a list, then the resultant
-        object will be a tensor product over spaces with those dimensions.
+        The dimension of Hilbert space if it's int or A list with the number
+        of states in each sub-system if it's a list of ints.
 
     n : int or list of ints, optional (default 0 for all N)
         Integer corresponding to desired number state, defaults to 0 for all
@@ -389,7 +390,7 @@ def thermal_dm(N, n, method='operator', *, dtype=_data.CSR):
     Parameters
     ----------
     N : int
-        Number of basis states in Hilbert space.
+        The dimension of Hilbert space.
 
     n : float
         Expectation value for number of particles in thermal state.
@@ -469,7 +470,7 @@ def maximally_mixed_dm(N, *, dtype=_data.CSR):
     Parameters
     ----------
     N : int
-        Number of basis states in Hilbert space.
+        The dimension of Hilbert space.
 
     dtype : type or str
         Storage representation. Any data-layer known to `qutip.data.to` is
@@ -526,7 +527,7 @@ def projection(N, n, m, offset=None, *, dtype=_data.CSR):
     Parameters
     ----------
     N : int
-        Number of basis states in Hilbert space.
+        The dimension of Hilbert space .
 
     n, m : float
         The number states in the projection.
@@ -956,9 +957,8 @@ def enr_fock(N, excitations, state, *, dtype=_data.Dense):
     Parameters
     ----------
     N : list
-        A list of the dimensions of each subsystem of a composite quantum
-        system.
-
+        A list with the number of states in each sub-system if it's a 
+        list of ints.
     excitations : integer
         The maximum number of excitations that are to be included in the
         state space.
@@ -1001,8 +1001,7 @@ def enr_thermal_dm(N, excitations, n, *, dtype=_data.CSR):
     Parameters
     ----------
     N : list
-        A list of the dimensions of each subsystem of a composite quantum
-        system.
+        A list with the number of states in each sub-system.
 
     excitations : integer
         The maximum number of excitations that are to be included in the
@@ -1044,7 +1043,7 @@ def phase_basis(N, m, phi0=0, *, dtype=_data.Dense):
     Parameters
     ----------
     N : int
-        Number of basis vectors in Hilbert space.
+        The dimension of Hilbert space.
 
     m : int
         Integer corresponding to the mth discrete phase
@@ -1081,7 +1080,7 @@ def zero_ket(N, dims=None, *, dtype=_data.Dense):
     Parameters
     ----------
     N : int
-        Hilbert space dimensionality
+        The dimension of Hilbert space.
     dims : list
         Optional dimensions if ket corresponds to
         a composite Hilbert space.
@@ -1279,7 +1278,7 @@ def w_state(N=3, *, dtype=_data.Dense):
     Parameters
     ----------
     N : int (default=3)
-        Number of qubits in state
+        The dimension of Hilbert space.
 
     dtype : type or str
         Storage representation. Any data-layer known to `qutip.data.to` is
@@ -1306,7 +1305,7 @@ def ghz_state(N=3, *, dtype=_data.Dense):
     Parameters
     ----------
     N : int (default=3)
-        Number of qubits in state
+        The dimension of Hilbert space.
 
     dtype : type or str
         Storage representation. Any data-layer known to `qutip.data.to` is
