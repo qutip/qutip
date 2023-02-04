@@ -694,7 +694,7 @@ def ket(seq, dimensions=2, *, dtype=_data.Dense):
     if isinstance(dimensions, numbers.Integral):
         dimensions = [dimensions]*len(ns)
     else:
-        dimensions=dimensions
+        dimensions = dimensions
     return basis(dimensions, ns, dtype=dtype)
 
 
