@@ -18,15 +18,15 @@ def _blas_info():
         blas_info = config.blas_opt_info
     else:
         blas_info = {}
-    _has_lib_key = 'libraries' in blas_info.keys()
-    blas = None
-    if hasattr(config,'mkl_info') or \
-            (_has_lib_key and any('mkl' in lib for lib in blas_info['libraries'])):
+
+    def _in_libaries(name):
+        return any(name in lib for lib in blas_info.get('libraries', []))
+
+    if getattr(config, 'mkl_info', False) or _in_libaries("mkl"):
         blas = 'INTEL MKL'
-    elif hasattr(config,'openblas_info') or \
-            (_has_lib_key and any('openblas' in lib for lib in blas_info['libraries'])):
+    elif getattr(config, 'openblas_info', False) or _in_libaries('openblas'):
         blas = 'OPENBLAS'
-    elif 'extra_link_args' in blas_info.keys() and ('-Wl,Accelerate' in blas_info['extra_link_args']):
+    elif '-Wl,Accelerate' in blas_info.get('extra_link_args', []):
         blas = 'Accelerate'
     else:
         blas = 'Generic'

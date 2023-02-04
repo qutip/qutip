@@ -245,15 +245,7 @@ class BRSolver(Solver):
 
         self.rhs = None
         self.sec_cutoff = sec_cutoff
-        self._options = _SolverOptions(
-            self.solver_options,
-            self._apply_options,
-            self.name,
-            self.__class__.options.__doc__
-        )
-        self._options.ode = {}
-        if options is not None:
-            self.options = options
+        self.options = options
 
         if not isinstance(H, (Qobj, QobjEvo)):
             raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")

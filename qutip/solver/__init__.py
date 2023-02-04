@@ -15,3 +15,5 @@ from .floquet_bwcomp import *
 from .steadystate import *
 from .countstat import *
 from .brmesolve import *
+from .krylovsolve import *
+from .parallel import *

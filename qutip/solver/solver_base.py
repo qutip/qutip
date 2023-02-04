@@ -46,8 +46,7 @@ class Solver:
             self.rhs = QobjEvo(rhs)
         else:
             TypeError("The rhs must be a QobjEvo")
-        self._options = {}
-        self.options = {} if options is None else options
+        self.options = options
         self._integrator = self._get_integrator()
         self._state_metadata = {}
         self.stats = self._initialize_stats()
@@ -277,6 +276,10 @@ class Solver:
 
     @options.setter
     def options(self, new_options):
+        if not hasattr(self, "_options"):
+            self._options = {}
+        if new_options is None:
+            new_options = {}
         if not isinstance(new_options, dict):
             raise TypeError("options most to be a dictionary.")
         new_solver_options, new_ode_options = self._parse_options(

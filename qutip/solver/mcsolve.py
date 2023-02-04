@@ -145,10 +145,10 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
         return mesolve(H, state, tlist, e_ops=e_ops, args=args,
                        options=options)
 
-    if isinstance(ntraj, list):
+    if isinstance(ntraj, (list, tuple)):
         raise TypeError(
-            "List ntraj is no longer supported, use `result.expect_traj_avg`"
-            "with the options `keep_runs_results=True`."
+            "ntraj must be an integer. "
+            "A list of numbers is not longer supported."
         )
 
     mc = MCSolver(H, c_ops, options=options)
@@ -443,7 +443,7 @@ class MCSolver(MultiTrajSolver):
 
     def _get_integrator(self):
         _time_start = time()
-        method = self._options["method"]
+        method = self.options["method"]
         if method in self.avail_integrators():
             integrator = self.avail_integrators()[method]
         elif issubclass(method, Integrator):
@@ -460,7 +460,7 @@ class MCSolver(MultiTrajSolver):
     @property
     def options(self):
         """
-        Options for bloch redfield solver:
+        Options for monte carlo solver:
 
         store_final_state: bool, default=False
             Whether or not to store the final state of the evolution in the

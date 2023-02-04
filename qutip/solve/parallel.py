@@ -2,7 +2,7 @@
 This function provides functions for parallel execution of loops and function
 mappings, using the builtin Python module multiprocessing.
 """
-__all__ = ['parfor', 'parallel_map', 'serial_map']
+__all__ = ['parallel_map', 'serial_map']
 
 from scipy import array
 import multiprocessing
