@@ -48,7 +48,7 @@ def basis(dimensions, n=None, offset=None, *, dtype=_data.Dense):
     Parameters
     ----------
     dimensions : int or list of ints
-        Number of Fock states in Hilbert space.  If a list, then the resultant
+        Number of Fock states in Hilbert space. If a list, then the resultant
         object will be a tensor product over spaces with those dimensions.
 
     n : int or list of ints, optional (default 0 for all dimensions)
@@ -389,7 +389,7 @@ def thermal_dm(N, n, method='operator', *, dtype=_data.CSR):
     Parameters
     ----------
     N : int
-        Number of basis states in Hilbert space.
+        Number of Fock states in Hilbert space.
 
     n : float
         Expectation value for number of particles in thermal state.
@@ -469,7 +469,7 @@ def maximally_mixed_dm(N, *, dtype=_data.CSR):
     Parameters
     ----------
     N : int
-        Number of basis states in Hilbert space.
+        Number of Fock states in Hilbert space.
 
     dtype : type or str
         Storage representation. Any data-layer known to `qutip.data.to` is
@@ -526,7 +526,7 @@ def projection(N, n, m, offset=None, *, dtype=_data.CSR):
     Parameters
     ----------
     N : int
-        Number of basis states in Hilbert space.
+        Number of Fock states in Hilbert space.
 
     n, m : float
         The number states in the projection.
@@ -612,7 +612,7 @@ def _character_to_qudit(x):
     return _qubit_dict[x] if x in _qubit_dict else int(x)
 
 
-def ket(seq, dim=2, *, dtype=_data.Dense):
+def ket(seq, dimensions=2, *, dtype=_data.Dense):
     """
     Produces a multiparticle ket state for a list or string,
     where each element stands for state of the respective particle.
@@ -629,9 +629,9 @@ def ket(seq, dim=2, *, dtype=_data.Dense):
         Note: for dimension > 9 you need to use a list.
 
 
-    dim : int (default: 2) / list of ints
-        Space dimension for each particle:
-        int if there are the same, list if they are different.
+    dimensions : int (default: 2) / list of ints
+        Number of Fock states in Hilbert space. If a list, then the resultant
+        object will be a tensor product over spaces with those dimensions.
 
     dtype : type or str
         Storage representation. Any data-layer known to `qutip.data.to` is
@@ -691,11 +691,11 @@ def ket(seq, dim=2, *, dtype=_data.Dense):
      [ 0.]]
     """
     ns = [_character_to_qudit(x) for x in seq]
-    dim = [dim]*len(ns) if isinstance(dim, numbers.Integral) else dim
-    return basis(dim, ns, dtype=dtype)
+    dimensions = [dimensions]*len(ns) if isinstance(dimensions, numbers.Integral) else dimensions
+    return basis(dimensions, ns, dtype=dtype)
 
 
-def bra(seq, dim=2, *, dtype=_data.Dense):
+def bra(seq, dimensions=2, *, dtype=_data.Dense):
     """
     Produces a multiparticle bra state for a list or string,
     where each element stands for state of the respective particle.
@@ -714,9 +714,9 @@ def bra(seq, dim=2, *, dtype=_data.Dense):
         Note: for dimension > 9 you need to use a list.
 
 
-    dim : int (default: 2) / list of ints
-        Space dimension for each particle:
-        int if there are the same, list if they are different.
+    dimensions : int (default: 2) / list of ints
+        Number of Fock states in Hilbert space. If a list, then the resultant
+        object will be a tensor product over spaces with those dimensions.
 
     dtype : type or str
         Storage representation. Any data-layer known to `qutip.data.to` is
@@ -749,7 +749,7 @@ def bra(seq, dim=2, *, dtype=_data.Dense):
     Qobj data =
     [[ 0.  0.  0.  0.  0.  0.  0.  1.  0.  0.]]
     """
-    return ket(seq, dim=dim, dtype=dtype).dag()
+    return ket(seq, dimensions=dimensions, dtype=dtype).dag()
 
 
 def state_number_enumerate(dims, excitations=None):
@@ -921,8 +921,8 @@ def enr_state_dictionaries(dims, excitations):
 
     Parameters
     ----------
-    dims: list
-        A list with the number of states in each sub-system.
+    dims : list or array
+        The quantum state dimensions array, as it would appear in a Qobj.
 
     excitations : integer
         The maximum numbers of dimension
@@ -955,9 +955,8 @@ def enr_fock(dims, excitations, state, *, dtype=_data.Dense):
 
     Parameters
     ----------
-    dims : list
-        A list of the dimensions of each subsystem of a composite quantum
-        system.
+    dims : list or array
+        The quantum state dimensions array, as it would appear in a Qobj.
 
     excitations : integer
         The maximum number of excitations that are to be included in the
@@ -1044,7 +1043,7 @@ def phase_basis(N, m, phi0=0, *, dtype=_data.Dense):
     Parameters
     ----------
     N : int
-        Number of basis vectors in Hilbert space.
+        Number of Fock vectors in Hilbert space.
 
     m : int
         Integer corresponding to the mth discrete phase
@@ -1081,7 +1080,7 @@ def zero_ket(N, dims=None, *, dtype=_data.Dense):
     Parameters
     ----------
     N : int
-        Hilbert space dimensionality
+        Number of Fock states in Hilbert space.
     dims : list
         Optional dimensions if ket corresponds to
         a composite Hilbert space.
@@ -1279,7 +1278,7 @@ def w_state(N=3, *, dtype=_data.Dense):
     Parameters
     ----------
     N : int (default=3)
-        Number of qubits in state
+        Number of Fock states in Hilbert space.
 
     dtype : type or str
         Storage representation. Any data-layer known to `qutip.data.to` is
@@ -1306,7 +1305,7 @@ def ghz_state(N=3, *, dtype=_data.Dense):
     Parameters
     ----------
     N : int (default=3)
-        Number of qubits in state
+        Number of Fock states in Hilbert space.
 
     dtype : type or str
         Storage representation. Any data-layer known to `qutip.data.to` is

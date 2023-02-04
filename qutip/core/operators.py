@@ -391,7 +391,7 @@ def destroy(N, offset=0, *, dtype=_data.CSR):
     Parameters
     ----------
     N : int
-        Dimension of Hilbert space.
+        Number of Fock states in Hilbert space.
 
     offset : int (default 0)
         The lowest number state that is included in the finite number state
@@ -429,7 +429,7 @@ def create(N, offset=0, *, dtype=_data.CSR):
     Parameters
     ----------
     N : int
-        Dimension of Hilbert space.
+        Number of Fock states in Hilbert space.
 
     offset : int (default 0)
         The lowest number state that is included in the finite number state
@@ -635,7 +635,7 @@ def num(N, offset=0, *, dtype=_data.CSR):
     Parameters
     ----------
     N : int
-        The dimension of the Hilbert space.
+        Number of Fock states in Hilbert space.
 
     offset : int (default 0)
         The lowest number state that is included in the finite number state
@@ -670,7 +670,7 @@ def squeeze(N, z, offset=0, *, dtype=_data.CSR):
     Parameters
     ----------
     N : int
-        Dimension of hilbert space.
+        Number of Fock states in Hilbert space.
 
     z : float/complex
         Squeezing parameter.
@@ -826,7 +826,7 @@ def phase(N, phi0=0, *, dtype=_data.Dense):
     Parameters
     ----------
     N : int
-        Number of basis states in Hilbert space.
+        Number of Fock states in Hilbert space.
 
     phi0 : float
         Reference phase.
@@ -881,8 +881,7 @@ def enr_destroy(dims, excitations, *, dtype=_data.CSR):
     Parameters
     ----------
     dims : list
-        A list of the dimensions of each subsystem of a composite quantum
-        system.
+        A list with the number of states in each sub-system.
 
     excitations : integer
         The maximum number of excitations that are to be included in the
@@ -926,8 +925,7 @@ def enr_identity(dims, excitations, *, dtype=_data.CSR):
     Parameters
     ----------
     dims : list
-        A list of the dimensions of each subsystem of a composite quantum
-        system.
+        A list with the number of states in each sub-system.
 
     excitations : integer
         The maximum number of excitations that are to be included in the
@@ -1003,7 +1001,7 @@ def tunneling(N, m=1, *, dtype=_data.CSR):
     Parameters
     ----------
     N : int
-        Number of basis states in Hilbert space.
+        Number of Fock states in Hilbert space.
 
     m : int (default = 1)
         Number of excitations in tunneling event.
