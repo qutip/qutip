@@ -5,7 +5,7 @@ import numpy as np
 import scipy
 from .mcsolve import MCSolver
 from .result import McResult
-from ..core import Qobj, QobjEvo, isket, ket2dm
+from ..core import CoreOptions, QobjEvo, isket, ket2dm, qeye
 
 
 class NonMarkovianMCSolver(MCSolver):
@@ -16,30 +16,19 @@ class NonMarkovianMCSolver(MCSolver):
     name = "nm_mcsolve"
     resultclass = McResult
     solver_options = {
-        "progress_bar": "text",
-        "progress_kwargs": {"chunk_size": 10},
-        "store_final_state": False,
-        "store_states": None,
-        "keep_runs_results": False,
-        "method": "adams",
-        "map": "serial",
-        "job_timeout": None,
-        "num_cpus": None,
-        "bitgenerator": None,
-        "mc_corr_eps": 1e-10,
-        "norm_steps": 5,
-        "norm_t_tol": 1e-6,
-        "norm_tol": 1e-4,
-        "completeness_rtol": None,
-        "completeness_atol": None,
+        **MCSolver.solver_options,
+        "completeness_rtol": 1e-5,
+        "completeness_atol": 1e-8,
     }
 
-    # ops_and_rates is a list of tuples (L_i, Gamma_i), where Gamma_i = Gamma_i(t) is callable
+    # ops_and_rates is a list of tuples (L_i, Gamma_i),
+    #     where Gamma_i = Gamma_i(t) is callable
     def __init__(self, H, ops_and_rates, *args, options=None, **kwargs):
         self.ops_and_rates = list(ops_and_rates)
+        self.options = options
         self._mu_c = None
 
-        self._a_parameter, L = self._check_completeness(ops_and_rates, options)
+        self._a_parameter, L = self._check_completeness(ops_and_rates)
         if L is not None:
             self.ops_and_rates.append((L, float))  # float() is zero
 
@@ -50,29 +39,18 @@ class NonMarkovianMCSolver(MCSolver):
     # If not, creates an extra Lindblad operator so that it is
     # Returns: * the proportionality factor a
     #          * the extra Lindblad operator (or None if not necessary)
-    @staticmethod
-    def _check_completeness(ops_and_rates, options=None):
-        tolerance_settings = {}
-        if options is not None:
-            rtol = options.get('completeness_rtol', None)
-            if rtol is not None:
-                tolerance_settings['rtol'] = rtol
+    def _check_completeness(self, ops_and_rates):
+        op = sum((L.dag() * L) for L, _ in ops_and_rates)
 
-            atol = options.get('completeness_atol', None)
-            if atol is not None:
-                tolerance_settings['atol'] = atol
+        a_candidate = op.tr() / op.shape[0]
+        with CoreOptions(rtol=self.options["completeness_rtol"],
+                         atol=self.options["completeness_atol"]):
+            if op == a_candidate * qeye(op.dims[0]):
+                return np.real(a_candidate), None
 
-        op = sum((f[0].dag() * f[0]).full() for f in ops_and_rates)
-
-        a_candidate = op[0, 0]
-        if np.allclose(a_candidate * np.eye(len(op)), op,
-                       **tolerance_settings):
-            return np.real(a_candidate), None
-
-        w, _ = np.linalg.eig(op)
-        a = max(np.real(w))
-        L = scipy.linalg.sqrtm(a * np.eye(len(op)) - op)  # new Lindblad operator
-        return a, Qobj(L)
+        a = max(op.eigenenergies())
+        L = (a * qeye(op.dims[0]) - op).sqrtm()  # new Lindblad operator
+        return a, L
 
     # Shifts all rate function by the function rate_shift
     # Returns c_i = L_i * sqrt(gamma_i) as QobjEvo objects
@@ -120,7 +98,8 @@ class NonMarkovianMCSolver(MCSolver):
                    for tk, ik in collapses]
         return np.prod(factors)
 
-    # Override "run" and "start" to initialize continuous part of martingale evolution
+    # Override "run" and "start" to initialize continuous part
+    #     of martingale evolution
     def run(self, state, tlist, *args, **kwargs):
         self._mu_c = {tlist[0]: 1}
         for t in tlist[1:]:
@@ -136,7 +115,7 @@ class NonMarkovianMCSolver(MCSolver):
         # find state |psi><psi|
         state = super()._restore_state(data, t, copy=copy)
         if isket(state):
-            # the influence martingale is for weighting density matrices, not kets!
+            # influence martingale is for weighting density matrices, not kets!
             state = ket2dm(state)
 
         # find martingale mu
