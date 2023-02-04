@@ -691,7 +691,10 @@ def ket(seq, dimensions=2, *, dtype=_data.Dense):
      [ 0.]]
     """
     ns = [_character_to_qudit(x) for x in seq]
-    dimensions = [dimensions]*len(ns) if isinstance(dimensions, numbers.Integral) else dimensions
+    if isinstance(dimensions, numbers.Integral):
+        dimensions = [dimensions]*len(ns)
+    else:
+        dimensions=dimensions
     return basis(dimensions, ns, dtype=dtype)
 
 
