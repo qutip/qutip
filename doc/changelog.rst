@@ -6,12 +6,78 @@ Change Log
 
 .. towncrier release notes start
 
-Version 5.0.0 (January XX, 2023)
-++++++++++++++++++++++++++++++++
+Version 5.0.0 (February XX, 2023)
++++++++++++++++++++++++++++++++++
 
-XXX
+QuTiP 5 is a redesign of many of the core components of QuTiP (``Qobj``,
+``QobjEvo``, solvers) to make them more consistent and more flexible.
 
-Big merge PRs: #2059, #2061
+``Qobj`` may now be stored in either sparse or dense representations,
+and the two may be mixed sensibly as needed. ``QobjEvo`` is now used
+consistently throughout QuTiP, and the implementation has been
+substantially cleaned up. A new ``Coefficient`` class is used to
+represent the time-dependent factors inside ``QobjEvo``.
+
+The solvers have been rewritten to work well with the new data layer
+and the concept of ``Integrators`` which solve ODEs has been introduced.
+In future, new data layers may provide their own ``Integrators``
+specialized to their representation of the underlying data.
+
+Much of the user-facing API of QuTiP remains familiar, but there have
+had to be many small breaking changes. If we can make changes to
+easy migrating code from QuTiP 4 to QuTiP 5, please let us know.
+
+Any extensive list of changes follows.
+
+Contributors
+------------
+
+QuTiP 5 has been a large effort by many people over the last three years.
+
+In particular:
+
+- Jake Lishman led the implementation of the new data layer and coefficients.
+- Eric Giguère led the implementation of the new QobjEvo interface and solvers.
+- Boxi Li led the updating of QuTiP's QIP support and the creation of `qutip_qip`.
+
+Other members of the QuTiP Admin team have been heavily involved in reviewing,
+testing and designing QuTiP 5:
+
+- Alexander Pitchford
+- Asier Galicia
+- Nathan Shammah
+- Shahnawaz Ahmed
+- Neill Lambert
+- Simon Cross
+
+Two Google Summer of Code contributors updated the tutorials and benchmarks to
+QuTiP 5:
+
+- Christian Staufenbiel updated many of the tutorials (`<https://github.com/qutip/qutip-tutorials/>`).
+- Xavier Sproken update the benchmarks (`<https://github.com/qutip/qutip-benchmark/>`).
+
+Four experimental data layers backends were written either as part of Google Summer
+of Code or as separate projects. While these are still alpha quality, the helped
+significantly to test the data layer API:
+
+- `qutip-tensorflow`: a TensorFlow backend by Asier Galicia (`<https://github.com/qutip/qutip-tensorflow>`)
+- `qutip-cupy`: a CuPy GPU backend by Felipe Bivort Haiek (`<https://github.com/qutip/qutip-cupy/>`)`
+- `qutip-tensornetwork`: a TensorNetwork backend by Asier Galicia (`<https://github.com/qutip/qutip-tensornetwork>`)
+- `qutip-jax`: a JAX backend by Eric Giguère (`<https://github.com/qutip/qutip-jax/>`)
+
+We have also had many other contributors, whose specific contributions are
+detailed below:
+
+- Pieter Eendebak (updated the required SciPy to 1.4+, `#1982 <https://github.com/qutip/qutip/pull/1982>`).
+- Pieter Eendebak (reduced import times by setting logger names, `#1981 <https://github.com/qutip/qutip/pull/1981>`)
+- Xavier Sproken (included C header files in the source distribution, `#1971 <https://github.com/qutip/qutip/pull/1971>`)
+- Christian Staufenbiel (added support for multiple collapse operators to the Floquet solver, `#1962 <https://github.com/qutip/qutip/pull/1962>`)
+- Christian Staufenbiel (fixed the basis used in the Floquet Master Equation solver, `#1952 <https://github.com/qutip/qutip/pull/1952>`)
+- Christian Staufenbiel (allowed the `bloch_redfield_tensor` function to accept strings and callables for `a_ops`, `#1951 <https://github.com/qutip/qutip/pull/1951>`)
+- Henrique Silvéro (allowed `qutip_qip` to be imported as `qutip.qip`, `#1920 <https://github.com/qutip/qutip/pull/1920>`)
+- Florian Hopfmueller (added a vastly improved implementations of `process_fidelity` and `average_gate_fidelity`, `#1712 <https://github.com/qutip/qutip/pull/1712>`, `#1748 <https://github.com/qutip/qutip/pull/1748>`, `#1788 <https://github.com/qutip/qutip/pull/1788>`)
+- Felipe Bivort Haiek (fixed inaccuracy in docstring of the dense implementation of negation, `#1608 <https://github.com/qutip/qutip/pull/1608/>`)
+- Rajath Shetty (added support for specifying colors for individual points, vectors and states display by `qutip.Bloch`, `#1335 <https://github.com/qutip/qutip/pull/1335>`)
 
 Qobj changes
 ------------
@@ -199,7 +265,7 @@ Correlation functions (correlation module):
   or `BRMESolver`.
 - The `correlation`, `correlation_4op`, and `correlation_ss` functions have been
   removed.
-- Support for calculating correlation with `mcsolve` has been removed. 
+- Support for calculating correlation with `mcsolve` has been removed.
 
 Propagators (propagator module):
 
