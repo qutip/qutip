@@ -148,17 +148,17 @@ def test_compatibility_with_solver(solve):
     assert len(direct)-1 == len(indirect)
     for direct_, indirect_ in zip(direct, indirect):
         assert len(direct_) == len(indirect_)
-        assert isinstance(direct_, list)
+        assert isinstance(direct_, np.ndarray)
         assert isinstance(indirect_, np.ndarray)
-        assert np.array(direct_).dtype == indirect_.dtype
+        assert direct_.dtype == indirect_.dtype
         np.testing.assert_allclose(np.array(direct_), indirect_, atol=1e-12)
         # test measurement operators based on lambda functions
         direct_ = direct[-1]
         indirect_ = np.sin(times)
         assert len(direct_) == len(indirect_)
-        assert isinstance(direct_, list)
+        assert isinstance(direct_, np.ndarray)
         assert isinstance(indirect_, np.ndarray)
-        assert np.array(direct_).dtype == indirect_.dtype
+        assert direct_.dtype == indirect_.dtype
         np.testing.assert_allclose(np.array(direct_), indirect_, atol=1e-12)
 
 
