@@ -65,9 +65,9 @@ Some highlights:
   orders. The old `Cubic_Spline` coefficient has been removed.
 - The new `.arguments(...)` method allows additional arguments to the
   underlying coefficient functions to be updated.
-- The `step_interpolation` parameter has been replaced by the `order`
-  parameter. `step_interpolation=False` is equivalent to `order=0`.
-  `step_interpolation=True` is equivalent to `order=1`. Higher values
+- The `_step_func_coeff` argument has been replaced by the `order`
+  parameter. `_step_func_coeff=False` is equivalent to `order=3`.
+  `_step_func_coeff=True` is equivalent to `order=0`. Higher values
   of `order` gives spline interpolations of higher orders.
 
 Solver changes
@@ -85,7 +85,7 @@ A breakdown of highlights follows.
 All solvers:
 
 - Solver options are now supplied in an ordinary Python dict.
-  `qutip.Options` is deprecatd and returns a dict for backwards
+  `qutip.Options` is deprecated and returns a dict for backwards
   compatibility.
 - A specific ODE integrator may be selected by supply a
   `method` option.
@@ -139,9 +139,8 @@ Monte-Carlo Solver (mcsolve):
 - The `map_func` parameter has been replaced by the `map` option. In
   addition to the existing `serial` and `parallel` values, the value
   `loky` may be supplied to use the loky package to parallelize trajectories.
-- The result returned by `mcsolve` now supports calculating photocurrents,
-  averaging over N trajectories, and calculating the steady state over N
-  trajectories.
+- The result returned by `mcsolve` now supports calculating photocurrents
+  and calculating the steady state over N trajectories.
 - The old `parfor` parallel execution function has been removed from
   `qutip.parallel`. Use `parallel_map` or `loky_map` instead.
 
@@ -200,8 +199,7 @@ Correlation functions (correlation module):
   or `BRMESolver`.
 - The `correlation`, `correlation_4op`, and `correlation_ss` functions have been
   removed.
-- Support for calculating steady states with `MCSolver` has been removed. Used
-  the `steadystate` method of the `MCResult` instead.
+- Support for calculating correlation with `mcsolve` has been removed. 
 
 Propagators (propagator module):
 
@@ -251,7 +249,7 @@ There have been numerous other small changes to core QuTiP features:
   expanding the measurement operator removed. Used `expand_operator`
   to expand the operator instead.
 - `qutip.Bloch` now supports applying colours per-point, state or vector in
-  `add point`, `add_states`, and `add_vectors`.
+  `add_point`, `add_states`, and `add_vectors`.
 
 QuTiP settings
 --------------
@@ -279,7 +277,7 @@ Miscellaneous
 -------------
 
 - Support has been added for 64-bit integer sparse matrix indices, allowing
-  sparse matrices with us to 2**63 rows and columns. This support needs to
+  sparse matrices with up to 2**63 rows and columns. This support needs to
   be enabled at compilation time by calling `setup.py` and passing
   `--with-idxint-64`.
 
