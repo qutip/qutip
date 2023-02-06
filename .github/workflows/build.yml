@@ -169,7 +169,7 @@ jobs:
       - name: Verify this is not a dev version
         shell: bash
         run: |
-          python -m pip install wheels/*-cp38-cp38-*.manylinux2010_x86_64.whl
+          python -m pip install wheels/*-cp38-cp38-manylinux*.whl
           python -c 'import qutip; print(qutip.__version__); assert "dev" not in qutip.__version__; assert "+" not in qutip.__version__'
 
       # We built the zipfile for convenience distributing to Windows users on
@@ -207,7 +207,7 @@ jobs:
       - name: Verify this is not a dev version
         shell: bash
         run: |
-          python -m pip install wheels/*-cp38-cp38-*.manylinux2010_x86_64.whl
+          python -m pip install wheels/*-cp38-cp38-manylinux*.whl
           python -c 'import qutip; print(qutip.__version__); assert "+" not in qutip.__version__'
 
       # We built the zipfile for convenience distributing to Windows users on
