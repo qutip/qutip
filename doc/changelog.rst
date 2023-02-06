@@ -87,7 +87,7 @@ All solvers:
 - Solver options are now supplied in an ordinary Python dict.
   `qutip.Options` is deprecated and returns a dict for backwards
   compatibility.
-- A specific ODE integrator may be selected by supply a
+- A specific ODE integrator may be selected by supplying a
   `method` option.
 - Each solver provides a class interface. Creating an instance
   of the class allows a solver to be run multiple times for the
@@ -116,7 +116,7 @@ Integrators:
   time-independent systems and is slow to setup, but once the diagonalization
   is complete, it generates solutions very quickly.
 - QuTiP's own implementatoin of an approximate Krylov subspace integrator is
-  available as `krylov`.
+  available as `krylov`. This integrator is only usable with `sesolve`.
 
 Result class:
 
