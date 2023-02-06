@@ -286,8 +286,8 @@ QuTiP core
 
 There have been numerous other small changes to core QuTiP features:
 
-- A new function ``qft`` has been added that returns the quantum Fourier
-  transform operator.
+- ``qft(...)`` the function that returns the quantum Fourier
+  transform operator was moved from ``qutip.qip.algorithm`` into ``qutip``.
 - The Bloch-Redfield solver tensor, ``brtensor``, has been moved into
   ``qutip.core``. See the section above on the Bloch-Redfield solver
   for details.
