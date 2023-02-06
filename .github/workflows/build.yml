@@ -178,7 +178,7 @@ jobs:
       - name: Upload sdist and wheels to PyPI
         run: |
           python -m pip install "twine"
-          echo python -m twine upload --verbose wheels/*.whl sdist/*.tar.gz
+          python -m twine upload --verbose wheels/*.whl sdist/*.tar.gz
 
 
   deploy_testpypi:
