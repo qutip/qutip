@@ -252,20 +252,28 @@ There have been numerous other small changes to core QuTiP features:
   to expand the operator instead.
 - `qutip.Bloch` now supports applying colours per-point, state or vector in
   `add point`, `add_states`, and `add_vectors`.
-- `qutip.settings`
-		split with install settings and overall options
-		removed qutip.settings.debug, fortran, has_openmp, openmp_thresh	Deprecation
-		qutip.settings.atol -> qutip.settings.core["atol"]	Deprecation
-		new core options rtol, function_coefficient_style	New feature
-		new compilation options	New feature
-		removed load, reset, save settings.	Deprecation
+
+QuTiP settings
+--------------
+
+Previously `qutip.settings` was an ordinary module. Now `qutip.settings` is
+an instance of a settings class. All the runtime modifiable settings for
+core operations are in `qutip.settings.core`. The other settings are not
+modifiable at runtime.
+
+- Removed `load`. `reset` and `save` functions.
+- Removed `.debug`, `.fortran`, `.openmp_thresh`.
+- New `.compile` stores the compilation options for compiled coefficients.
+- New `.core["rtol"]` core option gives the default relative tolerance used by QuTiP.
+- The absolute tolerance setting `.atol` has been moved to `.core["atol"]`.
 
 Package reorganization
 ----------------------
 
 - `qutip.qip` has been moved into its own package, qutip-qip. Once installed, qutip-qip is available as either `qutip.qip` or `qutip_qip`. Some widely useful gates have been retained in `qutip.gates`.
 - `qutip.lattice` has been moved into its own package, qutip-lattice. It is available from https://github.com/qutip/qutip-lattice.
-- `qutip.sparse` has been	removed. It contained the old sparse matrix representation and is replaced by the new implementation in `qutip.data`.
+- `qutip.sparse` has been removed. It contained the old sparse matrix representation and is replaced by the new implementation in `qutip.data`.
+- `qutip.piqs` functions are no longer available from the `qutip` namespace. They are accessible from `qutip.qips` instead.
 
 Miscellaneous
 -------------
@@ -284,12 +292,6 @@ Feature removals
 - `qutip.topology` has been removed. It contained only one function `berry_curvature`.
 - The `~/.qutip/qutiprc` config file is no longer supported. It contained settings for the OpenMP support.
 
-
-Questions:
-- piqs	in it's own namespace	Migration -- doesn't seem to have happened yet?
-- add back target to measurement functions (we ended up keeping expand operator)?
-
-XXX
 
 Version 4.7.1 (December 11, 2022)
 +++++++++++++++++++++++++++++++++
