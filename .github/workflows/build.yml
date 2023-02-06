@@ -33,7 +33,7 @@ jobs:
         run: |
           [[ -z $CONFIRM_REF || $GITHUB_REF =~ ^refs/(heads|tags)/$CONFIRM_REF$ || $CONFIRM_REF == "test" ]]
           if [[ $CONFIRM_REF == "test" ]]; then
-            echo "Build and deploy to testpypi."
+            echo "Build and deploy to test.pypi.org."
           elif [[ -z $CONFIRM_REF ]]; then
             echo "Build only.  Nothing will be uploaded to PyPI."
           else
