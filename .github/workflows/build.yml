@@ -12,14 +12,15 @@ on:
 
 
 jobs:
-  # The deploy_test job is part of the test of whether we should deploy to PyPI.
-  # The job will succeed if either the confirmation reference is empty or if the
-  # confirmation is the selected branch or tag name.  It will fail if it is
-  # nonempty and does not match.  All later jobs depend on this job, so that
-  # they will be immediately cancelled if the confirmation is bad.  The
-  # dependency is currently necessary (2021-03) because GitHub Actions does not
-  # have a simpler method of cancelling an entire workflow---the normal use-case
-  # expects to try and run as much as possible despite one or two failures.
+  # The deploy_test job is part of the test of whether we should deploy to PyPI
+  # or test.PyPI. The job will succeed if either the confirmation reference is
+  # empty, 'test' or if the confirmation is the selected branch or tag name.
+  # It will fail if it is nonempty and does not match.  All later jobs depend
+  # on this job, so that they will be immediately cancelled if the confirmation
+  # is bad.  The dependency is currently necessary (2021-03) because GitHub
+  # Actions does not have a simpler method of cancelling an entire workflow---
+  # the normal use-case expects to try and run as much as possible despite one
+  # or two failures.
   deploy_test:
     name: Verify PyPI deployment confirmation
     runs-on: ubuntu-latest
@@ -106,7 +107,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     env:
-      # Set up wheels matrix.  This is CPython 3.6--3.10 for all OS targets.
+      # Set up wheels matrix.  This is CPython 3.8--3.10 for all OS targets.
       CIBW_BUILD: "cp3{8,9,10,11}-*"
       # Numpy and SciPy do not supply wheels for i686 or win32 for
       # Python 3.10+, so we skip those:
@@ -145,9 +146,9 @@ jobs:
   deploy:
     name: "Deploy to PyPI if desired"
     # The confirmation is tested explicitly in `deploy_test`, so we know it is
-    # either a missing confirmation (so we shouldn't run this job) or a valid
-    # confirmation.  We don't need to retest the value of the confirmation,
-    # beyond checking that one existed.
+    # either a missing confirmation (so we shouldn't run this job), 'test' or a
+    # valid confirmation.  We don't need to retest the value of the
+    # confirmation, beyond checking that one existed.
     if: ${{ github.event.inputs.confirm_ref != '' && github.event.inputs.confirm_ref != 'test' }}
     needs: [deploy_test, build_sdist, build_wheels]
     runs-on: ubuntu-latest
@@ -182,10 +183,6 @@ jobs:
 
   deploy_testpypi:
     name: "Deploy to TestPyPI if desired"
-    # The confirmation is tested explicitly in `deploy_test`, so we know it is
-    # either a missing confirmation (so we shouldn't run this job) or a valid
-    # confirmation.  We don't need to retest the value of the confirmation,
-    # beyond checking that one existed.
     if: ${{ github.event.inputs.confirm_ref == 'test' }}
     needs: [deploy_test, build_sdist, build_wheels]
     runs-on: ubuntu-latest
@@ -208,11 +205,11 @@ jobs:
         shell: bash
         run: |
           python -m pip install wheels/*-cp38-cp38-manylinux*.whl
-          python -c 'import qutip; print(qutip.__version__); assert "+" not in qutip.__version__'
+          python -c 'import qutip; print(qutip.__version__); assert "dev" not in qutip.__version__; assert "+" not in qutip.__version__'
 
       # We built the zipfile for convenience distributing to Windows users on
       # our end, but PyPI only needs the tarball.
       - name: Upload sdist and wheels to TestPyPI
         run: |
           python -m pip install "twine"
-          echo python -m twine upload --verbose wheels/*.whl sdist/*.tar.gz
+          python -m twine upload --verbose wheels/*.whl sdist/*.tar.gz
