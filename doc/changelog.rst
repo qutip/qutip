@@ -6,6 +6,357 @@ Change Log
 
 .. towncrier release notes start
 
+Version 5.0.0 (February XX, 2023)
++++++++++++++++++++++++++++++++++
+
+QuTiP 5 is a redesign of many of the core components of QuTiP (``Qobj``,
+``QobjEvo``, solvers) to make them more consistent and more flexible.
+
+``Qobj`` may now be stored in either sparse or dense representations,
+and the two may be mixed sensibly as needed. ``QobjEvo`` is now used
+consistently throughout QuTiP, and the implementation has been
+substantially cleaned up. A new ``Coefficient`` class is used to
+represent the time-dependent factors inside ``QobjEvo``.
+
+The solvers have been rewritten to work well with the new data layer
+and the concept of ``Integrators`` which solve ODEs has been introduced.
+In future, new data layers may provide their own ``Integrators``
+specialized to their representation of the underlying data.
+
+Much of the user-facing API of QuTiP remains familiar, but there have
+had to be many small breaking changes. If we can make changes to
+easy migrating code from QuTiP 4 to QuTiP 5, please let us know.
+
+Any extensive list of changes follows.
+
+Contributors
+------------
+
+QuTiP 5 has been a large effort by many people over the last three years.
+
+In particular:
+
+- Jake Lishman led the implementation of the new data layer and coefficients.
+- Eric Giguère led the implementation of the new QobjEvo interface and solvers.
+- Boxi Li led the updating of QuTiP's QIP support and the creation of ``qutip_qip``.
+
+Other members of the QuTiP Admin team have been heavily involved in reviewing,
+testing and designing QuTiP 5:
+
+- Alexander Pitchford
+- Asier Galicia
+- Nathan Shammah
+- Shahnawaz Ahmed
+- Neill Lambert
+- Simon Cross
+
+Two Google Summer of Code contributors updated the tutorials and benchmarks to
+QuTiP 5:
+
+- Christian Staufenbiel updated many of the tutorials (`<https://github.com/qutip/qutip-tutorials/>`).
+- Xavier Sproken update the benchmarks (`<https://github.com/qutip/qutip-benchmark/>`).
+
+Four experimental data layers backends were written either as part of Google Summer
+of Code or as separate projects. While these are still alpha quality, the helped
+significantly to test the data layer API:
+
+- ``qutip-tensorflow``: a TensorFlow backend by Asier Galicia (`<https://github.com/qutip/qutip-tensorflow>`)
+- ``qutip-cupy``: a CuPy GPU backend by Felipe Bivort Haiek (`<https://github.com/qutip/qutip-cupy/>`)`
+- ``qutip-tensornetwork``: a TensorNetwork backend by Asier Galicia (`<https://github.com/qutip/qutip-tensornetwork>`)
+- ``qutip-jax```: a JAX backend by Eric Giguère (`<https://github.com/qutip/qutip-jax/>`)
+
+We have also had many other contributors, whose specific contributions are
+detailed below:
+
+- Pieter Eendebak (updated the required SciPy to 1.4+, `#1982 <https://github.com/qutip/qutip/pull/1982>`).
+- Pieter Eendebak (reduced import times by setting logger names, `#1981 <https://github.com/qutip/qutip/pull/1981>`)
+- Xavier Sproken (included C header files in the source distribution, `#1971 <https://github.com/qutip/qutip/pull/1971>`)
+- Christian Staufenbiel (added support for multiple collapse operators to the Floquet solver, `#1962 <https://github.com/qutip/qutip/pull/1962>`)
+- Christian Staufenbiel (fixed the basis used in the Floquet Master Equation solver, `#1952 <https://github.com/qutip/qutip/pull/1952>`)
+- Christian Staufenbiel (allowed the ``bloch_redfield_tensor`` function to accept strings and callables for `a_ops`, `#1951 <https://github.com/qutip/qutip/pull/1951>`)
+- Henrique Silvéro (allowed ``qutip_qip`` to be imported as ``qutip.qip``, `#1920 <https://github.com/qutip/qutip/pull/1920>`)
+- Florian Hopfmueller (added a vastly improved implementations of ``process_fidelity`` and ``average_gate_fidelity``, `#1712 <https://github.com/qutip/qutip/pull/1712>`, `#1748 <https://github.com/qutip/qutip/pull/1748>`, `#1788 <https://github.com/qutip/qutip/pull/1788>`)
+- Felipe Bivort Haiek (fixed inaccuracy in docstring of the dense implementation of negation, `#1608 <https://github.com/qutip/qutip/pull/1608/>`)
+- Rajath Shetty (added support for specifying colors for individual points, vectors and states display by `qutip.Bloch`, `#1335 <https://github.com/qutip/qutip/pull/1335>`)
+
+Qobj changes
+------------
+
+Previously ``Qobj`` data was stored in a SciPy-like sparse matrix. Now the
+representation is flexible. Implementations for dense and sparse formats are
+included in QuTiP and custom implementations are possible. QuTiP's performance
+on dense states and operators is significantly improved as a result.
+
+Some highlights:
+
+- The data is still acessible via the ``.data`` attribute, but is now an
+  instance of the underlying data type instead of a SciPy-like sparse matrix.
+  The operations available in ``qutip.core.data`` may be used on ``.data``,
+  regardless of the data type.
+- ``Qobj`` with different data types may be mixed in arithmetic and other
+  operations. A sensible output type will be automatically determined.
+- The new ``.to(...)`` method may be used to convert a ``Qobj`` from one data type
+  to another. E.g. ``.to("dense")`` will convert to the dense representation and
+  ``.to("csr")`` will convert to the sparse type.
+- Many ``Qobj`` methods and methods that create ``Qobj`` now accepted a ``dtype``
+  parameter that allows the data type of the returned ``Qobj`` to specified.
+- The new ``&`` operator may be used to obtain the tensor product.
+- The new ``@`` operator may be used to obtain the matrix / operator product.
+  ``bar @ ket`` returns a scalar.
+- The new ``.contract()`` method will collapse 1D subspaces of the dimensions of
+  the ``Qobj``.
+- The new ``.logm()`` method returns the matrix logarithm of an operator.
+- The methods ``.set_data``, ``.get_data``, ``.extract_state``, ``.eliminate_states``,
+  ``.evaluate`` and ``.check_isunitary`` have been removed.
+
+QobjEvo changes
+---------------
+
+The ``QobjEvo`` type for storing time-dependent quantum objects has been
+significantly expanded, standardized and extended. The time-dependent
+coefficients are now represented using a new ``Coefficient`` type that
+may be independently created and manipulated if required.
+
+Some highlights:
+
+- The ``.compile()`` method has been removed. Coefficients specified as
+  strings are automatically compiled if possible and the compilation is
+  cached across different Python runs and instances.
+- Mixing coefficient types within a single ``Qobj`` is now supported.
+- Many new attributes were added to ``QobjEvo`` for convenience. Examples
+  include ``.dims``, ``.shape``, ``.superrep`` and ``.isconstant``.
+- Many old attributes such as ``.cte``, ``.use_cython``, ``.type``, ``.const``,
+  and ``.coeff_file`` were removed.
+- A new ``Spline`` coefficient supports spline interpolations of different
+  orders. The old ``Cubic_Spline`` coefficient has been removed.
+- The new ``.arguments(...)`` method allows additional arguments to the
+  underlying coefficient functions to be updated.
+- The ``_step_func_coeff`` argument has been replaced by the ``order``
+  parameter. ``_step_func_coeff=False`` is equivalent to ``order=3``.
+  ``_step_func_coeff=True`` is equivalent to ``order=0``. Higher values
+  of ``order`` gives spline interpolations of higher orders.
+
+Solver changes
+--------------
+
+The solvers in QuTiP have been heavily reworked and standardized.
+Under the hood solvers now make use of swappable ODE ``Integrators``.
+Many ``Integrators`` are included (see the list below) and
+custom implementations are possible. Solvers now consistently
+accept a ``QobjEvo`` instance at the Hamiltonian or Liouvillian, or
+any object which can be passed to the ``QobjEvo`` constructor.
+
+A breakdown of highlights follows.
+
+All solvers:
+
+- Solver options are now supplied in an ordinary Python dict.
+  ``qutip.Options`` is deprecated and returns a dict for backwards
+  compatibility.
+- A specific ODE integrator may be selected by supplying a
+  ``method`` option.
+- Each solver provides a class interface. Creating an instance
+  of the class allows a solver to be run multiple times for the
+  same system without having to repeatedly reconstruct the
+  right-hand side of the ODE to be integrated.
+- A ``QobjEvo`` instance is accepted for most operators, e.g.,
+  ``H``, ``c_ops``, ``e_ops``, ``a_ops``.
+- The progress bar is now selected using the ``progress_bar`` option.
+  A new progess bar using the ``tqdm`` Python library is provided.
+- Dynamic arguments, where the value of an operator depends on
+  the current state of the evolution, have been removed. They
+  may be re-implemented later if there is demand for them.
+
+Integrators:
+
+- The SciPy zvode integrator is available with the BDF and
+  Adams methods as ``bdf`` and ``adams``.
+- The SciPy dop853 integrator (an eighth order Runge-Kutta method by
+  Dormand & Prince) is available as ``dop853``.
+- The SciPy lsoda integrator is available as ``lsoda``.
+- QuTiP's own implementation of Verner's "most efficient" Runge-Kutta methods
+  of order 7 and 9 are available as ``vern7`` and ``vern9``. See
+  http://people.math.sfu.ca/~jverner/ for a description of the methods.
+- QuTiP's own implementation of a solver that directly diagonalizes the
+  the system to be integrated is available as ``diag``. It only works on
+  time-independent systems and is slow to setup, but once the diagonalization
+  is complete, it generates solutions very quickly.
+- QuTiP's own implementatoin of an approximate Krylov subspace integrator is
+  available as ``krylov``. This integrator is only usable with ``sesolve``.
+
+Result class:
+
+- A new ``.e_data`` attribute provides expectation values as a dictionary.
+  Unlike ``.expect``, the values are provided in a Python list rather than
+  a numpy array, which better supports non-numeric types.
+- The contents of the ``.stats`` attribute changed significantly and is
+  now more consistent across solvers.
+
+Monte-Carlo Solver (mcsolve):
+
+- The system, H, may now be a super-operator.
+- The ``seed`` parameter now supports supplying numpy ``SeedSequence`` or
+  ``Generator`` types.
+- The new ``timeout`` and ``target_tol`` parameters allow the solver to exit
+  early if a timeout or target tolerance is reached.
+- The ntraj option no longer supports a list of numbers of trajectories.
+  Instead, just run the solver multiple times and use the class ``MCSolver``
+  if setting up the solver uses a significant amount of time.
+- The ``map_func`` parameter has been replaced by the ``map`` option. In
+  addition to the existing ``serial`` and ``parallel`` values, the value
+  ``loky`` may be supplied to use the loky package to parallelize trajectories.
+- The result returned by ``mcsolve`` now supports calculating photocurrents
+  and calculating the steady state over N trajectories.
+- The old ``parfor`` parallel execution function has been removed from
+  ``qutip.parallel``. Use ``parallel_map`` or ``loky_map`` instead.
+
+Bloch-Redfield Master Equation Solver (brmesolve):
+
+- The ``a_ops`` and ``spectra`` support implementaitons been heavily reworked to
+  reuse the techniques from the new Coefficient and QobjEvo classes.
+- The ``use_secular`` parameter has been removed. Use ``sec_cutoff=-1`` instead.
+- The required tolerance is now read from ``qutip.settings``.
+
+Krylov Subspace Solver (krylovsolve):
+
+- The Krylov solver is now implemented using ``SESolver`` and the ``krylov``
+  ODE integrator. The function ``krylovsolve`` is maintained for convenience
+  and now supports many more options.
+- The ``sparse`` parameter has been removed. Supply a sparse ``Qobj`` for the
+  Hamiltonian instead.
+
+Floquet Solver (fsesolve and fmmesolve):
+
+- The Floquet solver has been rewritten to use a new ``FloquetBasis`` class
+  which manages the transformations from lab to Floquet basis and back.
+- Many of the internal methods used by the old Floquet solvers have
+  been removed. The Floquet tensor may still be retried using
+  the function ``floquet_tensor``.
+- The Floquet Markov Master Equation solver has had many changes and
+  new options added. The environment temperature may be specified using
+  ``w_th``, and the result states are stored in the lab basis and optionally
+  in the Floquet basis using ``store_floquet_state``.
+- The spectra functions supplied to ``fmmesolve`` must now be vectorized
+  (i.e. accept and return numpy arrays for frequencies and densities) and
+  must accept negative frequence (i.e. usually include a ``w > 0`` factor
+  so that the returned densities are zero for negative frequencies).
+- The number of sidebands to keep, ``kmax`` may only be supplied when using
+  the ``FMESolver``
+- The ``Tsteps`` parameter has been removed from both ``fsesolve`` and
+  ``fmmesolve``. The ``precompute`` option to ``FloquetBasis`` may be used
+  instead.
+
+Evolution of State Solver (essovle):
+
+- The function ``essolve`` has been removed. Use the ``diag`` integration
+  method with ``sesolve`` or ``mesolve`` instead.
+
+Steady-state solvers (steadystate module):
+
+- The ``method`` parameter and ``solver`` parameters have been separated. Previously
+  they were mixed together in the ``method`` parameter.
+- The previous options are now passed as parameters to the steady state
+  solver and mostly passed through to the underlying SciPy functions.
+- The logging and statistics have been removed.
+
+Correlation functions (correlation module):
+
+- A new ``correlation_3op`` function has been added. It supports ``MESolver``
+  or ``BRMESolver``.
+- The ``correlation``, ``correlation_4op``, and ``correlation_ss`` functions have been
+  removed.
+- Support for calculating correlation with ``mcsolve`` has been removed.
+
+Propagators (propagator module):
+
+- A class interface, ``qutip.Propagator``, has been added for propagators.
+- Propagation of time-dependent systems is now supported using ``QobjEvo``.
+- The ``unitary_mode`` and ``parallel`` options have been removed.
+
+Correlation spectra (spectrum module):
+
+- The functions ``spectrum_ss`` and ``spectrum_pi`` have been removed and
+  are now internal functions.
+- The ``use_pinv`` parameter for ``spectrum`` has been removed and the
+  functionality merged into the ``solver`` parameter. Use ``solver="pi"``
+  instead.
+
+QuTiP core
+----------
+
+There have been numerous other small changes to core QuTiP features:
+
+- ``qft(...)`` the function that returns the quantum Fourier
+  transform operator was moved from ``qutip.qip.algorithm`` into ``qutip``.
+- The Bloch-Redfield solver tensor, ``brtensor``, has been moved into
+  ``qutip.core``. See the section above on the Bloch-Redfield solver
+  for details.
+- The functions ``mat2vec`` and ``vec2mat`` for transforming states to and
+  from super-operator states have been renamed to ``stack_columns`` and
+  ``unstack_columns``.
+- The function ``liouvillian_ref`` has been removed. Used ``liouvillian``
+  instead.
+- The superoperator transforms ``super_to_choi``, ``choi_to_super``,
+  ``choi_to_kraus``, ``choi_to_chi`` and ``chi_to_choi`` have been removed.
+  Used ``to_choi``, ``to_super``, ``to_kraus`` and ``to_chi`` instead.
+- All of the random object creation functions now accepted a
+  numpy ``Generator`` as a seed.
+- The ``dims`` parameter of all random object creation functions has
+  been removed. Supply the dimensions as the first parameter if
+  explicit dimensions are required.
+- The function ``rand_unitary_haar`` has been removed. Use
+  ``rand_unitary(distribution="haar")`` instead.
+- The functions ``rand_dm_hs`` and ``rand_dm_ginibre`` have been removed.
+  Use ``rand_dm(distribution="hs")`` and ``rand_dm(distribution="ginibre")``
+  instead.
+- The function ``rand_ket_haar`` has been removed. Use
+  ``rand_ket(distribution="haar")`` instead.
+- The measurement functions have had the ``target`` parameter for
+  expanding the measurement operator removed. Used ``expand_operator``
+  to expand the operator instead.
+- ``qutip.Bloch`` now supports applying colours per-point, state or vector in
+  ``add_point``, ``add_states``, and ``add_vectors``.
+
+QuTiP settings
+--------------
+
+Previously ``qutip.settings`` was an ordinary module. Now ``qutip.settings`` is
+an instance of a settings class. All the runtime modifiable settings for
+core operations are in ``qutip.settings.core``. The other settings are not
+modifiable at runtime.
+
+- Removed ``load``. ``reset`` and ``save`` functions.
+- Removed ``.debug``, ``.fortran``, ``.openmp_thresh``.
+- New ``.compile`` stores the compilation options for compiled coefficients.
+- New ``.core["rtol"]`` core option gives the default relative tolerance used by QuTiP.
+- The absolute tolerance setting ``.atol`` has been moved to ``.core["atol"]``.
+
+Package reorganization
+----------------------
+
+- ``qutip.qip`` has been moved into its own package, qutip-qip. Once installed, qutip-qip is available as either ``qutip.qip`` or ``qutip_qip``. Some widely useful gates have been retained in ``qutip.gates``.
+- ``qutip.lattice`` has been moved into its own package, qutip-lattice. It is available from `<https://github.com/qutip/qutip-lattice>`.
+- ``qutip.sparse`` has been removed. It contained the old sparse matrix representation and is replaced by the new implementation in ``qutip.data``.
+- ``qutip.piqs`` functions are no longer available from the ``qutip`` namespace. They are accessible from ``qutip.piqs`` instead.
+
+Miscellaneous
+-------------
+
+- Support has been added for 64-bit integer sparse matrix indices, allowing
+  sparse matrices with up to 2**63 rows and columns. This support needs to
+  be enabled at compilation time by calling ``setup.py`` and passing
+  ``--with-idxint-64``.
+
+Feature removals
+----------------
+
+- Support for OpenMP has been removed. If there is enough demand and a good plan for how to organize it, OpenMP support may return in a future QuTiP release.
+- The ``qutip.parfor`` function has been removed. Use ``qutip.parallel_map`` instead.
+- ``qutip.graph`` has been removed and replaced by SciPy's graph functions.
+- ``qutip.topology`` has been removed. It contained only one function ``berry_curvature``.
+- The ``~/.qutip/qutiprc`` config file is no longer supported. It contained settings for the OpenMP support.
+
+
 Version 4.7.1 (December 11, 2022)
 +++++++++++++++++++++++++++++++++
 
@@ -21,7 +372,7 @@ Bug Fixes
 ---------
 - Change floquet_master_equation_rates(...) to use an adaptive number of time steps scaled by the number of sidebands, kmax. (#1961)
 - Change fidelity(A, B) to use the reduced fidelity formula for pure states which is more numerically efficient and accurate. (#1964)
-- Change `brmesolve` to raise an exception when ode integration is not successful. (#1965)
+- Change ``brmesolve`` to raise an exception when ode integration is not successful. (#1965)
 - Backport fix for IPython helper Bloch._repr_svg_ from dev.major. Previously the print_figure function returned bytes, but since ipython/ipython#5452 (in 2014) it returns a Unicode string. This fix updates QuTiP's helper to match. (#1970)
 - Fix correlation for case where only the collapse operators are time dependent. (#1979)
 - Fix the hinton visualization method to plot the matrix instead of its transpose. (#2011)
