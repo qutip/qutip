@@ -210,11 +210,11 @@ Monte-Carlo Solver (mcsolve):
 - The old ``parfor`` parallel execution function has been removed from
   ``qutip.parallel``. Use ``parallel_map`` or ``loky_map`` instead.
 
-Bloch-Redfield Master Eqation Solver (brmesolve):
+Bloch-Redfield Master Equation Solver (brmesolve):
 
 - The ``a_ops`` and ``spectra`` support implementaitons been heavily reworked to
   reuse the techniques from the new Coefficient and QobjEvo classes.
-- The ``use_secular`` parameter has been removed.
+- The ``use_secular`` parameter has been removed. Use ``sec_cutoff=-1`` instead.
 - The required tolerance is now read from ``qutip.settings``.
 
 Krylov Subspace Solver (krylovsolve):
@@ -337,7 +337,7 @@ Package reorganization
 - ``qutip.qip`` has been moved into its own package, qutip-qip. Once installed, qutip-qip is available as either ``qutip.qip`` or ``qutip_qip``. Some widely useful gates have been retained in ``qutip.gates``.
 - ``qutip.lattice`` has been moved into its own package, qutip-lattice. It is available from `<https://github.com/qutip/qutip-lattice>`.
 - ``qutip.sparse`` has been removed. It contained the old sparse matrix representation and is replaced by the new implementation in ``qutip.data``.
-- ``qutip.piqs`` functions are no longer available from the ``qutip`` namespace. They are accessible from ``qutip.qips`` instead.
+- ``qutip.piqs`` functions are no longer available from the ``qutip`` namespace. They are accessible from ``qutip.piqs`` instead.
 
 Miscellaneous
 -------------
