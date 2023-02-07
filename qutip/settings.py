@@ -128,7 +128,8 @@ class Settings:
             self.tmproot = os.path.join(os.path.expanduser("~"), '.qutip')
         except OSError:
             self._tmproot = "."
-        self.core = None
+        self.core = None  # set in qutip.core.options
+        self.compile = None  # set in qutip.core.coefficient
         self._debug = False
         self._log_handler = "default"
         self._colorblind_safe = False
