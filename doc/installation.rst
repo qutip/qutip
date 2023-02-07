@@ -129,21 +129,21 @@ You activate the new environment by running
 You can also install any more optional packages you want with ``conda install``, for example ``matplotlib``, ``ipython`` or ``jupyter``.
 
 
-Installation of the pre release of version 5
+Installation of the pre-release of version 5
 ============================================
 
-QuTiP version 5 has been in development for some time and bring a lot of new features, reworking heavily the core functionalities of QuTiP.
-It is available as a pre release on PyPI, anyone wanting to try the new features can install it with:
+QuTiP version 5 has been in development for some time and brings many new features, heavily reworks the core functionalities of QuTiP.
+It is available as a pre-release on PyPI. Anyone wanting to try the new features can install it with:
 
 .. code-block:: bash
 
-   pip install --dev qutip
+   pip install --pre qutip
 
-We keep versions available as pre release fully working.
-If you find any bugs, confusing documentation or missing features, please tell us on `github <https://github.com/qutip/qutip/issues>`_.
+We expect the pre-release to fully work.
+If you find any bugs, confusing documentation or missing features, please tell create an issue on `github <https://github.com/qutip/qutip/issues>`_.
 
 This version breaks compatibility with QuTiP 4.7 in many small ways.
-Please see the `changelog <./changelog.html>`_ for a list of changes, new features and deprecations.
+Please see the :doc:`changelog` for a list of changes, new features and deprecations.
 
 
 .. _install-from-source:
