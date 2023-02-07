@@ -64,7 +64,7 @@ In addition, there are several optional packages that provide additional functio
 | ``pytest``,              | 5.3+         | For running the test suite.                         |
 | ``pytest-rerunfailures`` |              |                                                     |
 +--------------------------+--------------+-----------------------------------------------------+
-| LaTeX                    | TeXLive 2009+| Needed if using LaTeX in matplotlib figures, or for |    
+| LaTeX                    | TeXLive 2009+| Needed if using LaTeX in matplotlib figures, or for |
 |                          |              | nice circuit drawings in IPython.                   |
 +--------------------------+--------------+-----------------------------------------------------+
 
@@ -127,6 +127,24 @@ You activate the new environment by running
    conda activate qutip-env
 
 You can also install any more optional packages you want with ``conda install``, for example ``matplotlib``, ``ipython`` or ``jupyter``.
+
+
+Installation of the pre-release of version 5
+============================================
+
+QuTiP version 5 has been in development for some time and brings many new features, heavily reworks the core functionalities of QuTiP.
+It is available as a pre-release on PyPI. Anyone wanting to try the new features can install it with:
+
+.. code-block:: bash
+
+   pip install --pre qutip
+
+We expect the pre-release to fully work.
+If you find any bugs, confusing documentation or missing features, please tell create an issue on `github <https://github.com/qutip/qutip/issues>`_.
+
+This version breaks compatibility with QuTiP 4.7 in many small ways.
+Please see the :doc:`changelog` for a list of changes, new features and deprecations.
+
 
 .. _install-from-source:
 
@@ -192,7 +210,7 @@ To install OpenMP support, if available, run:
 This will attempt to load up OpenMP libraries during the compilation process, which depends on you having suitable C++ compiler and library support.
 If you are on Linux this is probably already done, but the compiler macOS ships with does not have OpenMP support.
 You will likely need to refer to external operating-system-specific guides for more detail here, as it may be very non-trivial to correctly configure.
-   
+
 If you wish to contribute to the QuTiP project, then you will want to create your own fork of `the QuTiP git repository <https://github.com/qutip/qutip>`_, clone this to a local folder, and install it into your Python environment using:
 
 .. code-block:: bash
