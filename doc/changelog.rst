@@ -187,8 +187,8 @@ Integrators:
 Result class:
 
 - A new ``.e_data`` attribute provides expectation values as a dictionary.
-- Both ``.expect`` and ``.e_data`` now return expectation values as lists
-  and not numpy arrays.
+  Unlike ``.expect``, the values are provided in a Python list rather than
+  a numpy array, which better supports non-numeric types.
 - The contents of the ``.stats`` attribute changed significantly and is
   now more consistent across solvers.
 
