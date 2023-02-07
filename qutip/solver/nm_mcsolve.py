@@ -98,6 +98,12 @@ class NonMarkovianMCSolver(MCSolver):
                    for tk, ik in collapses]
         return np.prod(factors)
 
+    def _current_martingale(self):
+        t, *_ = self._integrator.get_state(copy=False)
+        collapses = self._integrator.collapses
+        return self._continuous_martingale(t) *\
+            self._discrete_martingale(collapses)
+
     # Override "run" and "start" to initialize continuous part
     #     of martingale evolution
     def run(self, state, tlist, *args, **kwargs):
@@ -111,17 +117,15 @@ class NonMarkovianMCSolver(MCSolver):
         return super().start(state, t0, seed=seed)
 
     # Override "_restore_state" to include the martingale in the state
-    def _restore_state(self, data, t, *, copy=True):
+    def _restore_state(self, data, *, copy=True):
         # find state |psi><psi|
-        state = super()._restore_state(data, t, copy=copy)
+        state = super()._restore_state(data, copy=copy)
         if isket(state):
             # influence martingale is for weighting density matrices, not kets!
             state = ket2dm(state)
 
         # find martingale mu
-        collapses = self._integrator.collapses
-        mu = self._continuous_martingale(t) *\
-            self._discrete_martingale(collapses)
+        mu = self._current_martingale()
 
         # return weighted state
         return mu * state

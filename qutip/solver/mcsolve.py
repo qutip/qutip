@@ -394,7 +394,7 @@ class MCSolver(MultiTrajSolver):
 
         super().__init__(rhs, options=options)
 
-    def _restore_state(self, data, t, *, copy=True):
+    def _restore_state(self, data, *, copy=True):
         """
         Retore the Qobj state from its data.
         """
@@ -434,10 +434,10 @@ class MCSolver(MultiTrajSolver):
         result = Result(e_ops, {**self.options, "normalize_output": False})
         generator = self._get_generator(seed)
         self._integrator.set_state(tlist[0], state, generator)
-        result.add(tlist[0], self._restore_state(state, tlist[0], copy=False))
+        result.add(tlist[0], self._restore_state(state, copy=False))
         for t in tlist[1:]:
             t, state = self._integrator.integrate(t, copy=False)
-            result.add(t, self._restore_state(state, t, copy=False))
+            result.add(t, self._restore_state(state, copy=False))
         result.collapse = self._integrator.collapses
         return seed, result
 

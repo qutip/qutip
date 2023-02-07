@@ -1089,7 +1089,7 @@ class HEOMSolver(Solver):
 
         return rho0_he
 
-    def _restore_state(self, state, t, *, copy=True):
+    def _restore_state(self, state, *, copy=True):
         n = self._sys_shape
         rho_shape = (n, n)
         rho_dims = self._sys_dims
