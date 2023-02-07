@@ -492,8 +492,8 @@ class MultiTrajResult(_BaseResult):
             state = trajectory.final_state
             self._sum_final_states = qzero(state.dims[0])
 
-        self._sum_expect = [expect * 0 for expect in trajectory.expect]
-        self._sum2_expect = [expect * 0 for expect in trajectory.expect]
+        self._sum_expect = [np.zeros_like(expect) for expect in trajectory.expect]
+        self._sum2_expect = [np.zeros_like(expect) for expect in trajectory.expect]
 
         self.e_ops = trajectory.e_ops
 
