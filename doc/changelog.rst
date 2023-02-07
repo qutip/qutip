@@ -6,8 +6,8 @@ Change Log
 
 .. towncrier release notes start
 
-Version 5.0.0 (February XX, 2023)
-+++++++++++++++++++++++++++++++++
+Version 5.0.0a1 (February 7, 2023)
+++++++++++++++++++++++++++++++++++
 
 QuTiP 5 is a redesign of many of the core components of QuTiP (``Qobj``,
 ``QobjEvo``, solvers) to make them more consistent and more flexible.
