@@ -129,8 +129,6 @@ class Settings:
         except OSError:
             self._tmproot = "."
         self.core = None
-        self._solvers = []
-        self._integrators = []
         self._debug = False
         self._log_handler = "default"
         self._colorblind_safe = False
