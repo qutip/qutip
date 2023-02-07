@@ -2,7 +2,8 @@
 This module contains settings for the QuTiP graphics, multiprocessing, and
 tidyup functionality, etc.
 """
-import os, sys
+import os
+import sys
 from ctypes import cdll
 import platform
 import numpy as np
@@ -81,7 +82,7 @@ def _find_mkl():
     if _blas_info() == 'INTEL MKL':
         plat = sys.platform
         python_dir = os.path.dirname(sys.executable)
-        if plat in ['darwin','linux2', 'linux']:
+        if plat in ['darwin', 'linux2', 'linux']:
             python_dir = os.path.dirname(python_dir)
 
         if plat == 'darwin':
@@ -93,27 +94,26 @@ def _find_mkl():
         else:
             raise Exception('Unknown platfrom.')
 
-        if plat in ['darwin','linux2', 'linux']:
+        if plat in ['darwin', 'linux2', 'linux']:
             lib_dir = '/lib'
         else:
             lib_dir = r'\Library\bin'
         # Try in default Anaconda location first
         try:
             mkl_lib = cdll.LoadLibrary(python_dir+lib_dir+lib)
-        except:
+        except Exception:
             pass
 
         # Look in Intel Python distro location
         if mkl_lib is None:
-            if plat in ['darwin','linux2', 'linux']:
+            if plat in ['darwin', 'linux2', 'linux']:
                 lib_dir = '/ext/lib'
             else:
                 lib_dir = r'\ext\lib'
             try:
                 mkl_lib = \
                     cdll.LoadLibrary(python_dir + lib_dir + lib)
-
-            except:
+            except Exception:
                 pass
     return mkl_lib
 
