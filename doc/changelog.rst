@@ -93,7 +93,7 @@ Some highlights:
   instance of the underlying data type instead of a SciPy-like sparse matrix.
   The operations available in ``qutip.core.data`` may be used on ``.data``,
   regardless of the data type.
-- ``Qobj``s with different data types may be mixed in arithmetic and other
+- ``Qobj`` with different data types may be mixed in arithmetic and other
   operations. A sensible output type will be automatically determined.
 - The new ``.to(...)`` method may be used to convert a ``Qobj`` from one data type
   to another. E.g. ``.to("dense")`` will convert to the dense representation and
