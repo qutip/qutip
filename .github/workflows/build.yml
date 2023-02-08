@@ -12,14 +12,15 @@ on:
 
 
 jobs:
-  # The deploy_test job is part of the test of whether we should deploy to PyPI.
-  # The job will succeed if either the confirmation reference is empty or if the
-  # confirmation is the selected branch or tag name.  It will fail if it is
-  # nonempty and does not match.  All later jobs depend on this job, so that
-  # they will be immediately cancelled if the confirmation is bad.  The
-  # dependency is currently necessary (2021-03) because GitHub Actions does not
-  # have a simpler method of cancelling an entire workflow---the normal use-case
-  # expects to try and run as much as possible despite one or two failures.
+  # The deploy_test job is part of the test of whether we should deploy to PyPI
+  # or test.PyPI. The job will succeed if either the confirmation reference is
+  # empty, 'test' or if the confirmation is the selected branch or tag name.
+  # It will fail if it is nonempty and does not match.  All later jobs depend
+  # on this job, so that they will be immediately cancelled if the confirmation
+  # is bad.  The dependency is currently necessary (2021-03) because GitHub
+  # Actions does not have a simpler method of cancelling an entire workflow---
+  # the normal use-case expects to try and run as much as possible despite one
+  # or two failures.
   deploy_test:
     name: Verify PyPI deployment confirmation
     runs-on: ubuntu-latest
@@ -30,8 +31,10 @@ jobs:
       - name: Compare confirmation to current reference
         shell: bash
         run: |
-          [[ -z $CONFIRM_REF || $GITHUB_REF =~ ^refs/(heads|tags)/$CONFIRM_REF$ ]]
-          if [[ -z $CONFIRM_REF ]]; then
+          [[ -z $CONFIRM_REF || $GITHUB_REF =~ ^refs/(heads|tags)/$CONFIRM_REF$ || $CONFIRM_REF == "test" ]]
+          if [[ $CONFIRM_REF == "test" ]]; then
+            echo "Build and deploy to test.pypi.org."
+          elif [[ -z $CONFIRM_REF ]]; then
             echo "Build only.  Nothing will be uploaded to PyPI."
           else
             echo "Full build and deploy.  Wheels and source will be uploaded to PyPI."
@@ -54,7 +57,7 @@ jobs:
           # For the sdist we should be as conservative as possible with our
           # Python version.  This should be the lowest supported version.  This
           # means that no unsupported syntax can sneak through.
-          python-version: '3.7'
+          python-version: '3.8'
 
       - name: Install pip build
         run: |
@@ -104,8 +107,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     env:
-      # Set up wheels matrix.  This is CPython 3.6--3.10 for all OS targets.
-      CIBW_BUILD: "cp3{6,7,8,9,10,11}-*"
+      # Set up wheels matrix.  This is CPython 3.8--3.10 for all OS targets.
+      CIBW_BUILD: "cp3{8,9,10,11}-*"
       # Numpy and SciPy do not supply wheels for i686 or win32 for
       # Python 3.10+, so we skip those:
       CIBW_SKIP: "*-musllinux* cp3{8,9,10,11}-manylinux_i686 cp3{8,9,10,11}-win32"
@@ -118,7 +121,7 @@ jobs:
         name: Install Python
         with:
           # This is about the build environment, not the released wheel version.
-          python-version: '3.7'
+          python-version: '3.8'
 
       - name: Install cibuildwheel
         run: |
@@ -143,10 +146,10 @@ jobs:
   deploy:
     name: "Deploy to PyPI if desired"
     # The confirmation is tested explicitly in `deploy_test`, so we know it is
-    # either a missing confirmation (so we shouldn't run this job) or a valid
-    # confirmation.  We don't need to retest the value of the confirmation,
-    # beyond checking that one existed.
-    if: ${{ github.event.inputs.confirm_ref != '' }}
+    # either a missing confirmation (so we shouldn't run this job), 'test' or a
+    # valid confirmation.  We don't need to retest the value of the
+    # confirmation, beyond checking that one existed.
+    if: ${{ github.event.inputs.confirm_ref != '' && github.event.inputs.confirm_ref != 'test' }}
     needs: [deploy_test, build_sdist, build_wheels]
     runs-on: ubuntu-latest
     env:
@@ -162,12 +165,12 @@ jobs:
       - uses: actions/setup-python@v4
         name: Install Python
         with:
-          python-version: '3.7'
+          python-version: '3.8'
 
       - name: Verify this is not a dev version
         shell: bash
         run: |
-          python -m pip install wheels/*-cp37-cp37m-*.manylinux2010_x86_64.whl
+          python -m pip install wheels/*-cp38-cp38-manylinux*.whl
           python -c 'import qutip; print(qutip.__version__); assert "dev" not in qutip.__version__; assert "+" not in qutip.__version__'
 
       # We built the zipfile for convenience distributing to Windows users on
@@ -176,3 +179,36 @@ jobs:
         run: |
           python -m pip install "twine"
           python -m twine upload --verbose wheels/*.whl sdist/*.tar.gz
+
+
+  deploy_testpypi:
+    name: "Deploy to TestPyPI if desired"
+    if: ${{ github.event.inputs.confirm_ref == 'test' }}
+    needs: [deploy_test, build_sdist, build_wheels]
+    runs-on: ubuntu-latest
+    env:
+      TWINE_USERNAME: __token__
+      TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
+      TWINE_NON_INTERACTIVE: 1
+
+    steps:
+      - name: Download build artifacts to local runner
+        uses: actions/download-artifact@v3
+
+      - uses: actions/setup-python@v4
+        name: Install Python
+        with:
+          python-version: '3.8'
+
+      - name: Verify this is not a dev version
+        shell: bash
+        run: |
+          python -m pip install wheels/*-cp38-cp38-manylinux*.whl
+          python -c 'import qutip; print(qutip.__version__); assert "dev" not in qutip.__version__; assert "+" not in qutip.__version__'
+
+      # We built the zipfile for convenience distributing to Windows users on
+      # our end, but PyPI only needs the tarball.
+      - name: Upload sdist and wheels to TestPyPI
+        run: |
+          python -m pip install "twine"
+          python -m twine upload --repository testpypi --verbose wheels/*.whl sdist/*.tar.gz

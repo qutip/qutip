@@ -99,7 +99,7 @@ class TestResult:
                 res.e_ops[k](i, qutip.basis(N, i)) for i in range(N)
             ]
             if isinstance(res.expect[i][0], qutip.Qobj):
-                assert res.expect[i] == results[k]
+                assert (res.expect[i] == results[k]).all()
                 assert res.e_data[k] == results[k]
                 assert e_op_call_values == results[k]
             else:
