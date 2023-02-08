@@ -1,12 +1,10 @@
-from .. import Qobj, QobjEvo
 from .result import Result, MultiTrajResult
 from .parallel import _get_map
 from time import time
 from .solver_base import Solver
 import numpy as np
-from copy import copy
 
-__all__ = ["MultiTrajSolver", "TrajectorySolver"]
+__all__ = ["MultiTrajSolver"]
 
 
 class MultiTrajSolver(Solver):
@@ -30,6 +28,7 @@ class MultiTrajSolver(Solver):
     """
     name = "generic multi trajectory"
     resultclass = MultiTrajResult
+    trajectoryclass = Result
     _avail_integrators = {}
 
     # Class of option used by the solver
@@ -198,12 +197,12 @@ class MultiTrajSolver(Solver):
         """
         Run one trajectory and return the result.
         """
-        result = Result(e_ops, self.options)
+        result = self.trajectoryclass(e_ops, self.options)
         generator = self._get_generator(seed)
         self._integrator.set_state(tlist[0], state, generator)
         result.add(tlist[0], self._restore_state(state, copy=False))
         for t in tlist[1:]:
-            t, state = self._integrator.step(t, copy=False)
+            t, state = self._integrator.integrate(t, copy=False)
             result.add(t, self._restore_state(state, copy=False))
         return seed, result
 
