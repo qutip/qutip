@@ -2,7 +2,7 @@
 import numpy as np
 from ..core import Qobj, QobjEvo, expect, qzero
 
-__all__ = ["Result", "MultiTrajResult", "McResult"]
+__all__ = ["Result", "MultiTrajResult", "McResult", "NmmcResult"]
 
 
 class _QobjExpectEop:
