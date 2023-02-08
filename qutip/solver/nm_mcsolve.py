@@ -4,8 +4,14 @@ from functools import partial
 import numpy as np
 import scipy
 from .mcsolve import MCSolver
-from .result import McResult
+from .result import Result, NmmcResult
 from ..core import CoreOptions, QobjEvo, isket, ket2dm, qeye
+
+
+def _2dm(q):
+    if isket(q):
+        return ket2dm(q)
+    return q
 
 
 class NonMarkovianMCSolver(MCSolver):
@@ -14,7 +20,7 @@ class NonMarkovianMCSolver(MCSolver):
     Based on the methods explained in arXiv:2209.08958 [quant-ph]
     """
     name = "nm_mcsolve"
-    resultclass = McResult
+    resultclass = NmmcResult
     solver_options = {
         **MCSolver.solver_options,
         "completeness_rtol": 1e-5,
@@ -116,16 +122,29 @@ class NonMarkovianMCSolver(MCSolver):
         self._mu_c = {t0: 1}
         return super().start(state, t0, seed=seed)
 
-    # Override "_restore_state" to include the martingale in the state
-    def _restore_state(self, data, *, copy=True):
-        # find state |psi><psi|
-        state = super()._restore_state(data, copy=copy)
-        if isket(state):
-            # influence martingale is for weighting density matrices, not kets!
-            state = ket2dm(state)
+    # Override "step" to include the martingale mu in the state
+    # Note that the returned state will be a density matrix with trace=mu
+    def step(self, t, *, args=None, copy=True):
+        state = super().step(t, args=args, copy=copy)
+        state_dm = _2dm(state)
+        return state_dm * self._current_martingale()
 
-        # find martingale mu
-        mu = self._current_martingale()
+    # Override "_run_one_traj" to include and store the martingale
+    def _run_one_traj(self, seed, state, tlist, e_ops):
+        result = Result(e_ops, {**self.options, "normalize_output": False})
+        generator = self._get_generator(seed)
+        self._integrator.set_state(tlist[0], state, generator)
 
-        # return weighted state
-        return mu * state
+        # martingale is one at the starting time
+        result.trace = [1]
+        state_dm = _2dm(self._restore_state(state, copy=False))
+        result.add(tlist[0], state_dm)
+
+        for t in tlist[1:]:
+            t, state = self._integrator.integrate(t, copy=False)
+            state_dm = _2dm(self._restore_state(state, copy=False))
+            mu = self._current_martingale()
+            result.add(t, state_dm * mu)
+            result.trace.append(mu)
+        result.collapse = self._integrator.collapses
+        return seed, result

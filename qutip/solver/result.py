@@ -970,3 +970,32 @@ class McResult(MultiTrajResult):
                 for i in range(self.num_c_ops)
             ])
         return measurements
+
+
+class NmmcResult(McResult):
+    def _add_trace(self, trajectory):
+        new_trace = np.array(trajectory.trace)
+        self._sum_trace += new_trace
+        avg = self._sum_trace / self.num_trajectories
+        self._sum2_trace += np.abs(new_trace)**2
+        avg2 = self._sum2_trace / self.num_trajectories
+
+        self.trace = avg
+        self.average_trace = avg
+        self.std_trace = np.sqrt(np.abs(avg2 - np.abs(avg)**2))
+
+    def _add_first_traj(self, trajectory):
+        super()._add_first_traj(trajectory)
+        self._sum_trace = np.zeros_like(trajectory.times)
+        self._sum2_trace = np.zeros_like(trajectory.times)
+
+    def _post_init(self):
+        super()._post_init()
+
+        self._sum_trace = None
+        self._sum2_trace = None
+        self.trace = []
+        self.average_trace = []
+        self.std_trace = []
+
+        self.add_processor(self._add_trace)
