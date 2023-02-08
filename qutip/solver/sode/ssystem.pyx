@@ -402,3 +402,79 @@ cdef class StochasticOpenSystem(_StochasticSystem):
         _data.imul_dense(self._L0a, 1/self.dt)
         self.L.matmul_data(self.t, self._a, self._L0a)
         self._L0a_set = True
+
+
+cdef class SimpleStochasticSystem(_StochasticSystem):
+    """
+    Simple system that can be solver analytically.
+    """
+    cdef QobjEvo H
+    cdef list c_ops
+    cdef float dt
+
+    def __init__(self, H, c_ops):
+        self.H = -1j * H
+        self.c_ops = c_ops
+
+        self.num_collapse = len(self.c_ops)
+        self.issuper = False
+        self.dims = self.H.dims
+        self.dt = 1e-6
+
+    cpdef Data drift(self, t, Data state):
+        return self.H.matmul_data(t, state)
+
+    cpdef list diffusion(self, t, Data state):
+        cdef int i
+        cdef out = []
+        for i in range(self.num_collapse):
+            out.append(self.c_ops[i].matmul_data(t, state))
+        return out
+
+    cpdef void set_state(self, double t, Data state):
+        self.t = t
+        self.state = _data.to(_data.Dense, state)
+
+    cpdef Data a(self):
+        return self.H.matmul_data(self.t, self.state)
+
+    cpdef Data bi(self, int i):
+        return self.c_ops[i].matmul_data(self.t, self.state)
+
+    cpdef Data Libj(self, int i, int j):
+        bj = self.c_ops[i].matmul_data(self.t, self.state)
+        return self.c_ops[j].matmul_data(self.t, bj)
+
+    cpdef Data Lia(self, int i):
+        bi = self.c_ops[i].matmul_data(self.t, self.state)
+        return self.H.matmul_data(self.t, bi)
+
+    cpdef Data L0bi(self, int i):
+        # L0bi = abi' + dbi/dt + Sum_j bjbjbi"/2
+        a = self.H.matmul_data(self.t, self.state)
+        abi = self.c_ops[i].matmul_data(self.t, a)
+        b = self.c_ops[i].matmul_data(self.t, self.state)
+        bdt = self.c_ops[i].matmul_data(self.t + self.dt, self.state)
+        return abi + (bdt - b) / self.dt
+
+    cpdef Data LiLjbk(self, int i, int j, int k):
+        bk = self.c_ops[k].matmul_data(self.t, self.state)
+        Ljbk = self.c_ops[j].matmul_data(self.t, bk)
+        return self.c_ops[i].matmul_data(self.t, Ljbk)
+
+    cpdef Data L0a(self):
+        # L0a = a'a + da/dt + bba"/2  (a" = 0)
+        a = self.H.matmul_data(self.t, self.state)
+        aa = self.H.matmul_data(self.t, a)
+        adt = self.H.matmul_data(self.t + self.dt, self.state)
+        return aa + (adt - a) / self.dt
+
+    def analytic(self, t, W):
+        """
+        Analytic solution, H and all c_ops must commute.
+        """
+        out = self.H.full() * t
+        for i in range(self.num_collapse):
+            out += self.c_ops[i].full() * W[i]
+            out -= 0.5 * self.c_ops[i].full() @ self.c_ops[i].full() * t
+        return np.exp(out)

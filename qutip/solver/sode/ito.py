@@ -1,21 +1,5 @@
 import numpy as np
 
-class ItoNoise:
-    def __init__(self, T, dt):
-        N = int(np.round(T / dt))
-        self.T = T
-        self.dt = dt
-        self.noise = np.random.randn(N) * dt**0.5
-
-    def dw(self, dt):
-        # I(j)
-        N = int(np.round(dt /self.dt))
-        return self.noise.reshape(-1, N).sum(axis=1)
-
-    def dz(self, dt):
-        # I(0, j)
-        N = int(np.round(dt /self.dt))
-        return self.noise.reshape(-1, N) @ np.arange(N-0.5, 0, -1) * self.dt
 
 class MultiNoise:
     def __init__(self, T, dt, num=1):
@@ -32,17 +16,21 @@ class MultiNoise:
     def dz(self, dt):
         N = int(np.round(dt /self.dt))
         return np.einsum(
-            "ijk,j",
+            "ijk,j->ik",
             self.noise.reshape(-1, N, self.num),
             np.arange(N-0.5, 0, -1)
         ) * self.dt
 
     def dW(self, dt):
         N = int(np.round(dt / self.dt))
-        noise = self.noise
+        noise = self.noise.copy()
         if noise.shape[0] % N:
-            noise = noise[:-noise.shape[0] % N]
-        out = np.empty((self.num, 2), dtype=float)
-        out[:, 0] = noise[:N, :].sum(axis=0)
-        out[:, 1] = np.arange(N-0.5, 0, -1) @ noise[:N, :] * self.dt
-        return out.T
+            noise = noise[:-(noise.shape[0] % N)]
+        out = np.empty((noise.shape[0] // N, self.num, 2), dtype=float)
+        out[:, :, 0] = noise.reshape(-1, N, self.num).sum(axis=1)
+        out[:, :, 1] = np.einsum(
+            "ijk,j->ik",
+            self.noise.reshape(-1, N, self.num),
+            np.arange(N-0.5, 0, -1)
+        ) * self.dt
+        return out
