@@ -695,7 +695,7 @@ def ssesolve(H, psi0, times, sc_ops=[], e_ops=[],
     if "method" in kwargs and kwargs["method"] == "photocurrent":
         print("stochastic solver with photocurrent method has been moved to "
               "it's own function: photocurrent_sesolve")
-        return photocurrent_sesolve(H, psi0, times, c_ops=c_ops,
+        return photocurrent_sesolve(H, psi0, times, sc_ops=sc_ops,
                                     e_ops=e_ops, _safe_mode=_safe_mode,
                                     args=args, **kwargs)
 
