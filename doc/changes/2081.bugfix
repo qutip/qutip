@@ -1,0 +1,1 @@
+Fix setting of sso.m_ops in heterodyne smesolver and passing through of sc_ops to photocurrent solver. (`#2081 <https://github.com/qutip/qutip/pull/2081>`_ by Bogdan Reznychenko and Simon Cross)
