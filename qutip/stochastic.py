@@ -597,9 +597,11 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     elif sso.method == 'heterodyne':
         if sso.m_ops is None:
             m_ops = []
-        elif len(sso.m_ops)%2:
-            raise ValueError("The measured operators for the heterodyne method supposed to be pairs of quadratures:"
-                             " m_ops should have even length.")
+        elif len(sso.m_ops) % 2:
+            raise ValueError(
+                "The measured operators for the heterodyne method supposed"
+                " to be pairs of quadratures: m_ops should have even length."
+            )
         sso.sops = []
         for c in sso.sc_ops:
             if sso.m_ops is None:
