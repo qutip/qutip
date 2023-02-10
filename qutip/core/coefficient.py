@@ -51,6 +51,10 @@ def _return(base, **kwargs):
     return base
 
 
+# The `coefficient` function is dispatcher for the type of the `base` to the
+# function that create the `Coefficient` object. `coefficient_builders` store
+# the map `type -> function(base, **kw)`. Optional module can add their
+# `Coefficient` specialization here.
 coefficient_builders = {
     Coefficient: _return,
     np.ndarray: InterCoefficient,
