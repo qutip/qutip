@@ -294,7 +294,7 @@ cdef class QobjEvo:
         out.shape = shape
         out.type = type
         out.superrep = superrep
-        out._issuper, out._isoper, out._shift_dt = flags
+        out._issuper, out._isoper = flags
         return out
 
     def _getstate(self):
@@ -302,14 +302,14 @@ cdef class QobjEvo:
         # For jax pytree representation
         # auto_pickle create similar method __getstate__, but since it's
         # automatically created, it could change depending on cython version
-        # etc. so we create our own.
+        # etc., so we create our own.
         return {
             "elements": self.elements,
             "dims": self.dims,
             "shape": self.shape,
             "type": self.type,
             "superrep": self.superrep,
-            "flags": (self._issuper, self._isoper, self._shift_dt)
+            "flags": (self._issuper, self._isoper,)
         }
 
     def __call__(self, double t, dict _args=None, **kwargs):
