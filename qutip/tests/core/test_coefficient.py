@@ -4,7 +4,7 @@ import qutip
 import numpy as np
 import scipy.interpolate as interp
 from functools import partial
-from qutip.core.coefficient import (coefficient, norm, conj, shift,
+from qutip.core.coefficient import (coefficient, norm, conj,
                                     CompilationOptions, Coefficient,
                                     clean_compiled_coefficient
                                    )
@@ -175,21 +175,6 @@ def test_CoeffUnitaryTransform(style, transform, expected):
     _assert_eq_over_interval(transform(coeff), lambda t: expected(coeff(t)))
 
 
-@pytest.mark.parametrize(['style'], [
-    pytest.param("func", id="func"),
-    pytest.param("array", id="array"),
-    pytest.param("arraylog", id="logarray"),
-    pytest.param("string", id="string"),
-    pytest.param("steparray", id="steparray"),
-    pytest.param("steparraylog", id="steparraylog")
-])
-def test_CoeffShift(style):
-    coeff = coeff_generator(style, "f")
-    dt = np.e / 30
-    _assert_eq_over_interval(shift(coeff, dt),
-                             lambda t: coeff(t + dt))
-
-
 @pytest.mark.parametrize(['style_left'], [
     pytest.param("func", id="func"),
     pytest.param("array", id="array"),
@@ -310,10 +295,6 @@ def _mul(coeff):
     return coeff * coeff
 
 
-def _shift(coeff):
-    return shift(coeff, 0.05)
-
-
 @pytest.mark.parametrize(['style'], [
     pytest.param("func", id="func"),
     pytest.param("array", id="array"),
@@ -328,7 +309,6 @@ def _shift(coeff):
     pytest.param(_mul, id="prod"),
     pytest.param(norm, id="norm"),
     pytest.param(conj, id="conj"),
-    pytest.param(_shift, id="shift"),
 ])
 def test_Coeffpickle(style, transform):
     coeff = coeff_generator(style, "f")
@@ -351,7 +331,6 @@ def test_Coeffpickle(style, transform):
     pytest.param(_mul, id="prod"),
     pytest.param(norm, id="norm"),
     pytest.param(conj, id="conj"),
-    pytest.param(_shift, id="shift"),
 ])
 def test_Coeffcopy(style, transform):
     coeff = coeff_generator(style, "f")

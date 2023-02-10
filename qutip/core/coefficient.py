@@ -24,7 +24,7 @@ from .options import QutipOptions
 from .data import Data
 from .cy.coefficient import (
     Coefficient, InterCoefficient, FunctionCoefficient, StrFunctionCoefficient,
-    ConjCoefficient, NormCoefficient, ShiftCoefficient
+    ConjCoefficient, NormCoefficient
 )
 
 
@@ -161,12 +161,6 @@ def conj(coeff):
     """ return a Coefficient with is the conjugate.
     """
     return ConjCoefficient(coeff)
-
-
-def shift(coeff, _t0=0):
-    """ return a Coefficient in which t is shifted by _t0.
-    """
-    return ShiftCoefficient(coeff, _t0)
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

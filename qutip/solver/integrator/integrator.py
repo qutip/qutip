@@ -167,7 +167,6 @@ class Integrator:
             )
         return self.integrate(t, copy)
 
-
     def get_state(self, copy=True):
         """
         Obtain the state of the solver as a pair (t, state).

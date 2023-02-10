@@ -347,8 +347,8 @@ cdef class Dispatcher:
         """
         Create a new data layer dispatching operator.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         signature_source : callable or inspect.Signature
             An object from which the call signature of operation can be
             determined.  You can pass any callable defined in Python space, and
@@ -430,8 +430,8 @@ cdef class Dispatcher:
         recent version; you can use this to override currently known
         specialisations if desired.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         specialisations : iterable of tuples
             An iterable where each element specifies a new specialisation for
             this operation.  Each element of the iterable should be a tuple,

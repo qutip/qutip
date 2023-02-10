@@ -195,17 +195,9 @@ class TestMultiTrajResult:
         if multiresult.trajectories:
             assert isinstance(multiresult.runs_expect, list)
             assert isinstance(multiresult.runs_e_data, dict)
-            assert isinstance(multiresult.expect_traj_avg(), list)
-            assert isinstance(multiresult.expect_traj_std(), list)
-            assert isinstance(multiresult.e_data_traj_avg(), dict)
-            assert isinstance(multiresult.e_data_traj_std(), dict)
         else:
             assert multiresult.runs_expect == []
             assert multiresult.runs_e_data == {}
-            assert multiresult.expect_traj_avg() is None
-            assert multiresult.expect_traj_std() is None
-            assert multiresult.e_data_traj_avg() is None
-            assert multiresult.e_data_traj_std() is None
 
     @pytest.mark.parametrize('keep_runs_results', [True, False])
     @pytest.mark.parametrize('dm', [True, False])
@@ -265,10 +257,6 @@ class TestMultiTrajResult:
                 for expect in runs_expect:
                     np.testing.assert_allclose(expect, expected,
                                                atol=1e-14, rtol=0.1)
-
-            for expect, expected in zip(m_res.expect_traj_avg(25), results):
-                np.testing.assert_allclose(expect, expected,
-                                           atol=1e-14, rtol=0.04)
 
         self._expect_check_types(m_res)
 

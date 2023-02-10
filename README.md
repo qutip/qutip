@@ -11,6 +11,7 @@ QuTiP: Quantum Toolbox in Python
 [B. Li](https://github.com/boxili),
 [J. Lishman](https://github.com/jakelishman),
 [S. Cross](https://github.com/hodgestar),
+[A. Galicia](https://github.com/AGaliciaMartinez),
 [P. D. Nation](https://github.com/nonhermitian),
 and [J. R. Johansson](https://github.com/jrjohansson)
 
@@ -20,6 +21,19 @@ and [J. R. Johansson](https://github.com/jrjohansson)
 [![license](https://img.shields.io/badge/license-New%20BSD-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)  
 [![PyPi Downloads](https://img.shields.io/pypi/dm/qutip?label=downloads%20%7C%20pip&logo=PyPI)](https://pypi.org/project/qutip)
 [![Conda-Forge Downloads](https://img.shields.io/conda/dn/conda-forge/qutip?label=downloads%20%7C%20conda&logo=Conda-Forge)](https://anaconda.org/conda-forge/qutip)
+
+> **Note**
+>
+> The master branch now contains the alpha version of QuTiP 5. This is major
+> revision that breaks compatibility in many small ways withh QuTiP 4.7.
+>
+> If you need to track QuTiP 4.7 changes or submit pull requests for 4.7,
+> please use the `qutip-4.7.X` branch.
+>
+> If you need to track QuTiP 5 changes or submit  pull request for 5,
+> please use the `master` branch (and not the `dev.major` branch).
+>
+> The change to master happened on 16 January 2023 in commit @fccec5d.
 
 QuTiP is open-source software for simulating the dynamics of closed and open quantum systems.
 It uses the excellent Numpy, Scipy, and Cython packages as numerical backends, and graphical output is provided by Matplotlib.

@@ -153,7 +153,7 @@ class Result(_BaseResult):
         The state at each time ``t`` (if the recording of the state was
         requested).
 
-    final_state : :obj:`~Qobj:
+    final_state : :obj:`~Qobj`:
         The final state (if the recording of the final state was requested).
 
     expect : list of lists of expectation values
@@ -376,7 +376,7 @@ class MultiTrajResult(_BaseResult):
         The final state (if the recording of the final state was requested)
         averaged over all trajectories as a density matrix.
 
-    runs_state : list of :obj:`~Qobj`
+    runs_final_state : list of :obj:`~Qobj`
         The final state for each trajectory (if the recording of the final
         state and trajectories was requested).
 
@@ -706,7 +706,7 @@ class MultiTrajResult(_BaseResult):
         """
         States of every runs as ``states[run][t]``.
         """
-        if self.trajectories:
+        if self.trajectories and self.trajectories[0].states:
             return [traj.states for traj in self.trajectories]
         else:
             return None
@@ -732,7 +732,7 @@ class MultiTrajResult(_BaseResult):
         """
         Last states of each trajectories.
         """
-        if self.trajectories:
+        if self.trajectories and self.trajectories[0].final_state:
             return [traj.final_state for traj in self.trajectories]
         else:
             return None
@@ -772,82 +772,35 @@ class MultiTrajResult(_BaseResult):
         else:
             return None
 
-    def e_data_traj_avg(self, ntraj=-1):
-        """
-        Average of the expectation values for the ``ntraj`` first runs as a
-        dict. Trajectories must be saved.
-
-        Parameters
-        ----------
-        ntraj : int, [optional]
-            Number of trajectories's expect to average.
-            Default: all trajectories.
-        """
-        if not self.trajectories:
-            return None
-        return {
-            k: np.mean(np.stack([
-                traj.e_data[k] for traj in self.trajectories[:ntraj]
-            ]), axis=0)
-            for k in self._raw_ops
-        }
-
-    def expect_traj_avg(self, ntraj=-1):
-        """
-        Average of the expectation values for the ``ntraj`` first runs as a
-        list. Trajectories must be saved.
-
-        Parameters
-        ----------
-        ntraj : int, [optional]
-            Number of trajectories's expect to average.
-            Default: all trajectories.
-        """
-        if not self.trajectories:
-            return None
-        return list(self.e_data_traj_avg(ntraj).values())
-
-    def e_data_traj_std(self, ntraj=-1):
-        """
-        Standard derivation of the expectation values for the ``ntraj``
-        first runs as a dict. Trajectories must be saved.
-
-        Parameters
-        ----------
-        ntraj : int, [optional]
-            Number of trajectories's expect to compute de standard derivation.
-            Default: all trajectories.
-        """
-        if not self.trajectories:
-            return None
-        return {
-            k: np.std(np.stack([
-                traj.e_data[k] for traj in self.trajectories[:ntraj]
-            ]), axis=0)
-            for k in self._raw_ops
-        }
-
-    def expect_traj_std(self, ntraj=-1):
-        """
-        Standard derivation of the expectation values for the ``ntraj``
-        first runs as a dict. Trajectories must be saved.
-
-        Parameters
-        ----------
-        ntraj : int, [optional]
-            Number of trajectories's expect to compute de standard derivation.
-            Default: all trajectories.
-        """
-        if not self.trajectories:
-            return None
-        return list(self.e_data_traj_std(ntraj).values())
-
     def __repr__(self):
-        repr = super().__repr__()
-        lines = repr.split("\n")
-        lines.insert(-1, f"  Number of trajectories: {self.num_trajectories}")
+        lines = [
+            f"<{self.__class__.__name__}",
+            f"  Solver: {self.solver}",
+        ]
+        if self.stats:
+            lines.append("  Solver stats:")
+            lines.extend(
+                f"    {k}: {v!r}"
+                for k, v in self.stats.items()
+            )
+        if self.times:
+            lines.append(
+                f"  Time interval: [{self.times[0]}, {self.times[-1]}]"
+                f" ({len(self.times)} steps)"
+            )
+        lines.append(f"  Number of e_ops: {len(self.e_ops)}")
+        if self.states:
+            lines.append("  States saved.")
+        elif self.final_state is not None:
+            lines.append("  Final state saved.")
+        else:
+            lines.append("  State not saved.")
+        lines.append(f"  Number of trajectories: {self.num_trajectories}")
         if self.trajectories:
-            lines.insert(-1, "  Trajectories saved.")
+            lines.append("  Trajectories saved.")
+        else:
+            lines.append("  Trajectories not saved.")
+        lines.append(">")
         return "\n".join(lines)
 
     def __add__(self, other):
@@ -893,10 +846,12 @@ class MultiTrajResult(_BaseResult):
             new.expect = new.average_expect
             new.e_data = new.average_e_data
 
-            new.std_e_data = {
-                k: np.sqrt(avg_expect2 - abs(avg_expect**2))
-                for k, avg_expect, avg_expect2 in zip(self._raw_ops, avg, avg2)
-            }
+            new.std_e_data = {}
+            for i, key in enumerate(self._raw_ops):
+                std2 = avg2[i] - abs(avg[i]**2)
+                std2[std2 < 0] = 0.
+                new.std_e_data[key] = np.sqrt(std2)
+
             new.std_expect = list(new.std_e_data.values())
 
             if new.trajectories:

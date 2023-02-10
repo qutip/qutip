@@ -3,12 +3,14 @@
 
 cimport cython
 
-from qutip.core.data cimport csr
+from qutip.core.data cimport csr, dense
 from qutip.core.data.csr cimport CSR
+from qutip.core.data.dense cimport Dense
 from qutip.core.data.matmul cimport matmul_csr
+import numpy as np
 
 __all__ = [
-    'pow', 'pow_csr',
+    'pow', 'pow_csr', 'pow_dense',
 ]
 
 
@@ -39,6 +41,16 @@ cpdef CSR pow_csr(CSR matrix, unsigned long long n):
     return out
 
 
+cpdef Dense pow_dense(Dense matrix, unsigned long long n):
+    if matrix.shape[0] != matrix.shape[1]:
+        raise ValueError("matrix power only works with square matrices")
+    if n == 0:
+        return dense.identity(matrix.shape[0])
+    if n == 1:
+        return matrix.copy()
+    return Dense(np.linalg.matrix_power(matrix.as_ndarray(), n))
+
+
 from .dispatch import Dispatcher as _Dispatcher
 import inspect as _inspect
 
@@ -58,8 +70,8 @@ pow.__doc__ =\
     must be an integer >= 0.  `A ** 0` is defined to be the identity matrix of
     the same shape.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     matrix : Data
         Input matrix to take the power of.
 
@@ -68,6 +80,7 @@ pow.__doc__ =\
     """
 pow.add_specialisations([
     (CSR, CSR, pow_csr),
+    (Dense, Dense, pow_dense),
 ], _defer=True)
 
 del _inspect, _Dispatcher

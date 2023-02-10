@@ -1,4 +1,4 @@
-__all__ = ['mcsolve', "McSolver"]
+__all__ = ['mcsolve', "MCSolver"]
 
 import warnings
 
@@ -8,7 +8,7 @@ from ..core import QobjEvo, spre, spost, Qobj, unstack_columns, liouvillian
 from .multitraj import MultiTrajSolver
 from .solver_base import Solver
 from .result import McResult, Result
-from .mesolve import mesolve, MeSolver
+from .mesolve import mesolve, MESolver
 import qutip.core.data as _data
 from time import time
 
@@ -103,6 +103,7 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
         Seed for the random number generator. It can be a single seed used to
         spawn seeds for each trajectory or a list of seeds, one for each
         trajectory. Seeds are saved in the result and they can be reused with::
+
             seeds=prev_result.seeds
 
     target_tol : {float, tuple, list}, optional
@@ -135,21 +136,23 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
     c_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in c_ops]
 
     if len(c_ops) == 0:
+        if options is None:
+            options = {}
         options = {
             key: options[key]
             for key in options
-            if key in MeSolver.solver_options
+            if key in MESolver.solver_options
         }
         return mesolve(H, state, tlist, e_ops=e_ops, args=args,
                        options=options)
 
-    if isinstance(ntraj, list):
+    if isinstance(ntraj, (list, tuple)):
         raise TypeError(
-            "List ntraj is no longer supported, use `result.expect_traj_avg`"
-            "with the options `keep_runs_results=True`."
+            "ntraj must be an integer. "
+            "A list of numbers is not longer supported."
         )
 
-    mc = McSolver(H, c_ops, options=options)
+    mc = MCSolver(H, c_ops, options=options)
     result = mc.run(state, tlist=tlist, ntraj=ntraj, e_ops=e_ops,
                     seed=seeds, target_tol=target_tol, timeout=timeout)
     return result
@@ -317,7 +320,7 @@ class MCIntegrator:
 # -----------------------------------------------------------------------------
 # MONTE CARLO CLASS
 # -----------------------------------------------------------------------------
-class McSolver(MultiTrajSolver):
+class MCSolver(MultiTrajSolver):
     r"""
     Monte Carlo Solver of a state vector :math:`|\psi \rangle` for a
     given Hamiltonian and sets of collapse operators. Options for the
@@ -441,7 +444,7 @@ class McSolver(MultiTrajSolver):
 
     def _get_integrator(self):
         _time_start = time()
-        method = self._options["method"]
+        method = self.options["method"]
         if method in self.avail_integrators():
             integrator = self.avail_integrators()[method]
         elif issubclass(method, Integrator):
@@ -458,7 +461,7 @@ class McSolver(MultiTrajSolver):
     @property
     def options(self):
         """
-        Options for bloch redfield solver:
+        Options for monte carlo solver:
 
         store_final_state: bool, default=False
             Whether or not to store the final state of the evolution in the

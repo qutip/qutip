@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import qutip
 from copy import copy
-from qutip.solver.mcsolve import mcsolve, McSolver
+from qutip.solver.mcsolve import mcsolve, MCSolver
 from qutip.solver.solver_base import Solver
 
 def _return_constant(t, args):
@@ -253,8 +253,6 @@ def test_expectation_outputs(keep_runs_results):
         assert isinstance(data.runs_expect[0][0][1], float)
         assert isinstance(data.runs_expect[1][0][1], float)
         assert isinstance(data.runs_expect[2][0][1], complex)
-        assert not np.allclose(data.std_expect[0][1],
-                               data.expect_traj_std(3)[0][1])
     assert isinstance(data.photocurrent[0][0], float)
     assert isinstance(data.photocurrent[1][0], float)
     assert (np.array(data.runs_photocurrent).shape
@@ -341,7 +339,7 @@ class TestSeeds:
         size = 10
         a = qutip.QobjEvo([qutip.destroy(size), 'alpha'], args={'alpha': 0})
         H = qutip.num(size)
-        mcsolver = McSolver(H, a, options={'map': 'serial'})
+        mcsolver = MCSolver(H, a, options={'map': 'serial'})
         mcsolver.start(qutip.basis(size, size-1), 0, seed=5)
         state_1 = mcsolver.step(1, args={'alpha':1})
 
@@ -385,11 +383,11 @@ def test_super_H():
     np.testing.assert_allclose(mc_expected.expect[0], mc.expect[0], atol=0.5)
 
 
-def test_McSolver_run():
+def test_MCSolver_run():
     size = 10
     a = qutip.QobjEvo([qutip.destroy(size), 'coupling'], args={'coupling':0})
     H = qutip.num(size)
-    solver = McSolver(H, a)
+    solver = MCSolver(H, a)
     solver.options = {'store_final_state': True}
     res = solver.run(qutip.basis(size, size-1), np.linspace(0, 5.0, 11),
                      e_ops=[qutip.qeye(size)], args={'coupling': 1})
@@ -405,11 +403,11 @@ def test_McSolver_run():
     assert res.num_trajectories == 1001
 
 
-def test_McSolver_stepping():
+def test_MCSolver_stepping():
     size = 10
     a = qutip.QobjEvo([qutip.destroy(size), 'coupling'], args={'coupling':0})
     H = qutip.num(size)
-    solver = McSolver(H, a)
+    solver = MCSolver(H, a)
     solver.start(qutip.basis(size, size-1), 0, seed=0)
     solver.options = {'method': 'lsoda'}
     state = solver.step(1)

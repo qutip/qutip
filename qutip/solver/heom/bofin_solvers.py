@@ -318,7 +318,7 @@ class HierarchyADOsState:
 
     Parameters
     ----------
-    rho : :class:`Qobj`
+    rho : :class:`~qutip.Qobj`
         The current state of the system (i.e. the 0th component of the
         hierarchy).
     ados : :class:`HierarchyADOs`
@@ -362,7 +362,7 @@ class HierarchyADOsState:
         Returns
         -------
         Qobj
-            A :obj:`Qobj` representing the state of the specified ADO.
+            A :obj:`~qutip.Qobj` representing the state of the specified ADO.
         """
         if isinstance(idx_or_label, int):
             idx = idx_or_label
@@ -654,6 +654,16 @@ class HEOMSolver(Solver):
         self._init_rhs_time = time() - _time_start
 
         super().__init__(rhs, options=options)
+
+    @property
+    def sys_dims(self):
+        """
+        Dimensions of the space that the system use, excluding any environment:
+
+        ``qutip.basis(sovler.dims)`` will create a state with proper dimensions
+        for this solver.
+        """
+        return self._sys_dims
 
     def _initialize_stats(self):
         stats = super()._initialize_stats()

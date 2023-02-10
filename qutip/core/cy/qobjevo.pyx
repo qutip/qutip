@@ -187,7 +187,6 @@ cdef class QobjEvo:
             self.dims = Q_object.dims.copy()
             self.shape = Q_object.shape
             self.type = Q_object.type
-            self._shift_dt = (<QobjEvo> Q_object)._shift_dt
             self._issuper = (<QobjEvo> Q_object)._issuper
             self._isoper = (<QobjEvo> Q_object)._isoper
             self.elements = (<QobjEvo> Q_object).elements.copy()
@@ -202,7 +201,6 @@ cdef class QobjEvo:
         self.shape = (0, 0)
         self._issuper = -1
         self._isoper = -1
-        self._shift_dt = 0
         args = args or {}
 
         if (
@@ -384,7 +382,8 @@ cdef class QobjEvo:
 
     cdef object _prepare(QobjEvo self, object t, Data state=None):
         """ Precomputation before computing getting the element at `t`"""
-        return t + self._shift_dt
+        # We keep the function for feedback eventually
+        return t
 
     def copy(QobjEvo self):
         """Return a copy of this `QobjEvo`"""
@@ -679,16 +678,6 @@ cdef class QobjEvo:
         """
         return self.linear_map(partial(Qobj.to, data_type=data_type),
                                _skip_check=True)
-
-    def _insert_time_shift(QobjEvo self, dt):
-        """
-        Add a shift in the time ``t = t + _t0``.
-        To be used in correlation.py only. It does not propage safely with
-        binop between QobjEvo with different shift.
-        """
-        cdef QobjEvo out = self.copy()
-        out._shift_dt = dt
-        return out
 
     def tidyup(self, atol=1e-12):
         """Removes small elements from quantum object."""

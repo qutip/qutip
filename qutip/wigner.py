@@ -16,7 +16,7 @@ from scipy.special import genlaguerre, binom, sph_harm, factorial
 
 import qutip
 from qutip import Qobj, ket2dm, jmat
-from .parallel import parfor
+from .solver.parallel import parallel_map
 from .utilities import clebsch
 from .core import data as _data
 from .core.data.eigen import eigh
@@ -322,7 +322,7 @@ def _wigner_laguerre(rho, xvec, yvec, g, parallel):
         if parallel:
             iterator = (
                 (m, rho, A, B) for m in range(len(rho.data.indptr) - 1))
-            W1_out = parfor(_par_wig_eval, iterator)
+            W1_out = parallel_map(_par_wig_eval, iterator)
             W += sum(W1_out)
         else:
             for m in range(len(rho.data.indptr) - 1):
@@ -806,7 +806,7 @@ def qfunc(
         that is used for single kets, set ``precompute_memory=None``.
 
     Returns
-    --------
+    -------
     ndarray
         Values representing the Husimi-Q function calculated over the specified
         range ``[xvec, yvec]``.

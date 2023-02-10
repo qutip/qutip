@@ -3,10 +3,10 @@ import numpy as np
 from numpy.testing import assert_
 
 from qutip import (
-    ssesolve, destroy, coherent, mesolve, fock, qeye, parallel_map,
+    ssesolve, destroy, coherent, mesolve, fock, qeye,
     photocurrent_sesolve, num,
 )
-
+from qutip.solve.parallel import parallel_map
 
 def f(t, args):
     return args["a"] * t

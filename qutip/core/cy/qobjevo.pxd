@@ -12,7 +12,6 @@ cdef class QobjEvo:
         readonly str superrep
         int _issuper
         int _isoper
-        double _shift_dt
 
     cpdef Data _call(QobjEvo self, double t)
 

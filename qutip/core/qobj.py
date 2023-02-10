@@ -1408,7 +1408,7 @@ class Qobj:
         `bra` and `ket` vector.
 
         Parameters
-        -----------
+        ----------
         bra : :class:`qutip.Qobj`
             Quantum object of type 'bra' or 'ket'
 
@@ -1445,7 +1445,7 @@ class Qobj:
         when one of the Qobj is an operator/density matrix.
 
         Parameters
-        -----------
+        ----------
         other : :class:`qutip.Qobj`
             Quantum object for a state vector of type 'ket', 'bra' or density
             matrix.

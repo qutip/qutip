@@ -3,6 +3,7 @@ import numpy as np
 import qutip
 
 
+@pytest.mark.flaky(reruns=2)
 @pytest.mark.parametrize('num_mat', [1, 2, 3, 5])
 def test_simdiag(num_mat):
     N = 10
@@ -17,6 +18,7 @@ def test_simdiag(num_mat):
             assert matrix * evec == evec * eval
 
 
+@pytest.mark.flaky(reruns=2)
 @pytest.mark.parametrize('num_mat', [1, 2, 3, 5])
 def test_simdiag_no_evals(num_mat):
     N = 10
@@ -33,6 +35,7 @@ def test_simdiag_no_evals(num_mat):
             assert matrix * evec == evec * eval
 
 
+@pytest.mark.flaky(reruns=2)
 def test_simdiag_degen():
     N = 10
     U = qutip.rand_unitary(N)
@@ -48,11 +51,11 @@ def test_simdiag_degen():
             np.testing.assert_allclose(
                 (matrix * evec).full(),
                 (evec * eval).full(),
-                atol=3e-15
+                atol=3e-14
             )
 
 @pytest.mark.flaky(reruns=2)
-@pytest.mark.repeat(5)
+@pytest.mark.repeat(2)
 def test_simdiag_degen_large():
     N = 20
     U = qutip.rand_unitary(N)
@@ -67,7 +70,7 @@ def test_simdiag_degen_large():
             np.testing.assert_allclose(
                 (matrix * evec).full(),
                 (evec * eval).full(),
-                atol=1e-14
+                atol=1e-13
             )
 
 

@@ -10,6 +10,11 @@ import qutip
 from qutip.core import data as _data
 
 
+@pytest.fixture(params=[_data.CSR, _data.Dense], ids=["CSR", "Dense"])
+def datatype(request):
+    return request.param
+
+
 def _random_not_singular(N):
     """
     return a N*N complex array with determinant not 0.
@@ -693,11 +698,11 @@ def test_QobjPurity():
     np.testing.assert_allclose(rho_mixed.purity(), 0.5)
 
 
-def test_QobjPermute():
+def test_QobjPermute(datatype):
     "qutip.Qobj permute"
-    A = qutip.basis(3, 0)
-    B = qutip.basis(5, 4)
-    C = qutip.basis(4, 2)
+    A = qutip.basis(3, 0, dtype=datatype)
+    B = qutip.basis(5, 4, dtype=datatype)
+    C = qutip.basis(4, 2, dtype=datatype)
     psi = qutip.tensor(A, B, C)
     psi2 = psi.permute([2, 0, 1])
     assert psi2 == qutip.tensor(C, A, B)
@@ -706,17 +711,17 @@ def test_QobjPermute():
     psi2_bra = psi_bra.permute([2, 0, 1])
     assert psi2_bra == qutip.tensor(C, A, B).dag()
 
-    A = qutip.fock_dm(3, 0)
-    B = qutip.fock_dm(5, 4)
-    C = qutip.fock_dm(4, 2)
+    A = qutip.fock_dm(3, 0, dtype=datatype)
+    B = qutip.fock_dm(5, 4, dtype=datatype)
+    C = qutip.fock_dm(4, 2, dtype=datatype)
     rho = qutip.tensor(A, B, C)
     rho2 = rho.permute([2, 0, 1])
     assert rho2 == qutip.tensor(C, A, B)
 
     for _ in range(3):
-        A = qutip.rand_ket(3)
-        B = qutip.rand_ket(4)
-        C = qutip.rand_ket(5)
+        A = qutip.rand_ket(3, dtype=datatype)
+        B = qutip.rand_ket(4, dtype=datatype)
+        C = qutip.rand_ket(5, dtype=datatype)
         psi = qutip.tensor(A, B, C)
         psi2 = psi.permute([1, 0, 2])
         assert psi2 == qutip.tensor(B, A, C)
@@ -726,9 +731,9 @@ def test_QobjPermute():
         assert psi2_bra == qutip.tensor(B, A, C).dag()
 
     for _ in range(3):
-        A = qutip.rand_dm(3)
-        B = qutip.rand_dm(4)
-        C = qutip.rand_dm(5)
+        A = qutip.rand_dm(3, dtype=datatype)
+        B = qutip.rand_dm(4, dtype=datatype)
+        C = qutip.rand_dm(5, dtype=datatype)
         rho = qutip.tensor(A, B, C)
         rho2 = rho.permute([1, 0, 2])
         assert rho2 == qutip.tensor(B, A, C)
@@ -744,7 +749,7 @@ def test_QobjPermute():
 
     for _ in range(3):
         super_dims = [3, 5, 4]
-        U = qutip.rand_unitary(super_dims)
+        U = qutip.rand_unitary(super_dims, dtype=datatype)
         Unew = U.permute([2, 1, 0])
         S_tens = qutip.to_super(U)
         S_tens_new = qutip.to_super(Unew)

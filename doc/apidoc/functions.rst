@@ -103,7 +103,7 @@ Density Matrix Metrics
 ----------------------
 
 .. automodule:: qutip.core.metrics
-    :members: fidelity, tracedist, bures_dist, bures_angle, hilbert_dist, average_gate_fidelity, process_fidelity
+    :members: fidelity, tracedist, bures_dist, bures_angle, hellinger_dist, hilbert_dist, average_gate_fidelity, process_fidelity, unitarity, dnorm
 
 
 Continuous Variables
@@ -120,7 +120,7 @@ Measurement of quantum states
 -----------------------------
 
 .. automodule:: qutip.measurement
-    :members: measure, measure_observable, measurement_statistics, measurement_statistics_observable
+    :members: measure, measure_povm, measure_observable, measurement_statistics, measurement_statistics_observable, measurement_statistics_povm
 
 
 Dynamics and Time-Evolution
@@ -141,18 +141,14 @@ Master Equation
 Monte Carlo Evolution
 ---------------------
 
-.. automodule:: qutip.solve.mcsolve
+.. automodule:: qutip.solver.mcsolve
     :members: mcsolve
-
-.. ignore f90 stuff for now
-    .. automodule:: qutip.fortran.mcsolve_f90
-        :members: mcsolve_f90
 
 
 Krylov Subspace Solver
 ----------------------
 
-.. automodule:: qutip.solve.krylovsolve
+.. automodule:: qutip.solver.krylovsolve
     :members: krylovsolve
 
 
@@ -166,8 +162,8 @@ Bloch-Redfield Master Equation
 Floquet States and Floquet-Markov Master Equation
 -------------------------------------------------
 
-.. automodule:: qutip.solve.floquet
-    :members: fmmesolve, floquet_modes, floquet_modes_t, floquet_modes_table, floquet_modes_t_lookup, floquet_states, floquet_states_t, floquet_wavefunction, floquet_wavefunction_t, floquet_state_decomposition, fsesolve, floquet_master_equation_rates, floquet_master_equation_steadystate, floquet_basis_transform, floquet_markov_mesolve
+.. automodule:: qutip.solver.floquet
+    :members: fmmesolve, fsesolve, FloquetBasis, FMESolver, floquet_tensor
 
 
 Stochastic Schrödinger Equation and Master Equation
@@ -197,8 +193,8 @@ Correlation Functions
 Steady-state Solvers
 --------------------
 
-.. automodule:: qutip.solve.steadystate
-    :members: steadystate, build_preconditioner
+.. automodule:: qutip.solver.steadystate
+    :members: steadystate, pseudo_inverse, steadystate_floquet
     :undoc-members:
 
 Propagators
@@ -320,7 +316,7 @@ IPython Notebook Tools
 ----------------------
 
 .. automodule:: qutip.ipynbtools
-    :members: parfor, parallel_map, version_table
+    :members: parallel_map, version_table
 
 .. _functions-misc:
 

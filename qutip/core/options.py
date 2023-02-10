@@ -60,16 +60,13 @@ class CoreOptions(QutipOptions):
         Whether to tidyup during sparse operations.
 
     auto_tidyup_dims : bool [True]
-        use auto tidyup dims on multiplication
-
-    auto_herm : boolTrue
-        detect hermiticity
+        Use auto tidyup dims on multiplication. (Not used yet)
 
     atol : float {1e-12}
-        general absolute tolerance
+        General absolute tolerance
 
     rtol : float {1e-12}
-        general relative tolerance
+        General relative tolerance
         Used to choose QobjEvo.expect output type
 
     auto_tidyup_atol : float {1e-14}
@@ -105,8 +102,6 @@ class CoreOptions(QutipOptions):
         "auto_tidyup": True,
         # use auto tidyup dims on multiplication
         "auto_tidyup_dims": True,
-        # detect hermiticity
-        "auto_herm": True,
         # general absolute tolerance
         "atol": 1e-12,
         # general relative tolerance

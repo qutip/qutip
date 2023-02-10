@@ -13,7 +13,7 @@ from ..core import (
     operator_to_vector, vector_to_operator
 )
 from ..core import data as _data
-from qutip import pseudo_inverse, steadystate
+from .steadystate import pseudo_inverse, steadystate
 from ..settings import settings
 
 # Load MKL spsolve if avaiable
