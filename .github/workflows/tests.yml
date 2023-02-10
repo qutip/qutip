@@ -76,11 +76,16 @@ jobs:
 
           # Python 3.11 and latest numpy
           # Use conda-forge to provide Python 3.11 and latest numpy
+          # Ignore deprecation of the cgi module in Python 3.11 that is
+          # still imported by Cython.Tempita. This was addressed in
+          # https://github.com/cython/cython/pull/5128 but not backported
+          # to any currently released version.
           - case-name: Python 3.11
             os: ubuntu-latest
             python-version: "3.11"
             condaforge: 1
             conda-extra-pkgs: "suitesparse"  # for compiling cvxopt
+            pytest-extra-options: "-W ignore::DeprecationWarning:Cython.Tempita"
 
           # Windows. Once all tests pass without special options needed, this
           # can be moved to the main os list in the test matrix. All the tests
