@@ -600,8 +600,8 @@ def zcsr_isherm(object A not None, double tol = qset.atol):
                 col = col_index[ptr]
                 nxt = out_row_index[col]
                 out_row_index[col] += 1
-                # We tested the structure already, so we can guarantee that
-                # these two elements correspond.
+                if row != col_index[nxt]:
+                    return _zcsr_isherm_full(data, col_index, row_index, nrows, tolsq)
                 if not _conj_feq(data[ptr], data[nxt], tolsq):
                     return False
         return True
