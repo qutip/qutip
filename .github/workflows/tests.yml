@@ -69,8 +69,6 @@ jobs:
 
           # Python 3.10 and numpy 1.22
           # Use conda-forge to provide numpy 1.22
-          # Ignore DeprecationWarnings raised by cvxpy importing scipy.sparse.X
-          # under SciPy 1.8.0+.
           # Ignore DeprecationWarnings raised by versions of
           # setuptools >= 65.0.0 during pyximport imports This can be removed
           # once https://github.com/cython/cython/issues/4985
@@ -79,12 +77,10 @@ jobs:
             os: ubuntu-latest
             python-version: "3.10"
             condaforge: 1
-            pytest-extra-options: "-W ignore::DeprecationWarning:cvxpy.interface.scipy_wrapper -W ignore:Absolute:DeprecationWarning"
+            pytest-extra-options: "-W ignore:Absolute:DeprecationWarning"
 
           # Python 3.11 and latest numpy
           # Use conda-forge to provide Python 3.11 and latest numpy
-          # Ignore DeprecationWarnings raised by cvxpy importing scipy.sparse.X
-          # under SciPy 1.8.0+.
           # Ignore DeprecationWarnings raised by versions of
           # setuptools >= 65.0.0 during pyximport imports This can be removed
           # once https://github.com/cython/cython/issues/4985
@@ -94,7 +90,7 @@ jobs:
             python-version: "3.11"
             condaforge: 1
             conda-extra-pkgs: "suitesparse"  # for compiling cvxopt
-            pytest-extra-options: "-W ignore::DeprecationWarning:cvxpy.interface.scipy_wrapper -W ignore:Absolute:DeprecationWarning -W ignore::DeprecationWarning:Cython.Tempita"
+            pytest-extra-options: "-W ignore:Absolute:DeprecationWarning -W ignore::DeprecationWarning:Cython.Tempita"
 
           # Windows. Once all tests pass without special options needed, this
           # can be moved to the main os list in the test matrix. All the tests
