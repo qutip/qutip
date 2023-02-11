@@ -54,4 +54,4 @@ dependencies:
 - wheel==0.38.1
 - pip
 - pip:
-  - .[full]
+  - ..[full]
