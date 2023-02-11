@@ -16,11 +16,6 @@ build:
 conda:
   environment: doc/rtd-environment.yml
 
-python:
-  install:
-    - method: pip
-      path: .[full]
-
 sphinx:
-  configuration: docs/conf.py
+  configuration: doc/conf.py
   fail_on_warning: true
