@@ -10,7 +10,7 @@ decorator==5.0.7
 docutils==0.16
 idna==2.10
 imagesize==1.2.0
-ipython==7.31.1
+ipython==8.10.0
 ipython-genutils==0.2.0
 jedi==0.18.0
 Jinja2==2.11.3
@@ -24,7 +24,7 @@ parso==0.8.2
 pexpect==4.8.0
 pickleshare==0.7.5
 Pillow==9.3.0
-prompt-toolkit==3.0.18
+prompt-toolkit==3.0.36
 ptyprocess==0.7.0
 Pygments==2.8.1
 pyparsing==2.4.7
