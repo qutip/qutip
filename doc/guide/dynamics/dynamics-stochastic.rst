@@ -122,7 +122,7 @@ Below, we solve the dynamics for an optical cavity at 0K whose output is monitor
 where :math:`x` is the operator passed using ``m_ops``. The results are available in ``result.measurements``.
 
 .. plot::
-    :context: close-figs
+    :context: reset
 
     import numpy as np
     import matplotlib.pyplot as plt
@@ -164,3 +164,8 @@ where :math:`x` is the operator passed using ``m_ops``. The results are availabl
 
 
 For other examples on :func:`qutip.stochastic.smesolve`, see the `following notebook <https://nbviewer.ipython.org/github/qutip/qutip-notebooks/blob/master/development/development-smesolve-tests.ipynb>`_, as well as these notebooks available at `QuTiP Tutorials page <https://qutip.org/tutorials.html>`_: `heterodyne detection <https://nbviewer.ipython.org/github/qutip/qutip-notebooks/blob/master/examples/smesolve-heterodyne.ipynb>`_, `inneficient detection <https://nbviewer.ipython.org/github/qutip/qutip-notebooks/blob/master/examples/smesolve-inefficient-detection.ipynb>`_, and `feedback control <https://nbviewer.ipython.org/github/jrjohansson/reproduced-papers/blob/master/Reproduce-SIAM-JCO-46-445-2007-Mirrahimi.ipynb>`_.
+
+.. plot::
+    :context: reset
+    :include-source: false
+    :nofigs:
