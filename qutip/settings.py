@@ -2,7 +2,8 @@
 This module contains settings for the QuTiP graphics, multiprocessing, and
 tidyup functionality, etc.
 """
-import os, sys
+import os
+import sys
 from ctypes import cdll
 import platform
 import numpy as np
@@ -18,15 +19,15 @@ def _blas_info():
         blas_info = config.blas_opt_info
     else:
         blas_info = {}
-    _has_lib_key = 'libraries' in blas_info.keys()
-    blas = None
-    if hasattr(config,'mkl_info') or \
-            (_has_lib_key and any('mkl' in lib for lib in blas_info['libraries'])):
+
+    def _in_libaries(name):
+        return any(name in lib for lib in blas_info.get('libraries', []))
+
+    if getattr(config, 'mkl_info', False) or _in_libaries("mkl"):
         blas = 'INTEL MKL'
-    elif hasattr(config,'openblas_info') or \
-            (_has_lib_key and any('openblas' in lib for lib in blas_info['libraries'])):
+    elif getattr(config, 'openblas_info', False) or _in_libaries('openblas'):
         blas = 'OPENBLAS'
-    elif 'extra_link_args' in blas_info.keys() and ('-Wl,Accelerate' in blas_info['extra_link_args']):
+    elif '-Wl,Accelerate' in blas_info.get('extra_link_args', []):
         blas = 'Accelerate'
     else:
         blas = 'Generic'
@@ -81,7 +82,7 @@ def _find_mkl():
     if _blas_info() == 'INTEL MKL':
         plat = sys.platform
         python_dir = os.path.dirname(sys.executable)
-        if plat in ['darwin','linux2', 'linux']:
+        if plat in ['darwin', 'linux2', 'linux']:
             python_dir = os.path.dirname(python_dir)
 
         if plat == 'darwin':
@@ -93,27 +94,26 @@ def _find_mkl():
         else:
             raise Exception('Unknown platfrom.')
 
-        if plat in ['darwin','linux2', 'linux']:
+        if plat in ['darwin', 'linux2', 'linux']:
             lib_dir = '/lib'
         else:
             lib_dir = r'\Library\bin'
         # Try in default Anaconda location first
         try:
             mkl_lib = cdll.LoadLibrary(python_dir+lib_dir+lib)
-        except:
+        except Exception:
             pass
 
         # Look in Intel Python distro location
         if mkl_lib is None:
-            if plat in ['darwin','linux2', 'linux']:
+            if plat in ['darwin', 'linux2', 'linux']:
                 lib_dir = '/ext/lib'
             else:
                 lib_dir = r'\ext\lib'
             try:
                 mkl_lib = \
                     cdll.LoadLibrary(python_dir + lib_dir + lib)
-
-            except:
+            except Exception:
                 pass
     return mkl_lib
 
@@ -122,21 +122,14 @@ class Settings:
     """
     Qutip's settings and options.
     """
-    def __new__(cls):
-        """Set Settings as a singleton."""
-        if not hasattr(cls, '_instance'):
-            cls._instance = super(Settings, cls).__new__(cls)
-        return cls._instance
-
     def __init__(self):
         self._mkl_lib = ""
         try:
             self.tmproot = os.path.join(os.path.expanduser("~"), '.qutip')
         except OSError:
             self._tmproot = "."
-        self.core = None
-        self._solvers = []
-        self._integrators = []
+        self.core = None  # set in qutip.core.options
+        self.compile = None  # set in qutip.core.coefficient
         self._debug = False
         self._log_handler = "default"
         self._colorblind_safe = False

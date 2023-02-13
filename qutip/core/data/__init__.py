@@ -24,6 +24,7 @@ from .ptrace import *
 from .reshape import *
 from .tidyup import *
 from .trace import *
+from .solve import *
 # For operations with mulitple related versions, we just import the module.
 from . import norm, permute
 

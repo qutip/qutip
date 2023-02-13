@@ -184,7 +184,6 @@ cdef class QobjEvo:
         if isinstance(Q_object, QobjEvo):
             self._dims = Q_object._dims
             self.shape = Q_object.shape
-            self._shift_dt = (<QobjEvo> Q_object)._shift_dt
             self.elements = (<QobjEvo> Q_object).elements.copy()
             if args:
                 self.arguments(args)
@@ -195,7 +194,6 @@ cdef class QobjEvo:
         self.elements = []
         self._dims = None
         self.shape = (0, 0)
-        self._shift_dt = 0
         args = args or {}
 
         if (
@@ -293,7 +291,32 @@ cdef class QobjEvo:
             if _args is not None:
                 kwargs.update(_args)
             return QobjEvo(self, args=kwargs)(t)
-        return Qobj(self._call(t), dims=self._dims, copy=False)
+
+        t = self._prepare(t, None)
+
+        if self.isconstant:
+            # For constant QobjEvo's, we sum the contained Qobjs directly in
+            # order to retain the cached values of attributes like .isherm when
+            # possible, rather than calling _call(t) which may lose this cached
+            # information.
+            return sum(element.qobj(t) for element in self.elements)
+
+        cdef _BaseElement part = self.elements[0]
+        cdef double complex coeff = part.coeff(t)
+        obj = part.qobj(t)
+        cdef Data out = _data.mul(obj.data, coeff)
+        cdef bint isherm = <bint> obj._isherm and coeff.imag == 0
+        for element in self.elements[1:]:
+            part = <_BaseElement> element
+            coeff = part.coeff(t)
+            obj = part.qobj(t)
+            isherm &= <bint> obj._isherm and coeff.imag == 0
+            out = _data.add(out, obj.data, coeff)
+
+        return Qobj(
+            out, dims=self._dims, copy=False, isherm=isherm or None,
+            type=self.type, superrep=self.superrep
+        )
 
     cpdef Data _call(QobjEvo self, double t):
         t = self._prepare(t, None)
@@ -303,6 +326,7 @@ cdef class QobjEvo:
                         part.coeff(t))
         for element in self.elements[1:]:
             part = <_BaseElement> element
+
             out = _data.add(
                 out,
                 part.data(t),
@@ -312,7 +336,8 @@ cdef class QobjEvo:
 
     cdef double _prepare(QobjEvo self, double t, Data state=None):
         """ Precomputation before computing getting the element at `t`"""
-        return t + self._shift_dt
+        # We keep the function for feedback eventually
+        return t
 
     def copy(QobjEvo self):
         """Return a copy of this `QobjEvo`"""
@@ -574,16 +599,6 @@ cdef class QobjEvo:
         """
         return self.linear_map(partial(Qobj.to, data_type=data_type),
                                _skip_check=True)
-
-    def _insert_time_shift(QobjEvo self, dt):
-        """
-        Add a shift in the time ``t = t + _t0``.
-        To be used in correlation.py only. It does not propage safely with
-        binop between QobjEvo with different shift.
-        """
-        cdef QobjEvo out = self.copy()
-        out._shift_dt = dt
-        return out
 
     def tidyup(self, atol=1e-12):
         """Removes small elements from quantum object."""

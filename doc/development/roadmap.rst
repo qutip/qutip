@@ -94,11 +94,6 @@ QuTiP affilliated packages
   such [this needs clarification]. These packages will not be maintained by the
   QuTiP Team.
 
-.. todo::
-
-   Do we really need optional subpackages? It seems that are a bit fiddly and as
-   we are side-stepping bw compat with a major version, we could just make QIP a
-   separate package.
 
 Family packages
 ---------------
@@ -143,12 +138,7 @@ QIP
 ^^^
 
 * **current package status**: integrated sub-package `qutip.qip`
-* **planned package status**: optional sub-package `qutip.qip`
-
-.. todo::
-
-   Is it really necessary for this to be a sub-package? It could just be a
-   separate package.
+* **planned package status**: family package `qutip-qip`
 
 The QIP subpackage has been deemed out of scope (feature-wise). It also depends
 on `qutip.control` and hence would be out of scope for dependency reasons. A
@@ -196,61 +186,6 @@ candiate for affilliation.
 Development Projects
 ====================
 
-.. _dl-abs:
-
-data layer abstraction
-----------------------
-
-:tag: dl-abs
-:status: majority of development completed.
-:admin lead: `Eric <https://github.com/Ericgig>`_
-:main dev: `Jake Lishman <https://github.com/jakelishman>`_
-
-Development completed as a GSoC project. Fully implemented in the dev.major
-branch. Currently being used by some research groups.
-
-Abstraction of the linear algebra data from code qutip components, allowing
-for alternatives, such as sparse, dense etc. Difficult to summarize. Almost
-every file in qutip affected in some way. A major milestone for qutip.
-Significant performance improvements throughout qutip.
-
-Some developments tasks remain, including providing full control over how the
-data-layer dispatchers choose the most appropriate output type.
-
-.. _qmain-reorg:
-
-qutip main reorganization
--------------------------
-
-:tag: qmain-reorg
-:status: development [pretty much] complete
-:admin lead: `Eric <https://github.com/Ericgig>`_
-:main dev: `Jake Lishman <https://github.com/jakelishman>`_
-
-Reorganise qutip main components to the structure :ref:`described above <qmain>`.
-
-.. _qmain-docs:
-
-qutip user docs migration
--------------------------
-
-:tag: qmain-docs
-:status: conceptualised
-:admin lead: TBA; `Shahnawaz <https://github.com/quantshah>`_?
-:main dev: TBA
-
-The qutip user documentation build files are to be moved to the qutip/qutip
-repo. This is more typical for an OSS package.
-
-As part of the move, the plan is to reconstruct the Sphinx structure from
-scratch. Historically, there have been many issues with building the docs.
-Sphinx has come a long way since qutip docs first developed. The main source
-(rst) files will remain [pretty much] as they are, although there is a lot of
-scope to improve them.
-
-The qutip-doc repo will afterwards just be used for documents, such as this one,
-pertaining to the QuTiP project.
-
 .. _solve-dl:
 
 Solver data layer integration
@@ -265,32 +200,6 @@ The new data layer gives opportunity for significantly improving performance of
 the qutip solvers. Eric has been revamping the solvers by deploying `QobjEvo`
 (the time-dependent quantum object) that he developed. `QobjEvo` will exploit
 the data layer, and the solvers in turn exploit `QobjEvo`.
-
-.. _qip-mig:
-
-QIP migration
--------------
-
-:tag: qip-mig
-:status: development [pretty much] complete
-:admin lead: `Boxi <https://github.com/BoxiLi>`_
-:main dev: `Sidhant Saraogi <https://github.com/sarsid>`_
-
-A separate package for qutip-qip was created during Sidhant's GSoC project.
-There is some fine tuning required, especially after qutip.control is migrated.
-
-.. _heom-revamp:
-
-HEOM revamp
------------
-
-:tag: heom-revamp
-:status: development [pretty much] complete
-:admin lead: `Neill <https://github.com/nwlambert>`_
-:main dev: `Tarun Raheja <https://github.com/tehruhn>`_
-
-An overhaul of the HEOM solver. C++ components used to speed up construction of
-the hierarchy.
 
 .. _qtrl-mig:
 
@@ -447,6 +356,89 @@ QIP circuits could be animated. Status lights showing evolution of states during
 the processing. Animated Bloch spheres for qubits.
 
 
+Completed Development Projects
+==============================
+
+.. _dl-abs:
+
+data layer abstraction
+----------------------
+
+:tag: dl-abs
+:status: completed
+:admin lead: `Eric <https://github.com/Ericgig>`_
+:main dev: `Jake Lishman <https://github.com/jakelishman>`_
+
+Development completed as a GSoC project. Fully implemented in the dev.major
+branch. Currently being used by some research groups.
+
+Abstraction of the linear algebra data from code qutip components, allowing
+for alternatives, such as sparse, dense etc. Difficult to summarize. Almost
+every file in qutip affected in some way. A major milestone for qutip.
+Significant performance improvements throughout qutip.
+
+Some developments tasks remain, including providing full control over how the
+data-layer dispatchers choose the most appropriate output type.
+
+.. _qmain-reorg:
+
+qutip main reorganization
+-------------------------
+
+:tag: qmain-reorg
+:status: completed
+:admin lead: `Eric <https://github.com/Ericgig>`_
+:main dev: `Jake Lishman <https://github.com/jakelishman>`_
+
+Reorganise qutip main components to the structure :ref:`described above <qmain>`.
+
+.. _qmain-docs:
+
+qutip user docs migration
+-------------------------
+
+:tag: qmain-docs
+:status: completed
+:admin lead: `Jake Lishman <https://github.com/jakelishman>`_
+:main dev: `Jake Lishman <https://github.com/jakelishman>`_
+
+The qutip user documentation build files are to be moved to the qutip/qutip
+repo. This is more typical for an OSS package.
+
+As part of the move, the plan is to reconstruct the Sphinx structure from
+scratch. Historically, there have been many issues with building the docs.
+Sphinx has come a long way since qutip docs first developed. The main source
+(rst) files will remain [pretty much] as they are, although there is a lot of
+scope to improve them.
+
+The qutip-doc repo will afterwards just be used for documents, such as this one,
+pertaining to the QuTiP project.
+
+.. _qip-mig:
+
+QIP migration
+-------------
+
+:tag: qip-mig
+:status: completed
+:admin lead: `Boxi <https://github.com/BoxiLi>`_
+:main dev: `Sidhant Saraogi <https://github.com/sarsid>`_
+
+A separate package for qutip-qip was created during Sidhant's GSoC project.
+There is some fine tuning required, especially after qutip.control is migrated.
+
+.. _heom-revamp:
+
+HEOM revamp
+-----------
+
+:tag: heom-revamp
+:status: completed
+:admin lead: `Neill <https://github.com/nwlambert>`_
+:main dev: `Simon Cross <https://github.com/hodgesstar>`_, `Tarun Raheja <https://github.com/tehruhn>`_
+
+An overhaul of the HEOM solver, to incorporate the improvements pioneered in BoFiN.
+
 .. _release roadmap:
 
 QuTiP major release roadmap
@@ -457,21 +449,21 @@ QuTiP v.5
 
 These Projects need to be completed for the qutip v.5 release.
 
-- :ref:`dl-abs`
-- :ref:`qmain-reorg`
-- :ref:`qmain-docs`
-- :ref:`solve-dl`
-- :ref:`qip-mig`
+- :ref:`dl-abs` (completed)
+- :ref:`qmain-reorg` (completed)
+- :ref:`qmain-docs` (completed)
+- :ref:`solve-dl` (in-progress)
+- :ref:`qip-mig` (completed)
 - :ref:`qtrl-mig`
-- :ref:`heom-revamp`
+- :ref:`heom-revamp` (completed)
 
 The planned timeline for the release is:
 
-- **alpha version, September 2022**. Core features packaged and available for
+- **alpha version, December 2022**. Core features packaged and available for
   experienced users to test.
-- **beta version, November 2022**. All required features and documentation
-  complete, packaged and ready for community testing.
-- **full release, December 2022**. Full tested version released.
+- **beta version, January 2023**. All required features and documentation complete,
+  packaged and ready for community testing.
+- **full release, April 2023**. Full tested version released.
 
 Planned supported environment:
 

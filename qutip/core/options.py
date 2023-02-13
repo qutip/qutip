@@ -70,10 +70,10 @@ class CoreOptions(QutipOptions):
         detect hermiticity
 
     atol : float {1e-12}
-        general absolute tolerance
+        General absolute tolerance
 
     rtol : float {1e-12}
-        general relative tolerance
+        General relative tolerance
         Used to choose QobjEvo.expect output type
 
     auto_tidyup_atol : float {1e-14}

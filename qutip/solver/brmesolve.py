@@ -66,7 +66,7 @@ def brmesolve(H, psi0, tlist, a_ops=[], e_ops=[], c_ops=[],
             ]
 
         .. note:
-            ``Cubic_Spline`` has been replaced by :class:`Coefficient`\:
+            ``Cubic_Spline`` has been replaced by :class:`Coefficient`:
                 ``spline = qutip.coefficient(array, tlist=times)``
 
             Whether the ``a_ops`` is time dependent is decided by the type of
@@ -245,15 +245,7 @@ class BRSolver(Solver):
 
         self.rhs = None
         self.sec_cutoff = sec_cutoff
-        self._options = _SolverOptions(
-            self.solver_options,
-            self._apply_options,
-            self.name,
-            self.__class__.options.__doc__
-        )
-        self._options.ode = {}
-        if options is not None:
-            self.options = options
+        self.options = options
 
         if not isinstance(H, (Qobj, QobjEvo)):
             raise TypeError("The Hamiltonian must be a Qobj or QobjEvo")
@@ -366,5 +358,5 @@ class BRSolver(Solver):
             self._integrator = self._get_integrator()
             self._integrator.set_state(*state)
         else:
-            self._integrator.options = new_options
+            self._integrator.options = self._options
             self._integrator.reset(hard=True)

@@ -13,3 +13,5 @@ from .subsystem_apply import *
 from .blochredfield import *
 from .energy_restricted import *
 from . import gates
+
+del cy  # File in cy are not public facing

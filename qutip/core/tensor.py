@@ -412,14 +412,14 @@ def _targets_to_list(targets, oper=None, N=None):
     return targets
 
 
-def expand_operator(oper, targets, dims):
+def expand_operator(oper, dims, targets):
     """
     Expand an operator to one that acts on a system with desired dimensions.
     e.g.
     ```
-    expand_operator(oper, 2, [2, 3, 4, 5]) ==
+    expand_operator(oper, [2, 3, 4, 5], 2) ==
         tensor(qeye(2), qeye(3), oper, qeye(5))
-    expand_operator(tensor(oper1, oper2), [2, 0], [2, 3, 4, 5]) ==
+    expand_operator(tensor(oper1, oper2), [2, 3, 4, 5], [2, 0]) ==
         tensor(oper2, qeye(3), oper1, qeye(5))
     ```
 
@@ -429,11 +429,11 @@ def expand_operator(oper, targets, dims):
         An operator that act on the subsystem, has to be an operator and the
         dimension matches the tensored dims Hilbert space
         e.g. oper.dims = ``[[2, 3], [2, 3]]``
-    targets : int or list of int
-        The indices of subspace that are acted on.
     dims : list
         A list of integer for the dimension of each composite system.
         E.g ``[2, 3, 2, 3, 4]``.
+    targets : int or list of int
+        The indices of subspace that are acted on.
 
     Returns
     -------

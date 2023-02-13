@@ -4,7 +4,6 @@ import pickle
 import numpy as np
 import sys
 from .core import Qobj
-from .solve import Result
 from pathlib import Path
 
 
@@ -223,10 +222,10 @@ def qsave(data, name='qutip_data'):
 
     """
     # open the file for writing
-    file = Path(name)
-    file = file.with_suffix(file.suffix + ".qu")
+    path = Path(name)
+    path = path.with_suffix(path.suffix + ".qu")
 
-    with open(name, "wb") as fileObject:
+    with open(path, "wb") as fileObject:
         # this writes the object a to the file named 'filename.qu'
         pickle.dump(data, fileObject)
 
@@ -246,10 +245,10 @@ def qload(name):
         Object retrieved from requested file.
 
     """
-    file = Path(name)
-    file = file.with_suffix(file.suffix + ".qu")
+    path = Path(name)
+    path = path.with_suffix(path.suffix + ".qu")
 
-    with open(name, "rb") as fileObject:
+    with open(path, "rb") as fileObject:
         if sys.version_info >= (3, 0):
             out = pickle.load(fileObject, encoding='latin1')
         else:

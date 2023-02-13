@@ -49,8 +49,7 @@ class MultiTrajSolver(Solver):
 
     def __init__(self, rhs, *, options=None):
         self.rhs = rhs
-        self._options = {}
-        self.options = {} if options is None else options
+        self.options = options
         self.seed_sequence = np.random.SeedSequence()
         self._integrator = self._get_integrator()
         self._state_metadata = {}
@@ -175,7 +174,7 @@ class MultiTrajSolver(Solver):
         )
         result.add_end_condition(ntraj, target_tol)
 
-        map_func = _get_map[self._options['map']]
+        map_func = _get_map[self.options['map']]
         map_kw = {
             'timeout': timeout,
             'job_timeout': self.options['job_timeout'],

@@ -10,7 +10,6 @@ cdef class QobjEvo:
         readonly (idxint, idxint) shape
         int _issuper
         int _isoper
-        double _shift_dt
 
     cpdef Data _call(QobjEvo self, double t)
 

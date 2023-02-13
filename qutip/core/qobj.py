@@ -522,9 +522,7 @@ class Qobj:
                     copy=False)
 
     def __truediv__(self, other):
-        if not isinstance(other, numbers.Number):
-            return NotImplemented
-        return self.__mul__(1 / complex(other))
+        return self.__mul__(1 / other)
 
     def __neg__(self):
         return Qobj(_data.neg(self._data),
@@ -786,7 +784,11 @@ class Qobj:
 
         """
         out = _data.trace(self._data)
-        return out.real if self.isherm else out
+        # This ensures that trace can return something that is not a number such
+        # as a `tensorflow.Tensor` in qutip-tensorflow.
+        return out.real if (self.isherm
+                        and hasattr(out, "real")
+                        ) else out
 
     def purity(self):
         """Calculate purity of a quantum object.
@@ -1396,7 +1398,7 @@ class Qobj:
         `bra` and `ket` vector.
 
         Parameters
-        -----------
+        ----------
         bra : :class:`qutip.Qobj`
             Quantum object of type 'bra' or 'ket'
 
@@ -1433,7 +1435,7 @@ class Qobj:
         when one of the Qobj is an operator/density matrix.
 
         Parameters
-        -----------
+        ----------
         other : :class:`qutip.Qobj`
             Quantum object for a state vector of type 'ket', 'bra' or density
             matrix.

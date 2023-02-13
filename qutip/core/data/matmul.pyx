@@ -255,6 +255,23 @@ cpdef Dense matmul_dense(Dense left, Dense right, double complex scale=1, Dense 
     cdef double complex *b
     cdef char transa, transb
     cdef int m, n, k=left.shape[1], lda, ldb
+    if right.shape[1] == 1:
+        # Matrix Vector product
+        a, b = left.data, right.data
+        if left.fortran:
+            lda = left.shape[0]
+            transa = b'n'
+            m = left.shape[0]
+            n = left.shape[1]
+        else:
+            lda = left.shape[1]
+            transa = b't'
+            m = left.shape[1]
+            n = left.shape[0]
+        ldb = 1
+        blas.zgemv(&transa, &m , &n, &scale, a, &lda, b, &ldb,
+                   &out_scale, out.data, &ldb)
+        return out
     # We use the BLAS routine zgemm for every single call and pretend that
     # we're always supplying it with Fortran-ordered matrices, but to achieve
     # what we want, we use the property of matrix multiplication that
@@ -397,8 +414,8 @@ matmul.__doc__ =\
     where `scale` is (optionally) a scalar, and `left` and `right` are
     matrices.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     left : Data
         The left operand as either a bra or a ket matrix.
 

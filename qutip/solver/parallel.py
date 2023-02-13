@@ -81,7 +81,7 @@ def serial_map(task, values, task_args=None, task_kwargs=None,
         - fail_fast: bool, Raise an error at the first.
 
     Returns
-    --------
+    -------
     result : list
         The result list contains the value of
         ``task(value, *task_args, **task_kwargs)`` for each
@@ -161,7 +161,7 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
         - fail_fast: bool, Raise an error at the first.
 
     Returns
-    --------
+    -------
     result : list
         The result list contains the value of
         ``task(value, *task_args, **task_kwargs)`` for

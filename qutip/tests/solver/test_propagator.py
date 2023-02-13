@@ -1,6 +1,12 @@
 import numpy as np
 from qutip import (destroy, propagator, Propagator, propagator_steadystate,
                    steadystate, tensor, qeye, basis, QobjEvo, sesolve)
+import qutip
+import pytest
+from qutip.solver.brmesolve import BRSolver
+from qutip.solver.mesolve import MESolver
+from qutip.solver.sesolve import SESolver
+from qutip.solver.mcsolve import MCSolver
 
 
 def testPropHOB():
@@ -15,7 +21,7 @@ def testPropObj():
     opt = {"method": "dop853"}
     a = destroy(5)
     H = a.dag()*a
-    U = Propagator(H, [a], options=opt, memoize=5, tol=1e-5)
+    U = Propagator(H, c_ops=[a], options=opt, memoize=5, tol=1e-5)
     # Few call to fill the stored propagators.
     U(0.5), U(0.25), U(0.75), U(1), U(-1), U(-.5)
     assert len(U.times) == 5
@@ -44,7 +50,7 @@ def testPropHOTd():
 def testPropObjTd():
     a = destroy(5)
     H = a.dag()*a
-    U = Propagator([H, [H, "w*t"]], [a], args={'w': 1})
+    U = Propagator([H, [H, "w*t"]], c_ops=[a], args={'w': 1})
     assert (
         U(1) - propagator([H, [H, "w*t"]], 1, [a], args={'w': 1})
     ).norm('max') < 1e-4
@@ -92,3 +98,43 @@ def testPropEvo():
     ).states
     for t, psi_t in zip(tlist, psi_expected):
         assert abs(psi(t).overlap(psi_t)) > 1-1e-6
+
+
+def _make_se(H, a):
+    return SESolver(H)
+
+
+def _make_me(H, a):
+    return MESolver(H, [a])
+
+
+def _make_br(H, a):
+    spectra = qutip.coefficient(lambda t, w: w >= 0, args={"w": 0})
+    return BRSolver(H, [(a+a.dag(), spectra)])
+
+
+@pytest.mark.parametrize('solver', [
+    pytest.param(_make_se, id='SESolver'),
+    pytest.param(_make_me, id='MESolver'),
+    pytest.param(_make_br, id='BRSolver'),
+])
+def testPropSolver(solver):
+    a = destroy(5)
+    H = a.dag()*a
+    U = Propagator(solver(H, a))
+    c_ops = []
+    if solver is not _make_se:
+        c_ops = [a]
+
+    assert (U(1) - propagator(H, 1, c_ops)).norm('max') < 1e-4
+    assert (U(0.5) - propagator(H, 0.5, c_ops)).norm('max') < 1e-4
+    assert (U(1.5, 0.5) - propagator(H, 1, c_ops)).norm('max') < 1e-4
+
+
+def testPropMCSolver():
+    a = destroy(5)
+    H = a.dag()*a
+    solver = MCSolver(H, [a])
+    with pytest.raises(TypeError) as err:
+        Propagator(solver)
+    assert str(err.value).startswith("Non-deterministic")

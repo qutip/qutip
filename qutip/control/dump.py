@@ -220,7 +220,7 @@ class OptimDump(Dump):
     dump_summary : bool
         When True summary items are appended to the iter_summary
 
-    iter_summary : list of :class:`optimizer.OptimIterSummary`
+    iter_summary : list of :class:`qutip.control.optimizer.OptimIterSummary`
         Summary at each iteration
 
     dump_fid_err : bool
