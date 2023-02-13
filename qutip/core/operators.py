@@ -595,7 +595,9 @@ def position(N, offset=0, *, dtype=_data.CSR):
         Position operator as Qobj.
     """
     a = destroy(N, offset=offset, dtype=dtype)
-    return np.sqrt(0.5) * (a + a.dag())
+    position = np.sqrt(0.5) * (a + a.dag())
+    position.isherm = True
+    return position
 
 
 def momentum(N, offset=0, *, dtype=_data.CSR):
@@ -621,7 +623,9 @@ def momentum(N, offset=0, *, dtype=_data.CSR):
         Momentum operator as Qobj.
     """
     a = destroy(N, offset=offset, dtype=dtype)
-    return -1j * np.sqrt(0.5) * (a - a.dag())
+    momentum = -1j * np.sqrt(0.5) * (a - a.dag())
+    momentum.isherm = True
+    return momentum
 
 
 def num(N, offset=0, *, dtype=_data.CSR):
@@ -681,7 +685,7 @@ def squeeze(N, z, offset=0, *, dtype=_data.CSR):
 
     Returns
     -------
-    oper : :class:`qutip.qobj.Qobj`
+    oper : :class:`qutip.Qobj`
         Squeezing operator.
 
 
@@ -712,10 +716,10 @@ def squeezing(a1, a2, z):
 
     Parameters
     ----------
-    a1 : :class:`qutip.qobj.Qobj`
+    a1 : :class:`qutip.Qobj`
         Operator 1.
 
-    a2 : :class:`qutip.qobj.Qobj`
+    a2 : :class:`qutip.Qobj`
         Operator 2.
 
     z : float/complex
@@ -723,7 +727,7 @@ def squeezing(a1, a2, z):
 
     Returns
     -------
-    oper : :class:`qutip.qobj.Qobj`
+    oper : :class:`qutip.Qobj`
         Squeezing operator.
 
     """
@@ -756,7 +760,7 @@ def displace(N, alpha, offset=0, *, dtype=_data.Dense):
         Displacement operator.
 
     Examples
-    ---------
+    --------
     >>> displace(4,0.25) # doctest: +SKIP
     Quantum object: dims = [[4], [4]], \
 shape = [4, 4], type = oper, isHerm = False

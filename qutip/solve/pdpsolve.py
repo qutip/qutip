@@ -8,7 +8,7 @@ from .. import (
 )
 from ..core import data as _data
 from .solver import Result, SolverOptions
-from ..parallel import serial_map
+from .parallel import serial_map
 from ..ui.progressbar import TextProgressBar
 from ..settings import settings
 debug = settings.debug

@@ -9,8 +9,7 @@ Generating Random Quantum States & Operators
    from qutip import rand_herm, rand_dm, rand_super_bcsz, rand_dm_ginibre
 
 QuTiP includes a collection of random state, unitary and channel generators for simulations, Monte Carlo evaluation, theorem evaluation, and code testing.
-Each of these objects can be sampled from one of several different distributions including the default distributions
-used by QuTiP versions prior to 3.2.0.
+Each of these objects can be sampled from one of several different distributions.
 
 For example, a random Hermitian operator can be sampled by calling `rand_herm` function:
 
@@ -44,33 +43,39 @@ For example, a random Hermitian operator can be sampled by calling `rand_herm` f
 +-------------------------------+--------------------------------------------+------------------------------------------+
 | Random Variable Type          | Sampling Functions                         | Dimensions                               |
 +===============================+============================================+==========================================+
-| State vector (``ket``)        | `rand_ket`, `rand_ket_haar`                | :math:`N \times 1`                       |
+| State vector (``ket``)        | `rand_ket`,                                | :math:`N \times 1`                       |
 +-------------------------------+--------------------------------------------+------------------------------------------+
-| Hermitian operator (``oper``) | `rand_herm`                                | :math:`N \times 1`                       |
+| Hermitian operator (``oper``) | `rand_herm`                                | :math:`N \times N`                       |
 +-------------------------------+--------------------------------------------+------------------------------------------+
-| Density operator (``oper``)   | `rand_dm`, `rand_dm_hs`, `rand_dm_ginibre` | :math:`N \times N`                       |
+| Density operator (``oper``)   | `rand_dm`,                                 | :math:`N \times N`                       |
 +-------------------------------+--------------------------------------------+------------------------------------------+
-| Unitary operator (``oper``)   | `rand_unitary`, `rand_unitary_haar`        | :math:`N \times N`                       |
+| Unitary operator (``oper``)   | `rand_unitary`,                            | :math:`N \times N`                       |
++-------------------------------+--------------------------------------------+------------------------------------------+
+| stochastic matrix (``oper``)  | `rand_stochastic`,                         | :math:`N \times N`                       |
 +-------------------------------+--------------------------------------------+------------------------------------------+
 | CPTP channel (``super``)      | `rand_super`, `rand_super_bcsz`            | :math:`(N \times N) \times (N \times N)` |
 +-------------------------------+--------------------------------------------+------------------------------------------+
+| CPTP map (list of ``oper``)   | `rand_kraus_map`                           | :math:`N \times N` (N**2 operators)      |
++-------------------------------+--------------------------------------------+------------------------------------------+
 
-In all cases, these functions can be called with a single parameter :math:`N` that specifies the dimension of the relevant Hilbert space. The optional
-``dims`` keyword argument allows for the dimensions of a random state, unitary or channel to be broken down into subsystems.
+In all cases, these functions can be called with a single parameter :math:`dimensions` that can be the size of the relevant Hilbert space or the dimensions of a random state, unitary or channel.
+
+
 
 .. doctest:: [random]
 
     >>> rand_super_bcsz(7).dims
     [[[7], [7]], [[7], [7]]]
-    >>> rand_super_bcsz(6, dims=[[[2, 3], [2, 3]], [[2, 3], [2, 3]]]).dims
+    >>> rand_super_bcsz([[2, 3], [2, 3]]).dims
     [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]
 
-Several of the distributions supported by QuTiP support additional parameters as well, namely *density* and *rank*. In particular,
-the `rand_herm` and `rand_dm` functions return quantum objects such that a fraction of the elements are identically equal to zero.
-The ratio of nonzero elements is passed as the ``density`` keyword argument. By contrast, the `rand_dm_ginibre` and
-`rand_super_bcsz` take as an argument the rank of the generated object, such that passing ``rank=1`` returns a random
-pure state or unitary channel, respectively. Passing ``rank=None`` specifies that the generated object should be
-full-rank for the given dimension.
+Several of the random `Qobj` function in QuTiP support additional parameters as well, namely *density* and *distribution*.
+`rand_dm`, `rand_herm`, `rand_unitary` and `rand_ket` can be created using multiple method controlled by *distribution*.
+The `rand_ket`, `rand_herm` and `rand_unitary` functions can return quantum objects such that a fraction of the elements are identically equal to zero.
+The ratio of nonzero elements is passed as the ``density`` keyword argument.
+By contrast, `rand_super_bcsz` take as an argument the rank of the generated object, such that passing ``rank=1`` returns a random pure state or unitary channel, respectively.
+Passing ``rank=None`` specifies that the generated object should be full-rank for the given dimension.
+`rand_dm` can support *density* or *rank* depending on the chosen distribution.
 
 For example,
 
@@ -81,40 +86,23 @@ For example,
 
 .. doctest:: [random]
 
-   >>> rand_dm(5, density=0.5)
+   >>> rand_dm(5, density=0.5, distribution="herm")
    Quantum object: dims = [[5], [5]], shape = (5, 5), type = oper, isherm = True
    Qobj data =
-   [[ 0.05157906+0.j          0.04491736+0.01043329j  0.06966148+0.00344713j
-      0.        +0.j          0.04031493-0.01886791j]
-    [ 0.04491736-0.01043329j  0.33632352+0.j         -0.08046093+0.02954712j
-      0.0037455 +0.03940256j -0.05679126-0.01322392j]
-    [ 0.06966148-0.00344713j -0.08046093-0.02954712j  0.2938209 +0.j
-      0.0029377 +0.04463531j  0.05318743-0.02817689j]
-    [ 0.        +0.j          0.0037455 -0.03940256j  0.0029377 -0.04463531j
-      0.22553181+0.j          0.01657495+0.06963845j]
-    [ 0.04031493+0.01886791j -0.05679126+0.01322392j  0.05318743+0.02817689j
-      0.01657495-0.06963845j  0.09274471+0.j        ]]
+   [[ 0.298+0.j   ,  0.   +0.j   , -0.095+0.1j  ,  0.   +0.j   ,-0.105+0.122j],
+    [ 0.   +0.j   ,  0.088+0.j   ,  0.   +0.j   , -0.018-0.001j, 0.   +0.j   ],
+    [-0.095-0.1j  ,  0.   +0.j   ,  0.328+0.j   ,  0.   +0.j   ,-0.077-0.033j],
+    [ 0.   +0.j   , -0.018+0.001j,  0.   +0.j   ,  0.084+0.j   , 0.   +0.j   ],
+    [-0.105-0.122j,  0.   +0.j   , -0.077+0.033j,  0.   +0.j   , 0.201+0.j   ]]
 
    >>> rand_dm_ginibre(5, rank=2)
    Quantum object: dims = [[5], [5]], shape = (5, 5), type = oper, isherm = True
    Qobj data =
-   [[ 0.07318288+2.60675616e-19j  0.10426866-6.63115850e-03j
-     -0.05377455-2.66949369e-02j -0.01623153+7.66824687e-02j
-     -0.12255602+6.11342416e-02j]
-    [ 0.10426866+6.63115850e-03j  0.30603789+1.44335373e-18j
-     -0.03129486-4.16194216e-03j -0.09832531+1.74110000e-01j
-     -0.27176358-4.84608761e-02j]
-    [-0.05377455+2.66949369e-02j -0.03129486+4.16194216e-03j
-      0.07055265-8.76912454e-19j -0.0183289 -2.72720794e-02j
-      0.01196277-1.01037189e-01j]
-    [-0.01623153-7.66824687e-02j -0.09832531-1.74110000e-01j
-     -0.0183289 +2.72720794e-02j  0.14168414-1.51340961e-19j
-      0.07847628+2.07735199e-01j]
-    [-0.12255602-6.11342416e-02j -0.27176358+4.84608761e-02j
-      0.01196277+1.01037189e-01j  0.07847628-2.07735199e-01j
-      0.40854244-6.75775934e-19j]]
-
-
+   [[ 0.307+0.j   , -0.258+0.039j, -0.039+0.184j,  0.041-0.054j, 0.016+0.045j],
+    [-0.258-0.039j,  0.239+0.j   ,  0.075-0.15j , -0.053+0.008j,-0.057-0.078j],
+    [-0.039-0.184j,  0.075+0.15j ,  0.136+0.j   , -0.05 -0.052j,-0.028-0.058j],
+    [ 0.041+0.054j, -0.053-0.008j, -0.05 +0.052j,  0.083+0.j   , 0.101-0.056j],
+    [ 0.016-0.045j, -0.057+0.078j, -0.028+0.058j,  0.101+0.056j, 0.236+0.j   ]]
 
 
 See the API documentation: :ref:`functions-rand` for details.
@@ -127,7 +115,9 @@ See the API documentation: :ref:`functions-rand` for details.
 Random objects with a given eigen spectrum
 ==========================================
 
-It is also possible to generate random Hamiltonian (``rand_herm``) and densitiy matrices (``rand_dm``) with a given eigen spectrum.  This is done by passing an array of eigenvalues as the first argument to either function.  For example,
+It is also possible to generate random Hamiltonian (``rand_herm``) and densitiy matrices (``rand_dm``) with a given eigen spectrum.
+This is done by passing an array to eigenvalues argument to either function and choosing the "eigen" distribution.
+For example,
 
 .. doctest:: [random]
     :hide:
@@ -138,26 +128,16 @@ It is also possible to generate random Hamiltonian (``rand_herm``) and densitiy 
 
    >>> eigs = np.arange(5)
 
-   >>> H = rand_herm(eigs, density=0.5)
+   >>> H = rand_herm(5, density=0.5, eigenvalues=eigs, distribution="eigen")
 
    >>> H # doctest: +NORMALIZE_WHITESPACE
    Quantum object: dims = [[5], [5]], shape = (5, 5), type = oper, isherm = True
    Qobj data =
-   [[ 2.51387054-5.55111512e-17j  0.81161447+2.02283642e-01j
-      0.        +0.00000000e+00j  0.875     +3.35634092e-01j
-      0.81161447+2.02283642e-01j]
-    [ 0.81161447-2.02283642e-01j  1.375     +0.00000000e+00j
-      0.        +0.00000000e+00j -0.76700198+5.53011066e-01j
-      0.375     +0.00000000e+00j]
-    [ 0.        +0.00000000e+00j  0.        +0.00000000e+00j
-      2.        +0.00000000e+00j  0.        +0.00000000e+00j
-      0.        +0.00000000e+00j]
-    [ 0.875     -3.35634092e-01j -0.76700198-5.53011066e-01j
-      0.        +0.00000000e+00j  2.73612946+0.00000000e+00j
-     -0.76700198-5.53011066e-01j]
-    [ 0.81161447-2.02283642e-01j  0.375     +0.00000000e+00j
-      0.        +0.00000000e+00j -0.76700198+5.53011066e-01j
-      1.375     +0.00000000e+00j]]
+   [[ 0.5  +0.j  ,  0.228+0.27j,  0.   +0.j  ,  0.   +0.j  ,-0.228-0.27j],
+    [ 0.228-0.27j,  1.75 +0.j  ,  0.456+0.54j,  0.   +0.j  , 1.25 +0.j  ],
+    [ 0.   +0.j  ,  0.456-0.54j,  3.   +0.j  ,  0.   +0.j  , 0.456-0.54j],
+    [ 0.   +0.j  ,  0.   +0.j  ,  0.   +0.j  ,  3.   +0.j  , 0.   +0.j  ],
+    [-0.228+0.27j,  1.25 +0.j  ,  0.456+0.54j,  0.   +0.j  , 1.75 +0.j  ]]
 
 
    >>> H.eigenenergies() # doctest: +NORMALIZE_WHITESPACE
@@ -165,14 +145,17 @@ It is also possible to generate random Hamiltonian (``rand_herm``) and densitiy 
        4.00000000e+00])
 
 
-In order  to generate a random object with a given spectrum QuTiP applies a series of random complex Jacobi rotations.  This technique requires many steps to build the desired quantum object, and is thus suitable only for objects with Hilbert dimensionality :math:`\lesssim 1000`.
+In order  to generate a random object with a given spectrum QuTiP applies a series of random complex Jacobi rotations.
+This technique requires many steps to build the desired quantum object, and is thus suitable only for objects with Hilbert dimensionality :math:`\lesssim 1000`.
 
 
 
 Composite random objects
 ========================
 
-In many cases, one is interested in generating random quantum objects that correspond to composite systems generated using the :func:`qutip.tensor.tensor` function.  Specifying the tensor structure of a quantum object is done using the `dims` keyword argument in the same fashion as one would do for a :class:`qutip.Qobj` object:
+In many cases, one is interested in generating random quantum objects that correspond to composite systems generated using the :func:`qutip.tensor.tensor` function.
+Specifying the tensor structure of a quantum object is done passing a list for the first argument.
+The resulting quantum objects size will be the product of the elements in the list and the resulting :class:`qutip.Qobj` dimensions will be ``[dims, dims]``:
 
 .. doctest:: [random]
     :hide:
@@ -181,14 +164,43 @@ In many cases, one is interested in generating random quantum objects that corre
 
 .. doctest:: [random]
 
-   >>> rand_dm(4, 0.5, dims=[[2,2], [2,2]]) # doctest: +NORMALIZE_WHITESPACE
+   >>> rand_unitary([2, 2], density=0.5) # doctest: +NORMALIZE_WHITESPACE
    Quantum object: dims = [[2, 2], [2, 2]], shape = (4, 4), type = oper, isherm = True
    Qobj data =
-   [[ 0.13622928+0.j          0.        +0.j          0.01180807-0.01739166j
-      0.        +0.j        ]
-    [ 0.        +0.j          0.14600238+0.j          0.10335328+0.21790786j
-     -0.00426027-0.02193627j]
-    [ 0.01180807+0.01739166j  0.10335328-0.21790786j  0.57566072+0.j
-     -0.0670631 +0.04124094j]
-    [ 0.        +0.j         -0.00426027+0.02193627j -0.0670631 -0.04124094j
-      0.14210761+0.j        ]]
+   [[ 0.887+0.061j,  0.   +0.j   ,  0.   +0.j   , -0.191-0.416j],
+    [ 0.   +0.j   ,  0.604+0.116j, -0.32 -0.721j,  0.   +0.j   ],
+    [ 0.   +0.j   ,  0.768+0.178j,  0.227+0.572j,  0.   +0.j   ],
+    [ 0.412-0.2j  ,  0.   +0.j   ,  0.   +0.j   ,  0.724+0.516j]]
+
+
+Controlling the random number generator
+=======================================
+
+Qutip uses numpy random number generator to create random quantum objects.
+To control the random number, a seed as an `int` or `numpy.random.SeedSequence` or a `numpy.random.Generator` can be passed to the `seed` keyword argument:
+
+.. doctest:: [random]
+
+    >>> rng = np.random.default_rng(12345)
+    >>> rand_ket(2, seed=rng) # doctest: +NORMALIZE_WHITESPACE
+    Quantum object: dims=[[2], [1]], shape=(2, 1), type='ket'
+    Qobj data =
+    [[-0.697+0.618j],
+     [-0.326-0.163j]]
+
+
+Internal matrix format
+======================
+
+The internal storage type of the generated random quantum objects can be set with the *dtype* keyword.
+
+.. doctest:: [random]
+
+    >>> rand_ket(2, dtype="dense").data
+    Dense(shape=(2, 1), fortran=True)
+
+    >>> rand_ket(2, dtype="CSR").data
+    CSR(shape=(2, 1), nnz=2)
+
+..
+  TODO: add a link to a page explaining data-types.

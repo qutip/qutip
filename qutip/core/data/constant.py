@@ -30,8 +30,8 @@ zeros.__doc__ =\
     (which is their representation of 0), and dense matrices will still be
     filled.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     rows, cols : int
         The number of rows and columns in the output matrix.
     """
@@ -58,8 +58,8 @@ identity.__doc__ =\
     `scale` can be given, where all the diagonal elements will be that instead
     of 1.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     dimension : int
         The dimension of the square output identity matrix.
     scale : complex, optional

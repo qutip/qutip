@@ -140,7 +140,7 @@ def test_compatibility_with_solver(solve):
     h = qutip.sigmax()
     state = qutip.basis(2, 0)
     times = np.linspace(0, 10, 101)
-    options = qutip.SolverOptions(store_states=True)
+    options = {"store_states":True}
     result = solve(h, state, times, e_ops=e_ops, options=options)
     direct, states = result.expect, result.states
     indirect = qutip.expect(e_ops[:-1], states)
@@ -151,16 +151,15 @@ def test_compatibility_with_solver(solve):
         assert isinstance(direct_, np.ndarray)
         assert isinstance(indirect_, np.ndarray)
         assert direct_.dtype == indirect_.dtype
-        np.testing.assert_allclose(direct_, indirect_, atol=1e-12)
+        np.testing.assert_allclose(np.array(direct_), indirect_, atol=1e-12)
         # test measurement operators based on lambda functions
         direct_ = direct[-1]
-        # by design, lambda measurements are of complex type
-        indirect_ = np.sin(times, dtype=complex)
+        indirect_ = np.sin(times)
         assert len(direct_) == len(indirect_)
         assert isinstance(direct_, np.ndarray)
         assert isinstance(indirect_, np.ndarray)
         assert direct_.dtype == indirect_.dtype
-        np.testing.assert_allclose(direct_, indirect_, atol=1e-12)
+        np.testing.assert_allclose(np.array(direct_), indirect_, atol=1e-12)
 
 
 def test_no_real_attribute(monkeypatch):

@@ -930,7 +930,7 @@ class TestHEOMSolver:
         ck_real, vk_real, ck_imag, vk_imag = dlm.bath_coefficients()
 
         bath = BosonicBath(dlm.Q, ck_real, vk_real, ck_imag, vk_imag)
-        options = {"nsteps": 15_000}
+        options = {"nsteps": 15_000, "store_ados": True}
         hsolver = HEOMSolver(dlm.H, bath, 14, options=options)
 
         tlist = np.linspace(0, 10, 21)

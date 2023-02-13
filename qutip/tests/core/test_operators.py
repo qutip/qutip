@@ -146,6 +146,7 @@ def test_position():
     expected = (np.diag((np.arange(1, N) / 2)**0.5, k=-1) +
                 np.diag((np.arange(1, N) / 2)**0.5, k=1))
     np.testing.assert_allclose(operator.full(), expected)
+    assert operator._isherm == True
 
 
 def test_momentum():
@@ -153,6 +154,7 @@ def test_momentum():
     expected = (np.diag((np.arange(1, N) / 2)**0.5, k=-1) -
                 np.diag((np.arange(1, N) / 2)**0.5, k=1)) * 1j
     np.testing.assert_allclose(operator.full(), expected)
+    assert operator._isherm == True
 
 
 def test_squeeze():
