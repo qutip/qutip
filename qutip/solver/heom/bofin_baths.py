@@ -123,7 +123,6 @@ class BathExponent:
     def _type_is_fermionic(self, type):
         return type in (self.types["+"], self.types["-"])
 
-
     def __init__(
             self, type, dim, Q, ck, vk, ck2=None,
             sigma_bar_k_offset=None, tag=None,
