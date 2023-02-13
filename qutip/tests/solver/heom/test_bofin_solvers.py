@@ -52,7 +52,7 @@ def assert_raises_steady_state_time_dependent(hsolver):
         a time-dependent Hamiltonian raises the appropriate exception.
     """
     with pytest.raises(ValueError) as err:
-       hsolver.steady_state()
+        hsolver.steady_state()
     assert str(err.value) == (
        "A steady state cannot be determined for a time-dependent"
        " system"
@@ -229,7 +229,8 @@ class TestHierarchyADOsState:
 
 
 class DrudeLorentzPureDephasingModel:
-    """ Analytic Drude-Lorentz pure-dephasing model for testing the HEOM solver.
+    """ Analytic Drude-Lorentz pure-dephasing model for testing the HEOM
+        solver.
     """
     def __init__(self, lam, gamma, T, Nk):
         self.lam = lam
@@ -266,7 +267,8 @@ class DrudeLorentzPureDephasingModel:
         ]
 
     def bath_coefficients(self):
-        """ Correlation function expansion coefficients for the Drude-Lorentz bath.
+        """ Correlation function expansion coefficients for the Drude-Lorentz
+            bath.
         """
         lam, gamma, T = self.lam, self.gamma, self.T
         Nk = self.Nk
@@ -284,7 +286,8 @@ class DrudeLorentzPureDephasingModel:
 
 
 class UnderdampedPureDephasingModel:
-    """ Analytic Drude-Lorentz pure-dephasing model for testing the HEOM solver.
+    """ Analytic Drude-Lorentz pure-dephasing model for testing the HEOM
+        solver.
     """
     def __init__(self, lam,  gamma, w0, T, Nk):
         self.lam = lam
@@ -541,14 +544,27 @@ class TestHEOMSolver:
         assert hsolver.ados.exponents == exponents * 3
         assert hsolver.ados.max_depth == 2
 
-    def test_create_bath_errors(self):
+    def test_create_mixed_bosonic_and_fermionic(self):
         Q = sigmaz()
         H = sigmax()
-        mixed_types = [
+        exponents = [
             BathExponent("+", 2, Q=Q, ck=1.1, vk=2.1, sigma_bar_k_offset=1),
             BathExponent("-", 2, Q=Q, ck=1.2, vk=2.2, sigma_bar_k_offset=-1),
             BathExponent("R", 2, Q=Q, ck=1.2, vk=2.2),
         ]
+        bath = Bath(exponents)
+
+        hsolver = HEOMSolver(H, bath, 2)
+        assert hsolver.ados.exponents == exponents
+        assert hsolver.ados.max_depth == 2
+
+        hsolver = HEOMSolver(H, [bath] * 3, 2)
+        assert hsolver.ados.exponents == exponents * 3
+        assert hsolver.ados.max_depth == 2
+
+    def test_create_bath_errors(self):
+        Q = sigmaz()
+        H = sigmax()
         mixed_q_dims = [
             BathExponent("I", 2, Q=tensor(Q, Q), ck=1.2, vk=2.2),
             BathExponent("R", 2, Q=Q, ck=1.2, vk=2.2),
@@ -659,7 +675,6 @@ class TestHEOMSolver:
         else:
             assert_raises_steady_state_time_dependent(hsolver)
 
-
     @pytest.mark.parametrize(['terminator'], [
         pytest.param(True, id="terminator"),
         pytest.param(False, id="noterminator"),
@@ -767,7 +782,6 @@ class TestHEOMSolver:
         else:
             assert_raises_steady_state_time_dependent(hsolver)
 
-
     @pytest.mark.parametrize(['bath_cls', 'analytic_current'], [
         pytest.param(LorentzianBath, 0.001101, id="matsubara"),
         pytest.param(LorentzianPadeBath, 0.000813, id="pade"),
@@ -805,7 +819,6 @@ class TestHEOMSolver:
         # analytic_current = dlm.analytic_current()
         np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
 
-
     @pytest.mark.parametrize(['evo'], [
         pytest.param("qobj"),
         pytest.param("qobjevo_const"),
@@ -838,7 +851,9 @@ class TestHEOMSolver:
         # the interaction between the system and the fermionic bath:
         eps = [1e-10] * 5
         bosonic_Q = sigmax()
-        bosonic_bath = BosonicBath(bosonic_Q, eps, eps, eps, eps, combine=False)
+        bosonic_bath = BosonicBath(
+            bosonic_Q, eps, eps, eps, eps, combine=False,
+        )
         # for a single impurity we converge with max_depth = 2
         # we specify the bosonic bath first to ensure that the test checks
         # that the sums inside HEOMSolver grad-next/prev work when the bosonic
@@ -860,8 +875,6 @@ class TestHEOMSolver:
             np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
         else:
             assert_raises_steady_state_time_dependent(hsolver)
-
-
 
     @pytest.mark.parametrize(['ado_format'], [
         pytest.param("hierarchy-ados-state", id="hierarchy-ados-state"),
@@ -972,8 +985,8 @@ class TestHeomsolveFunction:
         options = {"nsteps": 15000, "store_states": True}
 
         e_ops = {
-            "11": basis(2,0) * basis(2,0).dag(),
-            "22": basis(2,1) * basis(2,1).dag(),
+            "11": basis(2, 0) * basis(2, 0).dag(),
+            "22": basis(2, 1) * basis(2, 1).dag(),
         }
 
         tlist = np.linspace(0, 10, 21)
@@ -1003,7 +1016,9 @@ class TestHSolverDL:
         pytest.param("qobjevo_const", True, id="qobjevo-const-combined"),
         pytest.param("listevo_const", True, id="listevo-const-combined"),
         pytest.param("qobjevo_timedep", True, id="qobjevo-timedep-combined"),
-        pytest.param("qobjevo_timedep", False, id="qobjevo-timedep-uncombined"),
+        pytest.param(
+            "qobjevo_timedep", False, id="qobjevo-timedep-uncombined",
+        ),
     ])
     @pytest.mark.parametrize(['liouvillianize'], [
         pytest.param(False, id="hamiltonian"),
