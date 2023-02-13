@@ -6,6 +6,7 @@ Bloch-Redfield master equation
 
 
 .. plot::
+      :context: reset
       :include-source: False
 
       import pylab as plt
@@ -392,7 +393,9 @@ A full example is:
 
     plt.show()
 
-.. plot::
-    :context: close-figs
-
 Further examples on time-dependent Bloch-Redfield simulations can be found in the online tutorials.
+
+.. plot::
+    :context: reset
+    :include-source: false
+    :nofigs:
