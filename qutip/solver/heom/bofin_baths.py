@@ -91,8 +91,11 @@ class BathExponent:
 
     Attributes
     ----------
+    fermionic : bool
+        True if the type of the exponent is a Fermionic type (i.e. either
+        "+" or "-") and False otherwise.
 
-    All of the parameters are available as attributes.
+    All of the parameters are also available as attributes.
     """
     types = enum.Enum("ExponentType", ["R", "I", "RI", "+", "-"])
 
