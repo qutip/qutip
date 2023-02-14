@@ -87,7 +87,6 @@ Documentation
 -------------
 
 [![Documentation Status - Latest](https://readthedocs.org/projects/qutip/badge/?version=latest)](https://qutip.readthedocs.io/en/latest/?badge=latest)
-[![Documentation Status - Master](https://readthedocs.org/projects/qutip/badge/?version=master)](https://qutip.readthedocs.io/en/latest/?badge=master)
 
 The documentation for the latest [stable release](https://qutip.readthedocs.io/en/latest/) and the [master](https://qutip.readthedocs.io/en/master/) branch is available for reading on Read The Docs.
 
