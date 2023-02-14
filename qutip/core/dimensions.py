@@ -10,6 +10,12 @@ from functools import partial
 from qutip.settings import settings
 
 
+__all__ = [
+    "is_scalar", "is_vector", "is_vectorized_oper",
+    "to_tensor_rep", "from_tensor_rep", "Space", "Dimensions"
+]
+
+
 def is_scalar(dims):
     """
     Returns True if a dims specification is effectively
@@ -389,13 +395,17 @@ class MetaSpace(type):
             if cls is SuperSpace and args[0].type == "scalar":
                 cls = Field
 
-        args = tuple([tuple(arg) if isinstance(arg, list) else arg
-                      for arg in args])
+        args = tuple([
+            tuple(arg) if isinstance(arg, list) else arg
+            for arg in args
+        ])
 
         if cls is Field:
             return cls.field_instance
+
         if cls is SuperSpace:
             args = *args, rep or 'super'
+
         if args not in cls._stored_dims:
             instance = cls.__new__(cls)
             instance.__init__(*args)
