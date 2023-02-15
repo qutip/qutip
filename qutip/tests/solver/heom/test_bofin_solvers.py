@@ -8,7 +8,7 @@ from numpy.linalg import eigvalsh
 from scipy.integrate import quad
 
 from qutip import (
-    basis, destroy, expect, liouvillian, sigmax, sigmaz,
+    basis, destroy, expect, liouvillian, qeye, sigmax, sigmaz,
     tensor, Qobj, QobjEvo
 )
 from qutip.core import data as _data
@@ -327,29 +327,89 @@ class UnderdampedPureDephasingModel:
         ]
 
 
+class BosonicMode:
+    """ A description of a bosonic mode for inclusion in a
+        DiscreteLevelCurrentModel.
+    """
+    def __init__(self, N, Lambda, Omega, gamma_b):
+        self.N = N
+        self.Lambda = Lambda
+        self.Omega = Omega
+        self.gamma_b = gamma_b
+
+    def bath_coefficients(self):
+        ck_real = [0.5 * self.Lambda**2, 0.5 * self.Lambda**2]
+        vk_real = [0.5 * 1.0j * self.Lambda**2, -0.5 * 1.0j * self.Lambda**2]
+
+        ck_imag = [
+            -1.0j * self.Omega + self.gamma_b / 2,
+            1.0j * self.Omega + self.gamma_b / 2,
+        ]
+        vk_imag = [
+            -1.0j * self.Omega + self.gamma_b / 2,
+            1.0j * self.Omega + self.gamma_b / 2,
+        ]
+        return ck_real, ck_imag, vk_real, vk_imag
+
+
 class DiscreteLevelCurrentModel:
     """ Analytic discrete level current model for testing the HEOM solver
-        with a fermionic bath.
+        with a fermionic bath (and optionally a bosonic mode).
     """
-    def __init__(self, gamma, W, T, lmax):
+    def __init__(self, gamma, W, T, lmax, theta=2., e1=1., bosonic_mode=None):
+        # single fermion
+        self.e1 = e1  # energy
+
+        # parameters for the fermionic leads
         self.gamma = gamma
         self.W = W
         self.T = T
         self.lmax = lmax  # Pade cut-off
         self.beta = 1. / T
+        self.theta = theta  # bias
 
-        # single fermion
-        self.e1 = 1.
-        d1 = destroy(2)
-        self.H = self.e1 * d1.dag() * d1
-        self.Q = d1
+        # bosonic_mode
+        self.bosonic_mode = bosonic_mode
 
-        # bias
-        self.theta = 2.
+        # Construct Hamiltonian and coupling operator
+        if self.bosonic_mode is None:
+            d1 = destroy(2)
+            self.H = self.e1 * d1.dag() @ d1
+            self.Q = d1
+            self._sys_occupation_op = d1.dag() @ d1
+        else:
+            d1 = destroy(2) & qeye(self.bosonic_mode.N)
+            a = qeye(2) & destroy(self.bosonic_mode.N)
+            self.H = (
+                self.e1 * d1.dag() @ d1 +
+                self.bosonic_mode.Omega * a.dag() @ a +
+                self.bosonic_mode.Lambda * (a + a.dag()) @ d1.dag() @ d1
+            )
+            if self.bosonic_mode.gamma_b != 0:
+                # apply phenomenological damping:
+                self.H = liouvillian(
+                    self.H, [np.sqrt(bosonic_mode.gamma_b) * a],
+                )
+            self.Q = d1
+            self._sys_occupation_op = d1.dag() @ d1
 
-    def rho(self):
-        """ Initial state. """
-        return 0.5 * Qobj(np.ones((2, 2)))
+    def rho(self, rho_fermion=None):
+        """ Return initial system density matrix given the density matrix for
+            the single Fermionic mode.
+        """
+        if rho_fermion is None:
+            rho_fermion = 0.5 * Qobj(np.ones((2, 2)))
+        elif rho_fermion.isket:
+            rho_fermion = rho_fermion.proj()
+        if self.bosonic_mode is None:
+            rho = rho_fermion
+        else:
+            bm0 = basis(self.bosonic_mode.N, 0)
+            rho = rho_fermion & (bm0 @ bm0.dag())
+        return rho
+
+    def sys_occupation(self, state):
+        return expect(state, self._sys_occupation_op)
 
     def state_current(self, ado_state, tags=None):
         level_1_aux = [
@@ -372,6 +432,12 @@ class DiscreteLevelCurrentModel:
         )
 
     def analytic_current(self):
+        if self.bosonic_mode is not None:
+            raise RuntimeError(
+                "Analytic calculation of the current is not implemented in the"
+                " case where a bosonic mode is present."
+            )
+
         Gamma, W, beta, e1 = self.gamma, self.W, self.beta, self.e1
         mu_l = self.theta / 2.
         mu_r = - self.theta / 2.
@@ -873,6 +939,107 @@ class TestHEOMSolver:
             current = dlm.state_current(ado_state)
             analytic_current = dlm.analytic_current()
             np.testing.assert_allclose(analytic_current, current, rtol=1e-3)
+        else:
+            assert_raises_steady_state_time_dependent(hsolver)
+
+    @pytest.mark.parametrize(['evo'], [
+        pytest.param("qobj"),
+        pytest.param("qobjevo_const"),
+        pytest.param("qobjevo_timedep"),
+    ])
+    @pytest.mark.parametrize(['liouvillianize'], [
+        pytest.param(False, id="hamiltonian"),
+        pytest.param(True, id="liouvillian"),
+    ])
+    def test_discrete_level_model_fermionic_bath_with_coupled_bosonic_bath(
+        self, evo, liouvillianize
+    ):
+        dlm = DiscreteLevelCurrentModel(
+            gamma=0.01, W=1, T=0.5, lmax=1, e1=0.3, theta=0.5,
+        )
+        bosonic_mode = BosonicMode(
+            N=4, Omega=0.2, Lambda=0.1, gamma_b=0.1,
+        )
+
+        dlm_ref = DiscreteLevelCurrentModel(
+            gamma=0.01, W=1, T=0.5, lmax=1, e1=0.3, theta=0.5,
+            bosonic_mode=bosonic_mode,
+        )
+
+        options = {
+            "store_states": True,
+            "store_ados": True,
+            "nsteps": 15_000,
+            "rtol": 1e-7,
+            "atol": 1e-7,
+        }
+
+        # First we construct a solver with the boson modelled as part of the
+        # system and only a single Fermionic bath. This will provide the
+        # reference result for the test:
+        fermionic_bath_ref = FermionicBath(
+            dlm_ref.Q, *dlm_ref.bath_coefficients(), tag="fermionic",
+        )
+
+        hsolver_ref = HEOMSolver(
+            dlm_ref.H, [fermionic_bath_ref], 2, options=options,
+        )
+
+        # Then we construct a solver for the same system, but with the
+        # bosonic mode as a bath This is the result we would like to check:
+        H_sys = hamiltonian_to_sys(dlm.H, evo, liouvillianize)
+
+        fermionic_bath = FermionicBath(
+            dlm.Q, *dlm.bath_coefficients(), tag="fermionic",
+        )
+
+        bosonic_bath = BosonicBath(
+            dlm.Q.dag() @ dlm.Q, *bosonic_mode.bath_coefficients(),
+            combine=True, tag="bosonic",
+        )
+
+        hsolver = HEOMSolver(
+            H_sys, [bosonic_bath, fermionic_bath], 4, options=options,
+        )
+
+        # Calculate currents and occupations:
+        tlist = np.linspace(0, 1000, 300)
+        psi0 = basis(2, 0)
+
+        result_ref = hsolver_ref.run(dlm_ref.rho(psi0), tlist)
+        current_ref = [
+            dlm_ref.state_current(ado_state, tags=["fermionic"])
+            for ado_state in result_ref.ado_states
+        ]
+        sys_occupation_ref = dlm_ref.sys_occupation(
+            result_ref.states
+        )
+
+        result = hsolver.run(dlm.rho(psi0), tlist)
+        current = [
+            dlm.state_current(ado_state, tags=["fermionic"])
+            for ado_state in result.ado_states
+        ]
+        sys_occupation = dlm.sys_occupation(result.states)
+
+        np.testing.assert_allclose(current_ref, current, atol=1e-3)
+        np.testing.assert_allclose(
+            sys_occupation_ref, sys_occupation, atol=1e-3,
+        )
+
+        if evo != "qobjevo_timedep":
+            rho_final_ref, ado_state_ref = hsolver_ref.steady_state()
+            current_ss_ref = dlm_ref.state_current(ado_state_ref)
+            sys_occupation_ss_ref = dlm_ref.sys_occupation(rho_final_ref)
+
+            rho_final, ado_state = hsolver.steady_state()
+            current_ss = dlm.state_current(ado_state)
+            sys_occupation_ss = dlm.sys_occupation(rho_final)
+
+            np.testing.assert_allclose(current_ss_ref, current_ss, rtol=1e-3)
+            np.testing.assert_allclose(
+                sys_occupation_ss_ref, sys_occupation_ss, rtol=1e-3,
+            )
         else:
             assert_raises_steady_state_time_dependent(hsolver)
 
