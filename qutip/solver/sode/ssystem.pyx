@@ -11,7 +11,7 @@ import numpy as np
 from qutip.core import spre, spost, liouvillian
 
 __all__ = [
-    "GeneralStochasticSystem", "StochasticOpenSystem", "StochasticClosedSystem"
+    "StochasticOpenSystem", "StochasticClosedSystem"
 ]
 
 @cython.boundscheck(False)
@@ -79,21 +79,6 @@ cdef class _StochasticSystem:
             d/dt + a_n * d a / dx_n + sum_k bk_n bk_m *0.5 d**2 (a) / (dx_n dx_m)
         """
         raise NotImplementedError
-
-
-cdef class GeneralStochasticSystem(_StochasticSystem):
-    cdef object d1, d2
-
-    def __init__(self, a, b):
-        self.d1 = a
-        self.d2 = b
-        self.num_collapse = 1
-
-    cpdef Data drift(self, t, Data state):
-        return self.d1(t, state)
-
-    cpdef list diffusion(self, t, Data state):
-        return self.d2(t, state)
 
 
 cdef class StochasticClosedSystem(_StochasticSystem):

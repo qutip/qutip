@@ -92,7 +92,7 @@ class _Explicit_Simple_Integrator(SIntegrator):
     """
     integrator_options = {
         "dt": 0.001,
-        "tol": 1e-7,
+        "tol": 1e-10,
     }
     stepper = None
     N_dw = 0
@@ -101,9 +101,6 @@ class _Explicit_Simple_Integrator(SIntegrator):
         self.system = system
         self._options = self.integrator_options.copy()
         self.options = options
-        self.dt = self.options["dt"]
-        self.tol = self.options["tol"]
-        self.N_drift = system.num_collapse
         self.step_func = self.stepper(self.system).run
 
     def set_state(self, t, state0, generator):
@@ -116,25 +113,25 @@ class _Explicit_Simple_Integrator(SIntegrator):
         if delta_t < 0:
             raise ValueError("Stochastic integration time")
         elif delta_t == 0:
-            return self.t, self.state, np.zeros((0, self.N_drift, self.N_dw))
+            return self.t, self.state, np.zeros(self.N_dw)
 
-        dt = self.dt
+        dt = self.options["dt"]
         N, extra = np.divmod(delta_t, dt)
         N = int(N)
-        if extra > self.tol:
+        if extra > self.options["tol"]:
             # Not a whole number of steps.
             N += 1
             dt = delta_t / N
         dW = self.generator.normal(
             0,
             np.sqrt(dt),
-            size=(N, self.N_drift, self.N_dw)
+            size=(N, self.N_dw, self.N_dw)
         )
 
         self.state = self.step_func(self.t, self.state, dt, dW, N)
         self.t += dt * N
 
-        return self.t, self.state, np.sum(dW, axis=0) / (N * dt)
+        return self.t, self.state, np.sum(dW[:, :, 0], axis=0)
 
     def get_state(self, copy=True):
         return self.t, self.state, self.generator
@@ -239,8 +236,22 @@ class PredCorr_SODE(_Explicit_Simple_Integrator):
       (:math:`\\alpha=1/2`, :math:`\\eta=1/2`): ``'pc-euler-imp'``,
       ``'pc-euler-2'`` or ``'pred-corr-2'``
     """
+    integrator_options = {
+        "dt": 0.001,
+        "tol": 1e-10,
+        "alpha": 0.0,
+        "eta": 0.5,
+    }
     stepper = _sode.PredCorr
     N_dw = 1
+
+    def __init__(self, system, options):
+        self.system = system
+        self._options = self.integrator_options.copy()
+        self.options = options
+        self.step_func = self.stepper(
+            self.system, self.options["alpha"], self.options["eta"]
+        ).run
 
 
 StochasticSolver.add_integrator(EulerSODE, "euler")

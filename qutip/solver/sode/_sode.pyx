@@ -21,11 +21,10 @@ cdef class Euler:
         double[:, :, ::1] dW, int ntraj
     ):
         cdef int i
-        cdef Dense out
+        cdef Data out
         for i in range(ntraj):
-            out = self.step(t, state, dt, dW[i, :, :])
-            state = out
-        return out
+            state = self.step(t, state, dt, dW[i, :, :])
+        return state
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -40,9 +39,9 @@ cdef class Euler:
         cdef int i
         cdef _StochasticSystem system = self.system
 
-        a = system.drift(t, state)
+        cdef Data a = system.drift(t, state)
         b = system.diffusion(t, state)
-        new_state = _data.add(state, a, dt)
+        cdef Data new_state = _data.add(state, a, dt)
         for i in range(system.num_collapse):
             new_state = _data.add(new_state, b[i], dW[i, 0])
         return new_state

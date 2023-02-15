@@ -8,29 +8,47 @@ import numpy as np
 
 
 class StochasticTrajResult(Result):
-    def _post_init(self, m_ops=()):
+    def _post_init(self, m_ops=(), dw_factor=()):
         super()._post_init()
         self.noise = []
         self.m_ops = m_ops
+        self.dW_factor = dw_factor
         self.measurements = [[] for _ in range(len(m_ops))]
 
     def _add_measurement(self, t, state, noise):
         expects = [m_op.expect(t, state) for m_op in self.m_ops]
         noises = np.sum(noise, axis=0)
-        for measure, expect, dW in zip(self.measurements, expects, noises):
-            measure.append(expect + dW)
+        print(self.measurements, expects, noises, self.dW_factor)
+        for measure, expect, dW, factor in zip(
+            self.measurements, expects, noises, self.dW_factor
+        ):
+            measure.append(expect + dW * factor)
 
     def add(self, t, state, noise):
         super().add(t, state)
+
         if noise is not None:
-            self._add_measurement(t, state, noise)
-        self.noise.append(noise)
+            self.noise.append(noise)
+            if self.options["store_measurement"]:
+                dt = self.times[-1] - self.times[-2]
+                self._add_measurement(t, state, noise / dt)
 
 
 class StochasticResult(MultiTrajResult):
-    @property
-    def measurement(self):
-        return []
+    def _reduce_expect(self, trajectory):
+        # Since measurements of each trajectories is kept, we keep only the
+        # array to save memory.
+        trajectory.measurements = np.array(trajectory.measurements)
+        if self.options["heterodyne"]:
+            shape = trajectory.measurements.shape
+            trajectory.measurements.reshape(-1, 2, shape[-1])
+        self.measurement.append(trajectory.measurements)
+
+    def _post_init(self):
+        super()._post_init()
+        self.measurement = []
+        if self.options['store_measurement']:
+            self.add_processor(self._reduce_measurements)
 
 
 def smesolve(H, rho0, tlist, c_ops=(), sc_ops=(), e_ops=(), m_ops=(),
@@ -93,7 +111,6 @@ def smesolve(H, rho0, tlist, c_ops=(), sc_ops=(), e_ops=(), m_ops=(),
     return sol.run(rho0, tlist, ntraj, e_ops=e_ops)
 
 
-
 def ssesolve(H, psi0, tlist, sc_ops=(), e_ops=(), m_ops=(),
              args={}, ntraj=500, options=None):
     """
@@ -153,6 +170,7 @@ class StochasticSolver(MultiTrajSolver):
     name = "StochasticSolver"
     resultclass = StochasticResult
     _avail_integrators = {}
+    system = None
     solver_options = {
         "progress_bar": "text",
         "progress_kwargs": {"chunk_size": 10},
@@ -166,45 +184,64 @@ class StochasticSolver(MultiTrajSolver):
         "num_cpus": None,
         "bitgenerator": None,
         "heterodyne": False,
+        "store_measurement": False,
+        "dw_factor": None,
     }
 
-    def __init__(self, H, sc_ops, heterodyne=False, *, options=None, m_ops=()):
-        self._options = self.solver_options.copy()
+    def __init__(self, H, sc_ops, *, options=None, m_ops=()):
         self.options = options
 
         if not isinstance(H, (Qobj, QobjEvo)):
             raise TypeError("...")
         H = QobjEvo(H)
-
         if isinstance(sc_ops, (Qobj, QobjEvo)):
             sc_ops = [sc_ops]
         sc_ops = [QobjEvo(c_op) for c_op in sc_ops]
+
         if any(not c_op.isoper for c_op in sc_ops):
             raise TypeError("sc_ops must be operators")
 
-        if H.issuper:
-            rhs = StochasticOpenSystem(H, sc_ops, heterodyne)
-        else:
-            rhs = StochasticClosedSystem(H, sc_ops, heterodyne)
-
+        rhs = self._prep_system(H, sc_ops, self.options["heterodyne"])
         super().__init__(rhs, options=options)
 
-        if len(m_ops) == rhs.num_collapse:
-            self.m_ops = m_ops
-        elif heterodyne:
-            self.m_ops = []
-            for sc_op in sc_ops:
-                self.m_ops += [
-                    sc_op + sc_op.dag(), -1j * (sc_op - sc_op.dag())
-                ]
+        if self.options["store_measurement"]:
+            n_m_ops = len(sc_ops) * (1 + int(self.options["heterodyne"]))
+            dW_factor = self.options["dW_factor"]
+
+            if len(m_ops) == n_m_ops:
+                self.m_ops = m_ops
+            elif self.options["heterodyne"]:
+                self.m_ops = []
+                for op in sc_ops:
+                    self.m_ops += [
+                        op + op.dag(), -1j * (op - op.dag())
+                    ]
+                dW_factor = dW_factor or 2**0.5
+            else:
+                self.m_ops = [op + op.dag() for op in sc_ops]
+                dW_factor = dW_factor or 1.
+
+            if not isinstance(dW_factor, Iterable):
+                dW_factor = [dW_factor] * n_m_ops
+
+            if len(dW_factor) == len(sc_ops) and self.options["heterodyne"]:
+                dW_factor = [ i for i in dW_factor for _ in range(2) ]
+
+            if len(dW_factor) != n_m_ops:
+                raise ValueError("Bad dW_factor option")
+            self.dW_factors = dW_factor
+
         else:
-            self.m_ops = [sc_op + sc_op.dag() for sc_op in sc_ops]
+            self.m_ops = []
+            self.dW_factors = []
 
     def _run_one_traj(self, seed, state, tlist, e_ops):
         """
         Run one trajectory and return the result.
         """
-        result = StochasticTrajResult(e_ops, self.options, m_ops=self.m_ops)
+        result = StochasticTrajResult(
+            e_ops, self.options, m_ops=self.m_ops, dw_factor=self.dW_factors,
+        )
         generator = self._get_generator(seed)
         self._integrator.set_state(tlist[0], state, generator)
         state_t = self._restore_state(state, copy=False)
@@ -229,7 +266,13 @@ class SMESolver(StochasticSolver):
     name = "smesolve"
     _avail_integrators = {}
 
+    def _prep_system(self, L, sc_ops, heterodyne):
+        if not L.issuper:
+            L = liouvillian(L)
+        return StochasticOpenSystem(L, sc_ops, heterodyne)
+
 
 class SSESolver(StochasticSolver):
     name = "ssesolve"
     _avail_integrators = {}
+    _prep_system = StochasticClosedSystem

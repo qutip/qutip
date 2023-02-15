@@ -225,7 +225,7 @@ class MCIntegrator:
 
     def _prob_func(self, state):
         if self.issuper:
-            return _data.trace_oper_ket(state)
+            return _data.trace_oper_ket(state).real()
         return _data.norm.l2(state)**2
 
     def _norm_func(self, state):

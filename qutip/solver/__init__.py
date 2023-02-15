@@ -16,3 +16,4 @@ from .countstat import *
 from .brmesolve import *
 from .krylovsolve import *
 from .parallel import *
+import qutip.solver.sode
