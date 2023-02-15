@@ -189,14 +189,14 @@ cdef class StochasticOpenSystem(_StochasticSystem):
         for i in range(self.num_collapse):
             c_op = self.c_ops[i]
             vec = c_op.matmul_data(t, state)
-            expect = _data.trace_oper_ket_dense(vec)
+            expect = _data.trace_oper_ket(vec)
             out.append(_data.add(vec, state, -expect))
         return out
 
     cpdef void set_state(self, double t, Data state):
         cdef n, l
         self.t = t
-        self.state = _data.to(_data.Dense, state)
+        self.state = _data.to(_data.Dense, state).reorder(fortran=1)
         self._a_set = False
         self._b_set = False
         self._Lb_set = False
@@ -471,10 +471,10 @@ cdef class SimpleStochasticSystem(_StochasticSystem):
 
     def analytic(self, t, W):
         """
-        Analytic solution, H and all c_ops must commute.
+        Analytic solution, H and all c_ops must commute and are constant.
         """
-        out = self.H.full() * t
+        out = self.H(0) * t
         for i in range(self.num_collapse):
-            out += self.c_ops[i].full() * W[i]
-            out -= 0.5 * self.c_ops[i].full() @ self.c_ops[i].full() * t
-        return np.exp(out)
+            out += self.c_ops[i](0) * W[i]
+            out -= 0.5 * self.c_ops[i](0) @ self.c_ops[i](0) * t
+        return out.expm().data

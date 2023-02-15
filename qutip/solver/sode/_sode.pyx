@@ -16,7 +16,10 @@ cdef class Euler:
         self.system = system
 
     @cython.wraparound(False)
-    def run(self, double t, Data state, double dt, double[:, :, ::1] dW, int ntraj):
+    def run(
+        self, double t, Data state, double dt,
+        double[:, :, ::1] dW, int ntraj
+    ):
         cdef int i
         cdef Dense out
         for i in range(ntraj):

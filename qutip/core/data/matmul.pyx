@@ -196,7 +196,8 @@ cpdef Dense matmul_csr_dense_dense(CSR left, Dense right,
             "out matrix is {}-ordered".format('Fortran' if out.fortran else 'C')
             + " but input is {}-ordered".format('Fortran' if right.fortran else 'C')
         )
-        warnings.warn(msg, dense.OrderEfficiencyWarning)
+        from qutip.core.data.dense import OrderEfficiencyWarning
+        warnings.warn(msg, OrderEfficiencyWarning)
         # Rather than making loads of copies of the same code, we just moan at
         # the user and then transpose one of the arrays.  We prefer to have
         # `right` in Fortran-order for cache efficiency.
