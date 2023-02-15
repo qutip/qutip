@@ -9,14 +9,11 @@ from qutip import ket, ket2dm
 try:
     import matplotlib.pyplot as plt
     from matplotlib.testing.decorators import check_figures_equal
+    import IPython
+    check_pngs_equal = check_figures_equal(extensions=["png"])
 except ImportError:
-    def check_figures_equal(*args, **kw):
-        def _error(*args, **kw):
-            raise RuntimeError("matplotlib is not installed")
     plt = None
-
-
-check_pngs_equal = check_figures_equal(extensions=["png"])
+    check_pngs_equal = pytest.mark.skip(reason="matplotlib not installed")
 
 
 class RefBloch(Bloch):
@@ -474,6 +471,8 @@ class TestBloch:
 
 
 def test_repr_svg():
+    pytest.importorskip("matplotlib")
+    pytest.importorskip("ipython")
     svg = Bloch()._repr_svg_()
     assert isinstance(svg, str)
     assert svg.startswith("<?xml")
