@@ -104,8 +104,14 @@ class TestSVD():
         only_S = _data.svd(matrix, False)
 
         assert sum(test_S > 1e-10) == 6
-        np.testing.assert_allclose(test_U.to_array(), u, atol=1e-7, rtol=1e-7)
-        np.testing.assert_allclose(test_V.to_array(), v, atol=1e-7, rtol=1e-7)
+        # columns are definied up to a sign
+        np.testing.assert_allclose(
+            np.abs(test_U.to_array()), np.abs(u), atol=1e-7, rtol=1e-7
+        )
+        # rows are definied up to a sign
+        np.testing.assert_allclose(
+            np.abs(test_V.to_array()), np.abs(v), atol=1e-7, rtol=1e-7
+        )
         np.testing.assert_allclose(test_S, s, atol=1e-7, rtol=1e-7)
         np.testing.assert_allclose(only_S, s, atol=1e-7, rtol=1e-7)
 

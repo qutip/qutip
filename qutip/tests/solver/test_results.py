@@ -99,7 +99,7 @@ class TestResult:
                 res.e_ops[k](i, qutip.basis(N, i)) for i in range(N)
             ]
             if isinstance(res.expect[i][0], qutip.Qobj):
-                assert res.expect[i] == results[k]
+                assert (res.expect[i] == results[k]).all()
                 assert res.e_data[k] == results[k]
                 assert e_op_call_values == results[k]
             else:
@@ -195,21 +195,9 @@ class TestMultiTrajResult:
         if multiresult.trajectories:
             assert isinstance(multiresult.runs_expect, list)
             assert isinstance(multiresult.runs_e_data, dict)
-            assert isinstance(multiresult.expect_traj_avg(), list)
-            assert isinstance(multiresult.expect_traj_std(), list)
-            assert isinstance(multiresult.e_data_traj_avg(), dict)
-            assert isinstance(multiresult.e_data_traj_std(), dict)
         else:
             assert multiresult.runs_expect == []
             assert multiresult.runs_e_data == {}
-            with pytest.raises(ValueError):
-                multiresult.expect_traj_avg()
-            with pytest.raises(ValueError):
-                multiresult.expect_traj_std()
-            with pytest.raises(ValueError):
-                multiresult.e_data_traj_avg()
-            with pytest.raises(ValueError):
-                multiresult.e_data_traj_std()
 
     @pytest.mark.parametrize('keep_runs_results', [True, False])
     @pytest.mark.parametrize('dm', [True, False])
@@ -269,10 +257,6 @@ class TestMultiTrajResult:
                 for expect in runs_expect:
                     np.testing.assert_allclose(expect, expected,
                                                atol=1e-14, rtol=0.1)
-
-            for expect, expected in zip(m_res.expect_traj_avg(25), results):
-                np.testing.assert_allclose(expect, expected,
-                                           atol=1e-14, rtol=0.04)
 
         self._expect_check_types(m_res)
 

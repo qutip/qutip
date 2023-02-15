@@ -69,7 +69,7 @@ function for master-equation evolution, except that the initial state must be a 
 To illustrate the use of the Monte Carlo evolution of quantum systems in QuTiP, let's again consider the case of a two-level atom coupled to a leaky cavity. The only differences to the master-equation treatment is that in this case we invoke the :func:`qutip.mcsolve` function instead of :func:`qutip.mesolve`
 
 .. plot::
-    :context:
+    :context: reset
 
     from qutip.solver.mcsolve import MCSolver, mcsolve
 
@@ -140,31 +140,7 @@ In order to run 1000 trajectories in the above example, we can simply modify the
 
 where we have added the keyword argument ``ntraj=1000`` at the end of the inputs.
 Now, the Monte Carlo solver will calculate expectation values for both operators, ``a.dag() * a, sm.dag() * sm`` averaging over 1000 trajectories.
-In order to explore the convergence of the Monte Carlo solver, it is possible to retrieve expectation values as a function of the number of trajectories. For example, the following code block plots expectation values for 1, 10 and 100 trajectories by first running the solver for 100 trajectories but keeping the expectation values for each trajectory:
 
-.. plot::
-    :context:
-
-    data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], e_ops=[a.dag() * a, sm.dag() * sm], options={"keep_runs_results": True}, ntraj=100, seeds=1)
-
-we can extract the relevant expectation values using:
-
-.. plot::
-    :context:
-
-    expt1 = data.expect_traj_avg(1)
-    expt10 = data.expect_traj_avg(10)
-    expt100 = data.expect_traj_avg(100)
-
-    plt.figure()
-    plt.plot(times, expt1[0], label="ntraj=1")
-    plt.plot(times, expt10[0], label="ntraj=10")
-    plt.plot(times, expt100[0], label="ntraj=100")
-    plt.title('Monte Carlo time evolution')
-    plt.xlabel('Time')
-    plt.ylabel('Expectation values')
-    plt.legend()
-    plt.show()
 
 
 .. _monte-reuse:
@@ -232,3 +208,35 @@ The ``MCSolver`` also allows adding new trajectories after the first computation
     plt.ylabel('Expectation values', fontsize=14)
     plt.legend(("cavity photon number", "atom excitation probability"))
     plt.show()
+
+
+This can be used to explore the convergence of the Monte Carlo solver.
+For example, the following code block plots expectation values for 1, 10 and 100 trajectories:
+
+.. plot::
+    :context: close-figs
+
+    solver = MCSolver(H, c_ops=[np.sqrt(0.1) * a])
+
+    data1 = solver.run(psi0, times, e_ops=[a.dag() * a, sm.dag() * sm], ntraj=1)
+    data10 = data1 + solver.run(psi0, times, e_ops=[a.dag() * a, sm.dag() * sm], ntraj=9)
+    data100 = data10 + solver.run(psi0, times, e_ops=[a.dag() * a, sm.dag() * sm], ntraj=90)
+
+    expt1 = data1.expect
+    expt10 = data10.expect
+    expt100 = data100.expect
+
+    plt.figure()
+    plt.plot(times, expt1[0], label="ntraj=1")
+    plt.plot(times, expt10[0], label="ntraj=10")
+    plt.plot(times, expt100[0], label="ntraj=100")
+    plt.title('Monte Carlo time evolution')
+    plt.xlabel('Time')
+    plt.ylabel('Expectation values')
+    plt.legend()
+    plt.show()
+
+.. plot::
+    :context: reset
+    :include-source: false
+    :nofigs:
