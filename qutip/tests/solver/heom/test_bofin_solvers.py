@@ -1022,9 +1022,9 @@ class TestHEOMSolver:
         ]
         sys_occupation = dlm.sys_occupation(result.states)
 
-        np.testing.assert_allclose(current_ref, current, atol=1e-3)
+        np.testing.assert_allclose(current_ref, current, rtol=1e-3)
         np.testing.assert_allclose(
-            sys_occupation_ref, sys_occupation, atol=1e-3,
+            sys_occupation_ref, sys_occupation, rtol=1e-3,
         )
 
         if evo != "qobjevo_timedep":
