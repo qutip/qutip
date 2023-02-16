@@ -46,12 +46,12 @@ at https://github.com/tehruhn/bofin/tree/main/examples.
 Current implementation
 ----------------------
 
-The current implementation is a rewrite of BoFiN in pure Python. It's
-right-hand side construction has similar speed to BoFiN-fast, but is written
-in pure Python. Built-in implementations of a variety of different baths
-are provided, and a single solver is used for both fermionic and bosonic baths.
-Multiple baths of the same kind (either fermionic or bosonic) may be
-specified in a single problem, and there is good support for working with
-the auxiliary density operator (ADO) state and extracting information from it.
+The current implementation is a rewrite of BoFiN in pure Python. It's right-hand
+side construction has similar speed to BoFiN-fast, but is written in pure
+Python. Built-in implementations of a variety of different baths are provided,
+and a single solver is used for both fermionic and bosonic baths. Multiple baths
+of either the same kind, or a mixture of fermionic and bosonic baths, may be
+specified in a single problem, and there is good support for working with the
+auxiliary density operator (ADO) state and extracting information from it.
 
 The code was written by Neill Lambert and Simon Cross.
