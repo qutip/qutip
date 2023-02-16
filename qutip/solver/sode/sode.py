@@ -97,8 +97,8 @@ class _Explicit_Simple_Integrator(SIntegrator):
     stepper = None
     N_dw = 0
 
-    def __init__(self, system, options):
-        self.system = system
+    def __init__(self, rhs, options):
+        self.system = rhs
         self._options = self.integrator_options.copy()
         self.options = options
         self.step_func = self.stepper(self.system).run
@@ -125,7 +125,7 @@ class _Explicit_Simple_Integrator(SIntegrator):
         dW = self.generator.normal(
             0,
             np.sqrt(dt),
-            size=(N, self.N_dw, self.N_dw)
+            size=(N, self.system.num_collapse, self.N_dw)
         )
 
         self.state = self.step_func(self.t, self.state, dt, dW, N)

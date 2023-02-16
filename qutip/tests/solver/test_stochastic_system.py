@@ -4,6 +4,7 @@ from qutip import (
     basis, rand_herm, fock_dm, liouvillian, operator_to_vector
 )
 from qutip.solver.sode.ssystem import *
+from qutip.solver.sode.ssystem import SimpleStochasticSystem
 import qutip.core.data as _data
 import pytest
 from itertools import product
@@ -92,16 +93,17 @@ def _check_equivalence(f, target, args):
     """
     Check that the error is proportional to `dt`.
     """
-    dts = np.logspace(-5, -1, 9)
+    dts = np.logspace(-4, -1, 7)
     errors_dt = np.array([
         _data.norm.l2(f(*args, dt=dt) - target)
         for dt in dts
     ])
-    poly = np.polyfit(np.log(dts), np.log(errors_dt+1e-16), 1)[0]
-    if poly > 1.05:
-        print(poly, np.log(errors_dt))
-        print(dts, errors_dt)
-    return poly < 1.05
+    if np.all(errors_dt < 1e-6):
+        return True
+
+    power = np.polyfit(np.log(dts), np.log(errors_dt + 1e-16), 1)[0]
+    # Sometime the dt term is cancelled and the dt**2 term is dominant
+    return power > 0.9
 
 
 def _run_derr_check(solver, state):
@@ -128,6 +130,7 @@ def _run_derr_check(solver, state):
             )
 
             for k in range(N):
+                print(i, j, k)
                 assert _check_equivalence(
                     LL(solver, k, j, b), solver.LiLjbk(k, j, i), (t, state)
                 )
@@ -143,7 +146,7 @@ def _make_oper(kind, N):
     elif kind == "tridiag":
         out = destroy(N) + num(N) + create(N)
     elif kind == "td":
-        out = [num(N), [destroy(N) + create(N), lambda t: t]]
+        out = [num(N), [destroy(N) + create(N), lambda t: 1 + t]]
     elif kind == "rand":
         out = rand_herm(N)
     return QobjEvo(out)
@@ -157,17 +160,17 @@ def _make_oper(kind, N):
     pytest.param("qeye", ["td"], id='c_ops td'),
     pytest.param("rand", ["rand"], id='random'),
 ])
-@pytest.mark.parametrize('type', ["sme"]) # "sse"
+@pytest.mark.parametrize('type', ["sme", "sse"])
 @pytest.mark.parametrize('heterodyne', [False, True])
 def test_system(H, c_ops, type, heterodyne):
     N = 5
     H = _make_oper(H, N)
     c_ops = [_make_oper(op, N) for op in c_ops]
     if type == "sse":
-        system = StochasticClosedSystem(H, c_ops, heterodyne)
+        system = SimpleStochasticSystem(H, c_ops)
         state = basis(N, N-2).data
     else:
         H = liouvillian(H)
-        system = StochasticOpenSystem(H, c_ops, heterodyne)
+        system = StochasticOpenSystem(H, c_ops, heterodyne=heterodyne)
         state = operator_to_vector(fock_dm(N, N-2)).data
     _run_derr_check(system, state)
