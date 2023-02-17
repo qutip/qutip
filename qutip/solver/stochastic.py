@@ -52,6 +52,46 @@ class StochasticResult(MultiTrajResult):
             self.add_processor(self._reduce_measurements)
 
 
+class StochasticRHS:
+    def __init__(self, issuper, H, sc_ops, c_ops, heterodyne):
+
+        if not isinstance(H, (Qobj, QobjEvo)):
+            raise TypeError("...")
+        self.H = QobjEvo(H)
+
+        if isinstance(sc_ops, (Qobj, QobjEvo)):
+            sc_ops = [sc_ops]
+        self.sc_ops = [QobjEvo(c_op) for c_op in sc_ops]
+
+        if isinstance(c_ops, (Qobj, QobjEvo)):
+            c_ops = [c_ops]
+        self.c_ops = [QobjEvo(c_op) for c_op in c_ops]
+
+        if any(not c_op.isoper for c_op in c_ops):
+            raise TypeError("c_ops must be operators")
+
+        if any(not c_op.isoper for c_op in sc_ops):
+            raise TypeError("sc_ops must be operators")
+
+        self.issuper = issuper
+        self.heterodyne = heterodyne
+
+        if self.issuper and not self.H.issuper:
+            self.dims = [self.H.dims, self.H.dims]
+        else:
+            self.dims = self.H.dims
+
+    def __call__(self):
+        if self.issuper:
+            return StochasticOpenSystem(
+                self.H , self.sc_ops, self.c_ops, self.heterodyne
+            )
+        else:
+            return StochasticClosedSystem(
+                self.H , self.sc_ops, self.heterodyne
+            )
+
+
 def smesolve(H, rho0, tlist, c_ops=(), sc_ops=(), e_ops=(), m_ops=(),
              args={}, ntraj=500, options=None):
     """
@@ -191,32 +231,20 @@ class StochasticSolver(MultiTrajSolver):
 
     def __init__(self, H, sc_ops, *, c_ops=(), options=None, m_ops=()):
         self.options = options
+        heterodyne = self.options["heterodyne"]
+        if c_ops:
+            raise ValueError("ssesolve c_ops")
 
-        if not isinstance(H, (Qobj, QobjEvo)):
-            raise TypeError("...")
-        H = QobjEvo(H)
-
-        if isinstance(sc_ops, (Qobj, QobjEvo)):
-            sc_ops = [sc_ops]
-        sc_ops = [QobjEvo(c_op) for c_op in sc_ops]
-
-        if isinstance(c_ops, (Qobj, QobjEvo)):
-            c_ops = [c_ops]
-        c_ops = [QobjEvo(c_op) for c_op in c_ops]
-
-        if any(not c_op.isoper for c_op in sc_ops):
-            raise TypeError("sc_ops must be operators")
-
-        rhs = self._prep_system(H, sc_ops, c_ops)
+        rhs = StochasticRHS(self.name=="smesolve", H, sc_ops, c_ops, heterodyne)
         super().__init__(rhs, options=options)
 
         if self.options["store_measurement"]:
-            n_m_ops = len(sc_ops) * (1 + int(self.options["heterodyne"]))
+            n_m_ops = len(sc_ops) * (1 + int(heterodyne))
             dW_factor = self.options["dw_factor"]
 
             if len(m_ops) == n_m_ops:
                 self.m_ops = m_ops
-            elif self.options["heterodyne"]:
+            elif heterodyne:
                 self.m_ops = []
                 for op in sc_ops:
                     self.m_ops += [
@@ -230,7 +258,7 @@ class StochasticSolver(MultiTrajSolver):
             if not isinstance(dW_factor, Iterable):
                 dW_factor = [dW_factor] * n_m_ops
 
-            if len(dW_factor) == len(sc_ops) and self.options["heterodyne"]:
+            if len(dW_factor) == len(sc_ops) and heterodyne:
                 dW_factor = [ i for i in dW_factor for _ in range(2) ]
 
             if len(dW_factor) != n_m_ops:
@@ -272,19 +300,7 @@ class SMESolver(StochasticSolver):
     name = "smesolve"
     _avail_integrators = {}
 
-    def _prep_system(self, H, sc_ops, c_ops):
-        return StochasticOpenSystem(
-            H, sc_ops, c_ops, self.options["heterodyne"]
-        )
-
 
 class SSESolver(StochasticSolver):
     name = "ssesolve"
     _avail_integrators = {}
-
-    def _prep_system(self, H, sc_ops, c_ops):
-        if c_ops:
-            raise ValueError("ssesolve c_ops")
-        return StochasticClosedSystem(
-            H, sc_ops, self.options["heterodyne"]
-        )

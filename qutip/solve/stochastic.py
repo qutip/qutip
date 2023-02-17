@@ -579,8 +579,10 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     if _safe_mode:
         _safety_checks(sso)
 
+    print(sso.solver_code)
+
     if sso.solver_code == 120:
-        return _positive_map(sso, e_ops_dict)
+        return _positive_map(sso, e_ops_dict, _dry_run)
 
     sso.LH = liouvillian(sso.H, c_ops=sso.sc_ops + sso.c_ops) * sso.dt
     if sso.method == 'homodyne' or sso.method is None:
@@ -767,7 +769,7 @@ def ssesolve(H, psi0, times, sc_ops=[], e_ops=[],
     return res
 
 
-def _positive_map(sso, e_ops_dict):
+def _positive_map(sso, e_ops_dict, _dry_run=False):
     if sso.method == 'homodyne' or sso.method is None:
         sops = sso.sc_ops
         if sso.m_ops is None:
@@ -811,7 +813,8 @@ def _positive_map(sso, e_ops_dict):
 
     for op in sso.c_ops:
         LH += op.dag() @ op * (-sso.dt * 0.5)
-        sso.pp += spre(op) * spost(op.dag()) * sso.dt
+        opop = spre(op) * spost(op.dag())
+        sso.pp += opop * sso.dt
 
     for i, op in enumerate(sops):
         LH += (-sso.dt * 0.5) * op.dag() @ op
@@ -829,6 +832,11 @@ def _positive_map(sso, e_ops_dict):
 
     sso.solver_obj = PmSMESolver
     sso.solver_name = "smesolve_" + sso.solver
+
+    if _dry_run:
+        ssolver = sso.solver_obj()
+        ssolver.set_solver(sso)
+        return ssolver
     res = _sesolve_generic(sso, sso.options, sso.progress_bar)
 
     if e_ops_dict:

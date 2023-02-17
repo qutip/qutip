@@ -5,7 +5,7 @@ from qutip import qeye, destroy, QobjEvo, rand_ket
 import qutip.solver.sode._sode as _sode
 import pytest
 from qutip.solver.sode.ssystem import SimpleStochasticSystem
-from qutip.solver.sode.ito import MultiNoise
+from qutip.solver.sode.noise import _Noise
 
 
 def get_error_order(system, state, method, plot=False, **kw):
@@ -18,7 +18,7 @@ def get_error_order(system, state, method, plot=False, **kw):
     # state = rand_ket(system.dims[0]).data
     err = np.zeros(len(ts), dtype=float)
     for _ in range(num_runs):
-        noise = MultiNoise(0.1, 0.000001, system.num_collapse)
+        noise = _Noise(0.1, 0.000001, system.num_collapse)
         for i, t in enumerate(ts):
             out = stepper.run(0, state.copy(), t, noise.dW(t), 1)
             target = system.analytic(t, noise.dw(t)[0]) @ state
