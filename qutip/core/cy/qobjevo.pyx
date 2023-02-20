@@ -801,8 +801,8 @@ cdef class QobjEvo:
             constant parts, ``[Qobj, Coefficient]`` for coefficient based term.
             The original format of the :class:`Coefficient` is not restored.
             Lastly if the original `QobjEvo` is constructed with a function
-            returning a Qobj, the term is returned as a pair of :class:`Qobj`
-            and args (``dict``).
+            returning a Qobj, the term is returned as a pair of the original
+            function and args (``dict``).
         """
         out = []
         for element in self.elements:
@@ -861,8 +861,14 @@ cdef class QobjEvo:
         ----------
         t : float
             Time of the operator to apply.
+
         state : Qobj
             right matrix of the product
+
+        check_real : bool (True)
+            Whether to convert the result to a `real` when the imaginary part
+            is smaller than the real part by a dactor of
+            ``settings.core['rtol']``.
 
         Returns
         -------
