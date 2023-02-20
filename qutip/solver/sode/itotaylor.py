@@ -61,7 +61,6 @@ class Explicit1_5_SODE(_Explicit_Simple_Integrator):
 
 
 StochasticSolver.add_integrator(EulerSODE, "euler")
-StochasticSolver.add_integrator(EulerSODE, "euler-maruyama")
 StochasticSolver.add_integrator(Explicit1_5_SODE, "explicit1.5")
-SMESolver.add_integrator(Taylor1_5_SODE, "taylor15")
+SMESolver.add_integrator(Taylor1_5_SODE, "taylor1.5")
 SMESolver.add_integrator(Milstein_SODE, "milstein")

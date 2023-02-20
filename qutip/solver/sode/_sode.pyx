@@ -23,7 +23,7 @@ cdef class Euler:
         cdef int i
         cdef Data out
         for i in range(ntraj):
-            state = self.step(t, state, dt, dW[i, :, :])
+            state = self.step(t + i * dt, state, dt, dW[i, :, :])
         return state
 
     @cython.boundscheck(False)
@@ -43,7 +43,7 @@ cdef class Euler:
         b = system.diffusion(t, state)
         cdef Data new_state = _data.add(state, a, dt)
         for i in range(system.num_collapse):
-            new_state = _data.add(new_state, b[i], dW[i, 0])
+            new_state = _data.add(new_state, b[i], dW[0, i])
         return new_state
 
 
@@ -81,7 +81,7 @@ cdef class Platen(Euler):
         for i in range(num_ops):
             Vp.append(_data.add(d1, d2[i], sqrt_dt))
             Vm.append(_data.add(d1, d2[i], -sqrt_dt))
-            Vt = _data.add(Vt, d2[i], dW[i, 0])
+            Vt = _data.add(Vt, d2[i], dW[0, i])
 
         d1 = system.drift(t, Vt)
         out = _data.add(out, d1, 0.5 * dt)
@@ -89,13 +89,13 @@ cdef class Platen(Euler):
         for i in range(num_ops):
             d2p = system.diffusion(t, Vp[i])
             d2m = system.diffusion(t, Vm[i])
-            dw = dW[i, 0] * 0.25
+            dw = dW[0, i] * 0.25
             out = _data.add(out, d2m[i], dw)
             out = _data.add(out, d2[i], 2 * dw)
             out = _data.add(out, d2p[i], dw)
 
             for j in range(num_ops):
-                dw2 = sqrt_dt_inv * (dW[i, 0] * dW[j, 0] - dt * (i == j))
+                dw2 = sqrt_dt_inv * (dW[0, i] * dW[0, j] - dt * (i == j))
                 out = _data.add(out, d2p[j], dw2)
                 out = _data.add(out, d2m[j], -dw2)
 
@@ -122,8 +122,8 @@ cdef class Explicit15(Euler):
         dw = np.empty(num_ops)
         dz = np.empty(num_ops)
         for i in range(num_ops):
-            dw[i] = dW[i, 0]
-            dz[i] = 0.5 *(dW[i, 0] + 1./np.sqrt(3) * dW[i, 1])
+            dw[i] = dW[0, i]
+            dz[i] = 0.5 *(dW[0, i] + 1./np.sqrt(3) * dW[1, i])
 
         d1 = system.drift(t, state)
         d2 = system.diffusion(t, state)
@@ -239,7 +239,7 @@ cdef class Milstein:
         state = state.copy()
 
         for i in range(ntraj):
-            self.step(t, state, dt, dW[i, :, :], out)
+            self.step(t + i * dt, state, dt, dW[i, :, :], out)
             state, out = out, state
         return state
 
@@ -265,14 +265,14 @@ cdef class Milstein:
         _data.iadd_dense(out, system.a(), dt)
 
         for i in range(num_ops):
-            _data.iadd_dense(out, system.bi(i), dW[i, 0])
+            _data.iadd_dense(out, system.bi(i), dW[0, i])
 
         for i in range(num_ops):
             for j in range(i, num_ops):
                 if i == j:
-                    dw = (dW[i, 0] * dW[j, 0] - dt) * 0.5
+                    dw = (dW[0, i] * dW[0, j] - dt) * 0.5
                 else:
-                    dw = dW[i, 0] * dW[j, 0]
+                    dw = dW[0, i] * dW[0, j]
                 _data.iadd_dense(out, system.Libj(i, j), dw)
 
 
@@ -296,7 +296,7 @@ cdef class PredCorr:
         state = state.copy()
 
         for i in range(ntraj):
-            self.step(t, state, dt, dW[i, :, :], out)
+            self.step(t + i * dt, state, dt, dW[i, :, :], out)
             state, out = out, state
         return state
 
@@ -320,24 +320,24 @@ cdef class PredCorr:
 
         _data.imul_dense(out, 0.)
         _data.iadd_dense(out, state, 1)
-        _data.iadd_dense(out, system.a(), dt*(1-alpha))
+        _data.iadd_dense(out, system.a(), dt * (1-alpha))
 
         _data.imul_dense(euler, 0.)
         _data.iadd_dense(euler, state, 1)
         _data.iadd_dense(euler, system.a(), dt)
 
         for i in range(num_ops):
-            _data.iadd_dense(euler, system.bi(i), dW[i, 0])
-            _data.iadd_dense(out, system.bi(i), dW[i, 0]*eta)
-            _data.iadd_dense(out, system.Libj(i, i), dt*(alpha-1)*0.5)
+            _data.iadd_dense(euler, system.bi(i), dW[0, i])
+            _data.iadd_dense(out, system.bi(i), dW[0, i] * eta)
+            _data.iadd_dense(out, system.Libj(i, i), dt * (alpha-1) * 0.5)
 
         system.set_state(t+dt, euler)
         if alpha:
             _data.iadd_dense(out, system.a(), dt*alpha)
 
         for i in range(num_ops):
-            _data.iadd_dense(out, system.bi(i), dW[i, 0]*(1-eta))
-            _data.iadd_dense(out, system.Libj(i, i), -dt*alpha*0.5)
+            _data.iadd_dense(out, system.bi(i), dW[0, i] * (1-eta))
+            _data.iadd_dense(out, system.Libj(i, i), -dt * alpha * 0.5)
 
         return out
 
@@ -352,7 +352,7 @@ cdef class Taylor15(Milstein):
         state = state.copy()
 
         for i in range(ntraj):
-            self.step(t, state, dt, dW[i, :, :], out)
+            self.step(t + i * dt, state, dt, dW[i, :, :], out)
             state, out = out, state
         return state
 
@@ -370,8 +370,8 @@ cdef class Taylor15(Milstein):
         cdef double[:] dz, dw
 
         num_ops = system.num_collapse
-        dw = dW[:, 0]
-        dz = 0.5 *(dW[:, 0] + 1./np.sqrt(3) * dW[:, 1]) * dt
+        dw = dW[0, :]
+        dz = 0.5 * (dW[0, :] + dW[1, :] / np.sqrt(3)) * dt
 
         _data.imul_dense(out, 0.)
         _data.iadd_dense(out, state, 1)

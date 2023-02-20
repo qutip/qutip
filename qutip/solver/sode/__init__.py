@@ -1,3 +1,4 @@
-from .sode import *
 from .ssystem import *
-from .taylorapprox import *
+from .sode import *
+from .itotaylor import *
+from .rouchon import *

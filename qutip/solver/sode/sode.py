@@ -2,7 +2,6 @@ import numpy as np
 from . import _sode
 from ..integrator.integrator import Integrator
 from ..stochastic import StochasticSolver, SMESolver
-from .rouchon import Rouchon
 
 
 __all__ = ["SIntegrator", "PlatenSODE", "PredCorr_SODE"]
@@ -60,8 +59,12 @@ class SIntegrator(Integrator):
         generator : numpy.random.generator
             Random number generator.
         """
-        raise NotImplementedError
+        self.t = t
+        self.state = state0
+        self.generator = generator
 
+    def get_state(self, copy=True):
+        return self.t, self.state, self.generator
 
     def integrate(self, t, copy=True):
         """
@@ -107,11 +110,6 @@ class _Explicit_Simple_Integrator(SIntegrator):
         self.options = options
         self.step_func = self.stepper(self.system).run
 
-    def set_state(self, t, state0, generator):
-        self.t = t
-        self.state = state0
-        self.generator = generator
-
     def integrate(self, t, copy=True):
         delta_t = (t - self.t)
         if delta_t < 0:
@@ -129,16 +127,13 @@ class _Explicit_Simple_Integrator(SIntegrator):
         dW = self.generator.normal(
             0,
             np.sqrt(dt),
-            size=(N, self.system.num_collapse, self.N_dw)
+            size=(N, self.N_dw, self.system.num_collapse)
         )
 
         self.state = self.step_func(self.t, self.state, dt, dW, N)
         self.t += dt * N
 
-        return self.t, self.state, np.sum(dW[:, :, 0], axis=0)
-
-    def get_state(self, copy=True):
-        return self.t, self.state, self.generator
+        return self.t, self.state, np.sum(dW[:, 0, :], axis=0)
 
     @property
     def options(self):
@@ -203,26 +198,6 @@ class PredCorr_SODE(_Explicit_Simple_Integrator):
         self.step_func = self.stepper(
             self.system, self.options["alpha"], self.options["eta"]
         ).run
-
-
-class RouchonSODE(SIntegrator):
-    """
-    Scheme keeping the positivity of the density matrix
-    (:obj:`~smesolve` only).
-    See eq. (4) Pierre Rouchon and Jason F. Ralpha,
-    *Efficient Quantum Filtering for Quantum Feedback Control*,
-    `arXiv:1410.5345 [quant-ph] <https://arxiv.org/abs/1410.5345>`_,
-    Phys. Rev. A 91, 012118, (2015).
-
-    - Order: strong 1
-    """
-    stepper = _sode.Platen
-    N_dw = 1
-
-    def __init__(self, rhs, options):
-        self._options = self.integrator_options.copy()
-        self.options = options
-        self.step_func = Rouchon(rhs)
 
 
 StochasticSolver.add_integrator(PlatenSODE, "platen")

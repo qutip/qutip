@@ -39,9 +39,9 @@ class _Noise:
         noise = self.noise.copy()
         if noise.shape[0] % N:
             noise = noise[:-(noise.shape[0] % N)]
-        out = np.empty((noise.shape[0] // N, self.num, 2), dtype=float)
-        out[:, :, 0] = noise.reshape(-1, N, self.num).sum(axis=1)
-        out[:, :, 1] = np.einsum(
+        out = np.empty((noise.shape[0] // N, 2, self.num), dtype=float)
+        out[:, 0, :] = noise.reshape(-1, N, self.num).sum(axis=1)
+        out[:, 1, :] = np.einsum(
             "ijk,j->ik",
             self.noise.reshape(-1, N, self.num),
             np.arange(N-0.5, 0, -1)

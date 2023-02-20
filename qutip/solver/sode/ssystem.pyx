@@ -147,7 +147,6 @@ cdef class StochasticOpenSystem(_StochasticSystem):
     cdef readonly complex[:, :, :, ::1] _LLb
 
     def __init__(self, H, sc_ops, c_ops=(), heterodyne=False):
-        print(H, sc_ops, c_ops, False)
         if H.issuper:
             self.L = H + liouvillian(None, sc_ops)
         else:
