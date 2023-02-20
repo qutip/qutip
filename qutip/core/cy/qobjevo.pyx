@@ -287,7 +287,7 @@ cdef class QobjEvo:
 
     @classmethod
     def _restore(cls, elements, dims, shape, type, superrep, flags):
-        """ Recreate a QobjEvo without using __init__ """
+        """Recreate a QobjEvo without using __init__. """
         cdef QobjEvo out = cls.__new__(cls)
         out.elements = elements
         out.dims = dims
@@ -800,7 +800,7 @@ cdef class QobjEvo:
             The QobjEvo as a list, element are either :class:`Qobj` for
             constant parts, ``[Qobj, Coefficient]`` for coefficient based term.
             The original format of the :class:`Coefficient` is not restored.
-            Lastly if the original `QobjEvo` is constructed with an function
+            Lastly if the original `QobjEvo` is constructed with a function
             returning a Qobj, the term is returned as a pair of :class:`Qobj`
             and args (``dict``).
         """

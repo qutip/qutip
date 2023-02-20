@@ -91,11 +91,10 @@ class CoreOptions(QutipOptions):
           ``pythonic`` is used.
 
     default_dtype : Nonetype, str, type {None}
-        When set, function creating :class:`Qobj` such as :func:"qeye" or
-        :func:"rand_herm" will use the specified data type. Any data-layer
-        known to `qutip.data.to` is accepted.
-        When not specified, the functions will default to either sparse ``csr``
-        or dense representation depending on the created object density.
+        When set, functions creating :class:`Qobj`, such as :func:"qeye" or
+        :func:"rand_herm", will use the specified data type. Any data-layer
+        known to ``qutip.data.to`` is accepted.
+        When ``None``, these functions will default to a sensible data type.
     """
     _options = {
         # use auto tidyup
