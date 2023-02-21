@@ -65,9 +65,14 @@ coefficient_builders = {
 
 def coefficient(base, *, tlist=None, args={}, args_ctypes={},
                 order=3, compile_opt=None, function_style=None, **kwargs):
-    """Coefficient for time dependent systems.
+    """Build ``Coefficient`` for time dependent systems:
 
-    The coefficients are either a function, a string or a numpy array.
+    ```
+    QobjEvo = Qobj + Qobj * Coefficient + Qobj * Coefficient + ...
+    ```
+
+    The coefficients can be a function, a string or a numpy array. Other
+    packages may add support for other kind of coefficients.
 
     For function based coefficients, the function signature must be either:
 
@@ -104,8 +109,7 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
         real imag conj abs norm arg proj
         numpy as np,
         scipy.special as spe (python interface)
-        and cython_special (cython interface)
-        [https://docs.scipy.org/doc/scipy/reference/special.cython_special.html].
+        and cython_special (scipy cython interface)
 
     *Examples*
         coeff = coefficient('exp(-1j*w1*t)', args={"w1":1.})
@@ -132,6 +136,32 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
     created from ``ndarray``). Other interpolation methods from
     scipy are converted to a function-based coefficient (the same kind of
     coefficient created from callables).
+
+    Parameters
+    ----------
+    base : object
+        Base object to make into a Coefficient.
+
+    args : dict, optional
+        Dictionary of arguments to pass to the function or string coefficient.
+
+    order : int, default=3
+        Order of the spline for array based coefficient.
+
+    tlist : iterable, optional
+        Times for each element of an array based coefficient.
+
+    function_style : str, ["dict", "pythonic", None]
+        Function signature of function based coefficients.
+
+    args_ctypes : dict, optional
+        C type for the args when compiling array based coefficients.
+
+    compile_opt : CompilationOptions, optional
+        Sets of options for the compilation of string based coefficients.
+
+    **kwargs
+        Extra arguments to pass the the coefficients.
     """
     kwargs.update({
         "tlist": tlist,
