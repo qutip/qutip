@@ -33,7 +33,7 @@ cdef class _StochasticSystem:
     cpdef list diffusion(self, t, Data state):
         raise NotImplementedError
 
-    cpdef void set_state(self, double t, Data state):
+    cpdef void set_state(self, double t, Data state) except *:
         self.t = t
         self.state = state
         self._is_set = True
@@ -82,14 +82,21 @@ cdef class _StochasticSystem:
 
 
 cdef class StochasticClosedSystem(_StochasticSystem):
-    cdef QobjEvo H
-    cdef list c_ops
-    cdef list cpcd_ops
+    cdef readonly QobjEvo H
+    cdef readonly list c_ops
+    cdef readonly list cpcd_ops
+    cdef bint _a_set, _b_set, _Lb_set
+
+    cdef readonly Dense _a, temp
+    cdef readonly complex[::1] _e
+    cdef readonly complex[:, ::1] _b, _La, _c_vec
+    cdef readonly complex[:, :, ::1] _Lb
 
     def __init__(self, H, sc_ops, heterodyne=False):
         self.H = -1j * H
         if heterodyne:
             self.c_ops = []
+            self.cpcd_ops = []
             for c_op in sc_ops:
                 self.c_ops.append(c_op / np.sqrt(2))
                 self.c_ops.append(c_op * (-1j / np.sqrt(2)))
@@ -104,6 +111,7 @@ cdef class StochasticClosedSystem(_StochasticSystem):
             self.H += -0.5 * c_op.dag() * c_op
         self.issuper = False
         self.dims = self.H.dims
+        self._is_set = False
 
     cpdef Data drift(self, t, Data state):
         cdef int i
@@ -131,6 +139,102 @@ cdef class StochasticClosedSystem(_StochasticSystem):
             expect = c_op.expect_data(t, state)
             out.append(_data.add(_out, state, -0.5 * expect))
         return out
+
+    cpdef void set_state(self, double t, Data state) except *:
+        cdef n, l
+        self.t = t
+        self.state = _data.to(_data.Dense, state).reorder(fortran=1)
+        self._a_set = False
+        self._b_set = False
+        self._Lb_set = False
+
+        if not self._is_set:
+            n = self.num_collapse
+            l = self.H.shape[0]
+            self._is_set = 1
+            self._a = dense.zeros(l, 1)
+            self.temp = dense.zeros(l, 1)
+            self._e = np.zeros(n, dtype=complex)
+            self._c_vec = np.zeros((n, l), dtype=complex)
+            self._b = np.zeros((n, l), dtype=complex)
+            self._Lb = np.zeros((n, n, l), dtype=complex)
+
+    cpdef Data a(self):
+        if not self._a_set:
+            self._compute_a()
+        return self._a
+
+    cdef void _compute_a(self) except *:
+        if not self._is_set:
+            raise RuntimeError
+        cdef Dense c_vec
+        _data.imul_dense(self._a, 0)
+        self.H.matmul_data(self.t, self.state, self._a)
+
+        for i in range(self.num_collapse):
+            c_op = self.c_ops[i]
+            c_vec = _dense_wrap(self._c_vec[i, :])
+            _data.imul_dense(c_vec, 0)
+            c_op.matmul_data(self.t, self.state, c_vec)
+            self._e[i] = _data.inner_dense(self.state, c_vec).real
+            _data.iadd_dense(self._a, self.state,  -0.5 * self._e[i]**2)
+            _data.iadd_dense(self._a, c_vec, self._e[i])
+
+        self._a_set = True
+
+    cpdef Data bi(self, int i):
+        if not self._b_set:
+            self._compute_b()
+        return _dense_wrap(self._b[i, :])
+
+    cdef void _compute_b(self) except *:
+        if not self._a_set:
+            self._compute_a()
+        cdef int i
+        cdef QobjEvo c_op
+        cdef Dense b_vec
+        for i in range(self.num_collapse):
+            c_op = <QobjEvo> self.c_ops[i]
+            b_vec = <Dense> _dense_wrap(self._b[i, :])
+            _data.imul_dense(b_vec, 0)
+            _data.iadd_dense(b_vec, _dense_wrap(self._c_vec[i, :]))
+            _data.iadd_dense(b_vec, self.state, -self._e[i])
+        self._b_set = True
+
+    cpdef Data Libj(self, int i, int j):
+        if not self._Lb_set:
+            self._compute_Lb()
+        # We only support commutative diffusion
+        if i > j:
+            j, i = i, j
+        return _dense_wrap(self._Lb[i, j, :])
+
+    cdef void _compute_Lb(self) except *:
+        cdef int i, j
+        cdef QobjEvo c_op
+        cdef Dense Lb_vec
+        cdef complex de_dx_b
+        if not self._b_set:
+            self._compute_b()
+
+        for i in range(self.num_collapse):
+            c_op = self.c_ops[i]
+            for j in range(i, self.num_collapse):
+                Lb_vec =  <Dense> _dense_wrap(self._Lb[i, j, :])
+                _data.imul_dense(Lb_vec, 0)
+                _data.imul_dense(self.temp, 0)
+                c_op.matmul_data(self.t, <Dense> _dense_wrap(self._c_vec[j, :]), self.temp)
+                _data.iadd_dense(Lb_vec, self.temp)
+                _data.iadd_dense(Lb_vec, _dense_wrap(self._c_vec[i, :]), -0.5 * self._e[j])
+                _data.iadd_dense(Lb_vec, _dense_wrap(self._c_vec[j, :]), -0.5 * self._e[i])
+                de_dx_b = (
+                    self._e[i] * self._e[j]
+                    - _data.inner_dense(_dense_wrap(self._c_vec[i, :]), _dense_wrap(self._c_vec[j, :])).real
+                    - _data.inner_dense(self.temp, self.state).real
+                )
+                _data.iadd_dense(Lb_vec, self.state, de_dx_b)
+
+        self._Lb_set = True
 
 
 cdef class StochasticOpenSystem(_StochasticSystem):
@@ -184,7 +288,7 @@ cdef class StochasticOpenSystem(_StochasticSystem):
             out.append(_data.add(vec, state, -expect))
         return out
 
-    cpdef void set_state(self, double t, Data state):
+    cpdef void set_state(self, double t, Data state) except *:
         cdef n, l
         self.t = t
         self.state = _data.to(_data.Dense, state).reorder(fortran=1)
@@ -422,7 +526,7 @@ cdef class SimpleStochasticSystem(_StochasticSystem):
             out.append(self.c_ops[i].matmul_data(t, state))
         return out
 
-    cpdef void set_state(self, double t, Data state):
+    cpdef void set_state(self, double t, Data state) except *:
         self.t = t
         self.state = _data.to(_data.Dense, state)
 

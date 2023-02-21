@@ -4,7 +4,7 @@ from qutip import (
     basis, rand_herm, fock_dm, liouvillian, operator_to_vector
 )
 from qutip.solver.sode.ssystem import *
-from qutip.solver.sode.ssystem import SimpleStochasticSystem
+from qutip.solver.sode.ssystem import SimpleStochasticSystem, StochasticClosedSystem
 import qutip.core.data as _data
 import pytest
 from itertools import product
@@ -99,14 +99,14 @@ def _check_equivalence(f, target, args):
         for dt in dts
     ])
     if np.all(errors_dt < 1e-6):
-        return True
+        return
 
     power = np.polyfit(np.log(dts), np.log(errors_dt + 1e-16), 1)[0]
     # Sometime the dt term is cancelled and the dt**2 term is dominant
-    return power > 0.9
+    assert power > 0.9
 
 
-def _run_derr_check(solver, state):
+def _run_derr_check(solver, state, all):
     """
 
     """
@@ -116,22 +116,28 @@ def _run_derr_check(solver, state):
     solver.set_state(t, state)
 
     assert _data.norm.l2(solver.drift(t, state) - solver.a()) < 1e-6
-    assert _check_equivalence(L0(solver, a), solver.L0a(), (t, state))
-
     for i in range(N):
         b = lambda *args: solver.diffusion(*args)[i]
         assert b(t, state) == solver.bi(i)
-        assert _check_equivalence(L0(solver, b), solver.L0bi(i), (t, state))
-        assert _check_equivalence(L(solver, i, a), solver.Lia(i), (t, state))
-
         for j in range(N):
-            assert _check_equivalence(
+            _check_equivalence(
                 L(solver, j, b), solver.Libj(j, i), (t, state)
             )
 
+    if not all:
+        # Most method only need the Libj term.
+        return
+
+    _check_equivalence(L0(solver, a), solver.L0a(), (t, state))
+
+    for i in range(N):
+        b = lambda *args: solver.diffusion(*args)[i]
+        _check_equivalence(L0(solver, b), solver.L0bi(i), (t, state))
+        _check_equivalence(L(solver, i, a), solver.Lia(i), (t, state))
+
+        for j in range(N):
             for k in range(N):
-                print(i, j, k)
-                assert _check_equivalence(
+                _check_equivalence(
                     LL(solver, k, j, b), solver.LiLjbk(k, j, i), (t, state)
                 )
 
@@ -160,17 +166,19 @@ def _make_oper(kind, N):
     pytest.param("qeye", ["td"], id='c_ops td'),
     pytest.param("rand", ["rand"], id='random'),
 ])
-@pytest.mark.parametrize('type', ["sme", "sse"])
 @pytest.mark.parametrize('heterodyne', [False, True])
+@pytest.mark.parametrize('type', ["sse", "sme"])
 def test_system(H, c_ops, type, heterodyne):
     N = 5
     H = _make_oper(H, N)
     c_ops = [_make_oper(op, N) for op in c_ops]
     if type == "sse":
-        system = SimpleStochasticSystem(H, c_ops)
+        system = StochasticClosedSystem(H, c_ops, heterodyne=heterodyne)
         state = basis(N, N-2).data
+        all = False
     else:
         H = liouvillian(H)
         system = StochasticOpenSystem(H, c_ops, heterodyne=heterodyne)
         state = operator_to_vector(fock_dm(N, N-2)).data
-    _run_derr_check(system, state)
+        all = True
+    _run_derr_check(system, state, all)

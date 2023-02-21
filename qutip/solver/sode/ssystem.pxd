@@ -14,7 +14,7 @@ cdef class _StochasticSystem:
 
     cpdef list diffusion(self, t, Data state)
 
-    cpdef void set_state(self, double t, Data state)
+    cpdef void set_state(self, double t, Data state) except *
     cpdef Data a(self)
     cpdef Data bi(self, int i)
     cpdef Data Libj(self, int i, int j)
