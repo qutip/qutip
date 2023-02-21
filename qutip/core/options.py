@@ -93,8 +93,8 @@ class CoreOptions(QutipOptions):
     default_dtype : Nonetype, str, type {None}
         When set, functions creating :class:`Qobj`, such as :func:"qeye" or
         :func:"rand_herm", will use the specified data type. Any data-layer
-        known to ``qutip.data.to`` is accepted.
-        When ``None``, these functions will default to a sensible data type.
+        known to ``qutip.data.to`` is accepted. When ``None``, these functions
+        will default to a sensible data type.
     """
     _options = {
         # use auto tidyup
