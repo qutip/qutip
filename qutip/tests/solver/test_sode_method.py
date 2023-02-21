@@ -33,16 +33,21 @@ def get_error_order(system, state, method, plot=False, **kw):
 
 
 def _make_oper(kind, N):
+    a = destroy(N)
     if kind == "qeye":
         out = qeye(N) * np.random.rand()
     elif kind == "create":
-        out = destroy(N) * np.random.rand()
+        out = a.dag() * np.random.rand()
     elif kind == "destroy":
-        out = destroy(N) * np.random.rand()
+        out = a * np.random.rand()
+    elif kind == "destroy td":
+        out = [a, lambda t: 1 + t/2]
     elif kind == "destroy2":
-        out = destroy(N)**2 * np.random.rand()
+        out = a**2
     elif kind == "herm":
         out = rand_herm(N)
+    elif kind == "herm td":
+        out = [rand_herm(N), lambda t: -1 + t/2 + t**2]
     elif kind == "random":
         out = Qobj(np.random.randn(N, N) + 1j * np.random.rand(N, N))
     return QobjEvo(out)
@@ -57,16 +62,18 @@ def _make_oper(kind, N):
     pytest.param("Taylor15", 1.5, {}, id="Taylor15"),
     pytest.param("Explicit15", 1.5, {}, id="Explicit15"),
 ])
-@pytest.mark.parametrize(['H', 'c_ops'], [
+@pytest.mark.parametrize(['H', 'sc_ops'], [
     pytest.param("qeye", ["destroy"], id='simple'),
     pytest.param("destroy", ["destroy"], id='destroy'),
-    pytest.param("qeye", ["qeye", "destroy", "destroy2"], id='3 c_ops'),
+    pytest.param("destroy", ["destroy td"], id='sc_ops td'),
+    pytest.param("herm td", ["qeye"], id='H td'),
+    pytest.param("qeye", ["qeye", "destroy", "destroy2"], id='3 sc_ops'),
 ])
-def test_methods(H, c_ops, method, order, kw):
+def test_methods(H, sc_ops, method, order, kw):
     N = 5
     H = _make_oper(H, N)
-    c_ops = [_make_oper(op, N) for op in c_ops]
-    system = SimpleStochasticSystem(H, c_ops)
+    sc_ops = [_make_oper(op, N) for op in sc_ops]
+    system = SimpleStochasticSystem(H, sc_ops)
     state = rand_ket(N).data
     error_order = get_error_order(system, state, method, **kw)
     # The first error term of the method is dt**0.5 greater than the solver
@@ -116,6 +123,8 @@ def get_error_order_integrator(integrator, ref_integrator, state, plot=False):
                  id='many terms'),
     pytest.param("herm", [], ["random"], id='random'),
     pytest.param("herm", ["random"], ["random"], id='complex'),
+    pytest.param("herm td", ["random"], ["destroy"], id='H td'),
+    pytest.param("herm", ["random"], ["destroy td"], id='sc_ops td'),
 ])
 def test_integrator(method, order, H, c_ops, sc_ops):
     N = 5

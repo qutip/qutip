@@ -462,10 +462,16 @@ cdef class SimpleStochasticSystem(_StochasticSystem):
 
     def analytic(self, t, W):
         """
-        Analytic solution, H and all c_ops must commute and are constant.
+        Analytic solution, H and all c_ops must commute.
+        Support time dependance of order 2 (a + b*t + c*t**2)
         """
-        out = self.H(0) * t
+        def _intergal(f, T):
+            return (f(0) + 4 * f(T/2) + f(T)) / 6
+
+        out = _intergal(self.H, t) * t
         for i in range(self.num_collapse):
-            out += self.c_ops[i](0) * W[i]
-            out -= 0.5 * self.c_ops[i](0) @ self.c_ops[i](0) * t
+            out += _intergal(self.c_ops[i], t) * W[i]
+            out -= 0.5 * _intergal(
+                lambda t: self.c_ops[i](t) @ self.c_ops[i](t), t
+            ) * t
         return out.expm().data
