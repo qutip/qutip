@@ -285,6 +285,33 @@ cdef class QobjEvo:
 
         return out
 
+    @classmethod
+    def _restore(cls, elements, dims, shape, type, superrep, flags):
+        """Recreate a QobjEvo without using __init__. """
+        cdef QobjEvo out = cls.__new__(cls)
+        out.elements = elements
+        out.dims = dims
+        out.shape = shape
+        out.type = type
+        out.superrep = superrep
+        out._issuper, out._isoper = flags
+        return out
+
+    def _getstate(self):
+        """ Obtain the state """
+        # For jax pytree representation
+        # auto_pickle create similar method __getstate__, but since it's
+        # automatically created, it could change depending on cython version
+        # etc., so we create our own.
+        return {
+            "elements": self.elements,
+            "dims": self.dims,
+            "shape": self.shape,
+            "type": self.type,
+            "superrep": self.superrep,
+            "flags": (self._issuper, self._isoper,)
+        }
+
     def __call__(self, double t, dict _args=None, **kwargs):
         """
         Get the :class:`~Qobj` at ``t``.
@@ -353,7 +380,7 @@ cdef class QobjEvo:
             )
         return out
 
-    cdef double _prepare(QobjEvo self, double t, Data state=None):
+    cdef object _prepare(QobjEvo self, object t, Data state=None):
         """ Precomputation before computing getting the element at `t`"""
         # We keep the function for feedback eventually
         return t
@@ -763,6 +790,35 @@ cdef class QobjEvo:
 
         self.elements = cleaned_elements
 
+    def to_list(QobjEvo self):
+        """
+        Restore the QobjEvo to a list form.
+
+        Returns
+        -------
+        list_qevo: list
+            The QobjEvo as a list, element are either :class:`Qobj` for
+            constant parts, ``[Qobj, Coefficient]`` for coefficient based term.
+            The original format of the :class:`Coefficient` is not restored.
+            Lastly if the original `QobjEvo` is constructed with a function
+            returning a Qobj, the term is returned as a pair of the original
+            function and args (``dict``).
+        """
+        out = []
+        for element in self.elements:
+            if isinstance(element, _ConstantElement):
+                out.append(element.qobj(0))
+            elif isinstance(element, _EvoElement):
+                coeff = element._coefficient
+                out.append([element.qobj(0), coeff])
+            elif isinstance(element, _FuncElement):
+                func = element._func
+                args = element._args
+                out.append([func, args])
+            else:
+                out.append([element, {}])
+        return out
+
     ###########################################################################
     # properties                                                              #
     ###########################################################################
@@ -797,7 +853,7 @@ cdef class QobjEvo:
     ###########################################################################
     # operation methods                                                       #
     ###########################################################################
-    def expect(QobjEvo self, double t, state):
+    def expect(QobjEvo self, object t, state, check_real=True):
         """
         Expectation value of this operator at time ``t`` with the state.
 
@@ -805,8 +861,14 @@ cdef class QobjEvo:
         ----------
         t : float
             Time of the operator to apply.
+
         state : Qobj
             right matrix of the product
+
+        check_real : bool (True)
+            Whether to convert the result to a `real` when the imaginary part
+            is smaller than the real part by a dactor of
+            ``settings.core['rtol']``.
 
         Returns
         -------
@@ -830,11 +892,14 @@ cdef class QobjEvo:
             raise ValueError("incompatible dimensions " + str(self.dims) +
                              ", " + str(state.dims))
         out = self.expect_data(t, state.data)
-        if out == 0 or (out.real and fabs(out.imag / out.real) < herm_rtol):
+        if (
+            check_real and
+            (out == 0 or (out.real and fabs(out.imag / out.real) < herm_rtol))
+        ):
             return out.real
         return out
 
-    cpdef double complex expect_data(QobjEvo self, double t, Data state) except *:
+    cpdef object expect_data(QobjEvo self, object t, Data state):
         """
         Expectation is defined as ``state.adjoint() @ self @ state`` if
         ``state`` is a vector, or ``state`` is an operator and ``self`` is a
@@ -844,7 +909,7 @@ cdef class QobjEvo:
         if type(state) is Dense:
             return self._expect_dense(t, state)
         cdef _BaseElement part
-        cdef double complex out = 0., coeff
+        cdef object out = 0.
         cdef Data part_data
         cdef object expect_func
         t = self._prepare(t, state)
@@ -857,9 +922,8 @@ cdef class QobjEvo:
 
         for element in self.elements:
             part = (<_BaseElement> element)
-            coeff = part.coeff(t)
             part_data = part.data(t)
-            out += coeff * expect_func(part_data, state)
+            out += part.coeff(t) * expect_func(part_data, state)
         return out
 
     cdef double complex _expect_dense(QobjEvo self, double t, Dense state) except *:
@@ -891,7 +955,7 @@ cdef class QobjEvo:
                 out += coeff * expect_data_dense(part_data, state)
         return out
 
-    def matmul(self, double t, state):
+    def matmul(self, t, state):
         """
         Product of this operator at time ``t`` to the state.
         ``self(t) @ state``
@@ -920,7 +984,7 @@ cdef class QobjEvo:
                     copy=False
                    )
 
-    cpdef Data matmul_data(QobjEvo self, double t, Data state, Data out=None):
+    cpdef Data matmul_data(QobjEvo self, object t, Data state, Data out=None):
         """Compute ``out += self(t) @ state``"""
         cdef _BaseElement part
         t = self._prepare(t, state)

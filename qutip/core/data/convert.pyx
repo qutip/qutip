@@ -18,7 +18,6 @@ import numbers
 
 import numpy as np
 from scipy.sparse import dok_matrix, csgraph
-
 cimport cython
 
 __all__ = ['to', 'create']
