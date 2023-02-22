@@ -167,18 +167,28 @@ def _make_oper(kind, N):
     pytest.param("rand", ["rand"], id='random'),
 ])
 @pytest.mark.parametrize('heterodyne', [False, True])
-@pytest.mark.parametrize('type', ["sse", "sme"])
-def test_system(H, c_ops, type, heterodyne):
+def test_open_system(H, c_ops, heterodyne):
     N = 5
     H = _make_oper(H, N)
     c_ops = [_make_oper(op, N) for op in c_ops]
-    if type == "sse":
-        system = StochasticClosedSystem(H, c_ops, heterodyne=heterodyne)
-        state = basis(N, N-2).data
-        all = False
-    else:
-        H = liouvillian(H)
-        system = StochasticOpenSystem(H, c_ops, heterodyne=heterodyne)
-        state = operator_to_vector(fock_dm(N, N-2)).data
-        all = True
-    _run_derr_check(system, state, all)
+    H = liouvillian(H)
+    system = StochasticOpenSystem(H, c_ops, heterodyne=heterodyne)
+    state = operator_to_vector(fock_dm(N, N-2)).data
+    _run_derr_check(system, state, True)
+
+
+@pytest.mark.parametrize(['H', 'c_ops'], [
+    pytest.param("qeye", ["destroy"], id='simple'),
+    pytest.param("tridiag", ["destroy"], id='simple'),
+    pytest.param("td", ["destroy"], id='H td'),
+    pytest.param("qeye", ["td"], id='c_ops td'),
+    pytest.param("rand", ["rand"], id='random'),
+])
+def test_closed_system(H, c_ops):
+    N = 5
+    H = _make_oper(H, N)
+    c_ops = [_make_oper(op, N) for op in c_ops]
+    system = StochasticClosedSystem(H, c_ops, heterodyne=False)
+    state = basis(N, N-2).data
+    all = False
+    _run_derr_check(system, state, False)
