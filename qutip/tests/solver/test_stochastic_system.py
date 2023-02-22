@@ -1,6 +1,6 @@
 import numpy as np
 from qutip import (
-    qeye, num, destroy, create, QobjEvo,
+    qeye, num, destroy, create, QobjEvo, Qobj,
     basis, rand_herm, fock_dm, liouvillian, operator_to_vector
 )
 from qutip.solver.sode.ssystem import *
@@ -179,7 +179,7 @@ def test_open_system(H, c_ops, heterodyne):
 
 @pytest.mark.parametrize(['H', 'c_ops'], [
     pytest.param("qeye", ["destroy"], id='simple'),
-    pytest.param("tridiag", ["destroy"], id='simple'),
+    pytest.param("tridiag", ["destroy"], id='tridiag'),
     pytest.param("td", ["destroy"], id='H td'),
     pytest.param("qeye", ["td"], id='c_ops td'),
     pytest.param("rand", ["rand"], id='random'),
@@ -189,6 +189,6 @@ def test_closed_system(H, c_ops):
     H = _make_oper(H, N)
     c_ops = [_make_oper(op, N) for op in c_ops]
     system = StochasticClosedSystem(H, c_ops, heterodyne=False)
-    state = basis(N, N-2).data
+    state = Qobj([1]*N).unit().data
     all = False
     _run_derr_check(system, state, False)
