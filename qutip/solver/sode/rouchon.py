@@ -1,7 +1,7 @@
 import numpy as np
 from qutip import unstack_columns, stack_columns
 from qutip.core import data as _data
-from ..stochastic import SMESolver
+from ..stochastic import StochasticSolver
 from .sode import SIntegrator
 from ..integrator.integrator import Integrator
 
@@ -32,6 +32,7 @@ class RouchonSODE(SIntegrator):
         self.H = rhs.H
         if self.H.issuper:
             raise TypeError("...")
+        self._issuper = rhs.issuper
         dtype = type(self.H(0).data)
         self.c_ops = rhs.c_ops
         self.sc_ops = rhs.sc_ops
@@ -65,11 +66,11 @@ class RouchonSODE(SIntegrator):
             Random number generator.
         """
         self.t = t
-        self.state = unstack_columns(state0)
+        self.state = state0
         self.generator = generator
 
     def get_state(self, copy=True):
-        return self.t, stack_columns(self.state), self.generator
+        return self.t, self.state, self.generator
 
     def integrate(self, t, copy=True):
         delta_t = (t - self.t)
@@ -90,14 +91,19 @@ class RouchonSODE(SIntegrator):
             np.sqrt(dt),
             size=(N, self.num_collapses)
         )
+
+        if self._issuper:
+            self.state = unstack_columns(self.state)
         for dw in dW:
             self.state = self._step(self.t, self.state, dt, dw)
             self.t += dt
+        if self._issuper:
+            self.state = stack_columns(self.state)
 
-        return self.t, stack_columns(self.state), np.sum(dW, axis=0)
+        return self.t, self.state, np.sum(dW, axis=0)
 
     def _step(self, t, state, dt, dW):
-        # Same output as old rouchon up to nuerical error 1e-16
+        # Same output as old rouchon up to numerical error
         # But  7x slower
         dy = [
             op.expect_data(t, state) * dt + dw
@@ -109,13 +115,17 @@ class RouchonSODE(SIntegrator):
             M = _data.add(M, self.scc[i][i]._call(t), (dy[i]**2-dt)/2)
             for j in range(i):
                 M = _data.add(M, self.scc[i][j]._call(t), dy[i]*dy[j])
-        temp = _data.matmul(M, state)
-        Mdag = M.adjoint()
-        out = _data.matmul(temp, Mdag)
-        for cop in self.c_ops:
-            op = cop._call(t)
-            out += op @ state @ op.adjoint() * dt
-        return out / _data.trace(out)
+        out = _data.matmul(M, state)
+        if self._issuper:
+            Mdag = M.adjoint()
+            out = _data.matmul(out, Mdag)
+            for cop in self.c_ops:
+                op = cop._call(t)
+                out += op @ state @ op.adjoint() * dt
+            out = out / _data.trace(out)
+        else:
+            out = out / _data.norm.l2(out)
+        return out
 
     @property
     def options(self):
@@ -135,4 +145,4 @@ class RouchonSODE(SIntegrator):
         Integrator.options.fset(self, new_options)
 
 
-SMESolver.add_integrator(RouchonSODE, "rouchon")
+StochasticSolver.add_integrator(RouchonSODE, "rouchon")

@@ -4,7 +4,7 @@ from qutip.core import data as _data
 from qutip import qeye, destroy, QobjEvo, rand_ket, rand_herm, create, Qobj, operator_to_vector, fock_dm
 import qutip.solver.sode._sode as _sode
 import pytest
-from qutip.solver.sode.ssystem import SimpleStochasticSystem, StochasticOpenSystem
+from qutip.solver.sode.ssystem import SimpleStochasticSystem, StochasticOpenSystem, StochasticClosedSystem
 from qutip.solver.sode.noise import _Noise
 from qutip.solver.stochastic import SMESolver, StochasticRHS
 
@@ -126,7 +126,7 @@ def get_error_order_integrator(integrator, ref_integrator, state, plot=False):
     pytest.param("herm td", ["random"], ["destroy"], id='H td'),
     pytest.param("herm", ["random"], ["destroy td"], id='sc_ops td'),
 ])
-def test_integrator(method, order, H, c_ops, sc_ops):
+def test_open_integrator(method, order, H, c_ops, sc_ops):
     N = 5
     H = _make_oper(H, N)
     c_ops = [_make_oper(op, N) for op in c_ops]
@@ -134,6 +134,32 @@ def test_integrator(method, order, H, c_ops, sc_ops):
 
     rhs = StochasticRHS(StochasticOpenSystem, H, sc_ops, c_ops, False)
     ref_sode = SMESolver.avail_integrators()["taylor1.5"](rhs, {"dt": 0.01})
+    sode = SMESolver.avail_integrators()[method](rhs, {"dt": 0.01})
+    state = operator_to_vector(fock_dm(5, 3, dtype="Dense")).data
+
+    error_order = get_error_order_integrator(sode, ref_sode, state)
+    assert (order + 0.35) < error_order
+
+
+@pytest.mark.parametrize(["method", "order"], [
+    pytest.param("euler", 0.5, id="Euler"),
+    pytest.param("platen", 1.0, id="Platen"),
+    pytest.param("rouchon", 1.0, id="Rouchon"),
+])
+@pytest.mark.parametrize(['H', 'sc_ops'], [
+    pytest.param("qeye", ["destroy"], id='simple'),
+    pytest.param("herm", ["destroy", "destroy2"], id='2 sc_ops'),
+    pytest.param("herm", ["random"], id='random'),
+    pytest.param("herm td", ["destroy"], id='H td'),
+    pytest.param("herm", ["destroy td"], id='sc_ops td'),
+])
+def test_closed_integrator(method, order, H, sc_ops):
+    N = 5
+    H = _make_oper(H, N)
+    sc_ops = [_make_oper(op, N) for op in sc_ops]
+
+    rhs = StochasticRHS(StochasticClosedSystem, H, sc_ops, (), False)
+    ref_sode = SMESolver.avail_integrators()["explicit1.5"](rhs, {"dt": 0.01})
     sode = SMESolver.avail_integrators()[method](rhs, {"dt": 0.01})
     state = operator_to_vector(fock_dm(5, 3, dtype="Dense")).data
 

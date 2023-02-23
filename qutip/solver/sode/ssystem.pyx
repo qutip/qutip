@@ -22,10 +22,7 @@ cdef Dense _dense_wrap(double complex [::1] x):
 
 cdef class _StochasticSystem:
     def __init__(self, a, b):
-        self.d1 = a
-        self.d2 = b
-        self.num_collapse = 1
-        self._is_set = False
+        raise NotImplementedError
 
     cpdef Data drift(self, t, Data state):
         raise NotImplementedError
@@ -34,9 +31,7 @@ cdef class _StochasticSystem:
         raise NotImplementedError
 
     cpdef void set_state(self, double t, Data state) except *:
-        self.t = t
-        self.state = state
-        self._is_set = True
+        raise NotImplementedError
 
     cpdef Data a(self):
         """
@@ -109,7 +104,6 @@ cdef class StochasticClosedSystem(_StochasticSystem):
             self.H += -0.5 * c_op.dag() * c_op
         self.issuper = False
         self.dims = self.H.dims
-        self._is_set = False
 
     cpdef Data drift(self, t, Data state):
         cdef int i
@@ -138,96 +132,12 @@ cdef class StochasticClosedSystem(_StochasticSystem):
             out.append(_data.add(_out, state, -0.5 * expect))
         return out
 
-    cpdef void set_state(self, double t, Data state) except *:
-        cdef n, l
-        self.t = t
-        self.state = _data.to(_data.Dense, state).reorder(fortran=1)
-        self._a_set = False
-        self._b_set = False
-        self._Lb_set = False
-
-        if self.num_collapse != 1:
-            raise NotImplementedError
-
-        if not self._is_set:
-            l = self.H.shape[0]
-            self._is_set = 1
-            self._a = dense.zeros(l, 1)
-            self.temp = dense.zeros(l, 1)
-            self._c_vec = dense.zeros(l, 1)
-            self._b_vec = dense.zeros(l, 1)
-            self._Lb = dense.zeros(l, 1)
-
-    cpdef Data a(self):
-        if not self._a_set:
-            self._compute_a()
-        return self._a
-
-    cdef void _compute_a(self) except *:
-        if not self._is_set:
-            raise RuntimeError
-        _data.imul_dense(self._a, 0)
-        self.H.matmul_data(self.t, self.state, self._a)
-
-        c_op = self.c_ops[0]
-        _data.imul_dense(self._c_vec, 0)
-        c_op.matmul_data(self.t, self.state, self._c_vec)
-        self._e = _data.inner_dense(self.state, self._c_vec).real
-        _data.iadd_dense(self._a, self.state,  -0.5 * self._e**2)
-        _data.iadd_dense(self._a, self._c_vec, self._e)
-
-        self._a_set = True
-
-    cpdef Data bi(self, int i):
-        if not self._b_set:
-            self._compute_b()
-        return self._b_vec
-
-    cdef void _compute_b(self) except *:
-        if not self._a_set:
-            self._compute_a()
-        cdef int i
-        cdef QobjEvo c_op
-        c_op = <QobjEvo> self.c_ops[0]
-        _data.imul_dense(self._b_vec, 0)
-        _data.iadd_dense(self._b_vec, self._c_vec)
-        _data.iadd_dense(self._b_vec, self.state, -self._e)
-        self._b_set = True
-
-    cpdef Data Libj(self, int i, int j):
-        if not self._Lb_set:
-            self._compute_Lb()
-        return self._Lb
-
-    cdef void _compute_Lb(self) except *:
-        cdef int i, j
-        cdef QobjEvo c_op
-        cdef Dense Lb_vec
-        cdef complex de_dx_b
-        if not self._b_set:
-            self._compute_b()
-
-        c_op = self.c_ops[0]
-        _data.imul_dense(self._Lb, 0)
-        _data.imul_dense(self.temp, 0)
-        c_op.matmul_data(self.t, self._c_vec, self.temp)
-        _data.iadd_dense(self._Lb, self.temp)
-        _data.iadd_dense(self._Lb, self._c_vec, -self._e)
-        de_dx_b = (
-            self._e * self._e
-            - _data.inner_dense(self._c_vec, self._c_vec).real
-            - _data.inner_dense(self.temp, self.state).real
-        )
-        _data.iadd_dense(self._Lb, self.state, de_dx_b)
-
-        self._Lb_set = True
-
-
 cdef class StochasticOpenSystem(_StochasticSystem):
     cdef QobjEvo L
     cdef list c_ops
     cdef int state_size
     cdef double dt
+    cdef int _is_set
     cdef bint _a_set, _b_set, _Lb_set, _L0b_set, _La_set, _LLb_set, _L0a_set
 
     cdef readonly Dense _a, temp, _L0a

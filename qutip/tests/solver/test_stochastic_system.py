@@ -106,7 +106,7 @@ def _check_equivalence(f, target, args):
     assert power > 0.9
 
 
-def _run_derr_check(solver, state, all):
+def _run_derr_check(solver, state):
     """
 
     """
@@ -123,10 +123,6 @@ def _run_derr_check(solver, state, all):
             _check_equivalence(
                 L(solver, j, b), solver.Libj(j, i), (t, state)
             )
-
-    if not all:
-        # Most method only need the Libj term.
-        return
 
     _check_equivalence(L0(solver, a), solver.L0a(), (t, state))
 
@@ -174,21 +170,4 @@ def test_open_system(H, c_ops, heterodyne):
     H = liouvillian(H)
     system = StochasticOpenSystem(H, c_ops, heterodyne=heterodyne)
     state = operator_to_vector(fock_dm(N, N-2)).data
-    _run_derr_check(system, state, True)
-
-
-@pytest.mark.parametrize(['H', 'c_ops'], [
-    pytest.param("qeye", ["destroy"], id='simple'),
-    pytest.param("tridiag", ["destroy"], id='tridiag'),
-    pytest.param("td", ["destroy"], id='H td'),
-    pytest.param("qeye", ["td"], id='c_ops td'),
-    pytest.param("rand", ["rand"], id='random'),
-])
-def test_closed_system(H, c_ops):
-    N = 5
-    H = _make_oper(H, N)
-    c_ops = [_make_oper(op, N) for op in c_ops]
-    system = StochasticClosedSystem(H, c_ops, heterodyne=False)
-    state = Qobj([1]*N).unit().data
-    all = False
-    _run_derr_check(system, state, False)
+    _run_derr_check(system, state)
