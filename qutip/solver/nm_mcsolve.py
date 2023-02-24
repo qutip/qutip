@@ -5,13 +5,34 @@ import numpy as np
 import scipy
 from .mcsolve import MCSolver
 from .result import Result, NmmcResult
-from ..core import CoreOptions, QobjEvo, isket, ket2dm, qeye
+from ..core import CoreOptions, QobjEvo, isket, ket2dm, mesolve, MESolver, qeye
 
 
 def _2dm(q):
     if isket(q):
         return ket2dm(q)
     return q
+
+
+def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
+               options=None, seeds=None, target_tol=None, timeout=None):
+    if not isinstance(ops_and_rates, (list, tuple)):
+        ops_and_rates = [ops_and_rates]
+
+    if len(ops_and_rates) == 0:
+        if options is None:
+            options = {}
+        options = {
+            key: options[key]
+            for key in options
+            if key in MESolver.solver_options
+        }
+        return mesolve(H, state, tlist, e_ops=e_ops, options=options)
+
+    nmmc = NonMarkovianMCSolver(H, ops_and_rates, options=options)
+    result = nmmc.run(state, tlist=tlist, ntraj=ntraj, e_ops=e_ops,
+                      seed=seeds, target_tol=target_tol, timeout=timeout)
+    return result
 
 
 class NonMarkovianMCSolver(MCSolver):
