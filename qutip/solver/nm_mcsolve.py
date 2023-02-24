@@ -4,8 +4,9 @@ from functools import partial
 import numpy as np
 import scipy
 from .mcsolve import MCSolver
+from .mesolve import MESolver, mesolve
 from .result import Result, NmmcResult
-from ..core import CoreOptions, QobjEvo, isket, ket2dm, mesolve, MESolver, qeye
+from ..core import CoreOptions, QobjEvo, isket, ket2dm, qeye
 
 
 def _2dm(q):
