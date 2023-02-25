@@ -973,6 +973,9 @@ class McResult(MultiTrajResult):
 
 
 class NmmcResult(McResult):
+    r"""
+    TODO
+    """
     def _add_trace(self, trajectory):
         new_trace = np.array(trajectory.trace)
         self._sum_trace += new_trace

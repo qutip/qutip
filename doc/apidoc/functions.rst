@@ -144,6 +144,9 @@ Monte Carlo Evolution
 .. automodule:: qutip.solver.mcsolve
     :members: mcsolve
 
+.. automodule:: qutip.solver.nm_mcsolve
+    :members: nm_mcsolve
+
 
 Krylov Subspace Solver
 ----------------------

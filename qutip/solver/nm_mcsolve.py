@@ -1,4 +1,4 @@
-__all__ = ['NonMarkovianMCSolver']
+__all__ = ['nm_mcsolve', 'NonMarkovianMCSolver']
 
 from functools import partial
 import numpy as np
@@ -17,6 +17,9 @@ def _2dm(q):
 
 def nm_mcsolve(H, state, tlist, ops_and_rates=(), e_ops=None, ntraj=500, *,
                options=None, seeds=None, target_tol=None, timeout=None):
+    r"""
+    TODO
+    """
     if not isinstance(ops_and_rates, (list, tuple)):
         ops_and_rates = [ops_and_rates]
 
@@ -40,6 +43,8 @@ class NonMarkovianMCSolver(MCSolver):
     r"""
     Monte-Carlo solver for master equation with negative rates.
     Based on the methods explained in arXiv:2209.08958 [quant-ph]
+
+    TODO
     """
     name = "nm_mcsolve"
     resultclass = NmmcResult
