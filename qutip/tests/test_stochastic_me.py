@@ -4,7 +4,8 @@ from numpy.testing import assert_, run_module_suite
 
 from qutip import (smesolve, mesolve, photocurrent_mesolve, liouvillian,
                    QobjEvo, spre, spost, destroy, coherent, parallel_map,
-                   qeye, fock_dm, general_stochastic, ket2dm, num)
+                   qeye, fock_dm, general_stochastic, ket2dm, num,
+                   basis, sigmax, sigmay, sigmaz, sigmam)
 
 def f(t, args):
     return args["a"] * t
@@ -296,3 +297,66 @@ def test_smesolve_bad_e_ops():
         res = smesolve(H, psi0, times, sc_ops=sc_ops, e_ops=e_ops, noise=1,
                        ntraj=ntraj, nsubsteps=nsubsteps, method='homodyne',
                        map_func=parallel_map)
+
+
+def test_heterodyne_smesolve_custom_m_ops():
+    b = 1  # drive amplitude
+    gamma = 1  # spont.  emission rate
+    eta = 0.3  # coupling efficiency
+    n_steps = 1000
+    n_traj = 300
+    noise_seed = 0  # noise random seed
+
+    H = np.sqrt(eta * gamma) * b * sigmay()
+    c_ops = [np.sqrt(gamma) * sigmam()]
+    psi0 = basis(2, 0)
+    times = np.linspace(0, 2 * np.pi, n_steps)
+
+    sme_het = smesolve(
+        H,
+        psi0,
+        times,
+        [],
+        c_ops,
+        e_ops=[sigmax(), sigmay(), sigmaz()],
+        store_measurement=True,
+        dW_factors=[1e-5, 1e-5],
+        method="heterodyne",
+        m_ops=[np.sqrt(eta)*sigmax(), np.sqrt(eta)*sigmay()],
+        ntraj=n_traj,
+        noise=noise_seed,
+    )
+
+    assert np.array(sme_het.measurement).shape == (n_traj, n_steps, 1, 2)
+    np.testing.assert_allclose(
+        np.array(sme_het.measurement).mean(axis=0)[:, 0, 0].T,
+        np.sqrt(eta) * sme_het.expect[0],
+        atol=1e-2,
+    )
+
+
+def test_heterodyne_mesolve_incorrect_custom_m_ops():
+    eta = 0.3
+
+    with pytest.raises(ValueError) as err:
+        smesolve(
+            sigmax(),
+            basis(2),
+            np.linspace(0, 1, 10),
+            [],
+            [sigmam()],
+            e_ops=[],
+            store_measurement=True,
+            method="heterodyne",
+            # three m_ops, which is incorrect:
+            m_ops=[
+                np.sqrt(eta) * sigmax(),
+                np.sqrt(eta) * sigmay(),
+                np.sqrt(eta) * sigmaz(),
+            ],
+            ntraj=10,
+        )
+    assert str(err.value) == (
+        "The measured operators for the heterodyne method supposed to be"
+        " pairs of quadratures: m_ops should have even length."
+    )
