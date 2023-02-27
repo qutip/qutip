@@ -597,13 +597,20 @@ def smesolve(H, rho0, times, c_ops=[], sc_ops=[], e_ops=[],
     elif sso.method == 'heterodyne':
         if sso.m_ops is None:
             m_ops = []
+        elif len(sso.m_ops) != 2 * len(sc_ops):
+            raise ValueError(
+                "When using the heterodyne method there should be two"
+                " measurement operators (m_ops) for each collapse operator"
+                " (sc_ops)."
+            )
         sso.sops = []
         for c in sso.sc_ops:
             if sso.m_ops is None:
                 m_ops += [c + c.dag(), -1j * (c - c.dag())]
             sso.sops += [(spre(c) + spost(c.dag())) / np.sqrt(2),
                          (spre(c) - spost(c.dag())) * -1j / np.sqrt(2)]
-        sso.m_ops = m_ops
+        if sso.m_ops is None:
+            sso.m_ops = m_ops
         if not isinstance(sso.dW_factors, list):
             sso.dW_factors = [np.sqrt(2)] * len(sso.sops)
         elif len(sso.dW_factors) == len(sso.m_ops):
@@ -689,7 +696,7 @@ def ssesolve(H, psi0, times, sc_ops=[], e_ops=[],
     if "method" in kwargs and kwargs["method"] == "photocurrent":
         print("stochastic solver with photocurrent method has been moved to "
               "it's own function: photocurrent_sesolve")
-        return photocurrent_sesolve(H, psi0, times, c_ops=c_ops,
+        return photocurrent_sesolve(H, psi0, times, sc_ops=sc_ops,
                                     e_ops=e_ops, _safe_mode=_safe_mode,
                                     args=args, **kwargs)
 

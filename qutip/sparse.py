@@ -28,12 +28,13 @@ if eigh_unsafe:
         norm = np.sum(np.conj(vec) * vec)**0.5
         vec /= norm
 
-    def eigh(mat, eigvals=[]):
+    def eigh(mat, subset_by_index=()):
         val, vec = la.eig(mat)
         val = np.real(val)
         idx = np.argsort(val)
         val = val[idx]
         vec = vec[:, idx]
+        eigvals = subset_by_index
         if eigvals:
             val = val[eigvals[0]:eigvals[1]+1]
             vec = vec[:, eigvals[0]:eigvals[1]+1]
@@ -47,9 +48,10 @@ if eigh_unsafe:
                 same_eigv = 0
         return val, vec
 
-    def eigvalsh(a, UPLO="L", eigvals=[]):
+    def eigvalsh(a, UPLO="L", subset_by_index=()):
         val = la.eigvals(a)
         val = np.sort(np.real(val))
+        eigvals = subset_by_index
         if eigvals:
             return val[eigvals[0]:eigvals[1]+1]
         return val
@@ -177,10 +179,10 @@ def _dense_eigs(data, isherm, vecs, N, eigvals, num_large, num_small):
             else:
                 if num_small > 0:
                     evals, evecs = eigh(
-                        data, eigvals=[0, num_small - 1])
+                        data, subset_by_index=[0, num_small - 1])
                 if num_large > 0:
                     evals, evecs = eigh(
-                        data, eigvals=[N - num_large, N - 1])
+                        data, subset_by_index=[N - num_large, N - 1])
         else:
             evals, evecs = la.eig(data)
     else:
@@ -189,9 +191,9 @@ def _dense_eigs(data, isherm, vecs, N, eigvals, num_large, num_small):
                 evals = eigvalsh(data)
             else:
                 if num_small > 0:
-                    evals = eigvalsh(data, eigvals=[0, num_small - 1])
+                    evals = eigvalsh(data, subset_by_index=[0, num_small - 1])
                 if num_large > 0:
-                    evals = eigvalsh(data, eigvals=[N - num_large, N - 1])
+                    evals = eigvalsh(data, subset_by_index=[N - num_large, N - 1])
         else:
             evals = la.eigvals(data)
 
