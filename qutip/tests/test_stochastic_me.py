@@ -357,6 +357,6 @@ def test_heterodyne_mesolve_incorrect_custom_m_ops():
             ntraj=10,
         )
     assert str(err.value) == (
-        "The measured operators for the heterodyne method supposed to be"
-        " pairs of quadratures: m_ops should have even length."
+        "When using the heterodyne method there should be two measurement"
+        " operators (m_ops) for each collapse operator (sc_ops)."
     )
