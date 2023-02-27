@@ -504,13 +504,6 @@ def heomsolve(
           Maximum lenght of one internal step. When using pulses, it should be
           less than half the width of the thinnest pulse.
 
-
-
-
-
-
-
-
     Returns
     -------
     :class:`~HEOMResult`
@@ -688,20 +681,6 @@ class HEOMSolver(Solver):
             exponents = []
             for b in bath:
                 exponents.extend(b.exponents)
-        all_bosonic = all(
-            exp.type in (exp.types.R, exp.types.I, exp.types.RI)
-            for exp in exponents
-        )
-        all_fermionic = all(
-            exp.type in (exp.types["+"], exp.types["-"])
-            for exp in exponents
-        )
-        if not (all_bosonic or all_fermionic):
-            raise ValueError(
-                "Bath exponents are currently restricted to being either"
-                " all bosonic or all fermionic, but a mixture of bath"
-                " exponents was given."
-            )
         if not all(exp.Q.dims == exponents[0].Q.dims for exp in exponents):
             raise ValueError(
                 "All bath exponents must have system coupling operators"
@@ -722,18 +701,10 @@ class HEOMSolver(Solver):
 
     def _grad_prev(self, he_n, k):
         """ Get the previous gradient. """
-        if self.ados.exponents[k].type in (
-                BathExponent.types.R, BathExponent.types.I,
-                BathExponent.types.RI
-        ):
-            return self._grad_prev_bosonic(he_n, k)
-        elif self.ados.exponents[k].type in (
-                BathExponent.types["+"], BathExponent.types["-"]
-        ):
+        if self.ados.exponents[k].fermionic:
             return self._grad_prev_fermionic(he_n, k)
         else:
-            raise ValueError(
-                f"Mode {k} has unsupported type {self.ados.exponents[k].type}")
+            return self._grad_prev_bosonic(he_n, k)
 
     def _grad_prev_bosonic(self, he_n, k):
         if self.ados.exponents[k].type == BathExponent.types.R:
@@ -765,11 +736,15 @@ class HEOMSolver(Solver):
 
     def _grad_prev_fermionic(self, he_n, k):
         ck = self.ados.ck
+        he_fermionic_n = [
+            i * int(exp.fermionic)
+            for i, exp in zip(he_n, self.ados.exponents)
+        ]
 
-        n_excite = sum(he_n)
+        n_excite = sum(he_fermionic_n)
         sign1 = (-1) ** (n_excite + 1)
 
-        n_excite_before_m = sum(he_n[:k])
+        n_excite_before_m = sum(he_fermionic_n[:k])
         sign2 = (-1) ** (n_excite_before_m)
 
         sigma_bar_k = k + self.ados.sigma_bar_k_offset[k]
@@ -799,28 +774,24 @@ class HEOMSolver(Solver):
 
     def _grad_next(self, he_n, k):
         """ Get the previous gradient. """
-        if self.ados.exponents[k].type in (
-                BathExponent.types.R, BathExponent.types.I,
-                BathExponent.types.RI
-        ):
-            return self._grad_next_bosonic(he_n, k)
-        elif self.ados.exponents[k].type in (
-                BathExponent.types["+"], BathExponent.types["-"]
-        ):
+        if self.ados.exponents[k].fermionic:
             return self._grad_next_fermionic(he_n, k)
         else:
-            raise ValueError(
-                f"Mode {k} has unsupported type {self.ados.exponents[k].type}")
+            return self._grad_next_bosonic(he_n, k)
 
     def _grad_next_bosonic(self, he_n, k):
         op = _data.mul(self._s_pre_minus_post_Q[k], -1j)
         return op
 
     def _grad_next_fermionic(self, he_n, k):
-        n_excite = sum(he_n)
+        he_fermionic_n = [
+            i * int(exp.fermionic)
+            for i, exp in zip(he_n, self.ados.exponents)
+        ]
+        n_excite = sum(he_fermionic_n)
         sign1 = (-1) ** (n_excite + 1)
 
-        n_excite_before_m = sum(he_n[:k])
+        n_excite_before_m = sum(he_fermionic_n[:k])
         sign2 = (-1) ** (n_excite_before_m)
 
         if self.ados.exponents[k].type == BathExponent.types["+"]:
@@ -1152,8 +1123,8 @@ class HEOMSolver(Solver):
 
         state_data_type: str, default="dense"
             Name of the data type of the state used during the ODE evolution.
-            Use an empty string to keep the input state type. Many integrator can
-            only work with `Dense`.
+            Use an empty string to keep the input state type. Many integrators
+            support only work with `Dense`.
 
         store_ados : bool, default=False
             Whether or not to store the HEOM ADOs. Only relevant when using
@@ -1306,7 +1277,7 @@ class _GatherHEOMRHS:
         )
 
     def gather(self):
-        """ Create the HEOM liouvillian from a sorted list of smaller (fast) CSR
+        """ Create the HEOM liouvillian from a sorted list of smaller sparse
             matrices.
 
             .. note::

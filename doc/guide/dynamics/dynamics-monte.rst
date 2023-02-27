@@ -69,7 +69,7 @@ function for master-equation evolution, except that the initial state must be a 
 To illustrate the use of the Monte Carlo evolution of quantum systems in QuTiP, let's again consider the case of a two-level atom coupled to a leaky cavity. The only differences to the master-equation treatment is that in this case we invoke the :func:`qutip.mcsolve` function instead of :func:`qutip.mesolve`
 
 .. plot::
-    :context:
+    :context: reset
 
     from qutip.solver.mcsolve import MCSolver, mcsolve
 
@@ -235,3 +235,8 @@ For example, the following code block plots expectation values for 1, 10 and 100
     plt.ylabel('Expectation values')
     plt.legend()
     plt.show()
+
+.. plot::
+    :context: reset
+    :include-source: false
+    :nofigs:

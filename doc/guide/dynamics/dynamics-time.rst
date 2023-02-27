@@ -73,7 +73,7 @@ As an example, we will look at a case with a time-dependent Hamiltonian of the f
 The following code sets up the problem
 
 .. plot::
-    :context: close-figs
+    :context: reset
 
     ustate = basis(3, 0)
     excited = basis(3, 1)
@@ -107,7 +107,7 @@ The following code sets up the problem
 Given that we have a single time-dependent Hamiltonian term, and constant collapse terms, we need to specify a single Python function for the coefficient :math:`f(t)`.  In this case, one can simply do
 
 .. plot::
-    :context:
+    :context: close-figs
     :nofigs:
 
     def H1_coeff(t):
@@ -435,3 +435,8 @@ Accessing the state from solver
 ===============================
 
 In QuTiP 4.4 to 4.7, it was possible to request that the solver pass the state, expectation values or collapse operators via arguments to :class:`QobjEvo`. Support for this is not yet available in QuTiP 5.
+
+.. plot::
+    :context: reset
+    :include-source: false
+    :nofigs:

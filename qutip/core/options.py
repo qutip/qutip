@@ -89,6 +89,12 @@ class CoreOptions(QutipOptions):
           on the signature of the supplied function. If the function signature
           is exactly ``f(t, args)`` then ``dict`` is used. Otherwise
           ``pythonic`` is used.
+
+    default_dtype : Nonetype, str, type {None}
+        When set, functions creating :class:`Qobj`, such as :func:"qeye" or
+        :func:"rand_herm", will use the specified data type. Any data-layer
+        known to ``qutip.data.to`` is accepted. When ``None``, these functions
+        will default to a sensible data type.
     """
     _options = {
         # use auto tidyup
@@ -103,6 +109,8 @@ class CoreOptions(QutipOptions):
         "auto_tidyup_atol": 1e-14,
         # signature style expected by function coefficients
         "function_coefficient_style": "auto",
+        # Default Qobj dtype for Qobj create function
+        "default_dtype": None,
     }
     _settings_name = "core"
 
