@@ -24,6 +24,7 @@ from . import (Qobj, create, destroy, jmat, basis,
                to_super, to_choi, to_chi, to_kraus, to_stinespring)
 from .core import data as _data
 from .core.dimensions import flatten
+from . import settings
 
 
 _RAND = default_rng()
@@ -210,7 +211,7 @@ def _merge_shuffle_blocks(blocks, generator):
 
 
 def rand_herm(dimensions, density=0.30, distribution="fill", *,
-              eigenvalues=(), seed=None, dtype=_data.CSR):
+              eigenvalues=(), seed=None, dtype=None):
     """Creates a random sparse Hermitian quantum object.
 
     Parameters
@@ -277,13 +278,16 @@ def rand_herm(dimensions, density=0.30, distribution="fill", *,
         while _data.csr.nnz(out) < 0.95 * nvals:
             out = _rand_jacobi_rotation(out, generator)
         out = Qobj(out, type=type, dims=dims, isherm=True, copy=False)
+        dtype = dtype or settings.core["default_dtype"] or _data.CSR
 
     else:
         pos_def = distribution == "pos_def"
         if density < 0.5:
             M = _rand_herm_sparse(N, density, pos_def, generator)
+            dtype = dtype or settings.core["default_dtype"] or _data.CSR
         else:
             M = _rand_herm_dense(N, density, pos_def, generator)
+            dtype = dtype or settings.core["default_dtype"] or _data.Dense
 
         out = Qobj(M, type=type, dims=dims, isherm=True, copy=False)
 
@@ -335,7 +339,7 @@ def _rand_herm_dense(N, density, pos_def, generator):
 
 
 def rand_unitary(dimensions, density=1, distribution="haar", *,
-                 seed=None, dtype=_data.Dense):
+                 seed=None, dtype=None):
     r"""Creates a random sparse unitary quantum object.
 
     Parameters
@@ -369,6 +373,7 @@ def rand_unitary(dimensions, density=1, distribution="haar", *,
     oper : qobj
         Unitary quantum operator.
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     N, dims = _implicit_tensor_dimensions(dimensions)
     type = None
     if N == 1:
@@ -440,7 +445,7 @@ def _rand_unitary_haar(N, generator):
 
 
 def rand_ket(dimensions, density=1, distribution="haar", *,
-             seed=None, dtype=_data.Dense):
+             seed=None, dtype=None):
     """Creates a random ket vector.
 
     Parameters
@@ -475,6 +480,7 @@ def rand_ket(dimensions, density=1, distribution="haar", *,
     oper : qobj
         Ket quantum state vector.
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     generator = _get_generator(seed)
     N, dims = _implicit_tensor_dimensions(dimensions)
     type = None
@@ -504,7 +510,8 @@ def rand_ket(dimensions, density=1, distribution="haar", *,
 
 
 def rand_dm(dimensions, density=0.75, distribution="ginibre", *,
-            eigenvalues=(), rank=None, seed=None, dtype=_data.CSR):
+            eigenvalues=(), rank=None, seed=None,
+            dtype=None):
     r"""Creates a random density matrix of the desired dimensions.
 
     Parameters
@@ -551,6 +558,7 @@ def rand_dm(dimensions, density=0.75, distribution="ginibre", *,
     oper : qobj
         Density matrix quantum operator.
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     generator = _get_generator(seed)
     N, dims = _implicit_tensor_dimensions(dimensions)
     type = None
@@ -633,7 +641,8 @@ def _rand_dm_ginibre(N, rank, generator):
     return rho
 
 
-def rand_kraus_map(dimensions, *, seed=None, dtype=_data.Dense):
+def rand_kraus_map(dimensions, *, seed=None,
+                   dtype=None):
     """
     Creates a random CPTP map on an N-dimensional Hilbert space in Kraus
     form.
@@ -660,6 +669,7 @@ def rand_kraus_map(dimensions, *, seed=None, dtype=_data.Dense):
         N^2 x N x N qobj operators.
 
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     N, dims = _implicit_tensor_dimensions(dimensions)
 
     # Random unitary (Stinespring Dilation)
@@ -670,7 +680,8 @@ def rand_kraus_map(dimensions, *, seed=None, dtype=_data.Dense):
             for x in oper_list]
 
 
-def rand_super(dimensions, *, superrep="super", seed=None, dtype=_data.Dense):
+def rand_super(dimensions, *, superrep="super", seed=None,
+               dtype=None):
     """
     Returns a randomly drawn superoperator acting on operators acting on
     N dimensions.
@@ -694,6 +705,7 @@ def rand_super(dimensions, *, superrep="super", seed=None, dtype=_data.Dense):
         Storage representation. Any data-layer known to `qutip.data.to` is
         accepted.
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     generator = _get_generator(seed)
     from .solver.propagator import propagator
     N, dims = _implicit_tensor_dimensions(dimensions, superoper=True)
@@ -711,7 +723,8 @@ def rand_super(dimensions, *, superrep="super", seed=None, dtype=_data.Dense):
 
 
 def rand_super_bcsz(dimensions, enforce_tp=True, rank=None, *,
-                    superrep="super", seed=None, dtype=_data.CSR):
+                    superrep="super", seed=None,
+                    dtype=None):
     """
     Returns a random superoperator drawn from the Bruzda
     et al ensemble for CPTP maps [BCSZ08]_. Note that due to
@@ -754,6 +767,7 @@ def rand_super_bcsz(dimensions, enforce_tp=True, rank=None, *,
         A superoperator acting on vectorized dim × dim density operators,
         sampled from the BCSZ distribution.
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.CSR
     generator = _get_generator(seed)
     N, dims = _implicit_tensor_dimensions(dimensions, superoper=True)
 
@@ -813,7 +827,7 @@ def rand_super_bcsz(dimensions, enforce_tp=True, rank=None, *,
 
 
 def rand_stochastic(dimensions, density=0.75, kind='left',
-                    *, seed=None, dtype=_data.CSR):
+                    *, seed=None, dtype=None):
     """Generates a random stochastic matrix.
 
     Parameters
@@ -843,6 +857,7 @@ def rand_stochastic(dimensions, density=0.75, kind='left',
     oper : qobj
         Quantum operator form of stochastic matrix.
     """
+    dtype = dtype or settings.core["default_dtype"] or _data.Dense
     generator = _get_generator(seed)
     N, dims = _implicit_tensor_dimensions(dimensions)
     num_elems = max([int(np.ceil(N*(N+1)*density)/2), N])
