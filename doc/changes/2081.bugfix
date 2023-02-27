@@ -1,1 +1,2 @@
 Fix setting of sso.m_ops in heterodyne smesolver and passing through of sc_ops to photocurrent solver. (`#2081 <https://github.com/qutip/qutip/pull/2081>`_ by Bogdan Reznychenko and Simon Cross)
+Update calls to SciPy eigvalsh and eigsh to pass the range of eigenvalues to return using ``subset_by_index=`` instead of ``eigvals=``. ``eigvals=`` was deprecated in SciPy 1.10. (`#2081 <https://github.com/qutip/qutip/pull/2081>`_ by Simon Cross)
