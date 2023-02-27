@@ -1,0 +1,1 @@
+Fixed bug were some matrices were wrongly found to be hermitian.
