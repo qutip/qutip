@@ -537,7 +537,7 @@ cdef class StochasticSolver:
         return states_list, noise, measurements, expect
 
     @cython.boundscheck(False)
-    cdef complex[::1] run(self, double t, double dt, double[:, ::1] noise,
+    cpdef complex[::1] run(self, double t, double dt, double[:, ::1] noise,
                           complex[::1] vec, int num_substeps):
         """ Do one time full step"""
         cdef complex[::1] out = np.zeros(self.l_vec, dtype=complex)

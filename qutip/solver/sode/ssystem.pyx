@@ -5,7 +5,8 @@ Class to represent a stochastic differential equation system.
 
 from qutip.core import data as _data
 from qutip.core.cy.qobjevo cimport QobjEvo
-from qutip.core.data cimport Data, dense, Dense
+from qutip.core.data cimport Data, dense, Dense, imul_dense, iadd_dense
+from qutip.core.data.trace cimport trace_oper_ket_dense
 cimport cython
 import numpy as np
 from qutip.core import spre, spost, liouvillian
@@ -132,6 +133,7 @@ cdef class StochasticClosedSystem(_StochasticSystem):
             out.append(_data.add(_out, state, -0.5 * expect))
         return out
 
+
 cdef class StochasticOpenSystem(_StochasticSystem):
     cdef QobjEvo L
     cdef list c_ops
@@ -140,11 +142,11 @@ cdef class StochasticOpenSystem(_StochasticSystem):
     cdef int _is_set
     cdef bint _a_set, _b_set, _Lb_set, _L0b_set, _La_set, _LLb_set, _L0a_set
 
-    cdef readonly Dense _a, temp, _L0a
-    cdef readonly complex[::1] expect_Cv
-    cdef readonly complex[:, ::1] expect_Cb, _b, _La, _L0b
-    cdef readonly complex[:, :, ::1] _Lb
-    cdef readonly complex[:, :, :, ::1] _LLb
+    cdef Dense _a, temp, _L0a
+    cdef complex[::1] expect_Cv
+    cdef complex[:, ::1] expect_Cb, _b, _La, _L0b
+    cdef complex[:, :, ::1] _Lb
+    cdef complex[:, :, :, ::1] _LLb
 
     def __init__(self, H, sc_ops, c_ops=(), heterodyne=False):
         if H.issuper:
@@ -217,10 +219,10 @@ cdef class StochasticOpenSystem(_StochasticSystem):
             self._compute_a()
         return self._a
 
-    cdef void _compute_a(self) except *:
+    cdef void _compute_a(StochasticOpenSystem self) except *:
         if not self._is_set:
             raise RuntimeError
-        _data.imul_dense(self._a, 0)
+        imul_dense(self._a, 0)
         self.L.matmul_data(self.t, self.state, self._a)
         self._a_set = True
 
@@ -229,6 +231,8 @@ cdef class StochasticOpenSystem(_StochasticSystem):
             self._compute_b()
         return _dense_wrap(self._b[i, :])
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef void _compute_b(self) except *:
         if not self._is_set:
             raise RuntimeError
@@ -238,10 +242,10 @@ cdef class StochasticOpenSystem(_StochasticSystem):
         for i in range(self.num_collapse):
             c_op = <QobjEvo> self.c_ops[i]
             b_vec = <Dense> _dense_wrap(self._b[i, :])
-            _data.imul_dense(b_vec, 0)
+            imul_dense(b_vec, 0)
             c_op.matmul_data(self.t, self.state, b_vec)
-            self.expect_Cv[i] = _data.trace_oper_ket_dense(b_vec)
-            _data.iadd_dense(b_vec, self.state, -self.expect_Cv[i])
+            self.expect_Cv[i] = trace_oper_ket_dense(b_vec)
+            iadd_dense(b_vec, self.state, -self.expect_Cv[i])
         self._b_set = True
 
     cpdef Data Libj(self, int i, int j):
@@ -252,6 +256,8 @@ cdef class StochasticOpenSystem(_StochasticSystem):
             j, i = i, j
         return _dense_wrap(self._Lb[i, j, :])
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef void _compute_Lb(self) except *:
         cdef int i, j
         cdef QobjEvo c_op
@@ -265,11 +271,11 @@ cdef class StochasticOpenSystem(_StochasticSystem):
             for j in range(i, self.num_collapse):
                 b_vec = <Dense> _dense_wrap(self._b[j, :])
                 Lb_vec = <Dense> _dense_wrap(self._Lb[i, j, :])
-                _data.imul_dense(Lb_vec, 0)
+                imul_dense(Lb_vec, 0)
                 c_op.matmul_data(self.t, b_vec, Lb_vec)
-                self.expect_Cb[i,j] = _data.trace_oper_ket_dense(Lb_vec)
-                _data.iadd_dense(Lb_vec, b_vec, -self.expect_Cv[i])
-                _data.iadd_dense(Lb_vec, self.state, -self.expect_Cb[i,j])
+                self.expect_Cb[i,j] = trace_oper_ket_dense(Lb_vec)
+                iadd_dense(Lb_vec, b_vec, -self.expect_Cv[i])
+                iadd_dense(Lb_vec, self.state, -self.expect_Cb[i,j])
         self._Lb_set = True
 
     cpdef Data Lia(self, int i):
@@ -277,6 +283,8 @@ cdef class StochasticOpenSystem(_StochasticSystem):
             self._compute_La()
         return _dense_wrap(self._La[i, :])
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef void _compute_La(self) except *:
         cdef int i
         cdef QobjEvo c_op
@@ -287,7 +295,7 @@ cdef class StochasticOpenSystem(_StochasticSystem):
         for i in range(self.num_collapse):
             b_vec = <Dense> _dense_wrap(self._b[i, :])
             La_vec = <Dense> _dense_wrap(self._La[i, :])
-            _data.imul_dense(La_vec, 0.)
+            imul_dense(La_vec, 0.)
             self.L.matmul_data(self.t, b_vec, La_vec)
         self._La_set = True
 
@@ -297,6 +305,8 @@ cdef class StochasticOpenSystem(_StochasticSystem):
             self._compute_L0b()
         return _dense_wrap(self._L0b[i, :])
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef void _compute_L0b(self) except *:
         cdef int i, j
         cdef QobjEvo c_op
@@ -310,30 +320,30 @@ cdef class StochasticOpenSystem(_StochasticSystem):
             c_op = <QobjEvo> self.c_ops[i]
             L0b_vec = <Dense> _dense_wrap(self._L0b[i, :])
             b_vec = <Dense> _dense_wrap(self._b[i, :])
-            _data.imul_dense(L0b_vec, 0.)
+            imul_dense(L0b_vec, 0.)
 
             # db/dt
             c_op.matmul_data(self.t + self.dt, self.state, L0b_vec)
-            expect = _data.trace_oper_ket_dense(L0b_vec)
-            _data.iadd_dense(L0b_vec, self.state, -expect)
-            _data.iadd_dense(L0b_vec, b_vec, -1)
-            _data.imul_dense(L0b_vec, 1/self.dt)
+            expect = trace_oper_ket_dense(L0b_vec)
+            iadd_dense(L0b_vec, self.state, -expect)
+            iadd_dense(L0b_vec, b_vec, -1)
+            imul_dense(L0b_vec, 1/self.dt)
 
             # ab'
-            _data.imul_dense(self.temp, 0)
+            imul_dense(self.temp, 0)
             c_op.matmul_data(self.t, self._a, self.temp)
-            expect = _data.trace_oper_ket_dense(self.temp)
-            _data.iadd_dense(L0b_vec, self.temp, 1)
-            _data.iadd_dense(L0b_vec, self._a, -self.expect_Cv[i])
-            _data.iadd_dense(L0b_vec, self.state, -expect)
+            expect = trace_oper_ket_dense(self.temp)
+            iadd_dense(L0b_vec, self.temp, 1)
+            iadd_dense(L0b_vec, self._a, -self.expect_Cv[i])
+            iadd_dense(L0b_vec, self.state, -expect)
 
             # bbb" : expect_Cb[i,j] only defined for j>=i
             for j in range(i):
                 b_vec = <Dense> _dense_wrap(self._b[j, :])
-                _data.iadd_dense(L0b_vec, b_vec, -self.expect_Cb[j,i])
+                iadd_dense(L0b_vec, b_vec, -self.expect_Cb[j,i])
             for j in range(i, self.num_collapse):
                 b_vec = <Dense> _dense_wrap(self._b[j, :])
-                _data.iadd_dense(L0b_vec, b_vec, -self.expect_Cb[i,j])
+                iadd_dense(L0b_vec, b_vec, -self.expect_Cb[i,j])
         self._L0b_set = True
 
     cpdef Data LiLjbk(self, int i, int j, int k):
@@ -350,6 +360,8 @@ cdef class StochasticOpenSystem(_StochasticSystem):
 
         return _dense_wrap(self._LLb[i, j, k, :])
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef void _compute_LLb(self) except *:
         # LiLjbk = bi(bj'bk'+bjbk"), i<=j<=k
         # sc_ops must commute (LiLjbk = LjLibk = LkLjbi)
@@ -367,15 +379,15 @@ cdef class StochasticOpenSystem(_StochasticSystem):
                 Lb_vec = <Dense> _dense_wrap(self._Lb[j, k, :])
                 bj_vec = <Dense> _dense_wrap(self._b[j, :])
                 bk_vec = <Dense> _dense_wrap(self._b[k, :])
-                _data.imul_dense(LLb_vec, 0.)
+                imul_dense(LLb_vec, 0.)
 
                 c_op.matmul_data(self.t, Lb_vec, LLb_vec)
-                expect = _data.trace_oper_ket_dense(LLb_vec)
+                expect = trace_oper_ket_dense(LLb_vec)
 
-                _data.iadd_dense(LLb_vec, Lb_vec, -self.expect_Cv[i])
-                _data.iadd_dense(LLb_vec, self.state, -expect)
-                _data.iadd_dense(LLb_vec, bj_vec, -self.expect_Cb[i,k])
-                _data.iadd_dense(LLb_vec, bk_vec, -self.expect_Cb[i,j])
+                iadd_dense(LLb_vec, Lb_vec, -self.expect_Cv[i])
+                iadd_dense(LLb_vec, self.state, -expect)
+                iadd_dense(LLb_vec, bj_vec, -self.expect_Cb[i,k])
+                iadd_dense(LLb_vec, bk_vec, -self.expect_Cb[i,j])
 
         self._LLb_set = True
 
@@ -387,10 +399,10 @@ cdef class StochasticOpenSystem(_StochasticSystem):
 
     cdef void _compute_L0a(self) except *:
         # L0a = a'a + da/dt + bba"/2  (a" = 0)
-        _data.imul_dense(self._L0a, 0.)
+        imul_dense(self._L0a, 0.)
         self.L.matmul_data(self.t + self.dt, self.state, self._L0a)
-        _data.iadd_dense(self._L0a, self._a, -1)
-        _data.imul_dense(self._L0a, 1/self.dt)
+        iadd_dense(self._L0a, self._a, -1)
+        imul_dense(self._L0a, 1/self.dt)
         self.L.matmul_data(self.t, self._a, self._L0a)
         self._L0a_set = True
 
