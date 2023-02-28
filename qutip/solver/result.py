@@ -866,7 +866,7 @@ class MultiTrajResult(_BaseResult):
         return new
 
 
-class McTrajectory(Result):
+class McTrajectoryResult(Result):
     def __init__(self, e_ops, options, *args, **kwargs):
         super().__init__(e_ops, {**options, "normalize_output": False},
                          *args, **kwargs)
@@ -978,7 +978,7 @@ class McResult(MultiTrajResult):
         return measurements
 
 
-class NmmcTrajectory(McTrajectory):
+class NmmcTrajectoryResult(McTrajectoryResult):
     def __init__(self, e_ops, options, solver, *args, **kwargs):
         super().__init__(e_ops, options, *args, **kwargs)
 

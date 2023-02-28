@@ -4,7 +4,7 @@ from functools import partial
 import numpy as np
 import scipy
 from .mcsolve import MCSolver
-from .result import NmmcResult, NmmcTrajectory
+from .result import NmmcResult, NmmcTrajectoryResult
 from ..core import CoreOptions, QobjEvo, isket, ket2dm, qeye
 
 
@@ -15,18 +15,20 @@ class NonMarkovianMCSolver(MCSolver):
     """
     name = "nm_mcsolve"
     resultclass = NmmcResult
-    # "solver" argument will be partially initialized in constructor
-    trajectoryclass = NmmcTrajectory
     solver_options = {
         **MCSolver.solver_options,
         "completeness_rtol": 1e-5,
         "completeness_atol": 1e-8,
     }
 
+    # "solver" argument will be partially initialized in constructor
+    trajectory_resultclass = NmmcTrajectoryResult
+
     # ops_and_rates is a list of tuples (L_i, Gamma_i),
     #     where Gamma_i = Gamma_i(t) is callable
     def __init__(self, H, ops_and_rates, *args, options=None, **kwargs):
-        self.trajectoryclass = partial(NmmcTrajectory, solver=self)
+        self.trajectory_resultclass = partial(NmmcTrajectoryResult,
+                                              solver=self)
 
         self.ops_and_rates = list(ops_and_rates)
         self.options = options

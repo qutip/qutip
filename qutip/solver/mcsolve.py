@@ -4,7 +4,7 @@ import numpy as np
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns
 from .multitraj import MultiTrajSolver
 from .solver_base import Solver, Integrator
-from .result import McResult, McTrajectory
+from .result import McResult, McTrajectoryResult
 from .mesolve import mesolve, MESolver
 import qutip.core.data as _data
 from time import time
@@ -347,7 +347,7 @@ class MCSolver(MultiTrajSolver):
     """
     name = "mcsolve"
     resultclass = McResult
-    trajectoryclass = McTrajectory
+    trajectory_resultclass = McTrajectoryResult
     solver_options = {
         "progress_bar": "text",
         "progress_kwargs": {"chunk_size": 10},
