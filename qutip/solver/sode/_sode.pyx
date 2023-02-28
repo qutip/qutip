@@ -2,7 +2,7 @@
 
 from qutip.core import data as _data
 from qutip.core.cy.qobjevo cimport QobjEvo
-from qutip.core.data cimport Data, Dense
+from qutip.core.data cimport Data, Dense, imul_dense, iadd_dense
 from collections import defaultdict
 cimport cython
 from qutip.solver.sode.ssystem cimport _StochasticSystem
@@ -18,11 +18,11 @@ cdef class Euler:
     @cython.wraparound(False)
     def run(
         self, double t, Data state, double dt,
-        double[:, :, ::1] dW, int ntraj
+        double[:, :, ::1] dW, int num_step
     ):
         cdef int i
         cdef Data out
-        for i in range(ntraj):
+        for i in range(num_step):
             state = self.step(t + i * dt, state, dt, dW[i, :, :])
         return state
 
@@ -260,12 +260,12 @@ cdef class Milstein:
 
         system.set_state(t, state)
 
-        _data.imul_dense(out, 0.)
-        _data.iadd_dense(out, state, 1)
-        _data.iadd_dense(out, system.a(), dt)
+        imul_dense(out, 0.)
+        iadd_dense(out, state, 1)
+        iadd_dense(out, system.a(), dt)
 
         for i in range(num_ops):
-            _data.iadd_dense(out, system.bi(i), dW[0, i])
+            iadd_dense(out, system.bi(i), dW[0, i])
 
         for i in range(num_ops):
             for j in range(i, num_ops):
@@ -273,7 +273,7 @@ cdef class Milstein:
                     dw = (dW[0, i] * dW[0, j] - dt) * 0.5
                 else:
                     dw = dW[0, i] * dW[0, j]
-                _data.iadd_dense(out, system.Libj(i, j), dw)
+                iadd_dense(out, system.Libj(i, j), dw)
 
 
 cdef class PredCorr:
@@ -318,26 +318,26 @@ cdef class PredCorr:
 
         system.set_state(t, state)
 
-        _data.imul_dense(out, 0.)
-        _data.iadd_dense(out, state, 1)
-        _data.iadd_dense(out, system.a(), dt * (1-alpha))
+        imul_dense(out, 0.)
+        iadd_dense(out, state, 1)
+        iadd_dense(out, system.a(), dt * (1-alpha))
 
-        _data.imul_dense(euler, 0.)
-        _data.iadd_dense(euler, state, 1)
-        _data.iadd_dense(euler, system.a(), dt)
+        imul_dense(euler, 0.)
+        iadd_dense(euler, state, 1)
+        iadd_dense(euler, system.a(), dt)
 
         for i in range(num_ops):
-            _data.iadd_dense(euler, system.bi(i), dW[0, i])
-            _data.iadd_dense(out, system.bi(i), dW[0, i] * eta)
-            _data.iadd_dense(out, system.Libj(i, i), dt * (alpha-1) * 0.5)
+            iadd_dense(euler, system.bi(i), dW[0, i])
+            iadd_dense(out, system.bi(i), dW[0, i] * eta)
+            iadd_dense(out, system.Libj(i, i), dt * (alpha-1) * 0.5)
 
         system.set_state(t+dt, euler)
         if alpha:
-            _data.iadd_dense(out, system.a(), dt*alpha)
+            iadd_dense(out, system.a(), dt*alpha)
 
         for i in range(num_ops):
-            _data.iadd_dense(out, system.bi(i), dW[0, i] * (1-eta))
-            _data.iadd_dense(out, system.Libj(i, i), -dt * alpha * 0.5)
+            iadd_dense(out, system.bi(i), dW[0, i] * (1-eta))
+            iadd_dense(out, system.Libj(i, i), -dt * alpha * 0.5)
 
         return out
 
@@ -373,24 +373,24 @@ cdef class Taylor15(Milstein):
         dw = dW[0, :]
         dz = 0.5 * (dW[0, :] + dW[1, :] / np.sqrt(3)) * dt
 
-        _data.imul_dense(out, 0.)
-        _data.iadd_dense(out, state, 1)
-        _data.iadd_dense(out, system.a(), dt)
-        _data.iadd_dense(out, system.L0a(), 0.5 * dt * dt)
+        imul_dense(out, 0.)
+        iadd_dense(out, state, 1)
+        iadd_dense(out, system.a(), dt)
+        iadd_dense(out, system.L0a(), 0.5 * dt * dt)
 
         for i in range(num_ops):
-            _data.iadd_dense(out, system.bi(i), dw[i])
-            _data.iadd_dense(out, system.Libj(i, i), 0.5 * (dw[i] * dw[i] - dt))
-            _data.iadd_dense(out, system.Lia(i), dz[i])
-            _data.iadd_dense(out, system.L0bi(i), dw[i] * dt - dz[i])
-            _data.iadd_dense(out, system.LiLjbk(i, i, i),
+            iadd_dense(out, system.bi(i), dw[i])
+            iadd_dense(out, system.Libj(i, i), 0.5 * (dw[i] * dw[i] - dt))
+            iadd_dense(out, system.Lia(i), dz[i])
+            iadd_dense(out, system.L0bi(i), dw[i] * dt - dz[i])
+            iadd_dense(out, system.LiLjbk(i, i, i),
                              0.5 * ((1/3.) * dw[i] * dw[i] - dt) * dw[i])
 
             for j in range(i+1, num_ops):
-                _data.iadd_dense(out, system.Libj(i, j), dw[i] * dw[j])
-                _data.iadd_dense(out, system.LiLjbk(i, j, j), 0.5 * (dw[j] * dw[j] -dt) * dw[i])
-                _data.iadd_dense(out, system.LiLjbk(i, i, j), 0.5 * (dw[i] * dw[i] -dt) * dw[j])
+                iadd_dense(out, system.Libj(i, j), dw[i] * dw[j])
+                iadd_dense(out, system.LiLjbk(i, j, j), 0.5 * (dw[j] * dw[j] -dt) * dw[i])
+                iadd_dense(out, system.LiLjbk(i, i, j), 0.5 * (dw[i] * dw[i] -dt) * dw[j])
                 for k in range(j+1, num_ops):
-                    _data.iadd_dense(out, system.LiLjbk(i, j, k), dw[i]*dw[j]*dw[k])
+                    iadd_dense(out, system.LiLjbk(i, j, k), dw[i]*dw[j]*dw[k])
 
         return out

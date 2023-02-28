@@ -1657,7 +1657,7 @@ cdef class SMESolver(StochasticSolver):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef complex expect(self, complex[::1] rho):
+    cpdef complex expect(self, complex[::1] rho):
         cdef complex e = 0.
         cdef int k
         for k in range(self.N_root):

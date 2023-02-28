@@ -169,5 +169,5 @@ def test_open_system(H, c_ops, heterodyne):
     c_ops = [_make_oper(op, N) for op in c_ops]
     H = liouvillian(H)
     system = StochasticOpenSystem(H, c_ops, heterodyne=heterodyne)
-    state = operator_to_vector(fock_dm(N, N-2)).data
+    state = operator_to_vector(fock_dm(N, N-2, dtype="Dense")).data
     _run_derr_check(system, state)

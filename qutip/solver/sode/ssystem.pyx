@@ -31,7 +31,7 @@ cdef class _StochasticSystem:
     cpdef list diffusion(self, t, Data state):
         raise NotImplementedError
 
-    cpdef void set_state(self, double t, Data state) except *:
+    cpdef void set_state(self, double t, Dense state) except *:
         raise NotImplementedError
 
     cpdef Data a(self):
@@ -137,7 +137,7 @@ cdef class StochasticClosedSystem(_StochasticSystem):
 cdef class StochasticOpenSystem(_StochasticSystem):
     cdef QobjEvo L
     cdef list c_ops
-    cdef int state_size
+    cdef int state_size, N_root
     cdef double dt
     cdef int _is_set
     cdef bint _a_set, _b_set, _Lb_set, _L0b_set, _La_set, _LLb_set, _L0a_set
@@ -170,6 +170,7 @@ cdef class StochasticOpenSystem(_StochasticSystem):
         self.dims = self.L.dims
         self.state_size = self.L.shape[1]
         self._is_set = 0
+        self.N_root = <int> self.state_size**0.5
 
     cpdef Data drift(self, t, Data state):
         return self.L.matmul_data(t, state)
@@ -186,10 +187,12 @@ cdef class StochasticOpenSystem(_StochasticSystem):
             out.append(_data.add(vec, state, -expect))
         return out
 
-    cpdef void set_state(self, double t, Data state) except *:
+    cpdef void set_state(self, double t, Dense state) except *:
         cdef n, l
         self.t = t
-        self.state = _data.to(_data.Dense, state).reorder(fortran=1)
+        if not state.fortran:
+            state = state.reorder(fortran=1)
+        self.state = state
         self._a_set = False
         self._b_set = False
         self._Lb_set = False
@@ -215,6 +218,8 @@ cdef class StochasticOpenSystem(_StochasticSystem):
             self.dt = 1e-6  #  Make an options
 
     cpdef Data a(self):
+        if not self._is_set:
+            raise RuntimeError
         if not self._a_set:
             self._compute_a()
         return self._a
@@ -227,6 +232,8 @@ cdef class StochasticOpenSystem(_StochasticSystem):
         self._a_set = True
 
     cpdef Data bi(self, int i):
+        if not self._is_set:
+            raise RuntimeError
         if not self._b_set:
             self._compute_b()
         return _dense_wrap(self._b[i, :])
@@ -238,17 +245,19 @@ cdef class StochasticOpenSystem(_StochasticSystem):
             raise RuntimeError
         cdef int i
         cdef QobjEvo c_op
-        cdef Dense b_vec
+        cdef Dense b_vec, state=self.state
         for i in range(self.num_collapse):
             c_op = <QobjEvo> self.c_ops[i]
             b_vec = <Dense> _dense_wrap(self._b[i, :])
             imul_dense(b_vec, 0)
-            c_op.matmul_data(self.t, self.state, b_vec)
+            c_op.matmul_data(self.t, state, b_vec)
             self.expect_Cv[i] = trace_oper_ket_dense(b_vec)
-            iadd_dense(b_vec, self.state, -self.expect_Cv[i])
+            iadd_dense(b_vec, state, -self.expect_Cv[i])
         self._b_set = True
 
     cpdef Data Libj(self, int i, int j):
+        if not self._is_set:
+            raise RuntimeError
         if not self._Lb_set:
             self._compute_Lb()
         # We only support commutative diffusion
@@ -261,7 +270,7 @@ cdef class StochasticOpenSystem(_StochasticSystem):
     cdef void _compute_Lb(self) except *:
         cdef int i, j
         cdef QobjEvo c_op
-        cdef Dense b_vec, Lb_vec
+        cdef Dense b_vec, Lb_vec, state=self.state
         cdef complex expect
         if not self._b_set:
             self._compute_b()
@@ -275,7 +284,7 @@ cdef class StochasticOpenSystem(_StochasticSystem):
                 c_op.matmul_data(self.t, b_vec, Lb_vec)
                 self.expect_Cb[i,j] = trace_oper_ket_dense(Lb_vec)
                 iadd_dense(Lb_vec, b_vec, -self.expect_Cv[i])
-                iadd_dense(Lb_vec, self.state, -self.expect_Cb[i,j])
+                iadd_dense(Lb_vec, state, -self.expect_Cb[i,j])
         self._Lb_set = True
 
     cpdef Data Lia(self, int i):
@@ -434,9 +443,9 @@ cdef class SimpleStochasticSystem(_StochasticSystem):
             out.append(self.c_ops[i].matmul_data(t, state))
         return out
 
-    cpdef void set_state(self, double t, Data state) except *:
+    cpdef void set_state(self, double t, Dense state) except *:
         self.t = t
-        self.state = _data.to(_data.Dense, state)
+        self.state = state
 
     cpdef Data a(self):
         return self.H.matmul_data(self.t, self.state)
