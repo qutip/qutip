@@ -1,12 +1,10 @@
 __all__ = ['mcsolve', "MCSolver"]
 
-import warnings
-
 import numpy as np
 from ..core import QobjEvo, spre, spost, Qobj, unstack_columns
 from .multitraj import MultiTrajSolver
 from .solver_base import Solver, Integrator
-from .result import McResult, Result
+from .result import McResult, McTrajectoryResult
 from .mesolve import mesolve, MESolver
 import qutip.core.data as _data
 from time import time
@@ -349,6 +347,7 @@ class MCSolver(MultiTrajSolver):
     """
     name = "mcsolve"
     resultclass = McResult
+    trajectory_resultclass = McTrajectoryResult
     solver_options = {
         "progress_bar": "text",
         "progress_kwargs": {"chunk_size": 10},
@@ -431,13 +430,7 @@ class MCSolver(MultiTrajSolver):
         # multiprocessing, but will fail with multithreading.
         # If a thread base parallel map is created, eahc trajectory should use
         # a copy of the integrator.
-        result = Result(e_ops, {**self.options, "normalize_output": False})
-        generator = self._get_generator(seed)
-        self._integrator.set_state(tlist[0], state, generator)
-        result.add(tlist[0], self._restore_state(state, copy=False))
-        for t in tlist[1:]:
-            t, state = self._integrator.integrate(t, copy=False)
-            result.add(t, self._restore_state(state, copy=False))
+        seed, result = super()._run_one_traj(seed, state, tlist, e_ops)
         result.collapse = self._integrator.collapses
         return seed, result
 

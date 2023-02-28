@@ -1,6 +1,6 @@
 """ Class for solve function results"""
 import numpy as np
-from ..core import Qobj, QobjEvo, expect, qzero
+from ..core import Qobj, QobjEvo, expect, isket, ket2dm, qzero
 
 __all__ = ["Result", "MultiTrajResult", "McResult", "NmmcResult"]
 
@@ -866,6 +866,12 @@ class MultiTrajResult(_BaseResult):
         return new
 
 
+class McTrajectoryResult(Result):
+    def __init__(self, e_ops, options, *args, **kwargs):
+        super().__init__(e_ops, {**options, "normalize_output": False},
+                         *args, **kwargs)
+
+
 class McResult(MultiTrajResult):
     """
     Base class for storing solver results.
@@ -970,6 +976,21 @@ class McResult(MultiTrajResult):
                 for i in range(self.num_c_ops)
             ])
         return measurements
+
+
+class NmmcTrajectoryResult(McTrajectoryResult):
+    def __init__(self, e_ops, options, solver, *args, **kwargs):
+        super().__init__(e_ops, options, *args, **kwargs)
+
+        self._solver = solver
+        self.trace = []
+
+    def add(self, t, state):
+        if isket(state):
+            state = ket2dm(state)
+        mu = self._solver._current_martingale()
+        super().add(t, state * mu)
+        self.trace.append(mu)
 
 
 class NmmcResult(McResult):
