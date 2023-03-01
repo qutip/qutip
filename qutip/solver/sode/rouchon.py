@@ -37,11 +37,14 @@ class RouchonSODE(SIntegrator):
         self.c_ops = rhs.c_ops
         self.sc_ops = rhs.sc_ops
         self.cpcds = [op + op.dag() for op in self.sc_ops]
+        for op in self.cpcds:
+            op.compress()
         self.M = (
             - 1j * self.H
             - sum(op.dag() @ op for op in self.c_ops) * 0.5
             - sum(op.dag() @ op for op in self.sc_ops) * 0.5
         )
+        self.M.compress()
         self.num_collapses = len(self.sc_ops)
         self.scc = [
             [self.sc_ops[i] @ self.sc_ops[j] for i in range(j+1)]
@@ -49,6 +52,15 @@ class RouchonSODE(SIntegrator):
         ]
 
         self.id = _data.identity[dtype](self.H.shape[0])
+
+        self.pre_M = qt.spre(self.M)
+        self.post_M = qt.spost(self.M.dag())
+        self.pre_sc = [qt.spre(c) for c in self.sc_ops]
+        self.post_sc = [qt.spost(c.dag()) for c in self.sc_ops]
+        self.pre_cc = [[qt.spre(cc) for cc in v] for v in self.scc]
+        self.post_cc = [[qt.spost(cc.dag()) for cc in v] for v in self.scc]
+        self.pp_cc = sum([qt.sprepost(op, op.dag()) for op in self.c_ops]) + self.pre_M * 0
+        self.e_c = [qt.spre(c + c.dag()) for c in self.sc_ops]
 
     def set_state(self, t, state0, generator):
         """
@@ -126,6 +138,35 @@ class RouchonSODE(SIntegrator):
         else:
             out = out / _data.norm.l2(out)
         return out
+
+    def _step_superops(self, t, state, dt, dW):
+        dy = [
+            op.expect_data(t, state) * dt + dw
+            for op, dw in zip(self.e_c, dW)
+        ]
+
+        temp = self.pre_M.matmul_data(t, state)
+        Mrho = _data.add(state, temp, dt)
+
+        for i in range(self.num_collapses):
+            Mrho = _data.add(Mrho, self.pre_sc[i].matmul_data(t, state), dy[i])
+            Mrho = _data.add(Mrho, self.pre_cc[i][i].matmul_data(t, state), (dy[i]**2-dt)/2)
+            for j in range(i):
+                Mrho = _data.add(Mrho, self.pre_cc[i][j].matmul_data(t, state), dy[i]*dy[j])
+
+        temp = self.post_M.matmul_data(t, Mrho)
+        MrhoM = _data.add(Mrho, temp, dt)
+
+        dy = np.conj(dy)
+        for i in range(self.num_collapses):
+            MrhoM = _data.add(MrhoM, self.post_sc[i].matmul_data(t, Mrho), dy[i])
+            MrhoM = _data.add(MrhoM, self.post_cc[i][i].matmul_data(t, Mrho), (dy[i]**2-dt)/2)
+            for j in range(i):
+                MrhoM = _data.add(MrhoM, self.post_cc[i][j].matmul_data(t, Mrho), dy[i]*dy[j])
+
+        out = _data.add(MrhoM, self.pp_cc.matmul_data(t, state), dt)
+
+        return out / _data.trace_oper_ket(out)
 
     @property
     def options(self):

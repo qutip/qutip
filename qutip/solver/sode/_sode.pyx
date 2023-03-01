@@ -67,7 +67,7 @@ cdef class Platen(Euler):
         cdef int i, j, num_ops = system.num_collapse
         cdef double sqrt_dt = np.sqrt(dt)
         cdef double sqrt_dt_inv = 0.25 / sqrt_dt
-        cdef double dw, dw2
+        cdef double dw, dw2, dw2p, dw2m
 
         cdef Data d1 = _data.add(state, system.drift(t, state), dt)
         cdef list d2 = system.diffusion(t, state)
@@ -90,14 +90,20 @@ cdef class Platen(Euler):
             d2p = system.diffusion(t, Vp[i])
             d2m = system.diffusion(t, Vm[i])
             dw = dW[0, i] * 0.25
-            out = _data.add(out, d2m[i], dw)
+            # out = _data.add(out, d2m[i], dw)
             out = _data.add(out, d2[i], 2 * dw)
-            out = _data.add(out, d2p[i], dw)
+            # out = _data.add(out, d2p[i], dw)
 
             for j in range(num_ops):
-                dw2 = sqrt_dt_inv * (dW[0, i] * dW[0, j] - dt * (i == j))
-                out = _data.add(out, d2p[j], dw2)
-                out = _data.add(out, d2m[j], -dw2)
+                if i == j:
+                    dw2 = sqrt_dt_inv * (dW[0, i] * dW[0, j] - dt)
+                    dw2p = dw2 + dw
+                    dw2m = -dw2 + dw
+                else:
+                    dw2p = sqrt_dt_inv * dW[0, i] * dW[0, j]
+                    dw2m = -dw2p
+                out = _data.add(out, d2p[j], dw2p)
+                out = _data.add(out, d2m[j], dw2m)
 
         return out
 
@@ -117,10 +123,12 @@ cdef class Explicit15(Euler):
         cdef double sqrt_dt = np.sqrt(dt)
         cdef double sqrt_dt_inv = 1./sqrt_dt
         cdef double ddz, ddw, ddd
-        cdef double[::1] dz, dw
+        cdef double[::1] dz, dw, dwp, dwm
 
         dw = np.empty(num_ops)
         dz = np.empty(num_ops)
+        dwp = np.zeros(num_ops)
+        dwm = np.zeros(num_ops)
         for i in range(num_ops):
             dw[i] = dW[0, i]
             dz[i] = 0.5 *(dW[0, i] + 1./np.sqrt(3) * dW[1, i])
@@ -162,6 +170,9 @@ cdef class Explicit15(Euler):
         for i in range(num_ops):
             ddz = dz[i] * 0.5 / sqrt_dt # 1.5
             ddd = 0.25 * (dw[i] * dw[i] / 3 - dt) * dw[i] / dt # 1.5
+            for j in range(num_ops):
+                dwp[j] = 0
+                dwm[j] = 0
 
             d1p = system.drift(t + dt/num_ops, v2p[i])
             d1m = system.drift(t + dt/num_ops, v2m[i])
@@ -179,47 +190,48 @@ cdef class Explicit15(Euler):
 
             out = _data.add(out, d2pp[i], ddd)
             out = _data.add(out, d2mm[i], -ddd)
-            out = _data.add(out, d2p[i], -ddd)
-            out = _data.add(out, d2m[i], ddd)
+            dwp[i] += -ddd
+            dwm[i] += ddd
 
             for j in range(num_ops):
                 ddw = 0.5 * (dw[j] - dz[j])  # O(1.5)
-                out = _data.add(out, d2p[j], ddw)
+                dwp[j] += ddw
+                dwm[j] += ddw
                 out = _data.add(out, d2[j], -2*ddw)
-                out = _data.add(out, d2m[j], ddw)
 
                 if j > i:
                     ddw = 0.5 * (dw[i] * dw[j]) / sqrt_dt  # O(1.0)
-                    out = _data.add(out, d2p[j], ddw)
-                    out = _data.add(out, d2m[j], -ddw)
+                    dwp[j] += ddw
+                    dwm[j] += -ddw
 
                     ddw = 0.25 * (dw[j] * dw[j] - dt) * dw[i] / dt  # O(1.5)
                     d2pp = system.diffusion(t, p2p[j][i])
                     d2mm = system.diffusion(t, p2m[j][i])
-
                     out = _data.add(out, d2pp[j], ddw)
                     out = _data.add(out, d2mm[j], -ddw)
-                    out = _data.add(out, d2p[j], -ddw)
-                    out = _data.add(out, d2m[j], ddw)
+                    dwp[j] += -ddw
+                    dwm[j] += ddw
 
                     for k in range(j+1, num_ops):
                         ddw = 0.5 * dw[i] * dw[j] * dw[k] / dt  # O(1.5)
-
                         out = _data.add(out, d2pp[k], ddw)
                         out = _data.add(out, d2mm[k], -ddw)
-                        out = _data.add(out, d2p[k], -ddw)
-                        out = _data.add(out, d2m[k], ddw)
+                        dwp[k] += -ddw
+                        dwm[k] += ddw
 
                 if j < i:
                     ddw = 0.25 * (dw[j] * dw[j] - dt) * dw[i] / dt  # O(1.5)
-
                     d2pp = system.diffusion(t, p2p[j][i])
                     d2mm = system.diffusion(t, p2m[j][i])
 
                     out = _data.add(out, d2pp[j], ddw)
                     out = _data.add(out, d2mm[j], -ddw)
-                    out = _data.add(out, d2p[j], -ddw)
-                    out = _data.add(out, d2m[j], ddw)
+                    dwp[j] += -ddw
+                    dwm[j] += ddw
+
+            for j in range(num_ops):
+                out = _data.add(out, d2p[j], dwp[j])
+                out = _data.add(out, d2m[j], dwm[j])
 
         return out
 
