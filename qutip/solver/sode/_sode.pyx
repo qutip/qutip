@@ -332,12 +332,13 @@ cdef class PredCorr:
             iadd_dense(out, system.Libj(i, i), dt * (alpha-1) * 0.5)
 
         system.set_state(t+dt, euler)
-        if alpha:
-            iadd_dense(out, system.a(), dt*alpha)
-
         for i in range(num_ops):
             iadd_dense(out, system.bi(i), dW[0, i] * (1-eta))
-            iadd_dense(out, system.Libj(i, i), -dt * alpha * 0.5)
+
+        if alpha:
+            iadd_dense(out, system.a(), dt*alpha)
+            for i in range(num_ops):
+                iadd_dense(out, system.Libj(i, i), -dt * alpha * 0.5)
 
         return out
 
