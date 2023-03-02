@@ -5,18 +5,6 @@ This module implements internal-use functions for semidefinite programming.
 """
 
 __all__ = [
-    'complex_var',
-    'herm',
-    'pos_noherm',
-    'pos',
-    'dens',
-    'kron',
-    'conj',
-    'bmat',
-    'dag',
-    'memoize',
-    'qudit_swap',
-    'initialize_constraints_on_dnorm_problem',
     'dnorm_problem',
     'dnorm_sparse_problem',
 ]
