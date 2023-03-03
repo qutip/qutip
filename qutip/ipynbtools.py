@@ -5,22 +5,22 @@ from qutip.ui.progressbar import BaseProgressBar
 from .settings import _blas_info, available_cpu_count
 import IPython
 
-# IPython parallel routines moved to ipyparallel in V4
-# IPython parallel routines not in Anaconda by default
+#IPython parallel routines moved to ipyparallel in V4
+#IPython parallel routines not in Anaconda by default
 if IPython.version_info[0] >= 4:
     try:
         from ipyparallel import Client
         __all__ = ['version_table', 'plot_animation',
-                   'parallel_map', 'HTMLProgressBar']
+                    'parallel_map', 'HTMLProgressBar']
     except:
-        __all__ = ['version_table', 'plot_animation', 'HTMLProgressBar']
+         __all__ = ['version_table', 'plot_animation', 'HTMLProgressBar']
 else:
     try:
         from IPython.parallel import Client
         __all__ = ['version_table', 'plot_animation',
-                   'parallel_map', 'HTMLProgressBar']
+                    'parallel_map', 'HTMLProgressBar']
     except:
-        __all__ = ['version_table', 'plot_animation', 'HTMLProgressBar']
+         __all__ = ['version_table', 'plot_animation', 'HTMLProgressBar']
 
 
 from IPython.display import HTML, Javascript, display
@@ -77,7 +77,7 @@ def version_table(verbose=False):
                 ("Python", sys.version),
                 ("OS", "%s [%s]" % (os.name, sys.platform))
                 ]
-
+    
     if "Cython" in sys.modules:
         packages.append(("Cython", Cython.__version__))
 
