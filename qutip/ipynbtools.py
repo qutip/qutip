@@ -5,22 +5,22 @@ from qutip.ui.progressbar import BaseProgressBar
 from .settings import _blas_info, available_cpu_count
 import IPython
 
-#IPython parallel routines moved to ipyparallel in V4
-#IPython parallel routines not in Anaconda by default
+# IPython parallel routines moved to ipyparallel in V4
+# IPython parallel routines not in Anaconda by default
 if IPython.version_info[0] >= 4:
     try:
         from ipyparallel import Client
         __all__ = ['version_table', 'plot_animation',
-                    'parallel_map', 'HTMLProgressBar']
+                   'parallel_map', 'HTMLProgressBar']
     except:
-         __all__ = ['version_table', 'plot_animation', 'HTMLProgressBar']
+        __all__ = ['version_table', 'plot_animation', 'HTMLProgressBar']
 else:
     try:
         from IPython.parallel import Client
         __all__ = ['version_table', 'plot_animation',
-                    'parallel_map', 'HTMLProgressBar']
+                   'parallel_map', 'HTMLProgressBar']
     except:
-         __all__ = ['version_table', 'plot_animation', 'HTMLProgressBar']
+        __all__ = ['version_table', 'plot_animation', 'HTMLProgressBar']
 
 
 from IPython.display import HTML, Javascript, display
@@ -39,9 +39,13 @@ import inspect
 import qutip
 import numpy
 import scipy
-import Cython
 import matplotlib
 import IPython
+
+try:
+    import Cython
+except:
+    pass
 
 
 def version_table(verbose=False):
@@ -67,13 +71,15 @@ def version_table(verbose=False):
                 ("Numpy", numpy.__version__),
                 ("SciPy", scipy.__version__),
                 ("matplotlib", matplotlib.__version__),
-                ("Cython", Cython.__version__),
                 ("Number of CPUs", available_cpu_count()),
                 ("BLAS Info", _blas_info()),
                 ("IPython", IPython.__version__),
                 ("Python", sys.version),
                 ("OS", "%s [%s]" % (os.name, sys.platform))
                 ]
+
+    if "Cython" in sys.modules:
+        packages.append(("Cython", Cython.__version__))
 
     for name, version in packages:
         html += "<tr><td>%s</td><td>%s</td></tr>" % (name, version)
