@@ -231,6 +231,11 @@ cdef class QobjEvo:
         if compress:
             self.compress()
 
+    def __repr__(self):
+        cls = self.__class__.__name__
+        
+        return f'<{cls} dims = {self.dims}, shape= {self.shape}, type = {self.type}, superrep = {self.superrep}, isconstant = {self.isconstant}, num_elements = {self.num_elements}>'
+
     def _read_element(self, op, copy, tlist, args, order, function_style):
         """ Read a Q_object item and return an element for that item. """
         if isinstance(op, Qobj):
