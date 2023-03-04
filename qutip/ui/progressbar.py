@@ -1,6 +1,6 @@
 __all__ = ['BaseProgressBar', 'TextProgressBar',
            'EnhancedTextProgressBar', 'TqdmProgressBar',
-           'progess_bars']
+           'progess_bars', 'HTMLProgressBar']
 
 import time
 import datetime

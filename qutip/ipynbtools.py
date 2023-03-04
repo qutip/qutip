@@ -1,7 +1,7 @@
 """
 This module contains utility functions for using QuTiP with IPython notebooks.
 """
-from qutip.ui.progressbar import BaseProgressBar
+from qutip.ui.progressbar import BaseProgressBar, HTMLProgressBar
 from .settings import _blas_info, available_cpu_count
 import IPython
 
@@ -11,16 +11,16 @@ if IPython.version_info[0] >= 4:
     try:
         from ipyparallel import Client
         __all__ = ['version_table', 'plot_animation',
-                    'parallel_map', 'HTMLProgressBar']
+                    'parallel_map']
     except:
-         __all__ = ['version_table', 'plot_animation', 'HTMLProgressBar']
+         __all__ = ['version_table', 'plot_animation']
 else:
     try:
         from IPython.parallel import Client
         __all__ = ['version_table', 'plot_animation',
-                    'parallel_map', 'HTMLProgressBar']
+                    'parallel_map']
     except:
-         __all__ = ['version_table', 'plot_animation', 'HTMLProgressBar']
+         __all__ = ['version_table', 'plot_animation']
 
 
 from IPython.display import HTML, Javascript, display
