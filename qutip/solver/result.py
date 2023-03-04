@@ -1007,6 +1007,9 @@ class NmmcResult(McResult):
         self.trace = avg
         self.average_trace = avg
         self.std_trace = np.sqrt(np.abs(avg2 - np.abs(avg)**2))
+        
+        if self.options['keep_runs_results']:
+            self.runs_trace.append(trajectory.trace)
 
     def _add_first_traj(self, trajectory):
         super()._add_first_traj(trajectory)
@@ -1021,5 +1024,6 @@ class NmmcResult(McResult):
         self.trace = []
         self.average_trace = []
         self.std_trace = []
+        self.runs_trace = []
 
         self.add_processor(self._add_trace)
