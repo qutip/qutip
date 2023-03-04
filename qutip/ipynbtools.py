@@ -97,57 +97,6 @@ def version_table(verbose=False):
     return HTML(html)
 
 
-class HTMLProgressBar(BaseProgressBar):
-    """
-    A simple HTML progress bar for using in IPython notebooks. Based on
-    IPython ProgressBar demo notebook:
-    https://github.com/ipython/ipython/tree/master/examples/notebooks
-
-    Example usage:
-
-        n_vec = linspace(0, 10, 100)
-        pbar = HTMLProgressBar(len(n_vec))
-        for n in n_vec:
-            pbar.update(n)
-            compute_with_n(n)
-    """
-
-    def __init__(self, iterations=0, chunk_size=1.0):
-        self.divid = str(uuid.uuid4())
-        self.textid = str(uuid.uuid4())
-        self.pb = HTML("""\
-<div style="border: 2px solid grey; width: 600px">
-  <div id="%s" \
-style="background-color: rgba(121,195,106,0.75); width:0%%">&nbsp;</div>
-</div>
-<p id="%s"></p>
-""" % (self.divid, self.textid))
-        display(self.pb)
-        super(HTMLProgressBar, self).start(iterations, chunk_size)
-
-    def start(self, iterations=0, chunk_size=1.0):
-        super(HTMLProgressBar, self).start(iterations, chunk_size)
-
-    def update(self, n):
-        p = (n / self.N) * 100.0
-        if p >= self.p_chunk:
-            lbl = ("Elapsed time: %s. " % self.time_elapsed() +
-                   "Est. remaining time: %s." % self.time_remaining_est(p))
-            js_code = ("$('div#%s').width('%i%%');" % (self.divid, p) +
-                       "$('p#%s').text('%s');" % (self.textid, lbl))
-            display(Javascript(js_code))
-            # display(Javascript("$('div#%s').width('%i%%')" % (self.divid,
-            # p)))
-            self.p_chunk += self.p_chunk_size
-
-    def finished(self):
-        self.t_done = time.time()
-        lbl = "Elapsed time: %s" % self.time_elapsed()
-        js_code = ("$('div#%s').width('%i%%');" % (self.divid, 100.0) +
-                   "$('p#%s').text('%s');" % (self.textid, lbl))
-        display(Javascript(js_code))
-
-
 def _visualize_parfor_data(metadata):
     """
     Visualizing the task scheduling meta data collected from AsyncResults.
