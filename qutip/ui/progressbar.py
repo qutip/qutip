@@ -196,7 +196,6 @@ style="background-color: rgba(121,195,106,0.75); width:0%%">&nbsp;</div>
         display(Javascript(js_code))
 
 
-
 progess_bars = {
     "Enhanced": EnhancedTextProgressBar,
     "enhanced": EnhancedTextProgressBar,
