@@ -53,7 +53,7 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
     options : None / dict
         Dictionary of options for the solver.
 
-        - store_final_state : bool [False]
+        - store_final_state : bool, [False]
           Whether or not to store the final state of the evolution in the
           result class.
         - store_states : bool, NoneType, [None]
@@ -66,7 +66,7 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
           if not installed. Empty string or False will disable the bar.
         - progress_kwargs : dict, [{"chunk_size": 10}]
           kwargs to pass to the progress_bar. Qutip's bars use `chunk_size`.
-        - method : str {"adams", "bdf", "dop853", "vern9", etc.} ["adams"]
+        - method : str {"adams", "bdf", "dop853", "vern9", etc.}, ["adams"]
           Which differential equation integration method to use.
         - keep_runs_results : bool, [False]
           Whether to store results from all trajectories or just store the
@@ -103,7 +103,7 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
 
             seeds=prev_result.seeds
 
-    target_tol : {float, tuple, list}, optional
+    target_tol : float, tuple, list, [optional]
         Target tolerance of the evolution. The evolution will compute
         trajectories until the error on the expectation values is lower than
         this tolerance. The maximum number of trajectories employed is
@@ -112,13 +112,13 @@ def mcsolve(H, state, tlist, c_ops=(), e_ops=None, ntraj=500, *,
         relative tolerance, in that order. Lastly, it can be a list of pairs of
         (atol, rtol) for each e_ops.
 
-    timeout : float [optional]
+    timeout : float, [optional]
         Maximum time for the evolution in second. When reached, no more
-        trajectories will be computed. Overwrite the option of the same name.
+        trajectories will be computed.
 
     Returns
     -------
-    results : :class:`qutip.solver.Result`
+    results : :class:`qutip.solver.McResult`
         Object storing all results from the simulation. Which results is saved
         depends on the presence of ``e_ops`` and the options used. ``collapse``
         and ``photocurrent`` is available to Monte Carlo simulation results.
