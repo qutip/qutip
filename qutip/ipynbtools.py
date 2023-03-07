@@ -44,7 +44,7 @@ import IPython
 
 try:
     import Cython
-except:
+except ImportError:
     pass
 
 
