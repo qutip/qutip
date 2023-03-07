@@ -1,5 +1,6 @@
-#cython: language_level=3
-#cython: boundscheck=False, wraparound=False, initializedcheck=False, cdvision=True
+# cython: language_level=3
+# cython: boundscheck=False, wraparound=False,
+#         initializedcheck=False, cdvision=True
 
 import numpy as np
 import numbers
@@ -17,7 +18,7 @@ from qutip.settings import settings
 from qutip.core.cy._element cimport _BaseElement
 from qutip.core.data cimport Dense, Data, dense
 from qutip.core.data.expect cimport *
-from qutip.core.data.reshape cimport (column_stack_dense, column_unstack_dense)
+from qutip.core.data.reshape cimport(column_stack_dense, column_unstack_dense)
 from qutip.core.cy.coefficient cimport Coefficient
 from qutip.core.qobj import _MATMUL_TYPE_LOOKUP
 from libc.math cimport fabs
@@ -233,7 +234,7 @@ cdef class QobjEvo:
 
     def __repr__(self):
         cls = self.__class__.__name__
-        return f'<{cls} dims = {self.dims}, shape= {self.shape}, type = {self.type}, superrep = {self.superrep}, isconstant = {self.isconstant}, num_elements = {self.num_elements}>'
+        return f'<{cls}: dims={self.dims}, shape={self.shape}, type={self.type}, superrep={self.superrep}, isconstant={self.isconstant}, num_elements={self.num_elements}>'
 
     def _read_element(self, op, copy, tlist, args, order, function_style):
         """ Read a Q_object item and return an element for that item. """
@@ -448,13 +449,13 @@ cdef class QobjEvo:
         if isinstance(other, QobjEvo):
             if other.dims != self.dims:
                 raise TypeError("incompatible dimensions" +
-                                 str(self.dims) + ", " + str(other.dims))
+                                str(self.dims) + ", " + str(other.dims))
             for element in (<QobjEvo> other).elements:
                 self.elements.append(element)
         elif isinstance(other, Qobj):
             if other.dims != self.dims:
                 raise TypeError("incompatible dimensions" +
-                                 str(self.dims) + ", " + str(other.dims))
+                                str(self.dims) + ", " + str(other.dims))
             self.elements.append(_ConstantElement(other))
         elif (
             isinstance(other, numbers.Number) and
@@ -984,9 +985,9 @@ cdef class QobjEvo:
                              ", " + str(state.dims[0]))
 
         return Qobj(self.matmul_data(t, state.data),
-                    dims=[self.dims[0],state.dims[1]],
+                    dims=[self.dims[0], state.dims[1]],
                     copy=False
-                   )
+                    )
 
     cpdef Data matmul_data(QobjEvo self, object t, Data state, Data out=None):
         """Compute ``out += self(t) @ state``"""

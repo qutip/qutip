@@ -131,6 +131,23 @@ def test_call(pseudo_qevo, coeff_type):
     assert not qevo.issuper
     _assert_qobjevo_equivalent(pseudo_qevo, qevo)
 
+# Test the QobjEvo.__repr__()
+def test_QobjEvo_repr():
+    # Creation of QobjEvo
+    case_1= QobjEvo([qeye(2), lambda t: t])
+    # Expected result from the __repr__()
+    expected_repr_1= "<QobjEvo: dims=[[2], [2]], shape=(2, 2), type=oper, superrep=None, isconstant=False, num_elements=1>"
+    assert case_1 == expected_repr_1
+    # Creation of QobjEvo
+    case_2= QobjEvo(qeye(2), lambda t: t)
+    case_3= QobjEvo([qeye(2)])
+    case_4= QobjEvo(qeye(2))
+    # Expected result from the __repr__()
+    expected_repr_2_3_4= "<QobjEvo: dims=[[2], [2]], shape=(2, 2), type=oper, superrep=None, isconstant=True, num_elements=1>"
+    assert case_2 == expected_repr_2_3_4
+    assert case_3 == expected_repr_2_3_4
+    assert case_4 == expected_repr_2_3_4
+
 
 @pytest.mark.parametrize('coeff_type',
                          ['func_coeff', 'string', 'array', 'logarray'])
