@@ -44,8 +44,9 @@ import IPython
 
 try:
     import Cython
+    _cython_available = True
 except ImportError:
-    pass
+    _cython_available = False
 
 
 def version_table(verbose=False):
