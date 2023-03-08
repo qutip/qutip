@@ -34,7 +34,8 @@ class QutipOptions:
     def __repr__(self):
         out = [f"<{self.__class__.__name__}("]
         for key, value in self.options.items():
-            out += [f"    '{key}': {repr(value)},"]
+            if value != self._options[key]:
+                out += [f"    '{key}': {repr(value)},"]
         out += [")>"]
         return "\n".join(out)
 
