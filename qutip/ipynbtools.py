@@ -79,7 +79,7 @@ def version_table(verbose=False):
                 ("OS", "%s [%s]" % (os.name, sys.platform))
                 ]
     
-    if "Cython" in sys.modules:
+    if _cython_available:
         packages.append(("Cython", Cython.__version__))
 
     for name, version in packages:
