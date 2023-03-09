@@ -99,6 +99,17 @@ cdef class QobjEvo:
         ``qutip.settings.core["function_coefficient_style"]``
         is used. Otherwise the supplied value overrides the global setting.
 
+
+    bc_type : 2-Tuple or None, optional
+        Boundary conditions for spline evaluation. Default value is `None` to
+        enable automatically choosing boundary conditions. Otherwise, a two-length
+        tuple of form (`deriv_l`, `deriv_r`) must be passed. Here, `deriv_l` denotes
+        the boundary conditions at ```t = 0``` and deriv_r, the conditions at time
+        ```t```. The condition specified must be an iterable pair of form (`order`,
+        `value`). Refer to Scipy's documentation for further details:
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.make_interp_spline.html
+
+
     Attributes
     ----------
     dims : list
@@ -182,7 +193,7 @@ cdef class QobjEvo:
     """
     def __init__(QobjEvo self, Q_object, args=None, tlist=None,
                  order=3, copy=True, compress=True,
-                 function_style=None):
+                 function_style=None, bc_type=None):
         if isinstance(Q_object, QobjEvo):
             self.dims = Q_object.dims.copy()
             self.shape = Q_object.shape
@@ -217,21 +228,21 @@ cdef class QobjEvo:
                 self.elements.append(
                     self._read_element(
                         op, copy=copy, tlist=tlist, args=args, order=order,
-                        function_style=function_style
+                        function_style=function_style, bc_type=bc_type
                     )
                 )
         else:
             self.elements.append(
                 self._read_element(
                     Q_object, copy=copy, tlist=tlist, args=args, order=order,
-                    function_style=function_style
+                    function_style=function_style, bc_type=bc_type
                 )
             )
 
         if compress:
             self.compress()
 
-    def _read_element(self, op, copy, tlist, args, order, function_style):
+    def _read_element(self, op, copy, tlist, args, order, function_style, bc_type):
         """ Read a Q_object item and return an element for that item. """
         if isinstance(op, Qobj):
             out = _ConstantElement(op.copy() if copy else op)
@@ -239,7 +250,7 @@ cdef class QobjEvo:
         elif isinstance(op, list):
             out = _EvoElement(
                 op[0].copy() if copy else op[0],
-                coefficient(op[1], tlist=tlist, args=args, order=order)
+                coefficient(op[1], tlist=tlist, args=args, order=order, bc_type=bc_type)
             )
             qobj = op[0]
         elif isinstance(op, _BaseElement):

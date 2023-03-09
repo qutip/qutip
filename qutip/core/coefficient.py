@@ -53,7 +53,8 @@ coefficient_builders = {
 
 
 def coefficient(base, *, tlist=None, args={}, args_ctypes={},
-                order=3, compile_opt=None, function_style=None, **kwargs):
+                order=3, compile_opt=None, function_style=None,
+                bc_type=None, **kwargs):
     """Build ``Coefficient`` for time dependent systems:
 
     ```
@@ -148,6 +149,9 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
 
     compile_opt : CompilationOptions, optional
         Sets of options for the compilation of string based coefficients.
+    
+    bc_type: 2-tupule or None, optional
+        Specify boundary conditions for spline interpolation.
 
     **kwargs
         Extra arguments to pass the the coefficients.
@@ -159,6 +163,7 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
         'order': order,
         'compile_opt': compile_opt,
         'function_style': function_style,
+        'bc_type': bc_type
     })
 
     for type_ in coefficient_builders:
