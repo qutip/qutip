@@ -149,7 +149,7 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
 
     compile_opt : CompilationOptions, optional
         Sets of options for the compilation of string based coefficients.
-    
+
     bc_type: 2-tupule or None, optional
         Specify boundary conditions for spline interpolation.
 
