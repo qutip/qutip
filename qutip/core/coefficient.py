@@ -54,7 +54,7 @@ coefficient_builders = {
 
 def coefficient(base, *, tlist=None, args={}, args_ctypes={},
                 order=3, compile_opt=None, function_style=None,
-                bc_type=None, **kwargs):
+                boundary_conditions=None, **kwargs):
     """Build ``Coefficient`` for time dependent systems:
 
     ```
@@ -163,7 +163,7 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
         'order': order,
         'compile_opt': compile_opt,
         'function_style': function_style,
-        'bc_type': bc_type
+        'bc_type': bc_type,
     })
 
     for type_ in coefficient_builders:

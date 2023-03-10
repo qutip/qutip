@@ -396,7 +396,6 @@ cdef class InterCoefficient(Coefficient):
         ```t```. The condition specified must be an iterable pair of form (`order`,
         `value`). Refer to Scipy's documentation for further details:
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.make_interp_spline.html
-
     """
     cdef int order
     cdef double dt
