@@ -78,7 +78,6 @@ def version_table(verbose=False):
                 ("Python", sys.version),
                 ("OS", "%s [%s]" % (os.name, sys.platform))
                 ]
-    
     if _cython_available:
         packages.append(("Cython", Cython.__version__))
 
