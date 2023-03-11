@@ -39,9 +39,14 @@ import inspect
 import qutip
 import numpy
 import scipy
-import Cython
 import matplotlib
 import IPython
+
+try:
+    import Cython
+    _cython_available = True
+except ImportError:
+    _cython_available = False
 
 
 def version_table(verbose=False):
@@ -67,13 +72,14 @@ def version_table(verbose=False):
                 ("Numpy", numpy.__version__),
                 ("SciPy", scipy.__version__),
                 ("matplotlib", matplotlib.__version__),
-                ("Cython", Cython.__version__),
                 ("Number of CPUs", available_cpu_count()),
                 ("BLAS Info", _blas_info()),
                 ("IPython", IPython.__version__),
                 ("Python", sys.version),
                 ("OS", "%s [%s]" % (os.name, sys.platform))
                 ]
+    if _cython_available:
+        packages.append(("Cython", Cython.__version__))
 
     for name, version in packages:
         html += "<tr><td>%s</td><td>%s</td></tr>" % (name, version)
