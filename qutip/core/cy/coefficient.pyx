@@ -388,13 +388,10 @@ cdef class InterCoefficient(Coefficient):
         Order of the interpolation. Order ``0`` uses the previous (i.e. left)
         value. The order will be reduced to ``len(tlist) - 1`` if it is larger.
 
-    bc_type : 2-Tuple or None, optional
-        Boundary conditions for spline evaluation. Default value is `None` to
-        enable automatically choosing boundary conditions. Otherwise, a two-length
-        tuple of form (`deriv_l`, `deriv_r`) must be passed. Here, `deriv_l` denotes
-        the boundary conditions at ```t = 0``` and deriv_r, the conditions at time
-        ```t```. The condition specified must be an iterable pair of form (`order`,
-        `value`). Refer to Scipy's documentation for further details:
+    boundary_conditions : 2-Tuple, str or None, optional
+        Boundary conditions for spline evaluation. Default value is `None`.
+        Correspond to `bc_type` of scipy.interpolate.make_interp_spline.
+        Refer to Scipy's documentation for further details:
         https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.make_interp_spline.html
     """
     cdef int order
@@ -403,7 +400,7 @@ cdef class InterCoefficient(Coefficient):
     cdef complex[:, :] poly
     cdef object np_arrays
 
-    def __init__(self, coeff_arr, tlist, int order, bc_type, **_):
+    def __init__(self, coeff_arr, tlist, int order, boundary_conditions, **_):
         tlist = np.array(tlist, dtype=np.float64)
         coeff_arr = np.array(coeff_arr, dtype=np.complex128)
 
@@ -427,7 +424,8 @@ cdef class InterCoefficient(Coefficient):
         elif order >= 2:
             # Use scipy to compute the spline and transform it to polynomes
             # as used in scipy's PPoly which is easier for us to use.
-            spline = make_interp_spline(tlist, coeff_arr, k=order, bc_type=bc_type)
+            spline = make_interp_spline(tlist, coeff_arr, k=order, 
+            bc_type=boundary_conditions)
             # Scipy can move knots, we add them to tlist
             tlist = np.sort(np.unique(np.concatenate([spline.t, tlist])))
             a = np.arange(spline.k+1)

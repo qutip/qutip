@@ -150,7 +150,7 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
     compile_opt : CompilationOptions, optional
         Sets of options for the compilation of string based coefficients.
 
-    bc_type: 2-tupule or None, optional
+    boundary_conditions: 2-tupule, str or None, optional
         Specify boundary conditions for spline interpolation.
 
     **kwargs
@@ -163,7 +163,7 @@ def coefficient(base, *, tlist=None, args={}, args_ctypes={},
         'order': order,
         'compile_opt': compile_opt,
         'function_style': function_style,
-        'bc_type': bc_type,
+        'boundary_conditions': boundary_conditions
     })
 
     for type_ in coefficient_builders:
