@@ -3,6 +3,8 @@ source = qutip
 omit =
     # QuTiP test files
     */qutip/tests/*
+    # Tool for tests
+    */qutip/solver/sode/noise.py
 
 [report]
 exclude_lines =

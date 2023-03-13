@@ -86,19 +86,10 @@ cdef class StochasticClosedSystem(_StochasticSystem):
     cdef readonly Dense _a, temp, _b_vec, _c_vec, _Lb
     cdef readonly complex _e
 
-    def __init__(self, H, sc_ops, heterodyne=False):
+    def __init__(self, H, sc_ops):
         self.H = -1j * H
-        if heterodyne:
-            self.c_ops = []
-            self.cpcd_ops = []
-            for c_op in sc_ops:
-                self.c_ops.append(c_op / np.sqrt(2))
-                self.c_ops.append(c_op * (-1j / np.sqrt(2)))
-                self.cpcd_ops.append((c_op + c_op.dag()) / np.sqrt(2))
-                self.cpcd_ops.append((-c_op + c_op.dag()) * 1j / np.sqrt(2))
-        else:
-            self.c_ops = sc_ops
-            self.cpcd_ops = [op + op.dag() for op in sc_ops]
+        self.c_ops = sc_ops
+        self.cpcd_ops = [op + op.dag() for op in sc_ops]
 
         self.num_collapse = len(self.c_ops)
         for c_op in self.c_ops:
@@ -148,7 +139,7 @@ cdef class StochasticOpenSystem(_StochasticSystem):
     cdef complex[:, :, ::1] _Lb
     cdef complex[:, :, :, ::1] _LLb
 
-    def __init__(self, H, sc_ops, c_ops=(), heterodyne=False):
+    def __init__(self, H, sc_ops, c_ops=()):
         if H.issuper:
             self.L = H + liouvillian(None, sc_ops)
         else:
@@ -156,15 +147,7 @@ cdef class StochasticOpenSystem(_StochasticSystem):
         if c_ops:
             self.L = self.L + liouvillian(None, c_ops)
 
-        if heterodyne:
-            self.c_ops = []
-            for c in sc_ops:
-                self.c_ops += [
-                    (spre(c) + spost(c.dag())) / np.sqrt(2),
-                    (spre(c) - spost(c.dag())) * -1j / np.sqrt(2)
-                ]
-        else:
-            self.c_ops = [spre(op) + spost(op.dag()) for op in sc_ops]
+        self.c_ops = [spre(op) + spost(op.dag()) for op in sc_ops]
         self.num_collapse = len(self.c_ops)
         self.issuper = True
         self.dims = self.L.dims

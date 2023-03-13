@@ -90,9 +90,7 @@ cdef class Platen(Euler):
             d2p = system.diffusion(t, Vp[i])
             d2m = system.diffusion(t, Vm[i])
             dw = dW[0, i] * 0.25
-            # out = _data.add(out, d2m[i], dw)
             out = _data.add(out, d2[i], 2 * dw)
-            # out = _data.add(out, d2p[i], dw)
 
             for j in range(num_ops):
                 if i == j:

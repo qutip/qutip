@@ -131,8 +131,8 @@ def _run_derr_check(solver, state):
         _check_equivalence(L0(solver, b), solver.L0bi(i), (t, state))
         _check_equivalence(L(solver, i, a), solver.Lia(i), (t, state))
 
-        for j in range(N):
-            for k in range(N):
+        for j in range(i, N):
+            for k in range(j, N):
                 _check_equivalence(
                     LL(solver, k, j, b), solver.LiLjbk(k, j, i), (t, state)
                 )
@@ -154,7 +154,7 @@ def _make_oper(kind, N):
     return QobjEvo(out)
 
 
-@pytest.mark.parametrize(['H', 'c_ops'], [
+@pytest.mark.parametrize(['H', 'sc_ops'], [
     pytest.param("qeye", ["destroy"], id='simple'),
     pytest.param("tridiag", ["destroy"], id='simple'),
     pytest.param("qeye", ["destroy", "destroy2"], id='2 c_ops'),
@@ -163,11 +163,17 @@ def _make_oper(kind, N):
     pytest.param("rand", ["rand"], id='random'),
 ])
 @pytest.mark.parametrize('heterodyne', [False, True])
-def test_open_system(H, c_ops, heterodyne):
+def test_open_system_derr(H, sc_ops, heterodyne):
     N = 5
     H = _make_oper(H, N)
-    c_ops = [_make_oper(op, N) for op in c_ops]
-    H = liouvillian(H)
-    system = StochasticOpenSystem(H, c_ops, heterodyne=heterodyne)
+    sc_ops = [_make_oper(op, N) for op in sc_ops]
+    if heterodyne:
+        new_sc_ops = []
+        for c_op in sc_ops:
+            new_sc_ops.append(c_op / np.sqrt(2))
+            new_sc_ops.append(c_op * (-1j / np.sqrt(2)))
+        sc_ops = new_sc_ops
+
+    system = StochasticOpenSystem(H, sc_ops)
     state = operator_to_vector(fock_dm(N, N-2, dtype="Dense")).data
     _run_derr_check(system, state)

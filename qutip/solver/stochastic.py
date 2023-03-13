@@ -55,8 +55,8 @@ class StochasticResult(MultiTrajResult):
 class StochasticRHS:
     def __init__(self, issuper, H, sc_ops, c_ops, heterodyne):
 
-        if not isinstance(H, (Qobj, QobjEvo)):
-            raise TypeError("...")
+        if not isinstance(H, (Qobj, QobjEvo)) or not H.isoper:
+            raise TypeError("The Hamiltonian must be am operator")
         self.H = QobjEvo(H)
 
         if isinstance(sc_ops, (Qobj, QobjEvo)):
@@ -76,6 +76,13 @@ class StochasticRHS:
         self.issuper = issuper
         self.heterodyne = heterodyne
 
+        if heterodyne:
+            sc_ops = []
+            for c_op in self.sc_ops:
+                sc_ops.append(c_op / np.sqrt(2))
+                sc_ops.append(c_op * (-1j / np.sqrt(2)))
+            self.sc_ops = sc_ops
+
         if self.issuper and not self.H.issuper:
             self.dims = [self.H.dims, self.H.dims]
         else:
@@ -83,13 +90,9 @@ class StochasticRHS:
 
     def __call__(self):
         if self.issuper:
-            return StochasticOpenSystem(
-                self.H , self.sc_ops, self.c_ops, self.heterodyne
-            )
+            return StochasticOpenSystem(self.H , self.sc_ops, self.c_ops)
         else:
-            return StochasticClosedSystem(
-                self.H , self.sc_ops, self.heterodyne
-            )
+            return StochasticClosedSystem(self.H , self.sc_ops)
 
 
 def smesolve(H, rho0, tlist, c_ops=(), sc_ops=(), e_ops=(), m_ops=(),
@@ -141,14 +144,10 @@ def smesolve(H, rho0, tlist, c_ops=(), sc_ops=(), e_ops=(), m_ops=(),
 
         An instance of the class :class:`qutip.solver.Result`.
     """
-    H = QobjEvo(H, args=args)
-    c_ops = [QobjEvo(c_op, args=args) for c_op in c_ops]
-    sc_ops = [QobjEvo(c_op, args=args) for c_op in sc_ops]
-    if H.issuper:
-        L = H + liouvillian(None, c_ops)
-    else:
-        L = liouvillian(H, c_ops)
-    sol = SMESolver(L, sc_ops, options=options or {}, m_ops=m_ops)
+    H = QobjEvo(H, args=args, tlist=tlist)
+    c_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in c_ops]
+    sc_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in sc_ops]
+    sol = SMESolver(H, sc_ops, c_ops=c_ops, options=options, m_ops=m_ops)
     return sol.run(rho0, tlist, ntraj, e_ops=e_ops)
 
 
@@ -201,9 +200,9 @@ def ssesolve(H, psi0, tlist, sc_ops=(), e_ops=(), m_ops=(),
 
         An instance of the class :class:`qutip.solver.Result`.
     """
-    H = QobjEvo(H, args=args)
-    sc_ops = [QobjEvo(c_op, args=args) for c_op in sc_ops]
-    sol = SSESolver(H, sc_ops, options=options or {}, m_ops=m_ops)
+    H = QobjEvo(H, args=args, tlist=tlist)
+    sc_ops = [QobjEvo(c_op, args=args, tlist=tlist) for c_op in sc_ops]
+    sol = SSESolver(H, sc_ops, options=options, m_ops=m_ops)
     return sol.run(psi0, tlist, ntraj, e_ops=e_ops)
 
 
@@ -219,7 +218,7 @@ class StochasticSolver(MultiTrajSolver):
         "store_states": None,
         "keep_runs_results": False,
         "normalize_output": False,
-        "method": "platen",
+        "method": "rouchon",
         "map": "serial",
         "job_timeout": None,
         "num_cpus": None,
@@ -232,15 +231,15 @@ class StochasticSolver(MultiTrajSolver):
     def __init__(self, H, sc_ops, *, c_ops=(), options=None, m_ops=()):
         self.options = options
         heterodyne = self.options["heterodyne"]
-        if c_ops:
-            raise ValueError("ssesolve c_ops")
+        if self.name == "ssesolve" and c_ops:
+            raise ValueError("")
 
-        rhs = StochasticRHS(self.name=="smesolve", H, sc_ops, c_ops, heterodyne)
+        rhs = StochasticRHS(self._open, H, sc_ops, c_ops, heterodyne)
         super().__init__(rhs, options=options)
 
         if self.options["store_measurement"]:
             n_m_ops = len(sc_ops) * (1 + int(heterodyne))
-            dW_factor = self.options["dw_factor"]
+            dW_factor = self.options["dw_factor"] or 1.
 
             if len(m_ops) == n_m_ops:
                 self.m_ops = m_ops
@@ -250,10 +249,9 @@ class StochasticSolver(MultiTrajSolver):
                     self.m_ops += [
                         op + op.dag(), -1j * (op - op.dag())
                     ]
-                dW_factor = dW_factor or 2**0.5
+                dW_factor = dW_factor * 0.5**0.5
             else:
                 self.m_ops = [op + op.dag() for op in sc_ops]
-                dW_factor = dW_factor or 1.
 
             if not isinstance(dW_factor, Iterable):
                 dW_factor = [dW_factor] * n_m_ops
@@ -299,8 +297,10 @@ class StochasticSolver(MultiTrajSolver):
 class SMESolver(StochasticSolver):
     name = "smesolve"
     _avail_integrators = {}
+    _open = True
 
 
 class SSESolver(StochasticSolver):
     name = "ssesolve"
     _avail_integrators = {}
+    _open = False
